@@ -4,7 +4,7 @@ All notable public changes to TropaTT should be documented here.
 
 This project follows a lightweight Keep a Changelog style. Dates are added when a release is actually created.
 
-## Unreleased
+## [0.2.0.2] - 2026-08-15
 
 ### Added
 
@@ -179,8 +179,6 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ### Fixed
 - **Network layer survives TLS 1.3 0-RTT anti-replay on any host** (no server configuration required): 425 Too Early and same-URL 307/opaque-redirect responses are automatically re-sent with the request body intact (any method), with an extra retry for the fresh-connection early-data case. In Chrome the 307 is surfaced as an opaque-redirect response (status 0), which is now also detected and retried — previously such hosts caused "network error" on page loads and failed PATCH/POST saves. Together with the existing retry-on-timeout/network/5xx and the status-bar "Retrying data load…" hint, the CRM recovers from transient host issues purely in code.
-
-## [Unreleased]
 
 ### Added
 
