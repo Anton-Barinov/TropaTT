@@ -90,11 +90,27 @@
                 <div class="mb-3">
                     <label class="form-label">Событие</label>
                     <select class="form-select" id="ruleEvent">
-                        <option value="task_created">task_created</option>
-                        <option value="task_updated">task_updated</option>
-                        <option value="task_status_changed">task_status_changed</option>
-                        <option value="comment_added">comment_added</option>
-                        <option value="worklog_logged">worklog_logged</option>
+                        <optgroup label="Задачи">
+                            <option value="task.created">task.created — создана</option>
+                            <option value="task.updated">task.updated — изменена</option>
+                            <option value="task.status_changed">task.status_changed — сменён статус</option>
+                            <option value="task.assignee_changed">task.assignee_changed — сменён исполнитель</option>
+                            <option value="task.deleted">task.deleted — удалена</option>
+                        </optgroup>
+                        <optgroup label="Комментарии и файлы">
+                            <option value="comment.added">comment.added — добавлен комментарий</option>
+                            <option value="file.uploaded">file.uploaded — загружен файл</option>
+                        </optgroup>
+                        <optgroup label="Проекты">
+                            <option value="project.created">project.created — создан</option>
+                            <option value="project.updated">project.updated — изменён</option>
+                            <option value="project.deleted">project.deleted — удалён</option>
+                        </optgroup>
+                        <optgroup label="Пользователи">
+                            <option value="user.created">user.created — создан</option>
+                            <option value="user.updated">user.updated — изменён</option>
+                            <option value="user.deleted">user.deleted — удалён</option>
+                        </optgroup>
                     </select>
                 </div>
                 <div class="mb-3">

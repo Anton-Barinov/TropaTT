@@ -8,6 +8,7 @@ use Api\System\Library\Http\JsonResponse;
 use Module\Crm\SlackIntegration\Repository\SlackRepository;
 use Module\Crm\SlackIntegration\Service\EncryptionService;
 use Module\Crm\SlackIntegration\Service\SlackClient;
+use Module\Crm\SlackIntegration\Service\SlackNotifier;
 use PDO;
 
 final class SlackController
@@ -337,12 +338,14 @@ final class SlackController
             return JsonResponse::error('NOT_FOUND', 'Connection not found', 404);
         }
 
+        $notifier = new SlackNotifier($this->pdo);
+
         if ($directText !== '') {
             $text = $directText;
         } elseif ($rule && trim((string)$rule['text_template']) !== '') {
-            $text = $this->interpolate((string)$rule['text_template'], $body, $eventCode);
+            $text = $notifier->interpolate((string)$rule['text_template'], $body, $eventCode);
         } else {
-            $text = $this->defaultText($body, $eventCode);
+            $text = $notifier->defaultText($body, $eventCode);
         }
 
         $delivery = $this->repo->enqueueDelivery([
@@ -368,29 +371,4 @@ final class SlackController
         ]);
     }
 
-    // ── Helpers ──
-
-    private function interpolate(string $template, array $context, string $eventCode): string
-    {
-        $values = [
-            '{event}' => $eventCode,
-            '{task}' => (string)($context['task_title'] ?? $context['task'] ?? ''),
-            '{user}' => (string)($context['actor_public_id'] ?? $context['user'] ?? ''),
-            '{status}' => (string)($context['new_status'] ?? $context['task_status'] ?? $context['status'] ?? ''),
-            '{project}' => (string)($context['project_id'] ?? $context['project'] ?? ''),
-        ];
-        return strtr($template, $values);
-    }
-
-    private function defaultText(array $context, string $eventCode): string
-    {
-        $task = (string)($context['task_title'] ?? '');
-        $status = (string)($context['new_status'] ?? $context['task_status'] ?? '');
-        $eventLabel = $eventCode !== '' ? $eventCode : 'event';
-        $parts = [sprintf('[%s] %s', $eventLabel, $task !== '' ? $task : 'Событие TropaTT')];
-        if ($status !== '') {
-            $parts[] = 'Статус: ' . $status;
-        }
-        return implode("\n", $parts);
-    }
 }

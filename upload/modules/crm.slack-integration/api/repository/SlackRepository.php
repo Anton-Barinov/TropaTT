@@ -135,6 +135,31 @@ final class SlackRepository
     }
 
     /**
+     * Return all enabled rules whose event_code matches one of the given codes.
+     * Used by the core-event subscription to fan a single event out to rules.
+     *
+     * @param array<int, string> $eventCodes
+     * @return array<int, array<string, mixed>>
+     */
+    public function listEnabledRulesByEvent(array $eventCodes): array
+    {
+        $eventCodes = array_values(array_filter(array_map('strval', $eventCodes), static fn(string $c): bool => $c !== ''));
+        if ($eventCodes === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($eventCodes), '?'));
+        $stmt = $this->pdo->prepare(
+            "SELECT r.id, r.public_id, r.connection_id, r.event_code, r.text_template, r.is_enabled, r.created_by_user_id, r.created_at, r.updated_at
+             FROM module_slack_rules r
+             WHERE r.is_enabled = 1 AND r.event_code IN ($placeholders)
+             ORDER BY r.created_at ASC"
+        );
+        $stmt->execute($eventCodes);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
      * @param array<string, mixed> $data
      * @return array<string, mixed>
      */

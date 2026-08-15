@@ -4,18 +4,56 @@ declare(strict_types=1);
 namespace Module\Crm\SlackIntegration;
 
 use Api\System\Library\Container;
+use Api\System\Library\Hook\HookManager;
 use Api\System\Library\Module\AbstractModuleServiceProvider;
 use Api\System\Library\Module\ScheduledTask;
 use Module\Crm\SlackIntegration\Cron\SlackWorkerHandler;
+use Module\Crm\SlackIntegration\Hook\SlackHook;
+use Module\Crm\SlackIntegration\Service\SlackNotifier;
 
 final class SlackServiceProvider extends AbstractModuleServiceProvider
 {
+    private ?Container $container = null;
+
     public function register(Container $container): void
     {
+        $this->container = $container;
     }
 
     public function boot(Container $container): void
     {
+        $this->container = $container;
+
+        /** @var HookManager $hooks */
+        $hooks = $container->get('hook.manager');
+
+        foreach (SlackHook::EVENTS as $event) {
+            $hooks->register($event, function (array &$context) use ($event): void {
+                $this->handleEvent($event, $context);
+            }, 100);
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    private function handleEvent(string $event, array $context): void
+    {
+        try {
+            $notifier = $this->makeNotifier();
+            SlackHook::handle($notifier, $event, $context);
+        } catch (\Throwable $e) {
+            error_log('[SlackServiceProvider] ' . $event . ' failed: ' . $e->getMessage());
+        }
+    }
+
+    private function makeNotifier(): SlackNotifier
+    {
+        if ($this->container === null) {
+            throw new \RuntimeException('SlackServiceProvider container not initialized');
+        }
+
+        return new SlackNotifier($this->container->get('db.pdo'));
     }
 
     public function getPermissions(): array
