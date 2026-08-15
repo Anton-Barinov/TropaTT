@@ -481,6 +481,8 @@ Each integration module lives in its own repository (MIT, installable via **Admi
 | `crm.worksection-migration` | [tropatt-module-worksection-migration](https://github.com/Anton-Barinov/tropatt-module-worksection-migration) |
 | `crm.yandex-calendar` | [tropatt-module-yandex-calendar](https://github.com/Anton-Barinov/tropatt-module-yandex-calendar) |
 
+> **Want to build your own module?** See the [Module Development Guide](MODULE_DEVELOPMENT.md) — events, content positions, and route-scoped assets.
+
 ---
 
 ### Under the hood
@@ -977,6 +979,8 @@ TropaTT/
 | `crm.worksection-migration` | [tropatt-module-worksection-migration](https://github.com/Anton-Barinov/tropatt-module-worksection-migration) |
 | `crm.yandex-calendar` | [tropatt-module-yandex-calendar](https://github.com/Anton-Barinov/tropatt-module-yandex-calendar) |
 
+> **Хотите написать свой модуль?** См. [руководство по разработке модулей](MODULE_DEVELOPMENT.md) — события, позиции встраивания и route-скоуп ассетов.
+
 ---
 
 ### Как устроено
@@ -1466,6 +1470,8 @@ TropaTT/
 | `crm.wip-limit` | [tropatt-module-wip-limit](https://github.com/Anton-Barinov/tropatt-module-wip-limit) |
 | `crm.worksection-migration` | [tropatt-module-worksection-migration](https://github.com/Anton-Barinov/tropatt-module-worksection-migration) |
 | `crm.yandex-calendar` | [tropatt-module-yandex-calendar](https://github.com/Anton-Barinov/tropatt-module-yandex-calendar) |
+
+> **想要开发自己的模块？** 请参阅[模块开发指南](MODULE_DEVELOPMENT.md) —— 事件、内容位置和按路由加载的资源。
 
 ---
 
