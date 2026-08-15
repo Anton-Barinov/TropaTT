@@ -452,6 +452,35 @@ TropaTT/
 
 Backend modules organized in 9 groups: Auth/Users · CRM (clients, counterparties, contacts) · Projects/Tasks · Planning (calendar, recurring, reminders) · Communication (chats, notifications, push) · Automation (workflows, SLA, webhooks) · Analytics (dashboards, reports) · AI/LLM (11 modules: providers, intents, suggestions, actions, jobs, prompts, schemas, usage, retention, semantic, context builders) · Admin (settings, logs, audit, flags, modules, storage, trash, search).
 
+### Modules
+
+Each integration module lives in its own repository (MIT, installable via **Admin → Modules → Install**):
+
+| Module | Repository |
+|---|---|
+| `crm.activecollab-migration` | [tropatt-module-activecollab-migration](https://github.com/Anton-Barinov/tropatt-module-activecollab-migration) |
+| `crm.asana-migration` | [tropatt-module-asana-migration](https://github.com/Anton-Barinov/tropatt-module-asana-migration) |
+| `crm.bitrix24-migration` | [tropatt-module-bitrix24-migration](https://github.com/Anton-Barinov/tropatt-module-bitrix24-migration) |
+| `crm.clickup-migration` | [tropatt-module-clickup-migration](https://github.com/Anton-Barinov/tropatt-module-clickup-migration) |
+| `crm.confluence-migration` | [tropatt-module-confluence-migration](https://github.com/Anton-Barinov/tropatt-module-confluence-migration) |
+| `crm.drawio` | [tropatt-module-drawio](https://github.com/Anton-Barinov/tropatt-module-drawio) |
+| `crm.github-integration` | [tropatt-module-github-integration](https://github.com/Anton-Barinov/tropatt-module-github-integration) |
+| `crm.gitlab-integration` | [tropatt-module-gitlab-integration](https://github.com/Anton-Barinov/tropatt-module-gitlab-integration) |
+| `crm.google-calendar` | [tropatt-module-google-calendar](https://github.com/Anton-Barinov/tropatt-module-google-calendar) |
+| `crm.jira-migration` | [tropatt-module-jira-migration](https://github.com/Anton-Barinov/tropatt-module-jira-migration) |
+| `crm.kaiten-migration` | [tropatt-module-kaiten-migration](https://github.com/Anton-Barinov/tropatt-module-kaiten-migration) |
+| `crm.linear-migration` | [tropatt-module-linear-migration](https://github.com/Anton-Barinov/tropatt-module-linear-migration) |
+| `crm.notion-migration` | [tropatt-module-notion-migration](https://github.com/Anton-Barinov/tropatt-module-notion-migration) |
+| `crm.raycast` | [tropatt-module-raycast](https://github.com/Anton-Barinov/tropatt-module-raycast) |
+| `crm.shtab-migration` | [tropatt-module-shtab-migration](https://github.com/Anton-Barinov/tropatt-module-shtab-migration) |
+| `crm.slack-integration` | [tropatt-module-slack-integration](https://github.com/Anton-Barinov/tropatt-module-slack-integration) |
+| `crm.todoist-migration` | [tropatt-module-todoist-migration](https://github.com/Anton-Barinov/tropatt-module-todoist-migration) |
+| `crm.toggl-migration` | [tropatt-module-toggl-migration](https://github.com/Anton-Barinov/tropatt-module-toggl-migration) |
+| `crm.trello-migration` | [tropatt-module-trello-migration](https://github.com/Anton-Barinov/tropatt-module-trello-migration) |
+| `crm.wip-limit` | [tropatt-module-wip-limit](https://github.com/Anton-Barinov/tropatt-module-wip-limit) |
+| `crm.worksection-migration` | [tropatt-module-worksection-migration](https://github.com/Anton-Barinov/tropatt-module-worksection-migration) |
+| `crm.yandex-calendar` | [tropatt-module-yandex-calendar](https://github.com/Anton-Barinov/tropatt-module-yandex-calendar) |
+
 ---
 
 ### Under the hood
@@ -919,6 +948,35 @@ TropaTT/
 
 Доменные модули организованы в 9 групп: Аутентификация/Пользователи, CRM (клиенты, контрагенты, контакты), Проекты/Задачи, Планирование (календарь, повторяющиеся задачи, напоминания), Коммуникации (чаты, уведомления, push), Автоматизация (workflows, SLA, вебхуки), Аналитика (дашборды, отчёты), AI/LLM (11 модулей: провайдеры, intents, предложения, действия, задания, промпты, схемы, использование, retention, семантический поиск, context builders), Администрирование (настройки, логи, аудит, feature-флаги, модули, хранилище, корзина, поиск).
 
+### Модули
+
+Каждый интеграционный модуль вынесен в отдельный репозиторий (MIT, устанавливается через **Админ → Модули → Установка**):
+
+| Модуль | Репозиторий |
+|---|---|
+| `crm.activecollab-migration` | [tropatt-module-activecollab-migration](https://github.com/Anton-Barinov/tropatt-module-activecollab-migration) |
+| `crm.asana-migration` | [tropatt-module-asana-migration](https://github.com/Anton-Barinov/tropatt-module-asana-migration) |
+| `crm.bitrix24-migration` | [tropatt-module-bitrix24-migration](https://github.com/Anton-Barinov/tropatt-module-bitrix24-migration) |
+| `crm.clickup-migration` | [tropatt-module-clickup-migration](https://github.com/Anton-Barinov/tropatt-module-clickup-migration) |
+| `crm.confluence-migration` | [tropatt-module-confluence-migration](https://github.com/Anton-Barinov/tropatt-module-confluence-migration) |
+| `crm.drawio` | [tropatt-module-drawio](https://github.com/Anton-Barinov/tropatt-module-drawio) |
+| `crm.github-integration` | [tropatt-module-github-integration](https://github.com/Anton-Barinov/tropatt-module-github-integration) |
+| `crm.gitlab-integration` | [tropatt-module-gitlab-integration](https://github.com/Anton-Barinov/tropatt-module-gitlab-integration) |
+| `crm.google-calendar` | [tropatt-module-google-calendar](https://github.com/Anton-Barinov/tropatt-module-google-calendar) |
+| `crm.jira-migration` | [tropatt-module-jira-migration](https://github.com/Anton-Barinov/tropatt-module-jira-migration) |
+| `crm.kaiten-migration` | [tropatt-module-kaiten-migration](https://github.com/Anton-Barinov/tropatt-module-kaiten-migration) |
+| `crm.linear-migration` | [tropatt-module-linear-migration](https://github.com/Anton-Barinov/tropatt-module-linear-migration) |
+| `crm.notion-migration` | [tropatt-module-notion-migration](https://github.com/Anton-Barinov/tropatt-module-notion-migration) |
+| `crm.raycast` | [tropatt-module-raycast](https://github.com/Anton-Barinov/tropatt-module-raycast) |
+| `crm.shtab-migration` | [tropatt-module-shtab-migration](https://github.com/Anton-Barinov/tropatt-module-shtab-migration) |
+| `crm.slack-integration` | [tropatt-module-slack-integration](https://github.com/Anton-Barinov/tropatt-module-slack-integration) |
+| `crm.todoist-migration` | [tropatt-module-todoist-migration](https://github.com/Anton-Barinov/tropatt-module-todoist-migration) |
+| `crm.toggl-migration` | [tropatt-module-toggl-migration](https://github.com/Anton-Barinov/tropatt-module-toggl-migration) |
+| `crm.trello-migration` | [tropatt-module-trello-migration](https://github.com/Anton-Barinov/tropatt-module-trello-migration) |
+| `crm.wip-limit` | [tropatt-module-wip-limit](https://github.com/Anton-Barinov/tropatt-module-wip-limit) |
+| `crm.worksection-migration` | [tropatt-module-worksection-migration](https://github.com/Anton-Barinov/tropatt-module-worksection-migration) |
+| `crm.yandex-calendar` | [tropatt-module-yandex-calendar](https://github.com/Anton-Barinov/tropatt-module-yandex-calendar) |
+
 ---
 
 ### Как устроено
@@ -1379,6 +1437,35 @@ TropaTT/
 ```
 
 后端域模块分为 9 组：认证/用户，CRM（客户、合作方、联系人），项目/任务，规划（日历、重复任务、提醒），沟通（聊天、通知、推送），自动化（工作流、SLA、Webhook），分析（仪表盘、报告），AI/LLM（11 个模块：提供商、意图、建议、动作、任务、提示词、模式、使用量、保留、语义搜索、上下文构建器），管理（设置、日志、审计、功能标志、模块、存储、回收站、搜索）。
+
+### 模块
+
+每个集成模块都有自己的仓库（MIT 许可，可通过 **管理 → 模块 → 安装** 安装）：
+
+| 模块 | 仓库 |
+|---|---|
+| `crm.activecollab-migration` | [tropatt-module-activecollab-migration](https://github.com/Anton-Barinov/tropatt-module-activecollab-migration) |
+| `crm.asana-migration` | [tropatt-module-asana-migration](https://github.com/Anton-Barinov/tropatt-module-asana-migration) |
+| `crm.bitrix24-migration` | [tropatt-module-bitrix24-migration](https://github.com/Anton-Barinov/tropatt-module-bitrix24-migration) |
+| `crm.clickup-migration` | [tropatt-module-clickup-migration](https://github.com/Anton-Barinov/tropatt-module-clickup-migration) |
+| `crm.confluence-migration` | [tropatt-module-confluence-migration](https://github.com/Anton-Barinov/tropatt-module-confluence-migration) |
+| `crm.drawio` | [tropatt-module-drawio](https://github.com/Anton-Barinov/tropatt-module-drawio) |
+| `crm.github-integration` | [tropatt-module-github-integration](https://github.com/Anton-Barinov/tropatt-module-github-integration) |
+| `crm.gitlab-integration` | [tropatt-module-gitlab-integration](https://github.com/Anton-Barinov/tropatt-module-gitlab-integration) |
+| `crm.google-calendar` | [tropatt-module-google-calendar](https://github.com/Anton-Barinov/tropatt-module-google-calendar) |
+| `crm.jira-migration` | [tropatt-module-jira-migration](https://github.com/Anton-Barinov/tropatt-module-jira-migration) |
+| `crm.kaiten-migration` | [tropatt-module-kaiten-migration](https://github.com/Anton-Barinov/tropatt-module-kaiten-migration) |
+| `crm.linear-migration` | [tropatt-module-linear-migration](https://github.com/Anton-Barinov/tropatt-module-linear-migration) |
+| `crm.notion-migration` | [tropatt-module-notion-migration](https://github.com/Anton-Barinov/tropatt-module-notion-migration) |
+| `crm.raycast` | [tropatt-module-raycast](https://github.com/Anton-Barinov/tropatt-module-raycast) |
+| `crm.shtab-migration` | [tropatt-module-shtab-migration](https://github.com/Anton-Barinov/tropatt-module-shtab-migration) |
+| `crm.slack-integration` | [tropatt-module-slack-integration](https://github.com/Anton-Barinov/tropatt-module-slack-integration) |
+| `crm.todoist-migration` | [tropatt-module-todoist-migration](https://github.com/Anton-Barinov/tropatt-module-todoist-migration) |
+| `crm.toggl-migration` | [tropatt-module-toggl-migration](https://github.com/Anton-Barinov/tropatt-module-toggl-migration) |
+| `crm.trello-migration` | [tropatt-module-trello-migration](https://github.com/Anton-Barinov/tropatt-module-trello-migration) |
+| `crm.wip-limit` | [tropatt-module-wip-limit](https://github.com/Anton-Barinov/tropatt-module-wip-limit) |
+| `crm.worksection-migration` | [tropatt-module-worksection-migration](https://github.com/Anton-Barinov/tropatt-module-worksection-migration) |
+| `crm.yandex-calendar` | [tropatt-module-yandex-calendar](https://github.com/Anton-Barinov/tropatt-module-yandex-calendar) |
 
 ---
 
