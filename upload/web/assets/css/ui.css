@@ -695,6 +695,54 @@ textarea.form-control::placeholder {
   color: var(--crm-on-accent);
 }
 
+/* Module category filter — segmented control */
+#moduleCategoryFilters {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
+  border: 1px solid var(--crm-border);
+  border-radius: var(--crm-radius-md);
+  background: var(--crm-surface);
+  overflow: hidden;
+  box-shadow: none;
+}
+
+#moduleCategoryFilters .module-filter {
+  margin: 0;
+  border: 0;
+  border-right: 1px solid var(--crm-border);
+  border-radius: 0;
+  background: var(--crm-surface);
+  color: var(--crm-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  height: 34px;
+  min-height: 34px;
+  padding: 0 0.85rem;
+  box-shadow: none;
+}
+
+#moduleCategoryFilters .module-filter:last-child {
+  border-right: 0;
+}
+
+#moduleCategoryFilters .module-filter:hover:not(.active) {
+  background: var(--crm-surface-2);
+  color: var(--crm-text);
+}
+
+#moduleCategoryFilters .module-filter.active {
+  background: var(--crm-primary);
+  color: var(--crm-on-accent);
+}
+
+#moduleCategoryFilters .module-filter:focus-visible {
+  z-index: 1;
+  box-shadow: inset 0 0 0 2px var(--crm-primary);
+}
+
 .crm-empty-state,
 [data-empty-state],
 .crm-admin-ai-empty-state {
