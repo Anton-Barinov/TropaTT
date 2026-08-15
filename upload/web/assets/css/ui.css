@@ -704,7 +704,6 @@ textarea.form-control::placeholder {
   border: 1px solid var(--crm-border);
   border-radius: var(--crm-radius-md);
   background: var(--crm-surface);
-  overflow: hidden;
   box-shadow: none;
 }
 
@@ -724,8 +723,15 @@ textarea.form-control::placeholder {
   box-shadow: none;
 }
 
+#moduleCategoryFilters .module-filter:first-child {
+  border-top-left-radius: var(--crm-radius-md) !important;
+  border-bottom-left-radius: var(--crm-radius-md) !important;
+}
+
 #moduleCategoryFilters .module-filter:last-child {
   border-right: 0;
+  border-top-right-radius: var(--crm-radius-md) !important;
+  border-bottom-right-radius: var(--crm-radius-md) !important;
 }
 
 #moduleCategoryFilters .module-filter:hover:not(.active) {
