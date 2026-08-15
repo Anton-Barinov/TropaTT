@@ -142,17 +142,27 @@ Here's the problem. You have clients in one app. Tasks in another. Team chat in 
 
 ### Who it's for
 
-TropaTT works for anyone managing clients and executing work. Here's who uses it:
+TropaTT works for anyone managing clients and executing work — regardless of team size, industry, or role:
 
-**Freelancers and solo professionals** running 5–50 clients. You get a CRM, task tracker, AI daily planner, and project history — without paying per seat. One person, one tool, zero monthly SaaS bills.
+**By team size:**
+- **Freelancers and solo professionals** managing 5–50 clients, who need task tracking, AI day planning, and complete project history in one place — without paying per seat.
+- **Small teams (2–15 people)** that need a CRM, tasks, chat, and project visibility without a zoo of subscriptions.
+- **Growing companies (15–100+ people)** that need roles, permissions, workflow automation, SLA, approvals, webhooks, and API integrations — without enterprise SaaS pricing.
 
-**Small teams (2–15 people).** You need client records, task management, team chat, and project visibility. TropaTT gives you this without managing separate subscriptions for each function.
+**By industry:**
+- Marketing and advertising agencies managing client campaigns, deadlines, and deliverables.
+- IT companies and development teams tracking projects, bugs, and releases.
+- Design studios and creative agencies managing revisions, assets, and client approvals.
+- Installation, construction, and field-service companies coordinating tasks across sites.
+- Consulting, legal, and professional-services firms handling client engagements and documents.
+- B2B service companies with counterparties, contracts, and repeatable work.
+- Any team that needs both a CRM and a task manager — not just one of them.
 
-**Growing companies (15–100+).** You need roles, permissions, workflow automation, SLA, approvals, webhooks, and API access. TropaTT has all of it, without enterprise pricing.
-
-**By industry**: marketing agencies, dev shops, design studios, construction and installation teams, legal and consulting firms, B2B service companies. Basically, anyone who does client work and needs to track it.
-
-**By role**: founders who need the big picture. Project managers running timelines and workloads. Team leads assigning and reviewing work. Individual contributors who want a clear task list and a plan for the day.
+**By role:**
+- Founders and executives who need the big picture across clients, projects, and teams.
+- Project managers planning timelines on Gantt, tracking milestones, and managing workload.
+- Team leads assigning tasks, reviewing execution, and coordinating through built-in chat.
+- Individual contributors who need a clear task list, a plan for the day, and a focused workspace.
 
 ---
 
@@ -419,7 +429,7 @@ Updates are installed from the admin panel (**Admin → System Updates**, no SSH
 - **Database:** MySQL.
 - **Frontend:** PHP-rendered MPA with Bootstrap 5 for UI/layout and custom vanilla JS ES5+ modules for behavior. No React/Vue/Angular. No build step. No bundler.
 - **Architecture:** API-first. Web UI uses REST API for all data. Zero direct database access from the web layer.
-- **Security:** Dual auth (cookie + CSRF for web, Bearer for API). Granular RBAC. Rate limiting. File quarantine. Admin impersonation. Sanitized error responses.
+- **Security:** Dual auth (cookie + CSRF for web, Bearer for API). Granular RBAC. SSRF protection. Rate limiting. File quarantine. Admin impersonation. Sanitized error responses.
 - **Testing:** Public CI runs PHP lint, a MySQL migration/schema smoke test, and OpenAPI route coverage validation. The broader integration suite remains local-only because it is excluded from public packages.
 - **AI layer:** Configurable providers (OpenAI, Anthropic, DeepSeek, Google, compatible). Intent-based workflows. Prompt templates. JSON Schema validation. Preview-before-apply.
 - **Docs:** Maintainer docs are kept local and are not published. OpenAPI generation tooling is included in `upload/api/scripts/generate_openapi.php`.
@@ -664,6 +674,7 @@ TropaTT подходит всем, кто управляет клиентами 
 | **Автоматизация** | Workflow-правила, SLA, согласования, вебхуки, фоновые задачи | Меньше ручной координации и человеческих ошибок |
 | **ИИ (20+ инструментов)** | Проработка идей, планы на день/неделю, декомпозиция, сводки, чеклисты, риски, подготовка к встречам | ИИ помогает работать умнее, а не просто чат-бот |
 | **Админка** | Пользователи, роли, права, feature-флаги, модули, логи, настройки | Полный контроль над рабочим пространством |
+| **Входящие (Intake)** | Захват, сортировка и приём входящих запросов клиентов перед превращением в задачи | Отделяйте сырые запросы от реальной работы, принимайте в задачи одним кликом |
 | **Приватность** | 100% данных на вашем сервере, без облачного доступа | Нулевой vendor lock-in, GDPR под вашим контролем |
 | **Без тарифных лимитов** | Пользователи, задачи, проекты, клиенты и файлы не ограничены SaaS-планом | Масштабируется с инфраструктурой, а не с тарифом подписки |
 | **Установка** | Браузерный мастер для любого PHP/MySQL хостинга | Первый запуск за минуты, без терминала |
@@ -766,7 +777,7 @@ TropaTT опубликована как программное обеспече�
 **Почему важно иметь систему на своём сервере:**
 - **Никакого vendor lock-in.** Если SaaS CRM поднимает цены или закрывается, ваши данные заблокированы. В TropaTT данные на вашем сервере — мигрируйте, делайте бэкапы, переносите в любой момент.
 - **Никаких тарифных лимитов.** Пользователи, задачи, проекты и клиенты не упираются в SaaS-план. Реальный потолок — железо, база данных, хранилище и конфигурация.
-- **Вас нельзя заблокировать.** Доступ не может быть приостановлен из-за проблем с оплатой, изменения политики или автоматических флагов вендора.
+- **Вас нельзя заблокировать.** Доступ не может быть приостановлен из-за проблем с оплатой, изменения политики или автоматических флагов вендора. Локальная установка не зависит и от доступности зарубежных облачных сервисов: если внешняя платформа станет недоступной, ограничит доступ или изменит правила работы, TropaTT и ваши данные продолжат работать на вашем сервере. Для бизнеса это не только контроль над данными, но и непрерывность работы в любых внешних обстоятельствах.
 - **Приватность по дизайну.** Клиентские данные, задачи, файлы и коммуникации остаются на вашей инфраструктуре. GDPR и хранение данных под вашим прямым контролем.
 - **Контроль затрат.** TropaTT можно запустить локально без расходов на внешний хостинг, поставить на свой сервер или начать с PHP/MySQL-шаред-хостинга за 200–300 ₽/мес. Масштабируйтесь апгрейдом инфраструктуры — а не тарифа SaaS.
 
@@ -863,7 +874,7 @@ TropaTT включает браузерный установщик для про
 | Доменных модулей | 35+ |
 | Интеграционных модулей | 15 — миграция из Jira, Trello, Asana, Битрикс24, ClickUp, Todoist, Shtab, Worksection, Confluence, Kaiten, Toggl, ActiveCollab + синхронизация Google/Яндекс Календаря + WIP-лимиты |
 | JavaScript-модулей | 39 собственных модулей на ванильном JS, без SPA-фреймворков и сборки |
-| Публичный CI | PHP lint на 8.1 и 8.2 |
+| Публичный CI | PHP lint на 8.1 и 8.2, MySQL schema smoke test, проверка соответствия OpenAPI |
 | AI API эндпоинтов | 65 |
 | Типов AI-процессов | 22 |
 | Feature-флагов | 43 |
@@ -886,7 +897,7 @@ TropaTT включает браузерный установщик для про
 - **Фронтенд:** PHP-рендеринг MPA, Bootstrap 5 для UI/разметки и собственные модули на ванильном JavaScript ES5+ для поведения интерфейса — без React/Vue/Angular, без сборки, без бандлера.
 - **Архитектура:** API-first — веб-интерфейс использует REST API для всех данных, без прямого доступа к БД.
 - **Безопасность:** двойная аутентификация (cookie-сессия + CSRF для web, Bearer для API), RBAC с гранулярными правами, защита от SSRF, rate limiting, карантин файлов, имперсонация админа, маскирование sensitive-полей в ошибках.
-- **Тестирование:** публичный PHP lint CI уже включён. Fast integration workflow с MySQL вынесен в публичный hardening backlog.
+- **Тестирование:** публичный CI выполняет PHP lint, MySQL migration/schema smoke-тест и проверку покрытия маршрутов OpenAPI. Расширенный интеграционный набор остаётся локальным, так как исключён из публичных пакетов.
 - **AI-слой:** настраиваемые провайдеры (OpenAI, Anthropic, DeepSeek, Google, совместимые), intent-based workflows, шаблоны промптов, JSON schema validation, модель preview-before-apply.
 - **Документация:** maintainer-документы хранятся локально и не публикуются. Инструмент генерации OpenAPI включён в `upload/api/scripts/generate_openapi.php`.
 
@@ -905,7 +916,7 @@ TropaTT/
 └── ...             # Остальные .md-документы, LICENSE, .github/, .gitignore
 ```
 
-Доменные модули организованы в 9 групп: Аутификация/Пользователи, CRM (клиенты, контрагенты, контакты), Проекты/Задачи, Планирование (календарь, повторяющиеся задачи, напоминания), Коммуникации (чаты, уведомления, push), Автоматизация (workflows, SLA, вебхуки), Аналитика (дашборды, отчёты), AI/LLM (11 модулей: провайдеры, intents, предложения, действия, задания, промпты, схемы, использование, retention, семантический поиск, context builders), Администрирование (настройки, логи, аудит, feature-флаги, модули, хранилище, корзина, поиск).
+Доменные модули организованы в 9 групп: Аутентификация/Пользователи, CRM (клиенты, контрагенты, контакты), Проекты/Задачи, Планирование (календарь, повторяющиеся задачи, напоминания), Коммуникации (чаты, уведомления, push), Автоматизация (workflows, SLA, вебхуки), Аналитика (дашборды, отчёты), AI/LLM (11 модулей: провайдеры, intents, предложения, действия, задания, промпты, схемы, использование, retention, семантический поиск, context builders), Администрирование (настройки, логи, аудит, feature-флаги, модули, хранилище, корзина, поиск).
 
 ---
 
@@ -1124,6 +1135,7 @@ TropaTT 适用于任何管理客户并执行工作的人——无论团队规模
 | **自动化** | 工作流规则、SLA、审批、Webhook、后台任务 | 减少手动协调和人为错误 |
 | **AI（20+ 工具）** | 想法分析、日/周计划、任务分解、摘要、清单、风险分析、会议准备 | 帮您更聪明地工作，而非仅仅是一个聊天机器人 |
 | **管理** | 用户、角色、权限、功能标志、模块、日志、设置 | 完全掌控您的工作空间 |
+| **接收（Intake）** | 在转化为任务前，捕获、分类并接受传入的客户请求 | 将原始请求与实际工作分离，一键接受为任务 |
 | **数据隐私** | 100% 数据存储在您的服务器上，无云访问 | 零供应商锁定，GDPR 由您掌控 |
 | **无套餐限制** | 用户、任务、项目、客户和文件不受 SaaS 套餐限制 | 随基础设施扩展，而非随订阅套餐 |
 | **安装** | 适用于任何 PHP/MySQL 主机的浏览器安装向导 | 几分钟内完成首次启动，无需终端 |
@@ -1291,6 +1303,9 @@ TropaTT 包含一个适用于简单 PHP/MySQL 部署的浏览器安装程序：�
 **有用户限制吗？任务限制？**
 没有。TropaTT 没有任何人工限制。您的服务器能处理多少用户、任务、项目和客户就可以创建多少。
 
+**这是否意味着无限性能？**
+不是。TropaTT 消除的是供应商层面的限制，而非物理限制。性能取决于 PHP 主机、MySQL 配置、存储、索引、后台任务、文件量和并发用户数。
+
 **它是开源的吗？**
 是的，以开源项目形式发布。免费使用、修改和部署。
 
@@ -1320,7 +1335,7 @@ TropaTT 包含一个适用于简单 PHP/MySQL 部署的浏览器安装程序：�
 | 后端域模块 | 35+ |
 | 集成模块 | 15 — 从 Jira、Trello、Asana、Bitrix24、ClickUp、Todoist、Shtab、Worksection、Confluence、Kaiten、Toggl、ActiveCollab 迁移 + Google/Yandex 日历同步 + WIP 限制 |
 | JavaScript 模块 | 39 个自定义原生 JS 模块，无 SPA 框架，无构建步骤 |
-| 公开 CI | PHP 8.1 和 8.2 lint |
+| 公开 CI | PHP 8.1 和 8.2 lint、MySQL 架构 smoke test、OpenAPI 一致性检查 |
 | AI API 端点 | 65 |
 | AI 工作流类型 | 22 |
 | 功能标志 | 43 |
@@ -1342,8 +1357,8 @@ TropaTT 包含一个适用于简单 PHP/MySQL 部署的浏览器安装程序：�
 - **数据库：** MySQL。
 - **前端：** PHP 渲染的 MPA，使用 Bootstrap 5 处理 UI/布局，并用自定义原生 JavaScript ES5+ 模块实现交互——不使用 React/Vue/Angular，无构建步骤，无打包工具。
 - **架构：** API 优先——Web UI 通过 REST API 获取所有数据，Web 层无直接数据库访问。
-- **安全性：** 双重认证（Web 的 Cookie 会话 + CSRF，API 的 Bearer），带细粒度权限的 RBAC，速率限制，文件隔离，管理员模拟，已脱敏的错误响应。
-- **测试：** 已启用公开 PHP lint CI。带 MySQL service 的快速集成测试 workflow 已进入公开 hardening backlog。
+- **安全性：** 双重认证（Web 的 Cookie 会话 + CSRF，API 的 Bearer），带细粒度权限的 RBAC，SSRF 防护，速率限制，文件隔离，管理员模拟，已脱敏的错误响应。
+- **测试：** 公开 CI 运行 PHP lint、MySQL 迁移/架构 smoke test 以及 OpenAPI 路由覆盖验证。更广泛的集成测试仍为本地测试，因为它不包含在公开安装包中。
 - **AI 层：** 可配置的提供商（OpenAI、Anthropic、DeepSeek、Google、兼容提供商），基于意图的工作流，提示词模板，JSON Schema 验证，预览后应用的安全模型。
 - **文档：** 维护者文档本地保存，不公开发布。OpenAPI 生成工具位于 `upload/api/scripts/generate_openapi.php`。
 
@@ -1389,7 +1404,7 @@ TropaTT/
 | API 参考 | [`docs_api/api_zh.md`](docs_api/api_zh.md) | 完整 REST API 参考 — 端点、认证、RBAC 和约定（中文） |
 | MCP 参考 | [`docs_mcp/mcp_zh.md`](docs_mcp/mcp_zh.md) | 完整 MCP 服务器参考 — 567 个工具、资源、认证和 RBAC（中文） |
 | Web 文档 | `upload/web/docs/README.md`, [`updates.md`](upload/web/docs/updates.md) | 应用内用户文档（俄语）：架构、安装和自更新系统（更新服务器流水线 + 用户更新流程） |
-| 项目根目录 | `README.md`, `AGENTS.md`, `SECURITY.md`, `CONTRIBUTING.md` | 公开使用、代理、安全和贡献指南 |
+| 项目根目录 | `README.md`, `AGENTS.md`, `SECURITY.md`, `CONTRIBUTING.md`, [`INSTALL_TROUBLESHOOTING.md`](INSTALL_TROUBLESHOOTING.md), [`SHARED_HOSTING_GUIDE.md`](SHARED_HOSTING_GUIDE.md), [`WEBHOOK_SECURITY.md`](WEBHOOK_SECURITY.md) | 公开使用、代理、安全、贡献、安装排障、共享主机和 Webhook 安全指南 |
 
 ---
 
@@ -1403,6 +1418,9 @@ TropaTT/
 - [CHANGELOG.md](CHANGELOG.md) — public preview 更新记录。
 - [ROADMAP.md](ROADMAP.md) — 不承诺具体日期的路线图。
 - [SUPPORT.md](SUPPORT.md) — 支持范围和 issue 提交建议。
+- [INSTALL_TROUBLESHOOTING.md](INSTALL_TROUBLESHOOTING.md) — 常见安装问题及修复。
+- [SHARED_HOSTING_GUIDE.md](SHARED_HOSTING_GUIDE.md) — 共享主机分步安装指南。
+- [WEBHOOK_SECURITY.md](WEBHOOK_SECURITY.md) — Webhook 认证、验证和最佳实践。
 - [.github/ISSUE_TEMPLATE](.github/ISSUE_TEMPLATE) — bug、功能、文档和安装问题模板。
 - [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md) — 测试、文档、安全、API 和安装影响的 PR 清单。
 
