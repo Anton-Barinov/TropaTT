@@ -467,6 +467,14 @@ final class TaskController extends BaseController
             ]);
         }
 
+        $this->dispatchModuleHook(ModuleEvents::COMMENT_ADDED, [
+            'comment_public_id' => (string)($comment['public_id'] ?? ''),
+            'task_public_id' => (string)($comment['task_public_id'] ?? (string)$params['public_id']),
+            'project_public_id' => (string)($comment['project_public_id'] ?? ''),
+            'author_id' => (int)($comment['author_user_id'] ?? 0),
+            'actor_id' => (int)($authUser['user']['id'] ?? 0),
+        ]);
+
         return $this->success('COMMENT_CREATED', $this->t('task/messages.comment_created'), $comment, 201);
     }
 

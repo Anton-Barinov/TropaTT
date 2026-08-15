@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\Controller\File;
 
 use Api\Controller\Common\BaseController;
+use Api\System\Library\Module\ModuleEvents;
 use Api\System\Library\Service\FileService;
 use Throwable;
 
@@ -42,6 +43,15 @@ final class FileController extends BaseController
 
         try {
             $item = $service->create($this->request()->allInput(), $this->request()->files, (int)$authUser['user']['id'], $authUser['user']);
+
+            $this->dispatchModuleHook(ModuleEvents::FILE_UPLOADED, [
+                'file_public_id' => (string)($item['public_id'] ?? ''),
+                'entity_type' => (string)($item['entity_type'] ?? ''),
+                'entity_public_id' => (string)($item['entity_public_id'] ?? ''),
+                'uploader_public_id' => (string)($item['uploader']['public_id'] ?? ''),
+                'size_bytes' => (int)($item['size_bytes'] ?? 0),
+                'actor_id' => (int)($authUser['user']['id'] ?? 0),
+            ]);
 
             return $this->success('FILE_CREATED', $this->t('file/messages.created'), [
                 'file' => $item,
