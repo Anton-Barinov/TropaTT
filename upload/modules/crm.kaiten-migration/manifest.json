@@ -6,6 +6,7 @@
   "description": "Миграция пространств, досок, колонок, карточек и связанных данных из Kaiten в TropaTT",
   "core_version": ">=1.0.0",
   "license": "MIT",
+  "category": "migration",
   "dependencies": [],
   "require_permissions": ["project.manage", "task.manage", "import.manage"],
   "api_routes": "api/config/routes.php",

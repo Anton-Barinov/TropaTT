@@ -6,6 +6,7 @@
   "description": "Приватная двусторонняя синхронизация Google Calendar с календарём TropaTT",
   "core_version": ">=1.0.0",
   "license": "MIT",
+  "category": "calendar",
   "dependencies": [],
   "require_permissions": ["task.manage"],
   "api_routes": "api/config/routes.php",

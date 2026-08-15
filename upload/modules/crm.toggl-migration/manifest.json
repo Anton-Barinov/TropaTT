@@ -6,6 +6,7 @@
     "description": "Миграция рабочих пространств, клиентов, проектов, задач, пользователей и учёта времени из Toggl Track в TropaTT",
     "core_version": ">=1.0.0",
     "license": "MIT",
+    "category": "migration",
     "dependencies": [],
     "require_permissions": [
         "project.manage",

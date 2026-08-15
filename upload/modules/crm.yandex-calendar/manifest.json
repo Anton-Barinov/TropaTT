@@ -6,6 +6,7 @@
   "description": "Приватная двусторонняя синхронизация Яндекс.Календаря через CalDAV",
   "core_version": ">=1.0.0",
   "license": "MIT",
+  "category": "calendar",
   "dependencies": [],
   "require_permissions": [],
   "api_routes": "api/config/routes.php",

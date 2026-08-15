@@ -6,6 +6,7 @@
     "description": "Односторонняя миграция рабочих пространств, проектов, задач и связанных данных из ActiveCollab Cloud в TropaTT",
     "core_version": ">=1.0.0",
     "license": "MIT",
+    "category": "migration",
     "dependencies": [],
     "require_permissions": [
         "project.manage",

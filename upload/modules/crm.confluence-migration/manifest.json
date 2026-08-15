@@ -6,6 +6,7 @@
     "description": "Модуль миграции пространств и страниц из Confluence Cloud в базу знаний TropaTT",
     "core_version": ">=1.0.0",
     "license": "MIT",
+    "category": "migration",
     "dependencies": [],
     "require_permissions": ["knowledge.view", "knowledge.create", "knowledge.edit", "knowledge.import", "knowledge.publish", "knowledge.manage"],
     "api_routes": "api/config/routes.php",

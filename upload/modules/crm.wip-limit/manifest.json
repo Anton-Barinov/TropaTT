@@ -6,6 +6,7 @@
     "description": "Ограничение количества задач в работе (Work In Progress). Настройка лимитов на пользователя, уведомления при превышении.",
     "core_version": ">=1.0.0",
     "license": "MIT",
+    "category": "productivity",
     "dependencies": [],
     "require_permissions": [],
     "api_routes": "api/config/routes.php",

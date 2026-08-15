@@ -6,6 +6,7 @@
     "description": "Безопасный импорт официальных CSV/XLSX-экспортов Shtab.app в TropaTT",
     "core_version": ">=1.0.0",
     "license": "MIT",
+    "category": "migration",
     "dependencies": [],
     "require_permissions": ["project.manage", "task.manage", "import.manage"],
     "api_routes": "api/config/routes.php",

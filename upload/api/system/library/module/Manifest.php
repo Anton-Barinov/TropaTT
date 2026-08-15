@@ -22,6 +22,7 @@ final class Manifest
         public readonly ?string $serviceProvider = null,
         public readonly array $configDefaults = [],
         public readonly array $assets = [],
+        public readonly string $category = '',
     ) {}
 
     /**
@@ -46,6 +47,7 @@ final class Manifest
             serviceProvider: isset($data['service_provider']) ? (string)$data['service_provider'] : null,
             configDefaults: (array)($data['config_defaults'] ?? []),
             assets: (array)($data['assets'] ?? []),
+            category: (string)($data['category'] ?? ''),
         );
     }
 }

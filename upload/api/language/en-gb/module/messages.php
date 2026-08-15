@@ -20,4 +20,8 @@ return [
     'file_data_required' => 'File data is required',
     'invalid_base64' => 'Invalid base64 data',
     'name_required' => 'Module name is required',
+    'invalid_name' => 'Invalid module name',
+    'purged' => 'Module physically deleted',
+    'operation_failed' => 'Module operation failed',
+    'bulk_completed' => 'Bulk action completed',
 ];

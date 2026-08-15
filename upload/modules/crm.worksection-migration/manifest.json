@@ -6,6 +6,7 @@
     "description": "Односторонняя миграция проектов, задач, подзадач, комментариев, файлов, меток, пользователей и учёта времени из Worksection в TropaTT",
     "core_version": ">=1.0.0",
     "license": "MIT",
+    "category": "migration",
     "dependencies": [],
     "require_permissions": [
         "project.manage",

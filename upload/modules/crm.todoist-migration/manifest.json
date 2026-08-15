@@ -6,6 +6,7 @@
     "description": "Односторонняя миграция проектов, секций, задач и связанных данных из Todoist в TropaTT",
     "core_version": ">=1.0.0",
     "license": "MIT",
+    "category": "migration",
     "dependencies": [],
     "require_permissions": ["project.manage", "task.manage", "import.manage"],
     "api_routes": "api/config/routes.php",

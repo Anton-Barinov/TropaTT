@@ -53,6 +53,7 @@ final class ModuleController
                     'vendor' => $manifest->vendor,
                     'title' => $manifest->title,
                     'description' => $manifest->description,
+                    'category' => $manifest->category,
                     'is_loaded' => $pm->isLoaded($name),
                     'is_active' => $registry ? (bool)($registry['is_active'] ?? false) : false,
                     'status' => $registry ? ((bool)$registry['is_active'] ? 'active' : 'installed') : 'not_installed',
@@ -92,6 +93,7 @@ final class ModuleController
                 'vendor' => $manifest->vendor,
                 'title' => $manifest->title,
                 'description' => $manifest->description,
+                'category' => $manifest->category,
                 'core_version' => $manifest->coreVersion,
                 'dependencies' => $manifest->dependencies,
                 'require_permissions' => $manifest->requirePermissions,
@@ -248,6 +250,159 @@ final class ModuleController
         }
 
         return JsonResponse::success('MODULE_REMOVED', $this->t('module/messages.removed'), ['name' => $name]);
+    }
+
+    /**
+     * Fully remove a module from disk (in addition to uninstalling it).
+     * Uninstalls (rollback migrations + unregister + cleanup) when the module
+     * is installed, then deletes the module directory and its runtime storage.
+     */
+    public function purge(array $params = []): JsonResponse
+    {
+        $name = trim((string)($params['name'] ?? ''));
+        if ($name === '') {
+            return JsonResponse::error('INVALID_PARAM', $this->t('common/messages.invalid_parameter', 'Invalid parameter'), 400);
+        }
+        if (!preg_match('/^[a-z0-9]+\.[a-z0-9\-]+$/', $name)) {
+            return JsonResponse::error('INVALID_PARAM', $this->t('module/messages.invalid_name', 'Invalid module name'), 400);
+        }
+
+        $pm = $this->container->get('plugin.manager');
+        $mc = $this->container->get('module.config');
+
+        $wasInstalled = $mc->getRegistry($name) !== null;
+
+        // Uninstall first (rollback migrations + registry + cron/webhook cleanup).
+        // A NOT_INSTALLED result is fine — we still want to delete the files.
+        if ($wasInstalled) {
+            try {
+                $this->uninstall(['name' => $name]);
+            } catch (\Throwable $e) {
+                error_log('[ModuleController::purge] uninstall failed for ' . $name . ': ' . $e->getMessage());
+            }
+        }
+
+        // Physically delete the module directory (guarded by the name regex,
+        // so no path traversal is possible).
+        $modulesDir = rtrim((string)$pm->getModulesDir(), '/');
+        $targetDir = $modulesDir . '/' . $name;
+        $filesDeleted = $this->removeDirectoryRecursively($targetDir);
+
+        // Remove runtime storage for the module (uploads, temp, exports, cache).
+        $this->removeDirectoryRecursively($this->storageBase() . '/modules/' . $name);
+
+        if (!$filesDeleted && is_dir($targetDir)) {
+            error_log('[ModuleController::purge] directory not fully removed (permissions?): ' . $targetDir);
+        }
+
+        if (!$filesDeleted && !$wasInstalled) {
+            return JsonResponse::error('MODULE_NOT_FOUND', $this->t('module/messages.not_found'), 404);
+        }
+
+        return JsonResponse::success('MODULE_PURGED', $this->t('module/messages.purged', 'Module physically deleted'), [
+            'name' => $name,
+            'files_deleted' => $filesDeleted,
+            'was_installed' => $wasInstalled,
+        ]);
+    }
+
+    /**
+     * Apply one action to several modules at once.
+     * Body: { "action": "install|activate|deactivate|uninstall|purge", "modules": ["name1", ...] }
+     */
+    public function bulk(array $params = []): JsonResponse
+    {
+        $input = $this->request()->allInput();
+        $action = trim((string)($input['action'] ?? ''));
+        $modules = $input['modules'] ?? [];
+        if (!is_array($modules)) {
+            $modules = [];
+        }
+        $modules = array_values(array_unique(array_filter(array_map('strval', $modules), static fn(string $m): bool => $m !== '')));
+
+        $allowed = ['install', 'activate', 'deactivate', 'uninstall', 'purge'];
+        if (!in_array($action, $allowed, true)) {
+            return JsonResponse::error('INVALID_PARAM', $this->t('common/messages.invalid_parameter', 'Invalid parameter'), 400);
+        }
+        if ($modules === []) {
+            return JsonResponse::error('INVALID_PARAM', $this->t('module/messages.name_required', 'Module name is required'), 400);
+        }
+        if (count($modules) > 200) {
+            return JsonResponse::error('INVALID_PARAM', $this->t('common/messages.invalid_parameter', 'Invalid parameter'), 400);
+        }
+
+        $results = [];
+        $succeeded = 0;
+        $failed = 0;
+
+        foreach ($modules as $name) {
+            try {
+                $response = match ($action) {
+                    'install' => $this->install(['name' => $name]),
+                    'activate' => $this->activate(['name' => $name]),
+                    'deactivate' => $this->deactivate(['name' => $name]),
+                    'uninstall' => $this->uninstall(['name' => $name]),
+                    'purge' => $this->purge(['name' => $name]),
+                };
+                $payload = $response->payload();
+                $ok = $payload['success'] === true;
+                if ($ok) {
+                    $succeeded++;
+                } else {
+                    $failed++;
+                }
+                $results[] = [
+                    'name' => $name,
+                    'success' => $ok,
+                    'code' => (string)($payload['code'] ?? ''),
+                    'message' => (string)($payload['message'] ?? ''),
+                ];
+            } catch (\Throwable $e) {
+                error_log('[ModuleController::bulk] ' . $action . ' on ' . $name . ' failed: ' . $e->getMessage());
+                $failed++;
+                $results[] = [
+                    'name' => $name,
+                    'success' => false,
+                    'code' => 'EXCEPTION',
+                    'message' => $this->t('module/messages.operation_failed', 'Module operation failed'),
+                ];
+            }
+        }
+
+        return JsonResponse::success('MODULES_BULK', $this->t('module/messages.bulk_completed', 'Bulk action completed'), [
+            'action' => $action,
+            'total' => count($results),
+            'succeeded' => $succeeded,
+            'failed' => $failed,
+            'results' => $results,
+        ]);
+    }
+
+    /**
+     * Recursively delete a directory. Returns true only when the directory is
+     * fully removed (false when it did not exist or could not be deleted, e.g.
+     * due to filesystem permissions on shared hosting).
+     */
+    private function removeDirectoryRecursively(string $dir): bool
+    {
+        if (!is_dir($dir)) {
+            return false;
+        }
+        $real = realpath($dir);
+        $target = $real !== false ? $real : $dir;
+        $this->cleanDir($target);
+        @rmdir($target);
+        return !is_dir($target);
+    }
+
+    private function storageBase(): string
+    {
+        try {
+            $config = $this->container->get('config');
+            return rtrim((string)$config->get('default.storage.base', dirname(__DIR__, 3) . '/storage'), '/');
+        } catch (\Throwable $e) {
+            return dirname(__DIR__, 3) . '/storage';
+        }
     }
 
     public function config(array $params = []): JsonResponse
