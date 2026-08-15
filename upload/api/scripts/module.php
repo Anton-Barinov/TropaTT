@@ -316,6 +316,8 @@ function cmd_info(PluginManager $pm, ModuleConfig $mc, ModuleMigrationRunner $mm
             'name' => $manifest->name,
             'version' => $manifest->version,
             'vendor' => $manifest->vendor,
+            'author' => $manifest->author,
+            'author_url' => $manifest->authorUrl,
             'title' => $manifest->title,
             'description' => $manifest->description,
             'core_version' => $manifest->coreVersion,
@@ -337,6 +339,8 @@ function cmd_info(PluginManager $pm, ModuleConfig $mc, ModuleMigrationRunner $mm
     out("Name:        {$manifest->name}");
     out("Title:       {$manifest->title}");
     out("Vendor:      {$manifest->vendor}");
+    out("Author:      " . ($manifest->author !== '' ? $manifest->author : $manifest->vendor));
+    out("Author URL:  " . ($manifest->authorUrl !== '' ? $manifest->authorUrl : 'none'));
     out("Version:     {$manifest->version}");
     out("Core:        {$manifest->coreVersion}");
     out("Description: {$manifest->description}");
