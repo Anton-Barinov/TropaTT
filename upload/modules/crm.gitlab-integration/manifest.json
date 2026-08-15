@@ -1,0 +1,32 @@
+{
+    "name": "crm.gitlab-integration",
+    "version": "1.0.0",
+    "vendor": "crm",
+    "title": "GitLab",
+    "description": "Синхронизация Merge Requests GitLab с задачами TropaTT (включая self-managed GitLab)",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "category": "integration",
+    "dependencies": [],
+    "require_permissions": ["project.manage", "task.manage"],
+    "api_routes": "api/config/routes.php",
+    "web_routes": "web/config/routes.php",
+    "migrations": "api/migration/",
+    "assets": {
+        "js_routes": {
+            "module-gitlab-integration": "web/assets/js/gitlab.js"
+        },
+        "css": ["web/assets/css/gitlab.css"]
+    },
+    "hooks": {},
+    "menu_items": [],
+    "service_provider": "Module\\Crm\\GitlabIntegration\\GitlabServiceProvider",
+    "config_defaults": {
+        "request_timeout_seconds": 30,
+        "max_retries": 3,
+        "batch_size": 100,
+        "default_base_url": "https://gitlab.com/api/v4",
+        "sync_comments": true,
+        "poll_interval_minutes": 15
+    }
+}

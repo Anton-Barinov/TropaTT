@@ -1,0 +1,31 @@
+{
+    "name": "crm.linear-migration",
+    "version": "1.0.0",
+    "vendor": "crm",
+    "title": "Миграция из Linear",
+    "description": "Односторонняя миграция команд, проектов, задач, меток и комментариев из Linear в TropaTT",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "category": "migration",
+    "dependencies": [],
+    "require_permissions": ["project.manage", "task.manage", "import.manage"],
+    "api_routes": "api/config/routes.php",
+    "web_routes": "web/config/routes.php",
+    "migrations": "api/migration/",
+    "assets": {
+        "js_routes": {
+            "module-linear-migration": "web/assets/js/linear.js"
+        },
+        "css": ["web/assets/css/linear.css"]
+    },
+    "hooks": {},
+    "menu_items": [],
+    "service_provider": "Module\\Crm\\LinearMigration\\LinearServiceProvider",
+    "config_defaults": {
+        "request_timeout_seconds": 30,
+        "max_retries": 3,
+        "batch_size": 50,
+        "max_issues_per_job": 0,
+        "include_comments_by_default": true
+    }
+}

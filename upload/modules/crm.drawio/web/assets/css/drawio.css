@@ -1,0 +1,7 @@
+/* Module crm.drawio */
+#drawioFrameWrap {
+    background: #f4f6f8;
+}
+#drawioFrameWrap iframe {
+    display: block;
+}

@@ -1,0 +1,33 @@
+{
+    "name": "crm.notion-migration",
+    "version": "1.0.0",
+    "vendor": "crm",
+    "title": "Миграция из Notion",
+    "description": "Односторонняя миграция страниц, баз данных и вложенных страниц Notion в базу знаний TropaTT",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "category": "migration",
+    "dependencies": [],
+    "require_permissions": ["knowledge.view", "knowledge.create", "knowledge.edit", "knowledge.import", "knowledge.publish", "knowledge.manage"],
+    "api_routes": "api/config/routes.php",
+    "web_routes": "web/config/routes.php",
+    "migrations": "api/migration/",
+    "assets": {
+        "js_routes": {
+            "module-notion-migration": "web/assets/js/notion-migration.js"
+        },
+        "css": ["web/assets/css/notion-migration.css"]
+    },
+    "hooks": {},
+    "menu_items": [],
+    "service_provider": "Module\\Crm\\NotionMigration\\NotionMigrationServiceProvider",
+    "config_defaults": {
+        "request_timeout_seconds": 30,
+        "max_retries": 4,
+        "default_batch_size": 100,
+        "max_pages_per_job": 0,
+        "max_depth": 20,
+        "include_comments_by_default": true,
+        "publish_by_default": false
+    }
+}

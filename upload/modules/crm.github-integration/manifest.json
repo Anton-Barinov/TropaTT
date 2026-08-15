@@ -1,0 +1,32 @@
+{
+    "name": "crm.github-integration",
+    "version": "1.0.0",
+    "vendor": "crm",
+    "title": "GitHub",
+    "description": "Синхронизация GitHub issues и pull requests с задачами TropaTT (включая GitHub Enterprise Server)",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "category": "integration",
+    "dependencies": [],
+    "require_permissions": ["project.manage", "task.manage"],
+    "api_routes": "api/config/routes.php",
+    "web_routes": "web/config/routes.php",
+    "migrations": "api/migration/",
+    "assets": {
+        "js_routes": {
+            "module-github-integration": "web/assets/js/github.js"
+        },
+        "css": ["web/assets/css/github.css"]
+    },
+    "hooks": {},
+    "menu_items": [],
+    "service_provider": "Module\\Crm\\GithubIntegration\\GithubServiceProvider",
+    "config_defaults": {
+        "request_timeout_seconds": 30,
+        "max_retries": 3,
+        "batch_size": 50,
+        "default_base_url": "https://api.github.com",
+        "allowed_api_hosts": ["api.github.com"],
+        "sync_comments": true
+    }
+}

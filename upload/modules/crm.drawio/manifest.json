@@ -1,0 +1,28 @@
+{
+    "name": "crm.drawio",
+    "version": "1.0.0",
+    "vendor": "crm",
+    "title": "Диаграммы draw.io",
+    "description": "Создание и встраивание диаграмм draw.io в страницы базы знаний TropaTT",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "category": "diagram",
+    "dependencies": [],
+    "require_permissions": ["knowledge.view", "knowledge.edit"],
+    "api_routes": "api/config/routes.php",
+    "web_routes": "web/config/routes.php",
+    "migrations": "api/migration/",
+    "assets": {
+        "js_routes": {
+            "module-drawio": "web/assets/js/drawio.js"
+        },
+        "css": ["web/assets/css/drawio.css"]
+    },
+    "hooks": {},
+    "menu_items": [],
+    "service_provider": "Module\\Crm\\Drawio\\DrawioServiceProvider",
+    "config_defaults": {
+        "editor_url": "https://embed.diagrams.net/?embed=1&ui=atlas&spin=1&modified=unsavedChanges&proto=json",
+        "max_xml_bytes": 2000000
+    }
+}

@@ -1,0 +1,28 @@
+{
+    "name": "crm.raycast",
+    "version": "1.0.0",
+    "vendor": "crm",
+    "title": "Raycast (MCP)",
+    "description": "Подключение Raycast для macOS к MCP-серверу TropaTT: показывает URL эндпоинта и инструкцию по настройке",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "category": "integration",
+    "dependencies": [],
+    "require_permissions": ["mcp.use"],
+    "api_routes": "api/config/routes.php",
+    "web_routes": "web/config/routes.php",
+    "migrations": null,
+    "assets": {
+        "js_routes": {
+            "module-raycast": "web/assets/js/raycast.js"
+        },
+        "css": ["web/assets/css/raycast.css"]
+    },
+    "hooks": {},
+    "menu_items": [],
+    "service_provider": "Module\\Crm\\Raycast\\RaycastServiceProvider",
+    "config_defaults": {
+        "mcp_route": "api/v1/mcp",
+        "server_name": "TropaTT"
+    }
+}
