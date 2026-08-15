@@ -712,9 +712,9 @@ textarea.form-control::placeholder {
   margin: 0;
   border: 0;
   border-right: 1px solid var(--crm-border);
-  border-radius: 0;
-  background: var(--crm-surface);
-  color: var(--crm-text-muted);
+  border-radius: 0 !important;
+  background: var(--crm-surface) !important;
+  color: var(--crm-text-muted) !important;
   font-size: 13px;
   font-weight: 600;
   line-height: 1;
@@ -729,13 +729,13 @@ textarea.form-control::placeholder {
 }
 
 #moduleCategoryFilters .module-filter:hover:not(.active) {
-  background: var(--crm-surface-2);
-  color: var(--crm-text);
+  background: var(--crm-surface-2) !important;
+  color: var(--crm-text) !important;
 }
 
 #moduleCategoryFilters .module-filter.active {
-  background: var(--crm-primary);
-  color: var(--crm-on-accent);
+  background: var(--crm-primary) !important;
+  color: var(--crm-on-accent) !important;
 }
 
 #moduleCategoryFilters .module-filter:focus-visible {
