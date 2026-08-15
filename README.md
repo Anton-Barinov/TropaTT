@@ -176,6 +176,8 @@ TropaTT works for anyone managing clients and executing work. Here's who uses it
 
 **Admin panel.** Users, roles, permissions, statuses, priorities, SLA policies, workflow rules, webhooks, API clients, modules, audit logs, feature flags, rate limits, AI provider settings.
 
+**Data migration.** Move your work out of other trackers without starting over. One-way migration connectors pull boards, lists, projects, tasks, statuses, and users into TropaTT from Jira, Trello, Asana, Bitrix24, ClickUp, Todoist, Shtab, Worksection, Confluence, Kaiten, Toggl, and ActiveCollab. Google Calendar and Yandex Calendar sync keeps events in step.
+
 **Ideas + AI analysis.** Capture a raw idea or client request. Let AI assess feasibility and risk. AI proposes a structured task hierarchy. Review and convert to real tasks with a click. "We should probably do something about client retention" → actionable plan in minutes.
 
 ---
@@ -284,7 +286,7 @@ TropaTT's automation and API are production-grade. Built for teams that need the
 - **Module system** — extend business logic without touching core. 19 CLI commands.
 - **Generated REST API endpoints** — every entity, task, project, chat, calendar, analytic, and admin function accessible via API.
 - **OpenAPI 3.1 spec** — generated from route config, never out of sync with reality.
-- **MCP server — 567 tools** — a Model Context Protocol endpoint that gives AI agents safe, permission-scoped access to the CRM (reference: [`docs_mcp/mcp_en.md`](docs_mcp/mcp_en.md)).
+- **MCP server — 567 tools, 5 resources** — a Model Context Protocol endpoint that gives AI agents safe, permission-scoped access to the CRM (reference: [`docs_mcp/mcp_en.md`](docs_mcp/mcp_en.md)).
 
 ---
 
@@ -388,13 +390,13 @@ Updates are installed from the admin panel (**Admin → System Updates**, no SSH
 | Metric | Value |
 |--------|-------|
 | API endpoints | 906 route records · 953 unique URLs (713 core + 240 module) · 1,346 method-level routes |
-| MCP tools | 567 — Model Context Protocol server for AI agents |
-| Web routes | 68 pages, ~55 templates |
-| Backend services | 100+ |
-| Repositories | 65+ |
+| MCP tools | 567 tools + 5 resources — Model Context Protocol server for AI agents |
+| Web routes | 66 pages, ~66 templates |
+| Backend services | 110+ |
+| Repositories | 87 |
 | Domain modules | 35+ |
-| Integration modules | 15 — Jira, Trello, Asana, Bitrix24, ClickUp, Google & Yandex Calendar, WIP limits, and more |
-| JS modules | 24 custom vanilla JS modules, no SPA framework, no build step |
+| Integration modules | 15 — migrations from Jira, Trello, Asana, Bitrix24, ClickUp, Todoist, Shtab, Worksection, Confluence, Kaiten, Toggl, ActiveCollab + Google & Yandex Calendar sync + WIP limits |
+| JS modules | 39 custom vanilla JS modules, no SPA framework, no build step |
 | Public CI | PHP lint on 8.1 and 8.2, MySQL schema smoke test, OpenAPI consistency check |
 | AI endpoints | 65 |
 | AI workflows | 22 |
@@ -405,6 +407,7 @@ Updates are installed from the admin panel (**Admin → System Updates**, no SSH
 | OpenAPI tooling | `upload/api/scripts/generate_openapi.php` |
 | Maintainer docs kept local (not published) |
 | Module CLI commands | 19 |
+| Interface languages | 7 — English, Русский, Deutsch, Español, Français, Português, 中文 |
 | Deployment options | Local machine, home/office server, VPS, cloud VM, shared hosting |
 | External hosting starting point | ~$3/month shared hosting |
 
@@ -430,7 +433,7 @@ TropaTT/
 ├── upload/         # The CRM itself — copy the CONTENTS of this folder to your server
 │   ├── api/        #   API core — controllers, services, repositories, config, migrations, scripts
 │   ├── web/        #   Web UI — installer, pages, templates, JS modules, assets
-│   ├── modules/    #   15 pluggable integration modules (Jira, Trello, Asana, Bitrix24, ClickUp, calendars, WIP limits)
+│   ├── modules/    #   15 pluggable integration modules (migrations from Jira, Trello, Asana, Bitrix24, ClickUp, Todoist, Shtab, Worksection, Confluence, Kaiten, Toggl, ActiveCollab + Google/Yandex Calendar + WIP limits)
 │   └── index.php   #   Root entry point
 ├── README.md       # You're reading it (docs and config stay at the repo root)
 └── ...             # Other .md docs, LICENSE, .github/, .gitignore
@@ -639,6 +642,8 @@ TropaTT подходит всем, кто управляет клиентами 
 
 **Администрирование.** Пользователи, роли, гранулярные права доступа, статусы, приоритеты, SLA-политики, workflow-правила, вебхуки, API-клиенты, модули, аудит-логи, feature-флаги, лимиты, настройки AI-провайдеров — всё из панели администратора.
 
+**Перенос данных.** Перенесите работу из других трекеров без потери накопленного. Коннекторы односторонней миграции переносят в TropaTT доски, списки, проекты, задачи, статусы и пользователей из Jira, Trello, Asana, Битрикс24, ClickUp, Todoist, Shtab, Worksection, Confluence, Kaiten, Toggl и ActiveCollab. Синхронизация с Google Календарём и Яндекс Календарём держит события в актуальном состоянии.
+
 **Идеи и AI-проработка.** Захватите сырую идею, запрос клиента или бизнес-проблему. AI анализирует реализуемость, риски и сложность. AI предлагает структурированную иерархию задач. Просмотрите и превратите в реальные задачи одним кликом. Превращает «надо бы что-то сделать с X» в план действий за минуты.
 
 ---
@@ -745,7 +750,7 @@ TropaTT поддерживает полный цикл клиентской ра
 - **Модульная система** — расширение бизнес-логики без модификации ядра. 19 CLI-команд для управления модулями.
 - **REST API-эндпоинты, сгенерированные из маршрутов** — каждая CRM-сущность, задача, проект, чат, календарь, аналитика и административная функция доступны через API.
 - **Спецификация OpenAPI 3.1** — генерируется из конфигурации маршрутов, никогда не расходится с реализацией.
-- **MCP-сервер — 567 tools** — endpoint Model Context Protocol для безопасного доступа AI-агентов к CRM с проверкой прав (справочник: [`docs_mcp/mcp_ru.md`](docs_mcp/mcp_ru.md)).
+- **MCP-сервер — 567 tools, 5 resources** — endpoint Model Context Protocol для безопасного доступа AI-агентов к CRM с проверкой прав (справочник: [`docs_mcp/mcp_ru.md`](docs_mcp/mcp_ru.md)).
 
 ---
 
@@ -851,13 +856,13 @@ TropaTT включает браузерный установщик для про
 | Метрика | Значение |
 |--------|----------|
 | API эндпоинтов | 906 route-записей · 953 уникальных URL (713 core + 240 модульных) · 1346 method-level маршрутов |
-| MCP tools | 567 — Model Context Protocol сервер для AI-агентов |
-| Веб-страниц | 68 маршрутов, ~55 шаблонов |
-| PHP-сервисов | 100+ |
-| Репозиториев БД | 65+ |
+| MCP tools | 567 tools + 5 resources — сервер Model Context Protocol для AI-агентов |
+| Веб-страниц | 66 маршрутов, ~66 шаблонов |
+| PHP-сервисов | 110+ |
+| Репозиториев БД | 87 |
 | Доменных модулей | 35+ |
-| Интеграционных модулей | 15 — Jira, Trello, Asana, Битрикс24, ClickUp, Google/Яндекс Календарь, WIP-лимиты и др. |
-| JavaScript-модулей | 24 собственных модуля на ванильном JS, без SPA-фреймворков и сборки |
+| Интеграционных модулей | 15 — миграция из Jira, Trello, Asana, Битрикс24, ClickUp, Todoist, Shtab, Worksection, Confluence, Kaiten, Toggl, ActiveCollab + синхронизация Google/Яндекс Календаря + WIP-лимиты |
+| JavaScript-модулей | 39 собственных модулей на ванильном JS, без SPA-фреймворков и сборки |
 | Публичный CI | PHP lint на 8.1 и 8.2 |
 | AI API эндпоинтов | 65 |
 | Типов AI-процессов | 22 |
@@ -868,6 +873,7 @@ TropaTT включает браузерный установщик для про
 | OpenAPI tooling | `upload/api/scripts/generate_openapi.php` |
 | Maintainer-документы хранятся локально (не публикуются) |
 | CLI-команд для модулей | 19 |
+| Языков интерфейса | 7 — Русский, English, Deutsch, Español, Français, Português, 中文 |
 | Варианты развёртывания | локальный компьютер, домашний/офисный сервер, VPS, облачная VM, шаред-хостинг |
 | Внешний хостинг для старта | ~200–300 ₽/мес, шаред-хостинг |
 
@@ -893,7 +899,7 @@ TropaTT/
 ├── upload/         # Сама CRM — скопируйте СОДЕРЖИМОЕ этой папки на сервер
 │   ├── api/        #   Ядро API — контроллеры, сервисы, репозитории, конфигурация, миграции, скрипты
 │   ├── web/        #   Веб-интерфейс — установщик, страницы, шаблоны, JS-модули, ресурсы
-│   ├── modules/    #   15 подключаемых интеграционных модулей (Jira, Trello, Asana, Битрикс24, ClickUp, календари, WIP-лимиты)
+│   ├── modules/    #   15 подключаемых интеграционных модулей (миграция из Jira, Trello, Asana, Битрикс24, ClickUp, Todoist, Shtab, Worksection, Confluence, Kaiten, Toggl, ActiveCollab + Google/Яндекс Календарь + WIP-лимиты)
 │   └── index.php   #   Корневая точка входа
 ├── README.md       # Этот файл (документация и конфигурация остаются в корне)
 └── ...             # Остальные .md-документы, LICENSE, .github/, .gitignore
@@ -1096,6 +1102,8 @@ TropaTT 适用于任何管理客户并执行工作的人——无论团队规模
 
 **管理。** 用户管理、角色、细粒度权限、状态、优先级、SLA 策略、工作流规则、Webhook、API 客户端、模块、审计日志、功能标志、速率限制和 AI 提供商配置——全部通过管理面板操作。
 
+**数据迁移。** 无需从零开始，即可把工作从其他工具迁入。单向迁移连接器将看板、列表、项目、任务、状态和用户从 Jira、Trello、Asana、Bitrix24、ClickUp、Todoist、Shtab、Worksection、Confluence、Kaiten、Toggl 和 ActiveCollab 导入 TropaTT。Google 日历和 Yandex 日历同步让事件保持同步。
+
 **想法与 AI 分析。** 捕获原始想法、客户需求或业务问题。让 AI 分析可行性、风险和复杂度。AI 提出结构化任务层级。审查并以一键转换为真实任务。将"我们可能应该处理 X"在几分钟内转化为可操作的计划。
 
 ---
@@ -1202,7 +1210,7 @@ TropaTT 的自动化层和 REST API 是生产级的——为需要系统与业�
 - **模块系统**——在不修改核心的情况下扩展业务逻辑。19 个模块管理 CLI 命令。
 - **从路由配置生成的 REST API 端点**——每个 CRM 实体、任务、项目、聊天、日历、分析和管理员功能均可通过 API 访问。
 - **OpenAPI 3.1 规范**——从实际路由配置生成，与实现保持同步。
-- **MCP 服务器 — 567 个工具**——通过 Model Context Protocol 端点，让 AI 代理安全地、按权限访问 CRM（参考：[`docs_mcp/mcp_zh.md`](docs_mcp/mcp_zh.md)）。
+- **MCP 服务器 — 567 个工具、5 个资源**——通过 Model Context Protocol 端点，让 AI 代理安全地、按权限访问 CRM（参考：[`docs_mcp/mcp_zh.md`](docs_mcp/mcp_zh.md)）。
 
 ---
 
@@ -1305,13 +1313,13 @@ TropaTT 包含一个适用于简单 PHP/MySQL 部署的浏览器安装程序：�
 | 指标 | 数值 |
 |------|------|
 | API 端点 | 906 条路由记录 · 953 个唯一 URL（713 核心 + 240 模块）· 1346 个方法级路由 |
-| MCP 工具 | 567 — 面向 AI 代理的 Model Context Protocol 服务器 |
-| Web 应用路由 | 68 个页面，~55 个模板 |
-| 后端 PHP 服务 | 100+ |
-| 数据库仓库 | 65+ |
+| MCP 工具 | 567 个工具 + 5 个资源 — 面向 AI 代理的 Model Context Protocol 服务器 |
+| Web 应用路由 | 66 个页面，~66 个模板 |
+| 后端 PHP 服务 | 110+ |
+| 数据库仓库 | 87 |
 | 后端域模块 | 35+ |
-| 集成模块 | 15 — Jira、Trello、Asana、Bitrix24、ClickUp、Google/Yandex 日历、WIP 限制等 |
-| JavaScript 模块 | 24 个自定义原生 JS 模块，无 SPA 框架，无构建步骤 |
+| 集成模块 | 15 — 从 Jira、Trello、Asana、Bitrix24、ClickUp、Todoist、Shtab、Worksection、Confluence、Kaiten、Toggl、ActiveCollab 迁移 + Google/Yandex 日历同步 + WIP 限制 |
+| JavaScript 模块 | 39 个自定义原生 JS 模块，无 SPA 框架，无构建步骤 |
 | 公开 CI | PHP 8.1 和 8.2 lint |
 | AI API 端点 | 65 |
 | AI 工作流类型 | 22 |
@@ -1322,6 +1330,7 @@ TropaTT 包含一个适用于简单 PHP/MySQL 部署的浏览器安装程序：�
 | OpenAPI 工具 | `upload/api/scripts/generate_openapi.php` |
 | 维护者文档本地保存（不公开） |
 | 模块 CLI 命令 | 19 |
+| 界面语言 | 7 — English、Русский、Deutsch、Español、Français、Português、中文 |
 | 部署选项 | 本地电脑、家庭/办公室服务器、VPS、云虚拟机、共享主机 |
 | 外部主机起点 | ~$3/月，共享主机 |
 
@@ -1347,7 +1356,7 @@ TropaTT/
 ├── upload/         # CRM 本体——请将该文件夹的 CONTENTS 复制到服务器
 │   ├── api/        #   API 核心——控制器、服务、仓库、配置、迁移、脚本
 │   ├── web/        #   Web 界面——安装程序、页面、模板、JS 模块、资源
-│   ├── modules/    #   15 个可选集成模块（Jira、Trello、Asana、Bitrix24、ClickUp、日历、WIP 限制）
+│   ├── modules/    #   15 个可选集成模块（从 Jira、Trello、Asana、Bitrix24、ClickUp、Todoist、Shtab、Worksection、Confluence、Kaiten、Toggl、ActiveCollab 迁移 + Google/Yandex 日历 + WIP 限制）
 │   └── index.php   #   根入口点
 ├── README.md       # 本文件（文档和配置保留在仓库根目录）
 └── ...             # 其他 .md 文档、LICENSE、.github/、.gitignore
