@@ -1115,6 +1115,8 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 
 ### Modules
 
+Объекты модуля, возвращаемые `GET /api/v1/modules` и `GET /api/v1/modules/{name}`, включают поля автора: `author` (имя автора) и `author_url` (ссылка на автора, например профиль на GitHub), а также `name`, `version`, `vendor`, `title`, `description`, `category`, `is_active`, `status`, `installed_at` и `activated_at`.
+
 | Метод | Endpoint | Назначение | Auth | Permissions | Описание |
 |-------|----------|------------|:---:|-------------|----------|
 | GET | `/api/v1/modules` | Список модулей | Да | `settings.manage` | — |

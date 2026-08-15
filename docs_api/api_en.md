@@ -1115,6 +1115,8 @@ The `X-Idempotency-Key` header prevents duplicate operations.
 
 ### Modules
 
+Module objects returned by `GET /api/v1/modules` and `GET /api/v1/modules/{name}` include the author metadata fields `author` (author display name) and `author_url` (link to the author, e.g. a GitHub profile), alongside `name`, `version`, `vendor`, `title`, `description`, `category`, `is_active`, `status`, `installed_at` and `activated_at`.
+
 | Method | Endpoint | Description | Auth | Permissions | Notes |
 |-------|----------|------------|:---:|-------------|----------|
 | GET | `/api/v1/modules` | List modules | Yes | `settings.manage` | — |

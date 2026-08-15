@@ -1115,6 +1115,8 @@ Authorization: Bearer <token>
 
 ### 模块
 
+`GET /api/v1/modules` 和 `GET /api/v1/modules/{name}` 返回的模块对象包含作者元数据字段 `author`（作者显示名）和 `author_url`（作者链接，如 GitHub 主页），以及 `name`、`version`、`vendor`、`title`、`description`、`category`、`is_active`、`status`、`installed_at`、`activated_at`。
+
 | 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
 |-------|----------|------------|:---:|-------------|----------|
 | GET | `/api/v1/modules` | 模块列表 | 是 | `settings.manage` | — |
