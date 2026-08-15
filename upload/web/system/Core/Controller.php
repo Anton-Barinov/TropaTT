@@ -46,6 +46,9 @@ abstract class Controller
     private static ?array $moduleJsFiles = null;
 
     /** @var array<string, string>|null */
+    private static ?array $moduleCssRoutes = null;
+
+    /** @var array<string, string>|null */
     private static ?array $moduleJsRoutes = null;
 
     /** @var \Web\System\Hook\HookManager|null */
@@ -58,12 +61,14 @@ abstract class Controller
     /**
      * @param array<int, string> $cssFiles
      * @param array<int, string> $jsFiles
+     * @param array<string, string> $cssRoutes
      * @param array<string, string> $jsRoutes
      */
-    public static function setModuleAssets(array $cssFiles, array $jsFiles, array $jsRoutes): void
+    public static function setModuleAssets(array $cssFiles, array $jsFiles, array $cssRoutes = [], array $jsRoutes = []): void
     {
         self::$moduleCssFiles = $cssFiles;
         self::$moduleJsFiles = $jsFiles;
+        self::$moduleCssRoutes = $cssRoutes;
         self::$moduleJsRoutes = $jsRoutes;
     }
 
@@ -76,6 +81,7 @@ abstract class Controller
     {
         self::$moduleCssFiles = null;
         self::$moduleJsFiles = null;
+        self::$moduleCssRoutes = null;
         self::$moduleJsRoutes = null;
     }
 
@@ -104,6 +110,7 @@ abstract class Controller
         $data['i18n'] = $i18n;
         $data['module_css_files'] = self::$moduleCssFiles ?? [];
         $data['module_js_files'] = self::$moduleJsFiles ?? [];
+        $data['module_css_routes'] = self::$moduleCssRoutes ?? [];
         $data['module_js_routes'] = self::$moduleJsRoutes ?? [];
         // SEC-004: Expose the per-request CSP nonce (set by web/index.php) so
         // templates can attach it to inline <script nonce="..."> and
@@ -140,6 +147,14 @@ abstract class Controller
         $data['lang_messages'] = $this->clientMessages($i18n->all());
         $t = static fn(string $key, string $default = ''): string => $i18n->t($key, $default);
 
+        // render.before runs before template variables are materialized, so a
+        // hook can add or change data that the extraction below then exposes.
+        if (self::$webHookManager !== null) {
+            $hookContext = ['template' => $template, 'data' => &$data];
+            self::$webHookManager->dispatch('render.before', $hookContext);
+            $data = $hookContext['data'] ?? $data;
+        }
+
         // SEC: Replace extract() with explicit variable creation to prevent variable injection.
         // Preserve EXTR_SKIP semantics: do not overwrite existing locals or superglobals.
         $reservedSkip = ['_GET', '_POST', '_REQUEST', '_SERVER', '_SESSION', '_COOKIE', '_FILES', '_ENV', 'GLOBALS',
@@ -158,21 +173,23 @@ abstract class Controller
             ${$key} = $value;
         }
 
-        if (self::$webHookManager !== null) {
-            $hookContext = ['template' => $template, 'data' => &$data];
-            self::$webHookManager->dispatch('render.before', $hookContext);
-            $data = $hookContext['data'] ?? $data;
-        }
-
+        // Buffer the rendered page so render.after hooks can append or replace
+        // HTML (the hook receives the full document by reference).
+        ob_start();
         require $this->baseDir . '/view/template/common/header.php';
         require_once $this->baseDir . '/view/template/common/page_head.php';
+        require_once $this->baseDir . '/view/template/common/module_position.php';
         require $viewFile;
         require $this->baseDir . '/view/template/common/footer.php';
+        $html = (string)ob_get_clean();
 
         if (self::$webHookManager !== null) {
-            $hookContext = ['template' => $template, 'html' => ''];
+            $hookContext = ['template' => $template, 'html' => $html];
             self::$webHookManager->dispatch('render.after', $hookContext);
+            $html = (string)($hookContext['html'] ?? $html);
         }
+
+        echo $html;
     }
 
     /** @param array<string, mixed> $messages

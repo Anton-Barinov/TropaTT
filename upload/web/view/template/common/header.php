@@ -146,6 +146,15 @@ if (is_file($jsOverridesPath)) {
   <?php foreach (($module_css_files ?? []) as $cssFile): ?>
   <link rel="stylesheet" href="<?= htmlspecialchars($modulesBase, ENT_QUOTES, 'UTF-8') ?><?= htmlspecialchars($cssFile, ENT_QUOTES, 'UTF-8') ?>?v=<?= urlencode($assetsVersion) ?>">
   <?php endforeach; ?>
+  <?php
+  $headerCurrentRoute = trim((string)($route ?? ($_GET['route'] ?? '')), '/');
+  $moduleCssRouteFile = (isset($module_css_routes) && is_array($module_css_routes) && isset($module_css_routes[$headerCurrentRoute]))
+      ? (string)$module_css_routes[$headerCurrentRoute]
+      : '';
+  ?>
+  <?php if ($moduleCssRouteFile !== ''): ?>
+  <link rel="stylesheet" href="<?= htmlspecialchars($modulesBase, ENT_QUOTES, 'UTF-8') ?><?= htmlspecialchars($moduleCssRouteFile, ENT_QUOTES, 'UTF-8') ?>?v=<?= urlencode($assetsVersion) ?>">
+  <?php endif; ?>
   <script>
     window.CRM = window.CRM || {};
     window.CRM.locale = <?= json_encode($currentLocale, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;

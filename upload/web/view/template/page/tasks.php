@@ -104,5 +104,6 @@
 </section>
 <div id="tasksPager" class="crm-table-pager d-none" aria-live="polite"></div>
 
+<?= module_position('tasks.list.after', ['route' => $route ?? 'tasks']) ?>
 </main></div></div>
 

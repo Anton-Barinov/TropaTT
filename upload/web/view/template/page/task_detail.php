@@ -210,6 +210,7 @@
 
   <aside class="col-lg-4 crm-task-side-column">
     <div class="crm-task-side-rail">
+    <?= module_position('task.detail.sidebar', ['route' => $route ?? 'task-detail', 'task_public_id' => (string)($_GET['task_public_id'] ?? '')]) ?>
     <div class="crm-card mb-3" id="taskEstimatesPanel">
       <div class="crm-side-card-head">
         <div>

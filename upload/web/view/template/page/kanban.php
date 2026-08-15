@@ -45,4 +45,5 @@
       <div class="crm-kanban"></div>
       <button class="crm-kanban-scroll-btn crm-kanban-scroll-right" type="button" aria-label="<?= htmlspecialchars($t('kanban.scroll_right', 'Прокрутить вправо'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="kanban.scroll_right"><i class="fa-solid fa-chevron-right"></i></button>
     </div>
+<?= module_position('kanban.board.after', ['route' => $route ?? 'kanban']) ?>
 </main></div></div>

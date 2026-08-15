@@ -568,12 +568,16 @@ function crmWebInitModuleSystem(string $webBaseDir, Web\System\Core\Router $rout
     $webHookManager = new Web\System\Hook\HookManager();
     Web\System\Core\Controller::setWebHookManager($webHookManager);
 
+    $positionRegistry = new Web\System\Module\PositionRegistry();
+    Web\System\Module\PositionRegistry::setInstance($positionRegistry);
+
     $assetManager = new Web\System\Module\ModuleAssetManager($pluginManager, $projectRoot);
     $assetManager->collect();
 
     Web\System\Core\Controller::setModuleAssets(
         $assetManager->getCssFiles(),
         $assetManager->getJsFiles(),
+        $assetManager->getCssRoutes(),
         $assetManager->getJsRoutes()
     );
 
@@ -586,6 +590,38 @@ function crmWebInitModuleSystem(string $webBaseDir, Web\System\Core\Router $rout
                 $moduleRoutes = require $routeFile;
                 if (is_array($moduleRoutes) && $moduleRoutes !== []) {
                     $router->addRoutes($moduleRoutes);
+                }
+            }
+        }
+
+        // Content injection positions: manifest "positions" maps a position
+        // name to a list of {renderer, priority} class::method strings.
+        foreach ($manifest->positions as $positionName => $handlers) {
+            if (!is_array($handlers)) {
+                continue;
+            }
+            foreach ($handlers as $entry) {
+                $renderer = Web\System\Module\ModuleExtensionResolver::resolveCallable(
+                    $entry['renderer'] ?? ''
+                );
+                if ($renderer !== null) {
+                    $positionRegistry->register((string)$positionName, $renderer, (int)($entry['priority'] ?? 10));
+                }
+            }
+        }
+
+        // Web hooks: manifest "web_hooks" maps a hook name to a list of
+        // {handler, priority} class::method strings.
+        foreach ($manifest->webHooks as $hookName => $handlers) {
+            if (!is_array($handlers)) {
+                continue;
+            }
+            foreach ($handlers as $entry) {
+                $handler = Web\System\Module\ModuleExtensionResolver::resolveCallable(
+                    $entry['handler'] ?? ''
+                );
+                if ($handler !== null) {
+                    $webHookManager->register((string)$hookName, $handler, (int)($entry['priority'] ?? 10));
                 }
             }
         }

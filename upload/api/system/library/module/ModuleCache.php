@@ -139,6 +139,8 @@ final class ModuleCache
             'service_provider' => $manifest->serviceProvider,
             'config_defaults' => $manifest->configDefaults,
             'assets' => $manifest->assets,
+            'positions' => $manifest->positions,
+            'web_hooks' => $manifest->webHooks,
         ];
     }
 }

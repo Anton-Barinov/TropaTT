@@ -5,6 +5,8 @@ namespace Api\Controller\Task;
 
 use Api\Controller\Common\BaseController;
 use Api\Model\Status\StatusRepository;
+use Api\System\Library\Module\ModuleEvents;
+use Api\System\Library\Module\ModuleHookDispatcher;
 use Api\System\Library\Service\CommentService;
 use Api\System\Library\Service\CounterpartyService;
 use Api\System\Library\Service\TaskBulkService;
@@ -162,6 +164,13 @@ final class TaskController extends BaseController
             }
 
             $this->fireWorkflowTrigger('task_created', $item, $authUser['user']);
+            $this->dispatchModuleHook(ModuleEvents::TASK_CREATED, [
+                'task_id' => (int)($item['id'] ?? 0),
+                'task_public_id' => (string)($item['public_id'] ?? ''),
+                'status_code' => (string)($item['status_code'] ?? ''),
+                'assignee_id' => (int)($item['assignee_user_id'] ?? 0),
+                'actor_id' => (int)($authUser['user']['id'] ?? 0),
+            ]);
 
             $this->invalidateTaskCaches();
 
@@ -296,7 +305,7 @@ final class TaskController extends BaseController
                 'previous_status' => $before['status_code'] ?? null,
                 'new_status' => (string)$input['status'],
             ]);
-            $this->dispatchModuleHook('task.status_changed', [
+            $this->dispatchModuleHook(ModuleEvents::TASK_STATUS_CHANGED, [
                 'task_id' => (int)($item['id'] ?? 0),
                 'task_public_id' => (string)($item['public_id'] ?? ''),
                 'old_status' => (string)($before['status_code'] ?? ''),
@@ -307,7 +316,7 @@ final class TaskController extends BaseController
         }
 
         if ((int)($item['assignee_user_id'] ?? 0) !== (int)($before['assignee_user_id'] ?? 0)) {
-            $this->dispatchModuleHook('task.assignee_changed', [
+            $this->dispatchModuleHook(ModuleEvents::TASK_ASSIGNEE_CHANGED, [
                 'task_id' => (int)($item['id'] ?? 0),
                 'task_public_id' => (string)($item['public_id'] ?? ''),
                 'old_assignee_id' => (int)($before['assignee_user_id'] ?? 0),
@@ -318,6 +327,13 @@ final class TaskController extends BaseController
         }
 
         $this->fireWorkflowTrigger('task_updated', $item, $authUser['user']);
+        $this->dispatchModuleHook(ModuleEvents::TASK_UPDATED, [
+            'task_id' => (int)($item['id'] ?? 0),
+            'task_public_id' => (string)($item['public_id'] ?? ''),
+            'status_code' => (string)($item['status_code'] ?? ''),
+            'assignee_id' => (int)($item['assignee_user_id'] ?? 0),
+            'actor_id' => (int)($authUser['user']['id'] ?? 0),
+        ]);
 
         $this->invalidateTaskCaches();
 
@@ -364,12 +380,21 @@ final class TaskController extends BaseController
 
         /** @var TaskService $service */
         $service = $this->container->get('service.task');
+        $before = $service->get((string)$params['public_id'], $authUser['user']);
         $ok = $service->delete((string)$params['public_id'], $authUser['user']);
         if (!$ok) {
             return $this->error('TASK_NOT_FOUND', $this->t('common/messages.task_not_found'), 404, [
                 'task' => [$this->t('common/messages.task_not_found')],
             ]);
         }
+
+        $this->dispatchModuleHook(ModuleEvents::TASK_DELETED, [
+            'task_id' => (int)($before['id'] ?? 0),
+            'task_public_id' => (string)($params['public_id'] ?? ''),
+            'status_code' => (string)($before['status_code'] ?? ''),
+            'assignee_id' => (int)($before['assignee_user_id'] ?? 0),
+            'actor_id' => (int)($authUser['user']['id'] ?? 0),
+        ]);
 
         $this->invalidateTaskCaches();
 
@@ -610,13 +635,7 @@ final class TaskController extends BaseController
      */
     private function dispatchModuleHook(string $event, array $payload): void
     {
-        try {
-            /** @var \Api\System\Library\Hook\HookManager $hooks */
-            $hooks = $this->container->get('hook.manager');
-            $hooks->dispatch($event, $payload);
-        } catch (\Throwable $e) {
-            error_log('[TaskController::dispatchModuleHook][' . $event . '] ' . $e->getMessage());
-        }
+        ModuleHookDispatcher::dispatch($this->container, $event, $payload);
     }
 
     private function isAllowedTaskStatus(string $statusCode): bool

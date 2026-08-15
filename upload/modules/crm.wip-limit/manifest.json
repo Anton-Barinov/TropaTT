@@ -15,8 +15,13 @@
     "web_routes": "web/config/routes.php",
     "migrations": "api/migrations/",
     "assets": {
-        "js": ["web/assets/js/module-wip-limit.js"],
-        "css": ["web/assets/css/module-wip-limit.css"]
+        "css_routes": {"task-detail": "web/assets/css/module-wip-limit.css"},
+        "js_routes": {"task-detail": "web/assets/js/wip-task-sidebar.js"}
+    },
+    "positions": {
+        "task.detail.sidebar": [
+            {"renderer": "Module\\Crm\\WipLimit\\Position\\TaskSidebarPanel::render", "priority": 10}
+        ]
     },
     "hooks": {},
     "menu_items": [],

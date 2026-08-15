@@ -14,6 +14,9 @@ final class ModuleAssetManager
     private array $jsFiles = [];
 
     /** @var array<string, string> */
+    private array $cssRoutes = [];
+
+    /** @var array<string, string> */
     private array $jsRoutes = [];
 
     public function __construct(
@@ -48,6 +51,15 @@ final class ModuleAssetManager
                 }
             }
 
+            if (isset($assets['css_routes']) && is_array($assets['css_routes'])) {
+                foreach ($assets['css_routes'] as $route => $css) {
+                    $cssPath = $moduleDir . '/' . $css;
+                    if (is_file($cssPath)) {
+                        $this->cssRoutes[$route] = 'modules/' . $manifest->name . '/' . $css;
+                    }
+                }
+            }
+
             if (isset($assets['js_routes']) && is_array($assets['js_routes'])) {
                 foreach ($assets['js_routes'] as $route => $js) {
                     $jsPath = $moduleDir . '/' . $js;
@@ -72,6 +84,12 @@ final class ModuleAssetManager
     }
 
     /** @return array<string, string> */
+    public function getCssRoutes(): array
+    {
+        return $this->cssRoutes;
+    }
+
+    /** @return array<string, string> */
     public function getJsRoutes(): array
     {
         return $this->jsRoutes;
@@ -83,6 +101,7 @@ final class ModuleAssetManager
         return [
             'css' => $this->cssFiles,
             'js' => $this->jsFiles,
+            'css_routes' => $this->cssRoutes,
             'js_routes' => $this->jsRoutes,
         ];
     }
