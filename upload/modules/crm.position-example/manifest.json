@@ -1,0 +1,33 @@
+{
+    "name": "crm.position-example",
+    "version": "1.0.0",
+    "vendor": "crm",
+    "author": "Anton Barinov",
+    "author_url": "https://github.com/Anton-Barinov",
+    "title": "Position example",
+    "description": "Example module demonstrating how a self-contained module injects content into a core page position (gantt.content.after) and loads assets only on that route.",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "category": "productivity",
+    "dependencies": [],
+    "require_permissions": [],
+    "assets": {
+        "css_routes": {
+            "gantt": "web/assets/css/position-example.css"
+        },
+        "js_routes": {
+            "gantt": "web/assets/js/position-example.js"
+        }
+    },
+    "positions": {
+        "gantt.content.after": [
+            {
+                "renderer": "Module\\Crm\\PositionExample\\Position\\GanttDemoPanel::render",
+                "priority": 10
+            }
+        ]
+    },
+    "hooks": {},
+    "menu_items": [],
+    "config_defaults": {}
+}

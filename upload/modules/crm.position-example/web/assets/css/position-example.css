@@ -1,0 +1,10 @@
+/* crm.position-example — route-scoped styles (loaded only on the gantt route). */
+.crm-position-example-panel {
+    border-left: 3px solid var(--color-primary-500, #0f8f72);
+}
+.crm-position-example-panel code {
+    background: var(--color-neutral-100, #f1f5f9);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 0.85em;
+}
