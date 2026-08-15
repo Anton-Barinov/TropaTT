@@ -6,7 +6,6 @@ namespace Api\Controller\Task;
 use Api\Controller\Common\BaseController;
 use Api\Model\Status\StatusRepository;
 use Api\System\Library\Module\ModuleEvents;
-use Api\System\Library\Module\ModuleHookDispatcher;
 use Api\System\Library\Service\CommentService;
 use Api\System\Library\Service\CounterpartyService;
 use Api\System\Library\Service\TaskBulkService;
@@ -633,11 +632,6 @@ final class TaskController extends BaseController
      *
      * @param array<string, mixed> $payload
      */
-    private function dispatchModuleHook(string $event, array $payload): void
-    {
-        ModuleHookDispatcher::dispatch($this->container, $event, $payload);
-    }
-
     private function isAllowedTaskStatus(string $statusCode): bool
     {
         if (in_array($statusCode, ['new', 'in_progress', 'blocked', 'done'], true)) {

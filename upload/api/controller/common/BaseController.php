@@ -35,6 +35,17 @@ abstract class BaseController
         return $this->lang()->get($key, $default !== '' ? $default : $key);
     }
 
+    /**
+     * Dispatch a module lifecycle event to subscribed module hooks.
+     * Errors in third-party handlers are swallowed by the dispatcher.
+     *
+     * @param array<string, mixed> $payload
+     */
+    protected function dispatchModuleHook(string $event, array $payload): void
+    {
+        \Api\System\Library\Module\ModuleHookDispatcher::dispatch($this->container, $event, $payload);
+    }
+
     protected function success(string $code, string $message, array $data = [], int $status = 200, array $meta = []): JsonResponse
     {
         $request = $this->request();

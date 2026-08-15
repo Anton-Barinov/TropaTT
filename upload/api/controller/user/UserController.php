@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\Controller\User;
 
 use Api\Controller\Common\BaseController;
+use Api\System\Library\Module\ModuleEvents;
 use Api\System\Library\Service\UserService;
 use Api\System\Library\Validation\Validator;
 
@@ -96,6 +97,12 @@ final class UserController extends BaseController
             $result['user'] = $this->stripFinancialRates($result['user']);
         }
 
+        $this->dispatchModuleHook(ModuleEvents::USER_CREATED, [
+            'user_id' => (int)($result['user']['id'] ?? 0),
+            'user_public_id' => (string)($result['user']['public_id'] ?? ''),
+            'actor_id' => (int)($auth['user']['id'] ?? 0),
+        ]);
+
         $this->invalidateCache('worklog');
 
         return $this->success('USER_CREATED', $this->t('user/messages.created'), ['user' => $result['user']], 201);
@@ -131,6 +138,12 @@ final class UserController extends BaseController
             $result['user'] = $this->stripFinancialRates($result['user']);
         }
 
+        $this->dispatchModuleHook(ModuleEvents::USER_UPDATED, [
+            'user_id' => (int)($result['user']['id'] ?? 0),
+            'user_public_id' => (string)($result['user']['public_id'] ?? ''),
+            'actor_id' => (int)($auth['user']['id'] ?? 0),
+        ]);
+
         $this->invalidateCache('worklog');
 
         return $this->success('USER_UPDATED', $this->t('user/messages.updated'), ['user' => $result['user']]);
@@ -145,12 +158,19 @@ final class UserController extends BaseController
 
         /** @var UserService $service */
         $service = $this->container->get('service.user');
+        $before = $service->get((string)$params['public_id']);
         $result = $service->delete((string)$params['public_id'], $auth['user']);
 
         if (!$result['ok']) {
             $status = in_array((string)$result['code'], ['USER_NOT_FOUND'], true) ? 404 : 403;
             return $this->error((string)$result['code'], $this->t('user/messages.delete_failed'), $status, ['user' => [(string)$result['code']]]);
         }
+
+        $this->dispatchModuleHook(ModuleEvents::USER_DELETED, [
+            'user_id' => (int)($before['id'] ?? 0),
+            'user_public_id' => (string)($params['public_id'] ?? ''),
+            'actor_id' => (int)($auth['user']['id'] ?? 0),
+        ]);
 
         $this->invalidateCache('worklog');
 

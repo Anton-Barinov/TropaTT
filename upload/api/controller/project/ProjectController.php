@@ -5,6 +5,7 @@ namespace Api\Controller\Project;
 
 use Api\Controller\Common\BaseController;
 use Api\Model\Project\ProjectRepository;
+use Api\System\Library\Module\ModuleEvents;
 use Api\System\Library\Service\GanttService;
 use Api\System\Library\Service\ProjectService;
 use Api\System\Library\Service\ProjectSummaryService;
@@ -99,6 +100,12 @@ final class ProjectController extends BaseController
                 ]);
             }
 
+            $this->dispatchModuleHook(ModuleEvents::PROJECT_CREATED, [
+                'project_id' => (int)($item['id'] ?? 0),
+                'project_public_id' => (string)($item['public_id'] ?? ''),
+                'actor_id' => (int)($authUser['user']['id'] ?? 0),
+            ]);
+
             $this->invalidateCache('project');
 
             return $this->success('PROJECT_CREATED', $this->t('project/messages.created'), [
@@ -186,6 +193,12 @@ final class ProjectController extends BaseController
             ]);
         }
 
+        $this->dispatchModuleHook(ModuleEvents::PROJECT_UPDATED, [
+            'project_id' => (int)($item['id'] ?? 0),
+            'project_public_id' => (string)($item['public_id'] ?? ''),
+            'actor_id' => (int)($authUser['user']['id'] ?? 0),
+        ]);
+
         $this->invalidateCache('project');
 
         return $this->success('PROJECT_UPDATED', $this->t('project/messages.updated'), [
@@ -204,12 +217,19 @@ final class ProjectController extends BaseController
 
         /** @var ProjectService $service */
         $service = $this->container->get('service.project');
+        $before = $service->get((string)$params['public_id'], $authUser['user']);
         $ok = $service->delete((string)$params['public_id'], $authUser['user']);
         if (!$ok) {
             return $this->error('PROJECT_NOT_FOUND', $this->t('common/messages.project_not_found'), 404, [
                 'project' => [$this->t('common/messages.project_not_found')],
             ]);
         }
+
+        $this->dispatchModuleHook(ModuleEvents::PROJECT_DELETED, [
+            'project_id' => (int)($before['id'] ?? 0),
+            'project_public_id' => (string)($params['public_id'] ?? ''),
+            'actor_id' => (int)($authUser['user']['id'] ?? 0),
+        ]);
 
         $this->invalidateCache('project');
 

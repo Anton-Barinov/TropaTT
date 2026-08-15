@@ -20,6 +20,16 @@ final class ModuleEvents
     public const TASK_ASSIGNEE_CHANGED = 'task.assignee_changed';
     public const TASK_DELETED = 'task.deleted';
 
+    // Project lifecycle (dispatched from ProjectController).
+    public const PROJECT_CREATED = 'project.created';
+    public const PROJECT_UPDATED = 'project.updated';
+    public const PROJECT_DELETED = 'project.deleted';
+
+    // User lifecycle (dispatched from UserController).
+    public const USER_CREATED = 'user.created';
+    public const USER_UPDATED = 'user.updated';
+    public const USER_DELETED = 'user.deleted';
+
     // Collaboration.
     public const COMMENT_ADDED = 'comment.added';
     public const FILE_UPLOADED = 'file.uploaded';
