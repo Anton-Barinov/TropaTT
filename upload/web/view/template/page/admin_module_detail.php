@@ -53,7 +53,12 @@
                 document.getElementById('moduleStats').style.display = '';
 
                 document.getElementById('statVersion').textContent = m.version || '—';
-                document.getElementById('statVendor').textContent = m.vendor || '—';
+                var vendorLabel = m.author || m.vendor || '—';
+                if (m.author_url) {
+                    document.getElementById('statVendor').innerHTML = '<a href="' + window.CRM.text.escapeHtml(m.author_url) + '" target="_blank" rel="noopener noreferrer" class="text-decoration-none">' + window.CRM.text.escapeHtml(vendorLabel) + '</a>';
+                } else {
+                    document.getElementById('statVendor').textContent = vendorLabel;
+                }
                 document.getElementById('statStatus').textContent = m.is_active ? window.CRM.i18n.t('admin_module_detail.state_active', 'Активен') : (m.status === 'installed' ? window.CRM.i18n.t('admin_module_detail.state_installed', 'Установлен') : window.CRM.i18n.t('admin_module_detail.state_discovered', 'Обнаружен'));
                 document.getElementById('statCore').textContent = m.core_version || '—';
 

@@ -2,6 +2,8 @@
     "name": "crm.worksection-migration",
     "version": "1.0.0",
     "vendor": "crm",
+    "author": "Anton Barinov",
+    "author_url": "https://github.com/Anton-Barinov",
     "title": "Миграция из Worksection",
     "description": "Односторонняя миграция проектов, задач, подзадач, комментариев, файлов, меток, пользователей и учёта времени из Worksection в TropaTT",
     "core_version": ">=1.0.0",

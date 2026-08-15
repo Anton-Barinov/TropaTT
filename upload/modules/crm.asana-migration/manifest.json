@@ -2,6 +2,8 @@
     "name": "crm.asana-migration",
     "version": "1.0.0",
     "vendor": "crm",
+    "author": "Anton Barinov",
+    "author_url": "https://github.com/Anton-Barinov",
     "title": "Миграция из Asana",
     "description": "Односторонняя миграция рабочих пространств, проектов, задач и связанных данных из Asana Cloud в TropaTT",
     "core_version": ">=1.0.0",

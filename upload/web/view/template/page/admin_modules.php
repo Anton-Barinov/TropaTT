@@ -203,7 +203,8 @@
             if (m.description) rows += '<br><small class="text-muted">' + esc(m.description) + '</small>';
             rows += '</td>';
             rows += '<td>' + esc(m.version) + '</td>';
-            rows += '<td>' + esc(m.vendor) + '</td>';
+            var vendorLabel = m.author || m.vendor || '';
+            rows += '<td>' + (vendorLabel ? (m.author_url ? '<a href="' + esc(m.author_url) + '" target="_blank" rel="noopener noreferrer">' + esc(vendorLabel) + '</a>' : esc(vendorLabel)) : '—') + '</td>';
             rows += '<td><span class="' + statusClass + '">' + statusText + '</span></td>';
             rows += '<td>' + actions + '</td>';
             rows += '</tr>';

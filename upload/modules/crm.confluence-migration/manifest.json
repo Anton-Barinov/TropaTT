@@ -2,6 +2,8 @@
     "name": "crm.confluence-migration",
     "version": "1.0.0",
     "vendor": "crm",
+    "author": "Anton Barinov",
+    "author_url": "https://github.com/Anton-Barinov",
     "title": "Миграция из Confluence",
     "description": "Модуль миграции пространств и страниц из Confluence Cloud в базу знаний TropaTT",
     "core_version": ">=1.0.0",

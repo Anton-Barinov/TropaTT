@@ -2,6 +2,8 @@
   "name": "crm.kaiten-migration",
   "version": "1.0.0",
   "vendor": "crm",
+  "author": "Anton Barinov",
+  "author_url": "https://github.com/Anton-Barinov",
   "title": "Миграция из Kaiten",
   "description": "Миграция пространств, досок, колонок, карточек и связанных данных из Kaiten в TropaTT",
   "core_version": ">=1.0.0",

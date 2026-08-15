@@ -2,6 +2,8 @@
     "name": "crm.activecollab-migration",
     "version": "1.0.0",
     "vendor": "crm",
+    "author": "Anton Barinov",
+    "author_url": "https://github.com/Anton-Barinov",
     "title": "Миграция из ActiveCollab",
     "description": "Односторонняя миграция рабочих пространств, проектов, задач и связанных данных из ActiveCollab Cloud в TropaTT",
     "core_version": ">=1.0.0",

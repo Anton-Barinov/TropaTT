@@ -2,6 +2,8 @@
   "name": "crm.google-calendar",
   "version": "1.0.0",
   "vendor": "crm",
+  "author": "Anton Barinov",
+  "author_url": "https://github.com/Anton-Barinov",
   "title": "Google Calendar",
   "description": "Приватная двусторонняя синхронизация Google Calendar с календарём TropaTT",
   "core_version": ">=1.0.0",

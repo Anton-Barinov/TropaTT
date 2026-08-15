@@ -152,7 +152,8 @@
                     rows += '<tr>';
                     rows += '<td><strong>' + window.CRM.text.escapeHtml(m.title || m.name) + '</strong><br><small class="text-muted">' + window.CRM.text.escapeHtml(m.name) + '</small></td>';
                     rows += '<td>' + window.CRM.text.escapeHtml(m.version) + '</td>';
-                    rows += '<td>' + window.CRM.text.escapeHtml(m.vendor) + '</td>';
+                    var vendorLabel = m.author || m.vendor || '—';
+                    rows += '<td>' + (vendorLabel !== '—' && m.author_url ? '<a href="' + window.CRM.text.escapeHtml(m.author_url) + '" target="_blank" rel="noopener noreferrer">' + window.CRM.text.escapeHtml(vendorLabel) + '</a>' : window.CRM.text.escapeHtml(vendorLabel)) + '</td>';
                     rows += '<td><button class="btn btn-sm btn-primary module-install" data-name="' + window.CRM.text.escapeHtml(m.name) + '" data-i18n="admin_modules_install.btn_install"><i class="fa-solid fa-download"></i> ' + window.CRM.i18n.t('admin_modules_install.btn_install', 'Установить') + '</button></td>';
                     rows += '</tr>';
                 });

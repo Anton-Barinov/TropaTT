@@ -2,6 +2,8 @@
   "name": "crm.yandex-calendar",
   "version": "1.0.0",
   "vendor": "crm",
+  "author": "Anton Barinov",
+  "author_url": "https://github.com/Anton-Barinov",
   "title": "Яндекс.Календарь",
   "description": "Приватная двусторонняя синхронизация Яндекс.Календаря через CalDAV",
   "core_version": ">=1.0.0",

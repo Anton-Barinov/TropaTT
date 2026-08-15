@@ -2,6 +2,8 @@
     "name": "crm.toggl-migration",
     "version": "1.0.0",
     "vendor": "crm",
+    "author": "Anton Barinov",
+    "author_url": "https://github.com/Anton-Barinov",
     "title": "Миграция из Toggl",
     "description": "Миграция рабочих пространств, клиентов, проектов, задач, пользователей и учёта времени из Toggl Track в TropaTT",
     "core_version": ">=1.0.0",

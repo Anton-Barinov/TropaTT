@@ -2,6 +2,8 @@
     "name": "crm.bitrix24-migration",
     "version": "1.0.0",
     "vendor": "crm",
+    "author": "Anton Barinov",
+    "author_url": "https://github.com/Anton-Barinov",
     "title": "Миграция из Битрикс24",
     "description": "Идемпотентная миграция CRM-сущностей, проектов, задач, пользователей, активностей и файлов из облака или коробки Битрикс24",
     "core_version": ">=1.0.0",

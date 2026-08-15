@@ -2,6 +2,8 @@
     "name": "crm.gitlab-integration",
     "version": "1.0.0",
     "vendor": "crm",
+    "author": "Anton Barinov",
+    "author_url": "https://github.com/Anton-Barinov",
     "title": "GitLab",
     "description": "Синхронизация Merge Requests GitLab с задачами TropaTT (включая self-managed GitLab)",
     "core_version": ">=1.0.0",

@@ -2,6 +2,8 @@
     "name": "crm.wip-limit",
     "version": "1.0.0",
     "vendor": "crm",
+    "author": "Anton Barinov",
+    "author_url": "https://github.com/Anton-Barinov",
     "title": "WIP Limit",
     "description": "Ограничение количества задач в работе (Work In Progress). Настройка лимитов на пользователя, уведомления при превышении.",
     "core_version": ">=1.0.0",

@@ -2,6 +2,8 @@
     "name": "crm.drawio",
     "version": "1.0.0",
     "vendor": "crm",
+    "author": "Anton Barinov",
+    "author_url": "https://github.com/Anton-Barinov",
     "title": "Диаграммы draw.io",
     "description": "Создание и встраивание диаграмм draw.io в страницы базы знаний TropaTT",
     "core_version": ">=1.0.0",

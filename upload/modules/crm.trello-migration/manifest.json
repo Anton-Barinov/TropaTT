@@ -2,6 +2,8 @@
     "name": "crm.trello-migration",
     "version": "1.0.0",
     "vendor": "crm",
+    "author": "Anton Barinov",
+    "author_url": "https://github.com/Anton-Barinov",
     "title": "Миграция из Trello",
     "description": "Односторонняя миграция досок, списков, карточек и связанных данных из Trello Cloud в TropaTT",
     "core_version": ">=1.0.0",

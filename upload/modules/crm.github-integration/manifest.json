@@ -2,6 +2,8 @@
     "name": "crm.github-integration",
     "version": "1.0.0",
     "vendor": "crm",
+    "author": "Anton Barinov",
+    "author_url": "https://github.com/Anton-Barinov",
     "title": "GitHub",
     "description": "Синхронизация GitHub issues и pull requests с задачами TropaTT (включая GitHub Enterprise Server)",
     "core_version": ">=1.0.0",

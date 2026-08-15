@@ -2,6 +2,8 @@
     "name": "crm.slack-integration",
     "version": "1.0.0",
     "vendor": "crm",
+    "author": "Anton Barinov",
+    "author_url": "https://github.com/Anton-Barinov",
     "title": "Уведомления в Slack",
     "description": "Отправка уведомлений TropaTT в Slack-каналы через Incoming Webhooks (без публичного callback — подходит для shared-хостинга)",
     "core_version": ">=1.0.0",

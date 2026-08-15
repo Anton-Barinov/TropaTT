@@ -2,6 +2,8 @@
     "name": "crm.raycast",
     "version": "1.0.0",
     "vendor": "crm",
+    "author": "Anton Barinov",
+    "author_url": "https://github.com/Anton-Barinov",
     "title": "Raycast (MCP)",
     "description": "Подключение Raycast для macOS к MCP-серверу TropaTT: показывает URL эндпоинта и инструкцию по настройке",
     "core_version": ">=1.0.0",
