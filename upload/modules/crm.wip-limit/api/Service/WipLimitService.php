@@ -201,6 +201,67 @@ final class WipLimitService
     }
 
     /**
+     * WIP status of the task's assignee, resolved from a task public id.
+     * Used by the task detail sidebar to show and edit the assignee's limit
+     * inline, without the client having to join core task data.
+     *
+     * @return array<string, mixed>|null Null when the task does not exist.
+     */
+    public function getAssigneeWip(string $taskPublicId): ?array
+    {
+        if ($taskPublicId === '') {
+            return null;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare(
+                'SELECT t.assignee_user_id, u.public_id, u.full_name, u.login
+                 FROM tasks t
+                 LEFT JOIN users u ON u.id = t.assignee_user_id
+                 WHERE t.public_id = ? AND t.deleted_at IS NULL'
+            );
+            $stmt->execute([$taskPublicId]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row === false) {
+                return null;
+            }
+
+            $assigneeId = (int)($row['assignee_user_id'] ?? 0);
+            if ($assigneeId <= 0) {
+                return [
+                    'has_assignee' => false,
+                    'user_id' => 0,
+                    'public_id' => '',
+                    'full_name' => '',
+                    'login' => '',
+                    'limit_value' => $this->getDefaultLimit(),
+                    'current_count' => 0,
+                    'at_limit' => 0,
+                    'over_limit' => 0,
+                ];
+            }
+
+            $limit = $this->getUserLimit($assigneeId);
+            $current = $this->getUserWipCount($assigneeId);
+
+            return [
+                'has_assignee' => true,
+                'user_id' => $assigneeId,
+                'public_id' => (string)($row['public_id'] ?? ''),
+                'full_name' => (string)($row['full_name'] ?? ''),
+                'login' => (string)($row['login'] ?? ''),
+                'limit_value' => $limit,
+                'current_count' => $current,
+                'at_limit' => $current >= $limit ? 1 : 0,
+                'over_limit' => $current > $limit ? 1 : 0,
+            ];
+        } catch (\Throwable $e) {
+            error_log('[WipLimitService::getAssigneeWip] ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     public function getLimit(int $userId): ?array

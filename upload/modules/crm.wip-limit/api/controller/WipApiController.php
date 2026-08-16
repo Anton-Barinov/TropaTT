@@ -30,6 +30,21 @@ final class WipApiController
         ]);
     }
 
+    public function getForTask(array $params = []): JsonResponse
+    {
+        $taskPublicId = trim((string)($params['task_public_id'] ?? ''));
+        if ($taskPublicId === '') {
+            return JsonResponse::error('INVALID_PARAM', 'task_public_id is required', 400);
+        }
+
+        $wip = $this->service()->getAssigneeWip($taskPublicId);
+        if ($wip === null) {
+            return JsonResponse::error('TASK_NOT_FOUND', 'Task not found', 404);
+        }
+
+        return JsonResponse::success('WIP_TASK_ASSIGNEE', 'OK', $wip);
+    }
+
     public function set(array $params = []): JsonResponse
     {
         $body = $this->readBody();
