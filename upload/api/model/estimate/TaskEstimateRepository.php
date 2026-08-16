@@ -297,6 +297,52 @@ final class TaskEstimateRepository
     }
 
     /**
+     * Pick the most meaningful estimate set for a cycle (story points when
+     * present, otherwise the first set that actually has estimates) and return
+     * its totals. Mirrors WorkCycleService::estimatePointsForCycle() so the
+     * daily snapshot cron persists the same unit the UI shows.
+     *
+     * @return array{set_id:int,total:float,completed:float,unit_label:string}|null
+     */
+    public function chosenPointsByCycleId(int $cycleId): ?array
+    {
+        $sets = $this->summaryByCycleId($cycleId);
+        if ($sets === []) {
+            return null;
+        }
+
+        $chosen = null;
+        foreach ($sets as $set) {
+            if ((int)($set['tasks_estimated'] ?? 0) <= 0) {
+                continue;
+            }
+            if (($set['estimate_type'] ?? '') === 'story_points') {
+                $chosen = $set;
+                break;
+            }
+            if ($chosen === null) {
+                $chosen = $set;
+            }
+        }
+
+        if ($chosen === null) {
+            return null;
+        }
+
+        $unit = trim((string)($chosen['unit_label'] ?? ''));
+        if ($unit === '') {
+            $unit = trim((string)($chosen['estimate_set_name'] ?? ''));
+        }
+
+        return [
+            'set_id' => (int)($chosen['set_id'] ?? 0),
+            'total' => (float)($chosen['total_value'] ?? 0),
+            'completed' => (float)($chosen['completed_value'] ?? 0),
+            'unit_label' => $unit,
+        ];
+    }
+
+    /**
      * @param array<string,mixed> $filters
      * @return array<string,mixed>
      */

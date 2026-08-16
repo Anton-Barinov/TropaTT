@@ -1760,6 +1760,18 @@ final class App
             error_log('[KnowledgeCron] Task registration failed: ' . $e->getMessage());
         }
 
+        try {
+            $cronScheduler->registerTask('cycles', new \Api\System\Library\Module\ScheduledTask(
+                name: 'snapshots.capture_daily',
+                description: 'Capture daily burndown snapshots for all active cycles',
+                schedule: '30 0 * * *',
+                handler: [\Api\System\Library\Service\CycleSnapshotCronHandler::class, 'captureDaily'],
+                timeout: 300,
+            ));
+        } catch (\Throwable $e) {
+            error_log('[CycleSnapshotCron] Task registration failed: ' . $e->getMessage());
+        }
+
         $jobDispatcher = new ModuleJobDispatcher($pdo);
         try { $jobDispatcher->ensureTable($driver); } catch (\Throwable $e) {
             error_log('[App::initModuleSystem] ensureTable failed for module.job_dispatcher: ' . $e->getMessage());

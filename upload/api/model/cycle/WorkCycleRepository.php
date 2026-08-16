@@ -267,6 +267,23 @@ final class WorkCycleRepository
             ->first();
     }
 
+    /**
+     * All currently active cycles across every project. Used by the daily
+     * snapshot cron to keep burndown charts current without user activity.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function listActive(): array
+    {
+        return (new QueryBuilder($this->pdo))
+            ->from('work_cycles')
+            ->select(['id', 'public_id', 'status', 'start_at', 'end_at'])
+            ->where('status', '=', 'active')
+            ->whereNull('archived_at')
+            ->whereNull('deleted_at')
+            ->get();
+    }
+
     public function listCompletedByProjectId(int $projectId): array
     {
         if ($projectId <= 0) {
