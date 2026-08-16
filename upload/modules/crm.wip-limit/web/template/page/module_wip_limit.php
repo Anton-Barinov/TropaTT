@@ -49,7 +49,7 @@
 
 <script>
 (function () {
-    function apiReady() { return window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function'; }
+    function apiReady() { return window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function' && window.CRM.text && typeof window.CRM.text.escapeHtml === 'function'; }
     function waitForApi(cb) { if (apiReady()) cb(); else setTimeout(function () { waitForApi(cb); }, 200); }
 
     var scope = 'user';
