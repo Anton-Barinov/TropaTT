@@ -86,6 +86,80 @@ final class WipApiController
         ]);
     }
 
+    public function scopes(array $params = []): JsonResponse
+    {
+        $scopeType = $this->normalizeScopeType($params);
+        if ($scopeType === null) {
+            return JsonResponse::error('INVALID_PARAM', 'scope_type must be team or project', 400);
+        }
+
+        return JsonResponse::success('WIP_SCOPES', 'OK', [
+            'items' => $this->service()->getScopeSummary($scopeType),
+        ]);
+    }
+
+    public function setScope(array $params = []): JsonResponse
+    {
+        $body = $this->readBody();
+        if (empty($params['scope_type'])) {
+            $params = array_merge($params, $body);
+        }
+
+        $scopeType = $this->normalizeScopeType($params);
+        $scopePublicId = trim((string)($params['scope_public_id'] ?? $params['scope_id'] ?? ''));
+        $maxTasks = (int)($params['max_tasks'] ?? 0);
+
+        if ($scopeType === null) {
+            return JsonResponse::error('INVALID_PARAM', 'scope_type must be team or project', 400);
+        }
+        if ($scopePublicId === '') {
+            return JsonResponse::error('INVALID_PARAM', 'scope_public_id is required', 400);
+        }
+        if ($maxTasks < 1) {
+            return JsonResponse::error('INVALID_PARAM', 'max_tasks must be >= 1', 400);
+        }
+
+        $scopeId = $this->service()->resolveScopeId($scopeType, $scopePublicId);
+        if ($scopeId === null) {
+            return JsonResponse::error('SCOPE_NOT_FOUND', 'Scope not found', 404);
+        }
+
+        $this->service()->setScopeLimit($scopeType, $scopeId, $maxTasks);
+
+        return JsonResponse::success('WIP_SCOPE_LIMIT_SET', 'Limit updated');
+    }
+
+    public function deleteScope(array $params = []): JsonResponse
+    {
+        $scopeType = $this->normalizeScopeType($params);
+        $scopePublicId = trim((string)($params['scope_public_id'] ?? ''));
+
+        if ($scopeType === null) {
+            return JsonResponse::error('INVALID_PARAM', 'scope_type must be team or project', 400);
+        }
+        if ($scopePublicId === '') {
+            return JsonResponse::error('INVALID_PARAM', 'scope_public_id is required', 400);
+        }
+
+        $scopeId = $this->service()->resolveScopeId($scopeType, $scopePublicId);
+        if ($scopeId === null) {
+            return JsonResponse::error('SCOPE_NOT_FOUND', 'Scope not found', 404);
+        }
+
+        $this->service()->deleteScopeLimit($scopeType, $scopeId);
+
+        return JsonResponse::success('WIP_SCOPE_LIMIT_DELETED', 'Limit removed');
+    }
+
+    /**
+     * @param array<string, mixed> $params
+     */
+    private function normalizeScopeType(array $params): ?string
+    {
+        $scopeType = strtolower(trim((string)($params['scope_type'] ?? '')));
+        return in_array($scopeType, ['team', 'project'], true) ? $scopeType : null;
+    }
+
     private function service(): WipLimitService
     {
         $moduleConfig = $this->container->get('module.config');

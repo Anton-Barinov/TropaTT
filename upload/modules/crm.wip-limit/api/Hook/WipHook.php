@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace Module\Crm\WipLimit\Hook;
 
-use Module\Crm\WipLimit\Service\WipLimitService;
+use Module\Crm\WipLimit\Service\WipNotifier;
 
 /**
  * Module hook handlers. Registered by WipLimitServiceProvider::boot() against the
@@ -14,16 +14,16 @@ final class WipHook
     /**
      * @param array<string, mixed> $context
      */
-    public static function onTaskStatusChanged(WipLimitService $service, array $context): void
+    public static function onTaskStatusChanged(WipNotifier $notifier, array $context): void
     {
-        $service->enforce($context);
+        $notifier->onTaskChanged($context, 'task.status_changed');
     }
 
     /**
      * @param array<string, mixed> $context
      */
-    public static function onAssigneeChanged(WipLimitService $service, array $context): void
+    public static function onAssigneeChanged(WipNotifier $notifier, array $context): void
     {
-        $service->enforce($context);
+        $notifier->onTaskChanged($context, 'task.assignee_changed');
     }
 }

@@ -8,6 +8,7 @@ use Api\System\Library\Hook\HookManager;
 use Api\System\Library\Module\AbstractModuleServiceProvider;
 use Module\Crm\WipLimit\Hook\WipHook;
 use Module\Crm\WipLimit\Service\WipLimitService;
+use Module\Crm\WipLimit\Service\WipNotifier;
 
 final class WipLimitServiceProvider extends AbstractModuleServiceProvider
 {
@@ -26,11 +27,11 @@ final class WipLimitServiceProvider extends AbstractModuleServiceProvider
         $hooks = $container->get('hook.manager');
 
         $hooks->register('task.status_changed', function (array &$context): void {
-            $this->handleHook($context);
+            $this->handleHook($context, 'task.status_changed');
         }, 100);
 
         $hooks->register('task.assignee_changed', function (array &$context): void {
-            $this->handleHook($context);
+            $this->handleHook($context, 'task.assignee_changed');
         }, 100);
     }
 
@@ -59,6 +60,8 @@ final class WipLimitServiceProvider extends AbstractModuleServiceProvider
     {
         return [
             'default_limit' => 5,
+            'team_default_limit' => 10,
+            'project_default_limit' => 10,
             'enforce_on_status' => ['in_progress', 'review'],
             'notify_on_exceed' => true,
             'excluded_role_ids' => [],
@@ -68,11 +71,15 @@ final class WipLimitServiceProvider extends AbstractModuleServiceProvider
     /**
      * @param array<string, mixed> $context
      */
-    private function handleHook(array $context): void
+    private function handleHook(array $context, string $event): void
     {
         try {
-            $service = $this->makeService();
-            WipHook::onTaskStatusChanged($service, $context);
+            $notifier = $this->makeNotifier();
+            if ($event === 'task.assignee_changed') {
+                WipHook::onAssigneeChanged($notifier, $context);
+            } else {
+                WipHook::onTaskStatusChanged($notifier, $context);
+            }
         } catch (\Throwable $e) {
             error_log('[WipLimitServiceProvider] Hook handler failed: ' . $e->getMessage());
         }
@@ -89,5 +96,19 @@ final class WipLimitServiceProvider extends AbstractModuleServiceProvider
         $config = $moduleConfig->getAll('crm.wip-limit');
 
         return new WipLimitService($pdo, $config);
+    }
+
+    private function makeNotifier(): WipNotifier
+    {
+        if ($this->container === null) {
+            throw new \RuntimeException('WipLimitServiceProvider container not initialized');
+        }
+
+        return new WipNotifier(
+            $this->makeService(),
+            $this->container->get('module.notification_dispatcher'),
+            $this->container->get('db.pdo'),
+            $this->container->get('module.config')->getAll('crm.wip-limit'),
+        );
     }
 }
