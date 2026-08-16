@@ -19532,6 +19532,9 @@ window.CRM.pageApiBindings = (function () {
     });
     // Bind search input
     if (search && search.dataset.bound !== '1') {
+      // Sync the visible search box with the URL/query-derived value (e.g.
+      // kanban?q=...), matching the searchable-select sync above.
+      search.value = String(filters.q || '');
       var searchTimer = null;
       search.addEventListener('input', function () {
         if (searchTimer) window.clearTimeout(searchTimer);
