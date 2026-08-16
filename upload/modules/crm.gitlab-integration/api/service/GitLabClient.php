@@ -20,32 +20,42 @@ final class GitLabClient
      * @param array<string, mixed> $query
      * @return array<string, mixed>
      */
-    public function request(string $token, string $baseUrl, string $method, string $path, array $query = []): array
+    public function request(string $token, string $baseUrl, string $method, string $path, array $query = [], ?array $jsonBody = null): array
     {
         $url = rtrim($baseUrl, '/') . $path;
         if ($query !== []) {
             $url .= '?' . http_build_query($query);
         }
+        $method = strtoupper($method);
 
         for ($attempt = 1; $attempt <= $this->maxRetries; $attempt++) {
             $ch = curl_init($url);
             if ($ch === false) {
                 throw new RuntimeException('GITLAB_TRANSPORT: curl_init failed');
             }
+            $headers = [
+                'PRIVATE-TOKEN: ' . $token,
+                'User-Agent: TropaTT-GitLab-Integration/1.0',
+            ];
+            if ($jsonBody !== null) {
+                $headers[] = 'Content-Type: application/json';
+            }
             curl_setopt_array($ch, [
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_HTTPHEADER => [
-                    'PRIVATE-TOKEN: ' . $token,
-                    'User-Agent: TropaTT-GitLab-Integration/1.0',
-                ],
+                CURLOPT_HTTPHEADER => $headers,
                 CURLOPT_TIMEOUT => $this->timeout,
                 CURLOPT_CONNECTTIMEOUT => 10,
                 CURLOPT_FOLLOWLOCATION => false,
                 CURLOPT_SSL_VERIFYPEER => true,
                 CURLOPT_SSL_VERIFYHOST => 2,
             ]);
-            if ($method === 'POST') {
+            if ($jsonBody !== null) {
+                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($jsonBody, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            } elseif ($method === 'POST') {
                 curl_setopt($ch, CURLOPT_POST, true);
+            } elseif ($method !== 'GET') {
+                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
             }
 
             $raw = curl_exec($ch);
@@ -142,5 +152,24 @@ final class GitLabClient
     public function listMergeRequestNotes(string $token, string $baseUrl, string $projectPath, int $iid): array
     {
         return $this->listAll($token, $baseUrl, '/projects/' . rawurlencode($projectPath) . '/merge_requests/' . $iid . '/notes');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function createMergeRequestNote(string $token, string $baseUrl, string $projectPath, int $iid, string $body): array
+    {
+        return $this->request($token, $baseUrl, 'POST', '/projects/' . rawurlencode($projectPath) . '/merge_requests/' . $iid . '/notes', [], ['body' => $body]);
+    }
+
+    /**
+     * Close or reopen a merge request.
+     *
+     * @param string $stateEvent Either "close" or "reopen".
+     * @return array<string, mixed>
+     */
+    public function updateMergeRequestState(string $token, string $baseUrl, string $projectPath, int $iid, string $stateEvent): array
+    {
+        return $this->request($token, $baseUrl, 'PUT', '/projects/' . rawurlencode($projectPath) . '/merge_requests/' . $iid, [], ['state_event' => $stateEvent]);
     }
 }

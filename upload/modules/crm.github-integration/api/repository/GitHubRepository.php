@@ -246,6 +246,29 @@ final class GitHubRepository
         return is_array($row) ? $row : null;
     }
 
+    /**
+     * Reverse lookup: find the GitHub issue/PR (and its repo link) that a CRM
+     * task was imported from. Used by the event-driven push-back path.
+     *
+     * @return array<string, mixed>|null Combined sync-item + link row, or null.
+     */
+    public function findTaskMapping(string $taskPublicId): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT i.source_type, i.source_id, i.target_public_id, l.*
+             FROM module_github_sync_items i
+             JOIN module_github_repo_links l ON l.id = i.link_id
+             WHERE i.target_type = :target_type
+               AND i.target_public_id = :target_public_id
+               AND i.source_type IN (\'issue\', \'pull_request\')
+             ORDER BY i.id DESC
+             LIMIT 1'
+        );
+        $stmt->execute(['target_type' => 'task', 'target_public_id' => $taskPublicId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return is_array($row) ? $row : null;
+    }
+
     // ── Logs ──
 
     public function addLog(?int $linkId, string $level, string $message): void

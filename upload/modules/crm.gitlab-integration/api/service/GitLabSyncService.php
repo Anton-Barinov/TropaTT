@@ -114,6 +114,12 @@ final class GitLabSyncService
                 throw new RuntimeException('GITLAB_TASK_UPDATE_FAILED');
             }
             $this->syncLabels($linkId, $targetPublicId, $mr['labels'] ?? [], $actor);
+            $this->repo->upsertSyncItem($linkId, 'merge_request', $iid, [
+                'target_type' => 'task',
+                'target_public_id' => $targetPublicId,
+                'status' => 'imported',
+                'payload_json' => $mr,
+            ]);
             return ['state' => 'updated', 'target_public_id' => $targetPublicId];
         }
 
@@ -123,6 +129,12 @@ final class GitLabSyncService
         }
         $targetPublicId = (string)$created['public_id'];
         $this->syncLabels($linkId, $targetPublicId, $mr['labels'] ?? [], $actor);
+        $this->repo->upsertSyncItem($linkId, 'merge_request', $iid, [
+            'target_type' => 'task',
+            'target_public_id' => $targetPublicId,
+            'status' => 'imported',
+            'payload_json' => $mr,
+        ]);
 
         return ['state' => 'created', 'target_public_id' => $targetPublicId];
     }

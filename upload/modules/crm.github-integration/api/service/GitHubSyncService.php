@@ -123,6 +123,12 @@ final class GitHubSyncService
                 throw new RuntimeException('GITHUB_TASK_UPDATE_FAILED');
             }
             $this->syncLabels($linkId, $targetPublicId, $issue['labels'] ?? [], $actor);
+            $this->repo->upsertSyncItem($linkId, $sourceType, $sourceId, [
+                'target_type' => 'task',
+                'target_public_id' => $targetPublicId,
+                'status' => 'imported',
+                'payload_json' => $issue,
+            ]);
             return ['state' => 'updated', 'target_public_id' => $targetPublicId];
         }
 
@@ -132,6 +138,12 @@ final class GitHubSyncService
         }
         $targetPublicId = (string)$created['public_id'];
         $this->syncLabels($linkId, $targetPublicId, $issue['labels'] ?? [], $actor);
+        $this->repo->upsertSyncItem($linkId, $sourceType, $sourceId, [
+            'target_type' => 'task',
+            'target_public_id' => $targetPublicId,
+            'status' => 'imported',
+            'payload_json' => $issue,
+        ]);
 
         return ['state' => 'created', 'target_public_id' => $targetPublicId];
     }

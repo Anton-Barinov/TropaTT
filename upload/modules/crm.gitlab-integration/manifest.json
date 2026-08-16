@@ -1,6 +1,6 @@
 {
     "name": "crm.gitlab-integration",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
@@ -29,6 +29,8 @@
         "batch_size": 100,
         "default_base_url": "https://gitlab.com/api/v4",
         "sync_comments": true,
-        "poll_interval_minutes": 15
+        "poll_interval_minutes": 15,
+        "push_back_comments": true,
+        "push_back_status": true
     }
 }

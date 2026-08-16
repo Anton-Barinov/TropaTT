@@ -20,34 +20,44 @@ final class GitHubClient
      * @param array<string, mixed> $query
      * @return array<string, mixed>
      */
-    public function request(string $token, string $baseUrl, string $method, string $path, array $query = []): array
+    public function request(string $token, string $baseUrl, string $method, string $path, array $query = [], ?array $jsonBody = null): array
     {
         $url = rtrim($baseUrl, '/') . $path;
         if ($query !== []) {
             $url .= '?' . http_build_query($query);
         }
+        $method = strtoupper($method);
 
         for ($attempt = 1; $attempt <= $this->maxRetries; $attempt++) {
             $ch = curl_init($url);
             if ($ch === false) {
                 throw new RuntimeException('GITHUB_TRANSPORT: curl_init failed');
             }
+            $headers = [
+                'Authorization: Bearer ' . $token,
+                'Accept: application/vnd.github+json',
+                'User-Agent: TropaTT-GitHub-Integration/1.0',
+                'X-GitHub-Api-Version: 2022-11-28',
+            ];
+            if ($jsonBody !== null) {
+                $headers[] = 'Content-Type: application/json';
+            }
             curl_setopt_array($ch, [
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_HTTPHEADER => [
-                    'Authorization: Bearer ' . $token,
-                    'Accept: application/vnd.github+json',
-                    'User-Agent: TropaTT-GitHub-Integration/1.0',
-                    'X-GitHub-Api-Version: 2022-11-28',
-                ],
+                CURLOPT_HTTPHEADER => $headers,
                 CURLOPT_TIMEOUT => $this->timeout,
                 CURLOPT_CONNECTTIMEOUT => 10,
                 CURLOPT_FOLLOWLOCATION => false,
                 CURLOPT_SSL_VERIFYPEER => true,
                 CURLOPT_SSL_VERIFYHOST => 2,
             ]);
-            if ($method === 'POST') {
+            if ($jsonBody !== null) {
+                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($jsonBody, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            } elseif ($method === 'POST') {
                 curl_setopt($ch, CURLOPT_POST, true);
+            } elseif ($method !== 'GET') {
+                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
             }
 
             $raw = curl_exec($ch);
@@ -146,5 +156,24 @@ final class GitHubClient
     public function listIssueComments(string $token, string $baseUrl, string $owner, string $repo, int $number): array
     {
         return $this->listAll($token, $baseUrl, '/repos/' . rawurlencode($owner) . '/' . rawurlencode($repo) . '/issues/' . $number . '/comments');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function createIssueComment(string $token, string $baseUrl, string $owner, string $repo, int $number, string $body): array
+    {
+        return $this->request($token, $baseUrl, 'POST', '/repos/' . rawurlencode($owner) . '/' . rawurlencode($repo) . '/issues/' . $number . '/comments', [], ['body' => $body]);
+    }
+
+    /**
+     * Open or close an issue / pull request.
+     *
+     * @param string $state Either "open" or "closed".
+     * @return array<string, mixed>
+     */
+    public function updateIssueState(string $token, string $baseUrl, string $owner, string $repo, int $number, string $state): array
+    {
+        return $this->request($token, $baseUrl, 'PATCH', '/repos/' . rawurlencode($owner) . '/' . rawurlencode($repo) . '/issues/' . $number, [], ['state' => $state]);
     }
 }
