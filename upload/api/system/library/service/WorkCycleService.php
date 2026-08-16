@@ -927,7 +927,7 @@ final class WorkCycleService
                     'date' => (string)$snap['snapshot_date'],
                     'total' => $totalPoints,
                     'completed' => $completedPoints,
-                    'remaining' => max(0.0, $totalPoints - $completedPoints),
+                    'remaining' => round(max(0.0, $totalPoints - $completedPoints), 2),
                 ];
                 if ($unitLabel === null && !empty($payload['unit_label'])) {
                     $unitLabel = (string)$payload['unit_label'];
