@@ -4718,8 +4718,8 @@ body {
   text-decoration: none !important;
 }
 
-.crm-content a:hover,
-.crm-content a:focus-visible {
+.crm-content a:hover:not(.btn):not([class*="crm-btn"]),
+.crm-content a:focus-visible:not(.btn):not([class*="crm-btn"]) {
   color: var(--crm-accent-strong) !important;
 }
 
