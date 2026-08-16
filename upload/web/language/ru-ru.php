@@ -8794,12 +8794,12 @@ return array (
   'cycles' => 
   array (
     'archive' => 'Архивировать',
-    'btn_reopen_small' => 'Открыть',
+    'btn_reopen_small' => 'Возобновить',
     'confirm_action' => 'Подтвердить',
     'confirm_title' => 'Подтвердите действие',
     'filters_aria' => 'Фильтры циклов',
     'remove_task' => 'Удалить задачу',
-    'reopen' => 'Открыть',
+    'reopen' => 'Возобновить',
     'search_clear' => 'Очистить поиск',
     'search_label' => 'Поиск циклов',
     'search_submit' => 'Найти циклы',
@@ -8876,7 +8876,7 @@ return array (
     'error_save' => 'Ошибка сохранения.',
     'confirm_start' => 'Запустить этот цикл?',
     'error_start' => 'Ошибка запуска цикла.',
-    'confirm_reopen' => 'Открыть этот цикл заново?',
+    'confirm_reopen' => 'Возобновить этот цикл?',
     'error_reopen' => 'Ошибка открытия цикла.',
     'confirm_archive' => 'Архивировать этот цикл? Задачи не будут удалены.',
     'error_archive' => 'Ошибка архивирования.',

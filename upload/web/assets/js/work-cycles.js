@@ -324,7 +324,7 @@
         (totalTasks > 0 ? '<button class="btn btn-sm crm-btn-secondary" onclick="window.openCycleDetail(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-chart-simple"></i> ' + t('cycles.btn_open_detail', 'Открыть') + '</button>' : '') +
         (cycle.status !== 'completed' && cycle.status !== 'archived' ? '<button class="btn btn-sm btn-outline-warning" onclick="window.openCompleteCycle(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-check"></i> ' + t('cycles.btn_complete_small', 'Завершить') + '</button>' : '') +
         '<button class="btn btn-sm btn-outline-secondary" onclick="window.openCycleModal(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-pen"></i></button>' +
-        (cycle.archived_at || cycle.status === 'completed' || cycle.status === 'archived' ? '<button class="btn btn-sm btn-outline-secondary" onclick="window.reopenCycle(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-rotate-left"></i> ' + t('cycles.btn_reopen_small', 'Открыть') + '</button>' : '') +
+        (cycle.archived_at || cycle.status === 'completed' || cycle.status === 'archived' ? '<button class="btn btn-sm btn-outline-secondary" onclick="window.reopenCycle(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-rotate-left"></i> ' + t('cycles.btn_reopen_small', 'Возобновить') + '</button>' : '') +
         '<button class="btn btn-sm btn-outline-secondary" onclick="window.archiveCycle(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-archive"></i></button>' +
       '</div>';
 
@@ -463,7 +463,7 @@
   };
 
   window.reopenCycle = async function (publicId) {
-    if (!await confirmCycleAction(t('cycles.confirm_reopen', 'Открыть этот цикл заново?'), t('cycles.reopen', 'Открыть'), 'crm-btn-primary')) return;
+    if (!await confirmCycleAction(t('cycles.confirm_reopen', 'Возобновить этот цикл?'), t('cycles.reopen', 'Возобновить'), 'crm-btn-primary')) return;
     apiRequest('api/v1/cycles/' + encodeURIComponent(publicId) + '/reopen', { method: 'POST' })
       .then(function () { window.loadWorkCycles(currentPage); })
       .catch(function () { showCycleFeedback(t('cycles.error_reopen', 'Ошибка открытия цикла.'), 'error'); });

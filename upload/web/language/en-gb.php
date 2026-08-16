@@ -8792,14 +8792,14 @@ return array (
   'cycles' => 
   array (
     'archive' => 'Archive',
-    'btn_reopen_small' => 'Open',
+    'btn_reopen_small' => 'Reopen',
     'confirm_action' => 'Confirm',
     'confirm_title' => 'Confirm action',
     'filters_aria' => 'Cycle filters',
     'title' => 'TropaTT — Cycles (Sprints)',
     'page_title' => 'Cycles (Sprints)',
     'remove_task' => 'Remove task',
-    'reopen' => 'Open',
+    'reopen' => 'Reopen',
     'search_clear' => 'Clear search',
     'search_label' => 'Search cycles',
     'search_submit' => 'Find cycles',
