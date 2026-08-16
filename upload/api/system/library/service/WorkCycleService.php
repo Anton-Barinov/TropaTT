@@ -1125,24 +1125,35 @@ final class WorkCycleService
             return null;
         }
 
-        // Prefer story points, fall back to the first estimate set.
+        // Prefer story points (with estimates), otherwise the first set that
+        // actually has estimates.
         $chosen = null;
         foreach ($sets as $set) {
+            if ((int)($set['tasks_estimated'] ?? 0) <= 0) {
+                continue;
+            }
             if (($set['estimate_type'] ?? '') === 'story_points') {
                 $chosen = $set;
                 break;
             }
+            if ($chosen === null) {
+                $chosen = $set;
+            }
         }
-        $chosen = $chosen ?? $sets[0];
 
-        if ((int)($chosen['tasks_estimated'] ?? 0) <= 0) {
+        if ($chosen === null) {
             return null;
+        }
+
+        $unit = trim((string)($chosen['unit_label'] ?? ''));
+        if ($unit === '') {
+            $unit = trim((string)($chosen['estimate_set_name'] ?? ''));
         }
 
         return [
             'total' => (float)($chosen['total_value'] ?? 0),
             'completed' => (float)($chosen['completed_value'] ?? 0),
-            'unit_label' => (string)($chosen['unit_label'] ?? ''),
+            'unit_label' => $unit,
         ];
     }
 
