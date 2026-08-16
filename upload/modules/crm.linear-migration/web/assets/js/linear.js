@@ -60,7 +60,7 @@
             });
             container.querySelectorAll('.delete-conn-btn').forEach(function (btn) {
                 btn.addEventListener('click', function () {
-                    if (confirm('Удалить подключение?')) {
+                    if (confirm(window.CRM.i18n.t('linear_migration.confirm_delete_connection', 'Удалить подключение?'))) {
                         api('/connections/' + btn.dataset.id, 'DELETE').then(function () { loadConnections(); })
                             .catch(function (err) { alert(err.message); });
                     }
@@ -80,7 +80,7 @@
     function saveConnection() {
         const name = document.getElementById('connName').value.trim();
         const apiKey = document.getElementById('connApiKey').value.trim();
-        if (!name || !apiKey) { alert('Заполните название и API-ключ'); return; }
+        if (!name || !apiKey) { alert(window.CRM.i18n.t('linear_migration.fill_name_api_key', 'Заполните название и API-ключ')); return; }
         api('/connections', 'POST', { name: name, api_key: apiKey }).then(function () {
             bootstrap.Modal.getInstance(document.getElementById('connectionModal')).hide();
             loadConnections();

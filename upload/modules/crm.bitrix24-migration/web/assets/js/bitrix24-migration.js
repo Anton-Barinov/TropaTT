@@ -46,7 +46,7 @@
         await loadMappings();
         message('Пользователи обнаружены; выполните их сопоставление с CRM.');
       } else if (action === 'delete') {
-        if (!window.confirm('Удалить подключение и историю его миграций?')) return;
+        if (!window.confirm(window.CRM.i18n.t('bitrix24_migration.confirm_delete_connection', 'Удалить подключение и историю его миграций?'))) return;
         await api(`/connections/${encodeURIComponent(id)}`, {method: 'DELETE'});
         if (state.selected?.public_id === id) state.selected = null;
         await loadConnections();
@@ -78,7 +78,7 @@
 
   const jobAction = async (action, id) => {
     try {
-      if (action === 'rollback' && !window.confirm('Удалить только объекты, созданные этой миграцией?')) return;
+      if (action === 'rollback' && !window.confirm(window.CRM.i18n.t('bitrix24_migration.confirm_rollback', 'Удалить только объекты, созданные этой миграцией?'))) return;
       const suffix = action === 'run' ? 'run' : action === 'pause' ? 'pause' : action === 'resume' ? 'resume' : action === 'cancel' ? 'cancel' : action === 'retry' ? 'retry-failed' : action === 'rollback' ? 'rollback' : '';
       if (suffix) await api(`/jobs/${encodeURIComponent(id)}/${suffix}`, {method: 'POST', body: '{}'});
       await loadJobs();

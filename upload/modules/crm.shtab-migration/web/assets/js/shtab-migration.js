@@ -105,7 +105,7 @@
         button.addEventListener('click', function () {
           var id = button.parentElement.dataset.job;
           var action = button.dataset.action;
-          if (action === 'cancel' && !window.confirm('Отменить этот job? Уже импортированные данные сохранятся до ручного rollback.')) return;
+          if (action === 'cancel' && !window.confirm(window.CRM.i18n.t('shtab_migration.confirm_cancel_job', 'Отменить этот job? Уже импортированные данные сохранятся до ручного rollback.'))) return;
           var suffix = action === 'run' ? '/run' : action === 'pause' ? '/pause' : action === 'cancel' ? '/cancel' : action === 'retry' ? '/retry-failed' : '/rollback';
           request('/jobs/' + encodeURIComponent(id) + suffix, { method: 'POST', body: {} }).then(loadJobs).catch(function () { message('Операция job не выполнена.', true); });
         });

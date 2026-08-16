@@ -64,13 +64,13 @@
                 btn.addEventListener('click', function () {
                     btn.disabled = true;
                     api('/connections/' + btn.dataset.id + '/test', 'POST', {}).then(function () {
-                        alert('Подключение успешно.');
+                        alert(window.CRM.i18n.t('gitlab_integration.connection_ok', 'Подключение успешно.'));
                     }).catch(function (err) { alert(err.message); }).finally(function () { btn.disabled = false; loadConnections(); });
                 });
             });
             container.querySelectorAll('.delete-conn-btn').forEach(function (btn) {
                 btn.addEventListener('click', function () {
-                    if (confirm('Удалить подключение?')) {
+                    if (confirm(window.CRM.i18n.t('gitlab_integration.confirm_delete_connection', 'Удалить подключение?'))) {
                         api('/connections/' + btn.dataset.id, 'DELETE').then(function () { loadConnections(); loadLinks(); })
                             .catch(function (err) { alert(err.message); });
                     }
@@ -92,7 +92,7 @@
         const name = document.getElementById('connName').value.trim();
         const baseUrl = document.getElementById('connBaseUrl').value.trim();
         const token = document.getElementById('connToken').value.trim();
-        if (!name || !token) { alert('Заполните название и токен'); return; }
+        if (!name || !token) { alert(window.CRM.i18n.t('gitlab_integration.fill_name_token', 'Заполните название и токен')); return; }
         api('/connections', 'POST', { name: name, base_url: baseUrl, token: token }).then(function () {
             bootstrap.Modal.getInstance(document.getElementById('connectionModal')).hide();
             loadConnections();
@@ -129,7 +129,7 @@
                     btn.disabled = true;
                     api('/links/' + btn.dataset.id + '/sync', 'POST', {}).then(function (d) {
                         const c = d.counts || {};
-                        alert('Синхронизация завершена: создано ' + (c.created || 0) + ', обновлено ' + (c.updated || 0) + ', ошибок ' + (c.failed || 0) + '.');
+                        alert(window.CRM.i18n.t('gitlab_integration.sync_done', 'Синхронизация завершена: создано {created}, обновлено {updated}, ошибок {failed}.').replace('{created}', c.created || 0).replace('{updated}', c.updated || 0).replace('{failed}', c.failed || 0));
                     }).catch(function (err) { alert(err.message); }).finally(function () { btn.disabled = false; loadLinks(); });
                 });
             });
@@ -138,7 +138,7 @@
             });
             container.querySelectorAll('.delete-link-btn').forEach(function (btn) {
                 btn.addEventListener('click', function () {
-                    if (confirm('Удалить связь?')) {
+                    if (confirm(window.CRM.i18n.t('gitlab_integration.confirm_delete_link', 'Удалить связь?'))) {
                         api('/links/' + btn.dataset.id, 'DELETE').then(function () { loadLinks(); }).catch(function (err) { alert(err.message); });
                     }
                 });
@@ -156,7 +156,7 @@
                 return '<option value="' + esc(c.public_id) + '">' + esc(c.name) + ' (' + esc(c.base_url || '') + ')</option>';
             }).join('');
             if (!connections.length) {
-                alert('Сначала добавьте подключение.');
+                alert(window.CRM.i18n.t('gitlab_integration.add_connection_first', 'Сначала добавьте подключение.'));
                 return;
             }
             renderCrmProjects();
@@ -205,7 +205,7 @@
         const connectionPublicId = document.getElementById('linkConnection').value;
         const projectPath = document.getElementById('linkProjectPath').value;
         const projectPublicId = document.getElementById('linkCrmProject').value;
-        if (!connectionPublicId || !projectPath || !projectPublicId) { alert('Заполните все поля'); return; }
+        if (!connectionPublicId || !projectPath || !projectPublicId) { alert(window.CRM.i18n.t('gitlab_integration.fill_all_fields', 'Заполните все поля')); return; }
         api('/links', 'POST', {
             connection_public_id: connectionPublicId,
             project_path: projectPath,

@@ -66,7 +66,7 @@
     if (actions) {
       actions.innerHTML = '<button type="button" class="btn crm-btn-secondary btn-sm" id="gcalTest"><i class="fa-solid fa-plug-circle-check"></i> Проверить</button><button type="button" class="btn btn-outline-danger btn-sm" id="gcalDisconnect"><i class="fa-solid fa-link-slash"></i> Отключить</button>';
       $('gcalTest')?.addEventListener('click', () => { message('Проверка подключения…'); api(`/connections/${encodeURIComponent(connection.public_id)}/test`, { method: 'POST' }).then(() => message('Подключение работает.')).catch(e => message(e.message, true)); });
-      $('gcalDisconnect')?.addEventListener('click', () => { if (!window.confirm('Отключить Google Calendar и удалить синхронизированные события из CRM?')) return; api(`/connections/${encodeURIComponent(connection.public_id)}`, { method: 'DELETE' }).then(() => { message('Google Calendar отключён.'); load(); }).catch(e => message(e.message, true)); });
+      $('gcalDisconnect')?.addEventListener('click', () => { if (!window.confirm(window.CRM.i18n.t('google_calendar.confirm_disconnect', 'Отключить Google Calendar и удалить синхронизированные события из CRM?'))) return; api(`/connections/${encodeURIComponent(connection.public_id)}`, { method: 'DELETE' }).then(() => { message(window.CRM.i18n.t('google_calendar.disconnected', 'Google Calendar отключён.')); load(); }).catch(e => message(e.message, true)); });
     }
     (connection.calendars || []).forEach(calendar => {
       const row = document.createElement('div'); row.className = 'gcal-calendar';
@@ -122,7 +122,7 @@
         .catch(err => message(err.message, true));
     });
     $('gcalClearCreds')?.addEventListener('click', () => {
-      if (!window.confirm('Очистить ваши OAuth-креды Google?')) return;
+      if (!window.confirm(window.CRM.i18n.t('google_calendar.confirm_clear_creds', 'Очистить ваши OAuth-креды Google?'))) return;
       api('/credentials', { method: 'DELETE' })
         .then(data => { message('OAuth-креды очищены.'); renderCredentials(data); load(); })
         .catch(err => message(err.message, true));

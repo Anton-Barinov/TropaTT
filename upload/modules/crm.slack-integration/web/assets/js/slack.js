@@ -51,14 +51,14 @@
             container.querySelectorAll('.test-connection-btn').forEach(function (btn) {
                 btn.addEventListener('click', function () {
                     api('/connections/' + btn.dataset.id + '/test', 'POST', {}).then(function () {
-                        alert('Тестовое сообщение отправлено');
+                        alert(window.CRM.i18n.t('slack_integration.test_sent', 'Тестовое сообщение отправлено'));
                         loadConnections();
                     }).catch(function (err) { alert(err.message); });
                 });
             });
             container.querySelectorAll('.delete-connection-btn').forEach(function (btn) {
                 btn.addEventListener('click', function () {
-                    if (confirm('Удалить подключение?')) {
+                    if (confirm(window.CRM.i18n.t('slack_integration.confirm_delete_connection', 'Удалить подключение?'))) {
                         api('/connections/' + btn.dataset.id, 'DELETE').then(function () { loadConnections(); })
                             .catch(function (err) { alert(err.message); });
                     }
@@ -80,7 +80,7 @@
         const name = document.getElementById('connName').value.trim();
         const webhook = document.getElementById('connWebhook').value.trim();
         const channel = document.getElementById('connChannel').value.trim();
-        if (!name || !webhook) { alert('Заполните название и Webhook URL'); return; }
+        if (!name || !webhook) { alert(window.CRM.i18n.t('slack_integration.fill_name_webhook', 'Заполните название и Webhook URL')); return; }
 
         api('/connections', 'POST', { name: name, channel: channel, webhook_url: webhook }).then(function () {
             bootstrap.Modal.getInstance(document.getElementById('connectionModal')).hide();
@@ -106,7 +106,7 @@
             }
             container.querySelectorAll('.delete-rule-btn').forEach(function (btn) {
                 btn.addEventListener('click', function () {
-                    if (confirm('Удалить правило?')) {
+                    if (confirm(window.CRM.i18n.t('slack_integration.confirm_delete_rule', 'Удалить правило?'))) {
                         api('/rules/' + btn.dataset.id, 'DELETE').then(function () { loadRules(); })
                             .catch(function (err) { alert(err.message); });
                     }
@@ -133,7 +133,7 @@
         const connectionPublicId = document.getElementById('ruleConnection').value;
         const eventCode = document.getElementById('ruleEvent').value;
         const text = document.getElementById('ruleText').value.trim();
-        if (!connectionPublicId || !text) { alert('Заполните подключение и шаблон'); return; }
+        if (!connectionPublicId || !text) { alert(window.CRM.i18n.t('slack_integration.fill_connection_template', 'Заполните подключение и шаблон')); return; }
 
         api('/rules', 'POST', { connection_public_id: connectionPublicId, event_code: eventCode, text_template: text }).then(function () {
             bootstrap.Modal.getInstance(document.getElementById('ruleModal')).hide();

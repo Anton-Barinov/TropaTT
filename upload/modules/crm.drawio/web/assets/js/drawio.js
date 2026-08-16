@@ -95,7 +95,7 @@
             });
             container.querySelectorAll('.delete-diagram-btn').forEach(function (btn) {
                 btn.addEventListener('click', function () {
-                    if (confirm('Удалить диаграмму?')) {
+                    if (confirm(window.CRM.i18n.t('drawio.confirm_delete_diagram', 'Удалить диаграмму?'))) {
                         api('/diagrams/' + btn.dataset.id, 'DELETE').then(function () { loadDiagrams(); })
                             .catch(function (err) { alert(err.message); });
                     }
@@ -193,11 +193,11 @@
         const xml = state.loadedXml || state.pendingXml || '';
 
         if (!title) {
-            alert('Укажите название диаграммы.');
+            alert(window.CRM.i18n.t('drawio.title_required', 'Укажите название диаграммы.'));
             return;
         }
         if (!xml) {
-            alert('Диаграмма пуста.');
+            alert(window.CRM.i18n.t('drawio.diagram_empty', 'Диаграмма пуста.'));
             return;
         }
 
@@ -231,7 +231,7 @@
         const viewUrl = base + '?route=module-drawio&view=' + encodeURIComponent(publicId);
         const snippet = '<iframe src="' + viewUrl + '" width="100%" height="600" style="border:0" title="' + htmlEscape(title) + '"></iframe>';
 
-        prompt('Вставьте этот код в HTML-содержимое страницы базы знаний:', snippet);
+        prompt(window.CRM.i18n.t('drawio.embed_prompt', 'Вставьте этот код в HTML-содержимое страницы базы знаний:'), snippet);
     }
 
     function defaultDiagramXml() {
