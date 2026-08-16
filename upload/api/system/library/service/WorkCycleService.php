@@ -27,6 +27,7 @@ final class WorkCycleService
         private readonly TaskService $taskService,
         private readonly ProjectService $projects,
         private readonly ?TaskActivityService $activity = null,
+        private readonly ?TaskEstimateService $estimates = null,
     )
     {
     }
@@ -987,25 +988,42 @@ final class WorkCycleService
         $rows = $this->cycles->listCompletedByProjectId((int)$project['id']);
         $cycles = [];
         $sum = 0;
+        $pointsSum = 0.0;
+        $pointsCycles = 0;
+        $unitLabel = null;
 
         foreach ($rows as $row) {
             $summary = $this->cycleTasks->cycleSummary((int)$row['id']);
             $completed = (int)($summary['completed_tasks'] ?? 0);
             $total = (int)($summary['total_tasks'] ?? 0);
             $sum += $completed;
-            $cycles[] = [
+
+            $entry = [
                 'cycle_public_id' => (string)$row['public_id'],
                 'title' => (string)($row['title'] ?? ''),
                 'completed_at' => $row['completed_at'],
                 'completed_tasks' => $completed,
                 'total_tasks' => $total,
             ];
+
+            $points = $this->estimatePointsForCycle((string)$row['public_id'], $actor);
+            if ($points !== null) {
+                $entry['points_completed'] = $points['completed'];
+                $entry['points_total'] = $points['total'];
+                $unitLabel = $unitLabel ?? $points['unit_label'];
+                $pointsSum += $points['completed'];
+                $pointsCycles++;
+            }
+
+            $cycles[] = $entry;
         }
 
         return [
             'project_public_id' => $projectPublicId,
             'total_cycles' => count($cycles),
             'average_velocity' => $cycles !== [] ? (int)round($sum / count($cycles)) : 0,
+            'average_points_velocity' => $pointsCycles > 0 ? round($pointsSum / $pointsCycles, 1) : 0.0,
+            'points_unit_label' => $unitLabel,
             'cycles' => $cycles,
         ];
     }
@@ -1086,6 +1104,46 @@ final class WorkCycleService
         }
 
         return $ideal;
+    }
+
+    /**
+     * @return array{total:float,completed:float,unit_label:string}|null
+     */
+    private function estimatePointsForCycle(string $cyclePublicId, array $actor): ?array
+    {
+        if ($this->estimates === null) {
+            return null;
+        }
+
+        $result = $this->estimates->summaryByCycle($cyclePublicId, [], $actor);
+        if (!is_array($result)) {
+            return null;
+        }
+
+        $sets = (array)($result['sets'] ?? []);
+        if ($sets === []) {
+            return null;
+        }
+
+        // Prefer story points, fall back to the first estimate set.
+        $chosen = null;
+        foreach ($sets as $set) {
+            if (($set['estimate_type'] ?? '') === 'story_points') {
+                $chosen = $set;
+                break;
+            }
+        }
+        $chosen = $chosen ?? $sets[0];
+
+        if ((int)($chosen['tasks_estimated'] ?? 0) <= 0) {
+            return null;
+        }
+
+        return [
+            'total' => (float)($chosen['total_value'] ?? 0),
+            'completed' => (float)($chosen['completed_value'] ?? 0),
+            'unit_label' => (string)($chosen['unit_label'] ?? ''),
+        ];
     }
 
     private function enrichCycle(array $cycle): array

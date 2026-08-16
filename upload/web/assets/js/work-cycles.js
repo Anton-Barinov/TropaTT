@@ -786,15 +786,21 @@
     if (!velocity || !velocity.total_cycles) {
       return '<p class="text-muted small mb-0">' + t('cycles.velocity_empty', 'Нет завершённых циклов — скорость появится после первого завершения.') + '</p>';
     }
+    var hasPoints = typeof velocity.average_points_velocity === 'number' && velocity.average_points_velocity > 0;
     var html = '<div class="d-flex gap-3 flex-wrap mb-2">' +
-      '<div><strong>' + (velocity.average_velocity || 0) + '</strong><br><small class="text-muted">' + t('cycles.velocity_avg', 'Ср. скорость (задач/цикл)') + '</small></div>' +
-      '<div><strong>' + (velocity.total_cycles || 0) + '</strong><br><small class="text-muted">' + t('cycles.velocity_cycles', 'Завершённых циклов') + '</small></div>' +
+      '<div><strong>' + (velocity.average_velocity || 0) + '</strong><br><small class="text-muted">' + t('cycles.velocity_avg', 'Ср. скорость (задач/цикл)') + '</small></div>';
+    if (hasPoints) {
+      html += '<div><strong>' + velocity.average_points_velocity + '</strong><br><small class="text-muted">' + t('cycles.velocity_points_avg', 'Ср. очки/цикл') + (velocity.points_unit_label ? ' (' + escapeHtml(velocity.points_unit_label) + ')' : '') + '</small></div>';
+    }
+    html += '<div><strong>' + (velocity.total_cycles || 0) + '</strong><br><small class="text-muted">' + t('cycles.velocity_cycles', 'Завершённых циклов') + '</small></div>' +
       '</div>';
     var list = (velocity.cycles || []).slice().reverse().slice(0, 5);
     if (list.length) {
       html += '<ul class="list-unstyled small mb-0">';
       list.forEach(function (c) {
-        html += '<li class="d-flex justify-content-between"><span>' + escapeHtml(c.title || '—') + '</span><strong>' + (c.completed_tasks || 0) + '/' + (c.total_tasks || 0) + '</strong></li>';
+        var right = (c.completed_tasks || 0) + '/' + (c.total_tasks || 0);
+        if (typeof c.points_completed === 'number') right += ' · ' + c.points_completed + ' ' + escapeHtml(velocity.points_unit_label || 'SP');
+        html += '<li class="d-flex justify-content-between"><span>' + escapeHtml(c.title || '—') + '</span><strong>' + right + '</strong></li>';
       });
       html += '</ul>';
     }

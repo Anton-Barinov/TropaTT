@@ -1354,7 +1354,8 @@ final class App
             $c->get('repository.task'),
             $c->get('service.task'),
             $c->get('service.project'),
-            $c->get('service.task_activity')
+            $c->get('service.task_activity'),
+            $c->get('service.task_estimate')
         ));
 
         $this->container->factory('service.project_module', fn(Container $c) => new ProjectModuleService(
