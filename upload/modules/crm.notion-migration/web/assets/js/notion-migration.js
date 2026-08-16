@@ -63,8 +63,8 @@
 
     // --- API helpers ---
 
-    function apiGet(path) {
-        return window.CRM.api.request(API_PREFIX + path, { method: 'GET' })
+    function apiGet(path, query) {
+        return window.CRM.api.request(API_PREFIX + path, { method: 'GET', query: query })
             .then(function (env) { return env.data || {}; });
     }
 
@@ -339,7 +339,7 @@
     }
 
     function loadLogs(jobId) {
-        apiGet('/jobs/' + jobId + '/logs?limit=50').then(function (data) {
+        apiGet('/jobs/' + jobId + '/logs', { limit: 50 }).then(function (data) {
             const logs = data.logs || [];
             const container = document.getElementById('jobLog');
             let html = '';
@@ -404,7 +404,7 @@
                 '<div class="col-md-4"><div class="crm-card text-center py-3"><div class="h2 text-warning">' + (items.skipped || 0) + '</div><small class="text-muted">' + i18n.t('notion_migration.skipped', 'Пропущено') + '</small></div></div>' +
                 '</div>';
 
-            apiGet('/jobs/' + jobId + '/items?status=failed&limit=50').then(function (itemsData) {
+            apiGet('/jobs/' + jobId + '/items', { status: 'failed', limit: 50 }).then(function (itemsData) {
                 const failedItems = itemsData.items || [];
                 if (failedItems.length > 0) {
                     let failedHtml = '<h6>' + i18n.t('notion_migration.report_items', 'Элементы с ошибками') + '</h6>' +

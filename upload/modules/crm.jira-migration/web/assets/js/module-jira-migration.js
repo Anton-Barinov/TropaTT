@@ -574,7 +574,7 @@
             }
 
             // Update logs
-            const logResp = await window.CRM.api.request(BASE_API + '/jobs/' + currentJobId + '/logs?limit=10');
+            const logResp = await window.CRM.api.request(BASE_API + '/jobs/' + currentJobId + '/logs', { query: { limit: 10 } });
             const logs = logResp.data?.logs || [];
             const logEl = document.getElementById('jobLog');
             logs.forEach(log => {

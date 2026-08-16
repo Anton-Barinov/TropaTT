@@ -20,8 +20,8 @@
         loadDeliveries();
     }
 
-    function api(path, method, body) {
-        return window.CRM.api.request(API_PREFIX + path, { method: method, body: body })
+    function api(path, method, body, query) {
+        return window.CRM.api.request(API_PREFIX + path, { method: method, body: body, query: query })
             .then(function (env) { return env.data || {}; });
     }
 
@@ -143,7 +143,7 @@
 
     function loadDeliveries() {
         const container = document.getElementById('deliveriesList');
-        api('/deliveries?limit=20', 'GET').then(function (data) {
+        api('/deliveries', 'GET', undefined, { limit: 20 }).then(function (data) {
             const deliveries = data.deliveries || [];
             if (deliveries.length === 0) {
                 container.innerHTML = '<div class="text-muted py-3">Нет доставок.</div>';

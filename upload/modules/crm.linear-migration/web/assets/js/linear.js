@@ -22,8 +22,8 @@
         loadConnections();
     }
 
-    function api(path, method, body) {
-        return window.CRM.api.request(API_PREFIX + path, { method: method, body: body })
+    function api(path, method, body, query) {
+        return window.CRM.api.request(API_PREFIX + path, { method: method, body: body, query: query })
             .then(function (env) { return env.data || {}; });
     }
 
@@ -143,7 +143,7 @@
     }
 
     function loadLogs() {
-        api('/jobs/' + state.jobId + '/logs?limit=50', 'GET').then(function (data) {
+        api('/jobs/' + state.jobId + '/logs', 'GET', undefined, { limit: 50 }).then(function (data) {
             const logs = data.logs || [];
             const container = document.getElementById('jobLog');
             container.innerHTML = logs.map(function (l) {

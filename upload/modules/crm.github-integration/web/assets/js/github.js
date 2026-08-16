@@ -21,8 +21,8 @@
         loadProjects();
     }
 
-    function api(path, method, body) {
-        return window.CRM.api.request(API_PREFIX + path, { method: method, body: body })
+    function api(path, method, body, query) {
+        return window.CRM.api.request(API_PREFIX + path, { method: method, body: body, query: query })
             .then(function (env) { return env.data || {}; });
     }
 
@@ -203,7 +203,7 @@
     function loadLogs(linkPublicId) {
         const container = document.getElementById('logsList');
         container.innerHTML = '<div class="text-muted py-3">Загрузка...</div>';
-        api('/links/' + linkPublicId + '/logs?limit=50', 'GET').then(function (data) {
+        api('/links/' + linkPublicId + '/logs', 'GET', undefined, { limit: 50 }).then(function (data) {
             const logs = data.logs || [];
             if (!logs.length) {
                 container.innerHTML = '<div class="text-muted py-3">Журнал пуст.</div>';

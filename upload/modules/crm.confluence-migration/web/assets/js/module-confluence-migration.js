@@ -95,8 +95,8 @@
 
     // --- API helpers ---
 
-    function apiGet(path) {
-        return window.CRM.api.request(API_PREFIX + path, { method: 'GET' })
+    function apiGet(path, query) {
+        return window.CRM.api.request(API_PREFIX + path, { method: 'GET', query: query })
             .then(function (env) { return env.data || {}; });
     }
 
@@ -536,7 +536,7 @@
     }
 
     function loadLogs(jobId) {
-        apiGet('/jobs/' + jobId + '/logs?limit=50').then(function (data) {
+        apiGet('/jobs/' + jobId + '/logs', { limit: 50 }).then(function (data) {
             var logs = data.logs || [];
             var container = document.getElementById('jobLog');
             var html = '';
@@ -669,7 +669,7 @@
             container.innerHTML = html;
 
             // Load failed items separately
-            apiGet('/jobs/' + jobId + '/items?status=failed&limit=50').then(function (itemsData) {
+            apiGet('/jobs/' + jobId + '/items', { status: 'failed', limit: 50 }).then(function (itemsData) {
                 var failedItems = itemsData.items || [];
                 if (failedItems.length > 0) {
                     var failedHtml = '<h6>' + i18n.t('confluence_migration.report_items', 'Элементы с ошибками') + '</h6>' +
