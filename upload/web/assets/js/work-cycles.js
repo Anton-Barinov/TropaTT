@@ -770,9 +770,9 @@
 
     function toggleHtml(mode) {
       if (!hasPoints) return '';
-      var taskBtn = '<button type="button" class="btn btn-sm ' + (mode === 'tasks' ? 'crm-btn-primary' : 'btn-outline-secondary') + '" onclick="window.setCycleBurndownMode(\'tasks\')">' + t('cycles.burndown_metric_tasks', 'Задачи') + '</button>';
-      var ptsBtn = '<button type="button" class="btn btn-sm ' + (mode === 'points' ? 'crm-btn-primary' : 'btn-outline-secondary') + '" onclick="window.setCycleBurndownMode(\'points\')">' + t('cycles.burndown_metric_points', 'Очки') + (unitLabel ? ' (' + escapeHtml(unitLabel) + ')' : '') + '</button>';
-      return '<div class="btn-group btn-group-sm mb-2" role="group" aria-label="' + t('cycles.burndown_metric_switch', 'Единица измерения диаграммы') + '">' + taskBtn + ptsBtn + '</div>';
+      var taskBtn = '<button type="button" class="btn btn-sm btn-outline-secondary crm-segmented-filter-btn' + (mode === 'tasks' ? ' active' : '') + '" onclick="window.setCycleBurndownMode(\'tasks\')">' + t('cycles.burndown_metric_tasks', 'Задачи') + '</button>';
+      var ptsBtn = '<button type="button" class="btn btn-sm btn-outline-secondary crm-segmented-filter-btn' + (mode === 'points' ? ' active' : '') + '" onclick="window.setCycleBurndownMode(\'points\')">' + t('cycles.burndown_metric_points', 'Очки') + (unitLabel ? ' (' + escapeHtml(unitLabel) + ')' : '') + '</button>';
+      return '<div class="btn-group btn-group-sm flex-wrap crm-segmented-filter mb-2" role="group" aria-label="' + t('cycles.burndown_metric_switch', 'Единица измерения диаграммы') + '">' + taskBtn + ptsBtn + '</div>';
     }
 
     function bodyFor(mode) {
