@@ -658,20 +658,22 @@
       apiRequest('api/v1/cycles/' + encodeURIComponent(publicId) + '/scope', { method: 'GET' }).catch(function () { return null; }),
       projectPublicId
         ? apiRequest('api/v1/cycles/velocity?project_public_id=' + encodeURIComponent(projectPublicId), { method: 'GET' }).catch(function () { return null; })
-        : Promise.resolve(null)
+        : Promise.resolve(null),
+      apiRequest('api/v1/cycles/' + encodeURIComponent(publicId) + '/capacity', { method: 'GET' }).catch(function () { return null; })
     ]).then(function (results) {
       var summaryEnv = results[0];
       var s = (summaryEnv && summaryEnv.data && summaryEnv.data.summary) || {};
       var burndown = results[1] && results[1].data ? results[1].data : null;
       var scope = (results[2] && results[2].data) ? results[2].data : (s.scope || null);
       var velocity = results[3] && results[3].data ? results[3].data : null;
-      container.innerHTML = renderCycleStatistics(s, burndown, scope, velocity);
+      var capacity = results[4] && results[4].data ? results[4].data : null;
+      container.innerHTML = renderCycleStatistics(s, burndown, scope, velocity, capacity);
     }).catch(function () {
       container.innerHTML = '<div class="text-danger">' + t('cycles.error_load_stats', 'Ошибка загрузки статистики.') + '</div>';
     });
   }
 
-  function renderCycleStatistics(s, burndown, scope, velocity) {
+  function renderCycleStatistics(s, burndown, scope, velocity, capacity) {
     var html = '';
 
     // Burndown chart
@@ -689,6 +691,12 @@
         '<h6 class="card-title">' + t('cycles.velocity_title', 'Скорость команды') + '</h6>' + renderVelocity(velocity) +
       '</div></div></div>' +
       '</div>';
+
+    // Capacity planning (per assignee)
+    html += '<div class="card mb-3"><div class="card-body">' +
+      '<h6 class="card-title">' + t('cycles.capacity_title', 'Мощность (по исполнителям)') + '</h6>' +
+      renderCapacity(capacity) +
+      '</div></div>';
 
     // By status / priority
     html += '<div class="row g-3">' +
@@ -804,6 +812,34 @@
       });
       html += '</ul>';
     }
+    return html;
+  }
+
+  function renderCapacity(capacity) {
+    if (!capacity || !capacity.assignees || !capacity.assignees.length) {
+      return '<p class="text-muted small mb-0">' + t('cycles.capacity_empty', 'Нет исполнителей с задачами в этом цикле.') + '</p>';
+    }
+    var hasPoints = capacity.has_points;
+    var unit = capacity.unit_label || '';
+    var html = '<div class="table-responsive"><table class="table table-sm align-middle mb-0">' +
+      '<thead><tr>' +
+        '<th>' + t('cycles.col_assignee', 'Исполнитель') + '</th>' +
+        '<th class="text-end">' + t('cycles.capacity_tasks', 'Задачи (заверш./всего)') + '</th>' +
+        (hasPoints ? '<th class="text-end">' + t('cycles.capacity_points', 'Очки') + (unit ? ' (' + escapeHtml(unit) + ')' : '') + '</th>' : '') +
+      '</tr></thead><tbody>';
+    capacity.assignees.forEach(function (a) {
+      var name = a.name || t('cycles.unassigned', 'Без исполнителя');
+      html += '<tr><td>' + escapeHtml(name) + '</td>' +
+        '<td class="text-end">' + (a.tasks_completed || 0) + '/' + (a.tasks_total || 0) + '</td>' +
+        (hasPoints ? '<td class="text-end">' + (a.points_completed || 0) + '/' + (a.points_total || 0) + '</td>' : '') +
+        '</tr>';
+    });
+    var team = capacity.team || {};
+    html += '<tr class="fw-bold"><td>' + t('cycles.capacity_team', 'Команда') + '</td>' +
+      '<td class="text-end">' + (team.tasks_completed || 0) + '/' + (team.tasks_total || 0) + '</td>' +
+      (hasPoints ? '<td class="text-end">' + (team.points_completed || 0) + '/' + (team.points_total || 0) + '</td>' : '') +
+      '</tr>';
+    html += '</tbody></table></div>';
     return html;
   }
 

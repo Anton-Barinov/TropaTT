@@ -315,4 +315,60 @@ final class CycleTaskRepository
             'by_assignee' => $assigneeSummary,
         ];
     }
+
+    /**
+     * Per-assignee capacity: task counts and (optionally) estimate points,
+     * committed vs completed. When $estimateSetId is null, points columns are
+     * zeroed (no estimate set is in use for this cycle).
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function capacityByAssignee(int $cycleId, ?int $estimateSetId = null): array
+    {
+        if ($estimateSetId !== null && $estimateSetId > 0) {
+            $sql = "SELECT
+                    u.public_id AS user_public_id,
+                    u.full_name AS name,
+                    COUNT(DISTINCT t.id) AS tasks_total,
+                    SUM(CASE WHEN t.status_code IN ('done','closed','archived') THEN 1 ELSE 0 END) AS tasks_completed,
+                    COALESCE(SUM(te.numeric_value), 0) AS points_total,
+                    COALESCE(SUM(CASE WHEN t.status_code IN ('done','closed','archived') THEN te.numeric_value ELSE 0 END), 0) AS points_completed
+                FROM cycle_tasks ct
+                INNER JOIN tasks t ON t.id = ct.task_id AND t.deleted_at IS NULL
+                LEFT JOIN users u ON u.id = t.assignee_user_id
+                LEFT JOIN task_estimates te ON te.task_id = t.id AND te.estimate_set_id = :set_id AND te.deleted_at IS NULL
+                WHERE ct.cycle_id = :cycle_id AND ct.deleted_at IS NULL
+                GROUP BY u.public_id, u.full_name
+                ORDER BY points_total DESC, name ASC";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute(['set_id' => $estimateSetId, 'cycle_id' => $cycleId]);
+        } else {
+            $sql = "SELECT
+                    u.public_id AS user_public_id,
+                    u.full_name AS name,
+                    COUNT(DISTINCT t.id) AS tasks_total,
+                    SUM(CASE WHEN t.status_code IN ('done','closed','archived') THEN 1 ELSE 0 END) AS tasks_completed,
+                    0 AS points_total,
+                    0 AS points_completed
+                FROM cycle_tasks ct
+                INNER JOIN tasks t ON t.id = ct.task_id AND t.deleted_at IS NULL
+                LEFT JOIN users u ON u.id = t.assignee_user_id
+                WHERE ct.cycle_id = :cycle_id AND ct.deleted_at IS NULL
+                GROUP BY u.public_id, u.full_name
+                ORDER BY tasks_total DESC, name ASC";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute(['cycle_id' => $cycleId]);
+        }
+
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+        foreach ($rows as &$row) {
+            $row['tasks_total'] = (int)$row['tasks_total'];
+            $row['tasks_completed'] = (int)$row['tasks_completed'];
+            $row['points_total'] = (float)$row['points_total'];
+            $row['points_completed'] = (float)$row['points_completed'];
+        }
+        unset($row);
+
+        return $rows;
+    }
 }

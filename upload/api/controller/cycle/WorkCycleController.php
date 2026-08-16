@@ -366,6 +366,25 @@ final class WorkCycleController extends BaseController
         return $this->success('CYCLE_SCOPE', $this->t('task/messages.cycle_scope', 'Cycle scope'), $result);
     }
 
+    public function capacity(array $params): JsonResponse
+    {
+        $authUser = $this->user();
+        if (!$authUser) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
+        /** @var WorkCycleService $service */
+        $service = $this->container->get('service.work_cycle');
+
+        $result = $service->capacity((string)$params['public_id'], $authUser['user']);
+
+        if (is_string($result)) {
+            return $this->mapError($result);
+        }
+
+        return $this->success('CYCLE_CAPACITY', $this->t('task/messages.cycle_capacity', 'Cycle capacity'), $result);
+    }
+
     public function velocity(): JsonResponse
     {
         $authUser = $this->user();

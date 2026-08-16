@@ -1028,6 +1028,47 @@ final class WorkCycleService
         ];
     }
 
+    public function capacity(string $cyclePublicId, array $actor): array|string|null
+    {
+        $cycle = $this->cycles->findByPublicId($cyclePublicId);
+        if (!$cycle) {
+            return 'CYCLE_NOT_FOUND';
+        }
+
+        if (!$this->canViewCycle($cycle, $actor)) {
+            return 'CYCLE_FORBIDDEN';
+        }
+
+        $cycleId = (int)$cycle['id'];
+        $points = $this->estimatePointsForCycle($cyclePublicId, $actor);
+        $setId = ($points !== null && ($points['set_id'] ?? 0) > 0) ? (int)$points['set_id'] : null;
+
+        $assignees = $this->cycleTasks->capacityByAssignee($cycleId, $setId);
+
+        $teamTasksTotal = 0;
+        $teamTasksCompleted = 0;
+        $teamPointsTotal = 0.0;
+        $teamPointsCompleted = 0.0;
+        foreach ($assignees as $row) {
+            $teamTasksTotal += (int)($row['tasks_total'] ?? 0);
+            $teamTasksCompleted += (int)($row['tasks_completed'] ?? 0);
+            $teamPointsTotal += (float)($row['points_total'] ?? 0);
+            $teamPointsCompleted += (float)($row['points_completed'] ?? 0);
+        }
+
+        return [
+            'unit_label' => $points !== null ? (string)($points['unit_label'] ?? '') : null,
+            'has_points' => $setId !== null,
+            'assignees' => $assignees,
+            'team' => [
+                'tasks_total' => $teamTasksTotal,
+                'tasks_completed' => $teamTasksCompleted,
+                'points_total' => $teamPointsTotal,
+                'points_completed' => $teamPointsCompleted,
+            ],
+        ];
+    }
+
     // ----- Private helpers -----
 
     private function captureSnapshot(array $cycle, ?string $date = null): void
@@ -1151,6 +1192,7 @@ final class WorkCycleService
         }
 
         return [
+            'set_id' => (int)($chosen['set_id'] ?? 0),
             'total' => (float)($chosen['total_value'] ?? 0),
             'completed' => (float)($chosen['completed_value'] ?? 0),
             'unit_label' => $unit,

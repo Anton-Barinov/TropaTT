@@ -201,6 +201,7 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/cycles/{public_id}/summary', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'summary', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/cycles/{public_id}/burndown', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'burndown', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/cycles/{public_id}/scope', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'scope', 'auth' => true, 'required_permissions' => ['task.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/cycles/{public_id}/capacity', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'capacity', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/cycles/{public_id}/transfer-unfinished', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'transferUnfinished', 'auth' => true, 'required_permissions' => ['project.manage']],
 
     // project modules
