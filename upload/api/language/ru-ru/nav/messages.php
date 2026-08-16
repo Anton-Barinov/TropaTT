@@ -16,7 +16,7 @@ return [
     'notifications' => 'Уведомления',
     'admin' => 'Администрирование',
     'intake' => 'Входящие',
-    'cycles' => 'Циклы',
+    'cycles' => 'Циклы (Спринты)',
     'project_modules' => 'Модули проектов',
     'admin_estimates' => 'Оценки задач',
     'admin_modules' => 'Модули',

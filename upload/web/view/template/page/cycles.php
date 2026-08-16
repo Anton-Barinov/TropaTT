@@ -1,11 +1,11 @@
 <?php declare(strict_types=1); ?>
-<?php $title = $t('cycles.page_title', 'Циклы'); ?>
+<?php $title = $t('cycles.page_title', 'Циклы (Спринты)'); ?>
 <body data-page="cycles" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
 <main class="crm-content crm-cycles-page">
 <div class="container-fluid">
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h4 mb-0" data-i18n="cycles.page_title"><?= htmlspecialchars($t('cycles.page_title', 'Циклы'), ENT_QUOTES, 'UTF-8') ?><span class="crm-badge crm-badge-secondary-outline ms-2 small fw-normal" data-i18n="cycles.subtitle_badge"><?= htmlspecialchars($t('cycles.subtitle_badge', 'Спринты / Итерации'), ENT_QUOTES, 'UTF-8') ?></span></h1>
+    <h1 class="h4 mb-0" data-i18n="cycles.page_title"><?= htmlspecialchars($t('cycles.page_title', 'Циклы (Спринты)'), ENT_QUOTES, 'UTF-8') ?></h1>
     <div>
       <button class="btn btn-sm crm-btn-primary" onclick="window.openCycleModal(null)">
         <i class="fa-solid fa-plus"></i> <?= htmlspecialchars($t('cycles.btn_create', 'Создать цикл'), ENT_QUOTES, 'UTF-8') ?>

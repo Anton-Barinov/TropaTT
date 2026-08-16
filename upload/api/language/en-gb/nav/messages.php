@@ -16,7 +16,7 @@ return [
     'notifications' => 'Notifications',
     'admin' => 'Administration',
     'intake' => 'Intake',
-    'cycles' => 'Cycles',
+    'cycles' => 'Cycles (Sprints)',
     'project_modules' => 'Project Modules',
     'admin_estimates' => 'Task Estimates',
     'admin_modules' => 'Modules',

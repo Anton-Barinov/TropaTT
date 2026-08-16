@@ -12,7 +12,7 @@ final class CyclesController extends Controller
         $projectPublicId = (string)($_GET['project_public_id'] ?? '');
 
         $this->render('page/cycles', [
-            'title' => 'Циклы',
+            'title' => 'Циклы (Спринты)',
             'route' => 'cycles',
             'project_public_id' => $projectPublicId,
         ]);
