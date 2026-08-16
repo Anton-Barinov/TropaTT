@@ -733,6 +733,31 @@
     return html;
   }
 
+  function idealRemainingToday(ideal, today, scopeCommitted) {
+    scopeCommitted = scopeCommitted || 0;
+    if (!ideal || !ideal.length) return scopeCommitted;
+    var todayT = Date.parse(today);
+    if (isNaN(todayT)) return null;
+    var before = null, after = null;
+    for (var i = 0; i < ideal.length; i++) {
+      var t = Date.parse(ideal[i].date);
+      if (isNaN(t)) continue;
+      if (t === todayT) return ideal[i].remaining;
+      if (t < todayT) before = ideal[i];
+      else { after = ideal[i]; break; }
+    }
+    if (before && after) {
+      var t0 = Date.parse(before.date), t1 = Date.parse(after.date);
+      if (t1 > t0) {
+        var frac = (todayT - t0) / (t1 - t0);
+        return before.remaining + frac * (after.remaining - before.remaining);
+      }
+    }
+    if (after) return after.remaining;
+    if (before) return before.remaining;
+    return scopeCommitted;
+  }
+
   function renderBurndownChart(burndown) {
     if (!burndown || !burndown.series || !burndown.series.length) {
       return '<div class="text-muted small">' + t('cycles.burndown_empty', 'Недостаточно данных: график появится после старта цикла и накопления снимков.') + '</div>';
@@ -755,27 +780,112 @@
     var maxT = Date.parse(dates[dates.length - 1]);
     if (isNaN(minT) || isNaN(maxT) || maxT <= minT) { maxT = minT + 86400000; }
 
-    var W = 600, H = 200, P = 26;
-    function x(date) { var t = Date.parse(date); if (isNaN(t)) return P; return P + ((t - minT) / (maxT - minT)) * (W - 2 * P); }
-    function y(v) { return H - P - (Math.max(0, v) / maxVal) * (H - 2 * P); }
+    var W = 600, H = 220, PL = 36, PR = 14, PT = 18, PB = 30;
+    function x(date) { var t = Date.parse(date); if (isNaN(t)) return PL; return PL + ((t - minT) / (maxT - minT)) * (W - PL - PR); }
+    function y(v) { return (H - PB) - (Math.max(0, v) / maxVal) * (H - PB - PT); }
     function polyline(points, color, dash) {
       if (!points.length) return '';
       var pts = points.map(function (p) { return x(p.date).toFixed(1) + ',' + y(p.remaining).toFixed(1); }).join(' ');
       return '<polyline points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"' + (dash ? ' stroke-dasharray="5 4"' : '') + '/>';
     }
+    function shortDate(dateStr) {
+      var p = String(dateStr || '').split('-');
+      return p.length === 3 ? p[2] + '.' + p[1] : dateStr;
+    }
+
+    // Horizontal gridlines + Y-axis task counts.
+    var yTicks = maxVal > 1 ? [0, Math.round(maxVal / 2), maxVal] : [0, maxVal];
+    var seen = {};
+    var grid = '', yLabels = '';
+    yTicks.forEach(function (v) {
+      if (seen[v]) return; seen[v] = true;
+      var yv = y(v);
+      grid += '<line x1="' + PL + '" y1="' + yv.toFixed(1) + '" x2="' + (W - PR) + '" y2="' + yv.toFixed(1) + '" stroke="var(--crm-border,#e5e7eb)" stroke-width="1"/>';
+      yLabels += '<text x="' + (PL - 6) + '" y="' + (yv + 3).toFixed(1) + '" text-anchor="end" font-size="10" fill="var(--crm-text-muted,#9ca3af)">' + v + '</text>';
+    });
+
+    // X-axis date labels.
+    var xLabels = '<text x="' + PL + '" y="' + (H - 10) + '" font-size="10" fill="var(--crm-text-muted,#9ca3af)">' + shortDate(dates[0]) + '</text>' +
+      '<text x="' + (W - PR) + '" y="' + (H - 10) + '" text-anchor="end" font-size="10" fill="var(--crm-text-muted,#9ca3af)">' + shortDate(dates[dates.length - 1]) + '</text>';
+
+    // "Today" marker (visible only while the sprint is running).
+    var todayStr = new Date().toISOString().slice(0, 10);
+    var todayT = Date.parse(todayStr);
+    var todayMarker = '';
+    if (!isNaN(todayT) && todayT >= minT && todayT <= maxT) {
+      var tx = x(todayStr).toFixed(1);
+      todayMarker = '<line x1="' + tx + '" y1="' + PT + '" x2="' + tx + '" y2="' + (H - PB) + '" stroke="var(--crm-text-muted,#9ca3af)" stroke-width="1" stroke-dasharray="2 3"/>' +
+        '<text x="' + tx + '" y="' + (PT - 5) + '" text-anchor="middle" font-size="9" fill="var(--crm-text-muted,#9ca3af)">' + t('cycles.burndown_today', 'Сегодня') + '</text>';
+    }
+
+    // Actual data points (visible even with a single snapshot).
+    var dots = series.map(function (p) {
+      return '<circle cx="' + x(p.date).toFixed(1) + '" cy="' + y(p.remaining).toFixed(1) + '" r="3" fill="var(--crm-primary,#2563eb)"/>';
+    }).join('');
 
     var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;" role="img" aria-label="' + t('cycles.burndown_title', 'Диаграмма сгорания') + '">';
-    svg += '<line x1="' + P + '" y1="' + (H - P) + '" x2="' + (W - P) + '" y2="' + (H - P) + '" stroke="var(--crm-border,#e5e7eb)" stroke-width="1"/>';
-    svg += '<line x1="' + P + '" y1="' + P + '" x2="' + P + '" y2="' + (H - P) + '" stroke="var(--crm-border,#e5e7eb)" stroke-width="1"/>';
+    svg += '<text transform="translate(13,' + ((PT + (H - PB)) / 2).toFixed(1) + ') rotate(-90)" text-anchor="middle" font-size="10" fill="var(--crm-text-muted,#9ca3af)">' + t('cycles.burndown_y_axis', 'осталось задач') + '</text>';
+    svg += grid + yLabels + xLabels;
+    svg += '<line x1="' + PL + '" y1="' + PT + '" x2="' + PL + '" y2="' + (H - PB) + '" stroke="var(--crm-border,#e5e7eb)" stroke-width="1"/>';
+    svg += '<line x1="' + PL + '" y1="' + (H - PB) + '" x2="' + (W - PR) + '" y2="' + (H - PB) + '" stroke="var(--crm-border,#e5e7eb)" stroke-width="1"/>';
     svg += polyline(ideal, 'var(--crm-text-muted,#9ca3af)', true);
     svg += polyline(series, 'var(--crm-primary,#2563eb)', false);
+    svg += dots;
+    svg += todayMarker;
     svg += '</svg>';
 
-    return '<div>' + svg +
+    // Interpretation: how much is left today vs the ideal line.
+    var currentRemaining = series.length ? (series[series.length - 1].remaining || 0) : 0;
+    var totalNow = series.length ? (series[series.length - 1].total || 0) : (burndown.scope_current || 0);
+    var idealToday = idealRemainingToday(ideal, todayStr, burndown.scope_committed || maxVal);
+    var cycleStatus = burndown.status || 'active';
+    var completedAtT = burndown.completed_at ? Date.parse(burndown.completed_at) : NaN;
+    var endAtT = Date.parse(burndown.end_at || '');
+    var statusLabel, statusClass;
+    if (cycleStatus === 'completed') {
+      if (currentRemaining === 0) {
+        var finishedEarly = !isNaN(completedAtT) && !isNaN(endAtT) && completedAtT < endAtT;
+        statusLabel = finishedEarly
+          ? t('cycles.burndown_early', 'Завершён досрочно')
+          : t('cycles.burndown_done', 'Завершён в срок');
+        statusClass = 'text-success';
+      } else {
+        statusLabel = t('cycles.burndown_carryover', 'Завершён с незакрытыми задачами');
+        statusClass = 'text-danger';
+      }
+    } else if (cycleStatus === 'planned' || cycleStatus === 'archived') {
+      statusLabel = t('cycles.burndown_planned', 'Спринт ещё не начат');
+      statusClass = 'text-muted';
+    } else if (idealToday === null) {
+      statusLabel = t('cycles.burndown_no_plan', 'Нет данных для сравнения с планом');
+      statusClass = 'text-muted';
+    } else if (currentRemaining <= idealToday) {
+      statusLabel = t('cycles.burndown_ahead', 'Опережаем график');
+      statusClass = 'text-success';
+    } else {
+      statusLabel = t('cycles.burndown_behind', 'Отстаём от графика');
+      statusClass = 'text-danger';
+    }
+
+    return '<div>' +
+      '<p class="text-muted small mb-2">' + t('cycles.burndown_help', 'Показывает, сколько незакрытых задач оставалось в каждый день спринта и успевает ли команда выполнить весь объём к дате окончания.') + '</p>' +
+      '<ul class="text-muted small mb-2 ps-3">' +
+        '<li>' + t('cycles.burndown_help_axis', 'Ось X — дни спринта (от старта до окончания), ось Y — оставшийся объём задач.') + '</li>' +
+        '<li>' + t('cycles.burndown_help_ideal', 'Серая пунктирная линия — идеальный темп: равномерное снижение объёма до нуля к дате окончания.') + '</li>' +
+        '<li>' + t('cycles.burndown_help_read', 'Синяя линия ниже пунктира — опережаем график, выше — отстаём.') + '</li>' +
+      '</ul>' +
+      svg +
       '<div class="d-flex gap-3 small text-muted mt-2 flex-wrap">' +
         '<span><span style="display:inline-block;width:14px;height:2px;background:var(--crm-primary,#2563eb);vertical-align:middle;"></span> ' + t('cycles.burndown_actual', 'Осталось (факт)') + '</span>' +
         '<span><span style="display:inline-block;width:14px;height:0;border-top:2px dashed var(--crm-text-muted,#9ca3af);vertical-align:middle;"></span> ' + t('cycles.burndown_ideal', 'Идеальная линия') + '</span>' +
-      '</div></div>';
+        '<span><span style="display:inline-block;width:14px;height:0;border-top:2px dotted var(--crm-text-muted,#9ca3af);vertical-align:middle;"></span> ' + t('cycles.burndown_today', 'Сегодня') + '</span>' +
+      '</div>' +
+      '<div class="d-flex flex-wrap gap-3 mt-2 small">' +
+        '<span class="' + statusClass + '"><strong>' + escapeHtml(statusLabel) + '</strong></span>' +
+        '<span class="text-muted">' + t('cycles.burndown_remaining', 'Осталось') + ': <strong>' + currentRemaining + '</strong>' + (totalNow ? ' ' + t('cycles.burndown_of', 'из') + ' ' + totalNow : '') + '</span>' +
+        (idealToday !== null ? '<span class="text-muted">' + t('cycles.burndown_ideal_today', 'По плану') + ': ~' + Math.round(idealToday) + '</span>' : '') +
+      '</div>' +
+      '</div>';
   }
 
   function renderScopeChange(scope) {

@@ -929,8 +929,10 @@ final class WorkCycleService
 
         return [
             'cycle_public_id' => $cyclePublicId,
+            'status' => (string)($cycle['status'] ?? ''),
             'start_at' => $cycle['start_at'],
             'end_at' => $cycle['end_at'],
+            'completed_at' => $cycle['completed_at'] ?? null,
             'scope_committed' => $scopeCommitted,
             'scope_current' => $series !== [] ? $series[count($series) - 1]['total'] : 0,
             'series' => $series,
