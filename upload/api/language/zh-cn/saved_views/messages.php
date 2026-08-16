@@ -1,0 +1,33 @@
+<?php
+declare(strict_types=1);
+
+return [
+    'loading' => '加载中...',
+    'load_error' => '加载失败',
+    'empty' => '没有已保存的视图',
+    'pinned' => '已置顶',
+    'other' => '其他',
+    'system' => '系统',
+    'public' => '公开',
+    'private' => '私有',
+    'pin' => '置顶',
+    'unpin' => '取消置顶',
+    'duplicate' => '复制',
+    'edit' => '编辑',
+    'archive' => '归档',
+    'applied' => '视图已应用：',
+    'apply_error' => '应用视图失败',
+    'save_as' => '另存为新视图',
+    'edit_title' => '编辑视图',
+    'title_required' => '输入视图名称',
+    'update_error' => '更新视图失败',
+    'create_error' => '创建视图失败',
+    'pinned_msg' => '已置顶',
+    'unpinned_msg' => '已取消置顶',
+    'pin_error' => '错误',
+    'duplicated' => '视图已复制',
+    'duplicate_error' => '复制失败',
+    'confirm_archive' => '归档此视图？',
+    'archived' => '视图已归档',
+    'archive_error' => '归档失败',
+];

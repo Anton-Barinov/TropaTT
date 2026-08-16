@@ -21,4 +21,5 @@ return [
     'method_not_allowed' => 'Use POST para o payload de verificação de instalação',
     'bootstrap_not_configured' => 'Token bootstrap de instalação não está configurado',
     'bootstrap_token_required' => 'Token bootstrap de instalação é obrigatório',
+    'role_root_title' => 'Root',
 ];

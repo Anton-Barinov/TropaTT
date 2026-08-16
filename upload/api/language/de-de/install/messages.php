@@ -21,4 +21,5 @@ return [
     'method_not_allowed' => 'Use POST for install check payload',
     'bootstrap_not_configured' => 'Install bootstrap token is not configured',
     'bootstrap_token_required' => 'Install bootstrap token is required',
+    'role_root_title' => 'Root',
 ];

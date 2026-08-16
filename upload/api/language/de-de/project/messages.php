@@ -16,4 +16,5 @@ return [
     'milestones_summary' => 'Project milestones summary',
     'risks_summary' => 'Project risks summary',
     'workload_summary' => 'Project workload summary',
+    'prefix_already_exists' => 'Dieses Präfix wird bereits von einem anderen Projekt verwendet',
 ];

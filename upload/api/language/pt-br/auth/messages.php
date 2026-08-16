@@ -8,4 +8,13 @@ return [
     'bearer_required' => 'Forneça o token Bearer',
     'me' => 'Perfil do usuário atual',
     'rate_limited' => 'Muitas tentativas de login. Tente novamente mais tarde',
+    'array_expected' => 'Esperado um array',
+    'items_required' => 'É necessário um array de itens',
+    'menu_loaded' => 'Menu carregado',
+    'menu_preferences_loaded' => 'Preferências de menu carregadas',
+    'menu_preferences_saved' => 'Preferências de menu salvas',
+    'role_menu_template_loaded' => 'Modelo de menu do papel carregado',
+    'role_menu_template_saved' => 'Modelo de menu do papel salvo',
+    'team_menu_template_loaded' => 'Modelo de menu da equipe carregado',
+    'team_menu_template_saved' => 'Modelo de menu da equipe salvo',
 ];

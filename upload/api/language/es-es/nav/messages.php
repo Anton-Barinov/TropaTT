@@ -19,4 +19,9 @@ return [
     'api' => 'Documentación',
     'knowledge' => 'Base de conocimiento',
     'menu_loaded' => 'Menú cargado',
+    'admin_estimates' => 'Estimaciones de tareas',
+    'cycles' => 'Ciclos (Sprints)',
+    'docs' => 'Documentación',
+    'intake' => 'Recepción',
+    'project_modules' => 'Módulos de proyectos',
 ];

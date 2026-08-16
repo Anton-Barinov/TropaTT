@@ -14,4 +14,5 @@ return [
     'milestones_summary' => 'Résumé des jalons du projet',
     'risks_summary' => 'Résumé des risques du projet',
     'workload_summary' => 'Résumé de la charge de travail du projet',
+    'prefix_already_exists' => 'Ce préfixe est déjà utilisé par un autre projet',
 ];

@@ -20,4 +20,8 @@ return [
     'file_data_required' => 'Los datos del archivo son obligatorios',
     'invalid_base64' => 'Datos base64 inválidos',
     'name_required' => 'El nombre del módulo es obligatorio',
+    'bulk_completed' => 'Operación masiva completada',
+    'invalid_name' => 'Nombre de módulo no válido',
+    'operation_failed' => 'La operación del módulo falló',
+    'purged' => 'Módulo eliminado físicamente del disco',
 ];

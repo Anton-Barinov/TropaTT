@@ -16,4 +16,5 @@ return [
     'milestones_summary' => 'Resumo dos marcos do projeto',
     'risks_summary' => 'Resumo dos riscos do projeto',
     'workload_summary' => 'Resumo da carga de trabalho do projeto',
+    'prefix_already_exists' => 'Este prefixo já é usado por outro projeto',
 ];

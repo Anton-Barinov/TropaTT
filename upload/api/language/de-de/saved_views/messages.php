@@ -1,0 +1,33 @@
+<?php
+declare(strict_types=1);
+
+return [
+    'loading' => 'Wird geladen...',
+    'load_error' => 'Ladefehler',
+    'empty' => 'Keine gespeicherten Ansichten',
+    'pinned' => 'Angeheftet',
+    'other' => 'Andere',
+    'system' => 'System',
+    'public' => 'Öffentlich',
+    'private' => 'Privat',
+    'pin' => 'Anheften',
+    'unpin' => 'Loslösen',
+    'duplicate' => 'Duplizieren',
+    'edit' => 'Bearbeiten',
+    'archive' => 'Archivieren',
+    'applied' => 'Ansicht angewendet: ',
+    'apply_error' => 'Fehler beim Anwenden der Ansicht',
+    'save_as' => 'Als neue Ansicht speichern',
+    'edit_title' => 'Ansicht bearbeiten',
+    'title_required' => 'Ansichtsnamen eingeben',
+    'update_error' => 'Fehler beim Aktualisieren der Ansicht',
+    'create_error' => 'Fehler beim Erstellen der Ansicht',
+    'pinned_msg' => 'Angeheftet',
+    'unpinned_msg' => 'Losgelöst',
+    'pin_error' => 'Fehler',
+    'duplicated' => 'Ansicht dupliziert',
+    'duplicate_error' => 'Fehler beim Duplizieren',
+    'confirm_archive' => 'Diese Ansicht archivieren?',
+    'archived' => 'Ansicht archiviert',
+    'archive_error' => 'Fehler beim Archivieren',
+];

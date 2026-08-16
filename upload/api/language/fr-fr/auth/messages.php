@@ -8,4 +8,13 @@ return [
     'bearer_required' => 'Fournir un jeton Bearer',
     'me' => 'Profil de l\'utilisateur actuel',
     'rate_limited' => 'Trop de tentatives de connexion. Réessayez plus tard',
+    'array_expected' => 'Tableau attendu',
+    'items_required' => 'Un tableau d’éléments est requis',
+    'menu_loaded' => 'Menu chargé',
+    'menu_preferences_loaded' => 'Préférences de menu chargées',
+    'menu_preferences_saved' => 'Préférences de menu enregistrées',
+    'role_menu_template_loaded' => 'Modèle de menu du rôle chargé',
+    'role_menu_template_saved' => 'Modèle de menu du rôle enregistré',
+    'team_menu_template_loaded' => 'Modèle de menu de l’équipe chargé',
+    'team_menu_template_saved' => 'Modèle de menu de l’équipe enregistré',
 ];

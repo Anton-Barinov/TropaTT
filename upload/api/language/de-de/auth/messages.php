@@ -8,4 +8,13 @@ return [
     'bearer_required' => 'Provide Bearer token',
     'me' => 'Current user profile',
     'rate_limited' => 'Too many login attempts. Try again later',
+    'array_expected' => 'Array erwartet',
+    'items_required' => 'Array mit Elementen erforderlich',
+    'menu_loaded' => 'Menü geladen',
+    'menu_preferences_loaded' => 'Menüeinstellungen geladen',
+    'menu_preferences_saved' => 'Menüeinstellungen gespeichert',
+    'role_menu_template_loaded' => 'Rollen-Menüvorlage geladen',
+    'role_menu_template_saved' => 'Rollen-Menüvorlage gespeichert',
+    'team_menu_template_loaded' => 'Team-Menüvorlage geladen',
+    'team_menu_template_saved' => 'Team-Menüvorlage gespeichert',
 ];

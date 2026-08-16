@@ -877,6 +877,27 @@ return array (
     'type_project_note' => '项目备注',
     'type_onboarding' => '入职指引',
     'alert_link_error' => '页面已创建，但无法关联到对象',
+    'alert_create_error' => '创建失败',
+    'alert_title_required' => '请输入标题',
+    'all_spaces_desc' => '整个知识库概览',
+    'btn_add_subspace' => '添加子空间',
+    'clear_search' => '清除',
+    'empty_no_data' => '无数据',
+    'empty_no_pages' => '此空间暂无页面',
+    'error_loading' => '加载失败',
+    'field_parent' => '父空间',
+    'in_space' => '在空间中',
+    'no_parent' => '无父级（根级别）',
+    'pag_info' => '页',
+    'pages_count_few' => '页',
+    'pages_count_many' => '页',
+    'pages_count_one' => '页',
+    'result_few' => '个结果',
+    'result_many' => '个结果',
+    'result_one' => '个结果',
+    'show_all' => '所有空间',
+    'stat_pages_in_space' => '空间中的页面',
+    'stat_views' => '次浏览',
   ),
   'knowledge_page' => 
   array (
@@ -1631,8 +1652,8 @@ return array (
       'label_project' => 'Project',
       'no_project' => 'No project',
       'label_status' => 'Status',
-    'status_active' => '活跃',
-    'status_blocked' => '已阻止',
+      'status_active' => '活跃',
+      'status_blocked' => '已阻止',
       'status_done' => '已完成',
       'status_in_progress' => '进行中',
       'status_new' => 'New',
@@ -2458,6 +2479,7 @@ return array (
         'matrix_saved' => '通知矩阵已保存',
         'matrix_save_fail' => '保存通知矩阵失败',
         'matrix_reset' => '矩阵已恢复为默认值',
+        'push_device_id_prefix' => 'ID：',
       ),
       'clients' => 
       array (
@@ -2652,6 +2674,9 @@ return array (
         'ai_dismissing' => '正在忽略 AI 客户摘要...',
         'ai_dismissed' => 'AI 客户摘要已忽略。',
         'ai_dismiss_fail' => '忽略 AI 客户摘要失败',
+        'btn_create_project' => '创建项目',
+        'btn_create_task' => '创建任务',
+        'field_address_actual' => '实际地址',
       ),
       'client_cabinet' => 
       array (
@@ -2763,6 +2788,10 @@ return array (
         'updated' => '团队已更新',
         'update_fail' => '更新团队失败',
         'unsaved_close_confirm' => '有未保存的更改。是否不保存直接关闭？',
+        'menu_template' => '菜单模板',
+        'menu_template_hint' => '为此团队的所有成员配置默认菜单。拖动以重新排序，切换以显示/隐藏。',
+        'menu_template_load_fail' => '无法加载菜单模板',
+        'menu_template_saved' => '菜单模板已保存',
       ),
       'admin' => 
       array (
@@ -2892,6 +2921,15 @@ return array (
         'impersonation_stopped' => '模拟登录已结束',
         'impersonation_stop_fail' => '结束模拟登录失败',
         'role_created_short' => '角色已创建',
+        'role_menu_template' => '角色菜单模板',
+        'role_menu_template_hint' => '为此角色的所有用户配置默认菜单。这是最高优先级——此处隐藏的项无法通过团队或用户设置显示。',
+        'role_menu_template_load_fail' => '无法加载角色菜单模板',
+        'role_menu_template_saved' => '角色菜单模板已保存',
+        'role_menu_title' => '菜单模板',
+        'user_menu_hint' => '为此用户配置菜单。拖动以重新排序，切换以显示/隐藏。',
+        'user_menu_load_fail' => '无法加载菜单设置',
+        'user_menu_saved' => '菜单设置已保存',
+        'user_menu_title' => '菜单设置',
       ),
       'gantt' => 
       array (
@@ -3293,6 +3331,7 @@ return array (
         'req_address_postal' => '通讯地址',
         'requisites_empty' => '未填写资质信息。',
         'extra_empty' => '无附加属性',
+        'req_address_actual' => '实际地址',
       ),
       'companies' => 
       array (
@@ -3334,6 +3373,8 @@ return array (
         'section_notes' => '相关笔记',
         'btn_knowledge' => '转到知识库',
         'knowledge_empty' => '没有相关笔记',
+        'opt_custom_role' => '其他角色（自定义）...',
+        'role_custom_placeholder' => '输入自定义角色',
       ),
       'departments' => 
       array (
@@ -3479,9 +3520,10 @@ return array (
         'deleted' => 'SLA 策略已删除',
         'delete_fail' => '删除 SLA 策略失败',
       ),
+      'project_completed_tasks_closed' => '项目已完成，所有任务已关闭',
     ),
     'api' => 
-  array (
+    array (
       'aborted' => '请求已取消',
       'auth_required' => '需要重新登录',
       'error' => 'API 错误',
@@ -4471,6 +4513,49 @@ return array (
       'placeholder_description' => '项目的目标、背景和主要期望',
       'hint' => '项目将立即在 API 工作模型中创建，包括客户、团队和负责人。',
     ),
+    'extra_active_sessions' => '活动会话',
+    'extra_active_sessions_desc' => '您当前的活动会话和设备。',
+    'extra_analytics_summary' => '分析脉搏',
+    'extra_analytics_summary_desc' => '主要分析指标的紧凑快照。',
+    'extra_approval_queue' => '审批队列',
+    'extra_approval_queue_desc' => '等待决策的审批请求。',
+    'extra_chat_unread' => '未读聊天',
+    'extra_chat_unread_desc' => '一眼查看未读的团队对话。',
+    'extra_client_pipeline' => '客户目录',
+    'extra_client_pipeline_desc' => '最近客户及您可用的关系记录。',
+    'extra_company_directory' => '公司目录',
+    'extra_company_directory_desc' => 'CRM 中公司的快速视图。',
+    'extra_contact_followups' => '联系人跟进',
+    'extra_contact_followups_desc' => '最近更新的联系人及其沟通信息。',
+    'extra_dependency_watch' => '依赖监控',
+    'extra_dependency_watch_desc' => '可能阻塞交付的任务依赖。',
+    'extra_intake_sla' => '收件 SLA',
+    'extra_intake_sla_desc' => '带优先级和处理状态的传入请求。',
+    'extra_milestone_watch' => '里程碑监控',
+    'extra_milestone_watch_desc' => '即将到来的项目里程碑及其日期。',
+    'extra_notification_inbox' => '通知中心',
+    'extra_notification_inbox_desc' => '需要关注的最新通知。',
+    'extra_project_health' => '项目健康',
+    'extra_project_health_desc' => '带进度、截止日期和当前状态信号的项目。',
+    'extra_recurring_health' => '循环自动化',
+    'extra_recurring_health_desc' => '活动的循环规则及下次运行。',
+    'extra_saved_views' => '已保存视图',
+    'extra_saved_views_desc' => '已置顶和最近使用的任务视图。',
+    'extra_subscriptions' => '我的订阅',
+    'extra_subscriptions_desc' => '您关注重要更新的实体。',
+    'extra_system_health' => '系统状态',
+    'extra_system_health_desc' => '当前安装的轻量健康信号。',
+    'extra_tag_usage' => '标签使用',
+    'extra_tag_usage_desc' => '最常用的标签，保持工作有序。',
+    'extra_team_workload' => '团队负载',
+    'extra_team_workload_desc' => '可见团队成员间的工作负载分布。',
+    'extra_time_team' => '团队时间',
+    'extra_time_team_desc' => '过去 7 天每位可见员工的工时：谁超负荷、谁负荷不足。',
+    'extra_webhook_health' => 'Webhook 健康',
+    'extra_webhook_health_desc' => '最近的 webhook 投递和失败。',
+    'extra_workflow_automation' => '工作流自动化',
+    'extra_workflow_automation_desc' => '活动的工作流规则及自动化状态。',
+    'sticky_notes_title' => '便签',
   ),
   'tasks' => 
   array (
@@ -4554,6 +4639,8 @@ return array (
     'no_access_text' => '请联系项目管理员获取权限。',
     'no_access_tooltip' => '需要负责人或管理员角色',
     'no_access_why' => '为什么无法访问',
+    'filter_all_clients' => '所有客户',
+    'filter_client' => '客户',
   ),
   'task_detail' => 
   array (
@@ -4830,11 +4917,21 @@ return array (
       'confirm' => '是否继续应用？',
       'confirm_btn' => '继续',
     ),
-    'tab_knowledge' => 'Knowledge Base',
-    'knowledge_title' => 'Linked Pages',
-    'knowledge_loading' => 'Loading...',
-    'knowledge_empty' => 'No linked pages',
-    'btn_create_knowledge' => 'Create linked page',
+    'activity_empty' => '暂无活动。此任务的更改将显示在此处。',
+    'activity_error' => '加载活动失败',
+    'activity_filter_all' => '所有事件',
+    'activity_filter_checklists' => '清单',
+    'activity_filter_comments' => '评论',
+    'activity_filter_fields' => '字段更改',
+    'activity_filter_files' => '文件',
+    'activity_filter_relations' => '关系与依赖',
+    'activity_load_more' => '显示更多',
+    'activity_tab' => '活动',
+    'alert_link_error' => '页面已创建，但无法与对象关联',
+    'estimates_modal_note_label' => '备注',
+    'estimates_modal_numeric_label' => '数值',
+    'estimates_modal_numeric_placeholder' => '输入值',
+    'estimates_remove_btn' => '移除',
   ),
   'projects' => 
   array (
@@ -5076,6 +5173,8 @@ return array (
     'btn_delete' => '删除联系人',
     'update_fail' => 'Failed to update contact',
     'updated' => 'Contact updated',
+    'opt_custom_role' => '其他角色（自定义）...',
+    'role_custom_placeholder' => '输入自定义角色',
   ),
   'counterparties' => 
   array (
@@ -5228,6 +5327,8 @@ return array (
     'view_name_required' => 'View name cannot be empty',
     'view_save_fail' => 'Failed to save counterparty view',
     'view_saved' => 'Counterparty view saved',
+    'field_address_actual' => '实际地址',
+    'th_extra' => '附加字段',
   ),
   'counterparty_detail' => 
   array (
@@ -5374,6 +5475,9 @@ return array (
     'untitled' => 'Untitled counterparty',
     'update_fail' => 'Failed to update counterparty',
     'updated' => 'Counterparty updated',
+    'btn_create_project' => '创建项目',
+    'btn_create_task' => '创建任务',
+    'requisites_field_address_actual' => '实际地址',
   ),
   'clients' => 
   array (
@@ -5491,6 +5595,11 @@ return array (
     'view_name_required' => 'View name cannot be empty',
     'view_save_fail' => 'Failed to save client view',
     'view_saved' => 'Client view saved',
+    'extra_attributes_hint' => '以 JSON 格式输入字段-值对。保存后会显示在卡片中并可供搜索。',
+    'field_address_actual' => '实际地址',
+    'filter_extra_label' => '自定义字段',
+    'filter_extra_placeholder' => '例如：VIP 或来源',
+    'th_extra' => '附加字段',
   ),
   'client_detail' => 
   array (
@@ -5607,6 +5716,8 @@ return array (
     'untitled_task' => 'Untitled task',
     'updated' => 'Updated',
     'website' => 'Website',
+    'btn_create_knowledge' => '创建关联页面',
+    'field_address_actual' => '实际地址',
   ),
   'client_cabinet' => 
   array (
@@ -7091,7 +7202,6 @@ return array (
     'db_restore_failed' => '未恢复',
     'db_restore_skipped' => '没有数据库备份',
   ),
-
   'admin_statuses' => 
   array (
     'title' => 'TropaTT — 任务状态',
@@ -7121,6 +7231,8 @@ return array (
     'scope_project' => '项目',
     'preview' => '预览',
     'remap_none' => '不转移',
+    'section_project_statuses' => '项目状态',
+    'section_task_statuses' => '任务状态',
   ),
   'admin_priorities' => 
   array (
@@ -8544,7 +8656,6 @@ return array (
     'create_failed' => '添加依赖关系失败',
     'delete_failed' => '删除依赖关系失败',
   ),
-
   'visual_editor' => 
   array (
     'bold' => '加粗',
@@ -8592,6 +8703,7 @@ return array (
     'file_too_large' => '文件过大。最大 10 MB',
     'image_too_large' => '图片过大。最大 8000×8000 px',
     'code_block' => '代码块',
+    'type_forbidden' => '出于安全考虑，禁止上传此类型的文件',
   ),
   'admin_estimates' => 
   array (
@@ -8854,6 +8966,13 @@ return array (
     'time_running' => 'Running',
     'total_tasks' => 'Total tasks:',
     'unknown_error' => 'unknown error',
+    'all_projects' => '所有项目',
+    'btn_add_selected_count' => '添加所选',
+    'btn_complete_short' => '完成',
+    'btn_open' => '重新打开',
+    'btn_start' => '开始',
+    'error_load_data' => '加载周期数据失败。',
+    'tasks_suffix' => ' 个任务',
   ),
   'mentions' => 
   array (
@@ -8917,10 +9036,18 @@ return array (
     'th_tasks' => 'Tasks',
     'th_title' => 'Title',
     'updated' => 'Module updated',
+    'filter_all_statuses' => '所有状态',
+    'title' => 'TropaTT — 项目模块',
   ),
   'footer' => 
   array (
     'updates_link' => 'Updates',
+    'aria' => '系统信息',
+    'author_link' => '开发者',
+    'github_link' => 'GitHub',
+    'links_aria' => '页脚链接',
+    'update_available_badge' => '有可用更新 {version}',
+    'version' => '版本',
   ),
   'intake' => 
   array (
@@ -9056,6 +9183,50 @@ return array (
     'title' => 'TropaTT — Intake',
     'user_dropdown' => 'User',
     'view_task_btn' => 'Go to task',
+    'accept_btn' => '接受',
+    'accept_confirm_btn' => '接受并创建任务',
+    'accept_field_project' => '项目',
+    'activities_btn' => '历史',
+    'create_btn' => '创建请求',
+    'delete_confirm' => '删除此请求？此操作无法撤销。',
+    'delete_confirm_btn' => '删除',
+    'delete_error' => '删除失败',
+    'delete_title' => '删除请求',
+    'deleted' => '请求已删除',
+    'duplicate_btn' => '重复',
+    'duplicate_confirm_btn' => '标记为重复',
+    'duplicate_field_target' => '重复请求 ID',
+    'duplicate_field_target_hint' => '提供现有请求的 public_id，此请求是其重复项',
+    'duplicate_field_target_placeholder' => '输入请求的 public_id',
+    'field_due_date' => '截止日期',
+    'field_source_ref' => '来源引用',
+    'field_source_ref_placeholder' => '电子邮件或外部链接',
+    'load_error' => '加载请求失败',
+    'modal_edit_title' => '编辑请求',
+    'no_items' => '创建第一个请求或设置自动收件。',
+    'no_items_title' => '暂无请求',
+    'option_no_assignee' => '未分配',
+    'option_no_client' => '未选择',
+    'option_no_project' => '未选择',
+    'priority_high' => '高',
+    'priority_low' => '低',
+    'priority_normal' => '中',
+    'priority_urgent' => '紧急',
+    'reject_btn' => '拒绝',
+    'reject_confirm_btn' => '拒绝',
+    'reject_field_reason' => '拒绝原因',
+    'reopen_btn' => '恢复',
+    'reopen_confirm' => '将此请求恢复为待处理以便重新审核？',
+    'reopen_confirm_btn' => '恢复',
+    'reopen_title' => '恢复请求',
+    'section_list_title' => '请求',
+    'snooze_btn' => '推迟',
+    'snooze_confirm_btn' => '推迟',
+    'snooze_field_date' => '推迟至',
+    'th_client' => '客户',
+    'th_id' => 'ID',
+    'unknown_user' => '未知',
+    'updated' => '请求已更新',
   ),
   'workflow' => 
   array (

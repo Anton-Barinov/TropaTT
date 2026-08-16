@@ -21,4 +21,5 @@ return [
     'method_not_allowed' => 'Utiliser POST pour la requête de vérification d\'installation',
     'bootstrap_not_configured' => 'Le jeton bootstrap d\'installation n\'est pas configuré',
     'bootstrap_token_required' => 'Le jeton bootstrap d\'installation est requis',
+    'role_root_title' => 'Root',
 ];

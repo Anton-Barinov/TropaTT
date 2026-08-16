@@ -20,4 +20,8 @@ return [
     'file_data_required' => '需要文件数据',
     'invalid_base64' => '无效的base64数据',
     'name_required' => '需要模块名称',
+    'bulk_completed' => '批量操作已完成',
+    'invalid_name' => '模块名称无效',
+    'operation_failed' => '模块操作失败',
+    'purged' => '模块已从磁盘完全删除',
 ];

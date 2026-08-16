@@ -1322,6 +1322,10 @@ return array (
     'bytes_kb' => 'KB',
     'bytes_mb' => 'MB',
     'bytes_gb' => 'GB',
+    'btn_knowledge' => 'Ir para a base de conhecimento',
+    'knowledge_empty' => 'Sem regulamentos de departamento',
+    'knowledge_select_department' => 'Selecionar departamento',
+    'section_knowledge' => 'Regulamentos do departamento',
   ),
   'admin_sla' => 
   array (
@@ -1376,6 +1380,8 @@ return array (
     'scope_project' => 'Projeto',
     'preview' => 'Pré-visualização',
     'remap_none' => 'Não mover',
+    'section_project_statuses' => 'Status de projetos',
+    'section_task_statuses' => 'Status de tarefas',
   ),
   'admin_tags' => 
   array (
@@ -1591,7 +1597,6 @@ return array (
     'db_restore_failed' => 'não restaurado',
     'db_restore_skipped' => 'sem backup do BD',
   ),
-
   'admin_templates' => 
   array (
     'card_project_templates_note' => 'Reusable project templates.',
@@ -2439,6 +2444,8 @@ return array (
     'untitled_task' => 'Untitled task',
     'updated' => 'Updated',
     'website' => 'Website',
+    'btn_create_knowledge' => 'Criar página vinculada',
+    'field_address_actual' => 'Endereço real',
   ),
   'clients' => 
   array (
@@ -2556,6 +2563,11 @@ return array (
     'view_name_required' => 'View name cannot be empty',
     'view_save_fail' => 'Failed to save client view',
     'view_saved' => 'Client view saved',
+    'extra_attributes_hint' => 'Informe pares campo-valor em JSON. Após salvar, eles aparecem no cartão e ficam pesquisáveis.',
+    'field_address_actual' => 'Endereço real',
+    'filter_extra_label' => 'Campos personalizados',
+    'filter_extra_placeholder' => 'Por exemplo: VIP ou origem',
+    'th_extra' => 'Campos extras',
   ),
   'common' => 
   array (
@@ -2667,6 +2679,8 @@ return array (
     'btn_delete' => 'Excluir contato',
     'update_fail' => 'Failed to update contact',
     'updated' => 'Contact updated',
+    'opt_custom_role' => 'Outro papel (personalizado)...',
+    'role_custom_placeholder' => 'Informe um papel personalizado',
   ),
   'counterparties' => 
   array (
@@ -2819,6 +2833,8 @@ return array (
     'view_name_required' => 'View name cannot be empty',
     'view_save_fail' => 'Failed to save counterparty view',
     'view_saved' => 'Counterparty view saved',
+    'field_address_actual' => 'Endereço real',
+    'th_extra' => 'Campos extras',
   ),
   'counterparty_detail' => 
   array (
@@ -2965,6 +2981,9 @@ return array (
     'untitled' => 'Untitled counterparty',
     'update_fail' => 'Failed to update counterparty',
     'updated' => 'Counterparty updated',
+    'btn_create_project' => 'Criar projeto',
+    'btn_create_task' => 'Criar tarefa',
+    'requisites_field_address_actual' => 'Endereço real',
   ),
   'custom_field' => 
   array (
@@ -3041,7 +3060,7 @@ return array (
     'title' => 'TropaTT — Dashboard',
     'page_title' => 'Dashboard',
     'subtitle' => 'Visão geral de tarefas, riscos e carga de trabalho da equipe para 1 de maio de 2026.',
-'btn_create_task' => 'Criar tarefa',
+    'btn_create_task' => 'Criar tarefa',
     'builder_edit' => 'Editar',
     'builder_hint' => 'Arraste os widgets para alterar a ordem. As alterações valem após salvar.',
     'builder_add_widget' => 'Adicionar widget',
@@ -3152,6 +3171,49 @@ return array (
       'placeholder_description' => 'Objetivos, contexto e expectativas principais do projeto',
       'hint' => 'O projeto será criado diretamente no modelo de trabalho da API, incluindo cliente, equipe e gerente.',
     ),
+    'extra_active_sessions' => 'Sessões ativas',
+    'extra_active_sessions_desc' => 'Suas sessões e dispositivos atualmente ativos.',
+    'extra_analytics_summary' => 'Pulso analítico',
+    'extra_analytics_summary_desc' => 'Um instantâneo compacto dos principais indicadores de análise.',
+    'extra_approval_queue' => 'Fila de aprovações',
+    'extra_approval_queue_desc' => 'Solicitações de aprovação aguardando decisão.',
+    'extra_chat_unread' => 'Chats não lidos',
+    'extra_chat_unread_desc' => 'Conversas de equipe não lidas em um só lugar.',
+    'extra_client_pipeline' => 'Diretório de clientes',
+    'extra_client_pipeline_desc' => 'Clientes recentes e registros de relacionamento disponíveis para você.',
+    'extra_company_directory' => 'Diretório de empresas',
+    'extra_company_directory_desc' => 'Uma visão rápida das empresas no CRM.',
+    'extra_contact_followups' => 'Acompanhamentos de contatos',
+    'extra_contact_followups_desc' => 'Contatos atualizados recentemente e seus dados de comunicação.',
+    'extra_dependency_watch' => 'Monitoramento de dependências',
+    'extra_dependency_watch_desc' => 'Dependências de tarefas que podem bloquear a entrega.',
+    'extra_intake_sla' => 'SLA de recebimento',
+    'extra_intake_sla_desc' => 'Solicitações recebidas com prioridade e status de processamento.',
+    'extra_milestone_watch' => 'Monitoramento de marcos',
+    'extra_milestone_watch_desc' => 'Próximos marcos do projeto e suas datas.',
+    'extra_notification_inbox' => 'Central de notificações',
+    'extra_notification_inbox_desc' => 'Notificações recentes que exigem atenção.',
+    'extra_project_health' => 'Saúde dos projetos',
+    'extra_project_health_desc' => 'Projetos com progresso, prazos e sinais atuais de estado.',
+    'extra_recurring_health' => 'Automação recorrente',
+    'extra_recurring_health_desc' => 'Regras recorrentes ativas e próximas execuções.',
+    'extra_saved_views' => 'Visualizações salvas',
+    'extra_saved_views_desc' => 'Visualizações de tarefas fixadas e usadas recentemente.',
+    'extra_subscriptions' => 'Minhas assinaturas',
+    'extra_subscriptions_desc' => 'Entidades que você segue para receber atualizações importantes.',
+    'extra_system_health' => 'Estado do sistema',
+    'extra_system_health_desc' => 'Um sinal leve do estado da instalação atual.',
+    'extra_tag_usage' => 'Uso de etiquetas',
+    'extra_tag_usage_desc' => 'Etiquetas mais usadas para manter o trabalho organizado.',
+    'extra_team_workload' => 'Carga da equipe',
+    'extra_team_workload_desc' => 'Distribuição da carga entre os membros visíveis da equipe.',
+    'extra_time_team' => 'Tempo da equipe',
+    'extra_time_team_desc' => 'Horas por funcionário visível nos últimos 7 dias: quem está sobrecarregado e quem está ocioso.',
+    'extra_webhook_health' => 'Saúde dos webhooks',
+    'extra_webhook_health_desc' => 'Entregas e falhas recentes de webhooks.',
+    'extra_workflow_automation' => 'Automação de fluxos',
+    'extra_workflow_automation_desc' => 'Regras de fluxo ativas e estado da automação.',
+    'sticky_notes_title' => 'Notas adesivas',
   ),
   'departments' => 
   array (
@@ -4975,6 +5037,7 @@ return array (
         'matrix_saved' => 'Matriz de notificações salva',
         'matrix_save_fail' => 'Falha ao salvar a matriz de notificações',
         'matrix_reset' => 'Matriz de notificações redefinida para os padrões',
+        'push_device_id_prefix' => 'ID: ',
       ),
       'clients' => 
       array (
@@ -5169,6 +5232,9 @@ return array (
         'ai_dismissing' => 'Dispensando o resumo de AI do cliente...',
         'ai_dismissed' => 'Resumo de AI do cliente dispensado.',
         'ai_dismiss_fail' => 'Falha ao dispensar o resumo de AI do cliente',
+        'btn_create_project' => 'Criar projeto',
+        'btn_create_task' => 'Criar tarefa',
+        'field_address_actual' => 'Endereço real',
       ),
       'client_cabinet' => 
       array (
@@ -5277,6 +5343,13 @@ return array (
         'updated' => 'Equipe atualizada',
         'update_fail' => 'Falha ao atualizar equipe',
         'unsaved_close_confirm' => 'Há alterações não salvas. Fechar sem salvar?',
+        'btn_knowledge' => 'Ir para a base de conhecimento',
+        'knowledge_empty' => 'Sem materiais da equipe',
+        'menu_template' => 'Modelo de menu',
+        'menu_template_hint' => 'Configure o menu padrão de todos os membros desta equipe. Arraste para reordenar, alterne para mostrar/ocultar.',
+        'menu_template_load_fail' => 'Não foi possível carregar o modelo de menu',
+        'menu_template_saved' => 'Modelo de menu salvo',
+        'section_knowledge' => 'Materiais da equipe',
       ),
       'admin' => 
       array (
@@ -5406,6 +5479,15 @@ return array (
         'impersonation_stopped' => 'Impersonificação encerrada',
         'impersonation_stop_fail' => 'Falha ao encerrar a impersonificação',
         'role_created_short' => 'Perfil criado',
+        'role_menu_template' => 'Modelo de menu do papel',
+        'role_menu_template_hint' => 'Configure o menu padrão de todos os usuários com este papel. Esta é a prioridade mais alta — itens ocultos aqui não podem ser exibidos pelas configurações de equipe ou usuário.',
+        'role_menu_template_load_fail' => 'Não foi possível carregar o modelo de menu do papel',
+        'role_menu_template_saved' => 'Modelo de menu do papel salvo',
+        'role_menu_title' => 'Modelo de menu',
+        'user_menu_hint' => 'Configure o menu deste usuário. Arraste para reordenar, alterne para mostrar/ocultar.',
+        'user_menu_load_fail' => 'Não foi possível carregar as configurações do menu',
+        'user_menu_saved' => 'Configurações do menu salvas',
+        'user_menu_title' => 'Configurações do menu',
       ),
       'gantt' => 
       array (
@@ -5807,6 +5889,7 @@ return array (
         'req_address_postal' => 'Endereço postal',
         'requisites_empty' => 'Dados bancários não preenchidos.',
         'extra_empty' => 'Sem atributos extras',
+        'req_address_actual' => 'Endereço real',
       ),
       'companies' => 
       array (
@@ -5845,6 +5928,11 @@ return array (
         'delete_confirm' => 'Excluir contato?',
         'deleted' => 'Contato excluído',
         'delete_fail' => 'Falha ao excluir contato',
+        'btn_knowledge' => 'Ir para a base de conhecimento',
+        'knowledge_empty' => 'Sem notas relacionadas',
+        'opt_custom_role' => 'Outro papel (personalizado)...',
+        'role_custom_placeholder' => 'Informe um papel personalizado',
+        'section_notes' => 'Notas relacionadas',
       ),
       'departments' => 
       array (
@@ -5990,9 +6078,10 @@ return array (
         'deleted' => 'Política de SLA excluída',
         'delete_fail' => 'Falha ao excluir política de SLA',
       ),
+      'project_completed_tasks_closed' => 'Projeto concluído, todas as tarefas fechadas',
     ),
     'api' => 
-  array (
+    array (
       'aborted' => 'Solicitação cancelada',
       'auth_required' => 'É necessário autenticar novamente',
       'error' => 'Erro da API',
@@ -6777,6 +6866,27 @@ return array (
     'type_project_note' => 'Project note',
     'type_onboarding' => 'Onboarding',
     'alert_link_error' => 'A página foi criada, mas não pôde ser vinculada ao objeto',
+    'alert_create_error' => 'Erro de criação',
+    'alert_title_required' => 'Informe um título',
+    'all_spaces_desc' => 'Visão geral de toda a base de conhecimento',
+    'btn_add_subspace' => 'Adicionar subespaço',
+    'clear_search' => 'Limpar',
+    'empty_no_data' => 'Sem dados',
+    'empty_no_pages' => 'Ainda não há páginas neste espaço',
+    'error_loading' => 'Erro de carregamento',
+    'field_parent' => 'Espaço pai',
+    'in_space' => 'no espaço',
+    'no_parent' => 'Sem pai (nível raiz)',
+    'pag_info' => 'páginas',
+    'pages_count_few' => 'páginas',
+    'pages_count_many' => 'páginas',
+    'pages_count_one' => 'página',
+    'result_few' => 'resultados',
+    'result_many' => 'resultados',
+    'result_one' => 'resultado',
+    'show_all' => 'Todos os espaços',
+    'stat_pages_in_space' => 'páginas no espaço',
+    'stat_views' => 'visualizações',
   ),
   'knowledge_page' => 
   array (
@@ -8280,6 +8390,20 @@ return array (
     'attach_knowledge_empty' => 'No articles found',
     'attach_knowledge_error' => 'Operation failed',
     'alert_link_error' => 'A página foi criada, mas não pôde ser vinculada ao objeto',
+    'activity_empty' => 'Ainda não há atividade. As alterações desta tarefa aparecerão aqui.',
+    'activity_error' => 'Erro ao carregar a atividade',
+    'activity_filter_all' => 'Todos os eventos',
+    'activity_filter_checklists' => 'Checklists',
+    'activity_filter_comments' => 'Comentários',
+    'activity_filter_fields' => 'Alterações de campos',
+    'activity_filter_files' => 'Arquivos',
+    'activity_filter_relations' => 'Relações e dependências',
+    'activity_load_more' => 'Mostrar mais',
+    'activity_tab' => 'Atividade',
+    'estimates_modal_note_label' => 'Nota',
+    'estimates_modal_numeric_label' => 'Valor numérico',
+    'estimates_modal_numeric_placeholder' => 'Informe o valor',
+    'estimates_remove_btn' => 'Remover',
   ),
   'tasks' => 
   array (
@@ -8363,6 +8487,8 @@ return array (
     'no_access_text' => 'Solicite permissões ao administrador do projeto.',
     'no_access_tooltip' => 'Perfil de Gerente ou Administrador necessário',
     'no_access_why' => 'Por que isso está indisponível',
+    'filter_all_clients' => 'Todos os clientes',
+    'filter_client' => 'Cliente',
   ),
   'teams' => 
   array (
@@ -8577,6 +8703,7 @@ return array (
     'file_too_large' => 'O arquivo é muito grande. Máximo de 10 MB',
     'image_too_large' => 'A imagem é muito grande. Máximo de 8000×8000 px',
     'code_block' => 'Bloco de código',
+    'type_forbidden' => 'O upload deste tipo de arquivo é proibido por motivos de segurança',
   ),
   'admin_estimates' => 
   array (
@@ -8839,6 +8966,13 @@ return array (
     'time_running' => 'Running',
     'total_tasks' => 'Total tasks:',
     'unknown_error' => 'unknown error',
+    'all_projects' => 'Todos os projetos',
+    'btn_add_selected_count' => 'Adicionar selecionadas',
+    'btn_complete_short' => 'Concluir',
+    'btn_open' => 'Reabrir',
+    'btn_start' => 'Iniciar',
+    'error_load_data' => 'Erro ao carregar os dados do ciclo.',
+    'tasks_suffix' => ' tarefas',
   ),
   'mentions' => 
   array (
@@ -8902,10 +9036,18 @@ return array (
     'th_tasks' => 'Tasks',
     'th_title' => 'Title',
     'updated' => 'Module updated',
+    'filter_all_statuses' => 'Todos os status',
+    'title' => 'TropaTT — Módulos de projeto',
   ),
   'footer' => 
   array (
     'updates_link' => 'Updates',
+    'aria' => 'Informações do sistema',
+    'author_link' => 'Desenvolvedor',
+    'github_link' => 'GitHub',
+    'links_aria' => 'Links do rodapé',
+    'update_available_badge' => 'Atualização {version} disponível',
+    'version' => 'Versão',
   ),
   'intake' => 
   array (
@@ -9041,6 +9183,50 @@ return array (
     'title' => 'TropaTT — Intake',
     'user_dropdown' => 'User',
     'view_task_btn' => 'Go to task',
+    'accept_btn' => 'Aceitar',
+    'accept_confirm_btn' => 'Aceitar e criar tarefa',
+    'accept_field_project' => 'Projeto',
+    'activities_btn' => 'Histórico',
+    'create_btn' => 'Criar solicitação',
+    'delete_confirm' => 'Excluir esta solicitação? Esta ação não pode ser desfeita.',
+    'delete_confirm_btn' => 'Excluir',
+    'delete_error' => 'Erro ao excluir',
+    'delete_title' => 'Excluir solicitação',
+    'deleted' => 'Solicitação excluída',
+    'duplicate_btn' => 'Duplicado',
+    'duplicate_confirm_btn' => 'Marcar como duplicado',
+    'duplicate_field_target' => 'ID da solicitação duplicada',
+    'duplicate_field_target_hint' => 'Informe o public_id da solicitação existente da qual esta é duplicada',
+    'duplicate_field_target_placeholder' => 'Informe o public_id da solicitação',
+    'field_due_date' => 'Prazo',
+    'field_source_ref' => 'Referência de origem',
+    'field_source_ref_placeholder' => 'E-mail ou link externo',
+    'load_error' => 'Erro ao carregar as solicitações',
+    'modal_edit_title' => 'Editar solicitação',
+    'no_items' => 'Crie a primeira solicitação ou configure a coleta automática.',
+    'no_items_title' => 'Ainda não há solicitações',
+    'option_no_assignee' => 'Não atribuído',
+    'option_no_client' => 'Não selecionado',
+    'option_no_project' => 'Não selecionado',
+    'priority_high' => 'Alta',
+    'priority_low' => 'Baixa',
+    'priority_normal' => 'Média',
+    'priority_urgent' => 'Urgente',
+    'reject_btn' => 'Rejeitar',
+    'reject_confirm_btn' => 'Rejeitar',
+    'reject_field_reason' => 'Motivo da rejeição',
+    'reopen_btn' => 'Restaurar',
+    'reopen_confirm' => 'Voltar esta solicitação para Pendente para reanálise?',
+    'reopen_confirm_btn' => 'Restaurar',
+    'reopen_title' => 'Restaurar solicitação',
+    'section_list_title' => 'Solicitações',
+    'snooze_btn' => 'Adiar',
+    'snooze_confirm_btn' => 'Adiar',
+    'snooze_field_date' => 'Adiar até',
+    'th_client' => 'Cliente',
+    'th_id' => 'ID',
+    'unknown_user' => 'Desconhecido',
+    'updated' => 'Solicitação atualizada',
   ),
   'workflow' => 
   array (

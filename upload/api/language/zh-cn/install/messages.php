@@ -21,4 +21,5 @@ return [
     'method_not_allowed' => '请使用POST方法发送安装检查数据',
     'bootstrap_not_configured' => '安装引导令牌未配置',
     'bootstrap_token_required' => '需要安装引导令牌',
+    'role_root_title' => 'Root',
 ];

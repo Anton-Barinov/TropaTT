@@ -26,4 +26,6 @@ return [
     'manager_notification_body' => '{user} : {total} minutes enregistrées sur la tâche «{task}» le {day} (seuil {threshold} minutes).',
     'test_task_title' => 'Tâche de test',
     'follow_up_description' => 'Créé par la règle d\'automatisation depuis la tâche',
+    'follow_up_prefix' => 'Suivi : ',
+    'unknown_action' => 'Action inconnue : ',
 ];

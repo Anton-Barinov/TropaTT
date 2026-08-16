@@ -19,4 +19,9 @@ return [
     'chat' => '聊天',
     'api' => '帮助',
     'menu_loaded' => '菜单已加载',
+    'admin_estimates' => '任务估算',
+    'cycles' => '周期（冲刺）',
+    'docs' => '文档',
+    'intake' => '收件',
+    'project_modules' => '项目模块',
 ];

@@ -8,4 +8,13 @@ return [
     'bearer_required' => 'Proporcione un token Bearer',
     'me' => 'Perfil del usuario actual',
     'rate_limited' => 'Demasiados intentos de inicio de sesión. Intente más tarde',
+    'array_expected' => 'Se esperaba un array',
+    'items_required' => 'Se requiere un array de elementos',
+    'menu_loaded' => 'Menú cargado',
+    'menu_preferences_loaded' => 'Preferencias de menú cargadas',
+    'menu_preferences_saved' => 'Preferencias de menú guardadas',
+    'role_menu_template_loaded' => 'Plantilla de menú del rol cargada',
+    'role_menu_template_saved' => 'Plantilla de menú del rol guardada',
+    'team_menu_template_loaded' => 'Plantilla de menú del equipo cargada',
+    'team_menu_template_saved' => 'Plantilla de menú del equipo guardada',
 ];

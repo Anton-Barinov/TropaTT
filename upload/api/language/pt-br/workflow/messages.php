@@ -26,4 +26,6 @@ return [
     'manager_notification_body' => '{user}: {total} minutos registrados na tarefa «{task}» em {day} (limite {threshold} minutos).',
     'test_task_title' => 'Tarefa de teste',
     'follow_up_description' => 'Criado pela regra de automação a partir da tarefa',
+    'follow_up_prefix' => 'Acompanhamento: ',
+    'unknown_action' => 'Ação desconhecida: ',
 ];

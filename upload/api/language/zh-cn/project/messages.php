@@ -16,4 +16,5 @@ return [
     'milestones_summary' => '项目里程碑摘要',
     'risks_summary' => '项目风险摘要',
     'workload_summary' => '项目工作量摘要',
+    'prefix_already_exists' => '此前缀已被另一个项目使用',
 ];

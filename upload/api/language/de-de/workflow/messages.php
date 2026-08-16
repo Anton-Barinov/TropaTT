@@ -26,4 +26,6 @@ return [
     'manager_notification_body' => '{user}: {total} Minuten zur Aufgabe «{task}» am {day} erfasst (Schwelle {threshold} Minuten).',
     'test_task_title' => 'Test task',
     'follow_up_description' => 'Created by automation rule from task',
+    'follow_up_prefix' => 'Follow-up: ',
+    'unknown_action' => 'Unbekannte Aktion: ',
 ];

@@ -1322,6 +1322,10 @@ return array (
     'bytes_kb' => 'KB',
     'bytes_mb' => 'MB',
     'bytes_gb' => 'GB',
+    'btn_knowledge' => 'Zur Wissensdatenbank',
+    'knowledge_empty' => 'Keine Regelungen der Abteilung',
+    'knowledge_select_department' => 'Abteilung auswählen',
+    'section_knowledge' => 'Regelungen der Abteilung',
   ),
   'admin_sla' => 
   array (
@@ -1376,6 +1380,8 @@ return array (
     'scope_project' => 'Projekt',
     'preview' => 'Vorschau',
     'remap_none' => 'Nicht verschieben',
+    'section_project_statuses' => 'Projektstatus',
+    'section_task_statuses' => 'Aufgabenstatus',
   ),
   'admin_tags' => 
   array (
@@ -1591,7 +1597,6 @@ return array (
     'db_restore_failed' => 'nicht wiederhergestellt',
     'db_restore_skipped' => 'kein DB-Backup',
   ),
-
   'admin_templates' => 
   array (
     'card_project_templates_note' => 'Reusable project templates.',
@@ -2439,6 +2444,8 @@ return array (
     'untitled_task' => 'Untitled task',
     'updated' => 'Updated',
     'website' => 'Website',
+    'btn_create_knowledge' => 'Verknüpfte Seite erstellen',
+    'field_address_actual' => 'Tatsächliche Adresse',
   ),
   'clients' => 
   array (
@@ -2556,6 +2563,11 @@ return array (
     'view_name_required' => 'View name cannot be empty',
     'view_save_fail' => 'Failed to save client view',
     'view_saved' => 'Client view saved',
+    'extra_attributes_hint' => 'Geben Sie Feld-Wert-Paare als JSON ein. Nach dem Speichern erscheinen sie in der Karte und sind durchsuchbar.',
+    'field_address_actual' => 'Tatsächliche Adresse',
+    'filter_extra_label' => 'Benutzerdefinierte Felder',
+    'filter_extra_placeholder' => 'Zum Beispiel: VIP oder Quelle',
+    'th_extra' => 'Zusatzfelder',
   ),
   'common' => 
   array (
@@ -2667,6 +2679,8 @@ return array (
     'btn_delete' => 'Kontakt löschen',
     'update_fail' => 'Failed to update contact',
     'updated' => 'Contact updated',
+    'opt_custom_role' => 'Andere (eigene) Rolle...',
+    'role_custom_placeholder' => 'Eigene Rolle eingeben',
   ),
   'counterparties' => 
   array (
@@ -2819,6 +2833,8 @@ return array (
     'view_name_required' => 'View name cannot be empty',
     'view_save_fail' => 'Failed to save counterparty view',
     'view_saved' => 'Counterparty view saved',
+    'field_address_actual' => 'Tatsächliche Adresse',
+    'th_extra' => 'Zusatzfelder',
   ),
   'counterparty_detail' => 
   array (
@@ -2965,6 +2981,9 @@ return array (
     'untitled' => 'Untitled counterparty',
     'update_fail' => 'Failed to update counterparty',
     'updated' => 'Counterparty updated',
+    'btn_create_project' => 'Projekt erstellen',
+    'btn_create_task' => 'Aufgabe erstellen',
+    'requisites_field_address_actual' => 'Tatsächliche Adresse',
   ),
   'custom_field' => 
   array (
@@ -3152,6 +3171,49 @@ return array (
       'placeholder_description' => 'Ziele, Kontext und wichtige Erwartungen für das Projekt',
       'hint' => 'Das Projekt wird direkt im Arbeits-API-Modell erstellt, einschließlich Kunde, Team und Manager.',
     ),
+    'extra_active_sessions' => 'Aktive Sitzungen',
+    'extra_active_sessions_desc' => 'Ihre derzeit aktiven Sitzungen und Geräte.',
+    'extra_analytics_summary' => 'Analytics-Puls',
+    'extra_analytics_summary_desc' => 'Eine kompakte Übersicht der wichtigsten Analytics-Kennzahlen.',
+    'extra_approval_queue' => 'Freigabe-Warteschlange',
+    'extra_approval_queue_desc' => 'Freigabeanfragen, die auf eine Entscheidung warten.',
+    'extra_chat_unread' => 'Ungelesene Chats',
+    'extra_chat_unread_desc' => 'Ungelesene Teamgespräche auf einen Blick.',
+    'extra_client_pipeline' => 'Kundenverzeichnis',
+    'extra_client_pipeline_desc' => 'Aktuelle Kunden und für Sie verfügbare Beziehungsdatensätze.',
+    'extra_company_directory' => 'Unternehmensverzeichnis',
+    'extra_company_directory_desc' => 'Ein schneller Überblick über die Unternehmen im CRM.',
+    'extra_contact_followups' => 'Kontakt-Follow-ups',
+    'extra_contact_followups_desc' => 'Kürzlich aktualisierte Kontakte und deren Kommunikationsdaten.',
+    'extra_dependency_watch' => 'Abhängigkeitsüberwachung',
+    'extra_dependency_watch_desc' => 'Aufgabenabhängigkeiten, die die Auslieferung blockieren können.',
+    'extra_intake_sla' => 'Intake-SLA',
+    'extra_intake_sla_desc' => 'Eingehende Anfragen mit Priorität und Bearbeitungsstatus.',
+    'extra_milestone_watch' => 'Meilensteinüberwachung',
+    'extra_milestone_watch_desc' => 'Anstehende Projektmeilensteine und deren Termine.',
+    'extra_notification_inbox' => 'Benachrichtigungszentrale',
+    'extra_notification_inbox_desc' => 'Aktuelle Benachrichtigungen, die Aufmerksamkeit erfordern.',
+    'extra_project_health' => 'Projektzustand',
+    'extra_project_health_desc' => 'Projekte mit Fortschritt, Fristen und aktuellen Zustandssignalen.',
+    'extra_recurring_health' => 'Wiederkehrende Automatisierung',
+    'extra_recurring_health_desc' => 'Aktive Wiederholungsregeln und nächste Ausführungen.',
+    'extra_saved_views' => 'Gespeicherte Ansichten',
+    'extra_saved_views_desc' => 'Angeheftete und zuletzt verwendete Aufgabenansichten.',
+    'extra_subscriptions' => 'Meine Abonnements',
+    'extra_subscriptions_desc' => 'Objekte, denen Sie für wichtige Aktualisierungen folgen.',
+    'extra_system_health' => 'Systemzustand',
+    'extra_system_health_desc' => 'Ein leichtgewichtiges Zustandssignal für die aktuelle Installation.',
+    'extra_tag_usage' => 'Tag-Nutzung',
+    'extra_tag_usage_desc' => 'Meistgenutzte Tags für eine organisierte Arbeit.',
+    'extra_team_workload' => 'Teamauslastung',
+    'extra_team_workload_desc' => 'Auslastungsverteilung über sichtbare Teammitglieder.',
+    'extra_time_team' => 'Teamzeit',
+    'extra_time_team_desc' => 'Stunden je sichtbarem Mitarbeiter der letzten 7 Tage: wer überlastet und wer unterlastet ist.',
+    'extra_webhook_health' => 'Webhook-Zustand',
+    'extra_webhook_health_desc' => 'Aktuelle Webhook-Zustellungen und Fehler.',
+    'extra_workflow_automation' => 'Workflow-Automatisierung',
+    'extra_workflow_automation_desc' => 'Aktive Workflow-Regeln und Automatisierungsstatus.',
+    'sticky_notes_title' => 'Haftnotizen',
   ),
   'departments' => 
   array (
@@ -4975,6 +5037,7 @@ return array (
         'matrix_saved' => 'Benachrichtigungsmatrix gespeichert',
         'matrix_save_fail' => 'Benachrichtigungsmatrix konnte nicht gespeichert werden',
         'matrix_reset' => 'Benachrichtigungsmatrix auf Standard zurückgesetzt',
+        'push_device_id_prefix' => 'ID: ',
       ),
       'clients' => 
       array (
@@ -5169,6 +5232,9 @@ return array (
         'ai_dismissing' => 'Kunden-KI-Zusammenfassung wird verworfen...',
         'ai_dismissed' => 'Kunden-KI-Zusammenfassung verworfen.',
         'ai_dismiss_fail' => 'Kunden-KI-Zusammenfassung konnte nicht verworfen werden',
+        'btn_create_project' => 'Projekt erstellen',
+        'btn_create_task' => 'Aufgabe erstellen',
+        'field_address_actual' => 'Tatsächliche Adresse',
       ),
       'client_cabinet' => 
       array (
@@ -5277,6 +5343,13 @@ return array (
         'updated' => 'Team aktualisiert',
         'update_fail' => 'Team konnte nicht aktualisiert werden',
         'unsaved_close_confirm' => 'Es gibt nicht gespeicherte Änderungen. Ohne Speichern schließen?',
+        'btn_knowledge' => 'Zur Wissensdatenbank',
+        'knowledge_empty' => 'Keine Teammaterialien',
+        'menu_template' => 'Menüvorlage',
+        'menu_template_hint' => 'Legen Sie das Standardmenü für alle Mitglieder dieses Teams fest. Ziehen zum Umsortieren, Umschalten zum Ein-/Ausblenden.',
+        'menu_template_load_fail' => 'Menüvorlage konnte nicht geladen werden',
+        'menu_template_saved' => 'Menüvorlage gespeichert',
+        'section_knowledge' => 'Teammaterialien',
       ),
       'admin' => 
       array (
@@ -5406,6 +5479,15 @@ return array (
         'impersonation_stopped' => 'Identitätswechsel beendet',
         'impersonation_stop_fail' => 'Identitätswechsel konnte nicht beendet werden',
         'role_created_short' => 'Rolle erstellt',
+        'role_menu_template' => 'Rollen-Menüvorlage',
+        'role_menu_template_hint' => 'Legen Sie das Standardmenü für alle Benutzer mit dieser Rolle fest. Dies hat die höchste Priorität — hier ausgeblendete Elemente können nicht über Team- oder Benutzereinstellungen angezeigt werden.',
+        'role_menu_template_load_fail' => 'Rollen-Menüvorlage konnte nicht geladen werden',
+        'role_menu_template_saved' => 'Rollen-Menüvorlage gespeichert',
+        'role_menu_title' => 'Menüvorlage',
+        'user_menu_hint' => 'Menü für diesen Benutzer konfigurieren. Ziehen zum Umsortieren, Umschalten zum Ein-/Ausblenden.',
+        'user_menu_load_fail' => 'Menüeinstellungen konnten nicht geladen werden',
+        'user_menu_saved' => 'Menüeinstellungen gespeichert',
+        'user_menu_title' => 'Menüeinstellungen',
       ),
       'gantt' => 
       array (
@@ -5807,6 +5889,7 @@ return array (
         'req_address_postal' => 'Postadresse',
         'requisites_empty' => 'Kontoangaben nicht ausgefüllt.',
         'extra_empty' => 'Keine zusätzlichen Attribute',
+        'req_address_actual' => 'Tatsächliche Adresse',
       ),
       'companies' => 
       array (
@@ -5845,6 +5928,11 @@ return array (
         'delete_confirm' => 'Kontakt löschen?',
         'deleted' => 'Kontakt gelöscht',
         'delete_fail' => 'Kontakt konnte nicht gelöscht werden',
+        'btn_knowledge' => 'Zur Wissensdatenbank',
+        'knowledge_empty' => 'Keine verknüpften Notizen',
+        'opt_custom_role' => 'Andere (eigene) Rolle...',
+        'role_custom_placeholder' => 'Eigene Rolle eingeben',
+        'section_notes' => 'Verknüpfte Notizen',
       ),
       'departments' => 
       array (
@@ -5990,9 +6078,10 @@ return array (
         'deleted' => 'SLA-Richtlinie gelöscht',
         'delete_fail' => 'SLA-Richtlinie konnte nicht gelöscht werden',
       ),
+      'project_completed_tasks_closed' => 'Projekt abgeschlossen, alle Aufgaben geschlossen',
     ),
     'api' => 
-  array (
+    array (
       'aborted' => 'Anfrage abgebrochen',
       'auth_required' => 'Erneute Anmeldung erforderlich',
       'error' => 'API-Fehler',
@@ -6777,6 +6866,27 @@ return array (
     'type_project_note' => 'Project note',
     'type_onboarding' => 'Onboarding',
     'alert_link_error' => 'Die Seite wurde erstellt, konnte aber nicht mit dem Objekt verknüpft werden',
+    'alert_create_error' => 'Erstellungsfehler',
+    'alert_title_required' => 'Bitte einen Titel eingeben',
+    'all_spaces_desc' => 'Übersicht über die gesamte Wissensdatenbank',
+    'btn_add_subspace' => 'Unterbereich hinzufügen',
+    'clear_search' => 'Löschen',
+    'empty_no_data' => 'Keine Daten',
+    'empty_no_pages' => 'Noch keine Seiten in diesem Bereich',
+    'error_loading' => 'Ladefehler',
+    'field_parent' => 'Übergeordneter Bereich',
+    'in_space' => 'im Bereich',
+    'no_parent' => 'Kein übergeordneter Bereich (Stammebene)',
+    'pag_info' => 'Seiten',
+    'pages_count_few' => 'Seiten',
+    'pages_count_many' => 'Seiten',
+    'pages_count_one' => 'Seite',
+    'result_few' => 'Ergebnisse',
+    'result_many' => 'Ergebnisse',
+    'result_one' => 'Ergebnis',
+    'show_all' => 'Alle Bereiche',
+    'stat_pages_in_space' => 'Seiten im Bereich',
+    'stat_views' => 'Aufrufe',
   ),
   'knowledge_page' => 
   array (
@@ -8280,6 +8390,20 @@ return array (
     'attach_knowledge_empty' => 'No articles found',
     'attach_knowledge_error' => 'Operation failed',
     'alert_link_error' => 'Die Seite wurde erstellt, konnte aber nicht mit dem Objekt verknüpft werden',
+    'activity_empty' => 'Noch keine Aktivität. Änderungen an dieser Aufgabe erscheinen hier.',
+    'activity_error' => 'Aktivität konnte nicht geladen werden',
+    'activity_filter_all' => 'Alle Ereignisse',
+    'activity_filter_checklists' => 'Checklisten',
+    'activity_filter_comments' => 'Kommentare',
+    'activity_filter_fields' => 'Feldänderungen',
+    'activity_filter_files' => 'Dateien',
+    'activity_filter_relations' => 'Beziehungen und Abhängigkeiten',
+    'activity_load_more' => 'Mehr anzeigen',
+    'activity_tab' => 'Aktivität',
+    'estimates_modal_note_label' => 'Notiz',
+    'estimates_modal_numeric_label' => 'Numerischer Wert',
+    'estimates_modal_numeric_placeholder' => 'Wert eingeben',
+    'estimates_remove_btn' => 'Entfernen',
   ),
   'tasks' => 
   array (
@@ -8363,6 +8487,8 @@ return array (
     'no_access_text' => 'Fordern Sie Berechtigungen vom Projektadministrator an.',
     'no_access_tooltip' => 'Manager- oder Admin-Rolle erforderlich',
     'no_access_why' => 'Warum ist dies nicht verfügbar',
+    'filter_all_clients' => 'Alle Kunden',
+    'filter_client' => 'Kunde',
   ),
   'teams' => 
   array (
@@ -8577,6 +8703,7 @@ return array (
     'file_too_large' => 'Datei ist zu groß. Maximal 10 MB',
     'image_too_large' => 'Bild ist zu groß. Maximal 8000×8000 px',
     'code_block' => 'Codeblock',
+    'type_forbidden' => 'Das Hochladen dieses Dateityps ist aus Sicherheitsgründen verboten',
   ),
   'admin_estimates' => 
   array (
@@ -8839,6 +8966,13 @@ return array (
     'time_running' => 'Running',
     'total_tasks' => 'Total tasks:',
     'unknown_error' => 'unknown error',
+    'all_projects' => 'Alle Projekte',
+    'btn_add_selected_count' => 'Ausgewählte hinzufügen',
+    'btn_complete_short' => 'Abschließen',
+    'btn_open' => 'Wieder öffnen',
+    'btn_start' => 'Start',
+    'error_load_data' => 'Fehler beim Laden der Zyklusdaten.',
+    'tasks_suffix' => ' Aufgaben',
   ),
   'mentions' => 
   array (
@@ -8902,10 +9036,18 @@ return array (
     'th_tasks' => 'Tasks',
     'th_title' => 'Title',
     'updated' => 'Module updated',
+    'filter_all_statuses' => 'Alle Status',
+    'title' => 'TropaTT — Projektmodule',
   ),
   'footer' => 
   array (
     'updates_link' => 'Updates',
+    'aria' => 'Systeminformationen',
+    'author_link' => 'Entwickler',
+    'github_link' => 'GitHub',
+    'links_aria' => 'Footer-Links',
+    'update_available_badge' => 'Update {version} verfügbar',
+    'version' => 'Version',
   ),
   'intake' => 
   array (
@@ -9041,6 +9183,50 @@ return array (
     'title' => 'TropaTT — Intake',
     'user_dropdown' => 'User',
     'view_task_btn' => 'Go to task',
+    'accept_btn' => 'Annehmen',
+    'accept_confirm_btn' => 'Annehmen und Aufgabe erstellen',
+    'accept_field_project' => 'Projekt',
+    'activities_btn' => 'Verlauf',
+    'create_btn' => 'Anfrage erstellen',
+    'delete_confirm' => 'Diese Anfrage löschen? Diese Aktion kann nicht rückgängig gemacht werden.',
+    'delete_confirm_btn' => 'Löschen',
+    'delete_error' => 'Fehler beim Löschen',
+    'delete_title' => 'Anfrage löschen',
+    'deleted' => 'Anfrage gelöscht',
+    'duplicate_btn' => 'Duplikat',
+    'duplicate_confirm_btn' => 'Als Duplikat markieren',
+    'duplicate_field_target' => 'ID der doppelten Anfrage',
+    'duplicate_field_target_hint' => 'Geben Sie die public_id der bestehenden Anfrage an, deren Duplikat diese ist',
+    'duplicate_field_target_placeholder' => 'public_id der Anfrage eingeben',
+    'field_due_date' => 'Frist',
+    'field_source_ref' => 'Quellverweis',
+    'field_source_ref_placeholder' => 'E-Mail oder externer Link',
+    'load_error' => 'Fehler beim Laden der Anfragen',
+    'modal_edit_title' => 'Anfrage bearbeiten',
+    'no_items' => 'Erstellen Sie die erste Anfrage oder richten Sie die automatische Sammlung ein.',
+    'no_items_title' => 'Noch keine Anfragen',
+    'option_no_assignee' => 'Nicht zugewiesen',
+    'option_no_client' => 'Nicht ausgewählt',
+    'option_no_project' => 'Nicht ausgewählt',
+    'priority_high' => 'Hoch',
+    'priority_low' => 'Niedrig',
+    'priority_normal' => 'Mittel',
+    'priority_urgent' => 'Dringend',
+    'reject_btn' => 'Ablehnen',
+    'reject_confirm_btn' => 'Ablehnen',
+    'reject_field_reason' => 'Ablehnungsgrund',
+    'reopen_btn' => 'Wiederherstellen',
+    'reopen_confirm' => 'Diese Anfrage zur erneuten Prüfung auf Ausstehend setzen?',
+    'reopen_confirm_btn' => 'Wiederherstellen',
+    'reopen_title' => 'Anfrage wiederherstellen',
+    'section_list_title' => 'Anfragen',
+    'snooze_btn' => 'Zurückstellen',
+    'snooze_confirm_btn' => 'Zurückstellen',
+    'snooze_field_date' => 'Zurückstellen bis',
+    'th_client' => 'Kunde',
+    'th_id' => 'ID',
+    'unknown_user' => 'Unbekannt',
+    'updated' => 'Anfrage aktualisiert',
   ),
   'workflow' => 
   array (

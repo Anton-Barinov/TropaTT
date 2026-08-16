@@ -26,4 +26,6 @@ return [
     'manager_notification_body' => '{user}：{day} 在任务「{task}」上记录了 {total} 分钟（阈值 {threshold} 分钟）。',
     'test_task_title' => '测试任务',
     'follow_up_description' => '由自动化规则从任务创建',
+    'follow_up_prefix' => '跟进：',
+    'unknown_action' => '未知操作：',
 ];

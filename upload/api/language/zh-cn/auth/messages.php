@@ -8,4 +8,13 @@ return [
     'bearer_required' => '请提供 Bearer Token',
     'me' => '当前用户资料',
     'rate_limited' => '登录尝试次数过多，请稍后重试',
+    'array_expected' => '需要数组',
+    'items_required' => '需要元素数组',
+    'menu_loaded' => '菜单已加载',
+    'menu_preferences_loaded' => '菜单偏好已加载',
+    'menu_preferences_saved' => '菜单偏好已保存',
+    'role_menu_template_loaded' => '角色菜单模板已加载',
+    'role_menu_template_saved' => '角色菜单模板已保存',
+    'team_menu_template_loaded' => '团队菜单模板已加载',
+    'team_menu_template_saved' => '团队菜单模板已保存',
 ];

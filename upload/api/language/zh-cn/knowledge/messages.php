@@ -107,4 +107,9 @@ return [
     'ai_structure' => '结构建议',
     'ai_structure_too_few' => '至少添加 3 个页面以获得结构建议',
     'task_not_found' => '任务未找到',
+    'drafts_cleaned' => '旧草稿已清理',
+    'permissions_rebuilt' => '权限版本已更新',
+    'reindex_completed' => '搜索索引重建完成',
+    'settings_loaded' => '设置已加载',
+    'settings_updated' => '设置已更新',
 ];
