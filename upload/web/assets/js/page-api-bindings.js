@@ -19517,6 +19517,14 @@ window.CRM.pageApiBindings = (function () {
     if (project && filters.projects && filters.projects.length) kanbanSetMultiValue(project, filters.projects);
     if (cycle && filters.cycles && filters.cycles.length) kanbanSetMultiValue(cycle, filters.cycles);
     if (tag && filters.tags && filters.tags.length) kanbanSetMultiValue(tag, filters.tags);
+    // Sync the visible searchable-select inputs with the hidden select values.
+    // The kanban filter selects are wrapped by makeSelectSearchable() on
+    // DOMContentLoaded (before options are populated), so programmatic value
+    // changes above do not fire a 'change' event and the visible input would
+    // stay empty (e.g. opening the board via ?cycle_public_id=...).
+    [assignee, manager, project, cycle, tag].forEach(function (select) {
+      if (select) syncSearchableSingleSelect(select);
+    });
     [assignee, manager, project, cycle, tag].forEach(function (select) {
       if (!select || select.dataset.bound === '1') return;
       select.addEventListener('change', function () { apply(kanbanCurrentFiltersFromControls(), true); });
