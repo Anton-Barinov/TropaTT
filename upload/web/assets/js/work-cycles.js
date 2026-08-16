@@ -657,7 +657,7 @@
       apiRequest('api/v1/cycles/' + encodeURIComponent(publicId) + '/burndown', { method: 'GET' }).catch(function () { return null; }),
       apiRequest('api/v1/cycles/' + encodeURIComponent(publicId) + '/scope', { method: 'GET' }).catch(function () { return null; }),
       projectPublicId
-        ? apiRequest('api/v1/cycles/velocity?project_public_id=' + encodeURIComponent(projectPublicId), { method: 'GET' }).catch(function () { return null; })
+        ? apiRequest('api/v1/cycles/velocity', { method: 'GET', query: { project_public_id: projectPublicId } }).catch(function () { return null; })
         : Promise.resolve(null),
       apiRequest('api/v1/cycles/' + encodeURIComponent(publicId) + '/capacity', { method: 'GET' }).catch(function () { return null; })
     ]).then(function (results) {
