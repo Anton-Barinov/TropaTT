@@ -8816,6 +8816,7 @@ return array (
     'overview_start' => 'Start date',
     'overview_status' => 'Status',
     'overview_tasks' => 'Tasks',
+    'title' => 'TropaTT — Cycles (Sprints)',
     'page_title' => 'Cycles (Sprints)',
     'recommendation_complete_cycle' => 'All tasks are closed: complete the cycle and record the outcome.',
     'recommendation_overdue' => 'The cycle is overdue: review unfinished tasks and move them into the next cycle.',
