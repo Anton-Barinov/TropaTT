@@ -349,10 +349,10 @@ final class WorkCycleService
         $this->cycles->updateByPublicId($cyclePublicId, $set);
 
         // Record the committed scope baseline and the first burn-down snapshot.
-        $this->recordCommittedBaseline($cycle);
+        $this->recordCommittedBaseline($cycle, $actor);
         $started = $this->cycles->findByPublicId($cyclePublicId);
         if ($started !== null) {
-            $this->captureSnapshot($started);
+            $this->captureSnapshot($started, null, $actor);
         }
 
         // Activity
@@ -400,10 +400,9 @@ final class WorkCycleService
         $now = gmdate('Y-m-d H:i:s');
         $actorUserId = (int)($actor['id'] ?? 0);
 
-        // Create final snapshot
+        // Create final snapshot (with estimate points when available).
         $cycleId = (int)$cycle['id'];
-        $summary = $this->cycleTasks->cycleSummary($cycleId);
-        $this->snapshots->createOrUpdateDailySnapshot($cycleId, gmdate('Y-m-d'), $summary);
+        $this->captureSnapshot($cycle, null, $actor);
 
         // Handle unfinished tasks
         $unfinishedAction = (string)($input['unfinished_action'] ?? 'leave');
@@ -902,12 +901,15 @@ final class WorkCycleService
 
         // Keep the chart current for active cycles.
         if ((string)$cycle['status'] === 'active') {
-            $this->captureSnapshot($cycle);
+            $this->captureSnapshot($cycle, null, $actor);
         }
 
         $snapshots = $this->snapshots->listByCycleId($cycleId);
 
         $series = [];
+        $pointsSeries = [];
+        $hasPoints = false;
+        $unitLabel = null;
         foreach ($snapshots as $snap) {
             $series[] = [
                 'date' => (string)$snap['snapshot_date'],
@@ -915,6 +917,22 @@ final class WorkCycleService
                 'completed' => (int)($snap['completed_tasks'] ?? 0),
                 'remaining' => (int)($snap['open_tasks'] ?? 0),
             ];
+
+            $payload = $this->readSnapshotPayload($snap);
+            if (array_key_exists('total_points', $payload)) {
+                $hasPoints = true;
+                $totalPoints = (float)($payload['total_points'] ?? 0);
+                $completedPoints = (float)($payload['completed_points'] ?? 0);
+                $pointsSeries[] = [
+                    'date' => (string)$snap['snapshot_date'],
+                    'total' => $totalPoints,
+                    'completed' => $completedPoints,
+                    'remaining' => max(0.0, $totalPoints - $completedPoints),
+                ];
+                if ($unitLabel === null && !empty($payload['unit_label'])) {
+                    $unitLabel = (string)$payload['unit_label'];
+                }
+            }
         }
 
         $meta = $this->readMeta($cycle);
@@ -927,6 +945,25 @@ final class WorkCycleService
 
         $ideal = $this->computeIdealLine($cycle, max(1, $scopeCommitted));
 
+        // Story-points burndown: committed baseline + ideal line.
+        $committedPoints = isset($meta['committed_points']) ? (float)$meta['committed_points'] : null;
+        if (($committedPoints === null || $committedPoints <= 0) && $pointsSeries !== []) {
+            $committedPoints = (float)$pointsSeries[0]['total'];
+        }
+        $idealPoints = [];
+        if ($hasPoints && $committedPoints !== null && $committedPoints > 0) {
+            $idealPoints = $this->computeIdealLine($cycle, $committedPoints, 2);
+        }
+
+        // Fall back to the current estimate unit for snapshots captured before
+        // the points feature was added.
+        if ($unitLabel === null) {
+            $currentPoints = $this->estimatePointsForCycle($cyclePublicId, $actor);
+            if ($currentPoints !== null && !empty($currentPoints['unit_label'])) {
+                $unitLabel = (string)$currentPoints['unit_label'];
+            }
+        }
+
         return [
             'cycle_public_id' => $cyclePublicId,
             'status' => (string)($cycle['status'] ?? ''),
@@ -937,6 +974,11 @@ final class WorkCycleService
             'scope_current' => $series !== [] ? $series[count($series) - 1]['total'] : 0,
             'series' => $series,
             'ideal' => $ideal,
+            'points' => $pointsSeries,
+            'points_available' => $hasPoints,
+            'points_committed' => $committedPoints,
+            'ideal_points' => $idealPoints,
+            'unit_label' => $unitLabel,
         ];
     }
 
@@ -1073,7 +1115,7 @@ final class WorkCycleService
 
     // ----- Private helpers -----
 
-    private function captureSnapshot(array $cycle, ?string $date = null): void
+    private function captureSnapshot(array $cycle, ?string $date = null, ?array $actor = null): void
     {
         $cycleId = (int)($cycle['id'] ?? 0);
         if ($cycleId <= 0) {
@@ -1081,10 +1123,25 @@ final class WorkCycleService
         }
 
         $summary = $this->cycleTasks->cycleSummary($cycleId);
+
+        // Persist estimate points next to task counts so the burndown can be
+        // drawn in story points too (stored in payload_json, no schema change).
+        if ($actor !== null && !empty($cycle['public_id'])) {
+            $points = $this->estimatePointsForCycle((string)$cycle['public_id'], $actor);
+            if ($points !== null) {
+                $summary['payload'] = [
+                    'total_points' => $points['total'],
+                    'completed_points' => $points['completed'],
+                    'estimate_set_id' => $points['set_id'] ?? null,
+                    'unit_label' => $points['unit_label'] ?? '',
+                ];
+            }
+        }
+
         $this->snapshots->createOrUpdateDailySnapshot($cycleId, $date ?? gmdate('Y-m-d'), $summary);
     }
 
-    private function recordCommittedBaseline(array $cycle): void
+    private function recordCommittedBaseline(array $cycle, ?array $actor = null): void
     {
         $cycleId = (int)($cycle['id'] ?? 0);
         if ($cycleId <= 0) {
@@ -1105,6 +1162,14 @@ final class WorkCycleService
         $meta['committed_count'] = count($publicIds);
         $meta['committed_at'] = gmdate('Y-m-d H:i:s');
 
+        if ($actor !== null) {
+            $points = $this->estimatePointsForCycle((string)$cycle['public_id'], $actor);
+            if ($points !== null) {
+                $meta['committed_points'] = $points['total'];
+                $meta['committed_points_unit'] = $points['unit_label'] ?? '';
+            }
+        }
+
         $this->cycles->updateByPublicId((string)$cycle['public_id'], [
             'meta_json' => json_encode($meta, JSON_UNESCAPED_UNICODE),
         ]);
@@ -1121,7 +1186,18 @@ final class WorkCycleService
         return is_array($decoded) ? $decoded : [];
     }
 
-    private function computeIdealLine(array $cycle, int $totalScope): array
+    private function readSnapshotPayload(array $snapshot): array
+    {
+        $raw = (string)($snapshot['payload_json'] ?? '');
+        if ($raw === '') {
+            return [];
+        }
+
+        $decoded = json_decode($raw, true);
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    private function computeIdealLine(array $cycle, float $totalScope, int $precision = 0): array
     {
         $startAt = trim((string)($cycle['start_at'] ?? ''));
         $endAt = trim((string)($cycle['end_at'] ?? ''));
@@ -1140,9 +1216,10 @@ final class WorkCycleService
         $totalDays = max(1, (int)ceil(($end - $start) / 86400));
         $ideal = [];
         for ($d = 0; $d <= $totalDays; $d++) {
+            $remaining = max(0.0, round($totalScope * (1 - ($d / $totalDays)), $precision));
             $ideal[] = [
                 'date' => gmdate('Y-m-d', $start + ($d * 86400)),
-                'remaining' => max(0, (int)round($totalScope * (1 - ($d / $totalDays)))),
+                'remaining' => $precision === 0 ? (int)$remaining : $remaining,
             ];
         }
 

@@ -763,13 +763,44 @@
       return '<div class="text-muted small">' + t('cycles.burndown_empty', 'Недостаточно данных: график появится после старта цикла и накопления снимков.') + '</div>';
     }
 
-    var series = burndown.series || [];
-    var ideal = burndown.ideal || [];
+    var hasPoints = !!(burndown.points && burndown.points.length);
+    var unitLabel = burndown.unit_label || 'SP';
+    window.__cycleBurndownData = burndown;
+    window.__cycleBurndownMode = hasPoints ? 'points' : 'tasks';
+
+    function toggleHtml(mode) {
+      if (!hasPoints) return '';
+      var taskBtn = '<button type="button" class="btn btn-sm ' + (mode === 'tasks' ? 'crm-btn-primary' : 'btn-outline-secondary') + '" onclick="window.setCycleBurndownMode(\'tasks\')">' + t('cycles.burndown_metric_tasks', 'Задачи') + '</button>';
+      var ptsBtn = '<button type="button" class="btn btn-sm ' + (mode === 'points' ? 'crm-btn-primary' : 'btn-outline-secondary') + '" onclick="window.setCycleBurndownMode(\'points\')">' + t('cycles.burndown_metric_points', 'Очки') + (unitLabel ? ' (' + escapeHtml(unitLabel) + ')' : '') + '</button>';
+      return '<div class="btn-group btn-group-sm mb-2" role="group" aria-label="' + t('cycles.burndown_metric_switch', 'Единица измерения диаграммы') + '">' + taskBtn + ptsBtn + '</div>';
+    }
+
+    function bodyFor(mode) {
+      if (mode === 'points' && hasPoints) {
+        return buildBurndownBody(burndown.points, burndown.ideal_points || [], burndown.points_committed || 0, unitLabel, burndown, mode);
+      }
+      return buildBurndownBody(burndown.series, burndown.ideal || [], burndown.scope_committed || 0, t('cycles.burndown_y_axis', 'осталось задач'), burndown, mode);
+    }
+
+    window.renderCycleBurndown = function () {
+      var el = document.getElementById('cycleBurndownBody');
+      if (!el) return;
+      el.innerHTML = toggleHtml(window.__cycleBurndownMode) + bodyFor(window.__cycleBurndownMode);
+    };
+    window.setCycleBurndownMode = function (mode) {
+      window.__cycleBurndownMode = (mode === 'points' && hasPoints) ? 'points' : 'tasks';
+      if (typeof window.renderCycleBurndown === 'function') window.renderCycleBurndown();
+    };
+
+    return '<div id="cycleBurndownBody">' + toggleHtml(window.__cycleBurndownMode) + bodyFor(window.__cycleBurndownMode) + '</div>';
+  }
+
+  function buildBurndownBody(series, ideal, scopeCommitted, yAxisLabel, burndown, mode) {
     var maxVal = 0;
     var dates = [];
     series.forEach(function (p) { maxVal = Math.max(maxVal, p.total || 0, p.remaining || 0); if (p.date) dates.push(p.date); });
     ideal.forEach(function (p) { maxVal = Math.max(maxVal, p.remaining || 0); if (p.date) dates.push(p.date); });
-    if (burndown.scope_committed) maxVal = Math.max(maxVal, burndown.scope_committed);
+    if (scopeCommitted) maxVal = Math.max(maxVal, scopeCommitted);
     maxVal = maxVal || 1;
 
     if (!dates.length) {
@@ -792,9 +823,10 @@
       var p = String(dateStr || '').split('-');
       return p.length === 3 ? p[2] + '.' + p[1] : dateStr;
     }
+    function fmtNum(v) { return mode === 'points' ? (Math.round(v * 10) / 10) : Math.round(v); }
 
-    // Horizontal gridlines + Y-axis task counts.
-    var yTicks = maxVal > 1 ? [0, Math.round(maxVal / 2), maxVal] : [0, maxVal];
+    // Horizontal gridlines + Y-axis counts.
+    var yTicks = maxVal > 1 ? [0, Math.round((maxVal / 2) * 10) / 10, Math.round(maxVal * 10) / 10] : [0, Math.round(maxVal * 10) / 10];
     var seen = {};
     var grid = '', yLabels = '';
     yTicks.forEach(function (v) {
@@ -824,7 +856,7 @@
     }).join('');
 
     var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;" role="img" aria-label="' + t('cycles.burndown_title', 'Диаграмма сгорания') + '">';
-    svg += '<text transform="translate(13,' + ((PT + (H - PB)) / 2).toFixed(1) + ') rotate(-90)" text-anchor="middle" font-size="10" fill="var(--crm-text-muted,#9ca3af)">' + t('cycles.burndown_y_axis', 'осталось задач') + '</text>';
+    svg += '<text transform="translate(13,' + ((PT + (H - PB)) / 2).toFixed(1) + ') rotate(-90)" text-anchor="middle" font-size="10" fill="var(--crm-text-muted,#9ca3af)">' + escapeHtml(yAxisLabel) + '</text>';
     svg += grid + yLabels + xLabels;
     svg += '<line x1="' + PL + '" y1="' + PT + '" x2="' + PL + '" y2="' + (H - PB) + '" stroke="var(--crm-border,#e5e7eb)" stroke-width="1"/>';
     svg += '<line x1="' + PL + '" y1="' + (H - PB) + '" x2="' + (W - PR) + '" y2="' + (H - PB) + '" stroke="var(--crm-border,#e5e7eb)" stroke-width="1"/>';
@@ -836,8 +868,8 @@
 
     // Interpretation: how much is left today vs the ideal line.
     var currentRemaining = series.length ? (series[series.length - 1].remaining || 0) : 0;
-    var totalNow = series.length ? (series[series.length - 1].total || 0) : (burndown.scope_current || 0);
-    var idealToday = idealRemainingToday(ideal, todayStr, burndown.scope_committed || maxVal);
+    var totalNow = series.length ? (series[series.length - 1].total || 0) : (scopeCommitted || 0);
+    var idealToday = idealRemainingToday(ideal, todayStr, scopeCommitted || maxVal);
     var cycleStatus = burndown.status || 'active';
     var completedAtT = burndown.completed_at ? Date.parse(burndown.completed_at) : NaN;
     var endAtT = Date.parse(burndown.end_at || '');
@@ -868,9 +900,9 @@
     }
 
     return '<div>' +
-      '<p class="text-muted small mb-2">' + t('cycles.burndown_help', 'Показывает, сколько незакрытых задач оставалось в каждый день спринта и успевает ли команда выполнить весь объём к дате окончания.') + '</p>' +
+      '<p class="text-muted small mb-2">' + t('cycles.burndown_help', 'Показывает, сколько незакрытой работы оставалось в каждый день спринта и успевает ли команда выполнить весь объём к дате окончания.') + '</p>' +
       '<ul class="text-muted small mb-2 ps-3">' +
-        '<li>' + t('cycles.burndown_help_axis', 'Ось X — дни спринта (от старта до окончания), ось Y — оставшийся объём задач.') + '</li>' +
+        '<li>' + t('cycles.burndown_help_axis', 'Ось X — дни спринта (от старта до окончания), ось Y — оставшийся объём работы.') + '</li>' +
         '<li>' + t('cycles.burndown_help_ideal', 'Серая пунктирная линия — идеальный темп: равномерное снижение объёма до нуля к дате окончания.') + '</li>' +
         '<li>' + t('cycles.burndown_help_read', 'Синяя линия ниже пунктира — опережаем график, выше — отстаём.') + '</li>' +
       '</ul>' +
@@ -882,8 +914,8 @@
       '</div>' +
       '<div class="d-flex flex-wrap gap-3 mt-2 small">' +
         '<span class="' + statusClass + '"><strong>' + escapeHtml(statusLabel) + '</strong></span>' +
-        '<span class="text-muted">' + t('cycles.burndown_remaining', 'Осталось') + ': <strong>' + currentRemaining + '</strong>' + (totalNow ? ' ' + t('cycles.burndown_of', 'из') + ' ' + totalNow : '') + '</span>' +
-        (idealToday !== null ? '<span class="text-muted">' + t('cycles.burndown_ideal_today', 'По плану') + ': ~' + Math.round(idealToday) + '</span>' : '') +
+        '<span class="text-muted">' + t('cycles.burndown_remaining', 'Осталось') + ': <strong>' + fmtNum(currentRemaining) + '</strong>' + (totalNow ? ' ' + t('cycles.burndown_of', 'из') + ' ' + fmtNum(totalNow) : '') + '</span>' +
+        (idealToday !== null ? '<span class="text-muted">' + t('cycles.burndown_ideal_today', 'По плану') + ': ~' + fmtNum(idealToday) + '</span>' : '') +
       '</div>' +
       '</div>';
   }
