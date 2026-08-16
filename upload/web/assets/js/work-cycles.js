@@ -648,45 +648,157 @@
 
   function loadCycleSummary(publicId) {
     var container = document.getElementById('cycleSummaryContent');
-    apiRequest('api/v1/cycles/' + encodeURIComponent(publicId) + '/summary', { method: 'GET' })
-      .then(function (env) {
-        var s = env.data && env.data.summary || {};
-        var html =
-          '<div class="row g-3">' +
-            '<div class="col-md-6">' +
-              '<div class="card"><div class="card-body">' +
-                '<h6 class="card-title">' + t('cycles.by_status', 'По статусам') + '</h6>';
-        var byStatus = s.by_status || {};
-        for (var code in byStatus) {
-          html += '<div class="d-flex justify-content-between"><span>' + escapeHtml(code) + '</span><strong>' + byStatus[code] + '</strong></div>';
-        }
-        html += '</div></div></div>' +
-          '<div class="col-md-6">' +
-            '<div class="card"><div class="card-body">' +
-              '<h6 class="card-title">' + t('cycles.by_priority', 'По приоритетам') + '</h6>';
-        var byPriority = s.by_priority || {};
-        for (var p in byPriority) {
-          html += '<div class="d-flex justify-content-between"><span>' + escapeHtml(p) + '</span><strong>' + byPriority[p] + '</strong></div>';
-        }
-        html += '</div></div></div>' +
-          '</div>' +
-          '<div class="mt-3"><h6>' + t('cycles.by_assignee', 'По исполнителям') + '</h6>';
-        var byAssignee = s.by_assignee || [];
-        if (byAssignee.length) {
-          html += '<table class="table table-sm"><thead><tr><th>' + t('cycles.col_assignee', 'Исполнитель') + '</th><th>' + t('cycles.col_total', 'Всего') + '</th><th>' + t('cycles.completed', 'Завершено:') + '</th></tr></thead><tbody>';
-          byAssignee.forEach(function (a) {
-            html += '<tr><td>' + escapeHtml(a.name || '—') + '</td><td>' + (a.total || 0) + '</td><td>' + (a.completed || 0) + '</td></tr>';
-          });
-          html += '</tbody></table>';
-        } else {
-          html += '<p class="text-muted">' + t('cycles.no_data', 'Нет данных') + '</p>';
-        }
-        html += '</div>';
-        container.innerHTML = html;
-      })
-      .catch(function () {
-        container.innerHTML = '<div class="text-danger">' + t('cycles.error_load_stats', 'Ошибка загрузки статистики.') + '</div>';
+    container.innerHTML = '<div class="text-center py-3"><div class="spinner-border text-muted" style="width:1.5rem;height:1.5rem;"><span class="visually-hidden">' + t('cycles.loading', 'Загрузка...') + '</span></div></div>';
+
+    var projectPublicId = currentCycleDetail && currentCycleDetail.project_public_id ? currentCycleDetail.project_public_id : '';
+
+    Promise.all([
+      apiRequest('api/v1/cycles/' + encodeURIComponent(publicId) + '/summary', { method: 'GET' }),
+      apiRequest('api/v1/cycles/' + encodeURIComponent(publicId) + '/burndown', { method: 'GET' }).catch(function () { return null; }),
+      apiRequest('api/v1/cycles/' + encodeURIComponent(publicId) + '/scope', { method: 'GET' }).catch(function () { return null; }),
+      projectPublicId
+        ? apiRequest('api/v1/cycles/velocity?project_public_id=' + encodeURIComponent(projectPublicId), { method: 'GET' }).catch(function () { return null; })
+        : Promise.resolve(null)
+    ]).then(function (results) {
+      var summaryEnv = results[0];
+      var s = (summaryEnv && summaryEnv.data && summaryEnv.data.summary) || {};
+      var burndown = results[1] && results[1].data ? results[1].data : null;
+      var scope = (results[2] && results[2].data) ? results[2].data : (s.scope || null);
+      var velocity = results[3] && results[3].data ? results[3].data : null;
+      container.innerHTML = renderCycleStatistics(s, burndown, scope, velocity);
+    }).catch(function () {
+      container.innerHTML = '<div class="text-danger">' + t('cycles.error_load_stats', 'Ошибка загрузки статистики.') + '</div>';
+    });
+  }
+
+  function renderCycleStatistics(s, burndown, scope, velocity) {
+    var html = '';
+
+    // Burndown chart
+    html += '<div class="card mb-3"><div class="card-body">' +
+      '<h6 class="card-title">' + t('cycles.burndown_title', 'Диаграмма сгорания') + '</h6>' +
+      renderBurndownChart(burndown) +
+      '</div></div>';
+
+    // Scope change + velocity
+    html += '<div class="row g-3 mb-3">' +
+      '<div class="col-md-6"><div class="card"><div class="card-body">' +
+        '<h6 class="card-title">' + t('cycles.scope_title', 'Изменение состава') + '</h6>' + renderScopeChange(scope) +
+      '</div></div></div>' +
+      '<div class="col-md-6"><div class="card"><div class="card-body">' +
+        '<h6 class="card-title">' + t('cycles.velocity_title', 'Скорость команды') + '</h6>' + renderVelocity(velocity) +
+      '</div></div></div>' +
+      '</div>';
+
+    // By status / priority
+    html += '<div class="row g-3">' +
+      '<div class="col-md-6"><div class="card"><div class="card-body">' +
+        '<h6 class="card-title">' + t('cycles.by_status', 'По статусам') + '</h6>';
+    var byStatus = s.by_status || {};
+    var hasStatus = false;
+    for (var code in byStatus) { hasStatus = true; html += '<div class="d-flex justify-content-between"><span>' + escapeHtml(code) + '</span><strong>' + byStatus[code] + '</strong></div>'; }
+    if (!hasStatus) html += '<p class="text-muted small mb-0">' + t('cycles.no_data', 'Нет данных') + '</p>';
+    html += '</div></div></div>' +
+      '<div class="col-md-6"><div class="card"><div class="card-body">' +
+        '<h6 class="card-title">' + t('cycles.by_priority', 'По приоритетам') + '</h6>';
+    var byPriority = s.by_priority || {};
+    var hasPriority = false;
+    for (var p in byPriority) { hasPriority = true; html += '<div class="d-flex justify-content-between"><span>' + escapeHtml(p) + '</span><strong>' + byPriority[p] + '</strong></div>'; }
+    if (!hasPriority) html += '<p class="text-muted small mb-0">' + t('cycles.no_data', 'Нет данных') + '</p>';
+    html += '</div></div></div>' +
+      '</div>';
+
+    // By assignee
+    html += '<div class="mt-3"><h6>' + t('cycles.by_assignee', 'По исполнителям') + '</h6>';
+    var byAssignee = s.by_assignee || [];
+    if (byAssignee.length) {
+      html += '<table class="table table-sm"><thead><tr><th>' + t('cycles.col_assignee', 'Исполнитель') + '</th><th>' + t('cycles.col_total', 'Всего') + '</th><th>' + t('cycles.completed', 'Завершено:') + '</th></tr></thead><tbody>';
+      byAssignee.forEach(function (a) {
+        html += '<tr><td>' + escapeHtml(a.name || '—') + '</td><td>' + (a.total || 0) + '</td><td>' + (a.completed || 0) + '</td></tr>';
       });
+      html += '</tbody></table>';
+    } else {
+      html += '<p class="text-muted">' + t('cycles.no_data', 'Нет данных') + '</p>';
+    }
+    html += '</div>';
+
+    return html;
+  }
+
+  function renderBurndownChart(burndown) {
+    if (!burndown || !burndown.series || !burndown.series.length) {
+      return '<div class="text-muted small">' + t('cycles.burndown_empty', 'Недостаточно данных: график появится после старта цикла и накопления снимков.') + '</div>';
+    }
+
+    var series = burndown.series || [];
+    var ideal = burndown.ideal || [];
+    var maxVal = 0;
+    var dates = [];
+    series.forEach(function (p) { maxVal = Math.max(maxVal, p.total || 0, p.remaining || 0); if (p.date) dates.push(p.date); });
+    ideal.forEach(function (p) { maxVal = Math.max(maxVal, p.remaining || 0); if (p.date) dates.push(p.date); });
+    if (burndown.scope_committed) maxVal = Math.max(maxVal, burndown.scope_committed);
+    maxVal = maxVal || 1;
+
+    if (!dates.length) {
+      return '<div class="text-muted small">' + t('cycles.burndown_empty', 'Недостаточно данных для графика.') + '</div>';
+    }
+    dates.sort();
+    var minT = Date.parse(dates[0]);
+    var maxT = Date.parse(dates[dates.length - 1]);
+    if (isNaN(minT) || isNaN(maxT) || maxT <= minT) { maxT = minT + 86400000; }
+
+    var W = 600, H = 200, P = 26;
+    function x(date) { var t = Date.parse(date); if (isNaN(t)) return P; return P + ((t - minT) / (maxT - minT)) * (W - 2 * P); }
+    function y(v) { return H - P - (Math.max(0, v) / maxVal) * (H - 2 * P); }
+    function polyline(points, color, dash) {
+      if (!points.length) return '';
+      var pts = points.map(function (p) { return x(p.date).toFixed(1) + ',' + y(p.remaining).toFixed(1); }).join(' ');
+      return '<polyline points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"' + (dash ? ' stroke-dasharray="5 4"' : '') + '/>';
+    }
+
+    var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;" role="img" aria-label="' + t('cycles.burndown_title', 'Диаграмма сгорания') + '">';
+    svg += '<line x1="' + P + '" y1="' + (H - P) + '" x2="' + (W - P) + '" y2="' + (H - P) + '" stroke="var(--crm-border,#e5e7eb)" stroke-width="1"/>';
+    svg += '<line x1="' + P + '" y1="' + P + '" x2="' + P + '" y2="' + (H - P) + '" stroke="var(--crm-border,#e5e7eb)" stroke-width="1"/>';
+    svg += polyline(ideal, 'var(--crm-text-muted,#9ca3af)', true);
+    svg += polyline(series, 'var(--crm-primary,#2563eb)', false);
+    svg += '</svg>';
+
+    return '<div>' + svg +
+      '<div class="d-flex gap-3 small text-muted mt-2 flex-wrap">' +
+        '<span><span style="display:inline-block;width:14px;height:2px;background:var(--crm-primary,#2563eb);vertical-align:middle;"></span> ' + t('cycles.burndown_actual', 'Осталось (факт)') + '</span>' +
+        '<span><span style="display:inline-block;width:14px;height:0;border-top:2px dashed var(--crm-text-muted,#9ca3af);vertical-align:middle;"></span> ' + t('cycles.burndown_ideal', 'Идеальная линия') + '</span>' +
+      '</div></div>';
+  }
+
+  function renderScopeChange(scope) {
+    if (!scope) {
+      return '<p class="text-muted small mb-0">' + t('cycles.scope_empty', 'Нет данных об изменении состава.') + '</p>';
+    }
+    return '<div class="d-flex gap-3 flex-wrap">' +
+      '<div><strong>' + (scope.committed_count || 0) + '</strong><br><small class="text-muted">' + t('cycles.scope_committed', 'Запланировано') + '</small></div>' +
+      '<div><strong>' + (scope.current_count || 0) + '</strong><br><small class="text-muted">' + t('cycles.scope_current', 'Текущий состав') + '</small></div>' +
+      '<div><strong class="text-success">+' + (scope.added_count || 0) + '</strong><br><small class="text-muted">' + t('cycles.scope_added', 'Добавлено') + '</small></div>' +
+      '<div><strong class="text-danger">−' + (scope.removed_count || 0) + '</strong><br><small class="text-muted">' + t('cycles.scope_removed', 'Убрано') + '</small></div>' +
+      '</div>';
+  }
+
+  function renderVelocity(velocity) {
+    if (!velocity || !velocity.total_cycles) {
+      return '<p class="text-muted small mb-0">' + t('cycles.velocity_empty', 'Нет завершённых циклов — скорость появится после первого завершения.') + '</p>';
+    }
+    var html = '<div class="d-flex gap-3 flex-wrap mb-2">' +
+      '<div><strong>' + (velocity.average_velocity || 0) + '</strong><br><small class="text-muted">' + t('cycles.velocity_avg', 'Ср. скорость (задач/цикл)') + '</small></div>' +
+      '<div><strong>' + (velocity.total_cycles || 0) + '</strong><br><small class="text-muted">' + t('cycles.velocity_cycles', 'Завершённых циклов') + '</small></div>' +
+      '</div>';
+    var list = (velocity.cycles || []).slice().reverse().slice(0, 5);
+    if (list.length) {
+      html += '<ul class="list-unstyled small mb-0">';
+      list.forEach(function (c) {
+        html += '<li class="d-flex justify-content-between"><span>' + escapeHtml(c.title || '—') + '</span><strong>' + (c.completed_tasks || 0) + '/' + (c.total_tasks || 0) + '</strong></li>';
+      });
+      html += '</ul>';
+    }
+    return html;
   }
 
   // ====== Add Tasks ======

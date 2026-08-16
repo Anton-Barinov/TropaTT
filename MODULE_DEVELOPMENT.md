@@ -97,6 +97,7 @@ Event names live in one place — `Api\System\Library\Module\ModuleEvents` — s
 | `file.uploaded` | `FileController` | `file_public_id`, `entity_type`, `entity_public_id`, `uploader_public_id`, `size_bytes`, `actor_id` |
 | `project.created` / `project.updated` / `project.deleted` | `ProjectController` | `project_id`, `project_public_id`, `actor_id` |
 | `user.created` / `user.updated` / `user.deleted` | `UserController` | `user_id`, `user_public_id`, `actor_id` |
+| `cycle.created` / `cycle.started` / `cycle.completed` / `cycle.reopened` / `cycle.archived` / `cycle.deleted` | `WorkCycleController` | `cycle_id`, `cycle_public_id`, `title`, `project_public_id`, `status`, `actor_id` |
 | `render.before` / `render.after` | web `Controller::render()` | see §5 |
 
 The payload is passed **by reference** to every handler, so a module can both observe it and (when the event semantics allow) enrich it. Handlers that throw are isolated — a broken module never breaks the core request.

@@ -5,6 +5,7 @@ namespace Api\Controller\Cycle;
 
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Http\JsonResponse;
+use Api\System\Library\Module\ModuleEvents;
 use Api\System\Library\Service\WorkCycleService;
 
 final class WorkCycleController extends BaseController
@@ -47,6 +48,8 @@ final class WorkCycleController extends BaseController
         if (is_string($result)) {
             return $this->mapError($result);
         }
+
+        $this->dispatchCycleEvent(ModuleEvents::CYCLE_CREATED, $authUser['user'], $result);
 
         return $this->success('CYCLE_CREATED', $this->t('task/messages.cycle_created', 'Cycle created'), $result);
     }
@@ -102,11 +105,19 @@ final class WorkCycleController extends BaseController
         /** @var WorkCycleService $service */
         $service = $this->container->get('service.work_cycle');
 
+        $cycle = $service->get((string)$params['public_id'], $authUser['user']);
+
         $result = $service->delete((string)$params['public_id'], $authUser['user']);
 
         if (is_string($result)) {
             return $this->mapError($result);
         }
+
+        $this->dispatchCycleEvent(
+            ModuleEvents::CYCLE_DELETED,
+            $authUser['user'],
+            is_array($cycle) ? $cycle : ['public_id' => (string)$params['public_id']]
+        );
 
         return $this->success('CYCLE_DELETED', $this->t('task/messages.cycle_deleted', 'Cycle deleted'));
     }
@@ -130,6 +141,8 @@ final class WorkCycleController extends BaseController
             return $this->mapError($result);
         }
 
+        $this->dispatchCycleEvent(ModuleEvents::CYCLE_STARTED, $authUser['user'], $result);
+
         return $this->success('CYCLE_STARTED', $this->t('task/messages.cycle_started', 'Cycle started'), $result);
     }
 
@@ -151,6 +164,8 @@ final class WorkCycleController extends BaseController
         if (is_string($result)) {
             return $this->mapError($result);
         }
+
+        $this->dispatchCycleEvent(ModuleEvents::CYCLE_COMPLETED, $authUser['user'], $result);
 
         return $this->success('CYCLE_COMPLETED', $this->t('task/messages.cycle_completed', 'Cycle completed'), $result);
     }
@@ -174,6 +189,8 @@ final class WorkCycleController extends BaseController
             return $this->mapError($result);
         }
 
+        $this->dispatchCycleEvent(ModuleEvents::CYCLE_REOPENED, $authUser['user'], $result);
+
         return $this->success('CYCLE_REOPENED', $this->t('task/messages.cycle_reopened', 'Cycle reopened'), $result);
     }
 
@@ -190,11 +207,19 @@ final class WorkCycleController extends BaseController
         $input = $this->request()->allInput();
         unset($input['route']);
 
+        $cycle = $service->get((string)$params['public_id'], $authUser['user']);
+
         $result = $service->archive((string)$params['public_id'], $input, $authUser['user']);
 
         if (is_string($result)) {
             return $this->mapError($result);
         }
+
+        $this->dispatchCycleEvent(
+            ModuleEvents::CYCLE_ARCHIVED,
+            $authUser['user'],
+            is_array($cycle) ? $cycle : ['public_id' => (string)$params['public_id']]
+        );
 
         return $this->success('CYCLE_ARCHIVED', $this->t('task/messages.cycle_archived', 'Cycle archived'));
     }
@@ -303,6 +328,84 @@ final class WorkCycleController extends BaseController
         return $this->success('CYCLE_UNFINISHED_TRANSFERRED', $this->t('task/messages.cycle_unfinished_transferred', 'Unfinished tasks transferred'), $result);
     }
 
+    public function burndown(array $params): JsonResponse
+    {
+        $authUser = $this->user();
+        if (!$authUser) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
+        /** @var WorkCycleService $service */
+        $service = $this->container->get('service.work_cycle');
+
+        $result = $service->burndown((string)$params['public_id'], $authUser['user']);
+
+        if (is_string($result)) {
+            return $this->mapError($result);
+        }
+
+        return $this->success('CYCLE_BURNDOWN', $this->t('task/messages.cycle_burndown', 'Cycle burndown'), $result);
+    }
+
+    public function scope(array $params): JsonResponse
+    {
+        $authUser = $this->user();
+        if (!$authUser) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
+        /** @var WorkCycleService $service */
+        $service = $this->container->get('service.work_cycle');
+
+        $result = $service->scope((string)$params['public_id'], $authUser['user']);
+
+        if (is_string($result)) {
+            return $this->mapError($result);
+        }
+
+        return $this->success('CYCLE_SCOPE', $this->t('task/messages.cycle_scope', 'Cycle scope'), $result);
+    }
+
+    public function velocity(): JsonResponse
+    {
+        $authUser = $this->user();
+        if (!$authUser) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
+        /** @var WorkCycleService $service */
+        $service = $this->container->get('service.work_cycle');
+
+        $input = $this->request()->allInput();
+        $projectPublicId = (string)($input['project_public_id'] ?? '');
+        if ($projectPublicId === '') {
+            return $this->error('CYCLE_PROJECT_REQUIRED', $this->t('task/messages.cycle_project_required', 'Project is required'), 422);
+        }
+
+        $result = $service->velocity($projectPublicId, $authUser['user']);
+
+        if (is_string($result)) {
+            return $this->mapError($result);
+        }
+
+        return $this->success('CYCLE_VELOCITY', $this->t('task/messages.cycle_velocity', 'Cycle velocity'), $result);
+    }
+
+    /**
+     * @param array<string,mixed> $cycle
+     */
+    private function dispatchCycleEvent(string $event, array $actor, array $cycle): void
+    {
+        $this->dispatchModuleHook($event, [
+            'cycle_id' => (int)($cycle['id'] ?? 0),
+            'cycle_public_id' => (string)($cycle['public_id'] ?? ''),
+            'title' => (string)($cycle['title'] ?? ''),
+            'project_public_id' => (string)($cycle['project_public_id'] ?? ''),
+            'status' => (string)($cycle['status'] ?? ''),
+            'actor_id' => (int)($actor['id'] ?? 0),
+        ]);
+    }
+
     private function mapError(string $code): JsonResponse
     {
         return match ($code) {
@@ -315,6 +418,7 @@ final class WorkCycleController extends BaseController
             'CYCLE_FORBIDDEN' => $this->error($code, $this->t('common/messages.forbidden', 'Forbidden'), 403),
 
             'CYCLE_TASK_ALREADY_IN_ACTIVE_CYCLE',
+            'CYCLE_ACTIVE_ALREADY_EXISTS',
             'ROW_VERSION_CONFLICT' => $this->error($code, $this->t('common/messages.conflict', 'Conflict'), 409, ['conflict' => [$code]]),
 
             'CYCLE_TARGET_CYCLE_PROJECT_MISMATCH' => $this->error($code, $this->t('common/messages.validation_error', 'Target cycle must belong to the same project'), 422, ['target_cycle_public_id' => [$code]]),

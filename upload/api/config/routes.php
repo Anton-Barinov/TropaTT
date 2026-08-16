@@ -187,6 +187,7 @@ return [
     // work cycles
     ['methods' => ['GET'], 'pattern' => '/api/v1/cycles', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/cycles', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['project.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/cycles/velocity', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'velocity', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/cycles/{public_id}', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/cycles/{public_id}', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'update', 'auth' => true, 'required_permissions' => ['project.manage']],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/cycles/{public_id}', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['project.manage']],
@@ -198,6 +199,8 @@ return [
     ['methods' => ['POST'], 'pattern' => '/api/v1/cycles/{public_id}/tasks', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'addTasks', 'auth' => true, 'required_permissions' => ['project.manage']],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/cycles/{public_id}/tasks/{task_public_id}', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'removeTask', 'auth' => true, 'required_permissions' => ['project.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/cycles/{public_id}/summary', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'summary', 'auth' => true, 'required_permissions' => ['task.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/cycles/{public_id}/burndown', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'burndown', 'auth' => true, 'required_permissions' => ['task.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/cycles/{public_id}/scope', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'scope', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/cycles/{public_id}/transfer-unfinished', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'transferUnfinished', 'auth' => true, 'required_permissions' => ['project.manage']],
 
     // project modules

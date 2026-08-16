@@ -251,6 +251,43 @@ final class WorkCycleRepository
         return isset($row['id']) ? (int)$row['id'] : null;
     }
 
+    public function findActiveByProjectId(int $projectId): ?array
+    {
+        if ($projectId <= 0) {
+            return null;
+        }
+
+        return (new QueryBuilder($this->pdo))
+            ->from('work_cycles')
+            ->where('project_id', '=', $projectId)
+            ->where('status', '=', 'active')
+            ->whereNull('archived_at')
+            ->whereNull('deleted_at')
+            ->orderBy('start_at', 'DESC')
+            ->first();
+    }
+
+    public function listCompletedByProjectId(int $projectId): array
+    {
+        if ($projectId <= 0) {
+            return [];
+        }
+
+        return (new QueryBuilder($this->pdo))
+            ->from('work_cycles wc')
+            ->leftJoin('projects p', 'p.id', '=', 'wc.project_id')
+            ->select([
+                'wc.*',
+                'p.public_id AS project_public_id',
+                'p.title AS project_title',
+            ])
+            ->where('wc.project_id', '=', $projectId)
+            ->where('wc.status', '=', 'completed')
+            ->whereNull('wc.deleted_at')
+            ->orderBy('wc.completed_at', 'ASC')
+            ->get();
+    }
+
     public function hasAssigneeInCycle(int $cycleId, int $userId): bool
     {
         if ($cycleId <= 0 || $userId <= 0) {

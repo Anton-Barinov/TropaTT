@@ -30,6 +30,14 @@ final class ModuleEvents
     public const USER_UPDATED = 'user.updated';
     public const USER_DELETED = 'user.deleted';
 
+    // Work cycle / sprint lifecycle (dispatched from WorkCycleController).
+    public const CYCLE_CREATED = 'cycle.created';
+    public const CYCLE_STARTED = 'cycle.started';
+    public const CYCLE_COMPLETED = 'cycle.completed';
+    public const CYCLE_REOPENED = 'cycle.reopened';
+    public const CYCLE_ARCHIVED = 'cycle.archived';
+    public const CYCLE_DELETED = 'cycle.deleted';
+
     // Collaboration.
     public const COMMENT_ADDED = 'comment.added';
     public const FILE_UPLOADED = 'file.uploaded';

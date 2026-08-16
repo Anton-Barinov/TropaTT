@@ -118,6 +118,11 @@ final class WorkCycleService
             $startAt = gmdate('Y-m-d H:i:s');
         }
 
+        // Only one active cycle per project (Scrum sprint guard).
+        if ($status === 'active' && $this->cycles->findActiveByProjectId($projectId) !== null) {
+            return 'CYCLE_ACTIVE_ALREADY_EXISTS';
+        }
+
         $now = gmdate('Y-m-d H:i:s');
         $publicId = Ulid::generate('cyc');
         $creatorUserId = (int)($actor['id'] ?? 0);
@@ -316,6 +321,13 @@ final class WorkCycleService
             return 'CYCLE_INVALID_STATUS_TRANSITION';
         }
 
+        // Only one active cycle per project (Scrum sprint guard).
+        $projectId = (int)($cycle['project_id'] ?? 0);
+        $existingActive = $this->cycles->findActiveByProjectId($projectId);
+        if ($existingActive !== null && (int)($existingActive['id'] ?? 0) !== (int)($cycle['id'] ?? 0)) {
+            return 'CYCLE_ACTIVE_ALREADY_EXISTS';
+        }
+
         // Row version check
         if (array_key_exists('row_version', $input)) {
             $expected = (int)$input['row_version'];
@@ -334,6 +346,13 @@ final class WorkCycleService
         }
 
         $this->cycles->updateByPublicId($cyclePublicId, $set);
+
+        // Record the committed scope baseline and the first burn-down snapshot.
+        $this->recordCommittedBaseline($cycle);
+        $started = $this->cycles->findByPublicId($cyclePublicId);
+        if ($started !== null) {
+            $this->captureSnapshot($started);
+        }
 
         // Activity
         if ($this->activity !== null) {
@@ -732,6 +751,12 @@ final class WorkCycleService
         // Get time state
         $summary['time_state'] = $this->computeTimeState($cycle);
 
+        // Scope change vs. the committed baseline (added/removed mid-sprint).
+        $scope = $this->scope($cyclePublicId, $actor);
+        if (is_array($scope)) {
+            $summary['scope'] = $scope;
+        }
+
         return ['summary' => $summary];
     }
 
@@ -861,7 +886,207 @@ final class WorkCycleService
         ];
     }
 
+    public function burndown(string $cyclePublicId, array $actor): array|string|null
+    {
+        $cycle = $this->cycles->findByPublicId($cyclePublicId);
+        if (!$cycle) {
+            return 'CYCLE_NOT_FOUND';
+        }
+
+        if (!$this->canViewCycle($cycle, $actor)) {
+            return 'CYCLE_FORBIDDEN';
+        }
+
+        $cycleId = (int)$cycle['id'];
+
+        // Keep the chart current for active cycles.
+        if ((string)$cycle['status'] === 'active') {
+            $this->captureSnapshot($cycle);
+        }
+
+        $snapshots = $this->snapshots->listByCycleId($cycleId);
+
+        $series = [];
+        foreach ($snapshots as $snap) {
+            $series[] = [
+                'date' => (string)$snap['snapshot_date'],
+                'total' => (int)($snap['total_tasks'] ?? 0),
+                'completed' => (int)($snap['completed_tasks'] ?? 0),
+                'remaining' => (int)($snap['open_tasks'] ?? 0),
+            ];
+        }
+
+        $meta = $this->readMeta($cycle);
+        $scopeCommitted = (int)($meta['committed_count'] ?? 0);
+        if ($scopeCommitted <= 0 && $series !== []) {
+            // Cycles created before the baseline feature: fall back to the
+            // earliest recorded scope.
+            $scopeCommitted = $series[0]['total'];
+        }
+
+        $ideal = $this->computeIdealLine($cycle, max(1, $scopeCommitted));
+
+        return [
+            'cycle_public_id' => $cyclePublicId,
+            'start_at' => $cycle['start_at'],
+            'end_at' => $cycle['end_at'],
+            'scope_committed' => $scopeCommitted,
+            'scope_current' => $series !== [] ? $series[count($series) - 1]['total'] : 0,
+            'series' => $series,
+            'ideal' => $ideal,
+        ];
+    }
+
+    public function scope(string $cyclePublicId, array $actor): array|string|null
+    {
+        $cycle = $this->cycles->findByPublicId($cyclePublicId);
+        if (!$cycle) {
+            return 'CYCLE_NOT_FOUND';
+        }
+
+        if (!$this->canViewCycle($cycle, $actor)) {
+            return 'CYCLE_FORBIDDEN';
+        }
+
+        $cycleId = (int)$cycle['id'];
+        $meta = $this->readMeta($cycle);
+        $committed = array_values(array_unique(array_map(
+            static fn($v): string => (string)$v,
+            (array)($meta['committed_task_public_ids'] ?? [])
+        )));
+
+        $currentRows = $this->cycleTasks->listTasksByCycleId($cycleId, ['limit' => 500]);
+        $current = [];
+        foreach ($currentRows['items'] as $row) {
+            if (!empty($row['task_public_id'])) {
+                $current[] = (string)$row['task_public_id'];
+            }
+        }
+        $current = array_values(array_unique($current));
+
+        $added = array_values(array_diff($current, $committed));
+        $removed = array_values(array_diff($committed, $current));
+
+        return [
+            'committed_count' => count($committed),
+            'current_count' => count($current),
+            'added_count' => count($added),
+            'removed_count' => count($removed),
+            'added' => $added,
+            'removed' => $removed,
+        ];
+    }
+
+    public function velocity(string $projectPublicId, array $actor): array|string|null
+    {
+        $project = $this->projects->get($projectPublicId, $actor);
+        if (!$project) {
+            return 'CYCLE_PROJECT_NOT_FOUND';
+        }
+
+        $rows = $this->cycles->listCompletedByProjectId((int)$project['id']);
+        $cycles = [];
+        $sum = 0;
+
+        foreach ($rows as $row) {
+            $summary = $this->cycleTasks->cycleSummary((int)$row['id']);
+            $completed = (int)($summary['completed_tasks'] ?? 0);
+            $total = (int)($summary['total_tasks'] ?? 0);
+            $sum += $completed;
+            $cycles[] = [
+                'cycle_public_id' => (string)$row['public_id'],
+                'title' => (string)($row['title'] ?? ''),
+                'completed_at' => $row['completed_at'],
+                'completed_tasks' => $completed,
+                'total_tasks' => $total,
+            ];
+        }
+
+        return [
+            'project_public_id' => $projectPublicId,
+            'total_cycles' => count($cycles),
+            'average_velocity' => $cycles !== [] ? (int)round($sum / count($cycles)) : 0,
+            'cycles' => $cycles,
+        ];
+    }
+
     // ----- Private helpers -----
+
+    private function captureSnapshot(array $cycle, ?string $date = null): void
+    {
+        $cycleId = (int)($cycle['id'] ?? 0);
+        if ($cycleId <= 0) {
+            return;
+        }
+
+        $summary = $this->cycleTasks->cycleSummary($cycleId);
+        $this->snapshots->createOrUpdateDailySnapshot($cycleId, $date ?? gmdate('Y-m-d'), $summary);
+    }
+
+    private function recordCommittedBaseline(array $cycle): void
+    {
+        $cycleId = (int)($cycle['id'] ?? 0);
+        if ($cycleId <= 0) {
+            return;
+        }
+
+        $rows = $this->cycleTasks->listTasksByCycleId($cycleId, ['limit' => 500]);
+        $publicIds = [];
+        foreach ($rows['items'] as $row) {
+            if (!empty($row['task_public_id'])) {
+                $publicIds[] = (string)$row['task_public_id'];
+            }
+        }
+        $publicIds = array_values(array_unique($publicIds));
+
+        $meta = $this->readMeta($cycle);
+        $meta['committed_task_public_ids'] = $publicIds;
+        $meta['committed_count'] = count($publicIds);
+        $meta['committed_at'] = gmdate('Y-m-d H:i:s');
+
+        $this->cycles->updateByPublicId((string)$cycle['public_id'], [
+            'meta_json' => json_encode($meta, JSON_UNESCAPED_UNICODE),
+        ]);
+    }
+
+    private function readMeta(array $cycle): array
+    {
+        $raw = (string)($cycle['meta_json'] ?? '');
+        if ($raw === '') {
+            return [];
+        }
+
+        $decoded = json_decode($raw, true);
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    private function computeIdealLine(array $cycle, int $totalScope): array
+    {
+        $startAt = trim((string)($cycle['start_at'] ?? ''));
+        $endAt = trim((string)($cycle['end_at'] ?? ''));
+        $start = $startAt !== '' ? strtotime($startAt) : null;
+        $end = $endAt !== '' ? strtotime($endAt) : null;
+
+        if ($start === false || $start === null) {
+            return [];
+        }
+
+        if ($end === false || $end === null || $end <= $start) {
+            // Default sprint length of 14 days when no end date is set.
+            $end = $start + (14 * 86400);
+        }
+
+        $totalDays = max(1, (int)ceil(($end - $start) / 86400));
+        $ideal = [];
+        for ($d = 0; $d <= $totalDays; $d++) {
+            $ideal[] = [
+                'date' => gmdate('Y-m-d', $start + ($d * 86400)),
+                'remaining' => max(0, (int)round($totalScope * (1 - ($d / $totalDays)))),
+            ];
+        }
+
+        return $ideal;
+    }
 
     private function enrichCycle(array $cycle): array
     {
