@@ -318,7 +318,7 @@ window.CRM.projectModules = (function () {
             var modalEl = document.getElementById('projectModuleModal');
             var modal = bootstrap.Modal.getInstance(modalEl);
             if (modal) modal.hide();
-            loadModules(getFilterState());
+            reloadModuleLists();
           } else {
             notify(t('project_modules.save_error', 'Ошибка сохранения модуля'), 'error');
           }
@@ -349,7 +349,7 @@ window.CRM.projectModules = (function () {
             var modalEl = document.getElementById('projectModuleArchiveModal');
             var modal = bootstrap.Modal.getInstance(modalEl);
             if (modal) modal.hide();
-            loadModules(getFilterState());
+            reloadModuleLists();
           } else {
             notify(t('project_modules.archive_error', 'Ошибка архивирования'), 'error');
           }
@@ -367,24 +367,143 @@ window.CRM.projectModules = (function () {
     };
   }
 
+  // Reload whichever module list is currently visible: the full table on the
+  // project-modules page, or the per-project summary list on the project-detail
+  // page (used after create/update/archive so both stay in sync).
+  function reloadModuleLists() {
+    if (document.body.getAttribute('data-page') === 'project-modules') {
+      loadModules(getFilterState());
+      return;
+    }
+    var projectId = getProjectDetailId();
+    if (projectId) loadProjectDetailModules(projectId);
+  }
+
+  function getProjectDetailId() {
+    var urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('route') !== 'project-detail') return '';
+    return urlParams.get('project_public_id') || '';
+  }
+
+  function initProjectDetailModules(projectId) {
+    var listEl = document.getElementById('projectModulesList');
+    if (!projectId || !listEl) return;
+
+    var addBtn = document.getElementById('projectModuleAddBtn');
+    if (addBtn && !addBtn.dataset.bound) {
+      addBtn.addEventListener('click', function () {
+        openCreateModalForProject(projectId);
+      });
+      addBtn.dataset.bound = '1';
+    }
+
+    loadProjectDetailModules(projectId);
+  }
+
+  function loadProjectDetailModules(projectId) {
+    var listEl = document.getElementById('projectModulesList');
+    if (!listEl) return;
+    listEl.innerHTML = '<div class="text-muted">' + esc(t('page.loading', 'Загрузка...')) + '</div>';
+
+    req('api/v1/project-modules', { query: { project_public_id: projectId, limit: 50 } })
+      .then(function (envelope) {
+        var items = (envelope.data && envelope.data.items) || [];
+        renderProjectDetailModules(listEl, items);
+      })
+      .catch(function () {
+        listEl.innerHTML = '<div class="text-muted">' + esc(t('project_modules.load_error', 'Ошибка загрузки модулей')) + '</div>';
+      });
+  }
+
+  function renderProjectDetailModules(listEl, items) {
+    if (!items.length) {
+      listEl.innerHTML = '<div class="text-muted">' + esc(t('project_modules.no_modules', 'Нет модулей. Создайте первый модуль.')) + '</div>';
+      return;
+    }
+
+    listEl.innerHTML = items.map(function (m) {
+      var progress = m.progress_percent != null ? m.progress_percent : 0;
+      var leadName = m.lead_name || '';
+      var tasksCount = (m.open_tasks_count != null ? m.open_tasks_count : 0) + '/' + (m.tasks_count != null ? m.tasks_count : 0);
+      var targetStr = m.target_at ? m.target_at.slice(0, 10) : '';
+      return '<div class="d-flex justify-content-between align-items-center border-bottom py-2">'
+        + '<div class="me-2">'
+        + '<div><strong>' + esc(m.title) + '</strong> ' + statusBadgeHtml(m.status || 'planned') + '</div>'
+        + '<small class="text-muted">' + esc(leadName || t('project_modules.no_lead', '—')) + ' · ' + esc(tasksCount) + ' ' + esc(t('project_modules.th_tasks', 'Задачи')) + (targetStr ? ' · ' + esc(targetStr) : '') + '</small>'
+        + '</div>'
+        + '<div class="text-end" style="min-width:90px">'
+        + '<div class="progress" style="height:6px"><div class="progress-bar" style="width:' + esc(String(progress)) + '%;background:var(--crm-primary)"></div></div>'
+        + '<small class="text-muted">' + esc(String(progress)) + '%</small>'
+        + '</div>'
+        + '</div>';
+    }).join('');
+  }
+
+  function openCreateModalForProject(projectId) {
+    openCreateModal();
+    var projectSelect = document.getElementById('projectModuleProject');
+    if (!projectSelect || !projectId) return;
+    // Ensure the current project is present (projects list may still be loading
+    // or the project may sit beyond the select's load limit).
+    var opt = projectSelect.querySelector('option[value="' + projectId + '"]');
+    if (!opt) {
+      opt = document.createElement('option');
+      opt.value = projectId;
+      opt.textContent = projectId;
+      projectSelect.appendChild(opt);
+    }
+    projectSelect.value = projectId;
+  }
+
   function init() {
-    if (document.body.getAttribute('data-page') !== 'project-modules') return;
+    var page = document.body.getAttribute('data-page');
+    var projectDetailId = getProjectDetailId();
+    var isModulesPage = page === 'project-modules';
+    var isProjectDetail = page === 'projects' && projectDetailId !== '';
+
+    if (!isModulesPage && !isProjectDetail) return;
 
     waitForApi(function () {
       loadProjects();
       loadUsers();
-      loadModules(getFilterState());
 
-      document.getElementById('projectModulesRefreshBtn').addEventListener('click', function () {
-        loadModules(getFilterState());
-      });
-      document.getElementById('projectModulesCreateBtn').addEventListener('click', openCreateModal);
-      document.getElementById('projectModuleForm').addEventListener('submit', handleSave);
-      document.getElementById('projectModuleArchiveConfirmBtn').addEventListener('click', confirmArchive);
+      var form = document.getElementById('projectModuleForm');
+      if (form && !form.dataset.bound) {
+        form.addEventListener('submit', handleSave);
+        form.dataset.bound = '1';
+      }
+      var archiveBtn = document.getElementById('projectModuleArchiveConfirmBtn');
+      if (archiveBtn && !archiveBtn.dataset.bound) {
+        archiveBtn.addEventListener('click', confirmArchive);
+        archiveBtn.dataset.bound = '1';
+      }
 
-      document.getElementById('projectModulesProjectFilter').addEventListener('change', function () {
+      if (isModulesPage) {
         loadModules(getFilterState());
-      });
+
+        var refreshBtn = document.getElementById('projectModulesRefreshBtn');
+        if (refreshBtn && !refreshBtn.dataset.bound) {
+          refreshBtn.addEventListener('click', function () {
+            loadModules(getFilterState());
+          });
+          refreshBtn.dataset.bound = '1';
+        }
+        var createBtn = document.getElementById('projectModulesCreateBtn');
+        if (createBtn && !createBtn.dataset.bound) {
+          createBtn.addEventListener('click', openCreateModal);
+          createBtn.dataset.bound = '1';
+        }
+        var projectFilter = document.getElementById('projectModulesProjectFilter');
+        if (projectFilter && !projectFilter.dataset.bound) {
+          projectFilter.addEventListener('change', function () {
+            loadModules(getFilterState());
+          });
+          projectFilter.dataset.bound = '1';
+        }
+        return;
+      }
+
+      initProjectDetailModules(projectDetailId);
     });
   }
 

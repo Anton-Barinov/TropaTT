@@ -101,6 +101,7 @@ $needsIntake = in_array($currentRoute, [
 ], true);
 $needsProjectModules = in_array($currentRoute, [
   'project-modules',
+  'project-detail',
 ], true);
 $needsPageApiBindings = !in_array($currentRoute, [
   'login',
