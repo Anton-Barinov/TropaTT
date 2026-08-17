@@ -157,24 +157,44 @@
       <button type="button" class="btn btn-sm crm-btn-secondary crm-btn-compact" id="projectAiPreviewBtn" disabled data-i18n="project_detail.ai_preview_btn"><?= htmlspecialchars($t('project_detail.ai_preview_btn', 'Предпросмотр'), ENT_QUOTES, 'UTF-8') ?></button>
       <button type="button" class="btn btn-sm crm-btn-muted crm-btn-compact" id="projectAiDismissBtn" disabled data-i18n="project_detail.ai_dismiss_btn"><?= htmlspecialchars($t('project_detail.ai_dismiss_btn', 'Отклонить'), ENT_QUOTES, 'UTF-8') ?></button>
     </div>
-    <div class="crm-empty-state mb-2" id="projectAiSummaryText" data-i18n="project_detail.ai_summary_empty"><?= htmlspecialchars($t('project_detail.ai_summary_empty', 'Нажмите «AI-сводка», чтобы получить AI-рекомендацию по проекту.'), ENT_QUOTES, 'UTF-8') ?></div>
-    <div class="crm-info-panel mb-2 d-none" id="projectAiReportDraftWrap">
-      <small class="text-muted" data-i18n="project_detail.ai_report_draft_label"><?= htmlspecialchars($t('project_detail.ai_report_draft_label', 'Client report draft (read-only)'), ENT_QUOTES, 'UTF-8') ?></small>
-      <div class="mt-1" id="projectAiReportDraftText">—</div>
-    </div>
-    <div class="row g-2">
-      <div class="col-12">
-        <div class="crm-info-panel">
-          <small class="text-muted" data-i18n="project_detail.ai_risks_label"><?= htmlspecialchars($t('project_detail.ai_risks_label', 'Риски и вопросы'), ENT_QUOTES, 'UTF-8') ?></small>
-          <div class="mt-1" id="projectAiRisksQuestions">—</div>
-        </div>
-      </div>
-      <div class="col-12">
-        <div class="crm-info-panel">
-          <small class="text-muted" data-i18n="project_detail.ai_next_actions_label"><?= htmlspecialchars($t('project_detail.ai_next_actions_label', 'Следующие действия'), ENT_QUOTES, 'UTF-8') ?></small>
-          <div class="mt-1" id="projectAiNextActions">—</div>
-        </div>
-      </div>
+    <div class="crm-empty-state mb-3" id="projectAiSummaryText" data-i18n="project_detail.ai_summary_empty"><?= htmlspecialchars($t('project_detail.ai_summary_empty', 'Нажмите «AI-сводка», чтобы получить AI-рекомендацию по проекту.'), ENT_QUOTES, 'UTF-8') ?></div>
+
+    <div class="crm-pr-ai-accs">
+      <section class="crm-pr-acc d-none" id="projectAiReportDraftWrap">
+        <button class="crm-pr-acc-head" type="button" aria-expanded="false">
+          <span class="crm-pr-acc-title">
+            <span class="name" data-i18n="project_detail.ai_report_draft_label"><?= htmlspecialchars($t('project_detail.ai_report_draft_label', 'Client report draft (read-only)'), ENT_QUOTES, 'UTF-8') ?></span>
+          </span>
+          <span class="crm-pr-acc-caret" aria-hidden="true">▾</span>
+        </button>
+        <div class="crm-pr-acc-panel"><div class="crm-pr-acc-inner">
+          <div id="projectAiReportDraftText">—</div>
+        </div></div>
+      </section>
+
+      <section class="crm-pr-acc" id="projectAiRisksAcc">
+        <button class="crm-pr-acc-head" type="button" aria-expanded="false">
+          <span class="crm-pr-acc-title">
+            <span class="name" data-i18n="project_detail.ai_risks_label"><?= htmlspecialchars($t('project_detail.ai_risks_label', 'Риски и вопросы'), ENT_QUOTES, 'UTF-8') ?></span>
+          </span>
+          <span class="crm-pr-acc-caret" aria-hidden="true">▾</span>
+        </button>
+        <div class="crm-pr-acc-panel"><div class="crm-pr-acc-inner">
+          <div id="projectAiRisksQuestions">—</div>
+        </div></div>
+      </section>
+
+      <section class="crm-pr-acc" id="projectAiNextActionsAcc">
+        <button class="crm-pr-acc-head" type="button" aria-expanded="false">
+          <span class="crm-pr-acc-title">
+            <span class="name" data-i18n="project_detail.ai_next_actions_label"><?= htmlspecialchars($t('project_detail.ai_next_actions_label', 'Следующие действия'), ENT_QUOTES, 'UTF-8') ?></span>
+          </span>
+          <span class="crm-pr-acc-caret" aria-hidden="true">▾</span>
+        </button>
+        <div class="crm-pr-acc-panel"><div class="crm-pr-acc-inner">
+          <div id="projectAiNextActions">—</div>
+        </div></div>
+      </section>
     </div>
   </section>
 </div>
