@@ -60,21 +60,13 @@ Todoist API v1 возвращает объект с `results`/`items` и `next_c
 
 ## Тестирование
 
-Без credentials live-тест завершается как skipped; deterministic offline-проверки не требуют Todoist или MySQL:
+Публично доступные проверки не требуют Todoist или MySQL:
 
 ```bash
-php upload/api/scripts/test_runner.php todoist-unit
-php upload/api/scripts/test_runner.php todoist
+find upload/modules/crm.todoist-migration -name '*.php' -print0 | xargs -0 -n1 php -l
+node --check upload/modules/crm.todoist-migration/web/assets/js/todoist-migration.js
+php upload/api/scripts/module.php check crm.todoist-migration
+php upload/api/scripts/generate_openapi.php
 ```
 
-Опциональный live-тест чтения Todoist (не пишет в Todoist и очищает тестовую connection):
-
-```bash
-TODOIST_TEST_CONFIRM=1 \
-TODOIST_TEST_TOKEN=... \
-TODOIST_TEST_DB_DATABASE=crm_todoist_test \
-TODOIST_TEST_DB_USER=root TODOIST_TEST_DB_PASSWORD= APP_SECRET=... \
-php upload/api/tests/TodoistMigrationIntegrationTest.php
-```
-
-Применяемые проверки: PHP lint, JS syntax, module circular-dependency check, unit suite, opt-in API test, OpenAPI generation и ручной browser smoke test.
+Deterministic unit-регрессии и опциональный live-тест чтения Todoist (не пишет в Todoist и очищает тестовую connection) выполняются в локальном тестовом наборе мейнтейнера и не входят в публичный репозиторий. Применяемые проверки: PHP lint, JS syntax, module circular-dependency check, unit suite, opt-in API test, OpenAPI generation и ручной browser smoke test.

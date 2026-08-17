@@ -56,20 +56,18 @@ Every contribution should consider:
 
 ## Running Checks
 
-Useful checks depend on the area changed. When available in your local checkout:
+Useful checks depend on the area changed. Public clones always contain these:
 
 ```bash
 php -l path/to/file.php
-php upload/api/scripts/test_runner.php fast
-php upload/api/scripts/test_runner.php unit
-php upload/api/scripts/test_runner.php integration
-php upload/api/scripts/test_runner.php openapi
 DB_CONNECTION=mysql DB_HOST=127.0.0.1 DB_PORT=3306 DB_DATABASE=crm DB_USERNAME=root DB_PASSWORD=secret php upload/api/scripts/ci_mysql_smoke.php
 php upload/api/scripts/generate_openapi.php
 php upload/api/scripts/api_coverage_check.php
 ```
 
-The public CI workflows run the MySQL smoke test and OpenAPI consistency check without private secrets. The `test_runner.php` suite and its tests are local-only in maintainer checkouts; do not add them as a public CI dependency. If a script is not included in the public install package or your checkout, describe what you tested manually.
+The public CI workflows run the MySQL smoke test and OpenAPI consistency check without private secrets.
+
+A self-contained local test runner (`upload/api/scripts/test_runner.php`) and its suite (`upload/api/tests/`) exist only in maintainer worktrees and are intentionally not published to GitHub; do not add them as a public CI dependency. If a check you normally run is not included in a public clone, describe what you tested manually.
 
 ## Documentation
 

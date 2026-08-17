@@ -39,22 +39,13 @@ Rollback удаляет только targets с `created_by_job=1`. Если tar
 
 ## Тесты
 
-Офлайн проверки:
+Публично доступные проверки:
 
 ```bash
-php upload/api/scripts/test_runner.php toggl-unit
+find upload/modules/crm.toggl-migration -name '*.php' -print0 | xargs -0 -n1 php -l
+node --check upload/modules/crm.toggl-migration/web/assets/js/toggl-migration.js
+php upload/api/scripts/module.php check crm.toggl-migration
+php upload/api/scripts/generate_openapi.php
 ```
 
-Опциональный live read-only тест требует отдельную БД и credentials:
-
-```bash
-TOGGL_TEST_CONFIRM=1 \
-TOGGL_TEST_TOKEN=... \
-TOGGL_TEST_DB_DATABASE=crm_toggl_test \
-TOGGL_TEST_DB_USER=root \
-TOGGL_TEST_DB_PASSWORD= \
-APP_SECRET=... \
-php upload/api/scripts/test_runner.php toggl
-```
-
-Live-тест не создаёт и не удаляет данные в Toggl; CRM connection/job fixtures удаляются после завершения.
+Unit-регрессии и опциональный live read-only тест (не создаёт и не удаляет данные в Toggl; CRM connection/job fixtures удаляются после завершения) выполняются в локальном тестовом наборе мейнтейнера и не входят в публичный репозиторий.

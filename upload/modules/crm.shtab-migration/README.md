@@ -52,8 +52,7 @@
 find upload/modules/crm.shtab-migration -name '*.php' -print0 | xargs -0 -n1 php -l
 node --check upload/modules/crm.shtab-migration/web/assets/js/shtab-migration.js
 php upload/api/scripts/module.php check crm.shtab-migration
-php upload/api/scripts/test_runner.php shtab-unit
-# Опциональный MySQL lifecycle test:
-SHTAB_TEST_CONFIRM=1 SHTAB_TEST_DB_DATABASE=crm_test php upload/api/scripts/test_runner.php shtab
 php upload/api/scripts/generate_openapi.php
 ```
+
+Unit-регрессии и опциональный MySQL lifecycle-тест модуля выполняются в локальном тестовом наборе мейнтейнера и не входят в публичный репозиторий.

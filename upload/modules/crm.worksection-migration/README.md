@@ -40,11 +40,10 @@
 find upload/modules/crm.worksection-migration -name '*.php' -print0 | xargs -0 -n1 php -l
 node --check upload/modules/crm.worksection-migration/web/assets/js/worksection-migration.js
 php upload/api/scripts/module.php check crm.worksection-migration
-php upload/api/scripts/test_runner.php worksection-unit
-# Опциональный MySQL lifecycle test:
-WORKSECTION_TEST_CONFIRM=1 WORKSECTION_TEST_DB_DATABASE=crm_test php upload/api/scripts/test_runner.php worksection
 php upload/api/scripts/generate_openapi.php
 ```
+
+Unit-регрессии и опциональный MySQL lifecycle-тест модуля выполняются в локальном тестовом наборе мейнтейнера и не входят в публичный репозиторий.
 
 ## Ограничения
 

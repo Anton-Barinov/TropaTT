@@ -20,16 +20,13 @@
 
 ## Тест
 
-Без credentials тест ничего не выполняет и завершается как skipped:
+Публично доступные проверки не требуют credentials:
 
 ```bash
-ASANA_TEST_CONFIRM=1 \
-ASANA_TEST_TOKEN=... \
-ASANA_TEST_DB_DATABASE=crm_asana_test \
-ASANA_TEST_DB_USER=root \
-ASANA_TEST_DB_PASSWORD= \
-APP_SECRET=... \
-php upload/api/tests/AsanaMigrationIntegrationTest.php
+find upload/modules/crm.asana-migration -name '*.php' -print0 | xargs -0 -n1 php -l
+node --check upload/modules/crm.asana-migration/web/assets/js/asana-migration.js
+php upload/api/scripts/module.php check crm.asana-migration
+php upload/api/scripts/generate_openapi.php
 ```
 
-Используйте только отдельную тестовую БД. Тест выполняет только чтение Asana и удаляет временную connection из CRM.
+Автоматизированные регрессии и live-тест Asana (только чтение, с очисткой временной connection) выполняются в локальном тестовом наборе мейнтейнера и не входят в публичный репозиторий. Используйте только отдельную тестовую БД.

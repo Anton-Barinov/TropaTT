@@ -20,16 +20,13 @@
 
 ## Тест
 
-Локальные unit-регрессии не требуют credentials и не делают сетевых запросов:
+Публично доступные проверки не требуют credentials и не делают сетевых запросов:
 
 ```bash
-ACTIVECOLLAB_TEST_CONFIRM=1 \
-ACTIVECOLLAB_TEST_TOKEN=... \
-ACTIVECOLLAB_TEST_DB_DATABASE=crm_activecollab_test \
-ACTIVECOLLAB_TEST_DB_USER=root \
-ACTIVECOLLAB_TEST_DB_PASSWORD= \
-APP_SECRET=... \
-php upload/api/tests/ActiveCollabMigrationUnitTest.php
+find upload/modules/crm.activecollab-migration -name '*.php' -print0 | xargs -0 -n1 php -l
+node --check upload/modules/crm.activecollab-migration/web/assets/js/activecollab-migration.js
+php upload/api/scripts/module.php check crm.activecollab-migration
+php upload/api/scripts/generate_openapi.php
 ```
 
-Для реального API используйте отдельный стенд и отдельную БД. Перед production-импортом рекомендуется выполнить `dry_run`, затем небольшой job с одним проектом и проверить rollback.
+Автоматизированные регрессии и live-тест ActiveCollab выполняются в локальном тестовом наборе мейнтейнера и не входят в публичный репозиторий. Для реального API используйте отдельный стенд и отдельную БД. Перед production-импортом рекомендуется выполнить `dry_run`, затем небольшой job с одним проектом и проверить rollback.

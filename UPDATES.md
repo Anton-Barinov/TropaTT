@@ -43,7 +43,7 @@ repository and rebuilds packages on cron when new commits appear.
 Runs every 10 minutes:
 
 ```cron
-*/10 * * * * /usr/bin/php /home/tropatt/web/update.tropatt.com/public_html/bin/cron.php run >> .../storage/logs/update-center-cron.log 2>&1
+*/10 * * * * /usr/bin/php /path/to/update-server/bin/cron.php run >> /path/to/update-server/storage/logs/update-center-cron.log 2>&1
 ```
 
 `bin/cron.php run` runs four commands in sequence:
