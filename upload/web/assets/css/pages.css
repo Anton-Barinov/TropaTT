@@ -12927,18 +12927,6 @@ a.task-tag:hover {
     font-size: 12px;
 }
 
-.crm-planner-eyebrow {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    margin-bottom: 5px;
-    color: var(--crm-accent);
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-}
-
 .crm-planner-head-actions {
     display: flex;
     flex-direction: column;
@@ -12996,20 +12984,6 @@ a.task-tag:hover {
     font-size: 12px;
 }
 
-.crm-planner-contextbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-    min-height: 42px;
-    margin-bottom: 14px;
-    padding: 8px 12px;
-    border: 1px solid color-mix(in srgb, var(--crm-accent) 22%, var(--crm-border));
-    border-radius: 8px;
-    background: color-mix(in srgb, var(--crm-accent) 6%, var(--crm-surface));
-}
-
-.crm-planner-contextbar-title,
 .crm-planner-card-title {
     display: flex;
     align-items: center;
@@ -13017,12 +12991,6 @@ a.task-tag:hover {
     min-width: 0;
 }
 
-.crm-planner-contextbar-title {
-    color: var(--crm-text);
-    font-size: 13px;
-}
-
-.crm-planner-context-icon,
 .crm-planner-card-icon {
     display: inline-flex;
     align-items: center;
@@ -13033,12 +13001,6 @@ a.task-tag:hover {
     border-radius: 7px;
     color: var(--crm-accent);
     background: color-mix(in srgb, var(--crm-accent) 12%, transparent);
-}
-
-.crm-planner-contextbar-note {
-    color: var(--crm-text-muted);
-    font-size: 12px;
-    text-align: right;
 }
 
 .crm-planner-overview {
@@ -13338,16 +13300,6 @@ a.task-tag:hover {
         flex: 1 1 auto;
     }
 
-    .crm-planner-contextbar {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 4px;
-    }
-
-    .crm-planner-contextbar-note {
-        text-align: left;
-    }
-
     .crm-planner-aside {
         display: flex;
     }
@@ -13368,6 +13320,110 @@ a.task-tag:hover {
 
     .crm-planner-overdue-section .crm-planner-disclosure-body {
         padding-inline: 10px;
+    }
+}
+
+/* Planner visual reduction: keep the page close to the core CRM language. */
+.crm-planner-page .crm-page-head {
+    margin-bottom: 12px;
+}
+
+.crm-planner-page .crm-page-actions {
+    align-items: center;
+}
+
+.crm-planner-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--crm-border);
+}
+
+.crm-planner-switch {
+    display: flex;
+    align-items: stretch;
+    gap: 18px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+.crm-planner-switch-item,
+.crm-planner-switch-item:hover,
+.crm-planner-switch-item.is-active {
+    min-height: 38px;
+    padding: 0 1px;
+    border-radius: 0;
+    color: var(--crm-text-muted);
+    background: transparent;
+    box-shadow: none;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.crm-planner-switch-item.is-active {
+    color: var(--crm-text);
+    border-bottom: 2px solid var(--crm-accent);
+}
+
+.crm-planner-secondary-link {
+    margin-bottom: 9px;
+    color: var(--crm-text-muted);
+    font-size: 12px;
+    text-decoration: none;
+}
+
+.crm-planner-secondary-link:hover {
+    color: var(--crm-accent);
+}
+
+.crm-planner-page .crm-planner-overview {
+    gap: 16px;
+}
+
+.crm-planner-page .crm-planner-ai-card,
+.crm-planner-page .crm-planner-summary-card,
+.crm-planner-page .crm-planner-mini-card {
+    box-shadow: var(--crm-shadow-card) !important;
+}
+
+.crm-planner-page .crm-planner-ai-summary {
+    border-top: 0;
+}
+
+.crm-planner-page .crm-planner-ai-details > summary {
+    padding-top: 8px;
+}
+
+.crm-planner-page .crm-planner-overdue-section > summary {
+    align-items: center;
+}
+
+.crm-planner-page .crm-planner-overdue-section > summary small {
+    flex: 1 1 auto;
+    margin: 0;
+}
+
+@media (max-width: 575px) {
+    .crm-planner-toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .crm-planner-secondary-link {
+        align-self: flex-start;
+    }
+
+    .crm-planner-switch {
+        width: auto;
+    }
+
+    .crm-planner-page .crm-page-actions {
+        width: 100%;
     }
 }
 

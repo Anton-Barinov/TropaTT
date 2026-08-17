@@ -577,7 +577,7 @@ final class App
 
                 try {
                     $notificationService->notifyUsers([$adminId], (array)$admin, [
-                        'title' => '⚠️ Не сгенерированы ключи безопасности',
+                        'title' => 'Не сгенерированы ключи безопасности',
                         'body' => "Следующие ключи не удалось сгенерировать автоматически:\n• {$keyList}\n\nНекоторые функции CRM могут работать некорректно. Перегенерируйте ключи вручную.",
                         'category' => 'system',
                         'action_code' => 'security_key_generation_failed',

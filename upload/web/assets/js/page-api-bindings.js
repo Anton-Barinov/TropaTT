@@ -2876,7 +2876,7 @@ window.CRM.pageApiBindings = (function () {
       blocksWrap.innerHTML = ''
         + '<div class="row g-3">'
         + '<div class="col-lg-6"><article class="border rounded-3 p-3 h-100">'
-        + '<div class="d-flex justify-content-between align-items-center mb-2"><h3 class="h6 mb-0">' + window.CRM.i18n.t('js.pab.name_and_description', 'Name and description') + '</h3><button class="btn btn-sm btn-light" type="button" data-project-edit-open="identity" aria-label="' + window.CRM.i18n.t('js.pab.edit_project_identity', 'Edit name and description') + '" title="' + window.CRM.i18n.t('js.pab.edit_project_identity', 'Edit name and description') + '"><span aria-hidden="true">✏️</span></button></div>'
+        + '<div class="d-flex justify-content-between align-items-center mb-2"><h3 class="h6 mb-0">' + window.CRM.i18n.t('js.pab.name_and_description', 'Name and description') + '</h3><button class="btn btn-sm btn-light" type="button" data-project-edit-open="identity" aria-label="' + window.CRM.i18n.t('js.pab.edit_project_identity', 'Edit name and description') + '" title="' + window.CRM.i18n.t('js.pab.edit_project_identity', 'Edit name and description') + '"><i class="fa-solid fa-pen" aria-hidden="true"></i></button></div>'
         + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.name', 'Name') + '</div><div class="mb-2">' + safeText(project.title || '—') + '</div>'
         + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.description', 'Description') + '</div><div class="mb-2 crm-project-description-readonly">' + renderVisualEditorHtml(project.description || window.CRM.i18n.t('js.pab.no_description', 'No description')) + '</div>'
         + '<form class="row g-2 d-none" data-project-edit-form="identity">'
@@ -2886,7 +2886,7 @@ window.CRM.pageApiBindings = (function () {
         + '</form>'
         + '</article></div>'
         + '<div class="col-lg-6"><article class="border rounded-3 p-3 h-100">'
-        + '<div class="d-flex justify-content-between align-items-center mb-2"><h3 class="h6 mb-0">' + window.CRM.i18n.t('js.pab.status_and_priority', 'Status and priority') + '</h3><button class="btn btn-sm btn-light" type="button" data-project-edit-open="workflow" aria-label="' + window.CRM.i18n.t('js.pab.edit_project_workflow', 'Edit status and priority') + '" title="' + window.CRM.i18n.t('js.pab.edit_project_workflow', 'Edit status and priority') + '"><span aria-hidden="true">✏️</span></button></div>'
+        + '<div class="d-flex justify-content-between align-items-center mb-2"><h3 class="h6 mb-0">' + window.CRM.i18n.t('js.pab.status_and_priority', 'Status and priority') + '</h3><button class="btn btn-sm btn-light" type="button" data-project-edit-open="workflow" aria-label="' + window.CRM.i18n.t('js.pab.edit_project_workflow', 'Edit status and priority') + '" title="' + window.CRM.i18n.t('js.pab.edit_project_workflow', 'Edit status and priority') + '"><i class="fa-solid fa-pen" aria-hidden="true"></i></button></div>'
         + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.status', 'Status') + '</div><div class="mb-2"><span class="crm-badge ' + statusClass(project.status_code) + '">' + safeText(projectStatusLabel(project.status_code)) + '</span></div>'
         + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.priority', 'Priority') + '</div><div class="mb-2">' + safeText(priorityLabel(project.priority_code || 'normal')) + '</div>'
         + '<form class="row g-2 d-none" data-project-edit-form="workflow">'
@@ -2905,7 +2905,7 @@ window.CRM.pageApiBindings = (function () {
         + '</form>'
         + '</article></div>'
         + '<div class="col-lg-6"><article class="border rounded-3 p-3 h-100">'
-        + '<div class="d-flex justify-content-between align-items-center mb-2"><h3 class="h6 mb-0">' + window.CRM.i18n.t('js.pab.project_relations', 'Project relations') + '</h3><button class="btn btn-sm btn-light" type="button" data-project-edit-open="links" aria-label="' + window.CRM.i18n.t('js.pab.edit_project_relations', 'Edit project relations') + '" title="' + window.CRM.i18n.t('js.pab.edit_project_relations', 'Edit project relations') + '"><span aria-hidden="true">✏️</span></button></div>'
+        + '<div class="d-flex justify-content-between align-items-center mb-2"><h3 class="h6 mb-0">' + window.CRM.i18n.t('js.pab.project_relations', 'Project relations') + '</h3><button class="btn btn-sm btn-light" type="button" data-project-edit-open="links" aria-label="' + window.CRM.i18n.t('js.pab.edit_project_relations', 'Edit project relations') + '" title="' + window.CRM.i18n.t('js.pab.edit_project_relations', 'Edit project relations') + '"><i class="fa-solid fa-pen" aria-hidden="true"></i></button></div>'
         + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.client', 'Client') + '</div><div class="mb-2">' + safeText(clientTitleById(project.client_public_id)) + '</div>'
         + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.manager', 'Manager') + '</div><div class="mb-2">' + safeText(userTitleById(project.manager_user_public_id)) + '</div>'
         + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.team', 'Team') + '</div><div class="mb-2">' + safeText(teamTitleById(project.team_public_id)) + '</div>'
@@ -18213,7 +18213,8 @@ window.CRM.pageApiBindings = (function () {
     if (item.isBlocked) {
       var blockedMarker = document.createElement('span');
       blockedMarker.className = 'crm-gantt-bar-marker crm-gantt-bar-marker--blocked';
-      blockedMarker.textContent = '⚠';
+      blockedMarker.innerHTML = '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>';
+      blockedMarker.setAttribute('aria-label', tp('gantt.blocked_marker', 'Blocked'));
       bar.appendChild(blockedMarker);
     }
 
@@ -18300,7 +18301,8 @@ window.CRM.pageApiBindings = (function () {
     if (item.isBlocked) {
       var blockedMarker = document.createElement('span');
       blockedMarker.className = 'crm-gantt-bar-marker crm-gantt-bar-marker--blocked';
-      blockedMarker.textContent = '⚠';
+      blockedMarker.innerHTML = '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>';
+      blockedMarker.setAttribute('aria-label', tp('gantt.blocked_marker', 'Blocked'));
       bar.appendChild(blockedMarker);
     }
 
@@ -22690,15 +22692,18 @@ window.CRM.pageApiBindings = (function () {
           ? formatDate(providerLastTestForSummary.created_at || '')
           : (providerHealth.last_checked_at ? formatDate(providerHealth.last_checked_at) : '');
         var lastReal = providerHealth.last_real_ai_success_at ? formatDate(providerHealth.last_real_ai_success_at) : '';
-        var health = tp('admin_ai.health_not_checked_error', '⚠️ Not checked/error');
+        var health = tp('admin_ai.health_not_checked_error', 'Not checked/error');
+        var healthIcon = 'fa-circle-exclamation';
         if (providerHealth.status === 'ok') {
-          health = providerHealth.needs_recheck ? tp('admin_ai.health_needs_recheck_short', '⚠️ Needs recheck') : tp('admin_ai.health_works_short', '✅ Working');
+          health = providerHealth.needs_recheck ? tp('admin_ai.health_needs_recheck_short', 'Needs recheck') : tp('admin_ai.health_works_short', 'Working');
+          healthIcon = providerHealth.needs_recheck ? 'fa-triangle-exclamation' : 'fa-circle-check';
         } else if (providerLastTestForSummary && String(providerLastTestForSummary.action || '') === 'ai_provider_test_success') {
-          health = tp('admin_ai.health_works_short', '✅ Working');
+          health = tp('admin_ai.health_works_short', 'Working');
+          healthIcon = 'fa-circle-check';
         }
         var checkedLabel = checkedAt || lastReal || tp('admin_ai.never', 'never');
         providerStatusSummaryNode.innerHTML = ''
-          + '<span class="crm-admin-ai-provider-summary-line">' + safeText(tp('admin_ai.status_prefix', 'Status: ')) + safeText(health) + '</span>'
+          + '<span class="crm-admin-ai-provider-summary-line"><i class="fa-solid ' + healthIcon + ' me-1" aria-hidden="true"></i>' + safeText(tp('admin_ai.status_prefix', 'Status: ')) + safeText(health) + '</span>'
           + '<span class="crm-admin-ai-provider-summary-line">' + safeText(tp('admin_ai.answer_model_prefix', 'Answer model: ')) + safeText(String(selectedProvider.default_model || '—')) + '</span>'
           + '<span class="crm-admin-ai-provider-summary-line">' + safeText(tp('admin_ai.search_model_prefix', 'Search model: ')) + safeText(embedModel) + '</span>'
           + '<span class="crm-admin-ai-provider-summary-line">' + safeText(tp('admin_ai.last_check_prefix', 'Last check: ')) + safeText(checkedLabel) + '</span>';
@@ -23572,14 +23577,26 @@ window.CRM.pageApiBindings = (function () {
           var embeddingsPath = String((editForm.querySelector('[name="embeddings_endpoint"]') || {}).value || '').trim();
           var embeddingsConfigured = embeddingsPath === '' || embeddingsPath.charAt(0) === '/';
           var lines = [
-            tp('admin_ai.check_api_available', '✅ API address: available'),
-            tp('admin_ai.check_secret_ok', '✅ Access key: authorization successful'),
-            (availableModelIds.length ? tp('admin_ai.check_models_received_prefix', '✅ Model list: received ') + String(availableModelIds.length) : tp('admin_ai.check_models_no_ids', '⚠️ Model list: API did not return readable model ids')),
-            (modelExists ? tp('admin_ai.check_default_model_found', '✅ Default model: found') : tp('admin_ai.check_default_model_missing_prefix', '⚠️ Default model not found: ') + model),
-            (embeddingsConfigured ? tp('admin_ai.check_embeddings_ok', '✅ Embeddings: endpoint configured') : tp('admin_ai.check_embeddings_bad', '❌ Embeddings: endpoint must start with `/`')),
-            (payload.capabilities && payload.capabilities.streaming ? tp('admin_ai.check_streaming_on', '✅ Streaming responses: enabled') : tp('admin_ai.check_streaming_off', '⚠️ Streaming responses: disabled')),
-            (payload.capabilities && payload.capabilities.vision ? tp('admin_ai.check_vision_on', '✅ Image support: enabled') : tp('admin_ai.check_vision_warn', '⚠️ Image support may not be supported by the model')),
-            (payload.capabilities && payload.capabilities.tools ? tp('admin_ai.check_tools_on', '✅ Tools: enabled') : tp('admin_ai.check_tools_off', '❌ Tools are disabled in connection settings'))
+            { icon: 'fa-circle-check', text: tp('admin_ai.check_api_available', 'API address: available') },
+            { icon: 'fa-circle-check', text: tp('admin_ai.check_secret_ok', 'Access key: authorization successful') },
+            availableModelIds.length
+              ? { icon: 'fa-circle-check', text: tp('admin_ai.check_models_received_prefix', 'Model list: received ') + String(availableModelIds.length) }
+              : { icon: 'fa-triangle-exclamation', text: tp('admin_ai.check_models_no_ids', 'Model list: API did not return readable model ids') },
+            modelExists
+              ? { icon: 'fa-circle-check', text: tp('admin_ai.check_default_model_found', 'Default model: found') }
+              : { icon: 'fa-triangle-exclamation', text: tp('admin_ai.check_default_model_missing_prefix', 'Default model not found: ') + model },
+            embeddingsConfigured
+              ? { icon: 'fa-circle-check', text: tp('admin_ai.check_embeddings_ok', 'Embeddings: endpoint configured') }
+              : { icon: 'fa-circle-xmark', text: tp('admin_ai.check_embeddings_bad', 'Embeddings: endpoint must start with `/`') },
+            payload.capabilities && payload.capabilities.streaming
+              ? { icon: 'fa-circle-check', text: tp('admin_ai.check_streaming_on', 'Streaming responses: enabled') }
+              : { icon: 'fa-triangle-exclamation', text: tp('admin_ai.check_streaming_off', 'Streaming responses: disabled') },
+            payload.capabilities && payload.capabilities.vision
+              ? { icon: 'fa-circle-check', text: tp('admin_ai.check_vision_on', 'Image support: enabled') }
+              : { icon: 'fa-triangle-exclamation', text: tp('admin_ai.check_vision_warn', 'Image support may not be supported by the model') },
+            payload.capabilities && payload.capabilities.tools
+              ? { icon: 'fa-circle-check', text: tp('admin_ai.check_tools_on', 'Tools: enabled') }
+              : { icon: 'fa-circle-xmark', text: tp('admin_ai.check_tools_off', 'Tools are disabled in connection settings') }
           ];
           if (testStateNode) {
             testStateNode.textContent = tp('admin_ai.status_prefix', 'Status: ') + status + ' • ' + tp('admin_ai.latency_prefix', 'Latency: ') + latency + ' • ' + tp('admin_ai.model_cap_prefix', 'Model: ') + model
@@ -23587,7 +23604,7 @@ window.CRM.pageApiBindings = (function () {
           }
           if (testChecklistNode) {
             testChecklistNode.innerHTML = lines.map(function (line) {
-              return '<div>' + safeText(line) + '</div>';
+              return '<div><i class="fa-solid ' + line.icon + ' me-1" aria-hidden="true"></i>' + safeText(line.text) + '</div>';
             }).join('');
           }
           notify(tp('admin_ai.connection_test_done', 'Connection test completed'));
@@ -23598,7 +23615,7 @@ window.CRM.pageApiBindings = (function () {
           var hint = providerTestFailureHint(errorCode);
           if (testStateNode) testStateNode.textContent = tp('admin_ai.status_error_code_prefix', 'Status: error • Code: ') + errorCode + ' • ' + hint;
           if (testChecklistNode) {
-            testChecklistNode.innerHTML = '<div>' + safeText(tp('admin_ai.connection_test_failed_line', '❌ Connection test failed')) + '</div><div class="text-muted">' + safeText(errorMessage) + '</div><div class="text-muted">' + safeText(hint) + '</div>';
+            testChecklistNode.innerHTML = '<div><i class="fa-solid fa-circle-xmark me-1" aria-hidden="true"></i>' + safeText(tp('admin_ai.connection_test_failed_line', 'Connection test failed')) + '</div><div class="text-muted">' + safeText(errorMessage) + '</div><div class="text-muted">' + safeText(hint) + '</div>';
           }
           notify(hint, 'error');
         }

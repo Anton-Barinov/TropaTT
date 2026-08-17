@@ -61,7 +61,7 @@
       <section class="crm-card mb-3">
         <div class="crm-pr-card-head">
           <h2 class="h6 mb-0" data-i18n="project_detail.section_about"><?= htmlspecialchars($t('project_detail.section_about', 'О проекте'), ENT_QUOTES, 'UTF-8') ?></h2>
-          <button class="crm-inline-icon-btn" type="button" data-open-modal="projectEditModal" aria-label="<?= htmlspecialchars($t('project_detail.btn_edit', 'Редактировать'), ENT_QUOTES, 'UTF-8') ?>" title="<?= htmlspecialchars($t('project_detail.btn_edit', 'Редактировать'), ENT_QUOTES, 'UTF-8') ?>"><span aria-hidden="true">✏️</span></button>
+          <button class="crm-inline-icon-btn" type="button" data-open-modal="projectEditModal" aria-label="<?= htmlspecialchars($t('project_detail.btn_edit', 'Редактировать'), ENT_QUOTES, 'UTF-8') ?>" title="<?= htmlspecialchars($t('project_detail.btn_edit', 'Редактировать'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-pen" aria-hidden="true"></i></button>
         </div>
         <div id="projectEditAccessNote" class="alert alert-secondary py-2" data-i18n="project_detail.edit_access_note"><?= htmlspecialchars($t('project_detail.edit_access_note', 'Права редактирования проверяются...'), ENT_QUOTES, 'UTF-8') ?></div>
         <div class="crm-pr-id-grid" id="projectAboutGrid"><div class="text-muted" data-i18n="project_detail.loading_parameters"><?= htmlspecialchars($t('project_detail.loading_parameters', 'Загрузка параметров проекта...'), ENT_QUOTES, 'UTF-8') ?></div></div>
