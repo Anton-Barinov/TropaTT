@@ -41,7 +41,7 @@ return [
     // Saved Views on tasks page
     'views_btn' => 'Представления',
     'views_aria' => 'Сохранённые представления',
-    'views_save_current' => '💾 Сохранить текущие фильтры',
+    'views_save_current' => 'Сохранить текущие фильтры',
     'views_modal_title' => 'Сохранить представление',
     'views_name_label' => 'Название',
     'views_name_placeholder' => 'Мои задачи',

@@ -37,7 +37,7 @@ return [
     'th_key' => '键',
     'views_btn' => '视图',
     'views_aria' => '已保存视图',
-    'views_save_current' => '💾 保存当前筛选器',
+    'views_save_current' => '保存当前筛选器',
     'views_modal_title' => '保存视图',
     'views_name_label' => '名称',
     'views_name_placeholder' => '我的任务',

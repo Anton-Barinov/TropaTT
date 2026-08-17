@@ -37,7 +37,7 @@ return [
     'th_key' => 'Schlüssel',
     'views_btn' => 'Ansichten',
     'views_aria' => 'Gespeicherte Ansichten',
-    'views_save_current' => '💾 Aktuelle Filter speichern',
+    'views_save_current' => 'Aktuelle Filter speichern',
     'views_modal_title' => 'Ansicht speichern',
     'views_name_label' => 'Name',
     'views_name_placeholder' => 'Meine Aufgaben',

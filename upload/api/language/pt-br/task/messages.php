@@ -37,7 +37,7 @@ return [
     'th_key' => 'Chave',
     'views_btn' => 'Visualizações',
     'views_aria' => 'Visualizações salvas',
-    'views_save_current' => '💾 Salvar filtros atuais',
+    'views_save_current' => 'Salvar filtros atuais',
     'views_modal_title' => 'Salvar visualização',
     'views_name_label' => 'Nome',
     'views_name_placeholder' => 'Minhas tarefas',

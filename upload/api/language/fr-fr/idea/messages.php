@@ -245,7 +245,7 @@ JSON :',
 
 Vous recevrez :
 1. existing_understanding_card — fiche collectée précédemment
-2. all_questions_and_answers — TOUTES les questions et réponses (y compris celles clarifiées marquées 🔍)
+2. all_questions_and_answers — TOUTES les questions et réponses (y compris celles clarifiées marquées comme clarifiées)
 3. Données de l\'idée
 
 Votre tâche : reconstruire la fiche en intégrant les nouvelles réponses.

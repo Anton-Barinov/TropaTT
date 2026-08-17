@@ -835,7 +835,7 @@ function _refreshDebug(){
     h+='<?= htmlspecialchars($t('ideas.debug_questions_count', 'Вопросов: '), ENT_QUOTES, 'UTF-8') ?>'+(d.questions_count||0)+' | <?= htmlspecialchars($t('ideas.debug_analyses_count', 'Анализов: '), ENT_QUOTES, 'UTF-8') ?>'+(d.analyses_count||0)+' | <?= htmlspecialchars($t('ideas.debug_iterations_count', 'Итераций: '), ENT_QUOTES, 'UTF-8') ?>'+(d.iterations_count||0)+'\n';
     h+='<?= htmlspecialchars($t('ideas.debug_snapshot', 'Снимок: '), ENT_QUOTES, 'UTF-8') ?>'+(d.snapshot_at||'')+'\n\n';
     h+='<?= htmlspecialchars($t('ideas.debug_heading_questions', '=== ВОПРОСЫ ==='), ENT_QUOTES, 'UTF-8') ?>'+"\n";
-    (d.questions||[]).forEach(function(q,i){h+=(i+1)+'. ['+(q.has_answer?'✓':'✗')+'] '+q.text+(q.answer?' → '+q.answer:'')+'\n';});
+    (d.questions||[]).forEach(function(q,i){h+=(i+1)+'. ['+(q.has_answer?'[answered]':'[unanswered]')+'] '+q.text+(q.answer?' → '+q.answer:'')+'\n';});
     h+='\n<?= htmlspecialchars($t('ideas.debug_heading_iterations', '=== AI-ИТЕРАЦИИ ==='), ENT_QUOTES, 'UTF-8') ?>'+"\n";
     (d.iterations||[]).forEach(function(it,i){
       h+='--- #'+it.iteration+' '+it.type+' '+it.created+' ---\n';
@@ -843,7 +843,7 @@ function _refreshDebug(){
       h+='RES ('+it.res_size+'B): '+(it.res_preview||'—')+'\n';
     });
     h+='\n<?= htmlspecialchars($t('ideas.debug_heading_analyses', '=== АНАЛИЗЫ ==='), ENT_QUOTES, 'UTF-8') ?>'+"\n";
-    (d.analyses||[]).forEach(function(a,i){h+=(i+1)+'. '+a.type+' ['+a.status+'] '+(a.has_result?'✓':'✘')+' '+(a.created||'')+'\n';});
+    (d.analyses||[]).forEach(function(a,i){h+=(i+1)+'. '+a.type+' ['+a.status+'] '+(a.has_result?'[result]':'[no result]')+' '+(a.created||'')+'\n';});
     document.getElementById('debugLog').textContent=h;
     document.getElementById('debugRefreshed').textContent=new Date().toLocaleTimeString('ru-RU');
   }).catch(function(){document.getElementById('debugLog').textContent='<?= htmlspecialchars($t('ideas.state_error_loading_logs', 'Ошибка загрузки логов'), ENT_QUOTES, 'UTF-8') ?>';});

@@ -246,7 +246,7 @@ JSON:
 
 You will receive:
 1. existing_understanding_card — card collected earlier
-2. all_questions_and_answers — ALL questions and answers (including clarified ones marked 🔍)
+2. all_questions_and_answers — ALL questions and answers (including clarified ones marked as clarified)
 3. Idea data
 
 Your task: rebuild the card incorporating new answers.

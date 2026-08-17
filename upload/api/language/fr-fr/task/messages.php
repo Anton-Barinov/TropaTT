@@ -37,7 +37,7 @@ return [
     'th_key' => 'Clé',
     'views_btn' => 'Vues',
     'views_aria' => 'Vues enregistrées',
-    'views_save_current' => '💾 Enregistrer les filtres actuels',
+    'views_save_current' => 'Enregistrer les filtres actuels',
     'views_modal_title' => 'Enregistrer la vue',
     'views_name_label' => 'Nom',
     'views_name_placeholder' => 'Mes tâches',

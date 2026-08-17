@@ -37,7 +37,7 @@ return [
     'th_key' => 'Key',
     'views_btn' => 'Views',
     'views_aria' => 'Saved views',
-    'views_save_current' => '💾 Save current filters',
+    'views_save_current' => 'Save current filters',
     'views_modal_title' => 'Save view',
     'views_name_label' => 'Name',
     'views_name_placeholder' => 'My tasks',

@@ -1583,7 +1583,7 @@ PROMPT;
                 $answerOptions = $this->normalizeAiAnswerOptions($q['answers'] ?? []);
                 $normalizedOpts = array_map(fn($o) => ['key' => $o['value'], 'label' => $o['label'], 'description' => null], $answerOptions);
                 $dim = $q['dimension'] ?? 'gap';
-                $qt = '🔍 ' . ($q['question'] ?? '');
+                $qt = (string)($q['question'] ?? '');
                 $pdo->prepare("INSERT INTO idea_questions (public_id, idea_id, cycle_id, question_text, reason, question_type, options_json, allow_custom, allow_unknown, required, dimension, impact, sort_order, created_at) VALUES (:pid, :iid, :cycle, :qt, :reason, 'multiple_choice', :opts, 1, 1, 0, :dim, 'medium', :sort, NOW())")
                     ->execute(['pid' => $qId, 'iid' => $ideaId, 'cycle' => $cycleId, 'qt' => $qt, 'reason' => $q['why'] ?? '', 'opts' => json_encode($normalizedOpts, JSON_UNESCAPED_UNICODE), 'dim' => $dim, 'sort' => $idx]);
                 $q['public_id'] = $qId;

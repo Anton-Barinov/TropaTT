@@ -7,7 +7,6 @@
     <div>
       <ol class="breadcrumb mb-1"><li class="breadcrumb-item"><a href="index.php?route=dashboard"><?= htmlspecialchars($t('page.home', 'Главная'), ENT_QUOTES, 'UTF-8') ?></a></li><li class="breadcrumb-item active"><?= htmlspecialchars($t('my_day.page_title', 'Мой день'), ENT_QUOTES, 'UTF-8') ?></li></ol>
       <h1 class="crm-page-title"><?= htmlspecialchars($t('my_day.page_title', 'Мой день'), ENT_QUOTES, 'UTF-8') ?></h1>
-      <p class="crm-subtitle"><?= htmlspecialchars($t('my_day.subtitle', 'Задачи, события и напоминания на сегодня.'), ENT_QUOTES, 'UTF-8') ?></p>
     </div>
     <div class="crm-page-actions crm-planner-actions">
       <button class="btn crm-btn-secondary" type="button" data-open-modal="calendarEventModal"><?= htmlspecialchars($t('my_day.create_event', 'Создать событие'), ENT_QUOTES, 'UTF-8') ?></button>

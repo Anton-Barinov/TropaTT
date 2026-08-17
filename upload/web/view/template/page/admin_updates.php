@@ -662,7 +662,8 @@ $auJs = [
     if (!control || !icon) return;
     const normalized = kind || 'neutral';
     control.dataset.kind = normalized;
-    icon.textContent = normalized === 'ok' ? '✓' : (normalized === 'danger' ? '!' : (normalized === 'warn' ? '↑' : '?'));
+    var iconClass = normalized === 'ok' ? 'fa-circle-check' : (normalized === 'danger' ? 'fa-circle-xmark' : (normalized === 'warn' ? 'fa-triangle-exclamation' : 'fa-circle-question'));
+    icon.innerHTML = '<i class="fa-solid ' + iconClass + '" aria-hidden="true"></i>';
   }
 
   function updateCenterStatus() {

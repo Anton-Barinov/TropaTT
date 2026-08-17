@@ -246,7 +246,7 @@ JSON:
 
 Recibirás:
 1. existing_understanding_card — tarjeta recopilada anteriormente
-2. all_questions_and_answers — TODAS las preguntas y respuestas (incluyendo las aclaradas marcadas con 🔍)
+2. all_questions_and_answers — TODAS las preguntas y respuestas (incluyendo las aclaradas marcadas como aclaradas)
 3. Datos de la idea
 
 Tu tarea: reconstruir la tarjeta incorporando nuevas respuestas.

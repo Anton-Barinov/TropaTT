@@ -37,7 +37,7 @@ return [
     'th_key' => 'Clave',
     'views_btn' => 'Vistas',
     'views_aria' => 'Vistas guardadas',
-    'views_save_current' => '💾 Guardar filtros actuales',
+    'views_save_current' => 'Guardar filtros actuales',
     'views_modal_title' => 'Guardar vista',
     'views_name_label' => 'Nombre',
     'views_name_placeholder' => 'Mis tareas',

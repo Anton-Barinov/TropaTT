@@ -13427,6 +13427,87 @@ a.task-tag:hover {
     }
 }
 
+/* Final planner grid: one shared 8/4 structure on desktop, one column below lg. */
+.crm-planner-page {
+    max-width: none;
+}
+
+.crm-planner-page .crm-planner-overview {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+    gap: var(--space-4, 1rem);
+    width: 100%;
+    align-items: start;
+}
+
+.crm-planner-page .crm-planner-primary,
+.crm-planner-page .crm-planner-aside {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4, 1rem);
+    min-width: 0;
+    width: 100%;
+}
+
+.crm-planner-page .crm-planner-primary > *,
+.crm-planner-page .crm-planner-aside > * {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+}
+
+.crm-planner-page .crm-planner-ai-card,
+.crm-planner-page .crm-planner-summary-card,
+.crm-planner-page .crm-planner-mini-card,
+.crm-planner-page .crm-planner-task-card,
+.crm-planner-page .crm-planner-overdue-section {
+    box-shadow: var(--crm-shadow-card);
+}
+
+.crm-planner-page .crm-planner-actions .btn {
+    min-height: 38px;
+    height: 38px;
+    padding-inline: 14px;
+}
+
+.crm-planner-page .crm-table-wrap {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.crm-planner-page .crm-table {
+    min-width: 0;
+}
+
+@media (max-width: 991px) {
+    .crm-planner-page .crm-planner-overview {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .crm-planner-page .crm-planner-aside {
+        display: flex;
+    }
+}
+
+@media (max-width: 575px) {
+    .crm-planner-page .crm-page-head {
+        gap: 12px;
+    }
+
+    .crm-planner-page .crm-planner-toolbar {
+        width: 100%;
+    }
+
+    .crm-planner-page .crm-planner-switch {
+        width: 100%;
+    }
+
+    .crm-planner-page .crm-planner-switch-item {
+        flex: 1 1 0;
+    }
+}
+
 [data-sort] {
     cursor: pointer;
     user-select: none;
