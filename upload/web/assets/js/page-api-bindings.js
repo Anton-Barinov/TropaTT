@@ -1338,6 +1338,24 @@ window.CRM.pageApiBindings = (function () {
       return window.CRM.i18n.t('js.pab.no_team_assigned', 'No team assigned');
     }
 
+    function resolveProjectManagerLabel(item) {
+      return String(item && item.manager_user_name || '').trim();
+    }
+
+    function projectProgressHtml(item) {
+      var total = Number(item && item.total_tasks_count || 0);
+      var done = Number(item && item.done_tasks_count || 0);
+      var pct = Number(item && item.progress_percent || 0);
+      var countText = total > 0
+        ? done + ' / ' + total
+        : window.CRM.i18n.t('js.pab.no_tasks', 'No tasks');
+      return '<div class="crm-project-progress" role="progressbar" aria-valuenow="' + pct + '" aria-valuemin="0" aria-valuemax="100">'
+        + '<div class="crm-project-progress-track"><span class="crm-project-progress-fill" style="width:' + pct + '%"></span></div>'
+        + '<span class="crm-project-progress-text">' + safeText(String(pct)) + '%</span>'
+        + '<span class="crm-project-progress-count">' + safeText(countText) + '</span>'
+        + '</div>';
+    }
+
     function applyFilters(list) {
       return list.filter(function (item) {
         if (state.status && String(item.status_code || '') !== state.status) return false;
@@ -1374,6 +1392,7 @@ window.CRM.pageApiBindings = (function () {
         + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.priority', 'Priority') + '</small><div>' + safeText(priorityLabel(project.priority_code || 'normal')) + '</div></div>'
         + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.client', 'Client') + '</small><div>' + safeText(resolveProjectClientLabel(project)) + '</div></div>'
         + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.team', 'Team') + '</small><div>' + safeText(resolveProjectTeamLabel(project)) + '</div></div>'
+        + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.manager', 'Manager') + '</small><div>' + safeText(resolveProjectManagerLabel(project) || window.CRM.i18n.t('js.pab.no_manager_assigned', 'No manager assigned')) + '</div></div>'
         + '<div class="crm-metric-tile"><small class="text-muted">' + window.CRM.i18n.t('js.pab.updated', 'Updated') + '</small><div>' + safeText(formatDate(project.updated_at)) + '</div></div>'
         + '<div class="mt-3"><a class="btn btn-sm crm-btn-primary" href="' + openLink + '">' + window.CRM.i18n.t('js.pab.open_project', 'Open project') + '</a></div>';
     }
@@ -1821,9 +1840,17 @@ window.CRM.pageApiBindings = (function () {
       });
     }
 
+    var hasActiveProjectFilters = Boolean(state.search || state.status || state.priority || state.clientPublicId || state.managerPublicId || state.teamPublicId);
+    var projectEmptyStateHtml = '<div class="col-12"><div class="crm-empty-state">'
+      + '<strong>' + window.CRM.i18n.t('js.pab.no_projects_yet', 'No projects yet') + '</strong>'
+      + '<p class="mb-3">' + window.CRM.i18n.t('js.pab.no_projects_yet_text', 'Create your first project to start planning the work.') + '</p>'
+      + '<button class="btn crm-btn-primary" type="button" data-open-modal="createProjectModal">' + window.CRM.i18n.t('js.pab.create_project', 'Create project') + '</button>'
+      + '</div></div>';
+    var projectNoResultsHtml = '<div class="col-12"><div class="crm-card"><div class="text-muted">' + window.CRM.i18n.t('js.pab.no_projects_for_filters', 'No projects found for selected filters.') + '</div></div></div>';
+
     if (list) {
       if (!filtered.length) {
-        list.innerHTML = '<div class="col-12"><div class="crm-card"><div class="text-muted">' + window.CRM.i18n.t('js.pab.no_projects_for_filters', 'No projects found for selected filters.') + '</div></div></div>';
+        list.innerHTML = hasActiveProjectFilters ? projectNoResultsHtml : projectEmptyStateHtml;
       } else {
         list.innerHTML = filtered.map(function (item) {
         var link = 'index.php?route=project-detail&project_public_id=' + encodeURIComponent(item.public_id);
@@ -1835,11 +1862,17 @@ window.CRM.pageApiBindings = (function () {
         var projectMetaLine = projectMetaParts.length
           ? '<p class="crm-project-card-subtitle text-muted mb-2">' + safeText(projectMetaParts.join(' · ')) + '</p>'
           : '<p class="crm-project-card-subtitle crm-project-card-subtitle-muted mb-2">' + window.CRM.i18n.t('js.pab.no_client_team_assigned', 'Client and team not assigned yet') + '</p>';
+        var managerLabel = resolveProjectManagerLabel(item);
+        var managerChip = managerLabel
+          ? '<span class="crm-chip">' + window.CRM.i18n.t('js.pab.manager', 'Manager') + ': ' + safeText(managerLabel) + '</span>'
+          : '';
         return '<div class="col-lg-4"><article class="crm-card crm-card-hover">'
           + '<div class="d-flex justify-content-between"><h2 class="h6 mb-1">' + safeText(item.title) + '</h2>'
           + '<span class="crm-badge ' + statusClass(item.status_code) + '">' + safeText(projectStatusLabel(item.status_code)) + '</span></div>'
           + projectMetaLine
+          + projectProgressHtml(item)
           + '<div class="crm-project-card-meta"><span class="crm-chip">' + window.CRM.i18n.t('js.pab.priority_prefix', 'Priority:') + ' ' + safeText(priorityLabel(item.priority_code || 'normal')) + '</span>'
+          + managerChip
           + '<span class="crm-chip">' + window.CRM.i18n.t('js.pab.updated_prefix', 'Updated:') + ' ' + safeText(formatDate(item.updated_at)) + '</span></div>'
           + '<div class="crm-project-card-actions"><a class="btn btn-sm crm-btn-primary" href="' + link + '">' + window.CRM.i18n.t('js.pab.open', 'Open') + '</a><button class="btn btn-sm crm-btn-secondary" data-project-preview="' + safeText(item.public_id) + '">' + window.CRM.i18n.t('js.pab.preview', 'Preview') + '</button></div>'
           + '</article></div>';
@@ -1850,7 +1883,9 @@ window.CRM.pageApiBindings = (function () {
     var table = document.querySelector('.crm-card.table-responsive table.crm-table tbody');
     if (table) {
       if (!filtered.length) {
-        table.innerHTML = '<tr><td colspan="6" class="text-muted">' + window.CRM.i18n.t('js.pab.no_projects_for_filters', 'No projects found for selected filters.') + '</td></tr>';
+        table.innerHTML = hasActiveProjectFilters
+          ? '<tr><td colspan="6" class="text-muted">' + window.CRM.i18n.t('js.pab.no_projects_for_filters', 'No projects found for selected filters.') + '</td></tr>'
+          : '<tr><td colspan="6"><div class="crm-empty-state crm-empty-state-compact"><strong>' + window.CRM.i18n.t('js.pab.no_projects_yet', 'No projects yet') + '</strong><button class="btn crm-btn-primary btn-sm mt-2" type="button" data-open-modal="createProjectModal">' + window.CRM.i18n.t('js.pab.create_project', 'Create project') + '</button></div></td></tr>';
       } else {
         table.innerHTML = filtered.map(function (item) {
         var link = 'index.php?route=project-detail&project_public_id=' + encodeURIComponent(item.public_id);
@@ -1858,10 +1893,11 @@ window.CRM.pageApiBindings = (function () {
           + '<td><input class="form-check-input" type="checkbox" data-project-bulk-id="' + safeText(item.public_id || '') + '"></td>'
           + '<td class="crm-pr-title"><a href="' + link + '">' + safeText(item.title) + '</a></td>'
           + '<td><span class="crm-badge ' + statusClass(item.status_code) + '">' + safeText(projectStatusLabel(item.status_code)) + '</span></td>'
-          + '<td>' + safeText((item.progress_percent || 0) + '%') + '</td>'
+          + '<td class="crm-pr-progress">' + projectProgressHtml(item) + '</td>'
           + '<td class="crm-pr-client-team">'
           + '<div class="crm-pr-line">' + safeText(resolveProjectClientLabel(item)) + '</div>'
           + '<div class="crm-pr-line">' + safeText(resolveProjectTeamLabel(item)) + '</div>'
+          + (resolveProjectManagerLabel(item) ? '<div class="crm-pr-line crm-pr-line-muted">' + safeText(resolveProjectManagerLabel(item)) + '</div>' : '')
           + '</td>'
           + '<td>' + safeText(formatDate(item.updated_at)) + '</td>'
           + '</tr>';

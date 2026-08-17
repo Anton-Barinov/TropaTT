@@ -45,6 +45,11 @@ final class ProjectRepository
                 'mu.full_name AS manager_user_name',
                 't.title AS team_title',
                 'c.title AS client_title',
+                // Live progress for the projects list: total / done tasks per
+                // project. "done" mirrors ProjectSummaryRepository (status_code
+                // = 'done'), and archived/deleted tasks are excluded.
+                "(SELECT COUNT(*) FROM tasks tk WHERE tk.project_id = p.id AND tk.deleted_at IS NULL AND tk.archived_at IS NULL) AS total_tasks_count",
+                "(SELECT COUNT(*) FROM tasks tk WHERE tk.project_id = p.id AND tk.deleted_at IS NULL AND tk.archived_at IS NULL AND tk.status_code = 'done') AS done_tasks_count",
             ])
             ->orderBy('p.' . $sort, $order)
             ->orderBy('p.public_id', $order);

@@ -36,6 +36,17 @@ final class ProjectService
         );
 
         $items = (array)($result['items'] ?? []);
+        // Normalize the per-project task counters computed by the repository and
+        // derive the progress percentage shown in the projects list/cards.
+        foreach ($items as &$item) {
+            $total = (int)($item['total_tasks_count'] ?? 0);
+            $done = (int)($item['done_tasks_count'] ?? 0);
+            $item['total_tasks_count'] = $total;
+            $item['done_tasks_count'] = $done;
+            $item['open_tasks_count'] = max(0, $total - $done);
+            $item['progress_percent'] = $total > 0 ? (int)round(($done / $total) * 100) : 0;
+        }
+        unset($item);
         $mode = (string)($result['mode'] ?? 'offset');
         $limit = (int)($result['limit'] ?? 20);
         $total = isset($result['total']) ? (int)$result['total'] : null;

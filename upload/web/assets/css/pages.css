@@ -3111,6 +3111,48 @@ font-size: 0.72rem;
   font-size: 0.94rem;
 }
 
+.crm-projects-page .crm-project-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 120px;
+}
+
+.crm-projects-page #projectsDynamicList .crm-project-progress {
+  margin: 0.4rem 0 0.6rem;
+}
+
+.crm-projects-page .crm-project-progress-track {
+  flex: 1 1 auto;
+  min-width: 48px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--crm-surface-2);
+  overflow: hidden;
+}
+
+.crm-projects-page .crm-project-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--crm-primary);
+  transition: width .2s ease;
+}
+
+.crm-projects-page .crm-project-progress-text {
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--crm-text);
+  min-width: 2.4rem;
+  text-align: right;
+}
+
+.crm-projects-page .crm-project-progress-count {
+  font-size: 0.75rem;
+  color: var(--crm-text-muted);
+  white-space: nowrap;
+}
+
 .crm-tasks-page .crm-table tbody td {
   padding-top: 0.74rem;
   padding-bottom: 0.74rem;
@@ -4601,6 +4643,10 @@ body.modal-open {
 
 .crm-projects-page table.crm-table .crm-pr-line + .crm-pr-line {
   margin-top: 0.3rem;
+}
+
+.crm-projects-page table.crm-table .crm-pr-line-muted {
+  color: var(--crm-text-muted);
 }
 
 .crm-counterparties-page #counterpartiesTable .crm-counterparty-name-link:hover,
