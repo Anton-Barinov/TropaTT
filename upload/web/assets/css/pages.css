@@ -8389,6 +8389,53 @@ body.modal-open {
   padding: 1rem 1.25rem;
 }
 
+.crm-chat-older {
+  display: flex;
+  justify-content: center;
+  padding: 0 0 0.75rem;
+}
+
+.crm-chat-older-btn {
+  border: 1px solid var(--crm-border);
+  background: var(--crm-surface);
+  color: var(--crm-accent-strong);
+  border-radius: 999px;
+  padding: 0.3rem 0.9rem;
+  font-size: 0.78rem;
+}
+
+.crm-chat-older-btn:hover {
+  background: var(--crm-surface-2);
+}
+
+.crm-chat-older-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.crm-chat-older-end {
+  color: var(--crm-text-soft);
+  font-size: 0.74rem;
+}
+
+.crm-chat-new-messages {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.25rem 0 0.75rem;
+  color: var(--crm-accent-strong);
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.crm-chat-new-messages::before,
+.crm-chat-new-messages::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--crm-border);
+}
+
 .crm-chat-message {
   max-width: min(680px, 84%);
   margin-bottom: 0.75rem;

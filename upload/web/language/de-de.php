@@ -2244,6 +2244,14 @@ return array (
     'create_task_success_text' => 'Die Aufgabe wurde erstellt und mit diesem Dialog verknüpft.',
     'create_task_open_btn' => 'Aufgabe öffnen',
     'create_task_error' => 'Fehler beim Erstellen der Aufgabe. Bitte erneut versuchen.',
+    'load_older' => 'Frühere Nachrichten anzeigen',
+    'loading_older' => 'Laden...',
+    'no_more_messages' => 'Beginn der Unterhaltung',
+    'new_messages' => 'Neue Nachrichten',
+    'btn_copy' => 'Kopieren',
+    'btn_copy_title' => 'Nachricht kopieren',
+    'btn_copy_aria' => 'Nachricht kopieren',
+    'msg_copied' => 'Kopiert',
   ),
   'client_cabinet' => 
   array (

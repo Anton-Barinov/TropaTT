@@ -2244,6 +2244,14 @@ return array (
     'create_task_success_text' => 'La tâche a été créée et liée à cette discussion.',
     'create_task_open_btn' => 'Ouvrir la tâche',
     'create_task_error' => 'Échec de la création de la tâche. Réessayez.',
+    'load_older' => 'Afficher les messages précédents',
+    'loading_older' => 'Chargement...',
+    'no_more_messages' => 'Début de la conversation',
+    'new_messages' => 'Nouveaux messages',
+    'btn_copy' => 'Copier',
+    'btn_copy_title' => 'Copier le message',
+    'btn_copy_aria' => 'Copier le message',
+    'msg_copied' => 'Copié',
   ),
   'client_cabinet' => 
   array (

@@ -6110,6 +6110,14 @@ return array (
     'create_task_success_text' => 'The task was created and linked to this discussion.',
     'create_task_open_btn' => 'Open task',
     'create_task_error' => 'Failed to create task. Please try again.',
+    'load_older' => 'Show earlier messages',
+    'loading_older' => 'Loading...',
+    'no_more_messages' => 'Start of conversation',
+    'new_messages' => 'New messages',
+    'btn_copy' => 'Copy',
+    'btn_copy_title' => 'Copy message',
+    'btn_copy_aria' => 'Copy message',
+    'msg_copied' => 'Copied',
   ),
   'notifications' => 
   array (

@@ -2244,6 +2244,14 @@ return array (
     'create_task_success_text' => 'A tarefa foi criada e vinculada a este diálogo.',
     'create_task_open_btn' => 'Abrir tarefa',
     'create_task_error' => 'Erro ao criar a tarefa. Tente novamente.',
+    'load_older' => 'Mostrar mensagens anteriores',
+    'loading_older' => 'Carregando...',
+    'no_more_messages' => 'Início da conversa',
+    'new_messages' => 'Novas mensagens',
+    'btn_copy' => 'Copiar',
+    'btn_copy_title' => 'Copiar mensagem',
+    'btn_copy_aria' => 'Copiar mensagem',
+    'msg_copied' => 'Copiado',
   ),
   'client_cabinet' => 
   array (

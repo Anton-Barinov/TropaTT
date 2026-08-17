@@ -6128,6 +6128,14 @@ return array (
     'create_task_success_text' => '任务已创建并关联到此对话。',
     'create_task_open_btn' => '打开任务',
     'create_task_error' => '创建任务失败，请重试。',
+    'load_older' => '显示更早的消息',
+    'loading_older' => '加载中...',
+    'no_more_messages' => '对话开始',
+    'new_messages' => '新消息',
+    'btn_copy' => '复制',
+    'btn_copy_title' => '复制消息',
+    'btn_copy_aria' => '复制消息',
+    'msg_copied' => '已复制',
   ),
   'notifications' => 
   array (

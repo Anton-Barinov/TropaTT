@@ -84,6 +84,9 @@
   var pollingMessages = false;
   var pollingChats = false;
   var lastMessageId = 0;
+  var oldestMessageId = 0;
+  var allOlderLoaded = false;
+  var loadingOlder = false;
   var messageRevisionTick = 0;
   var chatListPollTick = 0;
   var emojiSet = ['👍','👌','🙏','🔥','✅','⚡','🙂','🤝','💡','📌','👀','🚀'];
@@ -274,6 +277,88 @@
     }, lastMessageId || 0);
   }
 
+  function updateOldestMessageId(messages) {
+    (messages || []).forEach(function (message) {
+      var id = messageNumericId(message);
+      if (id > 0 && (oldestMessageId === 0 || id < oldestMessageId)) oldestMessageId = id;
+    });
+  }
+
+  function renderOlderBarHtml() {
+    if (allOlderLoaded) {
+      return '<span class="crm-chat-older-end">' + window.CRM.i18n.t('chat.no_more_messages', 'Начало переписки') + '</span>';
+    }
+    return '<button type="button" id="loadOlderBtn" class="crm-chat-older-btn">' + window.CRM.i18n.t('chat.load_older', 'Показать более ранние сообщения') + '</button>';
+  }
+
+  function bindOlderBar() {
+    var btn = document.getElementById('loadOlderBtn');
+    if (btn) btn.addEventListener('click', loadOlderMessages);
+  }
+
+  function refreshOlderBar() {
+    var bar = document.getElementById('chatOlderBar');
+    if (!bar) return;
+    bar.innerHTML = renderOlderBarHtml();
+    bindOlderBar();
+  }
+
+  function prependMessages(messages) {
+    var box = document.getElementById('msgArea');
+    if (!box || !messages.length) return;
+    currentMessages = messages.concat(currentMessages);
+    updateLastMessageId(messages);
+    updateOldestMessageId(messages);
+    var html = messages.map(renderMessage).join('');
+    var bar = document.getElementById('chatOlderBar');
+    if (bar) {
+      bar.insertAdjacentHTML('afterend', html);
+    } else {
+      box.insertAdjacentHTML('afterbegin', html);
+    }
+    bindMessageActions(box);
+  }
+
+  async function loadOlderMessages() {
+    if (!selectedChatId || loadingOlder || allOlderLoaded || !oldestMessageId) return;
+    loadingOlder = true;
+    var box = document.getElementById('msgArea');
+    var btn = document.getElementById('loadOlderBtn');
+    var scrollHeightBefore = box ? box.scrollHeight : 0;
+    if (btn) { btn.disabled = true; btn.textContent = window.CRM.i18n.t('chat.loading_older', 'Загрузка...'); }
+    try {
+      var env = await request('api/v1/chats/' + encodeURIComponent(selectedChatId) + '/messages', { method: 'GET', query: { before_id: oldestMessageId, limit: 50 } });
+      var items = (env.data && env.data.items) || [];
+      if (items.length < 50) allOlderLoaded = true;
+      if (items.length) {
+        prependMessages(items);
+        if (box) box.scrollTop += box.scrollHeight - scrollHeightBefore;
+      }
+      refreshOlderBar();
+    } catch (error) {
+      if (btn) { btn.disabled = false; btn.textContent = window.CRM.i18n.t('chat.load_older', 'Показать более ранние сообщения'); }
+    } finally {
+      loadingOlder = false;
+    }
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try { document.execCommand('copy'); resolve(); } catch (error) { reject(error); }
+      document.body.removeChild(ta);
+    });
+  }
+
   function messageRevisionKey(message) {
     return [
       message && message.public_id || '',
@@ -299,7 +384,7 @@
          + (message.reply_public_id ? '<button type="button" class="crm-chat-quote" data-scroll-message="' + esc(message.reply_public_id) + '" title="' + window.CRM.i18n.t('chat.btn_scroll_title', 'Перейти к исходному сообщению') + '" aria-label="' + window.CRM.i18n.t('chat.btn_scroll_aria', 'Перейти к исходному сообщению') + '">' + renderReplyQuote(message) + '</button>' : '')
         + (deleted ? '<p class="crm-chat-deleted-text">' + window.CRM.i18n.t('chat.msg_deleted', 'Сообщение удалено') + '</p>' : '<p>' + renderMessageText(message.text || '') + '</p>')
         + renderAttachments(Array.isArray(message.attachments) ? message.attachments : [])
-        + '<div class="crm-chat-message-foot">' + (message.edited_at && !deleted ? '<span>' + window.CRM.i18n.t('chat.msg_edited', 'изменено') + '</span>' : '') + '<button type="button" data-reply-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_reply_title', 'Ответить на сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_reply_aria', 'Ответить на сообщение') + '">' + window.CRM.i18n.t('chat.btn_reply', 'Ответить') + '</button>' + (canEdit ? '<button type="button" data-edit-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_edit_title', 'Изменить сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_edit_aria', 'Изменить сообщение') + '">' + window.CRM.i18n.t('chat.btn_edit', 'Изменить') + '</button><button type="button" data-delete-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_delete_title', 'Удалить сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_delete_aria', 'Удалить сообщение') + '">' + window.CRM.i18n.t('chat.btn_delete', 'Удалить') + '</button>' : '') + '<button type="button" data-create-knowledge="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_create_knowledge_title', 'Создать страницу из сообщения') + '" aria-label="' + window.CRM.i18n.t('chat.btn_create_knowledge_aria', 'Создать страницу из сообщения') + '">' + window.CRM.i18n.t('chat.btn_create_knowledge', 'Создать страницу') + '</button>' + '<button type="button" data-create-task="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_create_task_title', 'Создать задачу из сообщения') + '" aria-label="' + window.CRM.i18n.t('chat.btn_create_task_aria', 'Создать задачу из сообщения') + '">' + window.CRM.i18n.t('chat.btn_create_task', 'Создать задачу') + '</button></div></article>';
+        + '<div class="crm-chat-message-foot">' + (message.edited_at && !deleted ? '<span>' + window.CRM.i18n.t('chat.msg_edited', 'изменено') + '</span>' : '') + (!deleted ? '<button type="button" data-copy-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_copy_title', 'Копировать сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_copy_aria', 'Копировать сообщение') + '">' + window.CRM.i18n.t('chat.btn_copy', 'Копировать') + '</button>' : '') + '<button type="button" data-reply-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_reply_title', 'Ответить на сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_reply_aria', 'Ответить на сообщение') + '">' + window.CRM.i18n.t('chat.btn_reply', 'Ответить') + '</button>' + (canEdit ? '<button type="button" data-edit-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_edit_title', 'Изменить сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_edit_aria', 'Изменить сообщение') + '">' + window.CRM.i18n.t('chat.btn_edit', 'Изменить') + '</button><button type="button" data-delete-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_delete_title', 'Удалить сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_delete_aria', 'Удалить сообщение') + '">' + window.CRM.i18n.t('chat.btn_delete', 'Удалить') + '</button>' : '') + '<button type="button" data-create-knowledge="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_create_knowledge_title', 'Создать страницу из сообщения') + '" aria-label="' + window.CRM.i18n.t('chat.btn_create_knowledge_aria', 'Создать страницу из сообщения') + '">' + window.CRM.i18n.t('chat.btn_create_knowledge', 'Создать страницу') + '</button>' + '<button type="button" data-create-task="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_create_task_title', 'Создать задачу из сообщения') + '" aria-label="' + window.CRM.i18n.t('chat.btn_create_task_aria', 'Создать задачу из сообщения') + '">' + window.CRM.i18n.t('chat.btn_create_task', 'Создать задачу') + '</button></div></article>';
   }
 
   function renderMessages(messages) {
@@ -307,13 +392,30 @@
     if (!box) return;
     currentMessages = messages;
     lastMessageId = 0;
+    oldestMessageId = 0;
     updateLastMessageId(messages);
+    updateOldestMessageId(messages);
     if (!messages.length) {
       box.innerHTML = '<div class="crm-chat-empty crm-chat-empty--small"><strong>' + window.CRM.i18n.t('chat.messages_empty_title', 'Сообщений пока нет') + '</strong><span>' + window.CRM.i18n.t('chat.messages_empty_text', 'Напишите первое сообщение в этом диалоге.') + '</span></div>';
       return;
     }
-    box.innerHTML = messages.map(renderMessage).join('');
+    var lastReadId = Number(currentChat && currentChat.last_read_id) || 0;
+    var hasRead = messages.some(function (message) { return messageNumericId(message) <= lastReadId; });
+    var hasUnread = messages.some(function (message) { return messageNumericId(message) > lastReadId; });
+    var showSeparator = lastReadId > 0 && hasRead && hasUnread;
+    var separatorInserted = false;
+    var html = '<div class="crm-chat-older" id="chatOlderBar">' + renderOlderBarHtml() + '</div>';
+    html += messages.map(function (message) {
+      var out = '';
+      if (showSeparator && !separatorInserted && messageNumericId(message) > lastReadId) {
+        separatorInserted = true;
+        out = '<div class="crm-chat-new-messages"><span>' + window.CRM.i18n.t('chat.new_messages', 'Новые сообщения') + '</span></div>';
+      }
+      return out + renderMessage(message);
+    }).join('');
+    box.innerHTML = html;
     bindMessageActions();
+    bindOlderBar();
     box.scrollTop = box.scrollHeight;
     scrollToMessageOnLoad();
   }
@@ -458,7 +560,9 @@
         return;
       }
       var messagesEnv = await messagesPromise;
-      renderMessages((messagesEnv.data && messagesEnv.data.items) || []);
+      var loadedItems = (messagesEnv.data && messagesEnv.data.items) || [];
+      allOlderLoaded = loadedItems.length < 80;
+      renderMessages(loadedItems);
       markRead();
       loadChats({ silent: true });
     } catch (error) {
@@ -658,6 +762,20 @@
         editingMessage = null;
         renderReplyPreview();
         document.getElementById('msgInput').focus();
+      });
+    });
+    root.querySelectorAll('[data-copy-message]:not([data-chat-bound])').forEach(function (btn) {
+      btn.setAttribute('data-chat-bound', '1');
+      btn.addEventListener('click', async function () {
+        var message = findMessage(btn.getAttribute('data-copy-message'));
+        var text = message && message.text ? String(message.text).trim() : '';
+        if (!text) return;
+        try {
+          await copyText(text);
+          var original = btn.textContent;
+          btn.textContent = window.CRM.i18n.t('chat.msg_copied', 'Скопировано');
+          window.setTimeout(function () { btn.textContent = original; }, 1500);
+        } catch (error) {}
       });
     });
     root.querySelectorAll('[data-edit-message]:not([data-chat-bound])').forEach(function (btn) {

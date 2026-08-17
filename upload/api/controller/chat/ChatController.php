@@ -601,9 +601,10 @@ final class ChatController extends BaseController
         if ($publicId === '' || $userId <= 0) return null;
 
         $stmt = $this->container->get('db.pdo')->prepare("
-            SELECT c.*, cp.is_favorite, cp.muted_until
+            SELECT c.*, cp.is_favorite, cp.muted_until, COALESCE(rm.last_read_message_id, 0) as last_read_id
             FROM chats c
             JOIN chat_participants cp ON cp.chat_id = c.id AND cp.user_id = :uid
+            LEFT JOIN chat_read_markers rm ON rm.chat_id = c.id AND rm.user_id = :uid
             WHERE c.public_id = :pid
             LIMIT 1
         ");

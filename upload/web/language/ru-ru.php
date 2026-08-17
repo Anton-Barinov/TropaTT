@@ -6133,6 +6133,14 @@ return array (
     'create_task_success_text' => 'Задача создана и связана с этим обсуждением.',
     'create_task_open_btn' => 'Открыть задачу',
     'create_task_error' => 'Ошибка создания задачи. Попробуйте еще раз.',
+    'load_older' => 'Показать более ранние сообщения',
+    'loading_older' => 'Загрузка...',
+    'no_more_messages' => 'Начало переписки',
+    'new_messages' => 'Новые сообщения',
+    'btn_copy' => 'Копировать',
+    'btn_copy_title' => 'Копировать сообщение',
+    'btn_copy_aria' => 'Копировать сообщение',
+    'msg_copied' => 'Скопировано',
   ),
   'notifications' => 
   array (
