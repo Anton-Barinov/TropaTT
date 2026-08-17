@@ -13,7 +13,7 @@ final class MenuController extends BaseController
         ['key' => 'ideas', 'i18n' => 'nav.ideas', 'label_key' => 'nav.ideas', 'href' => 'index.php?route=ideas', 'permissions' => ['idea.view']],
         ['key' => 'tasks', 'i18n' => 'nav.tasks', 'label_key' => 'nav.tasks', 'href' => 'index.php?route=tasks', 'permissions' => ['task.manage']],
         ['key' => 'day', 'i18n' => 'nav.day', 'label_key' => 'nav.day', 'href' => 'index.php?route=my-day', 'permissions' => ['task.manage']],
-        ['key' => 'week', 'i18n' => 'nav.week', 'label_key' => 'nav.week', 'href' => 'index.php?route=my-week', 'permissions' => ['task.manage']],
+        ['key' => 'week', 'i18n' => 'nav.week', 'label_key' => 'nav.week', 'href' => 'index.php?route=my-week', 'permissions' => ['task.manage'], 'default_hidden' => true],
         ['key' => 'kanban', 'i18n' => 'nav.kanban', 'label_key' => 'nav.kanban', 'href' => 'index.php?route=kanban', 'permissions' => ['task.manage']],
         ['key' => 'gantt', 'i18n' => 'nav.gantt', 'label_key' => 'nav.gantt', 'href' => 'index.php?route=gantt', 'permissions' => ['project.manage']],
         ['key' => 'projects', 'i18n' => 'nav.projects', 'label_key' => 'nav.projects', 'href' => 'index.php?route=projects', 'permissions' => ['project.manage']],
@@ -66,12 +66,16 @@ final class MenuController extends BaseController
             }
 
             if ($this->canAccess($authz, $user, $permissions)) {
-                $availableItems[] = [
+                $entry = [
                     'key' => $item['key'],
                     'i18n' => $item['i18n'],
                     'label' => $this->t($item['label_key'] ?? $item['i18n']),
                     'href' => $item['href'],
                 ];
+                if (!empty($item['default_hidden'])) {
+                    $entry['default_hidden'] = true;
+                }
+                $availableItems[] = $entry;
             }
         }
 
@@ -101,6 +105,12 @@ final class MenuController extends BaseController
         $rolePublicIds = $this->resolveRolePublicIds($roleCodes);
 
         $allAvailableItems = $availableItems;
+
+        // Items marked default_hidden are available in the menu editor but
+        // not shown in the default sidebar until the user adds them.
+        $availableItems = array_values(array_filter($availableItems, static function (array $item): bool {
+            return empty($item['default_hidden']);
+        }));
 
         $roleTemplate = $this->loadRoleTemplate($rolePublicIds);
         $teamTemplate = $this->loadTeamTemplate($userInternalId);

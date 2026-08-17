@@ -9527,7 +9527,6 @@ body.modal-open {
   .crm-gantt-page .crm-gantt-scale-track > span:first-child {
     width: fit-content;
   }
-}
 
 /* Gantt improvements layer - step 2 */
 .crm-gantt-page {
@@ -12904,71 +12903,72 @@ a.task-tag:hover {
     .crm-my-week-layout-v2 {
         grid-template-columns: 1fr;
     }
-}
+}/* Unified personal planning workspace (My Day / My Week).
+   Single authoritative block — no overrides, no duplicates. */
 
-/* Unified personal planning workspace (My Day / My Week). */
 .crm-planner-page {
-    max-width: 1500px;
+    max-width: none;
 }
 
-.crm-planner-head {
+/* ── Toolbar: underline-style tab switch + secondary link ── */
+
+.crm-planner-toolbar {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     justify-content: space-between;
-    gap: 24px;
-    margin-bottom: 14px;
-}
-
-.crm-planner-head-copy {
-    min-width: 0;
-}
-
-.crm-planner-head-copy .breadcrumb {
-    font-size: 12px;
-}
-
-.crm-planner-head-actions {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 10px;
-    flex: 0 0 auto;
+    gap: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--crm-border);
 }
 
 .crm-planner-switch {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    padding: 3px;
-    border: 1px solid var(--crm-border);
-    border-radius: 9px;
-    background: var(--crm-surface-2);
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
 }
 
 .crm-planner-switch-item {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    min-height: 32px;
-    padding: 0 11px;
-    border-radius: 7px;
+    min-height: 38px;
+    padding: 0 14px;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
     color: var(--crm-text-muted);
+    background: transparent;
+    box-shadow: none;
     font-size: 13px;
-    font-weight: 700;
+    font-weight: 600;
     text-decoration: none;
     white-space: nowrap;
+    transition: color 160ms ease, border-color 160ms ease;
 }
 
 .crm-planner-switch-item:hover {
     color: var(--crm-text);
-    background: var(--crm-surface);
 }
 
 .crm-planner-switch-item.is-active {
-    color: var(--crm-accent);
-    background: var(--crm-surface);
-    box-shadow: 0 1px 3px color-mix(in srgb, var(--crm-ink) 10%, transparent);
+    color: var(--crm-text);
+    border-bottom-color: var(--crm-accent);
 }
+
+.crm-planner-secondary-link {
+    color: var(--crm-text-muted);
+    font-size: 12px;
+    text-decoration: none;
+    margin-bottom: 9px;
+}
+
+.crm-planner-secondary-link:hover {
+    color: var(--crm-accent);
+}
+
+/* ── Action buttons ── */
 
 .crm-planner-actions {
     display: flex;
@@ -12979,34 +12979,23 @@ a.task-tag:hover {
 }
 
 .crm-planner-actions .btn {
-    min-height: 34px;
-    padding-inline: 11px;
-    font-size: 12px;
+    min-height: 38px;
+    height: 38px;
+    padding-inline: 14px;
+    font-size: 13px;
 }
 
-.crm-planner-card-title {
-    display: flex;
+.crm-planner-page .crm-page-actions {
     align-items: center;
-    gap: 9px;
-    min-width: 0;
 }
 
-.crm-planner-card-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 auto;
-    width: 28px;
-    height: 28px;
-    border-radius: 7px;
-    color: var(--crm-accent);
-    background: color-mix(in srgb, var(--crm-accent) 12%, transparent);
-}
+/* ── Overview grid: 2fr primary / 1fr aside on desktop, 1-col below lg ── */
 
 .crm-planner-overview {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(270px, 330px);
-    gap: 14px;
+    grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+    gap: var(--space-4, 1rem);
+    width: 100%;
     align-items: start;
 }
 
@@ -13014,12 +13003,26 @@ a.task-tag:hover {
 .crm-planner-aside {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: var(--space-4, 1rem);
     min-width: 0;
+    width: 100%;
 }
 
-.crm-planner-page .crm-section-card {
-    border-radius: 9px !important;
+.crm-planner-page .crm-planner-primary > *,
+.crm-planner-page .crm-planner-aside > * {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+}
+
+/* ── Cards: inherit base .crm-card styling, no extra shadows ── */
+
+.crm-planner-ai-card,
+.crm-planner-task-card,
+.crm-planner-summary-card,
+.crm-planner-mini-card,
+.crm-planner-overdue-section {
+    padding: 16px;
 }
 
 .crm-planner-page .crm-section-head {
@@ -13032,9 +13035,7 @@ a.task-tag:hover {
     flex: 0 0 auto;
 }
 
-.crm-planner-ai-card {
-    padding: 15px;
-}
+/* ── AI card ── */
 
 .crm-planner-ai-card .crm-section-head {
     margin-bottom: 7px;
@@ -13056,6 +13057,8 @@ a.task-tag:hover {
     margin-bottom: 3px;
 }
 
+/* ── Disclosure / details ── */
+
 .crm-planner-disclosure {
     overflow: hidden;
 }
@@ -13069,10 +13072,7 @@ a.task-tag:hover {
     list-style: none;
 }
 
-.crm-planner-disclosure > summary::-webkit-details-marker {
-    display: none;
-}
-
+.crm-planner-disclosure > summary::-webkit-details-marker,
 .crm-planner-disclosure > summary::marker {
     display: none;
 }
@@ -13081,13 +13081,19 @@ a.task-tag:hover {
     min-width: 0;
 }
 
+.crm-planner-disclosure-body {
+    margin-top: 10px;
+}
+
+/* ── AI details expand/collapse ── */
+
 .crm-planner-ai-details {
     margin-top: 1px;
 }
 
 .crm-planner-ai-details > summary {
     justify-content: flex-start;
-    padding: 9px 0 1px;
+    padding: 8px 0 1px;
     color: var(--crm-accent);
     font-size: 12px;
     font-weight: 700;
@@ -13108,14 +13114,7 @@ a.task-tag:hover {
     transform: rotate(225deg) translate(-1px, -1px);
 }
 
-.crm-planner-disclosure-body {
-    margin-top: 10px;
-}
-
-.crm-planner-summary-card,
-.crm-planner-mini-card {
-    padding: 14px;
-}
+/* ── Aside: summary card, metrics, events, reminders ── */
 
 .crm-planner-aside .crm-section-head {
     margin-bottom: 7px;
@@ -13152,27 +13151,13 @@ a.task-tag:hover {
     font-size: 1.08rem;
 }
 
-.crm-planner-mini-card .crm-day-list-row {
-    grid-template-columns: 70px minmax(0, 1fr);
-    padding: 8px 0;
-}
-
-.crm-planner-mini-card .crm-day-list-row:last-child {
-    border-bottom: 0 !important;
-}
+/* ── Mini-card disclosure (reminders) ── */
 
 .crm-planner-mini-card > summary {
     min-height: 28px;
     color: var(--crm-text);
     font-size: 13px;
     font-weight: 700;
-}
-
-.crm-planner-summary-note {
-    margin-left: auto;
-    color: var(--crm-text-muted);
-    font-size: 11px;
-    font-weight: 500;
 }
 
 .crm-planner-mini-card > summary::after,
@@ -13193,9 +13178,23 @@ a.task-tag:hover {
     transform: rotate(225deg) translate(-1px, -1px);
 }
 
-.crm-planner-task-card {
-    padding-bottom: 14px;
+.crm-planner-mini-card .crm-day-list-row {
+    grid-template-columns: 70px minmax(0, 1fr);
+    padding: 8px 0;
 }
+
+.crm-planner-mini-card .crm-day-list-row:last-child {
+    border-bottom: 0 !important;
+}
+
+.crm-planner-summary-note {
+    margin-left: auto;
+    color: var(--crm-text-muted);
+    font-size: 11px;
+    font-weight: 500;
+}
+
+/* ── Overdue section ── */
 
 .crm-planner-overdue-section {
     margin-top: 14px;
@@ -13204,12 +13203,30 @@ a.task-tag:hover {
 
 .crm-planner-overdue-section > summary {
     min-height: 54px;
-    padding: 10px 14px;
+    padding: 10px 16px;
+    align-items: center;
 }
 
 .crm-planner-overdue-section > summary strong,
 .crm-planner-overdue-section > summary small {
     display: block;
+}
+
+.crm-planner-overdue-section > summary small {
+    flex: 1 1 auto;
+    margin: 0;
+    color: var(--crm-text-muted);
+    font-size: 11px;
+    font-weight: 400;
+}
+
+.crm-planner-overdue-section .crm-planner-disclosure-body {
+    margin-top: 0;
+    padding: 0 16px 16px;
+}
+
+.crm-planner-overdue-section .crm-overdue-table-wrap {
+    max-height: 500px;
 }
 
 .crm-planner-count-badge {
@@ -13222,48 +13239,30 @@ a.task-tag:hover {
     padding: 0 6px;
     border-radius: 10px;
     color: var(--crm-danger);
-    background: var(--crm-danger-soft);
+    background: var(--crm-danger-50, #fdf2f0);
     font-size: 11px;
     line-height: 1;
     vertical-align: middle;
 }
 
-.crm-planner-overdue-section > summary small {
-    margin-top: 2px;
-    color: var(--crm-text-muted);
-    font-size: 11px;
-    font-weight: 400;
-}
+/* ── Task card table ── */
 
-.crm-planner-overdue-section .crm-planner-disclosure-body {
-    margin-top: 0;
-    padding: 0 14px 14px;
-}
-
-.crm-planner-overdue-section .crm-overdue-table-wrap {
-    max-height: 500px;
+.crm-planner-task-card {
+    padding-bottom: 16px;
 }
 
 .crm-planner-page .crm-table-wrap {
-    border-radius: 7px;
+    border-radius: var(--radius-sm, 8px);
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
 }
 
-@media (max-width: 1100px) {
-    .crm-planner-head {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 12px;
-    }
-
-    .crm-planner-head-actions {
-        align-items: flex-start;
-        width: 100%;
-    }
-
-    .crm-planner-actions {
-        justify-content: flex-start;
-    }
+.crm-planner-page .crm-table {
+    min-width: 0;
 }
+
+/* ── Responsive ── */
 
 @media (max-width: 991px) {
     .crm-planner-overview {
@@ -13286,6 +13285,12 @@ a.task-tag:hover {
         padding-inline: 12px;
     }
 
+    .crm-planner-toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 4px;
+    }
+
     .crm-planner-switch {
         width: 100%;
     }
@@ -13296,8 +13301,16 @@ a.task-tag:hover {
         padding-inline: 7px;
     }
 
+    .crm-planner-secondary-link {
+        align-self: flex-start;
+    }
+
     .crm-planner-actions .btn {
         flex: 1 1 auto;
+    }
+
+    .crm-planner-page .crm-page-actions {
+        width: 100%;
     }
 
     .crm-planner-aside {
@@ -13320,191 +13333,6 @@ a.task-tag:hover {
 
     .crm-planner-overdue-section .crm-planner-disclosure-body {
         padding-inline: 10px;
-    }
-}
-
-/* Planner visual reduction: keep the page close to the core CRM language. */
-.crm-planner-page .crm-page-head {
-    margin-bottom: 12px;
-}
-
-.crm-planner-page .crm-page-actions {
-    align-items: center;
-}
-
-.crm-planner-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 16px;
-    border-bottom: 1px solid var(--crm-border);
-}
-
-.crm-planner-switch {
-    display: flex;
-    align-items: stretch;
-    gap: 18px;
-    padding: 0;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-}
-
-.crm-planner-switch-item,
-.crm-planner-switch-item:hover,
-.crm-planner-switch-item.is-active {
-    min-height: 38px;
-    padding: 0 1px;
-    border-radius: 0;
-    color: var(--crm-text-muted);
-    background: transparent;
-    box-shadow: none;
-    font-size: 13px;
-    font-weight: 600;
-}
-
-.crm-planner-switch-item.is-active {
-    color: var(--crm-text);
-    border-bottom: 2px solid var(--crm-accent);
-}
-
-.crm-planner-secondary-link {
-    margin-bottom: 9px;
-    color: var(--crm-text-muted);
-    font-size: 12px;
-    text-decoration: none;
-}
-
-.crm-planner-secondary-link:hover {
-    color: var(--crm-accent);
-}
-
-.crm-planner-page .crm-planner-overview {
-    gap: 16px;
-}
-
-.crm-planner-page .crm-planner-ai-card,
-.crm-planner-page .crm-planner-summary-card,
-.crm-planner-page .crm-planner-mini-card {
-    box-shadow: var(--crm-shadow-card) !important;
-}
-
-.crm-planner-page .crm-planner-ai-summary {
-    border-top: 0;
-}
-
-.crm-planner-page .crm-planner-ai-details > summary {
-    padding-top: 8px;
-}
-
-.crm-planner-page .crm-planner-overdue-section > summary {
-    align-items: center;
-}
-
-.crm-planner-page .crm-planner-overdue-section > summary small {
-    flex: 1 1 auto;
-    margin: 0;
-}
-
-@media (max-width: 575px) {
-    .crm-planner-toolbar {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 4px;
-    }
-
-    .crm-planner-secondary-link {
-        align-self: flex-start;
-    }
-
-    .crm-planner-switch {
-        width: auto;
-    }
-
-    .crm-planner-page .crm-page-actions {
-        width: 100%;
-    }
-}
-
-/* Final planner grid: one shared 8/4 structure on desktop, one column below lg. */
-.crm-planner-page {
-    max-width: none;
-}
-
-.crm-planner-page .crm-planner-overview {
-    display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
-    gap: var(--space-4, 1rem);
-    width: 100%;
-    align-items: start;
-}
-
-.crm-planner-page .crm-planner-primary,
-.crm-planner-page .crm-planner-aside {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4, 1rem);
-    min-width: 0;
-    width: 100%;
-}
-
-.crm-planner-page .crm-planner-primary > *,
-.crm-planner-page .crm-planner-aside > * {
-    width: 100%;
-    min-width: 0;
-    margin: 0;
-}
-
-.crm-planner-page .crm-planner-ai-card,
-.crm-planner-page .crm-planner-summary-card,
-.crm-planner-page .crm-planner-mini-card,
-.crm-planner-page .crm-planner-task-card,
-.crm-planner-page .crm-planner-overdue-section {
-    box-shadow: var(--crm-shadow-card);
-}
-
-.crm-planner-page .crm-planner-actions .btn {
-    min-height: 38px;
-    height: 38px;
-    padding-inline: 14px;
-}
-
-.crm-planner-page .crm-table-wrap {
-    width: 100%;
-    max-width: 100%;
-    overflow-x: auto;
-}
-
-.crm-planner-page .crm-table {
-    min-width: 0;
-}
-
-@media (max-width: 991px) {
-    .crm-planner-page .crm-planner-overview {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    .crm-planner-page .crm-planner-aside {
-        display: flex;
-    }
-}
-
-@media (max-width: 575px) {
-    .crm-planner-page .crm-page-head {
-        gap: 12px;
-    }
-
-    .crm-planner-page .crm-planner-toolbar {
-        width: 100%;
-    }
-
-    .crm-planner-page .crm-planner-switch {
-        width: 100%;
-    }
-
-    .crm-planner-page .crm-planner-switch-item {
-        flex: 1 1 0;
     }
 }
 

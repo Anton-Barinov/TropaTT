@@ -138,7 +138,6 @@ window.CRM.navigation = (function () {
       { key: 'ideas', i18n: 'nav.ideas', label: t('nav.ideas', 'Ideas'), href: 'index.php?route=ideas' },
       { key: 'tasks', i18n: 'nav.tasks', label: t('nav.tasks', 'Tasks'), href: 'index.php?route=tasks' },
       { key: 'day', i18n: 'nav.day', label: t('nav.day', 'My day'), href: 'index.php?route=my-day' },
-      { key: 'week', i18n: 'nav.week', label: t('nav.week', 'My week'), href: 'index.php?route=my-week' },
       { key: 'kanban', i18n: 'nav.kanban', label: t('nav.kanban', 'Kanban'), href: 'index.php?route=kanban' },
       { key: 'gantt', i18n: 'nav.gantt', label: t('nav.gantt', 'Gantt'), href: 'index.php?route=gantt' },
       { key: 'projects', i18n: 'nav.projects', label: t('nav.projects', 'Projects'), href: 'index.php?route=projects' },

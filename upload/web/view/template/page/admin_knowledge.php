@@ -10,46 +10,46 @@
 ], $t('admin_knowledge.page_title', 'Настройки базы знаний'), $t('admin_knowledge.subtitle', 'Разделы, шаблоны и контроль качества корпоративной wiki.'), '<a class="btn crm-btn-secondary" href="index.php?route=knowledge">' . htmlspecialchars($t('knowledge.page_title', 'База знаний'), ENT_QUOTES, 'UTF-8') . '</a><button class="btn crm-btn-secondary" type="button" id="adminKnowledgeExportBtn">' . htmlspecialchars($t('admin_knowledge.btn_export', 'Экспорт'), ENT_QUOTES, 'UTF-8') . '</button><button class="btn crm-btn-secondary" type="button" id="adminKnowledgeImportBtn">' . htmlspecialchars($t('admin_knowledge.btn_import', 'Импорт'), ENT_QUOTES, 'UTF-8') . '</button>'); ?>
 
 <section class="crm-knowledge-stats" id="adminKnowledgeStats">
-  <div class="crm-card"><strong>0</strong><span><?= htmlspecialchars($t('knowledge.stat_spaces', 'разделов'), ENT_QUOTES, 'UTF-8') ?></span></div>
-  <div class="crm-card"><strong>0</strong><span><?= htmlspecialchars($t('knowledge.stat_pages', 'страниц'), ENT_QUOTES, 'UTF-8') ?></span></div>
-  <div class="crm-card"><strong>0</strong><span><?= htmlspecialchars($t('knowledge.stat_published', 'опубликовано'), ENT_QUOTES, 'UTF-8') ?></span></div>
-  <div class="crm-card"><strong>0</strong><span><?= htmlspecialchars($t('knowledge.stat_drafts', 'черновиков'), ENT_QUOTES, 'UTF-8') ?></span></div>
+  <div class="crm-card"><strong>0</strong><span data-i18n="knowledge.stat_spaces"><?= htmlspecialchars($t('knowledge.stat_spaces', 'разделов'), ENT_QUOTES, 'UTF-8') ?></span></div>
+  <div class="crm-card"><strong>0</strong><span data-i18n="knowledge.stat_pages"><?= htmlspecialchars($t('knowledge.stat_pages', 'страниц'), ENT_QUOTES, 'UTF-8') ?></span></div>
+  <div class="crm-card"><strong>0</strong><span data-i18n="knowledge.stat_published"><?= htmlspecialchars($t('knowledge.stat_published', 'опубликовано'), ENT_QUOTES, 'UTF-8') ?></span></div>
+  <div class="crm-card"><strong>0</strong><span data-i18n="knowledge.stat_drafts"><?= htmlspecialchars($t('knowledge.stat_drafts', 'черновиков'), ENT_QUOTES, 'UTF-8') ?></span></div>
 </section>
 
 <div class="crm-knowledge-tabs">
   <ul class="nav nav-tabs" role="tablist">
     <li class="nav-item" role="presentation">
-      <button class="nav-link active" id="kb-tab-spaces" data-bs-toggle="tab" data-bs-target="#kb-panel-spaces" type="button" role="tab" aria-controls="kb-panel-spaces" aria-selected="true"><?= htmlspecialchars($t('admin_knowledge.spaces_title', 'Разделы'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button class="nav-link active" id="kb-tab-spaces" data-bs-toggle="tab" data-bs-target="#kb-panel-spaces" type="button" role="tab" aria-controls="kb-panel-spaces" aria-selected="true" data-i18n="admin_knowledge.spaces_title"><?= htmlspecialchars($t('admin_knowledge.spaces_title', 'Разделы'), ENT_QUOTES, 'UTF-8') ?></button>
     </li>
     <li class="nav-item" role="presentation">
-      <button class="nav-link" id="kb-tab-templates" data-bs-toggle="tab" data-bs-target="#kb-panel-templates" type="button" role="tab" aria-controls="kb-panel-templates" aria-selected="false"><?= htmlspecialchars($t('admin_knowledge.templates_title', 'Шаблоны'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button class="nav-link" id="kb-tab-templates" data-bs-toggle="tab" data-bs-target="#kb-panel-templates" type="button" role="tab" aria-controls="kb-panel-templates" aria-selected="false" data-i18n="admin_knowledge.templates_title"><?= htmlspecialchars($t('admin_knowledge.templates_title', 'Шаблоны'), ENT_QUOTES, 'UTF-8') ?></button>
     </li>
     <li class="nav-item" role="presentation">
-      <button class="nav-link" id="kb-tab-review" data-bs-toggle="tab" data-bs-target="#kb-panel-review" type="button" role="tab" aria-controls="kb-panel-review" aria-selected="false"><?= htmlspecialchars($t('admin_knowledge.review_title', 'Очередь проверки'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button class="nav-link" id="kb-tab-review" data-bs-toggle="tab" data-bs-target="#kb-panel-review" type="button" role="tab" aria-controls="kb-panel-review" aria-selected="false" data-i18n="admin_knowledge.review_title"><?= htmlspecialchars($t('admin_knowledge.review_title', 'Очередь проверки'), ENT_QUOTES, 'UTF-8') ?></button>
     </li>
     <li class="nav-item" role="presentation">
-      <button class="nav-link" id="kb-tab-outdated" data-bs-toggle="tab" data-bs-target="#kb-panel-outdated" type="button" role="tab" aria-controls="kb-panel-outdated" aria-selected="false"><?= htmlspecialchars($t('admin_knowledge.outdated_title', 'Требуют ревью'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button class="nav-link" id="kb-tab-outdated" data-bs-toggle="tab" data-bs-target="#kb-panel-outdated" type="button" role="tab" aria-controls="kb-panel-outdated" aria-selected="false" data-i18n="admin_knowledge.outdated_title"><?= htmlspecialchars($t('admin_knowledge.outdated_title', 'Требуют ревью'), ENT_QUOTES, 'UTF-8') ?></button>
     </li>
     <li class="nav-item" role="presentation">
-      <button class="nav-link" id="kb-tab-analytics" data-bs-toggle="tab" data-bs-target="#kb-panel-analytics" type="button" role="tab" aria-controls="kb-panel-analytics" aria-selected="false"><?= htmlspecialchars($t('admin_knowledge.analytics_title', 'Аналитика'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button class="nav-link" id="kb-tab-analytics" data-bs-toggle="tab" data-bs-target="#kb-panel-analytics" type="button" role="tab" aria-controls="kb-panel-analytics" aria-selected="false" data-i18n="admin_knowledge.analytics_title"><?= htmlspecialchars($t('admin_knowledge.analytics_title', 'Аналитика'), ENT_QUOTES, 'UTF-8') ?></button>
     </li>
     <li class="nav-item" role="presentation">
-      <button class="nav-link" id="kb-tab-ai" data-bs-toggle="tab" data-bs-target="#kb-panel-ai" type="button" role="tab" aria-controls="kb-panel-ai" aria-selected="false"><?= htmlspecialchars($t('admin_knowledge.ai_title', 'AI'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button class="nav-link" id="kb-tab-ai" data-bs-toggle="tab" data-bs-target="#kb-panel-ai" type="button" role="tab" aria-controls="kb-panel-ai" aria-selected="false" data-i18n="admin_knowledge.ai_title"><?= htmlspecialchars($t('admin_knowledge.ai_title', 'AI'), ENT_QUOTES, 'UTF-8') ?></button>
     </li>
     <li class="nav-item" role="presentation">
-      <button class="nav-link" id="kb-tab-page-types" data-bs-toggle="tab" data-bs-target="#kb-panel-page-types" type="button" role="tab" aria-controls="kb-panel-page-types" aria-selected="false"><?= htmlspecialchars($t('admin_knowledge.page_types_title', 'Типы страниц'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button class="nav-link" id="kb-tab-page-types" data-bs-toggle="tab" data-bs-target="#kb-panel-page-types" type="button" role="tab" aria-controls="kb-panel-page-types" aria-selected="false" data-i18n="admin_knowledge.page_types_title"><?= htmlspecialchars($t('admin_knowledge.page_types_title', 'Типы страниц'), ENT_QUOTES, 'UTF-8') ?></button>
     </li>
     <li class="nav-item" role="presentation">
-      <button class="nav-link" id="kb-tab-indexation" data-bs-toggle="tab" data-bs-target="#kb-panel-indexation" type="button" role="tab" aria-controls="kb-panel-indexation" aria-selected="false"><?= htmlspecialchars($t('admin_knowledge.indexation_title', 'Индексация'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button class="nav-link" id="kb-tab-indexation" data-bs-toggle="tab" data-bs-target="#kb-panel-indexation" type="button" role="tab" aria-controls="kb-panel-indexation" aria-selected="false" data-i18n="admin_knowledge.indexation_title"><?= htmlspecialchars($t('admin_knowledge.indexation_title', 'Индексация'), ENT_QUOTES, 'UTF-8') ?></button>
     </li>
     <li class="nav-item" role="presentation">
-      <button class="nav-link" id="kb-tab-settings" data-bs-toggle="tab" data-bs-target="#kb-panel-settings" type="button" role="tab" aria-controls="kb-panel-settings" aria-selected="false"><?= htmlspecialchars($t('admin_knowledge.settings_title', 'Настройки'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button class="nav-link" id="kb-tab-settings" data-bs-toggle="tab" data-bs-target="#kb-panel-settings" type="button" role="tab" aria-controls="kb-panel-settings" aria-selected="false" data-i18n="admin_knowledge.settings_title"><?= htmlspecialchars($t('admin_knowledge.settings_title', 'Настройки'), ENT_QUOTES, 'UTF-8') ?></button>
     </li>
   </ul>
   <div class="tab-content mt-3">
     <div class="tab-pane fade show active" id="kb-panel-spaces" role="tabpanel" aria-labelledby="kb-tab-spaces">
       <section class="crm-card crm-section-card">
-        <div class="crm-section-head"><div><h2 class="h5 mb-0"><?= htmlspecialchars($t('admin_knowledge.spaces_title', 'Разделы'), ENT_QUOTES, 'UTF-8') ?></h2><p class="text-muted mb-0 small"><?= htmlspecialchars($t('admin_knowledge.spaces_hint', 'Управляйте областями знаний и их видимостью.'), ENT_QUOTES, 'UTF-8') ?></p></div></div>
+        <div class="crm-section-head"><div><h2 class="h5 mb-0" data-i18n="admin_knowledge.spaces_title"><?= htmlspecialchars($t('admin_knowledge.spaces_title', 'Разделы'), ENT_QUOTES, 'UTF-8') ?></h2><p class="text-muted mb-0 small" data-i18n="admin_knowledge.spaces_hint"><?= htmlspecialchars($t('admin_knowledge.spaces_hint', 'Управляйте областями знаний и их видимостью.'), ENT_QUOTES, 'UTF-8') ?></p></div></div>
         <div class="table-responsive">
           <table class="table crm-table align-middle mb-0"><thead><tr><th><?= htmlspecialchars($t('knowledge.field_title', 'Название'), ENT_QUOTES, 'UTF-8') ?></th><th><?= htmlspecialchars($t('knowledge.visibility', 'Видимость'), ENT_QUOTES, 'UTF-8') ?></th><th><?= htmlspecialchars($t('knowledge.stat_pages', 'Страниц'), ENT_QUOTES, 'UTF-8') ?></th><th><?= htmlspecialchars($t('admin_knowledge.th_permissions', 'Доступ'), ENT_QUOTES, 'UTF-8') ?></th><th></th></tr></thead><tbody id="adminKnowledgeSpaces"><tr><td colspan="5" class="text-muted"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></td></tr></tbody></table>
         </div>
