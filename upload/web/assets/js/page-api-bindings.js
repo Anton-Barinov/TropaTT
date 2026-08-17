@@ -16536,6 +16536,7 @@ window.CRM.pageApiBindings = (function () {
     var myDayAiDismissBtn = document.getElementById('myDayAiDismissBtn');
     var myDayAiPlanSummary = document.getElementById('myDayAiPlanSummary');
     var myDayAiPlanTasks = document.getElementById('myDayAiPlanTasks');
+    var myDayAiDetails = document.getElementById('myDayAiDetails');
     var myDayCurrentSuggestion = null;
 
     function setMyDayAiState(stateCode, message) {
@@ -16581,6 +16582,9 @@ window.CRM.pageApiBindings = (function () {
     function renderMyDayAiPlan(suggestion) {
       var payload = suggestion && suggestion.payload && typeof suggestion.payload === 'object' ? suggestion.payload : {};
       var items = normalizeMyDayWorkItems(payload);
+      if (myDayAiDetails) {
+        myDayAiDetails.open = !!(suggestion && suggestion.public_id);
+      }
       if (myDayAiPlanSummary) {
         if (suggestion && suggestion.public_id) {
           myDayAiPlanSummary.innerHTML = '<strong>' + _t('my_day.ai_plan_ready', 'AI-план сформирован') + '</strong>'
@@ -16706,6 +16710,11 @@ window.CRM.pageApiBindings = (function () {
     // Load overdue tasks
     var overdueEnvelope = myDayData[0];
     var overdueTasks = overdueEnvelope ? mapItems(overdueEnvelope).filter(function (task) { return !closedStatuses[String(task.status_code || '').toLowerCase()]; }) : [];
+    var myDayOverdueCount = document.getElementById('myDayOverdueCount');
+    if (myDayOverdueCount) {
+      myDayOverdueCount.textContent = overdueTasks.length ? String(overdueTasks.length) : '';
+      myDayOverdueCount.hidden = overdueTasks.length === 0;
+    }
 
     // Load today's tasks
     var tasksEnvelope = myDayData[1];
@@ -16904,6 +16913,7 @@ window.CRM.pageApiBindings = (function () {
     var aiState = document.getElementById('myWeekAiState');
     var aiSummary = document.getElementById('myWeekAiPlanSummary');
     var aiDetails = document.getElementById('myWeekAiPlanDetails');
+    var aiDisclosure = document.getElementById('myWeekAiDetails');
     var aiGenerateBtn = document.getElementById('myWeekAiGenerateBtn');
     var aiApplyBtn = document.getElementById('myWeekAiApplyEventsBtn');
     var myWeekAiPreviewBtn = document.getElementById('myWeekAiPreviewBtn');
@@ -16968,6 +16978,9 @@ window.CRM.pageApiBindings = (function () {
       var summaryText = String(payload.summary || '').trim();
       var tasksByDay = Array.isArray(payload.tasks_by_day) ? payload.tasks_by_day : [];
       var suggestedEvents = Array.isArray(payload.suggested_events) ? payload.suggested_events : [];
+      if (aiDisclosure) {
+        aiDisclosure.open = !!myWeekSuggestion;
+      }
       aiSummary.innerHTML = summaryText !== ''
         ? '<strong>' + _t('my_week.ai_plan_ready', 'План сформирован') + '</strong><p class="mb-0">' + safeText(summaryText) + '</p>'
         : '<strong>' + _t('my_week.ai_plan_ready', 'План сформирован') + '</strong><p class="mb-0">' + _t('my_week.ai_result_note', 'AI-результат доступен в деталях ниже.') + '</p>';
@@ -17046,6 +17059,11 @@ window.CRM.pageApiBindings = (function () {
       var weekOverdueTasks = weekOverdueEnvelope ? mapItems(weekOverdueEnvelope) : [];
       weekTasks = weekTasks.filter(function (task) { return !weekClosedStatuses[String(task.status_code || '').toLowerCase()]; });
       weekOverdueTasks = weekOverdueTasks.filter(function (task) { return !weekClosedStatuses[String(task.status_code || '').toLowerCase()]; });
+      var myWeekOverdueCount = document.getElementById('myWeekOverdueCount');
+      if (myWeekOverdueCount) {
+        myWeekOverdueCount.textContent = weekOverdueTasks.length ? String(weekOverdueTasks.length) : '';
+        myWeekOverdueCount.hidden = weekOverdueTasks.length === 0;
+      }
       var events = data.events && Array.isArray(data.events) ? data.events : [];
       var reminders = data.reminders && Array.isArray(data.reminders) ? data.reminders : [];
       var summary = data.summary || {};
