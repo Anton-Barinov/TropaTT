@@ -5405,6 +5405,8 @@ return array (
     'loading_profile' => '加载卡片中...',
     'section_contacts' => '联系人',
     'section_contacts_note' => '往来单位的关联联系人。',
+    'tab_overview' => '概览',
+    'tabs_label' => '往来单位分区',
     'btn_add_contact' => '添加联系人',
     'th_full_name' => '姓名',
     'th_role' => '角色',

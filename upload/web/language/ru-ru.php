@@ -5411,6 +5411,8 @@ return array (
     'loading_profile' => 'Загрузка карточки...',
     'section_contacts' => 'Контакты',
     'section_contacts_note' => 'Связанные контакты контрагента.',
+    'tab_overview' => 'Обзор',
+    'tabs_label' => 'Разделы контрагента',
     'btn_add_contact' => 'Добавить контакт',
     'th_full_name' => 'ФИО',
     'th_role' => 'Роль',

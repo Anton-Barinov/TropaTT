@@ -25264,7 +25264,50 @@ window.CRM.pageApiBindings = (function () {
     await loadSystemInfo();
   }
 
+  function setupCounterpartyDetailInteractions() {
+    if (window.CRM._counterpartyDetailInteractionsBound) return;
+    window.CRM._counterpartyDetailInteractionsBound = true;
+
+    function activateTab(name) {
+      document.querySelectorAll('[data-cp-tab]').forEach(function (btn) {
+        var active = btn.getAttribute('data-cp-tab') === name;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+      document.querySelectorAll('[data-cp-panel]').forEach(function (panel) {
+        panel.classList.toggle('active', panel.getAttribute('data-cp-panel') === name);
+      });
+    }
+
+    document.addEventListener('click', function (e) {
+      var tabBtn = e.target.closest('[data-cp-tab]');
+      if (tabBtn) {
+        activateTab(String(tabBtn.getAttribute('data-cp-tab') || 'overview'));
+        return;
+      }
+
+      var accHead = e.target.closest('.crm-pr-acc-head');
+      if (accHead) {
+        var acc = accHead.closest('.crm-pr-acc');
+        if (!acc) return;
+        var panel = acc.querySelector('.crm-pr-acc-panel');
+        var isOpen = acc.classList.contains('open');
+        if (isOpen) {
+          if (panel) panel.style.maxHeight = '0';
+          acc.classList.remove('open');
+          accHead.setAttribute('aria-expanded', 'false');
+        } else {
+          acc.classList.add('open');
+          if (panel) panel.style.maxHeight = panel.scrollHeight + 'px';
+          accHead.setAttribute('aria-expanded', 'true');
+        }
+        return;
+      }
+    });
+  }
+
   async function renderCounterpartyDetailPage() {
+    setupCounterpartyDetailInteractions();
     var query = pageQuery();
     var cpPublicId = String(query.get('counterparty_public_id') || '').trim();
     if (!cpPublicId) {
@@ -25914,6 +25957,8 @@ window.CRM.pageApiBindings = (function () {
     var contactsBody = document.getElementById('counterpartyDetailContactsBody');
     if (!contactsBody) return;
     window._counterpartyContactsCache = contacts;
+    var contactsCountNode = document.getElementById('counterpartyContactsTabCount');
+    if (contactsCountNode) contactsCountNode.textContent = String(contacts.length);
 
     if (!contacts.length) {
       contactsBody.innerHTML = '<tr><td colspan="5" class="text-muted">' + safeText(tp('counterparty_detail.contacts_empty', 'No contacts.')) + '</td></tr>';
@@ -25964,6 +26009,8 @@ window.CRM.pageApiBindings = (function () {
   function renderTasks(tasks) {
     var tasksBody = document.getElementById('counterpartyDetailTasksBody');
     if (!tasksBody) return;
+    var tasksCountNode = document.getElementById('counterpartyTasksTabCount');
+    if (tasksCountNode) tasksCountNode.textContent = String(tasks.length);
     if (!tasks.length) {
       tasksBody.innerHTML = '<tr><td colspan="4" class="text-muted">' + safeText(tp('counterparty_detail.tasks_empty', 'No tasks for this counterparty yet.')) + '</td></tr>';
     } else {

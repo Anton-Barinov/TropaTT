@@ -18390,3 +18390,38 @@ a.task-tag:hover {
 @media (max-width: 560px) {
   .crm-pr-hero-facts { gap: 18px; }
 }
+
+/* counterparty detail: tab layout + horizontal summary metrics */
+.crm-counterparty-detail-page #counterpartyDetailSummary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
+  align-items: stretch;
+}
+.crm-counterparty-detail-page #counterpartyDetailSummary .crm-metric-tile {
+  margin-bottom: 0;
+  min-width: 110px;
+  flex: 0 0 auto;
+}
+.crm-counterparty-detail-page #counterpartyDetailSummary .crm-metric-tile small {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.crm-counterparty-detail-page #counterpartyDetailSummary .crm-metric-tile > div {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.crm-counterparty-detail-page #counterpartyDetailProfile {
+  column-count: 2;
+  column-gap: var(--space-3);
+}
+.crm-counterparty-detail-page #counterpartyDetailProfile .crm-metric-tile {
+  break-inside: avoid;
+  overflow-wrap: anywhere;
+}
+.crm-counterparty-detail-page #counterpartyDetailExtra {
+  max-height: 340px;
+  overflow: auto;
+}

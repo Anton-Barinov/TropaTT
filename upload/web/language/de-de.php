@@ -2919,6 +2919,8 @@ return array (
     'loading_profile' => 'Profil wird geladen...',
     'section_contacts' => 'Kontakte',
     'section_contacts_note' => 'Zugehörige Geschäftspartner-Kontakte.',
+    'tab_overview' => 'Übersicht',
+    'tabs_label' => 'Bereiche des Geschäftspartners',
     'btn_add_contact' => 'Kontakt hinzufügen',
     'th_full_name' => 'Vollständiger Name',
     'th_role' => 'Rolle',

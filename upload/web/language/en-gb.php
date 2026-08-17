@@ -5389,6 +5389,8 @@ return array (
     'loading_profile' => 'Loading profile...',
     'section_contacts' => 'Contacts',
     'section_contacts_note' => 'Related counterparty contacts.',
+    'tab_overview' => 'Overview',
+    'tabs_label' => 'Counterparty sections',
     'btn_add_contact' => 'Add contact',
     'th_full_name' => 'Full name',
     'th_role' => 'Role',

@@ -2919,6 +2919,8 @@ return array (
     'loading_profile' => 'Carregando perfil...',
     'section_contacts' => 'Contatos',
     'section_contacts_note' => 'Contatos relacionados da contraparte.',
+    'tab_overview' => 'Visão geral',
+    'tabs_label' => 'Seções da contraparte',
     'btn_add_contact' => 'Adicionar contato',
     'th_full_name' => 'Nome completo',
     'th_role' => 'Função',
