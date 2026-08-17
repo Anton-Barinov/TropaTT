@@ -2,6 +2,8 @@
 
 **TropaTT is a free, self-hosted, open-source CRM and work-management platform built on PHP and MySQL. It combines CRM, task management, projects, Kanban, Gantt, calendar, team chat, workflow automation, REST API, OpenAPI, MCP, and 20+ AI workflows in one application — no per-seat fees, no SaaS plan limits. For freelancers, teams, and businesses that want their data on their own server.**
 
+**Free forever — no catch.** TropaTT is 100% free and open source (AGPL-3.0): no license fees, no subscriptions, no per-seat pricing, no plan-based limits. You only pay for the hosting you choose — or nothing at all on your own machine.
+
 [![PHP](https://img.shields.io/badge/PHP-8.1%2B-4F5B93?style=flat-square&logo=php&logoColor=white)](https://www.php.net/)
 [![Database](https://img.shields.io/badge/Database-MySQL-4479A1?style=flat-square&logo=mysql&logoColor=white)](https://www.mysql.com/)
 [![Zero Deps](https://img.shields.io/badge/Dependencies-0%20packages-6f42c1?style=flat-square)](#by-the-numbers)
@@ -47,6 +49,7 @@ Fallback UI mockups with fictional labels are also available as [SVG assets](.gi
   - [Team chat](#team-chat)
   - [How people use it](#how-people-use-it)
   - [Automation & API](#automation--api)
+  - [Connect your AI agents (MCP)](#connect-your-ai-agents-mcp)
   - [Self-hosted. Your server, your rules.](#self-hosted-your-server-your-rules)
   - [Getting started](#getting-started)
   - [FAQ](#faq)
@@ -70,6 +73,7 @@ Fallback UI mockups with fictional labels are also available as [SVG assets](.gi
   - [Командный чат](#командный-чат)
   - [Как это используют](#как-это-используют)
   - [Автоматизация и API](#автоматизация-и-api)
+  - [Подключение ИИ-агентов (MCP)](#подключение-ии-агентов-mcp)
   - [Свой сервер — свои правила](#свой-сервер--свои-правила)
   - [Установка](#установка)
   - [FAQ](#faq-1)
@@ -93,6 +97,7 @@ Fallback UI mockups with fictional labels are also available as [SVG assets](.gi
   - [团队聊天](#团队聊天)
   - [使用方式](#使用方式)
   - [自动化与 API](#自动化与-api)
+  - [连接 AI 代理（MCP）](#连接-ai-代理mcp)
   - [自托管，你的规则](#自托管你的规则)
   - [安装](#安装)
   - [常见问题](#常见问题)
@@ -294,7 +299,21 @@ TropaTT's automation and API are production-grade. Built for teams that need the
 - **Module system** — extend business logic without touching core. 19 CLI commands.
 - **Generated REST API endpoints** — every entity, task, project, chat, calendar, analytic, and admin function accessible via API.
 - **OpenAPI 3.1 spec** — generated from route config, never out of sync with reality.
-- **MCP server — 567 tools, 5 resources** — a Model Context Protocol endpoint that gives AI agents safe, permission-scoped access to the CRM (reference: [`docs_mcp/mcp_en.md`](docs_mcp/mcp_en.md)).
+- **MCP server — 567 tools, 5 resources** — a Model Context Protocol endpoint that connects Claude Code, Codex, ChatGPT, and other AI agents to the CRM with safe, permission-scoped access to your data (reference: [`docs_mcp/mcp_en.md`](docs_mcp/mcp_en.md)).
+
+---
+
+### Connect your AI agents (MCP)
+
+TropaTT ships a **built-in MCP (Model Context Protocol) server** — the same protocol understood by **Claude Code, Codex, ChatGPT, and other AI coding agents**. Point any MCP-compatible agent at your CRM and it can read, analyze, and manage your real data: tasks, projects, clients, contacts, chats, calendar, analytics, and the knowledge base — through a safe, permission-scoped layer.
+
+- **567 MCP tools + 5 resources** — every domain is covered: tasks, projects, clients, contacts, chats, calendar, worklogs, analytics, knowledge base, and more.
+- **Works with Claude Code, Codex, ChatGPT, and other MCP-compatible agents.** Connect the agent to your installation the same way you connect it to any MCP server.
+- **Same data, same rules as the web UI.** Every agent action goes through the same REST API and RBAC permission checks — no direct database access, no bypassing roles.
+- **Safe by design.** Sensitive data (tokens, password hashes, API keys) is filtered out, write tools require the matching permission, and admin actions stay admin-only.
+- **Endpoint:** `POST /api/index.php?route=api/v1/mcp`, authenticated with a Bearer token (your user token or a scoped API client key).
+
+Full MCP reference (tools, authentication, RBAC): [`docs_mcp/mcp_en.md`](docs_mcp/mcp_en.md).
 
 ---
 
@@ -384,6 +403,12 @@ Generated REST API endpoints. OpenAPI 3.1 spec generated from code. Every featur
 
 **Can I customize it?**
 Yes. PHP/MySQL stack, modules, REST API, webhooks, workflow rules, custom fields, roles, permissions.
+
+**Can I connect AI agents like Claude Code, Codex, or ChatGPT to my CRM?**
+Yes. TropaTT has a built-in MCP server (567 tools + 5 resources) — the same Model Context Protocol used by Claude Code, Codex, ChatGPT, and other MCP-compatible agents. Connect any of them to your installation and they can work with your tasks, projects, clients, chats, and knowledge base under the same role-based permissions as the web UI. Details: [`docs_mcp/mcp_en.md`](docs_mcp/mcp_en.md).
+
+**Is it really free?**
+Yes — 100% free and open source. No license fees, no subscriptions, no per-seat pricing, no plan-based limits. You pay only for the hosting you choose.
 
 **How do updates work?**
 Updates are installed from the admin panel (**Admin → System Updates**, no SSH or Composer needed). An update server (`update.tropatt.com`) builds and signs ready packages from GitHub on a cron; your CRM downloads the package, verifies the signature, runs a safety preflight, creates a backup, applies files and database migrations, and can roll back from that backup if anything goes wrong. Module files are shipped together with the update, so new modules reach every installation automatically (they appear under **Admin → Modules** with status «Обнаружен» and just need to be activated). Details: [`UPDATES.md`](UPDATES.md).
@@ -614,6 +639,8 @@ The project is a practical, self-hosted work system: PHP-first, MySQL-compatible
 
 TropaTT — это бесплатная self-hosted CRM и платформа управления работой с открытым исходным кодом на PHP и MySQL. В одной системе собраны CRM, задачи, проекты, Канбан, Гант, календарь, командный чат, автоматизация, REST API, OpenAPI, MCP и 20+ ИИ-процессов. Всё это разворачивается на вашем сервере, VPS, локальной машине или обычном PHP-хостинге — без оплаты за каждого пользователя и без тарифных лимитов.
 
+**Бесплатно навсегда — без подвоха.** TropaTT на 100% бесплатна и имеет открытый исходный код (AGPL-3.0): нет лицензионных платежей, подписок, оплаты за рабочее место и тарифных ограничений. Вы платите только за выбранный хостинг — или вообще ничего, если ставите её на свою машину.
+
 Проект сделан для людей, которые каждый день ведут реальную работу: фрилансеров с десятками клиентов, небольших агентств, сервисных компаний, выездных бригад, студий и команд, которым надоело держать клиентов в одной системе, задачи во второй, чат в третьей, а отчёты — в таблицах.
 
 Главная идея — контроль. В TropaTT нет оплаты за каждого пользователя и нет тарифных ограничений на количество пользователей, задач, проектов или клиентов. Данные, бэкапы, интеграции и решение об обновлениях остаются у вас. При этом производительность не бесконечная: реальный предел зависит от хостинга, базы данных, настроек, файлов и нагрузки. Малой команде достаточно начать с недорогого PHP/MySQL-хостинга, а при росте перейти на более мощную инфраструктуру.
@@ -792,7 +819,21 @@ TropaTT поддерживает полный цикл клиентской ра
 - **Модульная система** — расширение бизнес-логики без модификации ядра. 19 CLI-команд для управления модулями.
 - **REST API-эндпоинты, сгенерированные из маршрутов** — каждая CRM-сущность, задача, проект, чат, календарь, аналитика и административная функция доступны через API.
 - **Спецификация OpenAPI 3.1** — генерируется из конфигурации маршрутов, никогда не расходится с реализацией.
-- **MCP-сервер — 567 tools, 5 resources** — endpoint Model Context Protocol для безопасного доступа AI-агентов к CRM с проверкой прав (справочник: [`docs_mcp/mcp_ru.md`](docs_mcp/mcp_ru.md)).
+- **MCP-сервер — 567 tools, 5 resources** — endpoint Model Context Protocol, который подключает Claude Code, Codex, ChatGPT и других AI-агентов к CRM с безопасным доступом к вашим данным и проверкой прав (справочник: [`docs_mcp/mcp_ru.md`](docs_mcp/mcp_ru.md)).
+
+---
+
+### Подключение ИИ-агентов (MCP)
+
+В TropaTT есть **встроенный MCP-сервер (Model Context Protocol)** — тот же протокол, который понимают **Claude Code, Codex, ChatGPT и другие ИИ-агенты**. Подключите любого MCP-совместимого агента к вашей CRM — и он сможет читать, анализировать и управлять вашими реальными данными: задачами, проектами, клиентами, контактами, чатами, календарём, аналитикой и базой знаний — через безопасный слой с проверкой прав.
+
+- **567 MCP tools + 5 resources** — покрыты все домены: задачи, проекты, клиенты, контакты, чаты, календарь, тайм-трекинг, аналитика, база знаний и многое другое.
+- **Работает с Claude Code, Codex, ChatGPT и другими MCP-совместимыми агентами.** Подключается к вашей установке так же, как к любому MCP-серверу.
+- **Те же данные и те же правила, что и в веб-интерфейсе.** Каждое действие агента проходит через тот же REST API и те же проверки RBAC — без прямого доступа к базе данных и без обхода ролей.
+- **Безопасно по дизайну.** Чувствительные данные (токены, хэши паролей, API-ключи) отфильтровываются, для записывающих инструментов требуется соответствующее право, а админ-действия остаются только у администраторов.
+- **Endpoint:** `POST /api/index.php?route=api/v1/mcp`, аутентификация Bearer-токеном (вашим пользовательским токеном или ключом API-клиента с ограниченными правами).
+
+Полный справочник MCP (инструменты, аутентификация, RBAC): [`docs_mcp/mcp_ru.md`](docs_mcp/mcp_ru.md).
 
 ---
 
@@ -884,6 +925,12 @@ TropaTT включает браузерный установщик для про
 
 **Можно ли кастомизировать?**
 Да. PHP/MySQL стек, модульные расширения, REST API, вебхуки, workflow-правила, настраиваемые поля, роли, права — всё адаптируется под ваши процессы.
+
+**Можно ли подключить к CRM ИИ-агентов вроде Claude Code, Codex или ChatGPT?**
+Да. В TropaTT встроен MCP-сервер (567 tools + 5 resources) — тот же Model Context Protocol, который используют Claude Code, Codex, ChatGPT и другие MCP-совместимые агенты. Подключите любого из них к вашей установке — они смогут работать с задачами, проектами, клиентами, чатами и базой знаний под теми же ролевыми правами, что и веб-интерфейс. Подробнее: [`docs_mcp/mcp_ru.md`](docs_mcp/mcp_ru.md).
+
+**Это действительно бесплатно?**
+Да — на 100% бесплатно и с открытым исходным кодом. Нет лицензионных платежей, подписок, оплаты за рабочее место и тарифных лимитов. Вы платите только за выбранный хостинг.
 
 **Как работают обновления?**
 Обновления устанавливаются из админки (**Администрирование → Обновления системы**), без SSH и Composer. Сервер обновлений (`update.tropatt.com`) по cron собирает и подписывает готовые архивы из GitHub; ваша CRM скачивает пакет, проверяет подпись, выполняет безопасную проверку, делает backup, применяет файлы и миграции БД, а при ошибке может откатиться из этого backup. Модули доставляются вместе с обновлением, поэтому новые модули автоматически появляются во всех установках (страница **Администрирование → Модули**, статус «Обнаружен» — останется только активировать). Подробнее: [`UPDATES.md`](UPDATES.md).
@@ -1108,6 +1155,8 @@ TropaTT разрабатывает **Антон Баринов**, PHP-разра
 
 TropaTT 是一个免费、开源、可自行部署的 CRM 和工作管理平台，基于 PHP 和 MySQL 构建。它把 CRM、任务管理、项目、看板、甘特图、日历、团队聊天、工作流自动化、REST API、OpenAPI、MCP 和 20 多项 AI 工作流整合到同一个系统中，由您部署在自己的服务器、VPS、本地环境或普通 PHP 主机上——无需按用户付费，也没有套餐限制。
 
+**永久免费——没有套路。** TropaTT 100% 免费且开源（AGPL-3.0）：没有许可费、没有订阅、没有按用户收费、没有套餐限制。您只需为选择的主机付费——或者在自己机器上运行，完全免费。
+
 它面向每天真正交付工作的人：管理许多客户的自由职业者、小型代理机构、服务公司、现场团队、工作室，以及厌倦在客户系统、任务工具、聊天软件和电子表格之间来回复制信息的团队。
 
 核心区别是控制权。TropaTT 不按用户收费，也不会用套餐限制用户、任务、项目或客户数量。数据、备份、集成和升级决策都在您手里。当然，这并不等于无限性能：实际容量取决于主机、数据库、配置、文件量和访问负载。小团队可以从基础 PHP/MySQL 主机开始，增长后再迁移到更强的基础设施。
@@ -1286,7 +1335,21 @@ TropaTT 的自动化层和 REST API 是生产级的——为需要系统与业�
 - **模块系统**——在不修改核心的情况下扩展业务逻辑。19 个模块管理 CLI 命令。
 - **从路由配置生成的 REST API 端点**——每个 CRM 实体、任务、项目、聊天、日历、分析和管理员功能均可通过 API 访问。
 - **OpenAPI 3.1 规范**——从实际路由配置生成，与实现保持同步。
-- **MCP 服务器 — 567 个工具、5 个资源**——通过 Model Context Protocol 端点，让 AI 代理安全地、按权限访问 CRM（参考：[`docs_mcp/mcp_zh.md`](docs_mcp/mcp_zh.md)）。
+- **MCP 服务器 — 567 个工具、5 个资源**——通过 Model Context Protocol 端点，将 Claude Code、Codex、ChatGPT 等 AI 代理安全地、按权限连接到 CRM 并访问您的数据（参考：[`docs_mcp/mcp_zh.md`](docs_mcp/mcp_zh.md)）。
+
+---
+
+### 连接 AI 代理（MCP）
+
+TropaTT 内置 **MCP（Model Context Protocol）服务器**——这正是 **Claude Code、Codex、ChatGPT 和其他 AI 编程代理** 所理解的协议。将任何兼容 MCP 的代理连接到您的 CRM，它就能在安全、按权限控制的层内读取、分析并管理您的真实数据：任务、项目、客户、联系人、聊天、日历、分析和知识库。
+
+- **567 个 MCP 工具 + 5 个资源**——覆盖所有领域：任务、项目、客户、联系人、聊天、日历、工时、分析、知识库等。
+- **适用于 Claude Code、Codex、ChatGPT 和其他兼容 MCP 的代理。** 与连接任何 MCP 服务器的方式相同，将代理连接到您的安装。
+- **与 Web 界面相同的数据、相同的规则。** 每个代理操作都经过相同的 REST API 和 RBAC 权限检查——没有直接数据库访问，不会绕过角色。
+- **天生安全。** 敏感数据（令牌、密码哈希、API 密钥）会被过滤，写入工具需要相应权限，管理操作仅限管理员。
+- **端点：** `POST /api/index.php?route=api/v1/mcp`，使用 Bearer 令牌认证（您的用户令牌或受限的 API 客户端密钥）。
+
+完整的 MCP 参考（工具、认证、RBAC）：[`docs_mcp/mcp_zh.md`](docs_mcp/mcp_zh.md)。
 
 ---
 
@@ -1378,6 +1441,12 @@ TropaTT 包含一个适用于简单 PHP/MySQL 部署的浏览器安装程序：�
 
 **可以定制吗？**
 可以。PHP/MySQL 技术栈、模块化扩展、REST API、Webhook、工作流规则、自定义字段、角色、权限——全部可适应您的流程。
+
+**可以将 Claude Code、Codex 或 ChatGPT 等 AI 代理连接到我的 CRM 吗？**
+可以。TropaTT 内置 MCP 服务器（567 个工具 + 5 个资源）——与 Claude Code、Codex、ChatGPT 和其他兼容 MCP 的代理使用的 Model Context Protocol 相同。将其中任何一个连接到您的安装，它们就能在 Web 界面相同的基于角色的权限下处理您的任务、项目、客户、聊天和知识库。详情：[`docs_mcp/mcp_zh.md`](docs_mcp/mcp_zh.md)。
+
+**它真的免费吗？**
+是的——100% 免费且开源。没有许可费、没有订阅、没有按用户收费、没有套餐限制。您只需为选择的主机付费。
 
 **更新是如何工作的？**
 更新从管理后台安装（**管理 → 系统更新**），无需 SSH 或 Composer。更新服务器（`update.tropatt.com`）通过 cron 从 GitHub 构建并签名现成的更新包；您的 CRM 会下载软件包、验证签名、运行安全检查、创建备份、应用文件和数据库迁移，如果出现问题还可以从该备份回滚。模块文件随更新一起分发，因此新模块会自动到达所有安装（在 **管理 → 模块** 中显示为「已发现」，只需激活即可）。详情：[`UPDATES.md`](UPDATES.md)。
