@@ -18059,6 +18059,25 @@ a.task-tag:hover {
 }
 .crm-pr-menu a:hover,
 .crm-pr-menu a:focus-visible { background: var(--crm-bg-hover); color: var(--crm-text); }
+.crm-pr-menu button {
+  display: flex;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: none;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--crm-text);
+  cursor: pointer;
+}
+.crm-pr-menu button:hover,
+.crm-pr-menu button:focus-visible { background: var(--crm-bg-hover); color: var(--crm-text); }
+.crm-pr-menu button.crm-pr-menu-danger { color: var(--crm-danger); }
+.crm-pr-menu button.crm-pr-menu-danger:hover,
+.crm-pr-menu button.crm-pr-menu-danger:focus-visible { background: var(--color-danger-50); color: var(--crm-danger); }
+.crm-pr-menu-divider { height: 1px; background: var(--crm-border); margin: 4px 6px; }
 
 /* signature: progress rail */
 .crm-pr-rail-wrap { margin: 16px 0 20px; }

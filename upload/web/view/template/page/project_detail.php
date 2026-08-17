@@ -29,6 +29,8 @@
         <a href="index.php?route=projects" role="menuitem" data-i18n="project_detail.link_back_to_projects"><?= htmlspecialchars($t('project_detail.link_back_to_projects', 'К списку проектов'), ENT_QUOTES, 'UTF-8') ?></a>
         <a href="index.php?route=companies" role="menuitem" data-i18n="project_detail.link_companies"><?= htmlspecialchars($t('project_detail.link_companies', 'Компании'), ENT_QUOTES, 'UTF-8') ?></a>
         <a href="index.php?route=contacts" role="menuitem" data-i18n="project_detail.link_contacts"><?= htmlspecialchars($t('project_detail.link_contacts', 'Контакты'), ENT_QUOTES, 'UTF-8') ?></a>
+        <div class="crm-pr-menu-divider" role="separator"></div>
+        <button type="button" id="projectArchiveMenuBtn" role="menuitem" class="crm-pr-menu-danger" data-i18n="project_detail.menu_archive_project"><?= htmlspecialchars($t('project_detail.menu_archive_project', 'Архивировать проект'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
     </div>
   </div>
@@ -414,6 +416,25 @@
       <div class="modal-footer">
         <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
         <button type="button" class="btn crm-btn-primary" id="projectModuleArchiveConfirmBtn" data-i18n="project_modules.archive_btn"><?= htmlspecialchars($t('project_modules.archive_btn', 'Архивировать'), ENT_QUOTES, 'UTF-8') ?></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Project Archive Confirm Modal ===== -->
+<div class="modal fade" id="projectArchiveModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" data-i18n="project_detail.archive_modal_title"><?= htmlspecialchars($t('project_detail.archive_modal_title', 'Архивировать проект'), ENT_QUOTES, 'UTF-8') ?></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="page.close"></button>
+      </div>
+      <div class="modal-body">
+        <p data-i18n="project_detail.archive_confirm_text"><?= htmlspecialchars($t('project_detail.archive_confirm_text', 'Архивировать этот проект? Проект будет скрыт из списка, но все его данные сохранятся.'), ENT_QUOTES, 'UTF-8') ?></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button type="button" class="btn crm-btn-danger" id="projectArchiveConfirmBtn" data-i18n="project_detail.archive_btn"><?= htmlspecialchars($t('project_detail.archive_btn', 'Архивировать'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
     </div>
   </div>

@@ -3464,6 +3464,35 @@ window.CRM.pageApiBindings = (function () {
       }
     }
 
+    // ===== Archive project (⋯ menu → confirm modal → DELETE soft-archive) =====
+    var archiveMenuBtn = document.getElementById('projectArchiveMenuBtn');
+    var archiveModal = document.getElementById('projectArchiveModal');
+    var archiveConfirmBtn = document.getElementById('projectArchiveConfirmBtn');
+    if (archiveMenuBtn && archiveModal && archiveMenuBtn.dataset.bound !== '1') {
+      archiveMenuBtn.addEventListener('click', function () {
+        projectCloseAllPopups();
+        if (window.bootstrap && window.bootstrap.Modal) {
+          window.bootstrap.Modal.getOrCreateInstance(archiveModal).show();
+        }
+      });
+      archiveMenuBtn.dataset.bound = '1';
+    }
+    if (archiveConfirmBtn && archiveConfirmBtn.dataset.bound !== '1') {
+      archiveConfirmBtn.addEventListener('click', async function () {
+        archiveConfirmBtn.disabled = true;
+        try {
+          await request('api/v1/projects/' + projectId, { method: 'DELETE' });
+          notify(window.CRM.i18n.t('project_detail.archived', 'Project archived'), 'success');
+          window.location.href = 'index.php?route=projects';
+        } catch (error) {
+          archiveConfirmBtn.disabled = false;
+          var archiveEnv = error && error.envelope ? error.envelope : null;
+          notify((archiveEnv && archiveEnv.message) || window.CRM.i18n.t('project_detail.archive_error', 'Failed to archive project'), 'error');
+        }
+      });
+      archiveConfirmBtn.dataset.bound = '1';
+    }
+
     async function loadProjectTasks() {
       var tasksEnvelope = await tryRequest('api/v1/tasks', { query: { limit: 200, project_public_id: projectId } });
       var tasks = mapItems(tasksEnvelope);
