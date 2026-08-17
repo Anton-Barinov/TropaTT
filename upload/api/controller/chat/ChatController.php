@@ -604,11 +604,11 @@ final class ChatController extends BaseController
             SELECT c.*, cp.is_favorite, cp.muted_until, COALESCE(rm.last_read_message_id, 0) as last_read_id
             FROM chats c
             JOIN chat_participants cp ON cp.chat_id = c.id AND cp.user_id = :uid
-            LEFT JOIN chat_read_markers rm ON rm.chat_id = c.id AND rm.user_id = :uid
+            LEFT JOIN chat_read_markers rm ON rm.chat_id = c.id AND rm.user_id = :uid2
             WHERE c.public_id = :pid
             LIMIT 1
         ");
-        $stmt->execute(['pid' => $publicId, 'uid' => $userId]);
+        $stmt->execute(['pid' => $publicId, 'uid' => $userId, 'uid2' => $userId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return is_array($row) ? $row : null;
     }
