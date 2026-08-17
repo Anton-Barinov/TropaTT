@@ -2087,7 +2087,137 @@ window.CRM.pageApiBindings = (function () {
     bindProjectPreviewButtons(filtered);
   }
 
+  // ===== Project detail: avatar palette + interaction shell (tabs/accordions/menu/modal tabs) =====
+  var PROJECT_AVATAR_PALETTE = ['#0f8f72', '#166b78', '#6f42c1', '#3f5f9e', '#b45309', '#475569'];
+
+  function projectAvatarColor(name) {
+    var s = String(name || '').trim();
+    if (!s) return PROJECT_AVATAR_PALETTE[0];
+    var h = 0;
+    for (var i = 0; i < s.length; i += 1) { h = (h * 31 + s.charCodeAt(i)) >>> 0; }
+    return PROJECT_AVATAR_PALETTE[h % PROJECT_AVATAR_PALETTE.length];
+  }
+
+  function projectAvatarInitials(name) {
+    var parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '?';
+    var first = parts[0].charAt(0);
+    var second = parts.length > 1 ? parts[parts.length - 1].charAt(0) : '';
+    return (first + second).toUpperCase();
+  }
+
+  function projectActivateTab(name) {
+    document.querySelectorAll('[data-project-tab]').forEach(function (btn) {
+      var active = btn.getAttribute('data-project-tab') === name;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    document.querySelectorAll('[data-project-panel]').forEach(function (panel) {
+      panel.classList.toggle('active', panel.getAttribute('data-project-panel') === name);
+    });
+  }
+
+  function projectCloseAllPopups() {
+    document.querySelectorAll('.crm-pr-menu.open, .crm-pr-popover.open').forEach(function (node) {
+      node.classList.remove('open');
+      var wrap = node.classList.contains('crm-pr-menu') ? node.parentElement : null;
+      if (wrap) {
+        var btn = wrap.querySelector('.crm-pr-menu-btn');
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
+
+  function setupProjectDetailInteractions() {
+    if (window.CRM._projectDetailInteractionsBound) return;
+    window.CRM._projectDetailInteractionsBound = true;
+
+    document.addEventListener('click', function (e) {
+      var tabBtn = e.target.closest('[data-project-tab]');
+      if (tabBtn) {
+        projectActivateTab(String(tabBtn.getAttribute('data-project-tab') || 'overview'));
+        return;
+      }
+
+      var accHead = e.target.closest('.crm-pr-acc-head');
+      if (accHead) {
+        var acc = accHead.closest('.crm-pr-acc');
+        if (!acc) return;
+        var panel = acc.querySelector('.crm-pr-acc-panel');
+        var isOpen = acc.classList.contains('open');
+        if (isOpen) {
+          if (panel) panel.style.maxHeight = '0';
+          acc.classList.remove('open');
+          accHead.setAttribute('aria-expanded', 'false');
+        } else {
+          acc.classList.add('open');
+          if (panel) panel.style.maxHeight = panel.scrollHeight + 'px';
+          accHead.setAttribute('aria-expanded', 'true');
+        }
+        return;
+      }
+
+      var menuBtn = e.target.closest('#projectMoreBtn');
+      if (menuBtn) {
+        var menu = document.getElementById('projectMoreMenu');
+        if (!menu) return;
+        projectCloseAllPopups();
+        var willOpen = !menu.classList.contains('open');
+        menu.classList.toggle('open', willOpen);
+        menuBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+        return;
+      }
+
+      var editTab = e.target.closest('[data-project-edit-tab]');
+      if (editTab) {
+        var modal = editTab.closest('.modal');
+        var scope = modal || document;
+        var name = String(editTab.getAttribute('data-project-edit-tab') || 'identity');
+        scope.querySelectorAll('[data-project-edit-tab]').forEach(function (btn) {
+          var active = btn.getAttribute('data-project-edit-tab') === name;
+          btn.classList.toggle('active', active);
+          btn.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        scope.querySelectorAll('[data-project-edit-panel]').forEach(function (p) {
+          p.classList.toggle('active', p.getAttribute('data-project-edit-panel') === name);
+        });
+        return;
+      }
+
+      var aiSegment = e.target.closest('[data-ai-segment]');
+      if (aiSegment) {
+        var card = aiSegment.closest('#projectAiCompactCard') || document;
+        var segName = String(aiSegment.getAttribute('data-ai-segment') || 'summary');
+        card.querySelectorAll('[data-ai-segment]').forEach(function (btn) {
+          var active = btn.getAttribute('data-ai-segment') === segName;
+          btn.classList.toggle('active', active);
+          btn.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        card.querySelectorAll('[data-ai-panel]').forEach(function (p) {
+          p.classList.toggle('active', p.getAttribute('data-ai-panel') === segName);
+        });
+        return;
+      }
+
+      var aiOpen = e.target.closest('#projectAiCompactOpenBtn');
+      if (aiOpen) {
+        projectActivateTab('ai');
+        return;
+      }
+
+      // close popups when clicking outside of them
+      if (!e.target.closest('.crm-pr-menu-wrap') && !e.target.closest('.crm-pr-status-row')) {
+        projectCloseAllPopups();
+      }
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') projectCloseAllPopups();
+    });
+  }
+
   async function renderProjectDetailPage() {
+    setupProjectDetailInteractions();
     var projectId = window.CRM.br1 ? window.CRM.br1.getProjectPublicIdFromUrl() : '';
     var aiCanUse = window.CRM.ai && typeof window.CRM.ai.hasAiPermission === 'function'
       ? window.CRM.ai.hasAiPermission('project_summary')
@@ -2116,7 +2246,7 @@ window.CRM.pageApiBindings = (function () {
 
     setText('.crm-page-title', project.title || window.CRM.i18n.t('js.pab.project_card', 'Project card'));
     setText('#projectBreadcrumbTitle', project.title || project.public_id || window.CRM.i18n.t('js.pab.project_card', 'Project card'));
-    setText('.crm-subtitle', window.CRM.i18n.t('js.pab.status_label', 'Status:') + ' ' + projectStatusLabel(project.status_code) + ' · ' + window.CRM.i18n.t('js.pab.updated_label', 'Updated:') + ' ' + formatDate(project.updated_at));
+    setText('.crm-subtitle', resolveUserLabel(project.creator_user_name || '', project.creator_user_public_id || '', '—') + ' · ' + window.CRM.i18n.t('js.pab.created', 'Created') + ' ' + formatDate(project.created_at) + ' · ' + window.CRM.i18n.t('js.pab.updated', 'Updated') + ' ' + formatDate(project.updated_at));
     setText('#projectPublicIdChip', 'ID: ' + (project.public_id || '—'));
     setText('#projectRowVersionChip', window.CRM.i18n.t('js.pab.version_label', 'Version:') + ' ' + String(project.row_version || 1));
     setText('#projectSummaryCreator', resolveUserLabel(project.creator_user_name || '', project.creator_user_public_id || '', '—'));
@@ -2179,7 +2309,6 @@ window.CRM.pageApiBindings = (function () {
 
     function renderMetricsBlock(summaryData) {
       var metricsWrap = document.getElementById('projectMetricsList');
-      if (!metricsWrap) return;
 
       var milestonesData = summaryData && summaryData.milestones ? summaryData.milestones : {};
       var risks = summaryData && summaryData.risks ? summaryData.risks : {};
@@ -2187,14 +2316,43 @@ window.CRM.pageApiBindings = (function () {
       var totalTasks = Number(workloadTotals.total_tasks || 0);
       var doneTasks = Number(workloadTotals.done_tasks || 0);
       var progress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+      var overdue = Number(risks.overdue_tasks || 0);
+      var blocked = Number(risks.blocked_tasks || 0);
+      var milestonesDone = Number(milestonesData.done || 0);
+      var milestonesTotal = Number(milestonesData.total || 0);
+      var loggedMinutes = Number(workloadTotals.logged_minutes || 0);
+      var loggedHours = loggedMinutes > 0 ? Math.round((loggedMinutes / 60) * 10) / 10 : 0;
 
-      metricsWrap.innerHTML = ''
-        + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.task_progress', 'Task progress') + '</small><div>' + safeText(progress + '%') + '</div></div>'
-        + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.total_tasks', 'Total tasks') + '</small><div>' + safeText(String(totalTasks)) + '</div></div>'
-        + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.overdue_tasks', 'Overdue tasks') + '</small><div class="' + (Number(risks.overdue_tasks || 0) > 0 ? 'text-danger' : '') + '">' + safeText(String(risks.overdue_tasks || 0)) + '</div></div>'
-        + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.blocked_tasks', 'Blocked tasks') + '</small><div>' + safeText(String(risks.blocked_tasks || 0)) + '</div></div>'
-        + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.milestones_completed', 'Milestones completed') + '</small><div>' + safeText(String(milestonesData.done || 0)) + ' / ' + safeText(String(milestonesData.total || 0)) + '</div></div>'
-        + '<div class="crm-metric-tile"><small class="text-muted">' + window.CRM.i18n.t('js.pab.logged_time', 'Logged time') + '</small><div>' + safeText(String(workloadTotals.logged_minutes || 0)) + ' ' + window.CRM.i18n.t('js.pab.min', 'min') + '</div></div>';
+      function factItem(labelKey, value, isZero) {
+        return '<div class="crm-pr-fact"><div class="f-label">' + window.CRM.i18n.t('js.pab.' + labelKey, labelKey) + '</div><div class="f-val' + (isZero ? ' zero' : '') + '">' + safeText(value) + '</div></div>';
+      }
+
+      if (metricsWrap) {
+        metricsWrap.innerHTML = ''
+          + factItem('total_tasks', String(totalTasks), totalTasks === 0)
+          + factItem('overdue_tasks', String(overdue), overdue === 0)
+          + factItem('blocked_tasks', String(blocked), blocked === 0)
+          + factItem('milestones_completed', String(milestonesDone) + ' / ' + String(milestonesTotal), milestonesDone === 0 && milestonesTotal === 0)
+          + factItem('logged_time', String(loggedHours) + ' ' + window.CRM.i18n.t('js.pab.hours_short', 'h'), loggedHours === 0);
+      }
+
+      var ringEl = document.getElementById('projectProgressRing');
+      if (ringEl) {
+        var p = Math.max(0, Math.min(100, progress));
+        var r = 40;
+        var circumference = 2 * Math.PI * r;
+        var dash = (p / 100) * circumference;
+        ringEl.innerHTML = '<svg width="88" height="88" viewBox="0 0 88 88" aria-hidden="true">'
+          + '<circle cx="44" cy="44" r="' + r + '" fill="none" style="stroke:var(--color-neutral-100)" stroke-width="8"></circle>'
+          + '<circle cx="44" cy="44" r="' + r + '" fill="none" style="stroke:var(--crm-accent)" stroke-width="8" stroke-linecap="round" stroke-dasharray="' + circumference + '" stroke-dashoffset="' + (circumference - dash) + '"></circle>'
+          + '</svg><div class="num"><b>' + p + '%</b><span>' + window.CRM.i18n.t('js.pab.ready', 'готово') + '</span></div>';
+      }
+
+      var railFill = document.getElementById('projectProgressRailFill');
+      var railValue = document.getElementById('projectProgressRailValue');
+      var railP = Math.max(0, Math.min(100, progress));
+      if (railFill) railFill.style.width = railP + '%';
+      if (railValue) railValue.textContent = railP + '%';
     }
 
     function renderTeamBlock(summaryData) {
@@ -2205,23 +2363,26 @@ window.CRM.pageApiBindings = (function () {
         ? summaryData.workload.items
         : [];
       var teamHeading = project.team_title
-        ? '<div class="crm-metric-tile mb-2"><div><strong>' + safeText(project.team_title) + '</strong></div><div class="small text-muted">' + window.CRM.i18n.t('js.pab.team_assigned_to_project', 'Team assigned to project') + '</div></div>'
+        ? '<div class="small text-muted mb-2">' + window.CRM.i18n.t('js.pab.team', 'Team') + ': <strong>' + safeText(project.team_title) + '</strong></div>'
         : '';
       if (!workloadItems.length) {
         teamWrap.innerHTML = teamHeading + '<div class="text-muted">' + window.CRM.i18n.t('js.pab.no_tasks_distributed', 'No tasks distributed for this project yet.') + '</div>';
         return;
       }
 
-      teamWrap.innerHTML = teamHeading + workloadItems.slice(0, 10).map(function (member) {
+      teamWrap.innerHTML = teamHeading + '<div class="crm-pr-team-list">' + workloadItems.slice(0, 10).map(function (member) {
+        var name = resolveUserLabel(member.assignee_name || '', member.assignee_user_public_id || '', window.CRM.i18n.t('js.pab.member', 'Member'));
         var done = Number(member.done_tasks || 0);
         var total = Number(member.total_tasks || 0);
         var donePercent = total > 0 ? Math.round((done / total) * 100) : 0;
-        return '<div class="crm-metric-tile mb-2">'
-          + '<div><strong>' + safeText(resolveUserLabel(member.assignee_name || '', member.assignee_user_public_id || '', window.CRM.i18n.t('js.pab.member', 'Member'))) + '</strong></div>'
-          + '<div class="small text-muted">' + window.CRM.i18n.t('js.pab.tasks_label', 'Tasks:') + ' ' + safeText(String(total)) + ' · ' + window.CRM.i18n.t('js.pab.done_label', 'Done:') + ' ' + safeText(String(done)) + ' (' + safeText(String(donePercent)) + '%)</div>'
-          + '<div class="small text-muted">' + window.CRM.i18n.t('js.pab.blocked_label', 'Blocked:') + ' ' + safeText(String(member.blocked_tasks || 0)) + ' · ' + window.CRM.i18n.t('js.pab.overdue_label', 'Overdue:') + ' ' + safeText(String(member.overdue_tasks || 0)) + '</div>'
+        var detail = window.CRM.i18n.t('js.pab.blocked_label', 'Blocked:') + ' ' + String(member.blocked_tasks || 0) + ' · ' + window.CRM.i18n.t('js.pab.overdue_label', 'Overdue:') + ' ' + String(member.overdue_tasks || 0);
+        return '<div class="crm-pr-team-row" title="' + safeText(detail) + '">'
+          + '<span class="crm-pr-avatar" style="background:' + projectAvatarColor(name) + '">' + safeText(projectAvatarInitials(name)) + '</span>'
+          + '<span class="name">' + safeText(name) + '</span>'
+          + '<span class="bar"><span style="width:' + donePercent + '%"></span></span>'
+          + '<span class="stat">' + done + '/' + total + '</span>'
           + '</div>';
-      }).join('');
+      }).join('') + '</div>';
     }
 
     function renderMilestonesBlock(summaryData, milestones) {
@@ -2320,6 +2481,22 @@ window.CRM.pageApiBindings = (function () {
       }).join('') + '</ul>';
     }
 
+    function syncProjectAiCompact(stateText, summaryText, riskItems) {
+      var stateEl = document.getElementById('projectAiCompactState');
+      var summaryEl = document.getElementById('projectAiCompactSummary');
+      var risksEl = document.getElementById('projectAiCompactRisks');
+      if (stateEl) stateEl.textContent = stateText || '';
+      if (summaryEl) summaryEl.textContent = summaryText || '';
+      if (risksEl) {
+        var list = Array.isArray(riskItems) ? riskItems : [];
+        if (!list.length) {
+          risksEl.innerHTML = '—';
+        } else {
+          risksEl.innerHTML = '<ul>' + list.map(function (item) { return '<li>' + safeText(String(item || '')) + '</li>'; }).join('') + '</ul>';
+        }
+      }
+    }
+
     function setProjectAiPrimaryDisabled(disabled) {
       projectAiPrimaryButtons.forEach(function (btn) {
         if (!btn) return;
@@ -2335,6 +2512,7 @@ window.CRM.pageApiBindings = (function () {
         projectAiSummaryText.textContent = '';
         renderProjectAiList(projectAiRisksQuestions, [], '—');
         renderProjectAiList(projectAiNextActions, [], '—');
+        syncProjectAiCompact(window.CRM.i18n.t('js.pab.state_label', 'State:') + ' hidden', '', []);
         if (projectAiReportDraftWrap) projectAiReportDraftWrap.classList.add('d-none');
         setProjectAiPrimaryDisabled(true);
         if (projectAiPreviewBtn) projectAiPreviewBtn.disabled = true;
@@ -2347,6 +2525,7 @@ window.CRM.pageApiBindings = (function () {
         projectAiSummaryText.textContent = window.CRM.i18n.t('js.pab.ai_summary_prompt', 'Click "AI Summary" to get an AI recommendation for the project.');
         renderProjectAiList(projectAiRisksQuestions, [], window.CRM.i18n.t('js.pab.no_ai_risks', 'No AI risks or questions yet.'));
         renderProjectAiList(projectAiNextActions, [], window.CRM.i18n.t('js.pab.no_ai_actions', 'No suggested actions yet.'));
+        syncProjectAiCompact(window.CRM.i18n.t('js.pab.ai_summary_not_ready', 'AI project summary not generated.'), window.CRM.i18n.t('js.pab.ai_summary_prompt', 'Click "AI Summary" to get an AI recommendation for the project.'), []);
         if (projectAiReportDraftWrap) projectAiReportDraftWrap.classList.add('d-none');
         if (projectAiPreviewBtn) projectAiPreviewBtn.disabled = true;
         if (projectAiDismissBtn) projectAiDismissBtn.disabled = true;
@@ -2372,6 +2551,7 @@ window.CRM.pageApiBindings = (function () {
       projectAiSummaryText.textContent = summaryText || window.CRM.i18n.t('js.pab.ai_proposal_ready', 'AI proposal generated.');
       renderProjectAiList(projectAiRisksQuestions, risks.concat(questions), window.CRM.i18n.t('js.pab.no_ai_risks_found', 'No AI risks or questions found.'));
       renderProjectAiList(projectAiNextActions, suggestedTasks.concat(checklistItems), window.CRM.i18n.t('js.pab.no_suggested_actions', 'No suggested actions.'));
+      syncProjectAiCompact(stateCopy, summaryText || window.CRM.i18n.t('js.pab.ai_proposal_ready', 'AI proposal generated.'), risks.concat(questions));
       if (projectAiReportDraftWrap && projectAiReportDraftText) {
         if (reportDraft !== '') {
           projectAiReportDraftWrap.classList.remove('d-none');
@@ -2933,19 +3113,380 @@ window.CRM.pageApiBindings = (function () {
       });
     }
 
+    // ===== Redesigned "О проекте" card + edit modal + quick status/priority pills =====
+    var aboutGrid = document.getElementById('projectAboutGrid');
+    if (aboutGrid) {
+      function prClientTitle(publicId) {
+        if (!publicId) return window.CRM.i18n.t('js.pab.no_client', 'No client');
+        var found = clients.find(function (c) { return String(c.public_id || '') === String(publicId || ''); });
+        return found ? String(found.title || found.public_id || 'Client') : String(publicId);
+      }
+      function prUserTitle(publicId) {
+        if (!publicId) return window.CRM.i18n.t('js.pab.no_manager', 'No manager');
+        var found = users.find(function (u) { return String(u.public_id || '') === String(publicId || ''); });
+        return found ? String(found.full_name || found.login || found.public_id || 'User') : String(publicId);
+      }
+      function prTeamTitle(publicId) {
+        if (!publicId) return window.CRM.i18n.t('js.pab.no_team_assigned', 'No team assigned');
+        var found = teams.find(function (t) { return String(t.public_id || '') === String(publicId || ''); });
+        return found ? String(found.title || found.name || found.public_id || 'Team') : String(publicId);
+      }
+      function prStatusTone(code) {
+        var c = String(code || '').toLowerCase();
+        if (c === 'blocked' || c === 'overdue') return 'tone-amber';
+        if (c === 'on_hold' || c === 'paused' || c === 'planning') return 'tone-blue';
+        if (c === 'archived' || c === 'cancelled' || c === 'canceled') return 'tone-gray';
+        return 'tone-green';
+      }
+      function prPriorityTone(code) {
+        var c = String(code || '').toLowerCase();
+        if (c === 'urgent') return 'tone-red';
+        if (c === 'high') return 'tone-amber';
+        if (c === 'low') return 'tone-blue';
+        return 'tone-gray';
+      }
+      function prSwatch(tone) {
+        var colors = {
+          'tone-green': 'var(--crm-accent)',
+          'tone-amber': 'var(--crm-warning)',
+          'tone-blue': 'var(--crm-info)',
+          'tone-red': 'var(--crm-danger)',
+          'tone-gray': 'var(--crm-text-muted)'
+        };
+        return '<span class="swatch" style="background:' + (colors[tone] || colors['tone-gray']) + '"></span>';
+      }
+
+      function renderAboutCard() {
+        var descHtml = renderVisualEditorHtml(project.description || window.CRM.i18n.t('js.pab.no_description', 'No description'));
+        aboutGrid.innerHTML = ''
+          + '<div class="crm-pr-id-field"><label>' + window.CRM.i18n.t('js.pab.description', 'Description') + '</label><div class="desc crm-project-description-readonly">' + descHtml + '</div></div>'
+          + '<div class="crm-pr-id-field"><label>' + window.CRM.i18n.t('js.pab.client', 'Client') + '</label><div class="val">' + safeText(prClientTitle(project.client_public_id)) + '</div></div>'
+          + '<div class="crm-pr-id-field"><label>' + window.CRM.i18n.t('js.pab.manager', 'Manager') + '</label><div class="val">' + safeText(prUserTitle(project.manager_user_public_id)) + '</div></div>'
+          + '<div class="crm-pr-id-field"><label>' + window.CRM.i18n.t('js.pab.status_and_priority', 'Status and priority') + '</label><div class="crm-pr-status-row">'
+          + '<button type="button" class="crm-pr-pill clickable ' + prStatusTone(project.status_code) + '" data-project-popover="status" aria-haspopup="true" aria-expanded="false">' + safeText(projectStatusLabel(project.status_code)) + '</button>'
+          + '<button type="button" class="crm-pr-pill clickable ' + prPriorityTone(project.priority_code || 'normal') + '" data-project-popover="priority" aria-haspopup="true" aria-expanded="false">' + safeText(priorityLabel(project.priority_code || 'normal')) + '</button>'
+          + '<div class="crm-pr-popover" data-project-popover-panel="status"></div>'
+          + '<div class="crm-pr-popover" data-project-popover-panel="priority"></div>'
+          + '</div></div>'
+          + '<div class="crm-pr-id-field"><label>' + window.CRM.i18n.t('js.pab.team', 'Team') + '</label><div class="val">' + safeText(prTeamTitle(project.team_public_id)) + '</div></div>'
+          + '<div class="crm-pr-id-field"><label>' + window.CRM.i18n.t('js.pab.created', 'Created') + '</label><div class="val">' + safeText(formatDate(project.created_at)) + '</div></div>';
+        hydrateVisualEditorReadonly(aboutGrid);
+      }
+
+      function renderStatusPopover() {
+        var panel = aboutGrid.querySelector('[data-project-popover-panel="status"]');
+        if (!panel) return;
+        panel.innerHTML = projectStatusOptions.map(function (opt) {
+          return '<button type="button" data-project-popover-set="status" data-value="' + safeText(opt.code) + '">' + prSwatch(prStatusTone(opt.code)) + safeText(opt.label) + '</button>';
+        }).join('');
+      }
+
+      function renderPriorityPopover() {
+        var panel = aboutGrid.querySelector('[data-project-popover-panel="priority"]');
+        if (!panel) return;
+        var priorities = [
+          { code: 'low', label: window.CRM.i18n.t('js.pab.priority_low', 'Low') },
+          { code: 'normal', label: window.CRM.i18n.t('js.pab.priority_normal', 'Normal') },
+          { code: 'high', label: window.CRM.i18n.t('js.pab.priority_high', 'High') },
+          { code: 'urgent', label: window.CRM.i18n.t('js.pab.priority_urgent', 'Urgent') }
+        ];
+        panel.innerHTML = priorities.map(function (p) {
+          return '<button type="button" data-project-popover-set="priority" data-value="' + p.code + '">' + prSwatch(prPriorityTone(p.code)) + safeText(p.label) + '</button>';
+        }).join('');
+      }
+
+      function populateEditModal() {
+        var titleInput = document.getElementById('projectEditTitle');
+        var descInput = document.getElementById('projectEditDescription');
+        var statusSelect = document.getElementById('projectEditStatus');
+        var prioritySelect = document.getElementById('projectEditPriority');
+        var clientSelect = document.getElementById('projectEditClient');
+        var managerSelect = document.getElementById('projectEditManager');
+        var teamSelect = document.getElementById('projectEditTeam');
+        if (titleInput) titleInput.value = project.title || '';
+        if (descInput) descInput.value = project.description || '';
+        if (statusSelect) {
+          statusSelect.innerHTML = projectStatusOptions.map(function (opt) {
+            return '<option value="' + safeText(opt.code) + '"' + (String(project.status_code || '') === String(opt.code || '') ? ' selected' : '') + '>' + safeText(opt.label) + '</option>';
+          }).join('');
+        }
+        if (prioritySelect) {
+          prioritySelect.innerHTML = ['low', 'normal', 'high', 'urgent'].map(function (code) {
+            return '<option value="' + code + '"' + (String(project.priority_code || 'normal') === code ? ' selected' : '') + '>' + safeText(priorityLabel(code)) + '</option>';
+          }).join('');
+        }
+        if (clientSelect) {
+          clientSelect.innerHTML = '<option value="">' + window.CRM.i18n.t('js.pab.no_client', 'No client') + '</option>' + clients.map(function (c) {
+            return '<option value="' + safeText(c.public_id || '') + '"' + (String(project.client_public_id || '') === String(c.public_id || '') ? ' selected' : '') + '>' + safeText(c.title || c.public_id || 'Client') + '</option>';
+          }).join('');
+        }
+        if (managerSelect) {
+          managerSelect.innerHTML = '<option value="">' + window.CRM.i18n.t('js.pab.no_manager', 'No manager') + '</option>' + users.map(function (u) {
+            return '<option value="' + safeText(u.public_id || '') + '"' + (String(project.manager_user_public_id || '') === String(u.public_id || '') ? ' selected' : '') + '>' + safeText(u.full_name || u.login || u.public_id || 'User') + '</option>';
+          }).join('');
+        }
+        if (teamSelect) {
+          teamSelect.innerHTML = '<option value="">' + window.CRM.i18n.t('js.pab.no_team_assigned', 'No team assigned') + '</option>' + teams.map(function (t) {
+            return '<option value="' + safeText(t.public_id || '') + '"' + (String(project.team_public_id || '') === String(t.public_id || '') ? ' selected' : '') + '>' + safeText(t.title || t.name || t.public_id || 'Team') + '</option>';
+          }).join('');
+        }
+        refreshVisualEditors(document.getElementById('projectEditForm'), true);
+      }
+
+      async function applyProjectPatch(body) {
+        function listOpenTaskIds(pageNum) {
+          return request('api/v1/tasks', { query: { project_public_id: projectId, limit: 100, page: pageNum } }).then(function (envelope) {
+            return mapItems(envelope).filter(function (taskItem) {
+              var st = String(taskItem.status_code || '').toLowerCase();
+              return st !== 'done' && st !== 'completed' && st !== 'cancelled' && st !== 'canceled';
+            }).map(function (taskItem) { return taskItem.public_id; }).filter(Boolean);
+          });
+        }
+
+        function showProjectCloseActionModal(targetOptionsHtml) {
+          return new Promise(function (resolve) {
+            var modalId = 'projectCloseActionModal';
+            var oldModal = document.getElementById(modalId);
+            if (oldModal) oldModal.remove();
+            var modalEl = document.createElement('div');
+            modalEl.className = 'modal fade';
+            modalEl.id = modalId;
+            modalEl.tabIndex = -1;
+            modalEl.setAttribute('aria-hidden', 'true');
+            modalEl.innerHTML = '<div class="modal-dialog modal-dialog-centered"><div class="modal-content">'
+              + '<div class="modal-header"><h5 class="modal-title">' + safeText(window.CRM.i18n.t('js.pab.project_has_open_tasks', 'Project has open tasks')) + '</h5>'
+              + '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + safeText(tp('common.close', 'Close')) + '"></button></div>'
+              + '<div class="modal-body">'
+              + '<p>' + safeText(window.CRM.i18n.t('js.pab.project_has_open_tasks_body', 'Cannot complete the project while open tasks remain. Choose how to proceed:')) + ' <strong>' + safeText(String(openCount)) + '</strong></p>'
+              + '<div class="mb-2"><button type="button" class="btn crm-btn-primary w-100" data-project-close-action="close">' + safeText(window.CRM.i18n.t('js.pab.close_all_tasks', 'Close all tasks')) + '</button></div>'
+              + '<div class="mb-2"><button type="button" class="btn crm-btn-secondary w-100" data-project-close-action="move">' + safeText(window.CRM.i18n.t('js.pab.move_to_other_project', 'Move to another project')) + '</button></div>'
+              + '<div class="d-none" data-project-move-panel>'
+              + '<label class="form-label">' + safeText(window.CRM.i18n.t('js.pab.target_project', 'Target project')) + '</label>'
+              + '<select class="form-select" data-project-move-select>' + targetOptionsHtml + '</select>'
+              + '<div class="d-flex gap-2 mt-2"><button type="button" class="btn btn-sm crm-btn-primary" data-project-close-action="do-move">' + safeText(window.CRM.i18n.t('js.pab.move_tasks', 'Move tasks')) + '</button>'
+              + '<button type="button" class="btn btn-sm btn-light" data-project-move-cancel>' + safeText(tp('common.cancel', 'Cancel')) + '</button></div>'
+              + '</div>'
+              + '</div></div></div>';
+            document.body.appendChild(modalEl);
+            var instance = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+            var settled = false;
+            function finish(result) {
+              if (settled) return;
+              settled = true;
+              instance.hide();
+              modalEl.addEventListener('hidden.bs.modal', function () { modalEl.remove(); }, { once: true });
+              resolve(result);
+            }
+            modalEl.addEventListener('click', function (e) {
+              var actionBtn = e.target.closest('[data-project-close-action]');
+              if (!actionBtn) return;
+              var action = String(actionBtn.getAttribute('data-project-close-action') || '');
+              if (action === 'close') { finish('close'); return; }
+              if (action === 'move') {
+                var panel = modalEl.querySelector('[data-project-move-panel]');
+                if (panel) panel.classList.remove('d-none');
+                return;
+              }
+              if (action === 'do-move') {
+                var select = modalEl.querySelector('[data-project-move-select]');
+                var target = String(select && select.value || '').trim();
+                if (!target) { if (select) select.focus(); return; }
+                finish(target);
+              }
+            });
+            var moveCancel = modalEl.querySelector('[data-project-move-cancel]');
+            if (moveCancel) {
+              moveCancel.addEventListener('click', function () {
+                var panel = modalEl.querySelector('[data-project-move-panel]');
+                if (panel) panel.classList.add('d-none');
+              });
+            }
+            modalEl.addEventListener('hidden.bs.modal', function () {
+              if (!settled) { settled = true; resolve(null); }
+            });
+            instance.show();
+          });
+        }
+
+        try {
+          var updatedEnvelope = await request('api/v1/projects/' + projectId, { method: 'PATCH', body: body });
+          var updated = updatedEnvelope && updatedEnvelope.data && updatedEnvelope.data.project ? updatedEnvelope.data.project : null;
+          if (updated) project = updated;
+          return updated;
+        } catch (error) {
+          var envelopeError = error && error.envelope ? error.envelope : null;
+          if (envelopeError && String(envelopeError.code || '') === 'PROJECT_HAS_OPEN_TASKS') {
+            var openCount = Number((envelopeError.meta && envelopeError.meta.open_task_count) || envelopeError.open_task_count || 0);
+            try {
+              var moveProjectsEnvelope = await request('api/v1/projects', { query: { limit: 200 } });
+              var moveProjectsHtml = ['<option value="">' + safeText(tp('common.select', 'Select...')) + '</option>']
+                .concat(mapItems(moveProjectsEnvelope).filter(function (projectItem) {
+                  return String(projectItem.public_id || '') !== String(projectId || '');
+                }).map(function (projectItem) {
+                  return '<option value="' + safeText(projectItem.public_id || '') + '">' + safeText(projectItem.title || projectItem.public_id || '') + '</option>';
+                })).join('');
+              var closeAction = await showProjectCloseActionModal(moveProjectsHtml);
+              if (!closeAction) return null;
+              if (closeAction === 'close') {
+                var page = 1;
+                var closedAny = false;
+                while (true) {
+                  var closeBatchIds = await listOpenTaskIds(page);
+                  if (!closeBatchIds.length) break;
+                  await request('api/v1/tasks/bulk', { method: 'POST', body: { task_public_ids: closeBatchIds, changes: { status: 'done' } } });
+                  closedAny = true;
+                  page += 1;
+                  if (closeBatchIds.length < 100) break;
+                }
+                if (!closedAny) {
+                  notify(window.CRM.i18n.t('js.pab.no_open_tasks_found', 'No open tasks found'), 'warning');
+                  return null;
+                }
+                notify(window.CRM.i18n.t('js.pab.tasks_closed_prefix', 'Open tasks closed: ') + openCount, 'success');
+              } else {
+                var movePage = 1;
+                var movedAny = false;
+                while (true) {
+                  var moveBatchIds = await listOpenTaskIds(movePage);
+                  if (!moveBatchIds.length) break;
+                  for (var i = 0; i < moveBatchIds.length; i += 1) {
+                    await request('api/v1/tasks/' + encodeURIComponent(moveBatchIds[i]), { method: 'PATCH', body: { project_public_id: closeAction } });
+                    movedAny = true;
+                  }
+                  movePage += 1;
+                  if (moveBatchIds.length < 100) break;
+                }
+                if (!movedAny) {
+                  notify(window.CRM.i18n.t('js.pab.no_open_tasks_found', 'No open tasks found'), 'warning');
+                  return null;
+                }
+                notify(window.CRM.i18n.t('js.pab.tasks_moved_prefix', 'Open tasks moved to the selected project: ') + openCount, 'success');
+              }
+              var completedEnvelope = await request('api/v1/projects/' + projectId, { method: 'PATCH', body: body });
+              var completed = completedEnvelope && completedEnvelope.data && completedEnvelope.data.project ? completedEnvelope.data.project : null;
+              if (completed) project = completed;
+              notify(window.CRM.i18n.t('js.pab.project_completed', 'Project completed'), 'success');
+              return completed;
+            } catch (closeError) {
+              var closeEnvelope = closeError && closeError.envelope ? closeError.envelope : null;
+              notify((closeEnvelope && closeEnvelope.message) || window.CRM.i18n.t('js.pab.failed_close_tasks', 'Failed to close tasks'), 'error');
+              return null;
+            }
+          }
+          notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.pab.failed_update_project', 'Failed to update project'), 'error');
+          return null;
+        }
+      }
+
+      function refreshAfterProjectPatch() {
+        renderAboutCard();
+        renderStatusPopover();
+        renderPriorityPopover();
+        renderCurrentProjectPreview();
+        var statusBadge = document.getElementById('projectStatusBadge');
+        if (statusBadge) {
+          statusBadge.className = 'crm-badge ' + statusClass(project.status_code);
+          statusBadge.textContent = projectStatusLabel(project.status_code);
+        }
+        setText('.crm-subtitle', resolveUserLabel(project.creator_user_name || '', project.creator_user_public_id || '', '—') + ' · ' + window.CRM.i18n.t('js.pab.created', 'Created') + ' ' + formatDate(project.created_at) + ' · ' + window.CRM.i18n.t('js.pab.updated', 'Updated') + ' ' + formatDate(project.updated_at));
+      }
+
+      renderAboutCard();
+      renderStatusPopover();
+      renderPriorityPopover();
+      populateEditModal();
+
+      // toggle popovers (single-open guarantee) + apply selection
+      aboutGrid.addEventListener('click', function (e) {
+        var pillBtn = e.target.closest('[data-project-popover]');
+        if (pillBtn) {
+          var kind = String(pillBtn.getAttribute('data-project-popover') || '');
+          var panel = aboutGrid.querySelector('[data-project-popover-panel="' + kind + '"]');
+          if (!panel) return;
+          var willOpen = !panel.classList.contains('open');
+          projectCloseAllPopups();
+          panel.classList.toggle('open', willOpen);
+          pillBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+          return;
+        }
+
+        var setBtn = e.target.closest('[data-project-popover-set]');
+        if (setBtn) {
+          var setKind = String(setBtn.getAttribute('data-project-popover-set') || '');
+          var value = String(setBtn.getAttribute('data-value') || '');
+          projectCloseAllPopups();
+          var patchBody = { row_version: Number(project.row_version || 1) };
+          if (setKind === 'status') patchBody.status = value;
+          else if (setKind === 'priority') patchBody.priority = value;
+          setBtn.disabled = true;
+          applyProjectPatch(patchBody).then(function (updated) {
+            setBtn.disabled = false;
+            if (updated) {
+              notify(window.CRM.i18n.t('js.pab.project_updated', 'Project updated'));
+              refreshAfterProjectPatch();
+            }
+          });
+        }
+      });
+
+      // Edit modal: re-sync values on open, submit via shared patch path
+      var editModal = document.getElementById('projectEditModal');
+      if (editModal) {
+        editModal.addEventListener('shown.bs.modal', populateEditModal);
+        var editForm = document.getElementById('projectEditForm');
+        if (editForm && editForm.dataset.bound !== '1') {
+          editForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            var saveBtn = document.getElementById('projectEditSaveBtn');
+            if (saveBtn) saveBtn.disabled = true;
+            var body = { row_version: Number(project.row_version || 1) };
+            body.title = String((editForm.querySelector('[name="title"]') || {}).value || '').trim();
+            body.description = String(getTextareaVisualEditorValue(editForm.querySelector('[name="description"]')) || '').trim();
+            body.status = String((editForm.querySelector('[name="status"]') || {}).value || project.status_code || 'new');
+            body.priority = String((editForm.querySelector('[name="priority"]') || {}).value || 'normal');
+            body.client_public_id = String((editForm.querySelector('[name="client_public_id"]') || {}).value || '').trim();
+            body.manager_user_public_id = String((editForm.querySelector('[name="manager_user_public_id"]') || {}).value || '').trim();
+            body.team_public_id = String((editForm.querySelector('[name="team_public_id"]') || {}).value || '').trim();
+
+            var updated = await applyProjectPatch(body);
+            if (saveBtn) saveBtn.disabled = false;
+            if (updated) {
+              notify(window.CRM.i18n.t('js.pab.project_updated', 'Project updated'));
+              if (window.bootstrap && window.bootstrap.Modal) {
+                var inst = window.bootstrap.Modal.getInstance(editModal);
+                if (inst) inst.hide();
+              }
+              await renderProjectDetailPage();
+            }
+          });
+          editForm.dataset.bound = '1';
+        }
+      }
+    }
+
     async function loadProjectTasks() {
       var tasksEnvelope = await tryRequest('api/v1/tasks', { query: { limit: 200, project_public_id: projectId } });
       var tasks = mapItems(tasksEnvelope);
+
+      var taskCount = document.getElementById('projectTaskTabCount');
+      if (taskCount) taskCount.textContent = String(tasks.length);
+      var tasksSubtitle = document.getElementById('projectTasksSubtitle');
+      if (tasksSubtitle) tasksSubtitle.textContent = window.CRM.i18n.t('js.pab.tasks_label', 'Tasks:') + ' ' + tasks.length;
+
       var tbody = document.getElementById('projectTasksTableBody') || document.querySelector('.crm-content section.crm-card table.crm-table tbody');
       if (tbody) {
         if (!tasks.length) {
           tbody.innerHTML = '<tr><td colspan="4" class="text-muted">' + window.CRM.i18n.t('js.pab.no_tasks_yet', 'No tasks for this project yet.') + '</td></tr>';
         } else {
           tbody.innerHTML = tasks.slice(0, 50).map(function (item) {
+            var assigneeName = item.assignee_name || item.assignee_login || '—';
+            var avatar = assigneeName !== '—' && assigneeName !== ''
+              ? '<span class="crm-pr-avatar sm" style="background:' + projectAvatarColor(assigneeName) + '">' + safeText(projectAvatarInitials(assigneeName)) + '</span>'
+              : '';
             return '<tr>'
               + '<td><a href="index.php?route=task-detail&task_public_id=' + encodeURIComponent(item.public_id) + '">' + safeText(item.title) + '</a></td>'
-              + '<td>' + safeText(item.assignee_name || item.assignee_login || '—') + '</td>'
-              + '<td><span class="crm-badge ' + statusClass(item.status_code) + '">' + safeText(statusLabel(item.status_code)) + '</span></td>'
+              + '<td><span class="crm-pr-who">' + avatar + '<span>' + safeText(assigneeName) + '</span></span></td>'
+              + '<td><span class="crm-badge ' + statusClass(item.status_code) + '"><span class="crm-pr-dot" aria-hidden="true"></span>' + safeText(statusLabel(item.status_code)) + '</span></td>'
               + '<td>' + safeText(formatDate(item.due_at)) + '</td>'
               + '</tr>';
           }).join('');
@@ -3121,6 +3662,11 @@ window.CRM.pageApiBindings = (function () {
             if (defaultStatus) defaultStatus.value = 'new';
             if (defaultPriority) defaultPriority.value = 'normal';
             await loadProjectTasks();
+            var taskModal = document.getElementById('projectCreateTaskModal');
+            if (taskModal && window.bootstrap && window.bootstrap.Modal) {
+              var taskModalInst = window.bootstrap.Modal.getInstance(taskModal);
+              if (taskModalInst) taskModalInst.hide();
+            }
           } catch (error) {
             var envelopeError = error && error.envelope ? error.envelope : null;
             notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.pab.failed_create_task_for_project', 'Failed to create task for project'), 'error');

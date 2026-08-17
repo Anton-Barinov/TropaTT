@@ -165,4 +165,38 @@ foreach ($additionalRuntimeTranslations as $locale => $translations) {
     $overrides[$locale] = array_replace_recursive($overrides[$locale] ?? [], $translations);
 }
 
+$projectDetailRedesignTranslations = [
+    'ru-ru' => [
+        'project_detail' => ['tab_overview' => 'Обзор', 'tab_tasks' => 'Задачи', 'tab_ai' => 'AI-инсайты', 'tab_activity' => 'Активность', 'tabs_label' => 'Разделы проекта', 'progress_rail_label' => 'Прогресс проекта', 'section_about' => 'О проекте', 'section_tasks_toolbar_title' => 'Задачи проекта', 'btn_new_task' => '+ Новая задача', 'btn_edit' => 'Редактировать', 'btn_more' => 'Ещё действия', 'modal_new_task_title' => 'Новая задача', 'modal_edit_title' => 'Редактировать проект', 'edit_tab_identity' => 'Название и описание', 'edit_tab_workflow' => 'Статус и приоритет', 'edit_tab_links' => 'Связи проекта', 'btn_save_changes' => 'Сохранить изменения', 'field_name' => 'Название', 'ai_segment_label' => 'Раздел AI', 'ai_segment_summary' => 'Сводка', 'ai_segment_risks' => 'Риски', 'ai_open_full' => 'Открыть AI-инсайты'],
+        'js' => ['pab' => ['ready' => 'готово']],
+    ],
+    'en-gb' => [
+        'project_detail' => ['tab_overview' => 'Overview', 'tab_tasks' => 'Tasks', 'tab_ai' => 'AI insights', 'tab_activity' => 'Activity', 'tabs_label' => 'Project sections', 'progress_rail_label' => 'Project progress', 'section_about' => 'About', 'section_tasks_toolbar_title' => 'Project tasks', 'btn_new_task' => '+ New task', 'btn_edit' => 'Edit', 'btn_more' => 'More actions', 'modal_new_task_title' => 'New task', 'modal_edit_title' => 'Edit project', 'edit_tab_identity' => 'Name and description', 'edit_tab_workflow' => 'Status and priority', 'edit_tab_links' => 'Project relations', 'btn_save_changes' => 'Save changes', 'field_name' => 'Name', 'ai_segment_label' => 'AI section', 'ai_segment_summary' => 'Summary', 'ai_segment_risks' => 'Risks', 'ai_open_full' => 'Open AI insights'],
+        'js' => ['pab' => ['ready' => 'ready']],
+    ],
+    'de-de' => [
+        'project_detail' => ['tab_overview' => 'Übersicht', 'tab_tasks' => 'Aufgaben', 'tab_ai' => 'KI-Einblicke', 'tab_activity' => 'Aktivität', 'tabs_label' => 'Projektbereiche', 'progress_rail_label' => 'Projektfortschritt', 'section_about' => 'Über das Projekt', 'section_tasks_toolbar_title' => 'Projektaufgaben', 'btn_new_task' => '+ Neue Aufgabe', 'btn_edit' => 'Bearbeiten', 'btn_more' => 'Weitere Aktionen', 'modal_new_task_title' => 'Neue Aufgabe', 'modal_edit_title' => 'Projekt bearbeiten', 'edit_tab_identity' => 'Name und Beschreibung', 'edit_tab_workflow' => 'Status und Priorität', 'edit_tab_links' => 'Projektbeziehungen', 'btn_save_changes' => 'Änderungen speichern', 'field_name' => 'Name', 'ai_segment_label' => 'KI-Bereich', 'ai_segment_summary' => 'Zusammenfassung', 'ai_segment_risks' => 'Risiken', 'ai_open_full' => 'KI-Einblicke öffnen'],
+        'js' => ['pab' => ['ready' => 'fertig']],
+    ],
+    'es-es' => [
+        'project_detail' => ['tab_overview' => 'Vista general', 'tab_tasks' => 'Tareas', 'tab_ai' => 'Perspectivas de IA', 'tab_activity' => 'Actividad', 'tabs_label' => 'Secciones del proyecto', 'progress_rail_label' => 'Progreso del proyecto', 'section_about' => 'Acerca del proyecto', 'section_tasks_toolbar_title' => 'Tareas del proyecto', 'btn_new_task' => '+ Nueva tarea', 'btn_edit' => 'Editar', 'btn_more' => 'Más acciones', 'modal_new_task_title' => 'Nueva tarea', 'modal_edit_title' => 'Editar proyecto', 'edit_tab_identity' => 'Nombre y descripción', 'edit_tab_workflow' => 'Estado y prioridad', 'edit_tab_links' => 'Relaciones del proyecto', 'btn_save_changes' => 'Guardar cambios', 'field_name' => 'Nombre', 'ai_segment_label' => 'Sección de IA', 'ai_segment_summary' => 'Resumen', 'ai_segment_risks' => 'Riesgos', 'ai_open_full' => 'Abrir perspectivas de IA'],
+        'js' => ['pab' => ['ready' => 'listo']],
+    ],
+    'fr-fr' => [
+        'project_detail' => ['tab_overview' => 'Vue d’ensemble', 'tab_tasks' => 'Tâches', 'tab_ai' => 'Aperçus IA', 'tab_activity' => 'Activité', 'tabs_label' => 'Sections du projet', 'progress_rail_label' => 'Avancement du projet', 'section_about' => 'À propos du projet', 'section_tasks_toolbar_title' => 'Tâches du projet', 'btn_new_task' => '+ Nouvelle tâche', 'btn_edit' => 'Modifier', 'btn_more' => 'Plus d’actions', 'modal_new_task_title' => 'Nouvelle tâche', 'modal_edit_title' => 'Modifier le projet', 'edit_tab_identity' => 'Nom et description', 'edit_tab_workflow' => 'Statut et priorité', 'edit_tab_links' => 'Relations du projet', 'btn_save_changes' => 'Enregistrer les modifications', 'field_name' => 'Nom', 'ai_segment_label' => 'Section IA', 'ai_segment_summary' => 'Résumé', 'ai_segment_risks' => 'Risques', 'ai_open_full' => 'Ouvrir les aperçus IA'],
+        'js' => ['pab' => ['ready' => 'prêt']],
+    ],
+    'pt-br' => [
+        'project_detail' => ['tab_overview' => 'Visão geral', 'tab_tasks' => 'Tarefas', 'tab_ai' => 'Insights de IA', 'tab_activity' => 'Atividade', 'tabs_label' => 'Seções do projeto', 'progress_rail_label' => 'Progresso do projeto', 'section_about' => 'Sobre o projeto', 'section_tasks_toolbar_title' => 'Tarefas do projeto', 'btn_new_task' => '+ Nova tarefa', 'btn_edit' => 'Editar', 'btn_more' => 'Mais ações', 'modal_new_task_title' => 'Nova tarefa', 'modal_edit_title' => 'Editar projeto', 'edit_tab_identity' => 'Nome e descrição', 'edit_tab_workflow' => 'Status e prioridade', 'edit_tab_links' => 'Relações do projeto', 'btn_save_changes' => 'Salvar alterações', 'field_name' => 'Nome', 'ai_segment_label' => 'Seção de IA', 'ai_segment_summary' => 'Resumo', 'ai_segment_risks' => 'Riscos', 'ai_open_full' => 'Abrir insights de IA'],
+        'js' => ['pab' => ['ready' => 'pronto']],
+    ],
+    'zh-cn' => [
+        'project_detail' => ['tab_overview' => '概览', 'tab_tasks' => '任务', 'tab_ai' => 'AI 洞察', 'tab_activity' => '动态', 'tabs_label' => '项目分区', 'progress_rail_label' => '项目进度', 'section_about' => '关于项目', 'section_tasks_toolbar_title' => '项目任务', 'btn_new_task' => '+ 新任务', 'btn_edit' => '编辑', 'btn_more' => '更多操作', 'modal_new_task_title' => '新任务', 'modal_edit_title' => '编辑项目', 'edit_tab_identity' => '名称和描述', 'edit_tab_workflow' => '状态和优先级', 'edit_tab_links' => '项目关联', 'btn_save_changes' => '保存更改', 'field_name' => '名称', 'ai_segment_label' => 'AI 分区', 'ai_segment_summary' => '摘要', 'ai_segment_risks' => '风险', 'ai_open_full' => '打开 AI 洞察'],
+        'js' => ['pab' => ['ready' => '就绪']],
+    ],
+];
+foreach ($projectDetailRedesignTranslations as $locale => $translations) {
+    $overrides[$locale] = array_replace_recursive($overrides[$locale] ?? [], $translations);
+}
+
 return $overrides;

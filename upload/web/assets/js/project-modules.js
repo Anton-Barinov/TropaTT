@@ -416,6 +416,12 @@ window.CRM.projectModules = (function () {
   }
 
   function renderProjectDetailModules(listEl, items) {
+    var summaryEl = document.getElementById('projectModulesSummary');
+    if (summaryEl) {
+      var inProgressCount = items.filter(function (m) { return m.status === 'in_progress'; }).length;
+      summaryEl.textContent = t('js.pab.total', 'Total:') + ' ' + items.length
+        + (inProgressCount ? ' · ' + t('project_modules.status_in_progress', 'In progress') + ': ' + inProgressCount : '');
+    }
     if (!items.length) {
       listEl.innerHTML = '<div class="text-muted">' + esc(t('project_modules.no_modules', 'Нет модулей. Создайте первый модуль.')) + '</div>';
       return;
