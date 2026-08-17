@@ -17937,6 +17937,37 @@ a.task-tag:hover {
   }
 }
 
+/* ===== Task detail sidebar: block builder ===== */
+.crm-task-sidebar-builder-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--crm-surface-2);
+  border: 1px solid var(--crm-border);
+  border-radius: var(--radius-md, 8px);
+  margin-bottom: var(--space-3);
+}
+
+.crm-task-side-rail.crm-task-sidebar-edit-mode [data-task-sidebar-block] {
+  position: relative;
+  outline: 2px dashed var(--crm-primary);
+  outline-offset: 2px;
+}
+
+.crm-task-side-rail.crm-task-sidebar-edit-mode [data-task-sidebar-block].sortable-ghost {
+  opacity: 0.4;
+}
+
+.crm-task-side-rail.crm-task-sidebar-edit-mode .crm-widget-builder-controls {
+  opacity: 1;
+}
+
+.crm-task-sidebar-module-block {
+  display: block;
+}
+
 /* ===== Dashboard: My Week widget ===== */
 .crm-dashboard-page .crm-week-mini-grid {
   display: grid;

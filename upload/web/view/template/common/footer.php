@@ -85,6 +85,9 @@ $needsPwa = !in_array($currentRoute, [
 $needsTaskActivity = in_array($currentRoute, [
   'task-detail',
 ], true);
+$needsTaskSidebarBlocks = in_array($currentRoute, [
+  'task-detail',
+], true);
 $needsStickyNotes = in_array($currentRoute, [
   '',
   'index',
@@ -151,6 +154,9 @@ $needsPageApiBindings = !in_array($currentRoute, [
 <?php endif; ?>
 <?php if ($needsTaskActivity):
 ?><script defer src="assets/js/task/task-activity.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<?php endif;
+?><?php if ($needsTaskSidebarBlocks):
+?><script defer src="assets/js/task/task-sidebar-blocks.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif;
 ?>
 <?php if ($needsNotificationsPush): ?>

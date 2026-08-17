@@ -51,4 +51,7 @@ return [
     'views_access_private' => 'Приватное',
     'views_access_public' => 'Публичное',
     'views_save_btn' => 'Сохранить',
+    'sidebar' => 'Блоки правой колонки задачи',
+    'sidebar_saved' => 'Настройки колонки задачи обновлены',
+    'sidebar_required' => 'Список блоков обязателен',
 ];

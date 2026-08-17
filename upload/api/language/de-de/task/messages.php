@@ -47,4 +47,7 @@ return [
     'views_access_private' => 'Privat',
     'views_access_public' => 'Öffentlich',
     'views_save_btn' => 'Speichern',
+    'sidebar' => 'Blöcke der Aufgaben-Seitenleiste',
+    'sidebar_saved' => 'Aufgaben-Seitenleiste aktualisiert',
+    'sidebar_required' => 'Blockliste ist erforderlich',
 ];

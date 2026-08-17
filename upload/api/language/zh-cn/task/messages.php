@@ -47,4 +47,7 @@ return [
     'views_access_private' => '私有',
     'views_access_public' => '公开',
     'views_save_btn' => '保存',
+    'sidebar' => '任务侧边栏区块',
+    'sidebar_saved' => '任务侧边栏已更新',
+    'sidebar_required' => '必须提供区块列表',
 ];

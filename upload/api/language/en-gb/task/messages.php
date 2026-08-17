@@ -47,4 +47,7 @@ return [
     'views_access_private' => 'Private',
     'views_access_public' => 'Public',
     'views_save_btn' => 'Save',
+    'sidebar' => 'Task sidebar blocks',
+    'sidebar_saved' => 'Task sidebar updated',
+    'sidebar_required' => 'Blocks list is required',
 ];

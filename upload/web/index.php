@@ -605,7 +605,16 @@ function crmWebInitModuleSystem(string $webBaseDir, Web\System\Core\Router $rout
                     $entry['renderer'] ?? ''
                 );
                 if ($renderer !== null) {
-                    $positionRegistry->register((string)$positionName, $renderer, (int)($entry['priority'] ?? 10));
+                    $positionKey = '';
+                    if ((string)$positionName === 'task.detail.sidebar') {
+                        $positionKey = trim((string)($entry['key'] ?? ''));
+                        if ($positionKey === '') {
+                            $positionKey = Web\System\Module\PositionRegistry::deriveBlockKey(
+                                (string)($entry['renderer'] ?? '')
+                            );
+                        }
+                    }
+                    $positionRegistry->register((string)$positionName, $renderer, (int)($entry['priority'] ?? 10), $positionKey);
                 }
             }
         }

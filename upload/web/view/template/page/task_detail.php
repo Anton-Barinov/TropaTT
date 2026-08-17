@@ -5,7 +5,7 @@
 </nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid d-flex align-items-center gap-2"><button class="btn crm-btn-secondary d-xl-none" id="sidebarToggle" aria-label="<?= htmlspecialchars($t('task_detail.sidebar_toggle_aria', 'Открыть меню'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="task_detail.sidebar_toggle_aria"></button><div class="input-group crm-field-w-420" data-global-search><span class="input-group-text"></span><input id="taskDetailGlobalSearchInput" class="form-control" placeholder="<?= htmlspecialchars($t('task_detail.global_search_placeholder', 'Поиск'), ENT_QUOTES, 'UTF-8') ?>" aria-label="<?= htmlspecialchars($t('task_detail.global_search_aria', 'Глобальный поиск'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="task_detail.global_search_placeholder" data-i18n-aria-label="task_detail.global_search_aria"></div><div class="ms-auto d-flex gap-2" data-global-actions="1"></div></div></header>
 <main class="crm-content crm-task-detail-page">
-<div class="crm-page-head crm-task-page-head"><div><ol class="breadcrumb mb-1"><li class="breadcrumb-item"><a href="index.php?route=tasks" data-i18n="task_detail.breadcrumb_tasks"><?= htmlspecialchars($t('task_detail.breadcrumb_tasks', 'Задачи'), ENT_QUOTES, 'UTF-8') ?></a></li><li class="breadcrumb-item active" data-i18n="task_detail.breadcrumb_current"><?= htmlspecialchars($t('task_detail.breadcrumb_current', 'Карточка задачи'), ENT_QUOTES, 'UTF-8') ?></li></ol><h1 class="crm-page-title" data-i18n="task_detail.loading_title"><?= htmlspecialchars($t('task_detail.loading_title', 'Загрузка задачи...'), ENT_QUOTES, 'UTF-8') ?></h1><p class="crm-subtitle" data-i18n="task_detail.loading_subtitle"><?= htmlspecialchars($t('task_detail.loading_subtitle', 'Загрузка параметров задачи...'), ENT_QUOTES, 'UTF-8') ?></p></div><div class="crm-page-actions crm-task-page-actions"><button class="btn crm-btn-primary d-none" id="taskEditBtn" type="button" data-open-modal="editTaskModal" data-i18n="task_detail.btn_edit"><?= htmlspecialchars($t('task_detail.btn_edit', 'Редактировать'), ENT_QUOTES, 'UTF-8') ?></button><div class="dropdown" data-task-actions-menu><button class="btn crm-btn-secondary crm-task-actions-menu" type="button" id="taskActionsMenuBtn" data-bs-toggle="dropdown" aria-expanded="false" aria-label="<?= htmlspecialchars($t('common.more', 'Ещё'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="common.more"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></button><ul class="dropdown-menu dropdown-menu-end" aria-labelledby="taskActionsMenuBtn"><li><button class="dropdown-item text-danger" type="button" data-confirm-delete data-i18n="task_detail.btn_delete"><?= htmlspecialchars($t('task_detail.btn_delete', 'Удалить'), ENT_QUOTES, 'UTF-8') ?></button></li></ul></div></div></div>
+<div class="crm-page-head crm-task-page-head"><div><ol class="breadcrumb mb-1"><li class="breadcrumb-item"><a href="index.php?route=tasks" data-i18n="task_detail.breadcrumb_tasks"><?= htmlspecialchars($t('task_detail.breadcrumb_tasks', 'Задачи'), ENT_QUOTES, 'UTF-8') ?></a></li><li class="breadcrumb-item active" data-i18n="task_detail.breadcrumb_current"><?= htmlspecialchars($t('task_detail.breadcrumb_current', 'Карточка задачи'), ENT_QUOTES, 'UTF-8') ?></li></ol><h1 class="crm-page-title" data-i18n="task_detail.loading_title"><?= htmlspecialchars($t('task_detail.loading_title', 'Загрузка задачи...'), ENT_QUOTES, 'UTF-8') ?></h1><p class="crm-subtitle" data-i18n="task_detail.loading_subtitle"><?= htmlspecialchars($t('task_detail.loading_subtitle', 'Загрузка параметров задачи...'), ENT_QUOTES, 'UTF-8') ?></p></div><div class="crm-page-actions crm-task-page-actions"><button class="btn crm-btn-primary d-none" id="taskEditBtn" type="button" data-open-modal="editTaskModal" data-i18n="task_detail.btn_edit"><?= htmlspecialchars($t('task_detail.btn_edit', 'Редактировать'), ENT_QUOTES, 'UTF-8') ?></button><button class="btn crm-btn-secondary d-inline-flex align-items-center gap-2" id="taskSidebarEditToggleBtn" type="button" data-task-sidebar-edit-toggle><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i><span data-i18n="task_detail.sidebar_edit"><?= htmlspecialchars($t('task_detail.sidebar_edit', 'Настроить колонку'), ENT_QUOTES, 'UTF-8') ?></span></button><div class="dropdown" data-task-actions-menu><button class="btn crm-btn-secondary crm-task-actions-menu" type="button" id="taskActionsMenuBtn" data-bs-toggle="dropdown" aria-expanded="false" aria-label="<?= htmlspecialchars($t('common.more', 'Ещё'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="common.more"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></button><ul class="dropdown-menu dropdown-menu-end" aria-labelledby="taskActionsMenuBtn"><li><button class="dropdown-item text-danger" type="button" data-confirm-delete data-i18n="task_detail.btn_delete"><?= htmlspecialchars($t('task_detail.btn_delete', 'Удалить'), ENT_QUOTES, 'UTF-8') ?></button></li></ul></div></div></div>
 
 <div class="row g-3">
   <div class="col-lg-8">
@@ -209,9 +209,17 @@
   </div>
 
   <aside class="col-lg-4 crm-task-side-column">
-    <div class="crm-task-side-rail">
+    <div class="crm-task-sidebar-builder-bar d-none" data-task-sidebar-builder-bar>
+      <span class="small text-muted" data-i18n="task_detail.sidebar_hint"><?= htmlspecialchars($t('task_detail.sidebar_hint', 'Перетащите блоки, чтобы изменить порядок. Изменения вступят в силу после сохранения.'), ENT_QUOTES, 'UTF-8') ?></span>
+      <div class="d-inline-flex gap-2 ms-auto">
+        <button type="button" class="btn btn-sm crm-btn-secondary" data-task-sidebar-builder-add data-i18n="task_detail.sidebar_add_block"><?= htmlspecialchars($t('task_detail.sidebar_add_block', 'Добавить блок'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button type="button" class="btn btn-sm crm-btn-secondary" data-task-sidebar-builder-reset data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button type="button" class="btn btn-sm crm-btn-primary" data-task-sidebar-builder-save data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
+      </div>
+    </div>
+    <div class="crm-task-side-rail" data-task-sidebar-rail>
     <?= module_position('task.detail.sidebar', ['route' => $route ?? 'task-detail', 'task_public_id' => (string)($_GET['task_public_id'] ?? '')]) ?>
-    <div class="crm-card mb-3" id="taskEstimatesPanel">
+    <div class="crm-card mb-3" id="taskEstimatesPanel" data-task-sidebar-block="estimates">
       <div class="crm-side-card-head">
         <div>
           <div class="crm-task-eyebrow" data-i18n="task_detail.estimates_eyebrow"><?= htmlspecialchars($t('task_detail.estimates_eyebrow', 'Task Estimates'), ENT_QUOTES, 'UTF-8') ?></div>
@@ -223,7 +231,7 @@
         <div class="text-muted small" data-i18n="task_detail.estimates_loading"><?= htmlspecialchars($t('task_detail.estimates_loading', 'Загрузка оценок...'), ENT_QUOTES, 'UTF-8') ?></div>
       </div>
     </div>
-    <div class="crm-card mb-3" id="taskTimerPanel">
+    <div class="crm-card mb-3" id="taskTimerPanel" data-task-sidebar-block="timer">
       <div class="crm-side-card-head">
         <div>
           <div class="crm-task-eyebrow" data-i18n="task_detail.timer_eyebrow"><?= htmlspecialchars($t('task_detail.timer_eyebrow', 'Таймер работы'), ENT_QUOTES, 'UTF-8') ?></div>
@@ -264,7 +272,7 @@
         </div>
       </form>
     </div>
-    <div class="crm-card mb-3" id="taskAiSummaryCard" data-requires-ai-use="1">
+    <div class="crm-card mb-3" id="taskAiSummaryCard" data-requires-ai-use="1" data-task-sidebar-block="ai_assistant">
       <div class="crm-side-card-head">
         <div>
           <div class="crm-task-eyebrow" data-i18n="task_detail.ai_eyebrow"><?= htmlspecialchars($t('task_detail.ai_eyebrow', 'AI-помощник'), ENT_QUOTES, 'UTF-8') ?></div>
@@ -296,7 +304,7 @@
         <div class="crm-info-panel small" id="taskAiSummaryPreview"></div>
       </div>
     </div>
-    <div class="crm-card mb-3 crm-task-summary-card" id="taskSummaryCard">
+    <div class="crm-card mb-3 crm-task-summary-card" id="taskSummaryCard" data-task-sidebar-block="summary">
       <div class="crm-side-card-head">
         <div>
           <div class="crm-task-eyebrow" data-i18n="task_detail.summary_eyebrow"><?= htmlspecialchars($t('task_detail.summary_eyebrow', 'Быстрая навигация'), ENT_QUOTES, 'UTF-8') ?></div>
@@ -409,6 +417,21 @@
     </div>
     </div>
   </aside>
+</div>
+
+<div id="taskSidebarBlockPool" hidden></div>
+
+<div class="offcanvas offcanvas-end" tabindex="-1" id="taskSidebarCatalogOffcanvas" aria-labelledby="taskSidebarCatalogOffcanvasLabel">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="taskSidebarCatalogOffcanvasLabel" data-i18n="task_detail.sidebar_catalog_title"><?= htmlspecialchars($t('task_detail.sidebar_catalog_title', 'Блоки колонки'), ENT_QUOTES, 'UTF-8') ?></h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="page.close"></button>
+  </div>
+  <div class="offcanvas-body">
+    <p class="text-muted small mb-3" data-i18n="task_detail.sidebar_catalog_hint"><?= htmlspecialchars($t('task_detail.sidebar_catalog_hint', 'Выберите блоки, чтобы добавить их в правую колонку.'), ENT_QUOTES, 'UTF-8') ?></p>
+    <div class="crm-dashboard-catalog-list" id="taskSidebarCatalogList" data-task-sidebar-catalog-list>
+      <div class="d-flex align-items-center gap-2 py-1"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span> <span data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка'), ENT_QUOTES, 'UTF-8') ?></span></div>
+    </div>
+  </div>
 </div>
 
 <div class="modal fade" id="createSubtaskModal" tabindex="-1" aria-hidden="true">

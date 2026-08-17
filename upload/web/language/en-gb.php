@@ -4625,6 +4625,17 @@ return array (
   ),
   'task_detail' => 
   array (
+    'sidebar_edit' => 'Customize column',
+    'sidebar_hint' => 'Drag blocks to reorder them. Changes apply after saving.',
+    'sidebar_add_block' => 'Add block',
+    'sidebar_catalog_title' => 'Column blocks',
+    'sidebar_catalog_hint' => 'Choose blocks to add to the right column.',
+    'sidebar_estimates_desc' => 'Task effort estimates.',
+    'sidebar_timer_desc' => 'Task time tracker.',
+    'sidebar_ai_desc' => 'AI summary and actions for the task.',
+    'sidebar_summary_desc' => 'Quick navigation: key, author, assignee, dates, project.',
+    'sidebar_saved' => 'Column updated',
+    'sidebar_save_error' => 'Failed to save column',
     'ai_preview_label' => 'Apply preview:',
     'copy_key_title' => 'Copy key',
     'history_title' => 'Change history',

@@ -20,7 +20,7 @@
     },
     "positions": {
         "task.detail.sidebar": [
-            {"renderer": "Module\\Crm\\WipLimit\\Position\\TaskSidebarPanel::render", "priority": 10}
+            {"renderer": "Module\\Crm\\WipLimit\\Position\\TaskSidebarPanel::render", "priority": 10, "key": "wip_limit"}
         ]
     },
     "hooks": {},

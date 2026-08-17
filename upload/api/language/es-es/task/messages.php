@@ -47,4 +47,7 @@ return [
     'views_access_private' => 'Privado',
     'views_access_public' => 'Público',
     'views_save_btn' => 'Guardar',
+    'sidebar' => 'Bloques de la columna lateral de la tarea',
+    'sidebar_saved' => 'Columna lateral de la tarea actualizada',
+    'sidebar_required' => 'Se requiere la lista de bloques',
 ];

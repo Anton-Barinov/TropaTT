@@ -47,4 +47,7 @@ return [
     'views_access_private' => 'Privé',
     'views_access_public' => 'Public',
     'views_save_btn' => 'Enregistrer',
+    'sidebar' => 'Blocs de la colonne latérale de la tâche',
+    'sidebar_saved' => 'Colonne latérale de la tâche mise à jour',
+    'sidebar_required' => 'La liste des blocs est requise',
 ];

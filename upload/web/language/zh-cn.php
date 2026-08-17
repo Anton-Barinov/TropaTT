@@ -4644,6 +4644,17 @@ return array (
   ),
   'task_detail' => 
   array (
+    'sidebar_edit' => '自定义列',
+    'sidebar_hint' => '拖动区块以更改顺序。保存后生效。',
+    'sidebar_add_block' => '添加区块',
+    'sidebar_catalog_title' => '列区块',
+    'sidebar_catalog_hint' => '选择要添加到右列的区块。',
+    'sidebar_estimates_desc' => '任务工作量估算。',
+    'sidebar_timer_desc' => '任务计时器。',
+    'sidebar_ai_desc' => '任务的 AI 摘要和操作。',
+    'sidebar_summary_desc' => '快速导航：键、作者、负责人、日期、项目。',
+    'sidebar_saved' => '列已更新',
+    'sidebar_save_error' => '无法保存列',
     'ai_preview_label' => 'Apply preview:',
     'copy_key_title' => 'Copy key',
     'estimates_add_btn' => '+ Estimate',

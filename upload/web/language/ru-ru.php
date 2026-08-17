@@ -4647,6 +4647,17 @@ return array (
   ),
   'task_detail' => 
   array (
+    'sidebar_edit' => 'Настроить колонку',
+    'sidebar_hint' => 'Перетащите блоки, чтобы изменить порядок. Изменения вступят в силу после сохранения.',
+    'sidebar_add_block' => 'Добавить блок',
+    'sidebar_catalog_title' => 'Блоки колонки',
+    'sidebar_catalog_hint' => 'Выберите блоки, чтобы добавить их в правую колонку.',
+    'sidebar_estimates_desc' => 'Оценки трудоёмкости задачи.',
+    'sidebar_timer_desc' => 'Таймер учёта времени по задаче.',
+    'sidebar_ai_desc' => 'AI-сводка и действия по задаче.',
+    'sidebar_summary_desc' => 'Быстрая навигация: ключ, автор, исполнитель, сроки, проект.',
+    'sidebar_saved' => 'Настройки колонки сохранены',
+    'sidebar_save_error' => 'Не удалось сохранить настройки колонки',
     'ai_preview_label' => 'Предпросмотр применения:',
     'copy_key_title' => 'Копировать ключ',
     'modal_ai_diff_apply_btn' => 'Применить',

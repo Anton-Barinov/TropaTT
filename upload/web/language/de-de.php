@@ -8126,6 +8126,17 @@ return array (
   ),
   'task_detail' => 
   array (
+    'sidebar_edit' => 'Spalte anpassen',
+    'sidebar_hint' => 'Ziehen Sie Blöcke, um die Reihenfolge zu ändern. Änderungen werden nach dem Speichern wirksam.',
+    'sidebar_add_block' => 'Block hinzufügen',
+    'sidebar_catalog_title' => 'Spaltenblöcke',
+    'sidebar_catalog_hint' => 'Wählen Sie Blöcke, um sie zur rechten Spalte hinzuzufügen.',
+    'sidebar_estimates_desc' => 'Aufwandsschätzungen der Aufgabe.',
+    'sidebar_timer_desc' => 'Zeiterfassung für die Aufgabe.',
+    'sidebar_ai_desc' => 'KI-Zusammenfassung und Aktionen für die Aufgabe.',
+    'sidebar_summary_desc' => 'Schnellnavigation: Schlüssel, Autor, Bearbeiter, Termine, Projekt.',
+    'sidebar_saved' => 'Spalte aktualisiert',
+    'sidebar_save_error' => 'Spalte konnte nicht gespeichert werden',
     'ai_preview_label' => 'Apply preview:',
     'copy_key_title' => 'Copy key',
     'estimates_add_btn' => '+ Estimate',

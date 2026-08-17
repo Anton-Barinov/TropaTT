@@ -8126,6 +8126,17 @@ return array (
   ),
   'task_detail' => 
   array (
+    'sidebar_edit' => 'Personalizar columna',
+    'sidebar_hint' => 'Arrastre los bloques para cambiar el orden. Los cambios se aplican tras guardar.',
+    'sidebar_add_block' => 'Añadir bloque',
+    'sidebar_catalog_title' => 'Bloques de la columna',
+    'sidebar_catalog_hint' => 'Elija bloques para añadirlos a la columna derecha.',
+    'sidebar_estimates_desc' => 'Estimaciones de esfuerzo de la tarea.',
+    'sidebar_timer_desc' => 'Cronómetro de la tarea.',
+    'sidebar_ai_desc' => 'Resumen y acciones de IA para la tarea.',
+    'sidebar_summary_desc' => 'Navegación rápida: clave, autor, responsable, fechas, proyecto.',
+    'sidebar_saved' => 'Columna actualizada',
+    'sidebar_save_error' => 'No se pudo guardar la columna',
     'ai_preview_label' => 'Apply preview:',
     'copy_key_title' => 'Copy key',
     'estimates_add_btn' => '+ Estimate',

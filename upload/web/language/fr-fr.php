@@ -8126,6 +8126,17 @@ return array (
   ),
   'task_detail' => 
   array (
+    'sidebar_edit' => 'Personnaliser la colonne',
+    'sidebar_hint' => 'Faites glisser les blocs pour changer l\'ordre. Les modifications s\'appliquent après enregistrement.',
+    'sidebar_add_block' => 'Ajouter un bloc',
+    'sidebar_catalog_title' => 'Blocs de la colonne',
+    'sidebar_catalog_hint' => 'Choisissez les blocs à ajouter à la colonne de droite.',
+    'sidebar_estimates_desc' => 'Estimations d\'effort de la tâche.',
+    'sidebar_timer_desc' => 'Chronomètre de la tâche.',
+    'sidebar_ai_desc' => 'Résumé et actions IA pour la tâche.',
+    'sidebar_summary_desc' => 'Navigation rapide : clé, auteur, responsable, dates, projet.',
+    'sidebar_saved' => 'Colonne mise à jour',
+    'sidebar_save_error' => 'Impossible d\'enregistrer la colonne',
     'ai_preview_label' => 'Apply preview:',
     'copy_key_title' => 'Copy key',
     'estimates_add_btn' => '+ Estimate',

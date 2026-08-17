@@ -47,4 +47,7 @@ return [
     'views_access_private' => 'Privado',
     'views_access_public' => 'Público',
     'views_save_btn' => 'Salvar',
+    'sidebar' => 'Blocos da coluna lateral da tarefa',
+    'sidebar_saved' => 'Coluna lateral da tarefa atualizada',
+    'sidebar_required' => 'A lista de blocos é obrigatória',
 ];
