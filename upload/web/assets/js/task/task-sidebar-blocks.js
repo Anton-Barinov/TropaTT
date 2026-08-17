@@ -109,7 +109,7 @@ window.CRM.taskSidebarBlocks = (function () {
         var node = nodes[key];
         if (!node || !blockRenderable(key)) return;
         node.classList.remove('d-none');
-        if (r && node.parentNode !== r) r.appendChild(node);
+        if (r) r.appendChild(node);
       });
       Object.keys(nodes).forEach(function (key) {
         if (activeList.indexOf(key) !== -1) return;
