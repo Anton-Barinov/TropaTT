@@ -112,4 +112,13 @@ return [
     'view_task_btn' => 'Zur Aufgabe',
     'field_too_long' => 'Beschreibung überschreitet 65535 Zeichen',
     'extra_json_invalid' => 'Zusatzdaten überschreiten 65535 Zeichen oder sind ungültig',
+
+    // Bulk
+    'bulk_done' => 'Sammeloperation abgeschlossen',
+    'bulk_accepted' => 'Anfragen angenommen',
+    'bulk_rejected' => 'Anfragen abgelehnt',
+    'bulk_assigned' => 'Anfragen zugewiesen',
+    'bulk_snoozed' => 'Anfragen zurückgestellt',
+    'bulk_reopened' => 'Anfragen wiederhergestellt',
+    'bulk_deleted' => 'Anfragen gelöscht',
 ];

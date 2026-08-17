@@ -112,4 +112,13 @@ return [
     'view_task_btn' => '前往任务',
     'field_too_long' => '描述超过 65535 个字符',
     'extra_json_invalid' => '附加数据超过 65535 个字符或无效',
+
+    // Bulk
+    'bulk_done' => '批量操作完成',
+    'bulk_accepted' => '请求已接受',
+    'bulk_rejected' => '请求已拒绝',
+    'bulk_assigned' => '请求已分配',
+    'bulk_snoozed' => '请求已推迟',
+    'bulk_reopened' => '请求已恢复',
+    'bulk_deleted' => '请求已删除',
 ];

@@ -112,4 +112,13 @@ return [
     'view_task_btn' => 'Ir para a tarefa',
     'field_too_long' => 'A descrição excede 65535 caracteres',
     'extra_json_invalid' => 'Os dados extras excedem 65535 caracteres ou são inválidos',
+
+    // Bulk
+    'bulk_done' => 'Operação em lote concluída',
+    'bulk_accepted' => 'Solicitações aceitas',
+    'bulk_rejected' => 'Solicitações rejeitadas',
+    'bulk_assigned' => 'Solicitações atribuídas',
+    'bulk_snoozed' => 'Solicitações adiadas',
+    'bulk_reopened' => 'Solicitações restauradas',
+    'bulk_deleted' => 'Solicitações excluídas',
 ];

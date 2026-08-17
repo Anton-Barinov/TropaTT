@@ -71,21 +71,36 @@
   </div>
 </section>
 
+<div class="crm-intake-status-tabs crm-segmented-filter mb-3" id="intakeStatusTabs" role="group" aria-label="<?= htmlspecialchars($t('intake.status_tabs_aria', 'Фильтр по статусу'), ENT_QUOTES, 'UTF-8') ?>"></div>
+
+<div id="intakeBulkBar" class="crm-intake-bulk-bar d-none">
+  <span class="crm-intake-bulk-count"><span data-selected-count>0</span> <?= htmlspecialchars($t('intake.bulk_selected', 'выбрано'), ENT_QUOTES, 'UTF-8') ?></span>
+  <div class="crm-intake-bulk-actions">
+    <button class="btn crm-btn-primary" type="button" data-intake-bulk-action="accept" title="<?= htmlspecialchars($t('intake.bulk_accept_title', 'Принять выбранные'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-check me-1"></i><?= htmlspecialchars($t('intake.bulk_accept', 'Принять'), ENT_QUOTES, 'UTF-8') ?></button>
+    <button class="btn crm-btn-secondary" type="button" data-intake-bulk-action="assign" title="<?= htmlspecialchars($t('intake.bulk_assign_title', 'Назначить выбранные'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-user-pen me-1"></i><?= htmlspecialchars($t('intake.bulk_assign', 'Назначить'), ENT_QUOTES, 'UTF-8') ?></button>
+    <button class="btn crm-btn-secondary" type="button" data-intake-bulk-action="snooze" title="<?= htmlspecialchars($t('intake.bulk_snooze_title', 'Отложить выбранные'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-clock me-1"></i><?= htmlspecialchars($t('intake.bulk_snooze', 'Отложить'), ENT_QUOTES, 'UTF-8') ?></button>
+    <button class="btn crm-btn-secondary" type="button" data-intake-bulk-action="reject" title="<?= htmlspecialchars($t('intake.bulk_reject_title', 'Отклонить выбранные'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-xmark me-1"></i><?= htmlspecialchars($t('intake.bulk_reject', 'Отклонить'), ENT_QUOTES, 'UTF-8') ?></button>
+    <button class="btn crm-btn-secondary" type="button" data-intake-bulk-action="reopen" title="<?= htmlspecialchars($t('intake.bulk_reopen_title', 'Вернуть выбранные в работу'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-rotate-left me-1"></i><?= htmlspecialchars($t('intake.bulk_reopen', 'Восстановить'), ENT_QUOTES, 'UTF-8') ?></button>
+    <button class="btn crm-btn-danger" type="button" data-intake-bulk-action="delete" title="<?= htmlspecialchars($t('intake.bulk_delete_title', 'Удалить выбранные'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-trash me-1"></i><?= htmlspecialchars($t('intake.bulk_delete', 'Удалить'), ENT_QUOTES, 'UTF-8') ?></button>
+  </div>
+</div>
+
 <section id="intakeStates">
   <div data-state-item="default">
     <div class="table-responsive crm-card p-0">
       <table class="table table-hover align-middle mb-0 crm-table"><thead><tr>
-        <th><?= htmlspecialchars($t('intake.th_title', 'Название'), ENT_QUOTES, 'UTF-8') ?></th>
-        <th><?= htmlspecialchars($t('intake.th_status', 'Статус'), ENT_QUOTES, 'UTF-8') ?></th>
+        <th style="width:40px"><input class="form-check-input" type="checkbox" data-select-all aria-label="<?= htmlspecialchars($t('intake.select_all_aria', 'Выбрать все заявки'), ENT_QUOTES, 'UTF-8') ?>"></th>
+        <th><button type="button" class="crm-intake-th-sort" data-intake-sort="title"><?= htmlspecialchars($t('intake.th_title', 'Название'), ENT_QUOTES, 'UTF-8') ?></button></th>
+        <th><button type="button" class="crm-intake-th-sort" data-intake-sort="status"><?= htmlspecialchars($t('intake.th_status', 'Статус'), ENT_QUOTES, 'UTF-8') ?></button></th>
         <th><?= htmlspecialchars($t('intake.th_project', 'Проект'), ENT_QUOTES, 'UTF-8') ?></th>
         <th><?= htmlspecialchars($t('intake.th_source', 'Источник'), ENT_QUOTES, 'UTF-8') ?></th>
-        <th><?= htmlspecialchars($t('intake.th_priority', 'Приоритет'), ENT_QUOTES, 'UTF-8') ?></th>
+        <th><button type="button" class="crm-intake-th-sort" data-intake-sort="priority_code"><?= htmlspecialchars($t('intake.th_priority', 'Приоритет'), ENT_QUOTES, 'UTF-8') ?></button></th>
         <th><?= htmlspecialchars($t('intake.th_assignee', 'Ответственный'), ENT_QUOTES, 'UTF-8') ?></th>
-        <th><?= htmlspecialchars($t('intake.th_due', 'Срок'), ENT_QUOTES, 'UTF-8') ?></th>
-        <th><?= htmlspecialchars($t('intake.th_created', 'Создано'), ENT_QUOTES, 'UTF-8') ?></th>
+        <th><button type="button" class="crm-intake-th-sort" data-intake-sort="due_at"><?= htmlspecialchars($t('intake.th_due', 'Срок'), ENT_QUOTES, 'UTF-8') ?></button></th>
+        <th><button type="button" class="crm-intake-th-sort" data-intake-sort="created_at"><?= htmlspecialchars($t('intake.th_created', 'Создано'), ENT_QUOTES, 'UTF-8') ?></button></th>
         <th><?= htmlspecialchars($t('intake.th_actions', 'Действия'), ENT_QUOTES, 'UTF-8') ?></th>
       </tr></thead><tbody id="intakeTableBody">
-        <tr><td colspan="9" class="text-muted"><?= htmlspecialchars($t('intake.loading', 'Загрузка заявок...'), ENT_QUOTES, 'UTF-8') ?></td></tr>
+        <tr><td colspan="10" class="text-muted"><?= htmlspecialchars($t('intake.loading', 'Загрузка заявок...'), ENT_QUOTES, 'UTF-8') ?></td></tr>
       </tbody></table>
     </div>
   </div>
@@ -174,6 +189,21 @@
 </div><div class="modal-footer">
   <button type="button" class="btn btn-light" data-bs-dismiss="modal"><?= htmlspecialchars($t('intake.btn_cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
   <button type="button" class="btn crm-btn-secondary" id="intakeDuplicateConfirmBtn"><?= htmlspecialchars($t('intake.btn_duplicate', 'Пометить дубликатом'), ENT_QUOTES, 'UTF-8') ?></button>
+</div></div></div></div>
+
+<!-- Bulk Action Modal -->
+<div class="modal fade" id="intakeBulkModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="intakeBulkModalTitle"><?= htmlspecialchars($t('intake.bulk_modal_title', 'Массовое действие'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body">
+  <form id="intakeBulkForm">
+    <p class="text-muted small mb-3" id="intakeBulkSummary"></p>
+    <div class="mb-3" data-intake-bulk-field="project"><label class="form-label"><?= htmlspecialchars($t('intake.accept_project', 'Проект для задачи'), ENT_QUOTES, 'UTF-8') ?></label><select class="form-select" name="project_public_id"><option value=""><?= htmlspecialchars($t('intake.field_no_project', 'Без проекта'), ENT_QUOTES, 'UTF-8') ?></option></select></div>
+    <div class="mb-3 d-none" data-intake-bulk-field="assignee"><label class="form-label"><?= htmlspecialchars($t('intake.field_assignee', 'Ответственный'), ENT_QUOTES, 'UTF-8') ?></label><select class="form-select" name="assignee_user_id"><option value=""><?= htmlspecialchars($t('intake.field_no_assignee', 'Не назначен'), ENT_QUOTES, 'UTF-8') ?></option></select></div>
+    <div class="mb-3 d-none" data-intake-bulk-field="reason"><label class="form-label"><?= htmlspecialchars($t('intake.reject_reason', 'Причина отклонения'), ENT_QUOTES, 'UTF-8') ?> <span class="text-danger">*</span></label><textarea class="form-control" name="reason" rows="3" placeholder="<?= htmlspecialchars($t('intake.reject_reason_placeholder', 'Укажите причину'), ENT_QUOTES, 'UTF-8') ?>"></textarea></div>
+    <div class="mb-3 d-none" data-intake-bulk-field="snooze"><label class="form-label"><?= htmlspecialchars($t('intake.snooze_until', 'Отложить до'), ENT_QUOTES, 'UTF-8') ?> <span class="text-danger">*</span></label><input class="form-control" name="snoozed_until" type="datetime-local"></div>
+    <input type="hidden" name="action" value="">
+  </form>
+</div><div class="modal-footer">
+  <button type="button" class="btn btn-light" data-bs-dismiss="modal"><?= htmlspecialchars($t('intake.btn_cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+  <button type="button" class="btn crm-btn-primary" id="intakeBulkConfirmBtn"><?= htmlspecialchars($t('intake.bulk_apply', 'Применить'), ENT_QUOTES, 'UTF-8') ?></button>
 </div></div></div></div>
 
 </main></div></div>

@@ -296,6 +296,60 @@ final class IntakeItemController extends BaseController
         ]);
     }
 
+    public function bulk(array $params = []): \Api\System\Library\Http\JsonResponse
+    {
+        $authUser = $this->user();
+        if (!$authUser) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
+        $input = $this->request()->allInput();
+        $action = (string)($input['action'] ?? '');
+
+        // The route gate requires intake.manage; accept and delete are guarded
+        // by narrower permissions, so re-check them per action to keep bulk
+        // triage consistent with the single-item RBAC model.
+        $actionPermission = match ($action) {
+            'accept' => 'intake.accept',
+            'delete' => 'intake.delete',
+            default => 'intake.manage',
+        };
+        /** @var \Api\System\Library\Service\AuthzService $authz */
+        $authz = $this->container->get('service.authz');
+        if (!$authz->hasPermissions($authUser['user'], [$actionPermission])) {
+            return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
+        }
+
+        /** @var IntakeItemService $service */
+        $service = $this->container->get('service.intake_item');
+        $result = $service->bulk($input, $authUser['user']);
+
+        if (is_string($result)) {
+            $httpStatus = match ($result) {
+                'INTAKE_BULK_IDS_REQUIRED', 'INTAKE_BULK_INVALID_ACTION', 'INTAKE_BULK_TOO_MANY_ITEMS' => 422,
+                default => 422,
+            };
+            return $this->error($result, $this->t('common/messages.validation_error', 'Validation error'), $httpStatus);
+        }
+
+        $summary = $result['summary'] ?? [];
+        $action = (string)($result['action'] ?? '');
+        $message = match ($action) {
+            'accept' => $this->t('intake/messages.bulk_accepted', 'Requests processed'),
+            'reject' => $this->t('intake/messages.bulk_rejected', 'Requests rejected'),
+            'assign' => $this->t('intake/messages.bulk_assigned', 'Requests assigned'),
+            'snooze' => $this->t('intake/messages.bulk_snoozed', 'Requests snoozed'),
+            'reopen' => $this->t('intake/messages.bulk_reopened', 'Requests reopened'),
+            'delete' => $this->t('intake/messages.bulk_deleted', 'Requests deleted'),
+            default => $this->t('intake/messages.bulk_done', 'Bulk operation complete'),
+        };
+
+        return $this->success('INTAKE_BULK_DONE', $message, [
+            'action' => $action,
+            'summary' => $summary,
+        ]);
+    }
+
     public function activities(array $params): \Api\System\Library\Http\JsonResponse
     {
         $authUser = $this->user();

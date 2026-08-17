@@ -619,6 +619,7 @@ return [
     // intake items
     ['methods' => ['GET'], 'pattern' => '/api/v1/intake-items', 'controller' => Api\Controller\Intake\IntakeItemController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['intake.view']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/intake-items', 'controller' => Api\Controller\Intake\IntakeItemController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['intake.create']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/intake-items/bulk', 'controller' => Api\Controller\Intake\IntakeItemController::class, 'action' => 'bulk', 'auth' => true, 'required_permissions' => ['intake.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/intake-items/{public_id}', 'controller' => Api\Controller\Intake\IntakeItemController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['intake.view']],
     ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/intake-items/{public_id}', 'controller' => Api\Controller\Intake\IntakeItemController::class, 'action' => 'update', 'auth' => true, 'required_permissions' => ['intake.manage']],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/intake-items/{public_id}', 'controller' => Api\Controller\Intake\IntakeItemController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['intake.delete']],

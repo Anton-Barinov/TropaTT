@@ -72,17 +72,112 @@ final class IntakeItemService
     {
         $result = $this->repository->list($filters);
 
-        return [
-            'items' => $result['items'],
-            'meta' => [
-                'pagination' => [
-                    'page' => $result['page'],
-                    'limit' => $result['limit'],
-                    'total' => $result['total'],
-                    'pages' => (int)ceil($result['total'] / max(1, $result['limit'])),
-                ],
+        $meta = [
+            'pagination' => [
+                'page' => $result['page'],
+                'limit' => $result['limit'],
+                'total' => $result['total'],
+                'pages' => (int)ceil($result['total'] / max(1, $result['limit'])),
             ],
         ];
+
+        if (!empty($filters['with_status_counts'])) {
+            $meta['status_counts'] = $this->repository->countByStatus($filters);
+        }
+
+        return [
+            'items' => $result['items'],
+            'meta' => $meta,
+        ];
+    }
+
+    /**
+     * Apply an action to many items at once (triage bulk operations).
+     *
+     * Supported actions: accept, reject, assign, snooze, reopen, delete.
+     * Reuses the per-item methods so validation, activity logging and
+     * notifications stay identical to the single-item flows.
+     *
+     * @param array<string,mixed> $input
+     * @param array<string,mixed> $actor
+     * @return array<string,mixed>|string
+     */
+    public function bulk(array $input, array $actor): array|string
+    {
+        $action = (string)($input['action'] ?? '');
+        $allowed = ['accept', 'reject', 'assign', 'snooze', 'reopen', 'delete'];
+        if (!in_array($action, $allowed, true)) {
+            return 'INTAKE_BULK_INVALID_ACTION';
+        }
+
+        $publicIds = array_values(array_unique(array_filter(array_map(
+            static fn($id): string => trim((string)$id),
+            (array)($input['public_ids'] ?? [])
+        ), static fn(string $id): bool => $id !== '')));
+
+        if ($publicIds === []) {
+            return 'INTAKE_BULK_IDS_REQUIRED';
+        }
+
+        // SEC-013: bound bulk work to avoid resource exhaustion.
+        $maxItems = 100;
+        if (count($publicIds) > $maxItems) {
+            return 'INTAKE_BULK_TOO_MANY_ITEMS';
+        }
+
+        $updated = 0;
+        $skipped = 0;
+        $failed = 0;
+
+        foreach ($publicIds as $publicId) {
+            $result = match ($action) {
+                'accept' => $this->accept($publicId, $input, $actor),
+                'reject' => $this->reject($publicId, $input, $actor),
+                'assign' => $this->bulkAssign($publicId, $input, $actor),
+                'snooze' => $this->snooze($publicId, $input, $actor),
+                'reopen' => $this->reopen($publicId, $actor),
+                'delete' => $this->delete($publicId, $actor),
+            };
+
+            if (is_string($result)) {
+                // Business-rule error (bad transition, missing reason, …).
+                $skipped++;
+            } elseif ($result === null || $result === false) {
+                // Not found / soft-delete no-op.
+                $failed++;
+            } else {
+                $updated++;
+            }
+        }
+
+        return [
+            'action' => $action,
+            'summary' => [
+                'requested' => count($publicIds),
+                'updated' => $updated,
+                'skipped' => $skipped,
+                'failed' => $failed,
+            ],
+        ];
+    }
+
+    /**
+     * Bulk assign is just a scoped update of the assignee field.
+     *
+     * @param array<string,mixed> $input
+     * @param array<string,mixed> $actor
+     */
+    private function bulkAssign(string $publicId, array $input, array $actor): array|string|null
+    {
+        if (!array_key_exists('assignee_user_id', $input)) {
+            return 'INTAKE_BULK_ASSIGNEE_REQUIRED';
+        }
+
+        $assigneeUserId = $input['assignee_user_id'] === '' || $input['assignee_user_id'] === null
+            ? null
+            : (int)$input['assignee_user_id'];
+
+        return $this->update($publicId, ['assignee_user_id' => $assigneeUserId], $actor);
     }
 
     /**

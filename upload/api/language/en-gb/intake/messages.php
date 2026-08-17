@@ -112,4 +112,13 @@ return [
     'view_task_btn' => 'Go to task',
     'field_too_long' => 'Description exceeds 65535 characters',
     'extra_json_invalid' => 'Extra data exceeds 65535 characters or is invalid',
+
+    // Bulk
+    'bulk_done' => 'Bulk operation complete',
+    'bulk_accepted' => 'Requests accepted',
+    'bulk_rejected' => 'Requests rejected',
+    'bulk_assigned' => 'Requests assigned',
+    'bulk_snoozed' => 'Requests snoozed',
+    'bulk_reopened' => 'Requests reopened',
+    'bulk_deleted' => 'Requests deleted',
 ];

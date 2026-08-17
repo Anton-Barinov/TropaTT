@@ -39,87 +39,7 @@ final class IntakeItemRepository
         $limit = max(1, min(100, (int)($filters['limit'] ?? 20)));
         $offset = ($page - 1) * $limit;
 
-        $where = ['ii.deleted_at IS NULL'];
-        $params = [];
-
-        if (!empty($filters['status'])) {
-            $where[] = 'ii.status = :status';
-            $params['status'] = (string)$filters['status'];
-        }
-
-        if (!empty($filters['project_public_id'])) {
-            $where[] = 'p.public_id = :project_public_id';
-            $params['project_public_id'] = (string)$filters['project_public_id'];
-        }
-
-        if (!empty($filters['client_public_id'])) {
-            $where[] = 'cl.public_id = :client_public_id';
-            $params['client_public_id'] = (string)$filters['client_public_id'];
-        }
-
-        if (!empty($filters['contact_public_id'])) {
-            $where[] = 'co.public_id = :contact_public_id';
-            $params['contact_public_id'] = (string)$filters['contact_public_id'];
-        }
-
-        if (!empty($filters['assignee_user_id'])) {
-            $where[] = 'ii.assignee_user_id = :assignee_user_id';
-            $params['assignee_user_id'] = (int)$filters['assignee_user_id'];
-        }
-
-        if (!empty($filters['creator_user_id'])) {
-            $where[] = 'ii.creator_user_id = :creator_user_id';
-            $params['creator_user_id'] = (int)$filters['creator_user_id'];
-        }
-
-        if (!empty($filters['source_type'])) {
-            $where[] = 'ii.source_type = :source_type';
-            $params['source_type'] = (string)$filters['source_type'];
-        }
-
-        if (!empty($filters['priority_code'])) {
-            $where[] = 'ii.priority_code = :priority_code';
-            $params['priority_code'] = (string)$filters['priority_code'];
-        }
-
-        if (!empty($filters['created_from'])) {
-            $where[] = 'ii.created_at >= :created_from';
-            $params['created_from'] = (string)$filters['created_from'];
-        }
-
-        if (!empty($filters['created_to'])) {
-            $where[] = 'ii.created_at <= :created_to';
-            $params['created_to'] = (string)$filters['created_to'];
-        }
-
-        if (!empty($filters['due_from'])) {
-            $where[] = 'ii.due_at >= :due_from';
-            $params['due_from'] = (string)$filters['due_from'];
-        }
-
-        if (!empty($filters['due_to'])) {
-            $where[] = 'ii.due_at <= :due_to';
-            $params['due_to'] = (string)$filters['due_to'];
-        }
-
-        $snoozedMode = (string)($filters['snoozed_mode'] ?? '');
-        if ($snoozedMode === 'active') {
-            $where[] = '(ii.snoozed_until IS NULL OR ii.snoozed_until <= :snoozed_now)';
-            $params['snoozed_now'] = gmdate('Y-m-d H:i:s');
-        } elseif ($snoozedMode === 'future') {
-            $where[] = '(ii.snoozed_until IS NOT NULL AND ii.snoozed_until > :snoozed_future)';
-            $params['snoozed_future'] = gmdate('Y-m-d H:i:s');
-        }
-
-        if (!empty($filters['q'])) {
-            $q = '%' . str_replace('%', '\\%', (string)$filters['q']) . '%';
-            $where[] = '(ii.title LIKE :q_title OR ii.description LIKE :q_desc OR ii.source_ref LIKE :q_ref OR ii.source_email LIKE :q_email OR ii.external_id LIKE :q_ext)';
-            $params['q_title'] = $q;
-            $params['q_desc'] = $q;
-            $params['q_ref'] = $q;
-            $params['q_email'] = $q;
-            $params['q_ext'] = $q;
-        }
+        [$where, $params] = $this->buildWhere($filters);
 
         $sortCol = 'created_at';
         $sortDir = 'DESC';
@@ -199,6 +119,130 @@ final class IntakeItemRepository
             'page' => $page,
             'limit' => $limit,
         ];
+    }
+
+    /**
+     * Build the shared WHERE clause used by list(), countByStatus() and the
+     * dashboard intake counters. Keeps every entry point filtering identically.
+     *
+     * @param array<string,mixed> $filters
+     * @param bool $ignoreStatus When true the status filter is dropped so the
+     *                           caller can group by status (status tabs/counters).
+     * @return array{0: array<int,string>, 1: array<string,mixed>}
+     */
+    private function buildWhere(array $filters, bool $ignoreStatus = false): array
+    {
+        $where = ['ii.deleted_at IS NULL'];
+        $params = [];
+
+        if (!$ignoreStatus && !empty($filters['status'])) {
+            $where[] = 'ii.status = :status';
+            $params['status'] = (string)$filters['status'];
+        }
+
+        if (!empty($filters['project_public_id'])) {
+            $where[] = 'p.public_id = :project_public_id';
+            $params['project_public_id'] = (string)$filters['project_public_id'];
+        }
+
+        if (!empty($filters['client_public_id'])) {
+            $where[] = 'cl.public_id = :client_public_id';
+            $params['client_public_id'] = (string)$filters['client_public_id'];
+        }
+
+        if (!empty($filters['contact_public_id'])) {
+            $where[] = 'co.public_id = :contact_public_id';
+            $params['contact_public_id'] = (string)$filters['contact_public_id'];
+        }
+
+        if (!empty($filters['assignee_user_id'])) {
+            $where[] = 'ii.assignee_user_id = :assignee_user_id';
+            $params['assignee_user_id'] = (int)$filters['assignee_user_id'];
+        }
+
+        if (!empty($filters['creator_user_id'])) {
+            $where[] = 'ii.creator_user_id = :creator_user_id';
+            $params['creator_user_id'] = (int)$filters['creator_user_id'];
+        }
+
+        if (!empty($filters['source_type'])) {
+            $where[] = 'ii.source_type = :source_type';
+            $params['source_type'] = (string)$filters['source_type'];
+        }
+
+        if (!empty($filters['priority_code'])) {
+            $where[] = 'ii.priority_code = :priority_code';
+            $params['priority_code'] = (string)$filters['priority_code'];
+        }
+
+        if (!empty($filters['created_from'])) {
+            $where[] = 'ii.created_at >= :created_from';
+            $params['created_from'] = (string)$filters['created_from'];
+        }
+
+        if (!empty($filters['created_to'])) {
+            $where[] = 'ii.created_at <= :created_to';
+            $params['created_to'] = (string)$filters['created_to'];
+        }
+
+        if (!empty($filters['due_from'])) {
+            $where[] = 'ii.due_at >= :due_from';
+            $params['due_from'] = (string)$filters['due_from'];
+        }
+
+        if (!empty($filters['due_to'])) {
+            $where[] = 'ii.due_at <= :due_to';
+            $params['due_to'] = (string)$filters['due_to'];
+        }
+
+        $snoozedMode = (string)($filters['snoozed_mode'] ?? '');
+        if ($snoozedMode === 'active') {
+            $where[] = '(ii.snoozed_until IS NULL OR ii.snoozed_until <= :snoozed_now)';
+            $params['snoozed_now'] = gmdate('Y-m-d H:i:s');
+        } elseif ($snoozedMode === 'future') {
+            $where[] = '(ii.snoozed_until IS NOT NULL AND ii.snoozed_until > :snoozed_future)';
+            $params['snoozed_future'] = gmdate('Y-m-d H:i:s');
+        }
+
+        if (!empty($filters['q'])) {
+            $q = '%' . str_replace('%', '\\%', (string)$filters['q']) . '%';
+            $where[] = '(ii.title LIKE :q_title OR ii.description LIKE :q_desc OR ii.source_ref LIKE :q_ref OR ii.source_email LIKE :q_email OR ii.external_id LIKE :q_ext)';
+            $params['q_title'] = $q;
+            $params['q_desc'] = $q;
+            $params['q_ref'] = $q;
+            $params['q_email'] = $q;
+            $params['q_ext'] = $q;
+        }
+
+        return [$where, $params];
+    }
+
+    /**
+     * Per-status counts for the full filtered set (ignores pagination and the
+     * status filter). Powers the intake status tabs and dashboard counters.
+     *
+     * @param array<string,mixed> $filters
+     * @return array<string,int> status => count
+     */
+    public function countByStatus(array $filters): array
+    {
+        [$where, $params] = $this->buildWhere($filters, true);
+        $whereClause = implode(' AND ', $where);
+
+        $stmt = $this->db->prepare(
+            "SELECT ii.status, COUNT(*) AS item_count
+            FROM intake_items ii
+            WHERE {$whereClause}
+            GROUP BY ii.status"
+        );
+        $stmt->execute($params);
+
+        $counts = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $counts[(string)($row['status'] ?? '')] = (int)($row['item_count'] ?? 0);
+        }
+
+        return $counts;
     }
 
     public function findByPublicId(string $publicId): ?array

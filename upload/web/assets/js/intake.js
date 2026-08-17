@@ -12,6 +12,12 @@ window.CRM.intake = (function () {
     clients: [],
     users: [],
     total: 0,
+    page: 1,
+    totalPages: 1,
+    sort: 'created_at',
+    order: 'desc',
+    statusCounts: {},
+    selected: {},
     loading: false
   };
 
@@ -47,7 +53,14 @@ window.CRM.intake = (function () {
     snoozeConfirm: '#intakeSnoozeConfirmBtn',
     duplicateModal: '#intakeDuplicateModal',
     duplicateForm: '#intakeDuplicateForm',
-    duplicateConfirm: '#intakeDuplicateConfirmBtn'
+    duplicateConfirm: '#intakeDuplicateConfirmBtn',
+    statusTabs: '#intakeStatusTabs',
+    pager: '#intakePager',
+    bulkBar: '#intakeBulkBar',
+    bulkModal: '#intakeBulkModal',
+    bulkForm: '#intakeBulkForm',
+    bulkConfirm: '#intakeBulkConfirmBtn',
+    bulkSummary: '#intakeBulkSummary'
   };
 
   function qs(selector, root) {
@@ -330,7 +343,9 @@ window.CRM.intake = (function () {
       var description = String(item.description || '').trim();
       var preview = stripHtml(description);
       var title = item.title || publicId;
+      var checked = state.selected[publicId] ? ' checked' : '';
       return '<tr data-intake-row="' + esc(publicId) + '">'
+        + '<td><input class="form-check-input" type="checkbox" data-intake-bulk-id="' + esc(publicId) + '"' + checked + ' aria-label="' + esc(t('intake.select_item_aria', 'Выбрать заявку')) + '"></td>'
         + '<td class="crm-intake-title-cell">'
           + '<button type="button" class="crm-intake-title-button" data-intake-action="detail" data-intake-id="' + esc(publicId) + '">' + esc(title) + '</button>'
           + (preview ? '<small>' + esc(preview.slice(0, 120)) + '</small>' : '<small>' + esc(publicId) + '</small>')
@@ -380,21 +395,35 @@ window.CRM.intake = (function () {
       + '</div>';
   }
 
-  function loadItems() {
+  function loadItems(resetPage) {
     var body = qs(selectors.tableBody);
     if (!body || state.loading) return;
+    if (resetPage) state.page = 1;
     state.loading = true;
     setState('loading');
     updateFilterControls();
 
     var filters = getFilters();
-    var query = Object.assign({ limit: 100, sort: 'created_at', order: 'desc' }, filters);
+    var query = Object.assign({
+      limit: 25,
+      page: state.page,
+      sort: state.sort,
+      order: state.order,
+      with_status_counts: '1'
+    }, filters);
     request('api/v1/intake-items', { query: query })
       .then(function (envelope) {
         state.items = extractItems(envelope);
         state.total = extractTotal(envelope, state.items.length);
+        var pagination = envelope && envelope.meta && envelope.meta.pagination ? envelope.meta.pagination : null;
+        state.totalPages = pagination && pagination.pages != null ? Number(pagination.pages) || 1 : 1;
+        state.statusCounts = (envelope && envelope.meta && envelope.meta.status_counts && typeof envelope.meta.status_counts === 'object')
+          ? envelope.meta.status_counts
+          : {};
         updateSummary(state.items.length, state.total);
         renderRows(state.items);
+        renderStatusTabs();
+        renderPager();
         if (state.items.length > 0) {
           setState('default');
         } else {
@@ -407,6 +436,224 @@ window.CRM.intake = (function () {
       })
       .finally(function () {
         state.loading = false;
+      });
+  }
+
+  function statusCount(code) {
+    return Number(state.statusCounts[code]) || 0;
+  }
+
+  function renderStatusTabs() {
+    var holder = qs(selectors.statusTabs);
+    if (!holder) return;
+    var current = selectedValue(selectors.status);
+    var tabs = [
+      ['', t('intake.filter_all_statuses', 'Все статусы'), state.total],
+      ['pending', t('intake.status_pending', 'Ожидает'), statusCount('pending')],
+      ['snoozed', t('intake.status_snoozed', 'Отложено'), statusCount('snoozed')],
+      ['accepted', t('intake.status_accepted', 'Принято'), statusCount('accepted')],
+      ['rejected', t('intake.status_rejected', 'Отклонено'), statusCount('rejected')],
+      ['duplicate', t('intake.status_duplicate', 'Дубликат'), statusCount('duplicate')]
+    ];
+
+    holder.innerHTML = tabs.map(function (tab) {
+      var active = tab[0] === current ? ' active' : '';
+      return '<button type="button" class="crm-segmented-filter-btn' + active + '" data-intake-status-tab="' + esc(tab[0]) + '">'
+        + esc(tab[1]) + '<span class="crm-intake-tab-count">' + esc(String(tab[2])) + '</span></button>';
+    }).join('');
+  }
+
+  function renderPager() {
+    var pager = qs(selectors.pager);
+    if (!pager) return;
+    if (state.totalPages <= 1) {
+      pager.classList.add('d-none');
+      pager.innerHTML = '';
+      return;
+    }
+    pager.classList.remove('d-none');
+    pager.innerHTML = '<div class="small text-muted">' + esc(t('intake.pager_showing', 'Показано')) + ' '
+      + esc(String((state.page - 1) * 25 + 1)) + '–' + esc(String(Math.min(state.page * 25, state.total)))
+      + ' ' + esc(t('intake.pager_of', 'из')) + ' ' + esc(String(state.total)) + '</div>'
+      + '<div class="crm-table-pager-controls">'
+      + '<button class="btn crm-btn-secondary" type="button" data-intake-page-prev' + (state.page <= 1 ? ' disabled' : '') + '>' + esc(t('intake.pager_prev', 'Назад')) + '</button>'
+      + '<span class="small">' + esc(t('intake.pager_page', 'Страница')) + ' ' + esc(String(state.page)) + ' ' + esc(t('intake.pager_of', 'из')) + ' ' + esc(String(state.totalPages)) + '</span>'
+      + '<button class="btn crm-btn-secondary" type="button" data-intake-page-next' + (state.page >= state.totalPages ? ' disabled' : '') + '>' + esc(t('intake.pager_next', 'Вперёд')) + '</button>'
+      + '</div>';
+  }
+
+  function selectedIds() {
+    return Object.keys(state.selected).filter(function (id) {
+      return state.selected[id] === true;
+    });
+  }
+
+  function updateBulkBar() {
+    var bar = qs(selectors.bulkBar);
+    if (!bar) return;
+    var count = selectedIds().length;
+    bar.classList.toggle('d-none', count === 0);
+    var counter = bar.querySelector('[data-selected-count]');
+    if (counter) counter.textContent = String(count);
+  }
+
+  function clearSelection() {
+    state.selected = {};
+    updateBulkBar();
+    var selectAll = document.querySelector('#intakeStates [data-select-all]');
+    if (selectAll) {
+      selectAll.checked = false;
+      selectAll.indeterminate = false;
+    }
+  }
+
+  function onBulkCheckboxChange(event) {
+    var target = event.target;
+    if (!(target instanceof HTMLInputElement)) return;
+    if (target.matches('[data-select-all]')) {
+      var checked = !!target.checked;
+      qsa('[data-intake-bulk-id]', qs(selectors.tableBody)).forEach(function (cb) {
+        cb.checked = checked;
+        var id = cb.getAttribute('data-intake-bulk-id');
+        if (id) state.selected[id] = checked;
+      });
+    } else if (target.matches('[data-intake-bulk-id]')) {
+      var id = target.getAttribute('data-intake-bulk-id');
+      if (id) state.selected[id] = !!target.checked;
+    }
+    updateBulkBar();
+    var selectAll = document.querySelector('#intakeStates [data-select-all]');
+    var all = qsa('[data-intake-bulk-id]', qs(selectors.tableBody));
+    var checkedCount = all.filter(function (cb) { return cb.checked; }).length;
+    if (selectAll) {
+      selectAll.checked = all.length > 0 && checkedCount === all.length;
+      selectAll.indeterminate = checkedCount > 0 && checkedCount < all.length;
+    }
+  }
+
+  function openBulkAction(action) {
+    var ids = selectedIds();
+    if (!ids.length) {
+      notify(t('intake.bulk_no_selection', 'Выберите хотя бы одну заявку'), 'error');
+      return;
+    }
+
+    // reopen/delete are parameterless: run directly, then refresh.
+    if (action === 'reopen' || action === 'delete') {
+      var confirmText = action === 'delete'
+        ? t('intake.bulk_delete_confirm', 'Удалить выбранные заявки? Это действие необратимо.')
+        : t('intake.bulk_reopen_confirm', 'Вернуть выбранные заявки в работу?');
+      if (!window.confirm(confirmText)) return;
+      submitBulk({ action: action, public_ids: ids });
+      return;
+    }
+
+    var form = qs(selectors.bulkForm);
+    if (!form) return;
+    form.reset();
+    form.elements.action.value = action;
+    var title = qs('#intakeBulkModalTitle');
+    if (title) {
+      title.textContent = {
+        accept: t('intake.bulk_accept_title', 'Принять выбранные'),
+        assign: t('intake.bulk_assign_title', 'Назначить выбранные'),
+        snooze: t('intake.bulk_snooze_title', 'Отложить выбранные'),
+        reject: t('intake.bulk_reject_title', 'Отклонить выбранные')
+      }[action] || t('intake.bulk_modal_title', 'Массовое действие');
+    }
+    var summary = qs(selectors.bulkSummary);
+    if (summary) summary.textContent = t('intake.bulk_selected_count', 'Выбрано заявок') + ': ' + ids.length;
+
+    // Show only the field relevant to this action.
+    qsa('[data-intake-bulk-field]', form).forEach(function (field) {
+      field.classList.add('d-none');
+    });
+    var fieldMap = { accept: 'project', assign: 'assignee', reject: 'reason', snooze: 'snooze' };
+    var fieldName = fieldMap[action];
+    var field = form.querySelector('[data-intake-bulk-field="' + fieldName + '"]');
+    if (field) field.classList.remove('d-none');
+
+    if (action === 'accept') {
+      appendOptions(form.elements.project_public_id, state.projects, {
+        firstLabel: t('intake.accept_project_placeholder', 'Выберите проект'),
+        label: function (project) { return project.title || project.name || project.public_id; }
+      });
+    }
+    if (action === 'assign') {
+      appendOptions(form.elements.assignee_user_id, state.users, {
+        firstLabel: t('intake.field_no_assignee', 'Не назначен'),
+        valueKey: 'id',
+        label: function (user) { return user.full_name || user.name || user.login || user.public_id || String(user.id); }
+      });
+    }
+
+    var instance = modal(selectors.bulkModal);
+    if (instance) instance.show();
+  }
+
+  function confirmBulk() {
+    var form = qs(selectors.bulkForm);
+    var button = qs(selectors.bulkConfirm);
+    if (!form) return;
+    var action = String(form.elements.action.value || '').trim();
+    var ids = selectedIds();
+    if (!ids.length) {
+      notify(t('intake.bulk_no_selection', 'Выберите хотя бы одну заявку'), 'error');
+      return;
+    }
+    var payload = { action: action, public_ids: ids };
+
+    if (action === 'accept') {
+      payload.project_public_id = String(form.elements.project_public_id.value || '').trim();
+      if (!payload.project_public_id) {
+        notify(t('intake.error_accept_project_required', 'Выберите проект'), 'error');
+        return;
+      }
+    }
+    if (action === 'assign') {
+      payload.assignee_user_id = String(form.elements.assignee_user_id.value || '').trim();
+    }
+    if (action === 'reject') {
+      payload.reason = String(form.elements.reason.value || '').trim();
+      if (!payload.reason) {
+        notify(t('intake.error_reject_reason_required', 'Укажите причину отклонения'), 'error');
+        return;
+      }
+    }
+    if (action === 'snooze') {
+      payload.snoozed_until = String(form.elements.snoozed_until.value || '').trim();
+      if (!payload.snoozed_until) {
+        notify(t('intake.error_snooze_date_required', 'Укажите дату'), 'error');
+        return;
+      }
+    }
+
+    setButtonLoading(button, true);
+    submitBulk(payload, function () {
+      setButtonLoading(button, false);
+    });
+  }
+
+  function submitBulk(payload, onFinish) {
+    request('api/v1/intake-items/bulk', { method: 'POST', body: payload })
+      .then(function (envelope) {
+        var summary = (envelope && envelope.data && envelope.data.summary) || {};
+        var updated = Number(summary.updated) || 0;
+        var skipped = Number(summary.skipped) || 0;
+        var failed = Number(summary.failed) || 0;
+        var message = t('intake.bulk_result', 'Готово: {updated} обновлено, {skipped} пропущено, {failed} ошибок')
+          .replace('{updated}', String(updated))
+          .replace('{skipped}', String(skipped))
+          .replace('{failed}', String(failed));
+        notify(message, failed > 0 ? 'warning' : 'success');
+        hideModal(selectors.bulkModal);
+        clearSelection();
+        if (onFinish) onFinish();
+        loadItems(true);
+      })
+      .catch(function (error) {
+        notify(formatError(error, t('intake.bulk_error', 'Не удалось выполнить массовое действие')), 'error');
+        if (onFinish) onFinish();
       });
   }
 
@@ -732,7 +979,41 @@ window.CRM.intake = (function () {
       if (el) el.value = '';
     });
     updateFilterControls();
-    loadItems();
+    loadItems(true);
+  }
+
+  function reloadFirstPage() {
+    loadItems(true);
+  }
+
+  function onSortClick(event) {
+    var button = event.target.closest('[data-intake-sort]');
+    if (!button) return;
+    var column = button.getAttribute('data-intake-sort');
+    if (state.sort === column) {
+      state.order = state.order === 'asc' ? 'desc' : 'asc';
+    } else {
+      state.sort = column;
+      state.order = 'asc';
+    }
+    updateSortIndicators();
+    loadItems(true);
+  }
+
+  function updateSortIndicators() {
+    qsa('[data-intake-sort]').forEach(function (button) {
+      var column = button.getAttribute('data-intake-sort');
+      var active = state.sort === column;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-sort', active ? (state.order === 'asc' ? 'ascending' : 'descending') : 'none');
+      var arrow = button.querySelector('.crm-intake-sort-arrow');
+      if (!arrow) {
+        arrow = document.createElement('span');
+        arrow.className = 'crm-intake-sort-arrow';
+        button.appendChild(arrow);
+      }
+      arrow.textContent = active ? (state.order === 'asc' ? ' ▲' : ' ▼') : '';
+    });
   }
 
   function bindEvents() {
@@ -745,6 +1026,9 @@ window.CRM.intake = (function () {
     var footer = qs(selectors.detailFooter);
     if (footer) footer.addEventListener('click', onAction);
 
+    var table = qs('#intakeStates table');
+    if (table) table.addEventListener('change', onBulkCheckboxChange);
+
     var save = qs(selectors.createSave);
     if (save) save.addEventListener('click', saveCreate);
     var accept = qs(selectors.acceptConfirm);
@@ -756,7 +1040,44 @@ window.CRM.intake = (function () {
     var duplicate = qs(selectors.duplicateConfirm);
     if (duplicate) duplicate.addEventListener('click', confirmDuplicate);
 
-    var debouncedReload = debounce(loadItems, 300);
+    var bulkConfirm = qs(selectors.bulkConfirm);
+    if (bulkConfirm) bulkConfirm.addEventListener('click', confirmBulk);
+    var bulkBar = qs(selectors.bulkBar);
+    if (bulkBar) bulkBar.addEventListener('click', function (event) {
+      var button = event.target.closest('[data-intake-bulk-action]');
+      if (!button) return;
+      openBulkAction(button.getAttribute('data-intake-bulk-action'));
+    });
+
+    var statusTabs = qs(selectors.statusTabs);
+    if (statusTabs) statusTabs.addEventListener('click', function (event) {
+      var tab = event.target.closest('[data-intake-status-tab]');
+      if (!tab) return;
+      var status = tab.getAttribute('data-intake-status-tab');
+      var select = qs(selectors.status);
+      if (select) select.value = status;
+      updateFilterControls();
+      renderStatusTabs();
+      loadItems(true);
+    });
+
+    var pager = qs(selectors.pager);
+    if (pager) pager.addEventListener('click', function (event) {
+      var prev = event.target.closest('[data-intake-page-prev]');
+      var next = event.target.closest('[data-intake-page-next]');
+      if (prev && state.page > 1) {
+        state.page -= 1;
+        loadItems();
+      } else if (next && state.page < state.totalPages) {
+        state.page += 1;
+        loadItems();
+      }
+    });
+
+    var thead = qs('#intakeStates thead');
+    if (thead) thead.addEventListener('click', onSortClick);
+
+    var debouncedReload = debounce(reloadFirstPage, 300);
     var search = qs(selectors.search);
     if (search) search.addEventListener('input', function () {
       updateFilterControls();
@@ -766,20 +1087,21 @@ window.CRM.intake = (function () {
     if (clear) clear.addEventListener('click', function () {
       if (search) search.value = '';
       updateFilterControls();
-      loadItems();
+      loadItems(true);
       if (search) search.focus();
     });
     [selectors.status, selectors.source, selectors.project, selectors.priority, selectors.client, selectors.assignee].forEach(function (selector) {
       var el = qs(selector);
       if (el) el.addEventListener('change', function () {
         updateFilterControls();
-        loadItems();
+        renderStatusTabs();
+        loadItems(true);
       });
     });
     var reset = qs(selectors.reset);
     if (reset) reset.addEventListener('click', resetFilters);
     var refresh = qs(selectors.refresh);
-    if (refresh) refresh.addEventListener('click', loadItems);
+    if (refresh) refresh.addEventListener('click', reloadFirstPage);
   }
 
   function init() {
@@ -788,6 +1110,7 @@ window.CRM.intake = (function () {
     document.body.setAttribute('data-intake-ready', '1');
     bindEvents();
     updateFilterControls();
+    updateSortIndicators();
 
     var started = false;
     function startWhenApiReady() {
