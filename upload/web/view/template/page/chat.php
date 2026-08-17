@@ -399,7 +399,7 @@
       box.innerHTML = '<div class="crm-chat-empty crm-chat-empty--small"><strong>' + window.CRM.i18n.t('chat.messages_empty_title', 'Сообщений пока нет') + '</strong><span>' + window.CRM.i18n.t('chat.messages_empty_text', 'Напишите первое сообщение в этом диалоге.') + '</span></div>';
       return;
     }
-    var lastReadId = Number(currentChat && currentChat.last_read_id) || 0;
+    var lastReadId = Number(currentChat && currentChat.last_read_seq) || 0;
     var hasRead = messages.some(function (message) { return messageNumericId(message) <= lastReadId; });
     var hasUnread = messages.some(function (message) { return messageNumericId(message) > lastReadId; });
     var showSeparator = lastReadId > 0 && hasRead && hasUnread;
