@@ -34,9 +34,6 @@ The installer capture was produced from an isolated local copy with no configura
 Fallback UI mockups with fictional labels are also available as [SVG assets](.github/assets/screenshots/README.md).
 
 ---
----
-
----
 
 ## Table of Contents
 
@@ -513,8 +510,8 @@ The public repository currently includes a focused maintainer documentation set:
 | API tooling | `upload/api/scripts/generate_openapi.php` | OpenAPI generation entry point for API documentation automation |
 | API reference | [English](docs_api/api_en.md) · [Русский](docs_api/api_ru.md) · [中文](docs_api/api_zh.md) | Complete REST API reference — endpoints, authentication, RBAC, and conventions (English / Русский / 中文) |
 | MCP reference | [English](docs_mcp/mcp_en.md) · [Русский](docs_mcp/mcp_ru.md) · [中文](docs_mcp/mcp_zh.md) | Complete MCP server reference — 567 tools, resources, authentication, and RBAC (English / Русский / 中文) |
-| Web docs | `upload/web/docs/README.md`, [`UPDATES.md`](UPDATES.md) | In-app user documentation (RU): architecture, install, and the self-update system (update server pipeline + user update flow) |
-| Project root | `README.md`, `AGENTS.md`, `SECURITY.md`, `CONTRIBUTING.md`, [`INSTALL_TROUBLESHOOTING.md`](INSTALL_TROUBLESHOOTING.md), [`SHARED_HOSTING_GUIDE.md`](SHARED_HOSTING_GUIDE.md), [`WEBHOOK_SECURITY.md`](WEBHOOK_SECURITY.md) | Public usage, agent, security, contribution, installation troubleshooting, shared hosting, and webhook security guidance |
+| Web docs | [`UPDATES.md`](UPDATES.md) | Self-update system reference: update server pipeline and the user update flow |
+| Project root | `README.md`, `SECURITY.md`, `CONTRIBUTING.md`, [`MODULE_DEVELOPMENT.md`](MODULE_DEVELOPMENT.md), [`INSTALL_TROUBLESHOOTING.md`](INSTALL_TROUBLESHOOTING.md), [`SHARED_HOSTING_GUIDE.md`](SHARED_HOSTING_GUIDE.md), [`WEBHOOK_SECURITY.md`](WEBHOOK_SECURITY.md) | Public usage, security, contribution, module development, installation troubleshooting, shared hosting, and webhook security guidance |
 ---
 
 ### Open-source project files
@@ -530,6 +527,8 @@ The public repository includes standard project files for maintainers, contribut
 - [INSTALL_TROUBLESHOOTING.md](INSTALL_TROUBLESHOOTING.md) — common installation problems and fixes.
 - [SHARED_HOSTING_GUIDE.md](SHARED_HOSTING_GUIDE.md) — step-by-step shared hosting installation guide.
 - [WEBHOOK_SECURITY.md](WEBHOOK_SECURITY.md) — webhook authentication, verification, and best practices.
+- [MODULE_DEVELOPMENT.md](MODULE_DEVELOPMENT.md) — how to build self-contained modules (events, positions, scoped assets).
+- [UPDATES.md](UPDATES.md) — self-update system reference (update server pipeline and user update flow).
 - [.github/ISSUE_TEMPLATE](.github/ISSUE_TEMPLATE) — bug, feature, documentation, and installation templates.
 - [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md) — PR checklist for tests, docs, security, API, and installer impact.
 
@@ -1005,8 +1004,8 @@ TropaTT/
 | API tooling | `upload/api/scripts/generate_openapi.php` | Точка входа для автоматизации генерации OpenAPI |
 | API-справочник | [Русский](docs_api/api_ru.md) · [English](docs_api/api_en.md) · [中文](docs_api/api_zh.md) | Полный справочник REST API — endpoint'ы, авторизация, RBAC и соглашения (Русский / English / 中文) |
 | MCP-справочник | [Русский](docs_mcp/mcp_ru.md) · [English](docs_mcp/mcp_en.md) · [中文](docs_mcp/mcp_zh.md) | Полный справочник MCP-сервера — 567 tools, ресурсы, авторизация и RBAC (Русский / English / 中文) |
-| Web docs | `upload/web/docs/README.md`, [`UPDATES.md`](UPDATES.md) | Внутренняя пользовательская документация (RU): архитектура, установка и система обновлений (конвейер сервера обновлений + поток обновления для пользователя) |
-| Корень проекта | `README.md`, `AGENTS.md`, `SECURITY.md`, `CONTRIBUTING.md`, [`INSTALL_TROUBLESHOOTING.md`](INSTALL_TROUBLESHOOTING.md), [`SHARED_HOSTING_GUIDE.md`](SHARED_HOSTING_GUIDE.md), [`WEBHOOK_SECURITY.md`](WEBHOOK_SECURITY.md) | Публичные правила использования, работы агентов, безопасности, вклада, troubleshooting установки, shared hosting гайд, webhook security |
+| Web docs | [`UPDATES.md`](UPDATES.md) | Справочник по системе обновлений: конвейер сервера обновлений и поток обновления для пользователя |
+| Корень проекта | `README.md`, `SECURITY.md`, `CONTRIBUTING.md`, [`MODULE_DEVELOPMENT.md`](MODULE_DEVELOPMENT.md), [`INSTALL_TROUBLESHOOTING.md`](INSTALL_TROUBLESHOOTING.md), [`SHARED_HOSTING_GUIDE.md`](SHARED_HOSTING_GUIDE.md), [`WEBHOOK_SECURITY.md`](WEBHOOK_SECURITY.md) | Публичные правила использования, безопасности, вклада, разработки модулей, troubleshooting установки, shared hosting гайд, webhook security |
 ---
 
 ### Файлы open-source проекта
@@ -1022,6 +1021,8 @@ TropaTT/
 - [INSTALL_TROUBLESHOOTING.md](INSTALL_TROUBLESHOOTING.md) — решение типовых проблем установки.
 - [SHARED_HOSTING_GUIDE.md](SHARED_HOSTING_GUIDE.md) — пошаговая инструкция установки на shared hosting.
 - [WEBHOOK_SECURITY.md](WEBHOOK_SECURITY.md) — аутентификация, верификация и best practices для вебхуков.
+- [MODULE_DEVELOPMENT.md](MODULE_DEVELOPMENT.md) — как создавать самодостаточные модули (события, позиции, route-скоуп ассетов).
+- [UPDATES.md](UPDATES.md) — справочник по системе обновлений (конвейер сервера обновлений и поток обновления для пользователя).
 - [.github/ISSUE_TEMPLATE](.github/ISSUE_TEMPLATE) — шаблоны для багов, фич, документации и проблем установки.
 - [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md) — чеклист PR по тестам, документации, безопасности, API и установщику.
 
@@ -1497,8 +1498,8 @@ TropaTT/
 | API 工具 | `upload/api/scripts/generate_openapi.php` | API 文档自动化的 OpenAPI 生成入口 |
 | API 参考 | [中文](docs_api/api_zh.md) · [English](docs_api/api_en.md) · [Русский](docs_api/api_ru.md) | 完整 REST API 参考 — 端点、认证、RBAC 和约定（中文 / English / Русский） |
 | MCP 参考 | [中文](docs_mcp/mcp_zh.md) · [English](docs_mcp/mcp_en.md) · [Русский](docs_mcp/mcp_ru.md) | 完整 MCP 服务器参考 — 567 个工具、资源、认证和 RBAC（中文 / English / Русский） |
-| Web 文档 | `upload/web/docs/README.md`, [`UPDATES.md`](UPDATES.md) | 应用内用户文档（俄语）：架构、安装和自更新系统（更新服务器流水线 + 用户更新流程） |
-| 项目根目录 | `README.md`, `AGENTS.md`, `SECURITY.md`, `CONTRIBUTING.md`, [`INSTALL_TROUBLESHOOTING.md`](INSTALL_TROUBLESHOOTING.md), [`SHARED_HOSTING_GUIDE.md`](SHARED_HOSTING_GUIDE.md), [`WEBHOOK_SECURITY.md`](WEBHOOK_SECURITY.md) | 公开使用、代理、安全、贡献、安装排障、共享主机和 Webhook 安全指南 |
+| Web 文档 | [`UPDATES.md`](UPDATES.md) | 自更新系统参考：更新服务器流水线和用户更新流程 |
+| 项目根目录 | `README.md`, `SECURITY.md`, `CONTRIBUTING.md`, [`MODULE_DEVELOPMENT.md`](MODULE_DEVELOPMENT.md), [`INSTALL_TROUBLESHOOTING.md`](INSTALL_TROUBLESHOOTING.md), [`SHARED_HOSTING_GUIDE.md`](SHARED_HOSTING_GUIDE.md), [`WEBHOOK_SECURITY.md`](WEBHOOK_SECURITY.md) | 公开使用、安全、贡献、模块开发、安装排障、共享主机和 Webhook 安全指南 |
 
 ---
 
@@ -1515,6 +1516,8 @@ TropaTT/
 - [INSTALL_TROUBLESHOOTING.md](INSTALL_TROUBLESHOOTING.md) — 常见安装问题及修复。
 - [SHARED_HOSTING_GUIDE.md](SHARED_HOSTING_GUIDE.md) — 共享主机分步安装指南。
 - [WEBHOOK_SECURITY.md](WEBHOOK_SECURITY.md) — Webhook 认证、验证和最佳实践。
+- [MODULE_DEVELOPMENT.md](MODULE_DEVELOPMENT.md) — 如何构建自包含模块（事件、位置、按路由加载的资源）。
+- [UPDATES.md](UPDATES.md) — 自更新系统参考（更新服务器流水线和用户更新流程）。
 - [.github/ISSUE_TEMPLATE](.github/ISSUE_TEMPLATE) — bug、功能、文档和安装问题模板。
 - [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md) — 测试、文档、安全、API 和安装影响的 PR 清单。
 
