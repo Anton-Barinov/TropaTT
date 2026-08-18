@@ -20,6 +20,8 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 - **i18n: full web + API key parity.** All 7 locales now carry identical key sets (web audit and API parity check report zero missing keys), and the integration keys missing from de/fr/es/pt/zh web catalogs were added.
 
+- **Planning: «Действие» column stays visible.** The planner task tables cap the task/assignee/status/action column widths (92/104/80px) explicitly on cells instead of relying only on `<colgroup>`, so the «Действие» column no longer overflows the visible area.
+
 ## [0.2.0.3] - 2026-08-18
 
 ### Added
