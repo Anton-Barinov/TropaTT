@@ -68,6 +68,20 @@
                   <select id="teamCreateManager" class="form-select team-input" name="manager_user_public_id"><option value="" data-i18n="teams.opt_default_current_user"><?= htmlspecialchars($t('teams.opt_default_current_user', 'По умолчанию текущий пользователь'), ENT_QUOTES, 'UTF-8') ?></option></select>
                 </div>
               </div>
+
+              <div class="team-section-card team-knowledge-card">
+                <div class="team-knowledge-head">
+                  <h6 class="team-section-title team-knowledge-title" data-i18n="teams.section_knowledge">
+                    <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-book-open"></i></span>
+                    <?= htmlspecialchars($t('teams.section_knowledge', 'Материалы команды'), ENT_QUOTES, 'UTF-8') ?>
+                  </h6>
+                  <button class="btn btn-sm crm-btn-subtle" type="button" id="teamCreateKnowledgeAttachBtn" data-i18n="teams.btn_attach_knowledge"><?= htmlspecialchars($t('teams.btn_attach_knowledge', 'Прикрепить статью'), ENT_QUOTES, 'UTF-8') ?></button>
+                </div>
+                <div class="team-knowledge-hint" data-i18n="teams.knowledge_create_hint"><?= htmlspecialchars($t('teams.knowledge_create_hint', 'Выбранные материалы будут привязаны к команде после её создания.'), ENT_QUOTES, 'UTF-8') ?></div>
+                <div class="team-knowledge-list" id="teamCreateKnowledgeList">
+                  <div class="team-knowledge-empty"><p><?= htmlspecialchars($t('teams.knowledge_empty', 'Нет материалов команды'), ENT_QUOTES, 'UTF-8') ?></p></div>
+                </div>
+              </div>
             </div>
 
             <div class="team-modal-right">
@@ -87,20 +101,6 @@
                   <span class="team-empty-hint" data-i18n="teams.hint_search_add"><?= htmlspecialchars($t('teams.hint_search_add', 'Используйте поиск для быстрого добавления'), ENT_QUOTES, 'UTF-8') ?></span>
                 </div>
               </div>
-            </div>
-          </div>
-
-          <div class="mt-3 pt-3 border-top px-3 pb-3" id="teamCreateKnowledgeSection">
-            <div class="d-flex align-items-center justify-content-between mb-2 gap-2 flex-wrap">
-              <h6 class="mb-0 d-flex align-items-center gap-2">
-                <span class="crm-icon text-muted" aria-hidden="true"><i class="fa-solid fa-book-open"></i></span>
-                <?= htmlspecialchars($t('teams.section_knowledge', 'Материалы команды'), ENT_QUOTES, 'UTF-8') ?>
-              </h6>
-              <button class="btn btn-sm crm-btn-subtle" type="button" id="teamCreateKnowledgeAttachBtn" data-i18n="teams.btn_attach_knowledge"><?= htmlspecialchars($t('teams.btn_attach_knowledge', 'Прикрепить статью'), ENT_QUOTES, 'UTF-8') ?></button>
-            </div>
-            <div class="small text-muted mb-2" data-i18n="teams.knowledge_create_hint"><?= htmlspecialchars($t('teams.knowledge_create_hint', 'Выбранные материалы будут привязаны к команде после её создания.'), ENT_QUOTES, 'UTF-8') ?></div>
-            <div class="crm-section-card p-3" id="teamCreateKnowledgeList">
-              <div class="text-muted small">—</div>
             </div>
           </div>
         </div>
@@ -180,6 +180,25 @@
                   <select id="teamEditManager" class="form-select team-input" name="manager_user_public_id"><option value="" data-i18n="teams.opt_no_manager"><?= htmlspecialchars($t('teams.opt_no_manager', 'Не назначен'), ENT_QUOTES, 'UTF-8') ?></option></select>
                 </div>
               </div>
+
+              <div class="team-section-card team-knowledge-card">
+                <div class="team-knowledge-head">
+                  <h6 class="team-section-title team-knowledge-title" data-i18n="teams.section_knowledge">
+                    <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-book-open"></i></span>
+                    <?= htmlspecialchars($t('teams.section_knowledge', 'Материалы команды'), ENT_QUOTES, 'UTF-8') ?>
+                  </h6>
+                  <div class="team-knowledge-actions">
+                    <button class="btn btn-sm crm-btn-subtle" type="button" id="teamKnowledgeAttachBtn" data-i18n="teams.btn_attach_knowledge"><?= htmlspecialchars($t('teams.btn_attach_knowledge', 'Прикрепить статью'), ENT_QUOTES, 'UTF-8') ?></button>
+                    <a class="btn btn-sm crm-btn-subtle" href="index.php?route=knowledge" id="teamKnowledgeLink" data-i18n="teams.btn_knowledge">
+                      <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-arrow-up-right-from-square"></i></span>
+                      <?= htmlspecialchars($t('teams.btn_knowledge', 'Перейти в базу знаний'), ENT_QUOTES, 'UTF-8') ?>
+                    </a>
+                  </div>
+                </div>
+                <div class="team-knowledge-list" id="teamKnowledgeList">
+                  <div class="team-knowledge-empty"><p><?= htmlspecialchars($t('teams.knowledge_empty', 'Нет материалов команды'), ENT_QUOTES, 'UTF-8') ?></p></div>
+                </div>
+              </div>
             </div>
 
             <div class="team-modal-right">
@@ -199,25 +218,6 @@
                   <span class="team-empty-hint" data-i18n="teams.hint_search_add"><?= htmlspecialchars($t('teams.hint_search_add', 'Используйте поиск для добавления'), ENT_QUOTES, 'UTF-8') ?></span>
                 </div>
               </div>
-            </div>
-          </div>
-
-          <div class="mt-3 pt-3 border-top px-3 pb-3" id="teamKnowledgeSection">
-            <div class="d-flex align-items-center justify-content-between mb-2 gap-2 flex-wrap">
-              <h6 class="mb-0 d-flex align-items-center gap-2">
-                <span class="crm-icon text-muted" aria-hidden="true"><i class="fa-solid fa-book-open"></i></span>
-                <?= htmlspecialchars($t('teams.section_knowledge', 'Материалы команды'), ENT_QUOTES, 'UTF-8') ?>
-              </h6>
-              <div class="d-flex align-items-center gap-2">
-                <button class="btn btn-sm crm-btn-subtle" type="button" id="teamKnowledgeAttachBtn" data-i18n="teams.btn_attach_knowledge"><?= htmlspecialchars($t('teams.btn_attach_knowledge', 'Прикрепить статью'), ENT_QUOTES, 'UTF-8') ?></button>
-                <a class="btn btn-sm crm-btn-subtle" href="index.php?route=knowledge" id="teamKnowledgeLink" data-i18n="teams.btn_knowledge">
-                  <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-arrow-up-right-from-square"></i></span>
-                  <?= htmlspecialchars($t('teams.btn_knowledge', 'Перейти в базу знаний'), ENT_QUOTES, 'UTF-8') ?>
-                </a>
-              </div>
-            </div>
-            <div class="crm-section-card p-3" id="teamKnowledgeList">
-              <div class="text-muted small">—</div>
             </div>
           </div>
 
@@ -317,20 +317,20 @@
 
   function pageRow(p, detach) {
     var detachBtn = detach
-      ? '<button type="button" class="btn btn-sm crm-btn-subtle" data-detach="' + esc(p.public_id) + '" data-link="' + esc(detach) + '" style="flex-shrink:0;padding:4px 8px" title="' + esc(t('teams.knowledge_detach', 'Открепить')) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-xmark"></i></span></button>'
+      ? '<button type="button" class="btn btn-sm crm-btn-subtle" data-detach="' + esc(p.public_id) + '" data-link="' + esc(detach) + '" title="' + esc(t('teams.knowledge_detach', 'Открепить')) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-xmark"></i></span></button>'
       : '';
-    var openBtn = '<a class="btn btn-sm crm-btn-subtle" href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id) + '" style="flex-shrink:0;padding:4px 8px"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-arrow-right"></i></span></a>';
-    return '<div class="team-section-card d-flex align-items-center justify-content-between" style="padding:10px 14px;margin-bottom:6px"><div class="d-flex align-items-center gap-2" style="min-width:0"><span class="crm-icon" style="color:var(--crm-primary);flex-shrink:0;font-size:0.9rem" aria-hidden="true"><i class="fa-solid fa-file-lines"></i></span><span class="text-truncate" style="font-size:13px">' + esc(p.title || '') + '</span></div><div class="d-flex align-items-center gap-2" style="flex-shrink:0">' + detachBtn + openBtn + '</div></div>';
+    var openBtn = '<a class="btn btn-sm crm-btn-subtle" href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-arrow-right"></i></span></a>';
+    return '<div class="team-knowledge-row"><div class="team-knowledge-row-main"><span class="team-knowledge-row-icon" aria-hidden="true"><i class="fa-solid fa-file-lines"></i></span><span class="team-knowledge-row-title">' + esc(p.title || '') + '</span></div><div class="team-knowledge-row-actions">' + detachBtn + openBtn + '</div></div>';
   }
 
   function renderCreateList() {
     if (!createKnowledgeList) return;
     if (!createSelectedPages.length) {
-      createKnowledgeList.innerHTML = '<div class="text-center py-3"><div class="crm-icon mb-2" style="font-size:1.5rem;opacity:0.35" aria-hidden="true"><i class="fa-solid fa-book-open"></i></div><p class="text-muted small mb-0">' + esc(t('teams.knowledge_empty', 'Нет материалов команды')) + '</p></div>';
+      createKnowledgeList.innerHTML = '<div class="team-knowledge-empty"><p>' + esc(t('teams.knowledge_empty', 'Нет материалов команды')) + '</p></div>';
       return;
     }
     createKnowledgeList.innerHTML = createSelectedPages.map(function (p) {
-      return '<div class="team-section-card d-flex align-items-center justify-content-between" style="padding:10px 14px;margin-bottom:6px"><div class="d-flex align-items-center gap-2" style="min-width:0"><span class="crm-icon" style="color:var(--crm-primary);flex-shrink:0;font-size:0.9rem" aria-hidden="true"><i class="fa-solid fa-file-lines"></i></span><span class="text-truncate" style="font-size:13px">' + esc(p.title || '') + '</span></div><button type="button" class="btn btn-sm crm-btn-subtle" data-create-remove="' + esc(p.public_id) + '" style="flex-shrink:0;padding:4px 8px" title="' + esc(t('teams.knowledge_detach', 'Открепить')) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-xmark"></i></span></button></div>';
+      return '<div class="team-knowledge-row"><div class="team-knowledge-row-main"><span class="team-knowledge-row-icon" aria-hidden="true"><i class="fa-solid fa-file-lines"></i></span><span class="team-knowledge-row-title">' + esc(p.title || '') + '</span></div><div class="team-knowledge-row-actions"><button type="button" class="btn btn-sm crm-btn-subtle" data-create-remove="' + esc(p.public_id) + '" title="' + esc(t('teams.knowledge_detach', 'Открепить')) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-xmark"></i></span></button></div></div>';
     }).join('');
     createKnowledgeList.querySelectorAll('[data-create-remove]').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -344,7 +344,7 @@
   function renderEditList(items) {
     if (!editKnowledgeList) return;
     if (!items.length) {
-      editKnowledgeList.innerHTML = '<div class="text-center py-3"><div class="crm-icon mb-2" style="font-size:1.5rem;opacity:0.35" aria-hidden="true"><i class="fa-solid fa-book-open"></i></div><p class="text-muted small mb-0">' + esc(t('teams.knowledge_empty', 'Нет материалов команды')) + '</p><p class="text-muted small mb-0">' + esc(t('teams.knowledge_empty_hint', 'Добавьте страницы в базе знаний и привяжите их к команде.')) + '</p></div>';
+      editKnowledgeList.innerHTML = '<div class="team-knowledge-empty"><p>' + esc(t('teams.knowledge_empty', 'Нет материалов команды')) + '</p><p>' + esc(t('teams.knowledge_empty_hint', 'Добавьте страницы в базе знаний и привяжите их к команде.')) + '</p></div>';
       return;
     }
     editKnowledgeList.innerHTML = items.map(function (p) {
@@ -500,7 +500,7 @@
           : 'index.php?route=knowledge';
       }
       if (teamId) loadEditPages();
-      else if (editKnowledgeList) editKnowledgeList.innerHTML = '<div class="text-muted small">—</div>';
+      else if (editKnowledgeList) editKnowledgeList.innerHTML = '<div class="team-knowledge-empty"><p>' + esc(t('teams.knowledge_empty', 'Нет материалов команды')) + '</p></div>';
     });
   }
 
