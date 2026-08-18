@@ -94,7 +94,7 @@ final class UploadController extends BaseController
             ]);
         }
 
-        $url = '/storage_api/uploads/visual-editor/' . $yearMonth . '/' . $safeName;
+        $url = '/api/index.php?route=api/v1/visual-editor/image/' . $yearMonth . '/' . $safeName;
 
         return $this->success('IMAGE_UPLOADED', $this->t('file/messages.uploaded', 'Изображение загружено.'), [
             'url' => $url,
@@ -103,6 +103,63 @@ final class UploadController extends BaseController
             'mime' => $detectedMime,
             'size' => $file['size'],
         ], 201);
+    }
+
+    /**
+     * Serve an uploaded visual-editor image through the authenticated API so
+     * the storage directory can stay fully blocked by .htaccess (SEC-001).
+     * Returns a binary response descriptor consumed by the router's `binary`
+     * route handler (same shape as FileController::download / chat attachments).
+     *
+     * @param array<string,mixed> $params
+     * @return array<string,mixed>
+     */
+    public function image(array $params): array
+    {
+        $authUser = $this->user();
+        if (!$authUser) {
+            return ['error' => 'UNAUTHORIZED'];
+        }
+
+        $year = (string)($params['year'] ?? '');
+        $month = (string)($params['month'] ?? '');
+        $name = (string)($params['name'] ?? '');
+
+        // Strict allow-list: no path traversal, no arbitrary reads. Uploaded
+        // files are always named <32 hex>.<jpg|png|webp|gif> (see upload()).
+        if (!preg_match('/^\d{4}$/', $year) || !preg_match('/^(0[1-9]|1[0-2])$/', $month)) {
+            return ['error' => 'FILE_NOT_FOUND'];
+        }
+        if (!preg_match('/^[a-f0-9]{32}\.(jpg|png|webp|gif)$/', $name)) {
+            return ['error' => 'FILE_NOT_FOUND'];
+        }
+
+        $baseDir = dirname(__DIR__, 3) . '/storage_api/uploads/visual-editor';
+        $path = $baseDir . '/' . $year . '/' . $month . '/' . $name;
+
+        $realBase = realpath($baseDir);
+        $realPath = realpath($path);
+        if ($realBase === false || $realPath === false || !str_starts_with($realPath, $realBase . DIRECTORY_SEPARATOR)) {
+            return ['error' => 'FILE_NOT_FOUND'];
+        }
+        if (!is_file($realPath)) {
+            return ['error' => 'FILE_NOT_FOUND'];
+        }
+
+        $mime = match (pathinfo($realPath, PATHINFO_EXTENSION)) {
+            'jpg' => 'image/jpeg',
+            'png' => 'image/png',
+            'webp' => 'image/webp',
+            'gif' => 'image/gif',
+            default => 'application/octet-stream',
+        };
+
+        return [
+            'path' => $realPath,
+            'name' => $name,
+            'mime' => $mime,
+            'size' => (int)filesize($realPath),
+        ];
     }
 
     private function extensionFromMime(string $mime): string

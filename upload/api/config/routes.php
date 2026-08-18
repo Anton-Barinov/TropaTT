@@ -1024,4 +1024,8 @@ return [
 
     // visual editor image upload
     ['methods' => ['POST'], 'pattern' => '/api/v1/visual-editor/upload-image', 'controller' => Api\Controller\visualeditor\UploadController::class, 'action' => 'upload', 'auth' => true, 'authz_note' => 'self-service: any authenticated (UploadController::upload)', 'openapi' => false, 'openapi_note' => 'Excluded because multipart upload handling is documented separately.'],
+
+    // visual editor image serving (storage_api/ is blocked by .htaccess, so images
+    // are streamed through this authenticated binary route)
+    ['methods' => ['GET'], 'pattern' => '/api/v1/visual-editor/image/{year}/{month}/{name}', 'controller' => Api\Controller\visualeditor\UploadController::class, 'action' => 'image', 'auth' => true, 'binary' => true, 'authz_note' => 'self-service: any authenticated user (UploadController::image serves uploaded visual-editor images)', 'openapi' => false],
 ];

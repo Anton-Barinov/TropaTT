@@ -272,7 +272,7 @@ window.CRM.VisualEditor = (function () {
 
           if (tag === 'IMG') {
             var src = child.getAttribute('src') || '';
-            if (!src || src.indexOf('data:') === 0) {
+            if (!src || src.indexOf('data:') === 0 || /^blob:/i.test(src)) {
               node.removeChild(child);
               return;
             }
@@ -1011,6 +1011,51 @@ window.CRM.VisualEditor = (function () {
     });
   }
 
+  // Collect image files from a paste event. Prefer clipboardData.items (the
+  // reliable source for screenshots and images copied from web pages —
+  // clipboardData.files is often empty for those) and fall back to .files.
+  function getPastedImageFiles(clipboard) {
+    var files = [];
+    var items = clipboard && clipboard.items;
+    if (items && items.length) {
+      for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        if (item.kind === 'file' && item.type && item.type.indexOf('image/') === 0) {
+          try {
+            var file = item.getAsFile();
+            if (file) files.push(file);
+          } catch (e) { /* ignore */ }
+        }
+      }
+      if (files.length) return files;
+    }
+    var list = clipboard && clipboard.files;
+    if (list && list.length) {
+      for (var k = 0; k < list.length; k++) {
+        if (isImageFile(list[k])) files.push(list[k]);
+      }
+    }
+    return files;
+  }
+
+  // Upload an image that arrived as an ephemeral blob: URL in pasted HTML.
+  // blob: URLs are only valid for the current document, so persisting them
+  // would produce a broken image after save/reload — upload instead.
+  function uploadImageFromUrl(editorInstance, url) {
+    return fetch(url).then(function (resp) {
+      if (!resp.ok) throw new Error('Failed to read pasted image');
+      return resp.blob();
+    }).then(function (blob) {
+      var type = blob && blob.type && blob.type.indexOf('image/') === 0 ? blob.type : 'image/png';
+      var ext = type.split('/')[1] || 'png';
+      if (ext === 'jpeg') ext = 'jpg';
+      var file = new File([blob], 'pasted_image.' + ext, { type: type });
+      var ph = createUploadingPlaceholder(generateId());
+      editorInstance._insertAtCaret(ph);
+      return uploadImage(editorInstance, file, ph);
+    }).catch(function () {});
+  }
+
   // ---------------------------------------------------------------------------
   //  Editor
   // ---------------------------------------------------------------------------
@@ -1544,14 +1589,12 @@ window.CRM.VisualEditor = (function () {
 
     if (!clipboard) return;
 
-    var files = clipboard.files;
-    if (files && files.length > 0) {
-      for (var i = 0; i < files.length; i++) {
-        if (isImageFile(files[i])) {
-          var placeholder = createUploadingPlaceholder(generateId());
-          self._insertAtCaret(placeholder);
-          uploadImage(self, files[i], placeholder).catch(function () {});
-        }
+    var imageFiles = getPastedImageFiles(clipboard);
+    if (imageFiles.length > 0) {
+      for (var i = 0; i < imageFiles.length; i++) {
+        var placeholder = createUploadingPlaceholder(generateId());
+        self._insertAtCaret(placeholder);
+        uploadImage(self, imageFiles[i], placeholder).catch(function () {});
       }
       return;
     }
@@ -1560,27 +1603,28 @@ window.CRM.VisualEditor = (function () {
     var text = clipboard.getData('text/plain');
 
     if (html) {
-      var containsDataImage = html.indexOf('data:image/') !== -1;
-      if (containsDataImage) {
-        var temp = document.createElement('div');
-        temp.innerHTML = html;
-        var imgs = temp.querySelectorAll('img[src^="data:image/"]');
-        for (var j = 0; j < imgs.length; j++) {
-          var src = imgs[j].getAttribute('src');
-          if (src) {
-            try {
-              var blob = dataURLtoBlob(src);
-              var ext = src.split(';')[0].split('/')[1] || 'png';
-              var file = new File([blob], 'pasted_image.' + ext, { type: blob.type });
-              var ph = createUploadingPlaceholder(generateId());
-              self._insertAtCaret(ph);
-              uploadImage(self, file, ph).catch(function () {});
-            } catch (ex) { /* skip invalid data URLs */ }
-          }
+      var temp = document.createElement('div');
+      temp.innerHTML = html;
+      var imgs = temp.querySelectorAll('img[src]');
+      for (var j = 0; j < imgs.length; j++) {
+        var src = imgs[j].getAttribute('src');
+        if (!src) continue;
+        if (src.indexOf('data:image/') === 0) {
+          try {
+            var blob = dataURLtoBlob(src);
+            var ext = src.split(';')[0].split('/')[1] || 'png';
+            var file = new File([blob], 'pasted_image.' + ext, { type: blob.type });
+            var ph = createUploadingPlaceholder(generateId());
+            self._insertAtCaret(ph);
+            uploadImage(self, file, ph).catch(function () {});
+          } catch (ex) { /* skip invalid data URLs */ }
+          if (imgs[j].parentNode) imgs[j].parentNode.removeChild(imgs[j]);
+        } else if (/^blob:/i.test(src)) {
+          uploadImageFromUrl(self, src);
+          if (imgs[j].parentNode) imgs[j].parentNode.removeChild(imgs[j]);
         }
-        imgs.forEach(function (img) { if (img.parentNode) img.parentNode.removeChild(img); });
-        html = temp.innerHTML;
       }
+      html = temp.innerHTML;
       var sanitized = sanitizeHtml(html);
       if (sanitized) {
         document.execCommand('insertHTML', false, sanitized);
@@ -1726,7 +1770,8 @@ window.CRM.VisualEditor = (function () {
       var img = imgs[i];
       if (img.closest('.crm-ve-image-block')) continue;
       var src = img.getAttribute('src') || '';
-      if (!src || src.indexOf('data:') === 0) {
+      if (!src || src.indexOf('data:') === 0 || /^blob:/i.test(src)) {
+        // data: and blob: URLs are ephemeral/unsafe to persist — drop them.
         if (img.parentNode) img.parentNode.removeChild(img);
         continue;
       }
