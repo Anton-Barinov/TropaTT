@@ -65,16 +65,16 @@
           <h2 class="h5 mb-1" data-i18n="admin_ai.section_primary_connection"><?= htmlspecialchars($t('admin_ai.section_primary_connection', 'Основное подключение'), ENT_QUOTES, 'UTF-8') ?></h2>
         </div>
         <div class="d-flex gap-2 flex-wrap">
-          <button class="btn btn-sm btn-light" id="adminAiPrimaryEditBtn" type="button">
+          <button class="btn btn-sm crm-btn-secondary" id="adminAiPrimaryEditBtn" type="button">
             <span class="crm-admin-ai-btn-icon" aria-hidden="true"><i class="fa-solid fa-sliders"></i></span>
             <?= htmlspecialchars($t('admin_ai.btn_configure', 'Настроить'), ENT_QUOTES, 'UTF-8') ?>
           </button>
-          <button class="btn btn-sm btn-light" id="adminAiPrimaryTestBtn" type="button">
+          <button class="btn btn-sm crm-btn-secondary" id="adminAiPrimaryTestBtn" type="button">
             <span class="crm-admin-ai-btn-icon" aria-hidden="true"><i class="fa-solid fa-heart-pulse"></i></span>
             <?= htmlspecialchars($t('admin_ai.btn_check', 'Проверить'), ENT_QUOTES, 'UTF-8') ?>
           </button>
           <div class="dropdown">
-            <button class="btn btn-sm btn-light crm-admin-ai-icon-btn" type="button" id="adminAiPrimaryMenuBtn" data-bs-toggle="dropdown" aria-expanded="false" aria-label="<?= htmlspecialchars($t('admin_ai.aria_actions', 'Дополнительные действия'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="admin_ai.aria_actions">
+            <button class="btn btn-sm crm-btn-secondary crm-admin-ai-icon-btn" type="button" id="adminAiPrimaryMenuBtn" data-bs-toggle="dropdown" aria-expanded="false" aria-label="<?= htmlspecialchars($t('admin_ai.aria_actions', 'Дополнительные действия'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="admin_ai.aria_actions">
               <i class="fa-solid fa-ellipsis" aria-hidden="true"></i>
             </button>
             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="adminAiPrimaryMenuBtn">
@@ -167,13 +167,13 @@
             <span class="crm-chip" data-i18n="admin_ai.chip_only_admin"><?= htmlspecialchars($t('admin_ai.chip_only_admin', 'только админ'), ENT_QUOTES, 'UTF-8') ?></span>
           </div>
           <div class="d-flex gap-2 flex-wrap mb-3">
-            <button id="adminAiLogReviewBtn" class="btn btn-sm btn-light" type="button" data-i18n="admin_ai.btn_check_logs"><?= htmlspecialchars($t('admin_ai.btn_check_logs', 'Проверить журналы'), ENT_QUOTES, 'UTF-8') ?></button>
-            <button id="adminAiWebhookHealthBtn" class="btn btn-sm btn-light" type="button" data-i18n="admin_ai.btn_check_webhooks"><?= htmlspecialchars($t('admin_ai.btn_check_webhooks', 'Проверить обмен данными'), ENT_QUOTES, 'UTF-8') ?></button>
-            <button id="adminAiWorkflowAuditBtn" class="btn btn-sm btn-light" type="button" data-i18n="admin_ai.btn_check_workflows"><?= htmlspecialchars($t('admin_ai.btn_check_workflows', 'Проверить сценарии'), ENT_QUOTES, 'UTF-8') ?></button>
-            <button id="adminAiDailyPlanBtn" class="btn btn-sm btn-light" type="button" data-requires-ai-use="1" data-i18n="admin_ai.btn_daily_plan"><?= htmlspecialchars($t('admin_ai.btn_daily_plan', 'План задач на день'), ENT_QUOTES, 'UTF-8') ?></button>
-            <button id="adminAiSecurityLogBtn" class="btn btn-sm btn-light" type="button" data-requires-ai-use="1" data-i18n="admin_ai.btn_security_check"><?= htmlspecialchars($t('admin_ai.btn_security_check', 'Проверка безопасности'), ENT_QUOTES, 'UTF-8') ?></button>
-            <button id="adminAiReviewPreviewBtn" class="btn btn-sm btn-light" type="button" disabled data-i18n="admin_ai.btn_preview"><?= htmlspecialchars($t('admin_ai.btn_preview', 'Предпросмотр'), ENT_QUOTES, 'UTF-8') ?></button>
-            <button id="adminAiReviewDismissBtn" class="btn btn-sm btn-outline-secondary" type="button" disabled data-i18n="admin_ai.btn_dismiss"><?= htmlspecialchars($t('admin_ai.btn_dismiss', 'Отклонить результат'), ENT_QUOTES, 'UTF-8') ?></button>
+            <button id="adminAiLogReviewBtn" class="btn btn-sm crm-btn-secondary" type="button" data-i18n="admin_ai.btn_check_logs"><?= htmlspecialchars($t('admin_ai.btn_check_logs', 'Проверить журналы'), ENT_QUOTES, 'UTF-8') ?></button>
+            <button id="adminAiWebhookHealthBtn" class="btn btn-sm crm-btn-secondary" type="button" data-i18n="admin_ai.btn_check_webhooks"><?= htmlspecialchars($t('admin_ai.btn_check_webhooks', 'Проверить обмен данными'), ENT_QUOTES, 'UTF-8') ?></button>
+            <button id="adminAiWorkflowAuditBtn" class="btn btn-sm crm-btn-secondary" type="button" data-i18n="admin_ai.btn_check_workflows"><?= htmlspecialchars($t('admin_ai.btn_check_workflows', 'Проверить сценарии'), ENT_QUOTES, 'UTF-8') ?></button>
+            <button id="adminAiDailyPlanBtn" class="btn btn-sm crm-btn-secondary" type="button" data-requires-ai-use="1" data-i18n="admin_ai.btn_daily_plan"><?= htmlspecialchars($t('admin_ai.btn_daily_plan', 'План задач на день'), ENT_QUOTES, 'UTF-8') ?></button>
+            <button id="adminAiSecurityLogBtn" class="btn btn-sm crm-btn-secondary" type="button" data-requires-ai-use="1" data-i18n="admin_ai.btn_security_check"><?= htmlspecialchars($t('admin_ai.btn_security_check', 'Проверка безопасности'), ENT_QUOTES, 'UTF-8') ?></button>
+            <button id="adminAiReviewPreviewBtn" class="btn btn-sm crm-btn-secondary" type="button" disabled data-i18n="admin_ai.btn_preview"><?= htmlspecialchars($t('admin_ai.btn_preview', 'Предпросмотр'), ENT_QUOTES, 'UTF-8') ?></button>
+            <button id="adminAiReviewDismissBtn" class="btn btn-sm crm-btn-secondary" type="button" disabled data-i18n="admin_ai.btn_dismiss"><?= htmlspecialchars($t('admin_ai.btn_dismiss', 'Отклонить результат'), ENT_QUOTES, 'UTF-8') ?></button>
           </div>
           <div class="crm-admin-ai-diagnostics-result">
             <div>
@@ -219,7 +219,7 @@
       <div class="modal-body">
         <div class="d-flex justify-content-between align-items-center mb-2 gap-2 flex-wrap">
           <div class="small text-muted" data-i18n="admin_ai.create_required_fields"><?= htmlspecialchars($t('admin_ai.create_required_fields', 'Обязательные поля: название, ключ доступа, адрес API и модель для ответов.'), ENT_QUOTES, 'UTF-8') ?></div>
-          <button id="adminAiCreateAdvancedToggle" class="btn btn-sm btn-light" type="button" data-i18n="admin_ai.btn_mode_basic"><?= htmlspecialchars($t('admin_ai.btn_mode_basic', 'Режим: базовый'), ENT_QUOTES, 'UTF-8') ?></button>
+          <button id="adminAiCreateAdvancedToggle" class="btn btn-sm crm-btn-secondary" type="button" data-i18n="admin_ai.btn_mode_basic"><?= htmlspecialchars($t('admin_ai.btn_mode_basic', 'Режим: базовый'), ENT_QUOTES, 'UTF-8') ?></button>
         </div>
         <form id="adminAiCreateForm" class="row g-2">
           <div class="col-md-4">
@@ -281,7 +281,7 @@
                 <tbody data-ai-headers-body="create"></tbody>
               </table>
             </div>
-            <button class="btn btn-sm btn-light" type="button" data-ai-headers-add="create" data-i18n="admin_ai.btn_add_header"><?= htmlspecialchars($t('admin_ai.btn_add_header', 'Добавить заголовок'), ENT_QUOTES, 'UTF-8') ?></button>
+            <button class="btn btn-sm crm-btn-secondary" type="button" data-ai-headers-add="create" data-i18n="admin_ai.btn_add_header"><?= htmlspecialchars($t('admin_ai.btn_add_header', 'Добавить заголовок'), ENT_QUOTES, 'UTF-8') ?></button>
             <div class="small text-danger mt-1" data-i18n="admin_ai.alert_extra_headers_key"><?= htmlspecialchars($t('admin_ai.alert_extra_headers_key', 'Не добавляйте ключи доступа в дополнительные заголовки. Используйте поле «Ключ доступа».'), ENT_QUOTES, 'UTF-8') ?></div>
             <div class="small text-muted" data-i18n="admin_ai.alert_extra_headers_forbidden"><?= htmlspecialchars($t('admin_ai.alert_extra_headers_forbidden', 'Запрещены: Authorization, X-API-Key, Cookie, Set-Cookie.'), ENT_QUOTES, 'UTF-8') ?></div>
           </div>
@@ -377,7 +377,7 @@
                 <tbody data-ai-headers-body="edit"></tbody>
               </table>
             </div>
-            <button class="btn btn-sm btn-light" type="button" data-ai-headers-add="edit" data-i18n="admin_ai.btn_add_header"><?= htmlspecialchars($t('admin_ai.btn_add_header', 'Добавить заголовок'), ENT_QUOTES, 'UTF-8') ?></button>
+            <button class="btn btn-sm crm-btn-secondary" type="button" data-ai-headers-add="edit" data-i18n="admin_ai.btn_add_header"><?= htmlspecialchars($t('admin_ai.btn_add_header', 'Добавить заголовок'), ENT_QUOTES, 'UTF-8') ?></button>
             <div class="small text-danger mt-1" data-i18n="admin_ai.alert_extra_headers_key"><?= htmlspecialchars($t('admin_ai.alert_extra_headers_key', 'Не добавляйте ключи доступа в дополнительные заголовки. Используйте поле «Ключ доступа».'), ENT_QUOTES, 'UTF-8') ?></div>
             <div class="small text-muted" data-i18n="admin_ai.alert_extra_headers_forbidden"><?= htmlspecialchars($t('admin_ai.alert_extra_headers_forbidden', 'Запрещены: Authorization, X-API-Key, Cookie, Set-Cookie.'), ENT_QUOTES, 'UTF-8') ?></div>
           </div>
@@ -403,8 +403,8 @@
           <button id="adminAiSecretDeleteBtn" class="btn btn-sm crm-btn-danger-soft" type="button" data-i18n="admin_ai.btn_delete_key"><?= htmlspecialchars($t('admin_ai.btn_delete_key', 'Удалить ключ'), ENT_QUOTES, 'UTF-8') ?></button>
         </div>
         <div class="d-flex gap-2 mt-3 flex-wrap">
-          <button id="adminAiTestProviderBtn" class="btn btn-sm btn-light" type="button" data-i18n="admin_ai.btn_test_connection"><?= htmlspecialchars($t('admin_ai.btn_test_connection', 'Проверить подключение'), ENT_QUOTES, 'UTF-8') ?></button>
-          <button id="adminAiSyncModelsBtn" class="btn btn-sm btn-light" type="button" data-i18n="admin_ai.btn_sync_models"><?= htmlspecialchars($t('admin_ai.btn_sync_models', 'Синхронизировать модели'), ENT_QUOTES, 'UTF-8') ?></button>
+          <button id="adminAiTestProviderBtn" class="btn btn-sm crm-btn-secondary" type="button" data-i18n="admin_ai.btn_test_connection"><?= htmlspecialchars($t('admin_ai.btn_test_connection', 'Проверить подключение'), ENT_QUOTES, 'UTF-8') ?></button>
+          <button id="adminAiSyncModelsBtn" class="btn btn-sm crm-btn-secondary" type="button" data-i18n="admin_ai.btn_sync_models"><?= htmlspecialchars($t('admin_ai.btn_sync_models', 'Синхронизировать модели'), ENT_QUOTES, 'UTF-8') ?></button>
           <button id="adminAiDeleteProviderBtn" class="btn btn-sm crm-btn-danger-soft" type="button" data-i18n="admin_ai.btn_delete_connection"><?= htmlspecialchars($t('admin_ai.btn_delete_connection', 'Удалить подключение'), ENT_QUOTES, 'UTF-8') ?></button>
         </div>
         <div id="adminAiTestState" class="small text-muted mt-2" data-i18n="admin_ai.test_not_run"><?= htmlspecialchars($t('admin_ai.test_not_run', 'Проверка подключения еще не запускалась.'), ENT_QUOTES, 'UTF-8') ?></div>
@@ -427,7 +427,7 @@
     <div class="crm-card crm-section-card">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <h2 class="h6 mb-0" data-i18n="admin_ai.section_feature_flags"><?= htmlspecialchars($t('admin_ai.section_feature_flags', 'Доступность функций'), ENT_QUOTES, 'UTF-8') ?></h2>
-        <button id="adminAiFlagsReloadBtn" class="btn btn-sm btn-light" type="button" data-i18n="page.refresh"><?= htmlspecialchars($t('page.refresh', 'Обновить'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button id="adminAiFlagsReloadBtn" class="btn btn-sm crm-btn-secondary" type="button" data-i18n="page.refresh"><?= htmlspecialchars($t('page.refresh', 'Обновить'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
       <div class="table-responsive crm-admin-ai-scroll-table">
         <table class="table crm-table mb-0">
@@ -445,7 +445,7 @@
     <div class="crm-card crm-section-card">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <h2 class="h6 mb-0" data-i18n="admin_ai.section_background_intents"><?= htmlspecialchars($t('admin_ai.section_background_intents', 'Фоновые сценарии'), ENT_QUOTES, 'UTF-8') ?></h2>
-        <button id="adminAiCronReloadBtn" class="btn btn-sm btn-light" type="button" data-i18n="page.refresh"><?= htmlspecialchars($t('page.refresh', 'Обновить'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button id="adminAiCronReloadBtn" class="btn btn-sm crm-btn-secondary" type="button" data-i18n="page.refresh"><?= htmlspecialchars($t('page.refresh', 'Обновить'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
       <div class="table-responsive crm-admin-ai-scroll-table">
         <table class="table crm-table mb-0">
@@ -463,7 +463,7 @@
     <div class="crm-card crm-section-card">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <h2 class="h6 mb-0" data-i18n="admin_ai.section_intents"><?= htmlspecialchars($t('admin_ai.section_intents', 'Сценарии AI'), ENT_QUOTES, 'UTF-8') ?></h2>
-        <button id="adminAiIntentsReloadBtn" class="btn btn-sm btn-light" type="button" data-i18n="page.refresh"><?= htmlspecialchars($t('page.refresh', 'Обновить'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button id="adminAiIntentsReloadBtn" class="btn btn-sm crm-btn-secondary" type="button" data-i18n="page.refresh"><?= htmlspecialchars($t('page.refresh', 'Обновить'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
       <div class="table-responsive crm-admin-ai-scroll-table crm-admin-ai-intents-table">
         <table class="table crm-table mb-0">
@@ -484,7 +484,7 @@
     <div class="crm-card crm-section-card">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <h2 class="h6 mb-0" data-i18n="admin_ai.section_retention"><?= htmlspecialchars($t('admin_ai.section_retention', 'Политика хранения'), ENT_QUOTES, 'UTF-8') ?></h2>
-        <button id="adminAiRetentionReloadBtn" class="btn btn-sm btn-light" type="button" data-i18n="page.refresh"><?= htmlspecialchars($t('page.refresh', 'Обновить'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button id="adminAiRetentionReloadBtn" class="btn btn-sm crm-btn-secondary" type="button" data-i18n="page.refresh"><?= htmlspecialchars($t('page.refresh', 'Обновить'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
       <div class="table-responsive crm-admin-ai-scroll-table">
         <table class="table crm-table mb-0">
@@ -580,7 +580,7 @@
     <div class="crm-card crm-section-card mb-3">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <h2 class="h6 mb-0" data-i18n="admin_ai.section_prompts"><?= htmlspecialchars($t('admin_ai.section_prompts', 'Инструкции AI'), ENT_QUOTES, 'UTF-8') ?></h2>
-        <button id="adminAiPromptsReloadBtn" class="btn btn-sm btn-light" type="button" data-i18n="page.refresh"><?= htmlspecialchars($t('page.refresh', 'Обновить'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button id="adminAiPromptsReloadBtn" class="btn btn-sm crm-btn-secondary" type="button" data-i18n="page.refresh"><?= htmlspecialchars($t('page.refresh', 'Обновить'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
       <div class="table-responsive mb-3 crm-admin-ai-scroll-table">
         <table class="table crm-table mb-0">
@@ -595,7 +595,7 @@
         <div class="col-md-3"><label class="form-label" data-i18n="admin_ai.label_version"><?= htmlspecialchars($t('admin_ai.label_version', 'Версия'), ENT_QUOTES, 'UTF-8') ?></label><input class="form-control" type="number" min="1" step="1" name="version" value="1"></div>
         <div class="col-12"><label class="form-label" data-i18n="admin_ai.label_template_text"><?= htmlspecialchars($t('admin_ai.label_template_text', 'Текст инструкции'), ENT_QUOTES, 'UTF-8') ?></label><textarea class="form-control" name="template_text" rows="4" maxlength="64000" placeholder="<?= htmlspecialchars($t('admin_ai.placeholder_template_text', 'Инструкция для сценария...'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="admin_ai.placeholder_template_text" required></textarea></div>
         <div class="col-md-4"><label class="form-label" data-i18n="admin_ai.label_active"><?= htmlspecialchars($t('admin_ai.label_active', 'Активный'), ENT_QUOTES, 'UTF-8') ?></label><select class="form-select" name="is_active"><option value="1" data-i18n="page.yes"><?= htmlspecialchars($t('page.yes', 'Да'), ENT_QUOTES, 'UTF-8') ?></option><option value="0" data-i18n="page.no"><?= htmlspecialchars($t('page.no', 'Нет'), ENT_QUOTES, 'UTF-8') ?></option></select></div>
-        <div class="col-12"><button class="btn btn-sm btn-light" type="submit" data-i18n="admin_ai.btn_create_instruction"><?= htmlspecialchars($t('admin_ai.btn_create_instruction', 'Создать инструкцию'), ENT_QUOTES, 'UTF-8') ?></button></div>
+        <div class="col-12"><button class="btn btn-sm crm-btn-secondary" type="submit" data-i18n="admin_ai.btn_create_instruction"><?= htmlspecialchars($t('admin_ai.btn_create_instruction', 'Создать инструкцию'), ENT_QUOTES, 'UTF-8') ?></button></div>
       </form>
     </div>
   </div>
@@ -604,7 +604,7 @@
     <div class="crm-card crm-section-card mb-3">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <h2 class="h6 mb-0" data-i18n="admin_ai.section_response_formats"><?= htmlspecialchars($t('admin_ai.section_response_formats', 'Форматы ответа'), ENT_QUOTES, 'UTF-8') ?></h2>
-        <button id="adminAiSchemasReloadBtn" class="btn btn-sm btn-light" type="button" data-i18n="page.refresh"><?= htmlspecialchars($t('page.refresh', 'Обновить'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button id="adminAiSchemasReloadBtn" class="btn btn-sm crm-btn-secondary" type="button" data-i18n="page.refresh"><?= htmlspecialchars($t('page.refresh', 'Обновить'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
       <div class="table-responsive mb-3 crm-admin-ai-scroll-table">
         <table class="table crm-table mb-0">
@@ -618,7 +618,7 @@
         <div class="col-md-6"><label class="form-label" data-i18n="admin_ai.label_schema_version"><?= htmlspecialchars($t('admin_ai.label_schema_version', 'Версия формата'), ENT_QUOTES, 'UTF-8') ?></label><input class="form-control" name="schema_version" maxlength="32" value="v1" required></div>
         <div class="col-12"><label class="form-label" data-i18n="admin_ai.label_schema_json"><?= htmlspecialchars($t('admin_ai.label_schema_json', 'JSON формата'), ENT_QUOTES, 'UTF-8') ?></label><textarea class="form-control" name="schema_json" rows="6" maxlength="64000" placeholder='{"type":"object","required":[],"properties":{}}' required></textarea></div>
         <div class="col-md-4"><label class="form-label" data-i18n="admin_ai.label_active_f"><?= htmlspecialchars($t('admin_ai.label_active_f', 'Активная'), ENT_QUOTES, 'UTF-8') ?></label><select class="form-select" name="is_active"><option value="1" data-i18n="page.yes"><?= htmlspecialchars($t('page.yes', 'Да'), ENT_QUOTES, 'UTF-8') ?></option><option value="0" data-i18n="page.no"><?= htmlspecialchars($t('page.no', 'Нет'), ENT_QUOTES, 'UTF-8') ?></option></select></div>
-        <div class="col-12"><button class="btn btn-sm btn-light" type="submit" data-i18n="admin_ai.btn_create_schema"><?= htmlspecialchars($t('admin_ai.btn_create_schema', 'Создать схему'), ENT_QUOTES, 'UTF-8') ?></button></div>
+        <div class="col-12"><button class="btn btn-sm crm-btn-secondary" type="submit" data-i18n="admin_ai.btn_create_schema"><?= htmlspecialchars($t('admin_ai.btn_create_schema', 'Создать схему'), ENT_QUOTES, 'UTF-8') ?></button></div>
       </form>
     </div>
   </div>

@@ -69,9 +69,9 @@
       <option value="high" data-i18n="priority.high"><?= htmlspecialchars($t('priority.high', 'Высокий'), ENT_QUOTES, 'UTF-8') ?></option>
       <option value="urgent" data-i18n="priority.urgent"><?= htmlspecialchars($t('priority.urgent', 'Срочный'), ENT_QUOTES, 'UTF-8') ?></option>
     </select>
-    <button class="btn btn-sm btn-light" type="button" data-bulk-archive="1" data-i18n="tasks.bulk_archive"><?= htmlspecialchars($t('tasks.bulk_archive', 'В архив'), ENT_QUOTES, 'UTF-8') ?></button>
-    <button class="btn btn-sm btn-light" type="button" data-bulk-unarchive="1" data-i18n="tasks.bulk_unarchive"><?= htmlspecialchars($t('tasks.bulk_unarchive', 'Из архива'), ENT_QUOTES, 'UTF-8') ?></button>
-    <button class="btn btn-sm btn-light" data-open-modal="assignUserModal" data-i18n="tasks.bulk_assign"><?= htmlspecialchars($t('tasks.bulk_assign', 'Назначить'), ENT_QUOTES, 'UTF-8') ?></button>
+    <button class="btn btn-sm crm-btn-secondary" type="button" data-bulk-archive="1" data-i18n="tasks.bulk_archive"><?= htmlspecialchars($t('tasks.bulk_archive', 'В архив'), ENT_QUOTES, 'UTF-8') ?></button>
+    <button class="btn btn-sm crm-btn-secondary" type="button" data-bulk-unarchive="1" data-i18n="tasks.bulk_unarchive"><?= htmlspecialchars($t('tasks.bulk_unarchive', 'Из архива'), ENT_QUOTES, 'UTF-8') ?></button>
+    <button class="btn btn-sm crm-btn-secondary" data-open-modal="assignUserModal" data-i18n="tasks.bulk_assign"><?= htmlspecialchars($t('tasks.bulk_assign', 'Назначить'), ENT_QUOTES, 'UTF-8') ?></button>
     <button class="btn btn-sm crm-btn-danger-soft" data-confirm-delete data-i18n="tasks.bulk_delete"><?= htmlspecialchars($t('tasks.bulk_delete', 'Удалить'), ENT_QUOTES, 'UTF-8') ?></button>
     <button class="btn btn-sm crm-btn-secondary" type="button" id="tasksBulkHelpBtn" title="<?= htmlspecialchars($t('tasks.bulk_help_title', 'Шорткаты: Shift+A архив, Shift+U из архива, Shift+D удалить'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-title="tasks.bulk_help_title" data-i18n="tasks.bulk_help"><?= htmlspecialchars($t('tasks.bulk_help', '?'), ENT_QUOTES, 'UTF-8') ?></button>
   </div>

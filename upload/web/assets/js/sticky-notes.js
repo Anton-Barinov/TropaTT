@@ -100,7 +100,7 @@ window.CRM.stickyNotes = (function () {
         + '<div class="crm-sticky-actions mt-2" style="display:flex;gap:4px;flex-wrap:wrap;opacity:0.7">'
         + (isEditing
           ? '<button class="btn btn-sm crm-btn-primary crm-sticky-save-btn" data-note-id="' + esc(note.public_id) + '" style="font-size:11px;padding:2px 8px">' + esc(t('page.save', 'Сохранить')) + '</button>'
-            + '<button class="btn btn-sm btn-light crm-sticky-cancel-btn" data-note-id="' + esc(note.public_id) + '" style="font-size:11px;padding:2px 8px">' + esc(t('page.cancel', 'Отмена')) + '</button>'
+            + '<button class="btn btn-sm crm-btn-secondary crm-sticky-cancel-btn" data-note-id="' + esc(note.public_id) + '" style="font-size:11px;padding:2px 8px">' + esc(t('page.cancel', 'Отмена')) + '</button>'
           : '<button class="btn btn-sm crm-btn-secondary crm-sticky-edit-btn" data-note-id="' + esc(note.public_id) + '" style="font-size:11px;padding:2px 8px">' + esc(t('page.edit', 'Редакт.')) + '</button>')
         + '<button class="btn btn-sm crm-btn-secondary crm-sticky-pin-btn" data-note-id="' + esc(note.public_id) + '" data-pinned="' + (note.is_pinned ? '1' : '0') + '" style="font-size:11px;padding:2px 8px">' + (note.is_pinned ? esc(t('dashboard.sticky_notes_unpin', 'Открепить')) : esc(t('dashboard.sticky_notes_pin', 'Закрепить'))) + '</button>'
         + '<button class="btn btn-sm crm-btn-danger-soft crm-sticky-archive-btn" data-note-id="' + esc(note.public_id) + '" style="font-size:11px;padding:2px 8px">' + esc(t('dashboard.sticky_notes_archive', 'В архив')) + '</button>'
@@ -236,7 +236,7 @@ window.CRM.stickyNotes = (function () {
       + '<label class="form-check-label" for="stickyNoteCreatePinned">' + esc(t('dashboard.sticky_notes_pin', 'Закрепить')) + '</label></div>'
       + '</div>'
       + '<div class="modal-footer">'
-      + '<button type="button" class="btn btn-light" data-bs-dismiss="modal">' + esc(t('page.cancel', 'Отмена')) + '</button>'
+      + '<button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal">' + esc(t('page.cancel', 'Отмена')) + '</button>'
       + '<button type="button" class="btn crm-btn-primary" id="stickyNoteCreateSaveBtn">' + esc(t('page.create', 'Создать')) + '</button>'
       + '</div></div></div></div>';
 

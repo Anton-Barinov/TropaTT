@@ -30,7 +30,7 @@
         <form id="taskDescriptionInlineForm" class="d-none crm-task-description-edit-form">
           <label class="form-label" data-i18n="task_detail.desc_field_label"><?= htmlspecialchars($t('task_detail.desc_field_label', 'Описание'), ENT_QUOTES, 'UTF-8') ?></label>
           <textarea id="taskDescriptionInlineInput" class="form-control" rows="5" data-crm-visual-editor="1"></textarea>
-          <div class="d-flex gap-2 mt-2"><button type="submit" class="btn btn-sm crm-btn-primary" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button><button type="button" class="btn btn-sm btn-light" data-task-inline-cancel="description" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button></div>
+          <div class="d-flex gap-2 mt-2"><button type="submit" class="btn btn-sm crm-btn-primary" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button><button type="button" class="btn btn-sm crm-btn-secondary" data-task-inline-cancel="description" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button></div>
         </form>
         <div id="taskDescriptionContent"><div class="text-muted" data-i18n="task_detail.desc_loading"><?= htmlspecialchars($t('task_detail.desc_loading', 'Детали задачи загружаются...'), ENT_QUOTES, 'UTF-8') ?></div></div>
       </section>
@@ -45,7 +45,7 @@
           <textarea class="form-control form-control-sm" id="taskStatusReasonInput" rows="2" placeholder="<?= htmlspecialchars($t('task_detail.status_reason_placeholder', 'Опишите, почему меняете статус и что изменилось'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="task_detail.status_reason_placeholder"></textarea>
           <div class="d-flex flex-column gap-2">
             <button class="btn btn-sm crm-btn-primary" type="submit" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
-            <button class="btn btn-sm btn-light" type="button" id="taskStatusReasonCancelBtn" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+            <button class="btn btn-sm crm-btn-secondary" type="button" id="taskStatusReasonCancelBtn" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
           </div>
         </div>
       </form>
@@ -255,7 +255,7 @@
           <div class="small text-muted" data-i18n="task_detail.timer_planning_label"><?= htmlspecialchars($t('task_detail.timer_planning_label', 'Планирование'), ENT_QUOTES, 'UTF-8') ?></div>
           <div class="crm-task-timer-action-copy" data-i18n="task_detail.timer_event_hint"><?= htmlspecialchars($t('task_detail.timer_event_hint', 'Событие будет связано с этой задачей.'), ENT_QUOTES, 'UTF-8') ?></div>
         </div>
-        <button class="btn btn-sm btn-light crm-task-calendar-action" type="button" data-open-modal="calendarEventModal" data-i18n="task_detail.timer_create_event_btn"><?= htmlspecialchars($t('task_detail.timer_create_event_btn', 'Создать событие'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button class="btn btn-sm crm-btn-secondary crm-task-calendar-action" type="button" data-open-modal="calendarEventModal" data-i18n="task_detail.timer_create_event_btn"><?= htmlspecialchars($t('task_detail.timer_create_event_btn', 'Создать событие'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
       <form id="taskTimerLogForm" class="row g-2 mt-3 d-none">
         <div class="col-12">
@@ -269,7 +269,7 @@
         </div>
         <div class="col-12 d-flex gap-2">
           <button type="submit" class="btn btn-sm crm-btn-primary crm-btn-compact" data-i18n="task_detail.timer_log_add_btn"><?= htmlspecialchars($t('task_detail.timer_log_add_btn', 'Добавить запись'), ENT_QUOTES, 'UTF-8') ?></button>
-          <button type="button" class="btn btn-sm btn-light" id="taskTimerLogCancelBtn" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+          <button type="button" class="btn btn-sm crm-btn-secondary" id="taskTimerLogCancelBtn" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
         </div>
       </form>
     </div>
@@ -283,17 +283,17 @@
       <div class="small text-muted mb-2" id="taskAiSummaryState" data-i18n="task_detail.ai_state_idle"><?= htmlspecialchars($t('task_detail.ai_state_idle', 'AI-сводка не сформирована.'), ENT_QUOTES, 'UTF-8') ?></div>
       <div class="d-flex gap-2 mb-2 flex-wrap" id="taskAiPrimaryActions">
         <button class="btn btn-sm crm-btn-primary crm-btn-compact" type="button" id="taskAiGenerateBtn" data-i18n="task_detail.ai_generate_btn"><?= htmlspecialchars($t('task_detail.ai_generate_btn', 'AI-сводка'), ENT_QUOTES, 'UTF-8') ?></button>
-        <button class="btn btn-sm btn-light crm-btn-compact" type="button" id="taskAiNextActionBtn" data-i18n="task_detail.ai_next_action_btn"><?= htmlspecialchars($t('task_detail.ai_next_action_btn', 'Следующий шаг'), ENT_QUOTES, 'UTF-8') ?></button>
-        <button class="btn btn-sm btn-light crm-btn-compact" type="button" id="taskAiDecomposeBtn" data-i18n="task_detail.ai_decompose_btn"><?= htmlspecialchars($t('task_detail.ai_decompose_btn', 'Предложить подзадачи'), ENT_QUOTES, 'UTF-8') ?></button>
-        <button class="btn btn-sm btn-light crm-btn-compact" type="button" id="taskAiChecklistBtn" data-i18n="task_detail.ai_checklist_btn"><?= htmlspecialchars($t('task_detail.ai_checklist_btn', 'Предложить чеклист'), ENT_QUOTES, 'UTF-8') ?></button>
-        <button class="btn btn-sm btn-light crm-btn-compact" type="button" id="taskAiImproveDescBtn" data-i18n="task_detail.ai_improve_desc_btn"><?= htmlspecialchars($t('task_detail.ai_improve_desc_btn', 'Улучшить описание'), ENT_QUOTES, 'UTF-8') ?></button>
-        <button class="btn btn-sm btn-light crm-btn-compact" type="button" id="taskAiCommentDraftBtn" data-i18n="task_detail.ai_comment_draft_btn"><?= htmlspecialchars($t('task_detail.ai_comment_draft_btn', 'Черновик комментария'), ENT_QUOTES, 'UTF-8') ?></button>
-        <button class="btn btn-sm btn-light crm-btn-compact" type="button" id="taskAiQualityBtn" data-i18n="task_detail.ai_quality_btn"><?= htmlspecialchars($t('task_detail.ai_quality_btn', 'Проверить задачу'), ENT_QUOTES, 'UTF-8') ?></button>
-        <button class="btn btn-sm btn-light crm-btn-compact" type="button" id="taskAiCreateMeetingBtn" data-i18n="task_detail.ai_create_meeting_btn"><?= htmlspecialchars($t('task_detail.ai_create_meeting_btn', 'Создать встречу'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button class="btn btn-sm crm-btn-secondary crm-btn-compact" type="button" id="taskAiNextActionBtn" data-i18n="task_detail.ai_next_action_btn"><?= htmlspecialchars($t('task_detail.ai_next_action_btn', 'Следующий шаг'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button class="btn btn-sm crm-btn-secondary crm-btn-compact" type="button" id="taskAiDecomposeBtn" data-i18n="task_detail.ai_decompose_btn"><?= htmlspecialchars($t('task_detail.ai_decompose_btn', 'Предложить подзадачи'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button class="btn btn-sm crm-btn-secondary crm-btn-compact" type="button" id="taskAiChecklistBtn" data-i18n="task_detail.ai_checklist_btn"><?= htmlspecialchars($t('task_detail.ai_checklist_btn', 'Предложить чеклист'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button class="btn btn-sm crm-btn-secondary crm-btn-compact" type="button" id="taskAiImproveDescBtn" data-i18n="task_detail.ai_improve_desc_btn"><?= htmlspecialchars($t('task_detail.ai_improve_desc_btn', 'Улучшить описание'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button class="btn btn-sm crm-btn-secondary crm-btn-compact" type="button" id="taskAiCommentDraftBtn" data-i18n="task_detail.ai_comment_draft_btn"><?= htmlspecialchars($t('task_detail.ai_comment_draft_btn', 'Черновик комментария'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button class="btn btn-sm crm-btn-secondary crm-btn-compact" type="button" id="taskAiQualityBtn" data-i18n="task_detail.ai_quality_btn"><?= htmlspecialchars($t('task_detail.ai_quality_btn', 'Проверить задачу'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button class="btn btn-sm crm-btn-secondary crm-btn-compact" type="button" id="taskAiCreateMeetingBtn" data-i18n="task_detail.ai_create_meeting_btn"><?= htmlspecialchars($t('task_detail.ai_create_meeting_btn', 'Создать встречу'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
       <div class="d-flex gap-2 mb-2 flex-wrap" id="taskAiSecondaryActions">
-        <button class="btn btn-sm btn-light crm-btn-compact" type="button" id="taskAiPreviewBtn" disabled data-i18n="task_detail.ai_preview_btn"><?= htmlspecialchars($t('task_detail.ai_preview_btn', 'Предпросмотр'), ENT_QUOTES, 'UTF-8') ?></button>
-        <button class="btn btn-sm btn-light crm-btn-compact" type="button" id="taskAiApplyBtn" disabled data-i18n="task_detail.ai_apply_btn"><?= htmlspecialchars($t('task_detail.ai_apply_btn', 'Применить'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button class="btn btn-sm crm-btn-secondary crm-btn-compact" type="button" id="taskAiPreviewBtn" disabled data-i18n="task_detail.ai_preview_btn"><?= htmlspecialchars($t('task_detail.ai_preview_btn', 'Предпросмотр'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button class="btn btn-sm crm-btn-secondary crm-btn-compact" type="button" id="taskAiApplyBtn" disabled data-i18n="task_detail.ai_apply_btn"><?= htmlspecialchars($t('task_detail.ai_apply_btn', 'Применить'), ENT_QUOTES, 'UTF-8') ?></button>
         <button class="btn btn-sm crm-btn-muted crm-btn-compact" type="button" id="taskAiDismissBtn" disabled data-i18n="task_detail.ai_dismiss_btn"><?= htmlspecialchars($t('task_detail.ai_dismiss_btn', 'Отклонить'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
       <div id="taskAiSummaryResult" class="crm-empty-state d-none">
@@ -335,7 +335,7 @@
           <select id="taskAssigneeInlineSelect" class="form-select form-select-sm"></select>
           <div class="d-flex gap-2 mt-2">
             <button type="submit" class="btn btn-sm crm-btn-primary" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
-            <button type="button" class="btn btn-sm btn-light" data-task-inline-cancel="assignee" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+            <button type="button" class="btn btn-sm crm-btn-secondary" data-task-inline-cancel="assignee" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
           </div>
         </form>
       </div>
@@ -351,7 +351,7 @@
           <select id="taskManagerInlineSelect" class="form-select form-select-sm"></select>
           <div class="d-flex gap-2 mt-2">
             <button type="submit" class="btn btn-sm crm-btn-primary" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
-            <button type="button" class="btn btn-sm btn-light" data-task-inline-cancel="manager" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+            <button type="button" class="btn btn-sm crm-btn-secondary" data-task-inline-cancel="manager" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
           </div>
         </form>
       </div>
@@ -368,7 +368,7 @@
           <div class="form-text" data-i18n="task_detail.summary_tags_hint"><?= htmlspecialchars($t('task_detail.summary_tags_hint', 'Можно выбрать несколько тегов (Ctrl/Cmd + клик).'), ENT_QUOTES, 'UTF-8') ?></div>
           <div class="d-flex gap-2 mt-2">
             <button type="submit" class="btn btn-sm crm-btn-primary" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
-            <button type="button" class="btn btn-sm btn-light" data-task-inline-cancel="tags" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+            <button type="button" class="btn btn-sm crm-btn-secondary" data-task-inline-cancel="tags" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
           </div>
         </form>
       </div>
@@ -395,7 +395,7 @@
           </div>
           <div class="d-flex gap-2 mt-2">
             <button type="submit" class="btn btn-sm crm-btn-primary" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
-            <button type="button" class="btn btn-sm btn-light" data-task-inline-cancel="dates" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+            <button type="button" class="btn btn-sm crm-btn-secondary" data-task-inline-cancel="dates" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
           </div>
         </form>
       </div>
@@ -411,7 +411,7 @@
           <select id="taskProjectInlineSelect" class="form-select form-select-sm"></select>
           <div class="d-flex gap-2 mt-2">
             <button type="submit" class="btn btn-sm crm-btn-primary" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
-            <button type="button" class="btn btn-sm btn-light" data-task-inline-cancel="project" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+            <button type="button" class="btn btn-sm crm-btn-secondary" data-task-inline-cancel="project" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
           </div>
         </form>
       </div>

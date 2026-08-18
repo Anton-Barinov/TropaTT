@@ -728,7 +728,7 @@ window.CRM.intake = (function () {
       body.innerHTML = detailHtml(item) + '<div class="crm-intake-activity mt-3" id="intakeDetailActivities"><p class="text-muted small mb-0">' + esc(t('intake.loading_activities', 'Загрузка истории...')) + '</p></div>';
     }
     if (footer) {
-      footer.innerHTML = '<button type="button" class="btn btn-light" data-bs-dismiss="modal">' + esc(t('intake.btn_close', 'Закрыть')) + '</button>' + detailActions(item);
+      footer.innerHTML = '<button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal">' + esc(t('intake.btn_close', 'Закрыть')) + '</button>' + detailActions(item);
     }
     var instance = modal(selectors.detailModal);
     if (instance) instance.show();

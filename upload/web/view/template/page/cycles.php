@@ -227,7 +227,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-sm crm-btn-secondary" data-bs-dismiss="modal"><?= htmlspecialchars($t('cycles.btn_cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
-        <button type="button" class="btn btn-sm btn-warning" id="completeCycleConfirmBtn" onclick="window.confirmCompleteCycle()"><?= htmlspecialchars($t('cycles.btn_complete', 'Завершить'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button type="button" class="btn btn-sm crm-btn-warning" id="completeCycleConfirmBtn" onclick="window.confirmCompleteCycle()"><?= htmlspecialchars($t('cycles.btn_complete', 'Завершить'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
     </div>
   </div>

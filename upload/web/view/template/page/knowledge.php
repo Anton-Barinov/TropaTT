@@ -60,7 +60,7 @@
           <option value="needs_update"><?= htmlspecialchars($t('knowledge.status_needs_update', 'Требует обновления'), ENT_QUOTES, 'UTF-8') ?></option>
           <option value="archived"><?= htmlspecialchars($t('knowledge.status_archived', 'Архив'), ENT_QUOTES, 'UTF-8') ?></option>
         </select>
-        <button id="kbFilterReset" class="btn btn-sm btn-outline-secondary" type="button" style="display:none"><i class="fa-solid fa-xmark" aria-hidden="true"></i> <?= htmlspecialchars($t('knowledge.filter_reset', 'Сбросить'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button id="kbFilterReset" class="btn btn-sm crm-btn-secondary" type="button" style="display:none"><i class="fa-solid fa-xmark" aria-hidden="true"></i> <?= htmlspecialchars($t('knowledge.filter_reset', 'Сбросить'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
     </div>
   </div>
@@ -74,7 +74,7 @@
         <div class="kb-panel kb-spaces-panel">
           <div class="kb-panel-head d-flex align-items-center justify-content-between mb-2">
             <h2 class="h6 mb-0 fw-bold"><?= htmlspecialchars($t('knowledge.spaces_heading', 'Разделы'), ENT_QUOTES, 'UTF-8') ?></h2>
-            <button class="btn btn-sm btn-outline-secondary" type="button" id="btnAddSpace"><i class="fa-solid fa-plus" aria-hidden="true"></i></button>
+            <button class="btn btn-sm crm-btn-secondary" type="button" id="btnAddSpace"><i class="fa-solid fa-plus" aria-hidden="true"></i></button>
           </div>
           <div id="kbSpaces" class="kb-spaces-list">
             <div class="text-muted small p-2"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>
@@ -140,9 +140,9 @@
           <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top small text-muted" id="kbPagination">
             <span id="kbPagInfo"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></span>
             <div class="d-flex align-items-center gap-2">
-              <button class="btn btn-sm btn-outline-secondary" type="button" id="kbPagPrev" disabled><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+              <button class="btn btn-sm crm-btn-secondary" type="button" id="kbPagPrev" disabled><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
               <span id="kbPagPage">1</span>
-              <button class="btn btn-sm btn-outline-secondary" type="button" id="kbPagNext"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
+              <button class="btn btn-sm crm-btn-secondary" type="button" id="kbPagNext"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
             </div>
           </div>
         </div>
@@ -207,7 +207,7 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><?= htmlspecialchars($t('knowledge.modal_cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal"><?= htmlspecialchars($t('knowledge.modal_cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
         <button type="button" class="btn crm-btn-primary" id="kbPageSubmit"><?= htmlspecialchars($t('knowledge.btn_save_draft', 'Создать черновик'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
     </div>
@@ -238,8 +238,8 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><?= htmlspecialchars($t('knowledge.modal_cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
-        <button type="button" class="btn btn-success" id="kbSpaceSubmit"><?= htmlspecialchars($t('knowledge.modal_create', 'Создать'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal"><?= htmlspecialchars($t('knowledge.modal_cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button type="button" class="btn crm-btn-success" id="kbSpaceSubmit"><?= htmlspecialchars($t('knowledge.modal_create', 'Создать'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
     </div>
   </div>

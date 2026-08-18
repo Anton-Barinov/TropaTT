@@ -32,7 +32,7 @@
           <div class="crm-card crm-section-card crm-automation-list-toolbar">
             <div class="crm-section-head">
               <div><h2 class="h6 mb-0" data-i18n="admin_workflow.section_rules_title"><?= htmlspecialchars($t('admin_workflow.section_rules_title', 'Правила'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" id="adminWorkflowRulesCount"></div></div>
-              <div class="d-flex gap-2"><input type="search" id="adminWorkflowSearchInput" class="form-control form-control-sm" placeholder="<?= htmlspecialchars($t('admin_workflow.search_placeholder', 'Поиск правил...'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="admin_workflow.search_placeholder" style="max-width:240px"><button id="adminWorkflowSearchClear" class="btn btn-sm btn-light d-none" type="button" data-i18n="admin_workflow.search_clear"><?= htmlspecialchars($t('admin_workflow.search_clear', 'Сбросить'), ENT_QUOTES, 'UTF-8') ?></button></div>
+              <div class="d-flex gap-2"><input type="search" id="adminWorkflowSearchInput" class="form-control form-control-sm" placeholder="<?= htmlspecialchars($t('admin_workflow.search_placeholder', 'Поиск правил...'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="admin_workflow.search_placeholder" style="max-width:240px"><button id="adminWorkflowSearchClear" class="btn btn-sm crm-btn-secondary d-none" type="button" data-i18n="admin_workflow.search_clear"><?= htmlspecialchars($t('admin_workflow.search_clear', 'Сбросить'), ENT_QUOTES, 'UTF-8') ?></button></div>
             </div>
           </div>
           <div class="crm-card crm-section-card p-0 table-responsive crm-automation-table-card">

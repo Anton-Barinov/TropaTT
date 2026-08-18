@@ -758,7 +758,7 @@ window.CRM.br1 = (function () {
     banner.innerHTML = ''
       + window.CRM.i18n.t('js.br1.div_strong_vkhod_kak_polzovatel_strong', '<div><strong>Вход как пользователь:</strong> ') + escapeHtml(targetLabel)
       + window.CRM.i18n.t('js.br1.span_class_text_muted_ms_2_iskhodnaya_sessiya', '<span class="text-muted ms-2">Исходная сессия: ') + escapeHtml(originalLabel) + '</span></div>'
-      + window.CRM.i18n.t('js.br1.button_class_btn_btn_sm_btn_danger_type_button_id_globa', '<button class="btn btn-sm btn-danger" type="button" id="globalStopImpersonationBtn">Вернуться</button>');
+      + window.CRM.i18n.t('js.br1.button_class_btn_btn_sm_btn_danger_type_button_id_globa', '<button class="btn btn-sm crm-btn-danger" type="button" id="globalStopImpersonationBtn">Вернуться</button>');
 
     if (!existing) {
       var content = document.querySelector('.crm-content');
@@ -3207,19 +3207,19 @@ window.CRM.br1 = (function () {
       + '<div class="row g-3">'
       + '<div class="col-lg-12">'
       + '<article class="border rounded-3 p-3 h-100">'
-      + window.CRM.i18n.t('js.br1.div_class_d_flex_justify_content_between_align_items_ce_2', '<div class="d-flex justify-content-between align-items-center mb-2"><h4 class="h6 mb-0">Название и описание</h4><button type="button" class="btn btn-sm btn-light" data-task-edit-toggle="identity"') + (canEditIdentity ? '' : ' disabled') + ' aria-label="Edit"><i class="fa-solid fa-pen" aria-hidden="true"></i></button></div>'
+      + window.CRM.i18n.t('js.br1.div_class_d_flex_justify_content_between_align_items_ce_2', '<div class="d-flex justify-content-between align-items-center mb-2"><h4 class="h6 mb-0">Название и описание</h4><button type="button" class="btn btn-sm crm-btn-secondary" data-task-edit-toggle="identity"') + (canEditIdentity ? '' : ' disabled') + ' aria-label="Edit"><i class="fa-solid fa-pen" aria-hidden="true"></i></button></div>'
       + window.CRM.i18n.t('js.br1.div_class_small_text_muted_mb_1_nazvanie_div_div_class', '<div class="small text-muted mb-1">Название</div><div class="mb-2">') + escapeHtml(currentTask && currentTask.title || '—') + '</div>'
       + window.CRM.i18n.t('js.br1.div_class_small_text_muted_mb_1_opisanie_div_div_class', '<div class="small text-muted mb-1">Описание</div><div class="mb-2">') + escapeHtml(currentTask && currentTask.description || window.CRM.i18n.t('js.br1.opisanie_otsutstvuet', 'Описание отсутствует')) + '</div>'
       + '<form class="row g-2 d-none" data-task-manage-form="identity">'
       + window.CRM.i18n.t('js.br1.div_class_col_md_6_label_class_form_label_nazvanie_labe', '<div class="col-md-6"><label class="form-label">Название</label><input class="form-control" name="title" maxlength="255" value="') + escapeHtml(currentTask && currentTask.title || '') + '"></div>'
       + window.CRM.i18n.t('js.br1.div_class_col_md_6_label_class_form_label_opisanie_labe', '<div class="col-md-6"><label class="form-label">Описание</label><textarea class="form-control" name="description" rows="3" data-crm-visual-editor="1">') + escapeHtml(currentTask && currentTask.description || '') + '</textarea></div>'
-      + window.CRM.i18n.t('js.br1.div_class_col_12_d_flex_gap_2_button_type_submit_class', '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button><button type="button" class="btn btn-sm btn-light" data-task-edit-cancel="identity">Отмена</button></div>')
+      + window.CRM.i18n.t('js.br1.div_class_col_12_d_flex_gap_2_button_type_submit_class', '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button><button type="button" class="btn btn-sm crm-btn-secondary" data-task-edit-cancel="identity">Отмена</button></div>')
       + '</form>'
       + '</article>'
       + '</div>'
       + '<div class="col-lg-6">'
       + '<article class="border rounded-3 p-3 h-100">'
-      + window.CRM.i18n.t('js.br1.div_class_d_flex_justify_content_between_align_items_ce_3', '<div class="d-flex justify-content-between align-items-center mb-2"><h4 class="h6 mb-0">Статус и приоритет</h4><button type="button" class="btn btn-sm btn-light" data-task-edit-toggle="workflow"') + (canEditWorkflow ? '' : ' disabled') + ' aria-label="Edit"><i class="fa-solid fa-pen" aria-hidden="true"></i></button></div>'
+      + window.CRM.i18n.t('js.br1.div_class_d_flex_justify_content_between_align_items_ce_3', '<div class="d-flex justify-content-between align-items-center mb-2"><h4 class="h6 mb-0">Статус и приоритет</h4><button type="button" class="btn btn-sm crm-btn-secondary" data-task-edit-toggle="workflow"') + (canEditWorkflow ? '' : ' disabled') + ' aria-label="Edit"><i class="fa-solid fa-pen" aria-hidden="true"></i></button></div>'
       + window.CRM.i18n.t('js.br1.div_class_small_text_muted_mb_1_status_div_div_class_mb', '<div class="small text-muted mb-1">Статус</div><div class="mb-2"><span class="crm-badge ') + statusBadgeClass(currentTask && currentTask.status_code || 'new') + '">' + escapeHtml(statusLabel(currentTask && currentTask.status_code || 'new')) + '</span></div>'
       + window.CRM.i18n.t('js.br1.div_class_small_text_muted_mb_1_prioritet_div_div_class', '<div class="small text-muted mb-1">Приоритет</div><div class="mb-2">') + escapeHtml(priorityLabel(currentTask && currentTask.priority_code || 'normal')) + '</div>'
       + '<form class="row g-2 d-none" data-task-manage-form="workflow">'
@@ -3230,40 +3230,40 @@ window.CRM.br1 = (function () {
       + '<option value="high"' + (currentTask && currentTask.priority_code === 'high' ? ' selected' : '') + window.CRM.i18n.t('js.br1.vysokiy_option', '>Высокий</option>')
       + '<option value="urgent"' + (currentTask && currentTask.priority_code === 'urgent' ? ' selected' : '') + window.CRM.i18n.t('js.br1.srochnyy_option', '>Срочный</option>')
       + '</select></div>'
-      + window.CRM.i18n.t('js.br1.div_class_col_12_d_flex_gap_2_button_type_submit_class_2', '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button><button type="button" class="btn btn-sm btn-light" data-task-edit-cancel="workflow">Отмена</button></div>')
+      + window.CRM.i18n.t('js.br1.div_class_col_12_d_flex_gap_2_button_type_submit_class_2', '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button><button type="button" class="btn btn-sm crm-btn-secondary" data-task-edit-cancel="workflow">Отмена</button></div>')
       + '</form>'
       + '</article>'
       + '</div>'
       + '<div class="col-lg-6">'
       + '<article class="border rounded-3 p-3 h-100">'
-      + window.CRM.i18n.t('js.br1.div_class_d_flex_justify_content_between_align_items_ce_4', '<div class="d-flex justify-content-between align-items-center mb-2"><h4 class="h6 mb-0">Исполнители</h4><button type="button" class="btn btn-sm btn-light" data-task-edit-toggle="assignment"') + (canEditAssignment ? '' : ' disabled') + ' aria-label="Edit"><i class="fa-solid fa-pen" aria-hidden="true"></i></button></div>'
+      + window.CRM.i18n.t('js.br1.div_class_d_flex_justify_content_between_align_items_ce_4', '<div class="d-flex justify-content-between align-items-center mb-2"><h4 class="h6 mb-0">Исполнители</h4><button type="button" class="btn btn-sm crm-btn-secondary" data-task-edit-toggle="assignment"') + (canEditAssignment ? '' : ' disabled') + ' aria-label="Edit"><i class="fa-solid fa-pen" aria-hidden="true"></i></button></div>'
       + window.CRM.i18n.t('js.br1.div_class_small_text_muted_mb_1_ispolnitel_div_div_clas', '<div class="small text-muted mb-1">Исполнитель</div><div class="mb-2">') + escapeHtml(currentTask && (currentTask.assignee_name || currentTask.assignee_login || currentTask.assignee_user_public_id) || window.CRM.i18n.t('js.br1.ne_naznachen_3', 'Не назначен')) + '</div>'
       + window.CRM.i18n.t('js.br1.div_class_small_text_muted_mb_1_menedzher_proekta_div_d', '<div class="small text-muted mb-1">Менеджер проекта</div><div class="mb-2">') + escapeHtml(currentTask && (currentTask.project_manager_name || currentTask.project_manager_user_public_id) || window.CRM.i18n.t('js.br1.ne_naznachen_4', 'Не назначен')) + '</div>'
       + '<form class="row g-2 d-none" data-task-manage-form="assignment">'
       + window.CRM.i18n.t('js.br1.div_class_col_6_label_class_form_label_ispolnitel_label', '<div class="col-6"><label class="form-label">Исполнитель</label><select class="form-select" name="assignee_user_public_id">') + assigneeOptions + '</select></div>'
       + window.CRM.i18n.t('js.br1.div_class_col_6_label_class_form_label_menedzher_proekt', '<div class="col-6"><label class="form-label">Менеджер проекта</label><select class="form-select" name="manager_user_public_id">') + managerOptions + '</select></div>'
       + window.CRM.i18n.t('js.br1.div_class_col_12_small_class_text_muted_menedzher_nazna', '<div class="col-12"><small class="text-muted">Менеджер назначается на выбранный проект. Если у задачи нет проекта, сначала выберите проект в блоке «Проект».</small></div>')
-      + window.CRM.i18n.t('js.br1.div_class_col_12_d_flex_gap_2_button_type_submit_class_3', '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button><button type="button" class="btn btn-sm btn-light" data-task-edit-cancel="assignment">Отмена</button></div>')
+      + window.CRM.i18n.t('js.br1.div_class_col_12_d_flex_gap_2_button_type_submit_class_3', '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button><button type="button" class="btn btn-sm crm-btn-secondary" data-task-edit-cancel="assignment">Отмена</button></div>')
       + '</form>'
       + '</article>'
       + '</div>'
       + '<div class="col-lg-6">'
       + '<article class="border rounded-3 p-3 h-100">'
-      + window.CRM.i18n.t('js.br1.div_class_d_flex_justify_content_between_align_items_ce_5', '<div class="d-flex justify-content-between align-items-center mb-2"><h4 class="h6 mb-0">Проект</h4><button type="button" class="btn btn-sm btn-light" data-task-edit-toggle="project"') + (canEditProject ? '' : ' disabled') + ' aria-label="Edit"><i class="fa-solid fa-pen" aria-hidden="true"></i></button></div>'
+      + window.CRM.i18n.t('js.br1.div_class_d_flex_justify_content_between_align_items_ce_5', '<div class="d-flex justify-content-between align-items-center mb-2"><h4 class="h6 mb-0">Проект</h4><button type="button" class="btn btn-sm crm-btn-secondary" data-task-edit-toggle="project"') + (canEditProject ? '' : ' disabled') + ' aria-label="Edit"><i class="fa-solid fa-pen" aria-hidden="true"></i></button></div>'
       + window.CRM.i18n.t('js.br1.div_class_small_text_muted_mb_1_tekushchiy_proekt_div_d', '<div class="small text-muted mb-1">Текущий проект</div><div class="mb-2">') + escapeHtml(currentProjectTitle) + '</div>'
       + '<form class="row g-2 d-none" data-task-manage-form="project">'
       + window.CRM.i18n.t('js.br1.div_class_col_12_label_class_form_label_proekt_label_se', '<div class="col-12"><label class="form-label">Проект</label><select class="form-select" name="project_public_id">') + projectOptions + '</select></div>'
-      + window.CRM.i18n.t('js.br1.div_class_col_12_d_flex_gap_2_button_type_submit_class_4', '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button><button type="button" class="btn btn-sm btn-light" data-task-edit-cancel="project">Отмена</button></div>')
+      + window.CRM.i18n.t('js.br1.div_class_col_12_d_flex_gap_2_button_type_submit_class_4', '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button><button type="button" class="btn btn-sm crm-btn-secondary" data-task-edit-cancel="project">Отмена</button></div>')
       + '</form>'
       + '</article>'
       + '</div>'
       + '<div class="col-lg-6">'
       + '<article class="border rounded-3 p-3 h-100">'
-      + window.CRM.i18n.t('js.br1.div_class_d_flex_justify_content_between_align_items_ce_6', '<div class="d-flex justify-content-between align-items-center mb-2"><h4 class="h6 mb-0">Теги</h4><button type="button" class="btn btn-sm btn-light" data-task-edit-toggle="tags"') + (canEditTags ? '' : ' disabled') + ' aria-label="Edit"><i class="fa-solid fa-pen" aria-hidden="true"></i></button></div>'
+      + window.CRM.i18n.t('js.br1.div_class_d_flex_justify_content_between_align_items_ce_6', '<div class="d-flex justify-content-between align-items-center mb-2"><h4 class="h6 mb-0">Теги</h4><button type="button" class="btn btn-sm crm-btn-secondary" data-task-edit-toggle="tags"') + (canEditTags ? '' : ' disabled') + ' aria-label="Edit"><i class="fa-solid fa-pen" aria-hidden="true"></i></button></div>'
       + window.CRM.i18n.t('js.br1.div_class_small_text_muted_mb_1_naznachennye_tegi_div_d', '<div class="small text-muted mb-1">Назначенные теги</div><div class="mb-2">') + currentTagTitles + '</div>'
       + '<form class="row g-2 d-none" data-task-manage-form="tags">'
       + window.CRM.i18n.t('js.br1.div_class_col_12_label_class_form_label_tegi_label_sele', '<div class="col-12"><label class="form-label">Теги</label><select class="form-select" name="tag_public_ids" multiple size="5">') + tagOptions + '</select></div>'
-      + window.CRM.i18n.t('js.br1.div_class_col_12_d_flex_gap_2_button_type_submit_class_5', '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button><button type="button" class="btn btn-sm btn-light" data-task-edit-cancel="tags">Отмена</button></div>')
+      + window.CRM.i18n.t('js.br1.div_class_col_12_d_flex_gap_2_button_type_submit_class_5', '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button><button type="button" class="btn btn-sm crm-btn-secondary" data-task-edit-cancel="tags">Отмена</button></div>')
       + '</form>'
       + '</article>'
       + '</div>'
@@ -3282,14 +3282,14 @@ window.CRM.br1 = (function () {
       var canEditComment = currentUserPublicId !== ''
         && String(item.author_public_id || '') === currentUserPublicId;
       var editButton = canEditComment
-        ? '<button type="button" class="btn btn-sm btn-light" data-comment-edit="' + escapeHtml(item.public_id || '') + window.CRM.i18n.t('js.br1.redaktirovat_button', '">Редактировать</button>')
+        ? '<button type="button" class="btn btn-sm crm-btn-secondary" data-comment-edit="' + escapeHtml(item.public_id || '') + window.CRM.i18n.t('js.br1.redaktirovat_button', '">Редактировать</button>')
         : '';
       // Deleting a comment goes through DELETE /api/v1/comments/{public_id}.
       // The route is open to any authenticated user; the server only allows
       // the author (or root / task participants) via CommentService. The
       // author therefore gets the button even without task.manage.
       var deleteButton = (canEditComment || hasPermission('task.manage'))
-        ? '<button type="button" class="btn btn-sm btn-light" data-comment-delete="' + escapeHtml(item.public_id || '') + window.CRM.i18n.t('js.br1.udalit_kommentariy_button', '">Удалить</button>')
+        ? '<button type="button" class="btn btn-sm crm-btn-secondary" data-comment-delete="' + escapeHtml(item.public_id || '') + window.CRM.i18n.t('js.br1.udalit_kommentariy_button', '">Удалить</button>')
         : '';
       var commentActionsHtml = (editButton || deleteButton)
         ? '<div class="d-flex gap-2">' + editButton + deleteButton + '</div>'
@@ -3307,10 +3307,10 @@ window.CRM.br1 = (function () {
         + '</div>'
         + '<div class="mb-1" data-comment-body="' + escapeHtml(item.public_id || '') + '">' + renderRichTextOrPlain(item.body || '') + '</div>'
         + '<div class="d-flex gap-2 flex-wrap align-items-center mb-1">'
-        + '<button type="button" class="btn btn-sm btn-light crm-btn-compact" data-comment-react="' + escapeHtml(commentId) + '" data-reaction="like" aria-label="Like" title="Like"><i class="fa-solid fa-thumbs-up" aria-hidden="true"></i></button>'
-        + '<button type="button" class="btn btn-sm btn-light crm-btn-compact" data-comment-react="' + escapeHtml(commentId) + '" data-reaction="love" aria-label="Love" title="Love"><i class="fa-regular fa-heart" aria-hidden="true"></i></button>'
-        + '<button type="button" class="btn btn-sm btn-light crm-btn-compact" data-comment-react="' + escapeHtml(commentId) + '" data-reaction="up" aria-label="Upvote" title="Upvote"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>'
-        + '<button type="button" class="btn btn-sm btn-light crm-btn-compact" data-comment-reaction-clear="' + escapeHtml(commentId) + '"' + (ownReaction ? '' : ' disabled') + window.CRM.i18n.t('js.br1.snyat_button', '>Снять</button>')
+        + '<button type="button" class="btn btn-sm crm-btn-secondary crm-btn-compact" data-comment-react="' + escapeHtml(commentId) + '" data-reaction="like" aria-label="Like" title="Like"><i class="fa-solid fa-thumbs-up" aria-hidden="true"></i></button>'
+        + '<button type="button" class="btn btn-sm crm-btn-secondary crm-btn-compact" data-comment-react="' + escapeHtml(commentId) + '" data-reaction="love" aria-label="Love" title="Love"><i class="fa-regular fa-heart" aria-hidden="true"></i></button>'
+        + '<button type="button" class="btn btn-sm crm-btn-secondary crm-btn-compact" data-comment-react="' + escapeHtml(commentId) + '" data-reaction="up" aria-label="Upvote" title="Upvote"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>'
+        + '<button type="button" class="btn btn-sm crm-btn-secondary crm-btn-compact" data-comment-reaction-clear="' + escapeHtml(commentId) + '"' + (ownReaction ? '' : ' disabled') + window.CRM.i18n.t('js.br1.snyat_button', '>Снять</button>')
         + '<small class="text-muted">' + escapeHtml(reactionLabel) + '</small>'
         + '</div>'
         + '<small class="text-muted">' + escapeHtml(formatDate(item.created_at)) + '</small>'
@@ -3472,7 +3472,7 @@ window.CRM.br1 = (function () {
       return '<div class="crm-file-item mb-2 d-flex justify-content-between align-items-center">'
         + '<div><strong>' + escapeHtml(displayName) + '</strong><div class="small text-muted">'
         + escapeHtml(formatDate(file.created_at || new Date().toISOString())) + '</div></div>'
-        + '<button type="button" class="btn btn-sm btn-light" data-file-download="' + escapeHtml(String(file.public_id || '')) + '" data-file-name="' + escapeHtml(displayName) + window.CRM.i18n.t('js.br1.skachat_button', '">Скачать</button>')
+        + '<button type="button" class="btn btn-sm crm-btn-secondary" data-file-download="' + escapeHtml(String(file.public_id || '')) + '" data-file-name="' + escapeHtml(displayName) + window.CRM.i18n.t('js.br1.skachat_button', '">Скачать</button>')
         + '</div>';
     }).join('') : window.CRM.i18n.t('js.br1.div_class_text_muted_fayly_k_zadache_poka_ne_zagruzheny', '<div class="text-muted">Файлы к задаче пока не загружены.</div>');
   }
@@ -3688,7 +3688,7 @@ window.CRM.br1 = (function () {
           + '<td><span class="crm-chip">' + escapeHtml(priorityLabel(item.priority_code || 'normal')) + '</span></td>'
           + '<td class="text-end">'
           + '<div class="d-inline-flex gap-2">'
-          + '<a class="btn btn-sm btn-light crm-btn-compact" href="index.php?route=task-detail&task_public_id=' + encodeURIComponent(subtaskId) + window.CRM.i18n.t('js.br1.otkryt_a', '">Открыть</a>')
+          + '<a class="btn btn-sm crm-btn-secondary crm-btn-compact" href="index.php?route=task-detail&task_public_id=' + encodeURIComponent(subtaskId) + window.CRM.i18n.t('js.br1.otkryt_a', '">Открыть</a>')
           + '<button type="button" class="btn btn-sm crm-btn-primary crm-btn-compact" data-subtask-edit="' + escapeHtml(subtaskId) + '"' + (canEditSubtask ? '' : ' disabled') + window.CRM.i18n.t('js.br1.redaktirovat_button_2', '>Редактировать</button>')
           + '</div>'
           + '</td>'
@@ -3760,8 +3760,8 @@ window.CRM.br1 = (function () {
       + '</div>'
       + '</div>'
       + '<div class="crm-checklist-head-actions">'
-      + '<button class="btn btn-sm btn-light crm-btn-compact" type="button" data-checklist-edit="' + escapeHtml(checklistId) + '"' + (canEditTask ? '' : ' disabled') + window.CRM.i18n.t('js.br1.redaktirovat_button_3', '>Редактировать</button>')
-      + '<button class="btn btn-sm btn-light crm-btn-compact" type="button" data-checklist-more="' + escapeHtml(checklistId) + '"' + (canEditTask ? '' : ' disabled') + '>...</button>'
+      + '<button class="btn btn-sm crm-btn-secondary crm-btn-compact" type="button" data-checklist-edit="' + escapeHtml(checklistId) + '"' + (canEditTask ? '' : ' disabled') + window.CRM.i18n.t('js.br1.redaktirovat_button_3', '>Редактировать</button>')
+      + '<button class="btn btn-sm crm-btn-secondary crm-btn-compact" type="button" data-checklist-more="' + escapeHtml(checklistId) + '"' + (canEditTask ? '' : ' disabled') + '>...</button>'
       + '</div>'
       + '</header>'
       + '<ul class="crm-checklist-view-items">'
@@ -3782,7 +3782,7 @@ window.CRM.br1 = (function () {
             ? '<form class="d-flex gap-2" data-checklist-item-create-view="' + escapeHtml(checklistId) + '">'
               + window.CRM.i18n.t('js.br1.input_class_form_control_form_control_sm_name_title_max', '<input class="form-control form-control-sm" name="title" maxlength="255" placeholder="Новый пункт чеклиста" required>')
               + window.CRM.i18n.t('js.br1.button_class_btn_btn_sm_crm_btn_primary_crm_btn_compact', '<button class="btn btn-sm crm-btn-primary crm-btn-compact" type="submit">Добавить</button>')
-              + '<button class="btn btn-sm btn-light crm-btn-compact" type="button" data-checklist-item-create-cancel="' + escapeHtml(checklistId) + window.CRM.i18n.t('js.br1.otmena_button', '">Отмена</button>')
+              + '<button class="btn btn-sm crm-btn-secondary crm-btn-compact" type="button" data-checklist-item-create-cancel="' + escapeHtml(checklistId) + window.CRM.i18n.t('js.br1.otmena_button', '">Отмена</button>')
               + '</form>'
             : '<button class="btn btn-sm btn-link p-0 text-decoration-none" type="button" data-checklist-item-create-toggle="' + escapeHtml(checklistId) + window.CRM.i18n.t('js.br1.dobavit_punkt_button', '">+ Добавить пункт</button>'))
           + '</div>'
@@ -3807,7 +3807,7 @@ window.CRM.br1 = (function () {
       + '</div>'
       + '</div>'
       + '<div class="crm-checklist-head-actions">'
-      + '<button class="btn btn-sm btn-light crm-btn-compact" type="button" data-checklist-edit-cancel="' + escapeHtml(checklistId) + '"' + (canEditTask ? '' : ' disabled') + window.CRM.i18n.t('js.br1.otmena_button_2', '>Отмена</button>')
+      + '<button class="btn btn-sm crm-btn-secondary crm-btn-compact" type="button" data-checklist-edit-cancel="' + escapeHtml(checklistId) + '"' + (canEditTask ? '' : ' disabled') + window.CRM.i18n.t('js.br1.otmena_button_2', '>Отмена</button>')
       + '<button class="btn btn-sm crm-btn-primary crm-btn-compact" type="submit"' + (canEditTask ? '' : ' disabled') + window.CRM.i18n.t('js.br1.sokhranit_button', '>Сохранить</button>')
       + '</div>'
       + '</header>'
@@ -4324,7 +4324,7 @@ window.CRM.br1 = (function () {
         + '<textarea class="form-control" rows="3" data-comment-edit-text="' + commentPublicId + '" data-crm-visual-editor="1"></textarea>'
         + '<div class="crm-comment-edit-actions">'
         + '<button type="button" class="btn btn-sm crm-btn-primary crm-btn-compact" data-comment-save="' + commentPublicId + window.CRM.i18n.t('js.br1.sokhranit_button_2', '">Сохранить</button>')
-        + '<button type="button" class="btn btn-sm btn-light crm-btn-compact" data-comment-cancel="' + commentPublicId + window.CRM.i18n.t('js.br1.otmena_button_3', '">Отмена</button>')
+        + '<button type="button" class="btn btn-sm crm-btn-secondary crm-btn-compact" data-comment-cancel="' + commentPublicId + window.CRM.i18n.t('js.br1.otmena_button_3', '">Отмена</button>')
         + '</div>';
       commentCard.appendChild(editor);
 
@@ -6915,8 +6915,8 @@ window.CRM.br1 = (function () {
           + '<div class="crm-worklog-view-head">'
           + '<div class="crm-worklog-view-main"><span class="crm-worklog-entry-icon" aria-hidden="true"><i class="fa-regular fa-clock"></i></span><strong>' + escapeHtml(worklogDurationLabel(item)) + '</strong>'
           + '<span class="crm-worklog-entry-date"><i class="fa-regular fa-calendar" aria-hidden="true"></i>' + escapeHtml(formatDate(item.logged_at)) + '</span>' + intervalNote + '</div>'
-          + '<div class="crm-worklog-view-actions"><button class="btn btn-light crm-btn-compact" type="button" data-worklog-edit-open="' + escapeHtml(worklogId) + window.CRM.i18n.t('js.br1.redaktirovat_button_4', '" aria-label="Редактировать запись" title="Редактировать"><i class="fa-solid fa-pen" aria-hidden="true"></i><span class="visually-hidden">Редактировать</span></button>')
-          + window.CRM.i18n.t('js.br1.details_class_crm_worklog_more_summary_class_btn_btn_li', '<details class="crm-worklog-more"><summary class="btn btn-light crm-btn-compact" aria-label="Дополнительные действия"><span>...</span></summary><div class="crm-worklog-more-menu"><button class="btn btn-sm crm-btn-danger crm-btn-compact" type="button" data-worklog-delete-view="') + escapeHtml(worklogId) + window.CRM.i18n.t('js.br1.udalit_button_div_details_div', '">Удалить</button></div></details></div>')
+          + '<div class="crm-worklog-view-actions"><button class="btn crm-btn-secondary crm-btn-compact" type="button" data-worklog-edit-open="' + escapeHtml(worklogId) + window.CRM.i18n.t('js.br1.redaktirovat_button_4', '" aria-label="Редактировать запись" title="Редактировать"><i class="fa-solid fa-pen" aria-hidden="true"></i><span class="visually-hidden">Редактировать</span></button>')
+          + window.CRM.i18n.t('js.br1.details_class_crm_worklog_more_summary_class_btn_btn_li', '<details class="crm-worklog-more"><summary class="btn crm-btn-secondary crm-btn-compact" aria-label="Дополнительные действия"><span>...</span></summary><div class="crm-worklog-more-menu"><button class="btn btn-sm crm-btn-danger crm-btn-compact" type="button" data-worklog-delete-view="') + escapeHtml(worklogId) + window.CRM.i18n.t('js.br1.udalit_button_div_details_div', '">Удалить</button></div></details></div>')
           + '</div>'
           + noteHtml
           + window.CRM.i18n.t('js.br1.div_class_crm_worklog_meta_avtor', '<div class="crm-worklog-meta">Автор: ') + escapeHtml(author) + window.CRM.i18n.t('js.br1.sozdano', ' · Создано: ') + escapeHtml(formatDate(item.created_at)) + '</div>'
@@ -6931,7 +6931,7 @@ window.CRM.br1 = (function () {
         + window.CRM.i18n.t('js.br1.div_class_col_12_div_class_crm_worklog_meta_avtor', '<div class="col-12"><div class="crm-worklog-meta">Автор: ') + escapeHtml(author) + window.CRM.i18n.t('js.br1.sozdano_2', ' · Создано: ') + escapeHtml(formatDate(item.created_at)) + '</div></div>'
         + '<div class="col-12 crm-task-row-actions">'
         + window.CRM.i18n.t('js.br1.button_class_btn_btn_sm_crm_btn_primary_crm_btn_compact_2', '<button class="btn btn-sm crm-btn-primary crm-btn-compact" type="submit">Сохранить</button>')
-        + '<button class="btn btn-sm btn-light crm-btn-compact" type="button" data-worklog-edit-cancel="' + escapeHtml(worklogId) + window.CRM.i18n.t('js.br1.otmena_button_4', '">Отмена</button>')
+        + '<button class="btn btn-sm crm-btn-secondary crm-btn-compact" type="button" data-worklog-edit-cancel="' + escapeHtml(worklogId) + window.CRM.i18n.t('js.br1.otmena_button_4', '">Отмена</button>')
         + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" type="button" data-worklog-delete="' + escapeHtml(worklogId) + window.CRM.i18n.t('js.br1.udalit_button', '">Удалить</button>')
         + '</div>'
         + '</form>'

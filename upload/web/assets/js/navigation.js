@@ -806,7 +806,7 @@ window.CRM.navigation = (function () {
       modeToggle = searchGroup.querySelector('[data-search-mode-toggle]');
       if (!modeToggle) {
         modeToggle = document.createElement('button');
-        modeToggle.className = 'btn btn-light';
+        modeToggle.className = 'btn crm-btn-secondary';
         modeToggle.type = 'button';
         modeToggle.setAttribute('data-search-mode-toggle', '1');
         modeToggle.setAttribute('title', t('nav.ai_search', 'AI Search'));
@@ -837,7 +837,7 @@ window.CRM.navigation = (function () {
       }
       if (modeToggle) {
         modeToggle.classList.toggle('crm-btn-primary', mode === 'semantic');
-        modeToggle.classList.toggle('btn-light', mode !== 'semantic');
+        modeToggle.classList.toggle('crm-btn-secondary', mode !== 'semantic');
         modeToggle.setAttribute('aria-pressed', mode === 'semantic' ? 'true' : 'false');
       }
     }

@@ -445,6 +445,40 @@ a.btn {
   color: var(--crm-danger);
 }
 
+/* Warning variant — caution actions (snooze, cycle complete, AI high-risk confirm) */
+.crm-btn-warning,
+.btn-warning,
+.btn-outline-warning {
+  background: var(--crm-surface);
+  border-color: var(--crm-warning-border, #d4a017);
+  color: var(--crm-warning);
+}
+
+.crm-btn-warning:hover,
+.btn-warning:hover,
+.btn-outline-warning:hover {
+  background: var(--crm-warning-soft, #fdf5e6);
+  border-color: var(--crm-warning-border, #d4a017);
+  color: var(--crm-warning);
+}
+
+/* Success variant — positive confirmation actions */
+.crm-btn-success,
+.btn-success,
+.btn-outline-success {
+  background: var(--crm-surface);
+  border-color: var(--crm-success-border, #3da65f);
+  color: var(--crm-success);
+}
+
+.crm-btn-success:hover,
+.btn-success:hover,
+.btn-outline-success:hover {
+  background: var(--crm-success-soft, #eaf6ee);
+  border-color: var(--crm-success-border, #3da65f);
+  color: var(--crm-success);
+}
+
 .btn:disabled,
 .crm-btn:disabled,
 .btn.disabled,

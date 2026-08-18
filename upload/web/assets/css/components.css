@@ -1911,49 +1911,58 @@
 }
 
 /* Buttons */
+/* team-btn-*: legacy aliases → standard crm-btn-* classes
+   Kept for backward compatibility; prefer crm-btn-secondary/crm-btn-primary/crm-btn-danger-icon in new code. */
 .team-btn-cancel {
   height: 34px;
   min-height: 34px;
   padding: 0 14px;
-  border-radius: 8px;
-  border: 1px solid var(--crm-border-soft);
+  border-radius: var(--crm-radius-sm);
+  border: 1px solid var(--crm-border);
   background: var(--crm-surface);
   color: var(--crm-text-muted);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
-  transition: all 0.12s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease;
 }
 
 .team-btn-cancel:hover {
-  border-color: var(--crm-border);
-  background: var(--crm-surface-soft);
-  color: var(--crm-text);
+  border-color: var(--crm-primary-border);
+  background: var(--crm-primary-soft);
+  color: var(--crm-primary);
 }
 
 .team-btn-primary {
   height: 34px;
   min-height: 34px;
-  padding: 0 16px;
-  border-radius: 8px;
+  padding: 0 14px;
+  border-radius: var(--crm-radius-sm);
   border: 1px solid var(--crm-primary);
   background: var(--crm-primary);
   color: var(--crm-on-accent);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  transition: all 0.12s ease;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 8px;
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease;
 }
 
 .team-btn-primary:hover {
   background: var(--crm-primary-hover);
   border-color: var(--crm-primary-hover);
+  color: var(--crm-on-accent);
 }
 
 .team-btn-primary:disabled {
-  opacity: 0.5;
+  opacity: .55;
   cursor: not-allowed;
+  pointer-events: none;
 }
 
 .team-btn-danger {
@@ -1961,19 +1970,20 @@
   height: 34px;
   min-height: 34px;
   padding: 0;
-  border-radius: 8px;
+  border-radius: var(--crm-radius-sm);
   border: 1px solid var(--crm-danger-border);
   background: var(--crm-surface);
   color: var(--crm-danger);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.12s ease;
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease;
 }
 
 .team-btn-danger:hover {
   background: var(--crm-danger-soft);
   border-color: var(--crm-danger-border);
+  color: var(--crm-danger);
 }
 
 /* Dirty dot */

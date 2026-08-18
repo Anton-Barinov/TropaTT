@@ -1492,7 +1492,7 @@ window.CRM.pageApiBindings = (function () {
             + '</select></div>'
             + '<div class="d-flex gap-2">'
             + '<button type="submit" class="btn crm-btn-primary">' + window.CRM.i18n.t('js.pab.apply', 'Apply') + '</button>'
-            + '<button type="button" class="btn btn-light" data-project-filter-reset>' + window.CRM.i18n.t('js.pab.reset', 'Reset') + '</button>'
+            + '<button type="button" class="btn crm-btn-secondary" data-project-filter-reset>' + window.CRM.i18n.t('js.pab.reset', 'Reset') + '</button>'
             + '</div></form>';
           filterDrawer.dataset.projectsFiltersReady = '1';
         }
@@ -1705,10 +1705,10 @@ window.CRM.pageApiBindings = (function () {
           var isActive = String(btn.getAttribute('data-projects-view') || '') === current;
           if (isActive) {
             btn.classList.add('crm-btn-primary');
-            btn.classList.remove('btn-light');
+            btn.classList.remove('crm-btn-secondary');
           } else {
             btn.classList.remove('crm-btn-primary');
-            btn.classList.add('btn-light');
+            btn.classList.add('crm-btn-secondary');
           }
           btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
         });
@@ -2911,17 +2911,17 @@ window.CRM.pageApiBindings = (function () {
       blocksWrap.innerHTML = ''
         + '<div class="row g-3">'
         + '<div class="col-lg-6"><article class="border rounded-3 p-3 h-100">'
-        + '<div class="d-flex justify-content-between align-items-center mb-2"><h3 class="h6 mb-0">' + window.CRM.i18n.t('js.pab.name_and_description', 'Name and description') + '</h3><button class="btn btn-sm btn-light" type="button" data-project-edit-open="identity" aria-label="' + window.CRM.i18n.t('js.pab.edit_project_identity', 'Edit name and description') + '" title="' + window.CRM.i18n.t('js.pab.edit_project_identity', 'Edit name and description') + '"><i class="fa-solid fa-pen" aria-hidden="true"></i></button></div>'
+        + '<div class="d-flex justify-content-between align-items-center mb-2"><h3 class="h6 mb-0">' + window.CRM.i18n.t('js.pab.name_and_description', 'Name and description') + '</h3><button class="btn btn-sm crm-btn-secondary" type="button" data-project-edit-open="identity" aria-label="' + window.CRM.i18n.t('js.pab.edit_project_identity', 'Edit name and description') + '" title="' + window.CRM.i18n.t('js.pab.edit_project_identity', 'Edit name and description') + '"><i class="fa-solid fa-pen" aria-hidden="true"></i></button></div>'
         + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.name', 'Name') + '</div><div class="mb-2">' + safeText(project.title || '—') + '</div>'
         + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.description', 'Description') + '</div><div class="mb-2 crm-project-description-readonly">' + renderVisualEditorHtml(project.description || window.CRM.i18n.t('js.pab.no_description', 'No description')) + '</div>'
         + '<form class="row g-2 d-none" data-project-edit-form="identity">'
         + '<div class="col-12"><label class="form-label">' + window.CRM.i18n.t('js.pab.project_name', 'Project name') + '</label><input class="form-control" name="title" maxlength="255" value="' + safeText(project.title || '') + '"></div>'
         + '<div class="col-12"><label class="form-label">' + window.CRM.i18n.t('js.pab.description', 'Description') + '</label><textarea class="form-control" name="description" rows="4" data-crm-visual-editor="1" data-richtext-off="1">' + safeText(project.description || '') + '</textarea></div>'
-        + '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">' + window.CRM.i18n.t('js.pab.save', 'Save') + '</button><button type="button" class="btn btn-sm btn-light" data-project-edit-cancel="identity">' + window.CRM.i18n.t('js.pab.cancel', 'Cancel') + '</button></div>'
+        + '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">' + window.CRM.i18n.t('js.pab.save', 'Save') + '</button><button type="button" class="btn btn-sm crm-btn-secondary" data-project-edit-cancel="identity">' + window.CRM.i18n.t('js.pab.cancel', 'Cancel') + '</button></div>'
         + '</form>'
         + '</article></div>'
         + '<div class="col-lg-6"><article class="border rounded-3 p-3 h-100">'
-        + '<div class="d-flex justify-content-between align-items-center mb-2"><h3 class="h6 mb-0">' + window.CRM.i18n.t('js.pab.status_and_priority', 'Status and priority') + '</h3><button class="btn btn-sm btn-light" type="button" data-project-edit-open="workflow" aria-label="' + window.CRM.i18n.t('js.pab.edit_project_workflow', 'Edit status and priority') + '" title="' + window.CRM.i18n.t('js.pab.edit_project_workflow', 'Edit status and priority') + '"><i class="fa-solid fa-pen" aria-hidden="true"></i></button></div>'
+        + '<div class="d-flex justify-content-between align-items-center mb-2"><h3 class="h6 mb-0">' + window.CRM.i18n.t('js.pab.status_and_priority', 'Status and priority') + '</h3><button class="btn btn-sm crm-btn-secondary" type="button" data-project-edit-open="workflow" aria-label="' + window.CRM.i18n.t('js.pab.edit_project_workflow', 'Edit status and priority') + '" title="' + window.CRM.i18n.t('js.pab.edit_project_workflow', 'Edit status and priority') + '"><i class="fa-solid fa-pen" aria-hidden="true"></i></button></div>'
         + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.status', 'Status') + '</div><div class="mb-2"><span class="crm-badge ' + statusClass(project.status_code) + '">' + safeText(projectStatusLabel(project.status_code)) + '</span></div>'
         + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.priority', 'Priority') + '</div><div class="mb-2">' + safeText(priorityLabel(project.priority_code || 'normal')) + '</div>'
         + '<form class="row g-2 d-none" data-project-edit-form="workflow">'
@@ -2936,11 +2936,11 @@ window.CRM.pageApiBindings = (function () {
         + '<option value="high"' + (project.priority_code === 'high' ? ' selected' : '') + '>' + window.CRM.i18n.t('js.pab.priority_high', 'High') + '</option>'
         + '<option value="urgent"' + (project.priority_code === 'urgent' ? ' selected' : '') + '>' + window.CRM.i18n.t('js.pab.priority_urgent', 'Urgent') + '</option>'
         + '</select></div>'
-        + '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">' + window.CRM.i18n.t('js.pab.save', 'Save') + '</button><button type="button" class="btn btn-sm btn-light" data-project-edit-cancel="workflow">' + window.CRM.i18n.t('js.pab.cancel', 'Cancel') + '</button></div>'
+        + '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">' + window.CRM.i18n.t('js.pab.save', 'Save') + '</button><button type="button" class="btn btn-sm crm-btn-secondary" data-project-edit-cancel="workflow">' + window.CRM.i18n.t('js.pab.cancel', 'Cancel') + '</button></div>'
         + '</form>'
         + '</article></div>'
         + '<div class="col-lg-6"><article class="border rounded-3 p-3 h-100">'
-        + '<div class="d-flex justify-content-between align-items-center mb-2"><h3 class="h6 mb-0">' + window.CRM.i18n.t('js.pab.project_relations', 'Project relations') + '</h3><button class="btn btn-sm btn-light" type="button" data-project-edit-open="links" aria-label="' + window.CRM.i18n.t('js.pab.edit_project_relations', 'Edit project relations') + '" title="' + window.CRM.i18n.t('js.pab.edit_project_relations', 'Edit project relations') + '"><i class="fa-solid fa-pen" aria-hidden="true"></i></button></div>'
+        + '<div class="d-flex justify-content-between align-items-center mb-2"><h3 class="h6 mb-0">' + window.CRM.i18n.t('js.pab.project_relations', 'Project relations') + '</h3><button class="btn btn-sm crm-btn-secondary" type="button" data-project-edit-open="links" aria-label="' + window.CRM.i18n.t('js.pab.edit_project_relations', 'Edit project relations') + '" title="' + window.CRM.i18n.t('js.pab.edit_project_relations', 'Edit project relations') + '"><i class="fa-solid fa-pen" aria-hidden="true"></i></button></div>'
         + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.client', 'Client') + '</div><div class="mb-2">' + safeText(clientTitleById(project.client_public_id)) + '</div>'
         + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.manager', 'Manager') + '</div><div class="mb-2">' + safeText(userTitleById(project.manager_user_public_id)) + '</div>'
         + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.team', 'Team') + '</div><div class="mb-2">' + safeText(teamTitleById(project.team_public_id)) + '</div>'
@@ -2948,7 +2948,7 @@ window.CRM.pageApiBindings = (function () {
         + '<div class="col-md-4"><label class="form-label">' + window.CRM.i18n.t('js.pab.client', 'Client') + '</label><select class="form-select" name="client_public_id">' + clientOptions + '</select></div>'
         + '<div class="col-md-4"><label class="form-label">' + window.CRM.i18n.t('js.pab.manager', 'Manager') + '</label><select class="form-select" name="manager_user_public_id">' + userOptions + '</select></div>'
         + '<div class="col-md-4"><label class="form-label">' + window.CRM.i18n.t('js.pab.team', 'Team') + '</label><select class="form-select" name="team_public_id">' + teamOptions + '</select></div>'
-        + '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">' + window.CRM.i18n.t('js.pab.save', 'Save') + '</button><button type="button" class="btn btn-sm btn-light" data-project-edit-cancel="links">' + window.CRM.i18n.t('js.pab.cancel', 'Cancel') + '</button></div>'
+        + '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">' + window.CRM.i18n.t('js.pab.save', 'Save') + '</button><button type="button" class="btn btn-sm crm-btn-secondary" data-project-edit-cancel="links">' + window.CRM.i18n.t('js.pab.cancel', 'Cancel') + '</button></div>'
         + '</form>'
         + '</article></div>'
         + '</div>';
@@ -3038,7 +3038,7 @@ window.CRM.pageApiBindings = (function () {
                     + '<label class="form-label">' + safeText(window.CRM.i18n.t('js.pab.target_project', 'Target project')) + '</label>'
                     + '<select class="form-select" data-project-move-select>' + targetOptionsHtml + '</select>'
                     + '<div class="d-flex gap-2 mt-2"><button type="button" class="btn btn-sm crm-btn-primary" data-project-close-action="do-move">' + safeText(window.CRM.i18n.t('js.pab.move_tasks', 'Move tasks')) + '</button>'
-                    + '<button type="button" class="btn btn-sm btn-light" data-project-move-cancel>' + safeText(tp('common.cancel', 'Cancel')) + '</button></div>'
+                    + '<button type="button" class="btn btn-sm crm-btn-secondary" data-project-move-cancel>' + safeText(tp('common.cancel', 'Cancel')) + '</button></div>'
                     + '</div>'
                     + '</div></div></div>';
                   document.body.appendChild(modalEl);
@@ -3299,7 +3299,7 @@ window.CRM.pageApiBindings = (function () {
               + '<label class="form-label">' + safeText(window.CRM.i18n.t('js.pab.target_project', 'Target project')) + '</label>'
               + '<select class="form-select" data-project-move-select>' + targetOptionsHtml + '</select>'
               + '<div class="d-flex gap-2 mt-2"><button type="button" class="btn btn-sm crm-btn-primary" data-project-close-action="do-move">' + safeText(window.CRM.i18n.t('js.pab.move_tasks', 'Move tasks')) + '</button>'
-              + '<button type="button" class="btn btn-sm btn-light" data-project-move-cancel>' + safeText(tp('common.cancel', 'Cancel')) + '</button></div>'
+              + '<button type="button" class="btn btn-sm crm-btn-secondary" data-project-move-cancel>' + safeText(tp('common.cancel', 'Cancel')) + '</button></div>'
               + '</div>'
               + '</div></div></div>';
             document.body.appendChild(modalEl);
@@ -3939,7 +3939,7 @@ window.CRM.pageApiBindings = (function () {
       var canUseAi = canUseTasksAiPriority();
       if (tasksAiPriorityBtn) {
         tasksAiPriorityBtn.classList.toggle('crm-btn-primary', enabled);
-        tasksAiPriorityBtn.classList.toggle('btn-light', !enabled);
+        tasksAiPriorityBtn.classList.toggle('crm-btn-secondary', !enabled);
         tasksAiPriorityBtn.textContent = enabled ? window.CRM.i18n.t('js.pab.ai_priority_on', 'AI priority: on') : window.CRM.i18n.t('js.pab.ai_priority', 'AI priority');
       }
       if (tasksAiPriorityResetBtn) {
@@ -4332,7 +4332,7 @@ window.CRM.pageApiBindings = (function () {
       document.querySelectorAll('[data-tasks-view]').forEach(function (btn) {
         var view = normalizeTasksView(btn.getAttribute('data-tasks-view'));
         btn.classList.toggle('crm-btn-primary', view === currentView);
-        btn.classList.toggle('btn-light', view !== currentView);
+        btn.classList.toggle('crm-btn-secondary', view !== currentView);
         btn.setAttribute('aria-pressed', view === currentView ? 'true' : 'false');
         if (btn.dataset.boundTasksView === '1') return;
         btn.addEventListener('click', function () {
@@ -4779,7 +4779,7 @@ window.CRM.pageApiBindings = (function () {
 
     if (!task) {
       body.innerHTML = '<div class="text-muted mb-2">' + window.CRM.i18n.t('js.pab.no_tasks_for_quick_view', 'No available tasks for quick view.') + '</div>'
-        + '<a class="btn btn-sm btn-light" href="index.php?route=tasks">' + window.CRM.i18n.t('js.pab.to_task_list', 'To task list') + '</a>';
+        + '<a class="btn btn-sm crm-btn-secondary" href="index.php?route=tasks">' + window.CRM.i18n.t('js.pab.to_task_list', 'To task list') + '</a>';
       return;
     }
 
@@ -4795,7 +4795,7 @@ window.CRM.pageApiBindings = (function () {
       + '</ul>'
       + '<div class="d-flex gap-2">'
       + '<a class="btn btn-sm crm-btn-primary" href="' + taskLink + '">' + window.CRM.i18n.t('js.pab.open_task', 'Open task') + '</a>'
-      + '<button type="button" class="btn btn-sm btn-light" data-open-modal="assignUserModal">' + window.CRM.i18n.t('js.pab.assign_executor', 'Assign executor') + '</button>'
+      + '<button type="button" class="btn btn-sm crm-btn-secondary" data-open-modal="assignUserModal">' + window.CRM.i18n.t('js.pab.assign_executor', 'Assign executor') + '</button>'
       + '</div>';
   }
 
@@ -6644,7 +6644,7 @@ window.CRM.pageApiBindings = (function () {
               + '<span class="crm-dashboard-ai-action-title">' + safeText(String(action.title || action.label || window.CRM.i18n.t('js.pab.action', 'Action'))) + '</span>'
               + '<span class="crm-dashboard-ai-action-reason small text-muted">' + safeText(String(action.text || action.reason || '')) + '</span>'
               + '</button>'
-              + (action.href ? '<a class="btn btn-sm btn-outline-secondary crm-dashboard-ai-action-open" href="' + safeText(action.href) + '">' + window.CRM.i18n.t('js.pab.open', 'Open') + '</a>' : '')
+              + (action.href ? '<a class="btn btn-sm crm-btn-secondary crm-dashboard-ai-action-open" href="' + safeText(action.href) + '">' + window.CRM.i18n.t('js.pab.open', 'Open') + '</a>' : '')
               + '</div>';
           }).join('') || '<div class="text-muted">' + window.CRM.i18n.t('js.pab.no_urgent_actions', 'No urgent actions based on current data.') + '</div>';
 
@@ -7583,10 +7583,10 @@ window.CRM.pageApiBindings = (function () {
     <div class="modal-footer">\
       <button class="btn btn-sm crm-btn-secondary" type="button" data-calendar-event-edit-btn>' + window.CRM.i18n.t('js.pab.edit', 'Edit') + '</button>\
       <button class="btn btn-sm crm-btn-danger-soft" type="button" data-calendar-event-delete-btn>' + window.CRM.i18n.t('js.pab.delete', 'Delete') + '</button>\
-      <button class="btn btn-sm btn-light d-none" type="button" data-calendar-ai-generate-btn>' + window.CRM.i18n.t('js.pab.generate_ai_agenda', 'Generate AI agenda') + '</button>\
-      <button class="btn btn-sm btn-light d-none" type="button" data-calendar-ai-preview-btn disabled>' + window.CRM.i18n.t('js.pab.open_preview', 'Open preview') + '</button>\
+      <button class="btn btn-sm crm-btn-secondary d-none" type="button" data-calendar-ai-generate-btn>' + window.CRM.i18n.t('js.pab.generate_ai_agenda', 'Generate AI agenda') + '</button>\
+      <button class="btn btn-sm crm-btn-secondary d-none" type="button" data-calendar-ai-preview-btn disabled>' + window.CRM.i18n.t('js.pab.open_preview', 'Open preview') + '</button>\
       <button class="btn btn-sm crm-btn-danger d-none" type="button" data-calendar-ai-dismiss-btn disabled>' + window.CRM.i18n.t('js.pab.dismiss', 'Dismiss') + '</button>\
-      <button class="btn btn-light" type="button" data-bs-dismiss="modal">' + window.CRM.i18n.t('js.pab.close', 'Close') + '</button>\
+      <button class="btn crm-btn-secondary" type="button" data-bs-dismiss="modal">' + window.CRM.i18n.t('js.pab.close', 'Close') + '</button>\
     </div>\
   </div></div>\
 </div>');
@@ -8508,7 +8508,7 @@ window.CRM.pageApiBindings = (function () {
       var view = String(btn.getAttribute('data-calendar-view') || 'month');
       var active = view === state.view;
       btn.classList.toggle('crm-btn-primary', active);
-      btn.classList.toggle('btn-light', !active);
+      btn.classList.toggle('crm-btn-secondary', !active);
       btn.setAttribute('aria-pressed', active ? 'true' : 'false');
       if (btn.dataset.boundCalendarView !== '1') {
         btn.addEventListener('click', function () {
@@ -9257,7 +9257,7 @@ window.CRM.pageApiBindings = (function () {
         info.appendChild(activeRow);
 
         var removeBtn = document.createElement('button');
-        removeBtn.className = 'btn btn-sm btn-outline-danger';
+        removeBtn.className = 'btn btn-sm crm-btn-danger';
         removeBtn.type = 'button';
         removeBtn.setAttribute('data-push-device-remove', publicId);
         removeBtn.textContent = tp('notifications.push_disconnect', 'Disconnect');
@@ -12533,9 +12533,9 @@ window.CRM.pageApiBindings = (function () {
             + '<td>' + requisites + '</td>'
             + '<td>' + safeText(String(rowTasksCount)) + '</td>'
             + '<td><div class="d-flex gap-1 flex-wrap justify-content-end">'
-            + '<a class="btn btn-sm btn-light" href="' + openLink + '">' + tp('client_cabinet.open_cabinet', 'Open cabinet') + '</a>'
-            + '<button class="btn btn-sm ' + (isActive ? 'crm-btn-primary' : 'btn-light') + '" data-client-select="' + safeText(clientId) + '">' + (isActive ? tp('client_cabinet.selected', 'Selected') : tp('client_cabinet.select', 'Select')) + '</button>'
-            + '<button class="btn btn-sm btn-light" data-client-edit="' + safeText(clientId) + '">' + tp('client_cabinet.edit', 'Edit') + '</button>'
+            + '<a class="btn btn-sm crm-btn-secondary" href="' + openLink + '">' + tp('client_cabinet.open_cabinet', 'Open cabinet') + '</a>'
+            + '<button class="btn btn-sm ' + (isActive ? 'crm-btn-primary' : 'crm-btn-secondary') + '" data-client-select="' + safeText(clientId) + '">' + (isActive ? tp('client_cabinet.selected', 'Selected') : tp('client_cabinet.select', 'Select')) + '</button>'
+            + '<button class="btn btn-sm crm-btn-secondary" data-client-edit="' + safeText(clientId) + '">' + tp('client_cabinet.edit', 'Edit') + '</button>'
             + '<button class="btn btn-sm crm-btn-danger" data-client-delete="' + safeText(clientId) + '">' + tp('client_cabinet.delete', 'Delete') + '</button>'
             + '</div></td>'
             + '</tr>';
@@ -14319,7 +14319,7 @@ window.CRM.pageApiBindings = (function () {
             + '<td>' + safeText(item.title || item.code) + '<div class="small text-muted">' + safeText(item.code || '—') + '</div></td>'
             + '<td><span class="crm-badge ' + statusClass(item.code) + '" style="background:' + safeText(item.color || '') + ';color:' + safeText(badgeTextColor) + ';">' + safeText(item.title || item.code) + '</span></td>'
             + '<td>' + safeText(item.sort_order || 0) + '</td>'
-            + '<td><div class="d-flex gap-1"><button class="btn btn-sm btn-light" data-status-edit="' + safeText(statusId) + '"' + disabled + '>' + safeText(tp('common.edit', 'Edit')) + '</button><button class="btn btn-sm crm-btn-danger" data-status-delete="' + safeText(statusId) + '"' + disabled + '>' + safeText(tp('common.delete', 'Delete')) + '</button></div></td>'
+            + '<td><div class="d-flex gap-1"><button class="btn btn-sm crm-btn-secondary" data-status-edit="' + safeText(statusId) + '"' + disabled + '>' + safeText(tp('common.edit', 'Edit')) + '</button><button class="btn btn-sm crm-btn-danger" data-status-delete="' + safeText(statusId) + '"' + disabled + '>' + safeText(tp('common.delete', 'Delete')) + '</button></div></td>'
             + '</tr>';
         }).join('');
       }
@@ -14670,7 +14670,7 @@ window.CRM.pageApiBindings = (function () {
             + '<td><strong>' + safeText(client.title || id) + '</strong><span class="crm-entity-id">' + safeText(id) + '</span>'
             + renderScopeTokens(client.scopes, tp('admin.no_individual_permissions', 'No individual permissions')) + '</td>'
             + '<td><span class="crm-badge ' + (Number(client.is_active || 0) === 1 ? 'success' : 'archived') + '">' + safeText(Number(client.is_active || 0) === 1 ? tp('common.active', 'Active') : tp('common.inactive', 'Inactive')) + '</span></td>'
-            + '<td><button class="btn btn-sm btn-light" data-apc-select="' + safeText(id) + '">' + safeText(selected ? tp('common.selected', 'Selected') : tp('common.select', 'Select')) + '</button></td>'
+            + '<td><button class="btn btn-sm crm-btn-secondary" data-apc-select="' + safeText(id) + '">' + safeText(selected ? tp('common.selected', 'Selected') : tp('common.select', 'Select')) + '</button></td>'
             + '</tr>';
         }).join('');
       }
@@ -14844,7 +14844,7 @@ window.CRM.pageApiBindings = (function () {
           + '<td><strong>' + safeText(wh.title || id) + '</strong><span class="crm-entity-id">' + safeText(wh.endpoint || '—') + '</span>'
           + renderScopeTokens(wh.events, tp('admin.events_not_set', 'Events are not set')) + '</td>'
           + '<td><span class="crm-badge ' + (Number(wh.is_active || 0) === 1 ? 'success' : 'archived') + '">' + safeText(Number(wh.is_active || 0) === 1 ? tp('common.active', 'Active') : tp('common.inactive', 'Inactive')) + '</span></td>'
-          + '<td><button class="btn btn-sm btn-light" data-wh-select="' + safeText(id) + '">' + safeText(selected ? tp('common.selected', 'Selected') : tp('common.select', 'Select')) + '</button></td>'
+          + '<td><button class="btn btn-sm crm-btn-secondary" data-wh-select="' + safeText(id) + '">' + safeText(selected ? tp('common.selected', 'Selected') : tp('common.select', 'Select')) + '</button></td>'
           + '</tr>';
       }).join('');
     }
@@ -15092,7 +15092,7 @@ window.CRM.pageApiBindings = (function () {
             + '<td>' + safeText(formatDate(key.expires_at)) + '</td>'
             + '<td>' + safeText(formatDate(key.revoked_at)) + '</td>'
             + '<td>' + safeText(formatDate(key.created_at)) + '</td>'
-            + '<td><button class="btn btn-sm btn-light" data-apc-key-usage="' + safeText(keyId) + '">' + safeText(tp('admin.usage', 'Usage')) + '</button></td>'
+            + '<td><button class="btn btn-sm crm-btn-secondary" data-apc-key-usage="' + safeText(keyId) + '">' + safeText(tp('admin.usage', 'Usage')) + '</button></td>'
             + '</tr>';
         }).join('');
       }
@@ -15450,7 +15450,7 @@ window.CRM.pageApiBindings = (function () {
             + '<td>' + safeText(row.event) + '</td>'
             + '<td>' + safeText(row.target) + '</td>'
             + '<td>' + safeText(row.ip || row.side || '—') + '</td>'
-            + '<td><button class="btn btn-sm btn-light" data-log-open="' + safeText(row.id) + '">' + safeText(tp('notifications.open', 'Open')) + '</button></td>'
+            + '<td><button class="btn btn-sm crm-btn-secondary" data-log-open="' + safeText(row.id) + '">' + safeText(tp('notifications.open', 'Open')) + '</button></td>'
             + '</tr>';
         }).join('');
       }
@@ -15626,7 +15626,7 @@ window.CRM.pageApiBindings = (function () {
         var statusText = user.is_active ? tp('common.active', 'Active') : tp('common.inactive', 'Inactive');
         var statusBadge = user.is_active ? '<span class="crm-badge success">' + safeText(statusText) + '</span>' : '<span class="crm-badge archived">' + safeText(statusText) + '</span>';
         var lastLogin = user.last_login_at ? formatDate(user.last_login_at) : '—';
-        var actions = '<div class="d-flex gap-1"><button class="btn btn-sm btn-light" data-user-edit="' + safeText(user.public_id) + '">' + safeText(tp('common.edit', 'Edit')) + '</button><button class="btn btn-sm btn-light" data-user-menu="' + safeText(user.public_id) + '" title="' + safeText(tp('admin.user_menu_title', 'Menu settings')) + '"><i class="fa-solid fa-sliders"></i></button><button class="btn btn-sm btn-warning" data-user-impersonate="' + safeText(user.public_id) + '" aria-label="' + safeText(tp('admin.impersonate_title', 'Log in as user')) + '" title="' + safeText(tp('admin.impersonate_title', 'Log in as user')) + '"><i class="fa-solid fa-user" aria-hidden="true"></i></button><button class="btn btn-sm btn-danger" data-user-delete="' + safeText(user.public_id) + '">' + safeText(tp('common.delete', 'Delete')) + '</button></div>';
+        var actions = '<div class="d-flex gap-1"><button class="btn btn-sm crm-btn-secondary" data-user-edit="' + safeText(user.public_id) + '">' + safeText(tp('common.edit', 'Edit')) + '</button><button class="btn btn-sm crm-btn-secondary" data-user-menu="' + safeText(user.public_id) + '" title="' + safeText(tp('admin.user_menu_title', 'Menu settings')) + '"><i class="fa-solid fa-sliders"></i></button><button class="btn btn-sm crm-btn-warning" data-user-impersonate="' + safeText(user.public_id) + '" aria-label="' + safeText(tp('admin.impersonate_title', 'Log in as user')) + '" title="' + safeText(tp('admin.impersonate_title', 'Log in as user')) + '"><i class="fa-solid fa-user" aria-hidden="true"></i></button><button class="btn btn-sm crm-btn-danger" data-user-delete="' + safeText(user.public_id) + '">' + safeText(tp('common.delete', 'Delete')) + '</button></div>';
         return '<tr><td><input class="form-check-input" type="checkbox" data-select-user="' + safeText(user.public_id) + '" data-admin-user-bulk-id="' + safeText(user.public_id) + '"></td><td><strong>' + safeText(user.full_name || user.login) + '</strong><small class="text-muted d-block">' + safeText(user.login) + '</small></td><td>' + safeText(user.email || '—') + '</td><td>' + safeText(roleTitles || tp('admin.no_roles', 'No roles')) + '</td><td>' + safeText(teamTitle) + '</td><td>' + lastLogin + '</td><td>' + statusBadge + '</td><td>' + actions + '</td></tr>';
       }).join('');
     }
@@ -16213,7 +16213,7 @@ window.CRM.pageApiBindings = (function () {
         var indicator = document.createElement('div');
         indicator.id = 'impersonationIndicator';
         indicator.className = 'alert alert-warning py-2 px-3 mb-2';
-        indicator.innerHTML = '<strong>' + safeText(tp('admin.impersonation_label', 'Impersonation:')) + '</strong> ' + safeText(tp('admin.impersonation_current_prefix', 'you logged in as ')) + safeText(impersonatedUser) + '. <button class="btn btn-sm btn-danger ms-2" id="stopImpersonationBtn">' + safeText(tp('admin.return_as_prefix', 'Return as ')) + safeText(originalUser) + '</button>';
+        indicator.innerHTML = '<strong>' + safeText(tp('admin.impersonation_label', 'Impersonation:')) + '</strong> ' + safeText(tp('admin.impersonation_current_prefix', 'you logged in as ')) + safeText(impersonatedUser) + '. <button class="btn btn-sm crm-btn-danger ms-2" id="stopImpersonationBtn">' + safeText(tp('admin.return_as_prefix', 'Return as ')) + safeText(originalUser) + '</button>';
         var pageHead = document.querySelector('.crm-page-head');
         if (pageHead) {
           pageHead.parentNode.insertBefore(indicator, pageHead);
@@ -16439,9 +16439,9 @@ window.CRM.pageApiBindings = (function () {
         return perm ? perm.title : permCode;
       }).join(', ');
       var typeLabel = role.is_system ? tp('admin.role_system', 'System') : tp('admin.role_custom', 'Custom');
-      var actions = '<div class="d-flex gap-1"><button class="btn btn-sm btn-light" data-role-edit="' + safeText(role.public_id) + '">' + safeText(tp('common.edit', 'Edit')) + '</button>' +
-        '<button class="btn btn-sm btn-light" data-role-menu="' + safeText(role.public_id) + '" title="' + safeText(tp('admin.role_menu_title', 'Menu template')) + '"><i class="fa-solid fa-sliders"></i></button>' +
-        (role.is_system ? '' : '<button class="btn btn-sm btn-danger" data-role-delete="' + safeText(role.public_id) + '">' + safeText(tp('common.delete', 'Delete')) + '</button>') +
+      var actions = '<div class="d-flex gap-1"><button class="btn btn-sm crm-btn-secondary" data-role-edit="' + safeText(role.public_id) + '">' + safeText(tp('common.edit', 'Edit')) + '</button>' +
+        '<button class="btn btn-sm crm-btn-secondary" data-role-menu="' + safeText(role.public_id) + '" title="' + safeText(tp('admin.role_menu_title', 'Menu template')) + '"><i class="fa-solid fa-sliders"></i></button>' +
+        (role.is_system ? '' : '<button class="btn btn-sm crm-btn-danger" data-role-delete="' + safeText(role.public_id) + '">' + safeText(tp('common.delete', 'Delete')) + '</button>') +
         '</div>';
       return '<tr>' +
         '<td><strong>' + safeText(role.title) + '</strong><small class="text-muted d-block">' + safeText(role.code) + '</small></td>' +
@@ -22514,7 +22514,7 @@ window.CRM.pageApiBindings = (function () {
             + '<td>' + safeText(action) + '</td>'
             + '<td>' + safeText(entity || '—') + '</td>'
             + '<td>' + safeText(formatDate(item.created_at || '')) + '</td>'
-            + '<td><button class="btn btn-sm btn-light" type="button" data-ai-audit-detail="' + safeText(publicId) + '">' + safeText(tp('common.open', 'Open')) + '</button></td>'
+            + '<td><button class="btn btn-sm crm-btn-secondary" type="button" data-ai-audit-detail="' + safeText(publicId) + '">' + safeText(tp('common.open', 'Open')) + '</button></td>'
             + '</tr>';
         }).join('');
       }
@@ -22576,7 +22576,7 @@ window.CRM.pageApiBindings = (function () {
           return '<tr>'
             + '<td><strong>' + safeText(code) + '</strong><div class="small text-muted">' + safeText(tp('admin_ai.updated_prefix', 'updated: ')) + safeText(formatDate(item.updated_at || '')) + '</div></td>'
             + '<td><input class="form-control form-control-sm" type="number" min="1" step="1" data-ai-retention-days="' + safeText(code) + '" value="' + safeText(String(days > 0 ? days : 30)) + '"></td>'
-            + '<td><button class="btn btn-sm btn-light" type="button" data-ai-retention-save="' + safeText(code) + '">' + safeText(tp('common.save', 'Save')) + '</button></td>'
+            + '<td><button class="btn btn-sm crm-btn-secondary" type="button" data-ai-retention-save="' + safeText(code) + '">' + safeText(tp('common.save', 'Save')) + '</button></td>'
             + '</tr>';
         }).join('');
       }
@@ -22613,8 +22613,8 @@ window.CRM.pageApiBindings = (function () {
           var rowBadgeLabel = info.code === 'ok' && !provider.is_default ? tp('admin_ai.not_used', 'Not used') : (info.code === 'ok' ? tp('common.active', 'Active') : info.label);
           var rowBadgeClass = info.code === 'ok' && !provider.is_default ? 'archived' : info.badgeClass;
           var rowAction = info.code === 'ok'
-            ? '<button class="btn btn-sm btn-light" type="button" data-ai-provider-edit="' + safeText(providerId) + '">' + safeText(tp('admin_ai.btn_configure', 'Configure')) + '</button>'
-            : '<button class="btn btn-sm btn-light" type="button" data-ai-provider-test-row="' + safeText(providerId) + '"' + (provider.credential_is_configured ? '' : ' disabled title="' + safeText(tp('admin_ai.add_secret_first', 'Add the access key first')) + '"') + '>' + safeText(tp('admin_ai.btn_check', 'Check')) + '</button>';
+            ? '<button class="btn btn-sm crm-btn-secondary" type="button" data-ai-provider-edit="' + safeText(providerId) + '">' + safeText(tp('admin_ai.btn_configure', 'Configure')) + '</button>'
+            : '<button class="btn btn-sm crm-btn-secondary" type="button" data-ai-provider-test-row="' + safeText(providerId) + '"' + (provider.credential_is_configured ? '' : ' disabled title="' + safeText(tp('admin_ai.add_secret_first', 'Add the access key first')) + '"') + '>' + safeText(tp('admin_ai.btn_check', 'Check')) + '</button>';
           var defaultAction = provider.is_default ? '' : '<li><button class="dropdown-item" type="button" data-ai-provider-make-default="' + safeText(providerId) + '">' + safeText(tp('admin_ai.make_default', 'Make primary')) + '</button></li>';
           var testDisabled = provider.credential_is_configured ? '' : ' disabled title="' + safeText(tp('admin_ai.add_secret_first', 'Add the access key first')) + '"';
           return '<article class="crm-admin-ai-provider-row">'
@@ -22627,7 +22627,7 @@ window.CRM.pageApiBindings = (function () {
             + '<div class="crm-admin-ai-provider-row-actions">'
               + rowAction
               + '<div class="dropdown">'
-                + '<button class="btn btn-sm btn-light crm-admin-ai-icon-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="' + safeText(tp('admin_ai.aria_actions', 'More actions')) + '"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></button>'
+                + '<button class="btn btn-sm crm-btn-secondary crm-admin-ai-icon-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="' + safeText(tp('admin_ai.aria_actions', 'More actions')) + '"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></button>'
                 + '<ul class="dropdown-menu dropdown-menu-end">'
                   + defaultAction
                   + '<li><button class="dropdown-item" type="button" data-ai-provider-edit="' + safeText(providerId) + '">' + safeText(tp('admin_ai.btn_configure', 'Configure')) + '</button></li>'
@@ -23919,7 +23919,7 @@ window.CRM.pageApiBindings = (function () {
                 + '<select class="form-select form-select-sm" class="form-select form-select-sm crm-field-w-180" data-ai-intent-sensitive="' + safeText(intentCode) + '"><option value="0"' + (sensitive === '0' ? ' selected' : '') + '>' + safeText(tp('admin_ai.no_sensitive_data', 'No sensitive data')) + '</option><option value="1"' + (sensitive === '1' ? ' selected' : '') + '>' + safeText(tp('admin_ai.sensitive_data_allowed', 'Sensitive data allowed')) + '</option></select>'
                 + '<div class="small text-muted w-100">' + safeText(policiesMeta) + '</div>'
               + '</div></td>'
-              + '<td><button class="btn btn-sm btn-light" type="button" data-ai-intent-save="' + safeText(intentCode) + '">' + safeText(tp('common.save', 'Save')) + '</button></td>'
+              + '<td><button class="btn btn-sm crm-btn-secondary" type="button" data-ai-intent-save="' + safeText(intentCode) + '">' + safeText(tp('common.save', 'Save')) + '</button></td>'
               + '</tr>');
           });
         });
@@ -23989,7 +23989,7 @@ window.CRM.pageApiBindings = (function () {
         return '<tr>'
           + '<td><strong>' + safeText(entry.code) + '</strong></td>'
           + '<td><select class="form-select form-select-sm" data-ai-flag-enabled="' + safeText(publicId) + '"><option value="1"' + (isEnabled === '1' ? ' selected' : '') + '>' + safeText(tp('admin_ai.enabled', 'Enabled')) + '</option><option value="0"' + (isEnabled === '0' ? ' selected' : '') + '>' + safeText(tp('admin_ai.disabled', 'Disabled')) + '</option></select></td>'
-          + '<td><button class="btn btn-sm btn-light" type="button" data-ai-flag-save="' + safeText(publicId) + '">' + safeText(tp('common.save', 'Save')) + '</button></td>'
+          + '<td><button class="btn btn-sm crm-btn-secondary" type="button" data-ai-flag-save="' + safeText(publicId) + '">' + safeText(tp('common.save', 'Save')) + '</button></td>'
           + '</tr>';
       }).join('');
     }
@@ -24017,7 +24017,7 @@ window.CRM.pageApiBindings = (function () {
             + '<td><span class="crm-chip">' + safeText(featureFlag || 'ai.cron.*') + '</span></td>'
             + '<td>' + safeText(model || 'default') + '</td>'
             + '<td><select class="form-select form-select-sm" data-ai-cron-enabled="' + safeText(intentCode) + '"><option value="1"' + (isEnabled === '1' ? ' selected' : '') + '>' + safeText(tp('admin_ai.enabled', 'Enabled')) + '</option><option value="0"' + (isEnabled === '0' ? ' selected' : '') + '>' + safeText(tp('admin_ai.disabled', 'Disabled')) + '</option></select></td>'
-            + '<td><button class="btn btn-sm btn-light" type="button" data-ai-cron-save="' + safeText(intentCode) + '">' + safeText(tp('common.save', 'Save')) + '</button></td>'
+            + '<td><button class="btn btn-sm crm-btn-secondary" type="button" data-ai-cron-save="' + safeText(intentCode) + '">' + safeText(tp('common.save', 'Save')) + '</button></td>'
             + '</tr>';
         }).join('');
       }
@@ -24196,7 +24196,7 @@ window.CRM.pageApiBindings = (function () {
             + '<td><strong>' + safeText(intentCode || '—') + '</strong><div class="small text-muted">' + safeText(locale || 'ru-ru') + '</div><div class="small text-muted">' + safeText(preview) + '</div></td>'
             + '<td>' + safeText(String(version)) + '</td>'
             + '<td><span class="crm-badge ' + (isActive === '1' ? 'success' : 'archived') + '">' + safeText(isActive === '1' ? tp('common.active', 'Active') : tp('common.inactive', 'Inactive')) + '</span></td>'
-            + '<td><div class="d-flex gap-1"><button class="btn btn-sm btn-light" type="button" data-ai-prompt-edit="' + safeText(publicId) + '">' + safeText(tp('common.edit', 'Edit')) + '</button><button class="btn btn-sm btn-light" type="button" data-ai-prompt-activate="' + safeText(publicId) + '">' + safeText(tp('admin_ai.activate', 'Activate')) + '</button></div></td>'
+            + '<td><div class="d-flex gap-1"><button class="btn btn-sm crm-btn-secondary" type="button" data-ai-prompt-edit="' + safeText(publicId) + '">' + safeText(tp('common.edit', 'Edit')) + '</button><button class="btn btn-sm crm-btn-secondary" type="button" data-ai-prompt-activate="' + safeText(publicId) + '">' + safeText(tp('admin_ai.activate', 'Activate')) + '</button></div></td>'
             + '</tr>';
         }).join('');
       }
@@ -24225,7 +24225,7 @@ window.CRM.pageApiBindings = (function () {
             + '<td><strong>' + safeText(intentCode || '—') + '</strong><div class="small text-muted">' + safeText(schemaPreview) + '</div></td>'
             + '<td>' + safeText(schemaVersion) + '</td>'
             + '<td><span class="crm-badge ' + (isActive === '1' ? 'success' : 'archived') + '">' + safeText(isActive === '1' ? tp('admin_ai.active_f', 'Active') : tp('admin_ai.inactive_f', 'Inactive')) + '</span></td>'
-            + '<td><div class="d-flex gap-1"><button class="btn btn-sm btn-light" type="button" data-ai-schema-edit="' + safeText(publicId) + '">' + safeText(tp('common.edit', 'Edit')) + '</button><button class="btn btn-sm btn-light" type="button" data-ai-schema-activate="' + safeText(publicId) + '">' + safeText(tp('admin_ai.activate', 'Activate')) + '</button></div></td>'
+            + '<td><div class="d-flex gap-1"><button class="btn btn-sm crm-btn-secondary" type="button" data-ai-schema-edit="' + safeText(publicId) + '">' + safeText(tp('common.edit', 'Edit')) + '</button><button class="btn btn-sm crm-btn-secondary" type="button" data-ai-schema-activate="' + safeText(publicId) + '">' + safeText(tp('admin_ai.activate', 'Activate')) + '</button></div></td>'
             + '</tr>';
         }).join('');
       }
@@ -25067,7 +25067,7 @@ window.CRM.pageApiBindings = (function () {
           actionTd.appendChild(document.createTextNode(' '));
 
           var saveBtn = document.createElement('button');
-          saveBtn.className = 'btn btn-sm btn-primary';
+          saveBtn.className = 'btn btn-sm crm-btn-primary';
           saveBtn.type = 'button';
           saveBtn.setAttribute('data-retention-save', field);
           saveBtn.textContent = tp('common.save', 'Save');
@@ -25125,12 +25125,12 @@ window.CRM.pageApiBindings = (function () {
 
       html += '<div class="col-md-3">';
       html += '<label class="form-label small text-muted mb-1">' + safeText(tp('admin_settings.cache_ttl_label', 'Storage time (sec)')) + '</label>';
-      html += '<div class="input-group input-group-sm"><input type="number" class="form-control form-control-sm" id="adminCacheTtlInput" min="1" max="86400" value="' + ttl + '"><button class="btn btn-sm btn-outline-primary" id="adminCacheTtlSaveBtn" type="button">' + safeText(tp('admin_settings.btn_apply', 'Apply')) + '</button></div>';
+      html += '<div class="input-group input-group-sm"><input type="number" class="form-control form-control-sm" id="adminCacheTtlInput" min="1" max="86400" value="' + ttl + '"><button class="btn btn-sm crm-btn-primary" id="adminCacheTtlSaveBtn" type="button">' + safeText(tp('admin_settings.btn_apply', 'Apply')) + '</button></div>';
       html += '</div>';
 
       html += '<div class="col-md-3"><label class="form-label small text-muted mb-1">' + safeText(tp('admin_settings.cache_files_label', 'Cache files')) + '</label><div class="fw-semibold">' + fileCount + '</div></div>';
       html += '<div class="col-md-3"><label class="form-label small text-muted mb-1">' + safeText(tp('admin_settings.cache_size_label', 'Disk size')) + '</label><div class="fw-semibold">' + formatBytes(sizeBytes) + '</div></div>';
-      html += '<div class="col-md-3 d-flex align-items-end"><button id="adminCacheClearBtn" class="btn btn-sm btn-outline-danger" type="button">' + safeText(tp('admin_settings.btn_clear_cache', 'Clear cache')) + '</button></div>';
+      html += '<div class="col-md-3 d-flex align-items-end"><button id="adminCacheClearBtn" class="btn btn-sm crm-btn-danger" type="button">' + safeText(tp('admin_settings.btn_clear_cache', 'Clear cache')) + '</button></div>';
       html += '</div>';
       section.innerHTML = html;
 
@@ -25939,7 +25939,7 @@ window.CRM.pageApiBindings = (function () {
     row.className = 'row g-2 mb-2 align-items-center';
     row.innerHTML = '<div class="col-5"><input class="form-control extra-field-key" placeholder="' + safeAttr(tp('counterparty_detail.extra_key_placeholder', 'Field name')) + '" value="' + safeAttr(key || '') + '" maxlength="128"></div>'
       + '<div class="col-5"><input class="form-control extra-field-value" placeholder="' + safeAttr(tp('counterparty_detail.extra_value_placeholder', 'Value')) + '" value="' + safeAttr(value || '') + '" maxlength="512"></div>'
-      + '<div class="col-2 text-end"><button type="button" class="btn btn-sm btn-outline-danger btn-remove-extra-field"><span class="crm-icon"><i class="fa-solid fa-trash"></i></span></button></div>';
+      + '<div class="col-2 text-end"><button type="button" class="btn btn-sm crm-btn-danger btn-remove-extra-field"><span class="crm-icon"><i class="fa-solid fa-trash"></i></span></button></div>';
     row.querySelector('.btn-remove-extra-field').addEventListener('click', function () { row.remove(); });
     container.appendChild(row);
   }

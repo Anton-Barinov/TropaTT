@@ -620,6 +620,38 @@ html[data-theme="dark"] .crm-icon-button-danger:hover {
   color: var(--crm-danger);
 }
 
+/* Warning buttons in dark theme */
+html[data-theme="dark"] .crm-btn-warning,
+html[data-theme="dark"] .btn-warning,
+html[data-theme="dark"] .btn-outline-warning {
+  background: var(--crm-surface-2);
+  border-color: var(--crm-warning-border, var(--crm-border));
+  color: var(--crm-warning);
+  box-shadow: none;
+}
+html[data-theme="dark"] .crm-btn-warning:hover,
+html[data-theme="dark"] .btn-warning:hover,
+html[data-theme="dark"] .btn-outline-warning:hover {
+  background: var(--crm-warning-soft, var(--crm-surface-3, var(--crm-surface-2)));
+  color: var(--crm-warning);
+}
+
+/* Success buttons in dark theme */
+html[data-theme="dark"] .crm-btn-success,
+html[data-theme="dark"] .btn-success,
+html[data-theme="dark"] .btn-outline-success {
+  background: var(--crm-surface-2);
+  border-color: var(--crm-success-border, var(--crm-border));
+  color: var(--crm-success);
+  box-shadow: none;
+}
+html[data-theme="dark"] .crm-btn-success:hover,
+html[data-theme="dark"] .btn-success:hover,
+html[data-theme="dark"] .btn-outline-success:hover {
+  background: var(--crm-success-soft, var(--crm-surface-3, var(--crm-surface-2)));
+  color: var(--crm-success);
+}
+
 /* Badges, chips and buttons inside .crm-content: no bootstrap focus/active
    box-shadows (blue/white glows look like artifacts on dark surfaces).
    The :focus-visible ring (ui.css, !important) still applies for keyboard. */

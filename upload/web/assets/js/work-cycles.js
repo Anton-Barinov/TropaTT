@@ -319,13 +319,13 @@
         '</div>' +
       '</div>' +
       '<div class="d-flex gap-1 mt-2 flex-wrap">' +
-        (cycle.status === 'planned' ? '<button class="btn btn-sm btn-outline-success" onclick="window.startCycle(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-play"></i> ' + t('cycles.btn_start_small', 'Старт') + '</button>' : '') +
+        (cycle.status === 'planned' ? '<button class="btn btn-sm crm-btn-success" onclick="window.startCycle(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-play"></i> ' + t('cycles.btn_start_small', 'Старт') + '</button>' : '') +
         (totalTasks === 0 && cycle.status !== 'completed' && cycle.status !== 'archived' ? '<button class="btn btn-sm crm-btn-primary" onclick="window.openCycleDetail(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-list-check"></i> ' + t('cycles.btn_plan_tasks', 'Запланировать задачи') + '</button>' : '') +
         (totalTasks > 0 ? '<button class="btn btn-sm crm-btn-secondary" onclick="window.openCycleDetail(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-chart-simple"></i> ' + t('cycles.btn_open_detail', 'Открыть') + '</button>' : '') +
-        (cycle.status !== 'completed' && cycle.status !== 'archived' ? '<button class="btn btn-sm btn-outline-warning" onclick="window.openCompleteCycle(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-check"></i> ' + t('cycles.btn_complete_small', 'Завершить') + '</button>' : '') +
-        '<button class="btn btn-sm btn-outline-secondary" onclick="window.openCycleModal(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-pen"></i></button>' +
-        (cycle.archived_at || cycle.status === 'completed' || cycle.status === 'archived' ? '<button class="btn btn-sm btn-outline-secondary" onclick="window.reopenCycle(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-rotate-left"></i> ' + t('cycles.btn_reopen_small', 'Возобновить') + '</button>' : '') +
-        '<button class="btn btn-sm btn-outline-secondary" onclick="window.archiveCycle(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-archive"></i></button>' +
+        (cycle.status !== 'completed' && cycle.status !== 'archived' ? '<button class="btn btn-sm crm-btn-warning" onclick="window.openCompleteCycle(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-check"></i> ' + t('cycles.btn_complete_small', 'Завершить') + '</button>' : '') +
+        '<button class="btn btn-sm crm-btn-secondary" onclick="window.openCycleModal(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-pen"></i></button>' +
+        (cycle.archived_at || cycle.status === 'completed' || cycle.status === 'archived' ? '<button class="btn btn-sm crm-btn-secondary" onclick="window.reopenCycle(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-rotate-left"></i> ' + t('cycles.btn_reopen_small', 'Возобновить') + '</button>' : '') +
+        '<button class="btn btn-sm crm-btn-secondary" onclick="window.archiveCycle(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-archive"></i></button>' +
       '</div>';
 
     return card;
@@ -635,7 +635,7 @@
           html += '<div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2">' +
             '<div><a href="index.php?route=task-detail&id=' + encodeURIComponent(task.task_public_id) + '" class="' + statusClass + '">' + escapeHtml(task.task_title) + '</a>' +
             '<br><small class="text-muted">' + escapeHtml(task.task_status || '') + (task.assignee_name ? ' &middot; ' + escapeHtml(task.assignee_name) : '') + '</small></div>' +
-            '<button class="btn btn-sm btn-outline-danger" onclick="window.removeTaskFromCycle(\'' + publicId + '\',\'' + encodeURIComponent(task.task_public_id) + '\')"><i class="fa-solid fa-xmark"></i></button>' +
+            '<button class="btn btn-sm crm-btn-danger" onclick="window.removeTaskFromCycle(\'' + publicId + '\',\'' + encodeURIComponent(task.task_public_id) + '\')"><i class="fa-solid fa-xmark"></i></button>' +
             '</div>';
         });
         html += '</div>';
@@ -770,8 +770,8 @@
 
     function toggleHtml(mode) {
       if (!hasPoints) return '';
-      var taskBtn = '<button type="button" class="btn btn-sm btn-outline-secondary crm-segmented-filter-btn' + (mode === 'tasks' ? ' active' : '') + '" onclick="window.setCycleBurndownMode(\'tasks\')">' + t('cycles.burndown_metric_tasks', 'Задачи') + '</button>';
-      var ptsBtn = '<button type="button" class="btn btn-sm btn-outline-secondary crm-segmented-filter-btn' + (mode === 'points' ? ' active' : '') + '" onclick="window.setCycleBurndownMode(\'points\')">' + t('cycles.burndown_metric_points', 'Очки') + (unitLabel ? ' (' + escapeHtml(unitLabel) + ')' : '') + '</button>';
+      var taskBtn = '<button type="button" class="btn btn-sm crm-btn-secondary crm-segmented-filter-btn' + (mode === 'tasks' ? ' active' : '') + '" onclick="window.setCycleBurndownMode(\'tasks\')">' + t('cycles.burndown_metric_tasks', 'Задачи') + '</button>';
+      var ptsBtn = '<button type="button" class="btn btn-sm crm-btn-secondary crm-segmented-filter-btn' + (mode === 'points' ? ' active' : '') + '" onclick="window.setCycleBurndownMode(\'points\')">' + t('cycles.burndown_metric_points', 'Очки') + (unitLabel ? ' (' + escapeHtml(unitLabel) + ')' : '') + '</button>';
       return '<div class="btn-group btn-group-sm flex-wrap crm-segmented-filter mb-2" role="group" aria-label="' + t('cycles.burndown_metric_switch', 'Единица измерения диаграммы') + '">' + taskBtn + ptsBtn + '</div>';
     }
 

@@ -13,9 +13,9 @@
     <div class="crm-gantt-head-tools">
       <div class="crm-gantt-controls">
         <div class="btn-group" role="group" aria-label="<?= htmlspecialchars($t('gantt.scale_aria', 'gantt scale'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="gantt.scale_aria">
-          <button class="btn btn-sm btn-outline-secondary" data-gantt-zoom="days" aria-pressed="false" data-i18n="gantt.zoom_days"><?= htmlspecialchars($t('gantt.zoom_days', 'Дни'), ENT_QUOTES, 'UTF-8') ?></button>
-          <button class="btn btn-sm btn-outline-secondary active" data-gantt-zoom="weeks" aria-pressed="true" data-i18n="gantt.zoom_weeks"><?= htmlspecialchars($t('gantt.zoom_weeks', 'Недели'), ENT_QUOTES, 'UTF-8') ?></button>
-          <button class="btn btn-sm btn-outline-secondary" data-gantt-zoom="months" aria-pressed="false" data-i18n="gantt.zoom_months"><?= htmlspecialchars($t('gantt.zoom_months', 'Месяцы'), ENT_QUOTES, 'UTF-8') ?></button>
+          <button class="btn btn-sm crm-btn-secondary" data-gantt-zoom="days" aria-pressed="false" data-i18n="gantt.zoom_days"><?= htmlspecialchars($t('gantt.zoom_days', 'Дни'), ENT_QUOTES, 'UTF-8') ?></button>
+          <button class="btn btn-sm crm-btn-secondary active" data-gantt-zoom="weeks" aria-pressed="true" data-i18n="gantt.zoom_weeks"><?= htmlspecialchars($t('gantt.zoom_weeks', 'Недели'), ENT_QUOTES, 'UTF-8') ?></button>
+          <button class="btn btn-sm crm-btn-secondary" data-gantt-zoom="months" aria-pressed="false" data-i18n="gantt.zoom_months"><?= htmlspecialchars($t('gantt.zoom_months', 'Месяцы'), ENT_QUOTES, 'UTF-8') ?></button>
         </div>
       </div>
       <div class="crm-gantt-quick-tools" id="ganttQuickTools">

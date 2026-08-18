@@ -108,8 +108,8 @@
         <div class="team-modal-footer">
           <div class="team-footer-spacer"></div>
           <div class="team-footer-actions">
-            <button class="btn team-btn-cancel" type="button" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
-            <button class="btn team-btn-primary" type="submit" data-create-save>
+            <button class="btn btn crm-btn-secondary crm-btn-compact" type="button" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+            <button class="btn btn crm-btn-primary crm-btn-compact" type="submit" data-create-save>
               <span data-create-save-text data-i18n="page.create"><?= htmlspecialchars($t('page.create', 'Создать'), ENT_QUOTES, 'UTF-8') ?></span>
               <span class="spinner-border spinner-border-sm" data-create-save-spinner hidden></span>
             </button>
@@ -225,13 +225,13 @@
 
         <div class="team-modal-footer">
           <div class="team-footer-danger">
-            <button class="btn team-btn-danger" type="button" data-team-delete>
+            <button class="btn btn crm-btn-danger-icon crm-btn-compact" type="button" data-team-delete>
               <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-trash-can"></i></span>
             </button>
           </div>
           <div class="team-footer-actions">
-            <button class="btn team-btn-cancel" type="button" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
-            <button class="btn team-btn-primary" type="submit" data-edit-save>
+            <button class="btn btn crm-btn-secondary crm-btn-compact" type="button" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+            <button class="btn btn crm-btn-primary crm-btn-compact" type="submit" data-edit-save>
               <span class="team-save-dot" data-edit-dirty-dot hidden></span>
               <span data-edit-save-text data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></span>
               <span class="spinner-border spinner-border-sm" data-edit-save-spinner hidden></span>

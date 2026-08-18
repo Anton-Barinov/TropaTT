@@ -566,7 +566,7 @@ window.CRM.ai = (function () {
     <div class="d-flex gap-2">\
       <button type="button" class="btn btn-sm crm-btn-primary" id="aiSuggestionDrawerApplyBtn" disabled>' + t('js.ai.apply', 'Apply selected') + '</button>\
       <button type="button" class="btn btn-sm crm-btn-danger" id="aiSuggestionDrawerDismissBtn">' + t('js.ai.dismiss', 'Dismiss') + '</button>\
-      <button type="button" class="btn btn-sm btn-light" id="aiSuggestionDrawerRefreshBtn">' + t('js.ai.refresh', 'Refresh') + '</button>\
+      <button type="button" class="btn btn-sm crm-btn-secondary" id="aiSuggestionDrawerRefreshBtn">' + t('js.ai.refresh', 'Refresh') + '</button>\
     </div>\
   </div>\
 </div>');

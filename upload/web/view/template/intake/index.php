@@ -128,7 +128,7 @@
     <div class="mb-3"><label class="form-label" data-i18n="intake.field_due"><?= htmlspecialchars($t('intake.field_due', 'Желаемый срок'), ENT_QUOTES, 'UTF-8') ?></label><input class="form-control" name="due_at" type="datetime-local"></div>
   </form>
 </div><div class="modal-footer">
-  <button type="button" class="btn btn-light" data-bs-dismiss="modal" data-i18n="intake.btn_cancel"><?= htmlspecialchars($t('intake.btn_cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+  <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="intake.btn_cancel"><?= htmlspecialchars($t('intake.btn_cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
   <button type="button" class="btn crm-btn-primary" id="intakeCreateSaveBtn" data-i18n="intake.btn_save"><?= htmlspecialchars($t('intake.btn_save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
 </div></div></div></div>
 
@@ -146,7 +146,7 @@
     <input type="hidden" name="intake_public_id" value="">
   </form>
 </div><div class="modal-footer">
-  <button type="button" class="btn btn-light" data-bs-dismiss="modal" data-i18n="intake.btn_cancel"><?= htmlspecialchars($t('intake.btn_cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+  <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="intake.btn_cancel"><?= htmlspecialchars($t('intake.btn_cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
   <button type="button" class="btn crm-btn-primary" id="intakeAcceptConfirmBtn" data-i18n="intake.btn_accept"><?= htmlspecialchars($t('intake.btn_accept', 'Принять'), ENT_QUOTES, 'UTF-8') ?></button>
 </div></div></div></div>
 
@@ -157,7 +157,7 @@
     <input type="hidden" name="intake_public_id" value="">
   </form>
 </div><div class="modal-footer">
-  <button type="button" class="btn btn-light" data-bs-dismiss="modal" data-i18n="intake.btn_cancel"><?= htmlspecialchars($t('intake.btn_cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+  <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="intake.btn_cancel"><?= htmlspecialchars($t('intake.btn_cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
   <button type="button" class="btn crm-btn-danger" id="intakeRejectConfirmBtn" data-i18n="intake.btn_reject"><?= htmlspecialchars($t('intake.btn_reject', 'Отклонить'), ENT_QUOTES, 'UTF-8') ?></button>
 </div></div></div></div>
 
@@ -169,7 +169,7 @@
     <input type="hidden" name="intake_public_id" value="">
   </form>
 </div><div class="modal-footer">
-  <button type="button" class="btn btn-light" data-bs-dismiss="modal" data-i18n="intake.btn_cancel"><?= htmlspecialchars($t('intake.btn_cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+  <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="intake.btn_cancel"><?= htmlspecialchars($t('intake.btn_cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
   <button type="button" class="btn crm-btn-warning" id="intakeSnoozeConfirmBtn" data-i18n="intake.btn_snooze"><?= htmlspecialchars($t('intake.btn_snooze', 'Отложить'), ENT_QUOTES, 'UTF-8') ?></button>
 </div></div></div></div>
 
@@ -187,7 +187,7 @@
     <small class="text-muted" data-i18n="intake.duplicate_hint"><?= htmlspecialchars($t('intake.duplicate_hint', 'Выберите заявку или укажите ID задачи.'), ENT_QUOTES, 'UTF-8') ?></small>
   </form>
 </div><div class="modal-footer">
-  <button type="button" class="btn btn-light" data-bs-dismiss="modal" data-i18n="intake.btn_cancel"><?= htmlspecialchars($t('intake.btn_cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+  <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="intake.btn_cancel"><?= htmlspecialchars($t('intake.btn_cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
   <button type="button" class="btn crm-btn-secondary" id="intakeDuplicateConfirmBtn" data-i18n="intake.btn_duplicate"><?= htmlspecialchars($t('intake.btn_duplicate', 'Пометить дубликатом'), ENT_QUOTES, 'UTF-8') ?></button>
 </div></div></div></div>
 
@@ -202,7 +202,7 @@
     <input type="hidden" name="action" value="">
   </form>
 </div><div class="modal-footer">
-  <button type="button" class="btn btn-light" data-bs-dismiss="modal" data-i18n="intake.btn_cancel"><?= htmlspecialchars($t('intake.btn_cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+  <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="intake.btn_cancel"><?= htmlspecialchars($t('intake.btn_cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
   <button type="button" class="btn crm-btn-primary" id="intakeBulkConfirmBtn" data-i18n="intake.bulk_apply"><?= htmlspecialchars($t('intake.bulk_apply', 'Применить'), ENT_QUOTES, 'UTF-8') ?></button>
 </div></div></div></div>
 
