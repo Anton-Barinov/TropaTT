@@ -12670,7 +12670,7 @@ a.task-tag:hover {
 
 .crm-my-day-page .crm-overdue-table-wrap,
 .crm-my-week-page .crm-overdue-table-wrap {
-    max-height: 520px;
+    max-height: 500px;
     overflow-y: auto;
     scrollbar-width: thin;
 }
@@ -13249,7 +13249,7 @@ a.task-tag:hover {
 
 .crm-planner-page .crm-planner-task-table {
     width: 100%;
-    table-layout: fixed;
+    table-layout: fixed !important;
 }
 
 .crm-planner-page .crm-planner-task-table thead th {
