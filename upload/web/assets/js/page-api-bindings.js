@@ -16528,6 +16528,59 @@ window.CRM.pageApiBindings = (function () {
     }).join('');
   }
 
+  // Shared planner task-row helpers (used by both my-day and my-week pages)
+  function plannerTaskChipLabel(item) {
+    var parentId = String(item.parent_task_public_id || '').trim();
+    var hasSubtasks = String(item.has_subtasks || '') === '1' || item.has_subtasks === 1 || item.has_subtasks === true;
+    if (parentId) {
+      return '<span class="crm-chip crm-chip-subtask">' + (window.CRM.i18n ? window.CRM.i18n.t('my_day.chip_subtask', 'Подзадача') : 'Подзадача') + '</span>'
+        + '<a class="crm-task-parent-link" href="' + taskLink(parentId) + '">' + (window.CRM.i18n ? window.CRM.i18n.t('my_day.parent_link', 'Родитель') : 'Родитель') + ': '
+        + safeText(item.parent_task_title || parentId) + '</a>';
+    }
+    if (hasSubtasks) {
+      return '<span class="crm-chip crm-chip-parent">' + (window.CRM.i18n ? window.CRM.i18n.t('my_day.chip_parent', 'Родительская задача') : 'Родительская задача') + '</span>';
+    }
+    return '<span class="crm-chip crm-chip-plain">' + (window.CRM.i18n ? window.CRM.i18n.t('my_day.chip_task', 'Задача') : 'Задача') + '</span>';
+  }
+
+  function renderPlannerTaskRow(task, mode) {
+    var it = window.CRM.i18n;
+    var pt = it ? it.t.bind(it) : function (k, f) { return f; };
+    var pLabels = { urgent: pt('priority.urgent', 'Срочно'), high: pt('priority.high', 'Высокий'), normal: pt('priority.normal', 'Средний'), low: pt('priority.low', 'Низкий') };
+    var pCode = task.priority_code || 'normal';
+    var statusBadge = '<span class="crm-badge ' + statusClass(task.status_code) + '">' + safeText(statusLabel(task.status_code)) + '</span>';
+    var pBadge = '<span class="crm-chip crm-priority-' + pCode + '">' + (pLabels[pCode] || pCode) + '</span>';
+    var taskTitle = '<div class="crm-task-row-main"><a href="' + taskLink(task.public_id) + '">' + safeText(task.title) + '</a></div>'
+      + '<div class="crm-task-row-meta">' + plannerTaskChipLabel(task) + '</div>';
+    var doneBtn = '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-task-done="' + safeText(task.public_id) + '" data-row-version="' + (task.row_version || 1) + '">' + pt(mode === 'day' || mode === 'overdue' ? 'my_day.done_btn' : 'my_week.done_btn', 'Выполнить') + '</button>';
+    var openLink = '<a class="btn btn-sm crm-btn-subtle crm-btn-compact" href="' + taskLink(task.public_id) + '">' + pt('my_day.open_link', 'Открыть') + '</a>';
+    var rowCls = mode === 'overdue' ? ' class="crm-task-row-overdue"' : '';
+    var actions = '<div class="crm-task-row-actions-wrap">' + doneBtn + openLink + '</div>';
+    var assignee = task.assignee_name ? safeText(task.assignee_name) : pt('my_week.assignee_none', 'Не назначен');
+    return '<tr' + rowCls + '><td>' + taskTitle + '</td>'
+      + '<td>' + assignee + '</td>'
+      + '<td class="crm-cell-state">'
+      + '<div class="crm-state-line"><span class="crm-task-due">' + safeText(formatDate(task.due_at)) + '</span></div>'
+      + '<div class="crm-state-line">' + statusBadge + '</div>'
+      + '<div class="crm-state-line"><span class="crm-state-label">' + safeText(pt('my_day.th_priority', 'Приоритет')) + ':</span> ' + pBadge + '</div>'
+      + '</td>'
+      + '<td>' + actions + '</td></tr>';
+  }
+
+  async function plannerHandleTaskDone(publicId, rowVersion) {
+    var it = window.CRM.i18n;
+    var pt = it ? it.t.bind(it) : function (k, f) { return f; };
+    try {
+      await request('api/v1/tasks/' + encodeURIComponent(publicId), { method: 'PATCH', body: { status: 'done', row_version: Number(rowVersion) } });
+      notify(pt('my_day.done_success', 'Задача выполнена'), 'success');
+      var page = document.body.getAttribute('data-page');
+      if (page === 'day') await renderMyDayPage();
+      else if (page === 'week') await renderMyWeekPage();
+    } catch (e) {
+      notify(pt('js.user.update_fail', 'Не удалось обновить задачу'), 'error');
+    }
+  }
+
   async function renderMyDayPage() {
     var myDayAiCard = document.getElementById('myDayAiCard');
     var myDayAiState = document.getElementById('myDayAiState');
@@ -16720,77 +16773,20 @@ window.CRM.pageApiBindings = (function () {
     var tasksEnvelope = myDayData[1];
     var tasks = tasksEnvelope ? mapItems(tasksEnvelope).filter(function (task) { return !closedStatuses[String(task.status_code || '').toLowerCase()]; }) : [];
 
-    function taskChipLabel(item) {
-      var parentId = String(item.parent_task_public_id || '').trim();
-      var hasSubtasks = String(item.has_subtasks || '') === '1' || item.has_subtasks === 1 || item.has_subtasks === true;
-      if (parentId) {
-        return '<span class="crm-chip crm-chip-subtask">' + _t('my_day.chip_subtask', 'Подзадача') + '</span>'
-          + '<a class="crm-task-parent-link" href="' + taskLink(parentId) + '">' + _t('my_day.parent_link', 'Родитель') + ': '
-          + safeText(item.parent_task_title || parentId) + '</a>';
-      }
-      if (hasSubtasks) {
-        return '<span class="crm-chip crm-chip-parent">' + _t('my_day.chip_parent', 'Родительская задача') + '</span>';
-      }
-      return '<span class="crm-chip crm-chip-plain">' + _t('my_day.chip_task', 'Задача') + '</span>';
-    }
-
-    function renderTaskRow(task, mode) {
-      var pLabels = { urgent: _t('priority.urgent', 'Срочно'), high: _t('priority.high', 'Высокий'), normal: _t('priority.normal', 'Средний'), low: _t('priority.low', 'Низкий') };
-      var pCode = task.priority_code || 'normal';
-      var statusBadge = '<span class="crm-badge ' + statusClass(task.status_code) + '">' + safeText(statusLabel(task.status_code)) + '</span>';
-      var pBadge = '<span class="crm-chip crm-priority-' + pCode + '">' + (pLabels[pCode] || pCode) + '</span>';
-      var taskTitle = '<div class="crm-task-row-main"><a href="' + taskLink(task.public_id) + '">' + safeText(task.title) + '</a></div>'
-        + '<div class="crm-task-row-meta">' + taskChipLabel(task) + '</div>';
-      var doneBtn = '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-task-done="' + safeText(task.public_id) + '" data-row-version="' + (task.row_version || 1) + '">' + _t(mode === 'day' ? 'my_day.done_btn' : 'my_week.done_btn', 'Выполнить') + '</button>';
-      var openLink = '<a class="btn btn-sm crm-btn-subtle crm-btn-compact" href="' + taskLink(task.public_id) + '">' + _t('my_day.open_link', 'Открыть') + '</a>';
-      var rowCls = mode === 'overdue' ? ' class="crm-task-row-overdue"' : '';
-      var actions = '<div class="crm-task-row-actions-wrap">' + doneBtn + openLink + '</div>';
-      if (mode === 'day' || mode === 'overdue') {
-        // The three state columns (due/status/priority) are merged into one.
-        return '<tr' + rowCls + '><td>' + taskTitle + '</td>'
-          + '<td class="crm-cell-state">'
-          + '<div class="crm-state-line"><span class="crm-task-due">' + safeText(formatDate(task.due_at)) + '</span></div>'
-          + '<div class="crm-state-line">' + statusBadge + '</div>'
-          + '<div class="crm-state-line"><span class="crm-state-label">' + safeText(_t('my_day.th_priority', 'Приоритет')) + ':</span> ' + pBadge + '</div>'
-          + '</td>'
-          + '<td>' + actions + '</td></tr>';
-      }
-      var assignee = task.assignee_name ? safeText(task.assignee_name) : _t('my_week.assignee_none', 'Не назначен');
-      return '<tr' + rowCls + '><td>' + taskTitle + '</td>'
-        + '<td>' + assignee + '</td>'
-        + '<td>' + pBadge + '</td>'
-        + '<td>' + statusBadge + '</td>'
-        + '<td>' + safeText(formatDate(task.due_at)) + '</td>'
-        + '<td>' + actions + '</td></tr>';
-    }
-
-    async function handleTaskDone(publicId, rowVersion) {
-      try {
-        await request('api/v1/tasks/' + encodeURIComponent(publicId), { method: 'PATCH', body: { status: 'done', row_version: Number(rowVersion) } });
-        notify(_t('my_day.done_success', 'Задача выполнена'), 'success');
-        // Re-render the page to refresh task lists
-        var page = document.body.getAttribute('data-page');
-        if (page === 'day') await renderMyDayPage();
-        else if (page === 'week') await renderMyWeekPage();
-      } catch (e) {
-        notify(_t('js.user.update_fail', 'Не удалось обновить задачу'), 'error');
-      }
-    }
-
     // Render overdue tasks
     var overdueTbody = document.getElementById('myDayOverdueTableBody');
     if (overdueTbody) {
       overdueTbody.innerHTML = overdueTasks.length > 0
-        ? overdueTasks.map(function (t) { return renderTaskRow(t, 'overdue'); }).join('')
-        : '<tr><td colspan="3" class="text-muted">' + _t('my_day.overdue_empty', 'Нет просроченных задач') + '</td></tr>';
+        ? overdueTasks.map(function (t) { return renderPlannerTaskRow(t, 'overdue'); }).join('')
+        : '<tr><td colspan="4" class="text-muted">' + _t('my_day.overdue_empty', 'Нет просроченных задач') + '</td></tr>';
     }
 
     // Render today's tasks
     var tbody = document.getElementById('myDayTasksTableBody');
     if (tbody) {
       tbody.innerHTML = tasks.length > 0
-        ? tasks.map(function (t) { return renderTaskRow(t, 'day'); }).join('')
-        : '<tr><td colspan="3" class="text-muted">' + _t('my_day.today_empty', 'Нет задач на сегодня') + '</td></tr>';
+        ? tasks.map(function (t) { return renderPlannerTaskRow(t, 'day'); }).join('')
+        : '<tr><td colspan="4" class="text-muted">' + _t('my_day.today_empty', 'Нет задач на сегодня') + '</td></tr>';
     }
 
     // Attach event delegation for done buttons on both tables
@@ -16800,7 +16796,7 @@ window.CRM.pageApiBindings = (function () {
         var btn = e.target.closest('[data-task-done]');
         if (btn) {
           e.preventDefault();
-          handleTaskDone(btn.getAttribute('data-task-done'), btn.getAttribute('data-row-version'));
+          plannerHandleTaskDone(btn.getAttribute('data-task-done'), btn.getAttribute('data-row-version'));
         }
       });
     });
@@ -17125,40 +17121,6 @@ window.CRM.pageApiBindings = (function () {
         metricsEl.innerHTML = tiles;
       }
 
-      function weekChipLabel(item) {
-        var parentId = String(item.parent_task_public_id || '').trim();
-        var hasSubtasks = String(item.has_subtasks || '') === '1' || item.has_subtasks === 1 || item.has_subtasks === true;
-        if (parentId) {
-          return '<span class="crm-chip crm-chip-subtask">' + _t('my_week.chip_subtask', 'Подзадача') + '</span>'
-            + '<a class="crm-task-parent-link" href="' + taskLink(parentId) + '">' + _t('my_week.parent_link', 'Родитель') + ': '
-            + safeText(item.parent_task_title || parentId) + '</a>';
-        }
-        if (hasSubtasks) {
-          return '<span class="crm-chip crm-chip-parent">' + _t('my_week.chip_parent', 'Родительская задача') + '</span>';
-        }
-        return '<span class="crm-chip crm-chip-plain">' + _t('my_week.chip_task', 'Задача') + '</span>';
-      }
-
-      function weekTaskRow(task, rowClass) {
-        var pLabels = { urgent: _t('priority.urgent', 'Срочно'), high: _t('priority.high', 'Высокий'), normal: _t('priority.normal', 'Средний'), low: _t('priority.low', 'Низкий') };
-        var pCode = task.priority_code || 'normal';
-        var pBadge = '<span class="crm-chip crm-priority-' + pCode + '">' + (pLabels[pCode] || pCode) + '</span>';
-        var statusBadge = '<span class="crm-badge ' + statusClass(task.status_code) + '">' + safeText(statusLabel(task.status_code)) + '</span>';
-        var assignee = task.assignee_name ? safeText(task.assignee_name) : _t('my_week.assignee_none', 'Не назначен');
-        var taskTitle = '<div class="crm-task-row-main"><a href="' + taskLink(task.public_id) + '">' + safeText(task.title) + '</a></div>'
-          + '<div class="crm-task-row-meta">' + weekChipLabel(task) + '</div>';
-        var doneBtn = '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-task-done="' + safeText(task.public_id) + '" data-row-version="' + (task.row_version || 1) + '">' + _t('my_week.done_btn', 'Выполнить') + '</button>';
-        var openLink = '<a class="btn btn-sm crm-btn-subtle crm-btn-compact" href="' + taskLink(task.public_id) + '">' + _t('my_week.open_link', 'Открыть') + '</a>';
-        var cls = rowClass ? ' class="' + rowClass + '"' : '';
-        var actions = '<div class="crm-task-row-actions-wrap">' + doneBtn + openLink + '</div>';
-        return '<tr' + cls + '><td>' + taskTitle + '</td>'
-          + '<td>' + assignee + '</td>'
-          + '<td>' + pBadge + '</td>'
-          + '<td>' + statusBadge + '</td>'
-          + '<td>' + safeText(formatDate(task.due_at)) + '</td>'
-          + '<td>' + actions + '</td></tr>';
-      }
-
       try {
         var overdueTbody = document.getElementById('myWeekOverdueTableBody');
         if (overdueTbody) {
@@ -17166,12 +17128,12 @@ window.CRM.pageApiBindings = (function () {
             var overdueGroups = groupTasksByDay(weekOverdueTasks);
             var overdueHtml = '';
             Object.keys(overdueGroups).forEach(function (key) {
-              var header = '<tr class="crm-week-day-group"><td colspan="6"><strong>' + getDayLabel(key) + '</strong></td></tr>';
-              overdueHtml += header + overdueGroups[key].map(function (t) { return weekTaskRow(t, 'crm-task-row-overdue'); }).join('');
+              var header = '<tr class="crm-week-day-group"><td colspan="4"><strong>' + getDayLabel(key) + '</strong></td></tr>';
+              overdueHtml += header + overdueGroups[key].map(function (t) { return renderPlannerTaskRow(t, 'overdue'); }).join('');
             });
             overdueTbody.innerHTML = overdueHtml;
           } else {
-            overdueTbody.innerHTML = '<tr><td colspan="6" class="text-muted">' + _t('my_week.overdue_empty', 'Нет просроченных задач') + '</td></tr>';
+            overdueTbody.innerHTML = '<tr><td colspan="4" class="text-muted">' + _t('my_week.overdue_empty', 'Нет просроченных задач') + '</td></tr>';
           }
         }
 
@@ -17181,12 +17143,12 @@ window.CRM.pageApiBindings = (function () {
             var taskGroups = groupTasksByDay(weekTasks);
             var tasksHtml = '';
             Object.keys(taskGroups).forEach(function (key) {
-              var header = '<tr class="crm-week-day-group"><td colspan="6"><strong>' + getDayLabel(key) + '</strong></td></tr>';
-              tasksHtml += header + taskGroups[key].map(function (t) { return weekTaskRow(t); }).join('');
+              var header = '<tr class="crm-week-day-group"><td colspan="4"><strong>' + getDayLabel(key) + '</strong></td></tr>';
+              tasksHtml += header + taskGroups[key].map(function (t) { return renderPlannerTaskRow(t, 'week'); }).join('');
             });
             tbody.innerHTML = tasksHtml;
           } else {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-muted">' + _t('my_week.week_empty', 'Нет задач на неделю') + '</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" class="text-muted">' + _t('my_week.week_empty', 'Нет задач на неделю') + '</td></tr>';
           }
         }
 
