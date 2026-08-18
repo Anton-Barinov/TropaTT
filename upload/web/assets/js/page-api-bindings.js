@@ -618,6 +618,33 @@ window.CRM.pageApiBindings = (function () {
     return window.CRM.api.items(envelope);
   }
 
+  // Team-materials badge (project/task lists). Populated by loadTeamMaterialsCounts().
+  var teamMaterialsCountMap = {};
+
+  function teamMaterialsBadgeHtml(item) {
+    var count = Number(teamMaterialsCountMap[String(item && item.public_id || '')] || 0);
+    if (count <= 0) return '';
+    var label = window.CRM.i18n.t('js.pab.team_materials', 'Team materials');
+    return '<span class="crm-chip crm-chip-team-materials" title="' + safeText(label + ': ' + count) + '">'
+      + '<i class="fa-solid fa-book-open" aria-hidden="true"></i> ' + safeText(String(count))
+      + '</span>';
+  }
+
+  async function loadTeamMaterialsCounts(entityType, items) {
+    teamMaterialsCountMap = {};
+    var ids = (Array.isArray(items) ? items : []).map(function (i) {
+      return String(i && i.public_id || '').trim();
+    }).filter(Boolean);
+    if (!ids.length) return;
+    var envelope = await tryRequest('api/v1/knowledge/team-materials-counts', {
+      query: { entity_type: entityType, entity_public_ids: ids.join(',') },
+      silent: true
+    });
+    if (envelope && envelope.data && envelope.data.counts && typeof envelope.data.counts === 'object') {
+      teamMaterialsCountMap = envelope.data.counts;
+    }
+  }
+
   function pageQuery() {
     try {
       return new URLSearchParams(window.location.search || '');
@@ -751,7 +778,7 @@ window.CRM.pageApiBindings = (function () {
       + '<td>' + (item.task_key ? '<span class="crm-task-key-badge">' + safeText(item.task_key) + '</span>' : '<span class="text-muted">—</span>') + '</td>'
       + '<td>'
       + '<div class="crm-task-row-main">' + '<a href="' + taskLink + '">' + safeText(item.title || window.CRM.i18n.t('js.pab.untitled', 'Untitled')) + '</a></div>'
-      + '<div class="crm-task-row-meta">' + hierarchyMeta + projectMeta + tagChipsHtml + '</div>'
+      + '<div class="crm-task-row-meta">' + hierarchyMeta + projectMeta + tagChipsHtml + teamMaterialsBadgeHtml(item) + '</div>'
       + '</td>'
       + '<td class="crm-cell-people">' + taskPeopleColumnHtml(item) + '</td>'
       + '<td class="crm-cell-state">'
@@ -893,6 +920,7 @@ window.CRM.pageApiBindings = (function () {
       + '<div><span>' + window.CRM.i18n.t('js.pab.priority', 'Priority') + '</span><strong>' + safeText(priorityLabel(item.priority_code || 'normal')) + '</strong></div>'
       + aiRow
       + (tagChips ? '<div class="crm-task-card-tags-wrap">' + tagChips + '</div>' : '')
+      + teamMaterialsBadgeHtml(item)
       + '</div>';
   }
 
@@ -943,6 +971,10 @@ window.CRM.pageApiBindings = (function () {
     var compactTags = taskTagsHtml(item.tags, 4);
     if (compactTags) {
       badges.push(compactTags);
+    }
+    var teamBadge = teamMaterialsBadgeHtml(item);
+    if (teamBadge) {
+      badges.push(teamBadge);
     }
     return badges.join('');
   }
@@ -1288,6 +1320,7 @@ window.CRM.pageApiBindings = (function () {
     }
 
     var items = mapItems(envelope);
+    await loadTeamMaterialsCounts('project', items);
     var clientsEnvelope = pageRequests[1];
     var teamsEnvelope = pageRequests[2];
     var projectStatusesEnvelope = pageRequests[3];
@@ -1873,6 +1906,7 @@ window.CRM.pageApiBindings = (function () {
           + projectProgressHtml(item)
           + '<div class="crm-project-card-meta"><span class="crm-chip">' + window.CRM.i18n.t('js.pab.priority_prefix', 'Priority:') + ' ' + safeText(priorityLabel(item.priority_code || 'normal')) + '</span>'
           + managerChip
+          + teamMaterialsBadgeHtml(item)
           + '<span class="crm-chip">' + window.CRM.i18n.t('js.pab.updated_prefix', 'Updated:') + ' ' + safeText(formatDate(item.updated_at)) + '</span></div>'
           + '<div class="crm-project-card-actions"><a class="btn btn-sm crm-btn-primary" href="' + link + '">' + window.CRM.i18n.t('js.pab.open', 'Open') + '</a><button class="btn btn-sm crm-btn-secondary" data-project-preview="' + safeText(item.public_id) + '">' + window.CRM.i18n.t('js.pab.preview', 'Preview') + '</button></div>'
           + '</article></div>';
@@ -1897,6 +1931,7 @@ window.CRM.pageApiBindings = (function () {
           + '<td class="crm-pr-client-team">'
           + '<div class="crm-pr-line">' + safeText(resolveProjectClientLabel(item)) + '</div>'
           + '<div class="crm-pr-line">' + safeText(resolveProjectTeamLabel(item)) + '</div>'
+          + teamMaterialsBadgeHtml(item)
           + (resolveProjectManagerLabel(item) ? '<div class="crm-pr-line crm-pr-line-muted">' + safeText(resolveProjectManagerLabel(item)) + '</div>' : '')
           + '</td>'
           + '<td>' + safeText(formatDate(item.updated_at)) + '</td>'
@@ -3850,6 +3885,7 @@ window.CRM.pageApiBindings = (function () {
     }
 
     var items = mapItems(envelope);
+    await loadTeamMaterialsCounts('task', items);
     // Все фильтры (search/assignee/client/manager/project/cycle/tag/due, KPI-режимы
     // и '__none'-значения) применяются на сервере, поэтому клиентской фильтрации
     // по загруженной странице больше нет — результаты и счётчики всегда полные.

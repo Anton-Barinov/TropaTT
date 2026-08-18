@@ -970,6 +970,60 @@ final class KnowledgeController extends BaseController
         ]);
     }
 
+    /**
+     * Batch counter for the "team materials" badge on list pages. Resolves the
+     * related team(s) per entity and returns the number of team-linked pages the
+     * actor can view, keyed by entity public_id. Entities the actor cannot
+     * access, or that have no team materials, resolve to 0.
+     */
+    public function teamMaterialsCounts(array $params): JsonResponse
+    {
+        $input = $this->request()->allInput();
+        $entityType = strtolower(trim((string)($input['entity_type'] ?? '')));
+        $rawIds = trim((string)($input['entity_public_ids'] ?? ''));
+        if ($entityType === '' || $rawIds === '') {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error', 'Validation error'), 422);
+        }
+
+        $ids = array_values(array_unique(array_filter(
+            array_map('trim', explode(',', $rawIds)),
+            fn(string $id): bool => $id !== ''
+        )));
+        $ids = array_slice($ids, 0, 200);
+
+        $counts = [];
+        $teamPageCache = [];
+        foreach ($ids as $id) {
+            $counts[$id] = 0;
+            if (!$this->canLinkEntity($entityType, $id)) {
+                continue;
+            }
+            $teamPublicIds = array_values(array_filter(
+                $this->repo()->entityTeamPublicIds($entityType, $id),
+                fn(string $teamPublicId): bool => $this->canLinkEntity('team', $teamPublicId)
+            ));
+            $seen = [];
+            $count = 0;
+            foreach ($teamPublicIds as $teamPublicId) {
+                if (!isset($teamPageCache[$teamPublicId])) {
+                    $teamPageCache[$teamPublicId] = $this->repo()->entityPages('team', $teamPublicId, $this->actor());
+                }
+                foreach ($teamPageCache[$teamPublicId] as $page) {
+                    $pagePublicId = (string)($page['public_id'] ?? '');
+                    if ($pagePublicId !== '' && !isset($seen[$pagePublicId])) {
+                        $seen[$pagePublicId] = true;
+                        $count++;
+                    }
+                }
+            }
+            $counts[$id] = $count;
+        }
+
+        return $this->success('KNOWLEDGE_TEAM_MATERIALS_COUNTS', $this->t('knowledge/messages.entity_pages', 'Team materials counts loaded'), [
+            'counts' => $counts,
+        ]);
+    }
+
     public function listFiles(array $params): JsonResponse
     {
         if (!$this->requirePageAccess((string)$params['public_id'], 'view')) {

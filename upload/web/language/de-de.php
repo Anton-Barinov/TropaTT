@@ -4274,6 +4274,7 @@ return array (
     ),
     'pab' => 
     array (
+      'team_materials' => 'Team-Materialien',
       'access_unavailable' => 'access unavailable.',
       'action' => 'Action',
       'action_irreversible' => 'This action is irreversible.',

@@ -1702,6 +1702,7 @@ return array (
     ),
     'pab' => 
     array (
+      'team_materials' => 'Материалы команды',
       'access_unavailable' => 'доступ недоступен.',
       'action' => 'Действие',
       'action_irreversible' => 'Это действие необратимо.',
