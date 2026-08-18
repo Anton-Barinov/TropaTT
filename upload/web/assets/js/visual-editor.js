@@ -1228,6 +1228,8 @@ window.CRM.VisualEditor = (function () {
           self._execInlineCode();
         } else if (cmd === 'spoiler') {
           self._execSpoiler();
+        } else if (cmd === 'codeBlock') {
+          self._execCodeBlock();
         } else {
           document.execCommand(cmd, false, value || null);
         }
@@ -1283,8 +1285,7 @@ window.CRM.VisualEditor = (function () {
     addBtn(
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>',
       t('visual_editor.code_block', 'Code block'),
-      'formatBlock',
-      'pre'
+      'codeBlock'
     );
     addSep();
     addBtn(
@@ -1357,35 +1358,124 @@ window.CRM.VisualEditor = (function () {
     this._fileInput.click();
   };
 
-  // Inline code (</>): wraps the current selection in <code> or, without a
-  // selection, inserts an empty <code> and puts the caret inside so the user
-  // can start typing code immediately. The previous insertHTML approach
-  // replaced the selection with a placeholder word, which looked like the
-  // comment content was erased.
+  // Converts a selected fragment to plain text for a code block, preserving
+  // line breaks across <br> and block-level elements.
+  function fragmentToCodeText(fragment) {
+    var out = [];
+    function walk(node) {
+      Array.prototype.slice.call(node.childNodes || []).forEach(function (child) {
+        if (child.nodeType === 3) {
+          out.push(child.nodeValue || '');
+        } else if (child.nodeType === 1) {
+          var tag = child.tagName.toUpperCase();
+          if (tag === 'BR') {
+            out.push('\n');
+          } else {
+            var block = BLOCK_TAGS[tag] === true;
+            if (block) out.push('\n');
+            walk(child);
+            if (block) out.push('\n');
+          }
+        }
+      });
+    }
+    walk(fragment);
+    var text = out.join('').replace(/\u00a0/g, ' ').replace(/\r\n?/g, '\n');
+    text = text.replace(/\n{2,}/g, '\n').replace(/^\n+/, '').replace(/\n+$/, '');
+    return text;
+  }
+
+  // Spoiler (details/summary): wraps the current selection inside the spoiler,
+  // or inserts an empty spoiler when there is no selection.
   Editor.prototype._execSpoiler = function () {
     var summaryText = (window.CRM && window.CRM.i18n)
       ? window.CRM.i18n.t('visual_editor.spoiler_summary', 'Разворачивание')
       : 'Разворачивание';
-    var html = '<details class="crm-ve-spoiler"><summary>' + summaryText + '</summary><p><br></p></details>';
-    document.execCommand('insertHTML', false, html);
-    var content = this._content;
-    var details = content.querySelector('details.crm-ve-spoiler:last-of-type') || content.querySelector('details.crm-ve-spoiler');
-    if (details) {
-      var paragraph = details.querySelector('p');
-      var node = paragraph || details;
-      var range = document.createRange();
-      range.selectNodeContents(node);
-      range.collapse(true);
-      var sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(range);
-      if (paragraph) paragraph.focus();
+    var selection = window.getSelection();
+    var range = selection && selection.rangeCount ? selection.getRangeAt(0) : null;
+
+    var details = document.createElement('details');
+    details.className = 'crm-ve-spoiler';
+    var summary = document.createElement('summary');
+    summary.textContent = summaryText;
+    details.appendChild(summary);
+
+    if (range && !range.collapsed) {
+      // Wrap the selected content inside the spoiler instead of replacing it.
+      var fragment = range.extractContents();
+      var body = document.createElement('div');
+      body.appendChild(fragment);
+      // Inline-only selections get a paragraph so the spoiler body stays a
+      // proper block; block selections already carry their own structure.
+      if (!body.querySelector('p, h1, h2, h3, blockquote, pre, ul, ol, figure, details')) {
+        var inlineParagraph = document.createElement('p');
+        while (body.firstChild) inlineParagraph.appendChild(body.firstChild);
+        body.appendChild(inlineParagraph);
+      }
+      while (body.firstChild) details.appendChild(body.firstChild);
+      range.insertNode(details);
+    } else {
+      var emptyParagraph = document.createElement('p');
+      emptyParagraph.innerHTML = '<br>';
+      details.appendChild(emptyParagraph);
+      if (range) {
+        range.insertNode(details);
+      } else {
+        this._content.appendChild(details);
+      }
     }
+
+    // Place the caret right after the inserted spoiler so the user can keep typing.
+    if (range) {
+      range.setStartAfter(details);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+
     this._sync();
     this._history.push(this._content.innerHTML, true);
     this._updateEmptyState();
   };
 
+  Editor.prototype._execCodeBlock = function () {
+    var selection = window.getSelection();
+    var range = selection && selection.rangeCount ? selection.getRangeAt(0) : null;
+    if (!range) return;
+
+    var pre = document.createElement('pre');
+    var code = document.createElement('code');
+
+    if (range.collapsed) {
+      code.appendChild(document.createElement('br'));
+      pre.appendChild(code);
+      range.insertNode(pre);
+      var caret = document.createRange();
+      caret.setStartBefore(code.firstChild);
+      caret.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(caret);
+    } else {
+      var fragment = range.extractContents();
+      code.textContent = fragmentToCodeText(fragment);
+      if (!code.textContent) code.appendChild(document.createElement('br'));
+      pre.appendChild(code);
+      range.insertNode(pre);
+      var after = document.createRange();
+      after.setStartAfter(pre);
+      after.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(after);
+    }
+
+    this._sync();
+    this._history.push(this._content.innerHTML, true);
+    this._updateEmptyState();
+  };
+
+  // Inline code (</>): wraps the current selection in <code> or, without a
+  // selection, inserts an empty <code> and puts the caret inside so the user
+  // can start typing code immediately.
   Editor.prototype._execInlineCode = function () {
     var selection = window.getSelection();
     var range = selection && selection.rangeCount ? selection.getRangeAt(0) : null;
@@ -1927,6 +2017,9 @@ window.CRM.VisualEditor = (function () {
 
   function renderReadonly(root) {
     if (!root || !root.querySelectorAll) return;
+    // Mark the container so rendered rich text (code blocks, spoilers, quotes)
+    // picks up the read-only styles outside the editor as well.
+    if (root.classList) root.classList.add('crm-ve-rendered');
     var figures = root.querySelectorAll('figure[data-width], figure[data-align]');
     figures.forEach(function (figure) {
       if (figure.closest('.crm-ve-readonly-image-block')) return;
