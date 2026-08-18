@@ -1479,10 +1479,6 @@ return array (
     'day_fri' => 'Пт',
     'day_sat' => 'Сб',
     'no_date' => 'Без даты',
-    'legend_title' => 'Полоса слева — приоритет:',
-    'legend_high' => 'высокий',
-    'legend_low' => 'низкий',
-    'legend_normal' => 'обычный',
     'metric_overdue' => 'Просрочено',
   ),
   'js' => 

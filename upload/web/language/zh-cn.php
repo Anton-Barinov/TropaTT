@@ -1479,10 +1479,6 @@ return array (
     'day_fri' => '五',
     'day_sat' => '六',
     'no_date' => '无日期',
-    'legend_title' => '左侧色条 — 优先级:',
-    'legend_high' => '高',
-    'legend_low' => '低',
-    'legend_normal' => '普通',
     'metric_overdue' => '已逾期',
   ),
   'js' => 

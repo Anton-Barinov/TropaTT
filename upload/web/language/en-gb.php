@@ -1479,10 +1479,6 @@ return array (
     'day_fri' => 'Fri',
     'day_sat' => 'Sat',
     'no_date' => 'No date',
-    'legend_title' => 'Left bar — priority:',
-    'legend_high' => 'high',
-    'legend_low' => 'low',
-    'legend_normal' => 'normal',
     'metric_overdue' => 'Overdue',
   ),
   'js' => 

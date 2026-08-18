@@ -7283,10 +7283,6 @@ return array (
     'day_fri' => 'Vie',
     'day_sat' => 'Sáb',
     'no_date' => 'Sin fecha',
-    'legend_title' => 'Barra izquierda — prioridad:',
-    'legend_high' => 'alta',
-    'legend_low' => 'baja',
-    'legend_normal' => 'normal',
     'metric_overdue' => 'Vencidas',
   ),
   'nav' => 

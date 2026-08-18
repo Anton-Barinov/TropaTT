@@ -1,5 +1,13 @@
 window.CRM = window.CRM || {};
 window.CRM.tables = (function () {
+  var HSCROLL_SELECTOR = '.table-responsive, .crm-table-wrap';
+
+  function updateScrollHints() {
+    document.querySelectorAll(HSCROLL_SELECTOR).forEach(function (el) {
+      el.classList.toggle('crm-has-hscroll', el.scrollWidth > el.clientWidth + 1);
+    });
+  }
+
   function bindTable(table) {
     if (!table || table.dataset.selectBound === '1') return;
     table.dataset.selectBound = '1';
@@ -47,6 +55,20 @@ window.CRM.tables = (function () {
 
   function init() {
     document.querySelectorAll('[data-select-table]').forEach(bindTable);
+    updateScrollHints();
+    if (window.requestAnimationFrame && window.MutationObserver) {
+      var pending = false;
+      var observer = new MutationObserver(function () {
+        if (pending) return;
+        pending = true;
+        window.requestAnimationFrame(function () {
+          pending = false;
+          updateScrollHints();
+        });
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    }
+    window.addEventListener('resize', updateScrollHints);
   }
 
   return { init: init };

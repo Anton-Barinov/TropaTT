@@ -343,8 +343,8 @@
   -webkit-overflow-scrolling: touch;
 }
 
-.table-responsive::after,
-.crm-table-wrap::after {
+.table-responsive.crm-has-hscroll::after,
+.crm-table-wrap.crm-has-hscroll::after {
   content: "Прокрутка по горизонтали";
   position: sticky;
   left: 100%;
@@ -365,10 +365,10 @@
   transform: translateY(-0.4rem);
 }
 
-.table-responsive:hover::after,
-.table-responsive:focus-within::after,
-.crm-table-wrap:hover::after,
-.crm-table-wrap:focus-within::after {
+.table-responsive.crm-has-hscroll:hover::after,
+.table-responsive.crm-has-hscroll:focus-within::after,
+.crm-table-wrap.crm-has-hscroll:hover::after,
+.crm-table-wrap.crm-has-hscroll:focus-within::after {
   opacity: 1;
 }
 

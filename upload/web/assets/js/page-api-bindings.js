@@ -16564,12 +16564,21 @@ window.CRM.pageApiBindings = (function () {
     return match ? String(match[1]).padStart(2, '0') + ':' + match[2] : '';
   }
 
+  function plannerPriorityStripe(pCode) {
+    switch (String(pCode || '').toLowerCase()) {
+      case 'urgent': return ' crm-pri-urgent';
+      case 'high': return ' crm-pri-high';
+      case 'low': return ' crm-pri-low';
+      case 'normal': return ' crm-pri-normal';
+      default: return '';
+    }
+  }
+
   function renderPlannerTaskRow(task, mode) {
     var it = window.CRM.i18n;
     var pt = it ? it.t.bind(it) : function (k, f) { return f; };
     var parentId = String(task.parent_task_public_id || '').trim();
-    var pCode = task.priority_code || 'normal';
-    var pStripe = (pCode === 'urgent' || pCode === 'high') ? ' crm-pri-high' : (pCode === 'low' ? ' crm-pri-low' : '');
+    var pStripe = plannerPriorityStripe(task.priority_code || 'normal');
     var taskHref = taskLink(task.public_id);
     var taskNameRow = '<div class="crm-task-name-row"><a class="crm-task-name" href="' + taskHref + '">' + safeText(task.title) + '</a>' + plannerTaskChipLabel(task) + '</div>';
     var metaHtml = parentId
@@ -16645,6 +16654,7 @@ window.CRM.pageApiBindings = (function () {
   async function plannerHandleTaskDone(publicId, rowVersion) {
     var it = window.CRM.i18n;
     var pt = it ? it.t.bind(it) : function (k, f) { return f; };
+    if (!window.confirm(pt('my_day.done_confirm', 'Отметить задачу выполненной?'))) return;
     try {
       await request('api/v1/tasks/' + encodeURIComponent(publicId), { method: 'PATCH', body: { status: 'done', row_version: Number(rowVersion) } });
       notify(pt('my_day.done_success', 'Задача выполнена'), 'success');
@@ -17197,6 +17207,7 @@ window.CRM.pageApiBindings = (function () {
               var rv = btn.getAttribute('data-row-version');
               (async function () {
                 try {
+                  if (!window.confirm(_t('my_day.done_confirm', 'Отметить задачу выполненной?'))) return;
                   await request('api/v1/tasks/' + encodeURIComponent(pid), { method: 'PATCH', body: { status: 'done', row_version: Number(rv) } });
                   notify(_t('my_week.done_success', 'Задача выполнена'), 'success');
                   await renderMyWeekPage();

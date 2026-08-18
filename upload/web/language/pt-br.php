@@ -7283,10 +7283,6 @@ return array (
     'day_fri' => 'Sex',
     'day_sat' => 'Sáb',
     'no_date' => 'Sem data',
-    'legend_title' => 'Barra à esquerda — prioridade:',
-    'legend_high' => 'alta',
-    'legend_low' => 'baixa',
-    'legend_normal' => 'normal',
     'metric_overdue' => 'Atrasadas',
   ),
   'nav' => 

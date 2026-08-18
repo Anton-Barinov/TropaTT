@@ -13045,6 +13045,16 @@ a.task-tag:hover {
     max-width: 680px;
 }
 
+/* AI card placed in the aside (right column) — stack the action button under the title */
+.crm-planner-aside .crm-planner-ai-card .crm-section-head {
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.crm-planner-aside .crm-planner-ai-card .crm-section-head > :last-child {
+    align-self: flex-start;
+}
+
 .crm-planner-ai-summary {
     margin: 0;
     padding: 9px 0 10px !important;
@@ -13256,14 +13266,25 @@ a.task-tag:hover {
 .crm-planner-page .crm-planner-task-table tbody td {
     padding: 9px 10px;
     vertical-align: middle;
+}
+
+.crm-planner-page .crm-planner-task-table tbody tr > td:first-child {
     border-left: 3px solid transparent;
 }
 
-.crm-planner-page .crm-planner-task-table tbody tr.crm-pri-high td {
+.crm-planner-page .crm-planner-task-table tbody tr.crm-pri-urgent > td:first-child {
     border-left-color: var(--crm-danger);
 }
 
-.crm-planner-page .crm-planner-task-table tbody tr.crm-pri-low td {
+.crm-planner-page .crm-planner-task-table tbody tr.crm-pri-high > td:first-child {
+    border-left-color: var(--crm-warning);
+}
+
+.crm-planner-page .crm-planner-task-table tbody tr.crm-pri-normal > td:first-child {
+    border-left-color: var(--crm-primary);
+}
+
+.crm-planner-page .crm-planner-task-table tbody tr.crm-pri-low > td:first-child {
     border-left-color: var(--crm-info);
 }
 
@@ -13432,43 +13453,6 @@ a.task-tag:hover {
     color: var(--crm-success);
     border-color: var(--crm-success);
     background: var(--crm-success-soft);
-}
-
-/* Legend (week tasks table only) */
-.crm-planner-legend {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 14px 2px;
-    font-size: 11px;
-    color: var(--crm-text-muted);
-}
-
-.crm-planner-legend-title {
-    font-weight: 600;
-}
-
-.crm-planner-legend-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.crm-planner-legend-line {
-    display: inline-block;
-    width: 3px;
-    height: 12px;
-    border-radius: 2px;
-    background: transparent;
-}
-
-.crm-planner-legend-high {
-    background: var(--crm-danger);
-}
-
-.crm-planner-legend-low {
-    background: var(--crm-info);
 }
 
 /* ── Responsive ── */

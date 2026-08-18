@@ -7283,10 +7283,6 @@ return array (
     'day_fri' => 'Fr',
     'day_sat' => 'Sa',
     'no_date' => 'Kein Datum',
-    'legend_title' => 'Leiste links — Priorität:',
-    'legend_high' => 'hoch',
-    'legend_low' => 'niedrig',
-    'legend_normal' => 'normal',
     'metric_overdue' => 'Überfällig',
   ),
   'nav' => 
