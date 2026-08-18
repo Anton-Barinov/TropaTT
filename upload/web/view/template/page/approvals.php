@@ -12,7 +12,7 @@
         <p class="crm-subtitle" data-i18n="approvals.subtitle"><?= htmlspecialchars($t('approvals.subtitle', 'Запросы на утверждение задач и проектов — без переписок, без потерянных решений.'), ENT_QUOTES, 'UTF-8') ?></p>
       </div>
       <div class="d-flex gap-2">
-        <button id="approvalsRefreshBtn" class="btn crm-btn-secondary" type="button" data-i18n="approvals.btn_refresh"><i class="fa-solid fa-rotate me-1" aria-hidden="true"></i><?= htmlspecialchars($t('approvals.btn_refresh', 'Обновить'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button id="approvalsRefreshBtn" class="btn crm-btn-secondary" type="button" data-i18n="approvals.btn_refresh"><i class="fa-solid fa-arrows-rotate me-1" aria-hidden="true"></i><?= htmlspecialchars($t('approvals.btn_refresh', 'Обновить'), ENT_QUOTES, 'UTF-8') ?></button>
         <button id="approvalsCreateBtn" class="btn crm-btn-primary" type="button" data-i18n="approvals.btn_create"><i class="fa-solid fa-plus me-1" aria-hidden="true"></i><?= htmlspecialchars($t('approvals.btn_create', 'Создать запрос'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
     </div>

@@ -18,7 +18,7 @@
           <input type="checkbox" class="form-check-input" id="verifySignature" name="verifySignature" checked>
           <label class="form-check-label" for="verifySignature" data-i18n="admin_modules_install.label_verify"><?= htmlspecialchars($t('admin_modules_install.label_verify', 'Проверять подпись манифеста'), ENT_QUOTES, 'UTF-8') ?></label>
         </div>
-        <button type="submit" class="btn crm-btn-primary" id="urlInstallBtn" data-i18n="admin_modules_install.btn_install_url"><i class="fa-solid fa-cloud-arrow-down me-1"></i> <?= htmlspecialchars($t('admin_modules_install.btn_install_url', 'Установить из URL'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button type="submit" class="btn crm-btn-primary" id="urlInstallBtn" data-i18n="admin_modules_install.btn_install_url"><i class="fa-solid fa-cloud-arrow-down me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('admin_modules_install.btn_install_url', 'Установить из URL'), ENT_QUOTES, 'UTF-8') ?></button>
         <div id="urlInstallStatus" class="mt-3" style="display:none;"></div>
       </form>
     </div>
@@ -32,7 +32,7 @@
           <input type="file" class="form-control crm-file-input" id="moduleFile" name="moduleFile" accept=".zip" required>
           <div class="form-text" data-i18n="admin_modules_install.hint_file_size"><?= htmlspecialchars($t('admin_modules_install.hint_file_size', 'Максимальный размер: 50 MB'), ENT_QUOTES, 'UTF-8') ?></div>
         </div>
-        <button type="submit" class="btn crm-btn-primary" id="fileInstallBtn" data-i18n="admin_modules_install.btn_install_file"><i class="fa-solid fa-upload me-1"></i> <?= htmlspecialchars($t('admin_modules_install.btn_install_file', 'Установить из файла'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button type="submit" class="btn crm-btn-primary" id="fileInstallBtn" data-i18n="admin_modules_install.btn_install_file"><i class="fa-solid fa-upload me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('admin_modules_install.btn_install_file', 'Установить из файла'), ENT_QUOTES, 'UTF-8') ?></button>
         <div id="fileInstallStatus" class="mt-3" style="display:none;"></div>
       </form>
     </div>
@@ -68,7 +68,7 @@
         if (loading) {
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> ' + window.CRM.i18n.t('admin_modules_install.installing', 'Установка...');
         } else {
-            btn.innerHTML = btn === urlBtn ? '<i class="fa-solid fa-cloud-arrow-down me-1"></i> ' + window.CRM.i18n.t('admin_modules_install.btn_install_url', 'Установить из URL') : '<i class="fa-solid fa-upload me-1"></i> ' + window.CRM.i18n.t('admin_modules_install.btn_install_file', 'Установить из файла');
+            btn.innerHTML = btn === urlBtn ? '<i class="fa-solid fa-cloud-arrow-down me-1" aria-hidden="true"></i> ' + window.CRM.i18n.t('admin_modules_install.btn_install_url', 'Установить из URL') : '<i class="fa-solid fa-upload me-1" aria-hidden="true"></i> ' + window.CRM.i18n.t('admin_modules_install.btn_install_file', 'Установить из файла');
         }
     }
 
@@ -154,7 +154,7 @@
                     rows += '<td>' + window.CRM.text.escapeHtml(m.version) + '</td>';
                     var vendorLabel = m.author || m.vendor || '—';
                     rows += '<td>' + (vendorLabel !== '—' && m.author_url ? '<a href="' + window.CRM.text.escapeHtml(m.author_url) + '" target="_blank" rel="noopener noreferrer">' + window.CRM.text.escapeHtml(vendorLabel) + '</a>' : window.CRM.text.escapeHtml(vendorLabel)) + '</td>';
-                    rows += '<td><button class="btn btn-sm crm-btn-primary module-install" data-name="' + window.CRM.text.escapeHtml(m.name) + '" data-i18n="admin_modules_install.btn_install"><i class="fa-solid fa-download"></i> ' + window.CRM.i18n.t('admin_modules_install.btn_install', 'Установить') + '</button></td>';
+                    rows += '<td><button class="btn btn-sm crm-btn-primary module-install" data-name="' + window.CRM.text.escapeHtml(m.name) + '" data-i18n="admin_modules_install.btn_install"><i class="fa-solid fa-download" aria-hidden="true"></i> ' + window.CRM.i18n.t('admin_modules_install.btn_install', 'Установить') + '</button></td>';
                     rows += '</tr>';
                 });
 
@@ -175,7 +175,7 @@
                             })
                             .catch(function (err) {
                                 btnEl.disabled = false;
-                                btnEl.innerHTML = '<i class="fa-solid fa-download"></i> ' + window.CRM.i18n.t('admin_modules_install.btn_install', 'Установить');
+                                btnEl.innerHTML = '<i class="fa-solid fa-download" aria-hidden="true"></i> ' + window.CRM.i18n.t('admin_modules_install.btn_install', 'Установить');
                                 if (window.CRM.br1) window.CRM.br1.notify('error', window.CRM.i18n.t('admin_modules_install.error', 'Ошибка') + ': ' + (err.envelope && err.envelope.message || err.message || ''));
                             });
                     });

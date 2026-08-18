@@ -12,7 +12,7 @@
         <p class="crm-subtitle" data-i18n="recurring.subtitle"><?= htmlspecialchars($t('recurring.subtitle', 'Шаблоны, по которым CRM сама создаёт повторяющиеся задачи, напоминания и события по расписанию.'), ENT_QUOTES, 'UTF-8') ?></p>
       </div>
       <div class="d-flex gap-2">
-        <button id="recurringRefreshBtn" class="btn crm-btn-secondary" type="button" data-i18n="recurring.btn_refresh"><i class="fa-solid fa-rotate me-1" aria-hidden="true"></i><?= htmlspecialchars($t('recurring.btn_refresh', 'Обновить'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button id="recurringRefreshBtn" class="btn crm-btn-secondary" type="button" data-i18n="recurring.btn_refresh"><i class="fa-solid fa-arrows-rotate me-1" aria-hidden="true"></i><?= htmlspecialchars($t('recurring.btn_refresh', 'Обновить'), ENT_QUOTES, 'UTF-8') ?></button>
         <button id="recurringCreateBtn" class="btn crm-btn-primary" type="button" data-i18n="recurring.btn_create"><i class="fa-solid fa-plus me-1" aria-hidden="true"></i><?= htmlspecialchars($t('recurring.btn_create', 'Создать шаблон'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
     </div>

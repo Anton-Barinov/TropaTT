@@ -759,7 +759,7 @@ window.CRM.pageApiBindings = (function () {
 
     var blockedCount = parseInt(item.blocked_by_count, 10) || 0;
     if (blockedCount > 0) {
-      hierarchyMeta += '<span class="crm-chip crm-chip-blocked" title="' + window.CRM.i18n.t('js.pab.blocked_title', 'Blocked by dependencies') + '"><i class="fa-solid fa-lock"></i> ' + window.CRM.i18n.t('js.pab.blocked', 'Blocked') + ' (' + blockedCount + ')</span>';
+      hierarchyMeta += '<span class="crm-chip crm-chip-blocked" title="' + window.CRM.i18n.t('js.pab.blocked_title', 'Blocked by dependencies') + '"><i class="fa-solid fa-lock" aria-hidden="true"></i> ' + window.CRM.i18n.t('js.pab.blocked', 'Blocked') + ' (' + blockedCount + ')</span>';
     }
 
     var tagChipsHtml = taskTagsHtml(item.tags, 5);
@@ -1120,7 +1120,7 @@ window.CRM.pageApiBindings = (function () {
     return '<div class="crm-task-card-grid">' + items.map(function (item) {
       var taskId = item.public_id || '';
       var blockedCount = parseInt(item.blocked_by_count, 10) || 0;
-      var blockedChip = blockedCount > 0 ? '<span class="crm-chip crm-chip-blocked" title="' + window.CRM.i18n.t('js.pab.blocked_title', 'Blocked by dependencies') + '"><i class="fa-solid fa-lock"></i> ' + window.CRM.i18n.t('js.pab.blocked', 'Blocked') + '</span>' : '';
+      var blockedChip = blockedCount > 0 ? '<span class="crm-chip crm-chip-blocked" title="' + window.CRM.i18n.t('js.pab.blocked_title', 'Blocked by dependencies') + '"><i class="fa-solid fa-lock" aria-hidden="true"></i> ' + window.CRM.i18n.t('js.pab.blocked', 'Blocked') + '</span>' : '';
       return '<article class="crm-task-card' + (blockedCount > 0 ? ' crm-task-card--blocked' : '') + '">'
         + '<div class="crm-task-card-head">'
         + '<div class="crm-task-card-title-wrap">'
@@ -5829,7 +5829,7 @@ window.CRM.pageApiBindings = (function () {
                         + '<small class="text-muted flex-shrink-0" style="font-size:11px;">' + progress + '%</small>'
                         + '</div>'
                         + (cycle.goal ? '<div class="small text-muted mt-1 text-truncate" style="font-size:11px;">' + safeText(stripHtmlText(cycle.goal).substring(0, 80)) + '</div>' : '')
-                        + (cycle.project_title ? '<div class="small text-muted mt-1" style="font-size:11px;"><i class="fa-regular fa-folder-open"></i> ' + safeText(cycle.project_title) + '</div>' : '')
+                        + (cycle.project_title ? '<div class="small text-muted mt-1" style="font-size:11px;"><i class="fa-regular fa-folder-open" aria-hidden="true"></i> ' + safeText(cycle.project_title) + '</div>' : '')
                         + '</div>';
                 });
                 if (items.length >= 5) {
@@ -6082,7 +6082,7 @@ window.CRM.pageApiBindings = (function () {
                 + '<div class="small text-truncate"><a class="text-reset text-decoration-none" href="index.php?route=project-detail&project_public_id=' + encodeURIComponent(m.project_public_id) + '">' + safeText(String(m.title || window.CRM.i18n.t('js.pab.milestone', 'Milestone'))) + '</a></div>'
                 + '<span class="small text-muted flex-shrink-0">' + safeText(formatDate(m.due_at)) + '</span>'
                 + '</div>'
-                + (pTitle ? '<div class="small text-muted mb-2" style="font-size:11px;"><i class="fa-regular fa-folder-open me-1"></i>' + safeText(String(pTitle)) + '</div>' : '');
+                + (pTitle ? '<div class="small text-muted mb-2" style="font-size:11px;"><i class="fa-regular fa-folder-open me-1" aria-hidden="true"></i>' + safeText(String(pTitle)) + '</div>' : '');
             }).join('')
               + '<a class="btn btn-sm crm-btn-secondary w-100 mt-1" href="index.php?route=projects">' + window.CRM.i18n.t('js.pab.open_projects', 'Open projects') + '</a>';
           });
@@ -10008,7 +10008,7 @@ window.CRM.pageApiBindings = (function () {
             + '<td>' + safeText(formatDate(client.updated_at)) + '</td>'
             + '<td><div class="crm-client-actions">'
             + '<button class="btn btn-sm crm-btn-danger-icon" type="button" data-client-delete="' + safeText(id) + '" aria-label="' + safeText(tp('clients.delete_client', 'Delete client')) + '" title="' + safeText(tp('clients.delete_client', 'Delete client')) + '">'
-            + '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-trash-can"></i></span>'
+            + '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></span>'
             + '</button>'
             + '</div></td>'
             + '</tr>';
@@ -10870,10 +10870,10 @@ window.CRM.pageApiBindings = (function () {
             + '<td>' + safeText(formatDate(cp.updated_at)) + '</td>'
             + '<td><div class="crm-counterparty-actions">'
             + '<button class="btn btn-sm crm-btn-secondary-icon" type="button" data-counterparty-edit="' + safeText(id) + '" aria-label="' + safeText(tp('counterparties.edit_counterparty', 'Edit counterparty')) + '" title="' + safeText(tp('counterparties.edit_counterparty', 'Edit counterparty')) + '">'
-            + '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-pen-to-square"></i></span>'
+            + '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-pen-to-square" aria-hidden="true"></i></span>'
             + '</button>'
             + '<button class="btn btn-sm crm-btn-danger-icon" type="button" data-counterparty-delete="' + safeText(id) + '" aria-label="' + safeText(tp('counterparties.delete_counterparty', 'Delete counterparty')) + '" title="' + safeText(tp('counterparties.delete_counterparty', 'Delete counterparty')) + '">'
-            + '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-trash-can"></i></span>'
+            + '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></span>'
             + '</button>'
             + '</div></td>'
             + '</tr>';
@@ -13486,7 +13486,7 @@ window.CRM.pageApiBindings = (function () {
             var isVisible = visMap[item.key] !== false;
             var iconClass = menuIcons[item.key] || 'fa-circle-dot';
             return '<div class="crm-menu-customize-item" data-key="' + safeText(item.key) + '">'
-              + '<span class="crm-menu-customize-drag" title="' + safeText(tp('nav.drag_reorder', 'Drag to reorder')) + '"><i class="fa-solid fa-grip-vertical"></i></span>'
+              + '<span class="crm-menu-customize-drag" title="' + safeText(tp('nav.drag_reorder', 'Drag to reorder')) + '"><i class="fa-solid fa-grip-vertical" aria-hidden="true"></i></span>'
               + '<span class="crm-menu-customize-icon"><i class="fa-solid ' + iconClass + '"></i></span>'
               + '<span class="crm-menu-customize-label">' + safeText(item.label) + '</span>'
               + '<label class="crm-menu-customize-toggle">'
@@ -13504,7 +13504,7 @@ window.CRM.pageApiBindings = (function () {
 
           modal.innerHTML = '<div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content">'
             + '<div class="modal-header">'
-            + '<h5 class="modal-title"><i class="fa-solid fa-sliders me-2"></i>' + safeText(tp('teams.menu_template', 'Menu template')) + ' — ' + teamTitle + '</h5>'
+            + '<h5 class="modal-title"><i class="fa-solid fa-sliders me-2" aria-hidden="true"></i>' + safeText(tp('teams.menu_template', 'Menu template')) + ' — ' + teamTitle + '</h5>'
             + '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + safeText(tp('page.close', 'Close')) + '"></button>'
             + '</div>'
             + '<div class="modal-body">'
@@ -13639,7 +13639,7 @@ window.CRM.pageApiBindings = (function () {
         var titleHtml = '';
         if (hasChildren) {
           titleHtml += '<button class="crm-tree-toggle" type="button" data-toggle-id="' + safeText(id) + '" aria-label="' + (isExpanded ? tp('teams.collapse', 'Collapse') : tp('teams.expand', 'Expand')) + '">';
-          titleHtml += '<span class="crm-tree-toggle-icon"><i class="fa-solid fa-chevron-' + (isExpanded ? 'down' : 'right') + '"></i></span>';
+          titleHtml += '<span class="crm-tree-toggle-icon"><i class="fa-solid fa-chevron-' + (isExpanded ? 'down' : 'right') + '" aria-hidden="true"></i></span>';
           titleHtml += '</button>';
         } else {
           titleHtml += '<span class="crm-tree-toggle-placeholder"></span>';
@@ -13660,13 +13660,13 @@ window.CRM.pageApiBindings = (function () {
 
         var actionsHtml = '<div class="crm-team-actions">'
           + '<button class="btn btn-sm crm-btn-secondary-icon" type="button" data-team-edit="' + safeText(id) + '" aria-label="' + safeText(tp('teams.edit_team', 'Edit team')) + '" title="' + safeText(tp('teams.edit_team', 'Edit team')) + '">'
-          + '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-pen-to-square"></i></span>'
+          + '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-pen-to-square" aria-hidden="true"></i></span>'
           + '</button>'
           + '<button class="btn btn-sm crm-btn-secondary-icon" type="button" data-team-menu="' + safeText(id) + '" aria-label="' + safeText(tp('teams.menu_template', 'Menu template')) + '" title="' + safeText(tp('teams.menu_template', 'Menu template')) + '">'
-          + '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-sliders"></i></span>'
+          + '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-sliders" aria-hidden="true"></i></span>'
           + '</button>'
           + '<button class="btn btn-sm crm-btn-danger-icon" type="button" data-team-delete="' + safeText(id) + '" aria-label="' + safeText(tp('teams.delete_team', 'Delete team')) + '" title="' + safeText(tp('teams.delete_team', 'Delete team')) + '">'
-          + '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-trash-can"></i></span>'
+          + '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></span>'
           + '</button>'
           + '</div>';
 
@@ -13836,7 +13836,7 @@ window.CRM.pageApiBindings = (function () {
             + '<div class="team-participant-detail">' + safeText(p.login || '') + '</div>'
             + '</div>'
             + (isManager ? '<span class="team-participant-badge team-badge-manager">' + safeText(tp('teams.manager_badge', 'Manager')) + '</span>' : '')
-            + '<button type="button" class="team-participant-remove" data-remove="' + safeText(p.public_id) + '" aria-label="' + safeText(tp('teams.remove', 'Remove')) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-xmark"></i></span></button>'
+            + '<button type="button" class="team-participant-remove" data-remove="' + safeText(p.public_id) + '" aria-label="' + safeText(tp('teams.remove', 'Remove')) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-xmark" aria-hidden="true"></i></span></button>'
             + '</div>';
         }).join('');
         updateCount();
@@ -13894,7 +13894,7 @@ window.CRM.pageApiBindings = (function () {
       function showSearchDropdown(items, searchQuery) {
         if (!searchResults) return;
         if (!items.length) {
-          searchResults.innerHTML = '<div class="team-search-no-results"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></span>' + safeText(tp('teams.search_empty_prefix', 'Nothing found for "')) + safeText(searchQuery) + safeText(tp('teams.search_empty_suffix', '"')) + '</div>';
+          searchResults.innerHTML = '<div class="team-search-no-results"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></span>' + safeText(tp('teams.search_empty_prefix', 'Nothing found for "')) + safeText(searchQuery) + safeText(tp('teams.search_empty_suffix', '"')) + '</div>';
           searchResults.hidden = false;
           return;
         }
@@ -15626,7 +15626,7 @@ window.CRM.pageApiBindings = (function () {
         var statusText = user.is_active ? tp('common.active', 'Active') : tp('common.inactive', 'Inactive');
         var statusBadge = user.is_active ? '<span class="crm-badge success">' + safeText(statusText) + '</span>' : '<span class="crm-badge archived">' + safeText(statusText) + '</span>';
         var lastLogin = user.last_login_at ? formatDate(user.last_login_at) : '—';
-        var actions = '<div class="d-flex gap-1"><button class="btn btn-sm crm-btn-secondary" data-user-edit="' + safeText(user.public_id) + '">' + safeText(tp('common.edit', 'Edit')) + '</button><button class="btn btn-sm crm-btn-secondary" data-user-menu="' + safeText(user.public_id) + '" title="' + safeText(tp('admin.user_menu_title', 'Menu settings')) + '"><i class="fa-solid fa-sliders"></i></button><button class="btn btn-sm crm-btn-warning" data-user-impersonate="' + safeText(user.public_id) + '" aria-label="' + safeText(tp('admin.impersonate_title', 'Log in as user')) + '" title="' + safeText(tp('admin.impersonate_title', 'Log in as user')) + '"><i class="fa-solid fa-user" aria-hidden="true"></i></button><button class="btn btn-sm crm-btn-danger" data-user-delete="' + safeText(user.public_id) + '">' + safeText(tp('common.delete', 'Delete')) + '</button></div>';
+        var actions = '<div class="d-flex gap-1"><button class="btn btn-sm crm-btn-secondary" data-user-edit="' + safeText(user.public_id) + '">' + safeText(tp('common.edit', 'Edit')) + '</button><button class="btn btn-sm crm-btn-secondary" data-user-menu="' + safeText(user.public_id) + '" title="' + safeText(tp('admin.user_menu_title', 'Menu settings')) + '"><i class="fa-solid fa-sliders" aria-hidden="true"></i></button><button class="btn btn-sm crm-btn-warning" data-user-impersonate="' + safeText(user.public_id) + '" aria-label="' + safeText(tp('admin.impersonate_title', 'Log in as user')) + '" title="' + safeText(tp('admin.impersonate_title', 'Log in as user')) + '"><i class="fa-solid fa-user" aria-hidden="true"></i></button><button class="btn btn-sm crm-btn-danger" data-user-delete="' + safeText(user.public_id) + '">' + safeText(tp('common.delete', 'Delete')) + '</button></div>';
         return '<tr><td><input class="form-check-input" type="checkbox" data-select-user="' + safeText(user.public_id) + '" data-admin-user-bulk-id="' + safeText(user.public_id) + '"></td><td><strong>' + safeText(user.full_name || user.login) + '</strong><small class="text-muted d-block">' + safeText(user.login) + '</small></td><td>' + safeText(user.email || '—') + '</td><td>' + safeText(roleTitles || tp('admin.no_roles', 'No roles')) + '</td><td>' + safeText(teamTitle) + '</td><td>' + lastLogin + '</td><td>' + statusBadge + '</td><td>' + actions + '</td></tr>';
       }).join('');
     }
@@ -15961,7 +15961,7 @@ window.CRM.pageApiBindings = (function () {
             var isVisible = orderKeys.length === 0 || visMap[item.key] !== false;
             var iconClass = menuIcons[item.key] || 'fa-circle-dot';
             return '<div class="crm-menu-customize-item" data-key="' + safeText(item.key) + '">'
-              + '<span class="crm-menu-customize-drag" title="' + safeText(tp('nav.drag_reorder', 'Drag to reorder')) + '"><i class="fa-solid fa-grip-vertical"></i></span>'
+              + '<span class="crm-menu-customize-drag" title="' + safeText(tp('nav.drag_reorder', 'Drag to reorder')) + '"><i class="fa-solid fa-grip-vertical" aria-hidden="true"></i></span>'
               + '<span class="crm-menu-customize-icon"><i class="fa-solid ' + iconClass + '"></i></span>'
               + '<span class="crm-menu-customize-label">' + safeText(item.label) + '</span>'
               + '<label class="crm-menu-customize-toggle">'
@@ -15974,7 +15974,7 @@ window.CRM.pageApiBindings = (function () {
           var customHtml = customItems.map(function (item) {
             var iconClass = item.icon || 'fa-link';
           return '<div class="crm-menu-customize-item crm-menu-customize-item--custom" data-key="' + safeText(item.key) + '" data-is-custom="1" data-custom-href="' + safeText(item.href || '') + '">'
-            + '<span class="crm-menu-customize-drag" title="' + safeText(tp('nav.drag_reorder', 'Drag to reorder')) + '"><i class="fa-solid fa-grip-vertical"></i></span>'
+            + '<span class="crm-menu-customize-drag" title="' + safeText(tp('nav.drag_reorder', 'Drag to reorder')) + '"><i class="fa-solid fa-grip-vertical" aria-hidden="true"></i></span>'
               + '<span class="crm-menu-customize-icon"><i class="fa-solid ' + safeText(iconClass) + '"></i></span>'
               + '<span class="crm-menu-customize-label">' + safeText(item.title || item.key) + '</span>'
               + '<label class="crm-menu-customize-toggle">'
@@ -15992,7 +15992,7 @@ window.CRM.pageApiBindings = (function () {
 
           modal.innerHTML = '<div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content">'
             + '<div class="modal-header">'
-            + '<h5 class="modal-title"><i class="fa-solid fa-sliders me-2"></i>' + safeText(tp('admin.user_menu_title', 'Menu settings')) + ' — ' + userName + '</h5>'
+            + '<h5 class="modal-title"><i class="fa-solid fa-sliders me-2" aria-hidden="true"></i>' + safeText(tp('admin.user_menu_title', 'Menu settings')) + ' — ' + userName + '</h5>'
             + '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + safeText(tp('page.close', 'Close')) + '"></button>'
             + '</div>'
             + '<div class="modal-body">'
@@ -16000,14 +16000,14 @@ window.CRM.pageApiBindings = (function () {
             + '<div class="crm-menu-customize-list" data-user-menu-list>' + listHtml + '</div>'
             + (customHtml ? '<div class="crm-menu-customize-separator"><span>' + safeText(tp('nav.custom_items', 'Custom links')) + '</span></div><div class="crm-menu-customize-list" data-user-menu-custom-list>' + customHtml + '</div>' : '<div class="crm-menu-customize-list" data-user-menu-custom-list></div>')
             + '<div class="crm-menu-customize-add-section">'
-            + '<button type="button" class="btn crm-btn-secondary btn-sm" data-user-menu-add-link><i class="fa-solid fa-plus me-1"></i>' + safeText(tp('nav.add_custom_link', 'Add custom link')) + '</button>'
+            + '<button type="button" class="btn crm-btn-secondary btn-sm" data-user-menu-add-link><i class="fa-solid fa-plus me-1" aria-hidden="true"></i>' + safeText(tp('nav.add_custom_link', 'Add custom link')) + '</button>'
             + '</div>'
             + '<div class="crm-menu-customize-add-form d-none" data-user-menu-add-form>'
             + '<div class="row g-2 align-items-end">'
             + '<div class="col-md-4"><label class="form-label small">' + safeText(tp('nav.custom_link_title', 'Title')) + '</label><input type="text" class="form-control form-control-sm" data-custom-title placeholder="' + safeText(tp('nav.custom_link_title_placeholder', 'My link')) + '"></div>'
             + '<div class="col-md-4"><label class="form-label small">' + safeText(tp('nav.custom_link_url', 'URL')) + '</label><input type="url" class="form-control form-control-sm" data-custom-href placeholder="https://example.com"></div>'
             + '<div class="col-md-3"><label class="form-label small">' + safeText(tp('nav.custom_link_icon', 'Icon (FA class)')) + '</label><input type="text" class="form-control form-control-sm" data-custom-icon placeholder="fa-solid fa-link"></div>'
-            + '<div class="col-md-1"><button type="button" class="btn crm-btn-primary btn-sm w-100" data-user-menu-add-confirm title="' + safeText(tp('common.add', 'Add')) + '"><i class="fa-solid fa-check"></i></button></div>'
+            + '<div class="col-md-1"><button type="button" class="btn crm-btn-primary btn-sm w-100" data-user-menu-add-confirm title="' + safeText(tp('common.add', 'Add')) + '"><i class="fa-solid fa-check" aria-hidden="true"></i></button></div>'
             + '</div>'
             + '</div>'
             + '</div>'
@@ -16056,7 +16056,7 @@ window.CRM.pageApiBindings = (function () {
             var key = 'custom_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
             var iconClass = icon || 'fa-link';
             var rowHtml = '<div class="crm-menu-customize-item crm-menu-customize-item--custom" data-key="' + safeText(key) + '" data-is-custom="1" data-custom-href="' + safeText(href) + '">'
-              + '<span class="crm-menu-customize-drag" title="' + safeText(tp('nav.drag_reorder', 'Drag to reorder')) + '"><i class="fa-solid fa-grip-vertical"></i></span>'
+              + '<span class="crm-menu-customize-drag" title="' + safeText(tp('nav.drag_reorder', 'Drag to reorder')) + '"><i class="fa-solid fa-grip-vertical" aria-hidden="true"></i></span>'
               + '<span class="crm-menu-customize-icon"><i class="fa-solid ' + safeText(iconClass) + '"></i></span>'
               + '<span class="crm-menu-customize-label">' + safeText(title) + '</span>'
               + '<label class="crm-menu-customize-toggle">'
@@ -16332,7 +16332,7 @@ window.CRM.pageApiBindings = (function () {
           var isVisible = visMap[item.key] !== false;
           var iconClass = menuIcons[item.key] || 'fa-circle-dot';
           return '<div class="crm-menu-customize-item" data-key="' + safeText(item.key) + '">'
-            + '<span class="crm-menu-customize-drag" title="' + safeText(tp('nav.drag_reorder', 'Drag to reorder')) + '"><i class="fa-solid fa-grip-vertical"></i></span>'
+            + '<span class="crm-menu-customize-drag" title="' + safeText(tp('nav.drag_reorder', 'Drag to reorder')) + '"><i class="fa-solid fa-grip-vertical" aria-hidden="true"></i></span>'
             + '<span class="crm-menu-customize-icon"><i class="fa-solid ' + iconClass + '"></i></span>'
             + '<span class="crm-menu-customize-label">' + safeText(item.label) + '</span>'
             + '<label class="crm-menu-customize-toggle">'
@@ -16350,7 +16350,7 @@ window.CRM.pageApiBindings = (function () {
 
         modal.innerHTML = '<div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content">'
           + '<div class="modal-header">'
-          + '<h5 class="modal-title"><i class="fa-solid fa-shield-halved me-2"></i>' + safeText(tp('admin.role_menu_template', 'Role menu template')) + ' — ' + roleTitle + '</h5>'
+          + '<h5 class="modal-title"><i class="fa-solid fa-shield-halved me-2" aria-hidden="true"></i>' + safeText(tp('admin.role_menu_template', 'Role menu template')) + ' — ' + roleTitle + '</h5>'
           + '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + safeText(tp('page.close', 'Close')) + '"></button>'
           + '</div>'
           + '<div class="modal-body">'
@@ -16440,7 +16440,7 @@ window.CRM.pageApiBindings = (function () {
       }).join(', ');
       var typeLabel = role.is_system ? tp('admin.role_system', 'System') : tp('admin.role_custom', 'Custom');
       var actions = '<div class="d-flex gap-1"><button class="btn btn-sm crm-btn-secondary" data-role-edit="' + safeText(role.public_id) + '">' + safeText(tp('common.edit', 'Edit')) + '</button>' +
-        '<button class="btn btn-sm crm-btn-secondary" data-role-menu="' + safeText(role.public_id) + '" title="' + safeText(tp('admin.role_menu_title', 'Menu template')) + '"><i class="fa-solid fa-sliders"></i></button>' +
+        '<button class="btn btn-sm crm-btn-secondary" data-role-menu="' + safeText(role.public_id) + '" title="' + safeText(tp('admin.role_menu_title', 'Menu template')) + '"><i class="fa-solid fa-sliders" aria-hidden="true"></i></button>' +
         (role.is_system ? '' : '<button class="btn btn-sm crm-btn-danger" data-role-delete="' + safeText(role.public_id) + '">' + safeText(tp('common.delete', 'Delete')) + '</button>') +
         '</div>';
       return '<tr>' +
@@ -20132,8 +20132,8 @@ window.CRM.pageApiBindings = (function () {
       priorityBadge = '<span class="crm-kanban-priority ' + cls + '">' + safeText(label) + '</span>';
     }
     var blockedCount = parseInt(task.blocked_by_count, 10) || 0;
-    var blockedBadge = blockedCount > 0 ? '<span class="crm-kanban-priority kanban-priority-blocked" title="' + safeText(kanbanT('kanban.blocked_title', 'Заблокирована зависимостями')) + '"><i class="fa-solid fa-lock"></i> ' + blockedCount + '</span>' : '';
-    var dueBadge = due ? '<span class="crm-kanban-date crm-kanban-date-' + safeText(due.tone) + '" title="' + safeText(kanbanFormatShortDate(due.day)) + '"><i class="fa-regular fa-calendar"></i> ' + safeText(due.label) + '</span>' : '';
+    var blockedBadge = blockedCount > 0 ? '<span class="crm-kanban-priority kanban-priority-blocked" title="' + safeText(kanbanT('kanban.blocked_title', 'Заблокирована зависимостями')) + '"><i class="fa-solid fa-lock" aria-hidden="true"></i> ' + blockedCount + '</span>' : '';
+    var dueBadge = due ? '<span class="crm-kanban-date crm-kanban-date-' + safeText(due.tone) + '" title="' + safeText(kanbanFormatShortDate(due.day)) + '"><i class="fa-regular fa-calendar" aria-hidden="true"></i> ' + safeText(due.label) + '</span>' : '';
     var shownAssignees = assignees.slice(0, 3);
     var extraAssignees = Math.max(0, assignees.length - shownAssignees.length);
     var avatarStack = shownAssignees.length
@@ -20154,7 +20154,7 @@ window.CRM.pageApiBindings = (function () {
     }
     var desc = task.description ? safeText(stripHtmlText(task.description).slice(0, 120)) : '';
     var knowledgeCount = parseInt(task.knowledge_links_count, 10) || 0;
-    var knowledgeBadge = knowledgeCount > 0 ? '<span class="crm-kanban-knowledge" title="' + safeText(kanbanT('kanban.knowledge_count', 'Связанные материалы')) + '"><i class="fa-solid fa-book"></i> ' + knowledgeCount + '</span>' : '';
+    var knowledgeBadge = knowledgeCount > 0 ? '<span class="crm-kanban-knowledge" title="' + safeText(kanbanT('kanban.knowledge_count', 'Связанные материалы')) + '"><i class="fa-solid fa-book" aria-hidden="true"></i> ' + knowledgeCount + '</span>' : '';
     return '<div class="crm-kanban-card' + (blockedCount > 0 ? ' crm-kanban-card--blocked' : '') + '" data-public-id="' + safeText(task.public_id) + '" data-row-version="' + safeText(task.row_version || '') + '">'
       + '<div class="crm-kanban-card-top">' + projectBadge + priorityBadge + blockedBadge + '</div>'
       + '<h6>' + (task.task_key ? '<span class="crm-task-key-badge">' + safeText(task.task_key) + '</span> ' : '') + '<a href="' + taskLink(task.public_id) + '">' + safeText(task.title || kanbanT('kanban.no_title', 'Без названия')) + '</a></h6>'
@@ -22845,13 +22845,13 @@ window.CRM.pageApiBindings = (function () {
       var issueCount = providerIssues.length + errorsToday.length;
       if (issueCount > 0) {
         attentionStateNode.innerHTML = '<div class="crm-admin-ai-attention-panel is-warning">'
-          + '<span class="crm-admin-ai-attention-icon" aria-hidden="true"><i class="fa-solid fa-triangle-exclamation"></i></span>'
+          + '<span class="crm-admin-ai-attention-icon" aria-hidden="true"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></span>'
           + '<div><strong>' + safeText(tp('admin_ai.attention_has_prefix', 'There are ')) + safeText(String(issueCount)) + ' ' + safeText(tpPlural('admin_ai.issue', issueCount, { one: 'issue', few: 'issues', many: 'issues' })) + safeText(tp('admin_ai.attention_has_suffix', ' that need attention')) + '</strong>'
           + '<p class="mb-0">' + safeText(tp('admin_ai.attention_check_connections', 'We recommend checking connections before use.')) + '</p></div>'
           + '</div>';
       } else {
         attentionStateNode.innerHTML = '<div class="crm-admin-ai-attention-panel is-success">'
-          + '<span class="crm-admin-ai-attention-icon" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>'
+          + '<span class="crm-admin-ai-attention-icon" aria-hidden="true"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></span>'
           + '<div><strong>' + safeText(tp('admin_ai.attention_ok_title', 'Everything is fine')) + '</strong>'
           + '<p class="mb-0">' + safeText(tp('admin_ai.attention_ok_desc', 'Connections are working; no additional action is required.')) + '</p></div>'
           + '</div>';
@@ -25939,7 +25939,7 @@ window.CRM.pageApiBindings = (function () {
     row.className = 'row g-2 mb-2 align-items-center';
     row.innerHTML = '<div class="col-5"><input class="form-control extra-field-key" placeholder="' + safeAttr(tp('counterparty_detail.extra_key_placeholder', 'Field name')) + '" value="' + safeAttr(key || '') + '" maxlength="128"></div>'
       + '<div class="col-5"><input class="form-control extra-field-value" placeholder="' + safeAttr(tp('counterparty_detail.extra_value_placeholder', 'Value')) + '" value="' + safeAttr(value || '') + '" maxlength="512"></div>'
-      + '<div class="col-2 text-end"><button type="button" class="btn btn-sm crm-btn-danger btn-remove-extra-field"><span class="crm-icon"><i class="fa-solid fa-trash"></i></span></button></div>';
+      + '<div class="col-2 text-end"><button type="button" class="btn btn-sm crm-btn-danger btn-remove-extra-field"><span class="crm-icon"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></span></button></div>';
     row.querySelector('.btn-remove-extra-field').addEventListener('click', function () { row.remove(); });
     container.appendChild(row);
   }
@@ -26054,8 +26054,8 @@ window.CRM.pageApiBindings = (function () {
           + '<td>' + safeText(contact.email || '—') + '</td>'
           + '<td>' + safeText(contact.phone || '—') + '</td>'
           + '<td>'
-          + '<button type="button" class="btn btn-sm crm-inline-icon-btn" data-contact-edit="' + safeAttr(id) + '" aria-label="' + safeAttr(tp('counterparty_detail.contact_edit_title', 'Edit contact')) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen"></i></span></button>'
-          + '<button type="button" class="btn btn-sm crm-inline-icon-btn" data-contact-delete="' + safeAttr(id) + '" aria-label="' + safeAttr(tp('counterparty_detail.contact_delete_title', 'Delete contact?')) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-trash"></i></span></button>'
+          + '<button type="button" class="btn btn-sm crm-inline-icon-btn" data-contact-edit="' + safeAttr(id) + '" aria-label="' + safeAttr(tp('counterparty_detail.contact_edit_title', 'Edit contact')) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen" aria-hidden="true"></i></span></button>'
+          + '<button type="button" class="btn btn-sm crm-inline-icon-btn" data-contact-delete="' + safeAttr(id) + '" aria-label="' + safeAttr(tp('counterparty_detail.contact_delete_title', 'Delete contact?')) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></span></button>'
           + '</td>'
           + '</tr>';
       }).join('');
@@ -29500,11 +29500,11 @@ window.CRM.pageApiBindings = (function () {
         BLOCKS: _t('dependency.type_desc_blocks', 'Блокирует')
       };
       var icons = {
-        FS: '<i class="fa-solid fa-arrow-right-to-bracket me-1"></i>',
-        SS: '<i class="fa-solid fa-arrows-left-right me-1"></i>',
-        FF: '<i class="fa-solid fa-arrows-left-right me-1"></i>',
-        SF: '<i class="fa-solid fa-arrow-right-from-bracket me-1"></i>',
-        BLOCKS: '<i class="fa-solid fa-ban me-1"></i>'
+        FS: '<i class="fa-solid fa-arrow-right-to-bracket me-1" aria-hidden="true"></i>',
+        SS: '<i class="fa-solid fa-arrows-left-right me-1" aria-hidden="true"></i>',
+        FF: '<i class="fa-solid fa-arrows-left-right me-1" aria-hidden="true"></i>',
+        SF: '<i class="fa-solid fa-arrow-right-from-bracket me-1" aria-hidden="true"></i>',
+        BLOCKS: '<i class="fa-solid fa-ban me-1" aria-hidden="true"></i>'
       };
       return '<span class="crm-chip">' + (icons[type] || '') + safeText(labels[type] || type) + '</span>';
     }
@@ -29545,7 +29545,7 @@ window.CRM.pageApiBindings = (function () {
           + '<td>' + typeChip(depType) + '</td>'
           + '<td>' + taskLink(targetId, targetTitle, targetKey) + '</td>'
           + '<td>' + statusBadge(targetStatus) + '</td>'
-          + '<td class="text-end" style="width:40px"><button class="btn btn-sm crm-btn-danger-soft crm-btn-compact" data-dependency-delete="' + safeText(depId) + '" title="' + _t('dependency.btn_delete', '\u0423\u0434\u0430\u043B\u0438\u0442\u044C') + '"><i class="fa-regular fa-trash-can"></i></button></td>'
+          + '<td class="text-end" style="width:40px"><button class="btn btn-sm crm-btn-danger-soft crm-btn-compact" data-dependency-delete="' + safeText(depId) + '" title="' + _t('dependency.btn_delete', '\u0423\u0434\u0430\u043B\u0438\u0442\u044C') + '"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></button></td>'
           + '</tr>';
       }).filter(function (r) { return r !== ''; });
 

@@ -8,7 +8,7 @@
     <h1 class="h4 mb-0" data-i18n="cycles.page_title"><?= htmlspecialchars($t('cycles.page_title', 'Циклы (Спринты)'), ENT_QUOTES, 'UTF-8') ?></h1>
     <div>
       <button class="btn btn-sm crm-btn-primary" onclick="window.openCycleModal(null)">
-        <i class="fa-solid fa-plus"></i> <?= htmlspecialchars($t('cycles.btn_create', 'Создать цикл'), ENT_QUOTES, 'UTF-8') ?>
+        <i class="fa-solid fa-plus" aria-hidden="true"></i> <?= htmlspecialchars($t('cycles.btn_create', 'Создать цикл'), ENT_QUOTES, 'UTF-8') ?>
       </button>
     </div>
   </div>
@@ -54,17 +54,17 @@
 
   <!-- Empty State -->
   <div id="cycleEmptyState" class="text-center py-5 d-none">
-    <i class="fa-solid fa-rotate fa-3x text-muted mb-3"></i>
+    <i class="fa-solid fa-arrows-rotate fa-3x text-muted mb-3" aria-hidden="true"></i>
     <h5 class="text-muted"><?= htmlspecialchars($t('cycles.empty_title', 'Нет циклов'), ENT_QUOTES, 'UTF-8') ?></h5>
     <p class="text-muted small"><?= htmlspecialchars($t('cycles.empty_text', 'Создайте первый цикл для планирования задач.'), ENT_QUOTES, 'UTF-8') ?></p>
     <button class="btn btn-sm crm-btn-primary" onclick="window.openCycleModal(null)">
-      <i class="fa-solid fa-plus"></i> <?= htmlspecialchars($t('cycles.btn_create', 'Создать цикл'), ENT_QUOTES, 'UTF-8') ?>
+      <i class="fa-solid fa-plus" aria-hidden="true"></i> <?= htmlspecialchars($t('cycles.btn_create', 'Создать цикл'), ENT_QUOTES, 'UTF-8') ?>
     </button>
   </div>
 
   <!-- Error State -->
   <div id="cycleErrorState" class="text-center py-5 d-none">
-    <i class="fa-solid fa-triangle-exclamation fa-3x text-danger mb-3"></i>
+    <i class="fa-solid fa-triangle-exclamation fa-3x text-danger mb-3" aria-hidden="true"></i>
     <h5 class="text-danger"><?= htmlspecialchars($t('cycles.error_title', 'Ошибка загрузки'), ENT_QUOTES, 'UTF-8') ?></h5>
     <p id="cycleErrorText" class="text-muted small"><?= htmlspecialchars($t('cycles.error_text', 'Не удалось загрузить список циклов.'), ENT_QUOTES, 'UTF-8') ?></p>
     <button class="btn btn-sm crm-btn-secondary" onclick="window.loadWorkCycles(1)"><?= htmlspecialchars($t('cycles.btn_retry', 'Повторить'), ENT_QUOTES, 'UTF-8') ?></button>

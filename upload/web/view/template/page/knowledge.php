@@ -88,7 +88,7 @@
           <!-- Space header -->
           <div id="kbSpaceHeader" class="kb-space-header">
             <div class="d-flex align-items-start gap-3">
-              <div class="kb-space-icon"><i class="fa-regular fa-folder-open"></i></div>
+              <div class="kb-space-icon"><i class="fa-regular fa-folder-open" aria-hidden="true"></i></div>
               <div class="flex-grow-1">
                 <h2 class="h5 mb-1 fw-bold" id="kbSpaceTitle"><?= htmlspecialchars($t('knowledge.space_header_title', 'Выберите раздел'), ENT_QUOTES, 'UTF-8') ?></h2>
                 <p class="text-muted small mb-0" id="kbSpaceDesc"><?= htmlspecialchars($t('knowledge.space_header_desc', 'Выберите раздел слева для просмотра страниц'), ENT_QUOTES, 'UTF-8') ?></p>
@@ -439,7 +439,7 @@
   function renderArticles(items){
     var body = document.getElementById('kbArticlesBody');
     if(!items.length){
-      body.innerHTML = '<tr><td colspan="5"><div class="kb-empty-state"><i class="fa-regular fa-folder-open"></i><p>' + esc(_t('knowledge.empty_no_pages', 'В этом разделе пока нет страниц')) + '</p><button class="btn crm-btn-primary btn-sm" id="kbEmptyCreate"><i class="fa-solid fa-plus" aria-hidden="true"></i> ' + esc(_t('knowledge.btn_create_page', 'Создать страницу')) + '</button></div></td></tr>';
+      body.innerHTML = '<tr><td colspan="5"><div class="kb-empty-state"><i class="fa-regular fa-folder-open" aria-hidden="true"></i><p>' + esc(_t('knowledge.empty_no_pages', 'В этом разделе пока нет страниц')) + '</p><button class="btn crm-btn-primary btn-sm" id="kbEmptyCreate"><i class="fa-solid fa-plus" aria-hidden="true"></i> ' + esc(_t('knowledge.btn_create_page', 'Создать страницу')) + '</button></div></td></tr>';
       var eb = document.getElementById('kbEmptyCreate');
       if(eb) eb.addEventListener('click', function(){ document.getElementById('btnCreatePage').click(); });
       return;

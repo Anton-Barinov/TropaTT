@@ -7,7 +7,7 @@
 <div class="crm-card crm-section-card mb-3">
   <form id="globalSearchForm" class="p-3">
     <div class="input-group input-group-lg">
-      <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
+      <span class="input-group-text"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></span>
       <input class="form-control" id="globalSearchQuery" name="q" placeholder="<?= htmlspecialchars($t('global_search.placeholder_query', 'Поиск: задачи, проекты, контрагенты, контакты'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="global_search.placeholder_query" autocomplete="off" autofocus>
       <button class="btn crm-btn-primary" type="submit" data-i18n="global_search.btn_search"><?= htmlspecialchars($t('global_search.btn_search', 'Найти'), ENT_QUOTES, 'UTF-8') ?></button>
     </div>

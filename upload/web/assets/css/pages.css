@@ -16421,7 +16421,7 @@ a.task-tag:hover {
 
 .crm-ai-faq-item summary::before {
   content: "\f059";
-  font-family: "Font Awesome 6 Free";
+  font-family: "Font Awesome 7 Free";
   font-weight: 400;
   color: var(--crm-accent);
   font-size: 0.85rem;

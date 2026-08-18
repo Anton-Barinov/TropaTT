@@ -19,7 +19,7 @@
   </section>
 
   <section class="crm-card crm-section-card mb-3">
-    <div class="crm-section-head"><div><h2 class="h6 mb-0" data-i18n="counterparty_detail.section_profile"><?= htmlspecialchars($t('counterparty_detail.section_profile', 'Профиль контрагента'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="counterparty_detail.section_profile_note"><?= htmlspecialchars($t('counterparty_detail.section_profile_note', 'Основные реквизиты, контакты и юридическая информация.'), ENT_QUOTES, 'UTF-8') ?></div></div><button class="btn btn-sm crm-inline-icon-btn" id="counterpartyProfileEditBtn" type="button" aria-label="<?= htmlspecialchars($t('counterparty_detail.btn_edit_profile_aria', 'Редактировать профиль'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="counterparty_detail.btn_edit_profile_aria"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen"></i></span></button></div>
+    <div class="crm-section-head"><div><h2 class="h6 mb-0" data-i18n="counterparty_detail.section_profile"><?= htmlspecialchars($t('counterparty_detail.section_profile', 'Профиль контрагента'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="counterparty_detail.section_profile_note"><?= htmlspecialchars($t('counterparty_detail.section_profile_note', 'Основные реквизиты, контакты и юридическая информация.'), ENT_QUOTES, 'UTF-8') ?></div></div><button class="btn btn-sm crm-inline-icon-btn" id="counterpartyProfileEditBtn" type="button" aria-label="<?= htmlspecialchars($t('counterparty_detail.btn_edit_profile_aria', 'Редактировать профиль'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="counterparty_detail.btn_edit_profile_aria"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen" aria-hidden="true"></i></span></button></div>
     <div id="counterpartyDetailProfile"><div class="text-muted" data-i18n="counterparty_detail.loading_profile"><?= htmlspecialchars($t('counterparty_detail.loading_profile', 'Загрузка карточки...'), ENT_QUOTES, 'UTF-8') ?></div></div>
   </section>
 
@@ -29,7 +29,7 @@
       <span class="crm-pr-acc-caret" aria-hidden="true">▾</span>
     </button>
     <div class="crm-pr-acc-panel"><div class="crm-pr-acc-inner">
-      <div class="d-flex justify-content-end mb-2"><button class="btn btn-sm crm-inline-icon-btn" id="counterpartyRequisitesEditBtn" type="button" aria-label="<?= htmlspecialchars($t('counterparty_detail.btn_edit_requisites_aria', 'Редактировать реквизиты'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="counterparty_detail.btn_edit_requisites_aria"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen"></i></span></button></div>
+      <div class="d-flex justify-content-end mb-2"><button class="btn btn-sm crm-inline-icon-btn" id="counterpartyRequisitesEditBtn" type="button" aria-label="<?= htmlspecialchars($t('counterparty_detail.btn_edit_requisites_aria', 'Редактировать реквизиты'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="counterparty_detail.btn_edit_requisites_aria"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen" aria-hidden="true"></i></span></button></div>
       <div id="counterpartyDetailRequisites"><div class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
     </div></div>
   </section>
@@ -40,7 +40,7 @@
       <span class="crm-pr-acc-caret" aria-hidden="true">▾</span>
     </button>
     <div class="crm-pr-acc-panel"><div class="crm-pr-acc-inner">
-      <div class="d-flex justify-content-end mb-2"><button class="btn btn-sm crm-inline-icon-btn" id="counterpartyExtraEditBtn" type="button" aria-label="<?= htmlspecialchars($t('counterparty_detail.btn_edit_extra_aria', 'Редактировать дополнительные поля'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="counterparty_detail.btn_edit_extra_aria"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen"></i></span></button></div>
+      <div class="d-flex justify-content-end mb-2"><button class="btn btn-sm crm-inline-icon-btn" id="counterpartyExtraEditBtn" type="button" aria-label="<?= htmlspecialchars($t('counterparty_detail.btn_edit_extra_aria', 'Редактировать дополнительные поля'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="counterparty_detail.btn_edit_extra_aria"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen" aria-hidden="true"></i></span></button></div>
       <div id="counterpartyDetailExtra"><div class="text-muted" data-i18n="counterparty_detail.extra_empty"><?= htmlspecialchars($t('counterparty_detail.extra_empty', 'Нет дополнительных атрибутов'), ENT_QUOTES, 'UTF-8') ?></div></div>
     </div></div>
   </section>
@@ -64,7 +64,7 @@
   <section class="crm-card crm-section-card">
     <div class="crm-section-head"><div><h2 class="h6 mb-0" data-i18n="counterparty_detail.section_knowledge"><?= htmlspecialchars($t('counterparty_detail.section_knowledge', 'База знаний'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="counterparty_detail.section_knowledge_note"><?= htmlspecialchars($t('counterparty_detail.section_knowledge_note', 'Связанные страницы и документация.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
     <div id="counterpartyKnowledgeList"><div class="text-muted small" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
-    <div class="mt-3 pt-3 border-top"><h3 class="h6 d-flex align-items-center gap-2 mb-2" data-i18n="counterparty_detail.team_knowledge_title"><span class="crm-icon text-muted" aria-hidden="true"><i class="fa-solid fa-users"></i></span><?= htmlspecialchars($t('counterparty_detail.team_knowledge_title', 'Материалы команды'), ENT_QUOTES, 'UTF-8') ?></h3><div id="counterpartyTeamKnowledgeList"><div class="text-muted small" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
+    <div class="mt-3 pt-3 border-top"><h3 class="h6 d-flex align-items-center gap-2 mb-2" data-i18n="counterparty_detail.team_knowledge_title"><span class="crm-icon text-muted" aria-hidden="true"><i class="fa-solid fa-users" aria-hidden="true"></i></span><?= htmlspecialchars($t('counterparty_detail.team_knowledge_title', 'Материалы команды'), ENT_QUOTES, 'UTF-8') ?></h3><div id="counterpartyTeamKnowledgeList"><div class="text-muted small" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
     <div class="mt-2 d-flex gap-2 flex-wrap"><a class="btn btn-sm crm-btn-primary" href="index.php?route=knowledge" data-i18n="counterparty_detail.btn_knowledge"><?= htmlspecialchars($t('counterparty_detail.btn_knowledge', 'Перейти в базу знаний'), ENT_QUOTES, 'UTF-8') ?></a><button id="counterpartyAttachKnowledgeBtn" class="btn btn-sm crm-btn-secondary" type="button" data-i18n="counterparty_detail.btn_attach_knowledge"><?= htmlspecialchars($t('counterparty_detail.btn_attach_knowledge', 'Прикрепить статью'), ENT_QUOTES, 'UTF-8') ?></button><a id="counterpartyCreateKnowledgeBtn" class="btn btn-sm crm-btn-secondary" href="index.php?route=knowledge" data-i18n="counterparty_detail.btn_create_knowledge"><?= htmlspecialchars($t('counterparty_detail.btn_create_knowledge', 'Создать связанную страницу'), ENT_QUOTES, 'UTF-8') ?></a></div>
   </section>
 </div>
@@ -266,7 +266,7 @@
         var id = encodeURIComponent(String(item.public_id));
         var title = escapeHtml(item.title || text('knowledge.untitled', 'Без названия'));
         var meta = [item.space_title, item.status].filter(Boolean).map(escapeHtml).join(' · ');
-        return '<button type="button" class="list-group-item list-group-item-action d-flex align-items-center justify-content-between gap-3" data-knowledge-page-id="' + id + '"><span class="text-start"><strong class="d-block">' + title + '</strong>' + (meta ? '<span class="small text-muted">' + meta + '</span>' : '') + '</span><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-link"></i></span></button>';
+        return '<button type="button" class="list-group-item list-group-item-action d-flex align-items-center justify-content-between gap-3" data-knowledge-page-id="' + id + '"><span class="text-start"><strong class="d-block">' + title + '</strong>' + (meta ? '<span class="small text-muted">' + meta + '</span>' : '') + '</span><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-link" aria-hidden="true"></i></span></button>';
       }).join('');
     } catch (e) {
       setResultsMessage(text('counterparty_detail.attach_knowledge_error', 'Не удалось загрузить статьи'), 'text-danger');

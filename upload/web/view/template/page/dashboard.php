@@ -49,7 +49,7 @@
               <article class="crm-dashboard-kpi is-active" data-kpi-link="active_tasks">
                 <div class="crm-dashboard-kpi-main">
                   <div class="crm-dashboard-kpi-icon" aria-hidden="true">
-                    <i class="fa-regular fa-rectangle-list"></i>
+                    <i class="fa-regular fa-rectangle-list" aria-hidden="true"></i>
                   </div>
                   <div>
                     <div class="crm-dashboard-kpi-meta">
@@ -68,7 +68,7 @@
               <article class="crm-dashboard-kpi is-danger" data-kpi-link="overdue_tasks">
                 <div class="crm-dashboard-kpi-main">
                   <div class="crm-dashboard-kpi-icon" aria-hidden="true">
-                    <i class="fa-regular fa-clock"></i>
+                    <i class="fa-regular fa-clock" aria-hidden="true"></i>
                   </div>
                   <div>
                     <div class="crm-dashboard-kpi-meta">
@@ -87,7 +87,7 @@
               <article class="crm-dashboard-kpi is-warning" data-kpi-link="active_projects">
                 <div class="crm-dashboard-kpi-main">
                   <div class="crm-dashboard-kpi-icon" aria-hidden="true">
-                    <i class="fa-regular fa-folder-open"></i>
+                    <i class="fa-regular fa-folder-open" aria-hidden="true"></i>
                   </div>
                   <div>
                     <div class="crm-dashboard-kpi-meta">
@@ -106,7 +106,7 @@
               <article class="crm-dashboard-kpi is-success" data-kpi-link="sla_week">
                 <div class="crm-dashboard-kpi-main">
                   <div class="crm-dashboard-kpi-icon" aria-hidden="true">
-                    <i class="fa-solid fa-stopwatch"></i>
+                    <i class="fa-solid fa-stopwatch" aria-hidden="true"></i>
                   </div>
                   <div>
                     <div class="crm-dashboard-kpi-meta">
@@ -126,11 +126,11 @@
       <section class="crm-card crm-dashboard-section crm-dashboard-actions crm-col-12" data-dashboard-widget="quick_actions">
         <h2 class="crm-dashboard-actions-title mb-0" data-i18n="dashboard.quick_actions"><?= htmlspecialchars($t('dashboard.quick_actions', 'Быстрые действия'), ENT_QUOTES, 'UTF-8') ?></h2>
         <div class="crm-dashboard-actions-list">
-          <button class="btn crm-btn-primary crm-dashboard-action-chip crm-dashboard-action-chip-primary" type="button" data-open-drawer="quickTaskDrawer" data-i18n="dashboard.action_last_task"><span class="crm-dashboard-chip-icon" aria-hidden="true"><i class="fa-regular fa-folder"></i></span><?= htmlspecialchars($t('dashboard.action_last_task', 'Открыть последнюю задачу'), ENT_QUOTES, 'UTF-8') ?></button>
-          <button class="btn crm-btn-secondary crm-dashboard-action-chip" type="button" data-open-modal="assignUserModal" data-i18n="dashboard.action_assign"><span class="crm-dashboard-chip-icon" aria-hidden="true"><i class="fa-solid fa-user-plus"></i></span><?= htmlspecialchars($t('dashboard.action_assign', 'Назначить исполнителя'), ENT_QUOTES, 'UTF-8') ?></button>
-          <button class="btn crm-btn-secondary crm-dashboard-action-chip" type="button" data-open-modal="createProjectModal" data-i18n="dashboard.action_create_project"><span class="crm-dashboard-chip-icon" aria-hidden="true"><i class="fa-solid fa-circle-plus"></i></span><?= htmlspecialchars($t('dashboard.action_create_project', 'Создать проект'), ENT_QUOTES, 'UTF-8') ?></button>
-          <a class="btn crm-btn-secondary crm-dashboard-action-chip" href="index.php?route=calendar" data-i18n="dashboard.action_calendar"><span class="crm-dashboard-chip-icon" aria-hidden="true"><i class="fa-regular fa-calendar"></i></span><?= htmlspecialchars($t('dashboard.action_calendar', 'Открыть календарь'), ENT_QUOTES, 'UTF-8') ?></a>
-          <a class="btn crm-btn-secondary crm-dashboard-action-chip" href="index.php?route=kanban" data-i18n="dashboard.action_kanban"><span class="crm-dashboard-chip-icon" aria-hidden="true"><i class="fa-solid fa-table-columns"></i></span><?= htmlspecialchars($t('dashboard.action_kanban', 'Открыть канбан'), ENT_QUOTES, 'UTF-8') ?></a>
+          <button class="btn crm-btn-primary crm-dashboard-action-chip crm-dashboard-action-chip-primary" type="button" data-open-drawer="quickTaskDrawer" data-i18n="dashboard.action_last_task"><span class="crm-dashboard-chip-icon" aria-hidden="true"><i class="fa-regular fa-folder" aria-hidden="true"></i></span><?= htmlspecialchars($t('dashboard.action_last_task', 'Открыть последнюю задачу'), ENT_QUOTES, 'UTF-8') ?></button>
+          <button class="btn crm-btn-secondary crm-dashboard-action-chip" type="button" data-open-modal="assignUserModal" data-i18n="dashboard.action_assign"><span class="crm-dashboard-chip-icon" aria-hidden="true"><i class="fa-solid fa-user-plus" aria-hidden="true"></i></span><?= htmlspecialchars($t('dashboard.action_assign', 'Назначить исполнителя'), ENT_QUOTES, 'UTF-8') ?></button>
+          <button class="btn crm-btn-secondary crm-dashboard-action-chip" type="button" data-open-modal="createProjectModal" data-i18n="dashboard.action_create_project"><span class="crm-dashboard-chip-icon" aria-hidden="true"><i class="fa-solid fa-circle-plus" aria-hidden="true"></i></span><?= htmlspecialchars($t('dashboard.action_create_project', 'Создать проект'), ENT_QUOTES, 'UTF-8') ?></button>
+          <a class="btn crm-btn-secondary crm-dashboard-action-chip" href="index.php?route=calendar" data-i18n="dashboard.action_calendar"><span class="crm-dashboard-chip-icon" aria-hidden="true"><i class="fa-regular fa-calendar" aria-hidden="true"></i></span><?= htmlspecialchars($t('dashboard.action_calendar', 'Открыть календарь'), ENT_QUOTES, 'UTF-8') ?></a>
+          <a class="btn crm-btn-secondary crm-dashboard-action-chip" href="index.php?route=kanban" data-i18n="dashboard.action_kanban"><span class="crm-dashboard-chip-icon" aria-hidden="true"><i class="fa-solid fa-table-columns" aria-hidden="true"></i></span><?= htmlspecialchars($t('dashboard.action_kanban', 'Открыть канбан'), ENT_QUOTES, 'UTF-8') ?></a>
         </div>
       </section>
 
@@ -139,7 +139,7 @@
           <div>
             <h2 class="h5 mb-1 d-inline-flex align-items-center gap-2" data-i18n="dashboard.ai_digest_title">
               <span class="crm-dashboard-inline-icon" aria-hidden="true">
-                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
               </span>
               <?= htmlspecialchars($t('dashboard.ai_digest_title', 'AI-сводка дня'), ENT_QUOTES, 'UTF-8') ?>
             </h2>
@@ -154,19 +154,19 @@
         <div class="row g-2">
           <div class="col-12 col-md-6 col-xl-3">
             <div class="crm-info-panel h-100 crm-dashboard-ai-subcard">
-              <h3 class="h6 mb-2 d-inline-flex align-items-center gap-2" data-i18n="dashboard.ai_risks"><span class="crm-dashboard-inline-icon is-danger" aria-hidden="true"><i class="fa-solid fa-triangle-exclamation"></i></span><?= htmlspecialchars($t('dashboard.ai_risks', 'Риски'), ENT_QUOTES, 'UTF-8') ?></h3>
+              <h3 class="h6 mb-2 d-inline-flex align-items-center gap-2" data-i18n="dashboard.ai_risks"><span class="crm-dashboard-inline-icon is-danger" aria-hidden="true"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></span><?= htmlspecialchars($t('dashboard.ai_risks', 'Риски'), ENT_QUOTES, 'UTF-8') ?></h3>
               <div id="dashboardAiDigestRisks"></div>
             </div>
           </div>
           <div class="col-12 col-md-6 col-xl-3">
             <div class="crm-info-panel h-100 crm-dashboard-ai-subcard">
-              <h3 class="h6 mb-2 d-inline-flex align-items-center gap-2" data-i18n="dashboard.ai_highlights"><span class="crm-dashboard-inline-icon is-warning" aria-hidden="true"><i class="fa-solid fa-star"></i></span><?= htmlspecialchars($t('dashboard.ai_highlights', 'Highlights'), ENT_QUOTES, 'UTF-8') ?></h3>
+              <h3 class="h6 mb-2 d-inline-flex align-items-center gap-2" data-i18n="dashboard.ai_highlights"><span class="crm-dashboard-inline-icon is-warning" aria-hidden="true"><i class="fa-solid fa-star" aria-hidden="true"></i></span><?= htmlspecialchars($t('dashboard.ai_highlights', 'Highlights'), ENT_QUOTES, 'UTF-8') ?></h3>
               <div id="dashboardAiDigestHighlights"></div>
             </div>
           </div>
           <div class="col-12 col-xl-6">
             <div class="crm-info-panel h-100 crm-dashboard-ai-subcard">
-              <h3 class="h6 mb-2 d-inline-flex align-items-center gap-2" data-i18n="dashboard.ai_actions"><span class="crm-dashboard-inline-icon is-success" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span><?= htmlspecialchars($t('dashboard.ai_actions', 'Рекомендуемые действия'), ENT_QUOTES, 'UTF-8') ?></h3>
+              <h3 class="h6 mb-2 d-inline-flex align-items-center gap-2" data-i18n="dashboard.ai_actions"><span class="crm-dashboard-inline-icon is-success" aria-hidden="true"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></span><?= htmlspecialchars($t('dashboard.ai_actions', 'Рекомендуемые действия'), ENT_QUOTES, 'UTF-8') ?></h3>
               <div id="dashboardAiDigestActions"></div>
             </div>
           </div>

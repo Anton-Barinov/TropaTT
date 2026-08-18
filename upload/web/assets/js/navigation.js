@@ -9,59 +9,59 @@ window.CRM.navigation = (function () {
 
   function icon(name) {
     var icons = {
-      menu: '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-bars"></i></span>',
-      search: '<span class="crm-icon crm-input-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></span>',
-      bell: '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-bell"></i></span>',
-      chat: '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-comments"></i></span>',
-      chevronLeft: '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-chevron-left"></i></span>',
-      chevronRight: '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-chevron-right"></i></span>'
+      menu: '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-bars" aria-hidden="true"></i></span>',
+      search: '<span class="crm-icon crm-input-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></span>',
+      bell: '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-bell" aria-hidden="true"></i></span>',
+      chat: '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-comments" aria-hidden="true"></i></span>',
+      chevronLeft: '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></span>',
+      chevronRight: '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></span>'
     };
     return icons[name] || '';
   }
 
   function navIcon(routeKey) {
     var icons = {
-      dashboard: '<i class="fa-solid fa-house"></i>',
-      day: '<i class="fa-solid fa-calendar-day"></i>',
-      week: '<i class="fa-solid fa-calendar-week"></i>',
-      tasks: '<i class="fa-solid fa-list-check"></i>',
-      projects: '<i class="fa-solid fa-folder-tree"></i>',
-      calendar: '<i class="fa-solid fa-calendar-days"></i>',
-      gantt: '<i class="fa-solid fa-chart-gantt"></i>',
-      kanban: '<i class="fa-solid fa-table-columns"></i>',
-      analytics: '<i class="fa-solid fa-chart-column"></i>',
-      notifications: '<i class="fa-regular fa-bell"></i>',
-      chat: '<i class="fa-regular fa-comments"></i>',
-      counterparties: '<i class="fa-solid fa-address-book"></i>',
-      teams: '<i class="fa-solid fa-people-group"></i>',
-      knowledge: '<i class="fa-solid fa-book-open-reader"></i>',
-      profile: '<i class="fa-solid fa-user"></i>',
-      admin: '<i class="fa-solid fa-shield-halved"></i>',
-      'admin-settings': '<i class="fa-solid fa-sliders"></i>',
-      'admin-jobs': '<i class="fa-solid fa-gears"></i>',
-      'admin-ai': '<i class="fa-solid fa-robot"></i>',
-      'admin-workflow': '<i class="fa-solid fa-diagram-project"></i>',
-      'admin-sla': '<i class="fa-solid fa-clock"></i>',
-      'approvals': '<i class="fa-solid fa-clipboard-check"></i>',
-      'recycle-bin': '<i class="fa-solid fa-trash-can"></i>',
-      'admin-custom-fields': '<i class="fa-solid fa-pen-to-square"></i>',
-      'recurring': '<i class="fa-solid fa-arrows-rotate"></i>',
-      'organizations': '<i class="fa-solid fa-building-columns"></i>',
-      'admin-priorities': '<i class="fa-solid fa-arrow-up-wide-short"></i>',
-      'admin-calendar': '<i class="fa-solid fa-calendar-check"></i>',
-      'mentions': '<i class="fa-solid fa-at"></i>',
-      'admin-templates': '<i class="fa-solid fa-copy"></i>',
-      'admin-tags': '<i class="fa-solid fa-tags"></i>',
-      'admin-webhooks': '<i class="fa-solid fa-webhook"></i>',
-      'admin-modules': '<i class="fa-solid fa-cubes"></i>',
-      'admin-estimates': '<i class="fa-solid fa-ruler-combined"></i>',
-      'ideas': '<i class="fa-regular fa-lightbulb"></i>',
-      intake: '<i class="fa-solid fa-inbox"></i>',
-      cycles: '<i class="fa-solid fa-arrows-spin"></i>',
-      docs: '<i class="fa-solid fa-book-open"></i>',
-      api: '<i class="fa-solid fa-code"></i>'
+      dashboard: '<i class="fa-solid fa-house" aria-hidden="true"></i>',
+      day: '<i class="fa-solid fa-calendar-day" aria-hidden="true"></i>',
+      week: '<i class="fa-solid fa-calendar-week" aria-hidden="true"></i>',
+      tasks: '<i class="fa-solid fa-list-check" aria-hidden="true"></i>',
+      projects: '<i class="fa-solid fa-folder-tree" aria-hidden="true"></i>',
+      calendar: '<i class="fa-solid fa-calendar-days" aria-hidden="true"></i>',
+      gantt: '<i class="fa-solid fa-chart-gantt" aria-hidden="true"></i>',
+      kanban: '<i class="fa-solid fa-table-columns" aria-hidden="true"></i>',
+      analytics: '<i class="fa-solid fa-chart-column" aria-hidden="true"></i>',
+      notifications: '<i class="fa-regular fa-bell" aria-hidden="true"></i>',
+      chat: '<i class="fa-regular fa-comments" aria-hidden="true"></i>',
+      counterparties: '<i class="fa-solid fa-address-book" aria-hidden="true"></i>',
+      teams: '<i class="fa-solid fa-people-group" aria-hidden="true"></i>',
+      knowledge: '<i class="fa-solid fa-book-open-reader" aria-hidden="true"></i>',
+      profile: '<i class="fa-solid fa-user" aria-hidden="true"></i>',
+      admin: '<i class="fa-solid fa-shield-halved" aria-hidden="true"></i>',
+      'admin-settings': '<i class="fa-solid fa-sliders" aria-hidden="true"></i>',
+      'admin-jobs': '<i class="fa-solid fa-gears" aria-hidden="true"></i>',
+      'admin-ai': '<i class="fa-solid fa-robot" aria-hidden="true"></i>',
+      'admin-workflow': '<i class="fa-solid fa-diagram-project" aria-hidden="true"></i>',
+      'admin-sla': '<i class="fa-solid fa-clock" aria-hidden="true"></i>',
+      'approvals': '<i class="fa-solid fa-clipboard-check" aria-hidden="true"></i>',
+      'recycle-bin': '<i class="fa-solid fa-trash-can" aria-hidden="true"></i>',
+      'admin-custom-fields': '<i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>',
+      'recurring': '<i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i>',
+      'organizations': '<i class="fa-solid fa-building-columns" aria-hidden="true"></i>',
+      'admin-priorities': '<i class="fa-solid fa-arrow-up-wide-short" aria-hidden="true"></i>',
+      'admin-calendar': '<i class="fa-solid fa-calendar-check" aria-hidden="true"></i>',
+      'mentions': '<i class="fa-solid fa-at" aria-hidden="true"></i>',
+      'admin-templates': '<i class="fa-regular fa-copy" aria-hidden="true"></i>',
+      'admin-tags': '<i class="fa-solid fa-tags" aria-hidden="true"></i>',
+      'admin-webhooks': '<i class="fa-solid fa-webhook" aria-hidden="true"></i>',
+      'admin-modules': '<i class="fa-solid fa-cubes" aria-hidden="true"></i>',
+      'admin-estimates': '<i class="fa-solid fa-ruler-combined" aria-hidden="true"></i>',
+      'ideas': '<i class="fa-regular fa-lightbulb" aria-hidden="true"></i>',
+      intake: '<i class="fa-solid fa-inbox" aria-hidden="true"></i>',
+      cycles: '<i class="fa-solid fa-arrows-spin" aria-hidden="true"></i>',
+      docs: '<i class="fa-solid fa-book-open" aria-hidden="true"></i>',
+      api: '<i class="fa-solid fa-code" aria-hidden="true"></i>'
     };
-    return icons[routeKey] || '<i class="fa-solid fa-circle-dot"></i>';
+    return icons[routeKey] || '<i class="fa-solid fa-circle-dot" aria-hidden="true"></i>';
   }
 
   var SIDEBAR_COLLAPSE_KEY = 'crm_sidebar_collapsed';
@@ -490,7 +490,7 @@ window.CRM.navigation = (function () {
       quickCreate.setAttribute('data-open-modal', 'createTaskModal');
       quickCreate.setAttribute('aria-label', t('topbar.create_task', 'Create task'));
       quickCreate.setAttribute('title', t('topbar.create_task', 'Create task'));
-      quickCreate.innerHTML = '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-plus"></i></span><span class="crm-topbar-quick-create-label">' + t('topbar.create_task', 'Create task') + '</span>';
+      quickCreate.innerHTML = '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-plus" aria-hidden="true"></i></span><span class="crm-topbar-quick-create-label">' + t('topbar.create_task', 'Create task') + '</span>';
       // #sidebarToggle is guaranteed to exist here (created in the block above).
       bar.querySelector('#sidebarToggle').insertAdjacentElement('afterend', quickCreate);
     }
@@ -739,7 +739,7 @@ window.CRM.navigation = (function () {
       modal.className = 'modal fade';
       modal.setAttribute('tabindex', '-1');
       modal.setAttribute('aria-hidden', 'true');
-      modal.innerHTML = '<div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content"><div class="modal-body p-4"><div class="input-group input-group-lg"><span class="input-group-text"><span class="crm-icon crm-input-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></span></span><input class="form-control" id="globalSearchModalInput" placeholder="' + t('topbar.search_placeholder', 'Search') + '" autocomplete="off" autofocus></div></div></div></div>';
+      modal.innerHTML = '<div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content"><div class="modal-body p-4"><div class="input-group input-group-lg"><span class="input-group-text"><span class="crm-icon crm-input-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></span></span><input class="form-control" id="globalSearchModalInput" placeholder="' + t('topbar.search_placeholder', 'Search') + '" autocomplete="off" autofocus></div></div></div></div>';
       document.body.appendChild(modal);
 
       var modalInput = modal.querySelector('input');
@@ -1083,47 +1083,47 @@ window.CRM.navigation = (function () {
 
   function navIconByKey(key) {
     var icons = {
-      dashboard: '<i class="fa-solid fa-house"></i>',
-      ideas: '<i class="fa-regular fa-lightbulb"></i>',
-      tasks: '<i class="fa-solid fa-list-check"></i>',
-      day: '<i class="fa-solid fa-calendar-day"></i>',
-      week: '<i class="fa-solid fa-calendar-week"></i>',
-      kanban: '<i class="fa-solid fa-table-columns"></i>',
-      gantt: '<i class="fa-solid fa-chart-gantt"></i>',
-      projects: '<i class="fa-solid fa-folder-tree"></i>',
-      calendar: '<i class="fa-solid fa-calendar-days"></i>',
-      counterparties: '<i class="fa-solid fa-address-book"></i>',
-      teams: '<i class="fa-solid fa-people-group"></i>',
-      intake: '<i class="fa-solid fa-inbox"></i>',
-      cycles: '<i class="fa-solid fa-arrows-spin"></i>',
-      knowledge: '<i class="fa-solid fa-book-open-reader"></i>',
-      analytics: '<i class="fa-solid fa-chart-column"></i>',
-      notifications: '<i class="fa-regular fa-bell"></i>',
-      admin: '<i class="fa-solid fa-shield-halved"></i>',
-      'admin-estimates': '<i class="fa-solid fa-ruler-combined"></i>',
-      'admin-modules': '<i class="fa-solid fa-cubes"></i>',
-      chat: '<i class="fa-regular fa-comments"></i>',
-      docs: '<i class="fa-solid fa-code"></i>',
-      'project-modules': '<i class="fa-solid fa-cube"></i>',
-      'admin-custom-fields': '<i class="fa-solid fa-pen-to-square"></i>',
-      'admin-tags': '<i class="fa-solid fa-tags"></i>',
-      'admin-webhooks': '<i class="fa-solid fa-webhook"></i>',
-      'admin-templates': '<i class="fa-solid fa-copy"></i>',
-      'admin-calendar': '<i class="fa-solid fa-calendar-check"></i>',
-      'admin-priorities': '<i class="fa-solid fa-arrow-up-wide-short"></i>',
-      mentions: '<i class="fa-solid fa-at"></i>',
-      'recycle-bin': '<i class="fa-solid fa-trash-can"></i>',
-      'admin-settings': '<i class="fa-solid fa-sliders"></i>',
-      'admin-jobs': '<i class="fa-solid fa-gears"></i>',
-      'admin-ai': '<i class="fa-solid fa-robot"></i>',
-      'admin-workflow': '<i class="fa-solid fa-diagram-project"></i>',
-      'admin-sla': '<i class="fa-solid fa-clock"></i>',
-      approvals: '<i class="fa-solid fa-clipboard-check"></i>',
-      recurring: '<i class="fa-solid fa-arrows-rotate"></i>',
-      organizations: '<i class="fa-solid fa-building-columns"></i>',
-      profile: '<i class="fa-solid fa-user"></i>'
+      dashboard: '<i class="fa-solid fa-house" aria-hidden="true"></i>',
+      ideas: '<i class="fa-regular fa-lightbulb" aria-hidden="true"></i>',
+      tasks: '<i class="fa-solid fa-list-check" aria-hidden="true"></i>',
+      day: '<i class="fa-solid fa-calendar-day" aria-hidden="true"></i>',
+      week: '<i class="fa-solid fa-calendar-week" aria-hidden="true"></i>',
+      kanban: '<i class="fa-solid fa-table-columns" aria-hidden="true"></i>',
+      gantt: '<i class="fa-solid fa-chart-gantt" aria-hidden="true"></i>',
+      projects: '<i class="fa-solid fa-folder-tree" aria-hidden="true"></i>',
+      calendar: '<i class="fa-solid fa-calendar-days" aria-hidden="true"></i>',
+      counterparties: '<i class="fa-solid fa-address-book" aria-hidden="true"></i>',
+      teams: '<i class="fa-solid fa-people-group" aria-hidden="true"></i>',
+      intake: '<i class="fa-solid fa-inbox" aria-hidden="true"></i>',
+      cycles: '<i class="fa-solid fa-arrows-spin" aria-hidden="true"></i>',
+      knowledge: '<i class="fa-solid fa-book-open-reader" aria-hidden="true"></i>',
+      analytics: '<i class="fa-solid fa-chart-column" aria-hidden="true"></i>',
+      notifications: '<i class="fa-regular fa-bell" aria-hidden="true"></i>',
+      admin: '<i class="fa-solid fa-shield-halved" aria-hidden="true"></i>',
+      'admin-estimates': '<i class="fa-solid fa-ruler-combined" aria-hidden="true"></i>',
+      'admin-modules': '<i class="fa-solid fa-cubes" aria-hidden="true"></i>',
+      chat: '<i class="fa-regular fa-comments" aria-hidden="true"></i>',
+      docs: '<i class="fa-solid fa-code" aria-hidden="true"></i>',
+      'project-modules': '<i class="fa-solid fa-cube" aria-hidden="true"></i>',
+      'admin-custom-fields': '<i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>',
+      'admin-tags': '<i class="fa-solid fa-tags" aria-hidden="true"></i>',
+      'admin-webhooks': '<i class="fa-solid fa-webhook" aria-hidden="true"></i>',
+      'admin-templates': '<i class="fa-regular fa-copy" aria-hidden="true"></i>',
+      'admin-calendar': '<i class="fa-solid fa-calendar-check" aria-hidden="true"></i>',
+      'admin-priorities': '<i class="fa-solid fa-arrow-up-wide-short" aria-hidden="true"></i>',
+      mentions: '<i class="fa-solid fa-at" aria-hidden="true"></i>',
+      'recycle-bin': '<i class="fa-solid fa-trash-can" aria-hidden="true"></i>',
+      'admin-settings': '<i class="fa-solid fa-sliders" aria-hidden="true"></i>',
+      'admin-jobs': '<i class="fa-solid fa-gears" aria-hidden="true"></i>',
+      'admin-ai': '<i class="fa-solid fa-robot" aria-hidden="true"></i>',
+      'admin-workflow': '<i class="fa-solid fa-diagram-project" aria-hidden="true"></i>',
+      'admin-sla': '<i class="fa-solid fa-clock" aria-hidden="true"></i>',
+      approvals: '<i class="fa-solid fa-clipboard-check" aria-hidden="true"></i>',
+      recurring: '<i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i>',
+      organizations: '<i class="fa-solid fa-building-columns" aria-hidden="true"></i>',
+      profile: '<i class="fa-solid fa-user" aria-hidden="true"></i>'
     };
-    return icons[key] || '<i class="fa-solid fa-circle-dot"></i>';
+    return icons[key] || '<i class="fa-solid fa-circle-dot" aria-hidden="true"></i>';
   }
 
   function ensureCustomizeButton() {
@@ -1135,7 +1135,7 @@ window.CRM.navigation = (function () {
     btn.type = 'button';
     btn.className = 'nav-link crm-nav-customize-btn';
     btn.setAttribute('data-menu-customize-btn', '1');
-    btn.innerHTML = '<span class="crm-nav-icon" aria-hidden="true"><i class="fa-solid fa-sliders"></i></span>'
+    btn.innerHTML = '<span class="crm-nav-icon" aria-hidden="true"><i class="fa-solid fa-sliders" aria-hidden="true"></i></span>'
       + '<span class="crm-nav-label">' + escapeHtml(t('nav.customize_menu', 'Customize menu')) + '</span>';
     btn.title = t('nav.customize_menu', 'Customize menu');
     nav.appendChild(btn);
@@ -1173,7 +1173,7 @@ window.CRM.navigation = (function () {
     }).join('');
 
     var customHtml = customItems.map(function (item) {
-      var iconHtml = item.icon ? '<i class="' + escapeHtml(item.icon) + '"></i>' : '<i class="fa-solid fa-link"></i>';
+      var iconHtml = item.icon ? '<i class="' + escapeHtml(item.icon) + '"></i>' : '<i class="fa-solid fa-link" aria-hidden="true"></i>';
       return buildCustomizeRow(item.key, iconHtml, item.label || item.title || item.key, visibleSet[item.key] !== false, true, item.href);
     }).join('');
 
@@ -1185,7 +1185,7 @@ window.CRM.navigation = (function () {
 
     modal.innerHTML = '<div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content">'
       + '<div class="modal-header">'
-      + '<h5 class="modal-title"><i class="fa-solid fa-sliders me-2"></i>' + escapeHtml(t('nav.customize_menu', 'Customize menu')) + '</h5>'
+      + '<h5 class="modal-title"><i class="fa-solid fa-sliders me-2" aria-hidden="true"></i>' + escapeHtml(t('nav.customize_menu', 'Customize menu')) + '</h5>'
       + '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + escapeHtml(t('page.close', 'Close')) + '"></button>'
       + '</div>'
       + '<div class="modal-body">'
@@ -1193,14 +1193,14 @@ window.CRM.navigation = (function () {
       + '<div class="crm-menu-customize-list" data-menu-customize-list>' + listHtml + '</div>'
       + (customHtml ? '<div class="crm-menu-customize-separator"><span>' + escapeHtml(t('nav.custom_items', 'Custom links')) + '</span></div><div class="crm-menu-customize-list" data-menu-customize-custom-list>' + customHtml + '</div>' : '<div class="crm-menu-customize-list" data-menu-customize-custom-list></div>')
       + '<div class="crm-menu-customize-add-section">'
-      + '<button type="button" class="btn crm-btn-secondary btn-sm" data-menu-customize-add-link><i class="fa-solid fa-plus me-1"></i>' + escapeHtml(t('nav.add_custom_link', 'Add custom link')) + '</button>'
+      + '<button type="button" class="btn crm-btn-secondary btn-sm" data-menu-customize-add-link><i class="fa-solid fa-plus me-1" aria-hidden="true"></i>' + escapeHtml(t('nav.add_custom_link', 'Add custom link')) + '</button>'
       + '</div>'
       + '<div class="crm-menu-customize-add-form d-none" data-menu-customize-add-form>'
       + '<div class="row g-2 align-items-end">'
       + '<div class="col-md-4"><label class="form-label small">' + escapeHtml(t('nav.custom_link_title', 'Title')) + '</label><input type="text" class="form-control form-control-sm" data-custom-title placeholder="' + escapeHtml(t('nav.custom_link_title_placeholder', 'My link')) + '"></div>'
       + '<div class="col-md-4"><label class="form-label small">' + escapeHtml(t('nav.custom_link_url', 'URL')) + '</label><input type="url" class="form-control form-control-sm" data-custom-href placeholder="https://example.com"></div>'
       + '<div class="col-md-3"><label class="form-label small">' + escapeHtml(t('nav.custom_link_icon', 'Icon (FA class)')) + '</label><input type="text" class="form-control form-control-sm" data-custom-icon placeholder="fa-solid fa-link"></div>'
-      + '<div class="col-md-1"><button type="button" class="btn crm-btn-primary btn-sm w-100" data-menu-customize-add-confirm title="' + escapeHtml(t('common.add', 'Add')) + '"><i class="fa-solid fa-check"></i></button></div>'
+      + '<div class="col-md-1"><button type="button" class="btn crm-btn-primary btn-sm w-100" data-menu-customize-add-confirm title="' + escapeHtml(t('common.add', 'Add')) + '"><i class="fa-solid fa-check" aria-hidden="true"></i></button></div>'
       + '</div>'
       + '</div>'
       + '</div>'
@@ -1267,11 +1267,11 @@ window.CRM.navigation = (function () {
 
   function buildCustomizeRow(key, iconHtml, label, isVisible, isCustom, customHref) {
     var deleteBtn = isCustom
-      ? '<button type="button" class="btn btn-sm crm-btn-ghost crm-btn-icon text-danger" data-menu-customize-delete title="' + escapeHtml(t('common.delete', 'Delete')) + '"><i class="fa-solid fa-xmark"></i></button>'
+      ? '<button type="button" class="btn btn-sm crm-btn-ghost crm-btn-icon text-danger" data-menu-customize-delete title="' + escapeHtml(t('common.delete', 'Delete')) + '"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>'
       : '';
     var hrefAttribute = isCustom ? ' data-custom-href="' + escapeHtml(customHref || '') + '"' : '';
     return '<div class="crm-menu-customize-item' + (isCustom ? ' crm-menu-customize-item--custom' : '') + '" data-key="' + escapeHtml(key) + '" data-is-custom="' + (isCustom ? '1' : '0') + '"' + hrefAttribute + '>'
-      + '<span class="crm-menu-customize-drag" title="' + escapeHtml(t('nav.drag_reorder', 'Drag to reorder')) + '"><i class="fa-solid fa-grip-vertical"></i></span>'
+      + '<span class="crm-menu-customize-drag" title="' + escapeHtml(t('nav.drag_reorder', 'Drag to reorder')) + '"><i class="fa-solid fa-grip-vertical" aria-hidden="true"></i></span>'
       + '<span class="crm-menu-customize-icon">' + iconHtml + '</span>'
       + '<span class="crm-menu-customize-label">' + escapeHtml(label) + '</span>'
       + '<label class="crm-menu-customize-toggle">'
@@ -1294,7 +1294,7 @@ window.CRM.navigation = (function () {
     if (!title || !href) return;
 
     var key = 'custom_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
-    var iconHtml = icon ? '<i class="' + escapeHtml(icon) + '"></i>' : '<i class="fa-solid fa-link"></i>';
+    var iconHtml = icon ? '<i class="' + escapeHtml(icon) + '"></i>' : '<i class="fa-solid fa-link" aria-hidden="true"></i>';
     var rowHtml = buildCustomizeRow(key, iconHtml, title, true, true, href);
 
     var customList = modal.querySelector('[data-menu-customize-custom-list]');

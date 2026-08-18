@@ -25,7 +25,7 @@
       <section class="crm-task-description-summary" aria-labelledby="taskDescriptionSummaryTitle">
         <div class="crm-task-description-summary-head">
           <h2 class="h6 mb-0" id="taskDescriptionSummaryTitle" data-i18n="task_detail.desc_title"><?= htmlspecialchars($t('task_detail.desc_title', 'Контекст и критерии готовности'), ENT_QUOTES, 'UTF-8') ?></h2>
-          <button type="button" class="btn btn-sm crm-inline-icon-btn" data-task-inline-toggle="description" aria-label="<?= htmlspecialchars($t('task_detail.desc_edit_aria', 'Редактировать описание'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="task_detail.desc_edit_aria"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen"></i></span></button>
+          <button type="button" class="btn btn-sm crm-inline-icon-btn" data-task-inline-toggle="description" aria-label="<?= htmlspecialchars($t('task_detail.desc_edit_aria', 'Редактировать описание'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="task_detail.desc_edit_aria"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen" aria-hidden="true"></i></span></button>
         </div>
         <form id="taskDescriptionInlineForm" class="d-none crm-task-description-edit-form">
           <label class="form-label" data-i18n="task_detail.desc_field_label"><?= htmlspecialchars($t('task_detail.desc_field_label', 'Описание'), ENT_QUOTES, 'UTF-8') ?></label>
@@ -127,12 +127,12 @@
         </div>
         <div id="taskWorklogSummary" class="crm-worklog-summary mb-2">
           <div class="crm-worklog-summary-stat">
-            <span class="crm-worklog-summary-icon" aria-hidden="true"><i class="fa-regular fa-clock"></i></span>
+            <span class="crm-worklog-summary-icon" aria-hidden="true"><i class="fa-regular fa-clock" aria-hidden="true"></i></span>
             <strong class="crm-worklog-summary-value">0 <?= htmlspecialchars($t('task_detail.worklogs_minutes', 'мин'), ENT_QUOTES, 'UTF-8') ?></strong>
             <span class="crm-worklog-summary-label" data-i18n="task_detail.worklogs_total_label"><?= htmlspecialchars($t('task_detail.worklogs_total_label', 'Всего времени'), ENT_QUOTES, 'UTF-8') ?></span>
           </div>
           <div class="crm-worklog-summary-stat">
-            <span class="crm-worklog-summary-icon" aria-hidden="true"><i class="fa-regular fa-rectangle-list"></i></span>
+            <span class="crm-worklog-summary-icon" aria-hidden="true"><i class="fa-regular fa-rectangle-list" aria-hidden="true"></i></span>
             <strong class="crm-worklog-summary-value">0 <?= htmlspecialchars($t('task_detail.worklogs_entries', 'записей'), ENT_QUOTES, 'UTF-8') ?></strong>
             <span class="crm-worklog-summary-label" data-i18n="task_detail.worklogs_entries_label"><?= htmlspecialchars($t('task_detail.worklogs_entries_label', 'В журнале'), ENT_QUOTES, 'UTF-8') ?></span>
           </div>
@@ -203,7 +203,7 @@
       <section id="detailKnowledge" class="tab-pane fade crm-card crm-task-section">
         <h2 class="h6" data-i18n="task_detail.knowledge_title"><?= htmlspecialchars($t('task_detail.knowledge_title', 'Связанные страницы'), ENT_QUOTES, 'UTF-8') ?></h2>
         <div id="taskKnowledgeList"><div class="text-muted small" data-i18n="task_detail.knowledge_loading"><?= htmlspecialchars($t('task_detail.knowledge_loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
-        <div class="mt-3 pt-3 border-top"><h3 class="h6 d-flex align-items-center gap-2 mb-2" data-i18n="task_detail.team_knowledge_title"><span class="crm-icon text-muted" aria-hidden="true"><i class="fa-solid fa-users"></i></span><?= htmlspecialchars($t('task_detail.team_knowledge_title', 'Материалы команды'), ENT_QUOTES, 'UTF-8') ?></h3><div id="taskTeamKnowledgeList"><div class="text-muted small" data-i18n="task_detail.knowledge_loading"><?= htmlspecialchars($t('task_detail.knowledge_loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
+        <div class="mt-3 pt-3 border-top"><h3 class="h6 d-flex align-items-center gap-2 mb-2" data-i18n="task_detail.team_knowledge_title"><span class="crm-icon text-muted" aria-hidden="true"><i class="fa-solid fa-users" aria-hidden="true"></i></span><?= htmlspecialchars($t('task_detail.team_knowledge_title', 'Материалы команды'), ENT_QUOTES, 'UTF-8') ?></h3><div id="taskTeamKnowledgeList"><div class="text-muted small" data-i18n="task_detail.knowledge_loading"><?= htmlspecialchars($t('task_detail.knowledge_loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
         <div class="mt-2 d-flex gap-2 flex-wrap"><button id="taskAttachKnowledgeBtn" class="btn btn-sm crm-btn-secondary" type="button" data-i18n="task_detail.btn_attach_knowledge"><?= htmlspecialchars($t('task_detail.btn_attach_knowledge', 'Прикрепить статью'), ENT_QUOTES, 'UTF-8') ?></button><a id="taskCreateKnowledgeBtn" class="btn btn-sm crm-btn-secondary" href="index.php?route=knowledge" data-i18n="task_detail.btn_create_knowledge"><?= htmlspecialchars($t('task_detail.btn_create_knowledge', 'Создать связанную страницу'), ENT_QUOTES, 'UTF-8') ?></a></div>
       </section>
     </div>
@@ -327,7 +327,7 @@
         <div class="d-flex justify-content-between align-items-center">
           <small class="text-muted" data-i18n="task_detail.summary_assignee_label"><?= htmlspecialchars($t('task_detail.summary_assignee_label', 'Исполнитель'), ENT_QUOTES, 'UTF-8') ?></small>
           <button type="button" class="btn btn-sm crm-inline-icon-btn" data-task-inline-toggle="assignee" aria-label="<?= htmlspecialchars($t('task_detail.summary_assignee_edit_aria', 'Редактировать исполнителя'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="task_detail.summary_assignee_edit_aria">
-            <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen"></i></span>
+            <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen" aria-hidden="true"></i></span>
           </button>
         </div>
         <div class="crm-summary-value" id="taskAssigneeValue">—</div>
@@ -343,7 +343,7 @@
         <div class="d-flex justify-content-between align-items-center">
           <small class="text-muted" data-i18n="task_detail.summary_manager_label"><?= htmlspecialchars($t('task_detail.summary_manager_label', 'Менеджер'), ENT_QUOTES, 'UTF-8') ?></small>
           <button type="button" class="btn btn-sm crm-inline-icon-btn" data-task-inline-toggle="manager" aria-label="<?= htmlspecialchars($t('task_detail.summary_manager_edit_aria', 'Редактировать менеджера'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="task_detail.summary_manager_edit_aria">
-            <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen"></i></span>
+            <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen" aria-hidden="true"></i></span>
           </button>
         </div>
         <div class="crm-summary-value" id="taskManagerValue">—</div>
@@ -359,7 +359,7 @@
         <div class="d-flex justify-content-between align-items-center">
           <small class="text-muted" data-i18n="task_detail.summary_tags_label"><?= htmlspecialchars($t('task_detail.summary_tags_label', 'Теги'), ENT_QUOTES, 'UTF-8') ?></small>
           <button type="button" class="btn btn-sm crm-inline-icon-btn" data-task-inline-toggle="tags" aria-label="<?= htmlspecialchars($t('task_detail.summary_tags_edit_aria', 'Редактировать теги'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="task_detail.summary_tags_edit_aria">
-            <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen"></i></span>
+            <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen" aria-hidden="true"></i></span>
           </button>
         </div>
         <div class="crm-summary-value" id="taskTagsValue">—</div>
@@ -376,7 +376,7 @@
         <div class="d-flex justify-content-between align-items-center">
           <small class="text-muted" data-i18n="task_detail.summary_dates_label"><?= htmlspecialchars($t('task_detail.summary_dates_label', 'Сроки задачи'), ENT_QUOTES, 'UTF-8') ?></small>
           <button type="button" class="btn btn-sm crm-inline-icon-btn" data-task-inline-toggle="dates" aria-label="<?= htmlspecialchars($t('task_detail.summary_dates_edit_aria', 'Редактировать сроки задачи'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="task_detail.summary_dates_edit_aria">
-            <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen"></i></span>
+            <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen" aria-hidden="true"></i></span>
           </button>
         </div>
         <div class="crm-summary-value" id="taskDatesValue">—</div>
@@ -403,7 +403,7 @@
         <div class="d-flex justify-content-between align-items-center">
           <small class="text-muted" data-i18n="task_detail.summary_project_label"><?= htmlspecialchars($t('task_detail.summary_project_label', 'Связанный проект'), ENT_QUOTES, 'UTF-8') ?></small>
           <button type="button" class="btn btn-sm crm-inline-icon-btn" data-task-inline-toggle="project" aria-label="<?= htmlspecialchars($t('task_detail.summary_project_edit_aria', 'Редактировать проект'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="task_detail.summary_project_edit_aria">
-            <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen"></i></span>
+            <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen" aria-hidden="true"></i></span>
           </button>
         </div>
         <div class="crm-summary-value"><a href="index.php?route=projects" id="taskProjectLink">—</a></div>
@@ -569,7 +569,7 @@
   <div class="modal-dialog modal-xl modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" data-i18n="task_detail.modal_ai_diff_title"><i class="fa-solid fa-wand-magic-sparkles me-2"></i><?= htmlspecialchars($t('task_detail.modal_ai_diff_title', 'AI: улучшение описания'), ENT_QUOTES, 'UTF-8') ?></h5>
+        <h5 class="modal-title" data-i18n="task_detail.modal_ai_diff_title"><i class="fa-solid fa-wand-magic-sparkles me-2" aria-hidden="true"></i><?= htmlspecialchars($t('task_detail.modal_ai_diff_title', 'AI: улучшение описания'), ENT_QUOTES, 'UTF-8') ?></h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="page.close"></button>
       </div>
       <div class="modal-body">
@@ -591,7 +591,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
-        <button type="button" class="btn crm-btn-primary" id="taskAiDescriptionDiffApplyBtn" data-i18n="task_detail.modal_ai_diff_apply_btn"><i class="fa-solid fa-check me-1"></i><?= htmlspecialchars($t('task_detail.modal_ai_diff_apply_btn', 'Применить'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button type="button" class="btn crm-btn-primary" id="taskAiDescriptionDiffApplyBtn" data-i18n="task_detail.modal_ai_diff_apply_btn"><i class="fa-solid fa-check me-1" aria-hidden="true"></i><?= htmlspecialchars($t('task_detail.modal_ai_diff_apply_btn', 'Применить'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
     </div>
   </div>
@@ -634,7 +634,7 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" data-i18n="task_detail.modal_ai_high_risk_title"><i class="fa-solid fa-triangle-exclamation text-warning me-2"></i><?= htmlspecialchars($t('task_detail.modal_ai_high_risk_title', 'Действие с повышенным риском'), ENT_QUOTES, 'UTF-8') ?></h5>
+        <h5 class="modal-title" data-i18n="task_detail.modal_ai_high_risk_title"><i class="fa-solid fa-triangle-exclamation text-warning me-2" aria-hidden="true"></i><?= htmlspecialchars($t('task_detail.modal_ai_high_risk_title', 'Действие с повышенным риском'), ENT_QUOTES, 'UTF-8') ?></h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="page.close"></button>
       </div>
       <div class="modal-body">
@@ -888,7 +888,7 @@
           var id = encodeURIComponent(String(item.public_id));
           var title = escapeHtml(item.title || text('knowledge.untitled', 'Без названия'));
           var meta = [item.space_title, item.status].filter(Boolean).map(escapeHtml).join(' · ');
-          return '<button type="button" class="list-group-item list-group-item-action d-flex align-items-center justify-content-between gap-3" data-task-knowledge-page-id="' + id + '"><span class="text-start"><strong class="d-block">' + title + '</strong>' + (meta ? '<span class="small text-muted">' + meta + '</span>' : '') + '</span><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-link"></i></span></button>';
+          return '<button type="button" class="list-group-item list-group-item-action d-flex align-items-center justify-content-between gap-3" data-task-knowledge-page-id="' + id + '"><span class="text-start"><strong class="d-block">' + title + '</strong>' + (meta ? '<span class="small text-muted">' + meta + '</span>' : '') + '</span><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-link" aria-hidden="true"></i></span></button>';
         }).join('');
       } catch (e) {
         setMessage(text('task_detail.attach_knowledge_error', 'Не удалось выполнить операцию'), 'text-danger');

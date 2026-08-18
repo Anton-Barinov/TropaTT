@@ -2,7 +2,7 @@
 <?php $title = $t('teams.title', 'TropaTT — Команды и отделы'); ?>
 <body data-page="teams" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
-<main class="crm-content crm-teams-page"><div class="crm-page-head"><div><ol class="breadcrumb mb-1"><li class="breadcrumb-item"><a href="index.php?route=dashboard" data-i18n="page.home"><?= htmlspecialchars($t('page.home', 'Главная'), ENT_QUOTES, 'UTF-8') ?></a></li></ol><h1 class="crm-page-title" data-i18n="teams.page_title"><?= htmlspecialchars($t('teams.page_title', 'Команды и отделы'), ENT_QUOTES, 'UTF-8') ?></h1><p class="crm-subtitle" data-i18n="teams.subtitle"><?= htmlspecialchars($t('teams.subtitle', 'Иерархическая структура команд и отделов.'), ENT_QUOTES, 'UTF-8') ?></p></div><div class="crm-page-actions"><button class="btn crm-btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#teamCreateModal"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-plus"></i></span> <span data-i18n="teams.btn_create"><?= htmlspecialchars($t('teams.btn_create', 'Создать'), ENT_QUOTES, 'UTF-8') ?></span></button></div></div>
+<main class="crm-content crm-teams-page"><div class="crm-page-head"><div><ol class="breadcrumb mb-1"><li class="breadcrumb-item"><a href="index.php?route=dashboard" data-i18n="page.home"><?= htmlspecialchars($t('page.home', 'Главная'), ENT_QUOTES, 'UTF-8') ?></a></li></ol><h1 class="crm-page-title" data-i18n="teams.page_title"><?= htmlspecialchars($t('teams.page_title', 'Команды и отделы'), ENT_QUOTES, 'UTF-8') ?></h1><p class="crm-subtitle" data-i18n="teams.subtitle"><?= htmlspecialchars($t('teams.subtitle', 'Иерархическая структура команд и отделов.'), ENT_QUOTES, 'UTF-8') ?></p></div><div class="crm-page-actions"><button class="btn crm-btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#teamCreateModal"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-plus" aria-hidden="true"></i></span> <span data-i18n="teams.btn_create"><?= htmlspecialchars($t('teams.btn_create', 'Создать'), ENT_QUOTES, 'UTF-8') ?></span></button></div></div>
 
 <div class="crm-card crm-section-card crm-filters-card mb-3">
   <div class="row g-2 align-items-end crm-teams-filters">
@@ -21,7 +21,7 @@
     <div class="modal-content">
       <div class="team-modal-header">
         <div class="team-modal-header-left">
-          <div class="team-modal-icon"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-users"></i></span></div>
+          <div class="team-modal-icon"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-users" aria-hidden="true"></i></span></div>
           <div class="team-modal-title-group">
             <h5 class="team-modal-title" data-i18n="teams.modal_create_title"><?= htmlspecialchars($t('teams.modal_create_title', 'Создать команду'), ENT_QUOTES, 'UTF-8') ?></h5>
             <div class="team-modal-subtitle" data-i18n="teams.modal_create_subtitle"><?= htmlspecialchars($t('teams.modal_create_subtitle', 'Заполните информацию и добавьте участников'), ENT_QUOTES, 'UTF-8') ?></div>
@@ -72,7 +72,7 @@
               <div class="team-section-card team-knowledge-card">
                 <div class="team-knowledge-head">
                   <h6 class="team-section-title team-knowledge-title" data-i18n="teams.section_knowledge">
-                    <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-book-open"></i></span>
+                    <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-book-open" aria-hidden="true"></i></span>
                     <?= htmlspecialchars($t('teams.section_knowledge', 'Материалы команды'), ENT_QUOTES, 'UTF-8') ?>
                   </h6>
                   <button class="btn btn-sm crm-btn-subtle" type="button" id="teamCreateKnowledgeAttachBtn" data-i18n="teams.btn_attach_knowledge"><?= htmlspecialchars($t('teams.btn_attach_knowledge', 'Прикрепить статью'), ENT_QUOTES, 'UTF-8') ?></button>
@@ -90,13 +90,13 @@
                   <h6 class="team-participant-title"><span data-i18n="teams.participant_title"><?= htmlspecialchars($t('teams.participant_title', 'Участники'), ENT_QUOTES, 'UTF-8') ?></span> <span class="team-participant-count" data-create-count>0</span></h6>
                 </div>
                 <div class="team-participant-search-wrap">
-                  <span class="crm-icon team-search-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></span>
+                  <span class="crm-icon team-search-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></span>
                   <input type="text" class="team-search-input" data-create-search placeholder="<?= htmlspecialchars($t('teams.placeholder_search_participant', 'Найти сотрудника...'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="teams.placeholder_search_participant">
                   <div class="team-search-dropdown" data-create-search-results hidden></div>
                 </div>
                 <div class="team-participant-list" data-create-participant-list role="listbox"></div>
                 <div class="team-empty-state" data-create-empty>
-                  <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-user-plus"></i></span>
+                  <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-user-plus" aria-hidden="true"></i></span>
                   <p data-i18n="teams.empty_add_participants"><?= htmlspecialchars($t('teams.empty_add_participants', 'Добавьте участников'), ENT_QUOTES, 'UTF-8') ?></p>
                   <span class="team-empty-hint" data-i18n="teams.hint_search_add"><?= htmlspecialchars($t('teams.hint_search_add', 'Используйте поиск для быстрого добавления'), ENT_QUOTES, 'UTF-8') ?></span>
                 </div>
@@ -126,7 +126,7 @@
     <div class="modal-content">
       <div class="team-modal-header">
         <div class="team-modal-header-left">
-          <div class="team-modal-icon"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-users"></i></span></div>
+          <div class="team-modal-icon"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-users" aria-hidden="true"></i></span></div>
           <div class="team-modal-title-group">
             <h5 class="team-modal-title" data-i18n="teams.modal_edit_title"><?= htmlspecialchars($t('teams.modal_edit_title', 'Редактирование команды'), ENT_QUOTES, 'UTF-8') ?></h5>
             <div class="team-modal-meta">
@@ -184,13 +184,13 @@
               <div class="team-section-card team-knowledge-card">
                 <div class="team-knowledge-head">
                   <h6 class="team-section-title team-knowledge-title" data-i18n="teams.section_knowledge">
-                    <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-book-open"></i></span>
+                    <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-book-open" aria-hidden="true"></i></span>
                     <?= htmlspecialchars($t('teams.section_knowledge', 'Материалы команды'), ENT_QUOTES, 'UTF-8') ?>
                   </h6>
                   <div class="team-knowledge-actions">
                     <button class="btn btn-sm crm-btn-subtle" type="button" id="teamKnowledgeAttachBtn" data-i18n="teams.btn_attach_knowledge"><?= htmlspecialchars($t('teams.btn_attach_knowledge', 'Прикрепить статью'), ENT_QUOTES, 'UTF-8') ?></button>
                     <a class="btn btn-sm crm-btn-subtle" href="index.php?route=knowledge" id="teamKnowledgeLink" data-i18n="teams.btn_knowledge">
-                      <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-arrow-up-right-from-square"></i></span>
+                      <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></span>
                       <?= htmlspecialchars($t('teams.btn_knowledge', 'Перейти в базу знаний'), ENT_QUOTES, 'UTF-8') ?>
                     </a>
                   </div>
@@ -207,13 +207,13 @@
                   <h6 class="team-participant-title"><span data-i18n="teams.participant_title"><?= htmlspecialchars($t('teams.participant_title', 'Участники'), ENT_QUOTES, 'UTF-8') ?></span> <span class="team-participant-count" data-edit-count>0</span></h6>
                 </div>
                 <div class="team-participant-search-wrap">
-                  <span class="crm-icon team-search-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></span>
+                  <span class="crm-icon team-search-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></span>
                   <input type="text" class="team-search-input" data-edit-search placeholder="<?= htmlspecialchars($t('teams.placeholder_search_participant', 'Найти сотрудника...'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="teams.placeholder_search_participant">
                   <div class="team-search-dropdown" data-edit-search-results hidden></div>
                 </div>
                 <div class="team-participant-list" data-edit-participant-list role="listbox"></div>
                 <div class="team-empty-state" data-edit-empty hidden>
-                  <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-user-plus"></i></span>
+                  <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-user-plus" aria-hidden="true"></i></span>
                   <p data-i18n="teams.empty_no_participants"><?= htmlspecialchars($t('teams.empty_no_participants', 'Нет участников'), ENT_QUOTES, 'UTF-8') ?></p>
                   <span class="team-empty-hint" data-i18n="teams.hint_search_add"><?= htmlspecialchars($t('teams.hint_search_add', 'Используйте поиск для добавления'), ENT_QUOTES, 'UTF-8') ?></span>
                 </div>
@@ -226,7 +226,7 @@
         <div class="team-modal-footer">
           <div class="team-footer-danger">
             <button class="btn btn crm-btn-danger-icon crm-btn-compact" type="button" data-team-delete>
-              <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-trash-can"></i></span>
+              <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></span>
             </button>
           </div>
           <div class="team-footer-actions">
@@ -317,10 +317,10 @@
 
   function pageRow(p, detach) {
     var detachBtn = detach
-      ? '<button type="button" class="btn btn-sm crm-btn-subtle" data-detach="' + esc(p.public_id) + '" data-link="' + esc(detach) + '" title="' + esc(t('teams.knowledge_detach', 'Открепить')) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-xmark"></i></span></button>'
+      ? '<button type="button" class="btn btn-sm crm-btn-subtle" data-detach="' + esc(p.public_id) + '" data-link="' + esc(detach) + '" title="' + esc(t('teams.knowledge_detach', 'Открепить')) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-xmark" aria-hidden="true"></i></span></button>'
       : '';
-    var openBtn = '<a class="btn btn-sm crm-btn-subtle" href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-arrow-right"></i></span></a>';
-    return '<div class="team-knowledge-row"><div class="team-knowledge-row-main"><span class="team-knowledge-row-icon" aria-hidden="true"><i class="fa-solid fa-file-lines"></i></span><span class="team-knowledge-row-title">' + esc(p.title || '') + '</span></div><div class="team-knowledge-row-actions">' + detachBtn + openBtn + '</div></div>';
+    var openBtn = '<a class="btn btn-sm crm-btn-subtle" href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span></a>';
+    return '<div class="team-knowledge-row"><div class="team-knowledge-row-main"><span class="team-knowledge-row-icon" aria-hidden="true"><i class="fa-solid fa-file-lines" aria-hidden="true"></i></span><span class="team-knowledge-row-title">' + esc(p.title || '') + '</span></div><div class="team-knowledge-row-actions">' + detachBtn + openBtn + '</div></div>';
   }
 
   function renderCreateList() {
@@ -330,7 +330,7 @@
       return;
     }
     createKnowledgeList.innerHTML = createSelectedPages.map(function (p) {
-      return '<div class="team-knowledge-row"><div class="team-knowledge-row-main"><span class="team-knowledge-row-icon" aria-hidden="true"><i class="fa-solid fa-file-lines"></i></span><span class="team-knowledge-row-title">' + esc(p.title || '') + '</span></div><div class="team-knowledge-row-actions"><button type="button" class="btn btn-sm crm-btn-subtle" data-create-remove="' + esc(p.public_id) + '" title="' + esc(t('teams.knowledge_detach', 'Открепить')) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-xmark"></i></span></button></div></div>';
+      return '<div class="team-knowledge-row"><div class="team-knowledge-row-main"><span class="team-knowledge-row-icon" aria-hidden="true"><i class="fa-solid fa-file-lines" aria-hidden="true"></i></span><span class="team-knowledge-row-title">' + esc(p.title || '') + '</span></div><div class="team-knowledge-row-actions"><button type="button" class="btn btn-sm crm-btn-subtle" data-create-remove="' + esc(p.public_id) + '" title="' + esc(t('teams.knowledge_detach', 'Открепить')) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-xmark" aria-hidden="true"></i></span></button></div></div>';
     }).join('');
     createKnowledgeList.querySelectorAll('[data-create-remove]').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -427,7 +427,7 @@
         var id = encodeURIComponent(String(item.public_id));
         var title = esc(item.title || '');
         var meta = [item.space_title, item.status].filter(Boolean).map(esc).join(' · ');
-        return '<button type="button" class="list-group-item list-group-item-action d-flex align-items-center justify-content-between gap-3" data-attach-page-id="' + id + '"><span class="text-start"><strong class="d-block">' + title + '</strong>' + (meta ? '<span class="small text-muted">' + meta + '</span>' : '') + '</span><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-link"></i></span></button>';
+        return '<button type="button" class="list-group-item list-group-item-action d-flex align-items-center justify-content-between gap-3" data-attach-page-id="' + id + '"><span class="text-start"><strong class="d-block">' + title + '</strong>' + (meta ? '<span class="small text-muted">' + meta + '</span>' : '') + '</span><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-link" aria-hidden="true"></i></span></button>';
       }).join('');
     } catch (e) {
       setAttachMessage(t('teams.attach_knowledge_error', 'Не удалось выполнить операцию'), 'text-danger');

@@ -281,7 +281,7 @@
         var sm = { draft: 'crm-badge-secondary', review: 'crm-badge-warning', published: 'crm-badge-success', archived: 'crm-badge-light', needs_update: 'crm-badge-danger' };
         statusBadge = '<span class="crm-badge ' + (sm[item.status] || 'crm-badge-secondary') + '" style="font-size:0.7rem;padding:0.15rem 0.4rem;margin-left:0.5rem">' + esc(item.status) + '</span>';
       }
-      return '<a class="crm-knowledge-list-item" href="' + esc(pageLink(item)) + '"><span><strong>' + esc(item.title) + statusBadge + '</strong><small>' + esc(item.space_title || item.page_type || '') + '</small></span><i class="fa-solid fa-chevron-right"></i></a>';
+      return '<a class="crm-knowledge-list-item" href="' + esc(pageLink(item)) + '"><span><strong>' + esc(item.title) + statusBadge + '</strong><small>' + esc(item.space_title || item.page_type || '') + '</small></span><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></a>';
     }).join('');
   }
   async function load() {
@@ -700,7 +700,7 @@
   var ptEl = document.getElementById('adminKnowledgePageTypes');
   if (ptEl) {
     ptEl.innerHTML = pageTypes.map(function (pt) {
-      return '<tr><td><i class="fa-solid ' + pt.icon + ' me-2 crm-text-muted"></i><code>' + esc(pt.id) + '</code></td><td><strong>' + esc(pt.title) + '</strong></td><td class="text-muted small">' + esc(pt.desc) + '</td></tr>';
+      return '<tr><td><i class="fa-solid ' + pt.icon + ' me-2 crm-text-muted" aria-hidden="true"></i><code>' + esc(pt.id) + '</code></td><td><strong>' + esc(pt.title) + '</strong></td><td class="text-muted small">' + esc(pt.desc) + '</td></tr>';
     }).join('');
   }
 

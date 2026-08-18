@@ -41,9 +41,9 @@
 <div class="crm-mobile-work-mode-hint d-md-none" data-i18n="kanban.mobile_hint"><?= htmlspecialchars($t('kanban.mobile_hint', 'Колонки доски пролистываются горизонтально. Для полного списка задач используйте раздел «Задачи».'), ENT_QUOTES, 'UTF-8') ?></div>
 <div id="kanbanMobileStatusTabs" class="crm-kanban-mobile-tabs d-md-none" role="tablist" aria-label="<?= htmlspecialchars($t('kanban.mobile_status_aria', 'Статусы канбана'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="kanban.mobile_status_aria"></div>
     <div class="crm-kanban-scroll-wrap">
-      <button class="crm-kanban-scroll-btn crm-kanban-scroll-left" type="button" aria-label="<?= htmlspecialchars($t('kanban.scroll_left', 'Прокрутить влево'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="kanban.scroll_left"><i class="fa-solid fa-chevron-left"></i></button>
+      <button class="crm-kanban-scroll-btn crm-kanban-scroll-left" type="button" aria-label="<?= htmlspecialchars($t('kanban.scroll_left', 'Прокрутить влево'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="kanban.scroll_left"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
       <div class="crm-kanban"></div>
-      <button class="crm-kanban-scroll-btn crm-kanban-scroll-right" type="button" aria-label="<?= htmlspecialchars($t('kanban.scroll_right', 'Прокрутить вправо'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="kanban.scroll_right"><i class="fa-solid fa-chevron-right"></i></button>
+      <button class="crm-kanban-scroll-btn crm-kanban-scroll-right" type="button" aria-label="<?= htmlspecialchars($t('kanban.scroll_right', 'Прокрутить вправо'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="kanban.scroll_right"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
     </div>
 <?= module_position('kanban.board.after', ['route' => $route ?? 'kanban']) ?>
 </main></div></div>

@@ -20,7 +20,7 @@
       </div>
       <div class="crm-gantt-quick-tools" id="ganttQuickTools">
         <div class="crm-gantt-search">
-          <span class="crm-gantt-search-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></span>
+          <span class="crm-gantt-search-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></span>
           <label class="visually-hidden" for="ganttSearchInput" data-i18n="gantt.search_label"><?= htmlspecialchars($t('gantt.search_label', 'Поиск задач на диаграмме Ганта'), ENT_QUOTES, 'UTF-8') ?></label>
           <input type="text" id="ganttSearchInput" placeholder="<?= htmlspecialchars($t('gantt.placeholder_search', 'Поиск задач...'), ENT_QUOTES, 'UTF-8') ?>" autocomplete="off" data-i18n-placeholder="gantt.placeholder_search">
           <button class="crm-gantt-search-clear d-none" type="button" id="ganttSearchClearBtn" aria-label="<?= htmlspecialchars($t('gantt.btn_clear_search_aria', 'Очистить поиск по диаграмме Ганта'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="gantt.btn_clear_search_aria"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>

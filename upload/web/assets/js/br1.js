@@ -2632,23 +2632,23 @@ window.CRM.br1 = (function () {
         iconSpan.className = 'crm-icon';
         iconSpan.setAttribute('aria-hidden', 'true');
         var iconI = document.createElement('i');
-        iconI.className = 'fa-solid fa-copy';
+        iconI.className = 'fa-regular fa-copy';
         iconSpan.appendChild(iconI);
         copyBtn.innerHTML = '';
         copyBtn.appendChild(iconSpan);
         copyBtn.addEventListener('click', function (e) {
           e.preventDefault();
           navigator.clipboard.writeText(keyText).then(function () {
-            copyBtn.innerHTML = '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-check"></i></span>';
+            copyBtn.innerHTML = '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-check" aria-hidden="true"></i></span>';
             copyBtn.classList.add('crm-btn-success');
             setTimeout(function () {
-              copyBtn.innerHTML = '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-copy"></i></span>';
+              copyBtn.innerHTML = '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-copy" aria-hidden="true"></i></span>';
               copyBtn.classList.remove('crm-btn-success');
             }, 1500);
           })['catch'](function () {
-            copyBtn.innerHTML = '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-xmark"></i></span>';
+            copyBtn.innerHTML = '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-xmark" aria-hidden="true"></i></span>';
             setTimeout(function () {
-              copyBtn.innerHTML = '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-copy"></i></span>';
+              copyBtn.innerHTML = '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-copy" aria-hidden="true"></i></span>';
             }, 1500);
           });
         });
@@ -3818,7 +3818,7 @@ window.CRM.br1 = (function () {
           + '<input class="form-check-input mt-0" type="checkbox" data-checklist-draft-done="' + escapeHtml(String(item.public_id || '')) + '"' + (Number(item.is_done || 0) === 1 ? ' checked' : '') + (canEditTask ? '' : ' disabled') + '>'
           + '<input class="form-control form-control-sm" data-checklist-draft-title="' + escapeHtml(String(item.public_id || '')) + '" maxlength="255" value="' + escapeHtml(item.title || '') + '"' + (canEditTask ? '' : ' disabled') + '>'
           + '<span class="crm-checklist-order-meta small text-muted" aria-hidden="true">#' + escapeHtml(String(index + 1)) + '</span>'
-          + window.CRM.i18n.t('js.br1.button_class_btn_btn_sm_crm_btn_danger_icon_type_button', '<button class="btn btn-sm crm-btn-danger-icon" type="button" aria-label="Удалить пункт чеклиста" data-checklist-draft-delete="') + escapeHtml(String(item.public_id || '')) + '"' + (canEditTask ? '' : ' disabled') + '><span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-trash-can"></i></span></button>'
+          + window.CRM.i18n.t('js.br1.button_class_btn_btn_sm_crm_btn_danger_icon_type_button', '<button class="btn btn-sm crm-btn-danger-icon" type="button" aria-label="Удалить пункт чеклиста" data-checklist-draft-delete="') + escapeHtml(String(item.public_id || '')) + '"' + (canEditTask ? '' : ' disabled') + '><span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></span></button>'
           + '</div>';
       }).join('') : window.CRM.i18n.t('js.br1.div_class_crm_checklist_empty_punktov_poka_net_div', '<div class="crm-checklist-empty">Пунктов пока нет.</div>'))
       + '</div>'
@@ -6867,12 +6867,12 @@ window.CRM.br1 = (function () {
         : '';
 
       summary.innerHTML = '<div class="crm-worklog-summary-stat">'
-        + '<span class="crm-worklog-summary-icon" aria-hidden="true"><i class="fa-regular fa-clock"></i></span>'
+        + '<span class="crm-worklog-summary-icon" aria-hidden="true"><i class="fa-regular fa-clock" aria-hidden="true"></i></span>'
         + '<strong class="crm-worklog-summary-value">' + escapeHtml(formatMinutes(totalMinutes)) + '</strong>'
         + window.CRM.i18n.t('js.br1.span_class_crm_worklog_summary_label_vsego_vremeni_span', '<span class="crm-worklog-summary-label">Всего времени</span>')
         + '</div>'
         + '<div class="crm-worklog-summary-stat">'
-        + '<span class="crm-worklog-summary-icon" aria-hidden="true"><i class="fa-regular fa-rectangle-list"></i></span>'
+        + '<span class="crm-worklog-summary-icon" aria-hidden="true"><i class="fa-regular fa-rectangle-list" aria-hidden="true"></i></span>'
         + '<strong class="crm-worklog-summary-value">' + escapeHtml(formatWorklogEntriesLabel(items.length)) + '</strong>'
         + window.CRM.i18n.t('js.br1.span_class_crm_worklog_summary_label_v_zhurnale_span', '<span class="crm-worklog-summary-label">В журнале</span>')
         + '</div>'
@@ -6894,7 +6894,7 @@ window.CRM.br1 = (function () {
     if (addToggleBtn) addToggleBtn.classList.toggle('d-none', worklogAddOpen);
 
     if (!items.length) {
-      list.innerHTML = window.CRM.i18n.t('js.br1.div_class_crm_worklog_empty_zapisey_vremeni_poka_net_div', '<div class="crm-worklog-empty"><span class="crm-worklog-empty-icon" aria-hidden="true"><i class="fa-regular fa-clock"></i></span><div class="text-muted">Записей времени пока нет.</div></div>');
+      list.innerHTML = window.CRM.i18n.t('js.br1.div_class_crm_worklog_empty_zapisey_vremeni_poka_net_div', '<div class="crm-worklog-empty"><span class="crm-worklog-empty-icon" aria-hidden="true"><i class="fa-regular fa-clock" aria-hidden="true"></i></span><div class="text-muted">Записей времени пока нет.</div></div>');
       return;
     }
 
@@ -6913,7 +6913,7 @@ window.CRM.br1 = (function () {
           : '';
         return '<article class="crm-worklog-card" data-worklog-id="' + escapeHtml(worklogId) + '">'
           + '<div class="crm-worklog-view-head">'
-          + '<div class="crm-worklog-view-main"><span class="crm-worklog-entry-icon" aria-hidden="true"><i class="fa-regular fa-clock"></i></span><strong>' + escapeHtml(worklogDurationLabel(item)) + '</strong>'
+          + '<div class="crm-worklog-view-main"><span class="crm-worklog-entry-icon" aria-hidden="true"><i class="fa-regular fa-clock" aria-hidden="true"></i></span><strong>' + escapeHtml(worklogDurationLabel(item)) + '</strong>'
           + '<span class="crm-worklog-entry-date"><i class="fa-regular fa-calendar" aria-hidden="true"></i>' + escapeHtml(formatDate(item.logged_at)) + '</span>' + intervalNote + '</div>'
           + '<div class="crm-worklog-view-actions"><button class="btn crm-btn-secondary crm-btn-compact" type="button" data-worklog-edit-open="' + escapeHtml(worklogId) + window.CRM.i18n.t('js.br1.redaktirovat_button_4', '" aria-label="Редактировать запись" title="Редактировать"><i class="fa-solid fa-pen" aria-hidden="true"></i><span class="visually-hidden">Редактировать</span></button>')
           + window.CRM.i18n.t('js.br1.details_class_crm_worklog_more_summary_class_btn_btn_li', '<details class="crm-worklog-more"><summary class="btn crm-btn-secondary crm-btn-compact" aria-label="Дополнительные действия"><span>...</span></summary><div class="crm-worklog-more-menu"><button class="btn btn-sm crm-btn-danger crm-btn-compact" type="button" data-worklog-delete-view="') + escapeHtml(worklogId) + window.CRM.i18n.t('js.br1.udalit_button_div_details_div', '">Удалить</button></div></details></div>')

@@ -130,12 +130,12 @@
           <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="italic" title="<?= htmlspecialchars($t('knowledge_page.italic', 'Курсив'), ENT_QUOTES, 'UTF-8') ?>"><i>I</i></button>
           <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="h2" title="<?= htmlspecialchars($t('knowledge_page.h2', 'Заголовок H2'), ENT_QUOTES, 'UTF-8') ?>">H2</button>
           <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="h3" title="<?= htmlspecialchars($t('knowledge_page.h3', 'Заголовок H3'), ENT_QUOTES, 'UTF-8') ?>">H3</button>
-          <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="ul" title="<?= htmlspecialchars($t('knowledge_page.ul', 'Список'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-list-ul"></i></button>
-          <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="ol" title="<?= htmlspecialchars($t('knowledge_page.ol', 'Нумерованный список'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-list-ol"></i></button>
-          <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="blockquote" title="<?= htmlspecialchars($t('knowledge_page.blockquote', 'Цитата'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-quote-right"></i></button>
-          <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="code" title="<?= htmlspecialchars($t('knowledge_page.code', 'Код'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-code"></i></button>
-          <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="link" title="<?= htmlspecialchars($t('knowledge_page.link', 'Ссылка'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-link"></i></button>
-          <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="checklist" title="<?= htmlspecialchars($t('knowledge_page.checklist', 'Чеклист'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-check-square"></i></button>
+          <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="ul" title="<?= htmlspecialchars($t('knowledge_page.ul', 'Список'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-list-ul" aria-hidden="true"></i></button>
+          <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="ol" title="<?= htmlspecialchars($t('knowledge_page.ol', 'Нумерованный список'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-list-ol" aria-hidden="true"></i></button>
+          <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="blockquote" title="<?= htmlspecialchars($t('knowledge_page.blockquote', 'Цитата'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-quote-right" aria-hidden="true"></i></button>
+          <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="code" title="<?= htmlspecialchars($t('knowledge_page.code', 'Код'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-code" aria-hidden="true"></i></button>
+          <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="link" title="<?= htmlspecialchars($t('knowledge_page.link', 'Ссылка'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-link" aria-hidden="true"></i></button>
+          <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="checklist" title="<?= htmlspecialchars($t('knowledge_page.checklist', 'Чеклист'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-check-square" aria-hidden="true"></i></button>
         </div>
         <div class="crm-knowledge-visual-wrap">
           <textarea id="knowledgeEditContent" class="crm-knowledge-editor-source" name="content_html" rows="12" placeholder="<?= htmlspecialchars($t('knowledge_page.editor_placeholder', 'Начните писать материал...'), ENT_QUOTES, 'UTF-8') ?>" data-crm-visual-editor="1" data-richtext-off="1"></textarea>
@@ -388,9 +388,9 @@
       <div id="knowledgeAiModalBody" class="crm-knowledge-ai-modal-body"></div>
     </div>
     <div class="modal-footer" id="knowledgeAiModalFooter">
-      <button class="btn crm-btn-secondary" type="button" id="knowledgeAiModalCopyBtn"><i class="fa-regular fa-clipboard" style="margin-right:0.3rem"></i><?= htmlspecialchars($t('knowledge_page.ai_copy', 'Копировать'), ENT_QUOTES, 'UTF-8') ?></button>
-      <button class="btn crm-btn-secondary" type="button" id="knowledgeAiModalInsertBtn" style="display:none"><i class="fa-solid fa-file-import" style="margin-right:0.3rem"></i><?= htmlspecialchars($t('knowledge_page.ai_insert', 'Вставить в материал'), ENT_QUOTES, 'UTF-8') ?></button>
-      <button class="btn crm-btn-secondary" type="button" id="knowledgeAiModalRefreshBtn"><i class="fa-solid fa-rotate" style="margin-right:0.3rem"></i><?= htmlspecialchars($t('knowledge_page.ai_refresh', 'Обновить'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button class="btn crm-btn-secondary" type="button" id="knowledgeAiModalCopyBtn"><i class="fa-regular fa-clipboard" style="margin-right:0.3rem" aria-hidden="true"></i><?= htmlspecialchars($t('knowledge_page.ai_copy', 'Копировать'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button class="btn crm-btn-secondary" type="button" id="knowledgeAiModalInsertBtn" style="display:none"><i class="fa-solid fa-file-import" style="margin-right:0.3rem" aria-hidden="true"></i><?= htmlspecialchars($t('knowledge_page.ai_insert', 'Вставить в материал'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button class="btn crm-btn-secondary" type="button" id="knowledgeAiModalRefreshBtn"><i class="fa-solid fa-arrows-rotate" style="margin-right:0.3rem" aria-hidden="true"></i><?= htmlspecialchars($t('knowledge_page.ai_refresh', 'Обновить'), ENT_QUOTES, 'UTF-8') ?></button>
       <button type="button" class="btn crm-btn-primary" data-bs-dismiss="modal"><?= htmlspecialchars($t('common.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?></button>
     </div>
   </div></div>
@@ -943,7 +943,7 @@
     nodes.forEach(function (n) {
       var active = n.public_id === pageId ? ' crm-knowledge-tree-active' : '';
       var hasChildren = n.children && n.children.length;
-      var toggleHtml = hasChildren ? '<button type="button" class="crm-knowledge-tree-toggle is-open" data-tree-toggle aria-label="' + esc(t('knowledge_page.tree_toggle_aria', 'Toggle')) + '"><i class="fa-solid fa-chevron-right"></i></button>' : '';
+      var toggleHtml = hasChildren ? '<button type="button" class="crm-knowledge-tree-toggle is-open" data-tree-toggle aria-label="' + esc(t('knowledge_page.tree_toggle_aria', 'Toggle')) + '"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>' : '';
       html += '<li class="crm-knowledge-tree-item' + active + '">';
       html += '<div class="crm-knowledge-tree-item-row">' + toggleHtml + '<a href="index.php?route=knowledge-page&amp;id=' + esc(n.public_id) + '">' + esc(n.title) + '</a></div>';
       if (hasChildren) html += renderTreeNodes(n.children, depth + 1);
@@ -1497,7 +1497,7 @@
     if (action === 'similar') {
       var items = data.items || [];
       if (!items.length) {
-        modalBodyEl.innerHTML = '<div class="crm-ai-empty"><i class="fa-solid fa-copy"></i><p>' + esc(t('knowledge_page.ai_no_similar', 'Похожих страниц не найдено')) + '</p></div>';
+        modalBodyEl.innerHTML = '<div class="crm-ai-empty"><i class="fa-solid fa-copy" aria-hidden="true"></i><p>' + esc(t('knowledge_page.ai_no_similar', 'Похожих страниц не найдено')) + '</p></div>';
       } else {
         modalBodyEl.innerHTML = '<div class="crm-ai-similar-list">' + items.map(function (item) {
           return '<a class="crm-ai-similar-item" href="index.php?route=knowledge-page&amp;id=' + esc(item.public_id) + '"><strong>' + esc(item.title) + '</strong><span class="crm-badge crm-badge-secondary">' + esc(item.page_type) + '</span><span class="crm-ai-similar-space">' + esc(item.space_title || '') + '</span></a>';
@@ -1506,7 +1506,7 @@
     } else if (action === 'checklist') {
       var checklistItems = data.items || [];
       if (!checklistItems.length) {
-        modalBodyEl.innerHTML = '<div class="crm-ai-empty"><i class="fa-solid fa-list-check"></i><p>' + esc(t('knowledge_page.ai_no_result', 'Нет результата')) + '</p></div>';
+        modalBodyEl.innerHTML = '<div class="crm-ai-empty"><i class="fa-solid fa-list-check" aria-hidden="true"></i><p>' + esc(t('knowledge_page.ai_no_result', 'Нет результата')) + '</p></div>';
       } else {
         modalBodyEl.innerHTML = '<div class="crm-ai-checklist"><ul>' + checklistItems.map(function (item) {
           return '<li><label><input type="checkbox" class="me-2">' + esc(item) + '</label></li>';
@@ -1515,7 +1515,7 @@
     } else if (action === 'faq-from-comments') {
       var faqItems = data.items || [];
       if (!faqItems.length) {
-        modalBodyEl.innerHTML = '<div class="crm-ai-empty"><i class="fa-solid fa-circle-question"></i><p>' + esc(t('knowledge_page.ai_no_result', 'Нет результата')) + '</p></div>';
+        modalBodyEl.innerHTML = '<div class="crm-ai-empty"><i class="fa-solid fa-circle-question" aria-hidden="true"></i><p>' + esc(t('knowledge_page.ai_no_result', 'Нет результата')) + '</p></div>';
       } else {
         modalBodyEl.innerHTML = '<div class="crm-ai-faq">' + faqItems.map(function (item) {
           return '<details class="crm-ai-faq-item" open><summary><strong>' + esc(item.question || '') + '</strong></summary><p>' + esc(item.answer || '') + '</p></details>';
@@ -1542,7 +1542,7 @@
       var categoryLabel = categoryLabels[errCategory] || errCategory || t('knowledge_page.ai_error_unknown', 'Неизвестная ошибка');
 
       var errorHtml = '<div class="crm-ai-error">';
-      errorHtml += '<div class="crm-ai-error-icon"><i class="fa-solid fa-circle-exclamation"></i></div>';
+      errorHtml += '<div class="crm-ai-error-icon"><i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i></div>';
       errorHtml += '<h4>' + esc(categoryLabel) + '</h4>';
       if (errMsg) errorHtml += '<p class="crm-ai-error-msg">' + esc(errMsg) + '</p>';
       errorHtml += '<div class="crm-ai-error-details small text-muted">';
@@ -1551,7 +1551,7 @@
       if (!retryable) errorHtml += '<span class="crm-ai-error-nonretryable">' + esc(t('knowledge_page.ai_error_nonretryable', 'Требуется настройка')) + '</span>';
       errorHtml += '</div>';
       errorHtml += '<div class="crm-ai-error-actions mt-2">';
-      errorHtml += '<a href="index.php?route=admin-ai" class="btn btn-sm crm-btn-secondary"><i class="fa-solid fa-gear"></i> ' + esc(t('knowledge_page.ai_check_settings', 'Проверить настройки AI')) + '</a>';
+      errorHtml += '<a href="index.php?route=admin-ai" class="btn btn-sm crm-btn-secondary"><i class="fa-solid fa-gear" aria-hidden="true"></i> ' + esc(t('knowledge_page.ai_check_settings', 'Проверить настройки AI')) + '</a>';
       errorHtml += '</div></div>';
       modalBodyEl.innerHTML = errorHtml;
 
@@ -1563,11 +1563,11 @@
       if (text) {
         var fallbackNote = '';
         if (data.mode === 'fallback') {
-          fallbackNote = '<div class="crm-ai-fallback-note"><i class="fa-solid fa-info-circle"></i> ' + esc(t('knowledge_page.ai_fallback_note', 'AI временно недоступен. Показана структура документа.')) + '</div>';
+          fallbackNote = '<div class="crm-ai-fallback-note"><i class="fa-solid fa-info-circle" aria-hidden="true"></i> ' + esc(t('knowledge_page.ai_fallback_note', 'AI временно недоступен. Показана структура документа.')) + '</div>';
         }
         modalBodyEl.innerHTML = fallbackNote + '<div class="crm-ai-text-content">' + textToHtml(text) + '</div>';
       } else {
-        modalBodyEl.innerHTML = '<div class="crm-ai-empty"><i class="fa-solid fa-wand-magic-sparkles"></i><p>' + esc(t('knowledge_page.ai_no_result', 'Нет результата')) + '</p></div>';
+        modalBodyEl.innerHTML = '<div class="crm-ai-empty"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i><p>' + esc(t('knowledge_page.ai_no_result', 'Нет результата')) + '</p></div>';
       }
     }
   }
@@ -1652,7 +1652,7 @@
       var errStatus = e && e.status || '';
       if (modalBodyEl) {
         showAiLoading(false);
-        modalBodyEl.innerHTML = '<div class="crm-ai-empty" style="color:var(--crm-danger)"><i class="fa-solid fa-triangle-exclamation"></i><p>' + esc(t('knowledge_page.ai_error', 'Ошибка AI')) + '</p>' + (errMsg ? '<p class="small text-muted">' + esc(errMsg) + (errStatus ? ' (HTTP ' + errStatus + ')' : '') + '</p>' : '<p class="small text-muted">' + esc(t('knowledge_page.ai_error_unknown', 'Неизвестная ошибка. Проверьте настройки AI-провайдера.')) + '</p>') + '<a href="index.php?route=admin-ai" class="btn btn-sm crm-btn-secondary mt-2"><i class="fa-solid fa-gear"></i> ' + esc(t('knowledge_page.ai_check_settings', 'Проверить настройки AI')) + '</a></div>';
+        modalBodyEl.innerHTML = '<div class="crm-ai-empty" style="color:var(--crm-danger)"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i><p>' + esc(t('knowledge_page.ai_error', 'Ошибка AI')) + '</p>' + (errMsg ? '<p class="small text-muted">' + esc(errMsg) + (errStatus ? ' (HTTP ' + errStatus + ')' : '') + '</p>' : '<p class="small text-muted">' + esc(t('knowledge_page.ai_error_unknown', 'Неизвестная ошибка. Проверьте настройки AI-провайдера.')) + '</p>') + '<a href="index.php?route=admin-ai" class="btn btn-sm crm-btn-secondary mt-2"><i class="fa-solid fa-gear" aria-hidden="true"></i> ' + esc(t('knowledge_page.ai_check_settings', 'Проверить настройки AI')) + '</a></div>';
       }
       if (sidebarBodyEl) {
         sidebarBodyEl.innerHTML = '<em class="text-danger">' + esc(t('knowledge_page.ai_error', 'Ошибка AI')) + (errMsg ? ': ' + esc(errMsg) : '') + '</em>';
@@ -1680,9 +1680,9 @@
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(function () {
         var btn = document.getElementById('knowledgeAiModalCopyBtn');
-        if (btn) { btn.innerHTML = '<i class="fa-regular fa-check-circle" style="margin-right:0.3rem"></i>' + esc(t('knowledge_page.ai_copied', 'Скопировано')); }
+        if (btn) { btn.innerHTML = '<i class="fa-regular fa-check-circle" style="margin-right:0.3rem" aria-hidden="true"></i>' + esc(t('knowledge_page.ai_copied', 'Скопировано')); }
         window.setTimeout(function () {
-          if (btn) btn.innerHTML = '<i class="fa-regular fa-clipboard" style="margin-right:0.3rem"></i>' + esc(t('knowledge_page.ai_copy', 'Копировать'));
+          if (btn) btn.innerHTML = '<i class="fa-regular fa-clipboard" style="margin-right:0.3rem" aria-hidden="true"></i>' + esc(t('knowledge_page.ai_copy', 'Копировать'));
         }, 2000);
       });
     } else {
@@ -1707,7 +1707,7 @@
       els.editContent.dispatchEvent(new Event('input', { bubbles: true }));
     }
     var btn = document.getElementById('knowledgeAiModalInsertBtn');
-    if (btn) { btn.innerHTML = '<i class="fa-regular fa-check-circle" style="margin-right:0.3rem"></i>' + esc(t('knowledge_page.ai_inserted', 'Вставлено')); }
+    if (btn) { btn.innerHTML = '<i class="fa-regular fa-check-circle" style="margin-right:0.3rem" aria-hidden="true"></i>' + esc(t('knowledge_page.ai_inserted', 'Вставлено')); }
     window.setTimeout(function () {
       if (btn) btn.style.display = 'none';
     }, 1500);
@@ -1735,7 +1735,7 @@
       } else {
         els.tagsList.innerHTML = items.map(function (tag) {
           var color = tag.color || '#6c757d';
-          return '<span class="crm-badge" style="background:' + color + ';color:#fff;cursor:default">' + esc(tag.title || tag.code || '') + ' <i class="fa-solid fa-xmark" style="cursor:pointer;margin-left:2px" data-tag-id="' + esc(tag.public_id || '') + '" title="' + esc(t('knowledge_page.tag_remove', 'Удалить тег')) + '"></i></span>';
+          return '<span class="crm-badge" style="background:' + color + ';color:#fff;cursor:default">' + esc(tag.title || tag.code || '') + ' <i class="fa-solid fa-xmark" style="cursor:pointer;margin-left:2px" data-tag-id="' + esc(tag.public_id || '') + '" title="' + esc(t('knowledge_page.tag_remove', 'Удалить тег')) + '" aria-hidden="true"></i></span>';
         }).join('');
       }
       var usedIds = {};

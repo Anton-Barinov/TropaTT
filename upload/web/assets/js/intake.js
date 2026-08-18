@@ -365,10 +365,10 @@ window.CRM.intake = (function () {
   function actionButtons(item) {
     var id = esc(item.public_id || '');
     var status = item.status || 'pending';
-    var html = '<button class="btn crm-btn-secondary" type="button" data-intake-action="detail" data-intake-id="' + id + '" title="' + esc(t('intake.action_detail', 'Открыть')) + '"><i class="fa-solid fa-eye"></i></button>';
+    var html = '<button class="btn crm-btn-secondary" type="button" data-intake-action="detail" data-intake-id="' + id + '" title="' + esc(t('intake.action_detail', 'Открыть')) + '"><i class="fa-solid fa-eye" aria-hidden="true"></i></button>';
 
     if (status === 'pending' || status === 'snoozed') {
-      html += '<button class="btn crm-btn-primary intake-accept-btn" type="button" data-intake-action="accept" data-intake-id="' + id + '" title="' + esc(t('intake.btn_accept', 'Принять')) + '"><i class="fa-solid fa-check"></i></button>';
+      html += '<button class="btn crm-btn-primary intake-accept-btn" type="button" data-intake-action="accept" data-intake-id="' + id + '" title="' + esc(t('intake.btn_accept', 'Принять')) + '"><i class="fa-solid fa-check" aria-hidden="true"></i></button>';
       html += secondaryMenu(id, [
         ['snooze', 'fa-clock', t('intake.btn_snooze', 'Отложить')],
         ['reject', 'fa-xmark', t('intake.btn_reject', 'Отклонить')],
@@ -376,17 +376,17 @@ window.CRM.intake = (function () {
       ]);
     }
     if (status === 'rejected' || status === 'duplicate' || status === 'snoozed') {
-      html += '<button class="btn crm-btn-secondary" type="button" data-intake-action="reopen" data-intake-id="' + id + '" title="' + esc(t('intake.btn_reopen', 'Вернуть в работу')) + '"><i class="fa-solid fa-rotate-left"></i></button>';
+      html += '<button class="btn crm-btn-secondary" type="button" data-intake-action="reopen" data-intake-id="' + id + '" title="' + esc(t('intake.btn_reopen', 'Вернуть в работу')) + '"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i></button>';
     }
     if (item.accepted_task_public_id) {
-      html += '<a class="btn crm-btn-secondary" href="index.php?route=task-detail&id=' + esc(encodeURIComponent(item.accepted_task_public_id)) + '" title="' + esc(t('intake.view_task_btn', 'Открыть задачу')) + '"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>';
+      html += '<a class="btn crm-btn-secondary" href="index.php?route=task-detail&id=' + esc(encodeURIComponent(item.accepted_task_public_id)) + '" title="' + esc(t('intake.view_task_btn', 'Открыть задачу')) + '"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>';
     }
     return html;
   }
 
   function secondaryMenu(id, actions) {
     return '<div class="dropdown crm-intake-row-menu">'
-      + '<button class="btn crm-btn-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="' + esc(t('intake.more_actions', 'Ещё действия')) + '"><i class="fa-solid fa-ellipsis"></i></button>'
+      + '<button class="btn crm-btn-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="' + esc(t('intake.more_actions', 'Ещё действия')) + '"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></button>'
       + '<ul class="dropdown-menu dropdown-menu-end">'
       + actions.map(function (action) {
         return '<li><button class="dropdown-item" type="button" data-intake-action="' + esc(action[0]) + '" data-intake-id="' + id + '"><i class="fa-solid ' + esc(action[1]) + ' me-2"></i>' + esc(action[2]) + '</button></li>';

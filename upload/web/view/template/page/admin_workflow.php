@@ -16,7 +16,7 @@
           <p class="crm-subtitle" data-i18n="admin_workflow.subtitle"><?= htmlspecialchars($t('admin_workflow.subtitle', 'Когда в задачах происходит событие — CRM сама выполняет действие. Без кода, без скриптов.'), ENT_QUOTES, 'UTF-8') ?></p>
         </div>
         <div class="d-flex gap-2">
-          <button id="adminWorkflowRefreshBtn" class="btn crm-btn-secondary" type="button"><i class="fa-solid fa-rotate me-1" aria-hidden="true"></i><span data-i18n="admin_workflow.refresh_btn"><?= htmlspecialchars($t('admin_workflow.refresh_btn', 'Обновить'), ENT_QUOTES, 'UTF-8') ?></span></button>
+          <button id="adminWorkflowRefreshBtn" class="btn crm-btn-secondary" type="button"><i class="fa-solid fa-arrows-rotate me-1" aria-hidden="true"></i><span data-i18n="admin_workflow.refresh_btn"><?= htmlspecialchars($t('admin_workflow.refresh_btn', 'Обновить'), ENT_QUOTES, 'UTF-8') ?></span></button>
           <button id="adminWorkflowCreateBtn" class="btn crm-btn-primary" type="button"><i class="fa-solid fa-plus me-1" aria-hidden="true"></i><span data-i18n="admin_workflow.create_btn"><?= htmlspecialchars($t('admin_workflow.create_btn', 'Создать правило'), ENT_QUOTES, 'UTF-8') ?></span></button>
         </div>
       </div>
