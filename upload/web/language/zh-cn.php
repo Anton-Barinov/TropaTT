@@ -7015,6 +7015,8 @@ return array (
   array (
     'title' => 'TropaTT — 系统设置',
     'page_title' => '系统设置',
+    'link_admin' => '管理',
+    'breadcrumb' => '系统设置',
     'subtitle' => '概览、安全编辑和数据保留策略。',
     'refresh_btn' => '刷新',
     'section_knowledge' => '部门规章',

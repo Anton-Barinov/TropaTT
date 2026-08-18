@@ -6917,6 +6917,8 @@ return array (
   array (
     'title' => 'TropaTT — System settings',
     'page_title' => 'System settings',
+    'link_admin' => 'Admin',
+    'breadcrumb' => 'System Settings',
     'subtitle' => 'Overview without changing critical data, safe editing and retention policy.',
     'refresh_btn' => 'Refresh',
     'section_knowledge' => 'Department regulations',

@@ -1217,6 +1217,8 @@ return array (
   array (
     'title' => 'TropaTT — Systemeinstellungen',
     'page_title' => 'Systemeinstellungen',
+    'link_admin' => 'Admin',
+    'breadcrumb' => 'Systemeinstellungen',
     'subtitle' => 'Übersicht ohne Änderung kritischer Daten, sichere Bearbeitung und Aufbewahrungsrichtlinie.',
     'refresh_btn' => 'Refresh',
     'system_info_refresh_btn' => 'Refresh',

@@ -1217,6 +1217,8 @@ return array (
   array (
     'title' => 'TropaTT — Paramètres système',
     'page_title' => 'Paramètres système',
+    'link_admin' => 'Admin',
+    'breadcrumb' => 'Paramètres système',
     'subtitle' => 'Vue d\'ensemble sans modification des données critiques, modification sécurisée et politique de rétention.',
     'refresh_btn' => 'Refresh',
     'system_info_refresh_btn' => 'Refresh',
