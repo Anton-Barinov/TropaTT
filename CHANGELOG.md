@@ -4,6 +4,56 @@ All notable public changes to TropaTT should be documented here.
 
 This project follows a lightweight Keep a Changelog style. Dates are added when a release is actually created.
 
+## [0.2.0.3] - 2026-08-18
+
+### Added
+
+- **Planning workspace (My Day / My Week) unified.** Both planning views now share one consistent workspace (their routes and all existing task, calendar and AI actions stay intact): the same 4-column task-table layout (Задача | Ответственный | Срок/статус | Действие) with `table-layout: fixed` column widths, day headers with a «Сегодня» badge on My Day, avatars with initials, status badges with time, chips for subtask/parent/task kinds, and day labels localized in all 7 locales. The «Просроченные задачи» blocks on both pages are regular sections (not spoilers) with live counts, and the AI day/week plan cards moved into the right column after the day/week events. Priority stripes now support all 4 levels (urgent/high/normal/low) and appear only on the first cell of a row; the «Прокрутка по горизонтали» hint shows only when a table actually scrolls; marking a task done asks for confirmation first.
+
+- **Task detail sidebar blocks are per-user configurable.** The right column of the task card (estimates, timer, AI assistant, summary and any module blocks) can be hidden, re-added and reordered per user; the layout is stored per user (`GET/PUT /api/v1/tasks/sidebar`) and applied on page load.
+
+- **Counterparty detail page reorganized into tabs with accordions.** The counterparty card is split into tabs, with count badges on the tab buttons kept intact; long sections fold into accordions.
+
+- **Project detail page redesigned into tabs.** The project card now uses tabs with a progress ring and quick status/priority pills; the AI sub-blocks on the insights tab fold into accordions; a new «Архив» action sits in the «ещё» menu with a confirm modal.
+
+- **Chat: history pagination, unread divider and copy action.** Long conversations can scroll back beyond the initial 80 messages («Показать более ранние»), a «новые сообщения» divider is based on the per-user read marker, and every message has a copy-to-clipboard action.
+
+- **Projects list shows real progress and managers.** The list endpoint now computes per-project task totals and progress, so the «Прогресс» column is no longer a constant 0%; cards and table render a progress bar with done/total counts, show the assigned manager, and distinguish an empty list (with a create CTA) from a no-results-for-filters state.
+
+- **Intake inbox: status tabs, sorting, pagination and bulk triage.** Per-status tabs with live counts, sortable column headers and a pager for large shared inboxes; a select-all/checkbox column powers bulk accept/reject/assign/snooze/reopen/delete that reuses the single-item flows under their existing RBAC checks.
+
+- **Cycles become sprints.** Cycles are labeled «Спринты» in the menu and page titles, with the browser-title translation added to all 7 locales. The statistics tab gains: a **burndown chart** (tasks and story points with an ideal line, committed-points baseline and a tasks/points toggle when estimates exist), **scope tracking** (committed vs added/removed via a `meta_json` baseline), a **velocity report** including story-points velocity (prefers the story-points estimate set, falls back to the first set with estimates), and **per-assignee capacity planning** (points committed vs completed per assignee plus team totals). Daily burndown snapshots are captured via cron in addition to on start/view/complete, a **sprint guard** enforces one active cycle per project, and the cycle lifecycle dispatches module events (created/started/completed/reopened/archived/deleted).
+
+- **WIP limits for teams, projects and assignees.** The WIP-limit module now computes load live from the tasks table (replacing the drift-prone denormalized counter), honors configurable WIP statuses and role exclusions, and dispatches `task.status_changed` / `task.assignee_changed` module hooks from the core so enforcement actually runs. Team- and project-scoped limits with exceed notifications to the assignee or team/project manager were added, and the assignee's live WIP load plus an inline limit editor now live in a task-detail sidebar panel. Scope tabs are styled as a segmented control.
+
+- **Module extension system.** Modules can subscribe to task lifecycle events (module events + `HookManager`), scope their CSS/JS to specific routes (`css_routes`/`js_routes`), inject content into named page positions via manifest `positions` (task detail sidebar, tasks list, kanban, dashboard, project detail, profile, gantt, calendar, counterparties), and hook the render lifecycle via manifest `web_hooks`. A self-contained `position-example` module demonstrates content injection into `gantt.content.after` as a reference for module authors; the WIP module uses the new surface as its reference example.
+
+- **GitHub and GitLab two-way sync via core events.** The integrations subscribe to `comment.added` and `task.status_changed` and push changes back to the linked issue/MR for imported tasks only. Loop safety is structural (pull sync writes through services, push-back reacts to controller events), pushed comments are persisted so the next pull skips them, and the issue/MR → task mapping is stored to keep re-syncs idempotent.
+
+- **Slack notifications from core events.** The Slack module registers against the core `HookManager` so task/project/user/comment/file events automatically enqueue notifications for matching rules — no more wiring every workflow via `call_webhook`. Rules support both the new dot event names and legacy underscore aliases.
+
+- **i18n: complete key parity across all 7 locales** for the web and API catalogs (aligned with the ru-ru reference): missing dashboard/footer/intake/knowledge/task_detail/cycles/js.pab keys added to de/es/fr/pt/zh web catalogs, new `intake`, `project_module`, `project_modules` and `saved_views` API domain catalogs created where absent, and the Chinese `task_detail` knowledge labels restored (they were shadowed by an English duplicate block). Module dialog strings now go through the language files.
+
+- **Docs:** public module development guide (`MODULE_DEVELOPMENT.md`) published and linked from the README along with `UPDATES.md`; README links the 22 module repositories (en/ru/zh), advertises the MCP integration and free pricing, and carries a release badge linking to the latest GitHub release.
+
+### Changed
+
+- Planning: the «Моя неделя» item is hidden from the menu by default; the strict 8/4 grid is restored; hardcoded UI emoji replaced with Font Awesome icons; planner CSS cleaned up and merged, `data-i18n` attributes audited.
+- Cycle statistics: the burndown metric switch is styled as a segmented control; WIP-limit scope tabs likewise.
+- Docs: removed references to local-only test files and real server paths; dropped missing source-map references from bootstrap assets.
+
+### Fixed
+
+- Task detail: the saved sidebar block order is applied on page reload (not just on first render).
+- Counterparty: tab count badges stay intact (the `data-i18n` attribute was dropped from tab buttons).
+- Chat: the read marker survives the response sanitizer as `last_read_seq` (distinct bind parameter for the join).
+- Kanban: the search box syncs with the `q=` URL parameter on initial board load; the searchable cycle-filter input syncs when the board is opened from a cycle.
+- Cycles: burndown and statistics strings localized in all 7 locales; the reopen button label no longer collides with open-detail; points-burndown remaining is rounded to avoid float noise; points velocity picks the estimate set that actually has estimates; the velocity project filter is passed as a query param.
+- WIP limit: the summary table waits for `text-utils` before loading.
+- Modules: query params are passed as query objects (not embedded in route paths); the project-modules list loads on the project-detail page.
+- CSS: two stray media queries closed (kanban filters/knowledge/workspace mobile styles and project-detail mobile styles now actually apply); primary button text stays white on hover inside content areas.
+- Planning: the My Week «Задачи недели» table now uses the same fixed table layout and boxed max-height+scroll treatment as «Просроченные задачи», and its card container div is properly closed.
+
 ## [0.2.0.2] - 2026-08-15
 
 ### Added
