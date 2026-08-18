@@ -14015,8 +14015,12 @@ window.CRM.pageApiBindings = (function () {
           if (saveSpinner) saveSpinner.hidden = false;
 
           try {
-            await request('api/v1/teams', { method: 'POST', body: payload });
+            var createdEnvelope = await request('api/v1/teams', { method: 'POST', body: payload });
             notify(tp('teams.created', 'Team created'));
+            var newTeamId = (createdEnvelope && createdEnvelope.data && createdEnvelope.data.team && createdEnvelope.data.team.public_id) || '';
+            if (newTeamId && window.__teamKnowledge && typeof window.__teamKnowledge.attachPendingPages === 'function') {
+              await window.__teamKnowledge.attachPendingPages(newTeamId);
+            }
             if (createModal) createModal.hide();
             createForm.reset();
             createPM.setParticipants([], {});

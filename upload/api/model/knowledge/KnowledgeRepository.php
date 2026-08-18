@@ -896,13 +896,13 @@ final class KnowledgeRepository
         // Legacy internal callers omit an actor; preserve their historical
         // behavior while authenticated callers receive actor-scoped results.
         if ($actor === null) {
-            $stmt = $this->pdo->prepare("SELECT p.*, s.public_id AS space_public_id, s.title AS space_title, l.relation_type FROM knowledge_entity_links l JOIN knowledge_pages p ON p.id = l.page_id JOIN knowledge_spaces s ON s.id = p.space_id WHERE l.entity_type = :entity_type AND l.entity_public_id = :entity_public_id AND p.deleted_at IS NULL AND s.visibility = 'public' ORDER BY p.updated_at DESC");
+            $stmt = $this->pdo->prepare("SELECT p.*, s.public_id AS space_public_id, s.title AS space_title, l.relation_type, l.public_id AS link_public_id FROM knowledge_entity_links l JOIN knowledge_pages p ON p.id = l.page_id JOIN knowledge_spaces s ON s.id = p.space_id WHERE l.entity_type = :entity_type AND l.entity_public_id = :entity_public_id AND p.deleted_at IS NULL AND s.visibility = 'public' ORDER BY p.updated_at DESC");
             $stmt->execute(['entity_type' => $entityType, 'entity_public_id' => $entityPublicId]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         }
 
         [$aclSql, $aclParams] = $this->pageAccessSql('p', 's', $actor, 'view');
-        $stmt = $this->pdo->prepare("SELECT p.*, s.public_id AS space_public_id, s.title AS space_title, l.relation_type FROM knowledge_entity_links l JOIN knowledge_pages p ON p.id = l.page_id JOIN knowledge_spaces s ON s.id = p.space_id WHERE l.entity_type = :entity_type AND l.entity_public_id = :entity_public_id AND p.deleted_at IS NULL AND {$aclSql} ORDER BY p.updated_at DESC");
+        $stmt = $this->pdo->prepare("SELECT p.*, s.public_id AS space_public_id, s.title AS space_title, l.relation_type, l.public_id AS link_public_id FROM knowledge_entity_links l JOIN knowledge_pages p ON p.id = l.page_id JOIN knowledge_spaces s ON s.id = p.space_id WHERE l.entity_type = :entity_type AND l.entity_public_id = :entity_public_id AND p.deleted_at IS NULL AND {$aclSql} ORDER BY p.updated_at DESC");
         $stmt->execute(['entity_type' => $entityType, 'entity_public_id' => $entityPublicId] + $aclParams);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }

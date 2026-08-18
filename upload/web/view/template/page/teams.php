@@ -89,6 +89,20 @@
               </div>
             </div>
           </div>
+
+          <div class="mt-3 pt-3 border-top px-3 pb-3" id="teamCreateKnowledgeSection">
+            <div class="d-flex align-items-center justify-content-between mb-2 gap-2 flex-wrap">
+              <h6 class="mb-0 d-flex align-items-center gap-2">
+                <span class="crm-icon text-muted" aria-hidden="true"><i class="fa-solid fa-book-open"></i></span>
+                <?= htmlspecialchars($t('teams.section_knowledge', 'Материалы команды'), ENT_QUOTES, 'UTF-8') ?>
+              </h6>
+              <button class="btn btn-sm crm-btn-subtle" type="button" id="teamCreateKnowledgeAttachBtn" data-i18n="teams.btn_attach_knowledge"><?= htmlspecialchars($t('teams.btn_attach_knowledge', 'Прикрепить статью'), ENT_QUOTES, 'UTF-8') ?></button>
+            </div>
+            <div class="small text-muted mb-2" data-i18n="teams.knowledge_create_hint"><?= htmlspecialchars($t('teams.knowledge_create_hint', 'Выбранные материалы будут привязаны к команде после её создания.'), ENT_QUOTES, 'UTF-8') ?></div>
+            <div class="crm-section-card p-3" id="teamCreateKnowledgeList">
+              <div class="text-muted small">—</div>
+            </div>
+          </div>
         </div>
 
         <div class="team-modal-footer">
@@ -188,16 +202,19 @@
             </div>
           </div>
 
-          <div class="mt-3 pt-3 border-top" id="teamKnowledgeSection">
-            <div class="d-flex align-items-center justify-content-between mb-3">
+          <div class="mt-3 pt-3 border-top px-3 pb-3" id="teamKnowledgeSection">
+            <div class="d-flex align-items-center justify-content-between mb-2 gap-2 flex-wrap">
               <h6 class="mb-0 d-flex align-items-center gap-2">
                 <span class="crm-icon text-muted" aria-hidden="true"><i class="fa-solid fa-book-open"></i></span>
                 <?= htmlspecialchars($t('teams.section_knowledge', 'Материалы команды'), ENT_QUOTES, 'UTF-8') ?>
               </h6>
-              <a class="btn btn-sm crm-btn-subtle" href="index.php?route=knowledge" id="teamKnowledgeLink" data-i18n="teams.btn_knowledge">
-                <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-arrow-up-right-from-square"></i></span>
-                <?= htmlspecialchars($t('teams.btn_knowledge', 'Перейти в базу знаний'), ENT_QUOTES, 'UTF-8') ?>
-              </a>
+              <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm crm-btn-subtle" type="button" id="teamKnowledgeAttachBtn" data-i18n="teams.btn_attach_knowledge"><?= htmlspecialchars($t('teams.btn_attach_knowledge', 'Прикрепить статью'), ENT_QUOTES, 'UTF-8') ?></button>
+                <a class="btn btn-sm crm-btn-subtle" href="index.php?route=knowledge" id="teamKnowledgeLink" data-i18n="teams.btn_knowledge">
+                  <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-arrow-up-right-from-square"></i></span>
+                  <?= htmlspecialchars($t('teams.btn_knowledge', 'Перейти в базу знаний'), ENT_QUOTES, 'UTF-8') ?>
+                </a>
+              </div>
             </div>
             <div class="crm-section-card p-3" id="teamKnowledgeList">
               <div class="text-muted small">—</div>
@@ -226,39 +243,304 @@
   </div>
 </div>
 
+<!-- TEAM KNOWLEDGE ATTACH MODAL -->
+<div class="modal fade" id="teamKnowledgeAttachModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" data-i18n="teams.attach_knowledge_title"><?= htmlspecialchars($t('teams.attach_knowledge_title', 'Прикрепить статью базы знаний'), ENT_QUOTES, 'UTF-8') ?></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="page.close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label" for="teamKnowledgeSearch" data-i18n="teams.attach_knowledge_search_label"><?= htmlspecialchars($t('teams.attach_knowledge_search_label', 'Поиск статьи'), ENT_QUOTES, 'UTF-8') ?></label>
+          <input id="teamKnowledgeSearch" class="form-control" type="search" autocomplete="off" placeholder="<?= htmlspecialchars($t('teams.attach_knowledge_search_placeholder', 'Введите название статьи...'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="teams.attach_knowledge_search_placeholder">
+        </div>
+        <div id="teamKnowledgeAttachResults"><div class="text-muted small" data-i18n="teams.attach_knowledge_loading"><?= htmlspecialchars($t('teams.attach_knowledge_loading', 'Загрузка статей...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button></div>
+    </div>
+  </div>
+</div>
+
 <script>
 (function () {
-  var editModal = document.getElementById('teamEditModal');
-  if (!editModal) return;
-  var knowledgeSection = document.getElementById('teamKnowledgeSection');
-  var knowledgeList = document.getElementById('teamKnowledgeList');
-  if (!knowledgeSection || !knowledgeList) return;
-  editModal.addEventListener('show.bs.modal', function () {
-    var teamIdInput = document.querySelector('#teamEditForm input[name=\"public_id\"]');
-    var teamId = teamIdInput ? teamIdInput.value : '';
-    if (!teamId) { knowledgeList.innerHTML = '<div class=\"text-muted small\">—</div>'; return; }
-    var link = document.getElementById('teamKnowledgeLink');
-    if (link) link.href = 'index.php?route=knowledge&entity_type=team&entity_public_id=' + encodeURIComponent(teamId);
-    knowledgeList.innerHTML = '<div class=\"d-flex align-items-center gap-2 text-muted small\"><span class=\"spinner-border spinner-border-sm\" role=\"status\"></span><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>';
-    (async function () {
-      try {
-        var api = window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function' ? window.CRM.api : null;
-        if (!api) return;
-        var envelope = await api.request('api/v1/knowledge/entities/team/' + encodeURIComponent(teamId) + '/pages', { method: 'GET' });
-        var items = envelope.data && envelope.data.items || [];
-        if (!items.length) {
-          knowledgeList.innerHTML = '<div class=\"text-center py-3\"><div class=\"crm-icon mb-2\" style=\"font-size:1.5rem;opacity:0.35\" aria-hidden=\"true\"><i class=\"fa-solid fa-book-open\"></i></div><p class=\"text-muted small mb-0\"><?= htmlspecialchars($t('teams.knowledge_empty', 'Нет материалов команды'), ENT_QUOTES, 'UTF-8') ?></p><p class=\"text-muted small mb-0\"><?= htmlspecialchars($t('teams.knowledge_empty_hint', 'Добавьте страницы в базе знаний и привяжите их к команде.'), ENT_QUOTES, 'UTF-8') ?></p></div>';
-        } else {
-          knowledgeList.innerHTML = items.map(function (p) {
-            return '<div class=\"team-section-card d-flex align-items-center justify-content-between\" style=\"padding:10px 14px;margin-bottom:6px\"><div class=\"d-flex align-items-center gap-2\" style=\"min-width:0\"><span class=\"crm-icon\" style=\"color:var(--crm-primary);flex-shrink:0;font-size:0.9rem\" aria-hidden=\"true\"><i class=\"fa-solid fa-file-lines\"></i></span><span class=\"text-truncate\" style=\"font-size:13px\">' + (function esc(v) { return String(v == null ? '' : v).replace(/[&<>\\\"']/g, function(ch) { var m = {'&':'&amp;','<':'&lt;','>':'&gt;','\\\"':'&quot;'}; m["'"]='&#039;'; return m[ch] || ch; }); })(p.title || '') + '</span></div><a class=\"btn btn-sm crm-btn-subtle\" href=\"index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id) + '\" style=\"flex-shrink:0;padding:4px 8px\"><span class=\"crm-icon\" aria-hidden=\"true\"><i class=\"fa-solid fa-arrow-right\"></i></span></a></div>';
-          }).join('');
-        }
-      } catch (e) {
-        knowledgeList.innerHTML = '<div class=\"text-muted small\">—</div>';
+  var editModalEl = document.getElementById('teamEditModal');
+  var createModalEl = document.getElementById('teamCreateModal');
+  if (!editModalEl && !createModalEl) return;
+
+  function getApi() {
+    return window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function' ? window.CRM.api : null;
+  }
+  function t(key, fallback) {
+    return window.CRM && window.CRM.i18n && typeof window.CRM.i18n.t === 'function'
+      ? window.CRM.i18n.t(key, fallback)
+      : fallback;
+  }
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+  function notify(text, type) {
+    try {
+      if (window.CRM && window.CRM.br1 && typeof window.CRM.br1.notify === 'function') {
+        return window.CRM.br1.notify(text, type);
       }
-    })();
-  });
+      if (typeof window.notify === 'function') return window.notify(text, type);
+    } catch (e) {}
+  }
+
+  var attachModalEl = document.getElementById('teamKnowledgeAttachModal');
+  var attachSearch = document.getElementById('teamKnowledgeSearch');
+  var attachResults = document.getElementById('teamKnowledgeAttachResults');
+  var attachModal = attachModalEl && window.bootstrap && window.bootstrap.Modal ? window.bootstrap.Modal.getOrCreateInstance(attachModalEl) : null;
+
+  var attachMode = 'edit';
+  var currentTeamId = '';
+  var linkedIds = {};
+  var searchTimer = null;
+  var loadReqId = 0;
+
+  var editKnowledgeList = document.getElementById('teamKnowledgeList');
+  var editAttachBtn = document.getElementById('teamKnowledgeAttachBtn');
+  var editKnowledgeLink = document.getElementById('teamKnowledgeLink');
+
+  var createKnowledgeList = document.getElementById('teamCreateKnowledgeList');
+  var createAttachBtn = document.getElementById('teamCreateKnowledgeAttachBtn');
+  var createSelectedPages = [];
+
+  function pageRow(p, detach) {
+    var detachBtn = detach
+      ? '<button type="button" class="btn btn-sm crm-btn-subtle" data-detach="' + esc(p.public_id) + '" data-link="' + esc(detach) + '" style="flex-shrink:0;padding:4px 8px" title="' + esc(t('teams.knowledge_detach', 'Открепить')) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-xmark"></i></span></button>'
+      : '';
+    var openBtn = '<a class="btn btn-sm crm-btn-subtle" href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id) + '" style="flex-shrink:0;padding:4px 8px"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-arrow-right"></i></span></a>';
+    return '<div class="team-section-card d-flex align-items-center justify-content-between" style="padding:10px 14px;margin-bottom:6px"><div class="d-flex align-items-center gap-2" style="min-width:0"><span class="crm-icon" style="color:var(--crm-primary);flex-shrink:0;font-size:0.9rem" aria-hidden="true"><i class="fa-solid fa-file-lines"></i></span><span class="text-truncate" style="font-size:13px">' + esc(p.title || '') + '</span></div><div class="d-flex align-items-center gap-2" style="flex-shrink:0">' + detachBtn + openBtn + '</div></div>';
+  }
+
+  function renderCreateList() {
+    if (!createKnowledgeList) return;
+    if (!createSelectedPages.length) {
+      createKnowledgeList.innerHTML = '<div class="text-center py-3"><div class="crm-icon mb-2" style="font-size:1.5rem;opacity:0.35" aria-hidden="true"><i class="fa-solid fa-book-open"></i></div><p class="text-muted small mb-0">' + esc(t('teams.knowledge_empty', 'Нет материалов команды')) + '</p></div>';
+      return;
+    }
+    createKnowledgeList.innerHTML = createSelectedPages.map(function (p) {
+      return '<div class="team-section-card d-flex align-items-center justify-content-between" style="padding:10px 14px;margin-bottom:6px"><div class="d-flex align-items-center gap-2" style="min-width:0"><span class="crm-icon" style="color:var(--crm-primary);flex-shrink:0;font-size:0.9rem" aria-hidden="true"><i class="fa-solid fa-file-lines"></i></span><span class="text-truncate" style="font-size:13px">' + esc(p.title || '') + '</span></div><button type="button" class="btn btn-sm crm-btn-subtle" data-create-remove="' + esc(p.public_id) + '" style="flex-shrink:0;padding:4px 8px" title="' + esc(t('teams.knowledge_detach', 'Открепить')) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-xmark"></i></span></button></div>';
+    }).join('');
+    createKnowledgeList.querySelectorAll('[data-create-remove]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-create-remove');
+        createSelectedPages = createSelectedPages.filter(function (p) { return p.public_id !== id; });
+        renderCreateList();
+      });
+    });
+  }
+
+  function renderEditList(items) {
+    if (!editKnowledgeList) return;
+    if (!items.length) {
+      editKnowledgeList.innerHTML = '<div class="text-center py-3"><div class="crm-icon mb-2" style="font-size:1.5rem;opacity:0.35" aria-hidden="true"><i class="fa-solid fa-book-open"></i></div><p class="text-muted small mb-0">' + esc(t('teams.knowledge_empty', 'Нет материалов команды')) + '</p><p class="text-muted small mb-0">' + esc(t('teams.knowledge_empty_hint', 'Добавьте страницы в базе знаний и привяжите их к команде.')) + '</p></div>';
+      return;
+    }
+    editKnowledgeList.innerHTML = items.map(function (p) {
+      return pageRow(p, String(p.link_public_id || ''));
+    }).join('');
+    editKnowledgeList.querySelectorAll('[data-detach]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        detachPage(btn.getAttribute('data-detach'), btn.getAttribute('data-link'));
+      });
+    });
+  }
+
+  async function loadEditPages() {
+    var api = getApi();
+    if (!api || !editKnowledgeList || !currentTeamId) return;
+    editKnowledgeList.innerHTML = '<div class="d-flex align-items-center gap-2 text-muted small"><span class="spinner-border spinner-border-sm" role="status"></span>' + esc(t('page.loading', 'Загрузка...')) + '</div>';
+    try {
+      var envelope = await api.request('api/v1/knowledge/entities/team/' + encodeURIComponent(currentTeamId) + '/pages', { method: 'GET' });
+      var items = envelope.data && envelope.data.items || [];
+      renderEditList(items);
+    } catch (e) {
+      editKnowledgeList.innerHTML = '<div class="text-muted small">—</div>';
+    }
+  }
+
+  async function detachPage(pageId, linkId) {
+    var api = getApi();
+    if (!api || !pageId || !linkId) return;
+    if (!window.confirm(t('teams.knowledge_detach_confirm', 'Открепить эту страницу от команды?'))) return;
+    try {
+      await api.request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/links/' + encodeURIComponent(linkId), { method: 'DELETE' });
+      loadEditPages();
+    } catch (e) {
+      notify(t('teams.attach_knowledge_error', 'Не удалось выполнить операцию'), 'error');
+    }
+  }
+
+  function setAttachMessage(message, className) {
+    if (attachResults) attachResults.innerHTML = '<div class="text-muted small ' + (className || '') + '">' + esc(message) + '</div>';
+  }
+
+  async function loadLinkedIds() {
+    linkedIds = {};
+    var api = getApi();
+    if (!api || !currentTeamId) return;
+    try {
+      var envelope = await api.request('api/v1/knowledge/entities/team/' + encodeURIComponent(currentTeamId) + '/pages', { method: 'GET' });
+      var items = envelope.data && envelope.data.items || [];
+      items.forEach(function (item) {
+        var id = String(item && item.public_id || '').trim();
+        if (id) linkedIds[id] = true;
+      });
+    } catch (e) {}
+  }
+
+  async function loadArticles() {
+    var api = getApi();
+    if (!api || !attachResults) return;
+    var requestId = ++loadReqId;
+    var query = String(attachSearch && attachSearch.value || '').trim();
+    setAttachMessage(t('teams.attach_knowledge_loading', 'Загрузка статей...'));
+    try {
+      var envelope = await api.request('api/v1/knowledge/pages', {
+        method: 'GET',
+        query: { limit: 50, q: query, min_access: 'view' }
+      });
+      if (requestId !== loadReqId) return;
+      var items = envelope.data && envelope.data.items || [];
+      var available = items.filter(function (item) {
+        if (!item || !item.public_id) return false;
+        var id = String(item.public_id);
+        if (attachMode === 'edit') return !linkedIds[id];
+        return !createSelectedPages.some(function (p) { return p.public_id === id; });
+      });
+      if (!available.length) {
+        setAttachMessage(t('teams.attach_knowledge_empty', 'Статьи не найдены'));
+        return;
+      }
+      attachResults.innerHTML = available.map(function (item) {
+        var id = encodeURIComponent(String(item.public_id));
+        var title = esc(item.title || '');
+        var meta = [item.space_title, item.status].filter(Boolean).map(esc).join(' · ');
+        return '<button type="button" class="list-group-item list-group-item-action d-flex align-items-center justify-content-between gap-3" data-attach-page-id="' + id + '"><span class="text-start"><strong class="d-block">' + title + '</strong>' + (meta ? '<span class="small text-muted">' + meta + '</span>' : '') + '</span><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-link"></i></span></button>';
+      }).join('');
+    } catch (e) {
+      setAttachMessage(t('teams.attach_knowledge_error', 'Не удалось выполнить операцию'), 'text-danger');
+    }
+  }
+
+  async function openAttachModal(mode, teamId) {
+    attachMode = mode;
+    currentTeamId = teamId || '';
+    if (attachSearch) attachSearch.value = '';
+    if (attachResults) attachResults.innerHTML = '';
+    if (mode === 'edit' && teamId) await loadLinkedIds();
+    if (attachModal) attachModal.show();
+    loadReqId++;
+    loadArticles();
+  }
+
+  if (attachResults) {
+    attachResults.addEventListener('click', async function (event) {
+      var btn = event.target.closest('[data-attach-page-id]');
+      if (!btn) return;
+      var pageId = decodeURIComponent(btn.getAttribute('data-attach-page-id') || '');
+      btn.disabled = true;
+      try {
+        if (attachMode === 'create') {
+          if (!createSelectedPages.some(function (p) { return p.public_id === pageId; })) {
+            var titleEl = btn.querySelector('strong');
+            createSelectedPages.push({ public_id: pageId, title: titleEl ? titleEl.textContent : pageId });
+            renderCreateList();
+          }
+        } else {
+          await linkPageToTeam(pageId, currentTeamId);
+          loadEditPages();
+        }
+        if (attachModal) attachModal.hide();
+      } catch (e) {
+        btn.disabled = false;
+        setAttachMessage(t('teams.attach_knowledge_error', 'Не удалось выполнить операцию'), 'text-danger');
+      }
+    });
+  }
+
+  if (attachSearch) {
+    attachSearch.addEventListener('input', function () {
+      if (searchTimer) window.clearTimeout(searchTimer);
+      searchTimer = window.setTimeout(loadArticles, 250);
+    });
+  }
+
+  async function linkPageToTeam(pageId, teamId) {
+    var api = getApi();
+    if (!api) throw new Error('no api');
+    await api.request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/links', {
+      method: 'POST',
+      body: { entity_type: 'team', entity_public_id: teamId, relation_type: 'related' },
+      idempotent: true
+    });
+  }
+
+  if (editModalEl) {
+    editModalEl.addEventListener('show.bs.modal', function () {
+      var teamIdInput = document.querySelector('#teamEditForm input[name="public_id"]');
+      var teamId = teamIdInput ? teamIdInput.value : '';
+      currentTeamId = teamId || '';
+      if (editKnowledgeLink) {
+        editKnowledgeLink.href = teamId
+          ? 'index.php?route=knowledge&entity_type=team&entity_public_id=' + encodeURIComponent(teamId)
+          : 'index.php?route=knowledge';
+      }
+      if (teamId) loadEditPages();
+      else if (editKnowledgeList) editKnowledgeList.innerHTML = '<div class="text-muted small">—</div>';
+    });
+  }
+
+  if (editAttachBtn) {
+    editAttachBtn.addEventListener('click', function () {
+      if (!currentTeamId) return;
+      openAttachModal('edit', currentTeamId);
+    });
+  }
+
+  if (createModalEl) {
+    createModalEl.addEventListener('show.bs.modal', function () {
+      createSelectedPages = [];
+      renderCreateList();
+    });
+  }
+
+  if (createAttachBtn) {
+    createAttachBtn.addEventListener('click', function () {
+      openAttachModal('create', '');
+    });
+  }
+
+  window.__teamKnowledge = {
+    attachPendingPages: async function (teamId) {
+      if (!teamId || !createSelectedPages.length) return;
+      var api = getApi();
+      if (!api) return;
+      var pages = createSelectedPages.slice();
+      for (var i = 0; i < pages.length; i += 1) {
+        try {
+          await api.request('api/v1/knowledge/pages/' + encodeURIComponent(pages[i].public_id) + '/links', {
+            method: 'POST',
+            body: { entity_type: 'team', entity_public_id: teamId, relation_type: 'related' },
+            idempotent: true
+          });
+        } catch (e) {}
+      }
+      createSelectedPages = [];
+    }
+  };
 })();
 </script>
+
+
 </body>
 </html>

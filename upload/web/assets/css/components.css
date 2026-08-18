@@ -1138,7 +1138,8 @@
 
 .modal-team-edit .modal-body {
   padding: 0;
-  overflow: visible;
+  overflow-x: hidden;
+  overflow-y: auto;
   flex: 1;
   min-height: 0;
 }
@@ -1218,13 +1219,10 @@
   display: grid;
   grid-template-columns: 1fr 340px;
   gap: 0;
-  height: 100%;
-  min-height: 420px;
 }
 
 .team-modal-left {
   padding: 16px 20px;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1367,8 +1365,6 @@
 .team-participant-panel {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: 420px;
 }
 
 .team-participant-toolbar {
