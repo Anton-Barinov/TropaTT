@@ -18358,7 +18358,7 @@ window.CRM.pageApiBindings = (function () {
     if (!isProject && item.id) {
       var resizeHandle = document.createElement('span');
       resizeHandle.className = 'crm-gantt-bar-resize-handle';
-      resizeHandle.style.cssText = 'position:absolute;right:0;top:0;bottom:0;width:8px;cursor:ew-resize;z-index:3;';
+      resizeHandle.style.cssText = 'position:absolute;right:0;top:0;bottom:0;width:8px;z-index:3;';
       bar.appendChild(resizeHandle);
     }
 

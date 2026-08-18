@@ -2202,6 +2202,7 @@ font-size: 0.72rem;
 }
 
 .crm-gantt-page .crm-gantt-bar {
+  cursor: default;
   border-radius: 0 !important;
   box-shadow:
     0 8px 16px color-mix(in srgb, var(--crm-ink) 14%, transparent),
@@ -9150,7 +9151,6 @@ body.modal-open {
   top: 0;
   bottom: 0;
   width: 8px;
-  cursor: ew-resize;
   z-index: 3;
   border-radius: 0;
   background: color-mix(in srgb, var(--crm-surface) 30%, transparent);
@@ -11310,6 +11310,7 @@ body.modal-open {
 }
 
 .crm-gantt-page .crm-gantt-bar {
+  cursor: default;
   border-radius: 0 !important;
   box-shadow:
     0 8px 16px color-mix(in srgb, var(--crm-ink) 14%, transparent),
