@@ -6955,6 +6955,7 @@ return array (
     'setting_api_cache_ttl' => 'Cache TTL (sec)',
     'setting_kanban_max_cards' => 'Kanban: cards loaded per batch (0 = default 100)',
     'setting_gantt_max_tasks' => 'Gantt max tasks (0 = show all)',
+    'setting_time_rounding' => 'Time rounding (minutes, 0 = off)',
     'retention_request_logs' => 'Request logs',
     'retention_security_logs' => 'Security logs',
     'retention_audit_logs' => 'Audit log',

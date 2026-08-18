@@ -1251,6 +1251,7 @@ return array (
     'setting_api_cache_ttl' => 'TTL do cache (seg)',
     'setting_kanban_max_cards' => 'Kanban: máx. de cartões (0 = mostrar todos)',
     'setting_gantt_max_tasks' => 'Gantt: máx. de tarefas (0 = mostrar todas)',
+    'setting_time_rounding' => 'Arredondamento de tempo (minutos, 0 = desligado)',
     'retention_request_logs' => 'Logs de requisições',
     'retention_security_logs' => 'Logs de segurança',
     'retention_audit_logs' => 'Log de auditoria',

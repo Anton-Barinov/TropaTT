@@ -5558,6 +5558,10 @@ window.CRM.br1 = (function () {
       // the form hint below, so the logged value never silently contradicts
       // what the timer displayed while it was running.
       var roundedMinutes = Math.max(1, Math.round(seconds / 60));
+      loadTimeRoundingSetting().then(function (rounding) {
+        if (rounding > 0) roundedMinutes = applyTimeRounding(roundedMinutes);
+        if (minutesInput) minutesInput.value = String(roundedMinutes);
+      });
       pendingLogPayload = {
         seconds: seconds,
         started_at: result.started_at,
@@ -5565,8 +5569,6 @@ window.CRM.br1 = (function () {
       };
       renderTaskTimerState(taskId, getMyTimerState());
       renderTopbarTaskTimer();
-
-      if (minutesInput) minutesInput.value = String(roundedMinutes);
       if (noteInput) noteInput.value = '';
       timerForm.classList.remove('d-none');
       var elapsedHint = document.getElementById('taskTimerLogElapsedHint');
@@ -5593,6 +5595,11 @@ window.CRM.br1 = (function () {
 
       var minutes = Number(minutesInput ? minutesInput.value : 0);
       var note = String(noteInput ? noteInput.value : '').trim();
+
+      await loadTimeRoundingSetting();
+      minutes = applyTimeRounding(minutes);
+      if (minutesInput) minutesInput.value = String(minutes);
+
       if (minutes <= 0) {
         notify(window.CRM.i18n.t('js.br1.ukazhite_kolichestvo_minut_bolshe_nulya', 'Укажите количество минут больше нуля'), 'warning');
         return;
@@ -6818,6 +6825,33 @@ window.CRM.br1 = (function () {
     generateBtn.dataset.bound = '1';
   }
 
+  // --- Time rounding ---
+  var _timeRoundingMinutes = null;
+  var _timeRoundingLoaded = false;
+
+  async function loadTimeRoundingSetting() {
+    if (_timeRoundingLoaded) return _timeRoundingMinutes || 0;
+    try {
+      var env = await window.CRM.api.request('api/v1/settings', { query: { scope: 'system', name: 'time_rounding_minutes', limit: 1 } });
+      var items = window.CRM.api.items(env);
+      var found = items.find(function (s) { return String(s.name) === 'time_rounding_minutes'; });
+      _timeRoundingMinutes = Number((found && found.value) || 0);
+    } catch (e) {
+      _timeRoundingMinutes = 0;
+    }
+    _timeRoundingLoaded = true;
+    return _timeRoundingMinutes || 0;
+  }
+
+  /** Apply time rounding: round up to the nearest N-minute boundary.
+   *  If rounding is 0 or not set, returns the original minutes unchanged. */
+  function applyTimeRounding(minutes) {
+    if (!_timeRoundingLoaded || !_timeRoundingMinutes || _timeRoundingMinutes <= 0) return minutes;
+    var n = Math.floor(_timeRoundingMinutes);
+    if (minutes <= 0) return n;
+    return Math.ceil(minutes / n) * n;
+  }
+
   function getDefaultWorklogDraft() {
     var now = new Date();
     return {
@@ -6995,6 +7029,9 @@ window.CRM.br1 = (function () {
         var loggedAtRaw = String((createForm.querySelector('[name="logged_at"]') || {}).value || '').trim();
         var loggedAt = toApiDatetimeFromLocal(loggedAtRaw);
 
+        await loadTimeRoundingSetting();
+        minutes = applyTimeRounding(minutes);
+
         if (minutes <= 0) {
           notify(window.CRM.i18n.t('js.br1.ukazhite_kolichestvo_minut_bolshe_nulya_2', 'Укажите количество минут больше нуля'), 'warning');
           return;
@@ -7054,6 +7091,10 @@ window.CRM.br1 = (function () {
       var note = String((form.querySelector('[name="note"]') || {}).value || '').trim();
       var loggedAtRaw = String((form.querySelector('[name="logged_at"]') || {}).value || '').trim();
       var loggedAt = toApiDatetimeFromLocal(loggedAtRaw);
+
+      await loadTimeRoundingSetting();
+      minutes = applyTimeRounding(minutes);
+
       if (minutes <= 0) {
         notify(window.CRM.i18n.t('js.br1.ukazhite_kolichestvo_minut_bolshe_nulya_3', 'Укажите количество минут больше нуля'), 'warning');
         return;

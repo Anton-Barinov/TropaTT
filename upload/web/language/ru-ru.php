@@ -7058,6 +7058,7 @@ return array (
     'setting_api_cache_ttl' => 'Время хранения кэша (сек)',
     'setting_kanban_max_cards' => 'Канбан: порция карточек за загрузку (0 = по умолчанию 100)',
     'setting_gantt_max_tasks' => 'Гант: макс. задач (0 = показывать все)',
+    'setting_time_rounding' => 'Округление времени (минуты, 0 = выкл)',
     'retention_request_logs' => 'Журнал запросов',
     'retention_security_logs' => 'Журнал безопасности',
     'retention_audit_logs' => 'Журнал аудита',
