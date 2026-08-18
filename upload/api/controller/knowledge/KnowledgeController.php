@@ -976,7 +976,7 @@ final class KnowledgeController extends BaseController
      * actor can view, keyed by entity public_id. Entities the actor cannot
      * access, or that have no team materials, resolve to 0.
      */
-    public function teamMaterialsCounts(array $params): JsonResponse
+    public function teamMaterialsCounts(): JsonResponse
     {
         $input = $this->request()->allInput();
         $entityType = strtolower(trim((string)($input['entity_type'] ?? '')));
