@@ -16530,41 +16530,116 @@ window.CRM.pageApiBindings = (function () {
 
   // Shared planner task-row helpers (used by both my-day and my-week pages)
   function plannerTaskChipLabel(item) {
+    var it = window.CRM.i18n;
+    var pt = it ? it.t.bind(it) : function (k, f) { return f; };
     var parentId = String(item.parent_task_public_id || '').trim();
     var hasSubtasks = String(item.has_subtasks || '') === '1' || item.has_subtasks === 1 || item.has_subtasks === true;
     if (parentId) {
-      return '<span class="crm-chip crm-chip-subtask">' + (window.CRM.i18n ? window.CRM.i18n.t('my_day.chip_subtask', 'Подзадача') : 'Подзадача') + '</span>'
-        + '<a class="crm-task-parent-link" href="' + taskLink(parentId) + '">' + (window.CRM.i18n ? window.CRM.i18n.t('my_day.parent_link', 'Родитель') : 'Родитель') + ': '
-        + safeText(item.parent_task_title || parentId) + '</a>';
+      return '<span class="crm-planner-tag crm-planner-tag-subtask">' + pt('my_day.chip_subtask', 'Подзадача') + '</span>';
     }
     if (hasSubtasks) {
-      return '<span class="crm-chip crm-chip-parent">' + (window.CRM.i18n ? window.CRM.i18n.t('my_day.chip_parent', 'Родительская задача') : 'Родительская задача') + '</span>';
+      return '<span class="crm-planner-tag crm-planner-tag-parent">' + pt('my_day.chip_parent', 'Родительская задача') + '</span>';
     }
-    return '<span class="crm-chip crm-chip-plain">' + (window.CRM.i18n ? window.CRM.i18n.t('my_day.chip_task', 'Задача') : 'Задача') + '</span>';
+    return '<span class="crm-planner-tag crm-planner-tag-task">' + pt('my_day.chip_task', 'Задача') + '</span>';
+  }
+
+  function plannerInitials(name) {
+    var parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '—';
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0].slice(0, 1) + parts[1].slice(0, 1)).toUpperCase();
+  }
+
+  function plannerAvatarColor(name) {
+    var palette = ['#a56a12', '#3f5f9e', '#7a5cb3', '#c2564a', '#1c7a5c', '#3b7a4f', '#8a5a33', '#5a6a67'];
+    var str = String(name || '');
+    var hash = 0;
+    for (var i = 0; i < str.length; i += 1) hash = (hash * 31 + str.charCodeAt(i)) >>> 0;
+    return palette[hash % palette.length];
+  }
+
+  function plannerTime(value) {
+    var raw = String(value || '').trim();
+    var match = raw.match(/(?:^|[\sT])(\d{1,2}):(\d{2})(?::\d{2})?\b/);
+    return match ? String(match[1]).padStart(2, '0') + ':' + match[2] : '';
   }
 
   function renderPlannerTaskRow(task, mode) {
     var it = window.CRM.i18n;
     var pt = it ? it.t.bind(it) : function (k, f) { return f; };
-    var pLabels = { urgent: pt('priority.urgent', 'Срочно'), high: pt('priority.high', 'Высокий'), normal: pt('priority.normal', 'Средний'), low: pt('priority.low', 'Низкий') };
+    var parentId = String(task.parent_task_public_id || '').trim();
     var pCode = task.priority_code || 'normal';
-    var statusBadge = '<span class="crm-badge ' + statusClass(task.status_code) + '">' + safeText(statusLabel(task.status_code)) + '</span>';
-    var pBadge = '<span class="crm-chip crm-priority-' + pCode + '">' + (pLabels[pCode] || pCode) + '</span>';
-    var taskTitle = '<div class="crm-task-row-main"><a href="' + taskLink(task.public_id) + '">' + safeText(task.title) + '</a></div>'
-      + '<div class="crm-task-row-meta">' + plannerTaskChipLabel(task) + '</div>';
-    var doneBtn = '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-task-done="' + safeText(task.public_id) + '" data-row-version="' + (task.row_version || 1) + '">' + pt(mode === 'day' || mode === 'overdue' ? 'my_day.done_btn' : 'my_week.done_btn', 'Выполнить') + '</button>';
-    var openLink = '<a class="btn btn-sm crm-btn-subtle crm-btn-compact" href="' + taskLink(task.public_id) + '">' + pt('my_day.open_link', 'Открыть') + '</a>';
-    var rowCls = mode === 'overdue' ? ' class="crm-task-row-overdue"' : '';
-    var actions = '<div class="crm-task-row-actions-wrap">' + doneBtn + openLink + '</div>';
-    var assignee = task.assignee_name ? safeText(task.assignee_name) : pt('my_week.assignee_none', 'Не назначен');
-    return '<tr' + rowCls + '><td>' + taskTitle + '</td>'
-      + '<td>' + assignee + '</td>'
-      + '<td class="crm-cell-state">'
-      + '<div class="crm-state-line"><span class="crm-task-due">' + safeText(formatDate(task.due_at)) + '</span></div>'
-      + '<div class="crm-state-line">' + statusBadge + '</div>'
-      + '<div class="crm-state-line"><span class="crm-state-label">' + safeText(pt('my_day.th_priority', 'Приоритет')) + ':</span> ' + pBadge + '</div>'
-      + '</td>'
-      + '<td>' + actions + '</td></tr>';
+    var pStripe = (pCode === 'urgent' || pCode === 'high') ? ' crm-pri-high' : (pCode === 'low' ? ' crm-pri-low' : '');
+    var taskHref = taskLink(task.public_id);
+    var taskNameRow = '<div class="crm-task-name-row"><a class="crm-task-name" href="' + taskHref + '">' + safeText(task.title) + '</a>' + plannerTaskChipLabel(task) + '</div>';
+    var metaHtml = parentId
+      ? '<div class="crm-task-meta">' + pt('my_day.parent_link', 'Родитель') + ': <a href="' + taskLink(parentId) + '">' + safeText(task.parent_task_title || parentId) + '</a></div>'
+      : '';
+    var assigneeName = task.assignee_name ? String(task.assignee_name).trim() : '';
+    var whoHtml = '<div class="crm-planner-who"><span class="crm-planner-avatar" style="background-color:' + plannerAvatarColor(assigneeName) + '">' + safeText(plannerInitials(assigneeName)) + '</span><span class="crm-planner-who-name">' + safeText(assigneeName || pt('my_week.assignee_none', 'Не назначен')) + '</span></div>';
+    var time = plannerTime(task.due_at);
+    var statusHtml = '<span class="crm-badge ' + statusClass(task.status_code) + ' crm-planner-status">' + safeText(statusLabel(task.status_code)) + '</span>'
+      + (time ? '<span class="crm-planner-time">' + time + '</span>' : '');
+    var doneTitle = pt('my_day.done_title', 'Отметить выполненной');
+    var openTitle = pt('my_day.open_title', 'Открыть задачу');
+    var doneBtn = '<button class="crm-icon-btn crm-icon-btn-done" type="button" data-task-done="' + safeText(task.public_id) + '" data-row-version="' + (task.row_version || 1) + '" title="' + safeText(doneTitle) + '" aria-label="' + safeText(doneTitle) + '"><i class="fa-solid fa-check" aria-hidden="true"></i></button>';
+    var openBtn = '<a class="crm-icon-btn crm-icon-btn-open" href="' + taskHref + '" title="' + safeText(openTitle) + '" aria-label="' + safeText(openTitle) + '"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>';
+    return '<tr class="crm-data-row' + pStripe + (mode === 'overdue' ? ' crm-row-overdue' : '') + '">'
+      + '<td class="crm-cell-task">' + taskNameRow + metaHtml + '</td>'
+      + '<td class="crm-cell-who">' + whoHtml + '</td>'
+      + '<td class="crm-cell-status">' + statusHtml + '</td>'
+      + '<td class="crm-cell-actions"><div class="crm-planner-actions-cell">' + doneBtn + openBtn + '</div></td>'
+      + '</tr>';
+  }
+
+  // Shared planner day-group helpers (used by both my-day and my-week pages)
+  function plannerDayNames() {
+    var it = window.CRM.i18n;
+    var pt = it ? it.t.bind(it) : function (k, f) { return f; };
+    return [pt('my_week.day_sun', 'Вс'), pt('my_week.day_mon', 'Пн'), pt('my_week.day_tue', 'Вт'), pt('my_week.day_wed', 'Ср'), pt('my_week.day_thu', 'Чт'), pt('my_week.day_fri', 'Пт'), pt('my_week.day_sat', 'Сб')];
+  }
+
+  function plannerToDateOnly(str) {
+    if (!str) return null;
+    var s = String(str).replace(/ .*$/, '');
+    var d = new Date(s + 'T12:00:00');
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  function plannerGetGroupKey(dateStr) {
+    if (!dateStr) return '_';
+    var d = plannerToDateOnly(dateStr);
+    return d ? d.toISOString().slice(0, 10) : '_';
+  }
+
+  function plannerTodayKey() {
+    return new Date().toISOString().split('T')[0];
+  }
+
+  function plannerGetDayLabel(groupKey) {
+    var it = window.CRM.i18n;
+    var pt = it ? it.t.bind(it) : function (k, f) { return f; };
+    if (!groupKey || groupKey === '_') return pt('my_week.no_date', 'Без даты');
+    var d = plannerToDateOnly(groupKey);
+    if (!d) return pt('my_week.no_date', 'Без даты');
+    var dNum = d.getDay();
+    var label = plannerDayNames()[dNum] + ', ' + String(d.getDate()).padStart(2, '0') + '.'
+      + String(d.getMonth() + 1).padStart(2, '0');
+    if (groupKey === plannerTodayKey()) label += ' <span class="crm-today-badge">' + pt('my_week.today_badge', 'Сегодня') + '</span>';
+    return label;
+  }
+
+  function plannerGroupTasksByDay(taskList) {
+    var groups = {};
+    (taskList || []).forEach(function (t) {
+      var key = plannerGetGroupKey(t.due_at);
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(t);
+    });
+    var sortedKeys = Object.keys(groups).sort();
+    var ordered = {};
+    sortedKeys.forEach(function (k) { ordered[k] = groups[k]; });
+    return ordered;
   }
 
   async function plannerHandleTaskDone(publicId, rowVersion) {
@@ -16776,9 +16851,15 @@ window.CRM.pageApiBindings = (function () {
     // Render overdue tasks
     var overdueTbody = document.getElementById('myDayOverdueTableBody');
     if (overdueTbody) {
-      overdueTbody.innerHTML = overdueTasks.length > 0
-        ? overdueTasks.map(function (t) { return renderPlannerTaskRow(t, 'overdue'); }).join('')
-        : '<tr><td colspan="4" class="text-muted">' + _t('my_day.overdue_empty', 'Нет просроченных задач') + '</td></tr>';
+      if (overdueTasks.length > 0) {
+        var overdueDayGroups = plannerGroupTasksByDay(overdueTasks);
+        overdueTbody.innerHTML = Object.keys(overdueDayGroups).map(function (key) {
+          return '<tr class="crm-day-row"><td colspan="4"><div class="crm-day-head">' + plannerGetDayLabel(key) + '</div></td></tr>'
+            + overdueDayGroups[key].map(function (t) { return renderPlannerTaskRow(t, 'overdue'); }).join('');
+        }).join('');
+      } else {
+        overdueTbody.innerHTML = '<tr><td colspan="4" class="text-muted">' + _t('my_day.overdue_empty', 'Нет просроченных задач') + '</td></tr>';
+      }
     }
 
     // Render today's tasks
@@ -17063,52 +17144,6 @@ window.CRM.pageApiBindings = (function () {
       var events = data.events && Array.isArray(data.events) ? data.events : [];
       var reminders = data.reminders && Array.isArray(data.reminders) ? data.reminders : [];
       var summary = data.summary || {};
-      var dayNames = [
-        _t('my_week.day_sun', 'Вс'),
-        _t('my_week.day_mon', 'Пн'),
-        _t('my_week.day_tue', 'Вт'),
-        _t('my_week.day_wed', 'Ср'),
-        _t('my_week.day_thu', 'Чт'),
-        _t('my_week.day_fri', 'Пт'),
-        _t('my_week.day_sat', 'Сб')
-      ];
-
-      // Day-of-week helpers
-      function toDateOnly(str) {
-        if (!str) return null;
-        var s = String(str).replace(/ .*$/, '');
-        var d = new Date(s + 'T12:00:00');
-        return isNaN(d.getTime()) ? null : d;
-      }
-      function getGroupKey(dateStr) {
-        if (!dateStr) return '_';
-        var d = toDateOnly(dateStr);
-        return d ? d.toISOString().slice(0, 10) : '_';
-      }
-      function getDayLabel(groupKey) {
-        if (!groupKey || groupKey === '_') return _t('my_week.no_date', 'Без даты');
-        var d = toDateOnly(groupKey);
-        if (!d) return _t('my_week.no_date', 'Без даты');
-        var dNum = d.getDay();
-        var label = dayNames[dNum] + ', ' + String(d.getDate()).padStart(2, '0') + '.'
-          + String(d.getMonth() + 1).padStart(2, '0') + '.'
-          + String(d.getFullYear());
-        if (groupKey === today) label += ' <span class="badge bg-info">' + _t('my_week.today_badge', 'Сегодня') + '</span>';
-        return label;
-      }
-      function groupTasksByDay(taskList) {
-        var groups = {};
-        taskList.forEach(function (t) {
-          var key = getGroupKey(t.due_at);
-          if (!groups[key]) groups[key] = [];
-          groups[key].push(t);
-        });
-        // Sort keys
-        var sortedKeys = Object.keys(groups).sort();
-        var ordered = {};
-        sortedKeys.forEach(function (k) { ordered[k] = groups[k]; });
-        return ordered;
-      }
 
       var metricsEl = document.getElementById('myWeekMetrics');
       if (metricsEl) {
@@ -17125,10 +17160,10 @@ window.CRM.pageApiBindings = (function () {
         var overdueTbody = document.getElementById('myWeekOverdueTableBody');
         if (overdueTbody) {
           if (weekOverdueTasks.length > 0) {
-            var overdueGroups = groupTasksByDay(weekOverdueTasks);
+            var overdueGroups = plannerGroupTasksByDay(weekOverdueTasks);
             var overdueHtml = '';
             Object.keys(overdueGroups).forEach(function (key) {
-              var header = '<tr class="crm-week-day-group"><td colspan="4"><strong>' + getDayLabel(key) + '</strong></td></tr>';
+              var header = '<tr class="crm-day-row"><td colspan="4"><div class="crm-day-head">' + plannerGetDayLabel(key) + '</div></td></tr>';
               overdueHtml += header + overdueGroups[key].map(function (t) { return renderPlannerTaskRow(t, 'overdue'); }).join('');
             });
             overdueTbody.innerHTML = overdueHtml;
@@ -17140,10 +17175,10 @@ window.CRM.pageApiBindings = (function () {
         var tbody = document.getElementById('myWeekTasksTableBody');
         if (tbody) {
           if (weekTasks.length > 0) {
-            var taskGroups = groupTasksByDay(weekTasks);
+            var taskGroups = plannerGroupTasksByDay(weekTasks);
             var tasksHtml = '';
             Object.keys(taskGroups).forEach(function (key) {
-              var header = '<tr class="crm-week-day-group"><td colspan="4"><strong>' + getDayLabel(key) + '</strong></td></tr>';
+              var header = '<tr class="crm-day-row"><td colspan="4"><div class="crm-day-head">' + plannerGetDayLabel(key) + '</div></td></tr>';
               tasksHtml += header + taskGroups[key].map(function (t) { return renderPlannerTaskRow(t, 'week'); }).join('');
             });
             tbody.innerHTML = tasksHtml;
