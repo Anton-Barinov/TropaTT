@@ -4138,6 +4138,8 @@ return array (
     'edit' => '编辑',
     'create' => '创建',
     'search' => '搜索',
+    'team_materials_search' => '搜索资料...',
+    'team_materials_no_match' => '未找到任何内容',
     'filter' => '筛选',
     'apply' => '应用',
     'reset' => '重置',

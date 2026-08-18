@@ -7593,6 +7593,8 @@ return array (
     'edit' => 'Modifier',
     'create' => 'Créer',
     'search' => 'Recherche',
+    'team_materials_search' => 'Rechercher dans les matériels...',
+    'team_materials_no_match' => 'Rien trouvé',
     'filter' => 'Filtre',
     'apply' => 'Appliquer',
     'reset' => 'Réinitialiser',

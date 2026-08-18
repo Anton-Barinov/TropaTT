@@ -4141,6 +4141,8 @@ return array (
     'edit' => 'Редактировать',
     'create' => 'Создать',
     'search' => 'Поиск',
+    'team_materials_search' => 'Поиск по материалам...',
+    'team_materials_no_match' => 'Ничего не найдено',
     'filter' => 'Фильтр',
     'apply' => 'Применить',
     'reset' => 'Сбросить',

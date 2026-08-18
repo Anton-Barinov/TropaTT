@@ -4119,6 +4119,8 @@ return array (
     'edit' => 'Edit',
     'create' => 'Create',
     'search' => 'Search',
+    'team_materials_search' => 'Search materials...',
+    'team_materials_no_match' => 'Nothing found',
     'filter' => 'Filter',
     'apply' => 'Apply',
     'reset' => 'Reset',

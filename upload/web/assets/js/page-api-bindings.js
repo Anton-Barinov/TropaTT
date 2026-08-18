@@ -30889,3 +30889,102 @@ window.CRM.pageApiBindings = (function () {
     getDomainRegistry: getDomainRegistry
   };
 })();
+
+/**
+ * Shared renderer for the "Материалы команды" (team materials) block shown on
+ * project/task/counterparty/client/contact cards. Loads team-linked pages once
+ * and provides a client-side search/filter plus a short content preview.
+ */
+window.CRM.teamMaterials = (function () {
+  function escapeHtml(value) {
+    if (window.CRM.text && typeof window.CRM.text.safeText === 'function') {
+      return window.CRM.text.safeText(value);
+    }
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[ch];
+    });
+  }
+
+  function stripHtml(value) {
+    if (window.CRM.text && typeof window.CRM.text.stripHtml === 'function') {
+      return window.CRM.text.stripHtml(value);
+    }
+    return String(value == null ? '' : value).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  function truncate(value, max) {
+    var text = String(value == null ? '' : value).trim();
+    if (text.length <= max) return text;
+    return text.slice(0, max).replace(/\s+\S*$/, '') + '…';
+  }
+
+  function previewFor(page) {
+    return stripHtml(page.excerpt || page.content_text || '');
+  }
+
+  function render(opts) {
+    var container = typeof opts.container === 'string' ? document.getElementById(opts.container) : opts.container;
+    var api = opts && opts.api;
+    if (!container || !api || typeof api.request !== 'function') return;
+    var entityType = String(opts.entityType || '');
+    var entityPublicId = String(opts.entityPublicId || '');
+    if (!entityType || !entityPublicId) return;
+
+    var texts = opts.texts || {};
+    var searchPlaceholder = texts.searchPlaceholder || 'Поиск по материалам...';
+    var emptyText = texts.empty || 'Нет материалов команды';
+    var noMatchText = texts.noMatch || 'Ничего не найдено';
+    var loadingText = texts.loading || 'Загрузка...';
+    var errorText = texts.error || '—';
+
+    container.innerHTML =
+      '<div class="team-materials-search">' +
+        '<input type="search" class="form-control form-control-sm" placeholder="' + escapeHtml(searchPlaceholder) + '" aria-label="' + escapeHtml(searchPlaceholder) + '">' +
+      '</div>' +
+      '<div class="team-materials-results"><div class="team-materials-empty">' + escapeHtml(loadingText) + '</div></div>';
+
+    var searchWrap = container.querySelector('.team-materials-search');
+    var input = searchWrap.querySelector('input');
+    var results = container.querySelector('.team-materials-results');
+    var items = [];
+
+    function renderList() {
+      var q = (input.value || '').trim().toLowerCase();
+      var filtered = q ? items.filter(function (p) {
+        return ((p.title || '') + ' ' + previewFor(p)).toLowerCase().indexOf(q) >= 0;
+      }) : items;
+
+      if (!items.length) {
+        searchWrap.style.display = 'none';
+        results.innerHTML = '<div class="team-materials-empty">' + escapeHtml(emptyText) + '</div>';
+        return;
+      }
+      searchWrap.style.display = '';
+      if (!filtered.length) {
+        results.innerHTML = '<div class="team-materials-no-match">' + escapeHtml(noMatchText) + '</div>';
+        return;
+      }
+      results.innerHTML = '<ul class="team-materials-list">' + filtered.map(function (p) {
+        var preview = truncate(previewFor(p), 200);
+        return '<li class="team-materials-item">' +
+          '<a class="team-materials-link" href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id || '') + '" title="' + escapeHtml(p.title || '') + '">' + escapeHtml(p.title || '') + '</a>' +
+          (preview ? '<div class="team-materials-preview">' + escapeHtml(preview) + '</div>' : '') +
+          '</li>';
+      }).join('') + '</ul>';
+    }
+
+    input.addEventListener('input', renderList);
+
+    api.request('api/v1/knowledge/entities/' + encodeURIComponent(entityType) + '/' + encodeURIComponent(entityPublicId) + '/team-pages', { method: 'GET' })
+      .then(function (envelope) {
+        items = (envelope && envelope.data && envelope.data.items) || [];
+        renderList();
+      })
+      .catch(function () {
+        searchWrap.style.display = 'none';
+        results.innerHTML = '<div class="team-materials-empty">' + escapeHtml(errorText) + '</div>';
+      });
+  }
+
+  return { render: render };
+})();

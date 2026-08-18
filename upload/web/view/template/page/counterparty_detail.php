@@ -176,20 +176,19 @@
     }
 
     var teamEl = document.getElementById('counterpartyTeamKnowledgeList');
-    if (teamEl) {
-      try {
-        var teamEnvelope = await api.request('api/v1/knowledge/entities/counterparty/' + encodeURIComponent(counterpartyId) + '/team-pages', { method: 'GET' });
-        var teamItems = teamEnvelope.data && teamEnvelope.data.items || [];
-        if (!teamItems.length) {
-          teamEl.innerHTML = '<div class="text-muted small"><?= htmlspecialchars($t('counterparty_detail.team_knowledge_empty', 'Нет материалов команды'), ENT_QUOTES, 'UTF-8') ?></div>';
-        } else {
-          teamEl.innerHTML = '<ul class="list-unstyled mb-0">' + teamItems.map(function (p) {
-            return '<li class="mb-1"><a href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id) + '">' + (function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (ch) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[ch]; }); })(p.title || '') + '</a></li>';
-          }).join('') + '</ul>';
+    if (teamEl && window.CRM && window.CRM.teamMaterials) {
+      window.CRM.teamMaterials.render({
+        container: teamEl,
+        entityType: 'counterparty',
+        entityPublicId: counterpartyId,
+        api: api,
+        texts: {
+          searchPlaceholder: <?= json_encode($t('page.team_materials_search', 'Поиск по материалам...'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>,
+          empty: <?= json_encode($t('counterparty_detail.team_knowledge_empty', 'Нет материалов команды'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>,
+          noMatch: <?= json_encode($t('page.team_materials_no_match', 'Ничего не найдено'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>,
+          loading: <?= json_encode($t('page.loading', 'Загрузка...'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>
         }
-      } catch (e) {
-        teamEl.innerHTML = '<div class="text-muted small">—</div>';
-      }
+      });
     }
   });
 })();
