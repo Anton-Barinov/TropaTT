@@ -297,7 +297,9 @@
   var attachModalEl = document.getElementById('teamKnowledgeAttachModal');
   var attachSearch = document.getElementById('teamKnowledgeSearch');
   var attachResults = document.getElementById('teamKnowledgeAttachResults');
-  var attachModal = attachModalEl && window.bootstrap && window.bootstrap.Modal ? window.bootstrap.Modal.getOrCreateInstance(attachModalEl) : null;
+  function getAttachModal() {
+    return attachModalEl && window.bootstrap && window.bootstrap.Modal ? window.bootstrap.Modal.getOrCreateInstance(attachModalEl) : null;
+  }
 
   var attachMode = 'edit';
   var currentTeamId = '';
@@ -438,7 +440,8 @@
     if (attachSearch) attachSearch.value = '';
     if (attachResults) attachResults.innerHTML = '';
     if (mode === 'edit' && teamId) await loadLinkedIds();
-    if (attachModal) attachModal.show();
+    var am = getAttachModal();
+    if (am) am.show();
     loadReqId++;
     loadArticles();
   }
@@ -460,7 +463,8 @@
           await linkPageToTeam(pageId, currentTeamId);
           loadEditPages();
         }
-        if (attachModal) attachModal.hide();
+        var am2 = getAttachModal();
+        if (am2) am2.hide();
       } catch (e) {
         btn.disabled = false;
         setAttachMessage(t('teams.attach_knowledge_error', 'Не удалось выполнить операцию'), 'text-danger');
