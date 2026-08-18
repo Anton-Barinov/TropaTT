@@ -48,9 +48,9 @@
 <div class="p-3">
 <p data-i18n="docs.dashboard_intro"><?= htmlspecialchars($t('docs.dashboard_intro', 'Главная страница открывается сразу после входа. На ней отображаются:'), ENT_QUOTES, 'UTF-8') ?></p>
 <ul>
-<li data-i18n="docs.dashboard_item1"><?= htmlspecialchars($t('docs.dashboard_item1', '<strong>Быстрые действия</strong> — кнопки создания проекта, задачи, перехода к списку задач и справочной системе.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.dashboard_item2"><?= htmlspecialchars($t('docs.dashboard_item2', '<strong>Моя сессия</strong> — информация о текущем пользователе, кнопка выхода.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.dashboard_item3"><?= htmlspecialchars($t('docs.dashboard_item3', '<strong>Последние задачи</strong> — список задач, назначенных на текущего пользователя, с фильтрацией по статусу.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.dashboard_item1"><?= $t('docs.dashboard_item1', '<strong>Быстрые действия</strong> — кнопки создания проекта, задачи, перехода к списку задач и справочной системе.') ?></li>
+<li data-i18n="docs.dashboard_item2"><?= $t('docs.dashboard_item2', '<strong>Моя сессия</strong> — информация о текущем пользователе, кнопка выхода.') ?></li>
+<li data-i18n="docs.dashboard_item3"><?= $t('docs.dashboard_item3', '<strong>Последние задачи</strong> — список задач, назначенных на текущего пользователя, с фильтрацией по статусу.') ?></li>
 </ul>
 <p data-i18n="docs.dashboard_auto"><?= htmlspecialchars($t('docs.dashboard_auto', 'Дашборд автоматически загружает данные через API; никакой ручной настройки не требуется.'), ENT_QUOTES, 'UTF-8') ?></p>
 <p><strong data-i18n="docs.dashboard_link_label"><?= htmlspecialchars($t('docs.dashboard_link_label', 'Ссылка:'), ENT_QUOTES, 'UTF-8') ?></strong> <a href="index.php?route=dashboard" data-i18n="docs.dashboard_link"><?= htmlspecialchars($t('docs.dashboard_link', 'index.php?route=dashboard'), ENT_QUOTES, 'UTF-8') ?></a></p>
@@ -101,8 +101,8 @@
 <section class="crm-card crm-section-card mb-3">
 <div class="crm-section-head"><div><h2 class="h5 mb-0" data-i18n="docs.subtasks_title"><?= htmlspecialchars($t('docs.subtasks_title', 'Подзадачи и чеклисты'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="docs.subtasks_note"><?= htmlspecialchars($t('docs.subtasks_note', 'Детальная разбивка задач на подпункты.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
 <div class="p-3">
-<p data-i18n="docs.subtasks_p1"><?= htmlspecialchars($t('docs.subtasks_p1', '<strong>Подзадачи</strong> — полноценные задачи с собственными статусами, приоритетами и сроками, привязанные к родительской задаче.'), ENT_QUOTES, 'UTF-8') ?></p>
-<p data-i18n="docs.subtasks_p2"><?= htmlspecialchars($t('docs.subtasks_p2', '<strong>Чеклисты</strong> — простые списки внутри задачи. Каждый пункт чеклиста имеет название и статус (выполнено/нет).'), ENT_QUOTES, 'UTF-8') ?></p>
+<p data-i18n="docs.subtasks_p1"><?= $t('docs.subtasks_p1', '<strong>Подзадачи</strong> — полноценные задачи с собственными статусами, приоритетами и сроками, привязанные к родительской задаче.') ?></p>
+<p data-i18n="docs.subtasks_p2"><?= $t('docs.subtasks_p2', '<strong>Чеклисты</strong> — простые списки внутри задачи. Каждый пункт чеклиста имеет название и статус (выполнено/нет).') ?></p>
 <p data-i18n="docs.subtasks_diff"><?= htmlspecialchars($t('docs.subtasks_diff', 'Разница: подзадачи имеют полный lifecycle (статус, срок, ответственный), чеклисты — только флаг выполнения.'), ENT_QUOTES, 'UTF-8') ?></p>
 </div></section></div>
 
@@ -113,11 +113,11 @@
 <div class="p-3">
 <p data-i18n="docs.projects_link_text"><?= htmlspecialchars($t('docs.projects_link_text', 'Перейти:'), ENT_QUOTES, 'UTF-8') ?> <a href="index.php?route=projects" data-i18n="docs.projects_link"><?= htmlspecialchars($t('docs.projects_link', 'Проекты'), ENT_QUOTES, 'UTF-8') ?></a>.</p>
 <ul>
-<li data-i18n="docs.projects_item1"><?= htmlspecialchars($t('docs.projects_item1', '<strong>Список проектов</strong> — все проекты с фильтром по статусу, ответственному, дате.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.projects_item2"><?= htmlspecialchars($t('docs.projects_item2', '<strong>Карточка проекта</strong> — содержит вкладки: задачи, Канбан, Гант, участники, риски, настройки.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.projects_item3"><?= htmlspecialchars($t('docs.projects_item3', '<strong>Вехи (milestones)</strong> — ключевые даты проекта, отображаются на Ганте.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.projects_item4"><?= htmlspecialchars($t('docs.projects_item4', '<strong>Риски проекта</strong> — список рисков с оценкой вероятности и влияния.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.projects_item5"><?= htmlspecialchars($t('docs.projects_item5', '<strong>Шаблоны проектов</strong> — повторяющиеся проекты можно создавать из шаблонов.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.projects_item1"><?= $t('docs.projects_item1', '<strong>Список проектов</strong> — все проекты с фильтром по статусу, ответственному, дате.') ?></li>
+<li data-i18n="docs.projects_item2"><?= $t('docs.projects_item2', '<strong>Карточка проекта</strong> — содержит вкладки: задачи, Канбан, Гант, участники, риски, настройки.') ?></li>
+<li data-i18n="docs.projects_item3"><?= $t('docs.projects_item3', '<strong>Вехи (milestones)</strong> — ключевые даты проекта, отображаются на Ганте.') ?></li>
+<li data-i18n="docs.projects_item4"><?= $t('docs.projects_item4', '<strong>Риски проекта</strong> — список рисков с оценкой вероятности и влияния.') ?></li>
+<li data-i18n="docs.projects_item5"><?= $t('docs.projects_item5', '<strong>Шаблоны проектов</strong> — повторяющиеся проекты можно создавать из шаблонов.') ?></li>
 </ul>
 <p data-i18n="docs.projects_statuses"><?= htmlspecialchars($t('docs.projects_statuses', 'Статусы проекта: planning, active, on_hold, completed, cancelled.'), ENT_QUOTES, 'UTF-8') ?></p>
 </div></section></div>
@@ -156,11 +156,11 @@
 <div class="crm-section-head"><div><h2 class="h5 mb-0" data-i18n="docs.clients_title"><?= htmlspecialchars($t('docs.clients_title', 'Клиенты и контрагенты'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="docs.clients_note"><?= htmlspecialchars($t('docs.clients_note', 'CRM: управление клиентами, компаниями и контактами.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
 <div class="p-3">
 <ul>
-<li data-i18n="docs.clients_item1"><?= htmlspecialchars($t('docs.clients_item1', '<strong>Клиенты</strong> — физические и юридические лица. Карточка клиента содержит контакты, проекты, историю коммуникаций.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.clients_item2"><?= htmlspecialchars($t('docs.clients_item2', '<strong>Контрагенты</strong> — компании, контакты, организации. Используются для B2B-отношений.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.clients_item3"><?= htmlspecialchars($t('docs.clients_item3', '<strong>Контакты</strong> — отдельные люди внутри компаний. Могут быть привязаны к задачам и проектам.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.clients_item4"><?= htmlspecialchars($t('docs.clients_item4', '<strong>Компании</strong> — юридические лица с реквизитами (ИНН, КПП, банк, адрес).'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.clients_item5"><?= htmlspecialchars($t('docs.clients_item5', '<strong>Настраиваемые поля</strong> — для адаптации CRM под отрасль бизнеса.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.clients_item1"><?= $t('docs.clients_item1', '<strong>Клиенты</strong> — физические и юридические лица. Карточка клиента содержит контакты, проекты, историю коммуникаций.') ?></li>
+<li data-i18n="docs.clients_item2"><?= $t('docs.clients_item2', '<strong>Контрагенты</strong> — компании, контакты, организации. Используются для B2B-отношений.') ?></li>
+<li data-i18n="docs.clients_item3"><?= $t('docs.clients_item3', '<strong>Контакты</strong> — отдельные люди внутри компаний. Могут быть привязаны к задачам и проектам.') ?></li>
+<li data-i18n="docs.clients_item4"><?= $t('docs.clients_item4', '<strong>Компании</strong> — юридические лица с реквизитами (ИНН, КПП, банк, адрес).') ?></li>
+<li data-i18n="docs.clients_item5"><?= $t('docs.clients_item5', '<strong>Настраиваемые поля</strong> — для адаптации CRM под отрасль бизнеса.') ?></li>
 </ul>
 <p data-i18n="docs.clients_link_text"><?= htmlspecialchars($t('docs.clients_link_text', 'Перейти:'), ENT_QUOTES, 'UTF-8') ?> <a href="index.php?route=clients" data-i18n="docs.clients_link"><?= htmlspecialchars($t('docs.clients_link', 'Клиенты'), ENT_QUOTES, 'UTF-8') ?></a>.</p>
 </div></section></div>
@@ -203,8 +203,8 @@
 <section class="crm-card crm-section-card mb-3">
 <div class="crm-section-head"><div><h2 class="h5 mb-0" data-i18n="docs.planning_title"><?= htmlspecialchars($t('docs.planning_title', 'Планирование — Мой день и Моя неделя'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="docs.planning_note"><?= htmlspecialchars($t('docs.planning_note', 'Персональные планы с AI-помощью.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
 <div class="p-3">
-<p data-i18n="docs.planning_my_day"><?= htmlspecialchars($t('docs.planning_my_day', '<strong>Мой день</strong> — список задач, запланированных на сегодня. AI-план на день расставляет приоритеты на основе дедлайнов и загрузки.'), ENT_QUOTES, 'UTF-8') ?></p>
-<p data-i18n="docs.planning_my_week"><?= htmlspecialchars($t('docs.planning_my_week', '<strong>Моя неделя</strong> — обзор задач на неделю с календарём и AI-предложениями по фокус-блокам времени.'), ENT_QUOTES, 'UTF-8') ?></p>
+<p data-i18n="docs.planning_my_day"><?= $t('docs.planning_my_day', '<strong>Мой день</strong> — список задач, запланированных на сегодня. AI-план на день расставляет приоритеты на основе дедлайнов и загрузки.') ?></p>
+<p data-i18n="docs.planning_my_week"><?= $t('docs.planning_my_week', '<strong>Моя неделя</strong> — обзор задач на неделю с календарём и AI-предложениями по фокус-блокам времени.') ?></p>
 <ul>
 <li data-i18n="docs.planning_item1"><?= htmlspecialchars($t('docs.planning_item1', 'AI-план на день: генерируется автоматически, учитывает сроки и приоритеты.'), ENT_QUOTES, 'UTF-8') ?></li>
 <li data-i18n="docs.planning_item2"><?= htmlspecialchars($t('docs.planning_item2', 'AI-план на неделю: предлагает события и фокус-блоки с учётом загрузки.'), ENT_QUOTES, 'UTF-8') ?></li>
@@ -221,17 +221,17 @@
 
 <h3 class="h6" data-i18n="docs.ideas_lifecycle_heading"><?= htmlspecialchars($t('docs.ideas_lifecycle_heading', 'Жизненный цикл идеи'), ENT_QUOTES, 'UTF-8') ?></h3>
 <ol>
-<li data-i18n="docs.ideas_step1"><?= htmlspecialchars($t('docs.ideas_step1', '<strong>Создание идеи</strong> — заголовок, краткое описание, категория, регион, целевая дата.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.ideas_step2"><?= htmlspecialchars($t('docs.ideas_step2', '<strong>AI-интервью</strong> — система задаёт вопросы для сбора контекста.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.ideas_step3"><?= htmlspecialchars($t('docs.ideas_step3', '<strong>Карточка понимания</strong> — AI обобщает собранную информацию.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.ideas_step4"><?= htmlspecialchars($t('docs.ideas_step4', '<strong>Дополнительные уточнения</strong> — AI выявляет вопросы, которые остались неосвещёнными.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.ideas_step5"><?= htmlspecialchars($t('docs.ideas_step5', '<strong>Каких данных не хватает</strong> — анализ пробелов в информации.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.ideas_step6"><?= htmlspecialchars($t('docs.ideas_step6', '<strong>Уточнённая карточка</strong> — финальная версия карточки с учётом всех данных.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.ideas_step7"><?= htmlspecialchars($t('docs.ideas_step7', '<strong>Потенциал идеи</strong> — оценка реализуемости, масштаба и влияния.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.ideas_step8"><?= htmlspecialchars($t('docs.ideas_step8', '<strong>Риски и подводные камни</strong> — анализ возможных проблем.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.ideas_step9"><?= htmlspecialchars($t('docs.ideas_step9', '<strong>План реализации</strong> — пошаговый план с этапами и задачами.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.ideas_step10"><?= htmlspecialchars($t('docs.ideas_step10', '<strong>Итоговая рекомендация</strong> — сводка и вердикт AI.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.ideas_step11"><?= htmlspecialchars($t('docs.ideas_step11', '<strong>Предлагаемые задачи</strong> — автоматически сгенерированный список задач для превращения идеи в проект.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.ideas_step1"><?= $t('docs.ideas_step1', '<strong>Создание идеи</strong> — заголовок, краткое описание, категория, регион, целевая дата.') ?></li>
+<li data-i18n="docs.ideas_step2"><?= $t('docs.ideas_step2', '<strong>AI-интервью</strong> — система задаёт вопросы для сбора контекста.') ?></li>
+<li data-i18n="docs.ideas_step3"><?= $t('docs.ideas_step3', '<strong>Карточка понимания</strong> — AI обобщает собранную информацию.') ?></li>
+<li data-i18n="docs.ideas_step4"><?= $t('docs.ideas_step4', '<strong>Дополнительные уточнения</strong> — AI выявляет вопросы, которые остались неосвещёнными.') ?></li>
+<li data-i18n="docs.ideas_step5"><?= $t('docs.ideas_step5', '<strong>Каких данных не хватает</strong> — анализ пробелов в информации.') ?></li>
+<li data-i18n="docs.ideas_step6"><?= $t('docs.ideas_step6', '<strong>Уточнённая карточка</strong> — финальная версия карточки с учётом всех данных.') ?></li>
+<li data-i18n="docs.ideas_step7"><?= $t('docs.ideas_step7', '<strong>Потенциал идеи</strong> — оценка реализуемости, масштаба и влияния.') ?></li>
+<li data-i18n="docs.ideas_step8"><?= $t('docs.ideas_step8', '<strong>Риски и подводные камни</strong> — анализ возможных проблем.') ?></li>
+<li data-i18n="docs.ideas_step9"><?= $t('docs.ideas_step9', '<strong>План реализации</strong> — пошаговый план с этапами и задачами.') ?></li>
+<li data-i18n="docs.ideas_step10"><?= $t('docs.ideas_step10', '<strong>Итоговая рекомендация</strong> — сводка и вердикт AI.') ?></li>
+<li data-i18n="docs.ideas_step11"><?= $t('docs.ideas_step11', '<strong>Предлагаемые задачи</strong> — автоматически сгенерированный список задач для превращения идеи в проект.') ?></li>
 </ol>
 <p data-i18n="docs.ideas_restart_note"><?= htmlspecialchars($t('docs.ideas_restart_note', 'Каждый шаг можно перезапустить. AI-результаты всегда preview-only до подтверждения.'), ENT_QUOTES, 'UTF-8') ?></p>
 </div></section></div>
@@ -305,10 +305,10 @@
 <div class="p-3">
 <p data-i18n="docs.automation_link_text"><?= htmlspecialchars($t('docs.automation_link_text', 'Настройка —'), ENT_QUOTES, 'UTF-8') ?> <a href="index.php?route=admin-workflow" data-i18n="docs.automation_link"><?= htmlspecialchars($t('docs.automation_link', 'Workflow'), ENT_QUOTES, 'UTF-8') ?></a>.</p>
 <ul>
-<li data-i18n="docs.automation_item1"><?= htmlspecialchars($t('docs.automation_item1', '<strong>Workflow-правила</strong> — автоматические действия при наступлении условий.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.automation_item2"><?= htmlspecialchars($t('docs.automation_item2', '<strong>SLA-управление</strong> — определение ожиданий по времени реакции/решения с отслеживанием нарушений.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.automation_item3"><?= htmlspecialchars($t('docs.automation_item3', '<strong>Согласования (approvals)</strong> — многошаговые цепочки утверждения для контролируемых изменений.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.automation_item4"><?= htmlspecialchars($t('docs.automation_item4', '<strong>Фоновые задачи (jobs)</strong> — запланированная обработка: импорт, экспорт, AI-задачи.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.automation_item1"><?= $t('docs.automation_item1', '<strong>Workflow-правила</strong> — автоматические действия при наступлении условий.') ?></li>
+<li data-i18n="docs.automation_item2"><?= $t('docs.automation_item2', '<strong>SLA-управление</strong> — определение ожиданий по времени реакции/решения с отслеживанием нарушений.') ?></li>
+<li data-i18n="docs.automation_item3"><?= $t('docs.automation_item3', '<strong>Согласования (approvals)</strong> — многошаговые цепочки утверждения для контролируемых изменений.') ?></li>
+<li data-i18n="docs.automation_item4"><?= $t('docs.automation_item4', '<strong>Фоновые задачи (jobs)</strong> — запланированная обработка: импорт, экспорт, AI-задачи.') ?></li>
 </ul>
 </div></section></div>
 
@@ -346,12 +346,12 @@
 <div class="p-3">
 <p data-i18n="docs.api_intro"><?= htmlspecialchars($t('docs.api_intro', 'API — программный доступ ко всем функциям CRM. Каждый эндпоинт документирован и доступен через Bearer-токен.'), ENT_QUOTES, 'UTF-8') ?></p>
 <ul>
-<li data-i18n="docs.api_item1"><?= htmlspecialchars($t('docs.api_item1', '<strong>База:</strong> /api/index.php?route=api/v1/...'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.api_item2"><?= htmlspecialchars($t('docs.api_item2', '<strong>Аутентификация:</strong> POST /api/v1/auth/login → Bearer-токен.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.api_item3"><?= htmlspecialchars($t('docs.api_item3', '<strong>Документация OpenAPI:</strong> генерируется из кода, спецификация 3.1.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.api_item4"><?= htmlspecialchars($t('docs.api_item4', '<strong>Эндпоинты:</strong> формируются из актуальной конфигурации маршрутов, покрытие UI отслеживается отдельно.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.api_item5"><?= htmlspecialchars($t('docs.api_item5', '<strong>Идемпотентность:</strong> заголовок X-Idempotency-Key для безопасных повторных запросов.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.api_item6"><?= htmlspecialchars($t('docs.api_item6', '<strong>API-ключи:</strong> создаются в админке для доступа без Bearer-токена.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.api_item1"><?= $t('docs.api_item1', '<strong>База:</strong> /api/index.php?route=api/v1/...') ?></li>
+<li data-i18n="docs.api_item2"><?= $t('docs.api_item2', '<strong>Аутентификация:</strong> POST /api/v1/auth/login → Bearer-токен.') ?></li>
+<li data-i18n="docs.api_item3"><?= $t('docs.api_item3', '<strong>Документация OpenAPI:</strong> генерируется из кода, спецификация 3.1.') ?></li>
+<li data-i18n="docs.api_item4"><?= $t('docs.api_item4', '<strong>Эндпоинты:</strong> формируются из актуальной конфигурации маршрутов, покрытие UI отслеживается отдельно.') ?></li>
+<li data-i18n="docs.api_item5"><?= $t('docs.api_item5', '<strong>Идемпотентность:</strong> заголовок X-Idempotency-Key для безопасных повторных запросов.') ?></li>
+<li data-i18n="docs.api_item6"><?= $t('docs.api_item6', '<strong>API-ключи:</strong> создаются в админке для доступа без Bearer-токена.') ?></li>
 </ul>
 </div></section></div>
 
@@ -362,8 +362,8 @@
 <div class="p-3">
 <p data-i18n="docs.roles_link_text"><?= htmlspecialchars($t('docs.roles_link_text', 'Настройка —'), ENT_QUOTES, 'UTF-8') ?> <a href="index.php?route=admin-roles" data-i18n="docs.roles_link"><?= htmlspecialchars($t('docs.roles_link', 'Роли'), ENT_QUOTES, 'UTF-8') ?></a>.</p>
 <ul>
-<li data-i18n="docs.roles_item1"><?= htmlspecialchars($t('docs.roles_item1', '<strong>Права (permissions)</strong> — granular access control для каждой сущности.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.roles_item2"><?= htmlspecialchars($t('docs.roles_item2', '<strong>Роли</strong> — наборы прав, которые назначаются пользователям.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.roles_item1"><?= $t('docs.roles_item1', '<strong>Права (permissions)</strong> — granular access control для каждой сущности.') ?></li>
+<li data-i18n="docs.roles_item2"><?= $t('docs.roles_item2', '<strong>Роли</strong> — наборы прав, которые назначаются пользователям.') ?></li>
 <li data-i18n="docs.roles_item3"><?= htmlspecialchars($t('docs.roles_item3', 'Пользователь может иметь несколько ролей.'), ENT_QUOTES, 'UTF-8') ?></li>
 <li data-i18n="docs.roles_item4"><?= htmlspecialchars($t('docs.roles_item4', 'Доступ к разделам UI управляется правами.'), ENT_QUOTES, 'UTF-8') ?></li>
 <li data-i18n="docs.roles_item5"><?= htmlspecialchars($t('docs.roles_item5', 'Доступ к API-эндпоинтам управляется правами.'), ENT_QUOTES, 'UTF-8') ?></li>
@@ -380,24 +380,24 @@
 <p data-i18n="docs.admin_link_text"><?= htmlspecialchars($t('docs.admin_link_text', 'Перейти:'), ENT_QUOTES, 'UTF-8') ?> <a href="index.php?route=admin" data-i18n="docs.admin_link"><?= htmlspecialchars($t('docs.admin_link', 'Админка'), ENT_QUOTES, 'UTF-8') ?></a>.</p>
 <div class="row g-2">
 <div class="col-md-6"><ul>
-<li data-i18n="docs.admin_item1"><?= htmlspecialchars($t('docs.admin_item1', '<strong>Пользователи</strong> — создание, блокировка, смена пароля.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.admin_item2"><?= htmlspecialchars($t('docs.admin_item2', '<strong>Роли</strong> — управление правами доступа.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.admin_item3"><?= htmlspecialchars($t('docs.admin_item3', '<strong>Статусы</strong> — настройка статусов задач.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.admin_item4"><?= htmlspecialchars($t('docs.admin_item4', '<strong>Приоритеты</strong> — настройка приоритетов.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.admin_item5"><?= htmlspecialchars($t('docs.admin_item5', '<strong>SLA</strong> — SLA-политики.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.admin_item6"><?= htmlspecialchars($t('docs.admin_item6', '<strong>Workflow</strong> — workflow-правила.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.admin_item7"><?= htmlspecialchars($t('docs.admin_item7', '<strong>Вебхуки</strong> — настройка вебхуков.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.admin_item8"><?= htmlspecialchars($t('docs.admin_item8', '<strong>API-клиенты</strong> — управление API-ключами.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.admin_item1"><?= $t('docs.admin_item1', '<strong>Пользователи</strong> — создание, блокировка, смена пароля.') ?></li>
+<li data-i18n="docs.admin_item2"><?= $t('docs.admin_item2', '<strong>Роли</strong> — управление правами доступа.') ?></li>
+<li data-i18n="docs.admin_item3"><?= $t('docs.admin_item3', '<strong>Статусы</strong> — настройка статусов задач.') ?></li>
+<li data-i18n="docs.admin_item4"><?= $t('docs.admin_item4', '<strong>Приоритеты</strong> — настройка приоритетов.') ?></li>
+<li data-i18n="docs.admin_item5"><?= $t('docs.admin_item5', '<strong>SLA</strong> — SLA-политики.') ?></li>
+<li data-i18n="docs.admin_item6"><?= $t('docs.admin_item6', '<strong>Workflow</strong> — workflow-правила.') ?></li>
+<li data-i18n="docs.admin_item7"><?= $t('docs.admin_item7', '<strong>Вебхуки</strong> — настройка вебхуков.') ?></li>
+<li data-i18n="docs.admin_item8"><?= $t('docs.admin_item8', '<strong>API-клиенты</strong> — управление API-ключами.') ?></li>
 </ul></div>
 <div class="col-md-6"><ul>
-<li data-i18n="docs.admin_item9"><?= htmlspecialchars($t('docs.admin_item9', '<strong>AI-помощник</strong> — провайдеры, модели, intent-настройки.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.admin_item10"><?= htmlspecialchars($t('docs.admin_item10', '<strong>Логи</strong> — аудит, actions, ошибки.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.admin_item11"><?= htmlspecialchars($t('docs.admin_item11', '<strong>Модули</strong> — управление модулями.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.admin_item12"><?= htmlspecialchars($t('docs.admin_item12', '<strong>Шаблоны</strong> — шаблоны задач.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.admin_item13"><?= htmlspecialchars($t('docs.admin_item13', '<strong>Настройки</strong> — системные настройки.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.admin_item14"><?= htmlspecialchars($t('docs.admin_item14', '<strong>Теги</strong> — управление тегами.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.admin_item15"><?= htmlspecialchars($t('docs.admin_item15', '<strong>Кастомные поля</strong> — настройка дополнительных полей.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.admin_item16"><?= htmlspecialchars($t('docs.admin_item16', '<strong>Напоминания</strong> — настройка системных напоминаний.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.admin_item9"><?= $t('docs.admin_item9', '<strong>AI-помощник</strong> — провайдеры, модели, intent-настройки.') ?></li>
+<li data-i18n="docs.admin_item10"><?= $t('docs.admin_item10', '<strong>Логи</strong> — аудит, actions, ошибки.') ?></li>
+<li data-i18n="docs.admin_item11"><?= $t('docs.admin_item11', '<strong>Модули</strong> — управление модулями.') ?></li>
+<li data-i18n="docs.admin_item12"><?= $t('docs.admin_item12', '<strong>Шаблоны</strong> — шаблоны задач.') ?></li>
+<li data-i18n="docs.admin_item13"><?= $t('docs.admin_item13', '<strong>Настройки</strong> — системные настройки.') ?></li>
+<li data-i18n="docs.admin_item14"><?= $t('docs.admin_item14', '<strong>Теги</strong> — управление тегами.') ?></li>
+<li data-i18n="docs.admin_item15"><?= $t('docs.admin_item15', '<strong>Кастомные поля</strong> — настройка дополнительных полей.') ?></li>
+<li data-i18n="docs.admin_item16"><?= $t('docs.admin_item16', '<strong>Напоминания</strong> — настройка системных напоминаний.') ?></li>
 </ul></div>
 </div>
 </div></section></div>
@@ -448,34 +448,34 @@
 <div class="crm-section-head"><div><h2 class="h5 mb-0" data-i18n="docs.faq_title"><?= htmlspecialchars($t('docs.faq_title', 'Частые вопросы'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="docs.faq_note"><?= htmlspecialchars($t('docs.faq_note', 'Ответы на основные вопросы.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
 <div class="p-3">
 <div class="mb-3">
-<p data-i18n="docs.faq_q1"><?= htmlspecialchars($t('docs.faq_q1', '<strong>Что такое TropaTT?</strong><br>Бесплатная open-source self-hosted CRM, таск-менеджер и платформа управления проектами.'), ENT_QUOTES, 'UTF-8') ?></p>
+<p data-i18n="docs.faq_q1"><?= $t('docs.faq_q1', '<strong>Что такое TropaTT?</strong><br>Бесплатная open-source self-hosted CRM, таск-менеджер и платформа управления проектами.') ?></p>
 </div>
 <div class="mb-3">
-<p data-i18n="docs.faq_q2"><?= htmlspecialchars($t('docs.faq_q2', '<strong>Это CRM или таск-менеджер?</strong><br>И то, и другое. CRM для клиентов и контрагентов, таск-менеджер для задач, плюс управление проектами, чат, календарь и AI.'), ENT_QUOTES, 'UTF-8') ?></p>
+<p data-i18n="docs.faq_q2"><?= $t('docs.faq_q2', '<strong>Это CRM или таск-менеджер?</strong><br>И то, и другое. CRM для клиентов и контрагентов, таск-менеджер для задач, плюс управление проектами, чат, календарь и AI.') ?></p>
 </div>
 <div class="mb-3">
-<p data-i18n="docs.faq_q3"><?= htmlspecialchars($t('docs.faq_q3', '<strong>Подходит ли фрилансерам?</strong><br>Да. Нет минимального размера команды. Один пользователь получает CRM, задачи, AI-план на день и чат без платы за место.'), ENT_QUOTES, 'UTF-8') ?></p>
+<p data-i18n="docs.faq_q3"><?= $t('docs.faq_q3', '<strong>Подходит ли фрилансерам?</strong><br>Да. Нет минимального размера команды. Один пользователь получает CRM, задачи, AI-план на день и чат без платы за место.') ?></p>
 </div>
 <div class="mb-3">
-<p data-i18n="docs.faq_q4"><?= htmlspecialchars($t('docs.faq_q4', '<strong>Работает на shared-хостинге?</strong><br>Да. Достаточно PHP 8.1+ и MySQL. Браузерный установщик всё настраивает.'), ENT_QUOTES, 'UTF-8') ?></p>
+<p data-i18n="docs.faq_q4"><?= $t('docs.faq_q4', '<strong>Работает на shared-хостинге?</strong><br>Да. Достаточно PHP 8.1+ и MySQL. Браузерный установщик всё настраивает.') ?></p>
 </div>
 <div class="mb-3">
-<p data-i18n="docs.faq_q5"><?= htmlspecialchars($t('docs.faq_q5', '<strong>Есть ли лимиты по пользователям и задачам?</strong><br>Нет. Безлимитные пользователи, задачи, проекты, клиенты. Единственное ограничение — мощность сервера.'), ENT_QUOTES, 'UTF-8') ?></p>
+<p data-i18n="docs.faq_q5"><?= $t('docs.faq_q5', '<strong>Есть ли лимиты по пользователям и задачам?</strong><br>Нет. Безлимитные пользователи, задачи, проекты, клиенты. Единственное ограничение — мощность сервера.') ?></p>
 </div>
 <div class="mb-3">
-<p data-i18n="docs.faq_q6"><?= htmlspecialchars($t('docs.faq_q6', '<strong>Где хранятся данные?</strong><br>100% на вашем сервере. Система никогда не синхронизирует данные в облако.'), ENT_QUOTES, 'UTF-8') ?></p>
+<p data-i18n="docs.faq_q6"><?= $t('docs.faq_q6', '<strong>Где хранятся данные?</strong><br>100% на вашем сервере. Система никогда не синхронизирует данные в облако.') ?></p>
 </div>
 <div class="mb-3">
-<p data-i18n="docs.faq_q7"><?= htmlspecialchars($t('docs.faq_q7', '<strong>Какие AI-инструменты доступны?</strong><br>20+ инструментов: проработка идей, план на день/неделю, сводки, чеклисты, риски, подготовка к встречам.'), ENT_QUOTES, 'UTF-8') ?></p>
+<p data-i18n="docs.faq_q7"><?= $t('docs.faq_q7', '<strong>Какие AI-инструменты доступны?</strong><br>20+ инструментов: проработка идей, план на день/неделю, сводки, чеклисты, риски, подготовка к встречам.') ?></p>
 </div>
 <div class="mb-3">
-<p data-i18n="docs.faq_q8"><?= htmlspecialchars($t('docs.faq_q8', '<strong>Есть ли API?</strong><br>Да, REST API со спецификацией OpenAPI 3.1, сгенерированной из кода.'), ENT_QUOTES, 'UTF-8') ?></p>
+<p data-i18n="docs.faq_q8"><?= $t('docs.faq_q8', '<strong>Есть ли API?</strong><br>Да, REST API со спецификацией OpenAPI 3.1, сгенерированной из кода.') ?></p>
 </div>
 <div class="mb-3">
-<p data-i18n="docs.faq_q9"><?= htmlspecialchars($t('docs.faq_q9', '<strong>Можно ли кастомизировать?</strong><br>Да. PHP-код, модули, вебхуки, API, workflow-правила, кастомные поля, роли и права доступа.'), ENT_QUOTES, 'UTF-8') ?></p>
+<p data-i18n="docs.faq_q9"><?= $t('docs.faq_q9', '<strong>Можно ли кастомизировать?</strong><br>Да. PHP-код, модули, вебхуки, API, workflow-правила, кастомные поля, роли и права доступа.') ?></p>
 </div>
 <div class="mb-3">
-<p><strong data-i18n="docs.faq_q10"><?= htmlspecialchars($t('docs.faq_q10', 'Кто разработчик?'), ENT_QUOTES, 'UTF-8') ?></strong><br><span data-i18n="docs.faq_q10_answer"><?= htmlspecialchars($t('docs.faq_q10_answer', '<strong>Антон Баринов</strong>, PHP-разработчик.'), ENT_QUOTES, 'UTF-8') ?></span> <a href="https://github.com/Anton-Barinov">GitHub</a>.</p>
+<p><strong data-i18n="docs.faq_q10"><?= htmlspecialchars($t('docs.faq_q10', 'Кто разработчик?'), ENT_QUOTES, 'UTF-8') ?></strong><br><span data-i18n="docs.faq_q10_answer"><?= $t('docs.faq_q10_answer', '<strong>Антон Баринов</strong>, PHP-разработчик.') ?></span> <a href="https://github.com/Anton-Barinov">GitHub</a>.</p>
 </div>
 </div></section></div>
 
@@ -514,13 +514,13 @@
 <section class="crm-card crm-section-card mb-3">
 <div class="crm-section-head"><div><h2 class="h5 mb-0" data-i18n="docs.mcp_title"><?= htmlspecialchars($t('docs.mcp_title', 'AI-агенты (MCP)'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="docs.mcp_note"><?= htmlspecialchars($t('docs.mcp_note', 'Подключение Claude Code, Codex, ChatGPT и других AI-агентов к CRM.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
 <div class="p-3">
-<div class="crm-info-panel mb-3" data-i18n="docs.mcp_why"><?= htmlspecialchars($t('docs.mcp_why', '<strong>Зачем:</strong> MCP позволяет AI-агентам читать и управлять вашими задачами, проектами, клиентами и чатами через единый протокол — с теми же правами доступа, что и веб-интерфейс.'), ENT_QUOTES, 'UTF-8') ?></div>
+<div class="crm-info-panel mb-3" data-i18n="docs.mcp_why"><?= $t('docs.mcp_why', '<strong>Зачем:</strong> MCP позволяет AI-агентам читать и управлять вашими задачами, проектами, клиентами и чатами через единый протокол — с теми же правами доступа, что и веб-интерфейс.') ?></div>
 <p data-i18n="docs.mcp_intro"><?= htmlspecialchars($t('docs.mcp_intro', 'TropaTT включает встроенный MCP-сервер (Model Context Protocol) — тот же протокол, который понимают Claude Code, Codex, ChatGPT и другие совместимые AI-агенты.'), ENT_QUOTES, 'UTF-8') ?></p>
 <ul>
-<li data-i18n="docs.mcp_item1"><?= htmlspecialchars($t('docs.mcp_item1', '<strong>567 MCP-инструментов + 5 ресурсов</strong> — задачи, проекты, клиенты, контакты, чаты, календарь, аналитика, база знаний.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.mcp_item2"><?= htmlspecialchars($t('docs.mcp_item2', '<strong>Те же данные и правила</strong> — каждый запрос проходит через REST API и RBAC-проверки, как в веб-интерфейсе.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.mcp_item3"><?= htmlspecialchars($t('docs.mcp_item3', '<strong>Безопасность</strong> — чувствительные данные (токены, хэши паролей, API-ключи) фильтруются; запись требует соответствующего права.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.mcp_item4"><?= htmlspecialchars($t('docs.mcp_item4', '<strong>Эндпоинт:</strong> POST /api/index.php?route=api/v1/mcp, аутентификация через Bearer-токен.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.mcp_item1"><?= $t('docs.mcp_item1', '<strong>567 MCP-инструментов + 5 ресурсов</strong> — задачи, проекты, клиенты, контакты, чаты, календарь, аналитика, база знаний.') ?></li>
+<li data-i18n="docs.mcp_item2"><?= $t('docs.mcp_item2', '<strong>Те же данные и правила</strong> — каждый запрос проходит через REST API и RBAC-проверки, как в веб-интерфейсе.') ?></li>
+<li data-i18n="docs.mcp_item3"><?= $t('docs.mcp_item3', '<strong>Безопасность</strong> — чувствительные данные (токены, хэши паролей, API-ключи) фильтруются; запись требует соответствующего права.') ?></li>
+<li data-i18n="docs.mcp_item4"><?= $t('docs.mcp_item4', '<strong>Эндпоинт:</strong> POST /api/index.php?route=api/v1/mcp, аутентификация через Bearer-токен.') ?></li>
 </ul>
 <p data-i18n="docs.mcp_docs_link"><?= htmlspecialchars($t('docs.mcp_docs_link', 'Полная документация MCP:'), ENT_QUOTES, 'UTF-8') ?> <a href="https://github.com/Anton-Barinov/TropaTT/blob/main/docs_mcp/mcp_en.md">mcp_en.md</a></p>
 </div></section></div>
@@ -530,23 +530,23 @@
 <section class="crm-card crm-section-card mb-3">
 <div class="crm-section-head"><div><h2 class="h5 mb-0" data-i18n="docs.usage_title"><?= htmlspecialchars($t('docs.usage_title', 'Примеры использования'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="docs.usage_note"><?= htmlspecialchars($t('docs.usage_note', 'Конкретные сценарии для разных ролей и отраслей.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
 <div class="p-3">
-<div class="crm-info-panel mb-3" data-i18n="docs.usage_why"><?= htmlspecialchars($t('docs.usage_why', '<strong>Зачем:</strong> эти примеры показывают, как TropaTT используется в реальных рабочих процессах — от входящего запроса до выполненной задачи.'), ENT_QUOTES, 'UTF-8') ?></div>
+<div class="crm-info-panel mb-3" data-i18n="docs.usage_why"><?= $t('docs.usage_why', '<strong>Зачем:</strong> эти примеры показывают, как TropaTT используется в реальных рабочих процессах — от входящего запроса до выполненной задачи.') ?></div>
 <h3 class="h6" data-i18n="docs.usage_cycle_heading"><?= htmlspecialchars($t('docs.usage_cycle_heading', 'Полный цикл работы с клиентом'), ENT_QUOTES, 'UTF-8') ?></h3>
 <ol>
-<li data-i18n="docs.usage_step1"><?= htmlspecialchars($t('docs.usage_step1', '<strong>Захват</strong> — идея, запрос клиента, проблема или входящий лид.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.usage_step2"><?= htmlspecialchars($t('docs.usage_step2', '<strong>Анализ</strong> — самостоятельно или через AI: объём, риски, реализуемость, подход.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.usage_step3"><?= htmlspecialchars($t('docs.usage_step3', '<strong>Структурирование</strong> — в проекты, задачи, подзадачи, чеклисты, исполнители, сроки.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.usage_step4"><?= htmlspecialchars($t('docs.usage_step4', '<strong>Координация</strong> — через чат, комментарии, @упоминания, уведомления.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.usage_step5"><?= htmlspecialchars($t('docs.usage_step5', '<strong>Исполнение</strong> — списки задач, Kanban, Мой день, Моя неделя.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.usage_step6"><?= htmlspecialchars($t('docs.usage_step6', '<strong>Отслеживание</strong> — Гант, дашборды, аналитика, загрузка, сигналы рисков.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.usage_step7"><?= htmlspecialchars($t('docs.usage_step7', '<strong>Автоматизация</strong> — workflow-правила, SLA, вебхуки, цепочки согласований.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.usage_step1"><?= $t('docs.usage_step1', '<strong>Захват</strong> — идея, запрос клиента, проблема или входящий лид.') ?></li>
+<li data-i18n="docs.usage_step2"><?= $t('docs.usage_step2', '<strong>Анализ</strong> — самостоятельно или через AI: объём, риски, реализуемость, подход.') ?></li>
+<li data-i18n="docs.usage_step3"><?= $t('docs.usage_step3', '<strong>Структурирование</strong> — в проекты, задачи, подзадачи, чеклисты, исполнители, сроки.') ?></li>
+<li data-i18n="docs.usage_step4"><?= $t('docs.usage_step4', '<strong>Координация</strong> — через чат, комментарии, @упоминания, уведомления.') ?></li>
+<li data-i18n="docs.usage_step5"><?= $t('docs.usage_step5', '<strong>Исполнение</strong> — списки задач, Kanban, Мой день, Моя неделя.') ?></li>
+<li data-i18n="docs.usage_step6"><?= $t('docs.usage_step6', '<strong>Отслеживание</strong> — Гант, дашборды, аналитика, загрузка, сигналы рисков.') ?></li>
+<li data-i18n="docs.usage_step7"><?= $t('docs.usage_step7', '<strong>Автоматизация</strong> — workflow-правила, SLA, вебхуки, цепочки согласований.') ?></li>
 </ol>
 <h3 class="h6 mt-3" data-i18n="docs.usage_examples_heading"><?= htmlspecialchars($t('docs.usage_examples_heading', 'Конкретные примеры'), ENT_QUOTES, 'UTF-8') ?></h3>
 <ul>
-<li data-i18n="docs.usage_ex1"><?= htmlspecialchars($t('docs.usage_ex1', '<strong>Фрилансер:</strong> запрос клиента → AI анализирует → план задач → Мой день → исполнение → чат с клиентом → готово.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.usage_ex2"><?= htmlspecialchars($t('docs.usage_ex2', '<strong>Агентство:</strong> бриф клиента → AI декомпозирует → проект + вехи → Kanban → отслеживание по Ганту → отчёт клиенту → аналитика.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.usage_ex3"><?= htmlspecialchars($t('docs.usage_ex3', '<strong>Сервисная компания:</strong> контрагент → проект → задачи монтажа → Гант → дневные планы → мониторинг SLA → подписание акта.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.usage_ex4"><?= htmlspecialchars($t('docs.usage_ex4', '<strong>B2B-операции:</strong> компания → контакты → задачи + согласования → напоминания → вебхук → дашборд.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.usage_ex1"><?= $t('docs.usage_ex1', '<strong>Фрилансер:</strong> запрос клиента → AI анализирует → план задач → Мой день → исполнение → чат с клиентом → готово.') ?></li>
+<li data-i18n="docs.usage_ex2"><?= $t('docs.usage_ex2', '<strong>Агентство:</strong> бриф клиента → AI декомпозирует → проект + вехи → Kanban → отслеживание по Ганту → отчёт клиенту → аналитика.') ?></li>
+<li data-i18n="docs.usage_ex3"><?= $t('docs.usage_ex3', '<strong>Сервисная компания:</strong> контрагент → проект → задачи монтажа → Гант → дневные планы → мониторинг SLA → подписание акта.') ?></li>
+<li data-i18n="docs.usage_ex4"><?= $t('docs.usage_ex4', '<strong>B2B-операции:</strong> компания → контакты → задачи + согласования → напоминания → вебхук → дашборд.') ?></li>
 </ul>
 </div></section></div>
 
@@ -555,15 +555,15 @@
 <section class="crm-card crm-section-card mb-3">
 <div class="crm-section-head"><div><h2 class="h5 mb-0" data-i18n="docs.tech_title"><?= htmlspecialchars($t('docs.tech_title', 'Технологии и цифры'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="docs.tech_note"><?= htmlspecialchars($t('docs.tech_note', 'Стек, архитектура и ключевые метрики проекта.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
 <div class="p-3">
-<div class="crm-info-panel mb-3" data-i18n="docs.tech_why"><?= htmlspecialchars($t('docs.tech_why', '<strong>Зачем:</strong> понимание стека помогает оценить требования к хостингу, возможности кастомизации и масштабируемость системы.'), ENT_QUOTES, 'UTF-8') ?></div>
+<div class="crm-info-panel mb-3" data-i18n="docs.tech_why"><?= $t('docs.tech_why', '<strong>Зачем:</strong> понимание стека помогает оценить требования к хостингу, возможности кастомизации и масштабируемость системы.') ?></div>
 <h3 class="h6" data-i18n="docs.tech_stack_heading"><?= htmlspecialchars($t('docs.tech_stack_heading', 'Технологический стек'), ENT_QUOTES, 'UTF-8') ?></h3>
 <ul>
-<li data-i18n="docs.tech_stack1"><?= htmlspecialchars($t('docs.tech_stack1', '<strong>Бэкенд:</strong> PHP 8.1+, кастомное микроядро. Ноль внешних зависимостей. Без Laravel/Symfony/Doctrine.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.tech_stack2"><?= htmlspecialchars($t('docs.tech_stack2', '<strong>База данных:</strong> MySQL.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.tech_stack3"><?= htmlspecialchars($t('docs.tech_stack3', '<strong>Фронтенд:</strong> PHP-рендер MPA + Bootstrap 5 + кастомные vanilla JS ES5+ модули. Без React/Vue/Angular. Без сборщика.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.tech_stack4"><?= htmlspecialchars($t('docs.tech_stack4', '<strong>Архитектура:</strong> API-first. Веб-UI использует REST API для всех данных. Ноль прямых обращений к БД из веб-слоя.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.tech_stack5"><?= htmlspecialchars($t('docs.tech_stack5', '<strong>Безопасность:</strong> Двойная аутентификация (cookie + CSRF для web, Bearer для API). RBAC. Защита от SSRF. Rate limiting.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.tech_stack6"><?= htmlspecialchars($t('docs.tech_stack6', '<strong>AI:</strong> Настраиваемые провайдеры (OpenAI, Anthropic, DeepSeek, Google). Intent-workflows. Preview-before-apply.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.tech_stack1"><?= $t('docs.tech_stack1', '<strong>Бэкенд:</strong> PHP 8.1+, кастомное микроядро. Ноль внешних зависимостей. Без Laravel/Symfony/Doctrine.') ?></li>
+<li data-i18n="docs.tech_stack2"><?= $t('docs.tech_stack2', '<strong>База данных:</strong> MySQL.') ?></li>
+<li data-i18n="docs.tech_stack3"><?= $t('docs.tech_stack3', '<strong>Фронтенд:</strong> PHP-рендер MPA + Bootstrap 5 + кастомные vanilla JS ES5+ модули. Без React/Vue/Angular. Без сборщика.') ?></li>
+<li data-i18n="docs.tech_stack4"><?= $t('docs.tech_stack4', '<strong>Архитектура:</strong> API-first. Веб-UI использует REST API для всех данных. Ноль прямых обращений к БД из веб-слоя.') ?></li>
+<li data-i18n="docs.tech_stack5"><?= $t('docs.tech_stack5', '<strong>Безопасность:</strong> Двойная аутентификация (cookie + CSRF для web, Bearer для API). RBAC. Защита от SSRF. Rate limiting.') ?></li>
+<li data-i18n="docs.tech_stack6"><?= $t('docs.tech_stack6', '<strong>AI:</strong> Настраиваемые провайдеры (OpenAI, Anthropic, DeepSeek, Google). Intent-workflows. Preview-before-apply.') ?></li>
 </ul>
 <h3 class="h6 mt-3" data-i18n="docs.tech_numbers_heading"><?= htmlspecialchars($t('docs.tech_numbers_heading', 'В цифрах'), ENT_QUOTES, 'UTF-8') ?></h3>
 <div class="table-responsive">
