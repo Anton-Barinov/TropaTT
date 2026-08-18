@@ -4,6 +4,22 @@ All notable public changes to TropaTT should be documented here.
 
 This project follows a lightweight Keep a Changelog style. Dates are added when a release is actually created.
 
+## [0.2.0.3.1] - 2026-08-18
+
+### Added
+
+- **i18n: new API language domains.** `cycle`, `estimate` and `task_relations` message catalogs were created in all 7 locales so their controller messages no longer fall back to hardcoded English.
+
+- **Web `gantt.blocked_marker`** added to the top-level `gantt` namespace in all 7 locales (in addition to the client `js.pab.gantt` copy), so the Gantt blocked-marker label passes the parity audit.
+
+### Fixed
+
+- **i18n: remaining hardcoded strings moved to language variables.** The two-argument `->t('key', 'fallback')` calls across the API (worklog summary/earnings/task-summary/matrix, webhook, file, auth, module, dependency, intake, idea, common, view, import, permission, project, project_module, knowledge, task cycles and WIP/activity messages) now resolve through language files in all 7 locales instead of embedding English fallbacks.
+
+- **i18n: key-format bugs fixed.** References of the form `domain/name` were corrected to `domain/messages.name` (project_module, knowledge, intake, install, import), and `ai_suggestion.messages.*` was corrected to `ai_suggestion/messages.*`; the bulk-task limit message now uses a translated `%d` template via `sprintf`.
+
+- **i18n: full web + API key parity.** All 7 locales now carry identical key sets (web audit and API parity check report zero missing keys), and the integration keys missing from de/fr/es/pt/zh web catalogs were added.
+
 ## [0.2.0.3] - 2026-08-18
 
 ### Added
