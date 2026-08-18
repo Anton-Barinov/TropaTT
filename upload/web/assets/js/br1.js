@@ -3688,8 +3688,8 @@ window.CRM.br1 = (function () {
           + '<td><span class="crm-chip">' + escapeHtml(priorityLabel(item.priority_code || 'normal')) + '</span></td>'
           + '<td class="text-end">'
           + '<div class="d-inline-flex gap-2">'
-          + '<a class="btn btn-sm crm-btn-secondary crm-btn-compact" href="index.php?route=task-detail&task_public_id=' + encodeURIComponent(subtaskId) + window.CRM.i18n.t('js.br1.otkryt_a', '">Открыть</a>')
-          + '<button type="button" class="btn btn-sm crm-btn-primary crm-btn-compact" data-subtask-edit="' + escapeHtml(subtaskId) + '"' + (canEditSubtask ? '' : ' disabled') + window.CRM.i18n.t('js.br1.redaktirovat_button_2', '>Редактировать</button>')
+          + '<a class="btn btn-sm crm-btn-subtle crm-btn-compact" href="index.php?route=task-detail&task_public_id=' + encodeURIComponent(subtaskId) + window.CRM.i18n.t('js.br1.otkryt_a', '">Открыть</a>')
+          + '<button type="button" class="btn btn-sm crm-btn-secondary crm-btn-compact" data-subtask-edit="' + escapeHtml(subtaskId) + '"' + (canEditSubtask ? '' : ' disabled') + window.CRM.i18n.t('js.br1.redaktirovat_button_2', '>Редактировать</button>')
           + '</div>'
           + '</td>'
           + '</tr>';
