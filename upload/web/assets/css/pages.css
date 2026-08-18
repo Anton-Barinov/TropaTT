@@ -13160,8 +13160,7 @@ a.task-tag:hover {
     font-weight: 700;
 }
 
-.crm-planner-mini-card > summary::after,
-.crm-planner-overdue-section > summary .crm-planner-summary-icon {
+.crm-planner-mini-card > summary::after {
     content: "";
     width: 7px;
     height: 7px;
@@ -13173,8 +13172,7 @@ a.task-tag:hover {
     transition: transform 160ms ease;
 }
 
-.crm-planner-mini-card[open] > summary::after,
-.crm-planner-overdue-section[open] > summary .crm-planner-summary-icon {
+.crm-planner-mini-card[open] > summary::after {
     transform: rotate(225deg) translate(-1px, -1px);
 }
 
@@ -13198,31 +13196,6 @@ a.task-tag:hover {
 
 .crm-planner-overdue-section {
     margin-top: 14px;
-    padding: 0;
-}
-
-.crm-planner-overdue-section > summary {
-    min-height: 54px;
-    padding: 10px 16px;
-    align-items: center;
-}
-
-.crm-planner-overdue-section > summary strong,
-.crm-planner-overdue-section > summary small {
-    display: block;
-}
-
-.crm-planner-overdue-section > summary small {
-    flex: 1 1 auto;
-    margin: 0;
-    color: var(--crm-text-muted);
-    font-size: 11px;
-    font-weight: 400;
-}
-
-.crm-planner-overdue-section .crm-planner-disclosure-body {
-    margin-top: 0;
-    padding: 0 16px 16px;
 }
 
 .crm-planner-overdue-section .crm-overdue-table-wrap {
@@ -13329,10 +13302,6 @@ a.task-tag:hover {
 
     .crm-planner-ai-card .crm-section-head > :last-child {
         align-self: flex-start;
-    }
-
-    .crm-planner-overdue-section .crm-planner-disclosure-body {
-        padding-inline: 10px;
     }
 }
 
