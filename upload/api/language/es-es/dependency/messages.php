@@ -24,4 +24,5 @@ return [
     'type_ff' => 'Fin-Fin',
     'type_sf' => 'Inicio-Fin',
     'type_blocks' => 'Bloquea',
+    'different_projects' => 'Las dependencias solo se pueden crear entre tareas del mismo proyecto',
 ];

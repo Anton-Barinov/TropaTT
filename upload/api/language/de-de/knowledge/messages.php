@@ -112,4 +112,13 @@ return array (
   'settings_loaded' => 'Einstellungen geladen',
   'settings_updated' => 'Einstellungen aktualisiert',
   'task_not_found' => 'Aufgabe nicht gefunden',
+    'spaces_tree' => 'Baum der Wissensräume geladen',
+    'page_permissions' => 'Seitenberechtigungen geladen',
+    'page_permission_added' => 'Seitenberechtigung hinzugefügt',
+    'page_permission_removed' => 'Seitenberechtigung entfernt',
+    'notif_deleted_title' => 'Seite gelöscht',
+    'notif_deleted_body' => 'Die Seite "%s" wurde von %s gelöscht',
+    'version_detail' => 'Versionsdetails',
+    'page_locked' => 'Die Seite ist bereits gesperrt',
+    'page_unlocked' => 'Seite entsperrt',
 );

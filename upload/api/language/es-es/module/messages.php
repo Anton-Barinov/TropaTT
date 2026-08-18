@@ -24,4 +24,5 @@ return [
     'invalid_name' => 'Nombre de módulo no válido',
     'operation_failed' => 'La operación del módulo falló',
     'purged' => 'Módulo eliminado físicamente del disco',
+    'file_too_large' => 'El archivo del módulo es demasiado grande',
 ];

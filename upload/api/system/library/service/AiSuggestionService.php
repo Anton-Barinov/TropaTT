@@ -3722,12 +3722,12 @@ final class AiSuggestionService
             'suggested_tasks' => [],
             'checklist_items' => [
                 $this->t('ai_suggestion/messages.check_disabled_rules'),
-                $this->t('ai_suggestion.messages.check_failed_runs_payload'),
+                $this->t('ai_suggestion/messages.check_failed_runs_payload'),
             ],
             'calendar_slots' => [],
             'questions' => [
                 $this->t('ai_suggestion/messages.rules_needing_trigger_update'),
-                $this->t('ai_suggestion.messages.repetitive_workflow_errors'),
+                $this->t('ai_suggestion/messages.repetitive_workflow_errors'),
             ],
             'meta' => ['mode' => 'safe_mock', 'intent_code' => 'workflow_rule_audit'],
         ];

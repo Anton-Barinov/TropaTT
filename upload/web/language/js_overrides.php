@@ -200,4 +200,66 @@ foreach ($projectDetailRedesignTranslations as $locale => $translations) {
     $overrides[$locale] = array_replace_recursive($overrides[$locale] ?? [], $translations);
 }
 
+$integrationParityTranslations = [
+    'de-de' => [
+        'slack_integration' => ['test_sent' => 'Testnachricht gesendet', 'confirm_delete_connection' => 'Verbindung löschen?', 'fill_name_webhook' => 'Geben Sie einen Namen und eine Webhook-URL ein', 'confirm_delete_rule' => 'Regel löschen?', 'fill_connection_template' => 'Geben Sie eine Verbindung und eine Vorlage ein'],
+        'github_integration' => ['connection_ok' => 'Verbindung erfolgreich.', 'confirm_delete_connection' => 'Verbindung löschen? Verknüpfte Repositories werden nicht mehr synchronisiert.', 'fill_name_token' => 'Geben Sie einen Namen und ein Token ein', 'sync_done' => 'Synchronisierung abgeschlossen: {created} erstellt, {updated} aktualisiert, {skipped} übersprungen, {failed} fehlgeschlagen.', 'confirm_delete_link' => 'Verknüpfung löschen? Aufgaben bleiben in TropaTT, aber die Synchronisierung wird beendet.', 'add_connection_first' => 'Fügen Sie zuerst eine Verbindung hinzu.', 'fill_all_fields' => 'Füllen Sie alle Felder aus'],
+        'gitlab_integration' => ['connection_ok' => 'Verbindung erfolgreich.', 'confirm_delete_connection' => 'Verbindung löschen?', 'fill_name_token' => 'Geben Sie einen Namen und ein Token ein', 'sync_done' => 'Synchronisierung abgeschlossen: {created} erstellt, {updated} aktualisiert, {failed} fehlgeschlagen.', 'confirm_delete_link' => 'Verknüpfung löschen?', 'add_connection_first' => 'Fügen Sie zuerst eine Verbindung hinzu.', 'fill_all_fields' => 'Füllen Sie alle Felder aus'],
+        'linear_migration' => ['confirm_delete_connection' => 'Verbindung löschen?', 'fill_name_api_key' => 'Geben Sie einen Namen und einen API-Schlüssel ein'],
+        'drawio' => ['confirm_delete_diagram' => 'Diagramm löschen?', 'title_required' => 'Geben Sie einen Diagrammtitel ein.', 'diagram_empty' => 'Das Diagramm ist leer.', 'embed_prompt' => 'Fügen Sie diesen Code in den HTML-Inhalt einer Wissensdatenbank-Seite ein:'],
+        'shtab_migration' => ['confirm_cancel_job' => 'Diesen Job abbrechen? Bereits importierte Daten bleiben bis zu einem manuellen Rollback erhalten.'],
+        'google_calendar' => ['confirm_disconnect' => 'Google Calendar trennen und synchronisierte Ereignisse aus dem CRM entfernen?', 'disconnected' => 'Google Calendar getrennt.', 'confirm_clear_creds' => 'Ihre Google-OAuth-Anmeldedaten löschen?'],
+        'bitrix24_migration' => ['confirm_delete_connection' => 'Verbindung und ihren Migrationsverlauf löschen?', 'confirm_rollback' => 'Nur die von dieser Migration erstellten Objekte löschen?'],
+        'yandex_calendar' => ['confirm_disconnect' => 'Yandex.Calendar trennen und seine Ereignisse aus dem CRM entfernen?', 'disconnected' => 'Yandex.Calendar getrennt.'],
+    ],
+    'fr-fr' => [
+        'slack_integration' => ['test_sent' => 'Message de test envoyé', 'confirm_delete_connection' => 'Supprimer la connexion ?', 'fill_name_webhook' => 'Saisissez un nom et une URL de webhook', 'confirm_delete_rule' => 'Supprimer la règle ?', 'fill_connection_template' => 'Saisissez une connexion et un modèle'],
+        'github_integration' => ['connection_ok' => 'Connexion réussie.', 'confirm_delete_connection' => 'Supprimer la connexion ? Les dépôts liés cesseront de se synchroniser.', 'fill_name_token' => 'Saisissez un nom et un jeton', 'sync_done' => 'Synchronisation terminée : {created} créé(s), {updated} mis à jour, {skipped} ignoré(s), {failed} en échec.', 'confirm_delete_link' => 'Supprimer le lien ? Les tâches resteront dans TropaTT, mais la synchronisation s’arrêtera.', 'add_connection_first' => 'Ajoutez d’abord une connexion.', 'fill_all_fields' => 'Remplissez tous les champs'],
+        'gitlab_integration' => ['connection_ok' => 'Connexion réussie.', 'confirm_delete_connection' => 'Supprimer la connexion ?', 'fill_name_token' => 'Saisissez un nom et un jeton', 'sync_done' => 'Synchronisation terminée : {created} créé(s), {updated} mis à jour, {failed} en échec.', 'confirm_delete_link' => 'Supprimer le lien ?', 'add_connection_first' => 'Ajoutez d’abord une connexion.', 'fill_all_fields' => 'Remplissez tous les champs'],
+        'linear_migration' => ['confirm_delete_connection' => 'Supprimer la connexion ?', 'fill_name_api_key' => 'Saisissez un nom et une clé API'],
+        'drawio' => ['confirm_delete_diagram' => 'Supprimer le diagramme ?', 'title_required' => 'Saisissez un titre de diagramme.', 'diagram_empty' => 'Le diagramme est vide.', 'embed_prompt' => 'Collez ce code dans le contenu HTML d’une page de la base de connaissances :'],
+        'shtab_migration' => ['confirm_cancel_job' => 'Annuler cette tâche ? Les données déjà importées resteront jusqu’à une restauration manuelle.'],
+        'google_calendar' => ['confirm_disconnect' => 'Déconnecter Google Calendar et supprimer les événements synchronisés du CRM ?', 'disconnected' => 'Google Calendar déconnecté.', 'confirm_clear_creds' => 'Effacer vos identifiants OAuth Google ?'],
+        'bitrix24_migration' => ['confirm_delete_connection' => 'Supprimer la connexion et son historique de migrations ?', 'confirm_rollback' => 'Supprimer uniquement les objets créés par cette migration ?'],
+        'yandex_calendar' => ['confirm_disconnect' => 'Déconnecter Yandex.Calendar et supprimer ses événements du CRM ?', 'disconnected' => 'Yandex.Calendar déconnecté.'],
+    ],
+    'es-es' => [
+        'slack_integration' => ['test_sent' => 'Mensaje de prueba enviado', 'confirm_delete_connection' => '¿Eliminar la conexión?', 'fill_name_webhook' => 'Introduzca un nombre y una URL de webhook', 'confirm_delete_rule' => '¿Eliminar la regla?', 'fill_connection_template' => 'Introduzca una conexión y una plantilla'],
+        'github_integration' => ['connection_ok' => 'Conexión correcta.', 'confirm_delete_connection' => '¿Eliminar la conexión? Los repositorios vinculados dejarán de sincronizarse.', 'fill_name_token' => 'Introduzca un nombre y un token', 'sync_done' => 'Sincronización completa: {created} creados, {updated} actualizados, {skipped} omitidos, {failed} con errores.', 'confirm_delete_link' => '¿Eliminar el vínculo? Las tareas permanecerán en TropaTT, pero la sincronización se detendrá.', 'add_connection_first' => 'Añada primero una conexión.', 'fill_all_fields' => 'Rellene todos los campos'],
+        'gitlab_integration' => ['connection_ok' => 'Conexión correcta.', 'confirm_delete_connection' => '¿Eliminar la conexión?', 'fill_name_token' => 'Introduzca un nombre y un token', 'sync_done' => 'Sincronización completa: {created} creados, {updated} actualizados, {failed} con errores.', 'confirm_delete_link' => '¿Eliminar el vínculo?', 'add_connection_first' => 'Añada primero una conexión.', 'fill_all_fields' => 'Rellene todos los campos'],
+        'linear_migration' => ['confirm_delete_connection' => '¿Eliminar la conexión?', 'fill_name_api_key' => 'Introduzca un nombre y una clave API'],
+        'drawio' => ['confirm_delete_diagram' => '¿Eliminar el diagrama?', 'title_required' => 'Introduzca un título de diagrama.', 'diagram_empty' => 'El diagrama está vacío.', 'embed_prompt' => 'Pegue este código en el contenido HTML de una página de la base de conocimientos:'],
+        'shtab_migration' => ['confirm_cancel_job' => '¿Cancelar esta tarea? Los datos ya importados permanecerán hasta una reversión manual.'],
+        'google_calendar' => ['confirm_disconnect' => '¿Desconectar Google Calendar y eliminar los eventos sincronizados del CRM?', 'disconnected' => 'Google Calendar desconectado.', 'confirm_clear_creds' => '¿Borrar sus credenciales OAuth de Google?'],
+        'bitrix24_migration' => ['confirm_delete_connection' => '¿Eliminar la conexión y su historial de migraciones?', 'confirm_rollback' => '¿Eliminar solo los objetos creados por esta migración?'],
+        'yandex_calendar' => ['confirm_disconnect' => '¿Desconectar Yandex.Calendar y eliminar sus eventos del CRM?', 'disconnected' => 'Yandex.Calendar desconectado.'],
+    ],
+    'pt-br' => [
+        'slack_integration' => ['test_sent' => 'Mensagem de teste enviada', 'confirm_delete_connection' => 'Excluir conexão?', 'fill_name_webhook' => 'Informe um nome e a URL do webhook', 'confirm_delete_rule' => 'Excluir regra?', 'fill_connection_template' => 'Informe uma conexão e um modelo'],
+        'github_integration' => ['connection_ok' => 'Conexão bem-sucedida.', 'confirm_delete_connection' => 'Excluir conexão? Os repositórios vinculados deixarão de ser sincronizados.', 'fill_name_token' => 'Informe um nome e um token', 'sync_done' => 'Sincronização concluída: {created} criados, {updated} atualizados, {skipped} ignorados, {failed} com falha.', 'confirm_delete_link' => 'Excluir vínculo? As tarefas permanecerão no TropaTT, mas a sincronização será interrompida.', 'add_connection_first' => 'Adicione uma conexão primeiro.', 'fill_all_fields' => 'Preencha todos os campos'],
+        'gitlab_integration' => ['connection_ok' => 'Conexão bem-sucedida.', 'confirm_delete_connection' => 'Excluir conexão?', 'fill_name_token' => 'Informe um nome e um token', 'sync_done' => 'Sincronização concluída: {created} criados, {updated} atualizados, {failed} com falha.', 'confirm_delete_link' => 'Excluir vínculo?', 'add_connection_first' => 'Adicione uma conexão primeiro.', 'fill_all_fields' => 'Preencha todos os campos'],
+        'linear_migration' => ['confirm_delete_connection' => 'Excluir conexão?', 'fill_name_api_key' => 'Informe um nome e uma chave de API'],
+        'drawio' => ['confirm_delete_diagram' => 'Excluir diagrama?', 'title_required' => 'Informe um título de diagrama.', 'diagram_empty' => 'O diagrama está vazio.', 'embed_prompt' => 'Cole este código no conteúdo HTML de uma página da base de conhecimento:'],
+        'shtab_migration' => ['confirm_cancel_job' => 'Cancelar esta tarefa? Os dados já importados permanecerão até uma reversão manual.'],
+        'google_calendar' => ['confirm_disconnect' => 'Desconectar o Google Calendar e remover os eventos sincronizados do CRM?', 'disconnected' => 'Google Calendar desconectado.', 'confirm_clear_creds' => 'Limpar suas credenciais OAuth do Google?'],
+        'bitrix24_migration' => ['confirm_delete_connection' => 'Excluir a conexão e o histórico de suas migrações?', 'confirm_rollback' => 'Excluir apenas os objetos criados por esta migração?'],
+        'yandex_calendar' => ['confirm_disconnect' => 'Desconectar o Yandex.Calendar e remover seus eventos do CRM?', 'disconnected' => 'Yandex.Calendar desconectado.'],
+    ],
+    'zh-cn' => [
+        'slack_integration' => ['test_sent' => '测试消息已发送', 'confirm_delete_connection' => '删除连接？', 'fill_name_webhook' => '请输入名称和 Webhook URL', 'confirm_delete_rule' => '删除规则？', 'fill_connection_template' => '请输入连接和模板'],
+        'github_integration' => ['connection_ok' => '连接成功。', 'confirm_delete_connection' => '删除连接？关联的仓库将停止同步。', 'fill_name_token' => '请输入名称和令牌', 'sync_done' => '同步完成：创建 {created}，更新 {updated}，跳过 {skipped}，失败 {failed}。', 'confirm_delete_link' => '删除关联？任务将保留在 TropaTT，但同步将停止。', 'add_connection_first' => '请先添加连接。', 'fill_all_fields' => '请填写所有字段'],
+        'gitlab_integration' => ['connection_ok' => '连接成功。', 'confirm_delete_connection' => '删除连接？', 'fill_name_token' => '请输入名称和令牌', 'sync_done' => '同步完成：创建 {created}，更新 {updated}，失败 {failed}。', 'confirm_delete_link' => '删除关联？', 'add_connection_first' => '请先添加连接。', 'fill_all_fields' => '请填写所有字段'],
+        'linear_migration' => ['confirm_delete_connection' => '删除连接？', 'fill_name_api_key' => '请输入名称和 API 密钥'],
+        'drawio' => ['confirm_delete_diagram' => '删除图表？', 'title_required' => '请输入图表标题。', 'diagram_empty' => '图表为空。', 'embed_prompt' => '请将以下代码粘贴到知识库页面的 HTML 内容中：'],
+        'shtab_migration' => ['confirm_cancel_job' => '取消此任务？已导入的数据将保留，直到手动回滚。'],
+        'google_calendar' => ['confirm_disconnect' => '断开 Google Calendar 并删除 CRM 中已同步的事件？', 'disconnected' => 'Google Calendar 已断开。', 'confirm_clear_creds' => '清除您的 Google OAuth 凭据？'],
+        'bitrix24_migration' => ['confirm_delete_connection' => '删除连接及其迁移历史记录？', 'confirm_rollback' => '仅删除此迁移创建的对象？'],
+        'yandex_calendar' => ['confirm_disconnect' => '断开 Yandex.Calendar 并删除其在 CRM 中的事件？', 'disconnected' => 'Yandex.Calendar 已断开。'],
+        'js' => ['pab' => ['no_manager_assigned' => '未指定经理', 'no_tasks' => '暂无任务', 'no_projects_yet' => '暂无项目', 'no_projects_yet_text' => '创建第一个项目，开始规划工作。', 'create_project' => '创建项目']],
+    ],
+];
+foreach ($integrationParityTranslations as $locale => $translations) {
+    $overrides[$locale] = array_replace_recursive($overrides[$locale] ?? [], $translations);
+}
+
 return $overrides;

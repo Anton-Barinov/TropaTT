@@ -24,4 +24,5 @@ return [
     'purged' => 'Module physically deleted',
     'operation_failed' => 'Module operation failed',
     'bulk_completed' => 'Bulk action completed',
+    'file_too_large' => 'Module file is too large',
 ];

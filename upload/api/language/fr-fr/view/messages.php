@@ -15,4 +15,5 @@ return [
     'system_only_root' => 'Seul root peut créer des vues système',
     'title_too_long' => 'Le titre est trop long',
     'title_already_exists' => 'Une vue portant ce nom existe déjà',
+    'detail' => 'Détails de la vue enregistrée',
 ];

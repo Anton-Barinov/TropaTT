@@ -17,4 +17,7 @@ return [
     'milestones_summary' => 'Project milestones summary',
     'risks_summary' => 'Project risks summary',
     'workload_summary' => 'Project workload summary',
+    'invalid_prefix' => 'Invalid task key prefix',
+    'invalid_prefix_format' => 'Prefix must be 2-10 uppercase letters/digits, starting with a letter',
+    'reserved_prefix' => 'This prefix is reserved for system use',
 ];

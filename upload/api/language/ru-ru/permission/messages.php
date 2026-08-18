@@ -36,4 +36,13 @@ return [
     'perm_ai_view_audit' => 'Просмотр AI usage/audit',
     'perm_ai_view_cron' => 'Просмотр результатов AI cron jobs',
     'perm_ai_manage_cron' => 'Управление AI cron jobs',
+    'perm_intake_view' => 'Заявки: просмотр',
+    'perm_intake_create' => 'Заявки: создание',
+    'perm_intake_manage' => 'Заявки: управление',
+    'perm_intake_accept' => 'Заявки: преобразование в задачу',
+    'perm_intake_delete' => 'Заявки: мягкое удаление',
+    'perm_chat_use' => 'Чат: использование командного чата',
+    'perm_idea_view' => 'Идеи: просмотр',
+    'perm_idea_manage' => 'Идеи: создание и управление',
+    'perm_knowledge_review' => 'База знаний: проверка страниц',
 ];

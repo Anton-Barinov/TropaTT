@@ -15,4 +15,8 @@ return [
     'detail' => 'Worklog details',
     'updated' => 'Worklog updated',
     'deleted' => 'Worklog deleted',
+    'summary' => 'Arbeitsprotokoll-Zusammenfassung',
+    'earnings' => 'Arbeitsprotokoll-Einnahmen',
+    'task_summary' => 'Arbeitsprotokoll-Zusammenfassung der Aufgabe',
+    'matrix' => 'Arbeitsprotokoll-Matrix',
 ];

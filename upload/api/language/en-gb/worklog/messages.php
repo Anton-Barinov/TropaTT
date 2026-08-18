@@ -15,4 +15,8 @@ return [
     'detail' => 'Worklog details',
     'updated' => 'Worklog updated',
     'deleted' => 'Worklog deleted',
+    'summary' => 'Worklog summary',
+    'earnings' => 'Worklog earnings',
+    'task_summary' => 'Task worklog summary',
+    'matrix' => 'Worklog matrix',
 ];

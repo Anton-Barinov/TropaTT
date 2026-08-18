@@ -1612,7 +1612,7 @@ final class KnowledgeController extends BaseController
         foreach (($items['items'] ?? []) as $item) {
             $map[(string)$item['name']] = $item['value'] ?? null;
         }
-        return $this->success('KNOWLEDGE_SETTINGS', $this->t('knowledge/settings_loaded', 'Settings loaded'), [
+        return $this->success('KNOWLEDGE_SETTINGS', $this->t('knowledge/messages.settings_loaded', 'Settings loaded'), [
             'settings' => $map,
         ]);
     }
@@ -1624,14 +1624,14 @@ final class KnowledgeController extends BaseController
         foreach ($input as $name => $value) {
             $settings->set('knowledge', (string)$name, $value);
         }
-        return $this->success('KNOWLEDGE_SETTINGS_UPDATED', $this->t('knowledge/settings_updated', 'Settings updated'));
+        return $this->success('KNOWLEDGE_SETTINGS_UPDATED', $this->t('knowledge/messages.settings_updated', 'Settings updated'));
     }
 
     public function adminReindex(): JsonResponse
     {
         $this->repo()->reindexSearch();
         $this->auditLog('knowledge_admin', 'all', 'reindex');
-        return $this->success('KNOWLEDGE_REINDEX_STARTED', $this->t('knowledge/reindex_completed', 'Search index rebuild completed'));
+        return $this->success('KNOWLEDGE_REINDEX_STARTED', $this->t('knowledge/messages.reindex_completed', 'Search index rebuild completed'));
     }
 
     public function adminRebuildPermissions(): JsonResponse
@@ -1639,7 +1639,7 @@ final class KnowledgeController extends BaseController
         $pdo = $this->container->get('db.pdo');
         $pdo->exec('UPDATE knowledge_spaces SET permissions_version = permissions_version + 1');
         $this->auditLog('knowledge_admin', 'all', 'rebuild_permissions');
-        return $this->success('KNOWLEDGE_PERMISSIONS_REBUILT', $this->t('knowledge/permissions_rebuilt', 'Permissions version bumped'));
+        return $this->success('KNOWLEDGE_PERMISSIONS_REBUILT', $this->t('knowledge/messages.permissions_rebuilt', 'Permissions version bumped'));
     }
 
     public function adminCleanupDrafts(): JsonResponse
@@ -1649,7 +1649,7 @@ final class KnowledgeController extends BaseController
         $stmt->execute(['cutoff' => $cutoff]);
         $deleted = $stmt->rowCount();
         $this->auditLog('knowledge_admin', 'all', 'cleanup_drafts', ['deleted_count' => $deleted]);
-        return $this->success('KNOWLEDGE_DRAFTS_CLEANED', $this->t('knowledge/drafts_cleaned', 'Old drafts cleaned'), [
+        return $this->success('KNOWLEDGE_DRAFTS_CLEANED', $this->t('knowledge/messages.drafts_cleaned', 'Old drafts cleaned'), [
             'deleted_count' => $deleted,
         ]);
     }

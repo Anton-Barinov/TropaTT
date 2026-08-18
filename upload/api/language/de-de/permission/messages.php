@@ -36,4 +36,13 @@ return [
     'perm_ai_view_audit' => 'View AI usage/audit',
     'perm_ai_view_cron' => 'View AI cron job results',
     'perm_ai_manage_cron' => 'Manage AI cron jobs',
+    'perm_intake_view' => 'Anfragen: Einträge anzeigen',
+    'perm_intake_create' => 'Anfragen: Einträge erstellen',
+    'perm_intake_manage' => 'Anfragen: Einträge verwalten',
+    'perm_intake_accept' => 'Anfragen: in Aufgabe übernehmen',
+    'perm_intake_delete' => 'Anfragen: Einträge soft löschen',
+    'perm_chat_use' => 'Chat: Team-Chat verwenden',
+    'perm_idea_view' => 'Ideen: anzeigen',
+    'perm_idea_manage' => 'Ideen: erstellen und verwalten',
+    'perm_knowledge_review' => 'Wissen: Seiten prüfen',
 ];

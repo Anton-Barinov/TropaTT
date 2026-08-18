@@ -112,4 +112,13 @@ return [
     'reindex_completed' => 'Search index rebuild completed',
     'permissions_rebuilt' => 'Permissions version bumped',
     'drafts_cleaned' => 'Old drafts cleaned',
+    'spaces_tree' => 'Knowledge spaces tree loaded',
+    'page_permissions' => 'Page permissions loaded',
+    'page_permission_added' => 'Page permission added',
+    'page_permission_removed' => 'Page permission removed',
+    'notif_deleted_title' => 'Page deleted',
+    'notif_deleted_body' => 'Page "%s" was deleted by %s',
+    'version_detail' => 'Version detail',
+    'page_locked' => 'Page is already locked',
+    'page_unlocked' => 'Page unlocked',
 ];

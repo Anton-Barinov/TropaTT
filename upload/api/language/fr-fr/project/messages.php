@@ -15,4 +15,7 @@ return [
     'risks_summary' => 'Résumé des risques du projet',
     'workload_summary' => 'Résumé de la charge de travail du projet',
     'prefix_already_exists' => 'Ce préfixe est déjà utilisé par un autre projet',
+    'invalid_prefix' => 'Préfixe de clé de tâche non valide',
+    'invalid_prefix_format' => 'Le préfixe doit comporter 2 à 10 lettres majuscules/chiffres et commencer par une lettre',
+    'reserved_prefix' => 'Ce préfixe est réservé à l’usage du système',
 ];

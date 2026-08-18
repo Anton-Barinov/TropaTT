@@ -14,4 +14,5 @@ return [
     'project_not_found' => '项目未找到或无权访问',
     'project_title_required' => '项目标题必填',
     'task_title_required' => '任务标题必填',
+    'updated' => '导入任务已取消',
 ];

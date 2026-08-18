@@ -28,4 +28,6 @@ return [
     'validate_events' => '请至少选择一个事件',
     'stat_total' => 'Webhook 总数',
     'stat_active' => '活跃数',
+    'not_found' => '未找到 Webhook',
+    'detail' => 'Webhook 详情',
 ];

@@ -24,4 +24,5 @@ return [
     'invalid_name' => '模块名称无效',
     'operation_failed' => '模块操作失败',
     'purged' => '模块已从磁盘完全删除',
+    'file_too_large' => '模块文件过大',
 ];

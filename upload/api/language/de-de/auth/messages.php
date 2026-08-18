@@ -17,4 +17,6 @@ return [
     'role_menu_template_saved' => 'Rollen-Menüvorlage gespeichert',
     'team_menu_template_loaded' => 'Team-Menüvorlage geladen',
     'team_menu_template_saved' => 'Team-Menüvorlage gespeichert',
+    'max_120' => 'Der Login darf höchstens 120 Zeichen lang sein',
+    'max_4096' => 'Das Passwort darf höchstens 4096 Zeichen lang sein',
 ];

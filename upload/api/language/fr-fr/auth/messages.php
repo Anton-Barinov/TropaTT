@@ -17,4 +17,6 @@ return [
     'role_menu_template_saved' => 'Modèle de menu du rôle enregistré',
     'team_menu_template_loaded' => 'Modèle de menu de l’équipe chargé',
     'team_menu_template_saved' => 'Modèle de menu de l’équipe enregistré',
+    'max_120' => 'Le login doit comporter 120 caractères au maximum',
+    'max_4096' => 'Le mot de passe doit comporter 4096 caractères au maximum',
 ];

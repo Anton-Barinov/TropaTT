@@ -14,4 +14,5 @@ return [
     'project_not_found' => 'Projeto não encontrado ou acesso negado',
     'project_title_required' => 'O título do projeto é obrigatório',
     'task_title_required' => 'O título da tarefa é obrigatório',
+    'updated' => 'Trabalho de importação cancelado',
 ];

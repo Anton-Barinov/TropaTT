@@ -15,4 +15,8 @@ return [
     'detail' => 'Detalles del registro de trabajo',
     'updated' => 'Registro de trabajo actualizado',
     'deleted' => 'Registro de trabajo eliminado',
+    'summary' => 'Resumen de registros de trabajo',
+    'earnings' => 'Ganancias de registros de trabajo',
+    'task_summary' => 'Resumen de tiempos de la tarea',
+    'matrix' => 'Matriz de registros de trabajo',
 ];

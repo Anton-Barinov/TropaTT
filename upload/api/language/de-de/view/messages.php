@@ -15,4 +15,5 @@ return [
     'system_only_root' => 'Nur root kann Systemansichten erstellen',
     'title_too_long' => 'Titel ist zu lang',
     'title_already_exists' => 'Eine Ansicht mit diesem Namen existiert bereits',
+    'detail' => 'Details der gespeicherten Ansicht',
 ];

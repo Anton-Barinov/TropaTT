@@ -121,4 +121,9 @@ return [
     'bulk_snoozed' => 'Anfragen zurückgestellt',
     'bulk_reopened' => 'Anfragen wiederhergestellt',
     'bulk_deleted' => 'Anfragen gelöscht',
+    'list' => 'Liste der Anfragen',
+    'not_found' => 'Anfrage nicht gefunden',
+    'detail' => 'Details der Anfrage',
+    'row_version_conflict' => 'Der Eintrag wurde von einem anderen Benutzer geändert',
+    'activities' => 'Aktivitäten der Anfrage',
 ];

@@ -15,4 +15,8 @@ return [
     'detail' => '工时日志详情',
     'updated' => '工时日志已更新',
     'deleted' => '工时日志已删除',
+    'summary' => '工时记录摘要',
+    'earnings' => '工时记录收益',
+    'task_summary' => '任务工时摘要',
+    'matrix' => '工时记录矩阵',
 ];

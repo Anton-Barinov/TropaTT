@@ -2968,6 +2968,7 @@ return array (
         'overdue' => 'Просрочено',
         'overdue_lower' => 'просрочено',
         'blocked' => 'Заблокировано',
+        'blocked_marker' => 'Заблокировано',
         'days_short' => 'дн.',
         'summary_empty' => 'Нет данных для сводки.',
         'summary_projects' => 'Проекты',
@@ -6427,6 +6428,7 @@ return array (
   ),
   'gantt' => 
   array (
+    'blocked_marker' => 'Заблокировано',
     'all_projects' => 'Все проекты',
     'blocked' => 'Заблокирована',
     'chart_load_error' => 'Не удалось загрузить расписание.',

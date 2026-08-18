@@ -17,4 +17,6 @@ return [
     'role_menu_template_saved' => 'Modelo de menu do papel salvo',
     'team_menu_template_loaded' => 'Modelo de menu da equipe carregado',
     'team_menu_template_saved' => 'Modelo de menu da equipe salvo',
+    'max_120' => 'O login deve ter no máximo 120 caracteres',
+    'max_4096' => 'A senha deve ter no máximo 4096 caracteres',
 ];

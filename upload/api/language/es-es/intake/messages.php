@@ -121,4 +121,9 @@ return [
     'bulk_snoozed' => 'Solicitudes pospuestas',
     'bulk_reopened' => 'Solicitudes restauradas',
     'bulk_deleted' => 'Solicitudes eliminadas',
+    'list' => 'Lista de solicitudes',
+    'not_found' => 'Solicitud no encontrada',
+    'detail' => 'Detalle de la solicitud',
+    'row_version_conflict' => 'El elemento fue modificado por otro usuario',
+    'activities' => 'Actividades de la solicitud',
 ];

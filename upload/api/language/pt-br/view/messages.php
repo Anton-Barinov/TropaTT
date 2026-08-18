@@ -15,4 +15,5 @@ return [
     'system_only_root' => 'Somente root pode criar visualizações de sistema',
     'title_too_long' => 'O título é muito longo',
     'title_already_exists' => 'Já existe uma visualização com este nome',
+    'detail' => 'Detalhes da visualização salva',
 ];

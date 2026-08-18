@@ -26,4 +26,6 @@ return [
     'invalid_event_type' => '无效的事件类型',
     'csp_accepted' => 'CSP已接受',
     'saved' => '已保存',
+    'client_not_found' => '未找到客户',
+    'max_255' => '最多 255 个字符',
 ];

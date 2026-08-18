@@ -17,4 +17,6 @@ return [
     'role_menu_template_saved' => 'Plantilla de menú del rol guardada',
     'team_menu_template_loaded' => 'Plantilla de menú del equipo cargada',
     'team_menu_template_saved' => 'Plantilla de menú del equipo guardada',
+    'max_120' => 'El login debe tener 120 caracteres o menos',
+    'max_4096' => 'La contraseña debe tener 4096 caracteres o menos',
 ];

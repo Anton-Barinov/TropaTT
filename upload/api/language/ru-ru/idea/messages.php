@@ -306,4 +306,6 @@ JSON:
 JSON:
 {"summary":"Обзор проекта","projects":[{"id":"p1","title":"Название проекта","description":"Описание","tasks":[{"id":"t1","title":"Задача","description":"Описание без фигурных скобок","priority":"high","estimated_time":"2-3 часа","expected_outcome":"Результат","subtasks":[{"id":"t1.1","title":"Подзадача","description":"Описание","priority":"high","estimated_time":"1 час","expected_outcome":"Результат"}]}]}]}',
     'default_idea_title' => 'идея',
+    'tasks_created' => 'Задачи созданы',
+    'dont_know_yet' => 'Пока не знаю',
 ];

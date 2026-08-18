@@ -300,4 +300,6 @@ Votre réponse est UNIQUEMENT du JSON, pas de texte avant ou après.
 
 JSON :',
     'default_idea_title' => 'idée',
+    'tasks_created' => 'Tâches créées',
+    'dont_know_yet' => 'Je ne sais pas encore',
 ];

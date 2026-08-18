@@ -15,4 +15,5 @@ return [
     'system_only_root' => '只有 root 可以创建系统视图',
     'title_too_long' => '标题过长',
     'title_already_exists' => '已存在同名视图',
+    'detail' => '已保存视图详情',
 ];

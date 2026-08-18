@@ -24,4 +24,5 @@ return [
     'type_ff' => 'Fin-Fin',
     'type_sf' => 'Début-Fin',
     'type_blocks' => 'Bloque',
+    'different_projects' => 'Les dépendances ne peuvent être créées qu’entre des tâches d’un même projet',
 ];

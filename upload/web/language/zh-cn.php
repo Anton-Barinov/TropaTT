@@ -2969,6 +2969,7 @@ return array (
         'overdue' => '已逾期',
         'overdue_lower' => '已逾期',
         'blocked' => '已阻塞',
+        'blocked_marker' => '已阻塞',
         'days_short' => '天',
         'summary_empty' => '暂无汇总数据。',
         'summary_projects' => '项目',
@@ -6422,6 +6423,7 @@ return array (
   ),
   'gantt' => 
   array (
+    'blocked_marker' => '已阻塞',
     'all_projects' => 'All projects',
     'blocked' => 'Blocked',
     'chart_load_error' => 'Failed to load schedule.',

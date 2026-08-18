@@ -17,4 +17,6 @@ return [
     'role_menu_template_saved' => '角色菜单模板已保存',
     'team_menu_template_loaded' => '团队菜单模板已加载',
     'team_menu_template_saved' => '团队菜单模板已保存',
+    'max_120' => '登录名不能超过 120 个字符',
+    'max_4096' => '密码不能超过 4096 个字符',
 ];

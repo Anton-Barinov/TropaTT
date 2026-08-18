@@ -306,4 +306,6 @@ Sua resposta é APENAS JSON, sem texto antes ou depois.
 JSON:
 {"summary":"Visão geral do projeto","projects":[{"id":"p1","title":"Nome do projeto","description":"Descrição","tasks":[{"id":"t1","title":"Tarefa","description":"Descrição sem chaves","priority":"high","estimated_time":"2-3 horas","expected_outcome":"Resultado","subtasks":[{"id":"t1.1","title":"Subtarefa","description":"Descrição","priority":"high","estimated_time":"1 hora","expected_outcome":"Resultado"}]}]}]}',
     'default_idea_title' => 'ideia',
+    'tasks_created' => 'Tarefas criadas',
+    'dont_know_yet' => 'Ainda não sei',
 ];

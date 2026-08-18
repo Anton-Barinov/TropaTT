@@ -9,4 +9,11 @@ return [
     'deleted' => 'File deleted',
     'download_error' => 'File download error',
     'read_error' => 'Failed to read file',
+    'type_forbidden' => 'This file type is forbidden for security reasons',
+    'not_provided' => 'File not provided',
+    'too_large' => 'File too large. Maximum 10 MB.',
+    'invalid_type' => 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF.',
+    'invalid_image' => 'Could not read the image.',
+    'image_too_large' => 'Image resolution exceeds 8000x8000.',
+    'uploaded' => 'Image uploaded.',
 ];

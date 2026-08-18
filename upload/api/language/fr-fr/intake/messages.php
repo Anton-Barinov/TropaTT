@@ -121,4 +121,9 @@ return [
     'bulk_snoozed' => 'Demandes reportées',
     'bulk_reopened' => 'Demandes restaurées',
     'bulk_deleted' => 'Demandes supprimées',
+    'list' => 'Liste des demandes',
+    'not_found' => 'Demande introuvable',
+    'detail' => 'Détail de la demande',
+    'row_version_conflict' => 'L’élément a été modifié par un autre utilisateur',
+    'activities' => 'Activités de la demande',
 ];

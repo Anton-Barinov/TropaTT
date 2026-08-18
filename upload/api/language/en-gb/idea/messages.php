@@ -306,4 +306,6 @@ Your response is ONLY JSON, no text before or after.
 JSON:
 {"summary":"Project overview","projects":[{"id":"p1","title":"Project name","description":"Description","tasks":[{"id":"t1","title":"Task","description":"Description without curly braces","priority":"high","estimated_time":"2-3 hours","expected_outcome":"Result","subtasks":[{"id":"t1.1","title":"Subtask","description":"Description","priority":"high","estimated_time":"1 hour","expected_outcome":"Result"}]}]}]}',
     'default_idea_title' => 'idea',
+    'tasks_created' => 'Tasks created',
+    'dont_know_yet' => 'Don\'t know yet',
 ];

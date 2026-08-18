@@ -17,4 +17,7 @@ return [
     'risks_summary' => 'Project risks summary',
     'workload_summary' => 'Project workload summary',
     'prefix_already_exists' => 'Dieses Präfix wird bereits von einem anderen Projekt verwendet',
+    'invalid_prefix' => 'Ungültiges Präfix des Aufgabenschlüssels',
+    'invalid_prefix_format' => 'Das Präfix muss aus 2–10 Großbuchstaben/Ziffern bestehen und mit einem Buchstaben beginnen',
+    'reserved_prefix' => 'Dieses Präfix ist für die Systemnutzung reserviert',
 ];

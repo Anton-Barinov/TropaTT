@@ -14,4 +14,5 @@ return [
     'project_not_found' => 'Projekt nicht gefunden oder Zugriff verweigert',
     'project_title_required' => 'Projekttitel ist erforderlich',
     'task_title_required' => 'Aufgabentitel ist erforderlich',
+    'updated' => 'Importvorgang abgebrochen',
 ];

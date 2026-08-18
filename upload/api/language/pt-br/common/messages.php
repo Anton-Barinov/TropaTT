@@ -26,4 +26,6 @@ return [
     'invalid_event_type' => 'event_type deve ser api_error, js_error ou csp_violation',
     'csp_accepted' => 'Relatório de violação CSP aceito',
     'saved' => 'Salvo',
+    'client_not_found' => 'Cliente não encontrado',
+    'max_255' => 'Máximo de 255 caracteres',
 ];

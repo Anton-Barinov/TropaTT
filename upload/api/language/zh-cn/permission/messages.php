@@ -36,4 +36,13 @@ return [
     'perm_ai_view_audit' => '查看 AI usage/audit',
     'perm_ai_view_cron' => '查看 AI cron 任务结果',
     'perm_ai_manage_cron' => '管理 AI cron 任务',
+    'perm_intake_view' => '收件：查看项目',
+    'perm_intake_create' => '收件：创建项目',
+    'perm_intake_manage' => '收件：管理项目',
+    'perm_intake_accept' => '收件：接受为任务',
+    'perm_intake_delete' => '收件：软删除项目',
+    'perm_chat_use' => '聊天：使用团队聊天',
+    'perm_idea_view' => '想法：查看想法',
+    'perm_idea_manage' => '想法：创建和管理想法',
+    'perm_knowledge_review' => '知识：审核页面',
 ];

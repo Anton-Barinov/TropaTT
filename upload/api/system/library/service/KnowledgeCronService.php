@@ -68,8 +68,8 @@ final class KnowledgeCronService
                     [(int)$page['owner_user_id']],
                     [
                         'category' => 'knowledge',
-                        'title' => $this->t('knowledge/notif_review_due_title', 'Review due: ') . $pageTitle,
-                        'body' => sprintf($this->t('knowledge/notif_review_due_body', 'Page "%s" requires a review.'), $pageTitle) . ' ' . $dueDate,
+                        'title' => $this->t('knowledge/messages.notif_review_due_title', 'Review due: ') . $pageTitle,
+                        'body' => sprintf($this->t('knowledge/messages.notif_review_due_body', 'Page "%s" requires a review.'), $pageTitle) . ' ' . $dueDate,
                     'entity_type' => 'knowledge_page',
                         'entity_public_id' => (string)($page['public_id'] ?? ''),
                         'action_code' => 'knowledge_review_due',

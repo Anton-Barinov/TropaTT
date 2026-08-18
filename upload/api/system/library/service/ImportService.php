@@ -380,7 +380,7 @@ final class ImportService
             $line = $index + 1;
             $title = trim((string)($row['title'] ?? $row['name'] ?? ''));
             if ($title === '') {
-                $errors[] = ['line' => $line, 'message' => $this->t('import/project_title_required', 'Project title is required')];
+                $errors[] = ['line' => $line, 'message' => $this->t('import/messages.project_title_required', 'Project title is required')];
                 continue;
             }
 
@@ -419,31 +419,31 @@ final class ImportService
             $line = $index + 1;
             $title = trim((string)($row['title'] ?? $row['name'] ?? ''));
             if ($title === '') {
-                $errors[] = ['line' => $line, 'message' => $this->t('import/task_title_required', 'Task title is required')];
+                $errors[] = ['line' => $line, 'message' => $this->t('import/messages.task_title_required', 'Task title is required')];
                 continue;
             }
 
             $status = (string)($row['status'] ?? 'new');
             if (!in_array($status, self::TASK_STATUSES, true)) {
-                $errors[] = ['line' => $line, 'message' => $this->t('import/invalid_task_status', 'Invalid task status')];
+                $errors[] = ['line' => $line, 'message' => $this->t('import/messages.invalid_task_status', 'Invalid task status')];
                 continue;
             }
 
             $priority = (string)($row['priority'] ?? 'normal');
             if (!in_array($priority, self::TASK_PRIORITIES, true)) {
-                $errors[] = ['line' => $line, 'message' => $this->t('import/invalid_task_priority', 'Invalid task priority')];
+                $errors[] = ['line' => $line, 'message' => $this->t('import/messages.invalid_task_priority', 'Invalid task priority')];
                 continue;
             }
 
             $dueAt = trim((string)($row['due_at'] ?? ''));
             if ($dueAt !== '' && strtotime($dueAt) === false) {
-                $errors[] = ['line' => $line, 'message' => $this->t('import/invalid_due_at_format', 'Invalid due_at format')];
+                $errors[] = ['line' => $line, 'message' => $this->t('import/messages.invalid_due_at_format', 'Invalid due_at format')];
                 continue;
             }
 
             $projectPublicId = trim((string)($row['project_public_id'] ?? ''));
             if ($projectPublicId !== '' && $this->projects->get($projectPublicId, $actor) === null) {
-                $errors[] = ['line' => $line, 'message' => $this->t('import/project_not_found', 'Project not found or access denied')];
+                $errors[] = ['line' => $line, 'message' => $this->t('import/messages.project_not_found', 'Project not found or access denied')];
                 continue;
             }
 

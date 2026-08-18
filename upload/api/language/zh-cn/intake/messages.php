@@ -121,4 +121,9 @@ return [
     'bulk_snoozed' => '请求已推迟',
     'bulk_reopened' => '请求已恢复',
     'bulk_deleted' => '请求已删除',
+    'list' => '收件项列表',
+    'not_found' => '未找到收件项',
+    'detail' => '收件项详情',
+    'row_version_conflict' => '该项目已被其他用户修改',
+    'activities' => '收件项活动',
 ];

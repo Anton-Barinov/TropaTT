@@ -112,4 +112,13 @@ return [
     'reindex_completed' => '搜索索引重建完成',
     'settings_loaded' => '设置已加载',
     'settings_updated' => '设置已更新',
+    'spaces_tree' => '知识空间树已加载',
+    'page_permissions' => '页面权限已加载',
+    'page_permission_added' => '页面权限已添加',
+    'page_permission_removed' => '页面权限已移除',
+    'notif_deleted_title' => '页面已删除',
+    'notif_deleted_body' => '页面 "%s" 已被 %s 删除',
+    'version_detail' => '版本详情',
+    'page_locked' => '页面已被锁定',
+    'page_unlocked' => '页面已解锁',
 ];

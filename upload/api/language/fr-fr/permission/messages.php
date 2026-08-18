@@ -36,4 +36,13 @@ return [
     'perm_ai_view_audit' => 'Consulter l\'utilisation/l\'audit IA',
     'perm_ai_view_cron' => 'Consulter les résultats des tâches planifiées IA',
     'perm_ai_manage_cron' => 'Gérer les tâches planifiées IA',
+    'perm_intake_view' => 'Demandes : voir les éléments',
+    'perm_intake_create' => 'Demandes : créer des éléments',
+    'perm_intake_manage' => 'Demandes : gérer les éléments',
+    'perm_intake_accept' => 'Demandes : convertir en tâche',
+    'perm_intake_delete' => 'Demandes : supprimer les éléments (soft delete)',
+    'perm_chat_use' => 'Chat : utiliser le chat d’équipe',
+    'perm_idea_view' => 'Idées : voir les idées',
+    'perm_idea_manage' => 'Idées : créer et gérer des idées',
+    'perm_knowledge_review' => 'Connaissance : réviser les pages',
 ];

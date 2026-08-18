@@ -224,4 +224,6 @@ return [
     'system_prompt_plan' => '您正在为创意创建实施计划。识别3-7个阶段，每个阶段2-4个任务。',
     'system_prompt_final' => '您正在形成最终建议。基于已准备的模块，不要从头分析。按0-100分评级各项指标。',
     'system_prompt_project' => '创建包含任务的详细项目计划（共8-15个任务）。',
+    'tasks_created' => '任务已创建',
+    'dont_know_yet' => '还不知道',
 ];

@@ -112,4 +112,13 @@ return array (
   'settings_loaded' => 'Ajustes cargados',
   'settings_updated' => 'Ajustes actualizados',
   'task_not_found' => 'Tarea no encontrada',
+    'spaces_tree' => 'Árbol de espacios de conocimiento cargado',
+    'page_permissions' => 'Permisos de la página cargados',
+    'page_permission_added' => 'Permiso de página añadido',
+    'page_permission_removed' => 'Permiso de página eliminado',
+    'notif_deleted_title' => 'Página eliminada',
+    'notif_deleted_body' => 'La página "%s" fue eliminada por %s',
+    'version_detail' => 'Detalle de la versión',
+    'page_locked' => 'La página ya está bloqueada',
+    'page_unlocked' => 'Página desbloqueada',
 );

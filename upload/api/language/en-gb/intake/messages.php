@@ -121,4 +121,9 @@ return [
     'bulk_snoozed' => 'Requests snoozed',
     'bulk_reopened' => 'Requests reopened',
     'bulk_deleted' => 'Requests deleted',
+    'list' => 'Intake items list',
+    'not_found' => 'Intake item not found',
+    'detail' => 'Intake item detail',
+    'row_version_conflict' => 'Item was modified by another user',
+    'activities' => 'Intake item activities',
 ];

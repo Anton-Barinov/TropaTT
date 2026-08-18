@@ -24,4 +24,5 @@ return [
     'type_ff' => 'Finish-Finish',
     'type_sf' => 'Start-Finish',
     'type_blocks' => 'Blockiert',
+    'different_projects' => 'Abhängigkeiten können nur zwischen Aufgaben desselben Projekts erstellt werden',
 ];

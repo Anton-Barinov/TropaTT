@@ -14,4 +14,5 @@ return [
     'invalid_task_priority' => 'Invalid task priority',
     'invalid_due_at_format' => 'Invalid due_at format',
     'project_not_found' => 'Project not found or access denied',
+    'updated' => 'Import job cancelled',
 ];

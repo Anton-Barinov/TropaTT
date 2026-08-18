@@ -28,4 +28,6 @@ return [
     'validate_events' => 'Selecione pelo menos um evento',
     'stat_total' => 'Total de webhooks',
     'stat_active' => 'Ativos',
+    'not_found' => 'Webhook não encontrado',
+    'detail' => 'Detalhes do webhook',
 ];

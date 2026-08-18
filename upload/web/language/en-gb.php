@@ -2971,6 +2971,7 @@ return array (
         'overdue' => 'Overdue',
         'overdue_lower' => 'overdue',
         'blocked' => 'Blocked',
+        'blocked_marker' => 'Blocked',
         'days_short' => 'd',
         'summary_empty' => 'No data for summary.',
         'summary_projects' => 'Projects',
@@ -6324,6 +6325,7 @@ return array (
   ),
   'gantt' => 
   array (
+    'blocked_marker' => 'Blocked',
     'all_projects' => 'All projects',
     'blocked' => 'Blocked',
     'chart_load_error' => 'Failed to load schedule.',

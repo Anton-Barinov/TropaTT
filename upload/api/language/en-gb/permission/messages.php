@@ -36,4 +36,13 @@ return [
     'perm_ai_view_audit' => 'View AI usage/audit',
     'perm_ai_view_cron' => 'View AI cron job results',
     'perm_ai_manage_cron' => 'Manage AI cron jobs',
+    'perm_intake_view' => 'Intake: view items',
+    'perm_intake_create' => 'Intake: create items',
+    'perm_intake_manage' => 'Intake: manage items',
+    'perm_intake_accept' => 'Intake: accept to task',
+    'perm_intake_delete' => 'Intake: soft delete items',
+    'perm_chat_use' => 'Chat: use team chat',
+    'perm_idea_view' => 'Ideas: view ideas',
+    'perm_idea_manage' => 'Ideas: create and manage ideas',
+    'perm_knowledge_review' => 'Knowledge: review pages',
 ];

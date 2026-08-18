@@ -36,4 +36,13 @@ return [
     'perm_ai_view_audit' => 'Visualizar uso/auditoria de AI',
     'perm_ai_view_cron' => 'Visualizar resultados de jobs cron de AI',
     'perm_ai_manage_cron' => 'Gerenciar jobs cron de AI',
+    'perm_intake_view' => 'Solicitações: ver itens',
+    'perm_intake_create' => 'Solicitações: criar itens',
+    'perm_intake_manage' => 'Solicitações: gerenciar itens',
+    'perm_intake_accept' => 'Solicitações: aceitar como tarefa',
+    'perm_intake_delete' => 'Solicitações: excluir itens (soft delete)',
+    'perm_chat_use' => 'Chat: usar o chat da equipe',
+    'perm_idea_view' => 'Ideias: ver ideias',
+    'perm_idea_manage' => 'Ideias: criar e gerenciar ideias',
+    'perm_knowledge_review' => 'Conhecimento: revisar páginas',
 ];

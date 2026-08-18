@@ -15,4 +15,5 @@ return [
     'system_only_root' => 'Only root can create system views',
     'title_too_long' => 'Title is too long',
     'title_already_exists' => 'A view with this name already exists',
+    'detail' => 'Saved view details',
 ];

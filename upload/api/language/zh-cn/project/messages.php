@@ -17,4 +17,7 @@ return [
     'risks_summary' => '项目风险摘要',
     'workload_summary' => '项目工作量摘要',
     'prefix_already_exists' => '此前缀已被另一个项目使用',
+    'invalid_prefix' => '任务键前缀无效',
+    'invalid_prefix_format' => '前缀必须为 2–10 个大写字母/数字，并以字母开头',
+    'reserved_prefix' => '该前缀保留供系统使用',
 ];

@@ -3586,6 +3586,7 @@ return array (
   ),
   'gantt' => 
   array (
+    'blocked_marker' => 'Bloqueada',
     'all_projects' => 'All projects',
     'blocked' => 'Blocked',
     'chart_load_error' => 'Failed to load schedule.',
@@ -5534,6 +5535,7 @@ return array (
         'overdue' => 'Vencida',
         'overdue_lower' => 'vencida',
         'blocked' => 'Bloqueada',
+        'blocked_marker' => 'Bloqueada',
         'days_short' => 'd',
         'summary_empty' => 'Sin datos para el resumen.',
         'summary_projects' => 'Proyectos',

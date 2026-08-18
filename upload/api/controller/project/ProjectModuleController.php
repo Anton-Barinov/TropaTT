@@ -21,7 +21,7 @@ final class ProjectModuleController extends BaseController
         $filters = $this->request()->allInput();
         $result = $this->service()->list($filters, ($this->user())['user'] ?? []);
 
-        return $this->success('PROJECT_MODULE_LIST', $this->t('project_module/api_list', 'Project modules'), $result);
+        return $this->success('PROJECT_MODULE_LIST', $this->t('project_module/messages.api_list', 'Project modules'), $result);
     }
 
     public function create(): JsonResponse
@@ -33,7 +33,7 @@ final class ProjectModuleController extends BaseController
             return $this->mapError($result);
         }
 
-        return $this->success('PROJECT_MODULE_CREATED', $this->t('project_module/api_created', 'Project module created'), $result, 201);
+        return $this->success('PROJECT_MODULE_CREATED', $this->t('project_module/messages.api_created', 'Project module created'), $result, 201);
     }
 
     public function get(array $params): JsonResponse
@@ -45,7 +45,7 @@ final class ProjectModuleController extends BaseController
             return $this->mapError($result);
         }
 
-        return $this->success('PROJECT_MODULE_DETAIL', $this->t('project_module/api_detail', 'Project module'), $result);
+        return $this->success('PROJECT_MODULE_DETAIL', $this->t('project_module/messages.api_detail', 'Project module'), $result);
     }
 
     public function update(array $params): JsonResponse
@@ -58,7 +58,7 @@ final class ProjectModuleController extends BaseController
             return $this->mapError($result);
         }
 
-        return $this->success('PROJECT_MODULE_UPDATED', $this->t('project_module/api_updated', 'Project module updated'), $result);
+        return $this->success('PROJECT_MODULE_UPDATED', $this->t('project_module/messages.api_updated', 'Project module updated'), $result);
     }
 
     public function delete(array $params): JsonResponse
@@ -70,7 +70,7 @@ final class ProjectModuleController extends BaseController
             return $this->mapError($result);
         }
 
-        return $this->success('PROJECT_MODULE_DELETED', $this->t('project_module/api_deleted', 'Project module deleted'), [], 200);
+        return $this->success('PROJECT_MODULE_DELETED', $this->t('project_module/messages.api_deleted', 'Project module deleted'), [], 200);
     }
 
     public function archive(array $params): JsonResponse
@@ -82,7 +82,7 @@ final class ProjectModuleController extends BaseController
             return $this->mapError($result);
         }
 
-        return $this->success('PROJECT_MODULE_ARCHIVED', $this->t('project_module/api_archived', 'Project module archived'), [], 200);
+        return $this->success('PROJECT_MODULE_ARCHIVED', $this->t('project_module/messages.api_archived', 'Project module archived'), [], 200);
     }
 
     // ── Tasks ──
@@ -97,7 +97,7 @@ final class ProjectModuleController extends BaseController
             return $this->mapError($result);
         }
 
-        return $this->success('PROJECT_MODULE_TASKS', $this->t('project_module/api_tasks', 'Module tasks'), $result);
+        return $this->success('PROJECT_MODULE_TASKS', $this->t('project_module/messages.api_tasks', 'Module tasks'), $result);
     }
 
     public function addTasks(array $params): JsonResponse
@@ -115,7 +115,7 @@ final class ProjectModuleController extends BaseController
         $this->invalidateCache('project');
         $this->invalidateCache('page');
 
-        return $this->success('PROJECT_MODULE_TASKS_ADDED', $this->t('project_module/api_tasks_added', 'Tasks added to module'), $result, 200);
+        return $this->success('PROJECT_MODULE_TASKS_ADDED', $this->t('project_module/messages.api_tasks_added', 'Tasks added to module'), $result, 200);
     }
 
     public function removeTask(array $params): JsonResponse
@@ -133,7 +133,7 @@ final class ProjectModuleController extends BaseController
         $this->invalidateCache('project');
         $this->invalidateCache('page');
 
-        return $this->success('PROJECT_MODULE_TASK_REMOVED', $this->t('project_module/api_task_removed', 'Task removed from module'), [], 200);
+        return $this->success('PROJECT_MODULE_TASK_REMOVED', $this->t('project_module/messages.api_task_removed', 'Task removed from module'), [], 200);
     }
 
     // ── Members ──
@@ -147,7 +147,7 @@ final class ProjectModuleController extends BaseController
             return $this->mapError($result);
         }
 
-        return $this->success('PROJECT_MODULE_MEMBERS', $this->t('project_module/api_members', 'Module members'), ['items' => $result]);
+        return $this->success('PROJECT_MODULE_MEMBERS', $this->t('project_module/messages.api_members', 'Module members'), ['items' => $result]);
     }
 
     public function addMembers(array $params): JsonResponse
@@ -160,7 +160,7 @@ final class ProjectModuleController extends BaseController
             return $this->mapError($result);
         }
 
-        return $this->success('PROJECT_MODULE_MEMBERS_ADDED', $this->t('project_module/api_members_added', 'Members added to module'), $result, 200);
+        return $this->success('PROJECT_MODULE_MEMBERS_ADDED', $this->t('project_module/messages.api_members_added', 'Members added to module'), $result, 200);
     }
 
     public function removeMember(array $params): JsonResponse
@@ -173,7 +173,7 @@ final class ProjectModuleController extends BaseController
             return $this->mapError($result);
         }
 
-        return $this->success('PROJECT_MODULE_MEMBER_REMOVED', $this->t('project_module/api_member_removed', 'Member removed from module'), [], 200);
+        return $this->success('PROJECT_MODULE_MEMBER_REMOVED', $this->t('project_module/messages.api_member_removed', 'Member removed from module'), [], 200);
     }
 
     // ── Links ──
@@ -187,7 +187,7 @@ final class ProjectModuleController extends BaseController
             return $this->mapError($result);
         }
 
-        return $this->success('PROJECT_MODULE_LINKS', $this->t('project_module/api_links', 'Module links'), ['items' => $result]);
+        return $this->success('PROJECT_MODULE_LINKS', $this->t('project_module/messages.api_links', 'Module links'), ['items' => $result]);
     }
 
     public function addLink(array $params): JsonResponse
@@ -200,7 +200,7 @@ final class ProjectModuleController extends BaseController
             return $this->mapError($result);
         }
 
-        return $this->success('PROJECT_MODULE_LINK_ADDED', $this->t('project_module/api_link_added', 'Link added to module'), $result, 200);
+        return $this->success('PROJECT_MODULE_LINK_ADDED', $this->t('project_module/messages.api_link_added', 'Link added to module'), $result, 200);
     }
 
     public function updateLink(array $params): JsonResponse
@@ -213,7 +213,7 @@ final class ProjectModuleController extends BaseController
             return $this->mapError($result);
         }
 
-        return $this->success('PROJECT_MODULE_LINK_UPDATED', $this->t('project_module/api_link_updated', 'Link updated'), $result);
+        return $this->success('PROJECT_MODULE_LINK_UPDATED', $this->t('project_module/messages.api_link_updated', 'Link updated'), $result);
     }
 
     public function deleteLink(array $params): JsonResponse
@@ -225,7 +225,7 @@ final class ProjectModuleController extends BaseController
             return $this->mapError($result);
         }
 
-        return $this->success('PROJECT_MODULE_LINK_DELETED', $this->t('project_module/api_link_deleted', 'Link deleted'), [], 200);
+        return $this->success('PROJECT_MODULE_LINK_DELETED', $this->t('project_module/messages.api_link_deleted', 'Link deleted'), [], 200);
     }
 
     // ── Summary ──
@@ -239,7 +239,7 @@ final class ProjectModuleController extends BaseController
             return $this->mapError($result);
         }
 
-        return $this->success('PROJECT_MODULE_SUMMARY', $this->t('project_module/api_summary', 'Project module summary'), $result);
+        return $this->success('PROJECT_MODULE_SUMMARY', $this->t('project_module/messages.api_summary', 'Project module summary'), $result);
     }
 
     // ── Error mapping ──
@@ -260,7 +260,7 @@ final class ProjectModuleController extends BaseController
             default => 422,
         };
 
-        $key = 'project_module/api_' . strtolower(str_replace('PROJECT_MODULE_', '', $code));
+        $key = 'project_module/messages.api_' . strtolower(str_replace('PROJECT_MODULE_', '', $code));
         $fallback = ucwords(strtolower(str_replace('_', ' ', $code)));
         return $this->error($code, $this->t($key, $fallback), $status);
     }
