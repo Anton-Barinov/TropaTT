@@ -13252,6 +13252,32 @@ a.task-tag:hover {
     table-layout: fixed !important;
 }
 
+/* Explicit per-column caps so fixed layout cannot inflate the key columns
+   and the action column always stays inside the visible area. The «Задача»
+   column (nth-child 1) stays flexible and absorbs the remaining width; its
+   content already truncates with ellipsis. Mirrors the caps used by
+   .crm-tasks-page / .crm-counterparties-page. */
+.crm-planner-page .crm-planner-task-table thead th:nth-child(2),
+.crm-planner-page .crm-planner-task-table tbody td:nth-child(2) {
+    width: 92px !important;
+    min-width: 92px !important;
+    max-width: 92px !important;
+}
+
+.crm-planner-page .crm-planner-task-table thead th:nth-child(3),
+.crm-planner-page .crm-planner-task-table tbody td:nth-child(3) {
+    width: 104px !important;
+    min-width: 104px !important;
+    max-width: 104px !important;
+}
+
+.crm-planner-page .crm-planner-task-table thead th:nth-child(4),
+.crm-planner-page .crm-planner-task-table tbody td:nth-child(4) {
+    width: 80px !important;
+    min-width: 80px !important;
+    max-width: 80px !important;
+}
+
 .crm-planner-page .crm-planner-task-table thead th {
     padding: 8px 10px;
     font-size: 11px;
