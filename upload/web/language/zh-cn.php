@@ -4693,6 +4693,8 @@ return array (
     'knowledge_title' => '关联页面',
     'knowledge_loading' => '加载中...',
     'knowledge_empty' => '暂无关联页面',
+    'team_knowledge_title' => '团队资料',
+    'team_knowledge_empty' => '暂无团队资料',
     'btn_create_knowledge' => '创建关联页面',
     'chat_source_title' => '从讨论中创建',
     'chat_source_text' => '此任务由聊天消息创建。打开对话以查看上下文。',
@@ -5103,6 +5105,8 @@ return array (
     'btn_knowledge' => '前往知识库',
     'btn_create_knowledge' => '创建关联页面',
     'knowledge_empty' => '暂无关联页面',
+    'team_knowledge_title' => '团队资料',
+    'team_knowledge_empty' => '暂无团队资料',
   ),
   'companies' => 
   array (

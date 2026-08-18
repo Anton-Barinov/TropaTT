@@ -4911,6 +4911,8 @@ return array (
     'knowledge_title' => 'Связанные страницы',
     'knowledge_loading' => 'Загрузка...',
     'knowledge_empty' => 'Нет связанных страниц',
+    'team_knowledge_title' => 'Материалы команды',
+    'team_knowledge_empty' => 'Нет материалов команды',
     'btn_create_knowledge' => 'Создать связанную страницу',
     'btn_attach_knowledge' => 'Прикрепить статью',
     'attach_knowledge_title' => 'Прикрепить статью базы знаний',
@@ -5106,6 +5108,8 @@ return array (
     'btn_knowledge' => 'Перейти в базу знаний',
     'btn_create_knowledge' => 'Создать связанную страницу',
     'knowledge_empty' => 'Связанных страниц нет',
+    'team_knowledge_title' => 'Материалы команды',
+    'team_knowledge_empty' => 'Нет материалов команды',
   ),
   'companies' => 
   array (

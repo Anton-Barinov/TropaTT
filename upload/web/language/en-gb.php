@@ -4889,6 +4889,8 @@ return array (
     'knowledge_title' => 'Linked Pages',
     'knowledge_loading' => 'Loading...',
     'knowledge_empty' => 'No linked pages',
+    'team_knowledge_title' => 'Team materials',
+    'team_knowledge_empty' => 'No team materials',
     'btn_create_knowledge' => 'Create linked page',
     'btn_attach_knowledge' => 'Attach article',
     'attach_knowledge_title' => 'Attach knowledge base article',
@@ -5084,6 +5086,8 @@ return array (
     'btn_knowledge' => 'Go to Knowledge Base',
     'btn_create_knowledge' => 'Create linked page',
     'knowledge_empty' => 'No linked pages',
+    'team_knowledge_title' => 'Team materials',
+    'team_knowledge_empty' => 'No team materials',
   ),
   'companies' => 
   array (

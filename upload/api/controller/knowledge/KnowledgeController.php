@@ -928,6 +928,36 @@ final class KnowledgeController extends BaseController
         ]);
     }
 
+    /**
+     * Return knowledge pages attached to the team that owns the given entity
+     * (a project's team, or a task's project's team). This surfaces team
+     * materials where the team actually works, not just in the team editor.
+     */
+    public function teamPages(array $params): JsonResponse
+    {
+        $entityType = strtolower(trim((string)($params['entity_type'] ?? '')));
+        $entityPublicId = trim((string)($params['entity_public_id'] ?? ''));
+        if ($entityType === '' || $entityPublicId === '' || !$this->canLinkEntity($entityType, $entityPublicId)) {
+            return $this->error('ENTITY_NOT_FOUND', $this->t('common/messages.not_found', 'Entity not found'), 404);
+        }
+
+        $teamPublicId = $this->repo()->entityTeamPublicId($entityType, $entityPublicId);
+        if ($teamPublicId === '' || !$this->canLinkEntity('team', $teamPublicId)) {
+            return $this->success('KNOWLEDGE_TEAM_PAGES', $this->t('knowledge/messages.entity_pages', 'Related pages loaded'), [
+                'team_public_id' => null,
+                'items' => [],
+            ]);
+        }
+
+        return $this->success('KNOWLEDGE_TEAM_PAGES', $this->t('knowledge/messages.entity_pages', 'Related pages loaded'), [
+            'team_public_id' => $teamPublicId,
+            'items' => array_values(array_filter(
+                $this->repo()->entityPages('team', $teamPublicId, $this->actor()),
+                fn(array $page): bool => $this->repo()->page((string)($page['public_id'] ?? ''), $this->actor()) !== null
+            )),
+        ]);
+    }
+
     public function listFiles(array $params): JsonResponse
     {
         if (!$this->requirePageAccess((string)$params['public_id'], 'view')) {

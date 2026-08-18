@@ -7875,6 +7875,8 @@ return array (
     'btn_knowledge' => 'Go to Knowledge Base',
     'btn_create_knowledge' => 'Create linked page',
     'knowledge_empty' => 'No linked pages',
+    'team_knowledge_title' => 'Materiales del equipo',
+    'team_knowledge_empty' => 'No hay materiales del equipo',
   ),
   'projects' => 
   array (
@@ -8407,6 +8409,8 @@ return array (
     'knowledge_title' => 'Linked Pages',
     'knowledge_loading' => 'Loading...',
     'knowledge_empty' => 'No linked pages',
+    'team_knowledge_title' => 'Materiales del equipo',
+    'team_knowledge_empty' => 'No hay materiales del equipo',
     'btn_create_knowledge' => 'Create linked page',
     'btn_attach_knowledge' => 'Attach article',
     'attach_knowledge_title' => 'Attach knowledge base article',

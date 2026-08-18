@@ -907,6 +907,26 @@ final class KnowledgeRepository
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    /**
+     * Resolve the team that owns an entity, when the entity belongs to a team.
+     * Supports 'project' (projects.team_public_id) and 'task' (via its project).
+     * Returns '' when the entity has no team or the type is not supported.
+     */
+    public function entityTeamPublicId(string $entityType, string $entityPublicId): string
+    {
+        if ($entityType === 'project') {
+            $stmt = $this->pdo->prepare('SELECT team_public_id FROM projects WHERE public_id = :id LIMIT 1');
+            $stmt->execute(['id' => $entityPublicId]);
+            return trim((string)($stmt->fetchColumn() ?: ''));
+        }
+        if ($entityType === 'task') {
+            $stmt = $this->pdo->prepare('SELECT p.team_public_id FROM tasks t JOIN projects p ON p.id = t.project_id WHERE t.public_id = :id LIMIT 1');
+            $stmt->execute(['id' => $entityPublicId]);
+            return trim((string)($stmt->fetchColumn() ?: ''));
+        }
+        return '';
+    }
+
     public function comments(string $pagePublicId, int $offset = 0, int $limit = 0): array
     {
         $page = $this->pageIdentity($pagePublicId);

@@ -311,6 +311,7 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/templates', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'templates', 'auth' => true, 'required_permissions' => ['knowledge.view']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/templates', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'createTemplate', 'auth' => true, 'required_permissions' => ['knowledge.template_manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/entities/{entity_type}/{entity_public_id}/pages', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'entityPages', 'auth' => true, 'required_permissions' => ['knowledge.view']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/entities/{entity_type}/{entity_public_id}/team-pages', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'teamPages', 'auth' => true, 'required_permissions' => ['knowledge.view']],
 
     // knowledge comments
     ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/comments', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'comments', 'auth' => true, 'required_permissions' => ['knowledge.view']],

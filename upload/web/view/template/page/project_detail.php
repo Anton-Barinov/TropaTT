@@ -95,7 +95,7 @@
     <div class="crm-pr-col-side">
       <?= module_position('project.detail.sidebar', ['route' => $route ?? 'project-detail', 'project_public_id' => (string)($_GET['project_public_id'] ?? '')]) ?>
       <section class="crm-card mb-3"><h2 class="h6" data-i18n="project_detail.section_team"><?= htmlspecialchars($t('project_detail.section_team', 'Команда'), ENT_QUOTES, 'UTF-8') ?></h2><div id="projectTeamList"><div class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div></section>
-      <section class="crm-card mb-3" id="projectKnowledgeSection"><h2 class="h6" data-i18n="project_detail.section_knowledge"><?= htmlspecialchars($t('project_detail.section_knowledge', 'База знаний'), ENT_QUOTES, 'UTF-8') ?></h2><div id="projectKnowledgeList"><div class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div><div class="mt-2 d-flex gap-2 flex-wrap"><a class="btn btn-sm crm-btn-primary" href="index.php?route=knowledge" data-i18n="project_detail.btn_knowledge"><?= htmlspecialchars($t('project_detail.btn_knowledge', 'Перейти в базу знаний'), ENT_QUOTES, 'UTF-8') ?></a><a id="projectCreateKnowledgeBtn" class="btn btn-sm crm-btn-secondary" href="index.php?route=knowledge" data-i18n="project_detail.btn_create_knowledge"><?= htmlspecialchars($t('project_detail.btn_create_knowledge', 'Создать связанную страницу'), ENT_QUOTES, 'UTF-8') ?></a></div></section>
+      <section class="crm-card mb-3" id="projectKnowledgeSection"><h2 class="h6" data-i18n="project_detail.section_knowledge"><?= htmlspecialchars($t('project_detail.section_knowledge', 'База знаний'), ENT_QUOTES, 'UTF-8') ?></h2><div id="projectKnowledgeList"><div class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div><div class="mt-3 pt-3 border-top"><h3 class="h6 d-flex align-items-center gap-2 mb-2" data-i18n="project_detail.team_knowledge_title"><span class="crm-icon text-muted" aria-hidden="true"><i class="fa-solid fa-users"></i></span><?= htmlspecialchars($t('project_detail.team_knowledge_title', 'Материалы команды'), ENT_QUOTES, 'UTF-8') ?></h3><div id="projectTeamKnowledgeList"><div class="text-muted small" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div></div><div class="mt-2 d-flex gap-2 flex-wrap"><a class="btn btn-sm crm-btn-primary" href="index.php?route=knowledge" data-i18n="project_detail.btn_knowledge"><?= htmlspecialchars($t('project_detail.btn_knowledge', 'Перейти в базу знаний'), ENT_QUOTES, 'UTF-8') ?></a><a id="projectCreateKnowledgeBtn" class="btn btn-sm crm-btn-secondary" href="index.php?route=knowledge" data-i18n="project_detail.btn_create_knowledge"><?= htmlspecialchars($t('project_detail.btn_create_knowledge', 'Создать связанную страницу'), ENT_QUOTES, 'UTF-8') ?></a></div></section>
     </div>
   </div>
 </div>
@@ -460,19 +460,37 @@
   waitForApi(async function () {
     var api = getApi();
     var listEl = document.getElementById('projectKnowledgeList');
-    if (!listEl) return;
-    try {
-      var envelope = await api.request('api/v1/knowledge/entities/project/' + encodeURIComponent(projectId) + '/pages', { method: 'GET' });
-      var items = envelope.data && envelope.data.items || [];
-      if (!items.length) {
-        listEl.innerHTML = '<div class="text-muted small"><?= htmlspecialchars($t('project_detail.knowledge_empty', 'Связанных страниц нет'), ENT_QUOTES, 'UTF-8') ?></div>';
-      } else {
-        listEl.innerHTML = '<ul class="list-unstyled mb-0">' + items.map(function (p) {
-          return '<li class="mb-1"><a href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id) + '">' + escapeHtml(p.title || '') + '</a> <span class="text-muted small">(' + escapeHtml(p.relation_type || 'related') + ')</span></li>';
-        }).join('') + '</ul>';
+    if (listEl) {
+      try {
+        var envelope = await api.request('api/v1/knowledge/entities/project/' + encodeURIComponent(projectId) + '/pages', { method: 'GET' });
+        var items = envelope.data && envelope.data.items || [];
+        if (!items.length) {
+          listEl.innerHTML = '<div class="text-muted small"><?= htmlspecialchars($t('project_detail.knowledge_empty', 'Связанных страниц нет'), ENT_QUOTES, 'UTF-8') ?></div>';
+        } else {
+          listEl.innerHTML = '<ul class="list-unstyled mb-0">' + items.map(function (p) {
+            return '<li class="mb-1"><a href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id) + '">' + escapeHtml(p.title || '') + '</a> <span class="text-muted small">(' + escapeHtml(p.relation_type || 'related') + ')</span></li>';
+          }).join('') + '</ul>';
+        }
+      } catch (e) {
+        listEl.innerHTML = '<div class="text-muted small">—</div>';
       }
-    } catch (e) {
-      listEl.innerHTML = '<div class="text-muted small">—</div>';
+    }
+
+    var teamEl = document.getElementById('projectTeamKnowledgeList');
+    if (teamEl) {
+      try {
+        var teamEnvelope = await api.request('api/v1/knowledge/entities/project/' + encodeURIComponent(projectId) + '/team-pages', { method: 'GET' });
+        var teamItems = teamEnvelope.data && teamEnvelope.data.items || [];
+        if (!teamItems.length) {
+          teamEl.innerHTML = '<div class="text-muted small"><?= htmlspecialchars($t('project_detail.team_knowledge_empty', 'Нет материалов команды'), ENT_QUOTES, 'UTF-8') ?></div>';
+        } else {
+          teamEl.innerHTML = '<ul class="list-unstyled mb-0">' + teamItems.map(function (p) {
+            return '<li class="mb-1"><a href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id) + '">' + escapeHtml(p.title || '') + '</a></li>';
+          }).join('') + '</ul>';
+        }
+      } catch (e) {
+        teamEl.innerHTML = '<div class="text-muted small">—</div>';
+      }
     }
   });
 
