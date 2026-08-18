@@ -2137,3 +2137,41 @@
   white-space: nowrap;
   font-size: 12px;
 }
+
+/* Key-value editor for extra_attributes */
+.crm-extra-fields-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.crm-extra-fields-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.crm-extra-fields-row .crm-extra-fields-key {
+  flex: 0 0 35%;
+  max-width: 280px;
+}
+
+.crm-extra-fields-row .crm-extra-fields-value {
+  flex: 1 1 auto;
+}
+
+.crm-extra-fields-row .crm-extra-fields-remove {
+  flex: 0 0 auto;
+  padding: 4px 6px;
+  border: none;
+  background: transparent;
+  color: var(--crm-muted, #6c757d);
+  cursor: pointer;
+  border-radius: var(--crm-radius-sm, 4px);
+  transition: color 0.15s, background 0.15s;
+}
+
+.crm-extra-fields-row .crm-extra-fields-remove:hover {
+  color: var(--crm-danger, #dc3545);
+  background: color-mix(in srgb, var(--crm-danger, #dc3545) 8%, transparent);
+}

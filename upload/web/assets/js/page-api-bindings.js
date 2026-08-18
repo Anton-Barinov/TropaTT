@@ -10701,6 +10701,34 @@ window.CRM.pageApiBindings = (function () {
       form.dataset.typeBound = '1';
     }
 
+    function addExtraFieldRow(container, key, value) {
+      if (!container) return;
+      var row = document.createElement('div');
+      row.className = 'crm-extra-fields-row';      row.innerHTML = '<input type="text" class="form-control form-control-sm crm-extra-fields-key" placeholder="' + safeText(tp('counterparties.extra_field_name', 'Название')) + '" maxlength="128" value="' + safeText(String(key || '')) + '">' + '<input type="text" class="form-control form-control-sm crm-extra-fields-value" placeholder="' + safeText(tp('counterparties.extra_field_value', 'Значение')) + '" maxlength="1024" value="' + safeText(String(value || '')) + '">' + '<button type="button" class="btn btn-sm crm-btn-danger-icon crm-extra-fields-remove" title="' + safeText(tp('counterparties.remove_field', 'Удалить')) + '" aria-label="' + safeText(tp('counterparties.remove_field', 'Удалить')) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></span></button>';
+      row.querySelector('.crm-extra-fields-remove').addEventListener('click', function () {
+        row.remove();
+      });
+      container.appendChild(row);
+    }
+
+    function collectExtraFieldsFromEditor(form) {
+      var container = form ? form.querySelector('[data-extra-fields-editor]') : null;
+      if (!container) return null;
+      var rows = container.querySelectorAll('.crm-extra-fields-row');
+      if (!rows.length) return null;
+      var result = {};
+      var hasContent = false;
+      rows.forEach(function (row) {
+        var k = String((row.querySelector('.crm-extra-fields-key') || {}).value || '').trim();
+        var v = String((row.querySelector('.crm-extra-fields-value') || {}).value || '').trim();
+        if (k) {
+          result[k] = v;
+          hasContent = true;
+        }
+      });
+      return hasContent ? result : null;
+    }
+
     function fillForm(form, cp) {
       if (!form) return;
       COUNTERPARTY_FORM_FIELDS.forEach(function (field) {
@@ -10709,15 +10737,19 @@ window.CRM.pageApiBindings = (function () {
         var value = cp && cp[field] !== undefined && cp[field] !== null ? String(cp[field]) : '';
         input.value = field === 'counterparty_type' ? normalizeType(value || 'individual') : value;
       });
-      var extraInput = form.querySelector('[name="extra_attributes_text"]');
-      if (extraInput) {
+      var extraContainer = form.querySelector('[data-extra-fields-editor]');
+      if (extraContainer) {
+        extraContainer.innerHTML = '';
         var extra = cp ? cp.extra_attributes : null;
         if (typeof extra === 'string') {
           try { extra = JSON.parse(extra); } catch (e) { extra = null; }
         }
-        extraInput.value = extra && typeof extra === 'object' && !Array.isArray(extra)
-          ? JSON.stringify(extra, null, 2)
-          : '';
+        if (extra && typeof extra === 'object' && !Array.isArray(extra)) {
+          Object.keys(extra).forEach(function (key) {
+            var val = extra[key];
+            addExtraFieldRow(extraContainer, key, val === null || val === undefined ? '' : String(val));
+          });
+        }
       }
       clearFormErrors(form);
       applyTypeVisibility(form, cp && cp.counterparty_type);
@@ -10738,10 +10770,9 @@ window.CRM.pageApiBindings = (function () {
           payload[field] = value;
         }
       });
-      var extraInput = form.querySelector('[name="extra_attributes_text"]');
-      if (extraInput) {
-        var extra = parseCounterpartyExtraAttributes(extraInput.value);
-        if (extra && extra.__error) return { __error: 'invalid_extra_attributes' };
+      var extraEditor = form.querySelector('[data-extra-fields-editor]');
+      if (extraEditor) {
+        var extra = collectExtraFieldsFromEditor(form);
         if (updateMode) {
           payload.extra_attributes = extra;
         } else if (extra !== null) {
@@ -11311,6 +11342,16 @@ window.CRM.pageApiBindings = (function () {
     fillForm(createForm, { counterparty_type: 'individual', status: 'active' });
     fillForm(editForm, { counterparty_type: 'individual', status: 'active' });
 
+    document.querySelectorAll('[data-extra-fields-add]').forEach(function (btn) {
+      if (btn.dataset.bound === '1') return;
+      btn.addEventListener('click', function () {
+        var form = btn.closest('form');
+        var container = form ? form.querySelector('[data-extra-fields-editor]') : null;
+        if (container) addExtraFieldRow(container, '', '');
+      });
+      btn.dataset.bound = '1';
+    });
+
     async function deleteById(cpId, cpTitle) {
       if (!cpId) return;
       var title = String(cpTitle || '').trim() || tp('counterparties.untitled', 'untitled');
@@ -11335,11 +11376,6 @@ window.CRM.pageApiBindings = (function () {
       createForm.addEventListener('submit', async function (e) {
         e.preventDefault();
         var payload = collectFormPayload(createForm, 'create');
-        if (payload && payload.__error === 'invalid_extra_attributes') {
-          showFormErrors(createForm, { extra_attributes_text: [tp('counterparties.extra_json_invalid', 'Дополнительные поля должны содержать корректный JSON-объект')] });
-          notify(tp('counterparties.extra_json_invalid', 'Дополнительные поля должны содержать корректный JSON-объект'), 'warning');
-          return;
-        }
         var localErrors = validatePayload(payload);
         if (Object.keys(localErrors).length) {
           showFormErrors(createForm, localErrors);
@@ -11381,11 +11417,6 @@ window.CRM.pageApiBindings = (function () {
           return;
         }
         var payload = collectFormPayload(editForm, 'update');
-        if (payload && payload.__error === 'invalid_extra_attributes') {
-          showFormErrors(editForm, { extra_attributes_text: [tp('counterparties.extra_json_invalid', 'Дополнительные поля должны содержать корректный JSON-объект')] });
-          notify(tp('counterparties.extra_json_invalid', 'Дополнительные поля должны содержать корректный JSON-объект'), 'warning');
-          return;
-        }
         var localErrors = validatePayload(payload);
         if (Object.keys(localErrors).length) {
           showFormErrors(editForm, localErrors);
