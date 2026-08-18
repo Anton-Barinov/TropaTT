@@ -997,6 +997,9 @@ $auJs = [
     ensureSuccess(result, tr('errCheck', 'Не удалось проверить обновления.'));
     state.plan = result.data && result.data.plan ? result.data.plan : (result.data || result);
     renderPlan();
+    if (state.plan && state.plan.update_available === true) {
+      changes().catch(() => {});
+    }
   }
 
   async function changes() {
