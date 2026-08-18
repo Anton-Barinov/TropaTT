@@ -20185,7 +20185,7 @@ window.CRM.pageApiBindings = (function () {
     }
     var desc = task.description ? safeText(stripHtmlText(task.description).slice(0, 120)) : '';
     var knowledgeCount = parseInt(task.knowledge_links_count, 10) || 0;
-    var knowledgeBadge = knowledgeCount > 0 ? '<span class="crm-kanban-knowledge" title="' + safeText(kanbanT('kanban.knowledge_count', 'Связанные материалы')) + '"><i class="fa-solid fa-book" aria-hidden="true"></i> ' + knowledgeCount + '</span>' : '';
+    var knowledgeBadge = knowledgeCount > 0 ? '<span class="crm-kanban-knowledge" title="' + safeText(kanbanT('kanban.knowledge_count', 'Связанные материалы')) + '"><i class="fa-solid fa-book-open" aria-hidden="true"></i> ' + knowledgeCount + '</span>' : '';
     return '<div class="crm-kanban-card' + (blockedCount > 0 ? ' crm-kanban-card--blocked' : '') + '" data-public-id="' + safeText(task.public_id) + '" data-row-version="' + safeText(task.row_version || '') + '">'
       + '<div class="crm-kanban-card-top">' + projectBadge + priorityBadge + blockedBadge + '</div>'
       + '<h6>' + (task.task_key ? '<span class="crm-task-key-badge">' + safeText(task.task_key) + '</span> ' : '') + '<a href="' + taskLink(task.public_id) + '">' + safeText(task.title || kanbanT('kanban.no_title', 'Без названия')) + '</a></h6>'

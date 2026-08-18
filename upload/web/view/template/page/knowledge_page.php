@@ -1497,7 +1497,7 @@
     if (action === 'similar') {
       var items = data.items || [];
       if (!items.length) {
-        modalBodyEl.innerHTML = '<div class="crm-ai-empty"><i class="fa-solid fa-copy" aria-hidden="true"></i><p>' + esc(t('knowledge_page.ai_no_similar', 'Похожих страниц не найдено')) + '</p></div>';
+        modalBodyEl.innerHTML = '<div class="crm-ai-empty"><i class="fa-regular fa-copy" aria-hidden="true"></i><p>' + esc(t('knowledge_page.ai_no_similar', 'Похожих страниц не найдено')) + '</p></div>';
       } else {
         modalBodyEl.innerHTML = '<div class="crm-ai-similar-list">' + items.map(function (item) {
           return '<a class="crm-ai-similar-item" href="index.php?route=knowledge-page&amp;id=' + esc(item.public_id) + '"><strong>' + esc(item.title) + '</strong><span class="crm-badge crm-badge-secondary">' + esc(item.page_type) + '</span><span class="crm-ai-similar-space">' + esc(item.space_title || '') + '</span></a>';
