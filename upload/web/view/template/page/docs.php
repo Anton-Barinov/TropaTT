@@ -1,81 +1,5 @@
 <?php declare(strict_types=1); ?>
 <?php $title = $t('docs.title', 'TropaTT — Справка'); ?>
-<?php
-$docsLocale = strtolower((string)($locale ?? 'ru-ru'));
-if (!str_starts_with($docsLocale, 'ru')) {
-  $isZhDocs = str_starts_with($docsLocale, 'zh');
-  $docsCopy = $isZhDocs ? [
-    'subtitle' => 'TropaTT 各模块、功能和工作流程的实用指南。',
-    'dashboard' => '主页',
-    'intro_title' => '如何使用 TropaTT',
-    'intro_text' => 'TropaTT 是一个自托管的 CRM 与工作平台：任务、项目、看板、甘特图、日历、团队聊天、自动化、REST API 和 AI 辅助流程集中在一个产品中。',
-    'work_title' => '日常工作流程',
-    'work_items' => [
-      '从主页查看风险、任务和快速操作。',
-      '在任务、看板和甘特图中规划执行进度。',
-      '在项目中跟踪团队、客户、截止日期和结果。',
-      '在聊天、通知和日历中保持团队同步。',
-    ],
-    'ai_title' => 'AI 功能',
-    'ai_items' => [
-      'AI 想法分析：从原始想法生成建议、风险、计划和任务。',
-      'AI 日计划和周计划：按优先级和负载安排工作。',
-      '任务、项目、客户和分析页面中的 AI 摘要与解释。',
-    ],
-    'admin_title' => '管理与扩展',
-    'admin_items' => [
-      '在管理区配置用户、角色、状态、自动化规则和系统设置。',
-      '通过 REST API、OpenAPI 文档和 webhook 集成外部系统。',
-      '模块化结构允许添加自定义模块而不破坏核心功能。',
-    ],
-    'install_title' => '安装',
-    'install_text' => '将项目上传到 PHP/MySQL 主机，打开 /web/install.php，并按照浏览器安装向导完成数据库和管理员账户配置。',
-  ] : [
-    'subtitle' => 'Practical guide to TropaTT sections, features and workflows.',
-    'dashboard' => 'Open dashboard',
-    'intro_title' => 'How to Use TropaTT',
-    'intro_text' => 'TropaTT is a self-hosted CRM and work platform: tasks, projects, Kanban, Gantt, calendar, team chat, automation, REST API and AI-assisted workflows in one product.',
-    'work_title' => 'Daily Workflow',
-    'work_items' => [
-      'Start from Dashboard to review risks, tasks and quick actions.',
-      'Plan execution in Tasks, Kanban and Gantt.',
-      'Track teams, clients, deadlines and results in Projects.',
-      'Keep the team aligned with Chats, Notifications and Calendar.',
-    ],
-    'ai_title' => 'AI Tools',
-    'ai_items' => [
-      'AI idea analysis turns a raw idea into recommendations, risks, plans and tasks.',
-      'AI day and week planning orders work by priority and workload.',
-      'AI summaries and explanations are available for tasks, projects, clients and analytics.',
-    ],
-    'admin_title' => 'Administration and Extensions',
-    'admin_items' => [
-      'Configure users, roles, statuses, automation rules and system settings in Administration.',
-      'Integrate external systems through REST API, OpenAPI documentation and webhooks.',
-      'The modular structure lets you add custom modules without breaking the core.',
-    ],
-    'install_title' => 'Installation',
-    'install_text' => 'Upload the project to a PHP/MySQL host, open /web/install.php and follow the browser installer to configure the database and administrator account.',
-  ];
-?>
-<body data-page="docs" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
-<div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
-<main class="crm-content"><div class="crm-page-head"><div><h1 class="crm-page-title"><?= htmlspecialchars($t('docs.page_title', $isZhDocs ? '文档' : 'Documentation'), ENT_QUOTES, 'UTF-8') ?></h1><p class="crm-subtitle"><?= htmlspecialchars($docsCopy['subtitle'], ENT_QUOTES, 'UTF-8') ?></p></div><a class="btn crm-btn-primary" href="index.php?route=dashboard"><?= htmlspecialchars($docsCopy['dashboard'], ENT_QUOTES, 'UTF-8') ?></a></div>
-<div class="row g-3">
-<?php foreach (['intro', 'work', 'ai', 'admin', 'install'] as $docsBlock): ?>
-  <div class="col-12">
-    <section class="crm-card crm-section-card mb-3">
-      <div class="crm-section-head"><div><h2 class="h5 mb-0"><?= htmlspecialchars($docsCopy[$docsBlock . '_title'], ENT_QUOTES, 'UTF-8') ?></h2></div></div>
-      <div class="p-3">
-        <?php if (isset($docsCopy[$docsBlock . '_text'])): ?><p class="mb-0"><?= htmlspecialchars($docsCopy[$docsBlock . '_text'], ENT_QUOTES, 'UTF-8') ?></p><?php endif; ?>
-        <?php if (isset($docsCopy[$docsBlock . '_items'])): ?><ul class="mb-0"><?php foreach ($docsCopy[$docsBlock . '_items'] as $docsItem): ?><li><?= htmlspecialchars($docsItem, ENT_QUOTES, 'UTF-8') ?></li><?php endforeach; ?></ul><?php endif; ?>
-      </div>
-    </section>
-  </div>
-<?php endforeach; ?>
-</div></main></div></div></body>
-<?php return; ?>
-<?php } ?>
 <body data-page="docs" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
 <main class="crm-content"><div class="crm-page-head"><div><h1 class="crm-page-title" data-i18n="docs.page_title"><?= htmlspecialchars($t('docs.page_title', 'Справка'), ENT_QUOTES, 'UTF-8') ?></h1><p class="crm-subtitle" data-i18n="docs.subtitle"><?= htmlspecialchars($t('docs.subtitle', 'Полное руководство по разделам, функциям и рабочим сценариям TropaTT.'), ENT_QUOTES, 'UTF-8') ?></p></div><a class="btn crm-btn-primary" href="index.php?route=dashboard" data-i18n="docs.btn_dashboard"><?= htmlspecialchars($t('docs.btn_dashboard', 'Открыть главную'), ENT_QUOTES, 'UTF-8') ?></a></div>
@@ -109,6 +33,10 @@ if (!str_starts_with($docsLocale, 'ru')) {
 <li><a href="#docs-modules" data-i18n="docs.toc_modules"><?= htmlspecialchars($t('docs.toc_modules', 'Модули'), ENT_QUOTES, 'UTF-8') ?></a></li>
 <li><a href="#docs-installation" data-i18n="docs.toc_installation"><?= htmlspecialchars($t('docs.toc_installation', 'Установка'), ENT_QUOTES, 'UTF-8') ?></a></li>
 <li><a href="#docs-faq" data-i18n="docs.toc_faq"><?= htmlspecialchars($t('docs.toc_faq', 'Частые вопросы'), ENT_QUOTES, 'UTF-8') ?></a></li>
+<li><a href="#docs-feature-overview" data-i18n="docs.toc_feature_overview"><?= htmlspecialchars($t('docs.toc_feature_overview', 'Обзор возможностей'), ENT_QUOTES, 'UTF-8') ?></a></li>
+<li><a href="#docs-mcp" data-i18n="docs.toc_mcp"><?= htmlspecialchars($t('docs.toc_mcp', 'AI-агенты (MCP)'), ENT_QUOTES, 'UTF-8') ?></a></li>
+<li><a href="#docs-usage" data-i18n="docs.toc_usage"><?= htmlspecialchars($t('docs.toc_usage', 'Примеры использования'), ENT_QUOTES, 'UTF-8') ?></a></li>
+<li><a href="#docs-tech" data-i18n="docs.toc_tech"><?= htmlspecialchars($t('docs.toc_tech', 'Технологии и цифры'), ENT_QUOTES, 'UTF-8') ?></a></li>
 </ol>
 </div>
 </div>
@@ -549,6 +477,121 @@ if (!str_starts_with($docsLocale, 'ru')) {
 <div class="mb-3">
 <p><strong data-i18n="docs.faq_q10"><?= htmlspecialchars($t('docs.faq_q10', 'Кто разработчик?'), ENT_QUOTES, 'UTF-8') ?></strong><br><span data-i18n="docs.faq_q10_answer"><?= htmlspecialchars($t('docs.faq_q10_answer', '<strong>Антон Баринов</strong>, PHP-разработчик.'), ENT_QUOTES, 'UTF-8') ?></span> <a href="https://github.com/Anton-Barinov">GitHub</a>.</p>
 </div>
+</div></section></div>
+
+<!-- ==================== Feature Overview ==================== -->
+<div class="col-12" id="docs-feature-overview">
+<section class="crm-card crm-section-card mb-3">
+<div class="crm-section-head"><div><h2 class="h5 mb-0" data-i18n="docs.feature_overview_title"><?= htmlspecialchars($t('docs.feature_overview_title', 'Обзор возможностей'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="docs.feature_overview_note"><?= htmlspecialchars($t('docs.feature_overview_note', 'Сводная таблица всех функций TropaTT.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
+<div class="p-3">
+<div class="crm-info-panel mb-3" data-i18n="docs.feature_overview_intro"><?= htmlspecialchars($t('docs.feature_overview_intro', 'Ниже — полный набор возможностей. Каждый раздел справки описывает, как использовать функцию на практике.'), ENT_QUOTES, 'UTF-8') ?></div>
+<div class="table-responsive">
+<table class="crm-table">
+<thead><tr><th data-i18n="docs.fo_col_area"><?= htmlspecialchars($t('docs.fo_col_area', 'Область'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="docs.fo_col_what"><?= htmlspecialchars($t('docs.fo_col_what', 'Что получаете'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="docs.fo_col_why"><?= htmlspecialchars($t('docs.fo_col_why', 'Зачем нужно'), ENT_QUOTES, 'UTF-8') ?></th></tr></thead>
+<tbody>
+<tr><td><strong>CRM</strong></td><td data-i18n="docs.fo_crm_what"><?= htmlspecialchars($t('docs.fo_crm_what', 'Клиенты, контрагенты, компании, контакты, организации'), ENT_QUOTES, 'UTF-8') ?></td><td data-i18n="docs.fo_crm_why"><?= htmlspecialchars($t('docs.fo_crm_why', 'Все бизнес-отношения в одном месте'), ENT_QUOTES, 'UTF-8') ?></td></tr>
+<tr><td><strong><?= htmlspecialchars($t('nav.tasks', 'Задачи'), ENT_QUOTES, 'UTF-8') ?></strong></td><td data-i18n="docs.fo_tasks_what"><?= htmlspecialchars($t('docs.fo_tasks_what', 'Иерархия, подзадачи, чеклисты, WIP-лимиты, зависимости, шаблоны, ключи (PRJ-001)'), ENT_QUOTES, 'UTF-8') ?></td><td data-i18n="docs.fo_tasks_why"><?= htmlspecialchars($t('docs.fo_tasks_why', 'Один таск-менеджер вместо отдельной подписки'), ENT_QUOTES, 'UTF-8') ?></td></tr>
+<tr><td><strong><?= htmlspecialchars($t('nav.projects', 'Проекты'), ENT_QUOTES, 'UTF-8') ?></strong></td><td data-i18n="docs.fo_projects_what"><?= htmlspecialchars($t('docs.fo_projects_what', 'Вехи, риски, Гант, контекст загрузки, шаблоны'), ENT_QUOTES, 'UTF-8') ?></td><td data-i18n="docs.fo_projects_why"><?= htmlspecialchars($t('docs.fo_projects_why', 'Контроль поставки со сроками и ответственностью'), ENT_QUOTES, 'UTF-8') ?></td></tr>
+<tr><td><strong>Kanban</strong></td><td data-i18n="docs.fo_kanban_what"><?= htmlspecialchars($t('docs.fo_kanban_what', 'Drag-and-drop доска для потока задач'), ENT_QUOTES, 'UTF-8') ?></td><td data-i18n="docs.fo_kanban_why"><?= htmlspecialchars($t('docs.fo_kanban_why', 'Визуальное управление статусами, меньше узких мест'), ENT_QUOTES, 'UTF-8') ?></td></tr>
+<tr><td><strong>Gantt</strong></td><td data-i18n="docs.fo_gantt_what"><?= htmlspecialchars($t('docs.fo_gantt_what', 'Временная шкала с зависимостями'), ENT_QUOTES, 'UTF-8') ?></td><td data-i18n="docs.fo_gantt_why"><?= htmlspecialchars($t('docs.fo_gantt_why', 'Видимость сроков и планирование ресурсов'), ENT_QUOTES, 'UTF-8') ?></td></tr>
+<tr><td><strong><?= htmlspecialchars($t('nav.calendar', 'Календарь'), ENT_QUOTES, 'UTF-8') ?></strong></td><td data-i18n="docs.fo_cal_what"><?= htmlspecialchars($t('docs.fo_cal_what', 'События, повестка, дневной/недельный вид, бизнес-календарь'), ENT_QUOTES, 'UTF-8') ?></td><td data-i18n="docs.fo_cal_why"><?= htmlspecialchars($t('docs.fo_cal_why', 'Запланированная работа связана с контекстом задач'), ENT_QUOTES, 'UTF-8') ?></td></tr>
+<tr><td><strong><?= htmlspecialchars($t('nav.chat', 'Чат'), ENT_QUOTES, 'UTF-8') ?></strong></td><td data-i18n="docs.fo_chat_what"><?= htmlspecialchars($t('docs.fo_chat_what', 'Встроенный мессенджер — каналы, ЛС, вложения, упоминания'), ENT_QUOTES, 'UTF-8') ?></td><td data-i18n="docs.fo_chat_why"><?= htmlspecialchars($t('docs.fo_chat_why', 'Общение в том же инструменте, где и работа'), ENT_QUOTES, 'UTF-8') ?></td></tr>
+<tr><td><strong><?= htmlspecialchars($t('nav.notifications', 'Уведомления'), ENT_QUOTES, 'UTF-8') ?></strong></td><td data-i18n="docs.fo_notif_what"><?= htmlspecialchars($t('docs.fo_notif_what', 'Оповещения в реальном времени, push, центр уведомлений'), ENT_QUOTES, 'UTF-8') ?></td><td data-i18n="docs.fo_notif_why"><?= htmlspecialchars($t('docs.fo_notif_why', 'Не пропускайте дедлайны, упоминания и согласования'), ENT_QUOTES, 'UTF-8') ?></td></tr>
+<tr><td><strong><?= htmlspecialchars($t('docs.toc_analytics', 'Аналитика'), ENT_QUOTES, 'UTF-8') ?></strong></td><td data-i18n="docs.fo_analytics_what"><?= htmlspecialchars($t('docs.fo_analytics_what', 'Дашборды, KPI, загрузка, риски, ёмкость команды'), ENT_QUOTES, 'UTF-8') ?></td><td data-i18n="docs.fo_analytics_why"><?= htmlspecialchars($t('docs.fo_analytics_why', 'Решения на основе реальных данных исполнения'), ENT_QUOTES, 'UTF-8') ?></td></tr>
+<tr><td><strong><?= htmlspecialchars($t('docs.toc_automation', 'Автоматизация'), ENT_QUOTES, 'UTF-8') ?></strong></td><td data-i18n="docs.fo_auto_what"><?= htmlspecialchars($t('docs.fo_auto_what', 'Workflow-правила, SLA, согласования, вебхуки, фоновые задачи'), ENT_QUOTES, 'UTF-8') ?></td><td data-i18n="docs.fo_auto_why"><?= htmlspecialchars($t('docs.fo_auto_why', 'Меньше ручной координации, меньше ошибок'), ENT_QUOTES, 'UTF-8') ?></td></tr>
+<tr><td><strong>AI (20+)</strong></td><td data-i18n="docs.fo_ai_what"><?= htmlspecialchars($t('docs.fo_ai_what', 'Проработка идей, планы, декомпозиции, сводки, чеклисты, риски, подготовка к встречам'), ENT_QUOTES, 'UTF-8') ?></td><td data-i18n="docs.fo_ai_why"><?= htmlspecialchars($t('docs.fo_ai_why', 'AI, который экономит время в реальных рабочих процессах'), ENT_QUOTES, 'UTF-8') ?></td></tr>
+<tr><td><strong>MCP</strong></td><td data-i18n="docs.fo_mcp_what"><?= htmlspecialchars($t('docs.fo_mcp_what', '567 инструментов + 5 ресурсов — подключение AI-агентов'), ENT_QUOTES, 'UTF-8') ?></td><td data-i18n="docs.fo_mcp_why"><?= htmlspecialchars($t('docs.fo_mcp_why', 'Claude Code, Codex, ChatGPT работают с вашими данными через MCP'), ENT_QUOTES, 'UTF-8') ?></td></tr>
+<tr><td><strong><?= htmlspecialchars($t('docs.toc_admin', 'Админка'), ENT_QUOTES, 'UTF-8') ?></strong></td><td data-i18n="docs.fo_admin_what"><?= htmlspecialchars($t('docs.fo_admin_what', 'Пользователи, роли, права, feature-флаги, модули, логи'), ENT_QUOTES, 'UTF-8') ?></td><td data-i18n="docs.fo_admin_why"><?= htmlspecialchars($t('docs.fo_admin_why', 'Полный контроль над рабочим пространством'), ENT_QUOTES, 'UTF-8') ?></td></tr>
+<tr><td><strong><?= htmlspecialchars($t('docs.toc_modules', 'Модули'), ENT_QUOTES, 'UTF-8') ?></strong></td><td data-i18n="docs.fo_modules_what"><?= htmlspecialchars($t('docs.fo_modules_what', '22 модуля: миграции из Jira/Trello/Asana + GitHub/GitLab/Slack + Google/Yandex Calendar'), ENT_QUOTES, 'UTF-8') ?></td><td data-i18n="docs.fo_modules_why"><?= htmlspecialchars($t('docs.fo_modules_why', 'Перенос данных и интеграции без изменения ядра'), ENT_QUOTES, 'UTF-8') ?></td></tr>
+<tr><td><strong><?= htmlspecialchars($t('docs.toc_installation', 'Установка'), ENT_QUOTES, 'UTF-8') ?></strong></td><td data-i18n="docs.fo_install_what"><?= htmlspecialchars($t('docs.fo_install_what', 'Браузерный мастер для любого PHP/MySQL хоста'), ENT_QUOTES, 'UTF-8') ?></td><td data-i18n="docs.fo_install_why"><?= htmlspecialchars($t('docs.fo_install_why', 'Запуск за минуты, без терминала'), ENT_QUOTES, 'UTF-8') ?></td></tr>
+</tbody>
+</table>
+</div>
+</div></section></div>
+
+<!-- ==================== MCP ==================== -->
+<div class="col-12" id="docs-mcp">
+<section class="crm-card crm-section-card mb-3">
+<div class="crm-section-head"><div><h2 class="h5 mb-0" data-i18n="docs.mcp_title"><?= htmlspecialchars($t('docs.mcp_title', 'AI-агенты (MCP)'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="docs.mcp_note"><?= htmlspecialchars($t('docs.mcp_note', 'Подключение Claude Code, Codex, ChatGPT и других AI-агентов к CRM.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
+<div class="p-3">
+<div class="crm-info-panel mb-3" data-i18n="docs.mcp_why"><?= htmlspecialchars($t('docs.mcp_why', '<strong>Зачем:</strong> MCP позволяет AI-агентам читать и управлять вашими задачами, проектами, клиентами и чатами через единый протокол — с теми же правами доступа, что и веб-интерфейс.'), ENT_QUOTES, 'UTF-8') ?></div>
+<p data-i18n="docs.mcp_intro"><?= htmlspecialchars($t('docs.mcp_intro', 'TropaTT включает встроенный MCP-сервер (Model Context Protocol) — тот же протокол, который понимают Claude Code, Codex, ChatGPT и другие совместимые AI-агенты.'), ENT_QUOTES, 'UTF-8') ?></p>
+<ul>
+<li data-i18n="docs.mcp_item1"><?= htmlspecialchars($t('docs.mcp_item1', '<strong>567 MCP-инструментов + 5 ресурсов</strong> — задачи, проекты, клиенты, контакты, чаты, календарь, аналитика, база знаний.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.mcp_item2"><?= htmlspecialchars($t('docs.mcp_item2', '<strong>Те же данные и правила</strong> — каждый запрос проходит через REST API и RBAC-проверки, как в веб-интерфейсе.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.mcp_item3"><?= htmlspecialchars($t('docs.mcp_item3', '<strong>Безопасность</strong> — чувствительные данные (токены, хэши паролей, API-ключи) фильтруются; запись требует соответствующего права.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.mcp_item4"><?= htmlspecialchars($t('docs.mcp_item4', '<strong>Эндпоинт:</strong> POST /api/index.php?route=api/v1/mcp, аутентификация через Bearer-токен.'), ENT_QUOTES, 'UTF-8') ?></li>
+</ul>
+<p data-i18n="docs.mcp_docs_link"><?= htmlspecialchars($t('docs.mcp_docs_link', 'Полная документация MCP:'), ENT_QUOTES, 'UTF-8') ?> <a href="https://github.com/Anton-Barinov/TropaTT/blob/main/docs_mcp/mcp_en.md">mcp_en.md</a></p>
+</div></section></div>
+
+<!-- ==================== Usage Examples ==================== -->
+<div class="col-12" id="docs-usage">
+<section class="crm-card crm-section-card mb-3">
+<div class="crm-section-head"><div><h2 class="h5 mb-0" data-i18n="docs.usage_title"><?= htmlspecialchars($t('docs.usage_title', 'Примеры использования'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="docs.usage_note"><?= htmlspecialchars($t('docs.usage_note', 'Конкретные сценарии для разных ролей и отраслей.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
+<div class="p-3">
+<div class="crm-info-panel mb-3" data-i18n="docs.usage_why"><?= htmlspecialchars($t('docs.usage_why', '<strong>Зачем:</strong> эти примеры показывают, как TropaTT используется в реальных рабочих процессах — от входящего запроса до выполненной задачи.'), ENT_QUOTES, 'UTF-8') ?></div>
+<h3 class="h6" data-i18n="docs.usage_cycle_heading"><?= htmlspecialchars($t('docs.usage_cycle_heading', 'Полный цикл работы с клиентом'), ENT_QUOTES, 'UTF-8') ?></h3>
+<ol>
+<li data-i18n="docs.usage_step1"><?= htmlspecialchars($t('docs.usage_step1', '<strong>Захват</strong> — идея, запрос клиента, проблема или входящий лид.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.usage_step2"><?= htmlspecialchars($t('docs.usage_step2', '<strong>Анализ</strong> — самостоятельно или через AI: объём, риски, реализуемость, подход.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.usage_step3"><?= htmlspecialchars($t('docs.usage_step3', '<strong>Структурирование</strong> — в проекты, задачи, подзадачи, чеклисты, исполнители, сроки.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.usage_step4"><?= htmlspecialchars($t('docs.usage_step4', '<strong>Координация</strong> — через чат, комментарии, @упоминания, уведомления.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.usage_step5"><?= htmlspecialchars($t('docs.usage_step5', '<strong>Исполнение</strong> — списки задач, Kanban, Мой день, Моя неделя.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.usage_step6"><?= htmlspecialchars($t('docs.usage_step6', '<strong>Отслеживание</strong> — Гант, дашборды, аналитика, загрузка, сигналы рисков.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.usage_step7"><?= htmlspecialchars($t('docs.usage_step7', '<strong>Автоматизация</strong> — workflow-правила, SLA, вебхуки, цепочки согласований.'), ENT_QUOTES, 'UTF-8') ?></li>
+</ol>
+<h3 class="h6 mt-3" data-i18n="docs.usage_examples_heading"><?= htmlspecialchars($t('docs.usage_examples_heading', 'Конкретные примеры'), ENT_QUOTES, 'UTF-8') ?></h3>
+<ul>
+<li data-i18n="docs.usage_ex1"><?= htmlspecialchars($t('docs.usage_ex1', '<strong>Фрилансер:</strong> запрос клиента → AI анализирует → план задач → Мой день → исполнение → чат с клиентом → готово.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.usage_ex2"><?= htmlspecialchars($t('docs.usage_ex2', '<strong>Агентство:</strong> бриф клиента → AI декомпозирует → проект + вехи → Kanban → отслеживание по Ганту → отчёт клиенту → аналитика.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.usage_ex3"><?= htmlspecialchars($t('docs.usage_ex3', '<strong>Сервисная компания:</strong> контрагент → проект → задачи монтажа → Гант → дневные планы → мониторинг SLA → подписание акта.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.usage_ex4"><?= htmlspecialchars($t('docs.usage_ex4', '<strong>B2B-операции:</strong> компания → контакты → задачи + согласования → напоминания → вебхук → дашборд.'), ENT_QUOTES, 'UTF-8') ?></li>
+</ul>
+</div></section></div>
+
+<!-- ==================== Tech Stack ==================== -->
+<div class="col-12" id="docs-tech">
+<section class="crm-card crm-section-card mb-3">
+<div class="crm-section-head"><div><h2 class="h5 mb-0" data-i18n="docs.tech_title"><?= htmlspecialchars($t('docs.tech_title', 'Технологии и цифры'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="docs.tech_note"><?= htmlspecialchars($t('docs.tech_note', 'Стек, архитектура и ключевые метрики проекта.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
+<div class="p-3">
+<div class="crm-info-panel mb-3" data-i18n="docs.tech_why"><?= htmlspecialchars($t('docs.tech_why', '<strong>Зачем:</strong> понимание стека помогает оценить требования к хостингу, возможности кастомизации и масштабируемость системы.'), ENT_QUOTES, 'UTF-8') ?></div>
+<h3 class="h6" data-i18n="docs.tech_stack_heading"><?= htmlspecialchars($t('docs.tech_stack_heading', 'Технологический стек'), ENT_QUOTES, 'UTF-8') ?></h3>
+<ul>
+<li data-i18n="docs.tech_stack1"><?= htmlspecialchars($t('docs.tech_stack1', '<strong>Бэкенд:</strong> PHP 8.1+, кастомное микроядро. Ноль внешних зависимостей. Без Laravel/Symfony/Doctrine.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.tech_stack2"><?= htmlspecialchars($t('docs.tech_stack2', '<strong>База данных:</strong> MySQL.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.tech_stack3"><?= htmlspecialchars($t('docs.tech_stack3', '<strong>Фронтенд:</strong> PHP-рендер MPA + Bootstrap 5 + кастомные vanilla JS ES5+ модули. Без React/Vue/Angular. Без сборщика.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.tech_stack4"><?= htmlspecialchars($t('docs.tech_stack4', '<strong>Архитектура:</strong> API-first. Веб-UI использует REST API для всех данных. Ноль прямых обращений к БД из веб-слоя.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.tech_stack5"><?= htmlspecialchars($t('docs.tech_stack5', '<strong>Безопасность:</strong> Двойная аутентификация (cookie + CSRF для web, Bearer для API). RBAC. Защита от SSRF. Rate limiting.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.tech_stack6"><?= htmlspecialchars($t('docs.tech_stack6', '<strong>AI:</strong> Настраиваемые провайдеры (OpenAI, Anthropic, DeepSeek, Google). Intent-workflows. Preview-before-apply.'), ENT_QUOTES, 'UTF-8') ?></li>
+</ul>
+<h3 class="h6 mt-3" data-i18n="docs.tech_numbers_heading"><?= htmlspecialchars($t('docs.tech_numbers_heading', 'В цифрах'), ENT_QUOTES, 'UTF-8') ?></h3>
+<div class="table-responsive">
+<table class="crm-table">
+<thead><tr><th data-i18n="docs.tech_num_metric"><?= htmlspecialchars($t('docs.tech_num_metric', 'Метрика'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="docs.tech_num_value"><?= htmlspecialchars($t('docs.tech_num_value', 'Значение'), ENT_QUOTES, 'UTF-8') ?></th></tr></thead>
+<tbody>
+<tr><td data-i18n="docs.tech_num_api"><?= htmlspecialchars($t('docs.tech_num_api', 'API-эндпоинты'), ENT_QUOTES, 'UTF-8') ?></td><td>908 маршрутов · 1 010 URL · 1 425 method-level</td></tr>
+<tr><td>MCP</td><td>567 инструментов + 5 ресурсов</td></tr>
+<tr><td data-i18n="docs.tech_num_web"><?= htmlspecialchars($t('docs.tech_num_web', 'Веб-страницы'), ENT_QUOTES, 'UTF-8') ?></td><td>66 страниц, ~66 шаблонов</td></tr>
+<tr><td data-i18n="docs.tech_num_services"><?= htmlspecialchars($t('docs.tech_num_services', 'Бэкенд-сервисы'), ENT_QUOTES, 'UTF-8') ?></td><td>110+</td></tr>
+<tr><td data-i18n="docs.tech_num_repos"><?= htmlspecialchars($t('docs.tech_num_repos', 'Репозитории'), ENT_QUOTES, 'UTF-8') ?></td><td>87</td></tr>
+<tr><td data-i18n="docs.tech_num_modules"><?= htmlspecialchars($t('docs.tech_num_modules', 'Интеграционные модули'), ENT_QUOTES, 'UTF-8') ?></td><td>22 (Jira, Trello, Asana, Bitrix24, ClickUp, Todoist, GitHub, GitLab, Slack, Google/Yandex Calendar и др.)</td></tr>
+<tr><td data-i18n="docs.tech_num_ai"><?= htmlspecialchars($t('docs.tech_num_ai', 'AI-workflows'), ENT_QUOTES, 'UTF-8') ?></td><td>22</td></tr>
+<tr><td data-i18n="docs.tech_num_flags"><?= htmlspecialchars($t('docs.tech_num_flags', 'Feature-флаги'), ENT_QUOTES, 'UTF-8') ?></td><td>43</td></tr>
+<tr><td data-i18n="docs.tech_num_deps"><?= htmlspecialchars($t('docs.tech_num_deps', 'Внешние PHP-зависимости'), ENT_QUOTES, 'UTF-8') ?></td><td>0</td></tr>
+<tr><td data-i18n="docs.tech_num_langs"><?= htmlspecialchars($t('docs.tech_num_langs', 'Языки интерфейса'), ENT_QUOTES, 'UTF-8') ?></td><td>7 — English, Русский, Deutsch, Español, Français, Português, 中文</td></tr>
+</tbody>
+</table>
+</div>
+<h3 class="h6 mt-3" data-i18n="docs.tech_project_heading"><?= htmlspecialchars($t('docs.tech_project_heading', 'Структура проекта'), ENT_QUOTES, 'UTF-8') ?></h3>
+<pre style="font-size:12px;background:var(--crm-surface-2);padding:12px;border-radius:8px;overflow-x:auto"><code>TropaTT/
+├── upload/         # CRM — скопируйте СОДЕРЖИМОЕ этой папки на сервер
+│   ├── api/        #   API — контроллеры, сервисы, репозитории, миграции
+│   ├── web/        #   Веб-UI — установщик, страницы, шаблоны, JS, ассеты
+│   ├── modules/    #   22 модуля (мистрации, интеграции, WIP-лимиты и др.)
+│   └── index.php   #   Точка входа
+├── README.md       # Документация (остаётся в корне репозитория)
+└── ...             # LICENSE, .github/, .gitignore</code></pre>
 </div></section></div>
 
 </div><!-- /row -->
