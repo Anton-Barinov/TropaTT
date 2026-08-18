@@ -39,6 +39,7 @@
 <div class="mt-3 pt-3 border-top" id="contactKnowledgeSection">
   <h6 class="mb-2"><?= htmlspecialchars($t('contacts.section_notes', 'Связанные заметки'), ENT_QUOTES, 'UTF-8') ?></h6>
   <div id="contactKnowledgeList"><div class="text-muted small">—</div></div>
+  <div class="mt-3 pt-3 border-top"><h6 class="mb-2 d-flex align-items-center gap-2" data-i18n="contacts.team_knowledge_title"><span class="crm-icon text-muted" aria-hidden="true"><i class="fa-solid fa-users"></i></span><?= htmlspecialchars($t('contacts.team_knowledge_title', 'Материалы команды'), ENT_QUOTES, 'UTF-8') ?></h6><div id="contactTeamKnowledgeList"><div class="text-muted small">—</div></div></div>
   <div class="mt-2"><a class="btn btn-sm crm-btn-primary" href="index.php?route=knowledge" id="contactKnowledgeLink" data-i18n="contacts.btn_knowledge"><?= htmlspecialchars($t('contacts.btn_knowledge', 'Перейти в базу знаний'), ENT_QUOTES, 'UTF-8') ?></a></div>
 </div>
 </div><div class="modal-footer"><button class="btn crm-btn-secondary" type="button" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button><button class="btn crm-btn-danger-soft me-auto" type="button" id="contactsDeleteInModalBtn" data-i18n="contacts.btn_delete"><?= htmlspecialchars($t('contacts.btn_delete', 'Удалить контакт'), ENT_QUOTES, 'UTF-8') ?></button><button class="btn crm-btn-primary" type="submit" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button></div></form></div></div></div>
@@ -48,18 +49,20 @@
   if (!editModal) return;
   var knowledgeSection = document.getElementById('contactKnowledgeSection');
   var knowledgeList = document.getElementById('contactKnowledgeList');
+  var teamKnowledgeList = document.getElementById('contactTeamKnowledgeList');
   if (!knowledgeSection || !knowledgeList) return;
   editModal.addEventListener('show.bs.modal', function () {
     var contactIdInput = document.querySelector('#contactsEditForm input[name="public_id"]');
     var contactId = contactIdInput ? contactIdInput.value : '';
-    if (!contactId) { knowledgeList.innerHTML = '<div class="text-muted small">—</div>'; return; }
+    if (!contactId) { knowledgeList.innerHTML = '<div class="text-muted small">—</div>'; if (teamKnowledgeList) teamKnowledgeList.innerHTML = '<div class="text-muted small">—</div>'; return; }
     var link = document.getElementById('contactKnowledgeLink');
     if (link) link.href = 'index.php?route=knowledge&entity_type=contact&entity_public_id=' + encodeURIComponent(contactId);
     knowledgeList.innerHTML = '<div class="text-muted small"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>';
+    if (teamKnowledgeList) teamKnowledgeList.innerHTML = '<div class="text-muted small"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>';
     (async function () {
+      var api = window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function' ? window.CRM.api : null;
+      if (!api) return;
       try {
-        var api = window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function' ? window.CRM.api : null;
-        if (!api) return;
         var envelope = await api.request('api/v1/knowledge/entities/contact/' + encodeURIComponent(contactId) + '/pages', { method: 'GET' });
         var items = envelope.data && envelope.data.items || [];
         if (!items.length) {
@@ -71,6 +74,21 @@
         }
       } catch (e) {
         knowledgeList.innerHTML = '<div class="text-muted small">—</div>';
+      }
+      if (teamKnowledgeList) {
+        try {
+          var teamEnvelope = await api.request('api/v1/knowledge/entities/contact/' + encodeURIComponent(contactId) + '/team-pages', { method: 'GET' });
+          var teamItems = teamEnvelope.data && teamEnvelope.data.items || [];
+          if (!teamItems.length) {
+            teamKnowledgeList.innerHTML = '<div class="text-muted small"><?= htmlspecialchars($t('contacts.team_knowledge_empty', 'Нет материалов команды'), ENT_QUOTES, 'UTF-8') ?></div>';
+          } else {
+            teamKnowledgeList.innerHTML = '<ul class="list-unstyled mb-0 small">' + teamItems.map(function (p) {
+              return '<li class="mb-1"><a href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id) + '">' + (function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function(ch) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[ch]; }); })(p.title || '') + '</a></li>';
+            }).join('') + '</ul>';
+          }
+        } catch (e) {
+          teamKnowledgeList.innerHTML = '<div class="text-muted small">—</div>';
+        }
       }
     })();
   });

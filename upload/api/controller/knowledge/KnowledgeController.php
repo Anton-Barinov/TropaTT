@@ -929,9 +929,10 @@ final class KnowledgeController extends BaseController
     }
 
     /**
-     * Return knowledge pages attached to the team that owns the given entity
-     * (a project's team, or a task's project's team). This surfaces team
-     * materials where the team actually works, not just in the team editor.
+     * Return knowledge pages attached to the team(s) that own the given entity
+     * (a project's team, a task's project's team, or the teams behind a
+     * client/counterparty/contact's projects). This surfaces team materials
+     * where the team actually works, not just in the team editor.
      */
     public function teamPages(array $params): JsonResponse
     {
@@ -941,20 +942,31 @@ final class KnowledgeController extends BaseController
             return $this->error('ENTITY_NOT_FOUND', $this->t('common/messages.not_found', 'Entity not found'), 404);
         }
 
-        $teamPublicId = $this->repo()->entityTeamPublicId($entityType, $entityPublicId);
-        if ($teamPublicId === '' || !$this->canLinkEntity('team', $teamPublicId)) {
-            return $this->success('KNOWLEDGE_TEAM_PAGES', $this->t('knowledge/messages.entity_pages', 'Related pages loaded'), [
-                'team_public_id' => null,
-                'items' => [],
-            ]);
+        $teamPublicIds = array_values(array_filter(
+            $this->repo()->entityTeamPublicIds($entityType, $entityPublicId),
+            fn(string $teamPublicId): bool => $this->canLinkEntity('team', $teamPublicId)
+        ));
+
+        $items = [];
+        $seen = [];
+        foreach ($teamPublicIds as $teamPublicId) {
+            foreach ($this->repo()->entityPages('team', $teamPublicId, $this->actor()) as $page) {
+                $pagePublicId = (string)($page['public_id'] ?? '');
+                if ($pagePublicId === '' || isset($seen[$pagePublicId])) {
+                    continue;
+                }
+                if ($this->repo()->page($pagePublicId, $this->actor()) === null) {
+                    continue;
+                }
+                $seen[$pagePublicId] = true;
+                $items[] = $page;
+            }
         }
 
         return $this->success('KNOWLEDGE_TEAM_PAGES', $this->t('knowledge/messages.entity_pages', 'Related pages loaded'), [
-            'team_public_id' => $teamPublicId,
-            'items' => array_values(array_filter(
-                $this->repo()->entityPages('team', $teamPublicId, $this->actor()),
-                fn(array $page): bool => $this->repo()->page((string)($page['public_id'] ?? ''), $this->actor()) !== null
-            )),
+            'team_public_id' => $teamPublicIds[0] ?? null,
+            'team_public_ids' => $teamPublicIds,
+            'items' => $items,
         ]);
     }
 

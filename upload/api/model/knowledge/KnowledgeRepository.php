@@ -908,23 +908,77 @@ final class KnowledgeRepository
     }
 
     /**
-     * Resolve the team that owns an entity, when the entity belongs to a team.
-     * Supports 'project' (projects.team_public_id) and 'task' (via its project).
-     * Returns '' when the entity has no team or the type is not supported.
+     * Resolve the team(s) related to an entity.
+     * - 'project': the project's own team.
+     * - 'task': the team of the task's project.
+     * - 'client'/'counterparty': teams of the entity's projects (client and
+     *   counterparty share the same public_id space after consolidation).
+     * - 'contact': teams of the projects of the contact's counterparty/client/company.
+     * Returns a list of distinct, non-empty team public_ids (possibly empty).
+     */
+    public function entityTeamPublicIds(string $entityType, string $entityPublicId): array
+    {
+        if ($entityType === 'project') {
+            $stmt = $this->pdo->prepare("SELECT team_public_id FROM projects WHERE public_id = :id AND team_public_id IS NOT NULL AND team_public_id <> '' LIMIT 1");
+            $stmt->execute(['id' => $entityPublicId]);
+            $team = trim((string)($stmt->fetchColumn() ?: ''));
+            return $team !== '' ? [$team] : [];
+        }
+        if ($entityType === 'task') {
+            $stmt = $this->pdo->prepare("SELECT p.team_public_id FROM tasks t JOIN projects p ON p.id = t.project_id WHERE t.public_id = :id AND p.team_public_id IS NOT NULL AND p.team_public_id <> '' LIMIT 1");
+            $stmt->execute(['id' => $entityPublicId]);
+            $team = trim((string)($stmt->fetchColumn() ?: ''));
+            return $team !== '' ? [$team] : [];
+        }
+        if ($entityType === 'client' || $entityType === 'counterparty') {
+            $stmt = $this->pdo->prepare("SELECT DISTINCT team_public_id FROM projects WHERE client_public_id = :id AND team_public_id IS NOT NULL AND team_public_id <> '' ORDER BY team_public_id ASC");
+            $stmt->execute(['id' => $entityPublicId]);
+            return $this->columnList($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [], 'team_public_id');
+        }
+        if ($entityType === 'contact') {
+            $stmt = $this->pdo->prepare('SELECT counterparty_id, client_id, company_id FROM contacts WHERE public_id = :id LIMIT 1');
+            $stmt->execute(['id' => $entityPublicId]);
+            $contact = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+            $publicIds = [];
+            foreach (['counterparty_id' => 'counterparties', 'client_id' => 'clients', 'company_id' => 'companies'] as $column => $table) {
+                $referenceId = (int)($contact[$column] ?? 0);
+                if ($referenceId <= 0) {
+                    continue;
+                }
+                $ref = $this->pdo->prepare("SELECT public_id FROM {$table} WHERE id = :id LIMIT 1");
+                $ref->execute(['id' => $referenceId]);
+                $publicId = trim((string)($ref->fetchColumn() ?: ''));
+                if ($publicId !== '') {
+                    $publicIds[] = $publicId;
+                }
+            }
+            $publicIds = array_values(array_unique($publicIds));
+            if ($publicIds === []) {
+                return [];
+            }
+            $placeholders = implode(',', array_fill(0, count($publicIds), '?'));
+            $stmt = $this->pdo->prepare("SELECT DISTINCT team_public_id FROM projects WHERE client_public_id IN ({$placeholders}) AND team_public_id IS NOT NULL AND team_public_id <> '' ORDER BY team_public_id ASC");
+            $stmt->execute($publicIds);
+            return $this->columnList($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [], 'team_public_id');
+        }
+        return [];
+    }
+
+    /**
+     * Single-team convenience wrapper: first related team ('' when none).
      */
     public function entityTeamPublicId(string $entityType, string $entityPublicId): string
     {
-        if ($entityType === 'project') {
-            $stmt = $this->pdo->prepare('SELECT team_public_id FROM projects WHERE public_id = :id LIMIT 1');
-            $stmt->execute(['id' => $entityPublicId]);
-            return trim((string)($stmt->fetchColumn() ?: ''));
-        }
-        if ($entityType === 'task') {
-            $stmt = $this->pdo->prepare('SELECT p.team_public_id FROM tasks t JOIN projects p ON p.id = t.project_id WHERE t.public_id = :id LIMIT 1');
-            $stmt->execute(['id' => $entityPublicId]);
-            return trim((string)($stmt->fetchColumn() ?: ''));
-        }
-        return '';
+        $ids = $this->entityTeamPublicIds($entityType, $entityPublicId);
+        return $ids[0] ?? '';
+    }
+
+    private function columnList(array $rows, string $column): array
+    {
+        return array_values(array_filter(array_map(
+            fn(array $row): string => trim((string)($row[$column] ?? '')),
+            $rows
+        ), fn(string $value): bool => $value !== ''));
     }
 
     public function comments(string $pagePublicId, int $offset = 0, int $limit = 0): array

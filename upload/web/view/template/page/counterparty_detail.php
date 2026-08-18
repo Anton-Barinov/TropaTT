@@ -64,6 +64,7 @@
   <section class="crm-card crm-section-card">
     <div class="crm-section-head"><div><h2 class="h6 mb-0" data-i18n="counterparty_detail.section_knowledge"><?= htmlspecialchars($t('counterparty_detail.section_knowledge', 'База знаний'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="counterparty_detail.section_knowledge_note"><?= htmlspecialchars($t('counterparty_detail.section_knowledge_note', 'Связанные страницы и документация.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
     <div id="counterpartyKnowledgeList"><div class="text-muted small" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+    <div class="mt-3 pt-3 border-top"><h3 class="h6 d-flex align-items-center gap-2 mb-2" data-i18n="counterparty_detail.team_knowledge_title"><span class="crm-icon text-muted" aria-hidden="true"><i class="fa-solid fa-users"></i></span><?= htmlspecialchars($t('counterparty_detail.team_knowledge_title', 'Материалы команды'), ENT_QUOTES, 'UTF-8') ?></h3><div id="counterpartyTeamKnowledgeList"><div class="text-muted small" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
     <div class="mt-2 d-flex gap-2 flex-wrap"><a class="btn btn-sm crm-btn-primary" href="index.php?route=knowledge" data-i18n="counterparty_detail.btn_knowledge"><?= htmlspecialchars($t('counterparty_detail.btn_knowledge', 'Перейти в базу знаний'), ENT_QUOTES, 'UTF-8') ?></a><button id="counterpartyAttachKnowledgeBtn" class="btn btn-sm crm-btn-secondary" type="button" data-i18n="counterparty_detail.btn_attach_knowledge"><?= htmlspecialchars($t('counterparty_detail.btn_attach_knowledge', 'Прикрепить статью'), ENT_QUOTES, 'UTF-8') ?></button><a id="counterpartyCreateKnowledgeBtn" class="btn btn-sm crm-btn-secondary" href="index.php?route=knowledge" data-i18n="counterparty_detail.btn_create_knowledge"><?= htmlspecialchars($t('counterparty_detail.btn_create_knowledge', 'Создать связанную страницу'), ENT_QUOTES, 'UTF-8') ?></a></div>
   </section>
 </div>
@@ -158,19 +159,37 @@
   waitForApi(async function () {
     var api = getApi();
     var listEl = document.getElementById('counterpartyKnowledgeList');
-    if (!listEl) return;
-    try {
-      var envelope = await api.request('api/v1/knowledge/entities/counterparty/' + encodeURIComponent(counterpartyId) + '/pages', { method: 'GET' });
-      var items = envelope.data && envelope.data.items || [];
-      if (!items.length) {
-        listEl.innerHTML = '<div class="text-muted small"><?= htmlspecialchars($t('counterparty_detail.knowledge_empty', 'Нет связанных страниц'), ENT_QUOTES, 'UTF-8') ?></div>';
-      } else {
-        listEl.innerHTML = '<ul class="list-unstyled mb-0">' + items.map(function (p) {
-          return '<li class="mb-1"><a href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id) + '">' + (function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (ch) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[ch]; }); })(p.title || '') + '</a> <span class="text-muted small">(' + (function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (ch) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[ch]; }); })(p.relation_type || 'related') + ')</span></li>';
-        }).join('') + '</ul>';
+    if (listEl) {
+      try {
+        var envelope = await api.request('api/v1/knowledge/entities/counterparty/' + encodeURIComponent(counterpartyId) + '/pages', { method: 'GET' });
+        var items = envelope.data && envelope.data.items || [];
+        if (!items.length) {
+          listEl.innerHTML = '<div class="text-muted small"><?= htmlspecialchars($t('counterparty_detail.knowledge_empty', 'Нет связанных страниц'), ENT_QUOTES, 'UTF-8') ?></div>';
+        } else {
+          listEl.innerHTML = '<ul class="list-unstyled mb-0">' + items.map(function (p) {
+            return '<li class="mb-1"><a href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id) + '">' + (function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (ch) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[ch]; }); })(p.title || '') + '</a> <span class="text-muted small">(' + (function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (ch) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[ch]; }); })(p.relation_type || 'related') + ')</span></li>';
+          }).join('') + '</ul>';
+        }
+      } catch (e) {
+        listEl.innerHTML = '<div class="text-muted small">—</div>';
       }
-    } catch (e) {
-      listEl.innerHTML = '<div class="text-muted small">—</div>';
+    }
+
+    var teamEl = document.getElementById('counterpartyTeamKnowledgeList');
+    if (teamEl) {
+      try {
+        var teamEnvelope = await api.request('api/v1/knowledge/entities/counterparty/' + encodeURIComponent(counterpartyId) + '/team-pages', { method: 'GET' });
+        var teamItems = teamEnvelope.data && teamEnvelope.data.items || [];
+        if (!teamItems.length) {
+          teamEl.innerHTML = '<div class="text-muted small"><?= htmlspecialchars($t('counterparty_detail.team_knowledge_empty', 'Нет материалов команды'), ENT_QUOTES, 'UTF-8') ?></div>';
+        } else {
+          teamEl.innerHTML = '<ul class="list-unstyled mb-0">' + teamItems.map(function (p) {
+            return '<li class="mb-1"><a href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id) + '">' + (function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (ch) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[ch]; }); })(p.title || '') + '</a></li>';
+          }).join('') + '</ul>';
+        }
+      } catch (e) {
+        teamEl.innerHTML = '<div class="text-muted small">—</div>';
+      }
     }
   });
 })();
