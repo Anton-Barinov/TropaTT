@@ -29,7 +29,12 @@ window.CRM.i18n = (function () {
     base.querySelectorAll('[data-i18n]').forEach(function (node) {
       var key = node.getAttribute('data-i18n') || '';
       var fallback = node.getAttribute('data-i18n-fallback') || node.textContent || '';
-      node.textContent = t(key, fallback);
+      var value = t(key, fallback);
+      if (/<[a-z][\s\S]*>/i.test(value)) {
+        node.innerHTML = value;
+      } else {
+        node.textContent = value;
+      }
     });
 
     base.querySelectorAll('[data-i18n-placeholder]').forEach(function (node) {
