@@ -306,6 +306,17 @@ The `X-Idempotency-Key` header prevents duplicate operations.
 | PATCH, PUT | `/api/v1/contacts/{public_id}` 🔄 | Update contact | Yes | `contact.manage` | — |
 | DELETE | `/api/v1/contacts/{public_id}` 🔄 | Delete contact | Yes | `contact.manage` | — |
 
+### External Users (Client Portal)
+
+| Method | Endpoint | Description | Auth | Permissions | Notes |
+|-------|----------|------------|:---:|-------------|----------|
+| POST | `/api/v1/external-users/invite` | Invite a contact to the client portal | Yes | `contact.manage` | Creates an `external_guest` account for the contact; requires a linked counterparty and a valid email |
+| POST | `/api/v1/external-users/accept` | Accept invitation, set password | No | — | Public; requires invite `token` + `password` (min. 8 chars) |
+| GET | `/api/v1/external-users` | List external (portal) users | Yes | `contact.manage` | — |
+| POST | `/api/v1/external-users/{public_id}/deactivate` | Revoke portal access | Yes | `contact.manage` | Deactivates the external user account |
+
+**Access model:** an external user (`is_external = true`) is scoped by row-level security to their own counterparty's projects and tasks only (`ProjectService`/`TaskService` filter by `client_public_id` at the SQL level, not in PHP). Beyond permission checks, a hard route allowlist (`external_ok` in `routes.php`, enforced centrally in `App::run()`) restricts external sessions to `auth/me`, `auth/logout`, `auth/menu`, `projects` (list/get), `tasks` (list/get/create/comments/files), `files` (upload/get/download) and `notifications` — any other endpoint returns `403 EXTERNAL_ACCESS_DENIED` even where a permission check alone would allow it. The web app mirrors this at the page level: the nav menu and route access for external accounts are limited to Projects/Tasks/Notifications.
+
 ### Client Cabinet
 
 | Method | Endpoint | Description | Auth | Permissions | Notes |

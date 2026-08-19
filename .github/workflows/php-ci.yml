@@ -27,3 +27,20 @@ jobs:
       - name: PHP syntax check
         run: |
           find . -name "*.php" -not -path "./upload/vendor/*" -not -path "./upload/modules/*" -print0 | xargs -0 -n50 -P4 php -l
+
+  security-contracts:
+    name: Security contract checks (no database)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+
+      - name: External users (client portal) security contract
+        run: php upload/api/scripts/external_users_security_check.php

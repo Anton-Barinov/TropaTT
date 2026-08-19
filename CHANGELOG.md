@@ -6,6 +6,28 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ## Unreleased
 
+### Added
+
+- **Client portal (external users).** Contacts linked to a counterparty can be invited to a restricted portal. Invited guests set their own password via a public accept page and then see only their own company's projects and tasks — they can open tasks, comment, and upload/download files, but nothing else in the CRM. Invite and revoke are managed from the Contacts page.
+
+- **Client portal: route allowlist.** External guest sessions are restricted to an explicit allowlist of endpoints (`external_ok` in `api/config/routes.php`), enforced centrally for every request. Any endpoint outside the list returns `403 EXTERNAL_ACCESS_DENIED`, independently of role permissions.
+
+- **Client portal: interface isolation.** The navigation menu and web page routes are limited to Projects, Tasks and Notifications for external accounts; other page shells return 403 rather than rendering. External guests land on Projects after login instead of the dashboard.
+
+- **Security contract test for the client portal.** New database-free check (`external_users_security_contract_smoke.php`, wired into PHP CI) that fails the build if the route allowlist gains a destructive or administrative endpoint, if the seeded guest role references a permission code that does not exist, if `is_external` stops being propagated through the authentication pipeline, or if the row-level security comparisons are weakened.
+
+- **API documentation for external users.** The four `/api/v1/external-users/*` endpoints and the portal access model are now documented in the EN/RU/ZH API references.
+
+### Fixed
+
+- **Client portal: external flag was never applied.** `is_external` was not read when loading a session, so every external-guest restriction silently evaluated as an internal user and guests would have received unrestricted access.
+
+- **Client portal: guest role received no permissions.** The role seed referenced permission codes that do not exist in the system, so the role would have been created with no effective access at all.
+
+- **Client portal: task-level ownership check was a no-op.** Task access compared the project's counterparty against itself instead of the task's own counterparty, so task-level ownership was never actually verified.
+
+- **Client portal: task creation could be redirected.** External guests can no longer set the counterparty or assignee on a task they create, and must create it inside one of their own projects.
+
 ## [v0.2.0.5] - 2026-08-19
 
 ### Added

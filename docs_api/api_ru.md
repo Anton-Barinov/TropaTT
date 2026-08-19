@@ -306,6 +306,17 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | PATCH, PUT | `/api/v1/contacts/{public_id}` 🔄 | Обновление контакта | Да | `contact.manage` | — |
 | DELETE | `/api/v1/contacts/{public_id}` 🔄 | Удаление контакта | Да | `contact.manage` | — |
 
+### External Users (Client Portal)
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| POST | `/api/v1/external-users/invite` | Пригласить контакт в клиентский портал | Да | `contact.manage` | Создаёт аккаунт `external_guest` для контакта; требуется привязанный контрагент и валидный email |
+| POST | `/api/v1/external-users/accept` | Принять приглашение, задать пароль | Нет | — | Публичный; требует `token` приглашения + `password` (мин. 8 симв.) |
+| GET | `/api/v1/external-users` | Список внешних (портальных) пользователей | Да | `contact.manage` | — |
+| POST | `/api/v1/external-users/{public_id}/deactivate` | Отозвать доступ в портал | Да | `contact.manage` | Деактивирует аккаунт внешнего пользователя |
+
+**Модель доступа:** внешний пользователь (`is_external = true`) видит через row-level security только проекты и задачи своего контрагента (`ProjectService`/`TaskService` фильтруют по `client_public_id` на уровне SQL, а не в PHP-массиве). Помимо проверки прав, жёсткий allowlist маршрутов (`external_ok` в `routes.php`, применяется централизованно в `App::run()`) ограничивает внешние сессии до `auth/me`, `auth/logout`, `auth/menu`, `projects` (list/get), `tasks` (list/get/create/comments/files), `files` (upload/get/download) и `notifications` — любой другой endpoint вернёт `403 EXTERNAL_ACCESS_DENIED`, даже если проверка прав сама по себе разрешила бы доступ. Веб-приложение зеркалирует это на уровне страниц: меню и доступные маршруты для внешних аккаунтов ограничены разделами «Проекты», «Задачи», «Уведомления».
+
 ### Client Cabinet
 
 | Метод | Endpoint | Назначение | Auth | Permissions | Описание |

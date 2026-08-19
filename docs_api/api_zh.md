@@ -306,6 +306,17 @@ Authorization: Bearer <token>
 | PATCH, PUT | `/api/v1/contacts/{public_id}` 🔄 | 更新联系人 | 是 | `contact.manage` | — |
 | DELETE | `/api/v1/contacts/{public_id}` 🔄 | 删除联系人 | 是 | `contact.manage` | — |
 
+### 外部用户（客户端门户账号）
+
+| 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
+|-------|----------|------------|:---:|-------------|----------|
+| POST | `/api/v1/external-users/invite` | 邀请联系人加入客户门户 | 是 | `contact.manage` | 为联系人创建 `external_guest` 账户；要求已关联交易方且邮箱有效 |
+| POST | `/api/v1/external-users/accept` | 接受邀请并设置密码 | 否 | — | 公开接口；需要邀请 `token` 和 `password`（至少 8 位） |
+| GET | `/api/v1/external-users` | 外部（门户）用户列表 | 是 | `contact.manage` | — |
+| POST | `/api/v1/external-users/{public_id}/deactivate` | 撤销门户访问权限 | 是 | `contact.manage` | 停用外部用户账户 |
+
+**访问模型：** 外部用户（`is_external = true`）通过行级安全策略仅能看到自己所属交易方的项目和任务（`ProjectService`/`TaskService` 在 SQL 层按 `client_public_id` 过滤，而非在 PHP 数组中过滤）。除权限校验外，`routes.php` 中的硬性路由白名单（`external_ok`，在 `App::run()` 中集中校验）将外部会话限制在 `auth/me`、`auth/logout`、`auth/menu`、`projects`（列表/详情）、`tasks`（列表/详情/创建/评论/文件）、`files`（上传/获取/下载）和 `notifications` 范围内——其余任何接口即便权限检查本身允许，也会返回 `403 EXTERNAL_ACCESS_DENIED`。前端页面同样在页面级别做了镜像限制：外部账户的导航菜单和可访问路由仅限于「项目」「任务」「通知」。
+
 ### 客户门户
 
 | 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
