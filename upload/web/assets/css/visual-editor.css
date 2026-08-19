@@ -1162,6 +1162,49 @@ details.crm-ve-spoiler[open] > summary {
   background: var(--crm-surface-alt, #f3f4f6);
 }
 
+/* Mentions */
+.crm-ve-mention {
+  display: inline;
+  background: #e0e7ff;
+  color: #4f46e5;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: default;
+  user-select: all;
+}
+
+.crm-ve-mention-menu {
+  display: none;
+  position: absolute;
+  z-index: 99999;
+  background: var(--crm-surface, #fff);
+  border: 1px solid var(--crm-border, #e5e7eb);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  max-height: 200px;
+  overflow-y: auto;
+  min-width: 180px;
+  padding: 4px;
+}
+
+.crm-ve-mention-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--crm-ink, #374151);
+  transition: background 0.1s;
+}
+
+.crm-ve-mention-item:hover,
+.crm-ve-mention-item.is-active {
+  background: var(--crm-surface-alt, #f3f4f6);
+}
+
 .crm-ve-slash-icon {
   width: 28px;
   height: 28px;

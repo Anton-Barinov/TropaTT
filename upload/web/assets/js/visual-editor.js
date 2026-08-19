@@ -149,7 +149,8 @@ window.CRM.VisualEditor = (function () {
     CODE: true, PRE: true, BLOCKQUOTE: true, UL: true, OL: true, LI: true,
     A: true, H1: true, H2: true, H3: true, FIGURE: true, FIGCAPTION: true, IMG: true,
     DETAILS: true, SUMMARY: true, INPUT: true, TABLE: true, TBODY: true,
-    TR: true, TD: true, TH: true, THEAD: true, CAPTION: true, COLGROUP: true, COL: true
+    TR: true, TD: true, TH: true, THEAD: true, CAPTION: true, COLGROUP: true, COL: true,
+    SPAN: true, HR: true
   };
 
   // Tags that must be removed entirely (including their content), never
@@ -237,6 +238,22 @@ window.CRM.VisualEditor = (function () {
             } else if (tag === 'TABLE' || tag === 'THEAD' || tag === 'TBODY' || tag === 'TR' || tag === 'TD' || tag === 'TH' || tag === 'COLGROUP' || tag === 'COL' || tag === 'CAPTION') {
               // Table elements: allow class and colspan/rowspan
               if (name !== 'class' && name !== 'colspan' && name !== 'rowspan') {
+                child.removeAttribute(attr.name);
+              }
+            } else if (tag === 'SPAN') {
+              // Allow mention spans and general formatting
+              var cls = child.getAttribute('class') || '';
+              if (cls.indexOf('crm-ve-mention') !== -1) {
+                // Mention: allow data-mention-type, data-mention-id, contenteditable, class
+                if (name !== 'class' && name !== 'data-mention-type' && name !== 'data-mention-id' && name !== 'contenteditable') {
+                  child.removeAttribute(attr.name);
+                }
+              } else {
+                child.removeAttribute(attr.name);
+              }
+            } else if (tag === 'HR') {
+              // HR: allow style for custom styling
+              if (name !== 'style' && name !== 'class') {
                 child.removeAttribute(attr.name);
               }
             } else {
@@ -1902,6 +1919,241 @@ window.CRM.VisualEditor = (function () {
     selection.addRange(afterRange);
   };
 
+  // ---------------------------------------------------------------------------
+  //  @Mentions
+  // ---------------------------------------------------------------------------
+
+  var _mentionUsersCache = null;
+  var _mentionUsersPromise = null;
+
+  function fetchMentionUsers() {
+    if (_mentionUsersCache) return Promise.resolve(_mentionUsersCache);
+    if (_mentionUsersPromise) return _mentionUsersPromise;
+    _mentionUsersPromise = fetch('api/v1/users?limit=200', {
+      headers: { 'Accept': 'application/json' },
+      credentials: 'same-origin'
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      var items = (data && data.data && data.data.items) || data.items || [];
+      _mentionUsersCache = items.map(function (u) {
+        return {
+          id: u.public_id || u.id || '',
+          name: u.full_name || u.login || '',
+          login: u.login || ''
+        };
+      }).filter(function (u) { return u.id && u.name; });
+      return _mentionUsersCache;
+    })
+    .catch(function () {
+      _mentionUsersCache = [];
+      return _mentionUsersCache;
+    });
+    return _mentionUsersPromise;
+  }
+
+  function createMentionMenuEl() {
+    var menu = document.createElement('div');
+    menu.className = 'crm-ve-mention-menu';
+    menu.style.cssText = 'display:none;position:absolute;z-index:99999;background:#fff;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);max-height:200px;overflow-y:auto;min-width:180px;padding:4px;';
+    return menu;
+  }
+
+  function renderMentionMenuItems(menu, users, filter, activeIndex) {
+    var query = String(filter || '').toLowerCase().trim();
+    var items = users.filter(function (u) {
+      if (!query) return true;
+      return u.name.toLowerCase().indexOf(query) !== -1
+        || u.login.toLowerCase().indexOf(query) !== -1;
+    }).slice(0, 10);
+    menu.innerHTML = '';
+    if (!items.length) {
+      menu.style.display = 'none';
+      return items;
+    }
+    items.forEach(function (user, i) {
+      var item = document.createElement('div');
+      item.className = 'crm-ve-mention-item';
+      item.setAttribute('data-mention-id', user.id);
+      item.setAttribute('data-mention-name', user.name);
+      if (i === activeIndex) item.classList.add('is-active');
+      item.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:4px;cursor:pointer;font-size:13px;color:#374151;transition:background 0.1s;';
+      var avatar = document.createElement('span');
+      avatar.style.cssText = 'width:24px;height:24px;border-radius:50%;background:#e0e7ff;color:#4f46e5;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;';
+      avatar.textContent = (user.name || '?').charAt(0).toUpperCase();
+      var nameSpan = document.createElement('span');
+      nameSpan.textContent = user.name;
+      if (user.login) {
+        var loginSpan = document.createElement('span');
+        loginSpan.style.cssText = 'color:#9ca3af;font-size:12px;margin-left:4px;';
+        loginSpan.textContent = '@' + user.login;
+        nameSpan.appendChild(loginSpan);
+      }
+      item.appendChild(avatar);
+      item.appendChild(nameSpan);
+      menu.appendChild(item);
+    });
+    return items;
+  }
+
+  function positionMentionMenu(editorInstance) {
+    var menu = editorInstance._mentionMenu;
+    if (!menu) return;
+    var sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return;
+    var range = sel.getRangeAt(0);
+    var rect = range.getBoundingClientRect();
+    var wrapper = editorInstance._wrapper;
+    var wrapperRect = wrapper.getBoundingClientRect();
+    var top = rect.bottom - wrapperRect.top + 4;
+    var left = rect.left - wrapperRect.left;
+    left = Math.max(4, Math.min(left, wrapperRect.width - 200));
+    menu.style.top = top + 'px';
+    menu.style.left = left + 'px';
+  }
+
+  Editor.prototype._showMentionMenu = function () {
+    var self = this;
+    if (!this._mentionMenu) {
+      this._mentionMenu = createMentionMenuEl();
+      this._wrapper.appendChild(this._mentionMenu);
+    }
+    this._mentionMenuActive = true;
+    this._mentionMenuFilter = '';
+    this._mentionMenuIndex = 0;
+    // Fetch users and show menu
+    fetchMentionUsers().then(function (users) {
+      if (!self._mentionMenuActive) return;
+      self._mentionUsers = users;
+      var items = renderMentionMenuItems(self._mentionMenu, users, '', 0);
+      self._mentionMenu.style.display = items.length ? 'block' : 'none';
+      self._mentionMenuItems = items;
+      positionMentionMenu(self);
+    });
+  };
+
+  Editor.prototype._hideMentionMenu = function () {
+    if (this._mentionMenu) this._mentionMenu.style.display = 'none';
+    this._mentionMenuActive = false;
+    this._mentionMenuFilter = '';
+    this._mentionMenuIndex = 0;
+    this._mentionMenuItems = [];
+  };
+
+  Editor.prototype._selectMentionItem = function (userId, userName) {
+    // Remove the @ and filter text
+    var sel = window.getSelection();
+    if (sel && sel.rangeCount) {
+      var range = sel.getRangeAt(0);
+      var node = range.startContainer;
+      if (node.nodeType === 3) {
+        var text = node.textContent || '';
+        var offset = range.startOffset;
+        var before = text.substring(0, offset);
+        var atIdx = before.lastIndexOf('@');
+        if (atIdx >= 0) {
+          node.textContent = text.substring(0, atIdx) + text.substring(offset);
+          range.setStart(node, atIdx);
+          range.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+      }
+    }
+    this._hideMentionMenu();
+    // Insert mention chip
+    var mention = document.createElement('span');
+    mention.className = 'crm-ve-mention';
+    mention.setAttribute('data-mention-type', 'user');
+    mention.setAttribute('data-mention-id', userId);
+    mention.setAttribute('contenteditable', 'false');
+    mention.textContent = '@' + userName;
+    this._insertAtCaret(mention);
+    // Add a space after the mention
+    var space = document.createTextNode('\u00A0');
+    if (mention.nextSibling) {
+      mention.parentNode.insertBefore(space, mention.nextSibling);
+    } else {
+      mention.parentNode.appendChild(space);
+    }
+    // Move caret after the space
+    var afterRange = document.createRange();
+    afterRange.setStart(space, 1);
+    afterRange.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(afterRange);
+    this._content.focus();
+    this._sync();
+    this._history.push(this._content.innerHTML, true);
+  };
+
+  Editor.prototype._handleMentionInput = function (typedChar) {
+    if (!this._mentionMenuActive) {
+      if (typedChar === '@') {
+        var sel = window.getSelection();
+        if (sel && sel.rangeCount) {
+          var range = sel.getRangeAt(0);
+          var node = range.startContainer;
+          if (node.nodeType === 3) {
+            var text = node.textContent || '';
+            var offset = range.startOffset;
+            var before = text.substring(0, offset);
+            if (before === '' || /\s$/.test(before)) {
+              this._showMentionMenu();
+            }
+          }
+        }
+      }
+      return;
+    }
+    if (typedChar === 'Escape' || (typedChar === 'Backspace' && this._mentionMenuFilter === '')) {
+      this._hideMentionMenu();
+      return;
+    }
+    if (typedChar === 'Backspace') {
+      this._mentionMenuFilter = this._mentionMenuFilter.slice(0, -1);
+    } else if (typedChar.length === 1 && typedChar !== '@') {
+      this._mentionMenuFilter += typedChar;
+    }
+    this._mentionMenuIndex = 0;
+    var items = renderMentionMenuItems(this._mentionMenu, this._mentionUsers || [], this._mentionMenuFilter, 0);
+    this._mentionMenuItems = items;
+    if (!items.length) {
+      this._hideMentionMenu();
+    }
+  };
+
+  Editor.prototype._handleMentionKeydown = function (e) {
+    if (!this._mentionMenuActive) return false;
+    var items = this._mentionMenuItems || [];
+    if (e.key === 'Escape') {
+      this._hideMentionMenu();
+      e.preventDefault();
+      return true;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      this._mentionMenuIndex = Math.min(this._mentionMenuIndex + 1, items.length - 1);
+      renderMentionMenuItems(this._mentionMenu, this._mentionUsers || [], this._mentionMenuFilter, this._mentionMenuIndex);
+      return true;
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      this._mentionMenuIndex = Math.max(this._mentionMenuIndex - 1, 0);
+      renderMentionMenuItems(this._mentionMenu, this._mentionUsers || [], this._mentionMenuFilter, this._mentionMenuIndex);
+      return true;
+    }
+    if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault();
+      if (items[this._mentionMenuIndex]) {
+        var item = items[this._mentionMenuIndex];
+        this._selectMentionItem(item.id, item.name);
+      }
+      return true;
+    }
+    return false;
+  };
+
   Editor.prototype._bindEvents = function () {
     var self = this;
     var content = this._content;
@@ -1917,7 +2169,10 @@ window.CRM.VisualEditor = (function () {
       } else if (inputType === 'deleteContentBackward') {
         char = 'Backspace';
       }
-      if (char) self._handleSlashInput(char);
+      if (char) {
+        self._handleSlashInput(char);
+        self._handleMentionInput(char);
+      }
       self._sync();
       self._history.push(content.innerHTML, false);
       self._updateActiveButtons();
@@ -1927,6 +2182,7 @@ window.CRM.VisualEditor = (function () {
     content.addEventListener('blur', function () {
       self._wrapper.classList.remove('is-focused');
       self._hideSlashMenu();
+      self._hideMentionMenu();
       self._sync();
     });
 
@@ -1940,6 +2196,15 @@ window.CRM.VisualEditor = (function () {
     });
 
     content.addEventListener('click', function (e) {
+      // Mention menu item click
+      var mentionItem = e.target.closest('.crm-ve-mention-item');
+      if (mentionItem) {
+        e.preventDefault();
+        var userId = mentionItem.getAttribute('data-mention-id');
+        var userName = mentionItem.getAttribute('data-mention-name');
+        if (userId && userName) self._selectMentionItem(userId, userName);
+        return;
+      }
       // Slash menu item click
       var slashItem = e.target.closest('.crm-ve-slash-item');
       if (slashItem) {
@@ -1948,9 +2213,12 @@ window.CRM.VisualEditor = (function () {
         if (cmdId) self._selectSlashItem(cmdId);
         return;
       }
-      // Close slash menu on click elsewhere
+      // Close menus on click elsewhere
       if (self._slashMenuActive) {
         self._hideSlashMenu();
+      }
+      if (self._mentionMenuActive) {
+        self._hideMentionMenu();
       }
       // Todo checkbox toggle
       var todoCb = e.target.closest('.crm-ve-todo-cb');
@@ -2014,6 +2282,10 @@ window.CRM.VisualEditor = (function () {
     // Slash menu: intercept arrow/enter/tab/escape when active
     if (self._slashMenuActive) {
       if (self._handleSlashKeydown(e)) return;
+    }
+    // Mention menu: intercept arrow/enter/tab/escape when active
+    if (self._mentionMenuActive) {
+      if (self._handleMentionKeydown(e)) return;
     }
 
     if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
@@ -3007,6 +3279,23 @@ window.CRM.VisualEditor = (function () {
       + '  display: block !important;\n'
       + '}\n'
       + '.crm-ve-slash-item:hover, .crm-ve-slash-item.is-active {\n'
+      + '  background: #f3f4f6;\n'
+      + '}\n'
+      + '/* Mentions */\n'
+      + '.crm-ve-mention {\n'
+      + '  display: inline;\n'
+      + '  background: #e0e7ff;\n'
+      + '  color: #4f46e5;\n'
+      + '  padding: 1px 6px;\n'
+      + '  border-radius: 4px;\n'
+      + '  font-weight: 500;\n'
+      + '  cursor: default;\n'
+      + '  user-select: all;\n'
+      + '}\n'
+      + '.crm-ve-mention-menu[style*="display: block"] {\n'
+      + '  display: block !important;\n'
+      + '}\n'
+      + '.crm-ve-mention-item:hover, .crm-ve-mention-item.is-active {\n'
       + '  background: #f3f4f6;\n'
       + '}\n'
     );
