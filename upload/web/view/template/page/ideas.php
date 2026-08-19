@@ -56,7 +56,7 @@
 <!-- Delete confirmation modal -->
 <div class="modal fade" id="deleteIdeaModal" tabindex="-1">
   <div class="modal-dialog"><div class="modal-content">
-    <div class="modal-header"><h5 class="modal-title" data-i18n="ideas.modal_delete_title"><?= htmlspecialchars($t('ideas.modal_delete_title', 'Удалить идею'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-header"><h5 class="modal-title" data-i18n="ideas.modal_delete_title"><?= htmlspecialchars($t('ideas.modal_delete_title', 'Удалить идею'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть" data-i18n-aria-label="page.close"></button></div>
     <div class="modal-body"><p data-i18n="ideas.modal_delete_body"><?= htmlspecialchars($t('ideas.modal_delete_body', 'Вы уверены, что хотите удалить эту идею? Это действие нельзя отменить.'), ENT_QUOTES, 'UTF-8') ?></p></div>
     <div class="modal-footer"><button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button><button type="button" class="btn crm-btn-danger-soft" id="confirmDeleteBtn" data-i18n="page.delete"><?= htmlspecialchars($t('page.delete', 'Удалить'), ENT_QUOTES, 'UTF-8') ?></button></div>
   </div></div>

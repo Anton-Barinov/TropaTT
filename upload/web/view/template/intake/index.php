@@ -112,7 +112,7 @@
 <div id="intakePager" class="crm-table-pager d-none"></div>
 
 <!-- Create Modal -->
-<div class="modal fade" id="intakeCreateModal" tabindex="-1" data-intake-modal="create"><div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" data-i18n="intake.modal_create_title"><?= htmlspecialchars($t('intake.modal_create_title', 'Новая заявка'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body">
+<div class="modal fade" id="intakeCreateModal" tabindex="-1" data-intake-modal="create"><div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" data-i18n="intake.modal_create_title"><?= htmlspecialchars($t('intake.modal_create_title', 'Новая заявка'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть" data-i18n-aria-label="page.close"></button></div><div class="modal-body">
   <form id="intakeCreateForm" novalidate>
     <div class="mb-3"><label class="form-label" data-i18n="intake.field_title"><?= htmlspecialchars($t('intake.field_title', 'Название'), ENT_QUOTES, 'UTF-8') ?> <span class="text-danger">*</span></label><input class="form-control" name="title" required maxlength="255" placeholder="<?= htmlspecialchars($t('intake.field_title_placeholder', 'Введите название заявки'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="intake.field_title_placeholder"></div>
     <div class="mb-3"><label class="form-label" data-i18n="intake.field_description"><?= htmlspecialchars($t('intake.field_description', 'Описание'), ENT_QUOTES, 'UTF-8') ?></label><textarea class="form-control" name="description" rows="4" maxlength="65535" placeholder="<?= htmlspecialchars($t('intake.field_description_placeholder', 'Подробное описание обращения'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="intake.field_description_placeholder" data-crm-visual-editor="1" data-richtext-off="1"></textarea></div>
@@ -133,12 +133,12 @@
 </div></div></div></div>
 
 <!-- Edit/Detail Modal -->
-<div class="modal fade" id="intakeDetailModal" tabindex="-1" data-intake-modal="detail"><div class="modal-dialog modal-xl"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="intakeDetailTitle"></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body" id="intakeDetailBody">
+<div class="modal fade" id="intakeDetailModal" tabindex="-1" data-intake-modal="detail"><div class="modal-dialog modal-xl"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="intakeDetailTitle"></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть" data-i18n-aria-label="page.close"></button></div><div class="modal-body" id="intakeDetailBody">
   <div class="text-center py-4 text-muted" data-i18n="intake.loading_detail"><?= htmlspecialchars($t('intake.loading_detail', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>
 </div><div class="modal-footer" id="intakeDetailFooter"></div></div></div></div>
 
 <!-- Accept Modal -->
-<div class="modal fade" id="intakeAcceptModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" data-i18n="intake.accept_title"><?= htmlspecialchars($t('intake.accept_title', 'Принять заявку в работу'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body">
+<div class="modal fade" id="intakeAcceptModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" data-i18n="intake.accept_title"><?= htmlspecialchars($t('intake.accept_title', 'Принять заявку в работу'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть" data-i18n-aria-label="page.close"></button></div><div class="modal-body">
   <form id="intakeAcceptForm">
     <p class="text-muted small mb-3" id="intakeAcceptItemTitle"></p>
     <div class="mb-3"><label class="form-label" data-i18n="intake.accept_project"><?= htmlspecialchars($t('intake.accept_project', 'Проект для задачи'), ENT_QUOTES, 'UTF-8') ?> <span class="text-danger">*</span></label><select class="form-select" name="project_public_id" required><option value="" data-i18n="intake.field_no_project"><?= htmlspecialchars($t('intake.field_no_project', 'Без проекта'), ENT_QUOTES, 'UTF-8') ?></option></select></div>
@@ -151,7 +151,7 @@
 </div></div></div></div>
 
 <!-- Reject Modal -->
-<div class="modal fade" id="intakeRejectModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" data-i18n="intake.reject_title"><?= htmlspecialchars($t('intake.reject_title', 'Отклонить заявку'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body">
+<div class="modal fade" id="intakeRejectModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" data-i18n="intake.reject_title"><?= htmlspecialchars($t('intake.reject_title', 'Отклонить заявку'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть" data-i18n-aria-label="page.close"></button></div><div class="modal-body">
   <form id="intakeRejectForm">
     <div class="mb-3"><label class="form-label" data-i18n="intake.reject_reason"><?= htmlspecialchars($t('intake.reject_reason', 'Причина отклонения'), ENT_QUOTES, 'UTF-8') ?> <span class="text-danger">*</span></label><textarea class="form-control" name="reason" rows="3" required placeholder="<?= htmlspecialchars($t('intake.reject_reason_placeholder', 'Укажите причину'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="intake.reject_reason_placeholder"></textarea></div>
     <input type="hidden" name="intake_public_id" value="">
@@ -162,7 +162,7 @@
 </div></div></div></div>
 
 <!-- Snooze Modal -->
-<div class="modal fade" id="intakeSnoozeModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" data-i18n="intake.snooze_title"><?= htmlspecialchars($t('intake.snooze_title', 'Отложить заявку'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body">
+<div class="modal fade" id="intakeSnoozeModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" data-i18n="intake.snooze_title"><?= htmlspecialchars($t('intake.snooze_title', 'Отложить заявку'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть" data-i18n-aria-label="page.close"></button></div><div class="modal-body">
   <form id="intakeSnoozeForm">
     <div class="mb-3"><label class="form-label" data-i18n="intake.snooze_until"><?= htmlspecialchars($t('intake.snooze_until', 'Отложить до'), ENT_QUOTES, 'UTF-8') ?> <span class="text-danger">*</span></label><input class="form-control" name="snoozed_until" type="datetime-local" required></div>
     <div class="mb-3"><label class="form-label" data-i18n="intake.snooze_reason"><?= htmlspecialchars($t('intake.snooze_reason', 'Причина'), ENT_QUOTES, 'UTF-8') ?></label><textarea class="form-control" name="reason" rows="2" placeholder="<?= htmlspecialchars($t('intake.snooze_reason_placeholder', 'Например: ждём ответа от клиента'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="intake.snooze_reason_placeholder"></textarea></div>
@@ -174,7 +174,7 @@
 </div></div></div></div>
 
 <!-- Duplicate Modal -->
-<div class="modal fade" id="intakeDuplicateModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" data-i18n="intake.duplicate_title"><?= htmlspecialchars($t('intake.duplicate_title', 'Пометить как дубликат'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body">
+<div class="modal fade" id="intakeDuplicateModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" data-i18n="intake.duplicate_title"><?= htmlspecialchars($t('intake.duplicate_title', 'Пометить как дубликат'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть" data-i18n-aria-label="page.close"></button></div><div class="modal-body">
   <form id="intakeDuplicateForm">
     <div class="mb-3"><label class="form-label" data-i18n="intake.duplicate_target"><?= htmlspecialchars($t('intake.duplicate_target', 'Дубликат заявки'), ENT_QUOTES, 'UTF-8') ?></label>
       <select class="form-select" name="duplicate_intake_item_public_id"><option value="" data-i18n="intake.duplicate_select_intake"><?= htmlspecialchars($t('intake.duplicate_select_intake', 'Выберите заявку'), ENT_QUOTES, 'UTF-8') ?></option></select>
@@ -192,7 +192,7 @@
 </div></div></div></div>
 
 <!-- Bulk Action Modal -->
-<div class="modal fade" id="intakeBulkModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="intakeBulkModalTitle" data-i18n="intake.bulk_modal_title"><?= htmlspecialchars($t('intake.bulk_modal_title', 'Массовое действие'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body">
+<div class="modal fade" id="intakeBulkModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="intakeBulkModalTitle" data-i18n="intake.bulk_modal_title"><?= htmlspecialchars($t('intake.bulk_modal_title', 'Массовое действие'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть" data-i18n-aria-label="page.close"></button></div><div class="modal-body">
   <form id="intakeBulkForm">
     <p class="text-muted small mb-3" id="intakeBulkSummary"></p>
     <div class="mb-3" data-intake-bulk-field="project"><label class="form-label" data-i18n="intake.accept_project"><?= htmlspecialchars($t('intake.accept_project', 'Проект для задачи'), ENT_QUOTES, 'UTF-8') ?></label><select class="form-select" name="project_public_id"><option value="" data-i18n="intake.field_no_project"><?= htmlspecialchars($t('intake.field_no_project', 'Без проекта'), ENT_QUOTES, 'UTF-8') ?></option></select></div>
