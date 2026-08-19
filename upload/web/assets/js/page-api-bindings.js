@@ -24997,12 +24997,45 @@ window.CRM.pageApiBindings = (function () {
 
       var preferences = (prefEnvelope && prefEnvelope.data && prefEnvelope.data.preferences) || {};
       if (userPrefsState) {
-        var sound = Boolean(preferences.notification_sound_enabled);
-        var push = Boolean(preferences.notification_push_enabled);
-        var quiet = Boolean(preferences.notification_quiet_hours_enabled);
-        userPrefsState.textContent = tp('admin_settings.sound_prefix', 'Sound: ') + (sound ? tp('admin_settings.enabled_lower', 'enabled') : tp('admin_settings.disabled_lower', 'disabled'))
-          + ', ' + tp('admin_settings.push_prefix', 'push notifications: ') + (push ? tp('admin_settings.enabled_plural', 'enabled') : tp('admin_settings.disabled_plural', 'disabled'))
-          + ', ' + tp('admin_settings.quiet_hours_prefix', 'quiet hours: ') + (quiet ? tp('admin_settings.enabled_plural', 'enabled') : tp('admin_settings.disabled_plural', 'disabled'));
+        userPrefsState.style.display = 'none';
+        var prefsForm = document.getElementById('adminSettingsUserPrefsForm');
+        if (prefsForm) {
+          prefsForm.style.display = '';
+          var soundToggle = document.getElementById('adminPrefsSound');
+          var quietToggle = document.getElementById('adminPrefsQuietHours');
+          var quietRow = document.getElementById('adminPrefsQuietHoursRow');
+          var quietStart = document.getElementById('adminPrefsQuietStart');
+          var quietEnd = document.getElementById('adminPrefsQuietEnd');
+          var saveBtn = document.getElementById('adminPrefsSaveBtn');
+          if (soundToggle) soundToggle.checked = Boolean(preferences.notify_sound_enabled || preferences.notification_sound_enabled);
+          if (quietToggle) quietToggle.checked = Boolean(preferences.notify_quiet_hours_enabled || preferences.notification_quiet_hours_enabled);
+          if (quietRow) quietRow.style.display = (quietToggle && quietToggle.checked) ? '' : 'none';
+          if (quietStart) quietStart.value = preferences.notify_quiet_hours_start || '22:00';
+          if (quietEnd) quietEnd.value = preferences.notify_quiet_hours_end || '08:00';
+          if (quietToggle) quietToggle.addEventListener('change', function () {
+            if (quietRow) quietRow.style.display = this.checked ? '' : 'none';
+          });
+          if (saveBtn && !saveBtn.dataset.bound) {
+            saveBtn.dataset.bound = '1';
+            saveBtn.addEventListener('click', async function () {
+              var body = {
+                preferences: {
+                  notify_sound_enabled: soundToggle ? !!soundToggle.checked : true,
+                  notify_quiet_hours_enabled: quietToggle ? !!quietToggle.checked : false,
+                  notify_quiet_hours_start: quietStart ? String(quietStart.value || '22:00') : '22:00',
+                  notify_quiet_hours_end: quietEnd ? String(quietEnd.value || '08:00') : '08:00'
+                }
+              };
+              try {
+                await request('api/v1/profile/preferences', { method: 'PATCH', body: body });
+                notify(tp('admin_settings.prefs_saved', 'Настройки уведомлений сохранены'));
+              } catch (e) {
+                var err = window.CRM.api && window.CRM.api.normalizeError ? window.CRM.api.normalizeError(e, tp('admin_settings.prefs_save_fail', 'Не удалось сохранить настройки')) : tp('admin_settings.prefs_save_fail', 'Не удалось сохранить настройки');
+                notify(err, 'error');
+              }
+            });
+          }
+        }
       }
 
       if (systemBody) {
