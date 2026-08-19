@@ -1238,6 +1238,12 @@ $auJs = [
   withAction('initial load', async () => {
     await loadStatus();
     await check();
+    // Explicitly load changes after check — the auto-call inside check()
+    // swallows errors via .catch(() => {}) which leaves the section stuck
+    // on "Не загружено" when the first request fails or is slow.
+    try {
+      await changes();
+    } catch (_) { /* rendered by renderChanges fallback */ }
   });
 })();
 </script>
