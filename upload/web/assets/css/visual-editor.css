@@ -1129,3 +1129,49 @@ details.crm-ve-spoiler[open] > summary {
   outline: 2px solid #4f46e5;
   outline-offset: -2px;
 }
+
+/* Slash menu */
+.crm-ve-slash-menu {
+  display: none;
+  position: absolute;
+  z-index: 99999;
+  background: var(--crm-surface, #fff);
+  border: 1px solid var(--crm-border, #e5e7eb);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  max-height: 240px;
+  overflow-y: auto;
+  min-width: 200px;
+  padding: 4px;
+}
+
+.crm-ve-slash-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--crm-ink, #374151);
+  transition: background 0.1s;
+}
+
+.crm-ve-slash-item:hover,
+.crm-ve-slash-item.is-active {
+  background: var(--crm-surface-alt, #f3f4f6);
+}
+
+.crm-ve-slash-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--crm-surface-alt, #f3f4f6);
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--crm-muted, #6b7280);
+  flex-shrink: 0;
+}

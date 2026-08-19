@@ -1651,6 +1651,217 @@ window.CRM.VisualEditor = (function () {
     this._updateEmptyState();
   };
 
+  // ---------------------------------------------------------------------------
+  //  Slash menu (/)
+  // ---------------------------------------------------------------------------
+
+  var SLASH_COMMANDS = [
+    { id: 'h2', label: 'Heading 2', icon: 'H2', keywords: 'heading h2 title', action: 'formatBlock', value: 'h2' },
+    { id: 'h3', label: 'Heading 3', icon: 'H3', keywords: 'heading h3 subtitle', action: 'formatBlock', value: 'h3' },
+    { id: 'bullet', label: 'Bullet list', icon: '\u2022', keywords: 'list bullet unordered', action: 'insertUnorderedList' },
+    { id: 'ordered', label: 'Ordered list', icon: '1.', keywords: 'list number ordered', action: 'insertOrderedList' },
+    { id: 'todo', label: 'To-do list', icon: '\u2611', keywords: 'todo checkbox task check', action: 'todoList' },
+    { id: 'quote', label: 'Quote', icon: '\u201C', keywords: 'quote blockquote', action: 'formatBlock', value: 'blockquote' },
+    { id: 'code', label: 'Code block', icon: '</>', keywords: 'code pre block', action: 'codeBlock' },
+    { id: 'table', label: 'Table', icon: '\u25A6', keywords: 'table grid', action: 'insertTable' },
+    { id: 'divider', label: 'Divider', icon: '\u2014', keywords: 'divider horizontal rule line separator', action: 'divider' }
+  ];
+
+  function createSlashMenuEl() {
+    var menu = document.createElement('div');
+    menu.className = 'crm-ve-slash-menu';
+    menu.style.cssText = 'display:none;position:absolute;z-index:99999;background:#fff;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);max-height:240px;overflow-y:auto;min-width:200px;padding:4px;';
+    return menu;
+  }
+
+  function renderSlashMenuItems(menu, filter, activeIndex) {
+    var query = String(filter || '').toLowerCase().trim();
+    var items = SLASH_COMMANDS.filter(function (cmd) {
+      if (!query) return true;
+      return cmd.label.toLowerCase().indexOf(query) !== -1
+        || cmd.keywords.toLowerCase().indexOf(query) !== -1;
+    });
+    menu.innerHTML = '';
+    if (!items.length) {
+      menu.style.display = 'none';
+      return items;
+    }
+    items.forEach(function (cmd, i) {
+      var item = document.createElement('div');
+      item.className = 'crm-ve-slash-item';
+      item.setAttribute('data-slash-cmd', cmd.id);
+      if (i === activeIndex) item.classList.add('is-active');
+      item.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:4px;cursor:pointer;font-size:13px;color:#374151;transition:background 0.1s;';
+      var iconSpan = document.createElement('span');
+      iconSpan.className = 'crm-ve-slash-icon';
+      iconSpan.style.cssText = 'width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:#f3f4f6;border-radius:4px;font-size:13px;font-weight:600;color:#6b7280;flex-shrink:0;';
+      iconSpan.textContent = cmd.icon;
+      var labelSpan = document.createElement('span');
+      labelSpan.textContent = cmd.label;
+      item.appendChild(iconSpan);
+      item.appendChild(labelSpan);
+      menu.appendChild(item);
+    });
+    return items;
+  }
+
+  function positionSlashMenu(editorInstance) {
+    var menu = editorInstance._slashMenu;
+    if (!menu) return;
+    var sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return;
+    var range = sel.getRangeAt(0);
+    var rect = range.getBoundingClientRect();
+    var wrapper = editorInstance._wrapper;
+    var wrapperRect = wrapper.getBoundingClientRect();
+    var top = rect.bottom - wrapperRect.top + 4;
+    var left = rect.left - wrapperRect.left;
+    // Keep menu within wrapper bounds
+    left = Math.max(4, Math.min(left, wrapperRect.width - 220));
+    menu.style.top = top + 'px';
+    menu.style.left = left + 'px';
+  }
+
+  Editor.prototype._showSlashMenu = function () {
+    if (!this._slashMenu) {
+      this._slashMenu = createSlashMenuEl();
+      this._wrapper.appendChild(this._slashMenu);
+    }
+    this._slashMenuActive = true;
+    this._slashMenuFilter = '';
+    this._slashMenuIndex = 0;
+    var items = renderSlashMenuItems(this._slashMenu, '', 0);
+    this._slashMenu.style.display = items.length ? 'block' : 'none';
+    this._slashMenuItems = items;
+    positionSlashMenu(this);
+  };
+
+  Editor.prototype._hideSlashMenu = function () {
+    if (this._slashMenu) this._slashMenu.style.display = 'none';
+    this._slashMenuActive = false;
+    this._slashMenuFilter = '';
+    this._slashMenuIndex = 0;
+    this._slashMenuItems = [];
+  };
+
+  Editor.prototype._selectSlashItem = function (cmdId) {
+    var cmd = SLASH_COMMANDS.find(function (c) { return c.id === cmdId; });
+    if (!cmd) return;
+    // Remove the slash and filter text from the current line
+    var sel = window.getSelection();
+    if (sel && sel.rangeCount) {
+      var range = sel.getRangeAt(0);
+      var node = range.startContainer;
+      if (node.nodeType === 3) {
+        var text = node.textContent || '';
+        var offset = range.startOffset;
+        var before = text.substring(0, offset);
+        var slashIdx = before.lastIndexOf('/');
+        if (slashIdx >= 0) {
+          node.textContent = text.substring(0, slashIdx) + text.substring(offset);
+          range.setStart(node, slashIdx);
+          range.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+      }
+    }
+    this._hideSlashMenu();
+    // Execute the command
+    if (cmd.action === 'divider') {
+      var hr = document.createElement('hr');
+      hr.style.cssText = 'border:none;border-top:1px solid #e5e7eb;margin:12px 0;';
+      this._insertAtCaret(hr);
+    } else if (cmd.action === 'todoList') {
+      this._execTodoList();
+    } else if (cmd.action === 'insertTable') {
+      this._execTable(3, 3);
+    } else if (cmd.action === 'codeBlock') {
+      this._execCodeBlock();
+    } else if (cmd.action === 'formatBlock') {
+      document.execCommand('formatBlock', false, '<' + cmd.value + '>');
+    } else {
+      document.execCommand(cmd.action, false, cmd.value || null);
+    }
+    this._sync();
+    this._history.push(this._content.innerHTML, true);
+  };
+
+  Editor.prototype._handleSlashInput = function (typedChar) {
+    if (!this._slashMenuActive) {
+      if (typedChar === '/') {
+        // Only activate at start of line or after whitespace
+        var sel = window.getSelection();
+        if (sel && sel.rangeCount) {
+          var range = sel.getRangeAt(0);
+          var node = range.startContainer;
+          if (node.nodeType === 3) {
+            var text = node.textContent || '';
+            var offset = range.startOffset;
+            var before = text.substring(0, offset);
+            if (before === '' || /\s$/.test(before)) {
+              this._showSlashMenu();
+            }
+          }
+        }
+      }
+      return;
+    }
+    // Update filter
+    if (typedChar === 'Escape' || typedChar === 'Backspace' && this._slashMenuFilter === '') {
+      this._hideSlashMenu();
+      return;
+    }
+    if (typedChar === 'Backspace') {
+      this._slashMenuFilter = this._slashMenuFilter.slice(0, -1);
+    } else if (typedChar.length === 1) {
+      this._slashMenuFilter += typedChar;
+    }
+    this._slashMenuIndex = 0;
+    var items = renderSlashMenuItems(this._slashMenu, this._slashMenuFilter, 0);
+    this._slashMenuItems = items;
+    if (!items.length) {
+      this._hideSlashMenu();
+    }
+  };
+
+  Editor.prototype._handleSlashKeydown = function (e) {
+    if (!this._slashMenuActive) return false;
+    var items = this._slashMenuItems || [];
+    if (e.key === 'Escape') {
+      this._hideSlashMenu();
+      e.preventDefault();
+      return true;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      this._slashMenuIndex = Math.min(this._slashMenuIndex + 1, items.length - 1);
+      renderSlashMenuItems(this._slashMenu, this._slashMenuFilter, this._slashMenuIndex);
+      return true;
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      this._slashMenuIndex = Math.max(this._slashMenuIndex - 1, 0);
+      renderSlashMenuItems(this._slashMenu, this._slashMenuFilter, this._slashMenuIndex);
+      return true;
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (items[this._slashMenuIndex]) {
+        this._selectSlashItem(items[this._slashMenuIndex].id);
+      }
+      return true;
+    }
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      if (items[this._slashMenuIndex]) {
+        this._selectSlashItem(items[this._slashMenuIndex].id);
+      }
+      return true;
+    }
+    return false;
+  };
+
   // Inline code (</>): wraps the current selection in <code> or, without a
   // selection, inserts an empty <code> and puts the caret inside so the user
   // can start typing code immediately.
@@ -1695,9 +1906,18 @@ window.CRM.VisualEditor = (function () {
     var self = this;
     var content = this._content;
 
-    content.addEventListener('input', function () {
+    content.addEventListener('input', function (e) {
       // Auto-convert `[] ` at start of line into a todo list
       self._convertBracketsToTodo();
+      // Slash menu: track typed characters
+      var inputType = e.inputType || '';
+      var char = '';
+      if (inputType === 'insertText' && e.data) {
+        char = e.data;
+      } else if (inputType === 'deleteContentBackward') {
+        char = 'Backspace';
+      }
+      if (char) self._handleSlashInput(char);
       self._sync();
       self._history.push(content.innerHTML, false);
       self._updateActiveButtons();
@@ -1706,6 +1926,7 @@ window.CRM.VisualEditor = (function () {
 
     content.addEventListener('blur', function () {
       self._wrapper.classList.remove('is-focused');
+      self._hideSlashMenu();
       self._sync();
     });
 
@@ -1719,6 +1940,18 @@ window.CRM.VisualEditor = (function () {
     });
 
     content.addEventListener('click', function (e) {
+      // Slash menu item click
+      var slashItem = e.target.closest('.crm-ve-slash-item');
+      if (slashItem) {
+        e.preventDefault();
+        var cmdId = slashItem.getAttribute('data-slash-cmd');
+        if (cmdId) self._selectSlashItem(cmdId);
+        return;
+      }
+      // Close slash menu on click elsewhere
+      if (self._slashMenuActive) {
+        self._hideSlashMenu();
+      }
       // Todo checkbox toggle
       var todoCb = e.target.closest('.crm-ve-todo-cb');
       if (todoCb) {
@@ -1777,6 +2010,11 @@ window.CRM.VisualEditor = (function () {
 
   Editor.prototype._onKeyDown = function (e) {
     var self = this;
+
+    // Slash menu: intercept arrow/enter/tab/escape when active
+    if (self._slashMenuActive) {
+      if (self._handleSlashKeydown(e)) return;
+    }
 
     if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
       e.preventDefault();
@@ -2763,6 +3001,13 @@ window.CRM.VisualEditor = (function () {
       + '.crm-ve-table td:focus, .crm-ve-table th:focus {\n'
       + '  outline: 2px solid #4f46e5;\n'
       + '  outline-offset: -2px;\n'
+      + '}\n'
+      + '/* Slash menu */\n'
+      + '.crm-ve-slash-menu[style*="display: block"] {\n'
+      + '  display: block !important;\n'
+      + '}\n'
+      + '.crm-ve-slash-item:hover, .crm-ve-slash-item.is-active {\n'
+      + '  background: #f3f4f6;\n'
       + '}\n'
     );
 
