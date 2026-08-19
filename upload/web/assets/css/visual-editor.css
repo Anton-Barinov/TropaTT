@@ -1062,3 +1062,70 @@ details.crm-ve-spoiler[open] > summary {
     --crm-ve-radius: 12px;
   }
 }
+
+/* Todo list */
+.crm-ve-todo-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0 0 8px;
+}
+
+.crm-ve-todo-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 2px 0;
+  line-height: 1.6;
+}
+
+.crm-ve-todo-cb {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin-top: 4px;
+  cursor: pointer;
+  accent-color: #4f46e5;
+}
+
+.crm-ve-todo-text {
+  flex: 1;
+}
+
+.crm-ve-todo-item.is-checked .crm-ve-todo-text {
+  text-decoration: line-through;
+  color: #9ca3af;
+}
+
+/* Table */
+.crm-ve-table-wrap {
+  overflow-x: auto;
+  margin: 0 0 8px;
+  border: 1px solid var(--crm-border, #e5e7eb);
+  border-radius: 6px;
+}
+
+.crm-ve-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.crm-ve-table td,
+.crm-ve-table th {
+  border: 1px solid var(--crm-border, #e5e7eb);
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: top;
+  min-width: 80px;
+}
+
+.crm-ve-table th {
+  background: var(--crm-surface-alt, #f9fafb);
+  font-weight: 600;
+}
+
+.crm-ve-table td:focus,
+.crm-ve-table th:focus {
+  outline: 2px solid #4f46e5;
+  outline-offset: -2px;
+}

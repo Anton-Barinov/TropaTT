@@ -148,7 +148,8 @@ window.CRM.VisualEditor = (function () {
     P: true, BR: true, STRONG: true, B: true, EM: true, I: true, S: true, U: true,
     CODE: true, PRE: true, BLOCKQUOTE: true, UL: true, OL: true, LI: true,
     A: true, H1: true, H2: true, H3: true, FIGURE: true, FIGCAPTION: true, IMG: true,
-    DETAILS: true, SUMMARY: true
+    DETAILS: true, SUMMARY: true, INPUT: true, TABLE: true, TBODY: true,
+    TR: true, TD: true, TH: true, THEAD: true, CAPTION: true, COLGROUP: true, COL: true
   };
 
   // Tags that must be removed entirely (including their content), never
@@ -160,7 +161,8 @@ window.CRM.VisualEditor = (function () {
 
   var BLOCK_TAGS = {
     P: true, H1: true, H2: true, H3: true, BLOCKQUOTE: true, PRE: true,
-    UL: true, OL: true, LI: true, FIGURE: true, DETAILS: true
+    UL: true, OL: true, LI: true, FIGURE: true, DETAILS: true, TABLE: true,
+    TBODY: true, TR: true, TD: true, TH: true
   };
 
   function sanitizeHtml(rawHtml) {
@@ -226,6 +228,15 @@ window.CRM.VisualEditor = (function () {
               }
             } else if (tag === 'DETAILS' || tag === 'SUMMARY') {
               if (name !== 'class') {
+                child.removeAttribute(attr.name);
+              }
+            } else if (tag === 'INPUT') {
+              if (name !== 'type' && name !== 'disabled' && name !== 'data-checked') {
+                child.removeAttribute(attr.name);
+              }
+            } else if (tag === 'TABLE' || tag === 'THEAD' || tag === 'TBODY' || tag === 'TR' || tag === 'TD' || tag === 'TH' || tag === 'COLGROUP' || tag === 'COL' || tag === 'CAPTION') {
+              // Table elements: allow class and colspan/rowspan
+              if (name !== 'class' && name !== 'colspan' && name !== 'rowspan') {
                 child.removeAttribute(attr.name);
               }
             } else {
@@ -1230,6 +1241,10 @@ window.CRM.VisualEditor = (function () {
           self._execSpoiler();
         } else if (cmd === 'codeBlock') {
           self._execCodeBlock();
+        } else if (cmd === 'todoList') {
+          self._execTodoList();
+        } else if (cmd === 'insertTable') {
+          self._execTable(3, 3);
         } else {
           document.execCommand(cmd, false, value || null);
         }
@@ -1275,6 +1290,16 @@ window.CRM.VisualEditor = (function () {
       '<i class="fa-solid fa-list-ol" aria-hidden="true"></i>',
       t('visual_editor.ordered_list', 'Ordered list'),
       'insertOrderedList'
+    );
+    addBtn(
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><path d="M3 14h7v7"/></svg>',
+      t('visual_editor.todo_list', 'To-do list'),
+      'todoList'
+    );
+    addBtn(
+      '<i class="fa-solid fa-table-cells" aria-hidden="true"></i>',
+      t('visual_editor.table', 'Table'),
+      'insertTable'
     );
     addBtn(
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
@@ -1473,6 +1498,159 @@ window.CRM.VisualEditor = (function () {
     this._updateEmptyState();
   };
 
+  // ---------------------------------------------------------------------------
+  //  Todo list
+  // ---------------------------------------------------------------------------
+
+  // Creates a single todo list item: <li><input type="checkbox" data-checked=""><span>text</span></li>
+  function createTodoItem(text, checked) {
+    var li = document.createElement('li');
+    li.className = 'crm-ve-todo-item';
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.className = 'crm-ve-todo-cb';
+    if (checked) cb.setAttribute('data-checked', 'true');
+    var span = document.createElement('span');
+    span.className = 'crm-ve-todo-text';
+    span.textContent = text || '';
+    if (!text) span.appendChild(document.createElement('br'));
+    li.appendChild(cb);
+    li.appendChild(span);
+    return li;
+  }
+
+  Editor.prototype._execTodoList = function () {
+    var selection = window.getSelection();
+    var range = selection && selection.rangeCount ? selection.getRangeAt(0) : null;
+    if (!range) return;
+
+    var ul = document.createElement('ul');
+    ul.className = 'crm-ve-todo-list';
+
+    if (range.collapsed) {
+      ul.appendChild(createTodoItem('', false));
+      range.insertNode(ul);
+      // Place caret inside the todo text span
+      var firstLi = ul.querySelector('li');
+      var textSpan = firstLi ? firstLi.querySelector('.crm-ve-todo-text') : null;
+      if (textSpan) {
+        var caretRange = document.createRange();
+        caretRange.setStart(textSpan, 0);
+        caretRange.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(caretRange);
+      }
+    } else {
+      // Wrap selected content in todo items (one per line)
+      var fragment = range.extractContents();
+      var tempDiv = document.createElement('div');
+      tempDiv.appendChild(fragment);
+      var lines = tempDiv.textContent.split('\n').map(function (l) { return l.trim(); }).filter(Boolean);
+      if (!lines.length) lines = [''];
+      lines.forEach(function (line) {
+        ul.appendChild(createTodoItem(line, false));
+      });
+      range.insertNode(ul);
+    }
+
+    this._sync();
+    this._history.push(this._content.innerHTML, true);
+    this._updateEmptyState();
+  };
+
+  // Toggle a todo checkbox
+  Editor.prototype._toggleTodo = function (checkbox) {
+    if (!checkbox) return;
+    var isChecked = checkbox.hasAttribute('data-checked');
+    if (isChecked) {
+      checkbox.removeAttribute('data-checked');
+    } else {
+      checkbox.setAttribute('data-checked', 'true');
+    }
+    // Toggle visual state
+    var li = checkbox.closest('.crm-ve-todo-item');
+    if (li) li.classList.toggle('is-checked', !isChecked);
+    this._sync();
+    this._history.push(this._content.innerHTML, true);
+  };
+
+  // Convert `[] ` at the start of a paragraph into a todo list
+  Editor.prototype._convertBracketsToTodo = function () {
+    var sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return false;
+    var range = sel.getRangeAt(0);
+    if (!range.collapsed) return false;
+    var node = range.startContainer;
+    if (node.nodeType !== 3) return false;
+    var text = node.textContent || '';
+    var offset = range.startOffset;
+    // Check if the text before cursor ends with `[] ` or `[]`
+    if (offset < 2) return false;
+    var before = text.substring(0, offset);
+    var match = before.match(/(\[\]\s?)$/);
+    if (!match) return false;
+    // Remove the `[] ` text
+    var removeLen = match[0].length;
+    node.textContent = text.substring(0, offset - removeLen) + text.substring(offset);
+    // Adjust range
+    range.setStart(node, offset - removeLen);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    // Insert todo list
+    this._execTodoList();
+    return true;
+  };
+
+  // ---------------------------------------------------------------------------
+  //  Table
+  // ---------------------------------------------------------------------------
+
+  Editor.prototype._execTable = function (rows, cols) {
+    rows = rows || 2;
+    cols = cols || 2;
+    var selection = window.getSelection();
+    var range = selection && selection.rangeCount ? selection.getRangeAt(0) : null;
+    if (!range) return;
+
+    var table = document.createElement('table');
+    table.className = 'crm-ve-table';
+    var tbody = document.createElement('tbody');
+
+    for (var r = 0; r < rows; r++) {
+      var tr = document.createElement('tr');
+      for (var c = 0; c < cols; c++) {
+        var td = document.createElement('td');
+        td.innerHTML = '<br>';
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+
+    // Wrap in a scrollable container
+    var wrapper = document.createElement('div');
+    wrapper.className = 'crm-ve-table-wrap';
+    wrapper.appendChild(table);
+
+    range.deleteContents();
+    range.insertNode(wrapper);
+
+    // Place caret in first cell
+    var firstTd = table.querySelector('td');
+    if (firstTd) {
+      var caretRange = document.createRange();
+      caretRange.setStart(firstTd, 0);
+      caretRange.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(caretRange);
+    }
+
+    this._sync();
+    this._history.push(this._content.innerHTML, true);
+    this._updateEmptyState();
+  };
+
   // Inline code (</>): wraps the current selection in <code> or, without a
   // selection, inserts an empty <code> and puts the caret inside so the user
   // can start typing code immediately.
@@ -1518,6 +1696,8 @@ window.CRM.VisualEditor = (function () {
     var content = this._content;
 
     content.addEventListener('input', function () {
+      // Auto-convert `[] ` at start of line into a todo list
+      self._convertBracketsToTodo();
       self._sync();
       self._history.push(content.innerHTML, false);
       self._updateActiveButtons();
@@ -1539,6 +1719,13 @@ window.CRM.VisualEditor = (function () {
     });
 
     content.addEventListener('click', function (e) {
+      // Todo checkbox toggle
+      var todoCb = e.target.closest('.crm-ve-todo-cb');
+      if (todoCb) {
+        e.preventDefault();
+        self._toggleTodo(todoCb);
+        return;
+      }
       var imageBlock = e.target.closest('.crm-ve-image-block');
       if (imageBlock) {
         selectImageBlock(self, imageBlock);
@@ -1993,6 +2180,51 @@ window.CRM.VisualEditor = (function () {
       fig.parentNode.replaceChild(block, fig);
     }
 
+    // Convert todo lists: ensure classes and data-checked attributes
+    var todoLists = container.querySelectorAll('ul');
+    todoLists.forEach(function (ul) {
+      // Check if this is a todo list (has li with input[type=checkbox])
+      var firstLi = ul.querySelector('li');
+      if (!firstLi) return;
+      var cb = firstLi.querySelector('input[type="checkbox"]');
+      if (!cb) return;
+      // Mark as todo list
+      ul.className = 'crm-ve-todo-list';
+      ul.querySelectorAll('li').forEach(function (li) {
+        li.className = 'crm-ve-todo-item';
+        var checkbox = li.querySelector('input[type="checkbox"]');
+        if (checkbox) {
+          checkbox.className = 'crm-ve-todo-cb';
+          // Sync checked state to data-checked
+          if (checkbox.checked) {
+            checkbox.setAttribute('data-checked', 'true');
+          }
+          li.classList.toggle('is-checked', checkbox.checked);
+        }
+        // Ensure text is in a span
+        var textNodes = [];
+        li.childNodes.forEach(function (n) {
+          if (n.nodeType === 3) textNodes.push(n);
+        });
+        if (textNodes.length) {
+          var span = document.createElement('span');
+          span.className = 'crm-ve-todo-text';
+          textNodes.forEach(function (n) { span.appendChild(n); });
+          // Insert span after checkbox
+          if (checkbox && checkbox.nextSibling) {
+            li.insertBefore(span, checkbox.nextSibling);
+          } else {
+            li.appendChild(span);
+          }
+        } else if (!li.querySelector('.crm-ve-todo-text')) {
+          var span2 = document.createElement('span');
+          span2.className = 'crm-ve-todo-text';
+          span2.innerHTML = '<br>';
+          li.appendChild(span2);
+        }
+      });
+    });
+
     return container.innerHTML;
   };
 
@@ -2020,6 +2252,38 @@ window.CRM.VisualEditor = (function () {
     // Mark the container so rendered rich text (code blocks, spoilers, quotes)
     // picks up the read-only styles outside the editor as well.
     if (root.classList) root.classList.add('crm-ve-rendered');
+
+    // Render todo lists: ensure classes and checked state
+    root.querySelectorAll('ul').forEach(function (ul) {
+      var firstLi = ul.querySelector('li');
+      if (!firstLi) return;
+      var cb = firstLi.querySelector('input[type="checkbox"]');
+      if (!cb) return;
+      ul.className = 'crm-ve-todo-list';
+      ul.querySelectorAll('li').forEach(function (li) {
+        li.className = 'crm-ve-todo-item';
+        var checkbox = li.querySelector('input[type="checkbox"]');
+        if (checkbox) {
+          checkbox.className = 'crm-ve-todo-cb';
+          checkbox.disabled = true;
+          var isChecked = checkbox.hasAttribute('data-checked') || checkbox.checked;
+          li.classList.toggle('is-checked', isChecked);
+        }
+        // Ensure text is in a span
+        if (!li.querySelector('.crm-ve-todo-text')) {
+          var span = document.createElement('span');
+          span.className = 'crm-ve-todo-text';
+          var textContent = '';
+          li.childNodes.forEach(function (n) {
+            if (n.nodeType === 3) textContent += n.textContent;
+          });
+          span.textContent = textContent;
+          if (!textContent) span.innerHTML = '<br>';
+          li.appendChild(span);
+        }
+      });
+    });
+
     var figures = root.querySelectorAll('figure[data-width], figure[data-align]');
     figures.forEach(function (figure) {
       if (figure.closest('.crm-ve-readonly-image-block')) return;
@@ -2420,6 +2684,85 @@ window.CRM.VisualEditor = (function () {
       + '  font-family: monospace;\n'
       + '  font-size: 12px;\n'
       + '  color: #9ca3af;\n'
+      + '}\n'
+      + '/* Todo list */\n'
+      + '.crm-ve-todo-list {\n'
+      + '  list-style: none;\n'
+      + '  padding-left: 0;\n'
+      + '  margin: 0 0 8px;\n'
+      + '}\n'
+      + '.crm-ve-todo-item {\n'
+      + '  display: flex;\n'
+      + '  align-items: flex-start;\n'
+      + '  gap: 8px;\n'
+      + '  padding: 2px 0;\n'
+      + '  line-height: 1.6;\n'
+      + '}\n'
+      + '.crm-ve-todo-cb {\n'
+      + '  flex-shrink: 0;\n'
+      + '  width: 16px;\n'
+      + '  height: 16px;\n'
+      + '  margin-top: 4px;\n'
+      + '  cursor: pointer;\n'
+      + '  accent-color: #4f46e5;\n'
+      + '}\n'
+      + '.crm-ve-todo-text {\n'
+      + '  flex: 1;\n'
+      + '}\n'
+      + '.crm-ve-todo-item.is-checked .crm-ve-todo-text {\n'
+      + '  text-decoration: line-through;\n'
+      + '  color: #9ca3af;\n'
+      + '}\n'
+      + '/* Rendered todo (read-only) */\n'
+      + '.crm-ve-rendered .crm-ve-todo-list {\n'
+      + '  list-style: none;\n'
+      + '  padding-left: 0;\n'
+      + '  margin: 0 0 8px;\n'
+      + '}\n'
+      + '.crm-ve-rendered .crm-ve-todo-item {\n'
+      + '  display: flex;\n'
+      + '  align-items: flex-start;\n'
+      + '  gap: 8px;\n'
+      + '  padding: 2px 0;\n'
+      + '  line-height: 1.6;\n'
+      + '}\n'
+      + '.crm-ve-rendered .crm-ve-todo-cb {\n'
+      + '  flex-shrink: 0;\n'
+      + '  width: 16px;\n'
+      + '  height: 16px;\n'
+      + '  margin-top: 4px;\n'
+      + '  accent-color: #4f46e5;\n'
+      + '}\n'
+      + '.crm-ve-rendered .crm-ve-todo-item.is-checked .crm-ve-todo-text {\n'
+      + '  text-decoration: line-through;\n'
+      + '  color: #9ca3af;\n'
+      + '}\n'
+      + '/* Table */\n'
+      + '.crm-ve-table-wrap {\n'
+      + '  overflow-x: auto;\n'
+      + '  margin: 0 0 8px;\n'
+      + '  border: 1px solid #e5e7eb;\n'
+      + '  border-radius: 6px;\n'
+      + '}\n'
+      + '.crm-ve-table {\n'
+      + '  width: 100%;\n'
+      + '  border-collapse: collapse;\n'
+      + '  font-size: 14px;\n'
+      + '}\n'
+      + '.crm-ve-table td, .crm-ve-table th {\n'
+      + '  border: 1px solid #e5e7eb;\n'
+      + '  padding: 8px 12px;\n'
+      + '  text-align: left;\n'
+      + '  vertical-align: top;\n'
+      + '  min-width: 80px;\n'
+      + '}\n'
+      + '.crm-ve-table th {\n'
+      + '  background: #f9fafb;\n'
+      + '  font-weight: 600;\n'
+      + '}\n'
+      + '.crm-ve-table td:focus, .crm-ve-table th:focus {\n'
+      + '  outline: 2px solid #4f46e5;\n'
+      + '  outline-offset: -2px;\n'
       + '}\n'
     );
 
