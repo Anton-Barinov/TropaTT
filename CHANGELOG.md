@@ -4,7 +4,36 @@ All notable public changes to TropaTT should be documented here.
 
 This project follows a lightweight Keep a Changelog style. Dates are added when a release is actually created.
 
-## Unreleased → v0.2.0.4 - 2026-08-19
+## Unreleased
+
+## [v0.2.0.5] - 2026-08-19
+
+### Added
+
+- **Visual editor: enhanced todo lists.** Custom checkbox styling with checkmark, Enter creates new item, Backspace removes empty item, Tab navigates between items.
+
+- **Visual editor: table controls.** Add/remove row and column buttons appear on hover. Tab navigates between table cells, Shift+Tab goes backward.
+
+- **Visual editor: enhanced slash menu.** Commands grouped into Blocks and Lists sections with descriptive subtitles. 9 commands with fuzzy filtering.
+
+- **Visual editor: knowledge page mentions.** @mentions now search both users and knowledge pages. Results grouped by type (User/Page) with distinct icons.
+
+- **Visual editor: sanitizer updates.** Added `role`, `tabindex` attributes for todo checkboxes; `span` preserved with mention attributes.
+
+### Fixed
+
+- **Gantt: removed grab cursor on bar hover.** Gantt bars no longer show `grab`/`grabbing` cursor on hover/drag.
+
+- **Counterparties: removed JSON references from labels.** Extra fields hint text no longer mentions JSON format.
+
+- **Counterparties: modal scroll fix.** Create/edit modal now scrolls properly on small screens.
+
+- **Buttons: icon-only danger buttons unified.** All icon-only delete/clear buttons now use `crm-btn-danger-icon` instead of `crm-btn-danger`.
+
+- **Icons: unified solid/regular styles.** Standardized `fa-comments`, `fa-clock`, `fa-bell`, `fa-file-lines` to use `fa-regular` style consistently across all pages.
+
+
+## [v0.2.0.4] - 2026-08-19
 
 ### Added
 
