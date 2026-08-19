@@ -5862,7 +5862,7 @@ window.CRM.pageApiBindings = (function () {
         remindersList.innerHTML = remindersShown.map(function (r) {
           return '<div class="d-flex justify-content-between align-items-center gap-2 mb-2">'
             + '<div class="small text-truncate">'
-            + '<i class="fa-solid fa-bell me-1 text-muted" aria-hidden="true" style="font-size:0.7rem"></i>'
+            + '<i class="fa-regular fa-bell me-1 text-muted" aria-hidden="true" style="font-size:0.7rem"></i>'
             + safeText(String(r.task_title || window.CRM.i18n.t('js.pab.reminders', 'Reminders')))
             + '</div>'
             + '<span class="small text-muted flex-shrink-0">' + safeText(dateTimeLabel(r.remind_at)) + '</span>'
@@ -6296,7 +6296,7 @@ window.CRM.pageApiBindings = (function () {
           if (!r) return;
           var reminderTitle = String(r.task_title || r.title || '').trim();
           if (!reminderTitle) return;
-          pushRow(dayKey(r.remind_at), 'fa-solid fa-bell', reminderTitle, r.remind_at || '', '');
+          pushRow(dayKey(r.remind_at), 'fa-regular fa-bell', reminderTitle, r.remind_at || '', '');
         });
         // Use the backend-reported week range so displayed days always match
         // the fetched agenda even when server and client timezones differ.

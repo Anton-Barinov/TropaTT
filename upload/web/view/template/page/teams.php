@@ -320,7 +320,7 @@
       ? '<button type="button" class="btn btn-sm crm-btn-subtle" data-detach="' + esc(p.public_id) + '" data-link="' + esc(detach) + '" title="' + esc(t('teams.knowledge_detach', 'Открепить')) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-xmark" aria-hidden="true"></i></span></button>'
       : '';
     var openBtn = '<a class="btn btn-sm crm-btn-subtle" href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span></a>';
-    return '<div class="team-knowledge-row"><div class="team-knowledge-row-main"><span class="team-knowledge-row-icon" aria-hidden="true"><i class="fa-solid fa-file-lines" aria-hidden="true"></i></span><span class="team-knowledge-row-title">' + esc(p.title || '') + '</span></div><div class="team-knowledge-row-actions">' + detachBtn + openBtn + '</div></div>';
+    return '<div class="team-knowledge-row"><div class="team-knowledge-row-main"><span class="team-knowledge-row-icon" aria-hidden="true"><i class="fa-regular fa-file-lines" aria-hidden="true"></i></span><span class="team-knowledge-row-title">' + esc(p.title || '') + '</span></div><div class="team-knowledge-row-actions">' + detachBtn + openBtn + '</div></div>';
   }
 
   function renderCreateList() {
@@ -330,7 +330,7 @@
       return;
     }
     createKnowledgeList.innerHTML = createSelectedPages.map(function (p) {
-      return '<div class="team-knowledge-row"><div class="team-knowledge-row-main"><span class="team-knowledge-row-icon" aria-hidden="true"><i class="fa-solid fa-file-lines" aria-hidden="true"></i></span><span class="team-knowledge-row-title">' + esc(p.title || '') + '</span></div><div class="team-knowledge-row-actions"><button type="button" class="btn btn-sm crm-btn-subtle" data-create-remove="' + esc(p.public_id) + '" title="' + esc(t('teams.knowledge_detach', 'Открепить')) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-xmark" aria-hidden="true"></i></span></button></div></div>';
+      return '<div class="team-knowledge-row"><div class="team-knowledge-row-main"><span class="team-knowledge-row-icon" aria-hidden="true"><i class="fa-regular fa-file-lines" aria-hidden="true"></i></span><span class="team-knowledge-row-title">' + esc(p.title || '') + '</span></div><div class="team-knowledge-row-actions"><button type="button" class="btn btn-sm crm-btn-subtle" data-create-remove="' + esc(p.public_id) + '" title="' + esc(t('teams.knowledge_detach', 'Открепить')) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-xmark" aria-hidden="true"></i></span></button></div></div>';
     }).join('');
     createKnowledgeList.querySelectorAll('[data-create-remove]').forEach(function (btn) {
       btn.addEventListener('click', function () {
