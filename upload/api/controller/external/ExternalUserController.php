@@ -25,7 +25,7 @@ final class ExternalUserController extends BaseController
      */
     public function invite(): JsonResponse
     {
-        $input = $this->request()->body();
+        $input = $this->request()->allInput();
         $contactPublicId = trim((string)($input['contact_public_id'] ?? $input['contact_id'] ?? ''));
         $actor = $this->user();
 
@@ -75,7 +75,7 @@ final class ExternalUserController extends BaseController
      */
     public function accept(): JsonResponse
     {
-        $input = $this->request()->body();
+        $input = $this->request()->allInput();
 
         /** @var \Api\System\Library\Service\ExternalUserService $service */
         $service = $this->container->get('service.external_user');
