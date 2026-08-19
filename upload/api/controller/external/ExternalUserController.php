@@ -54,15 +54,21 @@ final class ExternalUserController extends BaseController
             );
         }
 
-        return $this->success(
-            'EXTERNAL_USER_INVITED',
-            $this->t('external_users.invited'),
-            [
-                'token' => $result['token'],
+        // Return token directly — BaseController::success() strips keys named 'token' via
+        // sanitizePublicContract(), but the invitation token must be returned to the caller.
+        $request = $this->request();
+        return \Api\System\Library\Http\JsonResponse::success(
+            code: 'EXTERNAL_USER_INVITED',
+            message: $this->t('external_users.invited'),
+            data: [
+                'invitation_token' => $result['token'],
                 'user_public_id' => $result['user_public_id'],
                 'login' => $result['login'],
                 'email' => $result['email'],
-            ]
+            ],
+            status: 200,
+            requestId: $request->requestId,
+            correlationId: $request->correlationId,
         );
     }
 
@@ -92,13 +98,17 @@ final class ExternalUserController extends BaseController
             );
         }
 
-        return $this->success(
-            'EXTERNAL_USER_ACTIVATED',
-            $this->t('external_users.activated'),
-            [
+        $request = $this->request();
+        return \Api\System\Library\Http\JsonResponse::success(
+            code: 'EXTERNAL_USER_ACTIVATED',
+            message: $this->t('external_users.activated'),
+            data: [
                 'user' => $result['user'],
-                'session_token' => $result['session_token'],
-            ]
+                'access_token' => $result['session_token'],
+            ],
+            status: 200,
+            requestId: $request->requestId,
+            correlationId: $request->correlationId,
         );
     }
 
