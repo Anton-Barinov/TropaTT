@@ -4941,6 +4941,13 @@ body.modal-open {
   }
 }
 
+/* Counterparty modals: scroll on small screens */
+#counterpartyCreateModal .modal-body,
+#counterpartyEditModal .modal-body {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
 .crm-my-day-page #myDayFocusSummary {
   display: flex;
   flex-direction: column;

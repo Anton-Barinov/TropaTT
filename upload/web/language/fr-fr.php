@@ -2554,7 +2554,7 @@ return array (
     'field_address_legal' => 'Adresse légale',
     'field_address_postal' => 'Adresse postale',
     'field_notes' => 'Notes',
-    'field_extra_attributes' => 'Champs supplémentaires (JSON)',
+    'field_extra_attributes' => 'Champs supplémentaires',
     'edit_modal_title' => 'Modifier le client',
     'btn_delete' => 'Supprimer le client',
     'untitled' => 'untitled',
