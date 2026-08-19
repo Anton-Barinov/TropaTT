@@ -42,9 +42,9 @@ return [
 
     // auth
     ['methods' => ['POST'], 'pattern' => '/api/v1/auth/login', 'controller' => Api\Controller\Auth\AuthController::class, 'action' => 'login', 'auth' => false],
-    ['methods' => ['POST'], 'pattern' => '/api/v1/auth/logout', 'controller' => Api\Controller\Auth\AuthController::class, 'action' => 'logout', 'auth' => true, 'authz_note' => 'self-service: current session'],
-    ['methods' => ['GET'], 'pattern' => '/api/v1/auth/me', 'controller' => Api\Controller\Auth\AuthController::class, 'action' => 'me', 'auth' => true, 'authz_note' => 'self-service: current user'],
-    ['methods' => ['GET'], 'pattern' => '/api/v1/auth/menu', 'controller' => Api\Controller\Auth\MenuController::class, 'action' => 'list', 'auth' => true, 'authz_note' => 'self-service: current user menu'],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/auth/logout', 'controller' => Api\Controller\Auth\AuthController::class, 'action' => 'logout', 'auth' => true, 'authz_note' => 'self-service: current session', 'external_ok' => true],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/auth/me', 'controller' => Api\Controller\Auth\AuthController::class, 'action' => 'me', 'auth' => true, 'authz_note' => 'self-service: current user', 'external_ok' => true],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/auth/menu', 'controller' => Api\Controller\Auth\MenuController::class, 'action' => 'list', 'auth' => true, 'authz_note' => 'self-service: current user menu', 'external_ok' => true],
     ['methods' => ['GET'], 'pattern' => '/api/v1/auth/menu/preferences', 'controller' => Api\Controller\Auth\MenuController::class, 'action' => 'getPreferences', 'auth' => true, 'authz_note' => 'self-service: current user preferences'],
     ['methods' => ['PUT', 'PATCH'], 'pattern' => '/api/v1/auth/menu/preferences', 'controller' => Api\Controller\Auth\MenuController::class, 'action' => 'savePreferences', 'auth' => true, 'authz_note' => 'self-service: current user preferences'],
     ['methods' => ['POST'], 'pattern' => '/api/v1/telemetry/frontend-event', 'controller' => Api\Controller\Common\TelemetryController::class, 'action' => 'frontendEvent', 'auth' => true, 'authz_note' => 'self-service: any authenticated user'],
@@ -167,9 +167,9 @@ return [
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/tags/{public_id}', 'controller' => Api\Controller\Tag\TagController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['task.manage']],
 
     // projects BR-1
-    ['methods' => ['GET'], 'pattern' => '/api/v1/projects', 'controller' => Api\Controller\Project\ProjectController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['project.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/projects', 'controller' => Api\Controller\Project\ProjectController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['project.manage'], 'external_ok' => true],
     ['methods' => ['POST'], 'pattern' => '/api/v1/projects', 'controller' => Api\Controller\Project\ProjectController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['project.manage']],
-    ['methods' => ['GET'], 'pattern' => '/api/v1/projects/{public_id}', 'controller' => Api\Controller\Project\ProjectController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['project.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/projects/{public_id}', 'controller' => Api\Controller\Project\ProjectController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['project.manage'], 'external_ok' => true],
     ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/projects/{public_id}', 'controller' => Api\Controller\Project\ProjectController::class, 'action' => 'update', 'auth' => true, 'required_permissions' => ['project.manage']],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/projects/{public_id}', 'controller' => Api\Controller\Project\ProjectController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['project.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/projects/{public_id}/timeline', 'controller' => Api\Controller\Project\ProjectController::class, 'action' => 'timeline', 'auth' => true, 'required_permissions' => ['project.manage']],
@@ -225,21 +225,21 @@ return [
 
     // tasks BR-1
     ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/{public_id}/activity', 'controller' => Api\Controller\Task\TaskActivityController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage']],
-    ['methods' => ['GET'], 'pattern' => '/api/v1/tasks', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage']],
-    ['methods' => ['POST'], 'pattern' => '/api/v1/tasks', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['task.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/tasks', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_ok' => true],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/tasks', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_ok' => true],
     ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/board', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'board', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/tasks/bulk', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'bulkUpdate', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/by-key/{task_key}', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'getByKey', 'auth' => true, 'required_permissions' => ['task.manage']],
     // Task detail right-column blocks (must be registered before /api/v1/tasks/{public_id} so the literal "sidebar" segment wins)
     ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/sidebar', 'controller' => Api\Controller\Task\TaskSidebarController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['task.manage'], 'authz_note' => 'Returns the current user\'s task detail sidebar block layout'],
     ['methods' => ['PUT'], 'pattern' => '/api/v1/tasks/sidebar', 'controller' => Api\Controller\Task\TaskSidebarController::class, 'action' => 'save', 'auth' => true, 'required_permissions' => ['task.manage'], 'authz_note' => 'Updates only the current user\'s task detail sidebar block layout'],
-    ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/{public_id}', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['task.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/{public_id}', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_ok' => true],
     ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/tasks/{public_id}', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'update', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/tasks/{public_id}', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/tasks/{public_id}/move', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'move', 'auth' => true, 'required_permissions' => ['task.manage']],
-    ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/{public_id}/comments', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'comments', 'auth' => true, 'required_permissions' => ['task.manage']],
-    ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/{public_id}/files', 'controller' => Api\Controller\File\FileController::class, 'action' => 'listByTask', 'auth' => true, 'required_permissions' => ['task.manage']],
-    ['methods' => ['POST'], 'pattern' => '/api/v1/tasks/{public_id}/comments', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'addComment', 'auth' => true, 'required_permissions' => ['task.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/{public_id}/comments', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'comments', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_ok' => true],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/{public_id}/files', 'controller' => Api\Controller\File\FileController::class, 'action' => 'listByTask', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_ok' => true],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/tasks/{public_id}/comments', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'addComment', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_ok' => true],
     // Editing a comment must be allowed for the comment author without
     // task.manage (same rule as deleting); comment-level authorization
     // (author/root/task participants) is enforced in CommentService.
@@ -293,9 +293,9 @@ return [
     ['methods' => ['POST'], 'pattern' => '/api/v1/template/projects/{public_id}/apply', 'controller' => Api\Controller\Template\TemplateController::class, 'action' => 'projectApply', 'auth' => true, 'required_permissions' => ['project.manage']],
 
     // files BR-1
-    ['methods' => ['POST'], 'pattern' => '/api/v1/files', 'controller' => Api\Controller\File\FileController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['task.manage']],
-    ['methods' => ['GET'], 'pattern' => '/api/v1/files/{public_id}', 'controller' => Api\Controller\File\FileController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['task.manage']],
-    ['methods' => ['GET'], 'pattern' => '/api/v1/files/{public_id}/download', 'controller' => Api\Controller\File\FileController::class, 'action' => 'download', 'auth' => true, 'binary' => true, 'required_permissions' => ['task.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/files', 'controller' => Api\Controller\File\FileController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_ok' => true],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/files/{public_id}', 'controller' => Api\Controller\File\FileController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_ok' => true],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/files/{public_id}/download', 'controller' => Api\Controller\File\FileController::class, 'action' => 'download', 'auth' => true, 'binary' => true, 'required_permissions' => ['task.manage'], 'external_ok' => true],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/files/{public_id}', 'controller' => Api\Controller\File\FileController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['task.manage']],
 
     // knowledge base core
@@ -449,16 +449,16 @@ return [
     ['methods' => ['POST'], 'pattern' => '/api/v1/admin/knowledge/cleanup-drafts', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'adminCleanupDrafts', 'auth' => true, 'required_permissions' => ['knowledge.admin']],
 
     // notifications/reminders
-    ['methods' => ['GET'], 'pattern' => '/api/v1/notifications', 'controller' => Api\Controller\Notification\NotificationController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/notifications', 'controller' => Api\Controller\Notification\NotificationController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_ok' => true],
     ['methods' => ['POST'], 'pattern' => '/api/v1/notifications', 'controller' => Api\Controller\Notification\NotificationController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['task.manage']],
-    ['methods' => ['GET'], 'pattern' => '/api/v1/notifications/counters', 'controller' => Api\Controller\Notification\NotificationController::class, 'action' => 'counters', 'auth' => true, 'required_permissions' => ['task.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/notifications/counters', 'controller' => Api\Controller\Notification\NotificationController::class, 'action' => 'counters', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_ok' => true],
     ['methods' => ['GET'], 'pattern' => '/api/v1/notifications/push-subscriptions', 'controller' => Api\Controller\Notification\NotificationController::class, 'action' => 'listPushSubscriptions', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/notifications/push-subscriptions', 'controller' => Api\Controller\Notification\NotificationController::class, 'action' => 'createPushSubscription', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/notifications/push-subscriptions/{public_id}', 'controller' => Api\Controller\Notification\NotificationController::class, 'action' => 'deletePushSubscription', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/notifications/push-test', 'controller' => Api\Controller\Notification\NotificationController::class, 'action' => 'pushTest', 'auth' => true, 'required_permissions' => ['task.manage']],
-    ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/notifications/{public_id}/read', 'controller' => Api\Controller\Notification\NotificationController::class, 'action' => 'markRead', 'auth' => true, 'required_permissions' => ['task.manage']],
-    ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/notifications/{public_id}/unread', 'controller' => Api\Controller\Notification\NotificationController::class, 'action' => 'markUnread', 'auth' => true, 'required_permissions' => ['task.manage']],
-    ['methods' => ['POST'], 'pattern' => '/api/v1/notifications/mark-all-read', 'controller' => Api\Controller\Notification\NotificationController::class, 'action' => 'markAllRead', 'auth' => true, 'required_permissions' => ['task.manage']],
+    ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/notifications/{public_id}/read', 'controller' => Api\Controller\Notification\NotificationController::class, 'action' => 'markRead', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_ok' => true],
+    ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/notifications/{public_id}/unread', 'controller' => Api\Controller\Notification\NotificationController::class, 'action' => 'markUnread', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_ok' => true],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/notifications/mark-all-read', 'controller' => Api\Controller\Notification\NotificationController::class, 'action' => 'markAllRead', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_ok' => true],
     ['methods' => ['GET'], 'pattern' => '/api/v1/reminders', 'controller' => Api\Controller\Reminder\ReminderController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/reminders', 'controller' => Api\Controller\Reminder\ReminderController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/reminders/{public_id}', 'controller' => Api\Controller\Reminder\ReminderController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['task.manage']],

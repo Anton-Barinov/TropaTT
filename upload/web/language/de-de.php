@@ -2696,6 +2696,13 @@ return array (
     'updated' => 'Contact updated',
     'opt_custom_role' => 'Andere (eigene) Rolle...',
     'role_custom_placeholder' => 'Eigene Rolle eingeben',
+    'portal_modal_title' => 'Zugang zum Kundenportal',
+    'portal_invite_hint' => 'Senden Sie diesen Link an den Kontakt. Er legt damit ein Passwort fest und meldet sich in seinem eingeschränkten Bereich an.',
+    'portal_login_label' => 'Login',
+    'portal_link_label' => 'Einladungslink',
+    'btn_revoke_portal' => 'Portalzugang widerrufen',
+    'portal_revoked' => 'Portalzugang widerrufen',
+    'portal_revoke_confirm' => 'Portalzugang dieses Kontakts widerrufen?',
   ),
   'counterparties' => 
   array (
@@ -9605,5 +9612,24 @@ return array (
     'account_already_active' => 'Konto ist bereits aktiv',
     'user_not_found' => 'Benutzer nicht gefunden',
     'unauthorized' => 'Nicht autorisiert',
+  ),
+  'external_accept' => 
+  array (
+    'title' => 'TropaTT — Portalzugang',
+    'page_title' => 'Zugang zum Kundenportal',
+    'subtitle' => 'Legen Sie ein Passwort fest, um auf Ihre Projekte und Aufgaben zuzugreifen.',
+    'label_password' => 'Passwort',
+    'placeholder_password' => 'Mindestens 8 Zeichen',
+    'password_hint' => 'Das Passwort muss mindestens 8 Zeichen lang sein.',
+    'btn_submit' => 'Zugang aktivieren',
+    'link_back_to_login' => 'Zurück zur Anmeldung',
+    'cover_title' => 'Kundenportal',
+    'cover_text' => 'Hier sind nur die Projekte und Aufgaben Ihres Unternehmens sichtbar — die übrigen CRM-Bereiche sind ausgeblendet.',
+    'token_missing' => 'Unvollständiger Link — Einladungstoken nicht gefunden.',
+    'weak_password' => 'Das Passwort muss mindestens 8 Zeichen lang sein.',
+    'success_with_login' => 'Zugang aktiviert. Ihr Login: ',
+    'success_login_hint' => 'Melden Sie sich mit diesem Login und dem festgelegten Passwort an.',
+    'success' => 'Zugang aktiviert. Sie können sich jetzt anmelden.',
+    'accept_failed' => 'Aktivierung fehlgeschlagen. Überprüfen Sie den Link und versuchen Sie es erneut.',
   ),
 );

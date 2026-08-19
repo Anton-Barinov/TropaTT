@@ -5268,6 +5268,13 @@ return array (
     'btn_delete' => 'Delete contact',
     'update_fail' => 'Failed to update contact',
     'updated' => 'Contact updated',
+    'portal_modal_title' => 'Client portal access',
+    'portal_invite_hint' => 'Send this link to the contact. They will set a password and sign in to their restricted portal.',
+    'portal_login_label' => 'Login',
+    'portal_link_label' => 'Invitation link',
+    'btn_revoke_portal' => 'Revoke portal access',
+    'portal_revoked' => 'Portal access revoked',
+    'portal_revoke_confirm' => 'Revoke this contact\'s portal access?',
   ),
   'counterparties' => 
   array (
@@ -9618,5 +9625,24 @@ return array (
     'account_already_active' => 'Account is already active',
     'user_not_found' => 'User not found',
     'unauthorized' => 'Unauthorized',
+  ),
+  'external_accept' => 
+  array (
+    'title' => 'TropaTT — Portal access',
+    'page_title' => 'Client portal access',
+    'subtitle' => 'Set a password to access your projects and tasks.',
+    'label_password' => 'Password',
+    'placeholder_password' => 'At least 8 characters',
+    'password_hint' => 'Password must be at least 8 characters long.',
+    'btn_submit' => 'Activate access',
+    'link_back_to_login' => 'Back to sign in',
+    'cover_title' => 'Client portal',
+    'cover_text' => 'Only your company\'s projects and tasks are visible here — the rest of the CRM is hidden.',
+    'token_missing' => 'Incomplete link — invitation token not found.',
+    'weak_password' => 'Password must be at least 8 characters long.',
+    'success_with_login' => 'Access activated. Your login: ',
+    'success_login_hint' => 'Sign in with this login and the password you set.',
+    'success' => 'Access activated. You can now sign in.',
+    'accept_failed' => 'Failed to activate access. Check the link and try again.',
   ),
 );

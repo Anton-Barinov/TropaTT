@@ -79,7 +79,23 @@ final class MenuController extends BaseController
             }
         }
 
-        if ($this->container->has('module.service_provider_registry')) {
+        // External guest users (client portal) get a hard nav allowlist. The
+        // permission-based filter above already hid most internal-only items,
+        // but 'dashboard'/'teams'/'notifications' carry no permission
+        // requirement at all and would otherwise show for every authenticated
+        // actor, and task.manage/project.manage (granted to external_guest so
+        // RLS-scoped API calls work — see ExternalUsersMigration) would also
+        // unlock kanban/gantt/calendar/day/week/cycles/analytics here. Module
+        // nav items are skipped entirely for external actors since modules
+        // are not guaranteed to be RLS-aware.
+        $isExternalActor = !empty((int)($user['is_external'] ?? 0));
+        if ($isExternalActor) {
+            $externalAllowedKeys = ['projects', 'tasks', 'notifications'];
+            $availableItems = array_values(array_filter(
+                $availableItems,
+                static fn(array $item): bool => in_array($item['key'], $externalAllowedKeys, true)
+            ));
+        } elseif ($this->container->has('module.service_provider_registry')) {
             $spRegistry = $this->container->get('module.service_provider_registry');
             $moduleItems = $spRegistry->getAllMenuItems();
             foreach ($moduleItems as $item) {

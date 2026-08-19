@@ -2696,6 +2696,13 @@ return array (
     'updated' => 'Contact updated',
     'opt_custom_role' => 'Outro papel (personalizado)...',
     'role_custom_placeholder' => 'Informe um papel personalizado',
+    'portal_modal_title' => 'Acesso ao portal do cliente',
+    'portal_invite_hint' => 'Envie este link para o contato. Com ele, será possível definir uma senha e acessar seu painel restrito.',
+    'portal_login_label' => 'Login',
+    'portal_link_label' => 'Link de convite',
+    'btn_revoke_portal' => 'Revogar acesso ao portal',
+    'portal_revoked' => 'Acesso ao portal revogado',
+    'portal_revoke_confirm' => 'Revogar o acesso deste contato ao portal?',
   ),
   'counterparties' => 
   array (
@@ -9605,5 +9612,24 @@ return array (
     'account_already_active' => 'A conta já está ativa',
     'user_not_found' => 'Usuário não encontrado',
     'unauthorized' => 'Não autorizado',
+  ),
+  'external_accept' => 
+  array (
+    'title' => 'TropaTT — Acesso ao portal',
+    'page_title' => 'Acesso ao portal do cliente',
+    'subtitle' => 'Defina uma senha para acessar seus projetos e tarefas.',
+    'label_password' => 'Senha',
+    'placeholder_password' => 'Mínimo de 8 caracteres',
+    'password_hint' => 'A senha deve ter pelo menos 8 caracteres.',
+    'btn_submit' => 'Ativar acesso',
+    'link_back_to_login' => 'Voltar ao login',
+    'cover_title' => 'Portal do cliente',
+    'cover_text' => 'Aqui só ficam visíveis os projetos e tarefas da sua empresa — as demais seções do CRM ficam ocultas.',
+    'token_missing' => 'Link incompleto — token de convite não encontrado.',
+    'weak_password' => 'A senha deve ter pelo menos 8 caracteres.',
+    'success_with_login' => 'Acesso ativado. Seu login: ',
+    'success_login_hint' => 'Faça login com este usuário e a senha definida.',
+    'success' => 'Acesso ativado. Agora você já pode entrar.',
+    'accept_failed' => 'Não foi possível ativar o acesso. Verifique o link e tente novamente.',
   ),
 );

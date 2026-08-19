@@ -5287,6 +5287,13 @@ return array (
     'updated' => 'Contact updated',
     'opt_custom_role' => '其他角色（自定义）...',
     'role_custom_placeholder' => '输入自定义角色',
+    'portal_modal_title' => '客户门户访问',
+    'portal_invite_hint' => '将此链接发送给联系人，对方可据此设置密码并登录其受限门户。',
+    'portal_login_label' => '登录名',
+    'portal_link_label' => '邀请链接',
+    'btn_revoke_portal' => '撤销门户访问权限',
+    'portal_revoked' => '门户访问权限已撤销',
+    'portal_revoke_confirm' => '确定要撤销此联系人的门户访问权限吗？',
   ),
   'counterparties' => 
   array (
@@ -9605,5 +9612,24 @@ return array (
     'account_already_active' => '账户已激活',
     'user_not_found' => '用户未找到',
     'unauthorized' => '未授权',
+  ),
+  'external_accept' => 
+  array (
+    'title' => 'TropaTT — 门户访问',
+    'page_title' => '客户门户访问',
+    'subtitle' => '设置密码以访问您的项目和任务。',
+    'label_password' => '密码',
+    'placeholder_password' => '至少 8 个字符',
+    'password_hint' => '密码长度不得少于 8 个字符。',
+    'btn_submit' => '激活访问权限',
+    'link_back_to_login' => '返回登录',
+    'cover_title' => '客户门户',
+    'cover_text' => '此处仅显示您公司的项目和任务，其余 CRM 功能均已隐藏。',
+    'token_missing' => '链接不完整 — 未找到邀请令牌。',
+    'weak_password' => '密码长度不得少于 8 个字符。',
+    'success_with_login' => '访问已激活。您的登录名：',
+    'success_login_hint' => '请使用此登录名和您设置的密码登录。',
+    'success' => '访问已激活。您现在可以登录了。',
+    'accept_failed' => '激活访问失败。请检查链接后重试。',
   ),
 );

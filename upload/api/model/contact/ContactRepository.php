@@ -48,6 +48,8 @@ final class ContactRepository
                 'cp.public_id AS counterparty_public_id',
                 'cp.title AS counterparty_title',
                 'cp.counterparty_type AS counterparty_type',
+                'eu.public_id AS external_user_public_id',
+                'eu.is_active AS external_user_is_active',
             ])
             ->orderBy('ct.created_at', 'DESC')
             ->limit($limit)
@@ -64,7 +66,8 @@ final class ContactRepository
             ->from('contacts ct')
             ->leftJoin('companies co', 'co.id', '=', 'ct.company_id')
             ->leftJoin('clients cl', 'cl.id', '=', 'ct.client_id')
-            ->leftJoin('counterparties cp', 'cp.id', '=', 'ct.counterparty_id');
+            ->leftJoin('counterparties cp', 'cp.id', '=', 'ct.counterparty_id')
+            ->leftJoin('users eu', 'eu.id', '=', 'ct.user_id');
 
         if (!empty($filters['search'])) {
             $search = '%' . (string)$filters['search'] . '%';

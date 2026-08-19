@@ -16,7 +16,8 @@ use PDO;
  *   1. users.is_external — flag distinguishing external guests from internal users
  *   2. contacts.user_id — links a contact record to the external user account
  *   3. external_guest role — system role with limited permissions for external users
- *   4. External user permissions — chat.use, task.view, task.comment, project.view
+ *   4. External user permissions — task.manage, project.manage (scoped to the
+ *      actor's own counterparty by RLS + the external_ok route allowlist)
  *   5. Indexes for efficient RLS filtering by counterparty_id
  */
 final class ExternalUsersMigration implements MigrationInterface
@@ -109,14 +110,22 @@ final class ExternalUsersMigration implements MigrationInterface
     /**
      * Seed the external_guest system role with limited permissions.
      *
+     * The codebase does not have separate "view"-only permission codes for
+     * tasks/projects/files (see PermissionService::list() for the canonical
+     * registry) — task.manage/project.manage gate both read and write API
+     * routes. Granting them here is safe only because access is additionally
+     * scoped two ways for every external actor:
+     *   1. Row-Level Security in ProjectService/TaskService — list()/get()
+     *      restrict results to the actor's own counterparty (client_public_id).
+     *   2. The `external_ok` route allowlist enforced centrally in App::run()
+     *      — only a small set of read/comment/upload routes are reachable by
+     *      an is_external actor regardless of which permissions their role
+     *      carries (see routes.php entries flagged 'external_ok' => true).
      * Permissions granted to external guests:
-     *   - chat.use          — participate in project chats
-     *   - task.view         — view tasks in their projects
-     *   - task.comment      — add comments to tasks
-     *   - project.view      — view projects linked to their counterparty
-     *   - file.view         — view/download files in their projects
-     *   - file.upload       — upload files to project chats/tasks
-     *   - knowledge.view    — view knowledge base articles
+     *   - task.manage    — required by GET/POST /api/v1/tasks* (RLS + route
+     *                      allowlist restrict this to their own tasks)
+     *   - project.manage — required by GET /api/v1/projects* (RLS + route
+     *                      allowlist restrict this to their own projects)
      */
     private function seedExternalGuestRole(PDO $pdo, string $driver): void
     {
@@ -144,15 +153,12 @@ final class ExternalUsersMigration implements MigrationInterface
 
         $roleId = (int)$pdo->lastInsertId();
 
-        // Permissions to grant to external guests
+        // Permissions to grant to external guests (real registry codes only —
+        // see the class-level doc comment on why task.manage/project.manage
+        // are used instead of made-up .view codes).
         $permissionCodes = [
-            'chat.use',
-            'task.view',
-            'task.comment',
-            'project.view',
-            'file.view',
-            'file.upload',
-            'knowledge.view',
+            'task.manage',
+            'project.manage',
         ];
 
         foreach ($permissionCodes as $code) {

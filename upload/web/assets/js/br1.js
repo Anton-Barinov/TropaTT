@@ -1215,12 +1215,18 @@ window.CRM.br1 = (function () {
             return;
           }
         }
-        await window.CRM.api.me();
+        var meEnvelope = await window.CRM.api.me();
         notify(window.CRM.i18n.t('js.br1.vkhod_vypolnen_2', 'Вход выполнен'));
+
+        // External guest (client portal) users have no dashboard/admin access —
+        // land them on their projects list instead (see MenuController's
+        // external nav allowlist and web/index.php's $externalAllowedRoutes).
+        var loggedInUser = meEnvelope && meEnvelope.data ? meEnvelope.data.user : null;
+        var defaultRoute = (loggedInUser && loggedInUser.is_external) ? 'projects' : 'dashboard';
 
         var query = new URLSearchParams(window.location.search);
         var returnRoute = query.get('return_route') || query.get('redirect');
-        window.location.href = withQuery(returnRoute || 'dashboard');
+        window.location.href = withQuery(returnRoute || defaultRoute);
       } catch (error) {
         var normalized = window.CRM.api && typeof window.CRM.api.normalizeError === 'function'
           ? window.CRM.api.normalizeError(error, window.CRM.i18n.t('js.br1.oshibka_vkhoda_4', 'Ошибка входа'))

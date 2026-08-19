@@ -320,6 +320,36 @@ final class App
                 }
             }
 
+            // External guest users (client portal) get a hard route allowlist,
+            // enforced centrally regardless of required_permissions. This is
+            // deliberate defense in depth: the external_guest role is granted
+            // coarse permissions (task.manage/project.manage — this codebase has
+            // no separate "view" permission codes) so its RLS-scoped list()/get()
+            // calls work, but that alone would also unlock every other route
+            // gated by the same permission (admin-estimates, cycles, analytics,
+            // bulk operations, …). Only routes explicitly marked
+            // 'external_ok' => true in routes.php are reachable by an
+            // is_external actor; everything else is 403 even if the actor's
+            // role technically satisfies required_permissions.
+            $authForExternalGate = $this->container->has('auth_user') ? $this->container->get('auth_user') : null;
+            if (is_array($authForExternalGate) && !empty((int)($authForExternalGate['user']['is_external'] ?? 0))) {
+                if (($matched['external_ok'] ?? false) !== true) {
+                    /** @var LanguageManager $lang */
+                    $lang = $this->container->get('lang');
+                    $response = JsonResponse::error(
+                        code: 'EXTERNAL_ACCESS_DENIED',
+                        message: $lang->get('common/messages.forbidden', 'Forbidden'),
+                        status: 403,
+                        errors: ['permission' => [$lang->get('common/messages.permission_denied_action', 'Insufficient permissions for this action')]],
+                        requestId: $request->requestId,
+                        correlationId: $request->correlationId
+                    );
+                    $statusCode = 403;
+                    $resultCode = 'EXTERNAL_ACCESS_DENIED';
+                    return $response;
+                }
+            }
+
             if ($this->shouldApplyGlobalRouteRateLimit($request, $routePath)) {
                     /** @var RateLimiterInterface $routeRateLimiter */
                 $routeRateLimiter = $this->container->get('security.route_rate_limiter');

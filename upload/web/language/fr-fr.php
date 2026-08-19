@@ -2696,6 +2696,13 @@ return array (
     'updated' => 'Contact updated',
     'opt_custom_role' => 'Autre rôle (personnalisé)...',
     'role_custom_placeholder' => 'Saisissez un rôle personnalisé',
+    'portal_modal_title' => 'Accès au portail client',
+    'portal_invite_hint' => 'Envoyez ce lien au contact. Il pourra ainsi définir un mot de passe et accéder à son espace restreint.',
+    'portal_login_label' => 'Identifiant',
+    'portal_link_label' => 'Lien d\'invitation',
+    'btn_revoke_portal' => 'Révoquer l\'accès au portail',
+    'portal_revoked' => 'Accès au portail révoqué',
+    'portal_revoke_confirm' => 'Révoquer l\'accès au portail de ce contact ?',
   ),
   'counterparties' => 
   array (
@@ -9605,5 +9612,24 @@ return array (
     'account_already_active' => 'Le compte est déjà actif',
     'user_not_found' => 'Utilisateur introuvable',
     'unauthorized' => 'Non autorisé',
+  ),
+  'external_accept' => 
+  array (
+    'title' => 'TropaTT — Accès au portail',
+    'page_title' => 'Accès au portail client',
+    'subtitle' => 'Définissez un mot de passe pour accéder à vos projets et tâches.',
+    'label_password' => 'Mot de passe',
+    'placeholder_password' => '8 caractères minimum',
+    'password_hint' => 'Le mot de passe doit contenir au moins 8 caractères.',
+    'btn_submit' => 'Activer l\'accès',
+    'link_back_to_login' => 'Retour à la connexion',
+    'cover_title' => 'Portail client',
+    'cover_text' => 'Seuls les projets et tâches de votre entreprise sont visibles ici — le reste du CRM est masqué.',
+    'token_missing' => 'Lien incomplet — jeton d\'invitation introuvable.',
+    'weak_password' => 'Le mot de passe doit contenir au moins 8 caractères.',
+    'success_with_login' => 'Accès activé. Votre identifiant : ',
+    'success_login_hint' => 'Connectez-vous avec cet identifiant et le mot de passe défini.',
+    'success' => 'Accès activé. Vous pouvez maintenant vous connecter.',
+    'accept_failed' => 'Échec de l\'activation de l\'accès. Vérifiez le lien et réessayez.',
   ),
 );

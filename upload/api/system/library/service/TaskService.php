@@ -121,6 +121,19 @@ final class TaskService
 
     public function create(array $input, array $actor): array|string
     {
+        // RLS: external users may only create tasks inside a project that
+        // already belongs to their own counterparty (checked below via
+        // ProjectService::get(), which is is_external-aware). A "loose" task
+        // with no project — or one carrying a caller-supplied client_public_id
+        // — would bypass that check, so both are rejected up front.
+        $isExternalActor = !empty((int)($actor['is_external'] ?? 0));
+        if ($isExternalActor) {
+            if (empty($input['project_public_id'])) {
+                return 'PROJECT_NOT_FOUND';
+            }
+            unset($input['client_public_id']);
+        }
+
         $publicId = Ulid::generate('tsk');
         $projectId = null;
         $creatorUserId = (int)($actor['id'] ?? 0);
@@ -152,6 +165,13 @@ final class TaskService
         $updatedAt = !empty($input['updated_at']) ? (string)$input['updated_at'] : $createdAt;
 
         $directClientPublicId = trim((string)($input['client_public_id'] ?? ''));
+
+        // External guests describe work but do not pick who does it — an
+        // assignee_user_id in the payload would leak internal user ids and
+        // let a guest hand work to a staff member outside their project.
+        if ($isExternalActor) {
+            unset($input['assignee_user_id']);
+        }
 
         $input['description'] = $this->sanitizeDescription((string)($input['description'] ?? ''));
         if (mb_strlen($input['description']) > 65000) {
@@ -494,10 +514,11 @@ final class TaskService
             if ($cpPublicId === '') {
                 return false;
             }
-            $taskClientPublicId = (string)($task['client_public_id'] ?? '');
+            $taskClientPublicId = (string)($task['task_client_public_id'] ?? '');
             $projectClientPublicId = (string)($task['client_public_id'] ?? '');
             // Task directly linked to counterparty, or project linked to counterparty
-            if ($taskClientPublicId === $cpPublicId || $projectClientPublicId === $cpPublicId) {
+            if (($taskClientPublicId !== '' && $taskClientPublicId === $cpPublicId)
+                || ($projectClientPublicId !== '' && $projectClientPublicId === $cpPublicId)) {
                 return true;
             }
             return false;

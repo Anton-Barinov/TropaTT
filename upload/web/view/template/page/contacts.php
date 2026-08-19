@@ -43,6 +43,22 @@
   <div class="mt-2"><a class="btn btn-sm crm-btn-primary" href="index.php?route=knowledge" id="contactKnowledgeLink" data-i18n="contacts.btn_knowledge"><?= htmlspecialchars($t('contacts.btn_knowledge', 'Перейти в базу знаний'), ENT_QUOTES, 'UTF-8') ?></a></div>
 </div>
 </div><div class="modal-footer"><button class="btn crm-btn-secondary" type="button" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button><button class="btn crm-btn-danger-soft me-auto" type="button" id="contactsDeleteInModalBtn" data-i18n="contacts.btn_delete"><?= htmlspecialchars($t('contacts.btn_delete', 'Удалить контакт'), ENT_QUOTES, 'UTF-8') ?></button><button class="btn crm-btn-primary" type="submit" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button></div></form></div></div></div>
+
+<div class="modal fade" id="contactPortalInviteModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" data-i18n="contacts.portal_modal_title"><?= htmlspecialchars($t('contacts.portal_modal_title', 'Доступ в клиентский портал'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="page.close"></button></div>
+  <div class="modal-body">
+    <div id="contactPortalInvitePending" class="text-muted small"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>
+    <div id="contactPortalInviteError" class="alert alert-danger d-none py-2"></div>
+    <div id="contactPortalInviteResult" class="d-none">
+      <p class="small text-muted mb-2" data-i18n="contacts.portal_invite_hint"><?= htmlspecialchars($t('contacts.portal_invite_hint', 'Отправьте эту ссылку контакту. По ней он задаст пароль и войдёт в свой ограниченный кабинет.'), ENT_QUOTES, 'UTF-8') ?></p>
+      <label class="form-label" data-i18n="contacts.portal_login_label"><?= htmlspecialchars($t('contacts.portal_login_label', 'Логин'), ENT_QUOTES, 'UTF-8') ?></label>
+      <div class="input-group mb-3"><input type="text" class="form-control" id="contactPortalLoginInput" readonly><button class="btn crm-btn-secondary" type="button" data-copy-target="contactPortalLoginInput" data-i18n="admin_users.invite_copy"><?= htmlspecialchars($t('admin_users.invite_copy', 'Скопировать'), ENT_QUOTES, 'UTF-8') ?></button></div>
+      <label class="form-label" data-i18n="contacts.portal_link_label"><?= htmlspecialchars($t('contacts.portal_link_label', 'Ссылка приглашения'), ENT_QUOTES, 'UTF-8') ?></label>
+      <div class="input-group"><input type="text" class="form-control" id="contactPortalLinkInput" readonly><button class="btn crm-btn-secondary" type="button" data-copy-target="contactPortalLinkInput" data-i18n="admin_users.invite_copy"><?= htmlspecialchars($t('admin_users.invite_copy', 'Скопировать'), ENT_QUOTES, 'UTF-8') ?></button></div>
+    </div>
+  </div>
+  <div class="modal-footer"><button class="btn crm-btn-secondary" type="button" data-bs-dismiss="modal" data-i18n="page.close"><?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?></button></div>
+</div></div></div>
 <script>
 (function () {
   var editModal = document.getElementById('contactEditModal');

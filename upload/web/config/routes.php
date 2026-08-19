@@ -11,6 +11,7 @@ return [
     'password-reset-request' => [Web\Controller\Page\PasswordResetRequestController::class, 'index'],
     'password-reset-confirm' => [Web\Controller\Page\PasswordResetConfirmController::class, 'index'],
     'invitation-accept' => [Web\Controller\Page\InvitationAcceptController::class, 'index'],
+    'external-accept' => [Web\Controller\Page\ExternalAcceptController::class, 'index'],
 
     'projects' => [Web\Controller\Page\ProjectsController::class, 'index'],
     'project-detail' => [Web\Controller\Page\ProjectDetailController::class, 'index'],

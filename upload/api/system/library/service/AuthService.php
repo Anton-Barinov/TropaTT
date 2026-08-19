@@ -266,6 +266,7 @@ final class AuthService
             'locale' => (string)$session['locale'],
             'is_root' => (bool)$session['is_root'],
             'is_active' => (bool)($session['is_active'] ?? true),
+            'is_external' => (bool)($session['is_external'] ?? false),
             'created_by_user_id' => $session['created_by_user_id'] ?? null,
         ]);
 
@@ -307,6 +308,7 @@ final class AuthService
             'locale' => (string)($user['locale'] ?? 'en-gb'),
             'is_root' => $isRoot,
             'is_active' => (bool)$user['is_active'],
+            'is_external' => (bool)($user['is_external'] ?? false),
             'roles' => $roleCodes,
             'permission_codes' => $permissionCodes,
         ];

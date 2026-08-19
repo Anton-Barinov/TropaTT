@@ -26570,6 +26570,18 @@ window.CRM.pageApiBindings = (function () {
           } else if (contact.client_title) {
             cpTitle = contact.client_title;
           }
+          var hasCounterparty = !!(contact.counterparty_public_id || contact.company_public_id || contact.client_public_id);
+          var hasEmail = !!String(contact.email || '').trim();
+          var portalCell;
+          if (contact.external_user_public_id) {
+            portalCell = Number(contact.external_user_is_active) === 1
+              ? '<button class="btn btn-sm crm-btn-icon" type="button" data-contact-revoke-portal="' + safeText(id) + '" title="' + safeText(tp('contacts.btn_revoke_portal', 'Revoke portal access')) + '" aria-label="' + safeText(tp('contacts.btn_revoke_portal', 'Revoke portal access')) + '"><i class="fa-solid fa-globe text-success" aria-hidden="true"></i></button>'
+              : '<span class="text-muted" title="' + safeText(tp('contacts.portal_revoked', 'Portal access revoked')) + '"><i class="fa-solid fa-globe" aria-hidden="true"></i></span>';
+          } else if (hasCounterparty && hasEmail) {
+            portalCell = '<button class="btn btn-sm crm-btn-icon" type="button" data-contact-invite-portal="' + safeText(id) + '" title="' + safeText(tp('external_users.invite', 'Invite to portal')) + '" aria-label="' + safeText(tp('external_users.invite', 'Invite to portal')) + '"><i class="fa-regular fa-paper-plane" aria-hidden="true"></i></button>';
+          } else {
+            portalCell = '';
+          }
           return '<tr>'
             + '<td>' + safeText(contact.full_name || '—') + '</td>'
             + '<td>' + safeText(cpTitle || '—') + '</td>'
@@ -26579,7 +26591,8 @@ window.CRM.pageApiBindings = (function () {
             + '<td>' + (contact.is_primary ? '<span class="crm-badge success">' + safeText(tp('common.yes', 'Yes')) + '</span>' : '<span class="text-muted">' + safeText(tp('common.no', 'No')) + '</span>') + '</td>'
             + '<td><div class="crm-contact-actions">'
             + '<button class="btn btn-sm crm-btn-secondary" type="button" data-contact-edit="' + safeText(id) + '">' + safeText(tp('common.edit', 'Edit')) + '</button> '
-            + '<button class="btn btn-sm crm-btn-danger" type="button" data-contact-delete="' + safeText(id) + '">' + safeText(tp('common.delete', 'Delete')) + '</button>'
+            + '<button class="btn btn-sm crm-btn-danger" type="button" data-contact-delete="' + safeText(id) + '">' + safeText(tp('common.delete', 'Delete')) + '</button> '
+            + portalCell
             + '</div></td>'
             + '</tr>';
         }).join('');
@@ -26808,6 +26821,107 @@ window.CRM.pageApiBindings = (function () {
           });
       });
       btn.dataset.bound = '1';
+    });
+
+    // Client portal: invite a contact (creates the external_guest account and
+    // returns a one-time invitation link) or revoke an already-active guest's
+    // access. See ExternalUserController/ExternalUserService.
+    var portalModalEl = document.getElementById('contactPortalInviteModal');
+    var portalPending = document.getElementById('contactPortalInvitePending');
+    var portalError = document.getElementById('contactPortalInviteError');
+    var portalResult = document.getElementById('contactPortalInviteResult');
+    var portalLoginInput = document.getElementById('contactPortalLoginInput');
+    var portalLinkInput = document.getElementById('contactPortalLinkInput');
+
+    function openPortalModal() {
+      if (!portalModalEl) return null;
+      if (portalPending) portalPending.classList.remove('d-none');
+      if (portalError) portalError.classList.add('d-none');
+      if (portalResult) portalResult.classList.add('d-none');
+      var modal = bootstrap.Modal.getOrCreateInstance(portalModalEl);
+      modal.show();
+      return modal;
+    }
+
+    function showPortalError(message) {
+      if (portalPending) portalPending.classList.add('d-none');
+      if (portalError) {
+        portalError.textContent = message;
+        portalError.classList.remove('d-none');
+      }
+    }
+
+    function showPortalLink(user) {
+      if (portalPending) portalPending.classList.add('d-none');
+      if (!portalResult) return;
+      var webBase = String(window.location.pathname || '').replace(/[^/]*$/, '');
+      var link = window.CRM.api && typeof window.CRM.api.buildWebUrl === 'function'
+        ? window.location.origin + webBase + window.CRM.api.buildWebUrl('external-accept', { token: user.token })
+        : 'index.php?route=external-accept&token=' + encodeURIComponent(user.token);
+      if (portalLoginInput) portalLoginInput.value = String(user.login || '');
+      if (portalLinkInput) portalLinkInput.value = link;
+      portalResult.classList.remove('d-none');
+    }
+
+    document.querySelectorAll('[data-contact-invite-portal]').forEach(function (btn) {
+      if (btn.dataset.bound === '1') return;
+      btn.addEventListener('click', function () {
+        var contactId = String(btn.getAttribute('data-contact-invite-portal') || '').trim();
+        if (!contactId) return;
+        var modal = openPortalModal();
+        if (!modal) return;
+        request('api/v1/external-users/invite', { method: 'POST', body: { contact_public_id: contactId } })
+          .then(function (envelope) {
+            var data = (envelope && envelope.data) || {};
+            showPortalLink({ login: data.login, token: data.invitation_token });
+            return refreshCurrentPage();
+          })
+          .catch(function (error) {
+            var envelope = error && error.envelope ? error.envelope : null;
+            showPortalError((envelope && envelope.message) || tp('external_users.invite_failed', 'Failed to create invitation'));
+          });
+      });
+      btn.dataset.bound = '1';
+    });
+
+    document.querySelectorAll('[data-contact-revoke-portal]').forEach(function (btn) {
+      if (btn.dataset.bound === '1') return;
+      btn.addEventListener('click', function () {
+        var contactId = String(btn.getAttribute('data-contact-revoke-portal') || '').trim();
+        if (!contactId) return;
+        var contact = contacts.find(function (c) { return String(c.public_id || '') === contactId; });
+        var userPublicId = contact && contact.external_user_public_id;
+        if (!userPublicId) return;
+        if (!window.confirm(tp('contacts.portal_revoke_confirm', 'Revoke this contact\'s portal access?'))) return;
+        request('api/v1/external-users/' + encodeURIComponent(userPublicId) + '/deactivate', { method: 'POST' })
+          .then(function () {
+            notify(tp('external_users.deactivated', 'Access revoked'));
+            return refreshCurrentPage();
+          })
+          .catch(function (error) {
+            var envelope = error && error.envelope ? error.envelope : null;
+            notify((envelope && envelope.message) || tp('external_users.deactivate_failed', 'Failed to revoke access'), 'error');
+          });
+      });
+      btn.dataset.bound = '1';
+    });
+
+    document.querySelectorAll('#contactPortalInviteModal [data-copy-target]').forEach(function (btn) {
+      if (btn.dataset.copyBound === '1') return;
+      btn.dataset.copyBound = '1';
+      btn.addEventListener('click', function () {
+        var target = document.getElementById(String(btn.getAttribute('data-copy-target') || ''));
+        if (!target || !target.value) return;
+        var copied = function () { notify(tp('admin_users.invite_copied', 'Copied'), 'success'); };
+        var legacyCopy = function () {
+          try { target.focus(); target.select(); document.execCommand('copy'); copied(); } catch (err) {}
+        };
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+          navigator.clipboard.writeText(String(target.value)).then(copied).catch(legacyCopy);
+          return;
+        }
+        legacyCopy();
+      });
     });
   }
 

@@ -403,6 +403,46 @@ function crmWebApiSessionCookieIsValid(string $sessionToken, string $webBaseDir)
     return (bool)$stmt->fetchColumn();
 }
 
+/**
+ * Cheap page-shell check mirroring the API's is_external gate (App::run(),
+ * 'external_ok' route flag). External guest (client portal) sessions must not
+ * even get the page shell for internal-only routes — see $externalAllowedRoutes.
+ */
+function crmWebApiIsExternalUser(string $sessionToken, string $webBaseDir): bool
+{
+    $sessionToken = trim($sessionToken);
+    if ($sessionToken === '' || strlen($sessionToken) > 4096) {
+        return false;
+    }
+
+    $pdo = crmWebApiDbConnect($webBaseDir);
+    if ($pdo === null) {
+        return false;
+    }
+
+    $tokenHash = hash('sha256', $sessionToken);
+    $stmt = $pdo->prepare(
+        'SELECT u.is_external
+          FROM user_sessions us
+          INNER JOIN users u ON u.id = us.user_id
+          WHERE us.token_hash = :token_hash
+            AND us.revoked_at IS NULL
+            AND us.expires_at > :now
+            AND u.is_active = 1
+            AND u.deleted_at IS NULL
+          LIMIT 1'
+    );
+    if ($stmt === false) {
+        return false;
+    }
+    $stmt->execute([
+        'token_hash' => $tokenHash,
+        'now' => gmdate('Y-m-d H:i:s'),
+    ]);
+
+    return (int)$stmt->fetchColumn() === 1;
+}
+
 function crmWebApiCheckAnyPermission(string $sessionToken, array $permissions, string $webBaseDir): bool
 {
     $sessionToken = trim($sessionToken);
@@ -646,6 +686,7 @@ $publicRoutes = [
     'password-reset-request',
     'password-reset-confirm',
     'invitation-accept',
+    'external-accept',
 ];
 
 $isPublic = in_array($route, $publicRoutes, true)
@@ -739,6 +780,23 @@ if (isset($adminRoutePermissions[$route])) {
     $sessionToken = trim((string)($_COOKIE[$sessionCookieName] ?? ''));
     $hasPermission = crmWebApiCheckAnyPermission($sessionToken, $adminRoutePermissions[$route], $baseDir);
     if (!$hasPermission) {
+        http_response_code(403);
+        header('Content-Type: text/html; charset=utf-8');
+        echo \Web\System\I18n\EarlyResponse::forbiddenPage($baseDir);
+        exit;
+    }
+}
+
+// External guest users (client portal): hard page-shell allowlist mirroring
+// the API's is_external route gate (App::run(), 'external_ok'). Every other
+// protected route — including ones with no entry in $adminRoutePermissions,
+// like 'dashboard' or 'kanban' — 403s at the shell for an external actor so
+// they never see internal page chrome, even before any API call runs.
+$externalAllowedRoutes = ['projects', 'project-detail', 'tasks', 'task-detail', 'notifications'];
+if (!$isPublic && !in_array($route, $externalAllowedRoutes, true)) {
+    $sessionCookieName = trim((string)(getenv('CRM_API_SESSION_COOKIE') ?: 'crm_api_session'));
+    $sessionToken = trim((string)($_COOKIE[$sessionCookieName] ?? ''));
+    if (crmWebApiIsExternalUser($sessionToken, $baseDir)) {
         http_response_code(403);
         header('Content-Type: text/html; charset=utf-8');
         echo \Web\System\I18n\EarlyResponse::forbiddenPage($baseDir);

@@ -97,6 +97,7 @@ final class Router
                 'action' => $route['action'],
                 'auth' => (bool)($route['auth'] ?? true),
                 'required_permissions' => $route['required_permissions'] ?? [],
+                'external_ok' => (bool)($route['external_ok'] ?? false),
                 'params' => $params,
                 'route_path' => $routePath,
                 'route_name' => $route['name'] ?? $pattern,
