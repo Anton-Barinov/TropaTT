@@ -79,4 +79,25 @@ final class RoleRepository
             ->where('role_id', '=', $roleId)
             ->count() > 0;
     }
+
+    public function assignToUser(int $userId, int $roleId): void
+    {
+        // Check if already assigned
+        $existing = (new QueryBuilder($this->pdo))
+            ->from('user_roles')
+            ->where('user_id', '=', $userId)
+            ->where('role_id', '=', $roleId)
+            ->first();
+        if ($existing) {
+            return;
+        }
+        $now = gmdate('Y-m-d H:i:s');
+        (new QueryBuilder($this->pdo))
+            ->from('user_roles')
+            ->insert([
+                'user_id' => $userId,
+                'role_id' => $roleId,
+                'created_at' => $now,
+            ]);
+    }
 }

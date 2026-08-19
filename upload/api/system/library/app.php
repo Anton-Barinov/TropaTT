@@ -989,7 +989,8 @@ final class App
             $c->get('service.ai_semantic_index'),
             $c->get('service.chat'),
             $c->get('service.task_key'),
-            $c->get('repository.task_key_counter')
+            $c->get('repository.task_key_counter'),
+            $c->get('service.external_user')
         ));
         $this->container->factory('service.project_summary', fn(Container $c) => new ProjectSummaryService(
             $c->get('repository.project_summary'),
@@ -1015,7 +1016,8 @@ final class App
             $c->get('service.task_key'),
             $c->get('repository.task_key_counter'),
             $c->get('repository.project'),
-            new HtmlSanitizer()
+            new HtmlSanitizer(),
+            $c->get('service.external_user')
         ));
         $this->container->factory('service.task_bulk', fn(Container $c) => new TaskBulkService(
             $c->get('service.task'),
@@ -1642,6 +1644,16 @@ final class App
             $c->get('service.project'),
             $c->get('service.notification'),
             $c->get('lang')
+        ));
+
+        $this->container->factory('service.external_user', fn(Container $c) => new \Api\System\Library\Service\ExternalUserService(
+            $c->get('repository.user'),
+            $c->get('repository.role'),
+            $c->get('repository.contact'),
+            $c->get('security.hasher'),
+            $c->get('security.token'),
+            $c->get('logger'),
+            $c->get('config')
         ));
 
         $router = new Router();

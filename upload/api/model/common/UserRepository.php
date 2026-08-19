@@ -107,4 +107,34 @@ final class UserRepository
             ->get();
         return array_map(fn(array $r) => (int)$r['id'], $rows);
     }
+
+    public function findByAuthTokenHash(string $hash): ?array
+    {
+        return (new QueryBuilder($this->pdo))
+            ->from('users')
+            ->select([
+                'id', 'public_id', 'login', 'email', 'full_name',
+                'is_active', 'is_root', 'is_external', 'locale',
+                'auth_token_hash', 'created_at',
+            ])
+            ->where('auth_token_hash', '=', $hash)
+            ->whereNull('deleted_at')
+            ->first();
+    }
+
+    public function updateById(int $id, array $set): bool
+    {
+        if ($set === []) {
+            return false;
+        }
+        return (new QueryBuilder($this->pdo))
+            ->from('users')
+            ->where('id', '=', $id)
+            ->update($set) > 0;
+    }
+
+    public function getPdo(): \PDO
+    {
+        return $this->pdo;
+    }
 }

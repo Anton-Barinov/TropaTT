@@ -22,7 +22,8 @@ final class TaskService
         private readonly ?TaskKeyService $taskKeys = null,
         private readonly ?TaskKeyCounterRepository $keyCounters = null,
         private readonly ?ProjectRepository $projectRepo = null,
-        private readonly ?HtmlSanitizer $htmlSanitizer = null
+        private readonly ?HtmlSanitizer $htmlSanitizer = null,
+        private readonly ?ExternalUserService $externalUsers = null
     )
     {
     }
@@ -53,6 +54,15 @@ final class TaskService
         }
 
         $filters['accessible_team_public_ids'] = $this->accessibleTeamPublicIds($actor);
+
+        // RLS: external users can only see tasks for their counterparty
+        if ($this->externalUsers && !empty((int)($actor['is_external'] ?? 0))) {
+            $cpPublicId = $this->externalUsers->getCounterpartyPublicId((int)$actor['id']);
+            if ($cpPublicId !== '') {
+                $filters['client_public_id'] = $cpPublicId;
+            }
+        }
+
         $result = $this->tasks->list(
             $filters,
             (int)($actor['id'] ?? 0),
@@ -475,6 +485,21 @@ final class TaskService
 
         $actorId = (int)($actor['id'] ?? 0);
         if ($actorId <= 0) {
+            return false;
+        }
+
+        // RLS: external users can only access tasks belonging to their counterparty's projects
+        if (!empty((int)($actor['is_external'] ?? 0)) && $this->externalUsers) {
+            $cpPublicId = $this->externalUsers->getCounterpartyPublicId($actorId);
+            if ($cpPublicId === '') {
+                return false;
+            }
+            $taskClientPublicId = (string)($task['client_public_id'] ?? '');
+            $projectClientPublicId = (string)($task['client_public_id'] ?? '');
+            // Task directly linked to counterparty, or project linked to counterparty
+            if ($taskClientPublicId === $cpPublicId || $projectClientPublicId === $cpPublicId) {
+                return true;
+            }
             return false;
         }
 

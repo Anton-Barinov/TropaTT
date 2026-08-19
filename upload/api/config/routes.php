@@ -1030,4 +1030,10 @@ return [
     // visual editor image serving (storage_api/ is blocked by .htaccess, so images
     // are streamed through this authenticated binary route)
     ['methods' => ['GET'], 'pattern' => '/api/v1/visual-editor/image/{year}/{month}/{name}', 'controller' => Api\Controller\visualeditor\UploadController::class, 'action' => 'image', 'auth' => true, 'binary' => true, 'authz_note' => 'self-service: any authenticated user (UploadController::image serves uploaded visual-editor images)', 'openapi' => false],
+
+    // External users (client portal)
+    ['methods' => ['POST'], 'pattern' => '/api/v1/external-users/invite', 'controller' => Api\Controller\External\ExternalUserController::class, 'action' => 'invite', 'auth' => true, 'required_permissions' => ['contact.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/external-users/accept', 'controller' => Api\Controller\External\ExternalUserController::class, 'action' => 'accept', 'auth' => false, 'authz_note' => 'public: external user sets password'],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/external-users', 'controller' => Api\Controller\External\ExternalUserController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['contact.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/external-users/{public_id}/deactivate', 'controller' => Api\Controller\External\ExternalUserController::class, 'action' => 'deactivate', 'auth' => true, 'required_permissions' => ['contact.manage']],
 ];

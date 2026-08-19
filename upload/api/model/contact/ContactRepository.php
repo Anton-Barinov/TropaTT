@@ -166,4 +166,31 @@ final class ContactRepository
             ->where('public_id', '=', $publicId)
             ->delete() > 0;
     }
+
+    public function findById(int $id): ?array
+    {
+        return (new QueryBuilder($this->pdo))
+            ->from('contacts')
+            ->where('id', '=', $id)
+            ->first();
+    }
+
+    public function findByUserId(int $userId): ?array
+    {
+        return (new QueryBuilder($this->pdo))
+            ->from('contacts')
+            ->where('user_id', '=', $userId)
+            ->first();
+    }
+
+    public function updateById(int $id, array $set): bool
+    {
+        if ($set === []) {
+            return false;
+        }
+        return (new QueryBuilder($this->pdo))
+            ->from('contacts')
+            ->where('id', '=', $id)
+            ->update($set) > 0;
+    }
 }

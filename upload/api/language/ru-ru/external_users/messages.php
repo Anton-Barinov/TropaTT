@@ -1,0 +1,28 @@
+<?php
+declare(strict_types=1);
+
+return [
+    'contact_id_required' => 'Укажите контакт',
+    'public_id_required' => 'Укажите пользователя',
+    'contact_not_found' => 'Контакт не найден',
+    'contact_has_no_counterparty' => 'Контакт не привязан к контрагенту',
+    'contact_has_no_valid_email' => 'У контакта нет email',
+    'contact_already_has_external_user' => 'У контакта уже есть внешний пользователь',
+    'email_already_registered' => 'Email уже зарегистрирован',
+    'external_guest_role_not_found' => 'Роль external_guest не найдена',
+    'user_creation_failed' => 'Ошибка создания пользователя',
+    'token_required' => 'Токен обязателен',
+    'weak_password' => 'Минимальная длина пароля — 8 символов',
+    'invalid_token' => 'Неверный токен',
+    'not_external_user' => 'Пользователь не является внешним',
+    'account_already_active' => 'Аккаунт уже активен',
+    'user_not_found' => 'Пользователь не найден',
+    'unauthorized' => 'Не авторизован',
+    'invited' => 'Приглашение создано',
+    'invite_failed' => 'Ошибка создания приглашения',
+    'activated' => 'Аккаунт активирован',
+    'accept_failed' => 'Ошибка активации аккаунта',
+    'deactivated' => 'Доступ отозван',
+    'deactivate_failed' => 'Ошибка отзыва доступа',
+    'list' => 'Внешние пользователи',
+];

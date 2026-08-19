@@ -1,0 +1,28 @@
+<?php
+declare(strict_types=1);
+
+return [
+    'contact_id_required' => 'Kontakt ist erforderlich',
+    'public_id_required' => 'Benutzer ist erforderlich',
+    'contact_not_found' => 'Kontakt nicht gefunden',
+    'contact_has_no_counterparty' => 'Kontakt hat keinen Geschäftspartner',
+    'contact_has_no_valid_email' => 'Kontakt hat keine gültige E-Mail',
+    'contact_already_has_external_user' => 'Kontakt hat bereits einen externen Benutzer',
+    'email_already_registered' => 'E-Mail bereits registriert',
+    'external_guest_role_not_found' => 'Rolle external_guest nicht gefunden',
+    'user_creation_failed' => 'Fehler beim Erstellen des Benutzers',
+    'token_required' => 'Token ist erforderlich',
+    'weak_password' => 'Passwort muss mindestens 8 Zeichen lang sein',
+    'invalid_token' => 'Ungültiges Token',
+    'not_external_user' => 'Benutzer ist nicht extern',
+    'account_already_active' => 'Konto ist bereits aktiv',
+    'user_not_found' => 'Benutzer nicht gefunden',
+    'unauthorized' => 'Nicht autorisiert',
+    'invited' => 'Einladung erstellt',
+    'invite_failed' => 'Fehler beim Erstellen der Einladung',
+    'activated' => 'Konto aktiviert',
+    'accept_failed' => 'Fehler bei der Kontoaktivierung',
+    'deactivated' => 'Zugriff widerrufen',
+    'deactivate_failed' => 'Fehler beim Widerruf des Zugriffs',
+    'list' => 'Externe Benutzer',
+];

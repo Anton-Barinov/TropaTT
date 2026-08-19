@@ -20,7 +20,8 @@ final class ProjectService
         private readonly ?AiSemanticIndexService $semanticIndex = null,
         private readonly ?ChatService $chats = null,
         private readonly ?TaskKeyService $taskKeys = null,
-        private readonly ?TaskKeyCounterRepository $keyCounters = null
+        private readonly ?TaskKeyCounterRepository $keyCounters = null,
+        private readonly ?ExternalUserService $externalUsers = null
     )
     {
     }
@@ -28,6 +29,14 @@ final class ProjectService
     public function list(array $filters, array $actor): array
     {
         $filters['accessible_team_public_ids'] = $this->accessibleTeamPublicIds($actor);
+
+        // RLS: external users can only see projects for their counterparty
+        if ($this->externalUsers && !empty((int)($actor['is_external'] ?? 0))) {
+            $cpPublicId = $this->externalUsers->getCounterpartyPublicId((int)$actor['id']);
+            if ($cpPublicId !== '') {
+                $filters['client_public_id'] = $cpPublicId;
+            }
+        }
 
         $result = $this->projects->list(
             $filters,
@@ -339,6 +348,15 @@ final class ProjectService
         $actorId = (int)($actor['id'] ?? 0);
         if ($actorId <= 0) {
             return false;
+        }
+
+        // RLS: external users can only access projects for their counterparty
+        if (!empty((int)($actor['is_external'] ?? 0)) && $this->externalUsers) {
+            $cpPublicId = $this->externalUsers->getCounterpartyPublicId($actorId);
+            if ($cpPublicId === '') {
+                return false;
+            }
+            return (string)($project['client_public_id'] ?? '') === $cpPublicId;
         }
 
         return (int)($project['created_by_user_id'] ?? 0) === $actorId

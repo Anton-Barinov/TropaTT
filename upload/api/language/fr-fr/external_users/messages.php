@@ -1,0 +1,28 @@
+<?php
+declare(strict_types=1);
+
+return [
+    'contact_id_required' => 'Le contact est obligatoire',
+    'public_id_required' => 'L\'utilisateur est obligatoire',
+    'contact_not_found' => 'Contact introuvable',
+    'contact_has_no_counterparty' => 'Le contact n\'a pas de contrepartie',
+    'contact_has_no_valid_email' => 'Le contact n\'a pas d\'email valide',
+    'contact_already_has_external_user' => 'Le contact a déjà un utilisateur externe',
+    'email_already_registered' => 'Email déjà enregistré',
+    'external_guest_role_not_found' => 'Rôle external_guest introuvable',
+    'user_creation_failed' => 'Erreur lors de la création de l\'utilisateur',
+    'token_required' => 'Le jeton est obligatoire',
+    'weak_password' => 'Le mot de passe doit contenir au moins 8 caractères',
+    'invalid_token' => 'Jeton invalide',
+    'not_external_user' => 'L\'utilisateur n\'est pas externe',
+    'account_already_active' => 'Le compte est déjà actif',
+    'user_not_found' => 'Utilisateur introuvable',
+    'unauthorized' => 'Non autorisé',
+    'invited' => 'Invitation créée',
+    'invite_failed' => 'Erreur lors de la création de l\'invitation',
+    'activated' => 'Compte activé',
+    'accept_failed' => 'Erreur lors de l\'activation du compte',
+    'deactivated' => 'Accès révoqué',
+    'deactivate_failed' => 'Erreur lors de la révocation de l\'accès',
+    'list' => 'Utilisateurs externes',
+];
