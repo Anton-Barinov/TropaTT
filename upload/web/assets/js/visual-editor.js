@@ -1519,16 +1519,18 @@ window.CRM.VisualEditor = (function () {
   //  Todo list
   // ---------------------------------------------------------------------------
 
-  // Creates a single todo list item: <li><input type="checkbox" data-checked=""><span>text</span></li>
+  // Creates a single todo list item: <li><span class="crm-ve-todo-cb" data-checked=""><span>text</span></li>
   function createTodoItem(text, checked) {
     var li = document.createElement('li');
     li.className = 'crm-ve-todo-item';
-    var cb = document.createElement('input');
-    cb.type = 'checkbox';
+    var cb = document.createElement('span');
     cb.className = 'crm-ve-todo-cb';
+    cb.setAttribute('role', 'checkbox');
+    cb.setAttribute('tabindex', '-1');
     if (checked) cb.setAttribute('data-checked', 'true');
     var span = document.createElement('span');
     span.className = 'crm-ve-todo-text';
+    span.contentEditable = 'true';
     span.textContent = text || '';
     if (!text) span.appendChild(document.createElement('br'));
     li.appendChild(cb);
@@ -1584,11 +1586,128 @@ window.CRM.VisualEditor = (function () {
     } else {
       checkbox.setAttribute('data-checked', 'true');
     }
-    // Toggle visual state
     var li = checkbox.closest('.crm-ve-todo-item');
     if (li) li.classList.toggle('is-checked', !isChecked);
     this._sync();
     this._history.push(this._content.innerHTML, true);
+  };
+
+  // Handle Enter/Backspace inside todo items
+  Editor.prototype._handleTodoKeydown = function (e) {
+    var target = e.target;
+    if (!target) return false;
+    var todoText = target.closest ? target.closest('.crm-ve-todo-text') : null;
+    if (!todoText) return false;
+    var li = todoText.closest('.crm-ve-todo-item');
+    if (!li) return false;
+    var ul = li.closest('.crm-ve-todo-list');
+    if (!ul) return false;
+    var sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return false;
+
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      // Create new todo item after current one
+      var text = todoText.textContent || '';
+      // Split text at cursor position
+      var range = sel.getRangeAt(0);
+      var afterRange = document.createRange();
+      afterRange.setStart(range.endContainer, range.endOffset);
+      afterRange.setEndAfter(todoText.lastChild || todoText);
+      var afterFrag = afterRange.extractContents();
+      var afterDiv = document.createElement('div');
+      afterDiv.appendChild(afterFrag);
+      var afterText = afterDiv.textContent;
+      // Set current item text to before cursor
+      var beforeRange = document.createRange();
+      beforeRange.setStart(todoText, 0);
+      beforeRange.setEnd(range.startContainer, range.startOffset);
+      var beforeFrag = beforeRange.extractContents();
+      var beforeDiv = document.createElement('div');
+      beforeDiv.appendChild(beforeFrag);
+      todoText.textContent = beforeDiv.textContent;
+      if (!todoText.textContent) todoText.appendChild(document.createElement('br'));
+      // Create new item
+      var newLi = createTodoItem(afterText, false);
+      li.parentNode.insertBefore(newLi, li.nextSibling);
+      // Place caret in new item
+      var newTextSpan = newLi.querySelector('.crm-ve-todo-text');
+      if (newTextSpan) {
+        var newRange = document.createRange();
+        newRange.setStart(newTextSpan, 0);
+        newRange.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(newRange);
+      }
+      this._sync();
+      this._history.push(this._content.innerHTML, true);
+      return true;
+    }
+
+    if (e.key === 'Backspace') {
+      var r = sel.getRangeAt(0);
+      if (r.collapsed && todoText.textContent === '' && !todoText.querySelector('br')) {
+        // Empty item: remove it
+        e.preventDefault();
+        var prevLi = li.previousSibling;
+        var nextLi = li.nextSibling;
+        li.remove();
+        // Place caret at end of previous item or first next item
+        var targetText = prevLi ? prevLi.querySelector('.crm-ve-todo-text') : (nextLi ? nextLi.querySelector('.crm-ve-todo-text') : null);
+        if (targetText) {
+          var nr = document.createRange();
+          nr.selectNodeContents(targetText);
+          nr.collapse(false);
+          sel.removeAllRanges();
+          sel.addRange(nr);
+        }
+        this._sync();
+        this._history.push(this._content.innerHTML, true);
+        return true;
+      }
+      // At the start of text in item: merge with previous item
+      if (r.collapsed && r.startOffset === 0 && r.startContainer.nodeType === 3 && (r.startContainer.textContent || '').substring(0, r.startOffset) === '') {
+        var prevItem = li.previousSibling;
+        if (prevItem && prevItem.classList && prevItem.classList.contains('crm-ve-todo-item')) {
+          e.preventDefault();
+          var prevText = prevItem.querySelector('.crm-ve-todo-text');
+          if (prevText) {
+            var prevLen = (prevText.textContent || '').length;
+            prevText.textContent += todoText.textContent;
+            if (!prevText.textContent) prevText.appendChild(document.createElement('br'));
+            li.remove();
+            // Place caret at merge point
+            var mergeRange = document.createRange();
+            mergeRange.setStart(prevText.childNodes[0] || prevText, prevLen);
+            mergeRange.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(mergeRange);
+          }
+          this._sync();
+          this._history.push(this._content.innerHTML, true);
+          return true;
+        }
+      }
+    }
+
+    // Tab: move to next/previous item
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      var targetItem = e.shiftKey ? li.previousSibling : li.nextSibling;
+      if (targetItem && targetItem.classList && targetItem.classList.contains('crm-ve-todo-item')) {
+        var targetSpan = targetItem.querySelector('.crm-ve-todo-text');
+        if (targetSpan) {
+          var tr = document.createRange();
+          tr.selectNodeContents(targetSpan);
+          tr.collapse(false);
+          sel.removeAllRanges();
+          sel.addRange(tr);
+        }
+      }
+      return true;
+    }
+
+    return false;
   };
 
   // Convert `[] ` at the start of a paragraph into a todo list
@@ -1643,12 +1762,19 @@ window.CRM.VisualEditor = (function () {
       }
       tbody.appendChild(tr);
     }
-    table.appendChild(tbody);
-
-    // Wrap in a scrollable container
+    table.appendChild(tbody);    // Wrap in a scrollable container
     var wrapper = document.createElement('div');
     wrapper.className = 'crm-ve-table-wrap';
     wrapper.appendChild(table);
+
+    // Control buttons (add row/column)
+    var controls = document.createElement('div');
+    controls.className = 'crm-ve-table-controls';
+    controls.innerHTML = '<button type="button" class="crm-ve-table-ctrl-btn" data-table-action="add-row" title="Add row">\u2795 Row</button>'
+      + '<button type="button" class="crm-ve-table-ctrl-btn" data-table-action="add-col" title="Add column">\u2795 Col</button>'
+      + '<button type="button" class="crm-ve-table-ctrl-btn" data-table-action="del-row" title="Remove row">\u2796 Row</button>'
+      + '<button type="button" class="crm-ve-table-ctrl-btn" data-table-action="del-col" title="Remove column">\u2796 Col</button>';
+    wrapper.appendChild(controls);
 
     range.deleteContents();
     range.insertNode(wrapper);
@@ -1668,26 +1794,133 @@ window.CRM.VisualEditor = (function () {
     this._updateEmptyState();
   };
 
+  // Table control button handler
+  Editor.prototype._handleTableControl = function (e) {
+    var btn = e.target.closest('.crm-ve-table-ctrl-btn');
+    if (!btn) return false;
+    e.preventDefault();
+    var action = btn.getAttribute('data-table-action');
+    var wrap = btn.closest('.crm-ve-table-wrap');
+    if (!wrap) return false;
+    var table = wrap.querySelector('.crm-ve-table');
+    if (!table) return false;
+    var tbody = table.querySelector('tbody');
+    if (!tbody) return false;
+    var sel = window.getSelection();
+    var currentCell = sel && sel.rangeCount ? sel.getRangeAt(0).startContainer : null;
+    if (currentCell && currentCell.nodeType === 3) currentCell = currentCell.parentNode;
+    var currentTd = currentCell && currentCell.closest ? currentCell.closest('td, th') : null;
+    var currentRow = currentTd ? currentTd.parentNode : null;
+    var colIndex = currentTd ? Array.from(currentRow.children).indexOf(currentTd) : -1;
+    var rowIndex = currentRow ? Array.from(tbody.children).indexOf(currentRow) : -1;
+
+    if (action === 'add-row') {
+      var cols = tbody.children[0] ? tbody.children[0].children.length : 2;
+      var newTr = document.createElement('tr');
+      for (var c = 0; c < cols; c++) {
+        var newTd = document.createElement('td');
+        newTd.innerHTML = '<br>';
+        newTr.appendChild(newTd);
+      }
+      if (currentRow) {
+        currentRow.parentNode.insertBefore(newTr, currentRow.nextSibling);
+      } else {
+        tbody.appendChild(newTr);
+      }
+    } else if (action === 'add-col') {
+      var allRows = tbody.querySelectorAll('tr');
+      allRows.forEach(function (tr) {
+        var newTd = document.createElement('td');
+        newTd.innerHTML = '<br>';
+        if (colIndex >= 0 && colIndex < tr.children.length - 1) {
+          tr.insertBefore(newTd, tr.children[colIndex + 1]);
+        } else {
+          tr.appendChild(newTd);
+        }
+      });
+    } else if (action === 'del-row') {
+      if (tbody.children.length > 1 && currentRow) {
+        currentRow.remove();
+      }
+    } else if (action === 'del-col') {
+      if (colIndex >= 0) {
+        var allRows2 = tbody.querySelectorAll('tr');
+        var firstRowCols = allRows2[0] ? allRows2[0].children.length : 0;
+        if (firstRowCols > 1) {
+          allRows2.forEach(function (tr) {
+            if (tr.children[colIndex]) tr.children[colIndex].remove();
+          });
+        }
+      }
+    }
+    this._sync();
+    this._history.push(this._content.innerHTML, true);
+    return true;
+  };
+
+  // Tab navigation between table cells
+  Editor.prototype._handleTableKeydown = function (e) {
+    if (e.key !== 'Tab') return false;
+    var target = e.target;
+    if (!target) return false;
+    var td = target.closest ? target.closest('td, th') : null;
+    if (!td) return false;
+    var table = td.closest('.crm-ve-table');
+    if (!table) return false;
+    e.preventDefault();
+    var tbody = table.querySelector('tbody');
+    var row = td.parentNode;
+    var rows = Array.from(tbody.children);
+    var cells = Array.from(row.children);
+    var colIdx = cells.indexOf(td);
+    var rowIdx = rows.indexOf(row);
+    var nextTd = null;
+    if (e.shiftKey) {
+      // Shift+Tab: previous cell
+      if (colIdx > 0) {
+        nextTd = row.children[colIdx - 1];
+      } else if (rowIdx > 0) {
+        var prevRow = rows[rowIdx - 1];
+        nextTd = prevRow.children[prevRow.children.length - 1];
+      }
+    } else {
+      // Tab: next cell
+      if (colIdx < cells.length - 1) {
+        nextTd = row.children[colIdx + 1];
+      } else if (rowIdx < rows.length - 1) {
+        nextTd = rows[rowIdx + 1].children[0];
+      }
+    }
+    if (nextTd) {
+      var range = document.createRange();
+      range.selectNodeContents(nextTd);
+      range.collapse(false);
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+    return true;
+  };
+
   // ---------------------------------------------------------------------------
   //  Slash menu (/)
   // ---------------------------------------------------------------------------
 
   var SLASH_COMMANDS = [
-    { id: 'h2', label: 'Heading 2', icon: 'H2', keywords: 'heading h2 title', action: 'formatBlock', value: 'h2' },
-    { id: 'h3', label: 'Heading 3', icon: 'H3', keywords: 'heading h3 subtitle', action: 'formatBlock', value: 'h3' },
-    { id: 'bullet', label: 'Bullet list', icon: '\u2022', keywords: 'list bullet unordered', action: 'insertUnorderedList' },
-    { id: 'ordered', label: 'Ordered list', icon: '1.', keywords: 'list number ordered', action: 'insertOrderedList' },
-    { id: 'todo', label: 'To-do list', icon: '\u2611', keywords: 'todo checkbox task check', action: 'todoList' },
-    { id: 'quote', label: 'Quote', icon: '\u201C', keywords: 'quote blockquote', action: 'formatBlock', value: 'blockquote' },
-    { id: 'code', label: 'Code block', icon: '</>', keywords: 'code pre block', action: 'codeBlock' },
-    { id: 'table', label: 'Table', icon: '\u25A6', keywords: 'table grid', action: 'insertTable' },
-    { id: 'divider', label: 'Divider', icon: '\u2014', keywords: 'divider horizontal rule line separator', action: 'divider' }
+    { id: 'h2', label: 'Heading 2', icon: 'H2', desc: 'Large section heading', keywords: 'heading h2 title', action: 'formatBlock', value: 'h2', group: 'Blocks' },
+    { id: 'h3', label: 'Heading 3', icon: 'H3', desc: 'Smaller section heading', keywords: 'heading h3 subtitle', action: 'formatBlock', value: 'h3', group: 'Blocks' },
+    { id: 'bullet', label: 'Bullet list', icon: '\u2022', desc: 'Unordered list', keywords: 'list bullet unordered', action: 'insertUnorderedList', group: 'Lists' },
+    { id: 'ordered', label: 'Numbered list', icon: '1.', desc: 'Ordered list', keywords: 'list number ordered', action: 'insertOrderedList', group: 'Lists' },
+    { id: 'todo', label: 'To-do list', icon: '\u2611', desc: 'Checkboxes for tasks', keywords: 'todo checkbox task check', action: 'todoList', group: 'Lists' },
+    { id: 'quote', label: 'Quote', icon: '\u201C', desc: 'Blockquote', keywords: 'quote blockquote', action: 'formatBlock', value: 'blockquote', group: 'Blocks' },
+    { id: 'code', label: 'Code block', icon: '</>', desc: 'Syntax highlighted code', keywords: 'code pre block', action: 'codeBlock', group: 'Blocks' },
+    { id: 'table', label: 'Table', icon: '\u25A6', desc: '3x3 grid table', keywords: 'table grid', action: 'insertTable', group: 'Blocks' },
+    { id: 'divider', label: 'Divider', icon: '\u2014', desc: 'Horizontal line', keywords: 'divider horizontal rule line separator', action: 'divider', group: 'Blocks' }
   ];
 
   function createSlashMenuEl() {
     var menu = document.createElement('div');
     menu.className = 'crm-ve-slash-menu';
-    menu.style.cssText = 'display:none;position:absolute;z-index:99999;background:#fff;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);max-height:240px;overflow-y:auto;min-width:200px;padding:4px;';
     return menu;
   }
 
@@ -1696,27 +1929,45 @@ window.CRM.VisualEditor = (function () {
     var items = SLASH_COMMANDS.filter(function (cmd) {
       if (!query) return true;
       return cmd.label.toLowerCase().indexOf(query) !== -1
-        || cmd.keywords.toLowerCase().indexOf(query) !== -1;
+        || cmd.keywords.toLowerCase().indexOf(query) !== -1
+        || (cmd.desc && cmd.desc.toLowerCase().indexOf(query) !== -1);
     });
     menu.innerHTML = '';
     if (!items.length) {
       menu.style.display = 'none';
       return items;
     }
+    // Group items
+    var lastGroup = '';
     items.forEach(function (cmd, i) {
+      if (cmd.group && cmd.group !== lastGroup && !query) {
+        lastGroup = cmd.group;
+        var groupLabel = document.createElement('div');
+        groupLabel.className = 'crm-ve-slash-group-label';
+        groupLabel.textContent = cmd.group;
+        menu.appendChild(groupLabel);
+      }
       var item = document.createElement('div');
       item.className = 'crm-ve-slash-item';
       item.setAttribute('data-slash-cmd', cmd.id);
       if (i === activeIndex) item.classList.add('is-active');
-      item.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:4px;cursor:pointer;font-size:13px;color:#374151;transition:background 0.1s;';
       var iconSpan = document.createElement('span');
       iconSpan.className = 'crm-ve-slash-icon';
-      iconSpan.style.cssText = 'width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:#f3f4f6;border-radius:4px;font-size:13px;font-weight:600;color:#6b7280;flex-shrink:0;';
       iconSpan.textContent = cmd.icon;
+      var textWrap = document.createElement('span');
+      textWrap.style.cssText = 'flex:1;min-width:0;';
       var labelSpan = document.createElement('span');
       labelSpan.textContent = cmd.label;
+      labelSpan.style.cssText = 'display:block;font-weight:500;';
+      textWrap.appendChild(labelSpan);
+      if (cmd.desc) {
+        var descSpan = document.createElement('span');
+        descSpan.className = 'crm-ve-slash-item-desc';
+        descSpan.textContent = cmd.desc;
+        textWrap.appendChild(descSpan);
+      }
       item.appendChild(iconSpan);
-      item.appendChild(labelSpan);
+      item.appendChild(textWrap);
       menu.appendChild(item);
     });
     return items;
@@ -1925,6 +2176,8 @@ window.CRM.VisualEditor = (function () {
 
   var _mentionUsersCache = null;
   var _mentionUsersPromise = null;
+  var _mentionPagesCache = null;
+  var _mentionPagesPromise = null;
 
   function fetchMentionUsers() {
     if (_mentionUsersCache) return Promise.resolve(_mentionUsersCache);
@@ -1940,7 +2193,8 @@ window.CRM.VisualEditor = (function () {
         return {
           id: u.public_id || u.id || '',
           name: u.full_name || u.login || '',
-          login: u.login || ''
+          login: u.login || '',
+          type: 'user'
         };
       }).filter(function (u) { return u.id && u.name; });
       return _mentionUsersCache;
@@ -1952,48 +2206,105 @@ window.CRM.VisualEditor = (function () {
     return _mentionUsersPromise;
   }
 
+  function fetchMentionPages() {
+    if (_mentionPagesCache) return Promise.resolve(_mentionPagesCache);
+    if (_mentionPagesPromise) return _mentionPagesPromise;
+    _mentionPagesPromise = fetch('api/v1/knowledge/pages?limit=100', {
+      headers: { 'Accept': 'application/json' },
+      credentials: 'same-origin'
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      var items = (data && data.data && data.data.items) || data.items || [];
+      _mentionPagesCache = items.map(function (p) {
+        return {
+          id: p.public_id || p.id || '',
+          name: p.title || '',
+          type: 'page'
+        };
+      }).filter(function (p) { return p.id && p.name; });
+      return _mentionPagesCache;
+    })
+    .catch(function () {
+      _mentionPagesCache = [];
+      return _mentionPagesCache;
+    });
+    return _mentionPagesPromise;
+  }
+
+  function fetchMentionAll() {
+    return Promise.all([fetchMentionUsers(), fetchMentionPages()]).then(function (results) {
+      return results[0].concat(results[1]);
+    });
+  }
+
   function createMentionMenuEl() {
     var menu = document.createElement('div');
     menu.className = 'crm-ve-mention-menu';
-    menu.style.cssText = 'display:none;position:absolute;z-index:99999;background:#fff;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);max-height:200px;overflow-y:auto;min-width:180px;padding:4px;';
     return menu;
   }
 
-  function renderMentionMenuItems(menu, users, filter, activeIndex) {
+  function renderMentionMenuItems(menu, allItems, filter, activeIndex) {
     var query = String(filter || '').toLowerCase().trim();
-    var items = users.filter(function (u) {
+    var filtered = allItems.filter(function (u) {
       if (!query) return true;
       return u.name.toLowerCase().indexOf(query) !== -1
-        || u.login.toLowerCase().indexOf(query) !== -1;
-    }).slice(0, 10);
+        || (u.login && u.login.toLowerCase().indexOf(query) !== -1);
+    }).slice(0, 12);
     menu.innerHTML = '';
-    if (!items.length) {
+    if (!filtered.length) {
       menu.style.display = 'none';
-      return items;
+      return filtered;
     }
-    items.forEach(function (user, i) {
-      var item = document.createElement('div');
-      item.className = 'crm-ve-mention-item';
-      item.setAttribute('data-mention-id', user.id);
-      item.setAttribute('data-mention-name', user.name);
-      if (i === activeIndex) item.classList.add('is-active');
-      item.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:4px;cursor:pointer;font-size:13px;color:#374151;transition:background 0.1s;';
-      var avatar = document.createElement('span');
-      avatar.style.cssText = 'width:24px;height:24px;border-radius:50%;background:#e0e7ff;color:#4f46e5;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;';
-      avatar.textContent = (user.name || '?').charAt(0).toUpperCase();
+    // Group by type
+    var users = filtered.filter(function (i) { return i.type === 'user'; });
+    var pages = filtered.filter(function (i) { return i.type === 'page'; });
+    var idx = 0;
+
+    function renderItem(item) {
+      var el = document.createElement('div');
+      el.className = 'crm-ve-mention-item';
+      el.setAttribute('data-mention-id', item.id);
+      el.setAttribute('data-mention-name', item.name);
+      el.setAttribute('data-mention-type', item.type);
+      if (idx === activeIndex) el.classList.add('is-active');
+      var icon = document.createElement('span');
+      icon.className = item.type === 'page' ? 'crm-ve-mention-page-icon' : 'crm-ve-mention-user-icon';
+      icon.textContent = item.type === 'page' ? '\uD83D\uDCC4' : (item.name || '?').charAt(0).toUpperCase();
       var nameSpan = document.createElement('span');
-      nameSpan.textContent = user.name;
-      if (user.login) {
+      nameSpan.style.cssText = 'flex:1;min-width:0;';
+      nameSpan.textContent = item.name;
+      if (item.login) {
         var loginSpan = document.createElement('span');
         loginSpan.style.cssText = 'color:#9ca3af;font-size:12px;margin-left:4px;';
-        loginSpan.textContent = '@' + user.login;
+        loginSpan.textContent = '@' + item.login;
         nameSpan.appendChild(loginSpan);
       }
-      item.appendChild(avatar);
-      item.appendChild(nameSpan);
-      menu.appendChild(item);
-    });
-    return items;
+      var typeSpan = document.createElement('span');
+      typeSpan.className = 'crm-ve-mention-item-type';
+      typeSpan.textContent = item.type === 'page' ? 'Page' : 'User';
+      el.appendChild(icon);
+      el.appendChild(nameSpan);
+      el.appendChild(typeSpan);
+      menu.appendChild(el);
+      idx++;
+    }
+
+    if (users.length) {
+      var userLabel = document.createElement('div');
+      userLabel.className = 'crm-ve-mention-group-label';
+      userLabel.textContent = 'Users';
+      menu.appendChild(userLabel);
+      users.forEach(renderItem);
+    }
+    if (pages.length) {
+      var pageLabel = document.createElement('div');
+      pageLabel.className = 'crm-ve-mention-group-label';
+      pageLabel.textContent = 'Knowledge pages';
+      menu.appendChild(pageLabel);
+      pages.forEach(renderItem);
+    }
+    return filtered;
   }
 
   function positionMentionMenu(editorInstance) {
@@ -2021,11 +2332,11 @@ window.CRM.VisualEditor = (function () {
     this._mentionMenuActive = true;
     this._mentionMenuFilter = '';
     this._mentionMenuIndex = 0;
-    // Fetch users and show menu
-    fetchMentionUsers().then(function (users) {
+    // Fetch users and pages, show menu
+    fetchMentionAll().then(function (allItems) {
       if (!self._mentionMenuActive) return;
-      self._mentionUsers = users;
-      var items = renderMentionMenuItems(self._mentionMenu, users, '', 0);
+      self._mentionUsers = allItems;
+      var items = renderMentionMenuItems(self._mentionMenu, allItems, '', 0);
       self._mentionMenu.style.display = items.length ? 'block' : 'none';
       self._mentionMenuItems = items;
       positionMentionMenu(self);
@@ -2040,7 +2351,7 @@ window.CRM.VisualEditor = (function () {
     this._mentionMenuItems = [];
   };
 
-  Editor.prototype._selectMentionItem = function (userId, userName) {
+  Editor.prototype._selectMentionItem = function (itemId, itemName, itemType) {
     // Remove the @ and filter text
     var sel = window.getSelection();
     if (sel && sel.rangeCount) {
@@ -2063,11 +2374,11 @@ window.CRM.VisualEditor = (function () {
     this._hideMentionMenu();
     // Insert mention chip
     var mention = document.createElement('span');
-    mention.className = 'crm-ve-mention';
-    mention.setAttribute('data-mention-type', 'user');
-    mention.setAttribute('data-mention-id', userId);
+    mention.className = itemType === 'page' ? 'crm-ve-mention crm-ve-mention-page' : 'crm-ve-mention';
+    mention.setAttribute('data-mention-type', itemType || 'user');
+    mention.setAttribute('data-mention-id', itemId);
     mention.setAttribute('contenteditable', 'false');
-    mention.textContent = '@' + userName;
+    mention.textContent = (itemType === 'page' ? '\uD83D\uDCC4 ' : '@') + itemName;
     this._insertAtCaret(mention);
     // Add a space after the mention
     var space = document.createTextNode('\u00A0');
@@ -2147,7 +2458,7 @@ window.CRM.VisualEditor = (function () {
       e.preventDefault();
       if (items[this._mentionMenuIndex]) {
         var item = items[this._mentionMenuIndex];
-        this._selectMentionItem(item.id, item.name);
+        this._selectMentionItem(item.id, item.name, item.type);
       }
       return true;
     }
@@ -2202,7 +2513,8 @@ window.CRM.VisualEditor = (function () {
         e.preventDefault();
         var userId = mentionItem.getAttribute('data-mention-id');
         var userName = mentionItem.getAttribute('data-mention-name');
-        if (userId && userName) self._selectMentionItem(userId, userName);
+        var userType = mentionItem.getAttribute('data-mention-type');
+        if (userId && userName) self._selectMentionItem(userId, userName, userType);
         return;
       }
       // Slash menu item click
@@ -2227,6 +2539,8 @@ window.CRM.VisualEditor = (function () {
         self._toggleTodo(todoCb);
         return;
       }
+      // Table control buttons
+      if (self._handleTableControl(e)) return;
       var imageBlock = e.target.closest('.crm-ve-image-block');
       if (imageBlock) {
         selectImageBlock(self, imageBlock);
@@ -2287,6 +2601,10 @@ window.CRM.VisualEditor = (function () {
     if (self._mentionMenuActive) {
       if (self._handleMentionKeydown(e)) return;
     }
+    // Todo list: Enter/Backspace/Tab inside todo items
+    if (self._handleTodoKeydown(e)) return;
+    // Table: Tab between cells
+    if (self._handleTableKeydown(e)) return;
 
     if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
       e.preventDefault();
