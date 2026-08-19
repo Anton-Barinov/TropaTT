@@ -26,14 +26,14 @@ final class ExternalUserController extends BaseController
     public function invite(): JsonResponse
     {
         $input = $this->request()->body();
-        $contactId = (int)($input['contact_id'] ?? 0);
+        $contactPublicId = trim((string)($input['contact_public_id'] ?? $input['contact_id'] ?? ''));
         $actor = $this->user();
 
         if (!$actor) {
             return $this->error('UNAUTHORIZED', $this->t('security/messages.unauthorized'), 401);
         }
 
-        if ($contactId <= 0) {
+        if ($contactPublicId === '') {
             return $this->error('VALIDATION_ERROR', $this->t('external_users.contact_id_required'), 422, [
                 'contact_id' => [$this->t('external_users.contact_id_required')],
             ]);
@@ -41,7 +41,7 @@ final class ExternalUserController extends BaseController
 
         /** @var \Api\System\Library\Service\ExternalUserService $service */
         $service = $this->container->get('service.external_user');
-        $result = $service->invite($contactId, $actor);
+        $result = $service->inviteByPublicId($contactPublicId, $actor);
 
         if (!$result['ok']) {
             $errorCode = strtoupper((string)($result['error'] ?? 'UNKNOWN'));

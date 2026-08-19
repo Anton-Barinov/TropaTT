@@ -32,6 +32,18 @@ final class ExternalUserService
     }
 
     /**
+     * Invite by contact public_id (resolves to internal id).
+     */
+    public function inviteByPublicId(string $contactPublicId, array $actor): array
+    {
+        $contact = $this->contacts->findByPublicId($contactPublicId);
+        if (!$contact) {
+            return ['ok' => false, 'error' => 'contact_not_found'];
+        }
+        return $this->invite((int)$contact['id'], $actor);
+    }
+
+    /**
      * Invite an external user from a contact record.
      *
      * Creates a pending user account and returns an invitation token
