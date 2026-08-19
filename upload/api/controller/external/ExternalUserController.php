@@ -27,11 +27,12 @@ final class ExternalUserController extends BaseController
     {
         $input = $this->request()->allInput();
         $contactPublicId = trim((string)($input['contact_public_id'] ?? $input['contact_id'] ?? ''));
-        $actor = $this->user();
+        $authUser = $this->user();
 
-        if (!$actor) {
+        if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('security/messages.unauthorized'), 401);
         }
+        $actor = $authUser['user'] ?? [];
 
         if ($contactPublicId === '') {
             return $this->error('VALIDATION_ERROR', $this->t('external_users.contact_id_required'), 422, [
@@ -108,10 +109,11 @@ final class ExternalUserController extends BaseController
      */
     public function list(): JsonResponse
     {
-        $actor = $this->user();
-        if (!$actor) {
+        $authUser = $this->user();
+        if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('security/messages.unauthorized'), 401);
         }
+        $actor = $authUser['user'] ?? [];
 
         /** @var \Api\System\Library\Service\ExternalUserService $service */
         $service = $this->container->get('service.external_user');
@@ -131,10 +133,11 @@ final class ExternalUserController extends BaseController
      */
     public function deactivate(array $params): JsonResponse
     {
-        $actor = $this->user();
-        if (!$actor) {
+        $authUser = $this->user();
+        if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('security/messages.unauthorized'), 401);
         }
+        $actor = $authUser['user'] ?? [];
 
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') {
