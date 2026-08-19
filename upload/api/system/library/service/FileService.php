@@ -9,6 +9,7 @@ use Api\Model\Project\ProjectRepository;
 use Api\Model\Recycle_bin\RecycleBinRepository;
 use Api\Model\Task\TaskRepository;
 use Api\System\Library\Logger\JsonLogger;
+use Api\System\Library\Service\ExternalUserService;
 use Api\System\Library\Support\Ulid;
 
 final class FileService
@@ -27,7 +28,8 @@ final class FileService
         private readonly RecycleBinRepository $recycleBin,
         private readonly JsonLogger $logger,
         private readonly ?AiSemanticIndexService $semanticIndex = null,
-        private readonly ?TaskActivityService $activity = null
+        private readonly ?TaskActivityService $activity = null,
+        private readonly ?ExternalUserService $externalUsers = null
     ) {
     }
 
@@ -320,6 +322,46 @@ final class FileService
 
         $actorId = (int)($actor['id'] ?? 0);
         if ($actorId <= 0) {
+            return false;
+        }
+
+        // RLS for client-portal guests. An external user is never a creator, assignee,
+        // manager or team member, so every ownership check below would deny them — including
+        // files attached to their own tasks, which is the main thing the portal exists for.
+        // Scope them by counterparty instead, mirroring TaskService::canAccess() and
+        // ProjectService::canAccess(). Unknown entity types stay closed.
+        if (!empty((int)($actor['is_external'] ?? 0))) {
+            if (!$this->externalUsers) {
+                return false;
+            }
+
+            $cpPublicId = $this->externalUsers->getCounterpartyPublicId($actorId);
+            if ($cpPublicId === '') {
+                return false;
+            }
+
+            if ($entityType === 'task') {
+                $task = $this->tasks->findByPublicId($entityPublicId);
+                if (!$task) {
+                    return false;
+                }
+
+                $taskClientPublicId = (string)($task['task_client_public_id'] ?? '');
+                $projectClientPublicId = (string)($task['client_public_id'] ?? '');
+
+                return ($taskClientPublicId !== '' && $taskClientPublicId === $cpPublicId)
+                    || ($projectClientPublicId !== '' && $projectClientPublicId === $cpPublicId);
+            }
+
+            if ($entityType === 'project') {
+                $project = $this->projects->findByPublicId($entityPublicId);
+                if (!$project) {
+                    return false;
+                }
+
+                return (string)($project['client_public_id'] ?? '') === $cpPublicId;
+            }
+
             return false;
         }
 

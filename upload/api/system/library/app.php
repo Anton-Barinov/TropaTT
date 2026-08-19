@@ -1205,7 +1205,8 @@ final class App
             $c->get('repository.recycle_bin'),
             $c->get('logger'),
             $c->get('service.ai_semantic_index'),
-            $c->get('service.task_activity')
+            $c->get('service.task_activity'),
+            $c->get('service.external_user')
         ));
         $this->container->factory('service.user', fn(Container $c) => new UserService(
             $c->get('repository.user_management'),

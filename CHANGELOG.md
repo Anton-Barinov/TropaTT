@@ -28,6 +28,10 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 - **Client portal: task creation could be redirected.** External guests can no longer set the counterparty or assignee on a task they create, and must create it inside one of their own projects.
 
+- **Client portal: internal comments were visible to clients.** Comments marked as internal on a task are no longer returned to portal users, and a comment written by a portal user is always recorded as client-facing. Filtering happens in the query, so comment counts and paging stay correct.
+
+- **Client portal: attachments were unreachable.** File access was determined only by internal roles (author, assignee, project manager, team member), none of which a portal user ever has, so they could not open or upload files on their own tasks. Access is now granted through the same company scoping used for projects and tasks.
+
 ## [v0.2.0.5] - 2026-08-19
 
 ### Added

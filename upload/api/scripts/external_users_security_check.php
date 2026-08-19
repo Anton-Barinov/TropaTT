@@ -42,6 +42,9 @@ $authServicePath = $apiRoot . '/system/library/service/AuthService.php';
 $taskServicePath = $apiRoot . '/system/library/service/TaskService.php';
 $projectServicePath = $apiRoot . '/system/library/service/ProjectService.php';
 $menuControllerPath = $apiRoot . '/controller/auth/MenuController.php';
+$fileServicePath = $apiRoot . '/system/library/service/FileService.php';
+$commentServicePath = $apiRoot . '/system/library/service/CommentService.php';
+$commentRepositoryPath = $apiRoot . '/model/comment/CommentRepository.php';
 $webIndexPath = $webRoot . '/index.php';
 
 $failures = [];
@@ -330,6 +333,51 @@ foreach ($seededCodes as $code) {
         . 'administrative capability to untrusted portal users'
     );
 }
+
+// ---------------------------------------------------------------------------
+// 6b. Attachments and comments must be counterparty-scoped too.
+// ---------------------------------------------------------------------------
+// Opening the file and comment routes to guests is only safe if those services
+// understand external actors. FileService resolved access purely through internal
+// relationships (creator / assignee / manager / team member) — an external guest is
+// none of those, so attachments on their own tasks were unreachable. CommentService
+// returned every comment on a task the guest could see, including `internal` ones.
+
+$fileServiceSource = readFileSafe($fileServicePath);
+check(
+    $failures,
+    str_contains($fileServiceSource, 'is_external'),
+    'FileService does not branch on is_external — attachment access is decided purely by '
+    . 'internal relationships (creator/assignee/manager/team member), which an external '
+    . 'guest never has, so files on their own tasks would be unreachable'
+);
+check(
+    $failures,
+    str_contains($fileServiceSource, 'getCounterpartyPublicId'),
+    'FileService does not resolve the actor counterparty — external file access cannot be '
+    . 'scoped without it'
+);
+
+$commentServiceSource = readFileSafe($commentServicePath);
+$commentRepositorySource = readFileSafe($commentRepositoryPath);
+check(
+    $failures,
+    str_contains($commentServiceSource, 'is_external'),
+    'CommentService does not branch on is_external — internal-visibility comments on a task '
+    . 'would be served to client-portal guests'
+);
+check(
+    $failures,
+    str_contains($commentRepositorySource, 'clientVisibleOnly'),
+    'CommentRepository has no client-visible-only mode — comment visibility filtering for '
+    . 'guests would have to happen after fetch, which breaks pagination totals and is the '
+    . 'PHP-array filtering this project explicitly avoids'
+);
+check(
+    $failures,
+    (bool)preg_match("/where\(\s*'c\.visibility'\s*,\s*'='\s*,\s*'client'\s*\)/", $commentRepositorySource),
+    'CommentRepository must filter visibility in SQL (c.visibility = client) for guests'
+);
 
 // ---------------------------------------------------------------------------
 // 7. Interface isolation (nav + page shells).

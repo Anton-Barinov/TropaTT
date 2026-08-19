@@ -418,7 +418,7 @@ final class TaskController extends BaseController
 
         /** @var CommentService $service */
         $service = $this->container->get('service.comment');
-        $result = $service->listByTask((string)$params['public_id'], $this->request()->allInput());
+        $result = $service->listByTask((string)$params['public_id'], $this->request()->allInput(), $authUser['user']);
 
         return $this->success('COMMENT_LIST', $this->t('task/messages.comment_list'), [
             'items' => $result['items'],
@@ -459,7 +459,7 @@ final class TaskController extends BaseController
 
         /** @var CommentService $service */
         $service = $this->container->get('service.comment');
-        $comment = $service->createByTask((string)$params['public_id'], $input, (int)$authUser['user']['id']);
+        $comment = $service->createByTask((string)$params['public_id'], $input, (int)$authUser['user']['id'], $authUser['user']);
 
         if (!$comment) {
             return $this->error('TASK_NOT_FOUND', $this->t('common/messages.task_not_found'), 404, [

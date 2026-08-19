@@ -21,12 +21,24 @@ final class CommentService
     {
     }
 
-    public function listByTask(string $taskPublicId, array $filters): array
+    /**
+     * @param array<string,mixed> $actor Caller. An external (client portal) user only ever
+     *        receives client-facing comments: they may legitimately see the task, but the
+     *        internal discussion on it is not theirs to read.
+     */
+    public function listByTask(string $taskPublicId, array $filters, array $actor = []): array
     {
         $page = max(1, (int)($filters['page'] ?? 1));
         $limit = min(100, max(1, (int)($filters['limit'] ?? 20)));
 
-        [$items, $total, $page, $limit] = $this->comments->listByTaskPublicId($taskPublicId, $page, $limit);
+        $clientVisibleOnly = !empty((int)($actor['is_external'] ?? 0));
+
+        [$items, $total, $page, $limit] = $this->comments->listByTaskPublicId(
+            $taskPublicId,
+            $page,
+            $limit,
+            $clientVisibleOnly
+        );
         $items = array_map(fn(array $item): array => $this->sanitizeComment($item), $items);
 
         return [
@@ -42,9 +54,19 @@ final class CommentService
         ];
     }
 
-    public function createByTask(string $taskPublicId, array $input, int $authorUserId): ?array
+    /**
+     * @param array<string,mixed> $actor Caller. A comment written by an external (client
+     *        portal) user is always client-visible: letting a guest post an "internal"
+     *        comment would hide their own message from them on the next read.
+     */
+    public function createByTask(string $taskPublicId, array $input, int $authorUserId, array $actor = []): ?array
     {
         unset($input['author_user_id'], $input['created_at']);
+
+        if (!empty((int)($actor['is_external'] ?? 0))) {
+            $input['visibility'] = 'client';
+        }
+
         return $this->createByTaskInternal($taskPublicId, $input, $authorUserId, false);
     }
 

@@ -12,14 +12,18 @@ final class CommentRepository
     {
     }
 
-    public function listByTaskPublicId(string $taskPublicId, int $page = 1, int $limit = 20): array
-    {
+    public function listByTaskPublicId(
+        string $taskPublicId,
+        int $page = 1,
+        int $limit = 20,
+        bool $clientVisibleOnly = false
+    ): array {
         $page = max(1, $page);
         $limit = min(100, max(1, $limit));
         $offset = ($page - 1) * $limit;
 
-        $total = $this->buildListByTaskQuery($taskPublicId)->count();
-        $items = $this->buildListByTaskQuery($taskPublicId)
+        $total = $this->buildListByTaskQuery($taskPublicId, $clientVisibleOnly)->count();
+        $items = $this->buildListByTaskQuery($taskPublicId, $clientVisibleOnly)
             ->select([
                 'c.public_id',
                 'c.body',
@@ -37,14 +41,26 @@ final class CommentRepository
         return [$items, $total, $page, $limit];
     }
 
-    private function buildListByTaskQuery(string $taskPublicId): QueryBuilder
+    /**
+     * @param bool $clientVisibleOnly Restrict to client-facing comments. Used for
+     *        external (client portal) users so internal discussion on a task they
+     *        can otherwise see is never returned. Filtered in SQL, not after fetch,
+     *        so pagination totals stay correct.
+     */
+    private function buildListByTaskQuery(string $taskPublicId, bool $clientVisibleOnly = false): QueryBuilder
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('comments c')
             ->join('tasks t', 't.id', '=', 'c.task_id')
             ->leftJoin('users u', 'u.id', '=', 'c.author_user_id')
             ->where('t.public_id', '=', $taskPublicId)
             ->whereNull('c.deleted_at');
+
+        if ($clientVisibleOnly) {
+            $query->where('c.visibility', '=', 'client');
+        }
+
+        return $query;
     }
 
     public function createByTaskPublicId(string $taskPublicId, array $payload): bool
