@@ -4,6 +4,42 @@ All notable public changes to TropaTT should be documented here.
 
 This project follows a lightweight Keep a Changelog style. Dates are added when a release is actually created.
 
+## Unreleased → v0.2.0.4 - 2026-08-19
+
+### Added
+
+- **Visual editor: todo lists.** Insert via toolbar button or typing `[]` at the start of a line. Checkboxes toggle on click; checked state persists across saves.
+
+- **Visual editor: tables.** Insert 3×3 tables via toolbar button. Tables have responsive wrapper, border styling, and focus indicators.
+
+- **Visual editor: slash menu (`/`).** Type `/` at the start of a line to open a command palette with 9 block types (headings, lists, todo, quote, code, table, divider). Supports keyboard navigation and fuzzy filtering.
+
+- **Visual editor: @mentions.** Type `@` to search and mention users. Fetches user list from API on first trigger (cached). Inserts styled mention chips preserved in output HTML.
+
+- **Counterparties: interactive extra fields editor.** Replaced raw JSON textarea with a dynamic key-value editor (add/remove rows, field name + value inputs). No JSON knowledge required.
+
+- **Worklog time rounding.** New admin setting `time_rounding_minutes` (0 = disabled). When set, time is rounded up to the nearest N minutes on timer stop, manual entry, and edit.
+
+- **Docs page expanded.** Added Feature Overview, MCP, Usage Examples, and Tech Stack sections from README. Full i18n parity across all 7 locales (88 new keys).
+
+### Fixed
+
+- **Visual editor: code block styles inside editor.** Added CSS for `pre`/`code` elements inside `.crm-ve-content` so code blocks render with proper styling while editing.
+
+- **Counterparties: status field is now a select dropdown.** The status field in create/edit modals was a plain text input; changed to a select with active/inactive/archived options.
+
+- **Updates page: auto-load changes.** The "What will change" section now automatically loads after checking for updates when an update is available.
+
+- **Gantt: removed resize cursor on hover.** Gantt bars no longer show `ew-resize` cursor suggesting drag-to-resize.
+
+- **Admin settings: redesigned layout.** Added breadcrumb navigation, improved grid layout (8/4, 7/5, 6/6), styled system info grid, and icon in warning banner.
+
+- **Icons unified.** Standardized `fa-book` → `fa-book-open` for knowledge-related concepts across 5 locations. Added `aria-hidden="true"` to 930 decorative icons.
+
+- **Buttons unified.** Standardized subtask open/edit buttons to match task list pattern (`crm-btn-subtle`/`crm-btn-secondary`).
+
+- **Docs page: HTML rendering.** Removed `htmlspecialchars()` from 90 i18n calls containing HTML tags so `<strong>`, `<a>`, `<code>` render correctly.
+
 ## [0.2.0.3.1] - 2026-08-18
 
 ### Added
