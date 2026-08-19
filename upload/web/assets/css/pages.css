@@ -9138,11 +9138,11 @@ body.modal-open {
 
 /* 5. Drag handles and drag states */
 .crm-gantt-page .crm-gantt-bar.is-draggable {
-  cursor: grab;
+  cursor: default;
 }
 
 .crm-gantt-page .crm-gantt-bar.is-draggable:active {
-  cursor: grabbing;
+  cursor: default;
 }
 
 .crm-gantt-page .crm-gantt-bar.is-dragging {
