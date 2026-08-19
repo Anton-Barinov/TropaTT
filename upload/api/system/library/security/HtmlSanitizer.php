@@ -40,6 +40,15 @@ final class HtmlSanitizer
         'img' => true,
         'details' => true,
         'summary' => true,
+        'input' => true,
+        'span' => true,
+        'hr' => true,
+        'table' => true,
+        'thead' => true,
+        'tbody' => true,
+        'tr' => true,
+        'td' => true,
+        'th' => true,
     ];
 
     /** @var array<string,true> */
@@ -50,7 +59,6 @@ final class HtmlSanitizer
         'object' => true,
         'embed' => true,
         'form' => true,
-        'input' => true,
         'button' => true,
         'svg' => true,
         'math' => true,
@@ -147,6 +155,10 @@ final class HtmlSanitizer
             'figure' => ['data-align', 'data-width', 'style'],
             'figcaption' => ['class', 'contenteditable'],
             'details', 'summary' => ['class'],
+            'input' => ['type', 'disabled', 'data-checked', 'class'],
+            'span' => ['class', 'data-mention-type', 'data-mention-id', 'contenteditable'],
+            'hr' => ['style', 'class'],
+            'table', 'thead', 'tbody', 'tr', 'td', 'th' => ['class', 'colspan', 'rowspan'],
             default => [],
         };
 
