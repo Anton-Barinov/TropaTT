@@ -40,6 +40,8 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 - **Docs page: HTML rendering.** Removed `htmlspecialchars()` from 90 i18n calls containing HTML tags so `<strong>`, `<a>`, `<code>` render correctly.
 
+- **Sanitizer: todo list and table persistence.** Moved `<input>` from REMOVE_WITH_CONTENT to ALLOWED_TAGS so todo list checkboxes survive save/load. Added `<span>`, `<hr>`, `<table>` and related elements with proper attribute filtering.
+
 ## [0.2.0.3.1] - 2026-08-18
 
 ### Added
