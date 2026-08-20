@@ -148,7 +148,7 @@
         state.frame.setAttribute('width', '100%');
         state.frame.setAttribute('height', '100%');
         state.frame.setAttribute('style', 'border:0; min-height: 70vh;');
-        state.frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-downloads allow-popups');
+        state.frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-downloads allow-popups');
         state.frame.setAttribute('referrerpolicy', 'no-referrer');
         state.pendingXml = xml || '';
         wrap.appendChild(state.frame);
@@ -158,11 +158,24 @@
         if (!state.frame || event.source !== state.frame.contentWindow) {
             return;
         }
-        if (typeof event.data !== 'object' || event.data === null) {
+
+        // The draw.io embed editor (proto=json) posts its messages as JSON
+        // *strings* (see the official jgraph/drawio-integration example, which
+        // parses with JSON.parse(evt.data)). Accept both plain objects and
+        // stringified JSON so events like init/save/export are never missed.
+        let raw = event.data;
+        if (typeof raw === 'string' && raw.length > 0) {
+            try {
+                raw = JSON.parse(raw);
+            } catch (e) {
+                return;
+            }
+        }
+        if (typeof raw !== 'object' || raw === null) {
             return;
         }
 
-        const msg = event.data;
+        const msg = raw;
 
         if (msg.event === 'init') {
             // Load the pending XML once the editor is ready.
@@ -175,16 +188,19 @@
             state.loadedXml = msg.xml;
         }
 
-        if (msg.event === 'export' && typeof msg.data === 'string') {
-            state.loadedXml = msg.data;
+        if (msg.event === 'export') {
+            // For format 'xml' the raw diagram XML comes back in msg.xml; keep
+            // msg.data as a fallback for other formats.
+            state.loadedXml = (typeof msg.xml === 'string' && msg.xml) ? msg.xml : (typeof msg.data === 'string' ? msg.data : '');
             persistDiagram();
         }
     }
 
     function saveDiagram() {
         if (!state.frame) return;
-        // Ask the editor to export the current diagram as XML.
-        state.frame.contentWindow.postMessage(JSON.stringify({ action: 'export', format: 'xmlsvg', spin: 'Сохранение...' }), '*');
+        // Ask the editor to export the current diagram as raw XML (fastest and
+        // reloads cleanly back into the editor on next open).
+        state.frame.contentWindow.postMessage(JSON.stringify({ action: 'export', format: 'xml', spin: 'Сохранение...' }), '*');
     }
 
     function persistDiagram() {

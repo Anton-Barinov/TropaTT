@@ -2969,10 +2969,14 @@ window.CRM.br1 = (function () {
         var startAt = String((document.getElementById('taskDatesStartAt') || {}).value || '').trim();
         var dueAt = String((document.getElementById('taskDatesDueAt') || {}).value || '').trim();
         var endAt = String((document.getElementById('taskDatesEndAt') || {}).value || '').trim();
-        var body = { row_version: currentTask.row_version };
-        if (startAt) body.start_at = startAt.replace('T', ' ');
-        if (dueAt) body.due_at = dueAt.replace('T', ' ');
-        if (endAt) body.end_at = endAt.replace('T', ' ');
+        // Always send all three date fields so clearing a date (empty value) also
+        // persists as NULL on the server instead of being silently dropped.
+        var body = {
+          row_version: currentTask.row_version,
+          start_at: startAt ? startAt.replace('T', ' ') : '',
+          due_at: dueAt ? dueAt.replace('T', ' ') : '',
+          end_at: endAt ? endAt.replace('T', ' ') : ''
+        };
         try {
           var envelope = await window.CRM.api.request('api/v1/tasks/' + taskId, {
             method: 'PATCH',
@@ -7421,13 +7425,14 @@ window.CRM.br1 = (function () {
       if (assigneePublicId || assigneePublicId === '') body.assignee_user_public_id = assigneePublicId;
 
       var startAt = startInput ? String(startInput.value || '').trim() : '';
-      if (startAt) body.start_at = startAt + ' 00:00:00';
+      body.start_at = startAt ? startAt + ' 00:00:00' : '';
 
       var dueAt = dueInput ? String(dueInput.value || '').trim() : '';
-      if (dueAt) body.due_at = dueAt + ' 18:00:00';
+      body.due_at = dueAt ? dueAt + ' 18:00:00' : '';
 
       var endAt = endInput ? String(endInput.value || '').trim() : '';
-      if (endAt) body.end_at = endAt + ' 18:00:00';       var description = descInput ? getVisualEditorTextareaValue(descInput).trim() : '';
+      body.end_at = endAt ? endAt + ' 18:00:00' : '';
+      var description = descInput ? getVisualEditorTextareaValue(descInput).trim() : '';
       body.description = description;
 
       try {

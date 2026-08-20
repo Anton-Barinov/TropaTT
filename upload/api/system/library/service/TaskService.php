@@ -351,6 +351,12 @@ final class TaskService
         if (array_key_exists('due_at', $input)) {
             $set['due_at'] = $input['due_at'] !== '' ? (string)$input['due_at'] : null;
         }
+        if (array_key_exists('start_at', $input)) {
+            $set['start_at'] = $input['start_at'] !== '' ? (string)$input['start_at'] : null;
+        }
+        if (array_key_exists('end_at', $input)) {
+            $set['end_at'] = $input['end_at'] !== '' ? (string)$input['end_at'] : null;
+        }
         if (array_key_exists('assignee_user_id', $input)) {
             $set['assignee_user_id'] = $input['assignee_user_id'] !== null ? (int)$input['assignee_user_id'] : null;
         }

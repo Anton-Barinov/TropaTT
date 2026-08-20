@@ -43,6 +43,7 @@ if (!headers_sent()) {
         "default-src 'self'",
         "base-uri 'self'",
         "object-src 'none'",
+        "frame-src https://embed.diagrams.net",
         "frame-ancestors 'none'",
         "img-src 'self' data: blob: https:",
         "font-src 'self' data: https:",

@@ -95,7 +95,9 @@ final class TaskController extends BaseController
         $v->require($input, 'title', $this->t('common/messages.field_required'))
             ->maxLen($input, 'title', 255, $this->t('task/messages.max_255'))
             ->enum($input, 'priority', ['low', 'normal', 'high', 'urgent'], $this->t('task/messages.invalid_priority'))
-            ->date($input, 'due_at', $this->t('common/messages.invalid_date'));
+            ->date($input, 'due_at', $this->t('common/messages.invalid_date'))
+            ->date($input, 'start_at', $this->t('common/messages.invalid_date'))
+            ->date($input, 'end_at', $this->t('common/messages.invalid_date'));
 
         // SEC-003: Sanitize HTML from user input to prevent stored XSS
         if (isset($input['title']) && is_string($input['title'])) {
@@ -216,7 +218,9 @@ final class TaskController extends BaseController
         $v = new Validator();
         $v->maxLen($input, 'title', 255, $this->t('task/messages.max_255'))
             ->enum($input, 'priority', ['low', 'normal', 'high', 'urgent'], $this->t('task/messages.invalid_priority'))
-            ->date($input, 'due_at', $this->t('common/messages.invalid_date'));
+            ->date($input, 'due_at', $this->t('common/messages.invalid_date'))
+            ->date($input, 'start_at', $this->t('common/messages.invalid_date'))
+            ->date($input, 'end_at', $this->t('common/messages.invalid_date'));
 
         // SEC-003: Sanitize HTML from user input to prevent stored XSS
         if (isset($input['title']) && is_string($input['title'])) {

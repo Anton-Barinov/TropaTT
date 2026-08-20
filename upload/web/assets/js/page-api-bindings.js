@@ -14117,6 +14117,10 @@ window.CRM.pageApiBindings = (function () {
     // EDIT MODAL
     var editForm = document.getElementById('teamEditForm');
     var editFormOriginalState = null;
+    // Set right before hiding the modal after a successful save so the
+    // unsaved-changes confirm can never fire on the happy path (even if the
+    // captured original state is somehow stale).
+    var teamEditJustSaved = false;
 
     function captureEditFormState() {
       if (!editForm) return null;
@@ -14186,6 +14190,7 @@ window.CRM.pageApiBindings = (function () {
           try {
             await request('api/v1/teams/' + encodeURIComponent(teamId), { method: 'PATCH', body: payload });
             editFormOriginalState = null;
+            teamEditJustSaved = true;
             notify(tp('teams.updated', 'Team updated'));
             if (editModal) editModal.hide();
             await refreshCurrentPage();
@@ -14226,6 +14231,10 @@ window.CRM.pageApiBindings = (function () {
 
         // Confirm before close if there are unsaved changes
         editModalNode.addEventListener('hide.bs.modal', function (e) {
+          if (teamEditJustSaved) {
+            teamEditJustSaved = false;
+            return;
+          }
           var hasChanges = checkEditFormChanges();
           if (hasChanges && !window.confirm(tp('teams.unsaved_close_confirm', 'There are unsaved changes. Close without saving?'))) {
             e.preventDefault();
@@ -14275,6 +14284,7 @@ window.CRM.pageApiBindings = (function () {
         editModalNode.addEventListener('hidden.bs.modal', function() {
           document.removeEventListener('keydown', teamShortcutHandler);
           editFormOriginalState = null;
+          teamEditJustSaved = false;
           if (dirtyDot) dirtyDot.hidden = true;
         });
       }

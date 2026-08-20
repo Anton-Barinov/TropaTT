@@ -2361,11 +2361,12 @@ function importMysqlSchemaSnapshot(PDO $pdo): array
         return $errors;
     }
 
-    $errors = markKnownMigrationsApplied($pdo, 'mysql');
-    if (!empty($errors)) {
-        return $errors;
-    }
-
+    // IMPORTANT: do NOT mark migrations as applied here. The snapshot is a
+    // historical schema dump; every migration added after it was generated
+    // (new tables/columns such as counterparties.address_actual,
+    // users.is_external, work_logs.start_at/end_at, core_update_*) is applied
+    // by runDatabaseMigrations() right after this call. Marking everything
+    // applied would leave fresh MySQL installs with an incomplete schema.
     return [];
 }
 
@@ -2387,50 +2388,6 @@ function registerApiAutoloader(): array
     } catch (Throwable $e) {
         error_log('[Install::registerApiAutoloader] ' . $e->getMessage());
         return ['API autoloader registration failed. Check server logs for details.'];
-    }
-
-    return [];
-}
-
-function markKnownMigrationsApplied(PDO $pdo, string $driver): array
-{
-    $autoloadErrors = registerApiAutoloader();
-    if (!empty($autoloadErrors)) {
-        return $autoloadErrors;
-    }
-
-    try {
-        $schema = new Api\System\Library\Database\SchemaManager();
-        $migrations = new Api\System\Library\Database\Migration\MigrationManager($schema);
-        $status = $migrations->status($pdo, $driver);
-        $all = array_values(array_unique(array_map('strval', $status['all'] ?? [])));
-
-        if ($all === []) {
-            return [];
-        }
-
-        $existingRows = $pdo->query('SELECT migration_key FROM migrations')->fetchAll(PDO::FETCH_COLUMN) ?: [];
-        $existing = array_fill_keys(array_map('strval', $existingRows), true);
-        $insert = $pdo->prepare(
-            'INSERT INTO migrations (migration_key, description, applied_at)
-             VALUES (:migration_key, :description, :applied_at)'
-        );
-        $now = gmdate('Y-m-d H:i:s');
-
-        foreach ($all as $key) {
-            if (isset($existing[$key])) {
-                continue;
-            }
-
-            $insert->execute([
-                'migration_key' => $key,
-                'description' => 'Applied by installer MySQL schema snapshot',
-                'applied_at' => $now,
-            ]);
-        }
-    } catch (Throwable $e) {
-        error_log('[Install::markKnownMigrationsApplied] ' . $e->getMessage());
-        return ['Migration tracking failed. Check server logs for details.'];
     }
 
     return [];
