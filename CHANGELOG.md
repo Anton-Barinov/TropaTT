@@ -24,6 +24,8 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ### Fixed
 
+- **Client portal: localized dynamic messages.** Invite, revoke, accept success/error messages and related hints now receive the selected web locale dictionary instead of falling back to English when the user works in Russian or another supported language.
+
 - **Client portal: accept page hid its own success state.** After a guest set a password, the page hid the form together with the success message, leaving only the heading and description. The success state now remains visible and provides a direct link to login.
 
 - **Client portal: external flag was never applied.** `is_external` was not read when loading a session, so every external-guest restriction silently evaluated as an internal user and guests would have received unrestricted access.

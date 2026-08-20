@@ -56,6 +56,8 @@ $apiClientJsPath = $webRoot . '/assets/js/api.js';
 $externalInvitationMigrationPath = $apiRoot . '/system/library/database/migration/ExternalInvitationLifecycleMigration.php';
 $userRepositoryPath = $apiRoot . '/model/common/UserRepository.php';
 $webIndexPath = $webRoot . '/index.php';
+$webControllerPath = $webRoot . '/system/Core/Controller.php';
+$webLanguageRoot = $webRoot . '/language';
 
 $failures = [];
 
@@ -591,6 +593,64 @@ check(
     . 'would be redirected to login and could never set a password'
 );
 
+// Dynamic portal actions use the browser i18n dictionary, not only server-rendered
+// template text. Keep both namespaces in the shared client payload and verify that
+// every supported web locale actually provides them; otherwise JavaScript silently
+// falls back to English.
+$webControllerSource = readFileSafe($webControllerPath);
+if (preg_match('/CLIENT_MESSAGE_NAMESPACES\\s*=\\s*\\[(.*?)\\];/s', $webControllerSource, $namespaceMatch) !== 1) {
+    $failures[] = 'Core\\\\Controller client message namespace registry could not be parsed';
+} else {
+    $namespaceBlock = $namespaceMatch[1];
+    check(
+        $failures,
+        str_contains($namespaceBlock, "'external_users'")
+            && str_contains($namespaceBlock, "'external_accept'"),
+        'Core\\\\Controller::CLIENT_MESSAGE_NAMESPACES must include external_users and '
+        . 'external_accept so portal JavaScript receives the selected locale dictionary'
+    );
+}
+
+$webLocales = ['ru-ru', 'en-gb', 'zh-cn', 'es-es', 'pt-br', 'de-de', 'fr-fr'];
+$referencePortalKeys = null;
+foreach ($webLocales as $webLocale) {
+    $localePath = $webLanguageRoot . '/' . $webLocale . '.php';
+    $messages = is_file($localePath) ? require $localePath : null;
+    check(
+        $failures,
+        is_array($messages),
+        "web locale {$webLocale} is missing or does not return an array"
+    );
+    if (!is_array($messages)) {
+        continue;
+    }
+    foreach (['external_users', 'external_accept'] as $namespace) {
+        $namespaceMessages = $messages[$namespace] ?? null;
+        check(
+            $failures,
+            is_array($namespaceMessages),
+            "web locale {$webLocale} is missing the {$namespace} namespace"
+        );
+        if (!is_array($namespaceMessages)) {
+            continue;
+        }
+        if ($referencePortalKeys === null) {
+            $referencePortalKeys = [];
+        }
+        $keys = array_keys($namespaceMessages);
+        sort($keys);
+        if (!isset($referencePortalKeys[$namespace])) {
+            $referencePortalKeys[$namespace] = $keys;
+        } else {
+            check(
+                $failures,
+                $referencePortalKeys[$namespace] === $keys,
+                "web locale {$webLocale} {$namespace} keys differ from the reference locale"
+            );
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------
 // 8. Allowed pages must not render internal-only blocks for guests.
 // ---------------------------------------------------------------------------
@@ -601,7 +661,6 @@ check(
 // widgets on the page. The flag is resolved once in web/index.php and exposed to
 // templates by Core\\Controller::render().
 
-$webControllerPath = $webRoot . '/system/Core/Controller.php';
 $taskDetailTemplatePath = $webRoot . '/view/template/page/task_detail.php';
 $projectDetailTemplatePath = $webRoot . '/view/template/page/project_detail.php';
 

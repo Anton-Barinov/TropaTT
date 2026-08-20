@@ -37,6 +37,11 @@ abstract class Controller
         'task_activity',
         'visual_editor',
         'chat',
+        // External Users has dynamic invite/revoke and accept-page messages.
+        // Keep these namespaces in the client payload; otherwise tp()/t() falls
+        // back to English even when the server-rendered page is localized.
+        'external_users',
+        'external_accept',
     ];
 
     /** @var array<int, string>|null */
