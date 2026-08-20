@@ -228,6 +228,13 @@ final class ExternalUserService
             'created_at' => $now,
         ]);
 
+        // Clear auth_token_hash so normal password login works.
+        // Without this, AuthService::login() treats the hash as a
+        // second-factor token and rejects password-only logins.
+        $this->users->updateById((int)$user['id'], [
+            'auth_token_hash' => '',
+        ]);
+
         $this->logger->audit([
             'action' => 'external_user_activated',
             'entity_type' => 'user',
