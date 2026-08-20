@@ -181,6 +181,30 @@ final class ContactRepository
             ->first();
     }
 
+    /**
+     * Load a contact while holding its row lock for a surrounding transaction.
+     * SQLite has no FOR UPDATE; its transaction-level write lock is the closest
+     * portable equivalent, while MySQL/PostgreSQL use the row-level lock.
+     */
+    public function findByIdForUpdate(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+
+        $driver = (string)$this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+        $sql = 'SELECT * FROM contacts WHERE id = :id';
+        if (in_array($driver, ['mysql', 'pgsql'], true)) {
+            $sql .= ' FOR UPDATE';
+        }
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
+    }
+
     public function findByUserId(int $userId): ?array
     {
         return (new QueryBuilder($this->pdo))

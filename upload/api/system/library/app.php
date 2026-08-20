@@ -1315,6 +1315,8 @@ final class App
             $c->get('repository.counterparty'),
             $c->get('repository.user_management'),
             $c->get('policy.hierarchy'),
+            $c->get('repository.user'),
+            $c->get('repository.auth'),
             $c->get('service.ai_semantic_index')
         ));
         $this->container->factory('service.session', fn(Container $c) => new \Api\System\Library\Service\SessionService(

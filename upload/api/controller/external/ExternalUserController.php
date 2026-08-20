@@ -42,34 +42,36 @@ final class ExternalUserController extends BaseController
 
         /** @var \Api\System\Library\Service\ExternalUserService $service */
         $service = $this->container->get('service.external_user');
-        $result = $service->inviteByPublicId($contactPublicId, $actor);
+        return $this->withIdempotency(function () use ($service, $contactPublicId, $actor): JsonResponse {
+            $result = $service->inviteByPublicId($contactPublicId, $actor);
 
-        if (!$result['ok']) {
-            $errorKey = 'external_users.' . (string)($result['error'] ?? 'invite_failed');
-            return $this->error(
-                'EXTERNAL_INVITE_FAILED',
-                $this->t($errorKey, $this->t('external_users.invite_failed')),
-                422,
-                ['error' => [$result['error'] ?? 'unknown']]
+            if (!$result['ok']) {
+                $errorKey = 'external_users.' . (string)($result['error'] ?? 'invite_failed');
+                return $this->error(
+                    'EXTERNAL_INVITE_FAILED',
+                    $this->t($errorKey, $this->t('external_users.invite_failed')),
+                    422,
+                    ['error' => [$result['error'] ?? 'unknown']]
+                );
+            }
+
+            // Return token directly — BaseController::success() strips keys named 'token' via
+            // sanitizePublicContract(), but the invitation token must be returned to the caller.
+            $request = $this->request();
+            return JsonResponse::success(
+                code: 'EXTERNAL_USER_INVITED',
+                message: $this->t('external_users.invited'),
+                data: [
+                    'invitation_token' => $result['token'],
+                    'user_public_id' => $result['user_public_id'],
+                    'login' => $result['login'],
+                    'email' => $result['email'],
+                ],
+                status: 200,
+                requestId: $request->requestId,
+                correlationId: $request->correlationId,
             );
-        }
-
-        // Return token directly — BaseController::success() strips keys named 'token' via
-        // sanitizePublicContract(), but the invitation token must be returned to the caller.
-        $request = $this->request();
-        return \Api\System\Library\Http\JsonResponse::success(
-            code: 'EXTERNAL_USER_INVITED',
-            message: $this->t('external_users.invited'),
-            data: [
-                'invitation_token' => $result['token'],
-                'user_public_id' => $result['user_public_id'],
-                'login' => $result['login'],
-                'email' => $result['email'],
-            ],
-            status: 200,
-            requestId: $request->requestId,
-            correlationId: $request->correlationId,
-        );
+        });
     }
 
     /**
@@ -99,7 +101,7 @@ final class ExternalUserController extends BaseController
         }
 
         $request = $this->request();
-        return \Api\System\Library\Http\JsonResponse::success(
+        return JsonResponse::success(
             code: 'EXTERNAL_USER_ACTIVATED',
             message: $this->t('external_users.activated'),
             data: [
@@ -156,21 +158,23 @@ final class ExternalUserController extends BaseController
 
         /** @var \Api\System\Library\Service\ExternalUserService $service */
         $service = $this->container->get('service.external_user');
-        $result = $service->deactivate($publicId, $actor);
+        return $this->withIdempotency(function () use ($service, $publicId, $actor): JsonResponse {
+            $result = $service->deactivate($publicId, $actor);
 
-        if (!$result['ok']) {
-            $errorKey = 'external_users.' . (string)($result['error'] ?? 'deactivate_failed');
-            return $this->error(
-                'EXTERNAL_DEACTIVATE_FAILED',
-                $this->t($errorKey, $this->t('external_users.deactivate_failed')),
-                422,
-                ['error' => [$result['error'] ?? 'unknown']]
+            if (!$result['ok']) {
+                $errorKey = 'external_users.' . (string)($result['error'] ?? 'deactivate_failed');
+                return $this->error(
+                    'EXTERNAL_DEACTIVATE_FAILED',
+                    $this->t($errorKey, $this->t('external_users.deactivate_failed')),
+                    422,
+                    ['error' => [$result['error'] ?? 'unknown']]
+                );
+            }
+
+            return $this->success(
+                'EXTERNAL_USER_DEACTIVATED',
+                $this->t('external_users.deactivated')
             );
-        }
-
-        return $this->success(
-            'EXTERNAL_USER_DEACTIVATED',
-            $this->t('external_users.deactivated')
-        );
+        });
     }
 }

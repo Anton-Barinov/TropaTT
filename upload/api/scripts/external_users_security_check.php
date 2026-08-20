@@ -48,6 +48,10 @@ $commentServicePath = $apiRoot . '/system/library/service/CommentService.php';
 $commentRepositoryPath = $apiRoot . '/model/comment/CommentRepository.php';
 $notificationServicePath = $apiRoot . '/system/library/service/NotificationService.php';
 $externalUserServicePath = $apiRoot . '/system/library/service/ExternalUserService.php';
+$externalUserControllerPath = $apiRoot . '/controller/external/ExternalUserController.php';
+$contactRepositoryPath = $apiRoot . '/model/contact/ContactRepository.php';
+$contactServicePath = $apiRoot . '/system/library/service/ContactService.php';
+$portalBindingsPath = $webRoot . '/assets/js/page-api-bindings.js';
 $externalInvitationMigrationPath = $apiRoot . '/system/library/database/migration/ExternalInvitationLifecycleMigration.php';
 $userRepositoryPath = $apiRoot . '/model/common/UserRepository.php';
 $webIndexPath = $webRoot . '/index.php';
@@ -432,6 +436,38 @@ check(
     $failures,
     str_contains($migrationManagerSource, 'new ExternalInvitationLifecycleMigration()'),
     'MigrationManager does not register ExternalInvitationLifecycleMigration'
+);
+$externalUserControllerSource = readFileSafe($externalUserControllerPath);
+$contactRepositorySource = readFileSafe($contactRepositoryPath);
+$contactServiceSource = readFileSafe($contactServicePath);
+$portalBindingsSource = readFileSafe($portalBindingsPath);
+check(
+    $failures,
+    str_contains($externalUserControllerSource, 'withIdempotency'),
+    'ExternalUserController does not protect invite/revoke retries with the shared '
+    . 'idempotency layer'
+);
+check(
+    $failures,
+    str_contains($externalUserServiceSource, 'findByIdForUpdate'),
+    'ExternalUserService does not lock the contact row before checking/creating the '
+    . 'linked account — concurrent invites could create duplicate guest accounts'
+);
+check(
+    $failures,
+    str_contains($contactRepositorySource, 'findByIdForUpdate'),
+    'ContactRepository has no portable row-locking lookup for external invitation lifecycle'
+);
+check(
+    $failures,
+    str_contains($contactServiceSource, 'revokeLinkedExternalUser'),
+    'ContactService does not revoke a linked guest when a contact is deleted or moved '
+    . 'between counterparties'
+);
+check(
+    $failures,
+    str_contains($portalBindingsSource, 'external-revoke-'),
+    'Portal UI does not send an idempotency key when revoking external access'
 );
 check(
     $failures,

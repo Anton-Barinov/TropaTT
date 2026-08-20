@@ -65,26 +65,37 @@ final class ExternalUserService
             return ['ok' => false, 'error' => 'unauthorized'];
         }
 
-        // Load the contact and re-check object access even when this method is
-        // called directly by future code instead of inviteByPublicId().
-        $contact = $this->contacts->findById($contactId);
-        if (!$contact || !$this->contactService->get((string)($contact['public_id'] ?? ''), $actor)) {
+        $pdo = $this->users->getPdo();
+        $startedTransaction = false;
+        if (!$pdo->inTransaction()) {
+            $pdo->beginTransaction();
+            $startedTransaction = true;
+        }
+
+        try {
+            // Lock the contact before checking/creating its linked account. This
+            // closes the double-click/concurrent-request race where two invites
+            // both observed an unlinked contact and created two guest accounts.
+            // The transaction also keeps user creation, role assignment and the
+            // contact link atomic.
+            $contact = $this->contacts->findByIdForUpdate($contactId);
+            if (!$contact || !$this->contactService->get((string)($contact['public_id'] ?? ''), $actor)) {
             return ['ok' => false, 'error' => 'contact_not_found'];
         }
 
-        // Must have a counterparty linked
-        $counterpartyId = (int)($contact['counterparty_id'] ?? 0);
+            // Must have a counterparty linked
+            $counterpartyId = (int)($contact['counterparty_id'] ?? 0);
         if ($counterpartyId <= 0) {
             return ['ok' => false, 'error' => 'contact_has_no_counterparty'];
         }
 
-        // Contact must have an email
-        $email = trim((string)($contact['email'] ?? ''));
+            // Contact must have an email
+            $email = trim((string)($contact['email'] ?? ''));
         if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             return ['ok' => false, 'error' => 'contact_has_no_valid_email'];
         }
 
-        // An inactive external account can be safely re-invited (after a
+            // An inactive external account can be safely re-invited (after a
         // revoke or an expired invitation). Active accounts must be revoked
         // explicitly instead of silently replacing their access.
         $existingUserId = (int)($contact['user_id'] ?? 0);
@@ -98,7 +109,7 @@ final class ExternalUserService
             return ['ok' => false, 'error' => 'contact_already_has_external_user'];
         }
 
-        // Do not attach a contact to another account that happens to use the
+            // Do not attach a contact to another account that happens to use the
         // same email. The one exception is this contact's own inactive guest,
         // which is the account being re-invited.
         $existingByEmail = $this->users->findByEmail($email);
@@ -106,21 +117,21 @@ final class ExternalUserService
             return ['ok' => false, 'error' => 'email_already_registered'];
         }
 
-        // Find the external_guest role
-        $externalRole = $this->roles->findByCode('external_guest');
+            // Find the external_guest role
+            $externalRole = $this->roles->findByCode('external_guest');
         if (!$externalRole) {
             return ['ok' => false, 'error' => 'external_guest_role_not_found'];
         }
 
-        $now = gmdate('Y-m-d H:i:s');
-        $expiresAt = gmdate('Y-m-d H:i:s', time() + 604800); // 7 days
+            $now = gmdate('Y-m-d H:i:s');
+            $expiresAt = gmdate('Y-m-d H:i:s', time() + 604800); // 7 days
 
-        // Generate a fresh one-time invitation token on every invite/resend.
-        $token = $this->tokens->generate(32);
-        $tokenHash = $this->tokens->hash($token);
-        $fullName = trim((string)($contact['full_name'] ?? $email));
+            // Generate a fresh one-time invitation token on every invite/resend.
+            $token = $this->tokens->generate(32);
+            $tokenHash = $this->tokens->hash($token);
+            $fullName = trim((string)($contact['full_name'] ?? $email));
 
-        if ($existingUser) {
+            if ($existingUser) {
             $createdUserId = (int)$existingUser['id'];
             $userPublicId = (string)$existingUser['public_id'];
             $login = (string)$existingUser['login'];
@@ -136,8 +147,8 @@ final class ExternalUserService
                 'is_active' => 0,
                 'updated_at' => $now,
             ]);
-        } else {
-            $userPublicId = Ulid::generate('usr');
+            } else {
+                $userPublicId = Ulid::generate('usr');
             $login = 'ext_' . substr($userPublicId, 4, 12);
             $createdUserId = $this->users->create([
                 'public_id' => $userPublicId,
@@ -157,13 +168,22 @@ final class ExternalUserService
             ]);
         }
 
-        // Assign external_guest role
-        $this->roles->assignToUser($createdUserId, (int)$externalRole['id']);
+            // Assign external_guest role
+            $this->roles->assignToUser($createdUserId, (int)$externalRole['id']);
 
-        // Link contact → user
-        $this->contacts->updateById($contactId, [
-            'user_id' => $createdUserId,
-        ]);
+            // Link contact → user
+            $this->contacts->updateById($contactId, [
+                'user_id' => $createdUserId,
+            ]);
+
+            if ($startedTransaction) {
+                $pdo->commit();
+            }
+        } finally {
+            if ($startedTransaction && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+        }
 
         $this->logger->audit([
             'action' => 'external_user_invited',

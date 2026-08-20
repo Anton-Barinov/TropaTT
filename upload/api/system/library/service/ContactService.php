@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\Model\Auth\AuthRepository;
+use Api\Model\Common\UserRepository;
 use Api\Model\Contact\ContactRepository;
 use Api\Model\Counterparty\CounterpartyRepository;
 use Api\Model\User\UserManagementRepository;
@@ -16,6 +18,8 @@ final class ContactService
         private readonly CounterpartyRepository $counterparties,
         private readonly UserManagementRepository $users,
         private readonly HierarchyPolicy $hierarchy,
+        private readonly UserRepository $userAccounts,
+        private readonly AuthRepository $auth,
         private readonly ?AiSemanticIndexService $semanticIndex = null
     ) {
     }
@@ -96,6 +100,13 @@ final class ContactService
             || array_key_exists('client_public_id', $input)) {
             $counterpartyId = $this->resolveCounterpartyId($input, $actor, true);
             $set['counterparty_id'] = $counterpartyId;
+            if ((int)($item['counterparty_id'] ?? 0) !== (int)($counterpartyId ?? 0)) {
+                // Moving a linked contact between counterparties must not move an
+                // already-active guest session into the new tenant scope. Revoke
+                // the guest before changing the relationship; a fresh invite is
+                // required for the new counterparty.
+                $this->revokeLinkedExternalUser((int)($item['user_id'] ?? 0));
+            }
         }
 
         $set['updated_at'] = gmdate('Y-m-d H:i:s');
@@ -112,6 +123,10 @@ final class ContactService
             return false;
         }
 
+        // Deleting the contact must also revoke a linked guest. Otherwise the
+        // account remains active with a valid session, even though its data scope
+        // becomes empty/orphaned after the contact disappears.
+        $this->revokeLinkedExternalUser((int)($item['user_id'] ?? 0));
         $deleted = $this->contacts->deleteByPublicId($publicId);
         if ($deleted) {
             $this->semanticIndex?->removeEntityDocument('contact', $publicId);
@@ -166,6 +181,27 @@ final class ContactService
         }
 
         return null;
+    }
+
+    private function revokeLinkedExternalUser(int $linkedUserId): void
+    {
+        if ($linkedUserId <= 0) {
+            return;
+        }
+
+        $user = $this->userAccounts->findById($linkedUserId);
+        if (!$user || (int)($user['is_external'] ?? 0) !== 1 || ($user['deleted_at'] ?? null) !== null) {
+            return;
+        }
+
+        $now = gmdate('Y-m-d H:i:s');
+        $this->auth->revokeAllByUserId($linkedUserId, $now);
+        $this->userAccounts->updateById($linkedUserId, [
+            'is_active' => 0,
+            'auth_token_hash' => null,
+            'external_invitation_expires_at' => null,
+            'updated_at' => $now,
+        ]);
     }
 
     /**

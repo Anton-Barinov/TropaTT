@@ -44,6 +44,10 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 - **Client portal: soft-deleted accounts.** Soft-deleted external accounts are excluded from portal-user lists and cannot be accidentally reactivated through a contact's resend flow.
 
+- **Client portal: invite mutation safety.** Invite and revoke now honor the shared idempotency key used by the web UI; concurrent invitations for one contact are serialized and partial account/link writes roll back together.
+
+- **Client portal: contact lifecycle cleanup.** Deleting a contact or moving it to another counterparty revokes linked guest sessions and clears the invitation secret, so an external account cannot retain access after its CRM relationship changes.
+
 ## [v0.2.0.5] - 2026-08-19
 
 ### Added

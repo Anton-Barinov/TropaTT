@@ -688,7 +688,11 @@ window.CRM.pageApiBindings = (function () {
       var userPublicId = String(revokeButton.getAttribute('data-external-portal-revoke') || '').trim();
       if (!userPublicId || !window.confirm(tp('contacts.portal_revoke_confirm', "Revoke this contact's portal access?"))) return;
       revokeButton.disabled = true;
-      window.CRM.api.request('api/v1/external-users/' + encodeURIComponent(userPublicId) + '/deactivate', { method: 'POST' })
+      window.CRM.api.request('api/v1/external-users/' + encodeURIComponent(userPublicId) + '/deactivate', {
+        method: 'POST',
+        headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('external-revoke-' + userPublicId) },
+        body: {}
+      })
         .then(function () {
           notify(tp('external_users.deactivated', 'Access revoked'));
           if (typeof config.onComplete === 'function') config.onComplete();
@@ -732,7 +736,11 @@ window.CRM.pageApiBindings = (function () {
         var userPublicId = String(button.getAttribute('data-external-user-public-id') || '').trim();
         if (!userPublicId || !window.confirm(tp('contacts.portal_revoke_confirm', "Revoke this contact's portal access?"))) return;
         button.disabled = true;
-        window.CRM.api.request('api/v1/external-users/' + encodeURIComponent(userPublicId) + '/deactivate', { method: 'POST' })
+        window.CRM.api.request('api/v1/external-users/' + encodeURIComponent(userPublicId) + '/deactivate', {
+          method: 'POST',
+          headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('external-revoke-' + userPublicId) },
+          body: {}
+        })
           .then(function () {
             notify(tp('external_users.deactivated', 'Access revoked'));
             if (typeof config.onComplete === 'function') config.onComplete();
