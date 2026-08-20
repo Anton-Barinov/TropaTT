@@ -5293,6 +5293,7 @@ return array (
     'portal_link_label' => '邀请链接',
     'btn_revoke_portal' => '撤销门户访问权限',
     'portal_revoked' => '门户访问权限已撤销',
+    'portal_pending' => '邀请等待激活',
     'portal_revoke_confirm' => '确定要撤销此联系人的门户访问权限吗？',
   ),
   'counterparties' => 
@@ -5531,6 +5532,7 @@ return array (
     'th_role' => '角色',
     'th_email' => '邮箱',
     'th_phone' => '电话',
+    'th_actions' => '操作',
     'loading_contacts' => '加载联系人中...',
     'section_tasks' => '关联任务',
     'section_tasks_note' => '该往来单位的最近任务。',

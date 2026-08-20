@@ -2702,6 +2702,7 @@ return array (
     'portal_link_label' => 'Link de convite',
     'btn_revoke_portal' => 'Revogar acesso ao portal',
     'portal_revoked' => 'Acesso ao portal revogado',
+    'portal_pending' => 'Convite aguardando ativação',
     'portal_revoke_confirm' => 'Revogar o acesso deste contato ao portal?',
   ),
   'counterparties' => 
@@ -2940,6 +2941,7 @@ return array (
     'th_role' => 'Função',
     'th_email' => 'Email',
     'th_phone' => 'Telefone',
+    'th_actions' => 'Ações',
     'loading_contacts' => 'Carregando contatos...',
     'section_tasks' => 'Tarefas relacionadas',
     'section_tasks_note' => 'Últimas tarefas desta contraparte.',

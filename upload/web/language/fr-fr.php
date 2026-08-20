@@ -2702,6 +2702,7 @@ return array (
     'portal_link_label' => 'Lien d\'invitation',
     'btn_revoke_portal' => 'Révoquer l\'accès au portail',
     'portal_revoked' => 'Accès au portail révoqué',
+    'portal_pending' => 'Invitation en attente d’activation',
     'portal_revoke_confirm' => 'Révoquer l\'accès au portail de ce contact ?',
   ),
   'counterparties' => 
@@ -2940,6 +2941,7 @@ return array (
     'th_role' => 'Rôle',
     'th_email' => 'E-mail',
     'th_phone' => 'Téléphone',
+    'th_actions' => 'Actions',
     'loading_contacts' => 'Chargement des contacts...',
     'section_tasks' => 'Tâches associées',
     'section_tasks_note' => 'Dernières tâches pour cette contrepartie.',

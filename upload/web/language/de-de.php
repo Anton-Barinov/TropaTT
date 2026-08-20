@@ -2702,6 +2702,7 @@ return array (
     'portal_link_label' => 'Einladungslink',
     'btn_revoke_portal' => 'Portalzugang widerrufen',
     'portal_revoked' => 'Portalzugang widerrufen',
+    'portal_pending' => 'Einladung wartet auf Aktivierung',
     'portal_revoke_confirm' => 'Portalzugang dieses Kontakts widerrufen?',
   ),
   'counterparties' => 
@@ -2940,6 +2941,7 @@ return array (
     'th_role' => 'Rolle',
     'th_email' => 'E-Mail',
     'th_phone' => 'Telefon',
+    'th_actions' => 'Aktionen',
     'loading_contacts' => 'Kontakte werden geladen...',
     'section_tasks' => 'Zugehörige Aufgaben',
     'section_tasks_note' => 'Letzte Aufgaben für diesen Geschäftspartner.',

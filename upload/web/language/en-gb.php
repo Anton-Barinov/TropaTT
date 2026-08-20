@@ -5274,6 +5274,7 @@ return array (
     'portal_link_label' => 'Invitation link',
     'btn_revoke_portal' => 'Revoke portal access',
     'portal_revoked' => 'Portal access revoked',
+    'portal_pending' => 'Invitation is pending activation',
     'portal_revoke_confirm' => 'Revoke this contact\'s portal access?',
   ),
   'counterparties' => 
@@ -5515,6 +5516,7 @@ return array (
     'th_role' => 'Role',
     'th_email' => 'Email',
     'th_phone' => 'Phone',
+    'th_actions' => 'Actions',
     'loading_contacts' => 'Loading contacts...',
     'section_tasks' => 'Related tasks',
     'section_tasks_note' => 'Latest tasks for this counterparty.',

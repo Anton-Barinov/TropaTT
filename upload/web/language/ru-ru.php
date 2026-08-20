@@ -5296,6 +5296,7 @@ return array (
     'portal_link_label' => 'Ссылка приглашения',
     'btn_revoke_portal' => 'Отозвать доступ в портал',
     'portal_revoked' => 'Доступ в портал отозван',
+    'portal_pending' => 'Приглашение ожидает активации',
     'portal_revoke_confirm' => 'Отозвать доступ этого контакта в портал?',
   ),
   'counterparties' => 
@@ -5537,6 +5538,7 @@ return array (
     'th_role' => 'Роль',
     'th_email' => 'Email',
     'th_phone' => 'Телефон',
+    'th_actions' => 'Действия',
     'loading_contacts' => 'Загрузка контактов...',
     'section_tasks' => 'Связанные задачи',
     'section_tasks_note' => 'Последние задачи по этому контрагенту.',
