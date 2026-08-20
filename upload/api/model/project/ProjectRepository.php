@@ -302,7 +302,15 @@ final class ProjectRepository
             }
         }
 
-        if (!$actorIsRoot && $actorUserId !== null && $actorUserId > 0) {
+        // When a client_public_id RLS filter is active (external user scoped to
+        // their counterparty), skip the team/creator/manager access gate — the
+        // client_public_id filter already limits results to the actor's own
+        // counterparty's projects, so the additional ownership check would
+        // incorrectly hide projects the external user is legitimately allowed
+        // to see (they didn't create/manage them and aren't in any team).
+        $hasRlsClientFilter = !empty($filters['client_public_id']);
+
+        if (!$actorIsRoot && !$hasRlsClientFilter && $actorUserId !== null && $actorUserId > 0) {
             $accessibleTeamIds = array_values(array_filter(
                 array_map(static fn($value): string => trim((string)$value), (array)($filters['accessible_team_public_ids'] ?? [])),
                 static fn(string $value): bool => $value !== ''
