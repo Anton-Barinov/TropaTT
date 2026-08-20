@@ -10704,7 +10704,7 @@ window.CRM.pageApiBindings = (function () {
     function addExtraFieldRow(container, key, value) {
       if (!container) return;
       var row = document.createElement('div');
-      row.className = 'crm-extra-fields-row';      row.innerHTML = '<input type="text" class="form-control form-control-sm crm-extra-fields-key" placeholder="' + safeText(tp('counterparties.extra_field_name', 'Название')) + '" maxlength="128" value="' + safeText(String(key || '')) + '">' + '<input type="text" class="form-control form-control-sm crm-extra-fields-value" placeholder="' + safeText(tp('counterparties.extra_field_value', 'Значение')) + '" maxlength="1024" value="' + safeText(String(value || '')) + '">' + '<button type="button" class="btn btn-sm crm-btn-danger-icon crm-extra-fields-remove" title="' + safeText(tp('counterparties.remove_field', 'Удалить')) + '" aria-label="' + safeText(tp('counterparties.remove_field', 'Удалить')) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></span></button>';
+      row.className = 'crm-extra-fields-row';      row.innerHTML = '<input type="text" name="extra_key" class="form-control form-control-sm crm-extra-fields-key" autocomplete="off" aria-label="' + safeText(tp('counterparties.extra_field_name', 'Название')) + '" placeholder="' + safeText(tp('counterparties.extra_field_name', 'Название')) + '" maxlength="128" value="' + safeText(String(key || '')) + '">' + '<input type="text" name="extra_value" class="form-control form-control-sm crm-extra-fields-value" autocomplete="off" aria-label="' + safeText(tp('counterparties.extra_field_value', 'Значение')) + '" placeholder="' + safeText(tp('counterparties.extra_field_value', 'Значение')) + '" maxlength="1024" value="' + safeText(String(value || '')) + '">' + '<button type="button" class="btn btn-sm crm-btn-danger-icon crm-extra-fields-remove" title="' + safeText(tp('counterparties.remove_field', 'Удалить')) + '" aria-label="' + safeText(tp('counterparties.remove_field', 'Удалить')) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></span></button>';
       row.querySelector('.crm-extra-fields-remove').addEventListener('click', function () {
         row.remove();
       });
@@ -10884,7 +10884,7 @@ window.CRM.pageApiBindings = (function () {
           var id = String(cp.public_id || '').trim();
           var statusCode = String(cp.status || '').trim();
           return '<tr>'
-            + '<td><input class="form-check-input" type="checkbox" data-counterparty-bulk-id="' + safeText(id) + '" aria-label="' + safeText(tp('counterparties.select_counterparty_prefix', 'Select counterparty ') + resolveCounterpartyTitle(cp)) + '"></td>'
+            + '<td><input class="form-check-input" type="checkbox" name="counterparty_bulk" data-counterparty-bulk-id="' + safeText(id) + '" aria-label="' + safeText(tp('counterparties.select_counterparty_prefix', 'Select counterparty ') + resolveCounterpartyTitle(cp)) + '"></td>'
             + '<td class="crm-cp-name"><a class="fw-semibold text-decoration-none crm-counterparty-name-link" href="index.php?route=counterparty-detail&counterparty_public_id=' + encodeURIComponent(id) + '">' + safeText(resolveCounterpartyTitle(cp)) + '</a>'
             + (cp.tax_inn ? '<div class="crm-cp-inn">' + safeText(tp('counterparties.inn', 'TIN')) + ': ' + safeText(cp.tax_inn) + '</div>' : '')
             + '</td>'
@@ -10923,7 +10923,7 @@ window.CRM.pageApiBindings = (function () {
           var statusCode = String(cp.status || '').trim();
           return '<article class="crm-counterparty-mobile-card">'
             + '<div class="crm-counterparty-mobile-head">'
-            + '<label class="crm-counterparty-mobile-check"><input class="form-check-input" type="checkbox" data-counterparty-bulk-id="' + safeText(id) + '" aria-label="' + safeText(tp('counterparties.select_counterparty_prefix', 'Select counterparty ') + title) + '"></label>'
+            + '<label class="crm-counterparty-mobile-check"><input class="form-check-input" type="checkbox" name="counterparty_bulk" data-counterparty-bulk-id="' + safeText(id) + '" aria-label="' + safeText(tp('counterparties.select_counterparty_prefix', 'Select counterparty ') + title) + '"></label>'
             + '<div><a class="crm-counterparty-mobile-title" href="index.php?route=counterparty-detail&counterparty_public_id=' + encodeURIComponent(id) + '">' + safeText(title) + '</a>'
             + '<div class="crm-counterparty-mobile-meta"><span class="crm-chip">' + safeText(typeLabel(cp.counterparty_type)) + '</span><span class="crm-badge ' + counterpartyStatusClass(statusCode) + '">' + safeText(counterpartyStatusLabel(statusCode || '—')) + '</span></div></div>'
             + '</div>'
