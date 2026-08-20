@@ -182,6 +182,22 @@ $auJs = [
   'dbRestoreOk' => $au('db_restore_ok', 'восстановлена'),
   'dbRestoreFailed' => $au('db_restore_failed', 'не восстановлена'),
   'dbRestoreSkipped' => $au('db_restore_skipped', 'нет бэкапа БД'),
+  'mig_title' => $au('mig_title', 'Миграции БД'),
+  'mig_subtitle' => $au('mig_subtitle', 'Принудительный запуск накопленных миграций базы данных. Полезно после обновления кода, если миграции не были применены автоматически.'),
+  'mig_check_btn' => $au('mig_check_btn', 'Проверить миграции'),
+  'mig_run_btn' => $au('mig_run_btn', 'Применить миграции'),
+  'mig_loading_check' => $au('mig_loading_check', 'проверяем миграции...'),
+  'mig_loading_run' => $au('mig_loading_run', 'применяем миграции...'),
+  'mig_none_pending' => $au('mig_none_pending', 'Все миграции уже применены. Накопленных изменений нет.'),
+  'mig_pending_count' => $au('mig_pending_count', 'Ожидает применения: {count}'),
+  'mig_applied_count' => $au('mig_applied_count', 'Применено: {count}'),
+  'mig_applied_list' => $au('mig_applied_list', 'Применённые миграции'),
+  'mig_pending_list' => $au('mig_pending_list', 'Ожидающие миграции'),
+  'mig_success' => $au('mig_success', 'Миграции успешно применены'),
+  'mig_error' => $au('mig_error', 'Ошибка при применении миграций'),
+  'mig_err_check' => $au('mig_err_check', 'Не удалось проверить статус миграций.'),
+  'mig_err_run' => $au('mig_err_run', 'Не удалось применить миграции.'),
+  'mig_confirm' => $au('mig_confirm', 'Будут применены все ожидающие миграции базы данных. Это безопасная операция — миграции используют защищённые DDL-запросы. Продолжить?'),
 ];
 ?>
 <body data-page="admin-updates" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
@@ -408,6 +424,19 @@ $auJs = [
               </div>
               <pre id="recoveryKeyValue" class="updates-recovery-key d-none"></pre>
               <div id="recoveryKeyWarn" class="updates-recovery-warn d-none"><?= htmlspecialchars($au('recovery_key_warn', 'Сохраните ключ — после перезагрузки страницы он больше не будет показан. Ключ скопирован в буфер обмена.'), ENT_QUOTES, 'UTF-8') ?></div>
+            </div>
+          </details>
+          <hr>
+          <details open>
+            <summary><strong><?= htmlspecialchars($au('mig_title', 'Миграции БД'), ENT_QUOTES, 'UTF-8') ?></strong></summary>
+            <div class="mt-3">
+              <p class="updates-muted"><?= htmlspecialchars($au('mig_subtitle', 'Принудительный запуск накопленных миграций базы данных. Полезно после обновления кода, если миграции не были применены автоматически.'), ENT_QUOTES, 'UTF-8') ?></p>
+              <div id="migrationContent" class="updates-empty"><?= htmlspecialchars($au('mig_none_pending', 'Нажмите «Проверить миграции» для получения текущего статуса.'), ENT_QUOTES, 'UTF-8') ?></div>
+              <div class="updates-actions mt-3">
+                <button class="btn crm-btn-secondary" type="button" data-update-action="migration-check"><?= htmlspecialchars($au('mig_check_btn', 'Проверить миграции'), ENT_QUOTES, 'UTF-8') ?></button>
+                <button class="btn crm-btn-primary" type="button" data-update-action="migration-up"><?= htmlspecialchars($au('mig_run_btn', 'Применить миграции'), ENT_QUOTES, 'UTF-8') ?></button>
+              </div>
+              <details class="updates-raw"><summary><?= htmlspecialchars($au('technical_status', 'Технические данные'), ENT_QUOTES, 'UTF-8') ?></summary><pre id="updatesMigrationRaw">{}</pre></details>
             </div>
           </details>
         </div>
@@ -1227,11 +1256,70 @@ $auJs = [
     }
   }
 
+  // ── Migration helpers ──
+  let migrationState = { status: null };
+
+  function renderMigration() {
+    const ms = migrationState.status;
+    const raw = $('updatesMigrationRaw');
+    if (raw) raw.textContent = pretty(ms);
+    if (!ms) {
+      $('migrationContent').innerHTML = `<div class="updates-empty">${esc(tr('mig_none_pending', 'Нажмите «Проверить миграции» для получения текущего статуса.'))}</div>`;
+      return;
+    }
+    const migrationStatus = ms.migration_status || ms;
+    const pending = migrationStatus.pending || [];
+    const all = migrationStatus.all || [];
+    const applied = all.length - pending.length;
+    if (pending.length === 0) {
+      $('migrationContent').innerHTML = `<div class="updates-empty">${esc(tr('mig_none_pending', 'Все миграции уже применены. Накопленных изменений нет.'))}</div>`;
+      return;
+    }
+    const pendingItems = pending.map((key) => `<li><code>${esc(key)}</code></li>`).join('');
+    $('migrationContent').innerHTML = `
+      <div class="updates-empty mb-2" style="border-color:var(--crm-warning-soft);background:var(--crm-warning-soft);color:var(--crm-warning);">
+        <strong>${esc(tr('mig_pending_count', 'Ожидает применения: {count}', {count: pending.length}))}</strong>
+        <span style="margin-left:12px;color:var(--crm-text-soft);">${esc(tr('mig_applied_count', 'Применено: {count}', {count: applied}))}</span>
+      </div>
+      <h3 class="h6">${esc(tr('mig_pending_list', 'Ожидающие миграции'))}</h3>
+      <ul class="updates-list">${pendingItems}</ul>
+    `;
+  }
+
+  async function migrationCheck() {
+    const result = await api('/api/index.php?route=/internal/migration/status');
+    ensureSuccess(result, tr('mig_err_check', 'Не удалось проверить статус миграций.'));
+    migrationState.status = result.data || result;
+    renderMigration();
+  }
+
+  async function migrationUp() {
+    // Show confirmation if there are pending migrations
+    if (migrationState.status) {
+      const ms = migrationState.status.migration_status || migrationState.status;
+      const pending = ms.pending || [];
+      if (pending.length > 0 && !window.confirm(tr('mig_confirm', 'Будут применены все ожидающие миграции базы данных. Это безопасная операция — миграции используют защищённые DDL-запросы. Продолжить?'))) {
+        return;
+      }
+    }
+    const result = await api('/api/index.php?route=/internal/migration/up', {method: 'POST', body: '{}'});
+    ensureSuccess(result, tr('mig_err_run', 'Не удалось применить миграции.'));
+    const data = result.data || result;
+    const executed = data.executed || [];
+    if (executed.length > 0) {
+      $('migrationContent').innerHTML = `<div class="updates-empty" style="border-color:var(--crm-success-soft);background:var(--crm-success-soft);color:var(--crm-success);"><strong>${esc(tr('mig_success', 'Миграции успешно применены'))}: ${esc(tr('mig_applied_count', 'Применено: {count}', {count: executed.length}))}</strong></div>`;
+    } else {
+      $('migrationContent').innerHTML = `<div class="updates-empty">${esc(tr('mig_none_pending', 'Все миграции уже применены. Накопленных изменений нет.'))}</div>`;
+    }
+    migrationState.status = data;
+    renderMigration();
+  }
+
   document.addEventListener('click', (event) => {
     const btn = event.target.closest && event.target.closest('[data-update-action]');
     if (!btn) return;
     const action = btn.getAttribute('data-update-action');
-    const actions = { refresh, check, changes, install: installUpdate, preflight, download, apply: applyUpdate, rollback, 'recovery-key': showRecoveryKey };
+    const actions = { refresh, check, changes, install: installUpdate, preflight, download, apply: applyUpdate, rollback, 'recovery-key': showRecoveryKey, 'migration-check': migrationCheck, 'migration-up': migrationUp };
     if (actions[action]) withAction(action, actions[action]);
   });
 
