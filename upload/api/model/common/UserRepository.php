@@ -32,7 +32,7 @@ final class UserRepository
             // for self-service profile/me (sanitizeUser keeps them); all
             // findById callers operate on the actor's own id. Never SELECT *
             // (AGENTS.md) and never leak token/secret columns.
-            ->select(['id', 'public_id', 'login', 'email', 'full_name', 'locale', 'is_active', 'is_root', 'is_external', 'password_hash', 'auth_token_hash', 'external_invitation_expires_at', 'cost_rate', 'bill_rate'])
+            ->select(['id', 'public_id', 'login', 'email', 'full_name', 'locale', 'is_active', 'is_root', 'is_external', 'password_hash', 'auth_token_hash', 'external_invitation_expires_at', 'deleted_at', 'cost_rate', 'bill_rate'])
             ->where('id', '=', $id)
             ->first();
     }
@@ -51,7 +51,7 @@ final class UserRepository
     {
         return (new QueryBuilder($this->pdo))
             ->from('users')
-            ->select(['id', 'public_id', 'login', 'full_name', 'is_active', 'is_external'])
+            ->select(['id', 'public_id', 'login', 'full_name', 'is_active', 'is_external', 'deleted_at'])
             ->where('public_id', '=', $publicId)
             ->first();
     }

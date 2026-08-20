@@ -42,6 +42,8 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 - **Client portal: invitation/session races.** Accepting the same invitation concurrently is now atomic and produces at most one activation session. Revoking or re-inviting a guest also revokes all previous sessions, so an old session cannot return after reactivation.
 
+- **Client portal: soft-deleted accounts.** Soft-deleted external accounts are excluded from portal-user lists and cannot be accidentally reactivated through a contact's resend flow.
+
 ## [v0.2.0.5] - 2026-08-19
 
 ### Added

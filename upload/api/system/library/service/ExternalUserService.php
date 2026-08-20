@@ -89,7 +89,9 @@ final class ExternalUserService
         // explicitly instead of silently replacing their access.
         $existingUserId = (int)($contact['user_id'] ?? 0);
         $existingUser = $existingUserId > 0 ? $this->users->findById($existingUserId) : null;
-        if ($existingUserId > 0 && (!$existingUser || (int)($existingUser['is_external'] ?? 0) !== 1)) {
+        if ($existingUserId > 0 && (!$existingUser
+            || (int)($existingUser['is_external'] ?? 0) !== 1
+            || ($existingUser['deleted_at'] ?? null) !== null)) {
             return ['ok' => false, 'error' => 'contact_has_linked_user'];
         }
         if ($existingUser && (int)($existingUser['is_active'] ?? 0) === 1) {
@@ -317,8 +319,8 @@ final class ExternalUserService
             return ['ok' => false, 'error' => 'user_not_found'];
         }
 
-        if ((int)($user['is_external'] ?? 0) !== 1) {
-            return ['ok' => false, 'error' => 'not_external_user'];
+        if ((int)($user['is_external'] ?? 0) !== 1 || ($user['deleted_at'] ?? null) !== null) {
+            return ['ok' => false, 'error' => 'user_not_found'];
         }
 
         // Deactivation is object-level protected: contact.manage alone must
@@ -441,7 +443,7 @@ final class ExternalUserService
         }
 
         $pdo = $this->users->getPdo();
-        $where = ['u.is_external = 1'];
+        $where = ['u.is_external = 1', 'u.deleted_at IS NULL'];
         $params = [];
         if ((int)($actor['is_root'] ?? 0) !== 1) {
             $contactIds = [];

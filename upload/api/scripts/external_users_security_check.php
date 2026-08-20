@@ -439,6 +439,17 @@ check(
     'ExternalUserService::listExternalUsers() does not scope non-root results through '
     . 'the contacts access policy'
 );
+check(
+    $failures,
+    str_contains($externalUserServiceSource, 'u.deleted_at IS NULL'),
+    'ExternalUserService::listExternalUsers() does not exclude soft-deleted external '
+    . 'accounts'
+);
+check(
+    $failures,
+    str_contains($externalUserServiceSource, "['deleted_at'] ?? null"),
+    'ExternalUserService does not fail closed for soft-deleted linked external accounts'
+);
 
 // ---------------------------------------------------------------------------
 // 6c. Notifications must not echo internal comments to guests.
