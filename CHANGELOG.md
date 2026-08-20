@@ -32,6 +32,10 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 - **Client portal: attachments were unreachable.** File access was determined only by internal roles (author, assignee, project manager, team member), none of which a portal user ever has, so they could not open or upload files on their own tasks. Access is now granted through the same company scoping used for projects and tasks.
 
+- **Client portal: project and task lists could come back unfiltered.** If a portal user's link to their company could not be resolved — a missing or broken contact record — the company filter was skipped instead of applied, and the list query ran unrestricted. Such a request now returns an empty list.
+
+- **Client portal: internal comments could still arrive as notifications.** Notification text includes an excerpt of the comment it announces, and a portal user becomes a recipient as soon as they comment on or create a task. Internal comments are no longer announced to portal users.
+
 ## [v0.2.0.5] - 2026-08-19
 
 ### Added
