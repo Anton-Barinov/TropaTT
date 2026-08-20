@@ -102,4 +102,17 @@ final class AuthRepository
             ->whereNull('revoked_at')
             ->update(['revoked_at' => $revokedAt]) > 0;
     }
+
+    public function revokeAllByUserId(int $userId, string $revokedAt): int
+    {
+        if ($userId <= 0) {
+            return 0;
+        }
+
+        return (new QueryBuilder($this->pdo))
+            ->from('user_sessions')
+            ->where('user_id', '=', $userId)
+            ->whereNull('revoked_at')
+            ->update(['revoked_at' => $revokedAt]);
+    }
 }

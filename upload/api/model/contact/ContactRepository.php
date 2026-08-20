@@ -29,10 +29,12 @@ final class ContactRepository
         $total = $this->buildListQuery($filters, $creatorIds)->count();
         $items = $this->buildListQuery($filters, $creatorIds)
             ->select([
+                'ct.id',
                 'ct.public_id',
                 'ct.company_id',
                 'ct.client_id',
                 'ct.counterparty_id',
+                'ct.user_id',
                 'ct.full_name',
                 'ct.email',
                 'ct.phone',
@@ -50,6 +52,7 @@ final class ContactRepository
                 'cp.counterparty_type AS counterparty_type',
                 'eu.public_id AS external_user_public_id',
                 'eu.is_active AS external_user_is_active',
+                'eu.external_invitation_expires_at AS external_invitation_expires_at',
             ])
             ->orderBy('ct.created_at', 'DESC')
             ->limit($limit)

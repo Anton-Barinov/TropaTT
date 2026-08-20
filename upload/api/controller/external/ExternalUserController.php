@@ -45,10 +45,10 @@ final class ExternalUserController extends BaseController
         $result = $service->inviteByPublicId($contactPublicId, $actor);
 
         if (!$result['ok']) {
-            $errorCode = strtoupper((string)($result['error'] ?? 'UNKNOWN'));
+            $errorKey = 'external_users.' . (string)($result['error'] ?? 'invite_failed');
             return $this->error(
                 'EXTERNAL_INVITE_FAILED',
-                $this->t('external_users.invite_failed'),
+                $this->t($errorKey, $this->t('external_users.invite_failed')),
                 422,
                 ['error' => [$result['error'] ?? 'unknown']]
             );
@@ -89,10 +89,10 @@ final class ExternalUserController extends BaseController
         $result = $service->acceptInvitation($input);
 
         if (!$result['ok']) {
-            $errorCode = strtoupper((string)($result['error'] ?? 'UNKNOWN'));
+            $errorKey = 'external_users.' . (string)($result['error'] ?? 'accept_failed');
             return $this->error(
                 'EXTERNAL_ACCEPT_FAILED',
-                $this->t('external_users.accept_failed'),
+                $this->t($errorKey, $this->t('external_users.accept_failed')),
                 422,
                 ['error' => [$result['error'] ?? 'unknown']]
             );
@@ -159,9 +159,10 @@ final class ExternalUserController extends BaseController
         $result = $service->deactivate($publicId, $actor);
 
         if (!$result['ok']) {
+            $errorKey = 'external_users.' . (string)($result['error'] ?? 'deactivate_failed');
             return $this->error(
                 'EXTERNAL_DEACTIVATE_FAILED',
-                $this->t('external_users.deactivate_failed'),
+                $this->t($errorKey, $this->t('external_users.deactivate_failed')),
                 422,
                 ['error' => [$result['error'] ?? 'unknown']]
             );

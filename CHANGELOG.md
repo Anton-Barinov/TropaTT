@@ -18,7 +18,9 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 - **Security contract test for the client portal.** New database-free check (`external_users_security_contract_smoke.php`, wired into PHP CI) that fails the build if the route allowlist gains a destructive or administrative endpoint, if the seeded guest role references a permission code that does not exist, if `is_external` stops being propagated through the authentication pipeline, or if the row-level security comparisons are weakened.
 
-- **API documentation for external users.** The four `/api/v1/external-users/*` endpoints and the portal access model are now documented in the EN/RU/ZH API references.
+- **API documentation for external users.** The four `/api/v1/external-users/*` endpoints and the portal access model are now documented in the EN/RU/ZH API references. Invitation lifetime, one-time acceptance, scoped listing and session revocation are documented as well.
+
+- **Client portal: invitation lifecycle.** Portal invitations now have a server-enforced seven-day expiry, can be resent after revocation or expiry, and show the generated link until the user closes the invite dialog on both Contacts and Counterparty → Contacts.
 
 ### Fixed
 
@@ -37,6 +39,8 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 - **Client portal: project and task lists could come back unfiltered.** If a portal user's link to their company could not be resolved — a missing or broken contact record — the company filter was skipped instead of applied, and the list query ran unrestricted. Such a request now returns an empty list.
 
 - **Client portal: internal comments could still arrive as notifications.** Notification text includes an excerpt of the comment it announces, and a portal user becomes a recipient as soon as they comment on or create a task. Internal comments are no longer announced to portal users.
+
+- **Client portal: invitation/session races.** Accepting the same invitation concurrently is now atomic and produces at most one activation session. Revoking or re-inviting a guest also revokes all previous sessions, so an old session cannot return after reactivation.
 
 ## [v0.2.0.5] - 2026-08-19
 

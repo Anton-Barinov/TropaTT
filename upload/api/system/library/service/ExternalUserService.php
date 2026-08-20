@@ -25,6 +25,7 @@ final class ExternalUserService
         private readonly UserRepository $users,
         private readonly RoleRepository $roles,
         private readonly ContactRepository $contacts,
+        private readonly ContactService $contactService,
         private readonly PasswordHasher $hasher,
         private readonly TokenManager $tokens,
         private readonly JsonLogger $logger,
@@ -38,7 +39,11 @@ final class ExternalUserService
      */
     public function inviteByPublicId(string $contactPublicId, array $actor): array
     {
-        $contact = $this->contacts->findByPublicId($contactPublicId);
+        // Resolve through ContactService, not the repository, so the same
+        // hierarchy/object-level access policy as the contacts UI is enforced.
+        // A caller must not be able to invite a contact from another user's
+        // scope by guessing its public_id.
+        $contact = $this->contactService->get($contactPublicId, $actor);
         if (!$contact) {
             return ['ok' => false, 'error' => 'contact_not_found'];
         }
@@ -60,9 +65,10 @@ final class ExternalUserService
             return ['ok' => false, 'error' => 'unauthorized'];
         }
 
-        // Load the contact
+        // Load the contact and re-check object access even when this method is
+        // called directly by future code instead of inviteByPublicId().
         $contact = $this->contacts->findById($contactId);
-        if (!$contact) {
+        if (!$contact || !$this->contactService->get((string)($contact['public_id'] ?? ''), $actor)) {
             return ['ok' => false, 'error' => 'contact_not_found'];
         }
 
@@ -78,18 +84,23 @@ final class ExternalUserService
             return ['ok' => false, 'error' => 'contact_has_no_valid_email'];
         }
 
-        // Check if this contact already has a linked user
+        // An inactive external account can be safely re-invited (after a
+        // revoke or an expired invitation). Active accounts must be revoked
+        // explicitly instead of silently replacing their access.
         $existingUserId = (int)($contact['user_id'] ?? 0);
-        if ($existingUserId > 0) {
-            $existingUser = $this->users->findById($existingUserId);
-            if ($existingUser && (int)($existingUser['is_external'] ?? 0) === 1) {
-                return ['ok' => false, 'error' => 'contact_already_has_external_user'];
-            }
+        $existingUser = $existingUserId > 0 ? $this->users->findById($existingUserId) : null;
+        if ($existingUserId > 0 && (!$existingUser || (int)($existingUser['is_external'] ?? 0) !== 1)) {
+            return ['ok' => false, 'error' => 'contact_has_linked_user'];
+        }
+        if ($existingUser && (int)($existingUser['is_active'] ?? 0) === 1) {
+            return ['ok' => false, 'error' => 'contact_already_has_external_user'];
         }
 
-        // Check if email is already used
+        // Do not attach a contact to another account that happens to use the
+        // same email. The one exception is this contact's own inactive guest,
+        // which is the account being re-invited.
         $existingByEmail = $this->users->findByEmail($email);
-        if ($existingByEmail) {
+        if ($existingByEmail && (int)($existingByEmail['id'] ?? 0) !== $existingUserId) {
             return ['ok' => false, 'error' => 'email_already_registered'];
         }
 
@@ -100,36 +111,49 @@ final class ExternalUserService
         }
 
         $now = gmdate('Y-m-d H:i:s');
-        $userPublicId = Ulid::generate('usr');
+        $expiresAt = gmdate('Y-m-d H:i:s', time() + 604800); // 7 days
 
-        // Generate invitation token (valid 7 days)
+        // Generate a fresh one-time invitation token on every invite/resend.
         $token = $this->tokens->generate(32);
         $tokenHash = $this->tokens->hash($token);
+        $fullName = trim((string)($contact['full_name'] ?? $email));
 
-        // Create user account in "pending" state (is_active = 0 until they set password)
-        $login = 'ext_' . substr($userPublicId, 4, 12);
-        $this->users->create([
-            'public_id' => $userPublicId,
-            'login' => $login,
-            'email' => $email,
-            'password_hash' => $this->hasher->hash('__pending__'),
-            'auth_token_hash' => $tokenHash,
-            'full_name' => trim((string)($contact['full_name'] ?? $email)),
-            'locale' => 'ru-ru',
-            'is_active' => 0,
-            'is_external' => 1,
-            'is_root' => 0,
-            'created_by_user_id' => $userId,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
-
-        $createdUser = $this->users->findByLogin($login);
-        if (!$createdUser) {
-            return ['ok' => false, 'error' => 'user_creation_failed'];
+        if ($existingUser) {
+            $createdUserId = (int)$existingUser['id'];
+            $userPublicId = (string)$existingUser['public_id'];
+            $login = (string)$existingUser['login'];
+            // A previously active session must not be resurrected when a
+            // revoked account is invited again and activated later.
+            $this->auth->revokeAllByUserId($createdUserId, $now);
+            $this->users->updateById($createdUserId, [
+                'email' => $email,
+                'full_name' => $fullName,
+                'password_hash' => $this->hasher->hash('__pending__'),
+                'auth_token_hash' => $tokenHash,
+                'external_invitation_expires_at' => $expiresAt,
+                'is_active' => 0,
+                'updated_at' => $now,
+            ]);
+        } else {
+            $userPublicId = Ulid::generate('usr');
+            $login = 'ext_' . substr($userPublicId, 4, 12);
+            $createdUserId = $this->users->create([
+                'public_id' => $userPublicId,
+                'login' => $login,
+                'email' => $email,
+                'password_hash' => $this->hasher->hash('__pending__'),
+                'auth_token_hash' => $tokenHash,
+                'external_invitation_expires_at' => $expiresAt,
+                'full_name' => $fullName,
+                'locale' => 'ru-ru',
+                'is_active' => 0,
+                'is_external' => 1,
+                'is_root' => 0,
+                'created_by_user_id' => $userId,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
         }
-
-        $createdUserId = (int)$createdUser['id'];
 
         // Assign external_guest role
         $this->roles->assignToUser($createdUserId, (int)$externalRole['id']);
@@ -154,6 +178,7 @@ final class ExternalUserService
             'user_public_id' => $userPublicId,
             'login' => $login,
             'email' => $email,
+            'invitation_expires_at' => $expiresAt,
         ];
     }
 
@@ -174,6 +199,9 @@ final class ExternalUserService
         if (mb_strlen($password) < 8) {
             return ['ok' => false, 'error' => 'weak_password'];
         }
+        if (mb_strlen($password) > 1024) {
+            return ['ok' => false, 'error' => 'password_too_long'];
+        }
 
         $tokenHash = $this->tokens->hash($token);
 
@@ -188,52 +216,72 @@ final class ExternalUserService
             return ['ok' => false, 'error' => 'not_external_user'];
         }
 
-        // Must be inactive (pending)
+        // Must be inactive (pending) and within the server-side invitation
+        // lifetime. The token is one-time and its expiry is independent of
+        // the user's regular session lifetime.
         if ((int)($user['is_active'] ?? 0) !== 0) {
             return ['ok' => false, 'error' => 'account_already_active'];
         }
+        $invitationExpiresAt = strtotime((string)($user['external_invitation_expires_at'] ?? '') . ' UTC');
+        if ($invitationExpiresAt === false || $invitationExpiresAt <= time()) {
+            return ['ok' => false, 'error' => 'invalid_token'];
+        }
 
         $now = gmdate('Y-m-d H:i:s');
+        $passwordHash = $this->hasher->hash($password);
 
-        // Activate the account
-        $this->users->updateById((int)$user['id'], [
-            'password_hash' => $this->hasher->hash($password),
-            'is_active' => 1,
-            'updated_at' => $now,
-        ]);
-
-        // Generate session token and create a user_sessions row so the auth
-        // pipeline (AuthService::me → AuthRepository::findSessionByTokenHash)
-        // can resolve the token. Without the session row the token is valid in
-        // users.auth_token_hash but invisible to the session lookup.
+        // Consume the invitation and create the first session atomically. The
+        // token predicate makes concurrent accepts one-time: only the request
+        // that changes the pending row wins; every other request gets 0 rows.
         $sessionToken = $this->tokens->generate(32);
         $sessionTokenHash = $this->tokens->hash($sessionToken);
         $sessionPublicId = Ulid::generate('ses');
         $expiresAt = gmdate('Y-m-d H:i:s', time() + 259200); // 3 days
+        $pdo = $this->users->getPdo();
+        $startedTransaction = false;
 
-        $this->users->updateById((int)$user['id'], [
-            'auth_token_hash' => $sessionTokenHash,
-            'updated_at' => $now,
-        ]);
+        try {
+            if (!$pdo->inTransaction()) {
+                $pdo->beginTransaction();
+                $startedTransaction = true;
+            }
 
-        $this->auth->createSession([
-            'public_id' => $sessionPublicId,
-            'user_id' => (int)$user['id'],
-            'token_hash' => $sessionTokenHash,
-            'ip' => '',
-            'user_agent' => '',
-            'device_fingerprint' => '',
-            'device_name' => 'External portal accept',
-            'expires_at' => $expiresAt,
-            'created_at' => $now,
-        ]);
+            if (!$this->users->activateExternalInvitation(
+                (int)$user['id'],
+                $tokenHash,
+                $passwordHash,
+                $now
+            )) {
+                if ($startedTransaction) {
+                    $pdo->rollBack();
+                }
+                return ['ok' => false, 'error' => 'invalid_token'];
+            }
 
-        // Clear auth_token_hash so normal password login works.
-        // Without this, AuthService::login() treats the hash as a
-        // second-factor token and rejects password-only logins.
-        $this->users->updateById((int)$user['id'], [
-            'auth_token_hash' => '',
-        ]);
+            // The session row is required by AuthService::me(). The invitation
+            // hash is cleared by activateExternalInvitation(), so password-only
+            // login is available immediately after acceptance.
+            $this->auth->createSession([
+                'public_id' => $sessionPublicId,
+                'user_id' => (int)$user['id'],
+                'token_hash' => $sessionTokenHash,
+                'ip' => '',
+                'user_agent' => '',
+                'device_fingerprint' => '',
+                'device_name' => 'External portal accept',
+                'expires_at' => $expiresAt,
+                'created_at' => $now,
+            ]);
+
+            if ($startedTransaction) {
+                $pdo->commit();
+            }
+        } catch (\Throwable $e) {
+            if ($startedTransaction && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            return ['ok' => false, 'error' => 'activation_failed'];
+        }
 
         $this->logger->audit([
             'action' => 'external_user_activated',
@@ -273,15 +321,22 @@ final class ExternalUserService
             return ['ok' => false, 'error' => 'not_external_user'];
         }
 
+        // Deactivation is object-level protected: contact.manage alone must
+        // not allow revoking a guest belonging to another user's hierarchy.
+        $contact = $this->contacts->findByUserId((int)$user['id']);
+        if (!$contact || !$this->contactService->get((string)($contact['public_id'] ?? ''), $actor)) {
+            return ['ok' => false, 'error' => 'user_not_found'];
+        }
+
         $now = gmdate('Y-m-d H:i:s');
+        // One write clears both the active session gate and the invitation
+        // secret, so a revoked user cannot authenticate or reactivate via an
+        // old link.
+        $this->auth->revokeAllByUserId((int)$user['id'], $now);
         $this->users->updateById((int)$user['id'], [
             'is_active' => 0,
-            'updated_at' => $now,
-        ]);
-
-        // Clear auth token so they can't log in
-        $this->users->updateById((int)$user['id'], [
             'auth_token_hash' => null,
+            'external_invitation_expires_at' => null,
             'updated_at' => $now,
         ]);
 
@@ -386,17 +441,49 @@ final class ExternalUserService
         }
 
         $pdo = $this->users->getPdo();
+        $where = ['u.is_external = 1'];
+        $params = [];
+        if ((int)($actor['is_root'] ?? 0) !== 1) {
+            $contactIds = [];
+            $page = 1;
+            do {
+                $contactResult = $this->contactService->list(['page' => $page, 'limit' => 100], $actor);
+                $contactItems = (array)($contactResult['items'] ?? []);
+                foreach ($contactItems as $contact) {
+                    $contactId = (int)($contact['id'] ?? 0);
+                    if ($contactId > 0 && (int)($contact['user_id'] ?? 0) > 0) {
+                        $contactIds[] = $contactId;
+                    }
+                }
+                $totalPages = (int)($contactResult['meta']['pagination']['pages'] ?? $page);
+                $page++;
+            } while ($contactItems !== [] && $page <= $totalPages);
+
+            $contactIds = array_values(array_unique($contactIds));
+            if ($contactIds === []) {
+                return ['items' => [], 'total' => 0];
+            }
+            $placeholders = [];
+            foreach ($contactIds as $index => $contactId) {
+                $key = ':contact_' . $index;
+                $placeholders[] = $key;
+                $params[$key] = $contactId;
+            }
+            $where[] = 'c.id IN (' . implode(', ', $placeholders) . ')';
+        }
+
         $stmt = $pdo->prepare(
-            "SELECT u.id, u.public_id, u.login, u.email, u.full_name, u.is_active, u.created_at,
+            "SELECT u.id, u.public_id, u.login, u.email, u.full_name, u.is_active,
+                    u.external_invitation_expires_at, u.created_at,
                     c.id AS contact_id, c.full_name AS contact_name,
                     cp.id AS counterparty_id, cp.title AS counterparty_title
              FROM users u
              LEFT JOIN contacts c ON c.user_id = u.id
              LEFT JOIN counterparties cp ON cp.id = c.counterparty_id
-             WHERE u.is_external = 1
+             WHERE " . implode(' AND ', $where) . "
              ORDER BY u.created_at DESC"
         );
-        $stmt->execute();
+        $stmt->execute($params);
         $items = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
 
         return [

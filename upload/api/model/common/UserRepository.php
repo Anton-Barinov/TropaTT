@@ -32,7 +32,7 @@ final class UserRepository
             // for self-service profile/me (sanitizeUser keeps them); all
             // findById callers operate on the actor's own id. Never SELECT *
             // (AGENTS.md) and never leak token/secret columns.
-            ->select(['id', 'public_id', 'login', 'email', 'full_name', 'locale', 'is_active', 'is_root', 'is_external', 'password_hash', 'auth_token_hash', 'cost_rate', 'bill_rate'])
+            ->select(['id', 'public_id', 'login', 'email', 'full_name', 'locale', 'is_active', 'is_root', 'is_external', 'password_hash', 'auth_token_hash', 'external_invitation_expires_at', 'cost_rate', 'bill_rate'])
             ->where('id', '=', $id)
             ->first();
     }
@@ -115,11 +115,33 @@ final class UserRepository
             ->select([
                 'id', 'public_id', 'login', 'email', 'full_name',
                 'is_active', 'is_root', 'is_external', 'locale',
-                'auth_token_hash', 'created_at',
+                'auth_token_hash', 'external_invitation_expires_at', 'created_at',
             ])
             ->where('auth_token_hash', '=', $hash)
             ->whereNull('deleted_at')
             ->first();
+    }
+
+    public function activateExternalInvitation(int $id, string $tokenHash, string $passwordHash, string $now): bool
+    {
+        if ($id <= 0 || $tokenHash === '' || $passwordHash === '') {
+            return false;
+        }
+
+        return (new QueryBuilder($this->pdo))
+            ->from('users')
+            ->where('id', '=', $id)
+            ->where('auth_token_hash', '=', $tokenHash)
+            ->where('is_external', '=', 1)
+            ->where('is_active', '=', 0)
+            ->where('external_invitation_expires_at', '>', $now)
+            ->update([
+                'password_hash' => $passwordHash,
+                'is_active' => 1,
+                'auth_token_hash' => null,
+                'external_invitation_expires_at' => null,
+                'updated_at' => $now,
+            ]) > 0;
     }
 
     public function updateById(int $id, array $set): bool

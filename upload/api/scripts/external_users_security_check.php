@@ -39,6 +39,7 @@ $migrationPath = $apiRoot . '/system/library/database/migration/ExternalUsersMig
 $permissionServicePath = $apiRoot . '/system/library/service/PermissionService.php';
 $authRepositoryPath = $apiRoot . '/model/auth/AuthRepository.php';
 $authServicePath = $apiRoot . '/system/library/service/AuthService.php';
+$migrationManagerPath = $apiRoot . '/system/library/database/migration/MigrationManager.php';
 $taskServicePath = $apiRoot . '/system/library/service/TaskService.php';
 $projectServicePath = $apiRoot . '/system/library/service/ProjectService.php';
 $menuControllerPath = $apiRoot . '/controller/auth/MenuController.php';
@@ -46,6 +47,9 @@ $fileServicePath = $apiRoot . '/system/library/service/FileService.php';
 $commentServicePath = $apiRoot . '/system/library/service/CommentService.php';
 $commentRepositoryPath = $apiRoot . '/model/comment/CommentRepository.php';
 $notificationServicePath = $apiRoot . '/system/library/service/NotificationService.php';
+$externalUserServicePath = $apiRoot . '/system/library/service/ExternalUserService.php';
+$externalInvitationMigrationPath = $apiRoot . '/system/library/database/migration/ExternalInvitationLifecycleMigration.php';
+$userRepositoryPath = $apiRoot . '/model/common/UserRepository.php';
 $webIndexPath = $webRoot . '/index.php';
 
 $failures = [];
@@ -297,8 +301,8 @@ if ($knownPermissionCodes === []) {
 }
 
 $migrationSource = readFileSafe($migrationPath);
-if (preg_match('/\$permissionCodes\s*=\s*\[(.*?)\];/s', $migrationSource, $seedBlock) !== 1) {
-    failSmoke('could not locate $permissionCodes in ExternalUsersMigration');
+if (preg_match('/\$wantedPermissionCodes\s*=\s*\[(.*?)\];/s', $migrationSource, $seedBlock) !== 1) {
+    failSmoke('could not locate $wantedPermissionCodes in ExternalUsersMigration');
 }
 preg_match_all("/'([^']+)'/", $seedBlock[1], $seedMatches);
 $seededCodes = array_values(array_unique($seedMatches[1] ?? []));
@@ -372,6 +376,69 @@ foreach ([
         . 'judged as an employee. Deny instead.'
     );
 }
+
+// ---------------------------------------------------------------------------
+// 6d. Invitation lifecycle and object-level management authorization.
+// ---------------------------------------------------------------------------
+
+$externalUserServiceSource = readFileSafe($externalUserServicePath);
+$externalInvitationMigrationSource = readFileSafe($externalInvitationMigrationPath);
+$userRepositorySource = readFileSafe($userRepositoryPath);
+$migrationManagerSource = readFileSafe($migrationManagerPath);
+check(
+    $failures,
+    str_contains($externalUserServiceSource, 'contactService->get'),
+    'ExternalUserService must resolve invite/deactivate contacts through ContactService '
+    . 'so contact.manage cannot operate on another hierarchy\'s records'
+);
+check(
+    $failures,
+    str_contains($externalUserServiceSource, 'external_invitation_expires_at'),
+    'ExternalUserService does not persist/clear invitation expiry metadata'
+);
+check(
+    $failures,
+    str_contains($externalUserServiceSource, 'password_too_long'),
+    'ExternalUserService does not cap invitation password input before hashing'
+);
+check(
+    $failures,
+    str_contains($externalInvitationMigrationSource, 'external_invitation_expires_at'),
+    'ExternalInvitationLifecycleMigration does not add the invitation expiry column'
+);
+check(
+    $failures,
+    str_contains($userRepositorySource, 'external_invitation_expires_at'),
+    'UserRepository does not explicitly select invitation expiry metadata'
+);
+check(
+    $failures,
+    str_contains($userRepositorySource, 'activateExternalInvitation'),
+    'UserRepository has no atomic invitation-consume operation — concurrent accepts could '
+    . 'activate the same one-time token more than once'
+);
+check(
+    $failures,
+    str_contains($externalUserServiceSource, 'revokeAllByUserId'),
+    'ExternalUserService does not revoke all sessions on deactivate/resend — an old session '
+    . 'could become valid again after a later reactivation'
+);
+check(
+    $failures,
+    str_contains($authRepositorySource, 'revokeAllByUserId'),
+    'AuthRepository has no user-wide session revocation operation'
+);
+check(
+    $failures,
+    str_contains($migrationManagerSource, 'new ExternalInvitationLifecycleMigration()'),
+    'MigrationManager does not register ExternalInvitationLifecycleMigration'
+);
+check(
+    $failures,
+    str_contains($externalUserServiceSource, 'contactService->list'),
+    'ExternalUserService::listExternalUsers() does not scope non-root results through '
+    . 'the contacts access policy'
+);
 
 // ---------------------------------------------------------------------------
 // 6c. Notifications must not echo internal comments to guests.

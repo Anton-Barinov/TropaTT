@@ -1681,6 +1681,7 @@ final class App
             $c->get('repository.user'),
             $c->get('repository.role'),
             $c->get('repository.contact'),
+            $c->get('service.contact'),
             $c->get('security.hasher'),
             $c->get('security.token'),
             $c->get('logger'),

@@ -66,6 +66,7 @@ final class MigrationManager
             new TaskChatSourceMigration(),
             new WorklogIntervalMigration(),
             new ExternalUsersMigration(),
+            new ExternalInvitationLifecycleMigration(),
         ];
     }
 
