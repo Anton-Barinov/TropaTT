@@ -1305,7 +1305,8 @@ final class App
             $c->get('repository.counterparty'),
             $c->get('repository.user_management'),
             $c->get('policy.hierarchy'),
-            $c->get('service.ai_semantic_index')
+            $c->get('service.ai_semantic_index'),
+            $c->get('service.contact')
         ));
         $this->container->factory('service.client_cabinet', fn(Container $c) => new ClientCabinetService(
             $c->get('repository.client_cabinet')

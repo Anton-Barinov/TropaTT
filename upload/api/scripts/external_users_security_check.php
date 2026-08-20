@@ -51,6 +51,7 @@ $externalUserServicePath = $apiRoot . '/system/library/service/ExternalUserServi
 $externalUserControllerPath = $apiRoot . '/controller/external/ExternalUserController.php';
 $contactRepositoryPath = $apiRoot . '/model/contact/ContactRepository.php';
 $contactServicePath = $apiRoot . '/system/library/service/ContactService.php';
+$counterpartyServicePath = $apiRoot . '/system/library/service/CounterpartyService.php';
 $portalBindingsPath = $webRoot . '/assets/js/page-api-bindings.js';
 $apiClientJsPath = $webRoot . '/assets/js/api.js';
 $externalInvitationMigrationPath = $apiRoot . '/system/library/database/migration/ExternalInvitationLifecycleMigration.php';
@@ -443,6 +444,7 @@ check(
 $externalUserControllerSource = readFileSafe($externalUserControllerPath);
 $contactRepositorySource = readFileSafe($contactRepositoryPath);
 $contactServiceSource = readFileSafe($contactServicePath);
+$counterpartyServiceSource = readFileSafe($counterpartyServicePath);
 $portalBindingsSource = readFileSafe($portalBindingsPath);
 $apiClientJsSource = readFileSafe($apiClientJsPath);
 check(
@@ -467,6 +469,38 @@ check(
     str_contains($contactServiceSource, 'revokeLinkedExternalUser'),
     'ContactService does not revoke a linked guest when a contact is deleted or moved '
     . 'between counterparties'
+);
+check(
+    $failures,
+    str_contains($contactRepositorySource, 'findByCounterpartyId'),
+    'ContactRepository cannot enumerate contacts for counterparty lifecycle cleanup'
+);
+check(
+    $failures,
+    str_contains($contactServiceSource, 'revokeExternalUsersForCounterparty'),
+    'ContactService does not expose counterparty-wide external session cleanup'
+);
+check(
+    $failures,
+    str_contains($counterpartyServiceSource, 'revokeExternalUsersForCounterparty'),
+    'CounterpartyService does not revoke linked external users before counterparty deletion'
+);
+check(
+    $failures,
+    (bool)preg_match("/factory\\('service\\.counterparty'.*?'service\\.contact'/s", $appSource),
+    'App service wiring does not provide ContactService to the counterparty lifecycle service'
+);
+check(
+    $failures,
+    str_contains($contactRepositorySource, "whereNull('eu.deleted_at')"),
+    'ContactRepository portal status query includes soft-deleted guest accounts, leaving '
+    . 'the UI stuck on a non-actionable pending state'
+);
+check(
+    $failures,
+    str_contains($externalUserServiceSource, 'soft-deleted external account'),
+    'ExternalUserService does not explicitly retire a soft-deleted linked guest before '
+    . 'creating a fresh invitation'
 );
 check(
     $failures,

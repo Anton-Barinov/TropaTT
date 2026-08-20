@@ -70,7 +70,8 @@ final class ContactRepository
             ->leftJoin('companies co', 'co.id', '=', 'ct.company_id')
             ->leftJoin('clients cl', 'cl.id', '=', 'ct.client_id')
             ->leftJoin('counterparties cp', 'cp.id', '=', 'ct.counterparty_id')
-            ->leftJoin('users eu', 'eu.id', '=', 'ct.user_id');
+            ->leftJoin('users eu', 'eu.id', '=', 'ct.user_id')
+            ->whereNull('eu.deleted_at');
 
         if (!empty($filters['search'])) {
             $search = '%' . (string)$filters['search'] . '%';
@@ -211,6 +212,28 @@ final class ContactRepository
             ->from('contacts')
             ->where('user_id', '=', $userId)
             ->first();
+    }
+
+    /** @return list<array{id:int,user_id:int|null}> */
+    public function findByCounterpartyId(int $counterpartyId): array
+    {
+        if ($counterpartyId <= 0) {
+            return [];
+        }
+
+        $rows = (new QueryBuilder($this->pdo))
+            ->from('contacts')
+            ->select(['id', 'user_id'])
+            ->where('counterparty_id', '=', $counterpartyId)
+            ->get();
+
+        return array_values(array_map(
+            static fn(array $row): array => [
+                'id' => (int)($row['id'] ?? 0),
+                'user_id' => isset($row['user_id']) ? (int)$row['user_id'] : null,
+            ],
+            $rows
+        ));
     }
 
     public function updateById(int $id, array $set): bool

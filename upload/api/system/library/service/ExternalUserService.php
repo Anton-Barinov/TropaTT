@@ -100,9 +100,22 @@ final class ExternalUserService
         // explicitly instead of silently replacing their access.
         $existingUserId = (int)($contact['user_id'] ?? 0);
         $existingUser = $existingUserId > 0 ? $this->users->findById($existingUserId) : null;
-        if ($existingUserId > 0 && (!$existingUser
-            || (int)($existingUser['is_external'] ?? 0) !== 1
-            || ($existingUser['deleted_at'] ?? null) !== null)) {
+        if ($existingUserId > 0 && !$existingUser) {
+            return ['ok' => false, 'error' => 'contact_has_linked_user'];
+        }
+        if ($existingUser && ($existingUser['deleted_at'] ?? null) !== null) {
+            // A soft-deleted external account must never be reactivated. Unlink
+            // that retired account and create a fresh guest account instead;
+            // findByEmail() ignores deleted users, so historical credentials
+            // cannot block or revive the new invitation.
+            if ((int)($existingUser['is_external'] ?? 0) !== 1) {
+                return ['ok' => false, 'error' => 'contact_has_linked_user'];
+            }
+            $this->contacts->updateById($contactId, ['user_id' => null]);
+            $existingUserId = 0;
+            $existingUser = null;
+        }
+        if ($existingUser && (int)($existingUser['is_external'] ?? 0) !== 1) {
             return ['ok' => false, 'error' => 'contact_has_linked_user'];
         }
         if ($existingUser && (int)($existingUser['is_active'] ?? 0) === 1) {

@@ -24,6 +24,10 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ### Fixed
 
+- **Client portal: counterparty deletion cleanup.** Deleting a counterparty now revokes all linked external sessions before removing the tenant relationship, preventing an orphaned guest from retaining portal access.
+
+- **Client portal: retired guest accounts no longer block re-invites.** Soft-deleted external accounts are hidden from contact portal status and are never reactivated; a new invitation creates a fresh account after the retired link is safely removed.
+
 - **Client portal: localized dynamic messages.** Invite, revoke, accept success/error messages and related hints now receive the selected web locale dictionary instead of falling back to English when the user works in Russian or another supported language.
 
 - **Client portal: accept page hid its own success state.** After a guest set a password, the page hid the form together with the success message, leaving only the heading and description. The success state now remains visible and provides a direct link to login.

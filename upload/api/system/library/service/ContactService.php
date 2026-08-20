@@ -183,6 +183,18 @@ final class ContactService
         return null;
     }
 
+    /**
+     * Revoke every external account linked to a counterparty before the
+     * counterparty is removed. This prevents an orphaned portal session from
+     * surviving the deletion of its tenant relationship.
+     */
+    public function revokeExternalUsersForCounterparty(int $counterpartyId): void
+    {
+        foreach ($this->contacts->findByCounterpartyId($counterpartyId) as $contact) {
+            $this->revokeLinkedExternalUser((int)($contact['user_id'] ?? 0));
+        }
+    }
+
     private function revokeLinkedExternalUser(int $linkedUserId): void
     {
         if ($linkedUserId <= 0) {

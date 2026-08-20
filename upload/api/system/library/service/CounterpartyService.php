@@ -42,7 +42,8 @@ final class CounterpartyService
         private readonly CounterpartyRepository $counterparties,
         private readonly UserManagementRepository $users,
         private readonly HierarchyPolicy $hierarchy,
-        private readonly ?AiSemanticIndexService $semanticIndex = null
+        private readonly ?AiSemanticIndexService $semanticIndex = null,
+        private readonly ?ContactService $contactService = null
     ) {
     }
 
@@ -121,6 +122,11 @@ final class CounterpartyService
         if (!$current) {
             throw new \RuntimeException('COUNTERPARTY_NOT_FOUND');
         }
+
+        // A counterparty deletion removes the tenant relationship. Revoke all
+        // linked external accounts first so their existing sessions cannot keep
+        // access to orphaned projects/tasks after that relationship disappears.
+        $this->contactService?->revokeExternalUsersForCounterparty((int)($current['id'] ?? 0));
 
         $deleted = $this->counterparties->deleteByPublicId($publicId);
         if ($deleted) {
