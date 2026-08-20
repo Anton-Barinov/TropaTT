@@ -131,50 +131,62 @@ final class ExternalUsersMigration implements MigrationInterface
     {
         $now = gmdate('Y-m-d H:i:s');
 
-        // Check if external_guest role already exists
+        // Find or create the external_guest role
         $stmt = $pdo->prepare("SELECT id FROM roles WHERE code = 'external_guest'");
         $stmt->execute();
-        if ($stmt->fetch()) {
-            return; // Role already exists
+        $roleRow = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if ($roleRow) {
+            $roleId = (int)$roleRow['id'];
+        } else {
+            $rolePublicId = 'rl_ext_guest_' . substr(md5('external_guest'), 0, 16);
+            $pdo->prepare(
+                "INSERT INTO roles (public_id, code, title, is_system, created_at, updated_at)
+                 VALUES (:public_id, :code, :title, 1, :created_at, :updated_at)"
+            )->execute([
+                ':public_id' => $rolePublicId,
+                ':code' => 'external_guest',
+                ':title' => 'External Guest',
+                ':created_at' => $now,
+                ':updated_at' => $now,
+            ]);
+            $roleId = (int)$pdo->lastInsertId();
         }
-
-        // Create the role
-        $rolePublicId = 'rl_ext_guest_' . substr(md5('external_guest'), 0, 16);
-        $pdo->prepare(
-            "INSERT INTO roles (public_id, code, title, is_system, created_at, updated_at)
-             VALUES (:public_id, :code, :title, 1, :created_at, :updated_at)"
-        )->execute([
-            ':public_id' => $rolePublicId,
-            ':code' => 'external_guest',
-            ':title' => 'External Guest',
-            ':created_at' => $now,
-            ':updated_at' => $now,
-        ]);
-
-        $roleId = (int)$pdo->lastInsertId();
 
         // Permissions to grant to external guests (real registry codes only —
         // see the class-level doc comment on why task.manage/project.manage
         // are used instead of made-up .view codes).
-        $permissionCodes = [
+        // This block is idempotent: it ensures exactly these permissions are
+        // linked, removing any stale/wrong ones that may have been seeded by an
+        // earlier version of this migration (e.g. chat.use, knowledge.view).
+        $wantedPermissionCodes = [
             'task.manage',
             'project.manage',
         ];
 
-        foreach ($permissionCodes as $code) {
-            // Find or create the permission
+        // Look up IDs for wanted permissions
+        $wantedIds = [];
+        foreach ($wantedPermissionCodes as $code) {
             $stmt = $pdo->prepare("SELECT id FROM permissions WHERE code = :code");
             $stmt->execute([':code' => $code]);
             $permRow = $stmt->fetch(\PDO::FETCH_ASSOC);
-
-            if (!$permRow) {
-                // Permission doesn't exist — skip (will be created by other migrations)
-                continue;
+            if ($permRow) {
+                $wantedIds[] = (int)$permRow['id'];
             }
+        }
 
-            $permId = (int)$permRow['id'];
+        if ($wantedIds === []) {
+            return; // Target permissions don't exist yet — nothing to do
+        }
 
-            // Link role → permission (if not already linked)
+        // Remove stale permissions that are not in the wanted set
+        $placeholders = implode(',', array_fill(0, count($wantedIds), '?'));
+        $pdo->prepare(
+            "DELETE FROM role_permissions WHERE role_id = ? AND permission_id NOT IN ($placeholders)"
+        )->execute(array_merge([$roleId], $wantedIds));
+
+        // Ensure all wanted permissions are linked
+        foreach ($wantedIds as $permId) {
             $stmt = $pdo->prepare(
                 "SELECT id FROM role_permissions WHERE role_id = :role_id AND permission_id = :permission_id"
             );

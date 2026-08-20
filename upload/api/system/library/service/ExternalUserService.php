@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\Model\Auth\AuthRepository;
 use Api\Model\Common\UserRepository;
 use Api\Model\Role\RoleRepository;
 use Api\Model\Contact\ContactRepository;
@@ -28,6 +29,7 @@ final class ExternalUserService
         private readonly TokenManager $tokens,
         private readonly JsonLogger $logger,
         private readonly Config $config,
+        private readonly AuthRepository $auth,
     ) {
     }
 
@@ -200,11 +202,30 @@ final class ExternalUserService
             'updated_at' => $now,
         ]);
 
-        // Generate session token
+        // Generate session token and create a user_sessions row so the auth
+        // pipeline (AuthService::me → AuthRepository::findSessionByTokenHash)
+        // can resolve the token. Without the session row the token is valid in
+        // users.auth_token_hash but invisible to the session lookup.
         $sessionToken = $this->tokens->generate(32);
+        $sessionTokenHash = $this->tokens->hash($sessionToken);
+        $sessionPublicId = Ulid::generate('ses');
+        $expiresAt = gmdate('Y-m-d H:i:s', time() + 259200); // 3 days
+
         $this->users->updateById((int)$user['id'], [
-            'auth_token_hash' => $this->tokens->hash($sessionToken),
+            'auth_token_hash' => $sessionTokenHash,
             'updated_at' => $now,
+        ]);
+
+        $this->auth->createSession([
+            'public_id' => $sessionPublicId,
+            'user_id' => (int)$user['id'],
+            'token_hash' => $sessionTokenHash,
+            'ip' => '',
+            'user_agent' => '',
+            'device_fingerprint' => '',
+            'device_name' => 'External portal accept',
+            'expires_at' => $expiresAt,
+            'created_at' => $now,
         ]);
 
         $this->logger->audit([

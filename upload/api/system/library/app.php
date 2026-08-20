@@ -1684,7 +1684,8 @@ final class App
             $c->get('security.hasher'),
             $c->get('security.token'),
             $c->get('logger'),
-            $c->get('config')
+            $c->get('config'),
+            $c->get('repository.auth')
         ));
 
         $router = new Router();
