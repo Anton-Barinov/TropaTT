@@ -22,7 +22,7 @@
   </div>
   <div class="crm-page-actions">
     <button class="btn crm-btn-secondary" type="button" data-open-drawer="projectQuickPreviewDrawer" data-i18n="project_detail.btn_preview"><?= htmlspecialchars($t('project_detail.btn_preview', 'Предпросмотр'), ENT_QUOTES, 'UTF-8') ?></button>
-    <button class="btn crm-btn-primary" type="button" data-open-modal="projectEditModal" id="projectHeaderEditBtn" data-i18n="project_detail.btn_edit"><?= htmlspecialchars($t('project_detail.btn_edit', 'Редактировать'), ENT_QUOTES, 'UTF-8') ?></button>
+    <?php if (empty($is_external_user)): // client portal: internal-only control ?><button class="btn crm-btn-primary" type="button" data-open-modal="projectEditModal" id="projectHeaderEditBtn" data-i18n="project_detail.btn_edit"><?= htmlspecialchars($t('project_detail.btn_edit', 'Редактировать'), ENT_QUOTES, 'UTF-8') ?></button>
     <div class="crm-pr-menu-wrap">
       <button class="btn crm-btn-secondary crm-pr-menu-btn" type="button" id="projectMoreBtn" aria-haspopup="menu" aria-expanded="false" aria-label="<?= htmlspecialchars($t('project_detail.btn_more', 'Ещё действия'), ENT_QUOTES, 'UTF-8') ?>"><span aria-hidden="true">⋯</span></button>
       <div class="crm-pr-menu" id="projectMoreMenu" role="menu">
@@ -31,7 +31,7 @@
         <a href="index.php?route=contacts" role="menuitem" data-i18n="project_detail.link_contacts"><?= htmlspecialchars($t('project_detail.link_contacts', 'Контакты'), ENT_QUOTES, 'UTF-8') ?></a>
         <div class="crm-pr-menu-divider" role="separator"></div>
         <button type="button" id="projectArchiveMenuBtn" role="menuitem" class="crm-pr-menu-danger" data-i18n="project_detail.menu_archive_project"><?= htmlspecialchars($t('project_detail.menu_archive_project', 'Архивировать проект'), ENT_QUOTES, 'UTF-8') ?></button>
-      </div>
+      </div><?php endif; ?>
     </div>
   </div>
 </div>
@@ -44,8 +44,12 @@
 <div class="crm-pr-tabs" role="tablist" aria-label="<?= htmlspecialchars($t('project_detail.tabs_label', 'Разделы проекта'), ENT_QUOTES, 'UTF-8') ?>">
   <button class="crm-pr-tab active" type="button" role="tab" aria-selected="true" data-project-tab="overview" id="projectTabOverview"><?= htmlspecialchars($t('project_detail.tab_overview', 'Обзор'), ENT_QUOTES, 'UTF-8') ?></button>
   <button class="crm-pr-tab" type="button" role="tab" aria-selected="false" data-project-tab="tasks" id="projectTabTasks"><?= htmlspecialchars($t('project_detail.tab_tasks', 'Задачи'), ENT_QUOTES, 'UTF-8') ?><span class="crm-pr-tab-count" id="projectTaskTabCount">0</span></button>
+<?php if (empty($is_external_user)): // client portal: internal-only block ?>
   <button class="crm-pr-tab" type="button" role="tab" aria-selected="false" data-project-tab="ai" id="projectTabAi"><?= htmlspecialchars($t('project_detail.tab_ai', 'AI-инсайты'), ENT_QUOTES, 'UTF-8') ?></button>
+<?php endif; ?>
+<?php if (empty($is_external_user)): // client portal: internal-only block ?>
   <button class="crm-pr-tab" type="button" role="tab" aria-selected="false" data-project-tab="activity" id="projectTabActivity"><?= htmlspecialchars($t('project_detail.tab_activity', 'Активность'), ENT_QUOTES, 'UTF-8') ?></button>
+<?php endif; ?>
 </div>
 
 <!-- ============ OVERVIEW ============ -->
@@ -94,8 +98,12 @@
 
     <div class="crm-pr-col-side">
       <?= module_position('project.detail.sidebar', ['route' => $route ?? 'project-detail', 'project_public_id' => (string)($_GET['project_public_id'] ?? '')]) ?>
+<?php if (empty($is_external_user)): // client portal: internal-only block ?>
       <section class="crm-card mb-3"><h2 class="h6" data-i18n="project_detail.section_team"><?= htmlspecialchars($t('project_detail.section_team', 'Команда'), ENT_QUOTES, 'UTF-8') ?></h2><div id="projectTeamList"><div class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div></section>
+<?php endif; ?>
+<?php if (empty($is_external_user)): // client portal: internal-only block ?>
       <section class="crm-card mb-3" id="projectKnowledgeSection"><h2 class="h6" data-i18n="project_detail.section_knowledge"><?= htmlspecialchars($t('project_detail.section_knowledge', 'База знаний'), ENT_QUOTES, 'UTF-8') ?></h2><div id="projectKnowledgeList"><div class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div><div class="mt-3 pt-3 border-top"><h3 class="h6 d-flex align-items-center gap-2 mb-2" data-i18n="project_detail.team_knowledge_title"><span class="crm-icon text-muted" aria-hidden="true"><i class="fa-solid fa-users" aria-hidden="true"></i></span><?= htmlspecialchars($t('project_detail.team_knowledge_title', 'Материалы команды'), ENT_QUOTES, 'UTF-8') ?></h3><div id="projectTeamKnowledgeList"><div class="text-muted small" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div></div><div class="mt-2 d-flex gap-2 flex-wrap"><a class="btn btn-sm crm-btn-primary" href="index.php?route=knowledge" data-i18n="project_detail.btn_knowledge"><?= htmlspecialchars($t('project_detail.btn_knowledge', 'Перейти в базу знаний'), ENT_QUOTES, 'UTF-8') ?></a><a id="projectCreateKnowledgeBtn" class="btn btn-sm crm-btn-secondary" href="index.php?route=knowledge" data-i18n="project_detail.btn_create_knowledge"><?= htmlspecialchars($t('project_detail.btn_create_knowledge', 'Создать связанную страницу'), ENT_QUOTES, 'UTF-8') ?></a></div></section>
+<?php endif; ?>
     </div>
   </div>
 </div>
@@ -125,7 +133,7 @@
     <div class="crm-pr-acc-panel"><div class="crm-pr-acc-inner"><div class="crm-timeline" id="projectMilestonesList"><div class="crm-timeline-item" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div></div></div>
   </section>
 
-  <section class="crm-pr-acc" id="projectModulesAcc">
+  <?php if (empty($is_external_user)): // client portal: internal-only control ?><section class="crm-pr-acc" id="projectModulesAcc">
     <button class="crm-pr-acc-head" type="button" aria-expanded="false">
       <span class="crm-pr-acc-title">
         <span class="name" data-i18n="project_detail.section_modules"><?= htmlspecialchars($t('project_detail.section_modules', 'Модули проекта'), ENT_QUOTES, 'UTF-8') ?></span>
@@ -137,10 +145,11 @@
       <div class="mb-2"><button class="btn btn-sm crm-btn-primary crm-btn-compact" type="button" id="projectModuleAddBtn" data-i18n="project_detail.btn_add_module"><?= htmlspecialchars($t('project_detail.btn_add_module', '+ Модуль'), ENT_QUOTES, 'UTF-8') ?></button></div>
       <div id="projectModulesList"><div class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
     </div></div>
-  </section>
+  </section><?php endif; ?>
 </div>
 
 <!-- ============ AI INSIGHTS ============ -->
+<?php if (empty($is_external_user)): // client portal: internal-only block ?>
 <div class="crm-pr-panel" data-project-panel="ai" role="tabpanel">
   <section class="crm-card" id="projectAiCard" data-requires-ai-use="1" data-ai-state="idle">
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
@@ -200,8 +209,10 @@
     </div>
   </section>
 </div>
+<?php endif; ?>
 
 <!-- ============ ACTIVITY ============ -->
+<?php if (empty($is_external_user)): // client portal: internal-only block ?>
 <div class="crm-pr-panel" data-project-panel="activity" role="tabpanel">
   <section class="crm-card mb-3"><h2 class="h6" data-i18n="project_detail.section_activity"><?= htmlspecialchars($t('project_detail.section_activity', 'Недавняя активность'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-timeline" id="projectActivityList"><div class="crm-timeline-item" data-i18n="project_detail.loading_activity"><?= htmlspecialchars($t('project_detail.loading_activity', 'Данные загружаются...'), ENT_QUOTES, 'UTF-8') ?></div></div></section>
 
@@ -218,6 +229,7 @@
     </div></div>
   </section>
 </div>
+<?php endif; ?>
 
 </main></div></div>
 

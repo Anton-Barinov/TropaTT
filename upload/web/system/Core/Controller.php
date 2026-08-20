@@ -118,6 +118,9 @@ abstract class Controller
         // (e.g., when Controller is rendered outside the web bootstrap, such
         // as a CLI test or cron context).
         $data['csp_nonce'] = (string)($GLOBALS['crm_csp_nonce'] ?? '');
+        // Client-portal (external guest) flag, set by web/index.php. Templates use
+        // it to skip internal-only page sections; see $externalAllowedRoutes there.
+        $data['is_external_user'] = (bool)($GLOBALS['crm_is_external_user'] ?? false);
 
         if (self::$webHookManager !== null) {
             $moduleNames = [];

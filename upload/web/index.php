@@ -793,16 +793,27 @@ if (isset($adminRoutePermissions[$route])) {
 // like 'dashboard' or 'kanban' — 403s at the shell for an external actor so
 // they never see internal page chrome, even before any API call runs.
 $externalAllowedRoutes = ['projects', 'project-detail', 'tasks', 'task-detail', 'notifications'];
-if (!$isPublic && !in_array($route, $externalAllowedRoutes, true)) {
+$crmIsExternalUser = false;
+if (!$isPublic) {
     $sessionCookieName = trim((string)(getenv('CRM_API_SESSION_COOKIE') ?: 'crm_api_session'));
     $sessionToken = trim((string)($_COOKIE[$sessionCookieName] ?? ''));
-    if (crmWebApiIsExternalUser($sessionToken, $baseDir)) {
+    $crmIsExternalUser = crmWebApiIsExternalUser($sessionToken, $baseDir);
+
+    if ($crmIsExternalUser && !in_array($route, $externalAllowedRoutes, true)) {
         http_response_code(403);
         header('Content-Type: text/html; charset=utf-8');
         echo \Web\System\I18n\EarlyResponse::forbiddenPage($baseDir);
         exit;
     }
 }
+
+// Exposed to templates as $is_external_user (see Core\Controller::render()).
+// Pages an external guest IS allowed to open still contain internal-only
+// blocks — estimates, worklogs, activity, subtasks, AI, sticky notes. Their JS
+// initialises from the DOM, so rendering those containers would fire a burst of
+// requests the API answers with 403 and leave dead widgets on the page. The
+// template skips them instead.
+$GLOBALS['crm_is_external_user'] = $crmIsExternalUser;
 
 $router = new Web\System\Core\Router($routes, $baseDir);
 

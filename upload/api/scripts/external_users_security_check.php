@@ -469,6 +469,45 @@ check(
 );
 
 // ---------------------------------------------------------------------------
+// 8. Allowed pages must not render internal-only blocks for guests.
+// ---------------------------------------------------------------------------
+// A guest may legitimately open task-detail and project-detail. Those templates
+// also contain worklogs, estimates, activity, subtasks, AI, modules, knowledge
+// and the team roster. Their JS initialises from the DOM, so rendering those
+// containers fires a burst of requests the API answers with 403 and leaves dead
+// widgets on the page. The flag is resolved once in web/index.php and exposed to
+// templates by Core\\Controller::render().
+
+$webControllerPath = $webRoot . '/system/Core/Controller.php';
+$taskDetailTemplatePath = $webRoot . '/view/template/page/task_detail.php';
+$projectDetailTemplatePath = $webRoot . '/view/template/page/project_detail.php';
+
+check(
+    $failures,
+    str_contains($webIndexSource, 'crm_is_external_user'),
+    'web/index.php does not publish the external-user flag for templates'
+);
+check(
+    $failures,
+    str_contains(readFileSafe($webControllerPath), 'is_external_user'),
+    'Core\\Controller::render() does not expose is_external_user, so templates cannot '
+    . 'gate internal-only blocks'
+);
+
+foreach ([
+    'task_detail' => $taskDetailTemplatePath,
+    'project_detail' => $projectDetailTemplatePath,
+] as $label => $templatePath) {
+    check(
+        $failures,
+        str_contains(readFileSafe($templatePath), 'is_external_user'),
+        "{$label}.php renders every internal block unconditionally — a client-portal user "
+        . 'would trigger a burst of 403s and see dead widgets on a page they are allowed '
+        . 'to open'
+    );
+}
+
+// ---------------------------------------------------------------------------
 // Report
 // ---------------------------------------------------------------------------
 
