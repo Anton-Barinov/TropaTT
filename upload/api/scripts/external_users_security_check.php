@@ -52,6 +52,7 @@ $externalUserControllerPath = $apiRoot . '/controller/external/ExternalUserContr
 $contactRepositoryPath = $apiRoot . '/model/contact/ContactRepository.php';
 $contactServicePath = $apiRoot . '/system/library/service/ContactService.php';
 $portalBindingsPath = $webRoot . '/assets/js/page-api-bindings.js';
+$apiClientJsPath = $webRoot . '/assets/js/api.js';
 $externalInvitationMigrationPath = $apiRoot . '/system/library/database/migration/ExternalInvitationLifecycleMigration.php';
 $userRepositoryPath = $apiRoot . '/model/common/UserRepository.php';
 $webIndexPath = $webRoot . '/index.php';
@@ -441,6 +442,7 @@ $externalUserControllerSource = readFileSafe($externalUserControllerPath);
 $contactRepositorySource = readFileSafe($contactRepositoryPath);
 $contactServiceSource = readFileSafe($contactServicePath);
 $portalBindingsSource = readFileSafe($portalBindingsPath);
+$apiClientJsSource = readFileSafe($apiClientJsPath);
 check(
     $failures,
     str_contains($externalUserControllerSource, 'withIdempotency'),
@@ -468,6 +470,13 @@ check(
     $failures,
     str_contains($portalBindingsSource, 'external-revoke-'),
     'Portal UI does not send an idempotency key when revoking external access'
+);
+check(
+    $failures,
+    str_contains($apiClientJsSource, 'authReferenceCacheScope')
+        && str_contains($apiClientJsSource, '|auth_scope='),
+    'Web API reference cache is not bound to the current auth credential scope — '
+    . 'auth/me could return a previous user after login/token switching'
 );
 check(
     $failures,

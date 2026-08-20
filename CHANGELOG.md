@@ -48,6 +48,8 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 - **Client portal: contact lifecycle cleanup.** Deleting a contact or moving it to another counterparty revokes linked guest sessions and clears the invitation secret, so an external account cannot retain access after its CRM relationship changes.
 
+- **Web auth cache isolation.** Reference API responses such as `auth/me` are now cached per credential scope, preventing stale data from a previous login or token switch from appearing in the same browser tab.
+
 ## [v0.2.0.5] - 2026-08-19
 
 ### Added

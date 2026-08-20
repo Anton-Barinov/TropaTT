@@ -699,8 +699,22 @@ window.CRM.api = (function () {
     return 0;
   }
 
+  function authReferenceCacheScope() {
+    // Reference responses such as auth/me are user-specific. Bind the cache to
+    // a non-reversible in-memory fingerprint of the current credential state so
+    // login/logout/impersonation/token switching cannot reuse another user's
+    // sessionStorage entry without persisting the access token itself.
+    var source = String(getToken() || getCsrfToken() || 'cookie');
+    var hash = 2166136261;
+    for (var i = 0; i < source.length; i += 1) {
+      hash ^= source.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return (hash >>> 0).toString(16);
+  }
+
   function referenceCacheKey(route, query) {
-    return buildUrl(route, query) + '|locale=' + getPreferredLocale();
+    return buildUrl(route, query) + '|locale=' + getPreferredLocale() + '|auth_scope=' + authReferenceCacheScope();
   }
 
   function referenceCacheStorageKey(cacheKey) {
