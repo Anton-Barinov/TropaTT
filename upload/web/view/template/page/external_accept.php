@@ -15,10 +15,13 @@
         <div class="form-text" data-i18n="external_accept.password_hint"><?= htmlspecialchars($t('external_accept.password_hint', 'Пароль должен содержать не менее 8 символов.'), ENT_QUOTES, 'UTF-8') ?></div>
       </div>
       <div id="externalAcceptError" class="alert alert-danger d-none py-2"></div>
-      <div id="externalAcceptSuccess" class="alert alert-success d-none py-2"></div>
       <button type="submit" class="btn crm-btn-primary w-100" data-i18n="external_accept.btn_submit"><?= htmlspecialchars($t('external_accept.btn_submit', 'Активировать доступ'), ENT_QUOTES, 'UTF-8') ?></button>
       <div class="small text-muted mt-3"><a href="index.php?route=login" data-i18n="external_accept.link_back_to_login"><?= htmlspecialchars($t('external_accept.link_back_to_login', 'Вернуться ко входу'), ENT_QUOTES, 'UTF-8') ?></a></div>
     </form>
+    <div id="externalAcceptSuccess" class="alert alert-success d-none mt-3" role="status" aria-live="polite">
+      <div id="externalAcceptSuccessMessage"></div>
+      <a id="externalAcceptLoginLink" class="btn crm-btn-primary mt-3 d-none" href="index.php?route=login" data-i18n="external_accept.link_back_to_login"><?= htmlspecialchars($t('external_accept.link_back_to_login', 'Войти в систему'), ENT_QUOTES, 'UTF-8') ?></a>
+    </div>
   </section>
   <section class="crm-login-cover">
     <div class="crm-card">
@@ -38,6 +41,8 @@
   }
   var errorBox = document.getElementById('externalAcceptError');
   var successBox = document.getElementById('externalAcceptSuccess');
+  var successMessage = document.getElementById('externalAcceptSuccessMessage');
+  var loginLink = document.getElementById('externalAcceptLoginLink');
 
   function t(key, fallback) {
     return (window.CRM && window.CRM.i18n && typeof window.CRM.i18n.t === 'function') ? window.CRM.i18n.t(key, fallback) : fallback;
@@ -71,10 +76,16 @@
       form.classList.add('d-none');
       if (successBox) {
         var login = String(user.login || '');
-        successBox.textContent = login
+        var message = login
           ? t('external_accept.success_with_login', 'Доступ активирован. Ваш логин: ') + login + '. ' + t('external_accept.success_login_hint', 'Войдите в систему под этим логином и заданным паролем.')
           : t('external_accept.success', 'Доступ активирован. Теперь вы можете войти в систему.');
+        if (successMessage) {
+          successMessage.textContent = message;
+        }
         successBox.classList.remove('d-none');
+        if (loginLink) {
+          loginLink.classList.remove('d-none');
+        }
       }
     }).catch(function (error) {
       if (submitBtn) submitBtn.disabled = false;

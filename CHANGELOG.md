@@ -24,6 +24,8 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ### Fixed
 
+- **Client portal: accept page hid its own success state.** After a guest set a password, the page hid the form together with the success message, leaving only the heading and description. The success state now remains visible and provides a direct link to login.
+
 - **Client portal: external flag was never applied.** `is_external` was not read when loading a session, so every external-guest restriction silently evaluated as an internal user and guests would have received unrestricted access.
 
 - **Client portal: guest role received no permissions.** The role seed referenced permission codes that do not exist in the system, so the role would have been created with no effective access at all.
