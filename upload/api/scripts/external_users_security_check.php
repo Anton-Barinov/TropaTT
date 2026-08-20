@@ -45,6 +45,7 @@ $menuControllerPath = $apiRoot . '/controller/auth/MenuController.php';
 $fileServicePath = $apiRoot . '/system/library/service/FileService.php';
 $commentServicePath = $apiRoot . '/system/library/service/CommentService.php';
 $commentRepositoryPath = $apiRoot . '/model/comment/CommentRepository.php';
+$notificationServicePath = $apiRoot . '/system/library/service/NotificationService.php';
 $webIndexPath = $webRoot . '/index.php';
 
 $failures = [];
@@ -333,6 +334,68 @@ foreach ($seededCodes as $code) {
         . 'administrative capability to untrusted portal users'
     );
 }
+
+// ---------------------------------------------------------------------------
+// 6a. List scoping must FAIL CLOSED.
+// ---------------------------------------------------------------------------
+// The scoping filter used to be applied only when the counterparty resolved:
+//   if ($cpPublicId !== '') { $filters['client_public_id'] = $cpPublicId; }
+// A guest whose contact link was missing or broken therefore ran an UNSCOPED
+// query and received every counterparty's rows. Scoping must instead deny.
+
+foreach ([
+    'ProjectService' => $projectServicePath,
+    'TaskService' => $taskServicePath,
+] as $label => $path) {
+    $source = readFileSafe($path);
+
+    $failOpenNeedle = 'if ($cpPublicId !== \'\') {';
+    check(
+        $failures,
+        !str_contains($source, $failOpenNeedle),
+        "{$label}::list() applies the counterparty filter only when it resolves — an "
+        . 'external actor with an unresolvable counterparty would run an UNSCOPED query '
+        . 'and receive every tenant rows. It must return an empty result instead.'
+    );
+    check(
+        $failures,
+        str_contains($source, 'emptyListResult'),
+        "{$label} has no empty-result path for unscopable external actors (fail-closed "
+        . 'listing is missing)'
+    );
+    $serviceGatedNeedle = '(int)($actor[\'is_external\'] ?? 0)) && $this->externalUsers';
+    check(
+        $failures,
+        !str_contains($source, $serviceGatedNeedle),
+        "{$label} gates the external branch on the ExternalUserService being present; if it "
+        . 'is not wired the guest falls through to the internal ownership checks and is '
+        . 'judged as an employee. Deny instead.'
+    );
+}
+
+// ---------------------------------------------------------------------------
+// 6c. Notifications must not echo internal comments to guests.
+// ---------------------------------------------------------------------------
+// Notification bodies embed an excerpt of the comment. A guest legitimately
+// becomes a recipient (commenting on their own task makes them a thread
+// participant; creating a task makes them a stakeholder), so an internal-only
+// comment would reach them through the notification feed even though the
+// comment list itself filters it out.
+
+$notificationServiceSource = readFileSafe($notificationServicePath);
+check(
+    $failures,
+    str_contains($notificationServiceSource, 'excludeExternalRecipients'),
+    'NotificationService does not filter external recipients — an internal-visibility '
+    . 'comment excerpt would be delivered to client-portal users via notifications, '
+    . 'bypassing the comment visibility filter'
+);
+check(
+    $failures,
+    str_contains($notificationServiceSource, "=== 'client'"),
+    'NotificationService does not distinguish client-visible comments when choosing '
+    . 'recipients'
+);
 
 // ---------------------------------------------------------------------------
 // 6b. Attachments and comments must be counterparty-scoped too.

@@ -30,12 +30,22 @@ final class ProjectService
     {
         $filters['accessible_team_public_ids'] = $this->accessibleTeamPublicIds($actor);
 
-        // RLS: external users can only see projects for their counterparty
-        if ($this->externalUsers && !empty((int)($actor['is_external'] ?? 0))) {
-            $cpPublicId = $this->externalUsers->getCounterpartyPublicId((int)$actor['id']);
-            if ($cpPublicId !== '') {
-                $filters['client_public_id'] = $cpPublicId;
+        // RLS: external users can only see projects for their counterparty.
+        // Fail closed. An external actor whose counterparty cannot be resolved
+        // (missing/broken contact link, or the service not wired) must see
+        // nothing. Previously the scoping filter was simply skipped in that
+        // case, leaving the query unscoped and returning every counterparty's
+        // projects to a client-portal user.
+        if (!empty((int)($actor['is_external'] ?? 0))) {
+            $cpPublicId = $this->externalUsers
+                ? $this->externalUsers->getCounterpartyPublicId((int)($actor['id'] ?? 0))
+                : '';
+
+            if ($cpPublicId === '') {
+                return $this->emptyListResult($filters);
             }
+
+            $filters['client_public_id'] = $cpPublicId;
         }
 
         $result = $this->projects->list(
@@ -91,6 +101,31 @@ final class ProjectService
         return [
             'items' => $items,
             'meta' => $meta,
+        ];
+    }
+
+    /**
+     * Empty, well-formed list envelope. Used when access scoping cannot be
+     * satisfied, so callers get a normal (empty) page rather than an unscoped one.
+     *
+     * @param array<string,mixed> $filters
+     * @return array<string,mixed>
+     */
+    private function emptyListResult(array $filters): array
+    {
+        $limit = (int)($filters['limit'] ?? 20) === 0 ? 0 : min(100, max(1, (int)($filters['limit'] ?? 20)));
+
+        return [
+            'items' => [],
+            'meta' => [
+                'pagination_mode' => 'offset',
+                'pagination' => [
+                    'page' => 1,
+                    'limit' => $limit,
+                    'total' => 0,
+                    'pages' => 0,
+                ],
+            ],
         ];
     }
 
@@ -351,7 +386,14 @@ final class ProjectService
         }
 
         // RLS: external users can only access projects for their counterparty
-        if (!empty((int)($actor['is_external'] ?? 0)) && $this->externalUsers) {
+        if (!empty((int)($actor['is_external'] ?? 0))) {
+            // Fail closed on a missing service too: without it the actor would
+            // fall through to the internal ownership checks below and be judged
+            // as if they were an employee.
+            if (!$this->externalUsers) {
+                return false;
+            }
+
             $cpPublicId = $this->externalUsers->getCounterpartyPublicId($actorId);
             if ($cpPublicId === '') {
                 return false;

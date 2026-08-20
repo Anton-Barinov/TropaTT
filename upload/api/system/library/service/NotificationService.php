@@ -30,6 +30,37 @@ final class NotificationService
         $this->lang = $lang ?? new LanguageManager(__DIR__ . '/../../language');
     }
 
+    /**
+     * Drop external (client portal) users from a notification recipient list.
+     *
+     * Notification bodies embed an excerpt of the source content. For an
+     * internal-visibility comment that excerpt must never reach a client-portal
+     * user, who would otherwise read internal discussion in their notification
+     * feed even though CommentService filters it out of the comment list itself.
+     * A guest becomes a recipient legitimately: commenting on their own task adds
+     * them to the thread participants, and creating a task makes them a stakeholder.
+     *
+     * @param array<int,int> $userIds
+     * @return array<int,int>
+     */
+    private function excludeExternalRecipients(array $userIds): array
+    {
+        if ($userIds === []) {
+            return [];
+        }
+
+        return array_values(array_filter($userIds, function (int $userId): bool {
+            $user = $this->users->findById($userId);
+
+            // Fail closed: an unresolvable recipient is not proven internal.
+            if ($user === null) {
+                return false;
+            }
+
+            return empty((int)($user['is_external'] ?? 0));
+        }));
+    }
+
     private function isPushChannelEnabled(int $userId, string $category): bool
     {
         if ($this->settings === null) {
@@ -393,6 +424,12 @@ final class NotificationService
             static fn(int $userId): bool => $userId > 0
         )));
 
+        // Only a client-visible comment may be echoed to client-portal users.
+        $isClientVisibleComment = ((string)($comment['visibility'] ?? 'internal')) === 'client';
+        if (!$isClientVisibleComment) {
+            $threadParticipantIds = $this->excludeExternalRecipients($threadParticipantIds);
+        }
+
         if ($threadParticipantIds !== []) {
             $created += $this->notifyUsers($threadParticipantIds, [
                 'category' => 'comments',
@@ -418,6 +455,9 @@ final class NotificationService
             $this->taskStakeholderUserIds($task),
             static fn(int $userId): bool => !in_array($userId, $threadParticipantIds, true)
         ));
+        if (!$isClientVisibleComment) {
+            $stakeholders = $this->excludeExternalRecipients($stakeholders);
+        }
 
         if ($stakeholders !== []) {
             $created += $this->notifyUsers($stakeholders, [
