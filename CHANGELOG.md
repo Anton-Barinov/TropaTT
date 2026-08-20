@@ -12,6 +12,8 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 - **Client portal: route allowlist.** External guest sessions are restricted to an explicit allowlist of endpoints (`external_ok` in `api/config/routes.php`), enforced centrally for every request. Any endpoint outside the list returns `403 EXTERNAL_ACCESS_DENIED`, independently of role permissions.
 
+- **Client portal: pages show only what a client can use.** On the task and project pages a portal user now sees just the parts meant for them — description, comments and files on a task; overview and task list on a project. Time tracking, estimates, change history, subtasks, dependencies, AI insights, project modules, knowledge base, the team roster and the edit and delete controls are no longer drawn for them, so the page no longer fills with blocked requests and empty panels. Nothing changes for internal users.
+
 - **Client portal: interface isolation.** The navigation menu and web page routes are limited to Projects, Tasks and Notifications for external accounts; other page shells return 403 rather than rendering. External guests land on Projects after login instead of the dashboard.
 
 - **Security contract test for the client portal.** New database-free check (`external_users_security_contract_smoke.php`, wired into PHP CI) that fails the build if the route allowlist gains a destructive or administrative endpoint, if the seeded guest role references a permission code that does not exist, if `is_external` stops being propagated through the authentication pipeline, or if the row-level security comparisons are weakened.
