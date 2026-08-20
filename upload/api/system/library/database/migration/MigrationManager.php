@@ -210,6 +210,31 @@ final class MigrationManager
         };
 
         $pdo->exec($sql);
+        $this->purgeBogusInstallerMarks($pdo);
+    }
+
+    /**
+     * Installs created with older installers imported the MySQL schema
+     * snapshot and then marked EVERY known migration as applied with the
+     * description "Applied by installer MySQL schema snapshot" — even though
+     * only the snapshot's DDL had actually run. Those bogus rows made the
+     * update center skip the real migrations, leaving the schema without
+     * columns the current code queries (e.g. counterparties.address_actual,
+     * users.is_external), which surfaced as SQL errors / "API returned
+     * unexpected HTML response". All migrations are idempotent (CREATE TABLE
+     * IF NOT EXISTS / guarded ADD COLUMN / guarded inserts), so the safe
+     * repair is to drop the bogus rows and let the next migrate pass re-apply
+     * them. The marker string is unique to the retired installer code path,
+     * so legitimate migration rows are never touched.
+     */
+    private function purgeBogusInstallerMarks(PDO $pdo): void
+    {
+        try {
+            $stmt = $pdo->prepare('DELETE FROM migrations WHERE description = :description');
+            $stmt->execute(['description' => 'Applied by installer MySQL schema snapshot']);
+        } catch (\Throwable $e) {
+            error_log('[MigrationManager::purgeBogusInstallerMarks] ' . $e->getMessage());
+        }
     }
 
     /** @return array<int,string> */
