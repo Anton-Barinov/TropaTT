@@ -115,12 +115,15 @@ final class UserController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        $input = $this->validatedInput(['email', 'full_name', 'locale', 'cost_rate', 'bill_rate', 'is_active', 'password', 'token', 'is_root', 'role_public_ids', 'team_public_id']);
+        $input = $this->validatedInput(['email', 'full_name', 'locale', 'cost_rate', 'bill_rate', 'payout_rate', 'is_active', 'password', 'token', 'is_root', 'role_public_ids', 'team_public_id']);
 
-        // SEC-002: Only root users may change root status, role assignments,
-        // or financial rates (cost_rate/bill_rate) of other users.
+        // SEC-002: Only root users may change root status and role assignments.
         if (!$this->isCurrentUserRoot()) {
-            unset($input['is_root'], $input['role_public_ids'], $input['cost_rate'], $input['bill_rate']);
+            unset($input['is_root'], $input['role_public_ids']);
+        }
+        // Financial rates require root OR finance.rate.manage permission
+        if (!$this->isCurrentUserRoot() && !$this->hasRateManagePerm()) {
+            unset($input['cost_rate'], $input['bill_rate'], $input['payout_rate']);
         }
 
         /** @var UserService $service */
@@ -132,9 +135,10 @@ final class UserController extends BaseController
             return $this->error((string)$result['code'], $this->t('user/messages.update_failed'), $status, ['user' => [(string)$result['code']]]);
         }
 
-        // SEC-002: Never echo financial rates of the updated user back to a
-        // non-root actor, even when the update itself did not touch them.
-        if (!$this->isCurrentUserRoot()) {
+        // SEC-002: Never echo financial rates of the updated user back to an
+        // actor without the rate permission, even when the update itself did
+        // not touch them.
+        if (!$this->isCurrentUserRoot() && !$this->hasRateManagePerm()) {
             $result['user'] = $this->stripFinancialRates($result['user']);
         }
 
@@ -255,8 +259,15 @@ final class UserController extends BaseController
 
     private function stripFinancialRates(array $user): array
     {
-        unset($user['cost_rate'], $user['bill_rate']);
+        unset($user['cost_rate'], $user['bill_rate'], $user['payout_rate']);
         return $user;
+    }
+
+    private function hasRateManagePerm(): bool
+    {
+        $auth = $this->user();
+        $codes = (array)($auth['user']['permission_codes'] ?? []);
+        return in_array('*', $codes, true) || in_array('finance.rate.manage', $codes, true);
     }
 
     public function activity(array $params): \Api\System\Library\Http\JsonResponse

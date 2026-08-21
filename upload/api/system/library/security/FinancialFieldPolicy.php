@@ -34,6 +34,13 @@ namespace Api\System\Library\Security;
  *     permission was granted. `bill`, `config` and others' data are never
  *     given to any external user.
  *
+ * Cache safety (TZ 6.9, decision recorded in AGENT_HISTORY.md):
+ *   The policy filters POST-cache in the controller layer. The cache key
+ *   includes cacheUserId(), so different actors with different financial
+ *   permissions always get different cache entries. The unfiltered result
+ *   is never returned before the policy strips it. This approach keeps cache
+ *   hit rates high (same actor → same key) while never leaking fields.
+ *
  * Scoping note: this policy assumes the CALLER has already scoped rows to the
  * actor's visibility (WorklogService::getVisibleUserIds()). It does not itself
  * perform RLS — it only strips fields.

@@ -97,11 +97,13 @@ final class UserService
         $now = gmdate('Y-m-d H:i:s');
         $publicId = Ulid::generate('usr');
 
-        // SEC-002: financial rates are root-only data. Never seed them on
-        // users created by non-root actors (MCP path may pass them).
-        $set = ['cost_rate' => null, 'bill_rate' => null];
-        if ($actorIsRoot) {
-            foreach (['cost_rate', 'bill_rate'] as $field) {
+        // SEC-002: financial rates (cost_rate, bill_rate, payout_rate)
+        // are root-only OR finance.rate.manage data. Never seed them on
+        // users created by non-root actors without the rate permission
+        // (MCP path may pass them).
+        $set = ['cost_rate' => null, 'bill_rate' => null, 'payout_rate' => null];
+        if ($actorIsRoot || $this->hasRateManagePerm($actor)) {
+            foreach (['cost_rate', 'bill_rate', 'payout_rate'] as $field) {
                 if (array_key_exists($field, $input)) {
                     $val = $input[$field];
                     $set[$field] = ($val === null || $val === '' || $val === false) ? null : ((float)$val);
@@ -124,6 +126,7 @@ final class UserService
             'updated_at' => $now,
             'cost_rate' => $set['cost_rate'],
             'bill_rate' => $set['bill_rate'],
+            'payout_rate' => $set['payout_rate'],
         ]);
 
         if ($roles !== []) {
@@ -162,11 +165,10 @@ final class UserService
             return ['ok' => false, 'code' => 'FORBIDDEN_ROOT_PROTECTED'];
         }
 
-        // SEC-002: financial rates are root-only data. Guarded here at the
-        // service layer so both REST and MCP paths cannot mutate them for
-        // non-root actors, and so non-root can never learn a user's rates.
-        if (!$actorIsRoot) {
-            unset($input['cost_rate'], $input['bill_rate']);
+        // SEC-002: financial rates guarded at service layer so both REST and
+        // MCP paths cannot mutate them for actors without finance.rate.manage.
+        if (!$actorIsRoot && !$this->hasRateManagePerm($actor)) {
+            unset($input['cost_rate'], $input['bill_rate'], $input['payout_rate']);
         }
 
         $set = [];
@@ -176,7 +178,7 @@ final class UserService
             }
         }
 
-        foreach (['cost_rate', 'bill_rate'] as $field) {
+        foreach (['cost_rate', 'bill_rate', 'payout_rate'] as $field) {
             if (array_key_exists($field, $input)) {
                 $val = $input[$field];
                 $set[$field] = ($val === null || $val === '' || $val === false) ? null : ((float)$val);
@@ -417,5 +419,20 @@ final class UserService
                 'updated_at' => gmdate('Y-m-d H:i:s'),
             ]);
         }
+    }
+
+    /**
+     * Check whether the actor has the finance.rate.manage permission.
+     *
+     * This is used instead of is_root to allow managers with the
+     * finance.rate.manage permission to set cost/bill/payout rates
+     * on users within their visibility (visibility is enforced by
+     * canManageUser() in update() and by the actor creating users
+     * under their own hierarchy in create()).
+     */
+    private function hasRateManagePerm(array $actor): bool
+    {
+        $codes = (array)($actor['permission_codes'] ?? []);
+        return in_array('*', $codes, true) || in_array('finance.rate.manage', $codes, true);
     }
 }

@@ -1195,6 +1195,7 @@ MD;
                 'is_active' => ['type' => 'integer', 'enum' => [0, 1]],
                 'cost_rate' => ['type' => 'number'],
                 'bill_rate' => ['type' => 'number'],
+                'payout_rate' => ['type' => 'number'],
                 'token' => ['type' => 'string'],
             ], ['login', 'password']);
             $tools[] = $this->tool('crm_update_user', 'Update a CRM user by public id.', [
@@ -1208,6 +1209,7 @@ MD;
                 'token' => ['type' => 'string'],
                 'cost_rate' => ['type' => 'number'],
                 'bill_rate' => ['type' => 'number'],
+                'payout_rate' => ['type' => 'number'],
             ], ['public_id']);
             $tools[] = $this->tool('crm_delete_user', 'Soft-delete a CRM user by public id.', [
                 'public_id' => ['type' => 'string'],
@@ -3739,7 +3741,7 @@ MD;
         $service = $this->container->get('service.user');
         $result = $service->create($this->pick($arguments, [
             'login', 'password', 'email', 'full_name', 'locale', 'is_root',
-            'role_public_ids', 'is_active', 'cost_rate', 'bill_rate', 'token',
+            'role_public_ids', 'is_active', 'cost_rate', 'bill_rate', 'payout_rate', 'token',
         ]), $this->actor());
 
         return $this->publicData($result);
@@ -3756,7 +3758,7 @@ MD;
         $service = $this->container->get('service.user');
         $result = $service->update($publicId, $this->pick($arguments, [
             'email', 'full_name', 'locale', 'is_active', 'is_root', 'role_public_ids',
-            'password', 'token', 'cost_rate', 'bill_rate',
+            'password', 'token', 'cost_rate', 'bill_rate', 'payout_rate',
         ]), $this->actor());
 
         return $this->publicData($result);
@@ -12963,7 +12965,7 @@ private function isSensitiveOrInternalKey(string $key): bool
         $normalized = strtolower($key);
         if (in_array($normalized, [
             'id', 'password', 'password_hash', 'token', 'token_hash',
-            'secret', 'secret_hash', 'key_hash', 'cost_rate', 'bill_rate',
+            'secret', 'secret_hash', 'key_hash', 'cost_rate', 'bill_rate', 'payout_rate',
             'api_key', 'access_key', 'encryption_key', 'private_key',
             'license_key', 'webhook_url', 'credential', 'auth_token_hash',
             'refresh_token', 'reset_token', 'invitation_token',
