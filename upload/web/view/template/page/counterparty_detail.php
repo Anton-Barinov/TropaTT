@@ -10,6 +10,7 @@
   <button class="crm-pr-tab" type="button" role="tab" aria-selected="false" data-cp-tab="contacts" id="counterpartyTabContacts"><?= htmlspecialchars($t('counterparty_detail.section_contacts', 'Контакты'), ENT_QUOTES, 'UTF-8') ?><span class="crm-pr-tab-count" id="counterpartyContactsTabCount">0</span></button>
   <button class="crm-pr-tab" type="button" role="tab" aria-selected="false" data-cp-tab="tasks" id="counterpartyTabTasks"><?= htmlspecialchars($t('counterparty_detail.section_tasks', 'Связанные задачи'), ENT_QUOTES, 'UTF-8') ?><span class="crm-pr-tab-count" id="counterpartyTasksTabCount">0</span></button>
   <button class="crm-pr-tab" type="button" role="tab" aria-selected="false" data-cp-tab="knowledge" id="counterpartyTabKnowledge"><?= htmlspecialchars($t('counterparty_detail.section_knowledge', 'База знаний'), ENT_QUOTES, 'UTF-8') ?></button>
+  <button class="crm-pr-tab d-none" type="button" role="tab" aria-selected="false" data-cp-tab="rates" id="counterpartyTabRates" data-i18n="counterparty_detail.section_rates"><?= htmlspecialchars($t('counterparty_detail.section_rates', 'Ставки'), ENT_QUOTES, 'UTF-8') ?></button>
 </div>
 
 <div class="crm-pr-panel active" data-cp-panel="overview" role="tabpanel">
@@ -57,6 +58,14 @@
   <section class="crm-card crm-section-card">
     <div class="crm-section-head"><div><h2 class="h6 mb-0" data-i18n="counterparty_detail.section_tasks"><?= htmlspecialchars($t('counterparty_detail.section_tasks', 'Связанные задачи'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="counterparty_detail.section_tasks_note"><?= htmlspecialchars($t('counterparty_detail.section_tasks_note', 'Последние задачи по этому контрагенту.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
     <div class="table-responsive"><table class="table crm-table mb-0"><thead><tr><th data-i18n="counterparty_detail.th_task"><?= htmlspecialchars($t('counterparty_detail.th_task', 'Задача'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="counterparty_detail.th_status"><?= htmlspecialchars($t('counterparty_detail.th_status', 'Статус'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="counterparty_detail.th_project"><?= htmlspecialchars($t('counterparty_detail.th_project', 'Проект'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="counterparty_detail.th_updated"><?= htmlspecialchars($t('counterparty_detail.th_updated', 'Обновлена'), ENT_QUOTES, 'UTF-8') ?></th></tr></thead><tbody id="counterpartyDetailTasksBody"><tr><td colspan="4" class="text-muted" data-i18n="counterparty_detail.loading_tasks"><?= htmlspecialchars($t('counterparty_detail.loading_tasks', 'Загрузка задач...'), ENT_QUOTES, 'UTF-8') ?></td></tr></tbody></table></div>
+  </section>
+</div>
+
+<div class="crm-pr-panel" data-cp-panel="rates" role="tabpanel">
+  <section class="crm-card crm-section-card">
+    <div class="crm-section-head"><div><h2 class="h6 mb-0" data-i18n="counterparty_detail.section_rates"><?= htmlspecialchars($t('counterparty_detail.section_rates', 'Ставки'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="counterparty_detail.rates_note"><?= htmlspecialchars($t('counterparty_detail.rates_note', 'Прайс-лист, назначенный этому контрагенту, и эффективные ставки сотрудников.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
+    <div id="counterpartyRatesCurrent" class="mb-3"></div>
+    <div id="counterpartyRatesEffective"></div>
   </section>
 </div>
 

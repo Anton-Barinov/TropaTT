@@ -25979,6 +25979,123 @@ window.CRM.pageApiBindings = (function () {
     renderTasks(tasks);
     renderRequisites(cp);
     renderExtra(cp);
+    renderCounterpartyRates(cpPublicId);
+  }
+
+  async function renderCounterpartyRates(cpPublicId) {
+    var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
+    var hasPerm = window.CRM.api && typeof window.CRM.api.hasPermission === 'function' ? window.CRM.api.hasPermission.bind(window.CRM.api) : function () { return false; };
+    var tabBtn = document.getElementById('counterpartyTabRates');
+    if (!hasPerm('finance.ratecard.manage')) return;
+    if (tabBtn) tabBtn.classList.remove('d-none');
+
+    var currentEl = document.getElementById('counterpartyRatesCurrent');
+    var effectiveEl = document.getElementById('counterpartyRatesEffective');
+
+    var cards = [];
+    var assigns = [];
+    try {
+      cards = mapItems(await tryRequest('api/v1/rate-cards'));
+    } catch (e) {}
+    try {
+      assigns = mapItems(await tryRequest('api/v1/rate-card-assignments'));
+    } catch (e) {}
+
+    var cpAssigns = assigns.filter(function (a) {
+      return String(a.scope_type) === 'counterparty' && String(a.scope_ref) === cpPublicId;
+    });
+    var currentAssign = cpAssigns[0] || null;
+    var currentCardId = currentAssign ? String(currentAssign.card_public_id || '') : '';
+
+    function cardTitle(id) {
+      var c = cards.find(function (x) { return String(x.public_id) === id; });
+      return c ? String(c.title || c.public_id) : id;
+    }
+
+    if (currentEl) {
+      var opts = '<option value="">' + _t('counterparty_detail.rates_none', 'Без прайса (наследуется дальше по цепочке)') + '</option>'
+        + cards.map(function (c) {
+          var sel = String(c.public_id) === currentCardId ? ' selected' : '';
+          return '<option value="' + safeText(c.public_id) + '"' + sel + '>' + safeText(c.title || c.public_id) + '</option>';
+        }).join('');
+      currentEl.innerHTML = '<div class="d-flex align-items-center gap-2 flex-wrap">'
+        + '<label class="form-label mb-0" for="counterpartyRatesCardSelect">' + _t('counterparty_detail.rates_current', 'Текущий прайс') + ':</label>'
+        + '<select id="counterpartyRatesCardSelect" class="form-select crm-field-w-260">' + opts + '</select>'
+        + '<button class="btn btn-sm crm-btn-primary" type="button" id="counterpartyRatesSaveBtn">' + _t('page.save', 'Сохранить') + '</button>'
+        + '</div>';
+      var saveBtn = document.getElementById('counterpartyRatesSaveBtn');
+      if (saveBtn) {
+        saveBtn.addEventListener('click', async function () {
+          var sel = document.getElementById('counterpartyRatesCardSelect');
+          var newCardId = sel ? String(sel.value || '') : '';
+          try {
+            // Remove existing counterparty assignments, then create the new one.
+            for (var i = 0; i < cpAssigns.length; i++) {
+              await window.CRM.api.request('api/v1/rate-card-assignments/' + encodeURIComponent(cpAssigns[i].public_id), { method: 'DELETE' });
+            }
+            if (newCardId) {
+              await window.CRM.api.request('api/v1/rate-card-assignments', {
+                method: 'POST',
+                body: { rate_card_public_id: newCardId, scope_type: 'counterparty', scope_ref: cpPublicId }
+              });
+            }
+            notify(_t('counterparty_detail.rates_saved', 'Прайс сохранён'), 'success');
+            renderCounterpartyRates(cpPublicId);
+          } catch (e) {
+            notify(_t('counterparty_detail.rates_save_fail', 'Не удалось сохранить прайс'), 'error');
+          }
+        });
+      }
+    }
+
+    // Effective rates per employee (TZ 8.3) — requires a finance view permission.
+    if (effectiveEl) {
+      var canView = hasPerm('finance.rate.view_cost') || hasPerm('finance.rate.view_own_cost')
+        || hasPerm('finance.rate.view_bill') || hasPerm('finance.rate.view_own_payout');
+      if (!canView) {
+        effectiveEl.innerHTML = '<div class="text-muted small">' + _t('counterparty_detail.rates_need_view_perm', 'Для просмотра эффективных ставок нужно право просмотра финансовых данных.') + '</div>';
+        return;
+      }
+      var canCost = hasPerm('finance.rate.view_cost') || hasPerm('finance.rate.view_own_cost');
+      var canBill = hasPerm('finance.rate.view_bill');
+      var canPayout = hasPerm('finance.rate.view_cost') || hasPerm('finance.rate.view_own_payout');
+      var users = [];
+      try {
+        users = mapItems(await tryRequest('api/v1/users', { query: { limit: 500, is_active: 1 } }));
+      } catch (e) {}
+      var date = new Date().toISOString().slice(0, 10);
+      var rows = [];
+      for (var i = 0; i < users.length; i++) {
+        try {
+          var env = await window.CRM.api.request('api/v1/rates/preview', {
+            query: { user_public_id: users[i].public_id, client_public_id: cpPublicId, date: date }
+          });
+          var p = (env && env.data && env.data.preview) || null;
+          if (!p) continue;
+          rows.push({ user: users[i], p: p });
+        } catch (e) {}
+      }
+      function fmt(v) { return v == null || v === '' ? '—' : Number(v).toFixed(2); }
+      var head = '<tr><th>' + _t('counterparty_detail.rates_th_user', 'Сотрудник') + '</th>';
+      if (canCost) head += '<th>' + _t('counterparty_detail.rates_th_cost', 'Себестоимость') + '</th>';
+      if (canBill) head += '<th>' + _t('counterparty_detail.rates_th_bill', 'Продажа') + '</th>';
+      if (canPayout) head += '<th>' + _t('counterparty_detail.rates_th_payout', 'Вознаграждение') + '</th>';
+      head += '</tr>';
+      var body = rows.map(function (r) {
+        var name = safeText(r.user.full_name || r.user.login);
+        var cells = '<td>' + name + '</td>';
+        if (canCost) cells += '<td>' + fmt(r.p.cost ? r.p.cost.rate : null) + '</td>';
+        if (canBill) cells += '<td>' + fmt(r.p.bill ? r.p.bill.rate : null) + '</td>';
+        if (canPayout) cells += '<td>' + fmt(r.p.payout ? r.p.payout.rate : null) + '</td>';
+        return '<tr>' + cells + '</tr>';
+      }).join('');
+      if (!rows.length) {
+        effectiveEl.innerHTML = '<div class="text-muted small">' + _t('counterparty_detail.rates_no_users', 'Нет активных сотрудников для расчёта.') + '</div>';
+      } else {
+        effectiveEl.innerHTML = '<h3 class="h6 mb-2">' + _t('counterparty_detail.rates_effective_title', 'Эффективные ставки сотрудников (сегодня)') + '</h3>'
+          + '<div class="table-responsive"><table class="table table-sm crm-table mb-0"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>';
+      }
+    }
   }
 
   function cpTypeLabel(value) {
