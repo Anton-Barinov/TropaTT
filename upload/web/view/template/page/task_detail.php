@@ -153,7 +153,13 @@
             <label class="form-label" data-i18n="task_detail.worklog_date_label"><?= htmlspecialchars($t('task_detail.worklog_date_label', 'Дата/время'), ENT_QUOTES, 'UTF-8') ?></label>
             <input class="form-control" name="logged_at" type="datetime-local" min="<?= date('Y-m-d\TH:i') ?>">
           </div>
-          <div class="col-lg-6">
+          <div class="col-lg-3">
+            <label class="form-label" data-i18n="task_detail.worklog_activity_label"><?= htmlspecialchars($t('task_detail.worklog_activity_label', 'Вид работ'), ENT_QUOTES, 'UTF-8') ?></label>
+            <select class="form-select" name="activity_code" data-worklog-activity-select>
+              <option value="" data-i18n="task_detail.worklog_activity_none"><?= htmlspecialchars($t('task_detail.worklog_activity_none', '— не указан —'), ENT_QUOTES, 'UTF-8') ?></option>
+            </select>
+          </div>
+          <div class="col-lg-3">
             <label class="form-label" data-i18n="task_detail.worklog_comment_label"><?= htmlspecialchars($t('task_detail.worklog_comment_label', 'Комментарий'), ENT_QUOTES, 'UTF-8') ?></label>
             <input class="form-control" name="note" maxlength="8000" placeholder="<?= htmlspecialchars($t('task_detail.worklog_comment_placeholder', 'Что было сделано'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="task_detail.worklog_comment_placeholder">
           </div>
@@ -280,6 +286,12 @@
           <label class="form-label" data-i18n="task_detail.timer_log_minutes_label"><?= htmlspecialchars($t('task_detail.timer_log_minutes_label', 'Затрачено (мин)'), ENT_QUOTES, 'UTF-8') ?></label>
           <input class="form-control" type="number" min="1" step="1" name="minutes_spent" required>
           <div id="taskTimerLogElapsedHint" class="small text-muted mt-1 d-none"></div>
+        </div>
+        <div class="col-12">
+          <label class="form-label" data-i18n="task_detail.worklog_activity_label"><?= htmlspecialchars($t('task_detail.worklog_activity_label', 'Вид работ'), ENT_QUOTES, 'UTF-8') ?></label>
+          <select class="form-select" name="activity_code" data-worklog-activity-select>
+            <option value="" data-i18n="task_detail.worklog_activity_none"><?= htmlspecialchars($t('task_detail.worklog_activity_none', '— не указан —'), ENT_QUOTES, 'UTF-8') ?></option>
+          </select>
         </div>
         <div class="col-12">
           <label class="form-label" data-i18n="task_detail.timer_log_note_label"><?= htmlspecialchars($t('task_detail.timer_log_note_label', 'Что было сделано'), ENT_QUOTES, 'UTF-8') ?></label>

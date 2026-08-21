@@ -28,6 +28,7 @@ final class WorklogRepository
                 'w.started_at',
                 'w.ended_at',
                 'w.created_at',
+                'w.activity_code',
                 'u.public_id AS user_public_id',
                 'u.login AS user_login',
                 'u.full_name AS user_full_name',

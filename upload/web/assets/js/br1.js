@@ -5584,6 +5584,7 @@ window.CRM.br1 = (function () {
 
     var minutesInput = timerForm.querySelector('[name="minutes_spent"]');
     var noteInput = timerForm.querySelector('[name="note"]');
+    var activityInput = timerForm.querySelector('[name="activity_code"]');
     var pendingLogPayload = null;
 
     if (startBtn.dataset.bound === '1') {
@@ -5668,6 +5669,7 @@ window.CRM.br1 = (function () {
 
       var minutes = Number(minutesInput ? minutesInput.value : 0);
       var note = String(noteInput ? noteInput.value : '').trim();
+      var activityCode = String(activityInput ? activityInput.value : '').trim();
 
       await loadTimeRoundingSetting();
       minutes = applyTimeRounding(minutes);
@@ -5691,7 +5693,8 @@ window.CRM.br1 = (function () {
             minutes_spent: minutes,
             note: timerNote,
             started_at: pendingLogPayload.started_at,
-            ended_at: pendingLogPayload.finished_at
+            ended_at: pendingLogPayload.finished_at,
+            activity_code: activityCode || null
           }
         });
 
@@ -6930,7 +6933,8 @@ window.CRM.br1 = (function () {
     return {
       minutes_spent: '60',
       logged_at: new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16),
-      note: ''
+      note: '',
+      activity_code: ''
     };
   }
 
@@ -6938,7 +6942,8 @@ window.CRM.br1 = (function () {
     return {
       minutes_spent: String(item && item.minutes_spent ? item.minutes_spent : ''),
       logged_at: toLocalDatetimeValue(item && item.logged_at ? item.logged_at : ''),
-      note: String(item && item.note ? item.note : '')
+      note: String(item && item.note ? item.note : ''),
+      activity_code: String(item && item.activity_code ? item.activity_code : '')
     };
   }
 
@@ -7018,10 +7023,13 @@ window.CRM.br1 = (function () {
         var intervalNote = (item.started_at && item.ended_at)
           ? '<span class="crm-worklog-entry-interval"><i class="fa-regular fa-hourglass" aria-hidden="true"></i>' + escapeHtml(window.CRM.i18n.t('js.br1.interval_label', 'Интервал: ')) + escapeHtml(formatDate(item.started_at) + ' — ' + formatDate(item.ended_at)) + '</span>'
           : '';
+        var activityNote = item.activity_code
+          ? '<span class="crm-worklog-entry-activity" title="' + escapeHtml(window.CRM.i18n.t('js.br1.worklog_activity_label', 'Вид работ')) + '"><i class="fa-solid fa-tag" aria-hidden="true"></i>' + escapeHtml(worklogActivityLabel(item.activity_code)) + '</span>'
+          : '';
         return '<article class="crm-worklog-card" data-worklog-id="' + escapeHtml(worklogId) + '">'
           + '<div class="crm-worklog-view-head">'
           + '<div class="crm-worklog-view-main"><span class="crm-worklog-entry-icon" aria-hidden="true"><i class="fa-regular fa-clock" aria-hidden="true"></i></span><strong>' + escapeHtml(worklogDurationLabel(item)) + '</strong>'
-          + '<span class="crm-worklog-entry-date"><i class="fa-regular fa-calendar" aria-hidden="true"></i>' + escapeHtml(formatDate(item.logged_at)) + '</span>' + intervalNote + '</div>'
+          + '<span class="crm-worklog-entry-date"><i class="fa-regular fa-calendar" aria-hidden="true"></i>' + escapeHtml(formatDate(item.logged_at)) + '</span>' + intervalNote + activityNote + '</div>'
           + '<div class="crm-worklog-view-actions"><button class="btn crm-btn-secondary crm-btn-compact" type="button" data-worklog-edit-open="' + escapeHtml(worklogId) + window.CRM.i18n.t('js.br1.redaktirovat_button_4', '" aria-label="Редактировать запись" title="Редактировать"><i class="fa-solid fa-pen" aria-hidden="true"></i><span class="visually-hidden">Редактировать</span></button>')
           + window.CRM.i18n.t('js.br1.details_class_crm_worklog_more_summary_class_btn_btn_li', '<details class="crm-worklog-more"><summary class="btn crm-btn-secondary crm-btn-compact" aria-label="Дополнительные действия"><span>...</span></summary><div class="crm-worklog-more-menu"><button class="btn btn-sm crm-btn-danger crm-btn-compact" type="button" data-worklog-delete-view="') + escapeHtml(worklogId) + window.CRM.i18n.t('js.br1.udalit_button_div_details_div', '">Удалить</button></div></details></div>')
           + '</div>'
@@ -7034,6 +7042,7 @@ window.CRM.br1 = (function () {
         + '<form class="row g-2" data-worklog-update-form="' + escapeHtml(worklogId) + '">'
         + window.CRM.i18n.t('js.br1.div_class_col_md_3_label_class_form_label_minuty_label', '<div class="col-md-3"><label class="form-label">Минуты</label><input class="form-control" type="number" min="1" step="1" name="minutes_spent" value="') + escapeHtml(draft.minutes_spent) + '" required></div>'
         + window.CRM.i18n.t('js.br1.div_class_col_md_3_label_class_form_label_data_vremya_l', '<div class="col-md-3"><label class="form-label">Дата/время</label><input class="form-control" type="datetime-local" name="logged_at" value="') + escapeHtml(draft.logged_at) + '" required></div>'
+        + '<div class="col-md-6"><label class="form-label">' + window.CRM.i18n.t('js.br1.worklog_activity_label', 'Вид работ') + '</label><select class="form-select" name="activity_code">' + worklogActivityOptionsHtml(draft.activity_code) + '</select></div>'
         + window.CRM.i18n.t('js.br1.div_class_col_md_6_label_class_form_label_kommentariy_l', '<div class="col-md-6"><label class="form-label">Комментарий</label><input class="form-control" name="note" maxlength="8000" value="') + escapeHtml(draft.note) + '"></div>'
         + window.CRM.i18n.t('js.br1.div_class_col_12_div_class_crm_worklog_meta_avtor', '<div class="col-12"><div class="crm-worklog-meta">Автор: ') + escapeHtml(author) + window.CRM.i18n.t('js.br1.sozdano_2', ' · Создано: ') + escapeHtml(formatDate(item.created_at)) + '</div></div>'
         + '<div class="col-12 crm-task-row-actions">'
@@ -7055,6 +7064,62 @@ window.CRM.br1 = (function () {
       currentTaskWorklogs = [];
       renderWorklogs([]);
     }
+  }
+
+  // --- Work-type (activity_code) dictionary for the time-entry forms (TZ 8.6) ---
+  var _worklogActivitiesResolved = [];
+  var _worklogActivitiesLoading = false;
+
+  async function loadWorklogActivities() {
+    if (_worklogActivitiesResolved.length) return _worklogActivitiesResolved;
+    if (_worklogActivitiesLoading) return _worklogActivitiesResolved;
+    _worklogActivitiesLoading = true;
+    try {
+      var env = await window.CRM.api.request('api/v1/statuses', { query: { scope: 'worklog_activity', limit: 200 } });
+      _worklogActivitiesResolved = window.CRM.api.items(env) || [];
+    } catch (e) {
+      _worklogActivitiesResolved = [];
+    }
+    _worklogActivitiesLoading = false;
+    return _worklogActivitiesResolved;
+  }
+
+  function worklogActivityOptionsHtml(selectedCode) {
+    var html = '<option value="">' + window.CRM.i18n.t('js.br1.worklog_activity_none', '— не указан —') + '</option>';
+    _worklogActivitiesResolved.forEach(function (s) {
+      var code = String(s && s.code ? s.code : '');
+      var title = String(s && s.title ? s.title : code);
+      var sel = code === String(selectedCode || '') ? ' selected' : '';
+      html += '<option value="' + escapeHtml(code) + '"' + sel + '>' + escapeHtml(title) + '</option>';
+    });
+    if (selectedCode && !_worklogActivitiesResolved.some(function (s) { return String(s && s.code) === String(selectedCode); })) {
+      html += '<option value="' + escapeHtml(selectedCode) + '" selected>' + escapeHtml(selectedCode) + '</option>';
+    }
+    return html;
+  }
+
+  function worklogActivityLabel(code) {
+    if (!code) return '';
+    var found = null;
+    for (var i = 0; i < _worklogActivitiesResolved.length; i++) {
+      if (String(_worklogActivitiesResolved[i] && _worklogActivitiesResolved[i].code) === String(code)) {
+        found = _worklogActivitiesResolved[i];
+        break;
+      }
+    }
+    return found ? String(found.title || found.code) : String(code);
+  }
+
+  function populateWorklogActivitySelects(defaultCode) {
+    var selects = document.querySelectorAll('select[data-worklog-activity-select]');
+    if (!selects.length) return;
+    loadWorklogActivities().then(function () {
+      selects.forEach(function (sel) {
+        if (sel.dataset.activityPopulated === '1') return;
+        sel.insertAdjacentHTML('beforeend', worklogActivityOptionsHtml(defaultCode));
+        sel.dataset.activityPopulated = '1';
+      });
+    });
   }
 
   function bindTaskWorklogFlow(taskId) {
@@ -7099,6 +7164,7 @@ window.CRM.br1 = (function () {
         var minutesRaw = String((createForm.querySelector('[name="minutes_spent"]') || {}).value || '').trim();
         var minutes = Number(minutesRaw || 0);
         var note = String((createForm.querySelector('[name="note"]') || {}).value || '').trim();
+        var activityCode = String((createForm.querySelector('[name="activity_code"]') || {}).value || '').trim();
         var loggedAtRaw = String((createForm.querySelector('[name="logged_at"]') || {}).value || '').trim();
         var loggedAt = toApiDatetimeFromLocal(loggedAtRaw);
 
@@ -7121,7 +7187,8 @@ window.CRM.br1 = (function () {
               task_public_id: taskId,
               minutes_spent: minutes,
               note: note,
-              logged_at: loggedAt || undefined
+              logged_at: loggedAt || undefined,
+              activity_code: activityCode || null
             }
           });
           worklogAddOpen = false;
@@ -7162,6 +7229,7 @@ window.CRM.br1 = (function () {
       var minutesRaw = String((form.querySelector('[name="minutes_spent"]') || {}).value || '').trim();
       var minutes = Number(minutesRaw || 0);
       var note = String((form.querySelector('[name="note"]') || {}).value || '').trim();
+      var activityCode = String((form.querySelector('[name="activity_code"]') || {}).value || '').trim();
       var loggedAtRaw = String((form.querySelector('[name="logged_at"]') || {}).value || '').trim();
       var loggedAt = toApiDatetimeFromLocal(loggedAtRaw);
 
@@ -7183,7 +7251,8 @@ window.CRM.br1 = (function () {
           body: {
             minutes_spent: minutes,
             note: note,
-            logged_at: loggedAt || undefined
+            logged_at: loggedAt || undefined,
+            activity_code: activityCode || null
           }
         });
         worklogActiveEditId = '';
@@ -7875,6 +7944,7 @@ window.CRM.br1 = (function () {
     bindTaskEditFlow(taskId);
     bindSubtaskFlow(taskId, canWorkTask, canEditTask);
     bindChecklistFlow(taskId, canWorkTask);
+    populateWorklogActivitySelects(currentTask && currentTask.activity_code);
     bindTaskWorklogFlow(taskId);
     bindTaskTimerFlow(taskId);
     bindTaskAiSummaryFlow(taskId);
