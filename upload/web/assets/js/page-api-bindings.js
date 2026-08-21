@@ -25807,6 +25807,59 @@ window.CRM.pageApiBindings = (function () {
       return value.toFixed(precision).replace(/\.0$/, '') + ' ' + units[unitIndex];
     }
 
+    // Finance settings block (TZ 8.9)
+    var financeSection = document.getElementById('adminFinanceSettingsSection');
+    if (financeSection) {
+      financeSection.style.display = 'block';
+      var financeSaveBtn = document.getElementById('adminFinanceSaveBtn');
+
+      var financeSettingNames = ['finance.default_currency', 'finance.cost_from_payout_markup_percent', 'finance.auto_close.mode', 'finance.auto_close.lag_days'];
+
+      async function loadFinanceSettings() {
+        var values = {};
+        for (var i = 0; i < financeSettingNames.length; i++) {
+          var env = await tryRequest('api/v1/settings/' + financeSettingNames[i], { query: { scope: 'system' }, silent: true });
+          if (env && env.success && env.data && env.data.setting) {
+            values[financeSettingNames[i]] = env.data.setting.value;
+          }
+        }
+        document.getElementById('financeDefaultCurrency').value = values['finance.default_currency'] || '';
+        var markup = values['finance.cost_from_payout_markup_percent'];
+        document.getElementById('financeCostFromPayoutMarkup').value = (markup === null || markup === undefined || markup === '') ? '' : markup;
+        document.getElementById('financeAutoCloseMode').value = values['finance.auto_close.mode'] || 'off';
+        var lag = values['finance.auto_close.lag_days'];
+        document.getElementById('financeAutoCloseLagDays').value = (lag === null || lag === undefined || lag === '') ? 5 : lag;
+      }
+
+      if (financeSaveBtn && financeSaveBtn.dataset.bound !== '1') {
+        financeSaveBtn.dataset.bound = '1';
+        financeSaveBtn.addEventListener('click', async function () {
+          try {
+            var currency = String(document.getElementById('financeDefaultCurrency').value || '').trim() || null;
+            var markupRaw = String(document.getElementById('financeCostFromPayoutMarkup').value || '').trim();
+            var markup = markupRaw === '' ? null : Number(markupRaw);
+            var mode = String(document.getElementById('financeAutoCloseMode').value || 'off');
+            var lag = Number(document.getElementById('financeAutoCloseLagDays').value || 5);
+            if (markup !== null && (!Number.isFinite(markup) || markup < 0 || markup > 1000)) {
+              notify(tp('admin_settings.finance_markup_range', 'Markup must be between 0 and 1000'), 'warning');
+              return;
+            }
+            var idemKey = window.CRM.api.createIdempotencyKey('finance-settings');
+            await request('api/v1/settings/finance.default_currency', { method: 'PATCH', headers: { 'X-Idempotency-Key': idemKey }, body: { scope: 'system', value: currency } });
+            await request('api/v1/settings/finance.cost_from_payout_markup_percent', { method: 'PATCH', headers: { 'X-Idempotency-Key': idemKey }, body: { scope: 'system', value: markup } });
+            await request('api/v1/settings/finance.auto_close.mode', { method: 'PATCH', headers: { 'X-Idempotency-Key': idemKey }, body: { scope: 'system', value: mode } });
+            await request('api/v1/settings/finance.auto_close.lag_days', { method: 'PATCH', headers: { 'X-Idempotency-Key': idemKey }, body: { scope: 'system', value: lag } });
+            notify(tp('admin_settings.finance_saved', 'Finance settings saved'));
+          } catch (error) {
+            var normalized = window.CRM.api.normalizeError(error, tp('admin_settings.finance_save_fail', 'Failed to save finance settings'));
+            notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
+          }
+        });
+      }
+
+      await loadFinanceSettings();
+    }
+
     await loadPage();
     await loadSystemInfo();
   }

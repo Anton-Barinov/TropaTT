@@ -77,4 +77,37 @@
   </div>
 </div>
 
+<div class="row g-3 mb-3" id="adminFinanceSettingsSection" style="display:none;">
+  <div class="col-12">
+    <div class="crm-card crm-section-card h-100">
+      <div class="crm-section-head"><div><h2 class="h6 mb-0" data-i18n="admin_settings.section_finance_title"><?= htmlspecialchars($t('admin_settings.section_finance_title', 'Финансы'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="admin_settings.section_finance_note"><?= htmlspecialchars($t('admin_settings.section_finance_note', 'Валюта организации, вывод себестоимости из вознаграждения и автозакрытие периодов.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
+      <div class="crm-section-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label" for="financeDefaultCurrency" data-i18n="admin_settings.finance_default_currency"><?= htmlspecialchars($t('admin_settings.finance_default_currency', 'Валюта организации'), ENT_QUOTES, 'UTF-8') ?></label>
+            <input class="form-control crm-field-w-200" id="financeDefaultCurrency" maxlength="8" placeholder="RUB">
+            <div class="form-text" data-i18n="admin_settings.finance_default_currency_hint"><?= htmlspecialchars($t('admin_settings.finance_default_currency_hint', 'Используется, когда у прайса или записи не задана своя валюта.'), ENT_QUOTES, 'UTF-8') ?></div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="financeCostFromPayoutMarkup" data-i18n="admin_settings.finance_markup_percent"><?= htmlspecialchars($t('admin_settings.finance_markup_percent', 'Вывод себестоимости из вознаграждения, %'), ENT_QUOTES, 'UTF-8') ?></label>
+            <input class="form-control crm-field-w-200" id="financeCostFromPayoutMarkup" type="number" min="0" max="1000" step="0.01" placeholder="<?= htmlspecialchars($t('admin_settings.finance_markup_empty', 'выключено'), ENT_QUOTES, 'UTF-8') ?>">
+            <div class="form-text" data-i18n="admin_settings.finance_markup_hint"><?= htmlspecialchars($t('admin_settings.finance_markup_hint', 'Пусто — вывод выключен. Затрагивает только новые записи; к истории применяется явным пересчётом.'), ENT_QUOTES, 'UTF-8') ?></div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="financeAutoCloseMode" data-i18n="admin_settings.finance_auto_close_mode"><?= htmlspecialchars($t('admin_settings.finance_auto_close_mode', 'Автозакрытие периодов'), ENT_QUOTES, 'UTF-8') ?></label>
+            <select class="form-select crm-field-w-200" id="financeAutoCloseMode"><option value="off" data-i18n="admin_settings.finance_mode_off"><?= htmlspecialchars($t('admin_settings.finance_mode_off', 'Выключено'), ENT_QUOTES, 'UTF-8') ?></option><option value="weekly" data-i18n="admin_settings.finance_mode_weekly"><?= htmlspecialchars($t('admin_settings.finance_mode_weekly', 'Еженедельно'), ENT_QUOTES, 'UTF-8') ?></option><option value="monthly" data-i18n="admin_settings.finance_mode_monthly"><?= htmlspecialchars($t('admin_settings.finance_mode_monthly', 'Ежемесячно'), ENT_QUOTES, 'UTF-8') ?></option></select>
+            <div class="form-text" data-i18n="admin_settings.finance_auto_close_hint"><?= htmlspecialchars($t('admin_settings.finance_auto_close_hint', 'Период закрывается по расписанию через заданную задержку после его окончания.'), ENT_QUOTES, 'UTF-8') ?></div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="financeAutoCloseLagDays" data-i18n="admin_settings.finance_lag_days"><?= htmlspecialchars($t('admin_settings.finance_lag_days', 'Задержка, дней'), ENT_QUOTES, 'UTF-8') ?></label>
+            <input class="form-control crm-field-w-200" id="financeAutoCloseLagDays" type="number" min="0" max="90" step="1" value="5">
+            <div class="form-text" data-i18n="admin_settings.finance_lag_hint"><?= htmlspecialchars($t('admin_settings.finance_lag_hint', 'От 0 до 90 дней.'), ENT_QUOTES, 'UTF-8') ?></div>
+          </div>
+        </div>
+        <button class="btn crm-btn-primary mt-3" id="adminFinanceSaveBtn" type="button" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </main></div></div>
