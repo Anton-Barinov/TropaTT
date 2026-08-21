@@ -11,6 +11,7 @@ use Api\System\Library\Service\CounterpartyService;
 use Api\System\Library\Service\TaskBulkService;
 use Api\System\Library\Service\TaskBoardService;
 use Api\System\Library\Security\HtmlSanitizer;
+use Api\System\Library\Security\FinancialFieldPolicy;
 use Api\System\Library\Service\TaskService;
 use Api\System\Library\Validation\Validator;
 
@@ -77,6 +78,9 @@ final class TaskController extends BaseController
             $service = $this->container->get('service.task');
             $result = $service->list($input, $authUser['user']);
         }
+
+        $policy = new FinancialFieldPolicy();
+        $result['items'] = $policy->filterRows($result['items'], $authUser['user'], 'task.list');
 
         return $this->success('TASK_LIST', $this->t('task/messages.list'), [
             'items' => $result['items'],
@@ -199,6 +203,10 @@ final class TaskController extends BaseController
                 'task' => [$this->t('common/messages.task_not_found')],
             ]);
         }
+
+        // Task rate overrides are financial fields (TZ 8.5, 6.2) — strip for
+        // actors without the corresponding view permission.
+        $item = (new FinancialFieldPolicy())->filterRow($item, $authUser['user'], 'task.detail');
 
         return $this->success('TASK_DETAIL', $this->t('task/messages.detail'), [
             'task' => $item,
@@ -366,6 +374,8 @@ final class TaskController extends BaseController
         if (!$item) {
             return $this->error('TASK_NOT_FOUND', $this->t('common/messages.task_not_found'), 404);
         }
+
+        $item = (new FinancialFieldPolicy())->filterRow($item, $authUser['user'], 'task.detail');
 
         return $this->success('TASK_DETAIL', $this->t('task/messages.detail'), [
             'task' => $item,

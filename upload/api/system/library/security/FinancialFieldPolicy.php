@@ -63,6 +63,7 @@ final class FinancialFieldPolicy
         'payout_source_type'     => 'payout',
         'payout_source_ref'      => 'payout',
         'payout'                 => 'payout',
+        'override_payout_rate'   => 'payout',
 
         // cost family
         'cost_rate_snapshot'     => 'cost',
@@ -71,6 +72,7 @@ final class FinancialFieldPolicy
         'cost_source_type'       => 'cost',
         'cost_source_ref'        => 'cost',
         'cost'                   => 'cost',
+        'override_cost_rate'     => 'cost',
 
         // bill (commercial) family
         'bill_rate_snapshot'     => 'bill',
@@ -81,6 +83,7 @@ final class FinancialFieldPolicy
         'bill'                   => 'bill',
         'margin'                 => 'bill',
         'margin_amount'          => 'bill',
+        'override_bill_rate'     => 'bill',
 
         // config family
         'rate_card_id'           => 'config',

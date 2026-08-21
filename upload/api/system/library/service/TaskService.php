@@ -29,6 +29,29 @@ final class TaskService
     }
 
     /**
+     * Normalize a rate override input value (nullable, non-negative decimal).
+     */
+    private function normalizeRateInput(mixed $value): ?float
+    {
+        if ($value === null || $value === '' || $value === false) {
+            return null;
+        }
+        $rate = (float)$value;
+        return $rate < 0 ? null : $rate;
+    }
+
+    /**
+     * Whether the actor may set task rate overrides (TZ 8.5).
+     */
+    private function actorCanManageRates(array $actor): bool
+    {
+        if ((bool)($actor['is_root'] ?? false)) {
+            return true;
+        }
+        return in_array('finance.rate.manage', (array)($actor['permission_codes'] ?? []), true);
+    }
+
+    /**
      * Empty, well-formed list envelope. Used when access scoping cannot be
      * satisfied, so callers get a normal (empty) page rather than an unscoped one.
      *
@@ -211,6 +234,10 @@ final class TaskService
             return 'DESCRIPTION_TOO_LONG';
         }
 
+        if (!$this->actorCanManageRates($actor)) {
+            unset($input['override_cost_rate'], $input['override_bill_rate'], $input['override_payout_rate']);
+        }
+
         $this->tasks->create([
             'public_id' => $publicId,
             'project_id' => $projectId,
@@ -223,6 +250,9 @@ final class TaskService
             'status_code' => (string)($input['status'] ?? 'new'),
             'priority_code' => (string)($input['priority'] ?? 'normal'),
             'activity_code' => !empty($input['activity_code']) ? (string)$input['activity_code'] : null,
+            'override_cost_rate' => $this->normalizeRateInput($input['override_cost_rate'] ?? null),
+            'override_bill_rate' => $this->normalizeRateInput($input['override_bill_rate'] ?? null),
+            'override_payout_rate' => $this->normalizeRateInput($input['override_payout_rate'] ?? null),
             'due_at' => !empty($input['due_at']) ? (string)$input['due_at'] : null,
             'start_at' => !empty($input['start_at']) ? (string)$input['start_at'] : null,
             'end_at' => !empty($input['end_at']) ? (string)$input['end_at'] : null,
@@ -362,6 +392,18 @@ final class TaskService
             $set['activity_code'] = $input['activity_code'] !== null && $input['activity_code'] !== ''
                 ? (string)$input['activity_code']
                 : null;
+        }
+        if (!$this->actorCanManageRates($actor)) {
+            unset($input['override_cost_rate'], $input['override_bill_rate'], $input['override_payout_rate']);
+        }
+        if (array_key_exists('override_cost_rate', $input)) {
+            $set['override_cost_rate'] = $this->normalizeRateInput($input['override_cost_rate']);
+        }
+        if (array_key_exists('override_bill_rate', $input)) {
+            $set['override_bill_rate'] = $this->normalizeRateInput($input['override_bill_rate']);
+        }
+        if (array_key_exists('override_payout_rate', $input)) {
+            $set['override_payout_rate'] = $this->normalizeRateInput($input['override_payout_rate']);
         }
         if (array_key_exists('due_at', $input)) {
             $set['due_at'] = $input['due_at'] !== '' ? (string)$input['due_at'] : null;

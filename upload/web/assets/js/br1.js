@@ -7507,6 +7507,20 @@ window.CRM.br1 = (function () {
           tagsSelect.options[i].selected = selectedTagIds.indexOf(String(tagsSelect.options[i].value)) >= 0;
         }
       }
+
+      var activitySelect = form.querySelector('[name="activity_code"]');
+      if (activitySelect) activitySelect.value = currentTask.activity_code || '';
+
+      var overrideWrap = form.querySelector('[data-task-rate-overrides]');
+      var canManageRates = window.CRM.api && typeof window.CRM.api.hasPermission === 'function'
+        ? window.CRM.api.hasPermission('finance.rate.manage') : false;
+      if (overrideWrap) overrideWrap.classList.toggle('d-none', !canManageRates);
+      var costOverride = form.querySelector('[name="override_cost_rate"]');
+      var billOverride = form.querySelector('[name="override_bill_rate"]');
+      var payoutOverride = form.querySelector('[name="override_payout_rate"]');
+      if (costOverride) costOverride.value = currentTask.override_cost_rate != null ? currentTask.override_cost_rate : '';
+      if (billOverride) billOverride.value = currentTask.override_bill_rate != null ? currentTask.override_bill_rate : '';
+      if (payoutOverride) payoutOverride.value = currentTask.override_payout_rate != null ? currentTask.override_payout_rate : '';
     }
 
     modal.addEventListener('show.bs.modal', async function () {
@@ -7566,6 +7580,20 @@ window.CRM.br1 = (function () {
       body.end_at = endAt ? endAt + ' 18:00:00' : '';
       var description = descInput ? getVisualEditorTextareaValue(descInput).trim() : '';
       body.description = description;
+
+      var activitySelect = form.querySelector('[name="activity_code"]');
+      if (activitySelect) body.activity_code = String(activitySelect.value || '').trim() || null;
+
+      var canManageRates = window.CRM.api && typeof window.CRM.api.hasPermission === 'function'
+        ? window.CRM.api.hasPermission('finance.rate.manage') : false;
+      if (canManageRates) {
+        var costOverride = form.querySelector('[name="override_cost_rate"]');
+        var billOverride = form.querySelector('[name="override_bill_rate"]');
+        var payoutOverride = form.querySelector('[name="override_payout_rate"]');
+        body.override_cost_rate = costOverride && costOverride.value !== '' ? Number(costOverride.value) : null;
+        body.override_bill_rate = billOverride && billOverride.value !== '' ? Number(billOverride.value) : null;
+        body.override_payout_rate = payoutOverride && payoutOverride.value !== '' ? Number(payoutOverride.value) : null;
+      }
 
       try {
         var envelope = await window.CRM.api.request('api/v1/tasks/' + taskId, {
@@ -7744,6 +7772,22 @@ window.CRM.br1 = (function () {
         var selected = selectedTagIds.indexOf(tagId) >= 0 ? ' selected' : '';
         return '<option value="' + escapeHtml(tagId) + '"' + selected + '>' + escapeHtml(tag.title || tag.code || tagId) + '</option>';
       }).join('');
+    }
+
+    var activitySelect = form.querySelector('[name="activity_code"]');
+    if (activitySelect) {
+      var acts = [];
+      try {
+        var actEnv = await window.CRM.api.request('api/v1/statuses', { query: { scope: 'worklog_activity', limit: 200 } });
+        acts = window.CRM.api.items(actEnv);
+      } catch (e) {
+        acts = [];
+      }
+      activitySelect.innerHTML = [window.CRM.i18n.t('js.br1.worklog_activity_none', '<option value="">Не задан</option>')]
+        .concat(acts.map(function (s) {
+          var selected = currentTask && String(currentTask.activity_code || '') === String(s.code || '') ? ' selected' : '';
+          return '<option value="' + escapeHtml(s.code || '') + '"' + selected + '>' + escapeHtml(s.title || s.code || '') + '</option>';
+        })).join('');
     }
   }
 
