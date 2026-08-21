@@ -796,22 +796,22 @@ window.CRM.pageApiBindings = (function () {
     }
 
     // Event delegation for manage-projects button (works with dynamically rendered rows)
+    // This opens the modal in "manage projects" mode for an existing executor —
+    // no role picker, no invite, just the project-access panel.
     document.addEventListener('click', function (e) {
       var btn = e.target.closest('[data-contact-manage-projects]');
       if (!btn) return;
       var userPublicId = String(btn.getAttribute('data-contact-manage-projects') || '').trim();
       if (!userPublicId) return;
       pendingContactId = '';
-      if (roleChoice) roleChoice.classList.remove('d-none');
-      if (roleChoice) {
-        var observerRadio = roleChoice.querySelector('input[value="observer"]');
-        if (observerRadio) observerRadio.checked = true;
-      }
+      // Hide invite-related sections — we are managing, not inviting
+      if (roleChoice) roleChoice.classList.add('d-none');
       if (pending) pending.classList.add('d-none');
       if (error) error.classList.add('d-none');
       if (result) result.classList.add('d-none');
+      // Show the project access panel directly (no flicker)
       var projectAccessSectionEl = modalEl.querySelector('[data-portal-project-access]');
-      if (projectAccessSectionEl) projectAccessSectionEl.classList.add('d-none');
+      if (projectAccessSectionEl) projectAccessSectionEl.classList.remove('d-none');
       var instance = window.bootstrap && window.bootstrap.Modal
         ? window.bootstrap.Modal.getOrCreateInstance(modalEl)
         : null;
