@@ -7,4 +7,8 @@ return [
     'invalid_scope' => 'Ungültiger Bereichstyp',
     'date_range_required' => 'Datumsbereich angeben (date_from und date_to)',
     'range_too_large' => 'Datumsbereich darf 366 Tage nicht überschreiten',
+    'invalid_role' => 'Die angegebene Rolle existiert nicht',
+    'invalid_activity_code' => 'Die angegebene Arbeitsart ist nicht im Verzeichnis vorhanden',
+    'negative_rate' => 'Der Satz darf nicht negativ sein',
+    'invalid_date_range' => 'Das Enddatum darf nicht vor dem Startdatum liegen',
 ];

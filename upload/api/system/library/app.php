@@ -1123,6 +1123,7 @@ final class App
             $c->get('service.task_activity')
         ));
         $this->container->factory('service.status', fn(Container $c) => new StatusService($c->get('repository.status')));
+        $this->container->factory('service.activity_code', fn(Container $c) => new \Api\System\Library\Service\ActivityCodeService($c->get('repository.status')));
         $this->container->factory('service.priority', fn(Container $c) => new PriorityService($c->get('repository.priority')));
         $this->container->factory('service.milestone', fn(Container $c) => new MilestoneService(
             $c->get('repository.milestone'),

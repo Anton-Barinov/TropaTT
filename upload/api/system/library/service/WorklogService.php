@@ -222,6 +222,11 @@ final class WorklogService
             $set['started_at'] = $this->parseIntervalTime($input['started_at'] ?? null);
             $set['ended_at'] = $this->parseIntervalTime($input['ended_at'] ?? null);
         }
+        if (array_key_exists('activity_code', $input)) {
+            $set['activity_code'] = $input['activity_code'] !== null && $input['activity_code'] !== ''
+                ? (string)$input['activity_code']
+                : null;
+        }
         if (array_key_exists('task_public_id', $input)) {
             if ($input['task_public_id'] === null || $input['task_public_id'] === '') {
                 $set['task_id'] = null;

@@ -222,6 +222,7 @@ final class TaskService
             'description' => trim((string)($input['description'] ?? '')),
             'status_code' => (string)($input['status'] ?? 'new'),
             'priority_code' => (string)($input['priority'] ?? 'normal'),
+            'activity_code' => !empty($input['activity_code']) ? (string)$input['activity_code'] : null,
             'due_at' => !empty($input['due_at']) ? (string)$input['due_at'] : null,
             'start_at' => !empty($input['start_at']) ? (string)$input['start_at'] : null,
             'end_at' => !empty($input['end_at']) ? (string)$input['end_at'] : null,
@@ -356,6 +357,11 @@ final class TaskService
         }
         if (array_key_exists('priority', $input)) {
             $set['priority_code'] = (string)$input['priority'];
+        }
+        if (array_key_exists('activity_code', $input)) {
+            $set['activity_code'] = $input['activity_code'] !== null && $input['activity_code'] !== ''
+                ? (string)$input['activity_code']
+                : null;
         }
         if (array_key_exists('due_at', $input)) {
             $set['due_at'] = $input['due_at'] !== '' ? (string)$input['due_at'] : null;

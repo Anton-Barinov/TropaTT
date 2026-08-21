@@ -100,6 +100,7 @@ final class StatusRepository
         return match ($scope) {
             'task' => $this->usageCountTaskScope($code),
             'project' => $this->usageCountProjectScope($code),
+            'worklog_activity' => $this->usageCountWorklogActivityScope($code),
             default => 0,
         };
     }
@@ -109,6 +110,7 @@ final class StatusRepository
         return match ($scope) {
             'task' => $this->remapTaskScope($fromCode, $toCode),
             'project' => $this->remapProjectScope($fromCode, $toCode),
+            'worklog_activity' => $this->remapWorklogActivityScope($fromCode, $toCode),
             default => 0,
         };
     }
@@ -150,6 +152,64 @@ final class StatusRepository
                 'status_code' => $toCode,
                 'updated_at' => gmdate('Y-m-d H:i:s'),
             ]);
+    }
+
+    /**
+     * Activity codes live in work_logs, tasks (as default) and rate_card_lines.
+     * A code that is referenced anywhere counts as "in use" and cannot be
+     * deleted without a remap target.
+     */
+    private function usageCountWorklogActivityScope(string $code): int
+    {
+        $workLogs = (new QueryBuilder($this->pdo))
+            ->from('work_logs')
+            ->where('activity_code', '=', $code)
+            ->count();
+
+        $tasks = (new QueryBuilder($this->pdo))
+            ->from('tasks')
+            ->where('activity_code', '=', $code)
+            ->whereNull('deleted_at')
+            ->count();
+
+        $lines = (new QueryBuilder($this->pdo))
+            ->from('rate_card_lines')
+            ->where('activity_code', '=', $code)
+            ->whereNull('deleted_at')
+            ->count();
+
+        return (int)$workLogs + (int)$tasks + (int)$lines;
+    }
+
+    private function remapWorklogActivityScope(string $fromCode, string $toCode): int
+    {
+        $updatedAt = gmdate('Y-m-d H:i:s');
+        $affected = 0;
+
+        $affected += (new QueryBuilder($this->pdo))
+            ->from('work_logs')
+            ->where('activity_code', '=', $fromCode)
+            ->update(['activity_code' => $toCode]);
+
+        $affected += (new QueryBuilder($this->pdo))
+            ->from('tasks')
+            ->where('activity_code', '=', $fromCode)
+            ->whereNull('deleted_at')
+            ->update([
+                'activity_code' => $toCode,
+                'updated_at' => $updatedAt,
+            ]);
+
+        $affected += (new QueryBuilder($this->pdo))
+            ->from('rate_card_lines')
+            ->where('activity_code', '=', $fromCode)
+            ->whereNull('deleted_at')
+            ->update([
+                'activity_code' => $toCode,
+                'updated_at' => $updatedAt,
+            ]);
+
+        return (int)$affected;
     }
 
     public function countActiveTasksInStatus(string $statusCode): int

@@ -152,8 +152,10 @@ final class RateCardController extends BaseController
         $cost = $input['cost_rate'] ?? null;
         $bill = $input['bill_rate'] ?? null;
         $payout = $input['payout_rate'] ?? null;
-        if ($cost === null && $bill === null && $payout === null) {
-            return $this->error('VALIDATION', $this->t('rate/messages.at_least_one_rate'), 422);
+
+        $errKey = $this->lineValidationError($input);
+        if ($errKey !== null) {
+            return $this->error('VALIDATION', $this->t('rate/messages.' . $errKey), 422);
         }
 
         $now = gmdate('Y-m-d H:i:s');
@@ -185,6 +187,11 @@ final class RateCardController extends BaseController
         $pdo = $this->container->get('db.pdo');
         $line = (new QueryBuilder($pdo))->from('rate_card_lines')->where('public_id', '=', $pid)->first();
         if (!$line) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
+
+        $errKey = $this->lineValidationError(array_merge($line, $input));
+        if ($errKey !== null) {
+            return $this->error('VALIDATION', $this->t('rate/messages.' . $errKey), 422);
+        }
 
         $set = ['updated_at' => gmdate('Y-m-d H:i:s')];
         foreach (['user_id','role_code','activity_code','cost_rate','bill_rate','payout_rate',
@@ -276,5 +283,54 @@ final class RateCardController extends BaseController
     {
         $u = $this->user();
         return $u ? ((int)($u['user']['id'] ?? 0) ?: null) : null;
+    }
+
+    /**
+     * Validate a rate-card line's final state (TZ 3.3).
+     * Returns an i18n key (rate/messages.*) on failure, or null when valid.
+     */
+    private function lineValidationError(array $merged): ?string
+    {
+        // At least one of the three rates must be set
+        $cost = $merged['cost_rate'] ?? null;
+        $bill = $merged['bill_rate'] ?? null;
+        $payout = $merged['payout_rate'] ?? null;
+        if ($cost === null && $bill === null && $payout === null) {
+            return 'at_least_one_rate';
+        }
+
+        // Rates must be non-negative
+        foreach (['cost_rate', 'bill_rate', 'payout_rate'] as $f) {
+            if (array_key_exists($f, $merged) && $merged[$f] !== null && $merged[$f] !== '' && (float)$merged[$f] < 0) {
+                return 'negative_rate';
+            }
+        }
+
+        // role_code must reference an existing role
+        if (!empty($merged['role_code'])) {
+            /** @var \Api\Model\Role\RoleRepository $roles */
+            $roles = $this->container->get('repository.role');
+            if ($roles->findByCode((string)$merged['role_code']) === null) {
+                return 'invalid_role';
+            }
+        }
+
+        // activity_code must exist in the work-type dictionary (Phase 6)
+        if (!empty($merged['activity_code'])) {
+            /** @var \Api\System\Library\Service\ActivityCodeService $activities */
+            $activities = $this->container->get('service.activity_code');
+            if (!$activities->exists((string)$merged['activity_code'])) {
+                return 'invalid_activity_code';
+            }
+        }
+
+        // effective_to must not precede effective_from (default = today)
+        $from = !empty($merged['effective_from']) ? (string)$merged['effective_from'] : gmdate('Y-m-d');
+        $to = $merged['effective_to'] ?? null;
+        if ($to !== null && $to !== '' && strtotime((string)$to) < strtotime($from)) {
+            return 'invalid_date_range';
+        }
+
+        return null;
     }
 }

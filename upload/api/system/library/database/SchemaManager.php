@@ -139,6 +139,11 @@ final class SchemaManager
             ['project', 'active', 'Активный', '#2563eb', 10],
             ['project', 'on_hold', 'На паузе', '#d97706', 20],
             ['project', 'archived', 'В архиве', '#475569', 30],
+            ['worklog_activity', 'dev', 'Разработка', '#2563eb', 10],
+            ['worklog_activity', 'design', 'Дизайн', '#7c3aed', 20],
+            ['worklog_activity', 'analysis', 'Аналитика', '#0891b2', 30],
+            ['worklog_activity', 'consulting', 'Консультации', '#d97706', 40],
+            ['worklog_activity', 'support', 'Поддержка', '#16a34a', 50],
         ];
 
         $stmt = $pdo->prepare('INSERT INTO statuses (public_id, scope, code, title, color, sort_order, created_at, updated_at) VALUES (:public_id,:scope,:code,:title,:color,:sort_order,:created_at,:updated_at)');
