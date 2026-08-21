@@ -22,7 +22,7 @@ use Api\Model\Rate\RateCardRepository;
  */
 final class RateResolutionService
 {
-    private const RATE_KINDS = ['cost', 'bill', 'payout'];
+    private const RATE_KINDS = ['payout', 'cost', 'bill'];
     private const FALLBACK_CURRENCY = 'RUB';
 
     /** @var array<string, array> memoization cache */
@@ -217,7 +217,15 @@ final class RateResolutionService
 
         // 1. Task override
         if ($taskOverride !== null) {
-            return $this->kindResult($rateField, $taskOverride, 'task_override', null, null, $trace, [['source' => 'task_override', 'rate' => $taskOverride]]);
+            return $this->kindResult(
+                kind: $kind,
+                rate: $taskOverride,
+                sourceType: 'task_override',
+                sourceRef: null,
+                currency: null,
+                ambiguous: false,
+                trace: [['source' => 'task_override', 'rate' => $taskOverride]]
+            );
         }
 
         // 2. Project card
@@ -247,17 +255,41 @@ final class RateResolutionService
 
         // 5. User default
         if ($userRates !== null && isset($userRates[$rateField]) && $userRates[$rateField] !== null) {
-            return $this->kindResult($kind, (float)$userRates[$rateField], 'user_default', null, null, [], [['source' => 'user_default', 'rate' => (float)$userRates[$rateField]]]);
+            return $this->kindResult(
+                kind: $kind,
+                rate: (float)$userRates[$rateField],
+                sourceType: 'user_default',
+                sourceRef: null,
+                currency: null,
+                ambiguous: false,
+                trace: [['source' => 'user_default', 'rate' => (float)$userRates[$rateField]]]
+            );
         }
 
         // 6. Cost-from-payout derivation (only for cost kind)
         if ($kind === 'cost' && $markupPercent !== null && $resolvedPayout !== null && ($resolvedPayout['rate'] ?? null) !== null) {
             $derivedRate = round((float)$resolvedPayout['rate'] * (1 + $markupPercent / 100), 2);
-            return $this->kindResult($kind, $derivedRate, 'derived_from_payout', null, null, [], [['source' => 'derived_from_payout', 'rate' => $derivedRate, 'markup_percent' => $markupPercent]]);
+            return $this->kindResult(
+                kind: $kind,
+                rate: $derivedRate,
+                sourceType: 'derived_from_payout',
+                sourceRef: null,
+                currency: null,
+                ambiguous: false,
+                trace: [['source' => 'derived_from_payout', 'rate' => $derivedRate, 'markup_percent' => $markupPercent]]
+            );
         }
 
         // 7. None
-        return $this->kindResult($kind, null, 'none', null, null, [], [['source' => 'none', 'rate' => null]]);
+        return $this->kindResult(
+            kind: $kind,
+            rate: null,
+            sourceType: 'none',
+            sourceRef: null,
+            currency: null,
+            ambiguous: false,
+            trace: [['source' => 'none', 'rate' => null]]
+        );
     }
 
     /**
