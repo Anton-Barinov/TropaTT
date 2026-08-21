@@ -2595,6 +2595,53 @@ window.CRM.pageApiBindings = (function () {
     });
   }
 
+  async function renderProjectRates(project) {
+    var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
+    var hasPerm = window.CRM.api && typeof window.CRM.api.hasPermission === 'function' ? window.CRM.api.hasPermission('finance.ratecard.manage') : false;
+    var section = document.getElementById('projectRatesSection');
+    var block = document.getElementById('projectRatesBlock');
+    if (!hasPerm || !section || !block) return;
+    section.classList.remove('d-none');
+
+    var projectPublicId = String(project.public_id || '');
+    var clientPublicId = String(project.client_public_id || '');
+    var clientTitle = String(project.client_title || project.client_public_id || '');
+
+    var cards = [];
+    var assigns = [];
+    try { cards = mapItems(await tryRequest('api/v1/rate-cards')); } catch (e) {}
+    try { assigns = mapItems(await tryRequest('api/v1/rate-card-assignments')); } catch (e) {}
+
+    function titleOf(cardPublicId) {
+      var c = cards.find(function (x) { return String(x.public_id) === cardPublicId; });
+      return c ? String(c.title || c.public_id) : cardPublicId;
+    }
+
+    var projectAssign = assigns.find(function (a) {
+      return String(a.scope_type) === 'project' && String(a.scope_ref) === projectPublicId;
+    });
+
+    var html;
+    if (projectAssign) {
+      html = '<span class="badge crm-badge-soft me-2">' + _t('project_detail.rates_own', 'собственный прайс') + '</span>'
+        + safeText(titleOf(String(projectAssign.card_public_id || '')));
+    } else {
+      var cpAssign = clientPublicId
+        ? assigns.find(function (a) {
+            return String(a.scope_type) === 'counterparty' && String(a.scope_ref) === clientPublicId;
+          })
+        : null;
+      if (cpAssign) {
+        html = '<span class="badge crm-badge-soft me-2">' + _t('project_detail.rates_inherited', 'наследуется от контрагента') + '</span>'
+          + (clientTitle ? safeText(clientTitle) + ' · ' : '')
+          + safeText(titleOf(String(cpAssign.card_public_id || '')));
+      } else {
+        html = '<span class="text-muted">' + _t('project_detail.rates_none', 'Прайс не назначен — используется прайс по умолчанию или глобальные ставки.') + '</span>';
+      }
+    }
+    block.innerHTML = html;
+  }
+
   async function renderProjectDetailPage() {
     setupProjectDetailInteractions();
     var projectId = window.CRM.br1 ? window.CRM.br1.getProjectPublicIdFromUrl() : '';
@@ -2674,6 +2721,8 @@ window.CRM.pageApiBindings = (function () {
       });
       btn.dataset.boundProjectPreview = '1';
     });
+
+    renderProjectRates(project);
 
     var summaryEnvelope = await tryRequest('api/v1/projects/' + projectId + '/summary');
     var summary = summaryEnvelope && summaryEnvelope.data && summaryEnvelope.data.summary
