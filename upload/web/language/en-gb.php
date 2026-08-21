@@ -1789,6 +1789,35 @@ return array (
     ),
     'pab' => 
     array (
+      'rate_cards' =>
+      array (
+        'any_activity' => 'Any',
+        'any_role' => 'Any',
+        'any_user' => 'Any',
+        'archived' => 'Rate card archived',
+        'assigned' => 'Assignment created',
+        'assignments_empty' => 'No assignments yet.',
+        'badge_archived' => 'archive',
+        'badge_default' => 'default',
+        'btn_archive' => 'Archive',
+        'btn_lines' => 'Lines',
+        'empty' => 'No rate cards yet.',
+        'inherited' => 'inherited',
+        'line_added' => 'Line added',
+        'line_deleted' => 'Line deleted',
+        'lines_empty' => 'No lines yet.',
+        'no' => 'No',
+        'org_currency' => 'organization currency',
+        'saved' => 'Saved',
+        'scope_counterparty' => 'Counterparty',
+        'scope_project' => 'Project',
+        'unassigned' => 'Assignment removed',
+        'yes' => 'Yes',
+      ),
+      'my_earnings' =>
+      array (
+        'no_project' => '—',
+      ),
       'team_materials' => 'Team materials',
       'access_unavailable' => 'access unavailable.',
       'action' => 'Action',

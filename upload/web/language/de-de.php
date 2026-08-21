@@ -4426,6 +4426,35 @@ return array (
     ),
     'pab' => 
     array (
+      'rate_cards' =>
+      array (
+        'any_activity' => 'Beliebig',
+        'any_role' => 'Beliebig',
+        'any_user' => 'Beliebig',
+        'archived' => 'Preisliste archiviert',
+        'assigned' => 'Zuordnung erstellt',
+        'assignments_empty' => 'Noch keine Zuordnungen.',
+        'badge_archived' => 'Archiv',
+        'badge_default' => 'Standard',
+        'btn_archive' => 'Archivieren',
+        'btn_lines' => 'Zeilen',
+        'empty' => 'Noch keine Preislisten.',
+        'inherited' => 'geerbt',
+        'line_added' => 'Zeile hinzugefügt',
+        'line_deleted' => 'Zeile gelöscht',
+        'lines_empty' => 'Noch keine Zeilen.',
+        'no' => 'Nein',
+        'org_currency' => 'Organisationswährung',
+        'saved' => 'Gespeichert',
+        'scope_counterparty' => 'Geschäftspartner',
+        'scope_project' => 'Projekt',
+        'unassigned' => 'Zuordnung entfernt',
+        'yes' => 'Ja',
+      ),
+      'my_earnings' =>
+      array (
+        'no_project' => '—',
+      ),
       'team_materials' => 'Team-Materialien',
       'access_unavailable' => 'access unavailable.',
       'action' => 'Action',

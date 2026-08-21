@@ -4426,6 +4426,35 @@ return array (
     ),
     'pab' => 
     array (
+      'rate_cards' =>
+      array (
+        'any_activity' => 'Tout',
+        'any_role' => 'Tout',
+        'any_user' => 'Tout',
+        'archived' => 'Grille tarifaire archivée',
+        'assigned' => 'Affectation créée',
+        'assignments_empty' => 'Aucune affectation pour le moment.',
+        'badge_archived' => 'archive',
+        'badge_default' => 'par défaut',
+        'btn_archive' => 'Archiver',
+        'btn_lines' => 'Lignes',
+        'empty' => 'Aucune grille tarifaire pour le moment.',
+        'inherited' => 'hérité',
+        'line_added' => 'Ligne ajoutée',
+        'line_deleted' => 'Ligne supprimée',
+        'lines_empty' => 'Aucune ligne pour le moment.',
+        'no' => 'Non',
+        'org_currency' => 'devise de l\'organisation',
+        'saved' => 'Enregistré',
+        'scope_counterparty' => 'Cocontractant',
+        'scope_project' => 'Projet',
+        'unassigned' => 'Affectation supprimée',
+        'yes' => 'Oui',
+      ),
+      'my_earnings' =>
+      array (
+        'no_project' => '—',
+      ),
       'team_materials' => 'Matériels de l\'équipe',
       'access_unavailable' => 'access unavailable.',
       'action' => 'Action',

@@ -1789,6 +1789,35 @@ return array (
     ),
     'pab' => 
     array (
+      'rate_cards' =>
+      array (
+        'any_activity' => 'Любой',
+        'any_role' => 'Любая',
+        'any_user' => 'Любой',
+        'archived' => 'Прайс заархивирован',
+        'assigned' => 'Привязка создана',
+        'assignments_empty' => 'Привязок пока нет.',
+        'badge_archived' => 'архив',
+        'badge_default' => 'по умолчанию',
+        'btn_archive' => 'Архив',
+        'btn_lines' => 'Строки',
+        'empty' => 'Прайс-листов пока нет.',
+        'inherited' => 'наследуется',
+        'line_added' => 'Строка добавлена',
+        'line_deleted' => 'Строка удалена',
+        'lines_empty' => 'Строк пока нет.',
+        'no' => 'Нет',
+        'org_currency' => 'валюта организации',
+        'saved' => 'Сохранено',
+        'scope_counterparty' => 'Контрагент',
+        'scope_project' => 'Проект',
+        'unassigned' => 'Привязка удалена',
+        'yes' => 'Да',
+      ),
+      'my_earnings' =>
+      array (
+        'no_project' => '—',
+      ),
       'team_materials' => 'Материалы команды',
       'access_unavailable' => 'доступ недоступен.',
       'action' => 'Действие',

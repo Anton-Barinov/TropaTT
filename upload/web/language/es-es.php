@@ -4426,6 +4426,35 @@ return array (
     ),
     'pab' => 
     array (
+      'rate_cards' =>
+      array (
+        'any_activity' => 'Cualquiera',
+        'any_role' => 'Cualquiera',
+        'any_user' => 'Cualquiera',
+        'archived' => 'Tarifa archivada',
+        'assigned' => 'Asignación creada',
+        'assignments_empty' => 'Aún no hay asignaciones.',
+        'badge_archived' => 'archivo',
+        'badge_default' => 'predeterminado',
+        'btn_archive' => 'Archivar',
+        'btn_lines' => 'Líneas',
+        'empty' => 'Aún no hay tarifas.',
+        'inherited' => 'heredado',
+        'line_added' => 'Línea añadida',
+        'line_deleted' => 'Línea eliminada',
+        'lines_empty' => 'Aún no hay líneas.',
+        'no' => 'No',
+        'org_currency' => 'moneda de la organización',
+        'saved' => 'Guardado',
+        'scope_counterparty' => 'Contraparte',
+        'scope_project' => 'Proyecto',
+        'unassigned' => 'Asignación eliminada',
+        'yes' => 'Sí',
+      ),
+      'my_earnings' =>
+      array (
+        'no_project' => '—',
+      ),
       'team_materials' => 'Materiales del equipo',
       'access_unavailable' => 'access unavailable.',
       'action' => 'Action',

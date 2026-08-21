@@ -1789,6 +1789,35 @@ return array (
     ),
     'pab' => 
     array (
+      'rate_cards' =>
+      array (
+        'any_activity' => '任意',
+        'any_role' => '任意',
+        'any_user' => '任意',
+        'archived' => '价目表已归档',
+        'assigned' => '已创建关联',
+        'assignments_empty' => '暂无关联。',
+        'badge_archived' => '归档',
+        'badge_default' => '默认',
+        'btn_archive' => '归档',
+        'btn_lines' => '行',
+        'empty' => '暂无价目表。',
+        'inherited' => '继承',
+        'line_added' => '已添加行',
+        'line_deleted' => '已删除行',
+        'lines_empty' => '暂无行。',
+        'no' => '否',
+        'org_currency' => '组织货币',
+        'saved' => '已保存',
+        'scope_counterparty' => '交易对手',
+        'scope_project' => '项目',
+        'unassigned' => '已移除关联',
+        'yes' => '是',
+      ),
+      'my_earnings' =>
+      array (
+        'no_project' => '—',
+      ),
       'team_materials' => '团队资料',
       'access_unavailable' => 'access unavailable.',
       'action' => 'Action',
