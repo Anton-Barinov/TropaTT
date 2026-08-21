@@ -153,7 +153,7 @@ $L['ru'] = [
     'db_connect_error' => 'Не удалось подключиться к БД',
     'env_write_error' => 'Ошибка записи .env файла',
     'table_create_error' => 'Ошибка создания таблиц',
-    'lock_file_error' => 'Система уже установлена. Если нужно переустановить — удалите api/.env и api/.install.lock.',
+    'lock_file_error' => 'Система уже установлена. Если нужно переустановить — удалите api/.env, api/.install.lock и storage_api/install.lock.',
     'install' => 'Установка',
     'optional' => 'опционально',
     'update_check_notice' => 'Установщик проверит доступность обновлений и передаст домен этой установки на сервер обновлений.',
@@ -245,7 +245,7 @@ $L['en'] = [
     'db_connect_error' => 'Could not connect to database',
     'env_write_error' => 'Error writing .env file',
     'table_create_error' => 'Error creating tables',
-    'lock_file_error' => 'System already installed. To reinstall, delete api/.env and api/.install.lock.',
+    'lock_file_error' => 'System already installed. To reinstall, delete api/.env, api/.install.lock, and storage_api/install.lock.',
     'install' => 'Installation',
     'optional' => 'optional',
     'update_check_notice' => 'The installer will check update availability and send this installation domain to the update server.',
@@ -337,7 +337,7 @@ $L['zh'] = [
     'db_connect_error' => '无法连接数据库',
     'env_write_error' => '写入 .env 文件失败',
     'table_create_error' => '创建表失败',
-    'lock_file_error' => '系统已安装。如需重新安装，请删除 api/.env 和 api/.install.lock。',
+    'lock_file_error' => '系统已安装。如需重新安装，请删除 api/.env、api/.install.lock 和 storage_api/install.lock。',
     'install' => '安装',
     'optional' => '可选',
     'update_check_notice' => '安装程序将检查更新可用性，并将此安装的域名发送到更新服务器。',
@@ -429,7 +429,7 @@ $L['es'] = [
     'db_connect_error' => 'No se pudo conectar a la base de datos',
     'env_write_error' => 'Error al escribir el archivo .env',
     'table_create_error' => 'Error al crear las tablas',
-    'lock_file_error' => 'Sistema ya instalado. Para reinstalar, elimine api/.env y api/.install.lock.',
+    'lock_file_error' => 'Sistema ya instalado. Para reinstalar, elimine api/.env, api/.install.lock y storage_api/install.lock.',
     'install' => 'Instalación',
     'optional' => 'opcional',
     'update_check_notice' => 'El instalador comprobará la disponibilidad de actualizaciones y enviará el dominio de esta instalación al servidor de actualizaciones.',
@@ -521,7 +521,7 @@ $L['pt'] = [
     'db_connect_error' => 'Não foi possível conectar ao banco de dados',
     'env_write_error' => 'Erro ao gravar o arquivo .env',
     'table_create_error' => 'Erro ao criar as tabelas',
-    'lock_file_error' => 'Sistema já instalado. Para reinstalar, exclua api/.env e api/.install.lock.',
+    'lock_file_error' => 'Sistema já instalado. Para reinstalar, exclua api/.env, api/.install.lock e storage_api/install.lock.',
     'install' => 'Instalação',
     'optional' => 'opcional',
     'update_check_notice' => 'O instalador verificará a disponibilidade de atualizações e enviará o domínio desta instalação ao servidor de atualizações.',
@@ -613,7 +613,7 @@ $L['de'] = [
     'db_connect_error' => 'Verbindung zur Datenbank fehlgeschlagen',
     'env_write_error' => 'Fehler beim Schreiben der .env-Datei',
     'table_create_error' => 'Fehler beim Erstellen der Tabellen',
-    'lock_file_error' => 'System bereits installiert. Zum Neuinstallieren löschen Sie api/.env und api/.install.lock.',
+    'lock_file_error' => 'System bereits installiert. Zum Neuinstallieren löschen Sie api/.env, api/.install.lock und storage_api/install.lock.',
     'install' => 'Installation',
     'optional' => 'optional',
     'update_check_notice' => 'Der Installer prüft die Verfügbarkeit von Updates und übermittelt die Domain dieser Installation an den Update-Server.',
@@ -705,7 +705,7 @@ $L['fr'] = [
     'db_connect_error' => 'Impossible de se connecter à la base de données',
     'env_write_error' => "Erreur lors de l'écriture du fichier .env",
     'table_create_error' => 'Erreur lors de la création des tables',
-    'lock_file_error' => "Système déjà installé. Pour réinstaller, supprimez api/.env et api/.install.lock.",
+    'lock_file_error' => "Système déjà installé. Pour réinstaller, supprimez api/.env, api/.install.lock et storage_api/install.lock.",
     'install' => 'Installation',
     'optional' => 'optionnel',
     'update_check_notice' => "L'installateur vérifiera la disponibilité des mises à jour et enverra le domaine de cette installation au serveur de mises à jour.",
@@ -1175,8 +1175,15 @@ function isAlreadyInstalled(): bool
         return false;
     }
 
-    if (is_file(LOCK_FILE_PATH)) {
-        return true;
+    // Check both lock files (api/.install.lock and storage_api/install.lock)
+    $lockFiles = [
+        LOCK_FILE_PATH,
+        dirname(LOCK_FILE_PATH) . '/../../storage_api/install.lock',
+    ];
+    foreach ($lockFiles as $lockFile) {
+        if (is_file($lockFile)) {
+            return true;
+        }
     }
 
     return canConnectFromEnv() && hasInstallStateFromEnv();
