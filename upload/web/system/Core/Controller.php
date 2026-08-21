@@ -42,6 +42,10 @@ abstract class Controller
         // back to English even when the server-rendered page is localized.
         'external_users',
         'external_accept',
+        // contacts portal: invite/revoke/manage-project tooltips and confirmations
+        'contacts',
+        // admin_users: copy button labels in portal invite modal
+        'admin_users',
     ];
 
     /** @var array<int, string>|null */

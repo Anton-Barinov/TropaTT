@@ -728,12 +728,31 @@ window.CRM.pageApiBindings = (function () {
       projectAccessSection.classList.remove('d-none');
       if (projectAccessList) projectAccessList.innerHTML = '<div class="text-muted small">' + safeText(tp('page.loading', 'Loading...')) + '</div>';
       try {
-        var results = await Promise.all([
-          window.CRM.api.request('api/v1/projects', { query: { limit: 200, archived: '0' } }),
-          window.CRM.api.request('api/v1/external-users/' + encodeURIComponent(userPublicId) + '/project-access')
-        ]);
-        var allProjects = window.CRM.api.items(results[0]) || [];
-        var granted = (results[1] && results[1].data && results[1].data.items) || [];
+        // Load projects and granted access separately so one failure doesn't block the other
+        var projectsResult = null;
+        var accessResult = null;
+        try {
+          projectsResult = await window.CRM.api.request('api/v1/projects', { query: { limit: 200, archived: '0' } });
+        } catch (e) {
+          // If projects load fails, try with just the counterparty's projects
+          try {
+            projectsResult = await window.CRM.api.request('api/v1/projects', { query: { limit: 200 } });
+          } catch (e2) {
+            // Still failed — show empty list with error
+            if (projectAccessList) {
+              projectAccessList.innerHTML = '<div class="text-danger small">' + safeText(tp('contacts.portal_projects_load_failed', 'Failed to load projects')) + '</div>';
+            }
+            return;
+          }
+        }
+        try {
+          accessResult = await window.CRM.api.request('api/v1/external-users/' + encodeURIComponent(userPublicId) + '/project-access');
+        } catch (e) {
+          // Access list failed — show projects without pre-checked grants
+          accessResult = null;
+        }
+        var allProjects = window.CRM.api.items(projectsResult) || [];
+        var granted = (accessResult && accessResult.data && accessResult.data.items) || [];
         initialGrantedIds = granted.map(function (g) { return String(g.public_id || ''); });
         renderProjectAccessList(allProjects, initialGrantedIds);
       } catch (e) {
@@ -776,23 +795,28 @@ window.CRM.pageApiBindings = (function () {
       });
     }
 
-    document.querySelectorAll('[data-contact-manage-projects]').forEach(function (button) {
-      if (button.dataset.externalPortalTriggerBound === '1') return;
-      button.dataset.externalPortalTriggerBound = '1';
-      button.addEventListener('click', function () {
-        var userPublicId = String(button.getAttribute('data-contact-manage-projects') || '').trim();
-        if (!userPublicId) return;
-        pendingContactId = '';
-        if (roleChoice) roleChoice.classList.add('d-none');
-        if (pending) pending.classList.add('d-none');
-        if (error) error.classList.add('d-none');
-        if (result) result.classList.add('d-none');
-        var instance = window.bootstrap && window.bootstrap.Modal
-          ? window.bootstrap.Modal.getOrCreateInstance(modalEl)
-          : null;
-        if (instance) instance.show();
-        loadProjectAccessPanel(userPublicId);
-      });
+    // Event delegation for manage-projects button (works with dynamically rendered rows)
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-contact-manage-projects]');
+      if (!btn) return;
+      var userPublicId = String(btn.getAttribute('data-contact-manage-projects') || '').trim();
+      if (!userPublicId) return;
+      pendingContactId = '';
+      if (roleChoice) roleChoice.classList.remove('d-none');
+      if (roleChoice) {
+        var observerRadio = roleChoice.querySelector('input[value="observer"]');
+        if (observerRadio) observerRadio.checked = true;
+      }
+      if (pending) pending.classList.add('d-none');
+      if (error) error.classList.add('d-none');
+      if (result) result.classList.add('d-none');
+      var projectAccessSectionEl = modalEl.querySelector('[data-portal-project-access]');
+      if (projectAccessSectionEl) projectAccessSectionEl.classList.add('d-none');
+      var instance = window.bootstrap && window.bootstrap.Modal
+        ? window.bootstrap.Modal.getOrCreateInstance(modalEl)
+        : null;
+      if (instance) instance.show();
+      loadProjectAccessPanel(userPublicId);
     });
 
     modalEl.addEventListener('hidden.bs.modal', function () {
@@ -848,39 +872,37 @@ window.CRM.pageApiBindings = (function () {
         .finally(function () { revokeButton.disabled = false; });
     });
 
-    document.querySelectorAll('[data-contact-invite-portal]').forEach(function (button) {
-      if (button.dataset.externalPortalTriggerBound === '1') return;
-      button.dataset.externalPortalTriggerBound = '1';
-      button.addEventListener('click', function () {
-        var contactId = String(button.getAttribute('data-contact-invite-portal') || '').trim();
-        if (!contactId) return;
-        var instance = open(contactId);
-        if (!instance && typeof config.onComplete === 'function') config.onComplete();
-      });
+    // Event delegation for invite-portal button (works with dynamically rendered rows)
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-contact-invite-portal]');
+      if (!btn) return;
+      var contactId = String(btn.getAttribute('data-contact-invite-portal') || '').trim();
+      if (!contactId) return;
+      var instance = open(contactId);
+      if (!instance && typeof config.onComplete === 'function') config.onComplete();
     });
 
-    document.querySelectorAll('[data-contact-revoke-portal]').forEach(function (button) {
-      if (button.dataset.externalPortalTriggerBound === '1') return;
-      button.dataset.externalPortalTriggerBound = '1';
-      button.addEventListener('click', function () {
-        var userPublicId = String(button.getAttribute('data-external-user-public-id') || '').trim();
-        if (!userPublicId || !window.confirm(tp('contacts.portal_revoke_confirm', "Revoke this contact's portal access?"))) return;
-        button.disabled = true;
-        window.CRM.api.request('api/v1/external-users/' + encodeURIComponent(userPublicId) + '/deactivate', {
-          method: 'POST',
-          headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('external-revoke-' + userPublicId) },
-          body: {}
+    // Event delegation for revoke-portal button (works with dynamically rendered rows)
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-contact-revoke-portal]');
+      if (!btn || !window.CRM.api) return;
+      var userPublicId = String(btn.getAttribute('data-external-user-public-id') || '').trim();
+      if (!userPublicId || !window.confirm(tp('contacts.portal_revoke_confirm', "Revoke this contact's portal access?"))) return;
+      btn.disabled = true;
+      window.CRM.api.request('api/v1/external-users/' + encodeURIComponent(userPublicId) + '/deactivate', {
+        method: 'POST',
+        headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('external-revoke-' + userPublicId) },
+        body: {}
+      })
+        .then(function () {
+          notify(tp('external_users.deactivated', 'Access revoked'));
+          if (typeof config.onComplete === 'function') config.onComplete();
         })
-          .then(function () {
-            notify(tp('external_users.deactivated', 'Access revoked'));
-            if (typeof config.onComplete === 'function') config.onComplete();
-          })
-          .catch(function (requestError) {
-            var envelope = requestError && requestError.envelope ? requestError.envelope : null;
-            notify((envelope && envelope.message) || tp('external_users.deactivate_failed', 'Failed to revoke access'), 'error');
-          })
-          .finally(function () { button.disabled = false; });
-      });
+        .catch(function (requestError) {
+          var envelope = requestError && requestError.envelope ? requestError.envelope : null;
+          notify((envelope && envelope.message) || tp('external_users.deactivate_failed', 'Failed to revoke access'), 'error');
+        })
+        .finally(function () { btn.disabled = false; });
     });
   }
 
