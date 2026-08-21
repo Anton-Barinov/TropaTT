@@ -619,6 +619,36 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | DELETE | `/api/v1/worklogs/{public_id}` 🔄 | Удаление записи | Да | `task.manage` | — |
 | GET | `/api/v1/worklogs/task/{public_id}` | Время по задаче | Да | `task.manage` | — |
 
+### Финансы: ставки и вознаграждения
+
+Прайс-листы (`rate_cards`) задают три вида ставок — себестоимость (`cost`), продажу (`bill`) и вознаграждение исполнителя (`payout`) — и привязываются к контрагентам и проектам. Ставка снапшотится в запись времени при её создании; изменение прайса историю не переписывает, пересчёт (`recalculate`) — явная административная операция, а закрытые периоды (`lock`) не пересчитываются.
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/api/v1/rate-cards` | Список прайсов | Да | `finance.ratecard.manage` | — |
+| POST | `/api/v1/rate-cards` | Создать прайс | Да | `finance.ratecard.manage` | — |
+| GET | `/api/v1/rate-cards/{public_id}` | Прайс | Да | `finance.ratecard.manage` | — |
+| PATCH, PUT | `/api/v1/rate-cards/{public_id}` | Изменить прайс | Да | `finance.ratecard.manage` | — |
+| DELETE | `/api/v1/rate-cards/{public_id}` | Архив прайса | Да | `finance.ratecard.manage` | Прайс с привязками удалить нельзя — только архив |
+| GET | `/api/v1/rate-cards/{public_id}/lines` | Строки прайса | Да | `finance.ratecard.manage` | — |
+| POST | `/api/v1/rate-cards/{public_id}/lines` | Создать строку | Да | `finance.ratecard.manage` | — |
+| PATCH, PUT | `/api/v1/rate-card-lines/{public_id}` | Изменить строку | Да | `finance.ratecard.manage` | — |
+| DELETE | `/api/v1/rate-card-lines/{public_id}` | Удалить строку | Да | `finance.ratecard.manage` | — |
+| GET | `/api/v1/rate-card-assignments` | Привязки прайсов | Да | `finance.ratecard.manage` | — |
+| POST | `/api/v1/rate-card-assignments` | Создать привязку | Да | `finance.ratecard.manage` | — |
+| DELETE | `/api/v1/rate-card-assignments/{public_id}` | Удалить привязку | Да | `finance.ratecard.manage` | — |
+| GET | `/api/v1/rates/preview` | Диагностика ставки | Да | `task.manage` | Требуется задача или проект+контрагент; контроллер 403 без финансового права просмотра |
+| POST | `/api/v1/rates/recalculate` | Пересчёт ставок | Да | `finance.rate.manage` | `date_from`, `date_to`, `dry_run` (по умолчанию `true`) |
+| POST | `/api/v1/rates/lock` | Закрыть период | Да | `finance.rate.manage` | — |
+| POST | `/api/v1/rates/unlock` | Открыть период | Да | `finance.rate.manage` | — |
+| GET | `/api/v1/rates/locks` | Закрытые периоды | Да | `finance.rate.manage` | — |
+| GET | `/api/v1/me/earnings` | «Мой заработок» | Да | `task.manage` | Self-scoped; доступен внешним исполнителям (`external_executor_ok`) |
+| GET | `/api/v1/me/earnings/available` | Есть ли что показать | Да | `task.manage` | `{available: bool}` |
+
+**Настройки (scope `system`, право `settings.manage`):** `finance.default_currency` (валюта организации), `finance.cost_from_payout_markup_percent` (вывод себестоимости из вознаграждения, `null` — выкл), `finance.auto_close.mode` (`off`/`weekly`/`monthly`), `finance.auto_close.lag_days` (задержка автозакрытия).
+
+**Права:** `finance.rate.view_own_payout` (своё вознаграждение; по умолчанию у роли `external_guest`), `finance.rate.view_own_cost`, `finance.rate.view_cost`, `finance.rate.view_bill`, `finance.rate.manage`, `finance.ratecard.manage`. Рекомендуемые наборы: руководитель команды — `view_cost`; коммерческий — `view_bill` + `ratecard.manage`; финансовый администратор — все `finance.*`.
+
 ### Dashboard & Analytics
 
 | Метод | Endpoint | Назначение | Auth | Permissions | Описание |

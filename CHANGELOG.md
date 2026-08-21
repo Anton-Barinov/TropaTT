@@ -24,6 +24,10 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 - **Finance permissions and settings.** New `finance.rate.*` permissions are grouped and explained in the role editor; a finance settings block configures the default currency, the cost-from-payout markup, and auto-close.
 
+### Fixed
+
+- **Rate-card mutation endpoints returned HTTP 500.** Updating or archiving a rate card, and updating/deleting a card line or assignment, called the response helper with a missing message argument; PHP raised an error after the change had already been written, so the operation applied but the client saw "Internal server error". These endpoints now return a proper success response.
+
 ## [v0.2.0.6] - 2026-08-21
 
 ### Added

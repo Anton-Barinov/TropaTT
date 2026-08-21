@@ -434,6 +434,8 @@ AI 操作通过 AiJobService/AiAuditService 记录；导入/导出和工作流�
 | `crm_get_worklog_detail` | 获取工时详情 | task.manage | 无 |
 | `crm_get_worklog_task_summary` | 任务摘要 | task.manage | 无 |
 
+> `crm_get_worklog_earnings` 返回基于费率快照的逐行计算，并按客户/项目/工作类型细分，支持 `client_public_id`、`activity_code`、`only_ambiguous` 过滤。财务字段（费率和金额）通过统一的 `FinancialFieldPolicy` 输出，并按披露类别一起隐藏（见 API 参考中的「财务」章节）。
+
 ### 估算
 
 | Tool | 用途 | Permission | 副作用 |

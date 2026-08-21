@@ -619,6 +619,36 @@ Beyond permission checks, a hard route allowlist (`external_ok` in `routes.php`,
 | DELETE | `/api/v1/worklogs/{public_id}` 🔄 | Delete record | Yes | `task.manage` | — |
 | GET | `/api/v1/worklogs/task/{public_id}` | Time by task | Yes | `task.manage` | — |
 
+### Finance: rates and earnings
+
+Price lists (`rate_cards`) define three rate kinds — cost, bill, and payout — and are assigned to counterparties and projects. The rate is snapshotted onto each time entry when it is created; changing a price list never rewrites history, recalculation (`recalculate`) is an explicit admin operation, and locked periods (`lock`) are never recalculated.
+
+| Method | Endpoint | Description | Auth | Permissions | Notes |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/api/v1/rate-cards` | List price lists | Yes | `finance.ratecard.manage` | — |
+| POST | `/api/v1/rate-cards` | Create price list | Yes | `finance.ratecard.manage` | — |
+| GET | `/api/v1/rate-cards/{public_id}` | Get price list | Yes | `finance.ratecard.manage` | — |
+| PATCH, PUT | `/api/v1/rate-cards/{public_id}` | Update price list | Yes | `finance.ratecard.manage` | — |
+| DELETE | `/api/v1/rate-cards/{public_id}` | Archive price list | Yes | `finance.ratecard.manage` | A card with assignments can only be archived |
+| GET | `/api/v1/rate-cards/{public_id}/lines` | List card lines | Yes | `finance.ratecard.manage` | — |
+| POST | `/api/v1/rate-cards/{public_id}/lines` | Create card line | Yes | `finance.ratecard.manage` | — |
+| PATCH, PUT | `/api/v1/rate-card-lines/{public_id}` | Update line | Yes | `finance.ratecard.manage` | — |
+| DELETE | `/api/v1/rate-card-lines/{public_id}` | Delete line | Yes | `finance.ratecard.manage` | — |
+| GET | `/api/v1/rate-card-assignments` | List assignments | Yes | `finance.ratecard.manage` | — |
+| POST | `/api/v1/rate-card-assignments` | Create assignment | Yes | `finance.ratecard.manage` | — |
+| DELETE | `/api/v1/rate-card-assignments/{public_id}` | Delete assignment | Yes | `finance.ratecard.manage` | — |
+| GET | `/api/v1/rates/preview` | Rate resolution diagnostics | Yes | `task.manage` | Requires a task or project+client; 403 without a financial view permission |
+| POST | `/api/v1/rates/recalculate` | Recalculate rates | Yes | `finance.rate.manage` | `date_from`, `date_to`, `dry_run` (default `true`) |
+| POST | `/api/v1/rates/lock` | Lock a period | Yes | `finance.rate.manage` | — |
+| POST | `/api/v1/rates/unlock` | Unlock a period | Yes | `finance.rate.manage` | — |
+| GET | `/api/v1/rates/locks` | List locked periods | Yes | `finance.rate.manage` | — |
+| GET | `/api/v1/me/earnings` | My earnings | Yes | `task.manage` | Self-scoped; available to external executors (`external_executor_ok`) |
+| GET | `/api/v1/me/earnings/available` | Earnings availability | Yes | `task.manage` | `{available: bool}` |
+
+**Settings (scope `system`, right `settings.manage`):** `finance.default_currency` (organization currency), `finance.cost_from_payout_markup_percent` (derive cost from payout; `null` = off), `finance.auto_close.mode` (`off`/`weekly`/`monthly`), `finance.auto_close.lag_days` (auto-close lag).
+
+**Permissions:** `finance.rate.view_own_payout` (own payout; granted to `external_guest` by default), `finance.rate.view_own_cost`, `finance.rate.view_cost`, `finance.rate.view_bill`, `finance.rate.manage`, `finance.ratecard.manage`. Recommended sets: team lead — `view_cost`; commercial — `view_bill` + `ratecard.manage`; finance admin — all `finance.*`.
+
 ### Dashboard & Analytics
 
 | Method | Endpoint | Description | Auth | Permissions | Notes |

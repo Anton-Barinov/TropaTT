@@ -434,6 +434,8 @@ AI-действия логируются через AiJobService/AiAuditService;
 | `crm_get_worklog_detail` | Детали | task.manage | нет |
 | `crm_get_worklog_task_summary` | Сводка по задаче | task.manage | нет |
 
+> `crm_get_worklog_earnings` возвращает построчный расчёт по снапшотам ставок с разрезом клиент/проект/вид работ и фильтрами `client_public_id`, `activity_code`, `only_ambiguous`. Финансовые поля (ставки и суммы) отдаются через единую политику `FinancialFieldPolicy` и скрываются вместе — по классам раскрытия (см. раздел «Финансы» в API-справочнике).
+
 ### Оценки
 
 | Tool | Назначение | Permission | Side effects |

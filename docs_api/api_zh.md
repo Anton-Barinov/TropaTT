@@ -619,6 +619,36 @@ Authorization: Bearer <token>
 | DELETE | `/api/v1/worklogs/{public_id}` 🔄 | 删除记录 | 是 | `task.manage` | — |
 | GET | `/api/v1/worklogs/task/{public_id}` | 按任务的时间 | 是 | `task.manage` | — |
 
+### 财务：费率与收益
+
+价目表（`rate_cards`）定义三种费率——成本（`cost`）、售价（`bill`）和执行人报酬（`payout`）——并关联到客户和项目。创建时间记录时费率会快照到该记录；修改价目表不会重写历史，重算（`recalculate`）是显式的管理操作，已关闭的期间（`lock`）不会被重算。
+
+| 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/api/v1/rate-cards` | 价目表列表 | 是 | `finance.ratecard.manage` | — |
+| POST | `/api/v1/rate-cards` | 创建价目表 | 是 | `finance.ratecard.manage` | — |
+| GET | `/api/v1/rate-cards/{public_id}` | 获取价目表 | 是 | `finance.ratecard.manage` | — |
+| PATCH, PUT | `/api/v1/rate-cards/{public_id}` | 更新价目表 | 是 | `finance.ratecard.manage` | — |
+| DELETE | `/api/v1/rate-cards/{public_id}` | 归档价目表 | 是 | `finance.ratecard.manage` | 已关联的价目表只能归档 |
+| GET | `/api/v1/rate-cards/{public_id}/lines` | 价目表行 | 是 | `finance.ratecard.manage` | — |
+| POST | `/api/v1/rate-cards/{public_id}/lines` | 创建行 | 是 | `finance.ratecard.manage` | — |
+| PATCH, PUT | `/api/v1/rate-card-lines/{public_id}` | 更新行 | 是 | `finance.ratecard.manage` | — |
+| DELETE | `/api/v1/rate-card-lines/{public_id}` | 删除行 | 是 | `finance.ratecard.manage` | — |
+| GET | `/api/v1/rate-card-assignments` | 关联列表 | 是 | `finance.ratecard.manage` | — |
+| POST | `/api/v1/rate-card-assignments` | 创建关联 | 是 | `finance.ratecard.manage` | — |
+| DELETE | `/api/v1/rate-card-assignments/{public_id}` | 删除关联 | 是 | `finance.ratecard.manage` | — |
+| GET | `/api/v1/rates/preview` | 费率诊断 | 是 | `task.manage` | 需要任务或项目+客户；无财务查看权限时 403 |
+| POST | `/api/v1/rates/recalculate` | 重算费率 | 是 | `finance.rate.manage` | `date_from`、`date_to`、`dry_run`（默认 `true`） |
+| POST | `/api/v1/rates/lock` | 关闭期间 | 是 | `finance.rate.manage` | — |
+| POST | `/api/v1/rates/unlock` | 打开期间 | 是 | `finance.rate.manage` | — |
+| GET | `/api/v1/rates/locks` | 已关闭期间 | 是 | `finance.rate.manage` | — |
+| GET | `/api/v1/me/earnings` | 我的收益 | 是 | `task.manage` | 仅限本人；外部执行人可用（`external_executor_ok`） |
+| GET | `/api/v1/me/earnings/available` | 是否有收益 | 是 | `task.manage` | `{available: bool}` |
+
+**设置（scope `system`，权限 `settings.manage`）：** `finance.default_currency`（组织货币）、`finance.cost_from_payout_markup_percent`（由报酬推导成本，`null` 为关闭）、`finance.auto_close.mode`（`off`/`weekly`/`monthly`）、`finance.auto_close.lag_days`（自动关闭延迟）。
+
+**权限：** `finance.rate.view_own_payout`（本人报酬；默认授予 `external_guest`）、`finance.rate.view_own_cost`、`finance.rate.view_cost`、`finance.rate.view_bill`、`finance.rate.manage`、`finance.ratecard.manage`。推荐组合：团队负责人 — `view_cost`；商务 — `view_bill` + `ratecard.manage`；财务管理员 — 全部 `finance.*`。
+
 ### 仪表盘与分析
 
 | 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |

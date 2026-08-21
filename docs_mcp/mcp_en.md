@@ -434,6 +434,8 @@ AI actions are logged via AiJobService/AiAuditService; import/export and workflo
 | `crm_get_worklog_detail` | Get worklog detail | task.manage | none |
 | `crm_get_worklog_task_summary` | Task summary | task.manage | none |
 
+> `crm_get_worklog_earnings` returns per-row amounts computed from rate snapshots with a client/project/work-type breakdown and `client_public_id`, `activity_code`, `only_ambiguous` filters. Financial fields (rates and amounts) are emitted through the single `FinancialFieldPolicy` and are hidden together, per disclosure class (see the Finance section of the API reference).
+
 ### Estimates
 
 | Tool | Purpose | Permission | Side effects |
