@@ -288,6 +288,10 @@ $expectedExecutorRoutes = [
     'POST /api/v1/worklogs',
     'GET /api/v1/me/earnings',
     'GET /api/v1/me/earnings/available',
+    // Work-type dictionary for the executor time-entry form (TZ 8.6). The
+    // controller forces scope=worklog_activity for external actors, so this
+    // leaks no internal status dictionaries.
+    'GET /api/v1/statuses',
 ];
 
 $actualExecutorRoutes = [];

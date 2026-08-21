@@ -106,6 +106,16 @@ final class SettingController extends BaseController
         }
 
         $scope = trim((string)($input['scope'] ?? 'system'));
+
+        if ($scope === 'system' && str_starts_with($name, 'finance.')) {
+            $financeError = $this->validateFinanceSetting($name, $input['value']);
+            if ($financeError !== null) {
+                return $this->error('VALIDATION_ERROR', $financeError, 422, [
+                    'value' => [$financeError],
+                ]);
+            }
+        }
+
         /** @var SettingService $service */
         $service = $this->container->get('service.setting');
         $item = $service->set($scope, $name, $input['value']);
@@ -114,6 +124,36 @@ final class SettingController extends BaseController
         return $this->success('SETTING_SET', $this->t('setting/messages.set'), [
             'setting' => $item,
         ]);
+    }
+
+    /**
+     * Validate the finance.* settings (TZ 3.8). Returns a localized error message
+     * or null when valid. Whitespace-lists / numeric ranges enforced here; the
+     * values are never interpolated into SQL by this controller.
+     */
+    private function validateFinanceSetting(string $name, mixed $value): ?string
+    {
+        if ($name === 'finance.cost_from_payout_markup_percent') {
+            if ($value !== null && $value !== '') {
+                if (!is_numeric($value) || (float)$value < 0 || (float)$value > 1000) {
+                    return $this->t('rate/messages.invalid_markup_percent');
+                }
+            }
+            return null;
+        }
+        if ($name === 'finance.auto_close.lag_days') {
+            if (!is_numeric($value) || (int)$value < 0 || (int)$value > 90) {
+                return $this->t('rate/messages.invalid_lag_days');
+            }
+            return null;
+        }
+        if ($name === 'finance.auto_close.mode') {
+            if (!in_array((string)$value, ['off', 'weekly', 'monthly'], true)) {
+                return $this->t('rate/messages.invalid_auto_close_mode');
+            }
+            return null;
+        }
+        return null;
     }
 
     private function clearSettingCaches(string $scope, string $name): void
@@ -129,6 +169,12 @@ final class SettingController extends BaseController
                 // so a limit change takes effect on the very next page load.
                 if ($scope === 'system' && in_array($name, ['kanban_max_cards', 'gantt_max_tasks'], true)) {
                     $cache->invalidateNamespace('page');
+                }
+                // Finance settings (TZ 3.8, 5.5) feed rate resolution and earnings
+                // snapshots: changing any finance.* key must invalidate 'worklog'
+                // so money reports never serve stale figures for up to a minute.
+                if ($scope === 'system' && str_starts_with($name, 'finance.')) {
+                    $cache->invalidateNamespace('worklog');
                 }
             }
         }

@@ -149,7 +149,7 @@ return [
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/contacts/{public_id}', 'controller' => Api\Controller\Contact\ContactController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['contact.manage']],
 
     // statuses/priorities/tags dictionaries
-    ['methods' => ['GET'], 'pattern' => '/api/v1/statuses', 'controller' => Api\Controller\Status\StatusController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/statuses', 'controller' => Api\Controller\Status\StatusController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_executor_ok' => true, 'authz_note' => 'external executors are scoped to worklog_activity codes only (StatusController::list forces the scope)'],
     ['methods' => ['POST'], 'pattern' => '/api/v1/statuses', 'controller' => Api\Controller\Status\StatusController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/statuses/{public_id}', 'controller' => Api\Controller\Status\StatusController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/statuses/{public_id}', 'controller' => Api\Controller\Status\StatusController::class, 'action' => 'update', 'auth' => true, 'required_permissions' => ['task.manage']],

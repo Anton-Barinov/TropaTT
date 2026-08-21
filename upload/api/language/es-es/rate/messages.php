@@ -11,4 +11,7 @@ return [
     'invalid_activity_code' => 'El tipo de trabajo especificado no está en el diccionario',
     'negative_rate' => 'La tarifa no puede ser negativa',
     'invalid_date_range' => 'La fecha de fin no puede ser anterior a la de inicio',
+    'invalid_markup_percent' => 'El porcentaje de margen debe estar entre 0 y 1000 o vacío',
+    'invalid_lag_days' => 'Los días de retraso deben estar entre 0 y 90',
+    'invalid_auto_close_mode' => 'Modo de cierre automático no válido',
 ];

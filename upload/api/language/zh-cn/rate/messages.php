@@ -11,4 +11,7 @@ return [
     'invalid_activity_code' => '指定的工作类型不在字典中',
     'negative_rate' => '费率不能为负数',
     'invalid_date_range' => '结束日期不能早于开始日期',
+    'invalid_markup_percent' => '加价百分比必须在 0 到 1000 之间或为空',
+    'invalid_lag_days' => '延迟天数必须在 0 到 90 之间',
+    'invalid_auto_close_mode' => '自动关闭模式无效',
 ];

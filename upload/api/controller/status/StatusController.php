@@ -16,9 +16,18 @@ final class StatusController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
+        $input = $this->request()->allInput();
+
+        // External executors (client portal) may list only the work-type dictionary
+        // needed to fill the time-entry form (TZ 8.6). Any requested scope is forced
+        // to worklog_activity so no internal status dictionaries leak to a guest.
+        $actor = $auth['user'] ?? [];
+        if (!empty((int)($actor['is_external'] ?? 0))) {
+            $input['scope'] = 'worklog_activity';
+        }
+
         $cache = $this->cacheApi();
         if ($cache !== null) {
-            $input = $this->request()->allInput();
             ksort($input);
             $cacheKey = 'list:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($input));
             $result = $cache->remember('status', $cacheKey, 60, function () use ($input) {
@@ -29,7 +38,7 @@ final class StatusController extends BaseController
         } else {
             /** @var StatusService $service */
             $service = $this->container->get('service.status');
-            $result = $service->list($this->request()->allInput());
+            $result = $service->list($input);
         }
 
         return $this->success('STATUS_LIST', $this->t('status/messages.list'), ['items' => $result['items']], meta: $result['meta']);
