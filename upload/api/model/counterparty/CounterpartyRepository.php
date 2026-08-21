@@ -47,7 +47,8 @@ final class CounterpartyRepository
             $search = '%' . $this->escapeLikeValue((string)$filters['search']) . '%';
             // ТЗ 6.5: кастомные поля (extra_attributes) участвуют в поиске.
             // User input is a literal substring, not a SQL LIKE pattern.
-            $query->whereRaw('(cp.title LIKE ? OR cp.legal_name LIKE ? OR cp.tax_inn LIKE ? OR cp.email LIKE ? OR cp.phone LIKE ? OR cp.website LIKE ? OR cp.extra_attributes LIKE ?) ESCAPE \'\\\'', [$search, $search, $search, $search, $search, $search, $search]);
+            $escaped = $search;
+            $query->whereRaw('(cp.title LIKE ? ESCAPE \'\\\' OR cp.legal_name LIKE ? ESCAPE \'\\\' OR cp.tax_inn LIKE ? ESCAPE \'\\\' OR cp.email LIKE ? ESCAPE \'\\\' OR cp.phone LIKE ? ESCAPE \'\\\' OR cp.website LIKE ? ESCAPE \'\\\' OR cp.extra_attributes LIKE ? ESCAPE \'\\\')', [$escaped, $escaped, $escaped, $escaped, $escaped, $escaped, $escaped]);
         }
 
         if (!empty($filters['extra_search'])) {

@@ -507,10 +507,9 @@ final class TaskService
                 }
                 $this->activity->recordManyFieldChanges($updatedTask, $changes, $actor, $activityContext);
             }
-        }
-
-        return $this->sanitizeTask($updatedTask);
+        }        return $this->sanitizeTask($updatedTask, $actor);
     }
+
 
     public function delete(string $publicId, array $actor): bool
     {
