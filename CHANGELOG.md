@@ -4,6 +4,26 @@ All notable public changes to TropaTT should be documented here.
 
 This project follows a lightweight Keep a Changelog style. Dates are added when a release is actually created.
 
+## [Unreleased]
+
+### Added
+
+- **Custom rates by counterparty and project.** Introduced three rate kinds — cost, bill, and payout — resolved through named price lists (`rate_cards`) assigned to counterparties and projects, with a per-task override and a default card. Rates are snapshotted onto each time entry when it is logged, so changing a price list never rewrites history; recalculating is an explicit, audited, batched operation that never touches locked periods.
+
+- **Rate resolution and diagnostics.** `GET /api/v1/rates/preview` explains why a rate is what it is (task override, project/counterparty/default card, global user rate, or derived-from-payout) with an ambiguity flag when equally specific price lines compete.
+
+- **Rate-card management UI.** A new "Price lists" page (`rate-cards`) manages cards, lines, and assignments; the counterparty card gets a "Rates" tab (current card, change, and effective employee rates); the project card shows its price list with an explicit "inherited from counterparty" note; the task editor adds a default work type and a rate-override block.
+
+- **Payout visibility for performers.** A "My earnings" page and the `me/earnings` endpoints let staff and external executors see their own accumulated payout, while cost and bill amounts stay hidden by default. Financial field disclosure is centralized in a single policy that strips rate/amount fields per actor.
+
+- **Work-type dictionary.** Time entries carry an activity code (dev, design, analysis, consulting, support by default) that participates in rate resolution and reporting; tasks store a default work type for prefilling.
+
+- **Earnings report.** The time-analytics "Earnings" tab gains client/work-type/ambiguous filters, expandable client/project/work-type columns, per-rate-kind columns, a rate-source indicator, an ambiguity marker, and an open/closed period indicator.
+
+- **Period locking and auto-close.** Admins can lock a date range so its rates no longer recalculate; an optional cron task auto-closes periods (weekly/monthly with a lag), idempotently and never reopens them.
+
+- **Finance permissions and settings.** New `finance.rate.*` permissions are grouped and explained in the role editor; a finance settings block configures the default currency, the cost-from-payout markup, and auto-close.
+
 ## [v0.2.0.6] - 2026-08-21
 
 ### Added
