@@ -607,10 +607,14 @@ final class WorklogService
             $billRates = [];
             $payoutRates = [];
             $currency = null;
+            $anyLocked = false;
+            $anyAmbiguous = false;
 
             foreach ($groupRows as $idx => $r) {
                 $seconds = $rowBillableSeconds[(string)$idx] ?? 0;
                 $hours = $seconds / 3600;
+                if (($r['rate_locked_at'] ?? null) !== null) $anyLocked = true;
+                if (!empty($r['rate_ambiguous'])) $anyAmbiguous = true;
                 // Snapshot first; historical rows without a snapshot
                 // (rate_resolved_at IS NULL) fall back to the live user rate
                 // so pre-migration data still reports money (TZ 5.1).
@@ -662,6 +666,8 @@ final class WorklogService
                 'bill_amount' => round($dailyBillAmount, 2),
                 'payout_amount' => round($dailyPayoutAmount, 2),
                 'currency_code' => $currency,
+                'rate_ambiguous' => $anyAmbiguous ? 1 : 0,
+                'period_locked' => $anyLocked ? 1 : 0,
             ];
         }
 
@@ -847,6 +853,7 @@ final class WorklogService
                 'payout_source_ref' => $payoutSourceRef,
                 'rate_ambiguous' => $ambiguous ? 1 : 0,
                 'rate_locked_at' => $locked,
+                'period_locked' => $locked !== null ? 1 : 0,
                 'snapshot_missing' => $snapshotMissing ? 1 : 0,
                 'currency_code' => $currency,
             ];

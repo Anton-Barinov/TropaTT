@@ -30387,6 +30387,35 @@ window.CRM.pageApiBindings = (function () {
         });
       } catch(e) {}
 
+      // Earnings: client filter derived from the projects list (no separate
+      // counterparty.manage requirement) + work-type dictionary.
+      try {
+        var clientSel = document.getElementById('timeAnalyticsEarningsClientFilter');
+        if (clientSel) {
+          var seenClients = {};
+          var cpHtml = '<option value="">' + _t('time_analytics.opt_all_clients', 'Все контрагенты') + '</option>';
+          projects.forEach(function (p) {
+            var cid = String(p.client_public_id || '');
+            if (!cid || seenClients[cid]) return;
+            seenClients[cid] = true;
+            cpHtml += '<option value="' + safeText(cid) + '">' + safeText(p.client_title || cid) + '</option>';
+          });
+          clientSel.innerHTML = cpHtml;
+        }
+      } catch(e) {}
+      try {
+        var actSel = document.getElementById('timeAnalyticsEarningsActivityFilter');
+        if (actSel) {
+          var actEnv = await window.CRM.api.request('api/v1/statuses', { query: { scope: 'worklog_activity', limit: 200 } });
+          var acts = (actEnv.data?.items || []);
+          var actHtml = '<option value="">' + _t('time_analytics.opt_all_activities', 'Все виды работ') + '</option>';
+          acts.forEach(function (s) {
+            actHtml += '<option value="' + safeText(s.code) + '">' + safeText(s.title || s.code) + '</option>';
+          });
+          actSel.innerHTML = actHtml;
+        }
+      } catch(e) {}
+
       // Load time data
       await loadTimeSummary(timeFrom.value, timeTo.value, '', '', '');
 
@@ -30450,6 +30479,24 @@ window.CRM.pageApiBindings = (function () {
         });
       }
 
+      var earnExpandToggle = document.getElementById('timeAnalyticsEarningsExpandToggle');
+      var earnAmbiguousFilter = document.getElementById('timeAnalyticsEarningsAmbiguousFilter');
+      var earnClientFilter = document.getElementById('timeAnalyticsEarningsClientFilter');
+      var earnActivityFilter = document.getElementById('timeAnalyticsEarningsActivityFilter');
+      function reloadEarnings() {
+        loadEarningsSummary(
+          document.getElementById('timeAnalyticsEarningsFrom').value,
+          document.getElementById('timeAnalyticsEarningsTo').value,
+          document.getElementById('timeAnalyticsEarningsTeamFilter').value,
+          document.getElementById('timeAnalyticsEarningsProjectFilter').value,
+          document.getElementById('timeAnalyticsEarningsUserFilter').value
+        );
+      }
+      if (earnExpandToggle) earnExpandToggle.addEventListener('change', reloadEarnings);
+      if (earnAmbiguousFilter) earnAmbiguousFilter.addEventListener('change', reloadEarnings);
+      if (earnClientFilter) earnClientFilter.addEventListener('change', reloadEarnings);
+      if (earnActivityFilter) earnActivityFilter.addEventListener('change', reloadEarnings);
+
       // Matrix apply button
       var matrixApplyBtn = document.getElementById('timeAnalyticsMatrixApplyBtn');
       if (matrixApplyBtn) {
@@ -30491,6 +30538,14 @@ window.CRM.pageApiBindings = (function () {
       var earnResetBtn = document.getElementById('timeAnalyticsEarningsResetBtn');
       if (earnResetBtn) {
         earnResetBtn.addEventListener('click', function () {
+          var c = document.getElementById('timeAnalyticsEarningsClientFilter');
+          var a = document.getElementById('timeAnalyticsEarningsActivityFilter');
+          var amb = document.getElementById('timeAnalyticsEarningsAmbiguousFilter');
+          var exp = document.getElementById('timeAnalyticsEarningsExpandToggle');
+          if (c) c.value = '';
+          if (a) a.value = '';
+          if (amb) amb.checked = false;
+          if (exp) exp.checked = false;
           resetFilterGroup('timeAnalyticsEarningsFrom', 'timeAnalyticsEarningsTo', 'timeAnalyticsEarningsTeamFilter', 'timeAnalyticsEarningsProjectFilter', 'timeAnalyticsEarningsUserFilter', function() {
             loadEarningsSummary(
               document.getElementById('timeAnalyticsEarningsFrom').value,
@@ -30661,22 +30716,75 @@ window.CRM.pageApiBindings = (function () {
 
   async function loadEarningsSummary(from, to, teamId, projectId, userPublicId) {
     var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
+    var head = document.getElementById('timeAnalyticsEarningsHead');
     var tbody = document.getElementById('timeAnalyticsEarningsBody');
+    var badge = document.getElementById('timeAnalyticsEarningsPeriodBadge');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="8" class="text-muted">' + _t('page.loading', 'Загрузка...') + '</td></tr>';
+
+    var expandToggle = document.getElementById('timeAnalyticsEarningsExpandToggle');
+    var expanded = !!(expandToggle && expandToggle.checked);
+    var clientId = String((document.getElementById('timeAnalyticsEarningsClientFilter') || {}).value || '').trim();
+    var activityCode = String((document.getElementById('timeAnalyticsEarningsActivityFilter') || {}).value || '').trim();
+    var onlyAmbiguous = !!(document.getElementById('timeAnalyticsEarningsAmbiguousFilter') || {}).checked;
+
+    var hasPerm = window.CRM.api && typeof window.CRM.api.hasPermission === 'function' ? window.CRM.api.hasPermission.bind(window.CRM.api) : function () { return false; };
+    var canCost = hasPerm('finance.rate.view_cost') || hasPerm('finance.rate.view_own_cost');
+    var canBill = hasPerm('finance.rate.view_bill');
+    var canPayout = hasPerm('finance.rate.view_cost') || hasPerm('finance.rate.view_own_payout');
+
+    // Column definitions: always = visible in both modes; expand = expanded-only.
+    var cols = [
+      { key: 'date', label: _t('time_analytics.th_date', 'Дата'), always: true },
+      { key: 'user', label: _t('time_analytics.th_user', 'Пользователь'), always: true },
+      { key: 'client', label: _t('time_analytics.th_client', 'Контрагент'), expand: true },
+      { key: 'project', label: _t('time_analytics.th_project', 'Проект'), expand: true },
+      { key: 'activity', label: _t('time_analytics.th_activity', 'Вид работ'), expand: true },
+      { key: 'recorded', label: _t('time_analytics.th_recorded', 'Записано'), always: true },
+      { key: 'unique', label: _t('time_analytics.th_unique', 'Уникально'), always: true },
+    ];
+    if (canCost) cols.push({ key: 'cost_rate', label: _t('time_analytics.th_cost_rate', 'Ставка (себестоимость)') });
+    if (canBill) cols.push({ key: 'bill_rate', label: _t('time_analytics.th_sale_rate', 'Ставка (продажа)') });
+    if (canPayout) cols.push({ key: 'payout_rate', label: _t('time_analytics.th_payout_rate', 'Ставка (вознаграждение)') });
+    if (canCost) cols.push({ key: 'cost', label: _t('time_analytics.th_cost', 'Себестоимость') });
+    if (canBill) cols.push({ key: 'bill', label: _t('time_analytics.th_sale', 'Продажа') });
+    if (canPayout) cols.push({ key: 'payout', label: _t('time_analytics.th_payout', 'Вознаграждение') });
+    cols.push({ key: 'source', label: _t('time_analytics.th_source', 'Источник'), expand: true });
+
+    var visibleCols = cols.filter(function (c) { return c.always || (expanded && c.expand); });
+
+    if (head) {
+      head.innerHTML = '<tr>' + visibleCols.map(function (c) {
+        var cls = (c.key === 'date') ? ' class="crm-matrix-date-col"' : '';
+        return '<th' + cls + '>' + safeText(c.label) + '</th>';
+      }).join('') + '</tr>';
+    }
+
+    tbody.innerHTML = '<tr><td colspan="' + visibleCols.length + '" class="text-muted">' + _t('page.loading', 'Загрузка...') + '</td></tr>';
+
     try {
       var q = { from: from, to: to };
       if (userPublicId) q.user_public_id = userPublicId;
       if (teamId) q.team_public_id = teamId;
       if (projectId) q.project_public_id = projectId;
+      if (clientId) q.client_public_id = clientId;
+      if (activityCode) q.activity_code = activityCode;
+      if (onlyAmbiguous) q.only_ambiguous = 1;
+      if (expanded) q.expanded = 1;
       var env = await window.CRM.api.request('api/v1/worklogs/earnings', { query: q });
       var items = (env && env.data && env.data.items) || [];
       if (items.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-muted">' + _t('page.no_data_period', 'Нет данных за выбранный период') + '</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="' + visibleCols.length + '" class="text-muted">' + _t('page.no_data_period', 'Нет данных за выбранный период') + '</td></tr>';
+        if (badge) badge.classList.add('d-none');
         return;
       }
-      var html = '';
-      items.forEach(function (row) {
+
+      var anyLocked = items.some(function (r) { return Number(r.period_locked || 0) > 0; });
+      if (badge) {
+        badge.classList.remove('d-none');
+        badge.textContent = anyLocked ? _t('time_analytics.period_closed', 'Период закрыт') : _t('time_analytics.period_open', 'Период открыт');
+      }
+
+      var html = items.map(function (row) {
         var day = String(row.day || '');
         var d = new Date(day + 'T00:00:00');
         var dayOfWeek = d.getDay();
@@ -30687,33 +30795,63 @@ window.CRM.pageApiBindings = (function () {
         formattedDay += ', ' + dayNames[dayOfWeek];
         var recorded = Number(row.recorded_minutes != null ? row.recorded_minutes : (row.total_minutes || 0));
         var unique = Number(row.unique_minutes != null ? row.unique_minutes : recorded);
-        var overlap = Number(row.overlap_minutes || 0);
-        var hasOverlap = overlap > 0;
-        var timeStr = (recorded > 0) ? formatMinutesShort(recorded) : '0';
-        var cellCls = (recorded > 0) ? 'crm-matrix-cell crm-matrix-cell-has' : 'crm-matrix-cell';
-        var clickAttr = (recorded > 0) ? (' data-day="' + day + '" data-uid="' + safeText(row.user_public_id) + '"') : '';
-        var uniqueStr = (unique > 0) ? formatMinutesShort(unique) : '0';
-        var uniqueCellCls = (unique > 0) ? 'crm-matrix-cell crm-matrix-cell-has' : 'crm-matrix-cell';
-        var uniqueTitle = hasOverlap ? (' title="' + _t('time_analytics.unique_hint', 'Без повторного учёта одновременных таймеров') + '"') : '';
-        html += '<tr' + rowClass + '>'
-          + '<td class="crm-matrix-date-col">' + formattedDay + '</td>'
-          + '<td data-uname="' + safeText(row.user_full_name || row.user_login) + '">' + safeText(row.user_full_name || row.user_login) + '</td>'
-          + '<td class="' + cellCls + '"' + clickAttr + '>' + timeStr + '</td>'
-          + '<td class="' + uniqueCellCls + '"' + clickAttr + uniqueTitle + '>' + uniqueStr + '</td>'
-          + '<td>' + (row.cost_rate != null ? Number(row.cost_rate).toFixed(2) : '—') + '</td>'
-          + '<td>' + (row.bill_rate != null ? Number(row.bill_rate).toFixed(2) : '—') + '</td>'
-          + '<td>' + Number(row.cost_amount).toFixed(2) + '</td>'
-          + '<td>' + Number(row.bill_amount).toFixed(2) + '</td>'
-          + '</tr>';
-      });
+        var ambiguous = Number(row.rate_ambiguous || 0) > 0;
+        var snapshotMissing = Number(row.snapshot_missing || 0) > 0;
+
+        function rateCell(rate) {
+          if (rate == null || rate === '') {
+            return snapshotMissing ? '<span class="text-muted" title="' + _t('time_analytics.rate_not_snapshotted', 'ставка не зафиксирована') + '">—</span>' : '—';
+          }
+          return Number(rate).toFixed(2);
+        }
+        function sourceLabel(type) {
+          if (!type) return '';
+          var map = {
+            task_override: _t('time_analytics.source_task_override', 'переопределение задачи'),
+            project_card: _t('time_analytics.source_project_card', 'прайс проекта'),
+            counterparty_card: _t('time_analytics.source_counterparty_card', 'прайс контрагента'),
+            default_card: _t('time_analytics.source_default_card', 'прайс по умолчанию'),
+            user_default: _t('time_analytics.source_user_default', 'глобальная ставка'),
+            derived_from_payout: _t('time_analytics.source_derived_from_payout', 'расчёт от вознаграждения'),
+            none: _t('time_analytics.source_none', 'не задана'),
+          };
+          return map[type] || String(type);
+        }
+
+        var cells = visibleCols.map(function (c) {
+          switch (c.key) {
+            case 'date': return '<td class="crm-matrix-date-col">' + formattedDay + '</td>';
+            case 'user': return '<td data-uname="' + safeText(row.user_full_name || row.user_login) + '">' + safeText(row.user_full_name || row.user_login) + '</td>';
+            case 'client': return '<td>' + safeText(row.client_title || row.client_public_id || '—') + '</td>';
+            case 'project': return '<td>' + safeText(row.project_title || row.project_public_id || '—') + '</td>';
+            case 'activity': return '<td>' + safeText(row.activity_code || '—') + '</td>';
+            case 'recorded': return '<td class="' + (recorded > 0 ? 'crm-matrix-cell crm-matrix-cell-has' : 'crm-matrix-cell') + '"' + (recorded > 0 ? (' data-day="' + day + '" data-uid="' + safeText(row.user_public_id) + '"') : '') + '>' + formatMinutesShort(recorded) + '</td>';
+            case 'unique': return '<td class="' + (unique > 0 ? 'crm-matrix-cell crm-matrix-cell-has' : 'crm-matrix-cell') + '"' + (unique > 0 ? (' data-day="' + day + '" data-uid="' + safeText(row.user_public_id) + '"') : '') + '>' + formatMinutesShort(unique) + '</td>';
+            case 'cost_rate': return '<td>' + rateCell(row.cost_rate) + '</td>';
+            case 'bill_rate': return '<td>' + rateCell(row.bill_rate) + '</td>';
+            case 'payout_rate': return '<td>' + rateCell(row.payout_rate) + '</td>';
+            case 'cost': return '<td>' + (row.cost_amount != null ? Number(row.cost_amount).toFixed(2) : '—') + '</td>';
+            case 'bill': return '<td>' + (row.bill_amount != null ? Number(row.bill_amount).toFixed(2) : '—') + '</td>';
+            case 'payout': return '<td>' + (row.payout_amount != null ? Number(row.payout_amount).toFixed(2) : '—') + '</td>';
+            case 'source': {
+              var badges = '';
+              if (ambiguous) badges += '<span class="badge text-bg-warning me-1" title="' + _t('time_analytics.ambiguous_hint', 'Несколько строк прайса одинаковой специфичности') + '">' + _t('time_analytics.ambiguous_badge', '!') + '</span>';
+              if (snapshotMissing) badges += '<span class="text-muted small">' + _t('time_analytics.rate_not_snapshotted', 'ставка не зафиксирована') + '</span>';
+              var src = sourceLabel(row.bill_source_type || row.cost_source_type || row.payout_source_type);
+              return '<td>' + badges + (src ? safeText(src) : '—') + '</td>';
+            }
+            default: return '<td></td>';
+          }
+        });
+        return '<tr' + rowClass + '>' + cells.join('') + '</tr>';
+      }).join('');
       tbody.innerHTML = html;
-      // Apply weekend row styling via inline style
       tbody.querySelectorAll('.crm-matrix-weekend-row td').forEach(function(td) {
         td.style.setProperty('background-color', 'var(--color-neutral-100)', 'important');
       });
       bindTimeCells(tbody);
     } catch (e) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-danger">' + _t('page.load_error', 'Ошибка загрузки') + '</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="' + visibleCols.length + '" class="text-danger">' + _t('page.load_error', 'Ошибка загрузки') + '</td></tr>';
     }
   }
 
