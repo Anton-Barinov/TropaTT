@@ -45,4 +45,10 @@ return [
     'perm_idea_view' => 'Идеи: просмотр',
     'perm_idea_manage' => 'Идеи: создание и управление',
     'perm_knowledge_review' => 'База знаний: проверка страниц',
+    'perm_finance_rate_view_own_payout' => 'Финансы: видеть своё вознаграждение',
+    'perm_finance_rate_view_own_cost' => 'Финансы: видеть свою себестоимость',
+    'perm_finance_rate_view_cost' => 'Финансы: видеть затраты по команде',
+    'perm_finance_rate_view_bill' => 'Финансы: видеть ставки продажи и маржу',
+    'perm_finance_rate_manage' => 'Финансы: управлять ставками, пересчётом и блокировкой',
+    'perm_finance_ratecard_manage' => 'Финансы: управлять прайс-листами',
 ];

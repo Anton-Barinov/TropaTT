@@ -45,4 +45,10 @@ return [
     'perm_idea_view' => 'Ideas: view ideas',
     'perm_idea_manage' => 'Ideas: create and manage ideas',
     'perm_knowledge_review' => 'Knowledge: review pages',
+    'perm_finance_rate_view_own_payout' => 'Finance: view own payout',
+    'perm_finance_rate_view_own_cost' => 'Finance: view own cost',
+    'perm_finance_rate_view_cost' => 'Finance: view team costs',
+    'perm_finance_rate_view_bill' => 'Finance: view bill rates and margin',
+    'perm_finance_rate_manage' => 'Finance: manage rates, recalculate, lock periods',
+    'perm_finance_ratecard_manage' => 'Finance: manage rate cards and assignments',
 ];

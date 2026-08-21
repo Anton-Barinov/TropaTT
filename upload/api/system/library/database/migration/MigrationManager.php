@@ -73,6 +73,7 @@ final class MigrationManager
             new RateCardsMigration(),
             new WorklogRateColumnsMigration(),
             new WorklogRateIndexesMigration(),
+            new FinancePermissionsMigration(),
         ];
     }
 

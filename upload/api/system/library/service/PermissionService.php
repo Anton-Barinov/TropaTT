@@ -69,6 +69,13 @@ final class PermissionService
             // Self-healing fallback for installs where KnowledgeBaseMigration
             // already ran before knowledge.review was added to its seed list.
             'knowledge.review' => $this->t('permission/messages.perm_knowledge_review', 'Knowledge: review pages'),
+            // Finance / rates (see TZ_kastomnye_stavki.md section 6.1)
+            'finance.rate.view_own_payout' => $this->t('permission/messages.perm_finance_rate_view_own_payout', 'Finance: view own payout'),
+            'finance.rate.view_own_cost' => $this->t('permission/messages.perm_finance_rate_view_own_cost', 'Finance: view own cost'),
+            'finance.rate.view_cost' => $this->t('permission/messages.perm_finance_rate_view_cost', 'Finance: view team costs'),
+            'finance.rate.view_bill' => $this->t('permission/messages.perm_finance_rate_view_bill', 'Finance: view bill rates and margin'),
+            'finance.rate.manage' => $this->t('permission/messages.perm_finance_rate_manage', 'Finance: manage rates, recalculate, lock periods'),
+            'finance.ratecard.manage' => $this->t('permission/messages.perm_finance_ratecard_manage', 'Finance: manage rate cards and assignments'),
         ];
 
         $this->permissions->ensureRegistry($registry);

@@ -45,4 +45,10 @@ return [
     'perm_idea_view' => 'Ideas: ver ideas',
     'perm_idea_manage' => 'Ideas: crear y gestionar ideas',
     'perm_knowledge_review' => 'Conocimiento: revisar páginas',
+    'perm_finance_rate_view_own_payout' => 'Finanzas: ver su propia remuneración',
+    'perm_finance_rate_view_own_cost' => 'Finanzas: ver su propio coste',
+    'perm_finance_rate_view_cost' => 'Finanzas: ver costes del equipo',
+    'perm_finance_rate_view_bill' => 'Finanzas: ver tarifas de venta y margen',
+    'perm_finance_rate_manage' => 'Finanzas: gestionar tarifas, recalcular, bloquear',
+    'perm_finance_ratecard_manage' => 'Finanzas: gestionar listas de precios',
 ];

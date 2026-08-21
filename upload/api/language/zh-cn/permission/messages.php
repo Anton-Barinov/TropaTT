@@ -45,4 +45,10 @@ return [
     'perm_idea_view' => '想法：查看想法',
     'perm_idea_manage' => '想法：创建和管理想法',
     'perm_knowledge_review' => '知识：审核页面',
+    'perm_finance_rate_view_own_payout' => '财务：查看自己的报酬',
+    'perm_finance_rate_view_own_cost' => '财务：查看自己的成本费率',
+    'perm_finance_rate_view_cost' => '财务：查看团队成本',
+    'perm_finance_rate_view_bill' => '财务：查看销售费率和利润',
+    'perm_finance_rate_manage' => '财务：管理费率、重新计算、锁定周期',
+    'perm_finance_ratecard_manage' => '财务：管理价格表',
 ];
