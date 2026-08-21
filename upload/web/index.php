@@ -745,6 +745,9 @@ $adminRoutePermissions = [
     'admin-logs' => ['logs.view'],
     'admin-api-clients' => ['api_client.view'],
     'admin-settings' => ['settings.manage'],
+    // Finance / rates (TZ 8.1, 8.2): page shell mirrors the API permission gate.
+    'my-earnings' => ['finance.rate.view_own_payout'],
+    'rate-cards' => ['finance.ratecard.manage'],
     // Jobs queue aggregates import/export/AI-job lists plus ops endpoints.
     'admin-jobs' => ['logs.view', 'import.manage', 'export.manage', 'ai.view_cron_results'],
     'admin-ai' => ['ai.admin'],

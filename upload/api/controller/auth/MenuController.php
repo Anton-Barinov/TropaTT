@@ -24,6 +24,7 @@ final class MenuController extends BaseController
         ['key' => 'cycles', 'i18n' => 'nav.cycles', 'label_key' => 'nav.cycles', 'href' => 'index.php?route=cycles', 'permissions' => ['task.manage']],
         ['key' => 'knowledge', 'i18n' => 'nav.knowledge', 'label_key' => 'nav.knowledge', 'href' => 'index.php?route=knowledge', 'permissions' => ['knowledge.view']],
         ['key' => 'analytics', 'i18n' => 'nav.analytics', 'label_key' => 'nav.analytics', 'href' => 'index.php?route=analytics', 'permissions' => ['task.manage']],
+        ['key' => 'my-earnings', 'i18n' => 'nav.my_earnings', 'label_key' => 'nav.my_earnings', 'href' => 'index.php?route=my-earnings', 'permissions' => ['finance.rate.view_own_payout']],
         ['key' => 'notifications', 'i18n' => 'nav.notifications', 'label_key' => 'nav.notifications', 'href' => 'index.php?route=notifications', 'permissions' => []],
         // Admin entries mirror the server-side route gate in web/index.php
         // ($adminRoutePermissions): the same permission set that lets a user
@@ -33,6 +34,7 @@ final class MenuController extends BaseController
         // permission code (see web/index.php adminRoutePermissions comment).
         ['key' => 'admin-estimates', 'i18n' => 'nav.admin_estimates', 'label_key' => 'nav.admin_estimates', 'href' => 'index.php?route=admin-estimates', 'permissions' => ['project.manage']],
         ['key' => 'admin-modules', 'i18n' => 'nav.admin_modules', 'label_key' => 'nav.admin_modules', 'href' => 'index.php?route=admin-modules', 'permissions' => ['settings.manage']],
+        ['key' => 'rate-cards', 'i18n' => 'nav.rate_cards', 'label_key' => 'nav.rate_cards', 'href' => 'index.php?route=rate-cards', 'permissions' => ['finance.ratecard.manage']],
         ['key' => 'chat', 'i18n' => 'nav.chat', 'label_key' => 'nav.chat', 'href' => 'index.php?route=chat', 'permissions' => ['chat.use']],
         ['key' => 'docs', 'i18n' => 'nav.api', 'label_key' => 'nav.api', 'href' => 'index.php?route=docs', 'permissions' => []],
     ];
@@ -88,9 +90,17 @@ final class MenuController extends BaseController
         // unlock kanban/gantt/calendar/day/week/cycles/analytics here. Module
         // nav items are skipped entirely for external actors since modules
         // are not guaranteed to be RLS-aware.
+        // TZ 15.1: the "My earnings" item appears only when the actor has payout
+        // data (available = true). Compute once so the external hard allowlist and
+        // the internal permission filter agree on the same visibility.
+        $myEarningsAvailable = $this->myEarningsAvailable($user);
+
         $isExternalActor = !empty((int)($user['is_external'] ?? 0));
         if ($isExternalActor) {
             $externalAllowedKeys = ['projects', 'tasks', 'notifications'];
+            if ($myEarningsAvailable) {
+                $externalAllowedKeys[] = 'my-earnings';
+            }
             $availableItems = array_values(array_filter(
                 $availableItems,
                 static fn(array $item): bool => in_array($item['key'], $externalAllowedKeys, true)
@@ -113,6 +123,13 @@ final class MenuController extends BaseController
                     'parent' => $item['parent'] ?? null,
                 ];
             }
+        }
+
+        if (!$myEarningsAvailable) {
+            $availableItems = array_values(array_filter(
+                $availableItems,
+                static fn(array $item): bool => $item['key'] !== 'my-earnings'
+            ));
         }
 
         $userPublicId = (string)($user['public_id'] ?? '');
@@ -887,6 +904,39 @@ final class MenuController extends BaseController
         // (crmWebApiCheckAnyPermission in web/index.php) so a menu item shows
         // exactly when its page shell can be loaded.
         return $authz->hasAnyPermissions($user, $requiredPermissions);
+    }
+
+    /**
+     * Lightweight "My earnings" availability check (TZ 7.2 / 15.1): true when the
+     * actor has at least one worklog with a payout snapshot or a user-level
+     * payout_rate. Strictly self-scoped; reveals no values, only a boolean.
+     */
+    private function myEarningsAvailable(array $user): bool
+    {
+        $userId = (int)($user['id'] ?? 0);
+        if ($userId <= 0) {
+            return false;
+        }
+
+        try {
+            /** @var \PDO $pdo */
+            $pdo = $this->container->get('db.pdo');
+
+            $stmt = $pdo->prepare(
+                'SELECT 1 FROM work_logs WHERE user_id = :uid AND payout_rate_snapshot IS NOT NULL LIMIT 1'
+            );
+            $stmt->execute([':uid' => $userId]);
+            if ($stmt->fetchColumn() !== false) {
+                return true;
+            }
+
+            $stmt = $pdo->prepare('SELECT 1 FROM users WHERE id = :uid AND payout_rate IS NOT NULL LIMIT 1');
+            $stmt->execute([':uid' => $userId]);
+            return $stmt->fetchColumn() !== false;
+        } catch (\Throwable $e) {
+            error_log('[MenuController::myEarningsAvailable] ' . $e->getMessage());
+            return false;
+        }
     }
 
     private function resolveRolePublicIds(array $roleCodes): array

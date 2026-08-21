@@ -39,6 +39,8 @@ return [
 
     'analytics' => [Web\Controller\Page\AnalyticsController::class, 'index'],
     'time-analytics' => [Web\Controller\Page\TimeAnalyticsController::class, 'index'],
+    'my-earnings' => [Web\Controller\Page\MyEarningsController::class, 'index'],
+    'rate-cards' => [Web\Controller\Page\RateCardsController::class, 'index'],
     'global-search' => [Web\Controller\Page\GlobalSearchController::class, 'index'],
     'docs' => [Web\Controller\Page\DocsController::class, 'index'],
     'knowledge' => [Web\Controller\Page\KnowledgeController::class, 'index'],

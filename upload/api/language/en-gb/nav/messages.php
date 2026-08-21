@@ -23,5 +23,7 @@ return [
     'chat' => 'Chats',
     'docs' => 'Documentation',
     'api' => 'Documentation',
+    'my_earnings' => 'My earnings',
+    'rate_cards' => 'Rate cards',
     'menu_loaded' => 'Menu loaded',
 ];

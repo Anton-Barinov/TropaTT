@@ -18,6 +18,8 @@ return [
     'chat' => 'Chats',
     'api' => 'Documentation',
     'knowledge' => 'Base de connaissances',
+    'my_earnings' => 'Ma rémunération',
+    'rate_cards' => 'Grilles tarifaires',
     'menu_loaded' => 'Menu chargé',
     'admin_estimates' => 'Estimations des tâches',
     'cycles' => 'Cycles (Sprints)',

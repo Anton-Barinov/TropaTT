@@ -31298,12 +31298,358 @@ window.CRM.pageApiBindings = (function () {
       if (route === 'admin-tags') return await renderAdminTagsPage();
       if (route === 'admin-webhooks') return await renderAdminWebhooksPage();
       if (route === 'time-analytics') return await renderTimeAnalyticsPage();
+      if (route === 'my-earnings') return await renderMyEarningsPage();
+      if (route === 'rate-cards') return await renderRateCardsPage();
       if (route === 'global-search') return await renderGlobalSearchPage();
     } finally {
       void notificationsPromise;
       humanizeUserPublicIds(document.body);
       setLoadingState(false);
     }
+  }
+
+  async function renderMyEarningsPage() {
+    var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
+    function rt(key, fallback) { return _t('js.pab.' + key, fallback); }
+
+    var fromEl = document.getElementById('myEarningsFrom');
+    var toEl = document.getElementById('myEarningsTo');
+    if (!fromEl || !toEl) return;
+
+    function iso(d) { return d.toISOString().slice(0, 10); }
+    var now = new Date();
+    if (!fromEl.value) fromEl.value = iso(new Date(now.getFullYear(), now.getMonth(), 1));
+    if (!toEl.value) toEl.value = iso(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+
+    async function load() {
+      var from = fromEl.value, to = toEl.value;
+
+      var avail = await tryRequest('api/v1/me/earnings/available', { silent: true });
+      if (avail && avail.success && avail.data && avail.data.available === false) {
+        var me = window.CRM.api && typeof window.CRM.api.getUser === 'function' ? window.CRM.api.getUser() : null;
+        window.location.href = 'index.php?route=' + (me && me.is_external ? 'projects' : 'dashboard');
+        return;
+      }
+
+      var env = await tryRequest('api/v1/me/earnings', { query: { date_from: from, date_to: to } });
+      if (!env || !env.success) return;
+      var data = env.data || {};
+      var items = Array.isArray(data.items) ? data.items : [];
+
+      var totalAmount = 0, totalMinutes = 0, rate = null, currency = '';
+      items.forEach(function (it) {
+        totalAmount += Number(it.payout_amount || 0);
+        totalMinutes += Number(it.recorded_minutes || 0);
+        if (it.payout_rate !== null && it.payout_rate !== undefined && it.payout_rate !== '') rate = it.payout_rate;
+        if (!currency && it.currency_code) currency = String(it.currency_code);
+      });
+
+      var hasPayout = Boolean(data.has_any_payout);
+      document.getElementById('myEarningsAccrued').textContent = hasPayout ? (totalAmount.toFixed(2) + (currency ? ' ' + currency : '')) : '—';
+      document.getElementById('myEarningsHours').textContent = (totalMinutes / 60).toFixed(2);
+      document.getElementById('myEarningsRate').textContent = rate !== null ? (Number(rate).toFixed(2) + (currency ? ' ' + currency : '')) : '—';
+
+      var badge = document.getElementById('myEarningsPeriodBadge');
+      if (badge) badge.hidden = !Boolean(data.period_locked);
+
+      var empty = document.getElementById('myEarningsEmpty');
+      var body = document.getElementById('myEarningsBody');
+      if (!hasPayout) {
+        if (empty) empty.hidden = false;
+        if (body) body.innerHTML = '';
+        return;
+      }
+      if (empty) empty.hidden = true;
+      if (body) {
+        body.innerHTML = items.map(function (it) {
+          var project = safeText(it.project_title || it.project_public_id || rt('my_earnings.no_project', '—'));
+          var task = safeText(it.task_title || it.task_public_id || '');
+          var name = project + (task ? ' / ' + task : '');
+          var amount = Number(it.payout_amount || 0).toFixed(2) + (it.currency_code ? ' ' + safeText(it.currency_code) : '');
+          return '<tr><td>' + safeText(it.day || '') + '</td><td>' + name + '</td><td>' + (Number(it.recorded_minutes || 0) / 60).toFixed(2) + '</td><td>' + amount + '</td></tr>';
+        }).join('');
+      }
+    }
+
+    var prevBtn = document.getElementById('myEarningsPrevMonthBtn');
+    if (prevBtn && prevBtn.dataset.bound !== '1') {
+      prevBtn.addEventListener('click', function () {
+        var n = new Date();
+        fromEl.value = iso(new Date(n.getFullYear(), n.getMonth() - 1, 1));
+        toEl.value = iso(new Date(n.getFullYear(), n.getMonth(), 0));
+        load();
+      });
+      prevBtn.dataset.bound = '1';
+    }
+    var qBtn = document.getElementById('myEarningsQuarterBtn');
+    if (qBtn && qBtn.dataset.bound !== '1') {
+      qBtn.addEventListener('click', function () {
+        var n = new Date();
+        var q = Math.floor(n.getMonth() / 3) * 3;
+        fromEl.value = iso(new Date(n.getFullYear(), q, 1));
+        toEl.value = iso(new Date(n.getFullYear(), q + 3, 0));
+        load();
+      });
+      qBtn.dataset.bound = '1';
+    }
+    var applyBtn = document.getElementById('myEarningsApplyBtn');
+    if (applyBtn && applyBtn.dataset.bound !== '1') {
+      applyBtn.addEventListener('click', load);
+      applyBtn.dataset.bound = '1';
+    }
+
+    await load();
+  }
+
+  async function renderRateCardsPage() {
+    var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
+    function rt(key, fallback) { return _t('js.pab.' + key, fallback); }
+
+    var state = { cards: [], assignments: [], users: [], roles: [], activities: [] };
+
+    async function loadLookups() {
+      var u = await tryRequest('api/v1/users', { query: { limit: 500 }, silent: true });
+      if (u && u.success) state.users = mapItems(u);
+      var r = await tryRequest('api/v1/roles', { query: { limit: 500 }, silent: true });
+      if (r && r.success) state.roles = mapItems(r);
+      var a = await tryRequest('api/v1/statuses', { query: { scope: 'worklog_activity', limit: 500 }, silent: true });
+      if (a && a.success) state.activities = mapItems(a);
+    }
+
+    function userNameLabel(u) { return safeText(u.full_name || u.login || u.public_id); }
+    function scopeLabel(a) { return a.scope_type === 'project' ? rt('rate_cards.scope_project', 'Проект') : rt('rate_cards.scope_counterparty', 'Контрагент'); }
+    function inherited() { return '<span class="text-muted">' + rt('rate_cards.inherited', 'наследуется') + '</span>'; }
+
+    async function loadCards() {
+      var env = await tryRequest('api/v1/rate-cards', {});
+      state.cards = (env && env.success) ? mapItems(env) : [];
+      renderCardsTable();
+    }
+
+    async function loadAssignments() {
+      var env = await tryRequest('api/v1/rate-card-assignments', {});
+      state.assignments = (env && env.success) ? mapItems(env) : [];
+      renderAssignmentsTable();
+    }
+
+    function renderCardsTable() {
+      var tbody = document.getElementById('rateCardsTableBody');
+      if (!tbody) return;
+      if (!state.cards.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-muted">' + rt('rate_cards.empty', 'Прайс-листов пока нет.') + '</td></tr>';
+        return;
+      }
+      tbody.innerHTML = state.cards.map(function (c) {
+        var badge = c.is_default ? ' <span class="badge text-bg-primary">' + rt('rate_cards.badge_default', 'по умолчанию') + '</span>' : '';
+        var arch = c.is_archived ? ' <span class="badge text-bg-secondary">' + rt('rate_cards.badge_archived', 'архив') + '</span>' : '';
+        var actions = '<div class="d-flex gap-1"><button class="btn btn-sm crm-btn-secondary" data-rate-lines="' + safeText(c.public_id) + '">' + rt('rate_cards.btn_lines', 'Строки') + '</button>' +
+          '<button class="btn btn-sm crm-btn-secondary" data-rate-edit="' + safeText(c.public_id) + '">' + rt('common.edit', 'Изменить') + '</button>' +
+          (c.is_archived ? '' : '<button class="btn btn-sm crm-btn-danger-soft" data-rate-archive="' + safeText(c.public_id) + '">' + rt('rate_cards.btn_archive', 'Архив') + '</button>') +
+          '</div>';
+        return '<tr><td><strong>' + safeText(c.title) + '</strong>' + badge + arch + '</td>' +
+          '<td>' + safeText(c.currency_code || rt('rate_cards.org_currency', 'валюта организации')) + '</td>' +
+          '<td>' + safeText(String(c.line_count || 0)) + '</td>' +
+          '<td>' + safeText(String(c.assignment_count || 0)) + '</td>' +
+          '<td>' + (c.is_default ? rt('rate_cards.yes', 'Да') : rt('rate_cards.no', 'Нет')) + '</td>' +
+          '<td>' + actions + '</td></tr>';
+      }).join('');
+
+      document.querySelectorAll('[data-rate-lines]').forEach(function (btn) {
+        if (btn.dataset.bound === '1') return;
+        btn.addEventListener('click', function () { openLinesModal(btn.getAttribute('data-rate-lines')); });
+        btn.dataset.bound = '1';
+      });
+      document.querySelectorAll('[data-rate-edit]').forEach(function (btn) {
+        if (btn.dataset.bound === '1') return;
+        btn.addEventListener('click', function () {
+          var c = state.cards.find(function (x) { return x.public_id === btn.getAttribute('data-rate-edit'); });
+          if (!c) return;
+          openCardModal(c);
+        });
+        btn.dataset.bound = '1';
+      });
+      document.querySelectorAll('[data-rate-archive]').forEach(function (btn) {
+        if (btn.dataset.bound === '1') return;
+        btn.addEventListener('click', async function () {
+          var pid = btn.getAttribute('data-rate-archive');
+          var res = await tryRequest('api/v1/rate-cards/' + pid, { method: 'DELETE' });
+          if (res && res.success) { notify(rt('rate_cards.archived', 'Прайс заархивирован')); loadCards(); }
+        });
+        btn.dataset.bound = '1';
+      });
+    }
+
+    function renderAssignmentsTable() {
+      var tbody = document.getElementById('rateAssignmentsBody');
+      if (!tbody) return;
+      if (!state.assignments.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-muted">' + rt('rate_cards.assignments_empty', 'Привязок пока нет.') + '</td></tr>';
+        return;
+      }
+      tbody.innerHTML = state.assignments.map(function (a) {
+        var period = safeText(a.effective_from || '') + ' — ' + safeText(a.effective_to || '∞');
+        return '<tr><td>' + safeText(a.card_title || a.card_public_id) + '</td>' +
+          '<td>' + scopeLabel(a) + '</td>' +
+          '<td><code>' + safeText(a.scope_ref) + '</code></td>' +
+          '<td>' + period + '</td>' +
+          '<td><button class="btn btn-sm crm-btn-danger-soft" data-rate-unassign="' + safeText(a.public_id) + '"><i class="fa-solid fa-trash" aria-hidden="true"></i></button></td></tr>';
+      }).join('');
+
+      document.querySelectorAll('[data-rate-unassign]').forEach(function (btn) {
+        if (btn.dataset.bound === '1') return;
+        btn.addEventListener('click', async function () {
+          var res = await tryRequest('api/v1/rate-card-assignments/' + btn.getAttribute('data-rate-unassign'), { method: 'DELETE' });
+          if (res && res.success) { notify(rt('rate_cards.unassigned', 'Привязка удалена')); loadAssignments(); loadCards(); }
+        });
+        btn.dataset.bound = '1';
+      });
+    }
+
+    function openCardModal(card) {
+      var form = document.getElementById('rateCardForm');
+      form.reset();
+      form.elements.public_id.value = card ? card.public_id : '';
+      if (card) {
+        form.elements.title.value = card.title || '';
+        form.elements.description.value = card.description || '';
+        form.elements.currency_code.value = card.currency_code || '';
+        form.elements.is_default.checked = Boolean(card.is_default);
+      }
+      new bootstrap.Modal(document.getElementById('rateCardModal')).show();
+    }
+
+    function populateSelect(sel, items, valueFn, labelFn, emptyLabel) {
+      var opts = '<option value="">' + safeText(emptyLabel) + '</option>';
+      items.forEach(function (it) { opts += '<option value="' + safeText(valueFn(it)) + '">' + safeText(labelFn(it)) + '</option>'; });
+      sel.innerHTML = opts;
+    }
+
+    async function openLinesModal(cardPublicId) {
+      state.linesCardPublicId = cardPublicId;
+      var card = state.cards.find(function (x) { return x.public_id === cardPublicId; });
+      var userSel = document.querySelector('#rateCardLineForm [name="user_public_id"]');
+      var roleSel = document.querySelector('#rateCardLineForm [name="role_code"]');
+      var actSel = document.querySelector('#rateCardLineForm [name="activity_code"]');
+      populateSelect(userSel, state.users, function (u) { return u.public_id; }, userNameLabel, rt('rate_cards.any_user', 'Любой'));
+      populateSelect(roleSel, state.roles, function (r) { return r.code; }, function (r) { return r.title || r.code; }, rt('rate_cards.any_role', 'Любая'));
+      populateSelect(actSel, state.activities, function (s) { return s.code; }, function (s) { return s.title || s.code; }, rt('rate_cards.any_activity', 'Любой'));
+      document.querySelector('#rateCardLineForm [name="public_id"]').value = '';
+      document.querySelector('#rateCardLineForm [name="effective_from"]').value = new Date().toISOString().slice(0, 10);
+      new bootstrap.Modal(document.getElementById('rateCardLinesModal')).show();
+      await loadLines(cardPublicId);
+    }
+
+    async function loadLines(cardPublicId) {
+      var env = await tryRequest('api/v1/rate-cards/' + cardPublicId + '/lines', {});
+      var lines = (env && env.success) ? mapItems(env) : [];
+      var tbody = document.getElementById('rateCardLinesBody');
+      if (!tbody) return;
+      if (!lines.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-muted">' + rt('rate_cards.lines_empty', 'Строк пока нет.') + '</td></tr>';
+        return;
+      }
+      tbody.innerHTML = lines.map(function (l) {
+        function cell(v) { return (v === null || v === undefined || v === '') ? inherited() : safeText(String(v)); }
+        var user = l.user_public_id ? (state.users.find(function (u) { return u.public_id === l.user_public_id; }) || {}) : {};
+        return '<tr><td>' + safeText(userNameLabel(user)) + '</td>' +
+          '<td>' + safeText(l.role_code || '') + '</td>' +
+          '<td>' + safeText(l.activity_code || '') + '</td>' +
+          '<td>' + cell(l.cost_rate) + '</td>' +
+          '<td>' + cell(l.bill_rate) + '</td>' +
+          '<td>' + cell(l.payout_rate) + '</td>' +
+          '<td>' + safeText(l.effective_from || '') + ' — ' + safeText(l.effective_to || '∞') + '</td>' +
+          '<td><button class="btn btn-sm crm-btn-danger-soft" data-rate-line-del="' + safeText(l.public_id) + '"><i class="fa-solid fa-trash" aria-hidden="true"></i></button></td></tr>';
+      }).join('');
+
+      document.querySelectorAll('[data-rate-line-del]').forEach(function (btn) {
+        if (btn.dataset.bound === '1') return;
+        btn.addEventListener('click', async function () {
+          var res = await tryRequest('api/v1/rate-card-lines/' + btn.getAttribute('data-rate-line-del'), { method: 'DELETE' });
+          if (res && res.success) { notify(rt('rate_cards.line_deleted', 'Строка удалена')); loadLines(cardPublicId); loadCards(); }
+        });
+        btn.dataset.bound = '1';
+      });
+    }
+
+    function numberOrNull(v) { return (v === '' || v === null || v === undefined) ? null : v; }
+
+    var cardForm = document.getElementById('rateCardForm');
+    if (cardForm && cardForm.dataset.bound !== '1') {
+      cardForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var fd = new FormData(cardForm);
+        var pid = fd.get('public_id');
+        var body = {
+          title: fd.get('title'),
+          description: fd.get('description') || null,
+          currency_code: fd.get('currency_code') || null,
+          is_default: cardForm.elements.is_default.checked ? 1 : 0
+        };
+        var res = pid
+          ? await tryRequest('api/v1/rate-cards/' + pid, { method: 'PATCH', body: body })
+          : await tryRequest('api/v1/rate-cards', { method: 'POST', body: body });
+        if (res && res.success) { notify(rt('rate_cards.saved', 'Сохранено')); bootstrap.Modal.getInstance(document.getElementById('rateCardModal')).hide(); loadCards(); }
+      });
+      cardForm.dataset.bound = '1';
+    }
+
+    var lineForm = document.getElementById('rateCardLineForm');
+    if (lineForm && lineForm.dataset.bound !== '1') {
+      lineForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var fd = new FormData(lineForm);
+        var cardPublicId = state.linesCardPublicId;
+        var body = {
+          user_public_id: fd.get('user_public_id') || null,
+          role_code: fd.get('role_code') || null,
+          activity_code: fd.get('activity_code') || null,
+          cost_rate: numberOrNull(fd.get('cost_rate')),
+          bill_rate: numberOrNull(fd.get('bill_rate')),
+          payout_rate: numberOrNull(fd.get('payout_rate')),
+          effective_from: fd.get('effective_from'),
+          effective_to: fd.get('effective_to') || null
+        };
+        var res = await tryRequest('api/v1/rate-cards/' + cardPublicId + '/lines', { method: 'POST', body: body });
+        if (res && res.success) { notify(rt('rate_cards.line_added', 'Строка добавлена')); lineForm.reset(); loadLines(cardPublicId); loadCards(); }
+      });
+      lineForm.dataset.bound = '1';
+    }
+
+    var assignForm = document.getElementById('rateAssignmentForm');
+    if (assignForm && assignForm.dataset.bound !== '1') {
+      assignForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var fd = new FormData(assignForm);
+        var res = await tryRequest('api/v1/rate-card-assignments', { method: 'POST', body: {
+          rate_card_public_id: fd.get('rate_card_public_id'),
+          scope_type: fd.get('scope_type'),
+          scope_ref: fd.get('scope_ref'),
+          effective_from: fd.get('effective_from') || new Date().toISOString().slice(0, 10),
+          effective_to: fd.get('effective_to') || null
+        }});
+        if (res && res.success) { notify(rt('rate_cards.assigned', 'Привязка создана')); bootstrap.Modal.getInstance(document.getElementById('rateAssignmentModal')).hide(); loadAssignments(); loadCards(); }
+      });
+      assignForm.dataset.bound = '1';
+    }
+
+    var createBtn = document.getElementById('rateCardCreateOpenBtn');
+    if (createBtn && createBtn.dataset.bound !== '1') {
+      createBtn.addEventListener('click', function () { openCardModal(null); });
+      createBtn.dataset.bound = '1';
+    }
+    var assignOpenBtn = document.getElementById('rateAssignmentCreateOpenBtn');
+    if (assignOpenBtn && assignOpenBtn.dataset.bound !== '1') {
+      assignOpenBtn.addEventListener('click', function () {
+        var sel = document.querySelector('#rateAssignmentForm [name="rate_card_public_id"]');
+        if (sel) sel.innerHTML = state.cards.map(function (c) { return '<option value="' + safeText(c.public_id) + '">' + safeText(c.title) + '</option>'; }).join('');
+        document.querySelector('#rateAssignmentForm [name="effective_from"]').value = new Date().toISOString().slice(0, 10);
+        new bootstrap.Modal(document.getElementById('rateAssignmentModal')).show();
+      });
+      assignOpenBtn.dataset.bound = '1';
+    }
+
+    await loadLookups();
+    await Promise.all([loadCards(), loadAssignments()]);
   }
 
   function init() {

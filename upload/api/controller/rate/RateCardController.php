@@ -18,12 +18,18 @@ final class RateCardController extends BaseController
 
     public function list(): \Api\System\Library\Http\JsonResponse
     {
-        $q = (new QueryBuilder($this->container->get('db.pdo')))
-            ->from('rate_cards')
-            ->select(['public_id', 'title', 'description', 'currency_code', 'is_default', 'is_archived', 'created_at', 'updated_at'])
-            ->where('deleted_at', 'IS', null)
-            ->orderBy('is_default', 'DESC')
-            ->orderBy('title', 'ASC');
+        $pdo = $this->container->get('db.pdo');
+        $q = (new QueryBuilder($pdo))
+            ->from('rate_cards c')
+            ->select([
+                'c.public_id', 'c.title', 'c.description', 'c.currency_code',
+                'c.is_default', 'c.is_archived', 'c.created_at', 'c.updated_at',
+                '(SELECT COUNT(*) FROM rate_card_lines l WHERE l.rate_card_id = c.id AND l.deleted_at IS NULL) AS line_count',
+                '(SELECT COUNT(*) FROM rate_card_assignments a WHERE a.rate_card_id = c.id AND a.deleted_at IS NULL) AS assignment_count',
+            ])
+            ->where('c.deleted_at', 'IS', null)
+            ->orderBy('c.is_default', 'DESC')
+            ->orderBy('c.title', 'ASC');
         return $this->success('RATE_CARD_LIST', '', ['items' => $q->get()]);
     }
 
@@ -131,7 +137,7 @@ final class RateCardController extends BaseController
 
         $lines = (new QueryBuilder($this->container->get('db.pdo')))->from('rate_card_lines l')
             ->leftJoin('users u', 'u.id', '=', 'l.user_id')
-            ->select(['l.public_id', 'l.user_id', 'u.login', 'u.full_name', 'l.role_code',
+            ->select(['l.public_id', 'l.user_id', 'u.public_id AS user_public_id', 'u.login', 'u.full_name', 'l.role_code',
                 'l.activity_code', 'l.cost_rate', 'l.bill_rate', 'l.payout_rate',
                 'l.currency_code', 'l.effective_from', 'l.effective_to', 'l.note'])
             ->where('l.rate_card_id', '=', (int)$card['id'])
@@ -149,6 +155,7 @@ final class RateCardController extends BaseController
         if (!$card) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
         $input = $this->request()->allInput();
+        $input = $this->normalizeLineUserRef($input);
         $cost = $input['cost_rate'] ?? null;
         $bill = $input['bill_rate'] ?? null;
         $payout = $input['payout_rate'] ?? null;
@@ -184,6 +191,7 @@ final class RateCardController extends BaseController
     {
         $pid = (string)$params['public_id'];
         $input = $this->request()->allInput();
+        $input = $this->normalizeLineUserRef($input);
         $pdo = $this->container->get('db.pdo');
         $line = (new QueryBuilder($pdo))->from('rate_card_lines')->where('public_id', '=', $pid)->first();
         if (!$line) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
@@ -283,6 +291,31 @@ final class RateCardController extends BaseController
     {
         $u = $this->user();
         return $u ? ((int)($u['user']['id'] ?? 0) ?: null) : null;
+    }
+
+    /**
+     * The UI only knows users by public_id, while rate_card_lines.user_id is the
+     * internal integer id (TZ 3.3). Resolve user_public_id → user_id so the
+     * frontend never has to expose or guess internal ids. An explicit user_id is
+     * kept for API backwards compatibility.
+     */
+    private function normalizeLineUserRef(array $input): array
+    {
+        if (array_key_exists('user_public_id', $input)) {
+            $pubId = trim((string)$input['user_public_id']);
+            unset($input['user_public_id']);
+            if ($pubId === '') {
+                $input['user_id'] = null;
+            } else {
+                $u = (new QueryBuilder($this->container->get('db.pdo')))
+                    ->from('users')
+                    ->select(['id'])
+                    ->where('public_id', '=', $pubId)
+                    ->first();
+                $input['user_id'] = $u ? (int)$u['id'] : null;
+            }
+        }
+        return $input;
     }
 
     /**

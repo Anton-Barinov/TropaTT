@@ -18,6 +18,8 @@ return [
     'admin_modules' => '模块',
     'chat' => '聊天',
     'api' => '帮助',
+    'my_earnings' => '我的报酬',
+    'rate_cards' => '价目表',
     'menu_loaded' => '菜单已加载',
     'admin_estimates' => '任务估算',
     'cycles' => '周期（冲刺）',

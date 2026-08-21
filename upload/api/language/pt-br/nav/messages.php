@@ -18,6 +18,8 @@ return [
     'chat' => 'Conversas',
     'api' => 'Documentacao',
     'knowledge' => 'Base de conhecimento',
+    'my_earnings' => 'Minha remuneração',
+    'rate_cards' => 'Tabelas de preços',
     'menu_loaded' => 'Menu carregado',
     'admin_estimates' => 'Estimativas de tarefas',
     'cycles' => 'Ciclos (Sprints)',
