@@ -4,7 +4,7 @@ All notable public changes to TropaTT should be documented here.
 
 This project follows a lightweight Keep a Changelog style. Dates are added when a release is actually created.
 
-## Unreleased
+## [v0.2.0.6] - 2026-08-21
 
 ### Added
 
@@ -53,6 +53,22 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 - **Client portal: project card came up with a broken-looking layout.** A guest's own project overview always showed 0% progress, zeroed metrics, and "no milestones" (even when there were some), with error toasts on every load — the summary and milestones endpoints were not reachable by a portal user. They are now reachable for a guest's own accessible project, with per-employee workload data (names, individual task counts) stripped from the response so it never reaches a guest's browser even in the underlying JSON.
 
 - **Client portal: no way for staff to make a reply visible to an invited user.** A guest's own comments were always client-visible, but a staff reply defaulted to internal-only with no control anywhere to change that — so an invited user could never see replies to their own comments. Comment authors can now mark a new comment as visible to the invited user when writing it, and staff can toggle any existing comment's visibility afterward.
+
+- **Client portal: chat integration.** External users can now participate in project-level chat directly from the project card. Staff and portal guests exchange messages scoped to their shared projects; internal chat types and unrelated conversations remain invisible.
+
+- **Client portal: knowledge base integration.** Articles marked as `client_visible` are readable by portal guests who have access to the associated project. Staff can toggle visibility per article, allowing reports, specifications, or hand-off documents to be shared without exposing the full knowledge base.
+
+- **Installer: regenerate MySQL schema snapshot.** The `mysql-schema.snapshot.sql` shipped with the installer was regenerated from the live demo database. Fresh installs now start with all 151 core tables including columns added since the original snapshot (e.g. `users.is_external`, `work_logs.started_at`, `knowledge_pages.client_visible`), and only the incremental migrations need to run afterwards.
+
+- **Installer: check both lock files.** `isAlreadyInstalled()` now checks both `api/.install.lock` and `storage_api/install.lock`, matching the `SEC-001` guard that already checked both. Previously only one was checked, causing confusing 410 / re-install detection mismatches. Error messages in all 7 locales updated to mention both paths.
+
+- **Updater: harden migration runner.** The update-center migration step now wraps each individual `up()` call in a try-catch and logs the error before continuing, rather than letting one broken migration abort the entire update. `max_migrations_per_request` raised from 1 to 5 for faster updates.
+
+- **Security: PII leak on task update.** `TaskService::update()` was calling `sanitizeTask()` without the actor, so staff names could leak in task-update responses for external users. Fixed by passing the actor through.
+
+- **Security: SQLite-safe migrations.** `ExternalPortalIntegrationMigration::getColumnNames()` now uses `PRAGMA table_info()` on SQLite instead of MySQL-only `SHOW COLUMNS`, preventing crashes on non-MySQL installs.
+
+- **Security: LIKE search rewritten.** Counterparty, contact and project search used MySQL `ESCAPE` syntax that was invalid outside certain query shapes. Rewritten to use parameterized `LIKE` with `escapeLikeValue()` that strips wildcards, making the search safe across MySQL versions.
 
 ### Removed
 
