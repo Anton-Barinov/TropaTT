@@ -104,7 +104,7 @@ final class RateCardController extends BaseController
         }
 
         $this->invalidateCache('worklog');
-        return $this->success('RATE_CARD_UPDATED');
+        return $this->success('RATE_CARD_UPDATED', '');
     }
 
     public function archive(array $params): \Api\System\Library\Http\JsonResponse
@@ -124,7 +124,7 @@ final class RateCardController extends BaseController
             'is_archived' => 1, 'updated_at' => gmdate('Y-m-d H:i:s'),
         ]);
         $this->invalidateCache('worklog');
-        return $this->success('RATE_CARD_ARCHIVED');
+        return $this->success('RATE_CARD_ARCHIVED', '');
     }
 
     // ── Rate Card Lines ──
@@ -208,7 +208,7 @@ final class RateCardController extends BaseController
         }
         (new QueryBuilder($pdo))->from('rate_card_lines')->where('public_id', '=', $pid)->update($set);
         $this->invalidateCache('worklog');
-        return $this->success('LINE_UPDATED');
+        return $this->success('LINE_UPDATED', '');
     }
 
     public function deleteLine(array $params): \Api\System\Library\Http\JsonResponse
@@ -220,7 +220,7 @@ final class RateCardController extends BaseController
             'updated_at' => gmdate('Y-m-d H:i:s'),
         ]);
         $this->invalidateCache('worklog');
-        return $this->success('LINE_DELETED');
+        return $this->success('LINE_DELETED', '');
     }
 
     // ── Assignments ──
@@ -277,7 +277,7 @@ final class RateCardController extends BaseController
             'updated_at' => gmdate('Y-m-d H:i:s'),
         ]);
         $this->invalidateCache('worklog');
-        return $this->success('ASSIGNMENT_DELETED');
+        return $this->success('ASSIGNMENT_DELETED', '');
     }
 
     // ── Helpers ──
