@@ -12,6 +12,8 @@ use Api\System\Library\Logger\JsonLogger;
 use Api\System\Library\Support\TimeOverlapMath;
 use Api\System\Library\Support\Ulid;
 use Api\System\Library\Service\ExternalUserService;
+use Api\System\Library\Service\RateResolutionService;
+use Api\Model\Rate\RateCardRepository;
 
 final class WorklogService
 {
@@ -22,7 +24,17 @@ final class WorklogService
         private readonly TeamRepository $teamRepo,
         private readonly JsonLogger $logger,
         private readonly ?ExternalUserService $externalUsers = null,
+        private ?RateResolutionService $rateResolver = null,
     ) {
+    }
+
+    private function getRateResolver(): RateResolutionService
+    {
+        if ($this->rateResolver === null) {
+            $repo = new RateCardRepository($this->worklogs->getPdo());
+            $this->rateResolver = new RateResolutionService($repo);
+        }
+        return $this->rateResolver;
     }
 
     /**
@@ -127,8 +139,39 @@ final class WorklogService
             'logged_at' => (string)($input['logged_at'] ?? $now),
             'started_at' => $this->parseIntervalTime($input['started_at'] ?? null),
             'ended_at' => $this->parseIntervalTime($input['ended_at'] ?? null),
+            'activity_code' => $input['activity_code'] ?? null,
             'created_at' => $now,
         ]);
+
+        // --- Rate snapshot (TZ 5.1) ---
+        try {
+            $resolution = $this->getRateResolver()->resolve(
+                $userId,
+                $taskId,
+                gmdate('Y-m-d', strtotime((string)($input['logged_at'] ?? $now))),
+                $input['activity_code'] ?? null
+            );
+            $snapshot = [
+                'cost_rate_snapshot' => $resolution['cost']['rate'] ?? null,
+                'bill_rate_snapshot' => $resolution['bill']['rate'] ?? null,
+                'payout_rate_snapshot' => $resolution['payout']['rate'] ?? null,
+                'currency_code' => $resolution['currency_code'] ?? null,
+                'cost_source_type' => $resolution['cost']['source_type'] ?? null,
+                'cost_source_ref' => $resolution['cost']['source_ref'] ?? null,
+                'bill_source_type' => $resolution['bill']['source_type'] ?? null,
+                'bill_source_ref' => $resolution['bill']['source_ref'] ?? null,
+                'payout_source_type' => $resolution['payout']['source_type'] ?? null,
+                'payout_source_ref' => $resolution['payout']['source_ref'] ?? null,
+                'rate_resolved_at' => $now,
+                'rate_ambiguous' => $resolution['ambiguous'] ? 1 : 0,
+                'client_public_id' => $resolution['client_public_id'] ?? null,
+                'project_public_id' => $resolution['project_public_id'] ?? null,
+            ];
+            $this->worklogs->updateByPublicId($publicId, $snapshot);
+        } catch (\Throwable $e) {
+            error_log('[WorklogService::create] Rate resolution failed: ' . $e->getMessage());
+            // Record is saved with NULL snapshots — can be fixed by recalculate.
+        }
 
         $this->logger->audit([
             'action' => 'worklog_created',
@@ -195,7 +238,57 @@ final class WorklogService
         }
 
         if ($set !== []) {
+            $needsSnapshot = array_key_exists('task_id', $set)
+                || array_key_exists('logged_at', $set)
+                || array_key_exists('activity_code', $set);
+
+            // Check rate_locked_at before re-snapshotting (TZ 5.1)
+            if ($needsSnapshot && !empty($existing['rate_locked_at'])) {
+                return 'RATE_PERIOD_LOCKED';
+            }
+
             $this->worklogs->updateByPublicId($publicId, $set);
+
+            // Re-resolve rate snapshot if relevant fields changed
+            if ($needsSnapshot) {
+                try {
+                    $currentTaskId = array_key_exists('task_id', $set)
+                        ? $set['task_id']
+                        : ($existing['task_id'] ?? null);
+                    $currentLoggedAt = array_key_exists('logged_at', $set)
+                        ? $set['logged_at']
+                        : ($existing['logged_at'] ?? gmdate('Y-m-d H:i:s'));
+                    $currentActivityCode = array_key_exists('activity_code', $set)
+                        ? $set['activity_code']
+                        : ($existing['activity_code'] ?? null);
+
+                    $resolution = $this->getRateResolver()->resolve(
+                        (int)($existing['user_id'] ?? 0),
+                        $currentTaskId ? (int)$currentTaskId : null,
+                        gmdate('Y-m-d', strtotime((string)$currentLoggedAt)),
+                        $currentActivityCode
+                    );
+                    $snapshot = [
+                        'cost_rate_snapshot' => $resolution['cost']['rate'] ?? null,
+                        'bill_rate_snapshot' => $resolution['bill']['rate'] ?? null,
+                        'payout_rate_snapshot' => $resolution['payout']['rate'] ?? null,
+                        'currency_code' => $resolution['currency_code'] ?? null,
+                        'cost_source_type' => $resolution['cost']['source_type'] ?? null,
+                        'cost_source_ref' => $resolution['cost']['source_ref'] ?? null,
+                        'bill_source_type' => $resolution['bill']['source_type'] ?? null,
+                        'bill_source_ref' => $resolution['bill']['source_ref'] ?? null,
+                        'payout_source_type' => $resolution['payout']['source_type'] ?? null,
+                        'payout_source_ref' => $resolution['payout']['source_ref'] ?? null,
+                        'rate_resolved_at' => gmdate('Y-m-d H:i:s'),
+                        'rate_ambiguous' => $resolution['ambiguous'] ? 1 : 0,
+                        'client_public_id' => $resolution['client_public_id'] ?? null,
+                        'project_public_id' => $resolution['project_public_id'] ?? null,
+                    ];
+                    $this->worklogs->updateByPublicId($publicId, $snapshot);
+                } catch (\Throwable $e) {
+                    error_log('[WorklogService::update] Rate resolution failed: ' . $e->getMessage());
+                }
+            }
         }
 
         $this->logger->audit([
@@ -285,6 +378,17 @@ final class WorklogService
         }
 
         return array_values(array_unique(array_filter(array_map('intval', $decoded), static fn(int $value): bool => $value > 0)));
+    }
+
+    /**
+     * @param mixed $val
+     */
+    private function nullableFloat(mixed $val): ?float
+    {
+        if ($val === null || $val === '' || $val === false) {
+            return null;
+        }
+        return (float)$val;
     }
 
     /**
@@ -411,22 +515,155 @@ final class WorklogService
         $visibleUserIds = $this->getVisibleUserIds($actor);
         $actorIsRoot = (bool)($actor['is_root'] ?? false);
         $teamPublicId = (string)($filters['team_public_id'] ?? '');
-        $rows = $this->worklogs->earningsByDay($filters, $visibleUserIds, $actorIsRoot, $teamPublicId ?: null);
-        $aggregates = $this->aggregateIntervals(
-            $this->worklogs->rowsForPeriod($filters, $visibleUserIds, $actorIsRoot, $teamPublicId ?: null)
-        );
-        $rows = $this->mergeIntervalAggregation($rows, $aggregates);
 
-        // Earnings are computed from the overlap-free unique time so parallel
-        // timers never pay twice for the same wall-clock interval.
-        foreach ($rows as &$row) {
-            $uniqueMinutes = (int)($row['unique_minutes'] ?? 0);
-            $row['cost_amount'] = round($uniqueMinutes / 60 * (float)($row['cost_rate'] ?? 0), 2);
-            $row['bill_amount'] = round($uniqueMinutes / 60 * (float)($row['bill_rate'] ?? 0), 2);
+        // Fetch per-row data with snapshot rates (TZ 2.9)
+        $rows = $this->worklogs->earningsRowsForPeriod($filters, $visibleUserIds, $actorIsRoot, $teamPublicId ?: null);
+
+        // Group by user + day for overlap distribution
+        $byUserDay = [];
+        foreach ($rows as $row) {
+            $key = ($row['user_public_id'] ?? '') . '|' . ($row['day'] ?? '');
+            if (!isset($byUserDay[$key])) {
+                $byUserDay[$key] = [
+                    'user_public_id' => $row['user_public_id'],
+                    'user_login' => $row['user_login'],
+                    'user_full_name' => $row['user_full_name'],
+                    'day' => $row['day'],
+                    'rows' => [],
+                ];
+            }
+            $byUserDay[$key]['rows'][] = $row;
         }
-        unset($row);
 
-        return ['items' => $rows];
+        // Compute per-row billable minutes and amounts (TZ 2.9)
+        $result = [];
+        foreach ($byUserDay as $group) {
+            $groupRows = $group['rows'];
+
+            // Separate rows with intervals from legacy (no interval) rows
+            $intervalEntries = [];
+            $legacyMinutes = 0;
+            $totalRecorded = 0;
+
+            foreach ($groupRows as $idx => $r) {
+                $m = max(0, (int)($r['minutes_spent'] ?? 0));
+                $totalRecorded += $m;
+                $start = $this->toEpoch($r['started_at'] ?? null);
+                $end = $this->toEpoch($r['ended_at'] ?? null);
+                if ($start !== null && $end !== null && $end > $start) {
+                    $intervalEntries[] = ['key' => (string)$idx, 'start' => $start, 'end' => $end];
+                } else {
+                    $legacyMinutes += $m;
+                }
+            }
+
+            // Compute overlap analysis
+            $analysis = $intervalEntries !== []
+                ? TimeOverlapMath::analyze($intervalEntries)
+                : ['union_seconds' => 0, 'overlap_seconds' => 0, 'segments' => []];
+
+            $totalUnionSeconds = $analysis['union_seconds'];
+            $totalOverlapSeconds = $analysis['overlap_seconds'];
+
+            // Distribute union seconds to rows proportionally (TZ 2.9: equal split per segment)
+            $rowBillableSeconds = [];
+            foreach ($groupRows as $idx => $r) {
+                $rowBillableSeconds[(string)$idx] = 0;
+                $start = $this->toEpoch($r['started_at'] ?? null);
+                $end = $this->toEpoch($r['ended_at'] ?? null);
+                if ($start === null || $end === null || $end <= $start) {
+                    // Legacy rows keep their full minutes
+                    $rowBillableSeconds[(string)$idx] = max(0, (int)($r['minutes_spent'] ?? 0)) * 60;
+                }
+            }
+
+            foreach (($analysis['segments'] ?? []) as $seg) {
+                $entries = $seg['entries'] ?? [];
+                $count = count($entries);
+                if ($count === 0) continue;
+                $share = $seg['seconds'] / $count;
+                foreach ($entries as $entryIdx) {
+                    $rowBillableSeconds[(string)$entryIdx] += $share;
+                }
+            }
+
+            // Compute daily totals from per-row amounts
+            $dailyCostAmount = 0.0;
+            $dailyBillAmount = 0.0;
+            $dailyPayoutAmount = 0.0;
+            $dailyCostRate = null;
+            $dailyBillRate = null;
+            $dailyPayoutRate = null;
+            $costRates = [];
+            $billRates = [];
+            $payoutRates = [];
+            $currency = null;
+
+            foreach ($groupRows as $idx => $r) {
+                $seconds = $rowBillableSeconds[(string)$idx] ?? 0;
+                $hours = $seconds / 3600;
+                // Snapshot first; historical rows without a snapshot
+                // (rate_resolved_at IS NULL) fall back to the live user rate
+                // so pre-migration data still reports money (TZ 5.1).
+                $costSnap = $this->nullableFloat($r['cost_rate_snapshot'] ?? null)
+                    ?? $this->nullableFloat($r['cost_rate'] ?? null);
+                $billSnap = $this->nullableFloat($r['bill_rate_snapshot'] ?? null)
+                    ?? $this->nullableFloat($r['bill_rate'] ?? null);
+                $payoutSnap = $this->nullableFloat($r['payout_rate_snapshot'] ?? null)
+                    ?? $this->nullableFloat($r['payout_rate'] ?? null);
+
+                if ($costSnap !== null) {
+                    $dailyCostAmount += round($hours * $costSnap, 2);
+                    $costRates[] = $costSnap;
+                }
+                if ($billSnap !== null) {
+                    $dailyBillAmount += round($hours * $billSnap, 2);
+                    $billRates[] = $billSnap;
+                }
+                if ($payoutSnap !== null) {
+                    $dailyPayoutAmount += round($hours * $payoutSnap, 2);
+                    $payoutRates[] = $payoutSnap;
+                }
+                if ($currency === null && ($r['currency_code'] ?? null) !== null) {
+                    $currency = (string)$r['currency_code'];
+                }
+            }
+
+            $dailyCostRate = $costRates !== [] ? round(array_sum($costRates) / count($costRates), 2) : null;
+            $dailyBillRate = $billRates !== [] ? round(array_sum($billRates) / count($billRates), 2) : null;
+            $dailyPayoutRate = $payoutRates !== [] ? round(array_sum($payoutRates) / count($payoutRates), 2) : null;
+
+            $uniqueMinutes = (int)round($totalUnionSeconds / 60) + $legacyMinutes;
+            $overlapMinutes = (int)round($totalOverlapSeconds / 60);
+
+            $result[] = [
+                'user_public_id' => $group['user_public_id'],
+                'user_login' => $group['user_login'],
+                'user_full_name' => $group['user_full_name'],
+                'day' => $group['day'],
+                'total_minutes' => $totalRecorded,
+                'recorded_minutes' => $totalRecorded,
+                'unique_minutes' => $uniqueMinutes,
+                'overlap_minutes' => $overlapMinutes,
+                'cost_rate' => $dailyCostRate,
+                'bill_rate' => $dailyBillRate,
+                'payout_rate' => $dailyPayoutRate,
+                'payout_rate_snapshot' => $dailyPayoutRate,
+                'cost_amount' => round($dailyCostAmount, 2),
+                'bill_amount' => round($dailyBillAmount, 2),
+                'payout_amount' => round($dailyPayoutAmount, 2),
+                'currency_code' => $currency,
+            ];
+        }
+
+        // Sort by day DESC, full_name ASC
+        usort($result, static function (array $a, array $b): int {
+            $dayCmp = $b['day'] <=> $a['day'];
+            if ($dayCmp !== 0) return $dayCmp;
+            return ($a['user_full_name'] ?? '') <=> ($b['user_full_name'] ?? '');
+        });
+
+        return ['items' => $result];
     }
 
     public function taskSummaryByUser(string $taskPublicId, array $actor): ?array

@@ -262,6 +262,49 @@ final class WorklogRepository
     }
 
     /**
+     * Per-row data with snapshot rates and intervals for earnings computation (TZ 2.9).
+     *
+     * Unlike rowsForPeriod(), this returns individual worklog rows with their
+     * snapshot rates so billable minutes can be distributed per-row and
+     * amounts computed from the snapshot at the moment the worklog was created.
+     *
+     * @return array<int, array{public_id: string, user_public_id: string, user_login: string, user_full_name: string, day: string, minutes_spent: int, started_at: ?string, ended_at: ?string, cost_rate_snapshot: ?float, bill_rate_snapshot: ?float, payout_rate_snapshot: ?float, currency_code: ?string, cost_source_type: ?string, bill_source_type: ?string, payout_source_type: ?string, rate_ambiguous: int, rate_locked_at: ?string, activity_code: ?string}>
+     */
+    public function earningsRowsForPeriod(array $filters, array $visibleUserIds, bool $actorIsRoot, ?string $teamPublicId = null): array
+    {
+        $qb = (new QueryBuilder($this->pdo))
+            ->from('work_logs w')
+            ->join('users u', 'u.id', '=', 'w.user_id')
+            ->select([
+                'w.public_id',
+                'u.public_id AS user_public_id',
+                'u.login AS user_login',
+                'u.full_name AS user_full_name',
+                'DATE(w.logged_at) AS day',
+                'w.minutes_spent',
+                'w.started_at',
+                'w.ended_at',
+                'w.cost_rate_snapshot',
+                'w.bill_rate_snapshot',
+                'w.payout_rate_snapshot',
+                'w.currency_code',
+                'w.cost_source_type',
+                'w.bill_source_type',
+                'w.payout_source_type',
+                'w.rate_ambiguous',
+                'w.rate_locked_at',
+                'w.activity_code',
+                'u.cost_rate',
+                'u.bill_rate',
+                'u.payout_rate',
+            ]);
+        $this->applyCommonFilters($qb, $filters, $visibleUserIds, $actorIsRoot, $teamPublicId);
+        $qb->orderBy('w.logged_at', 'ASC');
+
+        return $qb->get();
+    }
+
+    /**
      * Same as rowsForPeriod() but with the matrix filter shape (plain date
      * range, optional user/project public ids and team member id list).
      *
@@ -358,10 +401,13 @@ final class WorklogRepository
     }
 
     /**
-     * @return array{total_minutes: int, user_breakdown: array<int, array{user_public_id: string, user_login: string, user_full_name: string, total_minutes: int, cost_rate: ?float, bill_rate: ?float}>}
+     * @return array{total_minutes: int, user_breakdown: array<int, array{user_public_id: string, user_login: string, user_full_name: string, total_minutes: int, cost_rate: ?float, bill_rate: ?float, payout_rate: ?float, cost_amount: float, bill_amount: float, payout_amount: float}>}
      */
     public function taskSummary(string $taskPublicId, array $visibleUserIds, bool $actorIsRoot): array
     {
+        // Amounts are summed per-row from snapshot rates (TZ 5.1). Historical
+        // rows without a snapshot (rate_resolved_at IS NULL) fall back to the
+        // user's live global rate so pre-migration data still reports money.
         $qb = (new QueryBuilder($this->pdo))
             ->from('work_logs w')
             ->join('users u', 'u.id', '=', 'w.user_id')
@@ -373,9 +419,13 @@ final class WorklogRepository
                 'SUM(w.minutes_spent) AS total_minutes',
                 'u.cost_rate',
                 'u.bill_rate',
+                'u.payout_rate',
+                'ROUND(SUM(w.minutes_spent * COALESCE(w.cost_rate_snapshot, u.cost_rate, 0) / 60), 2) AS cost_amount',
+                'ROUND(SUM(w.minutes_spent * COALESCE(w.bill_rate_snapshot, u.bill_rate, 0) / 60), 2) AS bill_amount',
+                'ROUND(SUM(w.minutes_spent * COALESCE(w.payout_rate_snapshot, u.payout_rate, 0) / 60), 2) AS payout_amount',
             ])
             ->where('t.public_id', '=', $taskPublicId)
-            ->groupBy(['u.id'])
+            ->groupBy(['u.id', 'u.public_id', 'u.login', 'u.full_name', 'u.cost_rate', 'u.bill_rate', 'u.payout_rate'])
             ->orderBy('total_minutes', 'DESC');
 
         if (!$actorIsRoot && $visibleUserIds !== []) {
