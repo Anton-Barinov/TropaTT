@@ -48,12 +48,14 @@ final class CounterpartyRepository
             // ТЗ 6.5: кастомные поля (extra_attributes) участвуют в поиске.
             // User input is a literal substring, not a SQL LIKE pattern.
             $escaped = $search;
-            $query->whereRaw('(cp.title LIKE ? ESCAPE \'\\\' OR cp.legal_name LIKE ? ESCAPE \'\\\' OR cp.tax_inn LIKE ? ESCAPE \'\\\' OR cp.email LIKE ? ESCAPE \'\\\' OR cp.phone LIKE ? ESCAPE \'\\\' OR cp.website LIKE ? ESCAPE \'\\\' OR cp.extra_attributes LIKE ? ESCAPE \'\\\')', [$escaped, $escaped, $escaped, $escaped, $escaped, $escaped, $escaped]);
+            $likeCols = ['cp.title', 'cp.legal_name', 'cp.tax_inn', 'cp.email', 'cp.phone', 'cp.website', 'cp.extra_attributes'];
+            $likeClauses = array_map(static fn(string $col): string => $col . ' LIKE ?', $likeCols);
+            $query->whereRaw('(' . implode(' OR ', $likeClauses) . ')', array_fill(0, count($likeCols), $escaped));
         }
 
         if (!empty($filters['extra_search'])) {
             $extraSearch = '%' . $this->escapeLikeValue((string)$filters['extra_search']) . '%';
-            $query->whereRaw('cp.extra_attributes LIKE ? ESCAPE \'\\\'', [$extraSearch]);
+            $query->whereRaw('cp.extra_attributes LIKE ?', [$extraSearch]);
         }
 
         if (!empty($filters['status'])) {
@@ -123,7 +125,7 @@ final class CounterpartyRepository
 
     private function escapeLikeValue(string $value): string
     {
-        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+        return str_replace(['%', '_'], '', $value);
     }
 
     private function parseBoolFilter(mixed $value): ?bool
