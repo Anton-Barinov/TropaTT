@@ -19136,8 +19136,139 @@ a.task-tag:hover {
 .crm-counterparty-detail-page #counterpartyDetailProfile .crm-metric-tile {
   break-inside: avoid;
   overflow-wrap: anywhere;
+}.crm-counterparty-detail-page #counterpartyDetailExtra {
+    max-height: 340px;
+    overflow: auto;
 }
-.crm-counterparty-detail-page #counterpartyDetailExtra {
-  max-height: 340px;
-  overflow: auto;
+
+/* ── Rate Cards page ──────────────────────────────────────────────────── */
+
+.crm-rate-cards-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2, 0.5rem);
 }
+
+.crm-rate-card-item {
+    background: var(--crm-surface, var(--bs-body-bg));
+    border: 1px solid var(--crm-border, var(--bs-border-color));
+    border-radius: var(--radius-md, 0.5rem);
+    padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
+    transition: box-shadow 0.15s;
+}
+
+.crm-rate-card-item:hover {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.crm-rate-card-title {
+    font-size: var(--text-base, 1rem);
+    line-height: 1.35;
+}
+
+.crm-rate-cards-empty {
+    border: 2px dashed var(--crm-border, var(--bs-border-color));
+    border-radius: var(--radius-md, 0.5rem);
+}
+
+/* Lines inside modal tab */
+
+.crm-rate-line-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3, 0.75rem);
+    padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
+    border: 1px solid var(--crm-border, var(--bs-border-color));
+    border-radius: var(--radius-sm, 0.375rem);
+    margin-bottom: var(--space-2, 0.5rem);
+    background: var(--crm-surface, var(--bs-body-bg));
+    transition: background 0.12s;
+}
+
+.crm-rate-line-item:hover {
+    background: var(--crm-surface-hover, rgba(0,0,0,0.02));
+}
+
+.crm-rate-line-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2, 0.5rem);
+    min-width: 140px;
+    flex-shrink: 0;
+}
+
+.crm-rate-line-rates {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3, 0.75rem);
+    flex: 1;
+    min-width: 0;
+    flex-wrap: wrap;
+}
+
+.crm-rate-line-rate {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.crm-rate-line-rate-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.7;
+}
+
+.crm-rate-value {
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+}
+
+.crm-rate-line-del {
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+/* Assignments list */
+
+.crm-rate-assignment-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3, 0.75rem);
+    padding: var(--space-2, 0.5rem) 0;
+    border-bottom: 1px solid var(--crm-border, var(--bs-border-color));
+}
+
+.crm-rate-assignment-item:last-child {
+    border-bottom: none;
+}
+
+/* Modal lines tab add form */
+#rateTabLines .crm-card {
+    border: 1px dashed var(--crm-border, var(--bs-border-color));
+    background: var(--crm-surface, var(--bs-body-bg));
+}
+
+/* Responsive: collapse rate rows on small screens */
+@media (max-width: 767.98px) {
+    .crm-rate-line-item {
+        flex-wrap: wrap;
+    }
+    .crm-rate-line-header {
+        min-width: 100%;
+    }
+    .crm-rate-line-rates {
+        width: 100%;
+    }
+    .crm-rate-line-del {
+        position: absolute;
+        right: var(--space-2, 0.5rem);
+        top: var(--space-2, 0.5rem);
+    }
+    .crm-rate-line-item {
+        position: relative;
+    }
+}
+

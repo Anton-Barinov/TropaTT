@@ -31912,55 +31912,60 @@ window.CRM.pageApiBindings = (function () {
     async function loadCards() {
       var env = await tryRequest('api/v1/rate-cards', {});
       state.cards = (env && env.success) ? mapItems(env) : [];
-      renderCardsTable();
+      renderCardsList();
     }
 
     async function loadAssignments() {
       var env = await tryRequest('api/v1/rate-card-assignments', {});
       state.assignments = (env && env.success) ? mapItems(env) : [];
-      renderAssignmentsTable();
+      renderAssignmentsList();
     }
 
-    function renderCardsTable() {
-      var tbody = document.getElementById('rateCardsTableBody');
-      if (!tbody) return;
+    function renderCardsList() {
+      var el = document.getElementById('rateCardsList');
+      if (!el) return;
       if (!state.cards.length) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-muted">' + rt('rate_cards.empty', 'Прайс-листов пока нет.') + '</td></tr>';
+        el.innerHTML = '<div class="crm-rate-cards-empty text-muted p-4 text-center">' + rt('rate_cards.empty', 'Прайс-листов пока нет. Нажмите «Создать прайс» чтобы добавить первый.') + '</div>';
         return;
       }
-      tbody.innerHTML = state.cards.map(function (c) {
-        var badge = c.is_default ? ' <span class="badge text-bg-primary">' + rt('rate_cards.badge_default', 'по умолчанию') + '</span>' : '';
-        var arch = c.is_archived ? ' <span class="badge text-bg-secondary">' + rt('rate_cards.badge_archived', 'архив') + '</span>' : '';
-        var actions = '<div class="d-flex gap-1"><button class="btn btn-sm crm-btn-secondary" data-rate-lines="' + safeText(c.public_id) + '">' + rt('rate_cards.btn_lines', 'Строки') + '</button>' +
-          '<button class="btn btn-sm crm-btn-secondary" data-rate-edit="' + safeText(c.public_id) + '">' + rt('common.edit', 'Изменить') + '</button>' +
-          (c.is_archived ? '' : '<button class="btn btn-sm crm-btn-danger-soft" data-rate-archive="' + safeText(c.public_id) + '">' + rt('rate_cards.btn_archive', 'Архив') + '</button>') +
-          '</div>';
-        return '<tr><td><strong>' + safeText(c.title) + '</strong>' + badge + arch + '</td>' +
-          '<td>' + safeText(c.currency_code || rt('rate_cards.org_currency', 'валюта организации')) + '</td>' +
-          '<td>' + safeText(String(c.line_count || 0)) + '</td>' +
-          '<td>' + safeText(String(c.assignment_count || 0)) + '</td>' +
-          '<td>' + (c.is_default ? rt('rate_cards.yes', 'Да') : rt('rate_cards.no', 'Нет')) + '</td>' +
-          '<td>' + actions + '</td></tr>';
+      el.innerHTML = state.cards.map(function (c) {
+        var badges = '';
+        if (c.is_default) badges += ' <span class="badge text-bg-primary">' + rt('rate_cards.badge_default', 'по умолчанию') + '</span>';
+        if (c.is_archived) badges += ' <span class="badge text-bg-secondary">' + rt('rate_cards.badge_archived', 'архив') + '</span>';
+        var currency = safeText(c.currency_code || rt('rate_cards.org_currency', 'валюта организации'));
+        var lines = safeText(String(c.line_count || 0));
+        var assigns = safeText(String(c.assignment_count || 0));
+        return '<div class="crm-rate-card-item">' +
+          '<div class="d-flex align-items-start justify-content-between gap-3">' +
+            '<div class="min-width-0">' +
+              '<div class="fw-semibold crm-rate-card-title">' + safeText(c.title) + badges + '</div>' +
+              '<div class="text-muted small d-flex gap-2 flex-wrap mt-1">' +
+                '<span><i class="fa-regular fa-money-bill-1 me-1" aria-hidden="true"></i>' + currency + '</span>' +
+                '<span><i class="fa-regular fa-file-lines me-1" aria-hidden="true"></i>' + lines + ' ' + rt('rate_cards.lines_label', 'строк') + '</span>' +
+                '<span><i class="fa-solid fa-link me-1" aria-hidden="true"></i>' + assigns + ' ' + rt('rate_cards.assigns_label', 'привязок') + '</span>' +
+              '</div>' +
+            '</div>' +
+            '<div class="d-flex gap-1 flex-shrink-0">' +
+              '<button class="btn btn-sm crm-btn-primary" data-open-card="' + safeText(c.public_id) + '">' + rt('rate_cards.btn_open', 'Открыть') + '</button>' +
+              (c.is_archived ? '' : '<button class="btn btn-sm crm-btn-danger-soft" data-archive-card="' + safeText(c.public_id) + '" title="' + rt('rate_cards.btn_archive', 'Архив') + '"><i class="fa-solid fa-box-archive" aria-hidden="true"></i></button>') +
+            '</div>' +
+          '</div>' +
+        '</div>';
       }).join('');
 
-      document.querySelectorAll('[data-rate-lines]').forEach(function (btn) {
-        if (btn.dataset.bound === '1') return;
-        btn.addEventListener('click', function () { openLinesModal(btn.getAttribute('data-rate-lines')); });
-        btn.dataset.bound = '1';
-      });
-      document.querySelectorAll('[data-rate-edit]').forEach(function (btn) {
+      el.querySelectorAll('[data-open-card]').forEach(function (btn) {
         if (btn.dataset.bound === '1') return;
         btn.addEventListener('click', function () {
-          var c = state.cards.find(function (x) { return x.public_id === btn.getAttribute('data-rate-edit'); });
+          var c = state.cards.find(function (x) { return x.public_id === btn.getAttribute('data-open-card'); });
           if (!c) return;
-          openCardModal(c);
+          openUnifiedModal(c, 'lines');
         });
         btn.dataset.bound = '1';
       });
-      document.querySelectorAll('[data-rate-archive]').forEach(function (btn) {
+      el.querySelectorAll('[data-archive-card]').forEach(function (btn) {
         if (btn.dataset.bound === '1') return;
         btn.addEventListener('click', async function () {
-          var pid = btn.getAttribute('data-rate-archive');
+          var pid = btn.getAttribute('data-archive-card');
           var res = await tryRequest('api/v1/rate-cards/' + pid, { method: 'DELETE' });
           if (res && res.success) { notify(rt('rate_cards.archived', 'Прайс заархивирован')); loadCards(); }
         });
@@ -31968,23 +31973,35 @@ window.CRM.pageApiBindings = (function () {
       });
     }
 
-    function renderAssignmentsTable() {
-      var tbody = document.getElementById('rateAssignmentsBody');
-      if (!tbody) return;
+    function renderAssignmentsList() {
+      var el = document.getElementById('rateAssignmentsList');
+      if (!el) return;
       if (!state.assignments.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-muted">' + rt('rate_cards.assignments_empty', 'Привязок пока нет.') + '</td></tr>';
+        el.innerHTML = '<div class="text-muted small p-3 text-center">' + rt('rate_cards.assignments_empty', 'Привязок пока нет.') + '</div>';
         return;
       }
-      tbody.innerHTML = state.assignments.map(function (a) {
+      el.innerHTML = state.assignments.map(function (a) {
         var period = safeText(a.effective_from || '') + ' — ' + safeText(a.effective_to || '∞');
-        return '<tr><td>' + safeText(a.card_title || a.card_public_id) + '</td>' +
-          '<td>' + scopeLabel(a) + '</td>' +
-          '<td><code>' + safeText(a.scope_ref) + '</code></td>' +
-          '<td>' + period + '</td>' +
-          '<td><button class="btn btn-sm crm-btn-danger-soft" data-rate-unassign="' + safeText(a.public_id) + '"><i class="fa-solid fa-trash" aria-hidden="true"></i></button></td></tr>';
+        var icon = a.scope_type === 'project' ? 'fa-solid fa-diagram-project' : 'fa-regular fa-building';
+        return '<div class="crm-rate-assignment-item">' +
+          '<div class="d-flex align-items-center justify-content-between gap-2">' +
+            '<div class="min-width-0 d-flex align-items-center gap-2">' +
+              '<i class="' + icon + ' text-muted" aria-hidden="true"></i>' +
+              '<div class="min-width-0">' +
+                '<span class="fw-medium">' + safeText(a.card_title || a.card_public_id) + '</span>' +
+                '<span class="text-muted ms-2 small">' + scopeLabel(a) + '</span>' +
+                '<span class="text-muted ms-1 small"><code>' + safeText(a.scope_ref) + '</code></span>' +
+              '</div>' +
+            '</div>' +
+            '<div class="d-flex align-items-center gap-2 flex-shrink-0">' +
+              '<span class="text-muted small">' + period + '</span>' +
+              '<button class="btn btn-sm crm-btn-danger-icon" data-rate-unassign="' + safeText(a.public_id) + '" title="' + rt('rate_cards.btn_remove', 'Удалить привязку') + '"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
       }).join('');
 
-      document.querySelectorAll('[data-rate-unassign]').forEach(function (btn) {
+      el.querySelectorAll('[data-rate-unassign]').forEach(function (btn) {
         if (btn.dataset.bound === '1') return;
         btn.addEventListener('click', async function () {
           var res = await tryRequest('api/v1/rate-card-assignments/' + btn.getAttribute('data-rate-unassign'), { method: 'DELETE' });
@@ -31994,8 +32011,11 @@ window.CRM.pageApiBindings = (function () {
       });
     }
 
-    function openCardModal(card) {
-      var form = document.getElementById('rateCardForm');
+    function openUnifiedModal(card, tab) {
+      state.currentCard = card;
+      var title = document.getElementById('rateCardUnifiedTitle');
+      title.textContent = card ? card.title : rt('rate_cards.new_card', 'Новый прайс');
+      var form = document.getElementById('rateCardUnifiedForm');
       form.reset();
       form.elements.public_id.value = card ? card.public_id : '';
       if (card) {
@@ -32004,7 +32024,34 @@ window.CRM.pageApiBindings = (function () {
         form.elements.currency_code.value = card.currency_code || '';
         form.elements.is_default.checked = Boolean(card.is_default);
       }
-      new bootstrap.Modal(document.getElementById('rateCardModal')).show();
+      var modal = new bootstrap.Modal(document.getElementById('rateCardUnifiedModal'));
+      modal.show();
+      if (card && tab === 'lines') {
+        var linesTab = document.querySelector('[data-bs-target="#rateTabLines"]');
+        if (linesTab) { linesTab.click(); } else { bootstrap.Tab.getOrCreateInstance(document.querySelector('[data-bs-target="#rateTabLines"]')).show(); }
+        openLinesTab(card.public_id);
+      } else if (card && tab === 'assignments') {
+        var assignTab = document.querySelector('[data-bs-target="#rateTabAssignments"]');
+        if (assignTab) { assignTab.click(); } else { bootstrap.Tab.getOrCreateInstance(document.querySelector('[data-bs-target="#rateTabAssignments"]')).show(); }
+        loadCardAssignments(card.public_id);
+      } else {
+        var infoTab = document.querySelector('[data-bs-target="#rateTabInfo"]');
+        if (infoTab) { infoTab.click(); }
+      }
+    }
+
+    function openCreateModal() {
+      state.currentCard = null;
+      var title = document.getElementById('rateCardUnifiedTitle');
+      title.textContent = rt('rate_cards.new_card', 'Новый прайс');
+      var form = document.getElementById('rateCardUnifiedForm');
+      form.reset();
+      form.elements.public_id.value = '';
+      form.elements.effective_from && (form.elements.effective_from.value = new Date().toISOString().slice(0, 10));
+      var modal = new bootstrap.Modal(document.getElementById('rateCardUnifiedModal'));
+      modal.show();
+      var infoTab = document.querySelector('[data-bs-target="#rateTabInfo"]');
+      if (infoTab) { infoTab.click(); }
     }
 
     function populateSelect(sel, items, valueFn, labelFn, emptyLabel) {
@@ -32013,9 +32060,8 @@ window.CRM.pageApiBindings = (function () {
       sel.innerHTML = opts;
     }
 
-    async function openLinesModal(cardPublicId) {
+    async function openLinesTab(cardPublicId) {
       state.linesCardPublicId = cardPublicId;
-      var card = state.cards.find(function (x) { return x.public_id === cardPublicId; });
       var userSel = document.querySelector('#rateCardLineForm [name="user_public_id"]');
       var roleSel = document.querySelector('#rateCardLineForm [name="role_code"]');
       var actSel = document.querySelector('#rateCardLineForm [name="activity_code"]');
@@ -32024,33 +32070,42 @@ window.CRM.pageApiBindings = (function () {
       populateSelect(actSel, state.activities, function (s) { return s.code; }, function (s) { return s.title || s.code; }, rt('rate_cards.any_activity', 'Любой'));
       document.querySelector('#rateCardLineForm [name="public_id"]').value = '';
       document.querySelector('#rateCardLineForm [name="effective_from"]').value = new Date().toISOString().slice(0, 10);
-      new bootstrap.Modal(document.getElementById('rateCardLinesModal')).show();
       await loadLines(cardPublicId);
     }
 
     async function loadLines(cardPublicId) {
       var env = await tryRequest('api/v1/rate-cards/' + cardPublicId + '/lines', {});
       var lines = (env && env.success) ? mapItems(env) : [];
-      var tbody = document.getElementById('rateCardLinesBody');
-      if (!tbody) return;
+      var el = document.getElementById('rateLinesList');
+      if (!el) return;
+      var countBadge = document.getElementById('rateTabLinesCount');
+      if (countBadge) countBadge.textContent = String(lines.length);
       if (!lines.length) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-muted">' + rt('rate_cards.lines_empty', 'Строк пока нет.') + '</td></tr>';
+        el.innerHTML = '<div class="text-muted small text-center p-3">' + rt('rate_cards.lines_empty', 'Строк пока нет. Добавьте первую строку прайса ниже.') + '</div>';
         return;
       }
-      tbody.innerHTML = lines.map(function (l) {
-        function cell(v) { return (v === null || v === undefined || v === '') ? inherited() : safeText(String(v)); }
+      el.innerHTML = lines.map(function (l) {
+        function rateVal(v) { return (v === null || v === undefined || v === '') ? inherited() : '<span class="crm-rate-value">' + safeText(String(v)) + '</span>'; }
         var user = l.user_public_id ? (state.users.find(function (u) { return u.public_id === l.user_public_id; }) || {}) : {};
-        return '<tr><td>' + safeText(userNameLabel(user)) + '</td>' +
-          '<td>' + safeText(l.role_code || '') + '</td>' +
-          '<td>' + safeText(l.activity_code || '') + '</td>' +
-          '<td>' + cell(l.cost_rate) + '</td>' +
-          '<td>' + cell(l.bill_rate) + '</td>' +
-          '<td>' + cell(l.payout_rate) + '</td>' +
-          '<td>' + safeText(l.effective_from || '') + ' — ' + safeText(l.effective_to || '∞') + '</td>' +
-          '<td><button class="btn btn-sm crm-btn-danger-soft" data-rate-line-del="' + safeText(l.public_id) + '"><i class="fa-solid fa-trash" aria-hidden="true"></i></button></td></tr>';
+        var userText = l.user_public_id ? safeText(userNameLabel(user)) : '<span class="text-muted">' + rt('rate_cards.any_user', 'Любой') + '</span>';
+        var actText = l.activity_code ? safeText(l.activity_code) : '<span class="text-muted">' + rt('rate_cards.any_activity', 'Любой') + '</span>';
+        var period = safeText(l.effective_from || '') + ' — ' + safeText(l.effective_to || '∞');
+        return '<div class="crm-rate-line-item">' +
+          '<div class="crm-rate-line-header">' +
+            '<span class="fw-medium">' + userText + '</span>' +
+            '<span class="text-muted small">' + actText + '</span>' +
+          '</div>' +
+          '<div class="crm-rate-line-rates">' +
+            '<div class="crm-rate-line-rate"><span class="crm-rate-line-rate-label text-danger">' + rt('rate_cards.th_cost_short', 'С') + '</span>' + rateVal(l.cost_rate) + '</div>' +
+            '<div class="crm-rate-line-rate"><span class="crm-rate-line-rate-label text-primary">' + rt('rate_cards.th_bill_short', 'П') + '</span>' + rateVal(l.bill_rate) + '</div>' +
+            '<div class="crm-rate-line-rate"><span class="crm-rate-line-rate-label text-success">' + rt('rate_cards.th_payout_short', 'В') + '</span>' + rateVal(l.payout_rate) + '</div>' +
+            '<div class="crm-rate-line-rate"><span class="crm-rate-line-rate-label text-muted">' + rt('rate_cards.th_period_short', 'Срок') + '</span><span class="crm-rate-value small">' + period + '</span></div>' +
+          '</div>' +
+          '<button class="btn btn-sm crm-btn-danger-icon crm-rate-line-del" data-rate-line-del="' + safeText(l.public_id) + '" title="' + rt('rate_cards.btn_delete_line', 'Удалить строку') + '"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>' +
+        '</div>';
       }).join('');
 
-      document.querySelectorAll('[data-rate-line-del]').forEach(function (btn) {
+      el.querySelectorAll('[data-rate-line-del]').forEach(function (btn) {
         if (btn.dataset.bound === '1') return;
         btn.addEventListener('click', async function () {
           var res = await tryRequest('api/v1/rate-card-lines/' + btn.getAttribute('data-rate-line-del'), { method: 'DELETE' });
@@ -32060,9 +32115,45 @@ window.CRM.pageApiBindings = (function () {
       });
     }
 
+    async function loadCardAssignments(cardPublicId) {
+      var cardAssigns = state.assignments.filter(function (a) { return a.card_public_id === cardPublicId; });
+      var el = document.getElementById('rateCardAssignmentsList');
+      if (!el) return;
+      var countBadge = document.getElementById('rateTabAssignCount');
+      if (countBadge) countBadge.textContent = String(cardAssigns.length);
+      if (!cardAssigns.length) {
+        el.innerHTML = '<div class="text-muted small text-center p-3">' + rt('rate_cards.card_no_assignments', 'Этот прайс пока не привязан ни к чему.') + '</div>';
+        return;
+      }
+      el.innerHTML = cardAssigns.map(function (a) {
+        var icon = a.scope_type === 'project' ? 'fa-solid fa-diagram-project' : 'fa-regular fa-building';
+        var period = safeText(a.effective_from || '') + ' — ' + safeText(a.effective_to || '∞');
+        return '<div class="crm-rate-assignment-item">' +
+          '<div class="d-flex align-items-center gap-2 min-width-0">' +
+            '<i class="' + icon + ' text-muted" aria-hidden="true"></i>' +
+            '<span class="fw-medium">' + scopeLabel(a) + '</span>' +
+            '<code class="text-muted small">' + safeText(a.scope_ref) + '</code>' +
+          '</div>' +
+          '<div class="d-flex align-items-center gap-2 flex-shrink-0">' +
+            '<span class="text-muted small">' + period + '</span>' +
+            '<button class="btn btn-sm crm-btn-danger-icon" data-rate-unassign="' + safeText(a.public_id) + '" title="' + rt('rate_cards.btn_remove', 'Удалить') + '"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+
+      el.querySelectorAll('[data-rate-unassign]').forEach(function (btn) {
+        if (btn.dataset.bound === '1') return;
+        btn.addEventListener('click', async function () {
+          var res = await tryRequest('api/v1/rate-card-assignments/' + btn.getAttribute('data-rate-unassign'), { method: 'DELETE' });
+          if (res && res.success) { notify(rt('rate_cards.unassigned', 'Привязка удалена')); loadCardAssignments(cardPublicId); loadAssignments(); loadCards(); }
+        });
+        btn.dataset.bound = '1';
+      });
+    }
+
     function numberOrNull(v) { return (v === '' || v === null || v === undefined) ? null : v; }
 
-    var cardForm = document.getElementById('rateCardForm');
+    var cardForm = document.getElementById('rateCardUnifiedForm');
     if (cardForm && cardForm.dataset.bound !== '1') {
       cardForm.addEventListener('submit', async function (e) {
         e.preventDefault();
@@ -32077,7 +32168,15 @@ window.CRM.pageApiBindings = (function () {
         var res = pid
           ? await tryRequest('api/v1/rate-cards/' + pid, { method: 'PATCH', body: body })
           : await tryRequest('api/v1/rate-cards', { method: 'POST', body: body });
-        if (res && res.success) { notify(rt('rate_cards.saved', 'Сохранено')); bootstrap.Modal.getInstance(document.getElementById('rateCardModal')).hide(); loadCards(); }
+        if (res && res.success) {
+          notify(rt('rate_cards.saved', 'Сохранено'));
+          if (!pid && res.data && res.data.public_id) {
+            state.currentCard = res.data;
+            document.getElementById('rateCardUnifiedTitle').textContent = body.title || '';
+          }
+          bootstrap.Modal.getInstance(document.getElementById('rateCardUnifiedModal')).hide();
+          loadCards();
+        }
       });
       cardForm.dataset.bound = '1';
     }
@@ -32099,7 +32198,7 @@ window.CRM.pageApiBindings = (function () {
           effective_to: fd.get('effective_to') || null
         };
         var res = await tryRequest('api/v1/rate-cards/' + cardPublicId + '/lines', { method: 'POST', body: body });
-        if (res && res.success) { notify(rt('rate_cards.line_added', 'Строка добавлена')); lineForm.reset(); loadLines(cardPublicId); loadCards(); }
+        if (res && res.success) { notify(rt('rate_cards.line_added', 'Строка добавлена')); lineForm.reset(); lineForm.elements.effective_from.value = new Date().toISOString().slice(0, 10); loadLines(cardPublicId); loadCards(); }
       });
       lineForm.dataset.bound = '1';
     }
@@ -32123,7 +32222,7 @@ window.CRM.pageApiBindings = (function () {
 
     var createBtn = document.getElementById('rateCardCreateOpenBtn');
     if (createBtn && createBtn.dataset.bound !== '1') {
-      createBtn.addEventListener('click', function () { openCardModal(null); });
+      createBtn.addEventListener('click', function () { openCreateModal(); });
       createBtn.dataset.bound = '1';
     }
     var assignOpenBtn = document.getElementById('rateAssignmentCreateOpenBtn');
