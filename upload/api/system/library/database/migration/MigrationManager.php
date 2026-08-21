@@ -70,6 +70,9 @@ final class MigrationManager
             new ExternalUserRolesMigration(),
             new ExternalPortalIntegrationMigration(),
             new ProjectsDeletedAtMigration(),
+            new RateCardsMigration(),
+            new WorklogRateColumnsMigration(),
+            new WorklogRateIndexesMigration(),
         ];
     }
 

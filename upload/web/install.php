@@ -1465,7 +1465,8 @@ function createDatabaseTables(PDO $pdo, string $driver): array
             updated_at {$dt},
             deleted_at {$dt} NULL,
             cost_rate DECIMAL(12,2) DEFAULT NULL,
-            bill_rate DECIMAL(12,2) DEFAULT NULL
+            bill_rate DECIMAL(12,2) DEFAULT NULL,
+            payout_rate DECIMAL(12,2) DEFAULT NULL
         )",
  
         "CREATE TABLE IF NOT EXISTS user_roles (
@@ -1794,6 +1795,24 @@ function createDatabaseTables(PDO $pdo, string $driver): array
             minutes_spent INTEGER,
             note {$text},
             logged_at {$dt},
+            started_at {$dt} NULL,
+            ended_at {$dt} NULL,
+            activity_code VARCHAR(64) NULL,
+            cost_rate_snapshot DECIMAL(12,2) NULL,
+            bill_rate_snapshot DECIMAL(12,2) NULL,
+            payout_rate_snapshot DECIMAL(12,2) NULL,
+            currency_code VARCHAR(8) NULL,
+            cost_source_type VARCHAR(32) NULL,
+            cost_source_ref VARCHAR(64) NULL,
+            bill_source_type VARCHAR(32) NULL,
+            bill_source_ref VARCHAR(64) NULL,
+            payout_source_type VARCHAR(32) NULL,
+            payout_source_ref VARCHAR(64) NULL,
+            rate_resolved_at {$dt} NULL,
+            rate_ambiguous {$bool} DEFAULT 0,
+            rate_locked_at {$dt} NULL,
+            client_public_id VARCHAR(64) NULL,
+            project_public_id VARCHAR(64) NULL,
             created_at {$dt}
         )",
 
