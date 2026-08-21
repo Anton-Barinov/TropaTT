@@ -1086,4 +1086,5 @@ return [
     ['methods' => ['POST'], 'pattern' => '/api/v1/rates/recalculate', 'controller' => Api\Controller\Rate\RateController::class, 'action' => 'recalculate', 'auth' => true, 'required_permissions' => ['finance.rate.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/rates/lock', 'controller' => Api\Controller\Rate\RateController::class, 'action' => 'lock', 'auth' => true, 'required_permissions' => ['finance.rate.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/rates/unlock', 'controller' => Api\Controller\Rate\RateController::class, 'action' => 'unlock', 'auth' => true, 'required_permissions' => ['finance.rate.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/rates/locks', 'controller' => Api\Controller\Rate\RateController::class, 'action' => 'listLocks', 'auth' => true, 'required_permissions' => ['finance.rate.manage'], 'authz_note' => 'lists locked periods + auto-close status for the period-lock management block'],
 ];

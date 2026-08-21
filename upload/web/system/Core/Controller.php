@@ -28,6 +28,7 @@ abstract class Controller
         'dashboard',
         'tasks',
         'task_detail',
+        'time_analytics',
         'notifications',
         'footer',
         'admin_estimates',

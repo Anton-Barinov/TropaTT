@@ -30393,6 +30393,9 @@ window.CRM.pageApiBindings = (function () {
       // Load earnings data
       await loadEarningsSummary(earnFrom.value, earnTo.value, '', '', '');
 
+      // Period-lock management block (finance.rate.manage only)
+      await renderRateLocks();
+
       // Load matrix data
       await loadMatrixSummary();
 
@@ -30510,6 +30513,93 @@ window.CRM.pageApiBindings = (function () {
       setErrorState(_t('page.time_load_error', 'Ошибка загрузки аналитики времени'));
     } finally {
       setLoadingState(false);
+    }
+  }
+
+  async function renderRateLocks() {
+    var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
+    var block = document.getElementById('timeAnalyticsLocksBlock');
+    if (!block) return;
+    var hasPerm = window.CRM.api && typeof window.CRM.api.hasPermission === 'function'
+      ? window.CRM.api.hasPermission('finance.rate.manage') : false;
+    if (!hasPerm) return;
+    block.classList.remove('d-none');
+
+    var autoEl = document.getElementById('timeAnalyticsLocksAutoClose');
+    var listEl = document.getElementById('timeAnalyticsLocksList');
+    var form = document.getElementById('timeAnalyticsLockForm');
+
+    async function load() {
+      try {
+        var env = await window.CRM.api.request('api/v1/rates/locks');
+        var data = (env && env.data) || {};
+        var periods = data.locked_periods || [];
+        var auto = data.auto_close || {};
+        var mode = String(auto.mode || 'off');
+        var modeLabel = mode === 'off' ? _t('time_analytics.locks_mode_off', 'выключено')
+          : mode === 'weekly' ? _t('time_analytics.locks_mode_weekly', 'еженедельно')
+          : _t('time_analytics.locks_mode_monthly', 'ежемесячно');
+        var autoText = _t('time_analytics.locks_auto_close', 'Автозакрытие: ') + modeLabel
+          + ' · ' + _t('time_analytics.locks_lag', 'задержка') + ' ' + Number(auto.lag_days || 0) + ' ' + _t('time_analytics.locks_days', 'дн.');
+        if (data.last_run_at) {
+          autoText += ' · ' + _t('time_analytics.locks_last_run', 'последний запуск') + ': ' + safeText(data.last_run_at);
+        } else {
+          autoText += ' · ' + _t('time_analytics.locks_no_run', 'автозакрытие ещё не выполнялось');
+        }
+        if (autoEl) autoEl.textContent = autoText;
+
+        if (!periods.length) {
+          if (listEl) listEl.innerHTML = '<div class="text-muted small">' + _t('time_analytics.locks_none', 'Нет заблокированных периодов.') + '</div>';
+        } else {
+          var rows = periods.map(function (p) {
+            return '<div class="d-flex align-items-center gap-2 border-bottom py-2">'
+              + '<span class="crm-chip">' + safeText(p.from) + ' — ' + safeText(p.to) + '</span>'
+              + '<span class="text-muted small">' + Number(p.row_count || 0) + ' ' + _t('time_analytics.locks_rows', 'записей') + '</span>'
+              + '<button type="button" class="btn btn-sm crm-btn-danger-soft crm-btn-compact ms-auto" data-locks-unlock="' + safeText(p.from) + '" data-locks-unlock-to="' + safeText(p.to) + '">' + _t('time_analytics.locks_unlock_btn', 'Разблокировать') + '</button>'
+              + '</div>';
+          }).join('');
+          if (listEl) listEl.innerHTML = rows;
+        }
+      } catch (e) {
+        if (listEl) listEl.innerHTML = '<div class="text-danger small">' + _t('page.load_error', 'Ошибка загрузки') + '</div>';
+      }
+    }
+
+    await load();
+
+    if (form && form.dataset.bound !== '1') {
+      form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var from = String((form.querySelector('[name="date_from"]') || {}).value || '').trim();
+        var to = String((form.querySelector('[name="date_to"]') || {}).value || '').trim();
+        if (!from || !to) return;
+        try {
+          var res = await window.CRM.api.request('api/v1/rates/lock', { method: 'POST', body: { date_from: from, date_to: to } });
+          if (res && res.success) { notify(_t('time_analytics.locks_locked', 'Период заблокирован')); form.reset(); await load(); }
+        } catch (err) {
+          var em = err && err.envelope ? err.envelope.message : null;
+          notify(em || _t('page.load_error', 'Ошибка'), 'error');
+        }
+      });
+      form.dataset.bound = '1';
+    }
+
+    if (listEl && listEl.dataset.bound !== '1') {
+      listEl.addEventListener('click', async function (e) {
+        var btn = e.target.closest('[data-locks-unlock]');
+        if (!btn) return;
+        var from = btn.getAttribute('data-locks-unlock') || '';
+        var to = btn.getAttribute('data-locks-unlock-to') || '';
+        if (!window.confirm(_t('time_analytics.locks_unlock_confirm', 'Разблокировка может привести к расхождению сумм с проведёнными выплатами и счетами. Продолжить?'))) return;
+        try {
+          var res = await window.CRM.api.request('api/v1/rates/unlock', { method: 'POST', body: { date_from: from, date_to: to } });
+          if (res && res.success) { notify(_t('time_analytics.locks_unlocked', 'Период разблокирован')); await load(); }
+        } catch (err) {
+          var em = err && err.envelope ? err.envelope.message : null;
+          notify(em || _t('page.load_error', 'Ошибка'), 'error');
+        }
+      });
+      listEl.dataset.bound = '1';
     }
   }
 

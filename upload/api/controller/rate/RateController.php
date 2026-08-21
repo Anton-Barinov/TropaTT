@@ -217,6 +217,92 @@ final class RateController extends BaseController
         return $this->success('RATE_UNLOCKED', '', ['unlocked_rows' => $updated]);
     }
 
+    /**
+     * GET /api/v1/rates/locks — list locked periods + auto-close status (TZ 8.10).
+     */
+    public function listLocks(): \Api\System\Library\Http\JsonResponse
+    {
+        $pdo = $this->container->get('db.pdo');
+
+        // Auto-close settings (3.8)
+        $mode = (string)($this->settingScalar($pdo, 'finance.auto_close.mode') ?? 'off');
+        $lagDays = (int)($this->settingScalar($pdo, 'finance.auto_close.lag_days') ?? 5);
+
+        // Last scheduler run of the auto-close task (visible so a missing cron
+        // on the server is noticeable rather than silently breaking 15.5).
+        $lastRunAt = null;
+        $lastStatus = null;
+        try {
+            $task = (new QueryBuilder($pdo))->from('module_scheduled_tasks')
+                ->select(['last_run_at', 'last_status'])
+                ->where('module_name', '=', 'finance')
+                ->where('task_name', '=', 'periods.auto_close')
+                ->first();
+            if ($task) {
+                $lastRunAt = $task['last_run_at'] ?? null;
+                $lastStatus = $task['last_status'] ?? null;
+            }
+        } catch (\Throwable) {
+            // module_scheduled_tasks may not exist on fresh installs — non-fatal.
+        }
+
+        // Locked work-log days grouped into contiguous periods.
+        $rows = (new QueryBuilder($pdo))
+            ->from('work_logs w')
+            ->select(['DATE(w.logged_at) AS d', 'COUNT(*) AS cnt'])
+            ->where('w.rate_locked_at', 'IS NOT', null)
+            ->groupBy('DATE(w.logged_at)')
+            ->orderBy('d', 'ASC')
+            ->get();
+
+        $periods = [];
+        $cur = null;
+        $prev = null;
+        foreach ($rows as $r) {
+            $d = (string)($r['d'] ?? '');
+            $cnt = (int)($r['cnt'] ?? 0);
+            if ($d === '') continue;
+            if ($cur === null) {
+                $cur = ['from' => $d, 'to' => $d, 'row_count' => $cnt];
+            } elseif ($prev !== null && (strtotime($d) - strtotime($prev)) <= 86400) {
+                $cur['to'] = $d;
+                $cur['row_count'] += $cnt;
+            } else {
+                $periods[] = $cur;
+                $cur = ['from' => $d, 'to' => $d, 'row_count' => $cnt];
+            }
+            $prev = $d;
+        }
+        if ($cur !== null) {
+            $periods[] = $cur;
+        }
+
+        return $this->success('RATE_LOCKS', '', [
+            'locked_periods' => $periods,
+            'auto_close' => ['mode' => $mode, 'lag_days' => $lagDays],
+            'last_run_at' => $lastRunAt,
+            'last_status' => $lastStatus,
+        ]);
+    }
+
+    /**
+     * Read a system-scope setting scalar value (settings.value is JSON).
+     */
+    private function settingScalar(\PDO $pdo, string $name): mixed
+    {
+        $row = (new QueryBuilder($pdo))
+            ->from('settings')
+            ->select(['value'])
+            ->where('scope', '=', 'system')
+            ->where('name', '=', $name)
+            ->first();
+        if (!$row || ($row['value'] ?? '') === '' || $row['value'] === null) {
+            return null;
+        }
+        $decoded = json_decode((string)$row['value'], true);
+        return $decoded;
+    }
+
     private function hasAnyFinancePerm(array $actor): bool
     {
         if ((bool)($actor['is_root'] ?? false)) return true;
