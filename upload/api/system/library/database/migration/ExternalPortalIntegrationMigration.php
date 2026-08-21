@@ -27,7 +27,7 @@ final class ExternalPortalIntegrationMigration implements MigrationInterface
         return 'Add knowledge_pages.client_visible flag for portal visibility; no schema change needed for chats.type.';
     }
 
-    public function up(PDO $pdo): void
+    public function up(PDO $pdo, string $driver): void
     {
         // 1. Add client_visible column to knowledge_pages (default 0 = not visible)
         $columns = $this->getColumnNames($pdo, 'knowledge_pages');
@@ -36,7 +36,7 @@ final class ExternalPortalIntegrationMigration implements MigrationInterface
         }
     }
 
-    public function down(PDO $pdo): void
+    public function down(PDO $pdo, string $driver): void
     {
         $columns = $this->getColumnNames($pdo, 'knowledge_pages');
         if (in_array('client_visible', $columns, true)) {

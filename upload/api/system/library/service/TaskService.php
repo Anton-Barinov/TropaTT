@@ -147,7 +147,7 @@ final class TaskService
         }
 
         return [
-            'items' => array_map(fn(array $item): array => $this->sanitizeTask($item), $items),
+            'items' => array_map(fn(array $item): array => $this->sanitizeTask($item, $actor), $items),
             'meta' => $meta,
         ];
     }
@@ -262,7 +262,7 @@ final class TaskService
             $this->activity?->recordTaskCreated($createdTask, $actor, ['source_type' => $input['source_type'] ?? 'web']);
         }
 
-        return $this->sanitizeTask($createdTask);
+        return $this->sanitizeTask($createdTask, $actor);
     }
 
     public function get(string $publicId, array $actor): ?array
@@ -279,7 +279,7 @@ final class TaskService
             return null;
         }
 
-        return $this->sanitizeTask($task);
+        return $this->sanitizeTask($task, $actor);
     }
 
     public function getByTaskKey(string $taskKey, array $actor): ?array
@@ -303,7 +303,7 @@ final class TaskService
             return null;
         }
 
-        return $this->sanitizeTask($task);
+        return $this->sanitizeTask($task, $actor);
     }
 
     /** @return array<string,mixed>|null|'ROW_VERSION_CONFLICT'|'PROJECT_NOT_FOUND'|'PARENT_TASK_NOT_FOUND'|'INVALID_PARENT_TASK'|'FORBIDDEN_TASK_IDENTITY_EDIT'|'CYCLIC_DEPENDENCY_DETECTED'|'DESCRIPTION_TOO_LONG' */
@@ -621,10 +621,20 @@ final class TaskService
     }
 
     /** @param array<string,mixed> $task */
-    private function sanitizeTask(array $task): array
+    private function sanitizeTask(array $task, array $actor = []): array
     {
         if (array_key_exists('description', $task)) {
             $task['description'] = $this->sanitizeDescription((string)$task['description']);
+        }
+
+        // Strip internal staff names and IDs for external users. A guest must
+        // not see assignee/manager/team-member names via the network tab.
+        if (!empty((int)($actor['is_external'] ?? 0))) {
+            unset($task['assignee_name'], $task['assignee_user_public_id']);
+            unset($task['project_manager_name'], $task['project_manager_user_public_id']);
+            unset($task['project_team_manager_name'], $task['project_team_manager_user_public_id']);
+            unset($task['project_team_member_user_ids']);
+            unset($task['creator_user_name'], $task['creator_user_public_id']);
         }
 
         return $task;
