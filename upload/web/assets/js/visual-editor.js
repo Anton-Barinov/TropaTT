@@ -2282,7 +2282,7 @@ window.CRM.VisualEditor = (function () {
       }
       var typeSpan = document.createElement('span');
       typeSpan.className = 'crm-ve-mention-item-type';
-      typeSpan.textContent = item.type === 'page' ? 'Page' : 'User';
+      typeSpan.textContent = item.type === 'page' ? t('visual_editor.mention_type_page', 'Page') : t('visual_editor.mention_type_user', 'User');
       el.appendChild(icon);
       el.appendChild(nameSpan);
       el.appendChild(typeSpan);
@@ -2293,14 +2293,14 @@ window.CRM.VisualEditor = (function () {
     if (users.length) {
       var userLabel = document.createElement('div');
       userLabel.className = 'crm-ve-mention-group-label';
-      userLabel.textContent = 'Users';
+      userLabel.textContent = t('visual_editor.mention_group_users', 'Users');
       menu.appendChild(userLabel);
       users.forEach(renderItem);
     }
     if (pages.length) {
       var pageLabel = document.createElement('div');
       pageLabel.className = 'crm-ve-mention-group-label';
-      pageLabel.textContent = 'Knowledge pages';
+      pageLabel.textContent = t('visual_editor.mention_group_pages', 'Knowledge pages');
       menu.appendChild(pageLabel);
       pages.forEach(renderItem);
     }

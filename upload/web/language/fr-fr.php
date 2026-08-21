@@ -8900,6 +8900,10 @@ return array (
     'type_forbidden' => 'Le téléversement de ce type de fichier est interdit pour des raisons de sécurité',
     'todo_list' => 'Liste de tâches',
     'table' => 'Tableau',
+    'mention_type_page' => 'Page',
+    'mention_type_user' => 'Utilisateur',
+    'mention_group_users' => 'Utilisateurs',
+    'mention_group_pages' => 'Pages de connaissances',
   ),
   'admin_estimates' => 
   array (

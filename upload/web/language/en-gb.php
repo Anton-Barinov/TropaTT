@@ -9400,6 +9400,10 @@ return array (
     'code_block' => 'Code block',
     'todo_list' => 'To-do list',
     'table' => 'Table',
+    'mention_type_page' => 'Page',
+    'mention_type_user' => 'User',
+    'mention_group_users' => 'Users',
+    'mention_group_pages' => 'Knowledge pages',
   ),
   'approvals' => 
   array (

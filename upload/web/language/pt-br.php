@@ -8900,6 +8900,10 @@ return array (
     'type_forbidden' => 'O upload deste tipo de arquivo é proibido por motivos de segurança',
     'todo_list' => 'Lista de tarefas',
     'table' => 'Tabela',
+    'mention_type_page' => 'Página',
+    'mention_type_user' => 'Usuário',
+    'mention_group_users' => 'Usuários',
+    'mention_group_pages' => 'Páginas de conhecimento',
   ),
   'admin_estimates' => 
   array (

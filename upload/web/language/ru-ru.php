@@ -9400,6 +9400,10 @@ return array (
     'code_block' => 'Блок кода',
     'todo_list' => 'Список задач',
     'table' => 'Таблица',
+    'mention_type_page' => 'Страница',
+    'mention_type_user' => 'Пользователь',
+    'mention_group_users' => 'Пользователи',
+    'mention_group_pages' => 'Страницы базы знаний',
   ),
   'approvals' => 
   array (

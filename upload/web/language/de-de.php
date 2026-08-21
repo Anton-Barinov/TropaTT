@@ -8900,6 +8900,10 @@ return array (
     'type_forbidden' => 'Das Hochladen dieses Dateityps ist aus Sicherheitsgründen verboten',
     'todo_list' => 'Aufgabenliste',
     'table' => 'Tabelle',
+    'mention_type_page' => 'Seite',
+    'mention_type_user' => 'Benutzer',
+    'mention_group_users' => 'Benutzer',
+    'mention_group_pages' => 'Wissensseiten',
   ),
   'admin_estimates' => 
   array (

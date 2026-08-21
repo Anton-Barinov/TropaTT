@@ -8900,6 +8900,10 @@ return array (
     'type_forbidden' => '出于安全考虑，禁止上传此类型的文件',
     'todo_list' => '待办事项',
     'table' => '表格',
+    'mention_type_page' => '页面',
+    'mention_type_user' => '用户',
+    'mention_group_users' => '用户',
+    'mention_group_pages' => '知识库页面',
   ),
   'admin_estimates' => 
   array (
