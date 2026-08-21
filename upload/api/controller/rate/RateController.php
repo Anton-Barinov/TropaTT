@@ -29,6 +29,8 @@ final class RateController extends BaseController
         $input = $this->request()->allInput();
         $userPublicId = (string)($input['user_public_id'] ?? '');
         $taskPublicId = (string)($input['task_public_id'] ?? '');
+        $projectPublicId = (string)($input['project_public_id'] ?? '');
+        $clientPublicId = (string)($input['client_public_id'] ?? '');
         $date = (string)($input['date'] ?? gmdate('Y-m-d'));
         $activityCode = $input['activity_code'] ?? null;
 
@@ -42,10 +44,20 @@ final class RateController extends BaseController
             $task = (new QueryBuilder($pdo))->from('tasks')->where('public_id', '=', $taskPublicId)->first();
             if (!$task) return $this->error('TASK_NOT_FOUND', $this->t('common/messages.not_found'), 404);
             $taskId = (int)$task['id'];
+        } elseif ($projectPublicId === '' && $clientPublicId === '') {
+            // TZ 7.3: either a task, or a project+client scope is required.
+            return $this->error('VALIDATION', $this->t('rate/messages.preview_scope_required'), 422);
         }
 
         $resolver = new RateResolutionService(new RateCardRepository($pdo));
-        $result = $resolver->resolve((int)$user['id'], $taskId, $date, $activityCode);
+        $result = $resolver->resolve(
+            (int)$user['id'],
+            $taskId,
+            $date,
+            $activityCode,
+            $projectPublicId !== '' ? $projectPublicId : null,
+            $clientPublicId !== '' ? $clientPublicId : null
+        );
 
         $policy = new FinancialFieldPolicy();
         $filtered = $policy->filterRow($result, $actor, 'rates.preview');

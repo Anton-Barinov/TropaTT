@@ -14,4 +14,5 @@ return [
     'invalid_markup_percent' => 'Der Aufschlagsprozentsatz muss zwischen 0 und 1000 liegen oder leer sein',
     'invalid_lag_days' => 'Die Verzögerung muss zwischen 0 und 90 Tagen liegen',
     'invalid_auto_close_mode' => 'Ungültiger Auto-Close-Modus',
+    'preview_scope_required' => 'Aufgabe oder Projekt/Geschäftspartner für die Satzvorschau angeben',
 ];

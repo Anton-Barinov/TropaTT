@@ -14,4 +14,5 @@ return [
     'invalid_markup_percent' => 'O percentual de acréscimo deve estar entre 0 e 1000 ou vazio',
     'invalid_lag_days' => 'Os dias de atraso devem estar entre 0 e 90',
     'invalid_auto_close_mode' => 'Modo de fechamento automático inválido',
+    'preview_scope_required' => 'Informe uma tarefa ou um projeto/contraparte para pré-visualizar a taxa',
 ];

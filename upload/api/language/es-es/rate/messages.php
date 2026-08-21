@@ -14,4 +14,5 @@ return [
     'invalid_markup_percent' => 'El porcentaje de margen debe estar entre 0 y 1000 o vacío',
     'invalid_lag_days' => 'Los días de retraso deben estar entre 0 y 90',
     'invalid_auto_close_mode' => 'Modo de cierre automático no válido',
+    'preview_scope_required' => 'Indique una tarea o un proyecto/contraparte para previsualizar la tarifa',
 ];

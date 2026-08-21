@@ -39,15 +39,19 @@ final class RateResolutionService
      * @param int|null $taskId
      * @param string $loggedAtDate  'Y-m-d' in UTC (= DATE(work_logs.logged_at))
      * @param string|null $activityCode  the worklog's activity_code; null → will fall back to tasks.activity_code
+     * @param string|null $explicitProjectPublicId  project context when no task is given (TZ 7.3 preview)
+     * @param string|null $explicitClientPublicId  client context when no task is given (TZ 7.3 preview)
      * @return array
      */
     public function resolve(
         int $userId,
         ?int $taskId,
         string $loggedAtDate,
-        ?string $activityCode
+        ?string $activityCode,
+        ?string $explicitProjectPublicId = null,
+        ?string $explicitClientPublicId = null
     ): array {
-        $cacheKey = "{$userId}|{$taskId}|{$loggedAtDate}|{$activityCode}";
+        $cacheKey = "{$userId}|{$taskId}|{$explicitProjectPublicId}|{$explicitClientPublicId}|{$loggedAtDate}|{$activityCode}";
         if (isset($this->memo[$cacheKey])) {
             return $this->memo[$cacheKey];
         }
@@ -58,11 +62,12 @@ final class RateResolutionService
             $taskCtx = $this->repo->taskContext($taskId);
         }
 
-        // Resolve project and client public IDs
-        $projectPublicId = $taskCtx['project_public_id'] ?? null;
+        // Resolve project and client public IDs: task context wins, then the
+        // explicit preview context (TZ 7.3: task OR project+client).
+        $projectPublicId = $taskCtx['project_public_id'] ?? $explicitProjectPublicId;
         $taskClientPublicId = $taskCtx['task_client_public_id'] ?? null;
         $projectClientPublicId = $taskCtx['project_client_public_id'] ?? null;
-        $clientPublicId = $taskClientPublicId ?: $projectClientPublicId;
+        $clientPublicId = $taskClientPublicId ?: $projectClientPublicId ?: $explicitClientPublicId;
 
         // Activity code: worklog's own → task default → null
         $effectiveActivityCode = $activityCode
@@ -86,23 +91,21 @@ final class RateResolutionService
         $projectCardData = [];
         $counterpartyCardData = [];
 
-        if ($taskId !== null) {
-            // Collect rate card IDs from active assignments
-            if ($projectPublicId !== null) {
-                $assigns = $this->repo->activeAssignments('project', $projectPublicId, $loggedAtDate);
-                if ($assigns !== []) {
-                    $cardIds = array_map(static fn(array $a): int => (int)$a['rate_card_id'], $assigns);
-                    $projectCardLines = $this->repo->candidateLines($cardIds, $userId, $effectiveActivityCode, $roleCodes, $loggedAtDate);
-                    $projectCardData = $this->cardDataForAssignments($cardIds);
-                }
+        // Collect rate card IDs from active assignments (task OR explicit scope)
+        if ($projectPublicId !== null) {
+            $assigns = $this->repo->activeAssignments('project', $projectPublicId, $loggedAtDate);
+            if ($assigns !== []) {
+                $cardIds = array_map(static fn(array $a): int => (int)$a['rate_card_id'], $assigns);
+                $projectCardLines = $this->repo->candidateLines($cardIds, $userId, $effectiveActivityCode, $roleCodes, $loggedAtDate);
+                $projectCardData = $this->cardDataForAssignments($cardIds);
             }
-            if ($clientPublicId !== null) {
-                $assigns = $this->repo->activeAssignments('counterparty', $clientPublicId, $loggedAtDate);
-                if ($assigns !== []) {
-                    $cardIds = array_map(static fn(array $a): int => (int)$a['rate_card_id'], $assigns);
-                    $counterpartyCardLines = $this->repo->candidateLines($cardIds, $userId, $effectiveActivityCode, $roleCodes, $loggedAtDate);
-                    $counterpartyCardData = $this->cardDataForAssignments($cardIds);
-                }
+        }
+        if ($clientPublicId !== null) {
+            $assigns = $this->repo->activeAssignments('counterparty', $clientPublicId, $loggedAtDate);
+            if ($assigns !== []) {
+                $cardIds = array_map(static fn(array $a): int => (int)$a['rate_card_id'], $assigns);
+                $counterpartyCardLines = $this->repo->candidateLines($cardIds, $userId, $effectiveActivityCode, $roleCodes, $loggedAtDate);
+                $counterpartyCardData = $this->cardDataForAssignments($cardIds);
             }
         }
 

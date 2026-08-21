@@ -14,4 +14,5 @@ return [
     'invalid_markup_percent' => 'Le pourcentage de majoration doit être entre 0 et 1000 ou vide',
     'invalid_lag_days' => 'Le délai doit être entre 0 et 90 jours',
     'invalid_auto_close_mode' => 'Mode de clôture automatique invalide',
+    'preview_scope_required' => 'Indiquez une tâche ou un projet/tiers pour prévisualiser le taux',
 ];

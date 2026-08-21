@@ -14,4 +14,5 @@ return [
     'invalid_markup_percent' => '加价百分比必须在 0 到 1000 之间或为空',
     'invalid_lag_days' => '延迟天数必须在 0 到 90 之间',
     'invalid_auto_close_mode' => '自动关闭模式无效',
+    'preview_scope_required' => '请提供任务或项目/客户范围以预览费率',
 ];
