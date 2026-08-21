@@ -1319,6 +1319,7 @@ return array (
     'no_role' => 'No role',
     'field_team' => 'Team',
     'no_team' => 'No team',
+    'bulk_actions_aria' => 'Bulk actions',
   ),
   'kanban' => 
   array (

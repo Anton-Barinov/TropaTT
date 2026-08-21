@@ -19,7 +19,7 @@
   <button id="adminUsersFiltersResetBtn" class="btn crm-btn-secondary" type="button"><?= htmlspecialchars($t('admin_users.filter_reset', 'Reset'), ENT_QUOTES, 'UTF-8') ?></button>
 </div>
 
-<div id="adminUsersBulkActionsBar" class="alert alert-primary d-none d-flex justify-content-between align-items-center" role="region" aria-label="Bulk actions admin users">
+<div id="adminUsersBulkActionsBar" class="alert alert-primary d-none d-flex justify-content-between align-items-center" role="region" aria-label="<?= htmlspecialchars($t('admin_users.bulk_actions_aria', 'Bulk actions'), ENT_QUOTES, 'UTF-8') ?>">
   <div><?= htmlspecialchars($t('admin_users.bulk_selected', 'Users selected:'), ENT_QUOTES, 'UTF-8') ?> <strong data-admin-users-selected-count>0</strong> <span class="small ms-2" id="adminUsersBulkResult" aria-live="polite"></span></div>
   <div class="d-flex gap-2">
     <select id="adminUsersBulkActiveSelect" class="form-select form-select-sm crm-field-w-170" aria-label="<?= htmlspecialchars($t('admin_users.bulk_status_aria', 'Change user status'), ENT_QUOTES, 'UTF-8') ?>">

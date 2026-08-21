@@ -1686,6 +1686,7 @@ return array (
     'no_role' => 'Keine Rolle',
     'field_team' => 'Team',
     'no_team' => 'Kein Team',
+    'bulk_actions_aria' => 'Massenaktionen',
   ),
   'admin_webhooks' => 
   array (
