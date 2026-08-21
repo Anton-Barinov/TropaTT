@@ -122,6 +122,35 @@ foreach ($checks as $check) {
     ];
 }
 
+// ---------------------------------------------------------------------------
+// Integrity invariant (TZ 3.7): at most ONE active default rate card.
+// MySQL has no partial unique index, so the service enforces it; this check
+// catches drift (e.g. a manual UPDATE) before it silently changes which card
+// wins default-card resolution in RateResolutionService.
+// ---------------------------------------------------------------------------
+if (tableExists($pdo, 'rate_cards')) {
+    $activeDefaults = activeDefaultRateCardsCount($pdo);
+    $invariantViolated = $activeDefaults > 1;
+    $executed++;
+    // Treat a violation like an orphan so --fail-on-orphans and result=WARN fire.
+    $totalOrphans += $invariantViolated ? 1 : 0;
+    $results[] = [
+        'key' => 'invariant:rate_cards_single_active_default',
+        'status' => $invariantViolated ? 'invariant_violation' : 'ok',
+        'orphans' => $invariantViolated ? $activeDefaults : 0,
+        'description' => 'At most one active default rate card (is_default=1, not archived, not deleted) — TZ 3.7',
+    ];
+} else {
+    $skipped++;
+    $results[] = [
+        'key' => 'invariant:rate_cards_single_active_default',
+        'status' => 'skipped',
+        'orphans' => 0,
+        'reason' => 'table_missing',
+        'description' => 'At most one active default rate card (is_default=1, not archived, not deleted) — TZ 3.7',
+    ];
+}
+
 $summary = [
     'executed_checks' => $executed,
     'skipped_checks' => $skipped,
@@ -152,6 +181,18 @@ if ($failOnOrphans && $totalOrphans > 0) {
 }
 
 exit(0);
+
+function activeDefaultRateCardsCount(PDO $pdo): int
+{
+    $stmt = $pdo->query(
+        'SELECT COUNT(*) AS c FROM rate_cards WHERE is_default = 1 AND is_archived = 0 AND deleted_at IS NULL'
+    );
+    if ($stmt === false) {
+        return 0;
+    }
+
+    return max(0, (int)$stmt->fetchColumn());
+}
 
 function tableExists(PDO $pdo, string $table): bool
 {
