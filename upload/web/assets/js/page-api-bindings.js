@@ -32088,11 +32088,14 @@ window.CRM.pageApiBindings = (function () {
         function rateVal(v) { return (v === null || v === undefined || v === '') ? inherited() : '<span class="crm-rate-value">' + safeText(String(v)) + '</span>'; }
         var user = l.user_public_id ? (state.users.find(function (u) { return u.public_id === l.user_public_id; }) || {}) : {};
         var userText = l.user_public_id ? safeText(userNameLabel(user)) : '<span class="text-muted">' + rt('rate_cards.any_user', 'Любой') + '</span>';
+        var role = l.role_code ? (state.roles.find(function (r) { return r.code === l.role_code; }) || {}) : {};
+        var roleText = l.role_code ? safeText(role.title || l.role_code) : '';
         var actText = l.activity_code ? safeText(l.activity_code) : '<span class="text-muted">' + rt('rate_cards.any_activity', 'Любой') + '</span>';
         var period = safeText(l.effective_from || '') + ' — ' + safeText(l.effective_to || '∞');
         return '<div class="crm-rate-line-item">' +
           '<div class="crm-rate-line-header">' +
             '<span class="fw-medium">' + userText + '</span>' +
+            (roleText ? '<span class="badge text-bg-secondary small">' + roleText + '</span>' : '') +
             '<span class="text-muted small">' + actText + '</span>' +
           '</div>' +
           '<div class="crm-rate-line-rates">' +

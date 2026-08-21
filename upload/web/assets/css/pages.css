@@ -19251,6 +19251,11 @@ a.task-tag:hover {
     background: var(--crm-surface, var(--bs-body-bg));
 }
 
+/* Rate line add form: responsive two-row layout */
+#rateCardLineForm .row + .row {
+    margin-top: 0;
+}
+
 /* Responsive: collapse rate rows on small screens */
 @media (max-width: 767.98px) {
     .crm-rate-line-item {
@@ -19269,6 +19274,10 @@ a.task-tag:hover {
     }
     .crm-rate-line-item {
         position: relative;
+    }
+    #rateCardLineForm .row.g-2 > [class*="col-"] {
+        flex: 0 0 100%;
+        max-width: 100%;
     }
 }
 

@@ -77,32 +77,38 @@
           <h6 class="mb-2" data-i18n="rate_cards.add_line_title"><?= htmlspecialchars($t('rate_cards.add_line_title', 'Добавить строку'), ENT_QUOTES, 'UTF-8') ?></h6>
           <form id="rateCardLineForm">
             <input type="hidden" name="public_id">
-            <div class="row g-2 align-items-end">
-              <div class="col-md-2 col-6">
+            <div class="row g-2 mb-2">
+              <div class="col-md-3 col-6">
                 <label class="form-label small" data-i18n="rate_cards.th_user"><?= htmlspecialchars($t('rate_cards.th_user', 'Сотрудник'), ENT_QUOTES, 'UTF-8') ?></label>
                 <select class="form-select form-select-sm" name="user_public_id"><option value=""><?= htmlspecialchars($t('rate_cards.any_user', 'Любой'), ENT_QUOTES, 'UTF-8') ?></option></select>
               </div>
-              <div class="col-md-2 col-6">
+              <div class="col-md-3 col-6">
+                <label class="form-label small" data-i18n="rate_cards.th_role"><?= htmlspecialchars($t('rate_cards.th_role', 'Роль'), ENT_QUOTES, 'UTF-8') ?></label>
+                <select class="form-select form-select-sm" name="role_code"><option value=""><?= htmlspecialchars($t('rate_cards.any_role', 'Любая'), ENT_QUOTES, 'UTF-8') ?></option></select>
+              </div>
+              <div class="col-md-3 col-6">
                 <label class="form-label small" data-i18n="rate_cards.th_activity"><?= htmlspecialchars($t('rate_cards.th_activity', 'Вид работ'), ENT_QUOTES, 'UTF-8') ?></label>
                 <select class="form-select form-select-sm" name="activity_code"><option value=""><?= htmlspecialchars($t('rate_cards.any_activity', 'Любой'), ENT_QUOTES, 'UTF-8') ?></option></select>
               </div>
-              <div class="col-md-1 col-4">
+            </div>
+            <div class="row g-2 align-items-end">
+              <div class="col-md-2 col-4">
                 <label class="form-label small text-danger" data-i18n="rate_cards.th_cost"><?= htmlspecialchars($t('rate_cards.th_cost', 'Себестоимость'), ENT_QUOTES, 'UTF-8') ?></label>
                 <input class="form-control form-control-sm" name="cost_rate" type="number" min="0" step="0.01" placeholder="—">
               </div>
-              <div class="col-md-1 col-4">
+              <div class="col-md-2 col-4">
                 <label class="form-label small text-primary" data-i18n="rate_cards.th_bill"><?= htmlspecialchars($t('rate_cards.th_bill', 'Продажа'), ENT_QUOTES, 'UTF-8') ?></label>
                 <input class="form-control form-control-sm" name="bill_rate" type="number" min="0" step="0.01" placeholder="—">
               </div>
-              <div class="col-md-1 col-4">
+              <div class="col-md-2 col-4">
                 <label class="form-label small text-success" data-i18n="rate_cards.th_payout"><?= htmlspecialchars($t('rate_cards.th_payout', 'Вознаграждение'), ENT_QUOTES, 'UTF-8') ?></label>
                 <input class="form-control form-control-sm" name="payout_rate" type="number" min="0" step="0.01" placeholder="—">
               </div>
-              <div class="col-md-2 col-6">
+              <div class="col-md-3 col-6">
                 <label class="form-label small" data-i18n="rate_cards.th_period"><?= htmlspecialchars($t('rate_cards.th_period', 'Период'), ENT_QUOTES, 'UTF-8') ?></label>
                 <div class="input-group input-group-sm"><input class="form-control" name="effective_from" type="date"><input class="form-control" name="effective_to" type="date" placeholder="∞"></div>
               </div>
-              <div class="col-md-2 col-6 d-grid">
+              <div class="col-md-3 col-6 d-grid">
                 <button class="btn btn-sm crm-btn-primary" type="submit" data-i18n="rate_cards.add_line"><?= htmlspecialchars($t('rate_cards.add_line', 'Добавить'), ENT_QUOTES, 'UTF-8') ?></button>
               </div>
             </div>
