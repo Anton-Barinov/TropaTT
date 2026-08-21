@@ -258,7 +258,7 @@ final class ProjectRepository
         }
 
         if (!empty($filters['search'])) {
-            $term = '%' . (string)$filters['search'] . '%';
+            $term = '%' . $this->escapeLikeValue((string)$filters['search']) . '%';
             $qb->whereRaw('(p.title LIKE ? OR p.description LIKE ? OR t.title LIKE ? OR c.title LIKE ?)', [$term, $term, $term, $term]);
         }
 
@@ -343,5 +343,10 @@ final class ProjectRepository
         }
 
         return $qb;
+    }
+
+    private function escapeLikeValue(string $value): string
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
     }
 }

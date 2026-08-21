@@ -75,7 +75,7 @@ final class ContactRepository
             ->whereNull('eu.deleted_at');
 
         if (!empty($filters['search'])) {
-            $search = '%' . (string)$filters['search'] . '%';
+            $search = '%' . $this->escapeLikeValue((string)$filters['search']) . '%';
             $query->whereRaw('(ct.full_name LIKE ? OR ct.email LIKE ? OR ct.phone LIKE ?)', [$search, $search, $search]);
         }
 
@@ -246,5 +246,10 @@ final class ContactRepository
             ->from('contacts')
             ->where('id', '=', $id)
             ->update($set) > 0;
+    }
+
+    private function escapeLikeValue(string $value): string
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
     }
 }
