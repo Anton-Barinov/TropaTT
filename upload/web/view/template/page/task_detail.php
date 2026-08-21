@@ -194,6 +194,12 @@
               <label class="small text-muted mb-0" for="commentMentionUserSelect" data-i18n="task_detail.comment_mention_label"><?= htmlspecialchars($t('task_detail.comment_mention_label', 'Упомянуть:'), ENT_QUOTES, 'UTF-8') ?></label>
               <select id="commentMentionUserSelect" class="form-select form-select-sm crm-field-w-220"><option value="" data-i18n="task_detail.comment_no_mention"><?= htmlspecialchars($t('task_detail.comment_no_mention', 'Без упоминания'), ENT_QUOTES, 'UTF-8') ?></option></select>
             </div>
+<?php if (empty($is_external_user)): // client portal: comment visibility toggle is meaningless for a guest — their own comments are always client-visible server-side regardless of this checkbox ?>
+            <div class="form-check crm-comment-visibility-field">
+              <input class="form-check-input" type="checkbox" id="commentVisibilityClient" name="visibility_client">
+              <label class="form-check-label small text-muted" for="commentVisibilityClient" data-i18n="task_detail.comment_visibility_client_label" title="<?= htmlspecialchars($t('task_detail.comment_visibility_client_hint', 'Если к задаче приглашён внешний пользователь (клиент/фрилансер), он увидит только те комментарии, что отмечены этой галочкой, и свои собственные.'), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($t('task_detail.comment_visibility_client_label', 'Видно приглашённому пользователю'), ENT_QUOTES, 'UTF-8') ?></label>
+            </div>
+<?php endif; ?>
             <div class="d-flex gap-2 justify-content-end">
               <button class="btn crm-btn-secondary" type="button" data-comment-create-cancel data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
               <button class="btn crm-btn-primary" type="submit" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>

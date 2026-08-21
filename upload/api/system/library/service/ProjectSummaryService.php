@@ -21,6 +21,22 @@ final class ProjectSummaryService
         }
 
         $now = gmdate('Y-m-d H:i:s');
+        $workload = $this->summary->workloadSummary($projectPublicId, $now);
+
+        // SEC: an external guest (client portal observer/executor) must never see
+        // per-employee workload data — assignee_name/assignee_user_public_id and
+        // individual task counts are internal team information, not something the
+        // client portal's own UI even renders for guests (the "Команда" sidebar
+        // block is stripped from the template for is_external_user). This route
+        // is external_ok (routes.php) so the guest's browser DOES receive this
+        // JSON — the per-person breakdown must be dropped here, not just hidden
+        // in the UI, or a guest could read it straight out of the network tab.
+        // The aggregate totals (task counts, logged minutes) are safe: they carry
+        // no staff identity and mirror data already visible on the guest's own
+        // task list.
+        if ((int)($actor['is_external'] ?? 0) === 1) {
+            $workload = ['items' => [], 'totals' => $workload['totals'] ?? []];
+        }
 
         return [
             'project' => [
@@ -34,7 +50,7 @@ final class ProjectSummaryService
             ],
             'milestones' => $this->summary->milestonesSummary($projectPublicId, $now),
             'risks' => $this->summary->risksSummary($projectPublicId, $now),
-            'workload' => $this->summary->workloadSummary($projectPublicId, $now),
+            'workload' => $workload,
             'generated_at' => gmdate('c'),
         ];
     }

@@ -48,6 +48,16 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 - **Client portal: internal comments could still arrive as notifications.** Notification text includes an excerpt of the comment it announces, and a portal user becomes a recipient as soon as they comment on or create a task. Internal comments are no longer announced to portal users.
 
+- **Client portal: own profile page returned a 403.** An external guest opening their own profile page (personal data, interface preferences, notification settings, sessions, password, 2FA) got a hard "forbidden" error before the page even rendered, because the profile route was missing from the portal's page allowlist. The underlying endpoints were already scoped to the authenticated actor's own data.
+
+- **Client portal: project card came up with a broken-looking layout.** A guest's own project overview always showed 0% progress, zeroed metrics, and "no milestones" (even when there were some), with error toasts on every load — the summary and milestones endpoints were not reachable by a portal user. They are now reachable for a guest's own accessible project, with per-employee workload data (names, individual task counts) stripped from the response so it never reaches a guest's browser even in the underlying JSON.
+
+- **Client portal: no way for staff to make a reply visible to an invited user.** A guest's own comments were always client-visible, but a staff reply defaulted to internal-only with no control anywhere to change that — so an invited user could never see replies to their own comments. Comment authors can now mark a new comment as visible to the invited user when writing it, and staff can toggle any existing comment's visibility afterward.
+
+### Removed
+
+- **"MySQL Integration CI" GitHub Actions workflow.** Ran the full migration chain against a fresh MySQL 8.0 service container on every push/PR and had been failing independently of the change being tested. Removed rather than left red; a from-scratch migration smoke test can be reintroduced once it is passing again.
+
 ## [v0.2.0.5] - 2026-08-19
 
 ### Added

@@ -125,6 +125,38 @@ $expectedExternalRoutes = [
     'PATCH /api/v1/notifications/{public_id}/unread',
     'PUT /api/v1/notifications/{public_id}/unread',
     'POST /api/v1/notifications/mark-all-read',
+    // Own-profile self-service (point 8: a guest must be able to open and manage their
+    // own account). Every one of these is explicitly self-scoped (authz_note says so and
+    // the underlying service reads/writes only the authenticated actor's own row) — none
+    // of them can reach another user's data. profile/me's update path can never actually
+    // change email/login (UserProfileService::updateMe() unconditionally rejects any email
+    // change with EMAIL_CHANGE_REQUIRES_VERIFICATION for every actor, not just guests), so
+    // opening it cannot let a guest collide their login with another account's.
+    'GET /api/v1/profile/me',
+    'PATCH /api/v1/profile/me',
+    'PUT /api/v1/profile/me',
+    'GET /api/v1/profile/preferences',
+    'PATCH /api/v1/profile/preferences',
+    'PUT /api/v1/profile/preferences',
+    'POST /api/v1/profile/change-password',
+    'GET /api/v1/security/sessions',
+    'POST /api/v1/security/sessions/revoke-others',
+    'GET /api/v1/security/2fa/status',
+    'POST /api/v1/security/2fa/enable',
+    'POST /api/v1/security/2fa/disable',
+    // Project overview data for a guest's own accessible project (point 9: the
+    // project card must not come up with a broken/empty layout for a guest).
+    // All four routes reuse ProjectService::get()/MilestoneService's identical
+    // per-project access check already trusted for GET /api/v1/projects/{id} —
+    // no new object-level authorization surface. Content is aggregate-only
+    // (task/milestone counts) except ProjectSummaryService::summary(), which
+    // explicitly strips per-employee workload.items for is_external actors
+    // (checked below) so a guest's network tab can never reveal internal staff
+    // names or individual task assignments.
+    'GET /api/v1/projects/{public_id}/summary',
+    'GET /api/v1/projects/{public_id}/milestones-summary',
+    'GET /api/v1/projects/{public_id}/risks',
+    'GET /api/v1/milestones',
 ];
 
 $actualExternalRoutes = [];
@@ -187,13 +219,17 @@ foreach ($routes as $route) {
         $failures[] = "external_ok route allows DELETE (guests must never delete): {$pattern}";
     }
 
-    // PATCH/PUT is permitted only for marking one's own notifications read/unread.
+    // PATCH/PUT is permitted only for marking one's own notifications read/unread, or for
+    // the two own-profile self-service writes (name/locale/timezone, interface prefs — both
+    // scoped to the actor's own row, never another user's).
     $isNotificationReadToggle = str_contains($pattern, '/notifications/')
         && (str_ends_with($pattern, '/read') || str_ends_with($pattern, '/unread'));
+    $isOwnProfileWrite = $pattern === '/api/v1/profile/me' || $pattern === '/api/v1/profile/preferences';
     foreach (['PATCH', 'PUT'] as $writeMethod) {
-        if (in_array($writeMethod, $methods, true) && !$isNotificationReadToggle) {
+        if (in_array($writeMethod, $methods, true) && !$isNotificationReadToggle && !$isOwnProfileWrite) {
             $failures[] = "external_ok route allows {$writeMethod} outside the notification "
-                . "read/unread toggle (guests must not mutate CRM records): {$pattern}";
+                . "read/unread toggle or own-profile self-service (guests must not mutate CRM "
+                . "records): {$pattern}";
         }
     }
 
@@ -440,6 +476,22 @@ check(
     $failures,
     str_contains($projectServiceSource, 'is_external'),
     'ProjectService does not branch on is_external — external guests would not be scoped'
+);
+
+$projectSummaryServicePath = $apiRoot . '/system/library/service/ProjectSummaryService.php';
+$projectSummaryServiceSource = readFileSafe($projectSummaryServicePath);
+check(
+    $failures,
+    str_contains($projectSummaryServiceSource, 'is_external'),
+    'ProjectSummaryService does not branch on is_external — GET .../summary is external_ok, '
+    . 'so without this branch a guest would receive the full per-employee workload.items '
+    . '(internal staff names + individual task assignments) straight in the API response'
+);
+check(
+    $failures,
+    (bool)preg_match('/is_external.{0,80}workload\s*=\s*\[.{0,40}items.{0,10}=>\s*\[\]/s', $projectSummaryServiceSource),
+    'ProjectSummaryService::summary() must overwrite workload with an empty items array '
+    . 'for is_external actors, not merely read the flag without using it'
 );
 
 // ---------------------------------------------------------------------------

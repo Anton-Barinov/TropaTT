@@ -440,6 +440,14 @@ final class TaskController extends BaseController
         $v = new Validator();
         $v->require($input, 'body', $this->t('common/messages.field_required'))
             ->maxLen($input, 'body', 8000, $this->t('task/messages.max_8000'));
+        if (array_key_exists('visibility', $input)) {
+            // Optional: lets an internal author mark a reply as client-visible right
+            // away instead of posting internal-only and toggling it afterward. A
+            // guest's own comments are force-overridden to 'client' regardless of
+            // this value by CommentService::createByTask(), so this only actually
+            // matters for internal authors.
+            $v->enum($input, 'visibility', ['internal', 'client'], $this->t('comment/messages.invalid_visibility'));
+        }
 
         if ($v->fails()) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $v->errors());

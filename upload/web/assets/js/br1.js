@@ -3288,6 +3288,12 @@ window.CRM.br1 = (function () {
     if (!list) return;
     setTaskTabCounter('detailCommentsCounter', Array.isArray(items) ? items.length : 0);
 
+    // The compose-form checkbox only exists in an internal viewer's DOM
+    // (task_detail.php gates it behind is_external_user, same pattern used
+    // everywhere else on this page) — reuse its presence as the "am I an
+    // internal viewer" signal instead of threading a separate flag through.
+    var isInternalViewer = Boolean(document.getElementById('commentVisibilityClient'));
+
     list.innerHTML = items.length ? items.map(function (item) {
       var canEditComment = currentUserPublicId !== ''
         && String(item.author_public_id || '') === currentUserPublicId;
@@ -3301,8 +3307,26 @@ window.CRM.br1 = (function () {
       var deleteButton = (canEditComment || hasPermission('task.manage'))
         ? '<button type="button" class="btn btn-sm crm-btn-secondary" data-comment-delete="' + escapeHtml(item.public_id || '') + window.CRM.i18n.t('js.br1.udalit_kommentariy_button', '">Удалить</button>')
         : '';
-      var commentActionsHtml = (editButton || deleteButton)
-        ? '<div class="d-flex gap-2">' + editButton + deleteButton + '</div>'
+      var itemVisibility = String(item.visibility || 'internal');
+      // Only an internal viewer sees/toggles this — a guest only ever receives
+      // visibility=client comments in the first place (CommentService filters
+      // server-side), so the badge/toggle would be redundant noise for them.
+      var visibilityBadge = '';
+      var toggleVisibilityButton = '';
+      if (isInternalViewer) {
+        visibilityBadge = itemVisibility === 'client'
+          ? '<span class="crm-badge crm-badge-info" title="' + escapeHtml(window.CRM.i18n.t('js.br1.comment_visibility_client_hint', 'Виден приглашённому пользователю (клиенту/фрилансеру), если такой привязан к задаче')) + '">' + escapeHtml(window.CRM.i18n.t('js.br1.comment_visibility_client_badge', 'Видно приглашённому')) + '</span>'
+          : '<span class="crm-badge crm-badge-muted" title="' + escapeHtml(window.CRM.i18n.t('js.br1.comment_visibility_internal_hint', 'Виден только сотрудникам компании')) + '">' + escapeHtml(window.CRM.i18n.t('js.br1.comment_visibility_internal_badge', 'Внутренний')) + '</span>';
+        if (canEditComment || hasPermission('task.manage')) {
+          toggleVisibilityButton = '<button type="button" class="btn btn-sm crm-btn-secondary" data-comment-toggle-visibility="' + escapeHtml(item.public_id || '') + '" data-current-visibility="' + escapeHtml(itemVisibility) + '">'
+            + escapeHtml(itemVisibility === 'client'
+              ? window.CRM.i18n.t('js.br1.comment_make_internal_btn', 'Скрыть от приглашённого')
+              : window.CRM.i18n.t('js.br1.comment_make_client_btn', 'Показать приглашённому'))
+            + '</button>';
+        }
+      }
+      var commentActionsHtml = (editButton || deleteButton || toggleVisibilityButton)
+        ? '<div class="d-flex gap-2 flex-wrap">' + editButton + deleteButton + toggleVisibilityButton + '</div>'
         : '';
       var commentId = String(item.public_id || '');
       var ownReaction = currentTaskOwnReactionsByComment[commentId] || null;
@@ -3312,7 +3336,7 @@ window.CRM.br1 = (function () {
 
       return '<div class="crm-comment mb-2" data-comment-id="' + escapeHtml(item.public_id || '') + '" data-comment-author="' + escapeHtml(item.author_public_id || '') + '" data-comment-raw="' + escapeHtml(item.body || '') + '">'
         + '<div class="d-flex justify-content-between align-items-start gap-2">'
-        + '<div><strong>' + escapeHtml(item.author_name || item.author_login || window.CRM.i18n.t('js.br1.polzovatel_3', 'Пользователь')) + '</strong></div>'
+        + '<div><strong>' + escapeHtml(item.author_name || item.author_login || window.CRM.i18n.t('js.br1.polzovatel_3', 'Пользователь')) + '</strong>' + (visibilityBadge ? ' ' + visibilityBadge : '') + '</div>'
         + commentActionsHtml
         + '</div>'
         + '<div class="mb-1" data-comment-body="' + escapeHtml(item.public_id || '') + '">' + renderRichTextOrPlain(item.body || '') + '</div>'
@@ -4119,6 +4143,11 @@ window.CRM.br1 = (function () {
     var mentionSelect = document.getElementById('commentMentionUserSelect');
     var followBtn = document.getElementById('taskFollowBtn');
     var favoriteBtn = document.getElementById('taskFavoriteBtn');
+    // Absent entirely from a guest's DOM (task_detail.php gates it on
+    // is_external_user) — a guest's own comments are always forced
+    // visibility=client server-side (CommentService::createByTask), so the
+    // checkbox would be meaningless for them anyway.
+    var visibilityCheckbox = document.getElementById('commentVisibilityClient');
 
     function renderMentionOptions() {
       if (!mentionSelect) return;
@@ -4229,6 +4258,7 @@ window.CRM.br1 = (function () {
           refreshVisualEditors(form, true);
         }
         resetCommentMention();
+        if (visibilityCheckbox) visibilityCheckbox.checked = false;
         // Best-effort: drop the auto-saved draft so it does not resurrect on
         // the next page load after the user cancelled the comment. The blur
         // handler saves the draft (fire-and-forget) right before this click,
@@ -4250,9 +4280,13 @@ window.CRM.br1 = (function () {
       }
 
       try {
+        var commentBody = { body: text };
+        if (visibilityCheckbox && visibilityCheckbox.checked) {
+          commentBody.visibility = 'client';
+        }
         var createdCommentEnvelope = await window.CRM.api.request('api/v1/tasks/' + taskId + '/comments', {
           method: 'POST',
-          body: { body: text }
+          body: commentBody
         });
         var createdComment = createdCommentEnvelope && createdCommentEnvelope.data
           ? createdCommentEnvelope.data.comment
@@ -4290,6 +4324,7 @@ window.CRM.br1 = (function () {
           refreshVisualEditors(form, true);
         }
         resetCommentMention();
+        if (visibilityCheckbox) visibilityCheckbox.checked = false;
 
         await window.CRM.api.request('api/v1/tasks/' + taskId + '/comment-draft', {
           method: 'DELETE'
@@ -4458,6 +4493,34 @@ window.CRM.br1 = (function () {
       } catch (error) {
         var envelopeError = error && error.envelope ? error.envelope : null;
         notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_udalit_kommentariy', 'Не удалось удалить комментарий'), 'error');
+      }
+    });
+
+    // Lets internal staff flip an already-posted comment (typically a reply
+    // to a guest) between internal-only and client-visible without reopening
+    // the body editor. This is the direct fix for "invited users never see
+    // replies from other users": a reply defaults to visibility=internal
+    // (CommentService::createByTaskInternal) and, before this control
+    // existed, there was no UI at all to change that after the fact.
+    commentsList.addEventListener('click', async function (e) {
+      var toggleBtn = e.target.closest('[data-comment-toggle-visibility]');
+      if (!toggleBtn) return;
+      var toggleCommentId = String(toggleBtn.getAttribute('data-comment-toggle-visibility') || '');
+      if (!toggleCommentId) return;
+      var nextVisibility = String(toggleBtn.getAttribute('data-current-visibility') || '') === 'client' ? 'internal' : 'client';
+
+      try {
+        await window.CRM.api.request('api/v1/comments/' + encodeURIComponent(toggleCommentId), {
+          method: 'PATCH',
+          body: { visibility: nextVisibility }
+        });
+        await loadTaskComments(taskId);
+        notify(nextVisibility === 'client'
+          ? window.CRM.i18n.t('js.br1.comment_now_client_visible', 'Комментарий теперь виден приглашённому пользователю')
+          : window.CRM.i18n.t('js.br1.comment_now_internal', 'Комментарий теперь виден только сотрудникам'));
+      } catch (error) {
+        var envelopeError = error && error.envelope ? error.envelope : null;
+        notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_izmenit_vidimost_kommentariya', 'Не удалось изменить видимость комментария'), 'error');
       }
     });
 
