@@ -32047,7 +32047,6 @@ window.CRM.pageApiBindings = (function () {
       var form = document.getElementById('rateCardUnifiedForm');
       form.reset();
       form.elements.public_id.value = '';
-      form.elements.effective_from && (form.elements.effective_from.value = new Date().toISOString().slice(0, 10));
       var modal = new bootstrap.Modal(document.getElementById('rateCardUnifiedModal'));
       modal.show();
       var infoTab = document.querySelector('[data-bs-target="#rateTabInfo"]');
@@ -32228,12 +32227,37 @@ window.CRM.pageApiBindings = (function () {
       createBtn.addEventListener('click', function () { openCreateModal(); });
       createBtn.dataset.bound = '1';
     }
+    async function populateScopeRef(scopeType) {
+      var refSel = document.querySelector('#rateAssignmentForm [name="scope_ref"]');
+      if (!refSel) return;
+      refSel.innerHTML = '<option value="">—</option>';
+      if (scopeType === 'counterparty') {
+        var res = await tryRequest('api/v1/counterparties', { query: { limit: 500 }, silent: true });
+        var items = (res && res.success) ? mapItems(res) : [];
+        refSel.innerHTML = '<option value="">' + rt('rate_cards.select_counterparty', 'Выберите контрагента') + '</option>' +
+          items.map(function (c) { return '<option value="' + safeText(c.public_id) + '">' + safeText(c.title || c.name || c.public_id) + '</option>'; }).join('');
+      } else if (scopeType === 'project') {
+        var res = await tryRequest('api/v1/projects', { query: { limit: 500 }, silent: true });
+        var items = (res && res.success) ? mapItems(res) : [];
+        refSel.innerHTML = '<option value="">' + rt('rate_cards.select_project', 'Выберите проект') + '</option>' +
+          items.map(function (p) { return '<option value="' + safeText(p.public_id) + '">' + safeText(p.title || p.name || p.public_id) + '</option>'; }).join('');
+      }
+    }
+
+    var scopeTypeSel = document.querySelector('#rateAssignmentForm [name="scope_type"]');
+    if (scopeTypeSel && scopeTypeSel.dataset.bound !== '1') {
+      scopeTypeSel.addEventListener('change', function () { populateScopeRef(scopeTypeSel.value); });
+      scopeTypeSel.dataset.bound = '1';
+    }
+
     var assignOpenBtn = document.getElementById('rateAssignmentCreateOpenBtn');
     if (assignOpenBtn && assignOpenBtn.dataset.bound !== '1') {
-      assignOpenBtn.addEventListener('click', function () {
+      assignOpenBtn.addEventListener('click', async function () {
         var sel = document.querySelector('#rateAssignmentForm [name="rate_card_public_id"]');
         if (sel) sel.innerHTML = state.cards.map(function (c) { return '<option value="' + safeText(c.public_id) + '">' + safeText(c.title) + '</option>'; }).join('');
         document.querySelector('#rateAssignmentForm [name="effective_from"]').value = new Date().toISOString().slice(0, 10);
+        var scopeType = document.querySelector('#rateAssignmentForm [name="scope_type"]').value || 'counterparty';
+        await populateScopeRef(scopeType);
         new bootstrap.Modal(document.getElementById('rateAssignmentModal')).show();
       });
       assignOpenBtn.dataset.bound = '1';
