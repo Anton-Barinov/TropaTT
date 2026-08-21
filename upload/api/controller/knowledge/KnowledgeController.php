@@ -1749,4 +1749,156 @@ final class KnowledgeController extends BaseController
             'deleted_count' => $deleted,
         ]);
     }
+
+    /**
+     * GET /api/v1/knowledge/project/{project_public_id}/client-pages
+     *
+     * Returns client-visible knowledge pages linked to a project. Used by
+     * external (portal) users to read knowledge articles that staff have
+     * explicitly marked as client-visible. Read-only, no comments or
+     * internal metadata exposed.
+     */
+    public function clientProjectPages(array $params): JsonResponse
+    {
+        $actor = $this->actor();
+        if (empty((int)($actor['is_external'] ?? 0))) {
+            return $this->error('EXTERNAL_ACCESS_DENIED', 'External access only', 403);
+        }
+
+        $projectPublicId = trim((string)($params['project_public_id'] ?? ''));
+        if ($projectPublicId === '') {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error', 'Validation error'), 422);
+        }
+
+        // Verify the external user has access to this project
+        $projectService = $this->container->get('service.project');
+        $project = $projectService->get($projectPublicId, $actor);
+        if (!$project) {
+            return $this->error('KNOWLEDGE_PROJECT_NOT_FOUND', $this->t('knowledge/messages.space_not_found', 'Not found'), 404);
+        }
+
+        // Query client-visible pages linked to this project via entity links
+        $pdo = $this->container->get('db.pdo');
+        $stmt = $pdo->prepare(
+            "SELECT p.public_id, p.title, p.excerpt, p.status, p.page_type,
+                    p.updated_at, p.views_count, p.content_html
+             FROM knowledge_entity_links l
+             JOIN knowledge_pages p ON p.id = l.page_id
+             JOIN knowledge_spaces s ON s.id = p.space_id
+             WHERE l.entity_type = 'project'
+               AND l.entity_public_id = :project_pid
+               AND p.deleted_at IS NULL
+               AND p.client_visible = 1
+               AND s.visibility = 'public'
+             ORDER BY p.updated_at DESC"
+        );
+        $stmt->execute(['project_pid' => $projectPublicId]);
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+        // Strip internal metadata for external users
+        $items = array_map(static function (array $row): array {
+            return [
+                'public_id' => $row['public_id'] ?? '',
+                'title' => $row['title'] ?? '',
+                'excerpt' => $row['excerpt'] ?? '',
+                'status' => $row['status'] ?? '',
+                'page_type' => $row['page_type'] ?? '',
+                'updated_at' => $row['updated_at'] ?? '',
+                'views_count' => (int)($row['views_count'] ?? 0),
+                // Return content_html directly for external users (read-only view)
+                'content_html' => $row['content_html'] ?? null,
+            ];
+        }, $rows);
+
+        return $this->success('KNOWLEDGE_CLIENT_PAGES', $this->t('knowledge/messages.entity_pages', 'Related pages loaded'), [
+            'items' => $items,
+        ]);
+    }
+
+    /**
+     * GET /api/v1/knowledge/client-page/{page_public_id}
+     *
+     * Returns a single client-visible knowledge page for an external user.
+     * The page must have client_visible=1 and be linked to a project the
+     * user has access to.
+     */
+    public function getClientPage(array $params): JsonResponse
+    {
+        $actor = $this->actor();
+        if (empty((int)($actor['is_external'] ?? 0))) {
+            return $this->error('EXTERNAL_ACCESS_DENIED', 'External access only', 403);
+        }
+
+        $pagePublicId = trim((string)($params['public_id'] ?? ''));
+        if ($pagePublicId === '') {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error', 'Validation error'), 422);
+        }
+
+        $pdo = $this->container->get('db.pdo');
+        $stmt = $pdo->prepare(
+            "SELECT p.public_id, p.title, p.excerpt, p.status, p.page_type,
+                    p.content_html, p.content_text, p.updated_at, p.created_at,
+                    p.views_count, s.public_id AS space_public_id, s.title AS space_title
+             FROM knowledge_pages p
+             JOIN knowledge_spaces s ON s.id = p.space_id
+             WHERE p.public_id = :pid
+               AND p.deleted_at IS NULL
+               AND p.client_visible = 1"
+        );
+        $stmt->execute(['pid' => $pagePublicId]);
+        $page = $stmt->fetch(\PDO::FETCH_ASSOC);
+        if (!is_array($page)) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Page not found'), 404);
+        }
+
+        // Verify the page is linked to a project the external user can access
+        $stmt2 = $pdo->prepare(
+            "SELECT l.entity_public_id FROM knowledge_entity_links l
+             WHERE l.page_id = (SELECT id FROM knowledge_pages WHERE public_id = :pid LIMIT 1)
+               AND l.entity_type = 'project'"
+        );
+        $stmt2->execute(['pid' => $pagePublicId]);
+        $linkedProjectIds = $stmt2->fetchAll(\PDO::FETCH_COLUMN) ?: [];
+
+        if ($linkedProjectIds === []) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Page not found'), 404);
+        }
+
+        // Check access to at least one linked project
+        $projectService = $this->container->get('service.project');
+        $hasAccess = false;
+        foreach ($linkedProjectIds as $projectPid) {
+            if ($projectService->get((string)$projectPid, $actor)) {
+                $hasAccess = true;
+                break;
+            }
+        }
+        if (!$hasAccess) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Page not found'), 404);
+        }
+
+        // Increment views
+        $pdo->prepare('UPDATE knowledge_pages SET views_count = views_count + 1 WHERE public_id = :pid')
+            ->execute(['pid' => $pagePublicId]);
+
+        // Strip internal metadata for external users
+        $item = [
+            'public_id' => $page['public_id'] ?? '',
+            'title' => $page['title'] ?? '',
+            'excerpt' => $page['excerpt'] ?? '',
+            'status' => $page['status'] ?? '',
+            'page_type' => $page['page_type'] ?? '',
+            'content_html' => $page['content_html'] ?? null,
+            'content_text' => $page['content_text'] ?? null,
+            'updated_at' => $page['updated_at'] ?? '',
+            'created_at' => $page['created_at'] ?? '',
+            'views_count' => (int)($page['views_count'] ?? 0) + 1,
+            'space_public_id' => $page['space_public_id'] ?? '',
+            'space_title' => $page['space_title'] ?? '',
+        ];
+
+        return $this->success('KNOWLEDGE_CLIENT_PAGE_DETAIL', $this->t('knowledge/messages.page_detail', 'Page loaded'), [
+            'page' => $item,
+        ]);
+    }
 }

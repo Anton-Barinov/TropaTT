@@ -127,6 +127,224 @@ final class ChatService
         return $chat;
     }
 
+    /**
+     * Ensure a project_client chat exists for the given project. This chat type
+     * is separate from the internal 'project' chat and is used for communication
+     * between staff and external (portal) users.
+     *
+     * Defence-in-depth: every message read/write for external actors must also
+     * verify chat.type === 'project_client' at the controller level.
+     *
+     * @param array $project The project row (must have id, public_id, title)
+     * @param int $createdByUserId The staff user who creates the chat
+     * @return array The chat row
+     */
+    public function ensureProjectClientChat(array $project, int $createdByUserId): array
+    {
+        $projectId = (int)($project['id'] ?? 0);
+        if ($projectId <= 0 || $createdByUserId <= 0) {
+            return [];
+        }
+
+        $title = trim((string)($project['title'] ?? '')) ?: $this->t('chat/messages.project_fallback_title');
+        $chat = $this->findSystemChat('project_client', $projectId);
+        if (!$chat) {
+            $chat = $this->createChat($title, 'project_client', $projectId, null, $createdByUserId);
+        } elseif ((string)($chat['title'] ?? '') !== $title) {
+            $this->pdo->prepare("UPDATE chats SET title = :title WHERE id = :id")
+                ->execute(['title' => $title, 'id' => (int)$chat['id']]);
+            $chat['title'] = $title;
+        }
+
+        return $chat;
+    }
+
+    /**
+     * Add a participant to a project_client chat. Only staff with project.manage
+     * should call this; the controller must verify the chat type.
+     */
+    public function addClientChatParticipant(int $chatId, int $userId, string $role = 'member'): bool
+    {
+        if ($chatId <= 0 || $userId <= 0) {
+            return false;
+        }
+        $this->pdo->prepare("
+            INSERT INTO chat_participants (chat_id, user_id, role, joined_at)
+            VALUES (:cid, :uid, :role, NOW())
+            ON DUPLICATE KEY UPDATE role = :role2
+        ")->execute(['cid' => $chatId, 'uid' => $userId, 'role' => $role, 'role2' => $role]);
+        return true;
+    }
+
+    /**
+     * Remove a participant from a project_client chat.
+     */
+    public function removeClientChatParticipant(int $chatId, int $userId): bool
+    {
+        if ($chatId <= 0 || $userId <= 0) {
+            return false;
+        }
+        $this->pdo->prepare("DELETE FROM chat_participants WHERE chat_id = :cid AND user_id = :uid")
+            ->execute(['cid' => $chatId, 'uid' => $userId]);
+        return true;
+    }
+
+    /**
+     * List project_client chats for an external user. Returns only chats
+     * where the user is a participant AND the chat type is 'project_client'.
+     *
+     * @return list<array>
+     */
+    public function listExternalChats(int $userId): array
+    {
+        if ($userId <= 0) {
+            return [];
+        }
+        $stmt = $this->pdo->prepare("
+            SELECT c.id, c.public_id, c.title, c.type, c.project_id, c.last_message_at, c.created_at,
+                   p.title AS project_title, p.public_id AS project_public_id
+            FROM chats c
+            JOIN chat_participants cp ON cp.chat_id = c.id AND cp.user_id = :uid
+            LEFT JOIN projects p ON p.id = c.project_id
+            WHERE c.type = 'project_client' AND c.archived_at IS NULL
+            ORDER BY c.last_message_at DESC
+        ");
+        $stmt->execute(['uid' => $userId]);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Get messages for a project_client chat, with defence-in-depth type check.
+     * External users can only read chats of type 'project_client'.
+     *
+     * @return array{messages: list<array>, total: int}
+     */
+    public function getClientChatMessages(int $chatId, int $userId, int $limit = 50, int $offset = 0): array
+    {
+        if ($chatId <= 0 || $userId <= 0) {
+            return ['messages' => [], 'total' => 0];
+        }
+
+        // Defence-in-depth: verify chat type AND participant membership
+        $chat = $this->getChatForExternal($chatId, $userId);
+        if (!$chat) {
+            return ['messages' => [], 'total' => 0];
+        }
+
+        $limit = max(1, min(100, $limit));
+        $offset = max(0, $offset);
+
+        // Count total
+        $countStmt = $this->pdo->prepare(
+            "SELECT COUNT(*) FROM chat_messages WHERE chat_id = :cid AND deleted_at IS NULL"
+        );
+        $countStmt->execute(['cid' => $chatId]);
+        $total = (int)$countStmt->fetchColumn();
+
+        // Fetch messages
+        $stmt = $this->pdo->prepare("
+            SELECT cm.public_id, cm.text, cm.message_type, cm.created_at, cm.edited_at,
+                   cm.reply_to_message_id, cm.sender_user_id,
+                   u.full_name AS sender_name, u.public_id AS sender_public_id
+            FROM chat_messages cm
+            LEFT JOIN users u ON u.id = cm.sender_user_id
+            WHERE cm.chat_id = :cid AND cm.deleted_at IS NULL
+            ORDER BY cm.id DESC
+            LIMIT :limit OFFSET :offset
+        ");
+        $stmt->execute(['cid' => $chatId, 'limit' => $limit, 'offset' => $offset]);
+        $messages = array_reverse($stmt->fetchAll(\PDO::FETCH_ASSOC) ?: []);
+
+        return ['messages' => $messages, 'total' => $total];
+    }
+
+    /**
+     * Send a message to a project_client chat. External users can only
+     * write to chats of type 'project_client'.
+     *
+     * @return array{ok:bool, message?:array, error?:string}
+     */
+    public function sendClientChatMessage(int $chatId, int $userId, string $text, ?string $replyToMessageId = null): array
+    {
+        if ($chatId <= 0 || $userId <= 0) {
+            return ['ok' => false, 'error' => 'invalid'];
+        }
+
+        $text = trim($text);
+        if ($text === '' || mb_strlen($text) > 10000) {
+            return ['ok' => false, 'error' => 'invalid_text'];
+        }
+
+        // Defence-in-depth: verify chat type AND participant membership
+        $chat = $this->getChatForExternal($chatId, $userId);
+        if (!$chat) {
+            return ['ok' => false, 'error' => 'not_found'];
+        }
+
+        // Resolve reply_to internal id if provided
+        $replyToInternalId = null;
+        if ($replyToMessageId !== null && $replyToMessageId !== '') {
+            $replyStmt = $this->pdo->prepare(
+                "SELECT id FROM chat_messages WHERE public_id = :pid AND chat_id = :cid"
+            );
+            $replyStmt->execute(['pid' => $replyToMessageId, 'cid' => $chatId]);
+            $replyToInternalId = (int)$replyStmt->fetchColumn();
+            if ($replyToInternalId <= 0) {
+                $replyToInternalId = null;
+            }
+        }
+
+        $publicId = 'msg_' . bin2hex(random_bytes(12));
+        $this->pdo->prepare("
+            INSERT INTO chat_messages (public_id, chat_id, sender_user_id, reply_to_message_id, text, message_type, created_at)
+            VALUES (:pid, :cid, :sid, :rtid, :text, 'text', NOW())
+        ")->execute([
+            'pid' => $publicId,
+            'cid' => $chatId,
+            'sid' => $userId,
+            'rtid' => $replyToInternalId,
+            'text' => $text,
+        ]);
+
+        // Update last_message_at
+        $this->pdo->prepare("UPDATE chats SET last_message_at = NOW() WHERE id = :id")
+            ->execute(['id' => $chatId]);
+
+        $stmt = $this->pdo->prepare("
+            SELECT cm.public_id, cm.text, cm.message_type, cm.created_at,
+                   cm.reply_to_message_id, cm.sender_user_id,
+                   u.full_name AS sender_name, u.public_id AS sender_public_id
+            FROM chat_messages cm
+            LEFT JOIN users u ON u.id = cm.sender_user_id
+            WHERE cm.public_id = :pid
+        ");
+        $stmt->execute(['pid' => $publicId]);
+        $message = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        return ['ok' => true, 'message' => is_array($message) ? $message : ['public_id' => $publicId]];
+    }
+
+    /**
+     * Get a chat with defence-in-depth type check for external users.
+     * Returns null if the chat is not 'project_client' or the user is not a participant.
+     */
+    public function getChatForExternal(int $chatId, int $userId): ?array
+    {
+        if ($chatId <= 0 || $userId <= 0) {
+            return null;
+        }
+
+        $stmt = $this->pdo->prepare("
+            SELECT c.id, c.public_id, c.title, c.type, c.project_id, c.last_message_at, c.created_at
+            FROM chats c
+            JOIN chat_participants cp ON cp.chat_id = c.id AND cp.user_id = :uid
+            WHERE c.id = :cid AND c.type = 'project_client' AND c.archived_at IS NULL
+        ");
+        $stmt->execute(['cid' => $chatId, 'uid' => $userId]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return is_array($row) ? $row : null;
+    }
+
     public function repairSystemChats(): array
     {
         $createdBefore = $this->countSystemChats();
@@ -369,7 +587,7 @@ final class ChatService
         return array_values(array_unique(array_filter($ids, static fn(int $id): bool => $id > 0)));
     }
 
-    private function findSystemChat(string $type, int $entityId): ?array
+    public function findSystemChat(string $type, int $entityId): ?array
     {
         $column = $type === 'project' ? 'project_id' : 'team_id';
         $stmt = $this->pdo->prepare("SELECT id, public_id, title, type, project_id, team_id, created_by_user_id, created_at, updated_at, last_message_at, archived_at, archived_by_user_id FROM chats WHERE type = :type AND {$column} = :id ORDER BY id ASC LIMIT 1");

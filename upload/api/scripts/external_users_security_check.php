@@ -157,6 +157,17 @@ $expectedExternalRoutes = [
     'GET /api/v1/projects/{public_id}/milestones-summary',
     'GET /api/v1/projects/{public_id}/risks',
     'GET /api/v1/milestones',
+    // External user client chat: read/write messages in project_client chats.
+    // Defence-in-depth: ChatService::getChatForExternal() verifies chat.type = 'project_client'
+    // AND participant membership on every call.
+    'GET /api/v1/chats/{public_id}/messages',
+    'POST /api/v1/chats/{public_id}/messages',
+    'POST /api/v1/chats/{public_id}/read',
+    'GET /api/v1/chats/{public_id}',
+    // External user knowledge access: client-visible pages linked to a project.
+    // Read-only, stripped of internal metadata, access checked via ProjectService::get().
+    'GET /api/v1/knowledge/project/{project_public_id}/client-pages',
+    'GET /api/v1/knowledge/client-page/{public_id}',
 ];
 
 $actualExternalRoutes = [];
@@ -199,10 +210,18 @@ check(
 // above cannot hand guests a destructive endpoint.
 
 $forbiddenSubstrings = [
-    '/admin/', '/chat', '/knowledge', '/users', '/roles', '/permissions', '/settings',
+    '/admin/', '/users', '/roles', '/permissions', '/settings',
     '/webhooks', '/api-clients', '/import', '/export', '/recycle-bin', '/teams',
     '/departments', '/companies', '/clients', '/counterparties', '/contacts',
     '/external-users', '/analytics', '/worklogs', '/approvals', '/modules',
+];
+// Specific patterns that ARE allowed for external users (subset of /chat and /knowledge).
+$allowedChatKnowledgePatterns = [
+    '/chats/{public_id}/messages',
+    '/chats/{public_id}/read',
+    '/chats/{public_id}',
+    '/knowledge/project/{project_public_id}/client-pages',
+    '/knowledge/client-page/{public_id}',
 ];
 
 foreach ($routes as $route) {
@@ -233,8 +252,21 @@ foreach ($routes as $route) {
         }
     }
 
+    // Check if the pattern is one of the explicitly allowed chat/knowledge routes
+    $isAllowedSpecial = false;
+    foreach ($allowedChatKnowledgePatterns as $allowedPattern) {
+        if (str_contains($pattern, $allowedPattern)) {
+            $isAllowedSpecial = true;
+            break;
+        }
+    }
+
     foreach ($forbiddenSubstrings as $needle) {
         if (str_contains($pattern, $needle)) {
+            // Allow specific chat and knowledge patterns that are explicitly permitted
+            if ($isAllowedSpecial && ($needle === '/chat' || $needle === '/knowledge')) {
+                continue;
+            }
             $failures[] = "external_ok route touches a restricted area ({$needle}): {$pattern}";
         }
     }

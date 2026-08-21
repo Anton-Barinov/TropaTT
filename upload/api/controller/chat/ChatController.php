@@ -125,6 +125,23 @@ final class ChatController extends BaseController
 
     public function get(array $params = []): JsonResponse
     {
+        // External users: defence-in-depth type check
+        $actor = $this->user()['user'] ?? [];
+        if (!empty((int)($actor['is_external'] ?? 0))) {
+            $publicId = trim((string)($params['public_id'] ?? ''));
+            if ($publicId === '') return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+            $stmt = $this->container->get('db.pdo')->prepare('SELECT id FROM chats WHERE public_id = :pid LIMIT 1');
+            $stmt->execute(['pid' => $publicId]);
+            $chatId = (int)$stmt->fetchColumn();
+            if ($chatId <= 0) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+            /** @var ChatService $service */
+            $service = $this->container->get('service.chat');
+            $chat = $service->getChatForExternal($chatId, (int)$actor['id']);
+            if (!$chat) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+            $chat['participants'] = $this->participantsForChat((int)$chat['id']);
+            return $this->success('CHAT_DETAIL', $this->t('common/messages.ok'), ['chat' => $chat]);
+        }
+
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
         if (!$chat) {
             $chat = $this->archivedChatForCurrentUser((string)($params['public_id'] ?? ''));
@@ -260,6 +277,23 @@ final class ChatController extends BaseController
 
     public function messages(array $params = []): JsonResponse
     {
+        // External users: defence-in-depth type check
+        $actor = $this->user()['user'] ?? [];
+        if (!empty((int)($actor['is_external'] ?? 0))) {
+            $publicId = trim((string)($params['public_id'] ?? ''));
+            if ($publicId === '') return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+            $stmt = $this->container->get('db.pdo')->prepare('SELECT id FROM chats WHERE public_id = :pid LIMIT 1');
+            $stmt->execute(['pid' => $publicId]);
+            $chatId = (int)$stmt->fetchColumn();
+            if ($chatId <= 0) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+            /** @var ChatService $service */
+            $service = $this->container->get('service.chat');
+            $limit = min(100, max(1, (int)($this->request()->allInput()['limit'] ?? 50)));
+            $offset = max(0, (int)($this->request()->allInput()['offset'] ?? 0));
+            $result = $service->getClientChatMessages($chatId, (int)$actor['id'], $limit, $offset);
+            return $this->success('CHAT_MESSAGES', $this->t('chat/messages.loaded'), $result);
+        }
+
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
         if (!$chat) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
 
@@ -307,6 +341,27 @@ final class ChatController extends BaseController
 
     public function sendMessage(array $params = []): JsonResponse
     {
+        // External users: defence-in-depth type check
+        $actor = $this->user()['user'] ?? [];
+        if (!empty((int)($actor['is_external'] ?? 0))) {
+            $publicId = trim((string)($params['public_id'] ?? ''));
+            if ($publicId === '') return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+            $stmt = $this->container->get('db.pdo')->prepare('SELECT id FROM chats WHERE public_id = :pid LIMIT 1');
+            $stmt->execute(['pid' => $publicId]);
+            $chatId = (int)$stmt->fetchColumn();
+            if ($chatId <= 0) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+            $input = $this->request()->allInput();
+            $text = trim((string)($input['text'] ?? ''));
+            $replyTo = !empty($input['reply_to_message_public_id']) ? trim((string)$input['reply_to_message_public_id']) : null;
+            /** @var ChatService $service */
+            $service = $this->container->get('service.chat');
+            $result = $service->sendClientChatMessage($chatId, (int)$actor['id'], $text, $replyTo);
+            if (!$result['ok']) {
+                return $this->error('SEND_FAILED', $this->t('chat/messages.send_failed'), 422);
+            }
+            return $this->success('CHAT_MESSAGE_SENT', $this->t('chat/messages.message_sent'), ['message' => $result['message'] ?? []]);
+        }
+
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
         $input = $this->request()->allInput();
         $text = trim((string)($input['text'] ?? ''));
@@ -464,6 +519,23 @@ final class ChatController extends BaseController
 
     public function markRead(array $params = []): JsonResponse
     {
+        // External users: defence-in-depth type check
+        $actor = $this->user()['user'] ?? [];
+        if (!empty((int)($actor['is_external'] ?? 0))) {
+            $publicId = trim((string)($params['public_id'] ?? ''));
+            if ($publicId === '') return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+            $stmt = $this->container->get('db.pdo')->prepare('SELECT id FROM chats WHERE public_id = :pid LIMIT 1');
+            $stmt->execute(['pid' => $publicId]);
+            $chatId = (int)$stmt->fetchColumn();
+            if ($chatId <= 0) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+            /** @var ChatService $service */
+            $service = $this->container->get('service.chat');
+            $chat = $service->getChatForExternal($chatId, (int)$actor['id']);
+            if (!$chat) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+            $service->markRead($chatId, (int)$actor['id']);
+            return $this->success('CHAT_READ', $this->t('chat/messages.marked_read'));
+        }
+
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
         if (!$chat) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
 
@@ -833,5 +905,284 @@ final class ChatController extends BaseController
         if ($finfo === false) return '';
         $mime = finfo_file($finfo, $path);
         return is_string($mime) ? $mime : '';
+    }
+
+    // ---------------------------------------------------------------------------
+    // External user client chat methods
+    // ---------------------------------------------------------------------------
+
+    private function externalUser(): array
+    {
+        $user = $this->user()['user'] ?? [];
+        if (empty((int)($user['is_external'] ?? 0))) {
+            return [];
+        }
+        return $user;
+    }
+
+    /**
+     * GET /api/v1/chats/{public_id}/messages — external actor read
+     */
+    public function externalMessages(array $params): JsonResponse
+    {
+        $actor = $this->externalUser();
+        if ($actor === []) {
+            return $this->error('EXTERNAL_ACCESS_DENIED', 'External access only', 403);
+        }
+
+        $publicId = trim((string)($params['public_id'] ?? ''));
+        if ($publicId === '') {
+            return $this->error('VALIDATION_ERROR', 'Validation error', 422);
+        }
+
+        $chat = $this->resolveExternalChat($publicId, (int)$actor['id']);
+        if (!$chat) {
+            return $this->error('CHAT_NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+        }
+
+        $limit = max(1, min(100, (int)($this->request()->input('limit', '50'))));
+        $offset = max(0, (int)($this->request()->input('offset', '0')));
+
+        /** @var ChatService $service */
+        $service = $this->container->get('service.chat');
+        $result = $service->getClientChatMessages((int)$chat['id'], (int)$actor['id'], $limit, $offset);
+
+        return $this->success('CHAT_MESSAGES', $this->t('chat/messages.loaded'), $result);
+    }
+
+    /**
+     * POST /api/v1/chats/{public_id}/messages — external actor send
+     */
+    public function externalSendMessage(array $params): JsonResponse
+    {
+        $actor = $this->externalUser();
+        if ($actor === []) {
+            return $this->error('EXTERNAL_ACCESS_DENIED', 'External access only', 403);
+        }
+
+        $publicId = trim((string)($params['public_id'] ?? ''));
+        if ($publicId === '') {
+            return $this->error('VALIDATION_ERROR', 'Validation error', 422);
+        }
+
+        $chat = $this->resolveExternalChat($publicId, (int)$actor['id']);
+        if (!$chat) {
+            return $this->error('CHAT_NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+        }
+
+        $input = $this->request()->allInput();
+        $text = trim((string)($input['text'] ?? ''));
+        $replyTo = !empty($input['reply_to_message_public_id']) ? trim((string)$input['reply_to_message_public_id']) : null;
+
+        /** @var ChatService $service */
+        $service = $this->container->get('service.chat');
+        $result = $service->sendClientChatMessage((int)$chat['id'], (int)$actor['id'], $text, $replyTo);
+
+        if (!$result['ok']) {
+            return $this->error('SEND_FAILED', $this->t('chat/messages.send_failed'), 422);
+        }
+
+        return $this->success('CHAT_MESSAGE_SENT', $this->t('chat/messages.message_sent'), ['message' => $result['message'] ?? []]);
+    }
+
+    /**
+     * POST /api/v1/chats/{public_id}/read — external actor mark read
+     */
+    public function externalMarkRead(array $params): JsonResponse
+    {
+        $actor = $this->externalUser();
+        if ($actor === []) {
+            return $this->error('EXTERNAL_ACCESS_DENIED', 'External access only', 403);
+        }
+
+        $publicId = trim((string)($params['public_id'] ?? ''));
+        if ($publicId === '') {
+            return $this->error('VALIDATION_ERROR', 'Validation error', 422);
+        }
+
+        $chat = $this->resolveExternalChat($publicId, (int)$actor['id']);
+        if (!$chat) {
+            return $this->error('CHAT_NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+        }
+
+        /** @var ChatService $service */
+        $service = $this->container->get('service.chat');
+        $service->markRead((int)$chat['id'], (int)$actor['id']);
+
+        return $this->success('CHAT_READ', $this->t('common/messages.ok'));
+    }
+
+    /**
+     * GET /api/v1/chats/{public_id} — external actor get chat details
+     */
+    public function externalGet(array $params): JsonResponse
+    {
+        $actor = $this->externalUser();
+        if ($actor === []) {
+            return $this->error('EXTERNAL_ACCESS_DENIED', 'External access only', 403);
+        }
+
+        $publicId = trim((string)($params['public_id'] ?? ''));
+        if ($publicId === '') {
+            return $this->error('VALIDATION_ERROR', 'Validation error', 422);
+        }
+
+        $chat = $this->resolveExternalChat($publicId, (int)$actor['id']);
+        if (!$chat) {
+            return $this->error('CHAT_NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+        }
+
+        return $this->success('CHAT_DETAIL', $this->t('common/messages.ok'), ['chat' => $chat]);
+    }
+
+    /**
+     * Staff-only: create or ensure a project_client chat for a project.
+     */
+    public function ensureClientChat(array $params): JsonResponse
+    {
+        $user = $this->user()['user'] ?? [];
+        $userId = (int)($user['id'] ?? 0);
+        if ($userId <= 0) return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
+
+        $projectPublicId = trim((string)($params['project_public_id'] ?? ''));
+        if ($projectPublicId === '') {
+            return $this->error('VALIDATION_ERROR', 'Validation error', 422);
+        }
+
+        $projectService = $this->container->get('service.project');
+        $project = $projectService->get($projectPublicId, $user);
+        if (!$project) {
+            return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
+        }
+
+        /** @var ChatService $service */
+        $service = $this->container->get('service.chat');
+        $chat = $service->ensureProjectClientChat($project, $userId);
+        if ($chat === []) {
+            return $this->error('CREATE_FAILED', $this->t('chat/messages.create_failed'), 500);
+        }
+
+        return $this->success('CLIENT_CHAT_CREATED', $this->t('common/messages.ok'), ['chat' => $chat]);
+    }
+
+    /**
+     * Staff-only: add a participant to a project_client chat.
+     */
+    public function addClientChatParticipant(array $params): JsonResponse
+    {
+        $user = $this->user()['user'] ?? [];
+        $userId = (int)($user['id'] ?? 0);
+        if ($userId <= 0) return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
+
+        $projectPublicId = trim((string)($params['project_public_id'] ?? ''));
+        if ($projectPublicId === '') {
+            return $this->error('VALIDATION_ERROR', 'Validation error', 422);
+        }
+
+        $input = $this->request()->allInput();
+        $participantPublicId = trim((string)($input['user_public_id'] ?? ''));
+        if ($participantPublicId === '') {
+            return $this->error('VALIDATION_ERROR', 'Validation error', 422);
+        }
+
+        // Resolve the project
+        $projectService = $this->container->get('service.project');
+        $project = $projectService->get($projectPublicId, $user);
+        if (!$project) {
+            return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
+        }
+
+        // Resolve the participant user
+        $userRepo = $this->container->get('repository.user');
+        $participant = $userRepo->findByPublicId($participantPublicId);
+        if (!$participant || (int)($participant['deleted_at'] ?? 0) > 0) {
+            return $this->error('USER_NOT_FOUND', $this->t('common/messages.not_found'), 404);
+        }
+
+        /** @var ChatService $service */
+        $service = $this->container->get('service.chat');
+        $chat = $service->ensureProjectClientChat($project, $userId);
+        if ($chat === []) {
+            return $this->error('CREATE_FAILED', $this->t('chat/messages.create_failed'), 500);
+        }
+
+        $ok = $service->addClientChatParticipant((int)$chat['id'], (int)$participant['id']);
+        if (!$ok) {
+            return $this->error('ADD_FAILED', $this->t('common/messages.internal_error'), 500);
+        }
+
+        return $this->success('PARTICIPANT_ADDED', $this->t('common/messages.ok'));
+    }
+
+    /**
+     * Staff-only: remove a participant from a project_client chat.
+     */
+    public function removeClientChatParticipant(array $params): JsonResponse
+    {
+        $user = $this->user()['user'] ?? [];
+        $userId = (int)($user['id'] ?? 0);
+        if ($userId <= 0) return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
+
+        $projectPublicId = trim((string)($params['project_public_id'] ?? ''));
+        $participantPublicId = trim((string)($params['user_public_id'] ?? ''));
+        if ($projectPublicId === '' || $participantPublicId === '') {
+            return $this->error('VALIDATION_ERROR', 'Validation error', 422);
+        }
+
+        // Resolve the project
+        $projectService = $this->container->get('service.project');
+        $project = $projectService->get($projectPublicId, $user);
+        if (!$project) {
+            return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
+        }
+
+        // Resolve the participant user
+        $userRepo = $this->container->get('repository.user');
+        $participant = $userRepo->findByPublicId($participantPublicId);
+        if (!$participant) {
+            return $this->error('USER_NOT_FOUND', $this->t('common/messages.not_found'), 404);
+        }
+
+        /** @var ChatService $service */
+        $service = $this->container->get('service.chat');
+        $chat = $service->findSystemChat('project_client', (int)$project['id']);
+        if (!$chat) {
+            return $this->error('CHAT_NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+        }
+
+        $ok = $service->removeClientChatParticipant((int)$chat['id'], (int)$participant['id']);
+        if (!$ok) {
+            return $this->error('REMOVE_FAILED', $this->t('common/messages.internal_error'), 500);
+        }
+
+        return $this->success('PARTICIPANT_REMOVED', $this->t('common/messages.ok'));
+    }
+
+    /**
+     * Resolve a chat for an external actor with defence-in-depth type check.
+     * Returns null if the chat is not 'project_client', not found, or the
+     * actor is not a participant.
+     */
+    private function resolveExternalChat(string $publicId, int $userId): ?array
+    {
+        if ($publicId === '' || $userId <= 0) {
+            return null;
+        }
+
+        /** @var ChatService $service */
+        $service = $this->container->get('service.chat');
+
+        // First, find the chat by public_id
+        $stmt = $this->container->get('db.pdo')->prepare(
+            "SELECT id FROM chats WHERE public_id = :pid LIMIT 1"
+        );
+        $stmt->execute(['pid' => $publicId]);
+        $chatId = (int)$stmt->fetchColumn();
+        if ($chatId <= 0) {
+            return null;
+        }
+
+        // Defence-in-depth: verify type + membership
+        return $service->getChatForExternal($chatId, $userId);
     }
 }
