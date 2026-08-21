@@ -815,6 +815,23 @@ final class TaskRepository
             $qb->whereRaw('(p.client_public_id = ? OR t.client_public_id = ?)', [$clientPublicId, $clientPublicId]);
         }
 
+        // RLS for an executor-role external guest: scope tasks to the
+        // project(s) they've been explicitly granted (external_user_project_
+        // access), never by counterparty. Grants are project-level, so a
+        // task is in scope purely by living in one of those projects —
+        // mirrors the observer's "everything for my counterparty" breadth,
+        // just narrowed to specific projects instead. Key presence (even []
+        // ) means the executor scope is active; zero grants must return zero
+        // rows, not an unscoped query.
+        if (array_key_exists('executor_project_ids', $filters)) {
+            $ids = array_values(array_filter(array_map('intval', (array)$filters['executor_project_ids']), static fn(int $v): bool => $v > 0));
+            if ($ids === []) {
+                $qb->whereRaw('1 = 0');
+            } else {
+                $qb->whereIn('p.id', $ids);
+            }
+        }
+
         if (!empty($filters['team_public_id'])) {
             $qb->where('p.team_public_id', '=', (string)$filters['team_public_id']);
         }
@@ -896,7 +913,7 @@ final class TaskRepository
         // client_public_id filter already limits results to the actor's own
         // counterparty's tasks, so the additional ownership check would
         // incorrectly hide tasks the external user is legitimately allowed to see.
-        $hasRlsClientFilter = !empty($filters['client_public_id']);
+        $hasRlsClientFilter = !empty($filters['client_public_id']) || array_key_exists('executor_project_ids', $filters);
 
         if (!$actorIsRoot && !$hasRlsClientFilter && $actorUserId !== null && $actorUserId > 0) {
             $accessibleTeamIds = array_values(array_filter(

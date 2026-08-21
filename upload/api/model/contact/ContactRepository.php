@@ -53,6 +53,7 @@ final class ContactRepository
                 'eu.public_id AS external_user_public_id',
                 'eu.is_active AS external_user_is_active',
                 'eu.external_invitation_expires_at AS external_invitation_expires_at',
+                'eu.external_role AS external_user_role',
             ])
             ->orderBy('ct.created_at', 'DESC')
             ->limit($limit)

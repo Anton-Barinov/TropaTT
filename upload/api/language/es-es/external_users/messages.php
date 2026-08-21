@@ -28,4 +28,13 @@ return [
     'deactivated' => 'Acceso revocado',
     'deactivate_failed' => 'Error al revocar acceso',
     'list' => 'Usuarios externos',
+    'login_email_conflict' => 'Este email ya se usa como inicio de sesión de otro usuario',
+    'not_executor' => 'El usuario no es un ejecutor',
+    'project_not_found' => 'Proyecto no encontrado',
+    'service_unavailable' => 'Servicio temporalmente no disponible',
+    'project_public_id_required' => 'Se requiere el proyecto',
+    'project_access_failed' => 'Error al gestionar el acceso al proyecto',
+    'project_access_list' => 'Proyectos accesibles',
+    'project_access_granted' => 'Acceso al proyecto concedido',
+    'project_access_revoked' => 'Acceso al proyecto revocado',
 ];

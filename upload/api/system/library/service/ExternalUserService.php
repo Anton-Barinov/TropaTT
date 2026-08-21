@@ -5,6 +5,7 @@ namespace Api\System\Library\Service;
 
 use Api\Model\Auth\AuthRepository;
 use Api\Model\Common\UserRepository;
+use Api\Model\Project\ProjectRepository;
 use Api\Model\Role\RoleRepository;
 use Api\Model\Contact\ContactRepository;
 use Api\System\Library\Config;
@@ -17,10 +18,22 @@ use Api\System\Library\Support\Ulid;
  * Service for managing external guest users (client portal).
  *
  * External users are invited from a Contact record linked to a Counterparty.
- * They can only access projects/tasks/chats associated with their counterparty.
+ *
+ * Two roles, chosen at invite time (users.external_role):
+ *   - 'observer' (default) — a client contact. Scoped by RLS to every
+ *     project/task belonging to their own counterparty (client_public_id).
+ *     This is the original, unchanged behaviour.
+ *   - 'executor' — a freelancer/contractor. NOT scoped by counterparty at
+ *     all (a freelancer may work for many different counterparties at once).
+ *     Instead scoped to an explicit, per-project allowlist stored in
+ *     external_user_project_access — narrow, auditable, independently
+ *     revocable grants. See getExecutorProjectPublicIds()/grantProjectAccess().
  */
 final class ExternalUserService
 {
+    public const ROLE_OBSERVER = 'observer';
+    public const ROLE_EXECUTOR = 'executor';
+
     public function __construct(
         private readonly UserRepository $users,
         private readonly RoleRepository $roles,
@@ -31,13 +44,64 @@ final class ExternalUserService
         private readonly JsonLogger $logger,
         private readonly Config $config,
         private readonly AuthRepository $auth,
+        // Deliberately ProjectRepository, not ProjectService: ProjectService
+        // itself depends on ExternalUserService (for RLS), and the container
+        // caches an entry only after its factory returns — injecting the
+        // service here would recurse forever the first time either is
+        // resolved. The repository has no such dependency, so the minimal
+        // object-level ownership check below is reimplemented inline instead
+        // of delegating to ProjectService::canAccess()/get().
+        private readonly ?ProjectRepository $projectRepo = null,
     ) {
+    }
+
+    /**
+     * Minimal re-implementation of ProjectService::canAccess()'s internal
+     * (non-external) branch, for the one place ExternalUserService itself
+     * needs to check whether an internal actor may reach a given project
+     * (granting/revoking an executor's project access). See the constructor
+     * docblock for why this doesn't simply call ProjectService.
+     */
+    private function actorCanReachProject(array $project, array $actor): bool
+    {
+        if ((bool)($actor['is_root'] ?? false)) {
+            return true;
+        }
+        $actorId = (int)($actor['id'] ?? 0);
+        if ($actorId <= 0) {
+            return false;
+        }
+        if ((int)($project['created_by_user_id'] ?? 0) === $actorId
+            || (int)($project['manager_user_id'] ?? 0) === $actorId
+            || (int)($project['team_manager_user_id'] ?? 0) === $actorId) {
+            return true;
+        }
+        $raw = $project['team_member_user_ids'] ?? null;
+        if ($raw === null || $raw === '') {
+            return false;
+        }
+        $decoded = is_string($raw) ? json_decode($raw, true) : $raw;
+        if (!is_array($decoded)) {
+            return false;
+        }
+        foreach ($decoded as $memberId) {
+            if ((int)$memberId === $actorId) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private function normalizeRole(mixed $role): string
+    {
+        $role = strtolower(trim((string)$role));
+        return $role === self::ROLE_EXECUTOR ? self::ROLE_EXECUTOR : self::ROLE_OBSERVER;
     }
 
     /**
      * Invite by contact public_id (resolves to internal id).
      */
-    public function inviteByPublicId(string $contactPublicId, array $actor): array
+    public function inviteByPublicId(string $contactPublicId, array $actor, string $role = self::ROLE_OBSERVER): array
     {
         // Resolve through ContactService, not the repository, so the same
         // hierarchy/object-level access policy as the contacts UI is enforced.
@@ -47,7 +111,7 @@ final class ExternalUserService
         if (!$contact) {
             return ['ok' => false, 'error' => 'contact_not_found'];
         }
-        return $this->invite((int)$contact['id'], $actor);
+        return $this->invite((int)$contact['id'], $actor, $role);
     }
 
     /**
@@ -58,12 +122,13 @@ final class ExternalUserService
      *
      * @return array{ok:bool, token?:string, user_public_id?:string, error?:string}
      */
-    public function invite(int $contactId, array $actor): array
+    public function invite(int $contactId, array $actor, string $role = self::ROLE_OBSERVER): array
     {
         $userId = (int)($actor['id'] ?? 0);
         if ($userId <= 0) {
             return ['ok' => false, 'error' => 'unauthorized'];
         }
+        $role = $this->normalizeRole($role);
 
         $pdo = $this->users->getPdo();
         $startedTransaction = false;
@@ -130,6 +195,16 @@ final class ExternalUserService
             return ['ok' => false, 'error' => 'email_already_registered'];
         }
 
+            // The guest's login is their email (point 6 of the owner's spec —
+        // no more opaque ext_xxxxxxxxxxxx logins). login and email are
+        // separate columns, so an internal employee's login could in theory
+        // already equal this email string even though findByEmail() above
+        // only checked the email column; guard that independently too.
+        $loginConflict = $this->users->findByLogin($email);
+        if ($loginConflict && (int)($loginConflict['id'] ?? 0) !== $existingUserId) {
+            return ['ok' => false, 'error' => 'login_email_conflict'];
+        }
+
             // Find the external_guest role
             $externalRole = $this->roles->findByCode('external_guest');
         if (!$externalRole) {
@@ -144,25 +219,26 @@ final class ExternalUserService
             $tokenHash = $this->tokens->hash($token);
             $fullName = trim((string)($contact['full_name'] ?? $email));
 
+            $login = $email;
             if ($existingUser) {
             $createdUserId = (int)$existingUser['id'];
             $userPublicId = (string)$existingUser['public_id'];
-            $login = (string)$existingUser['login'];
             // A previously active session must not be resurrected when a
             // revoked account is invited again and activated later.
             $this->auth->revokeAllByUserId($createdUserId, $now);
             $this->users->updateById($createdUserId, [
+                'login' => $login,
                 'email' => $email,
                 'full_name' => $fullName,
                 'password_hash' => $this->hasher->hash('__pending__'),
                 'auth_token_hash' => $tokenHash,
                 'external_invitation_expires_at' => $expiresAt,
+                'external_role' => $role,
                 'is_active' => 0,
                 'updated_at' => $now,
             ]);
             } else {
                 $userPublicId = Ulid::generate('usr');
-            $login = 'ext_' . substr($userPublicId, 4, 12);
             $createdUserId = $this->users->create([
                 'public_id' => $userPublicId,
                 'login' => $login,
@@ -170,6 +246,7 @@ final class ExternalUserService
                 'password_hash' => $this->hasher->hash('__pending__'),
                 'auth_token_hash' => $tokenHash,
                 'external_invitation_expires_at' => $expiresAt,
+                'external_role' => $role,
                 'full_name' => $fullName,
                 'locale' => 'ru-ru',
                 'is_active' => 0,
@@ -189,6 +266,15 @@ final class ExternalUserService
                 'user_id' => $createdUserId,
             ]);
 
+            // Executor bootstrap grant: give immediate access to every current
+            // project of the inviting contact's own counterparty, exactly like
+            // an observer would see. This keeps day-one behaviour familiar; any
+            // additional projects (other counterparties, point 7 of the spec)
+            // are granted explicitly afterwards via grantProjectAccess().
+            if ($role === self::ROLE_EXECUTOR) {
+                $this->bootstrapExecutorGrants($createdUserId, $counterpartyId, $userId, $now);
+            }
+
             if ($startedTransaction) {
                 $pdo->commit();
             }
@@ -205,6 +291,7 @@ final class ExternalUserService
             'entity_public_id' => $userPublicId,
             'contact_id' => $contactId,
             'counterparty_id' => $counterpartyId,
+            'external_role' => $role,
         ]);
 
         return [
@@ -213,8 +300,43 @@ final class ExternalUserService
             'user_public_id' => $userPublicId,
             'login' => $login,
             'email' => $email,
+            'external_role' => $role,
             'invitation_expires_at' => $expiresAt,
         ];
+    }
+
+    /**
+     * Grant an executor guest access to every non-deleted project currently
+     * belonging to a counterparty. Used once, at invite time, so an executor
+     * invited "the normal way" (from a contact) starts with the same
+     * project visibility an observer on that counterparty would have.
+     * Idempotent (INSERT IGNORE / OR IGNORE) — safe to call on resend too.
+     */
+    private function bootstrapExecutorGrants(int $userId, int $counterpartyId, int $grantedByUserId, string $now): void
+    {
+        $pdo = $this->users->getPdo();
+        $stmt = $pdo->prepare(
+            "SELECT p.id FROM projects p
+             INNER JOIN counterparties cp ON cp.public_id = p.client_public_id
+             WHERE cp.id = :cpid AND p.archived_at IS NULL"
+        );
+        $stmt->execute([':cpid' => $counterpartyId]);
+        $projectIds = array_map(static fn(array $r): int => (int)$r['id'], $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: []);
+
+        foreach ($projectIds as $projectId) {
+            $this->insertProjectAccessIgnoreDuplicate($userId, $projectId, $grantedByUserId, $now);
+        }
+    }
+
+    private function insertProjectAccessIgnoreDuplicate(int $userId, int $projectId, int $grantedByUserId, string $now): void
+    {
+        $pdo = $this->users->getPdo();
+        $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+        $sql = $driver === 'sqlite'
+            ? "INSERT OR IGNORE INTO external_user_project_access (user_id, project_id, granted_by_user_id, created_at) VALUES (:uid, :pid, :gid, :now)"
+            : "INSERT IGNORE INTO external_user_project_access (user_id, project_id, granted_by_user_id, created_at) VALUES (:uid, :pid, :gid, :now)";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([':uid' => $userId, ':pid' => $projectId, ':gid' => $grantedByUserId ?: null, ':now' => $now]);
     }
 
     /**
@@ -509,7 +631,7 @@ final class ExternalUserService
 
         $stmt = $pdo->prepare(
             "SELECT u.id, u.public_id, u.login, u.email, u.full_name, u.is_active,
-                    u.external_invitation_expires_at, u.created_at,
+                    u.external_invitation_expires_at, u.external_role, u.created_at,
                     c.id AS contact_id, c.full_name AS contact_name,
                     cp.id AS counterparty_id, cp.title AS counterparty_title
              FROM users u
@@ -520,10 +642,214 @@ final class ExternalUserService
         );
         $stmt->execute($params);
         $items = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+        foreach ($items as &$item) {
+            $item['external_role'] = $this->normalizeRole($item['external_role'] ?? self::ROLE_OBSERVER);
+        }
+        unset($item);
 
         return [
             'items' => $items,
             'total' => count($items),
         ];
+    }
+
+    /**
+     * The external user's role. Returns 'observer' for internal actors, users
+     * not found, or an unrecognized/empty stored value (fail to the narrower,
+     * pre-existing behaviour rather than accidentally widening access).
+     */
+    public function getExternalRole(int $userId): string
+    {
+        $user = $this->users->findById($userId);
+        if (!$user || (int)($user['is_external'] ?? 0) !== 1) {
+            return self::ROLE_OBSERVER;
+        }
+        return $this->normalizeRole($user['external_role'] ?? self::ROLE_OBSERVER);
+    }
+
+    /**
+     * Internal project ids explicitly granted to an executor guest. Empty for
+     * a non-executor or a user with no grants — callers must treat an empty
+     * result as "no access" (fail closed), never as "unscoped".
+     *
+     * @return list<int>
+     */
+    public function getExecutorProjectIds(int $userId): array
+    {
+        if ($this->getExternalRole($userId) !== self::ROLE_EXECUTOR) {
+            return [];
+        }
+        $stmt = $this->users->getPdo()->prepare(
+            "SELECT p.id FROM external_user_project_access ea
+             INNER JOIN projects p ON p.id = ea.project_id
+             WHERE ea.user_id = :uid AND p.deleted_at IS NULL"
+        );
+        $stmt->execute([':uid' => $userId]);
+        return array_map(static fn(array $r): int => (int)$r['id'], $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: []);
+    }
+
+    /**
+     * Project public_ids explicitly granted to an executor guest. Used for
+     * single-item access checks against an already-fetched project/task row
+     * (which carries public_id, not the internal integer id).
+     *
+     * @return list<string>
+     */
+    public function getExecutorProjectPublicIds(int $userId): array
+    {
+        if ($this->getExternalRole($userId) !== self::ROLE_EXECUTOR) {
+            return [];
+        }
+        $stmt = $this->users->getPdo()->prepare(
+            "SELECT p.public_id FROM external_user_project_access ea
+             INNER JOIN projects p ON p.id = ea.project_id
+             WHERE ea.user_id = :uid AND p.deleted_at IS NULL"
+        );
+        $stmt->execute([':uid' => $userId]);
+        return array_map(static fn(array $r): string => (string)$r['public_id'], $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: []);
+    }
+
+    public function hasExecutorProjectAccess(int $userId, int $projectId): bool
+    {
+        if ($projectId <= 0 || $this->getExternalRole($userId) !== self::ROLE_EXECUTOR) {
+            return false;
+        }
+        $stmt = $this->users->getPdo()->prepare(
+            "SELECT 1 FROM external_user_project_access ea
+             INNER JOIN projects p ON p.id = ea.project_id
+             WHERE ea.user_id = :uid AND ea.project_id = :pid AND p.deleted_at IS NULL
+             LIMIT 1"
+        );
+        $stmt->execute([':uid' => $userId, ':pid' => $projectId]);
+        return (bool)$stmt->fetchColumn();
+    }
+
+    /**
+     * Grant an executor guest access to one additional project. Object-level
+     * authorization: the granting actor must be able to see the project
+     * through the ordinary internal RBAC/RLS rules (ProjectService::get()) —
+     * project.manage alone is not enough to reach into a project the actor
+     * has no visibility into. The target user must already be an active
+     * executor guest; this endpoint never changes role or activates anyone.
+     *
+     * @return array{ok:bool, error?:string}
+     */
+    public function grantProjectAccess(string $userPublicId, string $projectPublicId, array $actor): array
+    {
+        $actorId = (int)($actor['id'] ?? 0);
+        if ($actorId <= 0) {
+            return ['ok' => false, 'error' => 'unauthorized'];
+        }
+
+        $target = $this->users->findByPublicId($userPublicId);
+        if (!$target || (int)($target['is_external'] ?? 0) !== 1 || ($target['deleted_at'] ?? null) !== null) {
+            return ['ok' => false, 'error' => 'user_not_found'];
+        }
+        if ($this->normalizeRole($target['external_role'] ?? self::ROLE_OBSERVER) !== self::ROLE_EXECUTOR) {
+            return ['ok' => false, 'error' => 'not_executor'];
+        }
+
+        if (!$this->projectRepo) {
+            return ['ok' => false, 'error' => 'service_unavailable'];
+        }
+        $project = $this->projectRepo->findByPublicId($projectPublicId);
+        if (!$project || ($project['deleted_at'] ?? null) !== null || !$this->actorCanReachProject($project, $actor)) {
+            return ['ok' => false, 'error' => 'project_not_found'];
+        }
+
+        $now = gmdate('Y-m-d H:i:s');
+        $this->insertProjectAccessIgnoreDuplicate((int)$target['id'], (int)$project['id'], $actorId, $now);
+
+        $this->logger->audit([
+            'action' => 'external_user_project_access_granted',
+            'actor_public_id' => $actor['public_id'] ?? null,
+            'entity_type' => 'user',
+            'entity_public_id' => $userPublicId,
+            'project_public_id' => $projectPublicId,
+        ]);
+
+        return ['ok' => true];
+    }
+
+    /**
+     * Revoke one project grant from an executor guest. Same object-level
+     * check as grantProjectAccess() — the actor must be able to see the
+     * project themselves.
+     *
+     * @return array{ok:bool, error?:string}
+     */
+    public function revokeProjectAccess(string $userPublicId, string $projectPublicId, array $actor): array
+    {
+        $actorId = (int)($actor['id'] ?? 0);
+        if ($actorId <= 0) {
+            return ['ok' => false, 'error' => 'unauthorized'];
+        }
+
+        $target = $this->users->findByPublicId($userPublicId);
+        if (!$target || (int)($target['is_external'] ?? 0) !== 1) {
+            return ['ok' => false, 'error' => 'user_not_found'];
+        }
+
+        if (!$this->projectRepo) {
+            return ['ok' => false, 'error' => 'service_unavailable'];
+        }
+        $project = $this->projectRepo->findByPublicId($projectPublicId);
+        if (!$project || !$this->actorCanReachProject($project, $actor)) {
+            return ['ok' => false, 'error' => 'project_not_found'];
+        }
+
+        $stmt = $this->users->getPdo()->prepare(
+            "DELETE FROM external_user_project_access WHERE user_id = :uid AND project_id = :pid"
+        );
+        $stmt->execute([':uid' => (int)$target['id'], ':pid' => (int)$project['id']]);
+
+        $this->logger->audit([
+            'action' => 'external_user_project_access_revoked',
+            'actor_public_id' => $actor['public_id'] ?? null,
+            'entity_type' => 'user',
+            'entity_public_id' => $userPublicId,
+            'project_public_id' => $projectPublicId,
+        ]);
+
+        return ['ok' => true];
+    }
+
+    /**
+     * List an executor's granted projects (public_id + title) for display in
+     * the admin UI. Object-level protected the same way listExternalUsers()
+     * and deactivate() are: the actor must be able to reach the target
+     * guest's linked contact through their own hierarchy.
+     *
+     * @return array{ok:bool, items?:list<array{public_id:string,title:string}>, error?:string}
+     */
+    public function listProjectAccess(string $userPublicId, array $actor): array
+    {
+        $actorId = (int)($actor['id'] ?? 0);
+        if ($actorId <= 0) {
+            return ['ok' => false, 'error' => 'unauthorized'];
+        }
+
+        $target = $this->users->findByPublicId($userPublicId);
+        if (!$target || (int)($target['is_external'] ?? 0) !== 1) {
+            return ['ok' => false, 'error' => 'user_not_found'];
+        }
+
+        if (!(bool)($actor['is_root'] ?? false)) {
+            $contact = $this->contacts->findByUserId((int)$target['id']);
+            if (!$contact || !$this->contactService->get((string)($contact['public_id'] ?? ''), $actor)) {
+                return ['ok' => false, 'error' => 'user_not_found'];
+            }
+        }
+
+        $stmt = $this->users->getPdo()->prepare(
+            "SELECT p.public_id, p.title FROM external_user_project_access ea
+             INNER JOIN projects p ON p.id = ea.project_id
+             WHERE ea.user_id = :uid AND p.deleted_at IS NULL
+             ORDER BY p.title ASC"
+        );
+        $stmt->execute([':uid' => (int)$target['id']]);
+        $items = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+        return ['ok' => true, 'items' => $items];
     }
 }

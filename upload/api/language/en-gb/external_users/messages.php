@@ -28,4 +28,13 @@ return [
     'deactivated' => 'Access revoked',
     'deactivate_failed' => 'Failed to revoke access',
     'list' => 'External users',
+    'login_email_conflict' => 'This email is already used as another user\'s login',
+    'not_executor' => 'User is not an executor',
+    'project_not_found' => 'Project not found',
+    'service_unavailable' => 'Service temporarily unavailable',
+    'project_public_id_required' => 'Project is required',
+    'project_access_failed' => 'Failed to manage project access',
+    'project_access_list' => 'Accessible projects',
+    'project_access_granted' => 'Project access granted',
+    'project_access_revoked' => 'Project access revoked',
 ];

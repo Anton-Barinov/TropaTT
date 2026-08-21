@@ -17,7 +17,13 @@ final class UserRepository
         return (new QueryBuilder($this->pdo))
             ->from('users')
             // Explicit columns only: never SELECT * from users (AGENTS.md).
-            ->select(['id', 'public_id', 'login', 'email', 'full_name', 'locale', 'is_active', 'is_root', 'password_hash', 'auth_token_hash'])
+            // is_external/external_role are required here so the *immediate*
+            // login response (AuthService::login() -> normalizeUser()) reports
+            // the actor's guest status correctly; without them a password
+            // re-login for an external guest returned is_external=false in
+            // the login payload even though the session row (looked up on
+            // every later request via findSessionByTokenHash()) was correct.
+            ->select(['id', 'public_id', 'login', 'email', 'full_name', 'locale', 'is_active', 'is_root', 'is_external', 'external_role', 'password_hash', 'auth_token_hash'])
             ->where('login', '=', $login)
             ->whereNull('deleted_at')
             ->first();
@@ -32,7 +38,7 @@ final class UserRepository
             // for self-service profile/me (sanitizeUser keeps them); all
             // findById callers operate on the actor's own id. Never SELECT *
             // (AGENTS.md) and never leak token/secret columns.
-            ->select(['id', 'public_id', 'login', 'email', 'full_name', 'locale', 'is_active', 'is_root', 'is_external', 'password_hash', 'auth_token_hash', 'external_invitation_expires_at', 'deleted_at', 'cost_rate', 'bill_rate'])
+            ->select(['id', 'public_id', 'login', 'email', 'full_name', 'locale', 'is_active', 'is_root', 'is_external', 'external_role', 'password_hash', 'auth_token_hash', 'external_invitation_expires_at', 'deleted_at', 'cost_rate', 'bill_rate'])
             ->where('id', '=', $id)
             ->first();
     }
@@ -51,7 +57,7 @@ final class UserRepository
     {
         return (new QueryBuilder($this->pdo))
             ->from('users')
-            ->select(['id', 'public_id', 'login', 'full_name', 'is_active', 'is_external', 'deleted_at'])
+            ->select(['id', 'public_id', 'login', 'full_name', 'is_active', 'is_external', 'external_role', 'deleted_at'])
             ->where('public_id', '=', $publicId)
             ->first();
     }

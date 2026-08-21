@@ -333,7 +333,18 @@ final class App
             // role technically satisfies required_permissions.
             $authForExternalGate = $this->container->has('auth_user') ? $this->container->get('auth_user') : null;
             if (is_array($authForExternalGate) && !empty((int)($authForExternalGate['user']['is_external'] ?? 0))) {
-                if (($matched['external_ok'] ?? false) !== true) {
+                $externalGateAllowed = ($matched['external_ok'] ?? false) === true;
+                // A second, narrower allowlist: 'external_executor_ok' routes
+                // (worklog logging — starting/stopping a timer) are reachable
+                // only by the 'executor' guest role, never by the default
+                // 'observer' (client) role, even though both share is_external=1.
+                if (!$externalGateAllowed
+                    && ($matched['external_executor_ok'] ?? false) === true
+                    && (($authForExternalGate['user']['external_role'] ?? 'observer') === 'executor')
+                ) {
+                    $externalGateAllowed = true;
+                }
+                if (!$externalGateAllowed) {
                     /** @var LanguageManager $lang */
                     $lang = $this->container->get('lang');
                     $response = JsonResponse::error(
@@ -1689,7 +1700,10 @@ final class App
             $c->get('security.token'),
             $c->get('logger'),
             $c->get('config'),
-            $c->get('repository.auth')
+            $c->get('repository.auth'),
+            // ProjectRepository, not service.project: see the constructor
+            // docblock in ExternalUserService for why (circular DI).
+            $c->get('repository.project')
         ));
 
         $router = new Router();

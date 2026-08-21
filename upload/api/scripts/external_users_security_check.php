@@ -205,6 +205,112 @@ foreach ($routes as $route) {
 }
 
 // ---------------------------------------------------------------------------
+// 1a. Executor route allowlist: exact membership + no destructive surface.
+// ---------------------------------------------------------------------------
+// external_executor_ok is a second, narrower allowlist reachable only by the
+// 'executor' guest role (never by 'observer'/client guests) once the app.php
+// gate below passes it through. Same exact-set + no-destructive-surface
+// discipline as the external_ok allowlist above, so it gets its own review
+// trigger instead of silently inheriting whatever the base allowlist permits.
+
+$expectedExecutorRoutes = [
+    'GET /api/v1/worklogs',
+    'POST /api/v1/worklogs',
+];
+
+$actualExecutorRoutes = [];
+foreach ($routes as $route) {
+    if (($route['external_executor_ok'] ?? false) !== true) {
+        continue;
+    }
+    $pattern = (string)($route['pattern'] ?? '');
+    $methods = array_map(
+        static fn($m): string => strtoupper(trim((string)$m)),
+        (array)($route['methods'] ?? [])
+    );
+    foreach ($methods as $method) {
+        if ($method !== '' && $pattern !== '') {
+            $actualExecutorRoutes[] = $method . ' ' . $pattern;
+        }
+    }
+
+    if (in_array('DELETE', $methods, true)) {
+        $failures[] = "external_executor_ok route allows DELETE (executors must never delete "
+            . "worklogs): {$pattern}";
+    }
+    foreach (['PATCH', 'PUT'] as $writeMethod) {
+        if (in_array($writeMethod, $methods, true)) {
+            $failures[] = "external_executor_ok route allows {$writeMethod} — executors may only "
+                . "create/list their own worklogs, never edit or delete existing ones: {$pattern}";
+        }
+    }
+}
+
+sort($expectedExecutorRoutes);
+sort($actualExecutorRoutes);
+
+$unexpectedExecutor = array_diff($actualExecutorRoutes, $expectedExecutorRoutes);
+$missingExecutor = array_diff($expectedExecutorRoutes, $actualExecutorRoutes);
+
+check(
+    $failures,
+    $unexpectedExecutor === [],
+    'route(s) marked external_executor_ok but NOT in the reviewed allowlist (possible '
+    . 'privilege escalation for executor-role guests): ' . implode(', ', $unexpectedExecutor)
+);
+check(
+    $failures,
+    $missingExecutor === [],
+    'route(s) expected to be external_executor_ok but are not — executor guests will 403 '
+    . 'when trying to log time: ' . implode(', ', $missingExecutor)
+);
+
+// A route should never carry both flags: external_ok already lets every external
+// guest through (observer and executor alike), so pairing it with
+// external_executor_ok is dead/misleading — it looks role-gated but isn't.
+foreach ($routes as $route) {
+    if (($route['external_ok'] ?? false) === true && ($route['external_executor_ok'] ?? false) === true) {
+        $pattern = (string)($route['pattern'] ?? '');
+        $failures[] = 'route carries both external_ok and external_executor_ok, which is '
+            . "redundant and misleading (external_ok already admits every external guest): {$pattern}";
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 1b. Executor project-access management routes stay internal-only.
+// ---------------------------------------------------------------------------
+// Granting/revoking/listing an executor's per-project grants is a staff action
+// performed ABOUT a guest (project.manage/contact.manage); it must never be
+// something the guest performs on themselves via the external gate.
+
+$projectAccessRoutes = array_values(array_filter(
+    $routes,
+    static fn(array $r): bool => str_contains((string)($r['pattern'] ?? ''), '/project-access')
+));
+
+check(
+    $failures,
+    count($projectAccessRoutes) === 3,
+    'expected exactly 3 external-users/*/project-access routes (list/grant/revoke); found '
+    . count($projectAccessRoutes) . ' — the route table for executor project grants has drifted'
+);
+
+foreach ($projectAccessRoutes as $route) {
+    $pattern = (string)($route['pattern'] ?? '');
+    check(
+        $failures,
+        ($route['external_ok'] ?? false) !== true && ($route['external_executor_ok'] ?? false) !== true,
+        "project-access route must not be externally reachable — it manages a guest's access, "
+        . "it is not an action the guest performs on themselves: {$pattern}"
+    );
+    check(
+        $failures,
+        !empty($route['required_permissions']),
+        "project-access route has no required_permissions: {$pattern}"
+    );
+}
+
+// ---------------------------------------------------------------------------
 // 3. Central enforcement in App::run().
 // ---------------------------------------------------------------------------
 // The allowlist is inert unless something actually checks it. Assert the gate
@@ -229,10 +335,55 @@ check(
 );
 check(
     $failures,
-    (bool)preg_match('/external_ok[^;]*!==\s*true/', $appSource),
-    'app.php external gate must deny by default (`!== true`); a truthy/loose check would '
-    . 'let unmarked routes through for external guests'
+    (bool)preg_match('/external_ok[\'"]\]\s*\?\?\s*false\)\s*===\s*true/', $appSource),
+    'app.php external gate must build its allow flag from a strict comparison '
+    . "(`=== true`) against external_ok; a truthy/loose check ('!empty', bare boolean) "
+    . 'would let unmarked routes through for external guests'
 );
+check(
+    $failures,
+    str_contains($appSource, 'if (!$externalGateAllowed)'),
+    'app.php external gate must deny by default via `if (!$externalGateAllowed)` — the '
+    . 'allow/deny decision must be a single explicit boolean checked once, not scattered '
+    . 'ad-hoc truthy checks that could diverge'
+);
+check(
+    $failures,
+    str_contains($appSource, 'external_executor_ok'),
+    'app.php does not reference external_executor_ok — executor-role guests (freelancers '
+    . 'logging time) would 403 on every worklog route, or — if the flag exists in routes.php '
+    . 'without being read here — every external guest including observers would reach it'
+);
+check(
+    $failures,
+    (bool)preg_match(
+        "/external_executor_ok'\\]\\s*\\?\\?\\s*false\\)\\s*===\\s*true[^}]*?external_role'\\]\\s*\\?\\?\\s*'observer'\\)\\s*===\\s*'executor'/s",
+        $appSource
+    ),
+    'app.php external_executor_ok gate does not additionally require external_role === '
+    . "'executor' in the same condition — an observer (client) guest could reach "
+    . 'executor-only routes such as worklog creation, defeating the role split'
+);
+
+if (preg_match("/factory\\('service\\.external_user',.*?\\)\\);/s", $appSource, $extUserFactoryMatch) === 1) {
+    $extUserFactoryBlock = $extUserFactoryMatch[0];
+    check(
+        $failures,
+        str_contains($extUserFactoryBlock, 'repository.project'),
+        'app.php service.external_user wiring does not provide ProjectRepository — the '
+        . 'executor project-grant/revoke object-level authorization check cannot resolve '
+        . 'the target project'
+    );
+    check(
+        $failures,
+        !str_contains($extUserFactoryBlock, "'service.project'"),
+        'app.php service.external_user wiring depends on service.project — ProjectService\'s '
+        . 'own factory already depends on service.external_user, so this reintroduces a '
+        . 'circular dependency that deadlocks container resolution on first use'
+    );
+} else {
+    $failures[] = 'could not locate the service.external_user factory block in app.php';
+}
 
 // Router must forward the flag, or App::run() always sees null.
 $routerSource = readFileSafe($routerPath);
@@ -386,6 +537,48 @@ foreach ([
 }
 
 // ---------------------------------------------------------------------------
+// 6a2. Executor project scoping must ALSO fail closed.
+// ---------------------------------------------------------------------------
+// An executor with zero project grants must see zero rows. The filter is
+// gated on array_key_exists (not !empty/isset-on-value) so the key's mere
+// PRESENCE — even with an empty id list — triggers the RLS bypass; otherwise
+// a zero-grant executor would fall through to the internal ownership check
+// (created_by/manager/team) and be treated like an unscoped employee.
+
+$projectRepositorySource = readFileSafe($apiRoot . '/model/project/ProjectRepository.php');
+$taskRepositorySource = readFileSafe($apiRoot . '/model/task/TaskRepository.php');
+
+foreach ([
+    'ProjectRepository' => $projectRepositorySource,
+    'TaskRepository' => $taskRepositorySource,
+] as $label => $source) {
+    check(
+        $failures,
+        (bool)preg_match('/if\s*\(\s*array_key_exists\(\s*[\'"]executor_project_ids[\'"]/', $source),
+        "{$label} does not gate the executor filter block itself on "
+        . "if (array_key_exists('executor_project_ids', ...)) — !empty()/isset() would let an "
+        . 'executor with zero grants fall through to the unscoped/internal-ownership query path '
+        . 'instead of seeing zero rows'
+    );
+    check(
+        $failures,
+        (bool)preg_match(
+            "/executor_project_ids.*?ids\\s*===\\s*\\[\\]\\s*\\)\\s*\\{\\s*\\\$qb->whereRaw\\(\\s*'1\\s*=\\s*0'/s",
+            $source
+        ),
+        "{$label} does not force a zero-row result ('1 = 0') when an executor has no project "
+        . 'grants — it must fail closed, never run an unscoped query'
+    );
+    check(
+        $failures,
+        (bool)preg_match('/hasRlsClientFilter\s*=.*executor_project_ids/', $source),
+        "{$label} does not extend its internal-ownership bypass (hasRlsClientFilter) to also "
+        . 'trigger on executor_project_ids — an executor would additionally be judged by the '
+        . 'created_by/manager/team ownership check meant for internal employees'
+    );
+}
+
+// ---------------------------------------------------------------------------
 // 6d. Invitation lifecycle and object-level management authorization.
 // ---------------------------------------------------------------------------
 
@@ -440,6 +633,12 @@ check(
     $failures,
     str_contains($migrationManagerSource, 'new ExternalInvitationLifecycleMigration()'),
     'MigrationManager does not register ExternalInvitationLifecycleMigration'
+);
+check(
+    $failures,
+    str_contains($migrationManagerSource, 'new ExternalUserRolesMigration()'),
+    'MigrationManager does not register ExternalUserRolesMigration — the external_role '
+    . 'column and external_user_project_access table would never be created'
 );
 $externalUserControllerSource = readFileSafe($externalUserControllerPath);
 $contactRepositorySource = readFileSafe($contactRepositoryPath);
@@ -530,6 +729,55 @@ check(
     $failures,
     str_contains($externalUserServiceSource, "['deleted_at'] ?? null"),
     'ExternalUserService does not fail closed for soft-deleted linked external accounts'
+);
+
+// ---------------------------------------------------------------------------
+// 6e. Invite login must be the invited email, checked against the login namespace.
+// ---------------------------------------------------------------------------
+// A generated ext_xxxx login is unguessable but forces the guest to remember a
+// credential different from what they were invited with, and support/reset
+// flows key off email. The email must also be checked against the existing
+// LOGIN namespace (not only the email column) before being reused as a login,
+// or an invite could collide with an unrelated account.
+
+check(
+    $failures,
+    str_contains($externalUserServiceSource, 'login_email_conflict'),
+    'ExternalUserService::invite() does not check the invited email against the existing '
+    . "login namespace before reusing it as the login — a collision with an unrelated "
+    . "account's login could attach the invite to the wrong account or fail confusingly "
+    . 'at authentication time'
+);
+check(
+    $failures,
+    !str_contains($externalUserServiceSource, "'ext_' . substr("),
+    'ExternalUserService::invite() still generates a synthetic ext_xxxx login instead of '
+    . "using the invited email as the login"
+);
+
+// ---------------------------------------------------------------------------
+// 6f. ExternalUserService must not depend on ProjectService (circular DI).
+// ---------------------------------------------------------------------------
+// ProjectService's own factory already depends on service.external_user (to scope
+// project listings for external actors). The Container caches a factory's result
+// only after the factory closure fully returns, so wiring ProjectService back into
+// ExternalUserService's constructor would deadlock the very first resolution of
+// either service (infinite recursion), not fail loudly at boot. Use
+// ProjectRepository for the executor grant/revoke object-level check instead.
+
+check(
+    $failures,
+    !(bool)preg_match('/ProjectService\s*\$/', $externalUserServiceSource)
+        && !str_contains($externalUserServiceSource, 'Service\\ProjectService;'),
+    'ExternalUserService depends on ProjectService — this creates a circular dependency '
+    . "with ProjectService's own factory (which depends on service.external_user) and "
+    . 'will deadlock container resolution on first use'
+);
+check(
+    $failures,
+    str_contains($externalUserServiceSource, 'ProjectRepository'),
+    'ExternalUserService does not use ProjectRepository for its executor project-grant/'
+    . 'revoke object-level authorization'
 );
 
 // ---------------------------------------------------------------------------

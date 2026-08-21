@@ -4,7 +4,7 @@ TropaTT 自托管 CRM 的完整 REST API 参考：基础 URL、认证、RBAC 权
 
 **语言：** [Русский](api_ru.md) · [English](api_en.md) · **中文**
 
-> 最后更新：2026-08-20。权威来源：`upload/api/config/routes.php` 及模块路由文件。
+> 最后更新：2026-08-15。权威来源：`upload/api/config/routes.php` 及模块路由文件。
 
 ## 概述
 
@@ -310,12 +310,20 @@ Authorization: Bearer <token>
 
 | 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
 |-------|----------|------------|:---:|-------------|----------|
-| POST | `/api/v1/external-users/invite` | 邀请联系人加入客户门户 | 是 | `contact.manage` | 创建或重新邀请 `external_guest` 账户；要求有联系人访问权限、已关联交易方且邮箱有效。链接 7 天后过期 |
-| POST | `/api/v1/external-users/accept` | 接受邀请并设置密码 | 否 | — | 公开接口；需要邀请 `token` 和 `password`（8–1024 个字符）。令牌只能使用一次；响应返回临时会话和登录信息 |
-| GET | `/api/v1/external-users` | 外部（门户）用户列表 | 是 | `contact.manage` | Root 用户可查看全部；其他用户只能查看其权限范围内联系人关联的外部用户 |
-| POST | `/api/v1/external-users/{public_id}/deactivate` | 撤销门户访问权限 | 是 | `contact.manage` | 停用账户、清除邀请并撤销其全部会话 |
+| POST | `/api/v1/external-users/invite` | 邀请联系人加入客户门户 | 是 | `contact.manage` | 为联系人创建 `external_guest` 账户；要求已关联交易方且邮箱有效。请求体：`external_role`（`observer` \| `executor`，默认 `observer`） |
+| POST | `/api/v1/external-users/accept` | 接受邀请并设置密码 | 否 | — | 公开接口；需要邀请 `token` 和 `password`（至少 8 位） |
+| GET | `/api/v1/external-users` | 外部（门户）用户列表 | 是 | `contact.manage` | 每一项都包含 `external_role` |
+| POST | `/api/v1/external-users/{public_id}/deactivate` | 撤销门户访问权限 | 是 | `contact.manage` | 停用外部用户账户 |
+| GET | `/api/v1/external-users/{public_id}/project-access` | 列出已授予执行者的项目 | 是 | `contact.manage` | 仅限 executor 角色 |
+| POST | `/api/v1/external-users/{public_id}/project-access` | 向执行者授予某个项目的访问权限 | 是 | `project.manage` | 请求体：`project_public_id`。幂等（按用户+项目唯一） |
+| DELETE | `/api/v1/external-users/{public_id}/project-access/{project_public_id}` | 撤销某个项目的授权 | 是 | `project.manage` | — |
 
-**访问模型：** 外部用户（`is_external = true`）通过行级安全策略仅能看到自己所属交易方的项目和任务（`ProjectService`/`TaskService` 在 SQL 层按 `client_public_id` 过滤，而非在 PHP 数组中过滤）。除权限校验外，`routes.php` 中的硬性路由白名单（`external_ok`，在 `App::run()` 中集中校验）将外部会话限制在 `auth/me`、`auth/logout`、`auth/menu`、`projects`（列表/详情）、`tasks`（列表/详情/创建/评论/文件）、`files`（上传/获取/下载）和 `notifications` 范围内——其余任何接口即便权限检查本身允许，也会返回 `403 EXTERNAL_ACCESS_DENIED`。前端页面同样在页面级别做了镜像限制：外部账户的导航菜单和可访问路由仅限于「项目」「任务」「通知」。
+**访问模型：** 外部用户（`is_external = true`）使用受邀邮箱作为登录名，并拥有以下两种角色之一（`external_role`）：
+
+- **`observer`**（默认）—— 通过行级安全策略仅能看到自己所属交易方的项目和任务（`ProjectService`/`TaskService` 在 SQL 层按 `client_public_id` 过滤，而非在 PHP 数组中过滤）。这是经典的客户门户查看/评论体验。
+- **`executor`** —— 自由职业者/承包商，其访问权限改为由 `external_user_project_access` 表中逐项目的显式授权决定（见上方 project-access 接口）。授权粒度很细（每次一个项目）、可审计、可撤销；授权不与单一交易方绑定，因此同一个执行者账户可以被授予来自多个互不相关交易方的项目，而不会获得整个交易方范围的可见性。邀请执行者时会自动授予邀请方交易方下所有未归档的项目；其他项目（包括来自其他交易方的项目）需通过 `POST .../project-access` 显式授予。
+
+除权限校验外，`routes.php` 中的硬性路由白名单（`external_ok`，在 `App::run()` 中集中校验）将外部会话限制在 `auth/me`、`auth/logout`、`auth/menu`、`projects`（列表/详情）、`tasks`（列表/详情/创建/评论/文件）、`files`（上传/获取/下载）和 `notifications` 范围内——其余任何接口即便权限检查本身允许，也会返回 `403 EXTERNAL_ACCESS_DENIED`。第二个更窄的白名单（`external_executor_ok`，作用于 `GET`/`POST /api/v1/worklogs`）额外要求 `external_role === 'executor'`，因此只有执行者才能对任务记录工时——观察者永远不能，即使两者都共享 `is_external = true`。前端页面同样在页面级别做了镜像限制：外部账户的导航菜单和可访问路由仅限于「项目」「任务」「通知」。
 
 ### 客户门户
 

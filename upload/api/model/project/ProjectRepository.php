@@ -274,6 +274,20 @@ final class ProjectRepository
             $qb->where('p.client_public_id', '=', (string)$filters['client_public_id']);
         }
 
+        // RLS for an executor-role external guest: explicit per-project grants
+        // (external_user_project_access), never a counterparty-wide filter.
+        // The key's mere presence (even mapping to []) means "an executor's
+        // scope is active" — an executor with zero grants must see nothing,
+        // not fall through to an unscoped query.
+        if (array_key_exists('executor_project_ids', $filters)) {
+            $ids = array_values(array_filter(array_map('intval', (array)$filters['executor_project_ids']), static fn(int $v): bool => $v > 0));
+            if ($ids === []) {
+                $qb->whereRaw('1 = 0');
+            } else {
+                $qb->whereIn('p.id', $ids);
+            }
+        }
+
         if (!empty($filters['manager_user_public_id'])) {
             $qb->whereRaw(
                 'EXISTS (SELECT 1 FROM users pmu WHERE pmu.id = p.manager_user_id AND pmu.public_id = ?)',
@@ -308,7 +322,7 @@ final class ProjectRepository
         // counterparty's projects, so the additional ownership check would
         // incorrectly hide projects the external user is legitimately allowed
         // to see (they didn't create/manage them and aren't in any team).
-        $hasRlsClientFilter = !empty($filters['client_public_id']);
+        $hasRlsClientFilter = !empty($filters['client_public_id']) || array_key_exists('executor_project_ids', $filters);
 
         if (!$actorIsRoot && !$hasRlsClientFilter && $actorUserId !== null && $actorUserId > 0) {
             $accessibleTeamIds = array_values(array_filter(

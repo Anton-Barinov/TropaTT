@@ -573,7 +573,12 @@ window.CRM.pageApiBindings = (function () {
     var pendingLabel = tp('contacts.portal_pending', 'Invitation is pending');
 
     if (userPublicId && Number(contact.external_user_is_active) === 1) {
-      return '<button class="btn btn-sm crm-btn-icon" type="button" data-contact-revoke-portal="' + safeText(id) + '" data-external-user-public-id="' + safeText(userPublicId) + '" title="' + safeText(revokeLabel) + '" aria-label="' + safeText(revokeLabel) + '"><i class="fa-solid fa-globe text-success" aria-hidden="true"></i></button>';
+      var isExecutorGuest = String(contact.external_user_role || 'observer') === 'executor';
+      var manageLabel = tp('contacts.portal_manage_projects', 'Manage project access');
+      var manageBtn = isExecutorGuest
+        ? '<button class="btn btn-sm crm-btn-icon" type="button" data-contact-manage-projects="' + safeText(userPublicId) + '" title="' + safeText(manageLabel) + '" aria-label="' + safeText(manageLabel) + '"><i class="fa-solid fa-diagram-project" aria-hidden="true"></i></button>'
+        : '';
+      return manageBtn + '<button class="btn btn-sm crm-btn-icon" type="button" data-contact-revoke-portal="' + safeText(id) + '" data-external-user-public-id="' + safeText(userPublicId) + '" title="' + safeText(revokeLabel) + '" aria-label="' + safeText(revokeLabel) + '"><i class="fa-solid fa-globe text-success" aria-hidden="true"></i></button>';
     }
     if (hasCounterparty && hasEmail) {
       return '<button class="btn btn-sm crm-btn-icon" type="button" data-contact-invite-portal="' + safeText(id) + '" title="' + safeText(userPublicId ? pendingLabel : inviteLabel) + '" aria-label="' + safeText(userPublicId ? pendingLabel : inviteLabel) + '"><i class="fa-regular fa-paper-plane" aria-hidden="true"></i></button>';
@@ -603,12 +608,27 @@ window.CRM.pageApiBindings = (function () {
     var result = modalEl.querySelector('[data-portal-result]');
     var loginInput = modalEl.querySelector('[data-portal-login]');
     var linkInput = modalEl.querySelector('[data-portal-link]');
+    var roleChoice = modalEl.querySelector('[data-portal-role-choice]');
+    var roleSubmitBtn = modalEl.querySelector('[data-portal-role-submit]');
     var refreshAfterClose = false;
+    var pendingContactId = '';
 
-    function open() {
-      if (pending) pending.classList.remove('d-none');
+    // open() shows the role picker first — the actual invite call only fires
+    // once the user confirms a role (see the [data-portal-role-submit]
+    // handler below), so re-inviting an already-linked contact with a
+    // different role is a deliberate choice, not a silent default.
+    function open(contactId) {
+      pendingContactId = String(contactId || '');
+      if (roleChoice) {
+        roleChoice.classList.remove('d-none');
+        var observerRadio = roleChoice.querySelector('input[value="observer"]');
+        if (observerRadio) observerRadio.checked = true;
+      }
+      if (pending) pending.classList.add('d-none');
       if (error) error.classList.add('d-none');
       if (result) result.classList.add('d-none');
+      var projectAccessSectionEl = modalEl.querySelector('[data-portal-project-access]');
+      if (projectAccessSectionEl) projectAccessSectionEl.classList.add('d-none');
       var instance = window.bootstrap && window.bootstrap.Modal
         ? window.bootstrap.Modal.getOrCreateInstance(modalEl)
         : null;
@@ -617,6 +637,7 @@ window.CRM.pageApiBindings = (function () {
     }
 
     function showError(message) {
+      if (roleChoice) roleChoice.classList.add('d-none');
       if (pending) pending.classList.add('d-none');
       if (error) {
         error.textContent = String(message || tp('external_users.invite_failed', 'Failed to create invitation'));
@@ -631,11 +652,148 @@ window.CRM.pageApiBindings = (function () {
         showError(tp('external_users.invite_failed', 'The invitation link could not be created'));
         return;
       }
+      if (roleChoice) roleChoice.classList.add('d-none');
       if (pending) pending.classList.add('d-none');
       if (loginInput) loginInput.value = String(data && data.login || '');
       if (linkInput) linkInput.value = link;
+      var roleNote = result ? result.querySelector('[data-portal-role-note]') : null;
+      if (roleNote) {
+        var isExecutor = String(data && data.external_role || 'observer') === 'executor';
+        roleNote.textContent = isExecutor
+          ? tp('contacts.portal_role_executor_title', 'Исполнитель (фрилансер)')
+          : tp('contacts.portal_role_observer_title', 'Наблюдатель');
+      }
       if (result) result.classList.remove('d-none');
     }
+
+    function submitInvite(contactId, role) {
+      if (!contactId || !window.CRM.api) return;
+      if (roleChoice) roleChoice.classList.add('d-none');
+      if (pending) pending.classList.remove('d-none');
+      if (roleSubmitBtn) roleSubmitBtn.disabled = true;
+      window.CRM.api.request('api/v1/external-users/invite', {
+        method: 'POST',
+        headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('external-invite-' + contactId + '-' + role) },
+        body: { contact_public_id: contactId, external_role: role }
+      }).then(function (envelope) {
+        var data = (envelope && envelope.data) || {};
+        showResult(data);
+        refreshAfterClose = true;
+        var userPublicId = String(data.user_public_id || '').trim();
+        if (role === 'executor' && userPublicId) {
+          loadProjectAccessPanel(userPublicId);
+        }
+      }).catch(function (requestError) {
+        var envelope = requestError && requestError.envelope ? requestError.envelope : null;
+        showError((envelope && envelope.message) || tp('external_users.invite_failed', 'Failed to create invitation'));
+      }).finally(function () {
+        if (roleSubmitBtn) roleSubmitBtn.disabled = false;
+      });
+    }
+
+    if (roleSubmitBtn) {
+      roleSubmitBtn.addEventListener('click', function () {
+        var selected = roleChoice ? roleChoice.querySelector('input[name="contact_portal_role"]:checked') : null;
+        var role = selected && selected.value === 'executor' ? 'executor' : 'observer';
+        submitInvite(pendingContactId, role);
+      });
+    }
+
+    // Executor project-access panel (point 7 of the client-portal spec: a
+    // freelancer scoped to explicit, per-project grants instead of an entire
+    // counterparty). Shown after a fresh executor invite, and reachable any
+    // time afterwards via the "manage projects" icon on an active executor
+    // row (see externalPortalActionHtml()).
+    var projectAccessSection = modalEl.querySelector('[data-portal-project-access]');
+    var projectAccessList = modalEl.querySelector('[data-portal-project-access-list]');
+    var projectAccessSaveBtn = modalEl.querySelector('[data-portal-project-access-save]');
+    var manageUserPublicId = '';
+    var initialGrantedIds = [];
+
+    function renderProjectAccessList(allProjects, grantedPublicIds) {
+      if (!projectAccessList) return;
+      var grantedSet = {};
+      grantedPublicIds.forEach(function (pid) { grantedSet[pid] = true; });
+      projectAccessList.innerHTML = allProjects.map(function (p) {
+        var pid = String(p.public_id || '');
+        var checked = grantedSet[pid] ? ' checked' : '';
+        var label = safeText(String(p.title || pid));
+        return '<div class="form-check"><input class="form-check-input" type="checkbox" value="' + safeText(pid) + '" id="portalProj_' + safeText(pid) + '"' + checked + '><label class="form-check-label small" for="portalProj_' + safeText(pid) + '">' + label + '</label></div>';
+      }).join('') || '<div class="text-muted small">' + safeText(tp('contacts.portal_projects_empty', 'No projects available')) + '</div>';
+    }
+
+    async function loadProjectAccessPanel(userPublicId) {
+      manageUserPublicId = userPublicId;
+      if (!projectAccessSection || !window.CRM.api) return;
+      projectAccessSection.classList.remove('d-none');
+      if (projectAccessList) projectAccessList.innerHTML = '<div class="text-muted small">' + safeText(tp('page.loading', 'Loading...')) + '</div>';
+      try {
+        var results = await Promise.all([
+          window.CRM.api.request('api/v1/projects', { query: { limit: 200, archived: '0' } }),
+          window.CRM.api.request('api/v1/external-users/' + encodeURIComponent(userPublicId) + '/project-access')
+        ]);
+        var allProjects = window.CRM.api.items(results[0]) || [];
+        var granted = (results[1] && results[1].data && results[1].data.items) || [];
+        initialGrantedIds = granted.map(function (g) { return String(g.public_id || ''); });
+        renderProjectAccessList(allProjects, initialGrantedIds);
+      } catch (e) {
+        if (projectAccessList) {
+          projectAccessList.innerHTML = '<div class="text-danger small">' + safeText(tp('contacts.portal_projects_load_failed', 'Failed to load projects')) + '</div>';
+        }
+      }
+    }
+
+    if (projectAccessSaveBtn) {
+      projectAccessSaveBtn.addEventListener('click', async function () {
+        if (!manageUserPublicId || !projectAccessList || !window.CRM.api) return;
+        var checkedIds = Array.prototype.map.call(
+          projectAccessList.querySelectorAll('input[type="checkbox"]:checked'),
+          function (el) { return String(el.value || ''); }
+        );
+        var toGrant = checkedIds.filter(function (pid) { return initialGrantedIds.indexOf(pid) === -1; });
+        var toRevoke = initialGrantedIds.filter(function (pid) { return checkedIds.indexOf(pid) === -1; });
+        projectAccessSaveBtn.disabled = true;
+        try {
+          await Promise.all(toGrant.map(function (pid) {
+            return window.CRM.api.request('api/v1/external-users/' + encodeURIComponent(manageUserPublicId) + '/project-access', {
+              method: 'POST',
+              headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('external-grant-' + manageUserPublicId + '-' + pid) },
+              body: { project_public_id: pid }
+            });
+          }).concat(toRevoke.map(function (pid) {
+            return window.CRM.api.request('api/v1/external-users/' + encodeURIComponent(manageUserPublicId) + '/project-access/' + encodeURIComponent(pid), {
+              method: 'DELETE'
+            });
+          })));
+          initialGrantedIds = checkedIds;
+          notify(tp('contacts.portal_projects_saved', 'Project access updated'));
+        } catch (requestError) {
+          var envelope = requestError && requestError.envelope ? requestError.envelope : null;
+          notify((envelope && envelope.message) || tp('contacts.portal_projects_save_failed', 'Failed to update project access'), 'error');
+        } finally {
+          projectAccessSaveBtn.disabled = false;
+        }
+      });
+    }
+
+    document.querySelectorAll('[data-contact-manage-projects]').forEach(function (button) {
+      if (button.dataset.externalPortalTriggerBound === '1') return;
+      button.dataset.externalPortalTriggerBound = '1';
+      button.addEventListener('click', function () {
+        var userPublicId = String(button.getAttribute('data-contact-manage-projects') || '').trim();
+        if (!userPublicId) return;
+        pendingContactId = '';
+        if (roleChoice) roleChoice.classList.add('d-none');
+        if (pending) pending.classList.add('d-none');
+        if (error) error.classList.add('d-none');
+        if (result) result.classList.add('d-none');
+        var instance = window.bootstrap && window.bootstrap.Modal
+          ? window.bootstrap.Modal.getOrCreateInstance(modalEl)
+          : null;
+        if (instance) instance.show();
+        loadProjectAccessPanel(userPublicId);
+      });
+    });
 
     modalEl.addEventListener('hidden.bs.modal', function () {
       if (!refreshAfterClose) return;
@@ -664,22 +822,8 @@ window.CRM.pageApiBindings = (function () {
       if (!inviteButton) return;
       var contactId = String(inviteButton.getAttribute('data-external-portal-invite') || '').trim();
       if (!contactId || !window.CRM.api) return;
-      var instance = open();
-      inviteButton.disabled = true;
-      window.CRM.api.request('api/v1/external-users/invite', {
-        method: 'POST',
-        headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('external-invite-' + contactId) },
-        body: { contact_public_id: contactId }
-      }).then(function (envelope) {
-        showResult((envelope && envelope.data) || {});
-        refreshAfterClose = true;
-      }).catch(function (requestError) {
-        var envelope = requestError && requestError.envelope ? requestError.envelope : null;
-        showError((envelope && envelope.message) || tp('external_users.invite_failed', 'Failed to create invitation'));
-      }).finally(function () {
-        inviteButton.disabled = false;
-        if (!instance && typeof config.onComplete === 'function') config.onComplete();
-      });
+      var instance = open(contactId);
+      if (!instance && typeof config.onComplete === 'function') config.onComplete();
     });
 
     modalEl.addEventListener('click', function (event) {
@@ -710,22 +854,8 @@ window.CRM.pageApiBindings = (function () {
       button.addEventListener('click', function () {
         var contactId = String(button.getAttribute('data-contact-invite-portal') || '').trim();
         if (!contactId) return;
-        var instance = open();
-        button.disabled = true;
-        window.CRM.api.request('api/v1/external-users/invite', {
-          method: 'POST',
-          headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('external-invite-' + contactId) },
-          body: { contact_public_id: contactId }
-        }).then(function (envelope) {
-          showResult((envelope && envelope.data) || {});
-          refreshAfterClose = true;
-        }).catch(function (requestError) {
-          var envelope = requestError && requestError.envelope ? requestError.envelope : null;
-          showError((envelope && envelope.message) || tp('external_users.invite_failed', 'Failed to create invitation'));
-        }).finally(function () {
-          button.disabled = false;
-          if (!instance && typeof config.onComplete === 'function') config.onComplete();
-        });
+        var instance = open(contactId);
+        if (!instance && typeof config.onComplete === 'function') config.onComplete();
       });
     });
 

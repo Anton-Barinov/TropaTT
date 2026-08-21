@@ -27,4 +27,13 @@ return [
     'deactivated' => '访问已撤销',
     'deactivate_failed' => '撤销访问失败',
     'list' => '外部用户',
+    'login_email_conflict' => '该邮箱已被其他用户用作登录名',
+    'not_executor' => '该用户不是执行者',
+    'project_not_found' => '未找到项目',
+    'service_unavailable' => '服务暂时不可用',
+    'project_public_id_required' => '请指定项目',
+    'project_access_failed' => '管理项目访问权限失败',
+    'project_access_list' => '可访问的项目',
+    'project_access_granted' => '已授予项目访问权限',
+    'project_access_revoked' => '已撤销项目访问权限',
 ];

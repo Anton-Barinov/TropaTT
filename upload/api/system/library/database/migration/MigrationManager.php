@@ -67,6 +67,7 @@ final class MigrationManager
             new WorklogIntervalMigration(),
             new ExternalUsersMigration(),
             new ExternalInvitationLifecycleMigration(),
+            new ExternalUserRolesMigration(),
         ];
     }
 

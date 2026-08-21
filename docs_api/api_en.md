@@ -4,7 +4,7 @@ Complete reference for the TropaTT self-hosted CRM REST API: base URL, authentic
 
 **Language:** [Русский](api_ru.md) · **English** · [中文](api_zh.md)
 
-> Last updated: 2026-08-20. Source of truth: `upload/api/config/routes.php` and module route files.
+> Last updated: 2026-08-15. Source of truth: `upload/api/config/routes.php` and module route files.
 
 ## Overview
 
@@ -310,12 +310,20 @@ The `X-Idempotency-Key` header prevents duplicate operations.
 
 | Method | Endpoint | Description | Auth | Permissions | Notes |
 |-------|----------|------------|:---:|-------------|----------|
-| POST | `/api/v1/external-users/invite` | Invite a contact to the client portal | Yes | `contact.manage` | Creates or re-invites an `external_guest` account; requires access to the contact, a linked counterparty and a valid email. The link expires after 7 days |
-| POST | `/api/v1/external-users/accept` | Accept invitation, set password | No | — | Public; requires invite `token` + `password` (8–1024 characters). The token is one-time; the response returns a temporary session and login details |
-| GET | `/api/v1/external-users` | List external (portal) users | Yes | `contact.manage` | Root users see all; other users see only guests linked to contacts in their scope |
-| POST | `/api/v1/external-users/{public_id}/deactivate` | Revoke portal access | Yes | `contact.manage` | Deactivates the account, clears the invitation and revokes all of its sessions |
+| POST | `/api/v1/external-users/invite` | Invite a contact to the client portal | Yes | `contact.manage` | Creates an `external_guest` account for the contact; requires a linked counterparty and a valid email. Body: `external_role` (`observer` \| `executor`, default `observer`) |
+| POST | `/api/v1/external-users/accept` | Accept invitation, set password | No | — | Public; requires invite `token` + `password` (min. 8 chars) |
+| GET | `/api/v1/external-users` | List external (portal) users | Yes | `contact.manage` | Each item includes `external_role` |
+| POST | `/api/v1/external-users/{public_id}/deactivate` | Revoke portal access | Yes | `contact.manage` | Deactivates the external user account |
+| GET | `/api/v1/external-users/{public_id}/project-access` | List an executor's granted projects | Yes | `contact.manage` | Executor role only |
+| POST | `/api/v1/external-users/{public_id}/project-access` | Grant a project to an executor | Yes | `project.manage` | Body: `project_public_id`. Idempotent (unique on user+project) |
+| DELETE | `/api/v1/external-users/{public_id}/project-access/{project_public_id}` | Revoke a project grant | Yes | `project.manage` | — |
 
-**Access model:** an external user (`is_external = true`) is scoped by row-level security to their own counterparty's projects and tasks only (`ProjectService`/`TaskService` filter by `client_public_id` at the SQL level, not in PHP). Beyond permission checks, a hard route allowlist (`external_ok` in `routes.php`, enforced centrally in `App::run()`) restricts external sessions to `auth/me`, `auth/logout`, `auth/menu`, `projects` (list/get), `tasks` (list/get/create/comments/files), `files` (upload/get/download) and `notifications` — any other endpoint returns `403 EXTERNAL_ACCESS_DENIED` even where a permission check alone would allow it. The web app mirrors this at the page level: the nav menu and route access for external accounts are limited to Projects/Tasks/Notifications.
+**Access model:** an external user (`is_external = true`) logs in with their invited email as their login, and holds one of two roles (`external_role`):
+
+- **`observer`** (default) — scoped by row-level security to their own counterparty's projects and tasks only (`ProjectService`/`TaskService` filter by `client_public_id` at the SQL level, not in PHP). This is the classic client-portal read/comment experience.
+- **`executor`** — a freelancer/contractor scoped instead by explicit, per-project grants in `external_user_project_access` (see the project-access endpoints above). Grants are narrow (one project each), auditable, and revocable; they are not tied to a single counterparty, so one executor account can be granted projects across multiple, unrelated counterparties without ever gaining counterparty-wide visibility. On invite, an executor is auto-granted every non-archived project already belonging to the inviting counterparty; further projects (including from other counterparties) are granted explicitly via `POST .../project-access`.
+
+Beyond permission checks, a hard route allowlist (`external_ok` in `routes.php`, enforced centrally in `App::run()`) restricts external sessions to `auth/me`, `auth/logout`, `auth/menu`, `projects` (list/get), `tasks` (list/get/create/comments/files), `files` (upload/get/download) and `notifications` — any other endpoint returns `403 EXTERNAL_ACCESS_DENIED` even where a permission check alone would allow it. A second, narrower allowlist (`external_executor_ok`, on `GET`/`POST /api/v1/worklogs`) additionally requires `external_role === 'executor'`, so only executors can log time against a task — observers never can, even though both roles share `is_external = true`. The web app mirrors this at the page level: the nav menu and route access for external accounts are limited to Projects/Tasks/Notifications.
 
 ### Client Cabinet
 

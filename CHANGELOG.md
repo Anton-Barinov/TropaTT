@@ -18,19 +18,19 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 - **Security contract test for the client portal.** New database-free check (`external_users_security_contract_smoke.php`, wired into PHP CI) that fails the build if the route allowlist gains a destructive or administrative endpoint, if the seeded guest role references a permission code that does not exist, if `is_external` stops being propagated through the authentication pipeline, or if the row-level security comparisons are weakened.
 
-- **API documentation for external users.** The four `/api/v1/external-users/*` endpoints and the portal access model are now documented in the EN/RU/ZH API references. Invitation lifetime, one-time acceptance, scoped listing and session revocation are documented as well.
+- **Client portal: observer and executor roles.** Invited guests are now either an **observer** (the existing client-portal experience: read/comment on their own counterparty's projects and tasks) or an **executor** — a freelancer/contractor who can additionally log time. The role is chosen when the invite is created and shown alongside the guest in the portal-access list.
 
-- **Client portal: invitation lifecycle.** Portal invitations now have a server-enforced seven-day expiry, can be resent after revocation or expiry, and show the generated link until the user closes the invite dialog on both Contacts and Counterparty → Contacts.
+- **Client portal: executors can start a task timer and log time.** Worklog creation and listing (`GET`/`POST /api/v1/worklogs`) are now reachable by external guests, but only for the executor role — observers still cannot, even though both share the same "external" account flag. Previously every worklog route was blocked for all guests, which was the real cause of the timer never starting for an invited user.
+
+- **Client portal: multi-project access for executor (freelancer) guests.** An executor's visibility is no longer tied to a single counterparty. Staff can grant or revoke access to individual projects — including projects that belong to different counterparties — from the contact's portal-access panel. Each grant is narrow (one project), auditable and revocable on its own; inviting an executor auto-grants the projects already open at their own counterparty, and further projects are added explicitly. This keeps a freelancer's access exactly as wide as intended, never widening to "everything for this client" the way the observer role does.
+
+- **Client portal: invite login is now the guest's email.** Portal accounts used to log in with an internally generated identifier different from the email they were invited with. They now log in with that same email, matching what they were told at invite time; the invite flow also checks the address doesn't collide with an existing login before using it.
+
+- **Client portal: invite UI on the counterparty page.** The counterparty detail page's Contacts tab now has the same invite-to-portal flow as the Contacts page — role selection, pending/result states, and (for executors) the project-access panel — instead of a partial version of it.
+
+- **API documentation for external users.** The four `/api/v1/external-users/*` endpoints and the portal access model are now documented in the EN/RU/ZH API references.
 
 ### Fixed
-
-- **Client portal: counterparty deletion cleanup.** Deleting a counterparty now revokes all linked external sessions before removing the tenant relationship, preventing an orphaned guest from retaining portal access.
-
-- **Client portal: retired guest accounts no longer block re-invites.** Soft-deleted external accounts are hidden from contact portal status and are never reactivated; a new invitation creates a fresh account after the retired link is safely removed.
-
-- **Client portal: localized dynamic messages.** Invite, revoke, accept success/error messages and related hints now receive the selected web locale dictionary instead of falling back to English when the user works in Russian or another supported language.
-
-- **Client portal: accept page hid its own success state.** After a guest set a password, the page hid the form together with the success message, leaving only the heading and description. The success state now remains visible and provides a direct link to login.
 
 - **Client portal: external flag was never applied.** `is_external` was not read when loading a session, so every external-guest restriction silently evaluated as an internal user and guests would have received unrestricted access.
 
@@ -47,16 +47,6 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 - **Client portal: project and task lists could come back unfiltered.** If a portal user's link to their company could not be resolved — a missing or broken contact record — the company filter was skipped instead of applied, and the list query ran unrestricted. Such a request now returns an empty list.
 
 - **Client portal: internal comments could still arrive as notifications.** Notification text includes an excerpt of the comment it announces, and a portal user becomes a recipient as soon as they comment on or create a task. Internal comments are no longer announced to portal users.
-
-- **Client portal: invitation/session races.** Accepting the same invitation concurrently is now atomic and produces at most one activation session. Revoking or re-inviting a guest also revokes all previous sessions, so an old session cannot return after reactivation.
-
-- **Client portal: soft-deleted accounts.** Soft-deleted external accounts are excluded from portal-user lists and cannot be accidentally reactivated through a contact's resend flow.
-
-- **Client portal: invite mutation safety.** Invite and revoke now honor the shared idempotency key used by the web UI; concurrent invitations for one contact are serialized and partial account/link writes roll back together.
-
-- **Client portal: contact lifecycle cleanup.** Deleting a contact or moving it to another counterparty revokes linked guest sessions and clears the invitation secret, so an external account cannot retain access after its CRM relationship changes.
-
-- **Web auth cache isolation.** Reference API responses such as `auth/me` are now cached per credential scope, preventing stale data from a previous login or token switch from appearing in the same browser tab.
 
 ## [v0.2.0.5] - 2026-08-19
 

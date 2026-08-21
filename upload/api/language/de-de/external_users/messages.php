@@ -28,4 +28,13 @@ return [
     'deactivated' => 'Zugriff widerrufen',
     'deactivate_failed' => 'Fehler beim Widerruf des Zugriffs',
     'list' => 'Externe Benutzer',
+    'login_email_conflict' => 'Diese E-Mail wird bereits als Login eines anderen Benutzers verwendet',
+    'not_executor' => 'Benutzer ist kein Auftragnehmer',
+    'project_not_found' => 'Projekt nicht gefunden',
+    'service_unavailable' => 'Dienst vorübergehend nicht verfügbar',
+    'project_public_id_required' => 'Projekt ist erforderlich',
+    'project_access_failed' => 'Fehler bei der Verwaltung des Projektzugriffs',
+    'project_access_list' => 'Zugängliche Projekte',
+    'project_access_granted' => 'Projektzugriff gewährt',
+    'project_access_revoked' => 'Projektzugriff widerrufen',
 ];

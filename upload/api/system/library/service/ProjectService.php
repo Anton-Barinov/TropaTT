@@ -37,15 +37,27 @@ final class ProjectService
         // case, leaving the query unscoped and returning every counterparty's
         // projects to a client-portal user.
         if (!empty((int)($actor['is_external'] ?? 0))) {
-            $cpPublicId = $this->externalUsers
-                ? $this->externalUsers->getCounterpartyPublicId((int)($actor['id'] ?? 0))
-                : '';
+            $actorId = (int)($actor['id'] ?? 0);
+            $externalRole = $this->externalUsers ? $this->externalUsers->getExternalRole($actorId) : ExternalUserService::ROLE_OBSERVER;
 
-            if ($cpPublicId === '') {
-                return $this->emptyListResult($filters);
+            if ($externalRole === ExternalUserService::ROLE_EXECUTOR) {
+                // Executor: explicit per-project grants, never a counterparty
+                // filter. Empty grant set is handled by the repository (fail
+                // closed on the mere presence of this filter key).
+                $filters['executor_project_ids'] = $this->externalUsers
+                    ? $this->externalUsers->getExecutorProjectIds($actorId)
+                    : [];
+            } else {
+                $cpPublicId = $this->externalUsers
+                    ? $this->externalUsers->getCounterpartyPublicId($actorId)
+                    : '';
+
+                if ($cpPublicId === '') {
+                    return $this->emptyListResult($filters);
+                }
+
+                $filters['client_public_id'] = $cpPublicId;
             }
-
-            $filters['client_public_id'] = $cpPublicId;
         }
 
         $result = $this->projects->list(
@@ -386,12 +398,17 @@ final class ProjectService
         }
 
         // RLS: external users can only access projects for their counterparty
+        // (observer) or their explicitly granted projects (executor).
         if (!empty((int)($actor['is_external'] ?? 0))) {
             // Fail closed on a missing service too: without it the actor would
             // fall through to the internal ownership checks below and be judged
             // as if they were an employee.
             if (!$this->externalUsers) {
                 return false;
+            }
+
+            if ($this->externalUsers->getExternalRole($actorId) === ExternalUserService::ROLE_EXECUTOR) {
+                return $this->externalUsers->hasExecutorProjectAccess($actorId, (int)($project['id'] ?? 0));
             }
 
             $cpPublicId = $this->externalUsers->getCounterpartyPublicId($actorId);

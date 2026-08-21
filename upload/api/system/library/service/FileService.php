@@ -335,8 +335,9 @@ final class FileService
                 return false;
             }
 
-            $cpPublicId = $this->externalUsers->getCounterpartyPublicId($actorId);
-            if ($cpPublicId === '') {
+            $isExecutor = $this->externalUsers->getExternalRole($actorId) === ExternalUserService::ROLE_EXECUTOR;
+            $cpPublicId = $isExecutor ? '' : $this->externalUsers->getCounterpartyPublicId($actorId);
+            if (!$isExecutor && $cpPublicId === '') {
                 return false;
             }
 
@@ -344,6 +345,10 @@ final class FileService
                 $task = $this->tasks->findByPublicId($entityPublicId);
                 if (!$task) {
                     return false;
+                }
+
+                if ($isExecutor) {
+                    return $this->externalUsers->hasExecutorProjectAccess($actorId, (int)($task['project_id'] ?? 0));
                 }
 
                 $taskClientPublicId = (string)($task['task_client_public_id'] ?? '');
@@ -357,6 +362,10 @@ final class FileService
                 $project = $this->projects->findByPublicId($entityPublicId);
                 if (!$project) {
                     return false;
+                }
+
+                if ($isExecutor) {
+                    return $this->externalUsers->hasExecutorProjectAccess($actorId, (int)($project['id'] ?? 0));
                 }
 
                 return (string)($project['client_public_id'] ?? '') === $cpPublicId;

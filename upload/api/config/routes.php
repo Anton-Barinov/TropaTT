@@ -494,8 +494,15 @@ return [
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/calendar/working-hours/{public_id}', 'controller' => Api\Controller\Calendar\CalendarController::class, 'action' => 'workingHoursDelete', 'auth' => true, 'required_permissions' => ['settings.manage']],
 
     // worklogs/dashboard
-    ['methods' => ['GET'], 'pattern' => '/api/v1/worklogs', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage']],
-    ['methods' => ['POST'], 'pattern' => '/api/v1/worklogs', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['task.manage']],
+    // 'external_executor_ok': lets an executor-role guest (freelancer, see
+    // ExternalUserService) log time — App::run() only grants this to
+    // external_role='executor', never to the default 'observer' (client)
+    // role. Update/delete/summary/earnings/matrix/detail stay closed to
+    // every external actor (out of scope for the portal, and
+    // summary/earnings/matrix are org-wide analytics that must never be
+    // reachable by a guest of any role).
+    ['methods' => ['GET'], 'pattern' => '/api/v1/worklogs', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_executor_ok' => true],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/worklogs', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_executor_ok' => true],
     ['methods' => ['GET'], 'pattern' => '/api/v1/worklogs/summary', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'summary', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/worklogs/earnings', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'earnings', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/worklogs/matrix', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'matrix', 'auth' => true, 'required_permissions' => ['task.manage']],
@@ -1036,4 +1043,15 @@ return [
     ['methods' => ['POST'], 'pattern' => '/api/v1/external-users/accept', 'controller' => Api\Controller\External\ExternalUserController::class, 'action' => 'accept', 'auth' => false, 'authz_note' => 'public: external user sets password'],
     ['methods' => ['GET'], 'pattern' => '/api/v1/external-users', 'controller' => Api\Controller\External\ExternalUserController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['contact.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/external-users/{public_id}/deactivate', 'controller' => Api\Controller\External\ExternalUserController::class, 'action' => 'deactivate', 'auth' => true, 'required_permissions' => ['contact.manage']],
+    // Executor-role guests only (point 7 of the client-portal spec): explicit,
+    // per-project grants so a freelancer can be scoped to specific projects —
+    // possibly across several different counterparties — without ever
+    // getting the counterparty-wide visibility an observer has. Grant/revoke
+    // require project.manage because the object-level check is "can the
+    // actor themselves reach this project" (see ExternalUserService::
+    // actorCanReachProject()), not contact ownership. list stays on
+    // contact.manage to match the other external-user admin views.
+    ['methods' => ['GET'], 'pattern' => '/api/v1/external-users/{public_id}/project-access', 'controller' => Api\Controller\External\ExternalUserController::class, 'action' => 'listProjectAccess', 'auth' => true, 'required_permissions' => ['contact.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/external-users/{public_id}/project-access', 'controller' => Api\Controller\External\ExternalUserController::class, 'action' => 'grantProjectAccess', 'auth' => true, 'required_permissions' => ['project.manage']],
+    ['methods' => ['DELETE'], 'pattern' => '/api/v1/external-users/{public_id}/project-access/{project_public_id}', 'controller' => Api\Controller\External\ExternalUserController::class, 'action' => 'revokeProjectAccess', 'auth' => true, 'required_permissions' => ['project.manage']],
 ];

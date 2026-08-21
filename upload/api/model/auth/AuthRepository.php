@@ -34,6 +34,7 @@ final class AuthRepository
                 'u.is_active',
                 'u.is_root',
                 'u.is_external',
+                'u.external_role',
                 'u.created_by_user_id',
             ])
             ->where('us.token_hash', '=', $hash)

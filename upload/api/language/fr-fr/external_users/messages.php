@@ -28,4 +28,13 @@ return [
     'deactivated' => 'Accès révoqué',
     'deactivate_failed' => 'Erreur lors de la révocation de l\'accès',
     'list' => 'Utilisateurs externes',
+    'login_email_conflict' => 'Cet email est déjà utilisé comme identifiant par un autre utilisateur',
+    'not_executor' => 'L\'utilisateur n\'est pas un exécutant',
+    'project_not_found' => 'Projet introuvable',
+    'service_unavailable' => 'Service temporairement indisponible',
+    'project_public_id_required' => 'Le projet est requis',
+    'project_access_failed' => 'Échec de la gestion de l\'accès au projet',
+    'project_access_list' => 'Projets accessibles',
+    'project_access_granted' => 'Accès au projet accordé',
+    'project_access_revoked' => 'Accès au projet révoqué',
 ];

@@ -28,4 +28,13 @@ return [
     'deactivated' => 'Доступ отозван',
     'deactivate_failed' => 'Ошибка отзыва доступа',
     'list' => 'Внешние пользователи',
+    'login_email_conflict' => 'Этот email уже используется как логин другого пользователя',
+    'not_executor' => 'Пользователь не является исполнителем',
+    'project_not_found' => 'Проект не найден',
+    'service_unavailable' => 'Сервис временно недоступен',
+    'project_public_id_required' => 'Укажите проект',
+    'project_access_failed' => 'Ошибка управления доступом к проекту',
+    'project_access_list' => 'Доступные проекты',
+    'project_access_granted' => 'Доступ к проекту предоставлен',
+    'project_access_revoked' => 'Доступ к проекту отозван',
 ];

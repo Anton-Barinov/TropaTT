@@ -267,6 +267,7 @@ final class AuthService
             'is_root' => (bool)$session['is_root'],
             'is_active' => (bool)($session['is_active'] ?? true),
             'is_external' => (bool)($session['is_external'] ?? false),
+            'external_role' => (string)($session['external_role'] ?? 'observer'),
             'created_by_user_id' => $session['created_by_user_id'] ?? null,
         ]);
 
@@ -309,6 +310,9 @@ final class AuthService
             'is_root' => $isRoot,
             'is_active' => (bool)$user['is_active'],
             'is_external' => (bool)($user['is_external'] ?? false),
+            'external_role' => (bool)($user['is_external'] ?? false)
+                ? (((string)($user['external_role'] ?? 'observer')) === 'executor' ? 'executor' : 'observer')
+                : 'observer',
             'roles' => $roleCodes,
             'permission_codes' => $permissionCodes,
         ];

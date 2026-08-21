@@ -142,14 +142,39 @@
 <div class="modal fade" id="contactPortalInviteModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content">
   <div class="modal-header"><h5 class="modal-title" data-i18n="contacts.portal_modal_title"><?= htmlspecialchars($t('contacts.portal_modal_title', 'Доступ в клиентский портал'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="page.close"></button></div>
   <div class="modal-body">
-    <div id="contactPortalInvitePending" data-portal-pending class="text-muted small"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>
+    <div id="contactPortalInviteRoleChoice" data-portal-role-choice>
+      <p class="small text-muted mb-2" data-i18n="contacts.portal_role_hint"><?= htmlspecialchars($t('contacts.portal_role_hint', 'Выберите роль приглашённого пользователя.'), ENT_QUOTES, 'UTF-8') ?></p>
+      <div class="form-check mb-2">
+        <input class="form-check-input" type="radio" name="contact_portal_role" id="contactPortalRoleObserver" value="observer" checked>
+        <label class="form-check-label" for="contactPortalRoleObserver">
+          <span class="d-block fw-semibold" data-i18n="contacts.portal_role_observer_title"><?= htmlspecialchars($t('contacts.portal_role_observer_title', 'Наблюдатель'), ENT_QUOTES, 'UTF-8') ?></span>
+          <span class="d-block small text-muted" data-i18n="contacts.portal_role_observer_desc"><?= htmlspecialchars($t('contacts.portal_role_observer_desc', 'Видит все проекты и задачи своего контрагента. Обычная роль для клиента.'), ENT_QUOTES, 'UTF-8') ?></span>
+        </label>
+      </div>
+      <div class="form-check mb-3">
+        <input class="form-check-input" type="radio" name="contact_portal_role" id="contactPortalRoleExecutor" value="executor">
+        <label class="form-check-label" for="contactPortalRoleExecutor">
+          <span class="d-block fw-semibold" data-i18n="contacts.portal_role_executor_title"><?= htmlspecialchars($t('contacts.portal_role_executor_title', 'Исполнитель (фрилансер)'), ENT_QUOTES, 'UTF-8') ?></span>
+          <span class="d-block small text-muted" data-i18n="contacts.portal_role_executor_desc"><?= htmlspecialchars($t('contacts.portal_role_executor_desc', 'Видит только назначенные проекты (можно из разных контрагентов) и может учитывать время по своим задачам.'), ENT_QUOTES, 'UTF-8') ?></span>
+        </label>
+      </div>
+      <button class="btn crm-btn-primary" type="button" data-portal-role-submit data-i18n="contacts.portal_role_submit"><?= htmlspecialchars($t('contacts.portal_role_submit', 'Создать приглашение'), ENT_QUOTES, 'UTF-8') ?></button>
+    </div>
+    <div id="contactPortalInvitePending" data-portal-pending class="text-muted small d-none"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>
     <div id="contactPortalInviteError" data-portal-error class="alert alert-danger d-none py-2"></div>
     <div id="contactPortalInviteResult" data-portal-result class="d-none">
+      <p class="small mb-1"><span class="badge text-bg-secondary" data-portal-role-note></span></p>
       <p class="small text-muted mb-2" data-i18n="contacts.portal_invite_hint"><?= htmlspecialchars($t('contacts.portal_invite_hint', 'Отправьте эту ссылку контакту. По ней он задаст пароль и войдёт в свой ограниченный кабинет.'), ENT_QUOTES, 'UTF-8') ?></p>
       <label class="form-label" data-i18n="contacts.portal_login_label"><?= htmlspecialchars($t('contacts.portal_login_label', 'Логин'), ENT_QUOTES, 'UTF-8') ?></label>
       <div class="input-group mb-3"><input type="text" class="form-control" id="contactPortalLoginInput" data-portal-login readonly><button class="btn crm-btn-secondary" type="button" data-copy-target="contactPortalLoginInput" data-i18n="admin_users.invite_copy"><?= htmlspecialchars($t('admin_users.invite_copy', 'Скопировать'), ENT_QUOTES, 'UTF-8') ?></button></div>
       <label class="form-label" data-i18n="contacts.portal_link_label"><?= htmlspecialchars($t('contacts.portal_link_label', 'Ссылка приглашения'), ENT_QUOTES, 'UTF-8') ?></label>
       <div class="input-group"><input type="text" class="form-control" id="contactPortalLinkInput" data-portal-link readonly><button class="btn crm-btn-secondary" type="button" data-copy-target="contactPortalLinkInput" data-i18n="admin_users.invite_copy"><?= htmlspecialchars($t('admin_users.invite_copy', 'Скопировать'), ENT_QUOTES, 'UTF-8') ?></button></div>
+    </div>
+    <div id="contactPortalProjectAccess" data-portal-project-access class="d-none border-top pt-3 mt-3">
+      <h6 class="small text-uppercase text-muted mb-2" data-i18n="contacts.portal_projects_title"><?= htmlspecialchars($t('contacts.portal_projects_title', 'Доступные проекты (исполнитель)'), ENT_QUOTES, 'UTF-8') ?></h6>
+      <p class="small text-muted mb-2" data-i18n="contacts.portal_projects_hint"><?= htmlspecialchars($t('contacts.portal_projects_hint', 'Отметьте проекты, к которым у исполнителя есть доступ. Можно выбрать проекты из разных контрагентов.'), ENT_QUOTES, 'UTF-8') ?></p>
+      <div id="contactPortalProjectAccessList" class="mb-2" style="max-height:220px;overflow-y:auto;" data-portal-project-access-list></div>
+      <button class="btn btn-sm crm-btn-secondary" type="button" data-portal-project-access-save data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
     </div>
   </div>
   <div class="modal-footer"><button class="btn crm-btn-secondary" type="button" data-bs-dismiss="modal" data-i18n="page.close"><?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?></button></div>
