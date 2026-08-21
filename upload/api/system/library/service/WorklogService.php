@@ -11,6 +11,7 @@ use Api\System\Library\Database\Builder\QueryBuilder;
 use Api\System\Library\Logger\JsonLogger;
 use Api\System\Library\Support\TimeOverlapMath;
 use Api\System\Library\Support\Ulid;
+use Api\System\Library\Service\ExternalUserService;
 
 final class WorklogService
 {
@@ -19,7 +20,8 @@ final class WorklogService
         private readonly TaskRepository $tasks,
         private readonly UserManagementRepository $userManagement,
         private readonly TeamRepository $teamRepo,
-        private readonly JsonLogger $logger
+        private readonly JsonLogger $logger,
+        private readonly ?ExternalUserService $externalUsers = null,
     ) {
     }
 
@@ -248,6 +250,17 @@ final class WorklogService
 
         $actorId = $this->resolveActorId($actor);
         if ($actorId <= 0) {
+            return false;
+        }
+
+        // RLS: external executors can only create worklogs for tasks in their granted projects
+        if (!empty((int)($actor['is_external'] ?? 0))) {
+            if ($this->externalUsers) {
+                $isExecutor = $this->externalUsers->getExternalRole($actorId) === ExternalUserService::ROLE_EXECUTOR;
+                if ($isExecutor) {
+                    return $this->externalUsers->hasExecutorProjectAccess($actorId, (int)($task['project_id'] ?? 0));
+                }
+            }
             return false;
         }
 

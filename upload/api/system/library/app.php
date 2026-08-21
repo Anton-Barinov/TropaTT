@@ -1380,7 +1380,8 @@ final class App
             $c->get('repository.task'),
             $c->get('repository.user_management'),
             $c->get('repository.team'),
-            $c->get('logger')
+            $c->get('logger'),
+            $c->has('service.external_user') ? $c->get('service.external_user') : null
         ));
         $this->container->factory('service.dashboard', fn(Container $c) => new DashboardService(
             $c->get('repository.dashboard'),

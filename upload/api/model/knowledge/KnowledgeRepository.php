@@ -466,7 +466,7 @@ final class KnowledgeRepository
         $html = $this->sanitizeHtml((string)($payload['content_html'] ?? $payload['content'] ?? ''));
         $now = gmdate('Y-m-d H:i:s');
         $publicId = $this->publicId('kbp');
-        $stmt = $this->pdo->prepare('INSERT INTO knowledge_pages (public_id, space_id, parent_id, title, slug, page_type, status, content_html, content_text, content_json, excerpt, owner_user_id, last_editor_user_id, sort_order, path, depth, created_at, updated_at) VALUES (:public_id, :space_id, :parent_id, :title, :slug, :page_type, :status, :content_html, :content_text, :content_json, :excerpt, :owner_user_id, :last_editor_user_id, :sort_order, :path, :depth, :created_at, :updated_at)');
+        $stmt = $this->pdo->prepare('INSERT INTO knowledge_pages (public_id, space_id, parent_id, title, slug, page_type, status, content_html, content_text, content_json, excerpt, owner_user_id, last_editor_user_id, sort_order, path, depth, client_visible, created_at, updated_at) VALUES (:public_id, :space_id, :parent_id, :title, :slug, :page_type, :status, :content_html, :content_text, :content_json, :excerpt, :owner_user_id, :last_editor_user_id, :sort_order, :path, :depth, :client_visible, :created_at, :updated_at)');
         $stmt->execute([
             'public_id' => $publicId,
             'space_id' => (int)$space['id'],
@@ -484,6 +484,7 @@ final class KnowledgeRepository
             'sort_order' => (int)($payload['sort_order'] ?? $this->nextPageSort((int)$space['id'], $parent ? (int)$parent['id'] : null)),
             'path' => '',
             'depth' => $parent ? ((int)($parent['depth'] ?? 0) + 1) : 0,
+            'client_visible' => (int)($payload['client_visible'] ?? 0),
             'created_at' => $now,
             'updated_at' => $now,
         ]);
@@ -549,10 +550,11 @@ final class KnowledgeRepository
             'review_due_at' => $this->nullableText($payload['review_due_at'] ?? $current['review_due_at'] ?? null),
             'sort_order' => (int)($payload['sort_order'] ?? $current['sort_order'] ?? 100),
             'depth' => $parent === false ? (int)($current['depth'] ?? 0) : ($parent ? ((int)($parent['depth'] ?? 0) + 1) : 0),
+            'client_visible' => (int)(array_key_exists('client_visible', $payload) ? (int)$payload['client_visible'] : (int)($current['client_visible'] ?? 0)),
             'updated_at' => gmdate('Y-m-d H:i:s'),
             'public_id' => $publicId,
         ];
-        $this->pdo->prepare('UPDATE knowledge_pages SET title = :title, space_id = :space_id, parent_id = :parent_id, page_type = :page_type, status = :status, content_html = :content_html, content_text = :content_text, content_json = :content_json, excerpt = :excerpt, last_editor_user_id = :last_editor_user_id, review_due_at = :review_due_at, sort_order = :sort_order, depth = :depth, row_version = row_version + 1, updated_at = :updated_at WHERE public_id = :public_id')->execute($params);
+        $this->pdo->prepare('UPDATE knowledge_pages SET title = :title, space_id = :space_id, parent_id = :parent_id, page_type = :page_type, status = :status, content_html = :content_html, content_text = :content_text, content_json = :content_json, excerpt = :excerpt, last_editor_user_id = :last_editor_user_id, review_due_at = :review_due_at, sort_order = :sort_order, depth = :depth, client_visible = :client_visible, row_version = row_version + 1, updated_at = :updated_at WHERE public_id = :public_id')->execute($params);
         $page = $this->page($publicId);
         if ($page) {
             $this->legacyAddVersion($publicId, $actorId, 'Updated page');
