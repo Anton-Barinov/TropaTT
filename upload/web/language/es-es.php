@@ -1210,6 +1210,15 @@ return array (
     'placeholder_code' => 'qa_lead',
     'placeholder_title' => 'Líder QA',
     'loading_permissions' => 'Cargando permisos...',
+    'finance_group' => 'Finanzas',
+    'perm_hint_view_own_payout' => 'Ver la remuneración propia: tarifa e importe devengado.',
+    'perm_hint_view_own_cost' => 'Ver el coste completo propio para la empresa (no es salario).',
+    'perm_hint_view_cost' => 'Ver costes y remuneraciones de empleados dentro de su visibilidad.',
+    'perm_hint_view_bill' => 'Ver venta, ingresos y margen.',
+    'perm_hint_manage' => 'Definir tarifas, recalcular y bloquear períodos.',
+    'perm_hint_ratecard_manage' => 'Gestionar listas de precios y sus asignaciones.',
+    'confirm_own_cost_title' => 'Confirmación',
+    'confirm_own_cost_text' => 'El coste es el coste horario completo para la empresa (trabajo, impuestos, gastos generales), no el salario del empleado. Al abrirlo, permite a los empleados comparar estos importes entre sí. Si su objetivo es mostrar a una persona sus propios ingresos, use la tarifa de remuneración y el permiso «Ver remuneración propia». ¿Continuar?',
   ),
   'admin_settings' => 
   array (

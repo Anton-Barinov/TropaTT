@@ -1210,6 +1210,15 @@ return array (
     'placeholder_code' => 'qa_lead',
     'placeholder_title' => 'Líder de QA',
     'loading_permissions' => 'Carregando permissões...',
+    'finance_group' => 'Finanças',
+    'perm_hint_view_own_payout' => 'Ver a própria remuneração: taxa e valor acumulado.',
+    'perm_hint_view_own_cost' => 'Ver o custo completo próprio para a empresa (não é salário).',
+    'perm_hint_view_cost' => 'Ver custos e remunerações de colaboradores dentro da sua visibilidade.',
+    'perm_hint_view_bill' => 'Ver venda, receita e margem.',
+    'perm_hint_manage' => 'Definir taxas, recalcular e bloquear períodos.',
+    'perm_hint_ratecard_manage' => 'Gerenciar tabelas de preços e seus vínculos.',
+    'confirm_own_cost_title' => 'Confirmação',
+    'confirm_own_cost_text' => 'Custo é o custo horário completo para a empresa (trabalho, impostos, despesas gerais), não o salário do colaborador. Ao abri-lo, você permite que os colaboradores comparem esses valores entre si. Se seu objetivo é mostrar a uma pessoa seus próprios ganhos, use a taxa de remuneração e a permissão «Ver própria remuneração». Continuar?',
   ),
   'admin_settings' => 
   array (

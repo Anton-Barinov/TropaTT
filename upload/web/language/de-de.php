@@ -1210,6 +1210,15 @@ return array (
     'placeholder_code' => 'qa_leiter',
     'placeholder_title' => 'QA-Leiter',
     'loading_permissions' => 'Berechtigungen werden geladen...',
+    'finance_group' => 'Finanzen',
+    'perm_hint_view_own_payout' => 'Eigene Vergütung sehen: Satz und aufgelaufenen Betrag.',
+    'perm_hint_view_own_cost' => 'Eigene vollständige Kosten für das Unternehmen sehen (kein Gehalt).',
+    'perm_hint_view_cost' => 'Kosten und Vergütungen der Mitarbeiter im eigenen Sichtbereich sehen.',
+    'perm_hint_view_bill' => 'Verkauf, Umsatz und Marge sehen.',
+    'perm_hint_manage' => 'Sätze festlegen, neu berechnen und Zeiträume sperren.',
+    'perm_hint_ratecard_manage' => 'Preislisten und ihre Zuweisungen verwalten.',
+    'confirm_own_cost_title' => 'Bestätigung',
+    'confirm_own_cost_text' => 'Kosten sind die vollen Stundenkosten für das Unternehmen (Arbeit, Steuern, Gemeinkosten), nicht das Gehalt des Mitarbeiters. Wenn Sie sie freigeben, können Mitarbeiter diese Beträge vergleichen. Wenn Sie jemandem nur den eigenen Verdienst zeigen möchten, nutzen Sie den Vergütungssatz und das Recht „Eigene Vergütung sehen“. Fortfahren?',
   ),
   'admin_settings' => 
   array (

@@ -1210,6 +1210,15 @@ return array (
     'placeholder_code' => 'responsable_qa',
     'placeholder_title' => 'Responsable QA',
     'loading_permissions' => 'Chargement des permissions...',
+    'finance_group' => 'Finances',
+    'perm_hint_view_own_payout' => 'Voir sa rémunération : taux et montant dû.',
+    'perm_hint_view_own_cost' => 'Voir son coût complet pour l\'entreprise (pas le salaire).',
+    'perm_hint_view_cost' => 'Voir les coûts et rémunérations des employés dans votre périmètre.',
+    'perm_hint_view_bill' => 'Voir la vente, le chiffre d\'affaires et la marge.',
+    'perm_hint_manage' => 'Définir les taux, recalculer et clôturer les périodes.',
+    'perm_hint_ratecard_manage' => 'Gérer les grilles tarifaires et leurs affectations.',
+    'confirm_own_cost_title' => 'Confirmation',
+    'confirm_own_cost_text' => 'Le coût est le coût horaire complet pour l\'entreprise (travail, impôts, frais généraux), pas le salaire de l\'employé. En l\'ouvrant, vous permettez aux employés de comparer ces montants entre eux. Si votre objectif est de montrer à une personne ses propres revenus, utilisez le taux de rémunération et le droit « Voir sa rémunération ». Continuer ?',
   ),
   'admin_settings' => 
   array (

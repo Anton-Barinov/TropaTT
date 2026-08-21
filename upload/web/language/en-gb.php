@@ -6954,6 +6954,15 @@ return array (
     'placeholder_code' => 'qa_lead',
     'placeholder_title' => 'QA Lead',
     'loading_permissions' => 'Loading permissions...',
+    'finance_group' => 'Finance',
+    'perm_hint_view_own_payout' => 'See own reward: rate and accrued amount.',
+    'perm_hint_view_own_cost' => 'See own full cost to the company (not salary).',
+    'perm_hint_view_cost' => 'See costs and rewards of employees within your visibility.',
+    'perm_hint_view_bill' => 'See sale, revenue and margin.',
+    'perm_hint_manage' => 'Set rates, recalculate and lock periods.',
+    'perm_hint_ratecard_manage' => 'Manage rate cards and their assignments.',
+    'confirm_own_cost_title' => 'Confirmation',
+    'confirm_own_cost_text' => 'Cost is the full hourly cost to the company (labour, taxes, overheads), not the employee\'s salary. Opening it lets employees compare these amounts with each other. If your goal is to show a person their own earnings, use the reward rate and the "View own reward" permission instead. Continue?',
   ),
   'admin_settings' => 
   array (

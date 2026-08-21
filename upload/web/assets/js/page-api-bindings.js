@@ -16945,12 +16945,54 @@ window.CRM.pageApiBindings = (function () {
     }
   }
 
+  // Finance permission hints (TZ 6.1 / 8.8). Explanations are localized via the
+  // admin_roles namespace (added to the client dictionary in Controller.php).
+  function financePermHint(code) {
+    var map = {
+      'finance.rate.view_own_payout': 'perm_hint_view_own_payout',
+      'finance.rate.view_own_cost': 'perm_hint_view_own_cost',
+      'finance.rate.view_cost': 'perm_hint_view_cost',
+      'finance.rate.view_bill': 'perm_hint_view_bill',
+      'finance.rate.manage': 'perm_hint_manage',
+      'finance.ratecard.manage': 'perm_hint_ratecard_manage'
+    };
+    var hintKey = map[code];
+    if (!hintKey) return '';
+    var hint = tp('admin_roles.' + hintKey, '');
+    return hint ? '<small class="text-muted d-block">' + safeText(hint) + '</small>' : '';
+  }
+
+  function renderPermissionCheckbox(perm, checkedMap) {
+    var checked = checkedMap[perm.code] ? ' checked' : '';
+    var hintHtml = financePermHint(perm.code);
+    return '<div class="form-check"><input class="form-check-input" type="checkbox" name="permissions" value="' + safeText(perm.code) + '"' + checked + ' id="perm_' + safeText(perm.code) + '"><label class="form-check-label" for="perm_' + safeText(perm.code) + '">' + safeText(perm.title) + '<small class="text-muted d-block">' + safeText(perm.code) + '</small>' + hintHtml + '</label></div>';
+  }
+
   function renderRolePermissionsList(container, permissions, checkedMap) {
     if (!container) return;
-    container.innerHTML = permissions.map(function (perm) {
-      var checked = checkedMap[perm.code] ? ' checked' : '';
-      return '<div class="form-check"><input class="form-check-input" type="checkbox" name="permissions" value="' + safeText(perm.code) + '"' + checked + ' id="perm_' + safeText(perm.code) + '"><label class="form-check-label" for="perm_' + safeText(perm.code) + '">' + safeText(perm.title) + '<small class="text-muted d-block">' + safeText(perm.code) + '</small></label></div>';
-    }).join('');
+    var finance = permissions.filter(function (p) { return String(p.code).indexOf('finance.') === 0; });
+    var other = permissions.filter(function (p) { return String(p.code).indexOf('finance.') !== 0; });
+    var html = other.map(function (p) { return renderPermissionCheckbox(p, checkedMap); }).join('');
+    if (finance.length) {
+      html = '<div class="crm-perm-group-title fw-semibold mt-2 mb-1">' + safeText(tp('admin_roles.finance_group', 'Финансы')) + '</div>'
+        + finance.map(function (p) { return renderPermissionCheckbox(p, checkedMap); }).join('') + html;
+    }
+    container.innerHTML = html;
+
+    // TZ 15.2: enabling view_own_cost requires informed consent at the moment of
+    // action — a confirm dialog explaining what cost really is and suggesting the
+    // reward-rate path instead.
+    container.querySelectorAll('input[name="permissions"][value="finance.rate.view_own_cost"]').forEach(function (cb) {
+      if (cb.dataset.bound === '1') return;
+      cb.addEventListener('change', function () {
+        if (!cb.checked) return;
+        var text = tp('admin_roles.confirm_own_cost_text', 'См. предупреждение в ТЗ 15.2');
+        if (!window.confirm(text)) {
+          cb.checked = false;
+        }
+      });
+      cb.dataset.bound = '1';
+    });
   }
 
   // Shared planner task-row helpers (used by both my-day and my-week pages)

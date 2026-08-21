@@ -46,6 +46,8 @@ abstract class Controller
         'contacts',
         // admin_users: copy button labels in portal invite modal
         'admin_users',
+        // admin_roles: finance permission group + per-permission hints (TZ 8.8)
+        'admin_roles',
     ];
 
     /** @var array<int, string>|null */

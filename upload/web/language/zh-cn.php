@@ -7055,6 +7055,15 @@ return array (
     'placeholder_code' => 'qa_lead',
     'placeholder_title' => 'QA 负责人',
     'loading_permissions' => '加载权限中...',
+    'finance_group' => '财务',
+    'perm_hint_view_own_payout' => '查看自己的报酬：费率和累计金额。',
+    'perm_hint_view_own_cost' => '查看自己对公司的完整成本（不是工资）。',
+    'perm_hint_view_cost' => '查看可见范围内员工的成本和报酬。',
+    'perm_hint_view_bill' => '查看销售、收入和利润。',
+    'perm_hint_manage' => '设置费率、重新计算并锁定期间。',
+    'perm_hint_ratecard_manage' => '管理价目表及其绑定。',
+    'confirm_own_cost_title' => '确认',
+    'confirm_own_cost_text' => '成本是公司每小时的全部成本（人工、税费、间接费用），而不是员工的工资。开放后，员工可以互相比较这些金额。如果您的目的是向某人展示他自己的收入，请使用报酬费率和「查看自己的报酬」权限。继续？',
   ),
   'admin_settings' => 
   array (
