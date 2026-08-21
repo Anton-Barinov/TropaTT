@@ -16,12 +16,16 @@ final class ChatController extends BaseController
         $user = $this->user()['user'] ?? [];
         $userId = (int)($user['id'] ?? 0);
         if ($userId <= 0) return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
+        $isExternal = !empty((int)($user['is_external'] ?? 0));
         $archived = (string)($this->request()->input('archived', '')) === '1';
+
+        // External users: defence-in-depth — skip repair, only return project_client chats
+        if ($isExternal) $archived = false;
 
         try {
             /** @var ChatService $service */
             $service = $this->container->get('service.chat');
-            $service->repairSystemChats();
+            if (!$isExternal) $service->repairSystemChats();
 
             $hasArchivedColumn = $this->tableHasColumn($pdo, 'chats', 'archived_at');
 
@@ -65,8 +69,14 @@ final class ChatController extends BaseController
             }
 
             $archivedFilter = $hasArchivedColumn ? 'WHERE c.archived_at IS NULL' : '';
+            // Defence-in-depth: external users only see project_client chats
+            if ($isExternal) {
+                $archivedFilter = ($archivedFilter ? $archivedFilter . ' AND' : 'WHERE') . " c.type = 'project_client'";
+            }
+            $projectJoin = $isExternal ? 'LEFT JOIN projects p ON p.id = c.project_id' : '';
+            $projectSelect = $isExternal ? ', p.public_id AS project_public_id' : '';
             $stmt = $pdo->prepare("
-                SELECT c.*,
+                SELECT c.*,{$projectSelect}
                     cp.is_favorite,
                     cp.muted_until,
                     COALESCE(rm.last_read_message_id, 0) as last_read_id,
@@ -78,6 +88,7 @@ final class ChatController extends BaseController
                 FROM chats c
                 JOIN chat_participants cp ON cp.chat_id = c.id AND cp.user_id = :uid
                 LEFT JOIN chat_read_markers rm ON rm.chat_id = c.id AND rm.user_id = :uid2
+                {$projectJoin}
                 {$archivedFilter}
                 ORDER BY cp.is_favorite DESC, COALESCE(c.last_message_at, c.created_at) DESC
             ");

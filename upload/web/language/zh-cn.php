@@ -5198,6 +5198,14 @@ return array (
     'knowledge_empty' => '暂无关联页面',
     'team_knowledge_title' => '团队资料',
     'team_knowledge_empty' => '暂无团队资料',
+    'section_client_knowledge' => '客户文档',
+    'client_knowledge_empty' => '暂无客户文档。',
+    'tab_client_chat' => '聊天',
+    'section_client_chat' => '与团队聊天',
+    'client_chat_empty' => '聊天尚未创建。管理员会在需要时创建。',
+    'client_chat_placeholder' => '输入消息...',
+    'client_chat_send' => '发送',
+    'client_chat_no_messages' => '暂无消息。',
   ),
   'companies' => 
   array (

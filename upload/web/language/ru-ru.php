@@ -5201,6 +5201,14 @@ return array (
     'knowledge_empty' => 'Связанных страниц нет',
     'team_knowledge_title' => 'Материалы команды',
     'team_knowledge_empty' => 'Нет материалов команды',
+    'section_client_knowledge' => 'Документы для клиента',
+    'client_knowledge_empty' => 'Документов для клиента пока нет.',
+    'tab_client_chat' => 'Чат',
+    'section_client_chat' => 'Чат с командой',
+    'client_chat_empty' => 'Чат ещё не создан. Администратор создаст его при необходимости.',
+    'client_chat_placeholder' => 'Напишите сообщение...',
+    'client_chat_send' => 'Отправить',
+    'client_chat_no_messages' => 'Сообщений пока нет.',
   ),
   'companies' => 
   array (

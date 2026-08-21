@@ -44,6 +44,9 @@
 <div class="crm-pr-tabs" role="tablist" aria-label="<?= htmlspecialchars($t('project_detail.tabs_label', 'Разделы проекта'), ENT_QUOTES, 'UTF-8') ?>">
   <button class="crm-pr-tab active" type="button" role="tab" aria-selected="true" data-project-tab="overview" id="projectTabOverview"><?= htmlspecialchars($t('project_detail.tab_overview', 'Обзор'), ENT_QUOTES, 'UTF-8') ?></button>
   <button class="crm-pr-tab" type="button" role="tab" aria-selected="false" data-project-tab="tasks" id="projectTabTasks"><?= htmlspecialchars($t('project_detail.tab_tasks', 'Задачи'), ENT_QUOTES, 'UTF-8') ?><span class="crm-pr-tab-count" id="projectTaskTabCount">0</span></button>
+<?php if (!empty($is_external_user)): // client portal: external user gets Chat tab ?>
+  <button class="crm-pr-tab" type="button" role="tab" aria-selected="false" data-project-tab="chat" id="projectTabChat"><?= htmlspecialchars($t('project_detail.tab_client_chat', 'Чат'), ENT_QUOTES, 'UTF-8') ?></button>
+<?php endif; ?>
 <?php if (empty($is_external_user)): // client portal: internal-only block ?>
   <button class="crm-pr-tab" type="button" role="tab" aria-selected="false" data-project-tab="ai" id="projectTabAi"><?= htmlspecialchars($t('project_detail.tab_ai', 'AI-инсайты'), ENT_QUOTES, 'UTF-8') ?></button>
 <?php endif; ?>
@@ -103,6 +106,8 @@
 <?php endif; ?>
 <?php if (empty($is_external_user)): // client portal: internal-only block ?>
       <section class="crm-card mb-3" id="projectKnowledgeSection"><h2 class="h6" data-i18n="project_detail.section_knowledge"><?= htmlspecialchars($t('project_detail.section_knowledge', 'База знаний'), ENT_QUOTES, 'UTF-8') ?></h2><div id="projectKnowledgeList"><div class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div><div class="mt-3 pt-3 border-top"><h3 class="h6 d-flex align-items-center gap-2 mb-2" data-i18n="project_detail.team_knowledge_title"><span class="crm-icon text-muted" aria-hidden="true"><i class="fa-solid fa-users" aria-hidden="true"></i></span><?= htmlspecialchars($t('project_detail.team_knowledge_title', 'Материалы команды'), ENT_QUOTES, 'UTF-8') ?></h3><div id="projectTeamKnowledgeList"><div class="text-muted small" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div></div><div class="mt-2 d-flex gap-2 flex-wrap"><a class="btn btn-sm crm-btn-primary" href="index.php?route=knowledge" data-i18n="project_detail.btn_knowledge"><?= htmlspecialchars($t('project_detail.btn_knowledge', 'Перейти в базу знаний'), ENT_QUOTES, 'UTF-8') ?></a><a id="projectCreateKnowledgeBtn" class="btn btn-sm crm-btn-secondary" href="index.php?route=knowledge" data-i18n="project_detail.btn_create_knowledge"><?= htmlspecialchars($t('project_detail.btn_create_knowledge', 'Создать связанную страницу'), ENT_QUOTES, 'UTF-8') ?></a></div></section>
+<?php else: // client portal: external user sees client-visible knowledge pages ?>
+      <section class="crm-card mb-3" id="projectClientKnowledgeSection"><h2 class="h6" data-i18n="project_detail.section_client_knowledge"><?= htmlspecialchars($t('project_detail.section_client_knowledge', 'Документы для клиента'), ENT_QUOTES, 'UTF-8') ?></h2><div id="projectClientKnowledgeList"><div class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div></section>
 <?php endif; ?>
     </div>
   </div>
@@ -147,6 +152,23 @@
     </div></div>
   </section><?php endif; ?>
 </div>
+
+<!-- ============ CLIENT CHAT ============ -->
+<?php if (!empty($is_external_user)): // client portal: external user chat ?>
+<div class="crm-pr-panel" data-project-panel="chat" role="tabpanel">
+  <section class="crm-card mb-3">
+    <div class="crm-pr-card-head">
+      <h2 class="h6 mb-0" data-i18n="project_detail.section_client_chat"><?= htmlspecialchars($t('project_detail.section_client_chat', 'Чат с командой'), ENT_QUOTES, 'UTF-8') ?></h2>
+    </div>
+    <div id="projectClientChatMessages" style="max-height:400px;overflow-y:auto;" class="mb-3"><div class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+    <div id="projectClientChatEmpty" class="text-muted small mb-3" style="display:none;" data-i18n="project_detail.client_chat_empty"><?= htmlspecialchars($t('project_detail.client_chat_empty', 'Чат ещё не создан. Администратор создаст его при необходимости.'), ENT_QUOTES, 'UTF-8') ?></div>
+    <form id="projectClientChatForm" class="d-flex gap-2" style="display:none;">
+      <input class="form-control form-control-sm" id="projectClientChatInput" type="text" maxlength="2000" placeholder="<?= htmlspecialchars($t('project_detail.client_chat_placeholder', 'Напишите сообщение...'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="project_detail.client_chat_placeholder" required>
+      <button class="btn btn-sm crm-btn-primary" type="submit" data-i18n="project_detail.client_chat_send"><?= htmlspecialchars($t('project_detail.client_chat_send', 'Отправить'), ENT_QUOTES, 'UTF-8') ?></button>
+    </form>
+  </section>
+</div>
+<?php endif; ?>
 
 <!-- ============ AI INSIGHTS ============ -->
 <?php if (empty($is_external_user)): // client portal: internal-only block ?>
@@ -503,7 +525,87 @@
         }
       });
     }
+
+    /* ---- Client portal: knowledge base for external users ---- */
+    var clientKnowledgeEl = document.getElementById('projectClientKnowledgeList');
+    if (clientKnowledgeEl) {
+      try {
+        var ckb = await api.request('api/v1/knowledge/project/' + encodeURIComponent(projectId) + '/client-pages', { method: 'GET' });
+        var ckItems = ckb.data && ckb.data.items || [];
+        if (!ckItems.length) {
+          clientKnowledgeEl.innerHTML = '<div class="text-muted small"><?= htmlspecialchars($t('project_detail.client_knowledge_empty', 'Документов для клиента пока нет.'), ENT_QUOTES, 'UTF-8') ?></div>';
+        } else {
+          clientKnowledgeEl.innerHTML = '<ul class="list-unstyled mb-0">' + ckItems.map(function (p) {
+            return '<li class="mb-2"><a href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id) + '">' + escapeHtml(p.title || '') + '</a>' + (p.summary ? '<div class="text-muted small mt-1">' + escapeHtml(p.summary).substring(0, 120) + '</div>' : '') + '</li>';
+          }).join('') + '</ul>';
+        }
+      } catch (e) {
+        clientKnowledgeEl.innerHTML = '<div class="text-muted small">—</div>';
+      }
+    }
+
+    /* ---- Client portal: chat for external users ---- */
+    var chatMsgsEl = document.getElementById('projectClientChatMessages');
+    var chatFormEl = document.getElementById('projectClientChatForm');
+    var chatInputEl = document.getElementById('projectClientChatInput');
+    var chatEmptyEl = document.getElementById('projectClientChatEmpty');
+    var clientChatPublicId = null;
+
+    if (chatMsgsEl) {
+      try {
+        var chatResp = await api.request('api/v1/chats');
+        var chatItems = chatResp.data && chatResp.data.items || [];
+        // Defence-in-depth: match by project_public_id on the client side too
+        var matchingChats = chatItems.filter(function (c) { return c.project_public_id === projectId; });
+        if (matchingChats.length) {
+          clientChatPublicId = matchingChats[0].public_id;
+          await loadClientChatMessages(api, clientChatPublicId, chatMsgsEl);
+          if (chatFormEl) chatFormEl.style.display = '';
+        } else {
+          chatMsgsEl.style.display = 'none';
+          if (chatEmptyEl) chatEmptyEl.style.display = '';
+        }
+      } catch (e) {
+        chatMsgsEl.innerHTML = '<div class="text-muted small">—</div>';
+      }
+    }
+
+    if (chatFormEl && chatInputEl) {
+      chatFormEl.addEventListener('submit', async function (ev) {
+        ev.preventDefault();
+        var text = (chatInputEl.value || '').trim();
+        if (!text || !clientChatPublicId) return;
+        chatInputEl.disabled = true;
+        try {
+          await api.request('api/v1/chats/' + encodeURIComponent(clientChatPublicId) + '/messages', { method: 'POST', body: JSON.stringify({ text: text }) });
+          chatInputEl.value = '';
+          await loadClientChatMessages(api, clientChatPublicId, chatMsgsEl);
+        } catch (e) { /* ignore */ }
+        chatInputEl.disabled = false;
+        chatInputEl.focus();
+      });
+    }
   });
+
+  async function loadClientChatMessages(api, chatId, container) {
+    try {
+      var resp = await api.request('api/v1/chats/' + encodeURIComponent(chatId) + '/messages');
+      var msgs = resp.data && resp.data.items || [];
+      if (!msgs.length) {
+        container.innerHTML = '<div class="text-muted small"><?= htmlspecialchars($t('project_detail.client_chat_no_messages', 'Сообщений пока нет.'), ENT_QUOTES, 'UTF-8') ?></div>';
+        return;
+      }
+      container.innerHTML = msgs.map(function (m) {
+        var isOwn = m.sender_user_public_id === (window.CRM.me && window.CRM.me.public_id);
+        var senderName = escapeHtml(m.sender_name || (isOwn ? 'Вы' : 'Команда'));
+        var time = m.created_at ? new Date(m.created_at).toLocaleString() : '';
+        return '<div class="mb-2' + (isOwn ? ' text-end' : '') + '"><div class="d-inline-block text-start" style="max-width:80%;"><small class="text-muted">' + senderName + ' · ' + escapeHtml(time) + '</small><div class="border rounded px-2 py-1 mt-1" style="word-break:break-word;">' + escapeHtml(m.text || '') + '</div></div></div>';
+      }).join('');
+      container.scrollTop = container.scrollHeight;
+    } catch (e) {
+      container.innerHTML = '<div class="text-muted small">—</div>';
+    }
+  }
 
   function escapeHtml(s) {
     return String(s || '').replace(/[&<>\"]/g, function (ch) {

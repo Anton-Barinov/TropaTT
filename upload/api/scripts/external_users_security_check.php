@@ -157,9 +157,11 @@ $expectedExternalRoutes = [
     'GET /api/v1/projects/{public_id}/milestones-summary',
     'GET /api/v1/projects/{public_id}/risks',
     'GET /api/v1/milestones',
-    // External user client chat: read/write messages in project_client chats.
-    // Defence-in-depth: ChatService::getChatForExternal() verifies chat.type = 'project_client'
+    // External user client chat: list own project_client chats, read/write messages.
+    // Defence-in-depth: ChatController::list() filters to project_client type only for
+    // external users; ChatService::getChatForExternal() verifies chat.type = 'project_client'
     // AND participant membership on every call.
+    'GET /api/v1/chats',
     'GET /api/v1/chats/{public_id}/messages',
     'POST /api/v1/chats/{public_id}/messages',
     'POST /api/v1/chats/{public_id}/read',

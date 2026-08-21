@@ -5179,6 +5179,14 @@ return array (
     'knowledge_empty' => 'No linked pages',
     'team_knowledge_title' => 'Team materials',
     'team_knowledge_empty' => 'No team materials',
+    'section_client_knowledge' => 'Client Documents',
+    'client_knowledge_empty' => 'No client documents yet.',
+    'tab_client_chat' => 'Chat',
+    'section_client_chat' => 'Chat with Team',
+    'client_chat_empty' => 'Chat not yet created. An administrator will create it as needed.',
+    'client_chat_placeholder' => 'Type a message...',
+    'client_chat_send' => 'Send',
+    'client_chat_no_messages' => 'No messages yet.',
   ),
   'companies' => 
   array (

@@ -7999,6 +7999,14 @@ return array (
     'knowledge_empty' => 'No linked pages',
     'team_knowledge_title' => 'Matériels de l\'équipe',
     'team_knowledge_empty' => 'Aucun matériel d\'équipe',
+    'section_client_knowledge' => 'Documents client',
+    'client_knowledge_empty' => 'Pas encore de documents client.',
+    'tab_client_chat' => 'Chat',
+    'section_client_chat' => 'Chat avec l\'équipe',
+    'client_chat_empty' => 'Le chat n\'a pas encore été créé. Un administrateur le créera si nécessaire.',
+    'client_chat_placeholder' => 'Écrivez un message...',
+    'client_chat_send' => 'Envoyer',
+    'client_chat_no_messages' => 'Pas encore de messages.',
   ),
   'projects' => 
   array (
