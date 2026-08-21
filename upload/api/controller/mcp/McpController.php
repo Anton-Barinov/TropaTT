@@ -27,6 +27,7 @@ use Api\System\Library\Http\JsonResponse;
 use Api\System\Library\Http\RawJsonResponse;
 use Api\System\Library\Http\Request;
 use Api\System\Library\Service\ApiClientService;
+use Api\System\Library\Security\FinancialFieldPolicy;
 use Api\System\Library\Service\ApprovalService;
 use Api\System\Library\Service\AuthzService;
 use Api\System\Library\Service\BusinessCalendarService;
@@ -6342,13 +6343,9 @@ MD;
         /** @var WorklogService $service */
         $service = $this->container->get('service.worklog');
         $result = $service->earnings($filters, $this->actor());
-        // Strip financial rates for non-root users
-        if (!((bool)($this->actor()['is_root'] ?? false))) {
-            $result['items'] = array_map(static function(array $item): array {
-                unset($item['cost_rate'], $item['bill_rate'], $item['cost_amount'], $item['bill_amount']);
-                return $item;
-            }, $result['items']);
-        }
+        // Filter financial fields through the unified policy (TZ 6.4)
+        $policy = new FinancialFieldPolicy();
+        $result['items'] = $policy->filterRows($result['items'], $this->actor(), 'mcp.crmWorklogEarnings');
         return $result;
     }
 
@@ -6385,13 +6382,9 @@ MD;
         $service = $this->container->get('service.worklog');
         $result = $service->taskSummaryByUser($taskPublicId, $this->actor());
         if (is_array($result)) {
-            // Strip financial rates for non-root users
-            if (!((bool)($this->actor()['is_root'] ?? false))) {
-                $result['user_breakdown'] = array_map(static function(array $item): array {
-                    unset($item['cost_rate'], $item['bill_rate']);
-                    return $item;
-                }, $result['user_breakdown']);
-            }
+            // Filter financial fields through the unified policy (TZ 6.4)
+            $policy = new FinancialFieldPolicy();
+            $result['user_breakdown'] = $policy->filterRows($result['user_breakdown'], $this->actor(), 'mcp.crmWorklogTaskSummary');
             return $result;
         }
         return ['error' => 'Task not found.'];

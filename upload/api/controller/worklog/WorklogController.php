@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\Controller\Worklog;
 
 use Api\Controller\Common\BaseController;
+use Api\System\Library\Security\FinancialFieldPolicy;
 use Api\System\Library\Service\WorklogService;
 use Api\System\Library\Validation\Validator;
 
@@ -307,13 +308,9 @@ final class WorklogController extends BaseController
             $result = $service->earnings($this->request()->allInput(), $authUser['user']);
         }
 
-        // Strip financial rates for non-root users
-        if (!((bool)($authUser['user']['is_root'] ?? false))) {
-            $result['items'] = array_map(static function(array $item): array {
-                unset($item['cost_rate'], $item['bill_rate'], $item['cost_amount'], $item['bill_amount']);
-                return $item;
-            }, $result['items']);
-        }
+        // Filter financial fields through the unified policy (TZ 6.4)
+        $policy = new FinancialFieldPolicy();
+        $result['items'] = $policy->filterRows($result['items'], $authUser['user'], 'worklog.earnings');
 
         return $this->success('WORKLOG_EARNINGS', $this->t('worklog/messages.earnings'), $result);
     }
@@ -332,13 +329,9 @@ final class WorklogController extends BaseController
             return $this->error('TASK_NOT_FOUND', $this->t('common/messages.task_not_found'), 404);
         }
 
-        // Strip financial rates for non-root users
-        if (!((bool)($authUser['user']['is_root'] ?? false))) {
-            $result['user_breakdown'] = array_map(static function(array $item): array {
-                unset($item['cost_rate'], $item['bill_rate']);
-                return $item;
-            }, $result['user_breakdown']);
-        }
+        // Filter financial fields through the unified policy (TZ 6.4)
+        $policy = new FinancialFieldPolicy();
+        $result['user_breakdown'] = $policy->filterRows($result['user_breakdown'], $authUser['user'], 'worklog.task_summary');
 
         return $this->success('WORKLOG_TASK_SUMMARY', $this->t('worklog/messages.task_summary'), $result);
     }
