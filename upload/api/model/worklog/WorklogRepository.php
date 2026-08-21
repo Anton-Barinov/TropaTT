@@ -197,6 +197,15 @@ final class WorklogRepository
         if (!empty($filters['user_public_id'])) {
             $qb->where('u.public_id', '=', (string)$filters['user_public_id']);
         }
+        if (!empty($filters['client_public_id'])) {
+            $qb->where('w.client_public_id', '=', (string)$filters['client_public_id']);
+        }
+        if (!empty($filters['activity_code'])) {
+            $qb->where('w.activity_code', '=', (string)$filters['activity_code']);
+        }
+        if (!empty($filters['only_ambiguous'])) {
+            $qb->where('w.rate_ambiguous', '=', 1);
+        }
         if (!empty($filters['project_public_id'])) {
             $qb->join('tasks t', 't.id', '=', 'w.task_id');
             $project = (new QueryBuilder($this->pdo))
@@ -276,6 +285,8 @@ final class WorklogRepository
         $qb = (new QueryBuilder($this->pdo))
             ->from('work_logs w')
             ->join('users u', 'u.id', '=', 'w.user_id')
+            ->leftJoin('counterparties cp', 'cp.public_id', '=', 'w.client_public_id')
+            ->leftJoin('projects pr', 'pr.public_id', '=', 'w.project_public_id')
             ->select([
                 'w.public_id',
                 'u.public_id AS user_public_id',
@@ -292,9 +303,17 @@ final class WorklogRepository
                 'w.cost_source_type',
                 'w.bill_source_type',
                 'w.payout_source_type',
+                'w.cost_source_ref',
+                'w.bill_source_ref',
+                'w.payout_source_ref',
                 'w.rate_ambiguous',
                 'w.rate_locked_at',
+                'w.rate_resolved_at',
                 'w.activity_code',
+                'w.client_public_id',
+                'w.project_public_id',
+                'cp.title AS client_title',
+                'pr.title AS project_title',
                 'u.cost_rate',
                 'u.bill_rate',
                 'u.payout_rate',

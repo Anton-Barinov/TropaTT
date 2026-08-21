@@ -517,6 +517,10 @@ final class WorklogService
 
     public function earnings(array $filters, array $actor): array
     {
+        if (!empty($filters['expanded'])) {
+            return $this->earningsExpanded($filters, $actor);
+        }
+
         $visibleUserIds = $this->getVisibleUserIds($actor);
         $actorIsRoot = (bool)($actor['is_root'] ?? false);
         $teamPublicId = (string)($filters['team_public_id'] ?? '');
@@ -666,6 +670,194 @@ final class WorklogService
             $dayCmp = $b['day'] <=> $a['day'];
             if ($dayCmp !== 0) return $dayCmp;
             return ($a['user_full_name'] ?? '') <=> ($b['user_full_name'] ?? '');
+        });
+
+        return ['items' => $result];
+    }
+
+    /**
+     * Expanded earnings breakdown by user + day + client + project + activity (TZ 7.4, 8.7).
+     *
+     * Reuses the same overlap distribution as earnings() (TZ 2.9): billable
+     * seconds are computed per row, then aggregated into one slice per
+     * (user, day, client, project, activity) so the report can be expanded
+     * without double-counting overlapping timers.
+     */
+    public function earningsExpanded(array $filters, array $actor): array
+    {
+        $visibleUserIds = $this->getVisibleUserIds($actor);
+        $actorIsRoot = (bool)($actor['is_root'] ?? false);
+        $teamPublicId = (string)($filters['team_public_id'] ?? '');
+
+        $rows = $this->worklogs->earningsRowsForPeriod($filters, $visibleUserIds, $actorIsRoot, $teamPublicId ?: null);
+
+        // Group by user + day so overlap distribution runs per user-day.
+        $byUserDay = [];
+        foreach ($rows as $row) {
+            $key = ($row['user_public_id'] ?? '') . '|' . ($row['day'] ?? '');
+            $byUserDay[$key]['rows'][] = $row;
+        }
+
+        // Compute per-row billable seconds (TZ 2.9).
+        $items = [];
+        foreach ($byUserDay as $group) {
+            $groupRows = $group['rows'];
+            $intervalEntries = [];
+            foreach ($groupRows as $idx => $r) {
+                $start = $this->toEpoch($r['started_at'] ?? null);
+                $end = $this->toEpoch($r['ended_at'] ?? null);
+                if ($start !== null && $end !== null && $end > $start) {
+                    $intervalEntries[] = ['key' => (string)$idx, 'start' => $start, 'end' => $end];
+                }
+            }
+            $analysis = $intervalEntries !== [] ? TimeOverlapMath::analyze($intervalEntries) : ['segments' => []];
+
+            $billable = [];
+            foreach ($groupRows as $idx => $r) {
+                $m = max(0, (int)($r['minutes_spent'] ?? 0));
+                $start = $this->toEpoch($r['started_at'] ?? null);
+                $end = $this->toEpoch($r['ended_at'] ?? null);
+                $billable[(string)$idx] = ($start === null || $end === null || $end <= $start) ? $m * 60 : 0;
+            }
+            foreach (($analysis['segments'] ?? []) as $seg) {
+                $entries = $seg['entries'] ?? [];
+                $count = count($entries);
+                if ($count === 0) continue;
+                $share = $seg['seconds'] / $count;
+                foreach ($entries as $entryIdx) {
+                    $billable[(string)$entryIdx] += $share;
+                }
+            }
+            foreach ($groupRows as $idx => $r) {
+                $items[] = ['row' => $r, 'billable_seconds' => $billable[(string)$idx] ?? 0];
+            }
+        }
+
+        // Aggregate into slices.
+        $slices = [];
+        foreach ($items as $item) {
+            $r = $item['row'];
+            $key = ($r['user_public_id'] ?? '') . '|' . ($r['day'] ?? '')
+                . '|' . ($r['client_public_id'] ?? '') . '|' . ($r['project_public_id'] ?? '') . '|' . ($r['activity_code'] ?? '');
+            if (!isset($slices[$key])) {
+                $slices[$key] = [
+                    'user_public_id' => $r['user_public_id'],
+                    'user_login' => $r['user_login'],
+                    'user_full_name' => $r['user_full_name'],
+                    'day' => $r['day'],
+                    'client_public_id' => $r['client_public_id'] ?? null,
+                    'client_title' => $r['client_title'] ?? null,
+                    'project_public_id' => $r['project_public_id'] ?? null,
+                    'project_title' => $r['project_title'] ?? null,
+                    'activity_code' => $r['activity_code'] ?? null,
+                    'rows' => [],
+                ];
+            }
+            $slices[$key]['rows'][] = $item;
+        }
+
+        $result = [];
+        foreach ($slices as $slice) {
+            $recorded = 0;
+            $billableSeconds = 0;
+            $costAmount = 0.0;
+            $billAmount = 0.0;
+            $payoutAmount = 0.0;
+            $costRates = [];
+            $billRates = [];
+            $payoutRates = [];
+            $costSource = null;
+            $billSource = null;
+            $payoutSource = null;
+            $costSourceRef = null;
+            $billSourceRef = null;
+            $payoutSourceRef = null;
+            $ambiguous = false;
+            $locked = null;
+            $snapshotMissing = false;
+            $currency = null;
+
+            foreach ($slice['rows'] as $item) {
+                $r = $item['row'];
+                $recorded += max(0, (int)($r['minutes_spent'] ?? 0));
+                $billableSeconds += $item['billable_seconds'];
+                $hours = $item['billable_seconds'] / 3600;
+
+                $costSnap = $this->nullableFloat($r['cost_rate_snapshot'] ?? null) ?? $this->nullableFloat($r['cost_rate'] ?? null);
+                $billSnap = $this->nullableFloat($r['bill_rate_snapshot'] ?? null) ?? $this->nullableFloat($r['bill_rate'] ?? null);
+                $payoutSnap = $this->nullableFloat($r['payout_rate_snapshot'] ?? null) ?? $this->nullableFloat($r['payout_rate'] ?? null);
+
+                if ($costSnap !== null) {
+                    $costAmount += round($hours * $costSnap, 2);
+                    $costRates[] = $costSnap;
+                }
+                if ($billSnap !== null) {
+                    $billAmount += round($hours * $billSnap, 2);
+                    $billRates[] = $billSnap;
+                }
+                if ($payoutSnap !== null) {
+                    $payoutAmount += round($hours * $payoutSnap, 2);
+                    $payoutRates[] = $payoutSnap;
+                }
+
+                if ($costSource === null && ($r['cost_source_type'] ?? null) !== null) {
+                    $costSource = $r['cost_source_type'];
+                    $costSourceRef = $r['cost_source_ref'] ?? null;
+                }
+                if ($billSource === null && ($r['bill_source_type'] ?? null) !== null) {
+                    $billSource = $r['bill_source_type'];
+                    $billSourceRef = $r['bill_source_ref'] ?? null;
+                }
+                if ($payoutSource === null && ($r['payout_source_type'] ?? null) !== null) {
+                    $payoutSource = $r['payout_source_type'];
+                    $payoutSourceRef = $r['payout_source_ref'] ?? null;
+                }
+
+                if (!empty($r['rate_ambiguous'])) $ambiguous = true;
+                if (($r['rate_locked_at'] ?? null) !== null) $locked = $r['rate_locked_at'];
+                if (($r['rate_resolved_at'] ?? null) === null) $snapshotMissing = true;
+                if ($currency === null && ($r['currency_code'] ?? null) !== null) $currency = (string)$r['currency_code'];
+            }
+
+            $result[] = [
+                'user_public_id' => $slice['user_public_id'],
+                'user_login' => $slice['user_login'],
+                'user_full_name' => $slice['user_full_name'],
+                'day' => $slice['day'],
+                'client_public_id' => $slice['client_public_id'],
+                'client_title' => $slice['client_title'],
+                'project_public_id' => $slice['project_public_id'],
+                'project_title' => $slice['project_title'],
+                'activity_code' => $slice['activity_code'],
+                'total_minutes' => $recorded,
+                'recorded_minutes' => $recorded,
+                'unique_minutes' => (int)round($billableSeconds / 60),
+                'overlap_minutes' => 0,
+                'cost_rate' => $costRates !== [] ? round(array_sum($costRates) / count($costRates), 2) : null,
+                'bill_rate' => $billRates !== [] ? round(array_sum($billRates) / count($billRates), 2) : null,
+                'payout_rate' => $payoutRates !== [] ? round(array_sum($payoutRates) / count($payoutRates), 2) : null,
+                'cost_amount' => round($costAmount, 2),
+                'bill_amount' => round($billAmount, 2),
+                'payout_amount' => round($payoutAmount, 2),
+                'cost_source_type' => $costSource,
+                'cost_source_ref' => $costSourceRef,
+                'bill_source_type' => $billSource,
+                'bill_source_ref' => $billSourceRef,
+                'payout_source_type' => $payoutSource,
+                'payout_source_ref' => $payoutSourceRef,
+                'rate_ambiguous' => $ambiguous ? 1 : 0,
+                'rate_locked_at' => $locked,
+                'snapshot_missing' => $snapshotMissing ? 1 : 0,
+                'currency_code' => $currency,
+            ];
+        }
+
+        usort($result, static function (array $a, array $b): int {
+            $dayCmp = $b['day'] <=> $a['day'];
+            if ($dayCmp !== 0) return $dayCmp;
+            $nameCmp = ($a['user_full_name'] ?? '') <=> ($b['user_full_name'] ?? '');
+            if ($nameCmp !== 0) return $nameCmp;
+            return ($a['client_title'] ?? '') <=> ($b['client_title'] ?? '');
         });
 
         return ['items' => $result];
