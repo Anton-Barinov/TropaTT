@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 return array (
   'app' => 
   array (
@@ -2523,7 +2521,7 @@ return array (
         'push_subscription_unsubscribed' => 'Статус подписки: не подписан',
         'push_device_fallback' => 'Устройство',
         'push_last_seen_prefix' => 'Последняя активность: ',
-    'push_device_id_prefix' => 'ID: ',
+        'push_device_id_prefix' => 'ID: ',
         'push_device_active' => 'Активна',
         'push_device_inactive' => 'Неактивна',
         'push_disconnect' => 'Отключить',
@@ -2600,8 +2598,6 @@ return array (
         'skipped_prefix' => ', пропущено ',
         'bulk_delete_confirm_prefix' => 'Удалить выбранных клиентов (',
         'bulk_deleted_prefix' => 'Удалено клиентов: ',
-        'normal_view' => 'Обычный вид',
-        'compact_view' => 'Компактный вид',
         'default_view' => 'Вид по умолчанию',
         'view_name_prompt' => 'Название вида клиентов',
         'view_name_required' => 'Название вида не может быть пустым',
@@ -3421,7 +3417,6 @@ return array (
         'req_bank_name' => 'Банк',
         'req_address_legal' => 'Юридический адрес',
         'req_address_postal' => 'Почтовый адрес',
-    'req_address_actual' => 'Фактический адрес',
         'req_address_actual' => 'Фактический адрес',
         'requisites_empty' => 'Реквизиты не заполнены.',
         'extra_empty' => 'Нет дополнительных атрибутов',
@@ -3619,7 +3614,7 @@ return array (
       'kb_recent' => 'Недавно обновлено',
     ),
     'api' => 
-  array (
+    array (
       'aborted' => 'Запрос отменён',
       'auth_required' => 'Требуется повторная авторизация',
       'error' => 'Ошибка API',
@@ -4181,6 +4176,15 @@ return array (
       'zapros_prinyat_esli_polzovatel_sushchestvuet_sbros_bude' => 'Запрос принят. Если пользователь существует, сброс будет обработан.',
       'zavershena' => 'Завершена',
       'zavershenie' => 'Завершение: ',
+      'comment_make_internal_btn' => 'Скрыть от приглашённого',
+      'comment_make_client_btn' => 'Показать приглашённому',
+      'comment_now_client_visible' => 'Комментарий теперь виден приглашённому пользователю',
+      'comment_now_internal' => 'Комментарий теперь виден только сотрудникам',
+      'ne_udalos_izmenit_vidimost_kommentariya' => 'Не удалось изменить видимость комментария',
+      'comment_visibility_client_hint' => 'Виден приглашённому пользователю (клиенту/фрилансеру), если такой привязан к задаче',
+      'comment_visibility_client_badge' => 'Видно приглашённому',
+      'comment_visibility_internal_hint' => 'Виден только сотрудникам компании',
+      'comment_visibility_internal_badge' => 'Внутренний',
     ),
     'error' => 
     array (
@@ -5043,6 +5047,8 @@ return array (
     'chat_source_text' => 'Задача создана из сообщения в чате. Перейдите к диалогу, чтобы увидеть контекст.',
     'chat_source_chat' => 'Чат: ',
     'chat_source_open' => 'Открыть обсуждение',
+    'comment_visibility_client_hint' => 'Если к задаче приглашён внешний пользователь (клиент/фрилансер), он увидит только те комментарии, что отмечены этой галочкой, и свои собственные.',
+    'comment_visibility_client_label' => 'Видно приглашённому пользователю',
   ),
   'projects' => 
   array (
@@ -5473,6 +5479,10 @@ return array (
     'view_name_required' => 'Название вида не может быть пустым',
     'view_save_fail' => 'Не удалось сохранить вид контрагентов',
     'view_saved' => 'Вид контрагентов сохранен',
+    'extra_field_name' => 'Название',
+    'extra_field_value' => 'Значение',
+    'remove_field' => 'Удалить',
+    'add_field' => 'Add field',
   ),
   'counterparty_detail' => 
   array (
@@ -5649,7 +5659,6 @@ return array (
     'empty_table' => 'Клиенты не найдены.',
     'extra_json_invalid' => 'Поле extra_attributes должно быть валидным JSON',
     'fix_form_errors' => 'Исправьте ошибки формы',
-    'normal_view' => 'Обычный вид',
     'of' => ' из ',
     'page_subtitle' => 'Список клиентов, контактов и реквизитов.',
     'saved_view_deleted' => 'Сохраненный вид удален',
@@ -9388,6 +9397,8 @@ return array (
     'file_too_large' => 'Файл слишком большой. Максимум 10 МБ',
     'image_too_large' => 'Изображение слишком большое. Максимум 8000×8000 px',
     'code_block' => 'Блок кода',
+    'todo_list' => 'Список задач',
+    'table' => 'Таблица',
   ),
   'approvals' => 
   array (
@@ -9622,7 +9633,6 @@ return array (
     'select_required' => 'Пожалуйста, выберите набор и вариант',
     'select_set' => 'Выберите набор...',
   ),
-
   'external_users' => 
   array (
     'title' => 'Клиентский портал',
@@ -9670,4 +9680,6 @@ return array (
     'success' => 'Доступ активирован. Теперь вы можете войти в систему.',
     'accept_failed' => 'Не удалось активировать доступ. Проверьте ссылку и попробуйте снова.',
   ),
+  'todo_list' => 'Список задач',
+  'table' => 'Таблица',
 );

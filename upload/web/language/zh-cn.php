@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 return array (
   'app' => 
   array (
@@ -4178,6 +4176,15 @@ return array (
       'zapros_prinyat_esli_polzovatel_sushchestvuet_sbros_bude' => 'Request accepted. If the user exists, the reset will be processed.',
       'zavershena' => 'Completed',
       'zavershenie' => 'Completion: ',
+      'comment_make_internal_btn' => '对访客隐藏',
+      'comment_make_client_btn' => '显示给访客',
+      'comment_now_client_visible' => '评论现在对访客可见',
+      'comment_now_internal' => '评论现在仅对员工可见',
+      'ne_udalos_izmenit_vidimost_kommentariya' => '更改评论可见性失败',
+      'comment_visibility_client_hint' => '对受邀用户（客户/自由职业者）可见',
+      'comment_visibility_client_badge' => '对受邀者可见',
+      'comment_visibility_internal_hint' => '仅对公司员工可见',
+      'comment_visibility_internal_badge' => '内部',
     ),
     'error' => 
     array (
@@ -5040,6 +5047,8 @@ return array (
     'estimates_modal_numeric_label' => '数值',
     'estimates_modal_numeric_placeholder' => '输入值',
     'estimates_remove_btn' => '移除',
+    'comment_visibility_client_hint' => '如果任务有受邀的外部用户（客户/自由职业者），他们只会看到标记了此复选框的评论以及自己的评论。',
+    'comment_visibility_client_label' => '对受邀用户可见',
   ),
   'projects' => 
   array (
@@ -5470,6 +5479,10 @@ return array (
     'view_saved' => 'Counterparty view saved',
     'field_address_actual' => '实际地址',
     'th_extra' => '附加字段',
+    'extra_field_name' => '名称',
+    'extra_field_value' => '值',
+    'remove_field' => '删除',
+    'add_field' => 'Add field',
   ),
   'counterparty_detail' => 
   array (
@@ -5624,6 +5637,7 @@ return array (
     'btn_create_project' => '创建项目',
     'btn_create_task' => '创建任务',
     'requisites_field_address_actual' => '实际地址',
+    'req_address_actual' => '实际地址',
   ),
   'clients' => 
   array (
@@ -8807,6 +8821,13 @@ return array (
     'modal_type_sf_desc' => 'Ends after start',
     'modal_type_ss_desc' => 'Starts simultaneously',
     'section_blocked_by' => 'Blocks',
+    'section_empty_depends_on' => '此任务不依赖其他任务',
+    'section_empty_blocked_by' => '没有任务依赖此任务',
+    'type_desc_fs' => '结束 → 开始',
+    'type_desc_ss' => '开始 → 开始',
+    'type_desc_ff' => '结束 → 结束',
+    'type_desc_sf' => '开始 → 结束',
+    'type_desc_blocks' => '阻塞',
     'section_depends_on' => 'Depends on',
     'th_type' => '类型',
     'th_task' => '任务',
@@ -8825,6 +8846,8 @@ return array (
     'type_sf' => '开始-完成',
     'create_failed' => '添加依赖关系失败',
     'delete_failed' => '删除依赖关系失败',
+    'delete_confirm' => '删除依赖关系？',
+    'th_status' => '状态',
   ),
   'visual_editor' => 
   array (
@@ -8874,6 +8897,8 @@ return array (
     'image_too_large' => '图片过大。最大 8000×8000 px',
     'code_block' => '代码块',
     'type_forbidden' => '出于安全考虑，禁止上传此类型的文件',
+    'todo_list' => '待办事项',
+    'table' => '表格',
   ),
   'admin_estimates' => 
   array (
@@ -9143,6 +9168,7 @@ return array (
     'btn_start' => '开始',
     'error_load_data' => '加载周期数据失败。',
     'tasks_suffix' => ' 个任务',
+    'error_load' => '加载周期失败。',
   ),
   'mentions' => 
   array (
@@ -9607,7 +9633,6 @@ return array (
     'status_reason' => 'Reason:',
     'system_actor' => 'System',
   ),
-
   'external_users' => 
   array (
     'title' => '客户门户',
@@ -9655,4 +9680,6 @@ return array (
     'success' => '访问已激活。您现在可以登录了。',
     'accept_failed' => '激活访问失败。请检查链接后重试。',
   ),
+  'todo_list' => '待办事项',
+  'table' => '表格',
 );

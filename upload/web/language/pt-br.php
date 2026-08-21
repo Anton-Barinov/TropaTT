@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 return array (
   'admin' => 
   array (
@@ -2871,6 +2869,10 @@ return array (
     'view_saved' => 'Counterparty view saved',
     'field_address_actual' => 'Endereço real',
     'th_extra' => 'Campos extras',
+    'extra_field_name' => 'Nome',
+    'extra_field_value' => 'Valor',
+    'remove_field' => 'Excluir',
+    'add_field' => 'Add field',
   ),
   'counterparty_detail' => 
   array (
@@ -3025,6 +3027,7 @@ return array (
     'btn_create_project' => 'Criar projeto',
     'btn_create_task' => 'Criar tarefa',
     'requisites_field_address_actual' => 'Endereço real',
+    'req_address_actual' => 'Actual address',
   ),
   'custom_field' => 
   array (
@@ -3305,6 +3308,13 @@ return array (
     'modal_type_sf_desc' => 'Ends after start',
     'modal_type_ss_desc' => 'Starts simultaneously',
     'section_blocked_by' => 'Blocks',
+    'section_empty_depends_on' => 'Esta tarefa não depende de outras',
+    'section_empty_blocked_by' => 'Nenhuma tarefa depende desta',
+    'type_desc_fs' => 'Fim → Início',
+    'type_desc_ss' => 'Início → Início',
+    'type_desc_ff' => 'Fim → Fim',
+    'type_desc_sf' => 'Início → Fim',
+    'type_desc_blocks' => 'Bloqueia',
     'section_depends_on' => 'Depends on',
     'th_type' => 'Tipo',
     'th_task' => 'Tarefa',
@@ -3323,6 +3333,8 @@ return array (
     'type_sf' => 'Iniciar-Finalizar',
     'create_failed' => 'Falha ao adicionar dependência',
     'delete_failed' => 'Falha ao excluir dependência',
+    'delete_confirm' => 'Excluir dependência?',
+    'th_status' => 'Status',
   ),
   'docs' => 
   array (
@@ -6021,7 +6033,7 @@ return array (
         'req_address_postal' => 'Endereço postal',
         'requisites_empty' => 'Dados bancários não preenchidos.',
         'extra_empty' => 'Sem atributos extras',
-        'req_address_actual' => 'Endereço real',
+        'req_address_actual' => 'Endereço atual',
       ),
       'companies' => 
       array (
@@ -6774,7 +6786,16 @@ return array (
       'zapolnite_vse_obyazatelnye_polya' => 'Fill in all required fields.',
       'zapros_prinyat_esli_polzovatel_sushchestvuet_sbros_bude' => 'Request accepted. If the user exists, the reset will be processed.',
       'zavershena' => 'Completed',
+      'comment_make_internal_btn' => 'Ocultar do convidado',
+      'comment_make_client_btn' => 'Mostrar ao convidado',
+      'comment_now_client_visible' => 'O comentário agora é visível para o convidado',
+      'comment_now_internal' => 'O comentário agora é visível apenas para a equipe',
+      'ne_udalos_izmenit_vidimost_kommentariya' => 'Não foi possível alterar a visibilidade do comentário',
       'zavershenie' => 'Completion: ',
+      'comment_visibility_client_hint' => 'Visível para o usuário convidado se vinculado à tarefa',
+      'comment_visibility_client_badge' => 'Visível para convidado',
+      'comment_visibility_internal_hint' => 'Visível apenas para a equipe da empresa',
+      'comment_visibility_internal_badge' => 'Interno',
     ),
     'error' => 
     array (
@@ -8564,6 +8585,8 @@ return array (
     'estimates_modal_numeric_label' => 'Valor numérico',
     'estimates_modal_numeric_placeholder' => 'Informe o valor',
     'estimates_remove_btn' => 'Remover',
+    'comment_visibility_client_hint' => 'Se a tarefa tiver um usuário externo convidado (cliente/freelancer), ele verá apenas os comentários marcados com esta caixa, além dos seus.',
+    'comment_visibility_client_label' => 'Visível para o usuário convidado',
   ),
   'tasks' => 
   array (
@@ -8874,6 +8897,8 @@ return array (
     'image_too_large' => 'A imagem é muito grande. Máximo de 8000×8000 px',
     'code_block' => 'Bloco de código',
     'type_forbidden' => 'O upload deste tipo de arquivo é proibido por motivos de segurança',
+    'todo_list' => 'Lista de tarefas',
+    'table' => 'Tabela',
   ),
   'admin_estimates' => 
   array (
@@ -9143,6 +9168,7 @@ return array (
     'btn_start' => 'Iniciar',
     'error_load_data' => 'Erro ao carregar os dados do ciclo.',
     'tasks_suffix' => ' tarefas',
+    'error_load' => 'Falha ao carregar ciclos.',
   ),
   'mentions' => 
   array (
@@ -9607,7 +9633,6 @@ return array (
     'status_reason' => 'Reason:',
     'system_actor' => 'System',
   ),
-
   'external_users' => 
   array (
     'title' => 'Portal do cliente',
@@ -9655,4 +9680,6 @@ return array (
     'success' => 'Acesso ativado. Agora você já pode entrar.',
     'accept_failed' => 'Não foi possível ativar o acesso. Verifique o link e tente novamente.',
   ),
+  'todo_list' => 'Lista de tarefas',
+  'table' => 'Tabela',
 );

@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 return array (
   'app' => 
   array (
@@ -2527,7 +2525,7 @@ return array (
         'push_subscription_unsubscribed' => 'Subscription status: not subscribed',
         'push_device_fallback' => 'Device',
         'push_last_seen_prefix' => 'Last activity: ',
-    'push_device_id_prefix' => 'ID: ',
+        'push_device_id_prefix' => 'ID: ',
         'push_device_active' => 'Active',
         'push_device_inactive' => 'Inactive',
         'push_disconnect' => 'Disconnect',
@@ -2714,7 +2712,6 @@ return array (
         'field_messenger' => 'Messenger',
         'field_address_legal' => 'Legal address',
         'field_address_postal' => 'Postal address',
-    'field_address_actual' => 'Actual address',
         'field_address_actual' => 'Actual address',
         'field_status' => 'Status',
         'field_notes' => 'Comment',
@@ -3424,7 +3421,6 @@ return array (
         'req_bank_name' => 'Bank',
         'req_address_legal' => 'Legal address',
         'req_address_postal' => 'Postal address',
-    'req_address_actual' => 'Actual address',
         'req_address_actual' => 'Actual address',
         'requisites_empty' => 'Requisites not filled.',
         'extra_empty' => 'No extra attributes',
@@ -3618,7 +3614,7 @@ return array (
       ),
     ),
     'api' => 
-  array (
+    array (
       'aborted' => 'Request cancelled',
       'auth_required' => 'Re-authentication required',
       'error' => 'API Error',
@@ -4180,6 +4176,15 @@ return array (
       'zapros_prinyat_esli_polzovatel_sushchestvuet_sbros_bude' => 'Request accepted. If the user exists, the reset will be processed.',
       'zavershena' => 'Completed',
       'zavershenie' => 'Completion: ',
+      'comment_make_internal_btn' => 'Hide from guest',
+      'comment_make_client_btn' => 'Show to guest',
+      'comment_now_client_visible' => 'Comment is now visible to the guest',
+      'comment_now_internal' => 'Comment is now visible only to staff',
+      'ne_udalos_izmenit_vidimost_kommentariya' => 'Failed to change comment visibility',
+      'comment_visibility_client_hint' => 'Visible to invited user (client/freelancer) if linked to the task',
+      'comment_visibility_client_badge' => 'Visible to invited',
+      'comment_visibility_internal_hint' => 'Visible to company staff only',
+      'comment_visibility_internal_badge' => 'Internal',
     ),
     'error' => 
     array (
@@ -5021,6 +5026,8 @@ return array (
     'chat_source_text' => 'This task was created from a chat message. Open the dialogue to see the context.',
     'chat_source_chat' => 'Chat: ',
     'chat_source_open' => 'Open discussion',
+    'comment_visibility_client_hint' => 'If the task has an invited external user (client/freelancer), they will see only comments marked with this checkbox, plus their own.',
+    'comment_visibility_client_label' => 'Visible to invited user',
   ),
   'projects' => 
   array (
@@ -5451,6 +5458,10 @@ return array (
     'view_name_required' => 'View name cannot be empty',
     'view_save_fail' => 'Failed to save counterparty view',
     'view_saved' => 'Counterparty view saved',
+    'extra_field_name' => 'Name',
+    'extra_field_value' => 'Value',
+    'remove_field' => 'Delete',
+    'add_field' => 'Add field',
   ),
   'counterparty_detail' => 
   array (
@@ -9386,6 +9397,8 @@ return array (
     'file_too_large' => 'File is too large. Maximum size is 10 MB',
     'image_too_large' => 'Image is too large. Maximum size is 8000×8000 px',
     'code_block' => 'Code block',
+    'todo_list' => 'To-do list',
+    'table' => 'Table',
   ),
   'approvals' => 
   array (
@@ -9620,7 +9633,6 @@ return array (
     'select_required' => 'Please select a set and an option',
     'select_set' => 'Select set...',
   ),
-
   'external_users' => 
   array (
     'title' => 'Client Portal',
@@ -9668,4 +9680,6 @@ return array (
     'success' => 'Access activated. You can now sign in.',
     'accept_failed' => 'Failed to activate access. Check the link and try again.',
   ),
+  'todo_list' => 'To-do list',
+  'table' => 'Table',
 );

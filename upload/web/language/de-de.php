@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 return array (
   'admin' => 
   array (
@@ -2871,6 +2869,10 @@ return array (
     'view_saved' => 'Counterparty view saved',
     'field_address_actual' => 'Tatsächliche Adresse',
     'th_extra' => 'Zusatzfelder',
+    'extra_field_name' => 'Name',
+    'extra_field_value' => 'Wert',
+    'remove_field' => 'Löschen',
+    'add_field' => 'Add field',
   ),
   'counterparty_detail' => 
   array (
@@ -3025,6 +3027,7 @@ return array (
     'btn_create_project' => 'Projekt erstellen',
     'btn_create_task' => 'Aufgabe erstellen',
     'requisites_field_address_actual' => 'Tatsächliche Adresse',
+    'req_address_actual' => 'Actual address',
   ),
   'custom_field' => 
   array (
@@ -3305,6 +3308,13 @@ return array (
     'modal_type_sf_desc' => 'Ends after start',
     'modal_type_ss_desc' => 'Starts simultaneously',
     'section_blocked_by' => 'Blocks',
+    'section_empty_depends_on' => 'Diese Aufgabe hat keine Abhängigkeiten',
+    'section_empty_blocked_by' => 'Keine Aufgaben hängen von dieser ab',
+    'type_desc_fs' => 'Ende → Start',
+    'type_desc_ss' => 'Start → Start',
+    'type_desc_ff' => 'Ende → Ende',
+    'type_desc_sf' => 'Start → Ende',
+    'type_desc_blocks' => 'Blockiert',
     'section_depends_on' => 'Depends on',
     'th_type' => 'Typ',
     'th_task' => 'Aufgabe',
@@ -3323,6 +3333,8 @@ return array (
     'type_sf' => 'Starte-Beende',
     'create_failed' => 'Abhängigkeit konnte nicht hinzugefügt werden',
     'delete_failed' => 'Abhängigkeit konnte nicht gelöscht werden',
+    'delete_confirm' => 'Abhängigkeit löschen?',
+    'th_status' => 'Status',
   ),
   'docs' => 
   array (
@@ -6774,7 +6786,16 @@ return array (
       'zapolnite_vse_obyazatelnye_polya' => 'Fill in all required fields.',
       'zapros_prinyat_esli_polzovatel_sushchestvuet_sbros_bude' => 'Request accepted. If the user exists, the reset will be processed.',
       'zavershena' => 'Completed',
+      'comment_make_internal_btn' => 'Für Gast ausblenden',
+      'comment_make_client_btn' => 'Für Gast anzeigen',
+      'comment_now_client_visible' => 'Kommentar ist jetzt für Gast sichtbar',
+      'comment_now_internal' => 'Kommentar ist jetzt nur für Mitarbeiter sichtbar',
+      'ne_udalos_izmenit_vidimost_kommentariya' => 'Kommentarsichtbarkeit konnte nicht geändert werden',
       'zavershenie' => 'Completion: ',
+      'comment_visibility_client_hint' => 'Sichtbar für eingeladenen Benutzer, wenn mit der Aufgabe verknüpft',
+      'comment_visibility_client_badge' => 'Sichtbar für Gast',
+      'comment_visibility_internal_hint' => 'Nur für Mitarbeiter sichtbar',
+      'comment_visibility_internal_badge' => 'Intern',
     ),
     'error' => 
     array (
@@ -8564,6 +8585,8 @@ return array (
     'estimates_modal_numeric_label' => 'Numerischer Wert',
     'estimates_modal_numeric_placeholder' => 'Wert eingeben',
     'estimates_remove_btn' => 'Entfernen',
+    'comment_visibility_client_hint' => 'Wenn die Aufgabe einen eingeladenen externen Benutzer (Kunde/Freelancer) hat, sieht er nur Kommentare mit diesem Häkchen sowie seine eigenen.',
+    'comment_visibility_client_label' => 'Sichtbar für eingeladenen Benutzer',
   ),
   'tasks' => 
   array (
@@ -8874,6 +8897,8 @@ return array (
     'image_too_large' => 'Bild ist zu groß. Maximal 8000×8000 px',
     'code_block' => 'Codeblock',
     'type_forbidden' => 'Das Hochladen dieses Dateityps ist aus Sicherheitsgründen verboten',
+    'todo_list' => 'Aufgabenliste',
+    'table' => 'Tabelle',
   ),
   'admin_estimates' => 
   array (
@@ -9143,6 +9168,7 @@ return array (
     'btn_start' => 'Start',
     'error_load_data' => 'Fehler beim Laden der Zyklusdaten.',
     'tasks_suffix' => ' Aufgaben',
+    'error_load' => 'Zyklen konnten nicht geladen werden.',
   ),
   'mentions' => 
   array (
@@ -9607,7 +9633,6 @@ return array (
     'status_reason' => 'Reason:',
     'system_actor' => 'System',
   ),
-
   'external_users' => 
   array (
     'title' => 'Kundenportal',
@@ -9655,4 +9680,6 @@ return array (
     'success' => 'Zugang aktiviert. Sie können sich jetzt anmelden.',
     'accept_failed' => 'Aktivierung fehlgeschlagen. Überprüfen Sie den Link und versuchen Sie es erneut.',
   ),
+  'todo_list' => 'Aufgabenliste',
+  'table' => 'Tabelle',
 );

@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 return array (
   'admin' => 
   array (
@@ -2871,6 +2869,10 @@ return array (
     'view_saved' => 'Counterparty view saved',
     'field_address_actual' => 'Adresse réelle',
     'th_extra' => 'Champs supplémentaires',
+    'extra_field_name' => 'Nom',
+    'extra_field_value' => 'Valeur',
+    'remove_field' => 'Supprimer',
+    'add_field' => 'Add field',
   ),
   'counterparty_detail' => 
   array (
@@ -3025,6 +3027,7 @@ return array (
     'btn_create_project' => 'Créer un projet',
     'btn_create_task' => 'Créer une tâche',
     'requisites_field_address_actual' => 'Adresse réelle',
+    'req_address_actual' => 'Actual address',
   ),
   'custom_field' => 
   array (
@@ -3305,6 +3308,13 @@ return array (
     'modal_type_sf_desc' => 'Ends after start',
     'modal_type_ss_desc' => 'Starts simultaneously',
     'section_blocked_by' => 'Blocks',
+    'section_empty_depends_on' => 'Cette tâche n\'a pas de dépendances',
+    'section_empty_blocked_by' => 'Aucune tâche ne dépend de celle-ci',
+    'type_desc_fs' => 'Fin → Début',
+    'type_desc_ss' => 'Début → Début',
+    'type_desc_ff' => 'Fin → Fin',
+    'type_desc_sf' => 'Début → Fin',
+    'type_desc_blocks' => 'Bloque',
     'section_depends_on' => 'Depends on',
     'th_type' => 'Type',
     'th_task' => 'Tâche',
@@ -3323,6 +3333,8 @@ return array (
     'type_sf' => 'Démarrer-Terminer',
     'create_failed' => 'Échec de l\'ajout de la dépendance',
     'delete_failed' => 'Échec de la suppression de la dépendance',
+    'delete_confirm' => 'Supprimer la dépendance ?',
+    'th_status' => 'Statut',
   ),
   'docs' => 
   array (
@@ -6774,7 +6786,16 @@ return array (
       'zapolnite_vse_obyazatelnye_polya' => 'Fill in all required fields.',
       'zapros_prinyat_esli_polzovatel_sushchestvuet_sbros_bude' => 'Request accepted. If the user exists, the reset will be processed.',
       'zavershena' => 'Completed',
+      'comment_make_internal_btn' => 'Masquer pour l\'invité',
+      'comment_make_client_btn' => 'Afficher à l\'invité',
+      'comment_now_client_visible' => 'Le commentaire est maintenant visible par l\'invité',
+      'comment_now_internal' => 'Le commentaire est maintenant visible uniquement par le personnel',
+      'ne_udalos_izmenit_vidimost_kommentariya' => 'Échec de la modification de la visibilité du commentaire',
       'zavershenie' => 'Completion: ',
+      'comment_visibility_client_hint' => 'Visible pour l\'utilisateur invité s\'il est lié à la tâche',
+      'comment_visibility_client_badge' => 'Visible pour invité',
+      'comment_visibility_internal_hint' => 'Visible uniquement pour le personnel',
+      'comment_visibility_internal_badge' => 'Interne',
     ),
     'error' => 
     array (
@@ -8564,6 +8585,8 @@ return array (
     'estimates_modal_numeric_label' => 'Valeur numérique',
     'estimates_modal_numeric_placeholder' => 'Saisissez la valeur',
     'estimates_remove_btn' => 'Supprimer',
+    'comment_visibility_client_hint' => 'Si la tâche a un utilisateur externe invité (client/freelancer), il ne verra que les commentaires cochés ainsi que les siens.',
+    'comment_visibility_client_label' => 'Visible pour l\'utilisateur invité',
   ),
   'tasks' => 
   array (
@@ -8874,6 +8897,8 @@ return array (
     'image_too_large' => 'L\'image est trop grande. Maximum 8000×8000 px',
     'code_block' => 'Bloc de code',
     'type_forbidden' => 'Le téléversement de ce type de fichier est interdit pour des raisons de sécurité',
+    'todo_list' => 'Liste de tâches',
+    'table' => 'Tableau',
   ),
   'admin_estimates' => 
   array (
@@ -9143,6 +9168,7 @@ return array (
     'btn_start' => 'Démarrer',
     'error_load_data' => 'Erreur de chargement des données du cycle.',
     'tasks_suffix' => ' tâches',
+    'error_load' => 'Échec du chargement des cycles.',
   ),
   'mentions' => 
   array (
@@ -9607,7 +9633,6 @@ return array (
     'status_reason' => 'Reason:',
     'system_actor' => 'System',
   ),
-
   'external_users' => 
   array (
     'title' => 'Portail client',
@@ -9655,4 +9680,6 @@ return array (
     'success' => 'Accès activé. Vous pouvez maintenant vous connecter.',
     'accept_failed' => 'Échec de l\'activation de l\'accès. Vérifiez le lien et réessayez.',
   ),
+  'todo_list' => 'Liste de tâches',
+  'table' => 'Tableau',
 );
