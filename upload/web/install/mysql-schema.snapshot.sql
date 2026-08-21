@@ -70,7 +70,7 @@ CREATE TABLE `ai_jobs` (
   KEY `idx_ai_jobs_scope_created` (`scope_type`,`scope_public_id`,`created_at`),
   KEY `idx_ai_jobs_status_created_v2` (`status`,`created_at`),
   KEY `idx_ai_jobs_actor_created_v2` (`requested_by_user_id`,`created_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=324 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -231,7 +231,7 @@ CREATE TABLE `ai_usage_logs` (
   KEY `idx_ai_usage_logs_intent_created` (`intent_code`,`created_at`),
   KEY `idx_ai_usage_logs_status_created` (`status`,`created_at`),
   KEY `idx_ai_usage_logs_actor_created_v2` (`user_id`,`created_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=324 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -245,7 +245,7 @@ CREATE TABLE `api_clients` (
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -261,7 +261,7 @@ CREATE TABLE `api_keys` (
   `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -278,7 +278,7 @@ CREATE TABLE `approval_requests` (
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -293,7 +293,7 @@ CREATE TABLE `approval_steps` (
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -311,7 +311,7 @@ CREATE TABLE `audit_logs` (
   KEY `idx_audit_entity` (`entity_type`,`entity_public_id`),
   KEY `idx_audit_logs_created` (`created_at`),
   KEY `idx_audit_logs_actor_created` (`actor_public_id`,`created_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=1754 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=511 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -329,7 +329,7 @@ CREATE TABLE `automation_rules` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_automation_rules_created_by` (`created_by_user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=81 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -342,7 +342,7 @@ CREATE TABLE `automation_runs` (
   `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=226 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=15208 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -371,9 +371,13 @@ CREATE TABLE `calendar_events` (
   `task_id` int(11) DEFAULT NULL,
   `created_at` datetime DEFAULT NULL,
   `updated_at` datetime DEFAULT NULL,
+  `source_type` varchar(64) DEFAULT NULL,
+  `source_owner_user_id` int(11) DEFAULT NULL,
+  `source_external_id` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_calendar_events_source_owner` (`source_type`,`source_owner_user_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=77 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -407,7 +411,7 @@ CREATE TABLE `chat_messages` (
   `deleted_by_user_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=33 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -421,7 +425,7 @@ CREATE TABLE `chat_participants` (
   `joined_at` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_chat_participant` (`chat_id`,`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=67850 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1508547 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -433,7 +437,7 @@ CREATE TABLE `chat_read_markers` (
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_chat_read` (`chat_id`,`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=118 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=271 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -453,7 +457,7 @@ CREATE TABLE `chats` (
   `archived_participant_ids` text DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1732 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -468,7 +472,7 @@ CREATE TABLE `checklist_items` (
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=73 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -481,7 +485,7 @@ CREATE TABLE `checklists` (
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=67 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -536,7 +540,7 @@ CREATE TABLE `comment_drafts` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   UNIQUE KEY `uq_comment_drafts_user_task` (`user_id`,`task_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -556,7 +560,7 @@ CREATE TABLE `comments` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_comments_task` (`task_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=54 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4994 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -588,11 +592,51 @@ CREATE TABLE `contacts` (
   `created_by_user_id` int(11) DEFAULT NULL,
   `created_at` datetime DEFAULT NULL,
   `updated_at` datetime DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_contacts_created_by` (`created_by_user_id`),
-  KEY `idx_contacts_counterparty` (`counterparty_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_contacts_counterparty` (`counterparty_id`),
+  KEY `idx_contacts_user_id` (`user_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=113 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `core_update_history` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `job_id` varchar(100) NOT NULL,
+  `from_version` varchar(50) DEFAULT NULL,
+  `from_build` varchar(50) DEFAULT NULL,
+  `from_sha` char(40) DEFAULT NULL,
+  `to_version` varchar(50) NOT NULL,
+  `to_build` varchar(50) NOT NULL,
+  `to_sha` char(40) NOT NULL,
+  `channel` varchar(50) NOT NULL,
+  `status` enum('started','success','failed','rolled_back') NOT NULL,
+  `risk_level` varchar(20) DEFAULT NULL,
+  `package_type` varchar(20) DEFAULT NULL,
+  `backup_id` varchar(100) DEFAULT NULL,
+  `started_at` datetime NOT NULL,
+  `finished_at` datetime DEFAULT NULL,
+  `error_message` text DEFAULT NULL,
+  `created_by_user_id` bigint(20) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_core_update_job` (`job_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `core_update_log` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `job_id` varchar(100) NOT NULL,
+  `level` enum('debug','info','warning','error') NOT NULL,
+  `step` varchar(100) DEFAULT NULL,
+  `message` text NOT NULL,
+  `context` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`context`)),
+  `created_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_core_update_log_job` (`job_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -626,35 +670,41 @@ CREATE TABLE `counterparties` (
   `phone` varchar(64) DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `address_actual` text DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_counterparties_type` (`counterparty_type`),
   KEY `idx_counterparties_status` (`status`),
-  KEY `idx_counterparties_created_by` (`created_by_user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `crm_wip_counts` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `user_id` int(11) NOT NULL,
-  `current_count` int(11) NOT NULL DEFAULT 0,
-  `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `user_id` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_counterparties_created_by` (`created_by_user_id`),
+  KEY `idx_counterparties_tax_inn` (`tax_inn`)
+) ENGINE=InnoDB AUTO_INCREMENT=331 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `crm_wip_limits` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `user_id` int(11) NOT NULL,
-  `max_tasks` int(11) NOT NULL DEFAULT 5,
-  `is_active` tinyint(4) NOT NULL DEFAULT 1,
-  `created_at` datetime DEFAULT current_timestamp(),
-  `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int(10) unsigned NOT NULL,
+  `max_tasks` int(10) unsigned NOT NULL DEFAULT 5,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
-  UNIQUE KEY `user_id` (`user_id`)
+  UNIQUE KEY `uq_crm_wip_limits_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `crm_wip_scope_limits` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `scope_type` varchar(16) NOT NULL,
+  `scope_id` int(10) unsigned NOT NULL,
+  `max_tasks` int(10) unsigned NOT NULL DEFAULT 5,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_crm_wip_scope_limits` (`scope_type`,`scope_id`),
+  KEY `idx_crm_wip_scope_limits_type_active` (`scope_type`,`is_active`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -687,7 +737,7 @@ CREATE TABLE `custom_fields` (
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=60 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -707,7 +757,7 @@ CREATE TABLE `cycle_snapshots` (
   UNIQUE KEY `uq_cycle_snapshots_public_id` (`public_id`),
   UNIQUE KEY `uq_cycle_snapshots_cycle_date` (`cycle_id`,`snapshot_date`),
   KEY `idx_cycle_snapshots_cycle_created` (`cycle_id`,`created_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=58 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -733,7 +783,7 @@ CREATE TABLE `cycle_tasks` (
   KEY `idx_cycle_tasks_added_by` (`added_by_user_id`,`added_at`),
   KEY `idx_cycle_tasks_removed_at` (`removed_at`),
   KEY `idx_cycle_tasks_deleted_at` (`deleted_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=39 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -758,7 +808,7 @@ CREATE TABLE `entity_tags` (
   `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_entity_tags_entity` (`entity_type`,`entity_public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=95 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=136 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -854,6 +904,20 @@ CREATE TABLE `export_jobs` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `external_user_project_access` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` bigint(20) unsigned NOT NULL,
+  `project_id` bigint(20) unsigned NOT NULL,
+  `granted_by_user_id` bigint(20) unsigned DEFAULT NULL,
+  `created_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_ext_user_project_access` (`user_id`,`project_id`),
+  KEY `idx_ext_user_project_access_user` (`user_id`),
+  KEY `idx_ext_user_project_access_project` (`project_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `favorites` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `public_id` varchar(64) DEFAULT NULL,
@@ -863,7 +927,7 @@ CREATE TABLE `favorites` (
   `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -876,7 +940,8 @@ CREATE TABLE `feature_flags` (
   `created_at` datetime DEFAULT NULL,
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
+  UNIQUE KEY `public_id` (`public_id`),
+  UNIQUE KEY `uq_feature_flags_code` (`code`)
 ) ENGINE=InnoDB AUTO_INCREMENT=40 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -893,11 +958,102 @@ CREATE TABLE `files` (
   `size_bytes` bigint(20) DEFAULT NULL,
   `is_deleted` int(11) DEFAULT 0,
   `created_at` datetime DEFAULT NULL,
+  `source_type` varchar(64) DEFAULT NULL,
+  `source_id` varchar(255) DEFAULT NULL,
+  `source_url` varchar(2048) DEFAULT NULL,
+  `checksum` char(64) DEFAULT NULL,
+  `source_payload_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`source_payload_json`)),
   `deleted_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
-  KEY `idx_files_entity` (`entity_type`,`entity_public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_files_entity` (`entity_type`,`entity_public_id`),
+  KEY `idx_files_source` (`source_type`,`source_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `google_calendar_connections` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `public_id` varchar(64) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `google_account_email` varchar(190) DEFAULT NULL,
+  `refresh_token_encrypted` text NOT NULL,
+  `access_token_encrypted` text DEFAULT NULL,
+  `access_token_expires_at` datetime DEFAULT NULL,
+  `status` varchar(32) NOT NULL DEFAULT 'active',
+  `last_error` text DEFAULT NULL,
+  `last_sync_at` datetime DEFAULT NULL,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `public_id` (`public_id`),
+  UNIQUE KEY `uq_google_calendar_connection_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `google_calendar_credentials` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `public_id` varchar(64) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `client_id_encrypted` text NOT NULL,
+  `client_secret_encrypted` text NOT NULL,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `public_id` (`public_id`),
+  UNIQUE KEY `uq_google_calendar_credentials_user` (`user_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `google_calendar_events` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `public_id` varchar(64) NOT NULL,
+  `source_id` int(11) NOT NULL,
+  `google_event_id` varchar(512) NOT NULL,
+  `crm_event_public_id` varchar(64) DEFAULT NULL,
+  `recurring_event_id` varchar(512) DEFAULT NULL,
+  `etag` varchar(255) DEFAULT NULL,
+  `google_updated_at` datetime DEFAULT NULL,
+  `is_all_day` int(11) NOT NULL DEFAULT 0,
+  `all_day_start` date DEFAULT NULL,
+  `all_day_end` date DEFAULT NULL,
+  `last_synced_at` datetime DEFAULT NULL,
+  `status` varchar(32) NOT NULL DEFAULT 'active',
+  `last_error` text DEFAULT NULL,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `public_id` (`public_id`),
+  UNIQUE KEY `uq_google_calendar_event` (`source_id`,`google_event_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `google_calendar_sources` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `public_id` varchar(64) NOT NULL,
+  `connection_id` int(11) NOT NULL,
+  `calendar_id` varchar(512) NOT NULL,
+  `summary` varchar(255) DEFAULT NULL,
+  `timezone` varchar(128) DEFAULT NULL,
+  `direction` varchar(32) NOT NULL DEFAULT 'google_to_crm',
+  `is_enabled` int(11) NOT NULL DEFAULT 1,
+  `is_primary` int(11) NOT NULL DEFAULT 0,
+  `sync_token` text DEFAULT NULL,
+  `watch_channel_id` varchar(128) DEFAULT NULL,
+  `watch_resource_id` varchar(255) DEFAULT NULL,
+  `watch_expiration` bigint(20) DEFAULT NULL,
+  `last_sync_at` datetime DEFAULT NULL,
+  `last_error` text DEFAULT NULL,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  `watch_token_encrypted` text DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `public_id` (`public_id`),
+  UNIQUE KEY `uq_google_calendar_source` (`connection_id`,`calendar_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -925,7 +1081,7 @@ CREATE TABLE `idea_ai_iterations` (
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=164 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=174 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1214,7 +1370,7 @@ CREATE TABLE `idea_votes` (
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_idea_vote` (`idea_id`,`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1248,7 +1404,7 @@ CREATE TABLE `ideas` (
   `source_context_json` text DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=99 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1261,7 +1417,7 @@ CREATE TABLE `idempotency_keys` (
   `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=56 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1330,7 +1486,7 @@ CREATE TABLE `intake_item_activities` (
   KEY `idx_intake_item_activities_item_created` (`intake_item_id`,`created_at`),
   KEY `idx_intake_item_activities_actor_created` (`actor_user_id`,`created_at`),
   KEY `idx_intake_item_activities_type_created` (`event_type`,`created_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=189 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1377,7 +1533,7 @@ CREATE TABLE `intake_items` (
   KEY `idx_intake_items_updated_at` (`updated_at`),
   KEY `idx_intake_items_deleted_at` (`deleted_at`),
   KEY `idx_intake_items_external` (`external_source`,`external_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=74 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1392,7 +1548,7 @@ CREATE TABLE `invitations` (
   `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1406,11 +1562,19 @@ CREATE TABLE `knowledge_comments` (
   `resolved_at` datetime DEFAULT NULL,
   `created_at` datetime DEFAULT NULL,
   `updated_at` datetime DEFAULT NULL,
+  `source_type` varchar(64) DEFAULT NULL,
+  `source_id` varchar(255) DEFAULT NULL,
+  `source_author_name` varchar(255) DEFAULT NULL,
+  `source_created_at` datetime DEFAULT NULL,
+  `anchor_text` varchar(500) DEFAULT NULL,
+  `anchor_path` varchar(500) DEFAULT NULL,
+  `is_inline` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_knowledge_comments_page` (`page_id`,`created_at`),
-  KEY `idx_knowledge_comments_parent` (`parent_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_knowledge_comments_parent` (`parent_id`),
+  KEY `idx_knowledge_comments_source` (`source_type`,`source_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1430,7 +1594,7 @@ CREATE TABLE `knowledge_drafts` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_knowledge_drafts_page_user` (`page_id`,`user_id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1445,8 +1609,9 @@ CREATE TABLE `knowledge_entity_links` (
   `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
+  UNIQUE KEY `uq_knowledge_links_page_entity` (`page_id`,`entity_type`,`entity_public_id`),
   KEY `idx_knowledge_links_entity` (`entity_type`,`entity_public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=48 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1459,7 +1624,26 @@ CREATE TABLE `knowledge_page_permissions` (
   `created_by_user_id` int(11) DEFAULT NULL,
   `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `knowledge_page_properties` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `page_id` bigint(20) unsigned NOT NULL,
+  `property_key` varchar(190) NOT NULL,
+  `property_value` longtext DEFAULT NULL,
+  `property_type` varchar(32) NOT NULL DEFAULT 'string',
+  `source_type` varchar(64) DEFAULT NULL,
+  `source_id` varchar(255) DEFAULT NULL,
+  `sort_order` int(11) NOT NULL DEFAULT 0,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_knowledge_page_property` (`page_id`,`property_key`),
+  KEY `idx_knowledge_page_properties_source` (`source_type`,`source_id`),
+  KEY `idx_knowledge_page_properties_key` (`property_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1500,7 +1684,7 @@ CREATE TABLE `knowledge_page_versions` (
   KEY `idx_knowledge_page_versions_change_type` (`change_type`,`created_at`),
   KEY `idx_knowledge_page_versions_hash` (`content_hash`),
   KEY `idx_knowledge_page_versions_deleted_at` (`deleted_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=58 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1512,7 +1696,7 @@ CREATE TABLE `knowledge_page_views` (
   `viewed_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_knowledge_views_page` (`page_id`,`viewed_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=132 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=302 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1544,11 +1728,16 @@ CREATE TABLE `knowledge_pages` (
   `comments_count` int(11) DEFAULT 0,
   `attachments_count` int(11) DEFAULT 0,
   `views_count` int(11) DEFAULT 0,
+  `client_visible` tinyint(1) NOT NULL DEFAULT 0,
   `likes_count` int(11) DEFAULT 0,
   `row_version` int(11) DEFAULT 1,
   `created_at` datetime DEFAULT NULL,
   `updated_at` datetime DEFAULT NULL,
   `deleted_at` datetime DEFAULT NULL,
+  `source_type` varchar(64) DEFAULT NULL,
+  `source_id` varchar(255) DEFAULT NULL,
+  `source_url` varchar(2048) DEFAULT NULL,
+  `source_payload_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`source_payload_json`)),
   `locked_at` datetime DEFAULT NULL,
   `locked_by_user_id` bigint(20) unsigned DEFAULT NULL,
   `lock_reason` varchar(1000) DEFAULT NULL,
@@ -1561,8 +1750,10 @@ CREATE TABLE `knowledge_pages` (
   KEY `idx_knowledge_pages_owner` (`owner_user_id`),
   KEY `idx_knowledge_pages_review_due` (`review_due_at`),
   KEY `idx_knowledge_pages_type` (`page_type`),
-  FULLTEXT KEY `ft_knowledge_pages_title_text` (`title`,`content_text`)
-) ENGINE=InnoDB AUTO_INCREMENT=28 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_knowledge_pages_source` (`source_type`,`source_id`),
+  FULLTEXT KEY `ft_knowledge_pages_title_text` (`title`,`content_text`),
+  FULLTEXT KEY `ft_search` (`title`,`content_text`)
+) ENGINE=InnoDB AUTO_INCREMENT=89 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1628,14 +1819,19 @@ CREATE TABLE `knowledge_spaces` (
   `row_version` int(11) DEFAULT 1,
   `created_at` datetime DEFAULT NULL,
   `updated_at` datetime DEFAULT NULL,
+  `source_type` varchar(64) DEFAULT NULL,
+  `source_id` varchar(255) DEFAULT NULL,
+  `source_url` varchar(2048) DEFAULT NULL,
+  `source_payload_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`source_payload_json`)),
   `parent_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   UNIQUE KEY `slug` (`slug`),
   KEY `idx_knowledge_spaces_archived_sort` (`is_archived`,`sort_order`),
   KEY `idx_knowledge_spaces_owner` (`owner_user_id`),
-  KEY `idx_knowledge_spaces_parent` (`parent_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_knowledge_spaces_parent` (`parent_id`),
+  KEY `idx_knowledge_spaces_source` (`source_type`,`source_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=87 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1679,7 +1875,7 @@ CREATE TABLE `migrations` (
   `applied_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `migration_key` (`migration_key`)
-) ENGINE=InnoDB AUTO_INCREMENT=42 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=83 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1695,158 +1891,7 @@ CREATE TABLE `milestones` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_milestones_project` (`project_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `module_audit_log` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `module_name` varchar(190) NOT NULL,
-  `event_type` varchar(190) NOT NULL,
-  `event_name` varchar(190) NOT NULL,
-  `details` varchar(190) DEFAULT NULL,
-  `ip_address` varchar(190) DEFAULT NULL,
-  `user_id` int(11) DEFAULT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `idx_module_audit_module` (`module_name`),
-  KEY `idx_module_audit_created` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `module_deprecations` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `module_name` varchar(190) NOT NULL,
-  `message` varchar(190) NOT NULL,
-  `since_version` varchar(190) DEFAULT NULL,
-  `replacement` varchar(190) DEFAULT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `idx_module_deprecations_module` (`module_name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `module_errors` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `module_name` varchar(190) NOT NULL,
-  `context` varchar(190) NOT NULL,
-  `error_code` varchar(190) DEFAULT NULL,
-  `error_message` varchar(190) NOT NULL,
-  `stack_trace` varchar(190) DEFAULT NULL,
-  `request_id` varchar(190) DEFAULT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `idx_module_errors_module` (`module_name`),
-  KEY `idx_module_errors_created` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `module_jobs` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `module_name` varchar(190) NOT NULL,
-  `job_name` varchar(190) NOT NULL,
-  `payload` varchar(190) NOT NULL,
-  `status` varchar(190) NOT NULL DEFAULT 'pending',
-  `attempts` int(11) NOT NULL DEFAULT 0,
-  `max_attempts` int(11) NOT NULL DEFAULT 3,
-  `delay_until` datetime DEFAULT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
-  `completed_at` datetime DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_module_jobs_status` (`status`,`created_at`),
-  KEY `idx_module_jobs_module` (`module_name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `module_migrations` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `module_name` varchar(190) NOT NULL,
-  `migration_name` varchar(190) NOT NULL,
-  `applied_at` datetime NOT NULL DEFAULT current_timestamp(),
-  `batch` int(11) NOT NULL DEFAULT 1,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `idx_module_migrations_unique` (`module_name`,`migration_name`),
-  KEY `idx_module_migrations_module` (`module_name`)
-) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `module_registry` (
-  `module_name` varchar(190) NOT NULL,
-  `vendor` varchar(190) NOT NULL,
-  `version` varchar(190) NOT NULL,
-  `is_active` int(11) NOT NULL DEFAULT 0,
-  `installed_at` datetime NOT NULL DEFAULT current_timestamp(),
-  `activated_at` datetime DEFAULT NULL,
-  `config` text NOT NULL,
-  PRIMARY KEY (`module_name`),
-  UNIQUE KEY `idx_module_registry_name` (`module_name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `module_scheduled_tasks` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `module_name` varchar(190) NOT NULL,
-  `task_name` varchar(190) NOT NULL,
-  `description` varchar(190) DEFAULT NULL,
-  `schedule` varchar(190) NOT NULL,
-  `handler_class` varchar(190) NOT NULL,
-  `handler_method` varchar(190) NOT NULL,
-  `enabled` int(11) NOT NULL DEFAULT 1,
-  `timeout` int(11) NOT NULL DEFAULT 300,
-  `overlap_allowed` int(11) NOT NULL DEFAULT 0,
-  `last_run_at` datetime DEFAULT NULL,
-  `next_run_at` datetime NOT NULL,
-  `last_status` varchar(190) DEFAULT NULL,
-  `last_error` varchar(190) DEFAULT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
-  `updated_at` datetime NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `idx_scheduled_tasks_next` (`next_run_at`,`enabled`),
-  KEY `idx_scheduled_tasks_module` (`module_name`)
-) ENGINE=InnoDB AUTO_INCREMENT=198565 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `module_task_executions` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `module_name` varchar(190) NOT NULL,
-  `task_name` varchar(190) NOT NULL,
-  `started_at` datetime NOT NULL DEFAULT current_timestamp(),
-  `finished_at` datetime DEFAULT NULL,
-  `duration_ms` int(11) DEFAULT NULL,
-  `status` varchar(190) NOT NULL,
-  `output` varchar(190) DEFAULT NULL,
-  `error_message` varchar(190) DEFAULT NULL,
-  `error_trace` varchar(190) DEFAULT NULL,
-  `memory_peak_mb` int(11) DEFAULT NULL,
-  `pid` int(11) DEFAULT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `idx_task_executions_module` (`module_name`,`task_name`,`started_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=64401 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `module_webhooks` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `module_name` varchar(190) NOT NULL,
-  `event_name` varchar(190) NOT NULL,
-  `url` varchar(190) NOT NULL,
-  `secret` varchar(190) DEFAULT NULL,
-  `is_active` int(11) NOT NULL DEFAULT 1,
-  `headers` varchar(190) DEFAULT NULL,
-  `retry_count` int(11) NOT NULL DEFAULT 3,
-  `timeout` int(11) NOT NULL DEFAULT 30,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `idx_module_webhooks_module` (`module_name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=42 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1865,8 +1910,10 @@ CREATE TABLE `notification_push_queue` (
   `created_at` datetime DEFAULT NULL,
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_push_queue_runnable` (`status`,`dead_letter`,`next_run_at`,`locked_at`,`created_at`),
+  KEY `idx_push_queue_user_created` (`user_id`,`created_at`)
+) ENGINE=InnoDB AUTO_INCREMENT=260 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1886,9 +1933,8 @@ CREATE TABLE `notification_push_subscriptions` (
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
-  KEY `idx_notif_push_subscriptions_user_active` (`user_id`,`is_active`,`updated_at`),
-  KEY `idx_notif_push_subscriptions_endpoint` (`endpoint`(255))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_notif_push_subscriptions_user_active` (`user_id`,`is_active`,`updated_at`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1916,7 +1962,7 @@ CREATE TABLE `notifications` (
   KEY `idx_notifications_user_unread_created` (`user_id`,`is_read`,`created_at`),
   KEY `idx_notifications_user_category_unread` (`user_id`,`category`,`is_read`),
   KEY `idx_notifications_entity` (`entity_type`,`entity_public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=556 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8390 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1928,8 +1974,10 @@ CREATE TABLE `organization_memberships` (
   `role_code` varchar(32) NOT NULL,
   `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `uq_org_membership_org_user` (`organization_id`,`user_id`),
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_org_membership_user` (`user_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=58 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1942,7 +1990,7 @@ CREATE TABLE `organizations` (
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=58 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1956,7 +2004,7 @@ CREATE TABLE `password_reset_tokens` (
   `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1969,7 +2017,7 @@ CREATE TABLE `permissions` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   UNIQUE KEY `code` (`code`)
-) ENGINE=InnoDB AUTO_INCREMENT=63 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=160 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1984,7 +2032,7 @@ CREATE TABLE `priorities` (
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=54 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2090,7 +2138,7 @@ CREATE TABLE `project_modules` (
   KEY `idx_project_modules_target_at` (`target_at`),
   KEY `idx_project_modules_archived_at` (`archived_at`),
   KEY `idx_project_modules_deleted_at` (`deleted_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2106,7 +2154,7 @@ CREATE TABLE `project_templates` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_project_templates_created_by` (`created_by_user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2135,7 +2183,21 @@ CREATE TABLE `projects` (
   KEY `idx_projects_archived_updated` (`archived_at`,`updated_at`,`public_id`),
   KEY `idx_projects_creator_archived_updated` (`created_by_user_id`,`archived_at`,`updated_at`),
   KEY `idx_projects_manager_archived_updated` (`manager_user_id`,`archived_at`,`updated_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1625 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `rate_limits` (
+  `key` varchar(64) NOT NULL,
+  `attempts` text NOT NULL,
+  `blocked_until` int(11) NOT NULL DEFAULT 0,
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `attempts_count` int(11) NOT NULL DEFAULT 0,
+  `window_start` int(11) NOT NULL DEFAULT 0,
+  `expires_at` int(11) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`key`),
+  KEY `idx_rate_limits_expires` (`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2149,7 +2211,7 @@ CREATE TABLE `reactions` (
   `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2196,7 +2258,7 @@ CREATE TABLE `recycle_bin` (
   `restored_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2210,7 +2272,7 @@ CREATE TABLE `reminders` (
   `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=71 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2234,17 +2296,7 @@ CREATE TABLE `request_logs` (
   KEY `idx_request_logs_user_created` (`user_public_id`,`created_at`),
   KEY `idx_request_logs_method_created` (`method`,`created_at`),
   KEY `idx_request_logs_result_created` (`result_code`,`created_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=102970 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `rate_limits` (
-  `key` varchar(64) NOT NULL,
-  `attempts` text NOT NULL,
-  `blocked_until` int(11) NOT NULL DEFAULT 0,
-  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`key`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=53776 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2254,7 +2306,7 @@ CREATE TABLE `role_permissions` (
   `permission_id` int(11) DEFAULT NULL,
   `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=44 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=170 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2269,7 +2321,7 @@ CREATE TABLE `roles` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   UNIQUE KEY `code` (`code`)
-) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=45 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2288,7 +2340,7 @@ CREATE TABLE `saved_view_user_preferences` (
   UNIQUE KEY `uq_saved_view_user_preferences_view_user` (`saved_view_id`,`user_id`),
   KEY `idx_saved_view_user_preferences_user_pinned` (`user_id`,`is_pinned`,`sort_order`),
   KEY `idx_saved_view_user_preferences_last_used` (`user_id`,`last_used_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2322,7 +2374,7 @@ CREATE TABLE `saved_views` (
   KEY `idx_saved_views_archived` (`archived_at`),
   KEY `idx_saved_views_sort_order` (`sort_order`),
   KEY `idx_saved_views_system_locked` (`is_system`,`is_locked`)
-) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=58 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2340,7 +2392,7 @@ CREATE TABLE `security_logs` (
   KEY `idx_security_logs_created` (`created_at`),
   KEY `idx_security_logs_actor_created` (`actor_public_id`,`created_at`),
   KEY `idx_security_logs_event_created` (`event_type`,`created_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=887 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=990 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2354,7 +2406,7 @@ CREATE TABLE `settings` (
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=61 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2369,7 +2421,7 @@ CREATE TABLE `sla_policies` (
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=59 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2387,7 +2439,7 @@ CREATE TABLE `statuses` (
   `wip_limit` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=67 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2423,7 +2475,7 @@ CREATE TABLE `sticky_notes` (
   KEY `idx_sticky_notes_archived_at` (`archived_at`),
   KEY `idx_sticky_notes_deleted_at` (`deleted_at`),
   KEY `idx_sticky_notes_converted` (`converted_to_entity_type`,`converted_to_entity_public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=83 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2436,7 +2488,7 @@ CREATE TABLE `subscriptions` (
   `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2479,7 +2531,7 @@ CREATE TABLE `tags` (
   `description` text DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=134 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2520,7 +2572,7 @@ CREATE TABLE `task_activity_events` (
   KEY `idx_task_activity_events_related` (`related_entity_type`,`related_entity_public_id`),
   KEY `idx_task_activity_events_request_id` (`request_id`),
   KEY `idx_task_activity_events_deleted_at` (`deleted_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=146 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8060 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2578,7 +2630,7 @@ CREATE TABLE `task_estimates` (
   KEY `idx_task_estimates_option` (`estimate_option_id`),
   KEY `idx_task_estimates_assigned_by` (`assigned_by_user_id`,`assigned_at`),
   KEY `idx_task_estimates_deleted_at` (`deleted_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2595,7 +2647,7 @@ CREATE TABLE `task_key_counters` (
   UNIQUE KEY `uq_task_key_counters_scope_key` (`scope_key`),
   KEY `idx_task_key_counters_project_id` (`project_id`),
   KEY `idx_task_key_counters_prefix` (`prefix`)
-) ENGINE=InnoDB AUTO_INCREMENT=62 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=11307 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2614,7 +2666,7 @@ CREATE TABLE `task_relations` (
   UNIQUE KEY `idx_task_rel_child_type` (`child_task_id`,`relation_type`),
   UNIQUE KEY `idx_task_rel_legacy` (`legacy_subtask_public_id`),
   KEY `idx_task_rel_parent_type_sort` (`parent_task_id`,`relation_type`,`sort_order`)
-) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=132 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2639,7 +2691,7 @@ CREATE TABLE `task_relations_v2` (
   KEY `idx_task_relations_v2_type` (`relation_type`,`deleted_at`),
   KEY `idx_task_relations_v2_created_by` (`created_by_user_id`,`created_at`),
   KEY `idx_task_relations_v2_deleted_at` (`deleted_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=47 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2653,7 +2705,7 @@ CREATE TABLE `task_status_history` (
   `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1903 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2669,7 +2721,7 @@ CREATE TABLE `task_templates` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_task_templates_created_by` (`created_by_user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=68 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2708,7 +2760,12 @@ CREATE TABLE `tasks` (
   `deleted_at` datetime DEFAULT NULL,
   `created_at` datetime DEFAULT NULL,
   `updated_at` datetime DEFAULT NULL,
+  `source_type` varchar(64) DEFAULT NULL,
+  `source_id` varchar(255) DEFAULT NULL,
+  `source_url` varchar(2048) DEFAULT NULL,
+  `source_payload_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`source_payload_json`)),
   `row_version` int(11) DEFAULT 1,
+  `client_public_id` varchar(64) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   UNIQUE KEY `uq_tasks_task_key` (`task_key`),
@@ -2723,8 +2780,10 @@ CREATE TABLE `tasks` (
   KEY `idx_tasks_assignee_active_updated` (`assignee_user_id`,`deleted_at`,`archived_at`,`updated_at`),
   KEY `idx_tasks_creator_active_updated` (`creator_user_id`,`deleted_at`,`archived_at`,`updated_at`),
   KEY `idx_tasks_task_key_prefix_sequence` (`task_key_prefix`,`task_sequence_number`),
-  KEY `idx_tasks_task_sequence_number` (`task_sequence_number`)
-) ENGINE=InnoDB AUTO_INCREMENT=161 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_tasks_task_sequence_number` (`task_sequence_number`),
+  KEY `idx_tasks_client_public_id` (`client_public_id`),
+  KEY `idx_tasks_source` (`source_type`,`source_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=6585 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2745,7 +2804,7 @@ CREATE TABLE `teams` (
   KEY `idx_teams_created_by` (`created_by_user_id`),
   KEY `idx_teams_type` (`team_type`),
   KEY `idx_teams_parent` (`parent_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=188 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2759,7 +2818,7 @@ CREATE TABLE `two_factor_secrets` (
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2769,7 +2828,7 @@ CREATE TABLE `user_roles` (
   `role_id` int(11) DEFAULT NULL,
   `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=80 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2789,7 +2848,7 @@ CREATE TABLE `user_sessions` (
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_sessions_token` (`token_hash`),
   KEY `idx_sessions_user_device` (`user_id`,`device_fingerprint`)
-) ENGINE=InnoDB AUTO_INCREMENT=422 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=656 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2810,12 +2869,18 @@ CREATE TABLE `users` (
   `deleted_at` datetime DEFAULT NULL,
   `cost_rate` decimal(12,2) DEFAULT NULL,
   `bill_rate` decimal(12,2) DEFAULT NULL,
+  `is_external` tinyint(1) NOT NULL DEFAULT 0,
+  `external_invitation_expires_at` datetime DEFAULT NULL,
+  `external_role` varchar(20) NOT NULL DEFAULT 'observer',
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   UNIQUE KEY `login` (`login`),
   KEY `idx_users_login` (`login`),
-  KEY `idx_users_created_by` (`created_by_user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_users_created_by` (`created_by_user_id`),
+  KEY `idx_users_is_external` (`is_external`),
+  KEY `idx_users_external_invitation_expiry` (`is_external`,`external_invitation_expires_at`),
+  KEY `idx_users_external_role` (`external_role`)
+) ENGINE=InnoDB AUTO_INCREMENT=103 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2855,7 +2920,7 @@ CREATE TABLE `webhook_subscriptions` (
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=98 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2891,7 +2956,7 @@ CREATE TABLE `work_cycles` (
   KEY `idx_work_cycles_completed_at` (`completed_at`),
   KEY `idx_work_cycles_archived_at` (`archived_at`),
   KEY `idx_work_cycles_deleted_at` (`deleted_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=38 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2909,7 +2974,7 @@ CREATE TABLE `work_logs` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_work_logs_interval` (`user_id`,`started_at`,`ended_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=360 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=471 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2925,4 +2990,73 @@ CREATE TABLE `working_hours` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `yandex_calendar_connections` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `public_id` varchar(64) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `account_email` varchar(190) NOT NULL,
+  `caldav_username` varchar(190) NOT NULL,
+  `credential_encrypted` text NOT NULL,
+  `auth_mode` varchar(32) NOT NULL DEFAULT 'app_password',
+  `status` varchar(32) NOT NULL DEFAULT 'active',
+  `last_error` text DEFAULT NULL,
+  `last_sync_at` datetime DEFAULT NULL,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `public_id` (`public_id`),
+  UNIQUE KEY `uq_yandex_calendar_connection_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `yandex_calendar_events` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `public_id` varchar(64) NOT NULL,
+  `source_id` int(11) NOT NULL,
+  `external_uid` varchar(512) NOT NULL,
+  `recurrence_id` varchar(128) DEFAULT NULL,
+  `event_href` varchar(1024) DEFAULT NULL,
+  `etag` varchar(255) DEFAULT NULL,
+  `recurrence_rule` text DEFAULT NULL,
+  `event_start` datetime DEFAULT NULL,
+  `event_end` datetime DEFAULT NULL,
+  `is_all_day` int(11) NOT NULL DEFAULT 0,
+  `all_day_start` date DEFAULT NULL,
+  `all_day_end` date DEFAULT NULL,
+  `crm_event_public_id` varchar(64) DEFAULT NULL,
+  `last_synced_at` datetime DEFAULT NULL,
+  `status` varchar(32) NOT NULL DEFAULT 'active',
+  `last_error` text DEFAULT NULL,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `public_id` (`public_id`),
+  UNIQUE KEY `uq_yandex_calendar_event` (`source_id`,`external_uid`,`recurrence_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `yandex_calendar_sources` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `public_id` varchar(64) NOT NULL,
+  `connection_id` int(11) NOT NULL,
+  `calendar_href` varchar(512) NOT NULL,
+  `display_name` varchar(255) DEFAULT NULL,
+  `timezone` varchar(128) DEFAULT NULL,
+  `direction` varchar(32) NOT NULL DEFAULT 'yandex_to_crm',
+  `is_enabled` int(11) NOT NULL DEFAULT 1,
+  `is_primary` int(11) NOT NULL DEFAULT 0,
+  `ctag` varchar(255) DEFAULT NULL,
+  `last_sync_at` datetime DEFAULT NULL,
+  `last_error` text DEFAULT NULL,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `public_id` (`public_id`),
+  UNIQUE KEY `uq_yandex_calendar_source` (`connection_id`,`calendar_href`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;

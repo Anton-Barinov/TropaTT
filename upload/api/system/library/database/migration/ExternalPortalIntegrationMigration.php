@@ -49,8 +49,21 @@ final class ExternalPortalIntegrationMigration implements MigrationInterface
      */
     private function getColumnNames(PDO $pdo, string $table): array
     {
-        $stmt = $pdo->prepare("SHOW COLUMNS FROM {$table}");
-        $stmt->execute();
-        return array_map(static fn(array $r): string => (string)($r['Field'] ?? ''), $stmt->fetchAll(PDO::FETCH_ASSOC) ?: []);
+        $driver = (string)$pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+        try {
+            if ($driver === 'sqlite') {
+                $result = $pdo->query("PRAGMA table_info({$table})");
+                if ($result) {
+                    return array_map(static fn(array $r): string => (string)($r['name'] ?? ''), $result->fetchAll(PDO::FETCH_ASSOC) ?: []);
+                }
+                return [];
+            }
+            $stmt = $pdo->prepare("SHOW COLUMNS FROM {$table}");
+            $stmt->execute();
+            return array_map(static fn(array $r): string => (string)($r['Field'] ?? ''), $stmt->fetchAll(PDO::FETCH_ASSOC) ?: []);
+        } catch (\Throwable $e) {
+            error_log('[ExternalPortalIntegrationMigration::getColumnNames] ' . $e->getMessage());
+            return [];
+        }
     }
 }
