@@ -28,25 +28,37 @@ final class MigrationRunner
      */
     public function run(?int $maxMigrations = null, ?WorkBudget $budget = null): array
     {
-        $connection = \Updater\Db\Connection::open($this->basePath);
-        $pdo = $connection['pdo'];
-        $driver = $connection['driver'];
+        try {
+            $connection = \Updater\Db\Connection::open($this->basePath);
+            $pdo = $connection['pdo'];
+            $driver = $connection['driver'];
 
-        $schema = new \Api\System\Library\Database\SchemaManager();
-        $migrations = new \Api\System\Library\Database\Migration\MigrationManager($schema);
-        $before = $migrations->status($pdo, $driver);
-        $limit = $maxMigrations !== null && $maxMigrations > 0 ? $maxMigrations : PHP_INT_MAX;
-        $executed = $migrations->migrateUpLimit($pdo, $driver, $limit);
-        $after = $migrations->status($pdo, $driver);
+            $schema = new \Api\System\Library\Database\SchemaManager();
+            $migrations = new \Api\System\Library\Database\Migration\MigrationManager($schema);
+            $before = $migrations->status($pdo, $driver);
+            $limit = $maxMigrations !== null && $maxMigrations > 0 ? $maxMigrations : PHP_INT_MAX;
+            $executed = $migrations->migrateUpLimit($pdo, $driver, $limit);
+            $after = $migrations->status($pdo, $driver);
 
-        return [
-            'ok' => true,
-            'done' => ($after['pending'] ?? []) === [],
-            'driver' => $driver,
-            'executed' => $executed,
-            'pending_before' => $before['pending'],
-            'pending_after' => $after['pending'],
-            'applied_total' => $after['applied'],
-        ];
+            return [
+                'ok' => true,
+                'done' => ($after['pending'] ?? []) === [],
+                'driver' => $driver,
+                'executed' => $executed,
+                'pending_before' => $before['pending'],
+                'pending_after' => $after['pending'],
+                'applied_total' => $after['applied'],
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'ok' => false,
+                'done' => false,
+                'error' => $e->getMessage(),
+                'executed' => [],
+                'pending_before' => [],
+                'pending_after' => [],
+                'applied_total' => [],
+            ];
+        }
     }
 }

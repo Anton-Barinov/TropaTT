@@ -101,6 +101,9 @@ final class MigrationManager
      *
      * @return array<int,string> migration keys executed in this call
      */
+    /**
+     * @return array<int,string> migration keys executed successfully
+     */
     public function migrateUpLimit(PDO $pdo, string $driver, int $limit): array
     {
         $this->ensureTable($pdo, $driver);
@@ -117,9 +120,15 @@ final class MigrationManager
                 continue;
             }
 
-            $migration->up($pdo, $driver);
-            $this->markApplied($pdo, $migration);
-            $executed[] = $migration->key();
+            try {
+                $migration->up($pdo, $driver);
+                $this->markApplied($pdo, $migration);
+                $executed[] = $migration->key();
+            } catch (\Throwable $e) {
+                // Log error but stop: subsequent migrations may depend on this one.
+                error_log('[MigrationManager] Failed: ' . $migration->key() . ' - ' . $e->getMessage());
+                break;
+            }
         }
 
         return $executed;

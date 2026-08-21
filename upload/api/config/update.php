@@ -49,10 +49,9 @@ return [
         // DB backup: at most this many dumped rows per request. Tables are
         // resumed with LIMIT/OFFSET, so memory stays flat per chunk.
         'max_rows_per_request' => 50000,
-        // DB migrations: at most this many migrations per request. One is the
-        // safest default for shared hosting - a single slow migration cannot
-        // blow the whole request.
-        'max_migrations_per_request' => 1,
+        // DB migrations: at most this many migrations per request. 5 is safe
+        // for shared hosting while keeping updates from taking forever.
+        'max_migrations_per_request' => 5,
         // DB restore: at most this many SQL statements per request.
         'max_statements_per_request' => 500,
         // How long the apply/rollback lock stays valid between steps without
