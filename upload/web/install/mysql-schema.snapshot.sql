@@ -2174,6 +2174,7 @@ CREATE TABLE `projects` (
   `created_by_user_id` int(11) DEFAULT NULL,
   `created_at` datetime DEFAULT NULL,
   `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
   `row_version` int(11) DEFAULT 1,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),

@@ -69,6 +69,7 @@ final class MigrationManager
             new ExternalInvitationLifecycleMigration(),
             new ExternalUserRolesMigration(),
             new ExternalPortalIntegrationMigration(),
+            new ProjectsDeletedAtMigration(),
         ];
     }
 
