@@ -286,6 +286,8 @@ foreach ($routes as $route) {
 $expectedExecutorRoutes = [
     'GET /api/v1/worklogs',
     'POST /api/v1/worklogs',
+    'GET /api/v1/me/earnings',
+    'GET /api/v1/me/earnings/available',
 ];
 
 $actualExecutorRoutes = [];

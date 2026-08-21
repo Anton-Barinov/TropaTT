@@ -793,7 +793,7 @@ if (isset($adminRoutePermissions[$route])) {
 // protected route — including ones with no entry in $adminRoutePermissions,
 // like 'dashboard' or 'kanban' — 403s at the shell for an external actor so
 // they never see internal page chrome, even before any API call runs.
-$externalAllowedRoutes = ['projects', 'project-detail', 'tasks', 'task-detail', 'notifications', 'profile'];
+$externalAllowedRoutes = ['projects', 'project-detail', 'tasks', 'task-detail', 'notifications', 'profile', 'my-earnings'];
 $crmIsExternalUser = false;
 if (!$isPublic) {
     $sessionCookieName = trim((string)(getenv('CRM_API_SESSION_COOKIE') ?: 'crm_api_session'));

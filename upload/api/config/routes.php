@@ -1062,4 +1062,28 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/external-users/{public_id}/project-access', 'controller' => Api\Controller\External\ExternalUserController::class, 'action' => 'listProjectAccess', 'auth' => true, 'required_permissions' => ['contact.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/external-users/{public_id}/project-access', 'controller' => Api\Controller\External\ExternalUserController::class, 'action' => 'grantProjectAccess', 'auth' => true, 'required_permissions' => ['project.manage']],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/external-users/{public_id}/project-access/{project_public_id}', 'controller' => Api\Controller\External\ExternalUserController::class, 'action' => 'revokeProjectAccess', 'auth' => true, 'required_permissions' => ['project.manage']],
+
+    // ── My Earnings (self-scoped, TZ 7.1-7.2) ──
+    ['methods' => ['GET'], 'pattern' => '/api/v1/me/earnings', 'controller' => Api\Controller\Rate\MyEarningsController::class, 'action' => 'earnings', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_executor_ok' => true, 'authz_note' => 'self-scoped: controller discards any user_public_id, always returns actor own data. External executors see only own payout family. Additional finance.rate.view_own_payout check in controller for non-external users.'],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/me/earnings/available', 'controller' => Api\Controller\Rate\MyEarningsController::class, 'action' => 'available', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_executor_ok' => true, 'authz_note' => 'lightweight boolean check for conditional menu/page display (TZ 15.1)'],
+
+    // ── Rate Cards (TZ 7) ──
+    ['methods' => ['GET'], 'pattern' => '/api/v1/rate-cards', 'controller' => Api\Controller\Rate\RateCardController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['finance.ratecard.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/rate-cards', 'controller' => Api\Controller\Rate\RateCardController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['finance.ratecard.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/rate-cards/{public_id}', 'controller' => Api\Controller\Rate\RateCardController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['finance.ratecard.manage']],
+    ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/rate-cards/{public_id}', 'controller' => Api\Controller\Rate\RateCardController::class, 'action' => 'update', 'auth' => true, 'required_permissions' => ['finance.ratecard.manage']],
+    ['methods' => ['DELETE'], 'pattern' => '/api/v1/rate-cards/{public_id}', 'controller' => Api\Controller\Rate\RateCardController::class, 'action' => 'archive', 'auth' => true, 'required_permissions' => ['finance.ratecard.manage'], 'authz_note' => 'archives card; delete forbidden if card has active assignments'],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/rate-cards/{public_id}/lines', 'controller' => Api\Controller\Rate\RateCardController::class, 'action' => 'listLines', 'auth' => true, 'required_permissions' => ['finance.ratecard.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/rate-cards/{public_id}/lines', 'controller' => Api\Controller\Rate\RateCardController::class, 'action' => 'createLine', 'auth' => true, 'required_permissions' => ['finance.ratecard.manage']],
+    ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/rate-card-lines/{public_id}', 'controller' => Api\Controller\Rate\RateCardController::class, 'action' => 'updateLine', 'auth' => true, 'required_permissions' => ['finance.ratecard.manage']],
+    ['methods' => ['DELETE'], 'pattern' => '/api/v1/rate-card-lines/{public_id}', 'controller' => Api\Controller\Rate\RateCardController::class, 'action' => 'deleteLine', 'auth' => true, 'required_permissions' => ['finance.ratecard.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/rate-card-assignments', 'controller' => Api\Controller\Rate\RateCardController::class, 'action' => 'listAssignments', 'auth' => true, 'required_permissions' => ['finance.ratecard.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/rate-card-assignments', 'controller' => Api\Controller\Rate\RateCardController::class, 'action' => 'createAssignment', 'auth' => true, 'required_permissions' => ['finance.ratecard.manage']],
+    ['methods' => ['DELETE'], 'pattern' => '/api/v1/rate-card-assignments/{public_id}', 'controller' => Api\Controller\Rate\RateCardController::class, 'action' => 'deleteAssignment', 'auth' => true, 'required_permissions' => ['finance.ratecard.manage']],
+
+    // ── Rate management (recalculate, lock/unlock, preview) ──
+    ['methods' => ['GET'], 'pattern' => '/api/v1/rates/preview', 'controller' => Api\Controller\Rate\RateController::class, 'action' => 'preview', 'auth' => true, 'required_permissions' => ['task.manage'], 'authz_note' => '403 in controller if actor has no financial view permission'],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/rates/recalculate', 'controller' => Api\Controller\Rate\RateController::class, 'action' => 'recalculate', 'auth' => true, 'required_permissions' => ['finance.rate.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/rates/lock', 'controller' => Api\Controller\Rate\RateController::class, 'action' => 'lock', 'auth' => true, 'required_permissions' => ['finance.rate.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/rates/unlock', 'controller' => Api\Controller\Rate\RateController::class, 'action' => 'unlock', 'auth' => true, 'required_permissions' => ['finance.rate.manage']],
 ];

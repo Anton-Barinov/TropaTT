@@ -920,6 +920,7 @@ final class App
         $this->container->factory('repository.impersonation', fn(Container $c) => new \Api\Model\Security\ImpersonationRepository($c->get('db.pdo')));
         $this->container->factory('repository.search', fn(Container $c) => new \Api\Model\Search\SearchRepository($c->get('db.pdo')));
         $this->container->factory('repository.worklog', fn(Container $c) => new \Api\Model\Worklog\WorklogRepository($c->get('db.pdo')));
+        $this->container->factory('repository.rate_card', fn(Container $c) => new \Api\Model\Rate\RateCardRepository($c->get('db.pdo')));
         $this->container->factory('repository.dashboard', fn(Container $c) => new \Api\Model\Dashboard\DashboardRepository($c->get('db.pdo')));
         $this->container->factory('repository.project_summary', fn(Container $c) => new \Api\Model\Project\ProjectSummaryRepository($c->get('db.pdo')));
         $this->container->factory('repository.milestone', fn(Container $c) => new \Api\Model\Milestone\MilestoneRepository($c->get('db.pdo')));
@@ -1475,6 +1476,10 @@ final class App
         $this->container->factory('service.setting', fn(Container $c) => new SettingService(
             $c->get('repository.setting')
         ));
+        $this->container->factory('service.earnings', fn(Container $c) => new \Api\System\Library\Service\EarningsService(
+            $c->get('repository.worklog'),
+            $c->get('db.pdo')
+        ));
         $this->container->factory('service.retention', fn(Container $c) => new RetentionService(
             $c->get('service.setting')
         ));
@@ -1833,6 +1838,18 @@ final class App
             ));
         } catch (\Throwable $e) {
             error_log('[CycleSnapshotCron] Task registration failed: ' . $e->getMessage());
+        }
+
+        try {
+            $cronScheduler->registerTask('finance', new \Api\System\Library\Module\ScheduledTask(
+                name: 'periods.auto_close',
+                description: 'Auto-close financial periods (weekly/monthly, with lag_days) by locking work_logs rate snapshots',
+                schedule: '0 2 * * *',
+                handler: [\Api\System\Library\Service\FinanceCronTaskHandler::class, 'autoClosePeriods'],
+                timeout: 600,
+            ));
+        } catch (\Throwable $e) {
+            error_log('[FinanceCron] Task registration failed: ' . $e->getMessage());
         }
 
         $jobDispatcher = new ModuleJobDispatcher($pdo);
