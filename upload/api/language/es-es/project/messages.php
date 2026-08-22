@@ -19,5 +19,6 @@ return [
     'prefix_already_exists' => 'Este prefijo ya lo usa otro proyecto',
     'invalid_prefix' => 'Prefijo de clave de tarea no válido',
     'invalid_prefix_format' => 'El prefijo debe tener de 2 a 10 letras mayúsculas/dígitos y comenzar con una letra',
+    'has_open_tasks' => 'No se puede completar el proyecto: quedan {count} tareas abiertas. Completa o muévelas e intenta de nuevo.',
     'reserved_prefix' => 'Este prefijo está reservado para uso del sistema',
 ];

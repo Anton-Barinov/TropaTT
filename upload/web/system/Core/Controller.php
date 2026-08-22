@@ -49,6 +49,9 @@ abstract class Controller
         'admin_users',
         // admin_roles: finance permission group + per-permission hints (TZ 8.8)
         'admin_roles',
+        // admin_logs: tab labels, filters, event names and drawer texts are
+        // rendered client-side via tp() (tabbed log page)
+        'admin_logs',
     ];
 
     /** @var array<int, string>|null */

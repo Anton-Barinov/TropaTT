@@ -182,7 +182,7 @@ final class ProjectController extends BaseController
         }
         if (is_array($item) && isset($item['error']) && $item['error'] === 'PROJECT_HAS_OPEN_TASKS') {
             $openCount = (int)($item['open_task_count'] ?? 0);
-            $message = 'Нельзя завершить проект: осталось незакрытых задач: ' . $openCount . '. Завершите или перенесите их и повторите попытку.';
+            $message = str_replace('{count}', (string)$openCount, $this->t('project/messages.has_open_tasks', 'Cannot complete project: there are {count} open tasks remaining.'));
             return $this->error('PROJECT_HAS_OPEN_TASKS', $message, 409, [
                 'project' => [$message],
             ], ['open_task_count' => $openCount]);

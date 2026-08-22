@@ -3542,7 +3542,7 @@ window.CRM.br1 = (function () {
     }).join('');
 
     return '<div class="dropdown crm-subtask-status-dropdown">'
-      + '<button class="crm-badge dropdown-toggle ' + statusBadgeClass(currentCode) + '" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Статус подзадачи"' + colorStyle + (canChangeStatus ? '' : ' disabled aria-disabled="true"') + '>' + escapeHtml(statusLabel(currentCode)) + '</button>'
+      + '<button class="crm-badge dropdown-toggle ' + statusBadgeClass(currentCode) + '" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="' + window.CRM.i18n.t('js.br1.subtask_status', 'Статус подзадачи') + '"' + colorStyle + (canChangeStatus ? '' : ' disabled aria-disabled="true"') + '>' + escapeHtml(statusLabel(currentCode)) + '</button>'
       + '<ul class="dropdown-menu crm-task-status-menu">' + options + '</ul>'
       + '</div>';
   }

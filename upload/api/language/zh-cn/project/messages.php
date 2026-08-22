@@ -19,5 +19,6 @@ return [
     'prefix_already_exists' => '此前缀已被另一个项目使用',
     'invalid_prefix' => '任务键前缀无效',
     'invalid_prefix_format' => '前缀必须为 2–10 个大写字母/数字，并以字母开头',
+    'has_open_tasks' => '无法完成项目：还有 {count} 个未关闭的任务。请完成或移动它们后重试。',
     'reserved_prefix' => '该前缀保留供系统使用',
 ];

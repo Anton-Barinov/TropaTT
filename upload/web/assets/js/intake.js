@@ -330,7 +330,7 @@ window.CRM.intake = (function () {
     if (!el) return;
     var template = t('intake.result_summary_dynamic', 'Показано {shown} из {total} заявок');
     if (template.indexOf('{shown}') < 0 || template.indexOf('{total}') < 0) {
-      template = 'Показано {shown} из {total} заявок';
+      template = t('intake.result_summary_dynamic_fallback', 'Показано {shown} из {total} заявок');
     }
     el.textContent = template.replace('{shown}', String(count)).replace('{total}', String(total));
   }

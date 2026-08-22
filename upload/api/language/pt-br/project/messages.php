@@ -19,5 +19,6 @@ return [
     'prefix_already_exists' => 'Este prefixo já é usado por outro projeto',
     'invalid_prefix' => 'Prefixo de chave de tarefa inválido',
     'invalid_prefix_format' => 'O prefixo deve ter de 2 a 10 letras maiúsculas/dígitos e começar com uma letra',
+    'has_open_tasks' => 'Não foi possível concluir o projeto: restam {count} tarefas abertas. Conclua ou mova-as e tente novamente.',
     'reserved_prefix' => 'Este prefixo é reservado para uso do sistema',
 ];

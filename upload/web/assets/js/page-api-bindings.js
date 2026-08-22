@@ -32930,10 +32930,10 @@ window.CRM.teamMaterials = (function () {
     if (!entityType || !entityPublicId) return;
 
     var texts = opts.texts || {};
-    var searchPlaceholder = texts.searchPlaceholder || 'Поиск по материалам...';
-    var emptyText = texts.empty || 'Нет материалов команды';
-    var noMatchText = texts.noMatch || 'Ничего не найдено';
-    var loadingText = texts.loading || 'Загрузка...';
+    var searchPlaceholder = texts.searchPlaceholder || t('knowledge.search_placeholder', 'Поиск по материалам...');
+    var emptyText = texts.empty || t('knowledge.empty', 'Нет материалов команды');
+    var noMatchText = texts.noMatch || t('knowledge.no_match', 'Ничего не найдено');
+    var loadingText = texts.loading || t('knowledge.loading', 'Загрузка...');
     var errorText = texts.error || '—';
 
     container.innerHTML =

@@ -17,5 +17,6 @@ return [
     'prefix_already_exists' => 'Ce préfixe est déjà utilisé par un autre projet',
     'invalid_prefix' => 'Préfixe de clé de tâche non valide',
     'invalid_prefix_format' => 'Le préfixe doit comporter 2 à 10 lettres majuscules/chiffres et commencer par une lettre',
+    'has_open_tasks' => 'Impossible de terminer le projet : il reste {count} tâches ouvertes. Terminez ou déplacez-les puis réessayez.',
     'reserved_prefix' => 'Ce préfixe est réservé à l’usage du système',
 ];

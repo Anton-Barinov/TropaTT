@@ -19,5 +19,6 @@ return [
     'workload_summary' => 'Project workload summary',
     'invalid_prefix' => 'Invalid task key prefix',
     'invalid_prefix_format' => 'Prefix must be 2-10 uppercase letters/digits, starting with a letter',
+    'has_open_tasks' => 'Cannot complete project: there are {count} open tasks remaining. Complete or move them and try again.',
     'reserved_prefix' => 'This prefix is reserved for system use',
 ];
