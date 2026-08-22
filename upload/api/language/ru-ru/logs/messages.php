@@ -5,4 +5,6 @@ return [
     'audit_list' => 'Журнал аудита',
     'frontend_error_chart' => 'Ошибки фронтенда (API) по часам',
     'server_errors_unavailable' => 'Журнал ошибок сервера недоступен',
+    'module_errors_unavailable' => 'Журнал ошибок модулей недоступен',
+    'all_errors_unavailable' => 'Единый журнал ошибок недоступен',
 ];

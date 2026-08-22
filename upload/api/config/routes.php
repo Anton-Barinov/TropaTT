@@ -654,6 +654,8 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/logs/audit', 'controller' => Api\Controller\Logs\LogsController::class, 'action' => 'auditLogs', 'auth' => true, 'required_permissions' => ['logs.view']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/logs/frontend-errors/chart', 'controller' => Api\Controller\Logs\LogsController::class, 'action' => 'frontendErrorChart', 'auth' => true, 'required_permissions' => ['logs.view']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/logs/server-errors', 'controller' => Api\Controller\Logs\LogsController::class, 'action' => 'serverErrors', 'auth' => true, 'required_permissions' => ['logs.view']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/logs/module-errors', 'controller' => Api\Controller\Logs\LogsController::class, 'action' => 'moduleErrors', 'auth' => true, 'required_permissions' => ['logs.view']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/logs/all-errors', 'controller' => Api\Controller\Logs\LogsController::class, 'action' => 'allErrors', 'auth' => true, 'required_permissions' => ['logs.view']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/audit/list', 'controller' => Api\Controller\Audit\AuditController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['logs.view']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/audit/user/{public_id}', 'controller' => Api\Controller\Audit\AuditController::class, 'action' => 'byUser', 'auth' => true, 'required_permissions' => ['logs.view']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/audit/entity/{entity_type}/{public_id}', 'controller' => Api\Controller\Audit\AuditController::class, 'action' => 'byEntity', 'auth' => true, 'required_permissions' => ['logs.view']],

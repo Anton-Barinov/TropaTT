@@ -105,6 +105,74 @@ final class ModuleErrorHandler
     }
 
     /**
+     * List module errors with filters (for admin API).
+     */
+    public function list(array $filters = []): array
+    {
+        $where = ['1=1'];
+        $params = [];
+
+        if (!empty($filters['module_name'])) {
+            $where[] = 'module_name = ?';
+            $params[] = $filters['module_name'];
+        }
+
+        if (!empty($filters['from'])) {
+            $where[] = 'created_at >= ?';
+            $params[] = $filters['from'];
+        }
+
+        if (!empty($filters['to'])) {
+            $where[] = 'created_at <= ?';
+            $params[] = $filters['to'];
+        }
+
+        if (!empty($filters['search'])) {
+            $where[] = '(error_message LIKE ? OR context LIKE ?)';
+            $params[] = '%' . $filters['search'] . '%';
+            $params[] = '%' . $filters['search'] . '%';
+        }
+
+        $limit = min((int)($filters['limit'] ?? 100), 500);
+        $offset = max((int)($filters['offset'] ?? 0), 0);
+
+        $whereSql = implode(' AND ', $where);
+
+        try {
+            $countStmt = $this->pdo->prepare("SELECT COUNT(*) FROM {$this->tableName} WHERE {$whereSql}");
+            $countStmt->execute($params);
+            $total = (int)$countStmt->fetchColumn();
+
+            $stmt = $this->pdo->prepare(
+                "SELECT * FROM {$this->tableName} WHERE {$whereSql} ORDER BY created_at DESC LIMIT {$limit} OFFSET {$offset}"
+            );
+            $stmt->execute($params);
+            $items = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+            return ['items' => $items, 'total' => $total];
+        } catch (\Throwable $e) {
+            error_log('[ModuleErrorHandler::list] ' . $e->getMessage());
+            return ['items' => [], 'total' => 0];
+        }
+    }
+
+    /**
+     * Delete old module errors (retention).
+     */
+    public function cleanup(int $daysToKeep = 30): int
+    {
+        try {
+            $cutoff = date('Y-m-d H:i:s', strtotime("-{$daysToKeep} days"));
+            $stmt = $this->pdo->prepare("DELETE FROM {$this->tableName} WHERE created_at < ?");
+            $stmt->execute([$cutoff]);
+            return $stmt->rowCount();
+        } catch (\Throwable $e) {
+            error_log('[ModuleErrorHandler::cleanup] ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
      * Clear errors for a module.
      */
     public function clearErrors(string $moduleName): void

@@ -5,4 +5,6 @@ return [
     'audit_list' => '审计日志',
     'frontend_error_chart' => '前端错误按小时统计',
     'server_errors_unavailable' => '服务器错误日志不可用',
+    'module_errors_unavailable' => '模块错误日志不可用',
+    'all_errors_unavailable' => '统一错误日志不可用',
 ];

@@ -15805,6 +15805,79 @@ window.CRM.pageApiBindings = (function () {
       return query;
     }
 
+    function buildUnifiedRowModel(item) {
+      var src = item._source || 'unknown';
+      var sourceLabels = {
+        server_error: 'PHP',
+        frontend_error: 'JS',
+        module_error: 'Module'
+      };
+      var sourceColors = {
+        server_error: '',
+        frontend_error: ' bg-primary',
+        module_error: ' bg-info'
+      };
+      var sourceLabel = sourceLabels[src] || src;
+      var sourceColor = sourceColors[src] || ' bg-secondary';
+
+      if (src === 'server_error') {
+        var lvl = item.level || 'error';
+        var lvlColor = lvl === 'fatal' ? ' bg-danger' : lvl === 'exception' ? ' bg-warning text-dark' : ' bg-secondary';
+        var msg = item.message || '';
+        var fileLine = (item.file || '') + (item.line ? ':' + item.line : '');
+        return {
+          id: String(item.public_id || ''),
+          at: item.created_at || item._sort_time || '',
+          user: resolveUserLabel('', item.user_public_id || '', 'system'),
+          event: '<span class="badge' + sourceColor + '" style="font-size:0.65em">PHP</span> <span class="badge' + lvlColor + '" style="font-size:0.65em">' + safeText(lvl) + '</span> ' + safeText(msg.substring(0, 110)),
+          target: safeText(fileLine),
+          side: String(item.ip || item.code || ''),
+          ip: item.ip || '',
+          raw: item
+        };
+      }
+      if (src === 'frontend_error') {
+        var evtType = item.event_type || 'js_error';
+        var evtColor = evtType === 'frontend_csp_violation' ? ' bg-warning text-dark' : ' bg-primary';
+        var details = item.details || {};
+        var payload = details.payload || {};
+        var evtMsg = payload.message || payload.reason || payload.code || evtType;
+        var evtRoute = details.route || details.page_url || '';
+        return {
+          id: String(item.actor_public_id || item.id || ''),
+          at: item.created_at || item._sort_time || '',
+          user: resolveUserLabel('', item.actor_public_id || '', 'system'),
+          event: '<span class="badge' + sourceColor + '" style="font-size:0.65em">JS</span> <span class="badge' + evtColor + '" style="font-size:0.65em">' + safeText(evtType.replace('frontend_', '')) + '</span> ' + safeText(String(evtMsg).substring(0, 110)),
+          target: safeText(evtRoute.substring(0, 80)),
+          side: safeText(item.ip || ''),
+          ip: item.ip || '',
+          raw: item
+        };
+      }
+      if (src === 'module_error') {
+        return {
+          id: String(item.id || ''),
+          at: item.created_at || item._sort_time || '',
+          user: resolveUserLabel('', '', 'module'),
+          event: '<span class="badge' + sourceColor + '" style="font-size:0.65em">Module</span> ' + safeText((item.error_message || '').substring(0, 120)),
+          target: safeText((item.module_name || '') + ' / ' + (item.context || '')),
+          side: safeText(item.error_code || ''),
+          ip: '',
+          raw: item
+        };
+      }
+      return {
+        id: String(item.public_id || item.id || ''),
+        at: item.created_at || item._sort_time || '',
+        user: resolveUserLabel('', '', 'system'),
+        event: safeText(src + ': ' + (item.message || item.event_type || '')),
+        target: '—',
+        side: '—',
+        ip: '',
+        raw: item
+      };
+    }
+
     function toRowModel(source, item) {
       var details = parseDetails(item.details || item.payload);
       if (source === 'request') {
@@ -15856,6 +15929,21 @@ window.CRM.pageApiBindings = (function () {
           raw: item
         };
       }
+      if (source === 'module_errors') {
+        return {
+          id: String(item.public_id || item.id || ''),
+          at: item.created_at,
+          user: resolveUserLabel('', '', 'module'),
+          event: '<span class="badge bg-info" style="font-size:0.7em">module</span> ' + safeText((item.error_message || '').substring(0, 120)),
+          target: safeText((item.module_name || '') + ' / ' + (item.context || '')),
+          side: safeText(item.error_code || '—'),
+          ip: '',
+          raw: item
+        };
+      }
+      if (source === 'all_errors') {
+        return buildUnifiedRowModel(item);
+      }
       return {
         id: String(item.public_id || ''),
         at: item.created_at,
@@ -15881,7 +15969,11 @@ window.CRM.pageApiBindings = (function () {
             ? 'api/v1/worklogs'
             : source === 'server_errors'
               ? 'api/v1/logs/server-errors'
-              : 'api/v1/logs/audit';
+              : source === 'module_errors'
+                ? 'api/v1/logs/module-errors'
+                : source === 'all_errors'
+                  ? 'api/v1/logs/all-errors'
+                  : 'api/v1/logs/audit';
 
       var envelope = await tryRequest(endpoint, { query: buildQueryBySource(source) });
       if (envelope && envelope.success === false) {
@@ -15891,6 +15983,23 @@ window.CRM.pageApiBindings = (function () {
       }
       var items = mapItems(envelope);
       currentRows = items.map(function (item) { return toRowModel(source, item); });
+
+      if (source === 'all_errors' && envelope && envelope.meta && envelope.meta.counts) {
+        var counts = envelope.meta.counts;
+        var statsEl = document.getElementById('adminLogsSourceStats');
+        var statsInner = document.getElementById('adminLogsSourceStatsInner');
+        if (statsEl && statsInner) {
+          statsEl.classList.remove('d-none');
+          statsInner.innerHTML = ''
+            + '<span class="crm-chip"><span class="badge bg-secondary" style="font-size:0.7em">PHP</span> ' + safeText(String(counts.server_error || 0)) + '</span>'
+            + '<span class="crm-chip"><span class="badge bg-primary" style="font-size:0.7em">JS</span> ' + safeText(String(counts.frontend_error || 0)) + '</span>'
+            + '<span class="crm-chip"><span class="badge bg-info" style="font-size:0.7em">Module</span> ' + safeText(String(counts.module_error || 0)) + '</span>'
+            + '<span class="crm-chip fw-bold">Всего: ' + safeText(String(envelope.meta.total || 0)) + '</span>';
+        }
+      } else if (source !== 'all_errors') {
+        var statsHide = document.getElementById('adminLogsSourceStats');
+        if (statsHide) statsHide.classList.add('d-none');
+      }
 
       if (!currentRows.length) {
         tableBody.innerHTML = '<tr><td colspan="6" class="text-muted">' + safeText(tp('admin_logs.empty', 'По выбранным фильтрам логи не найдены.')) + '</td></tr>';
@@ -15930,13 +16039,63 @@ window.CRM.pageApiBindings = (function () {
         if (!drawer) return;
         var body = drawer.querySelector('.offcanvas-body');
         if (!body) return;
-        var rawPretty = safeText(JSON.stringify(row.raw || {}, null, 2));
-        body.innerHTML = ''
-          + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + safeText(tp('admin.log_user', 'User')) + '</small><div>' + safeText(row.user) + '</div></div>'
-          + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + safeText(tp('admin.log_event', 'Event')) + '</small><div>' + safeText(row.event) + '</div></div>'
-          + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + safeText(tp('admin.log_target', 'Object / route')) + '</small><div>' + safeText(row.target) + '</div></div>'
-          + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + safeText(tp('admin.log_time', 'Time')) + '</small><div>' + safeText(formatDate(row.at)) + '</div></div>'
-          + '<div class="crm-metric-tile"><small class="text-muted">' + safeText(tp('admin.log_raw', 'Technical details')) + '</small><pre class="mb-0 small" style="white-space:pre-wrap">' + rawPretty + '</pre></div>';
+        var raw = row.raw || {};
+        var src = raw._source || '';
+        var html = '';
+
+        html += '<div class="crm-metric-tile mb-2"><small class="text-muted">' + safeText(tp('admin.log_time', 'Time')) + '</small><div>' + safeText(formatDate(row.at)) + '</div></div>';
+        html += '<div class="crm-metric-tile mb-2"><small class="text-muted">' + safeText(tp('admin.log_user', 'User')) + '</small><div>' + safeText(row.user) + '</div></div>';
+
+        if (src === 'server_error') {
+          var lvlCls = raw.level === 'fatal' ? 'bg-danger' : raw.level === 'exception' ? 'bg-warning text-dark' : 'bg-secondary';
+          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">Level</small><div><span class="badge ' + lvlCls + '">' + safeText(raw.level || 'error') + '</span> <span class="badge bg-dark">' + safeText(String(raw.code || '')) + '</span></div></div>';
+          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">Message</small><div class="small">' + safeText(raw.message || '') + '</div></div>';
+          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">File / Line</small><div class="small"><code>' + safeText((raw.file || '') + (raw.line ? ':' + raw.line : '')) + '</code></div></div>';
+          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">URL</small><div class="small">' + safeText(raw.method || '') + ' ' + safeText(raw.url || '') + '</div></div>';
+          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">IP</small><div class="small">' + safeText(raw.ip || '') + '</div></div>';
+          if (raw.stack_trace) {
+            html += '<div class="crm-metric-tile mb-2"><small class="text-muted">Stack Trace</small>';
+            html += '<details class="mt-1"><summary class="small text-muted" style="cursor:pointer">Показать / скрыть stack trace</summary>';
+            html += '<pre class="mb-0 small mt-1 p-2" style="white-space:pre-wrap;background:#f8f9fa;border-radius:4px;max-height:400px;overflow:auto">' + safeText(raw.stack_trace) + '</pre>';
+            html += '</details></div>';
+          }
+        } else if (src === 'frontend_error') {
+          var det = raw.details || {};
+          var pay = det.payload || {};
+          var evtType = raw.event_type || '';
+          var evtCls = evtType.indexOf('csp') >= 0 ? 'bg-warning text-dark' : 'bg-primary';
+          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">Event Type</small><div><span class="badge ' + evtCls + '">' + safeText(evtType) + '</span></div></div>';
+          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">Route</small><div class="small">' + safeText(det.route || '') + '</div></div>';
+          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">Page URL</small><div class="small">' + safeText(det.page_url || '') + '</div></div>';
+          if (pay.message || pay.reason || pay.code) {
+            html += '<div class="crm-metric-tile mb-2"><small class="text-muted">Error</small><div class="small">' + safeText(pay.message || pay.reason || pay.code || '') + '</div></div>';
+          }
+          if (pay.file || pay.line) {
+            html += '<div class="crm-metric-tile mb-2"><small class="text-muted">Location</small><div class="small"><code>' + safeText((pay.file || '') + (pay.line ? ':' + pay.line : '') + (pay.column ? ':' + pay.column : '')) + '</code></div></div>';
+          }
+          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">IP</small><div class="small">' + safeText(raw.ip || '') + '</div></div>';
+        } else if (src === 'module_error') {
+          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">Module</small><div><span class="badge bg-info">' + safeText(raw.module_name || '') + '</span></div></div>';
+          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">Context</small><div class="small">' + safeText(raw.context || '') + '</div></div>';
+          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">Error Code</small><div class="small"><code>' + safeText(raw.error_code || '') + '</code></div></div>';
+          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">Message</small><div class="small">' + safeText(raw.error_message || '') + '</div></div>';
+          if (raw.stack_trace) {
+            html += '<div class="crm-metric-tile mb-2"><small class="text-muted">Stack Trace</small>';
+            html += '<details class="mt-1"><summary class="small text-muted" style="cursor:pointer">Показать / скрыть stack trace</summary>';
+            html += '<pre class="mb-0 small mt-1 p-2" style="white-space:pre-wrap;background:#f8f9fa;border-radius:4px;max-height:400px;overflow:auto">' + safeText(raw.stack_trace) + '</pre>';
+            html += '</details></div>';
+          }
+        } else {
+          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">' + safeText(tp('admin.log_event', 'Event')) + '</small><div>' + safeText(row.event) + '</div></div>';
+          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">' + safeText(tp('admin.log_target', 'Object / route')) + '</small><div>' + safeText(row.target) + '</div></div>';
+        }
+
+        html += '<div class="crm-metric-tile mt-3"><small class="text-muted">' + safeText(tp('admin.log_raw', 'Raw JSON')) + '</small>';
+        html += '<details class="mt-1"><summary class="small text-muted" style="cursor:pointer">Показать исходные данные</summary>';
+        html += '<pre class="mb-0 small mt-1 p-2" style="white-space:pre-wrap;background:#f8f9fa;border-radius:4px;max-height:300px;overflow:auto">' + safeText(JSON.stringify(raw, null, 2)) + '</pre>';
+        html += '</details></div>';
+
+        body.innerHTML = html;
         if (window.bootstrap && window.bootstrap.Offcanvas) {
           window.bootstrap.Offcanvas.getOrCreateInstance(drawer).show();
         }

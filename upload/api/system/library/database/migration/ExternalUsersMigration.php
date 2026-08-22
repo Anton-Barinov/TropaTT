@@ -126,6 +126,8 @@ final class ExternalUsersMigration implements MigrationInterface
      *                      allowlist restrict this to their own tasks)
      *   - project.manage — required by GET /api/v1/projects* (RLS + route
      *                      allowlist restrict this to their own projects)
+     *   - chat.use       — required by GET/POST /api/v1/chats* (external_ok
+     *                      routes restrict to project_client chats only)
      */
     private function seedExternalGuestRole(PDO $pdo, string $driver): void
     {
@@ -158,10 +160,11 @@ final class ExternalUsersMigration implements MigrationInterface
         // are used instead of made-up .view codes).
         // This block is idempotent: it ensures exactly these permissions are
         // linked, removing any stale/wrong ones that may have been seeded by an
-        // earlier version of this migration (e.g. chat.use, knowledge.view).
+        // earlier version of this migration (e.g. knowledge.view).
         $wantedPermissionCodes = [
             'task.manage',
             'project.manage',
+            'chat.use',
         ];
 
         // Look up IDs for wanted permissions

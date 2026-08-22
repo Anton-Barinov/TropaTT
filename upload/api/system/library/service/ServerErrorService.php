@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\System\Library\Service;
 
 use Api\System\Library\Support\Ulid;
+use PDO;
 
 /**
  * Logs PHP errors, uncaught exceptions, and fatal errors to the database.
@@ -13,15 +14,17 @@ use Api\System\Library\Support\Ulid;
 final class ServerErrorService
 {
     private static ?self $instance = null;
-    private \PDO $pdo;
+    private PDO $pdo;
     private bool $enabled = true;
+    private int $consecutiveFailures = 0;
+    private int $retryAfter = 0;
 
-    private function __construct(\PDO $pdo)
+    private function __construct(PDO $pdo)
     {
         $this->pdo = $pdo;
     }
 
-    public static function getInstance(\PDO $pdo): self
+    public static function getInstance(PDO $pdo): self
     {
         if (self::$instance === null) {
             self::$instance = new self($pdo);
@@ -32,13 +35,14 @@ final class ServerErrorService
     /**
      * Register error/exception handlers. Call once during bootstrap.
      */
-    public static function register(\PDO $pdo): void
+    public static function register(PDO $pdo): void
     {
         $service = self::getInstance($pdo);
 
         // Only register if the table exists
         try {
             $pdo->query('SELECT 1 FROM server_errors LIMIT 1');
+            self::ensureIndexes($pdo);
         } catch (\Throwable $e) {
             return; // Table doesn't exist yet, skip
         }
@@ -72,6 +76,25 @@ final class ServerErrorService
     }
 
     /**
+     * Ensure indexes exist for efficient querying.
+     */
+    private static function ensureIndexes(PDO $pdo): void
+    {
+        $indexes = [
+            'idx_srv_level' => 'level',
+            'idx_srv_created' => 'created_at',
+            'idx_srv_user' => 'user_public_id',
+        ];
+        foreach ($indexes as $name => $column) {
+            try {
+                $pdo->exec("CREATE INDEX IF NOT EXISTS {$name} ON server_errors ({$column})");
+            } catch (\Throwable $e) {
+                // Index may already exist or permission denied — ignore
+            }
+        }
+    }
+
+    /**
      * Log an error to the database.
      */
     public function logError(
@@ -83,7 +106,14 @@ final class ServerErrorService
         ?string $stackTrace = null
     ): void {
         if (!$this->enabled) {
-            return;
+            // Retry after cooldown (60 seconds)
+            if ($this->retryAfter > 0 && time() >= $this->retryAfter) {
+                $this->enabled = true;
+                $this->consecutiveFailures = 0;
+                $this->retryAfter = 0;
+            } else {
+                return;
+            }
         }
 
         try {
@@ -98,7 +128,7 @@ final class ServerErrorService
             // Get request context
             $url = $_SERVER['REQUEST_URI'] ?? null;
             $method = $_SERVER['REQUEST_METHOD'] ?? null;
-            $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+            $ip = self::maskIp($_SERVER['REMOTE_ADDR'] ?? null);
 
             // Try to get user from session
             $userPublicId = $this->resolveUserPublicId();
@@ -127,9 +157,16 @@ final class ServerErrorService
                 $stackTrace,
                 $now,
             ]);
+
+            $this->consecutiveFailures = 0;
         } catch (\Throwable $e) {
-            // Silently fail — don't crash on logging failure
-            $this->enabled = false;
+            $this->consecutiveFailures++;
+            if ($this->consecutiveFailures >= 3) {
+                // Disable for 60 seconds after 3 consecutive failures
+                $this->enabled = false;
+                $this->retryAfter = time() + 60;
+            }
+            error_log('[ServerErrorService::logError] Failed: ' . $e->getMessage());
         }
     }
 
@@ -161,6 +198,11 @@ final class ServerErrorService
             $params[] = $filters['user_public_id'];
         }
 
+        if (!empty($filters['search'])) {
+            $where[] = 'message LIKE ?';
+            $params[] = '%' . $filters['search'] . '%';
+        }
+
         $limit = min((int)($filters['limit'] ?? 100), 500);
         $offset = max((int)($filters['offset'] ?? 0), 0);
 
@@ -174,7 +216,7 @@ final class ServerErrorService
             "SELECT * FROM server_errors WHERE {$whereSql} ORDER BY created_at DESC LIMIT {$limit} OFFSET {$offset}"
         );
         $stmt->execute($params);
-        $items = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         return ['items' => $items, 'total' => $total];
     }
@@ -186,7 +228,7 @@ final class ServerErrorService
     {
         $stmt = $this->pdo->prepare('SELECT * FROM server_errors WHERE public_id = ?');
         $stmt->execute([$publicId]);
-        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
     }
 
@@ -199,6 +241,45 @@ final class ServerErrorService
         $stmt = $this->pdo->prepare('DELETE FROM server_errors WHERE created_at < ?');
         $stmt->execute([$cutoff]);
         return $stmt->rowCount();
+    }
+
+    /**
+     * Get aggregate stats for the unified log.
+     */
+    public function stats(array $filters = []): array
+    {
+        $where = ['1=1'];
+        $params = [];
+
+        if (!empty($filters['from'])) {
+            $where[] = 'created_at >= ?';
+            $params[] = $filters['from'];
+        }
+        if (!empty($filters['to'])) {
+            $where[] = 'created_at <= ?';
+            $params[] = $filters['to'];
+        }
+
+        $whereSql = implode(' AND ', $where);
+
+        try {
+            $stmt = $this->pdo->prepare(
+                "SELECT level, COUNT(*) as cnt FROM server_errors WHERE {$whereSql} GROUP BY level"
+            );
+            $stmt->execute($params);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $result = ['fatal' => 0, 'exception' => 0, 'error' => 0, 'total' => 0];
+            foreach ($rows as $row) {
+                $level = (string)($row['level'] ?? 'error');
+                $cnt = (int)($row['cnt'] ?? 0);
+                $result[$level] = $cnt;
+                $result['total'] += $cnt;
+            }
+            return $result;
+        } catch (\Throwable $e) {
+            return ['fatal' => 0, 'exception' => 0, 'error' => 0, 'total' => 0];
+        }
     }
 
     private function resolveUserPublicId(): ?string
@@ -215,5 +296,28 @@ final class ServerErrorService
             // Ignore
         }
         return null;
+    }
+
+    private static function maskIp(?string $ip): ?string
+    {
+        if ($ip === null || $ip === '') {
+            return null;
+        }
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+            $parts = explode('.', $ip);
+            if (count($parts) === 4) {
+                $parts[3] = 'x';
+                return implode('.', $parts);
+            }
+        }
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            $parts = explode(':', $ip);
+            $count = count($parts);
+            if ($count >= 2) {
+                $parts[$count - 1] = 'xxxx';
+                return implode(':', $parts);
+            }
+        }
+        return $ip;
     }
 }

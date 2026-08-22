@@ -1,16 +1,18 @@
 <?php declare(strict_types=1); ?>
-<?php $title = $t('admin_logs.title', 'TropaTT — Логи пользователей'); ?>
+<?php $title = $t('admin_logs.title', 'TropaTT — Системный лог'); ?>
 <body data-page="admin" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
-<main class="crm-content crm-admin-page"><div class="crm-page-head"><div><ol class="breadcrumb mb-1"><li class="breadcrumb-item"><a href="index.php?route=admin" data-i18n="admin_logs.link_admin"><?= htmlspecialchars($t('admin_logs.link_admin', 'Админка'), ENT_QUOTES, 'UTF-8') ?></a></li><li class="breadcrumb-item active" data-i18n="admin_logs.breadcrumb"><?= htmlspecialchars($t('admin_logs.breadcrumb', 'Логи пользователей'), ENT_QUOTES, 'UTF-8') ?></li></ol><h1 class="crm-page-title" data-i18n="admin_logs.page_title"><?= htmlspecialchars($t('admin_logs.page_title', 'Логи пользователей'), ENT_QUOTES, 'UTF-8') ?></h1><p class="crm-subtitle" data-i18n="admin_logs.subtitle"><?= htmlspecialchars($t('admin_logs.subtitle', 'История входов, аудита, учета времени и действий сотрудников.'), ENT_QUOTES, 'UTF-8') ?></p></div></div>
+<main class="crm-content crm-admin-page"><div class="crm-page-head"><div><ol class="breadcrumb mb-1"><li class="breadcrumb-item"><a href="index.php?route=admin" data-i18n="admin_logs.link_admin"><?= htmlspecialchars($t('admin_logs.link_admin', 'Админка'), ENT_QUOTES, 'UTF-8') ?></a></li><li class="breadcrumb-item active" data-i18n="admin_logs.breadcrumb"><?= htmlspecialchars($t('admin_logs.breadcrumb', 'Системный лог'), ENT_QUOTES, 'UTF-8') ?></li></ol><h1 class="crm-page-title" data-i18n="admin_logs.page_title"><?= htmlspecialchars($t('admin_logs.page_title', 'Системный лог'), ENT_QUOTES, 'UTF-8') ?></h1><p class="crm-subtitle" data-i18n="admin_logs.subtitle"><?= htmlspecialchars($t('admin_logs.subtitle', 'PHP ошибки, JS ошибки frontend, ошибки модулей, журналы аудита, безопасности и запросов.'), ENT_QUOTES, 'UTF-8') ?></p></div></div>
 
 <div class="crm-toolbar crm-toolbar-surface crm-filters-card d-flex flex-wrap gap-2">
   <select id="adminLogsSourceFilter" class="form-select crm-field-w-220">
+    <option value="all_errors" data-i18n="admin_logs.opt_all_errors"><?= htmlspecialchars($t('admin_logs.opt_all_errors', 'Все ошибки'), ENT_QUOTES, 'UTF-8') ?></option>
+    <option value="server_errors" data-i18n="admin_logs.opt_server_errors"><?= htmlspecialchars($t('admin_logs.opt_server_errors', 'Ошибки сервера (PHP)'), ENT_QUOTES, 'UTF-8') ?></option>
+    <option value="module_errors" data-i18n="admin_logs.opt_module_errors"><?= htmlspecialchars($t('admin_logs.opt_module_errors', 'Ошибки модулей'), ENT_QUOTES, 'UTF-8') ?></option>
     <option value="audit" data-i18n="admin_logs.opt_audit"><?= htmlspecialchars($t('admin_logs.opt_audit', 'Журнал аудита'), ENT_QUOTES, 'UTF-8') ?></option>
     <option value="security" data-i18n="admin_logs.opt_security"><?= htmlspecialchars($t('admin_logs.opt_security', 'Журнал безопасности'), ENT_QUOTES, 'UTF-8') ?></option>
     <option value="request" data-i18n="admin_logs.opt_request"><?= htmlspecialchars($t('admin_logs.opt_request', 'Журнал запросов'), ENT_QUOTES, 'UTF-8') ?></option>
     <option value="worklog" data-i18n="admin_logs.opt_worklog"><?= htmlspecialchars($t('admin_logs.opt_worklog', 'Записи учета времени'), ENT_QUOTES, 'UTF-8') ?></option>
-    <option value="server_errors" data-i18n="admin_logs.opt_server_errors"><?= htmlspecialchars($t('admin_logs.opt_server_errors', 'Ошибки сервера'), ENT_QUOTES, 'UTF-8') ?></option>
   </select>
   <input id="adminLogsUserFilter" class="form-control crm-field-w-240" placeholder="<?= htmlspecialchars($t('admin_logs.placeholder_user', 'ID пользователя / автора'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="admin_logs.placeholder_user">
   <input id="adminLogsEntityFilter" class="form-control crm-field-w-220" placeholder="<?= htmlspecialchars($t('admin_logs.placeholder_entity', 'Тип объекта (task/project/...)'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="admin_logs.placeholder_entity">
@@ -51,6 +53,10 @@
       <span class="crm-legend-item"><i class="crm-legend-dot crm-legend-other"></i><span data-i18n="admin_logs.chart_other"><?= htmlspecialchars($t('admin_logs.chart_other', 'HTTP/бизнес'), ENT_QUOTES, 'UTF-8') ?></span></span>
     </div>
   </div>
+</div>
+
+<div id="adminLogsSourceStats" class="crm-card crm-section-card mb-3 d-none">
+  <div class="d-flex flex-wrap gap-3 align-items-center" id="adminLogsSourceStatsInner"></div>
 </div>
 
 <div class="crm-card crm-section-card p-0 table-responsive mb-3"><table class="table crm-table mb-0"><thead><tr><th data-i18n="admin_logs.th_time"><?= htmlspecialchars($t('admin_logs.th_time', 'Время'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="admin_logs.th_user"><?= htmlspecialchars($t('admin_logs.th_user', 'Пользователь'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="admin_logs.th_source_event"><?= htmlspecialchars($t('admin_logs.th_source_event', 'Источник/событие'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="admin_logs.th_object_route"><?= htmlspecialchars($t('admin_logs.th_object_route', 'Объект/маршрут'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="admin_logs.th_ip_status"><?= htmlspecialchars($t('admin_logs.th_ip_status', 'IP/Статус'), ENT_QUOTES, 'UTF-8') ?></th><th style="width:130px" data-i18n="admin_logs.th_details"><?= htmlspecialchars($t('admin_logs.th_details', 'Детали'), ENT_QUOTES, 'UTF-8') ?></th></tr></thead><tbody id="adminLogsTableBody">
