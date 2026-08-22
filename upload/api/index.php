@@ -96,6 +96,7 @@ EnvLoader::loadFiles([
 ]);
 
 // Register server error logging to database (after autoloader + env)
+$errorPdo = null;
 try {
     $dbConfig = [
         'host' => defined('DB_HOST') ? DB_HOST : '127.0.0.1',
@@ -139,14 +140,16 @@ try {
     ));
     // Log to database if ServerErrorService is available
     try {
-        \Api\System\Library\Service\ServerErrorService::getInstance($errorPdo ?? null)?->logError(
-            'exception',
-            $exceptionMessage,
-            $e->getFile(),
-            $e->getLine(),
-            $e->getCode(),
-            $e->getTraceAsString()
-        );
+        if ($errorPdo !== null) {
+            \Api\System\Library\Service\ServerErrorService::getInstance($errorPdo)->logError(
+                'exception',
+                $exceptionMessage,
+                $e->getFile(),
+                $e->getLine(),
+                $e->getCode(),
+                $e->getTraceAsString()
+            );
+        }
     } catch (Throwable $ignored) {}
 
     $response = JsonResponse::error(

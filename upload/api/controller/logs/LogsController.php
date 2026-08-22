@@ -81,7 +81,7 @@ final class LogsController extends BaseController
 
         try {
             $pdo = $this->container->get('db.pdo');
-            $service = new \Api\System\Library\Service\ServerErrorService($pdo);
+            $service = \Api\System\Library\Service\ServerErrorService::getInstance($pdo);
             $input = $this->request()->allInput();
             $result = $service->list([
                 'from' => $input['from'] ?? null,
