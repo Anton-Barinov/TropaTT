@@ -1,8 +1,8 @@
 <?php
 return [
-    'request_list' => 'Логи запросов',
-    'security_list' => 'Логи безопасности',
-    'audit_list' => 'Логи аудита',
-    'frontend_error_chart' => 'Ошибки фронтенда по часам',',
+    'request_list' => 'Журнал запросов',
+    'security_list' => 'Журнал безопасности',
+    'audit_list' => 'Журнал аудита',
+    'frontend_error_chart' => 'Ошибки фронтенда (API) по часам',
     'server_errors_unavailable' => 'Журнал ошибок сервера недоступен',
 ];
