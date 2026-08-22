@@ -15799,6 +15799,9 @@ window.CRM.pageApiBindings = (function () {
         if (userFilter && userFilter.value.trim()) query.user_public_id = userFilter.value.trim();
         if (entityFilter && entityFilter.value.trim()) query.task_public_id = entityFilter.value.trim();
       }
+      if (source === 'server_errors') {
+        if (userFilter && userFilter.value.trim()) query.user_public_id = userFilter.value.trim();
+      }
       return query;
     }
 
