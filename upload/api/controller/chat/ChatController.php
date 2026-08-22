@@ -74,9 +74,9 @@ final class ChatController extends BaseController
                 $archivedFilter = ($archivedFilter ? $archivedFilter . ' AND' : 'WHERE') . " c.type = 'project_client'";
             }
             $projectJoin = $isExternal ? 'LEFT JOIN projects p ON p.id = c.project_id' : '';
-            $projectSelect = $isExternal ? ', p.public_id AS project_public_id,' : '';
+            $projectSelect = $isExternal ? ', p.public_id AS project_public_id' : '';
             $stmt = $pdo->prepare("
-                SELECT c.*,{$projectSelect}
+                SELECT c.*,{$projectSelect},
                     cp.is_favorite,
                     cp.muted_until,
                     COALESCE(rm.last_read_message_id, 0) as last_read_id,
