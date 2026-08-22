@@ -564,7 +564,7 @@ window.CRM.navigation = (function () {
     }
 
     if (!bar.querySelector('[data-profile-dropdown]') && !bar.querySelector('.dropdown [data-bs-toggle="dropdown"]')) {
-      right.insertAdjacentHTML('beforeend', '<div class="dropdown" data-profile-dropdown><button class="btn crm-btn-ghost dropdown-toggle" data-bs-toggle="dropdown">' + t('topbar.user_fallback', 'User') + '</button><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item" href="index.php?route=profile">' + t('topbar.profile', 'Profile') + '</a></li><li><a class="dropdown-item" href="index.php?route=notifications">' + t('topbar.notifications', 'Notifications') + '</a></li><li><hr class="dropdown-divider"></li><li><button class="dropdown-item" type="button" data-action="logout">' + t('topbar.logout', 'Logout') + '</button></li></ul></div>');
+      right.insertAdjacentHTML('beforeend', '<div class="dropdown" data-profile-dropdown><button class="btn crm-btn-ghost dropdown-toggle" data-bs-toggle="dropdown">' + t('topbar.user_fallback', 'User') + '</button><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item" href="index.php?route=profile">' + t('topbar.profile', 'Profile') + '</a></li><li><a class="dropdown-item" href="index.php?route=notifications">' + t('topbar.notifications', 'Notifications') + '</a></li><li class="d-none" data-profile-earnings><a class="dropdown-item" href="index.php?route=my-earnings">' + t('topbar.my_earnings', 'My earnings') + '</a></li><li><hr class="dropdown-divider"></li><li><button class="dropdown-item" type="button" data-action="logout">' + t('topbar.logout', 'Logout') + '</button></li></ul></div>');
     }
 
     var profileButton = bar.querySelector('[data-profile-dropdown] .dropdown-toggle')
@@ -572,6 +572,13 @@ window.CRM.navigation = (function () {
       || bar.querySelector('.ms-auto .dropdown .dropdown-toggle');
     if (profileButton) {
       profileButton.setAttribute('data-session-user-btn', '1');
+    }
+
+    var earningsItem = bar.querySelector('[data-profile-earnings]');
+    if (earningsItem) {
+      var canViewEarnings = window.CRM.api && typeof window.CRM.api.hasPermission === 'function'
+        && window.CRM.api.hasPermission('finance.rate.view_own_payout');
+      earningsItem.classList.toggle('d-none', !canViewEarnings);
     }
 
     // The topbar is built asynchronously (after the menu fetch), so it can be

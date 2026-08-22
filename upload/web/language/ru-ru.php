@@ -96,6 +96,7 @@ return array (
     'profile' => 'Мой профиль',
     'logout' => 'Выйти',
     'user_fallback' => 'Пользователь',
+    'my_earnings' => 'Моё вознаграждение',
   ),
   'global_search' => 
   array (

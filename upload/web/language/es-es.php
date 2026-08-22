@@ -8956,6 +8956,7 @@ return array (
     'profile' => 'Mi perfil',
     'logout' => 'Cerrar sesión',
     'user_fallback' => 'Usuario',
+    'my_earnings' => 'Mis ganancias',
   ),
   'webhook' => 
   array (

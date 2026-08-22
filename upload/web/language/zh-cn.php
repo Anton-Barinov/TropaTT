@@ -96,6 +96,7 @@ return array (
     'profile' => '我的资料',
     'logout' => '退出登录',
     'user_fallback' => '用户',
+    'my_earnings' => '我的收入',
   ),
   'global_search' => 
   array (

@@ -24,7 +24,7 @@ final class MenuController extends BaseController
         ['key' => 'cycles', 'i18n' => 'nav.cycles', 'label_key' => 'nav.cycles', 'href' => 'index.php?route=cycles', 'permissions' => ['task.manage']],
         ['key' => 'knowledge', 'i18n' => 'nav.knowledge', 'label_key' => 'nav.knowledge', 'href' => 'index.php?route=knowledge', 'permissions' => ['knowledge.view']],
         ['key' => 'analytics', 'i18n' => 'nav.analytics', 'label_key' => 'nav.analytics', 'href' => 'index.php?route=analytics', 'permissions' => ['task.manage']],
-        ['key' => 'my-earnings', 'i18n' => 'nav.my_earnings', 'label_key' => 'nav.my_earnings', 'href' => 'index.php?route=my-earnings', 'permissions' => ['finance.rate.view_own_payout']],
+        ['key' => 'my-earnings', 'i18n' => 'nav.my_earnings', 'label_key' => 'nav.my_earnings', 'href' => 'index.php?route=my-earnings', 'permissions' => ['finance.rate.view_own_payout'], 'default_hidden' => true],
         ['key' => 'notifications', 'i18n' => 'nav.notifications', 'label_key' => 'nav.notifications', 'href' => 'index.php?route=notifications', 'permissions' => []],
         // Admin entries mirror the server-side route gate in web/index.php
         // ($adminRoutePermissions): the same permission set that lets a user
