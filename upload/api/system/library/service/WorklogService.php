@@ -132,7 +132,7 @@ final class WorklogService
         }
 
         // Check if the target date falls in a locked period (TZ 5.4).
-        $logDate = gmdate('Y-m-d', strtotime((string)($input['logged_at'] ?? $now)));
+        $logDate = $this->parseLogDate((string)($input['logged_at'] ?? $now));
         if ($this->worklogs->hasLockedWorklogsInDateRange($logDate, $logDate . ' 23:59:59')) {
             return 'RATE_PERIOD_LOCKED';
         }
@@ -155,7 +155,7 @@ final class WorklogService
 
         // --- Rate snapshot (TZ 5.1) ---
         try {
-            $logDate = gmdate('Y-m-d', strtotime((string)($input['logged_at'] ?? $now)));
+            $logDate = $this->parseLogDate((string)($input['logged_at'] ?? $now));
             $resolution = $this->getRateResolver()->resolve(
                 $userId,
                 $taskId,
@@ -266,7 +266,7 @@ final class WorklogService
             if (!empty($existing['rate_locked_at'])) {
                 return 'RATE_PERIOD_LOCKED';
             }
-            $existingDate = gmdate('Y-m-d', strtotime((string)($existing['logged_at'] ?? '')));
+            $existingDate = $this->parseLogDate((string)($existing['logged_at'] ?? ''));
             if (\Api\Controller\Rate\RateController::isDateLocked($this->worklogs->getPdo(), $existingDate)) {
                 return 'RATE_PERIOD_LOCKED';
             }
@@ -434,6 +434,28 @@ final class WorklogService
         }
 
         return gmdate('Y-m-d H:i:s', $ts);
+    }
+
+    /**
+     * Parse a logged_at value to a Y-m-d date string in UTC.
+     * Handles date-only strings (Y-m-d) and full datetime strings safely,
+     * avoiding timezone-dependent strtotime() interpretation.
+     */
+    private function parseLogDate(string $raw): string
+    {
+        $raw = trim($raw);
+        if ($raw === '') {
+            return gmdate('Y-m-d');
+        }
+        // If it's a date-only string (Y-m-d), parse in UTC to avoid offset issues.
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw)) {
+            return $raw;
+        }
+        // Full datetime — use strtotime with UTC suffix if no timezone info.
+        if (preg_match('/[zZ]$/', $raw) || preg_match('/[+-]\d{2}:?\d{2}$/', $raw)) {
+            return gmdate('Y-m-d', strtotime($raw));
+        }
+        return gmdate('Y-m-d', strtotime($raw . ' UTC'));
     }
 
     /** Convert a stored UTC 'Y-m-d H:i:s' value to Unix seconds. */
