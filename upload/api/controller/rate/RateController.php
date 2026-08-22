@@ -198,6 +198,9 @@ final class RateController extends BaseController
             ->where('rate_locked_at', 'IS', null)
             ->update(['rate_locked_at' => $now]);
 
+        // Store locked period so new worklogs in this range are blocked too (TZ 5.4).
+        $this->addLockedPeriod($pdo, $from, $to);
+
         $this->invalidateWorklogCache();
         $this->logAudit('rate_lock', ['from' => $from, 'to' => $to, 'locked' => $updated]);
 
@@ -222,6 +225,9 @@ final class RateController extends BaseController
             ->where('logged_at', '<=', $to . ' 23:59:59')
             ->where('rate_locked_at', 'IS NOT', null)
             ->update(['rate_locked_at' => null]);
+
+        // Remove from locked periods registry.
+        $this->removeLockedPeriod($pdo, $from, $to);
 
         $this->invalidateWorklogCache();
         $this->logAudit('rate_unlock', ['from' => $from, 'to' => $to, 'unlocked' => $updated]);
@@ -300,6 +306,51 @@ final class RateController extends BaseController
     /**
      * Read a system-scope setting scalar value (settings.value is JSON).
      */
+    private function addLockedPeriod(\PDO $pdo, string $from, string $to): void
+    {
+        $existing = (array)$this->settingScalar($pdo, 'finance.rate_locked_periods');
+        $existing[] = ['from' => $from, 'to' => $to];
+        $this->upsertSetting($pdo, 'finance.rate_locked_periods', $existing);
+    }
+
+    private function removeLockedPeriod(\PDO $pdo, string $from, string $to): void
+    {
+        $existing = (array)$this->settingScalar($pdo, 'finance.rate_locked_periods');
+        $existing = array_values(array_filter($existing, fn($p) => $p['from'] !== $from || $p['to'] !== $to));
+        $this->upsertSetting($pdo, 'finance.rate_locked_periods', $existing);
+    }
+
+    private function upsertSetting(\PDO $pdo, string $name, mixed $value): void
+    {
+        $json = json_encode($value, JSON_UNESCAPED_UNICODE);
+        $now = gmdate('Y-m-d H:i:s');
+        $exists = (new QueryBuilder($pdo))->from('settings')->where('scope', '=', 'system')->where('name', '=', $name)->first();
+        if ($exists) {
+            (new QueryBuilder($pdo))->from('settings')->where('scope', '=', 'system')->where('name', '=', $name)->update(['value' => $json, 'updated_at' => $now]);
+        } else {
+            (new QueryBuilder($pdo))->from('settings')->insert(['scope' => 'system', 'name' => $name, 'value' => $json, 'created_at' => $now, 'updated_at' => $now]);
+        }
+    }
+
+    /**
+     * Check if a given date falls within any locked period stored in settings.
+     */
+    public static function isDateLocked(\PDO $pdo, string $date): bool
+    {
+        $row = (new QueryBuilder($pdo))->from('settings')
+            ->select(['value'])
+            ->where('scope', '=', 'system')
+            ->where('name', '=', 'finance.rate_locked_periods')
+            ->first();
+        if (!$row || empty($row['value'])) return false;
+        $periods = json_decode((string)$row['value'], true);
+        if (!is_array($periods)) return false;
+        foreach ($periods as $p) {
+            if ($date >= $p['from'] && $date <= $p['to']) return true;
+        }
+        return false;
+    }
+
     private function settingScalar(\PDO $pdo, string $name): mixed
     {
         $row = (new QueryBuilder($pdo))

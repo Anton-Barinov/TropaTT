@@ -133,8 +133,10 @@ final class WorklogService
 
         // Check if the target date falls in a locked period (TZ 5.4).
         $logDate = gmdate('Y-m-d', strtotime((string)($input['logged_at'] ?? $now)));
-        $hasLock = $this->worklogs->hasLockedWorklogsInDateRange($logDate, $logDate . ' 23:59:59');
-        if ($hasLock) {
+        if ($this->worklogs->hasLockedWorklogsInDateRange($logDate, $logDate . ' 23:59:59')) {
+            return 'RATE_PERIOD_LOCKED';
+        }
+        if (\Api\Controller\Rate\RateController::isDateLocked($this->worklogs->getPdo(), $logDate)) {
             return 'RATE_PERIOD_LOCKED';
         }
 
@@ -253,6 +255,10 @@ final class WorklogService
         if ($set !== []) {
             // Check rate_locked_at — locked periods reject ALL edits (TZ 5.1)
             if (!empty($existing['rate_locked_at'])) {
+                return 'RATE_PERIOD_LOCKED';
+            }
+            $existingDate = gmdate('Y-m-d', strtotime((string)($existing['logged_at'] ?? '')));
+            if (\Api\Controller\Rate\RateController::isDateLocked($this->worklogs->getPdo(), $existingDate)) {
                 return 'RATE_PERIOD_LOCKED';
             }
 
