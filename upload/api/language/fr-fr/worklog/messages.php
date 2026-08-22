@@ -10,6 +10,7 @@ return [
     'interval_end_after_start' => 'L\'heure de fin doit être après l\'heure de début',
     'permission_task' => 'Permissions insuffisantes pour la tâche',
     'permission_worklog' => 'Permissions insuffisantes pour le journal de travail',
+    'period_locked' => 'La période tarifaire est verrouillée et ne peut pas être modifiée',
     'created' => 'Journal de travail créé',
     'not_found' => 'Journal de travail introuvable',
     'detail' => 'Détails du journal de travail',

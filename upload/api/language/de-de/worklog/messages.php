@@ -10,6 +10,7 @@ return [
     'interval_end_after_start' => 'Die Endzeit muss nach der Startzeit liegen',
     'permission_task' => 'Insufficient permissions for task',
     'permission_worklog' => 'Insufficient permissions for worklog',
+    'period_locked' => 'Der Tarifzeitraum ist gesperrt und kann nicht bearbeitet werden',
     'created' => 'Worklog created',
     'not_found' => 'Worklog not found',
     'detail' => 'Worklog details',

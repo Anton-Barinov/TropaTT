@@ -10,6 +10,7 @@ return [
     'interval_end_after_start' => '结束时间必须在开始时间之后',
     'permission_task' => '没有任务的操作权限',
     'permission_worklog' => '没有工时日志的操作权限',
+    'period_locked' => '费率期已锁定，无法编辑',
     'created' => '工时日志已创建',
     'not_found' => '工时日志未找到',
     'detail' => '工时日志详情',

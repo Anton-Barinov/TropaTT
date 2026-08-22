@@ -10,6 +10,7 @@ return [
     'interval_end_after_start' => 'End time must be after start time',
     'permission_task' => 'Insufficient permissions for task',
     'permission_worklog' => 'Insufficient permissions for worklog',
+    'period_locked' => 'Rate period is locked and cannot be edited',
     'created' => 'Worklog created',
     'not_found' => 'Worklog not found',
     'detail' => 'Worklog details',

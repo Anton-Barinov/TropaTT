@@ -232,6 +232,9 @@ final class WorklogController extends BaseController
                 'permission' => [$this->t('worklog/messages.permission_worklog')],
             ]);
         }
+        if ($item === 'RATE_PERIOD_LOCKED') {
+            return $this->error('RATE_PERIOD_LOCKED', $this->t('worklog/messages.period_locked'), 403);
+        }
 
         $this->invalidateCache('worklog');
         $this->fireWorklogTrigger($item, $authUser['user'], $previousMinutes);

@@ -10,6 +10,7 @@ return [
     'interval_end_after_start' => 'A hora de término deve ser após a hora de início',
     'permission_task' => 'Permissões insuficientes para a tarefa',
     'permission_worklog' => 'Permissões insuficientes para o registro de trabalho',
+    'period_locked' => 'O período de tarifas está bloqueado e não pode ser editado',
     'created' => 'Registro de trabalho criado',
     'not_found' => 'Registro de trabalho não encontrado',
     'detail' => 'Detalhes do registro de trabalho',
