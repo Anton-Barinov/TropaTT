@@ -84,7 +84,7 @@ final class RateController extends BaseController
         $input = $this->request()->allInput();
         $from = (string)($input['date_from'] ?? '');
         $to = (string)($input['date_to'] ?? '');
-        $dryRun = !empty($input['dry_run'] ?? true);
+        $dryRun = !empty($input['dry_run'] ?? false);
         $userPublicId = (string)($input['user_public_id'] ?? '');
 
         if ($from === '' || $to === '') {
