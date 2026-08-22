@@ -32287,6 +32287,55 @@ window.CRM.pageApiBindings = (function () {
       createBtn.addEventListener('click', function () { openCreateModal(); });
       createBtn.dataset.bound = '1';
     }
+    // Create for project button
+    var createForProjectBtn = document.getElementById('rateCardCreateForProjectBtn');
+    if (createForProjectBtn && createForProjectBtn.dataset.bound !== '1') {
+      createForProjectBtn.addEventListener('click', async function () {
+        var projSel = document.querySelector('#rateCardCreateProjectForm [name="project_public_id"]');
+        if (projSel) {
+          var res = await tryRequest('api/v1/projects', { query: { limit: 500 }, silent: true });
+          var items = (res && res.success) ? mapItems(res) : [];
+          projSel.innerHTML = '<option value="">' + rt('rate_cards.select_project', 'Выберите проект') + '</option>' +
+            items.map(function (p) { return '<option value="' + safeText(p.public_id) + '">' + safeText(p.title || p.name || p.public_id) + '</option>'; }).join('');
+        }
+        var titleInput = document.querySelector('#rateCardCreateProjectForm [name="title"]');
+        if (titleInput) titleInput.value = '';
+        new bootstrap.Modal(document.getElementById('rateCardCreateProjectModal')).show();
+      });
+      createForProjectBtn.dataset.bound = '1';
+    }
+    var createProjectForm = document.getElementById('rateCardCreateProjectForm');
+    if (createProjectForm && createProjectForm.dataset.bound !== '1') {
+      createProjectForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var fd = new FormData(createProjectForm);
+        var title = (fd.get('title') || '').trim();
+        var projectId = fd.get('project_public_id') || '';
+        if (!title || !projectId) return;
+        var submitBtn = createProjectForm.querySelector('[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
+        try {
+          var env = await window.CRM.api.request('api/v1/rate-cards', {
+            method: 'POST',
+            body: { title: title }
+          });
+          var cardId = env && env.data && env.data.public_id ? env.data.public_id : '';
+          if (!cardId) throw new Error('no public_id');
+          await window.CRM.api.request('api/v1/rate-card-assignments', {
+            method: 'POST',
+            body: { rate_card_public_id: cardId, scope_type: 'project', scope_ref: projectId }
+          });
+          notify(_t('counterparty_detail.rates_created', 'Прайс создан и назначен проекту'), 'success');
+          bootstrap.Modal.getInstance(document.getElementById('rateCardCreateProjectModal')).hide();
+          await Promise.all([loadCards(), loadAssignments()]);
+        } catch (e) {
+          notify(_t('counterparty_detail.rates_create_fail', 'Не удалось создать прайс'), 'error');
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
+        }
+      });
+      createProjectForm.dataset.bound = '1';
+    }
     async function populateScopeRef(scopeType) {
       var refSel = document.querySelector('#rateAssignmentForm [name="scope_ref"]');
       if (!refSel) return;
