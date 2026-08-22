@@ -26071,6 +26071,7 @@ window.CRM.pageApiBindings = (function () {
         + '<label class="form-label mb-0" for="counterpartyRatesCardSelect">' + _t('counterparty_detail.rates_current', 'Текущий прайс') + ':</label>'
         + '<select id="counterpartyRatesCardSelect" class="form-select crm-field-w-260">' + opts + '</select>'
         + '<button class="btn btn-sm crm-btn-primary" type="button" id="counterpartyRatesSaveBtn">' + _t('page.save', 'Сохранить') + '</button>'
+        + '<button class="btn btn-sm crm-btn-secondary" type="button" id="counterpartyRatesCreateBtn">' + _t('counterparty_detail.rates_create_card', 'Создать прайс') + '</button>'
         + '</div>';
       var saveBtn = document.getElementById('counterpartyRatesSaveBtn');
       if (saveBtn) {
@@ -26092,6 +26093,43 @@ window.CRM.pageApiBindings = (function () {
             renderCounterpartyRates(cpPublicId);
           } catch (e) {
             notify(_t('counterparty_detail.rates_save_fail', 'Не удалось сохранить прайс'), 'error');
+          }
+        });
+      }
+      var createBtn = document.getElementById('counterpartyRatesCreateBtn');
+      if (createBtn) {
+        createBtn.addEventListener('click', async function () {
+          var cpTitle = '';
+          try {
+            var cpEnv = await window.CRM.api.request('api/v1/counterparties/' + encodeURIComponent(cpPublicId));
+            var cpData = cpEnv && cpEnv.data && cpEnv.data.counterparty ? cpEnv.data.counterparty : (cpEnv && cpEnv.data ? cpEnv.data : null);
+            cpTitle = cpData ? (cpData.title || cpData.name || '') : '';
+          } catch (e) {}
+          var defaultName = cpTitle ? cpTitle : '';
+          var cardName = window.prompt(_t('counterparty_detail.rates_create_prompt', 'Введите название нового прайс-листа'), defaultName);
+          if (cardName === null || cardName.trim() === '') return;
+          createBtn.disabled = true;
+          try {
+            var env = await window.CRM.api.request('api/v1/rate-cards', {
+              method: 'POST',
+              body: { title: cardName.trim() }
+            });
+            var cardId = env && env.data && env.data.public_id ? env.data.public_id : '';
+            if (!cardId) throw new Error('no public_id');
+            // Remove existing counterparty assignments, then assign the new card.
+            for (var i = 0; i < cpAssigns.length; i++) {
+              await window.CRM.api.request('api/v1/rate-card-assignments/' + encodeURIComponent(cpAssigns[i].public_id), { method: 'DELETE' });
+            }
+            await window.CRM.api.request('api/v1/rate-card-assignments', {
+              method: 'POST',
+              body: { rate_card_public_id: cardId, scope_type: 'counterparty', scope_ref: cpPublicId }
+            });
+            notify(_t('counterparty_detail.rates_created', 'Прайс создан и назначен контрагенту'), 'success');
+            renderCounterpartyRates(cpPublicId);
+          } catch (e) {
+            notify(_t('counterparty_detail.rates_create_fail', 'Не удалось создать прайс'), 'error');
+          } finally {
+            createBtn.disabled = false;
           }
         });
       }
