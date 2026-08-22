@@ -15829,7 +15829,8 @@ window.CRM.pageApiBindings = (function () {
           id: String(item.public_id || ''),
           at: item.created_at || item._sort_time || '',
           user: resolveUserLabel('', item.user_public_id || '', 'system'),
-          event: '<span class="badge' + sourceColor + '" style="font-size:0.65em">PHP</span> <span class="badge' + lvlColor + '" style="font-size:0.65em">' + safeText(lvl) + '</span> ' + safeText(msg.substring(0, 110)),
+          event: '<span class="badge bg-secondary" style="font-size:0.65em">PHP</span> <span class="badge' + lvlColor + '" style="font-size:0.65em">' + safeText(lvl) + '</span> ' + safeText(msg.substring(0, 110)),
+          eventIsHtml: true,
           target: safeText(fileLine),
           side: String(item.ip || item.code || ''),
           ip: item.ip || '',
@@ -15847,7 +15848,8 @@ window.CRM.pageApiBindings = (function () {
           id: String(item.actor_public_id || item.id || ''),
           at: item.created_at || item._sort_time || '',
           user: resolveUserLabel('', item.actor_public_id || '', 'system'),
-          event: '<span class="badge' + sourceColor + '" style="font-size:0.65em">JS</span> <span class="badge' + evtColor + '" style="font-size:0.65em">' + safeText(evtType.replace('frontend_', '')) + '</span> ' + safeText(String(evtMsg).substring(0, 110)),
+          event: '<span class="badge bg-primary" style="font-size:0.65em">JS</span> <span class="badge' + evtColor + '" style="font-size:0.65em">' + safeText(evtType.replace('frontend_', '')) + '</span> ' + safeText(String(evtMsg).substring(0, 110)),
+          eventIsHtml: true,
           target: safeText(evtRoute.substring(0, 80)),
           side: safeText(item.ip || ''),
           ip: item.ip || '',
@@ -15859,7 +15861,8 @@ window.CRM.pageApiBindings = (function () {
           id: String(item.id || ''),
           at: item.created_at || item._sort_time || '',
           user: resolveUserLabel('', '', 'module'),
-          event: '<span class="badge' + sourceColor + '" style="font-size:0.65em">Module</span> ' + safeText((item.error_message || '').substring(0, 120)),
+          event: '<span class="badge bg-info" style="font-size:0.65em">Module</span> ' + safeText((item.error_message || '').substring(0, 120)),
+          eventIsHtml: true,
           target: safeText((item.module_name || '') + ' / ' + (item.context || '')),
           side: safeText(item.error_code || ''),
           ip: '',
@@ -15871,6 +15874,7 @@ window.CRM.pageApiBindings = (function () {
         at: item.created_at || item._sort_time || '',
         user: resolveUserLabel('', '', 'system'),
         event: safeText(src + ': ' + (item.message || item.event_type || '')),
+        eventIsHtml: false,
         target: '—',
         side: '—',
         ip: '',
@@ -15923,6 +15927,7 @@ window.CRM.pageApiBindings = (function () {
           at: item.created_at,
           user: resolveUserLabel('', item.user_public_id || '', 'system'),
           event: '<span class="badge' + levelBadge + '" style="font-size:0.7em">' + safeText(item.level || 'error') + '</span> ' + safeText((item.message || '').substring(0, 120)),
+          eventIsHtml: true,
           target: safeText((item.file || '') + (item.line ? ':' + item.line : '')),
           side: String(item.code || '—'),
           ip: item.ip || '',
@@ -15935,6 +15940,7 @@ window.CRM.pageApiBindings = (function () {
           at: item.created_at,
           user: resolveUserLabel('', '', 'module'),
           event: '<span class="badge bg-info" style="font-size:0.7em">module</span> ' + safeText((item.error_message || '').substring(0, 120)),
+          eventIsHtml: true,
           target: safeText((item.module_name || '') + ' / ' + (item.context || '')),
           side: safeText(item.error_code || '—'),
           ip: '',
@@ -16005,10 +16011,11 @@ window.CRM.pageApiBindings = (function () {
         tableBody.innerHTML = '<tr><td colspan="6" class="text-muted">' + safeText(tp('admin_logs.empty', 'По выбранным фильтрам логи не найдены.')) + '</td></tr>';
       } else {
         tableBody.innerHTML = currentRows.slice(0, 120).map(function (row) {
+          var eventHtml = row.eventIsHtml ? row.event : safeText(row.event);
           return '<tr>'
             + '<td>' + safeText(formatDate(row.at)) + '</td>'
             + '<td>' + safeText(row.user) + '</td>'
-            + '<td>' + safeText(row.event) + '</td>'
+            + '<td>' + eventHtml + '</td>'
             + '<td>' + safeText(row.target) + '</td>'
             + '<td>' + safeText(row.ip || row.side || '—') + '</td>'
             + '<td><button class="btn btn-sm crm-btn-secondary" data-log-open="' + safeText(row.id) + '">' + safeText(tp('notifications.open', 'Open')) + '</button></td>'
