@@ -20,17 +20,17 @@ final class CoreUpdateController extends BaseController
     public function status(): \Api\System\Library\Http\JsonResponse
     {
         if (!$this->allowed()) {
-            return $this->error('FORBIDDEN', 'Forbidden', 403);
+            return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
         }
         $config = CoreUpdateConfig::load();
         $client = new CoreUpdateClient($config);
-        return $this->success('CORE_UPDATE_STATUS', 'Core update status', (new CoreUpdateStatusService((string)$config['storage_dir'], $client, $config))->status());
+        return $this->success('CORE_UPDATE_STATUS', $this->t('system/messages.status'), (new CoreUpdateStatusService((string)$config['storage_dir'], $client, $config))->status());
     }
 
     public function check(): \Api\System\Library\Http\JsonResponse
     {
         if (!$this->allowed()) {
-            return $this->error('FORBIDDEN', 'Forbidden', 403);
+            return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
         }
         $config = CoreUpdateConfig::load();
         $client = new CoreUpdateClient($config);
@@ -44,13 +44,13 @@ final class CoreUpdateController extends BaseController
         } catch (\Throwable $e) {
             // Ignore audit write errors; the check result is authoritative.
         }
-        return $this->success('CORE_UPDATE_CHECK', 'Core update check', $result);
+        return $this->success('CORE_UPDATE_CHECK', $this->t('system/messages.check'), $result);
     }
 
     public function changes(): \Api\System\Library\Http\JsonResponse
     {
         if (!$this->allowed()) {
-            return $this->error('FORBIDDEN', 'Forbidden', 403);
+            return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
         }
         $config = CoreUpdateConfig::load();
         $client = new CoreUpdateClient($config);
@@ -63,16 +63,16 @@ final class CoreUpdateController extends BaseController
             $to = (string)($plan['target_build'] ?? '');
             $from = $current['core_build'] ?? ($plan['current_build'] ?? $from);
             if ($to === '' || (($plan['update_available'] ?? null) === false && (string)$from === $to)) {
-                return $this->success('CORE_UPDATE_CHANGES', 'Core update changes', $this->emptyChanges(is_string($from) ? $from : null, $to));
+                return $this->success('CORE_UPDATE_CHANGES', $this->t('system/messages.changes'), $this->emptyChanges(is_string($from) ? $from : null, $to));
             }
         }
-        return $this->success('CORE_UPDATE_CHANGES', 'Core update changes', $client->changes(is_string($from) ? $from : null, $to));
+        return $this->success('CORE_UPDATE_CHANGES', $this->t('system/messages.changes'), $client->changes(is_string($from) ? $from : null, $to));
     }
 
     public function preflight(): \Api\System\Library\Http\JsonResponse
     {
         if (!$this->allowed()) {
-            return $this->error('FORBIDDEN', 'Forbidden', 403);
+            return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
         }
         $config = CoreUpdateConfig::load();
         $payload = $this->request()->allInput();
@@ -83,26 +83,26 @@ final class CoreUpdateController extends BaseController
             $message = (string)($normalized['message'] ?? $normalized['code'] ?? 'Updater preflight failed.');
             return $this->error('CORE_UPDATE_PREFLIGHT_FAILED', $message, 502, [], ['updater' => $normalized]);
         }
-        return $this->success('CORE_UPDATE_PREFLIGHT', 'Core update preflight', $normalized);
+        return $this->success('CORE_UPDATE_PREFLIGHT', $this->t('system/messages.preflight'), $normalized);
     }
 
     public function session(): \Api\System\Library\Http\JsonResponse
     {
         if (!$this->allowed()) {
-            return $this->error('FORBIDDEN', 'Forbidden', 403);
+            return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
         }
         $config = CoreUpdateConfig::load();
         $userId = (int)($this->user()['user']['id'] ?? 0);
-        return $this->success('CORE_UPDATE_SESSION', 'Core update session', (new CoreUpdateSessionService((string)$config['storage_dir']))->create($userId));
+        return $this->success('CORE_UPDATE_SESSION', $this->t('system/messages.session'), (new CoreUpdateSessionService((string)$config['storage_dir']))->create($userId));
     }
 
     public function history(): \Api\System\Library\Http\JsonResponse
     {
         if (!$this->allowed()) {
-            return $this->error('FORBIDDEN', 'Forbidden', 403);
+            return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
         }
         $config = CoreUpdateConfig::load();
-        return $this->success('CORE_UPDATE_HISTORY', 'Core update history', ['items' => (new CoreUpdateHistoryRepository((string)$config['storage_dir']))->list()]);
+        return $this->success('CORE_UPDATE_HISTORY', $this->t('system/messages.history'), ['items' => (new CoreUpdateHistoryRepository((string)$config['storage_dir']))->list()]);
     }
 
     /**
@@ -119,7 +119,7 @@ final class CoreUpdateController extends BaseController
     public function recoveryKey(): \Api\System\Library\Http\JsonResponse
     {
         if (!$this->allowed()) {
-            return $this->error('FORBIDDEN', 'Forbidden', 403);
+            return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
         }
         $config = CoreUpdateConfig::load();
         $storageDir = (string)$config['storage_dir'];
@@ -129,10 +129,10 @@ final class CoreUpdateController extends BaseController
         $key = bin2hex(random_bytes(16));
         $hashFile = $storageDir . '/recovery_key.hash';
         if (@file_put_contents($hashFile, password_hash($key, PASSWORD_DEFAULT)) === false) {
-            return $this->error('CORE_UPDATE_RECOVERY_KEY_WRITE_FAILED', 'Unable to write the recovery key file.', 500);
+            return $this->error('CORE_UPDATE_RECOVERY_KEY_WRITE_FAILED', $this->t('system/messages.recovery_key_write_failed'), 500);
         }
         @chmod($hashFile, 0640);
-        return $this->success('CORE_UPDATE_RECOVERY_KEY', 'Recovery key rotated', [
+        return $this->success('CORE_UPDATE_RECOVERY_KEY', $this->t('system/messages.recovery_key'), [
             'recovery_key' => $key,
             'note' => 'Save this key now. It will not be shown again.',
             'rescue_url' => '/updater/rescue.php',
@@ -142,11 +142,11 @@ final class CoreUpdateController extends BaseController
     public function log(array $params): \Api\System\Library\Http\JsonResponse
     {
         if (!$this->allowed()) {
-            return $this->error('FORBIDDEN', 'Forbidden', 403);
+            return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
         }
         $config = CoreUpdateConfig::load();
         $jobId = (string)($params['job_id'] ?? '');
-        return $this->success('CORE_UPDATE_LOG', 'Core update log', ['job_id' => $jobId, 'lines' => (new CoreUpdateLogRepository((string)$config['storage_dir']))->read($jobId)]);
+        return $this->success('CORE_UPDATE_LOG', $this->t('system/messages.log'), ['job_id' => $jobId, 'lines' => (new CoreUpdateLogRepository((string)$config['storage_dir']))->read($jobId)]);
     }
 
     private function allowed(): bool

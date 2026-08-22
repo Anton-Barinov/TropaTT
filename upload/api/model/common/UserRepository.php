@@ -38,7 +38,7 @@ final class UserRepository
             // for self-service profile/me (sanitizeUser keeps them); all
             // findById callers operate on the actor's own id. Never SELECT *
             // (AGENTS.md) and never leak token/secret columns.
-            ->select(['id', 'public_id', 'login', 'email', 'full_name', 'locale', 'is_active', 'is_root', 'is_external', 'external_role', 'password_hash', 'auth_token_hash', 'external_invitation_expires_at', 'deleted_at', 'cost_rate', 'bill_rate'])
+            ->select(['id', 'public_id', 'login', 'email', 'full_name', 'locale', 'is_active', 'is_root', 'is_external', 'external_role', 'password_hash', 'auth_token_hash', 'external_invitation_expires_at', 'deleted_at', 'cost_rate', 'bill_rate', 'payout_rate'])
             ->where('id', '=', $id)
             ->first();
     }

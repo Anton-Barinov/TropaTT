@@ -75,4 +75,5 @@ return [
     'activity_list' => 'Aufgabenaktivität',
     'too_many_tasks' => 'Zu viele Aufgaben. Maximal %d pro Sammeloperation.',
     'too_many_ids' => 'Bis zu %d Aufgaben-IDs pro Anfrage erlaubt',
+    'cyclic_dependency' => 'Zirkuläre Abhängigkeit in der Aufgabenhierarchie erkannt',
 ];

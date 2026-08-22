@@ -226,4 +226,7 @@ return [
     'system_prompt_project' => '创建包含任务的详细项目计划（共8-15个任务）。',
     'tasks_created' => '任务已创建',
     'dont_know_yet' => '还不知道',
+    'create_failed' => '创建操作失败。请查看服务器日志了解详情。',
+    'ai_operation_failed' => 'AI操作失败。请查看服务器日志了解详情。',
+    'max_cycles_reached' => '已达到最大问题循环次数',
 ];

@@ -996,7 +996,7 @@ final class IdeaController extends BaseController
         } catch (\Throwable $e) {
             $pdo->rollBack();
             error_log('[IdeaController::unknown] ' . $e->getMessage());
-            return $this->error('CREATE_FAILED', 'Create operation failed. Check server logs for details.', 500);
+            return $this->error('CREATE_FAILED', $this->t('idea/messages.create_failed'), 500);
         }
     }
 
@@ -3254,7 +3254,7 @@ PROMPT;
             return $this->success('TASKS_DECOMPOSED', $this->t('idea/messages.decomposed'), ['tasks' => $tasks]);
         } catch (\Throwable $e) {
             error_log('[IdeaController::decomposeTasks] ' . $e->getMessage());
-            return $this->error('AI_ERROR', 'AI operation failed. Check server logs for details.', 500);
+            return $this->error('AI_ERROR', $this->t('idea/messages.ai_operation_failed'), 500);
         }
     }
 
@@ -3276,7 +3276,7 @@ PROMPT;
         $cycleStmt = $pdo->prepare("SELECT MAX(cycle_id) FROM idea_questions WHERE idea_id = :iid");
         $cycleStmt->execute(['iid' => $idea['id']]);
         $nextCycle = ((int)$cycleStmt->fetchColumn()) + 1;
-        if ($nextCycle > 5) return $this->error('MAX_CYCLES', 'Maximum question cycles reached', 422);
+        if ($nextCycle > 5) return $this->error('MAX_CYCLES', $this->t('idea/messages.max_cycles_reached'), 422);
 
         try {
             $user = $this->user()['user'] ?? [];
@@ -3317,7 +3317,7 @@ PROMPT;
             ]);
         } catch (\Throwable $e) {
             error_log('[IdeaController::unknown] ' . $e->getMessage());
-            return $this->error('AI_ERROR', 'AI operation failed. Check server logs for details.', 500);
+            return $this->error('AI_ERROR', $this->t('idea/messages.ai_operation_failed'), 500);
         }
     }
 
@@ -3738,7 +3738,7 @@ PROMPT;
             ]);
         } catch (\Throwable $e) {
             error_log('[IdeaController::unknown] ' . $e->getMessage());
-            return $this->error('AI_ERROR', 'AI operation failed. Check server logs for details.', 500);
+            return $this->error('AI_ERROR', $this->t('idea/messages.ai_operation_failed'), 500);
         }
     }
 

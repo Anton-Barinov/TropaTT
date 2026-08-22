@@ -353,7 +353,7 @@ final class KnowledgeController extends BaseController
                 $page = $this->repo()->createPage($input, $this->actorUserId() ?: null, $this->actor());
             } catch (\RuntimeException $e) {
                 error_log('[KnowledgeController::createPage] ' . $e->getMessage());
-                return $this->error('VALIDATION_ERROR', 'Validation failed. Check server logs for details.', 422);
+                return $this->error('VALIDATION_ERROR', $this->t('knowledge/messages.validation_failed'), 422);
             }
             $this->invalidateCache('knowledge');
             $this->auditLog('knowledge_page', $page['public_id'] ?? '', 'page_created', [
@@ -569,7 +569,7 @@ final class KnowledgeController extends BaseController
             $draft = $this->repo()->saveDraft((string)$params['public_id'], $this->request()->allInput(), $this->actorUserId());
         } catch (\RuntimeException $e) {
             error_log('[KnowledgeController::saveDraft] ' . $e->getMessage());
-            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', 'Knowledge page not found.', 404);
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found'), 404);
         }
         return $this->success('KNOWLEDGE_DRAFT_SAVED', $this->t('knowledge/messages.draft_saved', 'Draft saved'), [
             'draft' => $draft,
@@ -728,7 +728,7 @@ final class KnowledgeController extends BaseController
                 );
             } catch (\RuntimeException $e) {
                 error_log('[KnowledgeController::createLink] ' . $e->getMessage());
-                return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', 'Knowledge page not found.', 404);
+                return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found'), 404);
             }
             return $this->success('KNOWLEDGE_LINK_CREATED', $this->t('knowledge/messages.link_created', 'Link created'), [
                 'link' => $link,
@@ -787,7 +787,7 @@ final class KnowledgeController extends BaseController
             $this->repo()->unlinkEntity($pageId, (string)$params['link_public_id'], $this->actor());
         } catch (\RuntimeException $e) {
             error_log('[KnowledgeController::deleteLink] ' . $e->getMessage());
-            return $this->error('KNOWLEDGE_LINK_NOT_FOUND', 'Knowledge link not found.', 404);
+            return $this->error('KNOWLEDGE_LINK_NOT_FOUND', $this->t('knowledge/messages.link_not_found'), 404);
         }
         return $this->success('KNOWLEDGE_LINK_DELETED', $this->t('knowledge/messages.link_deleted', 'Link deleted'));
     }
@@ -1762,7 +1762,7 @@ final class KnowledgeController extends BaseController
     {
         $actor = $this->actor();
         if (empty((int)($actor['is_external'] ?? 0))) {
-            return $this->error('EXTERNAL_ACCESS_DENIED', 'External access only', 403);
+            return $this->error('EXTERNAL_ACCESS_DENIED', $this->t('common/messages.external_access_only'), 403);
         }
 
         $projectPublicId = trim((string)($params['project_public_id'] ?? ''));
@@ -1826,7 +1826,7 @@ final class KnowledgeController extends BaseController
     {
         $actor = $this->actor();
         if (empty((int)($actor['is_external'] ?? 0))) {
-            return $this->error('EXTERNAL_ACCESS_DENIED', 'External access only', 403);
+            return $this->error('EXTERNAL_ACCESS_DENIED', $this->t('common/messages.external_access_only'), 403);
         }
 
         $pagePublicId = trim((string)($params['public_id'] ?? ''));

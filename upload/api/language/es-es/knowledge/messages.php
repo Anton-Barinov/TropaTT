@@ -121,4 +121,6 @@ return array (
     'version_detail' => 'Detalle de la versión',
     'page_locked' => 'La página ya está bloqueada',
     'page_unlocked' => 'Página desbloqueada',
+    'validation_failed' => 'Error de validación. Consulte los registros del servidor para más detalles.',
+    'link_not_found' => 'Enlace de la base de conocimientos no encontrado',
 );

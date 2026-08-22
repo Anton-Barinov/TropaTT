@@ -19,7 +19,7 @@ final class UserManagementRepository
         $offset = ($page - 1) * $limit;
 
         $items = $this->buildListQuery($filters)
-            ->select(['public_id', 'login', 'email', 'full_name', 'locale', 'is_active', 'is_root', 'cost_rate', 'bill_rate', 'created_by_user_id', 'created_at', 'updated_at'])
+            ->select(['public_id', 'login', 'email', 'full_name', 'locale', 'is_active', 'is_root', 'cost_rate', 'bill_rate', 'payout_rate', 'created_by_user_id', 'created_at', 'updated_at'])
             ->orderBy('created_at', 'DESC')
             ->limit($limit)
             ->offset($offset)
@@ -34,7 +34,7 @@ final class UserManagementRepository
     {
         return (new QueryBuilder($this->pdo))
             ->from('users')
-            ->select(['id', 'public_id', 'login', 'email', 'full_name', 'locale', 'is_active', 'is_root', 'cost_rate', 'bill_rate', 'created_by_user_id', 'created_at', 'updated_at'])
+            ->select(['id', 'public_id', 'login', 'email', 'full_name', 'locale', 'is_active', 'is_root', 'cost_rate', 'bill_rate', 'payout_rate', 'created_by_user_id', 'created_at', 'updated_at'])
             ->where('public_id', '=', $publicId)
             ->first();
     }
@@ -43,7 +43,7 @@ final class UserManagementRepository
     {
         return (new QueryBuilder($this->pdo))
             ->from('users')
-            ->select(['id', 'public_id', 'login', 'email', 'full_name', 'locale', 'is_active', 'is_root', 'cost_rate', 'bill_rate', 'created_by_user_id', 'created_at', 'updated_at'])
+            ->select(['id', 'public_id', 'login', 'email', 'full_name', 'locale', 'is_active', 'is_root', 'cost_rate', 'bill_rate', 'payout_rate', 'created_by_user_id', 'created_at', 'updated_at'])
             ->where('id', '=', $id)
             ->first();
     }

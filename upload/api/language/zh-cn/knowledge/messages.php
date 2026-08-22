@@ -121,4 +121,6 @@ return [
     'version_detail' => '版本详情',
     'page_locked' => '页面已被锁定',
     'page_unlocked' => '页面已解锁',
+    'validation_failed' => '验证失败。请查看服务器日志了解详情。',
+    'link_not_found' => '知识库链接未找到',
 ];

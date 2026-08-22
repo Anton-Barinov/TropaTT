@@ -28,4 +28,5 @@ return [
     'saved' => '已保存',
     'client_not_found' => '未找到客户',
     'max_255' => '最多 255 个字符',
+    'external_access_only' => '仅限外部访问',
 ];

@@ -302,4 +302,7 @@ JSON :',
     'default_idea_title' => 'idée',
     'tasks_created' => 'Tâches créées',
     'dont_know_yet' => 'Je ne sais pas encore',
+    'create_failed' => 'Échec de la création. Consultez les journaux du serveur.',
+    'ai_operation_failed' => 'Opération IA échouée. Consultez les journaux du serveur.',
+    'max_cycles_reached' => 'Nombre maximum de cycles de questions atteint',
 ];

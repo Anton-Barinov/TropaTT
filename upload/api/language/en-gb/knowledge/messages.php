@@ -121,4 +121,6 @@ return [
     'version_detail' => 'Version detail',
     'page_locked' => 'Page is already locked',
     'page_unlocked' => 'Page unlocked',
+    'validation_failed' => 'Validation failed. Check server logs for details.',
+    'link_not_found' => 'Knowledge link not found',
 ];

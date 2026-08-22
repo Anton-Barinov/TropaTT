@@ -28,4 +28,5 @@ return [
     'saved' => 'Saved',
     'client_not_found' => 'Client not found',
     'max_255' => 'Maximum 255 characters',
+    'external_access_only' => 'External access only',
 ];

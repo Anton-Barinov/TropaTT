@@ -75,4 +75,5 @@ return [
     'activity_list' => 'Atividade da tarefa',
     'too_many_tasks' => 'Muitas tarefas. Máximo de %d por operação em massa.',
     'too_many_ids' => 'Até %d IDs de tarefas por solicitação',
+    'cyclic_dependency' => 'Dependência circular detectada na hierarquia de tarefas',
 ];

@@ -308,4 +308,7 @@ JSON:
     'default_idea_title' => 'idea',
     'tasks_created' => 'Aufgaben erstellt',
     'dont_know_yet' => 'Weiß noch nicht',
+    'create_failed' => 'Erstellung fehlgeschlagen. Überprüfen Sie die Serverprotokolle.',
+    'ai_operation_failed' => 'KI-Operation fehlgeschlagen. Überprüfen Sie die Serverprotokolle.',
+    'max_cycles_reached' => 'Maximale Anzahl von Fragezyklen erreicht',
 ];

@@ -75,4 +75,5 @@ return [
     'activity_list' => 'Task activity',
     'too_many_tasks' => 'Too many tasks. Maximum %d allowed per bulk operation.',
     'too_many_ids' => 'Up to %d task IDs allowed per request',
+    'cyclic_dependency' => 'Circular dependency detected in task hierarchy',
 ];

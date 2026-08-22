@@ -308,4 +308,7 @@ JSON:
     'default_idea_title' => 'idea',
     'tasks_created' => 'Tareas creadas',
     'dont_know_yet' => 'Aún no lo sé',
+    'create_failed' => 'Error al crear. Consulte los registros del servidor.',
+    'ai_operation_failed' => 'Error en operación de IA. Consulte los registros del servidor.',
+    'max_cycles_reached' => 'Se alcanzó el máximo de ciclos de preguntas',
 ];

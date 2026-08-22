@@ -75,4 +75,5 @@ return [
     'activity_list' => 'Activité de la tâche',
     'too_many_tasks' => 'Trop de tâches. Maximum %d autorisé par opération groupée.',
     'too_many_ids' => 'Jusqu’à %d identifiants de tâches autorisés par requête',
+    'cyclic_dependency' => 'Dépendance circulaire détectée dans la hiérarchie des tâches',
 ];

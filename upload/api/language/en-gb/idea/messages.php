@@ -308,4 +308,7 @@ JSON:
     'default_idea_title' => 'idea',
     'tasks_created' => 'Tasks created',
     'dont_know_yet' => 'Don\'t know yet',
+    'create_failed' => 'Create operation failed. Check server logs for details.',
+    'ai_operation_failed' => 'AI operation failed. Check server logs for details.',
+    'max_cycles_reached' => 'Maximum question cycles reached',
 ];

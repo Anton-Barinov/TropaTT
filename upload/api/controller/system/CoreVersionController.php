@@ -23,6 +23,6 @@ final class CoreVersionController extends BaseController
             unset($data['source_sha'], $data['short_sha'], $data['adopted']);
         }
         
-        return $this->success('CORE_VERSION', 'Core version', $data);
+        return $this->success('CORE_VERSION', $this->t('system/messages.core_version'), $data);
     }
 }

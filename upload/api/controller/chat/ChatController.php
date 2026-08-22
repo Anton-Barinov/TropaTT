@@ -15,7 +15,7 @@ final class ChatController extends BaseController
         $pdo = $this->container->get('db.pdo');
         $user = $this->user()['user'] ?? [];
         $userId = (int)($user['id'] ?? 0);
-        if ($userId <= 0) return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
+        if ($userId <= 0) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         $isExternal = !empty((int)($user['is_external'] ?? 0));
         $archived = (string)($this->request()->input('archived', '')) === '1';
 
@@ -211,7 +211,7 @@ final class ChatController extends BaseController
 
         $user = $this->user()['user'] ?? [];
         $userId = (int)($user['id'] ?? 0);
-        if ($userId <= 0) return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
+        if ($userId <= 0) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
 
         $pdo = $this->container->get('db.pdo');
         /** @var ChatService $service */
@@ -564,7 +564,7 @@ final class ChatController extends BaseController
     {
         $user = $this->user()['user'] ?? [];
         $userId = (int)($user['id'] ?? 0);
-        if ($userId <= 0) return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
+        if ($userId <= 0) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
 
         try {
             $pdo = $this->container->get('db.pdo');
@@ -590,7 +590,7 @@ final class ChatController extends BaseController
     {
         $user = $this->user()['user'] ?? [];
         $userId = (int)($user['id'] ?? 0);
-        if ($userId <= 0) return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
+        if ($userId <= 0) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
 
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
         if (!is_array($chat)) return $this->error('CHAT_NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
@@ -628,7 +628,7 @@ final class ChatController extends BaseController
     {
         $user = $this->user()['user'] ?? [];
         $userId = (int)($user['id'] ?? 0);
-        if ($userId <= 0) return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
+        if ($userId <= 0) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
 
         $publicId = (string)($params['public_id'] ?? '');
 
@@ -938,12 +938,12 @@ final class ChatController extends BaseController
     {
         $actor = $this->externalUser();
         if ($actor === []) {
-            return $this->error('EXTERNAL_ACCESS_DENIED', 'External access only', 403);
+            return $this->error('EXTERNAL_ACCESS_DENIED', $this->t('common/messages.external_access_only'), 403);
         }
 
         $publicId = trim((string)($params['public_id'] ?? ''));
         if ($publicId === '') {
-            return $this->error('VALIDATION_ERROR', 'Validation error', 422);
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422);
         }
 
         $chat = $this->resolveExternalChat($publicId, (int)$actor['id']);
@@ -968,12 +968,12 @@ final class ChatController extends BaseController
     {
         $actor = $this->externalUser();
         if ($actor === []) {
-            return $this->error('EXTERNAL_ACCESS_DENIED', 'External access only', 403);
+            return $this->error('EXTERNAL_ACCESS_DENIED', $this->t('common/messages.external_access_only'), 403);
         }
 
         $publicId = trim((string)($params['public_id'] ?? ''));
         if ($publicId === '') {
-            return $this->error('VALIDATION_ERROR', 'Validation error', 422);
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422);
         }
 
         $chat = $this->resolveExternalChat($publicId, (int)$actor['id']);
@@ -1003,12 +1003,12 @@ final class ChatController extends BaseController
     {
         $actor = $this->externalUser();
         if ($actor === []) {
-            return $this->error('EXTERNAL_ACCESS_DENIED', 'External access only', 403);
+            return $this->error('EXTERNAL_ACCESS_DENIED', $this->t('common/messages.external_access_only'), 403);
         }
 
         $publicId = trim((string)($params['public_id'] ?? ''));
         if ($publicId === '') {
-            return $this->error('VALIDATION_ERROR', 'Validation error', 422);
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422);
         }
 
         $chat = $this->resolveExternalChat($publicId, (int)$actor['id']);
@@ -1030,12 +1030,12 @@ final class ChatController extends BaseController
     {
         $actor = $this->externalUser();
         if ($actor === []) {
-            return $this->error('EXTERNAL_ACCESS_DENIED', 'External access only', 403);
+            return $this->error('EXTERNAL_ACCESS_DENIED', $this->t('common/messages.external_access_only'), 403);
         }
 
         $publicId = trim((string)($params['public_id'] ?? ''));
         if ($publicId === '') {
-            return $this->error('VALIDATION_ERROR', 'Validation error', 422);
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422);
         }
 
         $chat = $this->resolveExternalChat($publicId, (int)$actor['id']);
@@ -1053,11 +1053,11 @@ final class ChatController extends BaseController
     {
         $user = $this->user()['user'] ?? [];
         $userId = (int)($user['id'] ?? 0);
-        if ($userId <= 0) return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
+        if ($userId <= 0) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
 
         $projectPublicId = trim((string)($params['project_public_id'] ?? ''));
         if ($projectPublicId === '') {
-            return $this->error('VALIDATION_ERROR', 'Validation error', 422);
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422);
         }
 
         $projectService = $this->container->get('service.project');
@@ -1083,17 +1083,17 @@ final class ChatController extends BaseController
     {
         $user = $this->user()['user'] ?? [];
         $userId = (int)($user['id'] ?? 0);
-        if ($userId <= 0) return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
+        if ($userId <= 0) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
 
         $projectPublicId = trim((string)($params['project_public_id'] ?? ''));
         if ($projectPublicId === '') {
-            return $this->error('VALIDATION_ERROR', 'Validation error', 422);
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422);
         }
 
         $input = $this->request()->allInput();
         $participantPublicId = trim((string)($input['user_public_id'] ?? ''));
         if ($participantPublicId === '') {
-            return $this->error('VALIDATION_ERROR', 'Validation error', 422);
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422);
         }
 
         // Resolve the project
@@ -1132,12 +1132,12 @@ final class ChatController extends BaseController
     {
         $user = $this->user()['user'] ?? [];
         $userId = (int)($user['id'] ?? 0);
-        if ($userId <= 0) return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
+        if ($userId <= 0) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
 
         $projectPublicId = trim((string)($params['project_public_id'] ?? ''));
         $participantPublicId = trim((string)($params['user_public_id'] ?? ''));
         if ($projectPublicId === '' || $participantPublicId === '') {
-            return $this->error('VALIDATION_ERROR', 'Validation error', 422);
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422);
         }
 
         // Resolve the project

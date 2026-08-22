@@ -308,4 +308,7 @@ JSON:
     'default_idea_title' => 'ideia',
     'tasks_created' => 'Tarefas criadas',
     'dont_know_yet' => 'Ainda não sei',
+    'create_failed' => 'Falha ao criar. Verifique os logs do servidor.',
+    'ai_operation_failed' => 'Falha na operação de IA. Verifique os logs do servidor.',
+    'max_cycles_reached' => 'Número máximo de ciclos de perguntas atingido',
 ];

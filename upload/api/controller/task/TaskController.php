@@ -293,8 +293,8 @@ final class TaskController extends BaseController
             ]);
         }
         if ($item === 'CYCLIC_DEPENDENCY_DETECTED') {
-            return $this->error('CYCLIC_DEPENDENCY_DETECTED', 'Circular dependency detected in task hierarchy', 422, [
-                'parent_task_public_id' => ['Circular dependency detected'],
+            return $this->error('CYCLIC_DEPENDENCY_DETECTED', $this->t('task/messages.cyclic_dependency'), 422, [
+                'parent_task_public_id' => [$this->t('task/messages.cyclic_dependency')],
             ]);
         }
         if ($item === 'TASK_KEY_FIELD_NOT_EDITABLE') {
