@@ -11,6 +11,7 @@ return [
     'invalid_activity_code' => 'Le type de travail indiqué n\'est pas dans le dictionnaire',
     'negative_rate' => 'Le taux ne peut pas être négatif',
     'invalid_date_range' => 'La date de fin ne peut pas être antérieure à la date de début',
+    'duplicate_line' => 'Une ligne avec le même employé, rôle et type de travail existe déjà dans cette grille tarifaire',
     'invalid_markup_percent' => 'Le pourcentage de majoration doit être entre 0 et 1000 ou vide',
     'invalid_lag_days' => 'Le délai doit être entre 0 et 90 jours',
     'invalid_auto_close_mode' => 'Mode de clôture automatique invalide',

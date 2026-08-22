@@ -11,6 +11,7 @@ return [
     'invalid_activity_code' => 'The specified work type is not in the dictionary',
     'negative_rate' => 'Rate cannot be negative',
     'invalid_date_range' => 'End date cannot be earlier than start date',
+    'duplicate_line' => 'A line with the same employee, role, and work type already exists in this rate card',
     'invalid_markup_percent' => 'Markup percent must be between 0 and 1000 or empty',
     'invalid_lag_days' => 'Lag days must be between 0 and 90',
     'invalid_auto_close_mode' => 'Invalid auto-close mode',

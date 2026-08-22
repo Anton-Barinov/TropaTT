@@ -160,7 +160,7 @@ final class RateCardController extends BaseController
         $bill = $input['bill_rate'] ?? null;
         $payout = $input['payout_rate'] ?? null;
 
-        $errKey = $this->lineValidationError($input);
+        $errKey = $this->lineValidationError($input, (int)$card['id']);
         if ($errKey !== null) {
             return $this->error('VALIDATION', $this->t('rate/messages.' . $errKey), 422);
         }
@@ -196,7 +196,7 @@ final class RateCardController extends BaseController
         $line = (new QueryBuilder($pdo))->from('rate_card_lines')->where('public_id', '=', $pid)->first();
         if (!$line) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
-        $errKey = $this->lineValidationError(array_merge($line, $input));
+        $errKey = $this->lineValidationError(array_merge($line, $input), (int)$line['rate_card_id'], $pid);
         if ($errKey !== null) {
             return $this->error('VALIDATION', $this->t('rate/messages.' . $errKey), 422);
         }
@@ -321,8 +321,10 @@ final class RateCardController extends BaseController
     /**
      * Validate a rate-card line's final state (TZ 3.3).
      * Returns an i18n key (rate/messages.*) on failure, or null when valid.
+     * @param int $cardId rate_cards.id for duplicate check
+     * @param string|null $excludeLineId skip this line (for updates)
      */
-    private function lineValidationError(array $merged): ?string
+    private function lineValidationError(array $merged, int $cardId = 0, ?string $excludeLineId = null): ?string
     {
         // At least one of the three rates must be set
         $cost = $merged['cost_rate'] ?? null;
@@ -362,6 +364,38 @@ final class RateCardController extends BaseController
         $to = $merged['effective_to'] ?? null;
         if ($to !== null && $to !== '' && strtotime((string)$to) < strtotime($from)) {
             return 'invalid_date_range';
+        }
+
+        // Duplicate check: same user + role + activity in the same card
+        if ($cardId > 0) {
+            $pdo = $this->container->get('db.pdo');
+            $userId = $merged['user_id'] ?? null;
+            $roleCode = $merged['role_code'] ?? null;
+            $activityCode = $merged['activity_code'] ?? null;
+            $qb = (new QueryBuilder($pdo))->from('rate_card_lines')
+                ->where('rate_card_id', '=', $cardId)
+                ->where('deleted_at', 'IS', null);
+            if ($userId === null || $userId === '' || $userId === 0) {
+                $qb->where('user_id', 'IS', null);
+            } else {
+                $qb->where('user_id', '=', (int)$userId);
+            }
+            if (empty($roleCode)) {
+                $qb->where('role_code', 'IS', null);
+            } else {
+                $qb->where('role_code', '=', (string)$roleCode);
+            }
+            if (empty($activityCode)) {
+                $qb->where('activity_code', 'IS', null);
+            } else {
+                $qb->where('activity_code', '=', (string)$activityCode);
+            }
+            if ($excludeLineId !== null) {
+                $qb->where('public_id', '!=', $excludeLineId);
+            }
+            if ($qb->first()) {
+                return 'duplicate_line';
+            }
         }
 
         return null;

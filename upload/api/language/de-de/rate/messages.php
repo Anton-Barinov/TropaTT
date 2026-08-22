@@ -11,6 +11,7 @@ return [
     'invalid_activity_code' => 'Die angegebene Arbeitsart ist nicht im Verzeichnis vorhanden',
     'negative_rate' => 'Der Satz darf nicht negativ sein',
     'invalid_date_range' => 'Das Enddatum darf nicht vor dem Startdatum liegen',
+    'duplicate_line' => 'Eine Zeile mit demselben Mitarbeiter, derselben Rolle und derselben Arbeitsart existiert bereits in dieser Preisliste',
     'invalid_markup_percent' => 'Der Aufschlagsprozentsatz muss zwischen 0 und 1000 liegen oder leer sein',
     'invalid_lag_days' => 'Die Verzögerung muss zwischen 0 und 90 Tagen liegen',
     'invalid_auto_close_mode' => 'Ungültiger Auto-Close-Modus',

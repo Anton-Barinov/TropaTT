@@ -11,6 +11,7 @@ return [
     'invalid_activity_code' => 'O tipo de trabalho especificado não está no dicionário',
     'negative_rate' => 'A taxa não pode ser negativa',
     'invalid_date_range' => 'A data final não pode ser anterior à data inicial',
+    'duplicate_line' => 'Já existe uma linha com o mesmo funcionário, função e tipo de trabalho nesta tabela de preços',
     'invalid_markup_percent' => 'O percentual de acréscimo deve estar entre 0 e 1000 ou vazio',
     'invalid_lag_days' => 'Os dias de atraso devem estar entre 0 e 90',
     'invalid_auto_close_mode' => 'Modo de fechamento automático inválido',
