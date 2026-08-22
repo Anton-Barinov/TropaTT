@@ -243,14 +243,14 @@ final class WorklogService
         }
 
         if ($set !== []) {
+            // Check rate_locked_at — locked periods reject ALL edits (TZ 5.1)
+            if (!empty($existing['rate_locked_at'])) {
+                return 'RATE_PERIOD_LOCKED';
+            }
+
             $needsSnapshot = array_key_exists('task_id', $set)
                 || array_key_exists('logged_at', $set)
                 || array_key_exists('activity_code', $set);
-
-            // Check rate_locked_at before re-snapshotting (TZ 5.1)
-            if ($needsSnapshot && !empty($existing['rate_locked_at'])) {
-                return 'RATE_PERIOD_LOCKED';
-            }
 
             $this->worklogs->updateByPublicId($publicId, $set);
 
