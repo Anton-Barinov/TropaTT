@@ -162,14 +162,6 @@ final class WorklogService
                 $logDate,
                 $input['activity_code'] ?? null
             );
-            // DEBUG: write resolution context
-            @file_put_contents('/tmp/wl_rate_debug.log',
-                "userId=$userId taskId=$taskId date=$logDate activity=" . ($input['activity_code'] ?? 'null') .
-                " source=" . ($resolution['cost']['source_type'] ?? '?') .
-                " project=" . ($resolution['project_public_id'] ?? 'null') .
-                " client=" . ($resolution['client_public_id'] ?? 'null') . "\n",
-                FILE_APPEND
-            );
             $snapshot = [
                 'cost_rate_snapshot' => $resolution['cost']['rate'] ?? null,
                 'bill_rate_snapshot' => $resolution['bill']['rate'] ?? null,
