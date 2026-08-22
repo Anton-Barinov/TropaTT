@@ -924,11 +924,10 @@ $auJs = [
       return;
     }
     setBadge('changesBadge', 'ok', tr('changesBadge', '{commits} коммитов / {files} файлов', {commits: data.summary.commits || 0, files: data.summary.files || 0}));
-    const commits = (data.commits || []).slice(0, 6).map((c) => `<li><span><strong>${esc(c.short_sha || '')}</strong> ${esc(c.title || '')}</span><span>${esc(c.committed_at || '')}</span></li>`).join('');
-    const files = (data.files || []).slice(0, 12).map((f) => `<tr><td>${esc(f.path)}</td><td>${esc(f.scope)}</td><td>${esc(f.change_type)}</td><td>${f.included_in_package ? '<span class="updates-badge ok">included</span>' : '<span class="updates-badge neutral">excluded</span>'}</td></tr>`).join('');
+    const commits = (data.commits || []).slice(0, 6).map((c) => `<li><span><strong>${esc(c.short_sha || '')}</strong> ${esc(c.title || '')}</span></li>`).join('');
     const messageText = Number(payload.status || 0) === 204 ? tr('changesEmpty', 'Изменений для установки нет.') : data.message;
     const message = messageText ? `<div class="updates-empty mb-3">${esc(messageText)}</div>` : '';
-    $('changesContent').innerHTML = `${message}<div class="updates-details-grid"><div><h3 class="h6">${esc(tr('commitsTitle', 'Краткая история'))}</h3><ul class="updates-list">${commits || `<li><span>${esc(tr('noCommits', 'Нет коммитов'))}</span></li>`}</ul></div><div><h3 class="h6">${esc(tr('filesTitle', 'Затронутые файлы'))}</h3><table class="updates-file-table"><thead><tr><th>${esc(tr('fileCol', 'Файл'))}</th><th>${esc(tr('scopeCol', 'Зона'))}</th><th>${esc(tr('typeCol', 'Тип'))}</th><th>${esc(tr('packageCol', 'Архив'))}</th></tr></thead><tbody>${files || `<tr><td colspan="4">${esc(tr('noFiles', 'Нет файлов'))}</td></tr>`}</tbody></table></div></div>`;
+    $('changesContent').innerHTML = `${message}<div><h3 class="h6">${esc(tr('commitsTitle', 'Краткая история'))}</h3><ul class="updates-list">${commits || `<li><span>${esc(tr('noCommits', 'Нет коммитов'))}</span></li>`}</ul></div>`;
   }
 
   function renderPreflight() {
