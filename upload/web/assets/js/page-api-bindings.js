@@ -26143,6 +26143,44 @@ window.CRM.pageApiBindings = (function () {
         effectiveEl.innerHTML = '<div class="text-muted small">' + _t('counterparty_detail.rates_need_view_perm', 'Для просмотра эффективных ставок нужно право просмотра финансовых данных.') + '</div>';
         return;
       }
+      // Show rate card lines for the assigned card
+      var cardLinesHtml = '';
+      if (currentCardId) {
+        try {
+          var linesEnv = await window.CRM.api.request('api/v1/rate-cards/' + encodeURIComponent(currentCardId) + '/lines');
+          var lines = (linesEnv && linesEnv.data && linesEnv.data.items) || [];
+          if (lines.length) {
+            cardLinesHtml = '<div class="mb-3"><h3 class="h6 mb-2">' + _t('counterparty_detail.rates_card_lines_title', 'Строки назначенного прайса') + '</h3>'
+              + '<div class="table-responsive"><table class="table table-sm crm-table mb-0"><thead><tr>'
+              + '<th>' + _t('counterparty_detail.rates_th_user', 'Сотрудник') + '</th>'
+              + '<th>' + _t('counterparty_detail.rates_th_activity', 'Вид работ') + '</th>'
+              + '<th>' + _t('counterparty_detail.rates_th_role', 'Роль') + '</th>'
+              + '<th class="text-danger">' + _t('counterparty_detail.rates_th_cost', 'Себестоимость') + '</th>'
+              + '<th class="text-primary">' + _t('counterparty_detail.rates_th_bill', 'Продажа') + '</th>'
+              + '<th class="text-success">' + _t('counterparty_detail.rates_th_payout', 'Вознаграждение') + '</th>'
+              + '</tr></thead><tbody>';
+            lines.forEach(function (l) {
+              var userName = '—';
+              if (l.user_public_id) {
+                var u = users.find(function (x) { return String(x.public_id) === String(l.user_public_id); });
+                userName = u ? safeText(u.full_name || u.login) : safeText(l.user_public_id);
+              }
+              cardLinesHtml += '<tr>'
+                + '<td>' + userName + '</td>'
+                + '<td>' + safeText(l.activity_code || '—') + '</td>'
+                + '<td>' + safeText(l.role_code || '—') + '</td>'
+                + '<td>' + fmt(l.cost_rate) + '</td>'
+                + '<td>' + fmt(l.bill_rate) + '</td>'
+                + '<td>' + fmt(l.payout_rate) + '</td>'
+                + '</tr>';
+            });
+            cardLinesHtml += '</tbody></table></div></div>';
+          }
+        } catch (e) {}
+      }
+      effectiveEl.innerHTML = cardLinesHtml;
+        return;
+      }
       var canCost = hasPerm('finance.rate.view_cost') || hasPerm('finance.rate.view_own_cost');
       var canBill = hasPerm('finance.rate.view_bill');
       var canPayout = hasPerm('finance.rate.view_cost') || hasPerm('finance.rate.view_own_payout');
@@ -26163,14 +26201,21 @@ window.CRM.pageApiBindings = (function () {
         } catch (e) {}
       }
       function fmt(v) { return v == null || v === '' ? '—' : Number(v).toFixed(2); }
+      function sourceLabel(s) {
+        var map = { counterparty_card: _t('time_analytics.source_counterparty_card', 'Контрагент'), project_card: _t('time_analytics.source_project_card', 'Проект'), default_card: _t('time_analytics.source_default_card', 'По умолчанию'), user_default: _t('time_analytics.source_user_default', 'Пользователь'), task_override: _t('time_analytics.source_task_override', 'Задача') };
+        return map[s] || s || '—';
+      }
       var head = '<tr><th>' + _t('counterparty_detail.rates_th_user', 'Сотрудник') + '</th>';
+      head += '<th>' + _t('counterparty_detail.rates_th_source', 'Источник') + '</th>';
       if (canCost) head += '<th>' + _t('counterparty_detail.rates_th_cost', 'Себестоимость') + '</th>';
       if (canBill) head += '<th>' + _t('counterparty_detail.rates_th_bill', 'Продажа') + '</th>';
       if (canPayout) head += '<th>' + _t('counterparty_detail.rates_th_payout', 'Вознаграждение') + '</th>';
       head += '</tr>';
       var body = rows.map(function (r) {
         var name = safeText(r.user.full_name || r.user.login);
+        var src = r.p.cost ? sourceLabel(r.p.cost.source_type) : '—';
         var cells = '<td>' + name + '</td>';
+        cells += '<td><span class="badge text-bg-secondary">' + src + '</span></td>';
         if (canCost) cells += '<td>' + fmt(r.p.cost ? r.p.cost.rate : null) + '</td>';
         if (canBill) cells += '<td>' + fmt(r.p.bill ? r.p.bill.rate : null) + '</td>';
         if (canPayout) cells += '<td>' + fmt(r.p.payout ? r.p.payout.rate : null) + '</td>';
