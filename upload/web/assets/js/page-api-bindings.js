@@ -32199,8 +32199,22 @@ window.CRM.pageApiBindings = (function () {
           effective_from: fd.get('effective_from'),
           effective_to: fd.get('effective_to') || null
         };
+        var errBox = lineForm.querySelector('.crm-rate-line-error');
+        if (errBox) errBox.remove();
         var res = await tryRequest('api/v1/rate-cards/' + cardPublicId + '/lines', { method: 'POST', body: body });
         if (res && res.success) { notify(rt('rate_cards.line_added', 'Строка добавлена')); lineForm.reset(); lineForm.elements.effective_from.value = new Date().toISOString().slice(0, 10); loadLines(cardPublicId); loadCards(); }
+        else if (res && !res.success && res.message) {
+          var box = document.createElement('div');
+          box.className = 'crm-rate-line-error alert alert-danger alert-dismissible fade show py-2 px-3 mb-2';
+          box.setAttribute('role', 'alert');
+          box.textContent = res.message;
+          var closeBtn = document.createElement('button');
+          closeBtn.type = 'button';
+          closeBtn.className = 'btn-close btn-close-sm';
+          closeBtn.setAttribute('data-bs-dismiss', 'alert');
+          box.appendChild(closeBtn);
+          lineForm.parentNode.insertBefore(box, lineForm);
+        }
       });
       lineForm.dataset.bound = '1';
     }
