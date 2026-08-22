@@ -17,7 +17,6 @@ final class ChatController extends BaseController
         $userId = (int)($user['id'] ?? 0);
         if ($userId <= 0) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         $isExternal = !empty((int)($user['is_external'] ?? 0));
-        file_put_contents('/tmp/chat_debug.log', date('Y-m-d H:i:s') . ' userId=' . $userId . ' isExt=' . ($isExternal?'1':'0') . ' keys=' . implode(',', array_keys($user)) . '\n', FILE_APPEND);
         $archived = (string)($this->request()->input('archived', '')) === '1';
 
         // External users: defence-in-depth — skip repair, only return project_client chats
@@ -75,7 +74,7 @@ final class ChatController extends BaseController
                 $archivedFilter = ($archivedFilter ? $archivedFilter . ' AND' : 'WHERE') . " c.type = 'project_client'";
             }
             $projectJoin = $isExternal ? 'LEFT JOIN projects p ON p.id = c.project_id' : '';
-            $projectSelect = $isExternal ? ', p.public_id AS project_public_id' : '';
+            $projectSelect = $isExternal ? ', p.public_id AS project_public_id,' : '';
             $stmt = $pdo->prepare("
                 SELECT c.*,{$projectSelect}
                     cp.is_favorite,
