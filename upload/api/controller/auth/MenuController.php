@@ -139,11 +139,14 @@ final class MenuController extends BaseController
 
         $allAvailableItems = $availableItems;
 
-        // Items marked default_hidden are available in the menu editor but
-        // not shown in the default sidebar until the user adds them.
-        $availableItems = array_values(array_filter($availableItems, static function (array $item): bool {
-            return empty($item['default_hidden']);
-        }));
+        // Mark default_hidden items so we can filter them after templates,
+        // while still letting user preferences override the default.
+        $availableItems = array_map(static function (array $item): array {
+            if (!empty($item['default_hidden'])) {
+                $item['_hidden_by_default'] = true;
+            }
+            return $item;
+        }, $availableItems);
 
         $roleTemplate = $this->loadRoleTemplate($rolePublicIds);
         $teamTemplate = $this->loadTeamTemplate($userInternalId);
@@ -152,6 +155,33 @@ final class MenuController extends BaseController
         $availableItems = $this->applyRoleTemplate($availableItems, $roleTemplate);
         $availableItems = $this->applyTeamTemplate($availableItems, $teamTemplate);
         $availableItems = $this->applyUserPreferences($availableItems, $userPreferences);
+
+        // Filter out default_hidden items that the user hasn't explicitly enabled.
+        // applyUserPreferences keeps items not in prefs (appends them at the end)
+        // and removes items with visible=false.  So _hidden_by_default items that
+        // the user hasn't added to preferences will remain in the array and must
+        // be removed here.  Items the user explicitly enabled (visible=true in
+        // prefs) survived applyUserPreferences and must be kept.
+        $prefItems = $userPreferences['items'] ?? $userPreferences ?? [];
+        $enabledByUser = [];
+        if (is_array($prefItems)) {
+            foreach ($prefItems as $entry) {
+                if (is_array($entry) && !empty($entry['visible'])) {
+                    $enabledByUser[$entry['key'] ?? ''] = true;
+                }
+            }
+        }
+        $availableItems = array_values(array_filter($availableItems, static function (array $item) use ($enabledByUser): bool {
+            if (empty($item['_hidden_by_default'])) {
+                return true;
+            }
+            return !empty($enabledByUser[$item['key'] ?? '']);
+        }));
+        // Strip internal flags
+        $availableItems = array_map(static function (array $item): array {
+            unset($item['_hidden_by_default'], $item['default_hidden']);
+            return $item;
+        }, $availableItems);
 
         return $this->success('MENU_LIST', $this->t('auth/messages.menu_loaded'), [
             'items' => $availableItems,

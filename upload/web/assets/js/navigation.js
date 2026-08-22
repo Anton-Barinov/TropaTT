@@ -1175,7 +1175,7 @@ window.CRM.navigation = (function () {
     });
 
     var listHtml = sortedItems.map(function (item) {
-      var isVisible = visibleSet[item.key] !== false;
+      var isVisible = visibleSet[item.key] === true;
       var iconHtml = navIconByKey(item.key);
       var label = t(item.i18n, item.label || item.key);
       return buildCustomizeRow(item.key, iconHtml, label, isVisible, false);
