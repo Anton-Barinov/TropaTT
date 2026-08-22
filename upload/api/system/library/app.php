@@ -344,7 +344,6 @@ final class App
                 ) {
                     $externalGateAllowed = true;
                 }
-                error_log('[EXT-GATE] route=' . ($matched['pattern'] ?? '?') . ' ext_ok=' . var_export($matched['external_ok'] ?? false, true) . ' exec_ok=' . var_export($matched['external_executor_ok'] ?? false, true) . ' role=' . var_export($authForExternalGate['user']['external_role'] ?? 'N/A', true) . ' ext=' . var_export($authForExternalGate['user']['is_external'] ?? 'N/A', true) . ' allowed=' . var_export($externalGateAllowed, true));
                 if (!$externalGateAllowed) {
                     /** @var LanguageManager $lang */
                     $lang = $this->container->get('lang');
