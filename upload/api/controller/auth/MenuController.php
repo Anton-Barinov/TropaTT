@@ -105,6 +105,12 @@ final class MenuController extends BaseController
                 $availableItems,
                 static fn(array $item): bool => in_array($item['key'], $externalAllowedKeys, true)
             ));
+            // External users have no menu-preferences UI to override default_hidden,
+            // so clear the flag on items the hard allowlist explicitly admitted.
+            foreach ($availableItems as &$ei) {
+                unset($ei['default_hidden']);
+            }
+            unset($ei);
         } elseif ($this->container->has('module.service_provider_registry')) {
             $spRegistry = $this->container->get('module.service_provider_registry');
             $moduleItems = $spRegistry->getAllMenuItems();
