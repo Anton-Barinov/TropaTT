@@ -28,7 +28,8 @@ final class ExternalUserController extends BaseController
         $input = $this->request()->allInput();
         $contactPublicId = trim((string)($input['contact_public_id'] ?? $input['contact_id'] ?? ''));
         $role = strtolower(trim((string)($input['external_role'] ?? $input['role'] ?? 'observer')));
-        $role = $role === 'executor' ? 'executor' : 'observer';
+        // Normalize: accept both 'executor' and 'external_executor'
+        $role = ($role === 'executor' || $role === 'external_executor') ? 'executor' : 'observer';
         $authUser = $this->user();
 
         if (!$authUser) {
