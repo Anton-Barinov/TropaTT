@@ -33,6 +33,9 @@ final class WorklogController extends BaseController
             $result = $service->list($this->request()->allInput(), $authUser['user']);
         }
 
+        $policy = new FinancialFieldPolicy();
+        $result['items'] = $policy->filterRows($result['items'], $authUser['user'], 'worklog.list');
+
         return $this->success('WORKLOG_LIST', $this->t('worklog/messages.list'), ['items' => $result['items']], meta: $result['meta']);
     }
 
@@ -91,6 +94,7 @@ final class WorklogController extends BaseController
         $this->invalidateCache('worklog');
         $this->fireWorklogTrigger($item, $authUser['user']);
 
+        $item = (new FinancialFieldPolicy())->filterRow($item, $authUser['user'], 'worklog.create');
         return $this->success('WORKLOG_CREATED', $this->t('worklog/messages.created'), ['worklog' => $item], 201);
     }
 
@@ -172,6 +176,8 @@ final class WorklogController extends BaseController
             ]);
         }
 
+        $item = (new FinancialFieldPolicy())->filterRow($item, $authUser['user'], 'worklog.detail');
+
         return $this->success('WORKLOG_DETAIL', $this->t('worklog/messages.detail'), ['worklog' => $item]);
     }
 
@@ -230,6 +236,7 @@ final class WorklogController extends BaseController
         $this->invalidateCache('worklog');
         $this->fireWorklogTrigger($item, $authUser['user'], $previousMinutes);
 
+        $item = (new FinancialFieldPolicy())->filterRow($item, $authUser['user'], 'worklog.update');
         return $this->success('WORKLOG_UPDATED', $this->t('worklog/messages.updated'), ['worklog' => $item]);
     }
 
