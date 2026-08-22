@@ -1114,8 +1114,16 @@ final class WorklogService
                     ->join('tasks t', 't.id', '=', 'w.task_id')
                     ->select(['DISTINCT p.public_id', 'p.title'])
                     ->join('projects p', 'p.id', '=', 't.project_id');
-                if (!empty($filters['from'])) $projectQb->where('w.logged_at', '>=', (string)$filters['from']);
-                if (!empty($filters['to'])) $projectQb->where('w.logged_at', '<=', (string)$filters['to']);
+                if (!empty($filters['from'])) {
+                    $from = (string)$filters['from'];
+                    if (strlen($from) === 10 && !str_contains($from, ' ')) $from .= ' 00:00:00';
+                    $projectQb->where('w.logged_at', '>=', $from);
+                }
+                if (!empty($filters['to'])) {
+                    $to = (string)$filters['to'];
+                    if (strlen($to) === 10 && !str_contains($to, ' ')) $to .= ' 23:59:59';
+                    $projectQb->where('w.logged_at', '<=', $to);
+                }
                 if (!empty($userPublicId)) {
                     $projectQb->join('users u', 'u.id', '=', 'w.user_id')->where('u.public_id', '=', $userPublicId);
                 }

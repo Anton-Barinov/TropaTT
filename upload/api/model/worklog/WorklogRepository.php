@@ -78,11 +78,19 @@ final class WorklogRepository
         }
 
         if (!empty($filters['from'])) {
-            $query->where('w.logged_at', '>=', (string)$filters['from']);
+            $from = (string)$filters['from'];
+            if (strlen($from) === 10 && !str_contains($from, ' ')) {
+                $from .= ' 00:00:00';
+            }
+            $query->where('w.logged_at', '>=', $from);
         }
 
         if (!empty($filters['to'])) {
-            $query->where('w.logged_at', '<=', (string)$filters['to']);
+            $to = (string)$filters['to'];
+            if (strlen($to) === 10 && !str_contains($to, ' ')) {
+                $to .= ' 23:59:59';
+            }
+            $query->where('w.logged_at', '<=', $to);
         }
 
         return $query;
@@ -220,10 +228,20 @@ final class WorklogRepository
         }
 
         if (!empty($filters['from'])) {
-            $qb->where('w.logged_at', '>=', (string)$filters['from']);
+            $from = (string)$filters['from'];
+            // Bare date (Y-m-d) without time → include the full day
+            if (strlen($from) === 10 && !str_contains($from, ' ')) {
+                $from .= ' 00:00:00';
+            }
+            $qb->where('w.logged_at', '>=', $from);
         }
         if (!empty($filters['to'])) {
-            $qb->where('w.logged_at', '<=', (string)$filters['to']);
+            $to = (string)$filters['to'];
+            // Bare date (Y-m-d) without time → include the full day
+            if (strlen($to) === 10 && !str_contains($to, ' ')) {
+                $to .= ' 23:59:59';
+            }
+            $qb->where('w.logged_at', '<=', $to);
         }
         if (!empty($filters['user_public_id'])) {
             $qb->where('u.public_id', '=', (string)$filters['user_public_id']);
