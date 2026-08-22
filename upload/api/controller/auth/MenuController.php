@@ -34,7 +34,7 @@ final class MenuController extends BaseController
         // permission code (see web/index.php adminRoutePermissions comment).
         ['key' => 'admin-estimates', 'i18n' => 'nav.admin_estimates', 'label_key' => 'nav.admin_estimates', 'href' => 'index.php?route=admin-estimates', 'permissions' => ['project.manage']],
         ['key' => 'admin-modules', 'i18n' => 'nav.admin_modules', 'label_key' => 'nav.admin_modules', 'href' => 'index.php?route=admin-modules', 'permissions' => ['settings.manage']],
-        ['key' => 'rate-cards', 'i18n' => 'nav.rate_cards', 'label_key' => 'nav.rate_cards', 'href' => 'index.php?route=rate-cards', 'permissions' => ['finance.ratecard.manage']],
+        ['key' => 'rate-cards', 'i18n' => 'nav.rate_cards', 'label_key' => 'nav.rate_cards', 'href' => 'index.php?route=rate-cards', 'permissions' => ['finance.ratecard.manage'], 'default_hidden' => true],
         ['key' => 'chat', 'i18n' => 'nav.chat', 'label_key' => 'nav.chat', 'href' => 'index.php?route=chat', 'permissions' => ['chat.use']],
         ['key' => 'docs', 'i18n' => 'nav.api', 'label_key' => 'nav.api', 'href' => 'index.php?route=docs', 'permissions' => []],
     ];

@@ -7067,6 +7067,8 @@ return array (
     'card_api_desc' => '集成客户端、密钥和使用日志。',
     'card_settings_title' => '系统设置',
     'card_settings_desc' => '系统设置和数据保留策略概览。',
+    'card_rate_cards_title' => '价格表',
+    'card_rate_cards_desc' => '管理按客户和项目设置的成本、销售和佣金费率。',
     'card_jobs_title' => '任务/导入/导出',
     'card_jobs_desc' => '导入、导出和后台 AI 任务队列。',
     'card_ai_title' => 'AI 集成',

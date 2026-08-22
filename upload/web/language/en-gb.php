@@ -6966,6 +6966,8 @@ return array (
     'card_api_desc' => 'Integration clients, keys and usage logs.',
     'card_settings_title' => 'System settings',
     'card_settings_desc' => 'Overview of system settings and data retention policy.',
+    'card_rate_cards_title' => 'Rate cards',
+    'card_rate_cards_desc' => 'Manage rate cards with cost, bill and payout rates by counterparties and projects.',
     'card_jobs_title' => 'Jobs / import / export',
     'card_jobs_desc' => 'Import, export and background AI job queue.',
     'card_ai_title' => 'AI integration',

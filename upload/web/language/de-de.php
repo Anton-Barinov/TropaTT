@@ -129,6 +129,8 @@ return array (
     'card_api_desc' => 'Integrationsclients, Schlüssel und Nutzungsprotokolle.',
     'card_settings_title' => 'Systemeinstellungen',
     'card_settings_desc' => 'Übersicht über Systemeinstellungen und Aufbewahrungsrichtlinie.',
+    'card_rate_cards_title' => 'Preislisten',
+    'card_rate_cards_desc' => 'Preislisten mit Kosten-, Verkaufs- und Vergütungssätzen nach Geschäftspartnern und Projekten verwalten.',
     'card_jobs_title' => 'Jobs / Import / Export',
     'card_jobs_desc' => 'Import, Export und Hintergrund-KI-Job-Warteschlange.',
     'card_ai_title' => 'KI-Integration',

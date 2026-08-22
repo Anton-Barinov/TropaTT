@@ -59,7 +59,8 @@ window.CRM.navigation = (function () {
       intake: '<i class="fa-solid fa-inbox" aria-hidden="true"></i>',
       cycles: '<i class="fa-solid fa-arrows-spin" aria-hidden="true"></i>',
       docs: '<i class="fa-solid fa-book-open" aria-hidden="true"></i>',
-      api: '<i class="fa-solid fa-code" aria-hidden="true"></i>'
+      api: '<i class="fa-solid fa-code" aria-hidden="true"></i>',
+      'rate-cards': '<i class="fa-solid fa-money-bill" aria-hidden="true"></i>'
     };
     return icons[routeKey] || '<i class="fa-solid fa-circle-dot" aria-hidden="true"></i>';
   }
@@ -1121,7 +1122,8 @@ window.CRM.navigation = (function () {
       approvals: '<i class="fa-solid fa-clipboard-check" aria-hidden="true"></i>',
       recurring: '<i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i>',
       organizations: '<i class="fa-solid fa-building-columns" aria-hidden="true"></i>',
-      profile: '<i class="fa-solid fa-user" aria-hidden="true"></i>'
+      profile: '<i class="fa-solid fa-user" aria-hidden="true"></i>',
+      'rate-cards': '<i class="fa-solid fa-money-bill" aria-hidden="true"></i>'
     };
     return icons[key] || '<i class="fa-solid fa-circle-dot" aria-hidden="true"></i>';
   }

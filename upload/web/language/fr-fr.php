@@ -129,6 +129,8 @@ return array (
     'card_api_desc' => 'Clients d\'intégration, clés et journaux d\'utilisation.',
     'card_settings_title' => 'Paramètres système',
     'card_settings_desc' => 'Vue d\'ensemble des paramètres système et de la politique de rétention.',
+    'card_rate_cards_title' => 'Grilles tarifaires',
+    'card_rate_cards_desc' => 'Gérer les grilles tarifaires avec les taux de coût, de vente et de commission par tiers et projets.',
     'card_jobs_title' => 'Tâches / import / export',
     'card_jobs_desc' => 'Import, export et file d\'attente des tâches IA d\'arrière-plan.',
     'card_ai_title' => 'Intégration IA',

@@ -129,6 +129,8 @@ return array (
     'card_api_desc' => 'Clientes de integración, claves y registros de uso.',
     'card_settings_title' => 'Configuración del sistema',
     'card_settings_desc' => 'Vista general de la configuración del sistema y política de retención de datos.',
+    'card_rate_cards_title' => 'Listas de precios',
+    'card_rate_cards_desc' => 'Gestionar listas de precios con tarifas de coste, venta y comisión por contrapartes y proyectos.',
     'card_jobs_title' => 'Trabajos / importación / exportación',
     'card_jobs_desc' => 'Importación, exportación y cola de trabajos AI en segundo plano.',
     'card_ai_title' => 'Integración AI',
