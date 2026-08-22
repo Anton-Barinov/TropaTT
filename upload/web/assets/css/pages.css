@@ -19281,3 +19281,42 @@ a.task-tag:hover {
     }
 }
 
+/* ── Portal invite modal ── */
+#contactPortalInviteModal [data-portal-role-choice] .form-check {
+    padding-left: 1.5em;
+}
+#contactPortalInviteModal [data-portal-role-choice] .form-check-input {
+    margin-top: 0.2em;
+}
+#contactPortalInviteModal [data-portal-role-choice] .form-check-label {
+    display: block;
+}
+#contactPortalInviteModal [data-portal-role-choice] [data-portal-role-submit] {
+    margin-top: 0.25rem;
+}
+#contactPortalInviteModal [data-portal-result] .input-group {
+    align-items: stretch;
+}
+#contactPortalInviteModal [data-portal-result] .input-group .form-control {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+#contactPortalInviteModal [data-portal-result] .input-group .btn {
+    white-space: nowrap;
+}
+#contactPortalInviteModal [data-portal-project-access] .form-check {
+    padding-left: 1.5em;
+}
+@media (max-width: 575.98px) {
+    #contactPortalInviteModal .modal-dialog {
+        margin: 0.5rem;
+        max-width: calc(100vw - 1rem);
+    }
+    #contactPortalInviteModal [data-portal-result] .input-group {
+        flex-wrap: nowrap;
+    }
+    #contactPortalInviteModal [data-portal-result] .input-group .form-control {
+        min-width: 0;
+    }
+}
+
