@@ -59,6 +59,15 @@ final class RateController extends BaseController
             $clientPublicId !== '' ? $clientPublicId : null
         );
 
+        // DEBUG: add context to preview response
+        $result['_debug'] = [
+            'userId' => (int)$user['id'],
+            'taskId' => $taskId,
+            'date' => $date,
+            'projectPublicId' => $projectPublicId,
+            'clientPublicId' => $clientPublicId,
+        ];
+
         $policy = new FinancialFieldPolicy();
         $filtered = $policy->filterRow($result, $actor, 'rates.preview');
 
