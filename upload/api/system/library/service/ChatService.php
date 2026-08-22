@@ -589,7 +589,7 @@ final class ChatService
 
     public function findSystemChat(string $type, int $entityId): ?array
     {
-        $column = $type === 'project' ? 'project_id' : 'team_id';
+        $column = ($type === 'project' || $type === 'project_client') ? 'project_id' : 'team_id';
         $stmt = $this->pdo->prepare("SELECT id, public_id, title, type, project_id, team_id, created_by_user_id, created_at, updated_at, last_message_at, archived_at, archived_by_user_id FROM chats WHERE type = :type AND {$column} = :id ORDER BY id ASC LIMIT 1");
         $stmt->execute(['type' => $type, 'id' => $entityId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
