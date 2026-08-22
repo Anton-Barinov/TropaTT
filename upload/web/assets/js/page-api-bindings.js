@@ -32222,6 +32222,14 @@ window.CRM.pageApiBindings = (function () {
       assignForm.dataset.bound = '1';
     }
 
+    var assignTabBtn = document.querySelector('[data-bs-target="#rateTabAssignments"]');
+    if (assignTabBtn && assignTabBtn.dataset.tabBound !== '1') {
+      assignTabBtn.addEventListener('shown.bs.tab', function () {
+        if (state.currentCard) loadCardAssignments(state.currentCard.public_id);
+      });
+      assignTabBtn.dataset.tabBound = '1';
+    }
+
     var createBtn = document.getElementById('rateCardCreateOpenBtn');
     if (createBtn && createBtn.dataset.bound !== '1') {
       createBtn.addEventListener('click', function () { openCreateModal(); });
