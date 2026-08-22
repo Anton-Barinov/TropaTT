@@ -114,14 +114,15 @@ final class RateCardController extends BaseController
         $card = (new QueryBuilder($pdo))->from('rate_cards')->where('public_id', '=', $pid)->where('deleted_at', 'IS', null)->first();
         if (!$card) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
-        $assignments = (new QueryBuilder($pdo))->from('rate_card_assignments')
-            ->where('rate_card_id', '=', (int)$card['id'])->where('deleted_at', 'IS', null)->count();
-        if ($assignments > 0) {
-            return $this->error('HAS_ASSIGNMENTS', $this->t('rate/messages.has_assignments'), 409);
-        }
+        $now = gmdate('Y-m-d H:i:s');
+
+        // Cascade soft-delete active assignments before archiving
+        (new QueryBuilder($pdo))->from('rate_card_assignments')
+            ->where('rate_card_id', '=', (int)$card['id'])->where('deleted_at', 'IS', null)
+            ->update(['deleted_at' => $now, 'updated_at' => $now]);
 
         (new QueryBuilder($pdo))->from('rate_cards')->where('public_id', '=', $pid)->update([
-            'is_archived' => 1, 'updated_at' => gmdate('Y-m-d H:i:s'),
+            'is_archived' => 1, 'updated_at' => $now,
         ]);
         $this->invalidateCache('worklog');
         return $this->success('RATE_CARD_ARCHIVED', '');
