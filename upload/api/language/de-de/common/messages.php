@@ -1,7 +1,7 @@
 <?php
 return [
     'field_required' => 'Field is required',
-    'validation_error' => 'Validation error',
+    'validation_error' => 'Validierungsfehler',
     'forbidden' => 'Forbidden',
     'permission_denied_action' => 'Insufficient permissions for this action',
     'unauthorized' => 'Unauthorized',
