@@ -9893,6 +9893,8 @@ return array (
     'rates_th_activity' => '活动',
     'rates_th_role' => '角色',
     'rates_th_source' => '来源',
+    'opt_server_errors' => '服务器错误',
+    'server_errors_unavailable' => '服务器错误日志不可用',
   ),
   'todo_list' => '待办事项',
   'table' => '表格',

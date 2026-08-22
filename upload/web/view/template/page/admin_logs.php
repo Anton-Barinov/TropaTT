@@ -10,6 +10,7 @@
     <option value="security" data-i18n="admin_logs.opt_security"><?= htmlspecialchars($t('admin_logs.opt_security', 'Журнал безопасности'), ENT_QUOTES, 'UTF-8') ?></option>
     <option value="request" data-i18n="admin_logs.opt_request"><?= htmlspecialchars($t('admin_logs.opt_request', 'Журнал запросов'), ENT_QUOTES, 'UTF-8') ?></option>
     <option value="worklog" data-i18n="admin_logs.opt_worklog"><?= htmlspecialchars($t('admin_logs.opt_worklog', 'Записи учета времени'), ENT_QUOTES, 'UTF-8') ?></option>
+    <option value="server_errors" data-i18n="admin_logs.opt_server_errors"><?= htmlspecialchars($t('admin_logs.opt_server_errors', 'Ошибки сервера'), ENT_QUOTES, 'UTF-8') ?></option>
   </select>
   <input id="adminLogsUserFilter" class="form-control crm-field-w-240" placeholder="<?= htmlspecialchars($t('admin_logs.placeholder_user', 'ID пользователя / автора'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="admin_logs.placeholder_user">
   <input id="adminLogsEntityFilter" class="form-control crm-field-w-220" placeholder="<?= htmlspecialchars($t('admin_logs.placeholder_entity', 'Тип объекта (task/project/...)'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="admin_logs.placeholder_entity">

@@ -9893,6 +9893,8 @@ return array (
     'rates_th_activity' => 'Activité',
     'rates_th_role' => 'Rôle',
     'rates_th_source' => 'Source',
+    'opt_server_errors' => 'Erreurs serveur',
+    'server_errors_unavailable' => "Le journal des erreurs serveur n'est pas disponible",
   ),
   'todo_list' => 'Liste de tâches',
   'table' => 'Tableau',

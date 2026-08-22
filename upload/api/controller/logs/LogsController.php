@@ -71,4 +71,32 @@ final class LogsController extends BaseController
             'items' => $result['items'],
         ], meta: $result['meta']);
     }
+
+    public function serverErrors(): \Api\System\Library\Http\JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth || !(bool)($auth['user']['is_root'] ?? false)) {
+            return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
+        }
+
+        try {
+            $pdo = $this->container->get('db.pdo');
+            $service = new \Api\System\Library\Service\ServerErrorService($pdo);
+            $input = $this->request()->allInput();
+            $result = $service->list([
+                'from' => $input['from'] ?? null,
+                'to' => $input['to'] ?? null,
+                'level' => $input['level'] ?? null,
+                'user_public_id' => $input['user_public_id'] ?? null,
+                'limit' => (int)($input['limit'] ?? 100),
+                'offset' => (int)($input['offset'] ?? 0),
+            ]);
+
+            return $this->success('SERVER_ERROR_LIST', '', [
+                'items' => $result['items'],
+            ], meta: ['total' => $result['total']]);
+        } catch (\Throwable $e) {
+            return $this->error('SERVER_ERRORS_UNAVAILABLE', $this->t('logs/messages.server_errors_unavailable', 'Server errors log is not available'), 500);
+        }
+    }
 }

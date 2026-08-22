@@ -9893,6 +9893,8 @@ return array (
     'rates_th_activity' => 'Вид работ',
     'rates_th_role' => 'Роль',
     'rates_th_source' => 'Источник',
+    'opt_server_errors' => 'Ошибки сервера',
+    'server_errors_unavailable' => 'Журнал ошибок сервера недоступен',
   ),
   'todo_list' => 'Список задач',
   'table' => 'Таблица',

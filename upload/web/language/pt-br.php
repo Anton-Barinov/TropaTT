@@ -9893,6 +9893,8 @@ return array (
     'rates_th_activity' => 'Atividade',
     'rates_th_role' => 'Função',
     'rates_th_source' => 'Fonte',
+    'opt_server_errors' => 'Erros do servidor',
+    'server_errors_unavailable' => 'O log de erros do servidor não está disponível',
   ),
   'todo_list' => 'Lista de tarefas',
   'table' => 'Tabela',

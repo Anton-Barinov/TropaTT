@@ -9893,6 +9893,8 @@ return array (
     'rates_th_activity' => 'Aktivität',
     'rates_th_role' => 'Rolle',
     'rates_th_source' => 'Quelle',
+    'opt_server_errors' => 'Serverfehler',
+    'server_errors_unavailable' => 'Serverfehler-Protokoll ist nicht verfügbar',
   ),
   'todo_list' => 'Aufgabenliste',
   'table' => 'Tabelle',

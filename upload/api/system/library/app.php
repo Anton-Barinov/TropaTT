@@ -502,6 +502,20 @@ final class App
                 'trace' => $e->getTraceAsString(),
             ]);
 
+            // Log to server_errors table for admin visibility
+            try {
+                \Api\System\Library\Service\ServerErrorService::getInstance(
+                    $this->container->get('db.pdo')
+                )->logError(
+                    'exception',
+                    $e->getMessage(),
+                    $e->getFile(),
+                    $e->getLine(),
+                    $e->getCode(),
+                    $e->getTraceAsString()
+                );
+            } catch (Throwable $ignored) {}
+
             $statusCode = 500;
             $resultCode = 'INTERNAL_ERROR';
 

@@ -15840,6 +15840,19 @@ window.CRM.pageApiBindings = (function () {
           raw: item
         };
       }
+      if (source === 'server_errors') {
+        var levelBadge = item.level === 'fatal' ? ' bg-danger' : item.level === 'exception' ? ' bg-warning text-dark' : ' bg-secondary';
+        return {
+          id: String(item.public_id || ''),
+          at: item.created_at,
+          user: resolveUserLabel('', item.user_public_id || '', 'system'),
+          event: '<span class="badge' + levelBadge + '" style="font-size:0.7em">' + safeText(item.level || 'error') + '</span> ' + safeText((item.message || '').substring(0, 120)),
+          target: safeText((item.file || '') + (item.line ? ':' + item.line : '')),
+          side: String(item.code || '—'),
+          ip: item.ip || '',
+          raw: item
+        };
+      }
       return {
         id: String(item.public_id || ''),
         at: item.created_at,
@@ -15863,7 +15876,9 @@ window.CRM.pageApiBindings = (function () {
           ? 'api/v1/logs/security'
           : source === 'worklog'
             ? 'api/v1/worklogs'
-            : 'api/v1/logs/audit';
+            : source === 'server_errors'
+              ? 'api/v1/logs/server-errors'
+              : 'api/v1/logs/audit';
 
       var envelope = await tryRequest(endpoint, { query: buildQueryBySource(source) });
       if (envelope && envelope.success === false) {

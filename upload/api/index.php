@@ -95,6 +95,28 @@ EnvLoader::loadFiles([
     __DIR__ . '/.env.local',
 ]);
 
+// Register server error logging to database (after autoloader + env)
+try {
+    $dbConfig = [
+        'host' => defined('DB_HOST') ? DB_HOST : '127.0.0.1',
+        'port' => defined('DB_PORT') ? DB_PORT : 3306,
+        'name' => defined('DB_DATABASE') ? DB_DATABASE : '',
+        'user' => defined('DB_USERNAME') ? DB_USERNAME : '',
+        'pass' => defined('DB_PASSWORD') ? DB_PASSWORD : '',
+    ];
+    if ($dbConfig['name'] !== '' && $dbConfig['user'] !== '') {
+        $errorPdo = new PDO(
+            'mysql:host=' . $dbConfig['host'] . ';port=' . $dbConfig['port'] . ';dbname=' . $dbConfig['name'] . ';charset=utf8mb4',
+            $dbConfig['user'],
+            $dbConfig['pass'],
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_SILENT, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]
+        );
+        \Api\System\Library\Service\ServerErrorService::register($errorPdo);
+    }
+} catch (Throwable $e) {
+    // Silently fail — error logging is best-effort
+}
+
 try {
     $app = new App(__DIR__);
     $response = $app->run();
@@ -115,6 +137,17 @@ try {
         $e->getFile(),
         $e->getLine()
     ));
+    // Log to database if ServerErrorService is available
+    try {
+        \Api\System\Library\Service\ServerErrorService::getInstance($errorPdo ?? null)?->logError(
+            'exception',
+            $exceptionMessage,
+            $e->getFile(),
+            $e->getLine(),
+            $e->getCode(),
+            $e->getTraceAsString()
+        );
+    } catch (Throwable $ignored) {}
 
     $response = JsonResponse::error(
         code: $responseCode,
