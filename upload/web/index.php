@@ -593,6 +593,16 @@ function crmWebInitModuleSystem(string $webBaseDir, Web\System\Core\Router $rout
         } catch (\Throwable $e) {
             error_log('[web] module registry read failed, falling back to all modules: ' . $e->getMessage());
         }
+
+        // Register server-side PHP error logging (web pages). Best-effort:
+        // the service itself no-ops when the table does not exist yet.
+        if (class_exists(\Api\System\Library\Service\ServerErrorService::class)) {
+            try {
+                \Api\System\Library\Service\ServerErrorService::register($pdo);
+            } catch (\Throwable $e) {
+                // best-effort — never block page rendering on logger setup
+            }
+        }
     }
 
     $discovered = $pluginManager->getDiscovered();

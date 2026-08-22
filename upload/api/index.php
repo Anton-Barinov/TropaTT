@@ -95,15 +95,17 @@ EnvLoader::loadFiles([
     __DIR__ . '/.env.local',
 ]);
 
-// Register server error logging to database (after autoloader + env)
+// Register server error logging to database (after autoloader + env).
+// EnvLoader exposes .env values via getenv(), not PHP constants — mirror
+// config/database.php fallbacks exactly.
 $errorPdo = null;
 try {
     $dbConfig = [
-        'host' => defined('DB_HOST') ? DB_HOST : '127.0.0.1',
-        'port' => defined('DB_PORT') ? DB_PORT : 3306,
-        'name' => defined('DB_DATABASE') ? DB_DATABASE : '',
-        'user' => defined('DB_USERNAME') ? DB_USERNAME : '',
-        'pass' => defined('DB_PASSWORD') ? DB_PASSWORD : '',
+        'host' => (string)(getenv('DB_HOST') ?: getenv('MYSQL_HOST') ?: '127.0.0.1'),
+        'port' => (int)(getenv('DB_PORT') ?: getenv('MYSQL_PORT') ?: 3306),
+        'name' => (string)(getenv('DB_DATABASE') ?: getenv('MYSQL_DATABASE') ?: ''),
+        'user' => (string)(getenv('DB_USERNAME') ?: getenv('MYSQL_USER') ?: ''),
+        'pass' => (string)(getenv('DB_PASSWORD') ?: getenv('MYSQL_PASSWORD') ?: ''),
     ];
     if ($dbConfig['name'] !== '' && $dbConfig['user'] !== '') {
         $errorPdo = new PDO(

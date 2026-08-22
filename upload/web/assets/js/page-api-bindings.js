@@ -15840,17 +15840,25 @@ window.CRM.pageApiBindings = (function () {
       if (src === 'frontend_error') {
         var evtType = item.event_type || 'js_error';
         var evtColor = evtType === 'frontend_csp_violation' ? ' bg-warning text-dark' : ' bg-primary';
-        var details = item.details || {};
+        var detRaw = item.details || item.payload || null;
+        if (typeof detRaw === 'string' && detRaw) {
+          try { detRaw = JSON.parse(detRaw); } catch (e) { detRaw = {}; }
+        }
+        var details = (detRaw && typeof detRaw === 'object') ? detRaw : {};
         var payload = details.payload || {};
+        if (typeof payload === 'string' && payload) {
+          try { payload = JSON.parse(payload); } catch (e) { payload = {}; }
+        }
+        if (!payload || typeof payload !== 'object') payload = {};
         var evtMsg = payload.message || payload.reason || payload.code || evtType;
         var evtRoute = details.route || details.page_url || '';
         return {
-          id: String(item.actor_public_id || item.id || ''),
+          id: String(item.actor_public_id || item.public_id || item.id || ''),
           at: item.created_at || item._sort_time || '',
           user: resolveUserLabel('', item.actor_public_id || '', 'system'),
           event: '<span class="badge bg-primary" style="font-size:0.65em">JS</span> <span class="badge' + evtColor + '" style="font-size:0.65em">' + safeText(evtType.replace('frontend_', '')) + '</span> ' + safeText(String(evtMsg).substring(0, 110)),
           eventIsHtml: true,
-          target: safeText(evtRoute.substring(0, 80)),
+          target: safeText(String(evtRoute).substring(0, 80)),
           side: safeText(item.ip || ''),
           ip: item.ip || '',
           raw: item
