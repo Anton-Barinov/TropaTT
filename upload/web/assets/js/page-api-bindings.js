@@ -26194,25 +26194,25 @@ window.CRM.pageApiBindings = (function () {
         } catch (e) {}
       }
       effectiveEl.innerHTML = cardLinesHtml;
-        return;
-      }
+
+      // Effective rates per user (preview-based)
       var canCost = hasPerm('finance.rate.view_cost') || hasPerm('finance.rate.view_own_cost');
       var canBill = hasPerm('finance.rate.view_bill');
       var canPayout = hasPerm('finance.rate.view_cost') || hasPerm('finance.rate.view_own_payout');
-      var users = [];
+      var effUsers = [];
       try {
-        users = mapItems(await tryRequest('api/v1/users', { query: { limit: 500, is_active: 1 } }));
+        effUsers = mapItems(await tryRequest('api/v1/users', { query: { limit: 500, is_active: 1 } }));
       } catch (e) {}
       var date = new Date().toISOString().slice(0, 10);
       var rows = [];
-      for (var i = 0; i < users.length; i++) {
+      for (var i = 0; i < effUsers.length; i++) {
         try {
           var env = await window.CRM.api.request('api/v1/rates/preview', {
-            query: { user_public_id: users[i].public_id, client_public_id: cpPublicId, date: date }
+            query: { user_public_id: effUsers[i].public_id, client_public_id: cpPublicId, date: date }
           });
           var p = (env && env.data && env.data.preview) || null;
           if (!p) continue;
-          rows.push({ user: users[i], p: p });
+          rows.push({ user: effUsers[i], p: p });
         } catch (e) {}
       }
       function fmt(v) { return v == null || v === '' ? '—' : Number(v).toFixed(2); }
