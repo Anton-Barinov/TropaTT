@@ -148,6 +148,11 @@ final class LogsController extends BaseController
         $level = $input['level'] ?? null;
         $search = $input['search'] ?? null;
         $userPublicId = $input['user_public_id'] ?? null;
+        // Optional source filter: server_error | frontend_error | module_error.
+        // When set, only the requested source is queried and counted.
+        $sourceType = in_array($input['source_type'] ?? null, ['server_error', 'frontend_error', 'module_error'], true)
+            ? (string)$input['source_type']
+            : null;
 
         $items = [];
         $total = 0;
@@ -157,66 +162,73 @@ final class LogsController extends BaseController
             $pdo = $this->container->get('db.pdo');
 
             // 1. Server errors (PHP fatal/exception/error)
-            try {
-                $serverService = \Api\System\Library\Service\ServerErrorService::getInstance($pdo);
-                $serverResult = $serverService->list([
-                    'from' => $from, 'to' => $to, 'level' => $level,
-                    'user_public_id' => $userPublicId, 'search' => $search,
-                    'limit' => 500, 'offset' => 0,
-                ]);
-                foreach ($serverResult['items'] as $item) {
-                    $item['_source'] = 'server_error';
-                    $item['_sort_time'] = $item['created_at'] ?? '';
-                    $items[] = $item;
+            if ($sourceType === null || $sourceType === 'server_error') {
+                try {
+                    $serverService = \Api\System\Library\Service\ServerErrorService::getInstance($pdo);
+                    $serverResult = $serverService->list([
+                        'from' => $from, 'to' => $to, 'level' => $level,
+                        'user_public_id' => $userPublicId, 'search' => $search,
+                        'limit' => 500, 'offset' => 0,
+                    ]);
+                    foreach ($serverResult['items'] as $item) {
+                        $item['_source'] = 'server_error';
+                        $item['_sort_time'] = $item['created_at'] ?? '';
+                        $items[] = $item;
+                    }
+                    $total += (int)$serverResult['total'];
+                    $counts['server_error'] = (int)$serverResult['total'];
+                } catch (\Throwable $e) {
+                    // Server errors unavailable, continue
                 }
-                $total += $serverResult['total'];
-                $counts['server_error'] = $serverResult['total'];
-            } catch (\Throwable $e) {
-                // Server errors unavailable, continue
             }
 
             // 2. Frontend errors from security_logs (js_error, frontend_api_error, csp_violation)
-            try {
-                $logsRepo = $this->container->get('service.logs');
-                if ($logsRepo instanceof LogsService) {
-                    $secResult = $logsRepo->securityList([
-                        'from' => $from, 'to' => $to,
-                        'limit' => 500, 'offset' => 0,
-                    ]);
-                    foreach ($secResult['items'] as $item) {
-                        $eventType = $item['event_type'] ?? '';
-                        if (!in_array($eventType, ['frontend_api_error', 'frontend_js_error', 'frontend_csp_violation'], true)) {
-                            continue;
+            if ($sourceType === null || $sourceType === 'frontend_error') {
+                try {
+                    $logsRepo = $this->container->get('service.logs');
+                    if ($logsRepo instanceof LogsService) {
+                        $secResult = $logsRepo->securityList([
+                            'from' => $from, 'to' => $to,
+                            'limit' => 500, 'offset' => 0,
+                        ]);
+                        foreach ($secResult['items'] as $item) {
+                            $eventType = $item['event_type'] ?? '';
+                            if (!in_array($eventType, ['frontend_api_error', 'frontend_js_error', 'frontend_csp_violation'], true)) {
+                                continue;
+                            }
+                            $item['_source'] = 'frontend_error';
+                            $item['_sort_time'] = $item['created_at'] ?? '';
+                            $item['_level'] = $eventType === 'frontend_csp_violation' ? 'warning' : 'error';
+                            $items[] = $item;
+                            $counts['frontend_error']++;
+                            $total++;
                         }
-                        $item['_source'] = 'frontend_error';
-                        $item['_sort_time'] = $item['created_at'] ?? '';
-                        $item['_level'] = $eventType === 'frontend_csp_violation' ? 'warning' : 'error';
-                        $items[] = $item;
-                        $counts['frontend_error']++;
                     }
+                } catch (\Throwable $e) {
+                    // Frontend errors unavailable, continue
                 }
-            } catch (\Throwable $e) {
-                // Frontend errors unavailable, continue
             }
 
             // 3. Module errors
-            try {
-                $handler = new \Api\System\Library\Module\ModuleErrorHandler($pdo);
-                $handler->ensureTable($this->getDriver($pdo));
-                $moduleResult = $handler->list([
-                    'from' => $from, 'to' => $to, 'search' => $search,
-                    'limit' => 500, 'offset' => 0,
-                ]);
-                foreach ($moduleResult['items'] as $item) {
-                    $item['_source'] = 'module_error';
-                    $item['_sort_time'] = $item['created_at'] ?? '';
-                    $item['_level'] = 'error';
-                    $items[] = $item;
-                    $total += 1;
-                    $counts['module_error']++;
+            if ($sourceType === null || $sourceType === 'module_error') {
+                try {
+                    $handler = new \Api\System\Library\Module\ModuleErrorHandler($pdo);
+                    $handler->ensureTable($this->getDriver($pdo));
+                    $moduleResult = $handler->list([
+                        'from' => $from, 'to' => $to, 'search' => $search,
+                        'limit' => 500, 'offset' => 0,
+                    ]);
+                    foreach ($moduleResult['items'] as $item) {
+                        $item['_source'] = 'module_error';
+                        $item['_sort_time'] = $item['created_at'] ?? '';
+                        $item['_level'] = 'error';
+                        $items[] = $item;
+                        $counts['module_error']++;
+                        $total++;
+                    }
+                } catch (\Throwable $e) {
+                    // Module errors unavailable, continue
                 }
-            } catch (\Throwable $e) {
-                // Module errors unavailable, continue
             }
 
             // Sort by time descending

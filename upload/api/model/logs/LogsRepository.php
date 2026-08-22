@@ -223,6 +223,19 @@ final class LogsRepository
         if (!empty($filters['user_public_id'])) {
             $qb->where('user_public_id', '=', (string)$filters['user_public_id']);
         }
+        // Status group filter for the API tab: success (2xx), client (4xx),
+        // server (5xx). Applied as a range over status_code.
+        if (!empty($filters['status_class'])) {
+            $class = (string)$filters['status_class'];
+            if ($class === '2xx') {
+                $qb->where('status_code', '>=', 200)->where('status_code', '<=', 299);
+            } elseif ($class === '4xx') {
+                $qb->where('status_code', '>=', 400)->where('status_code', '<=', 499);
+            } elseif ($class === '5xx') {
+                $qb->where('status_code', '>=', 500);
+            }
+        }
+        $this->applyDateRange($qb, $filters);
 
         return $qb;
     }
@@ -234,9 +247,15 @@ final class LogsRepository
         if (!empty($filters['event_type'])) {
             $qb->where('event_type', '=', (string)$filters['event_type']);
         }
+        // Security tab excludes browser telemetry events (they are shown on
+        // the dedicated "Errors" tab instead).
+        if (!empty($filters['exclude_event_prefix'])) {
+            $qb->where('event_type', 'NOT LIKE', (string)$filters['exclude_event_prefix'] . '%');
+        }
         if (!empty($filters['actor_public_id'])) {
             $qb->where('actor_public_id', '=', (string)$filters['actor_public_id']);
         }
+        $this->applyDateRange($qb, $filters);
 
         return $qb;
     }
@@ -260,7 +279,22 @@ final class LogsRepository
         if (!empty($filters['action_prefix'])) {
             $qb->where('action', 'LIKE', (string)$filters['action_prefix'] . '%');
         }
+        $this->applyDateRange($qb, $filters);
 
         return $qb;
+    }
+
+    /**
+     * Shared created_at range filter — previously from/to were accepted by
+     * the controllers but silently ignored by these list queries.
+     */
+    private function applyDateRange(QueryBuilder $qb, array $filters): void
+    {
+        if (!empty($filters['from'])) {
+            $qb->where('created_at', '>=', (string)$filters['from']);
+        }
+        if (!empty($filters['to'])) {
+            $qb->where('created_at', '<=', (string)$filters['to']);
+        }
     }
 }

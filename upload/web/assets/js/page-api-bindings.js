@@ -15760,357 +15760,471 @@ window.CRM.pageApiBindings = (function () {
   }
 
   async function renderAdminLogsPage() {
-    var sourceFilter = document.getElementById('adminLogsSourceFilter');
-    var userFilter = document.getElementById('adminLogsUserFilter');
-    var entityFilter = document.getElementById('adminLogsEntityFilter');
-    var routeFilter = document.getElementById('adminLogsRouteFilter');
-    var fromFilter = document.getElementById('adminLogsFromFilter');
-    var toFilter = document.getElementById('adminLogsToFilter');
+    var tabsNav = document.getElementById('adminLogsTabs');
+    var tableBody = document.getElementById('adminLogsTableBody');
+    var tableHead = document.getElementById('adminLogsHead');
+    var summaryEl = document.getElementById('adminLogsSummary');
+    var pageInfoEl = document.getElementById('adminLogsPageInfo');
+    var prevBtn = document.getElementById('adminLogsPrevBtn');
+    var nextBtn = document.getElementById('adminLogsNextBtn');
     var applyBtn = document.getElementById('adminLogsApplyBtn');
     var resetBtn = document.getElementById('adminLogsResetBtn');
-    var tableBody = document.getElementById('adminLogsTableBody') || document.querySelector('table.crm-table tbody');
+    var chartCard = document.getElementById('adminLogsErrorChartCard');
+    if (!tableBody || !tabsNav) return;
 
-    var activityInput = document.getElementById('adminLogsUserActivityInput');
-    var activityBtn = document.getElementById('adminLogsUserActivityBtn');
-    var activitySummary = document.getElementById('adminUserActivitySummary');
+    var PERIOD_7D_DEFAULT = '7d';
+    var PAGE_SIZE = 50;
 
-    function parseDetails(raw) {
-      if (!raw) return null;
-      if (typeof raw === 'object') return raw;
-      try { return JSON.parse(String(raw)); } catch (e) { return null; }
+    var TAB_DEFS = {
+      errors:   { endpoint: 'api/v1/logs/all-errors' },
+      users:    { endpoint: 'api/v1/logs/audit' },
+      api:      { endpoint: 'api/v1/logs/request' },
+      security: { endpoint: 'api/v1/logs/security', extra: { exclude_event_prefix: 'frontend_' } },
+      mcp:      { endpoint: 'api/v1/logs/request', extra: { request_route: '/api/v1/mcp' } },
+      worklog:  { endpoint: 'api/v1/worklogs' }
+    };
+
+    var SECURITY_EVENT_OPTIONS = [
+      ['auth_login_success', 'ev_auth_login'],
+      ['auth_failed', 'ev_auth_failed'],
+      ['auth_rate_limited', 'ev_auth_rate_limited'],
+      ['device_fingerprint_mismatch', 'ev_device_mismatch'],
+      ['password_reset_request_missed', 'ev_password_reset'],
+      ['ai_provider_test_failed', 'ev_ai_test_failed'],
+      ['api_key_issue', 'ev_api_key_issue']
+    ];
+
+    // Human-readable metadata for known event codes: icon + badge color +
+    // i18n key. Unknown codes fall back to a prettified raw code so nothing
+    // ever shows as an empty cell.
+    var EVENT_META = {
+      auth_login_success:           { icon: 'fa-right-to-bracket',    cls: 'bg-success',             key: 'ev_auth_login' },
+      auth_failed:                  { icon: 'fa-triangle-exclamation',cls: 'bg-danger',              key: 'ev_auth_failed' },
+      auth_rate_limited:            { icon: 'fa-hourglass-half',      cls: 'bg-warning text-dark',   key: 'ev_auth_rate_limited' },
+      device_fingerprint_mismatch:  { icon: 'fa-fingerprint',         cls: 'bg-warning text-dark',   key: 'ev_device_mismatch' },
+      password_reset_request_missed:{ icon: 'fa-key',                 cls: 'bg-info',                key: 'ev_password_reset' },
+      ai_provider_test_failed:      { icon: 'fa-robot',               cls: 'bg-danger',              key: 'ev_ai_test_failed' },
+      ai_provider_complete_text:    { icon: 'fa-robot',               cls: 'bg-info',                key: 'ev_ai_complete' },
+      api_key_issue:                { icon: 'fa-key',                 cls: 'bg-danger',              key: 'ev_api_key_issue' },
+      worklog_created:              { icon: 'fa-stopwatch',           cls: 'bg-secondary',           key: 'ev_worklog_created' },
+      worklog_updated:              { icon: 'fa-stopwatch',           cls: 'bg-secondary',           key: 'ev_worklog_updated' },
+      worklog_deleted:              { icon: 'fa-stopwatch',           cls: 'bg-secondary',           key: 'ev_worklog_deleted' },
+      notification_dispatched:      { icon: 'fa-bell',                cls: 'bg-secondary',           key: 'ev_notification_sent' },
+      notification_push_dispatch_enqueued: { icon: 'fa-bell',          cls: 'bg-secondary',           key: 'ev_push_enqueued' },
+      notification_push_test_dispatch:     { icon: 'fa-bell',          cls: 'bg-secondary',           key: 'ev_push_test' },
+      notification_push_subscription_upsert: { icon: 'fa-bell',        cls: 'bg-secondary',           key: 'ev_push_subscribed' },
+      external_user_invited:        { icon: 'fa-envelope-open-text',  cls: 'bg-info',                key: 'ev_external_invited' },
+      external_user_activated:      { icon: 'fa-user-check',          cls: 'bg-success',             key: 'ev_external_activated' },
+      external_user_deactivated:    { icon: 'fa-user-lock',           cls: 'bg-warning text-dark',   key: 'ev_external_deactivated' },
+      external_user_project_access_granted: { icon: 'fa-door-open',   cls: 'bg-info',                key: 'ev_project_granted' },
+      profile_updated:              { icon: 'fa-user-pen',            cls: 'bg-secondary',           key: 'ev_profile_updated' },
+      profile_preferences_updated:  { icon: 'fa-sliders',             cls: 'bg-secondary',           key: 'ev_prefs_updated' },
+      user_create:                  { icon: 'fa-user-plus',           cls: 'bg-success',             key: 'ev_user_created' },
+      user_update:                  { icon: 'fa-user-pen',            cls: 'bg-secondary',           key: 'ev_user_updated' },
+      calendar_event_created:       { icon: 'fa-calendar-day',        cls: 'bg-secondary',           key: 'ev_calendar_created' },
+      file_upload:                  { icon: 'fa-file-arrow-up',       cls: 'bg-secondary',           key: 'ev_file_uploaded' },
+      comment_added:                { icon: 'fa-comment',             cls: 'bg-secondary',           key: 'ev_comment_added' },
+      api_client_create:            { icon: 'fa-plug-circle-plus',    cls: 'bg-info',                key: 'ev_api_client_created' }
+    };
+
+    var LEVEL_META = {
+      fatal:     { cls: 'bg-danger',           key: 'level_fatal_lbl' },
+      exception: { cls: 'bg-warning text-dark',key: 'level_exception_lbl' },
+      error:     { cls: 'bg-danger opacity-75',key: 'level_error_lbl' },
+      warning:   { cls: 'bg-warning text-dark',key: 'level_warning_lbl' }
+    };
+
+    var SOURCE_META = {
+      server_error:   { cls: 'bg-dark',        key: 'source_php_short' },
+      frontend_error: { cls: 'bg-primary',     key: 'source_js_short' },
+      module_error:   { cls: 'bg-info',        key: 'source_module_short' }
+    };
+
+    function evBadge(code) {
+      var meta = EVENT_META[String(code || '')];
+      var label = meta ? tp('admin_logs.' + meta.key, '') : '';
+      if (!label) label = humanizeCode(code);
+      var icon = meta ? '<i class="fa-solid ' + meta.icon + ' me-1"></i>' : '';
+      var cls = meta ? meta.cls : 'bg-secondary';
+      return '<span class="badge ' + cls + '" style="font-size:0.72em;font-weight:500">' + icon + safeText(label) + '</span>';
     }
 
-    function buildQueryBySource(source) {
-      var query = { limit: 100 };
-      if (userFilter && userFilter.value.trim()) {
-        var userValue = userFilter.value.trim();
-        if (source === 'request') query.user_public_id = userValue;
-        if (source === 'security' || source === 'audit') query.actor_public_id = userValue;
-      }
-      if (entityFilter && entityFilter.value.trim() && source === 'audit') {
-        query.entity_type = entityFilter.value.trim();
-      }
-      if (routeFilter && routeFilter.value.trim() && source === 'request') {
-        query.request_route = routeFilter.value.trim();
-      }
-      if (fromFilter && fromFilter.value) query.from = fromFilter.value + ' 00:00:00';
-      if (toFilter && toFilter.value) query.to = toFilter.value + ' 23:59:59';
-      if (source === 'worklog') {
-        if (userFilter && userFilter.value.trim()) query.user_public_id = userFilter.value.trim();
-        if (entityFilter && entityFilter.value.trim()) query.task_public_id = entityFilter.value.trim();
-      }
-      if (source === 'server_errors') {
-        if (userFilter && userFilter.value.trim()) query.user_public_id = userFilter.value.trim();
-      }
-      return query;
+    function humanizeCode(code) {
+      return String(code || '').replace(/_/g, ' ').replace(/^./, function (c) { return c.toUpperCase(); }).trim() || '—';
     }
 
-    function buildUnifiedRowModel(item) {
-      var src = item._source || 'unknown';
-      var sourceLabels = {
-        server_error: 'PHP',
-        frontend_error: 'JS',
-        module_error: 'Module'
-      };
-      var sourceColors = {
-        server_error: '',
-        frontend_error: ' bg-primary',
-        module_error: ' bg-info'
-      };
-      var sourceLabel = sourceLabels[src] || src;
-      var sourceColor = sourceColors[src] || ' bg-secondary';
+    function levelBadge(level) {
+      var meta = LEVEL_META[String(level || 'error')] || LEVEL_META.error;
+      return '<span class="badge ' + meta.cls + '" style="font-size:0.72em">' + safeText(tp('admin_logs.' + meta.key, level)) + '</span>';
+    }
 
-      if (src === 'server_error') {
-        var lvl = item.level || 'error';
-        var lvlColor = lvl === 'fatal' ? ' bg-danger' : lvl === 'exception' ? ' bg-warning text-dark' : ' bg-secondary';
-        var msg = item.message || '';
-        var fileLine = (item.file || '') + (item.line ? ':' + item.line : '');
-        return {
-          id: String(item.public_id || ''),
-          at: item.created_at || item._sort_time || '',
-          user: resolveUserLabel('', item.user_public_id || '', 'system'),
-          event: '<span class="badge bg-secondary" style="font-size:0.65em">PHP</span> <span class="badge' + lvlColor + '" style="font-size:0.65em">' + safeText(lvl) + '</span> ' + safeText(msg.substring(0, 110)),
-          eventIsHtml: true,
-          target: safeText(fileLine),
-          side: String(item.ip || item.code || ''),
-          ip: item.ip || '',
-          raw: item
-        };
+    function srcBadge(src) {
+      var meta = SOURCE_META[String(src)];
+      if (!meta) return '';
+      return '<span class="badge ' + meta.cls + '" style="font-size:0.65em" title="' + safeText(humanizeCode(src)) + '">' + safeText(tp('admin_logs.' + meta.key, '')) + '</span> ';
+    }
+
+    function statusBadge(statusCode) {
+      var n = Number(statusCode || 0);
+      if (!n) return '<span class="text-muted">—</span>';
+      var cls = n < 400 ? 'bg-success' : n < 500 ? 'bg-warning text-dark' : 'bg-danger';
+      var label = n < 400 ? tp('admin_logs.status_ok_short', 'Успешно') : n < 500 ? tp('admin_logs.status_client_short', 'Ошибка запроса') : tp('admin_logs.status_server_short', 'Ошибка сервера');
+      return '<span class="badge ' + cls + '" style="font-size:0.72em">' + n + '</span> <span class="small text-muted">' + safeText(label) + '</span>';
+    }
+
+    function methodBadge(method) {
+      var m = String(method || '').toUpperCase();
+      if (!m) return '<span class="text-muted">—</span>';
+      var cls = m === 'GET' ? 'bg-success' : m === 'POST' ? 'bg-primary' : m === 'DELETE' ? 'bg-danger' : 'bg-warning text-dark';
+      return '<span class="badge ' + cls + '" style="font-size:0.7em">' + safeText(m) + '</span>';
+    }
+
+    function shortRoute(route) {
+      return String(route || '').replace(/^\/api\/v1\//, '').replace(/^\/api\//, 'api/') || '—';
+    }
+
+    function parseJsonMaybe(raw) {
+      if (raw && typeof raw === 'object') return raw;
+      if (typeof raw !== 'string' || !raw) return null;
+      try { var v = JSON.parse(raw); return (v && typeof v === 'object') ? v : null; } catch (e) { return null; }
+    }
+
+    function fmtDuration(ms) {
+      var n = Number(ms || 0);
+      if (!n) return '<span class="text-muted">—</span>';
+      return n >= 1000 ? (n / 1000).toFixed(1) + ' s' : n + ' ms';
+    }
+
+    // ---------- period ----------
+    function pad2(n) { return (n < 10 ? '0' : '') + n; }
+    function utcStamp(dt, endOfDay) {
+      return dt.getUTCFullYear() + '-' + pad2(dt.getUTCMonth() + 1) + '-' + pad2(dt.getUTCDate())
+        + ' ' + (endOfDay ? '23:59:59' : '00:00:00');
+    }
+    function computeRange(period) {
+      var now = new Date();
+      if (period === 'today') return { from: utcStamp(now, false) };
+      if (period === 'yesterday') {
+        var y = new Date(now.getTime() - 86400000);
+        return { from: utcStamp(y, false), to: utcStamp(y, true) };
       }
-      if (src === 'frontend_error') {
-        var evtType = item.event_type || 'js_error';
-        var evtColor = evtType === 'frontend_csp_violation' ? ' bg-warning text-dark' : ' bg-primary';
-        var detRaw = item.details || item.payload || null;
-        if (typeof detRaw === 'string' && detRaw) {
-          try { detRaw = JSON.parse(detRaw); } catch (e) { detRaw = {}; }
+      if (period === '7d') return { from: utcStamp(new Date(now.getTime() - 7 * 86400000), false) };
+      if (period === '30d') return { from: utcStamp(new Date(now.getTime() - 30 * 86400000), false) };
+      return {};
+    }
+
+    // ---------- tab state ----------
+    var state = { tab: 'errors', page: 1, rows: [], meta: {} };
+
+    function currentTab() {
+      var t = String(state.tab || '');
+      return TAB_DEFS[t] ? t : 'errors';
+    }
+
+    function applyTabVisibility() {
+      var tab = currentTab();
+      tabsNav.querySelectorAll('[data-log-tab]').forEach(function (b) {
+        b.classList.toggle('active', b.getAttribute('data-log-tab') === tab);
+      });
+      document.querySelectorAll('[data-tab-for]').forEach(function (el) {
+        var tabs = String(el.getAttribute('data-tab-for')).split(/\s+/);
+        el.classList.toggle('d-none', tabs.indexOf(tab) === -1);
+      });
+      if (chartCard) chartCard.classList.toggle('d-none', tab !== 'errors');
+    }
+
+    function buildEventSelectOptions() {
+      var sel = document.getElementById('adminLogsEvent');
+      if (!sel || sel.dataset.built === '1') return;
+      SECURITY_EVENT_OPTIONS.forEach(function (pair) {
+        var o = document.createElement('option');
+        o.value = pair[0];
+        o.textContent = tp('admin_logs.' + pair[1], humanizeCode(pair[0]));
+        sel.appendChild(o);
+      });
+      sel.dataset.built = '1';
+    }
+
+    function collectQuery() {
+      var tab = currentTab();
+      var def = TAB_DEFS[tab];
+      var q = { limit: PAGE_SIZE };
+      var periodSel = document.getElementById('adminLogsPeriod');
+      var range = computeRange(periodSel ? periodSel.value : PERIOD_7D_DEFAULT);
+      if (range.from) q.from = range.from;
+      if (range.to) q.to = range.to;
+
+      if (tab === 'errors') {
+        var lvl = document.getElementById('adminLogsLevel');
+        var src = document.getElementById('adminLogsSource');
+        var search = document.getElementById('adminLogsSearch');
+        if (lvl && lvl.value) q.level = lvl.value;
+        if (src && src.value) q.source_type = src.value;
+        if (search && search.value.trim()) q.search = search.value.trim();
+        q.offset = (state.page - 1) * PAGE_SIZE;
+      } else {
+        q.page = state.page;
+      }
+      if (tab === 'users') {
+        var ent = document.getElementById('adminLogsEntity');
+        var uUser = document.getElementById('adminLogsUser');
+        if (ent && ent.value) q.entity_type = ent.value;
+        if (uUser && uUser.value.trim()) q.actor_public_id = uUser.value.trim();
+      }
+      if (tab === 'api') {
+        var m = document.getElementById('adminLogsMethod');
+        var st = document.getElementById('adminLogsStatus');
+        var aUser = document.getElementById('adminLogsUser');
+        if (m && m.value) q.method = m.value;
+        if (st && st.value) q.status_class = st.value;
+        if (aUser && aUser.value.trim()) q.user_public_id = aUser.value.trim();
+      }
+      if (tab === 'security') {
+        var ev = document.getElementById('adminLogsEvent');
+        var sUser = document.getElementById('adminLogsUser');
+        if (ev && ev.value) q.event_type = ev.value;
+        if (sUser && sUser.value.trim()) q.actor_public_id = sUser.value.trim();
+      }
+      if (tab === 'worklog') {
+        var wUser = document.getElementById('adminLogsUser');
+        if (wUser && wUser.value.trim()) q.user_public_id = wUser.value.trim();
+      }
+      if (def.extra) Object.keys(def.extra).forEach(function (k) { q[k] = def.extra[k]; });
+      return q;
+    }
+
+    // ---------- summary chips ----------
+    function chip(badgeHtml, text) {
+      return '<span class="crm-chip d-inline-flex align-items-center gap-1">' + badgeHtml + ' <span>' + safeText(text) + '</span></span>';
+    }
+
+    function renderSummary(envelope) {
+      if (!summaryEl) return;
+      var tab = currentTab();
+      var meta = (envelope && envelope.meta) || {};
+      var html = '';
+      if (tab === 'errors') {
+        var counts = meta.counts || {};
+        html += chip('<span class="badge bg-dark" style="font-size:0.65em">' + safeText(tp('admin_logs.source_php_short', 'PHP')) + '</span>', String(counts.server_error || 0));
+        html += chip('<span class="badge bg-primary" style="font-size:0.65em">' + safeText(tp('admin_logs.source_js_short', 'JS')) + '</span>', String(counts.frontend_error || 0));
+        html += chip('<span class="badge bg-info" style="font-size:0.65em">' + safeText(tp('admin_logs.source_module_short', 'Модули')) + '</span>', String(counts.module_error || 0));
+        html += chip('<span class="badge bg-secondary" style="font-size:0.65em"><i class="fa-solid fa-sum"></i></span>', tpFmt('admin_logs.summary_total', 'Всего: {n}', { n: Number(meta.total || 0) }));
+      } else if (tab === 'api' || tab === 'mcp' || tab === 'security' || tab === 'users') {
+        var pg = meta.pagination || {};
+        var total = Number(pg.total != null ? pg.total : (meta.total || 0));
+        var errRows = state.rows.filter(function (r) { return r.isErrorRow; }).length;
+        if (tab === 'api' || tab === 'mcp') {
+          html += chip('<span class="badge bg-secondary" style="font-size:0.65em"><i class="fa-solid fa-plug"></i></span>', tpFmt('admin_logs.summary_requests', 'Запросов: {n}', { n: total }));
+          if (errRows > 0) html += chip('<span class="badge bg-danger" style="font-size:0.65em">!</span>', tpFmt('admin_logs.summary_failed_shown', 'С ошибками (на странице): {n}', { n: errRows }));
+        } else {
+          html += chip('<span class="badge bg-secondary" style="font-size:0.65em"><i class="fa-solid fa-list"></i></span>', tpFmt(tab === 'security' ? 'admin_logs.summary_events' : 'admin_logs.summary_actions', 'Событий: {n}', { n: total }));
         }
-        var details = (detRaw && typeof detRaw === 'object') ? detRaw : {};
-        var payload = details.payload || {};
-        if (typeof payload === 'string' && payload) {
-          try { payload = JSON.parse(payload); } catch (e) { payload = {}; }
-        }
-        if (!payload || typeof payload !== 'object') payload = {};
-        var evtMsg = payload.message || payload.reason || payload.code || evtType;
-        var evtRoute = details.route || details.page_url || '';
-        return {
-          id: String(item.actor_public_id || item.public_id || item.id || ''),
-          at: item.created_at || item._sort_time || '',
-          user: resolveUserLabel('', item.actor_public_id || '', 'system'),
-          event: '<span class="badge bg-primary" style="font-size:0.65em">JS</span> <span class="badge' + evtColor + '" style="font-size:0.65em">' + safeText(evtType.replace('frontend_', '')) + '</span> ' + safeText(String(evtMsg).substring(0, 110)),
-          eventIsHtml: true,
-          target: safeText(String(evtRoute).substring(0, 80)),
-          side: safeText(item.ip || ''),
-          ip: item.ip || '',
-          raw: item
-        };
+      } else if (tab === 'worklog') {
+        var minutes = 0;
+        state.rows.forEach(function (r) { minutes += Number(r.minutes || 0); });
+        html += chip('<span class="badge bg-secondary" style="font-size:0.65em"><i class="fa-solid fa-stopwatch"></i></span>',
+          tpFmt('admin_logs.summary_time', 'Записей: {n}, всего {h} ч {m} мин', { n: state.rows.length, h: Math.floor(minutes / 60), m: minutes % 60 }));
       }
-      if (src === 'module_error') {
-        return {
-          id: String(item.id || ''),
-          at: item.created_at || item._sort_time || '',
-          user: resolveUserLabel('', '', 'module'),
-          event: '<span class="badge bg-info" style="font-size:0.65em">Module</span> ' + safeText((item.error_message || '').substring(0, 120)),
-          eventIsHtml: true,
-          target: safeText((item.module_name || '') + ' / ' + (item.context || '')),
-          side: safeText(item.error_code || ''),
-          ip: '',
-          raw: item
-        };
-      }
-      return {
-        id: String(item.public_id || item.id || ''),
-        at: item.created_at || item._sort_time || '',
-        user: resolveUserLabel('', '', 'system'),
-        event: safeText(src + ': ' + (item.message || item.event_type || '')),
-        eventIsHtml: false,
-        target: '—',
-        side: '—',
-        ip: '',
-        raw: item
-      };
+      summaryEl.innerHTML = html;
     }
 
-    function toRowModel(source, item) {
-      var details = parseDetails(item.details || item.payload);
-      if (source === 'request') {
-        return {
-          id: String(item.public_id || ''),
-          at: item.created_at,
-          user: resolveUserLabel(item.user_full_name || item.user_login || '', item.user_public_id || '', 'system'),
-          event: (item.method || '') + ' ' + (item.result_code || item.status_code || ''),
-          target: item.route || item.request_id || '—',
-          side: String(item.status_code || '—'),
-          ip: details && details.ip ? details.ip : '',
-          raw: item
-        };
-      }
-      if (source === 'security') {
-        return {
-          id: String(item.public_id || ''),
-          at: item.created_at,
-          user: resolveUserLabel(item.actor_name || '', item.actor_public_id || '', 'system'),
-          event: item.event_type || 'security_event',
-          target: details && details.route ? details.route : '—',
-          side: item.ip || '—',
-          ip: item.ip || '',
-          raw: item
-        };
-      }
-      if (source === 'worklog') {
-        return {
-          id: String(item.public_id || ''),
-          at: item.logged_at || item.created_at,
-          user: resolveUserLabel(item.user_full_name || item.user_login || '', item.user_public_id || '', 'system'),
-          event: 'worklog (' + String(item.minutes_spent || 0) + ' ' + tp('min', 'min') + ')',
-          target: item.task_public_id || item.task_title || '—',
-          side: '—',
-          ip: '',
-          raw: item
-        };
-      }
-      if (source === 'server_errors') {
-        var levelBadge = item.level === 'fatal' ? ' bg-danger' : item.level === 'exception' ? ' bg-warning text-dark' : ' bg-secondary';
-        return {
-          id: String(item.public_id || ''),
-          at: item.created_at,
-          user: resolveUserLabel('', item.user_public_id || '', 'system'),
-          event: '<span class="badge' + levelBadge + '" style="font-size:0.7em">' + safeText(item.level || 'error') + '</span> ' + safeText((item.message || '').substring(0, 120)),
-          eventIsHtml: true,
-          target: safeText((item.file || '') + (item.line ? ':' + item.line : '')),
-          side: String(item.code || '—'),
-          ip: item.ip || '',
-          raw: item
-        };
-      }
-      if (source === 'module_errors') {
-        return {
-          id: String(item.public_id || item.id || ''),
-          at: item.created_at,
-          user: resolveUserLabel('', '', 'module'),
-          event: '<span class="badge bg-info" style="font-size:0.7em">module</span> ' + safeText((item.error_message || '').substring(0, 120)),
-          eventIsHtml: true,
-          target: safeText((item.module_name || '') + ' / ' + (item.context || '')),
-          side: safeText(item.error_code || '—'),
-          ip: '',
-          raw: item
-        };
-      }
-      if (source === 'all_errors') {
-        return buildUnifiedRowModel(item);
-      }
-      return {
-        id: String(item.public_id || ''),
-        at: item.created_at,
-        user: resolveUserLabel(item.actor_name || '', item.actor_public_id || '', 'system'),
-        event: item.action || 'audit_event',
-        target: (item.entity_type || 'entity') + ':' + (item.entity_public_id || '—'),
-        side: '—',
-        ip: '',
-        raw: item
+    // ---------- table ----------
+    function th(text) { return '<th>' + safeText(text) + '</th>'; }
+
+    function renderHead() {
+      if (!tableHead) return;
+      var tab = currentTab();
+      var cols = {
+        errors:   ['admin_logs.th_time', 'admin_logs.th_event_col', 'admin_logs.th_where', 'admin_logs.th_user', 'admin_logs.th_ip'],
+        users:    ['admin_logs.th_time', 'admin_logs.th_user', 'admin_logs.th_action_col', 'admin_logs.th_object'],
+        api:      ['admin_logs.th_time', 'admin_logs.th_method', 'admin_logs.th_request', 'admin_logs.th_result', 'admin_logs.th_duration', 'admin_logs.th_user'],
+        security: ['admin_logs.th_time', 'admin_logs.th_event_col', 'admin_logs.th_user', 'admin_logs.th_ip'],
+        mcp:      ['admin_logs.th_time', 'admin_logs.th_method', 'admin_logs.th_request', 'admin_logs.th_result', 'admin_logs.th_duration'],
+        worklog:  ['admin_logs.th_date', 'admin_logs.th_user', 'admin_logs.th_task', 'admin_logs.th_time_spent']
       };
+      tableHead.innerHTML = '<tr>' + (cols[tab] || cols.users).map(function (k) { return th(tp(k, '')); }).join('') + '<th style="width:90px"></th></tr>';
     }
 
-    var currentRows = [];
+    function rowCell(html) { return '<td>' + html + '</td>'; }
 
-    async function loadLogs() {
-      if (!tableBody) return;
-      var source = sourceFilter ? String(sourceFilter.value || 'audit') : 'audit';
-      var endpoint = source === 'request'
-        ? 'api/v1/logs/request'
-        : source === 'security'
-          ? 'api/v1/logs/security'
-          : source === 'worklog'
-            ? 'api/v1/worklogs'
-            : source === 'server_errors'
-              ? 'api/v1/logs/server-errors'
-              : source === 'module_errors'
-                ? 'api/v1/logs/module-errors'
-                : source === 'all_errors'
-                  ? 'api/v1/logs/all-errors'
-                  : 'api/v1/logs/audit';
-
-      var envelope = await tryRequest(endpoint, { query: buildQueryBySource(source) });
-      if (envelope && envelope.success === false) {
-        // Show a real error instead of the misleading "No logs found" empty row.
-        tableBody.innerHTML = '<tr><td colspan="6" class="text-danger">' + safeText(tp('admin_logs.load_error', 'Не удалось загрузить логи.')) + '</td></tr>';
+    function renderRows(envelope) {
+      var tab = currentTab();
+      var items = mapItems(envelope);
+      state.rows = items.map(function (item) { return buildRow(tab, item); });
+      if (!state.rows.length) {
+        var emptyHints = {
+          mcp: 'admin_logs.empty_mcp',
+          errors: 'admin_logs.empty_errors',
+          security: 'admin_logs.empty_security',
+          users: 'admin_logs.empty_users'
+        };
+        var hintKey = emptyHints[tab] || 'admin_logs.empty';
+        tableBody.innerHTML = '<tr><td colspan="7" class="text-muted p-4">' + safeText(tp(hintKey, tp('admin_logs.empty', 'По выбранным фильтрам записи не найдены.'))) + '</td></tr>';
         return;
       }
-      var items = mapItems(envelope);
-      currentRows = items.map(function (item) { return toRowModel(source, item); });
-
-      if (source === 'all_errors' && envelope && envelope.meta && envelope.meta.counts) {
-        var counts = envelope.meta.counts;
-        var statsEl = document.getElementById('adminLogsSourceStats');
-        var statsInner = document.getElementById('adminLogsSourceStatsInner');
-        if (statsEl && statsInner) {
-          statsEl.classList.remove('d-none');
-          statsInner.innerHTML = ''
-            + '<span class="crm-chip"><span class="badge bg-secondary" style="font-size:0.7em">PHP</span> ' + safeText(String(counts.server_error || 0)) + '</span>'
-            + '<span class="crm-chip"><span class="badge bg-primary" style="font-size:0.7em">JS</span> ' + safeText(String(counts.frontend_error || 0)) + '</span>'
-            + '<span class="crm-chip"><span class="badge bg-info" style="font-size:0.7em">Module</span> ' + safeText(String(counts.module_error || 0)) + '</span>'
-            + '<span class="crm-chip fw-bold">Всего: ' + safeText(String(envelope.meta.total || 0)) + '</span>';
-        }
-      } else if (source !== 'all_errors') {
-        var statsHide = document.getElementById('adminLogsSourceStats');
-        if (statsHide) statsHide.classList.add('d-none');
-      }
-
-      if (!currentRows.length) {
-        tableBody.innerHTML = '<tr><td colspan="6" class="text-muted">' + safeText(tp('admin_logs.empty', 'По выбранным фильтрам логи не найдены.')) + '</td></tr>';
-      } else {
-        tableBody.innerHTML = currentRows.slice(0, 120).map(function (row) {
-          var eventHtml = row.eventIsHtml ? row.event : safeText(row.event);
-          return '<tr>'
-            + '<td>' + safeText(formatDate(row.at)) + '</td>'
-            + '<td>' + safeText(row.user) + '</td>'
-            + '<td>' + eventHtml + '</td>'
-            + '<td>' + safeText(row.target) + '</td>'
-            + '<td>' + safeText(row.ip || row.side || '—') + '</td>'
-            + '<td><button class="btn btn-sm crm-btn-secondary" data-log-open="' + safeText(row.id) + '">' + safeText(tp('notifications.open', 'Open')) + '</button></td>'
-            + '</tr>';
-        }).join('');
-      }
-
-      var metrics = document.querySelectorAll('.row.g-3 .crm-card h2.h4');
-      if (metrics.length >= 3) {
-        metrics[0].textContent = String(currentRows.length);
-        metrics[1].textContent = String(new Set(currentRows.map(function (row) { return row.user; })).size || 0);
-        metrics[2].textContent = String(currentRows.filter(function (row) {
-          return /created|updated|deleted|login|logout|security|error|forbidden|denied/i.test(String(row.event || ''));
-        }).length);
-      }
+      tableBody.innerHTML = state.rows.map(function (row) {
+        return '<tr>' + row.cells.join('') + '<td><button class="btn btn-sm crm-btn-secondary" data-log-open="' + safeText(row.id) + '">' + safeText(tp('notifications.open', 'Открыть')) + '</button></td></tr>';
+      }).join('');
     }
 
+    function buildRow(tab, item) {
+      var details = parseJsonMaybe(item.details);
+      if (details == null) details = parseJsonMaybe(item.payload);
+
+      if (tab === 'errors') {
+        var src = item._source || 'server_error';
+        var lvl = item.level || (src === 'frontend_error' ? (item._level || 'error') : 'error');
+        var title = '', where = '';
+        if (src === 'server_error') {
+          title = String(item.message || '').substring(0, 140);
+          where = '<code>' + safeText(String(item.file || '').split('/').pop()) + (item.line ? ':' + item.line : '') + '</code>';
+        } else if (src === 'frontend_error') {
+          var pay = parseJsonMaybe(details && details.payload) || {};
+          title = String(pay.message || pay.reason || pay.code || item.event_type || '').substring(0, 140);
+          where = safeText(shortRoute((details && (details.route || details.page_url)) || ''));
+        } else {
+          title = String(item.error_message || '').substring(0, 140);
+          where = safeText(String(item.module_name || '') + ' / ' + String(item.context || ''));
+        }
+        return {
+          id: String(item.public_id || item.id || ''),
+          isErrorRow: true,
+          cells: [
+            rowCell(safeText(formatDate(item.created_at || item._sort_time))),
+            rowCell(srcBadge(src) + levelBadge(lvl) + '<div class="small mt-1">' + safeText(title) + '</div>'),
+            rowCell(where),
+            rowCell(safeText(resolveUserLabel('', item.user_public_id || item.actor_public_id || '', '—'))),
+            rowCell(safeText(item.ip || '—'))
+          ],
+          raw: item,
+          kind: 'errors'
+        };
+      }
+
+      if (tab === 'users') {
+        var action = String(item.action || '');
+        var obj = item.entity_type ? (item.entity_type + ': ' + (item.entity_public_id || '—')) : '—';
+        var detObj = details && details.entity_title ? safeText(String(details.entity_title).substring(0, 60)) : null;
+        if (detObj) obj = detObj;
+        return {
+          id: String(item.public_id || ''),
+          cells: [
+            rowCell(safeText(formatDate(item.created_at))),
+            rowCell(safeText(resolveUserLabel(item.actor_name || '', item.actor_public_id || '', '—'))),
+            rowCell(evBadge(action)),
+            rowCell('<span class="small">' + obj + '</span>')
+          ],
+          raw: item,
+          kind: 'audit'
+        };
+      }
+
+      if (tab === 'api' || tab === 'mcp') {
+        var sc = Number(item.status_code || 0);
+        return {
+          id: String(item.public_id || ''),
+          isErrorRow: sc >= 400,
+          cells: [
+            rowCell(safeText(formatDate(item.created_at))),
+            rowCell(methodBadge(item.method)),
+            rowCell('<code class="small">' + safeText(shortRoute(item.route)) + '</code>'),
+            rowCell(statusBadge(sc)),
+            rowCell(fmtDuration(item.duration_ms)),
+            rowCell(safeText(resolveUserLabel('', item.user_public_id || '', '—')))
+          ],
+          raw: item,
+          kind: 'request'
+        };
+      }
+
+      if (tab === 'security') {
+        return {
+          id: String(item.public_id || ''),
+          isErrorRow: /failed|mismatch|rate_limited|issue/i.test(String(item.event_type || '')),
+          cells: [
+            rowCell(safeText(formatDate(item.created_at))),
+            rowCell(evBadge(item.event_type)),
+            rowCell(safeText(resolveUserLabel('', item.actor_public_id || '', '—'))),
+            rowCell(safeText(maskedIp(item.ip)))
+          ],
+          raw: item,
+          kind: 'security'
+        };
+      }
+
+      // worklog
+      return {
+        id: String(item.public_id || ''),
+        minutes: item.minutes_spent,
+        cells: [
+          rowCell(safeText(formatDate(item.logged_at || item.created_at))),
+          rowCell(safeText(resolveUserLabel(item.user_full_name || item.user_login || '', item.user_public_id || '', '—'))),
+          rowCell('<span class="small">' + safeText(item.task_title || item.task_public_id || '—') + '</span>'),
+          rowCell('<strong>' + safeText(String(item.minutes_spent || 0)) + '</strong> <span class="small text-muted">' + safeText(tp('min', 'мин')) + '</span>')
+        ],
+        raw: item,
+        kind: 'worklog'
+      };
+    }
+
+    function maskedIp(ip) {
+      return String(ip || '') || '—';
+    }
+
+    function renderPager(envelope) {
+      if (!pageInfoEl || !prevBtn || !nextBtn) return;
+      var meta = (envelope && envelope.meta) || {};
+      var tab = currentTab();
+      var total, page, pages;
+      if (tab === 'errors') {
+        total = Number(meta.total || 0);
+        page = state.page;
+        pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+      } else {
+        var pg = meta.pagination || {};
+        total = Number(pg.total != null ? pg.total : (meta.total || 0));
+        page = Number(pg.page || state.page);
+        pages = Number(pg.pages || Math.max(1, Math.ceil(total / Math.max(1, pg.limit || PAGE_SIZE))));
+      }
+      var supported = !(tab === 'worklog');
+      pageInfoEl.textContent = supported
+        ? tpFmt('admin_logs.page_info', 'Страница {p} из {pages} · всего {n}', { p: page, pages: pages, n: total })
+        : '';
+      prevBtn.classList.toggle('disabled', !supported || page <= 1);
+      nextBtn.classList.toggle('disabled', !supported || page >= pages);
+    }
+
+    async function loadLogs() {
+      var tab = currentTab();
+      var def = TAB_DEFS[tab];
+      tableBody.innerHTML = '<tr><td colspan="7" class="text-muted p-3"><span class="spinner-border spinner-border-sm me-2"></span>' + safeText(tp('admin_logs.loading_logs', 'Загрузка...')) + '</td></tr>';
+      var envelope = await tryRequest(def.endpoint, { query: collectQuery(), silent: false });
+      if (!envelope || envelope.success === false) {
+        tableBody.innerHTML = '<tr><td colspan="7" class="text-danger p-3">' + safeText(tp('admin_logs.load_error', 'Не удалось загрузить журнал.')) + '</td></tr>';
+        if (summaryEl) summaryEl.innerHTML = '';
+        if (pageInfoEl) pageInfoEl.textContent = '';
+        return;
+      }
+      renderHead();
+      renderRows(envelope);
+      renderSummary(envelope);
+      renderPager(envelope);
+    }
+
+    // ---------- drawer ----------
     function bindDrawer() {
       if (!tableBody || tableBody.dataset.drawerBound === '1') return;
       tableBody.addEventListener('click', function (e) {
         var btn = e.target.closest('[data-log-open]');
         if (!btn) return;
         var id = String(btn.getAttribute('data-log-open') || '');
-        if (!id) return;
-        var row = currentRows.find(function (item) { return String(item.id) === id; });
+        var row = state.rows.find(function (item) { return String(item.id) === id; });
         if (!row) return;
         var drawer = document.getElementById('logDetailDrawer');
         if (!drawer) return;
         var body = drawer.querySelector('.offcanvas-body');
         if (!body) return;
-        var raw = row.raw || {};
-        var src = raw._source || '';
-        var html = '';
-
-        html += '<div class="crm-metric-tile mb-2"><small class="text-muted">' + safeText(tp('admin.log_time', 'Time')) + '</small><div>' + safeText(formatDate(row.at)) + '</div></div>';
-        html += '<div class="crm-metric-tile mb-2"><small class="text-muted">' + safeText(tp('admin.log_user', 'User')) + '</small><div>' + safeText(row.user) + '</div></div>';
-
-        if (src === 'server_error') {
-          var lvlCls = raw.level === 'fatal' ? 'bg-danger' : raw.level === 'exception' ? 'bg-warning text-dark' : 'bg-secondary';
-          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">Level</small><div><span class="badge ' + lvlCls + '">' + safeText(raw.level || 'error') + '</span> <span class="badge bg-dark">' + safeText(String(raw.code || '')) + '</span></div></div>';
-          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">Message</small><div class="small">' + safeText(raw.message || '') + '</div></div>';
-          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">File / Line</small><div class="small"><code>' + safeText((raw.file || '') + (raw.line ? ':' + raw.line : '')) + '</code></div></div>';
-          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">URL</small><div class="small">' + safeText(raw.method || '') + ' ' + safeText(raw.url || '') + '</div></div>';
-          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">IP</small><div class="small">' + safeText(raw.ip || '') + '</div></div>';
-          if (raw.stack_trace) {
-            html += '<div class="crm-metric-tile mb-2"><small class="text-muted">Stack Trace</small>';
-            html += '<details class="mt-1"><summary class="small text-muted" style="cursor:pointer">Показать / скрыть stack trace</summary>';
-            html += '<pre class="mb-0 small mt-1 p-2" style="white-space:pre-wrap;background:#f8f9fa;border-radius:4px;max-height:400px;overflow:auto">' + safeText(raw.stack_trace) + '</pre>';
-            html += '</details></div>';
-          }
-        } else if (src === 'frontend_error') {
-          var det = raw.details || {};
-          var pay = det.payload || {};
-          var evtType = raw.event_type || '';
-          var evtCls = evtType.indexOf('csp') >= 0 ? 'bg-warning text-dark' : 'bg-primary';
-          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">Event Type</small><div><span class="badge ' + evtCls + '">' + safeText(evtType) + '</span></div></div>';
-          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">Route</small><div class="small">' + safeText(det.route || '') + '</div></div>';
-          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">Page URL</small><div class="small">' + safeText(det.page_url || '') + '</div></div>';
-          if (pay.message || pay.reason || pay.code) {
-            html += '<div class="crm-metric-tile mb-2"><small class="text-muted">Error</small><div class="small">' + safeText(pay.message || pay.reason || pay.code || '') + '</div></div>';
-          }
-          if (pay.file || pay.line) {
-            html += '<div class="crm-metric-tile mb-2"><small class="text-muted">Location</small><div class="small"><code>' + safeText((pay.file || '') + (pay.line ? ':' + pay.line : '') + (pay.column ? ':' + pay.column : '')) + '</code></div></div>';
-          }
-          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">IP</small><div class="small">' + safeText(raw.ip || '') + '</div></div>';
-        } else if (src === 'module_error') {
-          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">Module</small><div><span class="badge bg-info">' + safeText(raw.module_name || '') + '</span></div></div>';
-          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">Context</small><div class="small">' + safeText(raw.context || '') + '</div></div>';
-          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">Error Code</small><div class="small"><code>' + safeText(raw.error_code || '') + '</code></div></div>';
-          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">Message</small><div class="small">' + safeText(raw.error_message || '') + '</div></div>';
-          if (raw.stack_trace) {
-            html += '<div class="crm-metric-tile mb-2"><small class="text-muted">Stack Trace</small>';
-            html += '<details class="mt-1"><summary class="small text-muted" style="cursor:pointer">Показать / скрыть stack trace</summary>';
-            html += '<pre class="mb-0 small mt-1 p-2" style="white-space:pre-wrap;background:#f8f9fa;border-radius:4px;max-height:400px;overflow:auto">' + safeText(raw.stack_trace) + '</pre>';
-            html += '</details></div>';
-          }
-        } else {
-          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">' + safeText(tp('admin.log_event', 'Event')) + '</small><div>' + safeText(row.event) + '</div></div>';
-          html += '<div class="crm-metric-tile mb-2"><small class="text-muted">' + safeText(tp('admin.log_target', 'Object / route')) + '</small><div>' + safeText(row.target) + '</div></div>';
-        }
-
-        html += '<div class="crm-metric-tile mt-3"><small class="text-muted">' + safeText(tp('admin.log_raw', 'Raw JSON')) + '</small>';
-        html += '<details class="mt-1"><summary class="small text-muted" style="cursor:pointer">Показать исходные данные</summary>';
-        html += '<pre class="mb-0 small mt-1 p-2" style="white-space:pre-wrap;background:#f8f9fa;border-radius:4px;max-height:300px;overflow:auto">' + safeText(JSON.stringify(raw, null, 2)) + '</pre>';
-        html += '</details></div>';
-
-        body.innerHTML = html;
+        body.innerHTML = buildDrawerHtml(row);
         if (window.bootstrap && window.bootstrap.Offcanvas) {
           window.bootstrap.Offcanvas.getOrCreateInstance(drawer).show();
         }
@@ -16118,56 +16232,162 @@ window.CRM.pageApiBindings = (function () {
       tableBody.dataset.drawerBound = '1';
     }
 
-    async function loadUserActivity() {
-      if (!activityInput || !activitySummary) return;
-      var userPublicId = String(activityInput.value || '').trim();
-      if (!userPublicId) {
-        activitySummary.className = 'text-muted mt-2';
-        activitySummary.textContent = tp('admin.user_activity_hint', 'Enter user_public_id to see request/security/audit user activity.');
-        return;
-      }
-      var envelope = await tryRequest('api/v1/users/' + encodeURIComponent(userPublicId) + '/activity', {
-        query: { limit: 20 }
-      });
-      var data = envelope && envelope.data ? envelope.data : {};
-      var requestItems = Array.isArray(data.request_logs) ? data.request_logs : [];
-      var securityItems = Array.isArray(data.security_logs) ? data.security_logs : [];
-      var auditItems = Array.isArray(data.audit_logs) ? data.audit_logs : [];
-      activitySummary.className = 'mt-2';
-      activitySummary.innerHTML = ''
-        + '<span class="crm-chip me-2">Request: ' + safeText(String(requestItems.length)) + '</span>'
-        + '<span class="crm-chip me-2">Security: ' + safeText(String(securityItems.length)) + '</span>'
-        + '<span class="crm-chip">Audit: ' + safeText(String(auditItems.length)) + '</span>';
+    function drawerTile(label, valueHtml) {
+      return '<div class="crm-metric-tile mb-2"><small class="text-muted">' + safeText(label) + '</small><div>' + valueHtml + '</div></div>';
     }
 
+    function buildDrawerHtml(row) {
+      var raw = row.raw || {};
+      var html = '';
+      var kindTitle = {
+        errors: tp('admin_logs.drawer_kind_error', 'Ошибка'),
+        audit: tp('admin_logs.drawer_kind_action', 'Действие пользователя'),
+        request: tp('admin_logs.drawer_kind_request', 'Запрос к системе'),
+        security: tp('admin_logs.drawer_kind_security', 'Событие безопасности'),
+        worklog: tp('admin_logs.drawer_kind_worklog', 'Запись учёта времени')
+      };
+      html += '<div class="mb-3">' + evBadge(row.kind === 'errors' ? (raw._source || 'error') : (raw.action || raw.event_type || row.kind)) ;
+      html += ' <span class="text-muted small ms-1">' + safeText(kindTitle[row.kind] || '') + '</span></div>';
+
+      html += drawerTile(tp('admin.log_time', 'Время'), safeText(formatDate(raw.created_at || raw.logged_at || raw._sort_time)));
+
+      if (row.kind === 'errors') {
+        var src = raw._source || 'server_error';
+        html += drawerTile(tp('admin_logs.lbl_source', 'Источник'), srcBadge(src) + ' ' + safeText(humanizeCode(src)));
+        if (src === 'server_error') {
+          html += drawerTile(tp('admin_logs.level_lbl', 'Критичность'), levelBadge(raw.level || 'error'));
+          html += drawerTile(tp('admin_logs.drawer_message', 'Описание ошибки'), '<div class="small">' + safeText(raw.message || '—') + '</div>');
+          html += drawerTile(tp('admin_logs.drawer_file', 'Место в коде'), '<code class="small">' + safeText((raw.file || '—') + (raw.line ? ':' + raw.line : '')) + '</code>');
+          if (raw.url) html += drawerTile(tp('admin_logs.drawer_url', 'Адрес страницы'), '<span class="small">' + safeText(String(raw.method || '') + ' ' + raw.url) + '</span>');
+          if (raw.stack_trace) {
+            html += '<div class="crm-metric-tile mb-2"><small class="text-muted">' + safeText(tp('admin_logs.drawer_stack', 'Техническая информация (стек вызовов)')) + '</small>'
+              + '<details class="mt-1"><summary class="small text-muted" style="cursor:pointer">' + safeText(tp('admin_logs.show_stack', 'Показать')) + '</summary>'
+              + '<pre class="mb-0 small mt-1 p-2" style="white-space:pre-wrap;background:#f8f9fa;border-radius:4px;max-height:360px;overflow:auto">' + safeText(raw.stack_trace) + '</pre></details></div>';
+          }
+        } else if (src === 'frontend_error') {
+          var det = parseJsonMaybe(raw.details) || {};
+          var pay = parseJsonMaybe(det.payload) || {};
+          html += drawerTile(tp('admin_logs.drawer_message', 'Описание ошибки'), '<div class="small">' + safeText(pay.message || pay.reason || pay.code || raw.event_type || '—') + '</div>');
+          if (pay.file || pay.line) html += drawerTile(tp('admin_logs.drawer_file', 'Место в коде'), '<code class="small">' + safeText((pay.file || '') + (pay.line ? ':' + pay.line : '') + (pay.column ? ':' + pay.column : '')) + '</code>');
+          if (det.route || det.page_url) html += drawerTile(tp('admin_logs.drawer_page', 'Страница'), '<span class="small">' + safeText(det.page_url || det.route) + '</span>');
+        } else {
+          html += drawerTile(tp('admin_logs.drawer_module', 'Модуль'), safeText(raw.module_name || '—'));
+          html += drawerTile(tp('admin_logs.drawer_message', 'Описание ошибки'), '<div class="small">' + safeText(raw.error_message || '—') + '</div>');
+          if (raw.stack_trace) {
+            html += '<div class="crm-metric-tile mb-2"><small class="text-muted">' + safeText(tp('admin_logs.drawer_stack', 'Техническая информация (стек вызовов)')) + '</small>'
+              + '<details class="mt-1"><summary class="small text-muted" style="cursor:pointer">' + safeText(tp('admin_logs.show_stack', 'Показать')) + '</summary>'
+              + '<pre class="mb-0 small mt-1 p-2" style="white-space:pre-wrap;background:#f8f9fa;border-radius:4px;max-height:360px;overflow:auto">' + safeText(raw.stack_trace) + '</pre></details></div>';
+          }
+        }
+        html += drawerTile(tp('admin.log_user', 'Пользователь'), safeText(resolveUserLabel('', raw.user_public_id || raw.actor_public_id || '', '—')));
+        if (raw.ip) html += drawerTile('IP', safeText(raw.ip));
+      } else if (row.kind === 'audit') {
+        html += drawerTile(tp('admin.log_user', 'Пользователь'), safeText(resolveUserLabel(raw.actor_name || '', raw.actor_public_id || '', '—')));
+        html += drawerTile(tp('admin_logs.drawer_object', 'Объект'), '<span class="small">' + safeText((raw.entity_type || '—') + ': ' + (raw.entity_public_id || '—')) + '</span>');
+        var det = parseJsonMaybe(raw.details);
+        if (det) {
+          var interesting = {};
+          Object.keys(det).forEach(function (k) {
+            if (['actor_public_id', 'entity_type', 'entity_public_id', 'action', 'created_at', 'ip', 'user_agent'].indexOf(k) === -1) interesting[k] = det[k];
+          });
+          if (Object.keys(interesting).length) {
+            html += '<div class="crm-metric-tile mb-2"><small class="text-muted">' + safeText(tp('admin_logs.drawer_changes', 'Подробности')) + '</small>'
+              + '<pre class="mb-0 small mt-1 p-2" style="white-space:pre-wrap;background:#f8f9fa;border-radius:4px;max-height:280px;overflow:auto">' + safeText(JSON.stringify(interesting, null, 2)) + '</pre></div>';
+          }
+        }
+      } else if (row.kind === 'request') {
+        html += drawerTile(tp('admin_logs.th_method', 'Метод'), methodBadge(raw.method));
+        html += drawerTile(tp('admin_logs.drawer_full_route', 'Полный адрес запроса'), '<code class="small">' + safeText(raw.route || '—') + '</code>');
+        html += drawerTile(tp('admin_logs.th_result', 'Результат'), statusBadge(raw.status_code) + (raw.result_code ? ' <code class="small ms-1">' + safeText(raw.result_code) + '</code>' : ''));
+        html += drawerTile(tp('admin_logs.th_duration', 'Длительность'), fmtDuration(raw.duration_ms));
+        html += drawerTile(tp('admin.log_user', 'Пользователь'), safeText(resolveUserLabel('', raw.user_public_id || '', '—')));
+        if (raw.request_id) html += drawerTile('Request ID', '<code class="small">' + safeText(raw.request_id) + '</code>');
+      } else if (row.kind === 'security') {
+        var det = parseJsonMaybe(raw.details) || {};
+        html += drawerTile(tp('admin.log_user', 'Пользователь'), safeText(resolveUserLabel('', raw.actor_public_id || det.user_public_id || '', '—')));
+        if (det.reason) html += drawerTile(tp('admin_logs.drawer_reason', 'Причина'), '<span class="small">' + safeText(humanizeCode(det.reason)) + '</span>');
+        if (raw.ip) html += drawerTile('IP', safeText(raw.ip));
+        if (det.details && typeof det.details === 'object' && det.details.route) html += drawerTile(tp('admin_logs.drawer_page', 'Страница'), '<span class="small">' + safeText(det.details.route) + '</span>');
+      } else {
+        html += drawerTile(tp('admin.log_user', 'Пользователь'), safeText(resolveUserLabel(raw.user_full_name || raw.user_login || '', raw.user_public_id || '', '—')));
+        html += drawerTile(tp('admin_logs.th_task', 'Задача'), '<span class="small">' + safeText(raw.task_title || raw.task_public_id || '—') + '</span>');
+        html += drawerTile(tp('admin_logs.th_time_spent', 'Затрачено времени'), '<strong>' + safeText(String(raw.minutes_spent || 0)) + '</strong> ' + safeText(tp('min', 'мин')));
+        if (raw.description) html += drawerTile(tp('admin_logs.drawer_note', 'Комментарий'), '<div class="small">' + safeText(raw.description) + '</div>');
+      }
+
+      html += '<div class="crm-metric-tile mt-3"><small class="text-muted">' + safeText(tp('admin.log_raw', 'Исходные данные')) + '</small>'
+        + '<details class="mt-1"><summary class="small text-muted" style="cursor:pointer">' + safeText(tp('admin_logs.show_raw', 'Показать')) + '</summary>'
+        + '<pre class="mb-0 small mt-1 p-2" style="white-space:pre-wrap;background:#f8f9fa;border-radius:4px;max-height:300px;overflow:auto">' + safeText(JSON.stringify(raw, null, 2)) + '</pre></details></div>';
+      return html;
+    }
+
+    // ---------- events wiring ----------
+    tabsNav.querySelectorAll('[data-log-tab]').forEach(function (btn) {
+      if (btn.dataset.bound === '1') return;
+      btn.addEventListener('click', function () {
+        state.tab = btn.getAttribute('data-log-tab');
+        state.page = 1;
+        try { window.location.hash = '#tab=' + state.tab; } catch (e) {}
+        applyTabVisibility();
+        loadLogs();
+      });
+      btn.dataset.bound = '1';
+    });
+
     if (applyBtn && applyBtn.dataset.bound !== '1') {
-      applyBtn.addEventListener('click', function () { loadLogs(); });
+      applyBtn.addEventListener('click', function () { state.page = 1; loadLogs(); });
       applyBtn.dataset.bound = '1';
     }
     if (resetBtn && resetBtn.dataset.bound !== '1') {
       resetBtn.addEventListener('click', function () {
-        if (sourceFilter) sourceFilter.value = 'audit';
-        if (userFilter) userFilter.value = '';
-        if (entityFilter) entityFilter.value = '';
-        if (routeFilter) routeFilter.value = '';
-        if (fromFilter) fromFilter.value = '';
-        if (toFilter) toFilter.value = '';
+        ['adminLogsLevel', 'adminLogsSource', 'adminLogsMethod', 'adminLogsStatus', 'adminLogsEvent', 'adminLogsEntity', 'adminLogsSearch', 'adminLogsUser'].forEach(function (id) {
+          var el = document.getElementById(id);
+          if (el) el.value = '';
+        });
+        var p = document.getElementById('adminLogsPeriod');
+        if (p) p.value = PERIOD_7D_DEFAULT;
+        state.page = 1;
         loadLogs();
       });
       resetBtn.dataset.bound = '1';
     }
-    if (sourceFilter && sourceFilter.dataset.bound !== '1') {
-      sourceFilter.addEventListener('change', function () { loadLogs(); });
-      sourceFilter.dataset.bound = '1';
+    ['adminLogsLevel', 'adminLogsSource', 'adminLogsMethod', 'adminLogsStatus', 'adminLogsEvent', 'adminLogsEntity'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el && el.dataset.bound !== '1') {
+        el.addEventListener('change', function () { state.page = 1; loadLogs(); });
+        el.dataset.bound = '1';
+      }
+    });
+    ['adminLogsSearch', 'adminLogsUser'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el && el.dataset.enterBound !== '1') {
+        el.addEventListener('keydown', function (e) { if (e.key === 'Enter') { state.page = 1; loadLogs(); } });
+        el.dataset.enterBound = '1';
+      }
+    });
+    if (prevBtn && prevBtn.dataset.bound !== '1') {
+      prevBtn.addEventListener('click', function () { if (state.page > 1) { state.page--; loadLogs(); } });
+      prevBtn.dataset.bound = '1';
     }
-    if (activityBtn && activityBtn.dataset.bound !== '1') {
-      activityBtn.addEventListener('click', function () { loadUserActivity(); });
-      activityBtn.dataset.bound = '1';
+    if (nextBtn && nextBtn.dataset.bound !== '1') {
+      nextBtn.addEventListener('click', function () { state.page++; loadLogs(); });
+      nextBtn.dataset.bound = '1';
+    }
+    var periodSel = document.getElementById('adminLogsPeriod');
+    if (periodSel && periodSel.dataset.bound !== '1') {
+      periodSel.addEventListener('change', function () { state.page = 1; loadLogs(); });
+      periodSel.dataset.bound = '1';
     }
 
     bindDrawer();
+
+    // initial tab from URL hash (#tab=api etc.)
+    var hashTab = String((window.location.hash || '').replace(/^#tab=/, ''));
+    if (TAB_DEFS[hashTab]) state.tab = hashTab;
+    buildEventSelectOptions();
+    applyTabVisibility();
     await loadLogs();
-    await renderAdminLogsErrorChart();
+    if (currentTab() === 'errors') await renderAdminLogsErrorChart();
   }
 
   async function renderAdminMainPage() {
