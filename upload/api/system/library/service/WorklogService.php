@@ -130,6 +130,14 @@ final class WorklogService
                 $userId = (int)$targetUser['id'];
             }
         }
+
+        // Check if the target date falls in a locked period (TZ 5.4).
+        $logDate = gmdate('Y-m-d', strtotime((string)($input['logged_at'] ?? $now)));
+        $hasLock = $this->worklogs->hasLockedWorklogsInDateRange($logDate, $logDate . ' 23:59:59');
+        if ($hasLock) {
+            return 'RATE_PERIOD_LOCKED';
+        }
+
         $this->worklogs->create([
             'public_id' => $publicId,
             'user_id' => $userId,

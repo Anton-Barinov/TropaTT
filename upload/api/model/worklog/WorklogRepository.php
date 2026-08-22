@@ -667,6 +667,23 @@ final class WorklogRepository
         return $row !== null;
     }
 
+    /**
+     * Check if any worklogs in the given date range are rate-locked (TZ 5.4).
+     * Used to block creation/editing of worklogs in locked periods.
+     */
+    public function hasLockedWorklogsInDateRange(string $from, string $to): bool
+    {
+        $row = (new QueryBuilder($this->pdo))
+            ->from('work_logs')
+            ->select(['id'])
+            ->where('logged_at', '>=', $from)
+            ->where('logged_at', '<=', $to)
+            ->where('rate_locked_at', 'IS NOT', null)
+            ->limit(1)
+            ->first();
+        return $row !== null;
+    }
+
     public function getPdo(): \PDO
     {
         return $this->pdo;
