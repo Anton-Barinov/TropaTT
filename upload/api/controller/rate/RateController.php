@@ -157,7 +157,7 @@ final class RateController extends BaseController
 
             foreach ($rows as $row) {
                 try {
-                    $d = gmdate('Y-m-d', strtotime((string)$row['logged_at']));
+                    $d = (new \DateTimeImmutable((string)$row['logged_at'], new \DateTimeZone('UTC')))->format('Y-m-d');
                     $r = $resolver->resolve((int)$row['user_id'], $row['task_id'] ? (int)$row['task_id'] : null, $d, $row['activity_code'] ?? null);
                     (new QueryBuilder($pdo))->from('work_logs')->where('id', '=', (int)$row['id'])->update([
                         'cost_rate_snapshot' => $r['cost']['rate'] ?? null,
