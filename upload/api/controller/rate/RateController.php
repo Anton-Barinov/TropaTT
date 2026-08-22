@@ -49,6 +49,18 @@ final class RateController extends BaseController
             return $this->error('VALIDATION', $this->t('rate/messages.preview_scope_required'), 422);
         }
 
+        // When project_public_id is given without a task, resolve the project's client
+        // so counterparty card assignments can be found (TZ 7.3).
+        if ($clientPublicId === '' && $projectPublicId !== '' && $taskId === null) {
+            $proj = (new QueryBuilder($pdo))->from('projects')
+                ->select(['client_public_id'])
+                ->where('public_id', '=', $projectPublicId)
+                ->first();
+            if ($proj && ($proj['client_public_id'] ?? '') !== '') {
+                $clientPublicId = (string)$proj['client_public_id'];
+            }
+        }
+
         $resolver = new RateResolutionService(new RateCardRepository($pdo));
         $result = $resolver->resolve(
             (int)$user['id'],
