@@ -17,6 +17,7 @@ final class ChatController extends BaseController
         $userId = (int)($user['id'] ?? 0);
         if ($userId <= 0) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         $isExternal = !empty((int)($user['is_external'] ?? 0));
+        error_log('[CHAT-LIST] userId=' . $userId . ' isExternal=' . ($isExternal ? '1' : '0') . ' ext_role=' . ($user['external_role'] ?? '?'));
         $archived = (string)($this->request()->input('archived', '')) === '1';
 
         // External users: defence-in-depth — skip repair, only return project_client chats
