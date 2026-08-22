@@ -285,7 +285,7 @@ final class WorklogService
                     $resolution = $this->getRateResolver()->resolve(
                         (int)($existing['user_id'] ?? 0),
                         $currentTaskId ? (int)$currentTaskId : null,
-                        gmdate('Y-m-d', strtotime((string)$currentLoggedAt)),
+                        $this->parseLogDate((string)$currentLoggedAt),
                         $currentActivityCode
                     );
                     $snapshot = [
