@@ -69,6 +69,9 @@ final class RateResolutionService
         $projectClientPublicId = $taskCtx['project_client_public_id'] ?? null;
         $clientPublicId = $taskClientPublicId ?: $projectClientPublicId ?: $explicitClientPublicId;
 
+        // DEBUG: trace resolution context
+        error_log("[RateResolution] userId=$userId taskId=$taskId project=$projectPublicId client=$clientPublicId taskClient=$taskClientPublicId projectClient=$projectClientPublicId activity=$effectiveActivityCode date=$loggedAtDate");
+
         // Activity code: worklog's own → task default → null
         $effectiveActivityCode = $activityCode
             ?? ($taskCtx['activity_code'] ?? null);
@@ -94,6 +97,7 @@ final class RateResolutionService
         // Collect rate card IDs from active assignments (task OR explicit scope)
         if ($projectPublicId !== null) {
             $assigns = $this->repo->activeAssignments('project', $projectPublicId, $loggedAtDate);
+            error_log("[RateResolution] project assigns: " . count($assigns) . " for ref=$projectPublicId");
             if ($assigns !== []) {
                 $cardIds = array_map(static fn(array $a): int => (int)$a['rate_card_id'], $assigns);
                 $projectCardLines = $this->repo->candidateLines($cardIds, $userId, $effectiveActivityCode, $roleCodes, $loggedAtDate);
@@ -102,9 +106,11 @@ final class RateResolutionService
         }
         if ($clientPublicId !== null) {
             $assigns = $this->repo->activeAssignments('counterparty', $clientPublicId, $loggedAtDate);
+            error_log("[RateResolution] counterparty assigns: " . count($assigns) . " for ref=$clientPublicId");
             if ($assigns !== []) {
                 $cardIds = array_map(static fn(array $a): int => (int)$a['rate_card_id'], $assigns);
                 $counterpartyCardLines = $this->repo->candidateLines($cardIds, $userId, $effectiveActivityCode, $roleCodes, $loggedAtDate);
+                error_log("[RateResolution] counterparty lines: " . count($counterpartyCardLines) . " for cards=" . implode(',', $cardIds));
                 $counterpartyCardData = $this->cardDataForAssignments($cardIds);
             }
         }
