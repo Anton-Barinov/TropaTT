@@ -197,6 +197,23 @@ final class WorklogRepository
             ->get();
     }
 
+    /**
+     * Users by public IDs regardless of active/deleted state — used to render
+     * matrix columns for accounts that only exist in historical worklogs.
+     */
+    public function usersByPublicIds(array $publicIds): array
+    {
+        if ($publicIds === []) {
+            return [];
+        }
+
+        return (new QueryBuilder($this->pdo))
+            ->from('users')
+            ->select(['id', 'public_id', 'login', 'full_name'])
+            ->whereIn('public_id', $publicIds)
+            ->get();
+    }
+
     public function updateByPublicId(string $publicId, array $set): bool
     {
         if ($set === []) {

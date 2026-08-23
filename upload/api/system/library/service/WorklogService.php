@@ -1063,6 +1063,36 @@ final class WorklogService
             }
         }
 
+        // Include users present in the period data even if they are no longer
+        // active (deactivated external accounts etc.) — otherwise the matrix
+        // day/user totals silently exceed the sum of the visible columns.
+        if ($userSetKeys !== []) {
+            $known = [];
+            foreach ($users as $u) {
+                $known[$u['public_id']] = true;
+            }
+            $missing = [];
+            foreach ($userSetKeys as $pid) {
+                if (!isset($known[$pid])) {
+                    $missing[] = $pid;
+                }
+            }
+            if ($missing !== []) {
+                foreach ($this->worklogs->usersByPublicIds($missing) as $u) {
+                    $users[] = [
+                        'id' => (int)$u['id'],
+                        'public_id' => $u['public_id'],
+                        'login' => $u['login'],
+                        'full_name' => $u['full_name'],
+                    ];
+                }
+            }
+            // Keep the column order stable (full_name ASC) after the merge.
+            usort($users, static fn(array $a, array $b): int =>
+                ($a['full_name'] ?? '') <=> ($b['full_name'] ?? '')
+            );
+        }
+
         // Visibility: non-root users should only see users from their visible set
         if (!$actorIsRoot && $visibleUserIds !== []) {
             $users = array_values(array_filter($users, static fn(array $u): bool =>
