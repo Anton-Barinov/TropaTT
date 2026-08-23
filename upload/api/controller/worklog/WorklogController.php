@@ -55,7 +55,9 @@ final class WorklogController extends BaseController
 
         $input = $this->request()->allInput();
         $v = new Validator();
-        $v->require($input, 'minutes_spent', $this->t('common/messages.field_required'))
+        $v->require($input, 'task_public_id', $this->t('common/messages.field_required'))
+            ->require($input, 'minutes_spent', $this->t('common/messages.field_required'))
+            ->require($input, 'activity_code', $this->t('common/messages.field_required'))
             ->date($input, 'logged_at', $this->t('common/messages.invalid_date'))
             ->date($input, 'started_at', $this->t('worklog/messages.invalid_interval_time'))
             ->date($input, 'ended_at', $this->t('worklog/messages.invalid_interval_time'))
