@@ -56,7 +56,7 @@
       <?php if (empty($is_external_user)): // client portal: internal-only control ?><li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#detailSubtasks" type="button" data-i18n="task_detail.tab_subtasks"><?= htmlspecialchars($t('task_detail.tab_subtasks', 'Подзадачи'), ENT_QUOTES, 'UTF-8') ?> <span id="detailSubtasksCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li><?php endif; ?>
       <?php if (empty($is_external_user)): // client portal: internal-only control ?><li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailChecklists" type="button" data-i18n="task_detail.tab_checklists"><?= htmlspecialchars($t('task_detail.tab_checklists', 'Чеклисты'), ENT_QUOTES, 'UTF-8') ?> <span id="detailChecklistsCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li><?php endif; ?>
       <li class="nav-item"><button class="nav-link<?= empty($is_external_user) ? '' : ' active' ?>" data-bs-toggle="tab" data-bs-target="#detailComments" type="button" data-i18n="task_detail.tab_comments"><?= htmlspecialchars($t('task_detail.tab_comments', 'Комментарии'), ENT_QUOTES, 'UTF-8') ?> <span id="detailCommentsCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li>
-      <?php if (empty($is_external_user)): // client portal: internal-only control ?><li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailWorklogs" type="button" data-i18n="task_detail.tab_worklogs"><?= htmlspecialchars($t('task_detail.tab_worklogs', 'Учет времени'), ENT_QUOTES, 'UTF-8') ?></button></li><?php endif; ?>
+      <?php if (empty($is_external_user) || $external_role === 'executor'): // client portal: worklog logging is executor-only ?><li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailWorklogs" type="button" data-i18n="task_detail.tab_worklogs"><?= htmlspecialchars($t('task_detail.tab_worklogs', 'Учет времени'), ENT_QUOTES, 'UTF-8') ?></button></li><?php endif; ?>
       <li class="nav-item dropdown crm-task-tabs-overflow">
         <button class="nav-link dropdown-toggle" id="taskTabsMore" data-bs-toggle="dropdown" type="button" aria-expanded="false" data-i18n="task_detail.tab_more"><?= htmlspecialchars($t('task_detail.tab_more', 'Ещё'), ENT_QUOTES, 'UTF-8') ?></button>
         <ul class="dropdown-menu" aria-labelledby="taskTabsMore">
@@ -123,7 +123,7 @@
       </section>
 <?php endif; ?>
 
-<?php if (empty($is_external_user)): // client portal: internal-only block ?>
+<?php if (empty($is_external_user) || $external_role === 'executor'): // client portal: worklog logging is executor-only ?>
       <section id="detailWorklogs" class="tab-pane fade crm-card crm-task-section">
         <div class="crm-worklog-head mb-2">
           <div>
@@ -175,6 +175,7 @@
 
       <section id="detailFiles" class="tab-pane fade crm-card crm-task-section">
         <h2 class="h6" data-i18n="task_detail.files_title"><?= htmlspecialchars($t('task_detail.files_title', 'Файлы'), ENT_QUOTES, 'UTF-8') ?></h2>
+        <?php if (empty($is_external_user) || $external_role === 'executor'): // client portal: file upload is executor-only ?>
         <div class="mb-3">
           <label class="form-label" data-i18n="task_detail.files_add_label"><?= htmlspecialchars($t('task_detail.files_add_label', 'Добавить файл'), ENT_QUOTES, 'UTF-8') ?></label>
           <div class="crm-file-upload-row">
@@ -183,6 +184,7 @@
           </div>
           
         </div>
+        <?php endif; ?>
         <div id="taskFilesList"><div class="text-muted" data-i18n="task_detail.files_empty"><?= htmlspecialchars($t('task_detail.files_empty', 'Файлы к задаче пока не загружены.'), ENT_QUOTES, 'UTF-8') ?></div></div>
       </section>
 
@@ -244,6 +246,7 @@
     </div>
     <div class="crm-task-side-rail" data-task-sidebar-rail>
     <?= module_position('task.detail.sidebar', ['route' => $route ?? 'task-detail', 'task_public_id' => (string)($_GET['task_public_id'] ?? '')]) ?>
+    <?php if (empty($is_external_user)): // client portal: estimates are internal-only ?>
     <div class="crm-card mb-3" id="taskEstimatesPanel" data-task-sidebar-block="estimates">
       <div class="crm-side-card-head">
         <div>
@@ -256,6 +259,8 @@
         <div class="text-muted small" data-i18n="task_detail.estimates_loading"><?= htmlspecialchars($t('task_detail.estimates_loading', 'Загрузка оценок...'), ENT_QUOTES, 'UTF-8') ?></div>
       </div>
     </div>
+    <?php endif; ?>
+    <?php if (empty($is_external_user) || $external_role === 'executor'): // client portal: timer (worklog logging) is executor-only ?>
     <div class="crm-card mb-3" id="taskTimerPanel" data-task-sidebar-block="timer">
       <div class="crm-side-card-head">
         <div>
@@ -303,6 +308,7 @@
         </div>
       </form>
     </div>
+    <?php endif; // timer: executor-only for external guests ?>
     <div class="crm-card mb-3" id="taskAiSummaryCard" data-requires-ai-use="1" data-task-sidebar-block="ai_assistant">
       <div class="crm-side-card-head">
         <div>

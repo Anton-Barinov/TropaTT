@@ -1139,6 +1139,13 @@ window.CRM.navigation = (function () {
     var nav = document.querySelector('.crm-nav');
     if (!nav || nav.querySelector('[data-menu-customize-btn]')) return;
     if (!document.body || document.body.dataset.protected !== '1') return;
+    // External guests get a hard-coded nav allowlist from MenuController and
+    // have no menu-preferences UI — hiding the customize button avoids a dead
+    // modal whose changes would be ignored server-side.
+    if (window.CRM && window.CRM.api && typeof window.CRM.api.getUser === 'function') {
+      var currentUser = window.CRM.api.getUser();
+      if (currentUser && currentUser.is_external) return;
+    }
 
     var btn = document.createElement('button');
     btn.type = 'button';

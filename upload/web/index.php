@@ -445,6 +445,50 @@ function crmWebApiIsExternalUser(string $sessionToken, string $webBaseDir): bool
 }
 
 /**
+ * External guest role for the current session: 'observer' (client) or
+ * 'executor' (freelancer). Empty string for internal users / unknown.
+ * Templates use it to decide which write controls to render — the observer
+ * role is read-only, while the executor may log worklogs and upload files
+ * (mirrors the API's external_write_ok / external_executor_ok gate).
+ */
+function crmWebApiExternalRole(string $sessionToken, string $webBaseDir): string
+{
+    $sessionToken = trim($sessionToken);
+    if ($sessionToken === '' || strlen($sessionToken) > 4096) {
+        return '';
+    }
+
+    $pdo = crmWebApiDbConnect($webBaseDir);
+    if ($pdo === null) {
+        return '';
+    }
+
+    $tokenHash = hash('sha256', $sessionToken);
+    $stmt = $pdo->prepare(
+        'SELECT u.external_role
+          FROM user_sessions us
+          INNER JOIN users u ON u.id = us.user_id
+          WHERE us.token_hash = :token_hash
+            AND us.revoked_at IS NULL
+            AND us.expires_at > :now
+            AND u.is_active = 1
+            AND u.deleted_at IS NULL
+            AND u.is_external = 1
+          LIMIT 1'
+    );
+    if ($stmt === false) {
+        return '';
+    }
+    $stmt->execute([
+        'token_hash' => $tokenHash,
+        'now' => gmdate('Y-m-d H:i:s'),
+    ]);
+
+    $role = (string)$stmt->fetchColumn();
+    return $role === 'executor' ? 'executor' : ($role === 'observer' ? 'observer' : '');
+}
+
+/**
  * True when the session belongs to a root actor (users.is_root flag or the
  * super_admin role) — mirrors the root detection used by the API auth layer.
  * System log pages gate on this because every LogsController action is
@@ -872,10 +916,12 @@ if ($route === 'admin-logs') {
 // they never see internal page chrome, even before any API call runs.
 $externalAllowedRoutes = ['projects', 'project-detail', 'tasks', 'task-detail', 'notifications', 'profile', 'my-earnings'];
 $crmIsExternalUser = false;
+$crmExternalRole = '';
 if (!$isPublic) {
     $sessionCookieName = trim((string)(getenv('CRM_API_SESSION_COOKIE') ?: 'crm_api_session'));
     $sessionToken = trim((string)($_COOKIE[$sessionCookieName] ?? ''));
     $crmIsExternalUser = crmWebApiIsExternalUser($sessionToken, $baseDir);
+    $crmExternalRole = crmWebApiExternalRole($sessionToken, $baseDir);
 
     if ($crmIsExternalUser && !in_array($route, $externalAllowedRoutes, true)) {
         http_response_code(403);
@@ -892,6 +938,7 @@ if (!$isPublic) {
 // requests the API answers with 403 and leave dead widgets on the page. The
 // template skips them instead.
 $GLOBALS['crm_is_external_user'] = $crmIsExternalUser;
+$GLOBALS['crm_external_role'] = $crmExternalRole;
 
 $router = new Web\System\Core\Router($routes, $baseDir);
 

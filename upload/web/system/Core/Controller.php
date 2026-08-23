@@ -136,6 +136,9 @@ abstract class Controller
         // Client-portal (external guest) flag, set by web/index.php. Templates use
         // it to skip internal-only page sections; see $externalAllowedRoutes there.
         $data['is_external_user'] = (bool)($GLOBALS['crm_is_external_user'] ?? false);
+        // External guest role: 'observer' (read-only client) or 'executor'
+        // (freelancer — may log worklogs/upload files). Empty for internal users.
+        $data['external_role'] = (string)($GLOBALS['crm_external_role'] ?? '');
 
         if (self::$webHookManager !== null) {
             $moduleNames = [];

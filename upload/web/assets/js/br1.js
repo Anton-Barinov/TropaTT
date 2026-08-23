@@ -893,6 +893,13 @@ window.CRM.br1 = (function () {
     document.querySelectorAll(selector).forEach(restorePermissionHiddenElement);
   }
 
+  function isExternalRole(role) {
+    if (!window.CRM.api || typeof window.CRM.api.getUser !== 'function') return false;
+    var user = window.CRM.api.getUser();
+    if (!user || typeof user !== 'object' || !user.is_external) return false;
+    return String(user.external_role || 'observer') === role;
+  }
+
   function applyPermissionVisibility() {
     if (!window.CRM.api || document.body.dataset.protected !== '1') return;
 
@@ -1009,6 +1016,54 @@ window.CRM.br1 = (function () {
         permission: 'feature_flag.manage',
         selectors: [
           '[data-requires-feature-flag-manage]'
+        ]
+      },
+      // External guests (client portal): the external_guest role carries
+      // task.manage/project.manage so its RLS-scoped reads work, which would
+      // otherwise leave every create/edit/delete control visible. Mirror the
+      // server's external gate here. Observer (client) is fully read-only;
+      // executor (freelancer) may create tasks, log worklogs and upload
+      // files, but may not create projects, edit/delete tasks, change status
+      // or assign users.
+      {
+        allow: function () { return isExternalRole('observer'); },
+        selectors: [
+          '[data-open-modal="createTaskModal"]',
+          '[data-open-modal="createProjectModal"]',
+          '[data-open-modal="assignUserModal"]',
+          '[data-open-modal="calendarEventModal"]',
+          '#taskEditBtn',
+          '#projectCreateTaskBtn',
+          '#bulkActionsBar',
+          '#subtaskCreateForm',
+          '#checklistCreateForm',
+          '#worklogCreateForm',
+          '#taskFileUploadBtn',
+          '[data-crm-file-shell-for="taskFileInput"]',
+          '[data-confirm-delete]',
+          '[data-task-actions-menu]',
+          '#statusCreateOpenBtn',
+          '#statusCreateForm',
+          '#statusEditForm',
+          '[data-status-edit]',
+          '[data-status-delete]',
+          '#taskEstimateAddBtn'
+        ]
+      },
+      {
+        allow: function () { return isExternalRole('executor'); },
+        selectors: [
+          '[data-open-modal="createProjectModal"]',
+          '[data-open-modal="assignUserModal"]',
+          '#taskEditBtn',
+          '[data-confirm-delete]',
+          '[data-task-actions-menu]',
+          '#statusCreateOpenBtn',
+          '#statusCreateForm',
+          '#statusEditForm',
+          '[data-status-edit]',
+          '[data-status-delete]',
+          '#taskEstimateAddBtn'
         ]
       }
     ];
@@ -3093,11 +3148,20 @@ window.CRM.br1 = (function () {
         + escapeHtml(tag.title || tag.code || tag.public_id || '') + '</span>';
     }).join('');
 
+    // External guests are read-only on tasks (PATCH routes are not
+    // external_ok): render the status as a plain badge, no dropdown.
+    var isExternalGuest = false;
+    if (window.CRM.api && typeof window.CRM.api.getUser === 'function') {
+      var currentUserObj = window.CRM.api.getUser();
+      isExternalGuest = Boolean(currentUserObj && currentUserObj.is_external);
+    }
     chips.innerHTML = ''
-      + '<div class="dropdown crm-task-status-dropdown">'
-      + '<button id="taskStatusBadge" class="crm-badge dropdown-toggle ' + statusBadgeClass(currentTask.status_code) + '" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="' + escapeHtml(window.CRM.i18n.t('task_detail.status_select_label', 'Статус задачи')) + '">' + escapeHtml(statusLabel(currentTask.status_code)) + '</button>'
-      + '<ul class="dropdown-menu crm-task-status-menu" id="taskStatusMenu" aria-labelledby="taskStatusBadge"></ul>'
-      + '</div>'
+      + (isExternalGuest
+        ? '<span id="taskStatusBadge" class="crm-badge ' + statusBadgeClass(currentTask.status_code) + '">' + escapeHtml(statusLabel(currentTask.status_code)) + '</span>'
+        : '<div class="dropdown crm-task-status-dropdown">'
+          + '<button id="taskStatusBadge" class="crm-badge dropdown-toggle ' + statusBadgeClass(currentTask.status_code) + '" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="' + escapeHtml(window.CRM.i18n.t('task_detail.status_select_label', 'Статус задачи')) + '">' + escapeHtml(statusLabel(currentTask.status_code)) + '</button>'
+          + '<ul class="dropdown-menu crm-task-status-menu" id="taskStatusMenu" aria-labelledby="taskStatusBadge"></ul>'
+          + '</div>')
       + '<span class="crm-chip" id="taskPriorityChip">' + escapeHtml(priorityLabel(currentTask.priority_code)) + '</span>'
       + tagsHtml;
 
@@ -7970,10 +8034,17 @@ window.CRM.br1 = (function () {
       renderTaskDetailOverview();
       var userObj = window.CRM.api && typeof window.CRM.api.getUser === 'function' ? window.CRM.api.getUser() : null;
       var isRoot = !!(userObj && userObj.is_root);
-      var isAuthor = currentUserPublicId !== ''
+      // External guests (client portal) are never allowed to mutate a task:
+      // the PATCH/DELETE task routes are not external_ok, so even an
+      // author/assignee guest would get EXTERNAL_ACCESS_DENIED. Mirror that
+      // server rule here so the UI renders read-only for them.
+      var isExternalGuest = Boolean(userObj && userObj.is_external);
+      var isAuthor = !isExternalGuest
+        && currentUserPublicId !== ''
         && currentTask.creator_user_public_id
         && currentUserPublicId === String(currentTask.creator_user_public_id);
-      var isAssignee = currentUserPublicId !== ''
+      var isAssignee = !isExternalGuest
+        && currentUserPublicId !== ''
         && currentTask.assignee_user_public_id
         && currentUserPublicId === String(currentTask.assignee_user_public_id);
       canEditTask = isAuthor || isRoot;
