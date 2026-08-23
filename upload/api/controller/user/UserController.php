@@ -115,7 +115,20 @@ final class UserController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        $input = $this->validatedInput(['email', 'full_name', 'locale', 'cost_rate', 'bill_rate', 'payout_rate', 'is_active', 'password', 'token', 'is_root', 'role_public_ids', 'team_public_id']);
+        $input = $this->validatedInput(['email', 'full_name', 'locale', 'cost_rate', 'bill_rate', 'payout_rate', 'is_active', 'password', 'token', 'is_root', 'role_public_ids', 'team_public_id', 'external_role']);
+
+        // External guest role (observer/executor) may only be set to the two
+        // known portal roles; anything else is rejected instead of silently
+        // stored (which would bypass the App::run() external gate).
+        if (array_key_exists('external_role', $input)) {
+            $extRole = strtolower(trim((string)$input['external_role']));
+            if (!in_array($extRole, ['observer', 'executor'], true)) {
+                return $this->error('VALIDATION_ERROR', $this->t('user/messages.update_failed'), 422, [
+                    'external_role' => [$this->t('user/messages.invalid_external_role', 'Invalid external role')],
+                ]);
+            }
+            $input['external_role'] = $extRole;
+        }
 
         // SEC-002: Only root users may change root status and role assignments.
         if (!$this->isCurrentUserRoot()) {

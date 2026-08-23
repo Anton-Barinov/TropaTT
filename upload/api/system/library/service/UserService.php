@@ -189,6 +189,18 @@ final class UserService
             $set['is_active'] = (int)((string)$input['is_active'] === '1');
         }
 
+        // External guest role (client portal): observer (read-only) or executor
+        // (freelancer, may log time). Only meaningful for is_external users; the
+        // value is validated upstream (UserController) to one of the two roles,
+        // and App::run()'s external gate keys off this column, so it must never
+        // accept arbitrary strings here.
+        if (array_key_exists('external_role', $input)) {
+            $extRole = strtolower(trim((string)$input['external_role']));
+            if (in_array($extRole, ['observer', 'executor'], true)) {
+                $set['external_role'] = $extRole;
+            }
+        }
+
         if (array_key_exists('password', $input) && trim((string)$input['password']) !== '') {
             $set['password_hash'] = $this->hasher->hash((string)$input['password']);
         }

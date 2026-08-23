@@ -219,6 +219,20 @@ window.CRM.ai = (function () {
   }
 
   function hydrateAvailability(intents) {
+    // External guest roles (observer/executor) never have ai.use: skip the
+    // network call entirely instead of firing a 403 EXTERNAL_ACCESS_DENIED
+    // on every page load (the route is not external_ok).
+    if (window.CRM.api && typeof window.CRM.api.getUser === 'function') {
+      var __extUser = window.CRM.api.getUser();
+      if (__extUser && typeof __extUser === 'object' && __extUser.is_external) {
+        availabilityCache.loaded = true;
+        return Promise.resolve({
+          ai: availabilityCache.ai,
+          actor: availabilityCache.actor,
+          intents: availabilityCache.intents
+        });
+      }
+    }
     var requestedIntents = normalizeIntentList(intents);
     var missingIntents = requestedIntents.filter(function (intentCode) {
       return availabilityCache.requested[intentCode] !== true;
