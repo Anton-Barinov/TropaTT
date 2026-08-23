@@ -307,6 +307,38 @@ final class RateController extends BaseController
             $periods[] = $cur;
         }
 
+        // Merge in periods from the locked-periods registry. The registry is
+        // the source of truth for "block new entries here" (TZ 5.4) — a period
+        // may be locked while containing zero worklog rows yet, and those
+        // periods must stay visible and removable in the UI.
+        $registry = $this->settingScalar($pdo, 'finance.rate_locked_periods');
+        if (is_array($registry)) {
+            foreach ($registry as $rp) {
+                if (!is_array($rp) || empty($rp['from']) || empty($rp['to'])) {
+                    continue;
+                }
+                $rpFrom = (string)$rp['from'];
+                $rpTo = (string)$rp['to'];
+                $covered = false;
+                foreach ($periods as $p) {
+                    if ($p['from'] <= $rpFrom && $p['to'] >= $rpTo) {
+                        $covered = true;
+                        break;
+                    }
+                }
+                if ($covered) {
+                    continue;
+                }
+                $cnt = (new QueryBuilder($pdo))->from('work_logs')
+                    ->where('rate_locked_at', 'IS NOT', null)
+                    ->where('logged_at', '>=', $rpFrom)
+                    ->where('logged_at', '<=', $rpTo . ' 23:59:59')
+                    ->count();
+                $periods[] = ['from' => $rpFrom, 'to' => $rpTo, 'row_count' => (int)$cnt];
+            }
+            usort($periods, static fn(array $a, array $b): int => strcmp((string)$a['from'], (string)$b['from']));
+        }
+
         return $this->success('RATE_LOCKS', '', [
             'locked_periods' => $periods,
             'auto_close' => ['mode' => $mode, 'lag_days' => $lagDays],
