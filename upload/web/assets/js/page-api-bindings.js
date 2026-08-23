@@ -31109,9 +31109,14 @@ window.CRM.pageApiBindings = (function () {
       if (matrixFrom && !matrixFrom.value) matrixFrom.value = fromDefault;
       if (matrixTo && !matrixTo.value) matrixTo.value = toDefault;
 
-      // Load users for filter
-      var usersEnv = await window.CRM.api.request('api/v1/users', { query: { limit: 500, is_active: 1 } });
-      var users = (usersEnv && usersEnv.data && usersEnv.data.items) || [];
+      // Load users for filter. Non-fatal: a user without user.view (but with
+      // task.manage) must still get a working page — the filter is later
+      // populated from the report rows themselves (mergeReportUsersIntoFilters).
+      var users = [];
+      try {
+        var usersEnv = await window.CRM.api.request('api/v1/users', { query: { limit: 500, is_active: 1 } });
+        users = (usersEnv && usersEnv.data && usersEnv.data.items) || [];
+      } catch (e) { users = []; }
 
       var userSelects = ['timeAnalyticsUserFilter', 'timeAnalyticsEarningsUserFilter', 'timeAnalyticsMatrixUserFilter'];
       var allUsersHtml = '<option value="">' + _t('page.all_users', 'Все пользователи') + '</option>';
