@@ -32343,7 +32343,7 @@ window.CRM.pageApiBindings = (function () {
     var datetimeStr = dateStr + 'T' + String(today.getHours()).padStart(2, '0') + ':' + String(today.getMinutes()).padStart(2, '0');
     // Apply to all date/datetime inputs not in filter areas
     document.querySelectorAll('input[type="date"]:not([data-date-no-min]), input[type="datetime-local"]:not([data-date-no-min])').forEach(function(input) {
-      var isFilter = input.closest('[data-analytics-filters]') || input.closest('.crm-kanban-filters') || input.closest('.crm-toolbar-surface') || input.id.indexOf('timeAnalytics') >= 0 || input.id.indexOf('kanban') >= 0 || input.id.indexOf('filter') >= 0;
+      var isFilter = input.closest('[data-analytics-filters]') || input.closest('.crm-kanban-filters') || input.closest('.crm-toolbar-surface') || input.id.indexOf('timeAnalytics') >= 0 || input.id.indexOf('kanban') >= 0 || input.id.indexOf('filter') >= 0 || input.closest('#timeAnalyticsLockForm');
       if (isFilter) return;
       if (input.type === 'date') input.setAttribute('min', dateStr);
       else input.setAttribute('min', datetimeStr);

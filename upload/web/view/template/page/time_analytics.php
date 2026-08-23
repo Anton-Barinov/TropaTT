@@ -45,8 +45,8 @@
       <div id="timeAnalyticsLocksAutoClose" class="small text-muted mb-2"></div>
       <div id="timeAnalyticsLocksList" class="mb-3"></div>
       <form id="timeAnalyticsLockForm" class="row g-2 align-items-end">
-        <div class="col-md-3"><label class="form-label" data-i18n="time_analytics.locks_from"><?= htmlspecialchars($t('time_analytics.locks_from', 'С'), ENT_QUOTES, 'UTF-8') ?></label><input type="date" class="form-control" name="date_from" required></div>
-        <div class="col-md-3"><label class="form-label" data-i18n="time_analytics.locks_to"><?= htmlspecialchars($t('time_analytics.locks_to', 'По'), ENT_QUOTES, 'UTF-8') ?></label><input type="date" class="form-control" name="date_to" required></div>
+        <div class="col-md-3"><label class="form-label" data-i18n="time_analytics.locks_from"><?= htmlspecialchars($t('time_analytics.locks_from', 'С'), ENT_QUOTES, 'UTF-8') ?></label><input type="date" class="form-control" name="date_from" data-date-no-min required></div>
+        <div class="col-md-3"><label class="form-label" data-i18n="time_analytics.locks_to"><?= htmlspecialchars($t('time_analytics.locks_to', 'По'), ENT_QUOTES, 'UTF-8') ?></label><input type="date" class="form-control" name="date_to" data-date-no-min required></div>
         <div class="col-md-auto"><button type="submit" class="btn crm-btn-primary crm-btn-compact" data-i18n="time_analytics.locks_lock_btn"><?= htmlspecialchars($t('time_analytics.locks_lock_btn', 'Заблокировать период'), ENT_QUOTES, 'UTF-8') ?></button></div>
       </form>
     </div>
