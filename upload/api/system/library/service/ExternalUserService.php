@@ -306,6 +306,42 @@ final class ExternalUserService
     }
 
     /**
+     * Bootstrap executor project grants for an existing external user, using
+     * the counterparty linked via their contact record (same day-one project
+     * visibility an observer on that counterparty would have). Used when an
+     * admin promotes an observer guest to the executor role through
+     * PATCH /users — the external gate keys off users.external_role, but
+     * worklog RLS additionally requires explicit project grants, which are
+     * normally created at invite time only.
+     *
+     * Safe to call for any external user; no-op when the user has no contact
+     * or is not an executor. Idempotent (INSERT IGNORE / OR IGNORE).
+     */
+    public function bootstrapGrantsForExternalUser(int $userId): bool
+    {
+        if ($userId <= 0) {
+            return false;
+        }
+        $user = $this->users->findById($userId);
+        if (!$user || (int)($user['is_external'] ?? 0) !== 1) {
+            return false;
+        }
+        if ($this->getExternalRole($userId) !== self::ROLE_EXECUTOR) {
+            return false;
+        }
+        $contact = $this->contacts->findByUserId($userId);
+        if (!$contact) {
+            return false;
+        }
+        $counterpartyId = (int)($contact['counterparty_id'] ?? 0);
+        if ($counterpartyId <= 0) {
+            return false;
+        }
+        $this->bootstrapExecutorGrants($userId, $counterpartyId, $userId, gmdate('Y-m-d H:i:s'));
+        return true;
+    }
+
+    /**
      * Grant an executor guest access to every non-deleted project currently
      * belonging to a counterparty. Used once, at invite time, so an executor
      * invited "the normal way" (from a contact) starts with the same

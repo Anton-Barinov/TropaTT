@@ -161,6 +161,27 @@ final class UserController extends BaseController
             'actor_id' => (int)($auth['user']['id'] ?? 0),
         ]);
 
+        // When an external guest is promoted to the executor role via PATCH
+        // /users, seed their project grants (same day-one visibility an
+        // executor invited from a contact gets). Without this, worklog RLS
+        // (hasExecutorProjectAccess) blocks the newly-promoted freelancer
+        // from logging time until an admin manually grants each project.
+        if (array_key_exists('external_role', $input)
+            && $input['external_role'] === 'executor'
+            && !empty($result['user']['is_external'])
+            && $this->container->has('service.external_user')
+        ) {
+            try {
+                /** @var \Api\System\Library\Service\ExternalUserService $ext */
+                $ext = $this->container->get('service.external_user');
+                $ext->bootstrapGrantsForExternalUser((int)($result['user']['id'] ?? 0));
+            } catch (\Throwable $e) {
+                // Grant seeding is best-effort: the role change itself already
+                // succeeded; the admin can still grant projects manually.
+                error_log('[UserController::update] bootstrap executor grants failed: ' . $e->getMessage());
+            }
+        }
+
         $this->invalidateCache('worklog');
 
         return $this->success('USER_UPDATED', $this->t('user/messages.updated'), ['user' => $result['user']]);
