@@ -95,7 +95,7 @@ if (is_file($jsOverridesPath)) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?= htmlspecialchars((string)($title ?? (($t ?? static fn($k, $d = '') => $d)('app.default_title', 'CRM'))), ENT_QUOTES, 'UTF-8') ?></title>
-  <script>
+  <script nonce="<?= $csp_nonce ?>">
     (function () {
       var key = 'crm_sidebar_collapsed=';
       var parts = String(document.cookie || '').split(';');
@@ -108,7 +108,7 @@ if (is_file($jsOverridesPath)) {
       }
     })();
   </script>
-  <script>
+  <script nonce="<?= $csp_nonce ?>">
     (function () {
       // Apply the user's saved theme before CSS paints to avoid a flash.
       // The canonical per-user value lives in profile preferences and is
@@ -155,7 +155,7 @@ if (is_file($jsOverridesPath)) {
   <?php if ($moduleCssRouteFile !== ''): ?>
   <link rel="stylesheet" href="<?= htmlspecialchars($modulesBase, ENT_QUOTES, 'UTF-8') ?><?= htmlspecialchars($moduleCssRouteFile, ENT_QUOTES, 'UTF-8') ?>?v=<?= urlencode($assetsVersion) ?>">
   <?php endif; ?>
-  <script>
+  <script nonce="<?= $csp_nonce ?>">
     window.CRM = window.CRM || {};
     window.CRM.locale = <?= json_encode($currentLocale, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
     window.CRM.messages = <?= json_encode($lang_messages ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;

@@ -194,7 +194,7 @@ if (isset($module_js_routes) && is_array($module_js_routes) && isset($module_js_
 <script defer src="<?= htmlspecialchars($modulesBase, ENT_QUOTES, 'UTF-8') ?><?= htmlspecialchars($currentModuleJsFile, ENT_QUOTES, 'UTF-8') ?>?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif; ?>
 <?php if (isset($module_js_routes) && $module_js_routes !== []): ?>
-<script>
+<script nonce="<?= $csp_nonce ?>">
 window.CRM.modules = window.CRM.modules || {};
 window.CRM.modules.pageBindings = <?= json_encode($module_js_routes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 </script>
@@ -243,7 +243,7 @@ $footerUpdateBadgeTemplate = $footerT('update_available_badge', 'Update {version
   </div>
 </footer>
 
-<script>
+<script nonce="<?= $csp_nonce ?>">
 (function () {
   try {
     if (document.body && document.body.getAttribute('data-page') === 'admin-updates') return;
