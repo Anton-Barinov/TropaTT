@@ -64,7 +64,7 @@
   </div>
 </div>
 
-<script>
+<script nonce="<?= $csp_nonce ?>">
 (function () {
   var selectedChatId = new URLSearchParams(window.location.search).get('id') || '';
   var urlChatId = selectedChatId;

@@ -389,7 +389,9 @@ final class ExternalUserService
             return ['ok' => false, 'error' => 'token_required'];
         }
 
-        if (mb_strlen($password) < 8) {
+        // L-4: Enforce 12+ character password with complexity (upper, lower, digit)
+        // for external user invitations — same as internal invitation/reset flows.
+        if (mb_strlen($password) < 12 || !preg_match('/[A-Z]/', $password) || !preg_match('/[a-z]/', $password) || !preg_match('/[0-9]/', $password)) {
             return ['ok' => false, 'error' => 'weak_password'];
         }
         if (mb_strlen($password) > 1024) {

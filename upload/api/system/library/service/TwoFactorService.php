@@ -157,11 +157,28 @@ final class TwoFactorService
 
         $userCode = trim($code);
         $counter = (int)floor(time() / self::TOTP_TIME_STEP);
+        $lastStep = (int)($record['last_totp_step'] ?? 0);
 
         // Check current window and +/- windows for clock skew
         for ($i = -self::TOTP_WINDOW; $i <= self::TOTP_WINDOW; $i++) {
-            $expected = $this->generateTotpCode($secret, $counter + $i);
+            $step = $counter + $i;
+            $expected = $this->generateTotpCode($secret, $step);
             if (hash_equals($expected, $userCode)) {
+                // M-4: Prevent TOTP code replay within validity window.
+                if ($step <= $lastStep) {
+                    $this->logger->security([
+                        'event_type' => 'two_factor_replay_rejected',
+                        'actor_public_id' => $actor['public_id'] ?? null,
+                        'step' => $step,
+                        'last_step' => $lastStep,
+                    ]);
+
+                    return ['ok' => false, 'code' => 'TWO_FACTOR_ALREADY_USED'];
+                }
+
+                // Record the used step.
+                $this->twoFactor->updateLastTotpStep($userId, $step);
+
                 $this->logger->security([
                     'event_type' => 'two_factor_verified',
                     'actor_public_id' => $actor['public_id'] ?? null,
@@ -230,6 +247,29 @@ final class TwoFactorService
     public function isEnabledForUser(int $userId): bool
     {
         return $this->twoFactor->findByUserId($userId) !== null;
+    }
+
+    /**
+     * M-5: Check whether a login_token nonce has already been consumed.
+     * Returns true if the nonce was previously used.
+     */
+    public function isLoginNonceConsumed(int $userId, string $nonce): bool
+    {
+        $stored = $this->twoFactor->findLoginNonceHash($userId);
+        if ($stored === null || $stored === '') {
+            return false;
+        }
+
+        return hash_equals($stored, hash_hmac('sha256', $nonce, $this->encryptionKey ?: '2fa'));
+    }
+
+    /**
+     * M-5: Mark a login_token nonce as consumed so it cannot be reused.
+     */
+    public function consumeLoginNonce(int $userId, string $nonce): void
+    {
+        $nonceHash = hash_hmac('sha256', $nonce, $this->encryptionKey ?: '2fa');
+        $this->twoFactor->consumeLoginNonce($userId, $nonceHash);
     }
 
     private function normalize(array $record): array

@@ -83,7 +83,10 @@ final class ImpersonationService
 
         $plainAccess = $this->tokens->generate();
         $sessionPublicId = Ulid::generate('ses');
-        $expiresAt = gmdate('Y-m-d H:i:s', time() + $this->tokenTtlSeconds);
+        // M-9: Impersonation sessions have a short fixed TTL (15 minutes),
+        // no sliding window extension — admin must re-authenticate to continue.
+        $impersonationTtl = 900; // 15 minutes
+        $expiresAt = gmdate('Y-m-d H:i:s', time() + $impersonationTtl);
         $sessionUserAgent = $this->buildImpersonationUserAgent($auditPublicId, (string)($actorFull['public_id'] ?? ''), $userAgent);
 
         $this->auth->createSession([

@@ -16,7 +16,7 @@ final class TwoFactorRepository
     {
         return (new QueryBuilder($this->pdo))
             ->from('two_factor_secrets')
-            ->select(['public_id', 'user_id', 'secret_hash', 'backup_codes', 'created_at', 'updated_at'])
+            ->select(['public_id', 'user_id', 'secret_hash', 'backup_codes', 'last_totp_step', 'last_login_nonce_hash', 'created_at', 'updated_at'])
             ->where('user_id', '=', $userId)
             ->first();
     }
@@ -50,5 +50,36 @@ final class TwoFactorRepository
                 'backup_codes' => $backupCodesJson,
                 'updated_at' => $updatedAt,
             ]);
+    }
+
+    public function updateLastTotpStep(int $userId, int $step): void
+    {
+        (new QueryBuilder($this->pdo))
+            ->from('two_factor_secrets')
+            ->where('user_id', '=', $userId)
+            ->update([
+                'last_totp_step' => $step,
+            ]);
+    }
+
+    public function consumeLoginNonce(int $userId, string $nonceHash): void
+    {
+        (new QueryBuilder($this->pdo))
+            ->from('two_factor_secrets')
+            ->where('user_id', '=', $userId)
+            ->update([
+                'last_login_nonce_hash' => $nonceHash,
+            ]);
+    }
+
+    public function findLoginNonceHash(int $userId): ?string
+    {
+        $row = (new QueryBuilder($this->pdo))
+            ->from('two_factor_secrets')
+            ->select(['last_login_nonce_hash'])
+            ->where('user_id', '=', $userId)
+            ->first();
+
+        return $row !== null ? ((string)($row['last_login_nonce_hash'] ?? '')) : null;
     }
 }

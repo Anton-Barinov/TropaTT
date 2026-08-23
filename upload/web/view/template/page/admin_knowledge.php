@@ -240,7 +240,7 @@
 </div>
 
 </main></div></div>
-<script>
+<script nonce="<?= $csp_nonce ?>">
 (function () {
   var i18n = window.CRM && window.CRM.i18n;
   var t = function (key, fallback) { return i18n && i18n.t ? i18n.t(key, fallback) : fallback; };

@@ -216,17 +216,11 @@ final class AuthController extends BaseController
             return false;
         }
 
-        $https = strtolower((string)($this->request()->server['HTTPS'] ?? ''));
-        if ($https !== '' && $https !== 'off' && $https !== '0') {
-            return true;
-        }
-
-        $forwardedProto = strtolower((string)$this->request()->header('X-Forwarded-Proto', ''));
-        if ($forwardedProto === 'https') {
-            return true;
-        }
-
-        return false;
+        // L-5: When secure_only is true (production default), always set Secure.
+        // This avoids the case where a proxy terminates TLS but does not forward
+        // X-Forwarded-Proto, resulting in cookies without the Secure flag.
+        // Operators who need auto-detection (dev/local) should set secure_only=false.
+        return true;
     }
 
     private function csrfTokenForSession(string $sessionToken): string

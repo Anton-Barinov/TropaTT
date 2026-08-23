@@ -475,7 +475,7 @@
   </div>
 </div>
 
-<script>
+<script nonce="<?= $csp_nonce ?>">
 (function () {
   var projectId = null;
   var urlParams = new URLSearchParams(window.location.search);

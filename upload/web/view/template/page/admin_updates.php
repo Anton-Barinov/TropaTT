@@ -444,7 +444,7 @@ $auJs = [
     </section>
   </div>
 </main></div></div>
-<script>
+<script nonce="<?= $csp_nonce ?>">
 (function () {
   const i18n = <?= json_encode($auJs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
   const state = { status: null, version: null, plan: null, changes: null, preflight: null, download: null, apply: null, lastJobId: null };

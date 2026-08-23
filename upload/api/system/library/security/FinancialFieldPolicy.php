@@ -138,12 +138,16 @@ final class FinancialFieldPolicy
      */
     private function allowedFamilies(array $row, array $actor): array
     {
+        // L-6: Check is_external BEFORE is_root for defense-in-depth.
+        // If a data defect leaves an external account with is_root=1,
+        // the external block still prevents financial field disclosure.
+        $isExternal = (bool)($actor['is_external'] ?? false);
+
         $isRoot = (bool)($actor['is_root'] ?? false);
-        if ($isRoot) {
+        if ($isRoot && !$isExternal) {
             return ['payout', 'cost', 'bill', 'config'];
         }
 
-        $isExternal = (bool)($actor['is_external'] ?? false);
         $externalRole = (string)($actor['external_role'] ?? '');
         $actorPublicId = (string)($actor['public_id'] ?? '');
         $rowUserPublicId = (string)($row['user_public_id'] ?? '');

@@ -44,6 +44,17 @@ final class FileService
             throw new \RuntimeException('ENTITY_ACCESS_DENIED');
         }
 
+        // M-3: Internal users' files default to internal visibility.
+        // External users always create client-visible files.
+        $isExternal = (bool)($actor['is_external'] ?? false);
+        $isInternal = $isExternal ? 0 : 1;
+
+        // L-10: External users must attach files to an accessible entity.
+        // Orphan files (no entity_public_id) are not allowed for external actors.
+        if ($isExternal && $entityPublicId === '') {
+            throw new \RuntimeException('ENTITY_REQUIRED');
+        }
+
         $storedPath = '';
         $mime = 'application/octet-stream';
         $size = 0;
@@ -109,6 +120,7 @@ final class FileService
             'mime_type' => $mime,
             'size_bytes' => $size,
             'is_deleted' => 0,
+            'is_internal' => $isInternal,
             'created_at' => $now,
         ]);
 
@@ -189,6 +201,11 @@ final class FileService
         }
 
         $items = $this->files->listByEntity($type, $entityId);
+
+        // M-3: Filter out internal files for external users.
+        if ((bool)($actor['is_external'] ?? false)) {
+            $items = array_values(array_filter($items, fn(array $file): bool => (int)($file['is_internal'] ?? 0) === 0));
+        }
 
         return array_map(fn(array $file): array => $this->presentForApi($file), $items);
     }
@@ -291,6 +308,11 @@ final class FileService
     /** @param array<string,mixed> $actor */
     private function canAccessFile(array $file, array $actor): bool
     {
+        // M-3: External users cannot access internal files.
+        if ((bool)($actor['is_external'] ?? false) && (int)($file['is_internal'] ?? 0) === 1) {
+            return false;
+        }
+
         if ((bool)($actor['is_root'] ?? false)) {
             return true;
         }

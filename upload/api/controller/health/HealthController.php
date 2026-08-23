@@ -101,7 +101,8 @@ final class HealthController extends BaseController
                     if ($resolvedDocRoot && $resolvedUploads && str_starts_with($resolvedUploads, $resolvedDocRoot)) {
                         // Storage is inside DocumentRoot — try HTTP access
                         $scheme = $env->isHttps() ? 'https' : 'http';
-                        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+                        // L-2: Use a trusted canonical host, not the user-controlled Host header
+                        $host = trim((string) getenv('APP_HOST')) ?: 'localhost';
                         // Compute relative path from docroot to uploads
                         $relPath = substr($resolvedUploads, strlen($resolvedDocRoot));
                         $probeUrl = $scheme . '://' . $host . '/' . ltrim($relPath, '/\\') . '/' . $probeName;

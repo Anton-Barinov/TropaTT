@@ -616,9 +616,11 @@ final class TaskService
             }
             $taskClientPublicId = (string)($task['task_client_public_id'] ?? '');
             $projectClientPublicId = (string)($task['client_public_id'] ?? '');
-            // Task directly linked to counterparty, or project linked to counterparty
-            if (($taskClientPublicId !== '' && $taskClientPublicId === $cpPublicId)
-                || ($projectClientPublicId !== '' && $projectClientPublicId === $cpPublicId)) {
+            // L-9: Use canonical client: task-level if set, otherwise project-level.
+            // This prevents a task with client X in project of client Y from being
+            // visible to observers of both.
+            $effectiveClient = $taskClientPublicId !== '' ? $taskClientPublicId : $projectClientPublicId;
+            if ($effectiveClient !== '' && $effectiveClient === $cpPublicId) {
                 return true;
             }
             return false;

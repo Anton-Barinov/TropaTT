@@ -75,6 +75,8 @@ final class MigrationManager
             new WorklogRateIndexesMigration(),
             new FinancePermissionsMigration(),
             new ActivityCodeDictionaryMigration(),
+            new FileVisibilityMigration(),
+            new TwoFactorHardeningMigration(),
         ];
     }
 

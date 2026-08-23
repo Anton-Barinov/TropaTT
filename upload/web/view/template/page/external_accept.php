@@ -30,7 +30,7 @@
     </div>
   </section>
 </div>
-<script>
+<script nonce="<?= $csp_nonce ?>">
 (function () {
   var form = document.getElementById('externalAcceptForm');
   if (!form) return;

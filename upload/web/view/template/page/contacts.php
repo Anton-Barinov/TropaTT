@@ -84,7 +84,7 @@
   </div>
   <div class="modal-footer"><button class="btn crm-btn-secondary" type="button" data-bs-dismiss="modal" data-i18n="page.close"><?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?></button></div>
 </div></div></div>
-<script>
+<script nonce="<?= $csp_nonce ?>">
 (function () {
   var editModal = document.getElementById('contactEditModal');
   if (!editModal) return;

@@ -28,7 +28,7 @@
 </section>
 </main></div></div>
 
-<script>
+<script nonce="<?= $csp_nonce ?>">
 (function () {
   var deptKnowledgeSection = document.getElementById('departmentKnowledgeSection');
   var deptKnowledgeList = document.getElementById('departmentKnowledgeList');

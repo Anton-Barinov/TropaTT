@@ -26,7 +26,7 @@
 
 </main></div></div>
 
-<script>
+<script nonce="<?= $csp_nonce ?>">
 (function () {
     var tableBody = document.getElementById('moduleTableBody');
     if (!tableBody) return;

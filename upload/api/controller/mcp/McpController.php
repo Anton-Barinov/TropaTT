@@ -28,6 +28,7 @@ use Api\System\Library\Http\RawJsonResponse;
 use Api\System\Library\Http\Request;
 use Api\System\Library\Service\ApiClientService;
 use Api\System\Library\Security\FinancialFieldPolicy;
+use Api\System\Library\Security\HtmlSanitizer;
 use Api\System\Library\Service\ApprovalService;
 use Api\System\Library\Service\AuthzService;
 use Api\System\Library\Service\BusinessCalendarService;
@@ -3216,8 +3217,8 @@ MD;
             'crm_rotate_user_token' => $this->withPermission('user.manage', fn() => $this->toolResult($this->crmRotateUserToken($arguments))),
             'crm_revoke_user_token' => $this->withPermission('user.manage', fn() => $this->toolResult($this->crmRevokeUserToken($arguments))),
             'crm_get_user_activity' => $this->withPermission('user.manage', fn() => $this->toolResult($this->crmGetUserActivity($arguments))),
-            'crm_list_teams' => $this->toolResult($this->crmListTeams($arguments)),
-            'crm_get_team' => $this->toolResult($this->crmGetTeam($arguments)),
+            'crm_list_teams' => $this->withPermission('team.manage', fn() => $this->toolResult($this->crmListTeams($arguments))),
+            'crm_get_team' => $this->withPermission('team.manage', fn() => $this->toolResult($this->crmGetTeam($arguments))),
             'crm_create_team' => $this->withPermission('team.manage', fn() => $this->toolResult($this->crmCreateTeam($arguments))),
             'crm_update_team' => $this->withPermission('team.manage', fn() => $this->toolResult($this->crmUpdateTeam($arguments))),
             'crm_list_departments' => $this->withPermission('department.manage', fn() => $this->toolResult($this->crmListDepartments($arguments))),
@@ -3420,8 +3421,8 @@ MD;
             'crm_create_subscription' => $this->toolResult($this->crmCreateSubscription($arguments)),
             'crm_delete_subscription' => $this->toolResult($this->crmDeleteSubscription($arguments)),
             'crm_list_reactions' => $this->toolResult($this->crmListReactions($arguments)),
-            'crm_add_reaction' => $this->toolResult($this->crmAddReaction($arguments)),
-            'crm_remove_reaction' => $this->toolResult($this->crmRemoveReaction($arguments)),
+            'crm_add_reaction' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmAddReaction($arguments))),
+            'crm_remove_reaction' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmRemoveReaction($arguments))),
             'crm_list_mentions' => $this->toolResult($this->crmListMentions($arguments)),
             'crm_add_mention' => $this->withPermissionAny(['task.manage', 'project.manage'], fn() => $this->toolResult($this->crmAddMention($arguments))),
             'crm_delete_mention' => $this->withPermissionAny(['task.manage', 'project.manage'], fn() => $this->toolResult($this->crmDeleteMention($arguments))),
@@ -3471,7 +3472,7 @@ MD;
             'crm_rebuild_knowledge_permissions' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmRebuildKnowledgePermissions())),
             'crm_cleanup_knowledge_drafts' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmCleanupKnowledgeDrafts())),
             'crm_get_chat' => $this->toolResult($this->crmGetChat($arguments)),
-            'crm_create_chat' => $this->toolResult($this->crmCreateChat($arguments)),
+            'crm_create_chat' => $this->withPermissionAny(['task.manage', 'project.manage'], fn() => $this->toolResult($this->crmCreateChat($arguments))),
             'crm_get_chat_participants' => $this->toolResult($this->crmGetChatParticipants($arguments)),
             'crm_edit_chat_message' => $this->toolResult($this->crmEditChatMessage($arguments)),
             'crm_delete_chat_message' => $this->toolResult($this->crmDeleteChatMessage($arguments)),
@@ -3479,11 +3480,11 @@ MD;
             'crm_download_chat_attachment' => $this->toolResult($this->crmDownloadChatAttachment($arguments)),
             'crm_list_chat_attachments' => $this->toolResult($this->crmListChatAttachments($arguments)),
             'crm_get_chat_settings' => $this->toolResult($this->crmGetChatSettings($arguments)),
-            'crm_update_chat_settings' => $this->toolResult($this->crmUpdateChatSettings($arguments)),
+            'crm_update_chat_settings' => $this->withPermissionAny(['task.manage', 'project.manage'], fn() => $this->toolResult($this->crmUpdateChatSettings($arguments))),
             'crm_mark_chat_read' => $this->toolResult($this->crmMarkChatRead($arguments)),
             'crm_get_chat_unread_count' => $this->toolResult($this->crmGetChatUnreadCount()),
-            'crm_archive_chat' => $this->toolResult($this->crmArchiveChat($arguments)),
-            'crm_restore_chat' => $this->toolResult($this->crmRestoreChat($arguments)),
+            'crm_archive_chat' => $this->withPermissionAny(['task.manage', 'project.manage'], fn() => $this->toolResult($this->crmArchiveChat($arguments))),
+            'crm_restore_chat' => $this->withPermissionAny(['task.manage', 'project.manage'], fn() => $this->toolResult($this->crmRestoreChat($arguments))),
             'crm_list_push_subscriptions' => $this->toolResult($this->crmListPushSubscriptions($arguments)),
             'crm_create_push_subscription' => $this->toolResult($this->crmCreatePushSubscription($arguments)),
             'crm_delete_push_subscription' => $this->toolResult($this->crmDeletePushSubscription($arguments)),
@@ -10163,7 +10164,10 @@ MD;
     {
         /** @var WorklogService $service */
         $service = $this->container->get('service.worklog');
-        return $this->publicData($service->list($this->worklogFilters($arguments), $this->actor()));
+        $result = $service->list($this->worklogFilters($arguments), $this->actor());
+        $policy = new FinancialFieldPolicy();
+        $result['items'] = $policy->filterRows($result['items'] ?? [], $this->actor(), 'mcp.list_worklogs');
+        return $this->publicData($result);
     }
 
     private function crmGetWorklog(array $arguments): array
@@ -10176,7 +10180,11 @@ MD;
         /** @var WorklogService $service */
         $service = $this->container->get('service.worklog');
         $worklog = $service->get($publicId, $this->actor());
-        return $worklog ? ['worklog' => $this->publicData($worklog)] : ['error' => 'Worklog not found.'];
+        if (!$worklog) {
+            return ['error' => 'Worklog not found.'];
+        }
+        $worklog = (new FinancialFieldPolicy())->filterRow($worklog, $this->actor(), 'mcp.get_worklog');
+        return ['worklog' => $this->publicData($worklog)];
     }
 
     private function crmCreateWorklog(array $arguments): array
@@ -10188,7 +10196,11 @@ MD;
         /** @var WorklogService $service */
         $service = $this->container->get('service.worklog');
         $worklog = $service->create($this->worklogInput($arguments), $this->actor());
-        return is_array($worklog) ? ['worklog' => $this->publicData($worklog)] : ['error' => (string)$worklog];
+        if (!is_array($worklog)) {
+            return ['error' => (string)$worklog];
+        }
+        $worklog = (new FinancialFieldPolicy())->filterRow($worklog, $this->actor(), 'mcp.create_worklog');
+        return ['worklog' => $this->publicData($worklog)];
     }
 
     private function crmUpdateWorklog(array $arguments): array
@@ -10204,7 +10216,11 @@ MD;
         /** @var WorklogService $service */
         $service = $this->container->get('service.worklog');
         $worklog = $service->update($publicId, $this->worklogInput($arguments), $this->actor());
-        return is_array($worklog) ? ['worklog' => $this->publicData($worklog)] : ['error' => (string)($worklog ?: 'Worklog not found.')];
+        if (!is_array($worklog)) {
+            return ['error' => (string)($worklog ?: 'Worklog not found.')];
+        }
+        $worklog = (new FinancialFieldPolicy())->filterRow($worklog, $this->actor(), 'mcp.update_worklog');
+        return ['worklog' => $this->publicData($worklog)];
     }
 
     private function crmGetWorklogSummary(array $arguments): array
@@ -10242,13 +10258,14 @@ MD;
         }
 
         $publicId = 'idea_' . bin2hex(random_bytes(12));
+        $description = (new HtmlSanitizer())->sanitize(trim((string)($arguments['description'] ?? '')));
         $this->pdo()->prepare("
             INSERT INTO ideas (public_id, title, description, author_user_id, category, region, visibility, target_date, created_at)
             VALUES (:public_id, :title, :description, :author_user_id, :category, :region, :visibility, :target_date, NOW())
         ")->execute([
             'public_id' => $publicId,
             'title' => $title,
-            'description' => trim((string)($arguments['description'] ?? '')),
+            'description' => $description,
             'author_user_id' => (int)($this->actor()['id'] ?? 0),
             'category' => trim((string)($arguments['category'] ?? '')),
             'region' => trim((string)($arguments['region'] ?? '')),
@@ -10282,7 +10299,7 @@ MD;
         }
 
         $title = trim((string)($arguments['title'] ?? $idea['title']));
-        $description = trim((string)($arguments['description'] ?? $idea['description']));
+        $description = (new HtmlSanitizer())->sanitize(trim((string)($arguments['description'] ?? $idea['description'])));
         $category = trim((string)($arguments['category'] ?? $idea['category']));
         $region = array_key_exists('region', $arguments) ? trim((string)$arguments['region']) : (string)($idea['region'] ?? '');
         $visibility = array_key_exists('visibility', $arguments)
@@ -10436,6 +10453,7 @@ MD;
         }
 
         $commentPublicId = 'cmt_' . bin2hex(random_bytes(8));
+        $body = (new HtmlSanitizer())->sanitize($body);
         $this->pdo()->prepare("
             INSERT INTO comments (public_id, entity_type, entity_public_id, author_user_id, body, created_at)
             VALUES (:public_id, 'idea', :entity_public_id, :author_user_id, :body, NOW())
@@ -10539,6 +10557,12 @@ MD;
             if (!is_array($project)) {
                 return ['error' => 'Project not found.'];
             }
+            // L-8: Verify actor can access the project before creating a chat.
+            /** @var ProjectService $projectService */
+            $projectService = $this->container->get('service.project');
+            if (!$projectService->get((string)($project['public_id'] ?? ''), $actor)) {
+                return ['error' => 'Access denied.'];
+            }
             return ['chat' => $this->publicData($service->ensureProjectChat($project, $actor))];
         }
 
@@ -10552,6 +10576,12 @@ MD;
             $team = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!is_array($team)) {
                 return ['error' => 'Team not found.'];
+            }
+            // L-8: Verify actor can access the team before creating a chat.
+            /** @var TeamService $teamService */
+            $teamService = $this->container->get('service.team');
+            if (!$teamService->get((string)($team['public_id'] ?? ''), $actor)) {
+                return ['error' => 'Access denied.'];
             }
             return ['chat' => $this->publicData($service->ensureTeamChat($team, $actor))];
         }
@@ -12958,9 +12988,7 @@ MD;
             'email', 'reason', 'reference', 'source_ref',
             'change_note', 'goal', 'payload', 'extra',
         ], true);
-    }
-
-private function isSensitiveOrInternalKey(string $key): bool
+    }    private function isSensitiveOrInternalKey(string $key): bool
     {
         $normalized = strtolower($key);
         if (in_array($normalized, [
@@ -12976,6 +13004,21 @@ private function isSensitiveOrInternalKey(string $key): bool
             return true;
         }
         if (str_contains($normalized, '_key') || str_contains($normalized, '_credential')) {
+            return true;
+        }
+        // Defense-in-depth: strip financial snapshot/source/amount/margin suffixes
+        // even if FinancialFieldPolicy should have already stripped them.
+        if (str_contains($normalized, '_snapshot')
+            || str_contains($normalized, '_source_type')
+            || str_contains($normalized, '_source_ref')
+            || str_ends_with($normalized, '_amount')
+            || $normalized === 'margin'
+            || $normalized === 'margin_amount'
+            || $normalized === 'override_cost_rate'
+            || $normalized === 'override_bill_rate'
+            || $normalized === 'override_payout_rate'
+            || str_contains($normalized, 'rate_card')
+        ) {
             return true;
         }
         if (str_ends_with($normalized, 'public_id')) {

@@ -157,7 +157,7 @@ final class HtmlSanitizer
             'details', 'summary' => ['class'],
             'input' => ['type', 'disabled', 'data-checked', 'class'],
             'span' => ['class', 'role', 'tabindex', 'data-mention-type', 'data-mention-id', 'contenteditable'],
-            'hr' => ['style', 'class'],
+            'hr' => ['class'],
             'table', 'thead', 'tbody', 'tr', 'td', 'th' => ['class', 'colspan', 'rowspan'],
             default => [],
         };

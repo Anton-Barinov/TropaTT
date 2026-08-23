@@ -396,7 +396,7 @@
   </div></div>
 </div>
 
-<script>
+<script nonce="<?= $csp_nonce ?>">
 (function () {
   var pageId = document.body.getAttribute('data-knowledge-page-id') || '';
   var i18n = window.CRM && window.CRM.i18n;

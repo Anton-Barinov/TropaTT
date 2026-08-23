@@ -6,6 +6,7 @@ namespace Api\Controller\Idea;
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Http\JsonResponse;
 use Api\System\Library\Module\ModuleCronScheduler;
+use Api\System\Library\Security\HtmlSanitizer;
 use Api\System\Library\Service\IdeaService;
 use PDO;
 
@@ -125,7 +126,7 @@ final class IdeaController extends BaseController
     {
         $input = $this->request()->allInput();
         $title = trim((string)($input['title'] ?? ''));
-        $description = trim((string)($input['description'] ?? ''));
+        $description = (new HtmlSanitizer())->sanitize(trim((string)($input['description'] ?? '')));
         $category = trim((string)($input['category'] ?? ''));
         $region = trim((string)($input['region'] ?? ''));
         $visibility = in_array((string)($input['visibility'] ?? 'public'), ['public', 'private']) ? ($input['visibility'] ?? 'public') : 'public';
@@ -182,7 +183,7 @@ final class IdeaController extends BaseController
 
         $input = $this->request()->allInput();
         $title = trim((string)($input['title'] ?? $idea['title']));
-        $description = trim((string)($input['description'] ?? $idea['description']));
+        $description = (new HtmlSanitizer())->sanitize(trim((string)($input['description'] ?? $idea['description'])));
         $category = trim((string)($input['category'] ?? $idea['category']));
         $region = array_key_exists('region', $input) ? trim((string)($input['region'])) : $idea['region'];
         $visibility = in_array((string)($input['visibility'] ?? $idea['visibility']), ['public', 'private']) ? ($input['visibility'] ?? $idea['visibility'] ?? 'public') : ($idea['visibility'] ?? 'public');
@@ -4356,7 +4357,7 @@ PROMPT;
     public function addComment(array $params = []): JsonResponse
     {
         $publicId = (string)($params['public_id'] ?? '');
-        $body = trim((string)($this->request()->allInput()['body'] ?? ''));
+        $body = (new HtmlSanitizer())->sanitize(trim((string)($this->request()->allInput()['body'] ?? '')));
         if ($publicId === '' || $body === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
         $user = $this->user()['user'] ?? [];

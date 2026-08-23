@@ -772,7 +772,7 @@
   </div>
 </div>
 
-<script>
+<script nonce="<?= $csp_nonce ?>">
 (function () {
   var taskId = null;
   var urlParams = new URLSearchParams(window.location.search);

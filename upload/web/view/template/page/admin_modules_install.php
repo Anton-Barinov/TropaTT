@@ -48,7 +48,7 @@
 
 </main></div></div>
 
-<script>
+<script nonce="<?= $csp_nonce ?>">
 (function () {
     var urlForm = document.getElementById('installUrlForm');
     var fileForm = document.getElementById('installFileForm');

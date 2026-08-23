@@ -76,7 +76,7 @@ final class AuthService
             // so that non-existent users take the same time as existent ones.
             // Uses a pre-generated Argon2id hash to match the system's actual hash algorithm.
             $this->hasher->verify('dummy_plain_text', '$argon2id$v=19$m=65536,t=4,p=1$c29tZXNhbHR2YWx1ZXMxMjM0NQ$wLdTJFplKxH5XKRhXQz7vA+VL0VvN8gD4v7TyzHGlc0');
-            $state = $this->recordFailedLoginAttempt($rateKey, $ip);
+            $state = $this->recordFailedLoginAttempt($rateKey, $ip, (int)($user['id'] ?? 0));
             $this->logger->security([
                 'event_type' => 'auth_failed',
                 'reason' => 'user_not_found_or_inactive',
@@ -95,7 +95,7 @@ final class AuthService
         }
 
         if (!$this->hasher->verify($password, (string)$user['password_hash'])) {
-            $state = $this->recordFailedLoginAttempt($rateKey, $ip);
+            $state = $this->recordFailedLoginAttempt($rateKey, $ip, (int)($user['id'] ?? 0));
             $this->logger->security([
                 'event_type' => 'auth_failed',
                 'reason' => 'invalid_password',
@@ -115,7 +115,7 @@ final class AuthService
 
         $tokenHash = (string)($user['auth_token_hash'] ?? '');
         if ($tokenHash !== '' && ($token === '' || !hash_equals($tokenHash, hash('sha256', $token)))) {
-            $state = $this->recordFailedLoginAttempt($rateKey, $ip);
+            $state = $this->recordFailedLoginAttempt($rateKey, $ip, (int)($user['id'] ?? 0));
             $this->logger->security([
                 'event_type' => 'auth_failed',
                 'reason' => 'invalid_token_factor',
@@ -151,7 +151,11 @@ final class AuthService
                 'requires_two_factor' => true,
                 'login_token' => $pendingToken,
                 'expires_in' => self::PENDING_2FA_TTL,
-                'user' => $this->normalizeUser($user),
+                // M-6: Only return minimal user info before 2FA is completed.
+                // Do NOT leak email, roles, permissions, or full profile.
+                'user' => [
+                    'display_name' => trim((string)($user['full_name'] ?? $user['login'] ?? '')),
+                ],
             ];
         }
 
@@ -218,9 +222,12 @@ final class AuthService
         }
 
         // SEC-007: device fingerprint verification
-        // If a user agent is provided, derive a fingerprint and compare it against
-        // the one stored when the session was created. A mismatch indicates potential
-        // token theft (different browser/device than the original login).
+        // L-12: UA-based fingerprint is a weak signal (sha256 of user agent).
+        // Treat it as a soft security signal (log only) rather than a hard
+        // session revocation. Browser auto-updates would otherwise force-logout
+        // legitimate users, and an attacker with a stolen token can also steal
+        // the UA string. Stronger signals (IP geolocation anomaly, etc.) should
+        // be added at a higher layer.
         if ($userAgent !== null && $userAgent !== '') {
             $storedFingerprint = (string)($session['device_fingerprint'] ?? '');
             if ($storedFingerprint !== '') {
@@ -233,8 +240,6 @@ final class AuthService
                         'stored_fingerprint' => $storedFingerprint,
                         'current_fingerprint' => $currentFingerprint,
                     ]);
-                    $this->auth->revokeByTokenHash($hash, gmdate('Y-m-d H:i:s'));
-                    return null;
                 }
             }
         }
@@ -340,14 +345,32 @@ final class AuthService
         return $this->rateLimiter->check('login', $rateKey, 5, 300, 900, true);
     }
 
-    private function recordFailedLoginAttempt(string $rateKey, string $ip): array
+    private function recordFailedLoginAttempt(string $rateKey, string $ip, ?int $userId = null): array
     {
         $ipState = $this->hitIpRateLimit($ip);
         $loginState = $this->hitLoginRateLimit($rateKey);
+        $accountBlocked = false;
+        $accountRetry = 0;
+
+        // M-8: Per-account rate limit to protect against distributed brute-force
+        // (botnet) attacks against a single account from many IPs.
+        if ($userId !== null && $userId > 0) {
+            $accountState = $this->rateLimiter->check('login_account', 'uid:' . $userId, 15, 300, 900, true);
+            $accountBlocked = ($accountState['blocked'] ?? false) === true;
+            $accountRetry = (int)($accountState['retry_after'] ?? 0);
+            if ($accountBlocked) {
+                $this->logger->security([
+                    'event_type' => 'auth_account_rate_limited',
+                    'user_id' => $userId,
+                    'ip' => $ip,
+                    'retry_after' => $accountRetry,
+                ]);
+            }
+        }
 
         return [
-            'blocked' => ($ipState['blocked'] ?? false) === true || ($loginState['blocked'] ?? false) === true,
-            'retry_after' => max((int)($ipState['retry_after'] ?? 0), (int)($loginState['retry_after'] ?? 0)),
+            'blocked' => ($ipState['blocked'] ?? false) === true || ($loginState['blocked'] ?? false) === true || $accountBlocked,
+            'retry_after' => max((int)($ipState['retry_after'] ?? 0), (int)($loginState['retry_after'] ?? 0), $accountRetry),
         ];
     }
 
@@ -451,6 +474,18 @@ final class AuthService
             return null;
         }
 
+        // M-5: Check that the login token nonce has not been consumed.
+        $nonce = $this->extractNonceFromToken($loginToken);
+        if ($nonce !== null && $this->twoFactorService && $this->twoFactorService->isLoginNonceConsumed((int)$user['id'], $nonce)) {
+            $this->logger->security([
+                'event_type' => 'auth_two_factor_token_replay_rejected',
+                'user_public_id' => (string)$user['public_id'],
+                'ip' => $ip,
+            ]);
+
+            return null;
+        }
+
         $plainAccess = $this->tokens->generate();
         $sessionPublicId = Ulid::generate('ses');
         $expiresAt = gmdate('Y-m-d H:i:s', time() + $this->tokenTtlSeconds);
@@ -468,6 +503,11 @@ final class AuthService
             'expires_at' => $expiresAt,
             'created_at' => gmdate('Y-m-d H:i:s'),
         ]);
+
+        // M-5: Mark the login token nonce as consumed.
+        if ($nonce !== null && $this->twoFactorService) {
+            $this->twoFactorService->consumeLoginNonce((int)$user['id'], $nonce);
+        }
 
         $this->logger->security([
             'event_type' => 'auth_two_factor_completed',
@@ -514,6 +554,35 @@ final class AuthService
         }
         $seed = __CLASS__ . '::pending_2fa::' . $appKey;
         return hash('sha256', $seed, true);
+    }
+
+    /**
+     * M-5: Extract the nonce from a pending 2FA token for replay detection.
+     * Returns null if the token is malformed (handled by resolveTwoFactorToken elsewhere).
+     */
+    private function extractNonceFromToken(string $token): ?string
+    {
+        $decoded = base64_decode($token, true);
+        if ($decoded === false) {
+            return null;
+        }
+
+        $separatorPos = strpos($decoded, ':');
+        if ($separatorPos === false) {
+            return null;
+        }
+
+        $payload = substr($decoded, $separatorPos + 1);
+        if ($payload === false || $payload === '') {
+            return null;
+        }
+
+        $data = json_decode($payload, true);
+        if (!is_array($data) || !isset($data['nonce'])) {
+            return null;
+        }
+
+        return (string)$data['nonce'];
     }
 
     private function buildDeviceName(string $userAgent): string

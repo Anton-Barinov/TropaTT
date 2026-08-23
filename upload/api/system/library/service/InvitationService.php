@@ -133,7 +133,8 @@ final class InvitationService
         }
 
         $password = (string)($input['password'] ?? '');
-        if (mb_strlen($password) < 8) {
+        // L-4: Enforce 12+ character password with complexity.
+        if (mb_strlen($password) < 12 || !preg_match('/[A-Z]/', $password) || !preg_match('/[a-z]/', $password) || !preg_match('/[0-9]/', $password)) {
             return ['ok' => false, 'code' => 'INVITATION_WEAK_PASSWORD'];
         }
 

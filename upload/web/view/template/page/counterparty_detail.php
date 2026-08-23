@@ -191,7 +191,7 @@
 
 <div class="modal fade" id="counterpartyKnowledgeAttachModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" data-i18n="counterparty_detail.attach_knowledge_title"><?= htmlspecialchars($t('counterparty_detail.attach_knowledge_title', 'Прикрепить статью базы знаний'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>"></button></div><div class="modal-body"><div class="mb-3"><label class="form-label" for="counterpartyKnowledgeSearch" data-i18n="counterparty_detail.attach_knowledge_search_label"><?= htmlspecialchars($t('counterparty_detail.attach_knowledge_search_label', 'Поиск статьи'), ENT_QUOTES, 'UTF-8') ?></label><input id="counterpartyKnowledgeSearch" class="form-control" type="search" autocomplete="off" placeholder="<?= htmlspecialchars($t('counterparty_detail.attach_knowledge_search_placeholder', 'Введите название статьи...'), ENT_QUOTES, 'UTF-8') ?>"></div><div id="counterpartyKnowledgeAttachResults"><div class="text-muted small" data-i18n="counterparty_detail.attach_knowledge_loading"><?= htmlspecialchars($t('counterparty_detail.attach_knowledge_loading', 'Загрузка статей...'), ENT_QUOTES, 'UTF-8') ?></div></div></div><div class="modal-footer"><button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button></div></div></div></div>
 
-<script>
+<script nonce="<?= $csp_nonce ?>">
 (function () {
   var urlParams = new URLSearchParams(window.location.search);
   var counterpartyId = urlParams.get('counterparty_public_id') || urlParams.get('id');
@@ -243,7 +243,7 @@
   });
 })();
 </script>
-<script>
+<script nonce="<?= $csp_nonce ?>">
 (function () {
   var attachBtn = document.getElementById('counterpartyAttachKnowledgeBtn');
   var modalEl = document.getElementById('counterpartyKnowledgeAttachModal');

@@ -263,7 +263,7 @@
   </div>
 </div>
 
-<script>
+<script nonce="<?= $csp_nonce ?>">
 (function () {
   var editModalEl = document.getElementById('teamEditModal');
   var createModalEl = document.getElementById('teamCreateModal');

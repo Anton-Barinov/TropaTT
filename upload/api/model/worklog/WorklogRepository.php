@@ -65,8 +65,12 @@ final class WorklogRepository
             ->leftJoin('users u', 'u.id', '=', 'w.user_id')
             ->leftJoin('tasks t', 't.id', '=', 'w.task_id');
 
-        if (!$actorIsRoot && $visibleUserIds !== []) {
-            $query->whereIn('w.user_id', $visibleUserIds);
+        if (!$actorIsRoot) {
+            if ($visibleUserIds !== []) {
+                $query->whereIn('w.user_id', $visibleUserIds);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
         }
 
         if (!empty($filters['user_public_id'])) {
@@ -240,8 +244,12 @@ final class WorklogRepository
      */
     private function applyCommonFilters(QueryBuilder $qb, array $filters, array $visibleUserIds, bool $actorIsRoot, ?string $teamPublicId): void
     {
-        if (!$actorIsRoot && $visibleUserIds !== []) {
-            $qb->whereIn('w.user_id', $visibleUserIds);
+        if (!$actorIsRoot) {
+            if ($visibleUserIds !== []) {
+                $qb->whereIn('w.user_id', $visibleUserIds);
+            } else {
+                $qb->whereRaw('1 = 0');
+            }
         }
 
         if (!empty($filters['from'])) {
@@ -413,8 +421,12 @@ final class WorklogRepository
             ->where('w.logged_at', '>=', $dateFrom)
             ->where('w.logged_at', '<', date('Y-m-d', strtotime($dateTo . ' +1 day')));
 
-        if (!$actorIsRoot && $visibleUserIds !== []) {
-            $qb->whereIn('w.user_id', $visibleUserIds);
+        if (!$actorIsRoot) {
+            if ($visibleUserIds !== []) {
+                $qb->whereIn('w.user_id', $visibleUserIds);
+            } else {
+                $qb->whereRaw('1 = 0');
+            }
         }
         if (!empty($userPublicId)) {
             $qb->where('u.public_id', '=', $userPublicId);
@@ -514,8 +526,12 @@ final class WorklogRepository
             ->groupBy(['u.id', 'u.public_id', 'u.login', 'u.full_name', 'u.cost_rate', 'u.bill_rate', 'u.payout_rate'])
             ->orderBy('total_minutes', 'DESC');
 
-        if (!$actorIsRoot && $visibleUserIds !== []) {
-            $qb->whereIn('w.user_id', $visibleUserIds);
+        if (!$actorIsRoot) {
+            if ($visibleUserIds !== []) {
+                $qb->whereIn('w.user_id', $visibleUserIds);
+            } else {
+                $qb->whereRaw('1 = 0');
+            }
         }
 
         $rows = $qb->get();
@@ -551,8 +567,12 @@ final class WorklogRepository
             ->orderBy('day', 'ASC')
             ->orderBy('u.full_name', 'ASC');
 
-        if (!$actorIsRoot && $visibleUserIds !== []) {
-            $qb->whereIn('w.user_id', $visibleUserIds);
+        if (!$actorIsRoot) {
+            if ($visibleUserIds !== []) {
+                $qb->whereIn('w.user_id', $visibleUserIds);
+            } else {
+                $qb->whereRaw('1 = 0');
+            }
         }
         if (!empty($userPublicId)) {
             $qb->where('u.public_id', '=', $userPublicId);
@@ -597,8 +617,12 @@ final class WorklogRepository
             ->orderBy('t.title', 'ASC')
             ->orderBy('w.logged_at', 'ASC');
 
-        if (!$actorIsRoot && $visibleUserIds !== []) {
-            $qb->whereIn('w.user_id', $visibleUserIds);
+        if (!$actorIsRoot) {
+            if ($visibleUserIds !== []) {
+                $qb->whereIn('w.user_id', $visibleUserIds);
+            } else {
+                $qb->whereRaw('1 = 0');
+            }
         }
         if (!empty($projectPublicId)) {
             $project = (new QueryBuilder($this->pdo))

@@ -245,7 +245,7 @@
   </div>
 </div>
 
-<script>
+<script nonce="<?= $csp_nonce ?>">
 (function(){
   function getApi(){ return window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function' ? window.CRM.api : null; }
   function waitForApi(cb, n){

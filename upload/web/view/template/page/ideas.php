@@ -62,7 +62,7 @@
   </div></div>
 </div>
 
-<script>
+<script nonce="<?= $csp_nonce ?>">
 window.CRM = window.CRM || {};
 window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
   return String((window.CRM && (window.CRM.locale || window.CRM.currentLocale)) || document.documentElement.lang || 'en-GB').replace('_', '-');
@@ -1548,7 +1548,7 @@ load();
 </div>
 
 </main></div></div>
-<script>
+<script nonce="<?= $csp_nonce ?>">
 (function(){var body=document.getElementById('ideasBody');var currentPeriodVotes='today';var currentPeriodComments='today';var allItems=[];var sortField=getCookie('ideas_sort_field')||'date';var sortAsc=getCookie('ideas_sort_asc')==='1';
   function setSortCookie(f,asc){document.cookie='ideas_sort_field='+f+';path=/;max-age=31536000';document.cookie='ideas_sort_asc='+(asc?'1':'0')+';path=/;max-age=31536000';}
   function getCookie(n){var m=document.cookie.match('(^|;)\\s*'+n+'\\s*=\\s*([^;]+)');return m?m.pop():null;}

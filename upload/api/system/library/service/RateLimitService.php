@@ -15,12 +15,17 @@ final class RateLimitService
 
         $fp = @fopen($file, 'c+');
         if (!$fp) {
-            return ['blocked' => false, 'retry_after' => 0];
+            // L-3: Fail-closed on storage error — log and block to prevent
+            // unlimited brute-force when the rate limiter is unavailable.
+            error_log('[RateLimitService] Failed to open counter file: ' . $file);
+            return ['blocked' => true, 'retry_after' => 30];
         }
 
         if (!flock($fp, LOCK_EX)) {
             fclose($fp);
-            return ['blocked' => false, 'retry_after' => 0];
+            // L-3: Same — fail-closed on lock error.
+            error_log('[RateLimitService] Failed to lock counter file: ' . $file);
+            return ['blocked' => true, 'retry_after' => 30];
         }
 
         $raw = stream_get_contents($fp);

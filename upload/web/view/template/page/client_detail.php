@@ -63,7 +63,7 @@
   <div class="col-12"><label class="form-label" data-i18n="clients.field_notes"><?= htmlspecialchars($t('clients.field_notes', 'Комментарий'), ENT_QUOTES, 'UTF-8') ?></label><textarea class="form-control" name="notes" rows="3"></textarea></div>
   <div class="col-12"><label class="form-label" data-i18n="clients.field_extra_attributes"><?= htmlspecialchars($t('clients.field_extra_attributes', 'Дополнительные поля (JSON)'), ENT_QUOTES, 'UTF-8') ?></label><div class="form-text mb-1" data-i18n="clients.extra_attributes_hint"><?= htmlspecialchars($t('clients.extra_attributes_hint', 'Укажите пары «поле — значение» в JSON. После сохранения они видны в карточке и доступны для поиска.'), ENT_QUOTES, 'UTF-8') ?></div><textarea class="form-control" name="extra_attributes_text" rows="3"></textarea></div>
 </div></div><div class="modal-footer"><button class="btn crm-btn-secondary" type="button" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button><button class="btn crm-btn-primary" type="submit" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button></div></form></div></div></div>
-<script>
+<script nonce="<?= $csp_nonce ?>">
 (function () {
   var urlParams = new URLSearchParams(window.location.search);
   var clientId = urlParams.get('client_public_id') || urlParams.get('id');
