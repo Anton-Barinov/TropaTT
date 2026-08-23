@@ -6,6 +6,8 @@ return [
     'at_least_one_rate' => 'Indique al menos una tarifa',
     'invalid_scope' => 'Tipo de ámbito no válido',
     'date_range_required' => 'Indique un rango de fechas (date_from y date_to)',
+    'invalid_date_format' => 'Formato de fecha no válido. Se espera AAAA-MM-DD.',
+    'date_from_after_to' => 'La fecha "desde" no puede ser posterior a "hasta".',
     'range_too_large' => 'El rango de fechas no debe superar 366 días',
     'invalid_role' => 'El rol especificado no existe',
     'invalid_activity_code' => 'El tipo de trabajo especificado no está en el diccionario',

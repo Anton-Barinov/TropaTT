@@ -6,6 +6,8 @@ return [
     'at_least_one_rate' => 'Informe pelo menos uma taxa',
     'invalid_scope' => 'Tipo de escopo inválido',
     'date_range_required' => 'Informe um intervalo de datas (date_from e date_to)',
+    'invalid_date_format' => 'Formato de data inválido. Esperado AAAA-MM-DD.',
+    'date_from_after_to' => 'A data "de" não pode ser posterior a "até".',
     'range_too_large' => 'O intervalo de datas não deve exceder 366 dias',
     'invalid_role' => 'A função especificada não existe',
     'invalid_activity_code' => 'O tipo de trabalho especificado não está no dicionário',

@@ -196,10 +196,14 @@ final class RateController extends BaseController
     public function lock(): \Api\System\Library\Http\JsonResponse
     {
         $input = $this->request()->allInput();
-        $from = (string)($input['date_from'] ?? '');
-        $to = (string)($input['date_to'] ?? '');
+        $from = trim((string)($input['date_from'] ?? ''));
+        $to = trim((string)($input['date_to'] ?? ''));
         if ($from === '' || $to === '') {
             return $this->error('VALIDATION', $this->t('rate/messages.date_range_required'), 422);
+        }
+        $rangeError = $this->validateDateRange($from, $to);
+        if ($rangeError !== null) {
+            return $this->error('VALIDATION', $rangeError, 422);
         }
 
         $pdo = $this->container->get('db.pdo');
@@ -225,10 +229,14 @@ final class RateController extends BaseController
     public function unlock(): \Api\System\Library\Http\JsonResponse
     {
         $input = $this->request()->allInput();
-        $from = (string)($input['date_from'] ?? '');
-        $to = (string)($input['date_to'] ?? '');
+        $from = trim((string)($input['date_from'] ?? ''));
+        $to = trim((string)($input['date_to'] ?? ''));
         if ($from === '' || $to === '') {
             return $this->error('VALIDATION', $this->t('rate/messages.date_range_required'), 422);
+        }
+        $rangeError = $this->validateDateRange($from, $to);
+        if ($rangeError !== null) {
+            return $this->error('VALIDATION', $rangeError, 422);
         }
 
         $pdo = $this->container->get('db.pdo');
@@ -350,6 +358,22 @@ final class RateController extends BaseController
     /**
      * Read a system-scope setting scalar value (settings.value is JSON).
      */
+    /**
+     * Validate that both dates are Y-m-d and from <= to.
+     * Returns an error message, or null when the range is valid.
+     */
+    private function validateDateRange(string $from, string $to): ?string
+    {
+        $dateRe = '/^\d{4}-\d{2}-\d{2}$/';
+        if (!preg_match($dateRe, $from) || !preg_match($dateRe, $to)) {
+            return $this->t('rate/messages.invalid_date_format', 'Invalid date format. Expected YYYY-MM-DD.');
+        }
+        if ($from > $to) {
+            return $this->t('rate/messages.date_from_after_to', 'Date from must not be after date to.');
+        }
+        return null;
+    }
+
     private function addLockedPeriod(\PDO $pdo, string $from, string $to): void
     {
         $existing = (array)$this->settingScalar($pdo, 'finance.rate_locked_periods');

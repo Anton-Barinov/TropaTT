@@ -6,6 +6,8 @@ return [
     'at_least_one_rate' => 'Mindestens einen Satz angeben',
     'invalid_scope' => 'Ungültiger Bereichstyp',
     'date_range_required' => 'Datumsbereich angeben (date_from und date_to)',
+    'invalid_date_format' => 'Ungültiges Datumsformat. Erwartet JJJJ-MM-TT.',
+    'date_from_after_to' => '"Von" darf nicht nach "Bis" liegen.',
     'range_too_large' => 'Datumsbereich darf 366 Tage nicht überschreiten',
     'invalid_role' => 'Die angegebene Rolle existiert nicht',
     'invalid_activity_code' => 'Die angegebene Arbeitsart ist nicht im Verzeichnis vorhanden',

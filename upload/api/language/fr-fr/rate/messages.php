@@ -6,6 +6,8 @@ return [
     'at_least_one_rate' => 'Indiquez au moins un taux',
     'invalid_scope' => 'Type de périmètre invalide',
     'date_range_required' => 'Indiquez une plage de dates (date_from et date_to)',
+    'invalid_date_format' => 'Format de date invalide. Attendu AAAA-MM-JJ.',
+    'date_from_after_to' => 'La date "de" ne peut pas être postérieure à "à".',
     'range_too_large' => 'La plage de dates ne doit pas dépasser 366 jours',
     'invalid_role' => 'Le rôle indiqué n\'existe pas',
     'invalid_activity_code' => 'Le type de travail indiqué n\'est pas dans le dictionnaire',

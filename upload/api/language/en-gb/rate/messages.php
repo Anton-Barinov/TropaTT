@@ -6,6 +6,8 @@ return [
     'at_least_one_rate' => 'Provide at least one rate',
     'invalid_scope' => 'Invalid scope type',
     'date_range_required' => 'Provide a date range (date_from and date_to)',
+    'invalid_date_format' => 'Invalid date format. Expected YYYY-MM-DD.',
+    'date_from_after_to' => 'Date from must not be after date to.',
     'range_too_large' => 'Date range must not exceed 366 days',
     'invalid_role' => 'The specified role does not exist',
     'invalid_activity_code' => 'The specified work type is not in the dictionary',
