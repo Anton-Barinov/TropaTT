@@ -593,7 +593,8 @@
   async function loadClientChatMessages(api, chatId, container) {
     try {
       var resp = await api.request('api/v1/chats/' + encodeURIComponent(chatId) + '/messages');
-      var msgs = resp.data && resp.data.items || [];
+      // Staff endpoint returns {items:[...]}, external endpoint returns {messages:[...]}.
+      var msgs = resp.data && (resp.data.items || resp.data.messages) || [];
       if (!msgs.length) {
         container.innerHTML = '<div class="text-muted small"><?= htmlspecialchars($t('project_detail.client_chat_no_messages', 'Сообщений пока нет.'), ENT_QUOTES, 'UTF-8') ?></div>';
         return;
