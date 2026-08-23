@@ -16080,8 +16080,17 @@ window.CRM.pageApiBindings = (function () {
           where = '<code>' + safeText(String(item.file || '').split('/').pop()) + (item.line ? ':' + item.line : '') + '</code>';
         } else if (src === 'frontend_error') {
           var pay = parseJsonMaybe(details && details.payload) || {};
-          title = String(pay.message || pay.reason || pay.code || item.event_type || '').substring(0, 140);
-          where = safeText(shortRoute((details && (details.route || details.page_url)) || ''));
+          var evtTypeRaw = String(item.event_type || '');
+          var fallbackTitle = evtTypeRaw === 'frontend_js_error'
+            ? tp('admin_logs.ev_hint_js_error', 'Ошибка JavaScript на странице')
+            : evtTypeRaw === 'frontend_csp_violation'
+              ? tp('admin_logs.ev_hint_csp', 'Заблокирован небезопасный ресурс (политика безопасности)')
+              : evtTypeRaw;
+          title = friendlyApiTitle(pay, fallbackTitle);
+          var routeRaw = (details && (details.route || details.page_url)) || '';
+          where = routeRaw
+            ? '<span class="small">' + safeText(shortRoute(routeRaw)) + '</span>'
+            : '<span class="text-muted">—</span>';
         } else {
           title = String(item.error_message || '').substring(0, 140);
           where = safeText(String(item.module_name || '') + ' / ' + String(item.context || ''));
@@ -16104,15 +16113,16 @@ window.CRM.pageApiBindings = (function () {
       if (tab === 'users') {
         var action = String(item.action || '');
         var obj = item.entity_type ? (item.entity_type + ': ' + (item.entity_public_id || '—')) : '—';
-        var detObj = details && details.entity_title ? safeText(String(details.entity_title).substring(0, 60)) : null;
-        if (detObj) obj = detObj;
+        var detLine = auditDetailLine(details, action);
+        var objHtml = '<span class="small">' + safeText(obj) + '</span>';
+        if (detLine) objHtml += '<div class="small text-muted">' + safeText(detLine) + '</div>';
         return {
           id: String(item.public_id || ''),
           cells: [
             rowCell(safeText(formatDate(item.created_at))),
             rowCell(safeText(resolveUserLabel(item.actor_name || '', item.actor_public_id || '', '—'))),
             rowCell(evBadge(action)),
-            rowCell('<span class="small">' + obj + '</span>')
+            rowCell(objHtml)
           ],
           raw: item,
           kind: 'audit'
@@ -16169,6 +16179,60 @@ window.CRM.pageApiBindings = (function () {
 
     function maskedIp(ip) {
       return String(ip || '') || '—';
+    }
+
+    // Friendly one-line explanation for common frontend/API error codes —
+    // raw codes like SETTING_NOT_FOUND mean nothing to a non-technical user.
+    var API_CODE_HINTS = {
+      SETTING_NOT_FOUND:   'ev_hint_setting_missing',
+      NETWORK_ERROR:       'ev_hint_network',
+      NETWORK_TIMEOUT:     'ev_hint_timeout',
+      INVALID_API_RESPONSE:'ev_hint_bad_response',
+      UNAUTHORIZED:        'ev_hint_unauthorized',
+      FORBIDDEN:           'ev_hint_forbidden',
+      NOT_FOUND:           'ev_hint_not_found',
+      VALIDATION_ERROR:    'ev_hint_validation',
+      RATE_LIMITED:        'ev_hint_rate_limited',
+      SERVER_ERROR:        'ev_hint_server'
+    };
+    function friendlyApiTitle(pay, fallback) {
+      var code = String((pay && pay.code) || '').trim();
+      if (code && API_CODE_HINTS[code]) {
+        var hint = tp('admin_logs.' + API_CODE_HINTS[code], '');
+        if (hint) return hint;
+      }
+      var msg = String((pay && (pay.message || pay.reason)) || '');
+      if (msg) {
+        msg = msg.replace(/^unhandledrejection$/i, tp('admin_logs.ev_hint_js_reject', 'Ошибка в фоновой операции страницы'));
+        return msg.substring(0, 140);
+      }
+      return fallback || '';
+    }
+
+    // Pull 1–2 human-useful fields out of an audit details blob for the
+    // second line of an Activity row.
+    function auditDetailLine(details, action) {
+      if (!details || typeof details !== 'object') return '';
+      var skip = ['actor_public_id','entity_type','entity_public_id','action','created_at','ip','user_agent','details','payload'];
+      var parts = [];
+      var preferred = ['task_title','title','name','minutes_spent','channel','email','login','provider_code','description'];
+      preferred.forEach(function (k) {
+        if (parts.length >= 2) return;
+        var v = details[k];
+        if (v === undefined || v === null || v === '') return;
+        if (typeof v === 'object') return;
+        parts.push(String(v).substring(0, 60));
+      });
+      if (!parts.length) {
+        for (var k in details) {
+          if (parts.length >= 2) break;
+          if (skip.indexOf(k) !== -1) continue;
+          var v2 = details[k];
+          if (v2 === null || v2 === '' || typeof v2 === 'object') continue;
+          parts.push(String(v2).substring(0, 40));
+        }
+      }
+      return parts.join(' · ');
     }
 
     function renderPager(envelope) {

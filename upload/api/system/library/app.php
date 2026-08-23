@@ -359,6 +359,28 @@ final class App
                     $resultCode = 'EXTERNAL_ACCESS_DENIED';
                     return $response;
                 }
+
+                // Observer (client) role is read-only by default: block
+                // state-changing methods (POST/PATCH/PUT/DELETE) on external_ok
+                // routes unless the route is also marked 'external_write_ok'.
+                // Only executors (freelancers) may create or modify data.
+                $externalRole = strtolower((string)($authForExternalGate['user']['external_role'] ?? 'observer'));
+                $isWriteMethod = in_array($request->method, ['POST', 'PATCH', 'PUT', 'DELETE'], true);
+                $routeWriteAllowed = ($matched['external_write_ok'] ?? false) === true;
+                if ($externalRole === 'observer' && $isWriteMethod && !$routeWriteAllowed) {
+                    $lang = $this->container->get('lang');
+                    $response = JsonResponse::error(
+                        code: 'EXTERNAL_ACCESS_DENIED',
+                        message: $lang->get('common/messages.forbidden', 'Forbidden'),
+                        status: 403,
+                        errors: ['permission' => [$lang->get('common/messages.permission_denied_action', 'Insufficient permissions for this action')]],
+                        requestId: $request->requestId,
+                        correlationId: $request->correlationId
+                    );
+                    $statusCode = 403;
+                    $resultCode = 'EXTERNAL_ACCESS_DENIED';
+                    return $response;
+                }
             }
 
             if ($this->shouldApplyGlobalRouteRateLimit($request, $routePath)) {

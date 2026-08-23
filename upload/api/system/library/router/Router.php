@@ -99,6 +99,7 @@ final class Router
                 'required_permissions' => $route['required_permissions'] ?? [],
                 'external_ok' => (bool)($route['external_ok'] ?? false),
                 'external_executor_ok' => (bool)($route['external_executor_ok'] ?? false),
+                'external_write_ok' => (bool)($route['external_write_ok'] ?? false),
                 'params' => $params,
                 'route_path' => $routePath,
                 'route_name' => $route['name'] ?? $pattern,

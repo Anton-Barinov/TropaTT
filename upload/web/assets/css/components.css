@@ -636,6 +636,14 @@
   width: min(560px, 100vw) !important;
 }
 
+/* Offcanvas backdrops: Bootstrap's default 50% black reads too heavy next to
+   the rest of the UI (log drawer, AI drawer). Soften globally via the
+   framework variable so every theme keeps its own ink color. */
+.offcanvas-backdrop {
+  --bs-backdrop-opacity: 0.3;
+}
+
+
 #aiSuggestionDrawer .offcanvas-header {
   border-bottom: 1px solid var(--crm-border);
   background: linear-gradient(180deg, var(--crm-surface) 0%, var(--crm-surface-2) 100%);

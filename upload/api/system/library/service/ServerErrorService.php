@@ -218,6 +218,14 @@ final class ServerErrorService
         $stmt->execute($params);
         $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        // Defense in depth: rows written before write-time masking existed may
+        // still carry full client IPs. Mask on read so no API response ever
+        // exposes them.
+        foreach ($items as &$row) {
+            $row['ip'] = self::maskIp($row['ip'] ?? null);
+        }
+        unset($row);
+
         return ['items' => $items, 'total' => $total];
     }
 
@@ -229,6 +237,9 @@ final class ServerErrorService
         $stmt = $this->pdo->prepare('SELECT * FROM server_errors WHERE public_id = ?');
         $stmt->execute([$publicId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($row) {
+            $row['ip'] = self::maskIp($row['ip'] ?? null);
+        }
         return $row ?: null;
     }
 

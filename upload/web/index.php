@@ -444,6 +444,56 @@ function crmWebApiIsExternalUser(string $sessionToken, string $webBaseDir): bool
     return (int)$stmt->fetchColumn() === 1;
 }
 
+/**
+ * True when the session belongs to a root actor (users.is_root flag or the
+ * super_admin role) — mirrors the root detection used by the API auth layer.
+ * System log pages gate on this because every LogsController action is
+ * root-only: a non-root holder of logs.view must get 403 at the shell
+ * instead of a page whose every tab answers 403.
+ */
+function crmWebApiIsRootUser(string $sessionToken, string $webBaseDir): bool
+{
+    $sessionToken = trim($sessionToken);
+    if ($sessionToken === '' || strlen($sessionToken) > 4096) {
+        return false;
+    }
+
+    $pdo = crmWebApiDbConnect($webBaseDir);
+    if ($pdo === null) {
+        return false;
+    }
+
+    $tokenHash = hash('sha256', $sessionToken);
+    $stmt = $pdo->prepare(
+        'SELECT (u.is_root = 1 OR EXISTS (
+                  SELECT 1
+                    FROM user_roles ur
+                    INNER JOIN roles r ON r.id = ur.role_id
+                   WHERE ur.user_id = u.id
+                     AND r.code = :root_role
+                 )) AS is_root
+           FROM user_sessions us
+           INNER JOIN users u ON u.id = us.user_id
+          WHERE us.token_hash = :token_hash
+            AND us.revoked_at IS NULL
+            AND us.expires_at > :now
+            AND u.is_active = 1
+            AND u.deleted_at IS NULL
+          LIMIT 1'
+    );
+    if ($stmt === false) {
+        return false;
+    }
+    $stmt->execute([
+        'token_hash' => $tokenHash,
+        'now' => gmdate('Y-m-d H:i:s'),
+        'root_role' => 'super_admin',
+    ]);
+
+    $isRoot = $stmt->fetchColumn();
+    return $isRoot !== false && (int)$isRoot === 1;
+}
+
 function crmWebApiCheckAnyPermission(string $sessionToken, array $permissions, string $webBaseDir): bool
 {
     $sessionToken = trim($sessionToken);
@@ -794,6 +844,20 @@ if (isset($adminRoutePermissions[$route])) {
     $sessionToken = trim((string)($_COOKIE[$sessionCookieName] ?? ''));
     $hasPermission = crmWebApiCheckAnyPermission($sessionToken, $adminRoutePermissions[$route], $baseDir);
     if (!$hasPermission) {
+        http_response_code(403);
+        header('Content-Type: text/html; charset=utf-8');
+        echo \Web\System\I18n\EarlyResponse::forbiddenPage($baseDir);
+        exit;
+    }
+}
+
+// System logs are strictly root-only (mirrors the is_root gate in every
+// LogsController action): cross-user activity, infrastructure details and
+// stack traces must never reach a non-root actor, even one holding logs.view.
+if ($route === 'admin-logs') {
+    $sessionCookieName = trim((string)(getenv('CRM_API_SESSION_COOKIE') ?: 'crm_api_session'));
+    $logsSessionToken = trim((string)($_COOKIE[$sessionCookieName] ?? ''));
+    if (!crmWebApiIsRootUser($logsSessionToken, $baseDir)) {
         http_response_code(403);
         header('Content-Type: text/html; charset=utf-8');
         echo \Web\System\I18n\EarlyResponse::forbiddenPage($baseDir);
