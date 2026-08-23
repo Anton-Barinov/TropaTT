@@ -871,7 +871,7 @@ final class App
         header('Referrer-Policy: strict-origin-when-cross-origin');
         header("Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=(), midi=(), sync-xhr=(), accelerometer=(), gyroscope=(), magnetometer=()");
         // SEC-006: Use relative URI for CSP report-uri to avoid host-dependency
-        header('Content-Security-Policy: default-src \'self\'; script-src \'self\'; style-src \'self\' \'unsafe-inline\'; img-src \'self\' data:; connect-src \'self\'; frame-ancestors \'none\'; form-action \'self\'; report-uri /api/index.php?route=api/v1/telemetry/csp-report');
+        header('Content-Security-Policy: default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data:; connect-src \'self\'; frame-ancestors \'none\'; form-action \'self\'; report-uri /api/index.php?route=api/v1/telemetry/csp-report');
         // SEC-006: Neutral X-Powered-By to reduce information disclosure
         header('X-Powered-By: CRM');
 

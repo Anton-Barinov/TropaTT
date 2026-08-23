@@ -161,6 +161,14 @@ final class UserRepository
             ->update($set) > 0;
     }
 
+    /**
+     * Atomically upgrade the password hash for a user (e.g. Argon2 cost-factor bump).
+     */
+    public function updatePasswordHash(int $userId, string $newHash): bool
+    {
+        return $this->updateById($userId, ['password_hash' => $newHash]);
+    }
+
     public function getPdo(): \PDO
     {
         return $this->pdo;

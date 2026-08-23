@@ -291,7 +291,8 @@ final class TwoFactorService
     {
         $codes = [];
         for ($i = 0; $i < $count; $i++) {
-            $codes[] = strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
+            // 5 bytes = 40 bits = 10 hex chars (up from 4/32/8).
+            $codes[] = strtoupper(bin2hex(random_bytes(5)));
         }
 
         return $codes;

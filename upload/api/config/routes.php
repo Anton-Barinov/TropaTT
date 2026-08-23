@@ -20,7 +20,7 @@ return [
 
     // health
     ['methods' => ['GET'], 'pattern' => '/api/v1/health/status', 'controller' => Api\Controller\Health\HealthController::class, 'action' => 'status', 'auth' => true, 'authz_note' => 'self-service: any authenticated user'],
-    ['methods' => ['GET'], 'pattern' => '/api/v1/health/deep', 'controller' => Api\Controller\Health\HealthController::class, 'action' => 'deep', 'auth' => true, 'authz_note' => 'self-service: any authenticated user'],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/health/deep', 'controller' => Api\Controller\Health\HealthController::class, 'action' => 'deep', 'auth' => true, 'authz_note' => 'root-only: checks is_root in controller (DB, cache, AI diagnostics)'],
 
     // public version check (no auth required)
     ['methods' => ['GET'], 'pattern' => '/api/v1/version', 'controller' => Api\Controller\System\CoreVersionController::class, 'action' => 'show', 'auth' => false],
@@ -93,7 +93,7 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/api-keys/{public_id}/usage', 'controller' => Api\Controller\ApiClient\ApiClientController::class, 'action' => 'keyUsage', 'auth' => true, 'required_permissions' => ['api_client.view']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/ops/system', 'controller' => Api\Controller\Admin\OpsController::class, 'action' => 'system', 'auth' => true, 'required_permissions' => ['logs.view']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/ops/metrics', 'controller' => Api\Controller\Admin\OpsController::class, 'action' => 'metrics', 'auth' => true, 'required_permissions' => ['logs.view']],
-    ['methods' => ['POST'], 'pattern' => '/api/v1/ops/jobs/run', 'controller' => Api\Controller\Admin\OpsController::class, 'action' => 'runJobs', 'auth' => true, 'required_permissions' => ['logs.view']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/ops/jobs/run', 'controller' => Api\Controller\Admin\OpsController::class, 'action' => 'runJobs', 'auth' => true, 'required_permissions' => ['logs.view'], 'authz_note' => 'root-only: controller additionally checks is_root'],
     ['methods' => ['GET'], 'pattern' => '/api/v1/webhooks', 'controller' => Api\Controller\Webhook\WebhookController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['webhook.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/webhooks', 'controller' => Api\Controller\Webhook\WebhookController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['webhook.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/webhooks/deliveries', 'controller' => Api\Controller\Webhook\WebhookController::class, 'action' => 'deliveries', 'auth' => true, 'required_permissions' => ['webhook.manage']],
@@ -880,7 +880,7 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/api-client/key/usage/{public_id}', 'controller' => Api\Controller\ApiClient\ApiClientController::class, 'action' => 'keyUsage', 'auth' => true, 'required_permissions' => ['api_client.view']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/ops/system/get', 'controller' => Api\Controller\Admin\OpsController::class, 'action' => 'system', 'auth' => true, 'required_permissions' => ['logs.view']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/ops/metrics/get', 'controller' => Api\Controller\Admin\OpsController::class, 'action' => 'metrics', 'auth' => true, 'required_permissions' => ['logs.view']],
-    ['methods' => ['POST'], 'pattern' => '/api/v1/ops/jobs/run-now', 'controller' => Api\Controller\Admin\OpsController::class, 'action' => 'runJobs', 'auth' => true, 'required_permissions' => ['logs.view']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/ops/jobs/run-now', 'controller' => Api\Controller\Admin\OpsController::class, 'action' => 'runJobs', 'auth' => true, 'required_permissions' => ['logs.view'], 'authz_note' => 'root-only: controller additionally checks is_root'],
     ['methods' => ['POST'], 'pattern' => '/api/v1/telemetry/frontend-event/create', 'controller' => Api\Controller\Common\TelemetryController::class, 'action' => 'frontendEvent', 'auth' => true, 'authz_note' => 'self-service: any authenticated user'],
     ['methods' => ['GET'], 'pattern' => '/api/v1/webhook/list', 'controller' => Api\Controller\Webhook\WebhookController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['webhook.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/webhook/create', 'controller' => Api\Controller\Webhook\WebhookController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['webhook.manage']],

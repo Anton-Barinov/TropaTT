@@ -18,4 +18,13 @@ final class PasswordHasher
     {
         return password_verify($password, $hash);
     }
+
+    /**
+     * Check if the stored hash was created with an outdated algorithm or
+     * cost parameters and should be upgraded on next login.
+     */
+    public function needsRehash(string $hash): bool
+    {
+        return password_needs_rehash($hash, $this->algo);
+    }
 }

@@ -135,6 +135,22 @@ final class AuthService
 
         $this->clearLoginRateLimit($rateKey);
 
+        // INFO: Upgrade Argon2 parameters for existing users when they log in.
+        // Without this, old users keep their original cost factors forever.
+        if ($this->hasher->needsRehash((string)$user['password_hash'])) {
+            try {
+                $newHash = $this->hasher->hash($password);
+                $this->users->updatePasswordHash((int)$user['id'], $newHash);
+                $this->logger->audit([
+                    'action' => 'password_rehashed',
+                    'user_public_id' => (string)($user['public_id'] ?? ''),
+                ]);
+            } catch (\Throwable $e) {
+                // Non-critical: if rehash fails, login still succeeds with old hash.
+                error_log('[AuthService] password_needs_rehash failed for user ' . ($user['public_id'] ?? '?') . ': ' . $e->getMessage());
+            }
+        }
+
         // Check if 2FA is enabled for this user
         if ($this->twoFactorService !== null && $this->twoFactorService->requiresTwoFactor((int)$user['id'])) {
             $pendingToken = $this->createPendingTwoFactorToken($user);
