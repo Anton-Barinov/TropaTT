@@ -73,8 +73,10 @@ final class ChatController extends BaseController
             if ($isExternal) {
                 $archivedFilter = ($archivedFilter ? $archivedFilter . ' AND' : 'WHERE') . " c.type = 'project_client'";
             }
-            $projectJoin = $isExternal ? 'LEFT JOIN projects p ON p.id = c.project_id' : '';
-            $projectSelect = $isExternal ? ' p.public_id AS project_public_id' : '';
+            // project_public_id is needed by the client to match a project_client
+            // chat to its project (project detail page), for staff too.
+            $projectJoin = 'LEFT JOIN projects p ON p.id = c.project_id';
+            $projectSelect = ' p.public_id AS project_public_id';
             $stmt = $pdo->prepare("
                 SELECT c.*,{$projectSelect},
                     cp.is_favorite,
@@ -94,6 +96,15 @@ final class ChatController extends BaseController
             ");
             $stmt->execute(['uid' => $userId, 'uid2' => $userId, 'uid3' => $userId]);
             $items = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+            // Staff (non-external) must also see the project_client chat of any
+            // project they can access, even when they are not an explicit
+            // participant (e.g. an admin or project manager reading the client
+            // portal conversation). External actors keep the strict
+            // participant-only view enforced by the main query above.
+            if (!$isExternal) {
+                $items = $this->mergeStaffProjectClientChats($items, $user);
+            }
         } catch (\Throwable $e) {
             error_log('[ChatController::list] ' . $e->getMessage());
             $items = [];
@@ -156,6 +167,15 @@ final class ChatController extends BaseController
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
         if (!$chat) {
             $chat = $this->archivedChatForCurrentUser((string)($params['public_id'] ?? ''));
+        }
+        if (!$chat) {
+            // Staff fallback: project manager/admin can read the client portal
+            // chat of a project they can access even without explicit membership.
+            $chat = $this->clientChatForStaff((string)($params['public_id'] ?? ''), $actor);
+            if ($chat) {
+                $chat['is_favorite'] = 0;
+                $chat['muted_until'] = null;
+            }
         }
         if (!$chat) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
         $chat['participants'] = !empty($chat['archived_at'])
@@ -299,6 +319,11 @@ final class ChatController extends BaseController
             if ($chatId <= 0) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
             /** @var ChatService $service */
             $service = $this->container->get('service.chat');
+            // Fail closed: an external actor who is not a participant of this
+            // project_client chat must not even learn that it exists.
+            if (!$service->getChatForExternal($chatId, (int)$actor['id'])) {
+                return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+            }
             $limit = min(100, max(1, (int)($this->request()->allInput()['limit'] ?? 50)));
             $offset = max(0, (int)($this->request()->allInput()['offset'] ?? 0));
             $result = $service->getClientChatMessages($chatId, (int)$actor['id'], $limit, $offset);
@@ -306,7 +331,12 @@ final class ChatController extends BaseController
         }
 
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
-        if (!$chat) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+        if (!$chat) {
+            // Staff fallback: project manager/admin can read the client portal
+            // chat of a project they can access even without explicit membership.
+            $chat = $this->clientChatForStaff((string)($params['public_id'] ?? ''), $actor);
+            if (!$chat) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+        }
 
         $limit = min(100, max(1, (int)($this->request()->allInput()['limit'] ?? 50)));
         $beforeId = (int)($this->request()->allInput()['before_id'] ?? 0);
@@ -366,6 +396,11 @@ final class ChatController extends BaseController
             $replyTo = !empty($input['reply_to_message_public_id']) ? trim((string)$input['reply_to_message_public_id']) : null;
             /** @var ChatService $service */
             $service = $this->container->get('service.chat');
+            // Fail closed: an external actor who is not a participant of this
+            // project_client chat must not even learn that it exists.
+            if (!$service->getChatForExternal($chatId, (int)$actor['id'])) {
+                return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+            }
             $result = $service->sendClientChatMessage($chatId, (int)$actor['id'], $text, $replyTo);
             if (!$result['ok']) {
                 return $this->error('SEND_FAILED', $this->t('chat/messages.send_failed'), 422);
@@ -374,13 +409,21 @@ final class ChatController extends BaseController
         }
 
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
+        $staffFallback = false;
+        if (!$chat) {
+            // Staff fallback: project manager/admin can reply in the client
+            // portal chat of a project they can access without membership.
+            $chat = $this->clientChatForStaff((string)($params['public_id'] ?? ''), $actor);
+            $staffFallback = $chat !== null;
+            if (!$chat) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+        }
         $input = $this->request()->allInput();
         $text = trim((string)($input['text'] ?? ''));
-        if (!$chat || $text === '') return $this->error('INVALID_PARAM', $this->t('chat/messages.text_required'), 400);
+        if ($text === '') return $this->error('INVALID_PARAM', $this->t('chat/messages.text_required'), 400);
 
         /** @var ChatService $service */
         $service = $this->container->get('service.chat');
-        if (!$service->assertParticipant((int)$chat['id'], $this->currentUserId())) {
+        if (!$staffFallback && !$service->assertParticipant((int)$chat['id'], $this->currentUserId())) {
             return $this->error('FORBIDDEN', $this->t('chat/messages.not_participant'), 403);
         }
 
@@ -675,6 +718,84 @@ final class ChatController extends BaseController
         }
         unset($item);
         return $items;
+    }
+
+    /**
+     * Merge project_client chats of projects the staff actor can access into
+     * the chat list, even when the actor is not an explicit participant.
+     *
+     * @param list<array> $items Current participant-scoped chat rows
+     * @param array $actor Authenticated user row
+     * @return list<array>
+     */
+    private function mergeStaffProjectClientChats(array $items, array $actor): array
+    {
+        $seen = [];
+        foreach ($items as $item) {
+            $seen[(string)($item['public_id'] ?? '')] = true;
+        }
+
+        try {
+            /** @var ChatService $service */
+            $service = $this->container->get('service.chat');
+            /** @var \Api\System\Library\Service\ProjectService $projectService */
+            $projectService = $this->container->get('service.project');
+            foreach ($service->listProjectClientChats() as $chat) {
+                $chatPublicId = (string)($chat['public_id'] ?? '');
+                if ($chatPublicId === '' || isset($seen[$chatPublicId])) {
+                    continue;
+                }
+                $projectPublicId = (string)($chat['project_public_id'] ?? '');
+                if ($projectPublicId === '' || !$projectService->get($projectPublicId, $actor)) {
+                    continue;
+                }
+                $seen[$chatPublicId] = true;
+                $items[] = [
+                    'id' => $chat['id'],
+                    'public_id' => $chatPublicId,
+                    'title' => $chat['title'] ?? '',
+                    'type' => 'project_client',
+                    'project_id' => $chat['project_id'] ?? null,
+                    'project_public_id' => $projectPublicId,
+                    'is_favorite' => 0,
+                    'muted_until' => null,
+                    'last_read_id' => 0,
+                    'unread' => 0,
+                    'last_message' => null,
+                    'last_message_type' => null,
+                    'last_sender' => null,
+                    'participant_names' => null,
+                    'last_message_at' => $chat['last_message_at'] ?? null,
+                    'created_at' => $chat['created_at'] ?? null,
+                ];
+            }
+        } catch (\Throwable $e) {
+            error_log('[ChatController::mergeStaffProjectClientChats] ' . $e->getMessage());
+        }
+
+        return $items;
+    }
+
+    /**
+     * Staff fallback: allow reading/writing a project_client chat when the
+     * actor can access the linked project, even without explicit membership.
+     * Returns the chat row (with project_public_id) or null.
+     */
+    private function clientChatForStaff(string $publicId, array $actor): ?array
+    {
+        if (empty((int)($actor['is_external'] ?? 0))) {
+            /** @var ChatService $service */
+            $service = $this->container->get('service.chat');
+            $chat = $service->findProjectClientChatByPublicId($publicId);
+            if ($chat && !empty($chat['project_public_id'])) {
+                /** @var \Api\System\Library\Service\ProjectService $projectService */
+                $projectService = $this->container->get('service.project');
+                if ($projectService->get((string)$chat['project_public_id'], $actor)) {
+                    return $chat;
+                }
+            }
+        }
+        return null;
     }
 
     private function chatForCurrentUser(string $publicId): ?array

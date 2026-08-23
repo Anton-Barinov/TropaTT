@@ -345,6 +345,47 @@ final class ChatService
         return is_array($row) ? $row : null;
     }
 
+    /**
+     * Find a project_client chat by public id, including its project public id.
+     * Used by staff fallback access (staff may read/write the client chat of a
+     * project they can access even when they are not an explicit participant).
+     */
+    public function findProjectClientChatByPublicId(string $publicId): ?array
+    {
+        if (trim($publicId) === '') {
+            return null;
+        }
+        $stmt = $this->pdo->prepare("
+            SELECT c.*, p.public_id AS project_public_id
+            FROM chats c
+            LEFT JOIN projects p ON p.id = c.project_id
+            WHERE c.public_id = :pid AND c.type = 'project_client' AND c.archived_at IS NULL
+            LIMIT 1
+        ");
+        $stmt->execute(['pid' => $publicId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return is_array($row) ? $row : null;
+    }
+
+    /**
+     * All non-archived project_client chats with their project public id.
+     * Staff visibility is filtered in the controller by project access.
+     *
+     * @return list<array>
+     */
+    public function listProjectClientChats(): array
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT c.*, p.public_id AS project_public_id
+            FROM chats c
+            LEFT JOIN projects p ON p.id = c.project_id
+            WHERE c.type = 'project_client' AND c.archived_at IS NULL
+            ORDER BY COALESCE(c.last_message_at, c.created_at) DESC
+        ");
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
     public function repairSystemChats(): array
     {
         $createdBefore = $this->countSystemChats();
