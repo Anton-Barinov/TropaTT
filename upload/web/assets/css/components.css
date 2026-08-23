@@ -642,6 +642,9 @@
    (this Bootstrap build hardcodes .5 instead of using --bs-backdrop-opacity). */
 .offcanvas-backdrop.fade,
 .offcanvas-backdrop.show {
+  /* Bootstrap's default 50% black reads too heavy next to the rest of the UI
+     (log drawer, AI drawer). ui.css additionally disables the crmSurfaceIn
+     entrance animation on backdrops — its keyframes pinned opacity to 1. */
   opacity: 0.3;
 }
 

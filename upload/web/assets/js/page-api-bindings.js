@@ -16157,7 +16157,8 @@ window.CRM.pageApiBindings = (function () {
               'invalid password': 'ev_rs_bad_password',
               'invalid token factor': 'ev_rs_bad_token'
             };
-            var rk = REASON_KEYS[String(details.reason).toLowerCase()];
+            var reasonNorm = String(details.reason).toLowerCase().replace(/_/g, ' ');
+            var rk = REASON_KEYS[reasonNorm] || REASON_KEYS[String(details.reason).toLowerCase()];
             secReason = rk ? tp('admin_logs.' + rk, humanizeCode(details.reason)) : humanizeCode(details.reason);
           }
           var nested = (details.details && typeof details.details === 'object') ? details.details : null;
@@ -16403,7 +16404,7 @@ window.CRM.pageApiBindings = (function () {
         var det = parseJsonMaybe(raw.details) || {};
         html += drawerTile(tp('admin.log_user', 'Пользователь'), safeText(resolveUserLabel('', raw.actor_public_id || det.user_public_id || '', '—')));
         if (det.reason) {
-          var rk2 = SECURITY_REASON_KEYS[String(det.reason).toLowerCase()];
+          var rk2 = SECURITY_REASON_KEYS[String(det.reason).toLowerCase().replace(/_/g, ' ')] || SECURITY_REASON_KEYS[String(det.reason).toLowerCase()];
           html += drawerTile(tp('admin_logs.drawer_reason', 'Причина'), '<span class="small">' + safeText(rk2 ? tp('admin_logs.' + rk2, humanizeCode(det.reason)) : humanizeCode(det.reason)) + '</span>');
         }
         if (raw.ip) html += drawerTile('IP', safeText(raw.ip));

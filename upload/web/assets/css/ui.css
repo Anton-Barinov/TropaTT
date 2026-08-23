@@ -2146,6 +2146,13 @@ textarea.form-control:focus {
   animation: crmSurfaceIn 420ms ease both;
 }
 
+/* Bootstrap appends the offcanvas backdrop inside the page surface; the
+   entrance animation above would pin its opacity to the keyframe value (1)
+   and defeat any backdrop dimming. Keep it animation-free. */
+.crm-content > .offcanvas-backdrop {
+  animation: none;
+}
+
 .crm-content > *:nth-child(2) { animation-delay: 40ms; }
 .crm-content > *:nth-child(3) { animation-delay: 80ms; }
 .crm-content > *:nth-child(4) { animation-delay: 120ms; }
