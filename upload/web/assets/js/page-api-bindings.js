@@ -31427,6 +31427,48 @@ window.CRM.pageApiBindings = (function () {
     }
   }
 
+  // Users that appear in the report (including deactivated/external accounts
+  // whose historical worklogs still show) may not exist in the active-users
+  // list — merge them into every user filter so the admin can actually select
+  // the people the report shows.
+  var timeAnalyticsReportUsers = {};
+  function ensureUserInFilters(userPublicId, userLogin, userFullName) {
+    if (!userPublicId) return;
+    var label = String(userFullName || userLogin || userPublicId);
+    timeAnalyticsReportUsers[userPublicId] = label;
+    ['timeAnalyticsUserFilter', 'timeAnalyticsEarningsUserFilter', 'timeAnalyticsMatrixUserFilter'].forEach(function (selId) {
+      var sel = document.getElementById(selId);
+      if (!sel) return;
+      var exists = Array.prototype.some.call(sel.options, function (o) { return o.value === userPublicId; });
+      if (exists) return;
+      var opt = document.createElement('option');
+      opt.value = userPublicId;
+      opt.textContent = label;
+      sel.appendChild(opt);
+    });
+  }
+
+  function mergeReportUsersIntoFilters(items) {
+    var seen = {};
+    (items || []).forEach(function (r) {
+      var uid = r && r.user_public_id;
+      if (!uid || seen[uid]) return;
+      seen[uid] = true;
+      ensureUserInFilters(uid, r.user_login, r.user_full_name);
+    });
+  }
+
+  function reappendReportUsersToSelect(sel) {
+    if (!sel) return;
+    Object.keys(timeAnalyticsReportUsers).forEach(function (uid) {
+      if (Array.prototype.some.call(sel.options, function (o) { return o.value === uid; })) return;
+      var opt = document.createElement('option');
+      opt.value = uid;
+      opt.textContent = timeAnalyticsReportUsers[uid];
+      sel.appendChild(opt);
+    });
+  }
+
   async function loadTimeSummary(from, to, teamId, projectId, userPublicId) {
     var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
     var tbody = document.getElementById('timeAnalyticsTimeBody');
@@ -31439,6 +31481,7 @@ window.CRM.pageApiBindings = (function () {
       if (projectId) q.project_public_id = projectId;
       var env = await window.CRM.api.request('api/v1/worklogs/summary', { query: q });
       var items = (env && env.data && env.data.items) || [];
+      mergeReportUsersIntoFilters(items);
       if (items.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="text-muted">' + _t('page.no_data_period', 'Нет данных за выбранный период') + '</td></tr>';
         return;
@@ -31541,6 +31584,7 @@ window.CRM.pageApiBindings = (function () {
       if (expanded) q.expanded = 1;
       var env = await window.CRM.api.request('api/v1/worklogs/earnings', { query: q });
       var items = (env && env.data && env.data.items) || [];
+      mergeReportUsersIntoFilters(items);
       if (items.length === 0) {
         tbody.innerHTML = '<tr><td colspan="' + visibleCols.length + '" class="text-muted">' + _t('page.no_data_period', 'Нет данных за выбранный период') + '</td></tr>';
         if (badge) badge.classList.add('d-none');
@@ -31820,6 +31864,8 @@ window.CRM.pageApiBindings = (function () {
         users.forEach(function(u) {
           userSel.innerHTML += '<option value="' + safeText(u.public_id) + '">' + safeText(u.full_name || u.login) + '</option>';
         });
+        // Keep report-only users (deactivated/external) selectable after rebuild
+        reappendReportUsersToSelect(userSel);
       }
     } catch(e) {}
   }
