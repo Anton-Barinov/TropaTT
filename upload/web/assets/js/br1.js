@@ -6985,8 +6985,10 @@ window.CRM.br1 = (function () {
 
   async function loadTimeRoundingSetting() {
     if (_timeRoundingLoaded) return _timeRoundingMinutes || 0;
+    // Public whitelist endpoint: available to external executors too (the
+    // full /api/v1/settings list is admin-only and contains finance.* keys).
     try {
-      var env = await window.CRM.api.request('api/v1/settings', { query: { scope: 'system', name: 'time_rounding_minutes', limit: 1 } });
+      var env = await window.CRM.api.request('api/v1/settings/public', { query: { scope: 'system' } });
       var items = window.CRM.api.items(env);
       var found = items.find(function (s) { return String(s.name) === 'time_rounding_minutes'; });
       _timeRoundingMinutes = Number((found && found.value) || 0);

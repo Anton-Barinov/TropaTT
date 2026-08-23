@@ -224,7 +224,7 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/project-modules/{public_id}/summary', 'controller' => Api\Controller\Project\ProjectModuleController::class, 'action' => 'summary', 'auth' => true, 'required_permissions' => ['project.manage']],
 
     // tasks BR-1
-    ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/{public_id}/activity', 'controller' => Api\Controller\Task\TaskActivityController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/{public_id}/activity', 'controller' => Api\Controller\Task\TaskActivityController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_executor_ok' => true, 'authz_note' => 'RLS-scoped in controller via TaskService::get; activity events expose only public task fields (title/status/priority/assignee/dates/comments)'],
     ['methods' => ['GET'], 'pattern' => '/api/v1/tasks', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_ok' => true],
     ['methods' => ['POST'], 'pattern' => '/api/v1/tasks', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_ok' => true],
     ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/board', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'board', 'auth' => true, 'required_permissions' => ['task.manage']],
@@ -550,6 +550,11 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/views/{public_id}/task-filters', 'controller' => Api\Controller\View\ViewController::class, 'action' => 'taskFilters', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/activity/feed', 'controller' => Api\Controller\Activity\ActivityController::class, 'action' => 'feed', 'auth' => true, 'required_permissions' => ['logs.view']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/history/entity/{entity_type}/{public_id}', 'controller' => Api\Controller\Activity\ActivityController::class, 'action' => 'entityHistory', 'auth' => true, 'required_permissions' => ['logs.view']],
+    // Whitelisted public settings for external guest roles (freelancer rounding
+    // etc.). Only a hardcoded allowlist of non-sensitive names is ever returned
+    // (SettingController::publicList) — never the full internal list, which
+    // includes finance.* and cache tuning and must stay settings.manage-only.
+    ['methods' => ['GET'], 'pattern' => '/api/v1/settings/public', 'controller' => Api\Controller\Setting\SettingController::class, 'action' => 'publicList', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_executor_ok' => true, 'authz_note' => 'external executors may read only the whitelisted public settings (time_rounding_minutes); controller enforces the allowlist'],
     ['methods' => ['GET'], 'pattern' => '/api/v1/settings', 'controller' => Api\Controller\Setting\SettingController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['settings.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/settings/{name}', 'controller' => Api\Controller\Setting\SettingController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['settings.manage']],
     ['methods' => ['POST', 'PUT', 'PATCH'], 'pattern' => '/api/v1/settings/{name}', 'controller' => Api\Controller\Setting\SettingController::class, 'action' => 'set', 'auth' => true, 'required_permissions' => ['settings.manage']],

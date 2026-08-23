@@ -38,6 +38,43 @@ final class SettingController extends BaseController
         ], meta: $result['meta']);
     }
 
+    /**
+     * Whitelisted public settings, safe for external guest roles (freelancers
+     * and client observers). Only settings an external actor genuinely needs to
+     * render their portal UI are exposed — everything else (finance.*, cache,
+     * AI retention, per-user preferences, …) stays behind settings.manage.
+     *
+     * Never mirror full list() here: the internal list endpoint returns every
+     * system setting (including finance.rate_locked_periods and cache tuning)
+     * and must remain admin-only.
+     */
+    public function publicList(): \Api\System\Library\Http\JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
+        $allowedNames = [
+            'time_rounding_minutes',
+        ];
+        $scope = trim((string)$this->request()->input('scope', 'system'));
+
+        /** @var SettingService $service */
+        $service = $this->container->get('service.setting');
+        $items = [];
+        foreach ($allowedNames as $name) {
+            $item = $service->get($scope, $name);
+            if ($item !== null) {
+                $items[] = $item;
+            }
+        }
+
+        return $this->success('SETTING_PUBLIC_LIST', $this->t('setting/messages.list'), [
+            'items' => $items,
+        ]);
+    }
+
     public function get(array $params = []): \Api\System\Library\Http\JsonResponse
     {
         $auth = $this->user();
