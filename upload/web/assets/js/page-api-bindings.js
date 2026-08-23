@@ -31082,8 +31082,14 @@ window.CRM.pageApiBindings = (function () {
       var now = new Date();
       var sevenDaysAgo = new Date(now);
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      var fromDefault = sevenDaysAgo.toISOString().slice(0, 10);
-      var toDefault = now.toISOString().slice(0, 10);
+      // Local calendar dates (NOT toISOString() — that is UTC and shifts the
+      // current day for users east/west of Greenwich, dropping today's entries
+      // from the report boundary).
+      function localDateStr(d) {
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      }
+      var fromDefault = localDateStr(sevenDaysAgo);
+      var toDefault = localDateStr(now);
 
       // Time tab
       var timeFrom = document.getElementById('timeAnalyticsFrom');
@@ -31280,7 +31286,7 @@ window.CRM.pageApiBindings = (function () {
         var from = document.getElementById(fromId);
         var to = document.getElementById(toId);
         if (team && project && user && from && to) {
-          updateFilterOptions(team, project, user, from.value || '2026-05-31', to.value || '2026-06-07');
+          updateFilterOptions(team, project, user, from.value || '', to.value || '');
         }
         if (typeof loadFn === 'function') loadFn();
       }
@@ -31505,12 +31511,12 @@ window.CRM.pageApiBindings = (function () {
       { key: 'recorded', label: _t('time_analytics.th_recorded', 'Записано'), always: true },
       { key: 'unique', label: _t('time_analytics.th_unique', 'Уникально'), always: true },
     ];
-    if (canCost) cols.push({ key: 'cost_rate', label: _t('time_analytics.th_cost_rate', 'Ставка (себестоимость)') });
-    if (canBill) cols.push({ key: 'bill_rate', label: _t('time_analytics.th_sale_rate', 'Ставка (продажа)') });
-    if (canPayout) cols.push({ key: 'payout_rate', label: _t('time_analytics.th_payout_rate', 'Ставка (вознаграждение)') });
-    if (canCost) cols.push({ key: 'cost', label: _t('time_analytics.th_cost', 'Себестоимость') });
-    if (canBill) cols.push({ key: 'bill', label: _t('time_analytics.th_sale', 'Продажа') });
-    if (canPayout) cols.push({ key: 'payout', label: _t('time_analytics.th_payout', 'Вознаграждение') });
+    if (canCost) cols.push({ key: 'cost_rate', label: _t('time_analytics.th_cost_rate', 'Ставка (себестоимость)'), always: true });
+    if (canBill) cols.push({ key: 'bill_rate', label: _t('time_analytics.th_sale_rate', 'Ставка (продажа)'), always: true });
+    if (canPayout) cols.push({ key: 'payout_rate', label: _t('time_analytics.th_payout_rate', 'Ставка (вознаграждение)'), always: true });
+    if (canCost) cols.push({ key: 'cost', label: _t('time_analytics.th_cost', 'Себестоимость'), always: true });
+    if (canBill) cols.push({ key: 'bill', label: _t('time_analytics.th_sale', 'Продажа'), always: true });
+    if (canPayout) cols.push({ key: 'payout', label: _t('time_analytics.th_payout', 'Вознаграждение'), always: true });
     cols.push({ key: 'source', label: _t('time_analytics.th_source', 'Источник'), expand: true });
 
     var visibleCols = cols.filter(function (c) { return c.always || (expanded && c.expand); });
@@ -31547,6 +31553,11 @@ window.CRM.pageApiBindings = (function () {
         badge.textContent = anyLocked ? _t('time_analytics.period_closed', 'Период закрыт') : _t('time_analytics.period_open', 'Период открыт');
       }
 
+      var totRecorded = 0;
+      var totUnique = 0;
+      var totCost = 0;
+      var totBill = 0;
+      var totPayout = 0;
       var html = items.map(function (row) {
         var day = String(row.day || '');
         var d = new Date(day + 'T00:00:00');
@@ -31560,6 +31571,12 @@ window.CRM.pageApiBindings = (function () {
         var unique = Number(row.unique_minutes != null ? row.unique_minutes : recorded);
         var ambiguous = Number(row.rate_ambiguous || 0) > 0;
         var snapshotMissing = Number(row.snapshot_missing || 0) > 0;
+
+        totRecorded += recorded;
+        totUnique += unique;
+        if (row.cost_amount != null) totCost += Number(row.cost_amount);
+        if (row.bill_amount != null) totBill += Number(row.bill_amount);
+        if (row.payout_amount != null) totPayout += Number(row.payout_amount);
 
         function rateCell(rate) {
           if (rate == null || rate === '') {
@@ -31608,6 +31625,29 @@ window.CRM.pageApiBindings = (function () {
         });
         return '<tr' + rowClass + '>' + cells.join('') + '</tr>';
       }).join('');
+
+      // Totals footer row (money columns only when visible)
+      var footCells = visibleCols.map(function (c) {
+        switch (c.key) {
+          case 'date': return '<td class="crm-matrix-date-col crm-matrix-total-col">' + _t('page.th_total', 'Итого') + '</td>';
+          case 'user':
+          case 'client':
+          case 'project':
+          case 'activity':
+          case 'source': return '<td></td>';
+          case 'recorded': return '<td class="crm-matrix-total-col">' + formatMinutesShort(totRecorded) + '</td>';
+          case 'unique': return '<td class="crm-matrix-total-col">' + formatMinutesShort(totUnique) + '</td>';
+          case 'cost_rate':
+          case 'bill_rate':
+          case 'payout_rate': return '<td class="text-muted">—</td>';
+          case 'cost': return '<td class="crm-matrix-total-col">' + totCost.toFixed(2) + '</td>';
+          case 'bill': return '<td class="crm-matrix-total-col">' + totBill.toFixed(2) + '</td>';
+          case 'payout': return '<td class="crm-matrix-total-col">' + totPayout.toFixed(2) + '</td>';
+          default: return '<td></td>';
+        }
+      }).join('');
+      html += '<tr class="crm-matrix-footer-row">' + footCells + '</tr>';
+
       tbody.innerHTML = html;
       tbody.querySelectorAll('.crm-matrix-weekend-row td').forEach(function(td) {
         td.style.setProperty('background-color', 'var(--color-neutral-100)', 'important');
