@@ -16148,14 +16148,25 @@ window.CRM.pageApiBindings = (function () {
       }
 
       if (tab === 'security') {
+        var secReason = '';
+        var detRoute = '';
+        if (details && typeof details === 'object') {
+          if (details.reason) secReason = humanizeCode(details.reason);
+          var nested = (details.details && typeof details.details === 'object') ? details.details : null;
+          detRoute = (nested && nested.route) || details.route || '';
+        }
+        var evHtml = evBadge(item.event_type);
+        if (secReason) evHtml += '<div class="small text-muted">' + safeText(secReason) + '</div>';
         return {
           id: String(item.public_id || ''),
           isErrorRow: /failed|mismatch|rate_limited|issue/i.test(String(item.event_type || '')),
           cells: [
             rowCell(safeText(formatDate(item.created_at))),
-            rowCell(evBadge(item.event_type)),
+            rowCell(evHtml),
             rowCell(safeText(resolveUserLabel('', item.actor_public_id || '', '—'))),
-            rowCell(safeText(maskedIp(item.ip)))
+            rowCell(detRoute
+              ? '<span class="small">' + safeText(maskedIp(item.ip)) + '</span><div class="small text-muted">' + safeText(shortRoute(detRoute)) + '</div>'
+              : safeText(maskedIp(item.ip)))
           ],
           raw: item,
           kind: 'security'
