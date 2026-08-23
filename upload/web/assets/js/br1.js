@@ -1025,8 +1025,10 @@ window.CRM.br1 = (function () {
       // executor (freelancer) may create tasks, log worklogs and upload
       // files, but may not create projects, edit/delete tasks, change status
       // or assign users.
+      // NOTE: allow=true restores the element — these rules therefore return
+      // true for everyone EXCEPT the role being restricted.
       {
-        allow: function () { return isExternalRole('observer'); },
+        allow: function () { return !isExternalRole('observer'); },
         selectors: [
           '[data-open-modal="createTaskModal"]',
           '[data-open-modal="createProjectModal"]',
@@ -1051,7 +1053,7 @@ window.CRM.br1 = (function () {
         ]
       },
       {
-        allow: function () { return isExternalRole('executor'); },
+        allow: function () { return !isExternalRole('executor'); },
         selectors: [
           '[data-open-modal="createProjectModal"]',
           '[data-open-modal="assignUserModal"]',
