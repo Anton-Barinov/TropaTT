@@ -44,9 +44,7 @@
 <div class="crm-pr-tabs" role="tablist" aria-label="<?= htmlspecialchars($t('project_detail.tabs_label', 'Разделы проекта'), ENT_QUOTES, 'UTF-8') ?>">
   <button class="crm-pr-tab active" type="button" role="tab" aria-selected="true" data-project-tab="overview" id="projectTabOverview"><?= htmlspecialchars($t('project_detail.tab_overview', 'Обзор'), ENT_QUOTES, 'UTF-8') ?></button>
   <button class="crm-pr-tab" type="button" role="tab" aria-selected="false" data-project-tab="tasks" id="projectTabTasks"><?= htmlspecialchars($t('project_detail.tab_tasks', 'Задачи'), ENT_QUOTES, 'UTF-8') ?><span class="crm-pr-tab-count" id="projectTaskTabCount">0</span></button>
-<?php if (!empty($is_external_user)): // client portal: external user gets Chat tab ?>
   <button class="crm-pr-tab" type="button" role="tab" aria-selected="false" data-project-tab="chat" id="projectTabChat"><?= htmlspecialchars($t('project_detail.tab_client_chat', 'Чат'), ENT_QUOTES, 'UTF-8') ?></button>
-<?php endif; ?>
 <?php if (empty($is_external_user)): // client portal: internal-only block ?>
   <button class="crm-pr-tab" type="button" role="tab" aria-selected="false" data-project-tab="ai" id="projectTabAi"><?= htmlspecialchars($t('project_detail.tab_ai', 'AI-инсайты'), ENT_QUOTES, 'UTF-8') ?></button>
 <?php endif; ?>
@@ -157,7 +155,8 @@
 </div>
 
 <!-- ============ CLIENT CHAT ============ -->
-<?php if (!empty($is_external_user)): // client portal: external user chat ?>
+<!-- Rendered for everyone with access: external users chat with the team here,
+     staff (project manager/admin) see the same conversation via project access. -->
 <div class="crm-pr-panel" data-project-panel="chat" role="tabpanel">
   <section class="crm-card mb-3">
     <div class="crm-pr-card-head">
@@ -171,7 +170,6 @@
     </form>
   </section>
 </div>
-<?php endif; ?>
 
 <!-- ============ AI INSIGHTS ============ -->
 <?php if (empty($is_external_user)): // client portal: internal-only block ?>
