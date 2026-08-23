@@ -637,10 +637,12 @@
 }
 
 /* Offcanvas backdrops: Bootstrap's default 50% black reads too heavy next to
-   the rest of the UI (log drawer, AI drawer). Soften globally via the
-   framework variable so every theme keeps its own ink color. */
-.offcanvas-backdrop {
-  --bs-backdrop-opacity: 0.3;
+   the rest of the UI (log drawer, AI drawer). Soften globally — components.css
+   loads after bootstrap.min.css so this wins the cascade at equal specificity
+   (this Bootstrap build hardcodes .5 instead of using --bs-backdrop-opacity). */
+.offcanvas-backdrop.fade,
+.offcanvas-backdrop.show {
+  opacity: 0.3;
 }
 
 

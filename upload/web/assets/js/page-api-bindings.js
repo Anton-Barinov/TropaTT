@@ -16079,7 +16079,8 @@ window.CRM.pageApiBindings = (function () {
           title = String(item.message || '').substring(0, 140);
           where = '<code>' + safeText(String(item.file || '').split('/').pop()) + (item.line ? ':' + item.line : '') + '</code>';
         } else if (src === 'frontend_error') {
-          var pay = parseJsonMaybe(details && details.payload) || {};
+          var tel = telemetryParts(item);
+          var pay = tel.pay;
           var evtTypeRaw = String(item.event_type || '');
           var fallbackTitle = evtTypeRaw === 'frontend_js_error'
             ? tp('admin_logs.ev_hint_js_error', 'Ошибка JavaScript на странице')
@@ -16087,9 +16088,8 @@ window.CRM.pageApiBindings = (function () {
               ? tp('admin_logs.ev_hint_csp', 'Заблокирован небезопасный ресурс (политика безопасности)')
               : evtTypeRaw;
           title = friendlyApiTitle(pay, fallbackTitle);
-          var routeRaw = (details && (details.route || details.page_url)) || '';
-          where = routeRaw
-            ? '<span class="small">' + safeText(shortRoute(routeRaw)) + '</span>'
+          where = tel.route
+            ? '<span class="small">' + safeText(shortRoute(tel.route)) + '</span>'
             : '<span class="text-muted">—</span>';
         } else {
           title = String(item.error_message || '').substring(0, 140);
@@ -16151,7 +16151,15 @@ window.CRM.pageApiBindings = (function () {
         var secReason = '';
         var detRoute = '';
         if (details && typeof details === 'object') {
-          if (details.reason) secReason = humanizeCode(details.reason);
+          if (details.reason) {
+            var REASON_KEYS = {
+              'user not found or inactive': 'ev_rs_user_missing',
+              'invalid password': 'ev_rs_bad_password',
+              'invalid token factor': 'ev_rs_bad_token'
+            };
+            var rk = REASON_KEYS[String(details.reason).toLowerCase()];
+            secReason = rk ? tp('admin_logs.' + rk, humanizeCode(details.reason)) : humanizeCode(details.reason);
+          }
           var nested = (details.details && typeof details.details === 'object') ? details.details : null;
           detRoute = (nested && nested.route) || details.route || '';
         }
@@ -16206,6 +16214,21 @@ window.CRM.pageApiBindings = (function () {
       RATE_LIMITED:        'ev_hint_rate_limited',
       SERVER_ERROR:        'ev_hint_server'
     };
+    var SECURITY_REASON_KEYS = {
+      'user not found or inactive': 'ev_rs_user_missing',
+      'invalid password': 'ev_rs_bad_password',
+      'invalid token factor': 'ev_rs_bad_token'
+    };
+    // Telemetry envelopes nest payload one level deeper:
+    // {route, page_url, payload:{...}, request_id}
+    function telemetryParts(item) {
+      var outer = parseJsonMaybe(item.details);
+      if (!outer || typeof outer !== 'object') outer = {};
+      var nested = parseJsonMaybe(outer.details) || {};
+      var pay = parseJsonMaybe(outer.payload) || nested.payload || {};
+      if (!pay || typeof pay !== 'object') pay = {};
+      return { outer: outer, pay: pay, route: outer.route || outer.page_url || nested.route || '' };
+    }
     function friendlyApiTitle(pay, fallback) {
       var code = String((pay && pay.code) || '').trim();
       if (code && API_CODE_HINTS[code]) {
@@ -16340,11 +16363,10 @@ window.CRM.pageApiBindings = (function () {
               + '<pre class="mb-0 small mt-1 p-2" style="white-space:pre-wrap;background:#f8f9fa;border-radius:4px;max-height:360px;overflow:auto">' + safeText(raw.stack_trace) + '</pre></details></div>';
           }
         } else if (src === 'frontend_error') {
-          var det = parseJsonMaybe(raw.details) || {};
-          var pay = parseJsonMaybe(det.payload) || {};
-          html += drawerTile(tp('admin_logs.drawer_message', 'Описание ошибки'), '<div class="small">' + safeText(pay.message || pay.reason || pay.code || raw.event_type || '—') + '</div>');
-          if (pay.file || pay.line) html += drawerTile(tp('admin_logs.drawer_file', 'Место в коде'), '<code class="small">' + safeText((pay.file || '') + (pay.line ? ':' + pay.line : '') + (pay.column ? ':' + pay.column : '')) + '</code>');
-          if (det.route || det.page_url) html += drawerTile(tp('admin_logs.drawer_page', 'Страница'), '<span class="small">' + safeText(det.page_url || det.route) + '</span>');
+          var tel = telemetryParts(raw);
+          html += drawerTile(tp('admin_logs.drawer_message', 'Описание ошибки'), '<div class="small">' + safeText(friendlyApiTitle(tel.pay, raw.event_type || '—')) + '</div>');
+          if (tel.pay.file || tel.pay.line) html += drawerTile(tp('admin_logs.drawer_file', 'Место в коде'), '<code class="small">' + safeText((tel.pay.file || '') + (tel.pay.line ? ':' + tel.pay.line : '') + (tel.pay.column ? ':' + tel.pay.column : '')) + '</code>');
+          if (tel.route) html += drawerTile(tp('admin_logs.drawer_page', 'Страница'), '<span class="small">' + safeText(tel.route) + '</span>');
         } else {
           html += drawerTile(tp('admin_logs.drawer_module', 'Модуль'), safeText(raw.module_name || '—'));
           html += drawerTile(tp('admin_logs.drawer_message', 'Описание ошибки'), '<div class="small">' + safeText(raw.error_message || '—') + '</div>');
@@ -16380,9 +16402,13 @@ window.CRM.pageApiBindings = (function () {
       } else if (row.kind === 'security') {
         var det = parseJsonMaybe(raw.details) || {};
         html += drawerTile(tp('admin.log_user', 'Пользователь'), safeText(resolveUserLabel('', raw.actor_public_id || det.user_public_id || '', '—')));
-        if (det.reason) html += drawerTile(tp('admin_logs.drawer_reason', 'Причина'), '<span class="small">' + safeText(humanizeCode(det.reason)) + '</span>');
+        if (det.reason) {
+          var rk2 = SECURITY_REASON_KEYS[String(det.reason).toLowerCase()];
+          html += drawerTile(tp('admin_logs.drawer_reason', 'Причина'), '<span class="small">' + safeText(rk2 ? tp('admin_logs.' + rk2, humanizeCode(det.reason)) : humanizeCode(det.reason)) + '</span>');
+        }
         if (raw.ip) html += drawerTile('IP', safeText(raw.ip));
-        if (det.details && typeof det.details === 'object' && det.details.route) html += drawerTile(tp('admin_logs.drawer_page', 'Страница'), '<span class="small">' + safeText(det.details.route) + '</span>');
+        var nestedSec = (det.details && typeof det.details === 'object') ? det.details : null;
+        if (nestedSec && nestedSec.route) html += drawerTile(tp('admin_logs.drawer_page', 'Страница'), '<span class="small">' + safeText(nestedSec.route) + '</span>');
       } else {
         html += drawerTile(tp('admin.log_user', 'Пользователь'), safeText(resolveUserLabel(raw.user_full_name || raw.user_login || '', raw.user_public_id || '', '—')));
         html += drawerTile(tp('admin_logs.th_task', 'Задача'), '<span class="small">' + safeText(raw.task_title || raw.task_public_id || '—') + '</span>');

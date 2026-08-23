@@ -1137,6 +1137,10 @@ return array (
     'ev_hint_js_error' => 'JavaScript-Fehler auf der Seite',
     'ev_hint_csp' => 'Eine unsichere Ressource wurde blockiert',
     'ev_hint_js_reject' => 'Fehler in einer Hintergrundoperation',
+    'th_object' => 'Objekt',
+    'ev_rs_user_missing' => 'Benutzer nicht gefunden oder inaktiv',
+    'ev_rs_bad_password' => 'Falsches Passwort',
+    'ev_rs_bad_token' => 'Zweitfaktor-Prüfung fehlgeschlagen',
   ),
   'admin_module_detail' => 
   array (

@@ -1137,6 +1137,10 @@ return array (
     'ev_hint_js_error' => 'Error de JavaScript en la página',
     'ev_hint_csp' => 'Se bloqueó un recurso no seguro',
     'ev_hint_js_reject' => 'Error en una operación en segundo plano',
+    'th_object' => 'Objeto',
+    'ev_rs_user_missing' => 'Usuario no encontrado o inactivo',
+    'ev_rs_bad_password' => 'Contraseña incorrecta',
+    'ev_rs_bad_token' => 'Falló la verificación del segundo factor',
   ),
   'admin_module_detail' => 
   array (

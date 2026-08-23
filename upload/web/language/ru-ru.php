@@ -8098,6 +8098,10 @@ return array (
     'ev_hint_js_error' => 'Ошибка JavaScript на странице',
     'ev_hint_csp' => 'Заблокирован небезопасный ресурс',
     'ev_hint_js_reject' => 'Ошибка в фоновой операции страницы',
+    'th_object' => 'Объект',
+    'ev_rs_user_missing' => 'Пользователь не найден или неактивен',
+    'ev_rs_bad_password' => 'Неверный пароль',
+    'ev_rs_bad_token' => 'Не прошёл проверку второй фактор',
   ),
   'admin_ai' => 
   array (

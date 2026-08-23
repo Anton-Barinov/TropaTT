@@ -7977,6 +7977,10 @@ return array (
     'ev_hint_js_error' => '页面上的JavaScript错误',
     'ev_hint_csp' => '已拦截不安全资源',
     'ev_hint_js_reject' => '页面后台操作出错',
+    'th_object' => '对象',
+    'ev_rs_user_missing' => '用户不存在或未激活',
+    'ev_rs_bad_password' => '密码错误',
+    'ev_rs_bad_token' => '未通过二次验证',
   ),
   'admin_ai' => 
   array (

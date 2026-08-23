@@ -7997,6 +7997,10 @@ return array (
     'ev_hint_js_error' => 'JavaScript error on the page',
     'ev_hint_csp' => 'An unsafe resource was blocked',
     'ev_hint_js_reject' => 'Error in a background page operation',
+    'th_object' => 'Object',
+    'ev_rs_user_missing' => 'User not found or inactive',
+    'ev_rs_bad_password' => 'Wrong password',
+    'ev_rs_bad_token' => 'Failed the second-factor check',
   ),
   'admin_ai' => 
   array (

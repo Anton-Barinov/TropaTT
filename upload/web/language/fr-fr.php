@@ -1137,6 +1137,10 @@ return array (
     'ev_hint_js_error' => 'Erreur JavaScript sur la page',
     'ev_hint_csp' => 'Une ressource non sécurisée a été bloquée',
     'ev_hint_js_reject' => 'Erreur dans une opération d\'arrière-plan',
+    'th_object' => 'Objet',
+    'ev_rs_user_missing' => 'Utilisateur introuvable ou inactif',
+    'ev_rs_bad_password' => 'Mot de passe incorrect',
+    'ev_rs_bad_token' => 'Échec de la vérification du second facteur',
   ),
   'admin_module_detail' => 
   array (
