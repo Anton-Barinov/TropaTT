@@ -78,9 +78,22 @@
             new Promise(function (resolve) { window.setTimeout(resolve, 1500); })
           ]);
         }
+        var meUser = window.CRM.api.getUser ? window.CRM.api.getUser() : null;
+        var isExternalUser = Boolean(meUser && meUser.is_external);
         var query = new URLSearchParams(window.location.search || '');
-        var returnRoute = query.get('return_route') || query.get('redirect') || 'dashboard';
-        window.location.href = withQuery(returnRoute);
+        var returnRoute = query.get('return_route') || query.get('redirect');
+        // External guest (client portal) users have no dashboard/admin access:
+        // web/index.php's $externalAllowedRoutes is the only page shell list
+        // they may land on. The ?redirect= param (added when an anonymous
+        // visitor hit a protected page) may point at internal-only routes, so
+        // validate it and fall back to the projects list otherwise.
+        if (isExternalUser) {
+          var externalAllowedRoutes = ['projects', 'project-detail', 'tasks', 'task-detail', 'notifications', 'profile', 'my-earnings'];
+          if (!returnRoute || externalAllowedRoutes.indexOf(returnRoute) === -1) {
+            returnRoute = '';
+          }
+        }
+        window.location.href = withQuery(returnRoute || (isExternalUser ? 'projects' : 'dashboard'));
       } catch (error) {
         var normalized = window.CRM.api && typeof window.CRM.api.normalizeError === 'function'
           ? window.CRM.api.normalizeError(error, window.CRM.i18n.t('js.app.login_error', 'Login error'))

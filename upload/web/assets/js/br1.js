@@ -1222,10 +1222,22 @@ window.CRM.br1 = (function () {
         // land them on their projects list instead (see MenuController's
         // external nav allowlist and web/index.php's $externalAllowedRoutes).
         var loggedInUser = meEnvelope && meEnvelope.data ? meEnvelope.data.user : null;
-        var defaultRoute = (loggedInUser && loggedInUser.is_external) ? 'projects' : 'dashboard';
+        var isExternalUser = Boolean(loggedInUser && loggedInUser.is_external);
+        var defaultRoute = isExternalUser ? 'projects' : 'dashboard';
 
         var query = new URLSearchParams(window.location.search);
         var returnRoute = query.get('return_route') || query.get('redirect');
+        // web/index.php appends ?redirect=<route> when an anonymous visitor hits
+        // a protected page, so for an external guest the param can point at an
+        // internal-only route (e.g. dashboard) that would 403 right after login.
+        // Validate it against the same allowlist web/index.php enforces; fall
+        // back to the external landing page (projects) otherwise.
+        if (isExternalUser) {
+          var externalAllowedRoutes = ['projects', 'project-detail', 'tasks', 'task-detail', 'notifications', 'profile', 'my-earnings'];
+          if (!returnRoute || externalAllowedRoutes.indexOf(returnRoute) === -1) {
+            returnRoute = '';
+          }
+        }
         window.location.href = withQuery(returnRoute || defaultRoute);
       } catch (error) {
         var normalized = window.CRM.api && typeof window.CRM.api.normalizeError === 'function'
