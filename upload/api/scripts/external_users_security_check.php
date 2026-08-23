@@ -166,6 +166,8 @@ $expectedExternalRoutes = [
     'POST /api/v1/chats/{public_id}/messages',
     'POST /api/v1/chats/{public_id}/read',
     'GET /api/v1/chats/{public_id}',
+    'GET /api/v1/chats/unread-count',
+    'POST /api/v1/telemetry/frontend-event',
     // External user knowledge access: client-visible pages linked to a project.
     // Read-only, stripped of internal metadata, access checked via ProjectService::get().
     'GET /api/v1/knowledge/project/{project_public_id}/client-pages',
@@ -292,6 +294,12 @@ $expectedExecutorRoutes = [
     // controller forces scope=worklog_activity for external actors, so this
     // leaks no internal status dictionaries.
     'GET /api/v1/statuses',
+    // Executor needs time-rounding setting for the time-entry form (read-only,
+    // controller enforces a whitelist of only time_rounding_minutes).
+    'GET /api/v1/settings/public',
+    // Executor sees the task activity feed (read-only, RLS-scoped via
+    // TaskService::get; events expose only public task fields).
+    'GET /api/v1/tasks/{public_id}/activity',
 ];
 
 $actualExecutorRoutes = [];
