@@ -2633,9 +2633,14 @@ function createAdminUser(PDO $pdo, array $data): array
     $email = $data['admin_email'] ?? 'admin@example.com';
     $login = $data['admin_login'] ?? $data['admin_email'] ?? 'admin';
 
-    // Server-side password strength validation (minimum 8 characters)
+    // Server-side password strength validation (L-1: minimum 12 chars + complexity)
     $password = (string)($data['admin_password'] ?? 'password');
-    if (mb_strlen($password) < 8) {
+    if (mb_strlen($password) < 12
+        || !preg_match('/[A-Z]/', $password)
+        || !preg_match('/[a-z]/', $password)
+        || !preg_match('/[0-9]/', $password)
+        || !preg_match('/[^a-zA-Z0-9]/', $password)
+    ) {
         throw new RuntimeException(t('password_min_length'));
     }
 
@@ -3161,7 +3166,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isAjax) {
 
             if ($formData['site_url'] === '') $errors[] = t('site_url') . ': ' . t('required_field');
             if ($formData['admin_email'] === '' || !filter_var($formData['admin_email'], FILTER_VALIDATE_EMAIL)) $errors[] = t('admin_email') . ': ' . t('invalid_email');
-            if (strlen($formData['admin_password']) < 8) $errors[] = t('admin_password') . ': ' . t('password_min_length');
+            // L-1: client-side validation matches server-side (12+ chars + complexity)
+            if (strlen($formData['admin_password']) < 12
+                || !preg_match('/[A-Z]/', $formData['admin_password'])
+                || !preg_match('/[a-z]/', $formData['admin_password'])
+                || !preg_match('/[0-9]/', $formData['admin_password'])
+                || !preg_match('/[^a-zA-Z0-9]/', $formData['admin_password'])
+            ) {
+                $errors[] = t('admin_password') . ': ' . t('password_min_length');
+            }
             if ($formData['admin_password'] !== $formData['admin_password_confirm']) $errors[] = t('passwords_mismatch');
             if ($formData['admin_name'] === '') $formData['admin_name'] = 'Administrator';
 

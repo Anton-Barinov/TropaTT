@@ -106,7 +106,13 @@ final class InvitationController extends BaseController
         }
 
         $password = (string)$input['password'];
-        if (strlen($password) < 12 || !preg_match('/[A-Z]/', $password) || !preg_match('/[a-z]/', $password) || !preg_match('/[0-9]/', $password)) {
+        // L-1 fix: add special character requirement to match password policy
+        if (strlen($password) < 12
+            || !preg_match('/[A-Z]/', $password)
+            || !preg_match('/[a-z]/', $password)
+            || !preg_match('/[0-9]/', $password)
+            || !preg_match('/[^a-zA-Z0-9]/', $password)
+        ) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
                 'password' => [$this->t('security/messages.min_password_12_complex')],
             ]);
