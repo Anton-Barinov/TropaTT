@@ -5,6 +5,7 @@ namespace Api\Model\Status;
 
 use Api\System\Library\Database\Builder\QueryBuilder;
 use PDO;
+use Api\System\Library\Support\LikeEscaper;
 
 final class StatusRepository
 {
@@ -44,7 +45,7 @@ final class StatusRepository
         }
 
         if (!empty($filters['search'])) {
-            $search = '%' . (string)$filters['search'] . '%';
+            $search = '%' . LikeEscaper::escape((string)$filters['search']) . '%';
             $query->whereRaw('(code LIKE ? OR title LIKE ?)', [$search, $search]);
         }
 

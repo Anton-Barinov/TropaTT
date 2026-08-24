@@ -6,6 +6,7 @@ namespace Api\Model\Logs;
 use Api\System\Library\Database\Builder\QueryBuilder;
 use Api\System\Library\Support\Ulid;
 use PDO;
+use Api\System\Library\Support\LikeEscaper;
 
 final class LogsRepository
 {

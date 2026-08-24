@@ -6,6 +6,7 @@ namespace Api\Model\Recurring;
 use Api\System\Library\Database\Builder\QueryBuilder;
 use Api\System\Library\Language\LanguageManager;
 use PDO;
+use Api\System\Library\Support\LikeEscaper;
 
 final class RecurringRepository
 {
@@ -65,7 +66,7 @@ final class RecurringRepository
         }
 
         if (!empty($filters['search'])) {
-            $search = '%' . (string)$filters['search'] . '%';
+            $search = '%' . LikeEscaper::escape((string)$filters['search']) . '%';
             $query->whereRaw('(entity_public_id LIKE ? OR rrule LIKE ?)', [$search, $search]);
         }
 

@@ -6,6 +6,7 @@ namespace Api\Model\Workflow;
 use Api\System\Library\Database\Builder\QueryBuilder;
 use Api\System\Library\Security\UrlSafetyValidator;
 use PDO;
+use Api\System\Library\Support\LikeEscaper;
 
 final class WorkflowRepository
 {
@@ -59,7 +60,7 @@ final class WorkflowRepository
         }
 
         if (!empty($filters['search'])) {
-            $search = '%' . (string)$filters['search'] . '%';
+            $search = '%' . LikeEscaper::escape((string)$filters['search']) . '%';
             $query->whereRaw('(title LIKE ? OR trigger_code LIKE ? OR action_code LIKE ?)', [$search, $search, $search]);
         }
 

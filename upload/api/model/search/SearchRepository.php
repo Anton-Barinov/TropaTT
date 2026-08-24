@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\Model\Search;
 
 use Api\System\Library\Database\Builder\QueryBuilder;
+use Api\System\Library\Support\LikeEscaper;
 use PDO;
 
 final class SearchRepository
@@ -120,7 +121,7 @@ final class SearchRepository
 
     private function buildTasksQuery(string $query, int $actorUserId, bool $actorIsRoot): QueryBuilder
     {
-        $like = '%' . $query . '%';
+        $like = '%' . LikeEscaper::escape($query) . '%';
         $qb = (new QueryBuilder($this->pdo))
             ->from('tasks t')
             ->leftJoin('projects p', 'p.id', '=', 't.project_id')
@@ -140,7 +141,7 @@ final class SearchRepository
 
     private function buildProjectsQuery(string $query, int $actorUserId, bool $actorIsRoot): QueryBuilder
     {
-        $like = '%' . $query . '%';
+        $like = '%' . LikeEscaper::escape($query) . '%';
         $qb = (new QueryBuilder($this->pdo))
             ->from('projects p')
             ->whereNull('p.archived_at')
@@ -159,7 +160,7 @@ final class SearchRepository
     /** @param int[] $createdByUserIds */
     private function buildCounterpartyQuery(string $query, array $createdByUserIds = []): QueryBuilder
     {
-        $like = '%' . $query . '%';
+        $like = '%' . LikeEscaper::escape($query) . '%';
 
         $qb = (new QueryBuilder($this->pdo))
             ->from('counterparties cp')
@@ -188,7 +189,7 @@ final class SearchRepository
 
     private function buildKnowledgeQuery(string $query): QueryBuilder
     {
-        $like = '%' . $query . '%';
+        $like = '%' . LikeEscaper::escape($query) . '%';
 
         return (new QueryBuilder($this->pdo))
             ->from('knowledge_pages kp')
@@ -201,7 +202,7 @@ final class SearchRepository
     /** @param int[] $createdByUserIds */
     private function buildContactsQuery(string $query, array $createdByUserIds = []): QueryBuilder
     {
-        $like = '%' . $query . '%';
+        $like = '%' . LikeEscaper::escape($query) . '%';
 
         $qb = (new QueryBuilder($this->pdo))
             ->from('contacts ct')

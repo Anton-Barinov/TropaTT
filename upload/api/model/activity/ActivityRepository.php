@@ -6,6 +6,7 @@ namespace Api\Model\Activity;
 use Api\System\Library\Database\Builder\QueryBuilder;
 use Api\System\Library\Database\Builder\SqlExecutor;
 use PDO;
+use Api\System\Library\Support\LikeEscaper;
 
 final class ActivityRepository
 {

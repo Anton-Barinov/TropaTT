@@ -5,6 +5,7 @@ namespace Api\Model\Export;
 
 use Api\System\Library\Database\Builder\QueryBuilder;
 use PDO;
+use Api\System\Library\Support\LikeEscaper;
 
 final class ExportJobRepository
 {
@@ -67,7 +68,7 @@ final class ExportJobRepository
         }
 
         if (!empty($filters['search'])) {
-            $search = '%' . (string)$filters['search'] . '%';
+            $search = '%' . LikeEscaper::escape((string)$filters['search']) . '%';
             $query->whereRaw('(ej.public_id LIKE ? OR ej.type LIKE ?)', [$search, $search]);
         }
 

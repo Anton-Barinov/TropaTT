@@ -5,6 +5,7 @@ namespace Api\Model\Team;
 
 use Api\System\Library\Database\Builder\QueryBuilder;
 use PDO;
+use Api\System\Library\Support\LikeEscaper;
 
 final class TeamRepository
 {

@@ -5,6 +5,7 @@ namespace Api\Model\Reminder;
 
 use Api\System\Library\Database\Builder\QueryBuilder;
 use PDO;
+use Api\System\Library\Support\LikeEscaper;
 
 final class ReminderRepository
 {
@@ -60,7 +61,7 @@ final class ReminderRepository
         }
 
         if (!empty($filters['search'])) {
-            $search = '%' . trim((string)$filters['search']) . '%';
+            $search = '%' . LikeEscaper::escape(trim((string)$filters['search'])) . '%';
             $query->whereRaw(
                 '(r.public_id LIKE ? OR t.public_id LIKE ? OR t.title LIKE ? OR r.remind_at LIKE ?)',
                 [$search, $search, $search, $search]

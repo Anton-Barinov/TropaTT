@@ -5,6 +5,7 @@ namespace Api\Model\Role;
 
 use Api\System\Library\Database\Builder\QueryBuilder;
 use PDO;
+use Api\System\Library\Support\LikeEscaper;
 
 final class RoleRepository
 {
@@ -19,7 +20,7 @@ final class RoleRepository
             ->select(['public_id', 'code', 'title', 'is_system', 'created_at', 'updated_at']);
 
         if (!empty($filters['search'])) {
-            $needle = '%' . (string)$filters['search'] . '%';
+            $needle = '%' . LikeEscaper::escape((string)$filters['search']) . '%';
             $query->whereRaw('(code LIKE ? OR title LIKE ?)', [$needle, $needle]);
         }
 

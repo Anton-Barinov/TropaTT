@@ -5,6 +5,7 @@ namespace Api\Model\Tag;
 
 use Api\System\Library\Database\Builder\QueryBuilder;
 use PDO;
+use Api\System\Library\Support\LikeEscaper;
 
 final class TagRepository
 {
@@ -38,7 +39,7 @@ final class TagRepository
             ->from('tags');
 
         if (!empty($filters['search'])) {
-            $search = '%' . (string)$filters['search'] . '%';
+            $search = '%' . LikeEscaper::escape((string)$filters['search']) . '%';
             $query->whereRaw('(code LIKE ? OR title LIKE ?)', [$search, $search]);
         }
 

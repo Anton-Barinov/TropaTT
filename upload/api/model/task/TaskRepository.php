@@ -7,6 +7,7 @@ use Api\System\Library\Database\Builder\Expression;
 use Api\System\Library\Database\Builder\QueryBuilder;
 use Api\System\Library\Sync\CursorCodec;
 use PDO;
+use Api\System\Library\Support\LikeEscaper;
 
 final class TaskRepository
 {
@@ -838,7 +839,7 @@ final class TaskRepository
 
         if (!empty($filters['search'])) {
             $search = (string)$filters['search'];
-            $term = '%' . $search . '%';
+            $term = '%' . LikeEscaper::escape($search) . '%';
             // Check if search looks like a task key (e.g. CRM-123)
             $isTaskKeySearch = preg_match('/^[A-Za-z][A-Za-z0-9]{1,9}-[0-9]+$/', $search) === 1;
             $normalizedKey = strtoupper($search);

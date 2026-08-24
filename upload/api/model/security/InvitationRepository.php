@@ -5,6 +5,7 @@ namespace Api\Model\Security;
 
 use Api\System\Library\Database\Builder\QueryBuilder;
 use PDO;
+use Api\System\Library\Support\LikeEscaper;
 
 final class InvitationRepository
 {
@@ -50,7 +51,7 @@ final class InvitationRepository
         }
 
         if (!empty($filters['search'])) {
-            $search = '%' . trim((string)$filters['search']) . '%';
+            $search = '%' . LikeEscaper::escape(trim((string)$filters['search'])) . '%';
             $query->whereRaw('(i.public_id LIKE ? OR i.email LIKE ?)', [$search, $search]);
         }
 

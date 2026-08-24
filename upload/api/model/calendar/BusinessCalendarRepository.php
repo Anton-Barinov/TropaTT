@@ -5,6 +5,7 @@ namespace Api\Model\Calendar;
 
 use Api\System\Library\Database\Builder\QueryBuilder;
 use PDO;
+use Api\System\Library\Support\LikeEscaper;
 
 final class BusinessCalendarRepository
 {
@@ -35,7 +36,7 @@ final class BusinessCalendarRepository
             ->from('business_calendars');
 
         if (!empty($filters['search'])) {
-            $search = '%' . trim((string)$filters['search']) . '%';
+            $search = '%' . LikeEscaper::escape(trim((string)$filters['search'])) . '%';
             $query->whereRaw('(title LIKE ? OR timezone LIKE ?)', [$search, $search]);
         }
 

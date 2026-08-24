@@ -7,6 +7,7 @@ use Api\System\Library\Database\Builder\Expression;
 use Api\System\Library\Database\Builder\QueryBuilder;
 use Api\System\Library\Support\Ulid;
 use PDO;
+use Api\System\Library\Support\LikeEscaper;
 
 final class TaskRelationRepository
 {
@@ -199,7 +200,7 @@ final class TaskRelationRepository
     public function searchTasks(string $query, array $actor, int $limit = 20, string $projectPublicId = ''): array
     {
         $safeLimit = min(50, max(1, $limit));
-        $term = '%' . $query . '%';
+        $term = '%' . LikeEscaper::escape($query) . '%';
 
         $qb = (new QueryBuilder($this->pdo))
             ->from('tasks t')

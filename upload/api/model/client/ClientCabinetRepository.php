@@ -5,6 +5,7 @@ namespace Api\Model\Client;
 
 use Api\System\Library\Database\Builder\QueryBuilder;
 use PDO;
+use Api\System\Library\Support\LikeEscaper;
 
 final class ClientCabinetRepository
 {
@@ -103,7 +104,7 @@ final class ClientCabinetRepository
         }
 
         if (!empty($filters['search'])) {
-            $search = '%' . (string)$filters['search'] . '%';
+            $search = '%' . LikeEscaper::escape((string)$filters['search']) . '%';
             $query->whereRaw('(p.title LIKE ? OR p.description LIKE ?)', [$search, $search]);
         }
 
@@ -131,7 +132,7 @@ final class ClientCabinetRepository
         }
 
         if (!empty($filters['search'])) {
-            $search = '%' . (string)$filters['search'] . '%';
+            $search = '%' . LikeEscaper::escape((string)$filters['search']) . '%';
             $query->whereRaw('(t.title LIKE ? OR t.description LIKE ?)', [$search, $search]);
         }
 

@@ -5,6 +5,7 @@ namespace Api\Model\Webhook;
 
 use Api\System\Library\Database\Builder\QueryBuilder;
 use PDO;
+use Api\System\Library\Support\LikeEscaper;
 
 final class WebhookRepository
 {
@@ -165,7 +166,7 @@ final class WebhookRepository
             ->from('webhook_subscriptions');
 
         if (!empty($filters['search'])) {
-            $needle = '%' . trim((string)$filters['search']) . '%';
+            $needle = '%' . LikeEscaper::escape(trim((string)$filters['search'])) . '%';
             $query->whereRaw('(title LIKE ? OR endpoint LIKE ?)', [$needle, $needle]);
         }
 

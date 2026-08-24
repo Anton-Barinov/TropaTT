@@ -5,6 +5,7 @@ namespace Api\Model\ApiClient;
 
 use Api\System\Library\Database\Builder\QueryBuilder;
 use PDO;
+use Api\System\Library\Support\LikeEscaper;
 
 final class ApiClientRepository
 {
@@ -40,7 +41,7 @@ final class ApiClientRepository
             ->from('api_clients');
 
         if (!empty($filters['search'])) {
-            $search = '%' . trim((string)$filters['search']) . '%';
+            $search = '%' . LikeEscaper::escape(trim((string)$filters['search'])) . '%';
             $query->whereRaw('(title LIKE ? OR public_id LIKE ?)', [$search, $search]);
         }
 

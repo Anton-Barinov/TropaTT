@@ -6,6 +6,7 @@ namespace Api\Model\Ai;
 use Api\System\Library\Database\Builder\QueryBuilder;
 use Api\System\Library\Support\Ulid;
 use PDO;
+use Api\System\Library\Support\LikeEscaper;
 
 final class AiProviderRepository
 {
@@ -227,7 +228,7 @@ final class AiProviderRepository
             ->where('deleted_at', 'IS', null);
 
         if (!empty($filters['search'])) {
-            $needle = '%' . trim((string)$filters['search']) . '%';
+            $needle = '%' . LikeEscaper::escape(trim((string)$filters['search'])) . '%';
             $query->whereRaw('(title LIKE ? OR provider_code LIKE ? OR base_url LIKE ?)', [$needle, $needle, $needle]);
         }
 

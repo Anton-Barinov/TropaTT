@@ -5,6 +5,7 @@ namespace Api\Model\Client;
 
 use Api\System\Library\Database\Builder\QueryBuilder;
 use PDO;
+use Api\System\Library\Support\LikeEscaper;
 
 final class ClientRepository
 {
@@ -78,7 +79,7 @@ final class ClientRepository
             ->leftJoin('companies co', 'co.id', '=', 'c.company_id');
 
         if (!empty($filters['search'])) {
-            $search = '%' . (string)$filters['search'] . '%';
+            $search = '%' . LikeEscaper::escape((string)$filters['search']) . '%';
             $query->whereRaw('(c.title LIKE ? OR c.legal_name LIKE ? OR c.tax_inn LIKE ? OR c.email LIKE ? OR c.phone LIKE ? OR c.website LIKE ?)', [$search, $search, $search, $search, $search, $search]);
         }
 

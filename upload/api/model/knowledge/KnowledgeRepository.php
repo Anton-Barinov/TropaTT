@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\Model\Knowledge;
 
 use PDO;
+use Api\System\Library\Support\LikeEscaper;
 
 final class KnowledgeRepository
 {

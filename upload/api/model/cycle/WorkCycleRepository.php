@@ -5,6 +5,7 @@ namespace Api\Model\Cycle;
 
 use Api\System\Library\Database\Builder\QueryBuilder;
 use PDO;
+use Api\System\Library\Support\LikeEscaper;
 
 final class WorkCycleRepository
 {
@@ -56,7 +57,7 @@ final class WorkCycleRepository
         }
 
         if (!empty($filters['q'])) {
-            $term = '%' . (string)$filters['q'] . '%';
+            $term = '%' . LikeEscaper::escape((string)$filters['q']) . '%';
             $qb->whereRaw('(wc.title LIKE ? OR wc.description LIKE ?)', [$term, $term]);
         }
 

@@ -5,6 +5,7 @@ namespace Api\Model\Project;
 
 use Api\System\Library\Database\Builder\QueryBuilder;
 use PDO;
+use Api\System\Library\Support\LikeEscaper;
 
 final class ProjectModuleRepository
 {
@@ -66,7 +67,7 @@ final class ProjectModuleRepository
 
         // Search
         if (!empty($filters['q'])) {
-            $q = '%' . (string)$filters['q'] . '%';
+            $q = '%' . LikeEscaper::escape((string)$filters['q']) . '%';
             $qb->whereRaw('(pm.title LIKE ? OR pm.description LIKE ?)', [$q, $q]);
         }
 

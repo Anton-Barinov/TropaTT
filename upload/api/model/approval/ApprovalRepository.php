@@ -5,6 +5,7 @@ namespace Api\Model\Approval;
 
 use Api\System\Library\Database\Builder\QueryBuilder;
 use PDO;
+use Api\System\Library\Support\LikeEscaper;
 
 final class ApprovalRepository
 {
@@ -93,7 +94,7 @@ final class ApprovalRepository
         }
 
         if (!empty($filters['search'])) {
-            $search = '%' . trim((string)$filters['search']) . '%';
+            $search = '%' . LikeEscaper::escape(trim((string)$filters['search'])) . '%';
             $query->whereRaw(
                 '(ar.entity_public_id LIKE ? OR ru.login LIKE ? OR ru.full_name LIKE ?)',
                 [$search, $search, $search]
