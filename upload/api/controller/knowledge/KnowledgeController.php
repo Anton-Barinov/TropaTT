@@ -648,7 +648,7 @@ final class KnowledgeController extends BaseController
     public function templates(): JsonResponse
     {
         return $this->success('KNOWLEDGE_TEMPLATES', $this->t('knowledge/messages.templates', 'Templates loaded'), [
-            'items' => $this->repo()->templates($this->request()->allInput()),
+            'items' => $this->repo()->templates($this->request()->allInput(), $this->actor()),
         ]);
     }
 

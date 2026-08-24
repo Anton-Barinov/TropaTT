@@ -771,7 +771,7 @@ final class KnowledgeRepository
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    public function templates(array $filters = []): array
+    public function templates(array $filters = [], ?array $actor = null): array
     {
         $where = 'is_active = 1';
         $params = [];
@@ -779,7 +779,17 @@ final class KnowledgeRepository
             $where .= ' AND page_type = :page_type';
             $params['page_type'] = (string)$filters['page_type'];
         }
-        $stmt = $this->pdo->prepare("SELECT id, public_id, title, page_type, description, content_html, content_json, is_system, is_active, created_by_user_id, created_at, updated_at FROM knowledge_templates WHERE {$where} ORDER BY is_system DESC, title ASC");
+        // ACL: non-root users see only global templates (space_id IS NULL)
+        // and templates from spaces they have access to.
+        if ($actor !== null && !$this->actorBypassesKnowledgeAcl($actor)) {
+            [$spaceAclSql, $spaceAclParams] = $this->spaceAccessSql('ks', $actor, 'view');
+            $params = array_merge($params, $spaceAclParams);
+            $where .= " AND (t.space_id IS NULL OR EXISTS (
+                SELECT 1 FROM knowledge_spaces ks
+                WHERE ks.id = t.space_id AND ({$spaceAclSql})
+            ))";
+        }
+        $stmt = $this->pdo->prepare("SELECT t.id, t.public_id, t.title, t.page_type, t.description, t.content_html, t.content_json, t.is_system, t.is_active, t.space_id, t.created_by_user_id, t.created_at, t.updated_at FROM knowledge_templates t WHERE {$where} ORDER BY t.is_system DESC, t.title ASC");
         $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
@@ -788,7 +798,8 @@ final class KnowledgeRepository
     {
         $now = gmdate('Y-m-d H:i:s');
         $publicId = $this->publicId('kbt');
-        $stmt = $this->pdo->prepare('INSERT INTO knowledge_templates (public_id, title, page_type, description, content_html, content_json, is_system, is_active, created_by_user_id, created_at, updated_at) VALUES (:public_id, :title, :page_type, :description, :content_html, :content_json, 0, 1, :created_by_user_id, :created_at, :updated_at)');
+        $spaceId = !empty($payload['space_id']) ? (int)$payload['space_id'] : null;
+        $stmt = $this->pdo->prepare('INSERT INTO knowledge_templates (public_id, title, page_type, description, content_html, content_json, is_system, is_active, space_id, created_by_user_id, created_at, updated_at) VALUES (:public_id, :title, :page_type, :description, :content_html, :content_json, 0, 1, :space_id, :created_by_user_id, :created_at, :updated_at)');
         $stmt->execute([
             'public_id' => $publicId,
             'title' => trim((string)($payload['title'] ?? '')),
@@ -796,6 +807,7 @@ final class KnowledgeRepository
             'description' => $this->nullableText($payload['description'] ?? null),
             'content_html' => $this->sanitizeHtml((string)($payload['content_html'] ?? '')),
             'content_json' => isset($payload['content_json']) ? json_encode($payload['content_json'], JSON_UNESCAPED_UNICODE) : null,
+            'space_id' => $spaceId,
             'created_by_user_id' => $actorId,
             'created_at' => $now,
             'updated_at' => $now,

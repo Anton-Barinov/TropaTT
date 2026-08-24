@@ -77,6 +77,7 @@ final class MigrationManager
             new ActivityCodeDictionaryMigration(),
             new FileVisibilityMigration(),
             new TwoFactorHardeningMigration(),
+            new KnowledgeTemplateSpaceMigration(),
         ];
     }
 
