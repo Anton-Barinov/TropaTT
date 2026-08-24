@@ -1320,13 +1320,11 @@ MD;
             $tools[] = $this->tool('crm_clear_module_errors', 'Clear recent errors for a CRM module.', [
                 'name' => ['type' => 'string'],
             ], ['name']);
-            $tools[] = $this->tool('crm_install_module_from_url', 'Install a CRM module from a URL.', [
-                'url' => ['type' => 'string'],
-            ], ['url']);
-            $tools[] = $this->tool('crm_install_module_from_file', 'Install a CRM module from a base64 encoded archive.', [
-                'file_name' => ['type' => 'string'],
-                'file_data' => ['type' => 'string'],
-            ], ['file_data']);
+            // crm_install_module_from_url / crm_install_module_from_file
+            // removed from MCP surface (C-2): prompt-injection vector —
+            // an LLM reading untrusted text could be tricked into calling
+            // these with a base64 payload. Install URL/file remain through
+            // the REST API with root gate + signature enforcement.
             $tools[] = $this->tool('crm_get_cache_stats', 'Get API file cache stats and current cache settings.', []);
             $tools[] = $this->tool('crm_clear_cache', 'Clear API file cache.', []);
             $tools[] = $this->tool('crm_get_ops_system', 'Get system ops snapshot for the CRM installation.', []);
@@ -2960,8 +2958,8 @@ MD;
             'crm_get_module_migrations' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmGetModuleMigrations($arguments))),
             'crm_get_module_errors' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmGetModuleErrors($arguments))),
             'crm_clear_module_errors' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmClearModuleErrors($arguments))),
-            'crm_install_module_from_url' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmInstallModuleFromUrl($arguments))),
-            'crm_install_module_from_file' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmInstallModuleFromFile($arguments))),
+            // crm_install_module_from_url / crm_install_module_from_file
+            // removed from MCP dispatch (C-2).
             'crm_get_cache_stats' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmGetCacheStats())),
             'crm_clear_cache' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmClearCache())),
             'crm_get_ops_system' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmGetOpsSystem())),
@@ -13090,8 +13088,10 @@ MD;
      */
     private function participantsForChat(int $chatId): array
     {
+        // L-4: email excluded — client-chat participants include external
+        // users who must not see internal staff emails.
         $stmt = $this->pdo()->prepare("
-            SELECT u.id, u.public_id, u.full_name, u.login, u.email, cp.role, cp.joined_at
+            SELECT u.id, u.public_id, u.full_name, u.login, cp.role, cp.joined_at
             FROM chat_participants cp
             JOIN users u ON u.id = cp.user_id
             WHERE cp.chat_id = :cid

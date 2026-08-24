@@ -158,7 +158,8 @@ final class UserProfileService
 
     private function sanitizeUser(array $user): array
     {
-        $unsafe = ['password_hash', 'auth_token_hash', 'deleted_at', 'id', 'created_by_user_id'];
+        $unsafe = ['password_hash', 'auth_token_hash', 'deleted_at', 'id', 'created_by_user_id',
+            'cost_rate', 'bill_rate', 'payout_rate'];
         foreach ($unsafe as $key) {
             unset($user[$key]);
         }

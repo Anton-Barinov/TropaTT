@@ -161,6 +161,7 @@ final class ModuleController
 
     public function activate(array $params = []): JsonResponse
     {
+        if ($this->requireRoot() !== null) { return $this->requireRoot(); }
         $name = $params['name'] ?? '';
         if ($name === '') {
             return JsonResponse::error('INVALID_PARAM', $this->t('common/messages.invalid_parameter', 'Invalid parameter'), 400);
@@ -263,6 +264,7 @@ final class ModuleController
      */
     public function purge(array $params = []): JsonResponse
     {
+        if ($this->requireRoot() !== null) { return $this->requireRoot(); }
         $name = trim((string)($params['name'] ?? ''));
         if ($name === '') {
             return JsonResponse::error('INVALID_PARAM', $this->t('common/messages.invalid_parameter', 'Invalid parameter'), 400);
@@ -447,6 +449,7 @@ final class ModuleController
 
     public function installFromUrl(array $params = []): JsonResponse
     {
+        if ($this->requireRoot() !== null) { return $this->requireRoot(); }
         $input = $this->request()->allInput();
         $url = trim((string)($input['url'] ?? $params['url'] ?? ''));
         if ($url === '') {
@@ -476,6 +479,7 @@ final class ModuleController
 
     public function installFromFile(array $params = []): JsonResponse
     {
+        if ($this->requireRoot() !== null) { return $this->requireRoot(); }
         $input = $this->request()->allInput();
         $fileData = trim((string)($input['file_data'] ?? $params['file_data'] ?? ''));
         $fileName = trim((string)($input['file_name'] ?? $params['file_name'] ?? 'module.zip'));
@@ -607,5 +611,14 @@ final class ModuleController
             error_log('[ModuleController::clearErrors] ' . $e->getMessage());
             return JsonResponse::error('CLEAR_FAILED', 'Module clear operation failed. Check server logs for details.', 500);
         }
+    }
+
+    private function requireRoot(): ?JsonResponse
+    {
+        $user = $this->user();
+        if (!$user || empty($user['is_root'])) {
+            return JsonResponse::error('FORBIDDEN', 'Root access required for this operation.', 403);
+        }
+        return null;
     }
 }

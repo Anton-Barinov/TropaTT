@@ -60,7 +60,7 @@ final class TaskRepository
         return $pairs;
     }
 
-    public function list(array $filters, ?int $actorUserId = null, bool $actorIsRoot = false): array
+    public function list(array $filters, ?int $actorUserId = null, bool $actorIsRoot = false, bool $rlsScoped = false): array
     {
         // Multi-level sort: filters['sort'] accepts a comma-separated chain of
         // "key:DIR" pairs (e.g. "title:ASC,priority_code:DESC"), up to 4 levels.
@@ -74,7 +74,7 @@ final class TaskRepository
         // 0 = unlimited (offset mode only; cursor mode always keeps a positive page size).
         $limit = $requestedLimit === 0 && $paginationMode !== 'cursor' ? 0 : min(500, max(1, $requestedLimit));
 
-        $builder = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $order)
+        $builder = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $order, $rlsScoped)
             ->leftJoin('users au', 'au.id', '=', 't.assignee_user_id')
             ->leftJoin('users pm', 'pm.id', '=', 'p.manager_user_id')
             ->leftJoin('users tm', 'tm.id', '=', 'pt.manager_user_id')
@@ -208,7 +208,7 @@ final class TaskRepository
         }
         $items = $builder->get();
 
-        $total = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $order)->count();
+        $total = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $order, $rlsScoped)->count();
 
         return [
             'items' => $items,
@@ -229,9 +229,9 @@ final class TaskRepository
      *
      * @return array<string,int> status_code => count
      */
-    public function countByStatus(array $filters, ?int $actorUserId = null, bool $actorIsRoot = false): array
+    public function countByStatus(array $filters, ?int $actorUserId = null, bool $actorIsRoot = false, bool $rlsScoped = false): array
     {
-        $rows = $this->buildListQuery($filters, $actorUserId, $actorIsRoot)
+        $rows = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, 'DESC', $rlsScoped)
             ->select([
                 't.status_code AS status_code',
                 'COUNT(*) AS task_count',
@@ -527,12 +527,12 @@ final class TaskRepository
     }
 
     /** @return array<int,array<string,mixed>> */
-    public function boardItems(array $filters, ?int $actorUserId = null, bool $actorIsRoot = false, int $limit = 500): array
+    public function boardItems(array $filters, ?int $actorUserId = null, bool $actorIsRoot = false, int $limit = 500, bool $rlsScoped = false): array
     {
         $sort = in_array(($filters['sort'] ?? ''), ['updated_at', 'due_at', 'priority_code', 'title'], true) ? (string)$filters['sort'] : 'updated_at';
         $order = strtoupper((string)($filters['order'] ?? 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
 
-        $qb = $this->buildListQuery($filters, $actorUserId, $actorIsRoot)
+        $qb = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $order, $rlsScoped)
             ->leftJoin('users u', 'u.id', '=', 't.assignee_user_id')
             ->select([
                 't.public_id',
@@ -667,7 +667,7 @@ final class TaskRepository
         ];
     }
 
-    private function buildListQuery(array $filters, ?int $actorUserId, bool $actorIsRoot, string $order = 'DESC'): QueryBuilder
+    private function buildListQuery(array $filters, ?int $actorUserId, bool $actorIsRoot, string $order = 'DESC', bool $rlsScoped = false): QueryBuilder
     {
         $qb = (new QueryBuilder($this->pdo))
             ->from('tasks t')
@@ -908,14 +908,14 @@ final class TaskRepository
             }
         }
 
-        // When a client_public_id RLS filter is active (external user scoped to
-        // their counterparty), skip the team/creator/manager access gate — the
-        // client_public_id filter already limits results to the actor's own
-        // counterparty's tasks, so the additional ownership check would
-        // incorrectly hide tasks the external user is legitimately allowed to see.
-        $hasRlsClientFilter = !empty($filters['client_public_id']) || array_key_exists('executor_project_ids', $filters);
+        // When the service layer signals that row-level security has already
+        // been applied (an external user scoped to their counterparty or granted
+        // projects), skip the team/creator/manager access gate. The rlsScoped
+        // flag is set exclusively by the service layer — it MUST NOT be derived
+        // from user-supplied filter keys, as that would let an internal user
+        // bypass the gate by injecting client_public_id or executor_project_ids.
 
-        if (!$actorIsRoot && !$hasRlsClientFilter && $actorUserId !== null && $actorUserId > 0) {
+        if (!$actorIsRoot && !$rlsScoped && $actorUserId !== null && $actorUserId > 0) {
             $accessibleTeamIds = array_values(array_filter(
                 array_map(static fn($value): string => trim((string)$value), (array)($filters['accessible_team_public_ids'] ?? [])),
                 static fn(string $value): bool => $value !== ''

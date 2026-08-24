@@ -95,10 +95,15 @@ final class RateCardController extends BaseController
         if (array_key_exists('currency_code', $input)) $set['currency_code'] = $input['currency_code'];
         if (array_key_exists('is_default', $input)) {
             $pdo->beginTransaction();
-            if (!empty($input['is_default'])) $this->clearDefaultCard($pdo);
-            $set['is_default'] = (int)(!empty($input['is_default']));
-            (new QueryBuilder($pdo))->from('rate_cards')->where('public_id', '=', $pid)->update($set);
-            $pdo->commit();
+            try {
+                if (!empty($input['is_default'])) $this->clearDefaultCard($pdo);
+                $set['is_default'] = (int)(!empty($input['is_default']));
+                (new QueryBuilder($pdo))->from('rate_cards')->where('public_id', '=', $pid)->update($set);
+                $pdo->commit();
+            } catch (\Throwable $e) {
+                if ($pdo->inTransaction()) { $pdo->rollBack(); }
+                throw $e;
+            }
         } else {
             (new QueryBuilder($pdo))->from('rate_cards')->where('public_id', '=', $pid)->update($set);
         }
@@ -145,6 +150,17 @@ final class RateCardController extends BaseController
             ->where('l.deleted_at', 'IS', null)
             ->orderBy('l.effective_from', 'DESC')
             ->get();
+
+        // H-4: apply FinancialFieldPolicy — strip financial columns the actor
+        // is not authorised to see (cost_rate/bill_rate/payout_rate).
+        $actor = $this->user();
+        if ($actor && $this->container->has('financial.field_policy')) {
+            $policy = $this->container->get('financial.field_policy');
+            if ($policy instanceof FinancialFieldPolicy) {
+                $lines = $policy->filterRows($lines, $actor, 'ratecard.lines');
+            }
+        }
+
         return $this->success('LINES', '', ['items' => $lines]);
     }
 
@@ -216,6 +232,9 @@ final class RateCardController extends BaseController
     {
         $pid = (string)$params['public_id'];
         $pdo = $this->container->get('db.pdo');
+        $line = (new QueryBuilder($pdo))->from('rate_card_lines')
+            ->where('public_id', '=', $pid)->where('deleted_at', 'IS', null)->first();
+        if (!$line) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         (new QueryBuilder($pdo))->from('rate_card_lines')->where('public_id', '=', $pid)->update([
             'deleted_at' => gmdate('Y-m-d H:i:s'),
             'updated_at' => gmdate('Y-m-d H:i:s'),
@@ -251,13 +270,24 @@ final class RateCardController extends BaseController
             return $this->error('VALIDATION', $this->t('rate/messages.invalid_scope'), 422);
         }
 
+        // M-4: resolve scope_ref to verify the counterparty/project exists
+        // and (when the services are available) is reachable by the actor.
+        $scopeRef = (string)($input['scope_ref'] ?? '');
+        if ($scopeRef === '') {
+            return $this->error('VALIDATION', $this->t('rate/messages.invalid_scope'), 422);
+        }
+        $scopeExists = $this->validateScopeRef($scope, $scopeRef);
+        if (!$scopeExists) {
+            return $this->error('VALIDATION', $this->t('rate/messages.scope_not_found'), 422);
+        }
+
         $now = gmdate('Y-m-d H:i:s');
         $publicId = Ulid::generate('rca');
         (new QueryBuilder($pdo))->from('rate_card_assignments')->insert([
             'public_id' => $publicId,
             'rate_card_id' => (int)$card['id'],
             'scope_type' => $scope,
-            'scope_ref' => (string)($input['scope_ref'] ?? ''),
+            'scope_ref' => $scopeRef,
             'priority' => (int)($input['priority'] ?? 100),
             'effective_from' => $input['effective_from'] ?? gmdate('Y-m-d'),
             'effective_to' => $input['effective_to'] ?? null,
@@ -273,6 +303,9 @@ final class RateCardController extends BaseController
     {
         $pid = (string)$params['public_id'];
         $pdo = $this->container->get('db.pdo');
+        $assignment = (new QueryBuilder($pdo))->from('rate_card_assignments')
+            ->where('public_id', '=', $pid)->where('deleted_at', 'IS', null)->first();
+        if (!$assignment) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         (new QueryBuilder($pdo))->from('rate_card_assignments')->where('public_id', '=', $pid)->update([
             'deleted_at' => gmdate('Y-m-d H:i:s'),
             'updated_at' => gmdate('Y-m-d H:i:s'),
@@ -292,6 +325,24 @@ final class RateCardController extends BaseController
     {
         $u = $this->user();
         return $u ? ((int)($u['user']['id'] ?? 0) ?: null) : null;
+    }
+
+    /**
+     * Validate that a scope_ref (counterparty or project public_id) exists.
+     * M-4: previously scope_ref was written raw without verifying the
+     * counterparty/project is real.
+     */
+    private function validateScopeRef(string $scopeType, string $scopeRef): bool
+    {
+        if ($scopeRef === '') return false;
+        $pdo = $this->container->get('db.pdo');
+        $table = $scopeType === 'counterparty' ? 'counterparties' : 'projects';
+        $row = (new QueryBuilder($pdo))->from($table)
+            ->select(['id'])
+            ->where('public_id', '=', $scopeRef)
+            ->where('deleted_at', 'IS', null)
+            ->first();
+        return $row !== null;
     }
 
     /**

@@ -1843,7 +1843,8 @@ final class KnowledgeController extends BaseController
              JOIN knowledge_spaces s ON s.id = p.space_id
              WHERE p.public_id = :pid
                AND p.deleted_at IS NULL
-               AND p.client_visible = 1"
+               AND p.client_visible = 1
+               AND s.visibility = 'public'"
         );
         $stmt->execute(['pid' => $pagePublicId]);
         $page = $stmt->fetch(\PDO::FETCH_ASSOC);

@@ -13,6 +13,26 @@ final class ModuleCronScheduler
     private string $tasksTable = 'module_scheduled_tasks';
     private string $executionsTable = 'module_task_executions';
 
+    /**
+     * Trusted namespace prefixes for cron handler classes. Only classes under
+     * these namespaces may be instantiated from the scheduled-tasks table.
+     * Modules register their handlers through ServiceProvider hooks during
+     * boot; a hand-written row in the DB with an arbitrary class will fail.
+     */
+    private const HANDLER_NS_ALLOWLIST = [
+        'Api\\',
+        'Module\\',
+    ];
+
+    /**
+     * Allowed method names for cron handlers.
+     */
+    private const HANDLER_METHOD_ALLOWLIST = [
+        'run', 'execute', 'handle', 'process',
+        'freshnessScan', 'draftsCleanup', 'versionsCleanup', 'reindexSearch',
+        'captureDaily', 'autoClosePeriods',
+    ];
+
     public function __construct(PDO $pdo)
     {
         $this->pdo = $pdo;
@@ -30,16 +50,40 @@ final class ModuleCronScheduler
 
         $tasks = $this->getDueTasks($now);
         foreach ($tasks as $task) {
-            $taskResult = $this->executeTask($task['id'], $task['module_name'], $task['task_name'], $task['handler_class'], $task['handler_method'], (int)$task['timeout']);
-            $result['results'][] = $taskResult;
+            try {
+                $taskResult = $this->executeTask(
+                    (int)$task['id'],
+                    (string)$task['module_name'],
+                    (string)$task['task_name'],
+                    (string)$task['handler_class'],
+                    (string)$task['handler_method'],
+                    (int)$task['timeout']
+                );
+                $result['results'][] = $taskResult;
 
-            if ($taskResult['status'] === 'success') {
-                $result['executed']++;
-            } else {
+                if ($taskResult['status'] === 'success') {
+                    $result['executed']++;
+                } else {
+                    $result['failed']++;
+                }
+
+                $this->updateNextRun((int)$task['id'], (string)$task['schedule']);
+            } catch (\Throwable $e) {
+                error_log('[ModuleCronScheduler::run] Fatal error running task ' . ($task['task_name'] ?? '?') . ': ' . $e->getMessage());
+                $result['results'][] = [
+                    'status' => 'failed',
+                    'module' => (string)($task['module_name'] ?? ''),
+                    'task' => (string)($task['task_name'] ?? ''),
+                    'duration_ms' => 0,
+                    'error' => $e->getMessage(),
+                ];
                 $result['failed']++;
+                // Still update next run so the broken task doesn't block the queue.
+                try {
+                    $this->updateNextRun((int)$task['id'], (string)$task['schedule']);
+                } catch (\Throwable $ignored) {
+                }
             }
-
-            $this->updateNextRun((int)$task['id'], $task['schedule']);
         }
 
         return $result;
@@ -259,6 +303,9 @@ final class ModuleCronScheduler
             $stmt->execute(['module' => $moduleName, 'task' => $taskName, 'now' => $now, 'pid' => $pid]);
             $executionId = (int)$this->pdo->lastInsertId();
 
+            // H-6: validate handler class and method against allowlists.
+            $this->validateHandler($handlerClass, $handlerMethod);
+
             if (!class_exists($handlerClass)) {
                 throw new \RuntimeException("Handler class not found: {$handlerClass}");
             }
@@ -319,10 +366,10 @@ final class ModuleCronScheduler
         try {
             $stmt = $this->pdo->prepare("SELECT overlap_allowed FROM {$this->tasksTable} WHERE id = :id");
             $stmt->execute(['id' => $taskId]);
-            } catch (\Throwable $e) {
-                error_log('[ModuleCronScheduler::isOverlapAllowed] ' . $e->getMessage());
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            return !empty($row['overlap_allowed']);
         } catch (\Throwable $e) {
-            error_log('[ModuleCronScheduler::isOverlapAllowed] DB prepare: ' . $e->getMessage());
+            error_log('[ModuleCronScheduler::isOverlapAllowed] ' . $e->getMessage());
             return false;
         }
     }
@@ -331,12 +378,35 @@ final class ModuleCronScheduler
     {
         try {
             $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM {$this->executionsTable} WHERE module_name = :module AND task_name = :task AND status = 'running'");
-            } catch (\Throwable $e) {
-                error_log('[ModuleCronScheduler::isRunning] ' . $e->getMessage());
+            $stmt->execute(['module' => $moduleName, 'task' => $taskName]);
             return ((int)$stmt->fetchColumn()) > 0;
         } catch (\Throwable $e) {
-            error_log('[ModuleCronScheduler::hasRunningExecution] DB prepare: ' . $e->getMessage());
+            error_log('[ModuleCronScheduler::hasRunningExecution] ' . $e->getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Validate that a cron handler class and method are within the trust boundary.
+     * Fail-closed: rejects classes outside the allowlisted namespace prefixes
+     * and methods not in the allowlist. This prevents arbitrary class
+     * instantiation from rows in the scheduled-tasks table (H-6).
+     */
+    private function validateHandler(string $handlerClass, string $handlerMethod): void
+    {
+        $allowed = false;
+        foreach (self::HANDLER_NS_ALLOWLIST as $prefix) {
+            if (str_starts_with($handlerClass, $prefix)) {
+                $allowed = true;
+                break;
+            }
+        }
+        if (!$allowed) {
+            throw new \RuntimeException("Handler class '{$handlerClass}' is not in a trusted namespace");
+        }
+
+        if (!in_array($handlerMethod, self::HANDLER_METHOD_ALLOWLIST, true)) {
+            throw new \RuntimeException("Handler method '{$handlerMethod}' is not allowed for cron tasks");
         }
     }
 }

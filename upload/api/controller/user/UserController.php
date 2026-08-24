@@ -174,7 +174,8 @@ final class UserController extends BaseController
             try {
                 /** @var \Api\System\Library\Service\ExternalUserService $ext */
                 $ext = $this->container->get('service.external_user');
-                $ext->bootstrapGrantsForExternalUser((int)($result['user']['id'] ?? 0));
+                $actorId = (int)($actor['id'] ?? 0);
+                $ext->bootstrapGrantsForExternalUser((int)($result['user']['id'] ?? 0), $actorId);
             } catch (\Throwable $e) {
                 // Grant seeding is best-effort: the role change itself already
                 // succeeded; the admin can still grant projects manually.

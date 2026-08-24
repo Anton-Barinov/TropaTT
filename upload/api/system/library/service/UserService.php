@@ -194,10 +194,25 @@ final class UserService
         // value is validated upstream (UserController) to one of the two roles,
         // and App::run()'s external gate keys off this column, so it must never
         // accept arbitrary strings here.
+        $wasExecutor = ($target['external_role'] ?? '') === 'executor';
         if (array_key_exists('external_role', $input)) {
             $extRole = strtolower(trim((string)$input['external_role']));
             if (in_array($extRole, ['observer', 'executor'], true)) {
                 $set['external_role'] = $extRole;
+                // M-1: downgrading executor → observer must revoke all project
+                // grants so stale access doesn't silently revive on re-upgrade.
+                if ($wasExecutor && $extRole === 'observer') {
+                    $pdo = $this->users->getPdo();
+                    $pdo->prepare('DELETE FROM external_user_project_access WHERE user_id = :uid')
+                        ->execute([':uid' => (int)$target['id']]);
+                    $this->logger->audit([
+                        'action' => 'executor_demoted_to_observer',
+                        'actor_public_id' => $actor['public_id'] ?? null,
+                        'entity_type' => 'user',
+                        'entity_public_id' => $publicId,
+                        'detail' => 'project_grants_revoked',
+                    ]);
+                }
             }
         }
 

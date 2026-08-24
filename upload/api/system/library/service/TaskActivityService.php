@@ -27,10 +27,20 @@ final class TaskActivityService
 
         $result = $this->repository->listByTaskPublicId($taskPublicId, $filters);
 
+        $isExternal = !empty((int)($actor['is_external'] ?? 0));
+
         // Enrich items with decoded payload
         $items = [];
         foreach ($result['items'] as $item) {
-            $items[] = $this->normalizeItem($item);
+            $normalized = $this->normalizeItem($item);
+
+            // H-3: external users must not see internal comment/file previews,
+            // internal-user identities, or internal-activity message texts.
+            if ($isExternal) {
+                $normalized = $this->sanitizeForExternal($normalized);
+            }
+
+            $items[] = $normalized;
         }
 
         $total = (int)$result['total'];
@@ -544,5 +554,40 @@ final class TaskActivityService
             'payload' => $payload,
             'created_at' => $item['created_at'] ?? '',
         ];
+    }
+
+    /**
+     * Strip internal-only data from an activity event for an external user.
+     * Mirrors the approach of TaskService::sanitizeTask(): remove staff
+     * identities, internal comment/file previews, and message texts from
+     * events that originated from internal actions (H-3).
+     */
+    private function sanitizeForExternal(array $item): array
+    {
+        // Remove internal staff identities.
+        $item['actor_user_public_id'] = '';
+        $item['actor_display_name'] = '';
+
+        // Events triggered by internal files or internal comments must not
+        // leak previews, labels, or message texts.
+        $eventType = (string)($item['event_type'] ?? '');
+        $relatedType = (string)($item['related_entity_type'] ?? '');
+
+        if ($eventType === 'task.comment_added' || $eventType === 'task.comment_updated'
+            || $relatedType === 'comment'
+        ) {
+            unset($item['payload']['preview']);
+            $item['message_text'] = '';
+            $item['related_entity_label'] = '';
+        }
+
+        if ($eventType === 'task.file_added' || $eventType === 'task.file_deleted'
+            || $relatedType === 'file'
+        ) {
+            $item['message_text'] = '';
+            $item['related_entity_label'] = '';
+        }
+
+        return $item;
     }
 }

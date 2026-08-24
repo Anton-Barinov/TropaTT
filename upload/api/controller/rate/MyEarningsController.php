@@ -54,6 +54,13 @@ final class MyEarningsController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
+        // L-8: the boolean indicator itself must be gated by payout permission;
+        // a user without finance.rate.view_own_payout must never learn whether
+        // there is payout data at all.
+        if (!$this->canViewOwnPayout($auth)) {
+            return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
+        }
+
         /** @var \Api\System\Library\Service\EarningsService $svc */
         $svc = $this->container->get('service.earnings');
         $available = $svc->hasPayoutData($auth['user']);

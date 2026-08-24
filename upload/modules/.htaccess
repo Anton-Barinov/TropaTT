@@ -1,0 +1,16 @@
+# Block execution of PHP scripts in the modules directory (H-7).
+# Modules are untrusted third-party code; only static assets under
+# modules/*/web/assets/ should ever be reachable by the web server.
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|php8|phar|inc)$">
+    Require all denied
+</FilesMatch>
+
+# Deny direct access to manifest.json — reveals module inventory and versions.
+<FilesMatch "manifest\.json$">
+    Require all denied
+</FilesMatch>
+
+# Deny access to hidden files and directories
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>

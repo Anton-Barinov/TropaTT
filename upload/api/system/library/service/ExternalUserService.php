@@ -317,7 +317,11 @@ final class ExternalUserService
      * Safe to call for any external user; no-op when the user has no contact
      * or is not an executor. Idempotent (INSERT IGNORE / OR IGNORE).
      */
-    public function bootstrapGrantsForExternalUser(int $userId): bool
+    /**
+     * Bootstrap project grants for a newly upgraded executor.
+     * @param int $grantedByUserId the internal user who initiated the role change
+     */
+    public function bootstrapGrantsForExternalUser(int $userId, int $grantedByUserId = 0): bool
     {
         if ($userId <= 0) {
             return false;
@@ -337,7 +341,19 @@ final class ExternalUserService
         if ($counterpartyId <= 0) {
             return false;
         }
-        $this->bootstrapExecutorGrants($userId, $counterpartyId, $userId, gmdate('Y-m-d H:i:s'));
+        // M-2: use the actual granting actor's id (not the guest's own id),
+        // and audit the grant operation.
+        $grantor = $grantedByUserId > 0 ? $grantedByUserId : $userId;
+        $this->bootstrapExecutorGrants($userId, $counterpartyId, $grantor, gmdate('Y-m-d H:i:s'));
+
+        $this->logger->audit([
+            'action' => 'executor_grants_bootstrapped',
+            'actor_public_id' => $user['public_id'] ?? null,
+            'entity_type' => 'user',
+            'entity_public_id' => $user['public_id'] ?? null,
+            'detail' => 'granted_by_user_id=' . $grantor,
+        ]);
+
         return true;
     }
 
@@ -535,11 +551,18 @@ final class ExternalUserService
             'updated_at' => $now,
         ]);
 
+        // M-1: revoke all project grants so stale access cannot silently
+        // revive if the user is reactivated under a new counterparty.
+        $pdo = $this->users->getPdo();
+        $pdo->prepare('DELETE FROM external_user_project_access WHERE user_id = :uid')
+            ->execute([':uid' => (int)$user['id']]);
+
         $this->logger->audit([
             'action' => 'external_user_deactivated',
             'actor_public_id' => $actor['public_id'] ?? null,
             'entity_type' => 'user',
             'entity_public_id' => $userPublicId,
+            'detail' => 'project_grants_revoked',
         ]);
 
         return ['ok' => true];

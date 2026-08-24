@@ -36,6 +36,7 @@ final class ProjectService
         // nothing. Previously the scoping filter was simply skipped in that
         // case, leaving the query unscoped and returning every counterparty's
         // projects to a client-portal user.
+        $rlsScoped = false;
         if (!empty((int)($actor['is_external'] ?? 0))) {
             $actorId = (int)($actor['id'] ?? 0);
             $externalRole = $this->externalUsers ? $this->externalUsers->getExternalRole($actorId) : ExternalUserService::ROLE_OBSERVER;
@@ -58,12 +59,14 @@ final class ProjectService
 
                 $filters['client_public_id'] = $cpPublicId;
             }
+            $rlsScoped = true;
         }
 
         $result = $this->projects->list(
             $filters,
             (int)($actor['id'] ?? 0),
-            (bool)($actor['is_root'] ?? false)
+            (bool)($actor['is_root'] ?? false),
+            $rlsScoped
         );
 
         $items = (array)($result['items'] ?? []);
@@ -76,6 +79,7 @@ final class ProjectService
             $item['done_tasks_count'] = $done;
             $item['open_tasks_count'] = max(0, $total - $done);
             $item['progress_percent'] = $total > 0 ? (int)round(($done / $total) * 100) : 0;
+            $item = $this->sanitizeProject($item, $actor);
         }
         unset($item);
         $mode = (string)($result['mode'] ?? 'offset');
@@ -246,7 +250,7 @@ final class ProjectService
             return null;
         }
 
-        return $project;
+        return $this->sanitizeProject($project, $actor);
     }
 
     /** @return array<string,mixed>|null|'ROW_VERSION_CONFLICT' */
@@ -540,5 +544,25 @@ final class ProjectService
         }
 
         return $normalized;
+    }
+
+    /**
+     * Strip internal staff identities from project data for external users.
+     * Mirrors TaskService::sanitizeTask() so external users cannot see staff
+     * public IDs, names, or internal IDs even through the projects endpoint (M-6).
+     */
+    private function sanitizeProject(array $project, array $actor): array
+    {
+        if (empty((int)($actor['is_external'] ?? 0))) {
+            return $project;
+        }
+
+        unset($project['manager_user_public_id'], $project['manager_user_name']);
+        unset($project['creator_user_public_id'], $project['creator_user_name']);
+        unset($project['team_manager_user_id'], $project['team_member_user_ids']);
+        unset($project['manager_user_id'], $project['created_by_user_id']);
+        unset($project['id']);
+
+        return $project;
     }
 }

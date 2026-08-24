@@ -367,7 +367,11 @@ final class App
                 $externalRole = strtolower((string)($authForExternalGate['user']['external_role'] ?? 'observer'));
                 $isWriteMethod = in_array($request->method, ['POST', 'PATCH', 'PUT', 'DELETE'], true);
                 $routeWriteAllowed = ($matched['external_write_ok'] ?? false) === true;
-                if ($externalRole === 'observer' && $isWriteMethod && !$routeWriteAllowed) {
+                // Fail-closed (L-6): any external role that is not 'executor'
+                // is denied writes. Currently only two roles exist, but if a
+                // third were ever introduced without updating this gate, a
+                // positive match (=== 'observer') would allow writes through.
+                if ($externalRole !== 'executor' && $isWriteMethod && !$routeWriteAllowed) {
                     $lang = $this->container->get('lang');
                     $response = JsonResponse::error(
                         code: 'EXTERNAL_ACCESS_DENIED',
@@ -1814,6 +1818,13 @@ final class App
         $eventDispatcher = new EventDispatcher();
         $this->container->set('module.event_dispatcher', $eventDispatcher);
 
+        // C-1: the sandbox/validation classes below (ModuleCodeValidator,
+        // ModuleTableValidator, ModuleSandbox, ModuleFilesystemSandbox,
+        // ModuleNetworkSandbox, ModuleTenantDataIsolator, and ~15 others) are
+        // currently registered in the container but NOT invoked at any point.
+        // Module code is fully trusted and runs in the same process as core.
+        // Module installation is restricted to root users + signed packages
+        // (MODULE_SIGNING_KEY required, root gate on install/purge routes).
         $codeValidator = new ModuleCodeValidator();
         $this->container->set('module.code_validator', $codeValidator);
 

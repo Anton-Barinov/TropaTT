@@ -864,8 +864,10 @@ final class ChatController extends BaseController
 
     private function participantsForChat(int $chatId): array
     {
+        // L-4: email is excluded — client-chat participants include external
+        // users who must not see internal staff emails through chat metadata.
         $stmt = $this->container->get('db.pdo')->prepare("
-            SELECT u.id, u.public_id, u.full_name, u.login, u.email, cp.role, cp.joined_at
+            SELECT u.id, u.public_id, u.full_name, u.login, cp.role, cp.joined_at
             FROM chat_participants cp
             JOIN users u ON u.id = cp.user_id
             WHERE cp.chat_id = :cid
@@ -1227,8 +1229,29 @@ final class ChatController extends BaseController
         // Resolve the participant user
         $userRepo = $this->container->get('repository.user');
         $participant = $userRepo->findByPublicId($participantPublicId);
-        if (!$participant || (int)($participant['deleted_at'] ?? 0) > 0) {
+        if (!$participant || ($participant['deleted_at'] ?? null) !== null) {
             return $this->error('USER_NOT_FOUND', $this->t('common/messages.not_found'), 404);
+        }
+
+        // M-3: validate the participant is an external user who is either
+        // an observer of the project's counterparty or an executor with a
+        // project grant. Outright reject adding internal users or guests
+        // from unrelated counterparties to a client chat.
+        if (empty($participant['is_external'])) {
+            return $this->error('VALIDATION', 'Only external (portal) users can be added to a client chat.', 422);
+        }
+        if (empty($participant['is_active'])) {
+            return $this->error('VALIDATION', 'The user is inactive.', 422);
+        }
+        $externalUserService = $this->container->get('service.external_user');
+        if ($externalUserService) {
+            $participantCpid = $externalUserService->getCounterpartyPublicId((int)$participant['id']);
+            $participantRole = $externalUserService->getExternalRole((int)$participant['id']);
+            $projectCpid = $project['client_public_id'] ?? '';
+            $okCp = ($participantCpid !== '' && $projectCpid !== '' && $participantCpid === $projectCpid);
+            if (!$okCp) {
+                return $this->error('VALIDATION', 'User does not belong to this project\'s counterparty.', 422);
+            }
         }
 
         /** @var ChatService $service */

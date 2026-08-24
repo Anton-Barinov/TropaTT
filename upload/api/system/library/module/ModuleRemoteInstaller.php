@@ -149,13 +149,14 @@ final class ModuleRemoteInstaller
     /**
      * Verify module package integrity using HMAC-SHA256 signature.
      * Verifies the manifest content (excluding signature field) with MODULE_SIGNING_KEY.
-     * If no signing key is configured, verification is silently skipped.
+     * Fail-closed: if no signing key is configured, verification fails — unsigned
+     * packages are rejected by default. Set MODULE_SIGNING_KEY in .env to enable.
      */
     private function verifyPackageSignature(array $manifestData): void
     {
         $signingKey = trim((string)(getenv('MODULE_SIGNING_KEY') ?: ''));
         if ($signingKey === '') {
-            return; // No signing key configured — skip verification
+            throw new RuntimeException("Module signing key not configured — set MODULE_SIGNING_KEY in .env to install modules");
         }
 
         $signature = (string)($manifestData['signature'] ?? '');

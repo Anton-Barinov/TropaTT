@@ -98,6 +98,7 @@ final class TaskService
         // nothing. Previously the scoping filter was simply skipped in that
         // case, leaving the query unscoped and returning every counterparty's
         // tasks to a client-portal user.
+        $rlsScoped = false;
         if (!empty((int)($actor['is_external'] ?? 0))) {
             $actorId = (int)($actor['id'] ?? 0);
             $externalRole = $this->externalUsers ? $this->externalUsers->getExternalRole($actorId) : ExternalUserService::ROLE_OBSERVER;
@@ -117,12 +118,14 @@ final class TaskService
 
                 $filters['client_public_id'] = $cpPublicId;
             }
+            $rlsScoped = true;
         }
 
         $result = $this->tasks->list(
             $filters,
             (int)($actor['id'] ?? 0),
-            (bool)($actor['is_root'] ?? false)
+            (bool)($actor['is_root'] ?? false),
+            $rlsScoped
         );
 
         $items = (array)($result['items'] ?? []);
@@ -165,7 +168,8 @@ final class TaskService
             $meta['status_counts'] = $this->tasks->countByStatus(
                 $filters,
                 (int)($actor['id'] ?? 0),
-                (bool)($actor['is_root'] ?? false)
+                (bool)($actor['is_root'] ?? false),
+                $rlsScoped
             );
         }
 
@@ -676,14 +680,18 @@ final class TaskService
             $task['description'] = $this->sanitizeDescription((string)$task['description']);
         }
 
-        // Strip internal staff names and IDs for external users. A guest must
-        // not see assignee/manager/team-member names via the network tab.
+        // Strip internal staff names, logins, and IDs for external users. A
+        // guest must not see internal staff identities via the network tab.
+        // Logins are email-equivalent for guests and usernames for staff —
+        // exposing them gives an attacker half of the credential pair.
         if (!empty((int)($actor['is_external'] ?? 0))) {
-            unset($task['assignee_name'], $task['assignee_user_public_id']);
-            unset($task['project_manager_name'], $task['project_manager_user_public_id']);
-            unset($task['project_team_manager_name'], $task['project_team_manager_user_public_id']);
+            unset($task['assignee_name'], $task['assignee_user_public_id'], $task['assignee_login']);
+            unset($task['project_manager_name'], $task['project_manager_user_public_id'], $task['project_manager_login']);
+            unset($task['project_team_manager_name'], $task['project_team_manager_user_public_id'], $task['project_team_manager_login']);
             unset($task['project_team_member_user_ids']);
             unset($task['creator_user_name'], $task['creator_user_public_id']);
+            unset($task['assignee_user_id'], $task['creator_user_id']);
+            unset($task['project_manager_user_id'], $task['project_team_manager_user_id']);
         }
 
         return $task;
