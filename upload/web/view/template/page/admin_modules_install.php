@@ -8,7 +8,7 @@
   <div class="col-lg-6">
     <div class="crm-card crm-section-card">
       <div class="crm-section-head"><h2 class="h6 mb-0" data-i18n="admin_modules_install.card_url_title"><?= htmlspecialchars($t('admin_modules_install.card_url_title', 'Установка из URL'), ENT_QUOTES, 'UTF-8') ?></h2></div>
-      <form id="installUrlForm" onsubmit="return false;">
+      <form id="installUrlForm" data-no-submit>
         <div class="mb-3">
           <label for="moduleUrl" class="form-label" data-i18n="admin_modules_install.label_url"><?= htmlspecialchars($t('admin_modules_install.label_url', 'URL модуля (ZIP-архив)'), ENT_QUOTES, 'UTF-8') ?></label>
           <input type="url" class="form-control" id="moduleUrl" name="moduleUrl" placeholder="<?= htmlspecialchars($t('admin_modules_install.placeholder_url', 'https://example.com/modules/crm.hello-1.0.0.zip'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="admin_modules_install.placeholder_url" required>
@@ -26,7 +26,7 @@
   <div class="col-lg-6">
     <div class="crm-card crm-section-card">
       <div class="crm-section-head"><h2 class="h6 mb-0" data-i18n="admin_modules_install.card_file_title"><?= htmlspecialchars($t('admin_modules_install.card_file_title', 'Установка из файла'), ENT_QUOTES, 'UTF-8') ?></h2></div>
-      <form id="installFileForm" onsubmit="return false;">
+      <form id="installFileForm" data-no-submit>
         <div class="mb-3">
           <label for="moduleFile" class="form-label" data-i18n="admin_modules_install.label_file"><?= htmlspecialchars($t('admin_modules_install.label_file', 'ZIP-архив модуля'), ENT_QUOTES, 'UTF-8') ?></label>
           <input type="file" class="form-control crm-file-input" id="moduleFile" name="moduleFile" accept=".zip" required>

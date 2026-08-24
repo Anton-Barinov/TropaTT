@@ -7,7 +7,7 @@
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h4 mb-0" data-i18n="cycles.page_title"><?= htmlspecialchars($t('cycles.page_title', 'Циклы (Спринты)'), ENT_QUOTES, 'UTF-8') ?></h1>
     <div>
-      <button class="btn btn-sm crm-btn-primary" onclick="window.openCycleModal(null)">
+      <button class="btn btn-sm crm-btn-primary" data-cycle-action="create">
         <i class="fa-solid fa-plus" aria-hidden="true"></i> <?= htmlspecialchars($t('cycles.btn_create', 'Создать цикл'), ENT_QUOTES, 'UTF-8') ?>
       </button>
     </div>
@@ -57,7 +57,7 @@
     <i class="fa-solid fa-arrows-rotate fa-3x text-muted mb-3" aria-hidden="true"></i>
     <h5 class="text-muted"><?= htmlspecialchars($t('cycles.empty_title', 'Нет циклов'), ENT_QUOTES, 'UTF-8') ?></h5>
     <p class="text-muted small"><?= htmlspecialchars($t('cycles.empty_text', 'Создайте первый цикл для планирования задач.'), ENT_QUOTES, 'UTF-8') ?></p>
-    <button class="btn btn-sm crm-btn-primary" onclick="window.openCycleModal(null)">
+    <button class="btn btn-sm crm-btn-primary" data-cycle-action="create">
       <i class="fa-solid fa-plus" aria-hidden="true"></i> <?= htmlspecialchars($t('cycles.btn_create', 'Создать цикл'), ENT_QUOTES, 'UTF-8') ?>
     </button>
   </div>
@@ -67,7 +67,7 @@
     <i class="fa-solid fa-triangle-exclamation fa-3x text-danger mb-3" aria-hidden="true"></i>
     <h5 class="text-danger"><?= htmlspecialchars($t('cycles.error_title', 'Ошибка загрузки'), ENT_QUOTES, 'UTF-8') ?></h5>
     <p id="cycleErrorText" class="text-muted small"><?= htmlspecialchars($t('cycles.error_text', 'Не удалось загрузить список циклов.'), ENT_QUOTES, 'UTF-8') ?></p>
-    <button class="btn btn-sm crm-btn-secondary" onclick="window.loadWorkCycles(1)"><?= htmlspecialchars($t('cycles.btn_retry', 'Повторить'), ENT_QUOTES, 'UTF-8') ?></button>
+    <button class="btn btn-sm crm-btn-secondary" data-cycle-action="retry"><?= htmlspecialchars($t('cycles.btn_retry', 'Повторить'), ENT_QUOTES, 'UTF-8') ?></button>
   </div>
 
   <!-- Cycle List -->
@@ -87,7 +87,7 @@
       </div>
       <div class="modal-body">
         <div id="cycleModalAlert" class="alert alert-danger d-none"></div>
-        <form id="cycleForm" onsubmit="return false;">
+        <form id="cycleForm">
           <input type="hidden" id="cycleFormPublicId" value="">
           <input type="hidden" id="cycleFormRowVersion" value="">
 
@@ -132,7 +132,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-sm crm-btn-secondary" data-bs-dismiss="modal"><?= htmlspecialchars($t('cycles.btn_cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
-        <button type="button" class="btn btn-sm crm-btn-primary" id="cycleFormSubmit" onclick="window.saveWorkCycle()"><?= htmlspecialchars($t('cycles.btn_submit_create', 'Создать'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button type="button" class="btn btn-sm crm-btn-primary" id="cycleFormSubmit" data-cycle-action="save"><?= htmlspecialchars($t('cycles.btn_submit_create', 'Создать'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
     </div>
   </div>
@@ -196,7 +196,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-sm crm-btn-secondary" data-bs-dismiss="modal"><?= htmlspecialchars($t('cycles.btn_close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?></button>
-        <button type="button" class="btn btn-sm crm-btn-primary" id="addTasksConfirmBtn" onclick="window.confirmAddTasks()"><?= htmlspecialchars($t('cycles.btn_add_selected', 'Добавить выбранные'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button type="button" class="btn btn-sm crm-btn-primary" id="addTasksConfirmBtn" data-cycle-action="confirm-add-tasks"><?= htmlspecialchars($t('cycles.btn_add_selected', 'Добавить выбранные'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
     </div>
   </div>
@@ -227,7 +227,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-sm crm-btn-secondary" data-bs-dismiss="modal"><?= htmlspecialchars($t('cycles.btn_cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
-        <button type="button" class="btn btn-sm crm-btn-warning" id="completeCycleConfirmBtn" onclick="window.confirmCompleteCycle()"><?= htmlspecialchars($t('cycles.btn_complete', 'Завершить'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button type="button" class="btn btn-sm crm-btn-warning" id="completeCycleConfirmBtn" data-cycle-action="confirm-complete"><?= htmlspecialchars($t('cycles.btn_complete', 'Завершить'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
     </div>
   </div>

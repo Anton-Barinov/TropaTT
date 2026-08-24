@@ -98,6 +98,21 @@ window.CRM.ui = (function () {
     });
   }
 
+  // CSP M-7: inline event handlers are removed. These document-level
+  // delegated listeners replace onclick="this.select()" (select-on-click)
+  // and onsubmit="return false" (no-submit forms).
+  document.addEventListener('click', function (e) {
+    var el = e.target && e.target.closest ? e.target.closest('[data-select-on-click]') : null;
+    if (el && typeof el.select === 'function') { el.select(); }
+  });
+
+  document.addEventListener('submit', function (e) {
+    var form = e.target;
+    if (form && form.hasAttribute && form.hasAttribute('data-no-submit')) {
+      e.preventDefault();
+    }
+  });
+
   return {
     initBootstrapUi: initBootstrapUi,
     initToasts: initToasts,

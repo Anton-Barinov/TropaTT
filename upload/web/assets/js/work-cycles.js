@@ -259,8 +259,8 @@
         '<span>' + escapeHtml(advice) + '</span>' +
       '</div>' +
       '<div class="crm-cycle-command-metrics">' +
-        '<button type="button" class="crm-cycle-command-metric" onclick="document.getElementById(\'cycleStatusFilter\').value=\'active\'; window.loadWorkCycles(1);"><strong>' + active + '</strong><span>' + t('cycles.metric_active', 'активных') + '</span></button>' +
-        '<button type="button" class="crm-cycle-command-metric" onclick="document.getElementById(\'cycleStatusFilter\').value=\'planned\'; window.loadWorkCycles(1);"><strong>' + planned + '</strong><span>' + t('cycles.metric_planned', 'запланировано') + '</span></button>' +
+        '<button type="button" class="crm-cycle-command-metric" data-cycle-action="metric" data-cycle-status="active"><strong>' + active + '</strong><span>' + t('cycles.metric_active', 'активных') + '</span></button>' +
+        '<button type="button" class="crm-cycle-command-metric" data-cycle-action="metric" data-cycle-status="planned"><strong>' + planned + '</strong><span>' + t('cycles.metric_planned', 'запланировано') + '</span></button>' +
         '<span class="crm-cycle-command-metric"><strong>' + overdue + '</strong><span>' + t('cycles.metric_overdue', 'просрочено') + '</span></span>' +
         '<span class="crm-cycle-command-metric"><strong>' + openTasks + '</strong><span>' + t('cycles.metric_open_tasks', 'открытых задач') + '</span></span>' +
       '</div>';
@@ -296,7 +296,7 @@
       '<div class="crm-cycle-card-grid">' +
         '<div class="flex-grow-1 min-w-0">' +
           '<div class="d-flex align-items-center gap-2 mb-1 flex-wrap">' +
-            '<button type="button" class="crm-cycle-title" onclick="window.openCycleDetail(\'' + escapeHtml(cycle.public_id) + '\')">' + escapeHtml(cycle.title) + '</button>' +
+            '<button type="button" class="crm-cycle-title" data-cycle-action="detail" data-cycle-id="' + escapeHtml(cycle.public_id) + '">' + escapeHtml(cycle.title) + '</button>' +
             statusBadge(cycle.status) +
             (isOverdue ? '<span class="crm-badge crm-badge-danger" style="font-size:11px;">' + t('cycles.overdue', 'Просрочен') + '</span>' : '') +
             (timeLabel && !isOverdue ? '<small class="text-muted">' + escapeHtml(timeLabel) + '</small>' : '') +
@@ -319,13 +319,13 @@
         '</div>' +
       '</div>' +
       '<div class="d-flex gap-1 mt-2 flex-wrap">' +
-        (cycle.status === 'planned' ? '<button class="btn btn-sm crm-btn-success" onclick="window.startCycle(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-play" aria-hidden="true"></i> ' + t('cycles.btn_start_small', 'Старт') + '</button>' : '') +
-        (totalTasks === 0 && cycle.status !== 'completed' && cycle.status !== 'archived' ? '<button class="btn btn-sm crm-btn-primary" onclick="window.openCycleDetail(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-list-check" aria-hidden="true"></i> ' + t('cycles.btn_plan_tasks', 'Запланировать задачи') + '</button>' : '') +
-        (totalTasks > 0 ? '<button class="btn btn-sm crm-btn-secondary" onclick="window.openCycleDetail(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-chart-simple" aria-hidden="true"></i> ' + t('cycles.btn_open_detail', 'Открыть') + '</button>' : '') +
-        (cycle.status !== 'completed' && cycle.status !== 'archived' ? '<button class="btn btn-sm crm-btn-warning" onclick="window.openCompleteCycle(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-check" aria-hidden="true"></i> ' + t('cycles.btn_complete_small', 'Завершить') + '</button>' : '') +
-        '<button class="btn btn-sm crm-btn-secondary" onclick="window.openCycleModal(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-pen" aria-hidden="true"></i></button>' +
-        (cycle.archived_at || cycle.status === 'completed' || cycle.status === 'archived' ? '<button class="btn btn-sm crm-btn-secondary" onclick="window.reopenCycle(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> ' + t('cycles.btn_reopen_small', 'Возобновить') + '</button>' : '') +
-        '<button class="btn btn-sm crm-btn-secondary" onclick="window.archiveCycle(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-archive" aria-hidden="true"></i></button>' +
+        (cycle.status === 'planned' ? '<button class="btn btn-sm crm-btn-success" data-cycle-action="start" data-cycle-id="' + escapeHtml(cycle.public_id) + '"><i class="fa-solid fa-play" aria-hidden="true"></i> ' + t('cycles.btn_start_small', 'Старт') + '</button>' : '') +
+        (totalTasks === 0 && cycle.status !== 'completed' && cycle.status !== 'archived' ? '<button class="btn btn-sm crm-btn-primary" data-cycle-action="detail" data-cycle-id="' + escapeHtml(cycle.public_id) + '"><i class="fa-solid fa-list-check" aria-hidden="true"></i> ' + t('cycles.btn_plan_tasks', 'Запланировать задачи') + '</button>' : '') +
+        (totalTasks > 0 ? '<button class="btn btn-sm crm-btn-secondary" data-cycle-action="detail" data-cycle-id="' + escapeHtml(cycle.public_id) + '"><i class="fa-solid fa-chart-simple" aria-hidden="true"></i> ' + t('cycles.btn_open_detail', 'Открыть') + '</button>' : '') +
+        (cycle.status !== 'completed' && cycle.status !== 'archived' ? '<button class="btn btn-sm crm-btn-warning" data-cycle-action="complete" data-cycle-id="' + escapeHtml(cycle.public_id) + '"><i class="fa-solid fa-check" aria-hidden="true"></i> ' + t('cycles.btn_complete_small', 'Завершить') + '</button>' : '') +
+        '<button class="btn btn-sm crm-btn-secondary" data-cycle-action="edit" data-cycle-id="' + escapeHtml(cycle.public_id) + '"><i class="fa-solid fa-pen" aria-hidden="true"></i></button>' +
+        (cycle.archived_at || cycle.status === 'completed' || cycle.status === 'archived' ? '<button class="btn btn-sm crm-btn-secondary" data-cycle-action="reopen" data-cycle-id="' + escapeHtml(cycle.public_id) + '"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> ' + t('cycles.btn_reopen_small', 'Возобновить') + '</button>' : '') +
+        '<button class="btn btn-sm crm-btn-secondary" data-cycle-action="archive" data-cycle-id="' + escapeHtml(cycle.public_id) + '"><i class="fa-solid fa-archive" aria-hidden="true"></i></button>' +
       '</div>';
 
     return card;
@@ -572,8 +572,8 @@
       '<div class="crm-cycle-detail-callout mb-3">' +
         '<div><strong>' + t('cycles.next_step_title', 'Что делать дальше') + '</strong><div class="text-muted small mt-1">' + escapeHtml(recommendation) + '</div></div>' +
         '<div class="d-flex gap-2 flex-wrap">' +
-          (cycle.status !== 'completed' && cycle.status !== 'archived' ? '<button class="btn btn-sm crm-btn-primary" onclick="window.openAddTasksModal(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-plus" aria-hidden="true"></i> ' + t('cycles.btn_add_tasks', 'Добавить задачи') + '</button>' : '') +
-          (cycle.status !== 'completed' && cycle.status !== 'archived' ? '<button class="btn btn-sm crm-btn-secondary" onclick="window.openCompleteCycle(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-flag-checkered" aria-hidden="true"></i> ' + t('cycles.btn_complete_small', 'Завершить') + '</button>' : '') +
+          (cycle.status !== 'completed' && cycle.status !== 'archived' ? '<button class="btn btn-sm crm-btn-primary" data-cycle-action="add-tasks" data-cycle-id="' + escapeHtml(cycle.public_id) + '"><i class="fa-solid fa-plus" aria-hidden="true"></i> ' + t('cycles.btn_add_tasks', 'Добавить задачи') + '</button>' : '') +
+          (cycle.status !== 'completed' && cycle.status !== 'archived' ? '<button class="btn btn-sm crm-btn-secondary" data-cycle-action="complete" data-cycle-id="' + escapeHtml(cycle.public_id) + '"><i class="fa-solid fa-flag-checkered" aria-hidden="true"></i> ' + t('cycles.btn_complete_small', 'Завершить') + '</button>' : '') +
         '</div>' +
       '</div>' +
       '<div class="row g-3">' +
@@ -623,11 +623,11 @@
         var items = env.data && env.data.items || [];
         if (!items.length) {
           container.innerHTML = '<div class="text-center py-3 text-muted"><p>' + t('cycles.no_tasks', 'Нет задач в этом цикле.') + '</p>' +
-            '<button class="btn btn-sm crm-btn-primary" onclick="window.openAddTasksModal(\'' + publicId + '\')">' + t('cycles.btn_add_tasks', 'Добавить задачи') + '</button></div>';
+            '<button class="btn btn-sm crm-btn-primary" data-cycle-action="add-tasks" data-cycle-id="' + escapeHtml(publicId) + '">' + t('cycles.btn_add_tasks', 'Добавить задачи') + '</button></div>';
           return;
         }
         var html = '<div class="d-flex justify-content-between mb-2"><span><strong>' + t('cycles.tasks_heading', 'Задачи') + ' (' + items.length + ')</strong></span>' +
-          '<button class="btn btn-sm crm-btn-primary" onclick="window.openAddTasksModal(\'' + publicId + '\')"><i class="fa-solid fa-plus" aria-hidden="true"></i>' + t('cycles.btn_add', 'Добавить') + '</button></div>' +
+          '<button class="btn btn-sm crm-btn-primary" data-cycle-action="add-tasks" data-cycle-id="' + escapeHtml(publicId) + '"><i class="fa-solid fa-plus" aria-hidden="true"></i>' + t('cycles.btn_add', 'Добавить') + '</button></div>' +
           '<div class="list-group list-group-flush" style="max-height:400px;overflow-y:auto;">';
         items.forEach(function (task) {
           var statusClass = '';
@@ -635,7 +635,7 @@
           html += '<div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2">' +
             '<div><a href="index.php?route=task-detail&id=' + encodeURIComponent(task.task_public_id) + '" class="' + statusClass + '">' + escapeHtml(task.task_title) + '</a>' +
             '<br><small class="text-muted">' + escapeHtml(task.task_status || '') + (task.assignee_name ? ' &middot; ' + escapeHtml(task.assignee_name) : '') + '</small></div>' +
-            '<button class="btn btn-sm crm-btn-danger" onclick="window.removeTaskFromCycle(\'' + publicId + '\',\'' + encodeURIComponent(task.task_public_id) + '\')"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>' +
+            '<button class="btn btn-sm crm-btn-danger" data-cycle-action="remove-task" data-cycle-id="' + escapeHtml(publicId) + '" data-cycle-task-id="' + escapeHtml(task.task_public_id) + '"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>' +
             '</div>';
         });
         html += '</div>';
@@ -770,8 +770,8 @@
 
     function toggleHtml(mode) {
       if (!hasPoints) return '';
-      var taskBtn = '<button type="button" class="btn btn-sm crm-btn-secondary crm-segmented-filter-btn' + (mode === 'tasks' ? ' active' : '') + '" onclick="window.setCycleBurndownMode(\'tasks\')">' + t('cycles.burndown_metric_tasks', 'Задачи') + '</button>';
-      var ptsBtn = '<button type="button" class="btn btn-sm crm-btn-secondary crm-segmented-filter-btn' + (mode === 'points' ? ' active' : '') + '" onclick="window.setCycleBurndownMode(\'points\')">' + t('cycles.burndown_metric_points', 'Очки') + (unitLabel ? ' (' + escapeHtml(unitLabel) + ')' : '') + '</button>';
+      var taskBtn = '<button type="button" class="btn btn-sm crm-btn-secondary crm-segmented-filter-btn' + (mode === 'tasks' ? ' active' : '') + '" data-cycle-action="burndown" data-cycle-mode="tasks">' + t('cycles.burndown_metric_tasks', 'Задачи') + '</button>';
+      var ptsBtn = '<button type="button" class="btn btn-sm crm-btn-secondary crm-segmented-filter-btn' + (mode === 'points' ? ' active' : '') + '" data-cycle-action="burndown" data-cycle-mode="points">' + t('cycles.burndown_metric_points', 'Очки') + (unitLabel ? ' (' + escapeHtml(unitLabel) + ')' : '') + '</button>';
       return '<div class="btn-group btn-group-sm flex-wrap crm-segmented-filter mb-2" role="group" aria-label="' + t('cycles.burndown_metric_switch', 'Единица измерения диаграммы') + '">' + taskBtn + ptsBtn + '</div>';
     }
 
@@ -1045,7 +1045,7 @@
           html += '<div class="crm-cycle-card py-2">' +
             '<label class="d-flex align-items-center gap-2" style="cursor:pointer;">' +
               '<input type="checkbox" class="form-check-input" value="' + encodeURIComponent(t.public_id) + '" ' + checked +
-                ' onchange="window.toggleTaskSelection(\'' + encodeURIComponent(t.public_id) + '\', this.checked)">' +
+                ' data-cycle-action="toggle-task" data-cycle-id="' + encodeURIComponent(t.public_id) + '">' +
               '<div><strong>' + escapeHtml(t.title) + '</strong>' +
               '<br><small class="text-muted">' + escapeHtml(t.status_code || '') + (t.assignee_name ? ' &middot; ' + escapeHtml(t.assignee_name) : '') + '</small></div>' +
             '</label>' +
@@ -1228,5 +1228,52 @@
       }
     }
   }
+
+  // ====== Delegated action handlers ======
+  // CSP M-7: inline onclick/onchange attributes are removed in favour of
+  // data-cycle-action delegation. Handlers are resolved at click time, so
+  // dynamically-rendered cards/buttons keep working.
+  document.addEventListener('click', function (event) {
+    var el = event.target && event.target.closest ? event.target.closest('[data-cycle-action]') : null;
+    if (!el) return;
+    var action = el.getAttribute('data-cycle-action') || '';
+    var id = el.getAttribute('data-cycle-id') || '';
+    var taskId = el.getAttribute('data-cycle-task-id') || '';
+    var mode = el.getAttribute('data-cycle-mode') || '';
+    var status = el.getAttribute('data-cycle-status') || '';
+
+    switch (action) {
+      case 'create': window.openCycleModal(null); break;
+      case 'retry': window.loadWorkCycles(1); break;
+      case 'metric':
+        var statusFilter = document.getElementById('cycleStatusFilter');
+        if (statusFilter) statusFilter.value = status;
+        window.loadWorkCycles(1);
+        break;
+      case 'detail': window.openCycleDetail(id); break;
+      case 'start': window.startCycle(id); break;
+      case 'complete': window.openCompleteCycle(id); break;
+      case 'edit': window.openCycleModal(id); break;
+      case 'reopen': window.reopenCycle(id); break;
+      case 'archive': window.archiveCycle(id); break;
+      case 'add-tasks': window.openAddTasksModal(id); break;
+      case 'remove-task': window.removeTaskFromCycle(id, taskId); break;
+      case 'burndown': window.setCycleBurndownMode(mode); break;
+      case 'save': window.saveWorkCycle(); break;
+      case 'confirm-add-tasks': window.confirmAddTasks(); break;
+      case 'confirm-complete': window.confirmCompleteCycle(); break;
+    }
+  });
+
+  document.addEventListener('change', function (event) {
+    var el = event.target && event.target.closest ? event.target.closest('[data-cycle-action="toggle-task"]') : null;
+    if (!el) return;
+    window.toggleTaskSelection(el.getAttribute('data-cycle-id') || '', el.checked);
+  });
+
+  document.addEventListener('submit', function (event) {
+    var form = event.target;
+    if (form && form.id === 'cycleForm') { event.preventDefault(); }
+  });
 
 })();

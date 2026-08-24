@@ -50,8 +50,11 @@ if (!headers_sent()) {
         "style-src 'self' https: 'nonce-{$cspNonce}'",
         "style-src-attr 'unsafe-inline'",
         "script-src 'self' 'nonce-{$cspNonce}'",
-        "script-src-attr 'unsafe-inline'",
-        "connect-src 'self' https: wss:",
+        // script-src-attr no longer needed — all inline event handlers
+        // (onclick/onsubmit/onchange/onmouseenter/onmouseleave) have been
+        // migrated to addEventListener / data-attribute delegation (M-7).
+        // Adding it back = classic XSS vector unlocked.
+        "connect-src 'self' https://suggestions.dadata.ru",
         "worker-src 'self' blob:",
         "report-uri /api/index.php?route=api/v1/telemetry/csp-report",
     ]);

@@ -64,6 +64,9 @@
   </div>
 </div>
 
+<style nonce="<?= $csp_nonce ?>">
+.crm-knowledge-picker-item:hover { background: var(--color-neutral-100); }
+</style>
 <script nonce="<?= $csp_nonce ?>">
 (function () {
   var selectedChatId = new URLSearchParams(window.location.search).get('id') || '';
@@ -1347,7 +1350,7 @@
           return;
         }
         list.innerHTML = items.map(function (p) {
-          return '<div class="crm-knowledge-picker-item" data-id="' + esc(p.public_id) + '" data-title="' + esc(p.title || '') + '" style="cursor:pointer;padding:6px 8px;border-radius:6px" onmouseenter="this.style.background=\'var(--color-neutral-100)\'" onmouseleave="this.style.background=\'\'">'
+          return '<div class="crm-knowledge-picker-item" data-id="' + esc(p.public_id) + '" data-title="' + esc(p.title || '') + '" style="cursor:pointer;padding:6px 8px;border-radius:6px">'
             + '<div style="font-weight:500">' + esc(p.title || '') + '</div>'
             + '<div class="text-muted small">' + esc(p.space_title || '') + '</div>'
             + '</div>';
