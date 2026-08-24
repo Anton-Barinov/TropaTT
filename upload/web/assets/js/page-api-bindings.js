@@ -17371,7 +17371,15 @@ window.CRM.pageApiBindings = (function () {
 
     var roles = mapItems(rolesEnvelope);
     var permissions = mapItems(permissionsEnvelope);
-    var roleMatrix = roleMatrixEnvelope.data || {};
+    var rawMatrix = roleMatrixEnvelope.data || {};
+    var roleMatrix = {};
+    // Convert structured response { permissions: [...], roles: [{ role_public_id, permission_codes }] }
+    // into flat map { public_id: [codes] } that the rest of the page expects.
+    var matrixRoles = rawMatrix.roles || [];
+    for (var mi = 0; mi < matrixRoles.length; mi++) {
+      var mr = matrixRoles[mi];
+      roleMatrix[mr.role_public_id] = mr.permission_codes || [];
+    }
 
     // Update metrics
     document.getElementById('rolesMetricTotal').textContent = roles.length;
