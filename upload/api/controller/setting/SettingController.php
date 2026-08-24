@@ -34,15 +34,15 @@ final class SettingController extends BaseController
         }
 
         // M-2 fix: filter user-scoped settings so non-root actors only see their
-        // own user:<self> preferences, not other users' AI settings etc.
+        // own user:<self> and ai_user:<self> preferences, not other users' settings.
         $items = $result['items'];
         if (!(bool)($auth['user']['is_root'] ?? false)) {
             $actorPublicId = (string)($auth['user']['public_id'] ?? '');
             $items = array_values(array_filter($items, function (array $item) use ($actorPublicId): bool {
                 $scope = (string)($item['scope'] ?? '');
-                // Allow system and module-scoped settings; restrict user: scoped to own only
-                if (str_starts_with($scope, 'user:')) {
-                    return $scope === 'user:' . $actorPublicId;
+                // Restrict user: and ai_user: scoped settings to own only
+                if (str_starts_with($scope, 'user:') || str_starts_with($scope, 'ai_user:')) {
+                    return $scope === 'user:' . $actorPublicId || $scope === 'ai_user:' . $actorPublicId;
                 }
                 return true;
             }));

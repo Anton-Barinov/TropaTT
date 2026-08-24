@@ -3644,8 +3644,13 @@ MD;
         if ($current === '' || $new === '') {
             return ['error' => 'current_password and new_password are required.'];
         }
-        if (strlen($new) < 8) {
-            return ['error' => 'new_password must be at least 8 characters.'];
+        if (strlen($new) < 12
+            || !preg_match('/[A-Z]/', $new)
+            || !preg_match('/[a-z]/', $new)
+            || !preg_match('/[0-9]/', $new)
+            || !preg_match('/[^a-zA-Z0-9]/', $new)
+        ) {
+            return ['error' => 'Password must be at least 12 characters and include uppercase, lowercase, digit, and special character.'];
         }
 
         /** @var UserProfileService $service */
