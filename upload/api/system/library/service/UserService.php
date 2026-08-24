@@ -248,7 +248,7 @@ final class UserService
             }
             // L-12 fix: root cannot de-root themselves — this would lock out
             // the only user who can promote others, creating a deadlock.
-            if ($requestedRoot === 0 && $actorId === (int)($target['id'] ?? 0)) {
+            if ($requestedRoot === 0 && (int)($actor['id'] ?? 0) === (int)($target['id'] ?? 0)) {
                 return ['ok' => false, 'code' => 'FORBIDDEN_SELF_DEROOT'];
             }
             $set['is_root'] = $requestedRoot;
