@@ -4,7 +4,7 @@ All notable public changes to TropaTT should be documented here.
 
 This project follows a lightweight Keep a Changelog style. Dates are added when a release is actually created.
 
-## [Unreleased]
+## [v0.2.0.7] - 2026-08-24
 
 ### Added
 
@@ -24,9 +24,57 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 - **Finance permissions and settings.** New `finance.rate.*` permissions are grouped and explained in the role editor; a finance settings block configures the default currency, the cost-from-payout markup, and auto-close.
 
+- **Knowledge base: template ACL.** Knowledge templates are now scoped to spaces via `space_id`, so users only see templates relevant to their workspace.
+
+- **Admin logs page.** Tabbed log page (Errors/Activity/API/Security/MCP/Time) with per-tab filters, human-readable events, pagination, and IP read masking.
+
+- **Server error logging.** Unhandled exceptions are logged to the database with an admin UI for review.
+
 ### Fixed
 
 - **Rate-card mutation endpoints returned HTTP 500.** Updating or archiving a rate card, and updating/deleting a card line or assignment, called the response helper with a missing message argument; PHP raised an error after the change had already been written, so the operation applied but the client saw "Internal server error". These endpoints now return a proper success response.
+
+- **Admin roles: permissions not displayed.** The role-matrix API returns structured data (`{ permissions: [...], roles: [...] }`) but the frontend expected a flat map. Role permissions now display correctly in the table and edit modal.
+
+- **Admin roles: create form ignored permissions.** Creating a new role via the modal did not save the selected `permission_codes`. New roles now receive their assigned permissions on creation.
+
+- **Admin KPI widgets showed zero.** The admin dashboard widgets read `data.services_online` (undefined) instead of the actual nested structure. All four KPI widgets now show real values from the database.
+
+- **Password validation messages mismatched code.** The installer and profile password forms said "Minimum 8 characters" but enforced 12 characters plus complexity. All 7 language translations now reflect the actual 12-char requirement.
+
+- **External user role change did not clean up grants.** Demoting an executor to observer left stale project grants in `external_user_project_access` that silently revived on re-promotion. Grants are now revoked on role demotion with an audit log entry.
+
+- **CSP: inline event handlers removed.** All `onclick`/`onsubmit`/`onchange` handlers migrated to `addEventListener` / data-attribute delegation; `script-src-attr 'unsafe-inline'` removed from CSP.
+
+- **CSP: connect-src narrowed.** Reduced from `https:` (any HTTPS host) to `'self' https://suggestions.dadata.ru`.
+
+- **Module code validator integrated.** `ModuleCodeValidator::validateModule()` now runs before copying module files into the project tree, catching forbidden function calls (eval, exec, system, etc.) at install time.
+
+- **Cron scheduler fixed.** `isOverlapAllowed()` and `hasRunningExecution()` now return proper values on the success path; `validateHandler()` enforces namespace and method allowlists.
+
+- **Profile/me no longer leaks financial fields.** `cost_rate`, `bill_rate`, and `payout_rate` are stripped from the `GET /api/v1/profile/me` response for all users.
+
+- **Task activity sanitized for external users.** Internal comment previews, file names, and staff identities are now hidden from external executors in the task activity feed.
+
+- **Rate card lines filtered by FinancialFieldPolicy.** `GET /api/v1/rate-cards/{id}/lines` now strips financial columns the actor is not authorized to see.
+
+- **Chat participant validation.** `addClientChatParticipant` now verifies the target user is an active external guest of the same counterparty.
+
+- **Project identity hidden from external users.** `sanitizeProject()` strips manager/creator IDs and team memberships from project responses for external actors.
+
+- **Self-deroot prevention.** Root users can no longer remove their own root flag via `PATCH /users`.
+
+- **CSV formula injection.** Exported CSV cells now prefix formula-triggering characters (`=`, `+`, `-`, `@`) to prevent Excel/LibreOffice from executing them.
+
+- **EXIF metadata stripped from chat images.** GD re-encode removes GPS coordinates, camera model, and other EXIF data from uploaded images.
+
+- **LikeEscaper applied across all repositories.** 30+ repositories now use `LikeEscaper::escape()` to prevent LIKE wildcard injection.
+
+- **Password reset tokens invalidated on password change.** Changing your password now revokes all pending password-reset tokens.
+
+- **Installer lock.** `web/install.php` returns HTTP 410 after installation; lock files and env detection prevent reinstall.
+
+- **Time-analytics period lock form.** Past period dates are no longer blocked by the global date auto-filler.
 
 ## [v0.2.0.6] - 2026-08-21
 
