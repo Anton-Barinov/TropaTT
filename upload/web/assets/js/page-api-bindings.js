@@ -16496,19 +16496,31 @@ window.CRM.pageApiBindings = (function () {
     // Load KPI widgets
     var summaryEnvelope = await tryRequest('api/v1/admin/widgets/summary', {});
     if (summaryEnvelope && summaryEnvelope.data) {
-      var summary = summaryEnvelope.data;
-      document.getElementById('adminKpiServicesValue').textContent = summary.services_online || '0';
-      document.getElementById('adminKpiServicesBadge').textContent = summary.services_online ? tp('admin.online', 'Online') : tp('admin.has_problems', 'Problems');
-      document.getElementById('adminKpiServicesBadge').className = 'crm-badge ' + (summary.services_online ? 'success' : 'danger');
+      var widgets = summaryEnvelope.data.widgets || summaryEnvelope.data || {};
+      var counts = widgets.counts || {};
+      var logs = widgets.logs || {};
+      var apiMetrics = widgets.api_metrics || {};
 
-      document.getElementById('adminKpiErrorsValue').textContent = summary.errors_24h || '0';
-      document.getElementById('adminKpiErrorsBadge').textContent = (summary.errors_24h > 0) ? tp('admin.has_errors', 'Has errors') : tp('admin.no_errors', 'No errors');
-      document.getElementById('adminKpiErrorsBadge').className = 'crm-badge ' + (summary.errors_24h > 0 ? 'danger' : 'success');
+      // Services online: DB ping via api_metrics.table_exists or users_active > 0
+      var servicesOnline = Boolean(apiMetrics.table_exists !== false || counts.users_active > 0);
+      document.getElementById('adminKpiServicesValue').textContent = servicesOnline ? '1' : '0';
+      document.getElementById('adminKpiServicesBadge').textContent = servicesOnline ? tp('admin.online', 'Online') : tp('admin.has_problems', 'Problems');
+      document.getElementById('adminKpiServicesBadge').className = 'crm-badge ' + (servicesOnline ? 'success' : 'danger');
 
-      document.getElementById('adminKpiKeysValue').textContent = summary.active_api_keys || '0';
+      // Errors in 24h: 5xx requests
+      var errors24h = Number(logs.request_5xx_24h || 0);
+      document.getElementById('adminKpiErrorsValue').textContent = errors24h;
+      document.getElementById('adminKpiErrorsBadge').textContent = (errors24h > 0) ? tp('admin.has_errors', 'Has errors') : tp('admin.no_errors', 'No errors');
+      document.getElementById('adminKpiErrorsBadge').className = 'crm-badge ' + (errors24h > 0 ? 'danger' : 'success');
+
+      // Active API keys: total API requests in 24h
+      var apiTotal = Number(apiMetrics.total || logs.request_total_24h || 0);
+      document.getElementById('adminKpiKeysValue').textContent = apiTotal;
       document.getElementById('adminKpiKeysBadge').textContent = tp('admin.active_state', 'Active');
 
-      document.getElementById('adminKpiUsersValue').textContent = summary.users_online || '0';
+      // Users online: active users count
+      var usersActive = Number(counts.users_active || 0);
+      document.getElementById('adminKpiUsersValue').textContent = usersActive;
       document.getElementById('adminKpiUsersBadge').textContent = tp('admin.online', 'Online');
     }
 
