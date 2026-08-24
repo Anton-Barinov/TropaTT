@@ -167,19 +167,40 @@ final class UserController extends BaseController
         // (hasExecutorProjectAccess) blocks the newly-promoted freelancer
         // from logging time until an admin manually grants each project.
         if (array_key_exists('external_role', $input)
-            && $input['external_role'] === 'executor'
             && !empty($result['user']['is_external'])
             && $this->container->has('service.external_user')
         ) {
-            try {
-                /** @var \Api\System\Library\Service\ExternalUserService $ext */
-                $ext = $this->container->get('service.external_user');
-                $actorId = (int)($actor['id'] ?? 0);
-                $ext->bootstrapGrantsForExternalUser((int)($result['user']['id'] ?? 0), $actorId);
-            } catch (\Throwable $e) {
-                // Grant seeding is best-effort: the role change itself already
-                // succeeded; the admin can still grant projects manually.
-                error_log('[UserController::update] bootstrap executor grants failed: ' . $e->getMessage());
+            /** @var \Api\System\Library\Service\ExternalUserService $ext */
+            $ext = $this->container->get('service.external_user');
+            $actorId = (int)($actor['id'] ?? 0);
+            $targetUserId = (int)($result['user']['id'] ?? 0);
+
+            if ($input['external_role'] === 'executor') {
+                // Promoted to executor: seed project grants.
+                try {
+                    $ext->bootstrapGrantsForExternalUser($targetUserId, $actorId);
+                } catch (\Throwable $e) {
+                    error_log('[UserController::update] bootstrap executor grants failed: ' . $e->getMessage());
+                }
+            } elseif ($input['external_role'] !== 'executor') {
+                // M-1: demoted from executor (e.g. to observer) — revoke
+                // project grants so stale access cannot silently revive if
+                // the user is later re-promoted under a different counterparty.
+                try {
+                    $pdo = $this->container->get('db.pdo');
+                    $pdo->prepare('DELETE FROM external_user_project_access WHERE user_id = :uid')
+                        ->execute([':uid' => $targetUserId]);
+
+                    $this->container->get('logger')->audit([
+                        'action' => 'external_user_role_demoted_grants_revoked',
+                        'actor_public_id' => $auth['user']['public_id'] ?? null,
+                        'entity_type' => 'user',
+                        'entity_public_id' => (string)($result['user']['public_id'] ?? ''),
+                        'detail' => 'new_role=' . (string)$input['external_role'] . ', grants_revoked',
+                    ]);
+                } catch (\Throwable $e) {
+                    error_log('[UserController::update] revoke grants on demotion failed: ' . $e->getMessage());
+                }
             }
         }
 

@@ -88,6 +88,23 @@ final class ModuleRemoteInstaller
                 throw new RuntimeException("Module already exists: {$moduleName}");
             }
 
+            // C-1: run code validator before copying files into the project.
+            // This is defense-in-depth — the blocklist approach is inherently
+            // weak, but catches the most obvious forbidden calls (eval, exec,
+            // system, etc.) in module code before it enters the trusted tree.
+            $codeValidator = new ModuleCodeValidator();
+            $violations = $codeValidator->validateModule($extractDir);
+            if ($violations !== []) {
+                $this->cleanDir($extractDir);
+                $details = array_map(
+                    fn(array $v): string => "{$v['file']}:{$v['line']} — {$v['function']}()",
+                    $violations
+                );
+                throw new RuntimeException(
+                    'Module code contains forbidden function calls: ' . implode('; ', $details)
+                );
+            }
+
             $this->copyDir($extractDir, $targetDir);
 
             $this->pm->discover();
