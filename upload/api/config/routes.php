@@ -129,9 +129,9 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/companies/{public_id}', 'controller' => Api\Controller\Company\CompanyController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['company.manage']],
     ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/companies/{public_id}', 'controller' => Api\Controller\Company\CompanyController::class, 'action' => 'update', 'auth' => true, 'required_permissions' => ['company.manage']],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/companies/{public_id}', 'controller' => Api\Controller\Company\CompanyController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['company.manage']],
-    ['methods' => ['GET'], 'pattern' => '/api/v1/clients', 'controller' => Api\Controller\Client\ClientController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['client.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/clients', 'controller' => Api\Controller\Client\ClientController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['client.manage', 'client.view']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/clients', 'controller' => Api\Controller\Client\ClientController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['client.manage']],
-    ['methods' => ['GET'], 'pattern' => '/api/v1/clients/{public_id}', 'controller' => Api\Controller\Client\ClientController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['client.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/clients/{public_id}', 'controller' => Api\Controller\Client\ClientController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['client.manage', 'client.view']],
     ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/clients/{public_id}', 'controller' => Api\Controller\Client\ClientController::class, 'action' => 'update', 'auth' => true, 'required_permissions' => ['client.manage']],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/clients/{public_id}', 'controller' => Api\Controller\Client\ClientController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['client.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/counterparties', 'controller' => Api\Controller\Counterparty\CounterpartyController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['counterparty.manage']],
@@ -167,9 +167,9 @@ return [
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/tags/{public_id}', 'controller' => Api\Controller\Tag\TagController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['task.manage']],
 
     // projects BR-1
-    ['methods' => ['GET'], 'pattern' => '/api/v1/projects', 'controller' => Api\Controller\Project\ProjectController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['project.manage'], 'external_ok' => true],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/projects', 'controller' => Api\Controller\Project\ProjectController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['project.manage', 'project.view'], 'external_ok' => true],
     ['methods' => ['POST'], 'pattern' => '/api/v1/projects', 'controller' => Api\Controller\Project\ProjectController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['project.manage']],
-    ['methods' => ['GET'], 'pattern' => '/api/v1/projects/{public_id}', 'controller' => Api\Controller\Project\ProjectController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['project.manage'], 'external_ok' => true],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/projects/{public_id}', 'controller' => Api\Controller\Project\ProjectController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['project.manage', 'project.view'], 'external_ok' => true],
     ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/projects/{public_id}', 'controller' => Api\Controller\Project\ProjectController::class, 'action' => 'update', 'auth' => true, 'required_permissions' => ['project.manage']],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/projects/{public_id}', 'controller' => Api\Controller\Project\ProjectController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['project.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/projects/{public_id}/timeline', 'controller' => Api\Controller\Project\ProjectController::class, 'action' => 'timeline', 'auth' => true, 'required_permissions' => ['project.manage']],
@@ -225,7 +225,7 @@ return [
 
     // tasks BR-1
     ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/{public_id}/activity', 'controller' => Api\Controller\Task\TaskActivityController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_executor_ok' => true, 'authz_note' => 'RLS-scoped in controller via TaskService::get; activity events expose only public task fields (title/status/priority/assignee/dates/comments)'],
-    ['methods' => ['GET'], 'pattern' => '/api/v1/tasks', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_ok' => true],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/tasks', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage', 'task.view'], 'external_ok' => true],
     ['methods' => ['POST'], 'pattern' => '/api/v1/tasks', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_ok' => true],
     ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/board', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'board', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/tasks/bulk', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'bulkUpdate', 'auth' => true, 'required_permissions' => ['task.manage']],
@@ -233,7 +233,7 @@ return [
     // Task detail right-column blocks (must be registered before /api/v1/tasks/{public_id} so the literal "sidebar" segment wins)
     ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/sidebar', 'controller' => Api\Controller\Task\TaskSidebarController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['task.manage'], 'authz_note' => 'Returns the current user\'s task detail sidebar block layout'],
     ['methods' => ['PUT'], 'pattern' => '/api/v1/tasks/sidebar', 'controller' => Api\Controller\Task\TaskSidebarController::class, 'action' => 'save', 'auth' => true, 'required_permissions' => ['task.manage'], 'authz_note' => 'Updates only the current user\'s task detail sidebar block layout'],
-    ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/{public_id}', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_ok' => true],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/{public_id}', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['task.manage', 'task.view'], 'external_ok' => true],
     ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/tasks/{public_id}', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'update', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/tasks/{public_id}', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/tasks/{public_id}/move', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'move', 'auth' => true, 'required_permissions' => ['task.manage']],
@@ -505,8 +505,8 @@ return [
     // every external actor (out of scope for the portal, and
     // summary/earnings/matrix are org-wide analytics that must never be
     // reachable by a guest of any role).
-    ['methods' => ['GET'], 'pattern' => '/api/v1/worklogs', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_executor_ok' => true],
-    ['methods' => ['POST'], 'pattern' => '/api/v1/worklogs', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_executor_ok' => true],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/worklogs', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage', 'worklog.view'], 'external_executor_ok' => true],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/worklogs', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['task.manage', 'worklog.manage'], 'external_executor_ok' => true],
     ['methods' => ['GET'], 'pattern' => '/api/v1/worklogs/summary', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'summary', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/worklogs/earnings', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'earnings', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/worklogs/matrix', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'matrix', 'auth' => true, 'required_permissions' => ['task.manage']],
@@ -556,7 +556,7 @@ return [
     // (SettingController::publicList) — never the full internal list, which
     // includes finance.* and cache tuning and must stay settings.manage-only.
     ['methods' => ['GET'], 'pattern' => '/api/v1/settings/public', 'controller' => Api\Controller\Setting\SettingController::class, 'action' => 'publicList', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_executor_ok' => true, 'authz_note' => 'external executors may read only the whitelisted public settings (time_rounding_minutes); controller enforces the allowlist'],
-    ['methods' => ['GET'], 'pattern' => '/api/v1/settings', 'controller' => Api\Controller\Setting\SettingController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['settings.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/settings', 'controller' => Api\Controller\Setting\SettingController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['settings.manage', 'settings.view']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/settings/{name}', 'controller' => Api\Controller\Setting\SettingController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['settings.manage']],
     ['methods' => ['POST', 'PUT', 'PATCH'], 'pattern' => '/api/v1/settings/{name}', 'controller' => Api\Controller\Setting\SettingController::class, 'action' => 'set', 'auth' => true, 'required_permissions' => ['settings.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/retention/metadata', 'controller' => Api\Controller\Setting\RetentionController::class, 'action' => 'getMetadata', 'auth' => true, 'required_permissions' => ['settings.manage']],
