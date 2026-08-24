@@ -248,6 +248,40 @@ location ~ ^/api/config/ {
 
 If you cannot modify nginx configuration directly (common on shared hosting), the application-level protections (`.bin` extension, dangerous file rejection, PHP-based download) still protect uploaded files.
 
+### HestiaCP / VestaCP configuration
+
+If you are using HestiaCP or VestaCP as your server panel, the default nginx template does not include the URL rewriting rules needed for TropaTT's routing. After installing TropaTT on a HestiaCP domain:
+
+1. **Edit the nginx config** for your domain (located at `/home/{user}/conf/web/{domain}/nginx.conf` or `/etc/nginx/conf.d/domains/{domain}.conf`):
+
+```nginx
+location / {
+    try_files $uri $uri/ @opencart;
+
+    # ... existing static file and PHP location blocks ...
+}
+
+location @opencart {
+    rewrite ^/(.+)$ /web/index.php?route=$1 last;
+}
+```
+
+2. **Important:** The rewrite must point to `/web/index.php?route=$1` (not `/index.php?_route_=$1`). The root `index.php` only redirects to `/web/index.php`.
+
+3. **PHP-FPM backend:** HestiaCP auto-generates the PHP-FPM socket name. Verify it matches in your config:
+    ```nginx
+    fastcgi_pass unix:/run/php/{domain}.sock;
+    ```
+
+4. **Reload nginx** after changes:
+    ```bash
+    nginx -t && systemctl reload nginx
+    ```
+
+5. **open_basedir:** HestiaCP's PHP-FPM template restricts `open_basedir` to `public_html`. The `storage_api/` directory sits outside `public_html` by default. The installer handles this gracefully (suppressed warnings), but if you see PHP warnings about `open_basedir`, you can either:
+    - Move `storage_api/` inside `public_html` and update `CRM_STORAGE_BASE` in `.env`
+    - Or add the parent directory to `open_basedir` in the PHP-FPM config
+
 ### Optional configuration
 
 - **PHP memory limit:** If the site feels slow, increase the memory limit:

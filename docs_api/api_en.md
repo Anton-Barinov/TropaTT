@@ -237,7 +237,7 @@ The `X-Idempotency-Key` header prevents duplicate operations.
 | Method | Endpoint | Description | Auth | Permissions | Notes |
 |-------|----------|------------|:---:|-------------|----------|
 | GET | `/api/v1/roles` 🔄 | List roles | Yes | `role.view` | — |
-| POST | `/api/v1/roles` 🔄 | Create role | Yes | `role.manage` | Root only |
+| POST | `/api/v1/roles` 🔄 | Create role | Yes | `role.manage` | Root only. Requires `code` (unique slug), `title`. Optional: `permission_codes` (array) |
 | PATCH, PUT | `/api/v1/roles/{public_id}` 🔄 | Update role | Yes | `role.manage` | Root only |
 | DELETE | `/api/v1/roles/{public_id}` 🔄 | Delete role | Yes | `role.manage` | Root only |
 
@@ -296,7 +296,7 @@ The `X-Idempotency-Key` header prevents duplicate operations.
 | PATCH, PUT | `/api/v1/clients/{public_id}` 🔄 | Update client | Yes | `client.manage` | — |
 | DELETE | `/api/v1/clients/{public_id}` 🔄 | Delete client | Yes | `client.manage` | — |
 | GET | `/api/v1/counterparties` 🔄 | List counterparties | Yes | `counterparty.manage` | Filter by type, search |
-| POST | `/api/v1/counterparties` 🔄 | Create counterparty | Yes | `counterparty.manage` | — |
+| POST | `/api/v1/counterparties` 🔄 | Create counterparty | Yes | `counterparty.manage` | Requires `title`. Optional: `type`, `description` |
 | GET | `/api/v1/counterparties/{public_id}` 🔄 | counterparty details | Yes | `counterparty.manage` | — |
 | PATCH, PUT | `/api/v1/counterparties/{public_id}` 🔄 | Update counterparty | Yes | `counterparty.manage` | — |
 | DELETE | `/api/v1/counterparties/{public_id}` 🔄 | Delete counterparty | Yes | `counterparty.manage` | — |
@@ -609,7 +609,7 @@ Beyond permission checks, a hard route allowlist (`external_ok` in `routes.php`,
 | Method | Endpoint | Description | Auth | Permissions | Notes |
 |-------|----------|------------|:---:|-------------|----------|
 | GET | `/api/v1/worklogs` 🔄 | List time entries | Yes | `task.manage` | — |
-| POST | `/api/v1/worklogs` 🔄 | Create time entry | Yes | `task.manage` | Requires `task_public_id`, `minutes_spent` (int, minutes), `logged_at` (YYYY-MM-DD) |
+| POST | `/api/v1/worklogs` 🔄 | Create time entry | Yes | `task.manage` | Requires `task_public_id`, `minutes_spent` (int, minutes), `logged_at` (YYYY-MM-DD), `activity_code` (string) |
 | GET | `/api/v1/worklogs/summary` | Time summary | Yes | `task.manage` | — |
 | GET | `/api/v1/worklogs/earnings` | Time earnings | Yes | `task.manage` | — |
 | GET | `/api/v1/worklogs/matrix` | Time matrix | Yes | `task.manage` | — |

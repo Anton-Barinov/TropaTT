@@ -237,7 +237,7 @@ Authorization: Bearer <token>
 | 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
 |-------|----------|------------|:---:|-------------|----------|
 | GET | `/api/v1/roles` 🔄 | 角色列表 | 是 | `role.view` | — |
-| POST | `/api/v1/roles` 🔄 | 创建角色 | 是 | `role.manage` | 仅 root |
+| POST | `/api/v1/roles` 🔄 | 创建角色 | 是 | `role.manage` | 仅 root。必填：`code`（唯一标识）、`title`。可选：`permission_codes`（数组） |
 | PATCH, PUT | `/api/v1/roles/{public_id}` 🔄 | 更新角色 | 是 | `role.manage` | 仅 root |
 | DELETE | `/api/v1/roles/{public_id}` 🔄 | 删除角色 | 是 | `role.manage` | 仅 root |
 
@@ -296,7 +296,7 @@ Authorization: Bearer <token>
 | PATCH, PUT | `/api/v1/clients/{public_id}` 🔄 | 更新客户 | 是 | `client.manage` | — |
 | DELETE | `/api/v1/clients/{public_id}` 🔄 | 删除客户 | 是 | `client.manage` | — |
 | GET | `/api/v1/counterparties` 🔄 | 交易方列表 | 是 | `counterparty.manage` | 按类型、搜索过滤 |
-| POST | `/api/v1/counterparties` 🔄 | 创建交易方 | 是 | `counterparty.manage` | — |
+| POST | `/api/v1/counterparties` 🔄 | 创建交易方 | 是 | `counterparty.manage` | 必填：`title`。可选：`type`、`description` |
 | GET | `/api/v1/counterparties/{public_id}` 🔄 | 交易方详情 | 是 | `counterparty.manage` | — |
 | PATCH, PUT | `/api/v1/counterparties/{public_id}` 🔄 | 更新交易方 | 是 | `counterparty.manage` | — |
 | DELETE | `/api/v1/counterparties/{public_id}` 🔄 | 删除交易方 | 是 | `counterparty.manage` | — |
@@ -609,7 +609,7 @@ Authorization: Bearer <token>
 | 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
 |-------|----------|------------|:---:|-------------|----------|
 | GET | `/api/v1/worklogs` 🔄 | 时间记录列表 | 是 | `task.manage` | — |
-| POST | `/api/v1/worklogs` 🔄 | 创建时间记录 | 是 | `task.manage` | 需要 `task_public_id`、`minutes_spent`（整数，分钟）、`logged_at`（YYYY-MM-DD） |
+| POST | `/api/v1/worklogs` 🔄 | 创建时间记录 | 是 | `task.manage` | 需要 `task_public_id`、`minutes_spent`（整数，分钟）、`logged_at`（YYYY-MM-DD）、`activity_code`（字符串） |
 | GET | `/api/v1/worklogs/summary` | 时间摘要 | 是 | `task.manage` | — |
 | GET | `/api/v1/worklogs/earnings` | 时间收益 | 是 | `task.manage` | — |
 | GET | `/api/v1/worklogs/matrix` | 时间矩阵 | 是 | `task.manage` | — |

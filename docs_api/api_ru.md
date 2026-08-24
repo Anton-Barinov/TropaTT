@@ -237,7 +237,7 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | Метод | Endpoint | Назначение | Auth | Permissions | Описание |
 |-------|----------|------------|:---:|-------------|----------|
 | GET | `/api/v1/roles` 🔄 | Список ролей | Да | `role.view` | — |
-| POST | `/api/v1/roles` 🔄 | Создание роли | Да | `role.manage` | Только root (F2-4) |
+| POST | `/api/v1/roles` 🔄 | Создание роли | Да | `role.manage` | Только root. Обязательные: `code` (уникальный slug), `title`. Опционально: `permission_codes` (массив) |
 | PATCH, PUT | `/api/v1/roles/{public_id}` 🔄 | Обновление роли | Да | `role.manage` | Только root (F2-4) |
 | DELETE | `/api/v1/roles/{public_id}` 🔄 | Удаление роли | Да | `role.manage` | Только root (F2-4) |
 
@@ -296,7 +296,7 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | PATCH, PUT | `/api/v1/clients/{public_id}` 🔄 | Обновление клиента | Да | `client.manage` | — |
 | DELETE | `/api/v1/clients/{public_id}` 🔄 | Удаление клиента | Да | `client.manage` | — |
 | GET | `/api/v1/counterparties` 🔄 | Список контрагентов | Да | `counterparty.manage` | Фильтр по типу, поиску |
-| POST | `/api/v1/counterparties` 🔄 | Создание контрагента | Да | `counterparty.manage` | — |
+| POST | `/api/v1/counterparties` 🔄 | Создание контрагента | Да | `counterparty.manage` | Обязательное: `title`. Опционально: `type`, `description` |
 | GET | `/api/v1/counterparties/{public_id}` 🔄 | Детали контрагента | Да | `counterparty.manage` | — |
 | PATCH, PUT | `/api/v1/counterparties/{public_id}` 🔄 | Обновление контрагента | Да | `counterparty.manage` | — |
 | DELETE | `/api/v1/counterparties/{public_id}` 🔄 | Удаление контрагента | Да | `counterparty.manage` | — |
@@ -609,7 +609,7 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | Метод | Endpoint | Назначение | Auth | Permissions | Описание |
 |-------|----------|------------|:---:|-------------|----------|
 | GET | `/api/v1/worklogs` 🔄 | Список записей времени | Да | `task.manage` | — |
-| POST | `/api/v1/worklogs` 🔄 | Создание записи времени | Да | `task.manage` | Требуется `task_public_id`, `minutes_spent` (int, минуты), `logged_at` (YYYY-MM-DD) |
+| POST | `/api/v1/worklogs` 🔄 | Создание записи времени | Да | `task.manage` | Требуется `task_public_id`, `minutes_spent` (int, минуты), `logged_at` (YYYY-MM-DD), `activity_code` (строка) |
 | GET | `/api/v1/worklogs/summary` | Сводка по времени | Да | `task.manage` | — |
 | GET | `/api/v1/worklogs/earnings` | Доходы по времени | Да | `task.manage` | — |
 | GET | `/api/v1/worklogs/matrix` | Матрица времени | Да | `task.manage` | — |
