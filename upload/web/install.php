@@ -1181,7 +1181,8 @@ function isAlreadyInstalled(): bool
         dirname(LOCK_FILE_PATH) . '/../../storage_api/install.lock',
     ];
     foreach ($lockFiles as $lockFile) {
-        if (is_file($lockFile)) {
+        // SEC-011: Suppress open_basedir warnings when storage_api is outside web root
+        if (@is_file($lockFile)) {
             return true;
         }
     }
@@ -4044,7 +4045,7 @@ echo $css;
                     </div>
                     <div class="form-group">
                         <label><?php echo t('port'); ?></label>
-                        <input type="number" name="db_port" class="form-control" value="<?php echo e($formData['db_port'] ?? '3306'); ?>" placeholder="3306">
+                        <input type="number" name="db_port" class="form-control" value="<?php echo e((string)($formData['db_port'] ?? '3306')); ?>" placeholder="3306">
                     </div>
                 </div>
                 <div class="form-group">
