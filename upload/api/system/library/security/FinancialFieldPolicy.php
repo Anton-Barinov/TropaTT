@@ -90,6 +90,9 @@ final class FinancialFieldPolicy
         'rate_card_line_id'      => 'config',
         'rate_card_public_id'    => 'config',
         'rate_card_assignment_id' => 'config',
+        // L-5: rate-card line public_ids competing for a resolution — these
+        // reveal the structure of the price list, so gate behind ratecard.manage.
+        'ambiguous_candidates'   => 'config',
     ];
 
     /**

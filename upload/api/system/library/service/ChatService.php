@@ -252,7 +252,13 @@ final class ChatService
             ORDER BY cm.id DESC
             LIMIT :limit OFFSET :offset
         ");
-        $stmt->execute(['cid' => $chatId, 'limit' => $limit, 'offset' => $offset]);
+        // L-2: LIMIT/OFFSET must be bound as integers. With native prepared
+        // statements (EMULATE_PREPARES=false), string-bound LIMIT/OFFSET is
+        // rejected by MySQL, breaking the external chat read path entirely.
+        $stmt->bindValue(':cid', $chatId, \PDO::PARAM_INT);
+        $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
+        $stmt->execute();
         $messages = array_reverse($stmt->fetchAll(\PDO::FETCH_ASSOC) ?: []);
 
         return ['messages' => $messages, 'total' => $total];

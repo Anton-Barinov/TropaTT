@@ -165,6 +165,11 @@ final class ExternalUsersMigration implements MigrationInterface
             'task.manage',
             'project.manage',
             'chat.use',
+            // L-7: must stay in sync with FinancePermissionsMigration, which
+            // grants this so external executors can see "My earnings". Without
+            // it here, a repair/reinstall of this migration would strip the
+            // payout permission and 403 the earnings page.
+            'finance.rate.view_own_payout',
         ];
 
         // Look up IDs for wanted permissions

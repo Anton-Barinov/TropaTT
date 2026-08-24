@@ -58,7 +58,10 @@ final class SettingController extends BaseController
         $allowedNames = [
             'time_rounding_minutes',
         ];
-        $scope = trim((string)$this->request()->input('scope', 'system'));
+        // L-3: scope must not come from the request. User settings live in
+        // 'user:<public_id>' scopes; accepting a caller-supplied scope would
+        // let one external user read another user's settings.
+        $scope = 'system';
 
         /** @var SettingService $service */
         $service = $this->container->get('service.setting');
