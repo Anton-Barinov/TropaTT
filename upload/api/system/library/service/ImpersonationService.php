@@ -123,7 +123,7 @@ final class ImpersonationService
             'audit' => $audit ? $this->normalizeAudit($audit) : ['public_id' => $auditPublicId],
             'impersonation_access_token' => $plainAccess,
             'token_type' => 'Bearer',
-            'expires_in' => $this->tokenTtlSeconds,
+            'expires_in' => $impersonationTtl,  // M-1 fix: return actual impersonation TTL, not global token TTL
             'session_public_id' => $sessionPublicId,
             'target_user' => [
                 'public_id' => (string)($target['public_id'] ?? ''),

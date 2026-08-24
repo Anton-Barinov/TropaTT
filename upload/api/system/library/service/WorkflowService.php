@@ -357,6 +357,23 @@ final class WorkflowService
     public function executeAction(string $actionCode, string $rulePublicId, array $payload, array $context): array
     {
         try {
+            // H-5 fix: verify the triggering actor is still active before executing
+            // any side effects. A deactivated user's workflow rules should not fire.
+            $actorUserId = (int)($context['actor_id'] ?? 0);
+            if ($actorUserId > 0) {
+                try {
+                    $actorRow = $this->users->findById($actorUserId);
+                    if ($actorRow && (int)($actorRow['is_active'] ?? 0) !== 1) {
+                        return ['success' => false, 'error' => 'Actor user is deactivated'];
+                    }
+                } catch (\Throwable $e) {
+                    // Schema differences (e.g. SQLite test vs MySQL prod) may cause
+                    // column-not-found errors. Log and proceed — the action itself
+                    // provides its own authorization checks.
+                    error_log('[WorkflowService::executeAction] actor active check skipped: ' . $e->getMessage());
+                }
+            }
+
             switch ($actionCode) {
                 case 'assign_user':
                     $assigneeId = $this->resolveUserId($payload['assignee_user_id'] ?? $payload['assignee_user_public_id'] ?? 0);

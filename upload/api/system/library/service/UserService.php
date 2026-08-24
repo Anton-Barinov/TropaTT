@@ -44,11 +44,28 @@ final class UserService
         ];
     }
 
-    public function get(string $publicId): ?array
+    /**
+     * Get a user by public_id.
+     *
+     * H-4 fix: when $actor is provided, verify hierarchy access for non-root
+     * actors (same as update/delete/activity). Controllers that expose user
+     * details to arbitrary authenticated callers must pass the actor.
+     */
+    public function get(string $publicId, ?array $actor = null): ?array
     {
         $item = $this->users->findByPublicId($publicId);
         if (!$item) {
             return null;
+        }
+
+        // H-4: object-level authorization — non-root actors may only view
+        // users they can manage (own subtree) or themselves.
+        if ($actor !== null && !$this->policy->canManageUser($actor, $item)) {
+            $actorId = (int)($actor['id'] ?? 0);
+            $targetId = (int)($item['id'] ?? 0);
+            if ($actorId !== $targetId && !(bool)($actor['is_root'] ?? false)) {
+                return null;
+            }
         }
 
         $item['roles'] = $this->users->roleCodesByUserId((int)$item['id']);

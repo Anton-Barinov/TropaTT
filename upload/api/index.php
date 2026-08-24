@@ -21,6 +21,9 @@ if (!in_array($earlyLocale, ['ru-ru', 'en-gb', 'zh-cn', 'es-es', 'pt-br', 'de-de
 }
 $earlyLanguage->setLocale($earlyLocale);
 
+// M-4 fix: suppress error output in production
+ini_set('display_errors', '0');
+ini_set('error_reporting', E_ALL & ~E_DEPRECATED & ~E_STRICT);
 ini_set('max_execution_time', '0');
 ini_set('memory_limit', '512M');
 set_time_limit(0);

@@ -563,8 +563,15 @@ final class ChatController extends BaseController
         $file = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!is_array($file) || !is_file((string)($file['storage_path'] ?? ''))) return ['error' => 'FILE_NOT_FOUND'];
 
+        // H-8 fix: prevent path traversal — resolved path must stay within allowed directories.
+        $realPath = realpath((string)$file['storage_path']);
+        $allowedBase = realpath(dirname(__DIR__, 3) . '/storage_api/uploads');
+        if ($realPath === false || $allowedBase === false || !str_starts_with($realPath, $allowedBase . '/')) {
+            return ['error' => 'FILE_NOT_FOUND'];
+        }
+
         return [
-            'path' => (string)$file['storage_path'],
+            'path' => $realPath,
             'name' => (string)$file['original_name'],
             'mime' => (string)$file['mime_type'],
             'size' => (int)$file['size_bytes'],

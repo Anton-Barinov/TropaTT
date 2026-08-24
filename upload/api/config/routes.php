@@ -321,8 +321,9 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/comments', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'comments', 'auth' => true, 'required_permissions' => ['knowledge.view']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/comments', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'addComment', 'auth' => true, 'required_permissions' => ['knowledge.comment']],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/knowledge/comments/{comment_public_id}', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'deleteComment', 'auth' => true, 'required_permissions' => ['knowledge.comment']],
-    ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/comments/{comment_public_id}/resolve', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'resolveComment', 'auth' => true, 'required_permissions' => ['knowledge.comment']],
-    ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/comments/{comment_public_id}/reopen', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'reopenComment', 'auth' => true, 'required_permissions' => ['knowledge.comment']],
+    // H-10 fix: resolve/reopen modifies comment state — require knowledge.edit
+    ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/comments/{comment_public_id}/resolve', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'resolveComment', 'auth' => true, 'required_permissions' => ['knowledge.comment', 'knowledge.edit']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/comments/{comment_public_id}/reopen', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'reopenComment', 'auth' => true, 'required_permissions' => ['knowledge.comment', 'knowledge.edit']],
 
     // knowledge favorites
     ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/favorite', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'favoritePage', 'auth' => true, 'required_permissions' => ['knowledge.view']],

@@ -47,7 +47,7 @@ final class UserController extends BaseController
     {
         /** @var UserService $service */
         $service = $this->container->get('service.user');
-        $user = $service->get((string)$params['public_id']);
+        $user = $service->get((string)$params['public_id'], $auth['user'] ?? null);
         if (!$user) {
             return $this->error('USER_NOT_FOUND', $this->t('user/messages.not_found'), 404, ['user' => [$this->t('user/messages.not_found')]]);
         }

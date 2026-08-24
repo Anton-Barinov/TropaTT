@@ -33,8 +33,23 @@ final class SettingController extends BaseController
             $result = $service->list($input);
         }
 
+        // M-2 fix: filter user-scoped settings so non-root actors only see their
+        // own user:<self> preferences, not other users' AI settings etc.
+        $items = $result['items'];
+        if (!(bool)($auth['user']['is_root'] ?? false)) {
+            $actorPublicId = (string)($auth['user']['public_id'] ?? '');
+            $items = array_values(array_filter($items, function (array $item) use ($actorPublicId): bool {
+                $scope = (string)($item['scope'] ?? '');
+                // Allow system and module-scoped settings; restrict user: scoped to own only
+                if (str_starts_with($scope, 'user:')) {
+                    return $scope === 'user:' . $actorPublicId;
+                }
+                return true;
+            }));
+        }
+
         return $this->success('SETTING_LIST', $this->t('setting/messages.list'), [
-            'items' => $result['items'],
+            'items' => $items,
         ], meta: $result['meta']);
     }
 

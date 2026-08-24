@@ -37,4 +37,14 @@ final class PasswordResetRepository
             ->whereNull('used_at')
             ->update(['used_at' => $usedAt]) > 0;
     }
+
+    // H-2 fix: invalidate all pending reset tokens for a user when password changes
+    public function revokeAllByUserId(int $userId, string $revokedAt): int
+    {
+        return (new QueryBuilder($this->pdo))
+            ->from('password_reset_tokens')
+            ->where('user_id', '=', $userId)
+            ->whereNull('used_at')
+            ->update(['used_at' => $revokedAt]);
+    }
 }

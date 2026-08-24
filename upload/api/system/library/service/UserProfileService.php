@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\Model\Security\PasswordResetRepository;
 use Api\Model\Security\SessionRepository;
 use Api\Model\User\UserManagementRepository;
 use Api\System\Library\Logger\JsonLogger;
@@ -15,7 +16,8 @@ final class UserProfileService
         private readonly SessionRepository $sessions,
         private readonly SettingService $settings,
         private readonly PasswordHasher $hasher,
-        private readonly JsonLogger $logger
+        private readonly JsonLogger $logger,
+        private readonly ?PasswordResetRepository $passwordResets = null,
     ) {
     }
 
@@ -141,11 +143,19 @@ final class UserProfileService
             'password_hash' => $this->hasher->hash($newPassword),
             'updated_at' => gmdate('Y-m-d H:i:s'),
         ]);
+        $now = gmdate('Y-m-d H:i:s');
         $revokedCount = $this->sessions->revokeAllByUserId(
             (int)$user['id'],
-            gmdate('Y-m-d H:i:s'),
+            $now,
             $currentSessionPublicId
         );
+
+        // H-2 fix: invalidate all pending password-reset tokens so an attacker
+        // with access to a stale email link cannot use it after the user changed
+        // their password.
+        if ($this->passwordResets !== null) {
+            $this->passwordResets->revokeAllByUserId((int)$user['id'], $now);
+        }
 
         $this->logger->security([
             'event_type' => 'profile_change_password_success',

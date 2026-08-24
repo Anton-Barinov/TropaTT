@@ -175,7 +175,7 @@ final class UserManagementRepository
             ->whereNull('deleted_at');
 
         if (!empty($filters['search'])) {
-            $term = '%' . (string)$filters['search'] . '%';
+            $term = '%' . $this->escapeLikeValue((string)$filters['search']) . '%';
             $qb->whereRaw('(login LIKE ? OR email LIKE ? OR full_name LIKE ?)', [$term, $term, $term]);
         }
 
@@ -183,6 +183,17 @@ final class UserManagementRepository
             $qb->where('is_active', '=', (int)((string)$filters['is_active'] === '1'));
         }
 
+        // C-1 fix: apply hierarchy filter — non-root callers pass created_by_user_id
+        // to limit results to users in their subtree (see UserController::list).
+        if (!empty($filters['created_by_user_id'])) {
+            $qb->where('created_by_user_id', '=', (int)$filters['created_by_user_id']);
+        }
+
         return $qb;
+    }
+
+    private function escapeLikeValue(string $value): string
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
     }
 }

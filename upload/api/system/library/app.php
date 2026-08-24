@@ -1276,7 +1276,8 @@ final class App
             $c->get('repository.session'),
             $c->get('service.setting'),
             $c->get('security.hasher'),
-            $c->get('logger')
+            $c->get('logger'),
+            $c->get('repository.password_reset')
         ));
         $this->container->factory('service.invitation', fn(Container $c) => new InvitationService(
             $c->get('repository.invitation'),
