@@ -551,7 +551,7 @@ check(
 // whole portal would 403 — while looking correct in the migration source.
 
 $permissionServiceSource = readFileSafe($permissionServicePath);
-preg_match_all("/'([a-z_]+\.[a-z_]+)'\s*=>\s*\\\$this->t\(/", $permissionServiceSource, $permMatches);
+preg_match_all("/'([a-z_]+(?:\.[a-z_]+)+)'\s*=>\s*\\\$this->t\(/", $permissionServiceSource, $permMatches);
 $knownPermissionCodes = array_values(array_unique($permMatches[1] ?? []));
 
 if ($knownPermissionCodes === []) {
@@ -671,8 +671,8 @@ foreach ([
     );
     check(
         $failures,
-        (bool)preg_match('/hasRlsClientFilter\s*=.*executor_project_ids/', $source),
-        "{$label} does not extend its internal-ownership bypass (hasRlsClientFilter) to also "
+        (bool)preg_match('/rlsScoped.*?executor_project_ids|executor_project_ids.*?rlsScoped/s', $source),
+        "{$label} does not extend its internal-ownership bypass (rlsScoped) to also "
         . 'trigger on executor_project_ids — an executor would additionally be judged by the '
         . 'created_by/manager/team ownership check meant for internal employees'
     );
