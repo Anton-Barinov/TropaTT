@@ -61,6 +61,15 @@ final class RoleController extends BaseController
 
         $this->invalidateCache('role');
 
+        // Save permission_codes if provided during creation
+        $permissionCodes = $input['permission_codes'] ?? [];
+        if (is_array($permissionCodes) && $permissionCodes !== []) {
+            /** @var \Api\System\Library\Service\PermissionService $permService */
+            $permService = $this->container->get('service.permission');
+            $permService->setByRole((string)$result['role']['public_id'], $permissionCodes, $auth['user']);
+            $this->invalidateCache('permission');
+        }
+
         return $this->success('ROLE_CREATED', $this->t('role/messages.created'), ['role' => $result['role']], 201);
     }
 
