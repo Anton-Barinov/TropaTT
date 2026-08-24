@@ -960,6 +960,12 @@ final class ChatController extends BaseController
         }
         if (!move_uploaded_file($tmp, $path)) throw new \RuntimeException('UPLOAD_MOVE_FAILED');
 
+        // M-14 fix: strip EXIF metadata (GPS coordinates, camera model, etc.)
+        // from uploaded images to prevent leaking personal information.
+        if (str_starts_with($mime, 'image/')) {
+            $this->stripExifMetadata($path, $mime);
+        }
+
         $this->container->get('db.pdo')->prepare("
             INSERT INTO files (public_id, entity_type, entity_public_id, uploader_user_id, original_name, storage_path, mime_type, size_bytes, is_deleted, created_at)
             VALUES (:pid, 'chat_message', :entity_pid, :uid, :name, :path, :mime, :size, 0, NOW())
@@ -1046,6 +1052,48 @@ final class ChatController extends BaseController
         if ($finfo === false) return '';
         $mime = finfo_file($finfo, $path);
         return is_string($mime) ? $mime : '';
+    }
+
+    /**
+     * M-14 fix: strip EXIF metadata (GPS coordinates, camera model, timestamps)
+     * from uploaded images. Uses GD to re-encode the image, which naturally
+     * strips all EXIF data. Falls back silently if GD is unavailable.
+     */
+    private function stripExifMetadata(string $path, string $mime): void
+    {
+        if (!function_exists('imagecreatefromstring') || !function_exists('imagejpeg')) {
+            return; // GD not available — cannot strip EXIF
+        }
+
+        $imageData = @file_get_contents($path);
+        if ($imageData === false) {
+            return;
+        }
+
+        $image = @imagecreatefromstring($imageData);
+        if ($image === false) {
+            return; // Not a valid image — leave as-is
+        }
+
+        // Re-encode as JPEG (strips all EXIF by design).
+        // For PNG, also re-encode (strips tEXt/iTXt metadata).
+        $tmpPath = $path . '.tmp';
+        $ok = false;
+        if ($mime === 'image/jpeg' || $mime === 'image/jpg') {
+            $ok = imagejpeg($image, $tmpPath, 92);
+        } elseif ($mime === 'image/png') {
+            $ok = imagepng($image, $tmpPath, 6);
+        } elseif ($mime === 'image/webp' && function_exists('imagewebp')) {
+            $ok = imagewebp($image, $tmpPath, 92);
+        }
+
+        imagedestroy($image);
+
+        if ($ok && is_file($tmpPath)) {
+            rename($tmpPath, $path);
+        } elseif (is_file($tmpPath)) {
+            @unlink($tmpPath);
+        }
     }
 
     // ---------------------------------------------------------------------------
