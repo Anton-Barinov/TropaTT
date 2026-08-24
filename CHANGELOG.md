@@ -4,6 +4,22 @@ All notable public changes to TropaTT should be documented here.
 
 This project follows a lightweight Keep a Changelog style. Dates are added when a release is actually created.
 
+## [v0.2.0.8] - 2026-08-24
+
+### Fixed
+
+- **RBAC view-permissions.** Routes for GET /projects, /tasks, /clients, /worklogs now accept view-level permissions (project.view, task.view, client.view, worklog.view) in addition to manage permissions. Standard users can now list and view entities they have access to via team membership without needing full management permissions.
+
+- **Permission evaluation logic.** Route permission arrays now use OR logic: a user needs AT LEAST ONE of the listed permissions, not ALL of them. Previously the AND logic made view+manage permission pairs impossible.
+
+- **Team member IDs.** `POST /teams` with `member_user_ids` now accepts public_id strings (e.g. "usr_XXX") in addition to integer IDs. Previously public_id strings were silently converted to 0 by intval().
+
+- **Task creation.** `POST /tasks` now accepts both `project_public_id` and `project_id` fields, and `assignee_user_id` resolves public_id strings to integer IDs.
+
+- **Default role assignment.** Creating a user without `role_public_ids` now automatically assigns the first non-system role that has permissions, preventing new users from being stuck with zero permissions.
+
+- **Installer database.php.** The installer now writes `database.php` configuration during installation.
+
 ## [v0.2.0.7] - 2026-08-24
 
 ### Added
