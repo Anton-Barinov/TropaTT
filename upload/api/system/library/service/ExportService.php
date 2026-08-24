@@ -456,7 +456,13 @@ final class ExportService
             foreach ($rows as $row) {
                 $line = [];
                 foreach ($headers as $header) {
-                    $line[] = (string)($row[$header] ?? '');
+                    $val = (string)($row[$header] ?? '');
+                    // L-14 fix: prefix formula-triggering characters to prevent
+                    // CSV injection when opened in Excel/LibreOffice.
+                    if ($val !== '' && in_array($val[0], ['=', '+', '-', '@', '|', '%'], true)) {
+                        $val = "'" . $val;
+                    }
+                    $line[] = $val;
                 }
                 fputcsv($stream, $line, ',', '"', '\\');
             }
