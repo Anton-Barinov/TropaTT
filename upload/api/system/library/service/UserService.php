@@ -148,6 +148,13 @@ final class UserService
 
         if ($roles !== []) {
             $this->users->replaceRoles($userId, $rolePublicIds);
+        } elseif (!$requestedRoot) {
+            // INST-3 fix: assign a default non-system role so the user isn't
+            // left with zero permissions (which means FORBIDDEN on every route).
+            $defaultRole = $this->roles->findDefaultRole();
+            if ($defaultRole !== null) {
+                $this->users->replaceRoles($userId, [$defaultRole['public_id']]);
+            }
         }
 
         $this->assignToTeam($publicId, $input['team_public_id'] ?? null);

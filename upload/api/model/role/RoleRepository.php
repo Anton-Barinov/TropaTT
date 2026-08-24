@@ -101,4 +101,20 @@ final class RoleRepository
                 'created_at' => $now,
             ]);
     }
+
+    /**
+     * INST-3 fix: find a suitable default role for newly created users.
+     * Returns the first non-system role that has at least one permission,
+     * or null if no such role exists.
+     */
+    public function findDefaultRole(): ?array
+    {
+        return (new QueryBuilder($this->pdo))
+            ->from('roles r')
+            ->select(['r.public_id', 'r.code', 'r.title'])
+            ->where('r.is_system', '=', 0)
+            ->whereRaw('EXISTS (SELECT 1 FROM role_permissions rp WHERE rp.role_id = r.id)')
+            ->orderBy('r.code', 'ASC')
+            ->first();
+    }
 }
