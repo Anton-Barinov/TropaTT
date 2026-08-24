@@ -441,7 +441,7 @@ final class App
 
                 /** @var AuthzService $authz */
                 $authz = $this->container->get('service.authz');
-                if (!$authz->hasPermissions($auth['user'], $requiredPermissions)) {
+                if (!$authz->hasAnyPermissions($auth['user'], $requiredPermissions)) {
                     /** @var LanguageManager $lang */
                     $lang = $this->container->get('lang');
                     $response = JsonResponse::error(
