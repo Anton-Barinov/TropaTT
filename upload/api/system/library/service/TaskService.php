@@ -200,11 +200,16 @@ final class TaskService
         $parentTask = null;
         $parentTaskPublicId = trim((string)($input['parent_task_public_id'] ?? ''));
 
-        if (!empty($input['project_public_id'])) {
-            if (!$this->projects->get((string)$input['project_public_id'], $actor)) {
+        // INST-8 fix: accept both project_public_id and project_id
+        $projectPublicId = trim((string)($input['project_public_id'] ?? ''));
+        if ($projectPublicId === '' && !empty($input['project_id'])) {
+            $projectPublicId = (string)$input['project_id'];
+        }
+        if ($projectPublicId !== '') {
+            if (!$this->projects->get($projectPublicId, $actor)) {
                 return 'PROJECT_NOT_FOUND';
             }
-            $projectId = $this->tasks->projectIdByPublicId((string)$input['project_public_id']);
+            $projectId = $this->tasks->projectIdByPublicId($projectPublicId);
         }
 
         if ($parentTaskPublicId !== '') {
@@ -260,7 +265,7 @@ final class TaskService
             'due_at' => !empty($input['due_at']) ? (string)$input['due_at'] : null,
             'start_at' => !empty($input['start_at']) ? (string)$input['start_at'] : null,
             'end_at' => !empty($input['end_at']) ? (string)$input['end_at'] : null,
-            'assignee_user_id' => isset($input['assignee_user_id']) ? (int)$input['assignee_user_id'] : null,
+            'assignee_user_id' => $this->resolveAssigneeUserId($input),
             'creator_user_id' => $creatorUserId,
             'source_type' => !empty($input['source_type']) ? substr(trim((string)$input['source_type']), 0, 64) : null,
             'source_id' => !empty($input['source_id']) ? substr(trim((string)$input['source_id']), 0, 255) : null,
@@ -419,7 +424,7 @@ final class TaskService
             $set['end_at'] = $input['end_at'] !== '' ? (string)$input['end_at'] : null;
         }
         if (array_key_exists('assignee_user_id', $input)) {
-            $set['assignee_user_id'] = $input['assignee_user_id'] !== null ? (int)$input['assignee_user_id'] : null;
+            $set['assignee_user_id'] = $this->resolveAssigneeUserId($input);
         }
         // task_key is not editable
         if (array_key_exists('task_key', $input) || array_key_exists('task_key_prefix', $input) || array_key_exists('task_sequence_number', $input)) {
@@ -671,6 +676,31 @@ final class TaskService
         }
 
         return $trimmed;
+    }
+
+    /**
+     * INST-8 fix: Resolve assignee_user_id from either integer ID or public_id string.
+     * The API accepts both formats but the DB column is integer.
+     */
+    private function resolveAssigneeUserId(array $input): ?int
+    {
+        if (!isset($input['assignee_user_id'])) {
+            return null;
+        }
+        $raw = $input['assignee_user_id'];
+        if (is_int($raw)) {
+            return $raw > 0 ? $raw : null;
+        }
+        $str = trim((string)$raw);
+        if ($str === '') {
+            return null;
+        }
+        // Numeric string — direct integer ID
+        if (ctype_digit($str)) {
+            return (int)$str > 0 ? (int)$str : null;
+        }
+        // Public ID string (e.g. "usr_XXX") — resolve to integer
+        return $this->teams->userIdByPublicId($str);
     }
 
     /** @param array<string,mixed> $task */

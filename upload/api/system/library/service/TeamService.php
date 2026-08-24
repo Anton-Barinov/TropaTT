@@ -187,7 +187,22 @@ final class TeamService
         }
 
         if (isset($input['member_user_ids']) && is_array($input['member_user_ids'])) {
-            return array_values(array_unique(array_filter(array_map('intval', $input['member_user_ids']), static fn(int $id): bool => $id > 0)));
+            // INST-4 fix: if any values are public_id strings (e.g. "usr_XXX"),
+            // convert them to integer IDs. intval() silently converts non-numeric
+            // strings to 0, losing the data.
+            $ids = [];
+            $publicIds = [];
+            foreach ($input['member_user_ids'] as $value) {
+                if (is_int($value) || (is_string($value) && ctype_digit($value))) {
+                    $ids[] = (int)$value;
+                } elseif (is_string($value) && $value !== '') {
+                    $publicIds[] = $value;
+                }
+            }
+            if ($publicIds !== []) {
+                $ids = array_merge($ids, $this->teams->userIdsByPublicIds($publicIds));
+            }
+            return array_values(array_unique(array_filter($ids, static fn(int $id): bool => $id > 0)));
         }
 
         return [];
