@@ -1396,7 +1396,73 @@ function writeEnvFile(array $data): bool
     }
     // SEC: restrict .env to the owning user (secrets file)
     @chmod(ENV_FILE_PATH, 0600);
+
+    // INST-1: Write database.php config so the API can read DB settings.
+    // The API bootstrap reads database.connections from this file, not .env.
+    writeDatabaseConfig($data);
+
     return true;
+}
+
+function writeDatabaseConfig(array $data): bool
+{
+    $dbHost = (string)($data['db_host'] ?? '127.0.0.1');
+    $dbPort = (int)($data['db_port'] ?? 3306);
+    $dbDatabase = (string)($data['db_database'] ?? '');
+    $dbUsername = (string)($data['db_username'] ?? '');
+    $dbPassword = (string)($data['db_password'] ?? '');
+    $storageBase = STORAGE_BASE_DEFAULT;
+
+    $configDir = dirname(ENV_FILE_PATH) . '/config';
+    if (!is_dir($configDir) && !mkdir($configDir, 0755, true)) {
+        return false;
+    }
+
+    $configPath = $configDir . '/database.php';
+    if (file_exists($configPath)) {
+        return true; // Already exists, don't overwrite
+    }
+
+    $content = <<<PHP
+<?php
+declare(strict_types=1);
+
+// SEC-002: Block direct web access
+if (PHP_SAPI !== 'cli' && (\$_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__) {
+    http_response_code(404);
+    exit;
+}
+
+\$default = trim((string)(getenv('DB_CONNECTION') ?: 'mysql'));
+if (\$default === '') {
+    \$default = 'mysql';
+}
+
+\$storageBase = (string)(getenv('CRM_STORAGE_BASE') ?: dirname(__DIR__, 2) . '/../storage_api');
+
+return [
+    'default' => \$default,
+    'connections' => [
+        'sqlite' => [
+            'driver' => 'sqlite',
+            'database' => (string)(getenv('CRM_SQLITE_DATABASE') ?: (\$storageBase . '/temp/crm.sqlite')),
+            'prefix' => '',
+        ],
+        'mysql' => [
+            'driver' => 'mysql',
+            'host' => (string)(getenv('DB_HOST') ?: '127.0.0.1'),
+            'port' => (int)(getenv('DB_PORT') ?: 3306),
+            'database' => (string)(getenv('DB_DATABASE') ?: 'crm'),
+            'username' => (string)(getenv('DB_USERNAME') ?: 'root'),
+            'password' => (string)(getenv('DB_PASSWORD') ?: ''),
+            'charset' => (string)(getenv('DB_CHARSET') ?: 'utf8mb4'),
+            'prefix' => '',
+        ],
+    ],
+];
+PHP;
+
+    return file_put_contents($configPath, $content) !== false;
 }
 
 function createDatabaseTables(PDO $pdo, string $driver): array
