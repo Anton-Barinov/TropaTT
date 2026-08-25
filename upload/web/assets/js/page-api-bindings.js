@@ -9739,7 +9739,18 @@ window.CRM.pageApiBindings = (function () {
           var delivered = Number(dispatch.delivered || 0);
           var deactivated = Number(dispatch.deactivated || 0);
           var gateway = !!dispatch.gateway_configured;
-          notify(tp('notifications.push_test_prefix', 'Push test: attempts ') + attempted + tp('notifications.push_test_delivered', ', delivered ') + delivered + tp('notifications.push_test_deactivated', ', deactivated ') + deactivated + (gateway ? '' : tp('notifications.push_test_gateway_missing', ' (gateway not configured)')));
+          var msg = tp('notifications.push_test_prefix', 'Push test: attempts ') + attempted + tp('notifications.push_test_delivered', ', delivered ') + delivered + tp('notifications.push_test_deactivated', ', deactivated ') + deactivated + (gateway ? '' : tp('notifications.push_test_gateway_missing', ' (gateway not configured)'));
+          // C-2p: show per-reason delivery failures when partial delivery.
+          if (delivered < attempted) {
+            var failures = dispatch.failures;
+            if (Array.isArray(failures) && failures.length > 0) {
+              msg += '\n' + tp('notifications.push_test_failures', 'Delivery failures:') + '\n';
+              failures.forEach(function (f) {
+                msg += '  ' + String(f.reason || '?') + ': ' + String(f.count || 0) + '\n';
+              });
+            }
+          }
+          notify(msg);
           await refreshPushDevices();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;

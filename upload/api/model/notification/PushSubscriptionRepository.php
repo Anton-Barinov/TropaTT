@@ -33,13 +33,14 @@ final class PushSubscriptionRepository
             ->where('user_id', '=', $userId);
 
         $total = $base->count();
+        // C-1p: p256dh and auth are encryption secrets owned by the subscriber.
+        // They are never needed by the user-facing device list and must not
+        // leave the server through the list endpoint.
         $items = (new QueryBuilder($this->pdo))
             ->from('notification_push_subscriptions')
             ->select([
                 'public_id',
                 'endpoint',
-                'p256dh',
-                'auth',
                 'user_agent',
                 'device_label',
                 'is_active',
