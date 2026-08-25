@@ -198,6 +198,14 @@ $auJs = [
   'mig_err_check' => $au('mig_err_check', 'Не удалось проверить статус миграций.'),
   'mig_err_run' => $au('mig_err_run', 'Не удалось применить миграции.'),
   'mig_confirm' => $au('mig_confirm', 'Будут применены все ожидающие миграции базы данных. Это безопасная операция — миграции используют защищённые DDL-запросы. Продолжить?'),
+  'forceUnlockBtn' => $au('force_unlock_btn', 'Принудительно разблокировать'),
+  'forceUnlockConfirm' => $au('force_unlock_confirm', 'Это удалит файл блокировки обновлений. Используйте только если уверены, что предыдущее обновление не выполняется. Продолжить?'),
+  'forceUnlockLoading' => $au('force_unlock_loading', 'снимаем блокировку...'),
+  'forceUnlockOk' => $au('force_unlock_ok', 'Блокировка снята. Теперь можно запустить проверку безопасности.'),
+  'forceUnlockNone' => $au('force_unlock_none', 'Блокировки не было — ничего удалять не нужно.'),
+  'forceUnlockError' => $au('force_unlock_error', 'Не удалось снять блокировку. Попробуйте ещё раз.'),
+  'forceUnlockHint' => $au('force_unlock_hint', 'Обновление заблокировано. Если предыдущая установка была прервана, нажмите кнопку ниже.'),
+  'lockCheckLabel' => $au('check_active_lock', 'Активная блокировка'),
 ];
 ?>
 <body data-page="admin-updates" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
@@ -488,7 +496,8 @@ $auJs = [
     preflight: tr('loadingPreflight', 'проверяем безопасность'),
     download: tr('loadingDownload', 'подготавливаем архив'),
     apply: tr('loadingApply', 'устанавливаем обновление'),
-    rollback: tr('loadingRollback', 'восстанавливаем backup')
+    rollback: tr('loadingRollback', 'восстанавливаем backup'),
+    'force-unlock': tr('forceUnlockLoading', 'снимаем блокировку...')
   };
 
   function apiRouteFromUrl(url) {
@@ -940,7 +949,7 @@ $auJs = [
     const labels = i18n.checkLabels || {};
     const rows = Object.keys(checks).map((key) => `<li><span>${esc(labels[key] || key)}</span><span class="${checks[key] ? 'updates-badge ok' : 'updates-badge danger'}">${checks[key] ? esc(tr('checkOk', 'OK')) : esc(tr('checkFailed', 'FAIL'))}</span></li>`).join('');
     const staging = download && download.data && download.data.staging ? download.data.staging : null;
-    $('preflightContent').innerHTML = `${list({[tr('field_job_id', 'Job ID')]: state.lastJobId || 'n/a', [tr('fieldTarget', 'Целевая сборка')]: report.target_build || 'n/a', [tr('field_package', 'Архив')]: report.package ? String(report.package.type).toUpperCase() : tr('none', 'нет'), [tr('field_files', 'Файлов подготовлено')]: report.manifest_report ? report.manifest_report.file_count : 'n/a'})}<h3 class="h6 mt-3">${esc(tr('checks_title', 'Проверки'))}</h3><ul class="updates-list">${rows}</ul>${report.modules_note ? `<div class="updates-empty mt-2">${esc(report.modules_note)}</div>` : ''}${(report.manifest_report && Array.isArray(report.manifest_report.forbidden_paths) && report.manifest_report.forbidden_paths.length) ? `<div class="updates-empty mt-2 updates-danger">${esc(tr('forbiddenPathsTitle', 'Защищённые пути в архиве:'))} ${esc(report.manifest_report.forbidden_paths.join(', '))}</div>` : ''}${staging ? `<h3 class="h6 mt-3">${esc(tr('fieldStaging', 'Подготовка архива'))}</h3>${list({[tr('field_files', 'Файлов подготовлено')]: staging.file_count, [tr('fieldPreview', 'Первые файлы')]: (staging.preview || []).join(', ')})}` : ''}`;
+    $('preflightContent').innerHTML = `${list({[tr('field_job_id', 'Job ID')]: state.lastJobId || 'n/a', [tr('fieldTarget', 'Целевая сборка')]: report.target_build || 'n/a', [tr('field_package', 'Архив')]: report.package ? String(report.package.type).toUpperCase() : tr('none', 'нет'), [tr('field_files', 'Файлов подготовлено')]: report.manifest_report ? report.manifest_report.file_count : 'n/a'})}<h3 class="h6 mt-3">${esc(tr('checks_title', 'Проверки'))}</h3><ul class="updates-list">${rows}</ul>${checks.no_active_lock === false ? `<div class="updates-empty mt-2" style="border-color:var(--crm-warning-soft);background:var(--crm-warning-soft);color:var(--crm-warning);"><strong>🛡 ${esc(tr('lockCheckLabel', 'Активная блокировка'))} — ${esc(tr('checkFailed', 'FAIL'))}</strong><br>${esc(tr('forceUnlockHint', 'Обновление заблокировано. Если предыдущая установка была прервана, нажмите кнопку ниже.'))}<div class="updates-actions mt-2"><button class="btn crm-btn-warning" type="button" data-update-action="force-unlock">${esc(tr('forceUnlockBtn', 'Принудительно разблокировать'))}</button></div></div>` : ''}${report.modules_note ? `<div class="updates-empty mt-2">${esc(report.modules_note)}</div>` : ''}${(report.manifest_report && Array.isArray(report.manifest_report.forbidden_paths) && report.manifest_report.forbidden_paths.length) ? `<div class="updates-empty mt-2 updates-danger">${esc(tr('forbiddenPathsTitle', 'Защищённые пути в архиве:'))} ${esc(report.manifest_report.forbidden_paths.join(', '))}</div>` : ''}${staging ? `<h3 class="h6 mt-3">${esc(tr('fieldStaging', 'Подготовка архива'))}</h3>${list({[tr('field_files', 'Файлов подготовлено')]: staging.file_count, [tr('fieldPreview', 'Первые файлы')]: (staging.preview || []).join(', ')})}` : ''}`;
     updateRecommendation();
   }
 
@@ -1255,6 +1264,25 @@ $auJs = [
     }
   }
 
+  // ── Force unlock ──
+  async function forceUnlock() {
+    if (!window.confirm(tr('forceUnlockConfirm', 'Это удалит файл блокировки обновлений. Используйте только если уверены, что предыдущее обновление не выполняется. Продолжить?'))) return;
+    const result = await api('/updater/index.php?action=force-unlock', {method: 'POST', body: '{}', timeoutMs: 10000});
+    ensureSuccess(result, tr('forceUnlockError', 'Не удалось снять блокировку. Попробуйте ещё раз.'));
+    const data = result.data || result;
+    if (data.lock_removed) {
+      showNotice(tr('forceUnlockOk', 'Блокировка снята. Теперь можно запустить проверку безопасности.'));
+    } else {
+      showNotice(tr('forceUnlockNone', 'Блокировки не было — ничего удалять не нужно.'));
+    }
+    // Re-run preflight to refresh the checks with the lock removed
+    state.preflight = null;
+    state.lastJobId = null;
+    if (state.plan && state.plan.update_available === true) {
+      await preflight();
+    }
+  }
+
   // ── Migration helpers ──
   let migrationState = { status: null };
 
@@ -1318,7 +1346,7 @@ $auJs = [
     const btn = event.target.closest && event.target.closest('[data-update-action]');
     if (!btn) return;
     const action = btn.getAttribute('data-update-action');
-    const actions = { refresh, check, changes, install: installUpdate, preflight, download, apply: applyUpdate, rollback, 'recovery-key': showRecoveryKey, 'migration-check': migrationCheck, 'migration-up': migrationUp };
+    const actions = { refresh, check, changes, install: installUpdate, preflight, download, apply: applyUpdate, rollback, 'recovery-key': showRecoveryKey, 'migration-check': migrationCheck, 'migration-up': migrationUp, 'force-unlock': forceUnlock };
     if (actions[action]) withAction(action, actions[action]);
   });
 

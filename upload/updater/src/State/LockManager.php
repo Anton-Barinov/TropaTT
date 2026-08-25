@@ -118,6 +118,23 @@ final class LockManager
     }
 
     /**
+     * Force-remove the lock file from the admin panel. Always succeeds — a
+     * missing file is not an error. Returns whether a file was actually
+     * deleted.
+     */
+    public function forceRelease(): bool
+    {
+        $path = $this->storageDir . '/locks/update.lock';
+        if (!is_file($path)) {
+            $this->lockFile = null;
+            return false;
+        }
+        $deleted = @unlink($path);
+        $this->lockFile = null;
+        return $deleted;
+    }
+
+    /**
      * @return array{path:string,stale:bool,created_at:?string,heartbeat_at:?string,pid:?int,owner_job_id:?string}|null
      *         null when no lock is held (no file, or the file is stale)
      */

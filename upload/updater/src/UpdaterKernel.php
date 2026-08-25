@@ -68,6 +68,7 @@ final class UpdaterKernel
                 'apply' => $this->apply($input),
                 'resume' => $this->resume($input),
                 'rollback' => $this->rollback($input),
+                'force-unlock' => $this->forceUnlock(),
                 'log' => $this->log((string)($input['job_id'] ?? '')),
                 default => JsonResponse::error('UNKNOWN_ACTION', 'Unknown updater action', 404),
             };
@@ -1005,6 +1006,23 @@ final class UpdaterKernel
             // Unknown DB state - safest to take the backup anyway.
             return ['__unknown__'];
         }
+    }
+
+    /**
+     * Force-remove the updater lock file. Exposed to the admin panel so an
+     * administrator can clear a stuck lock after a crashed update without
+     * waiting for the TTL. Returns whether the lock was actually present.
+     */
+    private function forceUnlock(): JsonResponse
+    {
+        $manager = new LockManager($this->storageDir);
+        $removed = $manager->forceRelease();
+        return JsonResponse::success([
+            'lock_removed' => $removed,
+            'message' => $removed
+                ? 'The update lock has been removed.'
+                : 'No lock was present — nothing to remove.',
+        ]);
     }
 
     private function log(string $jobId): JsonResponse
