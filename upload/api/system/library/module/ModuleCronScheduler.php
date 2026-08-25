@@ -110,8 +110,21 @@ final class ModuleCronScheduler
             $existingId = $existing->fetchColumn();
 
             if ($existingId !== false) {
-                $nextRun = $this->parser->getNextRunDate($task->schedule);
-                $stmt = $this->pdo->prepare("UPDATE {$this->tasksTable} SET description = :desc, schedule = :schedule, handler_class = :class, handler_method = :method, enabled = :enabled, timeout = :timeout, overlap_allowed = :overlap, next_run_at = :next, updated_at = :updated WHERE id = :id");
+                $stmt = $this->pdo->prepare("SELECT schedule, next_run_at FROM {$this->tasksTable} WHERE id = :id");
+                $stmt->execute(['id' => $existingId]);
+                $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+                // Re-registration happens on every API request (App::initModuleSystem).
+                // Recomputing next_run_at here would keep pushing the run date forward
+                // (e.g. now+1min for '* * * * *'), so a task could never become due.
+                // Only recompute when the schedule changed or the stored date is null/
+                // stale; otherwise keep the scheduler's own advancement (updateNextRun).
+                $nextRun = null;
+                if ($row === false || $row['schedule'] !== $task->schedule || empty($row['next_run_at'])) {
+                    $nextRun = $this->parser->getNextRunDate($task->schedule);
+                }
+
+                $stmt = $this->pdo->prepare("UPDATE {$this->tasksTable} SET description = :desc, schedule = :schedule, handler_class = :class, handler_method = :method, enabled = :enabled, timeout = :timeout, overlap_allowed = :overlap, next_run_at = COALESCE(:next, next_run_at), updated_at = :updated WHERE id = :id");
                 $stmt->execute([
                     'desc' => $task->description,
                     'schedule' => $task->schedule,
@@ -120,7 +133,7 @@ final class ModuleCronScheduler
                     'enabled' => $task->enabled ? 1 : 0,
                     'timeout' => $task->timeout,
                     'overlap' => $task->overlapAllowed ? 1 : 0,
-                    'next' => $nextRun->format('Y-m-d H:i:s'),
+                    'next' => $nextRun?->format('Y-m-d H:i:s'),
                     'updated' => $now,
                     'id' => $existingId,
                 ]);
@@ -291,7 +304,7 @@ final class ModuleCronScheduler
         $overlapAllowed = $this->isOverlapAllowed($taskId);
 
         if (!$overlapAllowed) {
-            $running = $this->hasRunningExecution($moduleName, $taskName);
+            $running = $this->hasRunningExecution($moduleName, $taskName, $timeout);
             if ($running) {
                 try {
                     $this->updateNextRun($taskId, $schedule, 'skipped', 'Task already running (overlap disallowed)');
@@ -399,11 +412,18 @@ final class ModuleCronScheduler
         }
     }
 
-    private function hasRunningExecution(string $moduleName, string $taskName): bool
+    private function hasRunningExecution(string $moduleName, string $taskName, int $timeout = 300): bool
     {
         try {
-            $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM {$this->executionsTable} WHERE module_name = :module AND task_name = :task AND status = 'running'");
-            $stmt->execute(['module' => $moduleName, 'task' => $taskName]);
+            // A run that crashed (PHP fatal, server restart, host OOM-kill) leaves a
+            // 'running' row forever, which would block the task permanently via the
+            // overlap check. Treat executions older than max(timeout, 15 min) as
+            // stale: the process is gone, so the task may run again.
+            $grace = max($timeout > 0 ? $timeout : 300, 900);
+            $cutoff = date('Y-m-d H:i:s', time() - $grace);
+
+            $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM {$this->executionsTable} WHERE module_name = :module AND task_name = :task AND status = 'running' AND started_at >= :cutoff");
+            $stmt->execute(['module' => $moduleName, 'task' => $taskName, 'cutoff' => $cutoff]);
             return ((int)$stmt->fetchColumn()) > 0;
         } catch (\Throwable $e) {
             error_log('[ModuleCronScheduler::hasRunningExecution] ' . $e->getMessage());
