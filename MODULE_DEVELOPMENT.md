@@ -236,3 +236,26 @@ Handlers are stateless public static methods resolved by `Web\System\Module\Modu
 3. Position renderers and web hooks are public static methods returning strings; user-controlled data is escaped with `htmlspecialchars`.
 4. CSS/JS are loaded via `css_routes`/`js_routes` keyed by the exact `?route=` value, so they never leak onto unrelated pages.
 5. No core files are modified — everything a module needs is reachable through the manifest, the service provider, and the extension points above.
+
+## 9. Trust model and module security
+
+**Modules are trusted.** Module code executes in the same PHP process as the core, with the same filesystem permissions, database access, and network capabilities. There is **no sandbox, no isolation, no resource limits** enforced on module code at runtime.
+
+This is an **explicitly accepted design trade-off** (2026-08-25, C-1). The barriers that do exist are:
+
+1. **Installation gate:** Only the root (admin) user can install modules. The `MODULE_SIGNING_KEY` environment variable is required for remote package installation and must match the server-side signing key — unset or mismatched key → install fails closed.
+2. **Code validation:** `ModuleCodeValidator` runs before files from a remote package are written to disk — dangerous constructs (`eval`, `exec`, `shell_exec`, etc.) cause immediate rejection.
+3. **Filesystem isolation:** `upload/modules/.htaccess` denies direct web access to module PHP files.
+4. **Core stability:** Event handlers that throw are caught and isolated — a broken module cannot crash core requests.
+
+**What this means for module authors:**
+
+- You are writing **trusted code with full access to the installation's data and infrastructure**.
+- Treat your module as you would core code: no hardcoded credentials, no unfiltered user input, no calls to external services with plain-text secrets in logs.
+- Use the core Config, Log, and DB utilities rather than rolling your own.
+
+**What this means for installers:**
+
+- You are responsible for the modules you install. Review the source code.
+- Prefer modules from trusted authors. Check that the module does not exfiltrate data, log secrets, or weaken access controls.
+- Module permissions (`manifest.json::require_permissions`) are granted at activation time — review them before activating.

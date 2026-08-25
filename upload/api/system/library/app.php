@@ -18,18 +18,12 @@ use Api\System\Library\Module\EventDispatcher;
 use Api\System\Library\Module\ModuleAuditLogger;
 use Api\System\Library\Module\ModuleDeprecation;
 use Api\System\Library\Module\ModuleCodeValidator;
-use Api\System\Library\Module\ModuleProfiler;
-use Api\System\Library\Module\ModuleResourceLimits;
-use Api\System\Library\Module\ModuleTableValidator;
 use Api\System\Library\Module\ModuleCronScheduler;
 use Api\System\Library\Module\ModuleJobDispatcher;
 use Api\System\Library\Module\ModuleWebhookDispatcher;
 use Api\System\Library\Module\ModuleNotificationDispatcher;
 use Api\System\Library\Module\ModuleFeatureFlags;
-use Api\System\Library\Module\ModuleCircuitBreaker;
-use Api\System\Library\Module\ModuleBulkhead;
-use Api\System\Library\Module\ModuleRateLimiter;
-use Api\System\Library\Module\ModuleApiVersionManager;
+
 use Api\System\Library\Http\JsonResponse;
 use Api\System\Library\Http\RawJsonResponse;
 use Api\System\Library\Http\Request;
@@ -1819,24 +1813,13 @@ final class App
         $eventDispatcher = new EventDispatcher();
         $this->container->set('module.event_dispatcher', $eventDispatcher);
 
-        // C-1: the sandbox/validation classes below (ModuleCodeValidator,
-        // ModuleTableValidator, ModuleSandbox, ModuleFilesystemSandbox,
-        // ModuleNetworkSandbox, ModuleTenantDataIsolator, and ~15 others) are
-        // currently registered in the container but NOT invoked at any point.
-        // Module code is fully trusted and runs in the same process as core.
-        // Module installation is restricted to root users + signed packages
-        // (MODULE_SIGNING_KEY required, root gate on install/purge routes).
+        // C-1 (accepted risk, 2026-08-25): module code runs in the same process
+        // as core with the same privileges. There is no sandbox, no isolation.
+        // The module installation gate (root-only, MODULE_SIGNING_KEY required,
+        // fail-closed, .htaccess in modules/) is the sole barrier. See
+        // SECURITY.md and MODULE_DEVELOPMENT.md for the trust model.
         $codeValidator = new ModuleCodeValidator();
         $this->container->set('module.code_validator', $codeValidator);
-
-        $tableValidator = new ModuleTableValidator();
-        $this->container->set('module.table_validator', $tableValidator);
-
-        $resourceLimits = new ModuleResourceLimits();
-        $this->container->set('module.resource_limits', $resourceLimits);
-
-        $profiler = new ModuleProfiler();
-        $this->container->set('module.profiler', $profiler);
 
         $cronScheduler = new ModuleCronScheduler($pdo);
         try { $cronScheduler->ensureTables($driver); } catch (\Throwable $e) {
@@ -1930,18 +1913,6 @@ final class App
 
         $featureFlags = new ModuleFeatureFlags($pdo);
         $this->container->set('module.feature_flags', $featureFlags);
-
-        $circuitBreaker = new ModuleCircuitBreaker();
-        $this->container->set('module.circuit_breaker', $circuitBreaker);
-
-        $bulkhead = new ModuleBulkhead();
-        $this->container->set('module.bulkhead', $bulkhead);
-
-        $rateLimiter = new ModuleRateLimiter();
-        $this->container->set('module.rate_limiter', $rateLimiter);
-
-        $apiVersionManager = new ModuleApiVersionManager();
-        $this->container->set('module.api_version_manager', $apiVersionManager);
 
         $pluginManager->discover();
 
