@@ -228,10 +228,15 @@ final class ModuleCronScheduler
         $dt = $driver === 'sqlsrv' ? 'DATETIME2' : 'DATETIME';
         $nowDefault = $driver === 'sqlite' ? "DEFAULT (datetime('now'))" : 'DEFAULT CURRENT_TIMESTAMP';
         $keyType = $driver === 'mysql' ? 'VARCHAR(190)' : 'TEXT';
+        // Error/output payloads must not truncate on write: VARCHAR(190) made the
+        // failure-recording UPDATE itself fail with "Data too long" (strict mode),
+        // leaving executions stuck in 'running'. TZ A-0 allows last_error up to
+        // 500 chars; error_trace stays server-side only (never exposed via API).
+        $longType = $driver === 'sqlsrv' ? 'NVARCHAR(MAX)' : 'TEXT';
 
-        $this->pdo->exec("CREATE TABLE IF NOT EXISTS {$this->tasksTable} (id {$id}, module_name {$keyType} NOT NULL, task_name {$keyType} NOT NULL, description {$keyType}, schedule {$keyType} NOT NULL, handler_class {$keyType} NOT NULL, handler_method {$keyType} NOT NULL, enabled INTEGER NOT NULL DEFAULT 1, timeout INTEGER NOT NULL DEFAULT 300, overlap_allowed INTEGER NOT NULL DEFAULT 0, last_run_at {$dt}, next_run_at {$dt} NOT NULL, last_status {$keyType}, last_error {$keyType}, created_at {$dt} NOT NULL {$nowDefault}, updated_at {$dt} NOT NULL {$nowDefault})");
+        $this->pdo->exec("CREATE TABLE IF NOT EXISTS {$this->tasksTable} (id {$id}, module_name {$keyType} NOT NULL, task_name {$keyType} NOT NULL, description {$keyType}, schedule {$keyType} NOT NULL, handler_class {$keyType} NOT NULL, handler_method {$keyType} NOT NULL, enabled INTEGER NOT NULL DEFAULT 1, timeout INTEGER NOT NULL DEFAULT 300, overlap_allowed INTEGER NOT NULL DEFAULT 0, last_run_at {$dt}, next_run_at {$dt} NOT NULL, last_status {$keyType}, last_error {$longType}, created_at {$dt} NOT NULL {$nowDefault}, updated_at {$dt} NOT NULL {$nowDefault})");
 
-        $this->pdo->exec("CREATE TABLE IF NOT EXISTS {$this->executionsTable} (id {$id}, module_name {$keyType} NOT NULL, task_name {$keyType} NOT NULL, started_at {$dt} NOT NULL {$nowDefault}, finished_at {$dt}, duration_ms INTEGER, status {$keyType} NOT NULL, output {$keyType}, error_message {$keyType}, error_trace {$keyType}, memory_peak_mb INTEGER, pid INTEGER, created_at {$dt} NOT NULL {$nowDefault})");
+        $this->pdo->exec("CREATE TABLE IF NOT EXISTS {$this->executionsTable} (id {$id}, module_name {$keyType} NOT NULL, task_name {$keyType} NOT NULL, started_at {$dt} NOT NULL {$nowDefault}, finished_at {$dt}, duration_ms INTEGER, status {$keyType} NOT NULL, output {$longType}, error_message {$longType}, error_trace {$longType}, memory_peak_mb INTEGER, pid INTEGER, created_at {$dt} NOT NULL {$nowDefault})");
 
         try {
             IndexHelper::createIndexIfNotExists($this->pdo, $this->tasksTable, 'idx_scheduled_tasks_next', 'next_run_at, enabled');
@@ -245,6 +250,20 @@ final class ModuleCronScheduler
             IndexHelper::createIndexIfNotExists($this->pdo, $this->tasksTable, 'uq_scheduled_tasks_module_task', 'module_name, task_name', true);
         } catch (\Throwable $e) {
             error_log('[ModuleCronScheduler::ensureTables] index creation failed: ' . $e->getMessage());
+        }
+
+        // Widen error/output columns on pre-existing tables (MySQL strict mode
+        // would otherwise reject long error messages and leave rows 'running').
+        if ($driver === 'mysql') {
+            foreach ([$this->tasksTable => 'last_error', $this->executionsTable => 'output, error_message, error_trace'] as $table => $columns) {
+                foreach (explode(',', $columns) as $column) {
+                    try {
+                        $this->pdo->exec("ALTER TABLE {$table} MODIFY `" . trim($column) . "` TEXT NULL");
+                    } catch (\Throwable $e) {
+                        error_log('[ModuleCronScheduler::ensureTables] widen ' . $column . ' failed: ' . $e->getMessage());
+                    }
+                }
+            }
         }
     }
 
