@@ -4,6 +4,20 @@ All notable public changes to TropaTT should be documented here.
 
 This project follows a lightweight Keep a Changelog style. Dates are added when a release is actually created.
 
+## [v0.2.0.9] - 2026-08-25
+
+### Fixed
+
+- **Installer TypeError on db_port.** The installer form passed an integer `db_port` value to the `e()` HTML-escape function which expects a string, causing a PHP Fatal TypeError on PHP 8.1+ with strict types. The port value is now cast to string before escaping.
+
+- **Installer open_basedir warning.** On HestiaCP and similar panels where `open_basedir` restricts PHP to `public_html`, the installer logged noisy warnings when checking `storage_api/install.lock` (which lives outside the web root). The check now suppresses the warning gracefully.
+
+### Changed
+
+- **API documentation: required fields clarified.** The API docs now document that `POST /roles` requires a `code` field, `POST /counterparties` requires `title` (not `name`), and `POST /worklogs` requires `activity_code`. These fields were already required by the API but were not documented.
+
+- **HestiaCP / VestaCP nginx guide.** The Shared Hosting Guide now includes a dedicated section for HestiaCP/VestaCP users covering the `@opencart` rewrite rule, PHP-FPM socket naming, and `open_basedir` considerations.
+
 ## [v0.2.0.8] - 2026-08-24
 
 ### Fixed
