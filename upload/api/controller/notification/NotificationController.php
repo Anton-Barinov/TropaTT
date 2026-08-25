@@ -220,7 +220,7 @@ final class NotificationController extends BaseController
         $service = $this->container->get('service.notification_push');
         $result = $service->sendTestToUser((int)($authUser['user']['id'] ?? 0), $authUser['user']);
 
-        return $this->success('NOTIFICATION_PUSH_TEST', $this->t('notification/messages.push_test_prepared'), [
+        $data = [
             'push' => [
                 'title' => $this->t('notification/messages.test_push_title'),
                 'body' => $this->t('notification/messages.test_push_body'),
@@ -228,6 +228,26 @@ final class NotificationController extends BaseController
                 'timestamp' => gmdate('c'),
             ],
             'dispatch' => $result,
-        ]);
+        ];
+
+        // P-5: a diagnostic endpoint must not report success when nothing was
+        // delivered. The failure codes are internal enum-like strings and carry
+        // no endpoint, token or key material.
+        $attempted = (int)($result['attempted'] ?? 0);
+        $delivered = (int)($result['delivered'] ?? 0);
+        if ($attempted > 0 && $delivered === 0) {
+            $reasons = [];
+            foreach (($result['failures'] ?? []) as $failure) {
+                $reasons[] = (string)($failure['reason'] ?? '') . ' x' . (int)($failure['count'] ?? 0);
+            }
+            $message = $this->t('notification/messages.push_test_failed')
+                . ' (0/' . $attempted . ($reasons === [] ? '' : ': ' . implode(', ', $reasons)) . ')';
+
+            return $this->error('NOTIFICATION_PUSH_TEST_FAILED', $message, 502, [
+                'dispatch' => $reasons === [] ? ['no_delivery'] : $reasons,
+            ], $data);
+        }
+
+        return $this->success('NOTIFICATION_PUSH_TEST', $this->t('notification/messages.push_test_prepared'), $data);
     }
 }

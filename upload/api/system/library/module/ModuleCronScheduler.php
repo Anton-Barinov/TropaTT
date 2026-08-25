@@ -30,7 +30,7 @@ final class ModuleCronScheduler
     private const HANDLER_METHOD_ALLOWLIST = [
         'run', 'execute', 'handle', 'process',
         'freshnessScan', 'draftsCleanup', 'versionsCleanup', 'reindexSearch',
-        'captureDaily', 'autoClosePeriods',
+        'captureDaily', 'autoClosePeriods', 'dispatchQueue',
     ];
 
     public function __construct(PDO $pdo)

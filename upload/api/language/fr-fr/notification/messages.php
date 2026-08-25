@@ -88,6 +88,7 @@ return [
     'push_subscription_not_found' => 'Abonnement push introuvable',
     'push_subscription_deleted' => 'Abonnement push supprimé',
     'push_test_prepared' => 'Payload de test push préparé',
+    'push_test_failed' => 'Le push de test n\'a pas pu etre remis',
     'accepted_intake' => 'a accepté l’élément de réception',
     'assigned_intake_to_you' => 'vous a assigné un élément de réception',
     'calendar_event_upcoming' => 'Événement de calendrier qui commence bientôt',

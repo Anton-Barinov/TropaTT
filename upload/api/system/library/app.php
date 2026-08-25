@@ -1890,6 +1890,18 @@ final class App
         }
 
         try {
+            $cronScheduler->registerTask('notifications', new \Api\System\Library\Module\ScheduledTask(
+                name: 'push.dispatch_queue',
+                description: 'Deliver queued web-push notifications (RFC 8291) to browser push services',
+                schedule: '* * * * *',
+                handler: [\Api\System\Library\Service\PushCronTaskHandler::class, 'dispatchQueue'],
+                timeout: 120,
+            ));
+        } catch (\Throwable $e) {
+            error_log('[PushCron] Task registration failed: ' . $e->getMessage());
+        }
+
+        try {
             $cronScheduler->registerTask('finance', new \Api\System\Library\Module\ScheduledTask(
                 name: 'periods.auto_close',
                 description: 'Auto-close financial periods (weekly/monthly, with lag_days) by locking work_logs rate snapshots',

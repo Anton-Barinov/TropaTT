@@ -88,6 +88,7 @@ return [
     'push_subscription_not_found' => '未找到Push订阅',
     'push_subscription_deleted' => 'Push订阅已删除',
     'push_test_prepared' => 'Push测试数据已准备',
+    'push_test_failed' => '测试推送发送失败',
     'accepted_intake' => '接受了收件项',
     'assigned_intake_to_you' => '向您分配了一个收件项',
     'calendar_event_upcoming' => '日历事件即将开始',

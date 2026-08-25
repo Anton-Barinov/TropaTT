@@ -88,6 +88,7 @@ return [
     'push_subscription_not_found' => 'Push subscription not found',
     'push_subscription_deleted' => 'Push subscription deleted',
     'push_test_prepared' => 'Push test payload prepared',
+    'push_test_failed' => 'Test-Push konnte nicht zugestellt werden',
     'accepted_intake' => 'hat den Intake-Eintrag angenommen',
     'assigned_intake_to_you' => 'hat Ihnen einen Intake-Eintrag zugewiesen',
     'calendar_event_upcoming' => 'Kalenderereignis beginnt bald',

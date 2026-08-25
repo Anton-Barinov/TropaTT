@@ -90,6 +90,7 @@ return [
     'push_subscription_not_found' => 'Push subscription not found',
     'push_subscription_deleted' => 'Push subscription deleted',
     'push_test_prepared' => 'Push test payload prepared',
+    'push_test_failed' => 'Test push could not be delivered',
     'intake_assigned_to_you' => 'New intake item assigned to you',
     'assigned_intake_to_you' => 'assigned an intake item to you',
     'intake_accepted' => 'Intake item accepted',

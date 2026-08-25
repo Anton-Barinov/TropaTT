@@ -4,9 +4,17 @@ declare(strict_types=1);
 /**
  * Lightweight cron endpoint for shared hosting.
  *
- * Processes push notification queue via HTTP GET.
- * Configure an external cron service (e.g. cron-job.org, EasyCron, setcronjob.com)
- * to call: https://your-site.com/cron.php?key=<CRON_SECRET_KEY>
+ * Runs every piece of periodic work over plain HTTP GET, so installations on
+ * shared hosting without CLI cron stay fully functional:
+ *   - the web-push dispatch queue;
+ *   - upcoming calendar reminders;
+ *   - module scheduled tasks (knowledge, cycles, finance, push).
+ *
+ * Configure the hosting panel's cron — or an external scheduler such as
+ * cron-job.org or EasyCron — to call it once a minute:
+ *   https://your-site.com/web/cron.php?key=<CRON_SECRET_KEY>
+ * The X-Cron-Key request header is accepted too and is preferred where the
+ * scheduler supports headers, since it keeps the secret out of access logs.
  *
  * The secret key is auto-generated during installation and stored in .env.
  */
@@ -80,7 +88,9 @@ if (is_file($rateLimitFile)) {
 }
 
 $autoloader = new Api\System\Library\Support\Autoloader($apiRoot);
-$autoloader->register();	$config = new Api\System\Library\Config();
+$autoloader->register();
+
+$config = new Api\System\Library\Config();
 $config->load($apiRoot . '/config/database.php', 'database');
 $config->load($apiRoot . '/config/notifications.php', 'notifications');
 
@@ -99,6 +109,24 @@ $push = new Api\System\Library\Service\NotificationPushService($subscriptions, $
 
 $limit = max(1, min(50, (int)($_GET['limit'] ?? 10)));
 $result = $push->runQueued($limit);
+
+// Module scheduled tasks (knowledge freshness, cycle snapshots, finance period
+// auto-close, push queue). Without this, hosting without CLI cron never runs
+// them: api/scripts/scheduler.php refuses to run outside the CLI SAPI.
+// Task rows are registered by App::initModuleSystem() on regular API requests.
+$schedulerSummary = ['executed' => 0, 'failed' => 0];
+try {
+    $scheduler = new Api\System\Library\Module\ModuleCronScheduler($pdo);
+    $scheduler->ensureTables($driver);
+    $schedulerResult = $scheduler->run();
+    $schedulerSummary = [
+        'executed' => (int)($schedulerResult['executed'] ?? 0),
+        'failed' => (int)($schedulerResult['failed'] ?? 0),
+    ];
+} catch (\Throwable $e) {
+    error_log('[Cron] Module scheduler run failed: ' . $e->getMessage());
+    $schedulerSummary['failed']++;
+}
 
 $userRepo = new Api\Model\Common\UserRepository($pdo);
 $calendarRepo = new Api\Model\Calendar\CalendarEventRepository($pdo);
@@ -129,6 +157,8 @@ $response = [
     'retried' => $result['retried'],
     'dead_lettered' => $result['dead_lettered'],
     'failed' => $result['failed'],
+    'errors' => $result['errors'],
+    'scheduler' => $schedulerSummary,
     'upcoming_calendar_reminders' => $upcomingCreated,
     'generated_at' => gmdate('c'),
 ];

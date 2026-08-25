@@ -290,11 +290,34 @@ location @opencart {
 
 - **File upload size:** To allow larger file uploads, ask your host to increase `upload_max_filesize` and `post_max_size`.
 
-- **Cron jobs / Background tasks:** TropaTT uses a `web/cron.php` endpoint for periodic tasks. Set up a cron job (in your hosting panel's "Cron Jobs" section) to call it every minute:
+- **Cron jobs / Background tasks:** TropaTT uses a `web/cron.php` endpoint for periodic
+  tasks, so no shell access is required. Set up a cron job (in your hosting panel's
+  "Cron Jobs" section) to call it every minute:
   ```bash
-  curl -s https://yourdomain.com/web/cron.php?key=YOUR_CRON_KEY >/dev/null 2>&1
+  curl -s "https://yourdomain.com/web/cron.php?key=YOUR_CRON_SECRET_KEY" >/dev/null 2>&1
   ```
-  You can find the cron key in `api/.env` under `CRON_KEY`.
+  The key is `CRON_SECRET_KEY` in `.env` (auto-generated during installation). If your
+  panel cannot set headers, the `?key=` query parameter above works; when it can, prefer
+  `-H "X-Cron-Key: YOUR_CRON_SECRET_KEY"` so the secret stays out of access logs.
+
+  One call does all of the periodic work:
+  - delivers queued **push notifications** to the browser push services;
+  - creates upcoming **calendar reminders**;
+  - runs **scheduled tasks** (knowledge freshness scan, cycle snapshots, financial
+    period auto-close).
+
+  Without this cron job push notifications are queued but never delivered. If your
+  hosting has no cron at all, an external scheduler (cron-job.org, EasyCron and similar)
+  calling the same URL works just as well — it only needs to fetch a URL.
+
+  **Push notifications additionally require outbound HTTPS** from your hosting to the
+  browser vendors' push services (`fcm.googleapis.com` for Chrome/Edge,
+  `updates.push.services.mozilla.com` for Firefox, `web.push.apple.com` for Safari).
+  This is part of the Web Push standard and needs no account, API key or paid service:
+  your server signs every request with its own VAPID keys and the payload is encrypted
+  end to end, so the push service only relays an opaque blob. If outbound HTTPS is
+  blocked on your plan, push cannot work with any implementation — the in-app
+  notification centre keeps working.
 
 ### Performance tips for shared hosting
 

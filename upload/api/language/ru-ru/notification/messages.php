@@ -90,6 +90,7 @@ return [
     'push_subscription_not_found' => 'Push-подписка не найдена',
     'push_subscription_deleted' => 'Push-подписка удалена',
     'push_test_prepared' => 'Тестовый push подготовлен',
+    'push_test_failed' => 'Не удалось доставить тестовый push',
     'intake_assigned_to_you' => 'Вам назначен новый intake',
     'assigned_intake_to_you' => 'назначил вам intake',
     'intake_accepted' => 'Intake принят',

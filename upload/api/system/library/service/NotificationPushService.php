@@ -204,6 +204,8 @@ final class NotificationPushService
             try {
                 $active = $this->subscriptions->activeByUser($userId);
                 $attempted = 0;
+                $delivered = 0;
+                $reasons = [];
                 foreach ($active as $subscription) {
                     if ($attempted >= $maxSubscriptions) {
                         break;
@@ -233,7 +235,24 @@ final class NotificationPushService
                         $this->subscriptions->markInactiveByPublicIdForUser($subPublicId, $userId, 'push_http_' . $result['status_code'], $now);
                     } elseif ($result['status_code'] >= 200 && $result['status_code'] < 300) {
                         $this->subscriptions->touchDeliverySuccessByPublicIdForUser($subPublicId, $userId, $now);
+                        $delivered++;
+                    } else {
+                        // P-3: keep the reason instead of silently dropping it.
+                        $reason = $this->failureReason($result);
+                        $reasons[$reason] = ($reasons[$reason] ?? 0) + 1;
+                        $this->subscriptions->updateByPublicIdForUser($subPublicId, $userId, [
+                            'last_error' => $reason,
+                            'updated_at' => $now,
+                        ]);
                     }
+                }
+
+                if ($attempted > 0 && $delivered === 0 && $reasons !== []) {
+                    // Nothing reached a push service and no subscription was
+                    // retired: treat it as a transient failure so the existing
+                    // backoff / dead-letter path applies instead of marking the
+                    // job completed.
+                    throw new \RuntimeException('push_dispatch_failed: ' . implode(', ', array_keys($reasons)));
                 }
 
                 $this->queue->updateByPublicId($jobPublicId, [
@@ -254,7 +273,7 @@ final class NotificationPushService
                     'dead_letter' => $isDead ? 1 : 0,
                     'next_run_at' => $isDead ? null : gmdate('Y-m-d H:i:s', time() + $backoffSec * $attempts),
                     'locked_at' => null,
-                    'last_error' => 'Push notification dispatch failed.',
+                    'last_error' => substr('Push notification dispatch failed: ' . $e->getMessage(), 0, 500),
                     'updated_at' => gmdate('Y-m-d H:i:s'),
                 ]);
                 if ($isDead) {
@@ -263,7 +282,7 @@ final class NotificationPushService
                     $retried++;
                 }
                 $failed++;
-                $errors[] = ['public_id' => $jobPublicId, 'error' => 'Push notification dispatch failed. Check server logs for details.'];
+                $errors[] = ['public_id' => $jobPublicId, 'error' => $e->getMessage()];
             }
         }
 
@@ -277,11 +296,11 @@ final class NotificationPushService
         ];
     }
 
-    /** @return array{attempted:int,delivered:int,deactivated:int,gateway_configured:bool} */
+    /** @return array{attempted:int,delivered:int,deactivated:int,gateway_configured:bool,failures:array<int,array{reason:string,count:int}>} */
     public function sendTestToUser(int $userId, array $actor): array
     {
         if ($userId <= 0) {
-            return ['attempted' => 0, 'delivered' => 0, 'deactivated' => 0, 'gateway_configured' => false];
+            return ['attempted' => 0, 'delivered' => 0, 'deactivated' => 0, 'gateway_configured' => false, 'failures' => []];
         }
 
         $active = $this->subscriptions->activeByUser($userId);
@@ -296,6 +315,8 @@ final class NotificationPushService
         $attempted = 0;
         $delivered = 0;
         $deactivated = 0;
+        /** @var array<string,int> $reasons */
+        $reasons = [];
         $timeoutSec = max(1, (int)$this->config->get('notifications.push.timeout_sec', 5));
         $maxSubscriptions = max(1, (int)$this->config->get('notifications.push.max_subscriptions_per_dispatch', 100));
         $now = gmdate('Y-m-d H:i:s');
@@ -337,12 +358,27 @@ final class NotificationPushService
                 ]);
 
             if (in_array($result['status_code'], [401, 403, 404, 410], true)) {
-                $this->subscriptions->markInactiveByPublicIdForUser($publicId, $userId, 'push_http_' . $result['status_code'], $now);
+                $reason = 'push_http_' . $result['status_code'];
+                $this->subscriptions->markInactiveByPublicIdForUser($publicId, $userId, $reason, $now);
+                $reasons[$reason] = ($reasons[$reason] ?? 0) + 1;
                 $deactivated++;
             } elseif ($result['status_code'] >= 200 && $result['status_code'] < 300) {
                 $this->subscriptions->touchDeliverySuccessByPublicIdForUser($publicId, $userId, $now);
                 $delivered++;
+            } else {
+                // P-3: surface the reason instead of returning bare counters.
+                $reason = $this->failureReason($result);
+                $reasons[$reason] = ($reasons[$reason] ?? 0) + 1;
+                $this->subscriptions->updateByPublicIdForUser($publicId, $userId, [
+                    'last_error' => $reason,
+                    'updated_at' => $now,
+                ]);
             }
+        }
+
+        $failures = [];
+        foreach ($reasons as $reasonCode => $reasonCount) {
+            $failures[] = ['reason' => $reasonCode, 'count' => $reasonCount];
         }
 
         $this->logger->audit([
@@ -355,6 +391,7 @@ final class NotificationPushService
             'delivered' => $delivered,
             'deactivated' => $deactivated,
             'gateway_configured' => $gatewayConfigured,
+            'failures' => $failures,
         ]);
 
         return [
@@ -362,7 +399,25 @@ final class NotificationPushService
             'delivered' => $delivered,
             'deactivated' => $deactivated,
             'gateway_configured' => $gatewayConfigured,
+            'failures' => $failures,
         ];
+    }
+
+    /**
+     * Normalise a dispatch result into a short, log-safe failure code.
+     * Never contains endpoint data, tokens or key material.
+     *
+     * @param array{ok:bool,status_code:int,error:string} $result
+     */
+    private function failureReason(array $result): string
+    {
+        $error = trim((string)($result['error'] ?? ''));
+        if ($error !== '') {
+            return substr(preg_replace('/[^a-z0-9_]/i', '_', $error) ?? 'unknown_error', 0, 64);
+        }
+
+        $status = (int)($result['status_code'] ?? 0);
+        return $status > 0 ? 'push_http_' . $status : 'no_response';
     }
 
     /** @return array{title:string,body:string,link:string,notification_public_id:string,category:string,created_at:string} */
@@ -404,7 +459,17 @@ final class NotificationPushService
             return ['ok' => false, 'status_code' => 0, 'error' => 'encryption_failed'];
         }
 
-        $origin = parse_url($endpoint, PHP_URL_SCHEME . '://' . parse_url($endpoint, PHP_URL_HOST));
+        // The VAPID audience is the origin of the push service endpoint
+        // (RFC 8292 section 2): scheme://host[:port], without path.
+        $endpointParts = parse_url($endpoint);
+        if (!is_array($endpointParts) || (string)($endpointParts['host'] ?? '') === '') {
+            return ['ok' => false, 'status_code' => 0, 'error' => 'invalid_endpoint'];
+        }
+        $origin = (string)($endpointParts['scheme'] ?? 'https') . '://' . (string)$endpointParts['host'];
+        if (isset($endpointParts['port'])) {
+            $origin .= ':' . (int)$endpointParts['port'];
+        }
+
         $jwt = $this->generateVapidJwt($vapidPrivateKey, $vapidPublicKey, $vapidSubject, $origin);
         if ($jwt === '') {
             return ['ok' => false, 'status_code' => 0, 'error' => 'vapid_jwt_failed'];
@@ -494,17 +559,24 @@ final class NotificationPushService
         ], JSON_UNESCAPED_SLASHES));
         $signingInput = $header . '.' . $payload;
 
-        $privateKeyDer = $this->base64UrlDecode($privateKeyBase64);
-        $pem = "-----BEGIN EC PRIVATE KEY-----\n" . chunk_split(base64_encode("\x30\x30\x02\x01\x00\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07\x04\x22" . $privateKeyDer), 64, "\n") . "-----END EC PRIVATE KEY-----\n";
+        $rawPrivateKey = $this->base64UrlDecode($privateKeyBase64);
+        if (strlen($rawPrivateKey) !== 32) {
+            return '';
+        }
+        $rawPublicKey = $this->base64UrlDecode($publicKeyBase64);
+        if (strlen($rawPublicKey) !== 65 || $rawPublicKey[0] !== "\x04") {
+            // The public key is optional inside SEC1; drop it rather than
+            // producing a malformed structure.
+            $rawPublicKey = '';
+        }
 
-        $signingKey = openssl_pkey_get_private($pem);
+        $signingKey = openssl_pkey_get_private($this->buildEcPem($rawPrivateKey, $rawPublicKey));
         if ($signingKey === false) {
             return '';
         }
 
         $signature = '';
         $ok = openssl_sign($signingInput, $signature, $signingKey, OPENSSL_ALGO_SHA256);
-        openssl_pkey_free($signingKey);
         if (!$ok || $signature === '') {
             return '';
         }
@@ -547,7 +619,13 @@ final class NotificationPushService
     }
 
     /**
-     * Encrypt a push payload using Web Push Content Encoding: aes128gcm (RFC 8291).
+     * Encrypt a push payload using Web Push Content Encoding: aes128gcm
+     * (RFC 8291 for key derivation, RFC 8188 for the record layout).
+     *
+     * Layout produced here:
+     *   header    = salt(16) || rs(4, big-endian) || idlen(1)=65 || as_public(65)
+     *   plaintext = payload || 0x02      (0x02 marks the last record)
+     *   body      = header || AES-128-GCM(CEK, NONCE, plaintext, AAD = "")
      *
      * @return string binary encrypted payload, or '' on failure
      */
@@ -573,54 +651,58 @@ final class NotificationPushService
         if (!isset($localDetails['ec']['x'], $localDetails['ec']['y'], $localDetails['ec']['d'])) {
             return '';
         }
-        $localPublicKey = "\x04" . $localDetails['ec']['x'] . $localDetails['ec']['y'];
-        $localPrivateKey = $localDetails['ec']['d'];
 
-        $ecdhKey = openssl_pkey_new([
-            'curve_name' => 'prime256v1',
-            'private_key_type' => OPENSSL_KEYTYPE_EC,
-        ]);
-        $localEcKey = openssl_pkey_get_private($this->buildEcPem($localPrivateKey));
-        $peerEcKey = openssl_pkey_get_public($userPublicKey);
+        // OpenSSL returns bignums without leading zero bytes; the wire format
+        // requires fixed 32-byte coordinates.
+        $localPublicKey = "\x04"
+            . str_pad((string)$localDetails['ec']['x'], 32, "\x00", STR_PAD_LEFT)
+            . str_pad((string)$localDetails['ec']['y'], 32, "\x00", STR_PAD_LEFT);
+        $localPrivateKey = str_pad((string)$localDetails['ec']['d'], 32, "\x00", STR_PAD_LEFT);
+
+        $localEcKey = openssl_pkey_get_private($this->buildEcPem($localPrivateKey, $localPublicKey));
+        // openssl_pkey_get_public() needs a SubjectPublicKeyInfo structure; the
+        // subscription stores a bare 65-byte uncompressed point.
+        $peerEcKey = openssl_pkey_get_public($this->buildEcPublicPem($userPublicKey));
         if ($localEcKey === false || $peerEcKey === false) {
             return '';
         }
 
-        $sharedSecret = openssl_pkey_derive($localEcKey, $peerEcKey);
-        openssl_pkey_free($localEcKey);
-        openssl_pkey_free($peerEcKey);
-        if (!is_string($sharedSecret) || strlen($sharedSecret) < 32) {
+        // openssl_pkey_derive(public, private) — the peer key comes first.
+        $sharedSecret = openssl_pkey_derive($peerEcKey, $localEcKey);
+        if (!is_string($sharedSecret) || $sharedSecret === '') {
+            return '';
+        }
+        $sharedSecret = str_pad($sharedSecret, 32, "\x00", STR_PAD_LEFT);
+
+        $salt = random_bytes(16);
+
+        // RFC 8291 section 3.4.
+        $keyInfo = "WebPush: info\x00" . $userPublicKey . $localPublicKey;
+        $ikm = $this->hkdf($sharedSecret, $userAuthSecret, $keyInfo, 32);
+        $cek = $this->hkdf($ikm, $salt, "Content-Encoding: aes128gcm\x00", 16);
+        $nonce = $this->hkdf($ikm, $salt, "Content-Encoding: nonce\x00", 12);
+
+        // RFC 8188 section 2: pad delimiter 0x02 marks the final record.
+        $record = $plaintext . "\x02";
+        $rs = 4096;
+        if (strlen($record) + 16 > $rs) {
             return '';
         }
 
-        $prk = $this->hkdf($sharedSecret, $userAuthSecret, "WebPush: info\x00" . $userPublicKey . $localPublicKey, 32);
-
-        $keyInfo = "Content-Encoding: aes128gcm\x00";
-        $key = $this->hkdf($prk, str_repeat("\x00", 12), $keyInfo, 16);
-        $nonceInfo = "Content-Encoding: nonce\x00";
-        $nonce = $this->hkdf($prk, str_repeat("\x00", 12), $nonceInfo, 12);
-
-        $salt = random_bytes(16);
-        $rs = 4096;
-        $rsBytes = pack('N', $rs);
-        $idLength = 6;
-        $header = $salt . $rsBytes . chr($idLength) . 'aes128gcm';
-
-        $recordHeader = $header;
-        $keyId = $header;
+        $header = $salt . pack('N', $rs) . chr(65) . $localPublicKey;
 
         $tag = '';
         $ciphertext = openssl_encrypt(
-            $plaintext,
+            $record,
             'aes-128-gcm',
-            $key,
+            $cek,
             OPENSSL_RAW_DATA,
             $nonce,
             $tag,
-            $recordHeader,
+            '',
             16
         );
-        if ($ciphertext === false) {
+        if ($ciphertext === false || strlen($tag) !== 16) {
             return '';
         }
 
@@ -628,12 +710,60 @@ final class NotificationPushService
     }
 
     /**
-     * Build a PEM string for an EC private key from raw 32-byte scalar.
+     * DER length prefix (definite, short or long form).
      */
-    private function buildEcPem(string $privateKeyDer): string
+    private function derLength(int $length): string
     {
-        $der = "\x30\x30\x02\x01\x00\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07\x04\x22" . $privateKeyDer;
-        return "-----BEGIN EC PRIVATE KEY-----\n" . chunk_split(base64_encode($der), 64, "\n") . "-----END EC PRIVATE KEY-----\n";
+        if ($length < 0x80) {
+            return chr($length);
+        }
+        if ($length <= 0xFF) {
+            return "\x81" . chr($length);
+        }
+        return "\x82" . pack('n', $length);
+    }
+
+    /**
+     * Build a SEC1 ECPrivateKey PEM (RFC 5915) for prime256v1 from a raw
+     * 32-byte scalar. The optional 65-byte uncompressed public point is
+     * included when supplied.
+     */
+    private function buildEcPem(string $rawPrivateKey, string $rawPublicKey = ''): string
+    {
+        $curveOid = "\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07"; // prime256v1
+
+        $body = "\x02\x01\x01";                                        // version = 1
+        $body .= "\x04\x20" . $rawPrivateKey;                           // privateKey
+        $body .= "\xa0" . $this->derLength(strlen($curveOid)) . $curveOid;
+
+        if ($rawPublicKey !== '') {
+            $bitString = "\x03" . $this->derLength(strlen($rawPublicKey) + 1) . "\x00" . $rawPublicKey;
+            $body .= "\xa1" . $this->derLength(strlen($bitString)) . $bitString;
+        }
+
+        $der = "\x30" . $this->derLength(strlen($body)) . $body;
+
+        return "-----BEGIN EC PRIVATE KEY-----\n"
+            . chunk_split(base64_encode($der), 64, "\n")
+            . "-----END EC PRIVATE KEY-----\n";
+    }
+
+    /**
+     * Wrap a raw 65-byte uncompressed prime256v1 point into a
+     * SubjectPublicKeyInfo PEM that openssl_pkey_get_public() accepts.
+     */
+    private function buildEcPublicPem(string $rawPublicKey): string
+    {
+        $algorithm = "\x30\x13"
+            . "\x06\x07\x2a\x86\x48\xce\x3d\x02\x01"   // id-ecPublicKey
+            . "\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07"; // prime256v1
+        $bitString = "\x03" . $this->derLength(strlen($rawPublicKey) + 1) . "\x00" . $rawPublicKey;
+        $body = $algorithm . $bitString;
+        $der = "\x30" . $this->derLength(strlen($body)) . $body;
+
+        return "-----BEGIN PUBLIC KEY-----\n"
+            . chunk_split(base64_encode($der), 64, "\n")
+            . "-----END PUBLIC KEY-----\n";
     }
 
     /**

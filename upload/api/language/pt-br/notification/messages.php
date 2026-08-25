@@ -88,6 +88,7 @@ return [
     'push_subscription_not_found' => 'Assinatura push nao encontrada',
     'push_subscription_deleted' => 'Assinatura push excluida',
     'push_test_prepared' => 'Payload de teste push preparado',
+    'push_test_failed' => 'Nao foi possivel entregar o push de teste',
     'accepted_intake' => 'aceitou o item de recebimento',
     'assigned_intake_to_you' => 'atribuiu um item de recebimento a você',
     'calendar_event_upcoming' => 'Evento de calendário começando em breve',
