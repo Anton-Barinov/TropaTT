@@ -162,7 +162,7 @@ if ($route === 'index.php' && $isPathDerived) {
     header('Location: ' . $target, true, 302);
     exit;
 }
-if ($route !== '' && $isPathDerived && str_ends_with($route, '.php')) {
+if ($route !== '' && str_ends_with($route, '.php')) {
     $route = substr($route, 0, -4);
 }
 if ($route === '') {
