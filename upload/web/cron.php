@@ -150,6 +150,24 @@ foreach ($activeUserIds as $uid) {
     $upcomingCreated += $notifications->dispatchUpcomingCalendarReminders($uid, ['id' => $uid]);
 }
 
+// A-1: Record web cron heartbeat timestamp after successful auth.
+// Stored as a system-scope setting so the admin dashboard can distinguish
+// "cron never configured" from "cron configured but tasks are failing".
+try {
+    $heartbeatNow = gmdate('Y-m-d H:i:s');
+    $heartbeatValue = json_encode(['ts' => $heartbeatNow, 'ts_utc' => time()], JSON_UNESCAPED_SLASHES);
+
+    $heartbeatUpdate = $pdo->prepare("UPDATE settings SET value = :value, updated_at = :now WHERE scope = 'system' AND name = 'cron.last_web_run_at'");
+    $heartbeatUpdate->execute(['value' => $heartbeatValue, 'now' => $heartbeatNow]);
+
+    if ($heartbeatUpdate->rowCount() === 0) {
+        $heartbeatInsert = $pdo->prepare("INSERT INTO settings (public_id, scope, name, value, created_at, updated_at) VALUES (:pid, 'system', 'cron.last_web_run_at', :value, :now, :now)");
+        $heartbeatInsert->execute(['pid' => 'set_' . bin2hex(random_bytes(12)), 'value' => $heartbeatValue, 'now' => $heartbeatNow]);
+    }
+} catch (\Throwable $e) {
+    error_log('[Cron] Failed to record heartbeat: ' . $e->getMessage());
+}
+
 $response = [
     'ok' => true,
     'processed' => $result['processed'],

@@ -57,7 +57,8 @@ final class ModuleCronScheduler
                     (string)$task['task_name'],
                     (string)$task['handler_class'],
                     (string)$task['handler_method'],
-                    (int)$task['timeout']
+                    (int)$task['timeout'],
+                    (string)$task['schedule']
                 );
                 $result['results'][] = $taskResult;
 
@@ -67,7 +68,7 @@ final class ModuleCronScheduler
                     $result['failed']++;
                 }
 
-                $this->updateNextRun((int)$task['id'], (string)$task['schedule']);
+                // updateNextRun + last_status already done inside executeTask
             } catch (\Throwable $e) {
                 error_log('[ModuleCronScheduler::run] Fatal error running task ' . ($task['task_name'] ?? '?') . ': ' . $e->getMessage());
                 $result['results'][] = [
@@ -80,7 +81,7 @@ final class ModuleCronScheduler
                 $result['failed']++;
                 // Still update next run so the broken task doesn't block the queue.
                 try {
-                    $this->updateNextRun((int)$task['id'], (string)$task['schedule']);
+                    $this->updateNextRun((int)$task['id'], (string)$task['schedule'], 'failed', mb_substr($e->getMessage(), 0, 500));
                 } catch (\Throwable $ignored) {
                 }
             }
@@ -281,7 +282,7 @@ final class ModuleCronScheduler
     /**
      * @return array{status: string, module: string, task: string, duration_ms: float, error: string|null}
      */
-    private function executeTask(int $taskId, string $moduleName, string $taskName, string $handlerClass, string $handlerMethod, int $timeout): array
+    private function executeTask(int $taskId, string $moduleName, string $taskName, string $handlerClass, string $handlerMethod, int $timeout, string $schedule): array
     {
         $startTime = microtime(true);
         $pid = getmypid();
@@ -292,6 +293,11 @@ final class ModuleCronScheduler
         if (!$overlapAllowed) {
             $running = $this->hasRunningExecution($moduleName, $taskName);
             if ($running) {
+                try {
+                    $this->updateNextRun($taskId, $schedule, 'skipped', 'Task already running (overlap disallowed)');
+                } catch (\Throwable $e) {
+                    error_log('[ModuleCronScheduler::executeTask] Failed to update task status: ' . $e->getMessage());
+                }
                 return ['status' => 'skipped', 'module' => $moduleName, 'task' => $taskName, 'duration_ms' => 0, 'error' => 'Task already running (overlap disallowed)'];
             }
         }
@@ -327,6 +333,12 @@ final class ModuleCronScheduler
                 'id' => $executionId,
             ]);
 
+            try {
+                $this->updateNextRun($taskId, $schedule, 'success', null);
+            } catch (\Throwable $e) {
+                error_log('[ModuleCronScheduler::executeTask] Failed to update task status: ' . $e->getMessage());
+            }
+
             return ['status' => 'success', 'module' => $moduleName, 'task' => $taskName, 'duration_ms' => $duration, 'error' => null];
         } catch (\Throwable $e) {
             $duration = (microtime(true) - $startTime) * 1000;
@@ -345,17 +357,30 @@ final class ModuleCronScheduler
             error_log('[ModuleCronScheduler::recordExecution] ' . $e->getMessage());
             }
 
+            $truncatedError = mb_substr($e->getMessage(), 0, 500);
+            try {
+                $this->updateNextRun($taskId, $schedule, 'failed', $truncatedError);
+            } catch (\Throwable $e) {
+                error_log('[ModuleCronScheduler::executeTask] Failed to update task status: ' . $e->getMessage());
+            }
+
             return ['status' => 'failed', 'module' => $moduleName, 'task' => $taskName, 'duration_ms' => $duration, 'error' => $e->getMessage()];
         }
     }
 
-    private function updateNextRun(int $taskId, string $schedule): void
+    private function updateNextRun(int $taskId, string $schedule, ?string $lastStatus = null, ?string $lastError = null): void
     {
         try {
             $nextRun = $this->parser->getNextRunDate($schedule);
             $now = date('Y-m-d H:i:s');
-            $stmt = $this->pdo->prepare("UPDATE {$this->tasksTable} SET last_run_at = :now, next_run_at = :next WHERE id = :id");
-            $stmt->execute(['now' => $now, 'next' => $nextRun->format('Y-m-d H:i:s'), 'id' => $taskId]);
+
+            if ($lastStatus !== null) {
+                $stmt = $this->pdo->prepare("UPDATE {$this->tasksTable} SET last_run_at = :now, next_run_at = :next, last_status = :status, last_error = :error WHERE id = :id");
+                $stmt->execute(['now' => $now, 'next' => $nextRun->format('Y-m-d H:i:s'), 'status' => $lastStatus, 'error' => $lastError, 'id' => $taskId]);
+            } else {
+                $stmt = $this->pdo->prepare("UPDATE {$this->tasksTable} SET last_run_at = :now, next_run_at = :next WHERE id = :id");
+                $stmt->execute(['now' => $now, 'next' => $nextRun->format('Y-m-d H:i:s'), 'id' => $taskId]);
+            }
         } catch (\Throwable $e) {
             error_log('[ModuleCronScheduler::updateNextRun] ' . $e->getMessage());
         }

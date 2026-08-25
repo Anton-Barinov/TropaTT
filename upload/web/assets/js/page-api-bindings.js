@@ -25897,6 +25897,175 @@ window.CRM.pageApiBindings = (function () {
     }
 
     await loadJobs();
+    await renderAdminCronCard();
+  }
+
+  async function renderAdminCronCard() {
+    var cronRefBt = document.getElementById('adminCronRefreshBtn');
+    var cronRunBt = document.getElementById('adminCronRunBtn');
+    var cronTbody = document.getElementById('adminCronTasksTableBody');
+    var cronState = document.getElementById('adminCronState');
+    var cronWarning = document.getElementById('adminCronStaleWarning');
+    if (!cronTbody) return;
+
+    var cronStatusLabels = {
+      success: tp('admin_jobs.cron_status_success', 'OK'),
+      failed: tp('admin_jobs.cron_status_failed', 'Failed'),
+      skipped: tp('admin_jobs.cron_status_skipped', 'Skipped')
+    };
+
+    async function loadCron() {
+      if (cronState) cronState.textContent = tp('admin_jobs.loading', 'Loading...');
+      try {
+        var tasksEnv = await request('api/v1/ops/cron/tasks');
+        var payload = (tasksEnv && tasksEnv.data) || {};
+        var tasks = payload.tasks || [];
+        var heartbeat = payload.cron_heartbeat || null;
+        var stale = !!payload.stale;
+        var threshold = parseInt(payload.stale_threshold_minutes || 60, 10);
+
+        // Stale warning
+        if (cronWarning) {
+          if (stale) {
+            cronWarning.classList.remove('d-none');
+            var lastRunText = '';
+            if (heartbeat && heartbeat.ts) {
+              lastRunText = tp('admin_jobs.cron_last_run', 'Last run: ') + formatDate(heartbeat.ts);
+            } else {
+              lastRunText = tp('admin_jobs.cron_never_run', 'Web cron has never been called via CRON_SECRET_KEY.');
+            }
+            cronWarning.innerHTML = '<strong>' + tp('admin_jobs.cron_stale_warning', 'Warning: cron may be inactive') + '</strong> ' +
+              lastRunText + '. ' +
+              tp('admin_jobs.cron_stale_hint', 'Configure your hosting panel to call web/cron.php once a minute. See the Shared Hosting Guide for details.') +
+              ' (' + tp('admin_jobs.cron_stale_threshold', 'Threshold: ') + threshold + ' ' + tp('admin_jobs.cron_stale_minutes', 'min') + ')';
+          } else {
+            cronWarning.classList.add('d-none');
+          }
+        }
+
+        if (cronTbody) {
+          cronTbody.textContent = '';
+          if (!tasks.length) {
+            var tr = document.createElement('tr');
+            var td = document.createElement('td');
+            td.colSpan = 8;
+            td.className = 'text-muted';
+            td.textContent = tp('admin_jobs.cron_tasks_empty', 'No scheduled tasks found.');
+            tr.appendChild(td);
+            cronTbody.appendChild(tr);
+          } else {
+            tasks.forEach(function (item) {
+              var tr = document.createElement('tr');
+
+              var tdMod = document.createElement('td');
+              tdMod.textContent = String(item.module_name || '');
+              tr.appendChild(tdMod);
+
+              var tdTask = document.createElement('td');
+              tdTask.textContent = String(item.task_name || '');
+              tr.appendChild(tdTask);
+
+              var tdSched = document.createElement('td');
+              var schedCode = document.createElement('code');
+              schedCode.textContent = String(item.schedule || '');
+              tdSched.appendChild(schedCode);
+              tr.appendChild(tdSched);
+
+              var tdEn = document.createElement('td');
+              tdEn.textContent = parseInt(item.enabled || 0, 10) ? tp('admin_jobs.cron_yes', 'Yes') : tp('admin_jobs.cron_no', 'No');
+              tr.appendChild(tdEn);
+
+              var tdLr = document.createElement('td');
+              tdLr.textContent = item.last_run_at ? formatDate(item.last_run_at) : '—';
+              tr.appendChild(tdLr);
+
+              var tdNr = document.createElement('td');
+              tdNr.textContent = item.next_run_at ? formatDate(item.next_run_at) : '—';
+              tr.appendChild(tdNr);
+
+              var tdSt = document.createElement('td');
+              var status = String(item.last_status || '').trim().toLowerCase();
+              var badge = document.createElement('span');
+              if (status === 'success') {
+                badge.className = 'crm-badge success';
+                badge.textContent = cronStatusLabels.success;
+              } else if (status === 'failed') {
+                badge.className = 'crm-badge danger';
+                badge.textContent = cronStatusLabels.failed;
+              } else if (status === 'skipped') {
+                badge.className = 'crm-badge archived';
+                badge.textContent = cronStatusLabels.skipped;
+              } else {
+                badge.className = 'crm-badge archived';
+                badge.textContent = status || '—';
+              }
+              tdSt.appendChild(badge);
+              tr.appendChild(tdSt);
+
+              var tdErr = document.createElement('td');
+              if (item.last_error) {
+                var span = document.createElement('span');
+                span.textContent = String(item.last_error).substring(0, 100);
+                span.title = item.last_error;
+                span.style.cursor = 'help';
+                tdErr.appendChild(span);
+              } else {
+                tdErr.textContent = '—';
+              }
+              tr.appendChild(tdErr);
+
+              cronTbody.appendChild(tr);
+            });
+          }
+        }
+
+        if (cronState) {
+          cronState.textContent = tp('admin_jobs.cron_summary', 'Scheduled tasks: ') + String(tasks.length)
+            + (heartbeat && heartbeat.ts ? ', ' + tp('admin_jobs.cron_heartbeat', 'web cron: ') + formatDate(heartbeat.ts) : '');
+        }
+      } catch (error) {
+        if (cronTbody) {
+          cronTbody.textContent = '';
+          var errTr = document.createElement('tr');
+          var errTd = document.createElement('td');
+          errTd.colSpan = 8;
+          errTd.className = 'text-muted';
+          errTd.textContent = tp('admin_jobs.cron_load_fail', 'Failed to load cron tasks.');
+          errTr.appendChild(errTd);
+          cronTbody.appendChild(errTr);
+        }
+        if (cronState) cronState.textContent = '';
+      }
+    }
+
+    if (cronRefBt && cronRefBt.dataset.bound !== '1') {
+      cronRefBt.dataset.bound = '1';
+      cronRefBt.addEventListener('click', function () {
+        loadCron();
+      });
+    }
+
+    if (cronRunBt && cronRunBt.dataset.bound !== '1') {
+      cronRunBt.dataset.bound = '1';
+      cronRunBt.addEventListener('click', async function () {
+        try {
+          cronRunBt.disabled = true;
+          cronRunBt.textContent = tp('admin_jobs.btn_cron_run_running', 'Starting...');
+          var env = await request('api/v1/ops/cron/run-due', { method: 'POST' });
+          var data = (env && env.data) || {};
+          notify(tp('admin_jobs.cron_run_done', 'Tasks executed: ') + String(data.executed || 0) + ', ' + tp('admin_jobs.cron_run_failed', 'failed: ') + String(data.failed || 0));
+          await loadCron();
+        } catch (error) {
+          var err = error && error.envelope ? error.envelope : null;
+          notify((err && err.message) || tp('admin_jobs.cron_run_fail', 'Failed to run cron tasks'), 'error');
+        } finally {
+          cronRunBt.disabled = false;
+          cronRunBt.innerHTML = '<i class="fa-solid fa-play me-1" aria-hidden="true"></i>' + tp('admin_jobs.btn_cron_run', 'Run now');
+        }
+      });
+    }
+
+    await loadCron();
   }
 
   async function renderAdminSettingsPage() {
