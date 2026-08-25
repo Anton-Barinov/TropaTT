@@ -155,8 +155,20 @@ final class LockManager
         $hasHeartbeat = $heartbeatAt !== '';
         $reference = $hasHeartbeat ? $heartbeatAt : $createdAt;
         $age = $reference !== '' ? (time() - strtotime($reference)) : PHP_INT_MAX;
-        $pastTtl = $age > $this->ttlSeconds;
-        $pidDead = !$hasHeartbeat && $pid > 0 && !$this->pidAlive($pid);
+
+        // A lock with a dead PID cannot be renewed — no process is alive to
+        // extend the heartbeat. Use a short grace period (5 min) so a crashed
+        // multi-step job does not block updates for the full hour. Active
+        // jobs send the next step within seconds, so the short window is safe.
+        // When the posix extension is unavailable the PID is assumed alive
+        // (the full TTL applies) — the lock will still expire after one hour.
+        $pidIsDead = $pid > 0 && !$this->pidAlive($pid);
+        if ($hasHeartbeat && $pidIsDead) {
+            $pastTtl = $age > 300;
+        } else {
+            $pastTtl = $age > $this->ttlSeconds;
+        }
+        $pidDead = !$hasHeartbeat && $pidIsDead;
 
         return [
             'path' => $path,
