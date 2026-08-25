@@ -1717,3 +1717,52 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | POST | `/_module/crm.yandex-calendar/connections/{public_id}/sync` | Синхронизация | Да | `module.yandex-calendar.sync` | — |
 | PATCH | `/_module/crm.yandex-calendar/calendars/{public_id}` | Обновление календаря | Да | `module.yandex-calendar.manage` | — |
 
+## Системные операции (cron и плановые задачи)
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|--------|:---:|-------------|----------|
+| GET | `/api/v1/ops/cron/tasks` | Список плановых задач + heartbeat | Да | `logs.view` | root-only; возвращает `tasks`, `cron_heartbeat`, `stale`, `stale_threshold_minutes` |
+| GET | `/api/v1/ops/cron/executions` | История выполнений | Да | `logs.view` | root-only; фильтры `module`, `task`, `status`; `limit` 1–200 |
+| POST | `/api/v1/ops/cron/run-due` | Запустить все задачи | Да | `logs.view` | root-only; возвращает `executed`, `failed`, `results` |
+
+Веб-крон (`web/cron.php?key=<CRON_SECRET_KEY>`) вызывается раз в минуту панелью хостинга или внешним планировщиком. Он отправляет push-уведомления, запускает плановые задачи и создаёт напоминания календаря. Отметка времени записывается при каждом успешном вызове и отдаётся в `cron_heartbeat`. Если крон не замечен дольше порога (по умолчанию 60 минут, настраивается через `cron.stale_threshold_minutes`), `stale` = `true`.
+
+## Внешние пользователи
+
+Внешние пользователи — контакты контрагентов, приглашённые в проект: `observer` (только чтение) или `executor` (чтение + комментарии). Аутентификация — по одноразовой ссылке; лицензионные места не расходуются.
+
+**Поток:** `POST /api/v1/external/invitations` → ссылка → пароль → аккаунт активирован с доступом к назначенным проектам.
+
+**Урезание:** внешние пользователи получают сокращённый набор полей. Финансовые поля удалены. Списки пользователей и контрагентов возвращают `FORBIDDEN`. Маршруты с `external_ok` доступны; остальные → `EXTERNAL_ACCESS_DENIED`.
+
+## Кастомные ставки
+
+Три вида ставок через прайс-листы (`rate_cards`):
+
+| Поле | Описание |
+|-------|-----------|
+| `cost_rate` | Себестоимость |
+| `bill_rate` | Продажная ставка |
+| `payout_rate` | Вознаграждение исполнителя |
+
+**Цепочка:** задача → проект → контрагент → по умолчанию → ставка пользователя → производная → нет.
+
+**Видимость** (`FinancialFieldPolicy`): только `finance.view` / `is_root`. Внешние пользователи не видят никогда. `/profile/me` — вырезаны.
+
+**Снапшоты:** ставка фиксируется в `work_logs` при создании записи. Изменение прайс-листа историю не меняет.
+
+**Блокировка:** `/api/v1/rates/lock` — закрыть, `/api/v1/rates/unlock` — открыть, `/api/v1/rates/locks` — статус, `/api/v1/rates/recalculate` — пересчёт (открытые периоды).
+
+## Push-уведомления
+
+Браузерные push-уведомления (Web Push, RFC 8291). Рассылка через `web/cron.php` или задачу `push.dispatch_queue`.
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|--------|:---:|-------------|----------|
+| GET | `/api/v1/notifications/push-subscriptions` | Список устройств | Да | self-service | Секреты (`auth`, `p256dh`) НЕ возвращаются |
+| POST | `/api/v1/notifications/push-subscriptions` | Добавить устройство | Да | self-service | |
+| DELETE | `/api/v1/notifications/push-subscriptions/{public_id}` | Удалить | Да | self-service | |
+| POST | `/api/v1/notifications/push-test` | Тестовая отправка | Да | self-service | `dispatch.attempted/delivered/deactivated/failures[]` |
+
+**Требования:** исходящий HTTPS к push-сервисам; `openssl` с `prime256v1` для VAPID. Устаревшие алиасы `/api/v1/notification/push-*` исключены из OpenAPI.
+

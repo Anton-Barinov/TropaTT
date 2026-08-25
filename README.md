@@ -207,6 +207,8 @@ TropaTT works for anyone managing clients and executing work — regardless of t
 | **Calendar** | Events, agenda, day/week views, business calendar | Scheduled work connected to task context |
 | **Chat** | Built-in messenger — channels, DMs, attachments, mentions | Communication in the same tool as the work |
 | **Notifications** | Real-time alerts, push, notification center | No missed deadlines, mentions, or approvals |
+| **Rates & billing** | Cost/bill/payout rates via named price lists, per-task override, snapshots on time entries, locked periods | Know what work costs and what it earns — without spreadsheets |
+| **Client portal** | Invite contacts as observers (read/comment) or executors (plus time logging) on their own projects | Clients and freelancers see exactly their part of the work — nothing else |
 | **Analytics** | Dashboards, KPIs, workload, risks, team capacity | Decisions from real execution data |
 | **Automation** | Workflow rules, SLA, approvals, webhooks, jobs | Less manual coordination, fewer errors |
 | **AI (20+ tools)** | Idea analysis, plans, decomposition, summaries, checklists, risk review, meeting prep | AI that saves time in real workflows |
@@ -352,6 +354,9 @@ Browser-based installer. No terminal, no composer, no npm. Designed for shared h
 - An empty MySQL database
 - Any web server (Apache, Nginx, or PHP-compatible host)
 - Write access for the `api/` config and `storage/` directories
+- **A cron job** calling `web/cron.php` every minute (set `CRON_SECRET_KEY` in `api/.env` and send it as the `X-Cron-Key` header) — it drains the notification queue, runs the module scheduler (period auto-close, knowledge, cycles), and records a heartbeat so the admin panel can tell a working cron from a silent one. See [`SHARED_HOSTING_GUIDE.md`](SHARED_HOSTING_GUIDE.md)
+- **Outbound HTTPS** from the server to browser push services (Firefox autopush, Google FCM) for web push notifications
+- The **`openssl`** extension with `prime256v1` EC key support for VAPID push signing
 
 **Steps:**
 1. Copy the **contents of the `upload/` folder** (not the folder itself) to your server — `index.php`, `api/`, `web/`, and `modules/` must end up in your web root.
@@ -728,6 +733,8 @@ TropaTT подходит всем, кто управляет клиентами 
 | **Календарь** | События, повестка, день/неделя, бизнес-календарь | Запланированная работа в контексте задач и проектов |
 | **Командный чат** | Встроенный мессенджер с каналами, личными чатами, вложениями | Коммуникация в том же инструменте, где идёт работа |
 | **Уведомления** | Оповещения в реальном времени, push, центр уведомлений | Ни одного пропущенного дедлайна, упоминания или согласования |
+| **Ставки и финансы** | Ставки себестоимости/продажи/вознаграждения через прайс-листы, переопределение на задаче, снапшоты в трудозатратах, блокировка периодов | Знайте, сколько стоит работа и сколько она приносит — без таблиц |
+| **Клиентский портал** | Приглашайте контакты как наблюдателей (чтение/комментарии) или исполнителей (плюс списание времени) по своим проектам | Клиенты и фрилансеры видят ровно свою часть работы — и ничего больше |
 | **Аналитика** | Дашборды, KPI, загрузка, риски, ёмкость команды | Решения на основе реальных данных исполнения |
 | **Автоматизация** | Workflow-правила, SLA, согласования, вебхуки, фоновые задачи | Меньше ручной координации и человеческих ошибок |
 | **ИИ (20+ инструментов)** | Проработка идей, планы на день/неделю, декомпозиция, сводки, чеклисты, риски, подготовка к встречам | ИИ помогает работать умнее, а не просто чат-бот |
@@ -874,6 +881,9 @@ TropaTT включает браузерный установщик для про
 - База данных MySQL (пустая, готовая к использованию)
 - Веб-сервер (Apache, Nginx или любой PHP-совместимый хостинг)
 - Права записи для директорий конфигурации `api/` и `storage/`
+- **Крон-задача** с вызовом `web/cron.php` раз в минуту (задайте `CRON_SECRET_KEY` в `api/.env` и передавайте его в заголовке `X-Cron-Key`) — она разгребает очередь уведомлений, запускает планировщик модулей (автозакрытие периодов, knowledge, cycles) и пишет heartbeat, чтобы в админке было видно, работает ли крон. См. [`SHARED_HOSTING_GUIDE.md`](SHARED_HOSTING_GUIDE.md)
+- **Исходящий HTTPS** с сервера к push-сервисам браузеров (Firefox autopush, Google FCM) для веб-push-уведомлений
+- Расширение **`openssl`** с поддержкой EC-ключей `prime256v1` для подписи VAPID
 
 **Быстрый старт:**
 1. Скопируйте **содержимое папки `upload/`** (не саму папку) на сервер — `index.php`, `api/`, `web/` и `modules/` должны оказаться в корне сайта.
@@ -1244,6 +1254,8 @@ TropaTT 适用于任何管理客户并执行工作的人——无论团队规模
 | **日历** | 事件、议程、日/周视图、业务日历 | 与任务和项目上下文关联的计划工作 |
 | **团队聊天** | 内置通讯工具，支持项目频道、私信、附件、提及 | 与工作在同一个工具中进行沟通 |
 | **通知** | 实时提醒、推送通知、通知中心 | 不错过任何截止日期、提及或审批 |
+| **费率与财务** | 通过定价表实现成本/销售/报酬三类费率、任务级覆盖、工时快照、期间锁定 | 清楚了解工作的成本与收益——无需电子表格 |
+| **客户门户** | 邀请联系人作为观察者（只读/评论）或执行者（另可记录工时）访问其项目 | 客户和自由职业者只看到自己那部分工作——仅此而已 |
 | **分析** | 仪表盘、KPI、工作负载、风险、团队容量 | 基于真实执行数据的数据驱动决策 |
 | **自动化** | 工作流规则、SLA、审批、Webhook、后台任务 | 减少手动协调和人为错误 |
 | **AI（20+ 工具）** | 想法分析、日/周计划、任务分解、摘要、清单、风险分析、会议准备 | 帮您更聪明地工作，而非仅仅是一个聊天机器人 |
@@ -1390,6 +1402,9 @@ TropaTT 包含一个适用于简单 PHP/MySQL 部署的浏览器安装程序：�
 - MySQL 数据库（可用的空数据库）
 - Web 服务器（Apache、Nginx 或任何 PHP 兼容主机）
 - `api/` 配置目录和 `storage/` 目录的写权限
+- **定时任务（cron）**：每分钟调用 `web/cron.php`（在 `api/.env` 中设置 `CRON_SECRET_KEY`，并通过 `X-Cron-Key` 请求头传递）——用于处理通知队列、运行模块调度器（期间自动结算、知识库、迭代）并记录心跳，以便管理后台区分正常与静默的 cron。参见 [`SHARED_HOSTING_GUIDE.md`](SHARED_HOSTING_GUIDE.md)
+- **出站 HTTPS**：服务器需能访问浏览器推送服务（Firefox autopush、Google FCM）以发送 Web 推送通知
+- **`openssl`** 扩展需支持 `prime256v1` EC 密钥（用于 VAPID 推送签名）
 
 **快速开始：**
 1. 将 **`upload/` 文件夹的内容**（不是文件夹本身）复制到服务器——`index.php`、`api/`、`web/`、`modules/` 必须位于站点根目录。

@@ -1717,3 +1717,59 @@ Module objects returned by `GET /api/v1/modules` and `GET /api/v1/modules/{name}
 | POST | `/_module/crm.yandex-calendar/connections/{public_id}/sync` | Synchronization | Yes | `module.yandex-calendar.sync` | — |
 | PATCH | `/_module/crm.yandex-calendar/calendars/{public_id}` | Update calendar | Yes | `module.yandex-calendar.manage` | — |
 
+## System operations (cron & scheduled tasks)
+
+| Method | Endpoint | Description | Auth | Permissions | Notes |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/api/v1/ops/cron/tasks` | List scheduled tasks + heartbeat | Yes | `logs.view` | root-only; returns `tasks`, `cron_heartbeat`, `stale`, `stale_threshold_minutes` |
+| GET | `/api/v1/ops/cron/executions` | Task execution history | Yes | `logs.view` | root-only; filters `module`, `task`, `status`; `limit` 1–200 |
+| POST | `/api/v1/ops/cron/run-due` | Run all due tasks now | Yes | `logs.view` | root-only; returns `executed`, `failed`, `results` |
+
+The web cron endpoint (`web/cron.php?key=<CRON_SECRET_KEY>`) is called once a minute by the hosting panel or an external scheduler. It dispatches push notifications, runs due scheduled tasks, and creates upcoming calendar reminders. A heartbeat timestamp is recorded on every successful call and reported by `GET /ops/cron/tasks` as `cron_heartbeat`. If the cron has not been seen within the stale threshold (default 60 minutes, configurable via the `cron.stale_threshold_minutes` setting), `stale` is `true` and the admin UI shows a warning.
+
+## External users
+
+External users are counterparty contacts invited to a project with a limited role: `observer` (read-only access to project tasks and comments) or `executor` (read + comment). They authenticate via a one-time invitation link and do not count toward the license seat count.
+
+**Invitation flow:**
+1. `POST /api/v1/external/invitations` — admin sends invitation (email + role + project_ids)
+2. Recipient clicks the invitation link and sets a password
+3. The external account is activated with access scoped to the assigned projects
+
+**Response trimming:** External users receive a subset of fields in API responses. Financial fields (`cost_rate`, `bill_rate`, `payout_rate`) are removed. User lists, counterparty lists, and admin-level data return `FORBIDDEN`.
+
+Routes marked `external_ok` in `routes.php` are accessible to external users; all other routes return `EXTERNAL_ACCESS_DENIED`. Write operations (create task, change status, upload files) are blocked for external users unless the route is also marked `external_write_ok`.
+
+## Custom rates
+
+TropaTT supports three rate types, assigned via price lists (`rate_cards`) to counterparties and projects:
+
+| Field | Description |
+|-------|-------------|
+| `cost_rate` | Internal cost of work (what the company pays) |
+| `bill_rate` | Billable rate (what the client is charged) |
+| `payout_rate` | Payout rate (what the executor receives) |
+
+**Resolution chain** (first match wins): task override → project rate card → counterparty rate card → default rate card → user base rate → derived from payout → none.
+
+**Visibility rules** (`FinancialFieldPolicy`): only users with `finance.view` or `is_root` see rate fields. External users never see financial fields. Rate fields are also stripped from `/profile/me` responses.
+
+**Work log snapshots:** When a time entry is created, the current rates are snapshotted into `work_logs` (`cost_rate`, `bill_rate`, `payout_rate`). Changing a price list does not rewrite history.
+
+**Period locking:** `/api/v1/rates/lock` locks a period, preventing further time entries. `/api/v1/rates/unlock` unlocks it. `/api/v1/rates/locks` lists lock status. `/api/v1/rates/recalculate` recalculates open periods only. Locked periods (`lock`) are never recalculated.
+
+## Push notifications
+
+Browser push notifications (Web Push, RFC 8291) notify users of task updates, mentions, and reminders. The push dispatch runs via `web/cron.php` (once per minute) or the `push.dispatch_queue` scheduled task.
+
+| Method | Endpoint | Description | Auth | Permissions | Notes |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/api/v1/notifications/push-subscriptions` | List user's push devices | Yes | self-service | Encryption secrets (`auth`, `p256dh`) are NOT returned |
+| POST | `/api/v1/notifications/push-subscriptions` | Add push device | Yes | self-service | |
+| DELETE | `/api/v1/notifications/push-subscriptions/{public_id}` | Remove push device | Yes | self-service | |
+| POST | `/api/v1/notifications/push-test` | Send test push | Yes | self-service | Returns `dispatch.attempted`, `dispatch.delivered`, `dispatch.deactivated`, `dispatch.failures[]` |
+
+**Requirements:** the server must be able to make outbound HTTPS connections to browser push services (Firefox autopush endpoint, Google FCM, etc.). The `openssl` extension must support `prime256v1` EC keys for VAPID.
+
+Deprecated aliases (`/api/v1/notification/push-*`) are excluded from OpenAPI and will be removed in a future version.
+

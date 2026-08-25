@@ -1717,3 +1717,52 @@ Authorization: Bearer <token>
 | POST | `/_module/crm.yandex-calendar/connections/{public_id}/sync` | 同步 | 是 | `module.yandex-calendar.sync` | — |
 | PATCH | `/_module/crm.yandex-calendar/calendars/{public_id}` | 更新日历 | 是 | `module.yandex-calendar.manage` | — |
 
+## 系统运维（定时任务）
+
+| 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/api/v1/ops/cron/tasks` | 定时任务列表 + 心跳 | 是 | `logs.view` | root-only；返回 `tasks`、`cron_heartbeat`、`stale`、`stale_threshold_minutes` |
+| GET | `/api/v1/ops/cron/executions` | 任务执行历史 | 是 | `logs.view` | root-only；筛选 `module`、`task`、`status`；`limit` 1–200 |
+| POST | `/api/v1/ops/cron/run-due` | 立即执行所有到期任务 | 是 | `logs.view` | root-only；返回 `executed`、`failed`、`results` |
+
+Web cron (`web/cron.php?key=<CRON_SECRET_KEY>`) 每分钟由主机面板或外部调度器调用，分发 push 通知、运行定时任务、创建日历提醒。心跳时间戳在每次成功调用时记录，通过 `GET /ops/cron/tasks` 的 `cron_heartbeat` 返回。若超阈值（默认 60 分钟，可通过 `cron.stale_threshold_minutes` 设置）未检测到心跳，`stale` 为 `true`。
+
+## 外部用户
+
+外部用户为受邀的客户联系人，角色为 `observer`（只读）或 `executor`（读取+评论）。通过一次性邀请链接认证，不计入许可证席位。
+
+**流程：** `POST /api/v1/external/invitations` → 链接 → 设密码 → 账户激活，访问权限限定于分配的项目。
+
+**字段裁剪：** 外部用户收到缩减的字段集。财务字段被移除。用户列表和客户列表返回 `FORBIDDEN`。标记为 `external_ok` 的路由可访问；其余 → `EXTERNAL_ACCESS_DENIED`。
+
+## 自定义费率
+
+通过价目表 (`rate_cards`) 分配三种费率：
+
+| 字段 | 说明 |
+|-------|-----------|
+| `cost_rate` | 成本费率 |
+| `bill_rate` | 售价费率 |
+| `payout_rate` | 执行人报酬 |
+
+**解析链：** 任务 → 项目 → 客户 → 默认 → 用户费率 → 派生 → 无。
+
+**可见性** (`FinancialFieldPolicy`)：仅 `finance.view` / `is_root`。外部用户不可见。`/profile/me` 中已剥离。
+
+**快照：** 创建时间记录时，费率快照到 `work_logs`。修改价目表不改变历史。
+
+**期间锁定：** `/api/v1/rates/lock` 关闭，`/api/v1/rates/unlock` 打开，`/api/v1/rates/locks` 查看状态，`/api/v1/rates/recalculate` 重新计算（仅开放期间）。
+
+## Push 通知
+
+浏览器推送通知（Web Push, RFC 8291），通过 `web/cron.php` 或 `push.dispatch_queue` 任务分发。
+
+| 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/api/v1/notifications/push-subscriptions` | 设备列表 | 是 | self-service | 加密密钥 (`auth`, `p256dh`) 不返回 |
+| POST | `/api/v1/notifications/push-subscriptions` | 添加设备 | 是 | self-service | |
+| DELETE | `/api/v1/notifications/push-subscriptions/{public_id}` | 删除设备 | 是 | self-service | |
+| POST | `/api/v1/notifications/push-test` | 测试推送 | 是 | self-service | `dispatch.attempted/delivered/deactivated/failures[]` |
+
+**要求：** 服务器需出站 HTTPS 连接到浏览器推送服务；`openssl` 需支持 `prime256v1` 用于 VAPID。已弃用的别名 `/api/v1/notification/push-*` 已从 OpenAPI 中移除。
+

@@ -4,6 +4,38 @@ All notable public changes to TropaTT should be documented here.
 
 This project follows a lightweight Keep a Changelog style. Dates are added when a release is actually created.
 
+## Unreleased
+
+### Added
+
+- **Cron observability in the admin panel.** The "Jobs" page (Admin → Jobs) now shows a "Scheduled tasks (cron)" card: a cron heartbeat line (last web-cron call, with a warning and a shared-hosting hint when the cron has been silent), the full list of `module_scheduled_tasks` (module, task, schedule, enabled, last/next run, `last_status`, truncated `last_error`), and a "Run now" button that triggers `ModuleCronScheduler::run()` on demand.
+
+- **Cron observability API.** Three root-only endpoints under `/api/v1/ops/cron/*` (`tasks`, `executions`, `run-due`) expose scheduled tasks and their execution history; `handler_class`/`handler_method`/`error_trace` are deliberately not exposed.
+
+- **Scheduler result tracking.** `module_scheduled_tasks` now records `last_status` (`success`/`failed`/`skipped`) and a truncated `last_error` on every run, so the period auto-close indicator on the rates page is no longer permanently empty.
+
+- **Web-cron heartbeat.** `web/cron.php` now records a `cron.last_web_run_at` timestamp after successful key authentication, letting admins distinguish a missing cron from a failing one. Only the timestamp is stored — never the key or caller identity.
+
+- **Module trust model documented.** `MODULE_DEVELOPMENT.md` and `SECURITY.md` now state explicitly that module code runs in the same process as the core with the same privileges (no sandbox), and `SECURITY_AUDIT.md` records C-1 as an accepted risk with compensating controls.
+
+- **Push subscription secrets removed from the API.** `GET /api/v1/notifications/push-subscriptions` no longer returns the per-subscription encryption secrets `p256dh` and `auth`; they remain server-side for delivery only.
+
+- **Partial push-delivery diagnostics in the UI.** When a test push is only partially delivered, the notification center now lists the per-reason failure counts (`dispatch.failures`) returned by the server.
+
+### Changed
+
+- **OpenAPI regenerated.** `upload/api/docs/openapi/openapi.v1.json` is regenerated from `routes.php`: new `/api/v1/ops/cron/*` routes are present and deprecated `/api/v1/notification/push-*` aliases are gone.
+
+- **API reference updated (EN/RU/ZH).** New sections cover the rate model (cost/bill/payout resolution chain, `FinancialFieldPolicy` disclosure, period locking), external users (observer/executor roles, invites, project grants, portal access), push notifications (self-service subscription, dispatch format with `failures`, dropped `task.manage` requirement), and cron endpoints (`/api/v1/ops/cron/*`, `web/cron.php` role, `CRON_SECRET_KEY`).
+
+- **README requirements.** The requirements list now documents the per-minute `web/cron.php` cron job with `CRON_SECRET_KEY`/`X-Cron-Key`, outbound HTTPS for push, and `openssl` with `prime256v1`.
+
+- **Dead sandbox classes removed.** Twelve module-sandbox/validator classes that were registered in the container but never invoked (and promised isolation the product does not provide) were deleted, and their container registrations removed; `ModuleCodeValidator` (used by the remote installer) is untouched.
+
+- **Updater: force-unlock button.** The Admin → System Updates page now offers a "Force unlock" action for clearing a stuck updater lock, followed by an automatic preflight re-run.
+
+- **Updater: dead-PID lock handling.** A lock whose heartbeat is fresh but whose holder PID is dead is now considered stale after 5 minutes instead of the full hour.
+
 ## [v0.2.0.9] - 2026-08-25
 
 ### Fixed
