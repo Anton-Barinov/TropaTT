@@ -134,9 +134,17 @@ final class MigrationManager
                 $this->markApplied($pdo, $migration);
                 $executed[] = $migration->key();
             } catch (\Throwable $e) {
-                // Log error but stop: subsequent migrations may depend on this one.
+                // Log and rethrow: a failed migration must fail the update
+                // loudly so the updater never finalizes over a partially
+                // migrated database, and never silently retries the same
+                // failing migration in a loop. Callers that want best-effort
+                // behaviour (installer, CLI script) wrap the call themselves.
                 error_log('[MigrationManager] Failed: ' . $migration->key() . ' - ' . $e->getMessage());
-                break;
+                throw new \RuntimeException(
+                    'Migration ' . $migration->key() . ' failed: ' . $e->getMessage(),
+                    0,
+                    $e
+                );
             }
         }
 
