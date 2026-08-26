@@ -153,6 +153,7 @@ $L['ru'] = [
     'db_connect_error' => 'Не удалось подключиться к БД',
     'env_write_error' => 'Ошибка записи .env файла',
     'table_create_error' => 'Ошибка создания таблиц',
+    'db_not_empty' => 'База данных не пуста: обнаружены существующие таблицы. Для переустановки введите слово WIPE.',
     'lock_file_error' => 'Система уже установлена. Если нужно переустановить — удалите api/.env, api/.install.lock и storage_api/install.lock.',
     'install' => 'Установка',
     'optional' => 'опционально',
@@ -245,6 +246,7 @@ $L['en'] = [
     'db_connect_error' => 'Could not connect to database',
     'env_write_error' => 'Error writing .env file',
     'table_create_error' => 'Error creating tables',
+    'db_not_empty' => 'The database is not empty: existing tables were found. Type WIPE to reinstall.',
     'lock_file_error' => 'System already installed. To reinstall, delete api/.env, api/.install.lock, and storage_api/install.lock.',
     'install' => 'Installation',
     'optional' => 'optional',
@@ -337,6 +339,7 @@ $L['zh'] = [
     'db_connect_error' => '无法连接数据库',
     'env_write_error' => '写入 .env 文件失败',
     'table_create_error' => '创建表失败',
+    'db_not_empty' => '数据库不为空：检测到已存在的表。如需重新安装，请输入 WIPE。',
     'lock_file_error' => '系统已安装。如需重新安装，请删除 api/.env、api/.install.lock 和 storage_api/install.lock。',
     'install' => '安装',
     'optional' => '可选',
@@ -429,6 +432,7 @@ $L['es'] = [
     'db_connect_error' => 'No se pudo conectar a la base de datos',
     'env_write_error' => 'Error al escribir el archivo .env',
     'table_create_error' => 'Error al crear las tablas',
+    'db_not_empty' => 'La base de datos no está vacía: se encontraron tablas existentes. Escriba WIPE para reinstalar.',
     'lock_file_error' => 'Sistema ya instalado. Para reinstalar, elimine api/.env, api/.install.lock y storage_api/install.lock.',
     'install' => 'Instalación',
     'optional' => 'opcional',
@@ -521,6 +525,7 @@ $L['pt'] = [
     'db_connect_error' => 'Não foi possível conectar ao banco de dados',
     'env_write_error' => 'Erro ao gravar o arquivo .env',
     'table_create_error' => 'Erro ao criar as tabelas',
+    'db_not_empty' => 'O banco de dados não está vazio: foram encontradas tabelas existentes. Digite WIPE para reinstalar.',
     'lock_file_error' => 'Sistema já instalado. Para reinstalar, exclua api/.env, api/.install.lock e storage_api/install.lock.',
     'install' => 'Instalação',
     'optional' => 'opcional',
@@ -613,6 +618,7 @@ $L['de'] = [
     'db_connect_error' => 'Verbindung zur Datenbank fehlgeschlagen',
     'env_write_error' => 'Fehler beim Schreiben der .env-Datei',
     'table_create_error' => 'Fehler beim Erstellen der Tabellen',
+    'db_not_empty' => 'Die Datenbank ist nicht leer: vorhandene Tabellen wurden gefunden. Geben Sie WIPE ein, um neu zu installieren.',
     'lock_file_error' => 'System bereits installiert. Zum Neuinstallieren löschen Sie api/.env, api/.install.lock und storage_api/install.lock.',
     'install' => 'Installation',
     'optional' => 'optional',
@@ -705,6 +711,7 @@ $L['fr'] = [
     'db_connect_error' => 'Impossible de se connecter à la base de données',
     'env_write_error' => "Erreur lors de l'écriture du fichier .env",
     'table_create_error' => 'Erreur lors de la création des tables',
+    'db_not_empty' => "La base de données n'est pas vide : des tables existantes ont été trouvées. Saisissez WIPE pour réinstaller.",
     'lock_file_error' => "Système déjà installé. Pour réinstaller, supprimez api/.env, api/.install.lock et storage_api/install.lock.",
     'install' => 'Installation',
     'optional' => 'optionnel',
@@ -2447,6 +2454,54 @@ function runDatabaseMigrations(PDO $pdo, string $driver): array
     return [];
 }
 
+/**
+ * @return array<int,string> names of existing tables/views in the target DB
+ */
+function listDatabaseTables(PDO $pdo): array
+{
+    try {
+        $rows = $pdo->query('SHOW FULL TABLES')->fetchAll(PDO::FETCH_NUM);
+    } catch (Throwable $e) {
+        return [];
+    }
+    $tables = [];
+    foreach ($rows as $row) {
+        $name = (string)($row[0] ?? '');
+        if ($name !== '') {
+            $tables[] = $name;
+        }
+    }
+    return $tables;
+}
+
+/**
+ * Drop every table/view in the target database. Used ONLY for an explicit,
+ * confirmed reinstall (the installer requires the admin to type WIPE first).
+ */
+function dropAllTables(PDO $pdo): void
+{
+    $tables = listDatabaseTables($pdo);
+    if ($tables === []) {
+        return;
+    }
+    $pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
+    foreach ($tables as $table) {
+        $quoted = '`' . str_replace('`', '``', $table) . '`';
+        try {
+            $pdo->exec('DROP TABLE IF EXISTS ' . $quoted);
+        } catch (Throwable $e) {
+            // MySQL views fail on DROP TABLE; fall back to DROP VIEW.
+            try {
+                $pdo->exec('DROP VIEW IF EXISTS ' . $quoted);
+            } catch (Throwable $e2) {
+                error_log('[Install::dropAllTables] ' . $e2->getMessage());
+            }
+        }
+    }
+    $pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
+}
+
+
 function importMysqlSchemaSnapshot(PDO $pdo): array
 {
     $errors = executeSqlFile($pdo, MYSQL_SCHEMA_SNAPSHOT_PATH);
@@ -3000,6 +3055,23 @@ if ($isAjax) {
 
             // Substep 2: Create tables
             if ($substep === 2 || $substep === 0) {
+                // Reinstall guard: a non-empty database requires an explicit
+                // typed WIPE confirmation so the admin never accidentally
+                // destroys data.
+                $existingTables = listDatabaseTables($pdo);
+                if ($existingTables !== []) {
+                    $wipeConfirm = (string)($_POST['wipe_confirmation'] ?? '');
+                    if ($wipeConfirm !== 'WIPE') {
+                        echo json_encode([
+                            'success' => false,
+                            'substep' => 2,
+                            'message' => t('table_create_error') . ': ' . t('db_not_empty'),
+                            'require_wipe' => true,
+                        ], JSON_UNESCAPED_UNICODE);
+                        exit;
+                    }
+                    dropAllTables($pdo);
+                }
                 $tableErrors = createDatabaseTables($pdo, 'mysql');
                 if (empty($tableErrors)) {
                     $tableErrors = runDatabaseMigrations($pdo, 'mysql');
@@ -3296,6 +3368,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isAjax) {
                     ];
                     $pdo = getPdoConnection($env);
 
+                    // Reinstall guard: the non-JS path cannot ask for an
+                    // interactive WIPE confirmation, so it stops with a clear
+                    // message instead of silently wiping or failing with the
+                    // cryptic duplicate-table errors.
+                    $existingTables = listDatabaseTables($pdo);
+                    if ($existingTables !== []) {
+                        throw new RuntimeException(t('table_create_error') . ': ' . t('db_not_empty'));
+                    }
+
                     $tableErrors = createDatabaseTables($pdo, 'mysql');
                     if (empty($tableErrors)) {
                         $tableErrors = runDatabaseMigrations($pdo, 'mysql');
@@ -3320,7 +3401,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isAjax) {
 
                 } catch (Throwable $e) {
                     error_log('[Install::demoData] ' . $e->getMessage());
-                    $errors[] = t('install_failed');
+                    $errors[] = ($e instanceof RuntimeException && $e->getMessage() !== '')
+                        ? $e->getMessage()
+                        : t('install_failed');
                     $step = 4;
                 }
             }
@@ -4473,7 +4556,7 @@ $js = <<<'JS'
                 progressFill.style.width = percent + '%';
             }
 
-            function runStep(index) {
+            function runStep(index, extraFormData) {
                 if (index >= totalSteps) {
                     // All done — success display is handled in the last step's response
                     installButtons.style.display = 'none';
@@ -4488,6 +4571,11 @@ $js = <<<'JS'
                 formData.append('_csrf', csrfInput.value);
                 formData.append('action', 'install');
                 formData.append('substep', String(index + 1));
+                if (extraFormData) {
+                    Object.keys(extraFormData).forEach(function(key) {
+                        formData.append(key, extraFormData[key]);
+                    });
+                }
 
                 fetch(window.location.href, { method: 'POST', body: formData })
                     .then(function(r) { return r.json(); })
@@ -4502,6 +4590,18 @@ $js = <<<'JS'
                             } else {
                                 // Get fresh CSRF token from success response
                                 runStep(index + 1);
+                            }
+                        } else if (data.require_wipe) {
+                            // Reinstall over an existing database: the server
+                            // refuses to touch data without a typed WIPE
+                            // confirmation. Ask once, then retry this substep.
+                            markStep(index, 'error');
+                            var confirmWipe = prompt(tr('db_not_empty', 'The database is not empty. Type WIPE to reinstall.'), '');
+                            if (confirmWipe === 'WIPE') {
+                                markStep(index, 'active');
+                                runStep(index, { wipe_confirmation: 'WIPE' });
+                            } else {
+                                showError(data.message || 'Unknown error');
                             }
                         } else {
                             markStep(index, 'error');

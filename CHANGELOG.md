@@ -36,6 +36,12 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 - **Updater: dead-PID lock handling.** A lock whose heartbeat is fresh but whose holder PID is dead is now considered stale after 5 minutes instead of the full hour.
 
+### Fixed
+
+- **Installer: reinstall over a non-empty database.** The installer previously failed with a cryptic "Schema import failed" ×3 when the target database already contained tables from a prior install (the MySQL schema snapshot uses plain `CREATE TABLE`). It now detects existing tables, stops with a clear localized message, and — after the admin types `WIPE` — drops every table/view and reinstalls cleanly. The non-JS fallback path refuses with the same clear message instead of silently wiping.
+
+- **Updater: duplicate file-backup entries on retry.** When a file-backup chunk died mid-way (shared-hosting proxy/WAF reset), the next request re-appended the same files to `items.jsonl`, corrupting the rollback manifest with duplicate entries. The backup ledger is now trimmed to the committed cursor before each retried chunk, matching the existing `applied.jsonl`/`rollback.jsonl` behavior.
+
 ## [v0.2.0.9] - 2026-08-25
 
 ### Fixed

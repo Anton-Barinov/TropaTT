@@ -63,6 +63,12 @@ final class FileBackupManager extends BackupManager
         // stale items in the assembled manifest.
         if ($startCursor === 0 && is_file($itemsFile)) {
             @unlink($itemsFile);
+        } else {
+            // A retried chunk (cursor > 0) can likewise duplicate entries when
+            // the previous attempt died mid-chunk after appending a few items
+            // but before the caller committed the new cursor. Trim the ledger
+            // back to the committed cursor before appending the retried files.
+            $this->trimJsonlToCursor($itemsFile, $startCursor);
         }
 
         $chunk = [];
@@ -143,5 +149,23 @@ final class FileBackupManager extends BackupManager
         }
         fclose($handle);
         return $items;
+    }
+
+    /**
+     * Keep at most $cursor lines of the items ledger. A failed chunk may have
+     * appended entries for files whose cursor was never committed; trimming to
+     * the committed cursor before appending the retried chunk prevents
+     * duplicate entries in the final assembled manifest.
+     */
+    private function trimJsonlToCursor(string $path, int $cursor): void
+    {
+        if ($cursor <= 0 || !is_file($path)) {
+            return;
+        }
+        $lines = file($path, FILE_IGNORE_NEW_LINES);
+        if ($lines === false || count($lines) <= $cursor) {
+            return;
+        }
+        file_put_contents($path, implode(PHP_EOL, array_slice($lines, 0, $cursor)) . PHP_EOL);
     }
 }
