@@ -2558,7 +2558,8 @@ function executeSqlFile(PDO $pdo, string $path): array
             $pdo->exec($statement);
         } catch (Throwable $e) {
             error_log('[Install::executeSqlFile] Statement #' . ($index + 1) . ': ' . $e->getMessage());
-            $errors[] = 'Schema import failed. Check server logs for details.';
+            $shortMsg = mb_substr($e->getMessage(), 0, 200);
+            $errors[] = 'Schema import failed: ' . $shortMsg;
             if (count($errors) >= 5) {
                 break;
             }
