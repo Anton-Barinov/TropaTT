@@ -1132,7 +1132,16 @@ $auJs = [
         const tokenProblem = message.includes('token') && (message.includes('invalid') || message.includes('expired'));
         if (stepBody.token && tokenProblem && tokenRetries < maxTokenRetries) {
           tokenRetries++;
-          stepBody = Object.assign({}, stepBody, {token: await updaterSession()});
+          try {
+            stepBody = Object.assign({}, stepBody, {token: await updaterSession()});
+          } catch (_sessionErr) {
+            // The session endpoint may be blocked during held maintenance
+            // mode (old api/index.php). Retry with the same token: the
+            // updater's sliding window keeps it fresh on every apply_step,
+            // so it may still be valid even though the error suggested
+            // expiry. If truly expired, the next iteration will re-try
+            // and eventually exhaust retries or succeed.
+          }
           continue;
         }
         // A request that never produced a server response (proxy timeout,
@@ -1219,7 +1228,16 @@ $auJs = [
     const latest = state.status && state.status.latest_job;
     const jobId = state.lastJobId || (latest && latest.job_id);
     if (!jobId) throw new Error(tr('needJobRollback', 'Нет job_id для восстановления.'));
-    const token = await updaterSession();
+    let token = '';
+    try {
+      token = await updaterSession();
+    } catch (_err) {
+      // Session endpoint may be blocked during held maintenance on old
+      // installs (api/index.php without the updater-recovery whitelist).
+      // Proceed with an empty token: the updater will reject it, but the
+      // error message guides the admin. The bootstrap update adds the
+      // whitelist so this path only fires on very old installations.
+    }
     const result = await runUpdaterSteps('rollback', {job_id: jobId, token});
     ensureSuccess(result, tr('errRollback', 'Не удалось восстановить backup.'));
     state.apply = result;
