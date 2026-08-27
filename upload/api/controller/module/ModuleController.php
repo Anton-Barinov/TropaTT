@@ -118,106 +118,124 @@ final class ModuleController
 
     public function install(array $params = []): JsonResponse
     {
-        $name = $params['name'] ?? '';
-        if ($name === '') {
-            return JsonResponse::error('INVALID_PARAM', $this->t('common/messages.invalid_parameter', 'Invalid parameter'), 400);
-        }
-
-        $pm = $this->container->get('plugin.manager');
-        $mc = $this->container->get('module.config');
-        $mm = $this->container->get('module.migrations');
-
-        $manifest = $pm->getManifest($name);
-        if ($manifest === null) {
-            return JsonResponse::error('MODULE_NOT_FOUND', $this->t('module/messages.not_found'), 404);
-        }
-
-        $errors = $pm->validate($manifest);
-        if ($errors !== []) {
-            return JsonResponse::error('VALIDATION_ERROR', $this->t('module/messages.validation_failed'), 400, ['errors' => $errors]);
-        }
-
-        $registry = $mc->getRegistry($name);
-        if ($registry !== null) {
-            return JsonResponse::error('ALREADY_INSTALLED', $this->t('module/messages.already_installed'), 409);
-        }
-
-        $mc->register($name, $manifest->vendor, $manifest->version);
-
-        if ($manifest->migrations !== null) {
-            $migrationDir = $pm->getModulesDir() . '/' . $manifest->name . '/' . $manifest->migrations;
-            $result = $mm->migrate($name, $migrationDir);
-
-            if ($result['errors'] !== []) {
-                $mc->unregister($name);
-                return JsonResponse::error('MIGRATION_ERROR', $this->t('module/messages.migration_failed'), 500, ['errors' => $result['errors']]);
+        try {
+            $name = $params['name'] ?? '';
+            if ($name === '') {
+                return JsonResponse::error('INVALID_PARAM', $this->t('common/messages.invalid_parameter', 'Invalid parameter'), 400);
             }
+
+            $pm = $this->container->get('plugin.manager');
+            $mc = $this->container->get('module.config');
+            $mm = $this->container->get('module.migrations');
+
+            $manifest = $pm->getManifest($name);
+            if ($manifest === null) {
+                return JsonResponse::error('MODULE_NOT_FOUND', $this->t('module/messages.not_found'), 404);
+            }
+
+            $errors = $pm->validate($manifest);
+            if ($errors !== []) {
+                return JsonResponse::error('VALIDATION_ERROR', $this->t('module/messages.validation_failed'), 400, ['errors' => $errors]);
+            }
+
+            $registry = $mc->getRegistry($name);
+            if ($registry !== null) {
+                return JsonResponse::error('ALREADY_INSTALLED', $this->t('module/messages.already_installed'), 409);
+            }
+
+            $mc->register($name, $manifest->vendor, $manifest->version);
+
+            if ($manifest->migrations !== null) {
+                $migrationDir = $pm->getModulesDir() . '/' . $manifest->name . '/' . $manifest->migrations;
+                $result = $mm->migrate($name, $migrationDir);
+
+                if ($result['errors'] !== []) {
+                    $mc->unregister($name);
+                    return JsonResponse::error('MIGRATION_ERROR', $this->t('module/messages.migration_failed'), 500, ['errors' => $result['errors']]);
+                }
+            }
+
+            $mc->initFromManifest($name, $manifest);
+
+            return JsonResponse::success('MODULE_INSTALLED', $this->t('module/messages.installed'), ['name' => $name, 'version' => $manifest->version]);
+        } catch (\Throwable $e) {
+            error_log('[ModuleController::install] ' . ($name ?? '') . ': ' . $e->getMessage());
+            return JsonResponse::error('INSTALL_FAILED', $this->t('module/messages.install_failed', 'Failed to install module') . ': ' . $e->getMessage(), 500);
         }
-
-        $mc->initFromManifest($name, $manifest);
-
-        return JsonResponse::success('MODULE_INSTALLED', $this->t('module/messages.installed'), ['name' => $name, 'version' => $manifest->version]);
     }
 
     public function activate(array $params = []): JsonResponse
     {
-        if ($this->requireRoot() !== null) { return $this->requireRoot(); }
-        $name = $params['name'] ?? '';
-        if ($name === '') {
-            return JsonResponse::error('INVALID_PARAM', $this->t('common/messages.invalid_parameter', 'Invalid parameter'), 400);
+        try {
+            if ($this->requireRoot() !== null) { return $this->requireRoot(); }
+            $name = $params['name'] ?? '';
+            if ($name === '') {
+                return JsonResponse::error('INVALID_PARAM', $this->t('common/messages.invalid_parameter', 'Invalid parameter'), 400);
+            }
+
+            $pm = $this->container->get('plugin.manager');
+            $mc = $this->container->get('module.config');
+
+            $registry = $mc->getRegistry($name);
+            if ($registry === null) {
+                return JsonResponse::error('NOT_INSTALLED', $this->t('module/messages.not_installed'), 400);
+            }
+
+            $manifest = $pm->getManifest($name);
+            if ($manifest === null) {
+                return JsonResponse::error('MODULE_NOT_FOUND', $this->t('module/messages.manifest_not_found'), 404);
+            }
+
+            if (!$pm->checkCoreCompatibility($manifest, '1.0.0')) {
+                return JsonResponse::error('CORE_INCOMPATIBLE', $this->t('module/messages.core_incompatible') . ' ' . $manifest->coreVersion, 400);
+            }
+
+            $loaded = $pm->load($name);
+            if (!$loaded) {
+                $errors = $pm->getModuleErrors($name);
+                return JsonResponse::error('VALIDATION_ERROR', $this->t('module/messages.validation_failed'), 400, ['errors' => $errors ?? []]);
+            }
+
+            $mc->setActive($name);
+
+            return JsonResponse::success('MODULE_ACTIVATED', $this->t('module/messages.activated'), ['name' => $name]);
+        } catch (\Throwable $e) {
+            error_log('[ModuleController::activate] ' . $name . ': ' . $e->getMessage());
+            return JsonResponse::error('ACTIVATE_FAILED', $this->t('module/messages.activate_failed', 'Failed to activate module') . ': ' . $e->getMessage(), 500);
         }
-
-        $pm = $this->container->get('plugin.manager');
-        $mc = $this->container->get('module.config');
-
-        $registry = $mc->getRegistry($name);
-        if ($registry === null) {
-            return JsonResponse::error('NOT_INSTALLED', $this->t('module/messages.not_installed'), 400);
-        }
-
-        $manifest = $pm->getManifest($name);
-        if ($manifest === null) {
-            return JsonResponse::error('MODULE_NOT_FOUND', $this->t('module/messages.manifest_not_found'), 404);
-        }
-
-        if (!$pm->checkCoreCompatibility($manifest, '1.0.0')) {
-            return JsonResponse::error('CORE_INCOMPATIBLE', $this->t('module/messages.core_incompatible') . ' ' . $manifest->coreVersion, 400);
-        }
-
-        $pm->load($name);
-
-        $mc->setActive($name);
-
-        return JsonResponse::success('MODULE_ACTIVATED', $this->t('module/messages.activated'), ['name' => $name]);
-    }
-
-    public function deactivate(array $params = []): JsonResponse
+    }    public function deactivate(array $params = []): JsonResponse
     {
-        $name = $params['name'] ?? '';
-        if ($name === '') {
-            return JsonResponse::error('INVALID_PARAM', $this->t('common/messages.invalid_parameter', 'Invalid parameter'), 400);
+        try {
+            $name = $params['name'] ?? '';
+            if ($name === '') {
+                return JsonResponse::error('INVALID_PARAM', $this->t('common/messages.invalid_parameter', 'Invalid parameter'), 400);
+            }
+
+            $mc = $this->container->get('module.config');
+            $registry = $mc->getRegistry($name);
+            if ($registry === null) {
+                return JsonResponse::error('NOT_INSTALLED', $this->t('module/messages.not_installed'), 400);
+            }
+
+            $mc->setInactive($name);
+
+            return JsonResponse::success('MODULE_DEACTIVATED', $this->t('module/messages.deactivated'), ['name' => $name]);
+        } catch (\Throwable $e) {
+            error_log('[ModuleController::deactivate] ' . ($name ?? '') . ': ' . $e->getMessage());
+            return JsonResponse::error('DEACTIVATE_FAILED', $this->t('module/messages.deactivate_failed', 'Failed to deactivate module') . ': ' . $e->getMessage(), 500);
         }
-
-        $mc = $this->container->get('module.config');
-        $registry = $mc->getRegistry($name);
-        if ($registry === null) {
-            return JsonResponse::error('NOT_INSTALLED', $this->t('module/messages.not_installed'), 400);
-        }
-
-        $mc->setInactive($name);
-
-        return JsonResponse::success('MODULE_DEACTIVATED', $this->t('module/messages.deactivated'), ['name' => $name]);
     }
 
     public function uninstall(array $params = []): JsonResponse
     {
-        $name = $params['name'] ?? '';
-        if ($name === '') {
-            return JsonResponse::error('INVALID_PARAM', $this->t('common/messages.invalid_parameter', 'Invalid parameter'), 400);
-        }
+        try {
+            $name = $params['name'] ?? '';
+            if ($name === '') {
+                return JsonResponse::error('INVALID_PARAM', $this->t('common/messages.invalid_parameter', 'Invalid parameter'), 400);
+            }
 
-        $pm = $this->container->get('plugin.manager');
-        $mc = $this->container->get('module.config');
+            $pm = $this->container->get('plugin.manager');
+            $mc = $this->container->get('module.config');
         $mm = $this->container->get('module.migrations');
 
         $registry = $mc->getRegistry($name);
@@ -255,6 +273,10 @@ final class ModuleController
         }
 
         return JsonResponse::success('MODULE_REMOVED', $this->t('module/messages.removed'), ['name' => $name]);
+        } catch (\Throwable $e) {
+            error_log('[ModuleController::uninstall] ' . $name . ': ' . $e->getMessage());
+            return JsonResponse::error('UNINSTALL_FAILED', $this->t('module/messages.uninstall_failed', 'Failed to uninstall module') . ': ' . $e->getMessage(), 500);
+        }
     }
 
     /**

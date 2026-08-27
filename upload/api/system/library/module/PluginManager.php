@@ -126,20 +126,22 @@ final class PluginManager
                     "Web routes file not found: {$webRoutesPath}",
                     $manifest->webRoutes, 'file_exists');
             }
-        }
-
-        if ($manifest->serviceProvider !== null && $manifest->serviceProvider !== '') {
+        }        if ($manifest->serviceProvider !== null && $manifest->serviceProvider !== '') {
             $spClass = $manifest->serviceProvider;
             if (!class_exists($spClass)) {
                 $spFile = $moduleDir . '/api/' . str_replace('\\', '/', substr($spClass, strrpos($spClass, '\\') + 1)) . '.php';
                 if (is_file($spFile)) {
-                    require_once $spFile;
+                    try {
+                        require_once $spFile;
+                    } catch (\Throwable $e) {
+                        $errors[] = $this->errorStruct('E_SERVICE_PROVIDER_LOAD_FAILED', 'service_provider',
+                            "Failed to load service provider {$spClass}: " . $e->getMessage(), $spClass, 'require_once');
+                    }
                 }
             }
             if (!class_exists($spClass)) {
                 $errors[] = $this->errorStruct('E_SERVICE_PROVIDER_NOT_FOUND', 'service_provider',
-                    "Service provider class not found: {$spClass}",
-                    $spClass, 'class_exists');
+                    "Service provider class not found: {$spClass}", $spClass, 'class_exists');
             }
         }
 
