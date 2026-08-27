@@ -132,6 +132,9 @@ final class CoreUpdateController extends BaseController
             return $this->error('CORE_UPDATE_RECOVERY_KEY_WRITE_FAILED', $this->t('system/messages.recovery_key_write_failed'), 500);
         }
         @chmod($hashFile, 0640);
+        // Also write plaintext key to a sidecar file for SSH/file-manager recovery.
+        @file_put_contents($storageDir . '/recovery_key.txt', $key);
+        @chmod($storageDir . '/recovery_key.txt', 0640);
         return $this->success('CORE_UPDATE_RECOVERY_KEY', $this->t('system/messages.recovery_key'), [
             'recovery_key' => $key,
             'note' => 'Save this key now. It will not be shown again.',

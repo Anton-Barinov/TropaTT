@@ -1628,6 +1628,8 @@ return array (
     'recovery_key_warn' => 'Enregistrez cette clé maintenant : après un rechargement de la page, elle ne sera plus affichée. La clé a été copiée dans le presse-papiers.',
     'recovery_key_error' => 'Impossible d\'obtenir la clé de récupération.',
     'recovery_key_again' => 'Générer une nouvelle clé',
+    'recovery_alt_title' => 'Méthode alternative :',
+    'recovery_alt_text' => 'Si la clé de récupération est perdue, vous pouvez vous connecter à rescue.php en utilisant l\'APP_KEY du fichier .env sur le serveur ( cat .env | grep APP_KEY ).',
     'btn_preflight' => 'Lancer la vérification de sécurité',
     'btn_download' => 'Préparer le paquet',
     'btn_apply' => 'Installer la mise à jour',

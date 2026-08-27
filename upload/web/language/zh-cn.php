@@ -7356,6 +7356,8 @@ return array (
     'recovery_key_warn' => '请立即保存此密钥——页面重新加载后将不再显示。密钥已复制到剪贴板。',
     'recovery_key_error' => '无法获取恢复密钥。',
     'recovery_key_again' => '生成新密钥',
+    'recovery_alt_title' => '替代方法：',
+    'recovery_alt_text' => '如果恢复密钥丢失，可以使用服务器上 .env 文件中的 APP_KEY 登录 rescue.php（ cat .env | grep APP_KEY ）。',
     'btn_preflight' => '运行安全检查',
     'btn_download' => '准备安装包',
     'btn_apply' => '安装更新',

@@ -3010,6 +3010,11 @@ function finalizeInstall(PDO $pdo): void
             $recoveryKey = generateRandomHex(16);
             if (@file_put_contents($recoveryHashFile, password_hash($recoveryKey, PASSWORD_DEFAULT)) !== false) {
                 @chmod($recoveryHashFile, 0640);
+                // Also write plaintext key to a sidecar file so the admin can
+                // recover it via SSH / file manager if the web UI is unreachable.
+                $recoveryTxtFile = $updatesDir . '/recovery_key.txt';
+                @file_put_contents($recoveryTxtFile, $recoveryKey);
+                @chmod($recoveryTxtFile, 0640);
                 $_SESSION['install_recovery_key'] = $recoveryKey;
             }
         } catch (\Throwable $e) {

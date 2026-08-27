@@ -7419,6 +7419,8 @@ return array (
     'recovery_key_warn' => 'Save this key now - after a page reload it will not be shown again. The key was copied to the clipboard.',
     'recovery_key_error' => 'Could not obtain the recovery key.',
     'recovery_key_again' => 'Generate a new key',
+    'recovery_alt_title' => 'Alternative method:',
+    'recovery_alt_text' => 'If the recovery key is lost, you can log in to rescue.php using the APP_KEY from the .env file on the server ( cat .env | grep APP_KEY ).',
     'btn_preflight' => 'Run safety check',
     'btn_download' => 'Prepare package',
     'btn_apply' => 'Install update',

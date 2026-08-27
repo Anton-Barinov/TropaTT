@@ -1628,6 +1628,8 @@ return array (
     'recovery_key_warn' => 'Salve esta chave agora: após recarregar a página, ela não será exibida novamente. A chave foi copiada para a área de transferência.',
     'recovery_key_error' => 'Não foi possível obter a chave de recuperação.',
     'recovery_key_again' => 'Gerar nova chave',
+    'recovery_alt_title' => 'Método alternativo:',
+    'recovery_alt_text' => 'Se a chave de recuperação foi perdida, você pode fazer login no rescue.php usando o APP_KEY do arquivo .env no servidor ( cat .env | grep APP_KEY ).',
     'btn_preflight' => 'Executar verificação de segurança',
     'btn_download' => 'Preparar pacote',
     'btn_apply' => 'Instalar atualização',

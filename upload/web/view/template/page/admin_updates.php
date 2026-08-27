@@ -427,6 +427,7 @@ $auJs = [
             <summary><strong><?= htmlspecialchars($au('btn_recovery', 'Аварийное восстановление'), ENT_QUOTES, 'UTF-8') ?></strong></summary>
             <div class="mt-3">
               <p class="updates-muted"><?= htmlspecialchars($au('recovery_text', 'Если обновление прервалось и CRM осталась в режиме обслуживания, эта страница обновлений остаётся доступной. Для аварийного входа через /updater/rescue.php нужен ключ восстановления — он показывается один раз при установке. Здесь можно получить новый ключ.'), ENT_QUOTES, 'UTF-8') ?></p>
+              <p class="updates-muted mb-1" style="font-size:.82rem"><strong><?= htmlspecialchars($au('recovery_alt_title', 'Альтернативный способ:'), ENT_QUOTES, 'UTF-8') ?></strong> <?= htmlspecialchars($au('recovery_alt_text', 'Если ключ восстановления утерян, в rescue.php можно войти с помощью APP_KEY из файла .env на сервере ( cat .env | grep APP_KEY ).'), ENT_QUOTES, 'UTF-8') ?></p>
               <div class="updates-actions mt-0">
                 <button class="btn crm-btn-secondary" type="button" data-update-action="recovery-key"><?= htmlspecialchars($au('recovery_key_btn', 'Показать ключ восстановления'), ENT_QUOTES, 'UTF-8') ?></button>
               </div>

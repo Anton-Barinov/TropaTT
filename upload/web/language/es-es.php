@@ -1628,6 +1628,8 @@ return array (
     'recovery_key_warn' => 'Guarde esta clave ahora: después de recargar la página no se volverá a mostrar. La clave se copió al portapapeles.',
     'recovery_key_error' => 'No se pudo obtener la clave de recuperación.',
     'recovery_key_again' => 'Generar una clave nueva',
+    'recovery_alt_title' => 'Método alternativo:',
+    'recovery_alt_text' => 'Si la clave de recuperación se perdió, puede iniciar sesión en rescue.php usando el APP_KEY del archivo .env en el servidor ( cat .env | grep APP_KEY ).',
     'btn_preflight' => 'Ejecutar comprobación de seguridad',
     'btn_download' => 'Preparar paquete',
     'btn_apply' => 'Instalar actualización',

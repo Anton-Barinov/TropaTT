@@ -1628,6 +1628,8 @@ return array (
     'recovery_key_warn' => 'Schlüssel jetzt speichern - nach einem Seitenneuladen wird er nicht mehr angezeigt. Der Schlüssel wurde in die Zwischenablage kopiert.',
     'recovery_key_error' => 'Wiederherstellungsschlüssel konnte nicht abgerufen werden.',
     'recovery_key_again' => 'Neuen Schlüssel erzeugen',
+    'recovery_alt_title' => 'Alternative Methode:',
+    'recovery_alt_text' => 'Wenn der Wiederherstellungsschlüssel verloren geht, können Sie sich mit dem APP_KEY aus der .env-Datei auf dem Server in rescue.php einloggen ( cat .env | grep APP_KEY ).',
     'btn_preflight' => 'Sicherheitsprüfung ausführen',
     'btn_download' => 'Paket vorbereiten',
     'btn_apply' => 'Update installieren',

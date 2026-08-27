@@ -4,11 +4,13 @@ declare(strict_types=1);
 /**
  * Updater rescue page - last-resort recovery while maintenance mode holds.
  *
- * The recovery key is a one-time secret generated at installation (and
- * rotatable from the admin-updates page). It is NEVER generated here: a
- * lazy on-visit generation would hand a full recovery key to any anonymous
- * visitor and silently lock real admins out of recovery. If the key file is
- * missing, this page explains how to obtain a key instead.
+ * Two authentication methods:
+ * 1. Recovery key (generated at install, rotatable from admin-updates).
+ * 2. APP_KEY from .env (always available to the server admin via SSH/file manager).
+ *
+ * The recovery key is NEVER generated here: a lazy on-visit generation would
+ * hand a full recovery key to any anonymous visitor. If the key file is
+ * missing, the page explains how to authenticate with APP_KEY instead.
  */
 
 $basePath = dirname(__DIR__);
@@ -17,6 +19,59 @@ $hashFile = $storage . '/recovery_key.hash';
 $provided = (string)($_GET['key'] ?? $_POST['key'] ?? '');
 
 $maintenanceOn = is_file($basePath . '/storage_api/maintenance.flag');
+
+/**
+ * Load APP_KEY from .env files (same locations the application checks).
+ */
+function loadAppKey(string $basePath): string
+{
+    $candidates = [
+        $basePath . '/.env',
+        $basePath . '/api/.env',
+        dirname($basePath) . '/.env',
+    ];
+    foreach ($candidates as $envFile) {
+        if (!is_file($envFile)) {
+            continue;
+        }
+        $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        if (!$lines) {
+            continue;
+        }
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '' || $line[0] === '#') {
+                continue;
+            }
+            if (preg_match('/^APP_KEY\s*=\s*(.+)$/i', $line, $m)) {
+                return trim($m[1], " \t\"'");
+            }
+        }
+    }
+    return '';
+}
+
+/**
+ * Verify the provided secret against either the recovery key hash or APP_KEY.
+ */
+function verifySecret(string $provided, string $hashFile, string $appKey): bool
+{
+    if ($provided === '') {
+        return false;
+    }
+    // Method 1: recovery key hash
+    if (is_file($hashFile)) {
+        $hash = trim((string)file_get_contents($hashFile));
+        if (password_verify($provided, $hash)) {
+            return true;
+        }
+    }
+    // Method 2: APP_KEY (constant-time comparison)
+    if ($appKey !== '' && hash_equals($appKey, $provided)) {
+        return true;
+    }
+    return false;
+}
 
 function rescuePage(string $title, string $bodyHtml, int $status = 200): void
 {
@@ -38,6 +93,7 @@ function rescuePage(string $title, string $bodyHtml, int $status = 200): void
         . '.pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:.78rem;font-weight:600;margin-bottom:14px}'
         . '.pill.on{background:#fee2e2;color:#b91c1c}.pill.off{background:#dcfce7;color:#15803d}'
         . '.warn{border-left:4px solid #f59e0b;background:#fffbeb;padding:10px 14px;border-radius:0 8px 8px 0;margin:14px 0}'
+        . '.info{border-left:4px solid #0b6bcb;background:#eff6ff;padding:10px 14px;border-radius:0 8px 8px 0;margin:14px 0}'
         . '</style></head><body><div class="card">'
         . '<span class="pill ' . ($GLOBALS['__rescueMaintenance'] ? 'on' : 'off') . '">'
         . ($GLOBALS['__rescueMaintenance'] ? 'Maintenance is ON' : 'Maintenance is OFF') . '</span>'
@@ -47,32 +103,44 @@ function rescuePage(string $title, string $bodyHtml, int $status = 200): void
 
 $GLOBALS['__rescueMaintenance'] = $maintenanceOn;
 
-if (!is_file($hashFile)) {
-    rescuePage('Recovery key is not configured', '<p>'
-        . 'The updater recovery key has not been generated for this installation. '
-        . 'It is created automatically during installation or can be generated at any time '
-        . 'from the updates page in the admin panel.</p>'
-        . '<div class="warn"><strong>How to get the key:</strong> log in to the CRM and open '
-        . '<code>index.php?route=admin-updates</code> &rarr; section '
-        . '<strong>&laquo;Emergency recovery&raquo;</strong> &rarr; '
-        . 'click <em>&laquo;Show recovery key&raquo;</em>. The updates page stays reachable '
-        . 'even while maintenance mode is on, so this always works.</div>'
-        . '<p class="muted">If you do not have the key and cannot reach the admin panel, '
-        . 'delete the <code>storage_api/updates/recovery_key.hash</code> file on the server '
-        . 'only if you are sure no attacker can reach this URL, then return here to re-run this page '
-        . '(a fresh key will be issued through the admin panel afterwards).</p>', 403);
+$appKey = loadAppKey($basePath);
+
+// --- Authentication ---
+if (!verifySecret($provided, $hashFile, $appKey)) {
+    $methods = '<h2>Authentication</h2>'
+        . '<p>You can authenticate with either:</p>'
+        . '<ul>'
+        . '<li><strong>Recovery key</strong> &mdash; generated at installation, '
+        . 'shown once on the completion page and re-issuable from '
+        . '<code>index.php?route=admin-updates</code> &rarr; <strong>Emergency recovery</strong>.</li>'
+        . '<li><strong>APP_KEY</strong> &mdash; found in the <code>.env</code> file '
+        . 'on the server (e.g. <code>cat .env | grep APP_KEY</code> via SSH).</li>'
+        . '</ul>';
+
+    if (!is_file($hashFile) && $appKey === '') {
+        rescuePage('No credentials available', '<p>'
+            . 'Neither the recovery key file nor the APP_KEY have been configured. '
+            . 'Please set up at least one to use this recovery page.</p>'
+            . '<div class="warn"><strong>How to proceed:</strong> '
+            . 'Delete the <code>storage_api/updates/recovery_key.hash</code> file '
+            . '(if it exists), then log in to the CRM and generate a new recovery key '
+            . 'from the updates page. Alternatively, set <code>APP_KEY</code> in your '
+            . '<code>.env</code> file.</div>', 403);
+        exit;
+    }
+
+    rescuePage('Recovery access denied', $methods
+        . '<form method="post">'
+        . '<input name="key" type="password" placeholder="Recovery key or APP_KEY" autocomplete="off">'
+        . '<button type="submit">Open recovery</button>'
+        . '</form>', 403);
     exit;
 }
 
-if ($provided === '' || !password_verify($provided, trim((string)file_get_contents($hashFile)))) {
-    rescuePage('Recovery access denied', '<p>'
-        . 'This recovery area is protected by the updater recovery key. '
-        . 'The key is shown once at installation and can be re-issued at any time from '
-        . '<code>index.php?route=admin-updates</code> &rarr; <strong>Emergency recovery</strong>.</p>'
-        . '<form method="post"><input name="key" type="password" placeholder="Recovery key" autocomplete="off">'
-        . '<button type="submit">Open recovery</button></form>', 403);
-    exit;
-}
+// --- Authenticated: show recovery tools ---
+
+// Regenerate the recovery key in the session for the redirect after actions
+$_SESSION['rescue_key'] = $provided;
 
 $jobs = glob($storage . '/jobs/*/state.json') ?: [];
 usort($jobs, static fn (string $a, string $b): int => @filemtime($b) <=> @filemtime($a));
@@ -83,6 +151,12 @@ $log = $latestJobDir && is_file($latestJobDir . '/log.jsonl') ? (string)file_get
 
 if (($_POST['action'] ?? '') === 'disable_maintenance') {
     @unlink($basePath . '/storage_api/maintenance.flag');
+    header('Location: /updater/rescue.php?key=' . rawurlencode($provided));
+    exit;
+}
+
+if (($_POST['action'] ?? '') === 'delete_lock') {
+    @unlink($storage . '/locks/update.lock');
     header('Location: /updater/rescue.php?key=' . rawurlencode($provided));
     exit;
 }
@@ -100,6 +174,12 @@ if ($maintenanceOn) {
         . '<code>storage_api/maintenance.flag</code> manually or use the button below.</p>'
         . '<form method="post"><input type="hidden" name="key" value="' . htmlspecialchars($provided, ENT_QUOTES, 'UTF-8') . '">'
         . '<button name="action" value="disable_maintenance">Remove maintenance flag anyway</button></form>';
+}
+// Show lock removal button if a lock file exists
+$lockFile = $storage . '/locks/update.lock';
+if (is_file($lockFile)) {
+    $body .= '<form method="post" style="margin-top:10px"><input type="hidden" name="key" value="' . htmlspecialchars($provided, ENT_QUOTES, 'UTF-8') . '">'
+        . '<button name="action" value="delete_lock">Force remove update lock</button></form>';
 }
 $body .= '<h2>Latest job</h2><pre>' . htmlspecialchars($state, ENT_QUOTES, 'UTF-8') . '</pre>'
     . '<h2>Backups</h2><pre>' . htmlspecialchars(implode("\n", $backups), ENT_QUOTES, 'UTF-8') . '</pre>'
