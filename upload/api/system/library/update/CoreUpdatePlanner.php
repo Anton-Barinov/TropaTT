@@ -34,9 +34,15 @@ final class CoreUpdatePlanner
                 'unknown_local_core' => ($current['state'] ?? '') === 'unknown_local_core',
             ];
         }
+        $planData = $plan['data'] ?? null;
+        // Compute update_available: true when target build differs from current
+        if (is_array($planData)) {
+            $targetBuild = (string)($planData['target_build'] ?? '');
+            $planData['update_available'] = ($targetBuild !== '' && $targetBuild !== $currentBuild);
+        }
         return [
             'current' => $current,
-            'plan' => $plan['data'] ?? null,
+            'plan' => $planData,
             'raw' => $plan,
             'unknown_local_core' => ($current['state'] ?? '') === 'unknown_local_core',
         ];
