@@ -1603,7 +1603,17 @@ window.CRM.br1 = (function () {
     var modal = document.getElementById('createProjectModal');
     if (modal && modal.dataset.boundCreateProject !== '1') {
       modal.addEventListener('show.bs.modal', function () {
-        ensureProjectCreateDictionaries();
+        ensureProjectCreateDictionaries().then(function () {
+          /* Re-apply prefill after dictionaries load in case the async
+             render cycle cleared the client select value. */
+          setTimeout(function () {
+            if (!window._projectClientPrefill) return;
+            var cs = modal.querySelector('[name="client_public_id"]');
+            if (cs && window._projectClientPrefill) {
+              cs.value = window._projectClientPrefill;
+            }
+          }, 150);
+        });
       });
       modal.addEventListener('hidden.bs.modal', function () {
         window._projectClientPrefill = null;
@@ -2067,6 +2077,11 @@ window.CRM.br1 = (function () {
         await ensureCreateTaskDictionaries();
         primeCreateTaskDefaults();
         applyCreateTaskPrefill();
+        /* Re-apply prefill after Bootstrap finishes its animation in case
+           the async dictionary load caused a render cycle that cleared it. */
+        setTimeout(function () {
+          applyCreateTaskPrefill();
+        }, 150);
       });
 
       modal.addEventListener('hidden.bs.modal', function () {
