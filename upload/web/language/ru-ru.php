@@ -5599,6 +5599,7 @@ return array (
     'section_projects' => 'Проекты',
     'section_projects_note' => 'Проекты, связанные с этим контрагентом.',
     'projects_empty' => 'Нет проектов для этого контрагента.',
+    'projects_empty_create' => 'Создать первый проект',
     'projects_error' => 'Ошибка загрузки проектов.',
     'project_untitled' => 'Без названия',
     'th_project_name' => 'Проект',

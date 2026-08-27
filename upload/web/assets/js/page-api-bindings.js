@@ -26755,7 +26755,23 @@ window.CRM.pageApiBindings = (function () {
       var projects = mapItems(projectsEnvelope);
       if (projectsCountNode) projectsCountNode.textContent = String(projects.length);
       if (!projects.length) {
-        projectsBody.innerHTML = '<tr><td colspan="4" class="text-muted">' + safeText(tp('counterparty_detail.projects_empty', 'Нет проектов для этого контрагента.')) + '</td></tr>';
+        var emptyText = safeText(tp('counterparty_detail.projects_empty', 'Нет проектов для этого контрагента.'));
+        var createText = safeText(tp('counterparty_detail.projects_empty_create', 'Создать первый проект'));
+        projectsBody.innerHTML = '<tr><td colspan="4" class="text-muted">' + emptyText
+          + ' <a href="#" class="projects-empty-create-link" style="font-weight:600">' + createText + '</a></td></tr>';
+        var emptyLink = projectsBody.querySelector('.projects-empty-create-link');
+        if (emptyLink) {
+          emptyLink.addEventListener('click', function (e) {
+            e.preventDefault();
+            window._projectClientPrefill = cpPublicId;
+            var modalEl = document.getElementById('createProjectModal');
+            if (modalEl && window.bootstrap && window.bootstrap.Modal) {
+              window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            } else {
+              window.location.href = 'index.php?route=projects';
+            }
+          });
+        }
         return;
       }
       /* Count tasks per project from the already-fetched task list */

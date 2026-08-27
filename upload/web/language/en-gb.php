@@ -5578,6 +5578,7 @@ return array (
     'section_projects' => 'Projects',
     'section_projects_note' => 'Projects associated with this counterparty.',
     'projects_empty' => 'No projects for this counterparty yet.',
+    'projects_empty_create' => 'Create first project',
     'projects_error' => 'Failed to load projects.',
     'project_untitled' => 'Untitled project',
     'th_project_name' => 'Project',
