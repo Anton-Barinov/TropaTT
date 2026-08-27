@@ -237,6 +237,14 @@ $auJs = [
     .updates-meta-item:last-child { border-right:0; }
     .updates-kpi-label { color:var(--crm-text-soft); font-size:.77rem; font-weight:700; }
     .updates-kpi-value { margin-top:6px; font-size:1.08rem; font-weight:820; color:var(--update-ink); line-height:1.15; overflow-wrap:anywhere; }
+    .updates-kpi-value.loading { color:var(--crm-text-soft); }
+    .updates-kpi-value.loading::after { content:''; display:inline-block; width:1em; height:1em; border:2px solid var(--crm-border-strong); border-top-color:var(--crm-primary); border-radius:50%; animation:updates-spin .8s linear infinite; margin-left:6px; vertical-align:middle; }
+    @keyframes updates-spin { to { transform:rotate(360deg); } }
+    .updates-phase-bar { display:flex; gap:8px; align-items:center; margin-top:14px; padding:10px 14px; border-radius:12px; background:var(--crm-info-soft); color:var(--crm-text); font-size:.85rem; font-weight:650; }
+    .updates-phase-bar .updates-phase-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; background:var(--crm-text-soft); animation:updates-pulse 1.2s ease-in-out infinite; }
+    .updates-phase-bar .updates-phase-dot.done { background:var(--crm-success); animation:none; }
+    .updates-phase-bar .updates-phase-dot.active { background:var(--crm-primary); animation:updates-pulse 1.2s ease-in-out infinite; }
+    @keyframes updates-pulse { 0%,100%{ opacity:.4; } 50%{ opacity:1; } }
     .updates-muted { color:var(--crm-text-soft); font-size:.86rem; line-height:1.45; margin-top:4px; }
     .updates-hero { display:none; }
     .updates-panel, .updates-card { border:1px solid var(--update-line); border-radius:18px; background:var(--crm-surface); box-shadow:0 12px 30px rgba(15,23,42,.05); }
@@ -251,8 +259,11 @@ $auJs = [
     .updates-status-title { margin:6px 0 8px; color:var(--update-ink); font-size:1.12rem; line-height:1.25; font-weight:800; letter-spacing:-.01em; }
     .updates-status-text { margin:0; color:var(--crm-text-soft); line-height:1.55; }
     .updates-status-foot { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-    .updates-notice { display:none; margin:0 0 16px; border-radius:14px; padding:12px 14px; border:1px solid var(--crm-danger-soft); background:var(--crm-danger-soft); color:var(--crm-danger); font-weight:700; }
+    .updates-notice { display:none; margin:0 0 16px; border-radius:14px; padding:12px 14px; border:1px solid var(--crm-warning-soft); background:var(--crm-warning-soft); color:var(--crm-warning); font-weight:700; }
     .updates-notice.show { display:block; }
+    .updates-notice.danger { border-color:var(--crm-danger-soft); background:var(--crm-danger-soft); color:var(--crm-danger); }
+    .updates-notice.info { border-color:var(--crm-info-soft); background:var(--crm-info-soft); color:var(--crm-info); }
+    .updates-notice.ok { border-color:var(--crm-success-soft); background:var(--crm-success-soft); color:var(--crm-success); }
     .updates-metrics { display:none; }
     .updates-pill-row { display:grid; gap:8px; margin-top:14px; }
     .updates-pill { display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--crm-border); color:var(--crm-text); font-size:.84rem; font-weight:650; }
@@ -628,10 +639,11 @@ $auJs = [
     return json;
   }
 
-  function showNotice(message) {
+  function showNotice(message, type) {
     const box = $('updatesNotice');
     if (!box) return;
-    box.className = 'updates-notice show';
+    const cls = type ? `updates-notice show ${type}` : 'updates-notice show';
+    box.className = cls;
     box.textContent = message;
   }
 
@@ -788,7 +800,7 @@ $auJs = [
       if (heldMaintenance) {
         $('nextTitle').textContent = tr('maintenanceHeldTitle', 'Обновление не завершено: CRM в режиме обслуживания');
         $('nextText').textContent = tr('maintenanceHeldText', 'Обновление прервалось после изменения файлов или базы данных, поэтому CRM остаётся в режиме обслуживания, чтобы не отдавать сломанное состояние. Откатитесь из backup или повторите обновление.');
-        showNotice(tr('maintenanceHeldText', 'Обновление прервалось после изменения файлов или базы данных, поэтому CRM остаётся в режиме обслуживания, чтобы не отдавать сломанное состояние. Откатитесь из backup или повторите обновление.'));
+        showNotice(tr('maintenanceHeldText', 'Обновление прервалось после изменения файлов или базы данных, поэтому CRM остаётся в режиме обслуживания, чтобы не отдавать сломанное состояние. Откатитесь из backup или повторите обновление.'), 'danger');
       } else {
         $('nextTitle').textContent = tr('recommendFailedTitle', 'Последняя операция завершилась ошибкой');
         $('nextText').textContent = tr('recommendFailedText', 'Проверьте детали операции. Если CRM работает нестабильно, используйте восстановление из backup.');
@@ -839,6 +851,28 @@ $auJs = [
     setBadge('nextStatusBadge', loading ? 'warn' : pipelineKind(), loading ? actionLabels[action] || action : pipelineText());
     setBadge('detailsBadge', loading ? 'warn' : pipelineKind(), loading ? actionLabels[action] || action : pipelineText());
     renderControlState(loading ? 'warn' : pipelineKind());
+    // Toggle loading spinner on KPI values
+    ['kpiTarget', 'kpiPackage', 'kpiRisk'].forEach((id) => {
+      const el = $(id);
+      if (el && loading && !el.dataset.realValue) {
+        el.dataset.realValue = el.textContent;
+        el.classList.add('loading');
+      } else if (el && !loading) {
+        delete el.dataset.realValue;
+        el.classList.remove('loading');
+      }
+    });
+    // Show/hide loading meta text under KPI values
+    ['kpiTargetMeta', 'kpiPackageMeta', 'kpiRiskMeta'].forEach((id) => {
+      const el = $(id);
+      if (el && loading && !el.dataset.realText) {
+        el.dataset.realText = el.textContent;
+        el.textContent = tr('kpi_target_loading', 'Покажем после проверки.');
+      } else if (el && !loading && el.dataset.realText) {
+        // Don't restore — renderPlan/renderStatus will set the real value
+        delete el.dataset.realText;
+      }
+    });
   }
 
   function renderStatus() {
@@ -864,7 +898,7 @@ $auJs = [
     // Guard 3 (maintenance hold): a failed update that left maintenance ON
     // must be surfaced prominently so the admin rolls back or retries.
     if (maintenance && latest && latest.state === 'failed') {
-      showNotice(tr('maintenanceHeldText', 'Обновление прервалось после изменения файлов или базы данных, поэтому CRM остаётся в режиме обслуживания, чтобы не отдавать сломанное состояние. Откатитесь из backup или повторите обновление.'));
+      showNotice(tr('maintenanceHeldText', 'Обновление прервалось после изменения файлов или базы данных, поэтому CRM остаётся в режиме обслуживания, чтобы не отдавать сломанное состояние. Откатитесь из backup или повторите обновление.'), 'danger');
     }
     $('kpiInstalled').textContent = installed.core_build || tr('kpiInstalledUnknown', 'unknown');
     $('kpiInstalledMeta').textContent = installed.source_sha ? `SHA ${String(installed.source_sha).slice(0, 12)}...` : tr('kpiInstalledMetaUnknown', 'Локальная сборка еще не принята updater.');
@@ -997,7 +1031,7 @@ $auJs = [
       clearNotice();
       await fn();
     } catch (err) {
-      showNotice(String(err && err.message ? err.message : err));
+      showNotice(String(err && err.message ? err.message : err), 'danger');
       $('updatesApplyRaw').textContent = pretty({error: String(err)});
     } finally {
       setLoading(name, false);
@@ -1103,7 +1137,7 @@ $auJs = [
     const done = Number(progress && progress.done || 0);
     const total = Number(progress && progress.total || 0);
     if (total > 0) noticeParts.push(tr('progressStep', 'шаг {done} из {total}', {done, total}));
-    showNotice(noticeParts.join(' — '));
+    showNotice(noticeParts.join(' — '), 'info');
     if ($('applyContent')) {
       $('applyContent').innerHTML = `<div class="updates-empty">${esc(text)}…</div>`;
     }
@@ -1182,7 +1216,7 @@ $auJs = [
         if (err && err.isNetwork === true && networkRetries < maxNetworkRetries) {
           networkRetries++;
           const retryLabel = tr('retry_in_progress', 'Сетевая ошибка, повторяем... ({attempt} из {max})', {attempt: networkRetries, max: maxNetworkRetries});
-          showNotice(tr('apply_in_progress', 'Обновление выполняется. Не обновляйте и не закрывайте страницу.') + ' ' + retryLabel);
+          showNotice(tr('apply_in_progress', 'Обновление выполняется. Не обновляйте и не закрывайте страницу.') + ' ' + retryLabel, 'info');
           await sleep(1200 * networkRetries);
           continue;
         }
@@ -1312,7 +1346,7 @@ $auJs = [
       }
     } catch (err) {
       const envelope = err && err.envelope ? err.envelope : null;
-      showNotice((envelope && envelope.message) || tr('recoveryKeyError', 'Не удалось получить ключ восстановления.'));
+      showNotice((envelope && envelope.message) || tr('recoveryKeyError', 'Не удалось получить ключ восстановления.'), 'danger');
       if (btn) btn.disabled = false;
     }
   }
@@ -1324,9 +1358,9 @@ $auJs = [
     ensureSuccess(result, tr('forceUnlockError', 'Не удалось снять блокировку. Попробуйте ещё раз.'));
     const data = result.data || result;
     if (data.lock_removed) {
-      showNotice(tr('forceUnlockOk', 'Блокировка снята. Теперь можно запустить проверку безопасности.'));
+      showNotice(tr('forceUnlockOk', 'Блокировка снята. Теперь можно запустить проверку безопасности.'), 'ok');
     } else {
-      showNotice(tr('forceUnlockNone', 'Блокировки не было — ничего удалять не нужно.'));
+      showNotice(tr('forceUnlockNone', 'Блокировки не было — ничего удалять не нужно.'), 'ok');
     }
     // Re-run preflight to refresh the checks with the lock removed
     state.preflight = null;
@@ -1403,15 +1437,64 @@ $auJs = [
     if (actions[action]) withAction(action, actions[action]);
   });
 
+  // Phase progress bar for initial load
+  function showPhaseProgress(phases) {
+    let bar = document.getElementById('updatesPhaseBar');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'updatesPhaseBar';
+      bar.className = 'updates-phase-bar';
+      const control = $('updatesControl');
+      if (control) control.parentNode.insertBefore(bar, control.nextSibling);
+    }
+    const labels = { status: tr('kpi_installed', 'Текущая версия'), check: tr('kpi_target', 'Доступная версия'), changes: tr('technical_changes', 'Технические данные изменений') };
+    bar.innerHTML = phases.map((p) => `<span class="updates-phase-dot ${p.state}"></span><span>${esc(labels[p.key] || p.key)}${p.state === 'active' ? '…' : (p.state === 'done' ? ' ✓' : '')}</span>`).join('<span style="color:var(--crm-text-soft);margin:0 2px;">→</span>');
+  }
+  function removePhaseProgress() {
+    const bar = document.getElementById('updatesPhaseBar');
+    if (bar) bar.remove();
+  }
+
   withAction('initial load', async () => {
+    // Show phase progress bar
+    showPhaseProgress([
+      {key:'status', state:'active'},
+      {key:'check', state:''},
+      {key:'changes', state:''},
+    ]);
+    // Mark KPI target as loading
+    const kpiT = $('kpiTarget');
+    if (kpiT && !kpiT.dataset.realValue) { kpiT.dataset.realValue = kpiT.textContent; kpiT.classList.add('loading'); }
+    const kpiP = $('kpiPackage');
+    if (kpiP && !kpiP.dataset.realValue) { kpiP.dataset.realValue = kpiP.textContent; kpiP.classList.add('loading'); }
+    const kpiR = $('kpiRisk');
+    if (kpiR && !kpiR.dataset.realValue) { kpiR.dataset.realValue = kpiR.textContent; kpiR.classList.add('loading'); }
+
     await loadStatus();
+    showPhaseProgress([
+      {key:'status', state:'done'},
+      {key:'check', state:'active'},
+      {key:'changes', state:''},
+    ]);
     await check();
+    showPhaseProgress([
+      {key:'status', state:'done'},
+      {key:'check', state:'done'},
+      {key:'changes', state:'active'},
+    ]);
     // Explicitly load changes after check — the auto-call inside check()
     // swallows errors via .catch(() => {}) which leaves the section stuck
     // on "Не загружено" when the first request fails or is slow.
     try {
       await changes();
     } catch (_) { /* rendered by renderChanges fallback */ }
+    showPhaseProgress([
+      {key:'status', state:'done'},
+      {key:'check', state:'done'},
+      {key:'changes', state:'done'},
+    ]);
+    // Remove phase progress bar after 1.5 seconds
+    setTimeout(removePhaseProgress, 1500);
   });
 })();
 </script>
