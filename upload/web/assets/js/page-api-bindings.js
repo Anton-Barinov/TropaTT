@@ -26742,7 +26742,44 @@ window.CRM.pageApiBindings = (function () {
     renderTasks(tasks);
     renderRequisites(cp);
     renderExtra(cp);
+    renderProjects(cpPublicId, tasks);
     renderCounterpartyRates(cpPublicId);
+  }
+
+  async function renderProjects(cpPublicId, existingTasks) {
+    var projectsBody = document.getElementById('counterpartyDetailProjectsBody');
+    if (!projectsBody) return;
+    var projectsCountNode = document.getElementById('counterpartyProjectsTabCount');
+    try {
+      var projectsEnvelope = await tryRequest('api/v1/projects', { query: { client_public_id: cpPublicId, limit: 200 } });
+      var projects = mapItems(projectsEnvelope);
+      if (projectsCountNode) projectsCountNode.textContent = String(projects.length);
+      if (!projects.length) {
+        projectsBody.innerHTML = '<tr><td colspan="4" class="text-muted">' + safeText(tp('counterparty_detail.projects_empty', 'Нет проектов для этого контрагента.')) + '</td></tr>';
+        return;
+      }
+      /* Count tasks per project from the already-fetched task list */
+      var tasksByProject = {};
+      if (existingTasks && existingTasks.length) {
+        existingTasks.forEach(function (t) {
+          var pid = String(t.project_public_id || '');
+          if (pid) tasksByProject[pid] = (tasksByProject[pid] || 0) + 1;
+        });
+      }
+      projectsBody.innerHTML = projects.map(function (project) {
+        var projectTitle = String(project.title || '').trim() || tp('counterparty_detail.project_untitled', 'Без названия');
+        var taskCount = tasksByProject[String(project.public_id)] || 0;
+        var detailUrl = 'index.php?route=project-detail&project_public_id=' + encodeURIComponent(String(project.public_id || ''));
+        return '<tr>'
+          + '<td><a href="' + detailUrl + '">' + safeText(projectTitle) + '</a></td>'
+          + '<td>' + safeText(statusLabel(project.status || 'new')) + '</td>'
+          + '<td>' + safeText(String(taskCount)) + '</td>'
+          + '<td>' + safeText(formatDate(project.updated_at || project.created_at)) + '</td>'
+          + '</tr>';
+      }).join('');
+    } catch (e) {
+      projectsBody.innerHTML = '<tr><td colspan="4" class="text-danger">' + safeText(tp('counterparty_detail.projects_error', 'Ошибка загрузки проектов.')) + '</td></tr>';
+    }
   }
 
   async function renderCounterpartyRates(cpPublicId) {
