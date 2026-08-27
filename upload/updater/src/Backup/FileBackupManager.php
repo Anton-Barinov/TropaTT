@@ -99,6 +99,12 @@ final class FileBackupManager extends BackupManager
             file_put_contents($itemsFile, json_encode($item, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . PHP_EOL, FILE_APPEND);
             $chunk[] = $item;
             $position++;
+            // Per-file budget check: on slow shared hosting, a single large
+            // file copy + SHA256 hash can consume most of the time budget.
+            // Check after every file so we never overshoot by an entire chunk.
+            if ($budget !== null && $budget->exhausted()) {
+                break;
+            }
         }
 
         if ($position >= $total) {

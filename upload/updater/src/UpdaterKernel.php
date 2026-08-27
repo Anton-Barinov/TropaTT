@@ -494,6 +494,14 @@ final class UpdaterKernel
             'done' => $backup['cursor'],
             'total' => $backup['total'] ?? count($files),
         ]]);
+        // Log chunk progress so slow shared-hosting backups leave a
+        // diagnostic trail: if the backup "hangs" at step N, the last
+        // log entry shows exactly where it stopped.
+        $logger->info('backup_chunk', 'File backup chunk', [
+            'cursor' => $backup['cursor'],
+            'total' => $backup['total'] ?? count($files),
+            'done' => $backup['done'],
+        ]);
         if (!$backup['done']) {
             return ['stop' => true];
         }
@@ -1170,7 +1178,7 @@ final class UpdaterKernel
         $steps = is_array($this->config['steps'] ?? null) ? $this->config['steps'] : [];
         return array_merge([
             'max_seconds_per_request' => 20,
-            'max_files_per_request' => 150,
+            'max_files_per_request' => 75,
             'max_rows_per_request' => 50000,
             'max_migrations_per_request' => 1,
             'max_statements_per_request' => 500,

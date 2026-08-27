@@ -44,8 +44,11 @@ return [
         // PHP startup, token checks and JSON I/O add a few seconds.
         'max_seconds_per_request' => 20,
         // File backup / file apply / rollback: at most this many files per
-        // request (whichever limit trips first with the time budget).
-        'max_files_per_request' => 150,
+        // request (whichever limit trips first with the time budget). 75 is
+        // conservative enough for slow shared hosting where copy + SHA256 per
+        // file can be slow; the step machine returns {continue:true} between
+        // chunks so the total number of requests scales linearly.
+        'max_files_per_request' => 75,
         // DB backup: at most this many dumped rows per request. Tables are
         // resumed with LIMIT/OFFSET, so memory stays flat per chunk.
         'max_rows_per_request' => 50000,
