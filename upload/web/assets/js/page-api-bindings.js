@@ -26753,6 +26753,33 @@ window.CRM.pageApiBindings = (function () {
     try {
       var projectsEnvelope = await tryRequest('api/v1/projects', { query: { client_public_id: cpPublicId, limit: 200 } });
       var projects = mapItems(projectsEnvelope);
+
+      /* Discover additional projects from tasks linked to this counterparty:
+       * a task may belong to a project whose project-level client differs,
+       * so the direct client_public_id query misses it. */
+      var projectIds = {};
+      projects.forEach(function (p) { projectIds[String(p.public_id)] = true; });
+      var taskProjectIds = [];
+      if (existingTasks && existingTasks.length) {
+        existingTasks.forEach(function (t) {
+          var pid = String(t.project_public_id || '');
+          if (pid && !projectIds[pid]) {
+            projectIds[pid] = true;
+            taskProjectIds.push(pid);
+          }
+        });
+      }
+      /* Fetch additional projects not found by the client query */
+      for (var pi = 0; pi < taskProjectIds.length && pi < 20; pi++) {
+        try {
+          var extraEnv = await tryRequest('api/v1/projects/' + encodeURIComponent(taskProjectIds[pi]));
+          if (extraEnv && extraEnv.success !== false) {
+            var extraProj = extraEnv.data && extraEnv.data.project ? extraEnv.data.project : (extraEnv.data || null);
+            if (extraProj && extraProj.public_id) projects.push(extraProj);
+          }
+        } catch (_e) { /* skip inaccessible projects */ }
+      }
+
       if (projectsCountNode) projectsCountNode.textContent = String(projects.length);
       if (!projects.length) {
         var emptyText = safeText(tp('counterparty_detail.projects_empty', 'Нет проектов для этого контрагента.'));

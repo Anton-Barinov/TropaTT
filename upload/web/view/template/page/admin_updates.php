@@ -206,6 +206,8 @@ $auJs = [
   'forceUnlockError' => $au('force_unlock_error', 'Не удалось снять блокировку. Попробуйте ещё раз.'),
   'forceUnlockHint' => $au('force_unlock_hint', 'Обновление заблокировано. Если предыдущая установка была прервана, нажмите кнопку ниже.'),
   'lockCheckLabel' => $au('check_active_lock', 'Активная блокировка'),
+  'applyInProgress' => $au('apply_in_progress', 'Обновление выполняется. Не обновляйте и не закрывайте страницу.'),
+  'retryInProgress' => $au('retry_in_progress', 'Сетевая ошибка, повторяем... ({attempt} из {max})'),
 ];
 ?>
 <body data-page="admin-updates" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
@@ -1091,6 +1093,17 @@ $auJs = [
     const text = progressText(progress);
     setBadge('nextStatusBadge', 'warn', text);
     setBadge('detailsBadge', 'warn', text);
+    // Show a prominent progress notice in the main hero area so the admin
+    // knows the update is actively running and must not refresh the page.
+    const phase = progress && progress.phase ? String(progress.phase) : '';
+    const isBackup = phase === 'backup_files' || phase === 'backup_db';
+    const phaseLabel = (phaseLabels[phase] || phase || '').trim();
+    const noticeParts = [tr('apply_in_progress', 'Обновление выполняется. Не обновляйте и не закрывайте страницу.')];
+    if (phaseLabel) noticeParts.push(phaseLabel);
+    const done = Number(progress && progress.done || 0);
+    const total = Number(progress && progress.total || 0);
+    if (total > 0) noticeParts.push(tr('progressStep', 'шаг {done} из {total}', {done, total}));
+    showNotice(noticeParts.join(' — '));
     if ($('applyContent')) {
       $('applyContent').innerHTML = `<div class="updates-empty">${esc(text)}…</div>`;
     }
@@ -1125,7 +1138,10 @@ $auJs = [
         // The download action streams the whole package in one pass; the
         // server lifts its own limit to 600s, so the client waits up to 10
         // minutes to never cut off a slow-but-working shared-host download.
-        const stepTimeoutMs = action === 'download' ? 600000 : 90000;
+        // Apply steps copy/backup files on slow shared hosting and can take
+        // longer than the default 90 s. Use 180 s for apply to reduce false
+        // timeout errors that scare the admin into refreshing the page.
+        const stepTimeoutMs = action === 'download' ? 600000 : (action === 'apply' ? 180000 : 90000);
         result = await api(`/updater/index.php?action=${action}`, {method: 'POST', body: JSON.stringify(stepBody), timeoutMs: stepTimeoutMs});
         ensureSuccess(result, tr('errGeneric', 'Не удалось выполнить действие.'));
       } catch (err) {
@@ -1152,6 +1168,8 @@ $auJs = [
         // (success:false envelopes) are not retried here.
         if (err && err.isNetwork === true && networkRetries < maxNetworkRetries) {
           networkRetries++;
+          const retryLabel = tr('retry_in_progress', 'Сетевая ошибка, повторяем... ({attempt} из {max})', {attempt: networkRetries, max: maxNetworkRetries});
+          showNotice(tr('apply_in_progress', 'Обновление выполняется. Не обновляйте и не закрывайте страницу.') + ' ' + retryLabel);
           await sleep(1200 * networkRetries);
           continue;
         }
