@@ -254,7 +254,13 @@ final class CrmEntityConsolidationMigration implements MigrationInterface
             return;
         }
 
-        $stmt = $pdo->query('SELECT public_id, created_by_user_id, title, client_type, status, legal_name, person_last_name, person_first_name, person_middle_name, person_birth_date, tax_inn, tax_kpp, tax_ogrn, tax_ogrnip, bank_account, bank_name, bank_bik, bank_corr_account, website, messenger, address_legal, address_postal, notes, extra_attributes, email, phone, created_at, updated_at FROM clients');
+        $clientCreatedByExpr = $this->columnExists($pdo, $driver, 'clients', 'created_by_user_id')
+            ? 'created_by_user_id'
+            : 'NULL AS created_by_user_id';
+        $clientStatusExpr = $this->columnExists($pdo, $driver, 'clients', 'status')
+            ? 'status'
+            : "'active' AS status";
+        $stmt = $pdo->query("SELECT public_id, {$clientCreatedByExpr}, title, client_type, {$clientStatusExpr}, legal_name, person_last_name, person_first_name, person_middle_name, person_birth_date, tax_inn, tax_kpp, tax_ogrn, tax_ogrnip, bank_account, bank_name, bank_bik, bank_corr_account, website, messenger, address_legal, address_postal, notes, extra_attributes, email, phone, created_at, updated_at FROM clients");
         $clients = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         if (empty($clients)) {
