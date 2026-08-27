@@ -1142,7 +1142,20 @@ $auJs = [
         // longer than the default 90 s. Use 180 s for apply to reduce false
         // timeout errors that scare the admin into refreshing the page.
         const stepTimeoutMs = action === 'download' ? 600000 : (action === 'apply' ? 180000 : 90000);
-        result = await api(`/updater/index.php?action=${action}`, {method: 'POST', body: JSON.stringify(stepBody), timeoutMs: stepTimeoutMs});
+        try {
+          result = await api(`/updater/index.php?action=${action}`, {method: 'POST', body: JSON.stringify(stepBody), timeoutMs: stepTimeoutMs});
+        } catch (fetchErr) {
+          // During maintenance mode the regular API endpoints return 503.
+          // The updater itself is whitelisted and should still work, but a
+          // transient proxy/CDN cache may briefly serve a 503 for the
+          // updater URL too. Retry once after a short delay.
+          if (action === 'apply' && networkRetries < maxNetworkRetries) {
+            networkRetries++;
+            await sleep(2000);
+            continue;
+          }
+          throw fetchErr;
+        }
         ensureSuccess(result, tr('errGeneric', 'Не удалось выполнить действие.'));
       } catch (err) {
         const message = String(err && err.message ? err.message : err || '').toLowerCase();
@@ -1214,6 +1227,9 @@ $auJs = [
     const result = await runUpdaterSteps('apply', {job_id: state.lastJobId, confirm_apply: true, token});
     ensureSuccess(result, tr('errApply', 'Не удалось установить обновление.'));
     state.apply = result;
+    // Clear the progress notice immediately after apply succeeds so it
+    // does not remain visible after the page refreshes its status.
+    clearNotice();
     renderApply();
     state.preflight = null;
     state.download = null;

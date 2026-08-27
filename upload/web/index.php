@@ -78,7 +78,13 @@ if (is_file($maintenanceFlag)) {
     // the one-time rescue key). Login is rate-limited like any other attempt.
     $maintenanceRecoveryAllowed = $maintenanceRoute === 'admin-updates'
         || $maintenanceRoute === 'login'
-        || str_starts_with($maintenanceRoute, 'api/v1/core/updates');
+        || str_starts_with($maintenanceRoute, 'api/v1/core/updates')
+        // Background polling: notifications, telemetry, modules. Read-only
+        // requests that fire on a timer — returning 503 floods the console.
+        || $maintenanceRoute === 'api/v1/notifications/counters'
+        || str_starts_with($maintenanceRoute, 'api/v1/notifications')
+        || str_starts_with($maintenanceRoute, 'api/v1/telemetry')
+        || $maintenanceRoute === 'api/v1/modules';
     if (!$maintenanceRecoveryAllowed) {
         http_response_code(503);
         header('Content-Type: text/html; charset=utf-8');

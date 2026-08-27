@@ -71,7 +71,15 @@ if (is_file($maintenanceFlag)) {
         // The admin-updates page calls core/version in its loadStatus(); a 503
         // MAINTENANCE_MODE here makes the page show an error instead of the
         // update progress while an apply is legitimately holding maintenance.
-        || $maintenanceRoute === 'api/v1/core/version';
+        || $maintenanceRoute === 'api/v1/core/version'
+        // Background polling endpoints: notifications, telemetry, and modules
+        // are called by the page JS on a timer. They are read-only and
+        // returning 503 floods the console with scary errors. Let them
+        // respond normally so the page stays clean during update.
+        || $maintenanceRoute === 'api/v1/notifications/counters'
+        || str_starts_with($maintenanceRoute, 'api/v1/notifications')
+        || str_starts_with($maintenanceRoute, 'api/v1/telemetry')
+        || $maintenanceRoute === 'api/v1/modules';
     if (!$maintenanceRecoveryAllowed) {
         http_response_code(503);
         header('Content-Type: application/json; charset=utf-8');
