@@ -282,6 +282,17 @@
     } catch (error) {
       /* modals init failed */
     }
+    /* Re-run modal-bound init functions after injectGlobalOverlays() inserted
+       the modal HTML. These are safe to call multiple times (idempotent). */
+    try {
+      if (typeof window.CRM._initTaskCreateFlow === 'function') window.CRM._initTaskCreateFlow();
+      if (typeof window.CRM._initProjectCreateFlow === 'function') window.CRM._initProjectCreateFlow();
+      if (typeof window.CRM._enhanceClientSelects === 'function') window.CRM._enhanceClientSelects();
+      if (typeof window.CRM._initQuickClientCreate === 'function') window.CRM._initQuickClientCreate();
+      if (typeof window.CRM._initQuickProjectCreate === 'function') window.CRM._initQuickProjectCreate();
+    } catch (error) {
+      /* late-bound modal init failed */
+    }
     try { if (window.CRM.drawers) window.CRM.drawers.init(); } catch (error) { /* drawer init failed */ }
     try { if (window.CRM.tabs) window.CRM.tabs.init(); } catch (error) { /* tab init failed */ }
     try { if (window.CRM.filters) window.CRM.filters.init(); } catch (error) { /* filter init failed */ }

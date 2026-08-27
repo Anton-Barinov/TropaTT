@@ -35,10 +35,13 @@ final class CoreUpdatePlanner
             ];
         }
         $planData = $plan['data'] ?? null;
-        // Compute update_available: true when target build differs from current
+        // Compute update_available: true when target build is newer than current.
+        // Build format: YYYYMMDD.NNN[-suffix]. Bridge builds (-bridge, -bootstrap)
+        // are created AFTER the base build and are considered newer. When the
+        // current build has a suffix the base build must NOT trigger an update.
         if (is_array($planData)) {
             $targetBuild = (string)($planData['target_build'] ?? '');
-            $planData['update_available'] = ($targetBuild !== '' && $targetBuild !== $currentBuild);
+            $planData['update_available'] = $this->isNewerBuild($currentBuild, $targetBuild);
         }
         return [
             'current' => $current,
@@ -57,5 +60,52 @@ final class CoreUpdatePlanner
             'error' => (string)($response['error'] ?? 'update_center_unavailable'),
             'message' => (string)($response['message'] ?? 'Update center is unavailable'),
         ];
+    }
+
+    /**
+     * Determine if $target is a newer build than $current.
+     *
+     * Build format: YYYYMMDD.NNN[-suffix]
+     * - Compare date portion (YYYYMMDD) first
+     * - Then compare sequence number (NNN)
+     * - If date+sequence are equal, suffix matters:
+     *   empty suffix < any suffix (e.g. 20260827.002 < 20260827.002-bridge)
+     * - Bridge/bootstrap builds are created AFTER the base build
+     */
+    private function isNewerBuild(string $current, string $target): bool
+    {
+        if ($target === '' || $target === '0') {
+            return false;
+        }
+        if ($target === $current) {
+            return false;
+        }
+        // Extract date.sequence and suffix
+        $curParts = $this->parseBuild($current);
+        $tgtParts = $this->parseBuild($target);
+        // Compare date
+        if ($tgtParts['date'] !== $curParts['date']) {
+            return $tgtParts['date'] > $curParts['date'];
+        }
+        // Same date — compare sequence number
+        if ($tgtParts['seq'] !== $curParts['seq']) {
+            return $tgtParts['seq'] > $curParts['seq'];
+        }
+        // Same date+sequence — compare suffix (empty < any suffix)
+        return $curParts['suffix'] === '' && $tgtParts['suffix'] !== '';
+    }
+
+    private function parseBuild(string $build): array
+    {
+        // 20260827.002-bridge => date=20260827, seq=2, suffix=bridge
+        // 20260827.002        => date=20260827, seq=2, suffix=''
+        if (preg_match('/^(\d{8})\.(\d+)(?:-(.+))?$/', $build, $m)) {
+            return [
+                'date' => (int)$m[1],
+                'seq' => (int)$m[2],
+                'suffix' => $m[3] ?? '',
+            ];
+        }
+        return ['date' => 0, 'seq' => 0, 'suffix' => $build];
     }
 }

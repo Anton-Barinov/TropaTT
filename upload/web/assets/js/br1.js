@@ -8209,6 +8209,14 @@ window.CRM.br1 = (function () {
     }
   }
 
+  /* Expose init functions for late-bound modal injection (app.js calls these
+     after injectGlobalOverlays() inserts the modal HTML into the DOM). */
+  window.CRM._initTaskCreateFlow = initTaskCreateFlow;
+  window.CRM._initProjectCreateFlow = initProjectCreateFlow;
+  window.CRM._enhanceClientSelects = enhanceClientSelects;
+  window.CRM._initQuickClientCreate = initQuickClientCreate;
+  window.CRM._initQuickProjectCreate = initQuickProjectCreate;
+
   return {
     init: init,
     notify: notify,
