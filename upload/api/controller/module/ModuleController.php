@@ -635,6 +635,12 @@ final class ModuleController
         }
     }
 
+    private function user(): ?array
+    {
+        $auth = $this->container->has('auth_user') ? $this->container->get('auth_user') : null;
+        return $auth['user'] ?? null;
+    }
+
     private function requireRoot(): ?JsonResponse
     {
         $user = $this->user();
