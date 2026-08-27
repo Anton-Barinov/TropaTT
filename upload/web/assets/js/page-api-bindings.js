@@ -27064,6 +27064,23 @@ window.CRM.pageApiBindings = (function () {
         });
       }
     }
+    /* Tab-level create project button */
+    var tabProjectBtn = document.getElementById('counterpartyProjectCreateBtn');
+    if (tabProjectBtn) {
+      if (!hasPermission('project.manage')) {
+        tabProjectBtn.classList.add('d-none');
+      } else {
+        tabProjectBtn.addEventListener('click', function () {
+          window._projectClientPrefill = cp.public_id;
+          var modalEl = document.getElementById('createProjectModal');
+          if (modalEl && window.bootstrap && window.bootstrap.Modal) {
+            window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+          } else {
+            window.location.href = 'index.php?route=projects';
+          }
+        });
+      }
+    }
   }
 
   function setupMainEditModal(cp, cpPublicId) {
