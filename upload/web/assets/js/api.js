@@ -798,7 +798,12 @@ window.CRM.api = (function () {
     var isUrlParams = typeof URLSearchParams !== 'undefined' && body instanceof URLSearchParams;
     var isBlob = typeof Blob !== 'undefined' && body instanceof Blob;
 
-    if (useAuth && !getToken() && getCookieAuthToken() && route !== 'api/v1/auth/me' && route !== 'api/v1/auth/login') {
+    if (useAuth && !getToken() && route !== 'api/v1/auth/me' && route !== 'api/v1/auth/login') {
+      // The session cookie is HttpOnly and may not be readable yet when the
+      // first parallel consumers start (navigation/menu/update badges). Always
+      // hydrate once before the first protected request instead of using a
+      // cookie-read as the gate; this removes the startup race while keeping
+      // the server-side cookie session as the source of truth.
       if (!cookieSessionPromise) {
         cookieSessionPromise = me().catch(function (error) {
           cookieSessionPromise = null;
