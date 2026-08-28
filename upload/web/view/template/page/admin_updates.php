@@ -899,9 +899,12 @@ $auJs = [
     // must be surfaced prominently so the admin rolls back or retries.
     if (maintenance && latest && latest.state === 'failed') {
       showNotice(tr('maintenanceHeldText', 'Обновление прервалось после изменения файлов или базы данных, поэтому CRM остаётся в режиме обслуживания, чтобы не отдавать сломанное состояние. Откатитесь из backup или повторите обновление.'), 'danger');
-    } else if (!maintenance) {
-      // Clear any stale progress notice when maintenance is off and the job
-      // is not in a failed state — the update completed successfully.
+    } else if (!maintenance || (latest && (latest.state === 'applied' || latest.state === 'rolled_back'))) {
+      // Clear any stale progress notice when:
+      //  - maintenance is off (normal state), OR
+      //  - the job reached a terminal state (applied/rolled_back) —
+      //    maintenance may still be momentarily ON during finalization,
+      //    but the update is done and the notice must not persist.
       clearNotice();
     }
     $('kpiInstalled').textContent = installed.core_build || tr('kpiInstalledUnknown', 'unknown');
@@ -1059,6 +1062,10 @@ $auJs = [
   }
 
   async function loadStatus() {
+    // Clear any stale progress notice immediately on page load —
+    // if the update already completed, the notice from the previous
+    // session must not persist.
+    clearNotice();
     const [version, status] = await Promise.all([
       api('/api/index.php?route=api/v1/core/version'),
       api('/api/index.php?route=api/v1/core/updates/status')
