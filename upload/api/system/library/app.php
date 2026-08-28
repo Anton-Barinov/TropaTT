@@ -1775,7 +1775,7 @@ final class App
         $pdo = $this->container->get('db.pdo');
         $dbConfig = $this->config->get('database.connections.' . ($this->config->get('database.default') ?: 'sqlite'));
         $driver = (string)($dbConfig['driver'] ?? 'sqlite');
-        $storageBase = (string)($this->config->get('default.storage.base', dirname($this->basePath) . '/../storage_api'));
+        $storageBase = (string)($this->config->get('default.storage.base', $this->basePath . '/../storage_api'));
 
         $moduleConfig = new ModuleConfig($pdo);
         try { $moduleConfig->ensureTable($driver); } catch (\Throwable $e) {

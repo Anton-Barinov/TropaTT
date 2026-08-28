@@ -8,7 +8,7 @@ if (PHP_SAPI !== 'cli' && ($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__) {
 }
 
 
-$storageBase = (string)(getenv('CRM_STORAGE_BASE') ?: dirname(__DIR__, 2) . '/../storage_api');
+$storageBase = (string)(getenv('CRM_STORAGE_BASE') ?: dirname(__DIR__, 1) . '/../storage_api');
 
 return [
     'enabled_by_default' => false,
