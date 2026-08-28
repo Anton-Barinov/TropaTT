@@ -594,7 +594,12 @@ $auJs = [
           if (typeof body === 'string' && body !== '') {
             try { body = JSON.parse(body); } catch (e) {}
           }
-          return await crmApi.request(route, { method: options.method || 'GET', body, headers: options.headers || {}, timeoutMs: options.timeoutMs || 30000 });
+          const requestHeaders = Object.assign({}, options.headers || {});
+          if (['POST', 'PATCH', 'PUT', 'DELETE'].includes(String(options.method || 'GET').toUpperCase()) && typeof crmApi.getCsrfToken === 'function' && !requestHeaders['X-CSRF-Token']) {
+            const csrf = crmApi.getCsrfToken();
+            if (csrf) requestHeaders['X-CSRF-Token'] = csrf;
+          }
+          return await crmApi.request(route, { method: options.method || 'GET', body, headers: requestHeaders, timeoutMs: options.timeoutMs || 30000 });
         } catch (err) {
           return normalizeApiError(err);
         }
