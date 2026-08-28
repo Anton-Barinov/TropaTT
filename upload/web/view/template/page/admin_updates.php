@@ -1473,6 +1473,14 @@ $auJs = [
   }
 
   withAction('initial load', async () => {
+    // Hydrate the cookie-backed API session before any update requests. The
+    // login page intentionally keeps access tokens in memory only, so a full
+    // navigation must call /auth/me first to populate the user and CSRF state.
+    const crmApi = await waitForCrmApi();
+    if (!crmApi) throw new Error(tr('errSession', 'Сессия истекла. Обновите страницу и войдите в CRM снова.'));
+    if (typeof crmApi.me === 'function' && typeof crmApi.getUser === 'function' && !crmApi.getUser()) {
+      await crmApi.me();
+    }
     // Show phase progress bar
     showPhaseProgress([
       {key:'status', state:'active'},
