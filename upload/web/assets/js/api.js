@@ -653,7 +653,7 @@ window.CRM.api = (function () {
     if (_csrf) {
       _headers['X-CSRF-Token'] = _csrf;
     }
-    var _token = getToken();
+    var _token = getToken() || getCookieAuthToken();
     if (_token) {
       _headers.Authorization = 'Bearer ' + _token;
     }
