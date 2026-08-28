@@ -761,6 +761,9 @@ final class UpdaterKernel
             $key = bin2hex(random_bytes(16));
             @file_put_contents($txtFile, $key);
             @chmod($txtFile, 0640);
+            // Ensure readable by the web server user (may run as root or different user)
+            @chown($txtFile, 'www-data');
+            @chgrp($txtFile, 'www-data');
             $logger->info('recovery_key_txt_created', 'Created recovery_key.txt sidecar for rescue.php');
             return;
         }
@@ -770,8 +773,12 @@ final class UpdaterKernel
             $key = bin2hex(random_bytes(16));
             if (@file_put_contents($hashFile, password_hash($key, PASSWORD_DEFAULT)) !== false) {
                 @chmod($hashFile, 0640);
+                @chown($hashFile, 'www-data');
+                @chgrp($hashFile, 'www-data');
                 @file_put_contents($txtFile, $key);
                 @chmod($txtFile, 0640);
+                @chown($txtFile, 'www-data');
+                @chgrp($txtFile, 'www-data');
                 $logger->info('recovery_key_created', 'Created recovery key pair for rescue.php');
             }
         } catch (\Throwable $e) {

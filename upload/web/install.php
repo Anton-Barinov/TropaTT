@@ -3015,6 +3015,12 @@ function finalizeInstall(PDO $pdo): void
                 $recoveryTxtFile = $updatesDir . '/recovery_key.txt';
                 @file_put_contents($recoveryTxtFile, $recoveryKey);
                 @chmod($recoveryTxtFile, 0640);
+                // Ensure files are readable by the web server user (shared hosting
+                // may run install as root or a different user than PHP-FPM).
+                @chown($recoveryHashFile, 'www-data');
+                @chown($recoveryTxtFile, 'www-data');
+                @chgrp($recoveryHashFile, 'www-data');
+                @chgrp($recoveryTxtFile, 'www-data');
                 $_SESSION['install_recovery_key'] = $recoveryKey;
             }
         } catch (\Throwable $e) {
