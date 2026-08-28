@@ -272,6 +272,14 @@ $footerUpdateBadgeTemplate = $footerT('update_available_badge', 'Update {version
       var wb = String((window.CRM && window.CRM.config && window.CRM.config.webBase) || '').trim().replace(/\/+$/, '').replace(/\/web$/, '');
       apiBase = (wb !== '' ? wb : '') + '/api/index.php';
     }
+    // Do not probe the protected update endpoint from the optional footer
+    // badge until the shared API client has hydrated the cookie session. On a
+    // fresh navigation this probe used to race /auth/me and create a needless
+    // 401 (and frontend telemetry event) before the updates page loaded.
+    if (window.CRM && window.CRM.api && typeof window.CRM.api.me === 'function'
+        && typeof window.CRM.api.getUser === 'function' && !window.CRM.api.getUser()) {
+      window.CRM.api.me().catch(function () {});
+    }
     var xhr = new XMLHttpRequest();
     xhr.open('GET', apiBase + '?route=api/v1/core/updates/status', true);
     xhr.timeout = 5000;
