@@ -272,25 +272,17 @@ $footerUpdateBadgeTemplate = $footerT('update_available_badge', 'Update {version
       var wb = String((window.CRM && window.CRM.config && window.CRM.config.webBase) || '').trim().replace(/\/+$/, '').replace(/\/web$/, '');
       apiBase = (wb !== '' ? wb : '') + '/api/index.php';
     }
-    // Do not probe the protected update endpoint from the optional footer
-    // badge until the shared API client has hydrated the cookie session. On a
-    // fresh navigation this probe used to race /auth/me and create a needless
-    // 401 (and frontend telemetry event) before the updates page loaded.
-    if (window.CRM && window.CRM.api && typeof window.CRM.api.me === 'function'
-        && typeof window.CRM.api.getUser === 'function' && !window.CRM.api.getUser()) {
-      window.CRM.api.me().catch(function () {});
-    }
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', apiBase + '?route=api/v1/core/updates/status', true);
-    xhr.timeout = 5000;
-    xhr.onload = function () {
-      try {
-        var resp = JSON.parse(xhr.responseText);
-        var data = resp && resp.data || {};
+    // Use the shared API client for the protected probe. It serializes the
+    // initial cookie-session hydration with every other page consumer and adds
+    // the correct Bearer/CSRF headers on installations with any domain or
+    // subdirectory. A direct XHR here used to race /auth/me and create a
+    // needless 401 during the first page load.
+    if (!window.CRM || !window.CRM.api || typeof window.CRM.api.request !== 'function') return;
+    window.CRM.api.request('api/v1/core/updates/status', { timeoutMs: 5000 })
+      .then(function (envelope) {
+        var data = envelope && envelope.data || {};
         var installed = data.installed_core || {};
-        var latestBuild = installed.core_build;
         var latestVersion = installed.core_version;
-        // If update center has a newer build, show badge
         if (latestVersion && currentVersion && latestVersion !== currentVersion) {
           sessionStorage.setItem('crm_update_check', JSON.stringify({ hasUpdate: true, latestVersion: latestVersion }));
           badge.textContent = <?= json_encode($footerUpdateBadgeTemplate, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>.replace('{version}', latestVersion);
@@ -298,10 +290,8 @@ $footerUpdateBadgeTemplate = $footerT('update_available_badge', 'Update {version
         } else {
           sessionStorage.setItem('crm_update_check', JSON.stringify({ hasUpdate: false }));
         }
-      } catch (e) {}
-    };
-    xhr.onerror = function () {};
-    xhr.send();
+      })
+      .catch(function () {});
   } catch (e) {}
 })();
 </script>
