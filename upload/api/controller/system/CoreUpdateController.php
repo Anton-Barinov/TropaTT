@@ -24,7 +24,8 @@ final class CoreUpdateController extends BaseController
         }
         $config = CoreUpdateConfig::load();
         $client = new CoreUpdateClient($config);
-        return $this->success('CORE_UPDATE_STATUS', $this->t('system/messages.status'), (new CoreUpdateStatusService((string)$config['storage_dir'], $client, $config))->status());
+        $version = new CoreVersion((string)$config['storage_dir'], dirname(__DIR__, 3));
+        return $this->success('CORE_UPDATE_STATUS', $this->t('system/messages.status'), (new CoreUpdateStatusService((string)$config['storage_dir'], $client, $config, $version))->status());
     }
 
     public function check(): \Api\System\Library\Http\JsonResponse

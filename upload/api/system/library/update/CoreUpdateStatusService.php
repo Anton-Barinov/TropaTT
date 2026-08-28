@@ -8,7 +8,8 @@ final class CoreUpdateStatusService
     public function __construct(
         private readonly string $storageDir,
         private readonly ?CoreUpdateClient $client = null,
-        private readonly array $config = []
+        private readonly array $config = [],
+        private readonly ?CoreVersion $version = null
     )
     {
     }
@@ -31,6 +32,7 @@ final class CoreUpdateStatusService
             'latest_job' => is_array($latestJob) ? $latestJob : null,
             'maintenance' => is_file(dirname($this->storageDir) . '/maintenance.flag'),
             'storage_dir' => $this->storageDir,
+            'installed_core' => $this->version?->current(),
         ];
     }
 
