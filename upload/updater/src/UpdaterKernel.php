@@ -715,6 +715,11 @@ final class UpdaterKernel
         ]);
         (new MaintenanceMode($this->basePath))->disable();
         (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->release();
+        // Ensure recovery key files exist for rescue.php. If the hash file
+        // exists but the plaintext sidecar is missing (old installation or
+        // manual deletion), generate a new key pair so the admin can always
+        // recover via rescue.php or SSH.
+        $this->ensureRecoveryKey($logger);
         // Clear any error recorded by an earlier failed attempt: a job that
         // finished successfully must never keep showing a stale error text.
         $state->write(['state' => 'applied', 'can_resume' => false, 'can_rollback' => true, 'finished_at' => gmdate('c'), 'error' => null, 'progress' => ['phase' => 'finalized', 'cursor' => [], 'done' => 1, 'total' => 1]]);
@@ -730,6 +735,48 @@ final class UpdaterKernel
     {
         $this->verifyTokenIfPresent($input, 'resume');
         return JsonResponse::success(['latest_job' => (new JobState($this->storageDir))->latest(), 'message' => 'Resume/status inspection is available for staged and applied jobs.']);
+    }
+
+    /**
+     * Ensure recovery key files exist for rescue.php.
+     * If the hash file is missing, generate a new key pair.
+     * If the hash exists but the plaintext sidecar is missing, generate a new key.
+     */
+    private function ensureRecoveryKey(UpdateLogger $logger): void
+    {
+        $hashFile = $this->storageDir . '/recovery_key.hash';
+        $txtFile = $this->storageDir . '/recovery_key.txt';
+        $hashExists = is_file($hashFile);
+        $txtExists = is_file($txtFile);
+
+        // Both files exist — nothing to do
+        if ($hashExists && $txtExists) {
+            return;
+        }
+
+        // Hash exists but txt is missing — we can't recover the old key,
+        // so generate a new one. The admin will need to use the new key
+        // or APP_KEY for rescue.php access.
+        if ($hashExists && !$txtExists) {
+            $key = bin2hex(random_bytes(16));
+            @file_put_contents($txtFile, $key);
+            @chmod($txtFile, 0640);
+            $logger->info('recovery_key_txt_created', 'Created recovery_key.txt sidecar for rescue.php');
+            return;
+        }
+
+        // Neither file exists — generate a new key pair
+        try {
+            $key = bin2hex(random_bytes(16));
+            if (@file_put_contents($hashFile, password_hash($key, PASSWORD_DEFAULT)) !== false) {
+                @chmod($hashFile, 0640);
+                @file_put_contents($txtFile, $key);
+                @chmod($txtFile, 0640);
+                $logger->info('recovery_key_created', 'Created recovery key pair for rescue.php');
+            }
+        } catch (\Throwable $e) {
+            $logger->warning('recovery_key_failed', 'Failed to create recovery key: ' . $e->getMessage());
+        }
     }
 
     private function rollback(array $input): JsonResponse
