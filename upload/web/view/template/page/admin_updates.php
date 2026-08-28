@@ -849,7 +849,10 @@ $auJs = [
         btn.dataset.wasDisabled = btn.disabled ? '1' : '0';
         btn.disabled = true;
       } else {
-        btn.disabled = btn.dataset.wasDisabled === '1';
+        // Loading state must not restore the disabled attribute that was
+        // rendered in the template: action availability is derived by
+        // updateRecommendation() from the freshly loaded plan/status.
+        btn.disabled = false;
         delete btn.dataset.wasDisabled;
       }
     });
