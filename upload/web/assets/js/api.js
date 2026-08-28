@@ -638,6 +638,7 @@ window.CRM.api = (function () {
     var event = String(eventType || '').trim().toLowerCase();
     if (event !== 'api_error' && event !== 'js_error') return;
     if (window.CRM.__frontendTelemetryInFlight) return;
+    if (!getToken() && !getCookieAuthToken()) return;
     var body = {
       event_type: event,
       route: currentRoute('dashboard'),
