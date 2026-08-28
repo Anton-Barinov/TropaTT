@@ -70,12 +70,17 @@ final class LockManager
             @unlink($path);
         }
 
-        file_put_contents($path, json_encode([
+        $contents = json_encode([
             'job_id' => $jobId,
             'created_at' => gmdate('c'),
             'heartbeat_at' => gmdate('c'),
             'pid' => getmypid(),
-        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        $tmp = $path . '.tmp.' . bin2hex(random_bytes(6));
+        if (@file_put_contents($tmp, $contents, LOCK_EX) === false || !@rename($tmp, $path)) {
+            @unlink($tmp);
+            throw new \RuntimeException('Unable to persist update lock.');
+        }
         $this->lockFile = $path;
     }
 
@@ -108,12 +113,20 @@ final class LockManager
         return true;
     }
 
-    public function release(): void
+    public function release(?string $jobId = null): void
     {
         $path = $this->lockFile ?: $this->storageDir . '/locks/update.lock';
-        if (is_file($path)) {
-            @unlink($path);
+        if (!is_file($path)) {
+            $this->lockFile = null;
+            return;
         }
+        if ($jobId !== null) {
+            $state = $this->lockStateAt($path);
+            if ($state !== null && ($state['owner_job_id'] ?? null) !== $jobId) {
+                return;
+            }
+        }
+        @unlink($path);
         $this->lockFile = null;
     }
 

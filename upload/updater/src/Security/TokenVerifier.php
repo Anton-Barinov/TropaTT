@@ -56,7 +56,12 @@ final class TokenVerifier
             // on every step, so a huge update/rollback never expires mid-way.
             $session['expires_at'] = gmdate('c', time() + 600);
         }
-        file_put_contents($file, json_encode($session, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        $contents = json_encode($session, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        $tmp = $file . '.tmp.' . bin2hex(random_bytes(6));
+        if (@file_put_contents($tmp, $contents, LOCK_EX) === false || !@rename($tmp, $file)) {
+            @unlink($tmp);
+            return false;
+        }
         return true;
     }
 }

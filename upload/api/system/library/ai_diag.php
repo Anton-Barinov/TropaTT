@@ -8,7 +8,7 @@ if (!function_exists('ai_diag_log')) {
      */
     function ai_diag_log(string $message): void
     {
-        $base = rtrim((string)(getenv('CRM_STORAGE_BASE') ?: (dirname(__DIR__, 3) . '/../storage_api')), '/');
+        $base = rtrim((string)(getenv('CRM_STORAGE_BASE') ?: (dirname(__DIR__, 4) . '/storage_api')), '/');
         $logDir = $base . '/logs';
         if (!is_dir($logDir)) {
             @mkdir($logDir, 0775, true);

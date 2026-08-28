@@ -38,6 +38,11 @@ final class LocalState
             mkdir($dir, 0775, true);
         }
         $state['updated_at'] = gmdate('c');
-        file_put_contents($path, json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        $contents = json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        $tmp = $path . '.tmp.' . bin2hex(random_bytes(6));
+        if (@file_put_contents($tmp, $contents, LOCK_EX) === false || !@rename($tmp, $path)) {
+            @unlink($tmp);
+            throw new \RuntimeException('Unable to persist installed core state.');
+        }
     }
 }

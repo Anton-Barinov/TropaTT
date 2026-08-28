@@ -56,11 +56,20 @@ final class JobState
         if (!is_dir($dir)) {
             mkdir($dir, 0775, true);
         }
-        file_put_contents($dir . '/' . $file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        $this->atomicWrite($dir . '/' . $file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
     }
 
     private function path(string $file): string
     {
         return $this->storageDir . '/jobs/' . basename((string)$this->jobId) . '/' . $file;
+    }
+
+    private function atomicWrite(string $path, string $contents): void
+    {
+        $tmp = $path . '.tmp.' . bin2hex(random_bytes(6));
+        if (@file_put_contents($tmp, $contents, LOCK_EX) === false || !@rename($tmp, $path)) {
+            @unlink($tmp);
+            throw new \RuntimeException('Unable to persist updater state.');
+        }
     }
 }

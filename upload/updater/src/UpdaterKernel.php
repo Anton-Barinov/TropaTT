@@ -426,7 +426,7 @@ final class UpdaterKernel
             if (!$maintenanceHeld) {
                 (new MaintenanceMode($this->basePath))->disable();
             }
-            (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->release();
+            (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->release($jobId);
             $safeMessage = $this->safeDiagnosticMessage($e->getMessage());
             $state->write(['state' => 'failed', 'error' => $safeMessage, 'error_code' => 'APPLY_FAILED', 'can_rollback' => true, 'maintenance_held' => $maintenanceHeld]);
             $logger->error('apply_failed', 'Update apply failed', ['error' => $e->getMessage(), 'maintenance_held' => $maintenanceHeld]);
@@ -714,7 +714,7 @@ final class UpdaterKernel
             'last_job_id' => $jobId,
         ]);
         (new MaintenanceMode($this->basePath))->disable();
-        (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->release();
+        (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->release($jobId);
         // Ensure recovery key files exist for rescue.php. If the hash file
         // exists but the plaintext sidecar is missing (old installation or
         // manual deletion), generate a new key pair so the admin can always
@@ -755,16 +755,24 @@ final class UpdaterKernel
         }
 
         // Hash exists but txt is missing — we can't recover the old key,
-        // so generate a new one. The admin will need to use the new key
-        // or APP_KEY for rescue.php access.
+        // so rotate BOTH sides as one pair. Writing only the plaintext sidecar
+        // would expose a key that rescue.php cannot verify.
         if ($hashExists && !$txtExists) {
             $key = bin2hex(random_bytes(16));
-            @file_put_contents($txtFile, $key);
+            $hash = password_hash($key, PASSWORD_DEFAULT);
+            if (@file_put_contents($hashFile, $hash, LOCK_EX) === false
+                || @file_put_contents($txtFile, $key, LOCK_EX) === false) {
+                @unlink($txtFile);
+                $logger->warning('recovery_key_failed', 'Failed to rotate recovery key pair');
+                return;
+            }
+            @chmod($hashFile, 0640);
+            @chown($hashFile, 'www-data');
+            @chgrp($hashFile, 'www-data');
             @chmod($txtFile, 0640);
-            // Ensure readable by the web server user (may run as root or different user)
             @chown($txtFile, 'www-data');
             @chgrp($txtFile, 'www-data');
-            $logger->info('recovery_key_txt_created', 'Created recovery_key.txt sidecar for rescue.php');
+            $logger->info('recovery_key_rotated', 'Rotated recovery key pair for rescue.php');
             return;
         }
 
@@ -898,7 +906,7 @@ final class UpdaterKernel
             if (!$maintenanceHeld) {
                 (new MaintenanceMode($this->basePath))->disable();
             }
-            (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->release();
+            (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->release($jobId);
             $safeMessage = $this->safeDiagnosticMessage($e->getMessage());
             $state->write(['state' => 'rollback_failed', 'error' => $safeMessage, 'error_code' => 'ROLLBACK_FAILED', 'can_rollback' => true, 'maintenance_held' => $maintenanceHeld]);
             $logger->error('rollback_failed', 'Rollback failed', ['error' => $e->getMessage(), 'maintenance_held' => $maintenanceHeld]);
@@ -1013,7 +1021,7 @@ final class UpdaterKernel
         $plan = $state->readFile('plan.json') ?: [];
         $installedCore = $this->rollbackInstalledCoreState($jobId, $manifest, $plan);
         (new MaintenanceMode($this->basePath))->disable();
-        (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->release();
+        (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->release($jobId);
         // Clear any error recorded by an earlier failed attempt.
         $state->write(['state' => 'rolled_back', 'can_resume' => false, 'can_rollback' => false, 'finished_at' => gmdate('c'), 'error' => null, 'progress' => ['phase' => 'finalized', 'cursor' => [], 'done' => 1, 'total' => 1]]);
         $logger->info('rollback_complete', 'Rollback completed', ['backup_id' => $backupId]);

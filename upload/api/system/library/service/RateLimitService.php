@@ -79,7 +79,7 @@ final class RateLimitService
             return $this->storageDir;
         }
 
-        $dir = dirname(__DIR__, 3) . '/../storage_api/cache/rate_limits';
+        $dir = dirname(__DIR__, 4) . '/storage_api/cache/rate_limits';
         if (!is_dir($dir)) {
             @mkdir($dir, 0700, true);
         }

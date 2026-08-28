@@ -191,7 +191,7 @@ final class AiSemanticIndexService
 
     private function indexFile(): string
     {
-        $defaultBase = rtrim((string)$this->config->get('default.storage.base', dirname(__DIR__, 4) . '/../storage_api'), '/\\');
+        $defaultBase = rtrim((string)$this->config->get('default.storage.base', dirname(__DIR__, 5) . '/storage_api'), '/\\');
         $base = (string)$this->config->get('ai.storage.cache', $defaultBase . '/ai/cache');
         return rtrim($base, '/\\') . '/semantic-index.json';
     }

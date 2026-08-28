@@ -114,11 +114,11 @@ final class EnvironmentCapabilities
         // Storage base: prefer CRM_STORAGE_BASE, fall back to default
         $storageBase = (string)(getenv('CRM_STORAGE_BASE') ?: '');
         if ($storageBase === '') {
-            // Default from default.php: dirname(__DIR__, 2) . '/../storage_api'
+            // Default from default.php: dirname(__DIR__, 2) . '/storage_api'
             // At runtime we reconstruct the same logic:
             // __DIR__ = api/system/library/security
-            // dirname(__DIR__, 3) = api/  →  api/../storage_api = storage_api/
-            $storageBase = dirname(__DIR__, 3) . '/../storage_api';
+            // dirname(__DIR__, 4) = api/  →  api/../.. is the project root
+            $storageBase = dirname(__DIR__, 4) . '/storage_api';
         }
 
         $storageReal = realpath($storageBase);

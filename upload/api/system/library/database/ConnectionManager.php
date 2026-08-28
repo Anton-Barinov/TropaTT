@@ -120,7 +120,7 @@ final class ConnectionManager
             default => (function () use ($db, $options): array {
                 $file = (string)($db['database'] ?? '');
                 if ($file === '') {
-                    $file = dirname(__DIR__, 3) . '/../storage_api/temp/crm.sqlite';
+                    $file = dirname(__DIR__, 4) . '/storage_api/temp/crm.sqlite';
                 }
                 $dir = dirname($file);
                 if (!is_dir($dir)) {

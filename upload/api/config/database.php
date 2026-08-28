@@ -13,7 +13,7 @@ if ($default === '') {
     $default = 'mysql';
 }
 
-$storageBase = (string)(getenv('CRM_STORAGE_BASE') ?: dirname(__DIR__, 1) . '/../storage_api');
+$storageBase = (string)(getenv('CRM_STORAGE_BASE') ?: dirname(__DIR__, 2) . '/storage_api');
 
 return [
     'default' => $default,

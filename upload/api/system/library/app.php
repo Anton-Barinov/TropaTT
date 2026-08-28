@@ -1221,7 +1221,7 @@ final class App
             $c->get('service.task'),
             $c->get('logger'),
             $this->basePath,
-            (string)$c->get('config')->get('default.storage.base', $this->basePath . '/../storage_api')
+            (string)$c->get('config')->get('default.storage.base', dirname($this->basePath) . '/storage_api')
         ));
         $this->container->factory('service.feature_flag', fn(Container $c) => new FeatureFlagService(
             $c->get('repository.feature_flag'),
@@ -1240,8 +1240,8 @@ final class App
         ));
         $this->container->factory('service.file', fn(Container $c) => new FileService(
             $c->get('repository.file'),
-            (string)$this->config->get('default.storage.uploads', $this->basePath . '/../storage_api/uploads'),
-            (string)$this->config->get('default.storage.quarantine', $this->basePath . '/../storage_api/quarantine'),
+            (string)$this->config->get('default.storage.uploads', dirname($this->basePath) . '/storage_api/uploads'),
+            (string)$this->config->get('default.storage.quarantine', dirname($this->basePath) . '/storage_api/quarantine'),
             (int)$this->config->get('security.uploads.max_size_bytes', 20971520),
             (array)$this->config->get('security.uploads.forbidden_extensions', []),
             (array)$this->config->get('security.uploads.quarantine_extensions', []),
@@ -1775,7 +1775,7 @@ final class App
         $pdo = $this->container->get('db.pdo');
         $dbConfig = $this->config->get('database.connections.' . ($this->config->get('database.default') ?: 'sqlite'));
         $driver = (string)($dbConfig['driver'] ?? 'sqlite');
-        $storageBase = (string)($this->config->get('default.storage.base', $this->basePath . '/../storage_api'));
+        $storageBase = (string)($this->config->get('default.storage.base', dirname($this->basePath) . '/storage_api'));
 
         $moduleConfig = new ModuleConfig($pdo);
         try { $moduleConfig->ensureTable($driver); } catch (\Throwable $e) {

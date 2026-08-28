@@ -786,7 +786,7 @@ final class WebhookService
 
         $secretsDir = rtrim((string)$this->config->get('default.storage.secrets', ''), '/\\');
         if ($secretsDir === '') {
-            $secretsDir = rtrim((string)$this->config->get('default.storage.base', dirname(__DIR__, 3) . '/../storage_api'), '/\\') . '/secrets';
+            $secretsDir = rtrim((string)$this->config->get('default.storage.base', dirname(__DIR__, 4) . '/storage_api'), '/\\') . '/secrets';
         }
         if (!is_dir($secretsDir)) {
             @mkdir($secretsDir, 0700, true);

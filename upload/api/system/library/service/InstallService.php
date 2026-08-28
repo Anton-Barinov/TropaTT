@@ -69,7 +69,7 @@ final class InstallService
         $db = $this->resolveDbConfig($payload);
 
         if ($db['driver'] === 'sqlite' && $db['database'] === '') {
-            $tempDir = rtrim((string)$this->config->get('default.storage.temp', dirname(__DIR__, 3) . '/../storage_api/temp'), '/\\');
+            $tempDir = rtrim((string)$this->config->get('default.storage.temp', dirname(__DIR__, 4) . '/storage_api/temp'), '/\\');
             if (!is_dir($tempDir)) {
                 @mkdir($tempDir, 0775, true);
             }
@@ -270,7 +270,7 @@ final class InstallService
 
     private function writeLoggingConfig(): string
     {
-        $storageBase = rtrim((string)$this->config->get('default.storage.base', dirname(__DIR__, 3) . '/../storage_api'), '/\\');
+        $storageBase = rtrim((string)$this->config->get('default.storage.base', dirname(__DIR__, 4) . '/storage_api'), '/\\');
         $logsDir = $storageBase . '/logs_' . bin2hex(random_bytes(8));
         if (!is_dir($logsDir)) {
             @mkdir($logsDir, 0770, true);
