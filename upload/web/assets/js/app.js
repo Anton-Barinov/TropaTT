@@ -297,6 +297,17 @@
     try { if (window.CRM.tabs) window.CRM.tabs.init(); } catch (error) { /* tab init failed */ }
     try { if (window.CRM.filters) window.CRM.filters.init(); } catch (error) { /* filter init failed */ }
     try { if (window.CRM.tables) window.CRM.tables.init(); } catch (error) { /* table init failed */ }
+    /* TASK-10: Fix aria-hidden accessibility warning. Move focus away from
+       elements inside modals before Bootstrap sets aria-hidden='true'. */
+    document.addEventListener('hide.bs.modal', function(e) {
+      var modal = e.target;
+      if (modal) {
+        var focused = modal.querySelector(':focus');
+        if (focused && modal.contains(focused)) {
+          focused.blur();
+        }
+      }
+    });
     try { if (window.CRM.notifications) window.CRM.notifications.init(); } catch (error) { /* notification init failed */ }
     try { if (window.CRM.richtext) window.CRM.richtext.init(); } catch (error) { /* richtext init failed */ }
 
