@@ -811,7 +811,7 @@ $auJs = [
         }
       }
       setPrimary('refresh', tr('primaryRefresh', 'Обновить статус'));
-    } else if (plan && plan.update_available !== true) {
+    } else if (plan && plan.update_available === false) {
       $('nextTitle').textContent = tr('recommendLatestTitle', 'CRM уже актуальна');
       $('nextText').textContent = tr('recommendLatestText', 'Устанавливать ничего не нужно. Архив обновления не требуется, рисков для текущей версии нет.');
       setPrimary('check', tr('primaryCheckAgain', 'Проверить еще раз'));
@@ -833,7 +833,7 @@ $auJs = [
       setPrimary('check', tr('primaryCheck', 'Проверить обновления'));
     }
     setBadge('nextStatusBadge', pipelineKind(), pipelineText());
-    setBadge('nextPlanBadge', updateCenterUnavailable() ? 'danger' : (plan ? (plan.update_available === true ? 'warn' : 'ok') : 'neutral'), updateCenterUnavailable() ? tr('statusCenterDown', 'Сервер обновлений недоступен') : (plan ? (plan.update_available === true ? tr('statusUpdateFound', 'Есть обновление') : tr('statusNoUpdates', 'Обновлений нет')) : tr('plan_not_checked', 'Не проверено')));
+    setBadge('nextPlanBadge', updateCenterUnavailable() ? 'danger' : (plan ? (plan.update_available === true ? 'warn' : (plan.update_available === false ? 'ok' : 'neutral')) : 'neutral'), updateCenterUnavailable() ? tr('statusCenterDown', 'Сервер обновлений недоступен') : (plan ? (plan.update_available === true ? tr('statusUpdateFound', 'Есть обновление') : (plan.update_available === false ? tr('statusNoUpdates', 'Обновлений нет') : tr('statusUnknown', 'Неизвестно'))) : tr('plan_not_checked', 'Не проверено')));
     setBadge('detailsBadge', pipelineKind(), pipelineText());
     renderControlState(pipelineKind());
   }
@@ -899,6 +899,10 @@ $auJs = [
     // must be surfaced prominently so the admin rolls back or retries.
     if (maintenance && latest && latest.state === 'failed') {
       showNotice(tr('maintenanceHeldText', 'Обновление прервалось после изменения файлов или базы данных, поэтому CRM остаётся в режиме обслуживания, чтобы не отдавать сломанное состояние. Откатитесь из backup или повторите обновление.'), 'danger');
+    } else if (!maintenance) {
+      // Clear any stale progress notice when maintenance is off and the job
+      // is not in a failed state — the update completed successfully.
+      clearNotice();
     }
     $('kpiInstalled').textContent = installed.core_build || tr('kpiInstalledUnknown', 'unknown');
     $('kpiInstalledMeta').textContent = installed.source_sha ? `SHA ${String(installed.source_sha).slice(0, 12)}...` : tr('kpiInstalledMetaUnknown', 'Локальная сборка еще не принята updater.');
