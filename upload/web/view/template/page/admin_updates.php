@@ -600,7 +600,12 @@ $auJs = [
         }
       }
     }
-    const csrfToken = (window.CRM && window.CRM.api && typeof window.CRM.api.getCsrfToken === 'function') ? window.CRM.api.getCsrfToken() : decodeURIComponent((document.cookie.match(/crm_csrf_token=([^;]+)/) || [])[1] || '');
+    const csrfCookieName = window.CRM && window.CRM.config && window.CRM.config.csrfCookieName
+      ? String(window.CRM.config.csrfCookieName)
+      : 'crm_csrf_token';
+    const csrfCookieMatch = document.cookie.match(new RegExp('(?:^|; )' + csrfCookieName.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&') + '=([^;]*)'));
+    const csrfCookieToken = csrfCookieMatch ? decodeURIComponent(csrfCookieMatch[1]) : '';
+    const csrfToken = (window.CRM && window.CRM.api && typeof window.CRM.api.getCsrfToken === 'function') ? (window.CRM.api.getCsrfToken() || csrfCookieToken) : csrfCookieToken;
     const headers = Object.assign({'Content-Type': 'application/json'}, options.headers || {});
     if (csrfToken && !headers['X-CSRF-Token']) headers['X-CSRF-Token'] = csrfToken;
     // Raw fetch for the local updater: enforce an explicit timeout so a

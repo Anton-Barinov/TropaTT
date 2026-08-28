@@ -324,6 +324,13 @@ window.CRM.api = (function () {
     return readCookie(configured);
   }
 
+  function getCsrfCookieToken() {
+    var configured = window.CRM && window.CRM.config && window.CRM.config.csrfCookieName
+      ? String(window.CRM.config.csrfCookieName)
+      : 'crm_csrf_token';
+    return readCookie(configured);
+  }
+
   function getActiveImpersonation() {
     var token = sessionGet(IMPERSONATION_TOKEN_KEY, '');
     return {
@@ -824,7 +831,7 @@ window.CRM.api = (function () {
     }
 
     if (useAuth && !headers.Authorization && !headers.authorization) {
-      var bearerToken = getToken();
+      var bearerToken = getToken() || getCookieAuthToken();
       if (bearerToken) {
         headers.Authorization = 'Bearer ' + bearerToken;
       }
@@ -834,7 +841,7 @@ window.CRM.api = (function () {
       headers['Content-Type'] = 'application/json';
     }
     if (['POST', 'PATCH', 'PUT', 'DELETE'].indexOf(method) >= 0 && !headers['X-CSRF-Token'] && !headers['x-csrf-token']) {
-      var csrfToken = getCsrfToken();
+      var csrfToken = getCsrfToken() || getCsrfCookieToken();
       if (csrfToken) {
         headers['X-CSRF-Token'] = csrfToken;
       }
@@ -1159,7 +1166,8 @@ window.CRM.api = (function () {
   }
 
   bindGlobalTelemetry();
-  setToken(sessionGet(IMPERSONATION_TOKEN_KEY, ''));
+  setToken(sessionGet(IMPERSONATION_TOKEN_KEY, '') || getCookieAuthToken());
+
 
   return {
     TOKEN_KEY: LEGACY_TOKEN_KEY,

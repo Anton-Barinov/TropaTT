@@ -188,5 +188,7 @@ if (is_file($jsOverridesPath)) {
     window.CRM.config.realtimeTransport = <?= json_encode($realtimeTransport, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
     window.CRM.config.webBase = <?= json_encode($webBase, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
     window.CRM.config.apiBaseUrl = <?= json_encode($apiBase, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+    window.CRM.config.authCookieName = <?= json_encode(trim((string)(getenv('CRM_API_SESSION_COOKIE') ?: 'crm_api_session')), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+    window.CRM.config.csrfCookieName = <?= json_encode(trim((string)(getenv('CRM_CSRF_COOKIE') ?: 'crm_csrf_token')), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
   </script>
 </head>
