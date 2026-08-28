@@ -58,6 +58,7 @@ window.CRM.api = (function () {
   var IMPERSONATION_TARGET_KEY = 'crm_impersonation_target_label_v1';
   var inFlightGetRequests = {};
   var referenceGetCache = {};
+  var cookieSessionPromise = null;
   var REFERENCE_GET_CACHE_PREFIX = 'crm_ref_get_cache_v1:';
   var ROUTE_PERMISSIONS = {
     dashboard: [],
@@ -797,7 +798,15 @@ window.CRM.api = (function () {
     var isUrlParams = typeof URLSearchParams !== 'undefined' && body instanceof URLSearchParams;
     var isBlob = typeof Blob !== 'undefined' && body instanceof Blob;
 
-    void useAuth;
+    if (useAuth && !getToken() && getCookieAuthToken() && route !== 'api/v1/auth/me' && route !== 'api/v1/auth/login') {
+      if (!cookieSessionPromise) {
+        cookieSessionPromise = me().catch(function (error) {
+          cookieSessionPromise = null;
+          throw error;
+        });
+      }
+      await cookieSessionPromise;
+    }
 
     var cacheTtlMs = method === 'GET' && body === undefined && !opts.signal && opts.noCache !== true
       ? referenceCacheTtlMs(route)
