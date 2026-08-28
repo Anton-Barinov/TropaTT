@@ -1168,7 +1168,12 @@ window.CRM.api = (function () {
   }
 
   async function me() {
-    var envelope = await request('api/v1/auth/me', { method: 'GET' });
+    var cookieToken = getCookieAuthToken();
+    var options = { method: 'GET' };
+    if (cookieToken) {
+      options.headers = { Authorization: 'Bearer ' + cookieToken };
+    }
+    var envelope = await request('api/v1/auth/me', options);
     var user = envelope.data && envelope.data.user ? envelope.data.user : null;
     var csrfToken = envelope.data && envelope.data.csrf_token ? envelope.data.csrf_token : '';
     setCsrfToken(csrfToken);
