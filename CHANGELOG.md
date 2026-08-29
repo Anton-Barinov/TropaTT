@@ -4,7 +4,7 @@ All notable public changes to TropaTT should be documented here.
 
 This project follows a lightweight Keep a Changelog style. Dates are added when a release is actually created.
 
-## Unreleased
+## [v0.2.0.10] - 2026-08-29
 
 ### Testing
 
