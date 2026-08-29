@@ -4613,6 +4613,22 @@ $js = <<<'JS'
                 formData.append('_csrf', csrfInput.value);
                 formData.append('action', 'install');
                 formData.append('substep', String(index + 1));
+                // Keep the install payload available for every AJAX substep.
+                // The server intentionally stores it in the session, but a
+                // browser session may be rotated or lost between requests on
+                // shared hosting. Re-sending the non-secret fields makes the
+                // step machine resumable while the password remains in the
+                // HTTPS request only and is never rendered into the page.
+                var installPayload = new FormData(document.querySelector('#step1-form'));
+                var siteForm = document.querySelector('form[action*="install.php"]');
+                if (siteForm) {
+                    new FormData(siteForm).forEach(function(value, key) {
+                        if (key !== '_csrf' && key !== 'step') installPayload.set(key, value);
+                    });
+                }
+                installPayload.forEach(function(value, key) {
+                    if (key !== '_csrf' && key !== 'step') formData.set(key, value);
+                });
                 if (extraFormData) {
                     Object.keys(extraFormData).forEach(function(key) {
                         formData.append(key, extraFormData[key]);
