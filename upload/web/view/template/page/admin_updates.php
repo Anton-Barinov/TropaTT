@@ -1489,12 +1489,8 @@ $auJs = [
     if (typeof crmApi.me === 'function' && typeof crmApi.getUser === 'function' && !crmApi.getUser()) {
       await crmApi.me();
     }
-    // Show phase progress bar
-    showPhaseProgress([
-      {key:'status', state:'active'},
-      {key:'check', state:''},
-      {key:'changes', state:''},
-    ]);
+    // Keep the initial state compact: the phase bar is only useful during
+    // slow requests and must not remain visible after the page is hydrated.
     // Mark KPI target as loading
     const kpiT = $('kpiTarget');
     if (kpiT && !kpiT.dataset.realValue) { kpiT.dataset.realValue = kpiT.textContent; kpiT.classList.add('loading'); }
@@ -1504,30 +1500,14 @@ $auJs = [
     if (kpiR && !kpiR.dataset.realValue) { kpiR.dataset.realValue = kpiR.textContent; kpiR.classList.add('loading'); }
 
     await loadStatus();
-    showPhaseProgress([
-      {key:'status', state:'done'},
-      {key:'check', state:'active'},
-      {key:'changes', state:''},
-    ]);
     await check();
-    showPhaseProgress([
-      {key:'status', state:'done'},
-      {key:'check', state:'done'},
-      {key:'changes', state:'active'},
-    ]);
     // Explicitly load changes after check — the auto-call inside check()
     // swallows errors via .catch(() => {}) which leaves the section stuck
     // on "Не загружено" when the first request fails or is slow.
     try {
       await changes();
     } catch (_) { /* rendered by renderChanges fallback */ }
-    showPhaseProgress([
-      {key:'status', state:'done'},
-      {key:'check', state:'done'},
-      {key:'changes', state:'done'},
-    ]);
-    // Remove phase progress bar after 1.5 seconds
-    setTimeout(removePhaseProgress, 1500);
+    removePhaseProgress();
   });
 })();
 </script>
