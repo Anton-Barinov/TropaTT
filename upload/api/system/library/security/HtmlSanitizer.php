@@ -142,6 +142,15 @@ final class HtmlSanitizer
                 continue;
             }
 
+            // Unwrap spans that contain only whitespace (paste artifacts)
+            if ($tag === 'span' && trim($child->textContent) === '') {
+                while ($child->firstChild) {
+                    $parent->insertBefore($child->firstChild, $child);
+                }
+                $parent->removeChild($child);
+                continue;
+            }
+
             $this->sanitizeAttributes($child, $tag);
             $this->sanitizeChildren($child);
         }

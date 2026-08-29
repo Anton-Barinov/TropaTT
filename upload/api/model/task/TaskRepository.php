@@ -134,7 +134,7 @@ final class TaskRepository
                     WHERE trc.parent_task_id = t.id
                       AND trc.relation_type = 'subtask'
                 ) AS has_subtasks",
-                "(SELECT CONCAT('[', GROUP_CONCAT(JSON_OBJECT('public_id', tg.public_id, 'code', tg.code, 'title', tg.title, 'color', tg.color) SEPARATOR ','), ']')
+                "(SELECT CONCAT('[', GROUP_CONCAT(JSON_OBJECT('public_id', tg.public_id, 'code', tg.code, 'title', tg.title, 'color', tg.color)), ']')
                   FROM entity_tags et
                   INNER JOIN tags tg ON tg.id = et.tag_id
                   WHERE et.entity_type = 'task' AND et.entity_public_id = t.public_id
@@ -149,7 +149,7 @@ final class TaskRepository
                 "(SELECT wc.public_id FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_public_id",
                 "(SELECT wc.title FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_title",
                 "(SELECT wc.status FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_status",
-                "(SELECT CONCAT('[', GROUP_CONCAT(JSON_OBJECT('public_id', pm.public_id, 'title', pm.title, 'status', pm.status) SEPARATOR ','), ']')
+                "(SELECT CONCAT('[', GROUP_CONCAT(JSON_OBJECT('public_id', pm.public_id, 'title', pm.title, 'status', pm.status)), ']')
                   FROM project_module_tasks pmt
                   INNER JOIN project_modules pm ON pm.id = pmt.module_id
                   WHERE pmt.task_id = t.id AND pmt.deleted_at IS NULL AND pm.deleted_at IS NULL
@@ -298,7 +298,7 @@ final class TaskRepository
                     WHERE trp.child_task_id = t.id
                       AND trp.relation_type = 'subtask'
                     LIMIT 1) AS parent_relation_sort_order",
-                "(SELECT CONCAT('[', GROUP_CONCAT(JSON_OBJECT('public_id', tg.public_id, 'code', tg.code, 'title', tg.title, 'color', tg.color) SEPARATOR ','), ']')
+                "(SELECT CONCAT('[', GROUP_CONCAT(JSON_OBJECT('public_id', tg.public_id, 'code', tg.code, 'title', tg.title, 'color', tg.color)), ']')
                   FROM entity_tags et
                   INNER JOIN tags tg ON tg.id = et.tag_id
                   WHERE et.entity_type = 'task' AND et.entity_public_id = t.public_id
@@ -306,7 +306,7 @@ final class TaskRepository
                 "(SELECT wc.public_id FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_public_id",
                 "(SELECT wc.title FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_title",
                 "(SELECT wc.status FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_status",
-                "(SELECT CONCAT('[', GROUP_CONCAT(JSON_OBJECT('public_id', pm.public_id, 'title', pm.title, 'status', pm.status) SEPARATOR ','), ']')
+                "(SELECT CONCAT('[', GROUP_CONCAT(JSON_OBJECT('public_id', pm.public_id, 'title', pm.title, 'status', pm.status)), ']')
                   FROM project_module_tasks pmt
                   INNER JOIN project_modules pm ON pm.id = pmt.module_id
                   WHERE pmt.task_id = t.id AND pmt.deleted_at IS NULL AND pm.deleted_at IS NULL
@@ -553,7 +553,7 @@ final class TaskRepository
                 'p.title AS project_title',
                 'u.public_id AS assignee_user_public_id',
                 'u.full_name AS assignee_name',
-                "(SELECT CONCAT('[', GROUP_CONCAT(JSON_OBJECT('public_id', tg.public_id, 'code', tg.code, 'title', tg.title, 'color', tg.color) SEPARATOR ','), ']')
+                "(SELECT CONCAT('[', GROUP_CONCAT(JSON_OBJECT('public_id', tg.public_id, 'code', tg.code, 'title', tg.title, 'color', tg.color)), ']')
                   FROM entity_tags et
                   INNER JOIN tags tg ON tg.id = et.tag_id
                   WHERE et.entity_type = 'task' AND et.entity_public_id = t.public_id
@@ -561,7 +561,7 @@ final class TaskRepository
                 "(SELECT wc.public_id FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_public_id",
                 "(SELECT wc.title FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_title",
                 "(SELECT wc.status FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_status",
-                "(SELECT CONCAT('[', GROUP_CONCAT(JSON_OBJECT('public_id', pm.public_id, 'title', pm.title, 'status', pm.status) SEPARATOR ','), ']')
+                "(SELECT CONCAT('[', GROUP_CONCAT(JSON_OBJECT('public_id', pm.public_id, 'title', pm.title, 'status', pm.status)), ']')
                   FROM project_module_tasks pmt
                   INNER JOIN project_modules pm ON pm.id = pmt.module_id
                   WHERE pmt.task_id = t.id AND pmt.deleted_at IS NULL AND pm.deleted_at IS NULL

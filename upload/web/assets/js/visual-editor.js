@@ -204,6 +204,16 @@ window.CRM.VisualEditor = (function () {
             return;
           }
 
+          // Unwrap spans that contain only whitespace (paste artifacts)
+          if (tag === 'SPAN' && (child.textContent || '').trim() === '') {
+            var spanParent = child.parentNode;
+            while (child.firstChild) {
+              spanParent.insertBefore(child.firstChild, child);
+            }
+            spanParent.removeChild(child);
+            return;
+          }
+
           var attrs = Array.prototype.slice.call(child.attributes || []);
           attrs.forEach(function (attr) {
             var name = String(attr.name || '').toLowerCase();
