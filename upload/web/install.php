@@ -3033,7 +3033,10 @@ function finalizeInstall(PDO $pdo): void
 // Part 5: AJAX Action Handling
 // ============================================================================
 
-$isAjax = ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_ajax']));
+// AJAX requests must be recognized from the POST body only. Do not infer this
+// from the Accept header: regular browser form submits commonly advertise JSON
+// and must still receive the step HTML response.
+$isAjax = ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['_ajax'] ?? '') === '1');
 
 if ($isAjax) {
     header('Content-Type: application/json; charset=utf-8');
@@ -3048,7 +3051,25 @@ if ($isAjax) {
     $substep = (int)($_POST['substep'] ?? 0);
     $installData = $_SESSION['install_data'] ?? [];
 
-    if ($action === 'install' && !empty($installData)) {
+    if ($action === 'install') {
+        // Recover the payload sent by the browser when a shared host rotates
+        // the PHP session between substeps. Passwords stay server-side in the
+        // session after this request and are never echoed.
+        $payloadFields = ['db_driver', 'db_host', 'db_port', 'db_database', 'db_username', 'db_password', 'site_url', 'timezone', 'admin_login', 'admin_name', 'admin_email', 'admin_password', 'admin_password_confirm', 'lang', 'app_key', 'csrf_key', 'webhook_key', 'ai_key', 'local_secret', 'cron_secret'];
+        foreach ($payloadFields as $field) {
+            if (array_key_exists($field, $_POST)) {
+                $installData[$field] = $field === 'db_password' || $field === 'admin_password' || $field === 'admin_password_confirm'
+                    ? (string)$_POST[$field]
+                    : sanitizeInput((string)$_POST[$field]);
+            }
+        }
+        if (!empty($installData)) {
+            $_SESSION['install_data'] = $installData;
+        }
+        if (empty($installData)) {
+            echo json_encode(['success' => false, 'substep' => $substep, 'message' => 'Installation session expired. Please return to step 1.'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
         try {
             if (hasBlockingPreflightFailure()) {
                 throw new RuntimeException(t('requirements') . ': ' . t('requirement_fail'));
