@@ -1113,8 +1113,14 @@ final class UpdaterKernel
     private function verifyTokenIfPresent(array $input, string $action): void
     {
         $token = $this->bearerToken() ?: (string)($input['token'] ?? '');
-        if ($token === '' && in_array($action, ['preflight', 'download'], true) && (bool)($input['dry_run'] ?? true)) {
-            return;
+        // All updater mutations, including read-only preflight, require the
+        // one-time session token. The CRM page obtains it through the
+        // authenticated in-process bridge/session endpoint. Allowing an
+        // anonymous dry-run created jobs and performed outbound package
+        // checks for any internet visitor, which is an avoidable DoS/disk
+        // abuse vector on shared hosting.
+        if ($token === '') {
+            throw new \RuntimeException('Updater token is required.');
         }
         if (!(new TokenVerifier($this->storageDir))->verify($token, $action)) {
             throw new \RuntimeException('Updater token is invalid or expired.');
