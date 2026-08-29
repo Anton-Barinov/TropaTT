@@ -4242,7 +4242,7 @@ echo $css;
         <?php elseif ($currentStep === 2): ?>
         <h2><?php echo t('step_site'); ?></h2>
 
-        <form method="post">
+        <form method="post" id="step2-form">
             <?php echo csrfField(); ?>
             <input type="hidden" name="step" value="2">
 
@@ -4643,15 +4643,18 @@ $js = <<<'JS'
                 // shared hosting. Re-sending the non-secret fields makes the
                 // step machine resumable while the password remains in the
                 // HTTPS request only and is never rendered into the page.
-                var installPayload = new FormData(document.querySelector('#step1-form'));
-                var siteForm = document.querySelector('form[action*="install.php"]');
-                if (siteForm) {
-                    new FormData(siteForm).forEach(function(value, key) {
-                        if (key !== '_csrf' && key !== 'step') installPayload.set(key, value);
-                    });
-                }
+                var installPayload = new FormData();
+                // Read the values from the current page explicitly. The page
+                // contains multiple step forms; a generic querySelector can
+                // select an inactive form and silently omit the active step's
+                // fields on shared-hosting installs.
+                document.querySelectorAll('#step1-form input[name], #step2-form input[name], #step2-form select[name], #step3-form input[name]').forEach(function(field) {
+                    if (field.name !== '_csrf' && field.name !== 'step' && field.type !== 'button' && !field.disabled) {
+                        installPayload.set(field.name, field.value);
+                    }
+                });
                 installPayload.forEach(function(value, key) {
-                    if (key !== '_csrf' && key !== 'step') formData.set(key, value);
+                    formData.set(key, value);
                 });
                 if (extraFormData) {
                     Object.keys(extraFormData).forEach(function(key) {
