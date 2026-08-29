@@ -3035,8 +3035,11 @@ function finalizeInstall(PDO $pdo): void
 
 // AJAX requests must be recognized from the POST body only. Do not infer this
 // from the Accept header: regular browser form submits commonly advertise JSON
-// and must still receive the step HTML response.
-$isAjax = ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['_ajax'] ?? '') === '1');
+// and must still receive the step HTML response. `filter_input` is avoided here:
+// some shared-hosting setups disable/alter its request-variable handling.
+$isAjax = ($_SERVER['REQUEST_METHOD'] === 'POST'
+    && isset($_POST['_ajax'])
+    && (string)$_POST['_ajax'] === '1');
 
 if ($isAjax) {
     header('Content-Type: application/json; charset=utf-8');
