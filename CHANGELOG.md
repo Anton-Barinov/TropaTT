@@ -6,6 +6,10 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ## Unreleased
 
+### Testing
+
+- Controlled update-center build pipeline verification marker (2026-08-29). No runtime behavior changed; this entry validates GitHub → cron → package/signature publication.
+
 ### Added
 
 - **Cron observability in the admin panel.** The "Jobs" page (Admin → Jobs) now shows a "Scheduled tasks (cron)" card: a cron heartbeat line (last web-cron call, with a warning and a shared-hosting hint when the cron has been silent), the full list of `module_scheduled_tasks` (module, task, schedule, enabled, last/next run, `last_status`, truncated `last_error`), and a "Run now" button that triggers `ModuleCronScheduler::run()` on demand.
