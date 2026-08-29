@@ -3367,6 +3367,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isAjax) {
             // shared hosting where browser autofill/session restoration can
             // cause a step payload to be submitted more than once.
             $formData['admin_login'] = sanitizeInput((string)($_POST['admin_login'] ?? ''));
+            $formData['admin_login'] = $formData['admin_login'] !== '' ? $formData['admin_login'] : 'admin';
             $formData['admin_email'] = sanitizeInput((string)($_POST['admin_email'] ?? ''));
             $formData['admin_password'] = (string)($_POST['admin_password'] ?? '');
             $formData['admin_password_confirm'] = (string)($_POST['admin_password_confirm'] ?? '');
@@ -3386,6 +3387,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isAjax) {
             }
             if ($formData['admin_password'] !== $formData['admin_password_confirm']) $errors[] = t('passwords_mismatch');
             if ($formData['admin_name'] === '') $formData['admin_name'] = 'Administrator';
+            $formData['admin_name'] = trim($formData['admin_name']);
 
             if (empty($errors)) {
                 if (!isset($formData['app_key'])) {
