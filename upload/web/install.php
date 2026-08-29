@@ -3362,11 +3362,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isAjax) {
             $formData = $_SESSION['install_data'] ?? [];
             $formData['site_url'] = sanitizeInput($_POST['site_url'] ?? '');
             $formData['timezone'] = sanitizeInput($_POST['timezone'] ?? 'Europe/Moscow');
-            $formData['admin_login'] = sanitizeInput($_POST['admin_login'] ?? 'admin');
-            $formData['admin_email'] = sanitizeInput($_POST['admin_email'] ?? '');
-            $formData['admin_password'] = $_POST['admin_password'] ?? '';
-            $formData['admin_password_confirm'] = $_POST['admin_password_confirm'] ?? '';
-            $formData['admin_name'] = sanitizeInput($_POST['admin_name'] ?? '');
+            // Replace the previous step's values; do not concatenate with
+            // defaults when a browser submits a fresh value. This matters on
+            // shared hosting where browser autofill/session restoration can
+            // cause a step payload to be submitted more than once.
+            $formData['admin_login'] = sanitizeInput((string)($_POST['admin_login'] ?? ''));
+            $formData['admin_email'] = sanitizeInput((string)($_POST['admin_email'] ?? ''));
+            $formData['admin_password'] = (string)($_POST['admin_password'] ?? '');
+            $formData['admin_password_confirm'] = (string)($_POST['admin_password_confirm'] ?? '');
+            $formData['admin_name'] = sanitizeInput((string)($_POST['admin_name'] ?? ''));
             $formData['lang'] = $lang;
 
             if ($formData['site_url'] === '') $errors[] = t('site_url') . ': ' . t('required_field');
