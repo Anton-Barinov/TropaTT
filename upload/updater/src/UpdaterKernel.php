@@ -1112,7 +1112,7 @@ final class UpdaterKernel
 
     private function verifyTokenIfPresent(array $input, string $action): void
     {
-        $token = $this->bearerToken() ?: (string)($input['token'] ?? '');
+        $token = (string)($input['token'] ?? '') ?: $this->bearerToken();
         // All updater mutations, including read-only preflight, require the
         // one-time session token. The CRM page obtains it through the
         // authenticated in-process bridge/session endpoint. Allowing an

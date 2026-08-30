@@ -77,6 +77,9 @@ final class CoreUpdateController extends BaseController
         }
         $config = CoreUpdateConfig::load();
         $payload = $this->request()->allInput();
+        if (!empty($payload['updater_token']) && empty($payload['token'])) {
+            $payload['token'] = $payload['updater_token'];
+        }
         $payload['dry_run'] = true;
         $result = $this->callUpdater('preflight', $payload, $config);
         $normalized = $this->normalizeUpdaterResult($result);
