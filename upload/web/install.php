@@ -1383,12 +1383,15 @@ function writeEnvFile(array $data): bool
     $envContent .= "DB_PASSWORD=" . quoteEnvValue((string)($data['db_password'] ?? '')) . "\n";
     $envContent .= "DB_CHARSET=utf8mb4\n";
 
+    // SEC: generate cryptographic secrets if not provided by the form.
+    // The installer UI does not expose these fields; they must be created
+    // automatically so the API works immediately after installation.
     $envContent .= "\n# Security secrets\n";
-    $envContent .= "APP_KEY=" . quoteEnvValue((string)($data['app_key'] ?? '')) . "\n";
-    $envContent .= "CSRF_SECRET_KEY=" . quoteEnvValue((string)($data['csrf_key'] ?? '')) . "\n";
-    $envContent .= "WEBHOOK_SECRET_KEY=" . quoteEnvValue((string)($data['webhook_key'] ?? '')) . "\n";
-    $envContent .= "AI_ENCRYPTION_KEY=" . quoteEnvValue((string)($data['ai_key'] ?? '')) . "\n";
-    $envContent .= "CRON_SECRET_KEY=" . quoteEnvValue((string)($data['cron_secret'] ?? '')) . "\n\n";
+    $envContent .= "APP_KEY=" . quoteEnvValue((string)($data['app_key'] ?? bin2hex(random_bytes(32)))) . "\n";
+    $envContent .= "CSRF_SECRET_KEY=" . quoteEnvValue((string)($data['csrf_key'] ?? bin2hex(random_bytes(32)))) . "\n";
+    $envContent .= "WEBHOOK_SECRET_KEY=" . quoteEnvValue((string)($data['webhook_key'] ?? bin2hex(random_bytes(32)))) . "\n";
+    $envContent .= "AI_ENCRYPTION_KEY=" . quoteEnvValue((string)($data['ai_key'] ?? bin2hex(random_bytes(32)))) . "\n";
+    $envContent .= "CRON_SECRET_KEY=" . quoteEnvValue((string)($data['cron_secret'] ?? bin2hex(random_bytes(32)))) . "\n\n";
 
     $siteUrl = rtrim(sanitizeEnvValue((string)($data['site_url'] ?? 'http://localhost')), '/');
     $envContent .= "# CORS allowlist\n";
