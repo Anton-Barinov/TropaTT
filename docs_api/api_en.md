@@ -4,7 +4,9 @@ Complete reference for the TropaTT self-hosted CRM REST API: base URL, authentic
 
 **Language:** [Русский](api_ru.md) · **English** · [中文](api_zh.md)
 
-> Last updated: 2026-08-15. Source of truth: `upload/api/config/routes.php` and module route files.
+> Last updated: 2026-08-30. Source of truth: `upload/api/config/routes.php` and module route files.
+>
+> **Route counts (2026-08-30):** Core API: 755 unique patterns (956 methods×pattern). Module API: 375 methods×pattern (22 functional modules + 1 example). Web: 70 pages. Legacy CRUD aliases (`/create`, `/list`, `/get/{id}`, `/update/{id}`, `/delete/{id}`) are excluded from this document — use the modern REST endpoints instead.
 
 ## Overview
 
@@ -1716,6 +1718,10 @@ Module objects returned by `GET /api/v1/modules` and `GET /api/v1/modules/{name}
 | POST | `/_module/crm.yandex-calendar/connections/{public_id}/test` | Test connection | Yes | `module.yandex-calendar.manage` | — |
 | POST | `/_module/crm.yandex-calendar/connections/{public_id}/sync` | Synchronization | Yes | `module.yandex-calendar.sync` | — |
 | PATCH | `/_module/crm.yandex-calendar/calendars/{public_id}` | Update calendar | Yes | `module.yandex-calendar.manage` | — |
+
+### Module: Position Example (developer template)
+
+`crm.position-example` is a skeleton module demonstrating the position injection system (CSS/JS asset loading, `gantt.content.after` position rendering). It has no API routes and no `module.json` — only a `manifest.json` and web assets. Not intended for production use.
 
 ## System operations (cron & scheduled tasks)
 
