@@ -1,6 +1,0 @@
-{
-  "_comment": "Test-created entity IDs reused across cases in the same run. The API case engine populates and cleans up these itself; manual testers can also record stable IDs here (e.g. a pre-created project_public_id) if a case needs one.",
-  "project_public_id": "",
-  "task_public_id": "",
-  "tag_public_id": ""
-}
