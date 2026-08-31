@@ -1,0 +1,140 @@
+name: Develop Gated Release (tests -> auto-merge)
+
+# Safe-release-cycle workflow.
+#
+# On every push to `develop`:
+#   1. Wait until demo.tropatt.com reflects that exact commit via DEPLOY_HASH (with a
+#      generous timeout; if it never reaches the commit it still runs the tests so the
+#      report is produced).
+#   2. Run the full API + MCP test suite against the demo stand.
+#   3. Read tests/reports/latest.json. The suite itself ALWAYS exits 0.
+#   4. Only when `failed_count == 0` (real failures; skipped and rate-limited are ignored)
+#      merge `develop` into `main` (no-ff) and push `main`.
+#   5. On failures: do NOT merge. `main` stays untouched; `tests/reports/latest.md`
+#      becomes the fix backlog for the next iteration.
+#
+# Required repository secrets:
+#   TOKEN          - admin API token for the demo stand (or leave empty to use LOGIN/PASSWORD)
+#   TEST_LOGIN     - demo login (default admin) used when TOKEN is empty
+#   TEST_PASSWORD  - demo password
+#   OWNER_PAT      - fine-grained PAT of the repo owner with "Contents: write" on this repo,
+#                    used for the develop->main merge push. Commits are authored by the owner.
+#
+# Optional secrets:
+#   BASE_URL   - overrides default demo API endpoint
+#   MCP_URL    - overrides default demo MCP endpoint
+#   POLL_INTERVAL - default 30
+#
+# AGENTS.md note: every commit must be attributed only to the repo owner; this workflow
+# therefore authenticates the merge push with the owner's PAT, not GITHUB_TOKEN.
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: develop-release
+  cancel-in-progress: false
+
+jobs:
+  test-and-merge:
+    name: Test demo + auto-merge to main
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout develop
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # ---- environment -------------------------------------------------
+      - name: Export test environment (placeholders resolved from secrets)
+        run: |
+          BASE_URL="${BASE_URL:-https://demo.tropatt.com/api/index.php?route=api/v1}"
+          MCP_URL="${MCP_URL:-https://demo.tropatt.com/api/index.php?route=api/v1/mcp}"
+          DEPLOY_HASH_URL="https://demo.tropatt.com/web/DEPLOY_HASH"
+          {
+            echo "BASE_URL=$BASE_URL"
+            echo "MCP_URL=$MCP_URL"
+            echo "DEPLOY_HASH_URL=$DEPLOY_HASH_URL"
+            echo "TOKEN=${TOKEN:-}"
+            echo "TEST_LOGIN=${TEST_LOGIN:-admin}"
+            echo "TEST_PASSWORD=${TEST_PASSWORD:-}"
+            echo "TEST_DOMAIN_IS_DEMO=1"
+            echo "POLL_INTERVAL=${POLL_INTERVAL:-30}"
+          } >> "$GITHUB_ENV"
+
+      - name: Get current commit short hash
+        id: commit
+        run: echo "SHORT=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
+
+      # ---- wait for demo to reach the pushed develop commit -------------
+      - name: Wait for demo to reach pushed develop commit
+        run: |
+          bash tests/wait_and_run.sh "$SHORT" "1800"
+
+      # ---- read report ---------------------------------------------------
+      - name: Summarize report
+        id: summary
+        run: |
+          FC=$(python3 - <<'PY'
+          import json
+          try:
+              r = json.load(open("tests/reports/latest.json"))
+          except Exception as e:
+              print("-1")
+          else:
+              print(r.get("failed_count", -1))
+          PY
+          )
+          echo "failed_count=$FC" >> "$GITHUB_OUTPUT"
+          echo "failed_count=$FC"
+          if [ -f "tests/reports/latest.md" ]; then
+            { echo "## Test report"; cat "tests/reports/latest.md"; } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload report artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: |
+            tests/reports/latest.json
+            tests/reports/latest.md
+
+      # ---- auto-merge to main ONLY on success ----------------------------
+      - name: Auto-merge develop -> main (failed_count == 0)
+        if: ${{ steps.summary.outputs.failed_count == '0' }}
+        env:
+          OWNER_PAT: ${{ secrets.OWNER_PAT }}
+        run: |
+          set -euo pipefail
+          if [ -z "${OWNER_PAT:-}" ]; then
+            echo "::error::OWNER_PAT secret missing — cannot authenticate merge push as the owner."
+            exit 1
+          fi
+          git config user.name "Anton Barinov"
+          git config user.email "55404783+Anton-Barinov@users.noreply.github.com"
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
+          # merge develop (changes are already committed on develop)
+          git merge --no-ff develop -m "Auto-merge develop -> main: tests passed"
+          git push "https://x-access-token:${OWNER_PAT}@github.com/Anton-Barinov/TropaTT.git" main
+          echo "✅ develop merged into main"
+
+      - name: Report skipped merge (failures present)
+        if: ${{ steps.summary.outputs.failed_count != '0' }}
+        run: |
+          echo "::warning::Tests reported failed_count != 0. develop was NOT merged into main."
+          echo "See tests/reports/latest.md for the fix backlog."
