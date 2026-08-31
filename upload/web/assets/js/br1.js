@@ -1031,7 +1031,6 @@ window.CRM.br1 = (function () {
         allow: function () { return !isExternalRole('observer'); },
         selectors: [
           '[data-open-modal="createTaskModal"]',
-          '[data-open-modal="createProjectModal"]',
           '[data-open-modal="assignUserModal"]',
           '[data-open-modal="calendarEventModal"]',
           '#taskEditBtn',
@@ -1066,6 +1065,21 @@ window.CRM.br1 = (function () {
           '[data-status-edit]',
           '[data-status-delete]',
           '#taskEstimateAddBtn'
+        ]
+      },
+      // Create-project trigger and form must always stay in sync. This rule
+      // runs LAST so it wins over the generic permission rules above: the
+      // create-project modal is only ever available when the actor has the
+      // project.manage permission and is not an external guest. This prevents
+      // the empty-modal state where the button is visible but the form was
+      // hidden by initProjectCreateFlow() (no permission).
+      {
+        allow: function () {
+          return hasPermission('project.manage') && !isExternalRole('observer') && !isExternalRole('executor');
+        },
+        selectors: [
+          '[data-open-modal="createProjectModal"]',
+          '#createProjectForm'
         ]
       }
     ];
