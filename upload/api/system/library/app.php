@@ -539,6 +539,31 @@ final class App
             $statusCode = 500;
             $resultCode = 'INTERNAL_ERROR';
 
+            // Schema drift detection: the most common cause of a hard 500 right
+            // after a code upload is a database that was never migrated — the new
+            // code selects a column the old schema does not have yet (e.g. the
+            // login error "Unknown column 'is_external'"). Returning a fixed,
+            // localized hint (no SQL text, no stack trace — the info-disclosure
+            // property is preserved) lets the login page tell the admin exactly
+            // what to do instead of a bare "Internal server error".
+            $schemaOutdated = false;
+            if ($e instanceof \PDOException) {
+                $sqlState = (string)($e->errorInfo[0] ?? $e->getCode());
+                // 42S22 = unknown column, 42S21 = duplicate column, 42S02 = base table or view not found
+                $schemaOutdated = in_array($sqlState, ['42S22', '42S21', '42S02'], true);
+            }
+            if ($schemaOutdated) {
+                $resultCode = 'DB_SCHEMA_OUTDATED';
+                return JsonResponse::error(
+                    code: 'DB_SCHEMA_OUTDATED',
+                    message: $this->container->get('lang')->get('common/messages.db_schema_outdated', 'Database schema is outdated'),
+                    status: 500,
+                    errors: ['migration' => [$this->container->get('lang')->get('common/messages.db_schema_outdated_hint', 'Apply pending database migrations: Administration → System Updates, or run php api/scripts/run_migrations.php from the installation directory')]],
+                    requestId: $request->requestId,
+                    correlationId: $request->correlationId
+                );
+            }
+
             $exceptionDetail = $this->config->get('default.app.debug', false) ? $e->getMessage() : null;
             $errors = $exceptionDetail !== null ? ['exception' => [$exceptionDetail]] : [];
             return JsonResponse::error(

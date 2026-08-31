@@ -6344,6 +6344,8 @@ return array (
     'btn_create_task_aria' => 'Create task from message',
     'btn_create_task' => 'Create task',
     'create_task_default_title' => 'Task from message',
+    'permission_title' => 'No access',
+    'create_task_no_perm' => 'You do not have permission to create tasks',
     'create_task_modal_title' => 'Create task from message',
     'create_task_title_label' => 'Task title',
     'create_task_desc_label' => 'Description',

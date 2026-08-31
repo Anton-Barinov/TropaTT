@@ -2433,6 +2433,8 @@ return array (
     'btn_create_task_aria' => 'Criar tarefa a partir da mensagem',
     'btn_create_task' => 'Criar tarefa',
     'create_task_default_title' => 'Tarefa a partir da mensagem',
+    'permission_title' => 'Sem acesso',
+    'create_task_no_perm' => 'Você não tem permissão para criar tarefas',
     'create_task_modal_title' => 'Criar tarefa a partir da mensagem',
     'create_task_title_label' => 'Título da tarefa',
     'create_task_desc_label' => 'Descrição',

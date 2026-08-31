@@ -6365,6 +6365,8 @@ return array (
     'btn_create_task_aria' => 'Создать задачу из сообщения',
     'btn_create_task' => 'Создать задачу',
     'create_task_default_title' => 'Задача из сообщения',
+    'permission_title' => 'Нет доступа',
+    'create_task_no_perm' => 'Недостаточно прав для создания задачи',
     'create_task_modal_title' => 'Создать задачу из сообщения',
     'create_task_title_label' => 'Название задачи',
     'create_task_desc_label' => 'Описание',

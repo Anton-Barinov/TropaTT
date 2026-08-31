@@ -2433,6 +2433,8 @@ return array (
     'btn_create_task_aria' => 'Créer une tâche depuis le message',
     'btn_create_task' => 'Créer une tâche',
     'create_task_default_title' => 'Tâche depuis le message',
+    'permission_title' => 'Accès refusé',
+    'create_task_no_perm' => 'Vous n\'avez pas la permission de créer des tâches',
     'create_task_modal_title' => 'Créer une tâche depuis le message',
     'create_task_title_label' => 'Titre de la tâche',
     'create_task_desc_label' => 'Description',

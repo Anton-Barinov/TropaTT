@@ -2433,6 +2433,8 @@ return array (
     'btn_create_task_aria' => 'Aufgabe aus Nachricht erstellen',
     'btn_create_task' => 'Aufgabe erstellen',
     'create_task_default_title' => 'Aufgabe aus Nachricht',
+    'permission_title' => 'Kein Zugriff',
+    'create_task_no_perm' => 'Sie haben keine Berechtigung zum Erstellen von Aufgaben',
     'create_task_modal_title' => 'Aufgabe aus Nachricht erstellen',
     'create_task_title_label' => 'Aufgabentitel',
     'create_task_desc_label' => 'Beschreibung',

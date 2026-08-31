@@ -1508,95 +1508,46 @@
     var message = findMessage(messageId);
     if (!message) return;
     if (!selectedChatId) return;
+    if (!window.CRM || !window.CRM.api) return;
+    if (typeof window.CRM.api.hasPermission === 'function' && !window.CRM.api.hasPermission('task.manage')) {
+      showInfoModal(window.CRM.i18n.t('chat.permission_title', 'Нет доступа'), window.CRM.i18n.t('chat.create_task_no_perm', 'Недостаточно прав для создания задачи'));
+      return;
+    }
+
     var text = (message.text || '').trim();
     var defaultTitle = text.substring(0, 120);
     if (text.length > 120) defaultTitle += '...';
     if (!defaultTitle) defaultTitle = window.CRM.i18n.t('chat.create_task_default_title', 'Задача из сообщения');
 
+    // Prefill the full global task-create modal with data from the chat and,
+    // when this is a project chat, with the linked project and its client.
     var chatTitleText = chatTitle(currentChat) || '';
-    var messageLink = 'index.php?route=chat&id=' + encodeURIComponent(selectedChatId) + '&message=' + encodeURIComponent(String(message.public_id || ''));    var modal = document.getElementById('chatCreateTaskModal');
-    if (!modal) {
-      // Unique ids: the global modals bundle injects a #createTaskModal on
-      // every page, so reusing it here would bind the chat dialog to the
-      // global task form and its fields would not exist.
-      var html = '<div class="crm-chat-modal is-open" id="chatCreateTaskModal" role="dialog" aria-modal="true" aria-labelledby="chatCreateTaskModalTitle">'
-        + '<div class="crm-chat-modal-panel">'
-        + '<div class="crm-chat-modal-head"><h2 class="h5 mb-0" id="chatCreateTaskModalTitle">' + window.CRM.i18n.t('chat.create_task_modal_title', 'Создать задачу из сообщения') + '</h2><button class="btn-close" type="button" aria-label="' + window.CRM.i18n.t('page.close_aria', 'Закрыть') + '"></button></div>'
-        + '<div class="row g-3"><div class="col-12"><label class="form-label" for="chatCreateTaskTitleInput">' + window.CRM.i18n.t('chat.create_task_title_label', 'Название задачи') + '</label><input type="text" class="form-control" id="chatCreateTaskTitleInput" maxlength="255"></div>'
-        + '<div class="col-12"><label class="form-label" for="chatCreateTaskDescInput">' + window.CRM.i18n.t('chat.create_task_desc_label', 'Описание') + '</label><textarea class="form-control" id="chatCreateTaskDescInput" rows="6" maxlength="4000"></textarea>'
-        + '<div class="form-text">' + window.CRM.i18n.t('chat.create_task_hint', 'Ссылка на это сообщение будет добавлена к задаче автоматически.') + '</div></div></div>'
-        + '<div class="text-danger small mb-2 d-none" id="chatCreateTaskError" aria-live="polite"></div>'
-        + '<div class="crm-chat-modal-actions"><button class="btn crm-btn-muted" type="button" id="chatCancelCreateTask">' + window.CRM.i18n.t('page.cancel', 'Отмена') + '</button><button class="btn crm-btn-primary" type="button" id="chatSubmitCreateTask" disabled>' + window.CRM.i18n.t('chat.create_task_create_btn', 'Создать задачу') + '</button></div></div></div>';
-      var wrapper = document.createElement('div');
-      wrapper.innerHTML = html;
-      document.body.appendChild(wrapper.firstElementChild);
-      modal = document.getElementById('chatCreateTaskModal');
-      modal.querySelector('.btn-close').addEventListener('click', function () { modal.remove(); });
-      document.getElementById('chatCancelCreateTask').addEventListener('click', function () { modal.remove(); });
-      modal.addEventListener('click', function (event) { if (event.target === modal) modal.remove(); });
+    var messageLink = 'index.php?route=chat&id=' + encodeURIComponent(selectedChatId) + '&message=' + encodeURIComponent(String(message.public_id || ''));
+    var projectPublicId = (currentChat && currentChat.project_public_id) ? String(currentChat.project_public_id) : '';
+    var projectClientPublicId = (currentChat && currentChat.project_client_public_id) ? String(currentChat.project_client_public_id) : '';
 
-      document.getElementById('chatCreateTaskTitleInput').addEventListener('input', function () {
-        document.getElementById('chatSubmitCreateTask').disabled = !this.value.trim();
-      });
+    window._taskCreatePrefill = {
+      title: defaultTitle,
+      description: text ? '<p>' + esc(text).replace(/\n/g, '<br>') + '</p>' : '',
+      project_public_id: projectPublicId,
+      client_public_id: projectClientPublicId,
+      source_type: 'chat',
+      source_id: selectedChatId,
+      source_url: messageLink,
+      source_payload_json: JSON.stringify({
+        chat_public_id: selectedChatId,
+        chat_title: chatTitleText,
+        message_public_id: String(message.public_id || ''),
+        message_text: text.substring(0, 2000)
+      })
+    };
 
-      document.getElementById('chatSubmitCreateTask').addEventListener('click', async function () {
-        var title = document.getElementById('chatCreateTaskTitleInput').value.trim();
-        var desc = document.getElementById('chatCreateTaskDescInput').value.trim();
-        if (!title) return;
-        var btn = this;
-        btn.disabled = true;
-        btn.textContent = window.CRM.i18n.t('chat.create_task_creating', 'Создание...');
-        document.getElementById('chatCreateTaskError').classList.add('d-none');
-        try {
-          var env = await request('api/v1/tasks', {
-            method: 'POST',
-            body: {
-              title: title,
-              description: desc ? '<p>' + esc(desc).replace(/\n/g, '<br>') + '</p>' : '',
-              source_type: 'chat',
-              source_id: selectedChatId,
-              source_url: messageLink,
-              source_payload_json: JSON.stringify({
-                chat_public_id: selectedChatId,
-                chat_title: chatTitleText,
-                message_public_id: String(message.public_id || ''),
-                message_text: text.substring(0, 2000)
-              })
-            },
-            idempotent: true
-          });
-          var task = env.data && env.data.task;
-          var taskPublicId = task && task.public_id;
-          if (!taskPublicId && env.data && env.data.public_id) taskPublicId = env.data.public_id;
-          modal.remove();
-          showInfoModal(
-            window.CRM.i18n.t('chat.create_task_success_title', 'Задача создана'),
-            '<p>' + window.CRM.i18n.t('chat.create_task_success_text', 'Задача создана и связана с этим обсуждением.') + '</p>'
-              + (taskPublicId ? '<a class="btn crm-btn-primary" href="index.php?route=task-detail&amp;task_public_id=' + encodeURIComponent(taskPublicId) + '" target="_blank" rel="noopener">' + window.CRM.i18n.t('chat.create_task_open_btn', 'Открыть задачу') + '</a>' : '')
-          );
-        } catch (err) {
-          var errorEl = document.getElementById('chatCreateTaskError');
-          errorEl.textContent = window.CRM.i18n.t('chat.create_task_error', 'Ошибка создания задачи. Попробуйте еще раз.');
-          errorEl.classList.remove('d-none');
-          btn.disabled = false;
-          btn.textContent = window.CRM.i18n.t('chat.create_task_create_btn', 'Создать задачу');
-        }
-      });
+    var modalEl = document.getElementById('createTaskModal');
+    if (modalEl && window.bootstrap && window.bootstrap.Modal) {
+      window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    } else {
+      window.location.href = 'index.php?route=tasks';
     }
-
-    document.getElementById('chatCreateTaskTitleInput').value = defaultTitle;
-    document.getElementById('chatCreateTaskDescInput').value = text.substring(0, 2000);
-    document.getElementById('chatCreateTaskError').classList.add('d-none');
-    document.getElementById('chatSubmitCreateTask').disabled = false;
-
-
-    modal.style.display = 'flex';
-    modal.classList.add('is-open');
-    modal.setAttribute('aria-hidden', 'false');
-
-    var titleInput = document.getElementById('chatCreateTaskTitleInput');
-    titleInput.focus();
-    titleInput.setSelectionRange(defaultTitle.length, defaultTitle.length);
   }
 
   // Deep-link: scroll to a specific message (?id=<chat>&message=<msg>)

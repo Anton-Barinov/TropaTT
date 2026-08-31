@@ -12,6 +12,8 @@ return [
     'invalid_value' => '值无效',
     'task_not_found' => '任务未找到',
     'internal_error' => '服务器内部错误',
+    'db_schema_outdated' => '数据库结构已过时',
+    'db_schema_outdated_hint' => '请应用待处理的数据库迁移：管理 → 系统更新，或在安装目录下运行 php api/scripts/run_migrations.php',
     'maintenance_mode' => 'CRM 正在维护中，请稍后再试。',
     'invalid_request' => '请求无效',
     'invalid_parameter' => '请求参数无效',

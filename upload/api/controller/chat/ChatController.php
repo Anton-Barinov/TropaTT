@@ -74,9 +74,11 @@ final class ChatController extends BaseController
                 $archivedFilter = ($archivedFilter ? $archivedFilter . ' AND' : 'WHERE') . " c.type = 'project_client'";
             }
             // project_public_id is needed by the client to match a project_client
-            // chat to its project (project detail page), for staff too.
+            // chat to its project (project detail page), for staff too; the
+            // project client_public_id lets a project chat prefill the task
+            // create dialog with the linked client.
             $projectJoin = 'LEFT JOIN projects p ON p.id = c.project_id';
-            $projectSelect = ' p.public_id AS project_public_id';
+            $projectSelect = ' p.public_id AS project_public_id, p.client_public_id AS project_client_public_id';
             $stmt = $pdo->prepare("
                 SELECT c.*,{$projectSelect},
                     cp.is_favorite,
@@ -753,7 +755,8 @@ final class ChatController extends BaseController
                     continue;
                 }
                 $projectPublicId = (string)($chat['project_public_id'] ?? '');
-                if ($projectPublicId === '' || !$projectService->get($projectPublicId, $actor)) {
+                $project = $projectService->get($projectPublicId, $actor);
+                if ($projectPublicId === '' || !$project) {
                     continue;
                 }
                 $seen[$chatPublicId] = true;
@@ -764,6 +767,7 @@ final class ChatController extends BaseController
                     'type' => 'project_client',
                     'project_id' => $chat['project_id'] ?? null,
                     'project_public_id' => $projectPublicId,
+                    'project_client_public_id' => (string)($project['client_public_id'] ?? ''),
                     'is_favorite' => 0,
                     'muted_until' => null,
                     'last_read_id' => 0,
