@@ -190,6 +190,14 @@
       </div>
       <div class="modal-body">
         <div class="mb-3">
+          <label class="form-label" for="addTaskQuickTitle"><?= htmlspecialchars($t('cycles.create_task_label', 'Новая задача в цикле'), ENT_QUOTES, 'UTF-8') ?></label>
+          <div class="input-group">
+            <input type="text" class="form-control" id="addTaskQuickTitle" maxlength="255" placeholder="<?= htmlspecialchars($t('cycles.create_task_placeholder', 'Название задачи...'), ENT_QUOTES, 'UTF-8') ?>">
+            <button type="button" class="btn btn-sm crm-btn-primary" id="addTaskQuickSubmit" data-cycle-action="quick-create-task"><?= htmlspecialchars($t('cycles.create_task', 'Создать задачу'), ENT_QUOTES, 'UTF-8') ?></button>
+          </div>
+        </div>
+        <hr class="my-3">
+        <div class="mb-3">
           <input type="text" class="form-control" id="addTaskSearchInput" placeholder="<?= htmlspecialchars($t('cycles.search_tasks_placeholder', 'Поиск задач по названию или ID...'), ENT_QUOTES, 'UTF-8') ?>">
         </div>
         <div id="addTaskResults" class="crm-card-list" style="max-height:400px;overflow-y:auto;"></div>

@@ -1093,6 +1093,66 @@
       });
   };
 
+  window.quickCreateCycleTask = function () {
+    var titleInput = document.getElementById('addTaskQuickTitle');
+    var submitBtn = document.getElementById('addTaskQuickSubmit');
+    if (!titleInput || !submitBtn || !currentCyclePublicId) return;
+    var title = String(titleInput.value || '').trim();
+    if (!title) {
+      showCycleFeedback(t('cycles.create_task_title_required', 'Введите название задачи.'), 'warning');
+      titleInput.focus();
+      return;
+    }
+    if (submitBtn.disabled) return;
+    submitBtn.disabled = true;
+    var originalLabel = submitBtn.textContent;
+    submitBtn.textContent = t('cycles.adding_task', 'Создаём...');
+
+    var body = { title: title, project_public_id: (currentCycleDetail && currentCycleDetail.project_public_id) || '' };
+    apiRequest('api/v1/tasks', { method: 'POST', body: body })
+      .then(function (env) {
+        var created = env && env.data && env.data.task ? env.data.task : (env && env.data ? env.data : null);
+        var taskPublicId = created && (created.public_id || created.id);
+        if (!taskPublicId) {
+          throw new Error(t('cycles.error_create_task_response', 'Не удалось распознать задачу из ответа.'));
+        }
+        return apiRequest('api/v1/cycles/' + encodeURIComponent(currentCyclePublicId) + '/tasks', {
+          method: 'POST',
+          body: { task_public_ids: [String(taskPublicId)] }
+        }).then(function () {
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalLabel;
+          titleInput.value = '';
+          showCycleFeedback(t('cycles.task_created_added', 'Задача создана и добавлена в цикл.'), 'success');
+          loadCycleTasks(currentCyclePublicId);
+        });
+      })
+      .catch(function (err) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalLabel;
+        var message = err && err.message ? err.message : t('cycles.unknown_error', 'неизвестная ошибка');
+        if (err && err.envelope && err.envelope.message) message = err.envelope.message;
+        showCycleFeedback(t('cycles.error_create_task', 'Ошибка создания задачи:') + ' ' + message, 'error');
+      });
+  };
+
+  document.addEventListener('DOMContentLoaded', function () {
+    var quickSubmit = document.getElementById('addTaskQuickSubmit');
+    if (quickSubmit && quickSubmit.dataset.bound !== '1') {
+      quickSubmit.addEventListener('click', window.quickCreateCycleTask);
+      var quickInput = document.getElementById('addTaskQuickTitle');
+      if (quickInput) {
+        quickInput.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            window.quickCreateCycleTask();
+          }
+        });
+      }
+      quickSubmit.dataset.bound = '1';
+    }
+  });
+
   window.removeTaskFromCycle = async function (cyclePublicId, taskPublicId) {
     if (!await confirmCycleAction(t('cycles.confirm_remove_task', 'Удалить задачу из цикла?'), t('cycles.remove_task', 'Удалить задачу'))) return;
     apiRequest('api/v1/cycles/' + encodeURIComponent(cyclePublicId) + '/tasks/' + encodeURIComponent(taskPublicId), { method: 'DELETE' })
