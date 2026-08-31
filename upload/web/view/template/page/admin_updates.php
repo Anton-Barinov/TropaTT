@@ -1260,7 +1260,8 @@ $auJs = [
   async function download() {
     state.lastJobId = state.lastJobId || extractJobId(state.status);
     if (!state.lastJobId) throw new Error(tr('needJobDownload', 'Сначала выполните проверку безопасности, чтобы получить job_id.'));
-    const result = await runUpdaterSteps('download', {dry_run: true, job_id: state.lastJobId});
+    const token = await updaterSession();
+    const result = await runUpdaterSteps('download', {dry_run: true, job_id: state.lastJobId, token});
     state.download = result;
     renderPreflight();
     await loadStatus();
