@@ -4,6 +4,50 @@ All notable public changes to TropaTT should be documented here.
 
 This project follows a lightweight Keep a Changelog style. Dates are added when a release is actually created.
 
+## Unreleased
+
+### Added
+
+- **Safe release cycle for the update server.** Introduced an independent test update stream
+  (`tropatt-core-dev`, built from the `develop` branch) alongside the production stream
+  (`tropatt-core`, built from `main`). The update server now distributes builds by requesting
+  domain: test domains (`*.tropatt.com` — demo, qa-test, test-* , updtest) are served from
+  `develop`, all other domains from `main`. The CRM client itself stays fully domain-agnostic — it
+  requests its product and reports its install domain, and the server decides which stream to serve.
+  Domain→stream routing is logged, and API responses include a `stream` field for transparency.
+
+- **Real core version reporting.** On the update server, the core version is now read from
+  `upload/VERSION` (previously a root `VERSION`/fallback), so served builds and manifests report the
+  actual version from the source branch instead of a fallback.
+
+### Changed
+
+- **Update-server packaging fix.** Package and manifest filenames now carry a product prefix
+  (`tropatt-core-…` vs `tropatt-core-dev-…`) so the two update streams never collide. Delta package
+  building now resolves source files under `upload/`, fixing a regression where delta packages were
+  not produced after the sources moved into the `upload/` directory.
+
+### Fixed
+
+- **My earnings page 403.** `MyEarningsController::available()` now passes `$auth['user']` (not the
+  whole auth array) to the payout policy check, so root/admins get a valid `200` on
+  `GET /me/earnings/available` instead of an erroneous `403`.
+
+- **Console warning on installable pages.** The PWA install prompt is only deferred when an install
+  button is actually present on the page, removing the spurious `beforeinstallprompt`
+  `preventDefault()` console message on non-installable pages.
+
+- **Update preflight and download token flow.** The updater now obtains the one-time token before the
+  preflight and download steps, preventing token-mismatch failures for API clients.
+
+- **Installer SQL mode.** Removed `DEFAULT NULL` from TEXT columns and aligned generated security keys
+  in `writeEnvFile()`, fixing fresh-install failures under strict SQL modes.
+
+### Security
+
+- **Sensitive flags stripped from API input.** `is_root` and `role_public_ids` are stripped from
+  API request input, preventing privilege-escalation attempts via mass assignment.
+
 ## [v0.2.0.10] - 2026-08-29
 
 ### Testing
