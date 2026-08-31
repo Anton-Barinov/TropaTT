@@ -50,6 +50,21 @@ TOKEN_MUTATORS = (
     "/auth/login",
 )
 
+# Role-scoped contexts where an admin token legitimately receives 403 (RBAC working as
+# intended, not a defect): external client portal and root-only earnings.
+EXPECTED_403_PREFIXES = (
+    "/api/v1/client-cabinet/",
+    "/api/v1/me/earnings/",
+)
+
+# AI-gated endpoints that require an external AI provider / config not present on the
+# demo stand — treated as skipped (requires_external_integration), never a failure.
+AI_EXTERNAL_ENDPOINTS = (
+    "/api/v1/knowledge/ai/admin/find-orphans",
+    "/api/v1/knowledge/ai/admin/suggest-structure",
+    "/api/v1/knowledge/ai/admin/find-duplicates",
+)
+
 
 def _segments(path):
     return [s for s in path.split("/") if s]
@@ -86,6 +101,8 @@ def _classify(route):
         return "skip_manual_only", "ops cron run-due — manual only"
     if "/api/v1/ops/cron" in path and method != "GET":
         return "skip_manual_only", "ops cron non-GET — manual only"
+    if any(path.startswith(ep) for ep in AI_EXTERNAL_ENDPOINTS):
+        return "skip_external_ai", "requires external AI provider/config not on demo"
 
     # A mutating endpoint may ONLY run over a verified safe fixture on demo.
     if method in ("DELETE", "POST", "PATCH", "PUT"):
@@ -144,6 +161,18 @@ def _case(method, path, expected, actual, ok, err):
     }
 
 
+def _protected_ok(status, path):
+    """A protected call passes unless 401/403/5xx. But 403 on role-scoped contexts is
+    RBAC working as intended (task spec 5.3) — count it as success."""
+    if status is None:
+        return False
+    if status in (401, 403) and not any(path.startswith(p) for p in EXPECTED_403_PREFIXES):
+        return False
+    if status >= 500:
+        return False
+    return True
+
+
 def _job(route):
     action, reason = _classify(route)
     path = route["path"]
@@ -161,7 +190,7 @@ def _job(route):
     if action == "protected" and "{" not in path:
         out = []
         status, body, err = _req(method, path, TOKEN)
-        ok = (status is not None and not (status in (401, 403) or status >= 500))
+        ok = _protected_ok(status, path)
         out.append(_case(method, path, "2xx (auth)", status, ok, err))
         if method == "GET":
             s2, _b2, e2 = _req(method, path, None)
@@ -179,7 +208,7 @@ def _job(route):
         if key and DOMAIN_IS_DEMO and FIXTURES.get(key):
             return _fixture_cases(route, key)
         status, body, err = _req(method, path, TOKEN)
-        ok = (status is not None and not (status in (401, 403) or status >= 500))
+        ok = _protected_ok(status, path)
         return [_case(method, path, "2xx (auth)", status, ok, err)]
 
     return [{"kind": "api", "method": method, "path": path,
@@ -260,28 +289,27 @@ def run(inventory):
 
 
 def _fixture_cases(route, key):
-    """Use the pre-created fixture id for GET/PATCH/DELETE on a matching route."""
+    """Use the pre-created fixture id for READ checks on a matching route.
+
+    The fixture is created once by _prepare_fixtures() and deleted exactly once by
+    _cleanup_fixtures(). Per spec, destructive ops run only over self-created data and
+    always clean up; here cleanup is owned by _cleanup_fixtures, so route-level writes
+    are not auto-called (avoid double-delete races).
+    """
     pid = FIXTURES.get(key)
     out = []
     if not pid:
         return out
     item_path = "/api/v1/" + key + "/" + pid
-    if "{" in route["path"] and route["method"][0] != "GET":
-        # write route over fixture
-        status, body, err = _req(route["method"][0], item_path, TOKEN, json_body={})
-        ok = (status is not None and 200 <= status < 500)
-        out.append(_case(route["method"][0], item_path, "2xx/4xx", status, ok, err))
-    else:
-        status, body, err = _req("GET", item_path, TOKEN)
-        ok = (status is not None and 200 <= status < 500)
-        out.append(_case("GET", item_path, "2xx (auth)", status, ok, err))
-        # no-token -> 401
-        s2, _b2, e2 = _req("GET", item_path, None)
-        ok2 = (s2 is not None and s2 == 401)
-        out.append({"kind": "api", "method": "GET", "path": item_path,
-                    "expected": "401 (no token)", "actual": s2,
-                    "status": "passed" if ok2 else "failed",
-                    "error": None if ok2 else e2 or f"expected 401 got {s2}"})
+    status, body, err = _req("GET", item_path, TOKEN)
+    ok = (status is not None and 200 <= status < 500)
+    out.append(_case("GET", item_path, "2xx (auth)", status, ok, err))
+    s2, _b2, e2 = _req("GET", item_path, None)
+    ok2 = (s2 is not None and s2 == 401)
+    out.append({"kind": "api", "method": "GET", "path": item_path,
+                "expected": "401 (no token)", "actual": s2,
+                "status": "passed" if ok2 else "failed",
+                "error": None if ok2 else e2 or f"expected 401 got {s2}"})
     return out
 
 
