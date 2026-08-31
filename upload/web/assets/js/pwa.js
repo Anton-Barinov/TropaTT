@@ -92,6 +92,15 @@ window.CRM.pwa = (function () {
     registerServiceWorker();
 
     window.addEventListener('beforeinstallprompt', function (event) {
+      // Only pages with the custom install button (profile) defer the prompt.
+      // On other pages, leave the event unprevented: Chrome may offer its own
+      // install banner and does not log the "Banner not shown: ...
+      // preventDefault() called" console info (which only appears with DevTools
+      // open and when preventDefault() is called without prompt()).
+      var btn = installButton();
+      if (!btn) {
+        return;
+      }
       event.preventDefault();
       deferredPrompt = event;
       showInstallButton();

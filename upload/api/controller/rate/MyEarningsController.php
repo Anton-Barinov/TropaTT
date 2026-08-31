@@ -57,7 +57,9 @@ final class MyEarningsController extends BaseController
         // L-8: the boolean indicator itself must be gated by payout permission;
         // a user without finance.rate.view_own_payout must never learn whether
         // there is payout data at all.
-        if (!$this->canViewOwnPayout($auth)) {
+        // Note: pass $auth['user'] (not $auth) — is_root / permission_codes live
+        // on the user payload, mirroring earnings().
+        if (!$this->canViewOwnPayout($auth['user'] ?? [])) {
             return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
         }
 
