@@ -282,7 +282,7 @@ $footerUpdateBadgeTemplate = $footerT('update_available_badge', 'Update {version
       .then(function (envelope) {
         var data = envelope && envelope.data || {};
         var installed = data.installed_core || {};
-        var latestVersion = installed.core_version;
+        var latestVersion = installed.core_build || installed.core_version;
         if (latestVersion && currentVersion && latestVersion !== currentVersion) {
           sessionStorage.setItem('crm_update_check', JSON.stringify({ hasUpdate: true, latestVersion: latestVersion }));
           badge.textContent = <?= json_encode($footerUpdateBadgeTemplate, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>.replace('{version}', latestVersion);
