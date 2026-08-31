@@ -6354,6 +6354,8 @@ return array (
     'btn_create_task_aria' => '从消息创建任务',
     'btn_create_task' => '创建任务',
     'create_task_default_title' => '来自消息的任务',
+    'permission_title' => '无访问权限',
+    'create_task_no_perm' => '您没有权限创建任务',
     'create_task_modal_title' => '从消息创建任务',
     'create_task_title_label' => '任务标题',
     'create_task_desc_label' => '描述',

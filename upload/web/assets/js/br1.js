@@ -1,6 +1,7 @@
 window.CRM = window.CRM || {};
 window.CRM.br1 = (function () {
   var currentTask = null;
+  var pendingTaskSource = null;
   var currentUserPublicId = '';
   var currentTaskTags = [];
   var currentTaskFiles = [];
@@ -1874,13 +1875,50 @@ window.CRM.br1 = (function () {
   }
 
   function applyCreateTaskPrefill() {
-    var prefill = window._taskClientPrefill || '';
-    if (!prefill) return;
-    window._taskClientPrefill = null;
     var modal = document.getElementById('createTaskModal');
     if (!modal) return;
-    var clientSelect = modal.querySelector('select[name="client_public_id"]');
-    if (clientSelect) clientSelect.value = prefill;
+
+    // Full prefill object (used when opening the modal from a chat message or
+    // any other rich entry point): { title, description, project_public_id,
+    // client_public_id, source_type, source_id, source_url, source_payload_json }.
+    var prefill = window._taskCreatePrefill || null;
+    var legacyClient = window._taskClientPrefill || '';
+    window._taskCreatePrefill = null;
+    window._taskClientPrefill = null;
+    if (!prefill && !legacyClient) return;
+
+    var form = modal.querySelector('#createTaskForm');
+    var titleInput = form ? form.querySelector('[name="title"]') : null;
+    var descInput = form ? form.querySelector('[name="description"]') : null;
+    var projectSelect = form ? form.querySelector('select[name="project_public_id"]') : null;
+    var clientSelect = form ? form.querySelector('select[name="client_public_id"]') : null;
+
+    if (prefill && prefill.title && titleInput) titleInput.value = String(prefill.title);
+    if (prefill && prefill.description && descInput) {
+      descInput.value = String(prefill.description);
+      refreshVisualEditors(form, true);
+    }
+    if (prefill && prefill.project_public_id && projectSelect) {
+      projectSelect.value = String(prefill.project_public_id);
+      if (projectSelect.dataset && projectSelect.dataset.searchable === '1') {
+        projectSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }
+    var client = legacyClient || (prefill && prefill.client_public_id ? String(prefill.client_public_id) : '');
+    if (client && clientSelect) {
+      clientSelect.value = client;
+      if (clientSelect.dataset && clientSelect.dataset.searchable === '1') {
+        clientSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }
+
+    // Carry the optional source-link (e.g. chat message) into the submit payload.
+    pendingTaskSource = prefill ? {
+      source_type: prefill.source_type || null,
+      source_id: prefill.source_id || null,
+      source_url: prefill.source_url || null,
+      source_payload_json: prefill.source_payload_json || null
+    } : null;
   }
 
   function primeCreateTaskDefaults() {
@@ -2100,6 +2138,8 @@ window.CRM.br1 = (function () {
 
       modal.addEventListener('hidden.bs.modal', function () {
         window._taskClientPrefill = null;
+        window._taskCreatePrefill = null;
+        pendingTaskSource = null;
         primeCreateTaskDefaults();
       });
 
@@ -2154,7 +2194,11 @@ window.CRM.br1 = (function () {
               project_public_id: projectSelect && projectSelect.value ? String(projectSelect.value) : '',
               client_public_id: clientSelect && clientSelect.value ? String(clientSelect.value) : '',
               status: statusSelect && statusSelect.value ? String(statusSelect.value) : 'new',
-              priority: prioritySelect && prioritySelect.value ? String(prioritySelect.value) : 'normal'
+              priority: prioritySelect && prioritySelect.value ? String(prioritySelect.value) : 'normal',
+              source_type: pendingTaskSource && pendingTaskSource.source_type ? pendingTaskSource.source_type : null,
+              source_id: pendingTaskSource && pendingTaskSource.source_id ? pendingTaskSource.source_id : null,
+              source_url: pendingTaskSource && pendingTaskSource.source_url ? pendingTaskSource.source_url : null,
+              source_payload_json: pendingTaskSource && pendingTaskSource.source_payload_json ? pendingTaskSource.source_payload_json : null
             }
           });
 
