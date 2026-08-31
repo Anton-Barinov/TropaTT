@@ -1109,13 +1109,11 @@ $auJs = [
   }
 
   async function preflight() {
-    // Run the read-only preflight directly against the local updater. The API
-    // proxy performs a synchronous request back into the same PHP application;
-    // on shared hosting with a constrained PHP-FPM pool that can deadlock and
-    // surface as a gateway 504. The updater already exposes this dry-run action
-    // without a token and the browser request preserves the authenticated
-    // same-origin session context for the page.
-    const result = await api('/updater/index.php?action=preflight', {method: 'POST', body: JSON.stringify({dry_run: true}), timeoutMs: 180000});
+    // Obtain a one-time updater token from the CRM session endpoint, then
+    // run the preflight check against the local updater. The updater kernel
+    // requires a valid token for all actions including dry-run preflight.
+    const token = await updaterSession();
+    const result = await api('/updater/index.php?action=preflight', {method: 'POST', body: JSON.stringify({dry_run: true, token}), timeoutMs: 180000});
     ensureSuccess(result, tr('errPreflight', 'Не удалось выполнить безопасную проверку.'));
     const data = result.data || result;
     state.preflight = data.preflight || data;
