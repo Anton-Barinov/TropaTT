@@ -132,6 +132,47 @@ CREATE DATABASE your_database;
 
 3. **ModSecurity blocking API requests** — Some shared hosting providers enable ModSecurity rules that block API requests. Ask your host to disable ModSecurity for your domain, or check the `.htaccess` file.
 
+### "Unknown column 'is_external'" (or another missing column) — database not migrated
+
+**Symptoms:** Login fails right after you replaced the application files (e.g. you
+copied newer files from GitHub over an existing installation) and the error log
+shows `SQLSTATE[42S22]: Unknown column 'is_external' in 'field list'`. The same
+symptom can appear on any page, not just login.
+
+**Cause:** The code is newer than the database schema. Database migrations run only
+when you install the CRM or update it through **Administration → System Updates** —
+manually replacing files never applies them, so columns the new code selects (such
+as `users.is_external`) are missing.
+
+**Fix — apply pending migrations:**
+
+1. **Via SSH / hosting terminal** (best). From the installation root (the directory
+   containing `api/` and `web/`), run:
+   ```bash
+   php api/scripts/run_migrations.php
+   ```
+   Migrations are idempotent, so re-running is safe. Useful options:
+   `--status` (show applied/pending), `--dry-run` (show what would run), and
+   `--limit N` (apply at most N migrations per run if your host cuts long
+   requests — repeat until it prints “Database schema is up to date”).
+
+2. **Via cron (no SSH).** Create a one-off cron job in your hosting panel:
+   ```cron
+   php /full/path/to/api/scripts/run_migrations.php
+   ```
+
+3. **Via phpMyAdmin** as a minimal unblock:
+   ```sql
+   ALTER TABLE users ADD COLUMN is_external TINYINT(1) NOT NULL DEFAULT 0;
+   ```
+   Full migration through the CLI or **Administration → System Updates** is
+   strongly recommended afterwards — the migration list is much larger than one
+   column.
+
+After migrations are applied, login works again. Going forward, update the CRM only
+through **Administration → System Updates**, which applies both files and database
+migrations automatically (and can roll back on failure).
+
 ### "Session directory is not writable"
 
 **Symptoms:** Login succeeds but pages reload as if you are not logged in.

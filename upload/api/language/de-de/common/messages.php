@@ -12,6 +12,8 @@ return [
     'invalid_value' => 'Invalid value',
     'task_not_found' => 'Task not found',
     'internal_error' => 'Internal server error',
+    'db_schema_outdated' => 'Datenbankschema ist veraltet',
+    'db_schema_outdated_hint' => 'Wenden Sie ausstehende Datenbankmigrationen an: Administration → System-Updates, oder führen Sie php api/scripts/run_migrations.php aus dem Installationsverzeichnis aus',
     'maintenance_mode' => 'Die CRM-Wartung wird durchgeführt. Bitte versuchen Sie es später erneut.',
     'invalid_request' => 'Ungültige Anfrage',
     'invalid_parameter' => 'Ungültiger Anfrageparameter',

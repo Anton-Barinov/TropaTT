@@ -12,6 +12,8 @@ return [
     'invalid_value' => 'Valeur invalide',
     'task_not_found' => 'Tâche introuvable',
     'internal_error' => 'Erreur interne du serveur',
+    'db_schema_outdated' => 'Le schéma de la base de données est obsolète',
+    'db_schema_outdated_hint' => 'Appliquez les migrations de base de données en attente : Administration → Mises à jour du système, ou exécutez php api/scripts/run_migrations.php depuis le dossier d’installation',
     'maintenance_mode' => 'La maintenance du CRM est en cours. Réessayez plus tard.',
     'invalid_request' => 'Requête invalide',
     'invalid_parameter' => 'Paramètre de requête invalide',

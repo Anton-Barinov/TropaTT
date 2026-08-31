@@ -12,6 +12,8 @@ return [
     'invalid_value' => 'Invalid value',
     'task_not_found' => 'Task not found',
     'internal_error' => 'Internal server error',
+    'db_schema_outdated' => 'Database schema is outdated',
+    'db_schema_outdated_hint' => 'Apply pending database migrations: Administration → System Updates, or run php api/scripts/run_migrations.php from the installation directory',
     'maintenance_mode' => 'CRM maintenance is in progress. Please try again later.',
     'invalid_request' => 'Invalid request',
     'invalid_parameter' => 'Invalid request parameter',
