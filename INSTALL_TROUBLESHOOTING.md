@@ -113,6 +113,31 @@ CREATE DATABASE your_database;
 
 **Fix:** Check that the `api/` directory is writable and that no security script (like `disable_functions`) blocks `file_put_contents` or similar file operations.
 
+### Update page fails the safety check: "Write permissions" (api_writable / web_writable)
+
+**Symptoms:** Admin → Updates → the safety check reports an error for "Access to API files"
+(`api_writable`) and/or "Access to web files" (`web_writable`), so the update never starts.
+
+**Cause:** The web server user cannot write into the `api/` and `web/` directories. This usually
+happens after uploading the files manually over FTP: the files are owned by the FTP user, but
+PHP runs as a different user (e.g., `www-data`).
+
+**Fixes:**
+
+1. **Set the same owner as the working directories** (compare with `storage/`, which normally
+already works):
+   ```bash
+   ps aux | grep -E 'apache|httpd|nginx|php-fpm'   # find the web server user
+   chown -R www-data:www-data api/ web/           # replace www-data with your server user
+   ```
+2. **Or set wider permissions (shared hosting):**
+   ```bash
+   chmod -R 775 api/ web/
+   ```
+   Via a hosting panel: select `api/` and `web/` and set permissions to 775 (or "write" for
+the group) recursively if the panel offers it.
+3. Re-run the safety check on the Updates page. After it passes, the update works normally.
+
 ---
 
 ## "Internal server error" after login
