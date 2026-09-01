@@ -470,6 +470,12 @@ final class ChatController extends BaseController
 
     public function editMessage(array $params = []): JsonResponse
     {
+        // External users (client portal): defence-in-depth type check
+        $actor = $this->user()['user'] ?? [];
+        if (!empty((int)($actor['is_external'] ?? 0))) {
+            return $this->externalEditMessage($params, $actor);
+        }
+
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
         $text = trim((string)($this->request()->allInput()['text'] ?? ''));
         if (!$chat || $text === '') return $this->error('INVALID_PARAM', $this->t('chat/messages.text_required'), 400);
@@ -495,6 +501,12 @@ final class ChatController extends BaseController
 
     public function deleteMessage(array $params = []): JsonResponse
     {
+        // External users (client portal): defence-in-depth type check
+        $actor = $this->user()['user'] ?? [];
+        if (!empty((int)($actor['is_external'] ?? 0))) {
+            return $this->externalDeleteMessage($params, $actor);
+        }
+
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
         if (!$chat) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
 
@@ -511,6 +523,59 @@ final class ChatController extends BaseController
         $pdo = $this->container->get('db.pdo');
         $pdo->prepare("UPDATE chat_messages SET deleted_at = NOW(), deleted_by_user_id = :uid WHERE id = :id")
             ->execute(['uid' => $this->currentUserId(), 'id' => (int)$message['id']]);
+        $this->auditMessage((int)$message['id'], (int)$chat['id'], 'delete', (string)$message['text'], null);
+
+        return $this->success('MESSAGE_DELETED', $this->t('chat/messages.message_deleted'));
+    }
+
+    /**
+     * External user (client portal): edit own message within 60 minutes.
+     * Defence-in-depth: project_client type + participant membership + own
+     * non-deleted message within the window — all enforced server-side.
+     */
+    private function externalEditMessage(array $params, array $actor): JsonResponse
+    {
+        $publicId = trim((string)($params['public_id'] ?? ''));
+        if ($publicId === '') return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+
+        $chat = $this->resolveExternalChat($publicId, (int)$actor['id']);
+        if (!$chat) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+
+        $text = trim((string)($this->request()->allInput()['text'] ?? ''));
+        if ($text === '') return $this->error('INVALID_PARAM', $this->t('chat/messages.text_required'), 400);
+        if (mb_strlen($text) > 4000) return $this->error('TEXT_TOO_LONG', $this->t('chat/messages.message_too_long'), 422);
+
+        // Same window as the staff chat: 60 minutes for edits.
+        $message = $this->editableMessage((int)$chat['id'], (string)($params['message_public_id'] ?? ''), 60);
+        if (!$message) return $this->error('EDIT_FORBIDDEN', $this->t('chat/messages.cannot_edit'), 403);
+
+        $pdo = $this->container->get('db.pdo');
+        $pdo->prepare("UPDATE chat_messages SET text = :text, edited_at = NOW() WHERE id = :id")->execute(['text' => $text, 'id' => (int)$message['id']]);
+        $this->auditMessage((int)$message['id'], (int)$chat['id'], 'edit', (string)$message['text'], $text);
+
+        return $this->success('MESSAGE_EDITED', $this->t('chat/messages.message_edited'));
+    }
+
+    /**
+     * External user (client portal): delete own message within 10 minutes.
+     * Defence-in-depth: project_client type + participant membership + own
+     * non-deleted message within the window — all enforced server-side.
+     */
+    private function externalDeleteMessage(array $params, array $actor): JsonResponse
+    {
+        $publicId = trim((string)($params['public_id'] ?? ''));
+        if ($publicId === '') return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+
+        $chat = $this->resolveExternalChat($publicId, (int)$actor['id']);
+        if (!$chat) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+
+        // Same window as the staff chat: 10 minutes for deletes.
+        $message = $this->editableMessage((int)$chat['id'], (string)($params['message_public_id'] ?? ''), 10);
+        if (!$message) return $this->error('DELETE_FORBIDDEN', $this->t('chat/messages.cannot_delete'), 403);
+
+        $pdo = $this->container->get('db.pdo');
+        $pdo->prepare("UPDATE chat_messages SET deleted_at = NOW(), deleted_by_user_id = :uid WHERE id = :id")
+            ->execute(['uid' => (int)$actor['id'], 'id' => (int)$message['id']]);
         $this->auditMessage((int)$message['id'], (int)$chat['id'], 'delete', (string)$message['text'], null);
 
         return $this->success('MESSAGE_DELETED', $this->t('chat/messages.message_deleted'));

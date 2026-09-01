@@ -5262,6 +5262,14 @@ return array (
     'client_chat_placeholder' => '输入消息...',
     'client_chat_send' => '发送',
     'client_chat_no_messages' => '暂无消息。',
+    'client_chat_you' => '您',
+    'client_chat_team' => '团队',
+    'client_chat_edited' => '已编辑',
+    'client_chat_edit' => '编辑',
+    'client_chat_delete' => '删除',
+    'client_chat_edit_save' => '保存',
+    'client_chat_edit_cancel' => '取消',
+    'client_chat_delete_confirm' => '删除消息？此操作无法撤销。',
   ),
   'companies' => 
   array (

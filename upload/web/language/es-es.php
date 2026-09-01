@@ -8294,6 +8294,14 @@ return array (
     'client_chat_placeholder' => 'Escribe un mensaje...',
     'client_chat_send' => 'Enviar',
     'client_chat_no_messages' => 'Aún no hay mensajes.',
+    'client_chat_you' => 'Tú',
+    'client_chat_team' => 'Equipo',
+    'client_chat_edited' => 'editado',
+    'client_chat_edit' => 'Editar',
+    'client_chat_delete' => 'Eliminar',
+    'client_chat_edit_save' => 'Guardar',
+    'client_chat_edit_cancel' => 'Cancelar',
+    'client_chat_delete_confirm' => '¿Eliminar mensaje? Esta acción no se puede deshacer.',
   ),
   'projects' => 
   array (

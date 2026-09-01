@@ -5262,6 +5262,14 @@ return array (
     'client_chat_placeholder' => 'Напишите сообщение...',
     'client_chat_send' => 'Отправить',
     'client_chat_no_messages' => 'Сообщений пока нет.',
+    'client_chat_you' => 'Вы',
+    'client_chat_team' => 'Команда',
+    'client_chat_edited' => 'изменено',
+    'client_chat_edit' => 'Изменить',
+    'client_chat_delete' => 'Удалить',
+    'client_chat_edit_save' => 'Сохранить',
+    'client_chat_edit_cancel' => 'Отмена',
+    'client_chat_delete_confirm' => 'Удалить сообщение? Это действие нельзя отменить.',
   ),
   'companies' => 
   array (

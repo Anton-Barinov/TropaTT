@@ -578,7 +578,7 @@
         if (!text || !clientChatPublicId) return;
         chatInputEl.disabled = true;
         try {
-          await api.request('api/v1/chats/' + encodeURIComponent(clientChatPublicId) + '/messages', { method: 'POST', body: JSON.stringify({ text: text }) });
+          await api.request('api/v1/chats/' + encodeURIComponent(clientChatPublicId) + '/messages', { method: 'POST', body: { text: text } });
           chatInputEl.value = '';
           await loadClientChatMessages(api, clientChatPublicId, chatMsgsEl);
         } catch (e) { /* ignore */ }
@@ -597,16 +597,79 @@
         container.innerHTML = '<div class="text-muted small"><?= htmlspecialchars($t('project_detail.client_chat_no_messages', 'Сообщений пока нет.'), ENT_QUOTES, 'UTF-8') ?></div>';
         return;
       }
+      var meId = window.CRM.me && window.CRM.me.public_id;
       container.innerHTML = msgs.map(function (m) {
-        var isOwn = m.sender_user_public_id === (window.CRM.me && window.CRM.me.public_id);
-        var senderName = escapeHtml(m.sender_name || (isOwn ? 'Вы' : 'Команда'));
+        // Server-computed flags are the single source of truth (same windows as
+        // the staff chat: edit <= 60 min, delete <= 10 min, own message only).
+        var isOwn = Number(m.is_own === undefined || m.is_own === null ? (m.sender_user_public_id === meId ? 1 : 0) : m.is_own) === 1;
+        var canEdit = Number(m.can_edit || 0) === 1;
+        var canDelete = Number(m.can_delete || 0) === 1;
+        var senderName = escapeHtml(m.sender_name || (isOwn ? window.CRM.i18n.t('project_detail.client_chat_you', 'Вы') : window.CRM.i18n.t('project_detail.client_chat_team', 'Команда')));
         var time = m.created_at ? new Date(m.created_at).toLocaleString() : '';
-        return '<div class="mb-2' + (isOwn ? ' text-end' : '') + '"><div class="d-inline-block text-start" style="max-width:80%;"><small class="text-muted">' + senderName + ' · ' + escapeHtml(time) + '</small><div class="border rounded px-2 py-1 mt-1" style="word-break:break-word;">' + escapeHtml(m.text || '') + '</div></div></div>';
+        var edited = m.edited_at ? ' <small class="text-muted">' + escapeHtml(window.CRM.i18n.t('project_detail.client_chat_edited', 'изменено')) + '</small>' : '';
+        var actions = '';
+        if (canEdit) actions += '<button type="button" class="btn btn-sm crm-btn-muted crm-btn-compact" data-edit-chat-msg="' + escapeHtml(m.public_id || '') + '">' + escapeHtml(window.CRM.i18n.t('project_detail.client_chat_edit', 'Изменить')) + '</button>';
+        if (canDelete) actions += '<button type="button" class="btn btn-sm crm-btn-muted crm-btn-compact" data-delete-chat-msg="' + escapeHtml(m.public_id || '') + '">' + escapeHtml(window.CRM.i18n.t('project_detail.client_chat_delete', 'Удалить')) + '</button>';
+        var actionBar = actions ? '<div class="mt-1 d-flex gap-1 justify-content-end">' + actions + '</div>' : '';
+        return '<div class="mb-2' + (isOwn ? ' text-end' : '') + '" data-chat-msg="' + escapeHtml(m.public_id || '') + '"><div class="d-inline-block text-start" style="max-width:80%;"><small class="text-muted">' + senderName + ' · ' + escapeHtml(time) + edited + '</small><div class="border rounded px-2 py-1 mt-1" style="word-break:break-word;">' + escapeHtml(m.text || '') + '</div>' + actionBar + '</div></div>';
       }).join('');
+      bindClientChatMessageActions(api, chatId, container);
       container.scrollTop = container.scrollHeight;
     } catch (e) {
       container.innerHTML = '<div class="text-muted small">—</div>';
     }
+  }
+
+  function bindClientChatMessageActions(api, chatId, container) {
+    if (!container || container.getAttribute('data-chat-actions-bound') === '1') return;
+    container.setAttribute('data-chat-actions-bound', '1');
+    container.addEventListener('click', async function (ev) {
+      var editBtn = ev.target.closest('[data-edit-chat-msg]');
+      if (editBtn) {
+        var msgId = editBtn.getAttribute('data-edit-chat-msg');
+        var wrap = container.querySelector('[data-chat-msg="' + CSS.escape(msgId) + '"]');
+        if (!wrap || wrap.querySelector('textarea')) return;
+        var bubble = wrap.querySelector('.border');
+        if (!bubble) return;
+        var oldText = bubble.textContent || '';
+        bubble.innerHTML = '<textarea class="form-control form-control-sm" rows="2" maxlength="2000">' + escapeHtml(oldText) + '</textarea>'
+          + '<div class="d-flex gap-1 mt-1 justify-content-end">'
+          + '<button type="button" class="btn btn-sm crm-btn-primary crm-btn-compact" data-save-chat-msg="' + escapeHtml(msgId) + '">' + escapeHtml(window.CRM.i18n.t('project_detail.client_chat_edit_save', 'Сохранить')) + '</button>'
+          + '<button type="button" class="btn btn-sm crm-btn-muted crm-btn-compact" data-cancel-chat-msg="1">' + escapeHtml(window.CRM.i18n.t('project_detail.client_chat_edit_cancel', 'Отмена')) + '</button>'
+          + '</div>';
+        bubble.querySelector('textarea').focus();
+        return;
+      }
+      var saveBtn = ev.target.closest('[data-save-chat-msg]');
+      if (saveBtn) {
+        var msgId2 = saveBtn.getAttribute('data-save-chat-msg');
+        var wrap2 = container.querySelector('[data-chat-msg="' + CSS.escape(msgId2) + '"]');
+        var ta = wrap2 && wrap2.querySelector('textarea');
+        if (!wrap2 || !ta || !chatId) return;
+        var text = (ta.value || '').trim();
+        if (!text) { ta.focus(); return; }
+        saveBtn.disabled = true;
+        try {
+          await api.request('api/v1/chats/' + encodeURIComponent(chatId) + '/messages/' + encodeURIComponent(msgId2), { method: 'PATCH', body: { text: text } });
+        } catch (e) { /* ignore */ }
+        await loadClientChatMessages(api, chatId, container);
+        return;
+      }
+      if (ev.target.closest('[data-cancel-chat-msg]')) {
+        loadClientChatMessages(api, chatId, container);
+        return;
+      }
+      var delBtn = ev.target.closest('[data-delete-chat-msg]');
+      if (delBtn) {
+        var msgId3 = delBtn.getAttribute('data-delete-chat-msg');
+        if (!window.confirm(window.CRM.i18n.t('project_detail.client_chat_delete_confirm', 'Удалить сообщение? Это действие нельзя отменить.'))) return;
+        if (!chatId) return;
+        try {
+          await api.request('api/v1/chats/' + encodeURIComponent(chatId) + '/messages/' + encodeURIComponent(msgId3), { method: 'DELETE' });
+        } catch (e) { /* ignore */ }
+        await loadClientChatMessages(api, chatId, container);
+      }
+    });
   }
 
   function escapeHtml(s) {

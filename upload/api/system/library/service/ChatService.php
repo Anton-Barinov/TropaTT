@@ -245,7 +245,10 @@ final class ChatService
         $stmt = $this->pdo->prepare("
             SELECT cm.public_id, cm.text, cm.message_type, cm.created_at, cm.edited_at,
                    cm.reply_to_message_id, cm.sender_user_id,
-                   u.full_name AS sender_name, u.public_id AS sender_public_id
+                   u.full_name AS sender_name, u.public_id AS sender_public_id,
+                   CASE WHEN cm.sender_user_id = :uid2 THEN 1 ELSE 0 END AS is_own,
+                   CASE WHEN cm.sender_user_id = :uid3 AND cm.deleted_at IS NULL AND cm.created_at >= DATE_SUB(NOW(), INTERVAL 60 MINUTE) THEN 1 ELSE 0 END AS can_edit,
+                   CASE WHEN cm.sender_user_id = :uid4 AND cm.deleted_at IS NULL AND cm.created_at >= DATE_SUB(NOW(), INTERVAL 10 MINUTE) THEN 1 ELSE 0 END AS can_delete
             FROM chat_messages cm
             LEFT JOIN users u ON u.id = cm.sender_user_id
             WHERE cm.chat_id = :cid AND cm.deleted_at IS NULL
@@ -256,6 +259,9 @@ final class ChatService
         // statements (EMULATE_PREPARES=false), string-bound LIMIT/OFFSET is
         // rejected by MySQL, breaking the external chat read path entirely.
         $stmt->bindValue(':cid', $chatId, \PDO::PARAM_INT);
+        $stmt->bindValue(':uid2', $userId, \PDO::PARAM_INT);
+        $stmt->bindValue(':uid3', $userId, \PDO::PARAM_INT);
+        $stmt->bindValue(':uid4', $userId, \PDO::PARAM_INT);
         $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
         $stmt->execute();
@@ -317,9 +323,12 @@ final class ChatService
             ->execute(['id' => $chatId]);
 
         $stmt = $this->pdo->prepare("
-            SELECT cm.public_id, cm.text, cm.message_type, cm.created_at,
+            SELECT cm.public_id, cm.text, cm.message_type, cm.created_at, cm.edited_at,
                    cm.reply_to_message_id, cm.sender_user_id,
-                   u.full_name AS sender_name, u.public_id AS sender_public_id
+                   u.full_name AS sender_name, u.public_id AS sender_public_id,
+                   1 AS is_own,
+                   1 AS can_edit,
+                   1 AS can_delete
             FROM chat_messages cm
             LEFT JOIN users u ON u.id = cm.sender_user_id
             WHERE cm.public_id = :pid

@@ -8294,6 +8294,14 @@ return array (
     'client_chat_placeholder' => 'Écrivez un message...',
     'client_chat_send' => 'Envoyer',
     'client_chat_no_messages' => 'Pas encore de messages.',
+    'client_chat_you' => 'Vous',
+    'client_chat_team' => 'Équipe',
+    'client_chat_edited' => 'modifié',
+    'client_chat_edit' => 'Modifier',
+    'client_chat_delete' => 'Supprimer',
+    'client_chat_edit_save' => 'Enregistrer',
+    'client_chat_edit_cancel' => 'Annuler',
+    'client_chat_delete_confirm' => 'Supprimer le message ? Cette action est irréversible.',
   ),
   'projects' => 
   array (
