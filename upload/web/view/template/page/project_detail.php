@@ -621,10 +621,12 @@
   }
 
   function bindClientChatMessageActions(api, chatId, container) {
-    if (!container) return;
-    container.querySelectorAll('[data-edit-chat-msg]').forEach(function (btn) {
-      btn.addEventListener('click', async function () {
-        var msgId = btn.getAttribute('data-edit-chat-msg');
+    if (!container || container.getAttribute('data-chat-actions-bound') === '1') return;
+    container.setAttribute('data-chat-actions-bound', '1');
+    container.addEventListener('click', async function (ev) {
+      var editBtn = ev.target.closest('[data-edit-chat-msg]');
+      if (editBtn) {
+        var msgId = editBtn.getAttribute('data-edit-chat-msg');
         var wrap = container.querySelector('[data-chat-msg="' + CSS.escape(msgId) + '"]');
         if (!wrap || wrap.querySelector('textarea')) return;
         var bubble = wrap.querySelector('.border');
@@ -636,37 +638,37 @@
           + '<button type="button" class="btn btn-sm crm-btn-muted crm-btn-compact" data-cancel-chat-msg="1">' + escapeHtml(window.CRM.i18n.t('project_detail.client_chat_edit_cancel', 'Отмена')) + '</button>'
           + '</div>';
         bubble.querySelector('textarea').focus();
-      });
-    });
-    container.querySelectorAll('[data-save-chat-msg]').forEach(function (btn) {
-      btn.addEventListener('click', async function () {
-        var msgId = btn.getAttribute('data-save-chat-msg');
-        var wrap = container.querySelector('[data-chat-msg="' + CSS.escape(msgId) + '"]');
-        var ta = wrap && wrap.querySelector('textarea');
-        if (!wrap || !ta || !chatId) return;
+        return;
+      }
+      var saveBtn = ev.target.closest('[data-save-chat-msg]');
+      if (saveBtn) {
+        var msgId2 = saveBtn.getAttribute('data-save-chat-msg');
+        var wrap2 = container.querySelector('[data-chat-msg="' + CSS.escape(msgId2) + '"]');
+        var ta = wrap2 && wrap2.querySelector('textarea');
+        if (!wrap2 || !ta || !chatId) return;
         var text = (ta.value || '').trim();
         if (!text) { ta.focus(); return; }
+        saveBtn.disabled = true;
         try {
-          await api.request('api/v1/chats/' + encodeURIComponent(chatId) + '/messages/' + encodeURIComponent(msgId), { method: 'PATCH', body: { text: text } });
+          await api.request('api/v1/chats/' + encodeURIComponent(chatId) + '/messages/' + encodeURIComponent(msgId2), { method: 'PATCH', body: { text: text } });
         } catch (e) { /* ignore */ }
         await loadClientChatMessages(api, chatId, container);
-      });
-    });
-    container.querySelectorAll('[data-cancel-chat-msg]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
+        return;
+      }
+      if (ev.target.closest('[data-cancel-chat-msg]')) {
         loadClientChatMessages(api, chatId, container);
-      });
-    });
-    container.querySelectorAll('[data-delete-chat-msg]').forEach(function (btn) {
-      btn.addEventListener('click', async function () {
-        var msgId = btn.getAttribute('data-delete-chat-msg');
+        return;
+      }
+      var delBtn = ev.target.closest('[data-delete-chat-msg]');
+      if (delBtn) {
+        var msgId3 = delBtn.getAttribute('data-delete-chat-msg');
         if (!window.confirm(window.CRM.i18n.t('project_detail.client_chat_delete_confirm', 'Удалить сообщение? Это действие нельзя отменить.'))) return;
         if (!chatId) return;
         try {
-          await api.request('api/v1/chats/' + encodeURIComponent(chatId) + '/messages/' + encodeURIComponent(msgId), { method: 'DELETE' });
+          await api.request('api/v1/chats/' + encodeURIComponent(chatId) + '/messages/' + encodeURIComponent(msgId3), { method: 'DELETE' });
         } catch (e) { /* ignore */ }
         await loadClientChatMessages(api, chatId, container);
-      });
+      }
     });
   }
 
