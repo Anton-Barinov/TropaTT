@@ -157,13 +157,19 @@ $expectedExternalRoutes = [
     'GET /api/v1/projects/{public_id}/milestones-summary',
     'GET /api/v1/projects/{public_id}/risks',
     'GET /api/v1/milestones',
-    // External user client chat: list own project_client chats, read/write messages.
-    // Defence-in-depth: ChatController::list() filters to project_client type only for
-    // external users; ChatService::getChatForExternal() verifies chat.type = 'project_client'
-    // AND participant membership on every call.
+    // External user client chat: list own project_client chats, read/write/edit/delete own
+    // messages. Defence-in-depth: ChatController::list() filters to project_client type only
+    // for external users; ChatService::getChatForExternal() verifies chat.type = 'project_client'
+    // AND participant membership on every call; editMessage()/deleteMessage() external branches
+    // additionally require the actor to be the message sender (editableMessage: sender_user_id =
+    // actor, not deleted) and the message to be inside the same time windows as the staff chat
+    // (edit <= 60 min, delete <= 10 min). This is deliberate self-service moderation of the
+    // guest's OWN message — not a general delete/edit surface.
     'GET /api/v1/chats',
     'GET /api/v1/chats/{public_id}/messages',
     'POST /api/v1/chats/{public_id}/messages',
+    'PATCH /api/v1/chats/{public_id}/messages/{message_public_id}',
+    'DELETE /api/v1/chats/{public_id}/messages/{message_public_id}',
     'POST /api/v1/chats/{public_id}/read',
     'GET /api/v1/chats/{public_id}',
     'GET /api/v1/chats/unread-count',
@@ -238,21 +244,30 @@ foreach ($routes as $route) {
         (array)($route['methods'] ?? [])
     );
 
-    if (in_array('DELETE', $methods, true)) {
+    // Self-service moderation of the guest's OWN chat message: PATCH/DELETE on
+    // /chats/{public_id}/messages/{message_public_id}. It is allowed only because the
+    // controller's external branch enforces, server-side: project_client chat type +
+    // participant membership (getChatForExternal) + sender = actor + not deleted +
+    // time window (60 min edit / 10 min delete). The actor can never touch another
+    // user's message, so this is not a general mutation/delete surface.
+    $isOwnChatMessageWrite = str_contains($pattern, '/chats/{public_id}/messages/{message_public_id}');
+
+    if (in_array('DELETE', $methods, true) && !$isOwnChatMessageWrite) {
         $failures[] = "external_ok route allows DELETE (guests must never delete): {$pattern}";
     }
 
-    // PATCH/PUT is permitted only for marking one's own notifications read/unread, or for
+    // PATCH/PUT is permitted only for marking one's own notifications read/unread, for
     // the two own-profile self-service writes (name/locale/timezone, interface prefs — both
-    // scoped to the actor's own row, never another user's).
+    // scoped to the actor's own row, never another user's), or for self-service moderation
+    // of the guest's own chat message (see $isOwnChatMessageWrite above).
     $isNotificationReadToggle = str_contains($pattern, '/notifications/')
         && (str_ends_with($pattern, '/read') || str_ends_with($pattern, '/unread'));
     $isOwnProfileWrite = $pattern === '/api/v1/profile/me' || $pattern === '/api/v1/profile/preferences';
     foreach (['PATCH', 'PUT'] as $writeMethod) {
-        if (in_array($writeMethod, $methods, true) && !$isNotificationReadToggle && !$isOwnProfileWrite) {
+        if (in_array($writeMethod, $methods, true) && !$isNotificationReadToggle && !$isOwnProfileWrite && !$isOwnChatMessageWrite) {
             $failures[] = "external_ok route allows {$writeMethod} outside the notification "
-                . "read/unread toggle or own-profile self-service (guests must not mutate CRM "
-                . "records): {$pattern}";
+                . "read/unread toggle, own-profile self-service, or own-chat-message moderation "
+                . "(guests must not mutate CRM records): {$pattern}";
         }
     }
 

@@ -5241,6 +5241,14 @@ return array (
     'client_chat_placeholder' => 'Type a message...',
     'client_chat_send' => 'Send',
     'client_chat_no_messages' => 'No messages yet.',
+    'client_chat_you' => 'You',
+    'client_chat_team' => 'Team',
+    'client_chat_edited' => 'edited',
+    'client_chat_edit' => 'Edit',
+    'client_chat_delete' => 'Delete',
+    'client_chat_edit_save' => 'Save',
+    'client_chat_edit_cancel' => 'Cancel',
+    'client_chat_delete_confirm' => 'Delete message? This action cannot be undone.',
   ),
   'companies' => 
   array (

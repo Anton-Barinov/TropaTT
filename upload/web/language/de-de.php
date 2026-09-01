@@ -8294,6 +8294,14 @@ return array (
     'client_chat_placeholder' => 'Nachricht eingeben...',
     'client_chat_send' => 'Senden',
     'client_chat_no_messages' => 'Noch keine Nachrichten.',
+    'client_chat_you' => 'Sie',
+    'client_chat_team' => 'Team',
+    'client_chat_edited' => 'bearbeitet',
+    'client_chat_edit' => 'Bearbeiten',
+    'client_chat_delete' => 'Löschen',
+    'client_chat_edit_save' => 'Speichern',
+    'client_chat_edit_cancel' => 'Abbrechen',
+    'client_chat_delete_confirm' => 'Nachricht löschen? Diese Aktion kann nicht rückgängig gemacht werden.',
   ),
   'projects' => 
   array (
