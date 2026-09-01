@@ -6384,6 +6384,7 @@ return array (
     'loading_older' => '加载中...',
     'no_more_messages' => '对话开始',
     'new_messages' => '新消息',
+    'btn_more_aria' => '更多操作',
     'btn_copy' => '复制',
     'btn_copy_title' => '复制消息',
     'btn_copy_aria' => '复制消息',

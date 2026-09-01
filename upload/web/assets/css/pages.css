@@ -8445,6 +8445,7 @@ body.modal-open {
 }
 
 .crm-chat-message {
+  position: relative;
   max-width: min(680px, 84%);
   margin-bottom: 0.75rem;
   padding: 0.65rem 0.8rem;
@@ -8479,6 +8480,7 @@ body.modal-open {
   align-items: baseline;
   gap: 0.5rem;
   margin-bottom: 0.25rem;
+  padding-right: 1.9rem;
   color: var(--crm-text-muted);
   font-size: 0.76rem;
 }
@@ -8812,34 +8814,136 @@ body.modal-open {
 }
 
 .crm-chat-message-foot {
-  margin-top: 0.45rem;
+  margin-top: 0.5rem;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
+  align-items: center;
+  gap: 0.3rem;
   color: var(--crm-text-soft);
   font-size: 0.74rem;
 }
 
-.crm-chat-message-foot button {
-  padding: 0;
+.crm-chat-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.18rem 0.5rem;
   border: 0;
+  border-radius: 4px;
   background: transparent;
   color: var(--crm-text-muted);
+  font-size: 0.73rem;
+  line-height: 1.2;
   text-decoration: none;
+  transition: background-color 0.12s ease, color 0.12s ease;
 }
 
-.crm-chat-message-foot button:hover,
-.crm-chat-message-foot button:focus-visible {
+.crm-chat-action i {
+  font-size: 0.72rem;
+  line-height: 1;
+}
+
+.crm-chat-quick-action:hover,
+.crm-chat-quick-action:focus-visible {
+  background: var(--crm-border-light);
   color: var(--crm-accent-strong);
   outline: 0;
 }
 
+.crm-chat-message:hover .crm-chat-quick-action {
+  color: var(--crm-text);
+}
+
 .crm-chat-message-foot .crm-chat-edited-marker {
+  padding: 0 0.25rem;
+  border: 0;
+  background: transparent;
   color: var(--crm-text-soft);
   font-style: italic;
   cursor: pointer;
   text-decoration: underline dotted;
   text-underline-offset: 3px;
+}
+
+.crm-chat-message-foot .crm-chat-edited-marker:hover {
+  color: var(--crm-accent-strong);
+}
+
+/* Extra-actions menu in the top-right corner of the message card */
+.crm-chat-message-extra {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.4rem;
+  z-index: 5;
+}
+
+.crm-chat-message-extra .crm-chat-more-btn {
+  width: 1.7rem;
+  height: 1.7rem;
+  padding: 0;
+  border-radius: 4px;
+  color: var(--crm-text-soft);
+  opacity: 0.55;
+}
+
+.crm-chat-message:hover .crm-chat-more-btn,
+.crm-chat-message-extra:focus-within .crm-chat-more-btn {
+  opacity: 1;
+}
+
+.crm-chat-more-btn:hover,
+.crm-chat-more-btn:focus-visible {
+  background: var(--crm-border-light);
+  color: var(--crm-text);
+  outline: 0;
+}
+
+.crm-chat-more-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 10;
+  min-width: 11rem;
+  margin-top: 0.2rem;
+  padding: 0.25rem;
+  border: 1px solid var(--crm-border);
+  border-radius: 6px;
+  background: var(--crm-surface);
+  box-shadow: 0 0.3rem 0.8rem rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.crm-chat-more-menu[hidden] {
+  display: none;
+}
+
+.crm-chat-more-item {
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+  justify-content: flex-start;
+  color: var(--crm-text);
+  text-align: left;
+}
+
+.crm-chat-more-item:hover,
+.crm-chat-more-item:focus-visible {
+  background: var(--crm-border-light);
+  color: var(--crm-text);
+  outline: 0;
+}
+
+.crm-chat-more-item--danger {
+  color: var(--crm-danger);
+}
+
+.crm-chat-more-item--danger:hover,
+.crm-chat-more-item--danger:focus-visible {
+  background: var(--crm-danger-border);
+  color: var(--crm-danger);
 }
 
 .crm-chat-history-list {

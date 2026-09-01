@@ -2455,6 +2455,7 @@ return array (
     'loading_older' => 'Carregando...',
     'no_more_messages' => 'Início da conversa',
     'new_messages' => 'Novas mensagens',
+    'btn_more_aria' => 'Mais ações',
     'btn_copy' => 'Copiar',
     'btn_copy_title' => 'Copiar mensagem',
     'btn_copy_aria' => 'Copiar mensagem',
