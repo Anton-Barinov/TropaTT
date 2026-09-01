@@ -6374,6 +6374,7 @@ return array (
     'loading_older' => 'Loading...',
     'no_more_messages' => 'Start of conversation',
     'new_messages' => 'New messages',
+    'btn_more_aria' => 'More actions',
     'btn_copy' => 'Copy',
     'btn_copy_title' => 'Copy message',
     'btn_copy_aria' => 'Copy message',

@@ -6395,6 +6395,7 @@ return array (
     'loading_older' => 'Загрузка...',
     'no_more_messages' => 'Начало переписки',
     'new_messages' => 'Новые сообщения',
+    'btn_more_aria' => 'Дополнительные действия',
     'btn_copy' => 'Копировать',
     'btn_copy_title' => 'Копировать сообщение',
     'btn_copy_aria' => 'Копировать сообщение',
