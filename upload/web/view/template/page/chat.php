@@ -538,12 +538,20 @@
   }
 
   // Authors may edit their own message within 1 hour (60 minutes) of writing it.
+  // Prefer the server-computed flag (single source of truth); fall back to a
+  // client-side estimate for messages delivered without flags.
   function canEditMessage(message) {
+    if (message && message.can_edit !== undefined && message.can_edit !== null) {
+      return Number(message.can_edit) === 1;
+    }
     return messageAgeMs(message) <= 60 * 60 * 1000;
   }
 
   // Authors may delete their own message within the first 10 minutes of writing it.
   function canDeleteMessage(message) {
+    if (message && message.can_delete !== undefined && message.can_delete !== null) {
+      return Number(message.can_delete) === 1;
+    }
     return messageAgeMs(message) <= 10 * 60 * 1000;
   }
 
