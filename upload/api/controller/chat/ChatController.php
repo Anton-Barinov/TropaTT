@@ -356,8 +356,8 @@ final class ChatController extends BaseController
         $msgStmt = $pdo->prepare("
             SELECT cm.*, cm.id AS message_seq, u.full_name as sender_name, u.login as sender_login,
                    CASE WHEN cm.sender_user_id = :uid THEN 1 ELSE 0 END as is_own,
-                   CASE WHEN cm.sender_user_id = :uid AND cm.deleted_at IS NULL AND cm.created_at >= DATE_SUB(NOW(), INTERVAL 60 MINUTE) THEN 1 ELSE 0 END as can_edit,
-                   CASE WHEN cm.sender_user_id = :uid AND cm.deleted_at IS NULL AND cm.created_at >= DATE_SUB(NOW(), INTERVAL 10 MINUTE) THEN 1 ELSE 0 END as can_delete,
+                   CASE WHEN cm.sender_user_id = :uid2 AND cm.deleted_at IS NULL AND cm.created_at >= DATE_SUB(NOW(), INTERVAL 60 MINUTE) THEN 1 ELSE 0 END as can_edit,
+                   CASE WHEN cm.sender_user_id = :uid3 AND cm.deleted_at IS NULL AND cm.created_at >= DATE_SUB(NOW(), INTERVAL 10 MINUTE) THEN 1 ELSE 0 END as can_delete,
                    rm.public_id AS reply_public_id, rm.text AS reply_text,
                    ru.full_name AS reply_sender_name, ru.login AS reply_sender_login
             FROM chat_messages cm
@@ -370,6 +370,8 @@ final class ChatController extends BaseController
         ");
         $msgStmt->bindValue('cid', (int)$chat['id'], PDO::PARAM_INT);
         $msgStmt->bindValue('uid', $this->currentUserId(), PDO::PARAM_INT);
+        $msgStmt->bindValue('uid2', $this->currentUserId(), PDO::PARAM_INT);
+        $msgStmt->bindValue('uid3', $this->currentUserId(), PDO::PARAM_INT);
         if ($afterId > 0) {
             $msgStmt->bindValue('aid', $afterId, PDO::PARAM_INT);
         } elseif ($beforeId > 0) {
