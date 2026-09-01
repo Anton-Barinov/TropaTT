@@ -377,6 +377,28 @@
     return !box || (box.scrollHeight - box.scrollTop - box.clientHeight) < 96;
   }
 
+  function renderMessageMoreMenu(message, canEdit, canDelete) {
+    var deleted = !!message.deleted_at;
+    var mid = esc(message.public_id || '');
+    var items = [];
+    // Order per spec: Copy → Edit → Delete → Create knowledge page.
+    if (!deleted) {
+      items.push('<button type="button" class="crm-chat-action crm-chat-more-item" role="menuitem" data-copy-message="' + mid + '" title="' + window.CRM.i18n.t('chat.btn_copy_title', 'Копировать сообщение') + '"><i class="fa-solid fa-copy" aria-hidden="true"></i><span>' + window.CRM.i18n.t('chat.btn_copy', 'Копировать') + '</span></button>');
+    }
+    if (canEdit) {
+      items.push('<button type="button" class="crm-chat-action crm-chat-more-item" role="menuitem" data-edit-message="' + mid + '" title="' + window.CRM.i18n.t('chat.btn_edit_title', 'Изменить сообщение') + '"><i class="fa-solid fa-pen" aria-hidden="true"></i><span>' + window.CRM.i18n.t('chat.btn_edit', 'Изменить') + '</span></button>');
+    }
+    if (canDelete) {
+      items.push('<button type="button" class="crm-chat-action crm-chat-more-item crm-chat-more-item--danger" role="menuitem" data-delete-message="' + mid + '" title="' + window.CRM.i18n.t('chat.btn_delete_title', 'Удалить сообщение') + '"><i class="fa-solid fa-trash-can" aria-hidden="true"></i><span>' + window.CRM.i18n.t('chat.btn_delete', 'Удалить') + '</span></button>');
+    }
+    items.push('<button type="button" class="crm-chat-action crm-chat-more-item" role="menuitem" data-create-knowledge="' + mid + '" title="' + window.CRM.i18n.t('chat.btn_create_knowledge_title', 'Создать страницу из сообщения') + '"><i class="fa-solid fa-file-lines" aria-hidden="true"></i><span>' + window.CRM.i18n.t('chat.btn_create_knowledge', 'Создать страницу') + '</span></button>');
+    if (items.length === 0) return ''; // no actions left -> no menu at all
+    return '<div class="crm-chat-message-extra">'
+      + '<button type="button" class="crm-chat-action crm-chat-more-btn" aria-haspopup="true" aria-expanded="false" aria-label="' + window.CRM.i18n.t('chat.btn_more_aria', 'Дополнительные действия') + '" title="' + window.CRM.i18n.t('chat.btn_more_aria', 'Дополнительные действия') + '" data-chat-more><i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i></button>'
+      + '<div class="crm-chat-more-menu" role="menu" hidden>' + items.join('') + '</div>'
+      + '</div>';
+  }
+
   function renderMessage(message) {
       var sender = message.sender_name || message.sender_login || window.CRM.i18n.t('chat.default_sender', 'Пользователь');
       var own = Number(message.is_own || 0) === 1;
@@ -393,15 +415,7 @@
         + '<button type="button" class="crm-chat-action crm-chat-quick-action" data-reply-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_reply_title', 'Ответить на сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_reply_aria', 'Ответить на сообщение') + '"><i class="fa-solid fa-reply" aria-hidden="true"></i><span>' + window.CRM.i18n.t('chat.btn_reply', 'Ответить') + '</span></button>'
         + '<button type="button" class="crm-chat-action crm-chat-quick-action" data-create-task="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_create_task_title', 'Создать задачу из сообщения') + '" aria-label="' + window.CRM.i18n.t('chat.btn_create_task_aria', 'Создать задачу из сообщения') + '"><i class="fa-solid fa-list-check" aria-hidden="true"></i><span>' + window.CRM.i18n.t('chat.btn_create_task', 'Создать задачу') + '</span></button>'
         + '</div>'
-        + '<div class="crm-chat-message-extra">'
-        + '<button type="button" class="crm-chat-action crm-chat-more-btn" aria-haspopup="true" aria-expanded="false" aria-label="' + window.CRM.i18n.t('chat.btn_more_aria', 'Дополнительные действия') + '" title="' + window.CRM.i18n.t('chat.btn_more_aria', 'Дополнительные действия') + '" data-chat-more><i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i></button>'
-        + '<div class="crm-chat-more-menu" role="menu" hidden>'
-        + (!deleted ? '<button type="button" class="crm-chat-action crm-chat-more-item" role="menuitem" data-copy-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_copy_title', 'Копировать сообщение') + '"><i class="fa-solid fa-copy" aria-hidden="true"></i><span>' + window.CRM.i18n.t('chat.btn_copy', 'Копировать') + '</span></button>' : '')
-        + '<button type="button" class="crm-chat-action crm-chat-more-item" role="menuitem" data-create-knowledge="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_create_knowledge_title', 'Создать страницу из сообщения') + '"><i class="fa-solid fa-file-lines" aria-hidden="true"></i><span>' + window.CRM.i18n.t('chat.btn_create_knowledge', 'Создать страницу') + '</span></button>'
-        + (canEdit ? '<button type="button" class="crm-chat-action crm-chat-more-item" role="menuitem" data-edit-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_edit_title', 'Изменить сообщение') + '"><i class="fa-solid fa-pen" aria-hidden="true"></i><span>' + window.CRM.i18n.t('chat.btn_edit', 'Изменить') + '</span></button>' : '')
-        + (canDelete ? '<button type="button" class="crm-chat-action crm-chat-more-item crm-chat-more-item--danger" role="menuitem" data-delete-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_delete_title', 'Удалить сообщение') + '"><i class="fa-solid fa-trash-can" aria-hidden="true"></i><span>' + window.CRM.i18n.t('chat.btn_delete', 'Удалить') + '</span></button>' : '')
-        + '</div>'
-        + '</div>'
+        + renderMessageMoreMenu(message, canEdit, canDelete)
         + '</article>';
   }
 
