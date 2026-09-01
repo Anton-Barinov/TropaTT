@@ -578,7 +578,7 @@
         if (!text || !clientChatPublicId) return;
         chatInputEl.disabled = true;
         try {
-          await api.request('api/v1/chats/' + encodeURIComponent(clientChatPublicId) + '/messages', { method: 'POST', body: JSON.stringify({ text: text }) });
+          await api.request('api/v1/chats/' + encodeURIComponent(clientChatPublicId) + '/messages', { method: 'POST', body: { text: text } });
           chatInputEl.value = '';
           await loadClientChatMessages(api, clientChatPublicId, chatMsgsEl);
         } catch (e) { /* ignore */ }
@@ -647,7 +647,7 @@
         var text = (ta.value || '').trim();
         if (!text) { ta.focus(); return; }
         try {
-          await api.request('api/v1/chats/' + encodeURIComponent(clientChatPublicId) + '/messages/' + encodeURIComponent(msgId), { method: 'PATCH', body: JSON.stringify({ text: text }) });
+          await api.request('api/v1/chats/' + encodeURIComponent(clientChatPublicId) + '/messages/' + encodeURIComponent(msgId), { method: 'PATCH', body: { text: text } });
         } catch (e) { /* ignore */ }
         await loadClientChatMessages(api, clientChatPublicId, container);
       });
