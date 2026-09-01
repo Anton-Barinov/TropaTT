@@ -8834,6 +8834,56 @@ body.modal-open {
   outline: 0;
 }
 
+.crm-chat-message-foot .crm-chat-edited-marker {
+  color: var(--crm-text-soft);
+  font-style: italic;
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+.crm-chat-history-list {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+}
+
+.crm-chat-history-item {
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--crm-border);
+  border-radius: 6px;
+  background: var(--crm-surface-2);
+}
+
+.crm-chat-history-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+  color: var(--crm-text-muted);
+  font-size: 0.78rem;
+}
+
+.crm-chat-history-version span {
+  color: var(--crm-text-muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.crm-chat-history-version p {
+  margin: 0.15rem 0 0.35rem;
+  color: var(--crm-text);
+  font-size: 0.85rem;
+}
+
+.crm-chat-history-empty {
+  padding: 1rem 0;
+  color: var(--crm-text-soft);
+  font-size: 0.85rem;
+}
+
 .crm-chat-mention {
   color: var(--crm-accent-strong);
   font-weight: 700;

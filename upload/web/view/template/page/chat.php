@@ -381,13 +381,14 @@
       var sender = message.sender_name || message.sender_login || window.CRM.i18n.t('chat.default_sender', 'Пользователь');
       var own = Number(message.is_own || 0) === 1;
       var deleted = !!message.deleted_at;
-      var canEdit = own && !deleted && canModifyMessage(message);
+      var canEdit = own && !deleted && canEditMessage(message);
+      var canDelete = own && !deleted && canDeleteMessage(message);
       return '<article class="crm-chat-message' + (own ? ' is-own' : '') + (deleted ? ' is-deleted' : '') + '" data-message-id="' + esc(message.public_id || '') + '">'
         + '<div class="crm-chat-message-meta"><strong>' + esc(sender) + '</strong><time>' + esc(formatTime(message.created_at)) + '</time></div>'
          + (message.reply_public_id ? '<button type="button" class="crm-chat-quote" data-scroll-message="' + esc(message.reply_public_id) + '" title="' + window.CRM.i18n.t('chat.btn_scroll_title', 'Перейти к исходному сообщению') + '" aria-label="' + window.CRM.i18n.t('chat.btn_scroll_aria', 'Перейти к исходному сообщению') + '">' + renderReplyQuote(message) + '</button>' : '')
         + (deleted ? '<p class="crm-chat-deleted-text">' + window.CRM.i18n.t('chat.msg_deleted', 'Сообщение удалено') + '</p>' : '<p>' + renderMessageText(message.text || '') + '</p>')
         + renderAttachments(Array.isArray(message.attachments) ? message.attachments : [])
-        + '<div class="crm-chat-message-foot">' + (message.edited_at && !deleted ? '<span>' + window.CRM.i18n.t('chat.msg_edited', 'изменено') + '</span>' : '') + (!deleted ? '<button type="button" data-copy-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_copy_title', 'Копировать сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_copy_aria', 'Копировать сообщение') + '">' + window.CRM.i18n.t('chat.btn_copy', 'Копировать') + '</button>' : '') + '<button type="button" data-reply-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_reply_title', 'Ответить на сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_reply_aria', 'Ответить на сообщение') + '">' + window.CRM.i18n.t('chat.btn_reply', 'Ответить') + '</button>' + (canEdit ? '<button type="button" data-edit-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_edit_title', 'Изменить сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_edit_aria', 'Изменить сообщение') + '">' + window.CRM.i18n.t('chat.btn_edit', 'Изменить') + '</button><button type="button" data-delete-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_delete_title', 'Удалить сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_delete_aria', 'Удалить сообщение') + '">' + window.CRM.i18n.t('chat.btn_delete', 'Удалить') + '</button>' : '') + '<button type="button" data-create-knowledge="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_create_knowledge_title', 'Создать страницу из сообщения') + '" aria-label="' + window.CRM.i18n.t('chat.btn_create_knowledge_aria', 'Создать страницу из сообщения') + '">' + window.CRM.i18n.t('chat.btn_create_knowledge', 'Создать страницу') + '</button>' + '<button type="button" data-create-task="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_create_task_title', 'Создать задачу из сообщения') + '" aria-label="' + window.CRM.i18n.t('chat.btn_create_task_aria', 'Создать задачу из сообщения') + '">' + window.CRM.i18n.t('chat.btn_create_task', 'Создать задачу') + '</button></div></article>';
+        + '<div class="crm-chat-message-foot">' + (message.edited_at && !deleted ? '<button type="button" class="crm-chat-edited-marker" data-history-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_history_title', 'История изменений') + '" aria-label="' + window.CRM.i18n.t('chat.btn_history_aria', 'История изменений сообщения') + '">' + window.CRM.i18n.t('chat.msg_edited', 'изменено') + '</button>' : '') + (!deleted ? '<button type="button" data-copy-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_copy_title', 'Копировать сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_copy_aria', 'Копировать сообщение') + '">' + window.CRM.i18n.t('chat.btn_copy', 'Копировать') + '</button>' : '') + '<button type="button" data-reply-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_reply_title', 'Ответить на сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_reply_aria', 'Ответить на сообщение') + '">' + window.CRM.i18n.t('chat.btn_reply', 'Ответить') + '</button>' + (canEdit ? '<button type="button" data-edit-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_edit_title', 'Изменить сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_edit_aria', 'Изменить сообщение') + '">' + window.CRM.i18n.t('chat.btn_edit', 'Изменить') + '</button>' : '') + (canDelete ? '<button type="button" data-delete-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_delete_title', 'Удалить сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_delete_aria', 'Удалить сообщение') + '">' + window.CRM.i18n.t('chat.btn_delete', 'Удалить') + '</button>' : '') + '<button type="button" data-create-knowledge="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_create_knowledge_title', 'Создать страницу из сообщения') + '" aria-label="' + window.CRM.i18n.t('chat.btn_create_knowledge_aria', 'Создать страницу из сообщения') + '">' + window.CRM.i18n.t('chat.btn_create_knowledge', 'Создать страницу') + '</button>' + '<button type="button" data-create-task="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_create_task_title', 'Создать задачу из сообщения') + '" aria-label="' + window.CRM.i18n.t('chat.btn_create_task_aria', 'Создать задачу из сообщения') + '">' + window.CRM.i18n.t('chat.btn_create_task', 'Создать задачу') + '</button></div></article>';
   }
 
   function renderMessages(messages) {
@@ -530,9 +531,20 @@
     return bytes + ' ' + window.CRM.i18n.t('chat.file_size_b', 'Б');
   }
 
-  function canModifyMessage(message) {
+  function messageAgeMs(message) {
     var date = new Date(String(message.created_at || '').replace(' ', 'T'));
-    return !Number.isNaN(date.getTime()) && (Date.now() - date.getTime()) <= 30 * 60 * 1000;
+    if (Number.isNaN(date.getTime())) return Number.POSITIVE_INFINITY;
+    return Math.max(0, Date.now() - date.getTime());
+  }
+
+  // Authors may edit their own message within 1 hour (60 minutes) of writing it.
+  function canEditMessage(message) {
+    return messageAgeMs(message) <= 60 * 60 * 1000;
+  }
+
+  // Authors may delete their own message within the first 10 minutes of writing it.
+  function canDeleteMessage(message) {
+    return messageAgeMs(message) <= 10 * 60 * 1000;
   }
 
   async function selectChat(id, options) {
@@ -805,6 +817,10 @@
         await loadChats({ silent: true });
       });
     });
+    root.querySelectorAll('[data-history-message]:not([data-chat-bound])').forEach(function (btn) {
+      btn.setAttribute('data-chat-bound', '1');
+      btn.addEventListener('click', function () { showMessageHistory(btn.getAttribute('data-history-message')); });
+    });
     root.querySelectorAll('[data-scroll-message]:not([data-chat-bound])').forEach(function (btn) {
       btn.setAttribute('data-chat-bound', '1');
       btn.addEventListener('click', function () {
@@ -876,6 +892,29 @@
     input.focus();
     input.selectionStart = input.selectionEnd = start + text.length;
     input.dispatchEvent(new Event('input'));
+  }
+
+  async function showMessageHistory(messagePublicId) {
+    if (!selectedChatId || !messagePublicId) return;
+    var items = [];
+    try {
+      var env = await request('api/v1/chats/' + encodeURIComponent(selectedChatId) + '/messages/' + encodeURIComponent(messagePublicId) + '/history', { method: 'GET' });
+      items = (env.data && env.data.items) || [];
+    } catch (error) {}
+    var body;
+    if (!items.length) {
+      body = '<div class="crm-chat-history-empty">' + window.CRM.i18n.t('chat.history_empty', 'Нет записей об изменении.') + '</div>';
+    } else {
+      body = '<div class="crm-chat-history-list">' + items.map(function (entry) {
+        var actor = entry.actor_name || entry.actor_login || window.CRM.i18n.t('chat.default_sender', 'Пользователь');
+        return '<div class="crm-chat-history-item">'
+          + '<div class="crm-chat-history-meta"><strong>' + esc(actor) + '</strong><time>' + esc(formatTime(entry.created_at)) + '</time></div>'
+          + (entry.before_text !== null && entry.before_text !== undefined ? '<div class="crm-chat-history-version"><span>' + window.CRM.i18n.t('chat.history_before', 'Было') + '</span><p>' + renderMessageText(String(entry.before_text)) + '</p></div>' : '')
+          + (entry.after_text !== null && entry.after_text !== undefined ? '<div class="crm-chat-history-version"><span>' + window.CRM.i18n.t('chat.history_after', 'Стало') + '</span><p>' + renderMessageText(String(entry.after_text)) + '</p></div>' : '')
+          + '</div>';
+      }).join('') + '</div>';
+    }
+    showInfoModal(window.CRM.i18n.t('chat.history_title', 'История изменений'), body);
   }
 
   function showParticipantsModal() {

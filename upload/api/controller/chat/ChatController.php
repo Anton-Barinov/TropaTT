@@ -478,7 +478,8 @@ final class ChatController extends BaseController
 
         if (mb_strlen($text) > 4000) return $this->error('TEXT_TOO_LONG', $this->t('chat/messages.message_too_long'), 422);
 
-        $message = $this->editableMessage((int)$chat['id'], (string)($params['message_public_id'] ?? ''));
+        // Authors may edit their own message within 1 hour (60 minutes) of writing it.
+        $message = $this->editableMessage((int)$chat['id'], (string)($params['message_public_id'] ?? ''), 60);
         if (!$message) return $this->error('EDIT_FORBIDDEN', $this->t('chat/messages.cannot_edit'), 403);
 
         $pdo = $this->container->get('db.pdo');
@@ -499,7 +500,8 @@ final class ChatController extends BaseController
             return $this->error('FORBIDDEN', $this->t('chat/messages.not_participant'), 403);
         }
 
-        $message = $this->editableMessage((int)$chat['id'], (string)($params['message_public_id'] ?? ''));
+        // Authors may delete their own message within the first 10 minutes of writing it.
+        $message = $this->editableMessage((int)$chat['id'], (string)($params['message_public_id'] ?? ''), 10);
         if (!$message) return $this->error('DELETE_FORBIDDEN', $this->t('chat/messages.cannot_delete'), 403);
 
         $pdo = $this->container->get('db.pdo');
@@ -508,6 +510,42 @@ final class ChatController extends BaseController
         $this->auditMessage((int)$message['id'], (int)$chat['id'], 'delete', (string)$message['text'], null);
 
         return $this->success('MESSAGE_DELETED', $this->t('chat/messages.message_deleted'));
+    }
+
+    public function messageHistory(array $params = []): JsonResponse
+    {
+        $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
+        if (!$chat) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+
+        /** @var ChatService $service */
+        $service = $this->container->get('service.chat');
+        if (!$service->assertParticipant((int)$chat['id'], $this->currentUserId())) {
+            return $this->error('FORBIDDEN', $this->t('chat/messages.not_participant'), 403);
+        }
+
+        $pdo = $this->container->get('db.pdo');
+        $msgStmt = $pdo->prepare(
+            "SELECT id FROM chat_messages WHERE chat_id = :cid AND public_id = :pid LIMIT 1"
+        );
+        $msgStmt->execute([
+            'cid' => (int)$chat['id'],
+            'pid' => (string)($params['message_public_id'] ?? ''),
+        ]);
+        $messageId = (int)$msgStmt->fetchColumn();
+        if ($messageId <= 0) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+
+        $auditStmt = $pdo->prepare("
+            SELECT al.id, al.public_id, al.action, al.before_text, al.after_text, al.created_at,
+                   u.full_name as actor_name, u.login as actor_login
+            FROM chat_message_audit_logs al
+            JOIN users u ON u.id = al.actor_user_id
+            WHERE al.message_id = :mid AND al.chat_id = :cid AND al.action = 'edit'
+            ORDER BY al.id DESC
+        ");
+        $auditStmt->execute(['mid' => $messageId, 'cid' => (int)$chat['id']]);
+        $history = $auditStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        return $this->success('MESSAGE_HISTORY', $this->t('common/messages.ok'), ['items' => $history]);
     }
 
     public function uploadAttachment(array $params = []): JsonResponse
@@ -904,8 +942,9 @@ final class ChatController extends BaseController
         return is_array($row) ? $row : null;
     }
 
-    private function editableMessage(int $chatId, string $messagePublicId): ?array
+    private function editableMessage(int $chatId, string $messagePublicId, int $windowMinutes = 60): ?array
     {
+        $windowMinutes = max(1, min(1440, $windowMinutes));
         $stmt = $this->container->get('db.pdo')->prepare("
             SELECT *
             FROM chat_messages
@@ -913,10 +952,15 @@ final class ChatController extends BaseController
               AND public_id = :pid
               AND sender_user_id = :uid
               AND deleted_at IS NULL
-              AND created_at >= DATE_SUB(NOW(), INTERVAL 30 MINUTE)
+              AND created_at >= DATE_SUB(NOW(), INTERVAL :window MINUTE)
             LIMIT 1
         ");
-        $stmt->execute(['cid' => $chatId, 'pid' => $messagePublicId, 'uid' => $this->currentUserId()]);
+        $stmt->execute([
+            'cid' => $chatId,
+            'pid' => $messagePublicId,
+            'uid' => $this->currentUserId(),
+            'window' => $windowMinutes,
+        ]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return is_array($row) ? $row : null;
     }

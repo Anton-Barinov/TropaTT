@@ -1230,8 +1230,9 @@ Module objects returned by `GET /api/v1/modules` and `GET /api/v1/modules/{name}
 | GET | `/api/v1/chats/{public_id}/participants` | Chat participants | Yes | `chat.use` | — |
 | GET | `/api/v1/chats/{public_id}/messages` | Chat messages | Yes | `chat.use` | Cursor-based |
 | POST | `/api/v1/chats/{public_id}/messages` | Send message | Yes | `chat.use` | — |
-| PATCH | `/api/v1/chats/{public_id}/messages/{message_public_id}` | Edit message | Yes | `chat.use` | — |
-| DELETE | `/api/v1/chats/{public_id}/messages/{message_public_id}` | Delete message | Yes | `chat.use` | Soft-delete |
+| GET | `/api/v1/chats/{public_id}/messages/{message_public_id}/history` | Message edit history | Yes | `chat.use` | Audit trail |
+| PATCH | `/api/v1/chats/{public_id}/messages/{message_public_id}` | Edit message (author, within 60 min) | Yes | `chat.use` | History recorded |
+| DELETE | `/api/v1/chats/{public_id}/messages/{message_public_id}` | Delete message (author, within 10 min) | Yes | `chat.use` | Soft-delete |
 | POST | `/api/v1/chats/{public_id}/attachments` | Upload attachment | Yes | `chat.use` | `multipart/form-data` |
 | GET | `/api/v1/chats/{public_id}/attachments/{file_public_id}/download` | Download attachment | Yes | `chat.use` | Binary |
 | POST | `/api/v1/chats/{public_id}/read` | Mark as read | Yes | `chat.use` | — |
