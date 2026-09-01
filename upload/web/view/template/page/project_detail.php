@@ -164,7 +164,9 @@
     </div>
     <div id="projectClientChatMessages" class="crm-chat-messages" style="max-height:400px;"><div class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
     <div id="projectClientChatEmpty" class="text-muted small mb-3" style="display:none;" data-i18n="project_detail.client_chat_empty"><?= htmlspecialchars($t('project_detail.client_chat_empty', 'Чат ещё не создан. Администратор создаст его при необходимости.'), ENT_QUOTES, 'UTF-8') ?></div>
+    <div id="projectClientChatReplyPreview" class="crm-chat-reply-preview d-none"></div>
     <form id="projectClientChatForm" class="crm-chat-composer" style="display:none;">
+      <input type="hidden" id="projectClientChatReplyId" value="">
       <input class="form-control form-control-sm" id="projectClientChatInput" type="text" maxlength="2000" placeholder="<?= htmlspecialchars($t('project_detail.client_chat_placeholder', 'Напишите сообщение...'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="project_detail.client_chat_placeholder" required>
       <button class="btn btn-sm crm-btn-primary crm-chat-send-btn" type="submit" data-i18n="project_detail.client_chat_send"><?= htmlspecialchars($t('project_detail.client_chat_send', 'Отправить'), ENT_QUOTES, 'UTF-8') ?></button>
     </form>
@@ -553,9 +555,24 @@
     var clientChatPublicId = null;
     var clientChatMessages = [];
     var chatW = window.CRM && window.CRM.chat;
+    var clientReplyTo = null;
 
     function findClientMessage(id) {
       return clientChatMessages.find(function (m) { return String(m.public_id) === String(id); }) || null;
+    }
+
+    function renderClientReplyPreview() {
+      var node = document.getElementById('projectClientChatReplyPreview');
+      var replyId = document.getElementById('projectClientChatReplyId');
+      if (!node) return;
+      node.classList.toggle('d-none', !clientReplyTo);
+      if (!clientReplyTo) { node.innerHTML = ''; if (replyId) replyId.value = ''; return; }
+      if (replyId) replyId.value = clientReplyTo.public_id || '';
+      node.innerHTML = '<div><strong><?= htmlspecialchars($t('project_detail.client_chat_reply', 'Ответ'), ENT_QUOTES, 'UTF-8') ?></strong><span>' + (clientReplyTo.text || '').substring(0, 120) + '</span></div><button type="button" aria-label="<?= htmlspecialchars($t('project_detail.client_chat_cancel_reply', 'Отменить'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>';
+      node.querySelector('button').addEventListener('click', function () {
+        clientReplyTo = null;
+        renderClientReplyPreview();
+      });
     }
 
     function renderClientChatMessages(msgs) {
@@ -572,7 +589,11 @@
         findMessage: findClientMessage,
         chatId: clientChatPublicId,
         copyText: function (text) { return navigator.clipboard.writeText(text); },
-        onReply: function () { /* not implemented in project chat */ },
+        onReply: function (message) {
+          clientReplyTo = message;
+          renderClientReplyPreview();
+          if (chatInputEl) chatInputEl.focus();
+        },
         onEdit: function (message) {
           /* inline edit: put text in input and focus */
           if (chatInputEl) {
@@ -587,7 +608,29 @@
         },
         request: function (route, opts) { return api.request(route, opts); },
         onAfterDelete: function () { loadClientChatMessages(api, clientChatPublicId, chatMsgsEl); },
-        onCreateTask: function () { /* not implemented in project chat */ },
+        onCreateTask: function (messageId) {
+          var msg = findClientMessage(messageId);
+          if (!msg) return;
+          var text = (msg.text || '').trim();
+          var defaultTitle = text.substring(0, 120);
+          if (text.length > 120) defaultTitle += '...';
+          if (!defaultTitle) defaultTitle = '<?= htmlspecialchars($t('project_detail.client_chat_task_default', 'Задача из сообщения'), ENT_QUOTES, 'UTF-8') ?>';
+          window._taskCreatePrefill = {
+            title: defaultTitle,
+            description: text ? '<p>' + text.replace(/\n/g, '<br>') + '</p>' : '',
+            project_public_id: projectId || '',
+            source_type: 'chat',
+            source_id: clientChatPublicId || ''
+          };
+          var modalEl = document.getElementById('createTaskModal');
+          if (modalEl && window.bootstrap && window.bootstrap.Modal) {
+            modalEl.classList.remove('d-none');
+            modalEl.removeAttribute('data-permission-hidden');
+            modalEl.removeAttribute('aria-hidden');
+            modalEl.style.display = '';
+            window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+          }
+        },
         onCreateKnowledge: function () { /* not implemented in project chat */ },
         showMessageHistory: function () { /* not implemented in project chat */ },
         showImageModal: function () { /* not implemented in project chat */ }
@@ -618,10 +661,14 @@
         ev.preventDefault();
         var text = (chatInputEl.value || '').trim();
         if (!text || !clientChatPublicId) return;
+        var body = { text: text };
+        if (clientReplyTo && clientReplyTo.public_id) body.reply_to_message_public_id = clientReplyTo.public_id;
         chatInputEl.disabled = true;
         try {
-          await api.request('api/v1/chats/' + encodeURIComponent(clientChatPublicId) + '/messages', { method: 'POST', body: { text: text } });
+          await api.request('api/v1/chats/' + encodeURIComponent(clientChatPublicId) + '/messages', { method: 'POST', body: body });
           chatInputEl.value = '';
+          clientReplyTo = null;
+          renderClientReplyPreview();
           await loadClientChatMessages(api, clientChatPublicId, chatMsgsEl);
         } catch (e) { /* ignore */ }
         chatInputEl.disabled = false;

@@ -8303,6 +8303,9 @@ return array (
     'client_chat_edit_save' => 'Enregistrer',
     'client_chat_edit_cancel' => 'Annuler',
     'client_chat_delete_confirm' => 'Supprimer le message ? Cette action est irréversible.',
+    'client_chat_reply' => 'Répondre',
+    'client_chat_cancel_reply' => 'Annuler',
+    'client_chat_task_default' => 'Tâche depuis le message',
   ),
   'projects' => 
   array (
