@@ -613,14 +613,14 @@
         var actionBar = actions ? '<div class="mt-1 d-flex gap-1 justify-content-end">' + actions + '</div>' : '';
         return '<div class="mb-2' + (isOwn ? ' text-end' : '') + '" data-chat-msg="' + escapeHtml(m.public_id || '') + '"><div class="d-inline-block text-start" style="max-width:80%;"><small class="text-muted">' + senderName + ' · ' + escapeHtml(time) + edited + '</small><div class="border rounded px-2 py-1 mt-1" style="word-break:break-word;">' + escapeHtml(m.text || '') + '</div>' + actionBar + '</div></div>';
       }).join('');
-      bindClientChatMessageActions(api, container);
+      bindClientChatMessageActions(api, chatId, container);
       container.scrollTop = container.scrollHeight;
     } catch (e) {
       container.innerHTML = '<div class="text-muted small">—</div>';
     }
   }
 
-  function bindClientChatMessageActions(api, container) {
+  function bindClientChatMessageActions(api, chatId, container) {
     if (!container) return;
     container.querySelectorAll('[data-edit-chat-msg]').forEach(function (btn) {
       btn.addEventListener('click', async function () {
@@ -643,29 +643,29 @@
         var msgId = btn.getAttribute('data-save-chat-msg');
         var wrap = container.querySelector('[data-chat-msg="' + CSS.escape(msgId) + '"]');
         var ta = wrap && wrap.querySelector('textarea');
-        if (!wrap || !ta || !clientChatPublicId) return;
+        if (!wrap || !ta || !chatId) return;
         var text = (ta.value || '').trim();
         if (!text) { ta.focus(); return; }
         try {
-          await api.request('api/v1/chats/' + encodeURIComponent(clientChatPublicId) + '/messages/' + encodeURIComponent(msgId), { method: 'PATCH', body: { text: text } });
+          await api.request('api/v1/chats/' + encodeURIComponent(chatId) + '/messages/' + encodeURIComponent(msgId), { method: 'PATCH', body: { text: text } });
         } catch (e) { /* ignore */ }
-        await loadClientChatMessages(api, clientChatPublicId, container);
+        await loadClientChatMessages(api, chatId, container);
       });
     });
     container.querySelectorAll('[data-cancel-chat-msg]').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        loadClientChatMessages(api, clientChatPublicId, container);
+        loadClientChatMessages(api, chatId, container);
       });
     });
     container.querySelectorAll('[data-delete-chat-msg]').forEach(function (btn) {
       btn.addEventListener('click', async function () {
         var msgId = btn.getAttribute('data-delete-chat-msg');
         if (!window.confirm(window.CRM.i18n.t('project_detail.client_chat_delete_confirm', 'Удалить сообщение? Это действие нельзя отменить.'))) return;
-        if (!clientChatPublicId) return;
+        if (!chatId) return;
         try {
-          await api.request('api/v1/chats/' + encodeURIComponent(clientChatPublicId) + '/messages/' + encodeURIComponent(msgId), { method: 'DELETE' });
+          await api.request('api/v1/chats/' + encodeURIComponent(chatId) + '/messages/' + encodeURIComponent(msgId), { method: 'DELETE' });
         } catch (e) { /* ignore */ }
-        await loadClientChatMessages(api, clientChatPublicId, container);
+        await loadClientChatMessages(api, chatId, container);
       });
     });
   }
