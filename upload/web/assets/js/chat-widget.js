@@ -178,8 +178,7 @@
   /* ── action binding (delegated) ──────────────────────────── */
 
   chat.bindMessageActions = function (container, ctx) {
-    if (!container || container.getAttribute('data-chat-actions-bound') === '1') return;
-    container.setAttribute('data-chat-actions-bound', '1');
+    if (!container) return;
 
     container.addEventListener('click', function (ev) {
       /* copy */

@@ -102,14 +102,14 @@
     { label: window.CRM.i18n.t('chat.sticker_gif_in_progress', 'GIF: в работе'), text: '[gif: в работе ⚙️]' }
   ];
 
-  function esc(value) {
+  var esc = (window.CRM && window.CRM.chat) ? window.CRM.chat.esc : function (value) {
     if (window.CRM && window.CRM.text && typeof window.CRM.text.escapeHtml === 'function') return window.CRM.text.escapeHtml(value == null ? '' : String(value));
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[char]; });
-  }
+  };
 
   function request(route, options) { return window.CRM.api.request(route, options || {}); }
 
-  function formatTime(value) {
+  var formatTime = (window.CRM && window.CRM.chat) ? window.CRM.chat.formatTime : function (value) {
     if (!value) return '';
     var date = new Date(String(value).replace(' ', 'T'));
     if (Number.isNaN(date.getTime())) return '';
@@ -117,7 +117,7 @@
     return date.toDateString() === new Date().toDateString()
       ? date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
       : date.toLocaleDateString(locale, { day: '2-digit', month: '2-digit' });
-  }
+  };
 
   function plural(count, one, few, many) {
     var mod10 = count % 10, mod100 = count % 100;
@@ -253,6 +253,7 @@
   }
 
   function renderReplyQuote(message) {
+    if (window.CRM && window.CRM.chat) return window.CRM.chat.renderReplyQuote(message, findMessage);
     var sender = esc(message.reply_sender_name || message.reply_sender_login || window.CRM.i18n.t('chat.reply_default_sender', 'Сообщение'));
     var text = message.reply_text;
     if (text != null && text !== '') return '<strong>' + sender + '</strong><span>' + esc(text) + '</span>';
@@ -378,10 +379,10 @@
   }
 
   function renderMessageMoreMenu(message, canEdit, canDelete) {
+    if (window.CRM && window.CRM.chat) return window.CRM.chat.renderMessageMoreMenu(message, canEdit, canDelete);
     var deleted = !!message.deleted_at;
     var mid = esc(message.public_id || '');
     var items = [];
-    // Order per spec: Copy → Edit → Delete → Create knowledge page.
     if (!deleted) {
       items.push('<button type="button" class="crm-chat-action crm-chat-more-item" role="menuitem" data-copy-message="' + mid + '" title="' + window.CRM.i18n.t('chat.btn_copy_title', 'Копировать сообщение') + '"><i class="fa-solid fa-copy" aria-hidden="true"></i><span>' + window.CRM.i18n.t('chat.btn_copy', 'Копировать') + '</span></button>');
     }
@@ -392,7 +393,7 @@
       items.push('<button type="button" class="crm-chat-action crm-chat-more-item crm-chat-more-item--danger" role="menuitem" data-delete-message="' + mid + '" title="' + window.CRM.i18n.t('chat.btn_delete_title', 'Удалить сообщение') + '"><i class="fa-solid fa-trash-can" aria-hidden="true"></i><span>' + window.CRM.i18n.t('chat.btn_delete', 'Удалить') + '</span></button>');
     }
     items.push('<button type="button" class="crm-chat-action crm-chat-more-item" role="menuitem" data-create-knowledge="' + mid + '" title="' + window.CRM.i18n.t('chat.btn_create_knowledge_title', 'Создать страницу из сообщения') + '"><i class="fa-solid fa-file-lines" aria-hidden="true"></i><span>' + window.CRM.i18n.t('chat.btn_create_knowledge', 'Создать страницу') + '</span></button>');
-    if (items.length === 0) return ''; // no actions left -> no menu at all
+    if (items.length === 0) return '';
     return '<div class="crm-chat-message-extra">'
       + '<button type="button" class="crm-chat-action crm-chat-more-btn" aria-haspopup="true" aria-expanded="false" aria-label="' + window.CRM.i18n.t('chat.btn_more_aria', 'Дополнительные действия') + '" title="' + window.CRM.i18n.t('chat.btn_more_aria', 'Дополнительные действия') + '" data-chat-more><i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i></button>'
       + '<div class="crm-chat-more-menu" role="menu" hidden>' + items.join('') + '</div>'
@@ -400,6 +401,7 @@
   }
 
   function renderMessage(message) {
+    if (window.CRM && window.CRM.chat) return window.CRM.chat.renderMessage(message, { findMessage: findMessage });
       var sender = message.sender_name || message.sender_login || window.CRM.i18n.t('chat.default_sender', 'Пользователь');
       var own = Number(message.is_own || 0) === 1;
       var deleted = !!message.deleted_at;
@@ -528,11 +530,11 @@
   }
 
   function renderMessageText(text) {
+    if (window.CRM && window.CRM.chat) return window.CRM.chat.renderMessageText(text);
     var safe = esc(text).replace(/\n/g, '<br>');
     safe = safe.replace(/(^|\s)@([\p{L}\p{N}._-]{2,80})/gu, '$1<span class="crm-chat-mention">@$2</span>');
     safe = safe.replace(/\[стикер: ([^\]]+)\]/g, '<span class="crm-chat-sticker">$1</span>');
     safe = safe.replace(/\[gif: ([^\]]+)\]/g, '<span class="crm-chat-sticker">$1</span>');
-    // Render knowledge page preview cards from kb:public_id:Title format
     safe = safe.replace(/kb:([a-zA-Z0-9_]+):([^<]*)/g, function(match, publicId, title) {
       title = (title || '').trim() || window.CRM.i18n.t('chat.knowledge_page', 'Knowledge page');
       return '<a href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(publicId) + '" class="crm-knowledge-chat-card" target="_blank" rel="noopener" title="' + window.CRM.i18n.t('chat.open_knowledge_title', 'Open in Knowledge Base') + ': ' + esc(title) + '">'
@@ -544,6 +546,7 @@
   }
 
   function renderAttachments(files) {
+    if (window.CRM && window.CRM.chat) return window.CRM.chat.renderAttachments(files);
     if (!files.length) return '';
     return '<div class="crm-chat-attachments">' + files.map(function (file) {
       var url = file.download_url || '#';
@@ -553,35 +556,32 @@
   }
 
   function formatFileSize(bytes) {
+    if (window.CRM && window.CRM.chat) return window.CRM.chat.formatFileSize(bytes);
     bytes = Number(bytes || 0);
     if (bytes >= 1048576) return (bytes / 1048576).toFixed(1) + ' ' + window.CRM.i18n.t('chat.file_size_mb', 'МБ');
     if (bytes >= 1024) return Math.round(bytes / 1024) + ' ' + window.CRM.i18n.t('chat.file_size_kb', 'КБ');
     return bytes + ' ' + window.CRM.i18n.t('chat.file_size_b', 'Б');
   }
 
-  function messageAgeMs(message) {
+  var messageAgeMs = (window.CRM && window.CRM.chat) ? window.CRM.chat.messageAgeMs : function (message) {
     var date = new Date(String(message.created_at || '').replace(' ', 'T'));
     if (Number.isNaN(date.getTime())) return Number.POSITIVE_INFINITY;
     return Math.max(0, Date.now() - date.getTime());
-  }
+  };
 
-  // Authors may edit their own message within 1 hour (60 minutes) of writing it.
-  // Prefer the server-computed flag (single source of truth); fall back to a
-  // client-side estimate for messages delivered without flags.
-  function canEditMessage(message) {
+  var canEditMessage = (window.CRM && window.CRM.chat) ? window.CRM.chat.canEditMessage : function (message) {
     if (message && message.can_edit !== undefined && message.can_edit !== null) {
       return Number(message.can_edit) === 1;
     }
     return messageAgeMs(message) <= 60 * 60 * 1000;
-  }
+  };
 
-  // Authors may delete their own message within the first 10 minutes of writing it.
-  function canDeleteMessage(message) {
+  var canDeleteMessage = (window.CRM && window.CRM.chat) ? window.CRM.chat.canDeleteMessage : function (message) {
     if (message && message.can_delete !== undefined && message.can_delete !== null) {
       return Number(message.can_delete) === 1;
     }
     return messageAgeMs(message) <= 10 * 60 * 1000;
-  }
+  };
 
   async function selectChat(id, options) {
     options = options || {};
