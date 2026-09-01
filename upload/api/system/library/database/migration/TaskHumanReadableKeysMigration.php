@@ -242,6 +242,13 @@ final class TaskHumanReadableKeysMigration implements MigrationInterface
 
         $now = gmdate('Y-m-d H:i:s');
 
+        // INSERT IGNORE is MySQL-only; SQLite uses INSERT OR IGNORE. The SQLite
+        // branch of up() shares this backfill code, so the statement must be
+        // built for the actual driver.
+        $counterInsert = $driver === 'sqlite'
+            ? 'INSERT OR IGNORE INTO task_key_counters (scope_key, scope_type, project_id, prefix, current_value, created_at, updated_at) VALUES (:scope_key, :scope_type, :project_id, :prefix, :current_value, :created_at, :updated_at)'
+            : 'INSERT IGNORE INTO task_key_counters (scope_key, scope_type, project_id, prefix, current_value, created_at, updated_at) VALUES (:scope_key, :scope_type, :project_id, :prefix, :current_value, :created_at, :updated_at)';
+
         foreach ($projectMaxSeq as $row) {
             $projectId = (int)$row['project_id'];
             $prefix = (string)($row['task_key_prefix'] ?? 'PRJ');
@@ -249,7 +256,7 @@ final class TaskHumanReadableKeysMigration implements MigrationInterface
 
             $scopeKey = 'project:' . $projectId;
 
-            $stmt = $pdo->prepare('INSERT IGNORE INTO task_key_counters (scope_key, scope_type, project_id, prefix, current_value, created_at, updated_at) VALUES (:scope_key, :scope_type, :project_id, :prefix, :current_value, :created_at, :updated_at)');
+            $stmt = $pdo->prepare($counterInsert);
             $stmt->execute([
                 'scope_key' => $scopeKey,
                 'scope_type' => 'project',
@@ -262,7 +269,7 @@ final class TaskHumanReadableKeysMigration implements MigrationInterface
         }
 
         // Global counter
-        $stmt = $pdo->prepare('INSERT IGNORE INTO task_key_counters (scope_key, scope_type, project_id, prefix, current_value, created_at, updated_at) VALUES (:scope_key, :scope_type, :project_id, :prefix, :current_value, :created_at, :updated_at)');
+        $stmt = $pdo->prepare($counterInsert);
         $stmt->execute([
             'scope_key' => 'global',
             'scope_type' => 'global',
@@ -278,26 +285,34 @@ final class TaskHumanReadableKeysMigration implements MigrationInterface
      * Highest numeric sequence already assigned in the given scope. Parsed from
      * the task_key suffix (not task_sequence_number) so it also covers keys
      * written by newer app code before this migration ran.
+     *
+     * Driver-agnostic by design: the suffix is parsed in PHP instead of using
+     * MySQL-only string functions (SUBSTRING_INDEX/CAST), so the same code
+     * path works for the SQLite branch (unit tests / local development) and
+     * for MySQL (production installs).
      */
     private function maxAssignedSequence(PDO $pdo, string $scope, ?int $projectId): int
     {
         if ($scope === 'project' && $projectId !== null) {
-            $stmt = $pdo->prepare("
-                SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(task_key, '-', -1) AS UNSIGNED)), 0)
-                FROM tasks
-                WHERE project_id = :pid AND task_key IS NOT NULL
-            ");
+            $stmt = $pdo->prepare('SELECT task_key FROM tasks WHERE project_id = :pid AND task_key IS NOT NULL');
             $stmt->execute(['pid' => $projectId]);
-            return (int)$stmt->fetchColumn();
+        } else {
+            $stmt = $pdo->prepare('SELECT task_key FROM tasks WHERE project_id IS NULL AND task_key IS NOT NULL');
+            $stmt->execute();
         }
 
-        $stmt = $pdo->prepare("
-            SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(task_key, '-', -1) AS UNSIGNED)), 0)
-            FROM tasks
-            WHERE project_id IS NULL AND task_key IS NOT NULL
-        ");
-        $stmt->execute();
-        return (int)$stmt->fetchColumn();
+        $max = 0;
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $key = trim((string)($row['task_key'] ?? ''));
+            if ($key === '') {
+                continue;
+            }
+            if (preg_match('/-(\d+)$/', $key, $m)) {
+                $max = max($max, (int)$m[1]);
+            }
+        }
+
+        return $max;
     }
 
     private function taskKeyExists(PDOStatement $stmt, string $key): bool
