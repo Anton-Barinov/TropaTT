@@ -139,6 +139,9 @@ $needsPageApiBindings = !in_array($currentRoute, [
 <script defer src="assets/js/filters.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <script defer src="assets/js/tables.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <script defer src="assets/js/text-utils.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<?php if ($currentRoute === 'chat' || $currentRoute === 'project-detail'): ?>
+<script defer src="assets/js/chat-widget.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<?php endif; ?>
 <script defer src="assets/js/error-utils.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <script defer src="assets/js/list-utils.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <script defer src="assets/js/notifications.js?v=<?= urlencode($assetsVersion) ?>"></script>
