@@ -162,11 +162,11 @@
     <div class="crm-pr-card-head">
       <h2 class="h6 mb-0" data-i18n="project_detail.section_client_chat"><?= htmlspecialchars($t('project_detail.section_client_chat', 'Чат с командой'), ENT_QUOTES, 'UTF-8') ?></h2>
     </div>
-    <div id="projectClientChatMessages" style="max-height:400px;overflow-y:auto;" class="mb-3"><div class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+    <div id="projectClientChatMessages" class="crm-chat-messages" style="max-height:400px;"><div class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
     <div id="projectClientChatEmpty" class="text-muted small mb-3" style="display:none;" data-i18n="project_detail.client_chat_empty"><?= htmlspecialchars($t('project_detail.client_chat_empty', 'Чат ещё не создан. Администратор создаст его при необходимости.'), ENT_QUOTES, 'UTF-8') ?></div>
-    <form id="projectClientChatForm" class="d-flex gap-2" style="display:none;">
+    <form id="projectClientChatForm" class="crm-chat-composer" style="display:none;">
       <input class="form-control form-control-sm" id="projectClientChatInput" type="text" maxlength="2000" placeholder="<?= htmlspecialchars($t('project_detail.client_chat_placeholder', 'Напишите сообщение...'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="project_detail.client_chat_placeholder" required>
-      <button class="btn btn-sm crm-btn-primary" type="submit" data-i18n="project_detail.client_chat_send"><?= htmlspecialchars($t('project_detail.client_chat_send', 'Отправить'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button class="btn btn-sm crm-btn-primary crm-chat-send-btn" type="submit" data-i18n="project_detail.client_chat_send"><?= htmlspecialchars($t('project_detail.client_chat_send', 'Отправить'), ENT_QUOTES, 'UTF-8') ?></button>
     </form>
   </section>
 </div>
@@ -545,18 +545,60 @@
       }
     }
 
-    /* ---- Client portal: chat for external users ---- */
+    /* ---- Client portal: chat (uses shared chat-widget.js) ---- */
     var chatMsgsEl = document.getElementById('projectClientChatMessages');
     var chatFormEl = document.getElementById('projectClientChatForm');
     var chatInputEl = document.getElementById('projectClientChatInput');
     var chatEmptyEl = document.getElementById('projectClientChatEmpty');
     var clientChatPublicId = null;
+    var clientChatMessages = [];
+    var chatW = window.CRM && window.CRM.chat;
+
+    function findClientMessage(id) {
+      return clientChatMessages.find(function (m) { return String(m.public_id) === String(id); }) || null;
+    }
+
+    function renderClientChatMessages(msgs) {
+      clientChatMessages = msgs;
+      if (!chatMsgsEl || !chatW) return;
+      if (!msgs.length) {
+        chatMsgsEl.innerHTML = '<div class="crm-chat-empty crm-chat-message-text--small"><strong><?= htmlspecialchars($t('project_detail.client_chat_no_messages', 'Сообщений пока нет.'), ENT_QUOTES, 'UTF-8') ?></strong></div>';
+        return;
+      }
+      chatMsgsEl.innerHTML = msgs.map(function (m) {
+        return chatW.renderMessage(m, { findMessage: findClientMessage });
+      }).join('');
+      chatW.bindMessageActions(chatMsgsEl, {
+        findMessage: findClientMessage,
+        chatId: clientChatPublicId,
+        copyText: function (text) { return navigator.clipboard.writeText(text); },
+        onReply: function () { /* not implemented in project chat */ },
+        onEdit: function (message) {
+          /* inline edit: put text in input and focus */
+          if (chatInputEl) {
+            chatInputEl.value = message.text || '';
+            chatInputEl.focus();
+          }
+        },
+        showConfirmModal: function (opts) {
+          return new Promise(function (resolve) {
+            resolve(window.confirm(opts.title + '\n' + (opts.body || '')));
+          });
+        },
+        request: function (route, opts) { return api.request(route, opts); },
+        onAfterDelete: function () { loadClientChatMessages(api, clientChatPublicId, chatMsgsEl); },
+        onCreateTask: function () { /* not implemented in project chat */ },
+        onCreateKnowledge: function () { /* not implemented in project chat */ },
+        showMessageHistory: function () { /* not implemented in project chat */ },
+        showImageModal: function () { /* not implemented in project chat */ }
+      });
+      chatMsgsEl.scrollTop = chatMsgsEl.scrollHeight;
+    }
 
     if (chatMsgsEl) {
       try {
         var chatResp = await api.request('api/v1/chats');
         var chatItems = chatResp.data && chatResp.data.items || [];
-        // Defence-in-depth: match by project_public_id on the client side too
         var matchingChats = chatItems.filter(function (c) { return c.project_public_id === projectId; });
         if (matchingChats.length) {
           clientChatPublicId = matchingChats[0].public_id;
@@ -591,91 +633,11 @@
   async function loadClientChatMessages(api, chatId, container) {
     try {
       var resp = await api.request('api/v1/chats/' + encodeURIComponent(chatId) + '/messages');
-      // Staff endpoint returns {items:[...]}, external endpoint returns {messages:[...]}.
       var msgs = resp.data && (resp.data.items || resp.data.messages) || [];
-      if (!msgs.length) {
-        container.innerHTML = '<div class="text-muted small"><?= htmlspecialchars($t('project_detail.client_chat_no_messages', 'Сообщений пока нет.'), ENT_QUOTES, 'UTF-8') ?></div>';
-        return;
-      }
-      var meId = window.CRM.me && window.CRM.me.public_id;
-      container.innerHTML = msgs.map(function (m) {
-        // Server-computed flags are the single source of truth (same windows as
-        // the staff chat: edit <= 60 min, delete <= 10 min, own message only).
-        var isOwn = Number(m.is_own === undefined || m.is_own === null ? (m.sender_user_public_id === meId ? 1 : 0) : m.is_own) === 1;
-        var canEdit = Number(m.can_edit || 0) === 1;
-        var canDelete = Number(m.can_delete || 0) === 1;
-        var senderName = escapeHtml(m.sender_name || (isOwn ? window.CRM.i18n.t('project_detail.client_chat_you', 'Вы') : window.CRM.i18n.t('project_detail.client_chat_team', 'Команда')));
-        var time = m.created_at ? new Date(m.created_at).toLocaleString() : '';
-        var edited = m.edited_at ? ' <small class="text-muted">' + escapeHtml(window.CRM.i18n.t('project_detail.client_chat_edited', 'изменено')) + '</small>' : '';
-        var actions = '';
-        if (canEdit) actions += '<button type="button" class="btn btn-sm crm-btn-muted crm-btn-compact" data-edit-chat-msg="' + escapeHtml(m.public_id || '') + '">' + escapeHtml(window.CRM.i18n.t('project_detail.client_chat_edit', 'Изменить')) + '</button>';
-        if (canDelete) actions += '<button type="button" class="btn btn-sm crm-btn-muted crm-btn-compact" data-delete-chat-msg="' + escapeHtml(m.public_id || '') + '">' + escapeHtml(window.CRM.i18n.t('project_detail.client_chat_delete', 'Удалить')) + '</button>';
-        var actionBar = actions ? '<div class="mt-1 d-flex gap-1 justify-content-end">' + actions + '</div>' : '';
-        return '<div class="mb-2' + (isOwn ? ' text-end' : '') + '" data-chat-msg="' + escapeHtml(m.public_id || '') + '"><div class="d-inline-block text-start" style="max-width:80%;"><small class="text-muted">' + senderName + ' · ' + escapeHtml(time) + edited + '</small><div class="border rounded px-2 py-1 mt-1" style="word-break:break-word;">' + escapeHtml(m.text || '') + '</div>' + actionBar + '</div></div>';
-      }).join('');
-      bindClientChatMessageActions(api, chatId, container);
-      container.scrollTop = container.scrollHeight;
+      renderClientChatMessages(msgs);
     } catch (e) {
       container.innerHTML = '<div class="text-muted small">—</div>';
     }
-  }
-
-  function bindClientChatMessageActions(api, chatId, container) {
-    if (!container || container.getAttribute('data-chat-actions-bound') === '1') return;
-    container.setAttribute('data-chat-actions-bound', '1');
-    container.addEventListener('click', async function (ev) {
-      var editBtn = ev.target.closest('[data-edit-chat-msg]');
-      if (editBtn) {
-        var msgId = editBtn.getAttribute('data-edit-chat-msg');
-        var wrap = container.querySelector('[data-chat-msg="' + CSS.escape(msgId) + '"]');
-        if (!wrap || wrap.querySelector('textarea')) return;
-        var bubble = wrap.querySelector('.border');
-        if (!bubble) return;
-        var oldText = bubble.textContent || '';
-        bubble.innerHTML = '<textarea class="form-control form-control-sm" rows="2" maxlength="2000">' + escapeHtml(oldText) + '</textarea>'
-          + '<div class="d-flex gap-1 mt-1 justify-content-end">'
-          + '<button type="button" class="btn btn-sm crm-btn-primary crm-btn-compact" data-save-chat-msg="' + escapeHtml(msgId) + '">' + escapeHtml(window.CRM.i18n.t('project_detail.client_chat_edit_save', 'Сохранить')) + '</button>'
-          + '<button type="button" class="btn btn-sm crm-btn-muted crm-btn-compact" data-cancel-chat-msg="1">' + escapeHtml(window.CRM.i18n.t('project_detail.client_chat_edit_cancel', 'Отмена')) + '</button>'
-          + '</div>';
-        bubble.querySelector('textarea').focus();
-        return;
-      }
-      var saveBtn = ev.target.closest('[data-save-chat-msg]');
-      if (saveBtn) {
-        var msgId2 = saveBtn.getAttribute('data-save-chat-msg');
-        var wrap2 = container.querySelector('[data-chat-msg="' + CSS.escape(msgId2) + '"]');
-        var ta = wrap2 && wrap2.querySelector('textarea');
-        if (!wrap2 || !ta || !chatId) return;
-        var text = (ta.value || '').trim();
-        if (!text) { ta.focus(); return; }
-        saveBtn.disabled = true;
-        try {
-          await api.request('api/v1/chats/' + encodeURIComponent(chatId) + '/messages/' + encodeURIComponent(msgId2), { method: 'PATCH', body: { text: text } });
-        } catch (e) { /* ignore */ }
-        await loadClientChatMessages(api, chatId, container);
-        return;
-      }
-      if (ev.target.closest('[data-cancel-chat-msg]')) {
-        loadClientChatMessages(api, chatId, container);
-        return;
-      }
-      var delBtn = ev.target.closest('[data-delete-chat-msg]');
-      if (delBtn) {
-        var msgId3 = delBtn.getAttribute('data-delete-chat-msg');
-        if (!window.confirm(window.CRM.i18n.t('project_detail.client_chat_delete_confirm', 'Удалить сообщение? Это действие нельзя отменить.'))) return;
-        if (!chatId) return;
-        try {
-          await api.request('api/v1/chats/' + encodeURIComponent(chatId) + '/messages/' + encodeURIComponent(msgId3), { method: 'DELETE' });
-        } catch (e) { /* ignore */ }
-        await loadClientChatMessages(api, chatId, container);
-      }
-    });
-  }
-
-  function escapeHtml(s) {
-    return String(s || '').replace(/[&<>\"]/g, function (ch) {
-      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;' })[ch] || ch;
-    });
   }
 })();
 </script>
