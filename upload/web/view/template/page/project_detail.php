@@ -628,7 +628,6 @@
         chatInputEl.focus();
       });
     }
-  });
 
   async function loadClientChatMessages(api, chatId, container) {
     try {
@@ -639,6 +638,7 @@
       container.innerHTML = '<div class="text-muted small">—</div>';
     }
   }
+  });
 })();
 </script>
 </body>
