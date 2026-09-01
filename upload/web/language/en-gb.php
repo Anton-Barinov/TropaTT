@@ -5249,6 +5249,9 @@ return array (
     'client_chat_edit_save' => 'Save',
     'client_chat_edit_cancel' => 'Cancel',
     'client_chat_delete_confirm' => 'Delete message? This action cannot be undone.',
+    'client_chat_reply' => 'Reply',
+    'client_chat_cancel_reply' => 'Cancel',
+    'client_chat_task_default' => 'Task from message',
   ),
   'companies' => 
   array (

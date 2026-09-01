@@ -8303,6 +8303,9 @@ return array (
     'client_chat_edit_save' => 'Salvar',
     'client_chat_edit_cancel' => 'Cancelar',
     'client_chat_delete_confirm' => 'Excluir mensagem? Esta ação não pode ser desfeita.',
+    'client_chat_reply' => 'Responder',
+    'client_chat_cancel_reply' => 'Cancelar',
+    'client_chat_task_default' => 'Tarefa da mensagem',
   ),
   'projects' => 
   array (

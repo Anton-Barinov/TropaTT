@@ -8303,6 +8303,9 @@ return array (
     'client_chat_edit_save' => 'Speichern',
     'client_chat_edit_cancel' => 'Abbrechen',
     'client_chat_delete_confirm' => 'Nachricht löschen? Diese Aktion kann nicht rückgängig gemacht werden.',
+    'client_chat_reply' => 'Antworten',
+    'client_chat_cancel_reply' => 'Abbrechen',
+    'client_chat_task_default' => 'Aufgabe aus Nachricht',
   ),
   'projects' => 
   array (

@@ -5270,6 +5270,9 @@ return array (
     'client_chat_edit_save' => '保存',
     'client_chat_edit_cancel' => '取消',
     'client_chat_delete_confirm' => '删除消息？此操作无法撤销。',
+    'client_chat_reply' => '回复',
+    'client_chat_cancel_reply' => '取消',
+    'client_chat_task_default' => '来自消息的任务',
   ),
   'companies' => 
   array (

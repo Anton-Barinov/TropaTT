@@ -8303,6 +8303,9 @@ return array (
     'client_chat_edit_save' => 'Guardar',
     'client_chat_edit_cancel' => 'Cancelar',
     'client_chat_delete_confirm' => '¿Eliminar mensaje? Esta acción no se puede deshacer.',
+    'client_chat_reply' => 'Responder',
+    'client_chat_cancel_reply' => 'Cancelar',
+    'client_chat_task_default' => 'Tarea del mensaje',
   ),
   'projects' => 
   array (

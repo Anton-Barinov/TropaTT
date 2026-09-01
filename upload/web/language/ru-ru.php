@@ -5270,6 +5270,9 @@ return array (
     'client_chat_edit_save' => 'Сохранить',
     'client_chat_edit_cancel' => 'Отмена',
     'client_chat_delete_confirm' => 'Удалить сообщение? Это действие нельзя отменить.',
+    'client_chat_reply' => 'Ответ',
+    'client_chat_cancel_reply' => 'Отменить',
+    'client_chat_task_default' => 'Задача из сообщения',
   ),
   'companies' => 
   array (
