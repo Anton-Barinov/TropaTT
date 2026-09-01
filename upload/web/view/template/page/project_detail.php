@@ -157,19 +157,35 @@
 <!-- ============ CLIENT CHAT ============ -->
 <!-- Rendered for everyone with access: external users chat with the team here,
      staff (project manager/admin) see the same conversation via project access. -->
-<div class="crm-pr-panel" data-project-panel="chat" role="tabpanel">
-  <section class="crm-card mb-3">
-    <div class="crm-pr-card-head">
-      <h2 class="h6 mb-0" data-i18n="project_detail.section_client_chat"><?= htmlspecialchars($t('project_detail.section_client_chat', 'Чат с командой'), ENT_QUOTES, 'UTF-8') ?></h2>
+<div class="crm-pr-panel crm-pr-panel--chat" data-project-panel="chat" role="tabpanel">
+  <section class="crm-card crm-card--chat">
+    <div class="crm-chat-conversation-head">
+      <div class="crm-chat-head-main">
+        <div class="crm-chat-conversation-type" data-i18n="project_detail.section_client_chat"><?= htmlspecialchars($t('project_detail.section_client_chat', 'Чат с командой'), ENT_QUOTES, 'UTF-8') ?></div>
+        <h2 id="projectClientChatTitle"></h2>
+        <button type="button" class="crm-chat-participants-link" id="projectClientChatParticipantsBtn"></button>
+      </div>
     </div>
-    <div id="projectClientChatMessages" class="crm-chat-messages" style="max-height:400px;"><div class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
-    <div id="projectClientChatEmpty" class="text-muted small mb-3" style="display:none;" data-i18n="project_detail.client_chat_empty"><?= htmlspecialchars($t('project_detail.client_chat_empty', 'Чат ещё не создан. Администратор создаст его при необходимости.'), ENT_QUOTES, 'UTF-8') ?></div>
-    <div id="projectClientChatReplyPreview" class="crm-chat-reply-preview d-none"></div>
-    <form id="projectClientChatForm" class="crm-chat-composer" style="display:none;">
-      <input type="hidden" id="projectClientChatReplyId" value="">
-      <input class="form-control form-control-sm" id="projectClientChatInput" type="text" maxlength="2000" placeholder="<?= htmlspecialchars($t('project_detail.client_chat_placeholder', 'Напишите сообщение...'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="project_detail.client_chat_placeholder" required>
-      <button class="btn btn-sm crm-btn-primary crm-chat-send-btn" type="submit" data-i18n="project_detail.client_chat_send"><?= htmlspecialchars($t('project_detail.client_chat_send', 'Отправить'), ENT_QUOTES, 'UTF-8') ?></button>
-    </form>
+    <div id="projectClientChatMessages" class="crm-chat-messages" aria-live="polite"><div class="crm-chat-list-state" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...', ENT_QUOTES, 'UTF-8')) ?></div></div>
+    <div id="projectClientChatEmpty" class="crm-chat-empty crm-chat-empty--small" style="display:none;">
+      <i class="fa-solid fa-comments" aria-hidden="true"></i>
+      <strong data-i18n="project_detail.client_chat_empty"><?= htmlspecialchars($t('project_detail.client_chat_empty', 'Чат ещё не создан. Администратор создаст его при необходимости.'), ENT_QUOTES, 'UTF-8') ?></strong>
+    </div>
+    <div class="crm-chat-compose" id="projectClientChatCompose" style="display:none;">
+      <div class="text-danger small d-none" id="projectClientChatSendError" aria-live="polite"></div>
+      <div class="crm-chat-reply-preview d-none" id="projectClientChatReplyPreview"></div>
+      <div id="projectClientChatMentionPopup" class="crm-chat-mention-popup d-none" role="listbox" aria-label="<?= htmlspecialchars($t('chat.mention_popup_aria', 'Упомянуть участника'), ENT_QUOTES, 'UTF-8') ?>"></div>
+      <div class="crm-chat-picker d-none" id="projectClientChatEmojiPicker"></div>
+      <div class="crm-chat-compose-row">
+        <button class="btn crm-icon-btn" type="button" id="projectClientChatAttachBtn" aria-label="<?= htmlspecialchars($t('chat.btn_attach_aria', 'Прикрепить файл'), ENT_QUOTES, 'UTF-8') ?>" title="<?= htmlspecialchars($t('chat.btn_attach_title', 'Прикрепить файл'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-paperclip" aria-hidden="true"></i></button>
+        <button class="btn crm-icon-btn" type="button" id="projectClientChatEmojiBtn" aria-label="<?= htmlspecialchars($t('chat.btn_emoji_aria', 'Эмоджи и стикеры'), ENT_QUOTES, 'UTF-8') ?>" title="<?= htmlspecialchars($t('chat.btn_emoji_title', 'Эмоджи и стикеры'), ENT_QUOTES, 'UTF-8') ?>" aria-expanded="false" aria-controls="projectClientChatEmojiPicker"><i class="fa-regular fa-face-smile" aria-hidden="true"></i></button>
+        <input class="d-none" type="file" id="projectClientChatFileInput" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.txt,.csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,text/csv,application/zip">
+        <label class="visually-hidden" for="projectClientChatInput"><?= htmlspecialchars($t('chat.msg_input_label', 'Сообщение'), ENT_QUOTES, 'UTF-8') ?></label>
+        <textarea class="form-control crm-chat-message-input" id="projectClientChatInput" rows="1" maxlength="4000" placeholder="<?= htmlspecialchars($t('chat.placeholder_message', 'Сообщение...'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="chat.placeholder_message"></textarea>
+        <button class="btn crm-btn-primary crm-chat-send-btn" type="button" id="projectClientChatSendBtn" disabled aria-label="<?= htmlspecialchars($t('chat.btn_send_aria', 'Отправить сообщение'), ENT_QUOTES, 'UTF-8') ?>" title="<?= htmlspecialchars($t('chat.btn_send_title', 'Отправить сообщение'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i></button>
+      </div>
+      <div class="crm-chat-compose-hint" data-i18n="chat.compose_hint"><?= htmlspecialchars($t('chat.compose_hint', 'Enter — отправить, Shift+Enter — новая строка. @логин — упоминание.'), ENT_QUOTES, 'UTF-8') ?></div>
+    </div>
   </section>
 </div>
 
