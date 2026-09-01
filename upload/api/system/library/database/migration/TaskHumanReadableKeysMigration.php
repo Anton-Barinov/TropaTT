@@ -5,6 +5,7 @@ namespace Api\System\Library\Database\Migration;
 
 use Api\System\Library\Database\IndexHelper;
 use PDO;
+use PDOStatement;
 
 final class TaskHumanReadableKeysMigration implements MigrationInterface
 {
@@ -94,7 +95,7 @@ final class TaskHumanReadableKeysMigration implements MigrationInterface
 
         foreach ($projects as $project) {
             $prefix = $this->generatePrefixFromTitle((string)($project['title'] ?? ''));
-            $prefix = $this->ensureUniquePrefix($pdo, $prefix, (string)($project['public_id'] ?? ''));
+            $prefix = $this->ensureUniquePrefix($pdo, $prefix, (int)$project['id']);
             $stmt = $pdo->prepare('UPDATE projects SET task_key_prefix = :prefix WHERE id = :id');
             $stmt->execute([
                 'prefix' => $prefix,
@@ -128,14 +129,18 @@ final class TaskHumanReadableKeysMigration implements MigrationInterface
         return substr($cleaned, 0, 10);
     }
 
-    private function ensureUniquePrefix(PDO $pdo, string $prefix, string $exceptProjectPublicId): string
+    private function ensureUniquePrefix(PDO $pdo, string $prefix, int $exceptProjectId): string
     {
         $candidate = $prefix;
         $suffix = 2;
 
         while (true) {
-            $stmt = $pdo->prepare('SELECT COUNT(*) FROM projects WHERE task_key_prefix = :prefix AND public_id != :public_id');
-            $stmt->execute(['prefix' => $candidate, 'public_id' => $exceptProjectPublicId]);
+            // Exclude by numeric id (never by public_id): for legacy rows with a
+            // NULL/empty public_id the SQL comparison would never match, so two
+            // projects could be assigned the same prefix and later collide on
+            // the unique index uq_projects_task_key_prefix.
+            $stmt = $pdo->prepare('SELECT COUNT(*) FROM projects WHERE task_key_prefix = :prefix AND id != :id');
+            $stmt->execute(['prefix' => $candidate, 'id' => $exceptProjectId]);
             $count = (int)$stmt->fetchColumn();
 
             if ($count === 0) {
@@ -159,18 +164,35 @@ final class TaskHumanReadableKeysMigration implements MigrationInterface
         ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
         $projectCounters = [];
+        $keyExistsStmt = $pdo->prepare('SELECT COUNT(*) FROM tasks WHERE task_key = :key');
 
         foreach ($tasks as $task) {
             $projectId = (int)$task['project_id'];
-            $prefix = (string)($task['task_key_prefix'] ?? 'PRJ');
-
-            if (!isset($projectCounters[$projectId])) {
-                $projectCounters[$projectId] = 0;
+            $prefix = trim((string)($task['task_key_prefix'] ?? ''));
+            if ($prefix === '') {
+                $prefix = 'PRJ';
             }
 
-            $projectCounters[$projectId]++;
-            $seq = $projectCounters[$projectId];
+            // Idempotency: continue numbering from the highest sequence already
+            // assigned to this project instead of restarting at 1. A retry after
+            // a partial run (e.g. a previously failed attempt) must never
+            // regenerate an existing key such as PRJ-1 and hit the unique index
+            // uq_tasks_task_key.
+            if (!isset($projectCounters[$projectId])) {
+                $projectCounters[$projectId] = $this->maxAssignedSequence($pdo, 'project', $projectId);
+            }
+
+            $seq = $projectCounters[$projectId] + 1;
             $taskKey = $prefix . '-' . $seq;
+
+            // Collision guard: a previous state (e.g. two projects left sharing
+            // the same prefix) may already hold this exact key — bump the
+            // sequence until the key is free before updating.
+            while ($this->taskKeyExists($keyExistsStmt, $taskKey)) {
+                $seq++;
+                $taskKey = $prefix . '-' . $seq;
+            }
+            $projectCounters[$projectId] = $seq;
 
             $stmt = $pdo->prepare('UPDATE tasks SET task_key = :task_key, task_key_prefix = :prefix, task_sequence_number = :seq WHERE id = :id');
             $stmt->execute([
@@ -189,11 +211,16 @@ final class TaskHumanReadableKeysMigration implements MigrationInterface
             ORDER BY t.created_at ASC, t.id ASC
         ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-        $globalCounter = 0;
+        $globalCounter = $this->maxAssignedSequence($pdo, 'global', null);
 
         foreach ($globalTasks as $task) {
             $globalCounter++;
             $taskKey = 'TASK-' . $globalCounter;
+
+            while ($this->taskKeyExists($keyExistsStmt, $taskKey)) {
+                $globalCounter++;
+                $taskKey = 'TASK-' . $globalCounter;
+            }
 
             $stmt = $pdo->prepare('UPDATE tasks SET task_key = :task_key, task_key_prefix = :prefix, task_sequence_number = :seq WHERE id = :id');
             $stmt->execute([
@@ -245,5 +272,37 @@ final class TaskHumanReadableKeysMigration implements MigrationInterface
             'created_at' => $now,
             'updated_at' => $now,
         ]);
+    }
+
+    /**
+     * Highest numeric sequence already assigned in the given scope. Parsed from
+     * the task_key suffix (not task_sequence_number) so it also covers keys
+     * written by newer app code before this migration ran.
+     */
+    private function maxAssignedSequence(PDO $pdo, string $scope, ?int $projectId): int
+    {
+        if ($scope === 'project' && $projectId !== null) {
+            $stmt = $pdo->prepare("
+                SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(task_key, '-', -1) AS UNSIGNED)), 0)
+                FROM tasks
+                WHERE project_id = :pid AND task_key IS NOT NULL
+            ");
+            $stmt->execute(['pid' => $projectId]);
+            return (int)$stmt->fetchColumn();
+        }
+
+        $stmt = $pdo->prepare("
+            SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(task_key, '-', -1) AS UNSIGNED)), 0)
+            FROM tasks
+            WHERE project_id IS NULL AND task_key IS NOT NULL
+        ");
+        $stmt->execute();
+        return (int)$stmt->fetchColumn();
+    }
+
+    private function taskKeyExists(PDOStatement $stmt, string $key): bool
+    {
+        $stmt->execute(['key' => $key]);
+        return (int)$stmt->fetchColumn() > 0;
     }
 }
