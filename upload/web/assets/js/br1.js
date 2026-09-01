@@ -1082,6 +1082,20 @@ window.CRM.br1 = (function () {
           '[data-open-modal="createProjectModal"]',
           '#createProjectForm'
         ]
+      },
+      // Task-create modal must stay in sync with its trigger (mirror of the
+      // create-project rule above). initTaskCreateFlow() runs before the user
+      // is hydrated and hides the modal with d-none when hasPermission() is
+      // still fail-closed false; without this rule the class is never removed
+      // for permitted actors, so direct .show() calls (e.g. chat "Create task
+      // from message") leave an invisible modal.
+      {
+        allow: function () {
+          return hasPermission('task.manage') && !isExternalRole('observer');
+        },
+        selectors: [
+          '#createTaskModal'
+        ]
       }
     ];
 

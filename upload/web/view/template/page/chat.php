@@ -1544,6 +1544,12 @@
 
     var modalEl = document.getElementById('createTaskModal');
     if (modalEl && window.bootstrap && window.bootstrap.Modal) {
+      // Mirror modals.js [data-open-modal]: strip any d-none/permission hiding
+      // left by the permission-visibility pass so the modal can actually show.
+      modalEl.classList.remove('d-none');
+      modalEl.removeAttribute('data-permission-hidden');
+      modalEl.removeAttribute('aria-hidden');
+      modalEl.style.display = '';
       window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
     } else {
       window.location.href = 'index.php?route=tasks';

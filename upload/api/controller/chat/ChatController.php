@@ -815,11 +815,16 @@ final class ChatController extends BaseController
         $userId = $this->currentUserId();
         if ($publicId === '' || $userId <= 0) return null;
 
+        // project_public_id / project_client_public_id are needed by the chat
+        // page to prefill the task-create dialog with the linked project and
+        // its client (and to deep-link project chats from the project page).
         $stmt = $this->container->get('db.pdo')->prepare("
-            SELECT c.*, cp.is_favorite, cp.muted_until, COALESCE(rm.last_read_message_id, 0) as last_read_seq
+            SELECT c.*, p.public_id AS project_public_id, p.client_public_id AS project_client_public_id,
+                cp.is_favorite, cp.muted_until, COALESCE(rm.last_read_message_id, 0) as last_read_seq
             FROM chats c
             JOIN chat_participants cp ON cp.chat_id = c.id AND cp.user_id = :uid
             LEFT JOIN chat_read_markers rm ON rm.chat_id = c.id AND rm.user_id = :uid2
+            LEFT JOIN projects p ON p.id = c.project_id
             WHERE c.public_id = :pid
             LIMIT 1
         ");
@@ -835,8 +840,10 @@ final class ChatController extends BaseController
         if ($publicId === '' || $userId <= 0) return null;
 
         $stmt = $this->container->get('db.pdo')->prepare("
-            SELECT c.*, 0 AS is_favorite, NULL AS muted_until
+            SELECT c.*, p.public_id AS project_public_id, p.client_public_id AS project_client_public_id,
+                0 AS is_favorite, NULL AS muted_until
             FROM chats c
+            LEFT JOIN projects p ON p.id = c.project_id
             WHERE c.public_id = :pid
               AND c.archived_by_user_id = :uid
               AND c.archived_at IS NOT NULL

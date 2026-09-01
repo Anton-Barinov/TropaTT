@@ -362,7 +362,7 @@ final class ChatService
             return null;
         }
         $stmt = $this->pdo->prepare("
-            SELECT c.*, p.public_id AS project_public_id
+            SELECT c.*, p.public_id AS project_public_id, p.client_public_id AS project_client_public_id
             FROM chats c
             LEFT JOIN projects p ON p.id = c.project_id
             WHERE c.public_id = :pid AND c.type = 'project_client' AND c.archived_at IS NULL
@@ -382,7 +382,7 @@ final class ChatService
     public function listProjectClientChats(): array
     {
         $stmt = $this->pdo->prepare("
-            SELECT c.*, p.public_id AS project_public_id
+            SELECT c.*, p.public_id AS project_public_id, p.client_public_id AS project_client_public_id
             FROM chats c
             LEFT JOIN projects p ON p.id = c.project_id
             WHERE c.type = 'project_client' AND c.archived_at IS NULL
