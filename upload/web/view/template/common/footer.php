@@ -157,6 +157,14 @@ $needsBr1NotifyOnly = !$needsBr1 && !in_array($currentRoute, [
   'password-reset-confirm',
   'invitation-accept',
 ], true);
+$needsVisualEditor = in_array($currentRoute, [
+  'knowledge',
+  'knowledge-page',
+  'task-detail',
+  'ideas',
+  'idea-detail',
+  'work-cycles',
+], true);
 ?>
 <script defer src="assets/vendor/bootstrap/bootstrap.bundle.min.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php if ($needsSortable): ?>
@@ -185,7 +193,9 @@ $needsBr1NotifyOnly = !$needsBr1 && !in_array($currentRoute, [
 <?php if ($needsRichText): ?>
 <script defer src="assets/js/richtext.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif; ?>
+<?php if ($needsVisualEditor): ?>
 <script defer src="assets/js/visual-editor.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<?php endif; ?>
 <?php if ($needsBr1): ?>
 <script defer src="assets/js/br1.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php elseif ($needsBr1NotifyOnly): ?>
