@@ -68,11 +68,13 @@ final class UserController extends BaseController
 
         $input = $this->validatedInput(['login', 'password', 'email', 'full_name', 'locale', 'is_root', 'token', 'role_public_ids', 'team_public_id']);
 
-        // SEC-002: is_root and roles are NEVER settable via API — even for root
-        // actors. Root status must only be assigned via seed/migration or direct
-        // DB manipulation. This prevents privilege-escalation mass-assignment
-        // if a root account is compromised.
-        unset($input['is_root'], $input['role_public_ids']);
+        // SEC-002: is_root is NEVER settable via API (seed/migration/DB only).
+        // role_public_ids may be set by root actors; non-root actors cannot
+        // assign roles — prevents privilege-escalation mass-assignment.
+        unset($input['is_root']);
+        if (!$this->isCurrentUserRoot()) {
+            unset($input['role_public_ids']);
+        }
 
         $v = new Validator();
         $v->require($input, 'login', $this->t('common/messages.field_required'))
@@ -131,9 +133,13 @@ final class UserController extends BaseController
             $input['external_role'] = $extRole;
         }
 
-        // SEC-002: is_root and roles are NEVER settable via API — even for root
-        // actors. Prevents privilege-escalation mass-assignment.
-        unset($input['is_root'], $input['role_public_ids']);
+        // SEC-002: is_root is NEVER settable via API. role_public_ids may only
+        // be set by root actors (admin UI needs this); non-root actors cannot
+        // assign roles — prevents privilege-escalation mass-assignment.
+        unset($input['is_root']);
+        if (!$this->isCurrentUserRoot()) {
+            unset($input['role_public_ids']);
+        }
         // Financial rates require root OR finance.rate.manage permission
         if (!$this->isCurrentUserRoot() && !$this->hasRateManagePerm()) {
             unset($input['cost_rate'], $input['bill_rate'], $input['payout_rate']);

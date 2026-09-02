@@ -19,7 +19,7 @@ final class UserManagementRepository
         $offset = ($page - 1) * $limit;
 
         $items = $this->buildListQuery($filters)
-            ->select(['public_id', 'login', 'email', 'full_name', 'locale', 'is_active', 'is_root', 'cost_rate', 'bill_rate', 'payout_rate', 'created_by_user_id', 'created_at', 'updated_at'])
+            ->select(['id', 'public_id', 'login', 'email', 'full_name', 'locale', 'is_active', 'is_root', 'cost_rate', 'bill_rate', 'payout_rate', 'created_by_user_id', 'created_at', 'updated_at'])
             ->orderBy('created_at', 'DESC')
             ->limit($limit)
             ->offset($offset)
@@ -90,6 +90,29 @@ final class UserManagementRepository
             ->get();
 
         return array_map(static fn(array $row): string => (string)$row['code'], $rows);
+    }
+
+    /**
+     * Batch-fetch role public IDs for multiple user IDs.
+     * Returns map[userId => string[]].
+     */
+    public function rolePublicIdsByUserIds(array $userIds): array
+    {
+        if ($userIds === []) {
+            return [];
+        }
+        $rows = (new QueryBuilder($this->pdo))
+            ->from('user_roles ur')
+            ->join('roles r', 'r.id', '=', 'ur.role_id')
+            ->select(['ur.user_id', 'r.public_id'])
+            ->whereIn('ur.user_id', $userIds)
+            ->get();
+        $map = array_fill_keys($userIds, []);
+        foreach ($rows as $row) {
+            $uid = (int)$row['user_id'];
+            $map[$uid][] = (string)$row['public_id'];
+        }
+        return $map;
     }
 
     public function replaceRoles(int $userId, array $rolePublicIds): void
