@@ -38,6 +38,7 @@ final class UserService
             $rolesMap = $this->users->rolePublicIdsByUserIds($userIds);
             foreach ($items as &$item) {
                 $item['role_public_ids'] = $rolesMap[(int)$item['id']] ?? [];
+                unset($item['id']); // internal ID not exposed to client
             }
             unset($item);
         }
