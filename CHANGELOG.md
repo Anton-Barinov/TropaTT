@@ -45,6 +45,8 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ### Fixed
 
+- **Project detail page data loading and tabs broken.** The `br1-notify.js` stub (loaded on non-task routes for performance) was missing `getProjectPublicIdFromUrl()`, causing `page-api-bindings.js` to throw TypeError and preventing all project data from loading. Added the function to the stub and a defensive type-check in `page-api-bindings.js`.
+
 - **My earnings page 403.** `MyEarningsController::available()` now passes `$auth['user']` (not the
   whole auth array) to the payout policy check, so root/admins get a valid `200` on
   `GET /me/earnings/available` instead of an erroneous `403`.
