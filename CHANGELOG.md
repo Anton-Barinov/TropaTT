@@ -4,6 +4,28 @@ All notable public changes to TropaTT should be documented here.
 
 This project follows a lightweight Keep a Changelog style. Dates are added when a release is actually created.
 
+## Unreleased
+
+### Added
+
+- **Chat message quick actions.** Messages in the chat page now show two quick-action buttons at the bottom of each card: Reply (fa-reply) and Create Task (fa-list-check). A corner menu (⋮) provides Copy, Edit, Delete, and Create Page actions, with conditions applied (Edit/Delete only for own recent messages).
+
+- **Chat in project detail — full parity with chat page.** The "Chat" tab on the project detail page now uses the same shared `chat-widget.js` module (`CRM.chat`) for rendering, actions, and compose area as the main chat page: textarea with auto-resize, Enter/Shift+Enter, file upload, reply preview, edit mode, emoji and mention placeholders, and the same quick actions + ⋮ menu on each message.
+
+- **Reply-to-message in project chat.** Clicking Reply on a message in the project chat shows a reply preview bar and sends `reply_to_message_public_id` with the new message.
+
+- **Create task from chat message.** The "Create Task" action in both chat pages pre-fills the task creation modal with the message text, linked to the current project.
+
+### Changed
+
+- **Modal content scrollable.** All modal dialogs (create/edit task, create event, create project, etc.) now scroll properly when content exceeds viewport height. CSS fix: `display: flex; flex-direction: column` on `.modal-content`, `<form>` wrapper as flex child, `flex: 1 1 auto` on `.modal-body`.
+
+- **Chat ⋮ menu item order.** Menu items now appear in the order: Copy → Edit → Delete → Create Page. Empty menus are not rendered.
+
+- **Performance: ~2.2 MB lighter on non-task routes.** `br1.js` (77 KB) is now conditionally loaded only on routes that use it (tasks, kanban, gantt, ideas, etc.); other routes load a 29-byte `br1-notify.js` stub. `page-api-bindings.js` (325 KB) is excluded from the project detail page.
+
+- **Chat rendering delegated to shared module.** Core rendering functions (`renderMessage`, `renderMessageMoreMenu`, `renderMessageText`, `renderAttachments`, `renderReplyQuote`, `canEditMessage`, `canDeleteMessage`, `formatTime`, `formatFileSize`, `esc`) in `chat.php` now delegate to `CRM.chat.*` from `chat-widget.js`, reducing duplication.
+
 ## [v0.2.0.10] - 2026-08-29
 
 ### Testing
