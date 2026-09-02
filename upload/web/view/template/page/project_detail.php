@@ -565,30 +565,92 @@
 
     /* ---- Client portal: chat (uses shared chat-widget.js) ---- */
     var chatMsgsEl = document.getElementById('projectClientChatMessages');
-    var chatFormEl = document.getElementById('projectClientChatForm');
+    var chatComposeEl = document.getElementById('projectClientChatCompose');
     var chatInputEl = document.getElementById('projectClientChatInput');
+    var chatSendBtn = document.getElementById('projectClientChatSendBtn');
+    var chatSendError = document.getElementById('projectClientChatSendError');
     var chatEmptyEl = document.getElementById('projectClientChatEmpty');
     var clientChatPublicId = null;
     var clientChatMessages = [];
     var chatW = window.CRM && window.CRM.chat;
     var clientReplyTo = null;
+    var clientEditingMessage = null;
+
+    function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
     function findClientMessage(id) {
       return clientChatMessages.find(function (m) { return String(m.public_id) === String(id); }) || null;
     }
 
+    function setClientChatError(text) {
+      if (!chatSendError) return;
+      chatSendError.textContent = text || '';
+      chatSendError.classList.toggle('d-none', !text);
+    }
+
     function renderClientReplyPreview() {
       var node = document.getElementById('projectClientChatReplyPreview');
-      var replyId = document.getElementById('projectClientChatReplyId');
       if (!node) return;
       node.classList.toggle('d-none', !clientReplyTo);
-      if (!clientReplyTo) { node.innerHTML = ''; if (replyId) replyId.value = ''; return; }
-      if (replyId) replyId.value = clientReplyTo.public_id || '';
-      node.innerHTML = '<div><strong><?= htmlspecialchars($t('project_detail.client_chat_reply', 'Ответ'), ENT_QUOTES, 'UTF-8') ?></strong><span>' + (clientReplyTo.text || '').substring(0, 120) + '</span></div><button type="button" aria-label="<?= htmlspecialchars($t('project_detail.client_chat_cancel_reply', 'Отменить'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>';
-      node.querySelector('button').addEventListener('click', function () {
-        clientReplyTo = null;
+      if (!clientReplyTo) { node.innerHTML = ''; return; }
+      node.innerHTML = '<div><strong><?= htmlspecialchars($t('project_detail.client_chat_reply', 'Ответ'), ENT_QUOTES, 'UTF-8') ?></strong><span>' + esc((clientReplyTo.text || '').substring(0, 120)) + '</span></div><button type="button" aria-label="<?= htmlspecialchars($t('project_detail.client_chat_cancel_reply', 'Отменить'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>';
+      var closeBtn = node.querySelector('button');
+      if (closeBtn) closeBtn.addEventListener('click', function () { clientReplyTo = null; renderClientReplyPreview(); });
+    }
+
+    function syncClientSendBtn() {
+      if (!chatInputEl || !chatSendBtn) return;
+      chatSendBtn.disabled = !chatInputEl.value.trim();
+      chatInputEl.style.height = chatInputEl.value ? 'auto' : '';
+      if (chatInputEl.value) chatInputEl.style.height = Math.min(Math.max(44, chatInputEl.scrollHeight), 120) + 'px';
+      if (chatInputEl.value.trim()) setClientChatError('');
+    }
+
+    async function sendClientChatMsg() {
+      if (!chatInputEl || !chatSendBtn) return;
+      var text = chatInputEl.value.trim();
+      if (!text) { setClientChatError('<?= htmlspecialchars($t('chat.error_write_message', 'Напишите сообщение.'), ENT_QUOTES, 'UTF-8') ?>'); return; }
+      if (!clientChatPublicId) { setClientChatError('<?= htmlspecialchars($t('chat.error_select_chat', 'Выберите чат.'), ENT_QUOTES, 'UTF-8') ?>'); return; }
+      chatInputEl.disabled = true;
+      chatSendBtn.disabled = true;
+      setClientChatError('');
+      try {
+        if (clientEditingMessage) {
+          await api.request('api/v1/chats/' + encodeURIComponent(clientChatPublicId) + '/messages/' + encodeURIComponent(clientEditingMessage.public_id), { method: 'PATCH', body: { text: text } });
+          clientEditingMessage = null;
+        } else {
+          var body = { text: text };
+          if (clientReplyTo && clientReplyTo.public_id) body.reply_to_message_public_id = clientReplyTo.public_id;
+          await api.request('api/v1/chats/' + encodeURIComponent(clientChatPublicId) + '/messages', { method: 'POST', body: body });
+          clientReplyTo = null;
+        }
+        chatInputEl.value = '';
+        chatInputEl.style.height = '';
         renderClientReplyPreview();
-      });
+        await loadClientChatMessages(api, clientChatPublicId, chatMsgsEl);
+      } catch (e) {
+        setClientChatError('<?= htmlspecialchars($t('chat.error_send_failed', 'Не удалось отправить сообщение. Попробуйте еще раз.'), ENT_QUOTES, 'UTF-8') ?>');
+      } finally {
+        chatInputEl.disabled = false;
+        chatInputEl.focus();
+        syncClientSendBtn();
+      }
+    }
+
+    async function uploadClientChatFile(event) {
+      var fileInput = event.target;
+      var file = fileInput.files && fileInput.files[0];
+      if (!file || !clientChatPublicId) return;
+      var data = new FormData();
+      data.append('file', file);
+      try {
+        await api.request('api/v1/chats/' + encodeURIComponent(clientChatPublicId) + '/attachments', { method: 'POST', body: data });
+        fileInput.value = '';
+        await loadClientChatMessages(api, clientChatPublicId, chatMsgsEl);
+      } catch (e) {
+        setClientChatError('<?= htmlspecialchars($t('chat.error_file_upload', 'Не удалось отправить файл.'), ENT_QUOTES, 'UTF-8') ?>');
+        fileInput.value = '';
+      }
     }
 
     function renderClientChatMessages(msgs) {
@@ -607,14 +669,18 @@
         copyText: function (text) { return navigator.clipboard.writeText(text); },
         onReply: function (message) {
           clientReplyTo = message;
+          clientEditingMessage = null;
           renderClientReplyPreview();
           if (chatInputEl) chatInputEl.focus();
         },
         onEdit: function (message) {
-          /* inline edit: put text in input and focus */
+          clientEditingMessage = message;
+          clientReplyTo = null;
+          renderClientReplyPreview();
           if (chatInputEl) {
             chatInputEl.value = message.text || '';
             chatInputEl.focus();
+            syncClientSendBtn();
           }
         },
         showConfirmModal: function (opts) {
@@ -662,7 +728,23 @@
         if (matchingChats.length) {
           clientChatPublicId = matchingChats[0].public_id;
           await loadClientChatMessages(api, clientChatPublicId, chatMsgsEl);
-          if (chatFormEl) chatFormEl.style.display = '';
+          if (chatComposeEl) chatComposeEl.style.display = '';
+          /* bind composer events */
+          if (chatInputEl) {
+            chatInputEl.addEventListener('input', syncClientSendBtn);
+            chatInputEl.addEventListener('keydown', function (ev) {
+              if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); sendClientChatMsg(); }
+            });
+          }
+          if (chatSendBtn) chatSendBtn.addEventListener('click', sendClientChatMsg);
+          var attachBtn = document.getElementById('projectClientChatAttachBtn');
+          var fileInput = document.getElementById('projectClientChatFileInput');
+          if (attachBtn && fileInput) {
+            attachBtn.addEventListener('click', function () { fileInput.click(); });
+            fileInput.addEventListener('change', uploadClientChatFile);
+          }
+          renderClientReplyPreview();
+          syncClientSendBtn();
         } else {
           chatMsgsEl.style.display = 'none';
           if (chatEmptyEl) chatEmptyEl.style.display = '';
@@ -672,35 +754,15 @@
       }
     }
 
-    if (chatFormEl && chatInputEl) {
-      chatFormEl.addEventListener('submit', async function (ev) {
-        ev.preventDefault();
-        var text = (chatInputEl.value || '').trim();
-        if (!text || !clientChatPublicId) return;
-        var body = { text: text };
-        if (clientReplyTo && clientReplyTo.public_id) body.reply_to_message_public_id = clientReplyTo.public_id;
-        chatInputEl.disabled = true;
-        try {
-          await api.request('api/v1/chats/' + encodeURIComponent(clientChatPublicId) + '/messages', { method: 'POST', body: body });
-          chatInputEl.value = '';
-          clientReplyTo = null;
-          renderClientReplyPreview();
-          await loadClientChatMessages(api, clientChatPublicId, chatMsgsEl);
-        } catch (e) { /* ignore */ }
-        chatInputEl.disabled = false;
-        chatInputEl.focus();
-      });
+    async function loadClientChatMessages(api, chatId, container) {
+      try {
+        var resp = await api.request('api/v1/chats/' + encodeURIComponent(chatId) + '/messages');
+        var msgs = resp.data && (resp.data.items || resp.data.messages) || [];
+        renderClientChatMessages(msgs);
+      } catch (e) {
+        container.innerHTML = '<div class="text-muted small">—</div>';
+      }
     }
-
-  async function loadClientChatMessages(api, chatId, container) {
-    try {
-      var resp = await api.request('api/v1/chats/' + encodeURIComponent(chatId) + '/messages');
-      var msgs = resp.data && (resp.data.items || resp.data.messages) || [];
-      renderClientChatMessages(msgs);
-    } catch (e) {
-      container.innerHTML = '<div class="text-muted small">—</div>';
-    }
-  }
   });
 })();
 </script>
