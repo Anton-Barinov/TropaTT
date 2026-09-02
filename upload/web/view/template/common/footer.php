@@ -119,7 +119,6 @@ $needsPageApiBindings = !in_array($currentRoute, [
   'admin-module-detail',
   'admin-modules-install',
   'module-wip-limit',
-  'project-detail',
 ], true);
 $needsBr1 = in_array($currentRoute, [
   'task-detail',
@@ -202,9 +201,6 @@ $needsVisualEditor = in_array($currentRoute, [
 <script defer src="assets/js/br1-notify.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif; ?><?php if ($needsPageApiBindings):
 ?><script defer src="assets/js/page-api-bindings.js?v=<?= urlencode($assetsVersion) ?>"></script>
-<?php endif;
-?><?php if ($currentRoute === 'project-detail'): ?>
-<script defer src="assets/js/project-tabs.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif;
 ?><?php if ($currentRoute === 'dashboard'): ?>
 <script defer src="assets/js/dashboard-extra-widgets.js?v=<?= urlencode($assetsVersion) ?>"></script>
