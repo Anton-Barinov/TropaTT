@@ -26,4 +26,9 @@ window.CRM.br1 = window.CRM.br1 || {};
       return String(value || '');
     };
   }
+  if (typeof br1.getProjectPublicIdFromUrl !== 'function') {
+    br1.getProjectPublicIdFromUrl = function () {
+      return new URLSearchParams(window.location.search).get('project_public_id') || '';
+    };
+  }
 })(window.CRM.br1);

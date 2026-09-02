@@ -2644,7 +2644,7 @@ window.CRM.pageApiBindings = (function () {
 
   async function renderProjectDetailPage() {
     setupProjectDetailInteractions();
-    var projectId = window.CRM.br1 ? window.CRM.br1.getProjectPublicIdFromUrl() : '';
+    var projectId = (window.CRM.br1 && typeof window.CRM.br1.getProjectPublicIdFromUrl === 'function') ? window.CRM.br1.getProjectPublicIdFromUrl() : '';
     var aiCanUse = window.CRM.ai && typeof window.CRM.ai.hasAiPermission === 'function'
       ? window.CRM.ai.hasAiPermission('project_summary')
       : (window.CRM.api && typeof window.CRM.api.hasPermission === 'function' ? window.CRM.api.hasPermission('ai.use') : true);
