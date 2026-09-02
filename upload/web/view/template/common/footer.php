@@ -119,6 +119,43 @@ $needsPageApiBindings = !in_array($currentRoute, [
   'admin-module-detail',
   'admin-modules-install',
   'module-wip-limit',
+  'project-detail',
+], true);
+$needsBr1 = in_array($currentRoute, [
+  'task-detail',
+  'tasks',
+  'kanban',
+  'gantt',
+  'ideas',
+  'idea-detail',
+  'teams',
+  'admin-modules',
+  'admin-module-detail',
+  'admin-modules-install',
+  'dashboard',
+  'projects',
+  'calendar',
+  'clients',
+  'counterparties',
+  'contacts',
+  'companies',
+  'knowledge',
+  'knowledge-page',
+  'notifications',
+  'profile',
+  'admin-settings',
+  'admin-estimates',
+  'admin-tags',
+  'admin-updates',
+  'recurring',
+  'intake',
+  'project-modules',
+], true);
+$needsBr1NotifyOnly = !$needsBr1 && !in_array($currentRoute, [
+  'login',
+  'password-reset-request',
+  'password-reset-confirm',
+  'invitation-accept',
 ], true);
 ?>
 <script defer src="assets/vendor/bootstrap/bootstrap.bundle.min.js?v=<?= urlencode($assetsVersion) ?>"></script>
@@ -149,7 +186,11 @@ $needsPageApiBindings = !in_array($currentRoute, [
 <script defer src="assets/js/richtext.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif; ?>
 <script defer src="assets/js/visual-editor.js?v=<?= urlencode($assetsVersion) ?>"></script>
-<script defer src="assets/js/br1.js?v=<?= urlencode($assetsVersion) ?>"></script><?php if ($needsPageApiBindings):
+<?php if ($needsBr1): ?>
+<script defer src="assets/js/br1.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<?php elseif ($needsBr1NotifyOnly): ?>
+<script defer src="assets/js/br1-notify.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<?php endif; ?><?php if ($needsPageApiBindings):
 ?><script defer src="assets/js/page-api-bindings.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif;
 ?><?php if ($currentRoute === 'dashboard'): ?>

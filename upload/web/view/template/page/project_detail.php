@@ -157,19 +157,35 @@
 <!-- ============ CLIENT CHAT ============ -->
 <!-- Rendered for everyone with access: external users chat with the team here,
      staff (project manager/admin) see the same conversation via project access. -->
-<div class="crm-pr-panel" data-project-panel="chat" role="tabpanel">
-  <section class="crm-card mb-3">
-    <div class="crm-pr-card-head">
-      <h2 class="h6 mb-0" data-i18n="project_detail.section_client_chat"><?= htmlspecialchars($t('project_detail.section_client_chat', 'Чат с командой'), ENT_QUOTES, 'UTF-8') ?></h2>
+<div class="crm-pr-panel crm-pr-panel--chat" data-project-panel="chat" role="tabpanel">
+  <section class="crm-card crm-card--chat">
+    <div class="crm-chat-conversation-head">
+      <div class="crm-chat-head-main">
+        <div class="crm-chat-conversation-type" data-i18n="project_detail.section_client_chat"><?= htmlspecialchars($t('project_detail.section_client_chat', 'Чат с командой'), ENT_QUOTES, 'UTF-8') ?></div>
+        <h2 id="projectClientChatTitle"></h2>
+        <button type="button" class="crm-chat-participants-link" id="projectClientChatParticipantsBtn"></button>
+      </div>
     </div>
-    <div id="projectClientChatMessages" class="crm-chat-messages" style="max-height:400px;"><div class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
-    <div id="projectClientChatEmpty" class="text-muted small mb-3" style="display:none;" data-i18n="project_detail.client_chat_empty"><?= htmlspecialchars($t('project_detail.client_chat_empty', 'Чат ещё не создан. Администратор создаст его при необходимости.'), ENT_QUOTES, 'UTF-8') ?></div>
-    <div id="projectClientChatReplyPreview" class="crm-chat-reply-preview d-none"></div>
-    <form id="projectClientChatForm" class="crm-chat-composer" style="display:none;">
-      <input type="hidden" id="projectClientChatReplyId" value="">
-      <input class="form-control form-control-sm" id="projectClientChatInput" type="text" maxlength="2000" placeholder="<?= htmlspecialchars($t('project_detail.client_chat_placeholder', 'Напишите сообщение...'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="project_detail.client_chat_placeholder" required>
-      <button class="btn btn-sm crm-btn-primary crm-chat-send-btn" type="submit" data-i18n="project_detail.client_chat_send"><?= htmlspecialchars($t('project_detail.client_chat_send', 'Отправить'), ENT_QUOTES, 'UTF-8') ?></button>
-    </form>
+    <div id="projectClientChatMessages" class="crm-chat-messages" aria-live="polite"><div class="crm-chat-list-state" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...', ENT_QUOTES, 'UTF-8')) ?></div></div>
+    <div id="projectClientChatEmpty" class="crm-chat-empty crm-chat-empty--small" style="display:none;">
+      <i class="fa-solid fa-comments" aria-hidden="true"></i>
+      <strong data-i18n="project_detail.client_chat_empty"><?= htmlspecialchars($t('project_detail.client_chat_empty', 'Чат ещё не создан. Администратор создаст его при необходимости.'), ENT_QUOTES, 'UTF-8') ?></strong>
+    </div>
+    <div class="crm-chat-compose" id="projectClientChatCompose" style="display:none;">
+      <div class="text-danger small d-none" id="projectClientChatSendError" aria-live="polite"></div>
+      <div class="crm-chat-reply-preview d-none" id="projectClientChatReplyPreview"></div>
+      <div id="projectClientChatMentionPopup" class="crm-chat-mention-popup d-none" role="listbox" aria-label="<?= htmlspecialchars($t('chat.mention_popup_aria', 'Упомянуть участника'), ENT_QUOTES, 'UTF-8') ?>"></div>
+      <div class="crm-chat-picker d-none" id="projectClientChatEmojiPicker"></div>
+      <div class="crm-chat-compose-row">
+        <button class="btn crm-icon-btn" type="button" id="projectClientChatAttachBtn" aria-label="<?= htmlspecialchars($t('chat.btn_attach_aria', 'Прикрепить файл'), ENT_QUOTES, 'UTF-8') ?>" title="<?= htmlspecialchars($t('chat.btn_attach_title', 'Прикрепить файл'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-paperclip" aria-hidden="true"></i></button>
+        <button class="btn crm-icon-btn" type="button" id="projectClientChatEmojiBtn" aria-label="<?= htmlspecialchars($t('chat.btn_emoji_aria', 'Эмоджи и стикеры'), ENT_QUOTES, 'UTF-8') ?>" title="<?= htmlspecialchars($t('chat.btn_emoji_title', 'Эмоджи и стикеры'), ENT_QUOTES, 'UTF-8') ?>" aria-expanded="false" aria-controls="projectClientChatEmojiPicker"><i class="fa-regular fa-face-smile" aria-hidden="true"></i></button>
+        <input class="d-none" type="file" id="projectClientChatFileInput" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.txt,.csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,text/csv,application/zip">
+        <label class="visually-hidden" for="projectClientChatInput"><?= htmlspecialchars($t('chat.msg_input_label', 'Сообщение'), ENT_QUOTES, 'UTF-8') ?></label>
+        <textarea class="form-control crm-chat-message-input" id="projectClientChatInput" rows="1" maxlength="4000" placeholder="<?= htmlspecialchars($t('chat.placeholder_message', 'Сообщение...'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="chat.placeholder_message"></textarea>
+        <button class="btn crm-btn-primary crm-chat-send-btn" type="button" id="projectClientChatSendBtn" disabled aria-label="<?= htmlspecialchars($t('chat.btn_send_aria', 'Отправить сообщение'), ENT_QUOTES, 'UTF-8') ?>" title="<?= htmlspecialchars($t('chat.btn_send_title', 'Отправить сообщение'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i></button>
+      </div>
+      <div class="crm-chat-compose-hint" data-i18n="chat.compose_hint"><?= htmlspecialchars($t('chat.compose_hint', 'Enter — отправить, Shift+Enter — новая строка. @логин — упоминание.'), ENT_QUOTES, 'UTF-8') ?></div>
+    </div>
   </section>
 </div>
 
@@ -549,30 +565,92 @@
 
     /* ---- Client portal: chat (uses shared chat-widget.js) ---- */
     var chatMsgsEl = document.getElementById('projectClientChatMessages');
-    var chatFormEl = document.getElementById('projectClientChatForm');
+    var chatComposeEl = document.getElementById('projectClientChatCompose');
     var chatInputEl = document.getElementById('projectClientChatInput');
+    var chatSendBtn = document.getElementById('projectClientChatSendBtn');
+    var chatSendError = document.getElementById('projectClientChatSendError');
     var chatEmptyEl = document.getElementById('projectClientChatEmpty');
     var clientChatPublicId = null;
     var clientChatMessages = [];
     var chatW = window.CRM && window.CRM.chat;
     var clientReplyTo = null;
+    var clientEditingMessage = null;
+
+    function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
     function findClientMessage(id) {
       return clientChatMessages.find(function (m) { return String(m.public_id) === String(id); }) || null;
     }
 
+    function setClientChatError(text) {
+      if (!chatSendError) return;
+      chatSendError.textContent = text || '';
+      chatSendError.classList.toggle('d-none', !text);
+    }
+
     function renderClientReplyPreview() {
       var node = document.getElementById('projectClientChatReplyPreview');
-      var replyId = document.getElementById('projectClientChatReplyId');
       if (!node) return;
       node.classList.toggle('d-none', !clientReplyTo);
-      if (!clientReplyTo) { node.innerHTML = ''; if (replyId) replyId.value = ''; return; }
-      if (replyId) replyId.value = clientReplyTo.public_id || '';
-      node.innerHTML = '<div><strong><?= htmlspecialchars($t('project_detail.client_chat_reply', 'Ответ'), ENT_QUOTES, 'UTF-8') ?></strong><span>' + (clientReplyTo.text || '').substring(0, 120) + '</span></div><button type="button" aria-label="<?= htmlspecialchars($t('project_detail.client_chat_cancel_reply', 'Отменить'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>';
-      node.querySelector('button').addEventListener('click', function () {
-        clientReplyTo = null;
+      if (!clientReplyTo) { node.innerHTML = ''; return; }
+      node.innerHTML = '<div><strong><?= htmlspecialchars($t('project_detail.client_chat_reply', 'Ответ'), ENT_QUOTES, 'UTF-8') ?></strong><span>' + esc((clientReplyTo.text || '').substring(0, 120)) + '</span></div><button type="button" aria-label="<?= htmlspecialchars($t('project_detail.client_chat_cancel_reply', 'Отменить'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>';
+      var closeBtn = node.querySelector('button');
+      if (closeBtn) closeBtn.addEventListener('click', function () { clientReplyTo = null; renderClientReplyPreview(); });
+    }
+
+    function syncClientSendBtn() {
+      if (!chatInputEl || !chatSendBtn) return;
+      chatSendBtn.disabled = !chatInputEl.value.trim();
+      chatInputEl.style.height = chatInputEl.value ? 'auto' : '';
+      if (chatInputEl.value) chatInputEl.style.height = Math.min(Math.max(44, chatInputEl.scrollHeight), 120) + 'px';
+      if (chatInputEl.value.trim()) setClientChatError('');
+    }
+
+    async function sendClientChatMsg() {
+      if (!chatInputEl || !chatSendBtn) return;
+      var text = chatInputEl.value.trim();
+      if (!text) { setClientChatError('<?= htmlspecialchars($t('chat.error_write_message', 'Напишите сообщение.'), ENT_QUOTES, 'UTF-8') ?>'); return; }
+      if (!clientChatPublicId) { setClientChatError('<?= htmlspecialchars($t('chat.error_select_chat', 'Выберите чат.'), ENT_QUOTES, 'UTF-8') ?>'); return; }
+      chatInputEl.disabled = true;
+      chatSendBtn.disabled = true;
+      setClientChatError('');
+      try {
+        if (clientEditingMessage) {
+          await api.request('api/v1/chats/' + encodeURIComponent(clientChatPublicId) + '/messages/' + encodeURIComponent(clientEditingMessage.public_id), { method: 'PATCH', body: { text: text } });
+          clientEditingMessage = null;
+        } else {
+          var body = { text: text };
+          if (clientReplyTo && clientReplyTo.public_id) body.reply_to_message_public_id = clientReplyTo.public_id;
+          await api.request('api/v1/chats/' + encodeURIComponent(clientChatPublicId) + '/messages', { method: 'POST', body: body });
+          clientReplyTo = null;
+        }
+        chatInputEl.value = '';
+        chatInputEl.style.height = '';
         renderClientReplyPreview();
-      });
+        await loadClientChatMessages(api, clientChatPublicId, chatMsgsEl);
+      } catch (e) {
+        setClientChatError('<?= htmlspecialchars($t('chat.error_send_failed', 'Не удалось отправить сообщение. Попробуйте еще раз.'), ENT_QUOTES, 'UTF-8') ?>');
+      } finally {
+        chatInputEl.disabled = false;
+        chatInputEl.focus();
+        syncClientSendBtn();
+      }
+    }
+
+    async function uploadClientChatFile(event) {
+      var fileInput = event.target;
+      var file = fileInput.files && fileInput.files[0];
+      if (!file || !clientChatPublicId) return;
+      var data = new FormData();
+      data.append('file', file);
+      try {
+        await api.request('api/v1/chats/' + encodeURIComponent(clientChatPublicId) + '/attachments', { method: 'POST', body: data });
+        fileInput.value = '';
+        await loadClientChatMessages(api, clientChatPublicId, chatMsgsEl);
+      } catch (e) {
+        setClientChatError('<?= htmlspecialchars($t('chat.error_file_upload', 'Не удалось отправить файл.'), ENT_QUOTES, 'UTF-8') ?>');
+        fileInput.value = '';
+      }
     }
 
     function renderClientChatMessages(msgs) {
@@ -591,14 +669,18 @@
         copyText: function (text) { return navigator.clipboard.writeText(text); },
         onReply: function (message) {
           clientReplyTo = message;
+          clientEditingMessage = null;
           renderClientReplyPreview();
           if (chatInputEl) chatInputEl.focus();
         },
         onEdit: function (message) {
-          /* inline edit: put text in input and focus */
+          clientEditingMessage = message;
+          clientReplyTo = null;
+          renderClientReplyPreview();
           if (chatInputEl) {
             chatInputEl.value = message.text || '';
             chatInputEl.focus();
+            syncClientSendBtn();
           }
         },
         showConfirmModal: function (opts) {
@@ -646,7 +728,23 @@
         if (matchingChats.length) {
           clientChatPublicId = matchingChats[0].public_id;
           await loadClientChatMessages(api, clientChatPublicId, chatMsgsEl);
-          if (chatFormEl) chatFormEl.style.display = '';
+          if (chatComposeEl) chatComposeEl.style.display = '';
+          /* bind composer events */
+          if (chatInputEl) {
+            chatInputEl.addEventListener('input', syncClientSendBtn);
+            chatInputEl.addEventListener('keydown', function (ev) {
+              if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); sendClientChatMsg(); }
+            });
+          }
+          if (chatSendBtn) chatSendBtn.addEventListener('click', sendClientChatMsg);
+          var attachBtn = document.getElementById('projectClientChatAttachBtn');
+          var fileInput = document.getElementById('projectClientChatFileInput');
+          if (attachBtn && fileInput) {
+            attachBtn.addEventListener('click', function () { fileInput.click(); });
+            fileInput.addEventListener('change', uploadClientChatFile);
+          }
+          renderClientReplyPreview();
+          syncClientSendBtn();
         } else {
           chatMsgsEl.style.display = 'none';
           if (chatEmptyEl) chatEmptyEl.style.display = '';
@@ -656,35 +754,15 @@
       }
     }
 
-    if (chatFormEl && chatInputEl) {
-      chatFormEl.addEventListener('submit', async function (ev) {
-        ev.preventDefault();
-        var text = (chatInputEl.value || '').trim();
-        if (!text || !clientChatPublicId) return;
-        var body = { text: text };
-        if (clientReplyTo && clientReplyTo.public_id) body.reply_to_message_public_id = clientReplyTo.public_id;
-        chatInputEl.disabled = true;
-        try {
-          await api.request('api/v1/chats/' + encodeURIComponent(clientChatPublicId) + '/messages', { method: 'POST', body: body });
-          chatInputEl.value = '';
-          clientReplyTo = null;
-          renderClientReplyPreview();
-          await loadClientChatMessages(api, clientChatPublicId, chatMsgsEl);
-        } catch (e) { /* ignore */ }
-        chatInputEl.disabled = false;
-        chatInputEl.focus();
-      });
+    async function loadClientChatMessages(api, chatId, container) {
+      try {
+        var resp = await api.request('api/v1/chats/' + encodeURIComponent(chatId) + '/messages');
+        var msgs = resp.data && (resp.data.items || resp.data.messages) || [];
+        renderClientChatMessages(msgs);
+      } catch (e) {
+        container.innerHTML = '<div class="text-muted small">—</div>';
+      }
     }
-
-  async function loadClientChatMessages(api, chatId, container) {
-    try {
-      var resp = await api.request('api/v1/chats/' + encodeURIComponent(chatId) + '/messages');
-      var msgs = resp.data && (resp.data.items || resp.data.messages) || [];
-      renderClientChatMessages(msgs);
-    } catch (e) {
-      container.innerHTML = '<div class="text-muted small">—</div>';
-    }
-  }
   });
 })();
 </script>
