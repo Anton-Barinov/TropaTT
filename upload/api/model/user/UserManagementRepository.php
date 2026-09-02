@@ -92,6 +92,29 @@ final class UserManagementRepository
         return array_map(static fn(array $row): string => (string)$row['code'], $rows);
     }
 
+    /**
+     * Batch-fetch role public IDs for multiple user IDs.
+     * Returns map[userId => string[]].
+     */
+    public function rolePublicIdsByUserIds(array $userIds): array
+    {
+        if ($userIds === []) {
+            return [];
+        }
+        $rows = (new QueryBuilder($this->pdo))
+            ->from('user_roles ur')
+            ->join('roles r', 'r.id', '=', 'ur.role_id')
+            ->select(['ur.user_id', 'r.public_id'])
+            ->whereIn('ur.user_id', $userIds)
+            ->get();
+        $map = array_fill_keys($userIds, []);
+        foreach ($rows as $row) {
+            $uid = (int)$row['user_id'];
+            $map[$uid][] = (string)$row['public_id'];
+        }
+        return $map;
+    }
+
     public function replaceRoles(int $userId, array $rolePublicIds): void
     {
         $this->pdo->beginTransaction();

@@ -31,6 +31,17 @@ final class UserService
     {
         [$items, $total, $page, $limit] = $this->users->list($filters);
 
+        // Enrich each user with role_public_ids so the admin UI can populate
+        // the role select in the edit modal.
+        if ($items !== []) {
+            $userIds = array_map(static fn(array $u): int => (int)$u['id'], $items);
+            $rolesMap = $this->users->rolePublicIdsByUserIds($userIds);
+            foreach ($items as &$item) {
+                $item['role_public_ids'] = $rolesMap[(int)$item['id']] ?? [];
+            }
+            unset($item);
+        }
+
         return [
             'items' => $items,
             'meta' => [
