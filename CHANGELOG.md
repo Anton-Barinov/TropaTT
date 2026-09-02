@@ -39,7 +39,7 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 - **Chat ⋮ menu item order.** Menu items now appear in the order: Copy → Edit → Delete → Create Page. Empty menus are not rendered.
 
-- **Performance: ~2.4 MB lighter on non-task routes.** `br1.js` (77 KB) is now conditionally loaded only on routes that use it (tasks, kanban, gantt, ideas, etc.); other routes load a 29-byte `br1-notify.js` stub. `page-api-bindings.js` (325 KB) is excluded from the project detail page. `visual-editor.js` (137 KB) is loaded only on knowledge, task-detail, ideas, and work-cycles pages.
+- **Performance: ~1.1 MB lighter on non-task routes.** `br1.js` (77 KB) is now conditionally loaded only on routes that use it (tasks, kanban, gantt, ideas, etc.); other routes load a 29-byte `br1-notify.js` stub. `visual-editor.js` (137 KB) is loaded only on knowledge, task-detail, ideas, and work-cycles pages.
 
 - **Chat rendering delegated to shared module.** Core rendering functions (`renderMessage`, `renderMessageMoreMenu`, `renderMessageText`, `renderAttachments`, `renderReplyQuote`, `canEditMessage`, `canDeleteMessage`, `formatTime`, `formatFileSize`, `esc`) in `chat.php` now delegate to `CRM.chat.*` from `chat-widget.js`, reducing duplication.
 
