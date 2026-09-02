@@ -203,6 +203,9 @@ $needsVisualEditor = in_array($currentRoute, [
 <?php endif; ?><?php if ($needsPageApiBindings):
 ?><script defer src="assets/js/page-api-bindings.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif;
+?><?php if ($currentRoute === 'project-detail'): ?>
+<script defer src="assets/js/project-tabs.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<?php endif;
 ?><?php if ($currentRoute === 'dashboard'): ?>
 <script defer src="assets/js/dashboard-extra-widgets.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif; ?>
