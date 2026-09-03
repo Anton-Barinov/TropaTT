@@ -80,9 +80,7 @@ final class UserService
             }
         }
 
-        $item['roles'] = $this->users->roleCodesByUserId((int)$item['id']);
-
-        return $item;
+        return $this->withRoleData($item);
     }
 
     public function create(array $input, array $actor): array
@@ -179,6 +177,9 @@ final class UserService
         ]);
 
         $created = $this->users->findById($userId);
+        if ($created !== null) {
+            $created = $this->withRoleData($created);
+        }
 
         return ['ok' => true, 'user' => $created ?: ['public_id' => $publicId]];
     }
@@ -300,7 +301,12 @@ final class UserService
             'entity_public_id' => $publicId,
         ]);
 
-        return ['ok' => true, 'user' => $this->users->findByPublicId($publicId)];
+        $updated = $this->users->findByPublicId($publicId);
+        if ($updated !== null) {
+            $updated = $this->withRoleData($updated);
+        }
+
+        return ['ok' => true, 'user' => $updated ?: ['public_id' => $publicId]];
     }
 
     public function delete(string $publicId, array $actor): array
@@ -498,6 +504,22 @@ final class UserService
      * canManageUser() in update() and by the actor creating users
      * under their own hierarchy in create()).
      */
+    private function withRoleData(array $user): array
+    {
+        $userId = (int)($user['id'] ?? 0);
+        if ($userId <= 0) {
+            $user['roles'] = [];
+            $user['role_public_ids'] = [];
+            return $user;
+        }
+
+        $user['roles'] = $this->users->roleCodesByUserId($userId);
+        $roleIdsMap = $this->users->rolePublicIdsByUserIds([$userId]);
+        $user['role_public_ids'] = $roleIdsMap[$userId] ?? [];
+
+        return $user;
+    }
+
     private function hasRateManagePerm(array $actor): bool
     {
         $codes = (array)($actor['permission_codes'] ?? []);

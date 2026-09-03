@@ -16832,10 +16832,21 @@ window.CRM.pageApiBindings = (function () {
 
     // Bind edit buttons
     document.querySelectorAll('[data-user-edit]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
+      btn.addEventListener('click', async function () {
         var publicId = btn.getAttribute('data-user-edit');
         var user = users.find(function (u) { return u.public_id === publicId; });
         if (!user) return;
+
+        // The list may be cached or stale after a role/permission update. Fetch
+        // the detail record at open time so the modal always reflects the DB.
+        try {
+          var freshEnvelope = await request('api/v1/users/' + encodeURIComponent(publicId), { silent: true });
+          var freshUser = freshEnvelope && freshEnvelope.data && freshEnvelope.data.user;
+          if (freshUser) user = Object.assign({}, user, freshUser);
+        } catch (error) {
+          // Keep the list snapshot as a fallback when the detail request fails.
+        }
+
         var form = document.getElementById('adminUserEditForm');
         form.querySelector('[name="public_id"]').value = user.public_id;
         form.querySelector('[name="full_name"]').value = user.full_name || '';
@@ -17123,7 +17134,7 @@ window.CRM.pageApiBindings = (function () {
         if (result && result.success) {
           notify(tp('admin.user_updated', 'User updated'));
           bootstrap.Modal.getInstance(document.getElementById('userEditModal')).hide();
-          renderAdminUsersPage(); // Reload
+          await renderAdminUsersPage(); // Reload with fresh role assignments
         }
       });
       editForm.dataset.bound = '1';
@@ -17512,13 +17523,17 @@ window.CRM.pageApiBindings = (function () {
           code: formData.get('code'),
           title: formData.get('title')
         };
-        var result = await tryRequest('api/v1/roles/' + publicId, { method: 'PUT', body: data });
+        var result = await request('api/v1/roles/' + encodeURIComponent(publicId), { method: 'PUT', body: data });
         if (result && result.success) {
           var permCodes = Array.from(editForm.querySelectorAll('[name="permissions"]:checked')).map(function (cb) { return cb.value; });
-          await tryRequest('api/v1/roles/' + publicId + '/permissions', { method: 'PUT', body: { permission_codes: permCodes } });
+          var permissionsResult = await request('api/v1/roles/' + encodeURIComponent(publicId) + '/permissions', {
+            method: 'PUT',
+            body: { permission_codes: permCodes }
+          });
+          if (!permissionsResult || !permissionsResult.success) return;
           notify(tp('admin.role_updated', 'Role updated'));
           bootstrap.Modal.getInstance(document.getElementById('roleEditModal')).hide();
-          renderAdminRolesPage(); // Reload
+          await renderAdminRolesPage(); // Reload with fresh permissions
         }
       });
       editForm.dataset.bound = '1';

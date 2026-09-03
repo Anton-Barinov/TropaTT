@@ -42,6 +42,10 @@ final class RoleMatrixController extends BaseController
             ]);
         }
 
+        $this->invalidateCache('permission');
+        $this->invalidateCache('role');
+        $this->invalidateCache('user');
+
         return $this->success('ADMIN_ROLE_MATRIX_UPDATED', $this->t('admin/messages.role_matrix_updated'), [
             'updated' => $result['updated'] ?? [],
             'matrix' => $result['matrix'] ?? [],
