@@ -81,6 +81,7 @@ return array (
     'custom_link_title_placeholder' => 'My link',
     'custom_link_url' => 'URL',
     'custom_link_icon' => 'Icon (FA class)',
+    'menu_save_failed' => 'Failed to save menu settings. Please try again.',
   ),
   'topbar' => 
   array (

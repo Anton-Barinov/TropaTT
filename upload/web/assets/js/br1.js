@@ -1496,14 +1496,18 @@ window.CRM.br1 = (function () {
         if (!btn) return;
         e.preventDefault();
         e.stopPropagation();
-        if (window.CRM && window.CRM.api && typeof window.CRM.api.logout === 'function') {
-          window.CRM.api.logout().then(function() {
-            window.location.href = withQuery('login');
-          }).catch(function(error) {
-            window.location.href = withQuery('login');
-          });
-        } else {
+        function redirectToLogin() {
+          // Drop the cached menu layout so the next account that signs in on
+          // this browser never sees the previous user's saved menu.
+          if (window.CRM && window.CRM.navigation && typeof window.CRM.navigation.clearMenuCache === 'function') {
+            try { window.CRM.navigation.clearMenuCache(); } catch (ignore) {}
+          }
           window.location.href = withQuery('login');
+        }
+        if (window.CRM && window.CRM.api && typeof window.CRM.api.logout === 'function') {
+          window.CRM.api.logout().then(redirectToLogin).catch(redirectToLogin);
+        } else {
+          redirectToLogin();
         }
       });
       document.body.dataset.logoutBound = '1';
