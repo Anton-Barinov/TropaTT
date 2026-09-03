@@ -47,6 +47,17 @@ final class OperationalWidgetRepository
                 ->from('notifications')
                 ->where('is_read', '=', 0)
                 ->count(),
+            'api_clients_total' => (new QueryBuilder($this->pdo))
+                ->from('api_clients')
+                ->count(),
+            'api_clients_active' => (new QueryBuilder($this->pdo))
+                ->from('api_clients')
+                ->where('is_active', '=', 1)
+                ->count(),
+            'api_keys_active' => (new QueryBuilder($this->pdo))
+                ->from('api_keys')
+                ->whereNull('revoked_at')
+                ->count(),
         ];
     }
 
