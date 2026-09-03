@@ -173,11 +173,11 @@ $additionalRuntimeTranslations = [
     ],
 ];
 
-foreach ($runtimeTranslations as $locale => $translations) {
-    $overrides[$locale] = array_replace_recursive($overrides[$locale] ?? [], $translations);
+foreach ($runtimeTranslations as $lc => $translations) {
+    $overrides[$lc] = array_replace_recursive($overrides[$lc] ?? [], $translations);
 }
-foreach ($additionalRuntimeTranslations as $locale => $translations) {
-    $overrides[$locale] = array_replace_recursive($overrides[$locale] ?? [], $translations);
+foreach ($additionalRuntimeTranslations as $lc => $translations) {
+    $overrides[$lc] = array_replace_recursive($overrides[$lc] ?? [], $translations);
 }
 
 $projectDetailRedesignTranslations = [
@@ -210,8 +210,8 @@ $projectDetailRedesignTranslations = [
         'js' => ['pab' => ['ready' => '就绪']],
     ],
 ];
-foreach ($projectDetailRedesignTranslations as $locale => $translations) {
-    $overrides[$locale] = array_replace_recursive($overrides[$locale] ?? [], $translations);
+foreach ($projectDetailRedesignTranslations as $lc => $translations) {
+    $overrides[$lc] = array_replace_recursive($overrides[$lc] ?? [], $translations);
 }
 
 $integrationParityTranslations = [
@@ -272,8 +272,8 @@ $integrationParityTranslations = [
         'js' => ['pab' => ['no_manager_assigned' => '未指定经理', 'no_tasks' => '暂无任务', 'no_projects_yet' => '暂无项目', 'no_projects_yet_text' => '创建第一个项目，开始规划工作。', 'create_project' => '创建项目']],
     ],
 ];
-foreach ($integrationParityTranslations as $locale => $translations) {
-    $overrides[$locale] = array_replace_recursive($overrides[$locale] ?? [], $translations);
+foreach ($integrationParityTranslations as $lc => $translations) {
+    $overrides[$lc] = array_replace_recursive($overrides[$lc] ?? [], $translations);
 }
 
 return $overrides;

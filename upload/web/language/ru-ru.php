@@ -81,6 +81,7 @@ return array (
     'custom_link_title_placeholder' => 'Моя ссылка',
     'custom_link_url' => 'URL',
     'custom_link_icon' => 'Иконка (класс FA)',
+    'menu_save_failed' => 'Не удалось сохранить настройки меню. Повторите попытку.',
   ),
   'topbar' => 
   array (

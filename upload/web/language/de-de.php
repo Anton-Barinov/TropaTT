@@ -7701,6 +7701,7 @@ return array (
     'admin_estimates' => 'Task Estimates',
     'custom_items' => 'Custom links',
     'custom_link_icon' => 'Icon (FA class)',
+    'menu_save_failed' => 'Menüeinstellungen konnten nicht gespeichert werden. Bitte erneut versuchen.',
     'custom_link_title' => 'Title',
     'custom_link_title_placeholder' => 'My link',
     'custom_link_url' => 'URL',

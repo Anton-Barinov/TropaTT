@@ -79,7 +79,13 @@ if ($webScriptName !== '') {
 }
 $jsOverridesPath = dirname(__DIR__, 3) . '/language/js_overrides.php';
 if (is_file($jsOverridesPath)) {
-  $jsOverrides = require $jsOverridesPath;
+  // Isolate the include scope: a bare require would let internal variables of
+  // the data file (e.g. a $locale foreach key) leak into the shared template
+  // scope and overwrite $locale — the active page locale — with the file's
+  // last loop key (zh-cn). Requiring inside a closure keeps them contained.
+  $jsOverrides = (static function (string $overridesFile) {
+      return require $overridesFile;
+  })($jsOverridesPath);
   if (is_array($jsOverrides)) {
     if (is_array($jsOverrides['ru-ru'] ?? null)) {
       $lang_messages = array_replace_recursive(is_array($lang_messages ?? null) ? $lang_messages : [], $jsOverrides['ru-ru']);

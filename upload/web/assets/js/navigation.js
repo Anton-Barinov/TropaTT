@@ -128,6 +128,19 @@ window.CRM.navigation = (function () {
       return;
     }
 
+    // A transient API/auth failure must never look like a lost configuration:
+    // fall back to the last-known-good menu from the local cache (5-minute
+    // TTL, refreshed on every successful fetch) instead of the default layout.
+    if (fetched === null) {
+      var cached = readCachedMenu();
+      if (cached && cached.length > 0) {
+        navItems = cached;
+        allAvailableItems = allAvailableItems.length > 0 ? allAvailableItems : getDefaultNavItems();
+        menuLoaded = true;
+        return;
+      }
+    }
+
     navItems = getDefaultNavItems();
     allAvailableItems = getDefaultNavItems();
     menuLoaded = true;
@@ -1466,6 +1479,18 @@ window.CRM.navigation = (function () {
       if (saveBtn) {
         saveBtn.disabled = false;
         saveBtn.innerHTML = escapeHtml(t('common.save', 'Save'));
+      }
+      // A failed save must never be silent: without feedback a user sees the
+      // button re-enable and, after reload, the old layout — exactly like the
+      // settings were never saved. Surface the server error when available.
+      var detail = (e && (e.message || (e.envelope && e.envelope.message))) || '';
+      console.error('[nav] Failed to save menu preferences:', e);
+      var text = t('nav.menu_save_failed', 'Не удалось сохранить настройки меню. Повторите попытку.');
+      if (detail) {
+        text += ' (' + detail + ')';
+      }
+      if (window.CRM && window.CRM.br1 && typeof window.CRM.br1.notify === 'function') {
+        window.CRM.br1.notify(text, 'error');
       }
     }
   }
