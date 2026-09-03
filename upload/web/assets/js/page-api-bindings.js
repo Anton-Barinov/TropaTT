@@ -16524,10 +16524,25 @@ window.CRM.pageApiBindings = (function () {
       document.getElementById('adminKpiErrorsBadge').textContent = (errors24h > 0) ? tp('admin.has_errors', 'Has errors') : tp('admin.no_errors', 'No errors');
       document.getElementById('adminKpiErrorsBadge').className = 'crm-badge ' + (errors24h > 0 ? 'danger' : 'success');
 
-      // Active API keys: total API requests in 24h
-      var apiTotal = Number(apiMetrics.total || logs.request_total_24h || 0);
-      document.getElementById('adminKpiKeysValue').textContent = apiTotal;
-      document.getElementById('adminKpiKeysBadge').textContent = tp('admin.active_state', 'Active');
+      // Active API clients: real entities managed on the admin-api-clients page
+      var clientsActive = Number(counts.api_clients_active || 0);
+      var clientsValueEl = document.getElementById('adminKpiClientsValue');
+      var clientsBadgeEl = document.getElementById('adminKpiClientsBadge');
+      if (clientsValueEl) clientsValueEl.textContent = clientsActive;
+      if (clientsBadgeEl) {
+        clientsBadgeEl.textContent = clientsActive > 0 ? tp('admin.active_state', 'Active') : '\u2014';
+        clientsBadgeEl.className = 'crm-badge ' + (clientsActive > 0 ? 'success' : 'archived');
+      }
+
+      // API requests in 24h: full COUNT over request_logs (not capped by requestMetrics24h limit)
+      var requestsTotal = Number(logs.request_total_24h || apiMetrics.total || 0);
+      var requestsValueEl = document.getElementById('adminKpiRequestsValue');
+      var requestsBadgeEl = document.getElementById('adminKpiRequestsBadge');
+      if (requestsValueEl) requestsValueEl.textContent = requestsTotal;
+      if (requestsBadgeEl) {
+        requestsBadgeEl.textContent = requestsTotal > 0 ? tp('admin.active_state', 'Active') : '\u2014';
+        requestsBadgeEl.className = 'crm-badge ' + (requestsTotal > 0 ? 'success' : 'archived');
+      }
 
       // Users online: active users count
       var usersActive = Number(counts.users_active || 0);

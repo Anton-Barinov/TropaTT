@@ -1170,18 +1170,34 @@ window.CRM.api = (function () {
     clearAuth();
   }
 
-  async function me() {
+  var activeMeRequest = null;
+
+  // In-flight deduplication: several independent boot modules (br1.js session
+  // hydration, navigation.js topbar label, page-api-bindings permission
+  // checks) may need /auth/me during the same page load. Sharing the promise
+  // avoids duplicate round-trips; the next call after completion still fetches
+  // fresh data.
+  function me() {
+    if (activeMeRequest) {
+      return activeMeRequest;
+    }
     var cookieToken = getCookieAuthToken();
     var options = { method: 'GET' };
     if (cookieToken) {
       options.headers = { Authorization: 'Bearer ' + cookieToken };
     }
-    var envelope = await request('api/v1/auth/me', options);
-    var user = envelope.data && envelope.data.user ? envelope.data.user : null;
-    var csrfToken = envelope.data && envelope.data.csrf_token ? envelope.data.csrf_token : '';
-    setCsrfToken(csrfToken);
-    setUser(user);
-    return envelope;
+    activeMeRequest = request('api/v1/auth/me', options)
+      .then(function (envelope) {
+        var user = envelope && envelope.data && envelope.data.user ? envelope.data.user : null;
+        var csrfToken = envelope && envelope.data && envelope.data.csrf_token ? envelope.data.csrf_token : '';
+        setCsrfToken(csrfToken);
+        setUser(user);
+        return envelope;
+      })
+      .finally(function () {
+        activeMeRequest = null;
+      });
+    return activeMeRequest;
   }
 
   function items(envelope) {

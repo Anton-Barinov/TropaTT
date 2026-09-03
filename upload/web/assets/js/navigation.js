@@ -574,23 +574,43 @@ window.CRM.navigation = (function () {
       profileButton.setAttribute('data-session-user-btn', '1');
     }
 
-    var earningsItem = bar.querySelector('[data-profile-earnings]');
-    if (earningsItem) {
-      var canViewEarnings = window.CRM.api && typeof window.CRM.api.hasPermission === 'function'
-        && window.CRM.api.hasPermission('finance.rate.view_own_payout');
-      earningsItem.classList.toggle('d-none', !canViewEarnings);
-    }
+    // br1.js (which owns session-user hydration on its pages) is not loaded on
+    // every route: many pages load only br1-notify.js or page bindings. The
+    // topbar is also built asynchronously after the menu fetch, so it may be
+    // created before the session user has been fetched (or after br1 already
+    // hydrated the label). Apply the session state directly here so the
+    // profile button never stays on the generic fallback label
+    // ("Пользователь"/"User"): fill the name from the cache when available,
+    // otherwise load /auth/me once (in-flight requests are deduplicated in
+    // api.js) and re-apply once the user arrives.
+    if (profileButton) {
+      var applySessionState = function () {
+        var sessionUser = window.CRM.api && typeof window.CRM.api.getUser === 'function'
+          ? window.CRM.api.getUser()
+          : null;
+        var sessionName = sessionUser && (sessionUser.full_name || sessionUser.login)
+          ? String(sessionUser.full_name || sessionUser.login)
+          : '';
+        if (sessionName && profileButton.isConnected) {
+          profileButton.textContent = sessionName;
+        }
+        var earningsItem = bar.querySelector('[data-profile-earnings]');
+        if (earningsItem) {
+          var canViewEarnings = window.CRM.api && typeof window.CRM.api.hasPermission === 'function'
+            && window.CRM.api.hasPermission('finance.rate.view_own_payout');
+          earningsItem.classList.toggle('d-none', !canViewEarnings);
+        }
+      };
 
-    // The topbar is built asynchronously (after the menu fetch), so it can be
-    // created after br1.js already hydrated the session user name. Apply the
-    // cached user name right after the button exists, so it never stays on the
-    // generic default label ("Пользователь"/"User").
-    if (profileButton && window.CRM.br1 && typeof window.CRM.br1.setSessionUiUser === 'function') {
-      var cachedSessionUser = window.CRM.api && typeof window.CRM.api.getUser === 'function'
-        ? window.CRM.api.getUser()
-        : null;
-      if (cachedSessionUser) {
-        window.CRM.br1.setSessionUiUser(cachedSessionUser);
+      applySessionState();
+      if (document.body.dataset.protected === '1'
+          && window.CRM.api && typeof window.CRM.api.me === 'function'
+          && !(window.CRM.api.getUser && window.CRM.api.getUser())) {
+        window.CRM.api.me()
+          .then(applySessionState)
+          .catch(function () {
+            // Session fetch can fail (network/401); keep the fallback label.
+          });
       }
     }
 
