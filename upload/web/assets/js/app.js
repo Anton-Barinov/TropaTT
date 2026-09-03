@@ -55,6 +55,18 @@
     };
     var localeInput = form.querySelector('[name="locale"]');
     restoreLoginFormState(form);
+    if (localeInput) {
+      var queryLocale = String(new URLSearchParams(window.location.search || '').get('lang') || '').trim().toLowerCase().replace('_', '-');
+      var preferredLocale = queryLocale;
+      if (!preferredLocale && window.CRM && window.CRM.api && typeof window.CRM.api.getPreferredLocale === 'function') {
+        preferredLocale = String(window.CRM.api.getPreferredLocale() || '').trim().toLowerCase().replace('_', '-');
+      }
+      if (preferredLocale && Array.from(localeInput.options).some(function (option) {
+        return String(option.value || '').toLowerCase() === preferredLocale;
+      })) {
+        localeInput.value = preferredLocale;
+      }
+    }
 
     if (localeInput && localeInput.dataset.crmLocaleSwitchBound !== '1') {
       localeInput.addEventListener('change', function () {
