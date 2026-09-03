@@ -1113,9 +1113,6 @@ window.CRM.api = (function () {
 
   async function login(loginValue, passwordValue, localeValue) {
     var locale = String(localeValue || '').trim().toLowerCase();
-    if (locale) {
-      setPreferredLocale(locale);
-    }
     var payload = {
       login: loginValue,
       password: passwordValue
@@ -1135,6 +1132,9 @@ window.CRM.api = (function () {
       setToken(accessToken);
       setCsrfToken(csrfToken);
       setUser(user);
+      if (locale) {
+        setPreferredLocale(locale);
+      }
     }
 
     return envelope;
@@ -1151,6 +1151,9 @@ window.CRM.api = (function () {
     setToken(String(data.access_token || ''));
     setCsrfToken(String(data.csrf_token || ''));
     setUser(data.user || null);
+    if (locale) {
+      setPreferredLocale(locale);
+    }
     return envelope;
   }
 

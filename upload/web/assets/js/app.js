@@ -1,4 +1,38 @@
 (function () {
+  var LOGIN_FORM_STATE_KEY = 'crm_login_form_state_v1';
+
+  function saveLoginFormState(form) {
+    if (!form) return;
+    try {
+      if (!window.sessionStorage) return;
+      var loginInput = form.querySelector('[name="login"]') || form.querySelector('[name="email"]');
+      var passwordInput = form.querySelector('[name="password"]');
+      window.sessionStorage.setItem(LOGIN_FORM_STATE_KEY, JSON.stringify({
+        login: loginInput ? String(loginInput.value || '') : '',
+        password: passwordInput ? String(passwordInput.value || '') : ''
+      }));
+    } catch (e) {
+      // Browser storage may be disabled; the language switch still works.
+    }
+  }
+
+  function restoreLoginFormState(form) {
+    if (!form) return;
+    try {
+      if (!window.sessionStorage) return;
+      var raw = window.sessionStorage.getItem(LOGIN_FORM_STATE_KEY);
+      if (!raw) return;
+      window.sessionStorage.removeItem(LOGIN_FORM_STATE_KEY);
+      var state = JSON.parse(raw);
+      var loginInput = form.querySelector('[name="login"]') || form.querySelector('[name="email"]');
+      var passwordInput = form.querySelector('[name="password"]');
+      if (loginInput && typeof state.login === 'string') loginInput.value = state.login;
+      if (passwordInput && typeof state.password === 'string') passwordInput.value = state.password;
+    } catch (e) {
+      try { window.sessionStorage.removeItem(LOGIN_FORM_STATE_KEY); } catch (ignore) { void ignore; }
+    }
+  }
+
   function bindLoginFallback() {
     var form = document.getElementById('loginForm');
     if (!form || form.dataset.crmLoginBound === '1') {
@@ -20,6 +54,19 @@
       return 'index.php?route=' + encodeURIComponent(route || 'dashboard');
     };
     var localeInput = form.querySelector('[name="locale"]');
+    restoreLoginFormState(form);
+    if (localeInput) {
+      var queryLocale = String(new URLSearchParams(window.location.search || '').get('lang') || '').trim().toLowerCase().replace('_', '-');
+      var preferredLocale = queryLocale;
+      if (!preferredLocale && window.CRM && window.CRM.api && typeof window.CRM.api.getPreferredLocale === 'function') {
+        preferredLocale = String(window.CRM.api.getPreferredLocale() || '').trim().toLowerCase().replace('_', '-');
+      }
+      if (preferredLocale && Array.from(localeInput.options).some(function (option) {
+        return String(option.value || '').toLowerCase() === preferredLocale;
+      })) {
+        localeInput.value = preferredLocale;
+      }
+    }
 
     if (localeInput && localeInput.dataset.crmLocaleSwitchBound !== '1') {
       localeInput.addEventListener('change', function () {
@@ -28,11 +75,7 @@
         if (!nextLocale || nextLocale === currentLocale) {
           return;
         }
-        if (window.CRM && window.CRM.api && typeof window.CRM.api.setPreferredLocale === 'function') {
-          window.CRM.api.setPreferredLocale(nextLocale);
-        } else {
-          document.cookie = 'crm_locale=' + encodeURIComponent(nextLocale) + '; path=/; max-age=31536000; samesite=lax';
-        }
+        saveLoginFormState(form);
         var url = new URL(window.location.href);
         url.searchParams.set('route', 'login');
         url.searchParams.set('lang', nextLocale);
@@ -60,6 +103,9 @@
       try {
         await window.CRM.api.login(login, password, locale);
         await window.CRM.api.me();
+        if (typeof window.CRM.api.setPreferredLocale === 'function') {
+          window.CRM.api.setPreferredLocale(locale);
+        }
         // Pull the per-user color theme into localStorage so the next page
         // load renders with it immediately (no flash). Wait for the sync
         // before redirecting: the navigation would otherwise abort this fetch
@@ -95,6 +141,7 @@
         }
         window.location.href = withQuery(returnRoute || (isExternalUser ? 'projects' : 'dashboard'));
       } catch (error) {
+        try { window.sessionStorage.removeItem(LOGIN_FORM_STATE_KEY); } catch (ignore) { void ignore; }
         var normalized = window.CRM.api && typeof window.CRM.api.normalizeError === 'function'
           ? window.CRM.api.normalizeError(error, window.CRM.i18n.t('js.app.login_error', 'Login error'))
           : { message: window.CRM.i18n.t('js.app.login_error', 'Login error'), fieldErrors: {} };

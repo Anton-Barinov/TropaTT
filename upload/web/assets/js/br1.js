@@ -76,6 +76,40 @@ window.CRM.br1 = (function () {
     '[data-calendar-ai-generate-btn]': 'calendar_event_agenda'
   };
 
+  var LOGIN_FORM_STATE_KEY = 'crm_login_form_state_v1';
+
+  function saveLoginFormState(form) {
+    if (!form) return;
+    try {
+      if (!window.sessionStorage) return;
+      var loginInput = form.querySelector('[name="login"]') || form.querySelector('[name="email"]');
+      var passwordInput = form.querySelector('[name="password"]');
+      window.sessionStorage.setItem(LOGIN_FORM_STATE_KEY, JSON.stringify({
+        login: loginInput ? String(loginInput.value || '') : '',
+        password: passwordInput ? String(passwordInput.value || '') : ''
+      }));
+    } catch (e) {
+      // Browser storage may be disabled; the language switch still works.
+    }
+  }
+
+  function restoreLoginFormState(form) {
+    if (!form) return;
+    try {
+      if (!window.sessionStorage) return;
+      var raw = window.sessionStorage.getItem(LOGIN_FORM_STATE_KEY);
+      if (!raw) return;
+      window.sessionStorage.removeItem(LOGIN_FORM_STATE_KEY);
+      var state = JSON.parse(raw);
+      var loginInput = form.querySelector('[name="login"]') || form.querySelector('[name="email"]');
+      var passwordInput = form.querySelector('[name="password"]');
+      if (loginInput && typeof state.login === 'string') loginInput.value = state.login;
+      if (passwordInput && typeof state.password === 'string') passwordInput.value = state.password;
+    } catch (e) {
+      try { window.sessionStorage.removeItem(LOGIN_FORM_STATE_KEY); } catch (ignore) { void ignore; }
+    }
+  }
+
   function normalizeLocaleCode(locale) {
     var value = String(locale || '').trim().toLowerCase().replace('_', '-');
     if (value === 'ru') return 'ru-ru';
@@ -1205,13 +1239,13 @@ window.CRM.br1 = (function () {
     var loginInput = loginForm.querySelector('[name="login"]') || loginForm.querySelector('[name="email"]');
 
     var localeSelect = loginForm.querySelector('[name="locale"]');
+    restoreLoginFormState(loginForm);
     if (localeSelect && window.CRM.api && typeof window.CRM.api.getPreferredLocale === 'function') {
       var preferredLocale = normalizeLocaleCode(window.CRM.api.getPreferredLocale());
       var activeLocale = normalizeLocaleCode((window.CRM && window.CRM.locale) || '');
       var queryLocale = normalizeLocaleCode(new URLSearchParams(window.location.search || '').get('lang') || '');
-      if (queryLocale && typeof window.CRM.api.setPreferredLocale === 'function') {
-        window.CRM.api.setPreferredLocale(activeLocale || queryLocale);
-        preferredLocale = activeLocale || queryLocale;
+      if (queryLocale) {
+        preferredLocale = queryLocale;
       }
       localeSelect.value = preferredLocale;
       if (!queryLocale && preferredLocale && activeLocale && preferredLocale !== activeLocale) {
@@ -1223,9 +1257,7 @@ window.CRM.br1 = (function () {
       }
       localeSelect.addEventListener('change', function () {
         var nextLocale = String(localeSelect.value || '').trim().toLowerCase();
-        if (typeof window.CRM.api.setPreferredLocale === 'function') {
-          window.CRM.api.setPreferredLocale(nextLocale);
-        }
+        saveLoginFormState(loginForm);
         var localeUrl = new URL(window.location.href);
         localeUrl.searchParams.set('route', 'login');
         localeUrl.searchParams.set('lang', nextLocale);
@@ -1302,6 +1334,9 @@ window.CRM.br1 = (function () {
           }
         }
         var meEnvelope = await window.CRM.api.me();
+        if (typeof window.CRM.api.setPreferredLocale === 'function') {
+          window.CRM.api.setPreferredLocale(locale);
+        }
         notify(window.CRM.i18n.t('js.br1.vkhod_vypolnen_2', 'Вход выполнен'));
 
         // External guest (client portal) users have no dashboard/admin access —
