@@ -16,7 +16,8 @@ final class CoreUpdateClient
 
     public function product(): array
     {
-        return $this->get('/api/v1/products/' . rawurlencode((string)$this->config['product']));
+        $query = $this->installationParams();
+        return $this->get('/api/v1/products/' . rawurlencode((string)$this->config['product']) . ($query !== [] ? '?' . http_build_query($query) : ''));
     }
 
     public function channel(): array
@@ -34,7 +35,8 @@ final class CoreUpdateClient
 
     public function changes(?string $from, string $to): array
     {
-        return $this->get('/api/v1/products/' . rawurlencode((string)$this->config['product']) . '/changes?from=' . rawurlencode((string)$from) . '&to=' . rawurlencode($to));
+        $query = $this->installationParams();
+        return $this->get('/api/v1/products/' . rawurlencode((string)$this->config['product']) . '/changes?from=' . rawurlencode((string)$from) . '&to=' . rawurlencode($to) . ($query !== [] ? '&' . http_build_query($query) : ''));
     }
 
     public function getUrl(string $url): array
