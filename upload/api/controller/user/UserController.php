@@ -45,9 +45,14 @@ final class UserController extends BaseController
 
     public function get(array $params): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
         /** @var UserService $service */
         $service = $this->container->get('service.user');
-        $user = $service->get((string)$params['public_id'], $auth['user'] ?? null);
+        $user = $service->get((string)$params['public_id'], $auth['user']);
         if (!$user) {
             return $this->error('USER_NOT_FOUND', $this->t('user/messages.not_found'), 404, ['user' => [$this->t('user/messages.not_found')]]);
         }
@@ -106,6 +111,7 @@ final class UserController extends BaseController
             'actor_id' => (int)($auth['user']['id'] ?? 0),
         ]);
 
+        $this->invalidateCache('user');
         $this->invalidateCache('worklog');
 
         return $this->success('USER_CREATED', $this->t('user/messages.created'), ['user' => $result['user']], 201);
@@ -210,6 +216,7 @@ final class UserController extends BaseController
             }
         }
 
+        $this->invalidateCache('user');
         $this->invalidateCache('worklog');
 
         return $this->success('USER_UPDATED', $this->t('user/messages.updated'), ['user' => $result['user']]);
@@ -238,6 +245,7 @@ final class UserController extends BaseController
             'actor_id' => (int)($auth['user']['id'] ?? 0),
         ]);
 
+        $this->invalidateCache('user');
         $this->invalidateCache('worklog');
 
         return $this->success('USER_DELETED', $this->t('user/messages.deleted'));

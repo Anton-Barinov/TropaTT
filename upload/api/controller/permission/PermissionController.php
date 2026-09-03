@@ -91,6 +91,8 @@ final class PermissionController extends BaseController
         }
 
         $this->invalidateCache('permission');
+        $this->invalidateCache('role');
+        $this->invalidateCache('user');
 
         return $this->success('ROLE_PERMISSION_UPDATED', $this->t('permission/messages.role_permission_updated'), [
             'role' => $result['role'],
