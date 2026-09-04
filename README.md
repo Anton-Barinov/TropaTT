@@ -561,6 +561,7 @@ The public repository includes standard project files for maintainers, contribut
 - [UPDATES.md](UPDATES.md) — self-update system reference (update server pipeline and user update flow).
 - [.github/ISSUE_TEMPLATE](.github/ISSUE_TEMPLATE) — bug, feature, documentation, and installation templates.
 - [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md) — PR checklist for tests, docs, security, API, and installer impact.
+- [Telegram](https://t.me/tropatt) — community channel for questions, discussions, and updates.
 
 TropaTT is open source, but the public repository intentionally excludes local secrets, runtime data, private business data, internal screenshots, and maintainer-only artifacts.
 
@@ -633,6 +634,7 @@ TropaTT is developed by **Barinov Anton**, PHP developer.
 
 - **GitHub:** [Anton-Barinov](https://github.com/Anton-Barinov)
 - **Repo:** [github.com/Anton-Barinov/TropaTT](https://github.com/Anton-Barinov/TropaTT)
+- **Community:** [Telegram](https://t.me/tropatt)
 
 The project is a practical, self-hosted work system: PHP-first, MySQL-compatible, installable through a browser, zero artificial limits, and built with data privacy as a first principle.
 
@@ -1154,6 +1156,7 @@ TropaTT разрабатывает **Антон Баринов**, PHP-разра
 
 - **GitHub:** [Anton-Barinov](https://github.com/Anton-Barinov)
 - **Репозиторий:** [github.com/Anton-Barinov/TropaTT](https://github.com/Anton-Barinov/TropaTT)
+- **Сообщество:** [Telegram](https://t.me/tropatt)
 
 Проект создаётся как практичная самостоятельная система управления работой с PHP-first подходом, совместимостью с MySQL, прозрачной браузерной установкой, отсутствием искусственных ограничений, фокусом на приватность данных и расширяемой бизнес-логикой.
 
@@ -1676,5 +1679,6 @@ TropaTT 由 **Anton Barinov** 开发，PHP 开发者，TropaTT 平台的创建�
 
 - **GitHub：** [Anton-Barinov](https://github.com/Anton-Barinov)
 - **仓库：** [github.com/Anton-Barinov/TropaTT](https://github.com/Anton-Barinov/TropaTT)
+- **社区：** [Telegram](https://t.me/tropatt)
 
 该项目构建为一个实用、可自行部署的工作管理系统，采用 PHP 优先的方法，兼容 MySQL，透明的浏览器安装，零人工限制，并专注于数据隐私和可扩展的业务逻辑。
