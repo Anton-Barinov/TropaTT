@@ -115,12 +115,24 @@ final class SettingController extends BaseController
             $item = $cache->remember('setting', $cacheKey, 60, function () use ($scope, $name) {
                 /** @var SettingService $service */
                 $service = $this->container->get('service.setting');
-                return $service->get($scope, $name);
+                $item = $service->get($scope, $name);
+                // Known finance.* system settings carry authoritative defaults
+                // (RateController / FinanceCronTaskHandler read them the same
+                // way); answer 200 with the default instead of 404 so the admin
+                // settings page never fires error requests for keys that were
+                // simply never saved yet.
+                if ($item === null) {
+                    $item = $this->systemSettingDefault($scope, $name);
+                }
+                return $item;
             });
         } else {
             /** @var SettingService $service */
             $service = $this->container->get('service.setting');
             $item = $service->get($scope, $name);
+            if ($item === null) {
+                $item = $this->systemSettingDefault($scope, $name);
+            }
         }
         if (!$item) {
             return $this->error('SETTING_NOT_FOUND', $this->t('setting/messages.not_found'), 404, [
@@ -179,6 +191,28 @@ final class SettingController extends BaseController
         return $this->success('SETTING_SET', $this->t('setting/messages.set'), [
             'setting' => $item,
         ]);
+    }
+
+    /**
+     * Known system-scoped settings that always have a value semantically: when
+     * nothing was stored yet, answer with the same defaults the feature code
+     * (RateController, FinanceCronTaskHandler) and the admin settings page use.
+     */
+    private function systemSettingDefault(string $scope, string $name): ?array
+    {
+        if ($scope !== 'system') {
+            return null;
+        }
+        $defaults = [
+            'finance.default_currency' => null,
+            'finance.cost_from_payout_markup_percent' => null,
+            'finance.auto_close.mode' => 'off',
+            'finance.auto_close.lag_days' => 5,
+        ];
+        if (!array_key_exists($name, $defaults)) {
+            return null;
+        }
+        return ['scope' => $scope, 'name' => $name, 'value' => $defaults[$name]];
     }
 
     /**
