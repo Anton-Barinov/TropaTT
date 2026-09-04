@@ -272,6 +272,65 @@
     border-bottom: 1px solid var(--crm-border);
   }
 
+  .crm-filter-offcanvas {
+    width: min(420px, 94vw);
+  }
+
+  .crm-filter-offcanvas .offcanvas-body {
+    padding: 1rem;
+  }
+
+  .crm-filter-offcanvas .crm-kanban-filters,
+  .crm-filter-offcanvas .crm-filters-card {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .crm-mobile-filter-toggle {
+    width: 100%;
+    justify-content: space-between;
+    margin: 0 0 0.5rem;
+  }
+
+  .crm-mobile-filter-count {
+    display: inline-flex;
+    min-width: 1.5rem;
+    min-height: 1.5rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: var(--crm-success-soft);
+    color: var(--crm-accent-strong);
+    font-size: 0.75rem;
+    font-weight: 800;
+  }
+
+  .crm-active-filter-chips {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin: 0 0 0.75rem;
+  }
+
+  .crm-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    padding: 0.25rem 0.55rem;
+    border: 1px solid color-mix(in srgb, var(--crm-accent) 28%, transparent);
+    border-radius: 999px;
+    background: var(--crm-success-soft);
+    color: var(--crm-accent-strong);
+    font-size: 0.75rem;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+
   .crm-mobile-work-mode-hint {
     border: 1px solid var(--crm-border-strong);
     border-radius: var(--radius-lg);

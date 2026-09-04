@@ -424,6 +424,7 @@ window.CRM.br1 = (function () {
   }
 
   function notify(text, type) {
+    if (window.CRM.ui && typeof window.CRM.ui.showNotice === 'function' && window.CRM.ui.showNotice(text, type)) return;
     var toastEl = document.getElementById('toastSuccess');
     if (!toastEl || !window.bootstrap) return;
 

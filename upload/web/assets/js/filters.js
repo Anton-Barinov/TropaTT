@@ -12,10 +12,14 @@ window.CRM.filters = (function () {
     return window.matchMedia ? window.matchMedia(mobileQuery).matches : window.innerWidth < 768;
   }
 
+  function cssEscape(value) {
+    if (window.CSS && typeof window.CSS.escape === 'function') return window.CSS.escape(value);
+    return String(value || '').replace(/[^a-zA-Z0-9_-]/g, '\\$&');
+  }
+
   function getLabel(root) {
     return root.getAttribute('aria-label') || window.CRM.i18n.t('common.filters', 'Filters');
   }
-
   function createMobileChrome(root, index) {
     if (root.dataset.crmMobileFilterReady === '1') return;
     var id = root.id || ('crmFilterPanel' + index);
@@ -72,7 +76,7 @@ window.CRM.filters = (function () {
       var label = '';
       if (field.matches('[data-kanban-due]')) label = text(field.textContent);
       else if (field.id) {
-        var labelEl = document.querySelector('label[for="' + CSS.escape(field.id) + '"]');
+        var labelEl = document.querySelector('label[for="' + cssEscape(field.id) + '"]');
         label = labelEl ? text(labelEl.textContent) : '';
       }
       if (!label && field.tagName === 'SELECT' && field.selectedOptions[0]) label = text(field.selectedOptions[0].textContent);

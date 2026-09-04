@@ -105,7 +105,7 @@
       </div>
     </article>
 
-    <form id="knowledgePageEditor" class="d-none kb-editor-form">
+    <form id="knowledgePageEditor" class="d-none kb-editor-form" data-dirty-guard>
       <div class="card mb-3">
         <div class="crm-knowledge-writing-topbar">
           <div>

@@ -4,7 +4,33 @@
   --crm-page-x: 32px;
   --crm-page-y: 32px;
   --crm-gap: 16px;
+  --crm-ui-toast-shadow: 0 0.5rem 1rem rgba(15, 23, 42, 0.14);
 }
+
+.crm-toast-container {
+  z-index: 1090;
+}
+
+.crm-toast-container .toast {
+  min-width: min(22rem, calc(100vw - 2rem));
+  border: 0;
+  box-shadow: var(--crm-ui-toast-shadow);
+}
+
+.crm-toast-container .toast.text-bg-warning {
+  color: #2f2510 !important;
+}
+
+.btn.is-pending {
+  cursor: wait;
+  opacity: 0.75;
+}
+
+form[data-dirty-guard][data-crm-dirty="1"] {
+  outline: 2px solid color-mix(in srgb, var(--crm-accent) 22%, transparent);
+  outline-offset: 0.25rem;
+}
+
 
 .crm-app {
   min-height: 100vh;

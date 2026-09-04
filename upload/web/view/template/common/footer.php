@@ -349,6 +349,12 @@ $footerUpdateBadgeTemplate = $footerT('update_available_badge', 'Update {version
 })();
 </script>
 
+<div class="toast-container position-fixed top-0 end-0 p-3 crm-toast-container" aria-live="polite" aria-atomic="true">
+  <div id="toastSuccess" class="toast" role="status" aria-live="polite" aria-atomic="true">
+    <div class="d-flex"><div class="toast-body"></div><button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="<?= htmlspecialchars($t('common.close_aria', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>"></button></div>
+  </div>
+</div>
+
 <div class="modal fade" id="crmConfirmModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-sm">
     <div class="modal-content">

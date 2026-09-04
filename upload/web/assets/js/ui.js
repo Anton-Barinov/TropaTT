@@ -49,35 +49,35 @@ window.CRM.ui = (function () {
   }
 
   function initDirtyForms() {
-    document.querySelectorAll('form[data-dirty-guard]').forEach(function (form) {
-      if (form.dataset.crmDirtyBound === '1') return;
-      form.dataset.crmDirtyBound = '1';
+    document.querySelectorAll('[data-dirty-guard]').forEach(function (root) {
+      if (root.dataset.crmDirtyBound === '1') return;
+      root.dataset.crmDirtyBound = '1';
       var dirty = false;
-      form.addEventListener('input', function () {
-        dirty = true;
-        form.dataset.crmDirty = '1';
-        form.dispatchEvent(new CustomEvent('crm:dirty-change', { detail: { dirty: true } }));
+      function setDirty(value) {
+        dirty = Boolean(value);
+        root.dataset.crmDirty = dirty ? '1' : '0';
+        root.dispatchEvent(new CustomEvent('crm:dirty-change', { detail: { dirty: dirty } }));
+      }
+      root.addEventListener('input', function (event) {
+        if (event.target && event.target.matches('input, select, textarea, [contenteditable="true"]')) setDirty(true);
       });
-      form.addEventListener('change', function () {
-        dirty = true;
-        form.dataset.crmDirty = '1';
+      root.addEventListener('change', function (event) {
+        if (event.target && event.target.matches('input, select, textarea')) setDirty(true);
       });
-      form.addEventListener('submit', function () {
-        dirty = false;
-        form.dataset.crmDirty = '0';
-      });
-      form.addEventListener('crm:mark-clean', function () {
-        dirty = false;
-        form.dataset.crmDirty = '0';
-      });
-      form.dataset.crmDirty = '0';
-      form._crmIsDirty = function () { return dirty; };
+      if (root.matches('form')) {
+        root.addEventListener('submit', function () { setDirty(false); });
+      }
+      root.addEventListener('crm:mark-clean', function () { setDirty(false); });
+      root.dataset.crmDirty = '0';
+      root._crmIsDirty = function () { return dirty; };
     });
+    if (window.CRM._dirtyUnloadBound) return;
+    window.CRM._dirtyUnloadBound = true;
     window.addEventListener('beforeunload', function (event) {
-      var dirtyForm = Array.from(document.querySelectorAll('form[data-dirty-guard]')).some(function (form) {
-        return form._crmIsDirty && form._crmIsDirty();
+      var dirtyRoot = Array.from(document.querySelectorAll('[data-dirty-guard]')).some(function (root) {
+        return root._crmIsDirty && root._crmIsDirty();
       });
-      if (!dirtyForm) return;
+      if (!dirtyRoot) return;
       event.preventDefault();
       event.returnValue = '';
     });
