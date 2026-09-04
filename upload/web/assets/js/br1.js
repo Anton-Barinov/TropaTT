@@ -1687,6 +1687,14 @@ window.CRM.br1 = (function () {
         window._projectClientPrefill = null;
       });
       modal.dataset.boundCreateProject = '1';
+
+      /* Late-open guard: same race as the create-task modal — the delegated
+         click handler may open this modal before session hydration finishes,
+         so its show.bs.modal dictionary loader is not yet bound. Populate the
+         client/team/manager selects if the modal is already visible. */
+      if (modal.classList.contains('show')) {
+        ensureProjectCreateDictionaries();
+      }
     }
 
     if (form.dataset.bound === '1') return;
@@ -2195,6 +2203,28 @@ window.CRM.br1 = (function () {
         pendingTaskSource = null;
         primeCreateTaskDefaults();
       });
+
+      /* Late-open guard: the delegated [data-open-modal] click handler
+         (modals.js) opens the modal immediately, while this flow — and its
+         show.bs.modal dictionary loader — binds only after session hydration
+         finishes. A fast click therefore leaves an open modal with empty
+         project/assignee/status/tag selects. If the modal is already open at
+         bind time, hydrate the dictionaries now instead of waiting for a
+         show event that already fired. Only reset/prefill when the user has
+         not started typing, so an in-progress title is never wiped. */
+      if (modal.classList.contains('show')) {
+        ensureCreateTaskDictionaries().then(function () {
+          var titleInput = form.querySelector('[name="title"]');
+          var userStartedTyping = titleInput && String(titleInput.value || '').trim() !== '';
+          if (!userStartedTyping) {
+            primeCreateTaskDefaults();
+            applyCreateTaskPrefill();
+            setTimeout(function () {
+              applyCreateTaskPrefill();
+            }, 150);
+          }
+        });
+      }
 
       form.addEventListener('submit', async function (e) {
         e.preventDefault();
