@@ -1,21 +1,23 @@
 window.CRM = window.CRM || {};
 window.CRM.confirm = function (options) {
+  options = options || {};
   var modal = document.getElementById('crmConfirmModal');
   var title = document.getElementById('crmConfirmTitle');
   var body = document.getElementById('crmConfirmBody');
   var currentAction = document.getElementById('crmConfirmActionBtn');
   if (!modal || !currentAction || !window.bootstrap || !window.bootstrap.Modal) {
-    return Promise.resolve(window.confirm(String(options && options.body || '')));
+    return Promise.resolve(false);
   }
 
   var action = currentAction.cloneNode(true);
   currentAction.parentNode.replaceChild(action, currentAction);
-  if (title) title.textContent = String(options && options.title || window.CRM.i18n.t('common.confirm_title', 'Confirm action'));
-  if (body) body.textContent = String(options && options.body || window.CRM.i18n.t('common.confirm_body', 'Are you sure?'));
-  action.textContent = String(options && options.actionText || window.CRM.i18n.t('common.confirm_btn', 'Confirm'));
-  action.className = 'btn ' + String(options && options.actionClass || 'crm-btn-danger-soft');
+  if (title) title.textContent = String(options.title || window.CRM.i18n.t('common.confirm_title', 'Confirm action'));
+  if (body) body.textContent = String(options.body || window.CRM.i18n.t('common.confirm_body', 'Are you sure?'));
+  action.textContent = String(options.actionText || window.CRM.i18n.t('common.confirm_btn', 'Confirm'));
+  action.className = 'btn ' + String(options.actionClass || 'crm-btn-danger-soft');
 
   var instance = window.bootstrap.Modal.getOrCreateInstance(modal);
+  var previousFocus = document.activeElement;
   return new Promise(function (resolve) {
     var resolved = false;
     function cleanup(result) {
@@ -23,13 +25,24 @@ window.CRM.confirm = function (options) {
       resolved = true;
       action.removeEventListener('click', onConfirm);
       modal.removeEventListener('hidden.bs.modal', onCancel);
+      if (previousFocus && typeof previousFocus.focus === 'function') {
+        window.setTimeout(function () { previousFocus.focus(); }, 0);
+      }
       resolve(result);
     }
-    function onConfirm() { cleanup(true); instance.hide(); }
+    function onConfirm(event) {
+      if (event) event.preventDefault();
+      cleanup(true);
+      instance.hide();
+    }
     function onCancel() { cleanup(false); }
     action.addEventListener('click', onConfirm, { once: true });
     modal.addEventListener('hidden.bs.modal', onCancel, { once: true });
     instance.show();
+    modal.addEventListener('shown.bs.modal', function focusAction() {
+      action.focus();
+      modal.removeEventListener('shown.bs.modal', focusAction);
+    }, { once: true });
   });
 };
 window.CRM.modals = (function () {

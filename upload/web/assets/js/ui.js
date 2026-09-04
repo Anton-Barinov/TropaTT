@@ -10,14 +10,76 @@ window.CRM.ui = (function () {
     });
   }
 
-  function initToasts() {
-    document.addEventListener('click', function (e) {
-      var trigger = e.target.closest('[data-toast]');
-      if (!trigger) return;
+  function showNotice(message, type, options) {
+    var opts = options || {};
+    var toastEl = document.getElementById('toastSuccess');
+    if (!toastEl || !window.bootstrap || !window.bootstrap.Toast) return false;
+    var kind = type === 'error' ? 'danger' : type === 'warning' ? 'warning' : type === 'info' ? 'info' : 'success';
+    toastEl.classList.remove('text-bg-success', 'text-bg-danger', 'text-bg-warning', 'text-bg-info');
+    toastEl.classList.add('text-bg-' + kind);
+    toastEl.setAttribute('role', kind === 'danger' ? 'alert' : 'status');
+    toastEl.setAttribute('aria-live', kind === 'danger' ? 'assertive' : 'polite');
+    var body = toastEl.querySelector('.toast-body');
+    if (body) body.textContent = String(message || '');
+    var instance = window.bootstrap.Toast.getOrCreateInstance(toastEl, {
+      autohide: opts.autohide !== false,
+      delay: Number(opts.delay || (kind === 'danger' ? 8000 : 5000))
+    });
+    instance.show();
+    return true;
+  }
 
-      var toastEl = document.getElementById(trigger.dataset.toast);
-      if (!toastEl) return;
-      new bootstrap.Toast(toastEl).show();
+  function setPending(button, pending, pendingLabel) {
+    if (!button) return;
+    if (pending) {
+      if (!button.dataset.crmOriginalLabel) button.dataset.crmOriginalLabel = button.innerHTML;
+      button.disabled = true;
+      button.setAttribute('aria-busy', 'true');
+      button.classList.add('is-pending');
+      if (pendingLabel) button.textContent = String(pendingLabel);
+    } else {
+      button.disabled = false;
+      button.removeAttribute('aria-busy');
+      button.classList.remove('is-pending');
+      if (button.dataset.crmOriginalLabel) {
+        button.innerHTML = button.dataset.crmOriginalLabel;
+        delete button.dataset.crmOriginalLabel;
+      }
+    }
+  }
+
+  function initDirtyForms() {
+    document.querySelectorAll('form[data-dirty-guard]').forEach(function (form) {
+      if (form.dataset.crmDirtyBound === '1') return;
+      form.dataset.crmDirtyBound = '1';
+      var dirty = false;
+      form.addEventListener('input', function () {
+        dirty = true;
+        form.dataset.crmDirty = '1';
+        form.dispatchEvent(new CustomEvent('crm:dirty-change', { detail: { dirty: true } }));
+      });
+      form.addEventListener('change', function () {
+        dirty = true;
+        form.dataset.crmDirty = '1';
+      });
+      form.addEventListener('submit', function () {
+        dirty = false;
+        form.dataset.crmDirty = '0';
+      });
+      form.addEventListener('crm:mark-clean', function () {
+        dirty = false;
+        form.dataset.crmDirty = '0';
+      });
+      form.dataset.crmDirty = '0';
+      form._crmIsDirty = function () { return dirty; };
+    });
+    window.addEventListener('beforeunload', function (event) {
+      var dirtyForm = Array.from(document.querySelectorAll('form[data-dirty-guard]')).some(function (form) {
+        return form._crmIsDirty && form._crmIsDirty();
+      });
+      if (!dirtyForm) return;
+      event.preventDefault();
+      event.returnValue = '';
     });
   }
 
@@ -115,7 +177,18 @@ window.CRM.ui = (function () {
 
   return {
     initBootstrapUi: initBootstrapUi,
-    initToasts: initToasts,
+    initToasts: function () {
+      document.addEventListener('click', function (e) {
+        var trigger = e.target.closest('[data-toast]');
+        if (!trigger) return;
+        var toastEl = document.getElementById(trigger.dataset.toast);
+        if (!toastEl) return;
+        bootstrap.Toast.getOrCreateInstance(toastEl).show();
+      });
+    },
+    showNotice: showNotice,
+    setPending: setPending,
+    initDirtyForms: initDirtyForms,
     initStateSwitchers: initStateSwitchers,
     initStatusColorPickers: initStatusColorPickers
   };

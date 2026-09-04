@@ -79,6 +79,8 @@ $auJs = [
   'kpiTargetLatest' => $au('kpi_target_latest', 'latest'),
   'kpiTargetMetaLatest' => $au('kpi_target_meta_latest', 'Новых сборок для установки нет.'),
   'kpiTargetMetaFound' => $au('kpi_target_meta_found', 'Доступно обновление с {build}.'),
+  'kpiStreamMeta' => $au('kpi_stream_meta', 'Поток: {stream}'),
+  'devStreamOnProduction' => $au('dev_stream_on_production', 'Эта установка создана из потока разработки ({product}). Домен установки обслуживается из стабильного потока, поэтому следующее обновление переведёт её на стабильный поток.'),
   'kpiPackageNone' => $au('kpi_package_none', 'не требуется'),
   'kpiPackageMetaNone' => $au('kpi_package_meta_none', 'Архив скачивать не нужно.'),
   'kpiRiskNone' => $au('kpi_risk_none', 'нет'),
@@ -601,7 +603,7 @@ $auJs = [
             const csrf = crmApi.getCsrfToken();
             if (csrf) requestHeaders['X-CSRF-Token'] = csrf;
           }
-          return await crmApi.request(route, { method: options.method || 'GET', body, headers: requestHeaders, timeoutMs: options.timeoutMs || 30000 });
+          return await crmApi.request(route, { method: options.method || 'GET', body, headers: requestHeaders, timeoutMs: options.timeoutMs || 30000, noCache: options.noCache === true, query: options.query });
         } catch (err) {
           return normalizeApiError(err);
         }
@@ -912,8 +914,19 @@ $auJs = [
     $('pillMaintenanceText').textContent = maintenance ? tr('maintenanceOn', 'Maintenance включен') : tr('maintenanceOff', 'CRM работает штатно');
     // Guard 3 (maintenance hold): a failed update that left maintenance ON
     // must be surfaced prominently so the admin rolls back or retries.
+    const hostname = String(window.location.hostname || '').toLowerCase().replace(/^\.+|\.+$/g, '');
+    const isTestStand = hostname.endsWith('.tropatt.com');
+    // An installation whose stored product is the develop stream while the
+    // domain is a production (non-*.tropatt.com) domain was bootstrapped from
+    // the wrong stream. The update check for such a domain already resolves to
+    // the stable stream, so the next update repairs the stored product — but
+    // the admin should see the mismatch instead of identical-looking build
+    // numbers from two different streams.
+    const devStreamOnProduction = !isTestStand && String(installed.product || '') === 'tropatt-core-dev';
     if (maintenance && latest && latest.state === 'failed') {
       showNotice(tr('maintenanceHeldText', 'Обновление прервалось после изменения файлов или базы данных, поэтому CRM остаётся в режиме обслуживания, чтобы не отдавать сломанное состояние. Откатитесь из backup или повторите обновление.'), 'danger');
+    } else if (devStreamOnProduction) {
+      showNotice(tr('devStreamOnProduction', 'Эта установка создана из потока разработки ({product}). Домен установки обслуживается из стабильного потока, поэтому следующее обновление переведёт её на стабильный поток.', {product: installed.product}), 'warn');
     } else if (!maintenance || (latest && (latest.state === 'applied' || latest.state === 'rolled_back'))) {
       // Clear any stale progress notice when:
       //  - maintenance is off (normal state), OR
@@ -923,7 +936,10 @@ $auJs = [
       clearNotice();
     }
     $('kpiInstalled').textContent = installed.core_build || tr('kpiInstalledUnknown', 'unknown');
-    $('kpiInstalledMeta').textContent = installed.source_sha ? `SHA ${String(installed.source_sha).slice(0, 12)}...` : tr('kpiInstalledMetaUnknown', 'Локальная сборка еще не принята updater.');
+    const installedProduct = String(installed.product || '');
+    $('kpiInstalledMeta').textContent = installed.source_sha
+      ? `SHA ${String(installed.source_sha).slice(0, 12)}...` + (installedProduct !== '' ? ` · ${installedProduct}` : '')
+      : tr('kpiInstalledMetaUnknown', 'Локальная сборка еще не принята updater.');
     $('updatesStatusRaw').textContent = pretty(status);
     setBadge('jobBadge', latest ? (latest.state === 'failed' ? 'danger' : 'ok') : 'neutral', latest ? latest.state : tr('no_job', 'Нет операции'));
     $('jobContent').innerHTML = latest ? list({
@@ -951,7 +967,27 @@ $auJs = [
     var currentBuild = (state.version && state.version.core_build) || (state.status && state.status.installed_core && state.status.installed_core.core_build) || '';
     var displayTarget = centerDown ? tr('statusUnknown', 'Неизвестно') : (plan.target_build || (hasUpdate ? tr('statusUnknown', 'Неизвестно') : tr('kpiTargetLatest', 'latest')));
     $('kpiTarget').textContent = displayTarget;
-    $('kpiTargetMeta').textContent = centerDown ? tr('recommendCenterDownText', 'CRM не может проверить обновления, потому что сервер {url} сейчас не отвечает или еще не настроен.', {url: updateCenterUrl()}) : (hasUpdate ? tr('kpiTargetMetaFound', 'Доступно обновление с {build}.', {build: currentBuild || tr('statusUnknown', 'Неизвестно')}) : tr('kpiTargetMetaLatest', 'Новых сборок для установки нет.'));
+    // Show the resolved stream and target commit next to the target build.
+    // Both the stable (main) and the develop stream count builds independently
+    // (YYYYMMDD.NNN), so the same number can exist on both streams with
+    // different SHAs - the stream and SHA labels make the plan unambiguous.
+    let targetMeta;
+    if (centerDown) {
+      targetMeta = tr('recommendCenterDownText', 'CRM не может проверить обновления, потому что сервер {url} сейчас не отвечает или еще не настроен.', {url: updateCenterUrl()});
+    } else if (hasUpdate) {
+      targetMeta = tr('kpiTargetMetaFound', 'Доступно обновление с {build}.', {build: currentBuild || tr('statusUnknown', 'Неизвестно')});
+      const stream = String(plan.stream || plan.product || '');
+      if (stream !== '') {
+        const streamLabel = stream === 'tropatt-core' ? 'main' : (stream === 'tropatt-core-dev' ? 'develop' : stream);
+        targetMeta += ' ' + tr('kpiStreamMeta', 'Поток: {stream}', {stream: streamLabel});
+      }
+      if (plan.target_sha) {
+        targetMeta += ` · SHA ${String(plan.target_sha).slice(0, 12)}...`;
+      }
+    } else {
+      targetMeta = tr('kpiTargetMetaLatest', 'Новых сборок для установки нет.');
+    }
+    $('kpiTargetMeta').textContent = targetMeta;
     $('kpiPackage').textContent = centerDown ? tr('statusUnknown', 'Неизвестно') : (pkg ? String(pkg.type || 'package').toUpperCase() : tr('kpiPackageNone', 'не требуется'));
     $('kpiPackageMeta').textContent = centerDown ? tr('centerUnavailableWithUrl', 'Сервер обновлений недоступен: {url}', {url: updateCenterUrl()}) : (pkg ? `${bytes(pkg.size_bytes)} | SHA ${String(pkg.sha256 || '').slice(0, 12)}...` : tr('kpiPackageMetaNone', 'Архив скачивать не нужно.'));
     $('kpiRisk').textContent = centerDown ? tr('statusUnknown', 'Неизвестно') : risk;
@@ -1084,8 +1120,8 @@ $auJs = [
     // session must not persist.
     clearNotice();
     const [version, status] = await Promise.all([
-      api('/api/index.php?route=api/v1/core/version'),
-      api('/api/index.php?route=api/v1/core/updates/status')
+      api('/api/index.php?route=api/v1/core/version', {noCache: true}),
+      api('/api/index.php?route=api/v1/core/updates/status', {noCache: true})
     ]);
     ensureSuccess(version, tr('errVersion', 'Не удалось загрузить текущую версию CRM.'));
     ensureSuccess(status, tr('errStatus', 'Не удалось загрузить статус обновлений.'));
@@ -1096,7 +1132,7 @@ $auJs = [
   }
 
   async function check() {
-    const result = await api('/api/index.php?route=api/v1/core/updates/check', {method: 'POST', body: '{}'});
+    const result = await api('/api/index.php?route=api/v1/core/updates/check', {method: 'POST', body: '{}', noCache: true});
     ensureSuccess(result, tr('errCheck', 'Не удалось проверить обновления.'));
     state.plan = result.data && result.data.plan ? result.data.plan : (result.data || result);
     renderPlan();
@@ -1106,7 +1142,7 @@ $auJs = [
   }
 
   async function changes() {
-    const result = await api('/api/index.php?route=api/v1/core/updates/changes');
+    const result = await api('/api/index.php?route=api/v1/core/updates/changes', {noCache: true});
     ensureSuccess(result, tr('errChanges', 'Не удалось загрузить список изменений.'));
     state.changes = result.data || result;
     renderChanges();

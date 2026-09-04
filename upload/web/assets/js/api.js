@@ -795,6 +795,12 @@ window.CRM.api = (function () {
     var headers = Object.assign({}, opts.headers || {});
     var useAuth = opts.auth !== false;
     var body = opts.body;
+    var requestQuery = opts.query;
+    if (opts.noCache === true) {
+      requestQuery = Object.assign({}, requestQuery || {}, {
+        _fresh: String(Date.now()) + '-' + Math.random().toString(36).slice(2)
+      });
+    }
     var isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
     var isUrlParams = typeof URLSearchParams !== 'undefined' && body instanceof URLSearchParams;
     var isBlob = typeof Blob !== 'undefined' && body instanceof Blob;
@@ -817,7 +823,7 @@ window.CRM.api = (function () {
     var cacheTtlMs = method === 'GET' && body === undefined && !opts.signal && opts.noCache !== true
       ? referenceCacheTtlMs(route)
       : 0;
-    var cacheKey = cacheTtlMs > 0 ? referenceCacheKey(route, opts.query) : '';
+    var cacheKey = cacheTtlMs > 0 ? referenceCacheKey(route, requestQuery) : '';
     if (cacheKey) {
       var cached = readReferenceCache(cacheKey);
       if (cached) return cached;
@@ -830,7 +836,7 @@ window.CRM.api = (function () {
       && !opts.signal
       && !hasCustomHeaders;
     if (canDedupeGet) {
-      var dedupeKey = buildUrl(route, opts.query) + '|locale=' + getPreferredLocale();
+      var dedupeKey = buildUrl(route, requestQuery) + '|locale=' + getPreferredLocale();
       if (inFlightGetRequests[dedupeKey]) {
         return inFlightGetRequests[dedupeKey];
       }
@@ -843,6 +849,11 @@ window.CRM.api = (function () {
 
     if (!headers['X-Locale'] && !headers['x-locale']) {
       headers['X-Locale'] = getPreferredLocale();
+    }
+
+    if (opts.noCache === true) {
+      headers['Cache-Control'] = 'no-cache, no-store, max-age=0';
+      headers.Pragma = 'no-cache';
     }
 
     if (useAuth && !headers.Authorization && !headers.authorization) {
@@ -925,7 +936,7 @@ window.CRM.api = (function () {
 
       var response = null;
       try {
-        response = await fetch(buildUrl(route, opts.query), {
+        response = await fetch(buildUrl(route, requestQuery), {
           method: method,
           headers: headers,
           credentials: 'same-origin',

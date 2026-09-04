@@ -65,6 +65,73 @@ final class UpdateCenterClient
         return $domain !== '' ? ['installation_domain' => $domain] : [];
     }
 
+    /**
+     * The real installation domain as seen by this request, or '' when it
+     * cannot be determined. Server-side HTTP clients reach the update center
+     * with the center's own host in HTTP_HOST, so callers must never use the
+     * bare host header as proof that the domain is a test stand - the update
+     * center applies the same rule (unknown domain => main stream).
+     */
+    public function installationDomain(): string
+    {
+        return $this->currentDomain();
+    }
+
+    /**
+     * Whether the domain belongs to the project's test stands.
+     *
+     * Any *.tropatt.com host (demo, qa, updtest, test-*, ...) is served from
+     * the develop stream by the update center; the bare apex tropatt.com does
+     * not match and is served from main.
+     */
+    public static function isTestDomain(string $domain): bool
+    {
+        $domain = strtolower(trim($domain, '.'));
+        return $domain !== '' && str_ends_with($domain, '.tropatt.com');
+    }
+
+    /**
+     * Stream policy guard: may this installation accept an update whose
+     * resolved stream differs from its configured product?
+     *
+     * A production installation (any non-*.tropatt.com domain, or an unknown
+     * domain) is only ever allowed the stream that matches its configured
+     * product (e.g. tropatt-core). Test stands on *.tropatt.com are the only
+     * place where the develop stream (tropatt-core-dev) is legitimate. This is
+     * the client-side counterpart of the update center's DomainRouter and a
+     * hard stop that keeps a production installation from ever applying
+     * unreviewed develop-stream code, even if the center were misconfigured or
+     * a request were routed to the wrong stream.
+     */
+    /**
+     * Return the product stream allowed for this installation domain.
+     *
+     * The configured CRM product is the public/base product name. The update
+     * center may resolve it to the dev product for test stands, but a stale
+     * installed-core.json must not change that policy: production always
+     * receives main and test stands always receive develop. This also permits
+     * the one-time dev-to-main repair for installations bootstrapped from the
+     * wrong stream.
+     */
+    public static function expectedProductForDomain(string $configuredProduct, string $domain): string
+    {
+        if ($configuredProduct !== 'tropatt-core') {
+            return $configuredProduct;
+        }
+        return self::isTestDomain($domain) ? 'tropatt-core-dev' : 'tropatt-core';
+    }
+
+    /**
+     * Stream policy guard for a plan returned by the update center.
+     *
+     * An empty stream is accepted for backwards-compatible centers that do not
+     * expose stream metadata; a present stream must match the domain policy.
+     */
+    public static function isStreamAllowedForDomain(string $configuredProduct, string $stream, string $domain): bool
+    {
+        return $stream === '' || $stream === self::expectedProductForDomain($configuredProduct, $domain);
+    }
+
     private function currentDomain(): string
     {
         $host = trim((string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));

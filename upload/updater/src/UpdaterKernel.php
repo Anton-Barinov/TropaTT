@@ -110,6 +110,27 @@ final class UpdaterKernel
         $state->write(['state' => 'plan_loaded', 'plan' => $plan]);
         $logger->info('plan_loaded', 'Update plan loaded', ['target_build' => $plan['target_build'] ?? null]);
 
+        // Hard stream guard: a production installation must never receive an
+        // update resolved to a stream other than its configured product (e.g.
+        // the develop stream). This is the client-side counterpart of the
+        // update center's DomainRouter: it keeps a misrouted request (missing
+        // installation_domain on an old updater, a stale stored product, or a
+        // misconfigured center) from ever applying unreviewed develop code on
+        // a production domain.
+        $streamError = $this->streamMismatchReason($plan, $client);
+        if ($streamError !== null) {
+            $state->write([
+                'state' => 'failed',
+                'can_resume' => false,
+                'can_rollback' => false,
+                'error' => $streamError,
+                'error_code' => 'STREAM_MISMATCH',
+                'failed_checks' => ['stream_mismatch'],
+            ]);
+            $logger->error('stream_mismatch', 'Update stream rejected', ['error' => $streamError]);
+            return JsonResponse::error('STREAM_MISMATCH', $streamError, 409);
+        }
+
         $package = $plan['recommended_package'] ?? null;
         if (!is_array($package)) {
             $report = ['ok' => true, 'update_available' => false, 'checks' => ['no_update' => true]];
@@ -118,13 +139,20 @@ final class UpdaterKernel
         }
 
         $manifest = $client->getJson((string)$package['manifest_url']);
+        $expectedProduct = UpdateCenterClient::expectedProductForDomain(
+            (string)$this->config['product'],
+            $client->installationDomain()
+        );
         $verifier = new ManifestVerifier((string)$this->config['public_key_path'], $this->effectiveProtectedPaths($manifest));
-        $manifestReport = $verifier->verify($manifest, $package, (string)$this->config['product']);
+        $manifestReport = $verifier->verify($manifest, $package, $expectedProduct);
         $packageHead = $this->packageHead((string)$package['url']);
 
         $checks = [
             'update_center' => true,
+            'manifest_schema_version' => $manifestReport['schema_version'],
+            'manifest_product' => $manifestReport['product'],
             'manifest_signature' => $manifestReport['manifest_signature'],
+            'manifest_package_sha' => $manifestReport['package_sha'],
             'package_signature' => $manifestReport['package_signature'],
             'package_url_accessible' => $packageHead['status'] >= 200 && $packageHead['status'] < 400,
             'package_content_length' => $packageHead['content_length'] === null || $packageHead['content_length'] === (int)$package['size_bytes'],
@@ -352,6 +380,18 @@ final class UpdaterKernel
                 $manifest = $state->readFile('manifest.json');
                 if (!is_array($preflight) || ($preflight['ok'] ?? false) !== true || !is_array($manifest)) {
                     return JsonResponse::error('PREFLIGHT_REQUIRED', 'Successful preflight is required before apply.', 409);
+                }
+                // Re-validate the stream that produced this job before any
+                // mutation (the same guard preflight already ran): a job file
+                // written by an older updater or restored from a backup must
+                // not be able to apply a develop-stream package on a
+                // production installation.
+                $storedPlan = $state->readFile('plan.json');
+                if (is_array($storedPlan)) {
+                    $streamError = $this->streamMismatchReason($storedPlan, new UpdateCenterClient($this->config));
+                    if ($streamError !== null) {
+                        return JsonResponse::error('STREAM_MISMATCH', $streamError, 409);
+                    }
                 }
                 $this->verifyTokenIfPresent($input, 'apply');
                 (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->acquire($jobId);
@@ -1180,6 +1220,27 @@ final class UpdaterKernel
             return $raw;
         }
         return 'upd_' . gmdate('Ymd_His') . '_' . bin2hex(random_bytes(3));
+    }
+
+    /**
+     * Reason why the update stream resolved by the update center must be
+     * rejected for this installation, or null when the stream is acceptable.
+     *
+     * @param array<string,mixed> $plan
+     */
+    private function streamMismatchReason(array $plan, UpdateCenterClient $client): ?string
+    {
+        $configured = (string)($this->config['product'] ?? '');
+        $stream = (string)($plan['stream'] ?? $plan['product'] ?? '');
+        if ($stream === '') {
+            return null;
+        }
+        $domain = $client->installationDomain();
+        if (UpdateCenterClient::isStreamAllowedForDomain($configured, $stream, $domain)) {
+            return null;
+        }
+        $where = $domain !== '' ? $domain : 'unknown';
+        return 'Update center resolved stream "' . $stream . '", but this installation is configured for product "' . $configured . '" on domain "' . $where . '". Refusing to apply an update from another stream so a production installation can never receive develop-stream code.';
     }
 
     /**
