@@ -145,6 +145,13 @@ final class JsonResponse
 
         http_response_code($this->status);
         header('Content-Type: application/json; charset=utf-8');
+        // API responses may contain session-, user- or update-state data. Never
+        // allow a browser, proxy or service worker to replay an old snapshot;
+        // callers that need application-level caching use their explicit cache
+        // layer rather than HTTP freshness headers.
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        header('Pragma: no-cache');
+        header('Expires: 0');
         echo json_encode($this->payload(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 }

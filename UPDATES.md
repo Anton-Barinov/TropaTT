@@ -78,17 +78,35 @@ php bin/cron.php bootstrap-build --sha=<sha> [--from=<sha>]   # first build from
 
 ### Product configuration
 
-`app/Config/products.php` describes the `tropatt-core` product:
+`app/Config/products.php` describes the products served by the update
+server. Every core product exists in two stream variants with the same
+repository and the same channels:
+
+- `tropatt-core` — built from `main` (production)
+- `tropatt-core-dev` — built from `develop` (test stands only)
+
+Per product:
 
 - `repository_url` — the GitHub repository
-- `branch` — the branch (`main`)
+- `branch` — the branch the stream is built from
 - `base_version` — the base version number
 - `version_file` — the version file inside the repository (`upload/VERSION`)
 - `channels` — `nightly`, `stable`, `hotfix`
-- `core_paths` — which paths go into the update package (including `modules/**`:
-  modules ship together with the core update)
+- `core_paths` — which paths go into the update package (`api/**`, `web/**`,
+  `modules/**`, `updater/**`, `index.php`, `favicon.ico`, docs, ...): modules
+  **and the updater itself** ship together with the core update, so every
+  installation receives module files and updater fixes through normal updates
 - `excluded_paths` / `forbidden_paths` — what is never included (`.env`,
-  `storage/**`, local configs, etc.)
+  `storage/**`, `storage_api/**`, local configs, etc.)
+
+**Stream selection.** The server picks the stream by the requesting
+installation's domain (`installation_domain` query parameter, sent by the
+CRM on every update-center request): any `*.tropatt.com` domain is served
+from `tropatt-core-dev`, every other domain from `tropatt-core`. Requests
+without an `installation_domain` (very old updaters, plain HTTP clients)
+are treated as **unknown domain and served from `tropatt-core` (main)** —
+the update server's own hostname must never be mistaken for a test stand,
+and production installations must never receive unreviewed develop code.
 
 ### Channels and publishing policy
 
@@ -100,6 +118,13 @@ php bin/cron.php bootstrap-build --sha=<sha> [--from=<sha>]   # first build from
 
 The CRM uses the **`stable`** channel by default (configurable via the
 `TROPATT_UPDATE_CHANNEL` variable in `api/.env`).
+
+Changes to the updater itself (`updater/**`) are rated **`high`** risk (like
+security-sensitive code), so they are never auto-published to `stable`: they
+reach `nightly` automatically and must be published to `stable` manually
+after review (see "Building and shipping updates"). This keeps a human gate
+on the component that applies updates, while the packages themselves still
+carry updater fixes so installed CRMs self-update their updater.
 
 ### How a package is built
 
@@ -155,6 +180,15 @@ The page shows KPIs:
   `latest`
 - **What will be downloaded** — the package type (FULL / DELTA) and its size
 - **Risk level** — low / medium / high / critical
+
+Build numbers (`YYYYMMDD.NNN`) are counted **independently per stream**, so
+`main` and `develop` can contain the same build number with different
+commits. To avoid ambiguity the page labels every plan with its **stream**
+(`main` / `develop`) and the target commit **SHA**, and shows the installed
+product next to the current build. An installation whose stored product is
+`tropatt-core-dev` on a production (non-`*.tropatt.com`) domain gets a clear
+warning that it was bootstrapped from the develop stream and that the next
+update moves it to the stable stream.
 
 ### Step 2 — "Check safety" (preflight)
 
@@ -346,9 +380,21 @@ The update system is designed for the **most basic shared hosting**:
 
    For example: `php bin/cron.php publish --build=20260805.010 --channel=stable`.
 
-> **Note.** The updater rate limiter (new files
-> `updater/src/Security/RequestRateLimiter.php`, `RequestRateLimiter` in
-> `UpdaterKernel.php`, config `rate_limits` in `api/config/update.php`) is part
-> of the CRM code and is delivered by normal updates. If you change `updater/`
-> locally, always commit the changes to GitHub so that update-server packages
-> include the current updater.
+> **Updater changes travel with the core update.** `updater/**` is part of
+> `core_paths`, so any commit that changes the updater (for example the rate
+> limiter, `RequestRateLimiter` in `UpdaterKernel.php`) is packaged into the
+> next build of the stream. A build that touches `updater/**` is rated `high`
+> and therefore reaches `stable` only after manual publish (see above).
+
+### Client-side stream guard
+
+The CRM never applies a package resolved to a stream other than the one it is
+configured for. The updater compares the plan's `stream`/`product` with its
+configured product: on a production (non-`*.tropatt.com`) domain, or when the
+domain is unknown, a develop-stream (`tropatt-core-dev`) plan is rejected
+with a `STREAM_MISMATCH` error before anything is downloaded or applied.
+`*.tropatt.com` test stands are the only place where the develop stream is
+legitimate. This is the client-side counterpart of the server's stream
+selection: even a misrouted request (an old updater without
+`installation_domain`, a stale stored product, or a misconfigured center)
+cannot install unreviewed develop code on a production installation.

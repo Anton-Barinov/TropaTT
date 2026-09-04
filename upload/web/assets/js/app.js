@@ -315,6 +315,7 @@
       if (window.CRM.ui) {
         window.CRM.ui.initBootstrapUi();
         window.CRM.ui.initToasts();
+        window.CRM.ui.initDirtyForms();
         window.CRM.ui.initStateSwitchers();
         window.CRM.ui.initStatusColorPickers();
       }

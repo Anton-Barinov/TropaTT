@@ -7523,6 +7523,8 @@ return array (
     'kpi_target_latest' => 'latest',
     'kpi_target_meta_latest' => 'No new builds to install.',
     'kpi_target_meta_found' => 'Update available from {build}.',
+    'kpi_stream_meta' => 'Stream: {stream}',
+    'dev_stream_on_production' => 'This installation was created from the develop stream ({product}). Updates for this domain are served from the stable stream, so the next update will move it to the stable stream.',
     'kpi_package_none' => 'not required',
     'kpi_package_meta_none' => 'No package needs to be downloaded.',
     'kpi_risk_none' => 'none',

@@ -7624,6 +7624,8 @@ return array (
     'kpi_target_latest' => 'latest',
     'kpi_target_meta_latest' => 'Новых сборок для установки нет.',
     'kpi_target_meta_found' => 'Доступно обновление с {build}.',
+    'kpi_stream_meta' => 'Поток: {stream}',
+    'dev_stream_on_production' => 'Эта установка создана из потока разработки ({product}). Домен установки обслуживается из стабильного потока, поэтому следующее обновление переведёт её на стабильный поток.',
     'kpi_package_none' => 'не требуется',
     'kpi_package_meta_none' => 'Архив скачивать не нужно.',
     'kpi_risk_none' => 'нет',

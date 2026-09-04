@@ -8,6 +8,22 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ### Added
 
+- **Self-updating updater.** Core update packages now include the `updater/**`
+  directory, so installed CRMs update their own update mechanism through the regular
+  update flow — updater fixes no longer reach only fresh installs and one-off bootstrap
+  packages. Updater changes are rated high risk (like security code) and reach the
+  `stable` channel only after a manual publish.
+
+- **Client-side stream guard.** The updater refuses to download or apply an update
+  resolved to the develop stream (`tropatt-core-dev`) on a production
+  (non-`*.tropatt.com`) domain, returning a clear `STREAM_MISMATCH` error instead of
+  installing unreviewed develop code.
+
+- **Update center defaults to the main stream.** Update-center requests without an
+  `installation_domain` are served from `main` (previously the update server's own
+  `*.tropatt.com` hostname misrouted them to the develop stream), so a fresh
+  installation can never be bootstrapped from unreviewed develop code.
+
 - **Safe release cycle for the update server.** Introduced an independent test update stream
   (`tropatt-core-dev`, built from the `develop` branch) alongside the production stream
   (`tropatt-core`, built from `main`). The update server now distributes builds by requesting
@@ -29,6 +45,13 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 - **Create task from chat message.** The "Create Task" action in both chat pages pre-fills the task creation modal with the message text, linked to the current project.
 
 ### Changed
+
+- **Updates page shows stream and commit SHA.** Admin → System Updates now labels
+  every update plan with its stream (`main` / `develop`) and target commit SHA, and
+  shows the installed product next to the current build. Build numbers are counted
+  independently per stream, so identical numbers across `main` and `develop` can no
+  longer be confused; an installation bootstrapped from the develop stream on a
+  production domain gets an explicit warning.
 
 - **Update-server packaging fix.** Package and manifest filenames now carry a product prefix
   (`tropatt-core-…` vs `tropatt-core-dev-…`) so the two update streams never collide. Delta package
