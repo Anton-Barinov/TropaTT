@@ -3303,7 +3303,7 @@ window.CRM.br1 = (function () {
     if (!chips || !currentTask) return;
 
     var tagsHtml = currentTaskTags.map(function (tag) {
-      return '<span class="crm-chip crm-tag-chip-link" data-tag-id="' + escapeHtml(tag.public_id || '') + '" style="background:' + escapeHtml(tag.color || '#6b7280') + ';color:#fff;cursor:pointer">'
+      return '<span class="crm-chip crm-tag-chip-link" data-task-tag-filter="' + escapeHtml(tag.public_id || '') + '" style="background:' + escapeHtml(tag.color || '#6b7280') + ';color:#fff;cursor:pointer">'
         + escapeHtml(tag.title || tag.code || tag.public_id || '') + '</span>';
     }).join('');
 

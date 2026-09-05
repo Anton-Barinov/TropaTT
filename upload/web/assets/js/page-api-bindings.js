@@ -1192,7 +1192,7 @@ window.CRM.pageApiBindings = (function () {
     var cls = 'task-tag' + (active ? ' task-tag--active' : '');
     var style = 'background-color:' + safeText(color) + ';color:#fff';
     var text = safeText(tag.title || tag.code || tag.public_id || '');
-    return '<span class="' + cls + '" style="' + style + '" data-tag-id="' + safeText(tagId) + '">' + text + '</span>';
+    return '<span class="' + cls + '" style="' + style + '" data-task-tag-filter="' + safeText(tagId) + '">' + text + '</span>';
   }
 
   function taskTagsHtml(tags, maxVisible, kanbanFilter) {
@@ -30830,7 +30830,7 @@ window.CRM.pageApiBindings = (function () {
           var description = String(item.description || '—');
           var usageCount = Number(item.usage_count || 0);
           var publicId = String(item.public_id || '');
-          return '<tr data-tag-id="' + safeText(publicId) + '">'
+          return '<tr data-admin-tag-id="' + safeText(publicId) + '">'
             + '<td><span class="crm-chip" style="background:' + safeText(color) + ';color:#fff">' + safeText(name) + '</span></td>'
             + '<td><code>' + safeText(color) + '</code></td>'
             + '<td class="small">' + safeText(stripHtmlText(description)) + '</td>'
@@ -30953,6 +30953,8 @@ window.CRM.pageApiBindings = (function () {
           document.getElementById('editTagPublicId').value = publicId;
           document.getElementById('editTagName').value = nameEl ? nameEl.textContent.trim() : '';
           document.getElementById('editTagColor').value = colorEl ? colorEl.textContent.trim() : '#3b82f6';
+          var descriptionEl = row.querySelector('td:nth-child(3)');
+          document.getElementById('editTagDescription').value = descriptionEl ? descriptionEl.textContent.trim() : '';
         }
         var modal = new bootstrap.Modal(document.getElementById('editTagModal'));
         modal.show();
@@ -32686,9 +32688,9 @@ window.CRM.pageApiBindings = (function () {
       });
     });
     document.body.addEventListener('click', function (e) {
-      var tagEl = e.target.closest('[data-tag-id]');
+      var tagEl = e.target.closest('[data-task-tag-filter]');
       if (tagEl) {
-        var tagId = tagEl.getAttribute('data-tag-id');
+        var tagId = tagEl.getAttribute('data-task-tag-filter');
         if (!tagId) return;
         // On kanban page: filter instead of navigate
         if (window.location.href.indexOf('route=kanban') !== -1 || document.querySelector('.crm-kanban')) {
