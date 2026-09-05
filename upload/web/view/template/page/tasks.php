@@ -18,6 +18,10 @@
     <input id="tasksSearchInput" class="form-control" type="search" placeholder="<?= htmlspecialchars($t('tasks.filter_search_placeholder', 'Название, описание или код задачи'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="tasks.filter_search_placeholder">
   </div>
   <div>
+    <label class="crm-filter-label" for="tasksStatusFilter" data-i18n="tasks.filter_status"><?= htmlspecialchars($t('tasks.filter_status', 'Статус'), ENT_QUOTES, 'UTF-8') ?></label>
+    <select id="tasksStatusFilter" class="form-select"><option value="" data-i18n="tasks.filter_all_statuses"><?= htmlspecialchars($t('tasks.filter_all_statuses', 'Все статусы'), ENT_QUOTES, 'UTF-8') ?></option></select>
+  </div>
+  <div>
     <label class="crm-filter-label" for="tasksAssigneeFilter" data-i18n="tasks.filter_assignee"><?= htmlspecialchars($t('tasks.filter_assignee', 'Исполнитель'), ENT_QUOTES, 'UTF-8') ?></label>
     <select id="tasksAssigneeFilter" class="form-select"><option value="" data-i18n="tasks.filter_assignee_placeholder"><?= htmlspecialchars($t('tasks.filter_assignee_placeholder', 'Исполнитель'), ENT_QUOTES, 'UTF-8') ?></option></select>
   </div>

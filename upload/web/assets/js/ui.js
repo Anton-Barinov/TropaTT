@@ -97,6 +97,62 @@ window.CRM.ui = (function () {
     });
   }
 
+  // Shared actionable states (P0-G3): loading / empty / no-results / error / no-access.
+  // setState(root, state) toggles static [data-state-item] nodes inside root.
+  // stateCellHtml(state, opts) returns a <tr> row for tables with title, text and actions.
+  var stateIcons = {
+    empty: 'fa-inbox',
+    'no-results': 'fa-magnifying-glass',
+    error: 'fa-triangle-exclamation',
+    'no-access': 'fa-lock',
+    loading: 'fa-spinner'
+  };
+
+  function stateHtml(state, opts) {
+    var options = opts || {};
+    var icon = stateIcons[state] || 'fa-inbox';
+    var title = String(options.title || '');
+    var text = String(options.text || '');
+    var actionHtml = String(options.actionHtml || '');
+    var spin = state === 'loading' ? ' fa-spin' : '';
+    var body = '<span class="crm-icon" aria-hidden="true"><i class="fa-solid ' + icon + spin + '" aria-hidden="true"></i></span>';
+    if (title) body += '<strong>' + title + '</strong>';
+    if (text) body += '<p class="mb-0">' + text + '</p>';
+    if (actionHtml) body += '<div class="mt-3">' + actionHtml + '</div>';
+    return '<div class="crm-empty-state" role="' + (state === 'error' ? 'alert' : 'status') + '">' + body + '</div>';
+  }
+
+  function stateCellHtml(colspan, state, opts) {
+    var options = opts || {};
+    if (state === 'loading') {
+      return '<tr><td colspan="' + colspan + '" class="p-4"><div class="crm-skeleton mb-2" style="height:16px"></div>'
+        + '<div class="crm-skeleton mb-2" style="height:16px"></div><div class="crm-skeleton" style="height:16px"></div></td></tr>';
+    }
+    return '<tr><td colspan="' + colspan + '" class="crm-table-state-cell">' + stateHtml(state, options) + '</td></tr>';
+  }
+
+  function setState(root, state) {
+    if (!root) return;
+    root.querySelectorAll('[data-state-item]').forEach(function (node) {
+      var isActive = node.getAttribute('data-state-item') === state;
+      node.classList.toggle('d-none', !isActive);
+    });
+  }
+
+  // Retry buttons rendered inside error states: click delegates to a handler
+  // registered by the page renderer via window.CRM.ui.onRetry('route', fn).
+  var retryHandlers = {};
+  function onRetry(route, handler) {
+    if (route && typeof handler === 'function') retryHandlers[route] = handler;
+  }
+  document.addEventListener('click', function (event) {
+    var btn = event.target && event.target.closest ? event.target.closest('[data-crm-retry]') : null;
+    if (!btn) return;
+    var route = btn.getAttribute('data-crm-retry');
+    var handler = retryHandlers[route];
+    if (typeof handler === 'function') handler();
+  });
+
   function normalizeHex(value) {
     if (!value) return null;
     var hex = value.trim().replace(/^#/, '');
@@ -190,6 +246,10 @@ window.CRM.ui = (function () {
     setPending: setPending,
     initDirtyForms: initDirtyForms,
     initStateSwitchers: initStateSwitchers,
-    initStatusColorPickers: initStatusColorPickers
+    initStatusColorPickers: initStatusColorPickers,
+    stateHtml: stateHtml,
+    stateCellHtml: stateCellHtml,
+    setState: setState,
+    onRetry: onRetry
   };
 })();

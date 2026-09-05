@@ -4740,6 +4740,8 @@ return array (
     'ai_priority_reset_title' => 'Вернуть обычный порядок задач',
     'filter_search' => 'Поиск',
     'filter_search_placeholder' => 'Название, описание или код задачи',
+    'filter_status' => 'Статус',
+    'filter_all_statuses' => 'Все статусы',
     'filter_assignee' => 'Исполнитель',
     'filter_assignee_placeholder' => 'Исполнитель',
     'filter_manager' => 'Менеджер',
