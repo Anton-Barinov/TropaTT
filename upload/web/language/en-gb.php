@@ -4719,6 +4719,8 @@ return array (
     'ai_priority_reset_title' => 'Restore default task order',
     'filter_search' => 'Search',
     'filter_search_placeholder' => 'Title, description or task code',
+    'filter_status' => 'Status',
+    'filter_all_statuses' => 'All statuses',
     'filter_assignee' => 'Assignee',
     'filter_assignee_placeholder' => 'Assignee',
     'filter_manager' => 'Manager',

@@ -4738,6 +4738,8 @@ return array (
     'ai_priority_reset_title' => '恢复默认任务排序',
     'filter_search' => '搜索',
     'filter_search_placeholder' => '标题、描述或任务编码',
+    'filter_status' => '状态',
+    'filter_all_statuses' => '所有状态',
     'filter_assignee' => '执行人',
     'filter_assignee_placeholder' => '执行人',
     'filter_manager' => '负责人',

@@ -8910,6 +8910,8 @@ return array (
     'ai_priority_reset_title' => 'Standard-Aufgabenreihenfolge wiederherstellen',
     'filter_search' => 'Suche',
     'filter_search_placeholder' => 'Titel, Beschreibung oder Aufgabencode',
+    'filter_status' => 'Status',
+    'filter_all_statuses' => 'Alle Status',
     'filter_assignee' => 'Zugewiesener',
     'filter_assignee_placeholder' => 'Zugewiesener',
     'filter_manager' => 'Manager',

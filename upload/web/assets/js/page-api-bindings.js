@@ -4243,6 +4243,7 @@ window.CRM.pageApiBindings = (function () {
     var tasksProjectSelect = document.getElementById('tasksProjectFilter');
     var tasksCycleSelect = document.getElementById('tasksCycleFilter');
     var tasksTagSelect = document.getElementById('tasksTagFilter');
+    var tasksStatusSelect = document.getElementById('tasksStatusFilter');
     var tasksPromise = tryRequest('api/v1/tasks', { query: apiQuery });
     var projectOptionsPromise = tasksProjectSelect
       ? tryRequest('api/v1/projects', { query: { limit: 200 }, silent: true })
@@ -4256,6 +4257,9 @@ window.CRM.pageApiBindings = (function () {
       : Promise.resolve(null);
     var tagOptionsPromise = tasksTagSelect
       ? tryRequest('api/v1/tags', { query: { limit: 200 }, silent: true })
+      : Promise.resolve(null);
+    var statusOptionsPromise = tasksStatusSelect
+      ? tryRequest('api/v1/statuses', { query: { limit: 200, scope: 'task' }, silent: true })
       : Promise.resolve(null);
 
     var envelope = await tasksPromise;
@@ -4512,7 +4516,7 @@ window.CRM.pageApiBindings = (function () {
       var activeDueBtn = document.querySelector('.crm-kanban-due-filters .is-active');
       return {
         search: searchInput ? searchInput.value.trim() : '',
-        status: '',
+        status: tasksStatusSelect ? tasksStatusSelect.value : '',
         priority: '',
         assignee: assigneeSelect ? assigneeSelect.value : '',
         manager: managerSelect ? managerSelect.value : '',
@@ -4527,6 +4531,7 @@ window.CRM.pageApiBindings = (function () {
 
     function bindTasksFilters() {
       var searchInput = document.getElementById('tasksSearchInput');
+      var statusSelect = document.getElementById('tasksStatusFilter');
       var assigneeSelect = document.getElementById('tasksAssigneeFilter');
       var managerSelect = document.getElementById('tasksManagerFilter');
       var projectSelect = document.getElementById('tasksProjectFilter');
@@ -4536,6 +4541,7 @@ window.CRM.pageApiBindings = (function () {
       var summary = document.getElementById('tasksResultSummary');
       var dueBtns = document.querySelectorAll('.crm-kanban-due-filters .btn');
 
+      if (statusSelect) statusSelect.value = statusFilter;
       if (assigneeSelect) assigneeSelect.value = assigneeFilter;
       if (managerSelect) managerSelect.value = managerFilter;
       if (projectSelect) projectSelect.value = projectFilter;
@@ -4545,7 +4551,7 @@ window.CRM.pageApiBindings = (function () {
       // Searchable-селекты (заменённые на инпут с дропдауном) должны показывать
       // выбранное значение и после программной установки value (первая
       // загрузка, перерисовка после фильтра/сортировки/клика по строке людей).
-      [assigneeSelect, managerSelect, projectSelect, tasksCycleSelect, tagSelect].forEach(function (sel) {
+      [statusSelect, assigneeSelect, managerSelect, projectSelect, clientSelect, tasksCycleSelect, tagSelect].forEach(function (sel) {
         if (sel && sel.dataset && sel.dataset.searchable === '1') syncSearchableSingleSelect(sel);
       });
 
@@ -4563,7 +4569,7 @@ window.CRM.pageApiBindings = (function () {
         }
       }
 
-      [assigneeSelect, managerSelect, projectSelect, clientSelect, tasksCycleSelect, tagSelect].forEach(function (sel) {
+      [statusSelect, assigneeSelect, managerSelect, projectSelect, clientSelect, tasksCycleSelect, tagSelect].forEach(function (sel) {
         if (!sel || sel.dataset.bound === '1') return;
         sel.addEventListener('change', function () {
           applyTaskRouteQuery(tasksFiltersFromDom());
@@ -4596,6 +4602,7 @@ window.CRM.pageApiBindings = (function () {
       if (resetBtn && resetBtn.dataset.bound !== '1') {
         resetBtn.addEventListener('click', function () {
           if (searchInput) searchInput.value = '';
+          if (statusSelect) statusSelect.value = '';
           if (assigneeSelect) assigneeSelect.value = '';
           if (managerSelect) managerSelect.value = '';
           if (projectSelect) projectSelect.value = '';
@@ -4613,7 +4620,7 @@ window.CRM.pageApiBindings = (function () {
       }
 
       // Enable/disable reset button based on active filters
-      var hasActive = Boolean(searchFilter || assigneeFilter || managerFilter || projectFilter || clientFilter || cycleFilter || tagFilter || dueFilter);
+      var hasActive = Boolean(searchFilter || statusFilter || assigneeFilter || managerFilter || projectFilter || clientFilter || cycleFilter || tagFilter || dueFilter || kpi);
       if (resetBtn) {
         resetBtn.disabled = !hasActive;
         resetBtn.classList.toggle('is-active', hasActive);
@@ -4775,6 +4782,16 @@ window.CRM.pageApiBindings = (function () {
       }
       if (tasksManagerSelect) fillSelect(tasksManagerSelect, taskUsers, 'public_id', function (u) { return u.full_name || u.login; });
     }
+    if (tasksStatusSelect) {
+      var statusEnv = await statusOptionsPromise;
+      var statusItems = mapItems(statusEnv).filter(function (status) {
+        return !status.scope || String(status.scope) === 'task';
+      });
+      fillSelect(tasksStatusSelect, statusItems, 'code', function (status) {
+        return status.title || status.code;
+      });
+      if (statusFilter) tasksStatusSelect.value = statusFilter;
+    }
     if (tasksProjectSelect) {
       var projEnv = await projectOptionsPromise;
       var projItems = mapItems(projEnv);
@@ -4830,7 +4847,7 @@ window.CRM.pageApiBindings = (function () {
       document.querySelectorAll('#tasksStates [data-state-item]').forEach(function (node) {
         node.classList.add('d-none');
       });
-      var stateName = (searchFilter || statusFilter || priorityFilter)
+      var stateName = (searchFilter || statusFilter || priorityFilter || assigneeFilter || managerFilter || projectFilter || clientFilter || cycleFilter || tagFilter || dueFilter || kpi)
         ? 'no-results'
         : 'empty';
       var stateEl = document.querySelector('#tasksStates [data-state-item="' + stateName + '"]');
@@ -10393,9 +10410,25 @@ window.CRM.pageApiBindings = (function () {
     var table = document.getElementById('clientsTable');
     if (table) table.classList.toggle('crm-compact-table', compact);
     var tableBody = document.getElementById('clientsTableBody');
+    var hasClientFilters = Boolean(filterSearch || filterExtra || filterType || filterStatus || filterHasWebsite || filterCreatedFrom || filterCreatedTo);
+    if (window.CRM.ui && typeof window.CRM.ui.onRetry === 'function') {
+      window.CRM.ui.onRetry('clients', function () { renderClientsPage(); });
+    }
     if (tableBody) {
-      if (!clients.length) {
-        tableBody.innerHTML = '<tr><td colspan="10" class="text-muted">' + tp('clients.empty_table', 'Clients not found.') + '</td></tr>';
+      if (clientsEnvelope && clientsEnvelope.success === false) {
+        tableBody.innerHTML = window.CRM.ui.stateCellHtml(10, 'error', {
+          title: tp('clients.error_title', 'Ошибка загрузки клиентов'),
+          text: tp('clients.error_text', 'Не удалось загрузить список клиентов. Попробуйте ещё раз.'),
+          actionHtml: '<button type="button" class="btn crm-btn-primary btn-sm" data-crm-retry="clients">' + tp('page.retry', 'Повторить') + '</button>'
+        });
+      } else if (!clients.length) {
+        tableBody.innerHTML = window.CRM.ui.stateCellHtml(10, hasClientFilters ? 'no-results' : 'empty', {
+          title: hasClientFilters ? tp('clients.no_results_title', 'Ничего не найдено') : tp('clients.empty_title', 'Клиентов пока нет'),
+          text: hasClientFilters ? tp('clients.no_results_text', 'Измените фильтры или очистите поиск.') : tp('clients.empty_text', 'Создайте первого клиента, чтобы начать вести работу с заказчиками.'),
+          actionHtml: hasClientFilters
+            ? '<a class="btn crm-btn-secondary btn-sm" href="index.php?route=clients">' + tp('page.reset', 'Сбросить фильтры') + '</a>'
+            : '<button type="button" class="btn crm-btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#clientCreateModal">' + tp('clients.btn_create', 'Создать клиента') + '</button>'
+        });
       } else {
         tableBody.innerHTML = clients.map(function (client) {
           var id = String(client.public_id || '').trim();
@@ -28099,9 +28132,25 @@ window.CRM.pageApiBindings = (function () {
     });
 
     var tableBody = document.getElementById('contactsTableBody');
+    var hasContactFilters = Boolean(filterSearch || filterCounterparty || filterRole || filterPrimary);
+    if (window.CRM.ui && typeof window.CRM.ui.onRetry === 'function') {
+      window.CRM.ui.onRetry('contacts', function () { renderContactsPage(); });
+    }
     if (tableBody) {
-      if (!contacts.length) {
-        tableBody.innerHTML = '<tr><td colspan="7" class="text-muted">' + safeText(tp('contacts.empty', 'Contacts not found.')) + '</td></tr>';
+      if (contactsEnvelope && contactsEnvelope.success === false) {
+        tableBody.innerHTML = window.CRM.ui.stateCellHtml(7, 'error', {
+          title: tp('contacts.error_title', 'Ошибка загрузки контактов'),
+          text: tp('contacts.error_text', 'Не удалось загрузить список контактов. Попробуйте ещё раз.'),
+          actionHtml: '<button type="button" class="btn crm-btn-primary btn-sm" data-crm-retry="contacts">' + tp('page.retry', 'Повторить') + '</button>'
+        });
+      } else if (!contacts.length) {
+        tableBody.innerHTML = window.CRM.ui.stateCellHtml(7, hasContactFilters ? 'no-results' : 'empty', {
+          title: hasContactFilters ? tp('contacts.no_results_title', 'Ничего не найдено') : tp('contacts.empty_title', 'Контактов пока нет'),
+          text: hasContactFilters ? tp('contacts.no_results_text', 'Измените фильтры или очистите поиск.') : tp('contacts.empty_text', 'Добавьте контакт клиента или контрагента, чтобы держать связь под рукой.'),
+          actionHtml: hasContactFilters
+            ? '<a class="btn crm-btn-secondary btn-sm" href="index.php?route=contacts">' + tp('page.reset', 'Сбросить фильтры') + '</a>'
+            : '<button type="button" class="btn crm-btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#contactCreateModal">' + tp('contacts.btn_create', 'Создать контакт') + '</button>'
+        });
       } else {
         tableBody.innerHTML = contacts.map(function (contact) {
           var id = String(contact.public_id || '').trim();
@@ -32622,6 +32671,7 @@ window.CRM.pageApiBindings = (function () {
     ];
     // Task page filter selects
     var taskFilterSelectors = [
+      '#tasksStatusFilter',
       '#tasksAssigneeFilter',
       '#tasksManagerFilter',
       '#tasksCycleFilter',

@@ -8910,6 +8910,8 @@ return array (
     'ai_priority_reset_title' => 'Restaurer l\'ordre de tâches par défaut',
     'filter_search' => 'Recherche',
     'filter_search_placeholder' => 'Titre, description ou code de la tâche',
+    'filter_status' => 'Statut',
+    'filter_all_statuses' => 'Tous les statuts',
     'filter_assignee' => 'Assigné',
     'filter_assignee_placeholder' => 'Assigné',
     'filter_manager' => 'Responsable',
