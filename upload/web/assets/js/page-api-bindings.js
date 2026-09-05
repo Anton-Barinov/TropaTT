@@ -1649,16 +1649,29 @@ window.CRM.pageApiBindings = (function () {
     if (!envelope) return;
 
     if (envelope.success === false) {
-      // Show a real error message instead of the misleading
-      // "No projects found for selected filters" empty state.
+      // Keep the list actionable: distinguish a failed request from an empty result
+      // and allow retry without a full page reload.
       var projectsLoadError = window.CRM.i18n.t('js.pab.projects_load_error', 'Failed to load projects.');
+      if (window.CRM.ui && typeof window.CRM.ui.onRetry === 'function') {
+        window.CRM.ui.onRetry('projects', function () { renderProjectsPage(); });
+      }
+      var projectsErrorAction = '<button type="button" class="btn crm-btn-primary btn-sm" data-crm-retry="projects">'
+        + window.CRM.i18n.t('page.retry', 'Retry') + '</button>';
       var projectsErrorList = document.getElementById('projectsDynamicList');
       if (projectsErrorList) {
-        projectsErrorList.innerHTML = '<div class="col-12"><div class="crm-card"><div class="text-danger">' + projectsLoadError + '</div></div></div>';
+        projectsErrorList.innerHTML = '<div class="col-12">' + window.CRM.ui.stateHtml('error', {
+          title: window.CRM.i18n.t('js.pab.projects_load_error_title', 'Error loading projects'),
+          text: projectsLoadError,
+          actionHtml: projectsErrorAction
+        }) + '</div>';
       }
       var projectsErrorTable = document.querySelector('.crm-card.table-responsive table.crm-table tbody');
       if (projectsErrorTable) {
-        projectsErrorTable.innerHTML = '<tr><td colspan="6" class="text-danger">' + projectsLoadError + '</td></tr>';
+        projectsErrorTable.innerHTML = window.CRM.ui.stateCellHtml(6, 'error', {
+          title: window.CRM.i18n.t('js.pab.projects_load_error_title', 'Error loading projects'),
+          text: projectsLoadError,
+          actionHtml: projectsErrorAction
+        });
       }
       return;
     }
@@ -2223,7 +2236,11 @@ window.CRM.pageApiBindings = (function () {
       + '<p class="mb-3">' + window.CRM.i18n.t('js.pab.no_projects_yet_text', 'Create your first project to start planning the work.') + '</p>'
       + '<button class="btn crm-btn-primary" type="button" data-open-modal="createProjectModal">' + window.CRM.i18n.t('js.pab.create_project', 'Create project') + '</button>'
       + '</div></div>';
-    var projectNoResultsHtml = '<div class="col-12"><div class="crm-card"><div class="text-muted">' + window.CRM.i18n.t('js.pab.no_projects_for_filters', 'No projects found for selected filters.') + '</div></div></div>';
+    var projectNoResultsHtml = '<div class="col-12">' + window.CRM.ui.stateHtml('no-results', {
+      title: window.CRM.i18n.t('js.pab.no_projects_for_filters_title', 'No projects found'),
+      text: window.CRM.i18n.t('js.pab.no_projects_for_filters', 'No projects found for selected filters.'),
+      actionHtml: '<a class="btn crm-btn-secondary btn-sm" href="index.php?route=projects">' + window.CRM.i18n.t('js.pab.reset', 'Reset filters') + '</a>'
+    }) + '</div>';
 
     if (list) {
       if (!filtered.length) {
@@ -2262,8 +2279,16 @@ window.CRM.pageApiBindings = (function () {
     if (table) {
       if (!filtered.length) {
         table.innerHTML = hasActiveProjectFilters
-          ? '<tr><td colspan="6" class="text-muted">' + window.CRM.i18n.t('js.pab.no_projects_for_filters', 'No projects found for selected filters.') + '</td></tr>'
-          : '<tr><td colspan="6"><div class="crm-empty-state crm-empty-state-compact"><strong>' + window.CRM.i18n.t('js.pab.no_projects_yet', 'No projects yet') + '</strong><button class="btn crm-btn-primary btn-sm mt-2" type="button" data-open-modal="createProjectModal">' + window.CRM.i18n.t('js.pab.create_project', 'Create project') + '</button></div></td></tr>';
+          ? window.CRM.ui.stateCellHtml(6, 'no-results', {
+            title: window.CRM.i18n.t('js.pab.no_projects_for_filters_title', 'No projects found'),
+            text: window.CRM.i18n.t('js.pab.no_projects_for_filters', 'No projects found for selected filters.'),
+            actionHtml: '<a class="btn crm-btn-secondary btn-sm" href="index.php?route=projects">' + window.CRM.i18n.t('js.pab.reset', 'Reset filters') + '</a>'
+          })
+          : window.CRM.ui.stateCellHtml(6, 'empty', {
+            title: window.CRM.i18n.t('js.pab.no_projects_yet', 'No projects yet'),
+            text: window.CRM.i18n.t('js.pab.no_projects_yet_text', 'Create your first project to start planning the work.'),
+            actionHtml: '<button class="btn crm-btn-primary btn-sm" type="button" data-open-modal="createProjectModal">' + window.CRM.i18n.t('js.pab.create_project', 'Create project') + '</button>'
+          });
       } else {
         table.innerHTML = filtered.map(function (item) {
         var link = 'index.php?route=project-detail&project_public_id=' + encodeURIComponent(item.public_id);
