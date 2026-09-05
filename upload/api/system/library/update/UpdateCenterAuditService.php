@@ -51,7 +51,7 @@ final class UpdateCenterAuditService
             'stable_channel_ok' => $centerOk,
             'update_plan_ok' => $planOk,
             'manifest_ok' => $planOk,
-            'package_ok' => $planOk && is_array($package),
+            'package_ok' => $planOk && ($package === null || is_array($package)),
             'cron_checked' => false,
             'detected_endpoints' => is_array($config['endpoints'] ?? null) ? $config['endpoints'] : [],
             'latest_plan' => [
