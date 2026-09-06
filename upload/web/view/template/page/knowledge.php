@@ -32,7 +32,7 @@
         </div>
       </div>
       <div class="d-flex flex-wrap gap-2">
-        <select id="kbFilterSpace" class="form-select form-select-sm" style="width:auto;min-width:130px">
+        <select id="kbFilterSpace" class="form-select form-select-sm" style="width:auto;min-width:130px" aria-label="<?= htmlspecialchars($t('knowledge.filter_space_aria', 'Раздел базы знаний'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="knowledge.filter_space_aria">
           <option value=""><?= htmlspecialchars($t('knowledge.filter_all_spaces', 'Все разделы'), ENT_QUOTES, 'UTF-8') ?></option>
         </select>
         <select id="kbFilterType" class="form-select form-select-sm" style="width:auto;min-width:120px">
@@ -49,10 +49,10 @@
           <option value="project_note"><?= htmlspecialchars($t('knowledge.type_project_note', 'Заметка проекта'), ENT_QUOTES, 'UTF-8') ?></option>
           <option value="onboarding"><?= htmlspecialchars($t('knowledge.type_onboarding', 'Онбординг'), ENT_QUOTES, 'UTF-8') ?></option>
         </select>
-        <select id="kbFilterTag" class="form-select form-select-sm" style="width:auto;min-width:110px">
+        <select id="kbFilterTag" class="form-select form-select-sm" style="width:auto;min-width:110px" aria-label="<?= htmlspecialchars($t('knowledge.filter_tag_aria', 'Тег материала'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="knowledge.filter_tag_aria">
           <option value=""><?= htmlspecialchars($t('knowledge.filter_all_tags', 'Все теги'), ENT_QUOTES, 'UTF-8') ?></option>
         </select>
-        <select id="kbFilterStatus" class="form-select form-select-sm" style="width:auto;min-width:130px">
+        <select id="kbFilterStatus" class="form-select form-select-sm" style="width:auto;min-width:130px" aria-label="<?= htmlspecialchars($t('knowledge.filter_status_aria', 'Статус публикации'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="knowledge.filter_status_aria">
           <option value=""><?= htmlspecialchars($t('knowledge.filter_all_statuses', 'Все статусы'), ENT_QUOTES, 'UTF-8') ?></option>
           <option value="published"><?= htmlspecialchars($t('knowledge.status_published', 'Опубликовано'), ENT_QUOTES, 'UTF-8') ?></option>
           <option value="draft"><?= htmlspecialchars($t('knowledge.status_draft', 'Черновик'), ENT_QUOTES, 'UTF-8') ?></option>

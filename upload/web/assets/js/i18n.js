@@ -28,11 +28,31 @@ window.CRM.i18n = (function () {
 
     base.querySelectorAll('[data-i18n]').forEach(function (node) {
       var key = node.getAttribute('data-i18n') || '';
-      var fallback = node.getAttribute('data-i18n-fallback') || node.textContent || '';
+      var fallback = node.getAttribute('data-i18n-fallback') || '';
       var value = t(key, fallback);
+
       if (/<[a-z][\s\S]*>/i.test(value)) {
         node.innerHTML = value;
+        return;
+      }
+
+      // Если элемент содержит дочерние теги (иконки, бейджи, счетчики, ссылки, звездочки)
+      if (node.children.length > 0) {
+        var updated = false;
+        for (var i = 0; i < node.childNodes.length; i++) {
+          var child = node.childNodes[i];
+          if (child.nodeType === Node.TEXT_NODE && child.textContent.trim() !== '') {
+            child.textContent = (i === 0) ? value + ' ' : ' ' + value;
+            updated = true;
+            break;
+          }
+        }
+        if (!updated) {
+          // Если явного текстового узла не было, добавляем текст в начало перед дочерними тегами
+          node.insertAdjacentText('afterbegin', value + ' ');
+        }
       } else {
+        // Простой элемент без дочерних тегов — безопасная замена текста
         node.textContent = value;
       }
     });

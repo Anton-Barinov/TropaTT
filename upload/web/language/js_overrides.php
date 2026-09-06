@@ -114,9 +114,54 @@ $runtimeTranslations = [
         'js' => ['ai' => ['error_busy' => 'AI обрабатывает другие запросы. Повторная попытка через ', 'error_busy_generic' => 'AI обрабатывает другие запросы. Повторите попытку позже.']],
         'admin_estimates' => ['no_options_short' => 'Нет вариантов', 'more_actions' => 'Дополнительные действия', 'archive_btn' => 'Архивировать', 'delete_confirm' => 'Удалить этот набор оценок навсегда?', 'modal_create_title' => 'Создать набор оценок', 'modal_edit_title' => 'Изменить набор оценок', 'error_name_required' => 'Укажите название', 'error_options_required' => 'Требуется хотя бы один вариант', 'updated' => 'Набор обновлён', 'created' => 'Набор создан', 'save_error' => 'Не удалось сохранить набор оценок', 'archived' => 'Набор архивирован', 'archive_error' => 'Не удалось архивировать набор', 'deleted' => 'Набор удалён', 'delete_error' => 'Не удалось удалить набор'],
         'task_detail' => ['estimates_empty' => 'Оценок пока нет'],
-        'common' => ['confirm_btn' => 'Подтвердить'],
+        'common' => ['confirm_btn' => 'Подтвердить', 'filters' => 'Фильтры'],
+        'page' => ['retry' => 'Повторить попытку'],
+        'js' => [
+            'pab' => [
+                'projects_load_error_title' => 'Не удалось загрузить проекты',
+                'no_projects_for_filters_title' => 'По выбранным фильтрам проекты не найдены',
+            ],
+        ],
     ],
-    'en-gb' => [],
+    'en-gb' => [
+        'js' => [
+            'ai' => [
+                'error_busy' => 'AI is processing other requests. Retrying in ',
+                'error_busy_generic' => 'AI is processing other requests. Please try again later.',
+            ],
+            'pab' => [
+                'projects_load_error_title' => 'Failed to load projects',
+                'no_projects_for_filters_title' => 'No projects match selected filters',
+            ],
+        ],
+        'admin_estimates' => [
+            'no_options_short' => 'No options',
+            'more_actions' => 'More actions',
+            'archive_btn' => 'Archive',
+            'delete_confirm' => 'Permanently delete this estimation set?',
+            'modal_create_title' => 'Create estimation set',
+            'modal_edit_title' => 'Edit estimation set',
+            'error_name_required' => 'Name is required',
+            'error_options_required' => 'At least one option is required',
+            'updated' => 'Set updated',
+            'created' => 'Set created',
+            'save_error' => 'Failed to save estimation set',
+            'archived' => 'Set archived',
+            'archive_error' => 'Failed to archive set',
+            'deleted' => 'Set deleted',
+            'delete_error' => 'Failed to delete set',
+        ],
+        'task_detail' => [
+            'estimates_empty' => 'No estimates yet',
+        ],
+        'common' => [
+            'confirm_btn' => 'Confirm',
+            'filters' => 'Filters',
+        ],
+        'page' => [
+            'retry' => 'Retry',
+        ],
+    ],
     'de-de' => [
         'js' => ['ai' => ['error_busy' => 'Die KI verarbeitet andere Anfragen. Neuer Versuch in ', 'error_busy_generic' => 'Die KI verarbeitet andere Anfragen. Bitte versuchen Sie es später erneut.']],
         'nav' => ['teams' => 'Teams und Abteilungen', 'knowledge' => 'Wissensdatenbank', 'intake' => 'Posteingang', 'cycles' => 'Zyklen (Sprints)', 'project_modules' => 'Projektmodule', 'admin_estimates' => 'Bewertungen', 'result_knowledge' => 'Wissensdatenbank', 'score' => 'Punktzahl'],

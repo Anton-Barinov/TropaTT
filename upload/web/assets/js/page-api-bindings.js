@@ -4764,6 +4764,11 @@ window.CRM.pageApiBindings = (function () {
           var nextView = normalizeTasksView(btn.getAttribute('data-tasks-view'));
           writeCookie(VIEW_COOKIE, nextView);
           currentView = nextView;
+          var container = document.getElementById('tasksListContainer') || document.getElementById('tasksTableCard');
+          if (container) {
+            container.style.opacity = '0.5';
+            container.style.pointerEvents = 'none';
+          }
           renderTasksPage();
         });
         btn.dataset.boundTasksView = '1';
@@ -32462,6 +32467,10 @@ window.CRM.pageApiBindings = (function () {
     input.className = 'form-control crm-searchable-input' + (isMultiple ? ' crm-searchable-input-multi' : '');
     input.placeholder = _t('page.select_placeholder', 'Выбрать');
     input.autocomplete = 'off';
+    var originalAria = select.getAttribute('aria-label') || '';
+    if (originalAria) {
+      input.setAttribute('aria-label', originalAria);
+    }
 
     var dropdown = document.createElement('div');
     dropdown.className = 'crm-searchable-dropdown';
