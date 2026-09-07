@@ -13,7 +13,7 @@ return [
     'external_guest_role_not_found' => 'Rolle external_guest nicht gefunden',
     'user_creation_failed' => 'Fehler beim Erstellen des Benutzers',
     'token_required' => 'Token ist erforderlich',
-    'weak_password' => 'Passwort muss mindestens 8 Zeichen lang sein',
+    'weak_password' => 'Das Passwort muss mindestens 12 Zeichen enthalten und Groß- und Kleinbuchstaben sowie Ziffern umfassen.',
     'password_too_long' => 'Passwort ist zu lang',
     'invalid_token' => 'Ungültiges Token',
     'not_external_user' => 'Benutzer ist nicht extern',

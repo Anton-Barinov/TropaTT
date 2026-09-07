@@ -1432,8 +1432,8 @@ window.CRM.br1 = (function () {
         showFormAlert('passwordResetConfirmError', window.CRM.i18n.t('js.br1.zapolnite_token_i_novyy_parol', 'Заполните токен и новый пароль.'), 'error');
         return;
       }
-      if (password.length < 8) {
-        showFormAlert('passwordResetConfirmError', window.CRM.i18n.t('js.br1.novyy_parol_dolzhen_soderzhat_minimum_8_simvolov', 'Новый пароль должен содержать минимум 8 символов.'), 'error');
+      if (password.length < 12 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password)) {
+        showFormAlert('passwordResetConfirmError', window.CRM.i18n.t('js.br1.novyy_parol_dolzhen_soderzhat_minimum_8_simvolov', 'Пароль должен содержать не менее 12 символов, включая заглавные и строчные буквы, цифры и спецсимвол.'), 'error');
         return;
       }
       try {

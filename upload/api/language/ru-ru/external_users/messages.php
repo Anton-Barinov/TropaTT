@@ -13,7 +13,7 @@ return [
     'external_guest_role_not_found' => 'Роль external_guest не найдена',
     'user_creation_failed' => 'Ошибка создания пользователя',
     'token_required' => 'Токен обязателен',
-    'weak_password' => 'Минимальная длина пароля — 8 символов',
+    'weak_password' => 'Пароль должен содержать не менее 12 символов, включая заглавные и строчные буквы и цифры.',
     'password_too_long' => 'Пароль слишком длинный',
     'invalid_token' => 'Неверный токен',
     'not_external_user' => 'Пользователь не является внешним',

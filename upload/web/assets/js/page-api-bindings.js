@@ -13616,8 +13616,8 @@ window.CRM.pageApiBindings = (function () {
         var newPassword = newPasswordInput ? newPasswordInput.value : '';
         var repeatPassword = repeatPasswordInput ? repeatPasswordInput.value : '';
         setProfileInlineError(passwordError, '');
-        if (String(newPassword).length < 8) {
-          setProfileInlineError(passwordError, tp('profile.password_min_length', 'New password must contain at least 8 characters.'));
+        if (String(newPassword).length < 12 || !/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+          setProfileInlineError(passwordError, tp('profile.password_min_length', 'Password must be at least 12 characters and include uppercase and lowercase letters and digits.'));
           return;
         }
         if (newPassword !== repeatPassword) {
