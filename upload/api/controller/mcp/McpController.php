@@ -6847,7 +6847,7 @@ MD;
         if ($name === '') {
             return ['error' => 'name is required.'];
         }
-        $input = ['name' => $name];
+        $input = ['title' => $name];
         if (!empty($arguments['description'])) {
             $input['description'] = $arguments['description'];
         }
@@ -6856,8 +6856,11 @@ MD;
         }
         /** @var ApiClientService $service */
         $service = $this->container->get('service.api_client');
-        $item = $service->createClient($input, $this->actor());
-        return is_array($item) ? ['api_client' => $item] : ['error' => (string)$item];
+        $result = $service->createClient($input, $this->actor());
+        if (!$result['ok']) {
+            return ['error' => (string)($result['code'] ?? 'CREATE_FAILED')];
+        }
+        return ['api_client' => $result['client'], 'api_key' => $result['key'], 'plain_key' => $result['plain_key']];
     }
 
     private function crmUpdateApiClient(array $arguments): array

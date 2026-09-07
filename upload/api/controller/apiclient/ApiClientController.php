@@ -43,7 +43,7 @@ final class ApiClientController extends BaseController
                 ]);
             }
 
-            return $this->success('API_CLIENT_CREATED', $this->t('api_client/messages.created'), ['api_client' => $result['client']], 201);
+            return $this->success('API_CLIENT_CREATED', $this->t('api_client/messages.created'), ['api_client' => $result['client'], 'api_key' => $result['key'], 'plain_key' => $result['plain_key']], 201);
         });
     }
 

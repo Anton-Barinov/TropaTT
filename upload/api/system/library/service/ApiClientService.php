@@ -65,7 +65,41 @@ final class ApiClientService
             'entity_public_id' => $publicId,
         ]);
 
-        return ['ok' => true, 'client' => $this->getClient($publicId)];
+        $client = $this->getClient($publicId);
+
+        $scopes = $this->normalizeScopes($input['scopes'] ?? []);
+        $plain = 'apk_' . $this->tokens->generate(32);
+        $keyPublicId = Ulid::generate('apk');
+        $this->repository->createKey([
+            'public_id' => $keyPublicId,
+            'client_id' => (int)($client['id'] ?? 0),
+            'user_id' => (int)($actor['id'] ?? 0) > 0 ? (int)$actor['id'] : null,
+            'key_hash' => $this->tokens->hash($plain),
+            'scopes' => json_encode($scopes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'expires_at' => null,
+            'revoked_at' => null,
+            'created_at' => $now,
+        ]);
+
+        $key = $this->repository->findKeyByPublicId($keyPublicId);
+
+        $this->logger->audit([
+            'action' => 'api_key_issue',
+            'actor_public_id' => $actor['public_id'] ?? null,
+            'entity_type' => 'api_key',
+            'entity_public_id' => $keyPublicId,
+            'client_public_id' => $publicId,
+            'scopes' => $scopes,
+        ]);
+        $this->logger->security([
+            'actor_public_id' => $actor['public_id'] ?? null,
+            'event_type' => 'api_key_issue',
+            'ip' => null,
+            'user_agent' => null,
+            'details' => ['key_public_id' => $keyPublicId, 'client_public_id' => $publicId],
+        ]);
+
+        return ['ok' => true, 'client' => $client, 'key' => $key, 'plain_key' => $plain];
     }
 
     public function updateClient(string $publicId, array $input, array $actor): array
