@@ -2245,6 +2245,21 @@ window.CRM.br1 = (function () {
 
         var title = titleInput ? titleInput.value.trim() : '';
         if (!title) {
+          if (titleInput) {
+            titleInput.classList.add('is-invalid');
+            var feedback = titleInput.parentNode.querySelector('.invalid-feedback');
+            if (!feedback) {
+              feedback = document.createElement('div');
+              feedback.className = 'invalid-feedback';
+              feedback.textContent = window.CRM.i18n ? window.CRM.i18n.t('js.br1.vvedite_nazvanie_zadachi', 'Введите название задачи') : 'Введите название задачи';
+              titleInput.parentNode.appendChild(feedback);
+            }
+            titleInput.focus();
+            titleInput.addEventListener('input', function onInput() {
+              titleInput.classList.remove('is-invalid');
+              titleInput.removeEventListener('input', onInput);
+            });
+          }
           notify(window.CRM.i18n.t('js.br1.vvedite_nazvanie_zadachi', 'Введите название задачи'), 'warning');
           return;
         }

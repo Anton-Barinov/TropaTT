@@ -146,6 +146,42 @@ final class ApiClientRepository
         return $row;
     }
 
+    public function findValidKeyByHash(string $keyHash): ?array
+    {
+        return (new QueryBuilder($this->pdo))
+            ->from('api_keys k')
+            ->join('api_clients c', 'c.id', '=', 'k.client_id')
+            ->join('users u', 'u.id', '=', 'k.user_id')
+            ->select([
+                'k.id',
+                'k.public_id',
+                'k.client_id',
+                'k.user_id',
+                'k.scopes',
+                'k.expires_at',
+                'k.revoked_at',
+                'k.created_at',
+                'c.public_id AS client_public_id',
+                'c.title AS client_title',
+                'c.is_active AS client_is_active',
+                'u.public_id AS user_public_id',
+                'u.login',
+                'u.email',
+                'u.full_name',
+                'u.locale',
+                'u.is_active',
+                'u.is_root',
+                'u.is_external',
+                'u.external_role',
+                'u.created_by_user_id',
+            ])
+            ->where('k.key_hash', '=', $keyHash)
+            ->whereNull('k.revoked_at')
+            ->where('c.is_active', '=', 1)
+            ->where('u.is_active', '=', 1)
+            ->first();
+    }
+
     public function revokeKey(string $publicId, string $revokedAt): bool
     {
         return (new QueryBuilder($this->pdo))

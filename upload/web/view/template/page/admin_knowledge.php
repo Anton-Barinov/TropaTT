@@ -789,37 +789,37 @@
 </script>
 <div class="modal fade" id="adminKnowledgeImportModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">
-    <div class="modal-header"><h5 class="modal-title">' . htmlspecialchars($t('admin_knowledge.import_title', 'Импорт базы знаний'), ENT_QUOTES, 'UTF-8') . '</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' . htmlspecialchars($t('common.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') . '"></button></div>
+    <div class="modal-header"><h5 class="modal-title"><?= htmlspecialchars($t('admin_knowledge.import_title', 'Импорт базы знаний'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('common.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>"></button></div>
     <div class="modal-body">
-      <p class="text-muted small">' . htmlspecialchars($t('admin_knowledge.import_hint', 'Загрузите JSON или Markdown файл, экспортированный из базы знаний.'), ENT_QUOTES, 'UTF-8') . '</p>
+      <p class="text-muted small"><?= htmlspecialchars($t('admin_knowledge.import_hint', 'Загрузите JSON или Markdown файл, экспортированный из базы знаний.'), ENT_QUOTES, 'UTF-8') ?></p>
       <div class="mb-3">
-        <label class="crm-filter-label" for="adminKnowledgeImportSpace">' . htmlspecialchars($t('admin_knowledge.import_target_space', 'Целевой раздел'), ENT_QUOTES, 'UTF-8') . '</label>
-        <select id="adminKnowledgeImportSpace" class="form-select"><option value="">' . htmlspecialchars($t('admin_knowledge.import_auto_space', 'Автоматически'), ENT_QUOTES, 'UTF-8') . '</option></select>
+        <label class="crm-filter-label" for="adminKnowledgeImportSpace"><?= htmlspecialchars($t('admin_knowledge.import_target_space', 'Целевой раздел'), ENT_QUOTES, 'UTF-8') ?></label>
+        <select id="adminKnowledgeImportSpace" class="form-select"><option value=""><?= htmlspecialchars($t('admin_knowledge.import_auto_space', 'Автоматически'), ENT_QUOTES, 'UTF-8') ?></option></select>
       </div>
       <div class="mb-3">
-        <label class="crm-filter-label" for="adminKnowledgeImportFile">' . htmlspecialchars($t('admin_knowledge.import_file_label', 'Файл импорта'), ENT_QUOTES, 'UTF-8') . '</label>
+        <label class="crm-filter-label" for="adminKnowledgeImportFile"><?= htmlspecialchars($t('admin_knowledge.import_file_label', 'Файл импорта'), ENT_QUOTES, 'UTF-8') ?></label>
         <input type="file" id="adminKnowledgeImportFile" class="form-control crm-file-input" accept=".json,.md,.markdown,.txt">
       </div>
       <div id="adminKnowledgeImportResult" class="d-none"></div>
     </div>
     <div class="modal-footer">
-      <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal">' . htmlspecialchars($t('common.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') . '</button>
-      <button type="button" class="btn crm-btn-primary" id="adminKnowledgeImportStartBtn" disabled>' . htmlspecialchars($t('admin_knowledge.import_start', 'Начать импорт'), ENT_QUOTES, 'UTF-8') . '</button>
+      <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal"><?= htmlspecialchars($t('common.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button type="button" class="btn crm-btn-primary" id="adminKnowledgeImportStartBtn" disabled><?= htmlspecialchars($t('admin_knowledge.import_start', 'Начать импорт'), ENT_QUOTES, 'UTF-8') ?></button>
     </div>
   </div></div>
 </div>
 
 <div class="modal fade" id="adminKnowledgeExportModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
-    <div class="modal-header"><h5 class="modal-title">' . htmlspecialchars($t('admin_knowledge.export_title', 'Экспорт базы знаний'), ENT_QUOTES, 'UTF-8') . '</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' . htmlspecialchars($t('common.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') . '"></button></div>
+    <div class="modal-header"><h5 class="modal-title"><?= htmlspecialchars($t('admin_knowledge.export_title', 'Экспорт базы знаний'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('common.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>"></button></div>
     <div class="modal-body">
-      <p class="text-muted small">' . htmlspecialchars($t('admin_knowledge.export_hint', 'Выберите раздел и формат для экспорта.'), ENT_QUOTES, 'UTF-8') . '</p>
+      <p class="text-muted small"><?= htmlspecialchars($t('admin_knowledge.export_hint', 'Выберите раздел и формат для экспорта.'), ENT_QUOTES, 'UTF-8') ?></p>
       <div class="mb-3">
-        <label class="crm-filter-label" for="adminKnowledgeExportSpace">' . htmlspecialchars($t('admin_knowledge.export_select_space', 'Раздел'), ENT_QUOTES, 'UTF-8') . '</label>
-        <select id="adminKnowledgeExportSpace" class="form-select"><option value="">' . htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') . '</option></select>
+        <label class="crm-filter-label" for="adminKnowledgeExportSpace"><?= htmlspecialchars($t('admin_knowledge.export_select_space', 'Раздел'), ENT_QUOTES, 'UTF-8') ?></label>
+        <select id="adminKnowledgeExportSpace" class="form-select"><option value=""><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></option></select>
       </div>
       <div class="mb-3">
-        <label class="crm-filter-label">' . htmlspecialchars($t('admin_knowledge.export_format', 'Формат'), ENT_QUOTES, 'UTF-8') . '</label>
+        <label class="crm-filter-label"><?= htmlspecialchars($t('admin_knowledge.export_format', 'Формат'), ENT_QUOTES, 'UTF-8') ?></label>
         <div class="d-flex gap-3">
           <label><input type="radio" name="exportFormat" value="json" checked> JSON</label>
           <label><input type="radio" name="exportFormat" value="markdown"> Markdown</label>
@@ -827,8 +827,8 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal">' . htmlspecialchars($t('common.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') . '</button>
-      <button type="button" class="btn crm-btn-primary" id="adminKnowledgeExportStartBtn" disabled>' . htmlspecialchars($t('admin_knowledge.export_start', 'Экспортировать'), ENT_QUOTES, 'UTF-8') . '</button>
+      <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal"><?= htmlspecialchars($t('common.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button type="button" class="btn crm-btn-primary" id="adminKnowledgeExportStartBtn" disabled><?= htmlspecialchars($t('admin_knowledge.export_start', 'Экспортировать'), ENT_QUOTES, 'UTF-8') ?></button>
     </div>
   </div></div>
 </div>

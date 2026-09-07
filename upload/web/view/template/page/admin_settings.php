@@ -22,14 +22,28 @@
       <div id="adminSettingsUserPrefsState" class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>
       <div id="adminSettingsUserPrefsForm" style="display:none;">
         <div class="mb-3">
-          <div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" role="switch" id="adminPrefsSound"><label class="form-check-label fw-semibold" for="adminPrefsSound" data-i18n="admin_settings.pref_sound_label">Звук уведомлений</label><div class="form-text" data-i18n="admin_settings.pref_sound_hint">Воспроизводить звук при новом уведомлении</div></div>
-          <div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" role="switch" id="adminPrefsQuietHours"><label class="form-check-label fw-semibold" for="adminPrefsQuietHours" data-i18n="admin_settings.pref_quiet_hours_label">Тихие часы</label><div class="form-text" data-i18n="admin_settings.pref_quiet_hours_hint">Отключить звук уведомлений в указанное время</div></div>
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" role="switch" id="adminPrefsSound">
+            <label class="form-check-label fw-semibold" for="adminPrefsSound" data-i18n="admin_settings.pref_sound_label"><?= htmlspecialchars($t('admin_settings.pref_sound_label', 'Звук уведомлений'), ENT_QUOTES, 'UTF-8') ?></label>
+            <div class="form-text" data-i18n="admin_settings.pref_sound_hint"><?= htmlspecialchars($t('admin_settings.pref_sound_hint', 'Воспроизводить звук при новом уведомлении'), ENT_QUOTES, 'UTF-8') ?></div>
+          </div>
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" role="switch" id="adminPrefsQuietHours">
+            <label class="form-check-label fw-semibold" for="adminPrefsQuietHours" data-i18n="admin_settings.pref_quiet_hours_label"><?= htmlspecialchars($t('admin_settings.pref_quiet_hours_label', 'Тихие часы'), ENT_QUOTES, 'UTF-8') ?></label>
+            <div class="form-text" data-i18n="admin_settings.pref_quiet_hours_hint"><?= htmlspecialchars($t('admin_settings.pref_quiet_hours_hint', 'Отключить звук уведомлений в указанное время'), ENT_QUOTES, 'UTF-8') ?></div>
+          </div>
           <div class="row g-2 mt-1" id="adminPrefsQuietHoursRow" style="display:none;">
-            <div class="col-6"><label class="form-label small" data-i18n="admin_settings.pref_quiet_start">Начало</label><input type="time" class="form-control form-control-sm" id="adminPrefsQuietStart" value="22:00"></div>
-            <div class="col-6"><label class="form-label small" data-i18n="admin_settings.pref_quiet_end">Окончание</label><input type="time" class="form-control form-control-sm" id="adminPrefsQuietEnd" value="08:00"></div>
+            <div class="col-6">
+              <label class="form-label small" data-i18n="admin_settings.pref_quiet_start"><?= htmlspecialchars($t('admin_settings.pref_quiet_start', 'Начало'), ENT_QUOTES, 'UTF-8') ?></label>
+              <input type="time" class="form-control form-control-sm" id="adminPrefsQuietStart" value="22:00">
+            </div>
+            <div class="col-6">
+              <label class="form-label small" data-i18n="admin_settings.pref_quiet_end"><?= htmlspecialchars($t('admin_settings.pref_quiet_end', 'Окончание'), ENT_QUOTES, 'UTF-8') ?></label>
+              <input type="time" class="form-control form-control-sm" id="adminPrefsQuietEnd" value="08:00">
+            </div>
           </div>
         </div>
-        <button class="btn btn-sm crm-btn-primary" id="adminPrefsSaveBtn" type="button" data-i18n="common.save">Сохранить</button>
+        <button class="btn btn-sm crm-btn-primary" id="adminPrefsSaveBtn" type="button" data-i18n="common.save"><?= htmlspecialchars($t('common.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
     </div>
   </div>

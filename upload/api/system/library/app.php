@@ -1518,7 +1518,8 @@ final class App
         $this->container->factory('service.api_client', fn(Container $c) => new ApiClientService(
             $c->get('repository.api_client'),
             $c->get('security.token'),
-            $c->get('logger')
+            $c->get('logger'),
+            $c->get('repository.auth')
         ));
         $this->container->factory('service.webhook', fn(Container $c) => new WebhookService(
             $c->get('repository.webhook'),
@@ -2094,6 +2095,16 @@ final class App
         $auth = $this->container->get('service.auth');
         $userAgent = $request->userAgent();
         $me = $auth->me($token, $userAgent);
+
+        if (!$me && str_starts_with($token, 'apk_')) {
+            /** @var ApiClientService $apiClientService */
+            $apiClientService = $this->container->get('service.api_client');
+            $me = $apiClientService->authenticateByKey($token);
+            if ($me !== null) {
+                $transport = 'api_key';
+            }
+        }
+
         if (!$me) {
             return null;
         }

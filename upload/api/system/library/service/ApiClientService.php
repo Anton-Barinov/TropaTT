@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\System\Library\Service;
 
 use Api\Model\ApiClient\ApiClientRepository;
+use Api\Model\Auth\AuthRepository;
 use Api\System\Library\Logger\JsonLogger;
 use Api\System\Library\Security\TokenManager;
 use Api\System\Library\Support\Ulid;
@@ -13,7 +14,8 @@ final class ApiClientService
     public function __construct(
         private readonly ApiClientRepository $repository,
         private readonly TokenManager $tokens,
-        private readonly JsonLogger $logger
+        private readonly JsonLogger $logger,
+        private readonly ?AuthRepository $authRepository = null
     ) {
     }
 
@@ -299,6 +301,68 @@ final class ApiClientService
             'ok' => true,
             'key' => $key,
             'logs' => $this->repository->listKeyLogs($keyPublicId, $limit),
+        ];
+    }
+
+    public function authenticateByKey(string $accessToken): ?array
+    {
+        $hash = $this->tokens->hash($accessToken);
+        $key = $this->repository->findValidKeyByHash($hash);
+
+        if (!$key) {
+            return null;
+        }
+
+        $expiresAt = trim((string)($key['expires_at'] ?? ''));
+        if ($expiresAt !== '') {
+            $expiresAtTime = strtotime($expiresAt . ' UTC');
+            if ($expiresAtTime !== false && $expiresAtTime < time()) {
+                return null;
+            }
+        }
+
+        $userId = (int)($key['user_id'] ?? 0);
+        if ($userId <= 0) {
+            return null;
+        }
+
+        $roleCodes = $this->authRepository !== null
+            ? $this->authRepository->roleCodesByUserId($userId)
+            : [];
+
+        $isRoot = (bool)($key['is_root'] ?? false);
+        if (!$isRoot && in_array('super_admin', $roleCodes, true)) {
+            $isRoot = true;
+        }
+
+        $permissionCodes = $isRoot
+            ? ['*']
+            : ($this->authRepository !== null
+                ? $this->authRepository->permissionCodesByUserId($userId)
+                : []);
+
+        $user = [
+            'id' => $userId,
+            'public_id' => (string)($key['user_public_id'] ?? ''),
+            'login' => (string)($key['login'] ?? ''),
+            'email' => (string)($key['email'] ?? ''),
+            'full_name' => (string)($key['full_name'] ?? ''),
+            'locale' => (string)($key['locale'] ?? 'en-gb'),
+            'is_root' => $isRoot,
+            'is_active' => (bool)($key['is_active'] ?? true),
+            'is_external' => (bool)($key['is_external'] ?? false),
+            'external_role' => (bool)($key['is_external'] ?? false)
+                ? (((string)($key['external_role'] ?? 'observer')) === 'executor' ? 'executor' : 'observer')
+                : 'observer',
+            'roles' => $roleCodes,
+            'permission_codes' => $permissionCodes,
+        ];
+
+        return [
+            'session_public_id' => null,
+            'expires_at' => null,
+            'expires_in' => null,
+            'user' => $user,
         ];
     }
 
