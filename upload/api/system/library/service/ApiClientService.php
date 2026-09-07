@@ -66,13 +66,14 @@ final class ApiClientService
         ]);
 
         $client = $this->getClient($publicId);
+        $rawClient = $this->repository->findClientByPublicId($publicId);
 
         $scopes = $this->normalizeScopes($input['scopes'] ?? []);
         $plain = 'apk_' . $this->tokens->generate(32);
         $keyPublicId = Ulid::generate('apk');
         $this->repository->createKey([
             'public_id' => $keyPublicId,
-            'client_id' => (int)($client['id'] ?? 0),
+            'client_id' => (int)($rawClient['id'] ?? 0),
             'user_id' => (int)($actor['id'] ?? 0) > 0 ? (int)$actor['id'] : null,
             'key_hash' => $this->tokens->hash($plain),
             'scopes' => json_encode($scopes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
