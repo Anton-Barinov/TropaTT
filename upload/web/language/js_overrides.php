@@ -321,4 +321,114 @@ foreach ($integrationParityTranslations as $lc => $translations) {
     $overrides[$lc] = array_replace_recursive($overrides[$lc] ?? [], $translations);
 }
 
+// Client keys present in the ru-ru base of js_overrides but missing in other
+// locales: without these the global ru-ru merge leaks Russian labels into
+// client-rendered UI (filters, retry, project widget strings, quick client).
+$clientLocaleParityTranslations = [
+    'de-de' => [
+        'common' => ['filters' => 'Filter'],
+        'page' => ['retry' => 'Erneut versuchen'],
+        'js' => [
+            'pab' => [
+                'projects_load_error_title' => 'Projekte konnten nicht geladen werden',
+                'no_projects_for_filters_title' => 'Keine Projekte zu den ausgewählten Filtern gefunden',
+            ],
+        ],
+    ],
+    'es-es' => [
+        'common' => ['filters' => 'Filtros'],
+        'page' => ['retry' => 'Reintentar'],
+        'js' => [
+            'pab' => [
+                'projects_load_error_title' => 'No se pudieron cargar los proyectos',
+                'no_projects_for_filters_title' => 'No hay proyectos que coincidan con los filtros seleccionados',
+            ],
+        ],
+    ],
+    'fr-fr' => [
+        'common' => ['filters' => 'Filtres'],
+        'page' => ['retry' => 'Réessayer'],
+        'js' => [
+            'pab' => [
+                'projects_load_error_title' => 'Impossible de charger les projets',
+                'no_projects_for_filters_title' => 'Aucun projet ne correspond aux filtres sélectionnés',
+            ],
+        ],
+    ],
+    'pt-br' => [
+        'common' => ['filters' => 'Filtros'],
+        'page' => ['retry' => 'Tentar novamente'],
+        'js' => [
+            'pab' => [
+                'projects_load_error_title' => 'Não foi possível carregar os projetos',
+                'no_projects_for_filters_title' => 'Nenhum projeto corresponde aos filtros selecionados',
+            ],
+        ],
+    ],
+    'zh-cn' => [
+        'common' => ['filters' => '筛选'],
+        'page' => ['retry' => '重试'],
+        'js' => [
+            'br1' => [
+                'option_value_bez_klienta_2' => '<option value="">没有客户</option>',
+                'quick_client_btn' => '+ 创建',
+                'quick_client_btn_aria' => '创建客户',
+                'quick_client_created' => '客户已创建',
+                'quick_client_error' => '无法创建客户',
+                'quick_client_no_perm' => '您没有创建客户的权限',
+                'taymer_tochnoe_vremya' => '精确时间：',
+                'vvedite_nazvanie_klienta' => '请输入客户名称',
+            ],
+            'pab' => [
+                'approval' => '审批',
+                'approvals_load_error' => '无法加载审批。',
+                'builder_drag' => '拖动以重新排序',
+                'builder_remove' => '移除组件',
+                'builder_add' => '添加',
+                'builder_added' => '已添加',
+                'builder_permission_required' => '需要权限',
+                'catalog_load_error' => '组件目录不可用。',
+                'close_all_tasks' => '关闭所有任务',
+                'failed_close_tasks' => '无法关闭任务',
+                'favorite' => '收藏',
+                'favorites_load_error' => '无法加载收藏。',
+                'hours_short' => '小时',
+                'milestones_load_error' => '无法加载里程碑。',
+                'minutes_short' => '分钟',
+                'move_tasks' => '移动任务',
+                'move_to_other_project' => '移动到其他项目',
+                'my_tasks_error' => '无法加载任务。',
+                'no_active_projects' => '没有进行中的项目。',
+                'no_favorites' => '暂无收藏。',
+                'no_my_tasks' => '没有分配给您的工作任务。',
+                'no_open_tasks_found' => '未找到工作任务',
+                'no_pending_approvals' => '没有等待您审批的项目。',
+                'no_time_logged' => '最近 7 天没有记录工时。',
+                'no_upcoming_milestones' => '没有即将到来的里程碑。',
+                'open_approvals' => '打开审批',
+                'open_projects' => '打开项目',
+                'open_worklogs' => '打开工时报告',
+                'project_completed' => '项目已完成',
+                'project_has_open_tasks' => '项目包含工作任务',
+                'project_has_open_tasks_body' => '存在工作任务时无法完成项目。请选择要执行的操作：',
+                'status_planning' => '规划中',
+                'target_project' => '目标项目',
+                'tasks_closed_prefix' => '已关闭的工作任务：',
+                'tasks_moved_prefix' => '工作任务已移动到所选项目：',
+                'this_week_label' => '本周',
+                'today_label' => '今天',
+                'view_all_my_tasks' => '查看我的所有任务',
+                'widgets_cancel' => '更改已放弃',
+                'worklog_load_error' => '无法加载工时数据。',
+                'manager' => '负责人',
+                'projects_load_error_title' => '无法加载项目',
+                'no_projects_for_filters_title' => '没有符合所选筛选条件的项目',
+            ],
+        ],
+    ],
+];
+foreach ($clientLocaleParityTranslations as $lc => $translations) {
+    $overrides[$lc] = array_replace_recursive($overrides[$lc] ?? [], $translations);
+}
+
 return $overrides;
