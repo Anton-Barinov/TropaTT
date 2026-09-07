@@ -254,6 +254,7 @@ CREATE TABLE IF NOT EXISTS `api_keys` (
   `public_id` varchar(64),
   `client_id` int(11),
   `user_id` int(11),
+  `name` varchar(255) DEFAULT NULL,
   `key_hash` varchar(255),
   `scopes` text,
   `expires_at` datetime,

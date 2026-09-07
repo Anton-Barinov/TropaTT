@@ -21,7 +21,16 @@ final class ApiClientRepository
 
         $total = $this->buildClientsListQuery($filters)->count();
         $rows = $this->buildClientsListQuery($filters)
-            ->select(['public_id', 'title', 'scopes', 'is_active', 'created_at', 'updated_at'])
+            ->select([
+                'public_id',
+                'title',
+                'scopes',
+                'is_active',
+                'created_at',
+                'updated_at',
+                '(SELECT COUNT(*) FROM api_keys ak WHERE ak.client_id = api_clients.id) AS keys_count',
+                '(SELECT COUNT(*) FROM api_keys ak WHERE ak.client_id = api_clients.id AND ak.revoked_at IS NULL) AS active_keys_count',
+            ])
             ->orderBy('created_at', 'DESC')
             ->limit($limit)
             ->offset($offset)
@@ -29,6 +38,8 @@ final class ApiClientRepository
         foreach ($rows as &$row) {
             $row['scopes'] = $this->decodeScopes($row['scopes'] ?? null);
             $row['is_active'] = (int)($row['is_active'] ?? 0);
+            $row['keys_count'] = (int)($row['keys_count'] ?? 0);
+            $row['active_keys_count'] = (int)($row['active_keys_count'] ?? 0);
         }
         unset($row);
 
@@ -103,7 +114,7 @@ final class ApiClientRepository
     {
         $rows = (new QueryBuilder($this->pdo))
             ->from('api_keys')
-            ->select(['public_id', 'scopes', 'expires_at', 'revoked_at', 'created_at'])
+            ->select(['public_id', 'name', 'scopes', 'expires_at', 'revoked_at', 'created_at'])
             ->where('client_id', '=', $clientId)
             ->orderBy('created_at', 'DESC')
             ->get();
@@ -115,6 +126,20 @@ final class ApiClientRepository
     }
 
     public function activeKeyCountByClientId(int $clientId): int
+    {
+        return (new QueryBuilder($this->pdo))
+            ->from('api_keys')
+            ->where('client_id', '=', $clientId)
+            ->whereNull('revoked_at')
+            ->count();
+    }
+
+    /**
+     * Keys that are not revoked, regardless of expiry. Deleting a client must
+     * revoke every usable-or-expired-but-still-issued key, otherwise orphan
+     * rows keep pointing at the deleted client forever.
+     */
+    public function nonRevokedKeyCountByClientId(int $clientId): int
     {
         return (new QueryBuilder($this->pdo))
             ->from('api_keys')
@@ -135,7 +160,7 @@ final class ApiClientRepository
         $row = (new QueryBuilder($this->pdo))
             ->from('api_keys k')
             ->join('api_clients c', 'c.id', '=', 'k.client_id')
-            ->select(['k.id', 'k.public_id', 'k.client_id', 'k.scopes', 'k.expires_at', 'k.revoked_at', 'k.created_at', 'c.public_id AS client_public_id', 'c.title AS client_title'])
+            ->select(['k.id', 'k.public_id', 'k.client_id', 'k.name', 'k.scopes', 'k.expires_at', 'k.revoked_at', 'k.created_at', 'c.public_id AS client_public_id', 'c.title AS client_title', 'c.scopes AS client_scopes'])
             ->where('k.public_id', '=', $publicId)
             ->first();
         if (!$row) {
@@ -143,12 +168,13 @@ final class ApiClientRepository
         }
 
         $row['scopes'] = $this->decodeScopes($row['scopes'] ?? null);
+        $row['client_scopes'] = $this->decodeScopes($row['client_scopes'] ?? null);
         return $row;
     }
 
     public function findValidKeyByHash(string $keyHash): ?array
     {
-        return (new QueryBuilder($this->pdo))
+        $row = (new QueryBuilder($this->pdo))
             ->from('api_keys k')
             ->join('api_clients c', 'c.id', '=', 'k.client_id')
             ->join('users u', 'u.id', '=', 'k.user_id')
@@ -157,6 +183,7 @@ final class ApiClientRepository
                 'k.public_id',
                 'k.client_id',
                 'k.user_id',
+                'k.name',
                 'k.scopes',
                 'k.expires_at',
                 'k.revoked_at',
@@ -164,6 +191,7 @@ final class ApiClientRepository
                 'c.public_id AS client_public_id',
                 'c.title AS client_title',
                 'c.is_active AS client_is_active',
+                'c.scopes AS client_scopes',
                 'u.public_id AS user_public_id',
                 'u.login',
                 'u.email',
@@ -180,6 +208,13 @@ final class ApiClientRepository
             ->where('c.is_active', '=', 1)
             ->where('u.is_active', '=', 1)
             ->first();
+        if (!$row) {
+            return null;
+        }
+
+        $row['scopes'] = $this->decodeScopes($row['scopes'] ?? null);
+        $row['client_scopes'] = $this->decodeScopes($row['client_scopes'] ?? null);
+        return $row;
     }
 
     public function revokeKey(string $publicId, string $revokedAt): bool

@@ -32869,7 +32869,9 @@ window.CRM.pageApiBindings = (function () {
       if (route === 'admin-users') return await renderAdminUsersPage();
       if (route === 'admin-roles') return await renderAdminRolesPage();
       if (route === 'admin-statuses') return await renderAdminStatusesPage();
-      if (route === 'admin-api-clients') return await renderAdminApiClientsPage();
+      // admin-api-clients is rendered by the dedicated module admin-api-clients.js
+      // (loaded only on that route in footer.php); the legacy monolith renderer
+      // renderAdminApiClientsPage is intentionally not dispatched here anymore.
       if (route === 'admin-settings') return await renderAdminSettingsPage();
       if (route === 'admin-logs') return await renderAdminLogsPage();
       if (route === 'admin-jobs') return await renderAdminJobsPage();

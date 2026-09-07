@@ -1519,7 +1519,8 @@ final class App
             $c->get('repository.api_client'),
             $c->get('security.token'),
             $c->get('logger'),
-            $c->get('repository.auth')
+            $c->get('repository.auth'),
+            $c->get('repository.permission')
         ));
         $this->container->factory('service.webhook', fn(Container $c) => new WebhookService(
             $c->get('repository.webhook'),

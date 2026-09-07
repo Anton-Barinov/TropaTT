@@ -1030,23 +1030,29 @@ MD;
             $tools[] = $this->tool('crm_delete_working_hours', 'Delete working hours rule.', [
                 'public_id' => ['type' => 'string'],
             ], ['public_id']);
-            $tools[] = $this->tool('crm_create_api_client', 'Create an API client application.', [
+            $tools[] = $this->tool('crm_create_api_client', 'Create an API client application. Permission codes (scopes) default to the creator\'s own permissions and are never granted beyond them.', [
                 'name' => ['type' => 'string'],
                 'description' => ['type' => 'string'],
                 'is_active' => ['type' => 'integer', 'enum' => [0, 1]],
+                'scopes' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Optional permission-code allow-list. Leave empty to inherit the creator\'s own permissions.'],
+                'key_name' => ['type' => 'string', 'description' => 'Name for the auto-issued first key.'],
+                'key_expires_at' => ['type' => 'string', 'description' => 'Expiry for the auto-issued first key (SQL or ISO datetime).'],
             ], ['name']);
-            $tools[] = $this->tool('crm_update_api_client', 'Update an API client.', [
+            $tools[] = $this->tool('crm_update_api_client', 'Update an API client (title, activity or permission-code allow-list).', [
                 'public_id' => ['type' => 'string'],
                 'name' => ['type' => 'string'],
                 'description' => ['type' => 'string'],
                 'is_active' => ['type' => 'integer', 'enum' => [0, 1]],
+                'scopes' => ['type' => 'array', 'items' => ['type' => 'string']],
             ], ['public_id']);
             $tools[] = $this->tool('crm_delete_api_client', 'Delete an API client.', [
                 'public_id' => ['type' => 'string'],
             ], ['public_id']);
-            $tools[] = $this->tool('crm_issue_api_client_key', 'Issue a new API key for a client.', [
+            $tools[] = $this->tool('crm_issue_api_client_key', 'Issue a new API key for a client. The plain key is returned exactly once. Scopes default to the client\'s allow-list (or the creator\'s permissions) and never exceed the creator.', [
                 'client_public_id' => ['type' => 'string'],
-                'label' => ['type' => 'string'],
+                'name' => ['type' => 'string'],
+                'label' => ['type' => 'string', 'description' => 'Deprecated alias for name.'],
+                'scopes' => ['type' => 'array', 'items' => ['type' => 'string']],
                 'expires_at' => ['type' => 'string'],
             ], ['client_public_id']);
             $tools[] = $this->tool('crm_rotate_api_key', 'Rotate an API key.', [
@@ -6854,6 +6860,15 @@ MD;
         if (isset($arguments['is_active'])) {
             $input['is_active'] = (int)$arguments['is_active'];
         }
+        if (isset($arguments['scopes']) && is_array($arguments['scopes'])) {
+            $input['scopes'] = $arguments['scopes'];
+        }
+        if (isset($arguments['key_name'])) {
+            $input['key_name'] = $arguments['key_name'];
+        }
+        if (isset($arguments['key_expires_at'])) {
+            $input['key_expires_at'] = $arguments['key_expires_at'];
+        }
         /** @var ApiClientService $service */
         $service = $this->container->get('service.api_client');
         $result = $service->createClient($input, $this->actor());
@@ -6870,10 +6885,14 @@ MD;
             return ['error' => 'public_id is required.'];
         }
         $input = [];
-        foreach (['name', 'description', 'is_active'] as $field) {
-            if (array_key_exists($field, $arguments) && $arguments[$field] !== null) {
-                $input[$field] = $field === 'is_active' ? (int)$arguments[$field] : $arguments[$field];
-            }
+        if (array_key_exists('name', $arguments) && $arguments['name'] !== null) {
+            $input['title'] = $arguments['name'];
+        }
+        if (array_key_exists('is_active', $arguments) && $arguments['is_active'] !== null) {
+            $input['is_active'] = (int)$arguments['is_active'];
+        }
+        if (isset($arguments['scopes']) && is_array($arguments['scopes'])) {
+            $input['scopes'] = $arguments['scopes'];
         }
         if ($input === []) {
             return ['error' => 'At least one field to update is required.'];
@@ -6903,16 +6922,26 @@ MD;
             return ['error' => 'client_public_id is required.'];
         }
         $input = [];
-        if (!empty($arguments['label'])) {
-            $input['label'] = $arguments['label'];
+        // 'label' was the pre-scope-era argument name; keep it as an alias so
+        // existing MCP clients do not silently lose the key name.
+        if (isset($arguments['name'])) {
+            $input['name'] = $arguments['name'];
+        } elseif (isset($arguments['label'])) {
+            $input['name'] = $arguments['label'];
+        }
+        if (isset($arguments['scopes']) && is_array($arguments['scopes'])) {
+            $input['scopes'] = $arguments['scopes'];
         }
         if (!empty($arguments['expires_at'])) {
             $input['expires_at'] = $arguments['expires_at'];
         }
         /** @var ApiClientService $service */
         $service = $this->container->get('service.api_client');
-        $item = $service->issueKey($clientPubId, $input, $this->actor());
-        return is_array($item) ? ['api_key' => $item] : ['error' => (string)$item];
+        $result = $service->issueKey($clientPubId, $input, $this->actor());
+        if (!($result['ok'] ?? false)) {
+            return ['error' => (string)($result['code'] ?? 'ISSUE_FAILED')];
+        }
+        return ['api_key' => $result['key'], 'plain_key' => $result['plain_key'] ?? null];
     }
 
     private function crmRotateApiKey(array $arguments): array
