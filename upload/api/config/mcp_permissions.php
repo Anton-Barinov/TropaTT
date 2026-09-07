@@ -78,6 +78,7 @@ return [
     'crm_create_contact' => ['mode' => 'all', 'permissions' => ['contact.manage']],
     'crm_create_counterparty' => ['mode' => 'all', 'permissions' => ['counterparty.manage']],
     'crm_create_custom_field' => ['mode' => 'all', 'permissions' => ['task.manage']],
+    'crm_delete_custom_field' => ['mode' => 'all', 'permissions' => ['task.manage']],
     'crm_create_cycle' => ['mode' => 'all', 'permissions' => ['task.manage']],
     'crm_create_department' => ['mode' => 'all', 'permissions' => ['department.manage']],
     'crm_create_dependency' => ['mode' => 'all', 'permissions' => ['task.manage']],

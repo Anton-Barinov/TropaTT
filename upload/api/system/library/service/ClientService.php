@@ -244,7 +244,9 @@ final class ClientService
             $set[$field] = trim((string)$value);
         }
 
-        if ($forCreate && !array_key_exists('status', $set)) {
+        if ($forCreate && ($set['status'] ?? null) === null) {
+            // extractClientSet always stores the key (null when absent); the
+            // NOT NULL column needs the default applied on an explicit NULL.
             $set['status'] = 'active';
         }
 

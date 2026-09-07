@@ -164,14 +164,18 @@ final class StickyNoteRepository
 
     public function updateByPublicId(string $publicId, array $set): bool
     {
+        // Always bump updated_at, but never duplicate the named parameter: a
+        // caller may already have put 'updated_at' into $set (e.g. markConverted),
+        // and a repeated :updated_at placeholder fails native prepared statements
+        // with HY093 (Invalid parameter number) on MySQL/mysqlnd.
+        $set['updated_at'] = gmdate('Y-m-d H:i:s');
+
         $setParts = [];
         $params = ['public_id' => $publicId];
         foreach ($set as $column => $value) {
             $setParts[] = "{$column} = :{$column}";
             $params[$column] = $value;
         }
-        $setParts[] = 'updated_at = :updated_at';
-        $params['updated_at'] = gmdate('Y-m-d H:i:s');
 
         $sql = 'UPDATE sticky_notes SET ' . implode(', ', $setParts) . ' WHERE public_id = :public_id';
         $stmt = $this->pdo->prepare($sql);
