@@ -71,7 +71,11 @@ final class ApiClientRepository
     {
         $row = (new QueryBuilder($this->pdo))
             ->from('api_clients')
-            ->select(['*'])
+            ->select([
+                '*',
+                '(SELECT COUNT(*) FROM api_keys ak WHERE ak.client_id = api_clients.id) AS keys_count',
+                '(SELECT COUNT(*) FROM api_keys ak WHERE ak.client_id = api_clients.id AND ak.revoked_at IS NULL) AS active_keys_count',
+            ])
             ->where('public_id', '=', $publicId)
             ->first();
         if (!$row) {
@@ -80,6 +84,8 @@ final class ApiClientRepository
 
         $row['scopes'] = $this->decodeScopes($row['scopes'] ?? null);
         $row['is_active'] = (int)($row['is_active'] ?? 0);
+        $row['keys_count'] = (int)($row['keys_count'] ?? 0);
+        $row['active_keys_count'] = (int)($row['active_keys_count'] ?? 0);
         return $row;
     }
 

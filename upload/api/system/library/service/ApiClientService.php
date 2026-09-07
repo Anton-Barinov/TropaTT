@@ -72,7 +72,8 @@ final class ApiClientService
             'entity_public_id' => $publicId,
         ]);
 
-        $client = $this->getClient($publicId);
+        // Client row is fetched before the key insert so the raw id is used
+        // for the auto-issued first key (never the normalized response).
         $rawClient = $this->repository->findClientByPublicId($publicId);
 
         $plain = 'apk_' . $this->tokens->generate(32);
@@ -107,7 +108,9 @@ final class ApiClientService
             'details' => ['key_public_id' => $keyPublicId, 'client_public_id' => $publicId],
         ]);
 
-        return ['ok' => true, 'client' => $client, 'key' => $key, 'plain_key' => $plain];
+        // Re-read after the insert so keys_count/active_keys_count already
+        // include the just-issued first key in the creation response.
+        return ['ok' => true, 'client' => $this->getClient($publicId), 'key' => $key, 'plain_key' => $plain];
     }
 
     public function updateClient(string $publicId, array $input, array $actor): array
