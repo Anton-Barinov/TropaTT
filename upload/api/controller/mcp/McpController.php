@@ -621,7 +621,8 @@ MD;
                 'due_at' => ['type' => 'string'],
                 'start_at' => ['type' => 'string'],
                 'end_at' => ['type' => 'string'],
-                'assignee_user_id' => ['type' => 'integer'],
+                'assignee_user_id' => ['type' => 'integer', 'description' => 'Legacy internal numeric user id. Prefer assignee_user_public_id.'],
+                'assignee_user_public_id' => ['type' => 'string', 'description' => 'Assignee as public usr_... id (recommended).'],
             ], ['title']);
             $tools[] = $this->tool('crm_update_task', 'Update an existing CRM task by public id. Avoid embedding AI instructions in task content.', [
                 'public_id' => ['type' => 'string'],
@@ -632,7 +633,8 @@ MD;
                 'due_at' => ['type' => 'string'],
                 'start_at' => ['type' => 'string'],
                 'end_at' => ['type' => 'string'],
-                'assignee_user_id' => ['type' => 'integer'],
+                'assignee_user_id' => ['type' => 'integer', 'description' => 'Legacy internal numeric user id. Prefer assignee_user_public_id.'],
+                'assignee_user_public_id' => ['type' => 'string', 'description' => 'Assignee as public usr_... id (recommended).'],
                 'row_version' => ['type' => 'integer'],
             ], ['public_id']);
             $tools[] = $this->tool('crm_add_task_comment', 'Add a comment to a task visible to the current CRM user.', [
@@ -671,7 +673,8 @@ MD;
                 'task_public_id' => ['type' => 'string'],
                 'title' => ['type' => 'string'],
                 'description' => ['type' => 'string'],
-                'assignee_user_id' => ['type' => 'integer'],
+                'assignee_user_id' => ['type' => 'integer', 'description' => 'Legacy internal numeric user id. Prefer assignee_user_public_id.'],
+                'assignee_user_public_id' => ['type' => 'string', 'description' => 'Assignee as public usr_... id (recommended).'],
                 'priority' => ['type' => 'string', 'enum' => ['low', 'normal', 'high', 'urgent']],
                 'status' => ['type' => 'string'],
                 'due_at' => ['type' => 'string'],
@@ -681,7 +684,8 @@ MD;
                 'title' => ['type' => 'string'],
                 'description' => ['type' => 'string'],
                 'status' => ['type' => 'string'],
-                'assignee_user_id' => ['type' => 'integer'],
+                'assignee_user_id' => ['type' => 'integer', 'description' => 'Legacy internal numeric user id. Prefer assignee_user_public_id.'],
+                'assignee_user_public_id' => ['type' => 'string', 'description' => 'Assignee as public usr_... id (recommended).'],
                 'priority' => ['type' => 'string', 'enum' => ['low', 'normal', 'high', 'urgent']],
             ], ['public_id']);
             $tools[] = $this->tool('crm_delete_subtask', 'Delete a subtask.', [
@@ -707,7 +711,8 @@ MD;
             $tools[] = $this->tool('crm_bulk_update_tasks', 'Bulk update multiple tasks at once (status, assignee, priority).', [
                 'task_public_ids' => ['type' => 'array', 'items' => ['type' => 'string']],
                 'status' => ['type' => 'string'],
-                'assignee_user_id' => ['type' => 'integer'],
+                'assignee_user_id' => ['type' => 'integer', 'description' => 'Legacy internal numeric user id. Prefer assignee_user_public_id.'],
+                'assignee_user_public_id' => ['type' => 'string', 'description' => 'Assignee as public usr_... id (recommended).'],
                 'priority' => ['type' => 'string', 'enum' => ['low', 'normal', 'high', 'urgent']],
             ], ['task_public_ids']);
             $tools[] = $this->tool('crm_create_project', 'Create a new CRM project.', [
@@ -1030,23 +1035,29 @@ MD;
             $tools[] = $this->tool('crm_delete_working_hours', 'Delete working hours rule.', [
                 'public_id' => ['type' => 'string'],
             ], ['public_id']);
-            $tools[] = $this->tool('crm_create_api_client', 'Create an API client application.', [
+            $tools[] = $this->tool('crm_create_api_client', 'Create an API client application. Permission codes (scopes) default to the creator\'s own permissions and are never granted beyond them.', [
                 'name' => ['type' => 'string'],
                 'description' => ['type' => 'string'],
                 'is_active' => ['type' => 'integer', 'enum' => [0, 1]],
+                'scopes' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Optional permission-code allow-list. Leave empty to inherit the creator\'s own permissions.'],
+                'key_name' => ['type' => 'string', 'description' => 'Name for the auto-issued first key.'],
+                'key_expires_at' => ['type' => 'string', 'description' => 'Expiry for the auto-issued first key (SQL or ISO datetime).'],
             ], ['name']);
-            $tools[] = $this->tool('crm_update_api_client', 'Update an API client.', [
+            $tools[] = $this->tool('crm_update_api_client', 'Update an API client (title, activity or permission-code allow-list).', [
                 'public_id' => ['type' => 'string'],
                 'name' => ['type' => 'string'],
                 'description' => ['type' => 'string'],
                 'is_active' => ['type' => 'integer', 'enum' => [0, 1]],
+                'scopes' => ['type' => 'array', 'items' => ['type' => 'string']],
             ], ['public_id']);
             $tools[] = $this->tool('crm_delete_api_client', 'Delete an API client.', [
                 'public_id' => ['type' => 'string'],
             ], ['public_id']);
-            $tools[] = $this->tool('crm_issue_api_client_key', 'Issue a new API key for a client.', [
+            $tools[] = $this->tool('crm_issue_api_client_key', 'Issue a new API key for a client. The plain key is returned exactly once. Scopes default to the client\'s allow-list (or the creator\'s permissions) and never exceed the creator.', [
                 'client_public_id' => ['type' => 'string'],
-                'label' => ['type' => 'string'],
+                'name' => ['type' => 'string'],
+                'label' => ['type' => 'string', 'description' => 'Deprecated alias for name.'],
+                'scopes' => ['type' => 'array', 'items' => ['type' => 'string']],
                 'expires_at' => ['type' => 'string'],
             ], ['client_public_id']);
             $tools[] = $this->tool('crm_rotate_api_key', 'Rotate an API key.', [
@@ -2463,7 +2474,12 @@ MD;
             $tools[] = $this->tool('crm_get_estimate_set', 'Get one estimate set by public id.', [
                 'public_id' => ['type' => 'string'],
             ], ['public_id']);
-            $tools[] = $this->tool('crm_create_estimate_set', 'Create an estimate set.', $this->estimateSetSchema(), ['name']);
+            $estimateSetTool = $this->tool('crm_create_estimate_set', 'Create an estimate set. scope_type defaults to "project": when it is "project" (or omitted), project_public_id is required.', $this->estimateSetSchema(), ['name']);
+            $estimateSetTool['inputSchema']['allOf'] = [[
+                'if' => ['properties' => ['scope_type' => ['const' => 'project']], 'required' => ['scope_type']],
+                'then' => ['required' => ['project_public_id']],
+            ]];
+            $tools[] = $estimateSetTool;
             $tools[] = $this->tool('crm_update_estimate_set', 'Update an estimate set.', ['public_id' => ['type' => 'string']] + $this->estimateSetSchema(), ['public_id']);
             $tools[] = $this->tool('crm_list_estimate_options', 'List options for an estimate set.', [
                 'estimate_set_public_id' => ['type' => 'string'],
@@ -2504,6 +2520,9 @@ MD;
             ], ['public_id']);
             $tools[] = $this->tool('crm_create_custom_field', 'Create a custom field definition.', $this->customFieldSchema(), ['scope', 'code', 'title', 'type']);
             $tools[] = $this->tool('crm_update_custom_field', 'Update a custom field definition.', ['public_id' => ['type' => 'string']] + $this->customFieldSchema(), ['public_id']);
+            $tools[] = $this->tool('crm_delete_custom_field', 'Delete a custom field definition by public id.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
             $tools[] = $this->tool('crm_get_custom_field_values', 'Get custom field values for an entity.', [
                 'entity_type' => ['type' => 'string'],
                 'entity_public_id' => ['type' => 'string'],
@@ -3352,6 +3371,7 @@ MD;
             'crm_get_custom_field' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetCustomField($arguments))),
             'crm_create_custom_field' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateCustomField($arguments))),
             'crm_update_custom_field' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmUpdateCustomField($arguments))),
+            'crm_delete_custom_field' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmDeleteCustomField($arguments))),
             'crm_get_custom_field_values' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetCustomFieldValues($arguments))),
             'crm_set_custom_field_values' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmSetCustomFieldValues($arguments))),
             'crm_list_sla_policies' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListSlaPolicies($arguments))),
@@ -5479,7 +5499,9 @@ MD;
                 $input[$field] = $arguments[$field];
             }
         }
-        if (!empty($arguments['assignee_user_id'])) {
+        if (!empty($arguments['assignee_user_public_id'])) {
+            $input['assignee_user_public_id'] = (string)$arguments['assignee_user_public_id'];
+        } elseif (!empty($arguments['assignee_user_id'])) {
             $input['assignee_user_id'] = (int)$arguments['assignee_user_id'];
         }
 
@@ -5490,7 +5512,7 @@ MD;
             return ['error' => 'Description is too long.'];
         }
 
-        return is_array($item) ? ['subtask' => $item] : ['error' => 'Task not found or creation failed.'];
+        return is_array($item) ? ['subtask' => $this->publicData($item)] : ['error' => 'Task not found or creation failed.'];
     }
 
     private function crmUpdateSubtask(array $arguments): array
@@ -5509,6 +5531,9 @@ MD;
         if (array_key_exists('assignee_user_id', $arguments) && $arguments['assignee_user_id'] !== null) {
             $input['assignee_user_id'] = (int)$arguments['assignee_user_id'];
         }
+        if (array_key_exists('assignee_user_public_id', $arguments) && $arguments['assignee_user_public_id'] !== null) {
+            $input['assignee_user_public_id'] = (string)$arguments['assignee_user_public_id'];
+        }
         if ($input === []) {
             return ['error' => 'At least one field to update is required.'];
         }
@@ -5520,7 +5545,7 @@ MD;
             return ['error' => 'Description is too long.'];
         }
 
-        return is_array($item) ? ['subtask' => $item] : ['error' => 'Subtask not found.'];
+        return is_array($item) ? ['subtask' => $this->publicData($item)] : ['error' => 'Subtask not found.'];
     }
 
     private function crmDeleteSubtask(array $arguments): array
@@ -5569,7 +5594,7 @@ MD;
             return ['error' => $item];
         }
 
-        return ['task' => $item];
+        return ['task' => $this->publicData($item)];
     }
 
     private function crmGetTaskBoard(array $arguments): array
@@ -5602,7 +5627,7 @@ MD;
         $service = $this->container->get('service.task');
         $item = $service->getByTaskKey($key, $this->actor());
 
-        return is_array($item) ? ['task' => $item] : ['error' => 'Task not found.'];
+        return is_array($item) ? ['task' => $this->publicData($item)] : ['error' => 'Task not found.'];
     }
 
     private function crmListTaskActivity(array $arguments): array
@@ -5627,12 +5652,19 @@ MD;
         }
 
         $changes = [];
-        foreach (['status', 'priority', 'assignee_user_id'] as $field) {
+        foreach (['status', 'priority'] as $field) {
             if (!empty($arguments[$field])) {
                 $changes[$field] = $arguments[$field];
             }
         }
-        if (isset($arguments['assignee_user_id'])) {
+        $assigneePublicId = trim((string)($arguments['assignee_user_public_id'] ?? ''));
+        if ($assigneePublicId !== '') {
+            $assigneeId = $this->resolveUserIdByPublicId($assigneePublicId);
+            if ($assigneeId === null) {
+                return ['error' => 'Assignee user not found: ' . $assigneePublicId];
+            }
+            $changes['assignee_user_id'] = $assigneeId;
+        } elseif (isset($arguments['assignee_user_id'])) {
             $changes['assignee_user_id'] = (int)$arguments['assignee_user_id'];
         }
         if ($changes === []) {
@@ -5886,7 +5918,7 @@ MD;
         $service = $this->container->get('service.role');
         $item = $service->create($input, $this->actor());
 
-        return is_array($item) ? ['role' => $item] : ['error' => (string)$item];
+        return is_array($item) ? ['role' => $this->publicData($item)] : ['error' => (string)$item];
     }
 
     private function crmUpdateRole(array $arguments): array
@@ -5910,7 +5942,7 @@ MD;
         $service = $this->container->get('service.role');
         $item = $service->update($publicId, $input, $this->actor());
 
-        return is_array($item) ? ['role' => $item] : ['error' => (string)$item];
+        return is_array($item) ? ['role' => $this->publicData($item)] : ['error' => (string)$item];
     }
 
     private function crmDeleteRole(array $arguments): array
@@ -6039,7 +6071,7 @@ MD;
         /** @var PriorityService $service */
         $service = $this->container->get('service.priority');
         $item = $service->create($input);
-        return is_array($item) ? ['priority' => $item] : ['error' => (string)$item];
+        return is_array($item) ? ['priority' => $this->publicData($item)] : ['error' => (string)$item];
     }
 
     private function crmUpdatePriority(array $arguments): array
@@ -6060,7 +6092,7 @@ MD;
         /** @var PriorityService $service */
         $service = $this->container->get('service.priority');
         $item = $service->update($publicId, $input);
-        return is_array($item) ? ['priority' => $item] : ['error' => (string)$item];
+        return is_array($item) ? ['priority' => $this->publicData($item)] : ['error' => (string)$item];
     }
 
     private function crmDeletePriority(array $arguments): array
@@ -6266,13 +6298,13 @@ MD;
             return ['error' => 'task_public_id, related_task_public_id and relation_type are required.'];
         }
         $input = [
-            'related_task_public_id' => $relatedPublicId,
+            'target_task_public_id' => $relatedPublicId,
             'relation_type' => $relationType,
         ];
         /** @var TaskRelationService $service */
         $service = $this->container->get('service.task_relation');
         $item = $service->create($taskPublicId, $input, $this->actor());
-        return is_array($item) ? ['relation' => $item] : ['error' => (string)$item];
+        return is_array($item) ? ['relation' => $this->publicData($item)] : ['error' => (string)$item];
     }
 
     private function crmDeleteTaskRelation(array $arguments): array
@@ -6634,7 +6666,7 @@ MD;
         /** @var BusinessCalendarService $service */
         $service = $this->container->get('service.business_calendar');
         $item = $service->createCalendar($input, $this->actor());
-        return is_array($item) ? ['calendar' => $item] : ['error' => (string)$item];
+        return is_array($item) ? ['calendar' => $this->publicData($item)] : ['error' => (string)$item];
     }
 
     private function crmGetBusinessCalendar(array $arguments): array
@@ -6646,7 +6678,7 @@ MD;
         /** @var BusinessCalendarService $service */
         $service = $this->container->get('service.business_calendar');
         $item = $service->getCalendar($publicId);
-        return is_array($item) ? ['calendar' => $item] : ['error' => 'Calendar not found.'];
+        return is_array($item) ? ['calendar' => $this->publicData($item)] : ['error' => 'Calendar not found.'];
     }
 
     private function crmUpdateBusinessCalendar(array $arguments): array
@@ -6667,7 +6699,7 @@ MD;
         /** @var BusinessCalendarService $service */
         $service = $this->container->get('service.business_calendar');
         $item = $service->updateCalendar($publicId, $input, $this->actor());
-        return is_array($item) ? ['calendar' => $item] : ['error' => 'Calendar not found.'];
+        return is_array($item) ? ['calendar' => $this->publicData($item)] : ['error' => 'Calendar not found.'];
     }
 
     private function crmDeleteBusinessCalendar(array $arguments): array
@@ -6709,7 +6741,7 @@ MD;
         /** @var BusinessCalendarService $service */
         $service = $this->container->get('service.business_calendar');
         $item = $service->createHoliday($input, $this->actor());
-        return is_array($item) ? ['holiday' => $item] : ['error' => (string)$item];
+        return is_array($item) ? ['holiday' => $this->publicData($item)] : ['error' => (string)$item];
     }
 
     private function crmGetHoliday(array $arguments): array
@@ -6721,7 +6753,7 @@ MD;
         /** @var BusinessCalendarService $service */
         $service = $this->container->get('service.business_calendar');
         $item = $service->getHoliday($publicId);
-        return is_array($item) ? ['holiday' => $item] : ['error' => 'Holiday not found.'];
+        return is_array($item) ? ['holiday' => $this->publicData($item)] : ['error' => 'Holiday not found.'];
     }
 
     private function crmUpdateHoliday(array $arguments): array
@@ -6742,7 +6774,7 @@ MD;
         /** @var BusinessCalendarService $service */
         $service = $this->container->get('service.business_calendar');
         $item = $service->updateHoliday($publicId, $input, $this->actor());
-        return is_array($item) ? ['holiday' => $item] : ['error' => 'Holiday not found.'];
+        return is_array($item) ? ['holiday' => $this->publicData($item)] : ['error' => 'Holiday not found.'];
     }
 
     private function crmDeleteHoliday(array $arguments): array
@@ -6783,14 +6815,17 @@ MD;
         }
         $input = [
             'calendar_public_id' => $calPubId,
-            'day_of_week' => (int)$dayOfWeek,
+            // BusinessCalendarService stores the weekday under its own key; the
+            // MCP argument stays day_of_week (0=Sunday..6=Saturday) for existing
+            // clients, and is forwarded so the value is actually persisted.
+            'weekday' => (int)$dayOfWeek,
             'start_time' => $startTime,
             'end_time' => $endTime,
         ];
         /** @var BusinessCalendarService $service */
         $service = $this->container->get('service.business_calendar');
         $item = $service->createWorkingHours($input, $this->actor());
-        return is_array($item) ? ['working_hours' => $item] : ['error' => (string)$item];
+        return is_array($item) ? ['working_hours' => $this->publicData($item)] : ['error' => (string)$item];
     }
 
     private function crmGetWorkingHours(array $arguments): array
@@ -6813,7 +6848,7 @@ MD;
         }
         $input = [];
         if (isset($arguments['day_of_week'])) {
-            $input['day_of_week'] = (int)$arguments['day_of_week'];
+            $input['weekday'] = (int)$arguments['day_of_week'];
         }
         foreach (['start_time', 'end_time'] as $field) {
             if (array_key_exists($field, $arguments) && $arguments[$field] !== null) {
@@ -6854,6 +6889,15 @@ MD;
         if (isset($arguments['is_active'])) {
             $input['is_active'] = (int)$arguments['is_active'];
         }
+        if (isset($arguments['scopes']) && is_array($arguments['scopes'])) {
+            $input['scopes'] = $arguments['scopes'];
+        }
+        if (isset($arguments['key_name'])) {
+            $input['key_name'] = $arguments['key_name'];
+        }
+        if (isset($arguments['key_expires_at'])) {
+            $input['key_expires_at'] = $arguments['key_expires_at'];
+        }
         /** @var ApiClientService $service */
         $service = $this->container->get('service.api_client');
         $result = $service->createClient($input, $this->actor());
@@ -6870,10 +6914,14 @@ MD;
             return ['error' => 'public_id is required.'];
         }
         $input = [];
-        foreach (['name', 'description', 'is_active'] as $field) {
-            if (array_key_exists($field, $arguments) && $arguments[$field] !== null) {
-                $input[$field] = $field === 'is_active' ? (int)$arguments[$field] : $arguments[$field];
-            }
+        if (array_key_exists('name', $arguments) && $arguments['name'] !== null) {
+            $input['title'] = $arguments['name'];
+        }
+        if (array_key_exists('is_active', $arguments) && $arguments['is_active'] !== null) {
+            $input['is_active'] = (int)$arguments['is_active'];
+        }
+        if (isset($arguments['scopes']) && is_array($arguments['scopes'])) {
+            $input['scopes'] = $arguments['scopes'];
         }
         if ($input === []) {
             return ['error' => 'At least one field to update is required.'];
@@ -6903,16 +6951,26 @@ MD;
             return ['error' => 'client_public_id is required.'];
         }
         $input = [];
-        if (!empty($arguments['label'])) {
-            $input['label'] = $arguments['label'];
+        // 'label' was the pre-scope-era argument name; keep it as an alias so
+        // existing MCP clients do not silently lose the key name.
+        if (isset($arguments['name'])) {
+            $input['name'] = $arguments['name'];
+        } elseif (isset($arguments['label'])) {
+            $input['name'] = $arguments['label'];
+        }
+        if (isset($arguments['scopes']) && is_array($arguments['scopes'])) {
+            $input['scopes'] = $arguments['scopes'];
         }
         if (!empty($arguments['expires_at'])) {
             $input['expires_at'] = $arguments['expires_at'];
         }
         /** @var ApiClientService $service */
         $service = $this->container->get('service.api_client');
-        $item = $service->issueKey($clientPubId, $input, $this->actor());
-        return is_array($item) ? ['api_key' => $item] : ['error' => (string)$item];
+        $result = $service->issueKey($clientPubId, $input, $this->actor());
+        if (!($result['ok'] ?? false)) {
+            return ['error' => (string)($result['code'] ?? 'ISSUE_FAILED')];
+        }
+        return ['api_key' => $this->stripInternalIds($result['key']), 'plain_key' => $result['plain_key'] ?? null];
     }
 
     private function crmRotateApiKey(array $arguments): array
@@ -6924,7 +6982,7 @@ MD;
         /** @var ApiClientService $service */
         $service = $this->container->get('service.api_client');
         $item = $service->rotateKey($publicId, [], $this->actor());
-        return is_array($item) ? ['api_key' => $item] : ['error' => (string)$item];
+        return is_array($item) ? ['api_key' => $this->stripInternalIds($item)] : ['error' => (string)$item];
     }
 
     private function crmRevokeApiKey(array $arguments): array
@@ -9660,6 +9718,19 @@ MD;
         return is_array($item) ? ['field' => $this->publicData($item)] : ['error' => (string)$item];
     }
 
+    private function crmDeleteCustomField(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var CustomFieldService $service */
+        $service = $this->container->get('service.custom_field');
+        $ok = $service->delete($publicId);
+        return $ok ? ['deleted' => true] : ['error' => 'Custom field not found.'];
+    }
+
     private function crmGetCustomFieldValues(array $arguments): array
     {
         $entityType = trim((string)($arguments['entity_type'] ?? ''));
@@ -10292,7 +10363,7 @@ MD;
         }
 
         $pdo = $this->pdo();
-        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at, product FROM ideas WHERE public_id = :pid");
+        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at FROM ideas WHERE public_id = :pid");
         $stmt->execute(['pid' => $publicId]);
         $idea = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$idea) {
@@ -10341,7 +10412,7 @@ MD;
         }
 
         $pdo = $this->pdo();
-        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at, product FROM ideas WHERE public_id = :pid");
+        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at FROM ideas WHERE public_id = :pid");
         $stmt->execute(['pid' => $publicId]);
         $idea = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$idea) {
@@ -10540,14 +10611,33 @@ MD;
         $service = $this->container->get('service.chat');
 
         if ($type === 'direct') {
-            $withUserId = (int)($arguments['user_id'] ?? 0);
-            if ($withUserId <= 0 || $withUserId === $userId) {
-                return ['error' => 'user_id is required.'];
+            // Accept the public usr_... participant (participant_public_ids /
+            // user_public_id) or the legacy internal numeric user_id.
+            $withUserId = 0;
+            $publicParticipant = '';
+            if (!empty($arguments['user_public_id'])) {
+                $publicParticipant = trim((string)$arguments['user_public_id']);
+            } elseif (isset($arguments['participant_public_ids']) && is_array($arguments['participant_public_ids']) && count($arguments['participant_public_ids']) === 1) {
+                $publicParticipant = trim((string)reset($arguments['participant_public_ids']));
             }
-            $stmt = $pdo->prepare('SELECT id FROM users WHERE id = :id AND is_active = 1 AND deleted_at IS NULL');
-            $stmt->execute(['id' => $withUserId]);
-            if (!$stmt->fetchColumn()) {
-                return ['error' => 'User not found.'];
+            if ($publicParticipant !== '') {
+                $withUserId = (int)($this->resolveUserIdByPublicId($publicParticipant) ?? 0);
+                if ($withUserId <= 0) {
+                    return ['error' => 'User not found.'];
+                }
+            } else {
+                $withUserId = (int)($arguments['user_id'] ?? 0);
+                if ($withUserId <= 0) {
+                    return ['error' => 'user_id or participant_public_ids is required for a direct chat.'];
+                }
+                $stmt = $pdo->prepare('SELECT id FROM users WHERE id = :id AND is_active = 1 AND deleted_at IS NULL');
+                $stmt->execute(['id' => $withUserId]);
+                if (!$stmt->fetchColumn()) {
+                    return ['error' => 'User not found.'];
+                }
+            }
+            if ($withUserId === $userId) {
+                return ['error' => 'Cannot start a direct chat with yourself.'];
             }
             return ['chat' => $this->publicData($service->ensureDirectChat($userId, $withUserId))];
         }
@@ -11208,6 +11298,12 @@ MD;
 
     private function toolResult(array $payload): array
     {
+        // MCP structuredContent must be a JSON object ("record"), never a bare
+        // list/scalar: wrap top-level lists (e.g. analytics rows, empty success
+        // payloads) so the response validates and remains a stable shape.
+        if (array_is_list($payload)) {
+            $payload = ['items' => $payload];
+        }
         $isError = array_key_exists('error', $payload);
         return [
             'content' => [[
@@ -11918,6 +12014,17 @@ MD;
         return '';
     }
 
+    private function resolveUserIdByPublicId(string $publicId): ?int
+    {
+        if ($publicId === '') {
+            return null;
+        }
+        $stmt = $this->pdo()->prepare('SELECT id FROM users WHERE public_id = :pid AND deleted_at IS NULL LIMIT 1');
+        $stmt->execute(['pid' => $publicId]);
+        $value = $stmt->fetchColumn();
+        return $value === false ? null : (int)$value;
+    }
+
     private function activityFilters(array $arguments): array
     {
         $filters = $this->pick($arguments, [
@@ -12065,10 +12172,18 @@ MD;
 
     private function taskInput(array $arguments): array
     {
-        return $this->pick($arguments, [
+        $input = $this->pick($arguments, [
             'title', 'description', 'project_public_id', 'parent_task_public_id', 'priority', 'status',
             'due_at', 'start_at', 'end_at', 'assignee_user_id', 'row_version',
         ]) + ['source_type' => 'mcp'];
+        // BUG-003: prefer the public usr_... handle. TaskService resolves public
+        // ids internally (INST-8); the schema-level integer-only assignee_user_id
+        // made assignees unreachable without a leaked internal id.
+        $assigneePublicId = trim((string)($arguments['assignee_user_public_id'] ?? ''));
+        if ($assigneePublicId !== '') {
+            $input['assignee_user_id'] = $assigneePublicId;
+        }
+        return $input;
     }
 
     private function cycleInput(array $arguments): array
@@ -12985,6 +13100,36 @@ MD;
         return $result;
     }
 
+    /**
+     * Recursively remove internal numeric identifiers from an entity payload
+     * while preserving public fields (public_id / *_public_id). Used for tool
+     * outputs that must stay public (e.g. issued API keys, where plain_key is
+     * intentionally returned exactly once and must not be filtered out).
+     */
+    private function stripInternalIds(mixed $value): mixed
+    {
+        if (!is_array($value)) {
+            return $value;
+        }
+        if (array_is_list($value)) {
+            return array_map(fn(mixed $item): mixed => $this->stripInternalIds($item), $value);
+        }
+        $result = [];
+        foreach ($value as $key => $item) {
+            if (!is_string($key)) {
+                $result[$key] = $this->stripInternalIds($item);
+                continue;
+            }
+            $normalized = strtolower($key);
+            if ($normalized === 'id'
+                || (str_ends_with($normalized, '_id') && !str_ends_with($normalized, 'public_id'))) {
+                continue;
+            }
+            $result[$key] = is_array($item) ? $this->stripInternalIds($item) : $item;
+        }
+        return $result;
+    }
+
     private function isUserContentField(string $key): bool
     {
         return in_array(strtolower($key), [
@@ -12998,7 +13143,7 @@ MD;
     {
         $normalized = strtolower($key);
         if (in_array($normalized, [
-            'id', 'password', 'password_hash', 'token', 'token_hash',
+            'id', 'member_user_ids', 'password', 'password_hash', 'token', 'token_hash',
             'secret', 'secret_hash', 'key_hash', 'cost_rate', 'bill_rate', 'payout_rate',
             'api_key', 'access_key', 'encryption_key', 'private_key',
             'license_key', 'webhook_url', 'credential', 'auth_token_hash',

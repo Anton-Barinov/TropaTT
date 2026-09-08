@@ -257,16 +257,19 @@ The `X-Idempotency-Key` header prevents duplicate operations.
 
 | Method | Endpoint | Description | Auth | Permissions | Notes |
 |-------|----------|------------|:---:|-------------|----------|
-| GET | `/api/v1/api-clients` 🔄 | List API clients | Yes | `api_client.view` | — |
-| POST | `/api/v1/api-clients` 🔄 | Create API client | Yes | `api_client.manage` | — |
+| GET | `/api/v1/api-clients` 🔄 | List API clients | Yes | `api_client.view` | Each item: `keys_count`, `active_keys_count` |
+| GET | `/api/v1/api-clients/options` | Permission catalog + grantable codes for the admin UI | Yes | `api_client.view` | `catalog` (all permission codes), `grantable_codes` (what the actor may grant) |
+| POST | `/api/v1/api-clients` 🔄 | Create API client | Yes | `api_client.manage` | Auto-issues the first key (`api_key` + `plain_key`, shown once). Body: `title`, `is_active`, optional `scopes` (array of permission codes), `key_name`, `key_expires_at` |
 | GET | `/api/v1/api-clients/{public_id}` 🔄 | API client details | Yes | `api_client.view` | — |
-| PATCH, PUT | `/api/v1/api-clients/{public_id}` 🔄 | Update API client | Yes | `api_client.manage` | — |
-| DELETE | `/api/v1/api-clients/{public_id}` 🔄 | Delete API client | Yes | `api_client.manage` | — |
-| GET | `/api/v1/api-clients/{public_id}/keys` 🔄 | List client keys | Yes | `api_client.view` | — |
-| POST | `/api/v1/api-clients/{public_id}/keys` 🔄 | Issue key | Yes | `api_client.manage` | — |
-| POST | `/api/v1/api-keys/{public_id}/rotate` 🔄 | Rotate key | Yes | `api_client.manage` | — |
-| POST, DELETE | `/api/v1/api-keys/{public_id}/revoke` 🔄 | Revoke key | Yes | `api_client.manage` | — |
+| PATCH, PUT | `/api/v1/api-clients/{public_id}` 🔄 | Update API client | Yes | `api_client.manage` | `title`, `is_active`, `scopes` |
+| DELETE | `/api/v1/api-clients/{public_id}` 🔄 | Delete API client | Yes | `api_client.manage` | Body `revoke_keys: true` revokes all issued keys first |
+| GET | `/api/v1/api-clients/{public_id}/keys` 🔄 | List client keys | Yes | `api_client.view` | Keys carry `name`, `scopes`, `expires_at`, `revoked_at` |
+| POST | `/api/v1/api-clients/{public_id}/keys` 🔄 | Issue key | Yes | `api_client.manage` | Body: `name`, optional `scopes` (array), `expires_at`. Returns `plain_key` exactly once |
+| POST | `/api/v1/api-keys/{public_id}/rotate` 🔄 | Rotate key | Yes | `api_client.manage` | Revokes the old key and returns a new `plain_key` |
+| POST, DELETE | `/api/v1/api-keys/{public_id}/revoke` 🔄 | Revoke key | Yes | `api_client.manage` | One-way: revoked keys cannot be re-enabled |
 | GET | `/api/v1/api-keys/{public_id}/usage` 🔄 | Key usage | Yes | `api_client.view` | — |
+
+**Scope model:** a client and each of its keys store an optional `scopes` allow-list of permission codes. Empty = full access (the key inherits the bound account's own permissions at every request). Explicit scopes are always intersected with the creating account's rights and (for keys) with the owning client's scope set — a key can only ever narrow the rights of the account that issued it, never exceed them. Scope-restricted keys authenticate with `is_root = false` and a bounded `permission_codes` list; an empty intersection denies everything (no fallback to role codes).
 
 ### Teams & Departments
 

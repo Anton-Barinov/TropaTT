@@ -88,9 +88,17 @@ final class CounterpartyService
         $publicId = Ulid::generate('cp');
         $now = gmdate('Y-m-d H:i:s');
 
+        // counterparties.counterparty_type and .status are NOT NULL — a create
+        // with only title would otherwise insert NULL and fail with a 1048
+        // integrity violation (the DB defaults only apply when the column is
+        // omitted entirely, not when it is explicitly NULL).
+        $set = $this->extractCounterpartySet($input, true);
+        $set['counterparty_type'] = trim((string)($set['counterparty_type'] ?? '')) ?: 'organization';
+        $set['status'] = trim((string)($set['status'] ?? '')) ?: 'active';
+
         $this->counterparties->create([
             'public_id' => $publicId,
-            ...$this->extractCounterpartySet($input, true),
+            ...$set,
             'created_by_user_id' => (int)($actor['id'] ?? 0) ?: null,
             'created_at' => $now,
             'updated_at' => $now,

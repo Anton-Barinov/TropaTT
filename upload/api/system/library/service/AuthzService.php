@@ -13,6 +13,32 @@ final class AuthzService
 
     public function permissionsForUser(array $user): array
     {
+        // An explicit allow-list on the actor wins over role-derived codes. API
+        // keys carry their scoped permission_codes here (set by
+        // ApiClientService::authenticateByKey) so a restricted key can never
+        // widen itself back up to the bound user's full role set. Session
+        // actors always carry their own current codes too (AuthService builds
+        // the list per request), so this path is equivalent for them.
+        $explicit = $user['permission_codes'] ?? null;
+        $scopeRestricted = (bool)($user['scope_restricted'] ?? false);
+        if (is_array($explicit)) {
+            $codes = array_values(array_unique(array_filter(array_map(
+                static fn(mixed $code): string => trim((string)$code),
+                $explicit
+            ), static fn(string $code): bool => $code !== '')));
+            if (in_array('*', $codes, true)) {
+                return ['*'];
+            }
+            if ($codes !== []) {
+                return $codes;
+            }
+            // A scope-restricted key with an empty intersection is a deliberate
+            // deny, never a signal to fall back to the bound user's role set.
+            if ($scopeRestricted) {
+                return [];
+            }
+        }
+
         if ((bool)($user['is_root'] ?? false) === true) {
             return ['*'];
         }

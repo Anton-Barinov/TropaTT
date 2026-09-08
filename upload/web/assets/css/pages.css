@@ -7622,6 +7622,90 @@ body.modal-open {
   overflow-wrap: anywhere;
 }
 
+/* Master-detail list: clickable client rows in the left column */
+.crm-admin-api-clients-list-inner {
+  display: flex;
+  flex-direction: column;
+}
+
+.crm-admin-api-clients-list .crm-api-client-item {
+  display: block;
+  width: 100%;
+  padding: 0.8rem 0.9rem;
+  border-bottom: 1px solid var(--crm-border);
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.crm-admin-api-clients-list .crm-api-client-item:last-child {
+  border-bottom: 0;
+}
+
+.crm-admin-api-clients-list .crm-api-client-item:hover {
+  background: var(--crm-bg-hover);
+}
+
+.crm-admin-api-clients-list .crm-api-client-item.is-selected {
+  background: var(--crm-primary-soft);
+  box-shadow: inset 3px 0 0 var(--crm-primary);
+}
+
+.crm-api-client-title {
+  font-weight: 600;
+  color: var(--crm-text);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.crm-api-client-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  margin-top: 0.3rem;
+}
+
+.crm-api-client-sub {
+  color: var(--crm-text-muted);
+  font-size: 0.78rem;
+}
+
+.crm-chevron {
+  flex: 0 0 auto;
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-top: 0.35rem;
+  border-right: 2px solid var(--crm-text-muted);
+  border-bottom: 2px solid var(--crm-text-muted);
+  transform: rotate(-45deg);
+}
+
+.crm-key-name {
+  font-weight: 600;
+  color: var(--crm-text);
+  line-height: 1.3;
+}
+
+.crm-key-scopes-title {
+  max-width: 340px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Permission picker checkboxes inside the client/key modals */
+.crm-admin-api-page .crm-perm-group-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--crm-text-muted);
+}
+
+.crm-admin-api-page .crm-perm-check .form-check-label {
+  font-size: 0.85rem;
+}
+
 .crm-admin-ai-hero {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);

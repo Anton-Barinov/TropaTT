@@ -114,26 +114,51 @@ final class TemplateService
         $payload = $this->decodeItem($payload);
         $templateData = $payload['payload'] ?? [];
 
-        $publicId = ($kind === 'task' ? 'task_' : 'project_') . bin2hex(random_bytes(12));
-        $now = date('Y-m-d H:i:s');
+        // Templates store the payload as task/project input fields (title,
+        // description, status, priority, ...) — accept both the canonical
+        // *_code names and the plain field names used by the template UI.
+        $statusCode = (string)($templateData['status_code'] ?? $templateData['status'] ?? ($kind === 'task' ? 'new' : 'planned'));
+        $priorityCode = (string)($templateData['priority_code'] ?? $templateData['priority'] ?? 'normal');
+        $publicId = Ulid::generate($kind === 'task' ? 'tsk' : 'prj');
+        $now = gmdate('Y-m-d H:i:s');
         $userId = (int)($actor['id'] ?? 0);
 
         $insert = [
             'public_id' => $publicId,
             'title' => $templateData['title'] ?? $template['title'] ?? 'From template',
-            'description' => $templateData['description'] ?? '',
-            'status_code' => $templateData['status_code'] ?? ($kind === 'task' ? 'new' : 'planned'),
-            'priority_code' => $templateData['priority_code'] ?? 'normal',
-            'created_by_user_id' => $userId,
+            'description' => (string)($templateData['description'] ?? ''),
+            'status_code' => $statusCode,
+            'priority_code' => $priorityCode,
             'created_at' => $now,
             'updated_at' => $now,
+            'row_version' => 1,
         ];
 
-        if ($kind === 'task' && isset($templateData['assignee_user_id'])) {
-            $insert['assignee_user_id'] = (int)$templateData['assignee_user_id'];
-        }
-        if ($kind === 'task' && isset($templateData['project_id'])) {
-            $insert['project_id'] = (int)$templateData['project_id'];
+        if ($kind === 'task') {
+            // tasks stores the author in creator_user_id (not created_by_user_id).
+            $insert['creator_user_id'] = $userId;
+            if (isset($templateData['assignee_user_id'])) {
+                $insert['assignee_user_id'] = (int)$templateData['assignee_user_id'];
+            }
+            if (!empty($templateData['project_public_id'])) {
+                $projectId = $this->templates->projectIdByPublicId((string)$templateData['project_public_id']);
+                if ($projectId !== null) {
+                    $insert['project_id'] = $projectId;
+                }
+            } elseif (isset($templateData['project_id'])) {
+                $insert['project_id'] = (int)$templateData['project_id'];
+            }
+        } else {
+            // projects stores the author in created_by_user_id.
+            $insert['created_by_user_id'] = $userId;
+            if (!empty($templateData['manager_user_public_id'])) {
+                $managerId = $this->templates->userIdByPublicId((string)$templateData['manager_user_public_id']);
+                if ($managerId !== null) {
+                    $insert['manager_user_id'] = $managerId;
+                }
+            } elseif (isset($templateData['manager_user_id'])) {
+                $insert['manager_user_id'] = (int)$templateData['manager_user_id'];
+            }
         }
 
         $this->templates->insertEntity($kind, $insert);

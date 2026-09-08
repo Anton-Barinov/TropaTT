@@ -96,6 +96,9 @@ $needsStickyNotes = in_array($currentRoute, [
 $needsAdminEstimates = in_array($currentRoute, [
   'admin-estimates',
 ], true);
+$needsAdminApiClients = in_array($currentRoute, [
+  'admin-api-clients',
+], true);
 $needsTaskEstimates = in_array($currentRoute, [
   'task-detail',
 ], true);
@@ -220,6 +223,9 @@ $needsVisualEditor = in_array($currentRoute, [
 <?php endif; ?>
 <?php if ($needsStickyNotes): ?>
 <script defer src="assets/js/sticky-notes.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<?php endif; ?>
+<?php if ($needsAdminApiClients): ?>
+<script defer src="assets/js/admin-api-clients.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif; ?>
 <?php if ($needsAdminEstimates): ?>
 <script defer src="assets/js/admin-estimates.js?v=<?= urlencode($assetsVersion) ?>"></script>

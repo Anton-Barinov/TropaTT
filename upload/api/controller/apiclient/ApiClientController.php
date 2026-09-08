@@ -18,6 +18,29 @@ final class ApiClientController extends BaseController
         return $this->success('API_CLIENT_LIST', $this->t('api_client/messages.list'), ['items' => $result['items']], meta: $result['meta']);
     }
 
+    /**
+     * Page options for the API-clients admin screen: the permission catalog an
+     * actor may grant (title per code) and the actor's own permission codes.
+     * The UI renders checkboxes defaulting to the actor's codes; the service
+     * enforces server-side that a stored scope set can never exceed the actor.
+     */
+    public function options(): \Api\System\Library\Http\JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
+        /** @var ApiClientService $service */
+        $service = $this->container->get('service.api_client');
+        $result = $service->pageOptions($auth['user']);
+
+        return $this->success('API_CLIENT_OPTIONS', $this->t('api_client/messages.list'), [
+            'catalog' => $result['catalog'],
+            'grantable_codes' => $result['grantable_codes'],
+        ]);
+    }
+
     public function create(): \Api\System\Library\Http\JsonResponse
     {
         $auth = $this->user();
@@ -90,7 +113,7 @@ final class ApiClientController extends BaseController
 
         /** @var ApiClientService $service */
         $service = $this->container->get('service.api_client');
-        $result = $service->deleteClient((string)$params['public_id'], $auth['user']);
+        $result = $service->deleteClient((string)$params['public_id'], $auth['user'], $this->request()->allInput());
         if (!$result['ok']) {
             $status = match ((string)$result['code']) {
                 'API_CLIENT_NOT_FOUND' => 404,

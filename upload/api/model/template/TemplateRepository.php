@@ -119,6 +119,29 @@ final class TemplateRepository
         return (int)(new QueryBuilder($this->pdo))->from($table)->insertGetId($data);
     }
 
+    public function projectIdByPublicId(string $projectPublicId): ?int
+    {
+        $row = (new QueryBuilder($this->pdo))
+            ->from('projects')
+            ->select(['id'])
+            ->where('public_id', '=', $projectPublicId)
+            ->first();
+
+        return $row !== null ? (int)$row['id'] : null;
+    }
+
+    public function userIdByPublicId(string $userPublicId): ?int
+    {
+        $row = (new QueryBuilder($this->pdo))
+            ->from('users')
+            // Explicit columns only — never SELECT * from users (AGENTS.md).
+            ->select(['id'])
+            ->where('public_id', '=', $userPublicId)
+            ->first();
+
+        return $row !== null ? (int)$row['id'] : null;
+    }
+
     private function resolve(string $kind): array
     {
         return match ($kind) {

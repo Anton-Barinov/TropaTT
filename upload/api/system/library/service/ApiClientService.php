@@ -5,6 +5,7 @@ namespace Api\System\Library\Service;
 
 use Api\Model\ApiClient\ApiClientRepository;
 use Api\Model\Auth\AuthRepository;
+use Api\Model\Permission\PermissionRepository;
 use Api\System\Library\Logger\JsonLogger;
 use Api\System\Library\Security\TokenManager;
 use Api\System\Library\Support\Ulid;
@@ -15,7 +16,8 @@ final class ApiClientService
         private readonly ApiClientRepository $repository,
         private readonly TokenManager $tokens,
         private readonly JsonLogger $logger,
-        private readonly ?AuthRepository $authRepository = null
+        private readonly ?AuthRepository $authRepository = null,
+        private readonly ?PermissionRepository $permissionRepository = null
     ) {
     }
 
@@ -43,8 +45,13 @@ final class ApiClientService
 
     public function createClient(array $input, array $actor): array
     {
-        if (!(bool)($actor['is_root'] ?? false)) {
+        if (!$this->actorCanManage($actor)) {
             return ['ok' => false, 'code' => 'FORBIDDEN'];
+        }
+
+        $scopeResult = $this->resolveStoredScopes($input, $actor, []);
+        if (!$scopeResult['ok']) {
+            return $scopeResult;
         }
 
         $now = gmdate('Y-m-d H:i:s');
@@ -52,7 +59,7 @@ final class ApiClientService
         $this->repository->createClient([
             'public_id' => $publicId,
             'title' => trim((string)($input['title'] ?? '')),
-            'scopes' => json_encode($this->normalizeScopes($input['scopes'] ?? []), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'scopes' => json_encode($scopeResult['scopes'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'is_active' => (int)($input['is_active'] ?? 1) === 1 ? 1 : 0,
             'created_at' => $now,
             'updated_at' => $now,
@@ -65,19 +72,20 @@ final class ApiClientService
             'entity_public_id' => $publicId,
         ]);
 
-        $client = $this->getClient($publicId);
+        // Client row is fetched before the key insert so the raw id is used
+        // for the auto-issued first key (never the normalized response).
         $rawClient = $this->repository->findClientByPublicId($publicId);
 
-        $scopes = $this->normalizeScopes($input['scopes'] ?? []);
         $plain = 'apk_' . $this->tokens->generate(32);
         $keyPublicId = Ulid::generate('apk');
         $this->repository->createKey([
             'public_id' => $keyPublicId,
             'client_id' => (int)($rawClient['id'] ?? 0),
             'user_id' => (int)($actor['id'] ?? 0) > 0 ? (int)$actor['id'] : null,
+            'name' => $this->normalizeName($input['key_name'] ?? null),
             'key_hash' => $this->tokens->hash($plain),
-            'scopes' => json_encode($scopes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            'expires_at' => null,
+            'scopes' => json_encode($scopeResult['scopes'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'expires_at' => $this->normalizeExpiresAt($input['key_expires_at'] ?? null),
             'revoked_at' => null,
             'created_at' => $now,
         ]);
@@ -90,7 +98,7 @@ final class ApiClientService
             'entity_type' => 'api_key',
             'entity_public_id' => $keyPublicId,
             'client_public_id' => $publicId,
-            'scopes' => $scopes,
+            'scopes' => $scopeResult['scopes'],
         ]);
         $this->logger->security([
             'actor_public_id' => $actor['public_id'] ?? null,
@@ -100,12 +108,14 @@ final class ApiClientService
             'details' => ['key_public_id' => $keyPublicId, 'client_public_id' => $publicId],
         ]);
 
-        return ['ok' => true, 'client' => $client, 'key' => $key, 'plain_key' => $plain];
+        // Re-read after the insert so keys_count/active_keys_count already
+        // include the just-issued first key in the creation response.
+        return ['ok' => true, 'client' => $this->getClient($publicId), 'key' => $key, 'plain_key' => $plain];
     }
 
     public function updateClient(string $publicId, array $input, array $actor): array
     {
-        if (!(bool)($actor['is_root'] ?? false)) {
+        if (!$this->actorCanManage($actor)) {
             return ['ok' => false, 'code' => 'FORBIDDEN'];
         }
 
@@ -122,7 +132,11 @@ final class ApiClientService
             $set['is_active'] = (int)(((string)$input['is_active'] === '1' || (string)$input['is_active'] === 'true') ? 1 : 0);
         }
         if (array_key_exists('scopes', $input)) {
-            $set['scopes'] = json_encode($this->normalizeScopes($input['scopes']), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            $scopeResult = $this->resolveStoredScopes($input, $actor, []);
+            if (!$scopeResult['ok']) {
+                return $scopeResult;
+            }
+            $set['scopes'] = json_encode($scopeResult['scopes'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         }
         $set['updated_at'] = gmdate('Y-m-d H:i:s');
 
@@ -138,9 +152,9 @@ final class ApiClientService
         return ['ok' => true, 'client' => $this->getClient($publicId)];
     }
 
-    public function deleteClient(string $publicId, array $actor): array
+    public function deleteClient(string $publicId, array $actor, array $input = []): array
     {
-        if (!(bool)($actor['is_root'] ?? false)) {
+        if (!$this->actorCanManage($actor)) {
             return ['ok' => false, 'code' => 'FORBIDDEN'];
         }
 
@@ -149,9 +163,43 @@ final class ApiClientService
             return ['ok' => false, 'code' => 'API_CLIENT_NOT_FOUND'];
         }
 
-        $activeKeys = $this->repository->activeKeyCountByClientId((int)$client['id']);
-        if ($activeKeys > 0) {
-            return ['ok' => false, 'code' => 'API_CLIENT_HAS_ACTIVE_KEYS'];
+        $nonRevokedKeys = $this->repository->nonRevokedKeyCountByClientId((int)$client['id']);
+        if ($nonRevokedKeys > 0) {
+            $revokeKeys = $input['revoke_keys'] ?? false;
+            $revokeKeys = $revokeKeys === true || $revokeKeys === 1 || $revokeKeys === '1' || $revokeKeys === 'true';
+            if (!$revokeKeys) {
+                return ['ok' => false, 'code' => 'API_CLIENT_HAS_ACTIVE_KEYS'];
+            }
+
+            // Cascade: the UI asks the admin to confirm, then sends revoke_keys=1
+            // so deleting an integration removes every one of its keys in one step.
+            $keys = $this->repository->listKeysByClientId((int)$client['id']);
+            $revokedAt = gmdate('Y-m-d H:i:s');
+            foreach ($keys as $keyRow) {
+                if (!empty($keyRow['revoked_at'])) {
+                    continue;
+                }
+                $keyPubId = (string)($keyRow['public_id'] ?? '');
+                if ($keyPubId === '') {
+                    continue;
+                }
+                $this->repository->revokeKey($keyPubId, $revokedAt);
+                $this->logger->audit([
+                    'action' => 'api_key_revoke',
+                    'actor_public_id' => $actor['public_id'] ?? null,
+                    'entity_type' => 'api_key',
+                    'entity_public_id' => $keyPubId,
+                    'client_public_id' => $publicId,
+                    'reason' => 'client_delete_cascade',
+                ]);
+                $this->logger->security([
+                    'actor_public_id' => $actor['public_id'] ?? null,
+                    'event_type' => 'api_key_revoke',
+                    'ip' => null,
+                    'user_agent' => null,
+                    'details' => ['key_public_id' => $keyPubId, 'client_public_id' => $publicId, 'reason' => 'client_delete_cascade'],
+                ]);
+            }
         }
 
         $this->repository->deleteClientByPublicId($publicId);
@@ -182,7 +230,7 @@ final class ApiClientService
 
     public function issueKey(string $clientPublicId, array $input, array $actor): array
     {
-        if (!(bool)($actor['is_root'] ?? false)) {
+        if (!$this->actorCanManage($actor)) {
             return ['ok' => false, 'code' => 'FORBIDDEN'];
         }
 
@@ -194,10 +242,10 @@ final class ApiClientService
             return ['ok' => false, 'code' => 'API_CLIENT_INACTIVE'];
         }
 
-        $scopes = array_key_exists('scopes', $input) ? $this->normalizeScopes($input['scopes']) : (array)($client['scopes'] ?? []);
-        $expiresAt = trim((string)($input['expires_at'] ?? ''));
-        if ($expiresAt === '') {
-            $expiresAt = null;
+        $clientScopes = is_array($client['scopes'] ?? null) ? $client['scopes'] : [];
+        $scopeResult = $this->resolveStoredScopes($input, $actor, $clientScopes);
+        if (!$scopeResult['ok']) {
+            return $scopeResult;
         }
 
         $plain = 'apk_' . $this->tokens->generate(32);
@@ -207,9 +255,10 @@ final class ApiClientService
             'public_id' => $keyPublicId,
             'client_id' => (int)$client['id'],
             'user_id' => (int)($actor['id'] ?? 0) > 0 ? (int)$actor['id'] : null,
+            'name' => $this->normalizeName($input['name'] ?? null),
             'key_hash' => $this->tokens->hash($plain),
-            'scopes' => json_encode($scopes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            'expires_at' => $expiresAt,
+            'scopes' => json_encode($scopeResult['scopes'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'expires_at' => $this->normalizeExpiresAt($input['expires_at'] ?? null),
             'revoked_at' => null,
             'created_at' => $now,
         ]);
@@ -222,8 +271,8 @@ final class ApiClientService
             'entity_type' => 'api_key',
             'entity_public_id' => $keyPublicId,
             'client_public_id' => $clientPublicId,
-            'scopes' => $scopes,
-            'expires_at' => $expiresAt,
+            'scopes' => $scopeResult['scopes'],
+            'expires_at' => $scopeResult['expires_at'],
         ]);
         $this->logger->security([
             'actor_public_id' => $actor['public_id'] ?? null,
@@ -238,7 +287,7 @@ final class ApiClientService
 
     public function rotateKey(string $keyPublicId, array $input, array $actor): array
     {
-        if (!(bool)($actor['is_root'] ?? false)) {
+        if (!$this->actorCanManage($actor)) {
             return ['ok' => false, 'code' => 'FORBIDDEN'];
         }
 
@@ -253,11 +302,10 @@ final class ApiClientService
         $now = gmdate('Y-m-d H:i:s');
         $this->repository->revokeKey($keyPublicId, $now);
 
-        $scopes = array_key_exists('scopes', $input) ? $this->normalizeScopes($input['scopes']) : (array)($current['scopes'] ?? []);
-        $expiresAt = trim((string)($input['expires_at'] ?? (string)($current['expires_at'] ?? '')));
-        if ($expiresAt === '') {
-            $expiresAt = null;
-        }
+        $currentScopes = is_array($current['scopes'] ?? null) ? $current['scopes'] : [];
+        $scopes = array_key_exists('scopes', $input)
+            ? $this->normalizeScopes($input['scopes'])
+            : $currentScopes;
 
         $plain = 'apk_' . $this->tokens->generate(32);
         $newPublicId = Ulid::generate('apk');
@@ -265,9 +313,10 @@ final class ApiClientService
             'public_id' => $newPublicId,
             'client_id' => (int)$current['client_id'],
             'user_id' => (int)($actor['id'] ?? 0) > 0 ? (int)$actor['id'] : null,
+            'name' => $this->normalizeName($input['name'] ?? ($current['name'] ?? null)),
             'key_hash' => $this->tokens->hash($plain),
             'scopes' => json_encode($scopes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            'expires_at' => $expiresAt,
+            'expires_at' => $this->normalizeExpiresAt($input['expires_at'] ?? ($current['expires_at'] ?? null)),
             'revoked_at' => null,
             'created_at' => $now,
         ]);
@@ -294,7 +343,7 @@ final class ApiClientService
 
     public function revokeKey(string $keyPublicId, array $actor): array
     {
-        if (!(bool)($actor['is_root'] ?? false)) {
+        if (!$this->actorCanManage($actor)) {
             return ['ok' => false, 'code' => 'FORBIDDEN'];
         }
 
@@ -370,11 +419,36 @@ final class ApiClientService
             $isRoot = true;
         }
 
-        $permissionCodes = $isRoot
+        $baseCodes = $isRoot
             ? ['*']
             : ($this->authRepository !== null
                 ? $this->authRepository->permissionCodesByUserId($userId)
                 : []);
+
+        // Scope restriction: a key is limited to the intersection of the bound
+        // user's own permissions and the stored client/key scope sets. Empty
+        // scope sets mean "no restriction" (inherit the user's perms); a stored
+        // '*' also means unrestricted (full access). The key can therefore
+        // never exceed the account that issued it, only narrow it.
+        $clientScopes = is_array($key['client_scopes'] ?? null) ? $key['client_scopes'] : [];
+        $keyScopes = is_array($key['scopes'] ?? null) ? $key['scopes'] : [];
+        $restricted = $this->restrictionApplied($clientScopes, $keyScopes);
+
+        $effectiveCodes = $baseCodes;
+        foreach ([$clientScopes, $keyScopes] as $restriction) {
+            $codes = is_array($restriction) ? $restriction : [];
+            if ($codes === [] || $codes === ['*']) {
+                continue;
+            }
+            $effectiveCodes = $this->intersectCodes($effectiveCodes, $codes);
+        }
+
+        // A root-bound key stays root only when no scope restriction is stored.
+        // A non-root-bound key is never root; scopes only narrow its codes.
+        $effectiveRoot = $baseCodes === ['*'] && !$restricted;
+        if ($baseCodes === ['*'] && $restricted) {
+            $effectiveCodes = $effectiveCodes === ['*'] ? [] : $effectiveCodes;
+        }
 
         $user = [
             'id' => $userId,
@@ -383,14 +457,19 @@ final class ApiClientService
             'email' => (string)($key['email'] ?? ''),
             'full_name' => (string)($key['full_name'] ?? ''),
             'locale' => (string)($key['locale'] ?? 'en-gb'),
-            'is_root' => $isRoot,
+            // A scope-restricted key is never a root actor: financial data and
+            // admin bypasses must not apply through a restricted credential.
+            'is_root' => $effectiveRoot,
             'is_active' => (bool)($key['is_active'] ?? true),
             'is_external' => (bool)($key['is_external'] ?? false),
             'external_role' => (bool)($key['is_external'] ?? false)
                 ? (((string)($key['external_role'] ?? 'observer')) === 'executor' ? 'executor' : 'observer')
                 : 'observer',
             'roles' => $roleCodes,
-            'permission_codes' => $permissionCodes,
+            'permission_codes' => $effectiveCodes,
+            // Lets AuthzService treat an empty explicit list as a real deny
+            // (never falling back to the DB role set of the bound user).
+            'scope_restricted' => $restricted,
         ];
 
         return [
@@ -399,6 +478,188 @@ final class ApiClientService
             'expires_in' => null,
             'user' => $user,
         ];
+    }
+
+    /**
+     * Options used by the API-clients admin page: the permission catalog the
+     * creator may grant (never exceeding their own rights) plus the explicit
+     * allow-list of codes the current actor may grant (all catalog codes for
+     * root, otherwise their own role-derived codes). The UI renders one
+     * checkbox per grantable code, defaults every one to checked, and lets the
+     * owner uncheck to narrow the client/key below their own rights.
+     *
+     * @return array{ok:bool,code?:string,catalog?:array<int,array{code:string,title:string}>,grantable_codes?:array<int,string>}
+     */
+    public function pageOptions(array $actor): array
+    {
+        $catalog = [];
+        if ($this->permissionRepository !== null) {
+            $rows = $this->permissionRepository->list();
+            foreach ($rows as $row) {
+                $code = (string)($row['code'] ?? '');
+                if ($code === '') {
+                    continue;
+                }
+                $catalog[] = [
+                    'code' => $code,
+                    'title' => (string)($row['title'] ?? $code),
+                ];
+            }
+        }
+
+        $actorCodes = $this->actorPermissionCodes($actor);
+        $isRoot = $actorCodes === ['*'] || (bool)($actor['is_root'] ?? false);
+        if ($isRoot) {
+            $grantable = array_values(array_map(
+                static fn(array $row): string => $row['code'],
+                $catalog
+            ));
+        } else {
+            $grantable = array_values($actorCodes);
+        }
+
+        sort($grantable);
+
+        return [
+            'ok' => true,
+            'catalog' => $catalog,
+            'grantable_codes' => array_values(array_unique($grantable)),
+        ];
+    }
+
+    /**
+     * Resolve what scope codes may be stored for a new/updated client or key.
+     *
+     * Rules (fail-closed, never exceed the actor):
+     *  - absent/empty input => no restriction ([]): the key inherits the bound
+     *    user's own permission codes at authentication time;
+     *  - explicit codes are intersected with the actor's own permission codes
+     *    and (for keys) with the owning client's scope set;
+     *  - unknown codes that survive neither the actor set nor the catalog are
+     *    rejected so a typo can never silently lock a key out.
+     *
+     * @param array<string,mixed> $input
+     * @param array<string,mixed> $actor
+     * @param array<int,string>   $clientScopes
+     * @return array{ok:bool,code?:string,scopes?:array<int,string>,expires_at?:?string}
+     */
+    private function resolveStoredScopes(array $input, array $actor, array $clientScopes): array
+    {
+        $requested = $this->normalizeScopes($input['scopes'] ?? []);
+
+        if ($requested === []) {
+            return [
+                'ok' => true,
+                'scopes' => [],
+                'expires_at' => $this->normalizeExpiresAt($input['expires_at'] ?? ($input['key_expires_at'] ?? null)),
+            ];
+        }
+
+        // The actor's own ceiling: never store a scope the creator cannot use.
+        $allowed = $this->actorPermissionCodes($actor);
+        if ($allowed !== ['*']) {
+            $requested = array_values(array_intersect($requested, $allowed));
+            if ($requested === []) {
+                return ['ok' => false, 'code' => 'SCOPE_EXCEEDS_ACTOR'];
+            }
+        }
+
+        // A key can never be broader than its owning client.
+        if ($clientScopes !== []) {
+            $requested = array_values(array_intersect($requested, $clientScopes));
+            if ($requested === []) {
+                return ['ok' => false, 'code' => 'SCOPE_EXCEEDS_CLIENT'];
+            }
+        }
+
+        $requested = array_values(array_unique($requested));
+        sort($requested);
+
+        return [
+            'ok' => true,
+            'scopes' => $requested,
+            'expires_at' => $this->normalizeExpiresAt($input['expires_at'] ?? ($input['key_expires_at'] ?? null)),
+        ];
+    }
+
+    /**
+     * @param array<int,string> $baseCodes
+     * @param array<int,string> $codes
+     * @return array<int,string>
+     */
+    private function intersectCodes(array $baseCodes, array $codes): array
+    {
+        if ($baseCodes === ['*']) {
+            return array_values(array_unique($codes));
+        }
+
+        return array_values(array_unique(array_intersect($baseCodes, $codes)));
+    }
+
+    /** @param array<int,string> $clientScopes @param array<int,string> $keyScopes */
+    private function restrictionApplied(array $clientScopes, array $keyScopes): bool
+    {
+        foreach ([$clientScopes, $keyScopes] as $restriction) {
+            $codes = is_array($restriction) ? $restriction : [];
+            if ($codes !== [] && $codes !== ['*']) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Manage gate for API-client mutations. Root always passes; other actors
+     * must hold the api_client.manage permission code (the same code the REST
+     * route layer requires), so a scoped key or a delegated admin can never
+     * widen itself beyond what api_client.manage already grants.
+     *
+     * @param array<string,mixed> $actor
+     */
+    private function actorCanManage(array $actor): bool
+    {
+        if ((bool)($actor['is_root'] ?? false)) {
+            return true;
+        }
+
+        $codes = $this->actorPermissionCodes($actor);
+        return in_array('api_client.manage', $codes, true);
+    }
+
+    /**
+     * Permission codes the current actor may grant. Root (or an explicit ['*'])
+     * returns ['*'] (everything); other users return their own role codes.
+     *
+     * @param array<string,mixed> $actor
+     * @return array<int,string>
+     */
+    private function actorPermissionCodes(array $actor): array
+    {
+        if ((bool)($actor['is_root'] ?? false)) {
+            return ['*'];
+        }
+
+        $explicit = $actor['permission_codes'] ?? null;
+        if (is_array($explicit)) {
+            $codes = array_values(array_filter(array_map(
+                static fn($v): string => trim((string)$v),
+                $explicit
+            ), static fn(string $v): bool => $v !== ''));
+            if (in_array('*', $codes, true)) {
+                return ['*'];
+            }
+            if ($codes !== []) {
+                return $codes;
+            }
+        }
+
+        $userId = (int)($actor['id'] ?? 0);
+        if ($userId > 0 && $this->authRepository !== null) {
+            return $this->authRepository->permissionCodesByUserId($userId);
+        }
+
+        return [];
     }
 
     /** @return list<string> */
@@ -435,6 +696,32 @@ final class ApiClientService
         return $out;
     }
 
+    private function normalizeName(mixed $name): ?string
+    {
+        $raw = trim((string)($name ?? ''));
+        if ($raw === '') {
+            return null;
+        }
+
+        return mb_substr($raw, 0, 255);
+    }
+
+    private function normalizeExpiresAt(mixed $value): ?string
+    {
+        $raw = trim((string)($value ?? ''));
+        if ($raw === '') {
+            return null;
+        }
+
+        $normalized = str_replace('T', ' ', $raw);
+        $ts = strtotime($normalized);
+        if ($ts === false) {
+            return null;
+        }
+
+        return gmdate('Y-m-d H:i:s', $ts);
+    }
+
     private function normalizeClient(?array $row): ?array
     {
         if (!$row) {
@@ -446,6 +733,8 @@ final class ApiClientService
             'title' => (string)($row['title'] ?? ''),
             'scopes' => is_array($row['scopes'] ?? null) ? array_values($row['scopes']) : [],
             'is_active' => (int)($row['is_active'] ?? 0),
+            'keys_count' => (int)($row['keys_count'] ?? 0),
+            'active_keys_count' => (int)($row['active_keys_count'] ?? 0),
             'created_at' => (string)($row['created_at'] ?? ''),
             'updated_at' => (string)($row['updated_at'] ?? ''),
         ];

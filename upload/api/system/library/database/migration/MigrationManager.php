@@ -78,6 +78,7 @@ final class MigrationManager
             new FileVisibilityMigration(),
             new TwoFactorHardeningMigration(),
             new KnowledgeTemplateSpaceMigration(),
+            new ApiKeysNameMigration(),
         ];
     }
 
