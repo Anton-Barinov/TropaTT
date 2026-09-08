@@ -120,7 +120,7 @@ final class ApiClientRepository
     {
         $rows = (new QueryBuilder($this->pdo))
             ->from('api_keys')
-            ->select(['public_id', 'name', 'scopes', 'expires_at', 'revoked_at', 'created_at'])
+            ->select(['public_id', 'name', 'key_preview', 'scopes', 'expires_at', 'revoked_at', 'created_at'])
             ->where('client_id', '=', $clientId)
             ->orderBy('created_at', 'DESC')
             ->get();
@@ -166,7 +166,7 @@ final class ApiClientRepository
         $row = (new QueryBuilder($this->pdo))
             ->from('api_keys k')
             ->join('api_clients c', 'c.id', '=', 'k.client_id')
-            ->select(['k.id', 'k.public_id', 'k.client_id', 'k.name', 'k.scopes', 'k.expires_at', 'k.revoked_at', 'k.created_at', 'c.public_id AS client_public_id', 'c.title AS client_title', 'c.scopes AS client_scopes'])
+            ->select(['k.id', 'k.public_id', 'k.client_id', 'k.name', 'k.key_preview', 'k.scopes', 'k.expires_at', 'k.revoked_at', 'k.created_at', 'c.public_id AS client_public_id', 'c.title AS client_title', 'c.scopes AS client_scopes'])
             ->where('k.public_id', '=', $publicId)
             ->first();
         if (!$row) {

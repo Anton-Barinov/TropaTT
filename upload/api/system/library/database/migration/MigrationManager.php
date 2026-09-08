@@ -79,6 +79,7 @@ final class MigrationManager
             new TwoFactorHardeningMigration(),
             new KnowledgeTemplateSpaceMigration(),
             new ApiKeysNameMigration(),
+            new ApiKeyPreviewMigration(),
         ];
     }
 

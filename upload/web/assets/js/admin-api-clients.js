@@ -285,8 +285,9 @@ window.CRM.adminApiClients = (function () {
     var action = isKeyActive(key)
       ? '<button class="btn btn-sm crm-btn-danger-soft" data-key-revoke="' + esc(id) + '" type="button">' + esc(t('admin_api_clients.revoke_btn', 'Отозвать')) + '</button>'
       : '<span class="text-muted small">' + esc(statusLabel) + '</span>';
+    var keyDisplay = key.key_preview ? String(key.key_preview) : maskKey(id);
     return '<tr>'
-      + '<td><div class="crm-key-name">' + esc(name) + '</div><div class="crm-entity-id font-monospace small">' + esc(maskKey(id)) + '</div></td>'
+      + '<td><div class="crm-key-name">' + esc(name) + '</div><div class="crm-entity-id font-monospace small">' + esc(keyDisplay) + '</div></td>'
       + '<td><span class="crm-badge ' + statusClass + '">' + esc(statusLabel) + '</span></td>'
       + '<td>' + scopeChipsHtml(key.scopes, t('admin_api_clients.full_access_short', 'full access')) + '<div class="crm-key-scopes-title small text-muted">' + esc(scopesLabel) + '</div></td>'
       + '<td>' + esc(formatDate(key.created_at)) + '</td>'
@@ -683,10 +684,11 @@ window.CRM.adminApiClients = (function () {
         : '';
     }
     if (idEl) {
+      var preview = keyMeta && keyMeta.key_preview ? String(keyMeta.key_preview) : '';
       var kid = keyMeta && keyMeta.public_id ? String(keyMeta.public_id) : '';
-      idEl.textContent = kid
-        ? (t('admin_api_clients.reveal_key_masked', 'В списке ключей:') + ' ' + maskKey(kid))
-        : '';
+      idEl.textContent = preview
+        ? (t('admin_api_clients.reveal_key_masked', 'В списке ключей:') + ' ' + preview)
+        : (kid ? (t('admin_api_clients.reveal_key_masked', 'В списке ключей:') + ' ' + maskKey(kid)) : '');
     }
     var modalEl = document.getElementById('apcRevealModal');
     if (!modalEl) return;
