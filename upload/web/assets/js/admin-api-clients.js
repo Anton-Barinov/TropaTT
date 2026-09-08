@@ -695,20 +695,32 @@ window.CRM.adminApiClients = (function () {
     var modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
     modal.show();
     var copyBtn = document.getElementById('apcRevealCopyBtn');
-    if (copyBtn && copyBtn.dataset.bound !== '1') {
-      copyBtn.addEventListener('click', function () {
+    if (copyBtn) {
+      var newBtn = copyBtn.cloneNode(true);
+      copyBtn.parentNode.replaceChild(newBtn, copyBtn);
+      newBtn.addEventListener('click', function () {
         var target = document.getElementById('apcRevealKeyInput');
         if (!target) return;
         var text = target.value;
+        var btn = newBtn;
+        var originalText = btn.textContent;
+        function showCopied() {
+          btn.textContent = t('page.copied', 'Скопировано');
+          setTimeout(function () { btn.textContent = originalText; }, 1500);
+        }
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(text).then(function () {
+            showCopied();
             notify(t('page.copied', 'Скопировано'));
-          }, function () { fallbackCopy(target); });
+          }, function () {
+            fallbackCopy(target);
+            showCopied();
+          });
         } else {
           fallbackCopy(target);
+          showCopied();
         }
       });
-      copyBtn.dataset.bound = '1';
     }
   }
 
@@ -719,6 +731,8 @@ window.CRM.adminApiClients = (function () {
       var ok = document.execCommand('copy');
       if (ok) {
         notify(t('page.copied', 'Скопировано'));
+      } else {
+        notify(t('admin_api_clients.copy_fail', 'Не удалось скопировать'), 'error');
       }
     } catch (e) {
       notify(t('admin_api_clients.copy_fail', 'Не удалось скопировать'), 'error');
