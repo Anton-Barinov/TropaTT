@@ -84,6 +84,7 @@ final class ApiClientService
             'user_id' => (int)($actor['id'] ?? 0) > 0 ? (int)$actor['id'] : null,
             'name' => $this->normalizeName($input['key_name'] ?? null),
             'key_hash' => $this->tokens->hash($plain),
+            'key_preview' => $this->keyPreview($plain),
             'scopes' => json_encode($scopeResult['scopes'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'expires_at' => $this->normalizeExpiresAt($input['key_expires_at'] ?? null),
             'revoked_at' => null,
@@ -257,6 +258,7 @@ final class ApiClientService
             'user_id' => (int)($actor['id'] ?? 0) > 0 ? (int)$actor['id'] : null,
             'name' => $this->normalizeName($input['name'] ?? null),
             'key_hash' => $this->tokens->hash($plain),
+            'key_preview' => $this->keyPreview($plain),
             'scopes' => json_encode($scopeResult['scopes'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'expires_at' => $this->normalizeExpiresAt($input['expires_at'] ?? null),
             'revoked_at' => null,
@@ -315,6 +317,7 @@ final class ApiClientService
             'user_id' => (int)($actor['id'] ?? 0) > 0 ? (int)$actor['id'] : null,
             'name' => $this->normalizeName($input['name'] ?? ($current['name'] ?? null)),
             'key_hash' => $this->tokens->hash($plain),
+            'key_preview' => $this->keyPreview($plain),
             'scopes' => json_encode($scopes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'expires_at' => $this->normalizeExpiresAt($input['expires_at'] ?? ($current['expires_at'] ?? null)),
             'revoked_at' => null,
@@ -720,6 +723,18 @@ final class ApiClientService
         }
 
         return gmdate('Y-m-d H:i:s', $ts);
+    }
+
+    /**
+     * Generate a cosmetic preview of the plain key: first 7 + last 4 chars.
+     * e.g. "apk_RIkQjaZNTxCo..." -> "apk_RIkQjaZ*****00A"
+     */
+    private function keyPreview(string $plain): string
+    {
+        if (strlen($plain) <= 14) {
+            return $plain;
+        }
+        return substr($plain, 0, 8) . '*****' . substr($plain, -4);
     }
 
     private function normalizeClient(?array $row): ?array
