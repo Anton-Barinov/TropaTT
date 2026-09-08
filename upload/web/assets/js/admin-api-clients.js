@@ -278,7 +278,7 @@ window.CRM.adminApiClients = (function () {
       ? '<button class="btn btn-sm crm-btn-danger-soft" data-key-revoke="' + esc(id) + '" type="button">' + esc(t('admin_api_clients.revoke_btn', 'Отозвать')) + '</button>'
       : '<span class="text-muted small">' + esc(statusLabel) + '</span>';
     return '<tr>'
-      + '<td><div class="crm-key-name">' + esc(name) + '</div><div class="crm-entity-id">' + esc(id) + '</div></td>'
+      + '<td><div class="crm-key-name">' + esc(name) + '</div><div class="crm-entity-id small text-muted">' + esc(t('admin_api_clients.key_id_prefix', 'ID') + ': ' + id) + '</div></td>'
       + '<td><span class="crm-badge ' + statusClass + '">' + esc(statusLabel) + '</span></td>'
       + '<td>' + scopeChipsHtml(key.scopes, t('admin_api_clients.full_access_short', 'full access')) + '<div class="crm-key-scopes-title small text-muted">' + esc(scopesLabel) + '</div></td>'
       + '<td>' + esc(formatDate(key.created_at)) + '</td>'
@@ -666,11 +666,18 @@ window.CRM.adminApiClients = (function () {
   function openRevealModal(plainKey, keyMeta) {
     var input = document.getElementById('apcRevealKeyInput');
     var label = document.getElementById('apcRevealKeyLabel');
+    var idEl = document.getElementById('apcRevealKeyId');
     if (input) input.value = String(plainKey || '');
     if (label) {
       var name = keyMeta && keyMeta.name ? String(keyMeta.name).trim() : '';
       label.textContent = name
         ? (t('admin_api_clients.reveal_key_name', 'Ключ') + ': ' + name)
+        : '';
+    }
+    if (idEl) {
+      var kid = keyMeta && keyMeta.public_id ? String(keyMeta.public_id) : '';
+      idEl.textContent = kid
+        ? (t('admin_api_clients.key_id_prefix', 'ID') + ': ' + kid)
         : '';
     }
     var modalEl = document.getElementById('apcRevealModal');

@@ -59,6 +59,8 @@
   <div class="alert alert-warning py-2" data-i18n="admin_api_clients.reveal_once_warning"><?= htmlspecialchars($t('admin_api_clients.reveal_once_warning', 'Ключ показывается только один раз. Скопируйте и сохраните его сейчас.'), ENT_QUOTES, 'UTF-8') ?></div>
   <div class="input-group"><input class="form-control font-monospace" id="apcRevealKeyInput" type="text" readonly><button class="btn crm-btn-secondary" id="apcRevealCopyBtn" type="button" data-i18n="page.copy"><?= htmlspecialchars($t('page.copy', 'Копировать'), ENT_QUOTES, 'UTF-8') ?></button></div>
   <div class="small text-muted mt-2" id="apcRevealKeyLabel"></div>
+  <div class="small text-muted mt-1" id="apcRevealKeyId"></div>
+  <div class="small text-muted mt-1" id="apcRevealKeyHint"><em><?= htmlspecialchars($t('admin_api_clients.reveal_key_hint', 'Используйте этот ключ для авторизации (Authorization: Bearer). Значение в таблице ниже — это ID ключа для управления, не сам ключ.'), ENT_QUOTES, 'UTF-8') ?></em></div>
 </div><div class="modal-footer"><button class="btn crm-btn-primary" type="button" data-bs-dismiss="modal" data-i18n="page.done"><?= htmlspecialchars($t('page.done', 'Готово'), ENT_QUOTES, 'UTF-8') ?></button></div></div></div></div>
 
 </main></div></div>
