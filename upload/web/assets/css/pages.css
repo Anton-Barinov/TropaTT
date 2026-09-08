@@ -7693,18 +7693,47 @@ body.modal-open {
   white-space: nowrap;
 }
 
-/* Permission picker checkboxes inside the client/key modals */
-.crm-admin-api-page .crm-perm-group-title {
-  font-size: 0.78rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  color: var(--crm-text-muted);
+/* Permission/scope picker inside the client/key modals */
+.crm-scope-picker { max-height: 45vh; overflow-y: auto; }
+
+.crm-scope-search .form-control { font-size: 0.82rem; border-radius: 6px; }
+
+.crm-scope-group { border: 1px solid var(--crm-border, #e2e8f0); border-radius: 8px; margin-bottom: 6px; overflow: hidden; }
+
+.crm-scope-group-header {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 10px; cursor: pointer; user-select: none;
+  background: var(--crm-surface-alt, #f8fafc); font-size: 0.78rem;
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em;
+  color: var(--crm-text-muted, #64748b);
+}
+.crm-scope-group-header:hover { background: var(--crm-surface-hover, #f1f5f9); }
+
+.crm-scope-group-chevron { font-size: 0.65rem; width: 12px; text-align: center; flex-shrink: 0; }
+.crm-scope-group-name { flex: 1; min-width: 0; }
+.crm-scope-group-count {
+  background: var(--crm-surface-alt, #e2e8f0); border-radius: 10px;
+  padding: 0 6px; font-size: 0.7rem; font-weight: 500; color: var(--crm-text-muted, #64748b);
+}
+.crm-scope-group-toggle { margin: 0; cursor: pointer; }
+.crm-scope-group-toggle .form-check-input { width: 1rem; height: 1rem; }
+
+.crm-scope-group-body { padding: 6px 10px 8px; }
+.crm-scope-group-body.crm-scope-collapsed { display: none; }
+
+.crm-scope-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 2px 8px;
 }
 
-.crm-admin-api-page .crm-perm-check .form-check-label {
-  font-size: 0.85rem;
+.crm-scope-item {
+  display: flex; align-items: center; gap: 6px;
+  padding: 3px 0; cursor: pointer; font-size: 0.82rem;
+  border-radius: 4px;
 }
+.crm-scope-item:hover { background: var(--crm-surface-hover, #f1f5f9); }
+.crm-scope-item .form-check-input { width: 0.9rem; height: 0.9rem; flex-shrink: 0; }
+.crm-scope-item-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .crm-admin-ai-hero {
   display: grid;
