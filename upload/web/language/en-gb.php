@@ -7720,6 +7720,8 @@ return array (
     'reveal_title' => 'Key created',
     'reveal_once_warning' => 'The key is shown only once. Copy and store it now.',
     'reveal_key_name' => 'Key',
+    'reveal_key_hint' => 'Use this key for authorization (Authorization: Bearer). The value in the table below is the key ID for management, not the key itself.',
+    'key_id_prefix' => 'ID',
     'copy_fail' => 'Failed to copy',
     'keys_empty' => 'No keys yet. Issue the first key.',
     'th_key_name' => 'Key',
