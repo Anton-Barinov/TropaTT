@@ -422,28 +422,84 @@ window.CRM.adminApiClients = (function () {
     var opts = options || {};
     var ceiling = opts.ceiling || [];
     var scopeOptions = allowedScopeCodes(ceiling);
-    // Preselect: explicitly checked codes first; otherwise grantable codes when
-    // full access is on; otherwise (manual mode) everything that can be granted.
     var checkedSet = {};
     (checkedCodes || []).forEach(function (c) { checkedSet[String(c)] = true; });
 
-    var html = '';
+    var html = '<div class="crm-scope-picker">';
+    html += '<div class="crm-scope-search mb-2"><input type="text" class="form-control form-control-sm" placeholder="' + esc(t('admin_api_clients.scope_search', 'Поиск прав...')) + '" data-scope-search></div>';
     var groups = codeGroups(scopeOptions);
-    groups.forEach(function (group) {
-      html += '<div class="crm-perm-group mb-1"><div class="crm-perm-group-title small text-muted">' + esc(group.group) + '</div>';
-      html += group.codes.map(function (code) {
-        var isChecked = checkedSet[String(code)] === true;
-        return '<div class="form-check form-check-inline crm-perm-check">'
-          + '<input class="form-check-input" type="checkbox" id="' + esc(containerId + '_' + code) + '" value="' + esc(code) + '"' + (isChecked ? ' checked' : '') + '>'
-          + '<label class="form-check-label" for="' + esc(containerId + '_' + code) + '">' + esc(scopeTitle(code)) + '</label>'
-          + '</div>';
-      }).join('');
-      html += '</div>';
+    var moduleGroup = null;
+    var otherGroups = [];
+    groups.forEach(function (g) {
+      if (g.group === 'module') { moduleGroup = g; } else { otherGroups.push(g); }
     });
+    var renderGroup = function (group, collapsed) {
+      var allChecked = group.codes.every(function (c) { return checkedSet[String(c)] === true; });
+      var count = group.codes.length;
+      var id = containerId + '_grp_' + group.group;
+      html += '<div class="crm-scope-group" data-scope-group="' + esc(group.group) + '">';
+      html += '<div class="crm-scope-group-header" data-toggle="' + esc(id) + '">';
+      html += '<span class="crm-scope-group-chevron">' + (collapsed ? '&#9654;' : '&#9660;') + '</span>';
+      html += '<span class="crm-scope-group-name">' + esc(group.group.replace(/_/g, ' ')) + '</span>';
+      html += '<span class="crm-scope-group-count">' + count + '</span>';
+      html += '<label class="crm-scope-group-toggle ms-auto" title="' + esc(t('admin_api_clients.toggle_all', 'Выбрать/снять все')) + '">';
+      html += '<input type="checkbox" class="form-check-input" data-group-toggle="' + esc(group.group) + '"' + (allChecked ? ' checked' : '') + '>';
+      html += '</label>';
+      html += '</div>';
+      html += '<div class="crm-scope-group-body' + (collapsed ? ' crm-scope-collapsed' : '') + '" id="' + esc(id) + '">';
+      html += '<div class="crm-scope-grid">';
+      group.codes.forEach(function (code) {
+        var isChecked = checkedSet[String(code)] === true;
+        var title = scopeTitle(code);
+        html += '<label class="crm-scope-item" title="' + esc(code) + '">';
+        html += '<input type="checkbox" class="form-check-input" value="' + esc(code) + '"' + (isChecked ? ' checked' : '') + '>';
+        html += '<span class="crm-scope-item-label">' + esc(title) + '</span>';
+        html += '</label>';
+      });
+      html += '</div></div></div>';
+    };
+    otherGroups.forEach(function (g) { renderGroup(g, false); });
+    if (moduleGroup) { renderGroup(moduleGroup, true); }
+    html += '</div>';
     if (!scopeOptions.length) {
       html = '<div class="text-muted small">' + esc(t('admin_api_clients.no_grantable_scopes', 'Нет разделов, доступных для выдачи')) + '</div>';
     }
     container.innerHTML = html;
+    container.querySelectorAll('[data-toggle]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        var target = document.getElementById(el.dataset.toggle);
+        if (!target) return;
+        var collapsed = target.classList.toggle('crm-scope-collapsed');
+        var chevron = el.querySelector('.crm-scope-group-chevron');
+        if (chevron) chevron.innerHTML = collapsed ? '&#9654;' : '&#9660;';
+      });
+    });
+    container.querySelectorAll('[data-group-toggle]').forEach(function (toggle) {
+      toggle.addEventListener('change', function () {
+        var grp = toggle.dataset.groupToggle;
+        container.querySelectorAll('.crm-scope-grid input[type="checkbox"]').forEach(function (cb) {
+          var item = cb.closest('.crm-scope-item');
+          if (item && cb.closest('[data-scope-group]')?.dataset.scopeGroup === grp) {
+            cb.checked = toggle.checked;
+          }
+        });
+      });
+    });
+    var searchInput = container.querySelector('[data-scope-search]');
+    if (searchInput) {
+      searchInput.addEventListener('input', function () {
+        var q = searchInput.value.toLowerCase().trim();
+        container.querySelectorAll('.crm-scope-item').forEach(function (el) {
+          var label = (el.querySelector('.crm-scope-item-label')?.textContent || '').toLowerCase();
+          var val = (el.querySelector('input')?.value || '').toLowerCase();
+          el.style.display = (!q || label.includes(q) || val.includes(q)) ? '' : 'none';
+        });
+        container.querySelectorAll('.crm-scope-group').forEach(function (g) {
+          var visible = g.querySelectorAll('.crm-scope-item:not([style*="display: none"])').length;
+          g.style.display = visible || !q ? '' : 'none';
+        });
+      });
+    }
   }
 
   function readScopePicker(containerId) {
