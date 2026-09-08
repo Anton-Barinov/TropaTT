@@ -137,6 +137,14 @@ window.CRM.adminApiClients = (function () {
 
   // ── Data loading ────────────────────────────────────────────────────────
 
+  function maskKey(key) {
+    var s = String(key || '');
+    if (s.length <= 8) return s;
+    var prefix = s.substring(0, 7);
+    var suffix = s.substring(s.length - 4);
+    return prefix + '*'.repeat(Math.min(s.length - 11, 12)) + suffix;
+  }
+
   function loadOptions() {
     return req('api/v1/api-clients/options', { noCache: true })
       .then(function (envelope) {
@@ -278,7 +286,7 @@ window.CRM.adminApiClients = (function () {
       ? '<button class="btn btn-sm crm-btn-danger-soft" data-key-revoke="' + esc(id) + '" type="button">' + esc(t('admin_api_clients.revoke_btn', 'Отозвать')) + '</button>'
       : '<span class="text-muted small">' + esc(statusLabel) + '</span>';
     return '<tr>'
-      + '<td><div class="crm-key-name">' + esc(name) + '</div><div class="crm-entity-id small text-muted">' + esc(t('admin_api_clients.key_id_prefix', 'ID') + ': ' + id) + '</div></td>'
+      + '<td><div class="crm-key-name">' + esc(name) + '</div><div class="crm-entity-id font-monospace small">' + esc(maskKey(id)) + '</div></td>'
       + '<td><span class="crm-badge ' + statusClass + '">' + esc(statusLabel) + '</span></td>'
       + '<td>' + scopeChipsHtml(key.scopes, t('admin_api_clients.full_access_short', 'full access')) + '<div class="crm-key-scopes-title small text-muted">' + esc(scopesLabel) + '</div></td>'
       + '<td>' + esc(formatDate(key.created_at)) + '</td>'
@@ -677,7 +685,7 @@ window.CRM.adminApiClients = (function () {
     if (idEl) {
       var kid = keyMeta && keyMeta.public_id ? String(keyMeta.public_id) : '';
       idEl.textContent = kid
-        ? (t('admin_api_clients.key_id_prefix', 'ID') + ': ' + kid)
+        ? (t('admin_api_clients.reveal_key_masked', 'В списке ключей:') + ' ' + maskKey(kid))
         : '';
     }
     var modalEl = document.getElementById('apcRevealModal');
