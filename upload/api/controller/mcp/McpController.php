@@ -5458,7 +5458,7 @@ MD;
         $service = $this->container->get('service.comment');
         $item = $service->update($publicId, $input, $this->actor());
 
-        return is_array($item) ? ['comment' => $item] : ['error' => 'Comment not found.'];
+        return is_array($item) ? ['comment' => $this->publicData($item)] : ['error' => 'Comment not found.'];
     }
 
     private function crmDeleteComment(array $arguments): array
@@ -5717,7 +5717,7 @@ MD;
         $service = $this->container->get('service.project');
         $item = $service->create($input, $this->actor());
 
-        return is_array($item) ? ['project' => $item] : ['error' => (string)$item];
+        return is_array($item) ? ['project' => $this->publicData($item)] : ['error' => (string)$item];
     }
 
     private function crmUpdateProject(array $arguments): array
@@ -5741,7 +5741,7 @@ MD;
         $service = $this->container->get('service.project');
         $item = $service->update($publicId, $input, $this->actor());
 
-        return is_array($item) ? ['project' => $item] : ['error' => (string)$item];
+        return is_array($item) ? ['project' => $this->publicData($item)] : ['error' => (string)$item];
     }
 
     private function crmDeleteProject(array $arguments): array
@@ -5812,7 +5812,7 @@ MD;
             return ['error' => $item];
         }
 
-        return is_array($item) ? ['intake_item' => $item] : ['error' => 'Intake item not found.'];
+        return is_array($item) ? ['intake_item' => $this->publicData($item)] : ['error' => 'Intake item not found.'];
     }
 
     private function crmReopenIntakeItem(array $arguments): array
@@ -5826,7 +5826,7 @@ MD;
         $service = $this->container->get('service.intake_item');
         $item = $service->reopen($publicId, $this->actor());
 
-        return is_array($item) ? ['intake_item' => $item] : ['error' => (string)$item];
+        return is_array($item) ? ['intake_item' => $this->publicData($item)] : ['error' => (string)$item];
     }
 
     private function crmCreateWebhook(array $arguments): array
@@ -6012,7 +6012,7 @@ MD;
         $service = $this->container->get('service.organization');
         $item = $service->create($input, $this->actor());
 
-        return is_array($item) ? ['organization' => $item] : ['error' => (string)$item];
+        return is_array($item) ? ['organization' => $this->publicData($item)] : ['error' => (string)$item];
     }
 
     private function crmUpdateOrganization(array $arguments): array
@@ -6036,7 +6036,7 @@ MD;
         $service = $this->container->get('service.organization');
         $item = $service->update($publicId, $input, $this->actor());
 
-        return is_array($item) ? ['organization' => $item] : ['error' => (string)$item];
+        return is_array($item) ? ['organization' => $this->publicData($item)] : ['error' => (string)$item];
     }
 
     private function crmDeleteOrganization(array $arguments): array
@@ -6336,7 +6336,7 @@ MD;
         /** @var OrganizationService $service */
         $service = $this->container->get('service.organization');
         $item = $service->get($publicId, $this->actor());
-        return is_array($item) ? ['organization' => $item] : ['error' => 'Organization not found.'];
+        return is_array($item) ? ['organization' => $this->publicData($item)] : ['error' => 'Organization not found.'];
     }
 
     private function crmListOrganizationMembers(array $arguments): array
@@ -6471,7 +6471,7 @@ MD;
         /** @var InvitationService $service */
         $service = $this->container->get('service.invitation');
         $item = $service->create($input, $this->actor());
-        return is_array($item) ? ['invitation' => $item] : ['error' => (string)$item];
+        return is_array($item) ? ['invitation' => $this->publicData($item)] : ['error' => (string)$item];
     }
 
     private function crmGetApiKeyUsage(array $arguments): array
@@ -6845,7 +6845,7 @@ MD;
         /** @var BusinessCalendarService $service */
         $service = $this->container->get('service.business_calendar');
         $item = $service->getWorkingHours($publicId);
-        return is_array($item) ? ['working_hours' => $item] : ['error' => 'Working hours not found.'];
+        return is_array($item) ? ['working_hours' => $this->publicData($item)] : ['error' => 'Working hours not found.'];
     }
 
     private function crmUpdateWorkingHours(array $arguments): array
@@ -6869,7 +6869,7 @@ MD;
         /** @var BusinessCalendarService $service */
         $service = $this->container->get('service.business_calendar');
         $item = $service->updateWorkingHours($publicId, $input, $this->actor());
-        return is_array($item) ? ['working_hours' => $item] : ['error' => 'Working hours not found.'];
+        return is_array($item) ? ['working_hours' => $this->publicData($item)] : ['error' => 'Working hours not found.'];
     }
 
     private function crmDeleteWorkingHours(array $arguments): array
@@ -6937,7 +6937,7 @@ MD;
         /** @var ApiClientService $service */
         $service = $this->container->get('service.api_client');
         $item = $service->updateClient($publicId, $input, $this->actor());
-        return is_array($item) ? ['api_client' => $item] : ['error' => (string)$item];
+        return is_array($item) ? ['api_client' => $this->publicData($item)] : ['error' => (string)$item];
     }
 
     private function crmDeleteApiClient(array $arguments): array
