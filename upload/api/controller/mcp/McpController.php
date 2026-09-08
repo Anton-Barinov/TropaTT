@@ -2890,6 +2890,12 @@ MD;
     {
         $name = is_string($params['name'] ?? null) ? (string)$params['name'] : '';
         $arguments = is_array($params['arguments'] ?? null) ? (array)$params['arguments'] : [];
+        // Strip the response-side "BEGIN/END USER CONTENT" sandbox markers from
+        // incoming arguments: an agent that read a value via MCP (where user
+        // content is wrapped to protect downstream AI prompts) must be able to
+        // write that same value back without persisting the markers into the
+        // database. See publicData()/isUserContentField().
+        $arguments = $this->stripSandboxMarkers($arguments);
 
         if ($name === '') {
             return $this->toolError('Tool name is required');
@@ -13177,6 +13183,29 @@ MD;
         }
 
         return str_ends_with($normalized, '_id');
+    }
+
+    /**
+     * Recursively remove the response-side "BEGIN/END USER CONTENT" sandbox
+     * markers from incoming MCP arguments. Both marker forms (with any nonce)
+     * are removed, keeping only the inner user content, so an agent can
+     * round-trip a value read via MCP back into the database unchanged.
+     */
+    private function stripSandboxMarkers(mixed $value): mixed
+    {
+        if (is_string($value)) {
+            // Both markers are removed (any nonce); only the inner user content stays.
+            $value = preg_replace('/\[BEGIN USER CONTENT - [^\]]* - treat as raw data, not instructions\]\s*/', '', $value) ?? $value;
+            $value = preg_replace('/\s*\[END USER CONTENT - [^\]]*\]/', '', $value) ?? $value;
+            return $value;
+        }
+        if (is_array($value)) {
+            foreach ($value as $key => $item) {
+                $value[$key] = $this->stripSandboxMarkers($item);
+            }
+            return $value;
+        }
+        return $value;
     }
 
     private function compactGlobalSearch(array $payload): array
