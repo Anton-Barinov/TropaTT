@@ -13139,7 +13139,7 @@ MD;
         if (str_contains($normalized, 'password') || str_contains($normalized, 'secret') || str_contains($normalized, 'token')) {
             return true;
         }
-        if (str_contains($normalized, '_key') || str_contains($normalized, '_credential')) {
+        if ((str_contains($normalized, '_key') && !in_array($normalized, ['task_key', 'task_key_prefix'], true)) || str_contains($normalized, '_credential')) {
             return true;
         }
         // Defense-in-depth: strip financial snapshot/source/amount/margin suffixes
