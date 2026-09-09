@@ -2622,7 +2622,11 @@ PROMPT;
             
             $rawText = $result['result']['preview']['summary'] ?? ($result['result']['text'] ?? '');
             $aiMode = $result['result']['mode'] ?? 'unknown';
+            $topErrorCode = (string)($result['code'] ?? '');
             $aiFailed = $aiMode === 'safe_mock' || trim($rawText) === '' || str_contains($rawText, 'AI не смог сформировать ответ');
+            if (!$aiFailed && $topErrorCode !== '' && $topErrorCode !== 'OK') {
+                $aiFailed = true;
+            }
             // Reconnect PDO if connection dropped during AI processing
             try { $pdo->query('SELECT 1'); } catch (\Throwable $e) { error_log('[IdeaController] PDO reconnect: ' . $e->getMessage()); $pdo = $this->container->get('db.pdo'); }
 
@@ -2630,7 +2634,9 @@ PROMPT;
             $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
             $debugRes = ['raw_text' => $rawText, 'questions_count' => 0, 'ai_mode' => $aiMode];
             if ($aiFailed) {
-                $debugRes['ai_error'] = $result['result']['error_code'] ?? ($result['result']['code'] ?? 'AI_PROVIDER_UNAVAILABLE');
+                $debugRes['ai_error'] = $topErrorCode !== '' && $topErrorCode !== 'OK'
+                    ? $topErrorCode
+                    : ($result['result']['error_code'] ?? ($result['result']['code'] ?? 'AI_PROVIDER_UNAVAILABLE'));
                 $debugRes['http_status'] = (int)($result['result']['http_status'] ?? 0);
                 $debugRes['ai_failed'] = true;
             }
@@ -2689,9 +2695,12 @@ PROMPT;
             }
             if ($retry < $maxRetries && $aiFailed) {
                 $errType = $debugRes['ai_error'] ?? '';
-                $retryable = in_array($errType, ['AI_PROVIDER_INVALID_RESPONSE', 'AI_PROVIDER_TIMEOUT', 'AI_PROVIDER_SERVER_ERROR', 'AI_PROVIDER_CONNECTION_FAILED', 'AI_PROVIDER_RATE_LIMITED', 'AI_PROVIDER_HTTP_ERROR'], true);
+                $retryable = in_array($errType, ['AI_PROVIDER_INVALID_RESPONSE', 'AI_PROVIDER_TIMEOUT', 'AI_PROVIDER_SERVER_ERROR', 'AI_PROVIDER_CONNECTION_FAILED', 'AI_PROVIDER_RATE_LIMITED', 'AI_PROVIDER_HTTP_ERROR', 'AI_BUSY', 'AI_PROVIDER_UNAVAILABLE'], true);
                 if ($retryable) ai_diag_log("[AI_INTERVIEW_RETRY] attempt " . ($retry+2) . " for idea_id={$ideaId} error={$errType}");
-                usleep(($retry + 1) * 1500000);
+                $backoffUs = $errType === 'AI_BUSY'
+                    ? max(5000000, ($retry + 1) * 2000000)
+                    : ($retry + 1) * 1500000;
+                usleep($backoffUs);
                 continue;
             }
             if (!$aiFailed) break;
