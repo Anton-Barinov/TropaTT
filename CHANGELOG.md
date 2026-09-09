@@ -4,90 +4,45 @@ All notable public changes to TropaTT should be documented here.
 
 This project follows a lightweight Keep a Changelog style. Dates are added when a release is actually created.
 
-## Unreleased
+## [v0.2.0.11] - 2026-09-09
 
 ### Added
 
-- **Self-updating updater.** Core update packages now include the `updater/**`
-  directory, so installed CRMs update their own update mechanism through the regular
-  update flow — updater fixes no longer reach only fresh installs and one-off bootstrap
-  packages. Updater changes are rated high risk (like security code) and reach the
-  `stable` channel only after a manual publish.
+- **Scoped API keys.** API clients now support fine-grained keys with individual names, scopes, and optional expiry dates. Keys can be issued, revoked, and listed independently from the parent client. The admin UI renders a key table with masked previews (`apk_RIkQja*****00A`) for safe identification.
 
-- **Client-side stream guard.** The updater refuses to download or apply an update
-  resolved to the develop stream (`tropatt-core-dev`) on a production
-  (non-`*.tropatt.com`) domain, returning a clear `STREAM_MISMATCH` error instead of
-  installing unreviewed develop code.
+- **Auto-issue API key on client creation.** Creating a new API client automatically generates and returns the first key in the response (`plain_key` for authentication, `key_preview` for display). One-time display prevents accidental re-exposure.
 
-- **Update center defaults to the main stream.** Update-center requests without an
-  `installation_domain` are served from `main` (previously the update server's own
-  `*.tropatt.com` hostname misrouted them to the develop stream), so a fresh
-  installation can never be bootstrapped from unreviewed develop code.
+- **Redesign scope picker.** The permission picker in client/key modals now uses collapsible groups with a search/filter input, group-toggle checkboxes, two-column grid layout, and module permissions collapsed by default — replacing the flat checkbox list that was overwhelming with 80+ module scopes.
 
-- **Safe release cycle for the update server.** Introduced an independent test update stream
-  (`tropatt-core-dev`, built from the `develop` branch) alongside the production stream
-  (`tropatt-core`, built from `main`). The update server now distributes builds by requesting
-  domain: test domains (`*.tropatt.com` — demo, qa-test, test-* , updtest) are served from
-  `develop`, all other domains from `main`. The CRM client itself stays fully domain-agnostic — it
-  requests its product and reports its install domain, and the server decides which stream to serve.
-  Domain→stream routing is logged, and API responses include a `stream` field for transparency.
+- **MCP sandbox marker removal.** MCP tool responses no longer contain internal sandbox markers (`sandbox_*`) or internal database IDs (`child_task_id`). All create/update/get methods pass items through `publicData()` for clean round-tripping.
 
-- **Real core version reporting.** On the update server, the core version is now read from
-  `upload/VERSION` (previously a root `VERSION`/fallback), so served builds and manifests report the
-  actual version from the source branch instead of a fallback.
-
-- **Chat message quick actions.** Messages in the chat page now show two quick-action buttons at the bottom of each card: Reply (fa-reply) and Create Task (fa-list-check). A corner menu (⋮) provides Copy, Edit, Delete, and Create Page actions, with conditions applied (Edit/Delete only for own recent messages).
-
-- **Chat in project detail — full parity with chat page.** The "Chat" tab on the project detail page now uses the same shared `chat-widget.js` module (`CRM.chat`) for rendering, actions, and compose area as the main chat page: textarea with auto-resize, Enter/Shift+Enter, file upload, reply preview, edit mode, emoji and mention placeholders, and the same quick actions + ⋮ menu on each message.
-
-- **Reply-to-message in project chat.** Clicking Reply on a message in the project chat shows a reply preview bar and sends `reply_to_message_public_id` with the new message.
-
-- **Create task from chat message.** The "Create Task" action in both chat pages pre-fills the task creation modal with the message text, linked to the current project.
+- **Updater resilience on shared hosting.** `JsonLogger` gracefully handles `open_basedir` restrictions (suppressed `is_dir()` warnings, writable-check before write). `FileApplier` attempts `chmod` before `copy()` and includes diagnostic messages on permission failure.
 
 ### Changed
 
-- **Updates page shows stream and commit SHA.** Admin → System Updates now labels
-  every update plan with its stream (`main` / `develop`) and target commit SHA, and
-  shows the installed product next to the current build. Build numbers are counted
-  independently per stream, so identical numbers across `main` and `develop` can no
-  longer be confused; an installation bootstrapped from the develop stream on a
-  production domain gets an explicit warning.
+- **Key preview in admin table.** The API keys table displays `key_preview` (first 7 + last 4 characters) instead of opaque `public_id`, making it possible to identify which key is which without revealing the full secret.
 
-- **Update-server packaging fix.** Package and manifest filenames now carry a product prefix
-  (`tropatt-core-…` vs `tropatt-core-dev-…`) so the two update streams never collide. Delta package
-  building now resolves source files under `upload/`, fixing a regression where delta packages were
-  not produced after the sources moved into the `upload/` directory.
+- **Copy button fix.** The reveal-modal copy button now clones and replaces the DOM element to reset event listeners, with visible "Скопировано" text feedback and improved `fallbackCopy` error handling.
 
-- **Modal content scrollable.** All modal dialogs (create/edit task, create event, create project, etc.) now scroll properly when content exceeds viewport height. CSS fix: `display: flex; flex-direction: column` on `.modal-content`, `<form>` wrapper as flex child, `flex: 1 1 auto` on `.modal-body`.
+- **Cache busting.** Footer template uses `DEPLOY_HASH` for `?v=` cache busting on all JS/CSS assets, preventing stale-cache issues after deploys.
 
-- **Chat ⋮ menu item order.** Menu items now appear in the order: Copy → Edit → Delete → Create Page. Empty menus are not rendered.
-
-- **Performance: ~1.1 MB lighter on non-task routes.** `br1.js` (77 KB) is now conditionally loaded only on routes that use it (tasks, kanban, gantt, ideas, etc.); other routes load a 29-byte `br1-notify.js` stub. `visual-editor.js` (137 KB) is loaded only on knowledge, task-detail, ideas, and work-cycles pages.
-
-- **Chat rendering delegated to shared module.** Core rendering functions (`renderMessage`, `renderMessageMoreMenu`, `renderMessageText`, `renderAttachments`, `renderReplyQuote`, `canEditMessage`, `canDeleteMessage`, `formatTime`, `formatFileSize`, `esc`) in `chat.php` now delegate to `CRM.chat.*` from `chat-widget.js`, reducing duplication.
+- **Install logging paths.** `InstallService` derives the logs directory from `__DIR__` relative paths instead of config values, preventing hardcoded absolute paths from leaking into `logging.local.php`.
 
 ### Fixed
 
-- **Project detail page data loading and tabs broken.** The `br1-notify.js` stub (loaded on non-task routes for performance) was missing `getProjectPublicIdFromUrl()`, causing `page-api-bindings.js` to throw TypeError and preventing all project data from loading. Added the function to the stub and a defensive type-check in `page-api-bindings.js`.
+- **MCP tool response fidelity.** `crmListSubtasks`, `crmGetTask`, `crmCreateTask`, and all other MCP create/update/get methods now strip internal identifiers (`id`, `child_task_id`, `sandbox_*` markers) from responses while preserving all user-facing fields.
 
-- **My earnings page 403.** `MyEarningsController::available()` now passes `$auth['user']` (not the
-  whole auth array) to the payout policy check, so root/admins get a valid `200` on
-  `GET /me/earnings/available` instead of an erroneous `403`.
+- **Password policy alignment.** External-user, profile, and reset password flows now enforce the 12+complexity rule consistently with client-side validation.
 
-- **Console warning on installable pages.** The PWA install prompt is only deferred when an install
-  button is actually present on the page, removing the spurious `beforeinstallprompt`
-  `preventDefault()` console message on non-installable pages.
+- **Russian locale leakage.** `en`, `de`, `es`, `fr`, `pt`, `zh` client dictionaries no longer fall back to Russian keys when their own overrides are present.
 
-- **Update preflight and download token flow.** The updater now obtains the one-time token before the
-  preflight and download steps, preventing token-mismatch failures for API clients.
+- **API client key counts.** Single-client fetch now includes `keys_count` and `active_keys_count` fields for the admin UI.
 
-- **Installer SQL mode.** Removed `DEFAULT NULL` from TEXT columns and aligned generated security keys
-  in `writeEnvFile()`, fixing fresh-install failures under strict SQL modes.
+- **Updater permission errors.** File overwrite failures during updates now attempt `chmod` and include the PHP error message in the exception, making shared-hosting permission issues diagnosable instead of opaque "Unable to apply file".
 
 ### Security
 
-- **Sensitive flags stripped from API input.** `is_root` and `role_public_ids` are stripped from
-  API request input, preventing privilege-escalation attempts via mass assignment.
+- **MCP response sanitization.** Internal database IDs and sandbox markers are stripped from all MCP tool responses, preventing information leakage through AI-assisted workflows.
 
 ## [v0.2.0.10] - 2026-08-29
 
