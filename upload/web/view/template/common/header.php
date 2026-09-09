@@ -120,13 +120,22 @@ if (is_file($jsOverridesPath)) {
       // The canonical per-user value lives in profile preferences and is
       // mirrored into localStorage (crm_theme) by window.CRM.theme.
       var theme = 'light';
+      var themePalette = '';
       try {
         var stored = localStorage.getItem('crm_theme');
         if (stored === 'dark' || stored === 'contrast' || stored === 'sepia') {
           theme = stored;
+        } else if (stored === 'graphite') {
+          // Graphite is a dark palette overlay: reuse the dark component-repair
+          // layer (data-theme="dark") and swap tokens via the palette attribute.
+          theme = 'dark';
+          themePalette = 'graphite';
         }
       } catch (e) {}
       document.documentElement.setAttribute('data-theme', theme);
+      if (themePalette !== '') {
+        document.documentElement.setAttribute('data-theme-palette', themePalette);
+      }
     })();
   </script>
   <link rel="icon" type="image/x-icon" href="assets/favicon.ico">

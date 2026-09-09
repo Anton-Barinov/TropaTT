@@ -6797,6 +6797,7 @@ return array (
     'opt_theme_contrast' => '高对比度',
     'hint_theme_contrast' => '高对比度，阅读更舒适',
     'opt_theme_sepia' => '棕褐色（暖色调）',
+    'opt_theme_graphite' => '石墨（深色，赤陶点缀）',
     'note_theme' => '选择主题后，别忘了点击「保存更改」。',
     'section_notifications' => '通知',
     'note_notifications' => '通知渠道和频率设置。',
