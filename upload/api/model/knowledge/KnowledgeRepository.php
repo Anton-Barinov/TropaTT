@@ -143,7 +143,26 @@ final class KnowledgeRepository
             ];
         }
         $stmt->execute($params);
-        return $this->space($publicId) ?? [];
+        return $this->spaceRaw($publicId) ?? [];
+    }
+
+    /**
+     * Fetch a knowledge space by public_id without ACL filtering.
+     * Used after create/update to guarantee the caller can read what they just wrote.
+     */
+    private function spaceRaw(string $publicId): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT s.*, (SELECT COUNT(*) FROM knowledge_pages p WHERE p.space_id = s.id AND p.deleted_at IS NULL) AS pages_count '
+            . 'FROM knowledge_spaces s WHERE s.public_id = :public_id LIMIT 1'
+        );
+        $stmt->execute(['public_id' => $publicId]);
+        $space = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!is_array($space)) {
+            return null;
+        }
+        $space['pages_count'] = (int)($space['pages_count'] ?? 0);
+        return $space;
     }
 
     public function space(string $publicId, ?array $actor = null, string $minAccess = 'view'): ?array
@@ -201,7 +220,7 @@ final class KnowledgeRepository
             $sql = 'UPDATE knowledge_spaces SET title = :title, description = :description, icon = :icon, color = :color, visibility = :visibility, default_access_level = :default_access_level, sort_order = :sort_order, row_version = row_version + 1, updated_at = :updated_at WHERE public_id = :public_id';
         }
         $this->pdo->prepare($sql)->execute($set);
-        return $this->space($publicId);
+        return $this->space($publicId, $actor);
     }
 
     public function spacePermissions(string $publicId): array
@@ -489,13 +508,30 @@ final class KnowledgeRepository
             'created_at' => $now,
             'updated_at' => $now,
         ]);
-        $page = $this->page($publicId) ?? [];
+        $page = $this->pageRaw($publicId) ?? [];
         $this->refreshPagePath((int)$page['id']);
         $this->refreshChildrenCount($parent ? (int)$parent['id'] : null);
         if (($page['status'] ?? '') === 'published') {
             $this->legacyAddVersion($publicId, $actorId, 'Initial publish');
         }
-        return $this->page($publicId) ?? $page;
+        return $this->pageRaw($publicId) ?? $page;
+    }
+
+    /**
+     * Fetch a knowledge page by public_id without ACL filtering.
+     * Used after create/update to guarantee the caller can read what they just wrote.
+     */
+    private function pageRaw(string $publicId): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT p.*, s.public_id AS space_public_id, s.title AS space_title, u.full_name AS author_name "
+            . "FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id "
+            . "LEFT JOIN users u ON u.id = p.owner_user_id "
+            . "WHERE p.public_id = :public_id AND p.deleted_at IS NULL LIMIT 1"
+        );
+        $stmt->execute(['public_id' => $publicId]);
+        $page = $stmt->fetch(PDO::FETCH_ASSOC);
+        return is_array($page) ? $page : null;
     }
 
     public function page(string $publicId, ?array $actor = null, string $minAccess = 'view'): ?array
@@ -554,9 +590,8 @@ final class KnowledgeRepository
             'client_visible' => (int)(array_key_exists('client_visible', $payload) ? (int)$payload['client_visible'] : (int)($current['client_visible'] ?? 0)),
             'updated_at' => gmdate('Y-m-d H:i:s'),
             'public_id' => $publicId,
-        ];
-        $this->pdo->prepare('UPDATE knowledge_pages SET title = :title, space_id = :space_id, parent_id = :parent_id, page_type = :page_type, status = :status, content_html = :content_html, content_text = :content_text, content_json = :content_json, excerpt = :excerpt, last_editor_user_id = :last_editor_user_id, review_due_at = :review_due_at, sort_order = :sort_order, depth = :depth, client_visible = :client_visible, row_version = row_version + 1, updated_at = :updated_at WHERE public_id = :public_id')->execute($params);
-        $page = $this->page($publicId);
+        ];        $this->pdo->prepare('UPDATE knowledge_pages SET title = :title, space_id = :space_id, parent_id = :parent_id, page_type = :page_type, status = :status, content_html = :content_html, content_text = :content_text, content_json = :content_json, excerpt = :excerpt, last_editor_user_id = :last_editor_user_id, review_due_at = :review_due_at, sort_order = :sort_order, depth = :depth, client_visible = :client_visible, row_version = row_version + 1, updated_at = :updated_at WHERE public_id = :public_id')->execute($params);
+        $page = $this->page($publicId, $actor);
         if ($page) {
             $this->legacyAddVersion($publicId, $actorId, 'Updated page');
         }
@@ -565,12 +600,13 @@ final class KnowledgeRepository
             $this->refreshChildrenCount(isset($current['parent_id']) ? (int)$current['parent_id'] : null);
             $this->refreshChildrenCount($page['parent_id'] !== null ? (int)$page['parent_id'] : null);
         }
-        return $this->page($publicId);
+        return $this->page($publicId, $actor);
     }
+
 
     public function publish(string $publicId, ?int $actorId, string $summary = ''): ?array
     {
-        $page = $this->page($publicId);
+        $page = $this->pageRaw($publicId);
         if (!$page) {
             return null;
         }
@@ -586,12 +622,12 @@ final class KnowledgeRepository
             'public_id' => $publicId,
         ]);
         $this->legacyAddVersion($publicId, $actorId, $summary !== '' ? $summary : 'Published');
-        return $this->page($publicId);
+        return $this->pageRaw($publicId);
     }
 
     public function setStatus(string $publicId, string $status, ?int $actorId = null): ?array
     {
-        $page = $this->page($publicId);
+        $page = $this->pageRaw($publicId);
         if (!$page) {
             return null;
         }
@@ -603,7 +639,7 @@ final class KnowledgeRepository
             'updated_at' => gmdate('Y-m-d H:i:s'),
             'public_id' => $publicId,
         ]);
-        return $this->page($publicId);
+        return $this->pageRaw($publicId);
     }
 
     public function deletePage(string $publicId): bool
@@ -1723,10 +1759,10 @@ final class KnowledgeRepository
         ];
         if ($hasParentCol) {
             $params['parent_id'] = $parentId;
-        }
-        $stmt->execute($params);
-        return $this->space($publicId) ?? [];
+        }        $stmt->execute($params);
+        return $this->spaceRaw($publicId) ?? [];
     }
+
 
     public function updateSpaceSource(string $publicId, array $source): ?array
     {
@@ -1783,10 +1819,10 @@ final class KnowledgeRepository
             'created_at' => (string)($payload['created_at'] ?? $now),
             'updated_at' => (string)($payload['updated_at'] ?? $now),
         ]);
-        $page = $this->page($publicId) ?? [];
+        $page = $this->pageRaw($publicId) ?? [];
         $this->refreshPagePath((int)$page['id']);
         $this->refreshChildrenCount($parent ? (int)$parent['id'] : null);
-        return $this->page($publicId) ?? $page;
+        return $this->pageRaw($publicId) ?? $page;
     }
 
     public function updatePageParent(string $publicId, ?string $parentPublicId, ?array $actor = null): ?array
