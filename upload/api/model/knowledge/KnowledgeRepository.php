@@ -1266,7 +1266,7 @@ final class KnowledgeRepository
 
     private function legacyAddVersion(string $pagePublicId, ?int $actorId, string $summary): void
     {
-        $page = $this->page($pagePublicId);
+        $page = $this->pageRaw($pagePublicId);
         if (!$page) {
             return;
         }
