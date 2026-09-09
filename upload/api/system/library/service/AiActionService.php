@@ -88,6 +88,10 @@ final class AiActionService
         $resolvedModel = trim((string)($intent['model'] ?? '')) !== ''
             ? trim((string)$intent['model'])
             : (string)($provider['default_model'] ?? '');
+
+        $scopeType = $this->sanitizeScopeType(trim((string)($input['scope_type'] ?? '')));
+        $scopePublicId = $this->sanitizeScopePublicId(trim((string)($input['scope_public_id'] ?? '')));
+
         $payload = [
             'action_type' => $actionType,
             'input' => $this->sanitizeInput($input),
@@ -100,11 +104,9 @@ final class AiActionService
 
         $promptPayload = [
             'intent_code' => $actionType,
-            // Keep trusted application instructions in the provider's system
-            // role; user content must remain a lower-priority message.
             'system_prompt' => (string)$systemPrompt,
             'user_prompt' => (string)$userPromptRaw,
-            'context' => ['scope_type' => trim((string)($input['scope_type'] ?? '')), 'scope_public_id' => trim((string)($input['scope_public_id'] ?? ''))],
+            'context' => ['scope_type' => $scopeType, 'scope_public_id' => $scopePublicId],
             'model' => $resolvedModel,
         ];
         $maxTokens = (int)($intent['max_tokens'] ?? $input['max_tokens'] ?? 0);
@@ -118,8 +120,8 @@ final class AiActionService
             'intent_code' => $actionType,
             'status' => 'running',
             'requested_by_user_id' => (int)($actor['id'] ?? 0) ?: null,
-            'scope_type' => trim((string)($input['scope_type'] ?? '')),
-            'scope_public_id' => trim((string)($input['scope_public_id'] ?? '')),
+            'scope_type' => $scopeType,
+            'scope_public_id' => $scopePublicId,
             'idempotency_key_hash' => null,
             'payload_json' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'result_json' => null,
@@ -342,5 +344,28 @@ final class AiActionService
         }
 
         return $this->featureFlags->isEnabled($flagCode, $default);
+    }
+
+    private const ALLOWED_SCOPE_TYPES = ['task', 'project', 'client', 'counterparty', 'user', 'team', 'idea', 'knowledge_page'];
+
+    private function sanitizeScopeType(string $scopeType): string
+    {
+        if ($scopeType === '') {
+            return '';
+        }
+        $normalized = strtolower(trim($scopeType));
+        return in_array($normalized, self::ALLOWED_SCOPE_TYPES, true) ? $normalized : '';
+    }
+
+    private function sanitizeScopePublicId(string $scopePublicId): string
+    {
+        if ($scopePublicId === '') {
+            return '';
+        }
+        $trimmed = trim($scopePublicId);
+        if (preg_match('/^[a-z0-9_]{2,64}$/i', $trimmed) !== 1) {
+            return '';
+        }
+        return $trimmed;
     }
 }
