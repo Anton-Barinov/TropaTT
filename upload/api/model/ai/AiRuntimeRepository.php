@@ -102,7 +102,19 @@ final class AiRuntimeRepository
                 $lock = $this->pdo->prepare('SELECT GET_LOCK(:name, 0)');
                 $lock->execute(['name' => 'crm_ai_interactive_slots']);
                 if ((int)$lock->fetchColumn() !== 1) {
-                    return null;
+                    // Lock held by another connection — check if it's stale (no running jobs)
+                    $countCheck = $this->pdo->query("SELECT COUNT(*) FROM ai_jobs WHERE job_type = 'interactive' AND status = 'running'");
+                    $runningCount = $countCheck ? (int)$countCheck->fetchColumn() : 0;
+                    if ($runningCount === 0) {
+                        // No running jobs but lock is held — likely stale. Wait briefly and retry once.
+                        usleep(500000);
+                        $lock->execute(['name' => 'crm_ai_interactive_slots']);
+                        if ((int)$lock->fetchColumn() !== 1) {
+                            return null;
+                        }
+                    } else {
+                        return null;
+                    }
                 }
                 $hasAdvisoryLock = true;
             }
