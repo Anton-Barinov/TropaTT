@@ -270,7 +270,8 @@ final class InstallService
 
     private function writeLoggingConfig(): string
     {
-        $storageBase = rtrim((string)$this->config->get('default.storage.base', dirname(__DIR__, 4) . '/storage_api'), '/\\');
+        $configDir = dirname((string)$this->config->get('install.logging_config_file', __DIR__ . '/../../config'));
+        $storageBase = dirname($configDir, 2) . '/storage_api';
         $logsDir = $storageBase . '/logs_' . bin2hex(random_bytes(8));
         if (!is_dir($logsDir)) {
             @mkdir($logsDir, 0770, true);

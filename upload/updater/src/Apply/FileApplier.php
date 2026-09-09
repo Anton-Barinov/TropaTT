@@ -66,8 +66,25 @@ final class FileApplier
                 if (!is_dir($targetDir)) {
                     mkdir($targetDir, 0775, true);
                 }
+                if (!is_writable($targetDir)) {
+                    @chmod($targetDir, 0775);
+                }
+                if (!is_file($target) && !is_writable($targetDir)) {
+                    throw new \RuntimeException(
+                        'Permission denied: cannot write to ' . $relative
+                        . ' (directory ' . $targetDir . ' is not writable).'
+                        . ' Fix file permissions: chown -R ' . posix_getlogin() . ' ' . $this->basePath
+                    );
+                }
+                if (is_file($target) && !is_writable($target)) {
+                    @chmod($target, 0664);
+                }
                 if (!copy($source, $target)) {
-                    throw new \RuntimeException('Unable to apply file: ' . $relative);
+                    $err = error_get_last();
+                    throw new \RuntimeException(
+                        'Unable to apply file: ' . $relative
+                        . ($err ? ' (' . $err['message'] . ')' : '')
+                    );
                 }
                 $expected = is_array($hashes[$relative] ?? null) ? (string)($hashes[$relative]['sha256'] ?? '') : '';
                 $actual = hash_file('sha256', $target) ?: '';

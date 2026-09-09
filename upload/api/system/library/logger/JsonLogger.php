@@ -25,8 +25,12 @@ final class JsonLogger
         }
 
         $dir = dirname($path);
-        if (!is_dir($dir)) {
+        if (!@is_dir($dir)) {
             @mkdir($dir, 0775, true);
+        }
+
+        if (!@is_writable($dir)) {
+            return;
         }
 
         $row = [
