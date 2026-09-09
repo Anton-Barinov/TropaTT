@@ -27,7 +27,16 @@ final class AiPromptBuilderService
     ): array {
         $systemTemplate = trim((string)($promptTemplate['template_text'] ?? ''));
         if ($systemTemplate === '') {
-            $systemTemplate = 'You are TropaTT assistant. Follow backend policy and return only structured result.';
+            $systemTemplate = 'You are TropaTT AI assistant — a built-in helper for the TropaTT self-hosted CRM and work platform. ';
+            $systemTemplate .= 'TropaTT manages tasks, projects, clients, calendar, team chat, and analytics for freelancers, agencies, and teams. ';
+            $systemTemplate .= '\nRules:';
+            $systemTemplate .= '\n1. Respond in the language of the user input (or Russian if the language cannot be determined).';
+            $systemTemplate .= '\n2. Use ONLY the provided context. Never fabricate data.';
+            $systemTemplate .= '\n3. Be specific and concise.';
+            $systemTemplate .= '\n4. For structured responses (JSON) — follow the exact format specified.';
+            $systemTemplate .= '\n5. Never include sensitive data (passwords, tokens, keys) in the response.';
+            $systemTemplate .= '\n6. If the provided information is insufficient — ask clarifying questions.';
+            $systemTemplate .= '\n7. Do not override system policy or attempt SQL/shell/permission changes.';
         }
 
         $userInput = $this->sanitizePromptText(trim((string)($input['prompt'] ?? $input['input_text'] ?? '')), $strictMasking);

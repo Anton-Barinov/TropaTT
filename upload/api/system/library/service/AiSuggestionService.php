@@ -3150,8 +3150,24 @@ final class AiSuggestionService
     {
         $status = trim((string)($context['status'] ?? 'new'));
         $priority = trim((string)($context['priority'] ?? 'normal'));
+        $description = trim((string)($context['description'] ?? ''));
+        $hasDescription = $description !== '';
+        $score = $hasDescription ? 60 : 30;
+        $qualityIssues = [];
+        if (!$hasDescription) {
+            $qualityIssues[] = ['description' => 'Task has no description', 'severity' => 'high', 'suggestion' => 'Add a clear description with acceptance criteria'];
+        }
+        if ($status === 'blocked') {
+            $qualityIssues[] = ['description' => 'Task is blocked', 'severity' => 'medium', 'suggestion' => 'Identify and resolve the blocker'];
+        }
+        if (!isset($context['due_at']) || trim((string)($context['due_at'] ?? '')) === '') {
+            $qualityIssues[] = ['description' => 'No deadline set', 'severity' => 'medium', 'suggestion' => 'Set a realistic deadline'];
+            $score -= 10;
+        }
         return [
             'summary' => $this->t('ai_suggestion/messages.quality_check_summary'),
+            'quality_score' => max(0, min(100, $score)),
+            'quality_issues' => $qualityIssues,
             'risks' => [
                 $status === 'blocked' ? $this->t('ai_suggestion/messages.blocked_status_warning') : $this->t('ai_suggestion/messages.status_criteria_needs_clarification'),
                 $priority === 'high' ? $this->t('ai_suggestion/messages.high_priority_deadline_control') : $this->t('ai_suggestion/messages.add_measurable_readiness'),
@@ -3244,19 +3260,19 @@ final class AiSuggestionService
 
         $risks = [];
         if ($overdueTasks > 0) {
-            $risks[] = sprintf($this->t('ai_suggestion/messages.overdue_tasks_risk'), $overdueTasks);
+            $risks[] = ['text' => sprintf($this->t('ai_suggestion/messages.overdue_tasks_risk'), $overdueTasks), 'level' => 'high', 'mitigation' => 'Prioritize overdue tasks and reassign if necessary'];
         }
         if ($blockedTasks > 0) {
-            $risks[] = sprintf($this->t('ai_suggestion/messages.blocked_tasks_risk'), $blockedTasks);
+            $risks[] = ['text' => sprintf($this->t('ai_suggestion/messages.blocked_tasks_risk'), $blockedTasks), 'level' => 'high', 'mitigation' => 'Identify and resolve blockers immediately'];
         }
         if ($milestonesOverdue > 0) {
-            $risks[] = sprintf($this->t('ai_suggestion/messages.milestones_overdue_risk'), $milestonesOverdue);
+            $risks[] = ['text' => sprintf($this->t('ai_suggestion/messages.milestones_overdue_risk'), $milestonesOverdue), 'level' => 'medium', 'mitigation' => 'Review milestone deadlines and adjust plan'];
         }
         if ($milestonesUpcoming > 0) {
-            $risks[] = sprintf($this->t('ai_suggestion/messages.milestones_upcoming_risk'), $milestonesUpcoming);
+            $risks[] = ['text' => sprintf($this->t('ai_suggestion/messages.milestones_upcoming_risk'), $milestonesUpcoming), 'level' => 'low', 'mitigation' => 'Ensure all pre-milestone tasks are on track'];
         }
         if ($risks === []) {
-            $risks[] = $this->t('ai_suggestion/messages.no_critical_risks_current');
+            $risks[] = ['text' => $this->t('ai_suggestion/messages.no_critical_risks_current'), 'level' => 'low', 'mitigation' => 'Continue monitoring'];
         }
 
         return [
@@ -3489,6 +3505,10 @@ final class AiSuggestionService
     {
         return [
             'summary' => $this->t('ai_suggestion/messages.dashboard_digest_prepared'),
+            'priority_actions' => [
+                $this->t('ai_suggestion/messages.add_acceptance_criteria'),
+                $this->t('ai_suggestion/messages.fix_owner_and_deadline'),
+            ],
             'risks' => [],
             'suggested_tasks' => [],
             'checklist_items' => [],
@@ -5269,129 +5289,243 @@ final class AiSuggestionService
      */
     private function structuredResponseInstruction(string $intentCode): string
     {
-        if ($intentCode === 'task_checklist') {
-            return 'Return ONLY one JSON object. No markdown, no prose, no code fences. Required keys: '
-                . '{"summary":string,"checklist":[{"title":string,"description":string,"priority":"high|medium|low"}],'
-                . '"suggested_actions":[{"type":"create_checklist_item","title":string,"payload":{"title":string,"description":string,"priority":"high|medium|low"}}],'
-                . '"warnings":[string],"confidence":"high|medium|low"}.';
-        }
-        if ($intentCode === 'dashboard_daily_digest') {
-            return 'Return ONLY one JSON object. No markdown, no prose, no code fences. Required keys: '
-                . '{"summary":string,"sections":[{"title":string,"items":[{"label":string,"value":string,"severity":"normal|warning|critical"}]}],'
-                . '"insights":[{"title":string,"text":string,"severity":"normal|warning|critical"}],'
-                . '"suggested_actions":[{"type":string,"title":string,"payload":object}],"warnings":[string],"confidence":"high|medium|low"}.';
-        }
+        $base = 'Return ONLY one JSON object. No markdown, no prose, no code fences. ';
+
         if ($intentCode === 'task_summary') {
-            return 'Return ONLY one JSON object. No markdown, no prose, no code fences. Required keys: '
-                . '{"summary":string,"improved_description":string,"risks":[string],"suggested_tasks":[object],"checklist_items":[string|object],'
-                . '"calendar_slots":[object],"questions":[string],"meta":{"intent_code":"task_summary"}}.';
+            return $base . 'Required keys: '
+                . '{"summary":"<1-3 sentence task summary>",'
+                . '"improved_description":"<enhanced description with specific details, deadlines, owners — only if the original is incomplete>",'
+                . '"risks":["<real risks that may affect deadline or quality, max 5>"],'
+                . '"suggested_tasks":[{"title":"<subtask title>","description":"<description>","recommended_minutes":30}],'
+                . '"checklist_items":["<checklist item>"],'
+                . '"calendar_slots":[{"date":"2026-09-10","duration_minutes":60,"title":"<slot title>"}],'
+                . '"questions":["<clarifying question if key info is missing>"],'
+                . '"meta":{"intent_code":"task_summary"}}.';
         }
         if ($intentCode === 'task_decomposition') {
-            return 'Return ONLY one JSON object. No markdown, no prose, no code fences. Required keys: '
-                . '{"summary":string,"risks":[string],"suggested_tasks":[{"title":string,"description"?:string,"recommended_minutes"?:number}],'
-                . '"checklist_items":[string|object],"calendar_slots":[object],"questions":[string],"meta":{"intent_code":"task_decomposition"}}.';
+            return $base . 'Required keys: '
+                . '{"summary":"<brief decomposition overview>",'
+                . '"risks":["<real risks, max 5>"],'
+                . '"suggested_tasks":[{"title":"<subtask title>","description":"<optional description>","recommended_minutes":30}],'
+                . '"checklist_items":["<checklist item>"],'
+                . '"calendar_slots":[{"date":"2026-09-10","duration_minutes":60,"title":"<slot title>"}],'
+                . '"questions":["<clarifying question>"],'
+                . '"meta":{"intent_code":"task_decomposition"}}.';
+        }
+        if ($intentCode === 'task_checklist') {
+            return $base . 'Required keys: '
+                . '{"summary":"<brief checklist overview>",'
+                . '"checklist":[{"title":"<item title>","description":"<item description>","priority":"high|medium|low"}],'
+                . '"suggested_actions":[{"type":"create_checklist_item","title":"<action title>","payload":{"title":"<title>","description":"<description>","priority":"high|medium|low"}}],'
+                . '"warnings":["<warning if any>"],"confidence":"high|medium|low"}.';
         }
         if ($intentCode === 'task_quality') {
-            return 'Return ONLY one JSON object. No markdown, no prose, no code fences. Required keys: '
-                . '{"summary":string,"risks":[string],"suggested_tasks":[object],"checklist_items":[string|object],"calendar_slots":[object],'
-                . '"questions":[string],"meta":{"intent_code":"task_quality"}}.';
+            return $base . 'Required keys: '
+                . '{"summary":"<brief quality assessment>",'
+                . '"quality_score":<integer 0-100>,'
+                . '"quality_issues":[{"description":"<specific issue>","severity":"high|medium|low","suggestion":"<how to fix>"}],'
+                . '"risks":["<real risks>"],'
+                . '"suggested_tasks":[{"title":"<improvement task>","recommended_minutes":30}],'
+                . '"checklist_items":["<quality checklist item>"],'
+                . '"calendar_slots":[],'
+                . '"questions":["<clarifying question>"],'
+                . '"meta":{"intent_code":"task_quality"}}.';
         }
         if ($intentCode === 'task_next_action') {
-            return 'Return ONLY one JSON object. No markdown, no prose, no code fences. Required keys: '
-                . '{"summary":string,"risks":[string],"suggested_tasks":[{"title":string,"description"?:string,"recommended_minutes"?:number}],'
-                . '"checklist_items":[string|object],"calendar_slots":[object],"questions":[string],"meta":{"intent_code":"task_next_action"}}.';
+            return $base . 'Required keys: '
+                . '{"summary":"<recommended next action>",'
+                . '"risks":["<risks if action is delayed>"],'
+                . '"suggested_tasks":[{"title":"<action title>","description":"<optional>","recommended_minutes":30}],'
+                . '"checklist_items":["<action checklist>"],'
+                . '"calendar_slots":[{"date":"2026-09-10","duration_minutes":60,"title":"<slot>"}],'
+                . '"questions":["<clarifying question>"],'
+                . '"meta":{"intent_code":"task_next_action"}}.';
         }
         if ($intentCode === 'task_comment_draft') {
-            return 'Return ONLY one JSON object. No markdown, no prose, no code fences. Required keys: '
-                . '{"summary":string,"comment_draft":string,"risks":[string],"suggested_tasks":[object],"checklist_items":[string|object],'
-                . '"calendar_slots":[object],"questions":[string],"meta":{"intent_code":"task_comment_draft"}}.';
+            return $base . 'Required keys: '
+                . '{"summary":"<draft overview>",'
+                . '"comment_draft":"<ready-to-post comment text, match the tone of recent comments>",'
+                . '"risks":["<risks>"],'
+                . '"suggested_tasks":[{"title":"<action>","recommended_minutes":30}],'
+                . '"checklist_items":["<checklist>"],'
+                . '"calendar_slots":[],'
+                . '"questions":["<clarifying question>"],'
+                . '"meta":{"intent_code":"task_comment_draft"}}.';
         }
         if ($intentCode === 'project_summary') {
-            return 'Return ONLY one JSON object. No markdown, no prose, no code fences. Required keys: '
-                . '{"summary":string,"risks":[string],"suggested_tasks":[string|object],"checklist_items":[string|object],'
-                . '"calendar_slots":[object],"questions":[string],"meta":{"intent_code":"project_summary"}}.';
+            return $base . 'Required keys: '
+                . '{"summary":"<1-3 sentence project status>",'
+                . '"risks":["<real project risks, max 5>"],'
+                . '"suggested_tasks":[{"title":"<action>","recommended_minutes":30}],'
+                . '"checklist_items":["<checklist item>"],'
+                . '"calendar_slots":[{"date":"2026-09-10","duration_minutes":60,"title":"<slot>"}],'
+                . '"questions":["<clarifying question if info is missing>"],'
+                . '"meta":{"intent_code":"project_summary"}}.';
         }
         if ($intentCode === 'project_risk_summary') {
-            return 'Return ONLY one JSON object. No markdown, no prose, no code fences. Required keys: '
-                . '{"summary":string,"risks":[string],"suggested_tasks":[string|object],"checklist_items":[string|object],'
-                . '"calendar_slots":[object],"questions":[string],"meta":{"intent_code":"project_risk_summary"}}.';
+            return $base . 'Required keys: '
+                . '{"summary":"<brief risk overview>",'
+                . '"risks":[{"text":"<risk description>","level":"high|medium|low","mitigation":"<specific mitigation action>"}],'
+                . '"suggested_tasks":[{"title":"<action>","recommended_minutes":30}],'
+                . '"checklist_items":["<checklist>"],'
+                . '"calendar_slots":[],'
+                . '"questions":["<clarifying question>"],'
+                . '"meta":{"intent_code":"project_risk_summary"}}.';
         }
         if ($intentCode === 'project_client_report') {
-            return 'Return ONLY one JSON object. No markdown, no prose, no code fences. Required keys: '
-                . '{"summary":string,"report_draft":string,"risks":[string],"suggested_tasks":[string|object],"checklist_items":[string|object],'
-                . '"calendar_slots":[object],"questions":[string],"meta":{"intent_code":"project_client_report"}}.';
+            return $base . 'Format report_draft in Markdown with sections: ## Done, ## Plans, ## Risks, ## Questions. '
+                . 'Write for the client, not for the team. Avoid technical jargon. '
+                . 'Required keys: '
+                . '{"summary":"<brief report overview>",'
+                . '"report_draft":"<Markdown report with ## Done / ## Plans / ## Risks / ## Questions sections>",'
+                . '"risks":["<risks to mention to client>"],'
+                . '"suggested_tasks":[{"title":"<action>","recommended_minutes":30}],'
+                . '"checklist_items":["<checklist>"],'
+                . '"calendar_slots":[],'
+                . '"questions":["<question for client>"],'
+                . '"meta":{"intent_code":"project_client_report"}}.';
         }
         if ($intentCode === 'client_summary') {
-            return 'Return ONLY one JSON object. No markdown, no prose, no code fences. Required keys: '
-                . '{"summary":string,"facts":[string],"risks":[string],"suggested_tasks":[string|object],"questions":[string],'
+            return $base . 'Required keys: '
+                . '{"summary":"<1-3 sentence client overview>",'
+                . '"facts":["<objective fact: last contact date, deal amounts, task count — not conclusions>"],'
+                . '"risks":["<client-related risks>"],'
+                . '"suggested_tasks":[{"title":"<specific action like call/send proposal/schedule meeting>","recommended_minutes":30}],'
+                . '"questions":["<clarifying question>"],'
                 . '"meta":{"intent_code":"client_summary"}}.';
         }
         if ($intentCode === 'client_meeting_prep') {
-            return 'Return ONLY one JSON object. No markdown, no prose, no code fences. Required keys: '
-                . '{"summary":string,"facts":[string],"questions":[string],"suggested_tasks":[string|object],'
+            return $base . 'Required keys: '
+                . '{"summary":"<meeting prep overview>",'
+                . '"facts":["<key facts: contract amounts, payment dates, previous meeting topics>"],'
+                . '"questions":["<questions to ask the client>"],'
+                . '"suggested_tasks":[{"title":"<preparation action>","recommended_minutes":30}],'
                 . '"meta":{"intent_code":"client_meeting_prep"}}.';
         }
         if ($intentCode === 'client_data_quality') {
-            return 'Return ONLY one JSON object. No markdown, no prose, no code fences. Required keys: '
-                . '{"summary":string,"facts":[string],"risks":[string],"suggested_tasks":[string|object],"questions":[string],'
+            return $base . 'Check both empty fields AND format correctness (INN must be 10 or 12 digits, BIC 9 digits, email must contain @). '
+                . 'Required keys: '
+                . '{"summary":"<data quality overview>",'
+                . '"facts":["<objective observation about data completeness>"],'
+                . '"risks":["<risks from poor data quality>"],'
+                . '"validation_issues":[{"field":"<field name>","issue":"<specific problem>","severity":"error|warning"}],'
+                . '"suggested_tasks":[{"title":"<data fix action>","recommended_minutes":15}],'
+                . '"questions":["<clarifying question>"],'
                 . '"meta":{"intent_code":"client_data_quality"}}.';
         }
         if ($intentCode === 'client_safe_report') {
-            return 'Return ONLY one JSON object. No markdown, no prose, no code fences. Required keys: '
-                . '{"summary":string,"report_draft":string,"facts":[string],"risks":[string],"suggested_tasks":[string|object],'
-                . '"questions":[string],"meta":{"intent_code":"client_safe_report"}}.';
+            return $base . 'Exclude from report_draft: internal notes, financial data, information about other clients. '
+                . 'Required keys: '
+                . '{"summary":"<brief report overview>",'
+                . '"report_draft":"<safe report text for the client>",'
+                . '"facts":["<safe facts to share>"],'
+                . '"risks":["<risks>"],'
+                . '"suggested_tasks":[{"title":"<action>","recommended_minutes":30}],'
+                . '"questions":["<question>"],'
+                . '"meta":{"intent_code":"client_safe_report"}}.';
         }
         if ($intentCode === 'calendar_event_agenda') {
-            return 'Return ONLY one JSON object. No markdown, no prose, no code fences. Required keys: '
-                . '{"summary":string,"agenda":[string|object],"risks":[string],"suggested_tasks":[string|object],"questions":[string],'
+            return $base . 'Required keys: '
+                . '{"summary":"<brief agenda overview>",'
+                . '"agenda":[{"topic":"<agenda item>","duration_minutes":15,"owner":"<responsible person>"}],'
+                . '"risks":["<risks>"],'
+                . '"suggested_tasks":[{"title":"<preparation action>","recommended_minutes":30}],'
+                . '"questions":["<clarifying question>"],'
                 . '"meta":{"intent_code":"calendar_event_agenda"}}.';
         }
         if ($intentCode === 'analytics_kpi_explanation') {
-            return 'Return ONLY one JSON object. No markdown, no prose, no code fences. Required keys: '
-                . '{"summary":string,"facts":[string],"risks":[string],"suggested_tasks":[string|object],"questions":[string],'
+            return $base . 'Explain KPIs in business language, not analytics jargon. Compare with previous period if data is available. '
+                . 'Required keys: '
+                . '{"summary":"<brief KPI overview>",'
+                . '"facts":["<objective KPI observation>"],'
+                . '"risks":["<KPI-related risks>"],'
+                . '"suggested_tasks":[{"title":"<action>","recommended_minutes":30}],'
+                . '"questions":["<clarifying question>"],'
                 . '"meta":{"intent_code":"analytics_kpi_explanation"}}.';
         }
         if ($intentCode === 'analytics_risks_explanation') {
-            return 'Return ONLY one JSON object. No markdown, no prose, no code fences. Required keys: '
-                . '{"summary":string,"facts":[string],"risks":[string],"suggested_tasks":[string|object],"questions":[string],'
+            return $base . 'Group risks by project or team. For each risk suggest a specific action. '
+                . 'Required keys: '
+                . '{"summary":"<brief risk overview>",'
+                . '"facts":["<risk observation>"],'
+                . '"risks":["<identified risk>"],'
+                . '"suggested_tasks":[{"title":"<mitigation action>","recommended_minutes":30}],'
+                . '"questions":["<clarifying question>"],'
                 . '"meta":{"intent_code":"analytics_risks_explanation"}}.';
         }
         if ($intentCode === 'analytics_team_workload_summary') {
-            return 'Return ONLY one JSON object. No markdown, no prose, no code fences. Required keys: '
-                . '{"summary":string,"facts":[string],"risks":[string],"suggested_tasks":[string|object],"questions":[string],'
+            return $base . 'Highlight overloaded (>10 tasks) and underloaded (<3 tasks) team members. Suggest rebalancing if imbalanced. '
+                . 'Required keys: '
+                . '{"summary":"<brief workload overview>",'
+                . '"facts":["<objective workload observation>"],'
+                . '"risks":["<workload risks>"],'
+                . '"suggested_tasks":[{"title":"<rebalancing action>","recommended_minutes":30}],'
+                . '"questions":["<clarifying question>"],'
                 . '"meta":{"intent_code":"analytics_team_workload_summary"}}.';
         }
         if ($intentCode === 'admin_log_review') {
-            return 'Return ONLY one JSON object. No markdown, no prose, no code fences. Required keys: '
-                . '{"summary":string,"facts":[string],"risks":[string],"suggested_tasks":[string|object],"questions":[string],'
+            return $base . 'Focus on errors and warnings. Do not comment on successful operations. Group by error type, not by time. '
+                . 'Required keys: '
+                . '{"summary":"<brief review>",'
+                . '"facts":["<error/warning observation>"],'
+                . '"risks":["<security or reliability risks>"],'
+                . '"suggested_tasks":[{"title":"<fix action>","recommended_minutes":30}],'
+                . '"questions":["<clarifying question>"],'
                 . '"meta":{"intent_code":"admin_log_review"}}.';
         }
         if ($intentCode === 'webhook_health_review') {
-            return 'Return ONLY one JSON object. No markdown, no prose, no code fences. Required keys: '
-                . '{"summary":string,"facts":[string],"risks":[string],"suggested_tasks":[string|object],"questions":[string],'
+            return $base . 'Highlight webhooks with failure rate >20%. Suggest specific actions: retry, timeout tuning, URL check. '
+                . 'Required keys: '
+                . '{"summary":"<brief health overview>",'
+                . '"facts":["<webhook health observation>"],'
+                . '"risks":["<reliability risks>"],'
+                . '"suggested_tasks":[{"title":"<fix action>","recommended_minutes":30}],'
+                . '"questions":["<clarifying question>"],'
                 . '"meta":{"intent_code":"webhook_health_review"}}.';
         }
         if ($intentCode === 'workflow_rule_audit') {
-            return 'Return ONLY one JSON object. No markdown, no prose, no code fences. Required keys: '
-                . '{"summary":string,"facts":[string],"risks":[string],"suggested_tasks":[string|object],"questions":[string],'
+            return $base . 'Check: do all rules have a handler, are there conflicting rules, is there a fallback? '
+                . 'Highlight SLA violations and optimization suggestions. '
+                . 'Required keys: '
+                . '{"summary":"<brief audit>",'
+                . '"facts":["<rule observation>"],'
+                . '"risks":["<workflow risks>"],'
+                . '"suggested_tasks":[{"title":"<fix action>","recommended_minutes":30}],'
+                . '"questions":["<clarifying question>"],'
                 . '"meta":{"intent_code":"workflow_rule_audit"}}.';
         }
         if ($intentCode === 'my_day_plan') {
-            return 'Return ONLY one JSON object. No markdown, no prose, no code fences. Required keys: '
-                . '{"summary":string,"work_items":[object],"calendar_slots":[object],"warnings":[string],"questions":[string],'
+            return $base . 'Distribute tasks by time of day: morning (9-12) for complex/creative work, afternoon (13-16) for meetings/communication, evening (16-18) for routine/planning. '
+                . 'If workload exceeds 8 hours, suggest what to move to tomorrow. '
+                . 'Required keys: '
+                . '{"summary":"<brief plan overview>",'
+                . '"work_items":[{"title":"<task>","start_time":"09:00","end_time":"10:30","priority":"high|medium|low","type":"focus|meeting|routine"}],'
+                . '"calendar_slots":[{"date":"2026-09-10","start":"09:00","end":"10:00","title":"<event>"}],'
+                . '"warnings":["<overload or conflict warning>"],'
+                . '"questions":["<clarifying question>"],'
                 . '"meta":{"intent_code":"my_day_plan"}}.';
         }
         if ($intentCode === 'my_week_plan') {
-            return 'Return ONLY one JSON object. No markdown, no prose, no code fences. Required keys: '
-                . '{"summary":string,"weekly_focus":[object],"calendar_slots":[object],"warnings":[string],"questions":[string],'
+            return $base . 'Distribute workload evenly: do not put 5 complex tasks on one day. Friday = light tasks, review, next week planning. '
+                . 'Required keys: '
+                . '{"summary":"<brief week plan>",'
+                . '"weekly_focus":[{"day":"Monday","tasks":[{"title":"<task>","priority":"high|medium|low"}]}],'
+                . '"calendar_slots":[{"date":"2026-09-10","start":"09:00","end":"10:00","title":"<event>"}],'
+                . '"warnings":["<overload warning>"],'
+                . '"questions":["<clarifying question>"],'
                 . '"meta":{"intent_code":"my_week_plan"}}.';
         }
         if ($intentCode === 'task_list_priority') {
-            return 'Return ONLY one JSON object. No markdown, no prose, no code fences. Required keys: '
-                . '{"summary":string,"priority_ranking":[object],"risks":[string],"suggested_tasks":[string|object],"questions":[string],'
+            return $base . 'Consider dependencies: if task A blocks task B, A must be ranked higher. Group by project. '
+                . 'Required keys: '
+                . '{"summary":"<brief priority overview>",'
+                . '"priority_ranking":[{"task_public_id":"<id>","title":"<task>","score":<number>,"reason":"<why this rank>"}],'
+                . '"risks":["<prioritization risks>"],'
+                . '"suggested_tasks":[{"title":"<action>","recommended_minutes":30}],'
+                . '"questions":["<clarifying question>"],'
                 . '"meta":{"intent_code":"task_list_priority"}}.';
         }
-        return 'Return only a single JSON object in Russian for intent ' . $intentCode . '. No markdown, no prose, no code fences, no extra keys.';
+        return 'Return only a single JSON object for intent ' . $intentCode . '. No markdown, no prose, no code fences, no extra keys.';
     }
 
     private function sanitizePromptRuntimeForStorage(array $promptRuntime): array

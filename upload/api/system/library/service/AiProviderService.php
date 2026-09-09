@@ -449,8 +449,24 @@ final class AiProviderService
 
         $client = $this->providerClientFactory->forProvider($provider);
         $mockUsed = $isMockProvider;
-        $result = $client->completeText($provider, $secret, $payload);
+
+        $maxRetries = 3;
+        $retryableCodes = ['AI_PROVIDER_TIMEOUT', 'AI_PROVIDER_CONNECTION_FAILED', 'AI_PROVIDER_SERVER_ERROR', 'AI_PROVIDER_RATE_LIMITED'];
+        $result = null;
         $outboundAttempted = !$mockUsed;
+        for ($attempt = 0; $attempt < $maxRetries; $attempt++) {
+            $result = $client->completeText($provider, $secret, $payload);
+            if ((bool)($result['ok'] ?? false)) {
+                break;
+            }
+            $errorCode = (string)($result['code'] ?? '');
+            $isRetryable = in_array($errorCode, $retryableCodes, true);
+            if (!$isRetryable || $attempt === $maxRetries - 1) {
+                break;
+            }
+            $backoffMs = (int)(1000 * pow(3, $attempt));
+            usleep($backoffMs * 1000);
+        }
         if (!(bool)($result['ok'] ?? false)) {
             $this->logCompletionDiag(
                 $provider,
@@ -460,6 +476,7 @@ final class AiProviderService
                     'code' => (string)($result['code'] ?? ''),
                     'http_status' => (int)($result['http_status'] ?? 0),
                     'latency_ms' => (int)($result['latency_ms'] ?? 0),
+                    'attempts' => $attempt + 1,
                 ],
                 $outboundAttempted,
                 $mockUsed
