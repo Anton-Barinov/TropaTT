@@ -2584,6 +2584,7 @@ final class AiSuggestionService
             (int)($prompt['version'] ?? 0)
         );
         $dependencyFingerprint = $this->buildDependencyFingerprint($intentCode, $minimalContext, $actor, $dateBucket, (int)($prompt['version'] ?? 0));
+        $cachedForFallback = null;
         if (!$forceRefresh) {
             $cached = $this->runtime->findLatestSuggestionByCacheKey(
                 $intentCode,
@@ -2607,6 +2608,7 @@ final class AiSuggestionService
                     'job_public_id' => '',
                 ];
             }
+            $cachedForFallback = $cached;
         }
         $structuredIntent = $this->isStructuredIntent($intentCode);
         $llmPayload = [
@@ -2623,6 +2625,22 @@ final class AiSuggestionService
         $llmOk = (bool)($llm['ok'] ?? false) && trim((string)($llm['text'] ?? '')) !== '';
         $llmResolution = $this->resolveLlmExecution($provider, $llm);
         if (!(bool)($llmResolution['ok'] ?? false)) {
+            $cachedDueError = $this->resolveStaleCacheDueToAiError(
+                $cachedForFallback,
+                $dependencyFingerprint,
+                $dateBucket,
+                (string)($provider['public_id'] ?? ''),
+                $resolvedModel,
+                (string)($llmResolution['code'] ?? 'AI_PROVIDER_UNAVAILABLE')
+            );
+            if ($cachedDueError !== null) {
+                $this->runtime->markSuggestionUsed((string)($cachedForFallback['public_id'] ?? ''), gmdate('Y-m-d H:i:s'));
+                return [
+                    'ok' => true,
+                    'suggestion' => $cachedDueError,
+                    'job_public_id' => '',
+                ];
+            }
             return ['ok' => false, 'code' => (string)($llmResolution['code'] ?? 'AI_PROVIDER_UNAVAILABLE')];
         }
         $llmMode = $llmOk ? 'llm' : 'safe_mock';
@@ -4155,16 +4173,17 @@ final class AiSuggestionService
     {
         $entityType = trim((string)($item['entity_type'] ?? ''));
         $entityPublicId = trim((string)($item['entity_public_id'] ?? ''));
-        if ($entityType === '' || $entityPublicId === '') {
+        if ($entityType === '') {
             return false;
         }
 
         return match ($entityType) {
-            'task' => $this->tasks->get($entityPublicId, $actor) !== null,
-            'project' => $this->projects->get($entityPublicId, $actor) !== null,
-            'client' => $this->clients->get($entityPublicId, $actor) !== null,
-            'calendar_event' => $this->calendar->getEvent($entityPublicId, $actor) !== null,
-            'user', 'task_list', 'dashboard', 'analytics', 'admin' => $entityPublicId === (string)($actor['public_id'] ?? ''),
+            'task' => $entityPublicId !== '' && $this->tasks->get($entityPublicId, $actor) !== null,
+            'project' => $entityPublicId !== '' && $this->projects->get($entityPublicId, $actor) !== null,
+            'client' => $entityPublicId !== '' && $this->clients->get($entityPublicId, $actor) !== null,
+            'calendar_event' => $entityPublicId !== '' && $this->calendar->getEvent($entityPublicId, $actor) !== null,
+            'user', 'task_list', 'dashboard', 'analytics' => $entityPublicId === (string)($actor['public_id'] ?? ''),
+            'admin' => (bool)($actor['is_root'] ?? false) || $entityPublicId === (string)($actor['public_id'] ?? ''),
             default => false,
         };
     }
@@ -4771,13 +4790,21 @@ final class AiSuggestionService
             return null;
         }
 
-        // P0 structured intents must reject markdown-wrapped JSON.
-        if ($trimmed[0] === '{') {
+        $trimmed = $this->stripMarkdownFences($trimmed);
+
+        if ($trimmed !== '' && $trimmed[0] === '{') {
             $decoded = json_decode($trimmed, true);
             return is_array($decoded) ? $decoded : null;
         }
 
         return null;
+    }
+
+    private function stripMarkdownFences(string $text): string
+    {
+        $result = preg_replace('/^```(?:json)?\s*\n?/i', '', $text);
+        $result = preg_replace('/\n?```\s*$/i', '', $result);
+        return trim($result);
     }
 
     /** @return array<string,mixed>|null */

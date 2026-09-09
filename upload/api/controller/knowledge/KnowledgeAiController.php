@@ -41,18 +41,47 @@ final class KnowledgeAiController extends BaseController
 
     private function checkAiEnabled(): ?JsonResponse
     {
-        /** @var FeatureFlagService $flags */
-        $flags = $this->container->get('service.feature_flag');
-        if (!$flags->isEnabled('ai.enabled')) {
-            return $this->error('AI_DISABLED', $this->t('ai/messages.action_failed', 'AI features are disabled'), 409, [
-                'ai' => ['AI_DISABLED'],
-            ]);
+        $actor = $this->actor();
+        $isRoot = (bool)($actor['is_root'] ?? false);
+
+        if (!$isRoot) {
+            /** @var FeatureFlagService $flags */
+            $flags = $this->container->get('service.feature_flag');
+            if (!$flags->isEnabled('ai.enabled')) {
+                return $this->error('AI_DISABLED', $this->t('ai/messages.action_failed', 'AI features are disabled'), 409, [
+                    'ai' => ['AI_DISABLED'],
+                ]);
+            }
+            if (!$flags->isEnabled('ai.knowledge')) {
+                return $this->error('AI_FEATURE_DISABLED', $this->t('ai/messages.action_failed', 'Knowledge AI features are disabled'), 409, [
+                    'ai' => ['AI_FEATURE_DISABLED'],
+                ]);
+            }
+
+            $permissionCodes = is_array($actor['permission_codes'] ?? null) ? (array)$actor['permission_codes'] : [];
+            if (!in_array('ai.use', $permissionCodes, true)) {
+                return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
+            }
+
+            /** @var \Api\System\Library\Service\AiRateLimitService $rateLimit */
+            $rateLimit = $this->container->get('service.ai_rate_limit');
+            $rate = $rateLimit->assertWithinLimits('knowledge_ai', $actor);
+            if (!(bool)($rate['ok'] ?? false)) {
+                return $this->error('AI_RATE_LIMITED', $this->t('ai/messages.action_failed', 'Rate limit exceeded'), 429, [
+                    'ai' => ['AI_RATE_LIMITED'],
+                ]);
+            }
+
+            /** @var \Api\System\Library\Service\AiCostLimitService $costLimit */
+            $costLimit = $this->container->get('service.ai_cost_limit');
+            $cost = $costLimit->assertWithinLimits('knowledge_ai', $actor);
+            if (!(bool)($cost['ok'] ?? false)) {
+                return $this->error('AI_COST_LIMIT_EXCEEDED', $this->t('ai/messages.action_failed', 'Cost limit exceeded'), 409, [
+                    'ai' => ['AI_COST_LIMIT_EXCEEDED'],
+                ]);
+            }
         }
-        if (!$flags->isEnabled('ai.knowledge')) {
-            return $this->error('AI_FEATURE_DISABLED', $this->t('ai/messages.action_failed', 'Knowledge AI features are disabled'), 409, [
-                'ai' => ['AI_FEATURE_DISABLED'],
-            ]);
-        }
+
         return null;
     }
 
