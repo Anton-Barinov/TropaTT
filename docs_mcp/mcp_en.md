@@ -122,6 +122,31 @@ The full MCP catalog is large (600+ tools). To avoid loading it all into every a
 
 Request a profile by appending `?toolset=tasks` to the MCP endpoint URL or by passing `"params": {"toolset": "tasks"}` to `tools/list`; comma-separated values build a union (`?toolset=tasks,projects`). Call `tools/listToolsets` (or read `tropatt://server/toolsets`) for the machine-readable catalog with per-profile counts. Tools not assigned to any profile remain callable by name and are listed under `all`.
 
+## Client configuration and token budget
+
+The catalog size affects every request: agent clients that register MCP tools into the session send the tool schemas with each request. Measured on the live endpoint:
+
+| Toolset | Tools | Schema size |
+|---------|------:|------------:|
+| `core` (default) | 53 | ~4.9K tokens |
+| `tasks` | 82 | ~8.0K tokens |
+| `projects` | 58 | ~5.2K tokens |
+| `kb` | 80 | ~6.3K tokens |
+| `people` | 60 | ~5.7K tokens |
+| `time` | 32 | ~2.6K tokens |
+| `admin` | 149 | ~12.2K tokens |
+| `all` | 607 | ~52K tokens |
+
+The full catalog is ~10× more expensive than the default `core` profile, so prefer a narrow toolset whenever the session is domain-focused.
+
+Client loading modes and what they mean for cost:
+
+- **Global mode** (tools registered once at startup): schemas are sent with every request. With the `core` default this is ~4.9K tokens per request instead of ~52K — tolerable even without lazy loading. Append `?toolset=<domain>` to the server URL to cut it further.
+- **Preset + lazy mode** (tools loaded on demand via `mcp_load`/`mcp_call`): schemas arrive as a normal tool result, which is append-only and never invalidates the request-cache prefix; the tool list itself stays constant (a few control tools). With server-side toolsets the `mcp_load` result is compact too. Recommended when the CRM is used rarely but deliberately.
+- **Preset + dynamic mode** (tools registered when the server loads): the tool-definition block changes on every load, breaking the cache prefix and forcing a full re-evaluation of the prompt. Server-side toolsets shrink both the registered set and the loaded schemas, but lazy mode remains strictly better for short sessions.
+
+Server-side toolset filtering helps in all three modes; the cheapest setup is a narrow `?toolset=` in the endpoint URL, optionally combined with lazy loading.
+
 ---
 
 ## Common MCP formats
