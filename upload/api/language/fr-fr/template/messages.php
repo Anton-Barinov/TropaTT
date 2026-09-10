@@ -26,4 +26,6 @@ return [
     'deleted_task_notify' => 'Modèle de tâche supprimé',
     'deleted_project_notify' => 'Modèle de projet supprimé',
     'error_delete' => 'Erreur de suppression',
+    'task_applied' => 'Tâche créée à partir du modèle',
+    'project_applied' => 'Projet créé à partir du modèle',
 ];

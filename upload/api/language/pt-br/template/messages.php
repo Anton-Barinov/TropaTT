@@ -26,4 +26,6 @@ return [
     'deleted_task_notify' => 'Modelo de tarefa excluído',
     'deleted_project_notify' => 'Modelo de projeto excluído',
     'error_delete' => 'Erro ao excluir',
+    'task_applied' => 'Tarefa criada a partir do modelo',
+    'project_applied' => 'Projeto criado a partir do modelo',
 ];

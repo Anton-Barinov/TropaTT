@@ -26,4 +26,6 @@ return [
     'deleted_task_notify' => 'Plantilla de tarea eliminada',
     'deleted_project_notify' => 'Plantilla de proyecto eliminada',
     'error_delete' => 'Error de eliminación',
+    'task_applied' => 'Tarea creada desde plantilla',
+    'project_applied' => 'Proyecto creado desde plantilla',
 ];
