@@ -14,11 +14,28 @@ TropaTT CRM 内置一个 MCP 服务器——一个 JSON-RPC 2.0 接口，通过�
 | 协议版本 | `2025-06-18` |
 | 批量请求 | 支持（JSON 数组） |
 | 通知 | 支持（不带 id 的消息） |
-| MCP 工具 | 完整目录约 607 个；`tools/list` 默认返回 core 配置文件（约 53 个工具） |
+| MCP 工具 | 完整目录约 607 个；`tools/list` 默认返回 core 配置文件（约 24 个工具：8 个 mega-tools + 16 个常规工具） |
 | MCP 资源 | 5 |
 | MCP Prompts | 0 |
 
 ---
+
+## Mega-tools（按意图合并的统一工具）
+
+Core 配置文件使用 **mega-tools** — 合并工具，通过 `action` 参数覆盖整个领域，替代数十个细粒度 CRUD 工具。每个 mega-tool 都有丰富的描述：何时使用、期望返回什么、出错时如何处理。
+
+| Mega-tool | 领域 | 操作 |
+|-----------|------|------|
+| `crm_task` | 任务、子任务、评论、标签、清单、依赖、关系、看板、活动 | list, get, get_by_key, create, update, delete, move, bulk_update, board, activity + 20 个子操作 |
+| `crm_project` | 项目、里程碑、周期、模块、模板、客户门户 | list, get, create, update, delete, summary, risks, timeline, workload + 25 个子操作 |
+| `crm_people` | 用户、团队、部门、角色、邀请、模拟登录 | list_users, get_user, create_user + 20 个子操作 |
+| `crm_crm` | 客户、对方单位、公司、联系人、组织 | list_clients, get_client, create_client + 20 个子操作 |
+| `crm_time` | 工时记录、日历、商务日历、假期、工作时间 | list_worklogs, create_worklog, get_calendar_agenda + 25 个子操作 |
+| `crm_knowledge` | 知识库：空间、页面、版本、评论、标签、文件、AI | search, list_pages, create_page, ai_summary + 40 个子操作 |
+| `crm_ai` | AI 操作、建议、提供者、任务、语义搜索 | execute_action, task_summary, project_risks, day_plan + 25 个子操作 |
+| `crm_admin` | 设置、缓存、模块、更新、API 客户端、Webhook、日志 | list_settings, clear_cache, list_modules + 35 个子操作 |
+
+现有 CRUD 工具（如 `crm_list_tasks`、`crm_create_task`）仍可通过 `all` 配置文件使用，按名称调用——向后兼容。
 
 ## 本项目中 MCP 的作用
 
@@ -128,7 +145,7 @@ AI 操作通过 AiJobService/AiAuditService 记录；导入/导出和工作流�
 
 | 配置文件 | 工具数 | 模式大小 |
 |---------|-------:|----------:|
-| `core`（默认） | 53 | 约 4.9K tokens |
+| `core`（默认） | 24 | 约 2.5K tokens |
 | `tasks` | 82 | 约 8.0K tokens |
 | `projects` | 58 | 约 5.2K tokens |
 | `kb` | 80 | 约 6.3K tokens |
