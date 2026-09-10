@@ -31,7 +31,7 @@ declare(strict_types=1);
 return [
     'core' => [
         'title' => 'Core',
-        'description' => 'Default profile returned by tools/list: profile, global search, dashboard, notifications, activity and the basic read/create surface of the main CRM entities.',
+        'description' => 'Default profile: mega-tools (consolidated intent-based) for tasks, projects, people, CRM records, time, knowledge, AI, admin, plus profile, search, dashboard, notifications.',
         'tools' => [
             // Profile and navigation
             'crm_get_current_user',
@@ -52,51 +52,15 @@ return [
             'crm_get_notification_counters',
             'crm_mark_notification_read',
             'crm_mark_all_notifications_read',
-            // Tasks (basics)
-            'crm_list_tasks',
-            'crm_get_task',
-            'crm_get_task_by_key',
-            'crm_create_task',
-            'crm_update_task',
-            'crm_add_task_comment',
-            'crm_list_task_comments',
-            'crm_list_subtasks',
-            'crm_list_task_tags',
-            'crm_get_task_board',
-            // Projects (basics)
-            'crm_list_projects',
-            'crm_get_project',
-            'crm_create_project',
-            'crm_get_project_summary',
-            // Users and teams (read)
-            'crm_list_users',
-            'crm_get_user',
-            'crm_list_teams',
-            'crm_get_team',
-            // CRM records (read)
-            'crm_list_clients',
-            'crm_get_client',
-            'crm_list_counterparties',
-            'crm_get_counterparty',
-            'crm_list_companies',
-            'crm_get_company',
-            'crm_list_contacts',
-            'crm_get_contact',
-            // Knowledge base (basics)
-            'crm_search_knowledge',
-            'crm_list_knowledge_pages',
-            'crm_get_knowledge_page',
-            // Ideas and sticky notes
-            'crm_list_ideas',
-            'crm_get_idea',
-            'crm_list_sticky_notes',
-            'crm_get_sticky_note',
-            // Time (basics)
-            'crm_list_calendar_events',
-            'crm_get_calendar_agenda',
-            'crm_list_worklogs',
-            // Reference data
-            'crm_list_tags',
+            // Mega-tools: consolidated intent-based (replaces dozens of CRUD tools)
+            'crm_task',
+            'crm_project',
+            'crm_people',
+            'crm_crm',
+            'crm_time',
+            'crm_knowledge',
+            'crm_ai',
+            'crm_admin',
         ],
     ],
     'tasks' => [

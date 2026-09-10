@@ -14,11 +14,28 @@ TropaTT CRM ships an embedded MCP server — a JSON-RPC 2.0 interface that gives
 | Protocol version | `2025-06-18` |
 | Batch requests | Supported (JSON array) |
 | Notifications | Supported (messages without id) |
-| MCP tools | ~607 in the full catalog; `tools/list` defaults to the ~53-tool `core` profile |
+| MCP tools | ~607 in the full catalog; `tools/list` defaults to the ~24-tool `core` profile (8 mega-tools + 16 regular) |
 | MCP resources | 5 |
 | MCP prompts | 0 |
 
 ---
+
+## Mega-tools (consolidated intent-based)
+
+The `core` profile uses **mega-tools** — consolidated tools that cover an entire domain with an `action` parameter, replacing dozens of fine-grained CRUD tools. Each mega-tool has a rich description explaining when to use it and what to expect.
+
+| Mega-tool | Domain | Actions |
+|-----------|--------|---------|
+| `crm_task` | Tasks, subtasks, comments, tags, checklists, dependencies, relations, board, activity | list, get, get_by_key, create, update, delete, move, bulk_update, board, activity, + 20 sub-actions |
+| `crm_project` | Projects, milestones, cycles, modules, templates, client cabinet | list, get, create, update, delete, summary, risks, timeline, workload, + 25 sub-actions |
+| `crm_people` | Users, teams, departments, roles, invitations, impersonation | list_users, get_user, create_user, + 20 sub-actions |
+| `crm_crm` | Clients, counterparties, companies, contacts, organizations | list_clients, get_client, create_client, + 20 sub-actions |
+| `crm_time` | Worklogs, calendar, business calendars, holidays, working hours | list_worklogs, create_worklog, get_calendar_agenda, + 25 sub-actions |
+| `crm_knowledge` | Knowledge base: spaces, pages, versions, comments, tags, files, AI | search, list_pages, create_page, ai_summary, + 40 sub-actions |
+| `crm_ai` | AI actions, suggestions, providers, jobs, semantic search | execute_action, task_summary, project_risks, day_plan, + 25 sub-actions |
+| `crm_admin` | Settings, cache, modules, updates, API clients, webhooks, logs | list_settings, clear_cache, list_modules, + 35 sub-actions |
+
+Existing fine-grained CRUD tools (e.g. `crm_list_tasks`, `crm_create_task`) remain available via the `all` profile and are callable by name — backward compatible.
 
 ## What MCP means in this project
 
@@ -128,7 +145,7 @@ The catalog size affects every request: agent clients that register MCP tools in
 
 | Toolset | Tools | Schema size |
 |---------|------:|------------:|
-| `core` (default) | 53 | ~4.9K tokens |
+| `core` (default) | 24 | ~2.5K tokens |
 | `tasks` | 82 | ~8.0K tokens |
 | `projects` | 58 | ~5.2K tokens |
 | `kb` | 80 | ~6.3K tokens |

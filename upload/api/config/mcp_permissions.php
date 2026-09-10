@@ -578,4 +578,13 @@ return [
     'crm_upload_file_base64' => ['mode' => 'all', 'permissions' => ['task.manage']],
     'crm_upload_knowledge_file_base64' => ['mode' => 'all', 'permissions' => ['knowledge.edit']],
     'crm_vote_idea' => ['mode' => 'all', 'permissions' => ['idea.manage']],
+    // Mega-tools: consolidated intent-based tools for the core profile
+    'crm_task' => ['mode' => 'all', 'permissions' => ['task.manage']],
+    'crm_project' => ['mode' => 'all', 'permissions' => ['project.manage']],
+    'crm_people' => ['mode' => 'any', 'permissions' => ['user.view', 'user.manage', 'team.manage', 'department.manage', 'role.manage', 'admin.impersonate']],
+    'crm_crm' => ['mode' => 'any', 'permissions' => ['client.manage', 'counterparty.manage', 'company.manage', 'contact.manage', 'organization.manage']],
+    'crm_time' => ['mode' => 'all', 'permissions' => ['task.manage']],
+    'crm_knowledge' => ['mode' => 'any', 'permissions' => ['knowledge.view', 'knowledge.manage', 'knowledge.edit', 'knowledge.create', 'knowledge.publish', 'knowledge.comment', 'knowledge.review', 'settings.manage']],
+    'crm_ai' => ['mode' => 'any', 'permissions' => ['ai.use', 'task.manage', 'project.manage', 'settings.manage']],
+    'crm_admin' => ['mode' => 'any', 'permissions' => ['settings.manage', 'task.manage', 'webhook.manage', 'api_client.manage', 'logs.view', 'recycle_bin.manage', 'import.manage', 'export.manage']],
 ];
