@@ -1858,6 +1858,10 @@ return array (
     'db_restore_ok' => 'wiederhergestellt',
     'db_restore_failed' => 'nicht wiederhergestellt',
     'db_restore_skipped' => 'kein DB-Backup',
+    'apply_in_progress' => 'Update wird durchgeführt. Bitte nicht aktualisieren oder diese Seite schließen.',
+    'dev_stream_on_production' => 'Diese Installation wurde aus dem Develop-Stream ({product}) erstellt. Updates für diese Domain werden aus dem Stable-Stream bereitgestellt, daher wird das nächste Update zum Stable-Stream wechseln.',
+    'kpi_stream_meta' => 'Stream: {stream}',
+    'retry_in_progress' => 'Netzwerkfehler, Wiederholung... ({attempt} von {max})',
   ),
   'admin_templates' => 
   array (

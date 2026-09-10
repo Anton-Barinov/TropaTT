@@ -7558,6 +7558,10 @@ return array (
     'db_restore_ok' => '已恢复',
     'db_restore_failed' => '未恢复',
     'db_restore_skipped' => '没有数据库备份',
+    'apply_in_progress' => '更新正在进行中。请勿刷新或关闭此页面。',
+    'dev_stream_on_production' => '此安装是从 develop 流 ({product}) 创建的。此域名的更新从 stable 流提供，因此下次更新将使其切换到 stable 流。',
+    'kpi_stream_meta' => '流：{stream}',
+    'retry_in_progress' => '网络错误，正在重试...（第 {attempt} 次，共 {max} 次）',
   ),
   'admin_statuses' => 
   array (

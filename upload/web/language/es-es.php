@@ -1858,6 +1858,10 @@ return array (
     'db_restore_ok' => 'restaurada',
     'db_restore_failed' => 'no restaurada',
     'db_restore_skipped' => 'sin copia de seguridad de BD',
+    'apply_in_progress' => 'La actualización está en curso. No recargue ni cierre esta página.',
+    'dev_stream_on_production' => 'Esta instalación se creó desde el stream develop ({product}). Las actualizaciones para este dominio se sirven desde el stream stable, por lo que la próxima actualización la moverá al stream stable.',
+    'kpi_stream_meta' => 'Stream: {stream}',
+    'retry_in_progress' => 'Error de red, reintentando... ({attempt} de {max})',
   ),
   'admin_templates' => 
   array (
