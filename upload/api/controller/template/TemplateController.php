@@ -152,12 +152,12 @@ final class TemplateController extends BaseController
 
     public function taskApply(array $params): \Api\System\Library\Http\JsonResponse
     {
-        return $this->applyByKind('task', (string)($params['public_id'] ?? ''), 'TASK_CREATED_FROM_TEMPLATE', 'Task created from template');
+        return $this->applyByKind('task', (string)($params['public_id'] ?? ''), 'TASK_CREATED_FROM_TEMPLATE', $this->t('template/messages.task_applied'));
     }
 
     public function projectApply(array $params): \Api\System\Library\Http\JsonResponse
     {
-        return $this->applyByKind('project', (string)($params['public_id'] ?? ''), 'PROJECT_CREATED_FROM_TEMPLATE', 'Project created from template');
+        return $this->applyByKind('project', (string)($params['public_id'] ?? ''), 'PROJECT_CREATED_FROM_TEMPLATE', $this->t('template/messages.project_applied'));
     }
 
     private function applyByKind(string $kind, string $publicId, string $code, string $message): \Api\System\Library\Http\JsonResponse

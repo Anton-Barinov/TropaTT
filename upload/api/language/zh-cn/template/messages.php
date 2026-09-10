@@ -26,4 +26,6 @@ return [
     'deleted_task_notify' => '任务模板已删除',
     'deleted_project_notify' => '项目模板已删除',
     'error_delete' => '删除出错',
+    'task_applied' => '任务已从模板创建',
+    'project_applied' => '项目已从模板创建',
 ];

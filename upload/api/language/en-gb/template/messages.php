@@ -26,4 +26,6 @@ return [
     'deleted_task_notify' => 'Task template deleted',
     'deleted_project_notify' => 'Project template deleted',
     'error_delete' => 'Delete error',
+    'task_applied' => 'Task created from template',
+    'project_applied' => 'Project created from template',
 ];

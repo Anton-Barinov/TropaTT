@@ -26,4 +26,6 @@ return [
     'deleted_task_notify' => 'Шаблон задачи удален',
     'deleted_project_notify' => 'Шаблон проекта удален',
     'error_delete' => 'Ошибка удаления',
+    'task_applied' => 'Задача создана из шаблона',
+    'project_applied' => 'Проект создан из шаблона',
 ];
