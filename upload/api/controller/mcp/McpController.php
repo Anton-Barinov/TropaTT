@@ -3979,6 +3979,59 @@ MD;
     // preserving all business logic while presenting a unified surface.
     // ═══════════════════════════════════════════════════════════════════
 
+    /**
+     * Finalise a mega-tool dispatch result.
+     *
+     * Dispatch arms return either a raw payload (wrapped once here) or a complete
+     * tool envelope from withPermission()/toolResult(); envelopes pass through
+     * untouched so isError survives and the payload is never double-wrapped.
+     * A null arm means the action is unknown: answer with a tool-level error
+     * listing the supported actions instead of letting an exception escape as
+     * a JSON-RPC -32603 Internal error.
+     */
+    private function megaResult(?array $payload, string $toolName, string $action): array
+    {
+        if ($payload === null) {
+            return $this->unknownActionError($toolName, $action);
+        }
+
+        if (isset($payload['content'], $payload['structuredContent'], $payload['isError'])) {
+            return $payload;
+        }
+
+        return $this->toolResult($payload);
+    }
+
+    private function unknownActionError(string $toolName, string $action): array
+    {
+        $available = $this->megaToolActions($toolName);
+        $message = sprintf("Unknown action '%s' for %s.", $action, $toolName);
+        if ($available !== []) {
+            $message .= ' Available actions: ' . implode(', ', $available) . '.';
+        }
+
+        return $this->toolError($message);
+    }
+
+    /** Action enum of a mega-tool, taken from the same schema served by tools/list. */
+    private function megaToolActions(string $toolName): array
+    {
+        static $cache = [];
+        if (array_key_exists($toolName, $cache)) {
+            return $cache[$toolName];
+        }
+
+        $actions = [];
+        foreach ($this->tools() as $definition) {
+            if (($definition['name'] ?? '') === $toolName) {
+                $actions = $definition['inputSchema']['properties']['action']['enum'] ?? [];
+                break;
+            }
+        }
+
+        return $cache[$toolName] = array_values($actions);
+    }
+
     private function handleMegaTool(string $toolName, array $arguments): array
     {
         $action = trim((string)($arguments['action'] ?? ''));
@@ -4001,7 +4054,7 @@ MD;
 
     private function dispatchTaskMega(string $action, array $args): array
     {
-        return $this->toolResult(match ($action) {
+        return $this->megaResult(match ($action) {
             'list' => $this->crmListTasks($args),
             'get' => $this->crmGetTask($args),
             'get_by_key' => $this->crmGetTaskByKey($args),
@@ -4064,15 +4117,15 @@ MD;
             'create_workflow_rule' => $this->crmCreateWorkflowRule($args),
             'list_approvals' => $this->crmListApprovals($args),
             'create_approval' => $this->crmCreateApproval($args),
-            'approve' => $this->crmApproveRequest($args),
-            'reject' => $this->crmRejectRequest($args),
-            default => throw new \RuntimeException('Unknown task action: ' . $action),
-        });
+            'approve' => $this->withPermission('approval.manage', fn() => $this->crmReviewApproval($args, 'approve')),
+            'reject' => $this->withPermission('approval.manage', fn() => $this->crmReviewApproval($args, 'reject')),
+            default => null,
+        }, 'crm_task', $action);
     }
 
     private function dispatchProjectMega(string $action, array $args): array
     {
-        return $this->toolResult(match ($action) {
+        return $this->megaResult(match ($action) {
             'list' => $this->crmListProjects($args),
             'get' => $this->crmGetProject($args),
             'create' => $this->crmCreateProject($args),
@@ -4116,13 +4169,13 @@ MD;
             'list_cabinet_projects' => $this->crmListClientCabinetProjects($args),
             'get_cabinet_project' => $this->crmGetClientCabinetProject($args),
             'list_cabinet_tasks' => $this->crmListClientCabinetProjectTasks($args),
-            default => throw new \RuntimeException('Unknown project action: ' . $action),
-        });
+            default => null,
+        }, 'crm_project', $action);
     }
 
     private function dispatchPeopleMega(string $action, array $args): array
     {
-        return $this->toolResult(match ($action) {
+        return $this->megaResult(match ($action) {
             'list_users' => $this->withPermission('user.view', fn() => $this->crmListUsers($args)),
             'get_user' => $this->withPermission('user.view', fn() => $this->crmGetUser($args)),
             'create_user' => $this->withPermission('user.manage', fn() => $this->crmCreateUser($args)),
@@ -4154,13 +4207,13 @@ MD;
             'start_impersonation' => $this->withPermission('admin.impersonate', fn() => $this->toolResult($this->crmStartImpersonation($args))),
             'stop_impersonation' => $this->toolResult($this->crmStopImpersonation()),
             'get_impersonation_status' => $this->toolResult($this->crmGetImpersonationStatus()),
-            default => throw new \RuntimeException('Unknown people action: ' . $action),
-        });
+            default => null,
+        }, 'crm_people', $action);
     }
 
     private function dispatchCrmMega(string $action, array $args): array
     {
-        return $this->toolResult(match ($action) {
+        return $this->megaResult(match ($action) {
             'list_clients' => $this->withPermission('client.manage', fn() => $this->crmListClients($args)),
             'get_client' => $this->withPermission('client.manage', fn() => $this->crmGetClient($args)),
             'create_client' => $this->withPermission('client.manage', fn() => $this->crmCreateClient($args)),
@@ -4189,13 +4242,13 @@ MD;
             'list_organization_members' => $this->withPermission('organization.manage', fn() => $this->crmListOrganizationMembers($args)),
             'add_organization_member' => $this->withPermission('organization.manage', fn() => $this->crmAddOrganizationMember($args)),
             'remove_organization_member' => $this->withPermission('organization.manage', fn() => $this->crmRemoveOrganizationMember($args)),
-            default => throw new \RuntimeException('Unknown CRM action: ' . $action),
-        });
+            default => null,
+        }, 'crm_crm', $action);
     }
 
     private function dispatchTimeMega(string $action, array $args): array
     {
-        return $this->toolResult(match ($action) {
+        return $this->megaResult(match ($action) {
             'list_worklogs' => $this->crmListWorklogs($args),
             'get_worklog' => $this->crmGetWorklog($args),
             'create_worklog' => $this->crmCreateWorklog($args),
@@ -4228,18 +4281,18 @@ MD;
             'create_working_hours' => $this->crmCreateWorkingHours($args),
             'update_working_hours' => $this->crmUpdateWorkingHours($args),
             'delete_working_hours' => $this->crmDeleteWorkingHours($args),
-            default => throw new \RuntimeException('Unknown time action: ' . $action),
-        });
+            default => null,
+        }, 'crm_time', $action);
     }
 
     private function dispatchKnowledgeMega(string $action, array $args): array
     {
-        return $this->toolResult(match ($action) {
-            'overview' => $this->crmGetKnowledgeOverview(),
+        return $this->megaResult(match ($action) {
+            'overview' => $this->crmGetKnowledgeOverview($args),
             'search' => $this->crmSearchKnowledge($args),
-            'analytics' => $this->crmGetKnowledgeAnalytics(),
+            'analytics' => $this->crmGetKnowledgeAnalytics($args),
             'suggest' => $this->crmGetKnowledgeSuggest($args),
-            'entity_pages' => $this->crmGetKnowledgeEntityPages($args),
+            'entity_pages' => $this->crmEntityKnowledgePages($args),
             'list_spaces' => $this->crmListKnowledgeSpaces($args),
             'get_space' => $this->crmGetKnowledgeSpace($args),
             'create_space' => $this->crmCreateKnowledgeSpace($args),
@@ -4265,7 +4318,7 @@ MD;
             'delete_draft' => $this->crmDeleteKnowledgeDraft($args),
             'favorite_page' => $this->crmFavoriteKnowledgePage($args),
             'unfavorite_page' => $this->crmUnfavoriteKnowledgePage($args),
-            'list_favorites' => $this->crmListKnowledgeFavorites(),
+            'list_favorites' => $this->crmListKnowledgeFavorites($args),
             'subscribe_page' => $this->crmSubscribeKnowledgePage($args),
             'unsubscribe_page' => $this->crmUnsubscribeKnowledgePage($args),
             'request_review' => $this->crmRequestKnowledgeReview($args),
@@ -4291,27 +4344,27 @@ MD;
             'delete_file' => $this->crmDeleteKnowledgeFile($args),
             'export_page' => $this->crmExportKnowledgePage($args),
             'export_space' => $this->crmExportKnowledgeSpace($args),
-            'export_all' => $this->crmExportKnowledgeAll(),
+            'export_all' => $this->crmExportKnowledgeAll($args),
             'import_pages' => $this->crmImportKnowledgePages($args),
-            'ai_summary' => $this->crmCreateKnowledgeAiSummary($args),
-            'ai_explanation' => $this->crmCreateKnowledgeAiExplanation($args),
-            'ai_similar' => $this->crmFindKnowledgeAiSimilar($args),
-            'ai_checklist' => $this->crmCreateKnowledgeAiChecklist($args),
-            'ai_faq' => $this->crmCreateKnowledgeAiFaqFromComments($args),
-            'ai_suggest_for_task' => $this->crmCreateKnowledgeAiSuggestForTask($args),
-            'ai_duplicates' => $this->crmFindKnowledgeAiDuplicates($args),
-            'ai_orphans' => $this->crmFindKnowledgeAiOrphans(),
-            'ai_structure' => $this->crmSuggestKnowledgeAiStructure(),
+            'ai_summary' => $this->callKnowledgeAiTool('crm_create_knowledge_ai_summary', $args),
+            'ai_explanation' => $this->callKnowledgeAiTool('crm_create_knowledge_ai_explanation', $args),
+            'ai_similar' => $this->callKnowledgeAiTool('crm_find_knowledge_ai_similar', $args),
+            'ai_checklist' => $this->callKnowledgeAiTool('crm_create_knowledge_ai_checklist', $args),
+            'ai_faq' => $this->callKnowledgeAiTool('crm_create_knowledge_ai_faq_from_comments', $args),
+            'ai_suggest_for_task' => $this->callKnowledgeAiTool('crm_create_knowledge_ai_suggest_for_task', $args),
+            'ai_duplicates' => $this->callKnowledgeAiTool('crm_find_knowledge_ai_duplicates', $args),
+            'ai_orphans' => $this->callKnowledgeAiTool('crm_find_knowledge_ai_orphans', $args),
+            'ai_structure' => $this->callKnowledgeAiTool('crm_suggest_knowledge_ai_structure', $args),
             'reindex' => $this->crmReindexKnowledge(),
             'rebuild_permissions' => $this->crmRebuildKnowledgePermissions(),
             'cleanup_drafts' => $this->crmCleanupKnowledgeDrafts(),
-            default => throw new \RuntimeException('Unknown knowledge action: ' . $action),
-        });
+            default => null,
+        }, 'crm_knowledge', $action);
     }
 
     private function dispatchAiMega(string $action, array $args): array
     {
-        return $this->toolResult(match ($action) {
+        return $this->megaResult(match ($action) {
             'execute_action' => $this->withPermission('ai.use', fn() => $this->crmExecuteAiAction($args)),
             'get_availability' => $this->withPermission('ai.use', fn() => $this->crmGetAiAvailability($args)),
             'list_suggestions' => $this->withPermission('ai.use', fn() => $this->crmListAiSuggestions($args)),
@@ -4334,7 +4387,7 @@ MD;
             'team_workload' => $this->withPermission('ai.use', fn() => $this->crmCreateAiAnalyticsTeamWorkloadSummary($args)),
             'list_providers' => $this->withPermission('settings.manage', fn() => $this->crmListAiProviders($args)),
             'get_provider' => $this->withPermission('settings.manage', fn() => $this->crmGetAiProvider($args)),
-            'list_models' => $this->withPermission('settings.manage', fn() => $this->crmListAiModels()),
+            'list_models' => $this->withPermission('settings.manage', fn() => $this->crmListAiModels($args)),
             'list_intents' => $this->withPermission('settings.manage', fn() => $this->crmListAiIntents($args)),
             'update_intent' => $this->withPermission('settings.manage', fn() => $this->crmUpdateAiIntent($args)),
             'list_prompts' => $this->withPermission('settings.manage', fn() => $this->crmListAiPrompts($args)),
@@ -4353,13 +4406,13 @@ MD;
             'semantic_search' => $this->withPermission('settings.manage', fn() => $this->crmSearchAiSemantic($args)),
             'get_preferences' => $this->withPermission('ai.use', fn() => $this->crmGetAiPreferences()),
             'update_preferences' => $this->withPermission('ai.use', fn() => $this->crmUpdateAiPreferences($args)),
-            default => throw new \RuntimeException('Unknown AI action: ' . $action),
-        });
+            default => null,
+        }, 'crm_ai', $action);
     }
 
     private function dispatchAdminMega(string $action, array $args): array
     {
-        return $this->toolResult(match ($action) {
+        return $this->megaResult(match ($action) {
             'list_settings' => $this->withPermission('settings.manage', fn() => $this->crmListSettings($args)),
             'get_setting' => $this->withPermission('settings.manage', fn() => $this->crmGetSetting($args)),
             'get_cache_stats' => $this->withPermission('settings.manage', fn() => $this->crmGetCacheStats()),
@@ -4435,8 +4488,8 @@ MD;
             'list_api_endpoints' => $this->withPermission('settings.manage', fn() => $this->crmListApiEndpoints($args)),
             'get_admin_summary_widget' => $this->toolResult($this->crmGetAdminSummaryWidget()),
             'get_admin_system_widget' => $this->toolResult($this->crmGetAdminSystemWidget()),
-            default => throw new \RuntimeException('Unknown admin action: ' . $action),
-        });
+            default => null,
+        }, 'crm_admin', $action);
     }
 
     private function crmGetCurrentUser(): array
@@ -12234,7 +12287,10 @@ MD;
         if (array_is_list($payload)) {
             $payload = ['items' => $payload];
         }
-        $isError = array_key_exists('error', $payload);
+        // An explicit business failure ("ok": false) is a failed tool call too,
+        // otherwise MCP clients treat e.g. a rejected password change as success.
+        $isError = array_key_exists('error', $payload)
+            || (array_key_exists('ok', $payload) && $payload['ok'] === false);
         return [
             'content' => [[
                 'type' => 'text',
