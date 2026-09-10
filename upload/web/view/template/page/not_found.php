@@ -13,34 +13,37 @@
       </p>
       <div id="activateResult" class="mt-2" style="display:none"></div>
       <script>
-      document.getElementById('activateModuleBtn').addEventListener('click', async function() {
-        var btn = this;
-        var module = btn.dataset.module;
-        var result = document.getElementById('activateResult');
-        btn.disabled = true;
-        btn.textContent = '…';
-        result.style.display = 'block';
-        result.innerHTML = '<span class="text-muted">Активация ' + module + '…</span>';
-        try {
-          var resp = await fetch('/api/index.php?route=api/v1/modules/' + module + '/activate', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            credentials: 'same-origin'
-          });
-          var data = await resp.json();
-          if (data.success) {
-            result.innerHTML = '<span class="text-success">✓ Модуль активирован. <a href="/web/index.php?route=' + encodeURIComponent('module-' + module) + '">Открыть модуль →</a></span>';
-          } else {
-            result.innerHTML = '<span class="text-danger">✗ ' + (data.message || 'Ошибка активации') + '</span>';
+      (function() {
+        var t = (window.CRM && window.CRM.i18n) ? window.CRM.i18n.t.bind(window.CRM.i18n) : function(k, d) { return d; };
+        document.getElementById('activateModuleBtn').addEventListener('click', async function() {
+          var btn = this;
+          var module = btn.dataset.module;
+          var result = document.getElementById('activateResult');
+          btn.disabled = true;
+          btn.textContent = '…';
+          result.style.display = 'block';
+          result.innerHTML = '<span class="text-muted">' + t('not_found.activating', 'Активация ' + module + '…').replace('{module}', module) + '</span>';
+          try {
+            var resp = await fetch('/api/index.php?route=api/v1/modules/' + module + '/activate', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              credentials: 'same-origin'
+            });
+            var data = await resp.json();
+            if (data.success) {
+              result.innerHTML = '<span class="text-success">' + t('not_found.module_activated', '✓ Модуль активирован.') + ' <a href="/web/index.php?route=' + encodeURIComponent('module-' + module) + '">' + t('not_found.open_module', 'Открыть модуль →') + '</a></span>';
+            } else {
+              result.innerHTML = '<span class="text-danger">✗ ' + (data.message || t('not_found.activation_error', 'Ошибка активации')) + '</span>';
+              btn.disabled = false;
+              btn.textContent = t('not_found.activate_module', 'Активировать модуль');
+            }
+          } catch (e) {
+            result.innerHTML = '<span class="text-danger">✗ ' + t('not_found.network_error', 'Ошибка сети') + '</span>';
             btn.disabled = false;
-            btn.textContent = 'Активировать модуль';
+            btn.textContent = t('not_found.activate_module', 'Активировать модуль');
           }
-        } catch (e) {
-          result.innerHTML = '<span class="text-danger">✗ Ошибка сети</span>';
-          btn.disabled = false;
-          btn.textContent = 'Активировать модуль';
-        }
-      });
+        });
+      })();
       </script>
 <?php else: ?>
       <p class="mb-0"><?= htmlspecialchars($t('not_found.message', 'Не найден маршрут:'), ENT_QUOTES, 'UTF-8') ?> <code><?= htmlspecialchars((string)$route, ENT_QUOTES, 'UTF-8') ?></code></p>

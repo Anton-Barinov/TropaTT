@@ -4471,6 +4471,14 @@ return array (
     'title' => '404 Not Found',
     'page_title' => '404 — Page Not Found',
     'message' => 'Route not found:',
+    'module_inactive' => 'This module is not activated. Go to Administration \u2192 Modules and click \u00abActivate\u00bb.',
+    'activate_module' => 'Activate module',
+    'go_modules' => 'Go to modules',
+    'activating' => 'Activating {module}\u2026',
+    'module_activated' => '\u2713 Module activated.',
+    'open_module' => 'Open module \u2192',
+    'activation_error' => 'Activation error',
+    'network_error' => 'Network error',
   ),
   'dashboard' => 
   array (
