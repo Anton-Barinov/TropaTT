@@ -4489,6 +4489,14 @@ return array (
     'title' => '404 Not Found',
     'page_title' => '404 — 页面未找到',
     'message' => '未找到路由：',
+    'module_inactive' => '此模块未激活。请转到管理 \u2192 模块并点击 \u00ab激活\u00bb。',
+    'activate_module' => '激活模块',
+    'go_modules' => '前往模块',
+    'activating' => '正在激活 {module}\u2026',
+    'module_activated' => '\u2713 模块已激活。',
+    'open_module' => '打开模块 \u2192',
+    'activation_error' => '激活错误',
+    'network_error' => '网络错误',
   ),
   'dashboard' => 
   array (

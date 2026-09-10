@@ -7764,6 +7764,14 @@ return array (
     'title' => '404 No Encontrado',
     'page_title' => '404 — Página No Encontrada',
     'message' => 'Ruta no encontrada:',
+    'module_inactive' => 'Este módulo no está activado. Vaya a Administración \u2192 Módulos y haga clic en \u00abActivar\u00bb.',
+    'activate_module' => 'Activar módulo',
+    'go_modules' => 'Ir a módulos',
+    'activating' => 'Activando {module}\u2026',
+    'module_activated' => '\u2713 Módulo activado.',
+    'open_module' => 'Abrir módulo \u2192',
+    'activation_error' => 'Error de activación',
+    'network_error' => 'Error de red',
   ),
   'notifications' => 
   array (

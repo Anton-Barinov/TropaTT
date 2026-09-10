@@ -7764,6 +7764,14 @@ return array (
     'title' => '404 Introuvable',
     'page_title' => '404 — Page introuvable',
     'message' => 'Route introuvable :',
+    'module_inactive' => 'Ce module n\'est pas activé. Allez dans Administration \u2192 Modules et cliquez sur \u00abActiver\u00bb.',
+    'activate_module' => 'Activer le module',
+    'go_modules' => 'Aller aux modules',
+    'activating' => 'Activation de {module}\u2026',
+    'module_activated' => '\u2713 Module activé.',
+    'open_module' => 'Ouvrir le module \u2192',
+    'activation_error' => 'Erreur d\'activation',
+    'network_error' => 'Erreur réseau',
   ),
   'notifications' => 
   array (

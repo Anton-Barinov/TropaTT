@@ -7764,6 +7764,14 @@ return array (
     'title' => '404 Nicht gefunden',
     'page_title' => '404 — Seite nicht gefunden',
     'message' => 'Route nicht gefunden:',
+    'module_inactive' => 'Dieses Modul ist nicht aktiviert. Gehen Sie zu Verwaltung \u2192 Module und klicken Sie auf \u00abAktivieren\u00bb.',
+    'activate_module' => 'Modul aktivieren',
+    'go_modules' => 'Zu den Modulen',
+    'activating' => 'Aktivierung {module}\u2026',
+    'module_activated' => '\u2713 Modul aktiviert.',
+    'open_module' => 'Modul \u00f6ffnen \u2192',
+    'activation_error' => 'Aktivierungsfehler',
+    'network_error' => 'Netzwerkfehler',
   ),
   'notifications' => 
   array (
