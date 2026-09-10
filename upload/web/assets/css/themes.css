@@ -1706,6 +1706,226 @@ html[data-theme="contrast"] .crm-footer-update-badge {
   color: var(--crm-text) !important;
 }
 
+/* ============================ GRAPHITE THEME ============================
+   Dark graphite palette with terracotta accent and muted green (owner spec).
+   Implementation is a dark PALETTE OVERLAY, not a copy of the dark layer:
+   the page keeps `data-theme="dark"` (so all ~300 dark component repairs —
+   Bootstrap surfaces, segmented controls, nav, forms, cards — apply as-is)
+   and adds `data-theme-palette="graphite"`, which swaps only the token
+   values below. Tokens that the overlay does not redeclare (calendar event
+   hues, visual-editor accents) inherit the dark defaults via the shared
+   selector at the end of this section. */
+html[data-theme-palette="graphite"] {
+  color-scheme: dark;
+  scrollbar-color: color-mix(in srgb, var(--crm-accent) 45%, transparent) var(--crm-surface-muted);
+
+  --crm-ink: #FCFFFF;
+  --crm-on-accent: #ffffff;
+  --crm-priority-high: #e8957d;
+  /* Deep task-tree nesting accents — brighter for legibility on graphite */
+  --crm-tree-level-3: #b8a6f5;
+  --crm-tree-level-deep: #ee9ff0;
+
+  /* Legacy semantic aliases — graphite equivalents */
+  --crm-muted: #828894;
+  --crm-bg-hover: #1B1F24;
+  --crm-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --crm-accent-bg: rgba(216, 119, 84, 0.1);
+  --crm-bg-inverse: #20252B;
+  --crm-text-inverse: #FCFFFF;
+  --crm-bg-secondary: #1B1F24;
+  --crm-bg-subtle: #15191E;
+  --crm-border-light: rgba(255, 255, 255, 0.06);
+  --crm-green: #169979;
+  --crm-text-secondary: #828894;
+  --color-primary-200: #3d2c25;
+  --color-primary-300: #6b4030;
+
+  --crm-bg: #0F1217;
+  --crm-bg-deep: #0B0E12;
+  --crm-surface: #15191E;
+  --crm-surface-2: #1B1F24;
+  --crm-surface-muted: #12161B;
+  --crm-surface-soft: #171C22;
+  --crm-control-bg: #20252B;
+  --crm-control-bg-muted: #171C22;
+
+  --crm-border: #272C32;
+  --crm-border-strong: #3C434B;
+  --crm-border-soft: #20252B;
+
+  /* Modal/offcanvas/drawer/popover surfaces — graphite glass */
+  --crm-modal-bg-top: rgba(21, 25, 30, 0.97);
+  --crm-modal-bg-bottom: rgba(15, 18, 23, 0.98);
+  --crm-modal-accent: rgba(216, 119, 84, 0.14);
+  --crm-modal-border: rgba(60, 67, 75, 0.55);
+  --crm-popover-bg: rgba(21, 25, 30, 0.97);
+  --crm-popover-border: rgba(60, 67, 75, 0.55);
+
+  --crm-text: #EBEFF2;
+  --crm-text-muted: #828894;
+  --crm-text-soft: #6E747E;
+
+  --crm-accent: #D87754;
+  --crm-accent-strong: #C96845;
+  --crm-primary: #D87754;
+  --crm-primary-hover: #E88964;
+  --crm-primary-soft: #33241E;
+  --crm-primary-border: #5C3A2C;
+
+  --crm-success: #169979;
+  --crm-success-soft: #122B24;
+  --crm-warning: #E8B64D;
+  --crm-warning-soft: #33270F;
+  --crm-warning-border: #5C481E;
+  --crm-danger: #F07468;
+  --crm-danger-soft: #331A16;
+  --crm-danger-border: #5F2C26;
+  --crm-info: #57BFD4;
+  --crm-info-soft: #12252C;
+
+  --crm-focus: rgba(216, 119, 84, 0.24);
+  --crm-focus-ring: #D87754;
+
+  /* Loading/status overlay toast — terracotta needs a dark enough base for
+     white text (same guard as the dark theme's --crm-status-bg). */
+  --crm-status-bg: #B45534;
+  --crm-error-bg: #B54038;
+
+  --color-primary-50: #2A1C15;
+  --color-primary-100: #33241E;
+  --color-primary-500: #D87754;
+  --color-primary-600: #C96845;
+  --color-primary-700: #E88964;
+
+  --color-neutral-0: #ffffff;
+  --color-neutral-50: #10141A;
+  --color-neutral-100: #15191E;
+  --color-neutral-200: #272C32;
+  --color-neutral-300: #3C434B;
+  --color-neutral-500: #828894;
+  --color-neutral-700: #B7BDC6;
+  --color-neutral-900: #FCFFFF;
+
+  --color-danger-50: #2B1512;
+  --color-danger-100: #3B1D19;
+  --color-danger-500: #F07468;
+  --color-danger-600: #F28C82;
+
+  --color-warning-50: #2D2310;
+  --color-warning-100: #3D3115;
+  --color-warning-500: #E8B64D;
+  --color-warning-600: #EFC46B;
+
+  --color-info-50: #12252C;
+  --color-info-100: #17333D;
+  --color-info-500: #57BFD4;
+  --color-info-600: #74CDDE;
+
+  --color-success-50: #0F241E;
+  --color-success-100: #143128;
+  --color-success-600: #169979;
+
+  /* Bootstrap bridge — native BS components follow the graphite palette. */
+  --bs-primary: #D87754;
+  --bs-primary-rgb: 216, 119, 84;
+  --bs-primary-bg-subtle: #33241E;
+  --bs-primary-border-subtle: #5C3A2C;
+  --bs-primary-text-emphasis: #E88964;
+  --bs-info: #169979;
+  --bs-info-rgb: 22, 153, 121;
+  --bs-info-bg-subtle: #122B24;
+  --bs-info-border-subtle: #1F4A3E;
+  --bs-info-text-emphasis: #3DBD9E;
+  --bs-link-color: #E88964;
+  --bs-link-hover-color: #D87754;
+  --bs-link-color-rgb: 232, 137, 100;
+  --bs-link-hover-color-rgb: 216, 119, 84;
+
+  --bs-body-bg: #0F1217;
+  --bs-body-bg-rgb: 15, 18, 23;
+  --bs-body-color: #EBEFF2;
+  --bs-body-color-rgb: 235, 239, 242;
+  --bs-secondary-color: #828894;
+  --bs-secondary-color-rgb: 130, 136, 148;
+  --bs-secondary-bg: #1B1F24;
+  --bs-tertiary-bg: #12161B;
+  --bs-emphasis-color: #FCFFFF;
+  --bs-emphasis-color-rgb: 252, 255, 255;
+  --bs-border-color: #272C32;
+  --bs-border-color-rgb: 39, 44, 50;
+
+  --bs-dropdown-bg: #1B1F24;
+  --bs-dropdown-color: #EBEFF2;
+  --bs-dropdown-border-color: #3C434B;
+  --bs-dropdown-link-color: #EBEFF2;
+  --bs-dropdown-link-hover-bg: rgba(216, 119, 84, 0.12);
+  --bs-dropdown-link-hover-color: #FCFFFF;
+  --bs-dropdown-link-active-bg: #D87754;
+  --bs-dropdown-link-active-color: #ffffff;
+  --bs-popover-bg: #1B1F24;
+  --bs-popover-border-color: #3C434B;
+  --bs-table-color: #EBEFF2;
+  --bs-table-color-rgb: 235, 239, 242;
+  --bs-table-bg: transparent;
+  --bs-table-border-color: #272C32;
+  --bs-table-striped-bg: rgba(255, 255, 255, 0.02);
+  --bs-table-hover-bg: rgba(216, 119, 84, 0.08);
+
+  /* Shadows become deeper on graphite surfaces. */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 1px 3px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 1px 3px rgba(0, 0, 0, 0.45), 0 8px 24px rgba(0, 0, 0, 0.4);
+  --crm-shadow-soft: 0 10px 24px rgba(0, 0, 0, 0.35);
+  --crm-shadow-card: 0 16px 42px rgba(0, 0, 0, 0.45);
+  --crm-shadow-hover: 0 24px 56px rgba(0, 0, 0, 0.55);
+}
+
+/* Tokens the overlay does not redeclare inherit the dark defaults: calendar
+   event hues, visual-editor accents, ::selection, body transition. Keep the
+   shared selector in sync if new dark-scoped token groups are added. */
+html[data-theme="dark"],
+html[data-theme-palette="graphite"] {
+  --crm-cal-teal-bg: #0F2B28;
+  --crm-cal-teal-border: #1E4A43;
+  --crm-cal-teal-accent: #169979;
+  --crm-cal-teal-text: #BCE8E0;
+  --crm-cal-violet-bg: #241D3D;
+  --crm-cal-violet-border: #3D3170;
+  --crm-cal-violet-accent: #A78BFA;
+  --crm-cal-violet-text: #DDD4FF;
+  --crm-cal-warning-bg: #33270F;
+  --crm-cal-warning-border: #5E4A1A;
+  --crm-cal-warning-accent: #E8B64D;
+  --crm-cal-warning-text: #F4D99A;
+  --crm-cal-success-bg: #10301F;
+  --crm-cal-success-border: #1D5233;
+  --crm-cal-success-accent: #169979;
+  --crm-cal-success-text: #C6ECD6;
+  --crm-cal-danger-bg: #331A16;
+  --crm-cal-danger-border: #63302A;
+  --crm-cal-danger-accent: #F07468;
+  --crm-cal-danger-text: #F4C4BF;
+
+  --crm-ve-accent: var(--crm-primary);
+  --crm-ve-accent-light: color-mix(in srgb, var(--crm-primary) 16%, transparent);
+  --crm-ve-surface: #15191E;
+  --crm-ve-surface-soft: #1B2421;
+  --crm-ve-border: #2A3A33;
+  --crm-ve-border-strong: #3B4F46;
+  --crm-ve-text: #EBEFF2;
+  --crm-ve-text-muted: #828894;
+  --crm-ve-danger: #F07468;
+  --crm-ve-success: #169979;
+}
+
+html[data-theme="dark"] body,
+html[data-theme-palette="graphite"] body,
+html[data-theme="dark"] .crm-app,
+html[data-theme-palette="graphite"] .crm-app {
+  transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
+}
+
 /* ============================== SEPIA THEME ==============================
    Warm parchment palette. A light theme, so it overrides ONLY token values:
    the token architecture means zero component repairs are required for a

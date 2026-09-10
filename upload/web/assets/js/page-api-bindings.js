@@ -13378,10 +13378,12 @@ window.CRM.pageApiBindings = (function () {
           }
           // Persist the theme choice server-side immediately (like the old
           // header switcher): survives reloads and syncs across devices.
+          // The endpoint expects the { preferences: {...} } envelope (same as
+          // the profile Save button) — a bare { theme } is rejected with 422.
           if (window.CRM.api && typeof window.CRM.api.request === 'function') {
             window.CRM.api.request('api/v1/profile/preferences', {
               method: 'PATCH',
-              body: { theme: themeSelect.value },
+              body: { preferences: { theme: themeSelect.value } },
               silent: true
             }).catch(function () {
               // ignore persistence errors

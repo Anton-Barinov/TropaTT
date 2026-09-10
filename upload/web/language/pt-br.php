@@ -8173,6 +8173,7 @@ return array (
     'opt_theme_contrast' => 'Alto contraste',
     'hint_theme_contrast' => 'Alto contraste para leitura confortável',
     'opt_theme_sepia' => 'Sépia (quente)',
+    'opt_theme_graphite' => 'Grafite (escura, destaque terracota)',
     'note_theme' => 'Depois de escolher o tema, não se esqueça de clicar em «Salvar alterações».',
     'section_notifications' => 'Notificações',
     'note_notifications' => 'Canais de alerta e frequência das notificações do serviço.',

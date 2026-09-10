@@ -8,7 +8,7 @@ window.CRM.api = (function () {
 
   window.CRM.theme = (function () {
     var STORAGE_KEY = 'crm_theme';
-    var THEMES = ['light', 'dark', 'contrast', 'sepia'];
+    var THEMES = ['light', 'dark', 'contrast', 'sepia', 'graphite'];
 
     function normalize(value) {
       var candidate = String(value || '').trim().toLowerCase();
@@ -25,7 +25,17 @@ window.CRM.api = (function () {
 
     function apply(name) {
       var theme = normalize(name);
-      document.documentElement.setAttribute('data-theme', theme);
+      // Graphite reuses the dark component-repair layer (data-theme="dark")
+      // and only swaps token values via the palette attribute, mirroring the
+      // pre-paint mapping in header.php.
+      var palette = theme === 'graphite' ? 'graphite' : '';
+      var dataTheme = theme === 'graphite' ? 'dark' : theme;
+      document.documentElement.setAttribute('data-theme', dataTheme);
+      if (palette !== '') {
+        document.documentElement.setAttribute('data-theme-palette', palette);
+      } else {
+        document.documentElement.removeAttribute('data-theme-palette');
+      }
       try {
         localStorage.setItem(STORAGE_KEY, theme);
       } catch (e) {}

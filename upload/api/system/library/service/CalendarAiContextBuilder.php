@@ -56,6 +56,7 @@ final class CalendarAiContextBuilder
                 'parent_task_public_id' => (string)($row['parent_task_public_id'] ?? ''),
             ];
         }, $candidateTasks);
+        $candidateTasks = array_values(array_slice($candidateTasks, 0, 20));
 
         return [
             'agenda' => $agenda,

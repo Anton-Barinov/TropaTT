@@ -145,9 +145,14 @@ final class TaskAiContextBuilder
             $context['subtasks'] = $subtasks;
         }
 
-        $comments = $this->buildCommentsContext($taskPublicId, $actor);
+        $commentsResult = $this->buildCommentsContext($taskPublicId, $actor);
+        $comments = $commentsResult['items'] ?? [];
         if ($comments !== []) {
             $context['comments'] = $comments;
+        }
+        if (!empty($commentsResult['truncated'])) {
+            $context['comments_truncated'] = true;
+            $context['total_comments_count'] = (int)($commentsResult['total_count'] ?? 0);
         }
 
         $checklists = $this->buildChecklistsContext($taskPublicId, $actor);
@@ -223,12 +228,17 @@ final class TaskAiContextBuilder
     {
         $commentsData = $this->comments->listByTask($taskPublicId, ['limit' => 50, 'page' => 1]);
         $items = $commentsData['items'] ?? [];
+        $totalCommentsCount = (int)($commentsData['total'] ?? count($items));
         if ($items === []) {
-            return [];
+            return ['items' => [], 'truncated' => false, 'total_count' => 0];
         }
 
         $result = [];
+        $maxComments = 20;
         foreach ($items as $comment) {
+            if (count($result) >= $maxComments) {
+                break;
+            }
             $body = trim((string)($comment['body'] ?? ''));
             if ($body === '') {
                 continue;
@@ -242,7 +252,11 @@ final class TaskAiContextBuilder
             ];
         }
 
-        return $result;
+        return [
+            'items' => $result,
+            'truncated' => count($result) >= $maxComments && $totalCommentsCount > $maxComments,
+            'total_count' => $totalCommentsCount,
+        ];
     }
 
     /**
