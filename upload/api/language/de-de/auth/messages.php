@@ -6,6 +6,7 @@ return [
     'token_required' => 'Authorization token is required',
     'session_not_found' => 'Session not found or already revoked',
     'bearer_required' => 'Provide Bearer token',
+    'bearer_invalid' => 'Invalid bearer token or API key',
     'me' => 'Current user profile',
     'rate_limited' => 'Too many login attempts. Try again later',
     'array_expected' => 'Array erwartet',

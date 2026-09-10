@@ -14,7 +14,7 @@ TropaTT CRM ships an embedded MCP server — a JSON-RPC 2.0 interface that gives
 | Protocol version | `2025-06-18` |
 | Batch requests | Supported (JSON array) |
 | Notifications | Supported (messages without id) |
-| MCP tools | 567 |
+| MCP tools | ~607 in the full catalog; `tools/list` defaults to the ~53-tool `core` profile |
 | MCP resources | 5 |
 | MCP prompts | 0 |
 
@@ -88,6 +88,8 @@ MCP mirrors the REST API but provides a safe layer between agents and the CRM:
 - **Authorization: Bearer `<access_token>`**
 - The same token is used as for the REST API
 - User tokens and API client keys are supported
+- A missing `Authorization` header and an invalid key are reported differently: the 401 error `data.auth_status` is `missing` when no credentials were sent and `invalid` when the provided token/key was not accepted
+- The `MCP-Protocol-Version` header is optional; when omitted, `2025-06-18` is assumed
 
 ### RBAC
 
@@ -100,6 +102,25 @@ All write tools (create/update/delete) require the matching permission. User/rol
 ### Audit log
 
 AI actions are logged via AiJobService/AiAuditService; import/export and workflow runs are also logged.
+
+---
+
+## Toolsets (profiles)
+
+The full MCP catalog is large (600+ tools). To avoid loading it all into every agent session, `tools/list` returns a curated **`core`** profile by default (~53 tools: profile, search, dashboard, notifications, activity, and basic read/create for the main entities). Domain profiles are available:
+
+| Profile | Scope |
+|---------|-------|
+| `core` (default) | Profile, search, dashboard, notifications, activity, basic task/project/people/kb/time reads |
+| `tasks` | Tasks, subtasks, comments, tags, checklists, dependencies, relations, estimates, board, saved views, recurring rules, reminders, SLA, workflow rules, approvals |
+| `projects` | Projects, milestones, cycles, project modules, Gantt, summary/risks, templates, client cabinet |
+| `kb` | Knowledge base: spaces, pages, versions, comments, tags, links, files, export/import, knowledge AI |
+| `people` | Users, teams, departments, roles, clients, counterparties, companies, contacts, organizations, invitations |
+| `time` | Worklogs, calendar events, business calendars, holidays, working hours |
+| `admin` | Settings, cache, modules, core updates, ops, API clients, webhooks, logs, custom fields, intake, import/export, recycle bin, AI configuration and jobs |
+| `all` | The full permission-visible catalog (opt-in) |
+
+Request a profile by appending `?toolset=tasks` to the MCP endpoint URL or by passing `"params": {"toolset": "tasks"}` to `tools/list`; comma-separated values build a union (`?toolset=tasks,projects`). Call `tools/listToolsets` (or read `tropatt://server/toolsets`) for the machine-readable catalog with per-profile counts. Tools not assigned to any profile remain callable by name and are listed under `all`.
 
 ---
 
@@ -1105,4 +1126,4 @@ MCP mirrors the REST API through a safe layer. Below is the mapping of key tools
 
 ---
 
-* Data source: McpController.php and the mcp_permissions.php permission registry. Documentation is kept in sync with the code.
+* Data source: McpController.php, the mcp_permissions.php permission registry and the mcp_toolsets.php toolset profiles. Documentation is kept in sync with the code.
