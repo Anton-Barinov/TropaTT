@@ -255,6 +255,10 @@ final class App
                     /** @var LanguageManager $lang */
                     $lang = $this->container->get('lang');
                     if ($routePath === '/api/v1/mcp') {
+                        // Distinguish "no credentials provided" from "credentials
+                        // provided but not accepted" so MCP clients can tell a
+                        // missing Authorization header from a bad key.
+                        $authIssue = $this->mcpAuthIssue();
                         $response = new RawJsonResponse([
                             'jsonrpc' => '2.0',
                             'id' => null,
@@ -262,7 +266,10 @@ final class App
                                 'code' => -32001,
                                 'message' => $lang->get('common/messages.unauthorized', 'Unauthorized'),
                                 'data' => [
-                                    'auth' => $lang->get('auth/messages.bearer_required', 'Provide Bearer token'),
+                                    'auth' => $authIssue === 'missing'
+                                        ? $lang->get('auth/messages.bearer_required', 'Provide Bearer token')
+                                        : $lang->get('auth/messages.bearer_invalid', 'Invalid bearer token or API key'),
+                                    'auth_status' => $authIssue,
                                 ],
                             ],
                         ], 401, [
@@ -2075,6 +2082,25 @@ final class App
         }
 
         return hash('sha256', strtoupper($request->method) . '|' . strtolower(trim($routePath)) . '|' . $actorPart);
+    }
+
+    /**
+     * For MCP 401 responses: distinguish "no credentials were provided at all"
+     * ('missing') from "credentials were provided but not accepted" ('invalid'),
+     * so a client can tell a missing Authorization header from a bad key.
+     */
+    private function mcpAuthIssue(): string
+    {
+        /** @var Request $request */
+        $request = $this->container->get('request');
+        if ($request->bearerToken() !== null && $request->bearerToken() !== '') {
+            return 'invalid';
+        }
+        $cookieName = (string)$this->config->get('security.auth.cookie.name', 'crm_api_session');
+        if (trim((string)$request->cookie($cookieName, '')) !== '') {
+            return 'invalid';
+        }
+        return 'missing';
     }
 
     private function authenticate(): ?array

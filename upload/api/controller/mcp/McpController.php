@@ -195,7 +195,8 @@ final class McpController extends BaseController
                 'ping' => new \stdClass(),
                 'resources/list' => ['resources' => $this->resources()],
                 'resources/read' => $this->readResource($params),
-                'tools/list' => ['tools' => $this->tools()],
+                'tools/list' => $this->listTools($params),
+                'tools/listToolsets' => $this->listToolsets(),
                 'tools/call' => $this->callTool($params),
                 'notifications/initialized' => null,
                 default => $this->methodNotFound($method),
@@ -262,9 +263,17 @@ final class McpController extends BaseController
                 'tropatt://server/tools',
                 'tools',
                 'Available MCP Tools',
-                'Tool list visible to the current authenticated CRM user.',
+                'Full permission-filtered tool list visible to the current authenticated CRM user.',
                 'application/json',
                 0.95
+            ),
+            $this->resource(
+                'tropatt://server/toolsets',
+                'toolsets',
+                'MCP Toolset Profiles',
+                'Curated toolset profiles (core, tasks, projects, kb, people, time, admin) with permission-filtered tool names and counts.',
+                'application/json',
+                0.9
             ),
             $this->resource(
                 'tropatt://server/api-map',
@@ -307,6 +316,7 @@ final class McpController extends BaseController
         $content = match ($uri) {
             'tropatt://server/about' => $this->textResource($uri, 'text/markdown', $this->mcpAboutMarkdown()),
             'tropatt://server/tools' => $this->textResource($uri, 'application/json', json_encode(['tools' => $this->tools()], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) ?: '{}'),
+            'tropatt://server/toolsets' => $this->textResource($uri, 'application/json', json_encode($this->listToolsets(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) ?: '{}'),
             'tropatt://server/api-map' => $this->textResource($uri, 'text/markdown', $this->apiMapMarkdown()),
             'tropatt://server/api-endpoints' => !$this->can('settings.manage') ? null : $this->textResource($uri, 'application/json', json_encode(['endpoints' => $this->apiEndpointsIndex()], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) ?: '{}'),
             'tropatt://user/current' => $this->textResource($uri, 'application/json', json_encode($this->crmGetCurrentUser(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) ?: '{}'),
@@ -372,14 +382,24 @@ Send the same bearer access token used by the REST API:
 
 The server uses the current CRM user, existing RBAC permissions and entity access checks. MCP tools never expose passwords, token hashes, secrets, local paths or internal numeric IDs unless the field is intentionally public.
 
+## Toolsets (profiles)
+
+The full MCP catalog is large (600+ tools). Loading all of it into every agent session wastes context tokens and makes tool selection harder, so `tools/list` returns a curated `core` profile by default. Clients that work with one domain should request only that domain:
+
+- URL: append `?toolset=tasks` (or `&toolset=tasks,projects` for a union) to the MCP endpoint URL.
+- JSON-RPC: pass `"params": {"toolset": "tasks"}` to `tools/list`.
+
+Available profiles: `core` (default), `tasks`, `projects`, `kb`, `people`, `time`, `admin`, and `all` (the full permission-visible catalog, opt-in). Call `tools/listToolsets` or read `tropatt://server/toolsets` for the machine-readable catalog with per-profile counts. Tools not assigned to any profile are still callable by name and visible under `all`.
+
 ## Recommended Agent Workflow
 
 1. Call `initialize`.
-2. Call `resources/read` for `tropatt://server/tools` and `tropatt://user/current`.
-3. Use read tools first to inspect tasks, projects, ideas, chats, calendar and knowledge.
-4. Use write tools only after the user intent is clear.
-5. Prefer public identifiers such as `task_public_id`, `project_public_id`, `idea_public_id`, `chat_public_id`.
-6. Read `tropatt://server/api-endpoints` when you need the live REST route inventory before selecting a tool or designing a fallback.
+2. Call `tools/listToolsets` (or read `tropatt://server/toolsets`) to choose the narrowest profile for the task; request `?toolset=<profile>` if your client can configure the endpoint URL.
+3. Call `resources/read` for `tropatt://user/current`.
+4. Use read tools first to inspect tasks, projects, ideas, chats, calendar and knowledge.
+5. Use write tools only after the user intent is clear.
+6. Prefer public identifiers such as `task_public_id`, `project_public_id`, `idea_public_id`, `chat_public_id`.
+7. Read `tropatt://server/api-endpoints` when you need the live REST route inventory before selecting a tool or designing a fallback.
 MD;
     }
 
@@ -401,6 +421,10 @@ The REST API remains the full integration surface. MCP is a safe agent-facing la
 - Knowledge base: spaces, pages, comments, permissions, versions, locks, tags, files and export/import.
 - Ideas and AI: ideas, AI analysis pipeline, AI suggestions, providers, jobs and semantic search.
 - Automation and admin: workflow rules, webhooks, modules, audit logs, settings, feature flags, retention and recycle bin.
+
+## MCP Toolsets
+
+MCP `tools/list` defaults to the `core` profile (a curated cross-domain starter set). Domain-specific profiles are available: `tasks`, `projects`, `kb`, `people`, `time`, `admin`, and `all` for the full catalog. Request one with `?toolset=<name>` on the endpoint URL or `"params": {"toolset": "<name>"}` on `tools/list`; `tools/listToolsets` lists the profiles.
 
 ## Endpoint Discovery
 
@@ -2884,6 +2908,134 @@ MD;
         ], ['entity_type', 'public_id']);
 
         return $tools;
+    }
+
+    /**
+     * Toolset profiles (core/tasks/projects/kb/people/time/admin) defined in
+     * api/config/mcp_toolsets.php. `all` is implicit: the full catalog.
+     *
+     * @return array<string,array{title:string,description:string,tools:array<int,string>}>
+     */
+    private function toolsetConfig(): array
+    {
+        $config = require dirname(__DIR__, 2) . '/config/mcp_toolsets.php';
+        return is_array($config) ? $config : [];
+    }
+
+    /**
+     * Resolve the requested toolset for tools/list: JSON-RPC params.toolset
+     * wins, then the `?toolset=` URL query parameter (usable from the MCP
+     * endpoint URL), then the `core` default. Comma-separated values build a
+     * union of profiles. Returns '' when any requested profile is unknown.
+     */
+    private function requestedToolset(array $params): string
+    {
+        $raw = trim((string)($params['toolset'] ?? ''));
+        if ($raw === '') {
+            $raw = trim((string)$this->request()->input('toolset', ''));
+        }
+        $raw = strtolower($raw);
+        if ($raw === '') {
+            return 'core';
+        }
+
+        $parts = array_values(array_filter(
+            array_map('trim', explode(',', $raw)),
+            static fn(string $value): bool => $value !== ''
+        ));
+        if ($parts === []) {
+            return 'core';
+        }
+
+        $config = $this->toolsetConfig();
+        foreach ($parts as $part) {
+            if ($part !== 'all' && !isset($config[$part])) {
+                return '';
+            }
+        }
+
+        return implode(',', $parts);
+    }
+
+    /**
+     * tools/list handler. Defaults to the `core` profile so agent sessions do
+     * not pay the full catalog cost by default; `?toolset=all` (URL or params)
+     * opts back into every permission-visible tool.
+     */
+    private function listTools(array $params): array
+    {
+        $toolset = $this->requestedToolset($params);
+        if ($toolset === '') {
+            $available = array_keys($this->toolsetConfig());
+            $available[] = 'all';
+            return [
+                'jsonrpc_error' => true,
+                'code' => -32602,
+                'message' => 'Unknown toolset. Available toolsets: ' . implode(', ', $available) . '.',
+            ];
+        }
+
+        return ['tools' => $this->toolsForToolset($toolset)];
+    }
+
+    /**
+     * Filter the permission-visible catalog down to one or more toolset
+     * profiles (comma-separated union). `all` returns the full catalog.
+     */
+    private function toolsForToolset(string $toolset): array
+    {
+        $all = $this->tools();
+        if ($toolset === 'all') {
+            return $all;
+        }
+
+        $config = $this->toolsetConfig();
+        $names = [];
+        foreach (explode(',', $toolset) as $part) {
+            foreach ((array)($config[$part]['tools'] ?? []) as $name) {
+                $names[] = $name;
+            }
+        }
+        $nameSet = array_flip($names);
+
+        return array_values(array_filter($all, static function (array $tool) use ($nameSet): bool {
+            return isset($nameSet[$tool['name']]);
+        }));
+    }
+
+    /**
+     * tools/listToolsets: machine-readable catalog of every toolset profile
+     * with the tool names the current user may actually call (permission
+     * filtered) and per-profile counts.
+     */
+    private function listToolsets(): array
+    {
+        $all = $this->tools();
+        $allNames = array_flip(array_map(
+            static fn(array $tool): string => (string)$tool['name'],
+            $all
+        ));
+
+        $toolsets = [];
+        foreach ($this->toolsetConfig() as $key => $profile) {
+            $tools = array_values(array_filter(
+                (array)($profile['tools'] ?? []),
+                static fn(string $name): bool => isset($allNames[$name])
+            ));
+            $toolsets[] = [
+                'name' => $key,
+                'title' => (string)($profile['title'] ?? $key),
+                'description' => (string)($profile['description'] ?? ''),
+                'count' => count($tools),
+                'tools' => $tools,
+            ];
+        }
+
+        return [
+            'default' => 'core',
+            'toolsets' => $toolsets,
+            'all_count' => count($all),
+        ];
     }
 
     private function callTool(array $params): array

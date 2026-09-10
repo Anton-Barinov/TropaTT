@@ -6,6 +6,7 @@ return [
     'token_required' => 'Le jeton d\'autorisation est requis',
     'session_not_found' => 'Session introuvable ou déjà révoquée',
     'bearer_required' => 'Fournir un jeton Bearer',
+    'bearer_invalid' => 'Jeton Bearer ou clé API invalide',
     'me' => 'Profil de l\'utilisateur actuel',
     'rate_limited' => 'Trop de tentatives de connexion. Réessayez plus tard',
     'array_expected' => 'Tableau attendu',

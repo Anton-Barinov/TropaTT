@@ -6,6 +6,7 @@ return [
     'token_required' => '需要授权 Token',
     'session_not_found' => '会话未找到或已结束',
     'bearer_required' => '请提供 Bearer Token',
+    'bearer_invalid' => '无效的 Bearer Token 或 API 密钥',
     'me' => '当前用户资料',
     'rate_limited' => '登录尝试次数过多，请稍后重试',
     'array_expected' => '需要数组',

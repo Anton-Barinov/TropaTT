@@ -14,7 +14,7 @@ TropaTT CRM 内置一个 MCP 服务器——一个 JSON-RPC 2.0 接口，通过�
 | 协议版本 | `2025-06-18` |
 | 批量请求 | 支持（JSON 数组） |
 | 通知 | 支持（不带 id 的消息） |
-| MCP 工具 | 567 |
+| MCP 工具 | 完整目录约 607 个；`tools/list` 默认返回 core 配置文件（约 53 个工具） |
 | MCP 资源 | 5 |
 | MCP Prompts | 0 |
 
@@ -88,6 +88,8 @@ MCP 镜像 REST API，但在代理与 CRM 之间提供安全层：
 - **Authorization: Bearer `<access_token>`**
 - 使用与 REST API 相同的令牌
 - 支持用户令牌和 API 客户端密钥
+- 缺少 `Authorization` 头与密钥无效会区分报告：401 错误的 `data.auth_status` 在未发送凭据时为 `missing`，在提供的令牌/密钥未被接受时为 `invalid`
+- `MCP-Protocol-Version` 头是可选的；省略时假定为 `2025-06-18`
 
 ### RBAC
 
@@ -100,6 +102,25 @@ MCP 镜像 REST API，但在代理与 CRM 之间提供安全层：
 ### 审计日志
 
 AI 操作通过 AiJobService/AiAuditService 记录；导入/导出和工作流运行也会记录。
+
+---
+
+## 工具集（配置文件）
+
+完整的 MCP 目录很大（600+ 个工具）。为避免在每个代理会话中都加载全部工具，`tools/list` 默认返回精选的 **`core`** 配置文件（约 53 个工具：个人资料、搜索、仪表盘、通知、活动，以及主要实体的基本读取/创建）。按领域提供配置文件：
+
+| 配置文件 | 范围 |
+|---------|-------|
+| `core`（默认） | 个人资料、搜索、仪表盘、通知、活动、任务/项目/人员/知识库/时间的基本读取 |
+| `tasks` | 任务、子任务、评论、标签、清单、依赖、关联、估算、看板、保存视图、循环规则、提醒、SLA、工作流规则、审批 |
+| `projects` | 项目、里程碑、周期、项目模块、甘特图、摘要/风险、模板、客户门户 |
+| `kb` | 知识库：空间、页面、版本、评论、标签、链接、文件、导出/导入、知识 AI |
+| `people` | 用户、团队、部门、角色、客户、对方单位、公司、联系人、组织、邀请 |
+| `time` | 工时、日历事件、工作日历、节假日、工作时间 |
+| `admin` | 设置、缓存、模块、核心更新、运维、API 客户端、Webhook、日志、自定义字段、Intake、导入/导出、回收站、AI 配置与任务 |
+| `all` | 完整的权限可见目录（可选） |
+
+通过向 MCP 端点 URL 追加 `?toolset=tasks` 或向 `tools/list` 传递 `"params": {"toolset": "tasks"}` 来请求配置文件；逗号分隔的值构成并集（`?toolset=tasks,projects`）。调用 `tools/listToolsets`（或读取 `tropatt://server/toolsets`）可获取机器可读的目录及各配置文件计数。未分配到任何配置文件的工具仍可按名称调用，并在 `all` 下列出。
 
 ---
 
@@ -1105,4 +1126,4 @@ MCP 通过安全层镜像 REST API。下面是关键工具与 REST 端点的映�
 
 ---
 
-* 数据来源：McpController.php 和 mcp_permissions.php 权限注册表。文档与代码保持同步。
+* 数据来源：McpController.php、mcp_permissions.php 权限注册表和 mcp_toolsets.php 工具集配置文件。文档与代码保持同步。
