@@ -391,15 +391,30 @@ The full MCP catalog is large (600+ tools). Loading all of it into every agent s
 
 Available profiles: `core` (default), `tasks`, `projects`, `kb`, `people`, `time`, `admin`, and `all` (the full permission-visible catalog, opt-in). Call `tools/listToolsets` or read `tropatt://server/toolsets` for the machine-readable catalog with per-profile counts. Tools not assigned to any profile are still callable by name and visible under `all`.
 
+## Mega-tools (consolidated intent-based)
+
+The `core` profile uses **mega-tools** — consolidated tools that cover an entire domain with an `action` parameter:
+
+- `crm_task` — ALL task operations (list, get, create, update, delete, move, comments, subtasks, tags, checklists, dependencies, relations, estimates, board, activity)
+- `crm_project` — ALL project operations (list, get, create, update, delete, summary, risks, timeline, milestones, cycles, modules, templates)
+- `crm_people` — users, teams, departments, roles, invitations, impersonation
+- `crm_crm` — clients, counterparties, companies, contacts, organizations
+- `crm_time` — worklogs, calendar, business calendars, holidays, working hours
+- `crm_knowledge` — knowledge base: spaces, pages, versions, comments, tags, files, AI helpers
+- `crm_ai` — AI actions, suggestions, providers, jobs, semantic search
+- `crm_admin` — settings, cache, modules, updates, API clients, webhooks, logs
+
+Existing fine-grained CRUD tools remain available via `all` profile and are callable by name.
+
 ## Recommended Agent Workflow
 
 1. Call `initialize`.
-2. Call `tools/listToolsets` (or read `tropatt://server/toolsets`) to choose the narrowest profile for the task; request `?toolset=<profile>` if your client can configure the endpoint URL.
-3. Call `resources/read` for `tropatt://user/current`.
-4. Use read tools first to inspect tasks, projects, ideas, chats, calendar and knowledge.
-5. Use write tools only after the user intent is clear.
-6. Prefer public identifiers such as `task_public_id`, `project_public_id`, `idea_public_id`, `chat_public_id`.
-7. Read `tropatt://server/api-endpoints` when you need the live REST route inventory before selecting a tool or designing a fallback.
+2. Call `tools/list` — the core profile returns ~24 tools (8 mega-tools + 16 regular). For domain-specific work, append `?toolset=<profile>` to the endpoint URL.
+3. Call `resources/read` for `tropatt://user/current` to verify authentication and see permissions.
+4. Use mega-tools with the appropriate `action` parameter. Each mega-tool description explains available actions and when to use them.
+5. Use write actions only after the user intent is clear. Confirm destructive actions (delete) before executing.
+6. Prefer public identifiers: `task_public_id` (tsk_...), `project_public_id` (prj_...), `user_public_id` (usr_...).
+7. If a mega-tool action doesn't cover your need, use the fine-grained CRUD tools from the `all` profile or call `tropatt://server/api-endpoints` for the REST route inventory.
 MD;
     }
 
