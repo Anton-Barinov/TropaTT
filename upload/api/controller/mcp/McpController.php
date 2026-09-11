@@ -4995,7 +4995,7 @@ $tools[] = $this->tool(
         // Delegated to the controller so the same side effects run as on the REST/UI path
         // (module hooks / webhook subscriptions, workflow triggers, cache invalidation).
         return $this->controllerResultWithKey(
-            $this->invokeControllerTool(UserController, 'create', $arguments, 'POST'),
+            $this->invokeControllerTool(UserController::class, 'create', $arguments, 'POST'),
             'user'
         );
     }
@@ -5008,7 +5008,7 @@ $tools[] = $this->tool(
         // Delegated to the controller so the same side effects run as on the REST/UI path
         // (module hooks / webhook subscriptions, workflow triggers, cache invalidation).
         return $this->controllerResultWithKey(
-            $this->invokeControllerTool(UserController, 'update', $arguments, 'PATCH', ['public_id']),
+            $this->invokeControllerTool(UserController::class, 'update', $arguments, 'PATCH', ['public_id']),
             'user'
         );
     }
@@ -5020,7 +5020,7 @@ $tools[] = $this->tool(
         }
         // Delegated to the controller so the same side effects run as on the REST/UI path
         // (module hooks / webhook subscriptions, workflow triggers, cache invalidation).
-        $result = $this->invokeControllerTool(UserController, 'delete', $arguments, 'DELETE', ['public_id']);
+        $result = $this->invokeControllerTool(UserController::class, 'delete', $arguments, 'DELETE', ['public_id']);
 
         return isset($result['error']) ? $result : ['deleted' => true];
     }
@@ -6937,7 +6937,7 @@ $tools[] = $this->tool(
         }
         // Delegated to the controller so the same side effects run as on the REST/UI path
         // (module hooks / webhook subscriptions, workflow triggers, cache invalidation).
-        return $this->invokeControllerTool(ProjectController, 'create', $arguments, 'POST');
+        return $this->invokeControllerTool(ProjectController::class, 'create', $arguments, 'POST');
     }
     private function crmUpdateProject(array $arguments): array
     {
@@ -6947,7 +6947,7 @@ $tools[] = $this->tool(
         }
         // Delegated to the controller so the same side effects run as on the REST/UI path
         // (module hooks / webhook subscriptions, workflow triggers, cache invalidation).
-        return $this->invokeControllerTool(ProjectController, 'update', $arguments, 'PATCH', ['public_id']);
+        return $this->invokeControllerTool(ProjectController::class, 'update', $arguments, 'PATCH', ['public_id']);
     }
     private function crmDeleteProject(array $arguments): array
     {
@@ -6957,7 +6957,7 @@ $tools[] = $this->tool(
         }
         // Delegated to the controller so the same side effects run as on the REST/UI path
         // (module hooks / webhook subscriptions, workflow triggers, cache invalidation).
-        $result = $this->invokeControllerTool(ProjectController, 'delete', $arguments, 'DELETE', ['public_id']);
+        $result = $this->invokeControllerTool(ProjectController::class, 'delete', $arguments, 'DELETE', ['public_id']);
 
         return isset($result['error']) ? $result : ['deleted' => true];
     }
@@ -8466,7 +8466,7 @@ $tools[] = $this->tool(
         // Delegated to the controller so the same side effects run as on the REST/UI path
         // (module hooks / webhook subscriptions, workflow triggers, cache invalidation).
         return $this->controllerResultWithKey(
-            $this->invokeControllerTool(WorkCycleController, 'create', $arguments, 'POST'),
+            $this->invokeControllerTool(WorkCycleController::class, 'create', $arguments, 'POST'),
             'cycle'
         );
     }
@@ -8557,7 +8557,7 @@ $tools[] = $this->tool(
         }
         // Delegated to the controller so the same side effects run as on the REST/UI path
         // (module hooks / webhook subscriptions, workflow triggers, cache invalidation).
-        $result = $this->invokeControllerTool(WorkCycleController, 'delete', $arguments, 'DELETE', ['public_id']);
+        $result = $this->invokeControllerTool(WorkCycleController::class, 'delete', $arguments, 'DELETE', ['public_id']);
 
         return isset($result['error']) ? $result : ['deleted' => true];
     }
@@ -8570,7 +8570,7 @@ $tools[] = $this->tool(
         // Delegated to the controller so the same side effects run as on the REST/UI path
         // (module hooks / webhook subscriptions, workflow triggers, cache invalidation).
         return $this->controllerResultWithKey(
-            $this->invokeControllerTool(WorkCycleController, 'start', $arguments, 'POST', ['public_id']),
+            $this->invokeControllerTool(WorkCycleController::class, 'start', $arguments, 'POST', ['public_id']),
             'cycle'
         );
     }
@@ -8583,7 +8583,7 @@ $tools[] = $this->tool(
         // Delegated to the controller so the same side effects run as on the REST/UI path
         // (module hooks / webhook subscriptions, workflow triggers, cache invalidation).
         return $this->controllerResultWithKey(
-            $this->invokeControllerTool(WorkCycleController, 'complete', $arguments, 'POST', ['public_id']),
+            $this->invokeControllerTool(WorkCycleController::class, 'complete', $arguments, 'POST', ['public_id']),
             'cycle'
         );
     }
@@ -8596,7 +8596,7 @@ $tools[] = $this->tool(
         // Delegated to the controller so the same side effects run as on the REST/UI path
         // (module hooks / webhook subscriptions, workflow triggers, cache invalidation).
         return $this->controllerResultWithKey(
-            $this->invokeControllerTool(WorkCycleController, 'reopen', $arguments, 'POST', ['public_id']),
+            $this->invokeControllerTool(WorkCycleController::class, 'reopen', $arguments, 'POST', ['public_id']),
             'cycle'
         );
     }
@@ -8608,7 +8608,7 @@ $tools[] = $this->tool(
         }
         // Delegated to the controller so the same side effects run as on the REST/UI path
         // (module hooks / webhook subscriptions, workflow triggers, cache invalidation).
-        $result = $this->invokeControllerTool(WorkCycleController, 'archive', $arguments, 'POST', ['public_id']);
+        $result = $this->invokeControllerTool(WorkCycleController::class, 'archive', $arguments, 'POST', ['public_id']);
 
         return isset($result['error']) ? $result : ['archived' => true];
     }
