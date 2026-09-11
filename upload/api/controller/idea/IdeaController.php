@@ -1012,7 +1012,15 @@ final class IdeaController extends BaseController
             return $this->success('TASKS_CREATED', $this->t('idea/messages.tasks_created'), ['tasks' => $created], 201);
         } catch (\Throwable $e) {
             $pdo->rollBack();
-            error_log('[IdeaController::aiCreateTasks] idea=' . $publicId . ' ' . $e->getMessage());
+            // Log through the application logger: error_log() output is discarded
+            // in stock PHP-FPM setups, which left this failure undiagnosable.
+            try {
+                $this->container->get('logger')->error('idea_ai_create_tasks_failed', [
+                    'idea_public_id' => $publicId,
+                    'error' => $e->getMessage(),
+                ]);
+            } catch (\Throwable $ignored) {
+            }
             return $this->error('CREATE_FAILED', $this->t('idea/messages.create_failed'), 500);
         }
     }
