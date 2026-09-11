@@ -12594,7 +12594,11 @@ $tools[] = $this->tool(
             }
             return $this->toolPayloadFromResponse($response);
         } catch (Throwable $e) {
-            error_log('[McpController::invokeControllerTool] ' . $e->getMessage());
+            $this->logError('mcp_controller_invocation_failed', [
+                'controller' => $controllerClass,
+                'method' => $controllerMethod,
+                'error' => $e->getMessage(),
+            ]);
             return ['error' => 'Controller invocation failed. Check server logs for details.'];
         } finally {
             $this->container->set('request', $originalRequest);

@@ -15,6 +15,30 @@ abstract class BaseController
     {
     }
 
+    /**
+     * Log an application error through the configured logger.
+     *
+     * error_log() output is discarded by stock PHP-FPM setups (no error_log in
+     * php.ini, catch_workers_output off), so failures logged that way were
+     * invisible. The application logger writes to storage_api/logs and is the
+     * only channel an operator can actually read.
+     *
+     * @param array<string,mixed> $context
+     */
+    protected function logError(string $message, array $context = []): void
+    {
+        try {
+            $logger = $this->container->get('logger');
+            if ($logger !== null && method_exists($logger, 'error')) {
+                $logger->error($message, $context);
+                return;
+            }
+        } catch (\Throwable $ignored) {
+        }
+
+        error_log($message . ($context === [] ? '' : ' ' . json_encode($context, JSON_UNESCAPED_UNICODE)));
+    }
+
     protected function request(): Request
     {
         return $this->container->get('request');

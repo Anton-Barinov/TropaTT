@@ -2513,7 +2513,7 @@ PROMPT;
                 ->findByScopeAndName('features', 'ideas_ai_enabled');
             return $setting && ((int)($setting['value'] ?? 1) === 1);
         } catch (\Throwable $e) {
-            error_log('[IdeaController::isFeatureEnabled] ' . $e->getMessage());
+            $this->logError('idea_feature_flag_lookup_failed', ['flag' => 'ideas_ai_enabled', 'error' => $e->getMessage()]);
             return true;
         }
     }
@@ -2525,7 +2525,7 @@ PROMPT;
                 ->findByScopeAndName('features', 'ideas_ai_safe_mode');
             return $setting && ((int)($setting['value'] ?? 0) === 1);
         } catch (\Throwable $e) {
-            error_log('[IdeaController::isSafeModeEnabled] ' . $e->getMessage());
+            $this->logError('idea_feature_flag_lookup_failed', ['flag' => 'ideas_ai_safe_mode', 'error' => $e->getMessage()]);
             return false;
         }
     }
