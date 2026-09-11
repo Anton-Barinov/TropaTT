@@ -2987,6 +2987,8 @@ $tools[] = $this->tool(
                 'target_status_code' => ['type' => 'string', 'description' => 'Target status for move action.'],
                 'position' => ['type' => 'integer', 'description' => 'Position on Kanban board for move action.'],
                 'task_public_ids' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Array of task public_ids for bulk_update.'],
+                'add_tag_public_ids' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Bulk update: tag public ids to attach to every listed task.'],
+                'remove_tag_public_ids' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Bulk update: tag public ids to detach from every listed task.'],
                 'related_task_public_id' => ['type' => 'string', 'description' => 'Related task for relations.'],
                 'relation_type' => ['type' => 'string', 'enum' => ['FS', 'SS', 'FF', 'SF', 'BLOCKS', 'RELATED']],
                 'tag_public_id' => ['type' => 'string'],
@@ -6909,27 +6911,29 @@ $tools[] = $this->tool(
         } elseif (isset($arguments['assignee_user_id'])) {
             $changes['assignee_user_id'] = (int)$arguments['assignee_user_id'];
         }
+        foreach (['add_tag_public_ids', 'remove_tag_public_ids'] as $tagField) {
+            if (!empty($arguments[$tagField]) && is_array($arguments[$tagField])) {
+                $changes[$tagField] = $arguments[$tagField];
+            }
+        }
         if ($changes === []) {
             return ['error' => 'At least one change (status, priority, assignee_user_id) is required.'];
         }
 
-        $input = [
+        // Through the controller: it fires the per-task module hooks (and with them
+        // the webhook subscriptions) and the workflow triggers for each task.
+        $result = $this->invokeControllerTool(TaskController::class, 'bulkUpdate', [
             'task_public_ids' => $taskPublicIds,
             'changes' => $changes,
-        ];
-
-        /** @var TaskBulkService $service */
-        $service = $this->container->get('service.task_bulk');
-        $result = $service->apply($input, $this->actor());
-
-        if (is_string($result)) {
-            return ['error' => $result];
+        ], 'POST');
+        if (isset($result['error'])) {
+            return $result;
         }
 
         return [
             'summary' => $result['summary'] ?? [],
-            'updated' => $result['updated'] ?? 0,
-            'skipped' => $result['skipped'] ?? 0,
+            'updated' => count((array)($result['updated'] ?? [])),
+            'skipped' => count((array)($result['skipped'] ?? [])),
         ];
     }
 

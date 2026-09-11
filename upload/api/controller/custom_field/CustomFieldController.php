@@ -150,6 +150,14 @@ final class CustomFieldController extends BaseController
         if (!$item) {
             return $this->error('CUSTOM_FIELD_NOT_FOUND', $this->t('custom_field/messages.not_found'), 404);
         }
+        $this->dispatchModuleHook(ModuleEvents::CUSTOM_FIELD_UPDATED, [
+            'field_public_id' => (string)($item['public_id'] ?? $params['public_id']),
+            'scope' => (string)($item['scope'] ?? ''),
+            'code' => (string)($item['code'] ?? ''),
+            'type' => (string)($item['field_type'] ?? $item['type'] ?? ''),
+            'actor_id' => (int)($this->user()['user']['id'] ?? 0),
+        ]);
+
         $this->invalidateCache('custom_field');
 
         return $this->success('CUSTOM_FIELD_UPDATED', $this->t('custom_field/messages.updated'), [
