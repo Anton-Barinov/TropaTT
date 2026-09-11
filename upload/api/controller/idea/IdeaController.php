@@ -3922,6 +3922,10 @@ PROMPT;
             return $pdo;
         } catch (\Throwable $e) {
             AppLog::warning('[IdeaController] PDO reconnect: ' . $e->getMessage());
+            // The AI action service was built with the handle that just failed
+            // and is re-read inside the retry loop; drop the cached instance so
+            // the next `get()` rebuilds it on the live connection.
+            $this->container->forget('service.ai_action');
 
             return $this->container->get('db.reconnect');
         }

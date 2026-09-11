@@ -8,6 +8,14 @@ use PDO;
 
 final class ConnectionManager
 {
+    /** Idle seconds granted to our own MySQL session when nothing is configured. */
+    public const DEFAULT_MYSQL_IDLE_TIMEOUT = 600;
+
+    public const MIN_MYSQL_IDLE_TIMEOUT = 60;
+
+    /** MySQL rejects larger session values on most builds (max 8h). */
+    public const MAX_MYSQL_IDLE_TIMEOUT = 28800;
+
     private ?PDO $pdo = null;
 
     public function __construct(private readonly Config $config)
@@ -70,11 +78,50 @@ final class ConnectionManager
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
+        if ($driver === 'mysql') {
+            $this->raiseIdleTimeout($pdo, $db);
+        }
+
         if ($override === null) {
             $this->pdo = $pdo;
         }
 
         return $pdo;
+    }
+
+    /**
+     * A long call (an AI completion, an import, an export) keeps the PHP worker
+     * busy while MySQL sees an idle client, and the default `wait_timeout` of 60s
+     * on plenty of shared hosts is shorter than those calls: the server hangs up
+     * on a connection the request is still using, and the next query dies with
+     * "MySQL server has gone away". The session value can be raised on our own
+     * connection without any special privilege, so do it here; `wait_timeout` in
+     * the connection config overrides the default. Hosts that refuse the hint are
+     * ignored on purpose - `reconnect()` still recovers such a handle.
+     *
+     * @param array<string,mixed> $db
+     */
+    private function raiseIdleTimeout(PDO $pdo, array $db): void
+    {
+        $seconds = self::mysqlIdleTimeout($db);
+
+        try {
+            $pdo->exec('SET SESSION wait_timeout = ' . $seconds);
+        } catch (\Throwable) {
+            // Best effort: a locked-down host must never break connect().
+        }
+    }
+
+    /**
+     * Clamp the configured idle timeout to a value MySQL accepts.
+     *
+     * @param array<string,mixed> $db
+     */
+    public static function mysqlIdleTimeout(array $db): int
+    {
+        $seconds = (int)($db['wait_timeout'] ?? self::DEFAULT_MYSQL_IDLE_TIMEOUT);
+
+        return max(self::MIN_MYSQL_IDLE_TIMEOUT, min(self::MAX_MYSQL_IDLE_TIMEOUT, $seconds));
     }
 
     /** @return array<string,mixed> */

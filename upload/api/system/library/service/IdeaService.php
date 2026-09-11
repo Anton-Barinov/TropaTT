@@ -11,14 +11,27 @@ final class IdeaService
 {
     use TranslatableTrait;
 
-    public function __construct(private readonly PDO $pdo, ?LanguageManager $lang = null) {
+    /**
+     * @param PDO|\Closure():PDO $pdo A live handle, or a resolver called on every
+     *        use. The resolver matters on the AI path: the service is built before
+     *        a long provider call, and MySQL may close that handle while the model
+     *        is answering. `db.pdo` is rebound on reconnect, so resolving per query
+     *        keeps the service usable instead of failing with "MySQL server has
+     *        gone away" afterwards.
+     */
+    public function __construct(private readonly PDO|\Closure $pdo, ?LanguageManager $lang = null) {
         $this->lang = $lang ?? new LanguageManager(__DIR__ . '/../../language');
+    }
+
+    private function pdo(): PDO
+    {
+        return $this->pdo instanceof \Closure ? ($this->pdo)() : $this->pdo;
     }
 
     /** @return array<string,mixed>|null */
     public function getByPublicId(string $publicId): ?array
     {
-        $stmt = $this->pdo->prepare(
+        $stmt = $this->pdo()->prepare(
             "SELECT i.*, u.full_name AS author_name, u.login AS author_login, u.public_id AS author_public_id,
                 (SELECT COUNT(*) FROM comments c WHERE c.entity_type = 'idea' AND c.entity_public_id = i.public_id) AS comment_count
              FROM ideas i
@@ -38,7 +51,7 @@ final class IdeaService
 
     public function getById(int $id): ?array
     {
-        $stmt = $this->pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at, product FROM ideas WHERE id = :id");
+        $stmt = $this->pdo()->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at, product FROM ideas WHERE id = :id");
         $stmt->execute(['id' => $id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
@@ -56,13 +69,13 @@ final class IdeaService
         if ($status !== '') { $where[] = 'status = :status'; $params['status'] = $status; }
         $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
-        $stmt = $this->pdo->prepare("SELECT i.*, u.full_name as author_name, u.login as author_login FROM ideas i LEFT JOIN users u ON u.id = i.author_user_id {$whereSql} ORDER BY i.vote_count DESC, i.created_at DESC LIMIT :limit OFFSET :offset");
+        $stmt = $this->pdo()->prepare("SELECT i.*, u.full_name as author_name, u.login as author_login FROM ideas i LEFT JOIN users u ON u.id = i.author_user_id {$whereSql} ORDER BY i.vote_count DESC, i.created_at DESC LIMIT :limit OFFSET :offset");
         foreach ($params as $k => $v) $stmt->bindValue($k, $v);
         $stmt->bindValue('limit', $limit, PDO::PARAM_INT);
         $stmt->bindValue('offset', $offset, PDO::PARAM_INT);
         $stmt->execute();
 
-        $countStmt = $this->pdo->prepare("SELECT COUNT(*) FROM ideas {$whereSql}");
+        $countStmt = $this->pdo()->prepare("SELECT COUNT(*) FROM ideas {$whereSql}");
         foreach ($params as $k => $v) $countStmt->bindValue($k, $v);
         $countStmt->execute();
 
@@ -75,7 +88,7 @@ final class IdeaService
     public function create(array $input, int $userId): array
     {
         $publicId = 'idea_' . bin2hex(random_bytes(12));
-        $this->pdo->prepare("INSERT INTO ideas (public_id, title, description, author_user_id, status, category, created_at) VALUES (:pid, :title, :desc, :uid, 'draft', :cat, NOW())")
+        $this->pdo()->prepare("INSERT INTO ideas (public_id, title, description, author_user_id, status, category, created_at) VALUES (:pid, :title, :desc, :uid, 'draft', :cat, NOW())")
             ->execute(['pid' => $publicId, 'title' => $input['title'], 'desc' => $input['description'] ?? '', 'uid' => $userId, 'cat' => $input['category'] ?? '']);
         return $this->getByPublicId($publicId);
     }
@@ -84,19 +97,19 @@ final class IdeaService
     {
         $idea = $this->getByPublicId($publicId);
         if (!$idea) return null;
-        $this->pdo->prepare("UPDATE ideas SET title = :t, description = :d WHERE public_id = :pid")
+        $this->pdo()->prepare("UPDATE ideas SET title = :t, description = :d WHERE public_id = :pid")
             ->execute(['t' => $input['title'] ?? $idea['title'], 'd' => $input['description'] ?? $idea['description'], 'pid' => $publicId]);
         return $this->getByPublicId($publicId);
     }
 
     public function updateStatus(int $ideaId, string $status): void
     {
-        $this->pdo->prepare("UPDATE ideas SET status = :s WHERE id = :id")->execute(['s' => $status, 'id' => $ideaId]);
+        $this->pdo()->prepare("UPDATE ideas SET status = :s WHERE id = :id")->execute(['s' => $status, 'id' => $ideaId]);
     }
 
     public function saveClassification(int $ideaId, array $classifyResult): void
     {
-        $this->pdo->prepare("UPDATE ideas SET type = :t, domain = :d, maturity = :m, known_facts_json = :kf, unknowns_json = :un, ai_analysis_at = NOW() WHERE id = :id")
+        $this->pdo()->prepare("UPDATE ideas SET type = :t, domain = :d, maturity = :m, known_facts_json = :kf, unknowns_json = :un, ai_analysis_at = NOW() WHERE id = :id")
             ->execute([
                 't' => $classifyResult['idea_type'] ?? null,
                 'd' => $classifyResult['domain'] ?? null,
@@ -122,13 +135,13 @@ final class IdeaService
                 }
             }
         }
-        $this->pdo->prepare("UPDATE ideas SET coverage_json = :c, assumptions_json = :a WHERE id = :id")
+        $this->pdo()->prepare("UPDATE ideas SET coverage_json = :c, assumptions_json = :a WHERE id = :id")
             ->execute(['c' => json_encode($coverage, JSON_UNESCAPED_UNICODE), 'a' => json_encode($mapResult['critical_gaps'] ?? [], JSON_UNESCAPED_UNICODE), 'id' => $ideaId]);
     }
 
     public function saveQuestions(int $ideaId, int $cycleId, array $questions): void
     {
-        $this->pdo->prepare("DELETE FROM idea_questions WHERE idea_id = :iid AND cycle_id = :cycle")->execute(['iid' => $ideaId, 'cycle' => $cycleId]);
+        $this->pdo()->prepare("DELETE FROM idea_questions WHERE idea_id = :iid AND cycle_id = :cycle")->execute(['iid' => $ideaId, 'cycle' => $cycleId]);
         foreach ($questions as $idx => $q) {
             $qId = 'iq_' . bin2hex(random_bytes(8));
             $options = $q['options'] ?? $q['suggested_answers'] ?? [];
@@ -173,7 +186,7 @@ final class IdeaService
 
             $allowCustom = (int)($q['allow_custom_answer'] ?? $q['allow_custom'] ?? 1);
             $required = (int)($q['required'] ?? 1);
-            $this->pdo->prepare("INSERT INTO idea_questions (public_id, idea_id, cycle_id, question_text, reason, question_type, options_json, allow_custom, allow_unknown, required, dimension, impact, sort_order, created_at) VALUES (:pid, :iid, :cycle, :qt, :reason, :type, :opts, :ac, :au, :req, :dim, :impact, :sort, NOW())")
+            $this->pdo()->prepare("INSERT INTO idea_questions (public_id, idea_id, cycle_id, question_text, reason, question_type, options_json, allow_custom, allow_unknown, required, dimension, impact, sort_order, created_at) VALUES (:pid, :iid, :cycle, :qt, :reason, :type, :opts, :ac, :au, :req, :dim, :impact, :sort, NOW())")
                 ->execute([
                     'pid' => $qId, 'iid' => $ideaId, 'cycle' => $cycleId,
                     'qt' => $q['question_text'] ?? $q['question'] ?? '',
@@ -201,7 +214,7 @@ final class IdeaService
     public function saveAnswers(int $ideaId, array $answers): void
     {
         foreach ($answers as $ans) {
-            $this->pdo->prepare("INSERT INTO idea_answers (idea_id, question_id, answer_text, selected_option_key, selected_option_label, selected_options_json, is_custom, is_unknown, created_at) VALUES (:iid, :qid, :txt, :key, :lbl, :opts, :custom, :unk, NOW())")
+            $this->pdo()->prepare("INSERT INTO idea_answers (idea_id, question_id, answer_text, selected_option_key, selected_option_label, selected_options_json, is_custom, is_unknown, created_at) VALUES (:iid, :qid, :txt, :key, :lbl, :opts, :custom, :unk, NOW())")
                 ->execute([
                     'iid' => $ideaId,
                     'qid' => (int)($ans['question_id'] ?? 0),
@@ -222,14 +235,14 @@ final class IdeaService
         $params = ['iid' => $ideaId];
         if ($cycleId !== null) { $sql .= ' AND iq.cycle_id = :cycle'; $params['cycle'] = $cycleId; }
         $sql .= ' ORDER BY iq.sort_order ASC';
-        $stmt = $this->pdo->prepare($sql);
+        $stmt = $this->pdo()->prepare($sql);
         $stmt->execute($params);
         $items = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         foreach ($items as &$item) {
             $item['options_json'] = json_decode($item['options_json'] ?? '[]', true);
             if (!is_array($item['options_json'])) $item['options_json'] = [];
             $item['options'] = $item['options_json'];
-            $ansStmt = $this->pdo->prepare("SELECT id, idea_id, question_id, answer_text, selected_option_key, selected_option_label, selected_options_json, is_custom, is_unknown, created_at FROM idea_answers WHERE question_id = :qid ORDER BY created_at DESC LIMIT 1");
+            $ansStmt = $this->pdo()->prepare("SELECT id, idea_id, question_id, answer_text, selected_option_key, selected_option_label, selected_options_json, is_custom, is_unknown, created_at FROM idea_answers WHERE question_id = :qid ORDER BY created_at DESC LIMIT 1");
             $ansStmt->execute(['qid' => $item['id']]);
             $item['last_answer'] = $ansStmt->fetch(PDO::FETCH_ASSOC) ?: null;
         }
@@ -242,7 +255,7 @@ final class IdeaService
         $promptV = '1.0.0';
         $schemaV = '1.0.0';
 
-        $existing = $this->pdo->prepare("SELECT id FROM idea_analyses WHERE idea_id = :iid AND analysis_type = :type AND input_hash = :hash LIMIT 1");
+        $existing = $this->pdo()->prepare("SELECT id FROM idea_analyses WHERE idea_id = :iid AND analysis_type = :type AND input_hash = :hash LIMIT 1");
         $existing->execute(['iid' => $ideaId, 'type' => $type, 'hash' => $inputHash]);
         if ($existing->fetchColumn()) {
             return; // Idempotent: skip duplicate
@@ -250,14 +263,14 @@ final class IdeaService
 
         $pid = 'ia_' . bin2hex(random_bytes(8));
         $json = is_array($result) ? json_encode($result, JSON_UNESCAPED_UNICODE) : (string)$result;
-        $this->pdo->prepare("INSERT INTO idea_analyses (public_id, idea_id, analysis_type, status, result_json, input_hash, prompt_version, schema_version, completed_at, created_at) VALUES (:pid, :iid, :type, 'completed', :json, :hash, :pv, :sv, NOW(), NOW())")
+        $this->pdo()->prepare("INSERT INTO idea_analyses (public_id, idea_id, analysis_type, status, result_json, input_hash, prompt_version, schema_version, completed_at, created_at) VALUES (:pid, :iid, :type, 'completed', :json, :hash, :pv, :sv, NOW(), NOW())")
             ->execute(['pid' => $pid, 'iid' => $ideaId, 'type' => $type, 'json' => $json, 'hash' => $inputHash, 'pv' => $promptV, 'sv' => $schemaV]);
     }
 
     /** @return array<int,array<string,mixed>> */
     public function getAnalyses(int $ideaId): array
     {
-        $stmt = $this->pdo->prepare("SELECT id, public_id, idea_id, analysis_type, status, result_json, input_hash, prompt_version, schema_version, completed_at, created_at FROM idea_analyses WHERE idea_id = :iid ORDER BY created_at DESC");
+        $stmt = $this->pdo()->prepare("SELECT id, public_id, idea_id, analysis_type, status, result_json, input_hash, prompt_version, schema_version, completed_at, created_at FROM idea_analyses WHERE idea_id = :iid ORDER BY created_at DESC");
         $stmt->execute(['iid' => $ideaId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
@@ -265,32 +278,32 @@ final class IdeaService
     /** @return array<int,array<string,mixed>> */
     public function getTaskDrafts(int $ideaId): array
     {
-        $stmt = $this->pdo->prepare("SELECT id, public_id, idea_id, parent_id, title, description, type, stage, priority, acceptance_criteria_json, estimated_duration, sort_order, created_at FROM idea_task_drafts WHERE idea_id = :iid ORDER BY sort_order ASC");
+        $stmt = $this->pdo()->prepare("SELECT id, public_id, idea_id, parent_id, title, description, type, stage, priority, acceptance_criteria_json, estimated_duration, sort_order, created_at FROM idea_task_drafts WHERE idea_id = :iid ORDER BY sort_order ASC");
         $stmt->execute(['iid' => $ideaId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
     public function saveTaskDrafts(int $ideaId, array $tasks): void
     {
-        $this->pdo->prepare("DELETE FROM idea_task_drafts WHERE idea_id = :iid")->execute(['iid' => $ideaId]);
+        $this->pdo()->prepare("DELETE FROM idea_task_drafts WHERE idea_id = :iid")->execute(['iid' => $ideaId]);
         $idMap = [];
         foreach ($tasks as $idx => $task) {
             $pid = 'itd_' . bin2hex(random_bytes(8));
-            $this->pdo->prepare("INSERT INTO idea_task_drafts (public_id, idea_id, parent_id, title, description, type, stage, priority, acceptance_criteria_json, estimated_duration, sort_order, created_at) VALUES (:pid, :iid, NULL, :title, :desc, :type, :stage, :pri, :ac, :dur, :sort, NOW())")
+            $this->pdo()->prepare("INSERT INTO idea_task_drafts (public_id, idea_id, parent_id, title, description, type, stage, priority, acceptance_criteria_json, estimated_duration, sort_order, created_at) VALUES (:pid, :iid, NULL, :title, :desc, :type, :stage, :pri, :ac, :dur, :sort, NOW())")
                 ->execute([
                     'pid' => $pid, 'iid' => $ideaId, 'title' => $task['title'] ?? '', 'desc' => $task['description'] ?? '',
                     'type' => $task['type'] ?? 'other', 'stage' => $task['stage'] ?? 'clarification', 'pri' => $task['priority'] ?? 'normal',
                     'ac' => json_encode($task['acceptance_criteria'] ?? [], JSON_UNESCAPED_UNICODE),
                     'dur' => $task['estimated_duration'] ?? null, 'sort' => $idx,
                 ]);
-            $idMap[$task['temp_id'] ?? (string)$idx] = (int)$this->pdo->lastInsertId();
+            $idMap[$task['temp_id'] ?? (string)$idx] = (int)$this->pdo()->lastInsertId();
         }
         // Second pass: set parent_id
         foreach ($tasks as $task) {
             if (!empty($task['parent_temp_id']) && isset($idMap[$task['parent_temp_id']])) {
                 $childId = $idMap[$task['temp_id'] ?? ''] ?? null;
                 if ($childId) {
-                    $this->pdo->prepare("UPDATE idea_task_drafts SET parent_id = :p WHERE id = :id")->execute(['p' => $idMap[$task['parent_temp_id']], 'id' => $childId]);
+                    $this->pdo()->prepare("UPDATE idea_task_drafts SET parent_id = :p WHERE id = :id")->execute(['p' => $idMap[$task['parent_temp_id']], 'id' => $childId]);
                 }
             }
         }
