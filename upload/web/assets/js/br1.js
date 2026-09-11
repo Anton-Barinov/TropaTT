@@ -3769,10 +3769,24 @@ window.CRM.br1 = (function () {
         || file.public_id
         || window.CRM.i18n.t('js.br1.fayl', 'Файл')
       );
-      return '<div class="crm-file-item mb-2 d-flex justify-content-between align-items-center">'
+      var mime = String(file.mime_type || file.type || '').toLowerCase();
+      var isImg = mime.indexOf('image/') === 0 || /\.(png|jpe?g|gif|webp|svg)$/i.test(displayName);
+      var downloadUrl = file.public_id ? window.CRM.api.buildUrl('api/v1/files/' + encodeURIComponent(file.public_id) + '/download') : '#';
+      var previewHtml = '';
+      if (isImg && file.public_id) {
+        previewHtml = '<div class="crm-file-thumb me-3" style="width:52px;height:52px;flex-shrink:0;border-radius:6px;overflow:hidden;background:var(--crm-bg-subtle,#f1f5f9);display:flex;align-items:center;justify-content:center;border:1px solid var(--crm-border,#cbd5e1);">'
+          + '<a href="' + escapeHtml(downloadUrl) + '" target="_blank" rel="noopener" title="' + escapeHtml(displayName) + '">'
+          + '<img src="' + escapeHtml(downloadUrl) + '" alt="' + escapeHtml(displayName) + '" style="max-width:100%;max-height:100%;object-fit:cover;" loading="lazy">'
+          + '</a></div>';
+      }
+
+      return '<div class="crm-file-item mb-2 d-flex justify-content-between align-items-center p-2 rounded" style="background:var(--crm-card-bg,#fff);border:1px solid var(--crm-border-subtle,#e2e8f0);">'
+        + '<div class="d-flex align-items-center">'
+        + previewHtml
         + '<div><strong>' + escapeHtml(displayName) + '</strong><div class="small text-muted">'
         + escapeHtml(formatDate(file.created_at || new Date().toISOString())) + '</div></div>'
-        + '<button type="button" class="btn btn-sm crm-btn-secondary" data-file-download="' + escapeHtml(String(file.public_id || '')) + '" data-file-name="' + escapeHtml(displayName) + window.CRM.i18n.t('js.br1.skachat_button', '">Скачать</button>')
+        + '</div>'
+        + '<button type="button" class="btn btn-sm crm-btn-secondary ms-2" data-file-download="' + escapeHtml(String(file.public_id || '')) + '" data-file-name="' + escapeHtml(displayName) + window.CRM.i18n.t('js.br1.skachat_button', '">Скачать</button>')
         + '</div>';
     }).join('') : window.CRM.i18n.t('js.br1.div_class_text_muted_fayly_k_zadache_poka_ne_zagruzheny', '<div class="text-muted">Файлы к задаче пока не загружены.</div>');
   }

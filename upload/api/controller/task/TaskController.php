@@ -178,6 +178,70 @@ final class TaskController extends BaseController
                 'actor_id' => (int)($authUser['user']['id'] ?? 0),
             ]);
 
+            // Auto-populate Definition of Done (DoD) checklist based on task type prefix
+            try {
+                $taskTitle = (string)($item['title'] ?? '');
+                $taskPublicId = (string)($item['public_id'] ?? '');
+                $dodItems = [];
+                if (preg_match('/^\[(bug|дефект|ошибка)\]/ui', $taskTitle)) {
+                    $dodItems = [
+                        'Воспроизвести дефект на чистом стенде / demo',
+                        'Локализовать причину (root-cause) без побочных эффектов',
+                        'Написать регрессионный тест',
+                        'Проверить отсутствие ошибок PHP и JS в консоли',
+                        'Проверить исправление на demo стенде',
+                    ];
+                } elseif (preg_match('/^\[(feature|фича|доработка)\]/ui', $taskTitle)) {
+                    $dodItems = [
+                        'Реализовать функционал согласно контракту OpenAPI и PSR-12',
+                        'Написать Unit и интеграционные тесты',
+                        'Актуализировать Базу Знаний / документацию',
+                        'Проверить безопасность (RBAC, санитизация входных данных)',
+                        'Проверить работу функционала на demo стенде',
+                    ];
+                } elseif (preg_match('/^\[(audit|аудит)\]/ui', $taskTitle)) {
+                    $dodItems = [
+                        'Инвентаризация компонентов и эндпоинтов',
+                        'Проверка граничных случаев и безопасности',
+                        'Фиксация обнаруженных дефектов отдельными задачами в CRM',
+                        'Итоговый аналитический отчет в Базу Знаний',
+                    ];
+                } elseif (preg_match('/^\[(qa|тестирование|test)\]/ui', $taskTitle)) {
+                    $dodItems = [
+                        'Проверить позитивные сценарии (happy path)',
+                        'Проверить негативные сценарии (валидация, права доступа)',
+                        'Проверить кросс-браузерность и адаптивность верстки',
+                        'Прогон полного тестового сьюта (failed_count == 0)',
+                    ];
+                } elseif (preg_match('/^\[(refactor|рефакторинг)\]/ui', $taskTitle)) {
+                    $dodItems = [
+                        'Сохранение полной обратной совместимости',
+                        'Упрощение и типизация методов (PHP 8.1+)',
+                        '100% прохождение существующих unit и интеграционных тестов',
+                        'Проверка отсутствия регрессий на demo стенде',
+                    ];
+                }
+
+                if (!empty($dodItems) && $this->container->has('service.checklist')) {
+                    /** @var \Api\System\Library\Service\ChecklistService $checklistService */
+                    $checklistService = $this->container->get('service.checklist');
+                    $createdChecklist = $checklistService->create($taskPublicId, [
+                        'title' => 'Критерии готовности (Definition of Done)'
+                    ], $authUser['user']);
+                    if ($createdChecklist && !empty($createdChecklist['public_id'])) {
+                        foreach ($dodItems as $idx => $dodItemTitle) {
+                            $checklistService->createItem((string)$createdChecklist['public_id'], [
+                                'title' => $dodItemTitle,
+                                'sort_order' => ($idx + 1) * 10,
+                                'is_done' => 0
+                            ], $authUser['user']);
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                \Api\System\Library\Support\AppLog::warning('[TaskController::create] Auto DoD checklist error: ' . $e->getMessage());
+            }
+
             $this->invalidateTaskCaches();
 
             return $this->success('TASK_CREATED', $this->t('task/messages.created'), [
