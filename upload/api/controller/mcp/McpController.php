@@ -9459,7 +9459,7 @@ $tools[] = $this->tool(
         $space = $this->knowledge()->createSpace($this->pick($arguments, [
             'title', 'slug', 'description', 'icon', 'color', 'visibility',
             'default_access_level', 'parent_public_id', 'parent_id', 'sort_order',
-        ]), (int)($this->actor()['id'] ?? 0));
+        ]), (int)($this->actor()['id'] ?? 0), $this->actor());
         $this->invalidateCache('knowledge');
         return ['space' => $this->publicData($space)];
     }
