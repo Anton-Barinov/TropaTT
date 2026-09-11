@@ -32,6 +32,9 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 - **Module cron tasks now run on shared hosting.** The CLI scheduler did not register the module autoloader, so every module task failed with "Handler class not found" every five minutes; tasks of deactivated modules are skipped explicitly instead of failing.
 - **File-cache rebuilds cannot stall workers.** The blocking `flock()` around a cache rebuild is replaced by a bounded wait (0.5 s) with a local rebuild fallback, so one slow worker cannot hold up the rest on a constrained host.
 - **The release gate reports a failed login as one clear cause** instead of ~127 phantom 401s, and retries the login three times.
+- **Knowledge-space permissions can be revoked.** `add_space_permission` / `get_space_permissions` never exposed the internal permission id that `remove_space_permission` demanded, so a grant could be created but never undone; removal now also works by subject (`public_id` + `subject_type` + `subject_public_id`).
+- **`import_pages` accepts the `export_page` envelope** (`{"page": {...}}`), so export → import round-trips without manual re-wrapping.
+- **Team and project chats no longer outlive their entity.** Deleting a team (or archiving a project) left its auto-created chat behind, and those empty chats were visible in the chat list; the linked chat is now archived together with the entity.
 
 ## [v0.2.0.11] - 2026-09-09
 
