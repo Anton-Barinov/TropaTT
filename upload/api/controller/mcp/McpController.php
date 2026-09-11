@@ -4214,6 +4214,44 @@ $tools[] = $this->tool(
             return $this->toolError('action is required. Available actions depend on the tool.');
         }
 
+        // The tool-level gate is not enough: mega-tools registered with mode "any"
+        // (knowledge, people, crm, ai, admin) let a caller holding the weakest
+        // permission in that list reach every action that does not check for itself
+        // — `knowledge.view` was enough to run reindex. Each action therefore
+        // carries the permission of its fine-grained twin (which mirrors the REST
+        // route) in config/mcp_mega_action_permissions.php; an action missing from
+        // that registry fails closed.
+        $registry = $this->megaActionPermissions();
+        $entry = $registry[$toolName][$action] ?? null;
+        if ($entry === null) {
+            if (in_array($action, $this->megaToolActions($toolName), true)) {
+                return $this->toolError(
+                    'Action not permitted: ' . $toolName . '/' . $action
+                    . '. Its permission is not declared in config/mcp_mega_action_permissions.php.'
+                );
+            }
+            return $this->unknownActionError($toolName, $action);
+        }
+
+        $permissions = array_values(array_filter(
+            array_map(static fn($perm): string => (string)$perm, (array)($entry['permissions'] ?? [])),
+            static fn(string $perm): bool => $perm !== ''
+        ));
+        if ($permissions === []) {
+            return $this->toolError('Action not permitted: ' . $toolName . '/' . $action . '. Empty permission list.');
+        }
+
+        $mode = (string)($entry['mode'] ?? 'all');
+        $granted = $mode === 'any'
+            ? $this->canAny($permissions)
+            : $this->hasAllPermissions($permissions);
+        if (!$granted) {
+            return $this->toolError(
+                'Insufficient permissions for ' . $toolName . '/' . $action
+                . '. Required (' . $mode . '): ' . implode(', ', $permissions)
+            );
+        }
+
         return match ($toolName) {
             'crm_task' => $this->dispatchTaskMega($action, $arguments),
             'crm_project' => $this->dispatchProjectMega($action, $arguments),
@@ -4225,6 +4263,30 @@ $tools[] = $this->tool(
             'crm_admin' => $this->dispatchAdminMega($action, $arguments),
             default => $this->toolError('Unknown mega-tool: ' . $toolName),
         };
+    }
+
+    /**
+     * @return array<string,array<string,array{mode:string,permissions:list<string>}>>
+     */
+    private function megaActionPermissions(): array
+    {
+        static $registry = null;
+        if ($registry === null) {
+            $registry = require __DIR__ . '/../../config/mcp_mega_action_permissions.php';
+        }
+
+        return is_array($registry) ? $registry : [];
+    }
+
+    private function hasAllPermissions(array $permissions): bool
+    {
+        foreach ($permissions as $permission) {
+            if (!$this->can((string)$permission)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function dispatchTaskMega(string $action, array $args): array
@@ -4288,10 +4350,10 @@ $tools[] = $this->tool(
             'create_sla_policy' => $this->crmCreateSlaPolicy($args),
             'assign_sla' => $this->crmAssignSlaToTask($args),
             'get_sla_report' => $this->crmGetSlaReport($args),
-            'list_workflow_rules' => $this->crmListWorkflowRules($args),
-            'create_workflow_rule' => $this->crmCreateWorkflowRule($args),
-            'list_approvals' => $this->crmListApprovals($args),
-            'create_approval' => $this->crmCreateApproval($args),
+            'list_workflow_rules' => $this->withPermission('settings.manage', fn() => $this->crmListWorkflowRules($args)),
+            'create_workflow_rule' => $this->withPermission('settings.manage', fn() => $this->crmCreateWorkflowRule($args)),
+            'list_approvals' => $this->withPermission('approval.manage', fn() => $this->crmListApprovals($args)),
+            'create_approval' => $this->withPermission('approval.manage', fn() => $this->crmCreateApproval($args)),
             'approve' => $this->withPermission('approval.manage', fn() => $this->crmReviewApproval($args, 'approve')),
             'reject' => $this->withPermission('approval.manage', fn() => $this->crmReviewApproval($args, 'reject')),
             default => null,
@@ -4317,8 +4379,8 @@ $tools[] = $this->tool(
             'create_milestone' => $this->crmCreateMilestone($args),
             'update_milestone' => $this->crmUpdateMilestone($args),
             'delete_milestone' => $this->crmDeleteMilestone($args),
-            'list_cycles' => $this->crmListCycles($args),
-            'get_cycle' => $this->crmGetCycle($args),
+            'list_cycles' => $this->withPermission('task.manage', fn() => $this->crmListCycles($args)),
+            'get_cycle' => $this->withPermission('task.manage', fn() => $this->crmGetCycle($args)),
             'create_cycle' => $this->crmCreateCycle($args),
             'update_cycle' => $this->crmUpdateCycle($args),
             'delete_cycle' => $this->crmDeleteCycle($args),
@@ -4326,8 +4388,8 @@ $tools[] = $this->tool(
             'complete_cycle' => $this->crmCompleteCycle($args),
             'reopen_cycle' => $this->crmReopenCycle($args),
             'archive_cycle' => $this->crmArchiveCycle($args),
-            'get_cycle_summary' => $this->crmGetCycleSummary($args),
-            'list_cycle_tasks' => $this->crmListCycleTasks($args),
+            'get_cycle_summary' => $this->withPermission('task.manage', fn() => $this->crmGetCycleSummary($args)),
+            'list_cycle_tasks' => $this->withPermission('task.manage', fn() => $this->crmListCycleTasks($args)),
             'add_tasks_to_cycle' => $this->crmAddTasksToCycle($args),
             'remove_cycle_task' => $this->crmRemoveCycleTask($args),
             'list_modules' => $this->crmListProjectModules($args),
@@ -4341,9 +4403,9 @@ $tools[] = $this->tool(
             'create_template' => $this->crmCreateTemplate($args),
             'apply_template' => $this->crmApplyTemplate($args),
             'delete_template' => $this->crmDeleteTemplate($args),
-            'list_cabinet_projects' => $this->crmListClientCabinetProjects($args),
-            'get_cabinet_project' => $this->crmGetClientCabinetProject($args),
-            'list_cabinet_tasks' => $this->crmListClientCabinetProjectTasks($args),
+            'list_cabinet_projects' => $this->withPermission('client.manage', fn() => $this->crmListClientCabinetProjects($args)),
+            'get_cabinet_project' => $this->withPermission('client.manage', fn() => $this->crmGetClientCabinetProject($args)),
+            'list_cabinet_tasks' => $this->withPermission('client.manage', fn() => $this->crmListClientCabinetProjectTasks($args)),
             default => null,
         }, 'crm_project', $action);
     }
@@ -4441,21 +4503,21 @@ $tools[] = $this->tool(
             'delete_calendar_event' => $this->crmDeleteCalendarEvent($args),
             'get_calendar_agenda' => $this->crmGetCalendarAgenda($args),
             'get_calendar_my_month' => $this->crmGetCalendarMyMonth($args),
-            'list_business_calendars' => $this->crmListBusinessCalendars($args),
-            'get_business_calendar' => $this->crmGetBusinessCalendar($args),
-            'create_business_calendar' => $this->crmCreateBusinessCalendar($args),
-            'update_business_calendar' => $this->crmUpdateBusinessCalendar($args),
-            'delete_business_calendar' => $this->crmDeleteBusinessCalendar($args),
-            'list_holidays' => $this->crmListHolidays($args),
-            'get_holiday' => $this->crmGetHoliday($args),
-            'create_holiday' => $this->crmCreateHoliday($args),
-            'update_holiday' => $this->crmUpdateHoliday($args),
-            'delete_holiday' => $this->crmDeleteHoliday($args),
-            'list_working_hours' => $this->crmListWorkingHours($args),
-            'get_working_hours' => $this->crmGetWorkingHours($args),
-            'create_working_hours' => $this->crmCreateWorkingHours($args),
-            'update_working_hours' => $this->crmUpdateWorkingHours($args),
-            'delete_working_hours' => $this->crmDeleteWorkingHours($args),
+            'list_business_calendars' => $this->withPermission('settings.manage', fn() => $this->crmListBusinessCalendars($args)),
+            'get_business_calendar' => $this->withPermission('settings.manage', fn() => $this->crmGetBusinessCalendar($args)),
+            'create_business_calendar' => $this->withPermission('settings.manage', fn() => $this->crmCreateBusinessCalendar($args)),
+            'update_business_calendar' => $this->withPermission('settings.manage', fn() => $this->crmUpdateBusinessCalendar($args)),
+            'delete_business_calendar' => $this->withPermission('settings.manage', fn() => $this->crmDeleteBusinessCalendar($args)),
+            'list_holidays' => $this->withPermission('settings.manage', fn() => $this->crmListHolidays($args)),
+            'get_holiday' => $this->withPermission('settings.manage', fn() => $this->crmGetHoliday($args)),
+            'create_holiday' => $this->withPermission('settings.manage', fn() => $this->crmCreateHoliday($args)),
+            'update_holiday' => $this->withPermission('settings.manage', fn() => $this->crmUpdateHoliday($args)),
+            'delete_holiday' => $this->withPermission('settings.manage', fn() => $this->crmDeleteHoliday($args)),
+            'list_working_hours' => $this->withPermission('settings.manage', fn() => $this->crmListWorkingHours($args)),
+            'get_working_hours' => $this->withPermission('settings.manage', fn() => $this->crmGetWorkingHours($args)),
+            'create_working_hours' => $this->withPermission('settings.manage', fn() => $this->crmCreateWorkingHours($args)),
+            'update_working_hours' => $this->withPermission('settings.manage', fn() => $this->crmUpdateWorkingHours($args)),
+            'delete_working_hours' => $this->withPermission('settings.manage', fn() => $this->crmDeleteWorkingHours($args)),
             default => null,
         }, 'crm_time', $action);
     }

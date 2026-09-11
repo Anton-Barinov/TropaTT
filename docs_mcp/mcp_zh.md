@@ -112,7 +112,7 @@ MCP 镜像 REST API，但在代理与 CRM 之间提供安全层：
 
 每个工具都会检查当前用户的权限；条件可见的工具只有在用户具备相应权限时才会出现在 tools/list 中。
 
-工具的权限绝不会宽于对应的 REST 路由。idea-workflow 与 knowledge-AI 工具直接调用控制器，因此每个工具都声明其 REST 路由的权限：AI 调试需要 `ai.admin`，读取需要相应的 `*.view`，写入需要相应的 `*.manage`。
+工具的权限绝不会宽于对应的 REST 路由。idea-workflow 与 knowledge-AI 工具直接调用控制器，因此每个工具都声明其 REST 路由的权限：AI 调试需要 `ai.admin`，读取需要相应的 `*.view`，写入需要相应的 `*.manage`。mega 工具内的每个操作也同样检查权限：`crm_knowledge`、`crm_people`、`crm_crm`、`crm_ai`、`crm_admin` 在工具层接受多个权限中的任意一个，因此每个操作都携带自己的权限要求（`crm_knowledge/reindex` → `settings.manage`，`crm_time/list_holidays` → `settings.manage`，`crm_task/list_approvals` → `approval.manage`，`crm_project/list_cabinet_projects` → `client.manage`）。未声明权限的操作会被拒绝。
 
 ### 危险工具（写/管理）
 
