@@ -6622,17 +6622,21 @@ $tools[] = $this->tool(
         // 2. Attach knowledge links if provided
         $kLinks = $arguments['knowledge_links'] ?? [];
         if (is_array($kLinks)) {
-            foreach ($kLinks as $kPagePublicId) {
-                $kPagePublicId = trim((string)$kPagePublicId);
+            foreach ($kLinks as $kEntry) {
+                $kPagePublicId = is_array($kEntry) ? trim((string)($kEntry['page_id'] ?? $kEntry['public_id'] ?? '')) : trim((string)$kEntry);
+                $kRelType = is_array($kEntry) ? trim((string)($kEntry['relation_type'] ?? 'instruction')) : 'instruction';
+                if ($kRelType === '') {
+                    $kRelType = 'instruction';
+                }
                 if ($kPagePublicId !== '') {
                     $linkRes = $this->crmLinkKnowledgePageEntity([
                         'public_id' => $kPagePublicId,
                         'entity_type' => 'task',
                         'entity_public_id' => $taskPublicId,
-                        'relation_type' => 'related',
+                        'relation_type' => $kRelType,
                     ]);
                     if (!isset($linkRes['error'])) {
-                        $summary['knowledge_links'][] = $linkRes['link'] ?? ['page_public_id' => $kPagePublicId];
+                        $summary['knowledge_links'][] = $linkRes['link'] ?? ['page_public_id' => $kPagePublicId, 'relation_type' => $kRelType];
                     }
                 }
             }
@@ -6689,14 +6693,18 @@ $tools[] = $this->tool(
                     $stPublicId = (string)($stItem['public_id'] ?? '');
                     // Propagate knowledge links to each subtask
                     if ($stPublicId !== '' && is_array($kLinks)) {
-                        foreach ($kLinks as $kPagePublicId) {
-                            $kPagePublicId = trim((string)$kPagePublicId);
+                        foreach ($kLinks as $kEntry) {
+                            $kPagePublicId = is_array($kEntry) ? trim((string)($kEntry['page_id'] ?? $kEntry['public_id'] ?? '')) : trim((string)$kEntry);
+                            $kRelType = is_array($kEntry) ? trim((string)($kEntry['relation_type'] ?? 'instruction')) : 'instruction';
+                            if ($kRelType === '') {
+                                $kRelType = 'instruction';
+                            }
                             if ($kPagePublicId !== '') {
                                 $this->crmLinkKnowledgePageEntity([
                                     'public_id' => $kPagePublicId,
                                     'entity_type' => 'task',
                                     'entity_public_id' => $stPublicId,
-                                    'relation_type' => 'instruction',
+                                    'relation_type' => $kRelType,
                                 ]);
                             }
                         }
@@ -6728,14 +6736,18 @@ $tools[] = $this->tool(
                 ]);
                 // Propagate knowledge links to QA task
                 if (is_array($kLinks)) {
-                    foreach ($kLinks as $kPagePublicId) {
-                        $kPagePublicId = trim((string)$kPagePublicId);
+                    foreach ($kLinks as $kEntry) {
+                        $kPagePublicId = is_array($kEntry) ? trim((string)($kEntry['page_id'] ?? $kEntry['public_id'] ?? '')) : trim((string)$kEntry);
+                        $kRelType = is_array($kEntry) ? trim((string)($kEntry['relation_type'] ?? 'instruction')) : 'instruction';
+                        if ($kRelType === '') {
+                            $kRelType = 'instruction';
+                        }
                         if ($kPagePublicId !== '') {
                             $this->crmLinkKnowledgePageEntity([
                                 'public_id' => $kPagePublicId,
                                 'entity_type' => 'task',
                                 'entity_public_id' => $qaPublicId,
-                                'relation_type' => 'instruction',
+                                'relation_type' => $kRelType,
                             ]);
                         }
                     }
