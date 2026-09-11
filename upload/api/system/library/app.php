@@ -1523,6 +1523,14 @@ final class App
             $c->get('request')->requestId
         ));
 
+        $this->container->factory('repository.agent_memory', fn(Container $c) => new \Api\Model\Agent\AgentMemoryRepository($c->get('db.pdo')));
+
+        $this->container->factory('service.agent_memory', fn(Container $c) => new \Api\System\Library\Service\AgentMemoryService(
+            $c->get('repository.agent_memory'),
+            $c->get('logger'),
+            $c->get('request')->requestId
+        ));
+
         $this->container->factory('service.knowledge_page_version', fn(Container $c) => new KnowledgePageVersionService(
             new \Api\Model\Knowledge\KnowledgePageVersionRepository($c->get('db.pdo')),
             $c->get('service.project'),

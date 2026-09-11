@@ -8,6 +8,8 @@ declare(strict_types=1);
  * mode: all = ALL permissions required, any = ANY permission required, self = ownership-based.
  */
 return [
+    'crm_agent_bundle' => ['mode' => 'all', 'permissions' => ['task.manage']],
+    'crm_agent_memory' => ['mode' => 'self', 'permissions' => []],
     'crm_accept_intake_item' => ['mode' => 'any', 'permissions' => ['intake.accept', 'intake.manage']],
     'crm_accept_invitation' => ['mode' => 'self', 'permissions' => []],
     'crm_activate_module' => ['mode' => 'all', 'permissions' => ['settings.manage']],
