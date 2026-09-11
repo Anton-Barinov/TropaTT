@@ -7073,7 +7073,25 @@ $tools[] = $this->tool(
         $service = $this->container->get('service.webhook');
         $item = $service->createSubscription($input, $this->actor());
 
-        return is_array($item) ? ['webhook' => $item] : ['error' => (string)$item];
+        // A rejected endpoint or a missing root right must surface as a tool error;
+        // wrapping {"ok": false} under `webhook` made the call look successful.
+        if (!is_array($item) || ($item['ok'] ?? false) !== true) {
+            return ['error' => $this->webhookErrorCode($item)];
+        }
+
+        return ['webhook' => $item];
+    }
+
+    private function webhookErrorCode(mixed $item): string
+    {
+        if (is_array($item)) {
+            $code = trim((string)($item['code'] ?? ''));
+            if ($code !== '') {
+                return $code;
+            }
+        }
+
+        return is_string($item) && trim($item) !== '' ? trim($item) : 'Webhook operation failed.';
     }
 
     private function crmUpdateWebhook(array $arguments): array
@@ -7097,7 +7115,11 @@ $tools[] = $this->tool(
         $service = $this->container->get('service.webhook');
         $item = $service->updateSubscription($publicId, $input, $this->actor());
 
-        return is_array($item) ? ['webhook' => $item] : ['error' => (string)$item];
+        if (!is_array($item) || ($item['ok'] ?? false) !== true) {
+            return ['error' => $this->webhookErrorCode($item)];
+        }
+
+        return ['webhook' => $item];
     }
 
     private function crmDeleteWebhook(array $arguments): array
@@ -7125,7 +7147,13 @@ $tools[] = $this->tool(
         $service = $this->container->get('service.webhook');
         $item = $service->testDelivery($publicId, $this->actor());
 
-        return is_array($item) ? ['result' => $item] : ['error' => (string)$item];
+        // A refused test (forbidden / not found / inactive) is an error, not a
+        // successful call that happens to carry {"ok": false} inside.
+        if (!is_array($item) || ($item['ok'] ?? false) !== true) {
+            return ['error' => $this->webhookErrorCode($item)];
+        }
+
+        return ['result' => $item];
     }
 
     private function crmCreateRole(array $arguments): array
