@@ -135,11 +135,15 @@ final class AiRuntimeRepository
             }
 
             $this->pdo->beginTransaction();
+            // One placeholder per binding site: PDO runs with
+            // ATTR_EMULATE_PREPARES = false, so a named parameter used twice in
+            // one statement fails with "Invalid parameter number" (HY093). That
+            // exception used to surface as a bogus AI_BUSY for every AI action.
             $cleanup = $this->pdo->prepare("UPDATE ai_jobs
-                SET status = 'failed', error_code = 'AI_REQUEST_STALE', error_message = 'Interactive request did not finish', finished_at = :now, updated_at = :now
+                SET status = 'failed', error_code = 'AI_REQUEST_STALE', error_message = 'Interactive request did not finish', finished_at = :finished_at, updated_at = :updated_at
                 WHERE job_type = 'interactive' AND status = 'running' AND started_at IS NOT NULL AND started_at < :stale_before");
             $now = gmdate('Y-m-d H:i:s');
-            $cleanup->execute(['now' => $now, 'stale_before' => $staleBefore]);
+            $cleanup->execute(['finished_at' => $now, 'updated_at' => $now, 'stale_before' => $staleBefore]);
 
             $count = $this->pdo->prepare("SELECT COUNT(*) FROM ai_jobs WHERE job_type = 'interactive' AND status = 'running'");
             $count->execute();

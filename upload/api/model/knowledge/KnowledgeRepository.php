@@ -1941,7 +1941,7 @@ final class KnowledgeRepository
         }
         $now = gmdate('Y-m-d H:i:s');
         $jsonValue = is_string($value) ? $value : json_encode($value, JSON_UNESCAPED_UNICODE);
-        $stmt = $this->pdo->prepare('INSERT INTO knowledge_page_properties (page_id, property_key, property_value, property_type, source_type, source_id, sort_order, created_at, updated_at) VALUES (:page_id, :pkey, :pvalue, :ptype, :stype, :sid, 0, :now, :now) ON DUPLICATE KEY UPDATE property_value = :pvalue2, property_type = :ptype2, source_type = :stype2, source_id = :sid2, updated_at = :now2');
+        $stmt = $this->pdo->prepare('INSERT INTO knowledge_page_properties (page_id, property_key, property_value, property_type, source_type, source_id, sort_order, created_at, updated_at) VALUES (:page_id, :pkey, :pvalue, :ptype, :stype, :sid, 0, :created_at, :updated_at) ON DUPLICATE KEY UPDATE property_value = :pvalue2, property_type = :ptype2, source_type = :stype2, source_id = :sid2, updated_at = :updated_at2');
         $stmt->execute([
             'page_id' => (int)$page['id'],
             'pkey' => $key,
@@ -1949,12 +1949,13 @@ final class KnowledgeRepository
             'ptype' => $type,
             'stype' => $sourceType,
             'sid' => $sourceId,
-            'now' => $now,
+            'created_at' => $now,
+            'updated_at' => $now,
             'pvalue2' => $jsonValue,
             'ptype2' => $type,
             'stype2' => $sourceType,
             'sid2' => $sourceId,
-            'now2' => $now,
+            'updated_at2' => $now,
         ]);
         $stmt = $this->pdo->prepare('SELECT id, page_id, property_key, property_value, property_type, source_type, source_id, sort_order, created_at, updated_at FROM knowledge_page_properties WHERE page_id = :page_id AND property_key = :pkey LIMIT 1');
         $stmt->execute(['page_id' => (int)$page['id'], 'pkey' => $key]);
