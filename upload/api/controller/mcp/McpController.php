@@ -6609,6 +6609,10 @@ $tools[] = $this->tool(
             return ['error' => 'Task not found.'];
         }
 
+        // The controller reads the task from the route param `public_id`, while the
+        // MCP tool names it `task_public_id`.
+        $arguments['public_id'] = $taskPublicId;
+
         // The controller dispatches COMMENT_ADDED (module hooks + webhooks) and
         // validates visibility; reuse it and keep the MCP envelope shape.
         $result = $this->invokeControllerTool(TaskController::class, 'addComment', $arguments, 'POST', ['public_id']);
