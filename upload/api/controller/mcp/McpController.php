@@ -10222,7 +10222,7 @@ $tools[] = $this->tool(
         if (!$space) {
             return ['error' => 'Knowledge space not found.'];
         }
-        return ['items' => $this->publicData($this->knowledge()->spacePermissions($publicId))];
+        return ['items' => $this->publicData($this->knowledge()->spacePermissions($publicId, $this->actor()))];
     }
 
     private function crmAddKnowledgeSpacePermission(array $arguments): array

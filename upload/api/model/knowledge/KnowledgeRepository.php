@@ -224,9 +224,13 @@ final class KnowledgeRepository
         return $this->space($publicId, $actor);
     }
 
-    public function spacePermissions(string $publicId): array
+    public function spacePermissions(string $publicId, ?array $actor = null): array
     {
-        $space = $this->space($publicId);
+        // Resolve with the actor's own access: a null-actor lookup hides every
+        // non-public space, so the owner of a private space saw an empty
+        // permission list while the grants were there (same root cause as
+        // addSpacePermission()).
+        $space = $this->space($publicId, $actor);
         if (!$space) {
             return [];
         }

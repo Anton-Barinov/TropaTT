@@ -234,7 +234,7 @@ final class KnowledgeController extends BaseController
         if (!$this->requireSpaceOwnerOrAdmin((string)$params['public_id'])) {
             return $this->error('KNOWLEDGE_SPACE_NOT_FOUND', $this->t('knowledge/messages.space_not_found', 'Knowledge space not found'), 404);
         }
-        $items = $this->repo()->spacePermissions((string)$params['public_id']);
+        $items = $this->repo()->spacePermissions((string)$params['public_id'], $this->actor());
         return $this->success('KNOWLEDGE_SPACE_PERMISSIONS', $this->t('knowledge/messages.space_permissions', 'Space permissions loaded'), [
             'items' => $items,
         ]);
