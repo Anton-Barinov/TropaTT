@@ -12497,6 +12497,18 @@ $tools[] = $this->tool(
             $this->container->get('service.chat')->markRead((int)$chat['id'], $userId);
         }
 
+        $this->dispatchModuleHook(ModuleEvents::CHAT_MESSAGE_CREATED, [
+            'public_id' => $messagePublicId,
+            'chat_public_id' => $chatPublicId,
+            'chat_type' => (string)($chat['type'] ?? ''),
+            'sender_user_public_id' => (string)($actor['public_id'] ?? ''),
+            'sender_name' => (string)($actor['full_name'] ?? ($actor['login'] ?? '')),
+            'text' => $text,
+            'message_type' => 'text',
+            'reply_to_message_public_id' => $reply ? (string)($reply['public_id'] ?? null) : null,
+            'created_at' => gmdate('Y-m-d H:i:s'),
+        ]);
+
         return [
             'message' => [
                 'public_id' => $messagePublicId,
@@ -12529,6 +12541,15 @@ $tools[] = $this->tool(
         }
         $this->pdo()->prepare("UPDATE chat_messages SET text = :text, edited_at = NOW() WHERE id = :id")->execute(['text' => $text, 'id' => (int)$message['id']]);
         $this->auditChatMessage((int)$message['id'], (int)$chat['id'], $userId, 'edit', (string)($message['text'] ?? ''), $text);
+
+        $this->dispatchModuleHook(ModuleEvents::CHAT_MESSAGE_UPDATED, [
+            'public_id' => $messagePublicId,
+            'chat_public_id' => $chatPublicId,
+            'sender_user_public_id' => (string)($actor['public_id'] ?? ''),
+            'text' => $text,
+            'updated_at' => gmdate('Y-m-d H:i:s'),
+        ]);
+
         return ['message' => ['public_id' => $messagePublicId, 'chat_public_id' => $chatPublicId, 'text' => $text]];
     }
 
@@ -12551,6 +12572,14 @@ $tools[] = $this->tool(
         }
         $this->pdo()->prepare("UPDATE chat_messages SET deleted_at = NOW(), deleted_by_user_id = :uid WHERE id = :id")->execute(['uid' => $userId, 'id' => (int)$message['id']]);
         $this->auditChatMessage((int)$message['id'], (int)$chat['id'], $userId, 'delete', (string)($message['text'] ?? ''), null);
+
+        $this->dispatchModuleHook(ModuleEvents::CHAT_MESSAGE_DELETED, [
+            'public_id' => $messagePublicId,
+            'chat_public_id' => $chatPublicId,
+            'deleted_by_user_public_id' => (string)($actor['public_id'] ?? ''),
+            'deleted_at' => gmdate('Y-m-d H:i:s'),
+        ]);
+
         return ['deleted' => true];
     }
 

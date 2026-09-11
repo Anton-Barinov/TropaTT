@@ -69,9 +69,12 @@ final class ModuleEvents
     public const CUSTOM_FIELD_UPDATED = 'custom_field.updated';
     public const CUSTOM_FIELD_DELETED = 'custom_field.deleted';
 
-    // Collaboration.
+    // Collaboration & Chat.
     public const COMMENT_ADDED = 'comment.added';
     public const FILE_UPLOADED = 'file.uploaded';
+    public const CHAT_MESSAGE_CREATED = 'chat.message_created';
+    public const CHAT_MESSAGE_UPDATED = 'chat.message_updated';
+    public const CHAT_MESSAGE_DELETED = 'chat.message_deleted';
 
     // Web rendering (dispatched from Web\Controller::render()).
     public const RENDER_BEFORE = 'render.before';
