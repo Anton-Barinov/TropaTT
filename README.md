@@ -295,11 +295,15 @@ TropaTT's automation and API are production-grade. Built for teams that need the
 - **Workflow rules** — trigger actions on conditions (status change, field update, time-based).
 - **SLA management** — service level expectations with deadline tracking and breach alerts.
 - **Approval flows** — multi-step decision chains for controlled changes.
-- **Webhooks** — fire events to external systems when CRM records change.
+- **Webhooks** — fire events to external systems when CRM records change (`task_created`, `task_updated`, `comment_created`).
+- **Agile Cycles & Sprints** — sprint tracking with velocity metrics, burndown charts, team capacity analysis, and scope changes.
+- **Built-in Team & Project Chats** — direct messages, group chats, and project-client channels with real-time SSE streaming.
+- **Client Portal & External Users** — role-based external sharing for knowledge pages and dedicated project channels.
 - **API clients and keys** — programmatic access with scoped permissions.
 - **Background jobs** — scheduled and queued for imports, exports, AI workflows.
 - **Module system** — extend business logic without touching core. 19 CLI commands.
 - **Generated REST API endpoints** — every entity, task, project, chat, calendar, analytic, and admin function accessible via API.
+- **Zero Documentation Drift** — release gate strictly enforces 100% parity between routes.php and API documentation.
 - **OpenAPI 3.1 spec** — generated from route config, never out of sync with reality.
 - **MCP server — 617 tools, 6 resources** — a Model Context Protocol endpoint that connects Claude Code, Codex, ChatGPT, and other AI agents to the CRM with safe, permission-scoped access to your data (reference: [`docs_mcp/mcp_en.md`](docs_mcp/mcp_en.md)).
 
@@ -822,11 +826,15 @@ TropaTT поддерживает полный цикл клиентской ра
 - **Workflow-правила** — автоматические действия при наступлении условий.
 - **SLA-менеджмент** — ожидания по уровню сервиса с отслеживанием сроков и оповещениями о нарушениях.
 - **Согласования** — многошаговые цепочки утверждения для контролируемых изменений.
-- **Вебхуки** — отправка событий во внешние системы при изменениях в CRM.
+- **Вебхуки** — отправка событий во внешние системы при изменениях в CRM (`task_created`, `task_updated`, `comment_created`).
+- **Agile-циклы и спринты** — учет скорости команды (velocity), диаграммы сгорания (burndown), планирование емкости (capacity) и динамика скоупа.
+- **Встроенные командные и проектные чаты** — личные диалоги, групповые каналы и проектные чаты с клиентами в реальном времени.
+- **Клиентский портал и внешние пользователи** — изолированный безопасный доступ для клиентов и подрядчиков к страницам Базы Знаний и чатам.
 - **API-клиенты и ключи** — программный доступ с ограниченными правами.
 - **Фоновые задачи** — запланированная и очередейная обработка для импорта, экспорта, AI.
 - **Модульная система** — расширение бизнес-логики без модификации ядра. 19 CLI-команд для управления модулями.
 - **REST API-эндпоинты, сгенерированные из маршрутов** — каждая CRM-сущность, задача, проект, чат, календарь, аналитика и административная функция доступны через API.
+- **Zero Documentation Drift** — релизный гейт строго гарантирует 100% соответствие кода маршрутов и документации REST API.
 - **Спецификация OpenAPI 3.1** — генерируется из конфигурации маршрутов, никогда не расходится с реализацией.
 - **MCP-сервер — 617 tools, 6 resources** — endpoint Model Context Protocol, который подключает Claude Code, Codex, ChatGPT и других AI-агентов к CRM с безопасным доступом к вашим данным и проверкой прав (справочник: [`docs_mcp/mcp_ru.md`](docs_mcp/mcp_ru.md)).
 
