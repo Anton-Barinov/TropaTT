@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Support\AppLog;
 use Api\Model\Auth\AuthRepository;
 use Api\Model\Common\UserRepository;
 use Api\System\Library\Logger\JsonLogger;
@@ -147,7 +148,7 @@ final class AuthService
                 ]);
             } catch (\Throwable $e) {
                 // Non-critical: if rehash fails, login still succeeds with old hash.
-                error_log('[AuthService] password_needs_rehash failed for user ' . ($user['public_id'] ?? '?') . ': ' . $e->getMessage());
+                AppLog::error('[AuthService] password_needs_rehash failed for user ' . ($user['public_id'] ?? '?') . ': ' . $e->getMessage());
             }
         }
 
@@ -562,7 +563,7 @@ final class AuthService
         if ($appKey === '') {
             // Log before throw so operator sees root cause even though 2FA
             // controllers will surface a generic failure to the user.
-            error_log('SECURITY CRITICAL: APP_KEY is not set; 2FA pending token signing refused. Set APP_KEY in .env.');
+            AppLog::error('SECURITY CRITICAL: APP_KEY is not set; 2FA pending token signing refused. Set APP_KEY in .env.');
             throw new \RuntimeException(
                 'APP_KEY is required for stable 2FA pending-token signing; '
                 . 'set APP_KEY in .env or the process environment.'

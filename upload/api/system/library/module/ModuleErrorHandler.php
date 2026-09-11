@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Module;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 use Api\System\Library\Database\IndexHelper;
 use RuntimeException;
@@ -26,7 +27,7 @@ final class ModuleErrorHandler
         try {
             return $fn();
         } catch (\Throwable $e) {
-            error_log(sprintf(
+            AppLog::error(sprintf(
                 '[Module:%s] Error in %s: %s',
                 $moduleName,
                 $context,
@@ -69,7 +70,7 @@ final class ModuleErrorHandler
                 'now' => $now,
             ]);
         } catch (\Throwable $e) {
-            error_log("[ModuleErrorHandler::persistError] DB persist failed for {$moduleName}: " . $e->getMessage() . " | Original error: {$errorMessage}");
+            AppLog::error("[ModuleErrorHandler::persistError] DB persist failed for {$moduleName}: " . $e->getMessage() . " | Original error: {$errorMessage}");
         }
     }
 
@@ -99,7 +100,7 @@ final class ModuleErrorHandler
             $stmt->execute(['module' => $moduleName, 'limit' => $limit]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         } catch (\Throwable $e) {
-            error_log('[ModuleErrorHandler::getErrors] ' . $e->getMessage());
+            AppLog::error('[ModuleErrorHandler::getErrors] ' . $e->getMessage());
             return [];
         }
     }
@@ -151,7 +152,7 @@ final class ModuleErrorHandler
 
             return ['items' => $items, 'total' => $total];
         } catch (\Throwable $e) {
-            error_log('[ModuleErrorHandler::list] ' . $e->getMessage());
+            AppLog::error('[ModuleErrorHandler::list] ' . $e->getMessage());
             return ['items' => [], 'total' => 0];
         }
     }
@@ -167,7 +168,7 @@ final class ModuleErrorHandler
             $stmt->execute([$cutoff]);
             return $stmt->rowCount();
         } catch (\Throwable $e) {
-            error_log('[ModuleErrorHandler::cleanup] ' . $e->getMessage());
+            AppLog::error('[ModuleErrorHandler::cleanup] ' . $e->getMessage());
             return 0;
         }
     }
@@ -181,7 +182,7 @@ final class ModuleErrorHandler
             $stmt = $this->pdo->prepare("DELETE FROM {$this->tableName} WHERE module_name = :module");
             $stmt->execute(['module' => $moduleName]);
         } catch (\Throwable $e) {
-            error_log('[ModuleErrorHandler::clearErrors] ' . $e->getMessage());
+            AppLog::error('[ModuleErrorHandler::clearErrors] ' . $e->getMessage());
         }
     }
 
@@ -205,7 +206,7 @@ final class ModuleErrorHandler
             IndexHelper::createIndexIfNotExists($this->pdo, $this->tableName, 'idx_module_errors_module', 'module_name');
             IndexHelper::createIndexIfNotExists($this->pdo, $this->tableName, 'idx_module_errors_created', 'created_at');
         } catch (\Throwable $e) {
-            error_log('[ModuleErrorHandler::ensureTable] ' . $e->getMessage());
+            AppLog::error('[ModuleErrorHandler::ensureTable] ' . $e->getMessage());
         }
     }
 }

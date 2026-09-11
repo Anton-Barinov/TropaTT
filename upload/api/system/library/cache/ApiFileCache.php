@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Cache;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Config;
 use Api\System\Library\Logger\JsonLogger;
 
@@ -463,7 +464,7 @@ final class ApiFileCache
         try {
             $this->logger->info('api_cache', $context);
         } catch (\Throwable $e) {
-            error_log('ApiFileCache log error: ' . $e->getMessage());
+            AppLog::error('ApiFileCache log error: ' . $e->getMessage());
         }
     }
 }

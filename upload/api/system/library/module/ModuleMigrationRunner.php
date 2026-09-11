@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Module;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 use Api\System\Library\Database\IndexHelper;
 use RuntimeException;
@@ -258,13 +259,13 @@ final class ModuleMigrationRunner
         try {
             IndexHelper::createIndexIfNotExists($this->pdo, $this->tableName, 'idx_module_migrations_unique', 'module_name, migration_name', true);
         } catch (\Throwable $e) {
-            error_log('[ModuleMigrationRunner::ensureTable] UNIQUE INDEX failed: ' . $e->getMessage());
+            AppLog::error('[ModuleMigrationRunner::ensureTable] UNIQUE INDEX failed: ' . $e->getMessage());
         }
 
         try {
             IndexHelper::createIndexIfNotExists($this->pdo, $this->tableName, 'idx_module_migrations_module', 'module_name');
         } catch (\Throwable $e) {
-            error_log('[ModuleMigrationRunner::ensureTable] INDEX failed: ' . $e->getMessage());
+            AppLog::error('[ModuleMigrationRunner::ensureTable] INDEX failed: ' . $e->getMessage());
         }
     }
 
@@ -278,7 +279,7 @@ final class ModuleMigrationRunner
             $stmt->execute(['module' => $moduleName]);
             return $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
         } catch (\Throwable $e) {
-            error_log('[ModuleMigrationRunner::getAppliedMigrations] ' . $e->getMessage());
+            AppLog::error('[ModuleMigrationRunner::getAppliedMigrations] ' . $e->getMessage());
             return [];
         }
     }
@@ -320,7 +321,7 @@ final class ModuleMigrationRunner
             $stmt->execute(['module' => $moduleName]);
             return (int)$stmt->fetchColumn();
         } catch (\Throwable $e) {
-            error_log('[ModuleMigrationRunner::getMaxBatch] ' . $e->getMessage());
+            AppLog::error('[ModuleMigrationRunner::getMaxBatch] ' . $e->getMessage());
             return 0;
         }
     }
@@ -368,7 +369,7 @@ final class ModuleMigrationRunner
             $result = $stmt->fetchColumn();
             return $result ? (string)$result : null;
         } catch (\Throwable $e) {
-            error_log('[ModuleMigrationRunner::findMigrationAppliedAt] ' . $e->getMessage());
+            AppLog::error('[ModuleMigrationRunner::findMigrationAppliedAt] ' . $e->getMessage());
             return null;
         }
     }

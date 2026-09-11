@@ -19,7 +19,12 @@ final class JsonLogger
     /** @param array<string,mixed> $context */
     public function log(string $channel, string $level, string $message, array $context = []): void
     {
-        $path = $this->channels[$channel] ?? null;
+        // A channel that is not configured used to drop the message silently:
+        // `application` (used by warning()/info()/notice()/debug()) is absent from
+        // the shipped and the installer-generated channel lists, so every one of
+        // those records vanished. Fall back to the error channel so operators find
+        // them where they already look.
+        $path = $this->channels[$channel] ?? $this->channels['error'] ?? null;
         if (!is_string($path) || $path === '') {
             return;
         }

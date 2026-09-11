@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Module;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 
 final class ModuleGdprCompliance
@@ -40,11 +41,11 @@ final class ModuleGdprCompliance
                         $data[$table] = $rows;
                     }
                 } catch (\Throwable $e) {
-                    error_log('[ModuleGdprCompliance::cleanse] ' . $e->getMessage());
+                    AppLog::error('[ModuleGdprCompliance::cleanse] ' . $e->getMessage());
                 }
             }
         } catch (\Throwable $e) {
-            error_log('[ModuleGdprCompliance::exportUserData] ' . $e->getMessage());
+            AppLog::error('[ModuleGdprCompliance::exportUserData] ' . $e->getMessage());
         }
 
         return $data;
@@ -64,11 +65,11 @@ final class ModuleGdprCompliance
                     $stmt = $this->pdo->prepare("DELETE FROM {$table} WHERE user_id = :uid");
                     $stmt->execute(['uid' => $userId]);
                 } catch (\Throwable $e) {
-                    error_log('[ModuleGdprCompliance::cleanse] ' . $e->getMessage());
+                    AppLog::error('[ModuleGdprCompliance::cleanse] ' . $e->getMessage());
                 }
             }
         } catch (\Throwable $e) {
-            error_log('[ModuleGdprCompliance::deleteUserData] ' . $e->getMessage());
+            AppLog::error('[ModuleGdprCompliance::deleteUserData] ' . $e->getMessage());
             return false;
         }
 

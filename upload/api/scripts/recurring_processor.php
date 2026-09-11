@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+
+use Api\System\Library\Support\AppLog;
 if (PHP_SAPI !== "cli") { http_response_code(404); exit; }
 $argv ??= $_SERVER['argv'] ?? [];
 
@@ -27,6 +29,7 @@ if (class_exists(Api\System\Library\Support\EnvLoader::class)) {
 
 $config = new Config();
 $config->load($basePath . '/config/database.php', 'database');
+        AppLog::bootFromConfig($config, $basePath . '/config/logging.php');
 $connectionManager = new ConnectionManager($config);
 $pdo = $connectionManager->connect();
 

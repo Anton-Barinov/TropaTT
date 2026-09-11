@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Module;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 use Api\System\Library\Database\IndexHelper;
 
@@ -58,7 +59,7 @@ final class ModuleCronScheduler
                 try {
                     $this->updateNextRun((int)$task['id'], (string)$task['schedule'], 'skipped', 'Module is inactive');
                 } catch (\Throwable $e) {
-                    error_log('[ModuleCronScheduler::run] Failed to skip inactive module task: ' . $e->getMessage());
+                    AppLog::error('[ModuleCronScheduler::run] Failed to skip inactive module task: ' . $e->getMessage());
                 }
                 $result['results'][] = [
                     'status' => 'skipped',
@@ -90,7 +91,7 @@ final class ModuleCronScheduler
 
                 // updateNextRun + last_status already done inside executeTask
             } catch (\Throwable $e) {
-                error_log('[ModuleCronScheduler::run] Fatal error running task ' . ($task['task_name'] ?? '?') . ': ' . $e->getMessage());
+                AppLog::error('[ModuleCronScheduler::run] Fatal error running task ' . ($task['task_name'] ?? '?') . ': ' . $e->getMessage());
                 $result['results'][] = [
                     'status' => 'failed',
                     'module' => (string)($task['module_name'] ?? ''),
@@ -269,7 +270,7 @@ final class ModuleCronScheduler
             $this->dedupeScheduledTasks();
             IndexHelper::createIndexIfNotExists($this->pdo, $this->tasksTable, 'uq_scheduled_tasks_module_task', 'module_name, task_name', true);
         } catch (\Throwable $e) {
-            error_log('[ModuleCronScheduler::ensureTables] index creation failed: ' . $e->getMessage());
+            AppLog::error('[ModuleCronScheduler::ensureTables] index creation failed: ' . $e->getMessage());
         }
 
         // Widen error/output columns on pre-existing tables (MySQL strict mode
@@ -280,7 +281,7 @@ final class ModuleCronScheduler
                     try {
                         $this->pdo->exec("ALTER TABLE {$table} MODIFY `" . trim($column) . "` TEXT NULL");
                     } catch (\Throwable $e) {
-                        error_log('[ModuleCronScheduler::ensureTables] widen ' . $column . ' failed: ' . $e->getMessage());
+                        AppLog::error('[ModuleCronScheduler::ensureTables] widen ' . $column . ' failed: ' . $e->getMessage());
                     }
                 }
             }
@@ -312,7 +313,7 @@ final class ModuleCronScheduler
             $del = $this->pdo->prepare("DELETE FROM {$this->tasksTable} WHERE id NOT IN ({$placeholders})");
             $del->execute($ids);
         } catch (\Throwable $e) {
-            error_log('[ModuleCronScheduler::dedupeScheduledTasks] ' . $e->getMessage());
+            AppLog::error('[ModuleCronScheduler::dedupeScheduledTasks] ' . $e->getMessage());
         }
     }
 
@@ -326,7 +327,7 @@ final class ModuleCronScheduler
             $stmt->execute(['now' => $now->format('Y-m-d H:i:s')]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         } catch (\Throwable $e) {
-            error_log('[ModuleCronScheduler::getDueTasks] ' . $e->getMessage());
+            AppLog::error('[ModuleCronScheduler::getDueTasks] ' . $e->getMessage());
             return [];
         }
     }
@@ -349,7 +350,7 @@ final class ModuleCronScheduler
 
             return $row !== false && (int)($row['is_active'] ?? 1) === 0;
         } catch (\Throwable $e) {
-            error_log('[ModuleCronScheduler::isModuleInactive] ' . $e->getMessage());
+            AppLog::error('[ModuleCronScheduler::isModuleInactive] ' . $e->getMessage());
             return false;
         }
     }
@@ -371,7 +372,7 @@ final class ModuleCronScheduler
                 try {
                     $this->updateNextRun($taskId, $schedule, 'skipped', 'Task already running (overlap disallowed)');
                 } catch (\Throwable $e) {
-                    error_log('[ModuleCronScheduler::executeTask] Failed to update task status: ' . $e->getMessage());
+                    AppLog::error('[ModuleCronScheduler::executeTask] Failed to update task status: ' . $e->getMessage());
                 }
                 return ['status' => 'skipped', 'module' => $moduleName, 'task' => $taskName, 'duration_ms' => 0, 'error' => 'Task already running (overlap disallowed)'];
             }
@@ -411,7 +412,7 @@ final class ModuleCronScheduler
             try {
                 $this->updateNextRun($taskId, $schedule, 'success', null);
             } catch (\Throwable $e) {
-                error_log('[ModuleCronScheduler::executeTask] Failed to update task status: ' . $e->getMessage());
+                AppLog::error('[ModuleCronScheduler::executeTask] Failed to update task status: ' . $e->getMessage());
             }
 
             return ['status' => 'success', 'module' => $moduleName, 'task' => $taskName, 'duration_ms' => $duration, 'error' => null];
@@ -429,14 +430,14 @@ final class ModuleCronScheduler
                     'id' => $executionId ?? 0,
                 ]);
             } catch (\Throwable $e) {
-            error_log('[ModuleCronScheduler::recordExecution] ' . $e->getMessage());
+            AppLog::error('[ModuleCronScheduler::recordExecution] ' . $e->getMessage());
             }
 
             $truncatedError = mb_substr($e->getMessage(), 0, 500);
             try {
                 $this->updateNextRun($taskId, $schedule, 'failed', $truncatedError);
             } catch (\Throwable $e) {
-                error_log('[ModuleCronScheduler::executeTask] Failed to update task status: ' . $e->getMessage());
+                AppLog::error('[ModuleCronScheduler::executeTask] Failed to update task status: ' . $e->getMessage());
             }
 
             return ['status' => 'failed', 'module' => $moduleName, 'task' => $taskName, 'duration_ms' => $duration, 'error' => $e->getMessage()];
@@ -457,7 +458,7 @@ final class ModuleCronScheduler
                 $stmt->execute(['now' => $now, 'next' => $nextRun->format('Y-m-d H:i:s'), 'id' => $taskId]);
             }
         } catch (\Throwable $e) {
-            error_log('[ModuleCronScheduler::updateNextRun] ' . $e->getMessage());
+            AppLog::error('[ModuleCronScheduler::updateNextRun] ' . $e->getMessage());
         }
     }
 
@@ -469,7 +470,7 @@ final class ModuleCronScheduler
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
             return !empty($row['overlap_allowed']);
         } catch (\Throwable $e) {
-            error_log('[ModuleCronScheduler::isOverlapAllowed] ' . $e->getMessage());
+            AppLog::error('[ModuleCronScheduler::isOverlapAllowed] ' . $e->getMessage());
             return false;
         }
     }
@@ -488,7 +489,7 @@ final class ModuleCronScheduler
             $stmt->execute(['module' => $moduleName, 'task' => $taskName, 'cutoff' => $cutoff]);
             return ((int)$stmt->fetchColumn()) > 0;
         } catch (\Throwable $e) {
-            error_log('[ModuleCronScheduler::hasRunningExecution] ' . $e->getMessage());
+            AppLog::error('[ModuleCronScheduler::hasRunningExecution] ' . $e->getMessage());
             return false;
         }
     }
