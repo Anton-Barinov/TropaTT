@@ -8,7 +8,10 @@ $argc ??= count($argv);
 use Api\System\Library\Config;
 use Api\System\Library\Container;
 use Api\System\Library\Database\ConnectionManager;
+use Api\System\Library\Module\ModuleAutoloader;
+use Api\System\Library\Module\ModuleConfig;
 use Api\System\Library\Module\ModuleCronScheduler;
+use Api\System\Library\Module\PluginManager;
 
 require_once __DIR__ . '/../system/library/support/Autoloader.php';
 
@@ -16,6 +19,16 @@ $basePath = dirname(__DIR__);
 $projectRoot = dirname($basePath);
 $autoloader = new Api\System\Library\Support\Autoloader($basePath);
 $autoloader->register();
+
+// Module cron handlers live in Module\Vendor\Name\... and are resolved by the
+// module autoloader that the web application registers in app.php. This CLI
+// worker runs standalone, so without the same registration every module task
+// failed with "Handler class not found" — and on shared hosting the scheduler
+// is always invoked from cron, never through the web application. Dashed module
+// directories (crm.confluence-migration) additionally need registerModule(),
+// because the fallback path only matches undashed names.
+$moduleAutoloader = new ModuleAutoloader($projectRoot);
+$moduleAutoloader->register();
 
 if (class_exists(Api\System\Library\Support\EnvLoader::class)) {
     Api\System\Library\Support\EnvLoader::loadFiles([
@@ -33,6 +46,38 @@ $pdo = $connectionManager->connect();
 
 $dbConfig = $config->get('database.connections.' . ($config->get('database.default') ?: 'sqlite'));
 $driver = (string)($dbConfig['driver'] ?? 'sqlite');
+
+// Register the module class paths (active modules first, all discovered modules
+// as a fallback) so handler classes with dashed directories resolve from cron.
+try {
+    $pluginManager = new PluginManager($projectRoot);
+    $pluginManager->discover();
+
+    $manifests = [];
+    try {
+        $moduleConfig = new ModuleConfig($pdo);
+        $moduleConfig->ensureTable($driver);
+        foreach ($moduleConfig->getActiveModules() as $registration) {
+            $manifest = $pluginManager->getManifest((string)($registration['module_name'] ?? ''));
+            if ($manifest !== null) {
+                $manifests[$manifest->name] = $manifest;
+            }
+        }
+    } catch (\Throwable $e) {
+        error_log('[scheduler] active module lookup failed: ' . $e->getMessage());
+    }
+
+    if ($manifests === []) {
+        $manifests = $pluginManager->getDiscovered();
+    }
+
+    foreach ($manifests as $manifest) {
+        $moduleAutoloader->registerModule($manifest->name, $manifest->vendor);
+    }
+} catch (\Throwable $e) {
+    // A broken module or config must never stop cron from running core tasks.
+    error_log('[scheduler] module autoloader registration failed: ' . $e->getMessage());
+}
 
 $scheduler = new ModuleCronScheduler($pdo);
 $scheduler->ensureTables($driver);
