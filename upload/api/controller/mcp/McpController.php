@@ -6528,12 +6528,22 @@ $tools[] = $this->tool(
 
         /** @var CommentService $service */
         $service = $this->container->get('service.comment');
-        $ok = $service->createByTask($taskPublicId, [
+        $comment = $service->createByTask($taskPublicId, [
             'body' => $body,
             'visibility' => (string)($arguments['visibility'] ?? 'internal'),
         ], (int)($this->actor()['id'] ?? 0));
 
-        return $ok ? ['ok' => true, 'task_public_id' => $taskPublicId] : ['error' => 'Comment was not created.'];
+        if (!$comment) {
+            return ['error' => 'Comment was not created.'];
+        }
+
+        // Return the created comment: without its public_id a client cannot
+        // update, delete or reply to the comment it just posted.
+        return [
+            'ok' => true,
+            'task_public_id' => $taskPublicId,
+            'comment' => $this->publicData($comment),
+        ];
     }
 
     private function crmDeleteTask(array $arguments): array
