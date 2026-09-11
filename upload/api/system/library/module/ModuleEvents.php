@@ -38,6 +38,20 @@ final class ModuleEvents
     public const CYCLE_ARCHIVED = 'cycle.archived';
     public const CYCLE_DELETED = 'cycle.deleted';
 
+    // Taxonomy / configuration entities (dispatched from their controllers).
+    public const TAG_CREATED = 'tag.created';
+    public const TAG_UPDATED = 'tag.updated';
+    public const TAG_DELETED = 'tag.deleted';
+    public const STATUS_CREATED = 'status.created';
+    public const STATUS_UPDATED = 'status.updated';
+    public const STATUS_DELETED = 'status.deleted';
+    public const PRIORITY_CREATED = 'priority.created';
+    public const PRIORITY_UPDATED = 'priority.updated';
+    public const PRIORITY_DELETED = 'priority.deleted';
+    public const CUSTOM_FIELD_CREATED = 'custom_field.created';
+    public const CUSTOM_FIELD_UPDATED = 'custom_field.updated';
+    public const CUSTOM_FIELD_DELETED = 'custom_field.deleted';
+
     // Collaboration.
     public const COMMENT_ADDED = 'comment.added';
     public const FILE_UPLOADED = 'file.uploaded';

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\Controller\Priority;
 
 use Api\Controller\Common\BaseController;
+use Api\System\Library\Module\ModuleEvents;
 use Api\System\Library\Service\PriorityService;
 use Api\System\Library\Validation\Validator;
 
@@ -73,6 +74,13 @@ final class PriorityController extends BaseController
 
         $this->invalidateCache('priority');
 
+
+        $this->dispatchModuleHook(ModuleEvents::PRIORITY_CREATED, [
+            'priority_public_id' => (string)($item['public_id'] ?? ''),
+            'code' => (string)($item['code'] ?? ''),
+            'title' => (string)($item['title'] ?? ''),
+            'actor_id' => (int)($authUser['user']['id'] ?? 0),
+        ]);
         return $this->success('PRIORITY_CREATED', $this->t('priority/messages.created'), ['priority' => $item], 201);
     }
 
@@ -103,6 +111,13 @@ final class PriorityController extends BaseController
 
         $this->invalidateCache('priority');
 
+
+        $this->dispatchModuleHook(ModuleEvents::PRIORITY_UPDATED, [
+            'priority_public_id' => (string)($item['public_id'] ?? ''),
+            'code' => (string)($item['code'] ?? ''),
+            'title' => (string)($item['title'] ?? ''),
+            'actor_id' => (int)($authUser['user']['id'] ?? 0),
+        ]);
         return $this->success('PRIORITY_UPDATED', $this->t('priority/messages.updated'), ['priority' => $item]);
     }
 
@@ -116,6 +131,12 @@ final class PriorityController extends BaseController
                 'priority' => [$this->t('priority/messages.not_found')],
             ]);
         }
+
+
+        $this->dispatchModuleHook(ModuleEvents::PRIORITY_DELETED, [
+            'priority_public_id' => (string)$params['public_id'],
+            'actor_id' => (int)($this->user()['user']['id'] ?? 0),
+        ]);
 
         $this->invalidateCache('priority');
 

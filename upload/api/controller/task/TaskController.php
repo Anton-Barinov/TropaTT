@@ -551,6 +551,18 @@ final class TaskController extends BaseController
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $errors);
         }
 
+        /** @var TaskService $taskService */
+        $taskService = $this->container->get('service.task');
+        // Snapshot the previous status so TASK_STATUS_CHANGED can be reported
+        // truthfully after the bulk apply (the service only returns the new state).
+        $previousStatuses = [];
+        foreach ($taskPublicIds as $taskPublicId) {
+            $before = $taskService->get((string)$taskPublicId, $authUser['user']);
+            if (is_array($before)) {
+                $previousStatuses[(string)$taskPublicId] = (string)($before['status_code'] ?? '');
+            }
+        }
+
         /** @var TaskBulkService $service */
         $service = $this->container->get('service.task_bulk');
         $result = $service->apply($input, $authUser['user']);
@@ -562,6 +574,47 @@ final class TaskController extends BaseController
         if ($result === 'ASSIGNEE_NOT_FOUND') {
             return $this->error('ASSIGNEE_NOT_FOUND', $this->t('task/messages.assignee_not_found'), 404, [
                 'assignee_user_public_id' => [$this->t('task/messages.assignee_not_found')],
+            ]);
+        }
+
+        // A bulk update must be observable exactly like N single updates: fire the
+        // per-task module hooks (and with them the webhook subscriptions) and the
+        // workflow triggers for every task the service actually changed.
+        foreach ((array)($result['updated'] ?? []) as $row) {
+            $taskPublicId = (string)($row['task_public_id'] ?? '');
+            if ($taskPublicId === '') {
+                continue;
+            }
+            $task = $taskService->get($taskPublicId, $authUser['user']);
+            if (!is_array($task)) {
+                continue;
+            }
+
+            $previousStatus = $previousStatuses[$taskPublicId] ?? null;
+            if (isset($input['status']) && $previousStatus !== null && (string)$input['status'] !== $previousStatus) {
+                $this->fireWorkflowTrigger('task_status_changed', $task, $authUser['user'], [
+                    'previous_status' => $previousStatus,
+                    'new_status' => (string)$input['status'],
+                ]);
+                $this->dispatchModuleHook(ModuleEvents::TASK_STATUS_CHANGED, [
+                    'task_id' => (int)($task['id'] ?? 0),
+                    'task_public_id' => $taskPublicId,
+                    'old_status' => (string)$previousStatus,
+                    'new_status' => (string)$input['status'],
+                    'assignee_id' => (int)($task['assignee_user_id'] ?? 0),
+                    'actor_id' => (int)($authUser['user']['id'] ?? 0),
+                    'bulk' => true,
+                ]);
+            }
+
+            $this->fireWorkflowTrigger('task_updated', $task, $authUser['user']);
+            $this->dispatchModuleHook(ModuleEvents::TASK_UPDATED, [
+                'task_id' => (int)($task['id'] ?? 0),
+                'task_public_id' => $taskPublicId,
+                'status_code' => (string)($task['status_code'] ?? ''),
+                'assignee_id' => (int)($task['assignee_user_id'] ?? 0),
+                'actor_id' => (int)($authUser['user']['id'] ?? 0),
+                'bulk' => true,
             ]);
         }
 
