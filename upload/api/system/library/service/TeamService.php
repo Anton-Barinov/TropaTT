@@ -142,7 +142,13 @@ final class TeamService
             return false;
         }
 
-        return $this->teams->deleteByPublicId($publicId);
+        $deleted = $this->teams->deleteByPublicId($publicId);
+        if ($deleted) {
+            // the team's system chat must not outlive the team
+            $this->chats?->archiveSystemChatFor((int)($team['id'] ?? 0), null);
+        }
+
+        return $deleted;
     }
 
     private function canView(array $team, array $actor): bool
