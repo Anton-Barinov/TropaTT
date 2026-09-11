@@ -28,6 +28,8 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 - **Documentation counts corrected:** 617 tools and 6 resources in the full catalog, 24 in the default `core` profile (README, in-product docs, MCP reference, setup prompt).
 
 ### Fixed
+- **A valid password is no longer rejected as "weak".** Every password check implemented "at least 12 characters with an uppercase letter, a lowercase letter and a digit" using ASCII-only classes (`[A-Z]`, `[a-z]`), so a password written with Cyrillic (or any non-ASCII) letters was refused even though it matched the message shown to the user — activating an external invitation failed with the generic "weak password" error. Two other places additionally demanded a special character that the message never mentions. The rule now lives in one place (`PasswordPolicy`, mirrored on the client) and is Unicode-aware: 12+ characters with an uppercase letter, a lowercase letter and a digit, no special character required. It applies to external-invitation activation, user invitations, password reset, the profile password change and the MCP change-password tool; the ASCII-looking placeholder ("A-Z, a-z, 0-9") was reworded in all seven languages.
+
 
 - **MCP mega-tool dispatch.** 17 actions returned JSON-RPC `-32603` instead of a result: 12 called non-existent methods (`crm_task` `approve`/`reject`, `crm_knowledge` `entity_pages` and nine AI actions) and 5 were invoked without their required `$args` (`overview`, `analytics`, `list_favorites`, `export_all`, `list_models`).
 - **Unknown mega-tool action** now answers with a tool-level error listing the available actions instead of crashing with `-32603`.
