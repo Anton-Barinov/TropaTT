@@ -72,7 +72,11 @@ final class UserController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        $input = $this->validatedInput(['login', 'password', 'email', 'full_name', 'locale', 'is_root', 'token', 'role_public_ids', 'team_public_id']);
+        // `is_active` belongs here as much as it belongs to update(): a caller who
+        // asks for an inactive account must not silently receive an active one —
+        // the create path used to drop the flag and hard-code `is_active = 1`,
+        // while MCP keeps advertising `is_active` on `crm_people`.
+        $input = $this->validatedInput(['login', 'password', 'email', 'full_name', 'locale', 'is_active', 'is_root', 'token', 'role_public_ids', 'team_public_id']);
 
         // SEC-002: is_root is NEVER settable via API (seed/migration/DB only).
         // role_public_ids may be set by root actors; non-root actors cannot

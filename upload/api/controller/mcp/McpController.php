@@ -6587,6 +6587,12 @@ $tools[] = $this->tool(
             return ['error' => 'title is required.'];
         }
 
+        // Support assignee_user_public_id: map to assignee_user_id which TaskService resolves
+        $assigneePublicId = trim((string)($arguments['assignee_user_public_id'] ?? ''));
+        if ($assigneePublicId !== '') {
+            $arguments['assignee_user_id'] = $assigneePublicId;
+        }
+
         // Go through TaskController instead of TaskService: the controller is what
         // fires the workflow trigger (task_created), the module hooks (and with
         // them the core webhook subscriptions) and the cache invalidation. Calling
@@ -6600,6 +6606,12 @@ $tools[] = $this->tool(
         $publicId = trim((string)($arguments['public_id'] ?? ''));
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
+        }
+
+        // Support assignee_user_public_id: map to assignee_user_id which TaskService resolves
+        if (array_key_exists('assignee_user_public_id', $arguments)) {
+            $assigneePublicId = trim((string)($arguments['assignee_user_public_id'] ?? ''));
+            $arguments['assignee_user_id'] = $assigneePublicId !== '' ? $assigneePublicId : null;
         }
 
         // Same reason as create: update() fires task_updated/task_status_changed
@@ -10210,7 +10222,7 @@ $tools[] = $this->tool(
         if (!$space) {
             return ['error' => 'Knowledge space not found.'];
         }
-        return ['items' => $this->publicData($this->knowledge()->spacePermissions($publicId))];
+        return ['items' => $this->publicData($this->knowledge()->spacePermissions($publicId, $this->actor()))];
     }
 
     private function crmAddKnowledgeSpacePermission(array $arguments): array
@@ -10220,15 +10232,48 @@ $tools[] = $this->tool(
         if ($publicId === '' || $subjectType === '') {
             return ['error' => 'public_id and subject_type are required.'];
         }
+        // Report the real reason. `addSpacePermission` answers null for a missing
+        // space, for a subject type it does not know and for a subject that does
+        // not resolve, and the handler used to name the space in all three cases —
+        // so a grant that failed on a stale subject read as "the space is gone"
+        // while `get_space` returned it happily (observed against a live host).
+        if (!in_array($subjectType, ['user', 'role', 'team', 'department'], true)) {
+            return ['error' => 'subject_type must be one of: user, role, team, department.'];
+        }
         $result = $this->knowledge()->addSpacePermission(
             $publicId,
             $subjectType,
             (int)($arguments['subject_id'] ?? 0),
             trim((string)($arguments['access_level'] ?? 'view')),
             (int)($this->actor()['id'] ?? 0),
-            trim((string)($arguments['subject_public_id'] ?? ''))
+            trim((string)($arguments['subject_public_id'] ?? '')),
+            $this->actor()
         );
-        return $result ? ['permission' => $this->publicData($result)] : ['error' => 'Knowledge space not found.'];
+        if (!$result) {
+            return ['error' => self::spacePermissionFailureReason(
+                $this->knowledge()->space($publicId, $this->actor(), 'manage') !== null
+            )];
+        }
+
+        return ['permission' => $this->publicData($result)];
+    }
+
+    /**
+     * Name the reason a space-permission grant was refused.
+     *
+     * The repository answers null both for a space the actor may not manage and
+     * for a subject it cannot resolve, so the handler has to ask about the space
+     * separately; answering "Knowledge space not found." in both cases sent the
+     * caller looking at a space that was there all along (seen with a stale
+     * subject id on a live host). The space probe uses the same `manage` access
+     * the write needs, so a space the actor cannot manage keeps the API's usual
+     * non-disclosure answer ("Knowledge space not found.", as REST does).
+     */
+    public static function spacePermissionFailureReason(bool $spaceVisibleToActor): string
+    {
+        return $spaceVisibleToActor
+            ? 'Permission subject not found.'
+            : 'Knowledge space not found.';
     }
 
     private function crmRemoveKnowledgeSpacePermission(array $arguments): array

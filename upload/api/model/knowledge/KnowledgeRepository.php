@@ -224,9 +224,13 @@ final class KnowledgeRepository
         return $this->space($publicId, $actor);
     }
 
-    public function spacePermissions(string $publicId): array
+    public function spacePermissions(string $publicId, ?array $actor = null): array
     {
-        $space = $this->space($publicId);
+        // Resolve with the actor's own access: a null-actor lookup hides every
+        // non-public space, so the owner of a private space saw an empty
+        // permission list while the grants were there (same root cause as
+        // addSpacePermission()).
+        $space = $this->space($publicId, $actor);
         if (!$space) {
             return [];
         }
@@ -248,9 +252,15 @@ final class KnowledgeRepository
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    public function addSpacePermission(string $publicId, string $subjectType, int $subjectId, string $accessLevel, ?int $actorId, string $subjectPublicId = ''): ?array
+    public function addSpacePermission(string $publicId, string $subjectType, int $subjectId, string $accessLevel, ?int $actorId, string $subjectPublicId = '', ?array $actor = null): ?array
     {
-        $space = $this->space($publicId);
+        // Resolve the space with the actor's own access instead of an anonymous
+        // lookup: the ACL filter hides every non-public space from a null actor,
+        // so `space($publicId)` made a grant on a private space impossible — the
+        // one case the feature exists for. Granting still requires `manage` on the
+        // space, which callers check as well (REST: requireSpaceOwnerOrAdmin,
+        // MCP: the knowledge permission plus this lookup).
+        $space = $this->space($publicId, $actor, 'manage');
         if (!$space) {
             return null;
         }
