@@ -309,7 +309,7 @@ final class KnowledgeAiController extends BaseController
             ];
         }
 
-        $prompt = 'You are a professional knowledge base assistant. Explain the following page in simple terms that anyone can understand. Use plain language, avoid jargon. Return ONLY the explanation text, no extra formatting.';
+        $prompt = 'You are a professional knowledge base assistant. Explain the following page in simple terms that anyone can understand, in the same language as the content. Use plain language, avoid jargon. Return ONLY the explanation text, no extra formatting.';
         $userPrompt = "Title: {$title}\n\nContent:\n{$content}\n\nExplain this page in simple terms:";
 
         $llmResult = $aiProvider->completeText((string)($provider['public_id'] ?? ''), [
@@ -915,7 +915,7 @@ final class KnowledgeAiController extends BaseController
         $aiProvider = $this->container->get('service.ai_provider');
         $provider = $this->resolveAiProvider($aiProvider);
         if ($provider !== null) {
-            $prompt = 'You are a professional knowledge base assistant. Extract action items from the following page as a checklist. Return ONLY a JSON array of strings, each string is one checklist item. Example: ["Item 1", "Item 2"]';
+            $prompt = 'You are a professional knowledge base assistant. Extract action items from the following page as a checklist. Write every item in the same language as the page. Return ONLY a JSON array of strings, each string is one checklist item. Example: ["Item 1", "Item 2"]';
             $userPrompt = "Title: {$title}\n\nContent:\n{$text}\n\nExtract checklist items:";
 
             $llmResult = $aiProvider->completeText((string)($provider['public_id'] ?? ''), [
@@ -972,7 +972,7 @@ final class KnowledgeAiController extends BaseController
         $provider = $this->resolveAiProvider($aiProvider);
         if ($provider !== null) {
             $commentsText = implode("\n- ", $comments);
-            $prompt = 'You are a professional knowledge base assistant. Based on the page title and reader comments, generate FAQ entries. Return ONLY a JSON array of objects with "question" and "answer" fields. Example: [{"question": "Q1?", "answer": "A1."}]';
+            $prompt = 'You are a professional knowledge base assistant. Based on the page title and reader comments, generate FAQ entries in the same language as the content. Return ONLY a JSON array of objects with "question" and "answer" fields. Example: [{"question": "Q1?", "answer": "A1."}]';
             $userPrompt = "Page: {$pageTitle}\n\nComments:\n- {$commentsText}\n\nGenerate FAQ entries:";
 
             $llmResult = $aiProvider->completeText((string)($provider['public_id'] ?? ''), [

@@ -2929,7 +2929,7 @@ MD;
         // ═══════════════════════════════════════════════════════════════════
 
         // --- crm_task: tasks, subtasks, comments, tags, checklists, dependencies, relations, board, activity ---
-        $tools[] = $this->tool(
+$tools[] = $this->tool(
             'crm_task',
             'Unified task management. Use this tool for ALL task operations: list, get, create, update, delete, move, bulk update, board view, get by key, comments, subtasks, tags, checklists, dependencies, relations, estimates, saved views, recurring rules, reminders, SLA, workflow rules, approvals. When the user asks about tasks, always start here. Returns task data with public_id (tsk_...), title, status, priority, assignee, project.',
             [
@@ -2974,6 +2974,26 @@ MD;
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
                 'q' => ['type' => 'string', 'description' => 'Search query for list (filter by title).'],
+                'assigned_user_id' => ['type' => 'string', 'description' => 'Public identifier.'],
+                'assignee_user_id' => ['type' => 'string', 'description' => 'Assignee user id.'],
+                'checklist_public_id' => ['type' => 'string', 'description' => 'Public identifier.'],
+                'comment' => ['type' => 'string', 'description' => 'Value.'],
+                'dependency_type' => ['type' => 'string', 'description' => 'Value.'],
+                'depends_on_task_public_id' => ['type' => 'string', 'description' => 'Public identifier.'],
+                'entity_public_id' => ['type' => 'string', 'description' => 'Linked entity public_id.'],
+                'entity_type' => ['type' => 'string', 'description' => 'Linked entity type (task/project/client/...).'],
+                'estimate_set_public_id' => ['type' => 'string', 'description' => 'Public identifier.'],
+                'is_done' => ['type' => 'boolean', 'description' => 'Boolean flag.'],
+                'remind_at' => ['type' => 'string', 'description' => 'Date/time value (ISO 8601 or YYYY-MM-DD).'],
+                'reviewer_public_ids' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'List of values.'],
+                'rrule' => ['type' => 'string', 'description' => 'Value.'],
+                'sla_policy_public_id' => ['type' => 'string', 'description' => 'Public identifier.'],
+                'sort_order' => ['type' => 'integer', 'description' => 'Numeric value (integer).'],
+                'target_project_public_id' => ['type' => 'string', 'description' => 'Public identifier.'],
+                'action_code' => ['type' => 'string', 'description' => 'Workflow action code.'],
+                'resolve_minutes' => ['type' => 'integer', 'description' => 'SLA resolution target, in minutes.'],
+                'response_minutes' => ['type' => 'integer', 'description' => 'SLA first-response target, in minutes.'],
+                'trigger_code' => ['type' => 'string', 'description' => 'Workflow trigger code.'],
             ],
             ['action']
         );
@@ -3004,6 +3024,17 @@ MD;
                 'task_public_ids' => ['type' => 'array', 'items' => ['type' => 'string']],
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                'cycle_public_id' => ['type' => 'string', 'description' => 'Cycle (sprint) public_id.'],
+                'date_from' => ['type' => 'string', 'description' => 'Value.'],
+                'date_to' => ['type' => 'string', 'description' => 'Value.'],
+                'kind' => ['type' => 'string', 'description' => 'Kind discriminator.'],
+                'project_public_id' => ['type' => 'string', 'description' => 'Project public_id.'],
+                'row_version' => ['type' => 'integer', 'description' => 'Numeric value (integer).'],
+                'target_cycle_public_id' => ['type' => 'string', 'description' => 'Cycle the unfinished tasks are moved to.'],
+                'task_keys' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'List of values.'],
+                'task_public_id' => ['type' => 'string', 'description' => 'Task public_id.'],
+                'unfinished_action' => ['type' => 'string', 'description' => 'What to do with unfinished tasks (move/keep).'],
+                'view_mode' => ['type' => 'string', 'description' => 'Value.'],
             ],
             ['action']
         );
@@ -3030,6 +3061,20 @@ MD;
                 'permission_codes' => ['type' => 'array', 'items' => ['type' => 'string']],
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                'bill_rate' => ['type' => 'string', 'description' => 'Value.'],
+                'code' => ['type' => 'string', 'description' => 'Unique code.'],
+                'cost_rate' => ['type' => 'string', 'description' => 'Value.'],
+                'description' => ['type' => 'string', 'description' => 'Free-form description.'],
+                'is_active' => ['type' => 'boolean', 'description' => 'Boolean flag.'],
+                'is_root' => ['type' => 'boolean', 'description' => 'Boolean flag.'],
+                'locale' => ['type' => 'string', 'description' => 'Locale code, e.g. ru-ru.'],
+                'password' => ['type' => 'string', 'description' => 'Password (must satisfy the installation\'s password policy).'],
+                'payout_rate' => ['type' => 'string', 'description' => 'Value.'],
+                'reason' => ['type' => 'string', 'description' => 'Reason text.'],
+                'role_public_id' => ['type' => 'string', 'description' => 'Role public_id.'],
+                'target_user_public_id' => ['type' => 'string', 'description' => 'Target user public_id.'],
+                'title' => ['type' => 'string', 'description' => 'Display title.'],
+                'token' => ['type' => 'string', 'description' => 'Login token factor value.'],
             ],
             ['action']
         );
@@ -3055,6 +3100,8 @@ MD;
                 'role' => ['type' => 'string', 'description' => 'Role for organization member.'],
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                'full_name' => ['type' => 'string', 'description' => 'Value.'],
+                'organization_public_id' => ['type' => 'string', 'description' => 'Organization public_id.'],
             ],
             ['action']
         );
@@ -3084,6 +3131,20 @@ MD;
                 'description' => ['type' => 'string'],
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                'calendar_public_id' => ['type' => 'string', 'description' => 'Business calendar public_id.'],
+                'date' => ['type' => 'string', 'description' => 'Date/time value (ISO 8601 or YYYY-MM-DD).'],
+                'day' => ['type' => 'integer', 'description' => 'Numeric value (integer).'],
+                'day_of_week' => ['type' => 'string', 'description' => 'Day of week (1 = Monday .. 7 = Sunday).'],
+                'end_time' => ['type' => 'string', 'description' => 'Working-hours end (HH:MM).'],
+                'ends_at' => ['type' => 'string', 'description' => 'Event end (ISO 8601).'],
+                'holiday_date' => ['type' => 'string', 'description' => 'Holiday date (YYYY-MM-DD).'],
+                'minutes_spent' => ['type' => 'string', 'description' => 'Time spent, in minutes.'],
+                'period' => ['type' => 'string', 'description' => 'Value.'],
+                'start_time' => ['type' => 'string', 'description' => 'Working-hours start (HH:MM).'],
+                'starts_at' => ['type' => 'string', 'description' => 'Event start (ISO 8601).'],
+                'timezone' => ['type' => 'string', 'description' => 'IANA timezone, e.g. Europe/Moscow.'],
+                'title' => ['type' => 'string', 'description' => 'Display title.'],
+                'user_public_id' => ['type' => 'string', 'description' => 'User public_id.'],
             ],
             ['action']
         );
@@ -3116,10 +3177,46 @@ MD;
                 'public_id' => ['type' => 'string', 'description' => 'Space/page/version/comment public_id.'],
                 'space_public_id' => ['type' => 'string'],
                 'title' => ['type' => 'string', 'description' => 'Page/space title for create.'],
-                'body' => ['type' => 'string', 'description' => 'Page body (Markdown) or comment body.'],
+                'body' => ['type' => 'string', 'description' => 'Comment body for add_comment, or the page body for create_page/update_page/save_page_draft (shorthand for content_html).'],
+                'content_html' => ['type' => 'string', 'description' => 'Page content as HTML/Markdown (create_page/update_page/save_page_draft).'],
+                'content_json' => ['type' => 'string', 'description' => 'Page content as structured JSON (create_page/update_page/save_page_draft).'],
                 'q' => ['type' => 'string', 'description' => 'Search query (for search action).'],
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                'access_level' => ['type' => 'string', 'description' => 'Access level (view/edit/manage).'],
+                'change_note' => ['type' => 'string', 'description' => 'Note for the restored version.'],
+                'change_summary' => ['type' => 'string', 'description' => 'Short summary of the change.'],
+                'color' => ['type' => 'string', 'description' => 'Colour token or hex value.'],
+                'comment_public_id' => ['type' => 'string', 'description' => 'Comment public_id.'],
+                'data' => ['type' => 'string', 'description' => 'Payload for the operation.'],
+                'default_access_level' => ['type' => 'string', 'description' => 'Value.'],
+                'description' => ['type' => 'string', 'description' => 'Free-form description.'],
+                'entity_public_id' => ['type' => 'string', 'description' => 'Linked entity public_id.'],
+                'entity_type' => ['type' => 'string', 'description' => 'Linked entity type (task/project/client/...).'],
+                'file_public_id' => ['type' => 'string', 'description' => 'File public_id.'],
+                'format' => ['type' => 'string', 'description' => 'Export/import format (e.g. markdown, html, json).'],
+                'icon' => ['type' => 'string', 'description' => 'Icon name.'],
+                'link_public_id' => ['type' => 'string', 'description' => 'Link public_id.'],
+                'mime_type' => ['type' => 'string', 'description' => 'File MIME type.'],
+                'name' => ['type' => 'string', 'description' => 'Name.'],
+                'offset' => ['type' => 'integer', 'description' => 'Numeric value (integer).'],
+                'page_type' => ['type' => 'string', 'description' => 'Page type (e.g. page, template).'],
+                'parent_id' => ['type' => 'string', 'description' => 'Parent record id.'],
+                'parent_public_id' => ['type' => 'string', 'description' => 'Parent record public_id.'],
+                'permission_id' => ['type' => 'string', 'description' => 'Public identifier.'],
+                'reason' => ['type' => 'string', 'description' => 'Reason text.'],
+                'relation_type' => ['type' => 'string', 'description' => 'Relation type code.'],
+                'review_due_at' => ['type' => 'string', 'description' => 'Review due date (ISO 8601).'],
+                'row_version' => ['type' => 'integer', 'description' => 'Numeric value (integer).'],
+                'slug' => ['type' => 'string', 'description' => 'URL slug.'],
+                'sort_order' => ['type' => 'integer', 'description' => 'Numeric value (integer).'],
+                'status' => ['type' => 'string', 'description' => 'Status code.'],
+                'subject_id' => ['type' => 'string', 'description' => 'Public identifier.'],
+                'subject_public_id' => ['type' => 'string', 'description' => 'Public identifier.'],
+                'subject_type' => ['type' => 'string', 'description' => 'Permission subject type (user/team/role).'],
+                'tag_public_id' => ['type' => 'string', 'description' => 'Tag public_id.'],
+                'version_public_id' => ['type' => 'string', 'description' => 'Version public_id.'],
+                'visibility' => ['type' => 'string', 'description' => 'Visibility scope.'],
             ],
             ['action']
         );
@@ -3152,6 +3249,23 @@ MD;
                 'q' => ['type' => 'string', 'description' => 'Search query for semantic_search.'],
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                'action_type' => ['type' => 'string', 'description' => 'Value.'],
+                'feature_flag' => ['type' => 'string', 'description' => 'Feature flag key.'],
+                'input' => ['type' => 'object', 'additionalProperties' => true, 'description' => 'Structured object.'],
+                'is_active' => ['type' => 'boolean', 'description' => 'Boolean flag.'],
+                'is_enabled' => ['type' => 'string', 'description' => 'Whether the record is enabled.'],
+                'job_code' => ['type' => 'string', 'description' => 'AI job code.'],
+                'locale' => ['type' => 'string', 'description' => 'Locale code, e.g. ru-ru.'],
+                'preferences' => ['type' => 'string', 'description' => 'Preference key/value map.'],
+                'project_public_id' => ['type' => 'string', 'description' => 'Project public_id.'],
+                'prompt' => ['type' => 'string', 'description' => 'Prompt text.'],
+                'provider_public_id' => ['type' => 'string', 'description' => 'AI provider public_id.'],
+                'query' => ['type' => 'string', 'description' => 'Search query.'],
+                'requested_intents' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'List of values.'],
+                'required_permission' => ['type' => 'string', 'description' => 'Permission code required to run the intent.'],
+                'schema_json' => ['type' => 'string', 'description' => 'JSON schema for the intent.'],
+                'task_public_id' => ['type' => 'string', 'description' => 'Task public_id.'],
+                'title' => ['type' => 'string', 'description' => 'Display title.'],
             ],
             ['action']
         );
@@ -3199,6 +3313,46 @@ MD;
                 'q' => ['type' => 'string', 'description' => 'Search/filter query.'],
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                'assignee_user_id' => ['type' => 'string', 'description' => 'Assignee user id.'],
+                'async' => ['type' => 'boolean', 'description' => 'Boolean flag.'],
+                'client_public_id' => ['type' => 'string', 'description' => 'Client public_id.'],
+                'columns' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'List of values.'],
+                'config' => ['type' => 'object', 'additionalProperties' => true, 'description' => 'Structured object.'],
+                'contact_public_id' => ['type' => 'string', 'description' => 'Contact public_id.'],
+                'delimiter' => ['type' => 'string', 'description' => 'Value.'],
+                'description' => ['type' => 'string', 'description' => 'Free-form description.'],
+                'due_at' => ['type' => 'string', 'description' => 'Date/time value (ISO 8601 or YYYY-MM-DD).'],
+                'entity_public_id' => ['type' => 'string', 'description' => 'Linked entity public_id.'],
+                'entity_type' => ['type' => 'string', 'description' => 'Linked entity type (task/project/client/...).'],
+                'expires_at' => ['type' => 'string', 'description' => 'Date/time value (ISO 8601 or YYYY-MM-DD).'],
+                'external_id' => ['type' => 'string', 'description' => 'Public identifier.'],
+                'external_source' => ['type' => 'string', 'description' => 'Value.'],
+                'extra' => ['type' => 'object', 'additionalProperties' => true, 'description' => 'Structured object.'],
+                'filters' => ['type' => 'string', 'description' => 'Filter map.'],
+                'has_header' => ['type' => 'boolean', 'description' => 'Boolean flag.'],
+                'is_active' => ['type' => 'boolean', 'description' => 'Boolean flag.'],
+                'is_enabled' => ['type' => 'string', 'description' => 'Whether the record is enabled.'],
+                'key_expires_at' => ['type' => 'string', 'description' => 'Date/time value (ISO 8601 or YYYY-MM-DD).'],
+                'label' => ['type' => 'string', 'description' => 'Value.'],
+                'payload' => ['type' => 'object', 'additionalProperties' => true, 'description' => 'Structured object.'],
+                'priority' => ['type' => 'string', 'description' => 'Priority code or level.'],
+                'priority_code' => ['type' => 'string', 'description' => 'Value.'],
+                'project_public_id' => ['type' => 'string', 'description' => 'Project public_id.'],
+                'reason' => ['type' => 'string', 'description' => 'Reason text.'],
+                'remap_to_public_id' => ['type' => 'string', 'description' => 'Status the affected records are remapped to.'],
+                'row_version' => ['type' => 'integer', 'description' => 'Numeric value (integer).'],
+                'rows' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'List of values.'],
+                'scope' => ['type' => 'string', 'description' => 'Value.'],
+                'scopes' => ['type' => 'string', 'description' => 'Requested permission scopes; a key can never exceed the creator\'s own permissions.'],
+                'secret' => ['type' => 'string', 'description' => 'Shared secret used to sign webhook deliveries.'],
+                'source_email' => ['type' => 'string', 'description' => 'Value.'],
+                'source_ref' => ['type' => 'string', 'description' => 'Value.'],
+                'source_type' => ['type' => 'string', 'description' => 'Value.'],
+                'status' => ['type' => 'string', 'description' => 'Status code.'],
+                'type' => ['type' => 'string', 'description' => 'Type discriminator.'],
+                'values' => ['type' => 'string', 'description' => 'Values map.'],
+                'weight' => ['type' => 'integer', 'description' => 'Numeric value (integer).'],
+                'endpoint' => ['type' => 'string', 'description' => 'Webhook endpoint URL.'],
             ],
             ['action']
         );
@@ -6374,12 +6528,22 @@ MD;
 
         /** @var CommentService $service */
         $service = $this->container->get('service.comment');
-        $ok = $service->createByTask($taskPublicId, [
+        $comment = $service->createByTask($taskPublicId, [
             'body' => $body,
             'visibility' => (string)($arguments['visibility'] ?? 'internal'),
         ], (int)($this->actor()['id'] ?? 0));
 
-        return $ok ? ['ok' => true, 'task_public_id' => $taskPublicId] : ['error' => 'Comment was not created.'];
+        if (!$comment) {
+            return ['error' => 'Comment was not created.'];
+        }
+
+        // Return the created comment: without its public_id a client cannot
+        // update, delete or reply to the comment it just posted.
+        return [
+            'ok' => true,
+            'task_public_id' => $taskPublicId,
+            'comment' => $this->publicData($comment),
+        ];
     }
 
     private function crmDeleteTask(array $arguments): array
@@ -8973,9 +9137,8 @@ MD;
             return ['error' => 'title is required.'];
         }
 
-        $page = $this->knowledge()->createPage($this->pick($arguments, [
-            'title', 'content_html', 'content_json', 'space_public_id', 'parent_public_id', 'page_type',
-            'status', 'slug', 'sort_order', 'review_due_at',
+        $page = $this->knowledge()->createPage($this->pageContentInput($arguments, [
+            'space_public_id', 'parent_public_id', 'page_type', 'status', 'slug', 'sort_order', 'review_due_at',
         ]), (int)($this->actor()['id'] ?? 0), $this->actor());
         $this->invalidateCache('knowledge');
 
@@ -8991,9 +9154,9 @@ MD;
         if (!$this->knowledge()->page($publicId, $this->actor(), 'edit')) {
             return ['error' => 'Knowledge page not found.'];
         }
-        $page = $this->knowledge()->updatePage($publicId, $this->pick($arguments, [
-            'title', 'content_html', 'content_json', 'space_public_id', 'parent_public_id',
-            'page_type', 'status', 'review_due_at', 'sort_order', 'row_version',
+        $page = $this->knowledge()->updatePage($publicId, $this->pageContentInput($arguments, [
+            'space_public_id', 'parent_public_id', 'page_type', 'status', 'review_due_at',
+            'sort_order', 'row_version',
         ]), (int)($this->actor()['id'] ?? 0), $this->actor());
         if (!$page || $page === 'ROW_VERSION_CONFLICT') {
             return $page === 'ROW_VERSION_CONFLICT'
@@ -9027,9 +9190,7 @@ MD;
             return ['error' => 'Knowledge page not found.'];
         }
         try {
-            $draft = $this->knowledge()->saveDraft($publicId, $this->pick($arguments, [
-                'title', 'content_html', 'content_json',
-            ]), (int)($this->actor()['id'] ?? 0));
+            $draft = $this->knowledge()->saveDraft($publicId, $this->pageContentInput($arguments), (int)($this->actor()['id'] ?? 0));
         } catch (Throwable $e) {
             error_log('[McpController::crmSaveKnowledgePageDraft] ' . $e->getMessage());
             return ['error' => 'Operation failed. Check server logs for details.'];
@@ -12316,6 +12477,32 @@ MD;
      * records that still existed — a client would believe an integration was
      * revoked while its key kept working.
      */
+    /**
+     * Page content for knowledge create/update/draft actions.
+     *
+     * The mega-tool schema advertises `body` as the page body, but only comments
+     * read that field, so create_page/update_page/save_page_draft silently stored
+     * an empty page. Accept `body` as a shorthand for content_html when the
+     * caller sent no explicit content_html/content_json.
+     *
+     * @param array<int,string> $extra additional fields accepted by the action
+     * @return array<string,mixed>
+     */
+    private function pageContentInput(array $arguments, array $extra = []): array
+    {
+        $input = $this->pick($arguments, array_merge(['title', 'content_html', 'content_json'], $extra));
+        if (trim((string)($input['content_html'] ?? '')) === ''
+            && trim((string)($input['content_json'] ?? '')) === ''
+        ) {
+            $body = (string)($arguments['body'] ?? '');
+            if (trim($body) !== '') {
+                $input['content_html'] = $body;
+            }
+        }
+
+        return $input;
+    }
+
     private function deletedResult(mixed $result, string $notFound = 'Not found.'): array
     {
         if ($result === true) {
