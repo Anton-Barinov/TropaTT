@@ -942,7 +942,8 @@ final class IdeaController extends BaseController
         $ideaId = (int)$stmt->fetchColumn();
         if ($ideaId <= 0) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
-        $pdo->beginTransaction();
+        // No manual transaction here: TaskService::create() manages its own, and
+        // nesting them makes PDO fail with "There is already an active transaction".
         $created = [];
         $idMap = [];
 
@@ -1008,10 +1009,8 @@ final class IdeaController extends BaseController
                 }
             }
 
-            $pdo->commit();
             return $this->success('TASKS_CREATED', $this->t('idea/messages.tasks_created'), ['tasks' => $created], 201);
         } catch (\Throwable $e) {
-            $pdo->rollBack();
             // Log through the application logger: error_log() output is discarded
             // in stock PHP-FPM setups, which left this failure undiagnosable.
             try {
