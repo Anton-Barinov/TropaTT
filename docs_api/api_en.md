@@ -394,6 +394,9 @@ Beyond permission checks, a hard route allowlist (`external_ok` in `routes.php`,
 | GET | `/api/v1/projects/{public_id}/milestones-summary` 🔄 | Milestones summary | Yes | `project.manage` | — |
 | GET | `/api/v1/projects/{public_id}/risks` 🔄 | Project risks | Yes | `project.manage` | — |
 | GET | `/api/v1/projects/{public_id}/workload` 🔄 | Upload members | Yes | `project.manage` | — |
+| POST | `/api/v1/projects/{project_public_id}/client-chat` | Create project client chat | Yes | `project.manage` | — |
+| POST | `/api/v1/projects/{project_public_id}/client-chat/participants` | Add client chat participant | Yes | `project.manage` | — |
+| DELETE | `/api/v1/projects/{project_public_id}/client-chat/participants/{user_public_id}` | Remove chat participant | Yes | `project.manage` | — |
 
 ### Tasks
 
@@ -413,6 +416,8 @@ Beyond permission checks, a hard route allowlist (`external_ok` in `routes.php`,
 | POST | `/api/v1/tasks/{public_id}/comments` 🔄 | Add comment | Yes | `task.manage` | Body: `body` (string, max 8000). Returns the created comment with `public_id` |
 | GET | `/api/v1/tasks/{public_id}/files` | Task files | Yes | `task.manage` | — |
 | POST | `/api/v1/tasks/{public_id}/knowledge-pages` | Attach knowledge page | Yes | `task.manage`, `knowledge.view` | Attach a knowledge page to a task |
+| GET | `/api/v1/tasks/sidebar` | Task sidebar stats | Yes | `task.manage` | — |
+| PUT | `/api/v1/tasks/sidebar` | Update task sidebar | Yes | `task.manage` | — |
 
 ### Task Relations
 
@@ -481,6 +486,10 @@ Beyond permission checks, a hard route allowlist (`external_ok` in `routes.php`,
 | DELETE | `/api/v1/cycles/{public_id}/tasks/{task_public_id}` | Delete task from cycle | Yes | `project.manage` | — |
 | GET | `/api/v1/cycles/{public_id}/summary` | Cycle summary | Yes | `task.manage` | — |
 | POST | `/api/v1/cycles/{public_id}/transfer-unfinished` | Transfer unfinished | Yes | `project.manage` | — |
+| GET | `/api/v1/cycles/velocity` | Cycle velocity metrics | Yes | `task.manage` | — |
+| GET | `/api/v1/cycles/{public_id}/burndown` | Burndown chart data | Yes | `task.manage` | — |
+| GET | `/api/v1/cycles/{public_id}/capacity` | Team capacity analysis | Yes | `task.manage` | — |
+| GET | `/api/v1/cycles/{public_id}/scope` | Scope change metrics | Yes | `task.manage` | — |
 
 ### Project Modules
 
@@ -530,6 +539,7 @@ Beyond permission checks, a hard route allowlist (`external_ok` in `routes.php`,
 | GET | `/api/v1/files/{public_id}` | File metadata | Yes | `task.manage` | — |
 | GET | `/api/v1/files/{public_id}/download` | Download file | Yes | `task.manage` | Binary response |
 | DELETE | `/api/v1/files/{public_id}` | Delete file | Yes | `task.manage` | — |
+| GET | `/api/v1/visual-editor/image/{year}/{month}/{name}` | Visual editor image stream | Yes | — | Authenticated binary stream |
 
 ### Templates
 
@@ -731,6 +741,9 @@ Price lists (`rate_cards`) define three rate kinds — cost, bill, and payout �
 | GET | `/api/v1/logs/security` | Security logs | Yes | `logs.view` | — |
 | GET | `/api/v1/logs/audit` | Audit logs | Yes | `logs.view` | — |
 | GET | `/api/v1/logs/frontend-errors/chart` | Frontend error chart | Yes | `logs.view` | Frontend error aggregation |
+| GET | `/api/v1/logs/all-errors` | All system errors | Yes | `logs.view` | — |
+| GET | `/api/v1/logs/module-errors` | Module errors | Yes | `logs.view` | — |
+| GET | `/api/v1/logs/server-errors` | Server error logs | Yes | `logs.view` | — |
 
 ### Settings & Feature Flags
 
@@ -743,6 +756,7 @@ Price lists (`rate_cards`) define three rate kinds — cost, bill, and payout �
 | POST, PUT, PATCH | `/api/v1/retention/metadata` 🔄 | Set retention | Yes | `settings.manage` | — |
 | GET | `/api/v1/feature-flags` 🔄 | List feature flags | Yes | `feature_flag.manage` | — |
 | PATCH, PUT | `/api/v1/feature-flags/{public_id}` 🔄 | Update feature flag | Yes | `feature_flag.manage` | — |
+| GET | `/api/v1/settings/public` | Public settings | Yes | `task.manage` | — |
 
 ### Custom Fields
 
@@ -767,6 +781,7 @@ Price lists (`rate_cards`) define three rate kinds — cost, bill, and payout �
 | DELETE | `/api/v1/workflow/rules/{public_id}` 🔄 | Delete rule | Yes | `settings.manage` | — |
 | POST | `/api/v1/workflow/rules/{public_id}/run-test` 🔄 | Test rule run | Yes | `settings.manage` | — |
 | GET | `/api/v1/workflow/runs` 🔄 | Run history | Yes | `settings.manage` | — |
+| GET | `/api/v1/workflow/rule/logs` | Workflow rule logs | Yes | `settings.manage` | — |
 
 ### SLA
 
@@ -789,6 +804,9 @@ Price lists (`rate_cards`) define three rate kinds — cost, bill, and payout �
 | GET | `/api/v1/approvals/{public_id}` 🔄 | approval details | Yes | `approval.manage` | — |
 | POST | `/api/v1/approvals/{public_id}/approve` 🔄 | Approval | Yes | `approval.manage` | — |
 | POST | `/api/v1/approvals/{public_id}/reject` 🔄 | Reject approval | Yes | `approval.manage` | — |
+| POST | `/api/v1/approval/approve/{public_id}` | Approve request | Yes | `approval.manage` | — |
+| POST | `/api/v1/approval/reject/{public_id}` | Reject request | Yes | `approval.manage` | — |
+| POST | `/api/v1/approval/request` | Submit approval request | Yes | `approval.manage` | — |
 
 ### Webhooks
 
@@ -796,6 +814,7 @@ Price lists (`rate_cards`) define three rate kinds — cost, bill, and payout �
 |-------|----------|------------|:---:|-------------|----------|
 | GET | `/api/v1/webhooks` 🔄 | List webhooks | Yes | `webhook.manage` | — |
 | POST | `/api/v1/webhooks` 🔄 | Create webhook | Yes | `webhook.manage` | Requires `endpoint` (URL, max 2048), `events` (array of strings) |
+| GET | `/api/v1/webhooks/{public_id}` | Webhook details | Yes | `webhook.manage` | — |
 | PATCH, PUT | `/api/v1/webhooks/{public_id}` 🔄 | Update webhook | Yes | `webhook.manage` | — |
 | DELETE | `/api/v1/webhooks/{public_id}` 🔄 | Delete webhook | Yes | `webhook.manage` | — |
 | GET | `/api/v1/webhooks/deliveries` 🔄 | All deliveries | Yes | `webhook.manage` | — |
@@ -817,6 +836,11 @@ Price lists (`rate_cards`) define three rate kinds — cost, bill, and payout �
 | GET | `/api/v1/export/jobs/{public_id}/download` | Download export | Yes | `export.manage` | Binary |
 | POST | `/api/v1/export/jobs/{public_id}/cancel` | Cancel export | Yes | `export.manage` | — |
 | POST | `/api/v1/export/jobs/{public_id}/retry` | Retry export | Yes | `export.manage` | — |
+| GET | `/api/v1/export/download/{public_id}` | Download export file | Yes | `export.manage` | — |
+| GET | `/api/v1/export/status` | Export jobs status | Yes | `export.manage` | — |
+| GET | `/api/v1/export/status/{public_id}` | Single export status | Yes | `export.manage` | — |
+| GET | `/api/v1/import/status` | Import jobs status | Yes | `import.manage` | — |
+| GET | `/api/v1/import/status/{public_id}` | Single import status | Yes | `import.manage` | — |
 
 ### Recycle Bin
 
@@ -891,6 +915,13 @@ Price lists (`rate_cards`) define three rate kinds — cost, bill, and payout �
 | GET | `/api/v1/knowledge/templates` | Page templates | Yes | `knowledge.view` | — |
 | POST | `/api/v1/knowledge/templates` | Create template | Yes | `knowledge.template_manage` | — |
 | GET | `/api/v1/knowledge/entities/{entity_type}/{entity_public_id}/pages` | Entity pages | Yes | `knowledge.view` | — |
+| GET | `/api/v1/knowledge/client-page/{public_id}` | Client published page | Yes | — | Client-shared page |
+| GET | `/api/v1/knowledge/project/{project_public_id}/client-pages` | Project client pages | Yes | — | Client-shared pages for project |
+| GET | `/api/v1/knowledge/team-materials-counts` | Team materials count | Yes | `knowledge.view` | — |
+| GET | `/api/v1/knowledge/entities/{entity_type}/{entity_public_id}/team-pages` | Entity team pages | Yes | `knowledge.view` | — |
+| GET | `/api/v1/knowledge/pages/{public_id}/permissions` | Page permissions | Yes | `knowledge.permission_manage` | — |
+| POST | `/api/v1/knowledge/pages/{public_id}/permissions` | Set page permissions | Yes | `knowledge.permission_manage` | — |
+| DELETE | `/api/v1/knowledge/page-permissions/{permission_id}` | Delete page permission | Yes | `knowledge.permission_manage` | — |
 
 ### Knowledge — Spaces
 
@@ -1024,6 +1055,7 @@ Price lists (`rate_cards`) define three rate kinds — cost, bill, and payout �
 | POST | `/api/v1/intake-items/{public_id}/duplicate` | Duplicate intake item | Yes | `intake.manage` | — |
 | POST | `/api/v1/intake-items/{public_id}/reopen` | Reopen intake item | Yes | `intake.manage` | — |
 | GET | `/api/v1/intake-items/{public_id}/activities` | Intake activity | Yes | `intake.view` | — |
+| POST | `/api/v1/intake-items/bulk` | Bulk intake items | Yes | `intake.manage` | — |
 
 ### OPS / Admin
 
@@ -1144,7 +1176,8 @@ Price lists (`rate_cards`) define three rate kinds — cost, bill, and payout �
 | GET | `/api/v1/ai/suggestions` | List suggestions | Yes | `ai.use` | — |
 | GET | `/api/v1/ai/suggestions/{public_id}` | suggestion details | Yes | `ai.use` | — |
 | POST | `/api/v1/ai/suggestions/{public_id}/dismiss` | Reject suggestion | Yes | `ai.use` | — |
-| POST | `/api/v1/ai/suggestions/{public_id}/apply-preview` | Preview apply | Yes | `ai.use` | — |
+| POST | `/api/v1/ai/suggestions/{public_id}/preview-apply` | Preview apply | Yes | `ai.use` | — |
+| POST | `/api/v1/ai/suggestions/{public_id}/apply-preview` 🔄 | Preview apply (alias) | Yes | `ai.use` | — |
 | POST | `/api/v1/ai/suggestions/{public_id}/confirm` | Apply suggestion | Yes | `ai.use` | — |
 
 ### AI — Intent, Prompts, Schemas, Usage, Jobs

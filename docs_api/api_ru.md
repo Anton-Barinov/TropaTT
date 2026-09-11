@@ -389,6 +389,9 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | GET | `/api/v1/projects/{public_id}/milestones-summary` 🔄 | Сводка по вехам | Да | `project.manage` | — |
 | GET | `/api/v1/projects/{public_id}/risks` 🔄 | Риски проекта | Да | `project.manage` | — |
 | GET | `/api/v1/projects/{public_id}/workload` 🔄 | Загрузка участников | Да | `project.manage` | — |
+| POST | `/api/v1/projects/{project_public_id}/client-chat` | Создать чат проекта с клиентом | Yes | `project.manage` | — |
+| POST | `/api/v1/projects/{project_public_id}/client-chat/participants` | Добавить участника в чат | Yes | `project.manage` | — |
+| DELETE | `/api/v1/projects/{project_public_id}/client-chat/participants/{user_public_id}` | Удалить участника из чата | Yes | `project.manage` | — |
 
 ### Tasks
 
@@ -408,6 +411,8 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | POST | `/api/v1/tasks/{public_id}/comments` 🔄 | Добавление комментария | Да | `task.manage` | Тело: `body` (string, max 8000). Возвращает созданный комментарий с `public_id` |
 | GET | `/api/v1/tasks/{public_id}/files` | Файлы задачи | Да | `task.manage` | — |
 | POST | `/api/v1/tasks/{public_id}/knowledge-pages` | Привязка страницы знаний | Да | `task.manage`, `knowledge.view` | Привязка страницы базы знаний к задаче |
+| GET | `/api/v1/tasks/sidebar` | Статистика боковой панели задач | Yes | `task.manage` | — |
+| PUT | `/api/v1/tasks/sidebar` | Обновить боковую панель задач | Yes | `task.manage` | — |
 
 ### Task Relations v2
 
@@ -476,6 +481,10 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | DELETE | `/api/v1/cycles/{public_id}/tasks/{task_public_id}` | Удаление задачи из цикла | Да | `project.manage` | — |
 | GET | `/api/v1/cycles/{public_id}/summary` | Сводка по циклу | Да | `task.manage` | — |
 | POST | `/api/v1/cycles/{public_id}/transfer-unfinished` | Перенос незавершённых | Да | `project.manage` | — |
+| GET | `/api/v1/cycles/velocity` | Метрики скорости цикла | Yes | `task.manage` | — |
+| GET | `/api/v1/cycles/{public_id}/burndown` | Данные диаграммы сгорания | Yes | `task.manage` | — |
+| GET | `/api/v1/cycles/{public_id}/capacity` | Анализ доступности команды | Yes | `task.manage` | — |
+| GET | `/api/v1/cycles/{public_id}/scope` | Метрики изменения объёма | Yes | `task.manage` | — |
 
 ### Project Modules
 
@@ -525,6 +534,7 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | GET | `/api/v1/files/{public_id}` | Метаданные файла | Да | `task.manage` | — |
 | GET | `/api/v1/files/{public_id}/download` | Скачивание файла | Да | `task.manage` | Binary response |
 | DELETE | `/api/v1/files/{public_id}` | Удаление файла | Да | `task.manage` | — |
+| GET | `/api/v1/visual-editor/image/{year}/{month}/{name}` | Поток изображений визуального редактора | Yes | — | Бинарный поток |
 
 ### Templates
 
@@ -726,6 +736,9 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | GET | `/api/v1/logs/security` | Security-логи | Да | `logs.view` | — |
 | GET | `/api/v1/logs/audit` | Audit-логи | Да | `logs.view` | — |
 | GET | `/api/v1/logs/frontend-errors/chart` | График ошибок фронтенда | Да | `logs.view` | Агрегация ошибок фронтенда |
+| GET | `/api/v1/logs/all-errors` | Все ошибки системы | Yes | `logs.view` | — |
+| GET | `/api/v1/logs/module-errors` | Ошибки модулей | Yes | `logs.view` | — |
+| GET | `/api/v1/logs/server-errors` | Ошибки веб-сервера | Yes | `logs.view` | — |
 
 ### Settings & Feature Flags
 
@@ -738,6 +751,7 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | POST, PUT, PATCH | `/api/v1/retention/metadata` 🔄 | Установка retention | Да | `settings.manage` | — |
 | GET | `/api/v1/feature-flags` 🔄 | Список feature flags | Да | `feature_flag.manage` | — |
 | PATCH, PUT | `/api/v1/feature-flags/{public_id}` 🔄 | Обновление feature flag | Да | `feature_flag.manage` | — |
+| GET | `/api/v1/settings/public` | Публичные настройки приложения | Yes | `task.manage` | — |
 
 ### Custom Fields
 
@@ -762,6 +776,7 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | DELETE | `/api/v1/workflow/rules/{public_id}` 🔄 | Удаление правила | Да | `settings.manage` | — |
 | POST | `/api/v1/workflow/rules/{public_id}/run-test` 🔄 | Тестовый запуск правила | Да | `settings.manage` | — |
 | GET | `/api/v1/workflow/runs` 🔄 | История запусков | Да | `settings.manage` | — |
+| GET | `/api/v1/workflow/rule/logs` | Журнал выполнения правил автоматизации | Yes | `settings.manage` | — |
 
 ### SLA
 
@@ -784,6 +799,9 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | GET | `/api/v1/approvals/{public_id}` 🔄 | Детали согласования | Да | `approval.manage` | — |
 | POST | `/api/v1/approvals/{public_id}/approve` 🔄 | Согласование | Да | `approval.manage` | — |
 | POST | `/api/v1/approvals/{public_id}/reject` 🔄 | Отклонение согласования | Да | `approval.manage` | — |
+| POST | `/api/v1/approval/approve/{public_id}` | Согласовать (алиас) | Yes | `approval.manage` | — |
+| POST | `/api/v1/approval/reject/{public_id}` | Отклонить (алиас) | Yes | `approval.manage` | — |
+| POST | `/api/v1/approval/request` | Подать заявку на согласование | Yes | `approval.manage` | — |
 
 ### Webhooks
 
@@ -791,6 +809,7 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 |-------|----------|------------|:---:|-------------|----------|
 | GET | `/api/v1/webhooks` 🔄 | Список вебхуков | Да | `webhook.manage` | — |
 | POST | `/api/v1/webhooks` 🔄 | Создание вебхука | Да | `webhook.manage` | Требуется `endpoint` (URL, max 2048), `events` (массив строк) |
+| GET | `/api/v1/webhooks/{public_id}` | Детали вебхука | Yes | `webhook.manage` | — |
 | PATCH, PUT | `/api/v1/webhooks/{public_id}` 🔄 | Обновление вебхука | Да | `webhook.manage` | — |
 | DELETE | `/api/v1/webhooks/{public_id}` 🔄 | Удаление вебхука | Да | `webhook.manage` | — |
 | GET | `/api/v1/webhooks/deliveries` 🔄 | Все доставки | Да | `webhook.manage` | — |
@@ -812,6 +831,11 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | GET | `/api/v1/export/jobs/{public_id}/download` | Скачивание экспорта | Да | `export.manage` | Binary |
 | POST | `/api/v1/export/jobs/{public_id}/cancel` | Отмена экспорта | Да | `export.manage` | — |
 | POST | `/api/v1/export/jobs/{public_id}/retry` | Повтор экспорта | Да | `export.manage` | — |
+| GET | `/api/v1/export/download/{public_id}` | Скачать файл экспорта | Yes | `export.manage` | — |
+| GET | `/api/v1/export/status` | Статус заданий экспорта | Yes | `export.manage` | — |
+| GET | `/api/v1/export/status/{public_id}` | Детальный статус экспорта | Yes | `export.manage` | — |
+| GET | `/api/v1/import/status` | Статус заданий импорта | Yes | `import.manage` | — |
+| GET | `/api/v1/import/status/{public_id}` | Детальный статус импорта | Yes | `import.manage` | — |
 
 ### Recycle Bin
 
@@ -886,6 +910,13 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | GET | `/api/v1/knowledge/templates` | Шаблоны страниц | Да | `knowledge.view` | — |
 | POST | `/api/v1/knowledge/templates` | Создание шаблона | Да | `knowledge.template_manage` | — |
 | GET | `/api/v1/knowledge/entities/{entity_type}/{entity_public_id}/pages` | Страницы сущности | Да | `knowledge.view` | — |
+| GET | `/api/v1/knowledge/client-page/{public_id}` | Публичная страница для клиентов | Yes | — | Доступно клиентам |
+| GET | `/api/v1/knowledge/project/{project_public_id}/client-pages` | Страницы клиентов проекта | Yes | — | Доступно клиентам проекта |
+| GET | `/api/v1/knowledge/team-materials-counts` | Счётчики материалов команды | Yes | `knowledge.view` | — |
+| GET | `/api/v1/knowledge/entities/{entity_type}/{entity_public_id}/team-pages` | Материалы команды сущности | Yes | `knowledge.view` | — |
+| GET | `/api/v1/knowledge/pages/{public_id}/permissions` | Права доступа к странице | Yes | `knowledge.permission_manage` | — |
+| POST | `/api/v1/knowledge/pages/{public_id}/permissions` | Назначить права на страницу | Yes | `knowledge.permission_manage` | — |
+| DELETE | `/api/v1/knowledge/page-permissions/{permission_id}` | Удалить права со страницы | Yes | `knowledge.permission_manage` | — |
 
 ### Knowledge — Spaces
 
@@ -1019,6 +1050,7 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | POST | `/api/v1/intake-items/{public_id}/duplicate` | Дублирование входящего | Да | `intake.manage` | — |
 | POST | `/api/v1/intake-items/{public_id}/reopen` | Переоткрытие входящего | Да | `intake.manage` | — |
 | GET | `/api/v1/intake-items/{public_id}/activities` | Активность входящего | Да | `intake.view` | — |
+| POST | `/api/v1/intake-items/bulk` | Массовое создание входящих | Yes | `intake.manage` | — |
 
 ### OPS / Admin
 
@@ -1139,7 +1171,8 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | GET | `/api/v1/ai/suggestions` | Список подсказок | Да | `ai.use` | — |
 | GET | `/api/v1/ai/suggestions/{public_id}` | Детали подсказки | Да | `ai.use` | — |
 | POST | `/api/v1/ai/suggestions/{public_id}/dismiss` | Отклонение подсказки | Да | `ai.use` | — |
-| POST | `/api/v1/ai/suggestions/{public_id}/apply-preview` | Предпросмотр применения | Да | `ai.use` | — |
+| POST | `/api/v1/ai/suggestions/{public_id}/preview-apply` | Предпросмотр применения | Да | `ai.use` | — |
+| POST | `/api/v1/ai/suggestions/{public_id}/apply-preview` 🔄 | Предпросмотр применения (алиас) | Да | `ai.use` | — |
 | POST | `/api/v1/ai/suggestions/{public_id}/confirm` | Применение подсказки | Да | `ai.use` | — |
 
 ### AI — Intent, Prompts, Schemas, Usage, Jobs
