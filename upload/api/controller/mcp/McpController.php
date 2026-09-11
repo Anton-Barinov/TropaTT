@@ -6685,7 +6685,23 @@ $tools[] = $this->tool(
                 $stArgs['task_public_id'] = $taskPublicId;
                 $stRes = $this->crmCreateSubtask($stArgs);
                 if (isset($stRes['subtask'])) {
-                    $summary['subtasks'][] = $stRes['subtask'];
+                    $stItem = $stRes['subtask'];
+                    $stPublicId = (string)($stItem['public_id'] ?? '');
+                    // Propagate knowledge links to each subtask
+                    if ($stPublicId !== '' && is_array($kLinks)) {
+                        foreach ($kLinks as $kPagePublicId) {
+                            $kPagePublicId = trim((string)$kPagePublicId);
+                            if ($kPagePublicId !== '') {
+                                $this->crmLinkKnowledgePageEntity([
+                                    'public_id' => $kPagePublicId,
+                                    'entity_type' => 'task',
+                                    'entity_public_id' => $stPublicId,
+                                    'relation_type' => 'instruction',
+                                ]);
+                            }
+                        }
+                    }
+                    $summary['subtasks'][] = $stItem;
                 }
             }
         }
@@ -6710,6 +6726,20 @@ $tools[] = $this->tool(
                     'related_task_public_id' => $qaPublicId,
                     'relation_type' => 'BLOCKS',
                 ]);
+                // Propagate knowledge links to QA task
+                if (is_array($kLinks)) {
+                    foreach ($kLinks as $kPagePublicId) {
+                        $kPagePublicId = trim((string)$kPagePublicId);
+                        if ($kPagePublicId !== '') {
+                            $this->crmLinkKnowledgePageEntity([
+                                'public_id' => $kPagePublicId,
+                                'entity_type' => 'task',
+                                'entity_public_id' => $qaPublicId,
+                                'relation_type' => 'instruction',
+                            ]);
+                        }
+                    }
+                }
                 $summary['qa_task'] = $qaTask;
             }
         }
