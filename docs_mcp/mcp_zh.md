@@ -14,7 +14,7 @@ TropaTT CRM 内置一个 MCP 服务器——一个 JSON-RPC 2.0 接口，通过�
 | 协议版本 | `2025-06-18` |
 | 批量请求 | 支持（JSON 数组） |
 | 通知 | 支持（不带 id 的消息） |
-| MCP 工具 | 完整目录约 607 个；`tools/list` 默认返回 core 配置文件（约 24 个工具：8 个 mega-tools + 16 个常规工具） |
+| MCP 工具 | 完整目录约 615 个；`tools/list` 默认返回 core 配置文件（约 24 个工具：8 个 mega-tools + 16 个常规工具） |
 | MCP 资源 | 5 |
 | MCP Prompts | 0 |
 
@@ -124,7 +124,7 @@ AI 操作通过 AiJobService/AiAuditService 记录；导入/导出和工作流�
 
 ## 工具集（配置文件）
 
-完整的 MCP 目录很大（600+ 个工具）。为避免在每个代理会话中都加载全部工具，`tools/list` 默认返回精选的 **`core`** 配置文件（约 53 个工具：个人资料、搜索、仪表盘、通知、活动，以及主要实体的基本读取/创建）。按领域提供配置文件：
+完整的 MCP 目录很大（600+ 个工具）。为避免在每个代理会话中都加载全部工具，`tools/list` 默认返回精选的 **`core`** 配置文件（24 个工具：个人资料、搜索、仪表盘、通知、活动，以及主要实体的基本读取/创建）。按领域提供配置文件：
 
 | 配置文件 | 范围 |
 |---------|-------|
@@ -152,7 +152,7 @@ AI 操作通过 AiJobService/AiAuditService 记录；导入/导出和工作流�
 | `people` | 60 | 约 5.7K tokens |
 | `time` | 32 | 约 2.6K tokens |
 | `admin` | 149 | 约 12.2K tokens |
-| `all` | 607 | 约 52K tokens |
+| `all` | 615 | 约 52K tokens |
 
 完整目录比默认 `core` 配置文件贵约 10 倍，因此当会话聚焦于单一领域时，应优先使用窄配置文件。
 
@@ -247,6 +247,16 @@ AI 操作通过 AiJobService/AiAuditService 记录；导入/导出和工作流�
 | `-32603` | 内部错误 |
 | `-32002` | 资源不存在 |
 | `-32003` | 来源校验失败（CORS） |
+
+### 工具级错误
+
+无效输入和未知的 mega-tool `action` 会**在调用结果内部**返回（`result.content[0].text`，`isError: true`），而不是 JSON-RPC 错误。未知 `action` 时会列出支持的操作：
+
+```json
+{"error": "Unknown action 'invalid_action_name_xyz' for crm_task. Available actions: list, get, get_by_key, create, ..."}
+```
+
+`tools/call` 返回 `-32603 Internal error` 表示内部故障，而不是报告无效输入的方式。
 
 ---
 

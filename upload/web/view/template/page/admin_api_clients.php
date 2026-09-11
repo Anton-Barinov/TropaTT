@@ -31,8 +31,14 @@
         <input class="form-control font-monospace" id="apcMcpEndpoint" type="text" readonly value="">
       </div>
       <label class="form-label small mb-1" for="apcMcpConfig" data-i18n="admin_api_clients.mcp_config_label"><?= htmlspecialchars($t('admin_api_clients.mcp_config_label', 'Конфигурация клиента (.mcp.json)'), ENT_QUOTES, 'UTF-8') ?></label>
-      <pre class="small mb-2 crm-mcp-config" id="apcMcpConfig"></pre>
+      <div class="d-flex gap-2 mb-2 align-items-start">
+        <pre class="small mb-0 flex-grow-1 crm-mcp-config" id="apcMcpConfig"></pre>
+        <button class="btn btn-sm crm-btn-secondary text-nowrap" type="button" id="apcMcpCopyBtn"
+                data-i18n="admin_api_clients.mcp_copy"
+                data-copied="<?= htmlspecialchars($t('admin_api_clients.mcp_copied', 'Скопировано'), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($t('admin_api_clients.mcp_copy', 'Копировать'), ENT_QUOTES, 'UTF-8') ?></button>
+      </div>
       <div class="small text-muted" data-i18n="admin_api_clients.mcp_key_once"><?= htmlspecialchars($t('admin_api_clients.mcp_key_once', 'Ключ показывается один раз при создании — сохраните его.'), ENT_QUOTES, 'UTF-8') ?></div>
+      <div class="small mt-1"><a href="index.php?route=docs#docs-mcp" data-i18n="admin_api_clients.mcp_docs_link"><?= htmlspecialchars($t('admin_api_clients.mcp_docs_link', 'Документация по MCP'), ENT_QUOTES, 'UTF-8') ?></a></div>
     </div>
   </div>
 
@@ -94,5 +100,32 @@
       }
     }, null, 2);
   } catch (e) { /* keep the block empty rather than break the page */ }
+
+  var btn = document.getElementById('apcMcpCopyBtn');
+  if (!btn) { return; }
+  var copiedLabel = btn.getAttribute('data-copied') || btn.textContent;
+  var restoreLabel = btn.textContent;
+  var flash = function () {
+    btn.textContent = copiedLabel;
+    setTimeout(function () { btn.textContent = restoreLabel; }, 1500);
+  };
+  btn.addEventListener('click', function () {
+    var text = config.textContent || '';
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(flash, selectAndCopy);
+    } else {
+      selectAndCopy();
+    }
+  });
+  function selectAndCopy() {
+    try {
+      var range = document.createRange();
+      range.selectNodeContents(config);
+      var selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      if (document.execCommand('copy')) { flash(); }
+    } catch (e) { /* the user can still select the text manually */ }
+  }
 })();
 </script>

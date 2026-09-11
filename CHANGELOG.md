@@ -4,6 +4,35 @@ All notable public changes to TropaTT should be documented here.
 
 This project follows a lightweight Keep a Changelog style. Dates are added when a release is actually created.
 
+## Unreleased
+
+### Added
+
+- **MCP connection block on the API-clients page.** The admin page now shows the MCP server URL for the current installation (subdirectory installs included), a ready-to-copy `.mcp.json` snippet with a key placeholder, a copy button, and a link to the in-product documentation. Previously the page issued keys without any hint that MCP exists.
+- **Structured page content in the MCP reference.** `crm_knowledge` documents `content_html` / `content_json` for page create/update/draft.
+
+### Changed
+
+- **Mega-tool schemas declare every action argument.** 152 missing properties were added across all eight mega-tools (`title` for teams/departments, `starts_at`/`ends_at` for calendar events, `minutes_spent` for worklogs, `scope`/`code` for statuses and custom fields, `tag_public_id` for knowledge tags, `rrule`, `trigger_code`, and every field read through a `foreach (['scope','code'] as $field)` loop). With `additionalProperties: false`, a client following the schema could not call those actions at all.
+- **`crm_task/add_comment` returns the created comment** (`comment.public_id`) instead of a bare `{"ok": true}`, so a client can update, delete or reply to the comment it just posted.
+- **Idea comment tools accept each other's argument names** (`crm_list_idea_comments` accepts `idea_public_id`, `crm_add_idea_comment` accepts `public_id`).
+- **Documentation counts corrected:** 615 tools and 6 resources in the full catalog, 24 in the default `core` profile (README, in-product docs, MCP reference, setup prompt).
+
+### Fixed
+
+- **MCP mega-tool dispatch.** 17 actions returned JSON-RPC `-32603` instead of a result: 12 called non-existent methods (`crm_task` `approve`/`reject`, `crm_knowledge` `entity_pages` and nine AI actions) and 5 were invoked without their required `$args` (`overview`, `analytics`, `list_favorites`, `export_all`, `list_models`).
+- **Unknown mega-tool action** now answers with a tool-level error listing the available actions instead of crashing with `-32603`.
+- **Double-wrapped tool envelopes** (14 dispatch branches) no longer nest the payload one level deep, and `isError` survives permission denials instead of being masked as success.
+- **Failed operations report failure.** A `{"ok": false}` business result (for example a rejected password change) sets `isError: true`.
+- **Deleting a task cascades to its subtasks**, which previously stayed visible in task lists as orphans; orphaned subtasks left by older builds can now be deleted as well.
+- **Delete results are truthful.** `delete_role`, `delete_api_client` and `delete_webhook` reported `{"deleted": true}` while the service had refused (`ROLE_HAS_USERS`, `API_CLIENT_HAS_ACTIVE_KEYS`, `FORBIDDEN`); `delete_api_client` also exposes `revoke_keys` so the cascade is reachable.
+- **A role can be deleted after its users are removed** — soft-deleted users no longer keep a role "in use" forever.
+- **Knowledge page content is no longer lost.** `create_page` / `update_page` / `save_page_draft` ignored the documented `body` argument, stored an empty page and made the AI actions answer "page has no content".
+- **Knowledge AI answers follow the page language.** The explain prompt had no language directive and replied in English for Russian pages (`summary`, `checklist`, `faq` aligned for consistency).
+- **Module cron tasks now run on shared hosting.** The CLI scheduler did not register the module autoloader, so every module task failed with "Handler class not found" every five minutes; tasks of deactivated modules are skipped explicitly instead of failing.
+- **File-cache rebuilds cannot stall workers.** The blocking `flock()` around a cache rebuild is replaced by a bounded wait (0.5 s) with a local rebuild fallback, so one slow worker cannot hold up the rest on a constrained host.
+- **The release gate reports a failed login as one clear cause** instead of ~127 phantom 401s, and retries the login three times.
+
 ## [v0.2.0.11] - 2026-09-09
 
 ### Added
