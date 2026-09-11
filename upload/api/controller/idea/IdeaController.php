@@ -2661,6 +2661,11 @@ PROMPT;
                     ? $topErrorCode
                     : ($result['result']['error_code'] ?? ($result['result']['code'] ?? 'AI_PROVIDER_UNAVAILABLE'));
                 $debugRes['http_status'] = (int)($result['result']['http_status'] ?? 0);
+                // AI_BUSY alone cannot be diagnosed from the outside; keep the
+                // machine-readable slot-claim reason in the debug snapshot.
+                if (!empty($result['reason'])) {
+                    $debugRes['ai_reason'] = (string)$result['reason'];
+                }
                 $debugRes['ai_failed'] = true;
             }
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'interview', :req, :res, NOW())")

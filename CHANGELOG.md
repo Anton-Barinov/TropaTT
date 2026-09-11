@@ -41,6 +41,7 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 - **AI task-creation failures are logged through the application logger** (visible in `storage_api/logs/error.log`) instead of `error_log()`, whose output stock PHP-FPM discards.
 - **MCP idea tools enforce the same permissions as their REST routes.** Idea workflow tools are invoked directly on the controller, so the route-level check never ran and all of them accepted `idea.manage` or `task.manage` — a user with only `idea.manage` could read the AI debug log that `GET /ideas/{id}/debug-log` restricts to `ai.admin`. Each tool now carries the permission of its REST route; the `task.manage` escape hatch is gone.
 - **Controller failures inside MCP and idea-AI flows reach `storage_api/logs/error.log`.** The MCP controller wrapper and the AI task-creation path logged through `error_log()`, which stock PHP-FPM discards, leaving the generic "Controller invocation failed" message with no diagnosable cause on the server.
+- **`AI_BUSY` explains itself.** When the interactive AI slot is not granted, the response now carries a machine-readable `reason` (`concurrency_limit_reached`, `advisory_lock_held_running=N`, `advisory_lock_stuck_no_running_jobs`, `exception: …`), the event is written to the application log, and the idea interview keeps the reason in its debug snapshot. Previously every failure looked identical, so a stale slot lock was indistinguishable from a genuinely busy installation.
 
 ## [v0.2.0.11] - 2026-09-09
 

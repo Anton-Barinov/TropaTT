@@ -27,9 +27,21 @@ final class AiRuntimeRepository
     private ?array $aiJobsColumns = null;
     /** @var array<string,bool>|null */
     private ?array $aiSuggestionsColumns = null;
+    /**
+     * Why the last claimInteractiveSlot() call returned null. Without it an
+     * AI_BUSY response says nothing about whether a slot was genuinely busy or
+     * a stale advisory lock wedged every AI call on the installation.
+     */
+    private string $lastSlotFailure = '';
 
     public function __construct(private readonly PDO $pdo)
     {
+    }
+
+    /** Machine-readable reason for the last failed interactive-slot claim. */
+    public function lastSlotFailure(): string
+    {
+        return $this->lastSlotFailure;
     }
 
     public function createJob(array $payload): string
@@ -96,6 +108,7 @@ final class AiRuntimeRepository
         $staleBefore = gmdate('Y-m-d H:i:s', time() - max(60, $staleAfterSeconds));
         $driver = (string)$this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
         $hasAdvisoryLock = false;
+        $this->lastSlotFailure = '';
 
         try {
             if ($driver === 'mysql') {
@@ -110,9 +123,11 @@ final class AiRuntimeRepository
                         usleep(500000);
                         $lock->execute(['name' => 'crm_ai_interactive_slots']);
                         if ((int)$lock->fetchColumn() !== 1) {
+                            $this->lastSlotFailure = 'advisory_lock_stuck_no_running_jobs';
                             return null;
                         }
                     } else {
+                        $this->lastSlotFailure = 'advisory_lock_held_running=' . $runningCount;
                         return null;
                     }
                 }
@@ -130,6 +145,7 @@ final class AiRuntimeRepository
             $count->execute();
             if ((int)$count->fetchColumn() >= $maxConcurrent) {
                 $this->pdo->rollBack();
+                $this->lastSlotFailure = 'concurrency_limit_reached max=' . $maxConcurrent;
                 return null;
             }
 
@@ -138,6 +154,7 @@ final class AiRuntimeRepository
             return $publicId;
         } catch (\Throwable $e) {
             error_log('[AiRuntimeRepository::claimInteractiveSlot] ' . $e->getMessage());
+            $this->lastSlotFailure = 'exception: ' . $e->getMessage();
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }

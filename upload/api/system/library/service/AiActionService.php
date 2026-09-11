@@ -133,7 +133,13 @@ final class AiActionService
             'updated_at' => $now,
         ], $this->rateLimit->interactiveConcurrencyLimit());
         if ($jobPublicId === null) {
-            return ['ok' => false, 'code' => 'AI_BUSY', 'retry_after' => 5];
+            $reason = $this->runtime->lastSlotFailure();
+            $this->logger->warning('ai_interactive_slot_busy', [
+                'action_type' => $actionType,
+                'reason' => $reason,
+                'max_concurrent' => $this->rateLimit->interactiveConcurrencyLimit(),
+            ]);
+            return ['ok' => false, 'code' => 'AI_BUSY', 'retry_after' => 5, 'reason' => $reason];
         }
 
         try {

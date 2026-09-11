@@ -14,7 +14,7 @@ TropaTT CRM ships an embedded MCP server — a JSON-RPC 2.0 interface that gives
 | Protocol version | `2025-06-18` |
 | Batch requests | Supported (JSON array) |
 | Notifications | Supported (messages without id) |
-| MCP tools | ~615 in the full catalog; `tools/list` defaults to the ~24-tool `core` profile (8 mega-tools + 16 regular) |
+| MCP tools | ~617 in the full catalog; `tools/list` defaults to the ~24-tool `core` profile (8 mega-tools + 16 regular) |
 | MCP resources | 5 |
 | MCP prompts | 0 |
 
@@ -112,6 +112,8 @@ MCP mirrors the REST API but provides a safe layer between agents and the CRM:
 
 Every tool checks the current user's permissions; conditionally-visible tools appear in tools/list only when the user has the required permission.
 
+Tools are never laxer than the equivalent REST route. The idea-workflow and knowledge-AI tools are dispatched directly to their controller, so each one declares the permission of its REST route: AI debug tooling requires `ai.admin`, read helpers require the matching `*.view`, and writes require the matching `*.manage`.
+
 ### Dangerous tools (write/admin)
 
 All write tools (create/update/delete) require the matching permission. User/role/module/core-update/cache tools are admin-only. Password change and 2FA are self-only. Impersonation is admin-only.
@@ -152,7 +154,7 @@ The catalog size affects every request: agent clients that register MCP tools in
 | `people` | 60 | ~5.7K tokens |
 | `time` | 32 | ~2.6K tokens |
 | `admin` | 149 | ~12.2K tokens |
-| `all` | 615 | ~52K tokens |
+| `all` | 617 | ~52K tokens |
 
 The full catalog is ~10× more expensive than the default `core` profile, so prefer a narrow toolset whenever the session is domain-focused.
 
