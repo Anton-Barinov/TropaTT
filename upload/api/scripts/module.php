@@ -14,6 +14,7 @@ use Api\System\Library\Module\ModuleConfig;
 use Api\System\Library\Module\ModuleMigrationRunner;
 use Api\System\Library\Module\PluginManager;
 use Api\System\Library\Module\ServiceProviderRegistry;
+use Api\System\Library\Support\AppLog;
 
 require_once __DIR__ . '/../system/library/support/Autoloader.php';
 
@@ -799,7 +800,7 @@ function cmd_sync(PluginManager $pm, ModuleConfig $mc, ModuleMigrationRunner $mm
                     $pdo->prepare("INSERT OR IGNORE INTO permissions (public_id, code, title, created_at) VALUES (?, ?, ?, ?)")
                         ->execute(['prm_' . strtoupper(bin2hex(random_bytes(8))), $code, str_replace('.', ' ', $code), date('Y-m-d H:i:s')]);
                 } catch (\Throwable $e) {
-                    error_log('[module.php:sync] Permission registration failed for ' . $code . ': ' . $e->getMessage());
+                    AppLog::error('[module.php:sync] Permission registration failed for ' . $code . ': ' . $e->getMessage());
                 }
             }
             $autoloader = new \Api\System\Library\Module\ModuleAutoloader($projectRoot);

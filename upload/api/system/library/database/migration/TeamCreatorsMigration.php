@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 
 final class TeamCreatorsMigration implements MigrationInterface
@@ -29,7 +30,7 @@ final class TeamCreatorsMigration implements MigrationInterface
         try {
             $pdo->exec('UPDATE teams SET created_by_user_id = manager_user_id WHERE created_by_user_id IS NULL AND manager_user_id IS NOT NULL');
         } catch (\Throwable $e) {
-            error_log('[TeamCreatorsMigration::backfillCreators] UPDATE TEAMS SET CREATED_BY_USER_ID = MANAGER_USER: ' . $e->getMessage());
+            AppLog::error('[TeamCreatorsMigration::backfillCreators] UPDATE TEAMS SET CREATED_BY_USER_ID = MANAGER_USER: ' . $e->getMessage());
             // Ignore on engines with transient locking issues; column creation is the critical part.
         }
     }
@@ -66,7 +67,7 @@ final class TeamCreatorsMigration implements MigrationInterface
         try {
             $pdo->exec(trim(preg_replace('/\s+/', ' ', $sql) ?? $sql));
         } catch (\Throwable $e) {
-            error_log('[TeamCreatorsMigration::createIndexIfMissing] ' . $e->getMessage());
+            AppLog::error('[TeamCreatorsMigration::createIndexIfMissing] ' . $e->getMessage());
             // Ignore duplicate/race conditions.
         }
     }
@@ -81,7 +82,7 @@ final class TeamCreatorsMigration implements MigrationInterface
                 default => $this->sqliteColumnExists($pdo, $table, $column),
             };
         } catch (\Throwable $e) {
-            error_log('[TeamCreatorsMigration::columnExists] ' . $e->getMessage());
+            AppLog::error('[TeamCreatorsMigration::columnExists] ' . $e->getMessage());
             return false;
         }
     }
@@ -143,7 +144,7 @@ final class TeamCreatorsMigration implements MigrationInterface
                 default => $this->sqliteIndexExists($pdo, $name),
             };
         } catch (\Throwable $e) {
-            error_log('[TeamCreatorsMigration::indexExists] ' . $e->getMessage());
+            AppLog::error('[TeamCreatorsMigration::indexExists] ' . $e->getMessage());
             return false;
         }
     }

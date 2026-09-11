@@ -7,6 +7,7 @@ $argv ??= $_SERVER['argv'] ?? [];
 use Api\System\Library\Config;
 use Api\System\Library\Database\ConnectionManager;
 use Api\System\Library\Support\Autoloader;
+use Api\System\Library\Support\AppLog;
 
 require_once __DIR__ . '/../system/library/support/Autoloader.php';
 
@@ -200,7 +201,7 @@ function tableExists(PDO $pdo, string $table): bool
         $stmt = $pdo->query('SELECT 1 FROM ' . $table . ' WHERE 1=0');
         return $stmt !== false;
     } catch (\Throwable $e) {
-        error_log('[db_orphan_checker::tableExists] DB query: ' . $e->getMessage());
+        AppLog::error('[db_orphan_checker::tableExists] DB query: ' . $e->getMessage());
         return false;
     }
 }

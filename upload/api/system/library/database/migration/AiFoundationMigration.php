@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 
 final class AiFoundationMigration implements MigrationInterface
@@ -272,7 +273,7 @@ final class AiFoundationMigration implements MigrationInterface
         try {
             $pdo->exec(trim(preg_replace('/\s+/', ' ', $sql) ?? $sql));
         } catch (\Throwable $e) {
-            error_log('[AiFoundationMigration::createIndexIfMissing] ' . $e->getMessage());
+            AppLog::error('[AiFoundationMigration::createIndexIfMissing] ' . $e->getMessage());
             // Keep migration idempotent in concurrent execution paths.
         }
     }
@@ -308,7 +309,7 @@ final class AiFoundationMigration implements MigrationInterface
             $stmt->execute(['table' => $table, 'name' => $name]);
             return (bool)$stmt->fetchColumn();
         } catch (\Throwable $e) {
-            error_log('[AiFoundationMigration::indexExists] ' . $e->getMessage());
+            AppLog::error('[AiFoundationMigration::indexExists] ' . $e->getMessage());
             return false;
         }
     }

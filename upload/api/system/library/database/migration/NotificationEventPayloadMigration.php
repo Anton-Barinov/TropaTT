@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 
 final class NotificationEventPayloadMigration implements MigrationInterface
@@ -75,7 +76,7 @@ final class NotificationEventPayloadMigration implements MigrationInterface
         try {
             $pdo->exec(trim(preg_replace('/\s+/', ' ', $sql) ?? $sql));
         } catch (\Throwable $e) {
-            error_log('[NotificationEventPayloadMigration::createIndexIfMissing] ' . $e->getMessage());
+            AppLog::error('[NotificationEventPayloadMigration::createIndexIfMissing] ' . $e->getMessage());
             // Ignore unsupported IF NOT EXISTS semantics and concurrent duplicate creation.
         }
     }
@@ -90,7 +91,7 @@ final class NotificationEventPayloadMigration implements MigrationInterface
                 default => $this->sqliteColumnExists($pdo, $table, $column),
             };
         } catch (\Throwable $e) {
-            error_log('[NotificationEventPayloadMigration::columnExists] ' . $e->getMessage());
+            AppLog::error('[NotificationEventPayloadMigration::columnExists] ' . $e->getMessage());
             return false;
         }
     }
@@ -152,7 +153,7 @@ final class NotificationEventPayloadMigration implements MigrationInterface
                 default => $this->sqliteIndexExists($pdo, $name),
             };
         } catch (\Throwable $e) {
-            error_log('[NotificationEventPayloadMigration::indexExists] ' . $e->getMessage());
+            AppLog::error('[NotificationEventPayloadMigration::indexExists] ' . $e->getMessage());
             return false;
         }
     }

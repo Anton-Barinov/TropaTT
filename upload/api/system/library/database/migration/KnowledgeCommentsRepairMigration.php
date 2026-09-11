@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 
 final class KnowledgeCommentsRepairMigration implements MigrationInterface
@@ -43,7 +44,7 @@ final class KnowledgeCommentsRepairMigration implements MigrationInterface
         try {
             $pdo->exec(sprintf('CREATE INDEX %s ON %s(%s)', $name, $table, $columns));
         } catch (\Throwable $e) {
-            error_log('[KnowledgeCommentsRepairMigration::createIndex] CREATE INDEX: ' . $e->getMessage());
+            AppLog::error('[KnowledgeCommentsRepairMigration::createIndex] CREATE INDEX: ' . $e->getMessage());
             // Existing installations may have manually repaired indexes.
         }
     }
@@ -68,7 +69,7 @@ final class KnowledgeCommentsRepairMigration implements MigrationInterface
                 }
             }
         } catch (\Throwable $e) {
-            error_log('[KnowledgeCommentsRepairMigration::indexExists] ' . $e->getMessage());
+            AppLog::error('[KnowledgeCommentsRepairMigration::indexExists] ' . $e->getMessage());
             return false;
         }
 

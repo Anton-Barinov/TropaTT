@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Database\IndexHelper;
 use PDO;
 
@@ -45,7 +46,7 @@ final class WorklogRateIndexesMigration implements MigrationInterface
             try {
                 IndexHelper::createIndexIfNotExists($pdo, $idx['table'], $idx['name'], $idx['columns']);
             } catch (\Throwable $e) {
-                error_log(
+                AppLog::error(
                     sprintf(
                         '[WorklogRateIndexesMigration::up] CREATE INDEX %s on %s: %s',
                         $idx['name'],

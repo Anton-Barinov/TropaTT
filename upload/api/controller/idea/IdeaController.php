@@ -925,6 +925,9 @@ final class IdeaController extends BaseController
 
     public function aiCreateTasks(array $params = []): JsonResponse
     {
+        if (($disabled = $this->requireFeatureEnabledForAiWrite()) !== null) {
+            return $disabled;
+        }
         $publicId = (string)($params['public_id'] ?? '');
         $input = $this->request()->allInput();
         $tasks = $input['tasks'] ?? [];
@@ -1170,6 +1173,9 @@ final class IdeaController extends BaseController
      */
     public function additionalQuestions(array $params = []): JsonResponse
     {
+        if (($disabled = $this->requireFeatureEnabledForAiWrite()) !== null) {
+            return $disabled;
+        }
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
@@ -1325,6 +1331,9 @@ PROMPT;
      */
     public function understandingCard(array $params = []): JsonResponse
     {
+        if (($disabled = $this->requireFeatureEnabledForAiWrite()) !== null) {
+            return $disabled;
+        }
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
@@ -1477,6 +1486,9 @@ PROMPT;
      */
     public function gapQuestions(array $params = []): JsonResponse
     {
+        if (($disabled = $this->requireFeatureEnabledForAiWrite()) !== null) {
+            return $disabled;
+        }
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
@@ -1636,6 +1648,9 @@ PROMPT;
      */
     public function refinedCard(array $params = []): JsonResponse
     {
+        if (($disabled = $this->requireFeatureEnabledForAiWrite()) !== null) {
+            return $disabled;
+        }
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
@@ -1803,6 +1818,9 @@ PROMPT;
      */
     public function potentialScore(array $params = []): JsonResponse
     {
+        if (($disabled = $this->requireFeatureEnabledForAiWrite()) !== null) {
+            return $disabled;
+        }
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
@@ -1935,6 +1953,9 @@ PROMPT;
      */
     public function riskReport(array $params = []): JsonResponse
     {
+        if (($disabled = $this->requireFeatureEnabledForAiWrite()) !== null) {
+            return $disabled;
+        }
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
@@ -2024,6 +2045,9 @@ PROMPT;
      */
     public function pitfallsReport(array $params = []): JsonResponse
     {
+        if (($disabled = $this->requireFeatureEnabledForAiWrite()) !== null) {
+            return $disabled;
+        }
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
@@ -2112,6 +2136,9 @@ PROMPT;
      */
     public function implementationPlan(array $params = []): JsonResponse
     {
+        if (($disabled = $this->requireFeatureEnabledForAiWrite()) !== null) {
+            return $disabled;
+        }
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
@@ -2192,6 +2219,9 @@ PROMPT;
      */
     public function finalRecommendation(array $params = []): JsonResponse
     {
+        if (($disabled = $this->requireFeatureEnabledForAiWrite()) !== null) {
+            return $disabled;
+        }
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
@@ -2315,6 +2345,9 @@ PROMPT;
      */
     public function suggestedTasks(array $params = []): JsonResponse
     {
+        if (($disabled = $this->requireFeatureEnabledForAiWrite()) !== null) {
+            return $disabled;
+        }
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
@@ -2543,6 +2576,9 @@ PROMPT;
      */
     public function aiInterview(array $params = []): JsonResponse
     {
+        if (($disabled = $this->requireFeatureEnabledForAiWrite()) !== null) {
+            return $disabled;
+        }
         // DELETE: clear all questions and answers for this idea
         if (($this->request()->method ?? '') === 'DELETE') {
             $publicId = (string)($params['public_id'] ?? '');
@@ -2836,6 +2872,9 @@ PROMPT;
      */
     public function saveInterviewAnswers(array $params = []): JsonResponse
     {
+        if (($disabled = $this->requireFeatureEnabledForAiWrite()) !== null) {
+            return $disabled;
+        }
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
@@ -3868,6 +3907,25 @@ PROMPT;
             }
         }
         return $report;
+    }
+
+    /**
+     * Feature guard for AI-ideas actions that also read or clear stored results.
+     *
+     * Reading a report produced earlier and clearing it stay available when the AI
+     * workflow is switched off; only the AI-financed write is refused. Without this
+     * distinction every sibling of aiAnalyze()/aiRefine() kept calling the provider
+     * (and aiCreateTasks() kept creating tasks) on an installation where the
+     * feature was explicitly disabled.
+     */
+    private function requireFeatureEnabledForAiWrite(): ?JsonResponse
+    {
+        $method = strtoupper((string)($this->request()->method ?? 'GET'));
+        if (in_array($method, ['GET', 'DELETE'], true)) {
+            return null;
+        }
+
+        return $this->requireFeatureEnabled();
     }
 
     /**

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 use Throwable;
 
@@ -49,7 +50,7 @@ final class GanttPerformanceIndexesMigration implements MigrationInterface
         try {
             $pdo->exec(trim(preg_replace('/\s+/', ' ', $sql) ?? $sql));
         } catch (\Throwable $e) {
-            error_log('[GanttPerformanceIndexesMigration::createIndexIfMissing] ' . $e->getMessage());
+            AppLog::error('[GanttPerformanceIndexesMigration::createIndexIfMissing] ' . $e->getMessage());
             // Keep migration idempotent across drivers / concurrent calls.
         }
     }
@@ -85,7 +86,7 @@ final class GanttPerformanceIndexesMigration implements MigrationInterface
             $stmt->execute(['table' => $table, 'name' => $name]);
             return (bool)$stmt->fetchColumn();
         } catch (\Throwable $e) {
-            error_log('[GanttPerformanceIndexesMigration::indexExists] ' . $e->getMessage());
+            AppLog::error('[GanttPerformanceIndexesMigration::indexExists] ' . $e->getMessage());
             return false;
         }
     }

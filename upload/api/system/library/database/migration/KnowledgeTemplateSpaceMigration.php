@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Database\IndexHelper;
 use PDO;
 
@@ -38,7 +39,7 @@ final class KnowledgeTemplateSpaceMigration implements MigrationInterface
         try {
             IndexHelper::createIndexIfNotExists($pdo, 'knowledge_templates', 'idx_knowledge_templates_space_id', 'space_id');
         } catch (\Throwable $e) {
-            error_log('[KnowledgeTemplateSpaceMigration::up] CREATE INDEX idx_knowledge_templates_space_id: ' . $e->getMessage());
+            AppLog::error('[KnowledgeTemplateSpaceMigration::up] CREATE INDEX idx_knowledge_templates_space_id: ' . $e->getMessage());
         }
     }
 
@@ -56,13 +57,13 @@ final class KnowledgeTemplateSpaceMigration implements MigrationInterface
                 }
             }
         } catch (\Throwable $e) {
-            error_log('[KnowledgeTemplateSpaceMigration] column check for ' . $table . '.' . $column . ': ' . $e->getMessage());
+            AppLog::error('[KnowledgeTemplateSpaceMigration] column check for ' . $table . '.' . $column . ': ' . $e->getMessage());
         }
 
         try {
             $pdo->exec("ALTER TABLE {$table} ADD COLUMN {$column} {$definition}");
         } catch (\Throwable $e) {
-            error_log('[KnowledgeTemplateSpaceMigration] ALTER TABLE ' . $table . ' ADD ' . $column . ': ' . $e->getMessage());
+            AppLog::error('[KnowledgeTemplateSpaceMigration] ALTER TABLE ' . $table . ' ADD ' . $column . ': ' . $e->getMessage());
         }
     }
 }

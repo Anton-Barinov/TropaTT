@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 
 /**
@@ -62,7 +63,7 @@ final class ExternalPortalIntegrationMigration implements MigrationInterface
             $stmt->execute();
             return array_map(static fn(array $r): string => (string)($r['Field'] ?? ''), $stmt->fetchAll(PDO::FETCH_ASSOC) ?: []);
         } catch (\Throwable $e) {
-            error_log('[ExternalPortalIntegrationMigration::getColumnNames] ' . $e->getMessage());
+            AppLog::error('[ExternalPortalIntegrationMigration::getColumnNames] ' . $e->getMessage());
             return [];
         }
     }

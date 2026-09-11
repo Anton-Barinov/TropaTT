@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Database\IndexHelper;
 use PDO;
 
@@ -44,7 +45,7 @@ final class CommentDraftsMigration implements MigrationInterface
         try {
             IndexHelper::createIndexIfNotExists($pdo, 'comment_drafts', 'uq_comment_drafts_user_task', 'user_id, task_id', true);
         } catch (\Throwable $e) {
-            error_log('[CommentDraftsMigration::up] CREATE UNIQUE: ' . $e->getMessage());
+            AppLog::error('[CommentDraftsMigration::up] CREATE UNIQUE: ' . $e->getMessage());
             // ignore for drivers without IF NOT EXISTS on index
         }
     }

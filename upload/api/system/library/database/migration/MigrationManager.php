@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Database\SchemaManager;
 use PDO;
 
@@ -141,7 +142,7 @@ final class MigrationManager
                 // migrated database, and never silently retries the same
                 // failing migration in a loop. Callers that want best-effort
                 // behaviour (installer, CLI script) wrap the call themselves.
-                error_log('[MigrationManager] Failed: ' . $migration->key() . ' - ' . $e->getMessage());
+                AppLog::error('[MigrationManager] Failed: ' . $migration->key() . ' - ' . $e->getMessage());
                 throw new \RuntimeException(
                     'Migration ' . $migration->key() . ' failed: ' . $e->getMessage(),
                     0,
@@ -266,7 +267,7 @@ final class MigrationManager
             $stmt = $pdo->prepare('DELETE FROM migrations WHERE description = :description');
             $stmt->execute(['description' => 'Applied by installer MySQL schema snapshot']);
         } catch (\Throwable $e) {
-            error_log('[MigrationManager::purgeBogusInstallerMarks] ' . $e->getMessage());
+            AppLog::error('[MigrationManager::purgeBogusInstallerMarks] ' . $e->getMessage());
         }
     }
 
@@ -316,7 +317,7 @@ final class MigrationManager
             $pdo->query($sql);
             return true;
         } catch (\Throwable $e) {
-            error_log('[MigrationManager::tableExists] DB query: ' . $e->getMessage());
+            AppLog::error('[MigrationManager::tableExists] DB query: ' . $e->getMessage());
             return false;
         }
     }

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 use Throwable;
 
@@ -62,7 +63,7 @@ final class ListQueryIndexesMigration implements MigrationInterface
         try {
             $pdo->exec(sprintf('CREATE INDEX %s ON %s(%s)', $name, $table, $columns));
         } catch (\Throwable $e) {
-            error_log('[ListQueryIndexesMigration::createIndexIfMissing] CREATE INDEX: ' . $e->getMessage());
+            AppLog::error('[ListQueryIndexesMigration::createIndexIfMissing] CREATE INDEX: ' . $e->getMessage());
             // ignore duplicate/unsupported variants to keep migration idempotent across drivers
         }
     }
@@ -98,7 +99,7 @@ final class ListQueryIndexesMigration implements MigrationInterface
             $stmt->execute(['table' => $table, 'name' => $name]);
             return (bool)$stmt->fetchColumn();
         } catch (\Throwable $e) {
-            error_log('[ListQueryIndexesMigration::indexExists] ' . $e->getMessage());
+            AppLog::error('[ListQueryIndexesMigration::indexExists] ' . $e->getMessage());
             return false;
         }
     }

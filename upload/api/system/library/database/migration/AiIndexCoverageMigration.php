@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 use Throwable;
 
@@ -66,7 +67,7 @@ final class AiIndexCoverageMigration implements MigrationInterface
         try {
             $pdo->exec(trim(preg_replace('/\s+/', ' ', $sql) ?? $sql));
         } catch (\Throwable $e) {
-            error_log('[AiIndexCoverageMigration::createIndexIfMissing] ' . $e->getMessage());
+            AppLog::error('[AiIndexCoverageMigration::createIndexIfMissing] ' . $e->getMessage());
             // keep migration idempotent across driver/index variants
         }
     }
@@ -95,7 +96,7 @@ final class AiIndexCoverageMigration implements MigrationInterface
             $stmt->execute(['table' => $table]);
             return (bool)$stmt->fetchColumn();
         } catch (\Throwable $e) {
-            error_log('[AiIndexCoverageMigration::tableExists] ' . $e->getMessage());
+            AppLog::error('[AiIndexCoverageMigration::tableExists] ' . $e->getMessage());
             return false;
         }
     }
@@ -123,7 +124,7 @@ final class AiIndexCoverageMigration implements MigrationInterface
             $stmt->execute(['table' => $table, 'name' => $name]);
             return (bool)$stmt->fetchColumn();
         } catch (\Throwable $e) {
-            error_log('[AiIndexCoverageMigration::indexExists] ' . $e->getMessage());
+            AppLog::error('[AiIndexCoverageMigration::indexExists] ' . $e->getMessage());
             return false;
         }
     }

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 
 final class RecurringProcessorMigration implements MigrationInterface
@@ -75,7 +76,7 @@ final class RecurringProcessorMigration implements MigrationInterface
                 }
             }
         } catch (\Throwable $e) {
-            error_log('[RecurringProcessorMigration::columnExists] ' . $e->getMessage());
+            AppLog::error('[RecurringProcessorMigration::columnExists] ' . $e->getMessage());
             return false;
         }
 
