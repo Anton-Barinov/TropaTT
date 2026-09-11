@@ -7,6 +7,7 @@ use Api\Controller\Common\BaseController;
 use Api\Model\Knowledge\KnowledgeRepository;
 use Api\Model\Tag\TagRepository;
 use Api\System\Library\Http\JsonResponse;
+use Api\System\Library\Module\ModuleEvents;
 use Api\System\Library\Service\FileService;
 use Api\System\Library\Service\AiSemanticIndexService;
 use Api\System\Library\Service\TaskService;
@@ -1065,6 +1066,18 @@ final class KnowledgeController extends BaseController
 
         try {
             $item = $service->create($input, $this->request()->files, $this->actorUserId(), $authUser['user']);
+
+            // Same event the generic file endpoint fires: knowledge uploads must be
+            // visible to module hooks and webhook subscriptions too.
+            $this->dispatchModuleHook(ModuleEvents::FILE_UPLOADED, [
+                'file_public_id' => (string)($item['public_id'] ?? ''),
+                'entity_type' => (string)($item['entity_type'] ?? ''),
+                'entity_public_id' => (string)($item['entity_public_id'] ?? ''),
+                'uploader_public_id' => (string)($item['uploader']['public_id'] ?? ''),
+                'size_bytes' => (int)($item['size_bytes'] ?? 0),
+                'actor_id' => (int)($authUser['user']['id'] ?? 0),
+            ]);
+
             return $this->success('KNOWLEDGE_FILE_UPLOADED', $this->t('knowledge/messages.file_uploaded', 'File uploaded'), [
                 'file' => $item,
             ], 201);

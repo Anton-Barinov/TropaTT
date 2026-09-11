@@ -5,6 +5,7 @@ namespace Api\Controller\Chat;
 
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Http\JsonResponse;
+use Api\System\Library\Module\ModuleEvents;
 use Api\System\Library\Service\ChatService;
 use PDO;
 
@@ -649,6 +650,17 @@ final class ChatController extends BaseController
 
         $service->markRead((int)$chat['id'], $this->currentUserId());
         $service->notifyMessage($chat, ['public_id' => $msgPublicId, 'id' => $msgId, 'text' => $text !== '' ? $text : $this->t('chat/messages.attached_file') . ': ' . $fileRow['original_name']], $this->user()['user'] ?? []);
+
+        // Chat attachments are files too: fire the same event the generic file
+        // endpoint does so module hooks and webhook subscriptions see them.
+        $this->dispatchModuleHook(ModuleEvents::FILE_UPLOADED, [
+            'file_public_id' => (string)($fileRow['public_id'] ?? ''),
+            'entity_type' => 'chat_message',
+            'entity_public_id' => (string)$msgPublicId,
+            'uploader_public_id' => (string)($fileRow['uploader']['public_id'] ?? ''),
+            'size_bytes' => (int)($fileRow['size_bytes'] ?? 0),
+            'actor_id' => $this->currentUserId(),
+        ]);
 
         return $this->success('ATTACHMENT_UPLOADED', $this->t('chat/messages.attachment_uploaded'), ['message_public_id' => $msgPublicId, 'file' => $fileRow], status: 201);
     }
