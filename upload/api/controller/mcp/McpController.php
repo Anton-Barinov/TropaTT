@@ -6587,6 +6587,12 @@ $tools[] = $this->tool(
             return ['error' => 'title is required.'];
         }
 
+        // Support assignee_user_public_id: map to assignee_user_id which TaskService resolves
+        $assigneePublicId = trim((string)($arguments['assignee_user_public_id'] ?? ''));
+        if ($assigneePublicId !== '') {
+            $arguments['assignee_user_id'] = $assigneePublicId;
+        }
+
         // Go through TaskController instead of TaskService: the controller is what
         // fires the workflow trigger (task_created), the module hooks (and with
         // them the core webhook subscriptions) and the cache invalidation. Calling
@@ -6600,6 +6606,12 @@ $tools[] = $this->tool(
         $publicId = trim((string)($arguments['public_id'] ?? ''));
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
+        }
+
+        // Support assignee_user_public_id: map to assignee_user_id which TaskService resolves
+        if (array_key_exists('assignee_user_public_id', $arguments)) {
+            $assigneePublicId = trim((string)($arguments['assignee_user_public_id'] ?? ''));
+            $arguments['assignee_user_id'] = $assigneePublicId !== '' ? $assigneePublicId : null;
         }
 
         // Same reason as create: update() fires task_updated/task_status_changed
