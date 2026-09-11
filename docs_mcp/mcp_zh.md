@@ -14,7 +14,7 @@ TropaTT CRM 内置一个 MCP 服务器——一个 JSON-RPC 2.0 接口，通过�
 | 协议版本 | `2025-06-18` |
 | 批量请求 | 支持（JSON 数组） |
 | 通知 | 支持（不带 id 的消息） |
-| MCP 工具 | 完整目录约 615 个；`tools/list` 默认返回 core 配置文件（约 24 个工具：8 个 mega-tools + 16 个常规工具） |
+| MCP 工具 | 完整目录约 617 个；`tools/list` 默认返回 core 配置文件（约 24 个工具：8 个 mega-tools + 16 个常规工具） |
 | MCP 资源 | 5 |
 | MCP Prompts | 0 |
 
@@ -112,6 +112,8 @@ MCP 镜像 REST API，但在代理与 CRM 之间提供安全层：
 
 每个工具都会检查当前用户的权限；条件可见的工具只有在用户具备相应权限时才会出现在 tools/list 中。
 
+工具的权限绝不会宽于对应的 REST 路由。idea-workflow 与 knowledge-AI 工具直接调用控制器，因此每个工具都声明其 REST 路由的权限：AI 调试需要 `ai.admin`，读取需要相应的 `*.view`，写入需要相应的 `*.manage`。
+
 ### 危险工具（写/管理）
 
 所有写工具（create/update/delete）都需要相应权限。用户/角色/模块/核心更新/缓存相关工具仅限管理员。密码修改和 2FA 仅限本人。Impersonation 仅限管理员。
@@ -152,7 +154,7 @@ AI 操作通过 AiJobService/AiAuditService 记录；导入/导出和工作流�
 | `people` | 60 | 约 5.7K tokens |
 | `time` | 32 | 约 2.6K tokens |
 | `admin` | 149 | 约 12.2K tokens |
-| `all` | 615 | 约 52K tokens |
+| `all` | 617 | 约 52K tokens |
 
 完整目录比默认 `core` 配置文件贵约 10 倍，因此当会话聚焦于单一领域时，应优先使用窄配置文件。
 

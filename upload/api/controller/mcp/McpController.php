@@ -3518,9 +3518,15 @@ $tools[] = $this->tool(
         }
 
 
-        if (isset($this->ideaWorkflowTools()[$name])) {
-            if (!$this->can('idea.manage') && !$this->can('task.manage')) {
-                return $this->toolError('Insufficient permission. Required: idea.manage or task.manage.');
+        if (($ideaTool = $this->ideaWorkflowTools()[$name] ?? null) !== null) {
+            // Per-tool permission (mirrors the REST route): the debug/AI tooling
+            // needs ai.admin, read helpers need idea.view, the rest idea.manage.
+            $required = (array)($ideaTool['permissions'] ?? ['idea.manage']);
+            if (!$this->canAny($required)) {
+                return $this->toolError(
+                    'Insufficient permissions for tool: ' . $name
+                    . '. Required (any): ' . implode(', ', $required)
+                );
             }
             return $this->toolResult($this->callIdeaWorkflowTool($name, $arguments));
         }
@@ -5358,7 +5364,12 @@ $tools[] = $this->tool(
 
         /** @var AiActionService $service */
         $service = $this->container->get('service.ai_action');
-        return $this->publicData($service->execute($actionType, (array)($arguments['input'] ?? []), $this->actor()));
+        // System-role prompt templates are trusted server-side policy: internal
+        // idea workflows call the service directly, an external MCP caller must
+        // not inject a system prompt (mirrors AiActionController).
+        $input = (array)($arguments['input'] ?? []);
+        unset($input['__sys'], $input['__usr'], $input['system_prompt']);
+        return $this->publicData($service->execute($actionType, $input, $this->actor()));
     }
 
     private function crmListAiProviders(array $arguments): array
@@ -12594,7 +12605,11 @@ $tools[] = $this->tool(
             }
             return $this->toolPayloadFromResponse($response);
         } catch (Throwable $e) {
-            error_log('[McpController::invokeControllerTool] ' . $e->getMessage());
+            $this->logError('mcp_controller_invocation_failed', [
+                'controller' => $controllerClass,
+                'method' => $controllerMethod,
+                'error' => $e->getMessage(),
+            ]);
             return ['error' => 'Controller invocation failed. Check server logs for details.'];
         } finally {
             $this->container->set('request', $originalRequest);
@@ -12627,7 +12642,7 @@ $tools[] = $this->tool(
     private function ideaWorkflowTools(): array
     {
         $publicId = ['type' => 'string'];
-        return [
+        $tools = [
             'crm_create_idea_ai_analysis' => [
                 'description' => 'Run the first AI analysis pass for an idea.',
                 'controller' => IdeaController::class,
@@ -12669,6 +12684,15 @@ $tools[] = $this->tool(
                 'controller' => IdeaController::class,
                 'method' => 'debugLog',
                 'http' => 'GET',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_clear_idea_ai_debug_log' => [
+                'description' => 'Delete the stored AI iteration log for an idea.',
+                'controller' => IdeaController::class,
+                'method' => 'debugLog',
+                'http' => 'DELETE',
                 'route_params' => ['public_id'],
                 'properties' => ['public_id' => $publicId],
                 'required' => ['public_id'],
@@ -12901,6 +12925,15 @@ $tools[] = $this->tool(
                 ],
                 'required' => ['public_id', 'answers'],
             ],
+            'crm_clear_idea_ai_interview' => [
+                'description' => 'Delete every interview question, answer and AI iteration generated for an idea.',
+                'controller' => IdeaController::class,
+                'method' => 'aiInterview',
+                'http' => 'DELETE',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
             'crm_get_idea_state' => [
                 'description' => 'Load the full AI state for an idea.',
                 'controller' => IdeaController::class,
@@ -13023,6 +13056,38 @@ $tools[] = $this->tool(
                 ],
                 'required' => ['public_id', 'analysisType'],
             ],
+        ];
+
+        // Every idea workflow tool is invoked directly on the controller, so the
+        // route-level permission check never runs. Carry the matching REST
+        // permission on the tool itself; MCP must not be laxer than REST.
+        $permissions = $this->ideaWorkflowToolPermissions();
+        foreach (array_keys($tools) as $toolName) {
+            $tools[$toolName]['permissions'] = $permissions[$toolName] ?? ['idea.manage'];
+        }
+
+        return $tools;
+    }
+
+    /**
+     * REST-equivalent permissions for the dynamically dispatched idea tools.
+     *
+     * Mirrors `config/routes.php`: AI debug tooling requires `ai.admin`, read-only
+     * introspection requires `idea.view`, everything else requires `idea.manage`
+     * (the default in ideaWorkflowTools()). There is deliberately no
+     * `task.manage` escape hatch — the REST routes never granted one.
+     *
+     * @return array<string,list<string>>
+     */
+    private function ideaWorkflowToolPermissions(): array
+    {
+        return [
+            'crm_get_idea_ai_debug_log' => ['ai.admin'],
+            'crm_clear_idea_ai_debug_log' => ['ai.admin'],
+            'crm_list_idea_ai_iterations' => ['idea.view'],
+            'crm_get_idea_questions' => ['idea.view'],
+            'crm_get_idea_state' => ['idea.view'],
+            'crm_get_idea_task_drafts' => ['idea.view'],
         ];
     }
 

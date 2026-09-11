@@ -27,9 +27,21 @@ final class AiRuntimeRepository
     private ?array $aiJobsColumns = null;
     /** @var array<string,bool>|null */
     private ?array $aiSuggestionsColumns = null;
+    /**
+     * Why the last claimInteractiveSlot() call returned null. Without it an
+     * AI_BUSY response says nothing about whether a slot was genuinely busy or
+     * a stale advisory lock wedged every AI call on the installation.
+     */
+    private string $lastSlotFailure = '';
 
     public function __construct(private readonly PDO $pdo)
     {
+    }
+
+    /** Machine-readable reason for the last failed interactive-slot claim. */
+    public function lastSlotFailure(): string
+    {
+        return $this->lastSlotFailure;
     }
 
     public function createJob(array $payload): string
@@ -96,6 +108,7 @@ final class AiRuntimeRepository
         $staleBefore = gmdate('Y-m-d H:i:s', time() - max(60, $staleAfterSeconds));
         $driver = (string)$this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
         $hasAdvisoryLock = false;
+        $this->lastSlotFailure = '';
 
         try {
             if ($driver === 'mysql') {
@@ -110,9 +123,11 @@ final class AiRuntimeRepository
                         usleep(500000);
                         $lock->execute(['name' => 'crm_ai_interactive_slots']);
                         if ((int)$lock->fetchColumn() !== 1) {
+                            $this->lastSlotFailure = 'advisory_lock_stuck_no_running_jobs';
                             return null;
                         }
                     } else {
+                        $this->lastSlotFailure = 'advisory_lock_held_running=' . $runningCount;
                         return null;
                     }
                 }
@@ -120,16 +135,21 @@ final class AiRuntimeRepository
             }
 
             $this->pdo->beginTransaction();
+            // One placeholder per binding site: PDO runs with
+            // ATTR_EMULATE_PREPARES = false, so a named parameter used twice in
+            // one statement fails with "Invalid parameter number" (HY093). That
+            // exception used to surface as a bogus AI_BUSY for every AI action.
             $cleanup = $this->pdo->prepare("UPDATE ai_jobs
-                SET status = 'failed', error_code = 'AI_REQUEST_STALE', error_message = 'Interactive request did not finish', finished_at = :now, updated_at = :now
+                SET status = 'failed', error_code = 'AI_REQUEST_STALE', error_message = 'Interactive request did not finish', finished_at = :finished_at, updated_at = :updated_at
                 WHERE job_type = 'interactive' AND status = 'running' AND started_at IS NOT NULL AND started_at < :stale_before");
             $now = gmdate('Y-m-d H:i:s');
-            $cleanup->execute(['now' => $now, 'stale_before' => $staleBefore]);
+            $cleanup->execute(['finished_at' => $now, 'updated_at' => $now, 'stale_before' => $staleBefore]);
 
             $count = $this->pdo->prepare("SELECT COUNT(*) FROM ai_jobs WHERE job_type = 'interactive' AND status = 'running'");
             $count->execute();
             if ((int)$count->fetchColumn() >= $maxConcurrent) {
                 $this->pdo->rollBack();
+                $this->lastSlotFailure = 'concurrency_limit_reached max=' . $maxConcurrent;
                 return null;
             }
 
@@ -138,6 +158,7 @@ final class AiRuntimeRepository
             return $publicId;
         } catch (\Throwable $e) {
             error_log('[AiRuntimeRepository::claimInteractiveSlot] ' . $e->getMessage());
+            $this->lastSlotFailure = 'exception: ' . $e->getMessage();
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }

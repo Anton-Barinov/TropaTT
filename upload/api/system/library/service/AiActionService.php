@@ -99,8 +99,14 @@ final class AiActionService
             'model' => $resolvedModel,
         ];
 
-        $systemPrompt = $payload['input']['__sys'] ?? $payload['input']['system_prompt'] ?? 'You are CRM AI assistant. Return short actionable suggestion in Russian.';
-        $userPromptRaw = $payload['input']['__usr'] ?? $payload['input']['user_prompt'] ?? ('Action type: ' . $actionType . '. Input: ' . json_encode($payload['input'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        // Trusted internal callers (the idea workflows) pass their prompt template
+        // as __sys/__usr. sanitizeInput() deliberately removes those keys from the
+        // payload that gets persisted, so they must be read from the original
+        // input: reading the sanitized copy silently replaced every idea prompt
+        // with the generic fallback and the model answered "context is empty".
+        // Public HTTP/MCP callers strip these keys at their boundary first.
+        $systemPrompt = $input['__sys'] ?? $input['system_prompt'] ?? 'You are CRM AI assistant. Return short actionable suggestion in Russian.';
+        $userPromptRaw = $input['__usr'] ?? $input['user_prompt'] ?? ('Action type: ' . $actionType . '. Input: ' . json_encode($payload['input'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 
         $promptPayload = [
             'intent_code' => $actionType,
@@ -133,7 +139,13 @@ final class AiActionService
             'updated_at' => $now,
         ], $this->rateLimit->interactiveConcurrencyLimit());
         if ($jobPublicId === null) {
-            return ['ok' => false, 'code' => 'AI_BUSY', 'retry_after' => 5];
+            $reason = $this->runtime->lastSlotFailure();
+            $this->logger->warning('ai_interactive_slot_busy', [
+                'action_type' => $actionType,
+                'reason' => $reason,
+                'max_concurrent' => $this->rateLimit->interactiveConcurrencyLimit(),
+            ]);
+            return ['ok' => false, 'code' => 'AI_BUSY', 'retry_after' => 5, 'reason' => $reason];
         }
 
         try {
