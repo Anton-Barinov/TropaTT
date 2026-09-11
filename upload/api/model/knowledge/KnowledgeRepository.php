@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Model\Knowledge;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 use Api\System\Library\Support\LikeEscaper;
 
@@ -188,7 +189,7 @@ final class KnowledgeRepository
             $stmt->execute([$table, $column]);
             return $stmt->fetch() !== false;
         } catch (\Throwable $e) {
-            error_log('[KnowledgeRepository::columnExists] DB prepare: ' . $e->getMessage());
+            AppLog::error('[KnowledgeRepository::columnExists] DB prepare: ' . $e->getMessage());
             return false;
         }
     }

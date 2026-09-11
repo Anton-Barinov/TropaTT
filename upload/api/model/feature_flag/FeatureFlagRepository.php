@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Model\Feature_flag;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Database\Builder\QueryBuilder;
 use Api\System\Library\Database\IndexHelper;
 use Api\System\Library\Support\Ulid;
@@ -38,7 +39,7 @@ final class FeatureFlagRepository
 
             IndexHelper::createIndexIfNotExists($this->pdo, 'feature_flags', 'uq_feature_flags_code', 'code', true);
         } catch (\Throwable $e) {
-            error_log('[FeatureFlagRepository::ensureSchema] ' . $e->getMessage());
+            AppLog::error('[FeatureFlagRepository::ensureSchema] ' . $e->getMessage());
         }
     }
 

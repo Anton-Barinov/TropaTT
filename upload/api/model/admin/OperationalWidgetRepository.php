@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Model\Admin;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Database\Builder\QueryBuilder;
 use PDO;
 
@@ -207,7 +208,7 @@ final class OperationalWidgetRepository
                 ->count();
             return true;
         } catch (\Throwable $e) {
-            error_log('[OperationalWidgetRepository::dbPing] ' . $e->getMessage());
+            AppLog::error('[OperationalWidgetRepository::dbPing] ' . $e->getMessage());
             return false;
         }
     }
@@ -228,7 +229,7 @@ final class OperationalWidgetRepository
                 ->count();
             return true;
         } catch (\Throwable $e) {
-            error_log('[OperationalWidgetRepository::tableExists] ' . $e->getMessage());
+            AppLog::error('[OperationalWidgetRepository::tableExists] ' . $e->getMessage());
             return false;
         }
     }
@@ -251,7 +252,7 @@ final class OperationalWidgetRepository
                     return (string)$value;
                 }
             } catch (\Throwable $e) {
-                error_log('[OperationalWidgetRepository::lastMigrationKey] ' . $e->getMessage());
+                AppLog::error('[OperationalWidgetRepository::lastMigrationKey] ' . $e->getMessage());
                 // Try next known variant.
             }
         }

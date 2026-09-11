@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Support\AppLog;
 final class RruleParser
 {
     private string $freq = 'DAILY';
@@ -213,7 +214,7 @@ final class RruleParser
                 try {
                     return new \DateTimeImmutable("{$currentYear}-{$currentMonth}-{$targetDay} {$from->format('H:i:s')}");
                 } catch (\Throwable $e) {
-                    error_log('[RruleParser::computeNextMonthly] date parse failed (targetDay): ' . $e->getMessage());
+                    AppLog::error('[RruleParser::computeNextMonthly] date parse failed (targetDay): ' . $e->getMessage());
                 }
             }
 
@@ -228,7 +229,7 @@ final class RruleParser
             try {
                 return new \DateTimeImmutable("{$nextYear}-{$nextMonth}-{$targetDay} {$from->format('H:i:s')}");
             } catch (\Throwable $e) {
-                error_log('[RruleParser::computeNextMonthly] date parse failed (nextMonth): ' . $e->getMessage());
+                AppLog::error('[RruleParser::computeNextMonthly] date parse failed (nextMonth): ' . $e->getMessage());
             }
         }
 

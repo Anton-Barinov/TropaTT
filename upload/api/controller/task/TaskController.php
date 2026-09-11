@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Controller\Task;
 
+use Api\System\Library\Support\AppLog;
 use Api\Controller\Common\BaseController;
 use Api\Model\Status\StatusRepository;
 use Api\System\Library\Module\ModuleEvents;
@@ -687,7 +688,7 @@ final class TaskController extends BaseController
                     $taskTagIds = array_map(static fn(array $t): string => (string)($t['public_id'] ?? ''), $tags);
                 }
             } catch (\Throwable $e) {
-            error_log('[TaskController::fireWorkflowTrigger] tag loading failed: ' . $e->getMessage());
+            AppLog::error('[TaskController::fireWorkflowTrigger] tag loading failed: ' . $e->getMessage());
                 $taskTagIds = [];
             }
             $wf = $this->container->get('service.workflow');
@@ -704,7 +705,7 @@ final class TaskController extends BaseController
             ], $extra);
             $wf->fireTrigger($trigger, $context);
         } catch (\Throwable $e) {
-            error_log('[TaskController::fireWorkflowTrigger][' . ($task['public_id'] ?? '') . '] Workflow trigger failed: ' . $e->getMessage());
+            AppLog::error('[TaskController::fireWorkflowTrigger][' . ($task['public_id'] ?? '') . '] Workflow trigger failed: ' . $e->getMessage());
         }
     }
 

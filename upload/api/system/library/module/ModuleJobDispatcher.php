@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Module;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 use Api\System\Library\Database\IndexHelper;
 
@@ -106,7 +107,7 @@ final class ModuleJobDispatcher
         } catch (\Throwable $e) {
             if ($this->pdo->inTransaction()) {
                 try { $this->pdo->rollBack(); } catch (\Throwable $e) {
-                    error_log('[ModuleJobDispatcher] rollBack failed: ' . $e->getMessage());
+                    AppLog::error('[ModuleJobDispatcher] rollBack failed: ' . $e->getMessage());
                 }
             }
             return null;
@@ -149,7 +150,7 @@ final class ModuleJobDispatcher
             IndexHelper::createIndexIfNotExists($this->pdo, $this->tableName, 'idx_module_jobs_status', 'status, created_at');
             IndexHelper::createIndexIfNotExists($this->pdo, $this->tableName, 'idx_module_jobs_module', 'module_name');
         } catch (\Throwable $e) {
-            error_log('[ModuleJobDispatcher::dispatch] PDO rollBack failed: ' . $e->getMessage());
+            AppLog::error('[ModuleJobDispatcher::dispatch] PDO rollBack failed: ' . $e->getMessage());
         }
     }
 }

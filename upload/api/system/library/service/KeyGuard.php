@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Support\AppLog;
 /**
  * Resilient key guard — checks for required secret keys at boot,
  * generates missing ones, writes them to .env, and notifies admin on failure.
@@ -180,7 +181,7 @@ final class KeyGuard
         try {
             return bin2hex(random_bytes($bytes));
         } catch (\Throwable $e) {
-            error_log('[KeyGuard::generateHex] random_bytes failed: ' . $e->getMessage());
+            AppLog::error('[KeyGuard::generateHex] random_bytes failed: ' . $e->getMessage());
             return null;
         }
     }
@@ -217,7 +218,7 @@ final class KeyGuard
 
             return ['public_key' => $publicKey, 'private_key' => $privateKey];
         } catch (\Throwable $e) {
-            error_log('[KeyGuard::generateVapidKeyPair] ' . $e->getMessage());
+            AppLog::error('[KeyGuard::generateVapidKeyPair] ' . $e->getMessage());
             return null;
         }
     }

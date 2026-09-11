@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Model\Estimate;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 
 final class TaskEstimateRepository
@@ -291,7 +292,7 @@ final class TaskEstimateRepository
             unset($item);
             return $items;
         } catch (\Throwable $e) {
-            error_log('[TaskEstimateRepository::summaryByCycleId] ' . $e->getMessage());
+            AppLog::error('[TaskEstimateRepository::summaryByCycleId] ' . $e->getMessage());
             return [];
         }
     }
@@ -381,7 +382,7 @@ final class TaskEstimateRepository
             unset($item);
             return $items;
         } catch (\Throwable $e) {
-            error_log('[TaskEstimateRepository::summaryByModuleId] ' . $e->getMessage());
+            AppLog::error('[TaskEstimateRepository::summaryByModuleId] ' . $e->getMessage());
             return [];
         }
     }

@@ -377,7 +377,7 @@ function crmWebApiDbConnect(string $webBaseDir): ?PDO
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         return $pdo;
     } catch (\Throwable $e) {
-        error_log('[index::crmWebApiDbConnect] ' . $e->getMessage());
+        \Api\System\Library\Support\AppLog::error('[index::crmWebApiDbConnect] ' . $e->getMessage());
         return null;
     }
 }
@@ -698,11 +698,30 @@ function crmWebInitModuleSystem(string $webBaseDir, Web\System\Core\Router $rout
             $activeModuleNames = $stmt ? array_column($stmt->fetchAll(PDO::FETCH_ASSOC), 'module_name') : [];
             $registryReadOk = true;
         } catch (\Throwable $e) {
-            error_log('[web] module registry read failed, falling back to all modules: ' . $e->getMessage());
+            \Api\System\Library\Support\AppLog::error('[web] module registry read failed, falling back to all modules: ' . $e->getMessage());
         }
 
         // Register server-side PHP error logging (web pages). Best-effort:
         // the service itself no-ops when the table does not exist yet.
+        // Publish the application logger for web-side code: without it AppLog
+        // falls back to \Api\System\Library\Support\AppLog::error(), which stock PHP-FPM discards.
+        if (class_exists(\Api\System\Library\Support\AppLog::class)) {
+            try {
+                $webLoggingConfig = new \Api\System\Library\Config();
+                $webLoggingConfig->load($apiBaseDir . '/config/logging.php', 'logging');
+                $webLoggingLocal = $apiBaseDir . '/config/logging.local.php';
+                if (is_file($webLoggingLocal)) {
+                    $webLoggingOverride = require $webLoggingLocal;
+                    if (is_array($webLoggingOverride)) {
+                        $webLoggingConfig->merge('logging', $webLoggingOverride);
+                    }
+                }
+                \Api\System\Library\Support\AppLog::bootFromConfig($webLoggingConfig);
+            } catch (\Throwable $e) {
+                // best-effort — never block page rendering on logger setup
+            }
+        }
+
         if (class_exists(\Api\System\Library\Service\ServerErrorService::class)) {
             try {
                 \Api\System\Library\Service\ServerErrorService::register($pdo);
@@ -966,7 +985,7 @@ try {
     // service worker (/web/push-sw.js) already retries navigations before this
     // code even runs on browsers where it is registered; this catch is the
     // fallback for every other environment (no SW, first load, login page).
-    error_log('[web] page render failed (' . $route . '): ' . $e->getMessage());
+    \Api\System\Library\Support\AppLog::error('[web] page render failed (' . $route . '): ' . $e->getMessage());
     http_response_code(500);
     header('Content-Type: text/html; charset=utf-8');
     echo \Web\System\I18n\EarlyResponse::serverErrorPage($baseDir);

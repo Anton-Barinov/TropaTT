@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Module;
 
+use Api\System\Library\Support\AppLog;
 final class ModuleProfiler
 {
     /** @var array<string, array{start: float, operations: array<string, array{start: float}>>} */
@@ -29,7 +30,7 @@ final class ModuleProfiler
         $this->timings[$moduleName][$operation] = $elapsed;
 
         if ($elapsed > 0.5) {
-            error_log(sprintf(
+            AppLog::error(sprintf(
                 '[ModuleProfiler] %s::%s took %.2fs (threshold=0.5s)',
                 $moduleName,
                 $operation,

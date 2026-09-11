@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Model\Workflow;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Database\Builder\QueryBuilder;
 use Api\System\Library\Security\UrlSafetyValidator;
 use PDO;
@@ -395,7 +396,7 @@ final class WorkflowRepository
         $validator = $this->urlSafety ?? new UrlSafetyValidator();
         $validated = $validator->validateProviderUrl($url, true, ['https']);
         if (!(bool)($validated['ok'] ?? false)) {
-            error_log('[WorkflowRepository] SSRF blocked: ' . ($validated['code'] ?? 'UNKNOWN') . ' url=' . $url);
+            AppLog::error('[WorkflowRepository] SSRF blocked: ' . ($validated['code'] ?? 'UNKNOWN') . ' url=' . $url);
             return;
         }
         $resolvedIps = (array)($validated['resolved_ips'] ?? []);

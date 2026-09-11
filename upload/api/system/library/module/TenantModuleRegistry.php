@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Module;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 use Api\System\Library\Database\IndexHelper;
 
@@ -78,7 +79,7 @@ final class TenantModuleRegistry
         try {
             IndexHelper::createIndexIfNotExists($this->pdo, $this->tableName, 'idx_tenant_modules_tenant', 'tenant_id');
         } catch (\Throwable $e) {
-            error_log('[TenantModuleRegistry::ensureTable] ' . $e->getMessage());
+            AppLog::error('[TenantModuleRegistry::ensureTable] ' . $e->getMessage());
         }
     }
 }

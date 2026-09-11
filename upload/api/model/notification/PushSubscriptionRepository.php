@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Model\Notification;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Database\Builder\QueryBuilder;
 use Api\System\Library\Database\IndexHelper;
 use PDO;
@@ -216,7 +217,7 @@ final class PushSubscriptionRepository
                 $this->pdo->exec('ALTER TABLE notification_push_subscriptions ADD COLUMN last_error TEXT NULL');
             }
         } catch (\Throwable $e) {
-            error_log('[PushSubscriptionRepository::ensureSchema] DB exec: ' . $e->getMessage());
+            AppLog::error('[PushSubscriptionRepository::ensureSchema] DB exec: ' . $e->getMessage());
             // Keep fail-safe behavior for already managed schema or restricted DB modes.
         }
     }
@@ -249,7 +250,7 @@ final class PushSubscriptionRepository
             }
             return false;
         } catch (\Throwable $e) {
-            error_log('[PushSubscriptionRepository::hasColumn] ' . $e->getMessage());
+            AppLog::error('[PushSubscriptionRepository::hasColumn] ' . $e->getMessage());
             return true; // Fail-safe: assume the column exists rather than guessing DDL.
         }
     }

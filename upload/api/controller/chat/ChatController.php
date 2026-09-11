@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Controller\Chat;
 
+use Api\System\Library\Support\AppLog;
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Http\JsonResponse;
 use Api\System\Library\Module\ModuleEvents;
@@ -109,7 +110,7 @@ final class ChatController extends BaseController
                 $items = $this->mergeStaffProjectClientChats($items, $user);
             }
         } catch (\Throwable $e) {
-            error_log('[ChatController::list] ' . $e->getMessage());
+            AppLog::error('[ChatController::list] ' . $e->getMessage());
             $items = [];
         }
 
@@ -143,7 +144,7 @@ final class ChatController extends BaseController
             try {
                 $pdo->exec("ALTER TABLE chats ADD COLUMN {$col} {$type} NULL");
             } catch (\Throwable $e) {
-                error_log('[ChatController::ensureChatArchiveColumns] ALTER TABLE ADD COLUMN failed for ' . $col . ': ' . $e->getMessage());
+                AppLog::error('[ChatController::ensureChatArchiveColumns] ALTER TABLE ADD COLUMN failed for ' . $col . ': ' . $e->getMessage());
             }
         }
     }
@@ -752,7 +753,7 @@ final class ChatController extends BaseController
             return $this->success('UNREAD_COUNT', $this->t('common/messages.ok'), ['count' => $count]);
         } catch (\Throwable $e) {
             $reqId = bin2hex(random_bytes(6));
-            error_log("[ChatController::unreadCount][{$reqId}] " . $e->getMessage());
+            AppLog::error("[ChatController::unreadCount][{$reqId}] " . $e->getMessage());
             return $this->error('ERROR', $this->t('common/messages.internal_error'), 500);
         }
     }
@@ -790,7 +791,7 @@ final class ChatController extends BaseController
             return $this->success('CHAT_ARCHIVED', $this->t('common/messages.ok'), ['chat' => $result]);
         } catch (\Throwable $e) {
             $reqId = bin2hex(random_bytes(6));
-            error_log("[ChatController::archive][{$reqId}] " . $e->getMessage());
+            AppLog::error("[ChatController::archive][{$reqId}] " . $e->getMessage());
             return $this->error('ERROR', $this->t('common/messages.internal_error'), 500);
         }
     }
@@ -822,7 +823,7 @@ final class ChatController extends BaseController
             return $this->success('CHAT_RESTORED', $this->t('common/messages.ok'), ['chat' => $result]);
         } catch (\Throwable $e) {
             $reqId = bin2hex(random_bytes(6));
-            error_log("[ChatController::restore][{$reqId}] " . $e->getMessage());
+            AppLog::error("[ChatController::restore][{$reqId}] " . $e->getMessage());
             return $this->error('ERROR', $this->t('common/messages.internal_error'), 500);
         }
     }
@@ -900,7 +901,7 @@ final class ChatController extends BaseController
                 ];
             }
         } catch (\Throwable $e) {
-            error_log('[ChatController::mergeStaffProjectClientChats] ' . $e->getMessage());
+            AppLog::error('[ChatController::mergeStaffProjectClientChats] ' . $e->getMessage());
         }
 
         return $items;

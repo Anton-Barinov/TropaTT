@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Support\AppLog;
 use Api\Model\Webhook\WebhookRepository;
 use Api\System\Library\Config;
 use Api\System\Library\Logger\JsonLogger;
@@ -570,7 +571,7 @@ final class WebhookService
                 $retried++;
             } catch (\Throwable $e) {
                 $failed++;
-                error_log('[WebhookService::runQueued] delivery=' . $deliveryPublicId . ' ' . $e->getMessage());
+                AppLog::error('[WebhookService::runQueued] delivery=' . $deliveryPublicId . ' ' . $e->getMessage());
                 $errors[] = ['public_id' => $deliveryPublicId, 'error' => 'Webhook delivery failed. Check server logs for details.'];
                 $this->repository->updateDeliveryByPublicId($deliveryPublicId, [
                     'status' => $attempt >= $maxAttempts ? 'error' : 'queued',

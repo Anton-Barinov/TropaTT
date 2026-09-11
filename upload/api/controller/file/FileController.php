@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Controller\File;
 
+use Api\System\Library\Support\AppLog;
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Module\ModuleEvents;
 use Api\System\Library\Service\FileService;
@@ -70,7 +71,7 @@ final class FileController extends BaseController
                 ]);
             }
 
-            error_log('[FileController::create] ' . $e->getMessage());
+            AppLog::error('[FileController::create] ' . $e->getMessage());
             return $this->error('FILE_UPLOAD_ERROR', $this->t('file/messages.upload_error'), 422, [
                 'file' => ['File upload failed. Check server logs for details.'],
             ]);

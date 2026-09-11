@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Controller\Page;
 
+use Api\System\Library\Support\AppLog;
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Service\AiSuggestionService;
 use Api\System\Library\Service\CalendarService;
@@ -229,7 +230,7 @@ final class PageDataController extends BaseController
             $publicId = trim((string)($selected['public_id'] ?? ''));
             return $publicId !== '' ? $service->get($publicId, $actor) : null;
         } catch (\Throwable $e) {
-            error_log('[PageDataController::latestMyDaySuggestion] ' . $e->getMessage());
+            AppLog::error('[PageDataController::latestMyDaySuggestion] ' . $e->getMessage());
             return null;
         }
     }
@@ -260,7 +261,7 @@ final class PageDataController extends BaseController
             $publicId = trim((string)($selected['public_id'] ?? ''));
             return $publicId !== '' ? $service->get($publicId, $actor) : null;
         } catch (\Throwable $e) {
-            error_log('[PageDataController::latestMyWeekSuggestion] ' . $e->getMessage());
+            AppLog::error('[PageDataController::latestMyWeekSuggestion] ' . $e->getMessage());
             return null;
         }
     }

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Controller\Admin;
 
+use Api\System\Library\Support\AppLog;
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Module\ModuleCronScheduler;
 use Api\System\Library\Service\ExportService;
@@ -134,7 +135,7 @@ final class OpsController extends BaseController
                 'stale_threshold_minutes' => $thresholdMinutes,
             ]);
         } catch (\Throwable $e) {
-            error_log('[OpsController::cronTasks] ' . $e->getMessage());
+            AppLog::error('[OpsController::cronTasks] ' . $e->getMessage());
             // Tables may be missing on a fresh install — return empty, not 500.
             return $this->success('OPS_CRON_TASKS', $this->t('admin/messages.ops_system'), [
                 'tasks' => [],
@@ -191,7 +192,7 @@ final class OpsController extends BaseController
                 'executions' => $executions,
             ]);
         } catch (\Throwable $e) {
-            error_log('[OpsController::cronExecutions] ' . $e->getMessage());
+            AppLog::error('[OpsController::cronExecutions] ' . $e->getMessage());
             return $this->success('OPS_CRON_EXECUTIONS', $this->t('admin/messages.ops_system'), [
                 'executions' => [],
             ]);
@@ -223,7 +224,7 @@ final class OpsController extends BaseController
                 'generated_at' => gmdate('c'),
             ]);
         } catch (\Throwable $e) {
-            error_log('[OpsController::cronRunDue] ' . $e->getMessage());
+            AppLog::error('[OpsController::cronRunDue] ' . $e->getMessage());
             return $this->error('OPS_CRON_RUN_FAILED', $e->getMessage(), 500);
         }
     }

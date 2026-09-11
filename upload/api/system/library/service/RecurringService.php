@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Support\AppLog;
 use Api\Model\Recurring\RecurringRepository;
 use Api\System\Library\Language\LanguageManager;
 use Api\System\Library\Language\TranslatableTrait;
@@ -149,7 +150,7 @@ final class RecurringService
             $parser = new RruleParser($rrule);
             return in_array($parser->getFrequency(), ['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'], true);
         } catch (\Throwable $e) {
-            error_log('[RecurringService::isValidRrule] ' . $e->getMessage());
+            AppLog::error('[RecurringService::isValidRrule] ' . $e->getMessage());
             return false;
         }
     }
@@ -224,7 +225,7 @@ final class RecurringService
             $next = (new RruleParser($rrule))->getNextDueDate($from);
             return $next ? $next->format('Y-m-d H:i:s') : null;
         } catch (\Throwable $e) {
-            error_log('[RecurringService::nextRunAt] ' . $e->getMessage());
+            AppLog::error('[RecurringService::nextRunAt] ' . $e->getMessage());
             return null;
         }
     }

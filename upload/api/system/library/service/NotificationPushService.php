@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Support\AppLog;
 use Api\Model\Notification\PushSubscriptionRepository;
 use Api\Model\Notification\PushDispatchQueueRepository;
 use Api\System\Library\Config;
@@ -266,7 +267,7 @@ final class NotificationPushService
             } catch (\Throwable $e) {
                 $attempts = (int)($job['attempts'] ?? 0) + 1;
                 $isDead = $attempts >= $maxAttempts;
-                error_log('[NotificationPushService::runQueued] job=' . $jobPublicId . ' ' . $e->getMessage());
+                AppLog::error('[NotificationPushService::runQueued] job=' . $jobPublicId . ' ' . $e->getMessage());
                 $this->queue->updateByPublicId($jobPublicId, [
                     'attempts' => $attempts,
                     'status' => $isDead ? 'dead_letter' : 'retry',

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Module;
 
+use Api\System\Library\Support\AppLog;
 final class ModuleMailer
 {
     /** @var array<string, int> */
@@ -16,7 +17,7 @@ final class ModuleMailer
     public function send(string $moduleName, string|array $to, string $subject, string $body, array $attachments = []): bool
     {
         if (!$this->checkRateLimit($moduleName)) {
-            error_log("[ModuleMailer] Rate limit exceeded for {$moduleName}");
+            AppLog::error("[ModuleMailer] Rate limit exceeded for {$moduleName}");
             return false;
         }
 

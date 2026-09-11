@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Support\AppLog;
 use Api\Model\Estimate\EstimateOptionRepository;
 use Api\Model\Estimate\EstimateSetRepository;
 use Api\Model\Estimate\TaskEstimateRepository;
@@ -560,7 +561,7 @@ final class TaskEstimateService
             $sets = $this->taskEstimateRepository->summaryByCycleId($cycleId, $filters);
             return ['cycle_public_id' => $cyclePublicId, 'sets' => $sets];
         } catch (\Throwable $e) {
-            error_log('[TaskEstimateService::summaryByCycle] ' . $e->getMessage());
+            AppLog::error('[TaskEstimateService::summaryByCycle] ' . $e->getMessage());
             return ['cycle_public_id' => $cyclePublicId, 'sets' => []];
         }
     }
@@ -578,7 +579,7 @@ final class TaskEstimateService
             $sets = $this->taskEstimateRepository->summaryByModuleId($moduleId, $filters);
             return ['module_public_id' => $modulePublicId, 'sets' => $sets];
         } catch (\Throwable $e) {
-            error_log('[TaskEstimateService::summaryByModule] ' . $e->getMessage());
+            AppLog::error('[TaskEstimateService::summaryByModule] ' . $e->getMessage());
             return ['module_public_id' => $modulePublicId, 'sets' => []];
         }
     }

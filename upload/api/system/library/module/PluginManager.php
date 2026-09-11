@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Module;
 
+use Api\System\Library\Support\AppLog;
 use RuntimeException;
 
 final class PluginManager
@@ -252,7 +253,7 @@ final class PluginManager
         $cycles = $this->detectCycles();
         if ($cycles !== []) {
             foreach ($cycles as $cycle) {
-                error_log('[PluginManager] Circular dependency: ' . implode(' → ', $cycle));
+                AppLog::error('[PluginManager] Circular dependency: ' . implode(' → ', $cycle));
             }
             return false;
         }

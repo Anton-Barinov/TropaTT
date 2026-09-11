@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Model\Ai;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Database\Builder\QueryBuilder;
 use Api\System\Library\Support\Ulid;
 use PDO;
@@ -157,7 +158,7 @@ final class AiRuntimeRepository
             $this->pdo->commit();
             return $publicId;
         } catch (\Throwable $e) {
-            error_log('[AiRuntimeRepository::claimInteractiveSlot] ' . $e->getMessage());
+            AppLog::error('[AiRuntimeRepository::claimInteractiveSlot] ' . $e->getMessage());
             $this->lastSlotFailure = 'exception: ' . $e->getMessage();
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
@@ -169,7 +170,7 @@ final class AiRuntimeRepository
                     $release = $this->pdo->prepare('SELECT RELEASE_LOCK(:name)');
                     $release->execute(['name' => 'crm_ai_interactive_slots']);
                 } catch (\Throwable $e) {
-                    error_log('[AiRuntimeRepository::claimInteractiveSlot] SELECT: ' . $e->getMessage());
+                    AppLog::error('[AiRuntimeRepository::claimInteractiveSlot] SELECT: ' . $e->getMessage());
                     // The connection will release an advisory lock on close.
                 }
             }
@@ -433,7 +434,7 @@ final class AiRuntimeRepository
                 }
                 return;
             } catch (\Throwable $e) {
-                error_log('[AiRuntimeRepository::markSuggestionUsed] ' . $e->getMessage());
+                AppLog::error('[AiRuntimeRepository::markSuggestionUsed] ' . $e->getMessage());
                 // fall through to plain update
             }
         }
@@ -546,7 +547,7 @@ final class AiRuntimeRepository
                 ->where('created_at', '<', $usageCutoff)
                 ->delete();
         } catch (\Throwable $e) {
-            error_log('[AiRuntimeRepository::cleanupByRetention] DELETE: ' . $e->getMessage());
+            AppLog::error('[AiRuntimeRepository::cleanupByRetention] DELETE: ' . $e->getMessage());
             return $deleted;
         }
 
@@ -725,7 +726,7 @@ final class AiRuntimeRepository
                 }
             }
         } catch (\Throwable $e) {
-            error_log('[AiRuntimeRepository::aiJobsColumnMap] ' . $e->getMessage());
+            AppLog::error('[AiRuntimeRepository::aiJobsColumnMap] ' . $e->getMessage());
             $this->aiJobsColumns = [];
         }
 
@@ -784,7 +785,7 @@ final class AiRuntimeRepository
                 }
             }
         } catch (\Throwable $e) {
-            error_log('[AiRuntimeRepository::aiSuggestionsColumnMap] ' . $e->getMessage());
+            AppLog::error('[AiRuntimeRepository::aiSuggestionsColumnMap] ' . $e->getMessage());
             $this->aiSuggestionsColumns = [];
         }
 

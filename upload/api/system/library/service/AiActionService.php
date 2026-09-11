@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Support\AppLog;
 use Api\Model\Ai\AiProviderRepository;
 use Api\Model\Ai\AiRuntimeRepository;
 use Api\Model\Ai\AiIntentSettingRepository;
@@ -151,7 +152,7 @@ final class AiActionService
         try {
             $completion = $this->aiProviderService->completeText((string)($provider['public_id'] ?? ''), $promptPayload);
         } catch (\Throwable $e) {
-            error_log('[AiActionService::execute] ' . $e->getMessage());
+            AppLog::error('[AiActionService::execute] ' . $e->getMessage());
             $this->runtime->updateJobByPublicId($jobPublicId, [
                 'status' => 'failed',
                 'error_code' => 'AI_PROVIDER_UNAVAILABLE',

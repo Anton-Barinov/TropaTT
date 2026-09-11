@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Module;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 use Api\System\Library\Database\IndexHelper;
 
@@ -126,7 +127,7 @@ final class ModuleWebhookDispatcher
         try {
             IndexHelper::createIndexIfNotExists($this->pdo, $this->tableName, 'idx_module_webhooks_module', 'module_name');
         } catch (\Throwable $e) {
-            error_log('[ModuleWebhookDispatcher::ensureTable] ensureTable failed: ' . $e->getMessage());
+            AppLog::error('[ModuleWebhookDispatcher::ensureTable] ensureTable failed: ' . $e->getMessage());
         }
     }
 }

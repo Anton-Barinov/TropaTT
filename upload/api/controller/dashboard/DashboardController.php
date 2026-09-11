@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Controller\Dashboard;
 
+use Api\System\Library\Support\AppLog;
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Service\DashboardService;
 
@@ -160,7 +161,7 @@ final class DashboardController extends BaseController
             $value = $setting['value'] ?? [];
             return is_array($value) ? $value : [];
         } catch (\Throwable $e) {
-            error_log('[DashboardController::loadWidgetPreference] ' . $e->getMessage());
+            AppLog::error('[DashboardController::loadWidgetPreference] ' . $e->getMessage());
             return [];
         }
     }
@@ -226,7 +227,7 @@ final class DashboardController extends BaseController
         // widget preferences must never become an authorization fallback when
         // the authoritative RBAC service is unavailable or throws.
         if (!$this->container->has('service.authz')) {
-            error_log('[DashboardController::widgetAllowed] Authorization service is unavailable');
+            AppLog::error('[DashboardController::widgetAllowed] Authorization service is unavailable');
             return false;
         }
 
@@ -235,7 +236,7 @@ final class DashboardController extends BaseController
             $authz = $this->container->get('service.authz');
             return $authz->hasPermissions($user, $required);
         } catch (\Throwable $e) {
-            error_log('[DashboardController::widgetAllowed] ' . $e->getMessage());
+            AppLog::error('[DashboardController::widgetAllowed] ' . $e->getMessage());
             return false;
         }
     }

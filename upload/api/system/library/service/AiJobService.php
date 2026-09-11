@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Support\AppLog;
 use Api\Model\Ai\AiProviderRepository;
 use Api\Model\Ai\AiRuntimeRepository;
 use Api\System\Library\Logger\JsonLogger;
@@ -896,7 +897,7 @@ final class AiJobService
             new \DateTimeZone($value);
             return true;
         } catch (\Throwable $e) {
-            error_log('[AiJobService::isValidTimezone] ' . $e->getMessage());
+            AppLog::error('[AiJobService::isValidTimezone] ' . $e->getMessage());
             return false;
         }
     }
@@ -978,7 +979,7 @@ final class AiJobService
                 $dt = $dt->modify('-' . $minutesBefore . ' minutes');
                 return $dt->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
             } catch (\Throwable $e) {
-                error_log('[AiJobService::resolveScheduledUtc] workday_before_start parse failed: ' . $e->getMessage());
+                AppLog::error('[AiJobService::resolveScheduledUtc] workday_before_start parse failed: ' . $e->getMessage());
                 return gmdate('Y-m-d H:i:s');
             }
         }
@@ -990,7 +991,7 @@ final class AiJobService
                 $dt = $dt->modify('+' . $minutesAfter . ' minutes');
                 return $dt->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
             } catch (\Throwable $e) {
-                error_log('[AiJobService::resolveScheduledUtc] workday_end parse failed: ' . $e->getMessage());
+                AppLog::error('[AiJobService::resolveScheduledUtc] workday_end parse failed: ' . $e->getMessage());
                 return gmdate('Y-m-d H:i:s');
             }
         }
@@ -1010,7 +1011,7 @@ final class AiJobService
             $dt = new \DateTimeImmutable($date . ' ' . $localTime . ':00', new \DateTimeZone($timezone));
             return $dt->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
         } catch (\Throwable $e) {
-            error_log('[AiJobService::resolveScheduledUtc] date parse failed: ' . $e->getMessage());
+            AppLog::error('[AiJobService::resolveScheduledUtc] date parse failed: ' . $e->getMessage());
             return gmdate('Y-m-d H:i:s');
         }
     }
@@ -1037,7 +1038,7 @@ final class AiJobService
         try {
             $this->runtime->cleanupByRetention($this->retention->getPolicies());
         } catch (\Throwable $e) {
-            error_log('[AiJobService::logCronUsage] cleanup failed: ' . $e->getMessage());
+            AppLog::error('[AiJobService::logCronUsage] cleanup failed: ' . $e->getMessage());
             // Cleanup is best-effort and must not break cron diagnostics.
         }
     }

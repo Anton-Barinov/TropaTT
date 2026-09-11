@@ -65,7 +65,7 @@ $attempts = array_values(array_filter($attempts, static fn(int $ts): bool => ($n
 
 if (count($attempts) >= $rateLimitMax) {
     http_response_code(429);
-    error_log('[Cron] Rate limit exceeded for IP: ' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
+    \Api\System\Library\Support\AppLog::error('[Cron] Rate limit exceeded for IP: ' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
     echo json_encode(['ok' => false, 'error' => 'rate limit exceeded'], JSON_UNESCAPED_SLASHES);
     exit(0);
 }
@@ -76,7 +76,7 @@ if (!hash_equals($secretKey, $providedKey)) {
     $attempts[] = $now;
     @file_put_contents($rateLimitFile, json_encode($attempts), LOCK_EX);
 
-    error_log('[Cron] Invalid key attempt from IP: ' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
+    \Api\System\Library\Support\AppLog::error('[Cron] Invalid key attempt from IP: ' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
     http_response_code(403);
     echo json_encode(['ok' => false, 'error' => 'invalid key'], JSON_UNESCAPED_SLASHES);
     exit(0);
@@ -124,7 +124,7 @@ try {
         'failed' => (int)($schedulerResult['failed'] ?? 0),
     ];
 } catch (\Throwable $e) {
-    error_log('[Cron] Module scheduler run failed: ' . $e->getMessage());
+    \Api\System\Library\Support\AppLog::error('[Cron] Module scheduler run failed: ' . $e->getMessage());
     $schedulerSummary['failed']++;
 }
 
@@ -165,7 +165,7 @@ try {
         $heartbeatInsert->execute(['pid' => 'set_' . bin2hex(random_bytes(12)), 'value' => $heartbeatValue, 'now' => $heartbeatNow]);
     }
 } catch (\Throwable $e) {
-    error_log('[Cron] Failed to record heartbeat: ' . $e->getMessage());
+    \Api\System\Library\Support\AppLog::error('[Cron] Failed to record heartbeat: ' . $e->getMessage());
 }
 
 $response = [

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Controller\Common;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Cache\ApiFileCache;
 use Api\System\Library\Container;
 use Api\System\Library\Http\JsonResponse;
@@ -18,7 +19,7 @@ abstract class BaseController
     /**
      * Log an application error through the configured logger.
      *
-     * error_log() output is discarded by stock PHP-FPM setups (no error_log in
+     * AppLog::error() output is discarded by stock PHP-FPM setups (no error_log in
      * php.ini, catch_workers_output off), so failures logged that way were
      * invisible. The application logger writes to storage_api/logs and is the
      * only channel an operator can actually read.
@@ -36,7 +37,7 @@ abstract class BaseController
         } catch (\Throwable $ignored) {
         }
 
-        error_log($message . ($context === [] ? '' : ' ' . json_encode($context, JSON_UNESCAPED_UNICODE)));
+        AppLog::error($message . ($context === [] ? '' : ' ' . json_encode($context, JSON_UNESCAPED_UNICODE)));
     }
 
     protected function request(): Request
@@ -156,7 +157,7 @@ abstract class BaseController
                     }
                 }
             } catch (\Throwable $e) {
-                error_log('[BaseController::cacheApi] ' . $e->getMessage());
+                AppLog::error('[BaseController::cacheApi] ' . $e->getMessage());
                 // Settings service unavailable — proceed with bootstrap config
             }
         }

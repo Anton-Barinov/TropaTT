@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Support\AppLog;
 use Api\Model\Setting\SettingRepository;
 use Api\System\Library\Config;
 use Api\System\Library\Database\Builder\QueryBuilder;
@@ -83,7 +84,7 @@ final class FinanceCronTaskHandler
             $to = gmdate('Y-m-t', strtotime($from));
         } else {
             // Unknown mode: fail-closed, never lock anything.
-            error_log("[FinanceCronTaskHandler] unknown auto-close mode '{$mode}', skipping");
+            AppLog::error("[FinanceCronTaskHandler] unknown auto-close mode '{$mode}', skipping");
             return;
         }
 
@@ -106,7 +107,7 @@ final class FinanceCronTaskHandler
         ]);
 
         if ($updated > 0) {
-            error_log("[FinanceCronTaskHandler] auto-close: {$mode} period {$from}–{$to}, locked {$updated} rows");
+            AppLog::error("[FinanceCronTaskHandler] auto-close: {$mode} period {$from}–{$to}, locked {$updated} rows");
         }
     }
 }

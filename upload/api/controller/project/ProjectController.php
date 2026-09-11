@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Controller\Project;
 
+use Api\System\Library\Support\AppLog;
 use Api\Controller\Common\BaseController;
 use Api\Model\Project\ProjectRepository;
 use Api\System\Library\Module\ModuleEvents;
@@ -363,7 +364,7 @@ final class ProjectController extends BaseController
         try {
             $taskKeys = $this->container->get('service.task_key');
         } catch (\Throwable $e) {
-            error_log('[ProjectController::validateTaskKeyPrefix] task_key service unavailable: ' . $e->getMessage());
+            AppLog::error('[ProjectController::validateTaskKeyPrefix] task_key service unavailable: ' . $e->getMessage());
             return null;
         }
 
@@ -388,7 +389,7 @@ final class ProjectController extends BaseController
                 return ['code' => 'PROJECT_TASK_PREFIX_ALREADY_EXISTS', 'message' => $this->t('project/messages.prefix_already_exists', 'This prefix is already used by another project'), 'status' => 409];
             }
         } catch (\Throwable $e) {
-            error_log('[ProjectController::validateTaskKeyPrefix] duplicate prefix check failed: ' . $e->getMessage());
+            AppLog::error('[ProjectController::validateTaskKeyPrefix] duplicate prefix check failed: ' . $e->getMessage());
         }
 
         return null;

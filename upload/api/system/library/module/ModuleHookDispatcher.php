@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Module;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Container;
 use Api\System\Library\Hook\HookManager;
 use Api\System\Library\Service\WebhookService;
@@ -57,10 +58,10 @@ final class ModuleHookDispatcher
                 return;
             }
         } catch (\Throwable $ignored) {
-            // fall through to error_log()
+            // fall through to AppLog::error()
         }
 
-        // error_log() is discarded by stock PHP-FPM, so it is only a last resort.
-        error_log('[' . $message . '][' . $event . '] ' . $e->getMessage());
+        // AppLog::error() is discarded by stock PHP-FPM, so it is only a last resort.
+        AppLog::error('[' . $message . '][' . $event . '] ' . $e->getMessage());
     }
 }

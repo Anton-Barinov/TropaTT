@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Controller\Worklog;
 
+use Api\System\Library\Support\AppLog;
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Security\FinancialFieldPolicy;
 use Api\System\Library\Service\WorklogService;
@@ -135,7 +136,7 @@ final class WorklogController extends BaseController
             ];
             $wf->fireTrigger('worklog_logged', $context);
         } catch (\Throwable $e) {
-            error_log('[WorklogController::fireWorklogTrigger] ' . $e->getMessage());
+            AppLog::error('[WorklogController::fireWorklogTrigger] ' . $e->getMessage());
         }
     }
 
@@ -219,7 +220,7 @@ final class WorklogController extends BaseController
             $existingRow = $this->container->get('repository.worklog')->findByPublicId((string)$params['public_id']);
             $previousMinutes = (int)($existingRow['minutes_spent'] ?? 0);
         } catch (\Throwable $e) {
-            error_log('[WorklogController::update] worklog lookup failed: ' . $e->getMessage());
+            AppLog::error('[WorklogController::update] worklog lookup failed: ' . $e->getMessage());
         }
         $item = $service->update((string)$params['public_id'], $input, $authUser['user']);
         if ($item === null) {

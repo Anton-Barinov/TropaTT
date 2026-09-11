@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Module;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 
 final class ModuleFeatureFlags
@@ -38,7 +39,7 @@ final class ModuleFeatureFlags
                 $flags[$flagName] = (bool)($row['is_enabled'] ?? true);
             }
         } catch (\Throwable $e) {
-            error_log('[ModuleFeatureFlags::isEnabled] ' . $e->getMessage());
+            AppLog::error('[ModuleFeatureFlags::isEnabled] ' . $e->getMessage());
         }
 
         $this->cache[$moduleName] = $flags;
@@ -68,7 +69,7 @@ final class ModuleFeatureFlags
                 'updated_at2' => $now,
             ]);
         } catch (\Throwable $e) {
-            error_log('[ModuleFeatureFlags::setFlag] INSERT failed, trying REPLACE: ' . $e->getMessage());
+            AppLog::error('[ModuleFeatureFlags::setFlag] INSERT failed, trying REPLACE: ' . $e->getMessage());
             try {
                 // Distinct name per binding site: PDO runs with
                 // ATTR_EMULATE_PREPARES = false, so binding :now twice in one
@@ -83,7 +84,7 @@ final class ModuleFeatureFlags
                     'updated_at' => $now,
                 ]);
             } catch (\Throwable $e) {
-                error_log('[ModuleFeatureFlags::setEnabled] REPLACE failed: ' . $e->getMessage());
+                AppLog::error('[ModuleFeatureFlags::setEnabled] REPLACE failed: ' . $e->getMessage());
             }
         }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Support\AppLog;
 final class RateLimitService
 {
     private ?string $storageDir = null;
@@ -17,14 +18,14 @@ final class RateLimitService
         if (!$fp) {
             // L-3: Fail-closed on storage error — log and block to prevent
             // unlimited brute-force when the rate limiter is unavailable.
-            error_log('[RateLimitService] Failed to open counter file: ' . $file);
+            AppLog::error('[RateLimitService] Failed to open counter file: ' . $file);
             return ['blocked' => true, 'retry_after' => 30];
         }
 
         if (!flock($fp, LOCK_EX)) {
             fclose($fp);
             // L-3: Same — fail-closed on lock error.
-            error_log('[RateLimitService] Failed to lock counter file: ' . $file);
+            AppLog::error('[RateLimitService] Failed to lock counter file: ' . $file);
             return ['blocked' => true, 'retry_after' => 30];
         }
 

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Module;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 
 final class ModuleNotificationDispatcher
@@ -49,7 +50,7 @@ final class ModuleNotificationDispatcher
             ]);
         }
 
-        error_log(sprintf(
+        AppLog::error(sprintf(
             '[ModuleNotification] %s -> %d user(s): %s',
             $moduleName,
             count($userIds),

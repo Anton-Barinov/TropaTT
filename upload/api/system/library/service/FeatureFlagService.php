@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Support\AppLog;
 use Api\Model\Feature_flag\FeatureFlagRepository;
 use Api\System\Library\Logger\JsonLogger;
 
@@ -123,7 +124,7 @@ final class FeatureFlagService
                 if (!$this->isDuplicateKeyError($e)) {
                     throw $e;
                 }
-                error_log('[FeatureFlagService::ensureDefaults] create raced for "' . $code . '": ' . $e->getMessage());
+                AppLog::error('[FeatureFlagService::ensureDefaults] create raced for "' . $code . '": ' . $e->getMessage());
             }
         }
     }

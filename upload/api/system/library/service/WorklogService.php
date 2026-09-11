@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Support\AppLog;
 use Api\Model\Task\TaskRepository;
 use Api\Model\Team\TeamRepository;
 use Api\Model\User\UserManagementRepository;
@@ -180,7 +181,7 @@ final class WorklogService
             ];
             $this->worklogs->updateByPublicId($publicId, $snapshot);
         } catch (\Throwable $e) {
-            error_log('[WorklogService::create] Rate resolution failed: ' . $e->getMessage());
+            AppLog::error('[WorklogService::create] Rate resolution failed: ' . $e->getMessage());
             // Record is saved with NULL snapshots — can be fixed by recalculate.
         }
 
@@ -306,7 +307,7 @@ final class WorklogService
                     ];
                     $this->worklogs->updateByPublicId($publicId, $snapshot);
                 } catch (\Throwable $e) {
-                    error_log('[WorklogService::update] Rate resolution failed: ' . $e->getMessage());
+                    AppLog::error('[WorklogService::update] Rate resolution failed: ' . $e->getMessage());
                 }
             }
         }

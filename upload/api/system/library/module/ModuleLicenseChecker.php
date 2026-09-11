@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Module;
 
+use Api\System\Library\Support\AppLog;
 final class ModuleLicenseChecker
 {
     /** @var array<int, string> */
@@ -45,6 +46,6 @@ final class ModuleLicenseChecker
 
     public function logViolation(string $moduleName, string $license): void
     {
-        error_log("[ModuleLicenseChecker] Module '{$moduleName}' has restricted license: {$license}");
+        AppLog::error("[ModuleLicenseChecker] Module '{$moduleName}' has restricted license: {$license}");
     }
 }

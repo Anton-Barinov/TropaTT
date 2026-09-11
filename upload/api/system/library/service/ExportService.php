@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Support\AppLog;
 use Api\Model\Export\ExportJobRepository;
 use Api\System\Library\Logger\JsonLogger;
 use Api\System\Library\Support\Ulid;
@@ -128,7 +129,7 @@ final class ExportService
                 'rows_total' => count($rows),
             ]);
         } catch (Throwable $e) {
-            error_log('[ExportService::create] ' . $e->getMessage());
+            AppLog::error('[ExportService::create] ' . $e->getMessage());
             $this->exports->updateByPublicId($publicId, [
                 'status' => 'retry',
                 'result' => json_encode([
@@ -224,7 +225,7 @@ final class ExportService
             } catch (Throwable $e) {
                 $attempts = (int)($job['attempts'] ?? 0) + 1;
                 $isDead = $attempts >= self::RETRY_MAX_ATTEMPTS;
-                error_log('[ExportService::runQueued] job=' . $publicId . ' ' . $e->getMessage());
+                AppLog::error('[ExportService::runQueued] job=' . $publicId . ' ' . $e->getMessage());
                 $this->exports->updateByPublicId($publicId, [
                     'attempts' => $attempts,
                     'status' => $isDead ? 'dead_letter' : 'retry',

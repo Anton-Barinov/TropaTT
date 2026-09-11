@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Support\AppLog;
 use Api\Model\Import\ImportJobRepository;
 use Api\System\Library\Language\LanguageManager;
 use Api\System\Library\Language\TranslatableTrait;
@@ -112,7 +113,7 @@ final class ImportService
                 'summary' => $result['summary'] ?? [],
             ]);
         } catch (Throwable $e) {
-            error_log('[ImportService::create] ' . $e->getMessage());
+            AppLog::error('[ImportService::create] ' . $e->getMessage());
             $errorResult = [
                 'summary' => [
                     'processed' => 0,
@@ -188,7 +189,7 @@ final class ImportService
             } catch (Throwable $e) {
                 $attempts = (int)($job['attempts'] ?? 0) + 1;
                 $isDead = $attempts >= self::RETRY_MAX_ATTEMPTS;
-                error_log('[ImportService::runQueued] job=' . $publicId . ' ' . $e->getMessage());
+                AppLog::error('[ImportService::runQueued] job=' . $publicId . ' ' . $e->getMessage());
                 $this->imports->updateByPublicId($publicId, [
                     'attempts' => $attempts,
                     'status' => $isDead ? 'dead_letter' : 'retry',
