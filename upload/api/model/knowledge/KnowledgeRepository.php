@@ -95,7 +95,7 @@ final class KnowledgeRepository
         return $roots;
     }
 
-    public function createSpace(array $payload, ?int $actorId): array
+    public function createSpace(array $payload, ?int $actorId, ?array $actor = null): array
     {
         $now = gmdate('Y-m-d H:i:s');
         $publicId = $this->publicId('kbs');
@@ -103,7 +103,10 @@ final class KnowledgeRepository
         $slug = $this->uniqueSlug('knowledge_spaces', $this->slug((string)($payload['slug'] ?? $title), 'space'), null);
         $parentId = null;
         if (!empty($payload['parent_public_id'])) {
-            $parent = $this->space((string)$payload['parent_public_id']);
+            // Resolve the parent with the actor's own access: a null-actor lookup
+            // hides every non-public space, so naming a private parent silently
+            // created the child at the root instead of under it.
+            $parent = $this->resolveSpace((string)$payload['parent_public_id'], $actor, 'view');
             $parentId = $parent ? (int)$parent['id'] : null;
         } elseif (!empty($payload['parent_id'])) {
             $parentId = (int)$payload['parent_id'];
@@ -1763,7 +1766,7 @@ final class KnowledgeRepository
 
     // ── Batch import methods (Confluence migration support) ──
 
-    public function createSpaceWithSource(array $payload, ?int $actorId): array
+    public function createSpaceWithSource(array $payload, ?int $actorId, ?array $actor = null): array
     {
         $now = gmdate('Y-m-d H:i:s');
         $publicId = $this->publicId('kbs');
@@ -1771,7 +1774,10 @@ final class KnowledgeRepository
         $slug = $this->uniqueSlug('knowledge_spaces', $this->slug((string)($payload['slug'] ?? $title), 'space'), null);
         $parentId = null;
         if (!empty($payload['parent_public_id'])) {
-            $parent = $this->space((string)$payload['parent_public_id']);
+            // Resolve the parent with the actor's own access: a null-actor lookup
+            // hides every non-public space, so naming a private parent silently
+            // created the child at the root instead of under it.
+            $parent = $this->resolveSpace((string)$payload['parent_public_id'], $actor, 'view');
             $parentId = $parent ? (int)$parent['id'] : null;
         } elseif (!empty($payload['parent_id'])) {
             $parentId = (int)$payload['parent_id'];
@@ -1809,7 +1815,9 @@ final class KnowledgeRepository
 
     public function updateSpaceSource(string $publicId, array $source): ?array
     {
-        $current = $this->space($publicId);
+        // Internal bookkeeping for the migration services, which run without an
+        // actor; an ACL-filtered lookup reported a private space as missing.
+        $current = $this->spaceRaw($publicId);
         if (!$current) {
             return null;
         }
@@ -1823,7 +1831,7 @@ final class KnowledgeRepository
             'updated_at' => $now,
             'public_id' => $publicId,
         ]);
-        return $this->space($publicId);
+        return $this->spaceRaw($publicId);
     }
 
     public function createPageShell(array $payload, ?int $actorId, ?array $actor = null): array
@@ -1928,7 +1936,10 @@ final class KnowledgeRepository
         if ($publicId === false) {
             return null;
         }
-        return $this->space((string)$publicId);
+        // Source sync is internal (migration services): read the row without the
+        // actor ACL, otherwise a private space is reported as not yet imported and
+        // a re-run creates a duplicate.
+        return $this->spaceRaw((string)$publicId);
     }
 
     // ── Page Properties ──

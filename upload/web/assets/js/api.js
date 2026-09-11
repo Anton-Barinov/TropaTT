@@ -30,11 +30,13 @@ window.CRM.api = (function () {
       // pre-paint mapping in header.php.
       var palette = theme === 'graphite' ? 'graphite' : '';
       var dataTheme = theme === 'graphite' ? 'dark' : theme;
-      document.documentElement.setAttribute('data-theme', dataTheme);
-      if (palette !== '') {
-        document.documentElement.setAttribute('data-theme-palette', palette);
-      } else {
-        document.documentElement.removeAttribute('data-theme-palette');
+      if (document.documentElement && typeof document.documentElement.setAttribute === 'function') {
+        document.documentElement.setAttribute('data-theme', dataTheme);
+        if (palette !== '') {
+          document.documentElement.setAttribute('data-theme-palette', palette);
+        } else if (typeof document.documentElement.removeAttribute === 'function') {
+          document.documentElement.removeAttribute('data-theme-palette');
+        }
       }
       try {
         localStorage.setItem(STORAGE_KEY, theme);

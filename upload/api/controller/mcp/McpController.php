@@ -6577,7 +6577,45 @@ $tools[] = $this->tool(
         /** @var TaskService $service */
         $service = $this->container->get('service.task');
         $task = $service->get($publicId, $this->actor());
-        return $task ? ['task' => $this->publicData($task)] : ['error' => 'Task not found.'];
+        if (!$task) {
+            return ['error' => 'Task not found.'];
+        }
+
+        $result = ['task' => $this->publicData($task)];
+
+        // Multimodal agent helper: attach metadata of files and screenshots
+        if ($this->container->has('service.file')) {
+            try {
+                /** @var \Api\System\Library\Service\FileService $fileService */
+                $fileService = $this->container->get('service.file');
+                $files = $fileService->listByEntity('task', $publicId, $this->actor()) ?? [];
+                $attachedImages = [];
+                $attachedFiles = [];
+                foreach ($files as $f) {
+                    $mime = strtolower((string)($f['mime_type'] ?? ''));
+                    $name = (string)($f['original_name'] ?? $f['name'] ?? '');
+                    $fileId = (string)($f['public_id'] ?? '');
+                    $downloadUrl = 'https://work.tropatt.com/api/index.php?route=api/v1/files/' . $fileId . '/download';
+                    $fileEntry = [
+                        'public_id' => $fileId,
+                        'name' => $name,
+                        'mime_type' => $mime,
+                        'size_bytes' => (int)($f['size_bytes'] ?? 0),
+                        'download_url' => $downloadUrl,
+                    ];
+                    $attachedFiles[] = $fileEntry;
+                    if (str_starts_with($mime, 'image/') || preg_match('/\.(png|jpe?g|gif|webp|svg)$/i', $name)) {
+                        $attachedImages[] = $fileEntry;
+                    }
+                }
+                $result['attached_files'] = $attachedFiles;
+                $result['attached_images'] = $attachedImages;
+            } catch (\Throwable $e) {
+                // Ignore file list errors to preserve core task payload
+            }
+        }
+
+        return $result;
     }
 
     private function crmCreateTask(array $arguments): array
@@ -9459,7 +9497,7 @@ $tools[] = $this->tool(
         $space = $this->knowledge()->createSpace($this->pick($arguments, [
             'title', 'slug', 'description', 'icon', 'color', 'visibility',
             'default_access_level', 'parent_public_id', 'parent_id', 'sort_order',
-        ]), (int)($this->actor()['id'] ?? 0));
+        ]), (int)($this->actor()['id'] ?? 0), $this->actor());
         $this->invalidateCache('knowledge');
         return ['space' => $this->publicData($space)];
     }

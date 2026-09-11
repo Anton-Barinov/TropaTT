@@ -159,7 +159,7 @@ final class KnowledgeController extends BaseController
         }
 
         return $this->withIdempotency(function () use ($input): JsonResponse {
-            $space = $this->repo()->createSpace($input, $this->actorUserId() ?: null);
+            $space = $this->repo()->createSpace($input, $this->actorUserId() ?: null, $this->actor());
             $this->invalidateCache('knowledge');
             $this->auditLog('knowledge_space', $space['public_id'] ?? '', 'space_created', [
                 'title' => $space['title'] ?? '',
