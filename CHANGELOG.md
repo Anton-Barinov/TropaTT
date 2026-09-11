@@ -17,7 +17,8 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 - **Mega-tool schemas declare every action argument.** 152 missing properties were added across all eight mega-tools (`title` for teams/departments, `starts_at`/`ends_at` for calendar events, `minutes_spent` for worklogs, `scope`/`code` for statuses and custom fields, `tag_public_id` for knowledge tags, `rrule`, `trigger_code`, and every field read through a `foreach (['scope','code'] as $field)` loop). With `additionalProperties: false`, a client following the schema could not call those actions at all.
 - **`crm_task/add_comment` returns the created comment** (`comment.public_id`) instead of a bare `{"ok": true}`, so a client can update, delete or reply to the comment it just posted.
 - **Idea comment tools accept each other's argument names** (`crm_list_idea_comments` accepts `idea_public_id`, `crm_add_idea_comment` accepts `public_id`).
-- **Documentation counts corrected:** 615 tools and 6 resources in the full catalog, 24 in the default `core` profile (README, in-product docs, MCP reference, setup prompt).
+- **`tools/list` only advertises tools the caller may actually use.** The 49 idea tools (the CRUD set plus the AI workflow tools) were added to the catalog unconditionally, so a user without idea rights saw dozens of tools that could only fail at call time. They are now listed only when the caller holds the matching permission (`idea.manage`, or `idea.view` for the read helpers), matching the documented "conditionally-visible tools appear only with the required permission" behaviour; the full catalog stays unchanged for users who do have the rights.
+- **Documentation counts corrected:** 617 tools and 6 resources in the full catalog, 24 in the default `core` profile (README, in-product docs, MCP reference, setup prompt).
 
 ### Fixed
 
