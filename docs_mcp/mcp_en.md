@@ -14,7 +14,7 @@ TropaTT CRM ships an embedded MCP server — a JSON-RPC 2.0 interface that gives
 | Protocol version | `2025-06-18` |
 | Batch requests | Supported (JSON array) |
 | Notifications | Supported (messages without id) |
-| MCP tools | ~607 in the full catalog; `tools/list` defaults to the ~24-tool `core` profile (8 mega-tools + 16 regular) |
+| MCP tools | ~615 in the full catalog; `tools/list` defaults to the ~24-tool `core` profile (8 mega-tools + 16 regular) |
 | MCP resources | 5 |
 | MCP prompts | 0 |
 
@@ -124,7 +124,7 @@ AI actions are logged via AiJobService/AiAuditService; import/export and workflo
 
 ## Toolsets (profiles)
 
-The full MCP catalog is large (600+ tools). To avoid loading it all into every agent session, `tools/list` returns a curated **`core`** profile by default (~53 tools: profile, search, dashboard, notifications, activity, and basic read/create for the main entities). Domain profiles are available:
+The full MCP catalog is large (600+ tools). To avoid loading it all into every agent session, `tools/list` returns a curated **`core`** profile by default (24 tools: profile, search, dashboard, notifications, activity, and basic read/create for the main entities). Domain profiles are available:
 
 | Profile | Scope |
 |---------|-------|
@@ -152,7 +152,7 @@ The catalog size affects every request: agent clients that register MCP tools in
 | `people` | 60 | ~5.7K tokens |
 | `time` | 32 | ~2.6K tokens |
 | `admin` | 149 | ~12.2K tokens |
-| `all` | 607 | ~52K tokens |
+| `all` | 615 | ~52K tokens |
 
 The full catalog is ~10× more expensive than the default `core` profile, so prefer a narrow toolset whenever the session is domain-focused.
 
@@ -247,6 +247,16 @@ Server-side toolset filtering helps in all three modes; the cheapest setup is a 
 | `-32603` | Internal error |
 | `-32002` | Resource not found |
 | `-32003` | Origin validation failed (CORS) |
+
+### Tool-level errors
+
+Invalid input and unknown mega-tool `action` values are returned **inside the call result** (`result.content[0].text` with `isError: true`), not as a JSON-RPC error. For an unknown `action` the message lists the supported ones:
+
+```json
+{"error": "Unknown action 'invalid_action_name_xyz' for crm_task. Available actions: list, get, get_by_key, create, ..."}
+```
+
+`-32603 Internal error` on `tools/call` means an internal failure — it is not how invalid input is reported.
 
 ---
 
