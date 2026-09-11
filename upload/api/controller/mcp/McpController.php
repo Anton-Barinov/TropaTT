@@ -3116,7 +3116,9 @@ MD;
                 'public_id' => ['type' => 'string', 'description' => 'Space/page/version/comment public_id.'],
                 'space_public_id' => ['type' => 'string'],
                 'title' => ['type' => 'string', 'description' => 'Page/space title for create.'],
-                'body' => ['type' => 'string', 'description' => 'Page body (Markdown) or comment body.'],
+                'body' => ['type' => 'string', 'description' => 'Comment body for add_comment, or the page body for create_page/update_page/save_page_draft (shorthand for content_html).'],
+                'content_html' => ['type' => 'string', 'description' => 'Page content as HTML/Markdown (create_page/update_page/save_page_draft).'],
+                'content_json' => ['type' => 'string', 'description' => 'Page content as structured JSON (create_page/update_page/save_page_draft).'],
                 'q' => ['type' => 'string', 'description' => 'Search query (for search action).'],
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
@@ -8973,9 +8975,8 @@ MD;
             return ['error' => 'title is required.'];
         }
 
-        $page = $this->knowledge()->createPage($this->pick($arguments, [
-            'title', 'content_html', 'content_json', 'space_public_id', 'parent_public_id', 'page_type',
-            'status', 'slug', 'sort_order', 'review_due_at',
+        $page = $this->knowledge()->createPage($this->pageContentInput($arguments, [
+            'space_public_id', 'parent_public_id', 'page_type', 'status', 'slug', 'sort_order', 'review_due_at',
         ]), (int)($this->actor()['id'] ?? 0), $this->actor());
         $this->invalidateCache('knowledge');
 
@@ -8991,9 +8992,9 @@ MD;
         if (!$this->knowledge()->page($publicId, $this->actor(), 'edit')) {
             return ['error' => 'Knowledge page not found.'];
         }
-        $page = $this->knowledge()->updatePage($publicId, $this->pick($arguments, [
-            'title', 'content_html', 'content_json', 'space_public_id', 'parent_public_id',
-            'page_type', 'status', 'review_due_at', 'sort_order', 'row_version',
+        $page = $this->knowledge()->updatePage($publicId, $this->pageContentInput($arguments, [
+            'space_public_id', 'parent_public_id', 'page_type', 'status', 'review_due_at',
+            'sort_order', 'row_version',
         ]), (int)($this->actor()['id'] ?? 0), $this->actor());
         if (!$page || $page === 'ROW_VERSION_CONFLICT') {
             return $page === 'ROW_VERSION_CONFLICT'
@@ -9027,9 +9028,7 @@ MD;
             return ['error' => 'Knowledge page not found.'];
         }
         try {
-            $draft = $this->knowledge()->saveDraft($publicId, $this->pick($arguments, [
-                'title', 'content_html', 'content_json',
-            ]), (int)($this->actor()['id'] ?? 0));
+            $draft = $this->knowledge()->saveDraft($publicId, $this->pageContentInput($arguments), (int)($this->actor()['id'] ?? 0));
         } catch (Throwable $e) {
             error_log('[McpController::crmSaveKnowledgePageDraft] ' . $e->getMessage());
             return ['error' => 'Operation failed. Check server logs for details.'];
@@ -12316,6 +12315,32 @@ MD;
      * records that still existed — a client would believe an integration was
      * revoked while its key kept working.
      */
+    /**
+     * Page content for knowledge create/update/draft actions.
+     *
+     * The mega-tool schema advertises `body` as the page body, but only comments
+     * read that field, so create_page/update_page/save_page_draft silently stored
+     * an empty page. Accept `body` as a shorthand for content_html when the
+     * caller sent no explicit content_html/content_json.
+     *
+     * @param array<int,string> $extra additional fields accepted by the action
+     * @return array<string,mixed>
+     */
+    private function pageContentInput(array $arguments, array $extra = []): array
+    {
+        $input = $this->pick($arguments, array_merge(['title', 'content_html', 'content_json'], $extra));
+        if (trim((string)($input['content_html'] ?? '')) === ''
+            && trim((string)($input['content_json'] ?? '')) === ''
+        ) {
+            $body = (string)($arguments['body'] ?? '');
+            if (trim($body) !== '') {
+                $input['content_html'] = $body;
+            }
+        }
+
+        return $input;
+    }
+
     private function deletedResult(mixed $result, string $notFound = 'Not found.'): array
     {
         if ($result === true) {
