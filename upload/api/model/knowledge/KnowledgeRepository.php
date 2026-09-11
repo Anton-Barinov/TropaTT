@@ -296,6 +296,38 @@ final class KnowledgeRepository
         return $result ?: null;
     }
 
+    /**
+     * Resolve a space permission by its subject instead of its internal id.
+     *
+     * The API deliberately exposes no internal permission id, so a client that
+     * only knows public identifiers must still be able to revoke a grant it made.
+     */
+    public function findSpacePermissionIdBySubject(string $spacePublicId, string $subjectType, string $subjectPublicId): ?int
+    {
+        $subjectTable = match ($subjectType) {
+            'user' => 'users',
+            'role' => 'roles',
+            'team' => 'teams',
+            'department' => 'departments',
+            default => null,
+        };
+        if ($subjectTable === null || $spacePublicId === '' || $subjectPublicId === '') {
+            return null;
+        }
+
+        $stmt = $this->pdo->prepare(
+            'SELECT p.id FROM knowledge_space_permissions p'
+            . ' JOIN knowledge_spaces s ON s.id = p.space_id'
+            . ' JOIN ' . $subjectTable . ' sub ON sub.id = p.subject_id'
+            . ' WHERE s.public_id = :space AND p.subject_type = :type AND sub.public_id = :subject'
+            . ' LIMIT 1'
+        );
+        $stmt->execute(['space' => $spacePublicId, 'type' => $subjectType, 'subject' => $subjectPublicId]);
+        $id = $stmt->fetchColumn();
+
+        return $id === false ? null : (int)$id;
+    }
+
     public function getSpacePublicIdByPermissionId(int $permissionId): ?string
     {
         $stmt = $this->pdo->prepare('SELECT s.public_id FROM knowledge_space_permissions p JOIN knowledge_spaces s ON s.id = p.space_id WHERE p.id = :id LIMIT 1');
