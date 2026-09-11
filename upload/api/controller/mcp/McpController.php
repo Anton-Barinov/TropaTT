@@ -5364,7 +5364,12 @@ $tools[] = $this->tool(
 
         /** @var AiActionService $service */
         $service = $this->container->get('service.ai_action');
-        return $this->publicData($service->execute($actionType, (array)($arguments['input'] ?? []), $this->actor()));
+        // System-role prompt templates are trusted server-side policy: internal
+        // idea workflows call the service directly, an external MCP caller must
+        // not inject a system prompt (mirrors AiActionController).
+        $input = (array)($arguments['input'] ?? []);
+        unset($input['__sys'], $input['__usr'], $input['system_prompt']);
+        return $this->publicData($service->execute($actionType, $input, $this->actor()));
     }
 
     private function crmListAiProviders(array $arguments): array
