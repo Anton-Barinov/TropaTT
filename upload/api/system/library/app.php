@@ -1125,7 +1125,8 @@ final class App
             $c->get('repository.task_key_counter'),
             $c->get('repository.project'),
             new HtmlSanitizer(),
-            $c->get('service.external_user')
+            $c->get('service.external_user'),
+            $c->get('repository.subtask')
         ));
         $this->container->factory('service.task_bulk', fn(Container $c) => new TaskBulkService(
             $c->get('service.task'),
