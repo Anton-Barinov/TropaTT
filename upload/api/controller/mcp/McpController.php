@@ -2716,54 +2716,63 @@ MD;
             ]);
         }
 
-        $tools[] = $this->tool('crm_list_ideas', 'List visible CRM ideas.', [
-            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
-            'offset' => ['type' => 'integer', 'minimum' => 0, 'default' => 0],
-            'status' => ['type' => 'string'],
-            'category' => ['type' => 'string'],
-            'sort' => ['type' => 'string', 'enum' => ['votes', 'newest', 'oldest', 'comments'], 'default' => 'votes'],
-            'period' => ['type' => 'string', 'enum' => ['today', 'week', 'month']],
-        ]);
-        $tools[] = $this->tool('crm_get_idea', 'Get one visible CRM idea by public id.', [
-            'public_id' => ['type' => 'string'],
-        ], ['public_id']);
-        $tools[] = $this->tool('crm_create_idea', 'Create a new CRM idea as the authenticated user.', [
-            'title' => ['type' => 'string'],
-            'description' => ['type' => 'string'],
-            'category' => ['type' => 'string'],
-            'region' => ['type' => 'string'],
-            'visibility' => ['type' => 'string', 'enum' => ['public', 'private'], 'default' => 'public'],
-            'target_date' => ['type' => 'string'],
-        ], ['title']);
-        $tools[] = $this->tool('crm_update_idea', 'Update an existing CRM idea owned by the current user.', [
-            'public_id' => ['type' => 'string'],
-            'title' => ['type' => 'string'],
-            'description' => ['type' => 'string'],
-            'category' => ['type' => 'string'],
-            'region' => ['type' => 'string'],
-            'visibility' => ['type' => 'string', 'enum' => ['public', 'private']],
-            'target_date' => ['type' => 'string'],
-        ], ['public_id']);
-        $tools[] = $this->tool('crm_delete_idea', 'Delete an idea owned by the current user.', [
-            'public_id' => ['type' => 'string'],
-        ], ['public_id']);
-        $tools[] = $this->tool('crm_vote_idea', 'Toggle a vote on a visible idea.', [
-            'public_id' => ['type' => 'string'],
-        ], ['public_id']);
-        $tools[] = $this->tool('crm_update_idea_status', 'Update the status of a visible idea.', [
-            'public_id' => ['type' => 'string'],
-            'status' => ['type' => 'string', 'enum' => ['new', 'under_review', 'approved', 'rejected', 'in_progress', 'completed']],
-        ], ['public_id', 'status']);
-        $tools[] = $this->tool('crm_list_idea_comments', 'List comments for a visible CRM idea.', [
-            'public_id' => ['type' => 'string'],
-            'idea_public_id' => ['type' => 'string', 'description' => 'Alias of public_id, matching crm_add_idea_comment.'],
-        ], ['public_id']);
-        $tools[] = $this->tool('crm_add_idea_comment', 'Add a comment to a visible CRM idea.', [
-            'idea_public_id' => ['type' => 'string'],
-            'public_id' => ['type' => 'string', 'description' => 'Alias of idea_public_id, matching crm_list_idea_comments.'],
-            'body' => ['type' => 'string'],
-        ], ['idea_public_id', 'body']);
+        // Idea tools are permission-scoped: a user without idea rights must not see
+        // them in tools/list (they would only fail at call time and waste context).
+        if ($this->can('idea.manage')) {
+            $tools[] = $this->tool('crm_list_ideas', 'List visible CRM ideas.', [
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+                'offset' => ['type' => 'integer', 'minimum' => 0, 'default' => 0],
+                'status' => ['type' => 'string'],
+                'category' => ['type' => 'string'],
+                'sort' => ['type' => 'string', 'enum' => ['votes', 'newest', 'oldest', 'comments'], 'default' => 'votes'],
+                'period' => ['type' => 'string', 'enum' => ['today', 'week', 'month']],
+            ]);
+            $tools[] = $this->tool('crm_get_idea', 'Get one visible CRM idea by public id.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_create_idea', 'Create a new CRM idea as the authenticated user.', [
+                'title' => ['type' => 'string'],
+                'description' => ['type' => 'string'],
+                'category' => ['type' => 'string'],
+                'region' => ['type' => 'string'],
+                'visibility' => ['type' => 'string', 'enum' => ['public', 'private'], 'default' => 'public'],
+                'target_date' => ['type' => 'string'],
+            ], ['title']);
+            $tools[] = $this->tool('crm_update_idea', 'Update an existing CRM idea owned by the current user.', [
+                'public_id' => ['type' => 'string'],
+                'title' => ['type' => 'string'],
+                'description' => ['type' => 'string'],
+                'category' => ['type' => 'string'],
+                'region' => ['type' => 'string'],
+                'visibility' => ['type' => 'string', 'enum' => ['public', 'private']],
+                'target_date' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_delete_idea', 'Delete an idea owned by the current user.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_vote_idea', 'Toggle a vote on a visible idea.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_update_idea_status', 'Update the status of a visible idea.', [
+                'public_id' => ['type' => 'string'],
+                'status' => ['type' => 'string', 'enum' => ['new', 'under_review', 'approved', 'rejected', 'in_progress', 'completed']],
+            ], ['public_id', 'status']);
+            $tools[] = $this->tool('crm_list_idea_comments', 'List comments for a visible CRM idea.', [
+                'public_id' => ['type' => 'string'],
+                'idea_public_id' => ['type' => 'string', 'description' => 'Alias of public_id, matching crm_add_idea_comment.'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_add_idea_comment', 'Add a comment to a visible CRM idea.', [
+                'idea_public_id' => ['type' => 'string'],
+                'public_id' => ['type' => 'string', 'description' => 'Alias of idea_public_id, matching crm_list_idea_comments.'],
+                'body' => ['type' => 'string'],
+            ], ['idea_public_id', 'body']);
+        }
         foreach ($this->ideaWorkflowTools() as $toolName => $toolDef) {
+            // Per-tool permission: the visible catalog must match what the call
+            // path (callTool) actually authorises.
+            if (!$this->canAny((array)($toolDef['permissions'] ?? ['idea.manage']))) {
+                continue;
+            }
             $tools[] = $this->tool($toolName, $toolDef['description'], $toolDef['properties'], $toolDef['required']);
         }
 
