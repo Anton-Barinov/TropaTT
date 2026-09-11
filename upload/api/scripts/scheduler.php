@@ -9,7 +9,6 @@ use Api\System\Library\Config;
 use Api\System\Library\Container;
 use Api\System\Library\Database\ConnectionManager;
 use Api\System\Library\Module\ModuleAutoloader;
-use Api\System\Library\Module\ModuleConfig;
 use Api\System\Library\Module\ModuleCronScheduler;
 use Api\System\Library\Module\PluginManager;
 
@@ -47,31 +46,16 @@ $pdo = $connectionManager->connect();
 $dbConfig = $config->get('database.connections.' . ($config->get('database.default') ?: 'sqlite'));
 $driver = (string)($dbConfig['driver'] ?? 'sqlite');
 
-// Register the module class paths (active modules first, all discovered modules
-// as a fallback) so handler classes with dashed directories resolve from cron.
+// Register the class paths of every discovered module so handler classes with
+// dashed directories resolve from cron (the fallback path only matches undashed
+// names). Whether a task may actually run is decided per task below: a task
+// belonging to a deactivated module is skipped instead of failing every tick
+// with "Handler class not found".
 try {
     $pluginManager = new PluginManager($projectRoot);
     $pluginManager->discover();
 
-    $manifests = [];
-    try {
-        $moduleConfig = new ModuleConfig($pdo);
-        $moduleConfig->ensureTable($driver);
-        foreach ($moduleConfig->getActiveModules() as $registration) {
-            $manifest = $pluginManager->getManifest((string)($registration['module_name'] ?? ''));
-            if ($manifest !== null) {
-                $manifests[$manifest->name] = $manifest;
-            }
-        }
-    } catch (\Throwable $e) {
-        error_log('[scheduler] active module lookup failed: ' . $e->getMessage());
-    }
-
-    if ($manifests === []) {
-        $manifests = $pluginManager->getDiscovered();
-    }
-
-    foreach ($manifests as $manifest) {
+    foreach ($pluginManager->getDiscovered() as $manifest) {
         $moduleAutoloader->registerModule($manifest->name, $manifest->vendor);
     }
 } catch (\Throwable $e) {

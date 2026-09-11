@@ -50,6 +50,26 @@ final class ModuleCronScheduler
 
         $tasks = $this->getDueTasks($now);
         foreach ($tasks as $task) {
+            if ($this->isModuleInactive((string)$task['module_name'])) {
+                // A deactivated module must not execute its cron: advance the
+                // schedule and record a skip, so a leftover task row cannot fail
+                // every tick (previously: "Handler class not found" forever,
+                // because a disabled module's class paths were not registered).
+                try {
+                    $this->updateNextRun((int)$task['id'], (string)$task['schedule'], 'skipped', 'Module is inactive');
+                } catch (\Throwable $e) {
+                    error_log('[ModuleCronScheduler::run] Failed to skip inactive module task: ' . $e->getMessage());
+                }
+                $result['results'][] = [
+                    'status' => 'skipped',
+                    'module' => (string)$task['module_name'],
+                    'task' => (string)$task['task_name'],
+                    'duration_ms' => 0,
+                    'error' => 'Module is inactive',
+                ];
+                continue;
+            }
+
             try {
                 $taskResult = $this->executeTask(
                     (int)$task['id'],
@@ -308,6 +328,29 @@ final class ModuleCronScheduler
         } catch (\Throwable $e) {
             error_log('[ModuleCronScheduler::getDueTasks] ' . $e->getMessage());
             return [];
+        }
+    }
+
+    /**
+     * Whether the task's module is registered in module_registry but deactivated.
+     * Core tasks ("notifications", "knowledge", ...) are not in the registry and
+     * must keep running, so an unknown module is treated as active (fail open).
+     */
+    private function isModuleInactive(string $moduleName): bool
+    {
+        if ($moduleName === '') {
+            return false;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare('SELECT is_active FROM module_registry WHERE module_name = :name');
+            $stmt->execute(['name' => $moduleName]);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            return $row !== false && (int)($row['is_active'] ?? 1) === 0;
+        } catch (\Throwable $e) {
+            error_log('[ModuleCronScheduler::isModuleInactive] ' . $e->getMessage());
+            return false;
         }
     }
 
