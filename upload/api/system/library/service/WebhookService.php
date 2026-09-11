@@ -12,6 +12,8 @@ use Api\System\Library\Support\Ulid;
 final class WebhookService
 {
     private UrlSafetyValidator $urlSafety;
+    /** @var list<array<string,mixed>>|null per-request cache for event fan-out */
+    private ?array $activeSubscriptions = null;
 
     public function __construct(
         private readonly WebhookRepository $repository,
@@ -336,6 +338,149 @@ final class WebhookService
                 'queued' => true,
             ],
         ];
+    }
+
+    /**
+     * Enqueue a delivery for every active subscription that listens to $event.
+     *
+     * Called from ModuleHookDispatcher for the core events (task.created,
+     * project.updated, comment.added, ...). Before this existed only the manual
+     * "test delivery" paths created deliveries, so a subscription never received
+     * a real event. Deliveries are queued and sent by runQueued() with the usual
+     * retries and HMAC signature.
+     *
+     * @param array<string,mixed> $payload
+     * @return int number of queued deliveries
+     */
+    public function dispatchEvent(string $event, array $payload): int
+    {
+        $event = substr(trim($event), 0, 128);
+        if ($event === '') {
+            return 0;
+        }
+
+        $subscriptions = $this->activeSubscriptionsForEvent($event);
+        if ($subscriptions === []) {
+            return 0;
+        }
+
+        $data = $this->sanitizeEventPayload($payload);
+        $now = gmdate('Y-m-d H:i:s');
+        $enqueued = 0;
+
+        foreach ($subscriptions as $webhook) {
+            $envelope = [
+                'event' => $event,
+                'sent_at' => gmdate('c'),
+                'request_id' => Ulid::generate('rid'),
+                'data' => $data,
+            ];
+            $deliveryPublicId = Ulid::generate('whd');
+            $signature = $this->signatureForWebhookPayload($webhook, $envelope);
+
+            $this->repository->createDelivery([
+                'public_id' => $deliveryPublicId,
+                'webhook_id' => (int)$webhook['id'],
+                'event_code' => $event,
+                'status' => 'queued',
+                'response_code' => null,
+                'payload_json' => json_encode($envelope, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'signature' => $signature,
+                'attempts' => 0,
+                'next_run_at' => $now,
+                'locked_at' => null,
+                'last_error' => null,
+                'dead_letter' => 0,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+            $enqueued++;
+        }
+
+        $this->logger->audit([
+            'action' => 'webhook_event_enqueued',
+            'entity_type' => 'webhook_subscription',
+            'event_code' => $event,
+            'deliveries' => $enqueued,
+        ]);
+
+        return $enqueued;
+    }
+
+    /**
+     * @return list<array<string,mixed>>
+     */
+    private function activeSubscriptionsForEvent(string $event): array
+    {
+        if ($this->activeSubscriptions === null) {
+            try {
+                $this->activeSubscriptions = $this->repository->listActiveSubscriptions();
+            } catch (\Throwable $e) {
+                // A missing table on a partially migrated install must not break
+                // the core request that triggered the event.
+                $this->logger->warning('webhook_subscriptions_lookup_failed', ['error' => $e->getMessage()]);
+                $this->activeSubscriptions = [];
+            }
+        }
+
+        $matched = [];
+        foreach ($this->activeSubscriptions as $webhook) {
+            $events = array_map(static fn($value): string => strtolower((string)$value), (array)($webhook['events'] ?? []));
+            if ($events === [] || in_array(strtolower($event), $events, true) || in_array('*', $events, true)) {
+                $matched[] = $webhook;
+            }
+        }
+
+        return $matched;
+    }
+
+    /**
+     * Strip secrets and financial fields from an event payload before it leaves
+     * the installation through a webhook.
+     *
+     * @param array<string,mixed> $payload
+     * @return array<string,mixed>
+     */
+    private function sanitizeEventPayload(array $payload, int $depth = 0): array
+    {
+        if ($depth > 4) {
+            return [];
+        }
+
+        $safe = [];
+        foreach ($payload as $key => $value) {
+            if (!is_string($key)) {
+                continue;
+            }
+            $normalized = strtolower($key);
+            if (
+                str_contains($normalized, 'password')
+                || str_contains($normalized, 'secret')
+                || str_contains($normalized, 'token')
+                || str_contains($normalized, 'api_key')
+                || str_contains($normalized, 'authorization')
+                || str_contains($normalized, 'cookie')
+                || str_contains($normalized, 'backup_code')
+                || str_ends_with($normalized, '_hash')
+                // financial policy: never ship rates/amounts to a third party
+                || in_array($normalized, ['cost_rate', 'bill_rate', 'cost_amount', 'bill_amount'], true)
+            ) {
+                continue;
+            }
+            if (is_array($value)) {
+                $safe[$key] = $this->sanitizeEventPayload($value, $depth + 1);
+                continue;
+            }
+            if (is_object($value) || is_resource($value)) {
+                continue;
+            }
+            if (is_string($value) && strlen($value) > 2000) {
+                $value = substr($value, 0, 2000);
+            }
+            $safe[$key] = $value;
+        }
+
+        return $safe;
     }
 
     /** @return array{processed:int,completed:int,retried:int,dead_lettered:int,failed:int,errors:array<int,array<string,string>>} */
