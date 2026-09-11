@@ -13,6 +13,10 @@ final class ApiFileCache
     private const TMP_SUFFIX = '.tmp';
     private const GC_MARKER_SUFFIX = '.gc_marker';
 
+    /** Bounded wait for a concurrent rebuild of the same cache key. */
+    private const LOCK_WAIT_SECONDS = 0.5;
+    private const LOCK_POLL_MICROSECONDS = 20000;
+
     private string $basePath;
     private bool $enabled;
     private int $defaultTtl;
@@ -147,30 +151,58 @@ final class ApiFileCache
         // can miss the same entry at once. Serialise only the first rebuild for
         // this key; the waiting workers read the completed value below instead
         // of issuing duplicate expensive database queries.
+        //
+        // The wait is bounded. A blocking flock() has no timeout, so one slow
+        // rebuild — or a worker killed while holding the lock — stalled every
+        // other worker on a constrained shared host until the request itself
+        // timed out. After the budget we rebuild locally and skip the write
+        // instead of queueing behind another worker.
         $lock = @fopen($this->lockPath($cacheKey), 'c');
-        if ($lock !== false && @flock($lock, LOCK_EX)) {
-            try {
+        if ($lock !== false) {
+            $acquired = false;
+            $deadline = microtime(true) + self::LOCK_WAIT_SECONDS;
+            while (true) {
+                if (@flock($lock, LOCK_EX | LOCK_NB)) {
+                    $acquired = true;
+                    break;
+                }
+
                 $cached = $this->read($cacheKey, $ttl);
                 if ($cached !== null) {
+                    @fclose($lock);
                     $this->log('cache_hit_after_wait', ['namespace' => $namespace, 'key' => $key, 'version' => $version]);
                     return $cached;
                 }
 
-                $data = $callback();
-                $this->write($cacheKey, $data);
-                $this->log('cache_set', ['namespace' => $namespace, 'key' => $key, 'version' => $version]);
+                if (microtime(true) >= $deadline) {
+                    break;
+                }
 
-                return $data;
-            } catch (\Throwable $e) {
-                $this->log('callback_error', ['namespace' => $namespace, 'key' => $key, 'error' => $e->getMessage()]);
-                throw $e;
-            } finally {
-                @flock($lock, LOCK_UN);
-                @fclose($lock);
+                usleep(self::LOCK_POLL_MICROSECONDS);
             }
-        }
 
-        if ($lock !== false) {
+            if ($acquired) {
+                try {
+                    $cached = $this->read($cacheKey, $ttl);
+                    if ($cached !== null) {
+                        $this->log('cache_hit_after_wait', ['namespace' => $namespace, 'key' => $key, 'version' => $version]);
+                        return $cached;
+                    }
+
+                    $data = $callback();
+                    $this->write($cacheKey, $data);
+                    $this->log('cache_set', ['namespace' => $namespace, 'key' => $key, 'version' => $version]);
+
+                    return $data;
+                } catch (\Throwable $e) {
+                    $this->log('callback_error', ['namespace' => $namespace, 'key' => $key, 'error' => $e->getMessage()]);
+                    throw $e;
+                } finally {
+                    @flock($lock, LOCK_UN);
+                    @fclose($lock);
+                }
+            }
+
             @fclose($lock);
         }
 

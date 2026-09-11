@@ -3195,6 +3195,7 @@ MD;
                 'title' => ['type' => 'string', 'description' => 'Status/priority/tag title.'],
                 'color' => ['type' => 'string'],
                 'key_name' => ['type' => 'string', 'description' => 'API key display name.'],
+                'revoke_keys' => ['type' => 'boolean', 'description' => 'delete_api_client only: also revoke the client keys (required when the client still has active keys).'],
                 'q' => ['type' => 'string', 'description' => 'Search/filter query.'],
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
@@ -6867,7 +6868,7 @@ MD;
         $service = $this->container->get('service.webhook');
         $item = $service->deleteSubscription($publicId, $this->actor());
 
-        return is_array($item) ? ['deleted' => true] : ['error' => (string)$item];
+        return $this->deletedResult($item, 'Webhook not found.');
     }
 
     private function crmTestWebhook(array $arguments): array
@@ -6939,7 +6940,7 @@ MD;
         $service = $this->container->get('service.role');
         $item = $service->delete($publicId, $this->actor());
 
-        return is_array($item) ? ['deleted' => true] : ['error' => (string)$item];
+        return $this->deletedResult($item, 'Role not found.');
     }
 
     private function crmSetRolePermissions(array $arguments): array
@@ -7923,8 +7924,8 @@ MD;
         }
         /** @var ApiClientService $service */
         $service = $this->container->get('service.api_client');
-        $item = $service->deleteClient($publicId, $this->actor());
-        return is_array($item) ? ['deleted' => true] : ['error' => (string)$item];
+        $item = $service->deleteClient($publicId, $this->actor(), $this->pick($arguments, ['revoke_keys']));
+        return $this->deletedResult($item, 'API client not found.');
     }
 
     private function crmIssueApiClientKey(array $arguments): array
@@ -12304,6 +12305,39 @@ MD;
     private function toolError(string $message): array
     {
         return $this->toolResult(['error' => $message]);
+    }
+
+    /**
+     * Normalise a delete result.
+     *
+     * Services report failure as ['ok' => false, 'code' => ...] (a protected role,
+     * an API client that still has active keys, a forbidden actor). Treating "the
+     * service returned an array" as success made MCP answer {"deleted": true} for
+     * records that still existed — a client would believe an integration was
+     * revoked while its key kept working.
+     */
+    private function deletedResult(mixed $result, string $notFound = 'Not found.'): array
+    {
+        if ($result === true) {
+            return ['deleted' => true];
+        }
+
+        if (is_array($result)) {
+            if (($result['ok'] ?? null) === true) {
+                return ['deleted' => true];
+            }
+            if (isset($result['error'])) {
+                return ['error' => (string)$result['error']];
+            }
+            $code = (string)($result['code'] ?? '');
+            return ['error' => $code !== '' ? $code : 'Delete failed.'];
+        }
+
+        if (is_string($result) && $result !== '') {
+            return ['error' => $result];
+        }
+
+        return ['error' => $notFound];
     }
 
     /**

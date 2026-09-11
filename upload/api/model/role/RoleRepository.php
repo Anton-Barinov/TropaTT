@@ -75,9 +75,14 @@ final class RoleRepository
 
     public function roleHasUsers(int $roleId): bool
     {
+        // Soft-deleted users keep their user_roles rows, so counting the pivot
+        // table alone made a role look "in use" forever and blocked its deletion
+        // with ROLE_HAS_USERS even after every member had been removed.
         return (new QueryBuilder($this->pdo))
             ->from('user_roles')
-            ->where('role_id', '=', $roleId)
+            ->join('users', 'users.id', '=', 'user_roles.user_id')
+            ->where('user_roles.role_id', '=', $roleId)
+            ->whereNull('users.deleted_at')
             ->count() > 0;
     }
 
