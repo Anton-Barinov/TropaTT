@@ -22,6 +22,18 @@
         <div class="p-4 text-muted" data-i18n="admin_api_clients.loading"><?= htmlspecialchars($t('admin_api_clients.loading', 'Загрузка API-клиентов...'), ENT_QUOTES, 'UTF-8') ?></div>
       </div>
     </div>
+
+    <div class="crm-card crm-section-card p-3">
+      <div class="crm-section-title fw-semibold mb-1" data-i18n="admin_api_clients.mcp_title"><?= htmlspecialchars($t('admin_api_clients.mcp_title', 'Подключение MCP'), ENT_QUOTES, 'UTF-8') ?></div>
+      <p class="small text-muted mb-2" data-i18n="admin_api_clients.mcp_hint"><?= htmlspecialchars($t('admin_api_clients.mcp_hint', 'Ключ выше подходит для MCP-клиентов (Claude Code, Cursor и другие). Скопируйте готовую конфигурацию и подставьте свой ключ.'), ENT_QUOTES, 'UTF-8') ?></p>
+      <label class="form-label small mb-1" for="apcMcpEndpoint" data-i18n="admin_api_clients.mcp_endpoint_label"><?= htmlspecialchars($t('admin_api_clients.mcp_endpoint_label', 'Адрес MCP-сервера'), ENT_QUOTES, 'UTF-8') ?></label>
+      <div class="input-group input-group-sm mb-2">
+        <input class="form-control font-monospace" id="apcMcpEndpoint" type="text" readonly value="">
+      </div>
+      <label class="form-label small mb-1" for="apcMcpConfig" data-i18n="admin_api_clients.mcp_config_label"><?= htmlspecialchars($t('admin_api_clients.mcp_config_label', 'Конфигурация клиента (.mcp.json)'), ENT_QUOTES, 'UTF-8') ?></label>
+      <pre class="small mb-2 crm-mcp-config" id="apcMcpConfig"></pre>
+      <div class="small text-muted" data-i18n="admin_api_clients.mcp_key_once"><?= htmlspecialchars($t('admin_api_clients.mcp_key_once', 'Ключ показывается один раз при создании — сохраните его.'), ENT_QUOTES, 'UTF-8') ?></div>
+    </div>
   </div>
 
   <div class="col-xl-8">
@@ -64,3 +76,23 @@
 </div><div class="modal-footer"><button class="btn crm-btn-primary" type="button" data-bs-dismiss="modal" data-i18n="page.done"><?= htmlspecialchars($t('page.done', 'Готово'), ENT_QUOTES, 'UTF-8') ?></button></div></div></div></div>
 
 </main></div></div>
+<script>
+(function () {
+  var endpoint = document.getElementById('apcMcpEndpoint');
+  var config = document.getElementById('apcMcpConfig');
+  if (!endpoint || !config) { return; }
+  try {
+    var url = new URL('../api/index.php?route=api/v1/mcp', window.location.href).href;
+    endpoint.value = url;
+    config.textContent = JSON.stringify({
+      mcpServers: {
+        tropatt: {
+          type: 'http',
+          url: url,
+          headers: { Authorization: 'Bearer apk_YOUR_API_KEY' }
+        }
+      }
+    }, null, 2);
+  } catch (e) { /* keep the block empty rather than break the page */ }
+})();
+</script>
