@@ -319,7 +319,9 @@ final class IdeaController extends BaseController
 
     public function aiAnalyze(array $params = []): JsonResponse
     {
-        $this->requireFeatureEnabled();
+        if (($disabled = $this->requireFeatureEnabled()) !== null) {
+            return $disabled;
+        }
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
@@ -635,7 +637,9 @@ final class IdeaController extends BaseController
 
     public function aiRefine(array $params = []): JsonResponse
     {
-        $this->requireFeatureEnabled();
+        if (($disabled = $this->requireFeatureEnabled()) !== null) {
+            return $disabled;
+        }
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
@@ -938,65 +942,84 @@ final class IdeaController extends BaseController
         $ideaId = (int)$stmt->fetchColumn();
         if ($ideaId <= 0) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
-        $pdo->beginTransaction();
+        // No manual transaction here: TaskService::create() manages its own, and
+        // nesting them makes PDO fail with "There is already an active transaction".
         $created = [];
         $idMap = [];
 
         try {
-            foreach ($tasks as $i => $task) {
-                if (empty($task['title'])) continue;
-                $taskPid = 'task_' . bin2hex(random_bytes(8));
-                $now = date('Y-m-d H:i:s');
-                $deadlineDays = max(0, (int)($task['deadline_days'] ?? 0));
-                $dueAt = $deadlineDays > 0 ? date('Y-m-d H:i:s', strtotime($now . ' +' . $deadlineDays . ' days')) : null;
+            /** @var TaskService $taskService */
+            $taskService = $this->container->get('service.task');
 
-                $parentId = null;
-                if (isset($task['parent_index']) && $task['parent_index'] !== null) {
-                    $parentId = $idMap[(int)$task['parent_index']] ?? null;
+            foreach ($tasks as $i => $task) {
+                $title = trim((string)($task['title'] ?? ''));
+                if ($title === '') {
+                    continue;
                 }
 
-                $pdo->prepare("INSERT INTO tasks (public_id, title, description, status_code, priority_code, parent_task_id, due_at, creator_user_id, created_at, updated_at) VALUES (:pid, :title, :desc, 'new', :pri, :parent, :due, :uid, :now, :now)")
-                    ->execute([
-                        'pid' => $taskPid,
-                        'title' => trim((string)($task['title'])),
-                        'desc' => trim((string)($task['description'] ?? '')),
-                        'pri' => in_array($task['priority'] ?? '', ['urgent','high','normal','low'], true) ? $task['priority'] : 'normal',
-                        'parent' => $parentId,
-                        'due' => $dueAt,
-                        'uid' => $userId,
-                        'now' => $now,
-                    ]);
+                $deadlineDays = max(0, (int)($task['deadline_days'] ?? 0));
+                $dueAt = $deadlineDays > 0
+                    ? gmdate('Y-m-d H:i:s', strtotime(gmdate('Y-m-d H:i:s') . ' +' . $deadlineDays . ' days'))
+                    : null;
 
-                $createdId = (int)$pdo->lastInsertId();
-                $idMap[$i] = $createdId;
-                $created[] = ['public_id' => $taskPid, 'title' => $task['title'], 'crm_task_id' => $createdId];
+                // Create through the product service so the task gets its normal
+                // public id (tsk_...), task key, relations and validations; the
+                // previous raw INSERT produced `task_<hex>` ids and failed on the
+                // columns the service fills in.
+                $createdTask = $taskService->create([
+                    'title' => $title,
+                    'description' => trim((string)($task['description'] ?? '')),
+                    'priority' => in_array($task['priority'] ?? '', ['urgent', 'high', 'normal', 'low'], true)
+                        ? $task['priority']
+                        : 'normal',
+                    'due_at' => $dueAt,
+                    'parent_task_public_id' => $idMap[(int)($task['parent_index'] ?? -1)] ?? null,
+                    'source_type' => 'idea_ai',
+                ], $user);
 
-                // Save to task drafts with crm_task_id (skip if already created)
+                if (is_string($createdTask) || empty($createdTask['public_id'])) {
+                    throw new \RuntimeException('Task creation failed: ' . (is_string($createdTask) ? $createdTask : 'no public_id'));
+                }
+
+                $createdPublicId = (string)$createdTask['public_id'];
+                $idMap[$i] = $createdPublicId;
+
+                // idea_task_drafts keeps the internal task id
+                $lookup = $pdo->prepare('SELECT id FROM tasks WHERE public_id = :pid');
+                $lookup->execute(['pid' => $createdPublicId]);
+                $createdId = (int)$lookup->fetchColumn();
+
+                $created[] = ['public_id' => $createdPublicId, 'title' => $title, 'crm_task_id' => $createdId];
+
                 $dupCheck = $pdo->prepare("SELECT id FROM idea_task_drafts WHERE idea_id = :iid AND crm_task_id = :tid");
                 $dupCheck->execute(['iid' => $ideaId, 'tid' => $createdId]);
                 if (!$dupCheck->fetchColumn()) {
                     $tdPid = 'itd_' . bin2hex(random_bytes(6));
                     $pdo->prepare("INSERT INTO idea_task_drafts (public_id, idea_id, parent_id, crm_task_id, title, description, type, priority, stage, sort_order, created_at) VALUES (:pid, :iid, :parent, :tid, :title, :desc, 'implementation', :pri, 'launch', :sort, NOW())")
-                        ->execute(['pid' => $tdPid, 'iid' => $ideaId, 'parent' => $parentId, 'tid' => $createdId, 'title' => $task['title'], 'desc' => $task['description'] ?? '', 'pri' => $task['priority'] ?? 'normal', 'sort' => $i]);
+                        ->execute([
+                            'pid' => $tdPid,
+                            'iid' => $ideaId,
+                            'parent' => (int)($createdTask['parent_task_id'] ?? 0) ?: null,
+                            'tid' => $createdId,
+                            'title' => $title,
+                            'desc' => $task['description'] ?? '',
+                            'pri' => $task['priority'] ?? 'normal',
+                            'sort' => $i,
+                        ]);
                 }
             }
 
-            // Update parent_task_id for children that were inserted before parent
-            foreach ($tasks as $i => $task) {
-                if (isset($task['parent_index']) && $task['parent_index'] !== null && isset($idMap[$i])) {
-                    $resolvedParent = $idMap[(int)$task['parent_index']] ?? null;
-                    if ($resolvedParent && $resolvedParent !== $idMap[$i]) {
-                        $pdo->prepare("UPDATE tasks SET parent_task_id = :parent WHERE id = :id")
-                            ->execute(['parent' => $resolvedParent, 'id' => $idMap[$i]]);
-                    }
-                }
-            }
-
-            $pdo->commit();
             return $this->success('TASKS_CREATED', $this->t('idea/messages.tasks_created'), ['tasks' => $created], 201);
         } catch (\Throwable $e) {
-            $pdo->rollBack();
-            error_log('[IdeaController::unknown] ' . $e->getMessage());
+            // Log through the application logger: error_log() output is discarded
+            // in stock PHP-FPM setups, which left this failure undiagnosable.
+            try {
+                $this->container->get('logger')->error('idea_ai_create_tasks_failed', [
+                    'idea_public_id' => $publicId,
+                    'error' => $e->getMessage(),
+                ]);
+            } catch (\Throwable $ignored) {
+            }
             return $this->error('CREATE_FAILED', $this->t('idea/messages.create_failed'), 500);
         }
     }
@@ -3274,7 +3297,9 @@ PROMPT;
      */
      public function questionsNext(array $params = []): JsonResponse
     {
-        $this->requireFeatureEnabled();
+        if (($disabled = $this->requireFeatureEnabled()) !== null) {
+            return $disabled;
+        }
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
@@ -3337,7 +3362,9 @@ PROMPT;
      */
     public function runAnalysis(array $params = []): JsonResponse
     {
-        $this->requireFeatureEnabled();
+        if (($disabled = $this->requireFeatureEnabled()) !== null) {
+            return $disabled;
+        }
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
@@ -3430,7 +3457,9 @@ PROMPT;
 
     public function runAnalysisStep(array $params = []): JsonResponse
     {
-        $this->requireFeatureEnabled();
+        if (($disabled = $this->requireFeatureEnabled()) !== null) {
+            return $disabled;
+        }
         $publicId = (string)($params['public_id'] ?? '');
         $stepKey = (string)($params['stepKey'] ?? '');
         if ($publicId === '' || $stepKey === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
@@ -3697,7 +3726,9 @@ PROMPT;
      */
     public function retryAnalysis(array $params = []): JsonResponse
     {
-        $this->requireFeatureEnabled();
+        if (($disabled = $this->requireFeatureEnabled()) !== null) {
+            return $disabled;
+        }
         $publicId = (string)($params['public_id'] ?? '');
         $analysisType = (string)($params['analysisType'] ?? '');
         if ($publicId === '' || $analysisType === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
@@ -3833,11 +3864,24 @@ PROMPT;
         return $report;
     }
 
-    private function requireFeatureEnabled(): void
+    /**
+     * Guard for the AI-ideas actions.
+     *
+     * Returns a domain error response when the feature is switched off instead of
+     * throwing: an exception surfaced through the MCP/API wrappers as a generic
+     * "Controller invocation failed" and told the caller nothing useful.
+     */
+    private function requireFeatureEnabled(): ?JsonResponse
     {
-        if (!$this->isFeatureEnabled()) {
-            throw new \RuntimeException('AI ideas feature is disabled');
+        if ($this->isFeatureEnabled()) {
+            return null;
         }
+
+        return $this->error(
+            'FEATURE_DISABLED',
+            $this->t('idea/messages.ai_feature_disabled', 'AI ideas are disabled for this installation.'),
+            403
+        );
     }
 
     /**

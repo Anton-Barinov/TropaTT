@@ -47,6 +47,7 @@ return [
     'no_answer' => '无答案',
     'ai_analyst_system_prompt' => '你是一名创意分析师。请分析数据并找出不足之处。',
     'ai_analysis_failed' => 'AI 无法完成分析',
+    'ai_feature_disabled' => '此安装已禁用 AI 创意功能。',
     'ai_card_failed' => 'AI 无法生成卡片。请稍后重试。',
     'card_first_required' => '请先生成创意理解卡片。',
     'ai_gaps_failed' => 'AI 无法找出不足之处',
