@@ -30,7 +30,7 @@ final class PasswordPolicy
     public static function failures(string $password): array
     {
         $failures = [];
-        $length = mb_strlen($password);
+        $length = self::length($password);
 
         if ($length < self::MIN_LENGTH) {
             $failures[] = 'too_short';
@@ -58,7 +58,18 @@ final class PasswordPolicy
 
     public static function isTooLong(string $password): bool
     {
-        return mb_strlen($password) > self::MAX_LENGTH;
+        return self::length($password) > self::MAX_LENGTH;
+    }
+
+    /**
+     * Multi-byte aware length with a byte fallback: mbstring is present on
+     * virtually every host, but a missing extension must not turn a password
+     * check into a fatal error (this runs on the installer and invitation pages
+     * too, and the product must stay installable on ordinary shared hosting).
+     */
+    private static function length(string $password): int
+    {
+        return function_exists('mb_strlen') ? mb_strlen($password) : strlen($password);
     }
 
     /**
