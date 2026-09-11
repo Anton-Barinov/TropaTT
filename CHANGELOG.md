@@ -35,6 +35,9 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 - **Knowledge-space permissions can be revoked.** `add_space_permission` / `get_space_permissions` never exposed the internal permission id that `remove_space_permission` demanded, so a grant could be created but never undone; removal now also works by subject (`public_id` + `subject_type` + `subject_public_id`).
 - **`import_pages` accepts the `export_page` envelope** (`{"page": {...}}`), so export → import round-trips without manual re-wrapping.
 - **Team and project chats no longer outlive their entity.** Deleting a team (or archiving a project) left its auto-created chat behind, and those empty chats were visible in the chat list; the linked chat is now archived together with the entity.
+- **AI ideas create real tasks.** `ideas/{id}/ai/tasks` inserted rows with hand-made `task_<hex>` ids inside its own transaction, so every call failed with a 500 "creation failed" (the database rejected the nested transaction). Tasks are now created through `TaskService`, giving them normal `tsk_…` ids, task keys and parent links.
+- **A disabled AI-ideas feature answers with `FEATURE_DISABLED` (403)** instead of the generic `Controller invocation failed. Check server logs for details.`
+- **AI task-creation failures are logged through the application logger** (visible in `storage_api/logs/error.log`) instead of `error_log()`, whose output stock PHP-FPM discards.
 
 ## [v0.2.0.11] - 2026-09-09
 
