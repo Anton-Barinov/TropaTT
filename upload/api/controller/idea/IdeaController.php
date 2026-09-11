@@ -319,7 +319,9 @@ final class IdeaController extends BaseController
 
     public function aiAnalyze(array $params = []): JsonResponse
     {
-        $this->requireFeatureEnabled();
+        if (($disabled = $this->requireFeatureEnabled()) !== null) {
+            return $disabled;
+        }
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
@@ -635,7 +637,9 @@ final class IdeaController extends BaseController
 
     public function aiRefine(array $params = []): JsonResponse
     {
-        $this->requireFeatureEnabled();
+        if (($disabled = $this->requireFeatureEnabled()) !== null) {
+            return $disabled;
+        }
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
@@ -3274,7 +3278,9 @@ PROMPT;
      */
      public function questionsNext(array $params = []): JsonResponse
     {
-        $this->requireFeatureEnabled();
+        if (($disabled = $this->requireFeatureEnabled()) !== null) {
+            return $disabled;
+        }
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
@@ -3337,7 +3343,9 @@ PROMPT;
      */
     public function runAnalysis(array $params = []): JsonResponse
     {
-        $this->requireFeatureEnabled();
+        if (($disabled = $this->requireFeatureEnabled()) !== null) {
+            return $disabled;
+        }
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
@@ -3430,7 +3438,9 @@ PROMPT;
 
     public function runAnalysisStep(array $params = []): JsonResponse
     {
-        $this->requireFeatureEnabled();
+        if (($disabled = $this->requireFeatureEnabled()) !== null) {
+            return $disabled;
+        }
         $publicId = (string)($params['public_id'] ?? '');
         $stepKey = (string)($params['stepKey'] ?? '');
         if ($publicId === '' || $stepKey === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
@@ -3697,7 +3707,9 @@ PROMPT;
      */
     public function retryAnalysis(array $params = []): JsonResponse
     {
-        $this->requireFeatureEnabled();
+        if (($disabled = $this->requireFeatureEnabled()) !== null) {
+            return $disabled;
+        }
         $publicId = (string)($params['public_id'] ?? '');
         $analysisType = (string)($params['analysisType'] ?? '');
         if ($publicId === '' || $analysisType === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
@@ -3833,11 +3845,24 @@ PROMPT;
         return $report;
     }
 
-    private function requireFeatureEnabled(): void
+    /**
+     * Guard for the AI-ideas actions.
+     *
+     * Returns a domain error response when the feature is switched off instead of
+     * throwing: an exception surfaced through the MCP/API wrappers as a generic
+     * "Controller invocation failed" and told the caller nothing useful.
+     */
+    private function requireFeatureEnabled(): ?JsonResponse
     {
-        if (!$this->isFeatureEnabled()) {
-            throw new \RuntimeException('AI ideas feature is disabled');
+        if ($this->isFeatureEnabled()) {
+            return null;
         }
+
+        return $this->error(
+            'FEATURE_DISABLED',
+            $this->t('idea/messages.ai_feature_disabled', 'AI ideas are disabled for this installation.'),
+            403
+        );
     }
 
     /**

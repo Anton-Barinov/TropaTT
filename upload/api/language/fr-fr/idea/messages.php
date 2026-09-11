@@ -47,6 +47,7 @@ return [
     'no_answer' => 'pas de réponse',
     'ai_analyst_system_prompt' => 'Vous êtes un analyste d\'idées. Analysez les données et trouvez les lacunes.',
     'ai_analysis_failed' => 'L\'IA n\'a pas pu lancer l\'analyse',
+    'ai_feature_disabled' => 'Les idées IA sont désactivées pour cette installation.',
     'ai_card_failed' => 'L\'IA n\'a pas pu construire la fiche. Veuillez réessayer plus tard.',
     'card_first_required' => 'Commencez par construire la fiche de compréhension de l\'idée.',
     'ai_gaps_failed' => 'L\'IA n\'a pas pu trouver les lacunes',

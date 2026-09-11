@@ -47,6 +47,7 @@ return [
     'no_answer' => 'no answer',
     'ai_analyst_system_prompt' => 'You are an ideas analyst. Analyze the data and find gaps.',
     'ai_analysis_failed' => 'AI was unable to run the analysis',
+    'ai_feature_disabled' => 'KI-Ideen sind in dieser Installation deaktiviert.',
     'ai_card_failed' => 'AI was unable to build the card. Please try again later.',
     'card_first_required' => 'First build the idea understanding card.',
     'ai_gaps_failed' => 'AI was unable to find gaps',

@@ -47,6 +47,7 @@ return [
     'no_answer' => 'sin respuesta',
     'ai_analyst_system_prompt' => 'Eres un analista de ideas. Analiza los datos y encuentra vacíos.',
     'ai_analysis_failed' => 'La IA no pudo ejecutar el análisis',
+    'ai_feature_disabled' => 'Las ideas con IA están desactivadas en esta instalación.',
     'ai_card_failed' => 'La IA no pudo construir la ficha. Intente más tarde.',
     'card_first_required' => 'Primero construya la tarjeta de comprensión de la idea.',
     'ai_gaps_failed' => 'La IA no pudo encontrar vacíos',

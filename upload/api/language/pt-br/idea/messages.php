@@ -47,6 +47,7 @@ return [
     'no_answer' => 'sem resposta',
     'ai_analyst_system_prompt' => 'Você é um analista de ideias. Analise os dados e encontre lacunas.',
     'ai_analysis_failed' => 'A IA não conseguiu executar a análise',
+    'ai_feature_disabled' => 'As ideias com IA estão desativadas nesta instalação.',
     'ai_card_failed' => 'A IA não conseguiu montar o cartão. Por favor, tente novamente mais tarde.',
     'card_first_required' => 'Primeiro, monte o cartão de compreensão da ideia.',
     'ai_gaps_failed' => 'A IA não conseguiu encontrar lacunas',
