@@ -32,7 +32,7 @@ final class HookManager
                 try {
                     $handler($context);
                 } catch (\Throwable $e) {
-                    error_log(sprintf(
+                    \Api\System\Library\Support\AppLog::error(sprintf(
                         '[HookManager] Error in hook "%s" (priority %d): %s',
                         $hookName,
                         $priority,

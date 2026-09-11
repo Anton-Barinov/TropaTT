@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Controller\Task;
 
+use Api\System\Library\Support\AppLog;
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Http\JsonResponse;
 
@@ -130,7 +131,7 @@ final class TaskSidebarController extends BaseController
             $value = $setting['value'] ?? [];
             return is_array($value) ? $value : [];
         } catch (\Throwable $e) {
-            error_log('[TaskSidebarController::loadPreference] ' . $e->getMessage());
+            AppLog::error('[TaskSidebarController::loadPreference] ' . $e->getMessage());
             return [];
         }
     }
@@ -217,7 +218,7 @@ final class TaskSidebarController extends BaseController
         }
 
         if (!$this->container->has('service.authz')) {
-            error_log('[TaskSidebarController::blockAllowed] Authorization service is unavailable');
+            AppLog::error('[TaskSidebarController::blockAllowed] Authorization service is unavailable');
             return false;
         }
 
@@ -226,7 +227,7 @@ final class TaskSidebarController extends BaseController
             $authz = $this->container->get('service.authz');
             return $authz->hasPermissions($user, $required);
         } catch (\Throwable $e) {
-            error_log('[TaskSidebarController::blockAllowed] ' . $e->getMessage());
+            AppLog::error('[TaskSidebarController::blockAllowed] ' . $e->getMessage());
             return false;
         }
     }
@@ -316,7 +317,7 @@ final class TaskSidebarController extends BaseController
                 }
             }
         } catch (\Throwable $e) {
-            error_log('[TaskSidebarController::moduleBlockDefinitions] ' . $e->getMessage());
+            AppLog::error('[TaskSidebarController::moduleBlockDefinitions] ' . $e->getMessage());
         }
 
         return $definitions;

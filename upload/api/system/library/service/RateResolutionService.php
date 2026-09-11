@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Support\AppLog;
 use Api\Model\Rate\RateCardRepository;
 
 /**
@@ -180,7 +181,7 @@ final class RateResolutionService
         $currencies = array_unique($currencies);
         if (count($currencies) > 1) {
             $overallAmbiguous = true;
-            error_log('[RateResolution] Currency mismatch: ' . implode(', ', $currencies));
+            AppLog::error('[RateResolution] Currency mismatch: ' . implode(', ', $currencies));
         }
 
         $out = [
@@ -374,7 +375,7 @@ final class RateResolutionService
                     static fn(array $s): string => (string)($s['line']['public_id'] ?? ''),
                     $scored
                 );
-                error_log('[RateResolution] Ambiguous: ' . json_encode([
+                AppLog::error('[RateResolution] Ambiguous: ' . json_encode([
                     'kind' => $kind,
                     'winner' => $linePublicId,
                     'candidates' => $ambiguousCandidates,

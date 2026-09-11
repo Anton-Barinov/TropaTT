@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Support\AppLog;
 use Api\Model\Ai\AiProviderRepository;
 use Api\Model\Ai\AiRuntimeRepository;
 use Api\Model\Ai\AiIntentSettingRepository;
@@ -4514,7 +4515,7 @@ final class AiSuggestionService
             $dt = new \DateTimeImmutable($trimmed);
             return $dt->format('c');
         } catch (\Throwable $e) {
-            error_log('[AiSuggestionService::normalizeDateTimePayload] ' . $e->getMessage());
+            AppLog::error('[AiSuggestionService::normalizeDateTimePayload] ' . $e->getMessage());
             return $value;
         }
     }
@@ -5711,7 +5712,7 @@ final class AiSuggestionService
         try {
             $this->runtime->cleanupByRetention($this->retention->getPolicies());
         } catch (\Throwable $e) {
-            error_log('[AiSuggestionService::applyRetentionCleanup] ' . $e->getMessage());
+            AppLog::error('[AiSuggestionService::applyRetentionCleanup] ' . $e->getMessage());
             // Cleanup is best-effort and must not break suggestion flows.
         }
     }

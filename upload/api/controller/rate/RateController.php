@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Controller\Rate;
 
+use Api\System\Library\Support\AppLog;
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Database\Builder\QueryBuilder;
 use Api\System\Library\Security\FinancialFieldPolicy;
@@ -175,7 +176,7 @@ final class RateController extends BaseController
                     ]);
                     $processed++;
                 } catch (\Throwable $e) {
-                    error_log('[RateController::recalculate] row ' . $row['public_id'] . ': ' . $e->getMessage());
+                    AppLog::error('[RateController::recalculate] row ' . $row['public_id'] . ': ' . $e->getMessage());
                 }
             }
             $offset += $batchSize;

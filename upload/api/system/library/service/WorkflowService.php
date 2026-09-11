@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Support\AppLog;
 use Api\Model\User\UserManagementRepository;
 use Api\Model\Workflow\WorkflowRepository;
 use Api\Model\Worklog\WorklogRepository;
@@ -306,7 +307,7 @@ final class WorkflowService
                 $results['rules_fired']++;
                 $results['runs'][] = ['rule' => $rule['public_id'], 'status' => $status];
             } catch (\Throwable $e) {
-                error_log('[WorkflowService::fireTrigger] ' . $e->getMessage());
+                AppLog::error('[WorkflowService::fireTrigger] ' . $e->getMessage());
                 $results['runs'][] = ['rule' => $rule['public_id'] ?? 'unknown', 'status' => 'error', 'error' => 'Workflow rule execution failed. Check server logs for details.'];
             }
         }
@@ -370,7 +371,7 @@ final class WorkflowService
                     // Schema differences (e.g. SQLite test vs MySQL prod) may cause
                     // column-not-found errors. Log and proceed — the action itself
                     // provides its own authorization checks.
-                    error_log('[WorkflowService::executeAction] actor active check skipped: ' . $e->getMessage());
+                    AppLog::error('[WorkflowService::executeAction] actor active check skipped: ' . $e->getMessage());
                 }
             }
 
@@ -492,7 +493,7 @@ final class WorkflowService
                     return ['success' => false, 'error' => $this->t('workflow/messages.unknown_action', 'Unknown action: ') . $actionCode];
             }
         } catch (\Throwable $e) {
-            error_log('[WorkflowService::executeAction] ' . $e->getMessage());
+            AppLog::error('[WorkflowService::executeAction] ' . $e->getMessage());
             return ['success' => false, 'error' => 'Workflow action execution failed. Check server logs for details.'];
         }
     }
@@ -565,7 +566,7 @@ final class WorkflowService
         try {
             return (new \DateTimeImmutable($value))->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
         } catch (\Throwable $e) {
-            error_log('[WorkflowService::normalizeReminderTime] ' . $e->getMessage());
+            AppLog::error('[WorkflowService::normalizeReminderTime] ' . $e->getMessage());
             return gmdate('Y-m-d H:i:s', time() + 3600);
         }
     }
@@ -651,7 +652,7 @@ final class WorkflowService
 
             $matched = $before < $threshold && $after >= $threshold;
         } catch (\Throwable $e) {
-            error_log('[WorkflowService::evaluateWorklogTrigger] ' . $e->getMessage());
+            AppLog::error('[WorkflowService::evaluateWorklogTrigger] ' . $e->getMessage());
             $matched = false;
         }
 

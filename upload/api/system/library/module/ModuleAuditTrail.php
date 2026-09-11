@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Module;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 
 final class ModuleAuditTrail
@@ -31,7 +32,7 @@ final class ModuleAuditTrail
                 'now' => $now,
             ]);
         } catch (\Throwable $e) {
-            error_log('[ModuleAuditTrail::record] ' . $e->getMessage());
+            AppLog::error('[ModuleAuditTrail::record] ' . $e->getMessage());
         }
     }
 
@@ -54,7 +55,7 @@ final class ModuleAuditTrail
             $stmt->execute($params);
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         } catch (\Throwable $e) {
-            error_log('[ModuleAuditTrail::getHistory] ' . $e->getMessage());
+            AppLog::error('[ModuleAuditTrail::getHistory] ' . $e->getMessage());
             return [];
         }
     }

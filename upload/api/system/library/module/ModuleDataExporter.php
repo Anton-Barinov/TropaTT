@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Module;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 
 final class ModuleDataExporter
@@ -142,7 +143,7 @@ final class ModuleDataExporter
                 // Strip sensitive columns from every exported row
                 $data[$table] = array_map([$this, 'stripSensitive'], $tableData);
             } catch (\Throwable $e) {
-                error_log('[ModuleDataExporter::collectModuleData] ' . $e->getMessage());
+                AppLog::error('[ModuleDataExporter::collectModuleData] ' . $e->getMessage());
             }
         }
 

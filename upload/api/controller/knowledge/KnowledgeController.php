@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Controller\Knowledge;
 
+use Api\System\Library\Support\AppLog;
 use Api\Controller\Common\BaseController;
 use Api\Model\Knowledge\KnowledgeRepository;
 use Api\Model\Tag\TagRepository;
@@ -353,7 +354,7 @@ final class KnowledgeController extends BaseController
             try {
                 $page = $this->repo()->createPage($input, $this->actorUserId() ?: null, $this->actor());
             } catch (\RuntimeException $e) {
-                error_log('[KnowledgeController::createPage] ' . $e->getMessage());
+                AppLog::error('[KnowledgeController::createPage] ' . $e->getMessage());
                 return $this->error('VALIDATION_ERROR', $this->t('knowledge/messages.validation_failed'), 422);
             }
             $this->invalidateCache('knowledge');
@@ -569,7 +570,7 @@ final class KnowledgeController extends BaseController
         try {
             $draft = $this->repo()->saveDraft((string)$params['public_id'], $this->request()->allInput(), $this->actorUserId());
         } catch (\RuntimeException $e) {
-            error_log('[KnowledgeController::saveDraft] ' . $e->getMessage());
+            AppLog::error('[KnowledgeController::saveDraft] ' . $e->getMessage());
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found'), 404);
         }
         return $this->success('KNOWLEDGE_DRAFT_SAVED', $this->t('knowledge/messages.draft_saved', 'Draft saved'), [
@@ -728,7 +729,7 @@ final class KnowledgeController extends BaseController
                     $this->actorUserId() ?: null
                 );
             } catch (\RuntimeException $e) {
-                error_log('[KnowledgeController::createLink] ' . $e->getMessage());
+                AppLog::error('[KnowledgeController::createLink] ' . $e->getMessage());
                 return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found'), 404);
             }
             return $this->success('KNOWLEDGE_LINK_CREATED', $this->t('knowledge/messages.link_created', 'Link created'), [
@@ -769,7 +770,7 @@ final class KnowledgeController extends BaseController
                     $this->actorUserId() ?: null
                 );
             } catch (\RuntimeException $e) {
-                error_log('[KnowledgeController::attachPageToTask] ' . $e->getMessage());
+                AppLog::error('[KnowledgeController::attachPageToTask] ' . $e->getMessage());
                 return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
             }
             return $this->success('KNOWLEDGE_LINK_CREATED', $this->t('knowledge/messages.link_created', 'Link created'), [
@@ -787,7 +788,7 @@ final class KnowledgeController extends BaseController
         try {
             $this->repo()->unlinkEntity($pageId, (string)$params['link_public_id'], $this->actor());
         } catch (\RuntimeException $e) {
-            error_log('[KnowledgeController::deleteLink] ' . $e->getMessage());
+            AppLog::error('[KnowledgeController::deleteLink] ' . $e->getMessage());
             return $this->error('KNOWLEDGE_LINK_NOT_FOUND', $this->t('knowledge/messages.link_not_found'), 404);
         }
         return $this->success('KNOWLEDGE_LINK_DELETED', $this->t('knowledge/messages.link_deleted', 'Link deleted'));
@@ -1091,7 +1092,7 @@ final class KnowledgeController extends BaseController
                     'file' => [$this->t('file/messages.type_forbidden', 'This file type is forbidden for security reasons')],
                 ]);
             }
-            error_log('[KnowledgeController::uploadFile] ' . $e->getMessage());
+            AppLog::error('[KnowledgeController::uploadFile] ' . $e->getMessage());
             return $this->error('FILE_UPLOAD_ERROR', $this->t('file/messages.upload_error', 'Upload error'), 422, [
                 'file' => ['File upload failed. Check server logs for details.'],
             ]);

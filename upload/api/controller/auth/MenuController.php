@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Controller\Auth;
 
+use Api\System\Library\Support\AppLog;
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Service\AuthzService;
 
@@ -361,7 +362,7 @@ final class MenuController extends BaseController
             $value = $setting['value'] ?? [];
             return is_array($value) ? $value : [];
         } catch (\Throwable $e) {
-            error_log('[MenuController::loadTeamTemplateByPublicId] ' . $e->getMessage());
+            AppLog::error('[MenuController::loadTeamTemplateByPublicId] ' . $e->getMessage());
             return [];
         }
     }
@@ -384,7 +385,7 @@ final class MenuController extends BaseController
 
             return $this->mergeTeamTemplates($teamPublicIds);
         } catch (\Throwable $e) {
-            error_log('[MenuController::loadTeamTemplate] ' . $e->getMessage());
+            AppLog::error('[MenuController::loadTeamTemplate] ' . $e->getMessage());
             return [];
         }
     }
@@ -494,7 +495,7 @@ final class MenuController extends BaseController
 
             return $result;
         } catch (\Throwable $e) {
-            error_log('[MenuController::findUserTeamPublicIds] ' . $e->getMessage());
+            AppLog::error('[MenuController::findUserTeamPublicIds] ' . $e->getMessage());
             return [];
         }
     }
@@ -516,7 +517,7 @@ final class MenuController extends BaseController
             $value = $setting['value'] ?? [];
             return is_array($value) ? $value : [];
         } catch (\Throwable $e) {
-            error_log('[MenuController::loadUserPreferences] ' . $e->getMessage());
+            AppLog::error('[MenuController::loadUserPreferences] ' . $e->getMessage());
             return [];
         }
     }
@@ -595,7 +596,7 @@ final class MenuController extends BaseController
 
             return $result;
         } catch (\Throwable $e) {
-            error_log('[MenuController::loadRoleTemplate] ' . $e->getMessage());
+            AppLog::error('[MenuController::loadRoleTemplate] ' . $e->getMessage());
             return [];
         }
     }
@@ -623,7 +624,7 @@ final class MenuController extends BaseController
                 $template = [];
             }
         } catch (\Throwable $e) {
-            error_log('[MenuController::getRoleTemplate] ' . $e->getMessage());
+            AppLog::error('[MenuController::getRoleTemplate] ' . $e->getMessage());
             $template = [];
         }
 
@@ -970,7 +971,7 @@ final class MenuController extends BaseController
             $stmt->execute([':uid' => $userId]);
             return $stmt->fetchColumn() !== false;
         } catch (\Throwable $e) {
-            error_log('[MenuController::myEarningsAvailable] ' . $e->getMessage());
+            AppLog::error('[MenuController::myEarningsAvailable] ' . $e->getMessage());
             return false;
         }
     }
@@ -996,7 +997,7 @@ final class MenuController extends BaseController
             }
             return $result;
         } catch (\Throwable $e) {
-            error_log('[MenuController::resolveRolePublicIds] ' . $e->getMessage());
+            AppLog::error('[MenuController::resolveRolePublicIds] ' . $e->getMessage());
             return [];
         }
     }

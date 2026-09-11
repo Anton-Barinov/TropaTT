@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Model\Notification;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Database\Builder\QueryBuilder;
 use PDO;
 
@@ -52,7 +53,7 @@ final class PushDispatchQueueRepository
             $this->pdo->commit();
             return $this->findByPublicId((string)$row['public_id']);
         } catch (\Throwable $e) {
-            error_log('[PushDispatchQueueRepository::claimNextRunnable] ' . $e->getMessage());
+            AppLog::error('[PushDispatchQueueRepository::claimNextRunnable] ' . $e->getMessage());
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }

@@ -25,7 +25,7 @@ final class Router
     {
         foreach ($routes as $key => $value) {
             if (isset($this->routes[$key])) {
-                error_log("[Router] Duplicate route key ignored: {$key}");
+                \Api\System\Library\Support\AppLog::error("[Router] Duplicate route key ignored: {$key}");
                 continue;
             }
             $this->routes[$key] = $value;

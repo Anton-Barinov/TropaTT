@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Support\AppLog;
 use Api\Model\Common\UserRepository;
 use Api\Model\Project\ProjectRepository;
 use Api\Model\Team\TeamRepository;
@@ -196,7 +197,7 @@ final class ProjectService
                 ]);
                 break;
             } catch (PDOException $e) {
-                error_log('[ProjectService::create] task_key_prefix conflict: ' . $e->getMessage());
+                AppLog::error('[ProjectService::create] task_key_prefix conflict: ' . $e->getMessage());
                 if (!$this->isTaskKeyPrefixDuplicate($e)) {
                     throw $e;
                 }

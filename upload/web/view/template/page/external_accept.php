@@ -59,7 +59,9 @@
       if (errorBox) { errorBox.textContent = t('external_accept.token_missing', 'Ссылка неполная — не найден токен приглашения.'); errorBox.classList.remove('d-none'); }
       return;
     }
-    if (password.length < 12 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+    var policy = (window.CRM && window.CRM.api && typeof window.CRM.api.isStrongPassword === 'function') ? window.CRM.api : null;
+    var passwordOk = policy ? policy.isStrongPassword(password) : (password.length >= 12);
+    if (!passwordOk) {
       if (errorBox) { errorBox.textContent = t('external_accept.weak_password', 'Пароль должен содержать не менее 12 символов, включая заглавные и строчные буквы и цифры.'); errorBox.classList.remove('d-none'); }
       return;
     }

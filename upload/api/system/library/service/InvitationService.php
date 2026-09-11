@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Security\PasswordPolicy;
 use Api\Model\Common\UserRepository;
 use Api\Model\Role\RoleRepository;
 use Api\Model\Security\InvitationRepository;
@@ -133,8 +134,8 @@ final class InvitationService
         }
 
         $password = (string)($input['password'] ?? '');
-        // L-4: Enforce 12+ character password with complexity.
-        if (mb_strlen($password) < 12 || !preg_match('/[A-Z]/', $password) || !preg_match('/[a-z]/', $password) || !preg_match('/[0-9]/', $password)) {
+        // L-4: 12+ characters with an uppercase letter, a lowercase letter and a digit.
+        if (!PasswordPolicy::isStrong($password)) {
             return ['ok' => false, 'code' => 'INVITATION_WEAK_PASSWORD'];
         }
 

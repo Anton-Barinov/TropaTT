@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Module;
 
+use Api\System\Library\Support\AppLog;
 final class ModuleTableValidator
 {
     /** @var array<int, string> */
@@ -38,7 +39,7 @@ final class ModuleTableValidator
     {
         $normalized = strtolower($tableName);
         if (in_array($normalized, $this->coreTables, true)) {
-            error_log("[ModuleTableValidator] Module '{$moduleName}' attempted to modify core table: {$tableName}");
+            AppLog::error("[ModuleTableValidator] Module '{$moduleName}' attempted to modify core table: {$tableName}");
             return false;
         }
         return true;
@@ -61,7 +62,7 @@ final class ModuleTableValidator
                 || str_contains($upper, "DELETE FROM {$upperTable}")
                 || str_contains($upper, "TRUNCATE {$upperTable}")
             ) {
-                error_log("[ModuleTableValidator] Module '{$moduleName}' tried to modify core table '{$table}'");
+                AppLog::error("[ModuleTableValidator] Module '{$moduleName}' tried to modify core table '{$table}'");
                 return false;
             }
         }

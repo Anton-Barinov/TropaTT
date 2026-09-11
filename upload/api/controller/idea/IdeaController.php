@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Controller\Idea;
 
+use Api\System\Library\Support\AppLog;
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Http\JsonResponse;
 use Api\System\Library\Module\ModuleCronScheduler;
@@ -157,7 +158,7 @@ final class IdeaController extends BaseController
                 ], $userId);
             }
         } catch (\Throwable $e) {
-            error_log('[IdeaController::create][' . $publicId . '] Notification failed: ' . $e->getMessage());
+            AppLog::error('[IdeaController::create][' . $publicId . '] Notification failed: ' . $e->getMessage());
         }
 
         $this->invalidateCache('idea');
@@ -263,7 +264,7 @@ final class IdeaController extends BaseController
                     ], $userId);
                 }
             } catch (\Throwable $e) {
-                error_log('[IdeaController::vote][' . $publicId . '] Notification failed: ' . $e->getMessage());
+                AppLog::error('[IdeaController::vote][' . $publicId . '] Notification failed: ' . $e->getMessage());
             }
         }
 
@@ -309,7 +310,7 @@ final class IdeaController extends BaseController
                 ]);
             }
         } catch (\Throwable $e) {
-            error_log('[IdeaController::updateStatus][' . $publicId . '] Notification failed: ' . $e->getMessage());
+            AppLog::error('[IdeaController::updateStatus][' . $publicId . '] Notification failed: ' . $e->getMessage());
         }
 
         $this->invalidateCache('idea');
@@ -1011,7 +1012,7 @@ final class IdeaController extends BaseController
 
             return $this->success('TASKS_CREATED', $this->t('idea/messages.tasks_created'), ['tasks' => $created], 201);
         } catch (\Throwable $e) {
-            // Log through the application logger: error_log() output is discarded
+            // Log through the application logger: AppLog::error() output is discarded
             // in stock PHP-FPM setups, which left this failure undiagnosable.
             try {
                 $this->container->get('logger')->error('idea_ai_create_tasks_failed', [
@@ -1413,7 +1414,7 @@ PROMPT;
                 if ($retry < $maxRetries) usleep(1000000);
             }
 
-            try { $pdo->query('SELECT 1'); } catch (\Throwable $e) { error_log('[IdeaController] PDO reconnect: ' . $e->getMessage()); $pdo = $this->container->get('db.pdo'); }
+            try { $pdo->query('SELECT 1'); } catch (\Throwable $e) { AppLog::error('[IdeaController] PDO reconnect: ' . $e->getMessage()); $pdo = $this->container->get('db.pdo'); }
             $maxIterStmt = $pdo->prepare("SELECT COALESCE(MAX(iteration), 0) + 1 FROM idea_ai_iterations WHERE idea_id = :iid");
             $maxIterStmt->execute(['iid' => $ideaId]);
             $iter = (int)$maxIterStmt->fetchColumn();
@@ -1730,7 +1731,7 @@ PROMPT;
                 if ($retry < $maxRetries) usleep(1000000);
             }
 
-            try { $pdo->query('SELECT 1'); } catch (\Throwable $e) { error_log('[IdeaController] PDO reconnect: ' . $e->getMessage()); $pdo = $this->container->get('db.pdo'); }
+            try { $pdo->query('SELECT 1'); } catch (\Throwable $e) { AppLog::error('[IdeaController] PDO reconnect: ' . $e->getMessage()); $pdo = $this->container->get('db.pdo'); }
             $maxIterStmt = $pdo->prepare("SELECT COALESCE(MAX(iteration), 0) + 1 FROM idea_ai_iterations WHERE idea_id = :iid");
             $maxIterStmt->execute(['iid' => $ideaId]);
             $iter = (int)$maxIterStmt->fetchColumn();
@@ -1877,7 +1878,7 @@ PROMPT;
                 if ($retry < $maxRetries) usleep(1000000);
             }
 
-            try { $pdo->query('SELECT 1'); } catch (\Throwable $e) { error_log('[IdeaController] PDO reconnect: ' . $e->getMessage()); $pdo = $this->container->get('db.pdo'); }
+            try { $pdo->query('SELECT 1'); } catch (\Throwable $e) { AppLog::error('[IdeaController] PDO reconnect: ' . $e->getMessage()); $pdo = $this->container->get('db.pdo'); }
             $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'potential_score', :req, :res, NOW())")->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $systemPrompt, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
 
@@ -1980,7 +1981,7 @@ PROMPT;
                 if ($retry < $maxRetries) usleep(1000000);
             }
 
-            try { $pdo->query('SELECT 1'); } catch (\Throwable $e) { error_log('[IdeaController] PDO reconnect: ' . $e->getMessage()); $pdo = $this->container->get('db.pdo'); }
+            try { $pdo->query('SELECT 1'); } catch (\Throwable $e) { AppLog::error('[IdeaController] PDO reconnect: ' . $e->getMessage()); $pdo = $this->container->get('db.pdo'); }
             $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'risk_report', :req, :res, NOW())")->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
 
@@ -2067,7 +2068,7 @@ PROMPT;
                 if ($retry < $maxRetries) usleep(1000000);
             }
 
-            try { $pdo->query('SELECT 1'); } catch (\Throwable $e) { error_log('[IdeaController] PDO reconnect: ' . $e->getMessage()); $pdo = $this->container->get('db.pdo'); }
+            try { $pdo->query('SELECT 1'); } catch (\Throwable $e) { AppLog::error('[IdeaController] PDO reconnect: ' . $e->getMessage()); $pdo = $this->container->get('db.pdo'); }
             $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'pitfalls_report', :req, :res, NOW())")->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
 
@@ -2155,7 +2156,7 @@ PROMPT;
                 if ($retry < $maxRetries) usleep(1000000);
             }
 
-            try { $pdo->query('SELECT 1'); } catch (\Throwable $e) { error_log('[IdeaController] PDO reconnect: ' . $e->getMessage()); $pdo = $this->container->get('db.pdo'); }
+            try { $pdo->query('SELECT 1'); } catch (\Throwable $e) { AppLog::error('[IdeaController] PDO reconnect: ' . $e->getMessage()); $pdo = $this->container->get('db.pdo'); }
             $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'implementation_plan', :req, :res, NOW())")->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
 
@@ -2273,7 +2274,7 @@ PROMPT;
                 if ($retry < $maxRetries) usleep(1000000);
             }
 
-            try { $pdo->query('SELECT 1'); } catch (\Throwable $e) { error_log('[IdeaController] PDO reconnect: ' . $e->getMessage()); $pdo = $this->container->get('db.pdo'); }
+            try { $pdo->query('SELECT 1'); } catch (\Throwable $e) { AppLog::error('[IdeaController] PDO reconnect: ' . $e->getMessage()); $pdo = $this->container->get('db.pdo'); }
             $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'final_recommendation', :req, :res, NOW())")->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
 
@@ -2375,7 +2376,7 @@ PROMPT;
                 if ($retry < $maxRetries) usleep(1000000);
             }
 
-            try { $pdo->query('SELECT 1'); } catch (\Throwable $e) { error_log('[IdeaController] PDO reconnect: ' . $e->getMessage()); $pdo = $this->container->get('db.pdo'); }
+            try { $pdo->query('SELECT 1'); } catch (\Throwable $e) { AppLog::error('[IdeaController] PDO reconnect: ' . $e->getMessage()); $pdo = $this->container->get('db.pdo'); }
             $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'suggested_tasks', :req, :res, NOW())")->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
 
@@ -2651,7 +2652,7 @@ PROMPT;
                 $aiFailed = true;
             }
             // Reconnect PDO if connection dropped during AI processing
-            try { $pdo->query('SELECT 1'); } catch (\Throwable $e) { error_log('[IdeaController] PDO reconnect: ' . $e->getMessage()); $pdo = $this->container->get('db.pdo'); }
+            try { $pdo->query('SELECT 1'); } catch (\Throwable $e) { AppLog::error('[IdeaController] PDO reconnect: ' . $e->getMessage()); $pdo = $this->container->get('db.pdo'); }
 
             // Log iteration for debug — include AI error diagnostics
             $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
@@ -2745,7 +2746,7 @@ PROMPT;
         // Reconnect PDO if connection dropped during long AI processing
         try { $pdo->query('SELECT 1'); } catch (\Throwable $e) {
             $pdo = $this->container->get('db.pdo');
-            error_log('[IdeaController] PDO reconnect: ' . $e->getMessage());
+            AppLog::error('[IdeaController] PDO reconnect: ' . $e->getMessage());
         }
 
         // No fallback — all questions MUST be AI-generated
@@ -3204,7 +3205,7 @@ PROMPT;
                 $stmt->execute(['iid' => $ideaId]);
                 $deleted['idea_analyses_archived'] = $stmt->rowCount();
             } catch (\Throwable $e) {
-                error_log('[IdeaController] idea_analyses archive skipped: ' . $e->getMessage());
+                AppLog::error('[IdeaController] idea_analyses archive skipped: ' . $e->getMessage());
                 $deleted['idea_analyses_archived'] = 'skipped';
             }
 
@@ -3291,7 +3292,7 @@ PROMPT;
 
             return $this->success('TASKS_DECOMPOSED', $this->t('idea/messages.decomposed'), ['tasks' => $tasks]);
         } catch (\Throwable $e) {
-            error_log('[IdeaController::decomposeTasks] ' . $e->getMessage());
+            AppLog::error('[IdeaController::decomposeTasks] ' . $e->getMessage());
             return $this->error('AI_ERROR', $this->t('idea/messages.ai_operation_failed'), 500);
         }
     }
@@ -3356,7 +3357,7 @@ PROMPT;
                 'ready_for_analysis' => !$questions || $questions === [],
             ]);
         } catch (\Throwable $e) {
-            error_log('[IdeaController::unknown] ' . $e->getMessage());
+            AppLog::error('[IdeaController::unknown] ' . $e->getMessage());
             return $this->error('AI_ERROR', $this->t('idea/messages.ai_operation_failed'), 500);
         }
     }
@@ -3783,7 +3784,7 @@ PROMPT;
                 'status' => 'completed',
             ]);
         } catch (\Throwable $e) {
-            error_log('[IdeaController::unknown] ' . $e->getMessage());
+            AppLog::error('[IdeaController::unknown] ' . $e->getMessage());
             return $this->error('AI_ERROR', $this->t('idea/messages.ai_operation_failed'), 500);
         }
     }

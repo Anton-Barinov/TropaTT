@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Module;
 
+use Api\System\Library\Support\AppLog;
 final class Event
 {
     private bool $propagationStopped = false;
@@ -45,7 +46,7 @@ final class EventDispatcher
             try {
                 ($entry['listener'])($event);
             } catch (\Throwable $e) {
-                error_log(sprintf(
+                AppLog::error(sprintf(
                     '[EventDispatcher] Error in listener for "%s": %s',
                     $event->name,
                     $e->getMessage()

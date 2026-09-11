@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Controller\Admin;
 
+use Api\System\Library\Support\AppLog;
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Cache\ApiFileCache;
 use Api\System\Library\Service\SettingService;
@@ -39,7 +40,7 @@ final class CacheController extends BaseController
                     }
                 }
             } catch (\Throwable $e) {
-                error_log('[CacheController::stats] ' . $e->getMessage());
+                AppLog::error('[CacheController::stats] ' . $e->getMessage());
             }
         }
 

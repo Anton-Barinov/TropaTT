@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Support\AppLog;
 use Api\Model\Task\TaskActivityRepository;
 use Api\System\Library\Support\Ulid;
 
@@ -398,7 +399,7 @@ final class TaskActivityService
                 'source_ref' => (string)($context['source_ref'] ?? ''),
             ]);
         } catch (\Throwable $e) {
-            error_log('[TaskActivityService] Failed to record event: ' . $e->getMessage());
+            AppLog::error('[TaskActivityService] Failed to record event: ' . $e->getMessage());
         }
     }
 

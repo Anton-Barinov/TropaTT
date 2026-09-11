@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Module;
 
+use Api\System\Library\Support\AppLog;
 final class ModuleCacheInvalidator
 {
     /** @var array<string, ModuleCache> */
@@ -16,7 +17,7 @@ final class ModuleCacheInvalidator
     {
         $cacheKey = "tag:{$moduleName}:{$tag}";
         $this->moduleCache->invalidateModule($cacheKey);
-        error_log("[CacheInvalidator] Tag invalidated: {$moduleName}::{$tag}");
+        AppLog::error("[CacheInvalidator] Tag invalidated: {$moduleName}::{$tag}");
     }
 
     public function invalidateByPrefix(string $moduleName, string $prefix): void

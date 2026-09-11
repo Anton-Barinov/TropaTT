@@ -57,7 +57,7 @@ final class PositionRegistry
                     $html[] = $this->wrap($result, (string)($entry['key'] ?? ''));
                 }
             } catch (\Throwable $e) {
-                error_log(sprintf('[PositionRegistry] Error rendering "%s": %s', $position, $e->getMessage()));
+                \Api\System\Library\Support\AppLog::error(sprintf('[PositionRegistry] Error rendering "%s": %s', $position, $e->getMessage()));
             }
         }
 

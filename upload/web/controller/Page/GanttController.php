@@ -23,7 +23,7 @@ final class GanttController extends Controller
                     }
                 }
             } catch (\Throwable $e) {
-                error_log('[GanttController] failed to read gantt_max_tasks: ' . $e->getMessage());
+                \Api\System\Library\Support\AppLog::error('[GanttController] failed to read gantt_max_tasks: ' . $e->getMessage());
             }
         }
 

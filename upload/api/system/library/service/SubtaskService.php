@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Support\AppLog;
 use Api\Model\Subtask\SubtaskRepository;
 use Api\System\Library\Security\HtmlSanitizer;
 use Api\System\Library\Support\Ulid;
@@ -252,7 +253,7 @@ final class SubtaskService
             $date = new \DateTimeImmutable($value);
             return $date->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
         } catch (\Throwable $e) {
-            error_log('[SubtaskService::normalizeDueAt] ' . $e->getMessage());
+            AppLog::error('[SubtaskService::normalizeDueAt] ' . $e->getMessage());
             return $value;
         }
     }

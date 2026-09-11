@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Module;
 
+use Api\System\Library\Support\AppLog;
 final class ModuleCircuitBreaker
 {
     public const CLOSED = 'closed';
@@ -34,7 +35,7 @@ final class ModuleCircuitBreaker
 
         if ($b['state'] === self::CLOSED && $b['failures'] >= $this->failureThreshold) {
             $b['state'] = self::OPEN;
-            error_log("[CircuitBreaker] OPEN for {$moduleName} after {$b['failures']} failures");
+            AppLog::error("[CircuitBreaker] OPEN for {$moduleName} after {$b['failures']} failures");
         }
 
         if ($b['state'] === self::HALF_OPEN) {

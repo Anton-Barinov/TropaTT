@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Api\Controller\Mcp;
 
+use Api\System\Library\Support\AppLog;
+use Api\System\Library\Security\PasswordPolicy;
 use Api\Controller\Common\BaseController;
 use Api\Controller\Admin\CacheController;
 use Api\Controller\Admin\RoleMatrixController;
@@ -214,7 +216,7 @@ final class McpController extends BaseController
                 $logger = $this->container->get('logger');
                 $logger->error(['mcp_error' => $e->getMessage(), 'method' => $method, 'trace' => $e->getTraceAsString()]);
             } catch (\Throwable $inner) {
-                error_log('[McpController::handle] Logger failed: ' . $inner->getMessage() . ' | Original error: ' . $e->getMessage());
+                AppLog::error('[McpController::handle] Logger failed: ' . $inner->getMessage() . ' | Original error: ' . $e->getMessage());
             }
             return $this->errorPayload($id, -32603, 'Internal error');
         }
@@ -4902,13 +4904,8 @@ $tools[] = $this->tool(
         if ($current === '' || $new === '') {
             return ['error' => 'current_password and new_password are required.'];
         }
-        if (strlen($new) < 12
-            || !preg_match('/[A-Z]/', $new)
-            || !preg_match('/[a-z]/', $new)
-            || !preg_match('/[0-9]/', $new)
-            || !preg_match('/[^a-zA-Z0-9]/', $new)
-        ) {
-            return ['error' => 'Password must be at least 12 characters and include uppercase, lowercase, digit, and special character.'];
+        if (!PasswordPolicy::isStrong($new)) {
+            return ['error' => 'Password must be at least 12 characters and include uppercase and lowercase letters and digits.'];
         }
 
         /** @var UserProfileService $service */
@@ -5376,7 +5373,7 @@ $tools[] = $this->tool(
         try {
             return UpdaterBridge::dispatch(dirname(__DIR__, 3), $action, $payload);
         } catch (Throwable $e) {
-            error_log('[McpController::coreUpdateCallUpdater] in-process updater failed: ' . $e->getMessage());
+            AppLog::error('[McpController::coreUpdateCallUpdater] in-process updater failed: ' . $e->getMessage());
         }
 
         // Legacy fallback for installations where updater/src is unavailable.
@@ -8764,7 +8761,7 @@ $tools[] = $this->tool(
         try {
             return ['counterparty' => $this->publicData($service->update($publicId, $this->counterpartyInput($arguments), $this->actor()))];
         } catch (Throwable $e) {
-            error_log('[McpController::crmUpdateCounterparty] ' . $e->getMessage());
+            AppLog::error('[McpController::crmUpdateCounterparty] ' . $e->getMessage());
             return ['error' => 'Counterparty operation failed. Check server logs for details.'];
         }
     }
@@ -8888,7 +8885,7 @@ $tools[] = $this->tool(
         try {
             return ['contact' => $this->publicData($service->create($this->contactInput($arguments), $this->actor()))];
         } catch (Throwable $e) {
-            error_log('[McpController::crmCreateContact] ' . $e->getMessage());
+            AppLog::error('[McpController::crmCreateContact] ' . $e->getMessage());
             return ['error' => 'Contact operation failed. Check server logs for details.'];
         }
     }
@@ -8906,7 +8903,7 @@ $tools[] = $this->tool(
             $item = $service->update($publicId, $this->contactInput($arguments), $this->actor());
             return $item ? ['contact' => $this->publicData($item)] : ['error' => 'Contact not found.'];
         } catch (Throwable $e) {
-            error_log('[McpController::crmUpdateContact] ' . $e->getMessage());
+            AppLog::error('[McpController::crmUpdateContact] ' . $e->getMessage());
             return ['error' => 'Contact operation failed. Check server logs for details.'];
         }
     }
@@ -9289,7 +9286,7 @@ $tools[] = $this->tool(
         try {
             $draft = $this->knowledge()->saveDraft($publicId, $this->pageContentInput($arguments), (int)($this->actor()['id'] ?? 0));
         } catch (Throwable $e) {
-            error_log('[McpController::crmSaveKnowledgePageDraft] ' . $e->getMessage());
+            AppLog::error('[McpController::crmSaveKnowledgePageDraft] ' . $e->getMessage());
             return ['error' => 'Operation failed. Check server logs for details.'];
         }
         return ['draft' => $this->publicData($draft)];
@@ -9775,7 +9772,7 @@ $tools[] = $this->tool(
                 (int)($this->actor()['id'] ?? 0)
             );
         } catch (Throwable $e) {
-            error_log('[McpController::crmLinkKnowledgePageEntity] ' . $e->getMessage());
+            AppLog::error('[McpController::crmLinkKnowledgePageEntity] ' . $e->getMessage());
             return ['error' => 'Knowledge link operation failed. Check server logs for details.'];
         }
         $this->invalidateCache('knowledge');
@@ -11181,7 +11178,7 @@ $tools[] = $this->tool(
             ]), [], (int)($this->actor()['id'] ?? 0), $this->actor());
             return ['file' => $this->publicData($file)];
         } catch (Throwable $e) {
-            error_log('[McpController::crmUploadFileBase64] ' . $e->getMessage());
+            AppLog::error('[McpController::crmUploadFileBase64] ' . $e->getMessage());
             return ['error' => 'File upload failed. Check server logs for details.'];
         }
     }
@@ -14760,7 +14757,7 @@ $tools[] = $this->tool(
                 'after_text' => $after,
             ]);
         } catch (Throwable $e) {
-            error_log('[McpController] audit log write failed: ' . $e->getMessage());
+            AppLog::error('[McpController] audit log write failed: ' . $e->getMessage());
         }
     }
 
@@ -14771,7 +14768,7 @@ $tools[] = $this->tool(
             $stmt->execute();
             return true;
         } catch (Throwable $e) {
-            error_log('[McpController::tableHasColumn] ' . $e->getMessage());
+            AppLog::error('[McpController::tableHasColumn] ' . $e->getMessage());
             return false;
         }
     }

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Controller\Security;
 
+use Api\System\Library\Security\PasswordPolicy;
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Service\PasswordResetService;
 use Api\System\Library\Validation\Validator;
@@ -47,7 +48,7 @@ final class PasswordResetController extends BaseController
         }
 
         $newPassword = (string)$input['new_password'];
-        if (strlen($newPassword) < 12 || !preg_match('/[A-Z]/', $newPassword) || !preg_match('/[a-z]/', $newPassword) || !preg_match('/[0-9]/', $newPassword)) {
+        if (!PasswordPolicy::isStrong($newPassword)) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
                 'new_password' => [$this->t('security/messages.min_password_12_complex')],
             ]);

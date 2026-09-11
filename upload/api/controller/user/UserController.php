@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Controller\User;
 
+use Api\System\Library\Support\AppLog;
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Module\ModuleEvents;
 use Api\System\Library\Service\UserService;
@@ -192,7 +193,7 @@ final class UserController extends BaseController
                 try {
                     $ext->bootstrapGrantsForExternalUser($targetUserId, $actorId);
                 } catch (\Throwable $e) {
-                    error_log('[UserController::update] bootstrap executor grants failed: ' . $e->getMessage());
+                    AppLog::error('[UserController::update] bootstrap executor grants failed: ' . $e->getMessage());
                 }
             } elseif ($input['external_role'] !== 'executor') {
                 // M-1: demoted from executor (e.g. to observer) — revoke
@@ -211,7 +212,7 @@ final class UserController extends BaseController
                         'detail' => 'new_role=' . (string)$input['external_role'] . ', grants_revoked',
                     ]);
                 } catch (\Throwable $e) {
-                    error_log('[UserController::update] revoke grants on demotion failed: ' . $e->getMessage());
+                    AppLog::error('[UserController::update] revoke grants on demotion failed: ' . $e->getMessage());
                 }
             }
         }

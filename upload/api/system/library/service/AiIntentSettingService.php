@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Support\AppLog;
 use Api\Model\Ai\AiIntentSettingRepository;
 use Api\Model\Ai\AiJsonSchemaRepository;
 use Api\Model\Ai\AiPromptTemplateRepository;
@@ -180,7 +181,7 @@ final class AiIntentSettingService
                 if (!in_array($code, ['23000', '23505', '1062'], true)) {
                     throw $e;
                 }
-                error_log('[AiIntentSettingService::ensureBaseline] create raced for intent "' . $intent . '": ' . $e->getMessage());
+                AppLog::error('[AiIntentSettingService::ensureBaseline] create raced for intent "' . $intent . '": ' . $e->getMessage());
             }
 
             $this->ensureDefaultActiveSchema($intent, $now);

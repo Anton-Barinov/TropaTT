@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Module;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Container;
 use Api\System\Library\Hook\HookManager;
 use RuntimeException;
@@ -57,7 +58,7 @@ final class ServiceProviderRegistry
                 $this->registered[$name] = true;
             } catch (\Throwable $e) {
                 $this->errors[$name]['register'] = $e->getMessage();
-                error_log("[ServiceProviderRegistry] Registration failed for {$name}: " . $e->getMessage());
+                AppLog::error("[ServiceProviderRegistry] Registration failed for {$name}: " . $e->getMessage());
             }
         }
     }
@@ -78,7 +79,7 @@ final class ServiceProviderRegistry
                 $this->booted[$name] = true;
             } catch (\Throwable $e) {
                 $this->errors[$name]['boot'] = $e->getMessage();
-                error_log("[ServiceProviderRegistry] Boot failed for {$name}: " . $e->getMessage());
+                AppLog::error("[ServiceProviderRegistry] Boot failed for {$name}: " . $e->getMessage());
             }
         }
     }

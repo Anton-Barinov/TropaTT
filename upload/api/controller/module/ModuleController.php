@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Controller\Module;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Container;
 use Api\System\Library\Http\JsonResponse;
 use Api\System\Library\Http\Request;
@@ -66,7 +67,7 @@ final class ModuleController
 
             return JsonResponse::success('MODULES_LIST', $this->t('common/messages.ok', 'OK'), $items);
         } catch (\Throwable $e) {
-            error_log('[ModuleController] list() failed: ' . $e->getMessage());
+            AppLog::error('[ModuleController] list() failed: ' . $e->getMessage());
             return JsonResponse::error('INTERNAL_ERROR', $this->t('common/messages.internal_error', 'Internal error'), 500);
         }
     }
@@ -111,7 +112,7 @@ final class ModuleController
                 'activated_at' => $registry['activated_at'] ?? null,
             ]);
         } catch (\Throwable $e) {
-            error_log('[ModuleController] get() failed: ' . $e->getMessage());
+            AppLog::error('[ModuleController] get() failed: ' . $e->getMessage());
             return JsonResponse::error('INTERNAL_ERROR', $this->t('common/messages.internal_error', 'Internal error'), 500);
         }
     }
@@ -159,7 +160,7 @@ final class ModuleController
 
             return JsonResponse::success('MODULE_INSTALLED', $this->t('module/messages.installed'), ['name' => $name, 'version' => $manifest->version]);
         } catch (\Throwable $e) {
-            error_log('[ModuleController::install] ' . ($name ?? '') . ': ' . $e->getMessage());
+            AppLog::error('[ModuleController::install] ' . ($name ?? '') . ': ' . $e->getMessage());
             return JsonResponse::error('INSTALL_FAILED', $this->t('module/messages.install_failed', 'Failed to install module') . ': ' . $e->getMessage(), 500);
         }
     }
@@ -200,7 +201,7 @@ final class ModuleController
 
             return JsonResponse::success('MODULE_ACTIVATED', $this->t('module/messages.activated'), ['name' => $name]);
         } catch (\Throwable $e) {
-            error_log('[ModuleController::activate] ' . $name . ': ' . $e->getMessage());
+            AppLog::error('[ModuleController::activate] ' . $name . ': ' . $e->getMessage());
             return JsonResponse::error('ACTIVATE_FAILED', $this->t('module/messages.activate_failed', 'Failed to activate module') . ': ' . $e->getMessage(), 500);
         }
     }    public function deactivate(array $params = []): JsonResponse
@@ -221,7 +222,7 @@ final class ModuleController
 
             return JsonResponse::success('MODULE_DEACTIVATED', $this->t('module/messages.deactivated'), ['name' => $name]);
         } catch (\Throwable $e) {
-            error_log('[ModuleController::deactivate] ' . ($name ?? '') . ': ' . $e->getMessage());
+            AppLog::error('[ModuleController::deactivate] ' . ($name ?? '') . ': ' . $e->getMessage());
             return JsonResponse::error('DEACTIVATE_FAILED', $this->t('module/messages.deactivate_failed', 'Failed to deactivate module') . ': ' . $e->getMessage(), 500);
         }
     }
@@ -255,26 +256,26 @@ final class ModuleController
             $eh = $this->container->get('module.error_handler');
             if ($eh instanceof ModuleErrorHandler) $eh->clearErrors($name);
         } catch (\Throwable $e) {
-            error_log('[ModuleController::remove] error_handler cleanup failed for ' . $name . ': ' . $e->getMessage());
+            AppLog::error('[ModuleController::remove] error_handler cleanup failed for ' . $name . ': ' . $e->getMessage());
         }
 
         try {
             $cs = $this->container->get('module.cron_scheduler');
             if ($cs instanceof ModuleCronScheduler) $cs->deleteAllForModule($name);
         } catch (\Throwable $e) {
-            error_log('[ModuleController::remove] cron_scheduler cleanup failed for ' . $name . ': ' . $e->getMessage());
+            AppLog::error('[ModuleController::remove] cron_scheduler cleanup failed for ' . $name . ': ' . $e->getMessage());
         }
 
         try {
             $wd = $this->container->get('module.webhook_dispatcher');
             if ($wd instanceof ModuleWebhookDispatcher) $wd->deleteWebhooks($name);
         } catch (\Throwable $e) {
-            error_log('[ModuleController::remove] webhook_dispatcher cleanup failed for ' . $name . ': ' . $e->getMessage());
+            AppLog::error('[ModuleController::remove] webhook_dispatcher cleanup failed for ' . $name . ': ' . $e->getMessage());
         }
 
         return JsonResponse::success('MODULE_REMOVED', $this->t('module/messages.removed'), ['name' => $name]);
         } catch (\Throwable $e) {
-            error_log('[ModuleController::uninstall] ' . $name . ': ' . $e->getMessage());
+            AppLog::error('[ModuleController::uninstall] ' . $name . ': ' . $e->getMessage());
             return JsonResponse::error('UNINSTALL_FAILED', $this->t('module/messages.uninstall_failed', 'Failed to uninstall module') . ': ' . $e->getMessage(), 500);
         }
     }
@@ -306,7 +307,7 @@ final class ModuleController
             try {
                 $this->uninstall(['name' => $name]);
             } catch (\Throwable $e) {
-                error_log('[ModuleController::purge] uninstall failed for ' . $name . ': ' . $e->getMessage());
+                AppLog::error('[ModuleController::purge] uninstall failed for ' . $name . ': ' . $e->getMessage());
             }
         }
 
@@ -320,7 +321,7 @@ final class ModuleController
         $this->removeDirectoryRecursively($this->storageBase() . '/modules/' . $name);
 
         if (!$filesDeleted && is_dir($targetDir)) {
-            error_log('[ModuleController::purge] directory not fully removed (permissions?): ' . $targetDir);
+            AppLog::error('[ModuleController::purge] directory not fully removed (permissions?): ' . $targetDir);
         }
 
         if (!$filesDeleted && !$wasInstalled) {
@@ -386,7 +387,7 @@ final class ModuleController
                     'message' => (string)($payload['message'] ?? ''),
                 ];
             } catch (\Throwable $e) {
-                error_log('[ModuleController::bulk] ' . $action . ' on ' . $name . ' failed: ' . $e->getMessage());
+                AppLog::error('[ModuleController::bulk] ' . $action . ' on ' . $name . ' failed: ' . $e->getMessage());
                 $failed++;
                 $results[] = [
                     'name' => $name,
@@ -494,7 +495,7 @@ final class ModuleController
             $name = $installer->installFromUrl($url, true);
             return JsonResponse::success('MODULE_INSTALLED', $this->t('module/messages.installed_from_url'), ['name' => $name]);
         } catch (\Throwable $e) {
-            error_log('[ModuleController::installFromUrl] ' . $e->getMessage());
+            AppLog::error('[ModuleController::installFromUrl] ' . $e->getMessage());
             return JsonResponse::error('INSTALL_FAILED', 'Module operation failed. Check server logs for details.', 500);
         }
     }
@@ -538,7 +539,7 @@ final class ModuleController
             $name = $installer->installFromFile($archivePath, true);
             return JsonResponse::success('MODULE_INSTALLED', $this->t('module/messages.installed_from_file'), ['name' => $name]);
         } catch (\Throwable $e) {
-            error_log('[ModuleController::unknown] ' . $e->getMessage());
+            AppLog::error('[ModuleController::unknown] ' . $e->getMessage());
             return JsonResponse::error('INSTALL_FAILED', 'Module operation failed. Check server logs for details.', 500);
         } finally {
             foreach (glob($tmpDir . '/*') ?: [] as $f) @unlink($f);
@@ -573,7 +574,7 @@ final class ModuleController
             $mc->setMultiple($name, $config);
             return JsonResponse::success('CONFIG_UPDATED', $this->t('module/messages.config_updated'), ['name' => $name, 'config' => $mc->getAll($name)]);
         } catch (\Throwable $e) {
-            error_log('[ModuleController::updateConfig] ' . $e->getMessage());
+            AppLog::error('[ModuleController::updateConfig] ' . $e->getMessage());
             return JsonResponse::error('UPDATE_FAILED', 'Module update failed. Check server logs for details.', 500);
         }
     }
@@ -630,7 +631,7 @@ final class ModuleController
             $eh->clearErrors($name);
             return JsonResponse::success('ERRORS_CLEARED', $this->t('module/messages.errors_cleared'));
         } catch (\Throwable $e) {
-            error_log('[ModuleController::clearErrors] ' . $e->getMessage());
+            AppLog::error('[ModuleController::clearErrors] ' . $e->getMessage());
             return JsonResponse::error('CLEAR_FAILED', 'Module clear operation failed. Check server logs for details.', 500);
         }
     }

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Support\AppLog;
 use Api\Model\Recurring\RecurringRepository;
 use Api\Model\Task\TaskRepository;
 use Api\Model\Project\ProjectRepository;
@@ -56,7 +57,7 @@ final class RecurringProcessorService
                     $errors++;
                 }
             } catch (\Throwable $e) {
-                error_log('[RecurringProcessorService::process] ' . $e->getMessage());
+                AppLog::error('[RecurringProcessorService::process] ' . $e->getMessage());
                 $results[] = [
                     'rule_id' => $rule['public_id'] ?? '',
                     'entity_type' => $rule['entity_type'] ?? '',

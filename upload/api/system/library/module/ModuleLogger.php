@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Module;
 
+use Api\System\Library\Support\AppLog;
 final class ModuleLogger
 {
     private string $logDir;
@@ -67,7 +68,7 @@ final class ModuleLogger
         file_put_contents($file, $line, FILE_APPEND | LOCK_EX);
 
         if (in_array($level, ['EMERGENCY', 'ALERT', 'CRITICAL', 'ERROR'], true)) {
-            error_log("[Module:{$this->moduleName}] {$level}: {$message}{$contextStr}");
+            AppLog::error("[Module:{$this->moduleName}] {$level}: {$message}{$contextStr}");
         }
     }
 }

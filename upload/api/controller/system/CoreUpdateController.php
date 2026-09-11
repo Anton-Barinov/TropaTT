@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Controller\System;
 
+use Api\System\Library\Support\AppLog;
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Update\CoreUpdateClient;
 use Api\System\Library\Update\CoreUpdateConfig;
@@ -200,7 +201,7 @@ final class CoreUpdateController extends BaseController
         try {
             return UpdaterBridge::dispatch($basePath, $action, $payload);
         } catch (\Throwable $e) {
-            error_log('[CoreUpdateController::callUpdater] in-process updater failed: ' . $e->getMessage());
+            AppLog::error('[CoreUpdateController::callUpdater] in-process updater failed: ' . $e->getMessage());
         }
 
         // Compatibility fallback for unusual deployments where updater/src is

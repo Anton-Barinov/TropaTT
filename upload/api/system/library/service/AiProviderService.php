@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Support\AppLog;
 use Api\Model\Ai\AiProviderRepository;
 use Api\System\Library\Config;
 use Api\System\Library\Http\Request;
@@ -240,7 +241,7 @@ final class AiProviderService
             $encryptedSecret = $this->encryptSecret($secret);
             $keyHint = $this->secretKeyHint();
         } catch (\Throwable $e) {
-            error_log('[AiProviderService::upsertSecret] encrypt failed: ' . $e->getMessage());
+            AppLog::error('[AiProviderService::upsertSecret] encrypt failed: ' . $e->getMessage());
             return ['ok' => false, 'code' => 'AI_SECRET_KEY_NOT_CONFIGURED'];
         }
 
@@ -860,7 +861,7 @@ final class AiProviderService
         try {
             $key = $this->secretKey();
         } catch (\Throwable $e) {
-            error_log('[AiProviderService::decryptedSecretByProvider] secretKey failed: ' . $e->getMessage());
+            AppLog::error('[AiProviderService::decryptedSecretByProvider] secretKey failed: ' . $e->getMessage());
             return null;
         }
         $plain = openssl_decrypt($ciphertext, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag);

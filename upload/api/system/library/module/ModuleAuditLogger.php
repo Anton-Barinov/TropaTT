@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Module;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 use Api\System\Library\Database\IndexHelper;
 
@@ -32,7 +33,7 @@ final class ModuleAuditLogger
                 'now' => $now,
             ]);
         } catch (\Throwable $e) {
-            error_log('[ModuleAuditLogger::log] ' . $e->getMessage());
+            AppLog::error('[ModuleAuditLogger::log] ' . $e->getMessage());
         }
     }
 
@@ -44,7 +45,7 @@ final class ModuleAuditLogger
             $stmt->execute(['module' => $moduleName, 'limit' => $limit]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         } catch (\Throwable $e) {
-            error_log('[ModuleAuditLogger::getAuditLog] ' . $e->getMessage());
+            AppLog::error('[ModuleAuditLogger::getAuditLog] ' . $e->getMessage());
             return [];
         }
     }
@@ -69,7 +70,7 @@ final class ModuleAuditLogger
             IndexHelper::createIndexIfNotExists($this->pdo, $this->tableName, 'idx_module_audit_module', 'module_name');
             IndexHelper::createIndexIfNotExists($this->pdo, $this->tableName, 'idx_module_audit_created', 'created_at');
         } catch (\Throwable $e) {
-            error_log('[ModuleAuditLogger::ensureTable] ' . $e->getMessage());
+            AppLog::error('[ModuleAuditLogger::ensureTable] ' . $e->getMessage());
         }
     }
 }

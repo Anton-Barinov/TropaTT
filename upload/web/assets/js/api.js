@@ -1225,6 +1225,36 @@ window.CRM.api = (function () {
     return envelope && envelope.data && Array.isArray(envelope.data.items) ? envelope.data.items : [];
   }
 
+  // Password policy: the single rule shown to users — at least 12 characters
+  // with an uppercase letter, a lowercase letter and a digit. Unicode-aware, so
+  // a password written with Cyrillic (or any non-ASCII) letters is accepted, and
+  // no special character is required. Kept in sync with the server-side
+  // Api\System\Library\Security\PasswordPolicy.
+  var PASSWORD_MIN_LENGTH = 12;
+
+  function passwordFailures(password) {
+    var value = String(password == null ? '' : password);
+    var failures = [];
+    var length = Array.from(value).length; // count code points, like mb_strlen
+    if (length < PASSWORD_MIN_LENGTH) failures.push('too_short');
+    if (!matchesLetterClass(value, 'Lu', /[A-Z]/)) failures.push('missing_upper');
+    if (!matchesLetterClass(value, 'Ll', /[a-z]/)) failures.push('missing_lower');
+    if (!matchesLetterClass(value, 'Nd', /[0-9]/)) failures.push('missing_digit');
+    return failures;
+  }
+
+  function matchesLetterClass(value, category, asciiFallback) {
+    try {
+      return new RegExp('\\p{' + category + '}', 'u').test(value);
+    } catch (e) {
+      return asciiFallback.test(value);
+    }
+  }
+
+  function isStrongPassword(password) {
+    return passwordFailures(password).length === 0;
+  }
+
   bindGlobalTelemetry();
   setToken(sessionGet(IMPERSONATION_TOKEN_KEY, '') || getCookieAuthToken());
 
@@ -1237,6 +1267,9 @@ window.CRM.api = (function () {
     buildWebUrl: buildWebUrl,
     currentRoute: currentRoute,
     request: request,
+    PASSWORD_MIN_LENGTH: PASSWORD_MIN_LENGTH,
+    passwordFailures: passwordFailures,
+    isStrongPassword: isStrongPassword,
     items: items,
     createIdempotencyKey: createIdempotencyKey,
     setToken: setToken,

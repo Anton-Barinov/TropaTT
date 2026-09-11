@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Support\Ulid;
 use PDO;
 
@@ -166,7 +167,7 @@ final class ServerErrorService
                 $this->enabled = false;
                 $this->retryAfter = time() + 60;
             }
-            error_log('[ServerErrorService::logError] Failed: ' . $e->getMessage());
+            AppLog::error('[ServerErrorService::logError] Failed: ' . $e->getMessage());
         }
     }
 
