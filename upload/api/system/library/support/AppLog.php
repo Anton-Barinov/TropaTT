@@ -24,6 +24,32 @@ final class AppLog
         self::$logger = $logger;
     }
 
+    /**
+     * Publish a file logger for CLI workers (cron scheduler, queue worker) that
+     * never build the HTTP container. Without it those processes fall back to
+     * error_log(), which stock PHP-FPM discards — the exact blind spot this
+     * helper exists for.
+     *
+     * @param \Api\System\Library\Config $config
+     */
+    public static function bootFromConfig($config, string $configPath = ''): void
+    {
+        try {
+            if ($configPath !== '' && is_file($configPath) && !$config->get('logging.channels')) {
+                $config->load($configPath, 'logging');
+            }
+
+            $channels = (array)$config->get('logging.channels', []);
+            if ($channels === []) {
+                return;
+            }
+
+            self::setLogger(new JsonLogger($channels, (array)$config->get('logging.mask_keys', [])));
+        } catch (\Throwable $e) {
+            error_log('[AppLog] unable to bootstrap the CLI logger: ' . $e->getMessage());
+        }
+    }
+
     /** @param array<string,mixed> $context */
     public static function error(string $message, array $context = []): void
     {
@@ -42,8 +68,10 @@ final class AppLog
         $logger = self::$logger;
         if ($logger !== null) {
             try {
-                // Application channel: file + database, with the logger's masking.
-                $logger->log('application', $level, $message, $context);
+                // Error channel (the documented place operators look) with the
+                // logger's masking; JsonLogger also falls back there for channels
+                // that are not configured.
+                $logger->log('error', $level, $message, $context);
                 return;
             } catch (\Throwable $e) {
                 // Never let logging break the caller; fall through to error_log().
