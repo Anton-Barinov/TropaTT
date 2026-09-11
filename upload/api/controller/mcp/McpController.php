@@ -3312,6 +3312,9 @@ $tools[] = $this->tool(
                 'color' => ['type' => 'string'],
                 'key_name' => ['type' => 'string', 'description' => 'API key display name.'],
                 'revoke_keys' => ['type' => 'boolean', 'description' => 'delete_api_client only: also revoke the client keys (required when the client still has active keys).'],
+                'permission_id' => ['type' => 'integer', 'description' => 'remove_space_permission: legacy numeric permission id; alternatively pass public_id + subject_type + subject_public_id.'],
+                'subject_type' => ['type' => 'string', 'description' => 'Permission subject type (user, role, team, department).'],
+                'subject_public_id' => ['type' => 'string', 'description' => 'Permission subject public id (usr_..., rol_..., tem_..., dep_...).'],
                 'q' => ['type' => 'string', 'description' => 'Search/filter query.'],
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
@@ -9822,6 +9825,10 @@ $tools[] = $this->tool(
             }
         } elseif (isset($data['pages']) && is_array($data['pages'])) {
             $pages = $data['pages'];
+        } elseif (isset($data['page']) && is_array($data['page'])) {
+            // accept the exact envelope returned by export_page, so
+            // export -> import round-trips without manual re-wrapping
+            $pages[] = $data['page'];
         } else {
             $pages[] = $data;
         }
@@ -10151,7 +10158,16 @@ $tools[] = $this->tool(
     {
         $permissionId = (int)($arguments['permission_id'] ?? 0);
         if ($permissionId <= 0) {
-            return ['error' => 'permission_id is required.'];
+            // A client only knows public identifiers (the API never exposes an
+            // internal permission id), so a grant must be revocable by subject.
+            $permissionId = (int)($this->knowledge()->findSpacePermissionIdBySubject(
+                trim((string)($arguments['public_id'] ?? '')),
+                trim((string)($arguments['subject_type'] ?? '')),
+                trim((string)($arguments['subject_public_id'] ?? ''))
+            ) ?? 0);
+        }
+        if ($permissionId <= 0) {
+            return ['error' => 'permission_id, or public_id with subject_type and subject_public_id, is required.'];
         }
         $this->knowledge()->removeSpacePermission($permissionId);
         return ['removed' => true];

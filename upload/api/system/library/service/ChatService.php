@@ -486,6 +486,46 @@ final class ChatService
      * @param int $actorUserId User archiving the chat
      * @return array Empty array on failure, chat row on success
      */
+    /**
+     * Archive the system chat attached to a team or project when that entity is
+     * removed. Without this the chat survived its owner and stayed visible in the
+     * chat list as an empty, meaningless conversation.
+     *
+     * Unlike archiveChat() this is a system action: it is not limited to the chat
+     * creator, because the entity may be deleted by another administrator.
+     */
+    public function archiveSystemChatFor(?int $teamId, ?int $projectId): int
+    {
+        $conditions = [];
+        $params = [];
+        if (($teamId ?? 0) > 0) {
+            $conditions[] = 'team_id = :team';
+            $params['team'] = (int)$teamId;
+        }
+        if (($projectId ?? 0) > 0) {
+            $conditions[] = 'project_id = :project';
+            $params['project'] = (int)$projectId;
+        }
+        if ($conditions === []) {
+            return 0;
+        }
+
+        $select = $this->pdo->prepare('SELECT id FROM chats WHERE archived_at IS NULL AND (' . implode(' OR ', $conditions) . ')');
+        $select->execute($params);
+        $chatIds = array_map('intval', $select->fetchAll(PDO::FETCH_COLUMN));
+        if ($chatIds === []) {
+            return 0;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($chatIds), '?'));
+        $this->pdo->prepare("UPDATE chats SET archived_at = ?, archived_by_user_id = NULL, archived_participant_ids = '[]' WHERE id IN ({$placeholders})")
+            ->execute(array_merge([gmdate('Y-m-d H:i:s')], $chatIds));
+        $this->pdo->prepare("DELETE FROM chat_participants WHERE chat_id IN ({$placeholders})")
+            ->execute($chatIds);
+
+        return count($chatIds);
+    }
+
     public function archiveChat(int $chatId, int $actorUserId): array
     {
         if ($chatId <= 0 || $actorUserId <= 0) {

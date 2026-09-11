@@ -383,6 +383,8 @@ final class ProjectService
         $archived = $this->projects->archiveByPublicId($publicId, gmdate('Y-m-d H:i:s'));
         if ($archived) {
             $this->semanticIndex?->removeEntityDocument('project', $publicId);
+            // the project's system chat must not outlive the project
+            $this->chats?->archiveSystemChatFor(null, (int)($project['id'] ?? 0));
         }
 
         return $archived;
