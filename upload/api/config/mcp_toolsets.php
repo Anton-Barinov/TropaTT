@@ -61,6 +61,9 @@ return [
             'crm_knowledge',
             'crm_ai',
             'crm_admin',
+            // AgentOS tools: bundle and memory
+            'crm_agent_bundle',
+            'crm_agent_memory',
         ],
     ],
     'tasks' => [

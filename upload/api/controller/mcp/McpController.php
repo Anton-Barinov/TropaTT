@@ -3022,6 +3022,7 @@ $tools[] = $this->tool(
                 'resolve_minutes' => ['type' => 'integer', 'description' => 'SLA resolution target, in minutes.'],
                 'response_minutes' => ['type' => 'integer', 'description' => 'SLA first-response target, in minutes.'],
                 'trigger_code' => ['type' => 'string', 'description' => 'Workflow trigger code.'],
+                'density' => ['type' => 'string', 'enum' => ['rich', 'compact'], 'description' => 'Response density mode. "compact" returns minimal token-efficient envelope.'],
             ],
             ['action']
         );
@@ -3384,6 +3385,89 @@ $tools[] = $this->tool(
                 'values' => ['type' => 'string', 'description' => 'Values map.'],
                 'weight' => ['type' => 'integer', 'description' => 'Numeric value (integer).'],
                 'endpoint' => ['type' => 'string', 'description' => 'Webhook endpoint URL.'],
+            ],
+            ['action']
+        );
+
+        // --- AgentOS tools: bundle and memory ---
+        $tools[] = $this->tool(
+            'crm_agent_bundle',
+            'Atomic multi-operation task initialization for AI agents. In a single call creates a task, attaches knowledge links, creates checklists and items, creates subtasks, optionally spawns a blocking QA task, and claims the task with an agent lock comment. Supports density: "rich" | "compact".',
+            [
+                'task' => [
+                    'type' => 'object',
+                    'description' => 'Main task definition (title, description, project_public_id, priority, due_at, status).',
+                    'properties' => [
+                        'title' => ['type' => 'string', 'description' => 'Task title (required).'],
+                        'description' => ['type' => 'string', 'description' => 'Task description (Markdown).'],
+                        'project_public_id' => ['type' => 'string', 'description' => 'Project public_id.'],
+                        'priority' => ['type' => 'string', 'enum' => ['low', 'normal', 'high', 'urgent']],
+                        'status' => ['type' => 'string', 'description' => 'Initial status code.'],
+                        'due_at' => ['type' => 'string', 'description' => 'Due date ISO 8601.'],
+                        'assignee_user_public_id' => ['type' => 'string', 'description' => 'Assignee usr_... public_id.'],
+                    ],
+                    'required' => ['title'],
+                ],
+                'checklists' => [
+                    'type' => 'array',
+                    'description' => 'Checklists to create with their items.',
+                    'items' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'title' => ['type' => 'string'],
+                            'items' => ['type' => 'array', 'items' => ['type' => 'string']],
+                        ],
+                        'required' => ['title'],
+                    ],
+                ],
+                'subtasks' => [
+                    'type' => 'array',
+                    'description' => 'Subtasks to create under the main task.',
+                    'items' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'title' => ['type' => 'string'],
+                            'priority' => ['type' => 'string', 'enum' => ['low', 'normal', 'high', 'urgent']],
+                            'assignee_user_public_id' => ['type' => 'string'],
+                            'description' => ['type' => 'string'],
+                        ],
+                        'required' => ['title'],
+                    ],
+                ],
+                'knowledge_links' => [
+                    'type' => 'array',
+                    'items' => ['type' => 'string'],
+                    'description' => 'Knowledge base page public IDs (kbp_...) to link as regulations/specifications.',
+                ],
+                'auto_qa_task' => [
+                    'type' => 'boolean',
+                    'description' => 'If true, automatically creates a blocking [QA/Тестирование] task.',
+                ],
+                'lock_agent' => [
+                    'type' => 'string',
+                    'description' => 'Agent identifier to claim and set status to in_progress with a lock comment.',
+                ],
+                'density' => [
+                    'type' => 'string',
+                    'enum' => ['rich', 'compact'],
+                    'description' => 'Response density mode. "compact" returns minimal token-efficient summary.',
+                ],
+            ],
+            ['task']
+        );
+
+        $tools[] = $this->tool(
+            'crm_agent_memory',
+            'Persistent key-value memory store for AI agents across sessions and tool runs. Supports get, set, list, and delete actions with scope isolation.',
+            [
+                'action' => ['type' => 'string', 'enum' => ['get', 'set', 'list', 'delete']],
+                'scope' => ['type' => 'string', 'description' => 'Memory scope or namespace (default: "global").'],
+                'key' => ['type' => 'string', 'description' => 'Key name.'],
+                'value' => ['description' => 'Value to store (for set action). Can be string, number, boolean, array or object.'],
+                'prefix' => ['type' => 'string', 'description' => 'Prefix filter for list action.'],
+                'metadata' => ['type' => 'object', 'additionalProperties' => true, 'description' => 'Optional metadata object for set action.'],
+                'limit' => ['type' => 'integer', 'default' => 50],
+                'page' => ['type' => 'integer', 'default' => 1],
             ],
             ['action']
         );
@@ -4162,6 +4246,8 @@ $tools[] = $this->tool(
             'crm_knowledge' => $this->handleMegaTool('crm_knowledge', $arguments),
             'crm_ai' => $this->handleMegaTool('crm_ai', $arguments),
             'crm_admin' => $this->handleMegaTool('crm_admin', $arguments),
+            'crm_agent_bundle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmAgentBundle($arguments))),
+            'crm_agent_memory' => $this->toolResult($this->crmAgentMemory($arguments)),
             default => $this->toolError('Unknown tool: ' . $name),
         };
         } catch (Throwable $e) {
@@ -4236,6 +4322,43 @@ $tools[] = $this->tool(
         return $cache[$toolName] = array_values($actions);
     }
 
+    private function compactTaskPayload(array $payload): array
+    {
+        if (isset($payload['task']) && is_array($payload['task'])) {
+            $t = $payload['task'];
+            $payload['task'] = [
+                'public_id' => $t['public_id'] ?? '',
+                'key' => $t['key'] ?? null,
+                'title' => $t['title'] ?? '',
+                'status_code' => $t['status_code'] ?? ($t['status'] ?? 'new'),
+                'priority_code' => $t['priority_code'] ?? ($t['priority'] ?? 'normal'),
+                'assignee_user_public_id' => $t['assignee_user_public_id'] ?? null,
+                'project_public_id' => $t['project_public_id'] ?? null,
+                'due_at' => $t['due_at'] ?? null,
+            ];
+            if (isset($t['checklists'])) {
+                $payload['task']['checklists_count'] = count((array)$t['checklists']);
+            }
+            if (isset($t['subtasks'])) {
+                $payload['task']['subtasks_count'] = count((array)$t['subtasks']);
+            }
+        } elseif (isset($payload['items']) && is_array($payload['items'])) {
+            $payload['items'] = array_map(function ($item) {
+                if (!is_array($item)) return $item;
+                return [
+                    'public_id' => $item['public_id'] ?? '',
+                    'key' => $item['key'] ?? null,
+                    'title' => $item['title'] ?? '',
+                    'status_code' => $item['status_code'] ?? ($item['status'] ?? 'new'),
+                    'priority_code' => $item['priority_code'] ?? ($item['priority'] ?? 'normal'),
+                    'assignee_user_public_id' => $item['assignee_user_public_id'] ?? null,
+                    'project_public_id' => $item['project_public_id'] ?? null,
+                ];
+            }, $payload['items']);
+        }
+        return $payload;
+    }
+
     private function handleMegaTool(string $toolName, array $arguments): array
     {
         $action = trim((string)($arguments['action'] ?? ''));
@@ -4281,7 +4404,7 @@ $tools[] = $this->tool(
             );
         }
 
-        return match ($toolName) {
+        $res = match ($toolName) {
             'crm_task' => $this->dispatchTaskMega($action, $arguments),
             'crm_project' => $this->dispatchProjectMega($action, $arguments),
             'crm_people' => $this->dispatchPeopleMega($action, $arguments),
@@ -4292,6 +4415,15 @@ $tools[] = $this->tool(
             'crm_admin' => $this->dispatchAdminMega($action, $arguments),
             default => $this->toolError('Unknown mega-tool: ' . $toolName),
         };
+
+        if ($toolName === 'crm_task' && (($arguments['density'] ?? '') === 'compact')) {
+            if (isset($res['structuredContent']) && is_array($res['structuredContent'])) {
+                $res['structuredContent'] = $this->compactTaskPayload($res['structuredContent']);
+                $res['content'] = [['type' => 'text', 'text' => json_encode($res['structuredContent'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]];
+            }
+        }
+
+        return $res;
     }
 
     /**
@@ -6400,6 +6532,221 @@ $tools[] = $this->tool(
         }
 
         return $item;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // AGENT WORKSPACE & COORDINATION: bundle, memory, compact mode
+    // ═══════════════════════════════════════════════════════════════════
+
+    private function crmAgentMemory(array $arguments): array
+    {
+        $action = trim((string)($arguments['action'] ?? 'get'));
+        $scope = trim((string)($arguments['scope'] ?? 'global'));
+        if ($scope === '') {
+            $scope = 'global';
+        }
+
+        /** @var \Api\System\Library\Service\AgentMemoryService $service */
+        $service = $this->container->get('service.agent_memory');
+
+        return match ($action) {
+            'get' => (function() use ($service, $scope, $arguments) {
+                $key = trim((string)($arguments['key'] ?? ''));
+                if ($key === '') {
+                    return ['error' => 'key is required for get action.'];
+                }
+                $res = $service->get($scope, $key);
+                return $res !== null ? ['memory' => $res] : ['error' => 'Memory key not found.'];
+            })(),
+            'set' => (function() use ($service, $scope, $arguments) {
+                $key = trim((string)($arguments['key'] ?? ''));
+                if ($key === '') {
+                    return ['error' => 'key is required for set action.'];
+                }
+                if (!array_key_exists('value', $arguments)) {
+                    return ['error' => 'value is required for set action.'];
+                }
+                $value = $arguments['value'];
+                $metadata = isset($arguments['metadata']) && is_array($arguments['metadata']) ? $arguments['metadata'] : null;
+                $actor = $this->actor();
+                $actorId = (int)($actor['id'] ?? 0);
+                return $service->set($scope, $key, $value, $actorId > 0 ? $actorId : null, $metadata);
+            })(),
+            'list' => (function() use ($service, $scope, $arguments) {
+                $prefix = isset($arguments['prefix']) ? (string)$arguments['prefix'] : null;
+                $limit = isset($arguments['limit']) ? (int)$arguments['limit'] : 50;
+                $page = isset($arguments['page']) ? max(1, (int)$arguments['page']) : 1;
+                $offset = ($page - 1) * $limit;
+                return $service->list($scope, $prefix, $limit, $offset);
+            })(),
+            'delete' => (function() use ($service, $scope, $arguments) {
+                $key = trim((string)($arguments['key'] ?? ''));
+                if ($key === '') {
+                    return ['error' => 'key is required for delete action.'];
+                }
+                $deleted = $service->delete($scope, $key);
+                return ['deleted' => $deleted];
+            })(),
+            default => ['error' => 'Unknown action: ' . $action . '. Supported: get, set, list, delete.'],
+        };
+    }
+
+    private function crmAgentBundle(array $arguments): array
+    {
+        $taskData = $arguments['task'] ?? [];
+        if (!is_array($taskData) || empty($taskData['title'])) {
+            return ['error' => 'task.title is required in bundle.'];
+        }
+
+        // 1. Create main task via crmCreateTask to ensure all automation/hooks trigger
+        $taskRes = $this->crmCreateTask($taskData);
+        if (isset($taskRes['error'])) {
+            return ['error' => 'Failed to create bundle task: ' . $taskRes['error']];
+        }
+
+        $createdTask = $taskRes['task'] ?? $taskRes;
+        $taskPublicId = (string)($createdTask['public_id'] ?? '');
+        if ($taskPublicId === '') {
+            return ['error' => 'Created task public_id could not be resolved.', 'raw_response' => $taskRes];
+        }
+
+        $summary = [
+            'task' => $createdTask,
+            'subtasks' => [],
+            'checklists' => [],
+            'knowledge_links' => [],
+            'qa_task' => null,
+            'claim_comment' => null,
+        ];
+
+        // 2. Attach knowledge links if provided
+        $kLinks = $arguments['knowledge_links'] ?? [];
+        if (is_array($kLinks)) {
+            foreach ($kLinks as $kPagePublicId) {
+                $kPagePublicId = trim((string)$kPagePublicId);
+                if ($kPagePublicId !== '') {
+                    $linkRes = $this->crmLinkKnowledgePageEntity([
+                        'public_id' => $kPagePublicId,
+                        'entity_type' => 'task',
+                        'entity_public_id' => $taskPublicId,
+                        'relation_type' => 'related',
+                    ]);
+                    if (!isset($linkRes['error'])) {
+                        $summary['knowledge_links'][] = $linkRes['link'] ?? ['page_public_id' => $kPagePublicId];
+                    }
+                }
+            }
+        }
+
+        // 3. Create checklists and items if provided
+        $checklists = $arguments['checklists'] ?? [];
+        if (is_array($checklists)) {
+            foreach ($checklists as $ch) {
+                if (!is_array($ch) || empty($ch['title'])) {
+                    continue;
+                }
+                $chRes = $this->crmCreateTaskChecklist([
+                    'task_public_id' => $taskPublicId,
+                    'title' => (string)$ch['title'],
+                ]);
+                if (isset($chRes['checklist'])) {
+                    $chItem = $chRes['checklist'];
+                    $chPublicId = (string)$chItem['public_id'];
+                    $chItem['items'] = [];
+                    if (!empty($ch['items']) && is_array($ch['items'])) {
+                        foreach ($ch['items'] as $it) {
+                            $itTitle = is_array($it) ? (string)($it['title'] ?? '') : (string)$it;
+                            $itTitle = trim($itTitle);
+                            if ($itTitle !== '') {
+                                $itRes = $this->crmCreateChecklistItem([
+                                    'checklist_public_id' => $chPublicId,
+                                    'title' => $itTitle,
+                                    'is_done' => is_array($it) ? (bool)($it['is_done'] ?? false) : false,
+                                ]);
+                                if (isset($itRes['item'])) {
+                                    $chItem['items'][] = $itRes['item'];
+                                }
+                            }
+                        }
+                    }
+                    $summary['checklists'][] = $chItem;
+                }
+            }
+        }
+
+        // 4. Create subtasks if provided
+        $subtasks = $arguments['subtasks'] ?? [];
+        if (is_array($subtasks)) {
+            foreach ($subtasks as $st) {
+                if (!is_array($st) || empty($st['title'])) {
+                    continue;
+                }
+                $stArgs = $st;
+                $stArgs['task_public_id'] = $taskPublicId;
+                $stRes = $this->crmCreateSubtask($stArgs);
+                if (isset($stRes['subtask'])) {
+                    $summary['subtasks'][] = $stRes['subtask'];
+                }
+            }
+        }
+
+        // 5. Optional auto QA task creation
+        if (!empty($arguments['auto_qa_task'])) {
+            $qaTitle = '[QA/Тестирование] Верификация: ' . ($createdTask['title'] ?? $taskData['title']);
+            $qaProject = $taskData['project_public_id'] ?? null;
+            $qaRes = $this->crmCreateTask([
+                'title' => $qaTitle,
+                'description' => 'Автоматически созданная задача верификации для ' . ($createdTask['key'] ?? $taskPublicId),
+                'project_public_id' => $qaProject,
+                'priority' => 'high',
+                'status' => 'new',
+            ]);
+            if (isset($qaRes['task'])) {
+                $qaTask = $qaRes['task'];
+                $qaPublicId = (string)$qaTask['public_id'];
+                // Link with BLOCKS relation
+                $this->crmCreateTaskRelation([
+                    'task_public_id' => $taskPublicId,
+                    'related_task_public_id' => $qaPublicId,
+                    'relation_type' => 'BLOCKS',
+                ]);
+                $summary['qa_task'] = $qaTask;
+            }
+        }
+
+        // 6. Claim lock comment if agent identifier given
+        $lockAgent = trim((string)($arguments['lock_agent'] ?? ''));
+        if ($lockAgent !== '') {
+            $claimText = '[Auto-Claim] Задача инициализирована и заблокирована агентом [' . $lockAgent . ']. Взята в работу.';
+            $claimRes = $this->crmAddTaskComment([
+                'task_public_id' => $taskPublicId,
+                'body' => $claimText,
+            ]);
+            $this->crmUpdateTask([
+                'public_id' => $taskPublicId,
+                'status' => 'in_progress',
+            ]);
+            $summary['claim_comment'] = $claimRes['comment'] ?? $claimText;
+            $summary['task']['status_code'] = 'in_progress';
+        }
+
+        // Density check
+        $density = trim((string)($arguments['density'] ?? ''));
+        if ($density === 'compact') {
+            return [
+                'bundle' => [
+                    'task_public_id' => $taskPublicId,
+                    'key' => $createdTask['key'] ?? null,
+                    'title' => $createdTask['title'] ?? '',
+                    'status' => $summary['task']['status_code'] ?? ($createdTask['status_code'] ?? 'new'),
+                    'subtasks_count' => count($summary['subtasks']),
+                    'checklists_count' => count($summary['checklists']),
+                    'qa_task_public_id' => $summary['qa_task']['public_id'] ?? null,
+                ]
+            ];
+        }
+
+        return ['bundle' => $summary];
     }
 
     private function crmListFeatureFlags(array $arguments): array
