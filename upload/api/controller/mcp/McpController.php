@@ -2756,9 +2756,11 @@ MD;
         ], ['public_id', 'status']);
         $tools[] = $this->tool('crm_list_idea_comments', 'List comments for a visible CRM idea.', [
             'public_id' => ['type' => 'string'],
+            'idea_public_id' => ['type' => 'string', 'description' => 'Alias of public_id, matching crm_add_idea_comment.'],
         ], ['public_id']);
         $tools[] = $this->tool('crm_add_idea_comment', 'Add a comment to a visible CRM idea.', [
             'idea_public_id' => ['type' => 'string'],
+            'public_id' => ['type' => 'string', 'description' => 'Alias of idea_public_id, matching crm_list_idea_comments.'],
             'body' => ['type' => 'string'],
         ], ['idea_public_id', 'body']);
         foreach ($this->ideaWorkflowTools() as $toolName => $toolDef) {
@@ -11639,9 +11641,11 @@ $tools[] = $this->tool(
 
     private function crmListIdeaComments(array $arguments): array
     {
-        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        // Accept the name its sibling tool (crm_add_idea_comment) uses so a client
+        // can reuse one argument across the pair.
+        $publicId = $this->argumentPublicId($arguments, ['public_id', 'idea_public_id']);
         if ($publicId === '') {
-            return ['error' => 'public_id is required.'];
+            return ['error' => 'public_id (or idea_public_id) is required.'];
         }
 
         $pdo = $this->pdo();
@@ -11659,7 +11663,7 @@ $tools[] = $this->tool(
 
     private function crmAddIdeaComment(array $arguments): array
     {
-        $ideaPublicId = trim((string)($arguments['idea_public_id'] ?? ''));
+        $ideaPublicId = $this->argumentPublicId($arguments, ['idea_public_id', 'public_id']);
         $body = trim((string)($arguments['body'] ?? ''));
         if ($ideaPublicId === '' || $body === '') {
             return ['error' => 'idea_public_id and body are required.'];
