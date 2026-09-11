@@ -10,6 +10,7 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 - **MCP connection block on the API-clients page.** The admin page now shows the MCP server URL for the current installation (subdirectory installs included), a ready-to-copy `.mcp.json` snippet with a key placeholder, a copy button, and a link to the in-product documentation. Previously the page issued keys without any hint that MCP exists.
 - **Structured page content in the MCP reference.** `crm_knowledge` documents `content_html` / `content_json` for page create/update/draft.
+- **MCP cleanup tools for AI idea workflows.** `crm_clear_idea_ai_interview` (DELETE `/ideas/{id}/interview`) and `crm_clear_idea_ai_debug_log` (DELETE `/ideas/{id}/debug-log`) let an agent delete the interview questions, answers and AI iteration log it generated, so a test or review run leaves no AI artifacts behind. Both operations existed over REST but were unreachable through MCP.
 
 ### Changed
 
@@ -38,6 +39,8 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 - **AI ideas create real tasks.** `ideas/{id}/ai/tasks` inserted rows with hand-made `task_<hex>` ids inside its own transaction, so every call failed with a 500 "creation failed" (the database rejected the nested transaction). Tasks are now created through `TaskService`, giving them normal `tsk_…` ids, task keys and parent links.
 - **A disabled AI-ideas feature answers with `FEATURE_DISABLED` (403)** instead of the generic `Controller invocation failed. Check server logs for details.`
 - **AI task-creation failures are logged through the application logger** (visible in `storage_api/logs/error.log`) instead of `error_log()`, whose output stock PHP-FPM discards.
+- **MCP idea tools enforce the same permissions as their REST routes.** Idea workflow tools are invoked directly on the controller, so the route-level check never ran and all of them accepted `idea.manage` or `task.manage` — a user with only `idea.manage` could read the AI debug log that `GET /ideas/{id}/debug-log` restricts to `ai.admin`. Each tool now carries the permission of its REST route; the `task.manage` escape hatch is gone.
+- **Controller failures inside MCP and idea-AI flows reach `storage_api/logs/error.log`.** The MCP controller wrapper and the AI task-creation path logged through `error_log()`, which stock PHP-FPM discards, leaving the generic "Controller invocation failed" message with no diagnosable cause on the server.
 
 ## [v0.2.0.11] - 2026-09-09
 
