@@ -935,7 +935,15 @@ final class App
         $this->container->factory('db.pdo', fn() => $db->connect());
         // `db.pdo` hands back the cached handle; after a long request the MySQL
         // server may have closed it, so callers need a way to get a fresh one.
-        $this->container->factory('db.reconnect', fn() => $db->reconnect());
+        $this->container->factory('db.reconnect', function (Container $c) use ($db) {
+            $fresh = $db->reconnect();
+            // `db.pdo` was cached with the handle that just failed and would keep
+            // handing it out for the rest of the request; rebind it so every
+            // dependency resolved after recovery uses the live connection.
+            $c->set('db.pdo', $fresh);
+
+            return $fresh;
+        });
         $this->container->factory('repository.user', fn(Container $c) => new \Api\Model\Common\UserRepository($c->get('db.pdo')));
         $this->container->factory('repository.idempotency', fn(Container $c) => new \Api\Model\Common\IdempotencyRepository($c->get('db.pdo')));
         $this->container->factory('repository.auth', fn(Container $c) => new \Api\Model\Auth\AuthRepository($c->get('db.pdo')));
@@ -1761,7 +1769,9 @@ final class App
 
         $this->container->factory('controller.module', fn(Container $c) => new \Api\Controller\Module\ModuleController($c));
         $this->container->factory('service.idea', fn(Container $c) => new \Api\System\Library\Service\IdeaService(
-            $c->get('db.pdo'),
+            // Resolve per query instead of once: a long AI call can outlive the
+            // handle captured when the service was built (see ConnectionManager).
+            fn() => $c->get('db.pdo'),
             $c->get('lang')
         ));
 

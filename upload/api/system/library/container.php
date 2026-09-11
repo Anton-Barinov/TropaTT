@@ -24,6 +24,20 @@ final class Container
         $this->factories[$id] = $factory;
     }
 
+    /**
+     * Drop a cached entry so the next `get()` rebuilds it.
+     *
+     * A factory result is cached on first use, so an instance built around a
+     * resource that later becomes invalid (the PDO handle MySQL closed during a
+     * long AI call, see `db.reconnect`) keeps being handed out for the rest of
+     * the request. Callers that know a dependency must be rebuilt can evict it
+     * here and resolve it again on the live resource.
+     */
+    public function forget(string $id): void
+    {
+        unset($this->entries[$id]);
+    }
+
     public function get(string $id): mixed
     {
         if (array_key_exists($id, $this->entries)) {
