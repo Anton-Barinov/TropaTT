@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\Controller\Custom_field;
 
 use Api\Controller\Common\BaseController;
+use Api\System\Library\Module\ModuleEvents;
 use Api\System\Library\Service\CustomFieldService;
 use Api\System\Library\Validation\Validator;
 
@@ -76,6 +77,14 @@ final class CustomFieldController extends BaseController
         }
         $this->invalidateCache('custom_field');
 
+
+        $this->dispatchModuleHook(ModuleEvents::CUSTOM_FIELD_CREATED, [
+            'field_public_id' => (string)($item['public_id'] ?? ''),
+            'scope' => (string)($item['scope'] ?? ''),
+            'code' => (string)($item['code'] ?? ''),
+            'type' => (string)($item['field_type'] ?? $item['type'] ?? ''),
+            'actor_id' => (int)($authUser['user']['id'] ?? 0),
+        ]);
         return $this->success('CUSTOM_FIELD_CREATED', $this->t('custom_field/messages.created'), [
             'field' => $item,
         ], 201);
@@ -141,6 +150,14 @@ final class CustomFieldController extends BaseController
         if (!$item) {
             return $this->error('CUSTOM_FIELD_NOT_FOUND', $this->t('custom_field/messages.not_found'), 404);
         }
+        $this->dispatchModuleHook(ModuleEvents::CUSTOM_FIELD_UPDATED, [
+            'field_public_id' => (string)($item['public_id'] ?? $params['public_id']),
+            'scope' => (string)($item['scope'] ?? ''),
+            'code' => (string)($item['code'] ?? ''),
+            'type' => (string)($item['field_type'] ?? $item['type'] ?? ''),
+            'actor_id' => (int)($this->user()['user']['id'] ?? 0),
+        ]);
+
         $this->invalidateCache('custom_field');
 
         return $this->success('CUSTOM_FIELD_UPDATED', $this->t('custom_field/messages.updated'), [
@@ -160,6 +177,12 @@ final class CustomFieldController extends BaseController
         if (!$ok) {
             return $this->error('CUSTOM_FIELD_NOT_FOUND', $this->t('custom_field/messages.not_found'), 404);
         }
+
+        $this->dispatchModuleHook(ModuleEvents::CUSTOM_FIELD_DELETED, [
+            'field_public_id' => (string)$params['public_id'],
+            'actor_id' => (int)($this->user()['user']['id'] ?? 0),
+        ]);
+
         $this->invalidateCache('custom_field');
 
         return $this->success('CUSTOM_FIELD_DELETED', $this->t('custom_field/messages.deleted'), []);

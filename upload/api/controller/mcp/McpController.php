@@ -20,6 +20,10 @@ use Api\Controller\Project\ProjectController;
 use Api\Controller\Security\SessionController;
 use Api\Controller\Setting\RetentionController;
 use Api\System\Library\Module\ModuleEvents;
+use Api\Controller\Tag\TagController;
+use Api\Controller\Status\StatusController;
+use Api\Controller\Priority\PriorityController;
+use Api\Controller\Custom_field\CustomFieldController;
 use Api\Controller\Task\TaskController;
 use Api\Controller\User\UserController;
 use Api\Controller\Cycle\WorkCycleController;
@@ -2983,6 +2987,8 @@ $tools[] = $this->tool(
                 'target_status_code' => ['type' => 'string', 'description' => 'Target status for move action.'],
                 'position' => ['type' => 'integer', 'description' => 'Position on Kanban board for move action.'],
                 'task_public_ids' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Array of task public_ids for bulk_update.'],
+                'add_tag_public_ids' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Bulk update: tag public ids to attach to every listed task.'],
+                'remove_tag_public_ids' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Bulk update: tag public ids to detach from every listed task.'],
                 'related_task_public_id' => ['type' => 'string', 'description' => 'Related task for relations.'],
                 'relation_type' => ['type' => 'string', 'enum' => ['FS', 'SS', 'FF', 'SF', 'BLOCKS', 'RELATED']],
                 'tag_public_id' => ['type' => 'string'],
@@ -6905,27 +6911,29 @@ $tools[] = $this->tool(
         } elseif (isset($arguments['assignee_user_id'])) {
             $changes['assignee_user_id'] = (int)$arguments['assignee_user_id'];
         }
+        foreach (['add_tag_public_ids', 'remove_tag_public_ids'] as $tagField) {
+            if (!empty($arguments[$tagField]) && is_array($arguments[$tagField])) {
+                $changes[$tagField] = $arguments[$tagField];
+            }
+        }
         if ($changes === []) {
             return ['error' => 'At least one change (status, priority, assignee_user_id) is required.'];
         }
 
-        $input = [
+        // Through the controller: it fires the per-task module hooks (and with them
+        // the webhook subscriptions) and the workflow triggers for each task.
+        $result = $this->invokeControllerTool(TaskController::class, 'bulkUpdate', [
             'task_public_ids' => $taskPublicIds,
             'changes' => $changes,
-        ];
-
-        /** @var TaskBulkService $service */
-        $service = $this->container->get('service.task_bulk');
-        $result = $service->apply($input, $this->actor());
-
-        if (is_string($result)) {
-            return ['error' => $result];
+        ], 'POST');
+        if (isset($result['error'])) {
+            return $result;
         }
 
         return [
             'summary' => $result['summary'] ?? [],
-            'updated' => $result['updated'] ?? 0,
-            'skipped' => $result['skipped'] ?? 0,
+            'updated' => count((array)($result['updated'] ?? [])),
+            'skipped' => count((array)($result['skipped'] ?? [])),
         ];
     }
 
@@ -7322,70 +7330,61 @@ $tools[] = $this->tool(
         if (!empty($arguments['color'])) {
             $input['color'] = $arguments['color'];
         }
-        /** @var PriorityService $service */
-        $service = $this->container->get('service.priority');
-        $item = $service->create($input);
-        return is_array($item) ? ['priority' => $this->publicData($item)] : ['error' => (string)$item];
-    }
 
+        return $this->invokeControllerTool(PriorityController::class, 'create', $input, 'POST');
+    }
     private function crmUpdatePriority(array $arguments): array
     {
         $publicId = trim((string)($arguments['public_id'] ?? ''));
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
-        $input = [];
+        $input = ['public_id' => $publicId];
         foreach (['title', 'weight', 'color'] as $field) {
             if (array_key_exists($field, $arguments) && $arguments[$field] !== null) {
                 $input[$field] = $field === 'weight' ? (int)$arguments[$field] : $arguments[$field];
             }
         }
-        if ($input === []) {
+        if (count($input) === 1) {
             return ['error' => 'At least one field to update is required.'];
         }
-        /** @var PriorityService $service */
-        $service = $this->container->get('service.priority');
-        $item = $service->update($publicId, $input);
-        return is_array($item) ? ['priority' => $this->publicData($item)] : ['error' => (string)$item];
-    }
 
+        return $this->invokeControllerTool(PriorityController::class, 'update', $input, 'PATCH', ['public_id']);
+    }
     private function crmDeletePriority(array $arguments): array
     {
         $publicId = trim((string)($arguments['public_id'] ?? ''));
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
-        /** @var PriorityService $service */
-        $service = $this->container->get('service.priority');
-        $ok = $service->delete($publicId);
-        return $ok ? ['deleted' => true] : ['error' => 'Priority not found.'];
-    }
 
+        $result = $this->invokeControllerTool(PriorityController::class, 'delete', $arguments, 'DELETE', ['public_id']);
+
+        return isset($result['error']) ? $result : ['deleted' => true];
+    }
     private function crmDeleteTag(array $arguments): array
     {
         $publicId = trim((string)($arguments['public_id'] ?? ''));
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
-        /** @var TagService $service */
-        $service = $this->container->get('service.tag');
-        $ok = $service->delete($publicId);
-        return $ok ? ['deleted' => true] : ['error' => 'Tag not found.'];
-    }
 
+        $result = $this->invokeControllerTool(TagController::class, 'delete', $arguments, 'DELETE', ['public_id']);
+
+        return isset($result['error']) ? $result : ['deleted' => true];
+    }
     private function crmDeleteStatus(array $arguments): array
     {
         $publicId = trim((string)($arguments['public_id'] ?? ''));
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
-        $remapTo = !empty($arguments['remap_to_public_id']) ? $arguments['remap_to_public_id'] : null;
-        /** @var StatusService $service */
-        $service = $this->container->get('service.status');
-        $result = $service->delete($publicId, $remapTo);
-        return is_array($result) ? $result : ['error' => (string)$result];
-    }
+        if (!empty($arguments['remap_to_public_id'])) {
+            $arguments['remap_to_public_id'] = (string)$arguments['remap_to_public_id'];
+        }
 
+        return $this->invokeControllerTool(StatusController::class, 'delete', $arguments, 'DELETE', ['public_id']);
+    }
     private function crmDeleteCompany(array $arguments): array
     {
         $publicId = trim((string)($arguments['public_id'] ?? ''));
@@ -10941,12 +10940,8 @@ $tools[] = $this->tool(
             }
         }
 
-        /** @var CustomFieldService $service */
-        $service = $this->container->get('service.custom_field');
-        $item = $service->create($this->customFieldInput($arguments));
-        return is_array($item) ? ['field' => $this->publicData($item)] : ['error' => (string)$item];
+        return $this->invokeControllerTool(CustomFieldController::class, 'create', $this->customFieldInput($arguments), 'POST');
     }
-
     private function crmUpdateCustomField(array $arguments): array
     {
         $publicId = trim((string)($arguments['public_id'] ?? ''));
@@ -10954,15 +10949,14 @@ $tools[] = $this->tool(
             return ['error' => 'public_id is required.'];
         }
 
-        /** @var CustomFieldService $service */
-        $service = $this->container->get('service.custom_field');
-        $item = $service->update($publicId, $this->customFieldInput($arguments));
-        if ($item === null || $item === false) {
-            return ['error' => 'Custom field not found.'];
-        }
-        return is_array($item) ? ['field' => $this->publicData($item)] : ['error' => (string)$item];
+        return $this->invokeControllerTool(
+            CustomFieldController::class,
+            'update',
+            $this->customFieldInput($arguments) + ['public_id' => $publicId],
+            'PATCH',
+            ['public_id']
+        );
     }
-
     private function crmDeleteCustomField(array $arguments): array
     {
         $publicId = trim((string)($arguments['public_id'] ?? ''));
@@ -10970,12 +10964,10 @@ $tools[] = $this->tool(
             return ['error' => 'public_id is required.'];
         }
 
-        /** @var CustomFieldService $service */
-        $service = $this->container->get('service.custom_field');
-        $ok = $service->delete($publicId);
-        return $ok ? ['deleted' => true] : ['error' => 'Custom field not found.'];
-    }
+        $result = $this->invokeControllerTool(CustomFieldController::class, 'delete', $arguments, 'DELETE', ['public_id']);
 
+        return isset($result['error']) ? $result : ['deleted' => true];
+    }
     private function crmGetCustomFieldValues(array $arguments): array
     {
         $entityType = trim((string)($arguments['entity_type'] ?? ''));
@@ -10998,12 +10990,8 @@ $tools[] = $this->tool(
             return ['error' => 'entity_type, entity_public_id and non-empty values object are required.'];
         }
 
-        /** @var CustomFieldService $service */
-        $service = $this->container->get('service.custom_field');
-        $result = $service->setValues($entityType, $entityPublicId, $values);
-        return is_array($result) ? $this->publicData($result) : ['error' => (string)$result];
+        return $this->invokeControllerTool(CustomFieldController::class, 'setValues', $arguments, 'POST');
     }
-
     private function crmListSlaPolicies(array $arguments): array
     {
         /** @var SlaService $service */
@@ -11269,12 +11257,8 @@ $tools[] = $this->tool(
             }
         }
 
-        /** @var StatusService $service */
-        $service = $this->container->get('service.status');
-        $status = $service->create($this->statusInput($arguments));
-        return is_array($status) ? ['status' => $this->publicData($status)] : ['error' => (string)$status];
+        return $this->invokeControllerTool(StatusController::class, 'create', $this->statusInput($arguments), 'POST');
     }
-
     private function crmUpdateStatus(array $arguments): array
     {
         $publicId = trim((string)($arguments['public_id'] ?? ''));
@@ -11282,12 +11266,14 @@ $tools[] = $this->tool(
             return ['error' => 'public_id is required.'];
         }
 
-        /** @var StatusService $service */
-        $service = $this->container->get('service.status');
-        $status = $service->update($publicId, $this->statusInput($arguments));
-        return is_array($status) ? ['status' => $this->publicData($status)] : ['error' => (string)($status ?: 'Status not found.')];
+        return $this->invokeControllerTool(
+            StatusController::class,
+            'update',
+            $this->statusInput($arguments) + ['public_id' => $publicId],
+            'PATCH',
+            ['public_id']
+        );
     }
-
     private function crmListTags(array $arguments): array
     {
         /** @var TagService $service */
@@ -11315,16 +11301,14 @@ $tools[] = $this->tool(
             return ['error' => 'title is required.'];
         }
 
-        /** @var TagService $service */
-        $service = $this->container->get('service.tag');
         $input = $this->tagInput($arguments) + ['title' => $title];
         if (trim((string)($input['code'] ?? '')) === '') {
             $input['code'] = $this->slugCode($title);
         }
-        $tag = $service->create($input);
-        return is_array($tag) ? ['tag' => $this->publicData($tag)] : ['error' => (string)$tag];
-    }
 
+        // TagService::create used to be called directly, so tag.created never fired.
+        return $this->invokeControllerTool(TagController::class, 'create', $input, 'POST');
+    }
     private function crmUpdateTag(array $arguments): array
     {
         $publicId = trim((string)($arguments['public_id'] ?? ''));
@@ -11332,12 +11316,10 @@ $tools[] = $this->tool(
             return ['error' => 'public_id is required.'];
         }
 
-        /** @var TagService $service */
-        $service = $this->container->get('service.tag');
-        $tag = $service->update($publicId, $this->tagInput($arguments));
-        return is_array($tag) ? ['tag' => $this->publicData($tag)] : ['error' => (string)($tag ?: 'Tag not found.')];
-    }
+        $arguments['public_id'] = $publicId;
 
+        return $this->invokeControllerTool(TagController::class, 'update', $this->tagInput($arguments) + ['public_id' => $publicId], 'PATCH', ['public_id']);
+    }
     private function crmListTaskTags(array $arguments): array
     {
         $taskPublicId = trim((string)($arguments['task_public_id'] ?? ''));

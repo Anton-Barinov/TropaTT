@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\Controller\Tag;
 
 use Api\Controller\Common\BaseController;
+use Api\System\Library\Module\ModuleEvents;
 use Api\System\Library\Service\TagService;
 use Api\System\Library\Validation\Validator;
 
@@ -81,6 +82,13 @@ final class TagController extends BaseController
 
         $this->invalidateCache('tag');
 
+
+        $this->dispatchModuleHook(ModuleEvents::TAG_CREATED, [
+            'tag_public_id' => (string)($item['public_id'] ?? ''),
+            'code' => (string)($item['code'] ?? ''),
+            'title' => (string)($item['title'] ?? ''),
+            'actor_id' => (int)($authUser['user']['id'] ?? 0),
+        ]);
         return $this->success('TAG_CREATED', $this->t('tag/messages.created'), ['tag' => $item], 201);
     }
 
@@ -115,6 +123,13 @@ final class TagController extends BaseController
 
         $this->invalidateCache('tag');
 
+
+        $this->dispatchModuleHook(ModuleEvents::TAG_UPDATED, [
+            'tag_public_id' => (string)($item['public_id'] ?? ''),
+            'code' => (string)($item['code'] ?? ''),
+            'title' => (string)($item['title'] ?? ''),
+            'actor_id' => (int)($authUser['user']['id'] ?? 0),
+        ]);
         return $this->success('TAG_UPDATED', $this->t('tag/messages.updated'), ['tag' => $item]);
     }
 
@@ -128,6 +143,12 @@ final class TagController extends BaseController
                 'tag' => [$this->t('tag/messages.not_found')],
             ]);
         }
+
+
+        $this->dispatchModuleHook(ModuleEvents::TAG_DELETED, [
+            'tag_public_id' => (string)$params['public_id'],
+            'actor_id' => (int)($this->user()['user']['id'] ?? 0),
+        ]);
 
         $this->invalidateCache('tag');
 

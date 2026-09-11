@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\Controller\Status;
 
 use Api\Controller\Common\BaseController;
+use Api\System\Library\Module\ModuleEvents;
 use Api\System\Library\Service\StatusService;
 use Api\System\Library\Validation\Validator;
 
@@ -84,6 +85,14 @@ final class StatusController extends BaseController
 
         $this->invalidateCache('status');
 
+
+        $this->dispatchModuleHook(ModuleEvents::STATUS_CREATED, [
+            'status_public_id' => (string)($item['public_id'] ?? ''),
+            'scope' => (string)($item['scope'] ?? ''),
+            'code' => (string)($item['code'] ?? ''),
+            'title' => (string)($item['title'] ?? ''),
+            'actor_id' => (int)($authUser['user']['id'] ?? 0),
+        ]);
         return $this->success('STATUS_CREATED', $this->t('status/messages.created'), ['status' => $item], 201);
     }
 
@@ -115,6 +124,14 @@ final class StatusController extends BaseController
 
         $this->invalidateCache('status');
 
+
+        $this->dispatchModuleHook(ModuleEvents::STATUS_UPDATED, [
+            'status_public_id' => (string)($item['public_id'] ?? ''),
+            'scope' => (string)($item['scope'] ?? ''),
+            'code' => (string)($item['code'] ?? ''),
+            'title' => (string)($item['title'] ?? ''),
+            'actor_id' => (int)($authUser['user']['id'] ?? 0),
+        ]);
         return $this->success('STATUS_UPDATED', $this->t('status/messages.updated'), ['status' => $item]);
     }
 
@@ -144,6 +161,13 @@ final class StatusController extends BaseController
 
             return $this->error($code, $this->t('status/messages.delete_failed'), $status, $errors);
         }
+
+
+        $this->dispatchModuleHook(ModuleEvents::STATUS_DELETED, [
+            'status_public_id' => (string)$params['public_id'],
+            'remapped' => (bool)($result['remapped'] ?? false),
+            'actor_id' => (int)($this->user()['user']['id'] ?? 0),
+        ]);
 
         $this->invalidateCache('status');
 
