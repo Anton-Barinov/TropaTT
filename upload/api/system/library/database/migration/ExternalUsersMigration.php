@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Database\IndexHelper;
 use PDO;
 
@@ -46,14 +47,14 @@ final class ExternalUsersMigration implements MigrationInterface
         try {
             IndexHelper::createIndexIfNotExists($pdo, 'contacts', 'idx_contacts_user_id', 'user_id');
         } catch (\Throwable $e) {
-            error_log('[ExternalUsersMigration::up] CREATE INDEX idx_contacts_user_id: ' . $e->getMessage());
+            AppLog::error('[ExternalUsersMigration::up] CREATE INDEX idx_contacts_user_id: ' . $e->getMessage());
         }
 
         // 4. Create index for filtering users by is_external
         try {
             IndexHelper::createIndexIfNotExists($pdo, 'users', 'idx_users_is_external', 'is_external');
         } catch (\Throwable $e) {
-            error_log('[ExternalUsersMigration::up] CREATE INDEX idx_users_is_external: ' . $e->getMessage());
+            AppLog::error('[ExternalUsersMigration::up] CREATE INDEX idx_users_is_external: ' . $e->getMessage());
         }
 
         // 5. Seed external_guest role and permissions

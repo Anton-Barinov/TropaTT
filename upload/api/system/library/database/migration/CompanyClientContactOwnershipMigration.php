@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Database\IndexHelper;
 use PDO;
 
@@ -27,21 +28,21 @@ final class CompanyClientContactOwnershipMigration implements MigrationInterface
         try {
             IndexHelper::createIndexIfNotExists($pdo, 'companies', 'idx_companies_created_by', 'created_by_user_id');
         } catch (\Throwable $e) {
-            error_log('[CompanyClientContactOwnershipMigration::up] CREATE INDEX: ' . $e->getMessage());
+            AppLog::error('[CompanyClientContactOwnershipMigration::up] CREATE INDEX: ' . $e->getMessage());
             // ignore unsupported IF NOT EXISTS on index creation
         }
 
         try {
             IndexHelper::createIndexIfNotExists($pdo, 'clients', 'idx_clients_created_by', 'created_by_user_id');
         } catch (\Throwable $e) {
-            error_log('[CompanyClientContactOwnershipMigration::up] CREATE INDEX: ' . $e->getMessage());
+            AppLog::error('[CompanyClientContactOwnershipMigration::up] CREATE INDEX: ' . $e->getMessage());
             // ignore unsupported IF NOT EXISTS on index creation
         }
 
         try {
             IndexHelper::createIndexIfNotExists($pdo, 'contacts', 'idx_contacts_created_by', 'created_by_user_id');
         } catch (\Throwable $e) {
-            error_log('[CompanyClientContactOwnershipMigration::up] CREATE INDEX: ' . $e->getMessage());
+            AppLog::error('[CompanyClientContactOwnershipMigration::up] CREATE INDEX: ' . $e->getMessage());
             // ignore unsupported IF NOT EXISTS on index creation
         }
     }
@@ -71,7 +72,7 @@ final class CompanyClientContactOwnershipMigration implements MigrationInterface
                 default => $this->sqliteColumnExists($pdo, $table, $column),
             };
         } catch (\Throwable $e) {
-            error_log('[CompanyClientContactOwnershipMigration::columnExists] ' . $e->getMessage());
+            AppLog::error('[CompanyClientContactOwnershipMigration::columnExists] ' . $e->getMessage());
             return false;
         }
     }

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 use Throwable;
 
@@ -83,7 +84,7 @@ final class IndexRepairMigration implements MigrationInterface
         try {
             $pdo->exec(trim(preg_replace('/\s+/', ' ', $sql) ?? $sql));
         } catch (\Throwable $e) {
-            error_log('[IndexRepairMigration::createIndexIfMissing] ' . $e->getMessage());
+            AppLog::error('[IndexRepairMigration::createIndexIfMissing] ' . $e->getMessage());
             // Keep migration idempotent across drivers / concurrent calls.
         }
     }
@@ -119,7 +120,7 @@ final class IndexRepairMigration implements MigrationInterface
             $stmt->execute(['table' => $table, 'name' => $name]);
             return (bool)$stmt->fetchColumn();
         } catch (\Throwable $e) {
-            error_log('[IndexRepairMigration::indexExists] ' . $e->getMessage());
+            AppLog::error('[IndexRepairMigration::indexExists] ' . $e->getMessage());
             return false;
         }
     }

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 
 final class RecurringRuleTitleMigration implements MigrationInterface
@@ -47,7 +48,7 @@ final class RecurringRuleTitleMigration implements MigrationInterface
                 }
             }
         } catch (\Throwable $e) {
-            error_log('[RecurringRuleTitleMigration::columnExists] ' . $e->getMessage());
+            AppLog::error('[RecurringRuleTitleMigration::columnExists] ' . $e->getMessage());
             return false;
         }
 

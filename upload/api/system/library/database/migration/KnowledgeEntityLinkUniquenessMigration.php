@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Database\IndexHelper;
 use PDO;
 
@@ -56,7 +57,7 @@ final class KnowledgeEntityLinkUniquenessMigration implements MigrationInterface
                 throw new \RuntimeException('Knowledge entity link uniqueness index was not created');
             }
         } catch (\Throwable $e) {
-            error_log('[KnowledgeEntityLinkUniquenessMigration] ' . $e->getMessage());
+            AppLog::error('[KnowledgeEntityLinkUniquenessMigration] ' . $e->getMessage());
             throw $e;
         }
     }
@@ -81,7 +82,7 @@ final class KnowledgeEntityLinkUniquenessMigration implements MigrationInterface
                 }
             }
         } catch (\Throwable $e) {
-            error_log('[KnowledgeEntityLinkUniquenessMigration::indexExists] ' . $e->getMessage());
+            AppLog::error('[KnowledgeEntityLinkUniquenessMigration::indexExists] ' . $e->getMessage());
         }
         return false;
     }

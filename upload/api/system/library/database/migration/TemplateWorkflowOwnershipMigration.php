@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Database\IndexHelper;
 use PDO;
 
@@ -58,7 +59,7 @@ final class TemplateWorkflowOwnershipMigration implements MigrationInterface
                 default => $this->sqliteColumnExists($pdo, $table, $column),
             };
         } catch (\Throwable $e) {
-            error_log('[TemplateWorkflowOwnershipMigration::columnExists] ' . $e->getMessage());
+            AppLog::error('[TemplateWorkflowOwnershipMigration::columnExists] ' . $e->getMessage());
             return false;
         }
     }

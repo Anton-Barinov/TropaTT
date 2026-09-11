@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Database\IndexHelper;
 use PDO;
 
@@ -60,7 +61,7 @@ final class AiSuggestionsInputHashMigration implements MigrationInterface
                 default => $this->sqliteTableExists($pdo, $table),
             };
         } catch (\Throwable $e) {
-            error_log('[AiSuggestionsInputHashMigration::tableExists] ' . $e->getMessage());
+            AppLog::error('[AiSuggestionsInputHashMigration::tableExists] ' . $e->getMessage());
             return false;
         }
     }
@@ -75,7 +76,7 @@ final class AiSuggestionsInputHashMigration implements MigrationInterface
                 default => $this->sqliteColumnExists($pdo, $table, $column),
             };
         } catch (\Throwable $e) {
-            error_log('[AiSuggestionsInputHashMigration::columnExists] ' . $e->getMessage());
+            AppLog::error('[AiSuggestionsInputHashMigration::columnExists] ' . $e->getMessage());
             return false;
         }
     }

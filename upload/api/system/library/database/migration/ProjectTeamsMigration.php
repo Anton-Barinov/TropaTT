@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 
 final class ProjectTeamsMigration implements MigrationInterface
@@ -48,7 +49,7 @@ final class ProjectTeamsMigration implements MigrationInterface
                 default => $this->sqliteColumnExists($pdo, $table, $column),
             };
         } catch (\Throwable $e) {
-            error_log('[ProjectTeamsMigration::columnExists] ' . $e->getMessage());
+            AppLog::error('[ProjectTeamsMigration::columnExists] ' . $e->getMessage());
             return false;
         }
     }

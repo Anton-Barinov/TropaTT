@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 
 final class KnowledgePageVersionsMigration implements MigrationInterface
@@ -117,7 +118,7 @@ final class KnowledgePageVersionsMigration implements MigrationInterface
             $result = $stmt->fetchAll(PDO::FETCH_COLUMN);
             return is_array($result) ? array_map('strval', $result) : [];
         } catch (\Throwable $e) {
-            error_log('[KnowledgePageVersionsMigration::existingColumns] ' . $e->getMessage());
+            AppLog::error('[KnowledgePageVersionsMigration::existingColumns] ' . $e->getMessage());
             return [];
         }
     }

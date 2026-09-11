@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Database\IndexHelper;
 use PDO;
 
@@ -39,7 +40,7 @@ final class FileVisibilityMigration implements MigrationInterface
         try {
             IndexHelper::createIndexIfNotExists($pdo, 'files', 'idx_files_is_internal', 'is_internal');
         } catch (\Throwable $e) {
-            error_log('[FileVisibilityMigration::up] CREATE INDEX idx_files_is_internal: ' . $e->getMessage());
+            AppLog::error('[FileVisibilityMigration::up] CREATE INDEX idx_files_is_internal: ' . $e->getMessage());
         }
 
         // 3. Backfill: mark existing files uploaded by staff (non-external users)
@@ -53,7 +54,7 @@ final class FileVisibilityMigration implements MigrationInterface
                 WHERE u.is_external = 0 AND f.is_internal = 0
             ");
         } catch (\Throwable $e) {
-            error_log('[FileVisibilityMigration::up] backfill is_internal: ' . $e->getMessage());
+            AppLog::error('[FileVisibilityMigration::up] backfill is_internal: ' . $e->getMessage());
         }
     }
 
@@ -71,13 +72,13 @@ final class FileVisibilityMigration implements MigrationInterface
                 }
             }
         } catch (\Throwable $e) {
-            error_log('[FileVisibilityMigration] column check for ' . $table . '.' . $column . ': ' . $e->getMessage());
+            AppLog::error('[FileVisibilityMigration] column check for ' . $table . '.' . $column . ': ' . $e->getMessage());
         }
 
         try {
             $pdo->exec("ALTER TABLE {$table} ADD COLUMN {$column} {$definition}");
         } catch (\Throwable $e) {
-            error_log('[FileVisibilityMigration] ALTER TABLE ' . $table . ' ADD ' . $column . ': ' . $e->getMessage());
+            AppLog::error('[FileVisibilityMigration] ALTER TABLE ' . $table . ' ADD ' . $column . ': ' . $e->getMessage());
         }
     }
 }

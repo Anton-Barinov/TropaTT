@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Database\IndexHelper;
 use PDO;
 
@@ -53,13 +54,13 @@ final class TwoFactorHardeningMigration implements MigrationInterface
                 }
             }
         } catch (\Throwable $e) {
-            error_log('[TwoFactorHardeningMigration] column check for ' . $table . '.' . $column . ': ' . $e->getMessage());
+            AppLog::error('[TwoFactorHardeningMigration] column check for ' . $table . '.' . $column . ': ' . $e->getMessage());
         }
 
         try {
             $pdo->exec("ALTER TABLE {$table} ADD COLUMN {$column} {$definition}");
         } catch (\Throwable $e) {
-            error_log('[TwoFactorHardeningMigration] ALTER TABLE ' . $table . ' ADD ' . $column . ': ' . $e->getMessage());
+            AppLog::error('[TwoFactorHardeningMigration] ALTER TABLE ' . $table . ' ADD ' . $column . ': ' . $e->getMessage());
         }
     }
 }

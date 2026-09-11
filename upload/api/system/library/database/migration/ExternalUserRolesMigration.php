@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Database\IndexHelper;
 use PDO;
 
@@ -40,7 +41,7 @@ final class ExternalUserRolesMigration implements MigrationInterface
         try {
             IndexHelper::createIndexIfNotExists($pdo, 'users', 'idx_users_external_role', 'external_role');
         } catch (\Throwable $e) {
-            error_log('[ExternalUserRolesMigration::up] CREATE INDEX idx_users_external_role: ' . $e->getMessage());
+            AppLog::error('[ExternalUserRolesMigration::up] CREATE INDEX idx_users_external_role: ' . $e->getMessage());
         }
 
         if ($driver === 'mysql') {

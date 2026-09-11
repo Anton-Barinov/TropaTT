@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Database\IndexHelper;
 use PDO;
 
@@ -74,7 +75,7 @@ final class AiSuggestionsCacheFreshnessMigration implements MigrationInterface
                 default => $this->sqliteTableExists($pdo, $table),
             };
         } catch (\Throwable $e) {
-            error_log('[AiSuggestionsCacheFreshnessMigration::tableExists] ' . $e->getMessage());
+            AppLog::error('[AiSuggestionsCacheFreshnessMigration::tableExists] ' . $e->getMessage());
             return false;
         }
     }
@@ -89,7 +90,7 @@ final class AiSuggestionsCacheFreshnessMigration implements MigrationInterface
                 default => $this->sqliteColumnExists($pdo, $table, $column),
             };
         } catch (\Throwable $e) {
-            error_log('[AiSuggestionsCacheFreshnessMigration::columnExists] ' . $e->getMessage());
+            AppLog::error('[AiSuggestionsCacheFreshnessMigration::columnExists] ' . $e->getMessage());
             return false;
         }
     }

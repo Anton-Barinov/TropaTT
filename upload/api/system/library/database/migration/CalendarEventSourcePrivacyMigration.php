@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 
 final class CalendarEventSourcePrivacyMigration implements MigrationInterface
@@ -73,7 +74,7 @@ final class CalendarEventSourcePrivacyMigration implements MigrationInterface
                 }
             }
         } catch (\Throwable $e) {
-            error_log('[CalendarEventSourcePrivacyMigration::columnExists] ' . $e->getMessage());
+            AppLog::error('[CalendarEventSourcePrivacyMigration::columnExists] ' . $e->getMessage());
         }
 
         return false;

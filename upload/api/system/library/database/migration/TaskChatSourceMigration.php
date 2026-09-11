@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Database\IndexHelper;
 use PDO;
 
@@ -65,7 +66,7 @@ final class TaskChatSourceMigration implements MigrationInterface
 
             return is_array($result) ? array_map('strval', $result) : [];
         } catch (\Throwable $e) {
-            error_log('[TaskChatSourceMigration::existingColumns] ' . $e->getMessage());
+            AppLog::error('[TaskChatSourceMigration::existingColumns] ' . $e->getMessage());
 
             return [];
         }

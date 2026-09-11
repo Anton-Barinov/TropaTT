@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 
 final class AiAuthorTimestampCoverageMigration implements MigrationInterface
@@ -53,7 +54,7 @@ final class AiAuthorTimestampCoverageMigration implements MigrationInterface
                 default => $this->sqliteTableExists($pdo, $table),
             };
         } catch (\Throwable $e) {
-            error_log('[AiAuthorTimestampCoverageMigration::tableExists] ' . $e->getMessage());
+            AppLog::error('[AiAuthorTimestampCoverageMigration::tableExists] ' . $e->getMessage());
             return false;
         }
     }
@@ -68,7 +69,7 @@ final class AiAuthorTimestampCoverageMigration implements MigrationInterface
                 default => $this->sqliteColumnExists($pdo, $table, $column),
             };
         } catch (\Throwable $e) {
-            error_log('[AiAuthorTimestampCoverageMigration::columnExists] ' . $e->getMessage());
+            AppLog::error('[AiAuthorTimestampCoverageMigration::columnExists] ' . $e->getMessage());
             return false;
         }
     }

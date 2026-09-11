@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Database\IndexHelper;
 use PDO;
 
@@ -511,7 +512,7 @@ final class CrmEntityConsolidationMigration implements MigrationInterface
                 default => $this->sqliteColumnExists($pdo, $table, $column),
             };
         } catch (\Throwable $e) {
-            error_log('[CrmEntityConsolidationMigration::columnExists] ' . $e->getMessage());
+            AppLog::error('[CrmEntityConsolidationMigration::columnExists] ' . $e->getMessage());
             return false;
         }
     }
@@ -526,7 +527,7 @@ final class CrmEntityConsolidationMigration implements MigrationInterface
                 default => $this->sqliteTableExists($pdo, $table),
             };
         } catch (\Throwable $e) {
-            error_log('[CrmEntityConsolidationMigration::tableExists] ' . $e->getMessage());
+            AppLog::error('[CrmEntityConsolidationMigration::tableExists] ' . $e->getMessage());
             return false;
         }
     }

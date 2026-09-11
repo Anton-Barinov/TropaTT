@@ -8,6 +8,7 @@ use Api\Model\Client\ClientRepository;
 use Api\System\Library\Config;
 use Api\System\Library\Database\ConnectionManager;
 use Api\System\Library\Support\Autoloader;
+use Api\System\Library\Support\AppLog;
 
 $basePath = dirname(__DIR__);
 
@@ -74,7 +75,7 @@ function tableExists(PDO $pdo, string $table): bool
     try {
         return $pdo->query('SELECT 1 FROM ' . $table . ' WHERE 1=0') !== false;
     } catch (\Throwable $e) {
-        error_log('[client_data_quality_report::tableExists] DB query: ' . $e->getMessage());
+        AppLog::error('[client_data_quality_report::tableExists] DB query: ' . $e->getMessage());
         return false;
     }
 }

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Database\IndexHelper;
 use PDO;
 
@@ -72,7 +73,7 @@ final class ImportExportJobsQueueRuntimeMigration implements MigrationInterface
             $stmt->execute(['name' => $table]);
             return (bool)$stmt->fetchColumn();
         } catch (\Throwable $e) {
-            error_log('[ImportExportJobsQueueRuntimeMigration::tableExists] ' . $e->getMessage());
+            AppLog::error('[ImportExportJobsQueueRuntimeMigration::tableExists] ' . $e->getMessage());
             return false;
         }
     }
@@ -106,7 +107,7 @@ final class ImportExportJobsQueueRuntimeMigration implements MigrationInterface
             ]);
             return (bool)$stmt->fetchColumn();
         } catch (\Throwable $e) {
-            error_log('[ImportExportJobsQueueRuntimeMigration::columnExists] ' . $e->getMessage());
+            AppLog::error('[ImportExportJobsQueueRuntimeMigration::columnExists] ' . $e->getMessage());
             return false;
         }
     }

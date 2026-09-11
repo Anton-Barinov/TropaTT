@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 
 final class CalendarEventDescriptionMigration implements MigrationInterface
@@ -60,7 +61,7 @@ final class CalendarEventDescriptionMigration implements MigrationInterface
                 }
             }
         } catch (\Throwable $e) {
-            error_log('[CalendarEventDescriptionMigration::columnExists] ' . $e->getMessage());
+            AppLog::error('[CalendarEventDescriptionMigration::columnExists] ' . $e->getMessage());
             return false;
         }
 

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Database\IndexHelper;
 use PDO;
 
@@ -71,7 +72,7 @@ final class WebhookDeliveriesQueueRuntimeMigration implements MigrationInterface
             $stmt->execute(['name' => $table]);
             return (bool)$stmt->fetchColumn();
         } catch (\Throwable $e) {
-            error_log('[WebhookDeliveriesQueueRuntimeMigration::tableExists] ' . $e->getMessage());
+            AppLog::error('[WebhookDeliveriesQueueRuntimeMigration::tableExists] ' . $e->getMessage());
             return false;
         }
     }
@@ -99,7 +100,7 @@ final class WebhookDeliveriesQueueRuntimeMigration implements MigrationInterface
             $stmt->execute(['table_name' => $table, 'column_name' => $column]);
             return (bool)$stmt->fetchColumn();
         } catch (\Throwable $e) {
-            error_log('[WebhookDeliveriesQueueRuntimeMigration::columnExists] ' . $e->getMessage());
+            AppLog::error('[WebhookDeliveriesQueueRuntimeMigration::columnExists] ' . $e->getMessage());
             return false;
         }
     }

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 
 final class KnowledgeBaseMigration implements MigrationInterface
@@ -87,7 +88,7 @@ final class KnowledgeBaseMigration implements MigrationInterface
             try {
                 $pdo->exec(sprintf('CREATE %s INDEX %s ON %s(%s)', $unique ? 'UNIQUE' : '', $name, $table, $columns));
             } catch (\Throwable $e) {
-                error_log('[KnowledgeBaseMigration::createIndexes] ' . $e->getMessage());
+                AppLog::error('[KnowledgeBaseMigration::createIndexes] ' . $e->getMessage());
                 // Keep migration portable across existing local/test databases.
             }
         }
@@ -96,7 +97,7 @@ final class KnowledgeBaseMigration implements MigrationInterface
             try {
                 $pdo->exec('CREATE FULLTEXT INDEX ft_knowledge_pages_title_text ON knowledge_pages(title, content_text)');
             } catch (\Throwable $e) {
-                error_log('[KnowledgeBaseMigration::createIndexes] CREATE FULLTEXT INDEX FT_KNOWLEDGE_PAGES_TITLE_TEX: ' . $e->getMessage());
+                AppLog::error('[KnowledgeBaseMigration::createIndexes] CREATE FULLTEXT INDEX FT_KNOWLEDGE_PAGES_TITLE_TEX: ' . $e->getMessage());
             }
         }
     }
@@ -206,7 +207,7 @@ final class KnowledgeBaseMigration implements MigrationInterface
             $stmt->execute(['code' => $code]);
             return (int)($stmt->fetchColumn() ?: 0);
         } catch (\Throwable $e) {
-            error_log('[KnowledgeBaseMigration::fetchRoleId] ' . $e->getMessage());
+            AppLog::error('[KnowledgeBaseMigration::fetchRoleId] ' . $e->getMessage());
             return 0;
         }
     }
@@ -238,7 +239,7 @@ final class KnowledgeBaseMigration implements MigrationInterface
                 }
             }
         } catch (\Throwable $e) {
-            error_log('[KnowledgeBaseMigration::indexExists] ' . $e->getMessage());
+            AppLog::error('[KnowledgeBaseMigration::indexExists] ' . $e->getMessage());
             return false;
         }
         return false;
