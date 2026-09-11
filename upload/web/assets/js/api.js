@@ -1225,12 +1225,12 @@ window.CRM.api = (function () {
     return envelope && envelope.data && Array.isArray(envelope.data.items) ? envelope.data.items : [];
   }
 
-  // Password policy: the single rule shown to users — at least 12 characters
+  // Password policy: the single rule shown to users — at least 6 characters
   // with an uppercase letter, a lowercase letter and a digit. Unicode-aware, so
   // a password written with Cyrillic (or any non-ASCII) letters is accepted, and
   // no special character is required. Kept in sync with the server-side
   // Api\System\Library\Security\PasswordPolicy.
-  var PASSWORD_MIN_LENGTH = 12;
+  var PASSWORD_MIN_LENGTH = 6;
 
   function passwordFailures(password) {
     var value = String(password == null ? '' : password);

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Controller\Client;
 
+use Api\System\Library\Module\ModuleEvents;
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Service\ClientService;
 use Api\System\Library\Validation\Validator;
@@ -78,6 +79,12 @@ final class ClientController extends BaseController
 
             $this->invalidateCache('client');
 
+            $this->dispatchModuleHook(ModuleEvents::CLIENT_CREATED, [
+                'client_public_id' => (string)($item['public_id'] ?? ''),
+                'title' => (string)($item['title'] ?? ''),
+                'actor_id' => (int)($this->user()['user']['id'] ?? 0),
+            ]);
+
             return $this->success('CLIENT_CREATED', $this->t('client/messages.created'), ['client' => $item], 201);
         });
     }
@@ -117,6 +124,12 @@ final class ClientController extends BaseController
 
         $this->invalidateCache('client');
 
+        $this->dispatchModuleHook(ModuleEvents::CLIENT_UPDATED, [
+            'client_public_id' => (string)($item['public_id'] ?? ''),
+            'title' => (string)($item['title'] ?? ''),
+            'actor_id' => (int)($this->user()['user']['id'] ?? 0),
+        ]);
+
         return $this->success('CLIENT_UPDATED', $this->t('client/messages.updated'), ['client' => $item]);
     }
 
@@ -137,6 +150,11 @@ final class ClientController extends BaseController
         }
 
         $this->invalidateCache('client');
+
+        $this->dispatchModuleHook(ModuleEvents::CLIENT_DELETED, [
+            'client_public_id' => (string)($params['public_id']),
+            'actor_id' => (int)($this->user()['user']['id'] ?? 0),
+        ]);
 
         return $this->success('CLIENT_DELETED', $this->t('client/messages.deleted'));
     }

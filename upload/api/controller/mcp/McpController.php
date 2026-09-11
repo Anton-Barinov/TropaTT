@@ -26,6 +26,11 @@ use Api\Controller\Tag\TagController;
 use Api\Controller\Status\StatusController;
 use Api\Controller\Priority\PriorityController;
 use Api\Controller\Custom_field\CustomFieldController;
+use Api\Controller\Client\ClientController;
+use Api\Controller\Counterparty\CounterpartyController;
+use Api\Controller\Contact\ContactController;
+use Api\Controller\Company\CompanyController;
+use Api\Controller\Organization\OrganizationController;
 use Api\Controller\Task\TaskController;
 use Api\Controller\User\UserController;
 use Api\Controller\Cycle\WorkCycleController;
@@ -4905,7 +4910,7 @@ $tools[] = $this->tool(
             return ['error' => 'current_password and new_password are required.'];
         }
         if (!PasswordPolicy::isStrong($new)) {
-            return ['error' => 'Password must be at least 12 characters and include uppercase and lowercase letters and digits.'];
+            return ['error' => 'Password must be at least ' . PasswordPolicy::MIN_LENGTH . ' characters and include uppercase and lowercase letters and digits.'];
         }
 
         /** @var UserProfileService $service */
@@ -7259,11 +7264,8 @@ $tools[] = $this->tool(
             }
         }
 
-        /** @var OrganizationService $service */
-        $service = $this->container->get('service.organization');
-        $item = $service->create($input, $this->actor());
-
-        return is_array($item) ? ['organization' => $this->publicData($item)] : ['error' => (string)$item];
+        // Delegated to the controller so organization.* events and cache invalidation run.
+        return $this->invokeControllerTool(OrganizationController::class, 'create', $input, 'POST');
     }
 
     private function crmUpdateOrganization(array $arguments): array
@@ -7272,22 +7274,17 @@ $tools[] = $this->tool(
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
-
-        $input = [];
+        $input = ['public_id' => $publicId];
         foreach (['title', 'description', 'status'] as $field) {
             if (array_key_exists($field, $arguments) && $arguments[$field] !== null) {
                 $input[$field] = $arguments[$field];
             }
         }
-        if ($input === []) {
+        if (count($input) === 1) {
             return ['error' => 'At least one field to update is required.'];
         }
 
-        /** @var OrganizationService $service */
-        $service = $this->container->get('service.organization');
-        $item = $service->update($publicId, $input, $this->actor());
-
-        return is_array($item) ? ['organization' => $this->publicData($item)] : ['error' => (string)$item];
+        return $this->invokeControllerTool(OrganizationController::class, 'update', $input, 'PATCH', ['public_id']);
     }
 
     private function crmDeleteOrganization(array $arguments): array
@@ -7297,11 +7294,11 @@ $tools[] = $this->tool(
             return ['error' => 'public_id is required.'];
         }
 
-        /** @var OrganizationService $service */
-        $service = $this->container->get('service.organization');
-        $ok = $service->delete($publicId, $this->actor());
+        // Delegated to the controller so the CRM-record events (module hooks / webhook
+        // subscriptions) and cache invalidation run exactly like on the REST/UI path.
+        $result = $this->invokeControllerTool(OrganizationController::class, 'delete', $arguments, 'DELETE', ['public_id']);
 
-        return $ok ? ['deleted' => true] : ['error' => 'Organization not found.'];
+        return isset($result['error']) ? $result : ['deleted' => true];
     }
 
     private function crmListPriorities(array $arguments): array
@@ -7382,16 +7379,19 @@ $tools[] = $this->tool(
 
         return $this->invokeControllerTool(StatusController::class, 'delete', $arguments, 'DELETE', ['public_id']);
     }
+
     private function crmDeleteCompany(array $arguments): array
     {
         $publicId = trim((string)($arguments['public_id'] ?? ''));
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
-        /** @var CompanyService $service */
-        $service = $this->container->get('service.company');
-        $ok = $service->delete($publicId, $this->actor());
-        return $ok ? ['deleted' => true] : ['error' => 'Company not found.'];
+
+        // Delegated to the controller so the CRM-record events (module hooks / webhook
+        // subscriptions) and cache invalidation run exactly like on the REST/UI path.
+        $result = $this->invokeControllerTool(CompanyController::class, 'delete', $arguments, 'DELETE', ['public_id']);
+
+        return isset($result['error']) ? $result : ['deleted' => true];
     }
 
     private function crmDeleteClient(array $arguments): array
@@ -7400,10 +7400,12 @@ $tools[] = $this->tool(
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
-        /** @var ClientService $service */
-        $service = $this->container->get('service.client');
-        $ok = $service->delete($publicId, $this->actor());
-        return $ok ? ['deleted' => true] : ['error' => 'Client not found.'];
+
+        // Delegated to the controller so the CRM-record events (module hooks / webhook
+        // subscriptions) and cache invalidation run exactly like on the REST/UI path.
+        $result = $this->invokeControllerTool(ClientController::class, 'delete', $arguments, 'DELETE', ['public_id']);
+
+        return isset($result['error']) ? $result : ['deleted' => true];
     }
 
     private function crmDeleteCounterparty(array $arguments): array
@@ -7412,10 +7414,12 @@ $tools[] = $this->tool(
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
-        /** @var CounterpartyService $service */
-        $service = $this->container->get('service.counterparty');
-        $ok = $service->delete($publicId, $this->actor());
-        return $ok ? ['deleted' => true] : ['error' => 'Counterparty not found.'];
+
+        // Delegated to the controller so the CRM-record events (module hooks / webhook
+        // subscriptions) and cache invalidation run exactly like on the REST/UI path.
+        $result = $this->invokeControllerTool(CounterpartyController::class, 'delete', $arguments, 'DELETE', ['public_id']);
+
+        return isset($result['error']) ? $result : ['deleted' => true];
     }
 
     private function crmDeleteContact(array $arguments): array
@@ -7424,12 +7428,13 @@ $tools[] = $this->tool(
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
-        /** @var ContactService $service */
-        $service = $this->container->get('service.contact');
-        $ok = $service->delete($publicId, $this->actor());
-        return $ok ? ['deleted' => true] : ['error' => 'Contact not found.'];
-    }
 
+        // Delegated to the controller so the CRM-record events (module hooks / webhook
+        // subscriptions) and cache invalidation run exactly like on the REST/UI path.
+        $result = $this->invokeControllerTool(ContactController::class, 'delete', $arguments, 'DELETE', ['public_id']);
+
+        return isset($result['error']) ? $result : ['deleted' => true];
+    }
     private function crmDeleteDepartment(array $arguments): array
     {
         $publicId = trim((string)($arguments['public_id'] ?? ''));
@@ -8744,9 +8749,10 @@ $tools[] = $this->tool(
             return ['error' => 'title is required.'];
         }
 
-        /** @var CounterpartyService $service */
-        $service = $this->container->get('service.counterparty');
-        return ['counterparty' => $this->publicData($service->create($this->counterpartyInput($arguments), $this->actor()))];
+        // Delegated to the controller so the CRM-record events (module hooks / webhook
+        // subscriptions) and cache invalidation run exactly like on the REST/UI path.
+        $arguments = $this->counterpartyInput($arguments);
+        return $this->invokeControllerTool(CounterpartyController::class, 'create', $arguments, 'POST');
     }
 
     private function crmUpdateCounterparty(array $arguments): array
@@ -8756,16 +8762,13 @@ $tools[] = $this->tool(
             return ['error' => 'public_id is required.'];
         }
 
-        /** @var CounterpartyService $service */
-        $service = $this->container->get('service.counterparty');
-        try {
-            return ['counterparty' => $this->publicData($service->update($publicId, $this->counterpartyInput($arguments), $this->actor()))];
-        } catch (Throwable $e) {
-            AppLog::error('[McpController::crmUpdateCounterparty] ' . $e->getMessage());
-            return ['error' => 'Counterparty operation failed. Check server logs for details.'];
-        }
-    }
+        // Delegated to the controller so the CRM-record events (module hooks / webhook
+        // subscriptions) and cache invalidation run exactly like on the REST/UI path.
+        $arguments = $this->counterpartyInput($arguments);
+        $arguments['public_id'] = $publicId;
 
+        return $this->invokeControllerTool(CounterpartyController::class, 'update', $arguments, 'PATCH', ['public_id']);
+    }
     private function crmListCompanies(array $arguments): array
     {
         /** @var CompanyService $service */
@@ -8792,9 +8795,10 @@ $tools[] = $this->tool(
             return ['error' => 'title is required.'];
         }
 
-        /** @var CompanyService $service */
-        $service = $this->container->get('service.company');
-        return ['company' => $this->publicData($service->create($this->pick($arguments, ['title', 'status']), $this->actor()))];
+        // Delegated to the controller so the CRM-record events (module hooks / webhook
+        // subscriptions) and cache invalidation run exactly like on the REST/UI path.
+        $arguments = $this->pick($arguments, ['title', 'status']);
+        return $this->invokeControllerTool(CompanyController::class, 'create', $arguments, 'POST');
     }
 
     private function crmUpdateCompany(array $arguments): array
@@ -8804,12 +8808,13 @@ $tools[] = $this->tool(
             return ['error' => 'public_id is required.'];
         }
 
-        /** @var CompanyService $service */
-        $service = $this->container->get('service.company');
-        $item = $service->update($publicId, $this->pick($arguments, ['title', 'status']), $this->actor());
-        return $item ? ['company' => $this->publicData($item)] : ['error' => 'Company not found.'];
-    }
+        // Delegated to the controller so the CRM-record events (module hooks / webhook
+        // subscriptions) and cache invalidation run exactly like on the REST/UI path.
+        $arguments = $this->pick($arguments, ['title', 'status']);
+        $arguments['public_id'] = $publicId;
 
+        return $this->invokeControllerTool(CompanyController::class, 'update', $arguments, 'PATCH', ['public_id']);
+    }
     private function crmListClients(array $arguments): array
     {
         /** @var ClientService $service */
@@ -8836,9 +8841,10 @@ $tools[] = $this->tool(
             return ['error' => 'title is required.'];
         }
 
-        /** @var ClientService $service */
-        $service = $this->container->get('service.client');
-        return ['client' => $this->publicData($service->create($this->clientInput($arguments), $this->actor()))];
+        // Delegated to the controller so the CRM-record events (module hooks / webhook
+        // subscriptions) and cache invalidation run exactly like on the REST/UI path.
+        $arguments = $this->clientInput($arguments);
+        return $this->invokeControllerTool(ClientController::class, 'create', $arguments, 'POST');
     }
 
     private function crmUpdateClient(array $arguments): array
@@ -8848,12 +8854,13 @@ $tools[] = $this->tool(
             return ['error' => 'public_id is required.'];
         }
 
-        /** @var ClientService $service */
-        $service = $this->container->get('service.client');
-        $item = $service->update($publicId, $this->clientInput($arguments), $this->actor());
-        return $item ? ['client' => $this->publicData($item)] : ['error' => 'Client not found.'];
-    }
+        // Delegated to the controller so the CRM-record events (module hooks / webhook
+        // subscriptions) and cache invalidation run exactly like on the REST/UI path.
+        $arguments = $this->clientInput($arguments);
+        $arguments['public_id'] = $publicId;
 
+        return $this->invokeControllerTool(ClientController::class, 'update', $arguments, 'PATCH', ['public_id']);
+    }
     private function crmListContacts(array $arguments): array
     {
         /** @var ContactService $service */
@@ -8880,14 +8887,10 @@ $tools[] = $this->tool(
             return ['error' => 'full_name is required.'];
         }
 
-        /** @var ContactService $service */
-        $service = $this->container->get('service.contact');
-        try {
-            return ['contact' => $this->publicData($service->create($this->contactInput($arguments), $this->actor()))];
-        } catch (Throwable $e) {
-            AppLog::error('[McpController::crmCreateContact] ' . $e->getMessage());
-            return ['error' => 'Contact operation failed. Check server logs for details.'];
-        }
+        // Delegated to the controller so the CRM-record events (module hooks / webhook
+        // subscriptions) and cache invalidation run exactly like on the REST/UI path.
+        $arguments = $this->contactInput($arguments);
+        return $this->invokeControllerTool(ContactController::class, 'create', $arguments, 'POST');
     }
 
     private function crmUpdateContact(array $arguments): array
@@ -8897,17 +8900,13 @@ $tools[] = $this->tool(
             return ['error' => 'public_id is required.'];
         }
 
-        /** @var ContactService $service */
-        $service = $this->container->get('service.contact');
-        try {
-            $item = $service->update($publicId, $this->contactInput($arguments), $this->actor());
-            return $item ? ['contact' => $this->publicData($item)] : ['error' => 'Contact not found.'];
-        } catch (Throwable $e) {
-            AppLog::error('[McpController::crmUpdateContact] ' . $e->getMessage());
-            return ['error' => 'Contact operation failed. Check server logs for details.'];
-        }
-    }
+        // Delegated to the controller so the CRM-record events (module hooks / webhook
+        // subscriptions) and cache invalidation run exactly like on the REST/UI path.
+        $arguments = $this->contactInput($arguments);
+        $arguments['public_id'] = $publicId;
 
+        return $this->invokeControllerTool(ContactController::class, 'update', $arguments, 'PATCH', ['public_id']);
+    }
     private function crmListApprovals(array $arguments): array
     {
         /** @var ApprovalService $service */

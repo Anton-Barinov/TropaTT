@@ -126,8 +126,8 @@ final class PasswordResetService
         }
 
         $newPassword = (string)($input['new_password'] ?? '');
-        // SEC-004: minimum 12 characters with an uppercase letter, a lowercase
-        // letter and a digit — the rule that is actually shown to the user.
+        // SEC-004: at least PasswordPolicy::MIN_LENGTH characters with an uppercase
+        // letter, a lowercase letter and a digit — the rule shown to the user.
         if (!PasswordPolicy::isStrong($newPassword)) {
             return ['ok' => false, 'code' => 'PASSWORD_RESET_WEAK_PASSWORD'];
         }

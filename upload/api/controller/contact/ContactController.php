@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Controller\Contact;
 
+use Api\System\Library\Module\ModuleEvents;
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Service\ContactService;
 use Api\System\Library\Validation\Validator;
@@ -83,6 +84,12 @@ final class ContactController extends BaseController
                 throw $e;
             }
 
+            $this->dispatchModuleHook(ModuleEvents::CONTACT_CREATED, [
+                'contact_public_id' => (string)($item['public_id'] ?? ''),
+                'full_name' => (string)($item['full_name'] ?? ''),
+                'actor_id' => (int)($this->user()['user']['id'] ?? 0),
+            ]);
+
             return $this->success('CONTACT_CREATED', $this->t('contact/messages.created'), ['contact' => $item], 201);
         });
     }
@@ -122,6 +129,12 @@ final class ContactController extends BaseController
             ]);
         }
 
+        $this->dispatchModuleHook(ModuleEvents::CONTACT_UPDATED, [
+            'contact_public_id' => (string)($item['public_id'] ?? ''),
+            'full_name' => (string)($item['full_name'] ?? ''),
+            'actor_id' => (int)($this->user()['user']['id'] ?? 0),
+        ]);
+
         return $this->success('CONTACT_UPDATED', $this->t('contact/messages.updated'), ['contact' => $item]);
     }
 
@@ -140,6 +153,11 @@ final class ContactController extends BaseController
                 'contact' => [$this->t('contact/messages.not_found')],
             ]);
         }
+
+        $this->dispatchModuleHook(ModuleEvents::CONTACT_DELETED, [
+            'contact_public_id' => (string)($params['public_id']),
+            'actor_id' => (int)($this->user()['user']['id'] ?? 0),
+        ]);
 
         return $this->success('CONTACT_DELETED', $this->t('contact/messages.deleted'));
     }

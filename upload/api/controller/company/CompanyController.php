@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Controller\Company;
 
+use Api\System\Library\Module\ModuleEvents;
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Service\CompanyService;
 use Api\System\Library\Validation\Validator;
@@ -63,6 +64,12 @@ final class CompanyController extends BaseController
         return $this->withIdempotency(function () use ($service, $input, $authUser): \Api\System\Library\Http\JsonResponse {
             $item = $service->create($input, $authUser['user']);
 
+            $this->dispatchModuleHook(ModuleEvents::COMPANY_CREATED, [
+                'company_public_id' => (string)($item['public_id'] ?? ''),
+                'title' => (string)($item['title'] ?? ''),
+                'actor_id' => (int)($this->user()['user']['id'] ?? 0),
+            ]);
+
             return $this->success('COMPANY_CREATED', $this->t('company/messages.created'), ['company' => $item], 201);
         });
     }
@@ -83,6 +90,12 @@ final class CompanyController extends BaseController
             ]);
         }
 
+        $this->dispatchModuleHook(ModuleEvents::COMPANY_UPDATED, [
+            'company_public_id' => (string)($item['public_id'] ?? ''),
+            'title' => (string)($item['title'] ?? ''),
+            'actor_id' => (int)($this->user()['user']['id'] ?? 0),
+        ]);
+
         return $this->success('COMPANY_UPDATED', $this->t('company/messages.updated'), ['company' => $item]);
     }
 
@@ -101,6 +114,11 @@ final class CompanyController extends BaseController
                 'company' => [$this->t('company/messages.not_found')],
             ]);
         }
+
+        $this->dispatchModuleHook(ModuleEvents::COMPANY_DELETED, [
+            'company_public_id' => (string)($params['public_id']),
+            'actor_id' => (int)($this->user()['user']['id'] ?? 0),
+        ]);
 
         return $this->success('COMPANY_DELETED', $this->t('company/messages.deleted'));
     }

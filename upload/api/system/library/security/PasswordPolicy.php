@@ -6,7 +6,7 @@ namespace Api\System\Library\Security;
 /**
  * Single source of truth for the user-facing password rule.
  *
- * The rule that is *stated* to users is "at least 12 characters, including an
+ * The rule that is *stated* to users is "at least 6 characters, including an
  * uppercase letter, a lowercase letter and a digit". Several call sites used to
  * implement it with ASCII-only classes (`[A-Z]`, `[a-z]`), so a password written
  * with Cyrillic (or any non-ASCII) letters was rejected even though it matched
@@ -14,13 +14,13 @@ namespace Api\System\Library\Security;
  * perfectly valid password. Other sites additionally required a special
  * character that the message never mentions.
  *
- * The policy below is the stated rule and nothing more: 12+ characters
+ * The policy below is the stated rule and nothing more: 6+ characters
  * (multi-byte aware), an uppercase letter, a lowercase letter and a digit, using
  * Unicode character classes. No special character is required.
  */
 final class PasswordPolicy
 {
-    public const MIN_LENGTH = 12;
+    public const MIN_LENGTH = 6;
     public const MAX_LENGTH = 1024;
 
     /**

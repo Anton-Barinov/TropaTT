@@ -17,6 +17,9 @@ define('UPDATE_CENTER_URL', 'https://update.tropatt.com');
 define('UPDATE_PRODUCT', 'tropatt-core');
 define('UPDATE_CHANNEL', 'stable');
 
+// Password rule: one source of truth shared with the CRM itself.
+require_once dirname(__DIR__) . '/api/system/library/security/PasswordPolicy.php';
+
 function hasEnvConfig(): bool
 {
     return is_file(ENV_FILE_PATH) || is_file(ENV_LOCAL_PATH);
@@ -144,7 +147,7 @@ $L['ru'] = [
     'login_label' => 'Логин',
     'required_field' => 'Обязательное поле',
     'passwords_mismatch' => 'Пароли не совпадают',
-    'password_min_length' => 'Минимум 12 символов (заглавные, строчные, цифры, спецсимволы)',
+    'password_min_length' => 'Минимум 6 символов (заглавная, строчная буквы и цифра)',
     'invalid_email' => 'Некорректный email',
     'invalid_url' => 'Некорректный URL',
     'show' => 'Показать',
@@ -239,7 +242,7 @@ $L['en'] = [
     'login_label' => 'Login',
     'required_field' => 'Required field',
     'passwords_mismatch' => 'Passwords do not match',
-    'password_min_length' => 'Minimum 12 characters (uppercase, lowercase, digits, special)',
+    'password_min_length' => 'Minimum 6 characters (uppercase, lowercase, digits)',
     'invalid_email' => 'Invalid email',
     'invalid_url' => 'Invalid URL',
     'show' => 'Show',
@@ -334,7 +337,7 @@ $L['zh'] = [
     'login_label' => '用户名',
     'required_field' => '必填字段',
     'passwords_mismatch' => '密码不匹配',
-    'password_min_length' => '至少 12 个字符（大写、小写、数字、特殊字符）',
+    'password_min_length' => '至少 6 个字符（大写、小写、数字）',
     'invalid_email' => '无效的邮箱',
     'invalid_url' => '无效的 URL',
     'show' => '显示',
@@ -429,7 +432,7 @@ $L['es'] = [
     'login_label' => 'Usuario',
     'required_field' => 'Campo obligatorio',
     'passwords_mismatch' => 'Las contraseñas no coinciden',
-    'password_min_length' => 'Mínimo 12 caracteres (mayúsculas, minúsculas, números, especiales)',
+    'password_min_length' => 'Mínimo 6 caracteres (mayúsculas, minúsculas, números)',
     'invalid_email' => 'Email inválido',
     'invalid_url' => 'URL inválida',
     'show' => 'Mostrar',
@@ -524,7 +527,7 @@ $L['pt'] = [
     'login_label' => 'Usuário',
     'required_field' => 'Campo obrigatório',
     'passwords_mismatch' => 'As senhas não coincidem',
-    'password_min_length' => 'Mínimo de 12 caracteres (maiúsculas, minúsculas, números, especiais)',
+    'password_min_length' => 'Mínimo de 6 caracteres (maiúsculas, minúsculas, números)',
     'invalid_email' => 'Email inválido',
     'invalid_url' => 'URL inválida',
     'show' => 'Mostrar',
@@ -619,7 +622,7 @@ $L['de'] = [
     'login_label' => 'Benutzername',
     'required_field' => 'Pflichtfeld',
     'passwords_mismatch' => 'Passwörter stimmen nicht überein',
-    'password_min_length' => 'Mindestens 12 Zeichen (Groß-/Kleinbuchstaben, Zahlen, Sonderzeichen)',
+    'password_min_length' => 'Mindestens 6 Zeichen (Groß-/Kleinbuchstaben, Zahlen)',
     'invalid_email' => 'Ungültige E-Mail',
     'invalid_url' => 'Ungültige URL',
     'show' => 'Anzeigen',
@@ -714,7 +717,7 @@ $L['fr'] = [
     'login_label' => "Nom d'utilisateur",
     'required_field' => 'Champ obligatoire',
     'passwords_mismatch' => 'Les mots de passe ne correspondent pas',
-    'password_min_length' => 'Minimum 12 caractères (majuscules, minuscules, chiffres, spéciaux)',
+    'password_min_length' => 'Minimum 6 caractères (majuscules, minuscules, chiffres)',
     'invalid_email' => 'Email invalide',
     'invalid_url' => 'URL invalide',
     'show' => 'Afficher',
@@ -2773,14 +2776,10 @@ function createAdminUser(PDO $pdo, array $data): array
     $email = $data['admin_email'] ?? 'admin@example.com';
     $login = $data['admin_login'] ?? $data['admin_email'] ?? 'admin';
 
-    // Server-side password strength validation (L-1: minimum 12 chars + complexity)
+    // Server-side password strength validation uses the shared PasswordPolicy:
+    // at least 6 characters including an uppercase letter, a lowercase letter and a digit.
     $password = (string)($data['admin_password'] ?? 'password');
-    if (mb_strlen($password) < 12
-        || !preg_match('/[A-Z]/', $password)
-        || !preg_match('/[a-z]/', $password)
-        || !preg_match('/[0-9]/', $password)
-        || !preg_match('/[^a-zA-Z0-9]/', $password)
-    ) {
+    if (\Api\System\Library\Security\PasswordPolicy::failures($password) !== []) {
         throw new RuntimeException(t('password_min_length'));
     }
 
@@ -3379,13 +3378,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isAjax) {
 
             if ($formData['site_url'] === '') $errors[] = t('site_url') . ': ' . t('required_field');
             if ($formData['admin_email'] === '' || !filter_var($formData['admin_email'], FILTER_VALIDATE_EMAIL)) $errors[] = t('admin_email') . ': ' . t('invalid_email');
-            // L-1: client-side validation matches server-side (12+ chars + complexity)
-            if (strlen($formData['admin_password']) < 12
-                || !preg_match('/[A-Z]/', $formData['admin_password'])
-                || !preg_match('/[a-z]/', $formData['admin_password'])
-                || !preg_match('/[0-9]/', $formData['admin_password'])
-                || !preg_match('/[^a-zA-Z0-9]/', $formData['admin_password'])
-            ) {
+            // Same rule as the CRM itself (shared PasswordPolicy).
+            if (\Api\System\Library\Security\PasswordPolicy::failures($formData['admin_password']) !== []) {
                 $errors[] = t('admin_password') . ': ' . t('password_min_length');
             }
             if ($formData['admin_password'] !== $formData['admin_password_confirm']) $errors[] = t('passwords_mismatch');

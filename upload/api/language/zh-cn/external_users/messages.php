@@ -12,7 +12,7 @@ return [
     'email_already_registered' => '邮箱已注册',
     'external_guest_role_not_found' => '角色 external_guest 未找到',
     'user_creation_failed' => '创建用户失败',
-    'token_required' => '令牌是必填项',    'weak_password' => '密码至少需要12个字符，并包含大写字母、小写字母和数字。',
+    'token_required' => '令牌是必填项',    'weak_password' => '密码至少需要6个字符，并包含大写字母、小写字母和数字。',
     'password_too_long' => '密码过长',
     'invalid_token' => '无效令牌',
     'not_external_user' => '用户不是外部用户',
