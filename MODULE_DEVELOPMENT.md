@@ -89,12 +89,16 @@ Event names live in one place — `Api\System\Library\Module\ModuleEvents` — s
 | Event | Dispatched from | Payload |
 |---|---|---|
 | `task.created` | `TaskController` | `task_id`, `task_public_id`, `status_code`, `assignee_id`, `actor_id` |
-| `task.updated` | `TaskController` | `task_id`, `task_public_id`, `status_code`, `assignee_id`, `actor_id` |
+| `task.updated` (also once per task from a bulk update, with `bulk: true`) | `TaskController` | `task_id`, `task_public_id`, `status_code`, `assignee_id`, `actor_id` |
 | `task.status_changed` | `TaskController` | `task_id`, `task_public_id`, `old_status`, `new_status`, `assignee_id`, `actor_id` |
 | `task.assignee_changed` | `TaskController` | `task_id`, `task_public_id`, `old_assignee_id`, `new_assignee_id`, `status_code`, `actor_id` |
 | `task.deleted` | `TaskController` | `task_id`, `task_public_id`, `status_code`, `assignee_id`, `actor_id` |
 | `comment.added` | `TaskController` | `comment_public_id`, `task_public_id`, `project_public_id`, `author_id`, `actor_id` |
-| `file.uploaded` | `FileController` | `file_public_id`, `entity_type`, `entity_public_id`, `uploader_public_id`, `size_bytes`, `actor_id` |
+| `file.uploaded` | `FileController`, `KnowledgeController`, `ChatController` | `file_public_id`, `entity_type`, `entity_public_id`, `uploader_public_id`, `size_bytes`, `actor_id` |
+| `tag.created` / `tag.updated` / `tag.deleted` | `TagController` | `tag_public_id`, `code`, `title`, `actor_id` |
+| `status.created` / `status.updated` / `status.deleted` | `StatusController` | `status_public_id`, `scope`, `code`, `title`, `actor_id` |
+| `priority.created` / `priority.updated` / `priority.deleted` | `PriorityController` | `priority_public_id`, `code`, `title`, `actor_id` |
+| `custom_field.created` / `custom_field.updated` / `custom_field.deleted` | `CustomFieldController` | `field_public_id`, `scope`, `code`, `type`, `actor_id` |
 | `project.created` / `project.updated` / `project.deleted` | `ProjectController` | `project_id`, `project_public_id`, `actor_id` |
 | `user.created` / `user.updated` / `user.deleted` | `UserController` | `user_id`, `user_public_id`, `actor_id` |
 | `cycle.created` / `cycle.started` / `cycle.completed` / `cycle.reopened` / `cycle.archived` / `cycle.deleted` | `WorkCycleController` | `cycle_id`, `cycle_public_id`, `title`, `project_public_id`, `status`, `actor_id` |
