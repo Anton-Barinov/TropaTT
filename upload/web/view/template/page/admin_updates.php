@@ -763,25 +763,51 @@ $auJs = [
     return true;
   }
 
+  function updateAvailable() {
+    return !!(state.plan && state.plan.update_available === true);
+  }
+
+  // The build the last successful apply installed, or '' when the last job was
+  // not an apply.
+  function latestAppliedTarget() {
+    const latest = state.status && state.status.latest_job;
+    if (!latest || latest.state !== 'applied') return '';
+    return (latest.plan && latest.plan.target_build) ? String(latest.plan.target_build) : '';
+  }
+
+  // "Update installed" may only be claimed when the build the update check
+  // currently offers is exactly the one the last apply installed. Reporting the
+  // applied state unconditionally made the page show a green "installed" badge
+  // next to "Найдено обновление" as soon as a newer build was published.
+  function updateInstalledIsCurrent() {
+    const applied = latestAppliedTarget();
+    if (applied === '') return false;
+    if (!updateAvailable()) return true;
+    const planTarget = (state.plan && state.plan.target_build) ? String(state.plan.target_build) : '';
+    return planTarget !== '' && applied === planTarget;
+  }
+
   function pipelineKind() {
     const latest = state.status && state.status.latest_job;
     if (latest && latest.state === 'failed') return 'danger';
     if (updateCenterUnavailable()) return 'danger';
-    if (state.plan && state.plan.update_available !== true) return 'ok';
-    if (latest && latest.state === 'applied') return 'ok';
-    if (state.download || latestJobIsStaged() || state.preflight) return 'warn';
-    return 'neutral';
+    if (updateInstalledIsCurrent()) return 'ok';
+    if (!updateAvailable()) return state.plan ? 'ok' : 'neutral';
+    // Available and not installed yet: prepared/preflighted or still to prepare.
+    return 'warn';
   }
 
   function pipelineText() {
     const latest = state.status && state.status.latest_job;
     if (updateCenterUnavailable()) return tr('statusCenterDown', 'Сервер обновлений недоступен');
-    if (state.plan && state.plan.update_available !== true) return tr('statusNoUpdates', 'Обновлений нет');
-    if (latest && latest.state === 'applied') return tr('statusApplied', 'Обновление установлено');
+    if (latest && latest.state === 'failed') return tr('statusFailed', 'Есть ошибка');
+    if (updateInstalledIsCurrent()) return tr('statusApplied', 'Обновление установлено');
+    if (!updateAvailable()) {
+      return state.plan ? tr('statusNoUpdates', 'Обновлений нет') : tr('statusChecking', 'Проверяем...');
+    }
     if (state.download || latestJobIsStaged()) return tr('statusPrepared', 'Архив подготовлен');
     if (state.preflight && state.preflight.ok === true) return tr('preflightOk', 'Проверка пройдена');
-    if (state.plan && state.plan.update_available === true) return tr('statusUpdateFound', 'Есть обновление');
-    return tr('statusChecking', 'Проверяем...');
+    return tr('statusUpdateFound', 'Есть обновление');
   }
 
   function failedJobBlocksNewUpdate(latest) {
