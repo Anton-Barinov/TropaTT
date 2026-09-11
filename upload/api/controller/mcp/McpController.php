@@ -19,7 +19,10 @@ use Api\Controller\Knowledge\KnowledgePageVersionController;
 use Api\Controller\Project\ProjectController;
 use Api\Controller\Security\SessionController;
 use Api\Controller\Setting\RetentionController;
+use Api\System\Library\Module\ModuleEvents;
 use Api\Controller\Task\TaskController;
+use Api\Controller\User\UserController;
+use Api\Controller\Cycle\WorkCycleController;
 use Api\Model\Tag\TagRepository;
 use Api\Controller\System\CoreUpdateController;
 use Api\Controller\System\CoreVersionController;
@@ -4977,46 +4980,38 @@ $tools[] = $this->tool(
         if ($login === '' || $password === '') {
             return ['error' => 'login and password are required.'];
         }
-
-        /** @var UserService $service */
-        $service = $this->container->get('service.user');
-        $result = $service->create($this->pick($arguments, [
-            'login', 'password', 'email', 'full_name', 'locale', 'is_root',
-            'role_public_ids', 'is_active', 'cost_rate', 'bill_rate', 'payout_rate', 'token',
-        ]), $this->actor());
-
-        return $this->publicData($result);
+        // Delegated to the controller so the same side effects run as on the REST/UI path
+        // (module hooks / webhook subscriptions, workflow triggers, cache invalidation).
+        return $this->controllerResultWithKey(
+            $this->invokeControllerTool(UserController, 'create', $arguments, 'POST'),
+            'user'
+        );
     }
-
     private function crmUpdateUser(array $arguments): array
     {
         $publicId = trim((string)($arguments['public_id'] ?? ''));
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
-
-        /** @var UserService $service */
-        $service = $this->container->get('service.user');
-        $result = $service->update($publicId, $this->pick($arguments, [
-            'email', 'full_name', 'locale', 'is_active', 'is_root', 'role_public_ids',
-            'password', 'token', 'cost_rate', 'bill_rate', 'payout_rate',
-        ]), $this->actor());
-
-        return $this->publicData($result);
+        // Delegated to the controller so the same side effects run as on the REST/UI path
+        // (module hooks / webhook subscriptions, workflow triggers, cache invalidation).
+        return $this->controllerResultWithKey(
+            $this->invokeControllerTool(UserController, 'update', $arguments, 'PATCH', ['public_id']),
+            'user'
+        );
     }
-
     private function crmDeleteUser(array $arguments): array
     {
         $publicId = trim((string)($arguments['public_id'] ?? ''));
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
+        // Delegated to the controller so the same side effects run as on the REST/UI path
+        // (module hooks / webhook subscriptions, workflow triggers, cache invalidation).
+        $result = $this->invokeControllerTool(UserController, 'delete', $arguments, 'DELETE', ['public_id']);
 
-        /** @var UserService $service */
-        $service = $this->container->get('service.user');
-        return $this->publicData($service->delete($publicId, $this->actor()));
+        return isset($result['error']) ? $result : ['deleted' => true];
     }
-
     private function crmGetUserTokenInfo(array $arguments): array
     {
         $publicId = trim((string)($arguments['public_id'] ?? ''));
@@ -6928,59 +6923,32 @@ $tools[] = $this->tool(
         if ($title === '') {
             return ['error' => 'title is required.'];
         }
-
-        $input = ['title' => $title];
-        foreach (['description', 'status', 'client_public_id', 'start_date', 'end_date'] as $field) {
-            if (!empty($arguments[$field])) {
-                $input[$field] = $arguments[$field];
-            }
-        }
-
-        /** @var ProjectService $service */
-        $service = $this->container->get('service.project');
-        $item = $service->create($input, $this->actor());
-
-        return is_array($item) ? ['project' => $this->publicData($item)] : ['error' => (string)$item];
+        // Delegated to the controller so the same side effects run as on the REST/UI path
+        // (module hooks / webhook subscriptions, workflow triggers, cache invalidation).
+        return $this->invokeControllerTool(ProjectController, 'create', $arguments, 'POST');
     }
-
     private function crmUpdateProject(array $arguments): array
     {
         $publicId = trim((string)($arguments['public_id'] ?? ''));
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
-
-        $input = [];
-        foreach (['title', 'description', 'status', 'start_date', 'end_date'] as $field) {
-            if (array_key_exists($field, $arguments) && $arguments[$field] !== null) {
-                $input[$field] = $arguments[$field];
-            }
-        }
-        if ($input === []) {
-            return ['error' => 'At least one field to update is required.'];
-        }
-
-        /** @var ProjectService $service */
-        $service = $this->container->get('service.project');
-        $item = $service->update($publicId, $input, $this->actor());
-
-        return is_array($item) ? ['project' => $this->publicData($item)] : ['error' => (string)$item];
+        // Delegated to the controller so the same side effects run as on the REST/UI path
+        // (module hooks / webhook subscriptions, workflow triggers, cache invalidation).
+        return $this->invokeControllerTool(ProjectController, 'update', $arguments, 'PATCH', ['public_id']);
     }
-
     private function crmDeleteProject(array $arguments): array
     {
         $publicId = trim((string)($arguments['public_id'] ?? ''));
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
+        // Delegated to the controller so the same side effects run as on the REST/UI path
+        // (module hooks / webhook subscriptions, workflow triggers, cache invalidation).
+        $result = $this->invokeControllerTool(ProjectController, 'delete', $arguments, 'DELETE', ['public_id']);
 
-        /** @var ProjectService $service */
-        $service = $this->container->get('service.project');
-        $deleted = $service->delete($publicId, $this->actor());
-
-        return $deleted ? ['deleted' => true] : ['error' => 'Project not found or not authorized.'];
+        return isset($result['error']) ? $result : ['deleted' => true];
     }
-
     private function crmDeleteDependency(array $arguments): array
     {
         $publicId = trim((string)($arguments['public_id'] ?? ''));
@@ -8465,17 +8433,16 @@ $tools[] = $this->tool(
     private function crmCreateCycle(array $arguments): array
     {
         $title = trim((string)($arguments['title'] ?? ''));
-        $projectPublicId = trim((string)($arguments['project_public_id'] ?? ''));
-        if ($title === '' || $projectPublicId === '') {
+        if ($title === '' || trim((string)($arguments['project_public_id'] ?? '')) === '') {
             return ['error' => 'title and project_public_id are required.'];
         }
-
-        /** @var WorkCycleService $service */
-        $service = $this->container->get('service.work_cycle');
-        $cycle = $service->create($this->cycleInput($arguments), $this->actor());
-        return is_array($cycle) ? ['cycle' => $this->publicData($cycle)] : ['error' => (string)$cycle];
+        // Delegated to the controller so the same side effects run as on the REST/UI path
+        // (module hooks / webhook subscriptions, workflow triggers, cache invalidation).
+        return $this->controllerResultWithKey(
+            $this->invokeControllerTool(WorkCycleController, 'create', $arguments, 'POST'),
+            'cycle'
+        );
     }
-
     private function crmUpdateCycle(array $arguments): array
     {
         $publicId = trim((string)($arguments['public_id'] ?? ''));
@@ -8561,70 +8528,63 @@ $tools[] = $this->tool(
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
+        // Delegated to the controller so the same side effects run as on the REST/UI path
+        // (module hooks / webhook subscriptions, workflow triggers, cache invalidation).
+        $result = $this->invokeControllerTool(WorkCycleController, 'delete', $arguments, 'DELETE', ['public_id']);
 
-        /** @var WorkCycleService $service */
-        $service = $this->container->get('service.work_cycle');
-        $result = $service->delete($publicId, $this->actor());
-
-        return $result === true ? ['deleted' => true] : ['error' => (string)$result];
+        return isset($result['error']) ? $result : ['deleted' => true];
     }
-
     private function crmStartCycle(array $arguments): array
     {
         $publicId = trim((string)($arguments['public_id'] ?? ''));
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
-
-        /** @var WorkCycleService $service */
-        $service = $this->container->get('service.work_cycle');
-        $result = $service->start($publicId, $this->pick($arguments, ['row_version']), $this->actor());
-
-        return is_array($result) ? ['cycle' => $this->publicData($result)] : ['error' => (string)$result];
+        // Delegated to the controller so the same side effects run as on the REST/UI path
+        // (module hooks / webhook subscriptions, workflow triggers, cache invalidation).
+        return $this->controllerResultWithKey(
+            $this->invokeControllerTool(WorkCycleController, 'start', $arguments, 'POST', ['public_id']),
+            'cycle'
+        );
     }
-
     private function crmCompleteCycle(array $arguments): array
     {
         $publicId = trim((string)($arguments['public_id'] ?? ''));
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
-
-        /** @var WorkCycleService $service */
-        $service = $this->container->get('service.work_cycle');
-        $result = $service->complete($publicId, $this->pick($arguments, ['row_version', 'unfinished_action', 'target_cycle_public_id']), $this->actor());
-
-        return is_array($result) ? ['cycle' => $this->publicData($result)] : ['error' => (string)$result];
+        // Delegated to the controller so the same side effects run as on the REST/UI path
+        // (module hooks / webhook subscriptions, workflow triggers, cache invalidation).
+        return $this->controllerResultWithKey(
+            $this->invokeControllerTool(WorkCycleController, 'complete', $arguments, 'POST', ['public_id']),
+            'cycle'
+        );
     }
-
     private function crmReopenCycle(array $arguments): array
     {
         $publicId = trim((string)($arguments['public_id'] ?? ''));
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
-
-        /** @var WorkCycleService $service */
-        $service = $this->container->get('service.work_cycle');
-        $result = $service->reopen($publicId, $this->pick($arguments, ['row_version']), $this->actor());
-
-        return is_array($result) ? ['cycle' => $this->publicData($result)] : ['error' => (string)$result];
+        // Delegated to the controller so the same side effects run as on the REST/UI path
+        // (module hooks / webhook subscriptions, workflow triggers, cache invalidation).
+        return $this->controllerResultWithKey(
+            $this->invokeControllerTool(WorkCycleController, 'reopen', $arguments, 'POST', ['public_id']),
+            'cycle'
+        );
     }
-
     private function crmArchiveCycle(array $arguments): array
     {
         $publicId = trim((string)($arguments['public_id'] ?? ''));
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
+        // Delegated to the controller so the same side effects run as on the REST/UI path
+        // (module hooks / webhook subscriptions, workflow triggers, cache invalidation).
+        $result = $this->invokeControllerTool(WorkCycleController, 'archive', $arguments, 'POST', ['public_id']);
 
-        /** @var WorkCycleService $service */
-        $service = $this->container->get('service.work_cycle');
-        $result = $service->archive($publicId, $this->pick($arguments, ['row_version']), $this->actor());
-
-        return $result === true ? ['archived' => true] : ['error' => (string)$result];
+        return isset($result['error']) ? $result : ['archived' => true];
     }
-
     private function crmTransferUnfinishedCycleTasks(array $arguments): array
     {
         $publicId = trim((string)($arguments['public_id'] ?? ''));
@@ -9804,27 +9764,16 @@ $tools[] = $this->tool(
         if ($publicId === '' || $name === '' || $contentBase64 === '') {
             return ['error' => 'public_id, name and content_base64 are required.'];
         }
-        if (!$this->knowledge()->page($publicId, $this->actor(), 'edit')) {
-            return ['error' => 'Knowledge page not found.'];
-        }
         if (strlen($contentBase64) > 7_000_000) {
             return ['error' => 'content_base64 is too large for MCP JSON upload. Use the REST multipart upload endpoint instead.'];
         }
 
-        /** @var FileService $service */
-        $service = $this->container->get('service.file');
-        try {
-            $file = $service->create($this->pick($arguments, [
-                'name', 'mime_type', 'content_base64',
-            ]) + [
-                'entity_type' => 'knowledge_page',
-                'entity_public_id' => $publicId,
-            ], [], (int)($this->actor()['id'] ?? 0), $this->actor());
-            return ['file' => $this->publicData($file)];
-        } catch (Throwable $e) {
-            error_log('[McpController::crmUploadKnowledgeFileBase64] ' . $e->getMessage());
-            return ['error' => 'File upload failed. Check server logs for details.'];
-        }
+        // KnowledgeController::uploadFile owns the page-access check, sets the
+        // knowledge_page entity and dispatches FILE_UPLOADED, so module hooks and
+        // webhook subscriptions see MCP uploads exactly like REST ones.
+        $arguments['public_id'] = $publicId;
+
+        return $this->invokeControllerTool(KnowledgeController::class, 'uploadFile', $arguments, 'POST', ['public_id']);
     }
 
     private function crmExportKnowledgeAll(array $arguments): array
@@ -12178,6 +12127,18 @@ $tools[] = $this->tool(
             $service->notifyMessage($chat, ['public_id' => $messagePublicId, 'id' => $messageId, 'text' => $text !== '' ? $text : ($this->t('chat/messages.attached_file') . ': ' . $fileRow['original_name'])], $actor);
         }
         @unlink($tmpFile);
+
+        // Same event the generic file endpoint fires, so hooks/webhooks see the
+        // attachment even though this handler writes the message itself.
+        $this->dispatchModuleHook(ModuleEvents::FILE_UPLOADED, [
+            'file_public_id' => (string)($fileRow['public_id'] ?? ''),
+            'entity_type' => 'chat_message',
+            'entity_public_id' => $messagePublicId,
+            'uploader_public_id' => (string)($fileRow['uploader']['public_id'] ?? ''),
+            'size_bytes' => (int)($fileRow['size_bytes'] ?? 0),
+            'actor_id' => $userId,
+        ]);
+
         return ['message_public_id' => $messagePublicId, 'file' => $this->publicData($fileRow)];
     }
 
