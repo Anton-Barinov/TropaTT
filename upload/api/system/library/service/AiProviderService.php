@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\System\Library\Service;
 
 use Api\System\Library\Support\AppLog;
+use Api\System\Library\Database\ConnectionManager as DbConnectionManager;
 use Api\Model\Ai\AiProviderRepository;
 use Api\System\Library\Config;
 use Api\System\Library\Http\Request;
@@ -684,11 +685,23 @@ final class AiProviderService
         }
         $payload['health'] = $health;
 
-        $this->providers->updateByPublicId($publicId, [
-            'provider_payload' => $this->encodeJson($payload),
-            'updated_at' => gmdate('Y-m-d H:i:s'),
-            'updated_by_user_id' => (int)($actor['id'] ?? 0) ?: null,
-        ]);
+        try {
+            $this->providers->updateByPublicId($publicId, [
+                'provider_payload' => $this->encodeJson($payload),
+                'updated_at' => gmdate('Y-m-d H:i:s'),
+                'updated_by_user_id' => (int)($actor['id'] ?? 0) ?: null,
+            ]);
+        } catch (\Throwable $e) {
+            // Provider health is diagnostic telemetry. A completion can outlive
+            // the MySQL wait_timeout, so the server may close the connection while
+            // the provider is answering; that must never discard a valid AI
+            // response (it used to surface as AI_PROVIDER_UNAVAILABLE).
+            AppLog::warning('ai_provider_health_write_failed', [
+                'provider_public_id' => $publicId,
+                'error' => $e->getMessage(),
+                'connection_lost' => DbConnectionManager::isLostConnection($e),
+            ]);
+        }
     }
 
     private function secretLast4(string $secret): ?string

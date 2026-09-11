@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\System\Library\Service;
 
 use Api\System\Library\Support\AppLog;
+use Api\System\Library\Database\ConnectionManager as DbConnectionManager;
 use Api\Model\Ai\AiProviderRepository;
 use Api\Model\Ai\AiRuntimeRepository;
 use Api\Model\Ai\AiIntentSettingRepository;
@@ -152,14 +153,21 @@ final class AiActionService
         try {
             $completion = $this->aiProviderService->completeText((string)($provider['public_id'] ?? ''), $promptPayload);
         } catch (\Throwable $e) {
-            AppLog::error('[AiActionService::execute] ' . $e->getMessage());
-            $this->runtime->updateJobByPublicId($jobPublicId, [
-                'status' => 'failed',
-                'error_code' => 'AI_PROVIDER_UNAVAILABLE',
-                'error_message' => 'AI provider request failed. Check server logs for details.',
-                'finished_at' => gmdate('Y-m-d H:i:s'),
-                'updated_at' => gmdate('Y-m-d H:i:s'),
-            ]);
+            // A dropped MySQL connection is a transport failure, not a provider
+            // outage: mislabelling it made operators hunt the wrong subsystem.
+            $connectionLost = DbConnectionManager::isLostConnection($e);
+            AppLog::error(
+                '[AiActionService::execute] ' . ($connectionLost ? 'database connection lost: ' : '') . $e->getMessage()
+            );
+            $this->safeBookkeeping(function () use ($jobPublicId): void {
+                $this->runtime->updateJobByPublicId($jobPublicId, [
+                    'status' => 'failed',
+                    'error_code' => 'AI_PROVIDER_UNAVAILABLE',
+                    'error_message' => 'AI provider request failed. Check server logs for details.',
+                    'finished_at' => gmdate('Y-m-d H:i:s'),
+                    'updated_at' => gmdate('Y-m-d H:i:s'),
+                ]);
+            }, 'provider_failure');
             return ['ok' => false, 'code' => 'AI_PROVIDER_UNAVAILABLE'];
         }
         $completionOk = (bool)($completion['ok'] ?? false) && trim((string)($completion['text'] ?? '')) !== '';
@@ -169,46 +177,51 @@ final class AiActionService
         $errorCode = $completionOk ? null : (string)($completion['code'] ?? 'AI_PROVIDER_UNAVAILABLE');
         $summary = $rawText !== '' ? $rawText : $this->t('ai/messages.fallback_error');
 
-        $this->runtime->updateJobByPublicId($jobPublicId, [
-            'status' => 'completed',
-            'result_json' => json_encode([
-                'mode' => $mode,
+        // Bookkeeping must not discard a valid completion: the MySQL connection
+        // can be closed by the server while the provider is still answering, and
+        // before this guard that surfaced as a 500 with the answer thrown away.
+        $this->safeBookkeeping(function () use ($jobPublicId, $mode, $errorCode, $completion, $summary, $provider, $now, $actor, $actionType, $input, $intent, $resolvedModel): void {
+            $this->runtime->updateJobByPublicId($jobPublicId, [
+                'status' => 'completed',
+                'result_json' => json_encode([
+                    'mode' => $mode,
+                    'error_code' => $errorCode,
+                    'http_status' => (int)($completion['http_status'] ?? 0),
+                    'suggestion' => [
+                        'summary' => $summary,
+                        'questions' => [],
+                        'proposed_actions' => [],
+                    ],
+                    'provider_public_id' => (string)($provider['public_id'] ?? ''),
+                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 'error_code' => $errorCode,
-                'http_status' => (int)($completion['http_status'] ?? 0),
-                'suggestion' => [
-                    'summary' => $summary,
-                    'questions' => [],
-                    'proposed_actions' => [],
-                ],
-                'provider_public_id' => (string)($provider['public_id'] ?? ''),
-            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            'error_code' => $errorCode,
-            'error_message' => null,
-            'finished_at' => $now,
-            'updated_at' => $now,
-        ]);
+                'error_message' => null,
+                'finished_at' => $now,
+                'updated_at' => $now,
+            ]);
 
-        $this->runtime->createUsageLog([
-            'user_id' => (int)($actor['id'] ?? 0) ?: null,
-            'provider_public_id' => (string)($provider['public_id'] ?? ''),
-            'action_type' => $actionType,
-            'intent_code' => $actionType,
-            'status' => 'completed',
-            'error_code' => $errorCode,
-            'request_tokens' => (int)($completion['request_tokens'] ?? 0),
-            'response_tokens' => (int)($completion['response_tokens'] ?? 0),
-            'total_tokens' => (int)($completion['total_tokens'] ?? 0),
-            'latency_ms' => (int)($completion['latency_ms'] ?? 0),
-            'is_sensitive_context' => 0,
-            'request_meta' => json_encode([
-                'mode' => $mode,
-                'scope_type' => trim((string)($input['scope_type'] ?? '')),
-                'scope_public_id' => trim((string)($input['scope_public_id'] ?? '')),
-                'intent_setting_public_id' => (string)($intent['public_id'] ?? ''),
-                'resolved_model' => $resolvedModel,
-            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            'created_at' => $now,
-        ]);
+            $this->runtime->createUsageLog([
+                'user_id' => (int)($actor['id'] ?? 0) ?: null,
+                'provider_public_id' => (string)($provider['public_id'] ?? ''),
+                'action_type' => $actionType,
+                'intent_code' => $actionType,
+                'status' => 'completed',
+                'error_code' => $errorCode,
+                'request_tokens' => (int)($completion['request_tokens'] ?? 0),
+                'response_tokens' => (int)($completion['response_tokens'] ?? 0),
+                'total_tokens' => (int)($completion['total_tokens'] ?? 0),
+                'latency_ms' => (int)($completion['latency_ms'] ?? 0),
+                'is_sensitive_context' => 0,
+                'request_meta' => json_encode([
+                    'mode' => $mode,
+                    'scope_type' => trim((string)($input['scope_type'] ?? '')),
+                    'scope_public_id' => trim((string)($input['scope_public_id'] ?? '')),
+                    'intent_setting_public_id' => (string)($intent['public_id'] ?? ''),
+                    'resolved_model' => $resolvedModel,
+                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'created_at' => $now,
+            ]);
+        }, 'completion_bookkeeping');
 
         $this->logger->audit([
             'action' => 'ai_action_executed',
@@ -237,6 +250,25 @@ final class AiActionService
                 ],
             ],
         ];
+    }
+
+    /**
+     * Run a bookkeeping write that must never discard an otherwise valid AI
+     * result. A lost connection during a long completion is transient; the
+     * callers that matter (the UI/API response) still get the answer, and the
+     * failure stays visible in the application log.
+     */
+    private function safeBookkeeping(callable $write, string $stage): void
+    {
+        try {
+            $write();
+        } catch (\Throwable $e) {
+            AppLog::warning('ai_bookkeeping_write_failed', [
+                'stage' => $stage,
+                'error' => $e->getMessage(),
+                'connection_lost' => DbConnectionManager::isLostConnection($e),
+            ]);
+        }
     }
 
     private function sanitizeInput(array $input): array

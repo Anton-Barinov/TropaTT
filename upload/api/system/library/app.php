@@ -933,6 +933,9 @@ final class App
         $moduleAutoloader->register();
 
         $this->container->factory('db.pdo', fn() => $db->connect());
+        // `db.pdo` hands back the cached handle; after a long request the MySQL
+        // server may have closed it, so callers need a way to get a fresh one.
+        $this->container->factory('db.reconnect', fn() => $db->reconnect());
         $this->container->factory('repository.user', fn(Container $c) => new \Api\Model\Common\UserRepository($c->get('db.pdo')));
         $this->container->factory('repository.idempotency', fn(Container $c) => new \Api\Model\Common\IdempotencyRepository($c->get('db.pdo')));
         $this->container->factory('repository.auth', fn(Container $c) => new \Api\Model\Auth\AuthRepository($c->get('db.pdo')));

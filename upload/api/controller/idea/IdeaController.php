@@ -1423,7 +1423,7 @@ PROMPT;
                 if ($retry < $maxRetries) usleep(1000000);
             }
 
-            try { $pdo->query('SELECT 1'); } catch (\Throwable $e) { AppLog::error('[IdeaController] PDO reconnect: ' . $e->getMessage()); $pdo = $this->container->get('db.pdo'); }
+            $pdo = $this->refreshPdoIfDropped($pdo);
             $maxIterStmt = $pdo->prepare("SELECT COALESCE(MAX(iteration), 0) + 1 FROM idea_ai_iterations WHERE idea_id = :iid");
             $maxIterStmt->execute(['iid' => $ideaId]);
             $iter = (int)$maxIterStmt->fetchColumn();
@@ -1746,7 +1746,7 @@ PROMPT;
                 if ($retry < $maxRetries) usleep(1000000);
             }
 
-            try { $pdo->query('SELECT 1'); } catch (\Throwable $e) { AppLog::error('[IdeaController] PDO reconnect: ' . $e->getMessage()); $pdo = $this->container->get('db.pdo'); }
+            $pdo = $this->refreshPdoIfDropped($pdo);
             $maxIterStmt = $pdo->prepare("SELECT COALESCE(MAX(iteration), 0) + 1 FROM idea_ai_iterations WHERE idea_id = :iid");
             $maxIterStmt->execute(['iid' => $ideaId]);
             $iter = (int)$maxIterStmt->fetchColumn();
@@ -1896,7 +1896,7 @@ PROMPT;
                 if ($retry < $maxRetries) usleep(1000000);
             }
 
-            try { $pdo->query('SELECT 1'); } catch (\Throwable $e) { AppLog::error('[IdeaController] PDO reconnect: ' . $e->getMessage()); $pdo = $this->container->get('db.pdo'); }
+            $pdo = $this->refreshPdoIfDropped($pdo);
             $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'potential_score', :req, :res, NOW())")->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $systemPrompt, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
 
@@ -2002,7 +2002,7 @@ PROMPT;
                 if ($retry < $maxRetries) usleep(1000000);
             }
 
-            try { $pdo->query('SELECT 1'); } catch (\Throwable $e) { AppLog::error('[IdeaController] PDO reconnect: ' . $e->getMessage()); $pdo = $this->container->get('db.pdo'); }
+            $pdo = $this->refreshPdoIfDropped($pdo);
             $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'risk_report', :req, :res, NOW())")->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
 
@@ -2092,7 +2092,7 @@ PROMPT;
                 if ($retry < $maxRetries) usleep(1000000);
             }
 
-            try { $pdo->query('SELECT 1'); } catch (\Throwable $e) { AppLog::error('[IdeaController] PDO reconnect: ' . $e->getMessage()); $pdo = $this->container->get('db.pdo'); }
+            $pdo = $this->refreshPdoIfDropped($pdo);
             $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'pitfalls_report', :req, :res, NOW())")->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
 
@@ -2183,7 +2183,7 @@ PROMPT;
                 if ($retry < $maxRetries) usleep(1000000);
             }
 
-            try { $pdo->query('SELECT 1'); } catch (\Throwable $e) { AppLog::error('[IdeaController] PDO reconnect: ' . $e->getMessage()); $pdo = $this->container->get('db.pdo'); }
+            $pdo = $this->refreshPdoIfDropped($pdo);
             $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'implementation_plan', :req, :res, NOW())")->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
 
@@ -2304,7 +2304,7 @@ PROMPT;
                 if ($retry < $maxRetries) usleep(1000000);
             }
 
-            try { $pdo->query('SELECT 1'); } catch (\Throwable $e) { AppLog::error('[IdeaController] PDO reconnect: ' . $e->getMessage()); $pdo = $this->container->get('db.pdo'); }
+            $pdo = $this->refreshPdoIfDropped($pdo);
             $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'final_recommendation', :req, :res, NOW())")->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
 
@@ -2409,7 +2409,7 @@ PROMPT;
                 if ($retry < $maxRetries) usleep(1000000);
             }
 
-            try { $pdo->query('SELECT 1'); } catch (\Throwable $e) { AppLog::error('[IdeaController] PDO reconnect: ' . $e->getMessage()); $pdo = $this->container->get('db.pdo'); }
+            $pdo = $this->refreshPdoIfDropped($pdo);
             $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'suggested_tasks', :req, :res, NOW())")->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
 
@@ -2688,7 +2688,7 @@ PROMPT;
                 $aiFailed = true;
             }
             // Reconnect PDO if connection dropped during AI processing
-            try { $pdo->query('SELECT 1'); } catch (\Throwable $e) { AppLog::error('[IdeaController] PDO reconnect: ' . $e->getMessage()); $pdo = $this->container->get('db.pdo'); }
+            $pdo = $this->refreshPdoIfDropped($pdo);
 
             // Log iteration for debug — include AI error diagnostics
             $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
@@ -2779,11 +2779,8 @@ PROMPT;
         }
         } // end retry loop
 
-        // Reconnect PDO if connection dropped during long AI processing
-        try { $pdo->query('SELECT 1'); } catch (\Throwable $e) {
-            $pdo = $this->container->get('db.pdo');
-            AppLog::error('[IdeaController] PDO reconnect: ' . $e->getMessage());
-        }
+        // Reconnect PDO if the connection dropped during long AI processing
+        $pdo = $this->refreshPdoIfDropped($pdo);
 
         // No fallback — all questions MUST be AI-generated
         if (count($genQuestions) === 0 && $interviewQ === 0) {
@@ -3907,6 +3904,27 @@ PROMPT;
             }
         }
         return $report;
+    }
+
+    /**
+     * Replace a MySQL handle the server closed while an AI call was running.
+     *
+     * `container->get('db.pdo')` returns the cached connection, so the previous
+     * "reconnect" handed back the very handle that had just failed (a no-op).
+     * `db.reconnect` opens a fresh one; recovery during a long AI call is normal
+     * and therefore logged as a warning, not an error.
+     */
+    private function refreshPdoIfDropped(\PDO $pdo): \PDO
+    {
+        try {
+            $pdo->query('SELECT 1');
+
+            return $pdo;
+        } catch (\Throwable $e) {
+            AppLog::warning('[IdeaController] PDO reconnect: ' . $e->getMessage());
+
+            return $this->container->get('db.reconnect');
+        }
     }
 
     /**

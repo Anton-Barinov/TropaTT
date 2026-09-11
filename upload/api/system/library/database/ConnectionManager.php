@@ -14,6 +14,47 @@ final class ConnectionManager
     {
     }
 
+    /**
+     * Drop the cached handle and open a brand new connection. The cache is what
+     * makes `connect()` cheap; that same cache keeps handing out a handle the
+     * MySQL server has already closed (see `isLostConnection()`), so recovery
+     * must replace it explicitly instead of re-reading the dead one.
+     */
+    public function reconnect(): PDO
+    {
+        $this->pdo = null;
+
+        return $this->connect();
+    }
+
+    /**
+     * Distinguish "the server closed this connection" from a real query error.
+     * MySQL answers a write on a connection it already dropped with driver codes
+     * 2006 (server has gone away) / 2013 (lost connection during query) / 2055
+     * (lost connection to server), surfaced as a PDOException with SQLSTATE
+     * HY000. Long-running work (AI completions, imports, exports) is exactly the
+     * case where the server can idle out a connection mid-request, so callers
+     * can treat this as transient and reconnect instead of failing.
+     */
+    public static function isLostConnection(\Throwable $e): bool
+    {
+        if ($e instanceof \PDOException) {
+            $driverCode = (int)($e->errorInfo[1] ?? 0);
+            if (in_array($driverCode, [2006, 2013, 2055], true)) {
+                return true;
+            }
+        }
+
+        $message = strtolower($e->getMessage());
+        foreach (['gone away', 'lost connection', 'broken pipe', 'no connection to the server'] as $needle) {
+            if (str_contains($message, $needle)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function connect(?array $override = null): PDO
     {
         if ($override === null && $this->pdo instanceof PDO) {
