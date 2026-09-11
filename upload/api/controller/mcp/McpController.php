@@ -2929,7 +2929,7 @@ MD;
         // ═══════════════════════════════════════════════════════════════════
 
         // --- crm_task: tasks, subtasks, comments, tags, checklists, dependencies, relations, board, activity ---
-        $tools[] = $this->tool(
+$tools[] = $this->tool(
             'crm_task',
             'Unified task management. Use this tool for ALL task operations: list, get, create, update, delete, move, bulk update, board view, get by key, comments, subtasks, tags, checklists, dependencies, relations, estimates, saved views, recurring rules, reminders, SLA, workflow rules, approvals. When the user asks about tasks, always start here. Returns task data with public_id (tsk_...), title, status, priority, assignee, project.',
             [
@@ -2990,6 +2990,10 @@ MD;
                 'sla_policy_public_id' => ['type' => 'string', 'description' => 'Public identifier.'],
                 'sort_order' => ['type' => 'integer', 'description' => 'Numeric value (integer).'],
                 'target_project_public_id' => ['type' => 'string', 'description' => 'Public identifier.'],
+                'action_code' => ['type' => 'string', 'description' => 'Workflow action code.'],
+                'resolve_minutes' => ['type' => 'integer', 'description' => 'SLA resolution target, in minutes.'],
+                'response_minutes' => ['type' => 'integer', 'description' => 'SLA first-response target, in minutes.'],
+                'trigger_code' => ['type' => 'string', 'description' => 'Workflow trigger code.'],
             ],
             ['action']
         );
@@ -3348,6 +3352,7 @@ MD;
                 'type' => ['type' => 'string', 'description' => 'Type discriminator.'],
                 'values' => ['type' => 'string', 'description' => 'Values map.'],
                 'weight' => ['type' => 'integer', 'description' => 'Numeric value (integer).'],
+                'endpoint' => ['type' => 'string', 'description' => 'Webhook endpoint URL.'],
             ],
             ['action']
         );
