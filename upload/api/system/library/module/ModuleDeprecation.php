@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Module;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 use Api\System\Library\Database\IndexHelper;
 
@@ -18,7 +19,7 @@ final class ModuleDeprecation
 
     public static function warn(string $moduleName, string $message, string $since, string $replacement = ''): void
     {
-        error_log(sprintf(
+        AppLog::error(sprintf(
             '[ModuleDeprecation] %s: %s (since %s)%s',
             $moduleName,
             $message,
@@ -40,7 +41,7 @@ final class ModuleDeprecation
                 'now' => $now,
             ]);
         } catch (\Throwable $e) {
-            error_log('[ModuleDeprecation::logDeprecation] ' . $e->getMessage());
+            AppLog::error('[ModuleDeprecation::logDeprecation] ' . $e->getMessage());
         }
     }
 
@@ -52,7 +53,7 @@ final class ModuleDeprecation
             $stmt->execute(['module' => $moduleName]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         } catch (\Throwable $e) {
-            error_log('[ModuleDeprecation::getDeprecations] SELECT: ' . $e->getMessage());
+            AppLog::error('[ModuleDeprecation::getDeprecations] SELECT: ' . $e->getMessage());
             return [];
         }
     }
@@ -76,7 +77,7 @@ final class ModuleDeprecation
         try {
             IndexHelper::createIndexIfNotExists($this->pdo, $this->tableName, 'idx_module_deprecations_module', 'module_name');
         } catch (\Throwable $e) {
-            error_log('[ModuleDeprecation::ensureTable] CREATE INDEX: ' . $e->getMessage());
+            AppLog::error('[ModuleDeprecation::ensureTable] CREATE INDEX: ' . $e->getMessage());
         }
     }
 }

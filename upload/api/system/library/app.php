@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library;
 
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Database\ConnectionManager;
 use Api\System\Library\Database\Migration\MigrationManager;
 use Api\System\Library\Database\SchemaManager;
@@ -645,7 +646,7 @@ final class App
                 $failed = $guard->getFailed();
                 $generated = $guard->getGenerated();
 
-                error_log(sprintf(
+                AppLog::error(sprintf(
                     'KeyGuard: %d keys missing, %d auto-generated, %d failed: %s',
                     count($generated) + count($failed),
                     count($generated),
@@ -658,7 +659,7 @@ final class App
                 }
             }
         } catch (\Throwable $e) {
-            error_log('KeyGuard error: ' . $e->getMessage());
+            AppLog::error('KeyGuard error: ' . $e->getMessage());
         }
     }
 
@@ -692,14 +693,14 @@ final class App
                         'link' => 'index.php?route=admin-settings',
                     ]);
                 } catch (\Throwable $e) {
-                    error_log('[app::notifyAdminsOfMissingKeys] ' . $e->getMessage());
+                    AppLog::error('[app::notifyAdminsOfMissingKeys] ' . $e->getMessage());
                     // Notification itself failed — log but don't crash
                 }
             }
         } catch (\Throwable $e) {
-            error_log('[app::notifyAdminsOfMissingKeys] ' . $e->getMessage());
+            AppLog::error('[app::notifyAdminsOfMissingKeys] ' . $e->getMessage());
             // DB not available yet — just log
-            error_log('KeyGuard: could not notify admins about missing keys');
+            AppLog::error('KeyGuard: could not notify admins about missing keys');
         }
     }
 
@@ -736,7 +737,7 @@ final class App
             // means all cross-origin browser requests will be rejected. This
             // alert helps operators notice the misconfiguration in logs
             // rather than from end-user complaints.
-            error_log('SECURITY WARNING: CORS_ALLOW_ORIGIN is empty in production; cross-origin browser requests will be rejected. Set CORS_ALLOW_ORIGIN=.env to your site URL (e.g. https://crm.example.com).');
+            AppLog::error('SECURITY WARNING: CORS_ALLOW_ORIGIN is empty in production; cross-origin browser requests will be rejected. Set CORS_ALLOW_ORIGIN=.env to your site URL (e.g. https://crm.example.com).');
         }
 
         $csrfSecret = trim((string)$this->config->get('security.auth.csrf.secret_key', ''));
@@ -871,6 +872,8 @@ final class App
             }
         };
         $logger = new JsonLogger($logChannels, $maskKeys, $logWriter);
+        // Publish the logger for container-less code (modules, cron, cache, bootstrap).
+        \Api\System\Library\Support\AppLog::setLogger($logger);
 
         $corsMethods = (string)$this->config->get('security.cors.allow_methods', 'GET, POST, PATCH, PUT, DELETE, OPTIONS');
         $corsHeaders = (string)$this->config->get('security.cors.allow_headers', 'Content-Type, Authorization');
@@ -1798,7 +1801,7 @@ final class App
         try {
             $this->initModuleSystemInternal($router);
         } catch (\Throwable $e) {
-            error_log('[ModuleSystem] initModuleSystem failed: ' . $e->getMessage());
+            AppLog::error('[ModuleSystem] initModuleSystem failed: ' . $e->getMessage());
         }
     }
 
@@ -1814,31 +1817,31 @@ final class App
 
         $moduleConfig = new ModuleConfig($pdo);
         try { $moduleConfig->ensureTable($driver); } catch (\Throwable $e) {
-            error_log('[App::initModuleSystem] ensureTable failed for module.config: ' . $e->getMessage());
+            AppLog::error('[App::initModuleSystem] ensureTable failed for module.config: ' . $e->getMessage());
         }
         $this->container->set('module.config', $moduleConfig);
 
         $moduleMigrations = new ModuleMigrationRunner($pdo);
         try { $moduleMigrations->ensureTable($driver); } catch (\Throwable $e) {
-            error_log('[App::initModuleSystem] ensureTable failed for module.migrations: ' . $e->getMessage());
+            AppLog::error('[App::initModuleSystem] ensureTable failed for module.migrations: ' . $e->getMessage());
         }
         $this->container->set('module.migrations', $moduleMigrations);
 
         $moduleErrorHandler = new ModuleErrorHandler($pdo);
         try { $moduleErrorHandler->ensureTable($driver); } catch (\Throwable $e) {
-            error_log('[App::initModuleSystem] ensureTable failed for module.error_handler: ' . $e->getMessage());
+            AppLog::error('[App::initModuleSystem] ensureTable failed for module.error_handler: ' . $e->getMessage());
         }
         $this->container->set('module.error_handler', $moduleErrorHandler);
 
         $moduleAuditLogger = new ModuleAuditLogger($pdo);
         try { $moduleAuditLogger->ensureTable($driver); } catch (\Throwable $e) {
-            error_log('[App::initModuleSystem] ensureTable failed for module.audit_logger: ' . $e->getMessage());
+            AppLog::error('[App::initModuleSystem] ensureTable failed for module.audit_logger: ' . $e->getMessage());
         }
         $this->container->set('module.audit_logger', $moduleAuditLogger);
 
         $moduleDeprecation = new ModuleDeprecation($pdo);
         try { $moduleDeprecation->ensureTable($driver); } catch (\Throwable $e) {
-            error_log('[App::initModuleSystem] ensureTable failed for module.deprecation: ' . $e->getMessage());
+            AppLog::error('[App::initModuleSystem] ensureTable failed for module.deprecation: ' . $e->getMessage());
         }
         $this->container->set('module.deprecation', $moduleDeprecation);
 
@@ -1858,7 +1861,7 @@ final class App
 
         $cronScheduler = new ModuleCronScheduler($pdo);
         try { $cronScheduler->ensureTables($driver); } catch (\Throwable $e) {
-            error_log('[App::initModuleSystem] ensureTables failed for module.cron_scheduler: ' . $e->getMessage());
+            AppLog::error('[App::initModuleSystem] ensureTables failed for module.cron_scheduler: ' . $e->getMessage());
         }
         $this->container->set('module.cron_scheduler', $cronScheduler);
 
@@ -1892,7 +1895,7 @@ final class App
                 timeout: 600,
             ));
         } catch (\Throwable $e) {
-            error_log('[KnowledgeCron] Task registration failed: ' . $e->getMessage());
+            AppLog::error('[KnowledgeCron] Task registration failed: ' . $e->getMessage());
         }
 
         try {
@@ -1904,7 +1907,7 @@ final class App
                 timeout: 300,
             ));
         } catch (\Throwable $e) {
-            error_log('[CycleSnapshotCron] Task registration failed: ' . $e->getMessage());
+            AppLog::error('[CycleSnapshotCron] Task registration failed: ' . $e->getMessage());
         }
 
         try {
@@ -1916,7 +1919,7 @@ final class App
                 timeout: 120,
             ));
         } catch (\Throwable $e) {
-            error_log('[PushCron] Task registration failed: ' . $e->getMessage());
+            AppLog::error('[PushCron] Task registration failed: ' . $e->getMessage());
         }
 
         try {
@@ -1928,18 +1931,18 @@ final class App
                 timeout: 600,
             ));
         } catch (\Throwable $e) {
-            error_log('[FinanceCron] Task registration failed: ' . $e->getMessage());
+            AppLog::error('[FinanceCron] Task registration failed: ' . $e->getMessage());
         }
 
         $jobDispatcher = new ModuleJobDispatcher($pdo);
         try { $jobDispatcher->ensureTable($driver); } catch (\Throwable $e) {
-            error_log('[App::initModuleSystem] ensureTable failed for module.job_dispatcher: ' . $e->getMessage());
+            AppLog::error('[App::initModuleSystem] ensureTable failed for module.job_dispatcher: ' . $e->getMessage());
         }
         $this->container->set('module.job_dispatcher', $jobDispatcher);
 
         $webhookDispatcher = new ModuleWebhookDispatcher($pdo);
         try { $webhookDispatcher->ensureTable($driver); } catch (\Throwable $e) {
-            error_log('[App::initModuleSystem] ensureTable failed for module.webhook_dispatcher: ' . $e->getMessage());
+            AppLog::error('[App::initModuleSystem] ensureTable failed for module.webhook_dispatcher: ' . $e->getMessage());
         }
         $this->container->set('module.webhook_dispatcher', $webhookDispatcher);
 
@@ -1968,7 +1971,7 @@ final class App
                 }
             }
         } catch (\Throwable $e) {
-            error_log('[App::initModuleSystem] Module initialization/autoloader failed for "' . ($moduleName ?? 'unknown') . '": ' . $e->getMessage());
+            AppLog::error('[App::initModuleSystem] Module initialization/autoloader failed for "' . ($moduleName ?? 'unknown') . '": ' . $e->getMessage());
         }
 
         try {
@@ -1986,7 +1989,7 @@ final class App
                 }
             }
         } catch (\Throwable $e) {
-            error_log('[App::initModuleSystem] Route loading failed for module "' . ($name ?? 'unknown') . '": ' . $e->getMessage());
+            AppLog::error('[App::initModuleSystem] Route loading failed for module "' . ($name ?? 'unknown') . '": ' . $e->getMessage());
         }
 
         /** @var HookManager $hookManager */
@@ -1994,10 +1997,10 @@ final class App
 
         $spRegistry = new ServiceProviderRegistry($this->container, $pluginManager, $hookManager);
         try { $spRegistry->registerAll(); } catch (\Throwable $e) {
-            error_log('[App::initModuleSystem] ServiceProvider registerAll failed: ' . $e->getMessage());
+            AppLog::error('[App::initModuleSystem] ServiceProvider registerAll failed: ' . $e->getMessage());
         }
         try { $spRegistry->bootAll(); } catch (\Throwable $e) {
-            error_log('[App::initModuleSystem] ServiceProvider bootAll failed (registerAll may also have failed): ' . $e->getMessage());
+            AppLog::error('[App::initModuleSystem] ServiceProvider bootAll failed (registerAll may also have failed): ' . $e->getMessage());
         }
         $this->container->set('module.service_provider_registry', $spRegistry);
 
@@ -2020,7 +2023,7 @@ final class App
                     $permRepo->ensureRegistry($modulePermissions);
                 }
             } catch (\Throwable $e) {
-                error_log('[ModuleSystem] Permission registration failed: ' . $e->getMessage());
+                AppLog::error('[ModuleSystem] Permission registration failed: ' . $e->getMessage());
             }
         }
     }

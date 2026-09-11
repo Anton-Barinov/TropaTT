@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Module;
 
+use Api\System\Library\Support\AppLog;
 use PDO;
 use Api\System\Library\Database\IndexHelper;
 use RuntimeException;
@@ -126,7 +127,7 @@ final class ModuleConfig
         try {
             IndexHelper::createIndexIfNotExists($this->pdo, 'module_registry', 'idx_module_registry_name', 'module_name', true);
         } catch (\Throwable $e) {
-            error_log('[ModuleConfig::ensureTable] index creation failed: ' . $e->getMessage());
+            AppLog::error('[ModuleConfig::ensureTable] index creation failed: ' . $e->getMessage());
         }
     }
 
@@ -166,7 +167,7 @@ final class ModuleConfig
             }
             // SQLite does not enforce VARCHAR lengths, so no conversion is needed.
         } catch (\Throwable $e) {
-            error_log('[ModuleConfig::ensureTable] ALTER TABLE failed: ' . $e->getMessage());
+            AppLog::error('[ModuleConfig::ensureTable] ALTER TABLE failed: ' . $e->getMessage());
             // A read-only database must not prevent modules that already fit.
             // saveConfig will still surface a real write failure to the caller.
         }
@@ -241,7 +242,7 @@ final class ModuleConfig
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             return $row ?: null;
         } catch (\Throwable $e) {
-            error_log('[ModuleConfig::getRegistry] DB prepare: ' . $e->getMessage());
+            AppLog::error('[ModuleConfig::getRegistry] DB prepare: ' . $e->getMessage());
             return null;
         }
     }
@@ -257,7 +258,7 @@ final class ModuleConfig
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         } catch (\Throwable $e) {
-            error_log('[ModuleConfig::getActiveModules] ' . $e->getMessage());
+            AppLog::error('[ModuleConfig::getActiveModules] ' . $e->getMessage());
             return [];
         }
     }
@@ -278,7 +279,7 @@ final class ModuleConfig
                 }
             }
         } catch (\Throwable $e) {
-            error_log('[ModuleConfig::loadConfig] ' . $e->getMessage());
+            AppLog::error('[ModuleConfig::loadConfig] ' . $e->getMessage());
         }
 
         return [];
