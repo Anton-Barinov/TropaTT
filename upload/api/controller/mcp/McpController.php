@@ -10232,6 +10232,14 @@ $tools[] = $this->tool(
         if ($publicId === '' || $subjectType === '') {
             return ['error' => 'public_id and subject_type are required.'];
         }
+        // Report the real reason. `addSpacePermission` answers null for a missing
+        // space, for a subject type it does not know and for a subject that does
+        // not resolve, and the handler used to name the space in all three cases —
+        // so a grant that failed on a stale subject read as "the space is gone"
+        // while `get_space` returned it happily (observed against a live host).
+        if (!in_array($subjectType, ['user', 'role', 'team', 'department'], true)) {
+            return ['error' => 'subject_type must be one of: user, role, team, department.'];
+        }
         $result = $this->knowledge()->addSpacePermission(
             $publicId,
             $subjectType,
@@ -10240,7 +10248,29 @@ $tools[] = $this->tool(
             (int)($this->actor()['id'] ?? 0),
             trim((string)($arguments['subject_public_id'] ?? ''))
         );
-        return $result ? ['permission' => $this->publicData($result)] : ['error' => 'Knowledge space not found.'];
+        if (!$result) {
+            return ['error' => self::spacePermissionFailureReason(
+                $this->knowledge()->space($publicId, $this->actor()) !== null
+            )];
+        }
+
+        return ['permission' => $this->publicData($result)];
+    }
+
+    /**
+     * Name the reason a space-permission grant was refused.
+     *
+     * The repository answers null both for a space it cannot see and for a
+     * subject it cannot resolve, so the handler has to ask about the space
+     * separately; answering "Knowledge space not found." in both cases sent the
+     * caller looking at a space that was there all along (seen with a stale
+     * subject id on a live host).
+     */
+    public static function spacePermissionFailureReason(bool $spaceVisibleToActor): string
+    {
+        return $spaceVisibleToActor
+            ? 'Permission subject not found.'
+            : 'Knowledge space not found.';
     }
 
     private function crmRemoveKnowledgeSpacePermission(array $arguments): array

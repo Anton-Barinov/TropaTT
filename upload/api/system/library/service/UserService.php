@@ -138,6 +138,8 @@ final class UserService
             }
         }
 
+        $isActive = self::resolveIsActiveFlag($input);
+
         $userId = $this->users->create([
             'public_id' => $publicId,
             'login' => trim((string)$input['login']),
@@ -146,7 +148,7 @@ final class UserService
             'auth_token_hash' => !empty($input['token']) ? hash('sha256', (string)$input['token']) : '',
             'full_name' => trim((string)($input['full_name'] ?? '')),
             'locale' => trim((string)($input['locale'] ?? 'en-gb')),
-            'is_active' => 1,
+            'is_active' => $isActive,
             'is_root' => $requestedRoot ? 1 : 0,
             'created_by_user_id' => $actorId,
             'created_at' => $now,
@@ -307,6 +309,28 @@ final class UserService
         }
 
         return ['ok' => true, 'user' => $updated ?: ['public_id' => $publicId]];
+    }
+
+    /**
+     * Normalise the `is_active` flag of a create payload.
+     *
+     * `is_active` is part of the user contract — `update()` honours it and MCP
+     * advertises it on `crm_people` — but create() used to hard-code an active
+     * account, so a request for a disabled user was silently upgraded (and the
+     * caller then failed to log in with it). Absent means the historical default
+     * (active).
+     *
+     * @param array<string,mixed> $input
+     */
+    public static function resolveIsActiveFlag(array $input): int
+    {
+        if (!array_key_exists('is_active', $input)) {
+            return 1;
+        }
+
+        $raw = $input['is_active'];
+
+        return in_array($raw, [0, '0', false, '', 'false', 'no', 'off'], true) ? 0 : 1;
     }
 
     public function delete(string $publicId, array $actor): array
