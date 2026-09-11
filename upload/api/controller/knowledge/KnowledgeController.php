@@ -256,7 +256,7 @@ final class KnowledgeController extends BaseController
                 'subject_type' => [$this->t('common/messages.field_required', 'Field is required')],
             ]);
         }
-        $result = $this->repo()->addSpacePermission((string)$params['public_id'], $subjectType, $subjectId, $accessLevel, $this->actorUserId() ?: null, $subjectPublicId);
+        $result = $this->repo()->addSpacePermission((string)$params['public_id'], $subjectType, $subjectId, $accessLevel, $this->actorUserId() ?: null, $subjectPublicId, $this->actor());
         if ($result === null) {
             return $this->error('KNOWLEDGE_SPACE_NOT_FOUND', $this->t('knowledge/messages.space_not_found', 'Knowledge space not found'), 404);
         }

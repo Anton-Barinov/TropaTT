@@ -10246,11 +10246,12 @@ $tools[] = $this->tool(
             (int)($arguments['subject_id'] ?? 0),
             trim((string)($arguments['access_level'] ?? 'view')),
             (int)($this->actor()['id'] ?? 0),
-            trim((string)($arguments['subject_public_id'] ?? ''))
+            trim((string)($arguments['subject_public_id'] ?? '')),
+            $this->actor()
         );
         if (!$result) {
             return ['error' => self::spacePermissionFailureReason(
-                $this->knowledge()->space($publicId, $this->actor()) !== null
+                $this->knowledge()->space($publicId, $this->actor(), 'manage') !== null
             )];
         }
 
@@ -10260,11 +10261,13 @@ $tools[] = $this->tool(
     /**
      * Name the reason a space-permission grant was refused.
      *
-     * The repository answers null both for a space it cannot see and for a
-     * subject it cannot resolve, so the handler has to ask about the space
+     * The repository answers null both for a space the actor may not manage and
+     * for a subject it cannot resolve, so the handler has to ask about the space
      * separately; answering "Knowledge space not found." in both cases sent the
      * caller looking at a space that was there all along (seen with a stale
-     * subject id on a live host).
+     * subject id on a live host). The space probe uses the same `manage` access
+     * the write needs, so a space the actor cannot manage keeps the API's usual
+     * non-disclosure answer ("Knowledge space not found.", as REST does).
      */
     public static function spacePermissionFailureReason(bool $spaceVisibleToActor): string
     {
