@@ -194,8 +194,12 @@ final class SubtaskService
             return false;
         }
 
+        // The parent lookup authorises the call. When the parent task itself is
+        // gone the subtask is an orphan left by an older build (deleting a task
+        // did not cascade) — it must still be removable, otherwise it stays in
+        // task lists forever. Ownership of the subtask row is the fallback check.
         $parentTask = $this->tasks->get((string)$current['parent_task_public_id'], $actor);
-        if (!$parentTask) {
+        if (!$parentTask && !$this->canDeleteOrphanSubtask($current, $actor)) {
             return false;
         }
 
@@ -203,6 +207,23 @@ final class SubtaskService
         $this->subtasks->deleteRelationByChildTaskPublicId((string)$current['public_id']);
 
         return $this->subtasks->softDeleteTaskByPublicId((string)$current['public_id'], $deletedAt);
+    }
+
+    /** @param array<string,mixed> $subtask */
+    /** @param array<string,mixed> $actor */
+    private function canDeleteOrphanSubtask(array $subtask, array $actor): bool
+    {
+        if ((bool)($actor['is_root'] ?? false)) {
+            return true;
+        }
+
+        $actorId = (int)($actor['id'] ?? 0);
+        if ($actorId <= 0) {
+            return false;
+        }
+
+        return $actorId === (int)($subtask['creator_user_id'] ?? 0)
+            || $actorId === (int)($subtask['assignee_user_id'] ?? 0);
     }
 
     private function sanitizeDescription(string $description): string

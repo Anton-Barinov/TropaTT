@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\System\Library\Service;
 
 use Api\Model\Team\TeamRepository;
+use Api\Model\Subtask\SubtaskRepository;
 use Api\Model\Task\TaskRepository;
 use Api\Model\Task\TaskKeyCounterRepository;
 use Api\Model\Project\ProjectRepository;
@@ -23,7 +24,8 @@ final class TaskService
         private readonly ?TaskKeyCounterRepository $keyCounters = null,
         private readonly ?ProjectRepository $projectRepo = null,
         private readonly ?HtmlSanitizer $htmlSanitizer = null,
-        private readonly ?ExternalUserService $externalUsers = null
+        private readonly ?ExternalUserService $externalUsers = null,
+        private readonly ?SubtaskRepository $subtasks = null
     )
     {
     }
@@ -583,11 +585,34 @@ final class TaskService
 
         $deleted = $this->tasks->softDeleteByPublicId($publicId, gmdate('Y-m-d H:i:s'));
         if ($deleted) {
+            // Subtasks are separate task rows linked through task_relations: without
+            // this cascade they survived their parent, kept showing up in task lists
+            // and could no longer be removed (delete_subtask needs a live parent).
+            $this->deleteSubtasksForTask($publicId);
+
             $this->semanticIndex?->removeEntityDocument('task', $publicId);
             $this->activity?->recordFieldChanged($task, 'archived_at', null, gmdate('Y-m-d H:i:s'), $actor, ['source_type' => 'web']);
         }
 
         return $deleted;
+    }
+
+    /** Soft-delete every subtask of the task and drop its subtask relations. */
+    private function deleteSubtasksForTask(string $taskPublicId): void
+    {
+        if ($this->subtasks === null) {
+            return;
+        }
+
+        $deletedAt = gmdate('Y-m-d H:i:s');
+        foreach ($this->subtasks->listByTaskPublicId($taskPublicId) as $subtask) {
+            $childPublicId = (string)($subtask['public_id'] ?? '');
+            if ($childPublicId === '') {
+                continue;
+            }
+            $this->subtasks->deleteRelationByChildTaskPublicId($childPublicId);
+            $this->subtasks->softDeleteTaskByPublicId($childPublicId, $deletedAt);
+        }
     }
 
     /** @param array<string,mixed> $task */
