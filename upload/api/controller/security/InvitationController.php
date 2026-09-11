@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Controller\Security;
 
+use Api\System\Library\Security\PasswordPolicy;
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Service\InvitationService;
 use Api\System\Library\Validation\Validator;
@@ -106,13 +107,8 @@ final class InvitationController extends BaseController
         }
 
         $password = (string)$input['password'];
-        // L-1 fix: add special character requirement to match password policy
-        if (strlen($password) < 12
-            || !preg_match('/[A-Z]/', $password)
-            || !preg_match('/[a-z]/', $password)
-            || !preg_match('/[0-9]/', $password)
-            || !preg_match('/[^a-zA-Z0-9]/', $password)
-        ) {
+        // 12+ characters with an uppercase letter, a lowercase letter and a digit.
+        if (!PasswordPolicy::isStrong($password)) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
                 'password' => [$this->t('security/messages.min_password_12_complex')],
             ]);

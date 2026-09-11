@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Controller\Mcp;
 
+use Api\System\Library\Security\PasswordPolicy;
 use Api\Controller\Common\BaseController;
 use Api\Controller\Admin\CacheController;
 use Api\Controller\Admin\RoleMatrixController;
@@ -4902,13 +4903,8 @@ $tools[] = $this->tool(
         if ($current === '' || $new === '') {
             return ['error' => 'current_password and new_password are required.'];
         }
-        if (strlen($new) < 12
-            || !preg_match('/[A-Z]/', $new)
-            || !preg_match('/[a-z]/', $new)
-            || !preg_match('/[0-9]/', $new)
-            || !preg_match('/[^a-zA-Z0-9]/', $new)
-        ) {
-            return ['error' => 'Password must be at least 12 characters and include uppercase, lowercase, digit, and special character.'];
+        if (!PasswordPolicy::isStrong($new)) {
+            return ['error' => 'Password must be at least 12 characters and include uppercase and lowercase letters and digits.'];
         }
 
         /** @var UserProfileService $service */

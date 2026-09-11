@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Security\PasswordPolicy;
 use Api\Model\Auth\AuthRepository;
 use Api\Model\Common\UserRepository;
 use Api\Model\Project\ProjectRepository;
@@ -405,13 +406,14 @@ final class ExternalUserService
             return ['ok' => false, 'error' => 'token_required'];
         }
 
-        // L-4: Enforce 12+ character password with complexity (upper, lower, digit)
-        // for external user invitations — same as internal invitation/reset flows.
-        if (mb_strlen($password) < 12 || !preg_match('/[A-Z]/', $password) || !preg_match('/[a-z]/', $password) || !preg_match('/[0-9]/', $password)) {
-            return ['ok' => false, 'error' => 'weak_password'];
-        }
-        if (mb_strlen($password) > 1024) {
+        // L-4: 12+ characters with an uppercase letter, a lowercase letter and a
+        // digit (PasswordPolicy). Unicode-aware: a password written with Cyrillic
+        // letters matches the message shown to the user.
+        if (PasswordPolicy::isTooLong($password)) {
             return ['ok' => false, 'error' => 'password_too_long'];
+        }
+        if (!PasswordPolicy::isStrong($password)) {
+            return ['ok' => false, 'error' => 'weak_password'];
         }
 
         $tokenHash = $this->tokens->hash($token);

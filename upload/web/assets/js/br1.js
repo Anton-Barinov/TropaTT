@@ -1,5 +1,21 @@
 window.CRM = window.CRM || {};
 window.CRM.br1 = (function () {
+  // Mirrors Api\System\Library\Security\PasswordPolicy: 12+ characters with an
+  // uppercase letter, a lowercase letter and a digit, Unicode-aware (Cyrillic and
+  // other non-ASCII letters count) and without a special-character requirement.
+  function isWeakPassword(password) {
+    var api = window.CRM && window.CRM.api;
+    if (api && typeof api.isStrongPassword === 'function') {
+      return !api.isStrongPassword(password);
+    }
+    var value = String(password == null ? '' : password);
+    if (Array.from(value).length < 12) return true;
+    try {
+      return !/\p{Lu}/u.test(value) || !/\p{Ll}/u.test(value) || !/\p{Nd}/u.test(value);
+    } catch (e) {
+      return !/[A-Z]/.test(value) || !/[a-z]/.test(value) || !/[0-9]/.test(value);
+    }
+  }
   var currentTask = null;
   var pendingTaskSource = null;
   var currentUserPublicId = '';
@@ -1432,7 +1448,7 @@ window.CRM.br1 = (function () {
         showFormAlert('passwordResetConfirmError', window.CRM.i18n.t('js.br1.zapolnite_token_i_novyy_parol', 'Заполните токен и новый пароль.'), 'error');
         return;
       }
-      if (password.length < 12 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password)) {
+      if (isWeakPassword(password)) {
         showFormAlert('passwordResetConfirmError', window.CRM.i18n.t('js.br1.novyy_parol_dolzhen_soderzhat_minimum_8_simvolov', 'Пароль должен содержать не менее 12 символов, включая заглавные и строчные буквы, цифры и спецсимвол.'), 'error');
         return;
       }
@@ -1471,7 +1487,7 @@ window.CRM.br1 = (function () {
         showFormAlert('invitationAcceptError', window.CRM.i18n.t('js.br1.zapolnite_vse_obyazatelnye_polya', 'Заполните все обязательные поля.'), 'error');
         return;
       }
-      if (body.password.length < 12 || !/[A-Z]/.test(body.password) || !/[a-z]/.test(body.password) || !/[0-9]/.test(body.password)) {
+      if (isWeakPassword(body.password)) {
         showFormAlert('invitationAcceptError', window.CRM.i18n.t('js.br1.parol_dolzhen_soderzhat_minimum_12_simvolov', 'Пароль должен содержать минимум 12 символов, включая заглавные и строчные буквы и цифры.'), 'error');
         return;
       }

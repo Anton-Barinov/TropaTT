@@ -1,5 +1,21 @@
 window.CRM = window.CRM || {};
 window.CRM.pageApiBindings = (function () {
+  // Mirrors Api\System\Library\Security\PasswordPolicy: 12+ characters with an
+  // uppercase letter, a lowercase letter and a digit, Unicode-aware (Cyrillic and
+  // other non-ASCII letters count) and without a special-character requirement.
+  function isWeakPassword(password) {
+    var api = window.CRM && window.CRM.api;
+    if (api && typeof api.isStrongPassword === 'function') {
+      return !api.isStrongPassword(password);
+    }
+    var value = String(password == null ? '' : password);
+    if (Array.from(value).length < 12) return true;
+    try {
+      return !/\p{Lu}/u.test(value) || !/\p{Ll}/u.test(value) || !/\p{Nd}/u.test(value);
+    } catch (e) {
+      return !/[A-Z]/.test(value) || !/[a-z]/.test(value) || !/[0-9]/.test(value);
+    }
+  }
   var statusNode = null;
   var userDirectoryMap = {};
   var userDirectoryLoaded = false;
@@ -13618,7 +13634,7 @@ window.CRM.pageApiBindings = (function () {
         var newPassword = newPasswordInput ? newPasswordInput.value : '';
         var repeatPassword = repeatPasswordInput ? repeatPasswordInput.value : '';
         setProfileInlineError(passwordError, '');
-        if (String(newPassword).length < 12 || !/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+        if (isWeakPassword(newPassword)) {
           setProfileInlineError(passwordError, tp('profile.password_min_length', 'Password must be at least 12 characters and include uppercase and lowercase letters and digits.'));
           return;
         }
