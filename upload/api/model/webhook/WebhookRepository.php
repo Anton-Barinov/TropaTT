@@ -58,6 +58,29 @@ final class WebhookRepository
             ->insert($payload);
     }
 
+    /**
+     * Active subscriptions with the internal id and the encrypted secret, which
+     * the automatic event dispatcher needs in order to create and sign a
+     * delivery (the public list view deliberately omits both).
+     *
+     * @return list<array<string,mixed>>
+     */
+    public function listActiveSubscriptions(): array
+    {
+        $rows = (new QueryBuilder($this->pdo))
+            ->from('webhook_subscriptions')
+            ->select(['id', 'public_id', 'endpoint', 'secret_hash', 'events', 'is_active'])
+            ->where('is_active', '=', 1)
+            ->get();
+        foreach ($rows as &$row) {
+            $row['events'] = $this->decodeList($row['events'] ?? null);
+            $row['is_active'] = (int)($row['is_active'] ?? 0);
+        }
+        unset($row);
+
+        return $rows;
+    }
+
     public function updateSubscriptionByPublicId(string $publicId, array $set): bool
     {
         if ($set === []) {

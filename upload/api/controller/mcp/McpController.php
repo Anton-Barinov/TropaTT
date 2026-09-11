@@ -19,6 +19,7 @@ use Api\Controller\Knowledge\KnowledgePageVersionController;
 use Api\Controller\Project\ProjectController;
 use Api\Controller\Security\SessionController;
 use Api\Controller\Setting\RetentionController;
+use Api\Controller\Task\TaskController;
 use Api\Model\Tag\TagRepository;
 use Api\Controller\System\CoreUpdateController;
 use Api\Controller\System\CoreVersionController;
@@ -6571,13 +6572,12 @@ $tools[] = $this->tool(
             return ['error' => 'title is required.'];
         }
 
-        /** @var TaskService $service */
-        $service = $this->container->get('service.task');
-        $task = $service->create($this->taskInput($arguments), $this->actor());
-        if ($task === 'DESCRIPTION_TOO_LONG') {
-            return ['error' => 'Description is too long.'];
-        }
-        return is_array($task) ? ['task' => $this->publicData($task)] : ['error' => $task];
+        // Go through TaskController instead of TaskService: the controller is what
+        // fires the workflow trigger (task_created), the module hooks (and with
+        // them the core webhook subscriptions) and the cache invalidation. Calling
+        // the service directly silently skipped all of them, so an agent-created
+        // task never triggered any automation.
+        return $this->invokeControllerTool(TaskController::class, 'create', $arguments, 'POST');
     }
 
     private function crmUpdateTask(array $arguments): array
@@ -6587,13 +6587,9 @@ $tools[] = $this->tool(
             return ['error' => 'public_id is required.'];
         }
 
-        /** @var TaskService $service */
-        $service = $this->container->get('service.task');
-        $task = $service->update($publicId, $this->taskInput($arguments), (int)($this->actor()['id'] ?? 0), $this->actor());
-        if ($task === 'DESCRIPTION_TOO_LONG') {
-            return ['error' => 'Description is too long.'];
-        }
-        return is_array($task) ? ['task' => $this->publicData($task)] : ['error' => $task ?: 'Task not found.'];
+        // Same reason as create: update() fires task_updated/task_status_changed
+        // workflow triggers, the module/webhook hooks and cache invalidation.
+        return $this->invokeControllerTool(TaskController::class, 'update', $arguments, 'PATCH', ['public_id']);
     }
 
     private function crmAddTaskComment(array $arguments): array
@@ -6613,15 +6609,15 @@ $tools[] = $this->tool(
             return ['error' => 'Task not found.'];
         }
 
-        /** @var CommentService $service */
-        $service = $this->container->get('service.comment');
-        $comment = $service->createByTask($taskPublicId, [
-            'body' => $body,
-            'visibility' => (string)($arguments['visibility'] ?? 'internal'),
-        ], (int)($this->actor()['id'] ?? 0));
+        // The controller reads the task from the route param `public_id`, while the
+        // MCP tool names it `task_public_id`.
+        $arguments['public_id'] = $taskPublicId;
 
-        if (!$comment) {
-            return ['error' => 'Comment was not created.'];
+        // The controller dispatches COMMENT_ADDED (module hooks + webhooks) and
+        // validates visibility; reuse it and keep the MCP envelope shape.
+        $result = $this->invokeControllerTool(TaskController::class, 'addComment', $arguments, 'POST', ['public_id']);
+        if (isset($result['error'])) {
+            return $result;
         }
 
         // Return the created comment: without its public_id a client cannot
@@ -6629,7 +6625,7 @@ $tools[] = $this->tool(
         return [
             'ok' => true,
             'task_public_id' => $taskPublicId,
-            'comment' => $this->publicData($comment),
+            'comment' => is_array($result) ? $result : [],
         ];
     }
 
@@ -6640,11 +6636,11 @@ $tools[] = $this->tool(
             return ['error' => 'public_id is required.'];
         }
 
-        /** @var TaskService $service */
-        $service = $this->container->get('service.task');
-        $deleted = $service->delete($publicId, $this->actor());
+        // The controller dispatches TASK_DELETED (module hooks + webhooks) and
+        // invalidates the task caches; the service call alone skipped both.
+        $result = $this->invokeControllerTool(TaskController::class, 'delete', $arguments, 'DELETE', ['public_id']);
 
-        return $deleted ? ['deleted' => true] : ['error' => 'Task not found or not authorized to delete.'];
+        return isset($result['error']) ? $result : ['deleted' => true];
     }
 
     private function crmListTaskComments(array $arguments): array
@@ -7081,7 +7077,25 @@ $tools[] = $this->tool(
         $service = $this->container->get('service.webhook');
         $item = $service->createSubscription($input, $this->actor());
 
-        return is_array($item) ? ['webhook' => $item] : ['error' => (string)$item];
+        // A rejected endpoint or a missing root right must surface as a tool error;
+        // wrapping {"ok": false} under `webhook` made the call look successful.
+        if (!is_array($item) || ($item['ok'] ?? false) !== true) {
+            return ['error' => $this->webhookErrorCode($item)];
+        }
+
+        return ['webhook' => $item];
+    }
+
+    private function webhookErrorCode(mixed $item): string
+    {
+        if (is_array($item)) {
+            $code = trim((string)($item['code'] ?? ''));
+            if ($code !== '') {
+                return $code;
+            }
+        }
+
+        return is_string($item) && trim($item) !== '' ? trim($item) : 'Webhook operation failed.';
     }
 
     private function crmUpdateWebhook(array $arguments): array
@@ -7105,7 +7119,11 @@ $tools[] = $this->tool(
         $service = $this->container->get('service.webhook');
         $item = $service->updateSubscription($publicId, $input, $this->actor());
 
-        return is_array($item) ? ['webhook' => $item] : ['error' => (string)$item];
+        if (!is_array($item) || ($item['ok'] ?? false) !== true) {
+            return ['error' => $this->webhookErrorCode($item)];
+        }
+
+        return ['webhook' => $item];
     }
 
     private function crmDeleteWebhook(array $arguments): array
@@ -7133,7 +7151,13 @@ $tools[] = $this->tool(
         $service = $this->container->get('service.webhook');
         $item = $service->testDelivery($publicId, $this->actor());
 
-        return is_array($item) ? ['result' => $item] : ['error' => (string)$item];
+        // A refused test (forbidden / not found / inactive) is an error, not a
+        // successful call that happens to carry {"ok": false} inside.
+        if (!is_array($item) || ($item['ok'] ?? false) !== true) {
+            return ['error' => $this->webhookErrorCode($item)];
+        }
+
+        return ['result' => $item];
     }
 
     private function crmCreateRole(array $arguments): array
