@@ -3570,6 +3570,7 @@ $tools[] = $this->tool(
         }
         // 'self' mode: ownership check is done in the tool method
 
+        try {
         return match ($name) {
             'crm_get_current_user' => $this->toolResult($this->crmGetCurrentUser()),
             'crm_get_health_status' => $this->toolResult($this->crmGetHealthStatus()),
@@ -4150,6 +4151,17 @@ $tools[] = $this->tool(
             'crm_admin' => $this->handleMegaTool('crm_admin', $arguments),
             default => $this->toolError('Unknown tool: ' . $name),
         };
+        } catch (Throwable $e) {
+            // An unexpected failure inside one tool must stay a tool-level error:
+            // a raw JSON-RPC -32603 hides the cause from the client and is not
+            // actionable. The full exception goes to the application log.
+            $this->logError('mcp_tool_failed', [
+                'tool' => $name,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->toolError('Tool "' . $name . '" failed: ' . $e->getMessage());
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -7052,6 +7064,21 @@ $tools[] = $this->tool(
         }
 
         return ['webhook' => $item];
+    }
+
+    /**
+     * Keep the MCP envelope ({"user": …} / {"cycle": …}) around a controller result.
+     *
+     * @param array<string,mixed> $result
+     * @return array<string,mixed>
+     */
+    private function controllerResultWithKey(array $result, string $key): array
+    {
+        if (isset($result['error'])) {
+            return $result;
+        }
+
+        return array_key_exists($key, $result) ? $result : [$key => $result];
     }
 
     private function webhookErrorCode(mixed $item): string
