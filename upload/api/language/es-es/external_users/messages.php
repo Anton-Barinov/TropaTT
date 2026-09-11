@@ -13,7 +13,7 @@ return [
     'external_guest_role_not_found' => 'Rol external_guest no encontrado',
     'user_creation_failed' => 'Error al crear usuario',
     'token_required' => 'El token es obligatorio',
-    'weak_password' => 'La contraseña debe tener al menos 12 caracteres e incluir letras mayúsculas, minúsculas y dígitos.',
+    'weak_password' => 'La contraseña debe tener al menos 6 caracteres e incluir letras mayúsculas, minúsculas y dígitos.',
     'password_too_long' => 'La contraseña es demasiado larga',
     'invalid_token' => 'Token inválido',
     'not_external_user' => 'El usuario no es externo',

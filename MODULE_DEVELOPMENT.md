@@ -102,9 +102,19 @@ Event names live in one place — `Api\System\Library\Module\ModuleEvents` — s
 | `project.created` / `project.updated` / `project.deleted` | `ProjectController` | `project_id`, `project_public_id`, `actor_id` |
 | `user.created` / `user.updated` / `user.deleted` | `UserController` | `user_id`, `user_public_id`, `actor_id` |
 | `cycle.created` / `cycle.started` / `cycle.completed` / `cycle.reopened` / `cycle.archived` / `cycle.deleted` | `WorkCycleController` | `cycle_id`, `cycle_public_id`, `title`, `project_public_id`, `status`, `actor_id` |
+| `client.created` / `client.updated` / `client.deleted` | `ClientController` | `client_public_id`, `title`, `actor_id` |
+| `counterparty.created` / `counterparty.updated` / `counterparty.deleted` | `CounterpartyController` | `counterparty_public_id`, `title`, `actor_id` |
+| `contact.created` / `contact.updated` / `contact.deleted` | `ContactController` | `contact_public_id`, `full_name`, `actor_id` |
+| `company.created` / `company.updated` / `company.deleted` | `CompanyController` | `company_public_id`, `title`, `actor_id` |
+| `organization.created` / `organization.updated` / `organization.deleted` | `OrganizationController` | `organization_public_id`, `title`, `actor_id` |
 | `render.before` / `render.after` | web `Controller::render()` | see §5 |
 
 The payload is passed **by reference** to every handler, so a module can both observe it and (when the event semantics allow) enrich it. Handlers that throw are isolated — a broken module never breaks the core request.
+
+> CRM-record events fire for **every** write path, including MCP: the `crm_crm` mega-tool actions
+> `create/update/delete_client|counterparty|contact|company|organization` delegate to these controllers
+> instead of calling the services directly, so module hooks and webhook subscriptions behave exactly as
+> on the REST/UI path (see `McpController` and `mcp_entity_mutation_parity_unit.php`).
 
 ### 3.2 Subscribing
 

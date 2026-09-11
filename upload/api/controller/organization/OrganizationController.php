@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Controller\Organization;
 
+use Api\System\Library\Module\ModuleEvents;
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Service\OrganizationService;
 use Api\System\Library\Validation\Validator;
@@ -41,6 +42,12 @@ final class OrganizationController extends BaseController
         /** @var OrganizationService $service */
         $service = $this->container->get('service.organization');
         $organization = $service->create($input, $auth['user']);
+
+        $this->dispatchModuleHook(ModuleEvents::ORGANIZATION_CREATED, [
+            'organization_public_id' => (string)($organization['public_id'] ?? ''),
+            'title' => (string)($organization['title'] ?? ''),
+            'actor_id' => (int)($this->user()['user']['id'] ?? 0),
+        ]);
 
         return $this->success('ORGANIZATION_CREATED', $this->t('organization/messages.created'), ['organization' => $organization], 201);
     }
@@ -84,6 +91,12 @@ final class OrganizationController extends BaseController
             return $this->error('ORGANIZATION_NOT_FOUND', $this->t('organization/messages.not_found'), 404, ['organization' => [$this->t('organization/messages.not_found')]]);
         }
 
+        $this->dispatchModuleHook(ModuleEvents::ORGANIZATION_UPDATED, [
+            'organization_public_id' => (string)($organization['public_id'] ?? ''),
+            'title' => (string)($organization['title'] ?? ''),
+            'actor_id' => (int)($this->user()['user']['id'] ?? 0),
+        ]);
+
         return $this->success('ORGANIZATION_UPDATED', $this->t('organization/messages.updated'), ['organization' => $organization]);
     }
 
@@ -100,6 +113,11 @@ final class OrganizationController extends BaseController
         if (!$ok) {
             return $this->error('ORGANIZATION_NOT_FOUND', $this->t('organization/messages.delete_not_found_or_forbidden'), 404, ['organization' => [$this->t('organization/messages.delete_not_found_or_forbidden')]]);
         }
+
+        $this->dispatchModuleHook(ModuleEvents::ORGANIZATION_DELETED, [
+            'organization_public_id' => (string)($params['public_id']),
+            'actor_id' => (int)($this->user()['user']['id'] ?? 0),
+        ]);
 
         return $this->success('ORGANIZATION_DELETED', $this->t('organization/messages.deleted'));
     }

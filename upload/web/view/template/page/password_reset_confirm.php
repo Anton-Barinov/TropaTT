@@ -14,7 +14,7 @@
       </div>
       <div class="mb-3">
         <label class="form-label" data-i18n="password_reset_confirm.label_password"><?= htmlspecialchars($t('password_reset_confirm.label_password', 'Новый пароль'), ENT_QUOTES, 'UTF-8') ?></label>
-        <input class="form-control" type="password" name="new_password" placeholder="<?= htmlspecialchars($t('password_reset_confirm.placeholder_password', 'Минимум 12 символов: A-Z, a-z, 0-9'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="password_reset_confirm.placeholder_password" value="">
+        <input class="form-control" type="password" name="new_password" placeholder="<?= htmlspecialchars($t('password_reset_confirm.placeholder_password', 'Минимум 6 символов: заглавная и строчная буквы, цифра'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="password_reset_confirm.placeholder_password" value="">
       </div>
       <div id="passwordResetConfirmError" class="alert alert-danger d-none py-2"></div>
       <div id="passwordResetConfirmSuccess" class="alert alert-success d-none py-2"></div>

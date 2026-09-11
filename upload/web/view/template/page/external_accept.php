@@ -11,8 +11,8 @@
       <input type="hidden" name="token" value="">
       <div class="mb-3">
         <label class="form-label" data-i18n="external_accept.label_password"><?= htmlspecialchars($t('external_accept.label_password', 'Пароль'), ENT_QUOTES, 'UTF-8') ?></label>
-        <input class="form-control" type="password" name="password" placeholder="<?= htmlspecialchars($t('external_accept.placeholder_password', 'Минимум 12 символов: A-Z, a-z, 0-9'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="external_accept.placeholder_password" autocomplete="new-password" value="">
-        <div class="form-text" data-i18n="external_accept.password_hint"><?= htmlspecialchars($t('external_accept.password_hint', 'Пароль должен содержать не менее 12 символов, включая заглавные и строчные буквы и цифры.'), ENT_QUOTES, 'UTF-8') ?></div>
+        <input class="form-control" type="password" name="password" placeholder="<?= htmlspecialchars($t('external_accept.placeholder_password', 'Минимум 6 символов: заглавная и строчная буквы, цифра'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="external_accept.placeholder_password" autocomplete="new-password" value="">
+        <div class="form-text" data-i18n="external_accept.password_hint"><?= htmlspecialchars($t('external_accept.password_hint', 'Пароль должен содержать не менее 6 символов, включая заглавные и строчные буквы и цифры.'), ENT_QUOTES, 'UTF-8') ?></div>
       </div>
       <div id="externalAcceptError" class="alert alert-danger d-none py-2"></div>
       <button type="submit" class="btn crm-btn-primary w-100" data-i18n="external_accept.btn_submit"><?= htmlspecialchars($t('external_accept.btn_submit', 'Активировать доступ'), ENT_QUOTES, 'UTF-8') ?></button>
@@ -60,9 +60,9 @@
       return;
     }
     var policy = (window.CRM && window.CRM.api && typeof window.CRM.api.isStrongPassword === 'function') ? window.CRM.api : null;
-    var passwordOk = policy ? policy.isStrongPassword(password) : (password.length >= 12);
+    var passwordOk = policy ? policy.isStrongPassword(password) : (password.length >= 6);
     if (!passwordOk) {
-      if (errorBox) { errorBox.textContent = t('external_accept.weak_password', 'Пароль должен содержать не менее 12 символов, включая заглавные и строчные буквы и цифры.'); errorBox.classList.remove('d-none'); }
+      if (errorBox) { errorBox.textContent = t('external_accept.weak_password', 'Пароль должен содержать не менее 6 символов, включая заглавные и строчные буквы и цифры.'); errorBox.classList.remove('d-none'); }
       return;
     }
 

@@ -13,7 +13,7 @@ return [
     'external_guest_role_not_found' => 'Rôle external_guest introuvable',
     'user_creation_failed' => 'Erreur lors de la création de l\'utilisateur',
     'token_required' => 'Le jeton est obligatoire',
-    'weak_password' => 'Le mot de passe doit contenir au moins 12 caractères, avec des majuscules, des minuscules et des chiffres.',
+    'weak_password' => 'Le mot de passe doit contenir au moins 6 caractères, avec des majuscules, des minuscules et des chiffres.',
     'password_too_long' => 'Le mot de passe est trop long',
     'invalid_token' => 'Jeton invalide',
     'not_external_user' => 'L\'utilisateur n\'est pas externe',

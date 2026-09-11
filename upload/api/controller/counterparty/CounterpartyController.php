@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Controller\Counterparty;
 
+use Api\System\Library\Module\ModuleEvents;
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Service\CounterpartyService;
 use Throwable;
@@ -78,6 +79,12 @@ final class CounterpartyController extends BaseController
 
             $this->invalidateCache('counterparty');
 
+            $this->dispatchModuleHook(ModuleEvents::COUNTERPARTY_CREATED, [
+                'counterparty_public_id' => (string)($item['public_id'] ?? ''),
+                'title' => (string)($item['title'] ?? ''),
+                'actor_id' => (int)($this->user()['user']['id'] ?? 0),
+            ]);
+
             return $this->success('COUNTERPARTY_CREATED', $this->t('counterparty/messages.created'), ['counterparty' => $item], 201);
         });
     }
@@ -117,6 +124,12 @@ final class CounterpartyController extends BaseController
 
         $this->invalidateCache('counterparty');
 
+        $this->dispatchModuleHook(ModuleEvents::COUNTERPARTY_UPDATED, [
+            'counterparty_public_id' => (string)($item['public_id'] ?? ''),
+            'title' => (string)($item['title'] ?? ''),
+            'actor_id' => (int)($this->user()['user']['id'] ?? 0),
+        ]);
+
         return $this->success('COUNTERPARTY_UPDATED', $this->t('counterparty/messages.updated'), ['counterparty' => $item]);
     }
 
@@ -141,6 +154,11 @@ final class CounterpartyController extends BaseController
         }
 
         $this->invalidateCache('counterparty');
+
+        $this->dispatchModuleHook(ModuleEvents::COUNTERPARTY_DELETED, [
+            'counterparty_public_id' => (string)($params['public_id']),
+            'actor_id' => (int)($this->user()['user']['id'] ?? 0),
+        ]);
 
         return $this->success('COUNTERPARTY_DELETED', $this->t('counterparty/messages.deleted'));
     }

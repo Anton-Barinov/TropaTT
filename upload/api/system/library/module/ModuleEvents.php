@@ -38,6 +38,23 @@ final class ModuleEvents
     public const CYCLE_ARCHIVED = 'cycle.archived';
     public const CYCLE_DELETED = 'cycle.deleted';
 
+    // CRM records (dispatched from their controllers).
+    public const CLIENT_CREATED = 'client.created';
+    public const CLIENT_UPDATED = 'client.updated';
+    public const CLIENT_DELETED = 'client.deleted';
+    public const COUNTERPARTY_CREATED = 'counterparty.created';
+    public const COUNTERPARTY_UPDATED = 'counterparty.updated';
+    public const COUNTERPARTY_DELETED = 'counterparty.deleted';
+    public const CONTACT_CREATED = 'contact.created';
+    public const CONTACT_UPDATED = 'contact.updated';
+    public const CONTACT_DELETED = 'contact.deleted';
+    public const COMPANY_CREATED = 'company.created';
+    public const COMPANY_UPDATED = 'company.updated';
+    public const COMPANY_DELETED = 'company.deleted';
+    public const ORGANIZATION_CREATED = 'organization.created';
+    public const ORGANIZATION_UPDATED = 'organization.updated';
+    public const ORGANIZATION_DELETED = 'organization.deleted';
+
     // Taxonomy / configuration entities (dispatched from their controllers).
     public const TAG_CREATED = 'tag.created';
     public const TAG_UPDATED = 'tag.updated';

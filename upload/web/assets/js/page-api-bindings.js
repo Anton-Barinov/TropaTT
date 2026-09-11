@@ -1,6 +1,6 @@
 window.CRM = window.CRM || {};
 window.CRM.pageApiBindings = (function () {
-  // Mirrors Api\System\Library\Security\PasswordPolicy: 12+ characters with an
+  // Mirrors Api\System\Library\Security\PasswordPolicy: 6+ characters with an
   // uppercase letter, a lowercase letter and a digit, Unicode-aware (Cyrillic and
   // other non-ASCII letters count) and without a special-character requirement.
   function isWeakPassword(password) {
@@ -9,7 +9,7 @@ window.CRM.pageApiBindings = (function () {
       return !api.isStrongPassword(password);
     }
     var value = String(password == null ? '' : password);
-    if (Array.from(value).length < 12) return true;
+    if (Array.from(value).length < 6) return true;
     try {
       return !/\p{Lu}/u.test(value) || !/\p{Ll}/u.test(value) || !/\p{Nd}/u.test(value);
     } catch (e) {
@@ -13635,7 +13635,7 @@ window.CRM.pageApiBindings = (function () {
         var repeatPassword = repeatPasswordInput ? repeatPasswordInput.value : '';
         setProfileInlineError(passwordError, '');
         if (isWeakPassword(newPassword)) {
-          setProfileInlineError(passwordError, tp('profile.password_min_length', 'Password must be at least 12 characters and include uppercase and lowercase letters and digits.'));
+          setProfileInlineError(passwordError, tp('profile.password_min_length', 'Password must be at least 6 characters and include uppercase and lowercase letters and digits.'));
           return;
         }
         if (newPassword !== repeatPassword) {
