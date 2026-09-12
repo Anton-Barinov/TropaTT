@@ -4188,9 +4188,9 @@ $tools[] = $this->tool(
             'crm_update_idea_status' => $this->withPermission('idea.manage', fn() => $this->toolResult($this->crmUpdateIdeaStatus($arguments))),
             'crm_list_idea_comments' => $this->withPermission('idea.manage', fn() => $this->toolResult($this->crmListIdeaComments($arguments))),
             'crm_add_idea_comment' => $this->withPermission('idea.manage', fn() => $this->toolResult($this->crmAddIdeaComment($arguments))),
-            'crm_list_chats' => $this->withPermissionAny(['task.manage', 'project.manage'], fn() => $this->toolResult($this->crmListChats($arguments))),
-            'crm_list_chat_messages' => $this->withPermissionAny(['task.manage', 'project.manage'], fn() => $this->toolResult($this->crmListChatMessages($arguments))),
-            'crm_send_chat_message' => $this->withPermissionAny(['task.manage', 'project.manage'], fn() => $this->toolResult($this->crmSendChatMessage($arguments))),
+            'crm_list_chats' => $this->withPermissionAny(['chat.use', 'task.manage', 'project.manage'], fn() => $this->toolResult($this->crmListChats($arguments))),
+            'crm_list_chat_messages' => $this->withPermissionAny(['chat.use', 'task.manage', 'project.manage'], fn() => $this->toolResult($this->crmListChatMessages($arguments))),
+            'crm_send_chat_message' => $this->withPermissionAny(['chat.use', 'task.manage', 'project.manage'], fn() => $this->toolResult($this->crmSendChatMessage($arguments))),
             'crm_list_notifications' => $this->toolResult($this->crmListNotifications($arguments)),
             'crm_get_notification_counters' => $this->toolResult($this->crmGetNotificationCounters()),
             'crm_create_notification' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmCreateNotification($arguments))),
@@ -4255,7 +4255,7 @@ $tools[] = $this->tool(
             'crm_rebuild_knowledge_permissions' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmRebuildKnowledgePermissions())),
             'crm_cleanup_knowledge_drafts' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmCleanupKnowledgeDrafts())),
             'crm_get_chat' => $this->toolResult($this->crmGetChat($arguments)),
-            'crm_create_chat' => $this->withPermissionAny(['task.manage', 'project.manage'], fn() => $this->toolResult($this->crmCreateChat($arguments))),
+            'crm_create_chat' => $this->withPermissionAny(['chat.use', 'task.manage', 'project.manage'], fn() => $this->toolResult($this->crmCreateChat($arguments))),
             'crm_get_chat_participants' => $this->toolResult($this->crmGetChatParticipants($arguments)),
             'crm_edit_chat_message' => $this->toolResult($this->crmEditChatMessage($arguments)),
             'crm_delete_chat_message' => $this->toolResult($this->crmDeleteChatMessage($arguments)),
@@ -4263,11 +4263,11 @@ $tools[] = $this->tool(
             'crm_download_chat_attachment' => $this->toolResult($this->crmDownloadChatAttachment($arguments)),
             'crm_list_chat_attachments' => $this->toolResult($this->crmListChatAttachments($arguments)),
             'crm_get_chat_settings' => $this->toolResult($this->crmGetChatSettings($arguments)),
-            'crm_update_chat_settings' => $this->withPermissionAny(['task.manage', 'project.manage'], fn() => $this->toolResult($this->crmUpdateChatSettings($arguments))),
+            'crm_update_chat_settings' => $this->withPermissionAny(['chat.use', 'task.manage', 'project.manage'], fn() => $this->toolResult($this->crmUpdateChatSettings($arguments))),
             'crm_mark_chat_read' => $this->toolResult($this->crmMarkChatRead($arguments)),
             'crm_get_chat_unread_count' => $this->toolResult($this->crmGetChatUnreadCount()),
-            'crm_archive_chat' => $this->withPermissionAny(['task.manage', 'project.manage'], fn() => $this->toolResult($this->crmArchiveChat($arguments))),
-            'crm_restore_chat' => $this->withPermissionAny(['task.manage', 'project.manage'], fn() => $this->toolResult($this->crmRestoreChat($arguments))),
+            'crm_archive_chat' => $this->withPermissionAny(['chat.use', 'task.manage', 'project.manage'], fn() => $this->toolResult($this->crmArchiveChat($arguments))),
+            'crm_restore_chat' => $this->withPermissionAny(['chat.use', 'task.manage', 'project.manage'], fn() => $this->toolResult($this->crmRestoreChat($arguments))),
             'crm_list_push_subscriptions' => $this->toolResult($this->crmListPushSubscriptions($arguments)),
             'crm_create_push_subscription' => $this->toolResult($this->crmCreatePushSubscription($arguments)),
             'crm_delete_push_subscription' => $this->toolResult($this->crmDeletePushSubscription($arguments)),
@@ -4285,7 +4285,7 @@ $tools[] = $this->tool(
             'crm_admin' => $this->handleMegaTool('crm_admin', $arguments),
             'crm_agent_bundle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmAgentBundle($arguments))),
             'crm_agent_memory' => $this->toolResult($this->crmAgentMemory($arguments)),
-            'crm_chat' => $this->withPermissionAny(['task.manage', 'project.manage'], fn() => $this->toolResult($this->crmChat($arguments))),
+            'crm_chat' => $this->withPermissionAny(['chat.use', 'task.manage', 'project.manage'], fn() => $this->toolResult($this->crmChat($arguments))),
             default => $this->toolError('Unknown tool: ' . $name),
         };
         } catch (Throwable $e) {
@@ -6631,6 +6631,33 @@ $tools[] = $this->tool(
     // AGENT WORKSPACE & COORDINATION: bundle, memory, compact mode
     // ═══════════════════════════════════════════════════════════════════
 
+    private function checkEntityAccess(?string $entityType, ?string $entityPublicId): bool
+    {
+        $entityType = trim((string)$entityType);
+        $entityPublicId = trim((string)$entityPublicId);
+        if ($entityType === '' || $entityPublicId === '') {
+            return true;
+        }
+
+        $actor = $this->actor();
+
+        if ($entityType === 'task') {
+            /** @var \Api\System\Library\Service\TaskService $taskService */
+            $taskService = $this->container->get('service.task');
+            $task = $taskService->get($entityPublicId, $actor);
+            return is_array($task) && !empty($task);
+        }
+
+        if ($entityType === 'project') {
+            /** @var \Api\System\Library\Service\ProjectService $projectService */
+            $projectService = $this->container->get('service.project');
+            $project = $projectService->get($entityPublicId, $actor);
+            return is_array($project) && !empty($project);
+        }
+
+        return true;
+    }
+
     private function crmAgentMemory(array $arguments): array
     {
         $action = trim((string)($arguments['action'] ?? 'get'));
@@ -6663,6 +6690,9 @@ $tools[] = $this->tool(
                 $metadata = isset($arguments['metadata']) && is_array($arguments['metadata']) ? $arguments['metadata'] : null;
                 $entityType = isset($arguments['entity_type']) ? (string)$arguments['entity_type'] : null;
                 $entityPublicId = isset($arguments['entity_public_id']) ? (string)$arguments['entity_public_id'] : null;
+                if ($entityType !== null && $entityPublicId !== null && !$this->checkEntityAccess($entityType, $entityPublicId)) {
+                    return ['error' => 'Entity not found or access denied.'];
+                }
                 $actor = $this->actor();
                 $actorId = (int)($actor['id'] ?? 0);
                 return $service->set($scope, $key, $value, $actorId > 0 ? $actorId : null, $metadata, $entityType, $entityPublicId);
@@ -6686,6 +6716,9 @@ $tools[] = $this->tool(
                 $query = isset($arguments['query']) ? (string)$arguments['query'] : null;
                 $entityType = isset($arguments['entity_type']) ? (string)$arguments['entity_type'] : null;
                 $entityPublicId = isset($arguments['entity_public_id']) ? (string)$arguments['entity_public_id'] : null;
+                if ($entityType !== null && $entityPublicId !== null && !$this->checkEntityAccess($entityType, $entityPublicId)) {
+                    return ['error' => 'Entity not found or access denied.'];
+                }
                 $limit = isset($arguments['limit']) ? (int)$arguments['limit'] : 50;
                 $page = isset($arguments['page']) ? max(1, (int)$arguments['page']) : 1;
                 $offset = ($page - 1) * $limit;
@@ -6697,6 +6730,9 @@ $tools[] = $this->tool(
                 $entityPublicId = trim((string)($arguments['entity_public_id'] ?? ''));
                 if ($entityType === '' || $entityPublicId === '') {
                     return ['error' => 'entity_type and entity_public_id are required for export_graph action.'];
+                }
+                if (!$this->checkEntityAccess($entityType, $entityPublicId)) {
+                    return ['error' => 'Entity not found or access denied.'];
                 }
                 $limit = isset($arguments['limit']) ? (int)$arguments['limit'] : 100;
                 return $service->exportGraph($entityType, $entityPublicId, $limit);
@@ -6839,6 +6875,9 @@ $tools[] = $this->tool(
                 'priority' => 'high',
                 'status' => 'new',
             ]);
+            if (isset($qaRes['error'])) {
+                return ['error' => 'Failed to create QA task: ' . $qaRes['error']];
+            }
             if (isset($qaRes['task'])) {
                 $qaTask = $qaRes['task'];
                 $qaPublicId = (string)$qaTask['public_id'];
@@ -14080,7 +14119,7 @@ $tools[] = $this->tool(
         if ($publicId === '') {
             return null;
         }
-        $stmt = $this->pdo()->prepare('SELECT id FROM users WHERE public_id = :pid AND deleted_at IS NULL LIMIT 1');
+        $stmt = $this->pdo()->prepare('SELECT id FROM users WHERE public_id = :pid AND is_active = 1 AND deleted_at IS NULL LIMIT 1');
         $stmt->execute(['pid' => $publicId]);
         $value = $stmt->fetchColumn();
         return $value === false ? null : (int)$value;
