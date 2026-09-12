@@ -25,6 +25,10 @@ return [
     // public version check (no auth required)
     ['methods' => ['GET'], 'pattern' => '/api/v1/version', 'controller' => Api\Controller\System\CoreVersionController::class, 'action' => 'show', 'auth' => false],
 
+    // A2A Protocol Agent Card manifest (RFC 8615, Google/LF A2A v0.3, public, no auth required)
+    ['methods' => ['GET'], 'pattern' => '/.well-known/agent-card.json', 'controller' => Api\Controller\System\AgentCardController::class, 'action' => 'show', 'auth' => false],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/agent-card', 'controller' => Api\Controller\System\AgentCardController::class, 'action' => 'show', 'auth' => false],
+
     // Model Context Protocol endpoint for AI agents (Claude, Cursor, Codex, etc.).
     // Returns raw JSON-RPC, not the regular CRM API envelope.
     ['methods' => ['POST'], 'pattern' => '/api/v1/mcp', 'controller' => Api\Controller\Mcp\McpController::class, 'action' => 'handle', 'auth' => true, 'authz_note' => 'delegated: per-tool RBAC via withPermission()'],
