@@ -3022,6 +3022,8 @@ $tools[] = $this->tool(
                 'resolve_minutes' => ['type' => 'integer', 'description' => 'SLA resolution target, in minutes.'],
                 'response_minutes' => ['type' => 'integer', 'description' => 'SLA first-response target, in minutes.'],
                 'trigger_code' => ['type' => 'string', 'description' => 'Workflow trigger code.'],
+                'row_version' => ['type' => 'integer', 'description' => 'Current optimistic lock version number for conflict prevention.'],
+                'expected_row_version' => ['type' => 'integer', 'description' => 'Expected optimistic lock version number (alias for row_version). Returns 409 Conflict if changed.'],
                 'density' => ['type' => 'string', 'enum' => ['rich', 'compact'], 'description' => 'Response density mode. "compact" returns minimal token-efficient envelope.'],
             ],
             ['action']
@@ -3059,6 +3061,7 @@ $tools[] = $this->tool(
                 'kind' => ['type' => 'string', 'description' => 'Kind discriminator.'],
                 'project_public_id' => ['type' => 'string', 'description' => 'Project public_id.'],
                 'row_version' => ['type' => 'integer', 'description' => 'Numeric value (integer).'],
+                'expected_row_version' => ['type' => 'integer', 'description' => 'Expected optimistic lock version number (alias for row_version). Returns 409 Conflict if changed.'],
                 'target_cycle_public_id' => ['type' => 'string', 'description' => 'Cycle the unfinished tasks are moved to.'],
                 'task_keys' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'List of values.'],
                 'task_public_id' => ['type' => 'string', 'description' => 'Task public_id.'],
@@ -7144,6 +7147,11 @@ $tools[] = $this->tool(
             return ['error' => 'public_id is required.'];
         }
 
+        // Support expected_row_version as alias for row_version (optimistic concurrency)
+        if (isset($arguments['expected_row_version']) && !isset($arguments['row_version'])) {
+            $arguments['row_version'] = (int)$arguments['expected_row_version'];
+        }
+
         // Support assignee_user_public_id: map to assignee_user_id which TaskService resolves
         if (array_key_exists('assignee_user_public_id', $arguments)) {
             $assigneePublicId = trim((string)($arguments['assignee_user_public_id'] ?? ''));
@@ -7377,12 +7385,24 @@ $tools[] = $this->tool(
             return ['error' => 'At least target_status_code or target_project_public_id is required.'];
         }
 
+        $expectedVer = $arguments['expected_row_version'] ?? $arguments['row_version'] ?? null;
+        if ($expectedVer !== null) {
+            $input['row_version'] = (int)$expectedVer;
+        }
+
         /** @var TaskBoardService $service */
         $service = $this->container->get('service.task_board');
         $item = $service->move($publicId, $input, $this->actor());
 
         if ($item === null) {
             return ['error' => 'Task not found.'];
+        }
+        if ($item === 'ROW_VERSION_CONFLICT') {
+            return [
+                'error' => 'Conflict: The record has been modified by another process (row_version mismatch).',
+                'code' => 'ROW_VERSION_CONFLICT',
+                'status' => 409,
+            ];
         }
         if (is_string($item)) {
             return ['error' => $item];
@@ -7503,6 +7523,12 @@ $tools[] = $this->tool(
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
+
+        // Support expected_row_version as alias for row_version (optimistic concurrency)
+        if (isset($arguments['expected_row_version']) && !isset($arguments['row_version'])) {
+            $arguments['row_version'] = (int)$arguments['expected_row_version'];
+        }
+
         // Delegated to the controller so the same side effects run as on the REST/UI path
         // (module hooks / webhook subscriptions, workflow triggers, cache invalidation).
         return $this->invokeControllerTool(ProjectController::class, 'update', $arguments, 'PATCH', ['public_id']);
