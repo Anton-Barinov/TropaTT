@@ -1386,6 +1386,25 @@ Authorization: Bearer <token>
 | PATCH | `/_module/crm.drawio/diagrams/{public_id}` | 更新图表 | 是 | `module.drawio.manage` | — |
 | DELETE | `/_module/crm.drawio/diagrams/{public_id}` | 删除图表 | 是 | `module.drawio.manage` | — |
 
+### 模块：电商网关（如已安装）
+
+店铺到 CRM 的接入使用基于店铺密钥的 HMAC-SHA256 签名，而非用户 Bearer 令牌，因此接入端点在路由层为公开接口，由模块内部校验。
+
+| 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/_module/crm.ecommerce-gateway/v1/ping` | 协议握手 | 否 | — | 店铺签名校验 |
+| POST | `/_module/crm.ecommerce-gateway/v1/orders` | 接收入库订单 | 否 | — | 店铺签名校验；幂等（201 新建 / 200 重复） |
+| POST | `/_module/crm.ecommerce-gateway/v1/quick-orders` | 接收一键购买 | 否 | — | 店铺签名校验；幂等 |
+| POST | `/_module/crm.ecommerce-gateway/v1/callbacks` | 接收回电请求 | 否 | — | 店铺签名校验；幂等 |
+| POST | `/_module/crm.ecommerce-gateway/v1/feedback` | 接收反馈表单 | 否 | — | 店铺签名校验；幂等 |
+| POST | `/_module/crm.ecommerce-gateway/v1/forms` | 接收自定义表单 / 线索 | 否 | — | 店铺签名校验；幂等 |
+| GET | `/_module/crm.ecommerce-gateway/v1/stores` | 店铺列表 | 是 | `module.ecommerce-gateway.view` | — |
+| POST | `/_module/crm.ecommerce-gateway/v1/stores` | 创建店铺 | 是 | `module.ecommerce-gateway.manage`, `module.ecommerce-gateway.secret_manage` | 密钥仅返回一次 |
+| GET | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}` | 店铺详情 | 是 | `module.ecommerce-gateway.view` | — |
+| PATCH | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}` | 更新店铺 | 是 | `module.ecommerce-gateway.manage` | — |
+| DELETE | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}` | 删除店铺 | 是 | `module.ecommerce-gateway.manage` | 软删除 |
+| POST | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}/rotate-secret` | 轮换店铺密钥 | 是 | `module.ecommerce-gateway.manage`, `module.ecommerce-gateway.secret_manage` | 1 小时宽限期 |
+
 ### 模块：GitHub（如已安装）
 
 | 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
