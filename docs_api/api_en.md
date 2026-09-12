@@ -179,6 +179,7 @@ The `X-Idempotency-Key` header prevents duplicate operations.
 | GET | `/api/v1/health/status` | Basic health check | Yes | — | Service status |
 | GET | `/api/v1/health/deep` | Deep health check | Yes | — | Check DB, cache, AI |
 | GET | `/api/v1/version` | CRM version (public) | No | — | Current version without auth |
+| GET | `/api/v1/agent-card` | A2A Agent Card manifest | No | — | RFC 8615 A2A protocol discovery card |
 | POST | `/api/v1/mcp` | Model Context Protocol | Yes | — | JSON-RPC for AI agents |
 
 ### Core Update

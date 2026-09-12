@@ -177,6 +177,7 @@ Authorization: Bearer <token>
 | GET | `/api/v1/health/status` | 基本健康检查 | 是 | — | 服务状态 |
 | GET | `/api/v1/health/deep` | 深度健康检查 | 是 | — | 检查数据库、缓存、AI |
 | GET | `/api/v1/version` | CRM 版本（公开） | 否 | — | 无需认证的当前版本 |
+| GET | `/api/v1/agent-card` | A2A Agent Card 清单 | 否 | — | RFC 8615 代理协议发现卡片 |
 | POST | `/api/v1/mcp` | Model Context Protocol | 是 | — | 面向 AI 代理的 JSON-RPC |
 
 ### 核心更新
