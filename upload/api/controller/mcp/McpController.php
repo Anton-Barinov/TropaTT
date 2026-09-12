@@ -3472,6 +3472,33 @@ $tools[] = $this->tool(
             ['action']
         );
 
+        $tools[] = $this->tool(
+            'crm_chat',
+            'Unified communication hub for autonomous agents and teams. Use this tool for ALL chat operations: list channels, get channel details, create direct/project/team/group chats, send structured messages, list messages, and mark read. Supports compact density mode.',
+            [
+                'action' => ['type' => 'string', 'enum' => ['list_chats', 'get_chat', 'create_chat', 'send_message', 'list_messages', 'mark_read']],
+                'chat_public_id' => ['type' => 'string', 'description' => 'Target chat public ID (chat_...).'],
+                'public_id' => ['type' => 'string', 'description' => 'Target chat public ID alias.'],
+                'text' => ['type' => 'string', 'description' => 'Message text content (Markdown, code blocks, or structured JSON).'],
+                'type' => ['type' => 'string', 'enum' => ['direct', 'project', 'team', 'group'], 'description' => 'Chat type for create_chat.'],
+                'title' => ['type' => 'string', 'description' => 'Title for group chat.'],
+                'user_public_id' => ['type' => 'string', 'description' => 'Recipient user public ID (usr_...) for direct chat.'],
+                'project_id' => ['type' => 'integer', 'description' => 'Numeric project ID for project chat.'],
+                'team_id' => ['type' => 'integer', 'description' => 'Numeric team ID for team chat.'],
+                'participant_public_ids' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'List of user public IDs for group or direct chat.'],
+                'reply_to_message_public_id' => ['type' => 'string', 'description' => 'Message public ID to reply to.'],
+                'before_id' => ['type' => 'integer', 'description' => 'Pagination message sequence ID cursor (before).'],
+                'after_id' => ['type' => 'integer', 'description' => 'Pagination message sequence ID cursor (after).'],
+                'limit' => ['type' => 'integer', 'default' => 30],
+                'density' => [
+                    'type' => 'string',
+                    'enum' => ['rich', 'compact'],
+                    'description' => 'Response density mode. "compact" strips heavy markup and returns concise summaries.',
+                ],
+            ],
+            ['action']
+        );
+
         return $tools;
     }
 
@@ -4248,6 +4275,7 @@ $tools[] = $this->tool(
             'crm_admin' => $this->handleMegaTool('crm_admin', $arguments),
             'crm_agent_bundle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmAgentBundle($arguments))),
             'crm_agent_memory' => $this->toolResult($this->crmAgentMemory($arguments)),
+            'crm_chat' => $this->withPermissionAny(['task.manage', 'project.manage'], fn() => $this->toolResult($this->crmChat($arguments))),
             default => $this->toolError('Unknown tool: ' . $name),
         };
         } catch (Throwable $e) {
@@ -6789,6 +6817,63 @@ $tools[] = $this->tool(
         }
 
         return ['bundle' => $summary];
+    }
+
+    private function crmChat(array $arguments): array
+    {
+        $action = trim((string)($arguments['action'] ?? 'list_chats'));
+        if ($action === '') {
+            $action = 'list_chats';
+        }
+
+        $res = match ($action) {
+            'list_chats' => $this->crmListChats($arguments),
+            'get_chat' => $this->crmGetChat($arguments),
+            'create_chat' => $this->crmCreateChat($arguments),
+            'send_message' => $this->crmSendChatMessage($arguments),
+            'list_messages' => $this->crmListChatMessages($arguments),
+            'mark_read' => $this->crmMarkChatRead($arguments),
+            default => ['error' => "Unknown action '{$action}' for crm_chat. Available actions: list_chats, get_chat, create_chat, send_message, list_messages, mark_read."],
+        };
+
+        if (($arguments['density'] ?? '') === 'compact' && !isset($res['error'])) {
+            $res = $this->compactChatPayload($res, $action);
+        }
+
+        return $res;
+    }
+
+    private function compactChatPayload(array $payload, string $action): array
+    {
+        if ($action === 'list_chats' && isset($payload['items']) && is_array($payload['items'])) {
+            $payload['items'] = array_map(static function (array $c): array {
+                return [
+                    'public_id' => $c['public_id'] ?? '',
+                    'title' => $c['title'] ?? '',
+                    'type' => $c['type'] ?? 'direct',
+                    'unread' => (int)($c['unread'] ?? 0),
+                    'last_message' => mb_substr((string)($c['last_message'] ?? ''), 0, 100),
+                ];
+            }, $payload['items']);
+        } elseif ($action === 'list_messages' && isset($payload['items']) && is_array($payload['items'])) {
+            $payload['items'] = array_map(static function (array $m): array {
+                return [
+                    'public_id' => $m['public_id'] ?? '',
+                    'sender' => $m['sender_name'] ?? '',
+                    'text' => $m['text'] ?? '',
+                    'created_at' => $m['created_at'] ?? '',
+                ];
+            }, $payload['items']);
+        } elseif ($action === 'send_message' && isset($payload['message'])) {
+            $m = $payload['message'];
+            $payload['message'] = [
+                'public_id' => $m['public_id'] ?? '',
+                'chat_public_id' => $m['chat_public_id'] ?? '',
+                'status' => 'sent',
+            ];
+        }
+
+        return $payload;
     }
 
     private function crmListFeatureFlags(array $arguments): array

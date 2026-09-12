@@ -589,4 +589,5 @@ return [
     'crm_knowledge' => ['mode' => 'any', 'permissions' => ['knowledge.view', 'knowledge.manage', 'knowledge.edit', 'knowledge.create', 'knowledge.publish', 'knowledge.comment', 'knowledge.review', 'settings.manage']],
     'crm_ai' => ['mode' => 'any', 'permissions' => ['ai.use', 'task.manage', 'project.manage', 'settings.manage']],
     'crm_admin' => ['mode' => 'any', 'permissions' => ['settings.manage', 'task.manage', 'webhook.manage', 'api_client.manage', 'logs.view', 'recycle_bin.manage', 'import.manage', 'export.manage']],
+    'crm_chat' => ['mode' => 'any', 'permissions' => ['task.manage', 'project.manage']],
 ];
