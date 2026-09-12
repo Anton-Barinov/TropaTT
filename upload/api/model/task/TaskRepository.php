@@ -683,19 +683,30 @@ final class TaskRepository
         }
 
         if (!empty($filters['status'])) {
-            $qb->where('t.status_code', '=', (string)$filters['status']);
+            $statusParts = $this->splitFilterList((string)$filters['status']);
+            $expandedStatuses = $this->expandStatusAliases($statusParts);
+            if (count($expandedStatuses) === 1) {
+                $qb->where('t.status_code', '=', $expandedStatuses[0]);
+            } elseif (count($expandedStatuses) > 1) {
+                $qb->whereIn('t.status_code', $expandedStatuses);
+            }
         }
 
         if (!empty($filters['priority'])) {
             $qb->where('t.priority_code', '=', (string)$filters['priority']);
         }
 
+        $excludeStatuses = [];
         if (!empty($filters['exclude_statuses'])) {
-            $excludeStatuses = $this->splitFilterList($filters['exclude_statuses']);
-            if ($excludeStatuses !== []) {
-                $placeholders = implode(', ', array_fill(0, count($excludeStatuses), '?'));
-                $qb->whereRaw('t.status_code NOT IN (' . $placeholders . ')', $excludeStatuses);
-            }
+            $excludeStatuses = $this->splitFilterList((string)$filters['exclude_statuses']);
+        }
+        if (!empty($filters['hide_done']) || !empty($filters['active_only'])) {
+            $excludeStatuses = array_merge($excludeStatuses, ['done', 'completed', 'canceled', 'cancelled', 'archived']);
+        }
+        if ($excludeStatuses !== []) {
+            $expandedExclude = $this->expandStatusAliases($excludeStatuses);
+            $placeholders = implode(', ', array_fill(0, count($expandedExclude), '?'));
+            $qb->whereRaw('t.status_code NOT IN (' . $placeholders . ')', $expandedExclude);
         }
 
         if (!empty($filters['tag_public_id'])) {
@@ -765,17 +776,17 @@ final class TaskRepository
             $wantsNone = $this->listWantsNone($managerParts);
             $ids = $this->listWithoutNone($managerParts);
             if ($wantsNone && $ids === []) {
-                $qb->whereNull('p.manager_user_id');
+                $qb->whereRaw('(p.manager_user_id IS NULL AND pt.manager_user_id IS NULL)');
             } elseif ($wantsNone) {
                 $placeholders = implode(', ', array_fill(0, count($ids), '?'));
                 $qb->whereRaw(
-                    '(p.manager_user_id IS NULL OR EXISTS (SELECT 1 FROM projects pm2 JOIN users pmu ON pmu.id = pm2.manager_user_id WHERE pm2.id = t.project_id AND pmu.public_id IN (' . $placeholders . ')))',
+                    '((p.manager_user_id IS NULL AND pt.manager_user_id IS NULL) OR EXISTS (SELECT 1 FROM projects pm2 LEFT JOIN teams pmt ON pmt.public_id = pm2.team_public_id JOIN users pmu ON (pmu.id = pm2.manager_user_id OR pmu.id = pmt.manager_user_id) WHERE pm2.id = t.project_id AND pmu.public_id IN (' . $placeholders . ')))',
                     $ids
                 );
             } elseif ($ids !== []) {
                 $placeholders = implode(', ', array_fill(0, count($ids), '?'));
                 $qb->whereRaw(
-                    'EXISTS (SELECT 1 FROM projects pm2 JOIN users pmu ON pmu.id = pm2.manager_user_id WHERE pm2.id = t.project_id AND pmu.public_id IN (' . $placeholders . '))',
+                    'EXISTS (SELECT 1 FROM projects pm2 LEFT JOIN teams pmt ON pmt.public_id = pm2.team_public_id JOIN users pmu ON (pmu.id = pm2.manager_user_id OR pmu.id = pmt.manager_user_id) WHERE pm2.id = t.project_id AND pmu.public_id IN (' . $placeholders . '))',
                     $ids
                 );
             }
@@ -983,5 +994,45 @@ final class TaskRepository
             $parts,
             static fn(string $part): bool => !in_array(strtolower($part), ['none', 'unassigned', 'empty', '__none'], true)
         ));
+    }
+
+    /**
+     * Expands status codes with bidirectional aliases so that filtering by 'todo'
+     * also matches 'new', filtering by 'done' also matches 'completed', etc.
+     *
+     * @param list<string> $statuses
+     * @return list<string>
+     */
+    private function expandStatusAliases(array $statuses): array
+    {
+        $aliasMap = [
+            'todo' => ['todo', 'new'],
+            'new' => ['todo', 'new'],
+            'done' => ['done', 'completed'],
+            'completed' => ['done', 'completed'],
+            'canceled' => ['canceled', 'cancelled'],
+            'cancelled' => ['canceled', 'cancelled'],
+        ];
+
+        $expanded = [];
+        foreach ($statuses as $st) {
+            $stLower = strtolower(trim((string)$st));
+            if ($stLower === '') {
+                continue;
+            }
+            if (isset($aliasMap[$stLower])) {
+                foreach ($aliasMap[$stLower] as $alias) {
+                    if (!in_array($alias, $expanded, true)) {
+                        $expanded[] = $alias;
+                    }
+                }
+            } else {
+                if (!in_array($stLower, $expanded, true)) {
+                    $expanded[] = $stLower;
+                }
+            }
+        }
+
+        return $expanded;
     }
 }

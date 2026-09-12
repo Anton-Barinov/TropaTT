@@ -4753,6 +4753,7 @@ return array (
     'filter_manager_placeholder' => '负责人',
     'filter_project' => '项目',
     'filter_all_projects' => '所有项目',
+    'filter_hide_done' => '隐藏已完成',
     'filter_overdue' => '已逾期',
     'filter_today' => '今天',
     'filter_week' => '本周',

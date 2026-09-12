@@ -61,9 +61,10 @@ return [
             'crm_knowledge',
             'crm_ai',
             'crm_admin',
-            // AgentOS tools: bundle and memory
+            // AgentOS tools: bundle, memory, and chat communication hub
             'crm_agent_bundle',
             'crm_agent_memory',
+            'crm_chat',
         ],
     ],
     'tasks' => [

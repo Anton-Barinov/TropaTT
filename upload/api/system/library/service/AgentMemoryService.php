@@ -44,12 +44,21 @@ final class AgentMemoryService
      * @param array<string,mixed>|null $metadata
      * @return array<string,mixed>
      */
-    public function set(string $scope, string $key, mixed $value, ?int $actorUserId = null, ?array $metadata = null): array
+    public function set(string $scope, string $key, mixed $value, ?int $actorUserId = null, ?array $metadata = null, ?string $entityType = null, ?string $entityPublicId = null): array
     {
         $scope = trim($scope) !== '' ? trim($scope) : 'global';
         $key = trim($key);
         if ($key === '') {
             return ['error' => 'Key name cannot be empty.'];
+        }
+
+        if ($entityType !== null && trim($entityType) !== '') {
+            $metadata ??= [];
+            $metadata['entity_type'] = trim($entityType);
+        }
+        if ($entityPublicId !== null && trim($entityPublicId) !== '') {
+            $metadata ??= [];
+            $metadata['entity_public_id'] = trim($entityPublicId);
         }
 
         $valueType = 'string';
@@ -129,6 +138,74 @@ final class AgentMemoryService
         }
 
         return $deleted;
+    }
+
+    /**
+     * Search memory entries by substring, scope, or entity relation.
+     *
+     * @param string|null $query
+     * @param string|null $scope
+     * @param string|null $entityType
+     * @param string|null $entityPublicId
+     * @param int $limit
+     * @param int $offset
+     * @return array<string,mixed>
+     */
+    public function search(?string $query = null, ?string $scope = null, ?string $entityType = null, ?string $entityPublicId = null, int $limit = 50, int $offset = 0): array
+    {
+        $items = $this->repo->search($query, $scope, $entityType, $entityPublicId, $limit, $offset);
+        $formatted = array_map(fn(array $item): array => $this->formatMemory($item), $items);
+
+        return ['items' => $formatted, 'total' => count($formatted)];
+    }
+
+    /**
+     * Export knowledge/memory graph for a specific CRM entity (task, project, client).
+     *
+     * @param string $entityType
+     * @param string $entityPublicId
+     * @param int $limit
+     * @return array<string,mixed>
+     */
+    public function exportGraph(string $entityType, string $entityPublicId, int $limit = 100): array
+    {
+        $entityType = trim($entityType);
+        $entityPublicId = trim($entityPublicId);
+        if ($entityType === '' || $entityPublicId === '') {
+            return ['error' => 'entity_type and entity_public_id are required for export_graph.'];
+        }
+
+        $items = $this->repo->exportGraph($entityType, $entityPublicId, $limit);
+        $nodes = [];
+        $edges = [];
+
+        foreach ($items as $item) {
+            $formatted = $this->formatMemory($item);
+            $nodes[] = [
+                'id' => $formatted['public_id'],
+                'label' => $formatted['key'],
+                'type' => $formatted['value_type'],
+                'scope' => $formatted['scope'],
+                'value' => $formatted['value'],
+            ];
+
+            $edges[] = [
+                'source' => $formatted['public_id'],
+                'target' => $entityPublicId,
+                'relation' => 'attached_to',
+                'target_type' => $entityType,
+            ];
+        }
+
+        return [
+            'graph' => [
+                'entity_type' => $entityType,
+                'entity_public_id' => $entityPublicId,
+                'nodes' => $nodes,
+                'edges' => $edges,
+                'count' => count($nodes),
+            ],
+        ];
     }
 
     /**

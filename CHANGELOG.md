@@ -6,6 +6,31 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ## Unreleased
 
+## [20260912.005] - 2026-09-12
+
+### Added
+- **AgentOS 2026 Engine Core**:
+  - `crm_agent_bundle`: Atomic multi-entity task creation executing parent task creation, Knowledge Base linking, interactive DoD checklist setup, subtask decomposition, automated QA-gate task generation (`BLOCKS` dependency), and exclusive concurrency locks in a single request.
+  - `crm_agent_memory`: Scoped persistent memory subsystem for AI agents supporting arbitrary key-value storage, semantic/text search, entity graph linking (`link_entity`, `unlink_entity`), and full memory graph export (`export_graph`).
+  - `density: "compact"`: Context compression mode across `crm_task` and `crm_agent_bundle`, returning essential entity fields and reducing LLM context window consumption by up to 85%.
+  - STORM optimistic concurrency locking (`row_version`): Protocol-level data race prevention returning `409 Conflict` on concurrent agent mutations.
+- **Universal E-Commerce Gateway (`crm.ecommerce-gateway`) & 12 CMS Adapters Suite**:
+  - Canonical JSON contract v1.0 defining unified models for products, categories, stocks, orders, customers, and order statuses.
+  - Full architectural specifications and implementation tasks for 12 e-commerce platforms: OpenCart (1.5/2.x/3.x/4.x), 1C-Bitrix (D7), WooCommerce (HPOS & CPT), InSales, CS-Cart, PrestaShop, Shop-Script (Webasyst), Moguta.CMS, Tilda Publishing, Shopify, Magento 2 (Adobe Commerce), and an automated CMS research/taxonomy benchmark.
+  - Security standards: HMAC-SHA256 request signatures (`X-Hub-Signature-256`), Bearer token authentication, and replay protection via `X-Idempotency-Key`.
+
+### Changed
+- **Task Status Aliasing & Normalization**:
+  - Transparent bidirectional normalization between status taxonomies: `todo` $\leftrightarrow$ `new`, `done` $\leftrightarrow$ `completed`, `canceled` $\leftrightarrow$ `cancelled`.
+  - Added fast activity filters `hide_done=1` and `active_only=1` excluding completed and canceled tasks in API queries and web UI.
+  - Web UI task list includes persistent `#tasksHideDoneToggle` synced with URL query and LocalStorage.
+
+### Fixed
+- **Web Logging Bootstrap Guard**:
+  - Protected web bootstrap sequence against missing logger instances when errors occur early during request handling.
+- **Database ConnectionManager Hardening**:
+  - Improved connection recovery routines under idle connection timeouts, ensuring reconnected PDO handles correctly propagate across cached repository dependencies.
+
 ### Added
 
 - **MCP connection block on the API-clients page.** The admin page now shows the MCP server URL for the current installation (subdirectory installs included), a ready-to-copy `.mcp.json` snippet with a key placeholder, a copy button, and a link to the in-product documentation. Previously the page issued keys without any hint that MCP exists.

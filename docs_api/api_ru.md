@@ -177,6 +177,7 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | GET | `/api/v1/health/status` | Базовая проверка здоровья | Да | — | Статус сервиса |
 | GET | `/api/v1/health/deep` | Глубокая проверка здоровья | Да | — | Проверка БД, кэша, AI |
 | GET | `/api/v1/version` | Версия CRM (публичный) | Нет | — | Текущая версия без авторизации |
+| GET | `/api/v1/agent-card` | Манифест A2A Agent Card | Нет | — | RFC 8615 карточка агента и открытий протоколов |
 | POST | `/api/v1/mcp` | Model Context Protocol | Да | — | JSON-RPC для AI-агентов |
 
 ### Core Update
@@ -1418,6 +1419,25 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | GET | `/_module/crm.drawio/diagrams/{public_id}` | Детали диаграммы | Да | `module.drawio.view` | — |
 | PATCH | `/_module/crm.drawio/diagrams/{public_id}` | Обновление диаграммы | Да | `module.drawio.manage` | — |
 | DELETE | `/_module/crm.drawio/diagrams/{public_id}` | Удаление диаграммы | Да | `module.drawio.manage` | — |
+
+### Module: E-commerce gateway (если установлен)
+
+Приём данных от витрин аутентифицируется HMAC-SHA256-подписью на секрете витрины, а не Bearer-токеном пользователя, поэтому маршруты приёма публичны на уровне роутера и проверяются внутри модуля.
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/_module/crm.ecommerce-gateway/v1/ping` | Проверка связи | Нет | — | Подпись витрины |
+| POST | `/_module/crm.ecommerce-gateway/v1/orders` | Приём заказа | Нет | — | Подпись витрины; идемпотентно (201 / 200 при повторе) |
+| POST | `/_module/crm.ecommerce-gateway/v1/quick-orders` | Приём покупки в 1 клик | Нет | — | Подпись витрины; идемпотентно |
+| POST | `/_module/crm.ecommerce-gateway/v1/callbacks` | Приём заявки на обратный звонок | Нет | — | Подпись витрины; идемпотентно |
+| POST | `/_module/crm.ecommerce-gateway/v1/feedback` | Приём обращения из формы связи | Нет | — | Подпись витрины; идемпотентно |
+| POST | `/_module/crm.ecommerce-gateway/v1/forms` | Приём произвольной формы / лида | Нет | — | Подпись витрины; идемпотентно |
+| GET | `/_module/crm.ecommerce-gateway/v1/stores` | Список витрин | Да | `module.ecommerce-gateway.view` | — |
+| POST | `/_module/crm.ecommerce-gateway/v1/stores` | Создание витрины | Да | `module.ecommerce-gateway.manage`, `module.ecommerce-gateway.secret_manage` | Секрет выдаётся один раз |
+| GET | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}` | Детали витрины | Да | `module.ecommerce-gateway.view` | — |
+| PATCH | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}` | Обновление витрины | Да | `module.ecommerce-gateway.manage` | — |
+| DELETE | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}` | Удаление витрины | Да | `module.ecommerce-gateway.manage` | Мягкое удаление |
+| POST | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}/rotate-secret` | Ротация секрета витрины | Да | `module.ecommerce-gateway.manage`, `module.ecommerce-gateway.secret_manage` | Grace-период 1 час |
 
 ### Module: GitHub (если установлен)
 

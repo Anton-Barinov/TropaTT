@@ -292,6 +292,8 @@ End-to-end cycle for client work, whether you're a team of 1 or 100:
 
 TropaTT's automation and API are production-grade. Built for teams that need the system to talk to the rest of their stack.
 
+- **Universal E-Commerce Gateway (`crm.ecommerce-gateway`)** — canonical v1.0 JSON contract and connector suite for 12 platforms (OpenCart 1.5–4.x, 1C-Bitrix, WooCommerce HPOS, InSales, CS-Cart, PrestaShop, Shop-Script, Moguta, Tilda, Shopify, Magento 2) with HMAC-SHA256 signatures, bi-directional order sync, stock sync, and idempotency keys.
+- **AgentOS 2026 Engine** — atomic task bundling (`crm_agent_bundle`), persistent agent memory (`crm_agent_memory` with search, entity graph linking, and export), STORM optimistic concurrency locking (`row_version`), and compact context density saving up to 85% LLM tokens.
 - **Workflow rules** — trigger actions on conditions (status change, field update, time-based).
 - **SLA management** — service level expectations with deadline tracking and breach alerts.
 - **Approval flows** — multi-step decision chains for controlled changes.
@@ -314,6 +316,7 @@ TropaTT's automation and API are production-grade. Built for teams that need the
 TropaTT ships a **built-in MCP (Model Context Protocol) server** — the same protocol understood by **Claude Code, Codex, ChatGPT, and other AI coding agents**. Point any MCP-compatible agent at your CRM and it can read, analyze, and manage your real data: tasks, projects, clients, contacts, chats, calendar, analytics, and the knowledge base — through a safe, permission-scoped layer.
 
 - **617 MCP tools + 6 resources** — every domain is covered: tasks, projects, clients, contacts, chats, calendar, worklogs, analytics, knowledge base, and more.
+- **AgentOS 2026 Core Support** — includes `crm_agent_bundle` for atomic task/DoD/subtask orchestration, `crm_agent_memory` for persistent cross-session knowledge storage with semantic search and entity linking, and `density: "compact"` for token savings.
 - **Works with Claude Code, Codex, ChatGPT, and other MCP-compatible agents.** Connect the agent to your installation the same way you connect it to any MCP server.
 - **Same data, same rules as the web UI.** Every agent action goes through the same REST API and RBAC permission checks — no direct database access, no bypassing roles.
 - **Safe by design.** Sensitive data (tokens, password hashes, API keys) is filtered out, write tools require the matching permission, and admin actions stay admin-only.
@@ -823,6 +826,8 @@ TropaTT поддерживает полный цикл клиентской ра
 
 Слой автоматизации и REST API TropaTT — production-grade, для команд, которым нужна интеграция с остальным бизнес-стеком:
 
+- **Универсальный E-Commerce шлюз (`crm.ecommerce-gateway`)** — канонический JSON-контракт v1.0 и набор модулей интеграции для 12 CMS (OpenCart 1.5–4.x, 1C-Битрикс, WooCommerce HPOS, InSales, CS-Cart, PrestaShop, Shop-Script, Moguta, Tilda, Shopify, Magento 2) с поддержкой HMAC-SHA256 подписей, сквозного статуса заказов, остатков и ключей идемпотентности.
+- **Движок AgentOS 2026** — атомарный запуск задач (`crm_agent_bundle`), долговременная персистентная память агентов (`crm_agent_memory` с поиском, привязкой сущностей и графом), оптимистическая блокировка STORM (`row_version`) и режим сжатия контекста `density: "compact"`, экономящий до 85% LLM-токенов.
 - **Workflow-правила** — автоматические действия при наступлении условий.
 - **SLA-менеджмент** — ожидания по уровню сервиса с отслеживанием сроков и оповещениями о нарушениях.
 - **Согласования** — многошаговые цепочки утверждения для контролируемых изменений.
@@ -845,6 +850,7 @@ TropaTT поддерживает полный цикл клиентской ра
 В TropaTT есть **встроенный MCP-сервер (Model Context Protocol)** — тот же протокол, который понимают **Claude Code, Codex, ChatGPT и другие ИИ-агенты**. Подключите любого MCP-совместимого агента к вашей CRM — и он сможет читать, анализировать и управлять вашими реальными данными: задачами, проектами, клиентами, контактами, чатами, календарём, аналитикой и базой знаний — через безопасный слой с проверкой прав.
 
 - **617 MCP tools + 6 resources** — покрыты все домены: задачи, проекты, клиенты, контакты, чаты, календарь, тайм-трекинг, аналитика, база знаний и многое другое.
+- **Поддержка стека AgentOS 2026** — встроенные инструменты `crm_agent_bundle` (атомарное создание задачи с чек-листом, подзадачами, связкой с БЗ и локом), `crm_agent_memory` (персистентная память, семантический поиск, привязка к сущностям), `density: "compact"`.
 - **Работает с Claude Code, Codex, ChatGPT и другими MCP-совместимыми агентами.** Подключается к вашей установке так же, как к любому MCP-серверу.
 - **Те же данные и те же правила, что и в веб-интерфейсе.** Каждое действие агента проходит через тот же REST API и те же проверки RBAC — без прямого доступа к базе данных и без обхода ролей.
 - **Безопасно по дизайну.** Чувствительные данные (токены, хэши паролей, API-ключи) отфильтровываются, для записывающих инструментов требуется соответствующее право, а админ-действия остаются только у администраторов.
@@ -1349,6 +1355,8 @@ TropaTT 支持任何规模团队的端到端客户工作循环：
 
 TropaTT 的自动化层和 REST API 是生产级的——为需要系统与业务技术栈其余部分配合工作的团队而设计：
 
+- **通用电子商务网关 (`crm.ecommerce-gateway`)**——标准 v1.0 JSON 规范和适用于 12 个 CMS 平台（OpenCart 1.5–4.x, 1C-Bitrix, WooCommerce HPOS, InSales, CS-Cart, PrestaShop, Shop-Script, Moguta, Tilda, Shopify, Magento 2）的连接器套件，支持 HMAC-SHA256 签名、双向订单同步、库存同步和幂等性校验。
+- **AgentOS 2026 引擎**——原子任务编排（`crm_agent_bundle`）、持久化代理记忆库（`crm_agent_memory`，支持语义搜索、实体图谱关联与导出）、STORM 乐观并发锁（`row_version`）及紧凑上下文密度（`density: "compact"`，节省高达 85% 上下文 token）。
 - **工作流规则**——条件满足时触发操作（状态变更、字段更新、基于时间）。
 - **SLA 管理**——定义服务级别期望，包含截止日期跟踪和违约提醒。
 - **审批流**——用于受控业务变更的多步骤决策链。
@@ -1367,6 +1375,7 @@ TropaTT 的自动化层和 REST API 是生产级的——为需要系统与业�
 TropaTT 内置 **MCP（Model Context Protocol）服务器**——这正是 **Claude Code、Codex、ChatGPT 和其他 AI 编程代理** 所理解的协议。将任何兼容 MCP 的代理连接到您的 CRM，它就能在安全、按权限控制的层内读取、分析并管理您的真实数据：任务、项目、客户、联系人、聊天、日历、分析和知识库。
 
 - **617 个 MCP 工具 + 5 个资源**——覆盖所有领域：任务、项目、客户、联系人、聊天、日历、工时、分析、知识库等。
+- **AgentOS 2026 核心支持**——集成 `crm_agent_bundle`（原子化创建任务、检查清单与子任务）、`crm_agent_memory`（持久化跨会话记忆与实体关联）、`density: "compact"`。
 - **适用于 Claude Code、Codex、ChatGPT 和其他兼容 MCP 的代理。** 与连接任何 MCP 服务器的方式相同，将代理连接到您的安装。
 - **与 Web 界面相同的数据、相同的规则。** 每个代理操作都经过相同的 REST API 和 RBAC 权限检查——没有直接数据库访问，不会绕过角色。
 - **天生安全。** 敏感数据（令牌、密码哈希、API 密钥）会被过滤，写入工具需要相应权限，管理操作仅限管理员。

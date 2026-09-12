@@ -46,6 +46,7 @@
     <select id="tasksTagFilter" class="form-select"><option value="" data-i18n="tasks.filter_all_tags"><?= htmlspecialchars($t('tasks.filter_all_tags', 'Все теги'), ENT_QUOTES, 'UTF-8') ?></option></select>
   </div>
   <div class="crm-kanban-due-filters" role="group">
+    <button class="btn crm-btn-secondary" type="button" id="tasksHideDoneToggle" data-tasks-filter="hide_done" aria-pressed="false" data-i18n="tasks.filter_hide_done"><?= htmlspecialchars($t('tasks.filter_hide_done', 'Скрыть выполненные'), ENT_QUOTES, 'UTF-8') ?></button>
     <button class="btn crm-btn-secondary" type="button" data-kanban-due="overdue" data-i18n="tasks.filter_overdue"><?= htmlspecialchars($t('tasks.filter_overdue', 'Просроченные'), ENT_QUOTES, 'UTF-8') ?></button>
     <button class="btn crm-btn-secondary" type="button" data-kanban-due="today" data-i18n="tasks.filter_today"><?= htmlspecialchars($t('tasks.filter_today', 'Сегодня'), ENT_QUOTES, 'UTF-8') ?></button>
     <button class="btn crm-btn-secondary" type="button" data-kanban-due="week" data-i18n="tasks.filter_week"><?= htmlspecialchars($t('tasks.filter_week', 'На неделе'), ENT_QUOTES, 'UTF-8') ?></button>
@@ -61,7 +62,7 @@
   <div class="d-flex gap-2">
     <select id="tasksBulkStatusSelect" class="form-select form-select-sm crm-field-w-170" aria-label="<?= htmlspecialchars($t('tasks.bulk_status_aria', 'Изменить статус'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="tasks.bulk_status_aria">
       <option value="" data-i18n="tasks.bulk_status_placeholder"><?= htmlspecialchars($t('tasks.bulk_status_placeholder', 'Статус...'), ENT_QUOTES, 'UTF-8') ?></option>
-      <option value="new" data-i18n="tasks.status_new"><?= htmlspecialchars($t('tasks.status_new', 'К выполнению'), ENT_QUOTES, 'UTF-8') ?></option>
+      <option value="todo" data-i18n="tasks.status_new"><?= htmlspecialchars($t('tasks.status_new', 'К выполнению'), ENT_QUOTES, 'UTF-8') ?></option>
       <option value="in_progress" data-i18n="tasks.status_in_progress"><?= htmlspecialchars($t('tasks.status_in_progress', 'В работе'), ENT_QUOTES, 'UTF-8') ?></option>
       <option value="blocked" data-i18n="tasks.status_blocked"><?= htmlspecialchars($t('tasks.status_blocked', 'Блокировано'), ENT_QUOTES, 'UTF-8') ?></option>
       <option value="done" data-i18n="tasks.status_done"><?= htmlspecialchars($t('tasks.status_done', 'Готово'), ENT_QUOTES, 'UTF-8') ?></option>

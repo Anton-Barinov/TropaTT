@@ -179,6 +179,7 @@ The `X-Idempotency-Key` header prevents duplicate operations.
 | GET | `/api/v1/health/status` | Basic health check | Yes | — | Service status |
 | GET | `/api/v1/health/deep` | Deep health check | Yes | — | Check DB, cache, AI |
 | GET | `/api/v1/version` | CRM version (public) | No | — | Current version without auth |
+| GET | `/api/v1/agent-card` | A2A Agent Card manifest | No | — | RFC 8615 A2A protocol discovery card |
 | POST | `/api/v1/mcp` | Model Context Protocol | Yes | — | JSON-RPC for AI agents |
 
 ### Core Update
@@ -1424,6 +1425,25 @@ Module objects returned by `GET /api/v1/modules` and `GET /api/v1/modules/{name}
 | GET | `/_module/crm.drawio/diagrams/{public_id}` | Diagram details | Yes | `module.drawio.view` | — |
 | PATCH | `/_module/crm.drawio/diagrams/{public_id}` | Update diagram | Yes | `module.drawio.manage` | — |
 | DELETE | `/_module/crm.drawio/diagrams/{public_id}` | Delete diagram | Yes | `module.drawio.manage` | — |
+
+### Module: E-commerce gateway (if installed)
+
+Store-to-CRM ingestion is authenticated with an HMAC-SHA256 signature over the store secret instead of a user Bearer token, so the ingestion routes are public at the router level and are verified inside the module.
+
+| Method | Endpoint | Description | Auth | Permissions | Notes |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/_module/crm.ecommerce-gateway/v1/ping` | Protocol handshake | No | — | Signed by store key |
+| POST | `/_module/crm.ecommerce-gateway/v1/orders` | Ingest an order | No | — | Signed by store key; idempotent (201 accepted / 200 duplicate) |
+| POST | `/_module/crm.ecommerce-gateway/v1/quick-orders` | Ingest a one-click purchase | No | — | Signed by store key; idempotent |
+| POST | `/_module/crm.ecommerce-gateway/v1/callbacks` | Ingest a callback request | No | — | Signed by store key; idempotent |
+| POST | `/_module/crm.ecommerce-gateway/v1/feedback` | Ingest a feedback form | No | — | Signed by store key; idempotent |
+| POST | `/_module/crm.ecommerce-gateway/v1/forms` | Ingest a custom form or lead | No | — | Signed by store key; idempotent |
+| GET | `/_module/crm.ecommerce-gateway/v1/stores` | List stores | Yes | `module.ecommerce-gateway.view` | — |
+| POST | `/_module/crm.ecommerce-gateway/v1/stores` | Create store | Yes | `module.ecommerce-gateway.manage`, `module.ecommerce-gateway.secret_manage` | Secret returned once |
+| GET | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}` | Store details | Yes | `module.ecommerce-gateway.view` | — |
+| PATCH | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}` | Update store | Yes | `module.ecommerce-gateway.manage` | — |
+| DELETE | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}` | Delete store | Yes | `module.ecommerce-gateway.manage` | Soft delete |
+| POST | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}/rotate-secret` | Rotate store secret | Yes | `module.ecommerce-gateway.manage`, `module.ecommerce-gateway.secret_manage` | 1h grace period |
 
 ### Module: GitHub (if installed)
 
