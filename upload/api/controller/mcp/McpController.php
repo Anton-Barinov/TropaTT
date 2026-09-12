@@ -3067,6 +3067,7 @@ $tools[] = $this->tool(
                 'task_public_id' => ['type' => 'string', 'description' => 'Task public_id.'],
                 'unfinished_action' => ['type' => 'string', 'description' => 'What to do with unfinished tasks (move/keep).'],
                 'view_mode' => ['type' => 'string', 'description' => 'Value.'],
+                'density' => ['type' => 'string', 'enum' => ['rich', 'compact'], 'description' => 'Response density mode. "compact" returns minimal token-efficient envelope.'],
             ],
             ['action']
         );
@@ -3249,6 +3250,7 @@ $tools[] = $this->tool(
                 'tag_public_id' => ['type' => 'string', 'description' => 'Tag public_id.'],
                 'version_public_id' => ['type' => 'string', 'description' => 'Version public_id.'],
                 'visibility' => ['type' => 'string', 'description' => 'Visibility scope.'],
+                'density' => ['type' => 'string', 'enum' => ['rich', 'compact'], 'description' => 'Response density mode. "compact" returns minimal token-efficient envelope.'],
             ],
             ['action']
         );
@@ -3486,6 +3488,8 @@ $tools[] = $this->tool(
                 'chat_public_id' => ['type' => 'string', 'description' => 'Target chat public ID (chat_...).'],
                 'public_id' => ['type' => 'string', 'description' => 'Target chat public ID alias.'],
                 'text' => ['type' => 'string', 'description' => 'Message text content (Markdown, code blocks, or structured JSON).'],
+                'message_type' => ['type' => 'string', 'enum' => ['text', 'json', 'datapart'], 'description' => 'Message type (text, json, datapart). Defaults to text.'],
+                'data' => ['type' => 'object', 'description' => 'Structured JSON data payload for machine-to-machine exchange or datapart.'],
                 'type' => ['type' => 'string', 'enum' => ['direct', 'project', 'team', 'group'], 'description' => 'Chat type for create_chat.'],
                 'title' => ['type' => 'string', 'description' => 'Title for group chat.'],
                 'user_public_id' => ['type' => 'string', 'description' => 'Recipient user public ID (usr_...) for direct chat.'],
@@ -4393,6 +4397,57 @@ $tools[] = $this->tool(
         return $payload;
     }
 
+    private function compactProjectPayload(array $payload): array
+    {
+        if (isset($payload['project']) && is_array($payload['project'])) {
+            $p = $payload['project'];
+            $payload['project'] = [
+                'public_id' => $p['public_id'] ?? '',
+                'title' => $p['title'] ?? '',
+                'status' => $p['status'] ?? 'active',
+                'client_public_id' => $p['client_public_id'] ?? null,
+                'row_version' => $p['row_version'] ?? 1,
+            ];
+        } elseif (isset($payload['items']) && is_array($payload['items'])) {
+            $payload['items'] = array_map(function ($item) {
+                if (!is_array($item)) return $item;
+                return [
+                    'public_id' => $item['public_id'] ?? '',
+                    'title' => $item['title'] ?? '',
+                    'status' => $item['status'] ?? 'active',
+                    'client_public_id' => $item['client_public_id'] ?? null,
+                ];
+            }, $payload['items']);
+        }
+        return $payload;
+    }
+
+    private function compactKnowledgePayload(array $payload): array
+    {
+        if (isset($payload['page']) && is_array($payload['page'])) {
+            $p = $payload['page'];
+            $body = (string)($p['content_html'] ?? ($p['body'] ?? ''));
+            $payload['page'] = [
+                'public_id' => $p['public_id'] ?? '',
+                'title' => $p['title'] ?? '',
+                'space_public_id' => $p['space_public_id'] ?? null,
+                'slug' => $p['slug'] ?? null,
+                'body_summary' => mb_substr(strip_tags($body), 0, 300),
+                'row_version' => $p['row_version'] ?? 1,
+            ];
+        } elseif (isset($payload['items']) && is_array($payload['items'])) {
+            $payload['items'] = array_map(function ($item) {
+                if (!is_array($item)) return $item;
+                return [
+                    'public_id' => $item['public_id'] ?? '',
+                    'title' => $item['title'] ?? '',
+                    'space_public_id' => $item['space_public_id'] ?? null,
+                ];
+            }, $payload['items']);
+        }
+        return $payload;
+    }
+
     private function handleMegaTool(string $toolName, array $arguments): array
     {
         $action = trim((string)($arguments['action'] ?? ''));
@@ -4450,11 +4505,15 @@ $tools[] = $this->tool(
             default => $this->toolError('Unknown mega-tool: ' . $toolName),
         };
 
-        if ($toolName === 'crm_task' && (($arguments['density'] ?? '') === 'compact')) {
-            if (isset($res['structuredContent']) && is_array($res['structuredContent'])) {
+        if (($arguments['density'] ?? '') === 'compact' && isset($res['structuredContent']) && is_array($res['structuredContent'])) {
+            if ($toolName === 'crm_task') {
                 $res['structuredContent'] = $this->compactTaskPayload($res['structuredContent']);
-                $res['content'] = [['type' => 'text', 'text' => json_encode($res['structuredContent'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]];
+            } elseif ($toolName === 'crm_project') {
+                $res['structuredContent'] = $this->compactProjectPayload($res['structuredContent']);
+            } elseif ($toolName === 'crm_knowledge') {
+                $res['structuredContent'] = $this->compactKnowledgePayload($res['structuredContent']);
             }
+            $res['content'] = [['type' => 'text', 'text' => json_encode($res['structuredContent'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]];
         }
 
         return $res;
@@ -12600,9 +12659,20 @@ $tools[] = $this->tool(
         $actor = $this->actor();
         $userId = (int)($actor['id'] ?? 0);
         $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id']);
+        $messageType = trim((string)($arguments['message_type'] ?? 'text'));
+        if (!in_array($messageType, ['text', 'json', 'datapart'], true)) {
+            $messageType = 'text';
+        }
         $text = trim((string)($arguments['text'] ?? ''));
+        $data = $arguments['data'] ?? null;
+        if ($text === '' && $data !== null) {
+            $text = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            if ($messageType === 'text') {
+                $messageType = 'json';
+            }
+        }
         if ($userId <= 0 || $chatPublicId === '' || $text === '') {
-            return ['error' => 'public_id or chat_public_id and text are required.'];
+            return ['error' => 'public_id or chat_public_id and text (or data) are required.'];
         }
         if (mb_strlen($text) > 4000) {
             return ['error' => 'Message text is too long.'];
@@ -12617,12 +12687,13 @@ $tools[] = $this->tool(
         $messagePublicId = 'msg_' . bin2hex(random_bytes(8));
         $this->pdo()->prepare("
             INSERT INTO chat_messages (public_id, chat_id, sender_user_id, reply_to_message_id, message_type, text, created_at)
-            VALUES (:public_id, :chat_id, :sender_user_id, :reply_to_message_id, 'text', :text, NOW())
+            VALUES (:public_id, :chat_id, :sender_user_id, :reply_to_message_id, :message_type, :text, NOW())
         ")->execute([
             'public_id' => $messagePublicId,
             'chat_id' => (int)$chat['id'],
             'sender_user_id' => $userId,
             'reply_to_message_id' => $reply ? (int)$reply['id'] : null,
+            'message_type' => $messageType,
             'text' => $text,
         ]);
         $this->pdo()->prepare("UPDATE chats SET last_message_at = NOW() WHERE id = :chat_id")
@@ -12639,7 +12710,7 @@ $tools[] = $this->tool(
             'sender_user_public_id' => (string)($actor['public_id'] ?? ''),
             'sender_name' => (string)($actor['full_name'] ?? ($actor['login'] ?? '')),
             'text' => $text,
-            'message_type' => 'text',
+            'message_type' => $messageType,
             'reply_to_message_public_id' => $reply ? (string)($reply['public_id'] ?? null) : null,
             'created_at' => gmdate('Y-m-d H:i:s'),
         ]);
@@ -12648,6 +12719,7 @@ $tools[] = $this->tool(
             'message' => [
                 'public_id' => $messagePublicId,
                 'chat_public_id' => $chatPublicId,
+                'message_type' => $messageType,
                 'text' => $text,
             ],
         ];
