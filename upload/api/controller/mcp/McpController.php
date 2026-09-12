@@ -2982,7 +2982,7 @@ $tools[] = $this->tool(
                 'task_key' => ['type' => 'string', 'description' => 'Human-readable key (e.g. TASK-123). For get_by_key action.'],
                 'title' => ['type' => 'string', 'description' => 'Task title. Required for create.'],
                 'description' => ['type' => 'string', 'description' => 'Task/subtask description (Markdown).'],
-                'status' => ['type' => 'string', 'description' => 'Status code (new, in_progress, done, archived, etc.).'],
+                'status' => ['type' => 'string', 'description' => 'Status code (todo, new, in_progress, review, blocked, done, archived, etc.).'],
                 'priority' => ['type' => 'string', 'enum' => ['low', 'normal', 'high', 'urgent']],
                 'project_public_id' => ['type' => 'string', 'description' => 'Project public_id (prj_...). Filter or assign task to project.'],
                 'assignee_user_public_id' => ['type' => 'string', 'description' => 'Assignee as usr_... id (recommended).'],
