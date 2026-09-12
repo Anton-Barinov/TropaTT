@@ -3458,13 +3458,16 @@ $tools[] = $this->tool(
 
         $tools[] = $this->tool(
             'crm_agent_memory',
-            'Persistent key-value memory store for AI agents across sessions and tool runs. Supports get, set, list, and delete actions with scope isolation.',
+            'Persistent governed memory store for AI agents across sessions. Supports get, set, list, delete, search (across keys/values/entity links), and export_graph actions.',
             [
-                'action' => ['type' => 'string', 'enum' => ['get', 'set', 'list', 'delete']],
-                'scope' => ['type' => 'string', 'description' => 'Memory scope or namespace (default: "global").'],
+                'action' => ['type' => 'string', 'enum' => ['get', 'set', 'list', 'delete', 'search', 'export_graph']],
+                'scope' => ['type' => 'string', 'description' => 'Memory scope or namespace (default: "global"). Pass "all" in search to search across all scopes.'],
                 'key' => ['type' => 'string', 'description' => 'Key name.'],
                 'value' => ['description' => 'Value to store (for set action). Can be string, number, boolean, array or object.'],
                 'prefix' => ['type' => 'string', 'description' => 'Prefix filter for list action.'],
+                'query' => ['type' => 'string', 'description' => 'Substring search query across keys, values, and metadata for search action.'],
+                'entity_type' => ['type' => 'string', 'description' => 'CRM entity type (e.g. task, project, client) for linking, search or export_graph.'],
+                'entity_public_id' => ['type' => 'string', 'description' => 'CRM entity public ID (tsk_..., prj_...) for linking, search or export_graph.'],
                 'metadata' => ['type' => 'object', 'additionalProperties' => true, 'description' => 'Optional metadata object for set action.'],
                 'limit' => ['type' => 'integer', 'default' => 50],
                 'page' => ['type' => 'integer', 'default' => 1],
@@ -6596,9 +6599,11 @@ $tools[] = $this->tool(
                 }
                 $value = $arguments['value'];
                 $metadata = isset($arguments['metadata']) && is_array($arguments['metadata']) ? $arguments['metadata'] : null;
+                $entityType = isset($arguments['entity_type']) ? (string)$arguments['entity_type'] : null;
+                $entityPublicId = isset($arguments['entity_public_id']) ? (string)$arguments['entity_public_id'] : null;
                 $actor = $this->actor();
                 $actorId = (int)($actor['id'] ?? 0);
-                return $service->set($scope, $key, $value, $actorId > 0 ? $actorId : null, $metadata);
+                return $service->set($scope, $key, $value, $actorId > 0 ? $actorId : null, $metadata, $entityType, $entityPublicId);
             })(),
             'list' => (function() use ($service, $scope, $arguments) {
                 $prefix = isset($arguments['prefix']) ? (string)$arguments['prefix'] : null;
@@ -6615,7 +6620,26 @@ $tools[] = $this->tool(
                 $deleted = $service->delete($scope, $key);
                 return ['deleted' => $deleted];
             })(),
-            default => ['error' => 'Unknown action: ' . $action . '. Supported: get, set, list, delete.'],
+            'search' => (function() use ($service, $scope, $arguments) {
+                $query = isset($arguments['query']) ? (string)$arguments['query'] : null;
+                $entityType = isset($arguments['entity_type']) ? (string)$arguments['entity_type'] : null;
+                $entityPublicId = isset($arguments['entity_public_id']) ? (string)$arguments['entity_public_id'] : null;
+                $limit = isset($arguments['limit']) ? (int)$arguments['limit'] : 50;
+                $page = isset($arguments['page']) ? max(1, (int)$arguments['page']) : 1;
+                $offset = ($page - 1) * $limit;
+                $searchScope = $scope === 'all' ? null : $scope;
+                return $service->search($query, $searchScope, $entityType, $entityPublicId, $limit, $offset);
+            })(),
+            'export_graph' => (function() use ($service, $arguments) {
+                $entityType = trim((string)($arguments['entity_type'] ?? ''));
+                $entityPublicId = trim((string)($arguments['entity_public_id'] ?? ''));
+                if ($entityType === '' || $entityPublicId === '') {
+                    return ['error' => 'entity_type and entity_public_id are required for export_graph action.'];
+                }
+                $limit = isset($arguments['limit']) ? (int)$arguments['limit'] : 100;
+                return $service->exportGraph($entityType, $entityPublicId, $limit);
+            })(),
+            default => ['error' => 'Unknown action: ' . $action . '. Supported: get, set, list, delete, search, export_graph.'],
         };
     }
 
