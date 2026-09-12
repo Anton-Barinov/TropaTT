@@ -307,7 +307,7 @@ TropaTT's automation and API are production-grade. Built for teams that need the
 - **Generated REST API endpoints** — every entity, task, project, chat, calendar, analytic, and admin function accessible via API.
 - **Zero Documentation Drift** — release gate strictly enforces 100% parity between routes.php and API documentation.
 - **OpenAPI 3.1 spec** — generated from route config, never out of sync with reality.
-- **MCP server — 617 tools, 6 resources** — a Model Context Protocol endpoint that connects Claude Code, Codex, ChatGPT, and other AI agents to the CRM with safe, permission-scoped access to your data (reference: [`docs_mcp/mcp_en.md`](docs_mcp/mcp_en.md)).
+- **MCP server — 620 tools, 6 resources** — a Model Context Protocol endpoint that connects Claude Code, Codex, ChatGPT, and other AI agents to the CRM with safe, permission-scoped access to your data (reference: [`docs_mcp/mcp_en.md`](docs_mcp/mcp_en.md)).
 
 ---
 
@@ -315,8 +315,8 @@ TropaTT's automation and API are production-grade. Built for teams that need the
 
 TropaTT ships a **built-in MCP (Model Context Protocol) server** — the same protocol understood by **Claude Code, Codex, ChatGPT, and other AI coding agents**. Point any MCP-compatible agent at your CRM and it can read, analyze, and manage your real data: tasks, projects, clients, contacts, chats, calendar, analytics, and the knowledge base — through a safe, permission-scoped layer.
 
-- **617 MCP tools + 6 resources** — every domain is covered: tasks, projects, clients, contacts, chats, calendar, worklogs, analytics, knowledge base, and more.
-- **AgentOS 2026 Core Support** — includes `crm_agent_bundle` for atomic task/DoD/subtask orchestration, `crm_agent_memory` for persistent cross-session knowledge storage with semantic search and entity linking, and `density: "compact"` for token savings.
+- **620 MCP tools + 6 resources** — every domain is covered: tasks, projects, clients, contacts, chats, calendar, worklogs, analytics, knowledge base, and more.
+- **AgentOS 2026 Core Support** — includes `crm_agent_bundle` for atomic task/DoD/subtask orchestration, `crm_agent_memory` for persistent cross-session knowledge storage with semantic search and entity linking, `crm_chat` for structured agent messaging, and `density: "compact"` for token savings.
 - **Works with Claude Code, Codex, ChatGPT, and other MCP-compatible agents.** Connect the agent to your installation the same way you connect it to any MCP server.
 - **Same data, same rules as the web UI.** Every agent action goes through the same REST API and RBAC permission checks — no direct database access, no bypassing roles.
 - **Safe by design.** Sensitive data (tokens, password hashes, API keys) is filtered out, write tools require the matching permission, and admin actions stay admin-only.
@@ -417,7 +417,7 @@ Generated REST API endpoints. OpenAPI 3.1 spec generated from code. Every featur
 Yes. PHP/MySQL stack, modules, REST API, webhooks, workflow rules, custom fields, roles, permissions.
 
 **Can I connect AI agents like Claude Code, Codex, or ChatGPT to my CRM?**
-Yes. TropaTT has a built-in MCP server (617 tools + 6 resources) — the same Model Context Protocol used by Claude Code, Codex, ChatGPT, and other MCP-compatible agents. Connect any of them to your installation and they can work with your tasks, projects, clients, chats, and knowledge base under the same role-based permissions as the web UI. Details: [`docs_mcp/mcp_en.md`](docs_mcp/mcp_en.md).
+Yes. TropaTT has a built-in MCP server (620 tools + 6 resources) — the same Model Context Protocol used by Claude Code, Codex, ChatGPT, and other MCP-compatible agents. Connect any of them to your installation and they can work with your tasks, projects, clients, chats, and knowledge base under the same role-based permissions as the web UI. Details: [`docs_mcp/mcp_en.md`](docs_mcp/mcp_en.md).
 
 **Is it really free?**
 Yes — 100% free and open source. No license fees, no subscriptions, no per-seat pricing, no plan-based limits. You pay only for the hosting you choose.
@@ -435,7 +435,7 @@ Updates are installed from the admin panel (**Admin → System Updates**, no SSH
 | Metric | Value |
 |--------|-------|
 | API endpoints | 908 route records · 1,010 unique URLs (715 core + 295 module) · 1,425 method-level routes |
-| MCP tools | 617 tools + 6 resources — Model Context Protocol server for AI agents |
+| MCP tools | 620 tools + 6 resources — Model Context Protocol server for AI agents |
 | Web routes | 66 pages, ~66 templates |
 | Backend services | 110+ |
 | Repositories | 87 |
@@ -546,7 +546,7 @@ The public repository currently includes a focused maintainer documentation set:
 | Maintainer docs | kept local (not published) | Release checklist, security review checklist, Codex for OSS notes, starter issues, GitHub labels |
 | API tooling | `upload/api/scripts/generate_openapi.php` | OpenAPI generation entry point for API documentation automation |
 | API reference | [English](docs_api/api_en.md) · [Русский](docs_api/api_ru.md) · [中文](docs_api/api_zh.md) | Complete REST API reference — endpoints, authentication, RBAC, and conventions (English / Русский / 中文) |
-| MCP reference | [English](docs_mcp/mcp_en.md) · [Русский](docs_mcp/mcp_ru.md) · [中文](docs_mcp/mcp_zh.md) | Complete MCP server reference — 617 tools, resources, authentication, and RBAC (English / Русский / 中文) |
+| MCP reference | [English](docs_mcp/mcp_en.md) · [Русский](docs_mcp/mcp_ru.md) · [中文](docs_mcp/mcp_zh.md) | Complete MCP server reference — 620 tools, resources, authentication, and RBAC (English / Русский / 中文) |
 | Web docs | [`UPDATES.md`](UPDATES.md) | Self-update system reference: update server pipeline and the user update flow |
 | Project root | `README.md`, `SECURITY.md`, `CONTRIBUTING.md`, [`MODULE_DEVELOPMENT.md`](MODULE_DEVELOPMENT.md), [`INSTALL_TROUBLESHOOTING.md`](INSTALL_TROUBLESHOOTING.md), [`SHARED_HOSTING_GUIDE.md`](SHARED_HOSTING_GUIDE.md), [`WEBHOOK_SECURITY.md`](WEBHOOK_SECURITY.md) | Public usage, security, contribution, module development, installation troubleshooting, shared hosting, and webhook security guidance |
 ---
@@ -839,7 +839,7 @@ TropaTT поддерживает полный цикл клиентской ра
 - **REST API-эндпоинты, сгенерированные из маршрутов** — каждая CRM-сущность, задача, проект, чат, календарь, аналитика и административная функция доступны через API.
 - **Zero Documentation Drift** — релизный гейт строго гарантирует 100% соответствие кода маршрутов и документации REST API.
 - **Спецификация OpenAPI 3.1** — генерируется из конфигурации маршрутов, никогда не расходится с реализацией.
-- **MCP-сервер — 617 tools, 6 resources** — endpoint Model Context Protocol, который подключает Claude Code, Codex, ChatGPT и других AI-агентов к CRM с безопасным доступом к вашим данным и проверкой прав (справочник: [`docs_mcp/mcp_ru.md`](docs_mcp/mcp_ru.md)).
+- **MCP-сервер — 620 tools, 6 resources** — endpoint Model Context Protocol, который подключает Claude Code, Codex, ChatGPT и других AI-агентов к CRM с безопасным доступом к вашим данным и проверкой прав (справочник: [`docs_mcp/mcp_ru.md`](docs_mcp/mcp_ru.md)).
 
 ---
 
@@ -847,8 +847,8 @@ TropaTT поддерживает полный цикл клиентской ра
 
 В TropaTT есть **встроенный MCP-сервер (Model Context Protocol)** — тот же протокол, который понимают **Claude Code, Codex, ChatGPT и другие ИИ-агенты**. Подключите любого MCP-совместимого агента к вашей CRM — и он сможет читать, анализировать и управлять вашими реальными данными: задачами, проектами, клиентами, контактами, чатами, календарём, аналитикой и базой знаний — через безопасный слой с проверкой прав.
 
-- **617 MCP tools + 6 resources** — покрыты все домены: задачи, проекты, клиенты, контакты, чаты, календарь, тайм-трекинг, аналитика, база знаний и многое другое.
-- **Поддержка стека AgentOS 2026** — встроенные инструменты `crm_agent_bundle` (атомарное создание задачи с чек-листом, подзадачами, связкой с БЗ и локом), `crm_agent_memory` (персистентная память, семантический поиск, привязка к сущностям), `density: "compact"`.
+- **620 MCP tools + 6 resources** — покрыты все домены: задачи, проекты, клиенты, контакты, чаты, календарь, тайм-трекинг, аналитика, база знаний и многое другое.
+- **Поддержка стека AgentOS 2026** — встроенные инструменты `crm_agent_bundle` (атомарное создание задачи с чек-листом, подзадачами, связкой с БЗ и локом), `crm_agent_memory` (персистентная память, семантический поиск, привязка к сущностям), `crm_chat` (структурированные сообщения и контекст), `density: "compact"`.
 - **Работает с Claude Code, Codex, ChatGPT и другими MCP-совместимыми агентами.** Подключается к вашей установке так же, как к любому MCP-серверу.
 - **Те же данные и те же правила, что и в веб-интерфейсе.** Каждое действие агента проходит через тот же REST API и те же проверки RBAC — без прямого доступа к базе данных и без обхода ролей.
 - **Безопасно по дизайну.** Чувствительные данные (токены, хэши паролей, API-ключи) отфильтровываются, для записывающих инструментов требуется соответствующее право, а админ-действия остаются только у администраторов.
@@ -951,7 +951,7 @@ TropaTT включает браузерный установщик для про
 Да. PHP/MySQL стек, модульные расширения, REST API, вебхуки, workflow-правила, настраиваемые поля, роли, права — всё адаптируется под ваши процессы.
 
 **Можно ли подключить к CRM ИИ-агентов вроде Claude Code, Codex или ChatGPT?**
-Да. В TropaTT встроен MCP-сервер (617 tools + 6 resources) — тот же Model Context Protocol, который используют Claude Code, Codex, ChatGPT и другие MCP-совместимые агенты. Подключите любого из них к вашей установке — они смогут работать с задачами, проектами, клиентами, чатами и базой знаний под теми же ролевыми правами, что и веб-интерфейс. Подробнее: [`docs_mcp/mcp_ru.md`](docs_mcp/mcp_ru.md).
+Да. В TropaTT встроен MCP-сервер (620 tools + 6 resources) — тот же Model Context Protocol, который используют Claude Code, Codex, ChatGPT и другие MCP-совместимые агенты. Подключите любого из них к вашей установке — они смогут работать с задачами, проектами, клиентами, чатами и базой знаний под теми же ролевыми правами, что и веб-интерфейс. Подробнее: [`docs_mcp/mcp_ru.md`](docs_mcp/mcp_ru.md).
 
 **Это действительно бесплатно?**
 Да — на 100% бесплатно и с открытым исходным кодом. Нет лицензионных платежей, подписок, оплаты за рабочее место и тарифных лимитов. Вы платите только за выбранный хостинг.
@@ -969,7 +969,7 @@ TropaTT включает браузерный установщик для про
 | Метрика | Значение |
 |--------|----------|
 | API эндпоинтов | 908 route-записей · 1010 уникальных URL (715 core + 295 модульных) · 1425 method-level маршрутов |
-| MCP tools | 617 tools + 6 resources — сервер Model Context Protocol для AI-агентов |
+| MCP tools | 620 tools + 6 resources — сервер Model Context Protocol для AI-агентов |
 | Веб-страниц | 66 маршрутов, ~66 шаблонов |
 | PHP-сервисов | 110+ |
 | Репозиториев БД | 87 |
@@ -1074,7 +1074,7 @@ TropaTT/
 | Maintainer docs | kept local (not published) | Release checklist, security review checklist, Codex for OSS notes, starter issues, GitHub labels |
 | API tooling | `upload/api/scripts/generate_openapi.php` | Точка входа для автоматизации генерации OpenAPI |
 | API-справочник | [Русский](docs_api/api_ru.md) · [English](docs_api/api_en.md) · [中文](docs_api/api_zh.md) | Полный справочник REST API — endpoint'ы, авторизация, RBAC и соглашения (Русский / English / 中文) |
-| MCP-справочник | [Русский](docs_mcp/mcp_ru.md) · [English](docs_mcp/mcp_en.md) · [中文](docs_mcp/mcp_zh.md) | Полный справочник MCP-сервера — 617 tools, ресурсы, авторизация и RBAC (Русский / English / 中文) |
+| MCP-справочник | [Русский](docs_mcp/mcp_ru.md) · [English](docs_mcp/mcp_en.md) · [中文](docs_mcp/mcp_zh.md) | Полный справочник MCP-сервера — 620 tools, ресурсы, авторизация и RBAC (Русский / English / 中文) |
 | Web docs | [`UPDATES.md`](UPDATES.md) | Справочник по системе обновлений: конвейер сервера обновлений и поток обновления для пользователя |
 | Корень проекта | `README.md`, `SECURITY.md`, `CONTRIBUTING.md`, [`MODULE_DEVELOPMENT.md`](MODULE_DEVELOPMENT.md), [`INSTALL_TROUBLESHOOTING.md`](INSTALL_TROUBLESHOOTING.md), [`SHARED_HOSTING_GUIDE.md`](SHARED_HOSTING_GUIDE.md), [`WEBHOOK_SECURITY.md`](WEBHOOK_SECURITY.md) | Публичные правила использования, безопасности, вклада, разработки модулей, troubleshooting установки, shared hosting гайд, webhook security |
 ---
@@ -1363,7 +1363,7 @@ TropaTT 的自动化层和 REST API 是生产级的——为需要系统与业�
 - **模块系统**——在不修改核心的情况下扩展业务逻辑。19 个模块管理 CLI 命令。
 - **从路由配置生成的 REST API 端点**——每个 CRM 实体、任务、项目、聊天、日历、分析和管理员功能均可通过 API 访问。
 - **OpenAPI 3.1 规范**——从实际路由配置生成，与实现保持同步。
-- **MCP 服务器 — 617 个工具、5 个资源**——通过 Model Context Protocol 端点，将 Claude Code、Codex、ChatGPT 等 AI 代理安全地、按权限连接到 CRM 并访问您的数据（参考：[`docs_mcp/mcp_zh.md`](docs_mcp/mcp_zh.md)）。
+- **MCP 服务器 — 620 个工具、6 个资源**——通过 Model Context Protocol 端点，将 Claude Code、Codex、ChatGPT 等 AI 代理安全地、按权限连接到 CRM 并访问您的数据（参考：[`docs_mcp/mcp_zh.md`](docs_mcp/mcp_zh.md)）。
 
 ---
 
@@ -1371,8 +1371,8 @@ TropaTT 的自动化层和 REST API 是生产级的——为需要系统与业�
 
 TropaTT 内置 **MCP（Model Context Protocol）服务器**——这正是 **Claude Code、Codex、ChatGPT 和其他 AI 编程代理** 所理解的协议。将任何兼容 MCP 的代理连接到您的 CRM，它就能在安全、按权限控制的层内读取、分析并管理您的真实数据：任务、项目、客户、联系人、聊天、日历、分析和知识库。
 
-- **617 个 MCP 工具 + 5 个资源**——覆盖所有领域：任务、项目、客户、联系人、聊天、日历、工时、分析、知识库等。
-- **AgentOS 2026 核心支持**——集成 `crm_agent_bundle`（原子化创建任务、检查清单与子任务）、`crm_agent_memory`（持久化跨会话记忆与实体关联）、`density: "compact"`。
+- **620 个 MCP 工具 + 6 个资源**——覆盖所有领域：任务、项目、客户、联系人、聊天、日历、工时、分析、知识库等。
+- **AgentOS 2026 核心支持**——集成 `crm_agent_bundle`（原子化创建任务、检查清单与子任务）、`crm_agent_memory`（持久化跨会话记忆与实体关联）、`crm_chat`（结构化代理通信与上下文载荷）、`density: "compact"`。
 - **适用于 Claude Code、Codex、ChatGPT 和其他兼容 MCP 的代理。** 与连接任何 MCP 服务器的方式相同，将代理连接到您的安装。
 - **与 Web 界面相同的数据、相同的规则。** 每个代理操作都经过相同的 REST API 和 RBAC 权限检查——没有直接数据库访问，不会绕过角色。
 - **天生安全。** 敏感数据（令牌、密码哈希、API 密钥）会被过滤，写入工具需要相应权限，管理操作仅限管理员。
@@ -1475,7 +1475,7 @@ TropaTT 包含一个适用于简单 PHP/MySQL 部署的浏览器安装程序：�
 可以。PHP/MySQL 技术栈、模块化扩展、REST API、Webhook、工作流规则、自定义字段、角色、权限——全部可适应您的流程。
 
 **可以将 Claude Code、Codex 或 ChatGPT 等 AI 代理连接到我的 CRM 吗？**
-可以。TropaTT 内置 MCP 服务器（617 个工具 + 5 个资源）——与 Claude Code、Codex、ChatGPT 和其他兼容 MCP 的代理使用的 Model Context Protocol 相同。将其中任何一个连接到您的安装，它们就能在 Web 界面相同的基于角色的权限下处理您的任务、项目、客户、聊天和知识库。详情：[`docs_mcp/mcp_zh.md`](docs_mcp/mcp_zh.md)。
+可以。TropaTT 内置 MCP 服务器（620 个工具 + 6 个资源）——与 Claude Code、Codex、ChatGPT 和其他兼容 MCP 的代理使用的 Model Context Protocol 相同。将其中任何一个连接到您的安装，它们就能在 Web 界面相同的基于角色的权限下处理您的任务、项目、客户、聊天和知识库。详情：[`docs_mcp/mcp_zh.md`](docs_mcp/mcp_zh.md)。
 
 **它真的免费吗？**
 是的——100% 免费且开源。没有许可费、没有订阅、没有按用户收费、没有套餐限制。您只需为选择的主机付费。
@@ -1493,7 +1493,7 @@ TropaTT 包含一个适用于简单 PHP/MySQL 部署的浏览器安装程序：�
 | 指标 | 数值 |
 |------|------|
 | API 端点 | 908 条路由记录 · 1010 个唯一 URL（715 核心 + 295 模块）· 1425 个方法级路由 |
-| MCP 工具 | 617 个工具 + 5 个资源 — 面向 AI 代理的 Model Context Protocol 服务器 |
+| MCP 工具 | 620 个工具 + 6 个资源 — 面向 AI 代理的 Model Context Protocol 服务器 |
 | Web 应用路由 | 66 个页面，~66 个模板 |
 | 后端 PHP 服务 | 110+ |
 | 数据库仓库 | 87 |
@@ -1598,7 +1598,7 @@ TropaTT/
 | 维护者文档 | 本地保存（不公开） | Release checklist、security review checklist、Codex for OSS notes、starter issues、GitHub labels |
 | API 工具 | `upload/api/scripts/generate_openapi.php` | API 文档自动化的 OpenAPI 生成入口 |
 | API 参考 | [中文](docs_api/api_zh.md) · [English](docs_api/api_en.md) · [Русский](docs_api/api_ru.md) | 完整 REST API 参考 — 端点、认证、RBAC 和约定（中文 / English / Русский） |
-| MCP 参考 | [中文](docs_mcp/mcp_zh.md) · [English](docs_mcp/mcp_en.md) · [Русский](docs_mcp/mcp_ru.md) | 完整 MCP 服务器参考 — 617 个工具、资源、认证和 RBAC（中文 / English / Русский） |
+| MCP 参考 | [中文](docs_mcp/mcp_zh.md) · [English](docs_mcp/mcp_en.md) · [Русский](docs_mcp/mcp_ru.md) | 完整 MCP 服务器参考 — 620 个工具、资源、认证和 RBAC（中文 / English / Русский） |
 | Web 文档 | [`UPDATES.md`](UPDATES.md) | 自更新系统参考：更新服务器流水线和用户更新流程 |
 | 项目根目录 | `README.md`, `SECURITY.md`, `CONTRIBUTING.md`, [`MODULE_DEVELOPMENT.md`](MODULE_DEVELOPMENT.md), [`INSTALL_TROUBLESHOOTING.md`](INSTALL_TROUBLESHOOTING.md), [`SHARED_HOSTING_GUIDE.md`](SHARED_HOSTING_GUIDE.md), [`WEBHOOK_SECURITY.md`](WEBHOOK_SECURITY.md) | 公开使用、安全、贡献、模块开发、安装排障、共享主机和 Webhook 安全指南 |
 

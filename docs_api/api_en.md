@@ -88,7 +88,11 @@ Each protected endpoint declares required permissions (for example `task.manage`
 | `X-CSRF-Token` | Cookie auth | CSRF token |
 | `X-Request-Id` | No | Request ID for tracing |
 | `X-Correlation-Id` | No | Correlation ID |
-| `X-Idempotency-Key` | No | Idempotency key |
+| `X-Idempotency-Key` | No | Idempotency key (replay protection) |
+| `X-Hub-Signature-256` | Inbound / Webhooks | HMAC-SHA256 signature for inbound webhooks and e-commerce connectors (`sha256=<hex>`) |
+| `X-Webhook-Signature` | Outbound webhooks | HMAC-SHA256 signature delivered on outbound events |
+| `X-Webhook-Event` | Outbound webhooks | Event type (e.g. `task.created`, `order.updated`) |
+| `X-Webhook-Timestamp` | Outbound webhooks | ISO 8601 UTC timestamp of delivery |
 | `X-Locale` | No | Locale: `ru-ru` or `en-gb` |
 
 ### Success response (2xx)
@@ -149,7 +153,30 @@ All IDs are ULIDs (26 characters). `row_version` is an integer used for optimist
 
 ### Idempotency
 
-The `X-Idempotency-Key` header prevents duplicate operations.
+The `X-Idempotency-Key` header prevents duplicate operations and provides replay protection across state mutations.
+
+### Optimistic Concurrency Control (STORM)
+
+Mutations on core entities (`tasks`, `projects`, `clients`, etc.) support optimistic concurrency control via the integer field `row_version`:
+- When retrieving an entity, note its current `row_version`.
+- When submitting `PATCH` or `PUT`, supply the expected `row_version`.
+- If another actor or agent modified the entity concurrently, the API returns `409 Conflict` (code `DATA_CONFLICT`) along with the latest server state, preventing lost update anomalies.
+
+### Task Status Aliasing and Fast Filters
+
+To eliminate enum friction across external systems, AI agents, and frontend clients:
+- **Bidirectional status aliasing**: `todo` $\leftrightarrow$ `new`, `done` $\leftrightarrow$ `completed`, `canceled` $\leftrightarrow$ `cancelled`. Querying `status=todo` matches both `todo` and `new` records transparently.
+- **Fast activity filters**:
+  - `hide_done=1`: Excludes finished, canceled, and archived tasks (`done`, `completed`, `canceled`, `cancelled`, `archived`).
+  - `active_only=1`: Equivalent alias to `hide_done=1`.
+  - `exclude_statuses=done,archived`: Comma-separated exclusion list with automatic alias expansion.
+
+### A2A Agent Card Manifest
+
+- RFC 8615 A2A protocol discovery cards are publicly accessible at:
+  - `GET /.well-known/agent-card.json`
+  - `GET /api/v1/agent-card`
+- Provides machine-readable agent capabilities, MCP endpoints, and supported authentication schemes without authentication.
 
 ## OpenAPI and MCP
 
@@ -821,6 +848,25 @@ Price lists (`rate_cards`) define three rate kinds — cost, bill, and payout �
 | GET | `/api/v1/webhooks/deliveries` 🔄 | All deliveries | Yes | `webhook.manage` | — |
 | GET | `/api/v1/webhooks/{public_id}/deliveries` 🔄 | Webhook deliveries | Yes | `webhook.manage` | — |
 | POST | `/api/v1/webhooks/{public_id}/test` 🔄 | Test webhook | Yes | `webhook.manage` | — |
+
+#### Universal E-Commerce Gateway & Webhook Protocol (v1.0 Canonical Spec)
+
+TropaTT implements a unified webhook protocol for outbound CRM events and external e-commerce connectors (OpenCart 1.5–4.x, 1C-Bitrix, WooCommerce, InSales, CS-Cart, PrestaShop, Shop-Script, Moguta, Tilda, Shopify, Magento 2):
+
+- **Inbound Connector Signature Verification**:
+  - All incoming webhook payloads must include `X-Hub-Signature-256: sha256=<hex_hmac>` computed with the shared per-store secret key.
+  - Replay attacks are mitigated by validating `X-Idempotency-Key` (UUIDv4) and ensuring the request timestamp is within $\pm 300$ seconds of the server clock.
+- **Outbound Delivery Architecture**:
+  - Outbound events are dispatched asynchronously via the queue runner with automatic exponential backoff retries (1m, 5m, 15m, 1h).
+  - Outbound delivery headers include:
+    - `X-Webhook-Event`: code of the dispatched event (e.g. `order.created`, `task.status_changed`).
+    - `X-Webhook-Timestamp`: ISO 8601 UTC timestamp.
+    - `X-Webhook-Signature`: `sha256=<hex_hmac>` computed over raw body with subscription secret.
+  - SSRF Protection: Webhook endpoints resolving to loopback (`127.0.0.0/8`), private IPv4 spaces (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), IPv6 link-local, or cloud metadata services are blocked fail-closed by the egress filter.
+  - Sensitive Data Scrubbing: Outbound payloads are sanitized before delivery; passwords, access tokens, API keys, password hashes, and sensitive internal rate fields (`cost_rate`, `bill_rate`, `cost_amount`, `bill_amount`) are stripped.
+- **Canonical Event Codes**:
+  - E-Commerce: `order.created`, `order.updated`, `customer.sync`, `inventory.sync`, `product.sync`.
+  - Core CRM: `task.created`, `task.updated`, `task.deleted`, `task.status_changed`, `project.created`, `project.updated`, `project.deleted`, `user.created`, `user.updated`, `user.deleted`, `cycle.*`, `client.*`, `counterparty.*`, `contact.*`, `company.*`, `organization.*`, `file.uploaded`.
 
 ### Import & Export
 

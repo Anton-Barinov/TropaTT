@@ -86,7 +86,11 @@ Authorization: Bearer <token>
 | `X-CSRF-Token` | Cookie 认证 | CSRF 令牌 |
 | `X-Request-Id` | 否 | 用于追踪的请求 ID |
 | `X-Correlation-Id` | 否 | 关联 ID |
-| `X-Idempotency-Key` | 否 | 幂等键 |
+| `X-Idempotency-Key` | 否 | 幂等键（防重放与重复变更保护） |
+| `X-Hub-Signature-256` | 入站 / Webhooks | 入站 Webhook 与电商连接器的 HMAC-SHA256 签名（`sha256=<hex>`） |
+| `X-Webhook-Signature` | 出站 Webhooks | 出站事件交付时附带的 HMAC-SHA256 签名 |
+| `X-Webhook-Event` | 出站 Webhooks | 触发的事件编码（例如 `task.created`, `order.updated`） |
+| `X-Webhook-Timestamp` | 出站 Webhooks | ISO 8601 UTC 交付时间戳 |
 | `X-Locale` | 否 | 语言：`ru-ru` 或 `en-gb` |
 
 ### 成功响应（2xx）
@@ -147,7 +151,30 @@ Authorization: Bearer <token>
 
 ### 幂等性
 
-`X-Idempotency-Key` 请求头可防止重复操作。
+`X-Idempotency-Key` 请求头可防止重复操作，在网络波动和状态突变中提供防重放保护。
+
+### 乐观并发控制 (STORM)
+
+对核心实体（`tasks`, `projects`, `clients` 等）的变更操作支持基于整数标记 `row_version` 的乐观并发控制：
+- 检索实体时记录其当前的 `row_version`。
+- 提交更新（`PATCH` / `PUT`）时传入预期的 `row_version`。
+- 若此期间实体已被其他用户或代理修改，服务端将返回 `409 Conflict`（错误码 `DATA_CONFLICT`）及最新服务端状态，避免静默覆盖。
+
+### 任务状态别名与快速过滤
+
+消除外部电商系统、AI 代理与 CRM 枚举之间的映射阻抗：
+- **双向状态别名**：`todo` $\leftrightarrow$ `new`，`done` $\leftrightarrow$ `completed`，`canceled` $\leftrightarrow$ `cancelled`。使用 `status=todo` 查询可透明匹配 `todo` 与 `new` 状态的记录。
+- **快速活动过滤器**：
+  - `hide_done=1`：排除已完成、已取消和已归档的任务（`done`, `completed`, `canceled`, `cancelled`, `archived`）。
+  - `active_only=1`：等价于 `hide_done=1` 的别名。
+  - `exclude_statuses=done,archived`：显式逗号分隔的排除项列表，支持自动展开别名。
+
+### A2A Agent Card 清单
+
+- 符合 RFC 8615 标准的代理自描述卡片公开可供发现：
+  - `GET /.well-known/agent-card.json`
+  - `GET /api/v1/agent-card`
+- 无需认证即可获取代理功能清单、MCP 端点及支持的身份验证方案。
 
 ## OpenAPI 与 MCP
 
@@ -797,6 +824,25 @@ Authorization: Bearer <token>
 | GET | `/api/v1/webhooks/deliveries` 🔄 | 所有投递 | 是 | `webhook.manage` | — |
 | GET | `/api/v1/webhooks/{public_id}/deliveries` 🔄 | Webhook 投递 | 是 | `webhook.manage` | — |
 | POST | `/api/v1/webhooks/{public_id}/test` 🔄 | 测试Webhook | 是 | `webhook.manage` | — |
+
+#### 通用电商网关与 Webhook 协议（v1.0 标准规范）
+
+TropaTT 为 CRM 出站事件与外部电商 CMS 连接器（OpenCart 1.5–4.x, 1C-Bitrix, WooCommerce, InSales, CS-Cart, PrestaShop, Shop-Script, Moguta, Tilda, Shopify, Magento 2）提供统一的 Webhook 协议：
+
+- **入站连接器签名验证**：
+  - 所有传入的 Webhook 请求必须包含基于店铺共享密钥计算的 `X-Hub-Signature-256: sha256=<hex_hmac>` 请求头。
+  - 防重放攻击机制：严格校验 `X-Idempotency-Key`（UUIDv4），且请求时间戳与服务端时钟偏差不得超过 $\pm 300$ 秒。
+- **出站交付架构**：
+  - 出站事件通过队列执行器异步分发，支持指数退避重试（1分钟、5分钟、15分钟、1小时）。
+  - 出站请求头：
+    - `X-Webhook-Event`：触发的事件标识（如 `order.created`, `task.status_changed`）。
+    - `X-Webhook-Timestamp`：ISO 8601 UTC 交付时间戳。
+    - `X-Webhook-Signature`：基于订阅密钥计算的原始主体 `sha256=<hex_hmac>` 签名。
+  - SSRF 出站防御：解析到回环地址（`127.0.0.0/8`）、私有网络（`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`）、IPv6 链路本地或云元数据服务的端点，将被出口安全校验层直接阻断。
+  - 敏感数据脱敏：出站载荷在序列化前自动过滤密码、访问令牌、API 密钥、密码哈希及敏感内部费率（`cost_rate`, `bill_rate`, `cost_amount`, `bill_amount`）。
+- **标准事件类型编码**：
+  - 电商领域：`order.created`, `order.updated`, `customer.sync`, `inventory.sync`, `product.sync`。
+  - 核心 CRM：`task.created`, `task.updated`, `task.deleted`, `task.status_changed`, `project.created`, `project.updated`, `project.deleted`, `user.created`, `user.updated`, `user.deleted`, `cycle.*`, `client.*`, `counterparty.*`, `contact.*`, `company.*`, `organization.*`, `file.uploaded`。
 
 ### 导入与导出
 

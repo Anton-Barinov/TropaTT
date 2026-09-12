@@ -14,18 +14,18 @@ TropaTT CRM ships an embedded MCP server — a JSON-RPC 2.0 interface that gives
 | Protocol version | `2025-06-18` |
 | Batch requests | Supported (JSON array) |
 | Notifications | Supported (messages without id) |
-| MCP tools | ~617 in the full catalog; `tools/list` defaults to the ~24-tool `core` profile (8 mega-tools + 16 regular) |
-| MCP resources | 5 |
+| MCP tools | 620 in the full catalog (`toolset=all`); `tools/list` defaults to the 27-tool `core` profile (8 mega-tools + 3 AgentOS orchestration tools + 16 regular) |
+| MCP resources | 6 |
 | MCP prompts | 0 |
 
 ---
 
-## Mega-tools (consolidated intent-based)
+## Mega-tools & AgentOS Hubs (consolidated intent-based)
 
-The `core` profile uses **mega-tools** — consolidated tools that cover an entire domain with an `action` parameter, replacing dozens of fine-grained CRUD tools. Each mega-tool has a rich description explaining when to use it and what to expect.
+The `core` profile uses **mega-tools and AgentOS orchestration hubs** — consolidated tools that cover an entire domain or workflow with an `action` parameter, replacing hundreds of fine-grained CRUD tools and saving context tokens.
 
-| Mega-tool | Domain | Actions |
-|-----------|--------|---------|
+| Mega-tool / Hub | Domain | Actions / Scope |
+|-----------------|--------|-----------------|
 | `crm_task` | Tasks, subtasks, comments, tags, checklists, dependencies, relations, board, activity | list, get, get_by_key, create, update, delete, move, bulk_update, board, activity, + 20 sub-actions |
 | `crm_project` | Projects, milestones, cycles, modules, templates, client cabinet | list, get, create, update, delete, summary, risks, timeline, workload, + 25 sub-actions |
 | `crm_people` | Users, teams, departments, roles, invitations, impersonation | list_users, get_user, create_user, + 20 sub-actions |
@@ -34,6 +34,9 @@ The `core` profile uses **mega-tools** — consolidated tools that cover an enti
 | `crm_knowledge` | Knowledge base: spaces, pages, versions, comments, tags, files, AI | search, list_pages, create_page, ai_summary, + 40 sub-actions |
 | `crm_ai` | AI actions, suggestions, providers, jobs, semantic search | execute_action, task_summary, project_risks, day_plan, + 25 sub-actions |
 | `crm_admin` | Settings, cache, modules, updates, API clients, webhooks, logs | list_settings, clear_cache, list_modules, + 35 sub-actions |
+| `crm_agent_bundle` | **AgentOS 2026 Core**: Atomic task initialization | Single-request creation of task, DoD checklists, subtasks, knowledge links, blocking QA task, agent concurrency claim, compact density |
+| `crm_agent_memory` | **AgentOS 2026 Core**: Persistent governed memory store | `get`, `set`, `list`, `delete`, `search` (cross-scope/metadata), `export_graph` with entity graph linking (`task`, `project`, `client`) |
+| `crm_chat` | **AgentOS 2026 Core**: Unified agent communication hub | `list_chats`, `get_chat`, `create_chat`, `send_message`, `list_messages`, `mark_read` with structured JSON (`message_type: json/datapart`) and compact density |
 
 Existing fine-grained CRUD tools (e.g. `crm_list_tasks`, `crm_create_task`) remain available via the `all` profile and are callable by name — backward compatible.
 
@@ -126,11 +129,11 @@ AI actions are logged via AiJobService/AiAuditService; import/export and workflo
 
 ## Toolsets (profiles)
 
-The full MCP catalog is large (600+ tools). To avoid loading it all into every agent session, `tools/list` returns a curated **`core`** profile by default (24 tools: profile, search, dashboard, notifications, activity, and basic read/create for the main entities). Domain profiles are available:
+The full MCP catalog is large (620 tools). To avoid loading it all into every agent session, `tools/list` returns a curated **`core`** profile by default (27 tools: profile, search, dashboard, notifications, activity, basic read/create, 8 mega-tools, plus 3 AgentOS orchestration tools). Domain profiles are available:
 
 | Profile | Scope |
 |---------|-------|
-| `core` (default) | Profile, search, dashboard, notifications, activity, basic task/project/people/kb/time reads |
+| `core` (default) | Profile, search, dashboard, notifications, activity, 8 mega-tools + AgentOS orchestration (`crm_agent_bundle`, `crm_agent_memory`, `crm_chat`) |
 | `tasks` | Tasks, subtasks, comments, tags, checklists, dependencies, relations, estimates, board, saved views, recurring rules, reminders, SLA, workflow rules, approvals |
 | `projects` | Projects, milestones, cycles, project modules, Gantt, summary/risks, templates, client cabinet |
 | `kb` | Knowledge base: spaces, pages, versions, comments, tags, links, files, export/import, knowledge AI |
@@ -147,16 +150,16 @@ The catalog size affects every request: agent clients that register MCP tools in
 
 | Toolset | Tools | Schema size |
 |---------|------:|------------:|
-| `core` (default) | 24 | ~2.5K tokens |
+| `core` (default) | 27 | ~2.9K tokens |
 | `tasks` | 82 | ~8.0K tokens |
 | `projects` | 58 | ~5.2K tokens |
 | `kb` | 80 | ~6.3K tokens |
 | `people` | 60 | ~5.7K tokens |
 | `time` | 32 | ~2.6K tokens |
 | `admin` | 149 | ~12.2K tokens |
-| `all` | 617 | ~52K tokens |
+| `all` | 620 | ~53K tokens |
 
-The full catalog is ~10× more expensive than the default `core` profile, so prefer a narrow toolset whenever the session is domain-focused.
+The full catalog is ~18× more expensive than the default `core` profile, so prefer a narrow toolset whenever the session is domain-focused.
 
 Client loading modes and what they mean for cost:
 
@@ -297,6 +300,14 @@ Invalid input and unknown mega-tool `action` values are returned **inside the ca
 |------|-----------|------------|--------------|
 | `crm_search` | Global search | knowledge.view/project.manage/task.manage | none |
 | `crm_list_api_endpoints` | REST endpoints inventory | auth | none |
+
+### AgentOS 2026 Core Orchestration
+
+| Tool | Purpose | Permission | Side effects |
+|------|-----------|------------|--------------|
+| `crm_agent_bundle` | Atomic task, checklist, subtasks, knowledge links & QA gate setup | task.manage | entity creation & locking |
+| `crm_agent_memory` | Governed persistent key-value store, semantic search & entity graph export | auth | memory data change |
+| `crm_chat` | Unified agent messaging hub (direct, project, team, group) with structured JSON payloads | chat.use / task.manage / project.manage | message creation & status change |
 
 ### Tasks
 
@@ -1048,9 +1059,10 @@ MCP resources are read-only and served under the tropatt:// URI scheme.
 |-------------|-----------|------|------|-----------|
 | ``tropatt://server/about`` | MCP server overview | text/markdown | auth | 1.0 |
 | ``tropatt://server/tools`` | List of available tools | application/json | auth | 0.95 |
-| ``tropatt://user/current`` | Current user | application/json | auth | 0.9 |
-| ``tropatt://server/api-map`` | API domain map | text/markdown | auth | 0.8 |
-| ``tropatt://server/api-endpoints`` | REST endpoints inventory | application/json | auth | 0.75 |
+| ``tropatt://server/toolsets`` | MCP toolset profiles & counts | application/json | auth | 0.9 |
+| ``tropatt://user/current`` | Current user profile & permissions | application/json | auth | 0.9 |
+| ``tropatt://server/api-map`` | API domain capability map | text/markdown | auth | 0.8 |
+| ``tropatt://server/api-endpoints`` | REST endpoints inventory (derived from routes.php) | application/json | auth (settings.manage) | 0.75 |
 
 ---
 
@@ -1113,6 +1125,9 @@ MCP mirrors the REST API through a safe layer. Below is the mapping of key tools
 | `crm_list_knowledge_pages` | tool | `GET /api/v1/knowledge/pages` | KnowledgeController::list | - |
 | `crm_create_knowledge_page` | tool | `POST /api/v1/knowledge/pages` | KnowledgeController::create | - |
 | `crm_list_api_endpoints` | tool | `none` | McpController::apiEndpointsIndex | MCP-only, reads routes.php |
+| `crm_agent_bundle` | tool | `composite` | McpController::crmAgentBundle | MCP-only atomic pipeline runner |
+| `crm_agent_memory` | tool | `none` | McpController::crmAgentMemory | MCP-only persistent agent KV & graph store |
+| `crm_chat` | mega-tool | `/api/v1/chats/*` | ChatController | Intent-based unified communication hub |
 
 ---
 
@@ -1120,6 +1135,8 @@ MCP mirrors the REST API through a safe layer. Below is the mapping of key tools
 
 | Tool | Purpose | Note |
 |------|-----------|-------------|
+| `crm_agent_bundle` | Atomic multi-entity task initialization | Orchestrates tasks, checklists, subtasks, БЗ links and QA gate in a single JSON-RPC request |
+| `crm_agent_memory` | Governed persistent memory store | Scoped KV memory, semantic/keyword search and entity graph export for AI agents |
 | `crm_list_api_endpoints` | REST endpoints inventory | Returns the full route list from routes.php |
 | `crm_get_knowledge_overview` | Knowledge base overview | Aggregated summary |
 | `crm_get_knowledge_tree` | Pages tree | Recursive structure |

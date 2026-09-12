@@ -86,7 +86,11 @@ Authorization: Bearer <token>
 | `X-CSRF-Token` | Для cookie-auth | CSRF-токен |
 | `X-Request-Id` | Нет | ID запроса (для трейсинга) |
 | `X-Correlation-Id` | Нет | ID корреляции |
-| `X-Idempotency-Key` | Нет | Ключ идемпотентности |
+| `X-Idempotency-Key` | Нет | Ключ идемпотентности (защита от повторных списаний/мутаций) |
+| `X-Hub-Signature-256` | Inbound / Webhooks | HMAC-SHA256 подпись для входящих вебхуков и e-commerce адаптеров (`sha256=<hex>`) |
+| `X-Webhook-Signature` | Outbound webhooks | HMAC-SHA256 подпись, передаваемая при доставке исходящих событий |
+| `X-Webhook-Event` | Outbound webhooks | Код события (например `task.created`, `order.updated`) |
+| `X-Webhook-Timestamp` | Outbound webhooks | ISO 8601 UTC временная метка отправки |
 | `X-Locale` | Нет | Локаль: `ru-ru` или `en-gb` |
 
 ### Успешный ответ (2xx)
@@ -147,7 +151,30 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 
 ### Идемпотентность
 
-Заголовок `X-Idempotency-Key` предотвращает дублирование операций.
+Заголовок `X-Idempotency-Key` предотвращает дублирование операций и защищает от повторной обработки запросов при сбоях сети.
+
+### Оптимистичная блокировка (STORM)
+
+Мутации ключевых сущностей (`tasks`, `projects`, `clients` и др.) поддерживают протокол предотвращения гонок через целочисленный токен `row_version`:
+- При получении сущности клиент фиксирует её `row_version`.
+- При отправке изменений (`PATCH` / `PUT`) передаётся ожидаемый `row_version`.
+- Если сущность успела измениться другим пользователем или агентом, сервер возвращает `409 Conflict` (код `DATA_CONFLICT`) с актуальным состоянием объекта, исключая случайную перезапись данных.
+
+### Алиасы статусов задач и быстрые фильтры
+
+Для устранения рассогласования enum-статусов между CRM, AI-агентами и внешними CMS:
+- **Двунаправленные алиасы статусов**: `todo` $\leftrightarrow$ `new`, `done` $\leftrightarrow$ `completed`, `canceled` $\leftrightarrow$ `cancelled`. Запрос `status=todo` прозрачно возвращает как задачи со статусом `todo`, так и `new`.
+- **Быстрые фильтры активности**:
+  - `hide_done=1`: Исключает завершённые, отменённые и архивные задачи (`done`, `completed`, `canceled`, `cancelled`, `archived`).
+  - `active_only=1`: Полный аналог флага `hide_done=1`.
+  - `exclude_statuses=done,archived`: Явный список исключений через запятую с автоматическим разворачиванием алиасов.
+
+### Манифест A2A Agent Card
+
+- Карточка самодекларации агентов по стандарту RFC 8615 доступна публично:
+  - `GET /.well-known/agent-card.json`
+  - `GET /api/v1/agent-card`
+- Содержит манифест возможностей агента, MCP endpoints и поддерживаемые методы аутентификации.
 
 ## OpenAPI и MCP
 
@@ -816,6 +843,25 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | GET | `/api/v1/webhooks/deliveries` 🔄 | Все доставки | Да | `webhook.manage` | — |
 | GET | `/api/v1/webhooks/{public_id}/deliveries` 🔄 | Доставки вебхука | Да | `webhook.manage` | — |
 | POST | `/api/v1/webhooks/{public_id}/test` 🔄 | Тест вебхука | Да | `webhook.manage` | — |
+
+#### Универсальный E-Commerce шлюз и протокол вебхуков (канонический контракт v1.0)
+
+TropaTT реализует унифицированный протокол вебхуков для исходящих событий CRM и внешних коннекторов CMS (OpenCart 1.5–4.x, 1C-Битрикс, WooCommerce, InSales, CS-Cart, PrestaShop, Shop-Script, Moguta, Tilda, Shopify, Magento 2):
+
+- **Проверка подписи входящих коннекторов**:
+  - Все входящие вебхуки должны содержать заголовок `X-Hub-Signature-256: sha256=<hex_hmac>`, рассчитанный на основе общего секретного ключа магазина.
+  - Защита от атак повторного воспроизведения (replay protection): обязательная проверка заголовка `X-Idempotency-Key` (UUIDv4) и допустимое окно времени отправки не более $\pm 300$ секунд от серверного времени.
+- **Архитектура исходящей доставки**:
+  - Исходящие события отправляются асинхронно через диспетчер очередей с экспоненциальными повторами (1м, 5м, 15м, 1ч).
+  - Заголовки доставки:
+    - `X-Webhook-Event`: код отправленного события (например `order.created`, `task.status_changed`).
+    - `X-Webhook-Timestamp`: временная метка ISO 8601 UTC.
+    - `X-Webhook-Signature`: `sha256=<hex_hmac>` по телу запроса с секретом подписки.
+  - Защита от SSRF: адреса, разрешающиеся в loopback (`127.0.0.0/8`), приватные сети RFC 1918 (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), IPv6 link-local или облачные metadata-сервисы, блокируются на уровне egress-валидатора.
+  - Очистка конфиденциальных данных: пароли, токены доступа, API-ключи, хеши и внутренние финансовые ставки (`cost_rate`, `bill_rate`, `cost_amount`, `bill_amount`) вырезаются перед сериализацией.
+- **Канонические коды событий**:
+  - E-Commerce: `order.created`, `order.updated`, `customer.sync`, `inventory.sync`, `product.sync`.
+  - Ядро CRM: `task.created`, `task.updated`, `task.deleted`, `task.status_changed`, `project.created`, `project.updated`, `project.deleted`, `user.created`, `user.updated`, `user.deleted`, `cycle.*`, `client.*`, `counterparty.*`, `contact.*`, `company.*`, `organization.*`, `file.uploaded`.
 
 ### Import & Export
 
