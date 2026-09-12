@@ -234,7 +234,10 @@ final class ConnectionManager
 
         foreach ($this->flattenConfigValues($config) as $value) {
             $normalized = str_replace('\\', '/', (string)$value);
-            if (str_contains($normalized, '/storage_test_runtime/')) {
+            if (str_contains($normalized, '/storage_test_runtime/') || str_starts_with($normalized, '/Users/')) {
+                return true;
+            }
+            if (str_ends_with($normalized, '.sqlite') && !file_exists($normalized)) {
                 return true;
             }
         }

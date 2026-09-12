@@ -707,6 +707,7 @@ function crmWebInitModuleSystem(string $webBaseDir, Web\System\Core\Router $rout
         // falls back to \Api\System\Library\Support\AppLog::error(), which stock PHP-FPM discards.
         if (class_exists(\Api\System\Library\Support\AppLog::class)) {
             try {
+                $apiBaseDir = dirname($webBaseDir) . '/api';
                 $webLoggingConfig = new \Api\System\Library\Config();
                 $webLoggingConfig->load($apiBaseDir . '/config/logging.php', 'logging');
                 $webLoggingLocal = $apiBaseDir . '/config/logging.local.php';

@@ -782,7 +782,7 @@ final class TaskController extends BaseController
      */
     private function isAllowedTaskStatus(string $statusCode): bool
     {
-        if (in_array($statusCode, ['new', 'in_progress', 'blocked', 'done'], true)) {
+        if (in_array($statusCode, ['new', 'todo', 'in_progress', 'review', 'blocked', 'done', 'completed', 'canceled', 'cancelled'], true)) {
             return true;
         }
 

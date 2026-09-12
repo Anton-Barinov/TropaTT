@@ -4206,6 +4206,7 @@ window.CRM.pageApiBindings = (function () {
     var cycleFilter = String(query.get('cycle_public_id') || '').trim();
     var tagFilter = String(query.get('tag') || '').trim();
     var dueFilter = String(query.get('due') || '').trim();
+    var hideDoneFilter = String(query.get('hide_done') || '').trim() === '1' || kpi === 'active';
     // Многоуровневая сортировка: уровни хранятся как массив {key, dir} и в URL
     // кодируются одним параметром sort=key1:ASC,key2:DESC (до 4 уровней).
     // Старый формат sort=key&order=ASC тоже читается (совместимость со ссылками).
@@ -4268,9 +4269,12 @@ window.CRM.pageApiBindings = (function () {
       if (dueBounds && dueBounds.to) apiQuery.due_at_to = dueBounds.to;
       if (dueBounds && dueBounds.exclude) apiQuery.exclude_statuses = dueBounds.exclude;
     }
-    // KPI quick views are resolved server-side too, so they cover the whole
+    // KPI quick views and hide_done are resolved server-side too, so they cover the whole
     // dataset instead of just the current page of 50 tasks.
-    if (kpi === 'active') apiQuery.exclude_statuses = 'done,completed,archived';
+    if (hideDoneFilter || kpi === 'active') {
+      apiQuery.hide_done = 1;
+      apiQuery.exclude_statuses = 'done,completed,archived';
+    }
     if (kpi === 'overdue') {
       var overdueBounds = kanbanDueBounds('overdue');
       if (overdueBounds) apiQuery.due_at_to = overdueBounds.to;
@@ -4338,7 +4342,7 @@ window.CRM.pageApiBindings = (function () {
 
     function applyTaskRouteQuery(next) {
       var queryObj = getCurrentQueryObject();
-      ['search', 'status', 'priority', 'assignee', 'manager', 'project', 'client', 'cycle_public_id', 'tag', 'due', 'sort', 'order', 'page', 'view_public_id'].forEach(function (key) {
+      ['search', 'status', 'priority', 'assignee', 'manager', 'project', 'client', 'cycle_public_id', 'tag', 'due', 'hide_done', 'sort', 'order', 'page', 'view_public_id'].forEach(function (key) {
         delete queryObj[key];
       });
       if (next.search) queryObj.search = next.search;
@@ -4351,6 +4355,7 @@ window.CRM.pageApiBindings = (function () {
       if (next.cycle) queryObj.cycle_public_id = next.cycle;
       if (next.tag) queryObj.tag = next.tag;
       if (next.due) queryObj.due = next.due;
+      if (next.hide_done) queryObj.hide_done = next.hide_done;
       if (next.sort) queryObj.sort = next.sort;
       if (next.order) queryObj.order = next.order;
       if (next.page && Number(next.page) > 1) queryObj.page = String(next.page);
@@ -4554,7 +4559,9 @@ window.CRM.pageApiBindings = (function () {
       var projectSelect = document.getElementById('tasksProjectFilter');
       var clientSelect = document.getElementById('tasksClientFilter');
       var tagSelect = document.getElementById('tasksTagFilter');
-      var activeDueBtn = document.querySelector('.crm-kanban-due-filters .is-active');
+      var activeDueBtn = document.querySelector('.crm-kanban-due-filters [data-kanban-due].is-active');
+      var hideDoneBtn = document.getElementById('tasksHideDoneToggle');
+      var isHideDone = hideDoneBtn && (hideDoneBtn.classList.contains('active') || hideDoneBtn.classList.contains('is-active') || hideDoneBtn.getAttribute('aria-pressed') === 'true');
       return {
         search: searchInput ? searchInput.value.trim() : '',
         status: tasksStatusSelect ? tasksStatusSelect.value : '',
@@ -4566,6 +4573,7 @@ window.CRM.pageApiBindings = (function () {
         cycle: tasksCycleSelect ? tasksCycleSelect.value : '',
         tag: tagSelect ? tagSelect.value : '',
         due: activeDueBtn ? String(activeDueBtn.getAttribute('data-kanban-due') || '') : '',
+        hide_done: isHideDone ? '1' : '',
         sort: encodeTaskSort(parseTaskSort(pageQuery().get('sort'), pageQuery().get('order')))
       };
     }
@@ -4580,7 +4588,8 @@ window.CRM.pageApiBindings = (function () {
       var tagSelect = document.getElementById('tasksTagFilter');
       var resetBtn = document.getElementById('tasksFiltersResetBtn');
       var summary = document.getElementById('tasksResultSummary');
-      var dueBtns = document.querySelectorAll('.crm-kanban-due-filters .btn');
+      var dueBtns = document.querySelectorAll('.crm-kanban-due-filters [data-kanban-due]');
+      var hideDoneBtn = document.getElementById('tasksHideDoneToggle');
 
       if (statusSelect) statusSelect.value = statusFilter;
       if (assigneeSelect) assigneeSelect.value = assigneeFilter;
@@ -4588,6 +4597,21 @@ window.CRM.pageApiBindings = (function () {
       if (projectSelect) projectSelect.value = projectFilter;
       if (clientSelect) clientSelect.value = clientFilter;
       if (tagSelect) tagSelect.value = tagFilter;
+
+      if (hideDoneBtn) {
+        hideDoneBtn.classList.toggle('active', Boolean(hideDoneFilter));
+        hideDoneBtn.classList.toggle('is-active', Boolean(hideDoneFilter));
+        hideDoneBtn.setAttribute('aria-pressed', hideDoneFilter ? 'true' : 'false');
+        if (hideDoneBtn.dataset.bound !== '1') {
+          hideDoneBtn.addEventListener('click', function () {
+            var nextActive = !hideDoneBtn.classList.contains('active') && !hideDoneBtn.classList.contains('is-active');
+            var f = tasksFiltersFromDom();
+            f.hide_done = nextActive ? '1' : '';
+            applyTaskRouteQuery(f);
+          });
+          hideDoneBtn.dataset.bound = '1';
+        }
+      }
 
       // Searchable-селекты (заменённые на инпут с дропдауном) должны показывать
       // выбранное значение и после программной установки value (первая
@@ -4653,15 +4677,19 @@ window.CRM.pageApiBindings = (function () {
           // Clear searchable inputs
           document.querySelectorAll('.crm-filters-card .crm-searchable-input').forEach(function (inp) { inp.value = ''; });
           document.querySelectorAll('.crm-filters-card .crm-searchable-clear').forEach(function (cb) { cb.style.display = 'none'; });
-          // Clear due-date buttons
+          // Clear due-date buttons and hide_done toggle
           dueBtns.forEach(function (b) { b.classList.remove('is-active'); });
-          applyTaskRouteQuery({ search: '', status: '', priority: '', assignee: '', manager: '', project: '', client: '', cycle: '', tag: '', due: '', sort: '' });
+          if (hideDoneBtn) {
+            hideDoneBtn.classList.remove('active', 'is-active');
+            hideDoneBtn.setAttribute('aria-pressed', 'false');
+          }
+          applyTaskRouteQuery({ search: '', status: '', priority: '', assignee: '', manager: '', project: '', client: '', cycle: '', tag: '', due: '', hide_done: '', sort: '' });
         });
         resetBtn.dataset.bound = '1';
       }
 
       // Enable/disable reset button based on active filters
-      var hasActive = Boolean(searchFilter || statusFilter || assigneeFilter || managerFilter || projectFilter || clientFilter || cycleFilter || tagFilter || dueFilter || kpi);
+      var hasActive = Boolean(searchFilter || statusFilter || assigneeFilter || managerFilter || projectFilter || clientFilter || cycleFilter || tagFilter || dueFilter || hideDoneFilter || kpi);
       if (resetBtn) {
         resetBtn.disabled = !hasActive;
         resetBtn.classList.toggle('is-active', hasActive);
@@ -4893,7 +4921,7 @@ window.CRM.pageApiBindings = (function () {
       document.querySelectorAll('#tasksStates [data-state-item]').forEach(function (node) {
         node.classList.add('d-none');
       });
-      var stateName = (searchFilter || statusFilter || priorityFilter || assigneeFilter || managerFilter || projectFilter || clientFilter || cycleFilter || tagFilter || dueFilter || kpi)
+      var stateName = (searchFilter || statusFilter || priorityFilter || assigneeFilter || managerFilter || projectFilter || clientFilter || cycleFilter || tagFilter || dueFilter || hideDoneFilter || kpi)
         ? 'no-results'
         : 'empty';
       var stateEl = document.querySelector('#tasksStates [data-state-item="' + stateName + '"]');
@@ -21894,12 +21922,13 @@ window.CRM.pageApiBindings = (function () {
     }
     var byStatus = {};
     tasks.forEach(function (task) {
-      var status = task.status_code || 'new';
+      var status = task.status_code || 'todo';
+      if (status === 'new') status = 'todo';
       if (!byStatus[status]) byStatus[status] = [];
       byStatus[status].push(task);
     });
 
-    var statusOrder = window.CRM.kanbanStatusOrder || ['new', 'todo', 'in_progress', 'done'];
+    var statusOrder = window.CRM.kanbanStatusOrder || ['todo', 'in_progress', 'review', 'done'];
     var statusMap = window.CRM.kanbanStatusMap || {};
     var container = document.querySelector('.crm-kanban');
     var mobileTabs = document.getElementById('kanbanMobileStatusTabs');

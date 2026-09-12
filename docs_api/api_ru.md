@@ -177,6 +177,7 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | GET | `/api/v1/health/status` | Базовая проверка здоровья | Да | — | Статус сервиса |
 | GET | `/api/v1/health/deep` | Глубокая проверка здоровья | Да | — | Проверка БД, кэша, AI |
 | GET | `/api/v1/version` | Версия CRM (публичный) | Нет | — | Текущая версия без авторизации |
+| GET | `/api/v1/agent-card` | Манифест A2A Agent Card | Нет | — | RFC 8615 карточка агента и открытий протоколов |
 | POST | `/api/v1/mcp` | Model Context Protocol | Да | — | JSON-RPC для AI-агентов |
 
 ### Core Update

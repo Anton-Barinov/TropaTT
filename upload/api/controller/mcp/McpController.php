@@ -2982,7 +2982,7 @@ $tools[] = $this->tool(
                 'task_key' => ['type' => 'string', 'description' => 'Human-readable key (e.g. TASK-123). For get_by_key action.'],
                 'title' => ['type' => 'string', 'description' => 'Task title. Required for create.'],
                 'description' => ['type' => 'string', 'description' => 'Task/subtask description (Markdown).'],
-                'status' => ['type' => 'string', 'description' => 'Status code (new, in_progress, done, archived, etc.).'],
+                'status' => ['type' => 'string', 'description' => 'Status code (todo, new, in_progress, review, blocked, done, archived, etc.).'],
                 'priority' => ['type' => 'string', 'enum' => ['low', 'normal', 'high', 'urgent']],
                 'project_public_id' => ['type' => 'string', 'description' => 'Project public_id (prj_...). Filter or assign task to project.'],
                 'assignee_user_public_id' => ['type' => 'string', 'description' => 'Assignee as usr_... id (recommended).'],
@@ -3022,6 +3022,8 @@ $tools[] = $this->tool(
                 'resolve_minutes' => ['type' => 'integer', 'description' => 'SLA resolution target, in minutes.'],
                 'response_minutes' => ['type' => 'integer', 'description' => 'SLA first-response target, in minutes.'],
                 'trigger_code' => ['type' => 'string', 'description' => 'Workflow trigger code.'],
+                'row_version' => ['type' => 'integer', 'description' => 'Current optimistic lock version number for conflict prevention.'],
+                'expected_row_version' => ['type' => 'integer', 'description' => 'Expected optimistic lock version number (alias for row_version). Returns 409 Conflict if changed.'],
                 'density' => ['type' => 'string', 'enum' => ['rich', 'compact'], 'description' => 'Response density mode. "compact" returns minimal token-efficient envelope.'],
             ],
             ['action']
@@ -3059,11 +3061,13 @@ $tools[] = $this->tool(
                 'kind' => ['type' => 'string', 'description' => 'Kind discriminator.'],
                 'project_public_id' => ['type' => 'string', 'description' => 'Project public_id.'],
                 'row_version' => ['type' => 'integer', 'description' => 'Numeric value (integer).'],
+                'expected_row_version' => ['type' => 'integer', 'description' => 'Expected optimistic lock version number (alias for row_version). Returns 409 Conflict if changed.'],
                 'target_cycle_public_id' => ['type' => 'string', 'description' => 'Cycle the unfinished tasks are moved to.'],
                 'task_keys' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'List of values.'],
                 'task_public_id' => ['type' => 'string', 'description' => 'Task public_id.'],
                 'unfinished_action' => ['type' => 'string', 'description' => 'What to do with unfinished tasks (move/keep).'],
                 'view_mode' => ['type' => 'string', 'description' => 'Value.'],
+                'density' => ['type' => 'string', 'enum' => ['rich', 'compact'], 'description' => 'Response density mode. "compact" returns minimal token-efficient envelope.'],
             ],
             ['action']
         );
@@ -3246,6 +3250,7 @@ $tools[] = $this->tool(
                 'tag_public_id' => ['type' => 'string', 'description' => 'Tag public_id.'],
                 'version_public_id' => ['type' => 'string', 'description' => 'Version public_id.'],
                 'visibility' => ['type' => 'string', 'description' => 'Visibility scope.'],
+                'density' => ['type' => 'string', 'enum' => ['rich', 'compact'], 'description' => 'Response density mode. "compact" returns minimal token-efficient envelope.'],
             ],
             ['action']
         );
@@ -3458,16 +3463,48 @@ $tools[] = $this->tool(
 
         $tools[] = $this->tool(
             'crm_agent_memory',
-            'Persistent key-value memory store for AI agents across sessions and tool runs. Supports get, set, list, and delete actions with scope isolation.',
+            'Persistent governed memory store for AI agents across sessions. Supports get, set, list, delete, search (across keys/values/entity links), and export_graph actions.',
             [
-                'action' => ['type' => 'string', 'enum' => ['get', 'set', 'list', 'delete']],
-                'scope' => ['type' => 'string', 'description' => 'Memory scope or namespace (default: "global").'],
+                'action' => ['type' => 'string', 'enum' => ['get', 'set', 'list', 'delete', 'search', 'export_graph']],
+                'scope' => ['type' => 'string', 'description' => 'Memory scope or namespace (default: "global"). Pass "all" in search to search across all scopes.'],
                 'key' => ['type' => 'string', 'description' => 'Key name.'],
                 'value' => ['description' => 'Value to store (for set action). Can be string, number, boolean, array or object.'],
                 'prefix' => ['type' => 'string', 'description' => 'Prefix filter for list action.'],
+                'query' => ['type' => 'string', 'description' => 'Substring search query across keys, values, and metadata for search action.'],
+                'entity_type' => ['type' => 'string', 'description' => 'CRM entity type (e.g. task, project, client) for linking, search or export_graph.'],
+                'entity_public_id' => ['type' => 'string', 'description' => 'CRM entity public ID (tsk_..., prj_...) for linking, search or export_graph.'],
                 'metadata' => ['type' => 'object', 'additionalProperties' => true, 'description' => 'Optional metadata object for set action.'],
                 'limit' => ['type' => 'integer', 'default' => 50],
                 'page' => ['type' => 'integer', 'default' => 1],
+            ],
+            ['action']
+        );
+
+        $tools[] = $this->tool(
+            'crm_chat',
+            'Unified communication hub for autonomous agents and teams. Use this tool for ALL chat operations: list channels, get channel details, create direct/project/team/group chats, send structured messages, list messages, and mark read. Supports compact density mode.',
+            [
+                'action' => ['type' => 'string', 'enum' => ['list_chats', 'get_chat', 'create_chat', 'send_message', 'list_messages', 'mark_read']],
+                'chat_public_id' => ['type' => 'string', 'description' => 'Target chat public ID (chat_...).'],
+                'public_id' => ['type' => 'string', 'description' => 'Target chat public ID alias.'],
+                'text' => ['type' => 'string', 'description' => 'Message text content (Markdown, code blocks, or structured JSON).'],
+                'message_type' => ['type' => 'string', 'enum' => ['text', 'json', 'datapart'], 'description' => 'Message type (text, json, datapart). Defaults to text.'],
+                'data' => ['type' => 'object', 'description' => 'Structured JSON data payload for machine-to-machine exchange or datapart.'],
+                'type' => ['type' => 'string', 'enum' => ['direct', 'project', 'team', 'group'], 'description' => 'Chat type for create_chat.'],
+                'title' => ['type' => 'string', 'description' => 'Title for group chat.'],
+                'user_public_id' => ['type' => 'string', 'description' => 'Recipient user public ID (usr_...) for direct chat.'],
+                'project_id' => ['type' => 'integer', 'description' => 'Numeric project ID for project chat.'],
+                'team_id' => ['type' => 'integer', 'description' => 'Numeric team ID for team chat.'],
+                'participant_public_ids' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'List of user public IDs for group or direct chat.'],
+                'reply_to_message_public_id' => ['type' => 'string', 'description' => 'Message public ID to reply to.'],
+                'before_id' => ['type' => 'integer', 'description' => 'Pagination message sequence ID cursor (before).'],
+                'after_id' => ['type' => 'integer', 'description' => 'Pagination message sequence ID cursor (after).'],
+                'limit' => ['type' => 'integer', 'default' => 30],
+                'density' => [
+                    'type' => 'string',
+                    'enum' => ['rich', 'compact'],
+                    'description' => 'Response density mode. "compact" strips heavy markup and returns concise summaries.',
+                ],
             ],
             ['action']
         );
@@ -4151,9 +4188,9 @@ $tools[] = $this->tool(
             'crm_update_idea_status' => $this->withPermission('idea.manage', fn() => $this->toolResult($this->crmUpdateIdeaStatus($arguments))),
             'crm_list_idea_comments' => $this->withPermission('idea.manage', fn() => $this->toolResult($this->crmListIdeaComments($arguments))),
             'crm_add_idea_comment' => $this->withPermission('idea.manage', fn() => $this->toolResult($this->crmAddIdeaComment($arguments))),
-            'crm_list_chats' => $this->withPermissionAny(['task.manage', 'project.manage'], fn() => $this->toolResult($this->crmListChats($arguments))),
-            'crm_list_chat_messages' => $this->withPermissionAny(['task.manage', 'project.manage'], fn() => $this->toolResult($this->crmListChatMessages($arguments))),
-            'crm_send_chat_message' => $this->withPermissionAny(['task.manage', 'project.manage'], fn() => $this->toolResult($this->crmSendChatMessage($arguments))),
+            'crm_list_chats' => $this->withPermissionAny(['chat.use', 'task.manage', 'project.manage'], fn() => $this->toolResult($this->crmListChats($arguments))),
+            'crm_list_chat_messages' => $this->withPermissionAny(['chat.use', 'task.manage', 'project.manage'], fn() => $this->toolResult($this->crmListChatMessages($arguments))),
+            'crm_send_chat_message' => $this->withPermissionAny(['chat.use', 'task.manage', 'project.manage'], fn() => $this->toolResult($this->crmSendChatMessage($arguments))),
             'crm_list_notifications' => $this->toolResult($this->crmListNotifications($arguments)),
             'crm_get_notification_counters' => $this->toolResult($this->crmGetNotificationCounters()),
             'crm_create_notification' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmCreateNotification($arguments))),
@@ -4218,7 +4255,7 @@ $tools[] = $this->tool(
             'crm_rebuild_knowledge_permissions' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmRebuildKnowledgePermissions())),
             'crm_cleanup_knowledge_drafts' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmCleanupKnowledgeDrafts())),
             'crm_get_chat' => $this->toolResult($this->crmGetChat($arguments)),
-            'crm_create_chat' => $this->withPermissionAny(['task.manage', 'project.manage'], fn() => $this->toolResult($this->crmCreateChat($arguments))),
+            'crm_create_chat' => $this->withPermissionAny(['chat.use', 'task.manage', 'project.manage'], fn() => $this->toolResult($this->crmCreateChat($arguments))),
             'crm_get_chat_participants' => $this->toolResult($this->crmGetChatParticipants($arguments)),
             'crm_edit_chat_message' => $this->toolResult($this->crmEditChatMessage($arguments)),
             'crm_delete_chat_message' => $this->toolResult($this->crmDeleteChatMessage($arguments)),
@@ -4226,11 +4263,11 @@ $tools[] = $this->tool(
             'crm_download_chat_attachment' => $this->toolResult($this->crmDownloadChatAttachment($arguments)),
             'crm_list_chat_attachments' => $this->toolResult($this->crmListChatAttachments($arguments)),
             'crm_get_chat_settings' => $this->toolResult($this->crmGetChatSettings($arguments)),
-            'crm_update_chat_settings' => $this->withPermissionAny(['task.manage', 'project.manage'], fn() => $this->toolResult($this->crmUpdateChatSettings($arguments))),
+            'crm_update_chat_settings' => $this->withPermissionAny(['chat.use', 'task.manage', 'project.manage'], fn() => $this->toolResult($this->crmUpdateChatSettings($arguments))),
             'crm_mark_chat_read' => $this->toolResult($this->crmMarkChatRead($arguments)),
             'crm_get_chat_unread_count' => $this->toolResult($this->crmGetChatUnreadCount()),
-            'crm_archive_chat' => $this->withPermissionAny(['task.manage', 'project.manage'], fn() => $this->toolResult($this->crmArchiveChat($arguments))),
-            'crm_restore_chat' => $this->withPermissionAny(['task.manage', 'project.manage'], fn() => $this->toolResult($this->crmRestoreChat($arguments))),
+            'crm_archive_chat' => $this->withPermissionAny(['chat.use', 'task.manage', 'project.manage'], fn() => $this->toolResult($this->crmArchiveChat($arguments))),
+            'crm_restore_chat' => $this->withPermissionAny(['chat.use', 'task.manage', 'project.manage'], fn() => $this->toolResult($this->crmRestoreChat($arguments))),
             'crm_list_push_subscriptions' => $this->toolResult($this->crmListPushSubscriptions($arguments)),
             'crm_create_push_subscription' => $this->toolResult($this->crmCreatePushSubscription($arguments)),
             'crm_delete_push_subscription' => $this->toolResult($this->crmDeletePushSubscription($arguments)),
@@ -4248,6 +4285,7 @@ $tools[] = $this->tool(
             'crm_admin' => $this->handleMegaTool('crm_admin', $arguments),
             'crm_agent_bundle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmAgentBundle($arguments))),
             'crm_agent_memory' => $this->toolResult($this->crmAgentMemory($arguments)),
+            'crm_chat' => $this->withPermissionAny(['chat.use', 'task.manage', 'project.manage'], fn() => $this->toolResult($this->crmChat($arguments))),
             default => $this->toolError('Unknown tool: ' . $name),
         };
         } catch (Throwable $e) {
@@ -4359,6 +4397,57 @@ $tools[] = $this->tool(
         return $payload;
     }
 
+    private function compactProjectPayload(array $payload): array
+    {
+        if (isset($payload['project']) && is_array($payload['project'])) {
+            $p = $payload['project'];
+            $payload['project'] = [
+                'public_id' => $p['public_id'] ?? '',
+                'title' => $p['title'] ?? '',
+                'status' => $p['status'] ?? 'active',
+                'client_public_id' => $p['client_public_id'] ?? null,
+                'row_version' => $p['row_version'] ?? 1,
+            ];
+        } elseif (isset($payload['items']) && is_array($payload['items'])) {
+            $payload['items'] = array_map(function ($item) {
+                if (!is_array($item)) return $item;
+                return [
+                    'public_id' => $item['public_id'] ?? '',
+                    'title' => $item['title'] ?? '',
+                    'status' => $item['status'] ?? 'active',
+                    'client_public_id' => $item['client_public_id'] ?? null,
+                ];
+            }, $payload['items']);
+        }
+        return $payload;
+    }
+
+    private function compactKnowledgePayload(array $payload): array
+    {
+        if (isset($payload['page']) && is_array($payload['page'])) {
+            $p = $payload['page'];
+            $body = (string)($p['content_html'] ?? ($p['body'] ?? ''));
+            $payload['page'] = [
+                'public_id' => $p['public_id'] ?? '',
+                'title' => $p['title'] ?? '',
+                'space_public_id' => $p['space_public_id'] ?? null,
+                'slug' => $p['slug'] ?? null,
+                'body_summary' => mb_substr(strip_tags($body), 0, 300),
+                'row_version' => $p['row_version'] ?? 1,
+            ];
+        } elseif (isset($payload['items']) && is_array($payload['items'])) {
+            $payload['items'] = array_map(function ($item) {
+                if (!is_array($item)) return $item;
+                return [
+                    'public_id' => $item['public_id'] ?? '',
+                    'title' => $item['title'] ?? '',
+                    'space_public_id' => $item['space_public_id'] ?? null,
+                ];
+            }, $payload['items']);
+        }
+        return $payload;
+    }
+
     private function handleMegaTool(string $toolName, array $arguments): array
     {
         $action = trim((string)($arguments['action'] ?? ''));
@@ -4416,11 +4505,15 @@ $tools[] = $this->tool(
             default => $this->toolError('Unknown mega-tool: ' . $toolName),
         };
 
-        if ($toolName === 'crm_task' && (($arguments['density'] ?? '') === 'compact')) {
-            if (isset($res['structuredContent']) && is_array($res['structuredContent'])) {
+        if (($arguments['density'] ?? '') === 'compact' && isset($res['structuredContent']) && is_array($res['structuredContent'])) {
+            if ($toolName === 'crm_task') {
                 $res['structuredContent'] = $this->compactTaskPayload($res['structuredContent']);
-                $res['content'] = [['type' => 'text', 'text' => json_encode($res['structuredContent'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]];
+            } elseif ($toolName === 'crm_project') {
+                $res['structuredContent'] = $this->compactProjectPayload($res['structuredContent']);
+            } elseif ($toolName === 'crm_knowledge') {
+                $res['structuredContent'] = $this->compactKnowledgePayload($res['structuredContent']);
             }
+            $res['content'] = [['type' => 'text', 'text' => json_encode($res['structuredContent'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]];
         }
 
         return $res;
@@ -6538,6 +6631,33 @@ $tools[] = $this->tool(
     // AGENT WORKSPACE & COORDINATION: bundle, memory, compact mode
     // ═══════════════════════════════════════════════════════════════════
 
+    private function checkEntityAccess(?string $entityType, ?string $entityPublicId): bool
+    {
+        $entityType = trim((string)$entityType);
+        $entityPublicId = trim((string)$entityPublicId);
+        if ($entityType === '' || $entityPublicId === '') {
+            return true;
+        }
+
+        $actor = $this->actor();
+
+        if ($entityType === 'task') {
+            /** @var \Api\System\Library\Service\TaskService $taskService */
+            $taskService = $this->container->get('service.task');
+            $task = $taskService->get($entityPublicId, $actor);
+            return is_array($task) && !empty($task);
+        }
+
+        if ($entityType === 'project') {
+            /** @var \Api\System\Library\Service\ProjectService $projectService */
+            $projectService = $this->container->get('service.project');
+            $project = $projectService->get($entityPublicId, $actor);
+            return is_array($project) && !empty($project);
+        }
+
+        return true;
+    }
+
     private function crmAgentMemory(array $arguments): array
     {
         $action = trim((string)($arguments['action'] ?? 'get'));
@@ -6568,9 +6688,14 @@ $tools[] = $this->tool(
                 }
                 $value = $arguments['value'];
                 $metadata = isset($arguments['metadata']) && is_array($arguments['metadata']) ? $arguments['metadata'] : null;
+                $entityType = isset($arguments['entity_type']) ? (string)$arguments['entity_type'] : null;
+                $entityPublicId = isset($arguments['entity_public_id']) ? (string)$arguments['entity_public_id'] : null;
+                if ($entityType !== null && $entityPublicId !== null && !$this->checkEntityAccess($entityType, $entityPublicId)) {
+                    return ['error' => 'Entity not found or access denied.'];
+                }
                 $actor = $this->actor();
                 $actorId = (int)($actor['id'] ?? 0);
-                return $service->set($scope, $key, $value, $actorId > 0 ? $actorId : null, $metadata);
+                return $service->set($scope, $key, $value, $actorId > 0 ? $actorId : null, $metadata, $entityType, $entityPublicId);
             })(),
             'list' => (function() use ($service, $scope, $arguments) {
                 $prefix = isset($arguments['prefix']) ? (string)$arguments['prefix'] : null;
@@ -6587,7 +6712,32 @@ $tools[] = $this->tool(
                 $deleted = $service->delete($scope, $key);
                 return ['deleted' => $deleted];
             })(),
-            default => ['error' => 'Unknown action: ' . $action . '. Supported: get, set, list, delete.'],
+            'search' => (function() use ($service, $scope, $arguments) {
+                $query = isset($arguments['query']) ? (string)$arguments['query'] : null;
+                $entityType = isset($arguments['entity_type']) ? (string)$arguments['entity_type'] : null;
+                $entityPublicId = isset($arguments['entity_public_id']) ? (string)$arguments['entity_public_id'] : null;
+                if ($entityType !== null && $entityPublicId !== null && !$this->checkEntityAccess($entityType, $entityPublicId)) {
+                    return ['error' => 'Entity not found or access denied.'];
+                }
+                $limit = isset($arguments['limit']) ? (int)$arguments['limit'] : 50;
+                $page = isset($arguments['page']) ? max(1, (int)$arguments['page']) : 1;
+                $offset = ($page - 1) * $limit;
+                $searchScope = $scope === 'all' ? null : $scope;
+                return $service->search($query, $searchScope, $entityType, $entityPublicId, $limit, $offset);
+            })(),
+            'export_graph' => (function() use ($service, $arguments) {
+                $entityType = trim((string)($arguments['entity_type'] ?? ''));
+                $entityPublicId = trim((string)($arguments['entity_public_id'] ?? ''));
+                if ($entityType === '' || $entityPublicId === '') {
+                    return ['error' => 'entity_type and entity_public_id are required for export_graph action.'];
+                }
+                if (!$this->checkEntityAccess($entityType, $entityPublicId)) {
+                    return ['error' => 'Entity not found or access denied.'];
+                }
+                $limit = isset($arguments['limit']) ? (int)$arguments['limit'] : 100;
+                return $service->exportGraph($entityType, $entityPublicId, $limit);
+            })(),
+            default => ['error' => 'Unknown action: ' . $action . '. Supported: get, set, list, delete, search, export_graph.'],
         };
     }
 
@@ -6725,6 +6875,9 @@ $tools[] = $this->tool(
                 'priority' => 'high',
                 'status' => 'new',
             ]);
+            if (isset($qaRes['error'])) {
+                return ['error' => 'Failed to create QA task: ' . $qaRes['error']];
+            }
             if (isset($qaRes['task'])) {
                 $qaTask = $qaRes['task'];
                 $qaPublicId = (string)$qaTask['public_id'];
@@ -6789,6 +6942,63 @@ $tools[] = $this->tool(
         }
 
         return ['bundle' => $summary];
+    }
+
+    private function crmChat(array $arguments): array
+    {
+        $action = trim((string)($arguments['action'] ?? 'list_chats'));
+        if ($action === '') {
+            $action = 'list_chats';
+        }
+
+        $res = match ($action) {
+            'list_chats' => $this->crmListChats($arguments),
+            'get_chat' => $this->crmGetChat($arguments),
+            'create_chat' => $this->crmCreateChat($arguments),
+            'send_message' => $this->crmSendChatMessage($arguments),
+            'list_messages' => $this->crmListChatMessages($arguments),
+            'mark_read' => $this->crmMarkChatRead($arguments),
+            default => ['error' => "Unknown action '{$action}' for crm_chat. Available actions: list_chats, get_chat, create_chat, send_message, list_messages, mark_read."],
+        };
+
+        if (($arguments['density'] ?? '') === 'compact' && !isset($res['error'])) {
+            $res = $this->compactChatPayload($res, $action);
+        }
+
+        return $res;
+    }
+
+    private function compactChatPayload(array $payload, string $action): array
+    {
+        if ($action === 'list_chats' && isset($payload['items']) && is_array($payload['items'])) {
+            $payload['items'] = array_map(static function (array $c): array {
+                return [
+                    'public_id' => $c['public_id'] ?? '',
+                    'title' => $c['title'] ?? '',
+                    'type' => $c['type'] ?? 'direct',
+                    'unread' => (int)($c['unread'] ?? 0),
+                    'last_message' => mb_substr((string)($c['last_message'] ?? ''), 0, 100),
+                ];
+            }, $payload['items']);
+        } elseif ($action === 'list_messages' && isset($payload['items']) && is_array($payload['items'])) {
+            $payload['items'] = array_map(static function (array $m): array {
+                return [
+                    'public_id' => $m['public_id'] ?? '',
+                    'sender' => $m['sender_name'] ?? '',
+                    'text' => $m['text'] ?? '',
+                    'created_at' => $m['created_at'] ?? '',
+                ];
+            }, $payload['items']);
+        } elseif ($action === 'send_message' && isset($payload['message'])) {
+            $m = $payload['message'];
+            $payload['message'] = [
+                'public_id' => $m['public_id'] ?? '',
+                'chat_public_id' => $m['chat_public_id'] ?? '',
+                'status' => 'sent',
+            ];
+        }
+
+        return $payload;
     }
 
     private function crmListFeatureFlags(array $arguments): array
@@ -7035,6 +7245,11 @@ $tools[] = $this->tool(
             return ['error' => 'public_id is required.'];
         }
 
+        // Support expected_row_version as alias for row_version (optimistic concurrency)
+        if (isset($arguments['expected_row_version']) && !isset($arguments['row_version'])) {
+            $arguments['row_version'] = (int)$arguments['expected_row_version'];
+        }
+
         // Support assignee_user_public_id: map to assignee_user_id which TaskService resolves
         if (array_key_exists('assignee_user_public_id', $arguments)) {
             $assigneePublicId = trim((string)($arguments['assignee_user_public_id'] ?? ''));
@@ -7268,12 +7483,24 @@ $tools[] = $this->tool(
             return ['error' => 'At least target_status_code or target_project_public_id is required.'];
         }
 
+        $expectedVer = $arguments['expected_row_version'] ?? $arguments['row_version'] ?? null;
+        if ($expectedVer !== null) {
+            $input['row_version'] = (int)$expectedVer;
+        }
+
         /** @var TaskBoardService $service */
         $service = $this->container->get('service.task_board');
         $item = $service->move($publicId, $input, $this->actor());
 
         if ($item === null) {
             return ['error' => 'Task not found.'];
+        }
+        if ($item === 'ROW_VERSION_CONFLICT') {
+            return [
+                'error' => 'Conflict: The record has been modified by another process (row_version mismatch).',
+                'code' => 'ROW_VERSION_CONFLICT',
+                'status' => 409,
+            ];
         }
         if (is_string($item)) {
             return ['error' => $item];
@@ -7394,6 +7621,12 @@ $tools[] = $this->tool(
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
+
+        // Support expected_row_version as alias for row_version (optimistic concurrency)
+        if (isset($arguments['expected_row_version']) && !isset($arguments['row_version'])) {
+            $arguments['row_version'] = (int)$arguments['expected_row_version'];
+        }
+
         // Delegated to the controller so the same side effects run as on the REST/UI path
         // (module hooks / webhook subscriptions, workflow triggers, cache invalidation).
         return $this->invokeControllerTool(ProjectController::class, 'update', $arguments, 'PATCH', ['public_id']);
@@ -12465,9 +12698,20 @@ $tools[] = $this->tool(
         $actor = $this->actor();
         $userId = (int)($actor['id'] ?? 0);
         $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id']);
+        $messageType = trim((string)($arguments['message_type'] ?? 'text'));
+        if (!in_array($messageType, ['text', 'json', 'datapart'], true)) {
+            $messageType = 'text';
+        }
         $text = trim((string)($arguments['text'] ?? ''));
+        $data = $arguments['data'] ?? null;
+        if ($text === '' && $data !== null) {
+            $text = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            if ($messageType === 'text') {
+                $messageType = 'json';
+            }
+        }
         if ($userId <= 0 || $chatPublicId === '' || $text === '') {
-            return ['error' => 'public_id or chat_public_id and text are required.'];
+            return ['error' => 'public_id or chat_public_id and text (or data) are required.'];
         }
         if (mb_strlen($text) > 4000) {
             return ['error' => 'Message text is too long.'];
@@ -12482,12 +12726,13 @@ $tools[] = $this->tool(
         $messagePublicId = 'msg_' . bin2hex(random_bytes(8));
         $this->pdo()->prepare("
             INSERT INTO chat_messages (public_id, chat_id, sender_user_id, reply_to_message_id, message_type, text, created_at)
-            VALUES (:public_id, :chat_id, :sender_user_id, :reply_to_message_id, 'text', :text, NOW())
+            VALUES (:public_id, :chat_id, :sender_user_id, :reply_to_message_id, :message_type, :text, NOW())
         ")->execute([
             'public_id' => $messagePublicId,
             'chat_id' => (int)$chat['id'],
             'sender_user_id' => $userId,
             'reply_to_message_id' => $reply ? (int)$reply['id'] : null,
+            'message_type' => $messageType,
             'text' => $text,
         ]);
         $this->pdo()->prepare("UPDATE chats SET last_message_at = NOW() WHERE id = :chat_id")
@@ -12497,10 +12742,23 @@ $tools[] = $this->tool(
             $this->container->get('service.chat')->markRead((int)$chat['id'], $userId);
         }
 
+        $this->dispatchModuleHook(ModuleEvents::CHAT_MESSAGE_CREATED, [
+            'public_id' => $messagePublicId,
+            'chat_public_id' => $chatPublicId,
+            'chat_type' => (string)($chat['type'] ?? ''),
+            'sender_user_public_id' => (string)($actor['public_id'] ?? ''),
+            'sender_name' => (string)($actor['full_name'] ?? ($actor['login'] ?? '')),
+            'text' => $text,
+            'message_type' => $messageType,
+            'reply_to_message_public_id' => $reply ? (string)($reply['public_id'] ?? null) : null,
+            'created_at' => gmdate('Y-m-d H:i:s'),
+        ]);
+
         return [
             'message' => [
                 'public_id' => $messagePublicId,
                 'chat_public_id' => $chatPublicId,
+                'message_type' => $messageType,
                 'text' => $text,
             ],
         ];
@@ -12529,6 +12787,15 @@ $tools[] = $this->tool(
         }
         $this->pdo()->prepare("UPDATE chat_messages SET text = :text, edited_at = NOW() WHERE id = :id")->execute(['text' => $text, 'id' => (int)$message['id']]);
         $this->auditChatMessage((int)$message['id'], (int)$chat['id'], $userId, 'edit', (string)($message['text'] ?? ''), $text);
+
+        $this->dispatchModuleHook(ModuleEvents::CHAT_MESSAGE_UPDATED, [
+            'public_id' => $messagePublicId,
+            'chat_public_id' => $chatPublicId,
+            'sender_user_public_id' => (string)($actor['public_id'] ?? ''),
+            'text' => $text,
+            'updated_at' => gmdate('Y-m-d H:i:s'),
+        ]);
+
         return ['message' => ['public_id' => $messagePublicId, 'chat_public_id' => $chatPublicId, 'text' => $text]];
     }
 
@@ -12551,6 +12818,14 @@ $tools[] = $this->tool(
         }
         $this->pdo()->prepare("UPDATE chat_messages SET deleted_at = NOW(), deleted_by_user_id = :uid WHERE id = :id")->execute(['uid' => $userId, 'id' => (int)$message['id']]);
         $this->auditChatMessage((int)$message['id'], (int)$chat['id'], $userId, 'delete', (string)($message['text'] ?? ''), null);
+
+        $this->dispatchModuleHook(ModuleEvents::CHAT_MESSAGE_DELETED, [
+            'public_id' => $messagePublicId,
+            'chat_public_id' => $chatPublicId,
+            'deleted_by_user_public_id' => (string)($actor['public_id'] ?? ''),
+            'deleted_at' => gmdate('Y-m-d H:i:s'),
+        ]);
+
         return ['deleted' => true];
     }
 
@@ -13844,7 +14119,7 @@ $tools[] = $this->tool(
         if ($publicId === '') {
             return null;
         }
-        $stmt = $this->pdo()->prepare('SELECT id FROM users WHERE public_id = :pid AND deleted_at IS NULL LIMIT 1');
+        $stmt = $this->pdo()->prepare('SELECT id FROM users WHERE public_id = :pid AND is_active = 1 AND deleted_at IS NULL LIMIT 1');
         $stmt->execute(['pid' => $publicId]);
         $value = $stmt->fetchColumn();
         return $value === false ? null : (int)$value;

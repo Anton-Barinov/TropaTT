@@ -17,6 +17,12 @@ if (preg_match('/\.(css|js|svg|png|ico|woff2?|ttf|map|jpg|gif|webp)$/i', $reques
     exit;
 }
 
+// A2A Protocol Discovery (RFC 8615) & well-known endpoints: delegate to API front controller
+if (str_starts_with($requestUri, '/.well-known/')) {
+    require __DIR__ . '/api/index.php';
+    exit;
+}
+
 // SEC-008: Hide install API endpoints after setup.
 // The install endpoints (status, check, setup) reveal whether the system
 // is installed. When already installed, return 404 to avoid information

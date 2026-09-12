@@ -4758,6 +4758,7 @@ return array (
     'filter_manager_placeholder' => 'Менеджер',
     'filter_project' => 'Проект',
     'filter_all_projects' => 'Все проекты',
+    'filter_hide_done' => 'Скрыть выполненные',
     'filter_overdue' => 'Просроченные',
     'filter_today' => 'Сегодня',
     'filter_week' => 'На этой неделе',

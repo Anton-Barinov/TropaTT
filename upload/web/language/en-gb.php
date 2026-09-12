@@ -4737,6 +4737,7 @@ return array (
     'filter_manager_placeholder' => 'Manager',
     'filter_project' => 'Project',
     'filter_all_projects' => 'All projects',
+    'filter_hide_done' => 'Hide completed',
     'filter_overdue' => 'Overdue',
     'filter_today' => 'Today',
     'filter_week' => 'This week',

@@ -38,7 +38,7 @@ final class SubtaskController extends BaseController
         $v = new Validator();
         $v->require($input, 'title', $this->t('common/messages.field_required'))
             ->maxLen($input, 'title', 255, $this->t('subtask/messages.max_255'))
-            ->enum($input, 'status', ['new', 'in_progress', 'blocked', 'done'], $this->t('subtask/messages.invalid_status'))
+            ->enum($input, 'status', ['new', 'todo', 'in_progress', 'review', 'blocked', 'done', 'completed', 'canceled', 'cancelled'], $this->t('subtask/messages.invalid_status'))
             ->enum($input, 'priority', ['low', 'normal', 'high', 'urgent'], $this->t('subtask/messages.invalid_priority'))
             ->date($input, 'due_at', $this->t('subtask/messages.invalid_due_at'));
 
@@ -100,7 +100,7 @@ final class SubtaskController extends BaseController
         $input = $this->request()->allInput();
         $v = new Validator();
         $v->maxLen($input, 'title', 255, $this->t('subtask/messages.max_255'))
-            ->enum($input, 'status', ['new', 'in_progress', 'blocked', 'done'], $this->t('subtask/messages.invalid_status'))
+            ->enum($input, 'status', ['new', 'todo', 'in_progress', 'review', 'blocked', 'done', 'completed', 'canceled', 'cancelled'], $this->t('subtask/messages.invalid_status'))
             ->enum($input, 'priority', ['low', 'normal', 'high', 'urgent'], $this->t('subtask/messages.invalid_priority'))
             ->date($input, 'due_at', $this->t('subtask/messages.invalid_due_at'));
 

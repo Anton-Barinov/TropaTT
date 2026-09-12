@@ -8998,6 +8998,7 @@ return array (
     'filter_manager_placeholder' => 'Gerente',
     'filter_project' => 'Projeto',
     'filter_all_projects' => 'Todos os projetos',
+    'filter_hide_done' => 'Ocultar concluídas',
     'filter_overdue' => 'Atrasada',
     'filter_today' => 'Hoje',
     'filter_week' => 'Esta semana',
