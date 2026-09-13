@@ -84,13 +84,26 @@ final class EncryptionService
         return rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
     }
 
+    /**
+     * Compact hint for a secret or key (only the last four characters).
+     *
+     * The hint is persisted in `ecommerce_stores.api_secret_hint`
+     * (`VARCHAR(12)`), so it must stay short no matter how long the secret is:
+     * a 32-byte base64url secret is 43 characters and would not fit. Only the
+     * trailing characters carry identification value, so the rest is masked
+     * with a fixed-width prefix.
+     */
     public static function mask(string $value): string
     {
         $len = mb_strlen($value);
-        if ($len <= 4) {
-            return str_repeat('*', max(0, $len));
+        if ($len === 0) {
+            return '';
+        }
+        // Too short to reveal anything safely without giving the value away.
+        if ($len <= 8) {
+            return str_repeat('*', $len);
         }
 
-        return str_repeat('*', $len - 4) . mb_substr($value, -4);
+        return '****' . mb_substr($value, -4);
     }
 }
