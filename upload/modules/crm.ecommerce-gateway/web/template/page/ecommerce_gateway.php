@@ -116,10 +116,10 @@
                     <div class="col-md-6">
                         <label class="form-label" for="settingDefaultPriority"><?= htmlspecialchars($t('ecommerce_gateway.lbl_priority', 'Приоритет задач'), ENT_QUOTES, 'UTF-8') ?></label>
                         <select class="form-select" id="settingDefaultPriority">
-                            <option value="normal">Normal (Обычный)</option>
-                            <option value="high">High (Высокий)</option>
-                            <option value="urgent">Urgent (Срочный)</option>
-                            <option value="low">Low (Низкий)</option>
+                            <option value="normal"><?= htmlspecialchars($t('ecommerce_gateway.priority_normal', 'Normal (Обычный)'), ENT_QUOTES, 'UTF-8') ?></option>
+                            <option value="high"><?= htmlspecialchars($t('ecommerce_gateway.priority_high', 'High (Высокий)'), ENT_QUOTES, 'UTF-8') ?></option>
+                            <option value="urgent"><?= htmlspecialchars($t('ecommerce_gateway.priority_urgent', 'Urgent (Срочный)'), ENT_QUOTES, 'UTF-8') ?></option>
+                            <option value="low"><?= htmlspecialchars($t('ecommerce_gateway.priority_low', 'Low (Низкий)'), ENT_QUOTES, 'UTF-8') ?></option>
                         </select>
                     </div>
                     <div class="col-12">
@@ -127,19 +127,19 @@
                         <div class="d-flex flex-wrap gap-3">
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="chkTaskOrder" value="order">
-                                <label class="form-check-label" for="chkTaskOrder">Заказы (Orders)</label>
+                                <label class="form-check-label" for="chkTaskOrder"><?= htmlspecialchars($t('ecommerce_gateway.task_order', 'Заказы (Orders)'), ENT_QUOTES, 'UTF-8') ?></label>
                             </div>
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="chkTaskQuickOrder" value="quick_order">
-                                <label class="form-check-label" for="chkTaskQuickOrder">1-клик покупки (Quick Orders)</label>
+                                <label class="form-check-label" for="chkTaskQuickOrder"><?= htmlspecialchars($t('ecommerce_gateway.task_quick_order', '1-клик покупки (Quick Orders)'), ENT_QUOTES, 'UTF-8') ?></label>
                             </div>
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="chkTaskCallback" value="callback">
-                                <label class="form-check-label" for="chkTaskCallback">Обратные звонки (Callbacks)</label>
+                                <label class="form-check-label" for="chkTaskCallback"><?= htmlspecialchars($t('ecommerce_gateway.task_callback', 'Обратные звонки (Callbacks)'), ENT_QUOTES, 'UTF-8') ?></label>
                             </div>
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="chkTaskFeedback" value="feedback">
-                                <label class="form-check-label" for="chkTaskFeedback">Формы обратной связи (Feedback)</label>
+                                <label class="form-check-label" for="chkTaskFeedback"><?= htmlspecialchars($t('ecommerce_gateway.task_feedback', 'Формы обратной связи (Feedback)'), ENT_QUOTES, 'UTF-8') ?></label>
                             </div>
                         </div>
                     </div>
@@ -243,19 +243,19 @@
                 </div>
                 <div class="d-flex gap-2 align-items-center flex-wrap">
                     <select id="logDirectionFilter" class="form-select form-select-sm" style="width: 160px;">
-                        <option value="all">Все направления</option>
-                        <option value="inbound">Входящие (Inbound)</option>
-                        <option value="outbound">Исходящие (Outbox)</option>
-                        <option value="dlq">Очередь DLQ (Ошибки)</option>
+                        <option value="all"><?= htmlspecialchars($t('ecommerce_gateway.log_dir_all', 'Все направления'), ENT_QUOTES, 'UTF-8') ?></option>
+                        <option value="inbound"><?= htmlspecialchars($t('ecommerce_gateway.log_dir_inbound', 'Входящие (Inbound)'), ENT_QUOTES, 'UTF-8') ?></option>
+                        <option value="outbound"><?= htmlspecialchars($t('ecommerce_gateway.log_dir_outbound', 'Исходящие (Outbound)'), ENT_QUOTES, 'UTF-8') ?></option>
+                        <option value="dlq"><?= htmlspecialchars($t('ecommerce_gateway.log_dir_dlq', 'Очередь DLQ (Ошибки)'), ENT_QUOTES, 'UTF-8') ?></option>
                     </select>
                     <button type="button" class="btn btn-sm crm-btn-secondary" id="refreshLogBtn">
-                        <i class="fa-solid fa-rotate me-1"></i> Обновить
+                        <i class="fa-solid fa-rotate me-1"></i> <?= htmlspecialchars($t('ecommerce_gateway.btn_refresh', 'Обновить'), ENT_QUOTES, 'UTF-8') ?>
                     </button>
-                    <button type="button" class="btn btn-sm btn-outline-warning" id="replayDlqBtn" title="Перезапустить все неотправленные события из Dead Letter Queue">
-                        <i class="fa-solid fa-arrows-rotate me-1"></i> Перезапустить DLQ
+                    <button type="button" class="btn btn-sm btn-outline-warning" id="replayDlqBtn" title="<?= htmlspecialchars($t('ecommerce_gateway.hint_replay_dlq', 'Перезапустить все неотправленные события из Dead Letter Queue'), ENT_QUOTES, 'UTF-8') ?>">
+                        <i class="fa-solid fa-arrows-rotate me-1"></i> <?= htmlspecialchars($t('ecommerce_gateway.btn_replay_dlq', 'Перезапустить DLQ'), ENT_QUOTES, 'UTF-8') ?>
                     </button>
-                    <button type="button" class="btn btn-sm btn-outline-info" id="runReconcileBtn" title="Запустить сверку заказов между CMS и CRM">
-                        <i class="fa-solid fa-magnifying-glass-chart me-1"></i> Сверка заказов
+                    <button type="button" class="btn btn-sm btn-outline-info" id="runReconcileBtn" title="<?= htmlspecialchars($t('ecommerce_gateway.hint_run_reconcile', 'Запустить сверку заказов между CMS и CRM'), ENT_QUOTES, 'UTF-8') ?>">
+                        <i class="fa-solid fa-magnifying-glass-chart me-1"></i> <?= htmlspecialchars($t('ecommerce_gateway.btn_run_reconcile', 'Сверка заказов'), ENT_QUOTES, 'UTF-8') ?>
                     </button>
                 </div>
             </div>
@@ -263,16 +263,16 @@
                 <table class="table crm-table mb-0 align-middle">
                     <thead>
                         <tr>
-                            <th>Направление</th>
-                            <th>Тип / ID заказа</th>
-                            <th>Статус / HTTP</th>
-                            <th>CRM Задача</th>
-                            <th>Дата и время</th>
-                            <th class="text-end">Действия</th>
+                            <th><?= htmlspecialchars($t('ecommerce_gateway.th_direction', 'Направление'), ENT_QUOTES, 'UTF-8') ?></th>
+                            <th><?= htmlspecialchars($t('ecommerce_gateway.th_type_id', 'Тип / ID заказа'), ENT_QUOTES, 'UTF-8') ?></th>
+                            <th><?= htmlspecialchars($t('ecommerce_gateway.th_status_http', 'Статус / HTTP'), ENT_QUOTES, 'UTF-8') ?></th>
+                            <th><?= htmlspecialchars($t('ecommerce_gateway.th_crm_task', 'CRM Задача'), ENT_QUOTES, 'UTF-8') ?></th>
+                            <th><?= htmlspecialchars($t('ecommerce_gateway.th_datetime', 'Дата и время'), ENT_QUOTES, 'UTF-8') ?></th>
+                            <th class="text-end"><?= htmlspecialchars($t('ecommerce_gateway.th_actions', 'Действия'), ENT_QUOTES, 'UTF-8') ?></th>
                         </tr>
                     </thead>
                     <tbody id="syncLogTableBody">
-                        <tr><td colspan="6" class="text-muted p-3">Загрузка журнала синхронизации...</td></tr>
+                        <tr><td colspan="6" class="text-muted p-3"><?= htmlspecialchars($t('ecommerce_gateway.loading_log', 'Загрузка журнала синхронизации...'), ENT_QUOTES, 'UTF-8') ?></td></tr>
                     </tbody>
                 </table>
             </div>
@@ -286,7 +286,7 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="storeModalTitle">Настройка витрины интернет-магазина</h5>
+                <h5 class="modal-title" id="storeModalTitle"><?= htmlspecialchars($t('ecommerce_gateway.modal_store_title', 'Настройка витрины интернет-магазина'), ENT_QUOTES, 'UTF-8') ?></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -294,11 +294,11 @@
                     <input type="hidden" id="modalStorePublicId" value="">
                     <div class="row g-3">
                         <div class="col-md-8">
-                            <label class="form-label" for="modalStoreName">Название витрины *</label>
-                            <input type="text" class="form-control" id="modalStoreName" required placeholder="Например: Главный магазин OpenCart">
+                            <label class="form-label" for="modalStoreName"><?= htmlspecialchars($t('ecommerce_gateway.modal_name', 'Название витрины *'), ENT_QUOTES, 'UTF-8') ?></label>
+                            <input type="text" class="form-control" id="modalStoreName" required placeholder="<?= htmlspecialchars($t('ecommerce_gateway.modal_name_placeholder', 'Например: Главный магазин OpenCart'), ENT_QUOTES, 'UTF-8') ?>">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label" for="modalStoreCms">CMS Платформа</label>
+                            <label class="form-label" for="modalStoreCms"><?= htmlspecialchars($t('ecommerce_gateway.modal_cms', 'CMS Платформа'), ENT_QUOTES, 'UTF-8') ?></label>
                             <select class="form-select" id="modalStoreCms">
                                 <option value="opencart">OpenCart / ocStore</option>
                                 <option value="woocommerce">WooCommerce</option>
@@ -308,38 +308,38 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label" for="modalStoreUrl">URL интернет-магазина</label>
+                            <label class="form-label" for="modalStoreUrl"><?= htmlspecialchars($t('ecommerce_gateway.modal_url', 'URL интернет-магазина'), ENT_QUOTES, 'UTF-8') ?></label>
                             <input type="url" class="form-control" id="modalStoreUrl" placeholder="https://shop.example.com">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label" for="modalWebhookUrl">Webhook URL витрины (для синхронизации статусов)</label>
+                            <label class="form-label" for="modalWebhookUrl"><?= htmlspecialchars($t('ecommerce_gateway.modal_webhook_url', 'Webhook URL витрины (для синхронизации статусов)'), ENT_QUOTES, 'UTF-8') ?></label>
                             <input type="url" class="form-control" id="modalWebhookUrl" placeholder="https://shop.example.com/index.php?route=extension/tropatt/webhook">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label" for="modalStoreStatus">Статус активности</label>
+                            <label class="form-label" for="modalStoreStatus"><?= htmlspecialchars($t('ecommerce_gateway.modal_status', 'Статус активности'), ENT_QUOTES, 'UTF-8') ?></label>
                             <select class="form-select" id="modalStoreStatus">
-                                <option value="active">Active (Активен)</option>
-                                <option value="paused">Paused (Приостановлен)</option>
-                                <option value="disabled">Disabled (Отключен)</option>
+                                <option value="active"><?= htmlspecialchars($t('ecommerce_gateway.status_active', 'Active (Активен)'), ENT_QUOTES, 'UTF-8') ?></option>
+                                <option value="paused"><?= htmlspecialchars($t('ecommerce_gateway.status_paused', 'Paused (Приостановлен)'), ENT_QUOTES, 'UTF-8') ?></option>
+                                <option value="disabled"><?= htmlspecialchars($t('ecommerce_gateway.status_disabled', 'Disabled (Отключен)'), ENT_QUOTES, 'UTF-8') ?></option>
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label" for="modalStoreLocale">Локаль по умолчанию</label>
+                            <label class="form-label" for="modalStoreLocale"><?= htmlspecialchars($t('ecommerce_gateway.modal_locale', 'Локаль по умолчанию'), ENT_QUOTES, 'UTF-8') ?></label>
                             <select class="form-select" id="modalStoreLocale">
                                 <option value="ru-ru">Русский (ru-ru)</option>
                                 <option value="en-gb">English (en-gb)</option>
                             </select>
                         </div>
                         <div class="col-12">
-                            <label class="form-label" for="modalStoreDesc">Описание / Примечания</label>
+                            <label class="form-label" for="modalStoreDesc"><?= htmlspecialchars($t('ecommerce_gateway.modal_desc', 'Описание / Примечания'), ENT_QUOTES, 'UTF-8') ?></label>
                             <textarea class="form-control" id="modalStoreDesc" rows="2"></textarea>
                         </div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn crm-btn-primary" id="saveStoreModalBtn">Сохранить</button>
+                <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal"><?= htmlspecialchars($t('ecommerce_gateway.btn_cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+                <button type="button" class="btn crm-btn-primary" id="saveStoreModalBtn"><?= htmlspecialchars($t('ecommerce_gateway.btn_save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
             </div>
         </div>
     </div>
@@ -350,26 +350,26 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-success text-white">
-                <h5 class="modal-title"><i class="fa-solid fa-key me-2"></i> Секретный ключ витрины</h5>
+                <h5 class="modal-title"><i class="fa-solid fa-key me-2"></i> <?= htmlspecialchars($t('ecommerce_gateway.modal_secret_title', 'Секретный ключ витрины'), ENT_QUOTES, 'UTF-8') ?></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="alert alert-warning mb-3">
                     <i class="fa-solid fa-triangle-exclamation me-1"></i>
-                    <strong>Внимание!</strong> Секретный ключ отображается только один раз. Скопируйте и сохраните его в настройках модуля интеграции CMS.
+                    <strong><?= htmlspecialchars($t('ecommerce_gateway.warn_prefix', 'Внимание!'), ENT_QUOTES, 'UTF-8') ?></strong> <?= htmlspecialchars($t('ecommerce_gateway.modal_secret_warn', 'Секретный ключ отображается только один раз. Скопируйте и сохраните его в настройках модуля интеграции CMS.'), ENT_QUOTES, 'UTF-8') ?>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label small text-muted">API Ключ (Key):</label>
+                    <label class="form-label small text-muted"><?= htmlspecialchars($t('ecommerce_gateway.modal_api_key', 'API Ключ (Key):'), ENT_QUOTES, 'UTF-8') ?></label>
                     <div class="crm-ecom-secret-box" id="displayApiKey">stk_...</div>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label small text-muted">API Secret (HMAC SHA-256):</label>
+                    <label class="form-label small text-muted"><?= htmlspecialchars($t('ecommerce_gateway.modal_api_secret', 'API Secret (HMAC SHA-256):'), ENT_QUOTES, 'UTF-8') ?></label>
                     <div class="crm-ecom-secret-box" id="displayApiSecret">...</div>
                 </div>
                 <div class="mb-2 text-muted small" id="displaySecretExpiry"></div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn crm-btn-primary" data-bs-dismiss="modal">Я сохранил ключ</button>
+                <button type="button" class="btn crm-btn-primary" data-bs-dismiss="modal"><?= htmlspecialchars($t('ecommerce_gateway.btn_secret_saved', 'Я сохранил ключ'), ENT_QUOTES, 'UTF-8') ?></button>
             </div>
         </div>
     </div>
@@ -380,21 +380,21 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="payloadModalTitle">Просмотр пакета синхронизации</h5>
+                <h5 class="modal-title" id="payloadModalTitle"><?= htmlspecialchars($t('ecommerce_gateway.modal_payload_title', 'Просмотр пакета синхронизации'), ENT_QUOTES, 'UTF-8') ?></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <label class="form-label fw-bold">Request Payload (JSON):</label>
+                    <label class="form-label fw-bold"><?= htmlspecialchars($t('ecommerce_gateway.lbl_request_payload', 'Request Payload (JSON):'), ENT_QUOTES, 'UTF-8') ?></label>
                     <pre class="crm-ecom-code-block" id="modalRequestPayload">{}</pre>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-bold">Response Payload / Ошибка:</label>
+                    <label class="form-label fw-bold"><?= htmlspecialchars($t('ecommerce_gateway.lbl_response_payload', 'Response Payload / Ошибка:'), ENT_QUOTES, 'UTF-8') ?></label>
                     <pre class="crm-ecom-code-block" id="modalResponsePayload">{}</pre>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal"><?= htmlspecialchars($t('ecommerce_gateway.btn_close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?></button>
             </div>
         </div>
     </div>

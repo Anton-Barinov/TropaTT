@@ -7,15 +7,18 @@ use Api\System\Library\Container;
 use Api\System\Library\Http\JsonResponse;
 use Module\Crm\EcommerceGateway\Repository\StoreRepository;
 use Module\Crm\EcommerceGateway\Service\EcommerceStoreService;
+use Module\Crm\EcommerceGateway\Service\I18nService;
 use PDO;
 
 final class StoreAdminController
 {
     private PDO $pdo;
     private EcommerceStoreService $service;
+    private I18nService $i18n;
 
     public function __construct(private readonly Container $container)
     {
+        $this->i18n = new I18nService();
         $this->pdo = $container->get('db.pdo');
         $this->service = new EcommerceStoreService(
             new StoreRepository($this->pdo),
