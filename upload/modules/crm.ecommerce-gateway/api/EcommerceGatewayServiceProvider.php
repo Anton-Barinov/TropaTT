@@ -14,7 +14,39 @@ final class EcommerceGatewayServiceProvider extends AbstractModuleServiceProvide
 
     public function boot(Container $container): void
     {
-        // Outbound status synchronisation (E-COM-04) registers its hooks here.
+        // Outbound status synchronisation (E-COM-04)
+        if (!$container->has('hook.manager')) {
+            return;
+        }
+
+        /** @var \Api\System\Library\Hook\HookManager $hooks */
+        $hooks = $container->get('hook.manager');
+        $hooks->register(\Api\System\Library\Module\ModuleEvents::TASK_STATUS_CHANGED, function (array $payload) use ($container) {
+            try {
+                $pdo = $container->has('db.pdo') ? $container->get('db.pdo') : null;
+                if (!$pdo instanceof \PDO) {
+                    return;
+                }
+
+                $outboxRepo = new \Module\Crm\EcommerceGateway\Repository\OutboxRepository($pdo);
+                $statusMappingService = new \Module\Crm\EcommerceGateway\Service\StatusMappingService($pdo);
+                $storeRepo = new \Module\Crm\EcommerceGateway\Repository\StoreRepository($pdo);
+                $jobDispatcher = $container->has('module.job_dispatcher') ? $container->get('module.job_dispatcher') : null;
+
+                $config = $this->getConfig();
+                $syncService = new \Module\Crm\EcommerceGateway\Service\StatusSyncService(
+                    $outboxRepo,
+                    $statusMappingService,
+                    $storeRepo,
+                    $jobDispatcher,
+                    $config
+                );
+
+                $syncService->handleTaskStatusChanged($payload);
+            } catch (\Throwable $e) {
+                error_log('[EcommerceGateway] Hook task.status_changed error: ' . $e->getMessage());
+            }
+        });
     }
 
     public function getPermissions(): array

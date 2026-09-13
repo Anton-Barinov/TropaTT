@@ -11,12 +11,14 @@
 | E-COM-01 | Архитектурная спецификация протокола (REST & Webhooks) | готово (документы `docs/web/ecommerce-gateway-tz.md`, `docs/web/ecommerce-gateway-openapi.yaml`) |
 | E-COM-02 | Ядро модуля: манифест, миграции БД, аутентификация витрин | готово |
 | E-COM-03 | Ingestion API: приём заказов/форм, валидация схем, дедупликация, создание заявок | готово |
-| E-COM-04…15 | Вебхуки, UI, безопасность, outbox, i18n, shared-хостинг, QA | запланировано (следующий — E-COM-04, синхронизация статусов) |
+| E-COM-04 | Двусторонняя реактивная синхронизация статусов (CRM Events -> CMS Webhooks), Outbox, HMAC подпись, защита от эхо-петель, FSM | готово |
+| E-COM-05…15 | UI панели управления витринами, безопасность, i18n, shared-хостинг, QA | запланировано (следующий — E-COM-05, панель управления) |
 
 Проверки: `php -l` по всем файлам модуля, контрактные тесты
 `upload/api/tests/unit/ecommerce_gateway_signature_unit.php`,
-`ecommerce_gateway_payload_unit.php` (схемы и Markdown-композер) и
+`ecommerce_gateway_payload_unit.php` (схемы и Markdown-композер),
 `ecommerce_gateway_ingest_unit.php` (идемпотентность/контакты, SQLite),
+`ecommerce_gateway_status_sync_unit.php` (FSM переходов, эхо-петли, Outbox, HMAC-подпись, retry-политика),
 тест декларации миграций `module_migrations_declared_unit.php`,
 покрытие маршрутов `api/scripts/api_coverage_check.php`.
 
@@ -70,8 +72,9 @@ canonical = METHOD \n request_path \n timestamp \n nonce \n hex(sha256(raw_body)
 `task_public_id`, что и первая обработка (`§8.2`), не восстанавливая их по
 связям задним числом.
 
-Таблицы очереди исходящих доставок (`ecommerce_outbox`, `ecommerce_deliveries`) и
-антиспама (`ecommerce_antispam`) добавляются на этапах E-COM-10 и E-COM-09.
+`003_create_outbox_tables.sql`: таблица Transactional Outbox `ecommerce_outbox_events` (E-COM-04)
+для гарантированной асинхронной доставки исходящих вебхуков (`order.status_changed`) в витрины CMS
+с экспоненциальным бэкоффом (`base_delay * 2^retry`) и защитой от эхо-петель (`StatusSyncContext`).
 
 ## Приём заявок (E-COM-03)
 

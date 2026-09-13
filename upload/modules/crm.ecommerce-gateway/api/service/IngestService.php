@@ -60,6 +60,28 @@ final class IngestService
         string $userAgent,
         ?string $idempotencyHeader = null
     ): array {
+        return StatusSyncContext::runAsCms(function () use (
+            $store,
+            $type,
+            $rawBody,
+            $requestId,
+            $ip,
+            $userAgent,
+            $idempotencyHeader
+        ) {
+            return $this->doIngest($store, $type, $rawBody, $requestId, $ip, $userAgent, $idempotencyHeader);
+        });
+    }
+
+    private function doIngest(
+        array $store,
+        string $type,
+        string $rawBody,
+        string $requestId,
+        string $ip,
+        string $userAgent,
+        ?string $idempotencyHeader = null
+    ): array {
         $storeId = (int)$store['id'];
         $started = microtime(true);
         $settings = EcommerceStoreService::settingsFromStore($store);
@@ -322,6 +344,17 @@ final class IngestService
             'contact_created' => $contact['created'],
         ], $ip, $userAgent);
         $this->markStoreIngest((string)($store['public_id'] ?? ''));
+        $this->storeRepository->logOrderSync([
+            'store_id' => $storeId,
+            'external_order_id' => $externalId,
+            'crm_task_id' => is_array($task) ? (int)($task['id'] ?? 0) : null,
+            'intake_item_id' => $intakeId > 0 ? $intakeId : null,
+            'direction' => 'inbound',
+            'status' => 'accepted',
+            'http_code' => 201,
+            'request_payload' => $rawBody,
+            'ip_address' => $ip,
+        ]);
 
         return $this->ok('INGESTION_ACCEPTED', 201, $snapshot, $key);
     }
