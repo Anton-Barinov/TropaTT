@@ -23,6 +23,80 @@ final class StoreRepository
         return gmdate('Y-m-d H:i:s');
     }
 
+    // ── Routing targets (settings default project/assignee) ──────────────
+    //
+    // The settings screen works with public ids (prj_… / usr_…), while ingest
+    // reads the stored routing defaults as ints. These helpers bridge the two so
+    // the API accepts either form without breaking existing numeric clients.
+
+    /** Resolve a numeric id or a prj_… public id to the internal project id. */
+    public function resolveProjectId(mixed $value): ?int
+    {
+        return $this->resolveEntityId('projects', 'prj_', $value);
+    }
+
+    /** Resolve a numeric id or a usr_… public id to the internal user id. */
+    public function resolveUserId(mixed $value): ?int
+    {
+        return $this->resolveEntityId('users', 'usr_', $value);
+    }
+
+    /**
+     * @return array<int,string> internal id => project public id
+     */
+    public function projectPublicIdsByIds(array $ids): array
+    {
+        return $this->publicIdsByIds('projects', $ids);
+    }
+
+    /**
+     * @return array<int,string> internal id => user public id
+     */
+    public function userPublicIdsByIds(array $ids): array
+    {
+        return $this->publicIdsByIds('users', $ids);
+    }
+
+    private function resolveEntityId(string $table, string $prefix, mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if (is_int($value) || (is_string($value) && ctype_digit(trim($value)))) {
+            $id = (int)trim((string)$value);
+            return $id > 0 ? $id : null;
+        }
+        if (is_string($value) && str_starts_with(trim($value), $prefix)) {
+            $stmt = $this->pdo->prepare("SELECT id FROM {$table} WHERE public_id = :public_id LIMIT 1");
+            $stmt->execute(['public_id' => trim($value)]);
+            $found = $stmt->fetchColumn();
+            return $found === false ? null : (int)$found;
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<int> $ids
+     * @return array<int,string>
+     */
+    private function publicIdsByIds(string $table, array $ids): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids), static fn(int $id): bool => $id > 0)));
+        if ($ids === []) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $this->pdo->prepare("SELECT id, public_id FROM {$table} WHERE id IN ({$placeholders})");
+        $stmt->execute($ids);
+        $map = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+            $map[(int)$row['id']] = (string)$row['public_id'];
+        }
+
+        return $map;
+    }
+
     // ── Stores ──────────────────────────────────────────────────────────
 
     /**

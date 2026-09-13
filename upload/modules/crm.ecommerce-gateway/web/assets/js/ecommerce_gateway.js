@@ -294,8 +294,8 @@
     // ── Routing Form ──
     function populateRoutingForm(store) {
         const settings = (store && store.settings) || {};
-        document.getElementById('settingDefaultProject').value = settings.default_project_id || '';
-        document.getElementById('settingDefaultAssignee').value = settings.default_assignee_id || '';
+        document.getElementById('settingDefaultProject').value = (store && store.default_project_public_id) || '';
+        document.getElementById('settingDefaultAssignee').value = (store && store.default_assignee_public_id) || '';
         document.getElementById('settingOnDuplicate').value = settings.on_duplicate || 'merge';
         document.getElementById('settingDefaultPriority').value = settings.default_priority_code || 'normal';
 
@@ -650,24 +650,27 @@
 
     // ── Preload Projects & Users ──
     function loadMetadata() {
-        window.CRM.api.request('projects', { method: 'GET' }).then(function (res) {
-            const projects = (res && res.data && res.data.projects) || [];
+        // Core list endpoints live under api/v1/ and return { items: [...] };
+        // options carry the public id (prj_… / usr_…), which the API resolves
+        // back to an internal id for the stored routing defaults.
+        window.CRM.api.request('api/v1/projects', { method: 'GET' }).then(function (res) {
+            const projects = (res && res.data && res.data.items) || [];
             state.projects = projects;
             const sel = document.getElementById('settingDefaultProject');
             if (sel) {
                 projects.forEach(function (p) {
-                    sel.innerHTML += '<option value="' + esc(p.id) + '">' + esc(p.name) + '</option>';
+                    sel.innerHTML += '<option value="' + esc(p.public_id) + '">' + esc(p.title || p.public_id) + '</option>';
                 });
             }
         }).catch(function () {});
 
-        window.CRM.api.request('users', { method: 'GET' }).then(function (res) {
-            const users = (res && res.data && res.data.users) || [];
+        window.CRM.api.request('api/v1/users', { method: 'GET' }).then(function (res) {
+            const users = (res && res.data && res.data.items) || [];
             state.users = users;
             const sel = document.getElementById('settingDefaultAssignee');
             if (sel) {
                 users.forEach(function (u) {
-                    sel.innerHTML += '<option value="' + esc(u.id) + '">' + esc(u.name) + '</option>';
+                    sel.innerHTML += '<option value="' + esc(u.public_id) + '">' + esc(u.full_name || u.login || u.public_id) + '</option>';
                 });
             }
         }).catch(function () {});
