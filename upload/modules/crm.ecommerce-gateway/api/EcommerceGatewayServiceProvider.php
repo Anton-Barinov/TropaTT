@@ -73,4 +73,23 @@ final class EcommerceGatewayServiceProvider extends AbstractModuleServiceProvide
             'outbox_max_attempts' => 8,
         ];
     }
+
+    /**
+     * @return array<int, \Api\System\Library\Module\ScheduledTask>
+     */
+    public function getScheduledTasks(): array
+    {
+        return [
+            new \Api\System\Library\Module\ScheduledTask(
+                'outbox_dispatcher',
+                'E-Commerce Gateway Outbox Webhook Dispatcher and Queue Processor',
+                '* * * * *', // Run every minute
+                [\Module\Crm\EcommerceGateway\Cron\EcommerceGatewayCronHandler::class, 'dispatchQueue'],
+                true,
+                30,
+                false,
+                true
+            ),
+        ];
+    }
 }

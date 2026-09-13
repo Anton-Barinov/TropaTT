@@ -76,30 +76,56 @@ final class EcommerceWebhookJob
         return $this->deliver($target);
     }
 
+    public const DEFAULT_MAX_EXECUTION_SECONDS = 20.0;
+
     /**
-     * Delivers pending outbox events up to limit.
+     * Delivers pending outbox events up to limit with execution time guard (E-COM-13 §2).
      *
-     * @return array{processed: int, delivered: int, failed: int}
+     * @param int $limit Max items per batch (default 20)
+     * @param float $maxSeconds Max execution time before graceful stop (default 20.0)
+     * @return array{processed: int, delivered: int, failed: int, stopped_by_timeout: bool, elapsed_ms: float}
      */
-    public function processPending(int $limit = 20): array
+    public function processPending(int $limit = 20, float $maxSeconds = self::DEFAULT_MAX_EXECUTION_SECONDS): array
     {
-        $events = $this->outboxRepo->findPendingEvents($limit);
+        $startTime = microtime(true);
+        $events = $this->outboxRepo->claimPendingEvents($limit);
         $delivered = 0;
         $failed = 0;
+        $stoppedByTimeout = false;
 
-        foreach ($events as $event) {
+        $count = count($events);
+        for ($i = 0; $i < $count; $i++) {
+            $event = $events[$i];
+
+            // Check execution time guard before starting next delivery
+            if ((microtime(true) - $startTime) >= $maxSeconds) {
+                $stoppedByTimeout = true;
+                // Return this and all subsequent claimed events in batch back to pending immediately
+                for ($j = $i; $j < $count; $j++) {
+                    $this->outboxRepo->markPending((int)$events[$j]['id']);
+                }
+                break;
+            }
+
             $result = $this->deliver($event);
             if ($result['success']) {
                 $delivered++;
             } else {
                 $failed++;
             }
+
+            // Explicit cleanup to prevent memory accumulation in long iterations
+            unset($events[$i], $event, $result);
         }
 
+        $elapsedMs = (microtime(true) - $startTime) * 1000;
+
         return [
-            'processed' => count($events),
+            'processed' => $delivered + $failed,
             'delivered' => $delivered,
             'failed' => $failed,
+            'stopped_by_timeout' => $stoppedByTimeout,
+            'elapsed_ms' => round($elapsedMs, 2),
         ];
     }
 
@@ -218,7 +244,7 @@ final class EcommerceWebhookJob
             $responseBody = curl_exec($ch);
             $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
             $curlError = curl_error($ch);
-            curl_close($ch);
+            unset($ch);
 
             return [
                 'status' => $httpCode,

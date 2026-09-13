@@ -123,12 +123,142 @@ final class OutboxRepository
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    /**
+     * Atomically claims pending events using MySQL UPDATE ... LIMIT or transaction lock (E-COM-13 §3).
+     * Returns claimed events marked as 'delivering'.
+     *
+     * @return list<array<string,mixed>>
+     */
+    public function claimPendingEvents(int $limit = 20): array
+    {
+        $limit = max(1, min(100, $limit));
+        $now = $this->now();
+        $driver = (string)$this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+
+        if ($driver === 'mysql') {
+            // Under MySQL: select for update skip locked in transaction or batch update
+            try {
+                $this->pdo->beginTransaction();
+                $stmt = $this->pdo->prepare(
+                    'SELECT id FROM ecommerce_outbox_events
+                     WHERE status = "pending" AND next_attempt_at <= :now
+                     ORDER BY id ASC
+                     LIMIT ' . $limit . ' FOR UPDATE SKIP LOCKED'
+                );
+                $stmt->execute(['now' => $now]);
+                $ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+                if (empty($ids)) {
+                    $this->pdo->commit();
+                    return [];
+                }
+
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                $updateStmt = $this->pdo->prepare(
+                    "UPDATE ecommerce_outbox_events
+                     SET status = 'delivering', last_attempt_at = ?, updated_at = ?
+                     WHERE id IN ({$placeholders})"
+                );
+                $params = array_merge([$now, $now], $ids);
+                $updateStmt->execute($params);
+
+                $fetchStmt = $this->pdo->prepare(
+                    "SELECT * FROM ecommerce_outbox_events WHERE id IN ({$placeholders}) ORDER BY id ASC"
+                );
+                $fetchStmt->execute($ids);
+                /** @var list<array<string,mixed>> $events */
+                $events = $fetchStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+                $this->pdo->commit();
+                return $events;
+            } catch (\Throwable $e) {
+                if ($this->pdo->inTransaction()) {
+                    $this->pdo->rollBack();
+                }
+                // Fallback to findPendingEvents + markDelivering
+            }
+        }
+
+        // Fallback for SQLite / other drivers
+        $events = $this->findPendingEvents($limit);
+        $claimed = [];
+        foreach ($events as $event) {
+            if ($this->markDelivering((int)$event['id'])) {
+                $event['status'] = 'delivering';
+                $claimed[] = $event;
+            }
+        }
+
+        return $claimed;
+    }
+
+    /**
+     * Acquires a named MySQL advisory lock via GET_LOCK(:name, :timeout) (E-COM-13 §3).
+     * For non-MySQL drivers, falls back to true (single-node assumption).
+     */
+    public function acquireLock(string $lockName = 'ecom_outbox_lock', int $timeoutSeconds = 0): bool
+    {
+        $driver = (string)$this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+        if ($driver !== 'mysql') {
+            return true;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare('SELECT GET_LOCK(:name, :timeout)');
+            $stmt->execute([
+                'name' => $lockName,
+                'timeout' => max(0, $timeoutSeconds),
+            ]);
+            return (int)$stmt->fetchColumn() === 1;
+        } catch (\Throwable $e) {
+            error_log('[OutboxRepository] acquireLock error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Releases a named MySQL advisory lock via RELEASE_LOCK(:name) (E-COM-13 §3).
+     */
+    public function releaseLock(string $lockName = 'ecom_outbox_lock'): bool
+    {
+        $driver = (string)$this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+        if ($driver !== 'mysql') {
+            return true;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare('SELECT RELEASE_LOCK(:name)');
+            $stmt->execute(['name' => $lockName]);
+            return (int)$stmt->fetchColumn() === 1;
+        } catch (\Throwable $e) {
+            error_log('[OutboxRepository] releaseLock error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
     public function markDelivering(int $id): bool
     {
         $stmt = $this->pdo->prepare(
             'UPDATE ecommerce_outbox_events
              SET status = "delivering", last_attempt_at = :now, updated_at = :now
-             WHERE id = :id AND status = "pending"'
+             WHERE id = :id AND status IN ("pending", "delivering")'
+        );
+
+        return $stmt->execute([
+            'id' => $id,
+            'now' => $this->now(),
+        ]);
+    }
+
+    /**
+     * Resets a claimed event back to pending immediately (e.g., when execution time guard interrupts batch).
+     */
+    public function markPending(int $id): bool
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE ecommerce_outbox_events
+             SET status = "pending", updated_at = :now
+             WHERE id = :id AND status = "delivering"'
         );
 
         return $stmt->execute([
