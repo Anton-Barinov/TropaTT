@@ -914,6 +914,7 @@ $adminRoutePermissions = [
     // Core features gated by permissions: shell 403s when the API would deny.
     'ideas' => ['idea.view'],
     'chat' => ['chat.use'],
+    'module-ecommerce-gateway' => ['task.manage', 'project.manage'],
 ];
 
 if (isset($adminRoutePermissions[$route])) {

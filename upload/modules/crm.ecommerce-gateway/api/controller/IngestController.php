@@ -8,12 +8,16 @@ use Api\System\Library\Http\JsonResponse;
 use Api\System\Library\Http\Request;
 use Module\Crm\EcommerceGateway\Repository\IngestRepository;
 use Module\Crm\EcommerceGateway\Repository\StoreRepository;
+use Module\Crm\EcommerceGateway\Service\AntiSpamService;
 use Module\Crm\EcommerceGateway\Service\ContactResolver;
 use Module\Crm\EcommerceGateway\Service\CoreIntakeWriter;
+use Module\Crm\EcommerceGateway\Service\FieldMapperService;
+use Module\Crm\EcommerceGateway\Service\I18nService;
 use Module\Crm\EcommerceGateway\Service\IdempotencyService;
 use Module\Crm\EcommerceGateway\Service\IngestService;
 use Module\Crm\EcommerceGateway\Service\IntakeComposer;
 use Module\Crm\EcommerceGateway\Service\PayloadValidator;
+use Module\Crm\EcommerceGateway\Service\RoutingMatrixService;
 use Module\Crm\EcommerceGateway\Service\SignatureService;
 use Module\Crm\EcommerceGateway\Service\StoreAuthService;
 
@@ -31,9 +35,11 @@ final class IngestController
     private StoreAuthService $auth;
     private StoreRepository $repository;
     private IngestService $ingest;
+    private I18nService $i18n;
 
     public function __construct(private readonly Container $container)
     {
+        $this->i18n = new I18nService();
         $this->repository = new StoreRepository($container->get('db.pdo'));
         $config = $this->moduleConfig();
         $this->auth = new StoreAuthService(
@@ -43,6 +49,7 @@ final class IngestController
         );
 
         $ingestRepository = new IngestRepository($container->get('db.pdo'));
+        $db = $container->get('db.pdo');
         $this->ingest = new IngestService(
             $this->repository,
             $ingestRepository,
@@ -52,7 +59,10 @@ final class IngestController
             new IntakeComposer(),
             $container->has('service.intake_item') ? new CoreIntakeWriter($container->get('service.intake_item')) : null,
             $container->has('service.task') ? $container->get('service.task') : null,
-            $config
+            $config,
+            new AntiSpamService($db),
+            new FieldMapperService($db),
+            new RoutingMatrixService($db)
         );
     }
 
@@ -62,20 +72,30 @@ final class IngestController
     public function ping(): JsonResponse
     {
         $request = $this->request();
-        $tooLarge = $this->bodySizeGuard($request);
+        $acceptLang = (string)$request->header('Accept-Language', '');
+        $locale = $this->i18n->resolveLocale($acceptLang);
+
+        $tooLarge = $this->bodySizeGuard($request, $locale);
         if ($tooLarge !== null) {
             return $tooLarge;
         }
 
         $auth = $this->auth->authenticate($request);
         if (!$auth['ok']) {
-            return JsonResponse::error($auth['code'], 'Store authentication failed', $auth['http_status'], [], (string)$request->requestId);
+            return JsonResponse::error(
+                $auth['code'],
+                $this->i18n->errorMessage((string)$auth['code'], $locale),
+                $auth['http_status'],
+                [],
+                (string)$request->requestId
+            );
         }
 
         /** @var array<string,mixed> $store */
         $store = $auth['store'];
+        $locale = $this->i18n->resolveLocale($acceptLang, (string)($store['locale'] ?? ''));
 
-        return JsonResponse::success('INGESTION_PONG', 'OK', [
+        return JsonResponse::success('INGESTION_PONG', $this->i18n->t('messages.pong', [], $locale), [
             'store_key' => (string)$store['api_key'],
             'store_title' => (string)$store['name'],
             'cms_type' => (string)$store['cms_type'],
@@ -90,7 +110,7 @@ final class IngestController
             ],
             'crm_version' => (string)$this->config('default.app.version', ''),
             'server_time' => gmdate('c'),
-        ], 200, (string)$request->requestId, '', $this->meta($store, $request, ''));
+        ], 200, (string)$request->requestId, '', $this->meta($store, $request, '', $locale));
     }
 
     public function orders(): JsonResponse
@@ -124,18 +144,28 @@ final class IngestController
     private function handleIngest(string $type): JsonResponse
     {
         $request = $this->request();
-        $tooLarge = $this->bodySizeGuard($request);
+        $acceptLang = (string)$request->header('Accept-Language', '');
+        $locale = $this->i18n->resolveLocale($acceptLang);
+
+        $tooLarge = $this->bodySizeGuard($request, $locale);
         if ($tooLarge !== null) {
             return $tooLarge;
         }
 
         $auth = $this->auth->authenticate($request);
         if (!$auth['ok']) {
-            return JsonResponse::error($auth['code'], 'Store authentication failed', $auth['http_status'], [], (string)$request->requestId);
+            return JsonResponse::error(
+                $auth['code'],
+                $this->i18n->errorMessage((string)$auth['code'], $locale),
+                $auth['http_status'],
+                [],
+                (string)$request->requestId
+            );
         }
 
         /** @var array<string,mixed> $store */
         $store = $auth['store'];
+        $locale = $this->i18n->resolveLocale($acceptLang, (string)($store['locale'] ?? ''));
 
         $idempotencyHeader = trim((string)$request->header(SignatureService::HEADER_IDEMPOTENCY, ''));
         $result = $this->ingest->ingest(
@@ -148,12 +178,12 @@ final class IngestController
             $idempotencyHeader === '' ? null : $idempotencyHeader
         );
 
-        $meta = $this->meta($store, $request, (string)($result['idempotency_key'] ?? ''));
+        $meta = $this->meta($store, $request, (string)($result['idempotency_key'] ?? ''), $locale);
 
         if (!$result['ok']) {
             return JsonResponse::error(
                 (string)$result['code'],
-                $this->errorMessage((string)$result['code']),
+                $this->i18n->errorMessage((string)$result['code'], $locale),
                 (int)$result['http_status'],
                 (array)$result['errors'],
                 (string)$request->requestId,
@@ -180,9 +210,9 @@ final class IngestController
      * @param array<string,mixed> $store
      * @return array<string,mixed>
      */
-    private function meta(array $store, Request $request, string $idempotencyKey): array
+    private function meta(array $store, Request $request, string $idempotencyKey, ?string $resolvedLocale = null): array
     {
-        $locale = (string)($store['locale'] ?? '');
+        $locale = $resolvedLocale ?? (string)($store['locale'] ?? '');
         if ($locale === '') {
             $locale = (string)($this->moduleConfig()['default_locale'] ?? 'ru-ru');
         }
@@ -195,30 +225,16 @@ final class IngestController
         ];
     }
 
-    private function errorMessage(string $code): string
-    {
-        return match ($code) {
-            'INGESTION_PAYLOAD_INVALID' => 'The request body could not be parsed',
-            'INGESTION_PAYLOAD_TOO_LARGE' => 'The request body exceeds the configured limit',
-            'INGESTION_VALIDATION_FAILED' => 'The payload failed validation',
-            'INGESTION_CONTACT_REQUIRED' => 'A contact channel (phone, email or messenger) is required',
-            'INGESTION_AMOUNT_NOT_INTEGER' => 'Money amounts must be integers in minor units',
-            'INGESTION_EXTERNAL_ID_CONFLICT' => 'The idempotency key is bound to another external_id',
-            'INGESTION_INTERNAL_ERROR' => 'Internal CRM error',
-            default => 'Ingestion failed',
-        };
-    }
-
     /**
      * Shared guard for every ingestion action (E-COM-01 §4.3).
      */
-    private function bodySizeGuard(Request $request): ?JsonResponse
+    private function bodySizeGuard(Request $request, string $locale = 'ru-ru'): ?JsonResponse
     {
         $max = (int)($this->moduleConfig()['max_body_bytes'] ?? 1048576);
         if ($max > 0 && strlen($request->rawBody) > $max) {
             return JsonResponse::error(
                 'INGESTION_PAYLOAD_TOO_LARGE',
-                'Request body exceeds the configured limit',
+                $this->i18n->errorMessage('INGESTION_PAYLOAD_TOO_LARGE', $locale),
                 400,
                 [],
                 (string)$request->requestId

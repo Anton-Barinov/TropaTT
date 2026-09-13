@@ -14,18 +14,18 @@ TropaTT CRM 内置一个 MCP 服务器——一个 JSON-RPC 2.0 接口，通过�
 | 协议版本 | `2025-06-18` |
 | 批量请求 | 支持（JSON 数组） |
 | 通知 | 支持（不带 id 的消息） |
-| MCP 工具 | 完整目录约 617 个；`tools/list` 默认返回 core 配置文件（约 24 个工具：8 个 mega-tools + 16 个常规工具） |
-| MCP 资源 | 5 |
+| MCP 工具 | 完整目录 620 个（`toolset=all`）；`tools/list` 默认返回 core 配置文件（27 个工具：8 个 mega-tools + 3 个 AgentOS 编排工具 + 16 个常规工具） |
+| MCP 资源 | 6 |
 | MCP Prompts | 0 |
 
 ---
 
-## Mega-tools（按意图合并的统一工具）
+## Mega-tools 与 AgentOS 编排工具（按意图合并的统一工具）
 
-Core 配置文件使用 **mega-tools** — 合并工具，通过 `action` 参数覆盖整个领域，替代数十个细粒度 CRUD 工具。每个 mega-tool 都有丰富的描述：何时使用、期望返回什么、出错时如何处理。
+Core 配置文件使用 **mega-tools 与 AgentOS 核心编排工具** — 合并工具，通过 `action` 参数覆盖整个领域或工作流，替代数百个细粒度 CRUD 工具，大幅节省上下文 token。
 
-| Mega-tool | 领域 | 操作 |
-|-----------|------|------|
+| Mega-tool / 编排工具 | 领域 | 操作 / 范围 |
+|----------------------|------|-------------|
 | `crm_task` | 任务、子任务、评论、标签、清单、依赖、关系、看板、活动 | list, get, get_by_key, create, update, delete, move, bulk_update, board, activity + 20 个子操作 |
 | `crm_project` | 项目、里程碑、周期、模块、模板、客户门户 | list, get, create, update, delete, summary, risks, timeline, workload + 25 个子操作 |
 | `crm_people` | 用户、团队、部门、角色、邀请、模拟登录 | list_users, get_user, create_user + 20 个子操作 |
@@ -34,6 +34,9 @@ Core 配置文件使用 **mega-tools** — 合并工具，通过 `action` 参数
 | `crm_knowledge` | 知识库：空间、页面、版本、评论、标签、文件、AI | search, list_pages, create_page, ai_summary + 40 个子操作 |
 | `crm_ai` | AI 操作、建议、提供者、任务、语义搜索 | execute_action, task_summary, project_risks, day_plan + 25 个子操作 |
 | `crm_admin` | 设置、缓存、模块、更新、API 客户端、Webhook、日志 | list_settings, clear_cache, list_modules + 35 个子操作 |
+| `crm_agent_bundle` | **AgentOS 2026 Core**: 原子化任务初始化 | 单次请求创建任务、DoD 检查清单、子任务、知识库关联、阻塞 QA 任务及代理锁定（支持 `density: "compact"`） |
+| `crm_agent_memory` | **AgentOS 2026 Core**: 持久化代理记忆库 | `get`, `set`, `list`, `delete`, `search`（跨 scope/元数据搜索）、`export_graph`（关联实体关系图谱） |
+| `crm_chat` | **AgentOS 2026 Core**: 统一代理通信中枢 | `list_chats`, `get_chat`, `create_chat`, `send_message`, `list_messages`, `mark_read`，支持结构化 JSON（`message_type: json/datapart`）与紧凑响应模式 |
 
 现有 CRUD 工具（如 `crm_list_tasks`、`crm_create_task`）仍可通过 `all` 配置文件使用，按名称调用——向后兼容。
 
@@ -126,11 +129,11 @@ AI 操作通过 AiJobService/AiAuditService 记录；导入/导出和工作流�
 
 ## 工具集（配置文件）
 
-完整的 MCP 目录很大（600+ 个工具）。为避免在每个代理会话中都加载全部工具，`tools/list` 默认返回精选的 **`core`** 配置文件（24 个工具：个人资料、搜索、仪表盘、通知、活动，以及主要实体的基本读取/创建）。按领域提供配置文件：
+完整的 MCP 目录很大（620 个工具）。为避免在每个代理会话中都加载全部工具，`tools/list` 默认返回精选的 **`core`** 配置文件（27 个工具：个人资料、搜索、仪表盘、通知、活动、8 个 mega-tools，以及 3 个 AgentOS 核心编排工具）。按领域提供配置文件：
 
 | 配置文件 | 范围 |
 |---------|-------|
-| `core`（默认） | 个人资料、搜索、仪表盘、通知、活动、任务/项目/人员/知识库/时间的基本读取 |
+| `core`（默认） | 个人资料、搜索、仪表盘、通知、活动、8 个 mega-tools + AgentOS 编排工具（`crm_agent_bundle`, `crm_agent_memory`, `crm_chat`） |
 | `tasks` | 任务、子任务、评论、标签、清单、依赖、关联、估算、看板、保存视图、循环规则、提醒、SLA、工作流规则、审批 |
 | `projects` | 项目、里程碑、周期、项目模块、甘特图、摘要/风险、模板、客户门户 |
 | `kb` | 知识库：空间、页面、版本、评论、标签、链接、文件、导出/导入、知识 AI |
@@ -147,16 +150,16 @@ AI 操作通过 AiJobService/AiAuditService 记录；导入/导出和工作流�
 
 | 配置文件 | 工具数 | 模式大小 |
 |---------|-------:|----------:|
-| `core`（默认） | 24 | 约 2.5K tokens |
+| `core`（默认） | 27 | 约 2.9K tokens |
 | `tasks` | 82 | 约 8.0K tokens |
 | `projects` | 58 | 约 5.2K tokens |
 | `kb` | 80 | 约 6.3K tokens |
 | `people` | 60 | 约 5.7K tokens |
 | `time` | 32 | 约 2.6K tokens |
 | `admin` | 149 | 约 12.2K tokens |
-| `all` | 617 | 约 52K tokens |
+| `all` | 620 | 约 53K tokens |
 
-完整目录比默认 `core` 配置文件贵约 10 倍，因此当会话聚焦于单一领域时，应优先使用窄配置文件。
+完整目录比默认 `core` 配置文件贵约 18 倍，因此当会话聚焦于单一领域时，应优先使用窄配置文件。
 
 客户端的加载模式及其对成本的影响：
 
@@ -297,6 +300,14 @@ AI 操作通过 AiJobService/AiAuditService 记录；导入/导出和工作流�
 |------|-----------|------------|--------------|
 | `crm_search` | 全局搜索 | knowledge.view/project.manage/task.manage | 无 |
 | `crm_list_api_endpoints` | REST 端点清单 | auth | 无 |
+
+### AgentOS 2026 Core 编排工具
+
+| Tool | 用途 | Permission | 副作用 |
+|------|-----------|------------|--------------|
+| `crm_agent_bundle` | 原子化任务初始化：一次请求创建任务、DoD 清单、子任务、知识库关联及阻塞 QA 门禁 | task.manage | 实体创建与锁定 |
+| `crm_agent_memory` | 受管控的持久化键值存储、元数据语义检索与实体图谱导出 | auth | 记忆数据写入 |
+| `crm_chat` | 统一代理通信中枢（单聊、项目、团队、群组），支持结构化 JSON 载荷 | chat.use / task.manage / project.manage | 消息发送与状态流转 |
 
 ### 任务
 
@@ -1048,9 +1059,10 @@ MCP 资源为只读，通过 tropatt:// URI 提供。
 |-------------|-----------|------|------|-----------|
 | ``tropatt://server/about`` | MCP 服务器概述 | text/markdown | auth | 1.0 |
 | ``tropatt://server/tools`` | 可用工具列表 | application/json | auth | 0.95 |
-| ``tropatt://user/current`` | 当前用户 | application/json | auth | 0.9 |
+| ``tropatt://server/toolsets`` | MCP 配置文件与工具计数 | application/json | auth | 0.9 |
+| ``tropatt://user/current`` | 当前用户 | application/json | auth | 0.85 |
 | ``tropatt://server/api-map`` | API 领域映射 | text/markdown | auth | 0.8 |
-| ``tropatt://server/api-endpoints`` | REST 端点清单 | application/json | auth | 0.75 |
+| ``tropatt://server/api-endpoints`` | REST 端点清单（基于 routes.php） | application/json | auth（settings.manage） | 0.75 |
 
 ---
 
@@ -1113,6 +1125,9 @@ MCP 通过安全层镜像 REST API。下面是关键工具与 REST 端点的映�
 | `crm_list_knowledge_pages` | 工具 | `GET /api/v1/knowledge/pages` | KnowledgeController::list | - |
 | `crm_create_knowledge_page` | 工具 | `POST /api/v1/knowledge/pages` | KnowledgeController::create | - |
 | `crm_list_api_endpoints` | 工具 | `无直接对应` | McpController::apiEndpointsIndex | 仅 MCP，读取 routes.php |
+| `crm_agent_bundle` | 工具 | `复合操作` | McpController::crmAgentBundle | 仅 MCP 复合原子编排器 |
+| `crm_agent_memory` | 工具 | `无直接对应` | McpController::crmAgentMemory | 仅 MCP 持久化代理键值与图谱存储 |
+| `crm_chat` | mega-tool | `/api/v1/chats/*` | ChatController | 基于意图的统一代理通信中枢 |
 
 ---
 
@@ -1120,6 +1135,8 @@ MCP 通过安全层镜像 REST API。下面是关键工具与 REST 端点的映�
 
 | 工具 | 用途 | 备注 |
 |------|-----------|-------------|
+| `crm_agent_bundle` | 原子化多实体任务初始化 | 一次 JSON-RPC 调用即可编排任务、清单、子任务、知识库关联及阻塞 QA 门禁 |
+| `crm_agent_memory` | 受管控的持久化记忆库 | 代理作用域 KV 记忆存储、语义/关键词搜索与实体图谱导出 |
 | `crm_list_api_endpoints` | REST 端点清单 | 返回 routes.php 中的完整路由列表 |
 | `crm_get_knowledge_overview` | 知识库概览 | 聚合摘要 |
 | `crm_get_knowledge_tree` | 页面树 | 递归结构 |

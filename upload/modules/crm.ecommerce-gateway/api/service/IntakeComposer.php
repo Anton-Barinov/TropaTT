@@ -600,7 +600,7 @@ final class IntakeComposer
     {
         $escaped = self::escape($value);
         // Newlines would break the table layout; keep the row on one line.
-        return trim(preg_replace('/\s*\R\s*/', ' ', $escaped) ?? $escaped);
+        return trim(preg_replace('/\s*\R\s*/u', ' ', $escaped) ?? $escaped);
     }
 
     public static function escape(string $value): string

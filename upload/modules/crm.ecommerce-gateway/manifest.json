@@ -12,8 +12,16 @@
     "dependencies": [],
     "require_permissions": ["task.manage", "project.manage"],
     "api_routes": "api/config/routes.php",
+    "web_routes": "web/config/routes.php",
     "migrations": "api/migrations/",
-    "assets": {},
+    "assets": {
+        "js_routes": {
+            "module-ecommerce-gateway": "web/assets/js/ecommerce_gateway.js"
+        },
+        "css": [
+            "web/assets/css/ecommerce_gateway.css"
+        ]
+    },
     "hooks": {},
     "menu_items": [],
     "service_provider": "Module\\Crm\\EcommerceGateway\\EcommerceGatewayServiceProvider",

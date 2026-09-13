@@ -11,12 +11,16 @@
 | E-COM-01 | Архитектурная спецификация протокола (REST & Webhooks) | готово (документы `docs/web/ecommerce-gateway-tz.md`, `docs/web/ecommerce-gateway-openapi.yaml`) |
 | E-COM-02 | Ядро модуля: манифест, миграции БД, аутентификация витрин | готово |
 | E-COM-03 | Ingestion API: приём заказов/форм, валидация схем, дедупликация, создание заявок | готово |
-| E-COM-04…15 | Вебхуки, UI, безопасность, outbox, i18n, shared-хостинг, QA | запланировано (следующий — E-COM-04, синхронизация статусов) |
+| E-COM-04 | Двусторонняя реактивная синхронизация статусов (CRM Events -> CMS Webhooks), Outbox, HMAC подпись, защита от эхо-петель, FSM | готово |
+| E-COM-05 | UI панели управления витринами: реестр магазинов, маппинг воронок/статусов, аудит-лог | готово |
+| E-COM-09…15 | Безопасность, полиморфный Ingestion, i18n, shared-хостинг, сквозное QA | запланировано |
 
 Проверки: `php -l` по всем файлам модуля, контрактные тесты
 `upload/api/tests/unit/ecommerce_gateway_signature_unit.php`,
-`ecommerce_gateway_payload_unit.php` (схемы и Markdown-композер) и
+`ecommerce_gateway_payload_unit.php` (схемы и Markdown-композер),
 `ecommerce_gateway_ingest_unit.php` (идемпотентность/контакты, SQLite),
+`ecommerce_gateway_status_sync_unit.php` (FSM переходов, эхо-петли, Outbox, HMAC-подпись, retry-политика),
+`ecommerce_gateway_ui_unit.php` (веб-роутер, контроллер, шаблоны, ассеты UI),
 тест декларации миграций `module_migrations_declared_unit.php`,
 покрытие маршрутов `api/scripts/api_coverage_check.php`.
 
@@ -56,6 +60,23 @@ canonical = METHOD \n request_path \n timestamp \n nonce \n hex(sha256(raw_body)
 | `PATCH` | `/stores/{public_id}` | `…manage` | Изменить витрину |
 | `DELETE` | `/stores/{public_id}` | `…manage` | Мягко удалить витрину |
 | `POST` | `/stores/{public_id}/rotate-secret` | `…manage` + `…secret_manage` | Ротация секрета с grace-периодом 1 час |
+| `GET` | `/stores/{public_id}/status-mappings` | `…view` | Список маппингов статусов CMS ↔ CRM |
+| `PUT`, `POST` | `/stores/{public_id}/status-mappings` | `…manage` | Сохранение маппингов статусов |
+| `GET` | `/stores/{public_id}/sync-log` | `…view` | Журнал синхронизации (inbound/outbox) |
+| `POST` | `/stores/{public_id}/sync-log/{log_id}/retry` | `…manage` | Ручной повтор отправки события Outbox |
+| `POST` | `/stores/{public_id}/ping-test` | `…manage` | Проверка доступности витрины (Ping-тест) |
+| `GET` | `/stores/{public_id}/outbox/dlq` | `…view` | Реестр событий Dead Letter Queue (DLQ) |
+| `POST` | `/stores/{public_id}/outbox/dlq/replay` | `…manage` | Перезапуск событий из Dead Letter Queue |
+| `POST` | `/stores/{public_id}/reconciliation/run` | `…manage` | Запуск периодической сверки заказов (Reconciliation) |
+
+## Веб-интерфейс панели управления
+
+Маршрут: `/web/index.php?route=module-ecommerce-gateway`
+- **Витрины и Настройки**: реестр магазинов, создание, ротация ключей, Ping-тест.
+- **Маршрутизация**: правила создания задач под `order`, `quick_order`, `callback`, `feedback`, стратегии дедупликации (`merge`/`reject`/`create`).
+- **Маппинг статусов**: интерактивное сопоставление статусов витрины со стадиями задач CRM.
+- **Безопасность**: IP-whitelist, лимиты частоты запросов, хранение логов, антиспам.
+- **Журнал синхронизации**: аудит входящих пакетов и исходящих вебхуков с инспектором JSON и кнопкой Retry.
 
 ## Схема БД (`api/migrations/`)
 
@@ -70,8 +91,9 @@ canonical = METHOD \n request_path \n timestamp \n nonce \n hex(sha256(raw_body)
 `task_public_id`, что и первая обработка (`§8.2`), не восстанавливая их по
 связям задним числом.
 
-Таблицы очереди исходящих доставок (`ecommerce_outbox`, `ecommerce_deliveries`) и
-антиспама (`ecommerce_antispam`) добавляются на этапах E-COM-10 и E-COM-09.
+`003_create_outbox_tables.sql`: таблица Transactional Outbox `ecommerce_outbox_events` (E-COM-04)
+для гарантированной асинхронной доставки исходящих вебхуков (`order.status_changed`) в витрины CMS
+с экспоненциальным бэкоффом (`base_delay * 2^retry`) и защитой от эхо-петель (`StatusSyncContext`).
 
 ## Приём заявок (E-COM-03)
 

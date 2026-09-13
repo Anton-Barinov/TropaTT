@@ -34,6 +34,10 @@ final class IngestService
     public const DEFAULT_DUPLICATE_WINDOW_SECONDS = 600;
     private const MAX_JOURNAL_PAYLOAD_BYTES = 262144;
 
+    private readonly AntiSpamService $antiSpam;
+    private readonly FieldMapperService $fieldMapper;
+    private readonly RoutingMatrixService $routingMatrix;
+
     public function __construct(
         private readonly StoreRepository $storeRepository,
         private readonly IngestRepository $ingestRepository,
@@ -44,7 +48,13 @@ final class IngestService
         private readonly ?IntakeWriterInterface $intakeWriter = null,
         private readonly ?TaskService $taskService = null,
         private readonly array $config = [],
+        ?AntiSpamService $antiSpam = null,
+        ?FieldMapperService $fieldMapper = null,
+        ?RoutingMatrixService $routingMatrix = null,
     ) {
+        $this->antiSpam = $antiSpam ?? new AntiSpamService();
+        $this->fieldMapper = $fieldMapper ?? new FieldMapperService();
+        $this->routingMatrix = $routingMatrix ?? new RoutingMatrixService();
     }
 
     /**
@@ -52,6 +62,28 @@ final class IngestService
      * @return IngestResult
      */
     public function ingest(
+        array $store,
+        string $type,
+        string $rawBody,
+        string $requestId,
+        string $ip,
+        string $userAgent,
+        ?string $idempotencyHeader = null
+    ): array {
+        return StatusSyncContext::runAsCms(function () use (
+            $store,
+            $type,
+            $rawBody,
+            $requestId,
+            $ip,
+            $userAgent,
+            $idempotencyHeader
+        ) {
+            return $this->doIngest($store, $type, $rawBody, $requestId, $ip, $userAgent, $idempotencyHeader);
+        });
+    }
+
+    private function doIngest(
         array $store,
         string $type,
         string $rawBody,
@@ -149,6 +181,43 @@ final class IngestService
             return $this->ok('INGESTION_DUPLICATE', 200, $response, $key);
         }
 
+        // ── 2b. Multi-layer Anti-Spam (E-COM-11 §4) ────────────────────
+        // Executed only for new, non-duplicate submissions
+        $antispamEnabled = !empty($settings['antispam_enabled']);
+        if ($antispamEnabled) {
+            $spamResult = $this->antiSpam->check($raw, is_array($data['contact'] ?? null) ? $data['contact'] : [], $ip);
+            if ($spamResult['is_spam']) {
+                $this->storeRepository->logSecurityEvent(
+                    'antispam_blocked',
+                    'warning',
+                    $storeId,
+                    $ip,
+                    $userAgent,
+                    [
+                        'type' => $type,
+                        'reason' => $spamResult['reason'],
+                        'rule' => $spamResult['rule'],
+                        'score' => $spamResult['score'],
+                    ]
+                );
+
+                return $this->fail(
+                    'INGESTION_SPAM_DETECTED',
+                    422,
+                    ['antispam' => [(string)$spamResult['reason']]],
+                    $storeId,
+                    $type,
+                    $externalId,
+                    $rawBody,
+                    $requestId,
+                    $ip,
+                    $userAgent,
+                    $started,
+                    $key
+                );
+            }
+        }
+
         if ($decision['state'] === IdempotencyService::STATE_MERGED) {
             /** @var array<string,mixed> $record */
             $record = $decision['record'];
@@ -230,7 +299,31 @@ final class IngestService
         }
 
         $contact = $this->contactResolver->resolve(is_array($data['contact'] ?? null) ? $data['contact'] : []);
+
+        // ── Field Mapper & Routing Matrix (E-COM-11 §2, §3) ────────────
+        $fieldMappings = is_array($settings['field_mappings'] ?? null) ? $settings['field_mappings'] : [];
+        $rawFormData = is_array($data['payload']['form_data'] ?? null)
+            ? $data['payload']['form_data']
+            : (is_array($data['form_data'] ?? null) ? $data['form_data'] : []);
+
+        $mappedFields = $this->fieldMapper->map($storeId, $rawFormData, $fieldMappings);
+        $route = $this->routingMatrix->resolveRoute($type, $store, is_array($data['payload'] ?? null) ? $data['payload'] : []);
+
         $composed = $this->composer->compose($type, $data, $store);
+
+        if (!empty($mappedFields['mapped_custom_fields'])) {
+            $composed['extra']['mapped_custom_fields'] = $mappedFields['mapped_custom_fields'];
+        }
+        if (!empty($mappedFields['markdown_table']) && ($type === 'form' || $type === 'quiz' || !empty($rawFormData))) {
+            $composed['extra']['unmapped_fields_table'] = $mappedFields['markdown_table'];
+            if (!str_contains($composed['description'], $mappedFields['markdown_table'])) {
+                $composed['description'] = mb_substr(
+                    $composed['description'] . "\n\n#### Дополнительные поля формы\n\n" . $mappedFields['markdown_table'],
+                    0,
+                    IntakeComposer::MAX_DESCRIPTION
+                );
+            }
+        }
 
         $intakeInput = [
             'title' => $composed['title'],
@@ -242,19 +335,25 @@ final class IngestService
             'external_id' => $externalId,
             'extra' => $composed['extra'],
         ];
-        if (trim((string)($settings['default_priority_code'] ?? '')) !== '') {
-            $intakeInput['priority_code'] = (string)$settings['default_priority_code'];
+        $priorityCode = !empty($route['priority']) ? $route['priority'] : trim((string)($settings['default_priority_code'] ?? ''));
+        if ($priorityCode !== '') {
+            $intakeInput['priority_code'] = $priorityCode;
         }
         if ($contact['contact_public_id'] !== null) {
             $intakeInput['contact_public_id'] = $contact['contact_public_id'];
         }
-        $projectPublicId = $this->resolveProjectPublicId($settings);
+        $projectPublicId = $route['project_public_id'] ?? $this->resolveProjectPublicId($settings);
         if ($projectPublicId !== null) {
             $intakeInput['project_public_id'] = $projectPublicId;
         }
-        $assigneeUserId = (int)($settings['default_assignee_id'] ?? 0);
+        $assigneeUserId = $route['assignee_user_id'] ?? (int)($settings['default_assignee_id'] ?? 0);
         if ($assigneeUserId > 0) {
             $intakeInput['assignee_user_id'] = $assigneeUserId;
+        }
+        if (!empty($route['sla_deadline'])) {
+            $intakeInput['due_at'] = $route['sla_deadline'];
+            $intakeInput['extra']['sla_deadline'] = $route['sla_deadline'];
+            $intakeInput['extra']['sla_minutes'] = $route['sla_minutes'];
         }
 
         // The store is not a CRM user: the intake item is created by the system
@@ -297,7 +396,7 @@ final class IngestService
         $task = null;
         $createTaskFor = is_array($settings['create_task_for'] ?? null) ? $settings['create_task_for'] : [];
         if (in_array($type, $createTaskFor, true)) {
-            $task = $this->createTask($type, $store, $data, $composed, $settings, $intakePublicId);
+            $task = $this->createTask($type, $store, $data, $composed, $settings, $intakePublicId, $route);
         }
 
         $snapshot = [
@@ -322,6 +421,17 @@ final class IngestService
             'contact_created' => $contact['created'],
         ], $ip, $userAgent);
         $this->markStoreIngest((string)($store['public_id'] ?? ''));
+        $this->storeRepository->logOrderSync([
+            'store_id' => $storeId,
+            'external_order_id' => $externalId,
+            'crm_task_id' => is_array($task) ? (int)($task['id'] ?? 0) : null,
+            'intake_item_id' => $intakeId > 0 ? $intakeId : null,
+            'direction' => 'inbound',
+            'status' => 'accepted',
+            'http_code' => 201,
+            'request_payload' => $rawBody,
+            'ip_address' => $ip,
+        ]);
 
         return $this->ok('INGESTION_ACCEPTED', 201, $snapshot, $key);
     }
@@ -366,31 +476,46 @@ final class IngestService
      * @param array<string,mixed> $data
      * @param array<string,mixed> $composed
      * @param array<string,mixed> $settings
+     * @param array<string,mixed> $route
      * @return array<string,mixed>|null
      */
-    private function createTask(string $type, array $store, array $data, array $composed, array $settings, string $intakePublicId): ?array
-    {
+    private function createTask(
+        string $type,
+        array $store,
+        array $data,
+        array $composed,
+        array $settings,
+        string $intakePublicId,
+        array $route = []
+    ): ?array {
         if ($this->taskService === null) {
             return null;
         }
 
         try {
+            $priority = !empty($route['priority'])
+                ? $route['priority']
+                : (trim((string)($settings['default_priority_code'] ?? '')) ?: 'normal');
+
             $input = [
                 'title' => $composed['task_title'],
                 'description' => $composed['description'],
-                'priority' => trim((string)($settings['default_priority_code'] ?? '')) ?: 'normal',
+                'priority' => $priority,
                 'status' => 'new',
                 'source_type' => 'api',
                 'source_id' => (string)($data['external_id'] ?? ''),
                 'source_url' => trim((string)($store['store_url'] ?? '')),
             ];
-            $projectPublicId = $this->resolveProjectPublicId($settings);
+            $projectPublicId = $route['project_public_id'] ?? $this->resolveProjectPublicId($settings);
             if ($projectPublicId !== null) {
                 $input['project_public_id'] = $projectPublicId;
             }
-            $assigneeUserId = (int)($settings['default_assignee_id'] ?? 0);
+            $assigneeUserId = $route['assignee_user_id'] ?? (int)($settings['default_assignee_id'] ?? 0);
             if ($assigneeUserId > 0) {
                 $input['assignee_user_id'] = $assigneeUserId;
+            }
+            if (!empty($route['sla_deadline'])) {
+                $input['due_at'] = $route['sla_deadline'];
             }
 
             $task = $this->taskService->create($input, ['id' => 0, 'full_name' => 'E-Commerce Gateway']);

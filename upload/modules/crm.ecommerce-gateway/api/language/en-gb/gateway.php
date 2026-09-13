@@ -1,0 +1,58 @@
+<?php
+declare(strict_types=1);
+
+return [
+    'error' => [
+        'STORE_AUTH_MISSING_KEY' => 'Store API key is missing',
+        'STORE_AUTH_STORE_NOT_FOUND' => 'Store with the specified API key not found',
+        'STORE_AUTH_STORE_INACTIVE' => 'Store is disabled or paused',
+        'STORE_AUTH_IP_FORBIDDEN' => 'IP address is not in store whitelist',
+        'STORE_AUTH_RATE_LIMITED' => 'Store gateway rate limit exceeded (HTTP 429)',
+        'INGESTION_TIMESTAMP_OUT_OF_RANGE' => 'Request timestamp is skewed or out of range',
+        'INGESTION_NONCE_INVALID' => 'Invalid nonce format or length',
+        'INGESTION_SIGNATURE_INVALID' => 'Invalid HMAC request signature. Please verify Store Secret Key.',
+        'INGESTION_NONCE_REPLAYED' => 'Request replay detected (Nonce was already used)',
+        'INGESTION_PAYLOAD_INVALID' => 'The request body could not be parsed',
+        'INGESTION_PAYLOAD_TOO_LARGE' => 'The request body exceeds the configured limit',
+        'INGESTION_VALIDATION_FAILED' => 'The payload failed validation',
+        'INGESTION_CONTACT_REQUIRED' => 'A contact channel (phone, email or messenger) is required',
+        'INGESTION_AMOUNT_NOT_INTEGER' => 'Money amounts must be integers in minor units',
+        'INGESTION_EXTERNAL_ID_CONFLICT' => 'The idempotency key is bound to another external_id',
+        'INGESTION_SPAM_DETECTED' => 'Request blocked by anti-spam system',
+        'INGESTION_INTERNAL_ERROR' => 'Internal CRM error during order processing',
+        'STORE_NOT_FOUND' => 'Store not found',
+        'STORE_NAME_REQUIRED' => 'Store name is required',
+        'STORE_WEBHOOK_URL_INVALID' => 'Invalid store webhook URL',
+        'FORBIDDEN' => 'Insufficient permissions',
+    ],
+    'status' => [
+        'accepted' => 'Accepted',
+        'rejected' => 'Rejected',
+        'duplicate' => 'Duplicate',
+        'merged' => 'Merged',
+        'pending' => 'Pending',
+        'delivered' => 'Delivered',
+        'failed' => 'Delivery Failed',
+        'retry_scheduled' => 'Retry Scheduled',
+    ],
+    'direction' => [
+        'inbound' => 'Inbound (CMS → CRM)',
+        'outbound' => 'Outbound (CRM → CMS)',
+    ],
+    'types' => [
+        'order' => 'Order',
+        'quick_order' => '1-Click Order',
+        'callback' => 'Callback',
+        'feedback' => 'Feedback',
+        'form' => 'Web Form',
+        'quiz' => 'Quiz Form',
+    ],
+    'messages' => [
+        'auth_failed' => 'Store authentication failed',
+        'store_created' => 'Store created successfully',
+        'store_updated' => 'Store settings updated',
+        'secret_rotated' => 'Store secret rotated',
+        'secret_notice' => 'Store the secret now: it is not shown again.',
+        'pong' => 'Gateway ping connection established',
+    ],
+];
