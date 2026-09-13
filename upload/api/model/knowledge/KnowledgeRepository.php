@@ -483,6 +483,179 @@ final class KnowledgeRepository
         return $stmt->rowCount() > 0;
     }
 
+    /**
+     * Permanently delete a knowledge space (issue #18).
+     *
+     * Deleting a space is destructive, so its contents must be handled explicitly
+     * instead of silently disappearing:
+     *   - 'reassign_space_public_id'  — move live pages into that space;
+     *   - 'reassign_parent_public_id' — move child sub-spaces under that parent ('' = root);
+     *   - 'cascade'                   — soft-delete the pages and remove the whole sub-tree.
+     *
+     * @return array|string|null summary array, an error code string, or null when the space is not visible.
+     */
+    public function deleteSpace(string $publicId, array $options = [], ?array $actor = null): array|string|null
+    {
+        $space = $this->space($publicId, $actor, 'manage');
+        if (!$space) {
+            return null;
+        }
+        if (!empty($space['is_system'])) {
+            return 'SYSTEM_SPACE';
+        }
+
+        $spaceId = (int)$space['id'];
+        $hasParentCol = array_key_exists('parent_id', $space);
+        $descendantIds = $hasParentCol ? $this->spaceDescendantIds($spaceId) : [];
+        $cascade = !empty($options['cascade']);
+
+        $targetPagesSpaceId = null;
+        if (!empty($options['reassign_space_public_id'])) {
+            $target = $this->space((string)$options['reassign_space_public_id'], $actor, 'edit');
+            $targetId = $target ? (int)$target['id'] : 0;
+            if ($targetId === 0 || $targetId === $spaceId || in_array($targetId, $descendantIds, true)) {
+                return 'INVALID_REASSIGN_TARGET';
+            }
+            $targetPagesSpaceId = $targetId;
+        }
+
+        // An explicitly present (but empty) parent means "move the children to the root".
+        $moveChildSpaces = array_key_exists('reassign_parent_public_id', $options);
+        $targetParentSpaceId = null;
+        if ($moveChildSpaces && (string)$options['reassign_parent_public_id'] !== '') {
+            $target = $this->space((string)$options['reassign_parent_public_id'], $actor, 'manage');
+            $targetId = $target ? (int)$target['id'] : 0;
+            if ($targetId === 0 || $targetId === $spaceId || in_array($targetId, $descendantIds, true)) {
+                return 'INVALID_REASSIGN_TARGET';
+            }
+            $targetParentSpaceId = $targetId;
+        }
+
+        $childSpaces = $hasParentCol ? $this->spaceChildIds($spaceId) : [];
+        $pageStmt = $this->pdo->prepare('SELECT COUNT(*) FROM knowledge_pages WHERE space_id = :space_id AND deleted_at IS NULL');
+        $pageStmt->execute(['space_id' => $spaceId]);
+        $childPages = (int)$pageStmt->fetchColumn();
+
+        if (!$cascade) {
+            if ($childPages > 0 && $targetPagesSpaceId === null) {
+                return 'HAS_CHILDREN';
+            }
+            if ($childSpaces !== [] && !$moveChildSpaces) {
+                return 'HAS_CHILDREN';
+            }
+        }
+
+        $now = gmdate('Y-m-d H:i:s');
+        $summary = ['spaces_deleted' => 0, 'pages_moved' => 0, 'pages_deleted' => 0, 'spaces_moved' => 0];
+
+        $this->pdo->beginTransaction();
+        try {
+            if ($cascade) {
+                $subtree = array_merge([$spaceId], $descendantIds);
+                $placeholders = implode(',', array_fill(0, count($subtree), '?'));
+                $stmt = $this->pdo->prepare("UPDATE knowledge_pages SET deleted_at = ?, row_version = row_version + 1, updated_at = ? WHERE deleted_at IS NULL AND space_id IN ({$placeholders})");
+                $stmt->execute(array_merge([$now, $now], $subtree));
+                $summary['pages_deleted'] = $stmt->rowCount();
+                $this->deleteSearchIndexRows($subtree);
+                $this->deleteSpacePermissionRows($subtree);
+                $deleteOrder = array_reverse($subtree);
+                $placeholders = implode(',', array_fill(0, count($deleteOrder), '?'));
+                $stmt = $this->pdo->prepare("DELETE FROM knowledge_spaces WHERE id IN ({$placeholders})");
+                $stmt->execute($deleteOrder);
+                $summary['spaces_deleted'] = $stmt->rowCount();
+            } else {
+                if ($childPages > 0) {
+                    $stmt = $this->pdo->prepare('UPDATE knowledge_pages SET space_id = :target, row_version = row_version + 1, updated_at = :now WHERE space_id = :space_id AND deleted_at IS NULL');
+                    $stmt->execute(['target' => $targetPagesSpaceId, 'now' => $now, 'space_id' => $spaceId]);
+                    $summary['pages_moved'] = $stmt->rowCount();
+                    $this->moveSearchIndexRows($spaceId, (int)$targetPagesSpaceId);
+                }
+                if ($childSpaces !== []) {
+                    $stmt = $this->pdo->prepare('UPDATE knowledge_spaces SET parent_id = :parent, row_version = row_version + 1, updated_at = :now WHERE parent_id = :space_id');
+                    $stmt->execute(['parent' => $targetParentSpaceId, 'now' => $now, 'space_id' => $spaceId]);
+                    $summary['spaces_moved'] = $stmt->rowCount();
+                }
+                $this->deleteSpacePermissionRows([$spaceId]);
+                $stmt = $this->pdo->prepare('DELETE FROM knowledge_spaces WHERE id = ?');
+                $stmt->execute([$spaceId]);
+                $summary['spaces_deleted'] = $stmt->rowCount();
+            }
+            $this->pdo->commit();
+        } catch (\Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $e;
+        }
+
+        return $summary;
+    }
+
+    /** Direct child space ids (one level below the given space). */
+    private function spaceChildIds(int $spaceId): array
+    {
+        $stmt = $this->pdo->prepare('SELECT id FROM knowledge_spaces WHERE parent_id = :parent_id');
+        $stmt->execute(['parent_id' => $spaceId]);
+        return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN) ?: []);
+    }
+
+    /** All descendant space ids (breadth-first, cycle-safe). */
+    private function spaceDescendantIds(int $spaceId): array
+    {
+        $found = [];
+        $frontier = [$spaceId];
+        while ($frontier !== []) {
+            $placeholders = implode(',', array_fill(0, count($frontier), '?'));
+            $stmt = $this->pdo->prepare("SELECT id FROM knowledge_spaces WHERE parent_id IN ({$placeholders})");
+            $stmt->execute($frontier);
+            $frontier = [];
+            foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) ?: [] as $candidate) {
+                $candidate = (int)$candidate;
+                if ($candidate !== $spaceId && !in_array($candidate, $found, true)) {
+                    $found[] = $candidate;
+                    $frontier[] = $candidate;
+                }
+            }
+        }
+        return $found;
+    }
+
+    private function deleteSpacePermissionRows(array $spaceIds): void
+    {
+        if ($spaceIds === []) {
+            return;
+        }
+        try {
+            $placeholders = implode(',', array_fill(0, count($spaceIds), '?'));
+            $this->pdo->prepare("DELETE FROM knowledge_space_permissions WHERE space_id IN ({$placeholders})")->execute($spaceIds);
+        } catch (\Throwable $e) {
+            // Table missing on legacy installs — the space row still has to go.
+        }
+    }
+
+    private function deleteSearchIndexRows(array $spaceIds): void
+    {
+        if ($spaceIds === []) {
+            return;
+        }
+        try {
+            $placeholders = implode(',', array_fill(0, count($spaceIds), '?'));
+            $this->pdo->prepare("DELETE FROM knowledge_search_index WHERE space_id IN ({$placeholders})")->execute($spaceIds);
+        } catch (\Throwable $e) {
+            // Search index is rebuilt by the reindex action.
+        }
+    }
+
+    private function moveSearchIndexRows(int $fromSpaceId, int $toSpaceId): void
+    {
+        try {
+            $this->pdo->prepare('UPDATE knowledge_search_index SET space_id = :to WHERE space_id = :from')
+                ->execute(['to' => $toSpaceId, 'from' => $fromSpaceId]);
+        } catch (\Throwable $e) {
+            // Search index is rebuilt by the reindex action.
+        }
+    }
+
     public function tree(string $spacePublicId, int $depth = 10, ?array $actor = null): array
     {
         static $cache = [];

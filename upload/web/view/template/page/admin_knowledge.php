@@ -239,6 +239,77 @@
   </form></div>
 </div>
 
+<div class="modal fade" id="adminKnowledgeEditSpaceModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><form class="modal-content" id="adminKnowledgeEditSpaceForm">
+    <div class="modal-header"><h5 class="modal-title"><?= htmlspecialchars($t('admin_knowledge.edit_space_title', 'Редактировать раздел'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('common.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>"></button></div>
+    <div class="modal-body">
+      <input type="hidden" id="adminKnowledgeEditSpaceId">
+      <div class="mb-3">
+        <label class="crm-filter-label" for="adminKnowledgeEditTitle"><?= htmlspecialchars($t('knowledge.field_title', 'Название'), ENT_QUOTES, 'UTF-8') ?></label>
+        <input id="adminKnowledgeEditTitle" class="form-control" type="text" required maxlength="255">
+      </div>
+      <div class="mb-3">
+        <label class="crm-filter-label" for="adminKnowledgeEditDescription"><?= htmlspecialchars($t('knowledge.field_description', 'Описание'), ENT_QUOTES, 'UTF-8') ?></label>
+        <textarea id="adminKnowledgeEditDescription" class="form-control" rows="3"></textarea>
+      </div>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="crm-filter-label" for="adminKnowledgeEditVisibility"><?= htmlspecialchars($t('knowledge.visibility', 'Видимость'), ENT_QUOTES, 'UTF-8') ?></label>
+          <select id="adminKnowledgeEditVisibility" class="form-select">
+            <option value="public"><?= htmlspecialchars($t('knowledge.visibility_public', 'Публичный'), ENT_QUOTES, 'UTF-8') ?></option>
+            <option value="restricted"><?= htmlspecialchars($t('knowledge.visibility_restricted', 'Ограниченный'), ENT_QUOTES, 'UTF-8') ?></option>
+            <option value="private"><?= htmlspecialchars($t('knowledge.visibility_private', 'Приватный'), ENT_QUOTES, 'UTF-8') ?></option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="crm-filter-label" for="adminKnowledgeEditAccess"><?= htmlspecialchars($t('knowledge.default_access_level', 'Доступ по умолчанию'), ENT_QUOTES, 'UTF-8') ?></label>
+          <select id="adminKnowledgeEditAccess" class="form-select">
+            <option value="view"><?= htmlspecialchars($t('admin_knowledge.permissions_level_view', 'Просмотр'), ENT_QUOTES, 'UTF-8') ?></option>
+            <option value="comment"><?= htmlspecialchars($t('admin_knowledge.permissions_level_comment', 'Комментирование'), ENT_QUOTES, 'UTF-8') ?></option>
+            <option value="edit"><?= htmlspecialchars($t('admin_knowledge.permissions_level_edit', 'Редактирование'), ENT_QUOTES, 'UTF-8') ?></option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="crm-filter-label" for="adminKnowledgeEditSort"><?= htmlspecialchars($t('knowledge.field_sort_order', 'Порядок'), ENT_QUOTES, 'UTF-8') ?></label>
+          <input id="adminKnowledgeEditSort" class="form-control" type="number" step="1" value="100">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal"><?= htmlspecialchars($t('common.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button type="submit" class="btn crm-btn-primary" id="adminKnowledgeEditSubmit"><?= htmlspecialchars($t('common.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
+    </div>
+  </form></div>
+</div>
+
+<div class="modal fade" id="adminKnowledgeDeleteSpaceModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title"><?= htmlspecialchars($t('admin_knowledge.delete_space_title', 'Удалить раздел'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('common.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>"></button></div>
+    <div class="modal-body">
+      <input type="hidden" id="adminKnowledgeDeleteSpaceId">
+      <p class="mb-2"><?= htmlspecialchars($t('admin_knowledge.delete_space_confirm', 'Удалить раздел безвозвратно?'), ENT_QUOTES, 'UTF-8') ?> <strong id="adminKnowledgeDeleteSpaceTitle"></strong></p>
+      <p class="text-muted small" id="adminKnowledgeDeleteSummary"></p>
+      <div class="form-check mb-2">
+        <input class="form-check-input" type="radio" name="adminKnowledgeDeleteMode" id="adminKnowledgeDeleteModeMove" value="move" checked>
+        <label class="form-check-label" for="adminKnowledgeDeleteModeMove"><?= htmlspecialchars($t('admin_knowledge.delete_mode_move', 'Перенести содержимое в другой раздел'), ENT_QUOTES, 'UTF-8') ?></label>
+      </div>
+      <div class="mb-3 ms-4">
+        <label class="crm-filter-label" for="adminKnowledgeDeleteTarget"><?= htmlspecialchars($t('admin_knowledge.delete_target_label', 'Раздел-получатель'), ENT_QUOTES, 'UTF-8') ?></label>
+        <select id="adminKnowledgeDeleteTarget" class="form-select"></select>
+        <div class="form-text"><?= htmlspecialchars($t('admin_knowledge.delete_target_hint', 'Подразделы станут разделами верхнего уровня.'), ENT_QUOTES, 'UTF-8') ?></div>
+      </div>
+      <div class="form-check">
+        <input class="form-check-input" type="radio" name="adminKnowledgeDeleteMode" id="adminKnowledgeDeleteModePurge" value="purge">
+        <label class="form-check-label" for="adminKnowledgeDeleteModePurge"><?= htmlspecialchars($t('admin_knowledge.delete_mode_purge', 'Удалить раздел вместе со всем содержимым'), ENT_QUOTES, 'UTF-8') ?></label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal"><?= htmlspecialchars($t('common.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button type="button" class="btn crm-btn-danger" id="adminKnowledgeDeleteSubmit"><?= htmlspecialchars($t('admin_knowledge.btn_delete_space', 'Удалить'), ENT_QUOTES, 'UTF-8') ?></button>
+    </div>
+  </div></div>
+</div>
+
 </main></div></div>
 <script nonce="<?= $csp_nonce ?>">
 (function () {
@@ -284,6 +355,9 @@
       return '<a class="crm-knowledge-list-item" href="' + esc(pageLink(item)) + '"><span><strong>' + esc(item.title) + statusBadge + '</strong><small>' + esc(item.space_title || item.page_type || '') + '</small></span><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></a>';
     }).join('');
   }
+  var adminSpaces = {};
+  var adminSpaceList = [];
+  var adminSpaceCanManage = !window.CRM || !window.CRM.api || typeof window.CRM.api.hasPermission !== 'function' || window.CRM.api.hasPermission('knowledge.manage');
   async function load() {
     var overview = await request('api/v1/knowledge/overview', { method: 'GET' });
     var data = overview.data || {};
@@ -291,13 +365,20 @@
     [totals.spaces || 0, totals.pages || 0, totals.published || 0, totals.drafts || 0].forEach(function (value, index) {
       statsEl.querySelectorAll('strong')[index].textContent = String(value);
     });
-    document.getElementById('adminKnowledgeSpaces').innerHTML = (data.spaces || []).map(function (space) {
+    adminSpaceList = data.spaces || [];
+    adminSpaces = {};
+    adminSpaceList.forEach(function (space) { adminSpaces[space.public_id] = space; });
+    document.getElementById('adminKnowledgeSpaces').innerHTML = adminSpaceList.map(function (space) {
       var arch = space.is_archived ? 1 : 0;
       var actionBtn = arch
         ? '<button class="btn btn-sm crm-btn-secondary" data-space-restore="' + esc(space.public_id) + '">' + esc(t('admin_knowledge.btn_restore_space', 'Восстановить')) + '</button>'
         : '<button class="btn btn-sm crm-btn-danger-soft" data-space-archive="' + esc(space.public_id) + '">' + esc(t('admin_knowledge.btn_archive_space', 'Архивировать')) + '</button>';
+      var manageBtn = adminSpaceCanManage
+        ? '<button class="btn btn-sm crm-btn-secondary" data-space-edit="' + esc(space.public_id) + '" aria-label="' + esc(t('admin_knowledge.btn_edit_space', 'Редактировать')) + '" title="' + esc(t('admin_knowledge.btn_edit_space', 'Редактировать')) + '"><i class="fa-solid fa-pen" aria-hidden="true"></i></button>'
+          + '<button class="btn btn-sm crm-btn-danger-soft" data-space-delete="' + esc(space.public_id) + '" aria-label="' + esc(t('admin_knowledge.btn_delete_space', 'Удалить')) + '" title="' + esc(t('admin_knowledge.btn_delete_space', 'Удалить')) + '"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>'
+        : '';
       var archLabel = arch ? '<span class="crm-badge crm-badge-light">' + esc(t('admin_knowledge.archived', 'Архив')) + '</span>' : '';
-      return '<tr><td><strong>' + esc(space.title) + ' ' + archLabel + '</strong><div class="text-muted small">' + esc(space.description || '') + '</div></td><td>' + esc(space.visibility || '') + '</td><td>' + esc(space.pages_count || 0) + '</td><td><button class="btn btn-sm crm-btn-secondary" data-space-permissions="' + esc(space.public_id) + '" data-space-title="' + esc(space.title) + '">' + esc(t('admin_knowledge.btn_permissions', 'Доступ')) + '</button></td><td class="crm-table-actions">' + actionBtn + '</td></tr>';
+      return '<tr><td><strong>' + esc(space.title) + ' ' + archLabel + '</strong><div class="text-muted small">' + esc(space.description || '') + '</div></td><td>' + esc(space.visibility || '') + '</td><td>' + esc(space.pages_count || 0) + '</td><td><button class="btn btn-sm crm-btn-secondary" data-space-permissions="' + esc(space.public_id) + '" data-space-title="' + esc(space.title) + '">' + esc(t('admin_knowledge.btn_permissions', 'Доступ')) + '</button></td><td class="crm-table-actions"><div class="d-flex gap-1 justify-content-end">' + manageBtn + actionBtn + '</div></td></tr>';
     }).join('') || '<tr><td colspan="5" class="text-muted">' + esc(t('knowledge.empty_spaces', 'Разделов пока нет.')) + '</td></tr>';
     list(document.getElementById('adminKnowledgeReview'), data.review_queue || [], t('knowledge.empty_review', 'Нет страниц на проверке.'));
     list(document.getElementById('adminKnowledgeOutdated'), data.outdated || [], t('admin_knowledge.empty_outdated', 'Нет просроченных ревью.'));
@@ -432,7 +513,97 @@
           loadPermModal(currentPermSpaceId);
         });
       }
+      return;
     }
+    var editBtn = e.target.closest('[data-space-edit]');
+    if (editBtn) {
+      openSpaceEdit(editBtn.getAttribute('data-space-edit'));
+      return;
+    }
+    var deleteBtn = e.target.closest('[data-space-delete]');
+    if (deleteBtn) {
+      openSpaceDelete(deleteBtn.getAttribute('data-space-delete'));
+      return;
+    }
+  });
+
+  function openSpaceEdit(spaceId) {
+    var space = adminSpaces[spaceId];
+    if (!space) return;
+    document.getElementById('adminKnowledgeEditSpaceId').value = spaceId;
+    document.getElementById('adminKnowledgeEditTitle').value = space.title || '';
+    document.getElementById('adminKnowledgeEditDescription').value = space.description || '';
+    document.getElementById('adminKnowledgeEditVisibility').value = space.visibility || 'public';
+    document.getElementById('adminKnowledgeEditAccess').value = space.default_access_level || 'view';
+    document.getElementById('adminKnowledgeEditSort').value = String(space.sort_order != null ? space.sort_order : 100);
+    var modal = window.bootstrap && bootstrap.Modal.getOrCreateInstance(document.getElementById('adminKnowledgeEditSpaceModal'));
+    modal && modal.show();
+  }
+
+  function openSpaceDelete(spaceId) {
+    var space = adminSpaces[spaceId];
+    if (!space) return;
+    document.getElementById('adminKnowledgeDeleteSpaceId').value = spaceId;
+    document.getElementById('adminKnowledgeDeleteSpaceTitle').textContent = space.title || '';
+    document.getElementById('adminKnowledgeDeleteSummary').textContent = t('admin_knowledge.delete_summary', 'Страниц в разделе: ') + String(space.pages_count || 0);
+    var targets = adminSpaceList.filter(function (item) { return item.public_id !== spaceId && !item.is_archived; });
+    var select = document.getElementById('adminKnowledgeDeleteTarget');
+    select.innerHTML = targets.map(function (item) { return '<option value="' + esc(item.public_id) + '">' + esc(item.title) + '</option>'; }).join('');
+    var moveRadio = document.getElementById('adminKnowledgeDeleteModeMove');
+    var hasTargets = targets.length > 0;
+    moveRadio.disabled = !hasTargets;
+    moveRadio.checked = hasTargets;
+    document.getElementById('adminKnowledgeDeleteModePurge').checked = !hasTargets;
+    var modal = window.bootstrap && bootstrap.Modal.getOrCreateInstance(document.getElementById('adminKnowledgeDeleteSpaceModal'));
+    modal && modal.show();
+  }
+
+  document.getElementById('adminKnowledgeEditSpaceForm').addEventListener('submit', async function (event) {
+    event.preventDefault();
+    var spaceId = document.getElementById('adminKnowledgeEditSpaceId').value;
+    var space = adminSpaces[spaceId] || {};
+    var title = document.getElementById('adminKnowledgeEditTitle').value.trim();
+    if (!title) return;
+    var body = {
+      title: title,
+      description: document.getElementById('adminKnowledgeEditDescription').value,
+      visibility: document.getElementById('adminKnowledgeEditVisibility').value,
+      default_access_level: document.getElementById('adminKnowledgeEditAccess').value,
+      sort_order: parseInt(document.getElementById('adminKnowledgeEditSort').value, 10) || 0,
+      row_version: parseInt(space.row_version || 1, 10)
+    };
+    var btn = document.getElementById('adminKnowledgeEditSubmit');
+    btn.disabled = true;
+    try {
+      await request('api/v1/knowledge/spaces/' + encodeURIComponent(spaceId), { method: 'PATCH', body: body, idempotent: true });
+      window.bootstrap && bootstrap.Modal.getOrCreateInstance(document.getElementById('adminKnowledgeEditSpaceModal')).hide();
+      await load();
+    } catch (e) {
+      window.alert(t('admin_knowledge.space_save_error', 'Не удалось сохранить раздел.'));
+    }
+    btn.disabled = false;
+  });
+
+  document.getElementById('adminKnowledgeDeleteSubmit').addEventListener('click', async function () {
+    var spaceId = document.getElementById('adminKnowledgeDeleteSpaceId').value;
+    var purge = document.getElementById('adminKnowledgeDeleteModePurge').checked;
+    var body = purge
+      ? { cascade: true }
+      : { reassign_space_public_id: document.getElementById('adminKnowledgeDeleteTarget').value, reassign_parent_public_id: '' };
+    if (!purge && !body.reassign_space_public_id) {
+      window.alert(t('admin_knowledge.delete_select_target', 'Выберите раздел, в который перенести страницы.'));
+      return;
+    }
+    var btn = this;
+    btn.disabled = true;
+    try {
+      await request('api/v1/knowledge/spaces/' + encodeURIComponent(spaceId) + '/delete', { method: 'POST', body: body, idempotent: true });
+      window.bootstrap && bootstrap.Modal.getOrCreateInstance(document.getElementById('adminKnowledgeDeleteSpaceModal')).hide();
+      await load();
+    } catch (e) {
+      window.alert(t('admin_knowledge.delete_error', 'Не удалось удалить раздел. Возможно, он ещё не пуст.'));
+    }
+    btn.disabled = false;
   });
 
   document.getElementById('knowledgePermSubjectType').addEventListener('change', function () {

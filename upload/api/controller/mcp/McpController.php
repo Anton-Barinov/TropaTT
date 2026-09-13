@@ -3189,7 +3189,7 @@ $tools[] = $this->tool(
             [
                 'action' => ['type' => 'string', 'enum' => [
                     'overview', 'search', 'analytics', 'suggest', 'entity_pages',
-                    'list_spaces', 'get_space', 'create_space', 'update_space', 'archive_space', 'restore_space',
+                    'list_spaces', 'get_space', 'create_space', 'update_space', 'archive_space', 'restore_space', 'delete_space',
                     'get_space_permissions', 'add_space_permission', 'remove_space_permission',
                     'list_pages', 'get_page', 'create_page', 'update_page', 'archive_page', 'restore_page',
                     'move_page', 'duplicate_page', 'publish_page', 'lock_page', 'unlock_page',
@@ -3217,6 +3217,7 @@ $tools[] = $this->tool(
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
                 'access_level' => ['type' => 'string', 'description' => 'Access level (view/edit/manage).'],
+                'cascade' => ['type' => 'boolean', 'description' => 'With delete_space: delete the space together with its pages and sub-sections.'],
                 'change_note' => ['type' => 'string', 'description' => 'Note for the restored version.'],
                 'change_summary' => ['type' => 'string', 'description' => 'Short summary of the change.'],
                 'color' => ['type' => 'string', 'description' => 'Colour token or hex value.'],
@@ -3238,6 +3239,8 @@ $tools[] = $this->tool(
                 'parent_public_id' => ['type' => 'string', 'description' => 'Parent record public_id.'],
                 'permission_id' => ['type' => 'string', 'description' => 'Public identifier.'],
                 'reason' => ['type' => 'string', 'description' => 'Reason text.'],
+                'reassign_parent_public_id' => ['type' => 'string', 'description' => 'With delete_space: parent for the child sub-sections (empty string moves them to the root).'],
+                'reassign_space_public_id' => ['type' => 'string', 'description' => 'With delete_space: space that receives the pages before removal.'],
                 'relation_type' => ['type' => 'string', 'description' => 'Relation type code.'],
                 'review_due_at' => ['type' => 'string', 'description' => 'Review due date (ISO 8601).'],
                 'row_version' => ['type' => 'integer', 'description' => 'Numeric value (integer).'],
@@ -4790,6 +4793,7 @@ $tools[] = $this->tool(
             'update_space' => $this->crmUpdateKnowledgeSpace($args),
             'archive_space' => $this->crmArchiveKnowledgeSpace($args),
             'restore_space' => $this->crmRestoreKnowledgeSpace($args),
+            'delete_space' => $this->crmDeleteKnowledgeSpace($args),
             'get_space_permissions' => $this->crmGetKnowledgeSpacePermissions($args),
             'add_space_permission' => $this->crmAddKnowledgeSpacePermission($args),
             'remove_space_permission' => $this->crmRemoveKnowledgeSpacePermission($args),
@@ -10172,6 +10176,30 @@ $tools[] = $this->tool(
         }
         $this->invalidateCache('knowledge');
         return ['restored' => true];
+    }
+
+    private function crmDeleteKnowledgeSpace(array $arguments): array
+    {
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        $result = $this->knowledge()->deleteSpace($publicId, $this->pick($arguments, [
+            'reassign_space_public_id', 'reassign_parent_public_id', 'cascade',
+        ]), $this->actor());
+        if ($result === null) {
+            return ['error' => 'Knowledge space not found.'];
+        }
+        if (is_string($result)) {
+            $messages = [
+                'SYSTEM_SPACE' => 'A system knowledge space cannot be deleted.',
+                'HAS_CHILDREN' => 'The space still has pages or sub-sections; move them or pass cascade=true.',
+                'INVALID_REASSIGN_TARGET' => 'Invalid reassignment target.',
+            ];
+            return ['error' => $messages[$result] ?? 'Knowledge space cannot be deleted.'];
+        }
+        $this->invalidateCache('knowledge');
+        return ['deleted' => true, 'result' => $result];
     }
 
     private function crmListKnowledgeSpaces(array $arguments): array

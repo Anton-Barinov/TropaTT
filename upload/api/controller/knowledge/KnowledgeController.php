@@ -215,6 +215,35 @@ final class KnowledgeController extends BaseController
         return $this->success('KNOWLEDGE_SPACE_RESTORED', $this->t('knowledge/messages.space_restored', 'Knowledge space restored'));
     }
 
+    /**
+     * Permanently delete a knowledge space (issue #18).
+     *
+     * Contents are never dropped silently: the caller must pass either
+     * `reassign_space_public_id` / `reassign_parent_public_id` (move them) or
+     * `cascade=true` (delete the whole sub-tree) when the space is not empty.
+     */
+    public function deleteSpace(array $params): JsonResponse
+    {
+        $result = $this->repo()->deleteSpace((string)$params['public_id'], $this->request()->allInput(), $this->actor());
+        if ($result === 'SYSTEM_SPACE') {
+            return $this->error('KNOWLEDGE_SPACE_SYSTEM', $this->t('knowledge/messages.space_system_locked', 'A system knowledge space cannot be deleted'), 422);
+        }
+        if ($result === 'HAS_CHILDREN') {
+            return $this->error('KNOWLEDGE_SPACE_NOT_EMPTY', $this->t('knowledge/messages.space_not_empty', 'The space still has pages or sub-sections'), 409);
+        }
+        if ($result === 'INVALID_REASSIGN_TARGET') {
+            return $this->error('KNOWLEDGE_SPACE_INVALID_TARGET', $this->t('knowledge/messages.space_invalid_target', 'Invalid reassignment target'), 422);
+        }
+        if (!$result) {
+            return $this->error('KNOWLEDGE_SPACE_NOT_FOUND', $this->t('knowledge/messages.space_not_found', 'Knowledge space not found'), 404);
+        }
+        $this->invalidateCache('knowledge');
+        $this->auditLog('knowledge_space', (string)$params['public_id'], 'space_deleted', $result);
+        return $this->success('KNOWLEDGE_SPACE_DELETED', $this->t('knowledge/messages.space_deleted', 'Knowledge space deleted'), [
+            'result' => $result,
+        ]);
+    }
+
     public function tree(array $params): JsonResponse
     {
         return $this->success('KNOWLEDGE_TREE', $this->t('knowledge/messages.tree', 'Knowledge tree loaded'), [
