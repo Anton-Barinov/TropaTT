@@ -65,6 +65,9 @@ canonical = METHOD \n request_path \n timestamp \n nonce \n hex(sha256(raw_body)
 | `GET` | `/stores/{public_id}/sync-log` | `…view` | Журнал синхронизации (inbound/outbox) |
 | `POST` | `/stores/{public_id}/sync-log/{log_id}/retry` | `…manage` | Ручной повтор отправки события Outbox |
 | `POST` | `/stores/{public_id}/ping-test` | `…manage` | Проверка доступности витрины (Ping-тест) |
+| `GET` | `/stores/{public_id}/outbox/dlq` | `…view` | Реестр событий Dead Letter Queue (DLQ) |
+| `POST` | `/stores/{public_id}/outbox/dlq/replay` | `…manage` | Перезапуск событий из Dead Letter Queue |
+| `POST` | `/stores/{public_id}/reconciliation/run` | `…manage` | Запуск периодической сверки заказов (Reconciliation) |
 
 ## Веб-интерфейс панели управления
 

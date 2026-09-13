@@ -488,6 +488,25 @@
 
         const direction = document.getElementById('logDirectionFilter').value || 'all';
 
+        if (direction === 'dlq') {
+            api('/stores/' + state.currentStore.public_id + '/outbox/dlq', {
+                query: { limit: 50 }
+            }).then(function (data) {
+                const items = (data.items || []).map(function (it) {
+                    it.direction = 'outbound';
+                    it.log_type = 'outbox_webhook';
+                    it.request_payload = it.payload_json || '';
+                    it.response_payload = it.last_response_body || it.last_error || '';
+                    it.http_code = it.last_http_code;
+                    return it;
+                });
+                renderSyncLog(items);
+            }).catch(function (err) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-danger p-3">Ошибка: ' + esc(err.message) + '</td></tr>';
+            });
+            return;
+        }
+
         api('/stores/' + state.currentStore.public_id + '/sync-log', {
             query: { direction: direction, limit: 50 }
         }).then(function (data) {
@@ -596,6 +615,39 @@
         });
     }
 
+    function replayDeadLetterQueue() {
+        if (!state.currentStore) return;
+        if (!confirm('Перезапустить все недоставленные события из Dead Letter Queue для витрины ' + state.currentStore.name + '?')) {
+            return;
+        }
+
+        showNotice('Перезапуск очереди DLQ...', 'info');
+        api('/stores/' + state.currentStore.public_id + '/outbox/dlq/replay', { method: 'POST' }).then(function (res) {
+            const count = res.replayed_count || 0;
+            showNotice('Очередь DLQ перезапущена. Событий возвращено в работу: ' + count, count > 0 ? 'success' : 'info');
+            loadSyncLog();
+        }).catch(function (err) {
+            showNotice(err.message || 'Ошибка перезапуска DLQ', 'error');
+        });
+    }
+
+    function runReconciliation() {
+        if (!state.currentStore) return;
+        showNotice('Запуск аудита и сверки заказов (Reconciliation)...', 'info');
+
+        api('/stores/' + state.currentStore.public_id + '/reconciliation/run', { method: 'POST' }).then(function (res) {
+            const report = res.report || {};
+            const msg = 'Сверка завершена. Проверено: ' + (report.scanned || 0) +
+                ', совпало: ' + (report.matched || 0) +
+                ', восстановлено: ' + (report.missing_ingested || 0) +
+                ', расхождений статусов: ' + (report.status_mismatches || 0);
+            showNotice(msg, (report.errors && report.errors.length) ? 'warning' : 'success');
+            loadSyncLog();
+        }).catch(function (err) {
+            showNotice(err.message || 'Ошибка запуска сверки заказов', 'error');
+        });
+    }
+
     // ── Preload Projects & Users ──
     function loadMetadata() {
         window.CRM.api.request('projects', { method: 'GET' }).then(function (res) {
@@ -643,6 +695,8 @@
         document.getElementById('securityForm')?.addEventListener('submit', saveSecurity);
         document.getElementById('refreshLogBtn')?.addEventListener('click', loadSyncLog);
         document.getElementById('logDirectionFilter')?.addEventListener('change', loadSyncLog);
+        document.getElementById('replayDlqBtn')?.addEventListener('click', replayDeadLetterQueue);
+        document.getElementById('runReconcileBtn')?.addEventListener('click', runReconciliation);
 
         loadMetadata();
         loadStores();

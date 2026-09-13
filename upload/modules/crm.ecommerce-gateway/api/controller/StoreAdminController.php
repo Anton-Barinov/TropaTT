@@ -375,6 +375,142 @@ final class StoreAdminController
         ]);
     }
 
+    /**
+     * Retrieves dead-letter queue events for a store (E-COM-10 §3).
+     *
+     * @param array<string,mixed> $params
+     */
+    public function getDeadLetterQueue(array $params): JsonResponse
+    {
+        if (!$this->canView()) {
+            return JsonResponse::error('FORBIDDEN', 'Insufficient permissions', 403);
+        }
+
+        $store = $this->service->getStore((string)($params['public_id'] ?? ''));
+        if ($store === null) {
+            return JsonResponse::error('STORE_NOT_FOUND', 'Store not found', 404);
+        }
+
+        /** @var Request $request */
+        $request = $this->container->get('request');
+        $limit = max(1, min(100, (int)$request->get('limit', 50)));
+        $offset = max(0, (int)$request->get('offset', 0));
+
+        $outboxRepo = new \Module\Crm\EcommerceGateway\Repository\OutboxRepository($this->pdo);
+        $items = $outboxRepo->getDeadLetterEvents((int)$store['id'], $limit, $offset);
+
+        return JsonResponse::success('DEAD_LETTER_QUEUE', 'OK', [
+            'store_public_id' => $store['public_id'],
+            'items' => $items,
+            'count' => count($items),
+        ]);
+    }
+
+    /**
+     * Replays Dead Letter Queue events back to pending state (E-COM-10 §3).
+     *
+     * @param array<string,mixed> $params
+     */
+    public function replayDeadLetterQueue(array $params): JsonResponse
+    {
+        if (!$this->canManage()) {
+            return JsonResponse::error('FORBIDDEN', 'Insufficient permissions', 403);
+        }
+
+        $store = $this->service->getStore((string)($params['public_id'] ?? ''));
+        if ($store === null) {
+            return JsonResponse::error('STORE_NOT_FOUND', 'Store not found', 404);
+        }
+
+        $body = $this->requestBody();
+        $eventId = isset($body['event_id']) && is_numeric($body['event_id']) ? (int)$body['event_id'] : null;
+
+        $outboxRepo = new \Module\Crm\EcommerceGateway\Repository\OutboxRepository($this->pdo);
+        $replayedCount = $outboxRepo->replayDeadLetter((int)$store['id'], $eventId);
+
+        // Immediately trigger background delivery job if events were replayed
+        if ($replayedCount > 0) {
+            $job = new \Module\Crm\EcommerceGateway\Job\EcommerceWebhookJob(
+                $outboxRepo,
+                $this->moduleConfig()
+            );
+            $job->processPending(min(50, $replayedCount));
+        }
+
+        $this->storeRepo->audit('outbox.dlq_replayed', (int)$store['id'], 'user', (string)($this->actor()['id'] ?? '0'), [
+            'store_public_id' => $store['public_id'],
+            'replayed_count' => $replayedCount,
+            'event_id' => $eventId,
+        ], $this->clientIp(), $this->userAgent());
+
+        return JsonResponse::success('DLQ_REPLAYED', 'Dead letter queue replayed', [
+            'store_public_id' => $store['public_id'],
+            'replayed_count' => $replayedCount,
+        ]);
+    }
+
+    /**
+     * Runs periodic order reconciliation and catch-up ingestion (E-COM-10 §2).
+     *
+     * @param array<string,mixed> $params
+     */
+    public function runReconciliation(array $params): JsonResponse
+    {
+        if (!$this->canManage()) {
+            return JsonResponse::error('FORBIDDEN', 'Insufficient permissions', 403);
+        }
+
+        $store = $this->service->getStore((string)($params['public_id'] ?? ''));
+        if ($store === null) {
+            return JsonResponse::error('STORE_NOT_FOUND', 'Store not found', 404);
+        }
+
+        $body = $this->requestBody();
+        $options = [];
+        if (isset($body['since']) && is_numeric($body['since'])) {
+            $options['since'] = (int)$body['since'];
+        }
+        if (isset($body['orders']) && is_array($body['orders'])) {
+            $options['orders'] = $body['orders'];
+        }
+
+        $outboxRepo = new \Module\Crm\EcommerceGateway\Repository\OutboxRepository($this->pdo);
+        $ingestRepo = new \Module\Crm\EcommerceGateway\Repository\IngestRepository($this->pdo);
+        $config = $this->moduleConfig();
+
+        $ingestService = new \Module\Crm\EcommerceGateway\Service\IngestService(
+            $this->storeRepo,
+            $ingestRepo,
+            new \Module\Crm\EcommerceGateway\Service\PayloadValidator(),
+            new \Module\Crm\EcommerceGateway\Service\IdempotencyService($ingestRepo),
+            new \Module\Crm\EcommerceGateway\Service\ContactResolver($ingestRepo),
+            new \Module\Crm\EcommerceGateway\Service\IntakeComposer(),
+            $this->container->has('service.intake_item') ? new \Module\Crm\EcommerceGateway\Service\CoreIntakeWriter($this->container->get('service.intake_item')) : null,
+            $this->container->has('service.task') ? $this->container->get('service.task') : null,
+            $config
+        );
+
+        $reconciliationService = new \Module\Crm\EcommerceGateway\Service\ReconciliationService(
+            $this->pdo,
+            $this->storeRepo,
+            $outboxRepo,
+            $ingestService,
+            $config
+        );
+
+        $result = $reconciliationService->reconcile($store, $options);
+
+        $this->storeRepo->audit('reconciliation.executed', (int)$store['id'], 'user', (string)($this->actor()['id'] ?? '0'), [
+            'store_public_id' => $store['public_id'],
+            'result' => $result,
+        ], $this->clientIp(), $this->userAgent());
+
+        return JsonResponse::success('RECONCILIATION_COMPLETED', 'Order reconciliation completed', [
+            'store_public_id' => $store['public_id'],
+            'report' => $result,
+        ]);
+    }
+
     // ── Auth / actor helpers ───────────────────────────────────────────
 
     private function canView(): bool

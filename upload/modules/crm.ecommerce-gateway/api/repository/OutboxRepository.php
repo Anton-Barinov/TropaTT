@@ -7,7 +7,7 @@ use Api\System\Library\Support\Ulid;
 use PDO;
 
 /**
- * Transactional Outbox persistence for asynchronous webhook deliveries (E-COM-04 §3).
+ * Transactional Outbox persistence for asynchronous webhook deliveries (E-COM-04 §3, E-COM-10).
  */
 final class OutboxRepository
 {
@@ -99,17 +99,24 @@ final class OutboxRepository
     /**
      * @return list<array<string,mixed>>
      */
-    public function findPendingEvents(int $limit = 20): array
+    public function findPendingEvents(int $limit = 20, bool $forUpdate = false): array
     {
         $now = $this->now();
         $limit = max(1, min(100, $limit));
 
-        $stmt = $this->pdo->prepare(
-            'SELECT * FROM ecommerce_outbox_events
-             WHERE status = "pending" AND next_attempt_at <= :now
-             ORDER BY id ASC
-             LIMIT ' . $limit
-        );
+        $sql = 'SELECT * FROM ecommerce_outbox_events
+                WHERE status = "pending" AND next_attempt_at <= :now
+                ORDER BY id ASC
+                LIMIT ' . $limit;
+
+        if ($forUpdate) {
+            $driver = (string)$this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+            if ($driver === 'mysql') {
+                $sql .= ' FOR UPDATE SKIP LOCKED';
+            }
+        }
+
+        $stmt = $this->pdo->prepare($sql);
         $stmt->execute(['now' => $now]);
 
         /** @var list<array<string,mixed>> */
@@ -188,6 +195,85 @@ final class OutboxRepository
             'response_body' => $responseBody !== null ? mb_substr($responseBody, 0, 4000) : null,
             'now' => $now,
         ]);
+    }
+
+    /**
+     * Replays Dead Letter Queue events back to pending.
+     *
+     * @param int $storeId Store ID to replay for (0 for all stores)
+     * @param int|null $eventId Optional specific outbox event ID
+     * @return int Number of events reset to pending
+     */
+    public function replayDeadLetter(int $storeId = 0, ?int $eventId = null): int
+    {
+        $now = $this->now();
+        $conditions = ['status IN ("failed", "dead")'];
+        $params = ['now' => $now];
+
+        if ($storeId > 0) {
+            $conditions[] = 'store_id = :store_id';
+            $params['store_id'] = $storeId;
+        }
+
+        if ($eventId !== null && $eventId > 0) {
+            $conditions[] = 'id = :event_id';
+            $params['event_id'] = $eventId;
+        }
+
+        $sql = 'UPDATE ecommerce_outbox_events
+                SET status = "pending", attempts = 0, next_attempt_at = :now, updated_at = :now
+                WHERE ' . implode(' AND ', $conditions);
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->rowCount();
+    }
+
+    /**
+     * Returns dead letter queue events (status IN ('failed', 'dead')).
+     *
+     * @return list<array<string,mixed>>
+     */
+    public function getDeadLetterEvents(int $storeId = 0, int $limit = 50, int $offset = 0): array
+    {
+        $limit = max(1, min(200, $limit));
+        $offset = max(0, $offset);
+
+        $sql = 'SELECT * FROM ecommerce_outbox_events WHERE status IN ("failed", "dead")';
+        $params = [];
+
+        if ($storeId > 0) {
+            $sql .= ' AND store_id = :store_id';
+            $params['store_id'] = $storeId;
+        }
+
+        $sql .= ' ORDER BY id DESC LIMIT ' . $limit . ' OFFSET ' . $offset;
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+
+        /** @var list<array<string,mixed>> */
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Automatically archives stale dead-letter queue records older than $days (E-COM-10 §3).
+     *
+     * @param int $days Age threshold in days (default 30)
+     * @return int Number of records deleted/archived
+     */
+    public function archiveStaleDeadLetterEvents(int $days = 30): int
+    {
+        $cutoff = gmdate('Y-m-d H:i:s', time() - max(1, $days) * 86400);
+
+        $stmt = $this->pdo->prepare(
+            'DELETE FROM ecommerce_outbox_events
+             WHERE status IN ("failed", "dead") AND updated_at < :cutoff'
+        );
+        $stmt->execute(['cutoff' => $cutoff]);
+
+        return $stmt->rowCount();
     }
 
     /**
@@ -280,7 +366,7 @@ final class OutboxRepository
     public function getStore(int $storeId): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT id, public_id, name, webhook_url, webhook_secret_encrypted, api_secret_encrypted, status, locale
+            'SELECT id, public_id, name, store_url, api_key, webhook_url, webhook_secret_encrypted, api_secret_encrypted, status, locale
              FROM ecommerce_stores WHERE id = :id AND deleted_at IS NULL LIMIT 1'
         );
         $stmt->execute(['id' => $storeId]);

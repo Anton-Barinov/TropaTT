@@ -241,14 +241,21 @@
                     <h2 class="h6 mb-0"><?= htmlspecialchars($t('ecommerce_gateway.log_title', 'Журнал синхронизации и Outbox'), ENT_QUOTES, 'UTF-8') ?></h2>
                     <div class="crm-section-note"><?= htmlspecialchars($t('ecommerce_gateway.log_desc', 'Аудит входящих заказов из CMS и исходящих вебхуков обновления статусов.'), ENT_QUOTES, 'UTF-8') ?></div>
                 </div>
-                <div class="d-flex gap-2 align-items-center">
-                    <select id="logDirectionFilter" class="form-select form-select-sm" style="width: 150px;">
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                    <select id="logDirectionFilter" class="form-select form-select-sm" style="width: 160px;">
                         <option value="all">Все направления</option>
                         <option value="inbound">Входящие (Inbound)</option>
                         <option value="outbound">Исходящие (Outbox)</option>
+                        <option value="dlq">Очередь DLQ (Ошибки)</option>
                     </select>
                     <button type="button" class="btn btn-sm crm-btn-secondary" id="refreshLogBtn">
                         <i class="fa-solid fa-rotate me-1"></i> Обновить
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-warning" id="replayDlqBtn" title="Перезапустить все неотправленные события из Dead Letter Queue">
+                        <i class="fa-solid fa-arrows-rotate me-1"></i> Перезапустить DLQ
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-info" id="runReconcileBtn" title="Запустить сверку заказов между CMS и CRM">
+                        <i class="fa-solid fa-magnifying-glass-chart me-1"></i> Сверка заказов
                     </button>
                 </div>
             </div>

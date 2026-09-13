@@ -28,4 +28,7 @@ return [
     ['methods' => ['GET'], 'route' => '/v1/stores/{public_id}/sync-log', 'controller' => StoreAdminController::class, 'action' => 'getSyncLog', 'auth' => true, 'required_permissions' => ['module.ecommerce-gateway.view']],
     ['methods' => ['POST'], 'route' => '/v1/stores/{public_id}/sync-log/{log_id}/retry', 'controller' => StoreAdminController::class, 'action' => 'retrySyncPacket', 'auth' => true, 'required_permissions' => ['module.ecommerce-gateway.manage']],
     ['methods' => ['POST'], 'route' => '/v1/stores/{public_id}/ping-test', 'controller' => StoreAdminController::class, 'action' => 'pingTest', 'auth' => true, 'required_permissions' => ['module.ecommerce-gateway.manage']],
+    ['methods' => ['GET'], 'route' => '/v1/stores/{public_id}/outbox/dlq', 'controller' => StoreAdminController::class, 'action' => 'getDeadLetterQueue', 'auth' => true, 'required_permissions' => ['module.ecommerce-gateway.view']],
+    ['methods' => ['POST'], 'route' => '/v1/stores/{public_id}/outbox/dlq/replay', 'controller' => StoreAdminController::class, 'action' => 'replayDeadLetterQueue', 'auth' => true, 'required_permissions' => ['module.ecommerce-gateway.manage']],
+    ['methods' => ['POST'], 'route' => '/v1/stores/{public_id}/reconciliation/run', 'controller' => StoreAdminController::class, 'action' => 'runReconciliation', 'auth' => true, 'required_permissions' => ['module.ecommerce-gateway.manage']],
 ];
