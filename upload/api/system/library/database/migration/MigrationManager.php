@@ -82,6 +82,7 @@ final class MigrationManager
             new ApiKeysNameMigration(),
             new ApiKeyPreviewMigration(),
             new AgentMemoryMigration(),
+            new KnowledgeSpacesTrashMigration(),
         ];
     }
 

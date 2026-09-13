@@ -547,6 +547,7 @@ The public repository currently includes a focused maintainer documentation set:
 | API tooling | `upload/api/scripts/generate_openapi.php` | OpenAPI generation entry point for API documentation automation |
 | API reference | [English](docs_api/api_en.md) · [Русский](docs_api/api_ru.md) · [中文](docs_api/api_zh.md) | Complete REST API reference — endpoints, authentication, RBAC, and conventions (English / Русский / 中文) |
 | MCP reference | [English](docs_mcp/mcp_en.md) · [Русский](docs_mcp/mcp_ru.md) · [中文](docs_mcp/mcp_zh.md) | Complete MCP server reference — 620 tools, resources, authentication, and RBAC (English / Русский / 中文) |
+| Module developer guide | [English](docs_modules/modules_en.md) · [Русский](docs_modules/modules_ru.md) · [中文](docs_modules/modules_zh.md) | Complete module development guide — manifests, service providers, event bus, UI slots, and migrations (English / Русский / 中文) |
 | Web docs | [`UPDATES.md`](UPDATES.md) | Self-update system reference: update server pipeline and the user update flow |
 | Project root | `README.md`, `SECURITY.md`, `CONTRIBUTING.md`, [`MODULE_DEVELOPMENT.md`](MODULE_DEVELOPMENT.md), [`INSTALL_TROUBLESHOOTING.md`](INSTALL_TROUBLESHOOTING.md), [`SHARED_HOSTING_GUIDE.md`](SHARED_HOSTING_GUIDE.md), [`WEBHOOK_SECURITY.md`](WEBHOOK_SECURITY.md) | Public usage, security, contribution, module development, installation troubleshooting, shared hosting, and webhook security guidance |
 ---
@@ -1077,6 +1078,7 @@ TropaTT/
 | API tooling | `upload/api/scripts/generate_openapi.php` | Точка входа для автоматизации генерации OpenAPI |
 | API-справочник | [Русский](docs_api/api_ru.md) · [English](docs_api/api_en.md) · [中文](docs_api/api_zh.md) | Полный справочник REST API — endpoint'ы, авторизация, RBAC и соглашения (Русский / English / 中文) |
 | MCP-справочник | [Русский](docs_mcp/mcp_ru.md) · [English](docs_mcp/mcp_en.md) · [中文](docs_mcp/mcp_zh.md) | Полный справочник MCP-сервера — 620 tools, ресурсы, авторизация и RBAC (Русский / English / 中文) |
+| Руководство по модулям | [Русский](docs_modules/modules_ru.md) · [English](docs_modules/modules_en.md) · [中文](docs_modules/modules_zh.md) | Полное руководство по разработке модулей — манифест, сервис-провайдеры, шина событий, UI-слоты и миграции (Русский / English / 中文) |
 | Web docs | [`UPDATES.md`](UPDATES.md) | Справочник по системе обновлений: конвейер сервера обновлений и поток обновления для пользователя |
 | Корень проекта | `README.md`, `SECURITY.md`, `CONTRIBUTING.md`, [`MODULE_DEVELOPMENT.md`](MODULE_DEVELOPMENT.md), [`INSTALL_TROUBLESHOOTING.md`](INSTALL_TROUBLESHOOTING.md), [`SHARED_HOSTING_GUIDE.md`](SHARED_HOSTING_GUIDE.md), [`WEBHOOK_SECURITY.md`](WEBHOOK_SECURITY.md) | Публичные правила использования, безопасности, вклада, разработки модулей, troubleshooting установки, shared hosting гайд, webhook security |
 ---
@@ -1602,6 +1604,7 @@ TropaTT/
 | API 工具 | `upload/api/scripts/generate_openapi.php` | API 文档自动化的 OpenAPI 生成入口 |
 | API 参考 | [中文](docs_api/api_zh.md) · [English](docs_api/api_en.md) · [Русский](docs_api/api_ru.md) | 完整 REST API 参考 — 端点、认证、RBAC 和约定（中文 / English / Русский） |
 | MCP 参考 | [中文](docs_mcp/mcp_zh.md) · [English](docs_mcp/mcp_en.md) · [Русский](docs_mcp/mcp_ru.md) | 完整 MCP 服务器参考 — 620 个工具、资源、认证和 RBAC（中文 / English / Русский） |
+| 模块开发指南 | [中文](docs_modules/modules_zh.md) · [English](docs_modules/modules_en.md) · [Русский](docs_modules/modules_ru.md) | 完整模块开发指南 — 清单、服务提供者、事件总线、UI 插槽和迁移（中文 / English / Русский） |
 | Web 文档 | [`UPDATES.md`](UPDATES.md) | 自更新系统参考：更新服务器流水线和用户更新流程 |
 | 项目根目录 | `README.md`, `SECURITY.md`, `CONTRIBUTING.md`, [`MODULE_DEVELOPMENT.md`](MODULE_DEVELOPMENT.md), [`INSTALL_TROUBLESHOOTING.md`](INSTALL_TROUBLESHOOTING.md), [`SHARED_HOSTING_GUIDE.md`](SHARED_HOSTING_GUIDE.md), [`WEBHOOK_SECURITY.md`](WEBHOOK_SECURITY.md) | 公开使用、安全、贡献、模块开发、安装排障、共享主机和 Webhook 安全指南 |
 

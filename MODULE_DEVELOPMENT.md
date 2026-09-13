@@ -1,5 +1,10 @@
 # Module Development Guide
 
+> 📖 **Full Multilingual Documentation Suite / Полная документация / 完整模块开发指南:**
+> - 🇷🇺 [Руководство разработчика модулей (Русский)](docs_modules/modules_ru.md) — 13 подробных глав, архитектура, шина событий, позиции UI, транзакционные очереди и безопасность.
+> - 🇬🇧 [Module Developer Guide (English)](docs_modules/modules_en.md) — Full technical specification, manifest reference, service provider lifecycle, and circuit breaker.
+> - 🇨🇳 [模块开发者指南 (中文)](docs_modules/modules_zh.md) — 架构原理解析、插槽注册、静态代码安全审查与远程分发。
+
 This guide documents how to build a **self-contained module** for TropaTT. Modules extend the core **without modifying it**: a module declares in `manifest.json` and in its own classes where it wants to connect — events, positions, assets — and the core calls it at the right moment.
 
 A module is a directory under `modules/` named `vendor.name` (for example `crm.wip-limit`). The contents of `upload/` are installed into the server document root, so a module lives at `modules/vendor.name/` next to the core `api/` and `web/` applications.

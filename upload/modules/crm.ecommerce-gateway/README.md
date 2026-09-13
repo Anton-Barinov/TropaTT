@@ -8,12 +8,19 @@
 
 | Этап | Содержание | Статус |
 |---|---|---|
-| E-COM-01 | Архитектурная спецификация протокола (REST & Webhooks) | готово (документы `docs/web/ecommerce-gateway-tz.md`, `docs/web/ecommerce-gateway-openapi.yaml`) |
+| E-COM-01 | Архитектурная спецификация протокола (REST & Webhooks) | готово (`docs/web/ecommerce-gateway-tz.md`, OpenAPI) |
 | E-COM-02 | Ядро модуля: манифест, миграции БД, аутентификация витрин | готово |
 | E-COM-03 | Ingestion API: приём заказов/форм, валидация схем, дедупликация, создание заявок | готово |
-| E-COM-04 | Двусторонняя реактивная синхронизация статусов (CRM Events -> CMS Webhooks), Outbox, HMAC подпись, защита от эхо-петель, FSM | готово |
+| E-COM-04 | Двусторонняя реактивная синхронизация статусов (CRM Events -> CMS Webhooks), Outbox, HMAC подпись, FSM | готово |
 | E-COM-05 | UI панели управления витринами: реестр магазинов, маппинг воронок/статусов, аудит-лог | готово |
-| E-COM-09…15 | Безопасность, полиморфный Ingestion, i18n, shared-хостинг, сквозное QA | запланировано |
+| E-COM-09 | Кибербезопасность: Fail2ban, защита от SQLi, XSS, ReDoS, антиспам, изоляция ключей | готово |
+| E-COM-10 | Гарантия доставки (Transactional Outbox), DLQ, авто-восстановление (Reconciliation) | готово |
+| E-COM-11 | Полиморфный Ingestion: звонки, 1 клик, формы связи, динамический маппинг полей | готово |
+| E-COM-12 | Мультиязычность интерфейса и локализация шлюза (i18n: ru-ru, en-gb) | готово |
+| E-COM-13 | Совместимость с Shared-хостингом (Zero-Daemon, cron/web-cron, MySQL locks, лимиты памяти < 32MB) | готово |
+| E-COM-14 | Комплексное QA и сквозное E2E-тестирование: синтетическая имитация полного жизненного цикла | готово |
+| E-COM-15 | Релизный гейт качества, деплой на demo.tropatt.com и итоговая верификация | готово |
+| Connectors | Референсные плагины для OpenCart 3.0, OpenCart 4.0, WooCommerce и сборка дистрибутивов | готово |
 
 Проверки: `php -l` по всем файлам модуля, контрактные тесты
 `upload/api/tests/unit/ecommerce_gateway_signature_unit.php`,
@@ -151,3 +158,12 @@ canonical = METHOD \n request_path \n timestamp \n nonce \n hex(sha256(raw_body)
 
 PHP 8.1+, MySQL 8.x/MariaDB, расширения `openssl` (AES-256-GCM) и `pdo_mysql`.
 Никаких внешних PHP-пакетов, демонов и очередей.
+
+
+## Референсные модули интеграции (Connectors)
+
+В директории `connectors/` представлены готовые к установке модули для популярных CMS:
+- `connectors/opencart-3.0/`: официальное расширение для OpenCart 3.0.x / ocStore 3.0.x (Twig, user_token, события `catalog/model/checkout/order/addOrderHistory/after`, защита от эхо-петель).
+- `connectors/opencart-4.0/`: официальное расширение для OpenCart 4.0.x (PSR-4 пространства имен `Opencart\...`, вызовы событий по ссылке).
+- `connectors/woocommerce/`: официальный плагин WordPress / WooCommerce (хуки оформления и изменения статусов, REST-эндпоинт `/tropatt/v1/webhook`).
+- `connectors/dist/`: готовые zip-архивы для загрузки через админку CMS (`tropatt-opencart-3.ocmod.zip`, `tropatt-opencart-4.ocmod.zip`, `tropatt-woocommerce.zip`).
