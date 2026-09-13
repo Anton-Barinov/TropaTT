@@ -52,10 +52,26 @@ final class EcommerceStoreService
      */
     public function listStores(): array
     {
-        return array_map(
-            fn(array $store): array => self::publicStore($store),
-            $this->repository->listStores()
-        );
+        $stores = $this->repository->listStores();
+
+        $projectIds = [];
+        $userIds = [];
+        foreach ($stores as $store) {
+            $settings = self::settingsFromStore($store);
+            $projectIds[] = (int)($settings['default_project_id'] ?? 0);
+            $userIds[] = (int)($settings['default_assignee_id'] ?? 0);
+        }
+        $projectMap = $this->repository->projectPublicIdsByIds($projectIds);
+        $userMap = $this->repository->userPublicIdsByIds($userIds);
+
+        return array_map(function (array $store) use ($projectMap, $userMap): array {
+            return $this->decorateRoutingPublicIds(
+                self::publicStore($store),
+                self::settingsFromStore($store),
+                $projectMap,
+                $userMap
+            );
+        }, $stores);
     }
 
     /**
@@ -65,7 +81,82 @@ final class EcommerceStoreService
     {
         $store = $this->repository->getStoreByPublicId($publicId);
 
-        return $store === null ? null : self::publicStore($store);
+        return $store === null ? null : $this->presentSingleStore($store);
+    }
+
+    /**
+     * Public store payload plus the routing targets as public ids, so the
+     * settings screen can preselect them (it works with prj_… / usr_…).
+     *
+     * @param array<string,mixed> $store
+     * @return array<string,mixed>
+     */
+    private function presentSingleStore(array $store): array
+    {
+        $settings = self::settingsFromStore($store);
+        $projectId = (int)($settings['default_project_id'] ?? 0);
+        $userId = (int)($settings['default_assignee_id'] ?? 0);
+
+        return $this->decorateRoutingPublicIds(
+            self::publicStore($store),
+            $settings,
+            $projectId > 0 ? $this->repository->projectPublicIdsByIds([$projectId]) : [],
+            $userId > 0 ? $this->repository->userPublicIdsByIds([$userId]) : []
+        );
+    }
+
+    /**
+     * @param array<string,mixed> $presented
+     * @param array<string,mixed> $settings
+     * @param array<int,string> $projectMap
+     * @param array<int,string> $userMap
+     * @return array<string,mixed>
+     */
+    private function decorateRoutingPublicIds(array $presented, array $settings, array $projectMap, array $userMap): array
+    {
+        $projectId = (int)($settings['default_project_id'] ?? 0);
+        $userId = (int)($settings['default_assignee_id'] ?? 0);
+        $presented['default_project_public_id'] = $projectId > 0 ? ($projectMap[$projectId] ?? null) : null;
+        $presented['default_assignee_public_id'] = $userId > 0 ? ($userMap[$userId] ?? null) : null;
+
+        return $presented;
+    }
+
+    /**
+     * Resolve the routing targets from either a numeric id or a public id.
+     * Ingest casts the stored values to int, so public ids are translated here.
+     *
+     * @param array<string,mixed> $input
+     * @return array{input:array<string,mixed>, error:array<string,mixed>|null}
+     */
+    private function resolveRoutingInput(array $input): array
+    {
+        $resolvers = [
+            'default_project_id' => 'resolveProjectId',
+            'default_assignee_id' => 'resolveUserId',
+        ];
+        foreach ($resolvers as $key => $resolver) {
+            if (!array_key_exists($key, $input)) {
+                continue;
+            }
+            $value = $input[$key];
+            if ($value === null || (is_string($value) && trim($value) === '')) {
+                $input[$key] = null;
+                continue;
+            }
+            $resolved = $this->repository->{$resolver}($value);
+            if ($resolved === null) {
+                return [
+                    'input' => $input,
+                    'error' => self::failure('STORE_ROUTING_TARGET_INVALID', 422, [
+                        $key => ['The project or user does not exist'],
+                    ]),
+                ];
+            }
+            $input[$key] = $resolved;
+        }
+
+        return ['input' => $input, 'error' => null];
     }
 
     /**
@@ -83,6 +174,12 @@ final class EcommerceStoreService
         $cmsType = self::normalizeCmsType($input['cms_type'] ?? null);
         $status = self::normalizeStatus($input['status'] ?? null);
         $locale = self::normalizeLocale($input['locale'] ?? null);
+
+        $routing = $this->resolveRoutingInput($input);
+        if ($routing['error'] !== null) {
+            return $routing['error'];
+        }
+        $input = $routing['input'];
 
         $webhookUrl = null;
         $webhookRaw = trim((string)($input['webhook_url'] ?? ''));
@@ -127,7 +224,7 @@ final class EcommerceStoreService
             'code' => 'STORE_CREATED',
             'http_status' => 201,
             'errors' => [],
-            'store' => self::publicStore($store),
+            'store' => $this->presentSingleStore($store),
             // Returned exactly once, like a freshly issued API key.
             'secret' => $secret,
             'secret_valid_until' => null,
@@ -190,6 +287,12 @@ final class EcommerceStoreService
             $webhookSecret = trim((string)$input['webhook_secret']);
             $set['webhook_secret_encrypted'] = $webhookSecret === '' ? null : EncryptionService::encrypt($webhookSecret);
         }
+
+        $routing = $this->resolveRoutingInput($input);
+        if ($routing['error'] !== null) {
+            return $routing['error'];
+        }
+        $input = $routing['input'];
 
         $settings = self::mergeSettings(self::settingsFromStore($current), $input, $this->config);
         if (self::hasAnySettingKey($input)) {
