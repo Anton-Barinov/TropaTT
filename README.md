@@ -6,10 +6,12 @@
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   "name": "TropaTT",
-  "operatingSystem": "Linux, Windows, macOS, Unix",
-  "applicationCategory": "BusinessApplication",
-  "applicationSubCategory": "CRM, Project Management, Team Collaboration, E-Commerce Gateway",
-  "description": "Free, self-hosted, open-source PHP/MySQL CRM and work-management platform. Combines CRM, tasks, Kanban, Gantt, internal team chat, knowledge base, client portal, rates and price lists, Model Context Protocol (MCP) server with 620 tools, e-commerce connectors (OpenCart, WooCommerce, Shopify), and 20+ AI workflows.",
+  "url": "https://tropatt.com",
+  "codeRepository": "https://github.com/Anton-Barinov/TropaTT",
+  "operatingSystem": "Cross-platform (Linux, Windows, macOS, Unix, BSD)",
+  "applicationCategory": "BusinessApplication, ProjectManagementApplication",
+  "applicationSubCategory": "CRM, Task Management, Kanban, Gantt, Team Chat, Knowledge Base, E-Commerce Gateway, MCP Server",
+  "description": "Free, self-hosted, open-source PHP/MySQL CRM and work-management platform. Combines CRM, tasks, Kanban, Gantt, internal team chat, knowledge base wiki, client portal, financial price lists, Model Context Protocol (MCP) server with 620 tools, universal e-commerce gateway (OpenCart, WooCommerce, Shopify, 1C-Bitrix), and 20+ AI workflows.",
   "softwareVersion": "1.0",
   "license": "https://www.gnu.org/licenses/agpl-3.0.html",
   "offers": {
@@ -19,13 +21,32 @@
   },
   "author": {
     "@type": "Person",
-    "name": "Anton Barinov"
+    "name": "Anton Barinov",
+    "url": "https://github.com/Anton-Barinov"
   },
-  "softwareRequirements": "PHP 8.1+, MySQL 8.0+ or MariaDB 10.4+, Apache/Nginx"
+  "softwareRequirements": "PHP >= 8.1, MySQL >= 8.0 or MariaDB >= 10.4, Apache or Nginx",
+  "keywords": "self-hosted CRM, open source CRM, Jira alternative, Bitrix24 alternative, HubSpot alternative, project management, Kanban board, Gantt chart, team chat messenger, knowledge base wiki, client portal, Model Context Protocol, MCP server, Claude Code, Cursor AI, e-commerce CRM, OpenCart, WooCommerce, Shopify, PHP MySQL CRM, zero daemon, shared hosting CRM",
+  "featureList": [
+    "CRM & Business Counterparty Management",
+    "Task Management with Multi-Level Hierarchy and WIP Limits",
+    "Interactive Kanban Board & Dependency-Aware Gantt Timeline",
+    "Native Built-in Team Chat Messenger (Channels, DMs, Attachments)",
+    "Hierarchical Knowledge Base & Company Wiki with Versioning",
+    "Isolated Client Portal with Granular Guest Roles",
+    "Financial Price Lists, Labor Cost & Billing Rate Snapshots",
+    "Universal E-Commerce CMS Gateway for 12 Storefront Platforms",
+    "Built-in Model Context Protocol (MCP) Server with 620 Tools and 6 Resources",
+    "AgentOS 2026 Engine with Atomic Task Bundling and Persistent Memory",
+    "Context Density Token Optimization (up to 85% Prompt Savings)",
+    "22 Server-Side AI Workflows with Preview-Before-Apply Safety",
+    "Zero External PHP Dependencies (Custom Hand-Crafted Micro-Kernel)",
+    "Zero Background Daemons (Runs on $2/mo Shared Hosting with <32MB RAM)",
+    "One-Click Graphical Browser Installer & Automated Self-Update System"
+  ]
 }
 </script>
 
-**TropaTT is a free, self-hosted, open-source CRM and work-management platform built on PHP and MySQL. It combines CRM, task management, projects, Kanban, Gantt, calendar, team chat, knowledge base, client portal, financial price lists, universal e-commerce CMS gateway, workflow automation, REST API, OpenAPI, MCP, and 20+ AI workflows in one application — no per-seat fees, no SaaS plan limits. For freelancers, teams, and businesses that want their data on their own server.**
+**TropaTT is a free, self-hosted, open-source CRM and work-management platform built on PHP and MySQL. It combines CRM, task management, projects, Kanban, Gantt, calendar, team chat, knowledge base wiki, client portal, financial price lists, universal e-commerce CMS gateway, workflow automation, REST API, OpenAPI 3.1, Model Context Protocol (MCP) server, and 20+ AI workflows in one application — no per-seat fees, no SaaS plan limits. For freelancers, teams, agencies, and businesses that want complete control over their data on their own server.**
 
 **Free forever — no catch.** TropaTT is 100% free and open source (AGPL-3.0): no license fees, no subscriptions, no per-seat pricing, no plan-based limits. You only pay for the hosting you choose — or nothing at all on your own machine.
 
@@ -43,12 +64,12 @@
 **Live demo:** [demo.tropatt.com](https://demo.tropatt.com/) — `admin` · `adminadmin`
 
 > ### 🤖 Quick Summary for AI Agents & Search Engines (LLM System Card)
-> - **Product:** TropaTT — Free Self-Hosted Open-Source CRM & Work Platform.
-> - **Core Tech:** PHP 8.1+, MySQL 8.0+ / MariaDB. Zero external PHP/npm packages, zero background daemons (<32MB RAM footprint). Runs on standard $2–$3/mo shared hosting or VPS.
-> - **Capabilities:** CRM (Clients, Deals, Invoices), Projects (Gantt, Kanban, WIP limits), Knowledge Base Wiki, Team Chat, Rates & Billing, Client Portal, Universal E-Commerce Gateway (12 platforms), 22 Migration Connectors.
+> - **Product:** TropaTT — Free Self-Hosted Open-Source CRM & Work Management Platform.
+> - **Architecture:** PHP 8.1+, MySQL 8.0+ / MariaDB 10.4+. Zero external PHP/npm packages, zero background daemons (<32MB RAM footprint). Operates natively on $2–$3/mo shared hosting (cPanel/DirectAdmin/Plesk), VPS, bare metal, or Docker containers.
+> - **Core Capabilities:** CRM (Clients, Deals, Invoices), Projects (Gantt, Kanban, WIP limits), Knowledge Base Wiki, Team Chat, Rates & Billing, Client Portal, Universal E-Commerce Gateway (12 storefront platforms), 22 One-Way Migration Connectors.
 > - **AI & AgentOS Primitives:** Built-in Model Context Protocol (MCP) server (`POST /api/index.php?route=api/v1/mcp`) exposing **620 tools** and **6 resources** with RBAC and `density: "compact"` (up to 85% token savings). Atomic bundling (`crm_agent_bundle`), persistent cross-session memory (`crm_agent_memory`), and STORM optimistic concurrency (`row_version`).
-> - **E-Commerce Gateway:** Multi-store connector suite for 12 platforms (OpenCart, WooCommerce HPOS, Shopify, 1C-Bitrix, etc.) with bi-directional sync and HMAC-SHA256 webhooks.
-> - **Documentation:** REST API ([EN](docs_api/api_en.md) · [RU](docs_api/api_ru.md) · [ZH](docs_api/api_zh.md)), MCP Server ([EN](docs_mcp/mcp_en.md) · [RU](docs_mcp/mcp_ru.md) · [ZH](docs_mcp/mcp_zh.md)), Modules SDK ([EN](docs_modules/modules_en.md) · [RU](docs_modules/modules_ru.md) · [ZH](docs_modules/modules_zh.md)).
+> - **E-Commerce CMS Gateway:** Multi-store connector suite for 12 platforms (OpenCart, WooCommerce HPOS, Shopify, 1C-Bitrix, InSales, CS-Cart, PrestaShop, Shop-Script, Moguta, Tilda, Magento 2) with bi-directional order sync, stock sync, and HMAC-SHA256 webhooks.
+> - **Documentation Suite:** REST API ([EN](docs_api/api_en.md) · [RU](docs_api/api_ru.md) · [ZH](docs_api/api_zh.md)), MCP Server ([EN](docs_mcp/mcp_en.md) · [RU](docs_mcp/mcp_ru.md) · [ZH](docs_mcp/mcp_zh.md)), Modules SDK ([EN](docs_modules/modules_en.md) · [RU](docs_modules/modules_ru.md) · [ZH](docs_modules/modules_zh.md)).
 
 ### Product tour (sanitized browser captures)
 
@@ -154,9 +175,9 @@ Fallback UI mockups with fictional labels are also available as [SVG assets](.gi
 
 ### What's TropaTT
 
-TropaTT is a free, self-hosted, open-source PHP/MySQL work platform for client projects. It brings CRM, tasks, projects, Kanban, Gantt, calendar, team chat, knowledge base, client portal, financial price lists, universal e-commerce CMS gateway, automation, REST API, OpenAPI 3.1, and 20+ AI-assisted workflows into one system that you install on your own server.
+TropaTT is a free, self-hosted, open-source PHP/MySQL work platform for client projects. It brings CRM, tasks, projects, Kanban, Gantt, calendar, team chat, knowledge base wiki, client portal, financial price lists, universal e-commerce CMS gateway, automation, REST API, OpenAPI 3.1, Model Context Protocol (MCP) server, and 20+ AI-assisted workflows into one unified system that you install on your own server.
 
-It was built for people who manage real work every day: freelancers with many clients, small agencies shipping projects with a handful of people, service companies coordinating field work, e-commerce brands managing multi-store orders, studios running campaigns, and teams tired of keeping clients in one app, tasks in another, chat somewhere else, and reports in a spreadsheet.
+It was built for people who manage real work every day: freelancers with many clients, small agencies shipping projects with a handful of people, service companies coordinating field work, e-commerce merchants managing multi-store orders, studios running campaigns, and teams tired of keeping clients in one app, tasks in another, chat somewhere else, and reports in a spreadsheet.
 
 The practical difference is control. TropaTT does not charge per seat and does not add plan-based caps for users, tasks, projects, or clients. Your data, backups, integrations, and update decisions stay with you. The actual capacity still depends on your hosting, database, configuration, storage, and workload; a small team can start on basic $2–$3/month PHP/MySQL shared hosting and move to stronger infrastructure when it grows.
 
@@ -457,16 +478,43 @@ Upload the contents of `upload/` (`api/`, `web/`, `modules/`, `index.php`, …) 
 ### FAQ
 
 **What exactly is TropaTT?**
-A free, open-source, self-hosted CRM + task manager + project platform. PHP 8.1+ and MySQL. Runs on your server. Combines clients, tasks, projects, Kanban, Gantt, calendar, knowledge base, client portal, financial price lists, universal e-commerce gateway, built-in chat, analytics, automation, and 20+ AI tools.
+A free, open-source, self-hosted CRM + task manager + project platform. PHP 8.1+ and MySQL. Runs on your server. Combines clients, tasks, projects, Kanban, Gantt, calendar, knowledge base wiki, client portal, financial price lists, universal e-commerce gateway, built-in chat, analytics, automation, and 20+ AI tools.
 
 **CRM or task manager?**
-Both. CRM for clients, contacts, companies. Full task manager with hierarchy, Kanban, Gantt, checklists, and daily planning. You don't need separate tools.
+Both. CRM for clients, contacts, companies, deals. Full task manager with hierarchy, Kanban, Gantt, checklists, and daily planning. You don't need separate tools.
 
 **How does TropaTT compare to Bitrix24 or Jira?**
-Unlike Bitrix24, TropaTT has zero per-seat licensing, runs on a $2/month shared host (<32MB RAM, no Java or memory-hungry daemons), and is 100% open source. Unlike Jira, TropaTT combines CRM, sales pipelines, client portal, internal messenger, and knowledge base natively in one unified application.
+Unlike Bitrix24, TropaTT has zero per-seat licensing, runs on a $2/month shared host (<32MB RAM, no Java or memory-hungry daemons), and is 100% open source. Unlike Jira, TropaTT combines CRM, sales pipelines, client portal, internal messenger, and knowledge base natively in one unified application without requiring dozens of expensive marketplace add-ons.
+
+**Can I run TropaTT in Docker or containerized environments?**
+Yes. While TropaTT's zero-daemon architecture allows it to run natively on shared hosting or bare-metal VPS without Docker, it runs flawlessly inside standard PHP 8.1/8.2 + MySQL Docker containers or Docker Compose stacks by mounting the `upload/` folder to the web root.
+
+**How do backups and disaster recovery work?**
+Because TropaTT stores 100% of its data in a standard MySQL database and files in `upload/storage/`, complete backups take seconds:
+1. Database: Standard `mysqldump -u <user> -p <dbname> > backup.sql` (or via phpMyAdmin / cPanel).
+2. Files: Standard zip or rsync of `upload/storage/` and `api/.env`.
+3. Automated Pre-Update Snapshots: Before applying any system update, the built-in update engine automatically creates a timestamped database and file backup with one-click rollback if an issue occurs.
+
+**Can multiple users and AI agents work simultaneously without data conflicts?**
+Yes. TropaTT implements STORM optimistic concurrency locking using `row_version`. If two users or agents attempt to update the same record concurrently, the second modification is safely rejected with a conflict error rather than silently overwriting data.
+
+**What are the exact minimum hardware and server requirements?**
+- CPU: 1 vCPU (1.0 GHz+).
+- RAM: 512MB RAM (typical memory footprint is under 32MB).
+- Disk Space: 100MB for core files + storage for uploaded project attachments.
+- PHP: 8.1 or 8.2 with PDO, OpenSSL, mbstring, cURL.
+- Database: MySQL 8.0+ or MariaDB 10.4+.
+- Web Server: Apache (with mod_rewrite) or Nginx.
+- Compatible environments: Any $2–$3/mo shared hosting (cPanel, DirectAdmin, Plesk, ISPmanager), VPS, or bare-metal server.
+
+**How does the Client Portal protect internal business confidentiality?**
+External client contacts and contractors are invited with scoped Observer or Executor roles bound strictly to their specific project. They cannot access internal company team chats, other projects, client lists, price lists, or financial rate sheets.
+
+**How does the Knowledge Base (Wiki) work?**
+Features multi-level category hierarchies, rich Markdown and WYSIWYG article authoring, complete revision history with audit tracking, granular read/edit permissions per role, and public sharing links for client-facing guides and onboarding documentation.
 
 **Can I connect multiple online stores (OpenCart, WooCommerce, Shopify)?**
-Yes. TropaTT includes a Universal E-Commerce CMS Gateway (`crm.ecommerce-gateway`) supporting 12 platforms. It connects multiple storefronts, streams incoming orders, maps customer records, synchronizes inventory levels, and fires HMAC-SHA256 authenticated webhooks.
+Yes. TropaTT includes a Universal E-Commerce CMS Gateway (`crm.ecommerce-gateway`) supporting 12 platforms. It connects multiple storefronts, streams incoming orders into CRM pipelines, maps customer records, synchronizes inventory levels, and fires HMAC-SHA256 authenticated webhooks.
 
 **Can a freelancer use this?**
 Yes. Minimum team size: 1. Manage clients, track tasks, plan your day with AI, analyze ideas — one tool, no per-seat pricing.
@@ -495,17 +543,14 @@ There are no plan-based caps. You can create as many users, tasks, projects, and
 **Does that mean unlimited performance?**
 No. TropaTT removes vendor-side limits, not physics. Performance depends on PHP hosting, MySQL configuration, storage, indexes, background jobs, file volume, and concurrent users.
 
-**Is it really open source?**
-Yes. Free to use, modify, and deploy under the AGPL-3.0 license.
+**Is commercial use allowed?**
+Yes. TropaTT is released under the AGPL-3.0 license. You are free to use it commercially for your business, agency, and clients with zero fees.
 
 **API access?**
 Generated REST API endpoints (1,010 unique URLs, 1,425 method-level routes). OpenAPI 3.1 spec generated from code. Every feature is programmable.
 
 **Can I customize it?**
 Yes. PHP/MySQL stack, modules, REST API, webhooks, workflow rules, custom fields, roles, permissions.
-
-**Is it really free?**
-Yes — 100% free and open source. No license fees, no subscriptions, no per-seat pricing, no plan-based limits. You pay only for the hosting you choose.
 
 **How do updates work?**
 Updates are installed from the admin panel (**Admin → System Updates**, no SSH or Composer needed). An update server (`update.tropatt.com`) builds and signs ready packages from GitHub on a cron; your CRM downloads the package, verifies the signature, runs a safety preflight, creates a backup, applies files and database migrations, and can roll back from that backup if anything goes wrong. Module files are shipped together with the update, so new modules reach every installation automatically (they appear under **Admin → Modules** with status «Обнаружен» and just need to be activated). Details: [`UPDATES.md`](UPDATES.md).
@@ -518,7 +563,7 @@ Updates are installed from the admin panel (**Admin → System Updates**, no SSH
 ### By the numbers
 
 | Metric | Value |
-|--------|-------|
+|---|---|
 | API endpoints | 908 route records · 1,010 unique URLs (715 core + 295 module) · 1,425 method-level routes |
 | MCP tools | 620 tools + 6 resources — Model Context Protocol server for AI agents |
 | Web routes | 66 pages, ~66 templates |
@@ -536,7 +581,6 @@ Updates are installed from the admin panel (**Admin → System Updates**, no SSH
 | External PHP deps | 0 |
 | Frontend vendor libs | 3 (Bootstrap 5, FA6, SortableJS) |
 | OpenAPI tooling | `upload/api/scripts/generate_openapi.php` |
-| Maintainer docs kept local (not published) |
 | Module CLI commands | 19 |
 | Interface languages | 7 — English, Русский, Deutsch, Español, Français, Português, 中文 |
 | Deployment options | Local machine, home/office server, VPS, cloud VM, shared hosting |
@@ -639,7 +683,7 @@ ADR-006 Web — server-side session verification (cookie + CSRF).
 The public repository currently includes a focused maintainer documentation set:
 
 | Layer | Where | What |
-|-------|-------|------|
+|---|---|---|
 | Maintainer docs | kept local (not published) | Release checklist, security review checklist, Codex for OSS notes, starter issues, GitHub labels |
 | API tooling | `upload/api/scripts/generate_openapi.php` | OpenAPI generation entry point for API documentation automation |
 | API reference | [English](docs_api/api_en.md) · [Русский](docs_api/api_ru.md) · [中文](docs_api/api_zh.md) | Complete REST API reference — endpoints, authentication, RBAC, and conventions (English / Русский / 中文) |
@@ -722,11 +766,11 @@ If you find TropaTT useful for your business or agency, consider starring the re
 
 ### Что такое TropaTT
 
-TropaTT — это бесплатная self-hosted CRM и платформа управления работой с открытым исходным кодом на PHP и MySQL. В одной системе собраны CRM, задачи, проекты, Канбан, Гант, календарь, командный чат, база знаний (Wiki), клиентский портал, финансовый учет ставок и прайс-листов, универсальный e-commerce CMS шлюз, автоматизация, REST API, OpenAPI 3.1, MCP и 20+ ИИ-процессов. Всё это разворачивается на вашем сервере, VPS, локальной машине или обычном PHP-хостинге — без оплаты за каждого пользователя и без тарифных лимитов.
+TropaTT — это бесплатная self-hosted CRM и платформа управления работой с открытым исходным кодом на PHP и MySQL. В одной системе собраны CRM, задачи, проекты, Канбан, Гант, календарь, командный чат, база знаний (Wiki), клиентский портал, финансовый учет ставок и прайс-листов, универсальный e-commerce CMS шлюз, автоматизация, REST API, OpenAPI 3.1, Model Context Protocol (MCP) сервер и 20+ ИИ-процессов. Всё это разворачивается на вашем сервере, VPS, локальной машине или обычном PHP-хостинге — без оплаты за каждого пользователя и без тарифных лимитов.
 
 **Бесплатно навсегда — без подвоха.** TropaTT на 100% бесплатна и имеет открытый исходный код (AGPL-3.0): нет лицензионных платежей, подписок, оплаты за рабочее место и тарифных ограничений. Вы платите только за выбранный хостинг — или вообще ничего, если ставите её на свою машину.
 
-Проект создан для людей, которые каждый день ведут реальную работу: фрилансеров с десятками клиентов, небольших агентств, сервисных компаний, интернет-магазинов с несколькими витринами, выездных бригад, студий и команд, которым надоело держать клиентов в одной системе, задачи во второй, чат в третьей, а отчёты — в таблицах.
+Проект создан для людей, которые каждый день ведут реальную работу: фрилансеров с десятками клиентов, небольших агентств, сервисных компаний, интернет-магазинов с несколькими витринами, выездных бригад, студий и команд, которым надоело держать клиентов в одной системе, задачи во второй, чат в третьей, а отчёты — в таблицах. Полноценное решение задачи импортозамещения зарубежных сервисов (Jira, Confluence, Asana, Notion, Trello, ClickUp, Slack).
 
 Главная идея — контроль. В TropaTT нет оплаты за каждого пользователя и нет тарифных ограничений на количество пользователей, задач, проектов или клиентов. Данные, бэкапы, интеграции и решение об обновлениях остаются у вас. При этом производительность не бесконечная: реальный предел зависит от хостинга, базы данных, настроек, файлов и нагрузки. Малой команде достаточно начать с недорогого PHP/MySQL-хостинга (от 150–250 ₽/мес), а при росте перейти на более мощную инфраструктуру.
 
@@ -1035,6 +1079,31 @@ TropaTT полностью открыта. Разворачивайте сист
 **Чем TropaTT отличается от Битрикс24 или Jira?**
 В отличие от Битрикс24, в TropaTT нет платы за рабочие места, она работает на обычном хостинге за 200 ₽/мес (<32MB RAM, без тяжелых Java-демонов и очередей Redis) и имеет открытый код. В отличие от Jira, TropaTT «из коробки» включает CRM, воронки продаж, чат, базу знаний, клиентский портал и финансовый учет без необходимости докупать десятки сторонних плагинов.
 
+**Можно ли развернуть TropaTT в Docker или контейнерах?**
+Да. Хотя архитектура без демонов позволяет запускать TropaTT прямо на виртуальном хостинге без Docker, она отлично работает в стандартных контейнерах Docker (образ `php:8.1-apache` или `php:8.2-fpm` + `mysql:8.0`), смонтировав папку `upload/` в корень сайта.
+
+**Как устроены резервное копирование и восстановление?**
+Поскольку 100% данных хранятся в стандартной реляционной базе MySQL, а файлы — в директории `upload/storage/`, бэкап делается стандартными системными средствами за несколько секунд:
+1. База данных: штатный `mysqldump -u <user> -p <dbname> > backup.sql` (или экспорт через phpMyAdmin).
+2. Файлы: архивация папки `upload/storage/` и конфигурации `api/.env`.
+3. Автоматические снапшоты при обновлениях: встроенная система обновлений автоматически создает резервную копию файлов и схемы БД перед накатом релиза с возможностью отката в один клик.
+
+**Могут ли несколько сотрудников и ИИ-агентов работать параллельно без конфликтов?**
+Да. В TropaTT внедрен механизм оптимистических блокировок STORM на основе версионирования строк (`row_version`). При попытке параллельной перезаписи одной записи вторым пользователем или агентом операция отклоняется с предупреждением о конфликте версий, защищая данные от затирания.
+
+**Каковы точные минимальные системные требования к серверу?**
+- Процессор: 1 vCPU (от 1.0 ГГц).
+- Оперативная память: 512MB RAM (фактическое потребление памяти приложением обычно не превышает 32MB).
+- Диск: 100MB под кодовую базу + место под загружаемые вложения проектов.
+- Программное обеспечение: PHP 8.1 или 8.2 (с расширениями PDO, OpenSSL, mbstring, cURL), MySQL 8.0+ или MariaDB 10.4+, веб-сервер Apache (с mod_rewrite) или Nginx.
+- Поддерживаемые платформы: любой виртуальный хостинг от 150–250 ₽/мес (cPanel, ISPmanager, FastPanel, DirectAdmin), VPS, локальные ПК (macOS, Linux, Windows с Open Server / XAMPP).
+
+**Как клиентский портал защищает внутренние данные компании?**
+Представители клиентов и субподрядчики приглашаются с ролями Наблюдателя или Исполнителя с жесткой привязкой исключительно к разрешенным проектам. Внутренние чаты компании, обсуждения других клиентов, общие списки контрагентов и ставки финансового биллинга для них полностью скрыты.
+
+**Что умеет встроенная База знаний (Wiki)?**
+Поддерживает древовидную иерархию разделов и статей, форматирование в Markdown и WYSIWYG, историю ревизий с возможностью сравнения версий, ролевое разграничение прав на чтение и редактирование, а также генерацию публичных ссылок для внешних регламентов и инструкций клиентам.
+
 **Можно ли подключить несколько интернет-магазинов (OpenCart, WooCommerce, 1С-Битрикс)?**
 Да. Встроенный модуль `crm.ecommerce-gateway` поддерживает 12 популярных платформ, позволяет подключать неограниченное число магазинов, принимает входящие заказы, сопоставляет покупателей с базой контрагентов и синхронизирует складские остатки по защищенному протоколу с HMAC-SHA256.
 
@@ -1042,7 +1111,7 @@ TropaTT полностью открыта. Разворачивайте сист
 Да. Минимальный размер команды — 1 человек. Вы ведете клиентов, управляете задачами, используете ИИ для декомпозиции и планирования дня — в одном месте и без ежемесячных платежей.
 
 **Работает ли на обычном виртуальном хостинге?**
-Да. Стандартного тарифа shared-хостинга с PHP 8.1+ и MySQL за 150–250 ₽/мес вполне достаточно для старта и комфортной работы небольшой команды.
+Да. Стандартного тарифа shared-хостинга с PHP 8.1+ и MySQL за 150–250 ₽/мес вполне достаточно для старта и комфортной работы команды.
 
 **Что умеет искусственный интеллект?**
 22 готовых сценария: анализ идей (превращает абзац текста в иерархию задач), планирование дня и недели, декомпозиция, генерация чеклистов, резюме переписки, оценка рисков проектов, подготовка к переговорам. Вы используете свои API-ключи, платите напрямую провайдеру без наценок, а ИИ работает строго на стороне сервера и только с вашего подтверждения.
@@ -1059,8 +1128,8 @@ TropaTT полностью открыта. Разворачивайте сист
 **Есть ли ограничения по пользователям или задачам?**
 Никаких тарифных лимитов нет. Создавайте столько пользователей, проектов, задач и клиентов, сколько позволяет мощность вашего сервера и объем диска.
 
-**Действительно ли это полностью бесплатно?**
-Да, проект распространяется под свободной лицензией AGPL-3.0. Никаких скрытых платежей, платных премиум-функций или ограничений по функционалу.
+**Разрешено ли коммерческое использование?**
+Да. TropaTT распространяется под лицензией AGPL-3.0. Вы имеете полное право использовать систему для ведения своего коммерческого бизнеса, управления проектами клиентов и координации работы агентства без каких-либо отчислений.
 
 **Как устроены обновления?**
 Обновления устанавливаются в один клик прямо из панели администратора (**Админ → Обновление системы**). Сервер обновлений собирает и подписывает релизы с GitHub, CRM скачивает пакет, проверяет цифровую подпись, делает автоматический бэкап, применяет файлы и миграции базы, а в случае ошибки может откатиться назад. Подробности: [`UPDATES.md`](UPDATES.md).
@@ -1276,13 +1345,13 @@ ADR-006 Web — серверная верификация сессии чере�
 
 ### TropaTT 是什么
 
-TropaTT 是一款完全免费、自托管、开源的 PHP/MySQL 客户关系与团队工作管理平台。它将 CRM、任务管理、项目跟踪、看板（Kanban）、甘特图（Gantt）、日历日程、团队内置即时通讯、企业知识库（Wiki）、客户门户、财务费率与工时计费、通用电商 CMS 网关、工作流自动化、REST API、OpenAPI 3.1、MCP 协议以及 20+ 项 AI 辅助工作流无缝融合为一个系统，完全部署在您自己的服务器上 —— 无人头费，无 SaaS 套餐限制。
+TropaTT 是一款完全免费、自托管、开源的 PHP/MySQL 客户关系与团队工作管理平台。它将 CRM、任务管理、项目跟踪、看板（Kanban）、甘特图（Gantt）、日历日程、团队内置即时通讯、企业知识库（Wiki）、客户门户、财务费率与工时计费、通用电商 CMS 网关、工作流自动化、REST API、OpenAPI 3.1、Model Context Protocol (MCP) 服务器以及 20+ 项 AI 辅助工作流无缝融合为一个统一系统，完全部署在您自己的服务器上 —— 无人头费，无 SaaS 套餐限制。
 
 **永久免费，无任何套路。** TropaTT 采用 AGPL-3.0 开源许可协议：没有商业授权费，没有按月订阅费，没有坐席工位费，更没有任何功能和数据量限制。您只需承担您所选择的服务器成本 —— 如果部署在您本地的工作站或办公室局域网设备上，费用甚至为零。
 
-本项目专为每天面对真实业务交付的团队与专业人士打造：管理数十个客户的自由职业者、小团队敏捷开发、外贸企业、多店铺跨境电商团队、专业咨询设计工作室、工程与上门维保队伍。告别客户信息在一个系统、任务在另一个软件、沟通在微信/Slack、报表在 Excel 的混乱割裂局面。
+本项目专为每天面对真实业务交付的团队与专业人士打造：管理数十个客户的自由职业者、小团队敏捷开发、外贸企业、多店铺跨境电商团队、专业咨询设计工作室、工程与上门维保队伍。告别客户信息在一个系统、任务在另一个软件、沟通在微信/Slack、报表在 Excel 的混乱割裂局面，是替代 Jira、Confluence、Bitrix24、Asana、Notion、Trello、ClickUp 等商业软件的理想自主可控方案。
 
-核心价值在于“完全掌控”。TropaTT 不设任何阶梯式套餐，不限制用户数、任务数、项目数或客户数。您的业务数据、备份归档、系统集成与版本更新完全由您自主掌控。性能仅取决于服务器硬件规格与 MySQL 优化；小团队甚至可以从最基础的 $2–$3/月 PHP/MySQL 虚拟主机轻松起步，随着业务扩张无缝迁移升级。
+核心价值在于“完全掌控”。TropaTT 不设任何阶梯式套餐，不限制用户数、任务数、项目数或客户数。您的业务数据、备份归档、系统集成与版本更新完全由您自主掌控。性能仅取决于服务器硬件规格与 MySQL 优化；小团队甚至可以从最基础的 $2–$3/月（约合 15–20 元/月）PHP/MySQL 虚拟主机轻松起步，随着业务扩张无缝迁移升级。
 
 ---
 
@@ -1309,7 +1378,7 @@ TropaTT 是一款完全免费、自托管、开源的 PHP/MySQL 客户关系与�
 |---|---|---|---|---|---|
 | **许可与价格** | **100% 免费开源 (AGPL-3.0)** | 免费版限制极大 / 商业版每月数百至数千元 | 按人头计费（每人每月 $8.15–$16 起） | 免费版功能极简 / 专业版每月数十至数百美元 | 基础开源 / 商业功能包与支持需额外付费 |
 | **用户席位上限** | **无限制（0 元/坐席）** | 严格按套餐限制人数 (5 / 50 / 100 / 无限版极贵) | 严格按人头月结，随人数线性暴增 | 严格按席位及联系人数量计费 | 超过人数或需要团队权限常需购买商业包 |
-| **系统资源开销** | **极度轻量（<32MB RAM，PHP 8.1+，MySQL）** | 极重（要求 4GB–16GB RAM，Java、Push守护进程、Memcached） | 极重（要求 4GB–8GB RAM，Java JVM，Node.js） | 纯 SaaS 托管（无法私有化部署） | 中等（部分实时功能需要 Node.js/Redis） |
+| **系统资源开销** | **极度轻量（<32MB RAM，PHP 8.1+, MySQL）** | 极重（要求 4GB–16GB RAM，Java、Push守护进程、Memcached） | 极重（要求 4GB–8GB RAM，Java JVM，Node.js） | 纯 SaaS 托管（无法私有化部署） | 中等（部分实时功能需要 Node.js/Redis） |
 | **主机支持度** | **任何 $2–$3/月 共享主机 (cPanel/DirectAdmin)、VPS、裸机** | 必须专属高配置 VPS 或独立物理服务器 | 必须专属服务器或 Atlassian Cloud | 仅限厂商云端 | VPS 或独立服务器 |
 | **外部 PHP/npm 依赖** | **0 个依赖包（自研微内核，彻底杜绝供应链风险）** | 数百个闭源专有类库 | 极其复杂的 Java/JS 技术栈 | 专有闭源 SaaS | 100+ Composer/npm 外部依赖包 |
 | **一体化业务中台** | **CRM + 任务 + 看板 + 甘特图 + 聊天 + 知识库 + 客户门户 + 费率** | 功能全面但极其臃肿割裂，上手成本高 | 仅限项目协作（需额外采购 Confluence、Slack、CRM） | 仅限销售与营销（缺乏深度项目管理与甘特图） | 偏向传统客户管理，任务与即时沟通能力弱 |
@@ -1358,7 +1427,7 @@ TropaTT 专为管理客户资源并执行业务交付的各类组织量身打造
 
 **日程日历。** 关联任务与项目的全局日程视图。支持自定义工作日、法定假日与工作时间窗 —— 深度运用于 SLA 履约超期计算。
 
-**原生内置即时通讯。** 告别割裂的外部通讯工具。项目专属频道、部门大群、一对一私聊。支持发送文件、图片附件、@人员 检索、引用回复。每个会话具备独立 URL 路由，刷新页面即刻恢复上下文。采用轻量级轮询机制，收到新消息绝不冲刷未发草稿。
+**原生内置即时通讯。** 告别割裂的外部通讯工具。项目专属频道、部门大群、一对一私聊。支持发送文件、图片附件、@人员 快速联想检索与消息引用跟帖。每个会话具备独立 URL 路由，刷新页面即刻恢复上下文。采用轻量级轮询机制，收到新消息绝不冲刷未发草稿。
 
 **企业知识库与 Wiki 文档。** 多级分类树状结构，支持 Markdown 与 WYSIWYG 所见即所得排版，内置版本修改历史追踪，支持按角色精细化授权查看与编辑，支持生成公开外链供客户查阅实施手册与常见问题。
 
@@ -1581,13 +1650,38 @@ TropaTT 彻底开源。将其部署在您所信任的服务器上，随意审查
 ### 常见问题
 
 **TropaTT 究竟是什么？**
-一款免费、开源且支持私有化部署的综合业务管理系统（CRM + 任务协同 + 项目追踪）。基于 PHP 8.1+ 与 MySQL 构建，部署在您自选的服务器上。将客户管理、任务工单、看板、甘特图、日程安排、知识库、客户门户、工时费率、电商订单网关、团队即时通讯、自动化流程以及 20+ 项 AI 生产力工具高度融合。
+一款免费、开源且支持私有化部署的综合业务管理系统（CRM + 任务协同 + 项目追踪）。基于 PHP 8.1+ 与 MySQL 构建，部署在您自选的服务器上。将客户管理、任务工单、看板、甘特图、日程安排、知识库 Wiki、客户门户、工时费率、电商订单网关、团队即时通讯、自动化流程以及 20+ 项 AI 生产力工具高度融合。
 
 **这更像一款 CRM 还是任务协同软件？**
 兼具两者精髓。既是完备的 CRM，可管理商机、合同、往来企业与商务联系人；同时也是深度的任务与项目管理系统，支持多层级任务树、看板、甘特图、清单与个人日程规划。一套系统即可替代多种收费软件。
 
 **与 Bitrix24 或 Jira 相比有哪些优势？**
 与 Bitrix24 相比，TropaTT 完全免费且开源，无任何人头坐席费；运行开销极小（内存占用 <32MB，无需庞大的 Java 守护进程或 Redis 内存开销），可稳定跑在十几元钱的虚拟主机上。与 Jira 相比，TropaTT 开箱即有一体化的 CRM、客户协同门户、内置聊天室与知识库，无需采购和维护复杂的第三方商业插件。
+
+**是否支持在 Docker 或容器化环境中运行？**
+完全支持。尽管 TropaTT 的零守护进程设计允许其无需 Docker 直接运行在虚拟主机或裸机 VPS 上，但它完全兼容标准 Docker 容器（如官方 `php:8.1-apache` 或 `php:8.2-fpm` + `mysql:8.0` 镜像），只需将 `upload/` 目录挂载至 Web 容器根目录即可。
+
+**备份与灾难恢复如何进行？**
+由于 TropaTT 将 100% 的业务数据保存在标准的 MySQL 关系型数据库中，上传附件保存在 `upload/storage/` 下，全量备份仅需数秒：
+1. 数据库：常规执行 `mysqldump -u <用户名> -p <数据库名> > backup.sql`（或通过 phpMyAdmin / 主机面板导出）。
+2. 文件与配置：打包归档 `upload/storage/` 文件夹及 `api/.env` 配置文件。
+3. 升级前自动快照：内置的一键在线更新程序在执行文件与数据库迁移前，会自动创建带时间戳的完整快照，出现任何意外支持一键平滑回滚。
+
+**多个员工与 AI 智能体同时操作是否会发生数据覆盖冲突？**
+不会。TropaTT 底层实现了基于 `row_version` 行版本号的 STORM 乐观并发控制机制。当两个用户或智能体尝试同时修改同一条业务记录时，后提交的修改会被系统安全拦截并提示冲突，切实保障数据一致性。
+
+**服务器物理硬件与运行环境的最低要求是什么？**
+- 处理器：1 vCPU（主频 1.0 GHz 以上）。
+- 内存开销：512MB RAM 即可流畅运行（应用运行时实际内存占用通常低于 32MB）。
+- 磁盘容量：程序核心仅需约 100MB 空间 + 实际上传的项目附件存储空间。
+- 基础运行环境：PHP 8.1 或 8.2（需启用 PDO、OpenSSL、mbstring、cURL 扩展），MySQL 8.0+ 或 MariaDB 10.4+，Web 服务器推荐 Apache（开启 mod_rewrite）或 Nginx。
+- 支持环境：任何常规虚拟主机（cPanel、DirectAdmin、Plesk、宝塔等）、VPS、云主机或本地开发机。
+
+**客户门户如何防范企业内部机密外泄？**
+当向客户代表或外部承包商发送项目邀请时，其账号被赋予专属的观察员（Observer）或执行员（Executor）隔离角色。他们被严格限制在受指派的具体项目范围内，完全无法查看企业内部团队频道、其他客户名单、商业报价表与员工内部讨论。
+
+**企业知识库（Wiki）具备哪些功能？**
+支持多级分类树状目录、Markdown 与富文本排版、历史修订版本对照、基于角色的精细化读写权限控制，并支持生成外部公开外链供客户查阅产品使用规范与常见问题。
 
 **是否支持连接多个独立电商网站（如 OpenCart、WooCommerce、Shopify）？**
 完全支持。TropaTT 内置通用电商 CMS 网关（`crm.ecommerce-gateway`），原生支持 12 大电商独立站。支持绑定多个不同店铺，自动抓取并归集外部订单，智能匹配客户资料，并通过基于 HMAC-SHA256 签名的安全通道同步双向库存与发货状态。
@@ -1596,7 +1690,7 @@ TropaTT 彻底开源。将其部署在您所信任的服务器上，随意审查
 非常适合。团队规模 1 人起用。一个人也能从容管理数十个客户的项目交付，借助 AI 进行需求分析与每日时间安排，完全免除昂贵的人头软件按月续费压力。
 
 **普通的虚拟主机（Shared Hosting）能流畅运行吗？**
-完全可以。只要主机支持标准的 PHP 8.1+ 和 MySQL 数据库，即使是低配的共享虚拟主机（每年仅需百元左右）也能轻松驱动中小团队的日常协作。
+完全可以。只要主机支持标准的 PHP 8.1+ 和 MySQL 数据库，即使是低配的共享虚拟主机（每年仅需百元左右）也能轻松驱动团队的日常协作。
 
 **AI 能力到底能做什么？**
 内置 22 项开箱即用的工作流：将粗略需求自动推演为父子任务层级、制定每日/每周计划、梳理交付清单、生成会议摘要、研判项目风险。支持使用您自己的大模型 API Key（按量直付服务商，无额外溢价），所有运算受控运行，未经人工确认绝不会擅自覆写业务数据。
@@ -1613,8 +1707,8 @@ TropaTT 原生内置了遵循标准 Model Context Protocol 的 MCP 服务器，�
 **系统存在用户数或项目数限制吗？**
 没有任何人为限制。只要服务器硬件配置、磁盘空间和数据库负载允许，您可以自由创建任意数量的用户、客户、任务和项目。
 
-**真的完全免费开源吗？**
-是的。全系统遵循 AGPL-3.0 开源许可协议发布，核心代码无任何加密，无任何收费解锁功能，无隐形扣费项目。
+**商用是否被允许？**
+完全允许。TropaTT 遵循 AGPL-3.0 开源许可协议。您可以完全免费地将系统部署于企业的商业日常经营、代理机构业务管理及外包项目交付中，终身无需支付任何商业软件授权费用。
 
 **系统如何执行版本升级？**
 升级完全可通过管理员后台图形化界面一键完成（**管理 → 系统更新**，无需登录 SSH 命令行，无需运行 Composer）。更新服务器在 GitHub Releases 发布新版本时自动打包装箱并附带数字签名；您的 CRM 会安全下载安装包、校验签名、运行环境检查、自动备份现有程序与数据库，平滑执行文件替换与数据库迁移。一旦发生意外即可一键无损回滚。详见：[`UPDATES.md`](UPDATES.md)。
