@@ -544,8 +544,17 @@ final class StoreAdminController
     private function actor(): array
     {
         $auth = $this->container->has('auth_user') ? $this->container->get('auth_user') : null;
+        $user = is_array($auth) && is_array($auth['user'] ?? null) ? $auth['user'] : [];
+        if (!empty($user) && empty($user['id']) && !empty($user['public_id'])) {
+            $stmt = $this->pdo->prepare('SELECT id FROM users WHERE public_id = :public_id LIMIT 1');
+            $stmt->execute(['public_id' => $user['public_id']]);
+            $foundId = $stmt->fetchColumn();
+            if ($foundId !== false && (int)$foundId > 0) {
+                $user['id'] = (int)$foundId;
+            }
+        }
 
-        return is_array($auth) && is_array($auth['user'] ?? null) ? $auth['user'] : [];
+        return $user;
     }
 
     // ── Request / output helpers ───────────────────────────────────────
