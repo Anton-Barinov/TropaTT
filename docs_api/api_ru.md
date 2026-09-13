@@ -1484,6 +1484,11 @@ TropaTT реализует унифицированный протокол ве�
 | PATCH | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}` | Обновление витрины | Да | `module.ecommerce-gateway.manage` | — |
 | DELETE | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}` | Удаление витрины | Да | `module.ecommerce-gateway.manage` | Мягкое удаление |
 | POST | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}/rotate-secret` | Ротация секрета витрины | Да | `module.ecommerce-gateway.manage`, `module.ecommerce-gateway.secret_manage` | Grace-период 1 час |
+| GET | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}/status-mappings` | Маппинг статусов витрины | Да | `module.ecommerce-gateway.view` | — |
+| PUT | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}/status-mappings` | Сохранение маппинга статусов | Да | `module.ecommerce-gateway.manage` | — |
+| GET | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}/sync-log` | Журнал синхронизации и Outbox | Да | `module.ecommerce-gateway.view` | — |
+| POST | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}/sync-log/{log_id}/retry` | Ручной повтор пакета синхронизации | Да | `module.ecommerce-gateway.manage` | — |
+| POST | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}/ping-test` | Проверка связи с витриной (Ping) | Да | `module.ecommerce-gateway.manage` | — |
 
 ### Module: GitHub (если установлен)
 

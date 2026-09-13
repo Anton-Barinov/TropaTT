@@ -1,0 +1,62 @@
+/* E-Commerce Gateway Styles */
+.crm-ecom-tab-pane {
+    display: none;
+}
+.crm-ecom-tab-pane.active {
+    display: block;
+}
+
+.crm-ecom-secret-box {
+    background-color: var(--crm-bg-subtle, #f8f9fa);
+    border: 1px dashed var(--crm-border-color, #dee2e6);
+    border-radius: 6px;
+    padding: 12px;
+    font-family: monospace;
+    word-break: break-all;
+}
+
+.crm-ecom-code-block {
+    background: #212529;
+    color: #f8f9fa;
+    padding: 12px;
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 0.85rem;
+    max-height: 400px;
+    overflow: auto;
+}
+
+.crm-ecom-badge-cms {
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+.crm-ecom-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.crm-ecom-status-pill.active {
+    background-color: #d1e7dd;
+    color: #0f5132;
+}
+.crm-ecom-status-pill.paused {
+    background-color: #fff3cd;
+    color: #664d03;
+}
+.crm-ecom-status-pill.disabled {
+    background-color: #f8d7da;
+    color: #842029;
+}
+
+.crm-mapping-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--crm-text-muted, #6c757d);
+    font-size: 1.1rem;
+}

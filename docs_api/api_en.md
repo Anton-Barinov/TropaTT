@@ -1490,6 +1490,11 @@ Store-to-CRM ingestion is authenticated with an HMAC-SHA256 signature over the s
 | PATCH | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}` | Update store | Yes | `module.ecommerce-gateway.manage` | — |
 | DELETE | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}` | Delete store | Yes | `module.ecommerce-gateway.manage` | Soft delete |
 | POST | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}/rotate-secret` | Rotate store secret | Yes | `module.ecommerce-gateway.manage`, `module.ecommerce-gateway.secret_manage` | 1h grace period |
+| GET | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}/status-mappings` | Store status mappings | Yes | `module.ecommerce-gateway.view` | — |
+| PUT | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}/status-mappings` | Save status mappings | Yes | `module.ecommerce-gateway.manage` | — |
+| GET | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}/sync-log` | Store sync log and outbox | Yes | `module.ecommerce-gateway.view` | — |
+| POST | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}/sync-log/{log_id}/retry` | Retry failed sync packet | Yes | `module.ecommerce-gateway.manage` | — |
+| POST | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}/ping-test` | Test connectivity to store | Yes | `module.ecommerce-gateway.manage` | — |
 
 ### Module: GitHub (if installed)
 

@@ -23,4 +23,9 @@ return [
     ['methods' => ['PATCH'], 'route' => '/v1/stores/{public_id}', 'controller' => StoreAdminController::class, 'action' => 'updateStore', 'auth' => true, 'required_permissions' => ['module.ecommerce-gateway.manage']],
     ['methods' => ['DELETE'], 'route' => '/v1/stores/{public_id}', 'controller' => StoreAdminController::class, 'action' => 'deleteStore', 'auth' => true, 'required_permissions' => ['module.ecommerce-gateway.manage']],
     ['methods' => ['POST'], 'route' => '/v1/stores/{public_id}/rotate-secret', 'controller' => StoreAdminController::class, 'action' => 'rotateSecret', 'auth' => true, 'required_permissions' => ['module.ecommerce-gateway.manage', 'module.ecommerce-gateway.secret_manage']],
+    ['methods' => ['GET'], 'route' => '/v1/stores/{public_id}/status-mappings', 'controller' => StoreAdminController::class, 'action' => 'getStatusMappings', 'auth' => true, 'required_permissions' => ['module.ecommerce-gateway.view']],
+    ['methods' => ['PUT', 'POST'], 'route' => '/v1/stores/{public_id}/status-mappings', 'controller' => StoreAdminController::class, 'action' => 'saveStatusMappings', 'auth' => true, 'required_permissions' => ['module.ecommerce-gateway.manage']],
+    ['methods' => ['GET'], 'route' => '/v1/stores/{public_id}/sync-log', 'controller' => StoreAdminController::class, 'action' => 'getSyncLog', 'auth' => true, 'required_permissions' => ['module.ecommerce-gateway.view']],
+    ['methods' => ['POST'], 'route' => '/v1/stores/{public_id}/sync-log/{log_id}/retry', 'controller' => StoreAdminController::class, 'action' => 'retrySyncPacket', 'auth' => true, 'required_permissions' => ['module.ecommerce-gateway.manage']],
+    ['methods' => ['POST'], 'route' => '/v1/stores/{public_id}/ping-test', 'controller' => StoreAdminController::class, 'action' => 'pingTest', 'auth' => true, 'required_permissions' => ['module.ecommerce-gateway.manage']],
 ];

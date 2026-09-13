@@ -1451,6 +1451,11 @@ TropaTT 为 CRM 出站事件与外部电商 CMS 连接器（OpenCart 1.5–4.x, 
 | PATCH | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}` | 更新店铺 | 是 | `module.ecommerce-gateway.manage` | — |
 | DELETE | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}` | 删除店铺 | 是 | `module.ecommerce-gateway.manage` | 软删除 |
 | POST | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}/rotate-secret` | 轮换店铺密钥 | 是 | `module.ecommerce-gateway.manage`, `module.ecommerce-gateway.secret_manage` | 1 小时宽限期 |
+| GET | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}/status-mappings` | 店铺状态映射 | 是 | `module.ecommerce-gateway.view` | — |
+| PUT | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}/status-mappings` | 保存状态映射 | 是 | `module.ecommerce-gateway.manage` | — |
+| GET | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}/sync-log` | 店铺同步日志与 Outbox | 是 | `module.ecommerce-gateway.view` | — |
+| POST | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}/sync-log/{log_id}/retry` | 重试失败同步包 | 是 | `module.ecommerce-gateway.manage` | — |
+| POST | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}/ping-test` | 测试店铺连通性 (Ping) | 是 | `module.ecommerce-gateway.manage` | — |
 
 ### 模块：GitHub（如已安装）
 
