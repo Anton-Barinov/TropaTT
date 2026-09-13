@@ -79,7 +79,7 @@ final class FieldMapperService
             $label = htmlspecialchars((string)$key, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
             $valStr = is_array($value) ? json_encode($value, JSON_UNESCAPED_UNICODE) : (string)$value;
             $valEscaped = htmlspecialchars((string)$valStr, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-            $valSingleLine = trim(preg_replace('/\s*\R\s*/', ' ', $valEscaped) ?? $valEscaped);
+            $valSingleLine = trim(preg_replace('/\s*\R\s*/u', ' ', $valEscaped) ?? $valEscaped);
 
             $lines[] = '| ' . str_replace('|', '\\|', $label) . ' | ' . str_replace('|', '\\|', $valSingleLine) . ' |';
         }

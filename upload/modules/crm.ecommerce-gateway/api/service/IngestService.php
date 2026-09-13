@@ -143,41 +143,6 @@ final class IngestService
         $externalId = (string)$data['external_id'];
         $requestHash = hash('sha256', $rawBody);
 
-        // ── 2b. Multi-layer Anti-Spam (E-COM-11 §4) ────────────────────
-        $antispamEnabled = !empty($settings['antispam_enabled']);
-        if ($antispamEnabled) {
-            $spamResult = $this->antiSpam->check($raw, is_array($data['contact'] ?? null) ? $data['contact'] : [], $ip);
-            if ($spamResult['is_spam']) {
-                $this->storeRepository->logSecurityEvent(
-                    'antispam_blocked',
-                    'warning',
-                    $storeId,
-                    $ip,
-                    $userAgent,
-                    [
-                        'type' => $type,
-                        'reason' => $spamResult['reason'],
-                        'rule' => $spamResult['rule'],
-                        'score' => $spamResult['score'],
-                    ]
-                );
-
-                return $this->fail(
-                    'INGESTION_SPAM_DETECTED',
-                    422,
-                    ['antispam' => [(string)$spamResult['reason']]],
-                    $storeId,
-                    $type,
-                    $externalId,
-                    $rawBody,
-                    $requestId,
-                    $ip,
-                    $userAgent,
-                    $started
-                );
-            }
-        }
-
         // ── 3. Idempotency claim (E-COM-01 §8) ─────────────────────────
         $decision = $this->idempotency->decide(
             $storeId,
@@ -214,6 +179,43 @@ final class IngestService
             $this->journal($storeId, $type, $externalId, $response['intake_item_public_id'] ?? null, 'duplicate', 200, null, $rawBody, $requestId, $ip, $userAgent, $started);
 
             return $this->ok('INGESTION_DUPLICATE', 200, $response, $key);
+        }
+
+        // ── 2b. Multi-layer Anti-Spam (E-COM-11 §4) ────────────────────
+        // Executed only for new, non-duplicate submissions
+        $antispamEnabled = !empty($settings['antispam_enabled']);
+        if ($antispamEnabled) {
+            $spamResult = $this->antiSpam->check($raw, is_array($data['contact'] ?? null) ? $data['contact'] : [], $ip);
+            if ($spamResult['is_spam']) {
+                $this->storeRepository->logSecurityEvent(
+                    'antispam_blocked',
+                    'warning',
+                    $storeId,
+                    $ip,
+                    $userAgent,
+                    [
+                        'type' => $type,
+                        'reason' => $spamResult['reason'],
+                        'rule' => $spamResult['rule'],
+                        'score' => $spamResult['score'],
+                    ]
+                );
+
+                return $this->fail(
+                    'INGESTION_SPAM_DETECTED',
+                    422,
+                    ['antispam' => [(string)$spamResult['reason']]],
+                    $storeId,
+                    $type,
+                    $externalId,
+                    $rawBody,
+                    $requestId,
+                    $ip,
+                    $userAgent,
+                    $started,
+                    $key
+                );
+            }
         }
 
         if ($decision['state'] === IdempotencyService::STATE_MERGED) {
