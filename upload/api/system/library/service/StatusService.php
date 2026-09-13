@@ -12,6 +12,24 @@ final class StatusService
     {
     }
 
+    /**
+     * Normalise a boolean-ish input flag. Accepts true/1/'1'/'true'/'on'.
+     * Used for is_active / is_closed so both form posts and JSON behave the same.
+     */
+    private static function flag(array $input, string $key, bool $default): int
+    {
+        if (!array_key_exists($key, $input)) {
+            return $default ? 1 : 0;
+        }
+
+        $value = $input[$key];
+        if (is_bool($value)) {
+            return $value ? 1 : 0;
+        }
+
+        return in_array(strtolower(trim((string)$value)), ['1', 'true', 'on', 'yes'], true) ? 1 : 0;
+    }
+
     public function list(array $filters): array
     {
         [$items, $total, $page, $limit] = $this->statuses->list($filters);
@@ -53,6 +71,7 @@ final class StatusService
             'color' => (string)($input['color'] ?? '#64748b'),
             'sort_order' => isset($input['sort_order']) ? (int)$input['sort_order'] : 100,
             'is_active' => isset($input['is_active']) ? (int)((string)$input['is_active'] === '1' || $input['is_active'] === true) : 1,
+            'is_closed' => self::flag($input, 'is_closed', false),
             'created_at' => $now,
             'updated_at' => $now,
         ]);
@@ -96,6 +115,9 @@ final class StatusService
         }
         if (array_key_exists('is_active', $input)) {
             $set['is_active'] = (int)((string)$input['is_active'] === '1' || $input['is_active'] === true);
+        }
+        if (array_key_exists('is_closed', $input)) {
+            $set['is_closed'] = self::flag($input, 'is_closed', false);
         }
         $set['updated_at'] = gmdate('Y-m-d H:i:s');
 

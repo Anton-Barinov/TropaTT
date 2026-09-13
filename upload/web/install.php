@@ -1728,6 +1728,7 @@ function createDatabaseTables(PDO $pdo, string $driver): array
             color VARCHAR(32),
             sort_order INTEGER,
             is_active {$bool} DEFAULT 1,
+            is_closed {$bool} DEFAULT 0,
             created_at {$dt},
             updated_at {$dt}
         )",
@@ -2701,25 +2702,26 @@ function seedDictionaries(PDO $pdo): void
 {
     $now = gmdate('Y-m-d H:i:s');
 
+    // [scope, code, title, color, sort_order, is_closed]
     $statuses = [
-        ['task', 'new', 'Новая', '#64748b', 10],
-        ['task', 'in_progress', 'В работе', '#2563eb', 20],
-        ['task', 'on_hold', 'На паузе', '#d97706', 30],
-        ['task', 'blocked', 'Заблокирована', '#ef4444', 40],
-        ['task', 'done', 'Завершена', '#16a34a', 50],
-        ['project', 'active', 'Активный', '#2563eb', 10],
-        ['project', 'on_hold', 'На паузе', '#d97706', 20],
-        ['project', 'archived', 'В архиве', '#475569', 30],
-        ['worklog_activity', 'dev', 'Разработка', '#2563eb', 10],
-        ['worklog_activity', 'design', 'Дизайн', '#7c3aed', 20],
-        ['worklog_activity', 'analysis', 'Аналитика', '#0891b2', 30],
-        ['worklog_activity', 'consulting', 'Консультации', '#d97706', 40],
-        ['worklog_activity', 'support', 'Поддержка', '#16a34a', 50],
+        ['task', 'new', 'Новая', '#64748b', 10, 0],
+        ['task', 'in_progress', 'В работе', '#2563eb', 20, 0],
+        ['task', 'on_hold', 'На паузе', '#d97706', 30, 0],
+        ['task', 'blocked', 'Заблокирована', '#ef4444', 40, 0],
+        ['task', 'done', 'Завершена', '#16a34a', 50, 1],
+        ['project', 'active', 'Активный', '#2563eb', 10, 0],
+        ['project', 'on_hold', 'На паузе', '#d97706', 20, 0],
+        ['project', 'archived', 'В архиве', '#475569', 30, 1],
+        ['worklog_activity', 'dev', 'Разработка', '#2563eb', 10, 0],
+        ['worklog_activity', 'design', 'Дизайн', '#7c3aed', 20, 0],
+        ['worklog_activity', 'analysis', 'Аналитика', '#0891b2', 30, 0],
+        ['worklog_activity', 'consulting', 'Консультации', '#d97706', 40, 0],
+        ['worklog_activity', 'support', 'Поддержка', '#16a34a', 50, 0],
     ];
 
     $insert = $pdo->prepare(
-        'INSERT INTO statuses (public_id, scope, code, title, color, sort_order, is_active, created_at, updated_at)
-         VALUES (:public_id, :scope, :code, :title, :color, :sort_order, 1, :created_at, :updated_at)'
+        'INSERT INTO statuses (public_id, scope, code, title, color, sort_order, is_active, is_closed, created_at, updated_at)
+         VALUES (:public_id, :scope, :code, :title, :color, :sort_order, 1, :is_closed, :created_at, :updated_at)'
     );
 
     foreach ($statuses as $s) {
@@ -2735,6 +2737,7 @@ function seedDictionaries(PDO $pdo): void
             'title' => $s[2],
             'color' => $s[3],
             'sort_order' => $s[4],
+            'is_closed' => $s[5] ?? 0,
             'created_at' => $now,
             'updated_at' => $now,
         ]);

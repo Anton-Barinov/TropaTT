@@ -6,9 +6,13 @@ namespace Api\Model\Cycle;
 use Api\System\Library\Database\Builder\QueryBuilder;
 use PDO;
 use Api\System\Library\Support\LikeEscaper;
+use Api\System\Library\Support\TaskStatusSemantics;
 
 final class WorkCycleRepository
 {
+    /** Cycle metrics treat an archived task as finished, but not a cancelled one. */
+    private const COMPLETED_OR_ARCHIVED = ['done', 'completed', 'closed', 'archived'];
+
     public function __construct(private readonly PDO $pdo)
     {
     }
@@ -34,8 +38,8 @@ final class WorkCycleRepository
                 'p.public_id AS project_public_id',
                 'p.title AS project_title',
                 "(SELECT COUNT(*) FROM cycle_tasks ct WHERE ct.cycle_id = wc.id AND ct.deleted_at IS NULL) AS tasks_count",
-                "(SELECT COUNT(*) FROM cycle_tasks ct INNER JOIN tasks t ON t.id = ct.task_id WHERE ct.cycle_id = wc.id AND ct.deleted_at IS NULL AND t.status_code IN ('done','closed','archived')) AS completed_tasks_count",
-                "(SELECT COUNT(*) FROM cycle_tasks ct INNER JOIN tasks t ON t.id = ct.task_id WHERE ct.cycle_id = wc.id AND ct.deleted_at IS NULL AND t.status_code NOT IN ('done','closed','archived')) AS open_tasks_count",
+                "(SELECT COUNT(*) FROM cycle_tasks ct INNER JOIN tasks t ON t.id = ct.task_id WHERE ct.cycle_id = wc.id AND ct.deleted_at IS NULL AND t.status_code IN (" . TaskStatusSemantics::literalList($this->pdo, self::COMPLETED_OR_ARCHIVED) . ")) AS completed_tasks_count",
+                "(SELECT COUNT(*) FROM cycle_tasks ct INNER JOIN tasks t ON t.id = ct.task_id WHERE ct.cycle_id = wc.id AND ct.deleted_at IS NULL AND t.status_code NOT IN (" . TaskStatusSemantics::literalList($this->pdo, self::COMPLETED_OR_ARCHIVED) . ")) AS open_tasks_count",
             ]);
 
         if (!empty($filters['project_public_id'])) {
@@ -156,7 +160,7 @@ final class WorkCycleRepository
             ->leftJoin('tasks t', 't.id', '=', 'ct.task_id')
             ->where('ct.cycle_id', '=', (int)$row['id'])
             ->whereNull('ct.deleted_at')
-            ->whereRaw("t.status_code IN (?, ?, ?)", ['done', 'closed', 'archived'])
+            ->whereRaw(...$this->completedOrArchivedCondition())
             ->count();
 
         $row['tasks_count'] = $total;
@@ -166,6 +170,14 @@ final class WorkCycleRepository
         $row['time_state'] = $this->computeTimeState($row);
 
         return $row;
+    }
+
+    /** @return array{0: string, 1: list<string>} */
+    private function completedOrArchivedCondition(): array
+    {
+        $placeholders = implode(', ', array_fill(0, count(self::COMPLETED_OR_ARCHIVED), '?'));
+
+        return ['t.status_code IN (' . $placeholders . ')', self::COMPLETED_OR_ARCHIVED];
     }
 
     public function findById(int $id): ?array

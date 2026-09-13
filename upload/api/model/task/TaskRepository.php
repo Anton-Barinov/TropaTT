@@ -8,6 +8,7 @@ use Api\System\Library\Database\Builder\QueryBuilder;
 use Api\System\Library\Sync\CursorCodec;
 use PDO;
 use Api\System\Library\Support\LikeEscaper;
+use Api\System\Library\Support\TaskStatusSemantics;
 
 final class TaskRepository
 {
@@ -144,7 +145,7 @@ final class TaskRepository
                     INNER JOIN tasks blocker ON blocker.id = td.depends_on_task_id
                     WHERE td.task_id = t.id
                       AND blocker.deleted_at IS NULL
-                      AND blocker.status_code NOT IN ('done','cancelled')
+                      AND blocker.status_code NOT IN (" . TaskStatusSemantics::terminalLiteralList($this->pdo) . ")
                 ) AS blocked_by_count",
                 "(SELECT wc.public_id FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_public_id",
                 "(SELECT wc.title FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_title",
@@ -613,7 +614,7 @@ final class TaskRepository
             ->where('t.assignee_user_id', '=', $assigneeUserId)
             ->whereNull('t.deleted_at')
             ->whereNull('t.archived_at')
-            ->whereRaw("t.status_code NOT IN (?, ?, ?)", ['done', 'closed', 'archived'])
+            ->whereRaw(...TaskStatusSemantics::notTerminalSql($this->pdo, 't.status_code'))
             ->whereNotNull('t.due_at')
             ->where('t.due_at', '<', $nowUtc)
             ->orderBy('t.due_at', 'ASC')
@@ -635,7 +636,7 @@ final class TaskRepository
             ->leftJoin('teams pt', 'pt.public_id', '=', 'p.team_public_id')
             ->whereNull('t.deleted_at')
             ->whereNull('t.archived_at')
-            ->whereRaw("t.status_code NOT IN (?, ?, ?)", ['done', 'closed', 'archived'])
+            ->whereRaw(...TaskStatusSemantics::notTerminalSql($this->pdo, 't.status_code'))
             ->whereNotNull('t.due_at')
             ->where('t.due_at', '<', $nowUtc)
             ->whereRaw('(p.manager_user_id = ? OR pt.manager_user_id = ?)', [$managerUserId, $managerUserId]);
@@ -652,7 +653,7 @@ final class TaskRepository
             ])
             ->whereNull('t.deleted_at')
             ->whereNull('t.archived_at')
-            ->whereRaw("t.status_code NOT IN (?, ?, ?)", ['done', 'closed', 'archived'])
+            ->whereRaw(...TaskStatusSemantics::notTerminalSql($this->pdo, 't.status_code'))
             ->whereNotNull('t.due_at')
             ->where('t.due_at', '<', $nowUtc)
             ->whereRaw('(p.manager_user_id = ? OR pt.manager_user_id = ?)', [$managerUserId, $managerUserId])
@@ -701,7 +702,7 @@ final class TaskRepository
             $excludeStatuses = $this->splitFilterList((string)$filters['exclude_statuses']);
         }
         if (!empty($filters['hide_done']) || !empty($filters['active_only'])) {
-            $excludeStatuses = array_merge($excludeStatuses, ['done', 'completed', 'canceled', 'cancelled', 'archived']);
+            $excludeStatuses = array_merge($excludeStatuses, TaskStatusSemantics::terminalCodes($this->pdo));
         }
         if ($excludeStatuses !== []) {
             $expandedExclude = $this->expandStatusAliases($excludeStatuses);
@@ -892,7 +893,7 @@ final class TaskRepository
                 // Due in the past and not finished (matches the old client-side logic).
                 $qb->whereNotNull('t.due_at')
                     ->where('t.due_at', '<', date('Y-m-d H:i:s'))
-                    ->whereRaw("t.status_code NOT IN ('done','completed','closed','archived')");
+                    ->whereRaw(...TaskStatusSemantics::notTerminalSql($this->pdo, 't.status_code'));
             } elseif ($duePreset === 'today') {
                 $day = date('Y-m-d');
                 $qb->whereNotNull('t.due_at')

@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Support\TaskStatusSemantics;
+
 final class ClientAiContextBuilder
 {
     public function __construct(
@@ -105,7 +107,7 @@ final class ClientAiContextBuilder
             ], $actor);
             foreach ((array)($tasksResult['items'] ?? []) as $task) {
                 $status = strtolower(trim((string)($task['status_code'] ?? '')));
-                if ($status === 'done' || $status === 'completed' || $status === 'cancelled') {
+                if (TaskStatusSemantics::isCanonicalTerminal($status)) {
                     continue;
                 }
                 $openTasks[] = [

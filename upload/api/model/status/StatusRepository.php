@@ -6,6 +6,7 @@ namespace Api\Model\Status;
 use Api\System\Library\Database\Builder\QueryBuilder;
 use PDO;
 use Api\System\Library\Support\LikeEscaper;
+use Api\System\Library\Support\TaskStatusSemantics;
 
 final class StatusRepository
 {
@@ -21,7 +22,7 @@ final class StatusRepository
 
         $total = $this->buildListQuery($filters)->count();
         $items = $this->buildListQuery($filters)
-            ->select(['public_id', 'scope', 'code', 'title', 'color', 'sort_order', 'is_active', 'created_at', 'updated_at'])
+            ->select(['public_id', 'scope', 'code', 'title', 'color', 'sort_order', 'is_active', 'is_closed', 'created_at', 'updated_at'])
             ->orderBy('sort_order', 'ASC')
             ->orderBy('created_at', 'ASC')
             ->limit($limit)
@@ -74,6 +75,8 @@ final class StatusRepository
         (new QueryBuilder($this->pdo))
             ->from('statuses')
             ->insert($payload);
+
+        TaskStatusSemantics::resetCache($this->pdo);
     }
 
     public function updateByPublicId(string $publicId, array $set): bool
@@ -82,18 +85,26 @@ final class StatusRepository
             return false;
         }
 
-        return (new QueryBuilder($this->pdo))
+        $updated = (new QueryBuilder($this->pdo))
             ->from('statuses')
             ->where('public_id', '=', $publicId)
             ->update($set) > 0;
+
+        TaskStatusSemantics::resetCache($this->pdo);
+
+        return $updated;
     }
 
     public function deleteByPublicId(string $publicId): bool
     {
-        return (new QueryBuilder($this->pdo))
+        $deleted = (new QueryBuilder($this->pdo))
             ->from('statuses')
             ->where('public_id', '=', $publicId)
             ->delete() > 0;
+
+        TaskStatusSemantics::resetCache($this->pdo);
+
+        return $deleted;
     }
 
     public function usageCount(string $scope, string $code): int
