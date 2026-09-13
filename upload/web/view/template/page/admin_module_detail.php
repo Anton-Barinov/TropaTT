@@ -2,7 +2,7 @@
 <?php $title = $t('admin_module_detail.title', 'TropaTT — Детали модуля'); $moduleName = htmlspecialchars((string)($_GET['module'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
 <body data-page="admin-module-detail" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
-<main class="crm-content crm-admin-page"><div class="crm-page-head"><div><ol class="breadcrumb mb-1"><li class="breadcrumb-item"><a href="index.php?route=admin" data-i18n="admin_module_detail.link_admin"><?= htmlspecialchars($t('admin_module_detail.link_admin', 'Админка'), ENT_QUOTES, 'UTF-8') ?></a></li><li class="breadcrumb-item"><a href="index.php?route=admin-modules" data-i18n="admin_module_detail.link_modules"><?= htmlspecialchars($t('admin_module_detail.link_modules', 'Модули'), ENT_QUOTES, 'UTF-8') ?></a></li><li class="breadcrumb-item active" id="moduleBreadcrumb"><?= htmlspecialchars($t('admin_module_detail.breadcrumb_loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></li></ol><h1 class="crm-page-title" id="moduleTitle" data-i18n="admin_module_detail.page_title"><?= htmlspecialchars($t('admin_module_detail.page_title', 'Детали модуля'), ENT_QUOTES, 'UTF-8') ?></h1><p class="crm-subtitle" id="moduleDesc"></p></div></div>
+<main class="crm-content crm-admin-page"><div class="crm-page-head"><div><ol class="breadcrumb mb-1"><li class="breadcrumb-item"><a href="index.php?route=admin" data-i18n="admin_module_detail.link_admin"><?= htmlspecialchars($t('admin_module_detail.link_admin', 'Админка'), ENT_QUOTES, 'UTF-8') ?></a></li><li class="breadcrumb-item"><a href="index.php?route=admin-modules" data-i18n="admin_module_detail.link_modules"><?= htmlspecialchars($t('admin_module_detail.link_modules', 'Модули'), ENT_QUOTES, 'UTF-8') ?></a></li><li class="breadcrumb-item active" id="moduleBreadcrumb"><?= htmlspecialchars($t('admin_module_detail.breadcrumb_loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></li></ol><h1 class="crm-page-title" id="moduleTitle" data-i18n="admin_module_detail.page_title"><?= htmlspecialchars($t('admin_module_detail.page_title', 'Детали модуля'), ENT_QUOTES, 'UTF-8') ?></h1><p class="crm-subtitle" id="moduleDesc"></p><div id="modulePageLink" class="mt-2"></div></div></div>
 
 <div class="row g-4 mb-4" id="moduleStats" style="display:none">
   <div class="col-md-3"><div class="crm-card crm-kpi-card"><small class="text-muted" data-i18n="admin_module_detail.kpi_version"><?= htmlspecialchars($t('admin_module_detail.kpi_version', 'Версия'), ENT_QUOTES, 'UTF-8') ?></small><h2 class="h4 mb-0" id="statVersion">—</h2></div></div>
@@ -50,6 +50,18 @@
                 document.getElementById('moduleBreadcrumb').textContent = m.name || name;
                 document.getElementById('moduleTitle').textContent = m.title || m.name || name;
                 document.getElementById('moduleDesc').textContent = m.description || '';
+
+                // Link straight to the module's own page (its real settings UI):
+                // the raw "Конфигурация" section below only shows the module config.
+                var pageRoutes = m.page_routes || [];
+                var pageLink = document.getElementById('modulePageLink');
+                if (pageRoutes.length > 0) {
+                    var route = String(pageRoutes[0]);
+                    pageLink.innerHTML = '<a class="btn crm-btn-secondary btn-sm" href="index.php?route=' + encodeURIComponent(route) + '"><i class="fa-solid fa-arrow-up-right-from-square me-1" aria-hidden="true"></i>' + window.CRM.text.escapeHtml(window.CRM.i18n.t('admin_module_detail.open_module_page', 'Открыть страницу модуля')) + '</a>';
+                } else {
+                    pageLink.innerHTML = '';
+                }
+
                 document.getElementById('moduleStats').style.display = '';
 
                 document.getElementById('statVersion').textContent = m.version || '—';

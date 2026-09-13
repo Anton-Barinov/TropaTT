@@ -90,6 +90,25 @@ final class ModuleController
 
             $registry = $mc->getRegistry($name);
 
+            // Page routes the module exposes (web/config/routes.php keys). Used by
+            // the admin module detail page to link straight to the module's own
+            // settings page, which is otherwise only reachable from the sidebar.
+            $pageRoutes = [];
+            if ($manifest->webRoutes !== null) {
+                $routeFile = $pm->getModulesDir() . '/' . $manifest->name . '/' . $manifest->webRoutes;
+                if (is_file($routeFile)) {
+                    $moduleRoutes = require $routeFile;
+                    if (is_array($moduleRoutes)) {
+                        foreach (array_keys($moduleRoutes) as $routeKey) {
+                            $routeKey = (string)$routeKey;
+                            if ($routeKey !== '') {
+                                $pageRoutes[] = $routeKey;
+                            }
+                        }
+                    }
+                }
+            }
+
             return JsonResponse::success('MODULE_INFO', $this->t('common/messages.ok', 'OK'), [
                 'name' => $manifest->name,
                 'version' => $manifest->version,
@@ -104,6 +123,7 @@ final class ModuleController
                 'require_permissions' => $manifest->requirePermissions,
                 'api_routes' => $manifest->apiRoutes,
                 'web_routes' => $manifest->webRoutes,
+                'page_routes' => $pageRoutes,
                 'migrations' => $manifest->migrations,
                 'service_provider' => $manifest->serviceProvider,
                 'is_loaded' => $pm->isLoaded($name),

@@ -59,6 +59,24 @@ final class EcommerceGatewayServiceProvider extends AbstractModuleServiceProvide
         ];
     }
 
+    /**
+     * Sidebar entry so the module is reachable right after activation, like
+     * every other module with its own page (see MenuController::list() ->
+     * ServiceProviderRegistry::getAllMenuItems()).
+     */
+    public function getMenuItems(): array
+    {
+        return [
+            [
+                'route' => 'module-ecommerce-gateway',
+                'label' => 'Шлюз интернет-магазинов',
+                'icon' => '<i class="fa-solid fa-store"></i>',
+                'permission' => 'module.ecommerce-gateway.view',
+                'parent' => null,
+            ],
+        ];
+    }
+
     public function getConfig(): array
     {
         return [
