@@ -3218,7 +3218,7 @@ $tools[] = $this->tool(
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
                 'access_level' => ['type' => 'string', 'description' => 'Access level (view/edit/manage).'],
                 'cascade' => ['type' => 'boolean', 'description' => 'With delete_space: delete the space together with its pages and sub-sections.'],
-                'retention_days' => ['type' => 'integer', 'minimum' => 0, 'description' => 'With purge_expired_trash: override the recycle-bin retention window (days) for this call. 0 empties the bin completely.'],
+                'retention_days' => ['type' => 'integer', 'minimum' => 0, 'description' => 'With purge_expired_trash: override the recycle-bin retention window (days) for this call. 0 disables the sweep (keep sections forever).'],
                 'change_note' => ['type' => 'string', 'description' => 'Note for the restored version.'],
                 'change_summary' => ['type' => 'string', 'description' => 'Short summary of the change.'],
                 'color' => ['type' => 'string', 'description' => 'Colour token or hex value.'],
