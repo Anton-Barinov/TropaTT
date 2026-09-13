@@ -48,5 +48,7 @@ if (str_starts_with($requestPath, 'install/')) {
 // (web/index.php) handles all auth checks internally without loopback.
 //
 // See: https://github.com/Anton-Barinov/TropaTT/issues/security
-header('Location: /web/index.php', true, 302);
+$queryString = $_SERVER['QUERY_STRING'] ?? '';
+$redirectUrl = '/web/index.php' . ($queryString !== '' ? '?' . $queryString : '');
+header('Location: ' . $redirectUrl, true, 302);
 exit;
