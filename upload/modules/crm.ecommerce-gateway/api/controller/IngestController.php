@@ -8,12 +8,15 @@ use Api\System\Library\Http\JsonResponse;
 use Api\System\Library\Http\Request;
 use Module\Crm\EcommerceGateway\Repository\IngestRepository;
 use Module\Crm\EcommerceGateway\Repository\StoreRepository;
+use Module\Crm\EcommerceGateway\Service\AntiSpamService;
 use Module\Crm\EcommerceGateway\Service\ContactResolver;
 use Module\Crm\EcommerceGateway\Service\CoreIntakeWriter;
+use Module\Crm\EcommerceGateway\Service\FieldMapperService;
 use Module\Crm\EcommerceGateway\Service\IdempotencyService;
 use Module\Crm\EcommerceGateway\Service\IngestService;
 use Module\Crm\EcommerceGateway\Service\IntakeComposer;
 use Module\Crm\EcommerceGateway\Service\PayloadValidator;
+use Module\Crm\EcommerceGateway\Service\RoutingMatrixService;
 use Module\Crm\EcommerceGateway\Service\SignatureService;
 use Module\Crm\EcommerceGateway\Service\StoreAuthService;
 
@@ -43,6 +46,7 @@ final class IngestController
         );
 
         $ingestRepository = new IngestRepository($container->get('db.pdo'));
+        $db = $container->get('db.pdo');
         $this->ingest = new IngestService(
             $this->repository,
             $ingestRepository,
@@ -52,7 +56,10 @@ final class IngestController
             new IntakeComposer(),
             $container->has('service.intake_item') ? new CoreIntakeWriter($container->get('service.intake_item')) : null,
             $container->has('service.task') ? $container->get('service.task') : null,
-            $config
+            $config,
+            new AntiSpamService($db),
+            new FieldMapperService($db),
+            new RoutingMatrixService($db)
         );
     }
 

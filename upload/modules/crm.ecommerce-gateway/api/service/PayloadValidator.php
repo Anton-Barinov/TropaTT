@@ -24,7 +24,7 @@ namespace Module\Crm\EcommerceGateway\Service;
  */
 final class PayloadValidator
 {
-    public const TYPES = ['order', 'quick_order', 'callback', 'feedback', 'form'];
+    public const TYPES = ['order', 'quick_order', 'callback', 'feedback', 'form', 'quiz'];
 
     /** Route suffixes → ingest type (E-COM-01 §5). */
     public const ROUTE_TYPES = [
@@ -219,7 +219,7 @@ final class PayloadValidator
             'quick_order' => $this->validateQuickOrder($payload, $errors),
             'callback' => $this->validateCallback($payload, $errors),
             'feedback' => $this->validateFeedback($payload, $errors),
-            'form' => $this->validateDynamicForm($payload, $errors),
+            'form', 'quiz' => $this->validateDynamicForm($payload, $errors),
             default => [],
         };
     }
@@ -462,15 +462,15 @@ final class PayloadValidator
     {
         $out = ['kind' => 'form'];
 
-        $formId = trim(self::cleanString($payload['form_id'] ?? ''));
+        $formId = trim(self::cleanString($payload['form_id'] ?? $payload['quiz_id'] ?? ''));
         if ($formId === '') {
             $errors['payload.form_id'] = ['form_id is required'];
         }
         $out['form_id'] = mb_substr($formId, 0, 128);
-        $out['form_name'] = self::optionalString($payload, 'form_name', 255);
+        $out['form_name'] = self::optionalString($payload, 'form_name', 255) ?? self::optionalString($payload, 'quiz_title', 255);
         $out['title'] = self::optionalString($payload, 'title', 255);
 
-        $formData = $payload['form_data'] ?? null;
+        $formData = $payload['form_data'] ?? $payload['answers'] ?? null;
         if (!is_array($formData) || $formData === []) {
             $errors['payload.form_data'] = ['form_data must be a non-empty object'];
             $out['form_data'] = [];

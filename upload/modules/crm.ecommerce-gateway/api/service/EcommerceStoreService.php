@@ -32,6 +32,8 @@ final class EcommerceStoreService
         'antispam_enabled',
         'retention_days',
         'tags',
+        'routing_matrix',
+        'field_mappings',
     ];
 
     /**
@@ -398,6 +400,12 @@ final class EcommerceStoreService
         }
         if (array_key_exists('tags', $input)) {
             $settings['tags'] = self::normalizeTags($input['tags']);
+        }
+        if (array_key_exists('routing_matrix', $input) && is_array($input['routing_matrix'])) {
+            $settings['routing_matrix'] = $input['routing_matrix'];
+        }
+        if (array_key_exists('field_mappings', $input) && is_array($input['field_mappings'])) {
+            $settings['field_mappings'] = $input['field_mappings'];
         }
 
         return self::withSettingDefaults($settings, $config);
