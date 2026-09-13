@@ -17049,6 +17049,43 @@ a.task-tag:hover {
   text-align: center;
 }
 
+.kb-space-row .kb-space-actions {
+  display: none;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  padding-right: 0.2rem;
+}
+
+.kb-space-row:hover .kb-space-actions,
+.kb-space-row:focus-within .kb-space-actions {
+  display: inline-flex;
+}
+
+.kb-space-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--crm-text-muted);
+  cursor: pointer;
+  font-size: 0.62rem;
+  padding: 0;
+}
+
+.kb-space-action:hover {
+  background: var(--crm-surface-2);
+  color: var(--crm-text);
+}
+
+.kb-space-action-danger:hover {
+  color: var(--crm-danger);
+}
+
 .kb-space-children {
   border-left: 1px solid var(--crm-border);
   margin-left: 0.55rem;

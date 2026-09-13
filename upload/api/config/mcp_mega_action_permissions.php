@@ -187,6 +187,7 @@ return [
         'delete_comment' => ['mode' => 'all', 'permissions' => ['knowledge.comment']],
         'delete_draft' => ['mode' => 'all', 'permissions' => ['knowledge.edit']],
         'delete_file' => ['mode' => 'all', 'permissions' => ['knowledge.delete']],
+        'delete_space' => ['mode' => 'all', 'permissions' => ['knowledge.manage']],
         'delete_link' => ['mode' => 'all', 'permissions' => ['knowledge.edit']],
         'detach_tag' => ['mode' => 'all', 'permissions' => ['knowledge.edit']],
         'diff_version' => ['mode' => 'all', 'permissions' => ['knowledge.view']],

@@ -245,6 +245,61 @@
   </div>
 </div>
 
+<div class="modal fade" id="kbSpaceEditModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><form class="modal-content" id="kbSpaceEditForm">
+    <div class="modal-header">
+      <h5 class="modal-title"><?= htmlspecialchars($t('knowledge.edit_space_title', 'Редактировать раздел'), ENT_QUOTES, 'UTF-8') ?></h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('knowledge.modal_close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>"></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="kbSpaceEditId">
+      <div class="mb-3">
+        <label for="kbSpaceEditTitle" class="form-label fw-semibold"><?= htmlspecialchars($t('knowledge.modal_label_title', 'Название'), ENT_QUOTES, 'UTF-8') ?></label>
+        <input id="kbSpaceEditTitle" class="form-control" type="text" required maxlength="255">
+      </div>
+      <div class="mb-3">
+        <label for="kbSpaceEditDesc" class="form-label fw-semibold"><?= htmlspecialchars($t('knowledge.modal_label_description', 'Описание'), ENT_QUOTES, 'UTF-8') ?></label>
+        <textarea id="kbSpaceEditDesc" class="form-control" rows="3"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal"><?= htmlspecialchars($t('knowledge.modal_cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button type="submit" class="btn crm-btn-success" id="kbSpaceEditSubmit"><?= htmlspecialchars($t('common.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
+    </div>
+  </form></div>
+</div>
+
+<div class="modal fade" id="kbSpaceDeleteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+    <div class="modal-header">
+      <h5 class="modal-title"><?= htmlspecialchars($t('knowledge.delete_space_title', 'Удалить раздел'), ENT_QUOTES, 'UTF-8') ?></h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('knowledge.modal_close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>"></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="kbSpaceDeleteId">
+      <p class="mb-2"><?= htmlspecialchars($t('knowledge.delete_space_confirm', 'Удалить раздел безвозвратно?'), ENT_QUOTES, 'UTF-8') ?> <strong id="kbSpaceDeleteTitle"></strong></p>
+      <p class="text-muted small" id="kbSpaceDeleteSummary"></p>
+      <div class="form-check mb-2">
+        <input class="form-check-input" type="radio" name="kbSpaceDeleteMode" id="kbSpaceDeleteModeMove" value="move" checked>
+        <label class="form-check-label" for="kbSpaceDeleteModeMove"><?= htmlspecialchars($t('knowledge.delete_mode_move', 'Перенести страницы в другой раздел'), ENT_QUOTES, 'UTF-8') ?></label>
+      </div>
+      <div class="mb-3 ms-4">
+        <label for="kbSpaceDeleteTarget" class="form-label"><?= htmlspecialchars($t('knowledge.delete_target_label', 'Раздел-получатель'), ENT_QUOTES, 'UTF-8') ?></label>
+        <select id="kbSpaceDeleteTarget" class="form-select"></select>
+        <div class="form-text"><?= htmlspecialchars($t('knowledge.delete_target_hint', 'Подразделы станут разделами верхнего уровня.'), ENT_QUOTES, 'UTF-8') ?></div>
+      </div>
+      <div class="form-check">
+        <input class="form-check-input" type="radio" name="kbSpaceDeleteMode" id="kbSpaceDeleteModePurge" value="purge">
+        <label class="form-check-label" for="kbSpaceDeleteModePurge"><?= htmlspecialchars($t('knowledge.delete_mode_purge', 'Удалить раздел вместе со всем содержимым'), ENT_QUOTES, 'UTF-8') ?></label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal"><?= htmlspecialchars($t('knowledge.modal_cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button type="button" class="btn crm-btn-danger" id="kbSpaceDeleteSubmit"><?= htmlspecialchars($t('knowledge.btn_delete_space', 'Удалить'), ENT_QUOTES, 'UTF-8') ?></button>
+    </div>
+  </div></div>
+</div>
+
 <script nonce="<?= $csp_nonce ?>">
 (function(){
   function getApi(){ return window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function' ? window.CRM.api : null; }
@@ -260,6 +315,10 @@
   }
   function esc(s){ var d=document.createElement('div'); d.appendChild(document.createTextNode(s)); return d.innerHTML; }
   var _t = window.CRM && window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function(k,f){return f;};
+  function canManageSpaces(){
+    var api = getApi();
+    return !api || typeof api.hasPermission !== 'function' || api.hasPermission('knowledge.manage');
+  }
 
   var state = { spaces:[], activeSpace:'', activeStatus:'' };
   var flatSpaces = [];
@@ -362,7 +421,14 @@
       else h += '<span class="kb-space-toggle" style="visibility:hidden"></span>';
       h += '<a href="javascript:void(0)" class="kb-space-item'+active+'" data-space="'+esc(s.public_id)+'"'+(hasKids?' data-has-children="'+esc(s.public_id)+'"':'')+'>'
         +'<span class="kb-space-name">'+esc(s.title)+'</span>'
-        +'<span class="kb-space-count">'+(s.pages_count||0)+'</span></a></div>';
+        +'<span class="kb-space-count">'+(s.pages_count||0)+'</span></a>';
+      if(canManageSpaces()){
+        h += '<span class="kb-space-actions">'
+          +'<button type="button" class="kb-space-action" data-space-edit="'+esc(s.public_id)+'" aria-label="'+esc(_t('knowledge.btn_edit_space','Редактировать раздел'))+'" title="'+esc(_t('knowledge.btn_edit_space','Редактировать раздел'))+'"><i class="fa-solid fa-pen" aria-hidden="true"></i></button>'
+          +'<button type="button" class="kb-space-action kb-space-action-danger" data-space-delete="'+esc(s.public_id)+'" aria-label="'+esc(_t('knowledge.btn_delete_space','Удалить раздел'))+'" title="'+esc(_t('knowledge.btn_delete_space','Удалить раздел'))+'"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>'
+          +'</span>';
+      }
+      h += '</div>';
       if(hasKids) h += '<div class="kb-space-children'+(isOpen?'':' kb-collapsed')+'" data-children="'+esc(s.public_id)+'">'+renderSpaceTree(s.children, depth+1)+'</div>';
     });
     return h;
@@ -676,6 +742,86 @@
       await loadSpaces();
       if(parentId) selectSpace(parentId);
     } catch(e){ alert(_t('knowledge.alert_create_error', 'Ошибка создания')); }
+  });
+
+  /* ── Edit / Delete space ── */
+  function findSpace(id){
+    return flatSpaces.find(function(s){ return s.public_id === id; });
+  }
+
+  document.getElementById('kbSpaces').addEventListener('click', function(e){
+    var editBtn = e.target.closest('[data-space-edit]');
+    if(editBtn){ e.preventDefault(); openSpaceEdit(editBtn.getAttribute('data-space-edit')); return; }
+    var delBtn = e.target.closest('[data-space-delete]');
+    if(delBtn){ e.preventDefault(); openSpaceDelete(delBtn.getAttribute('data-space-delete')); return; }
+  });
+
+  function openSpaceEdit(id){
+    var s = findSpace(id);
+    if(!s) return;
+    document.getElementById('kbSpaceEditId').value = id;
+    document.getElementById('kbSpaceEditTitle').value = s.title || '';
+    document.getElementById('kbSpaceEditDesc').value = s.description || '';
+    new bootstrap.Modal(document.getElementById('kbSpaceEditModal')).show();
+  }
+
+  function openSpaceDelete(id){
+    var s = findSpace(id);
+    if(!s) return;
+    document.getElementById('kbSpaceDeleteId').value = id;
+    document.getElementById('kbSpaceDeleteTitle').textContent = s.title || '';
+    document.getElementById('kbSpaceDeleteSummary').textContent = _t('knowledge.delete_summary', 'Страниц в разделе: ') + String(s.pages_count || 0);
+    var targets = flatSpaces.filter(function(item){ return item.public_id !== id; });
+    document.getElementById('kbSpaceDeleteTarget').innerHTML = targets.map(function(item){
+      return '<option value="'+esc(item.public_id)+'">'+esc(item.title)+'</option>';
+    }).join('');
+    var moveRadio = document.getElementById('kbSpaceDeleteModeMove');
+    var hasTargets = targets.length > 0;
+    moveRadio.disabled = !hasTargets;
+    moveRadio.checked = hasTargets;
+    document.getElementById('kbSpaceDeleteModePurge').checked = !hasTargets;
+    new bootstrap.Modal(document.getElementById('kbSpaceDeleteModal')).show();
+  }
+
+  document.getElementById('kbSpaceEditForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    var id = document.getElementById('kbSpaceEditId').value;
+    var s = findSpace(id) || {};
+    var title = document.getElementById('kbSpaceEditTitle').value.trim();
+    if(!title){ alert(_t('knowledge.alert_title_required', 'Укажите название')); return; }
+    var btn = document.getElementById('kbSpaceEditSubmit');
+    btn.disabled = true;
+    try {
+      await req('api/v1/knowledge/spaces/' + encodeURIComponent(id), {method:'PATCH', idempotent:true, body:{
+        title: title,
+        description: document.getElementById('kbSpaceEditDesc').value,
+        row_version: parseInt(s.row_version || 1, 10)
+      }});
+      bootstrap.Modal.getInstance(document.getElementById('kbSpaceEditModal')).hide();
+      await loadSpaces();
+      updateSpaceHeader();
+    } catch(err){ alert(_t('knowledge.space_save_error', 'Не удалось сохранить раздел')); }
+    btn.disabled = false;
+  });
+
+  document.getElementById('kbSpaceDeleteSubmit').addEventListener('click', async function(){
+    var id = document.getElementById('kbSpaceDeleteId').value;
+    var purge = document.getElementById('kbSpaceDeleteModePurge').checked;
+    var body = purge
+      ? {cascade:true}
+      : {reassign_space_public_id: document.getElementById('kbSpaceDeleteTarget').value, reassign_parent_public_id: ''};
+    if(!purge && !body.reassign_space_public_id){ alert(_t('knowledge.delete_select_target', 'Выберите раздел, в который перенести страницы')); return; }
+    var btn = this;
+    btn.disabled = true;
+    try {
+      await req('api/v1/knowledge/spaces/' + encodeURIComponent(id) + '/delete', {method:'POST', idempotent:true, body:body});
+      bootstrap.Modal.getInstance(document.getElementById('kbSpaceDeleteModal')).hide();
+      if(state.activeSpace === id){ state.activeSpace = ''; }
+      await loadSpaces();
+      updateSpaceHeader();
+      loadArticles();
+    } catch(err){ alert(_t('knowledge.delete_error', 'Не удалось удалить раздел')); }
+    btn.disabled = false;
   });
 
   /* ── Init ── */
