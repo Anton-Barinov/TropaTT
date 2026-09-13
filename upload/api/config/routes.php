@@ -465,6 +465,7 @@ return [
     ['methods' => ['POST'], 'pattern' => '/api/v1/admin/knowledge/reindex', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'adminReindex', 'auth' => true, 'required_permissions' => ['knowledge.admin']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/admin/knowledge/rebuild-permissions', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'adminRebuildPermissions', 'auth' => true, 'required_permissions' => ['knowledge.admin']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/admin/knowledge/cleanup-drafts', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'adminCleanupDrafts', 'auth' => true, 'required_permissions' => ['knowledge.admin']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/admin/knowledge/trash/purge', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'adminPurgeTrash', 'auth' => true, 'required_permissions' => ['knowledge.admin']],
 
     // notifications/reminders
     ['methods' => ['GET'], 'pattern' => '/api/v1/notifications', 'controller' => Api\Controller\Notification\NotificationController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_ok' => true],

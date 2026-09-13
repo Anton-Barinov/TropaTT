@@ -4,12 +4,19 @@ declare(strict_types=1);
 namespace Api\System\Library\Service;
 
 use PDO;
+use Api\Model\Knowledge\KnowledgeRepository;
 use Api\System\Library\Language\LanguageManager;
 use Api\System\Library\Language\TranslatableTrait;
 
 final class KnowledgeCronService
 {
     use TranslatableTrait;
+
+    /** Recycle-bin retention (days) used when the install has no explicit setting. */
+    public const DEFAULT_TRASH_RETENTION_DAYS = 30;
+
+    /** Setting key (scope `knowledge`) holding the recycle-bin retention window. */
+    public const TRASH_RETENTION_SETTING = 'trash_retention_days';
 
     public function __construct(
         private readonly PDO $pdo,
@@ -140,6 +147,51 @@ final class KnowledgeCronService
         }
 
         return ['deleted' => $deleted];
+    }
+
+    /**
+     * Permanently remove sections that have been sitting in the recycle bin longer
+     * than the configured retention window.
+     *
+     * @param int|null $retentionDays Explicit window (used by tests / manual runs); null reads the setting.
+     * @return array{enabled:bool,retention_days:int,cutoff:?string,spaces_purged:int,pages_deleted:int,skipped:int}
+     */
+    public function trashCleanup(?int $retentionDays = null): array
+    {
+        $retention = $retentionDays ?? $this->trashRetentionDays();
+        $repository = new KnowledgeRepository($this->pdo);
+
+        return ['retention_days' => $retention] + $repository->purgeExpiredTrashedSpaces($retention);
+    }
+
+    /**
+     * Recycle-bin retention window in days from the knowledge settings.
+     * Zero or a negative value keeps recycled sections forever.
+     */
+    public function trashRetentionDays(): int
+    {
+        try {
+            $stmt = $this->pdo->prepare(
+                "SELECT value FROM settings WHERE scope = 'knowledge' AND name = :name LIMIT 1"
+            );
+            $stmt->execute(['name' => self::TRASH_RETENTION_SETTING]);
+            $raw = $stmt->fetchColumn();
+        } catch (\Throwable $e) {
+            return self::DEFAULT_TRASH_RETENTION_DAYS;
+        }
+
+        if ($raw === false || $raw === null || $raw === '') {
+            return self::DEFAULT_TRASH_RETENTION_DAYS;
+        }
+
+        // Settings are stored JSON-encoded, but tolerate a plain numeric string
+        // (rows written by an older/manual path).
+        $decoded = json_decode((string)$raw, true);
+        if (is_int($decoded) || is_float($decoded) || (is_string($decoded) && is_numeric($decoded))) {
+            return (int)$decoded;
+        }
+
+        return is_numeric((string)$raw) ? (int)$raw : self::DEFAULT_TRASH_RETENTION_DAYS;
     }
 
     /**

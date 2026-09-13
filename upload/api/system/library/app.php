@@ -1915,6 +1915,13 @@ final class App
                 handler: [\Api\System\Library\Service\KnowledgeCronTaskHandler::class, 'reindexSearch'],
                 timeout: 600,
             ));
+            $cronScheduler->registerTask('knowledge', new \Api\System\Library\Module\ScheduledTask(
+                name: 'trash.purge',
+                description: 'Permanently remove recycle-bin knowledge sections older than the configured retention window',
+                schedule: '30 3 * * *',
+                handler: [\Api\System\Library\Service\KnowledgeCronTaskHandler::class, 'purgeTrash'],
+                timeout: 600,
+            ));
         } catch (\Throwable $e) {
             AppLog::error('[KnowledgeCron] Task registration failed: ' . $e->getMessage());
         }

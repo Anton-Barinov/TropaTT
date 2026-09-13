@@ -191,6 +191,7 @@ return [
         'purge_space' => ['mode' => 'all', 'permissions' => ['knowledge.manage']],
         'restore_deleted_space' => ['mode' => 'all', 'permissions' => ['knowledge.manage']],
         'list_trashed_spaces' => ['mode' => 'all', 'permissions' => ['knowledge.view']],
+        'purge_expired_trash' => ['mode' => 'all', 'permissions' => ['knowledge.admin']],
         'delete_link' => ['mode' => 'all', 'permissions' => ['knowledge.edit']],
         'detach_tag' => ['mode' => 'all', 'permissions' => ['knowledge.edit']],
         'diff_version' => ['mode' => 'all', 'permissions' => ['knowledge.view']],

@@ -131,4 +131,5 @@ return [
     'page_unlocked' => 'Page unlocked',
     'validation_failed' => 'Validation failed. Check server logs for details.',
     'link_not_found' => 'Knowledge link not found',
+    'trash_purged' => 'Recycled sections purged',
 ];

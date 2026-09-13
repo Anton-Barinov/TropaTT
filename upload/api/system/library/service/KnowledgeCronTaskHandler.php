@@ -68,6 +68,17 @@ final class KnowledgeCronTaskHandler
     }
 
     /**
+     * Purge recycle-bin sections past their retention window.
+     * Called by cron: knowledge.trash.purge
+     *
+     * @return array{enabled:bool,retention_days:int,cutoff:?string,spaces_purged:int,pages_deleted:int,skipped:int}
+     */
+    public function purgeTrash(): array
+    {
+        return $this->getService()->trashCleanup();
+    }
+
+    /**
      * Rebuild search index.
      * Called by cron: knowledge.search.reindex
      */

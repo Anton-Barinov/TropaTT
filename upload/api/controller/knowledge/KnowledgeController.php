@@ -1825,6 +1825,18 @@ final class KnowledgeController extends BaseController
         return $this->success('KNOWLEDGE_PERMISSIONS_REBUILT', $this->t('knowledge/messages.permissions_rebuilt', 'Permissions version bumped'));
     }
 
+    public function adminPurgeTrash(): JsonResponse
+    {
+        $service = new \Api\System\Library\Service\KnowledgeCronService($this->container->get('db.pdo'));
+        $summary = $service->trashCleanup();
+        $this->auditLog('knowledge_admin', 'all', 'purge_trash', [
+            'retention_days' => $summary['retention_days'],
+            'spaces_purged' => $summary['spaces_purged'],
+            'pages_deleted' => $summary['pages_deleted'],
+        ]);
+        return $this->success('KNOWLEDGE_TRASH_PURGED', $this->t('knowledge/messages.trash_purged', 'Recycle bin cleanup completed'), $summary);
+    }
+
     public function adminCleanupDrafts(): JsonResponse
     {
         $stmt = $this->container->get('db.pdo')->prepare("DELETE FROM knowledge_drafts WHERE updated_at < :cutoff");

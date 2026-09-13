@@ -170,6 +170,14 @@
                 <div id="adminCleanupDraftsResult" class="mt-2 small"></div>
               </div>
             </div>
+            <div class="col-md-4">
+              <div class="crm-card p-3">
+                <h6 class="fw-bold"><?= htmlspecialchars($t('admin_knowledge.btn_purge_trash', 'Очистить корзину'), ENT_QUOTES, 'UTF-8') ?></h6>
+                <p class="small text-muted"><?= htmlspecialchars($t('admin_knowledge.purge_trash_hint', 'Удалить разделы, пролежавшие в корзине дольше срока хранения.'), ENT_QUOTES, 'UTF-8') ?></p>
+                <button class="btn btn-sm crm-btn-secondary" type="button" id="adminPurgeTrashBtn"><?= htmlspecialchars($t('admin_knowledge.btn_purge_trash', 'Очистить корзину'), ENT_QUOTES, 'UTF-8') ?></button>
+                <div id="adminPurgeTrashResult" class="mt-2 small"></div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -184,6 +192,11 @@
                 <label class="crm-filter-label" for="settingsDefaultReviewDays"><?= htmlspecialchars($t('admin_knowledge.settings_default_review_days', 'Интервал проверки (дней)'), ENT_QUOTES, 'UTF-8') ?></label>
                 <input type="number" id="settingsDefaultReviewDays" class="form-control" min="1" max="365" value="90">
                 <div class="form-text text-muted small"><?= htmlspecialchars($t('admin_knowledge.settings_default_review_days_hint', 'Через сколько дней после публикации страница должна быть проверена.'), ENT_QUOTES, 'UTF-8') ?></div>
+              </div>
+              <div class="col-md-6">
+                <label class="crm-filter-label" for="settingsTrashRetentionDays"><?= htmlspecialchars($t('admin_knowledge.settings_trash_retention_days', 'Срок хранения корзины (дней)'), ENT_QUOTES, 'UTF-8') ?></label>
+                <input type="number" id="settingsTrashRetentionDays" class="form-control" min="0" max="3650" value="30">
+                <div class="form-text text-muted small"><?= htmlspecialchars($t('admin_knowledge.settings_trash_retention_days_hint', 'Через сколько дней разделы из корзины удаляются безвозвратно. 0 — хранить бессрочно.'), ENT_QUOTES, 'UTF-8') ?></div>
               </div>
             </div>
             <div class="mt-3">
@@ -1017,6 +1030,25 @@
     });
   }
 
+  var purgeTrashBtn = document.getElementById('adminPurgeTrashBtn');
+  if (purgeTrashBtn) {
+    purgeTrashBtn.addEventListener('click', async function () {
+      purgeTrashBtn.disabled = true;
+      var resEl = document.getElementById('adminPurgeTrashResult');
+      if (resEl) resEl.innerHTML = '<em>' + esc(t('knowledge.loading', 'Loading...')) + '</em>';
+      try {
+        var env = await request('api/v1/admin/knowledge/trash/purge', { method: 'POST', idempotent: true });
+        var d = env.data || {};
+        var spaces = d.spaces_purged || 0;
+        var pages = d.pages_deleted || 0;
+        if (resEl) resEl.innerHTML = '<em class="text-success">' + esc(t('admin_knowledge.trash_purged_done', 'Sections removed from the recycle bin: %d').replace('%d', String(spaces))) + ' (' + esc(t('admin_knowledge.trash_purged_pages', 'pages')) + ': ' + String(pages) + ')</em>';
+      } catch (e) {
+        if (resEl) resEl.innerHTML = '<em class="text-danger">' + esc(t('knowledge.load_error', 'Error')) + '</em>';
+      }
+      purgeTrashBtn.disabled = false;
+    });
+  }
+
   // ── Settings tab ──
   var settingsForm = document.getElementById('adminKnowledgeSettingsForm');
   if (settingsForm) {
@@ -1028,6 +1060,10 @@
         var reviewDays = document.getElementById('settingsDefaultReviewDays');
         if (reviewDays && settings.default_review_days != null) {
           reviewDays.value = String(settings.default_review_days);
+        }
+        var trashDays = document.getElementById('settingsTrashRetentionDays');
+        if (trashDays && settings.trash_retention_days != null) {
+          trashDays.value = String(settings.trash_retention_days);
         }
       } catch (e) {}
     })();
@@ -1041,6 +1077,11 @@
         var reviewDays = document.getElementById('settingsDefaultReviewDays');
         var body = {};
         if (reviewDays) body.default_review_days = parseInt(reviewDays.value, 10) || 90;
+        var trashDays = document.getElementById('settingsTrashRetentionDays');
+        if (trashDays) {
+          var parsedTrashDays = parseInt(trashDays.value, 10);
+          body.trash_retention_days = isNaN(parsedTrashDays) ? 30 : Math.max(0, parsedTrashDays);
+        }
         await request('api/v1/admin/knowledge/settings', { method: 'PATCH', body: body, idempotent: true });
         if (resultEl) resultEl.innerHTML = '<span class="text-success">' + esc(t('admin_knowledge.settings_saved', 'Settings saved')) + '</span>';
       } catch (e) {
