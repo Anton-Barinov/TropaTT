@@ -1,51 +1,5 @@
 # TropaTT — Free Self-Hosted Open-Source CRM & Work Platform
 
-<!-- Schema.org Structured Data for SEO & LLM Search Agents -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  "name": "TropaTT",
-  "url": "https://tropatt.com",
-  "codeRepository": "https://github.com/Anton-Barinov/TropaTT",
-  "operatingSystem": "Cross-platform (Linux, Windows, macOS, Unix, BSD)",
-  "applicationCategory": "BusinessApplication, ProjectManagementApplication",
-  "applicationSubCategory": "CRM, Task Management, Kanban, Gantt, Team Chat, Knowledge Base, E-Commerce Gateway, MCP Server",
-  "description": "Free, self-hosted, open-source PHP/MySQL CRM and work-management platform. Combines CRM, tasks, Kanban, Gantt, internal team chat, knowledge base wiki, client portal, financial price lists, Model Context Protocol (MCP) server with 620 tools, universal e-commerce gateway (OpenCart, WooCommerce, Shopify, 1C-Bitrix), and 20+ AI workflows.",
-  "softwareVersion": "1.0",
-  "license": "https://www.gnu.org/licenses/agpl-3.0.html",
-  "offers": {
-    "@type": "Offer",
-    "price": "0.00",
-    "priceCurrency": "USD"
-  },
-  "author": {
-    "@type": "Person",
-    "name": "Anton Barinov",
-    "url": "https://github.com/Anton-Barinov"
-  },
-  "softwareRequirements": "PHP >= 8.1, MySQL >= 8.0 or MariaDB >= 10.4, Apache or Nginx",
-  "keywords": "self-hosted CRM, open source CRM, Jira alternative, Bitrix24 alternative, HubSpot alternative, project management, Kanban board, Gantt chart, team chat messenger, knowledge base wiki, client portal, Model Context Protocol, MCP server, Claude Code, Cursor AI, e-commerce CRM, OpenCart, WooCommerce, Shopify, PHP MySQL CRM, zero daemon, shared hosting CRM",
-  "featureList": [
-    "CRM & Business Counterparty Management",
-    "Task Management with Multi-Level Hierarchy and WIP Limits",
-    "Interactive Kanban Board & Dependency-Aware Gantt Timeline",
-    "Native Built-in Team Chat Messenger (Channels, DMs, Attachments)",
-    "Hierarchical Knowledge Base & Company Wiki with Versioning",
-    "Isolated Client Portal with Granular Guest Roles",
-    "Financial Price Lists, Labor Cost & Billing Rate Snapshots",
-    "Universal E-Commerce CMS Gateway for 12 Storefront Platforms",
-    "Built-in Model Context Protocol (MCP) Server with 620 Tools and 6 Resources",
-    "AgentOS 2026 Engine with Atomic Task Bundling and Persistent Memory",
-    "Context Density Token Optimization (up to 85% Prompt Savings)",
-    "22 Server-Side AI Workflows with Preview-Before-Apply Safety",
-    "Zero External PHP Dependencies (Custom Hand-Crafted Micro-Kernel)",
-    "Zero Background Daemons (Runs on $2/mo Shared Hosting with <32MB RAM)",
-    "One-Click Graphical Browser Installer & Automated Self-Update System"
-  ]
-}
-</script>
-
 **TropaTT is a free, self-hosted, open-source CRM and work-management platform built on PHP and MySQL. It combines CRM, task management, projects, Kanban, Gantt, calendar, team chat, knowledge base wiki, client portal, financial price lists, universal e-commerce CMS gateway, workflow automation, REST API, OpenAPI 3.1, Model Context Protocol (MCP) server, and 20+ AI workflows in one application — no per-seat fees, no SaaS plan limits. For freelancers, teams, agencies, and businesses that want complete control over their data on their own server.**
 
 **Free forever — no catch.** TropaTT is 100% free and open source (AGPL-3.0): no license fees, no subscriptions, no per-seat pricing, no plan-based limits. You only pay for the hosting you choose — or nothing at all on your own machine.
