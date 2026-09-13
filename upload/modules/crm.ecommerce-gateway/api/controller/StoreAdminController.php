@@ -13,6 +13,7 @@ use PDO;
 final class StoreAdminController
 {
     private PDO $pdo;
+    private StoreRepository $storeRepo;
     private EcommerceStoreService $service;
     private I18nService $i18n;
 
@@ -20,8 +21,9 @@ final class StoreAdminController
     {
         $this->i18n = new I18nService();
         $this->pdo = $container->get('db.pdo');
+        $this->storeRepo = new StoreRepository($this->pdo);
         $this->service = new EcommerceStoreService(
-            new StoreRepository($this->pdo),
+            $this->storeRepo,
             $this->moduleConfig()
         );
     }
@@ -166,7 +168,7 @@ final class StoreAdminController
         }
 
         $mappingService = new \Module\Crm\EcommerceGateway\Service\StatusMappingService($this->pdo);
-        $scope = (string)($this->container->get('request')->get('scope', 'all'));
+        $scope = (string)($this->container->get('request')->input('scope', 'all'));
         $mappings = $mappingService->getStoreMappings((int)$store['id'], $scope);
 
         return JsonResponse::success('STATUS_MAPPINGS', 'OK', [
@@ -229,8 +231,8 @@ final class StoreAdminController
 
         $storeId = (int)$store['id'];
         $request = $this->container->get('request');
-        $limit = max(1, min(100, (int)($request->get('limit', 50))));
-        $direction = (string)$request->get('direction', 'all');
+        $limit = max(1, min(100, (int)$request->input('limit', 50)));
+        $direction = (string)$request->input('direction', 'all');
 
         $items = [];
 
@@ -396,8 +398,8 @@ final class StoreAdminController
 
         /** @var Request $request */
         $request = $this->container->get('request');
-        $limit = max(1, min(100, (int)$request->get('limit', 50)));
-        $offset = max(0, (int)$request->get('offset', 0));
+        $limit = max(1, min(100, (int)$request->input('limit', 50)));
+        $offset = max(0, (int)$request->input('offset', 0));
 
         $outboxRepo = new \Module\Crm\EcommerceGateway\Repository\OutboxRepository($this->pdo);
         $items = $outboxRepo->getDeadLetterEvents((int)$store['id'], $limit, $offset);
