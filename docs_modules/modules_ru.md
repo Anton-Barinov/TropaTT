@@ -1,38 +1,38 @@
 # Руководство разработчика модулей TropaTT CRM
 
-> Исчерпывающее техническое руководство по проектированию, разработке, интеграции, упаковке и распространению модулей расширения для TropaTT CRM.
+> Исчерпывающее техническое руководство по проектированию, разработке, интеграции, упаковке и распространению модулей расширения для TropaTT CRM. Документация полностью синхронизирована с кодовой базой ядра (серия релизов 2026 года).
 
 ---
 
 ## Оглавление
 
 1. [Архитектура модульной подсистемы](#1-архитектура-модульной-подсистемы)
-2. [Анатомия модуля и файловая структура](#2-анатомия-модуля-и-файловая-структура)
+2. [Анатомия модуля, файловая структура и автозагрузка (PSR-4 / ModuleAutoloader)](#2-анатомия-модуля-файловая-структура-и-автозагрузка-psr-4--moduleautoloader)
 3. [Спецификация манифеста manifest.json](#3-спецификация-манифеста-manifestjson)
-4. [Провайдер сервисов (AbstractModuleServiceProvider) и внедрение зависимостей](#4-провайдер-сервисов-abstractmoduleserviceprovider-и-внедрение-зависимостей)
-5. [Шина событий и полный каталог ModuleEvents](#5-шина-событий-и-полный-каталог-moduleevents)
-6. [Web UI интеграция: слоты позиций (PositionRegistry) и шаблоны](#6-web-ui-интеграция-слоты-позиций-positionregistry-и-шаблоны)
+4. [Провайдер сервисов (AbstractModuleServiceProvider), DI-контейнер и RBAC](#4-провайдер-сервисов-abstractmoduleserviceprovider-di-контейнер-и-rbac)
+5. [Шина событий: полный каталог ModuleEvents и HookManager](#5-шина-событий-полный-каталог-moduleevents-и-hookmanager)
+6. [Web UI интеграция: слоты позиций (PositionRegistry), render-хуки и i18n](#6-web-ui-интеграция-слоты-позиций-positionregistry-render-хуки-и-i18n)
 7. [Маршрутизация Web и REST API](#7-маршрутизация-web-и-rest-api)
 8. [Управление ресурсами (Assets: CSS, JS)](#8-управление-ресурсами-assets-css-js)
 9. [Миграции базы данных и жизненный цикл схемы](#9-миграции-базы-данных-и-жизненный-цикл-схемы)
 10. [Фоновые задачи: Cron-планировщик и транзакционная очередь задач](#10-фоновые-задачи-cron-планировщик-и-транзакционная-очередь-задач)
 11. [Безопасность, статическая валидация кода и изоляция ошибок (Circuit Breaker)](#11-безопасность-статическая-валидация-кода-и-изоляция-ошибок-circuit-breaker)
 12. [Упаковка, версионирование и удаленная установка](#12-упаковка-версионирование-и-удаленная-установка)
-13. [Полный эталонный пример модуля: Acme Telegram Notifier](#13-полный-эталонный-пример-модуля-acme-telegram-notifier)
+13. [Полный эталонный рабочий модуль: Acme Telegram Notifier](#13-полный-эталонный-рабочий-модуль-acme-telegram-notifier)
 
 ---
 
 ## 1. Архитектура модульной подсистемы
 
-Модульная подсистема TropaTT CRM спроектирована по принципам **Zero-Daemon**, максимальной производительности при ограничениях shared-хостинга (< 32 MB RAM, таймауты до 25 секунд) и строгой изоляции расширений от ядра системы.
+Модульная подсистема TropaTT CRM спроектирована по принципам **Zero-Daemon**, максимальной производительности при ограничениях shared-хостинга (< 32 MB RAM, таймауты выполнения до 25 секунд) и строгой изоляции расширений от ядра системы.
 
 ### Ключевые архитектурные принципы
 
 - **Неинвазивность (Zero-Core-Edits):** Модули расширяют функционал CRM исключительно через объявленные декларативные контракты (`manifest.json`), точки внедрения интерфейса (`PositionRegistry`), шину хуков (`HookManager`) и маршрутизацию (`api_routes`, `web_routes`). Правка исходного кода ядра категорически запрещена.
-- **Двухуровневая изоляция ошибок (Fault Tolerance):** Сбой или исключение в коде модуля не должны приводить к падению ядра или отказу пользовательских запросов. Для защиты ядра применяются `try-catch` изоляция каждого хука и автоматический предохранитель **Circuit Breaker**.
-- **Статический аудит безопасности:** Перед установкой и активацией каждый PHP-файл модуля валидируется через `ModuleCodeValidator` методом лексического анализа токенов (`token_get_all`). Использование опасных функций и системных вызовов (`eval`, `exec`, `shell_exec`, `passthru`, `file_put_contents` и др.) приводит к немедленной блокировке модуля.
-- **Транзакционная целостность миграций:** Модуль может иметь собственные таблицы и поля. Все изменения схемы БД регистрируются в системной таблице `module_migrations` с поддержкой автоматического отката при установке/удалении.
-- **Стандарт PSR-4 для модулей:** Все классы модуля регистрируются под унифицированным пространством имен `Module\<VendorName>\<ModuleName>\` через оптимизированный класс-маппер ядра.
+- **Двухуровневая изоляция ошибок (Fault Tolerance):** Сбой или исключение в коде модуля не должны приводить к падению ядра или отказу пользовательских запросов. Для защиты ядра применяются `try-catch` изоляция каждого хука и автоматический предохранитель **Circuit Breaker** (`ModuleCircuitBreaker`), размыкающий цепь при 5 повторных сбоях подряд.
+- **Статический аудит безопасности:** Перед установкой и активацией каждый PHP-файл модуля валидируется через `ModuleCodeValidator` методом лексического анализа токенов (`token_get_all`). Использование опасных функций и системных вызовов (`eval`, `exec`, `shell_exec`, `passthru`, `file_put_contents`, `unlink`, `dl`, `ffi` и др.) приводит к немедленной блокировке модуля.
+- **Транзакционная целостность миграций:** Модуль может иметь собственные таблицы и поля. Все изменения схемы БД регистрируются в системной таблице `module_migrations` с поддержкой отката как отдельных шагов, так и всех миграций целиком (`_rollback.sql` или `.down.sql`).
+- **Строгая схема пространства имен:** Все классы модуля регистрируются под унифицированным пространством имен `Module\<VendorName>\<ModuleName>\...` через оптимизированный загрузчик ядра `ModuleAutoloader`.
 
 ### Архитектурная схема взаимодействия подсистем
 
@@ -75,176 +75,196 @@
 
 ---
 
-## 2. Анатомия модуля и файловая структура
+## 2. Анатомия модуля, файловая структура и автозагрузка (PSR-4 / ModuleAutoloader)
 
 Каждый модуль TropaTT CRM располагается в отдельной директории внутри корневого каталога модулей:
-`modules/{vendor}.{name}/` (или `upload/modules/{vendor}.{name}/`).
+`modules/{vendor}.{name}/` (на боевом сервере или в репозитории: `upload/modules/{vendor}.{name}/`).
 
-Рекомендуемое соглашение по именованию директории модуля: `{vendor}.{name}`, где все символы в нижнем регистре с разделением точкой (например, `acme.telegram_notifier`, `retail.cdek_shipping`).
+### Соглашение по именованию модуля
+- Формат имени: `{vendor}.{name}` (только строчные латинские буквы, цифры и дефисы: `^[a-z0-9]+\.[a-z0-9\-]+$`).
+- Примеры: `crm.wip-limit`, `crm.slack-integration`, `acme.telegram-notifier`.
 
-### Эталонная иерархия директорий
+### Автозагрузка классов (`ModuleAutoloader`)
+Класс `Api\System\Library\Module\ModuleAutoloader` регистрирует SPL-автозагрузчик для пространства имен `Module\<Vendor>\<Name>\...`.
+Правила маппинга:
+1. Имя вендора и модуля с дефисами автоматически трансформируются в **CamelCase**:
+   - Папка модуля: `modules/acme.telegram-notifier/`
+   - Базовый namespace: `Module\Acme\TelegramNotifier\`
+2. Классы ищутся в двух поддиректориях: сначала `api/`, затем `web/`:
+   - `Module\Acme\TelegramNotifier\Service\Notifier` -> ищется в:
+     1. `modules/acme.telegram-notifier/api/Service/Notifier.php`
+     2. `modules/acme.telegram-notifier/api/service/Notifier.php`
+     3. `modules/acme.telegram-notifier/web/Service/Notifier.php`
+     4. `modules/acme.telegram-notifier/web/service/Notifier.php`
+3. Сервис-провайдер модуля может располагаться непосредственно в корне `api/` (например `api/TelegramNotifierServiceProvider.php`).
+
+### Эталонная иерархия директорий модуля
 
 ```
-modules/acme.telegram_notifier/
-├── manifest.json                  # Декларативный манифест модуля (обязателен)
-├── ServiceProvider.php            # Провайдер сервисов, жизненный цикл и регистрация
-├── api_routes.php                 # Регистрация REST API маршрутов
-├── web_routes.php                 # Регистрация маршрутов веб-интерфейса
-├── controllers/                   # Контроллеры модуля
-│   ├── ApiSettingsController.php
-│   └── WebSettingsController.php
-├── models/                        # Модели предметной области и доступ к данным
-│   └── TelegramLogModel.php
-├── templates/                     # Шаблоны представлений (HTML/Twig/PHP)
-│   ├── settings.php
-│   └── sidebar_widget.php
-├── assets/                        # Статические публичные ресурсы
-│   ├── css/
-│   │   └── widget.css
-│   └── js/
-│       └── notifier.js
-├── migrations/                    # SQL-файлы миграций базы данных
-│   ├── 001_create_telegram_logs.up.sql
-│   └── 001_create_telegram_logs.down.sql
-└── cron/                          # Обработчики запланированных задач
-    └── NotificationQueueHandler.php
+modules/acme.telegram-notifier/
+├── manifest.json                      # Декларативный манифест модуля (обязателен)
+├── README.md                          # Описание и инструкция для пользователей
+├── api/                               # Серверная логика API и бэкенда
+│   ├── TelegramNotifierServiceProvider.php  # ServiceProvider модуля
+│   ├── config/
+│   │   └── routes.php                 # Маршруты REST API
+│   ├── controller/
+│   │   └── ApiTelegramController.php  # API-контроллер
+│   ├── service/
+│   │   ├── TelegramService.php        # Бизнес-логика отправки
+│   │   └── TelegramQueue.php          # Очередь
+│   ├── hook/
+│   │   └── StatusHook.php             # Слушатели хуков ядра
+│   ├── cron/
+│   │   └── QueueWorkerHandler.php     # Обработчик cron
+│   └── migrations/                    # SQL-миграции базы данных
+│       ├── 001_create_tables.sql
+│       └── 001_create_tables_rollback.sql
+└── web/                               # Веб-интерфейс и пользовательские слоты
+    ├── config/
+    │   └── routes.php                 # Маршруты веб-страниц CRM
+    ├── controller/
+    │   └── WebSettingsController.php  # Контроллер веб-страницы
+    ├── position/
+    │   └── TaskSidebarPanel.php       # Рендерер UI-слота в сайдбаре задачи
+    ├── template/
+    │   └── page/
+    │       └── settings.php           # Шаблон страницы настроек
+    ├── language/                      # Локализация интерфейса
+    │   ├── ru-ru.php
+    │   └── en-us.php
+    └── assets/                        # Статические ресурсы
+        ├── css/
+        │   └── widget.css
+        └── js/
+            └── widget.js
 ```
 
 ---
 
 ## 3. Спецификация манифеста manifest.json
 
-Файл `manifest.json` является входной точкой модуля. Он парсится ядром с помощью класса `Api\System\Library\Module\Manifest` при обнаружении модуля в файловой системе.
+Файл `manifest.json` является единым источником правды для ядра системы. Он загружается и валидируется классом `Api\System\Library\Module\PluginManager` при инициализации CRM.
 
 ### Полная схема полей manifest.json
 
 | Поле | Тип | Обязательное | Описание | Пример |
 |---|---|:---:|---|---|
-| `name` | `string` | **Да** | Уникальный системный идентификатор модуля в формате `{vendor}.{name}` | `"acme.telegram_notifier"` |
-| `version` | `string` | **Да** | Семантическая версия модуля (`SemVer`) | `"1.2.0"` |
-| `vendor` | `string` | **Да** | Имя разработчика, организации или бренда | `"Acme Software Ltd"` |
+| `name` | `string` | **Да** | Идентификатор модуля (`^[a-z0-9]+\.[a-z0-9\-]+$`, макс. 64 симв.) | `"acme.telegram-notifier"` |
+| `version` | `string` | **Да** | Семантическая версия модуля (`SemVer`: `X.Y.Z`) | `"1.2.0"` |
+| `vendor` | `string` | **Да** | Имя вендора / разработчика | `"acme"` |
 | `author` | `string` | **Да** | Имя или псевдоним автора | `"Anton Barinov"` |
-| `author_url` | `string` | Нет | Ссылка на сайт или профиль автора | `"https://github.com/Anton-Barinov"` |
-| `title` | `string` | **Да** | Человекочитаемое название модуля для интерфейса CRM | `"Telegram Уведомления"` |
-| `description` | `string` | **Да** | Краткое описание назначения и функций модуля | `"Отправка оперативных уведомлений по задачам в Telegram чаты."` |
-| `category` | `string` | Нет | Категория модуля в каталоге (`integrations`, `crm`, `finance`, `tools`, `reports`) | `"integrations"` |
+| `author_url` | `string` | Нет | Ссылка на профиль автора или репозиторий | `"https://github.com/Anton-Barinov"` |
+| `title` | `string` | **Да** | Название модуля для интерфейса CRM | `"Telegram Уведомления"` |
+| `description` | `string` | **Да** | Краткое описание назначения модуля | `"Отправка уведомлений в Telegram по событиям задач."` |
+| `license` | `string` | Нет | Лицензия распространения | `"MIT"` / `"Proprietary"` |
+| `category` | `string` | Нет | Категория (`integration`, `productivity`, `crm`, `finance`, `migration`) | `"integration"` |
 | `core_version` | `string` | Нет | Требуемая версия ядра CRM (по умолчанию `>=1.0.0`) | `">=1.0.0"` |
-| `dependencies` | `array` | Нет | Список других модулей, требуемых для работы | `["acme.core_tools"]` |
-| `require_permissions` | `array` | Нет | Список системных RBAC-прав, необходимых модулю | `["tasks.read", "settings.manage"]` |
-| `service_provider` | `string` | Нет | FQCN или имя файла сервис-провайдера | `"Module\\Acme\\TelegramNotifier\\ServiceProvider"` |
-| `api_routes` | `string` | Нет | Относительный путь к файлу REST API роутов | `"api_routes.php"` |
-| `web_routes` | `string` | Нет | Относительный путь к файлу Web роутов | `"web_routes.php"` |
-| `migrations` | `string` | Нет | Относительный путь к каталогу SQL-миграций | `"migrations"` |
-| `hooks` | `object` | Нет | Декларативная регистрация слушателей событий ядра | `{"task.created": [{"handler": "...", "priority": 10}]}` |
-| `positions` | `object` | Нет | Декларативная регистрация рендереров в слоты UI | `{"task.detail.sidebar": [{"renderer": "...", "priority": 10}]}` |
-| `menu_items` | `array` | Нет | Элементы бокового меню CRM | См. структуру ниже |
+| `dependencies` | `array` | Нет | Зависимости от других модулей `[{"name": "..."}]` | `[]` |
+| `require_permissions` | `array` | Нет | Системные RBAC-права ядра, необходимые модулю | `["tasks.read", "settings.manage"]` |
+| `service_provider` | `string` | Нет | FQCN сервис-провайдера | `"Module\\Acme\\TelegramNotifier\\TelegramNotifierServiceProvider"` |
+| `api_routes` | `string` | Нет | Путь к файлу маршрутов API относительно папки модуля | `"api/config/routes.php"` |
+| `web_routes` | `string` | Нет | Путь к файлу веб-маршрутов относительно папки модуля | `"web/config/routes.php"` |
+| `migrations` | `string` | Нет | Относительный путь к каталогу SQL-миграций | `"api/migrations/"` |
+| `hooks` | `object` | Нет | Декларативные хуки вида `{"event": [{"handler": "...", "priority": 10}]}` | `{}` |
+| `positions` | `object` | Нет | Регистрация рендереров в слоты UI (с ключом блока) | См. раздел 6 |
+| `menu_items` | `array` | Нет | Элементы навигационного меню CRM | См. раздел 4 |
 | `config_defaults` | `object` | Нет | Значения настроек по умолчанию (ключ-значение) | `{"bot_token": "", "chat_id": ""}` |
-| `assets` | `object` | Нет | Регистрация CSS и JS стилей/скриптов | См. раздел ресурсов |
-| `web_hooks` | `array` | Нет | Декларация внешних вебхуков для приема событий | `[{"route": "telegram/webhook", "action": "handle"}]` |
+| `assets` | `object` | Нет | Регистрация CSS и JS стилей/скриптов | См. раздел 8 |
+| `web_hooks` | `object` | Нет | Рендер-фазовые хуки страницы (`render.before`, `render.after`) | `{}` |
 
-### Пример полного манифеста:
+### Пример эталонного manifest.json:
 
 ```json
 {
-  "name": "acme.telegram_notifier",
+  "name": "acme.telegram-notifier",
   "version": "1.0.0",
-  "vendor": "Acme Software Ltd",
+  "vendor": "acme",
   "author": "Anton Barinov",
   "author_url": "https://github.com/Anton-Barinov",
   "title": "Telegram Уведомления",
   "description": "Мгновенная отправка уведомлений о смене статусов и комментариях в Telegram",
-  "category": "integrations",
+  "category": "integration",
+  "license": "MIT",
   "core_version": ">=1.0.0",
   "dependencies": [],
   "require_permissions": [
-    "tasks.read",
-    "tasks.edit"
+    "tasks.read"
   ],
-  "service_provider": "Module\\Acme\\TelegramNotifier\\ServiceProvider",
-  "api_routes": "api_routes.php",
-  "web_routes": "web_routes.php",
-  "migrations": "migrations",
+  "service_provider": "Module\\Acme\\TelegramNotifier\\TelegramNotifierServiceProvider",
+  "api_routes": "api/config/routes.php",
+  "web_routes": "web/config/routes.php",
+  "migrations": "api/migrations/",
   "config_defaults": {
     "telegram_bot_token": "",
     "telegram_default_chat_id": "",
-    "notify_on_status_change": 1,
-    "notify_on_comment": 1
+    "notify_on_status_change": 1
   },
   "menu_items": [
     {
-      "route": "module/acme_telegram/settings",
+      "route": "module-telegram-settings",
       "label": "Настройки Telegram",
-      "icon": "bi bi-telegram",
-      "permission": "settings.manage",
-      "parent": "settings"
+      "icon": "<i class=\"bi bi-telegram\"></i>",
+      "permission": "acme.telegram.manage",
+      "parent": null
     }
   ],
   "assets": {
     "css": [
-      "assets/css/widget.css"
+      "web/assets/css/widget.css"
     ],
-    "js": [
-      "assets/js/notifier.js"
-    ],
+    "js_routes": {
+      "task-detail": "web/assets/js/widget.js"
+    },
     "css_routes": {
-      "task-detail": "assets/css/widget.css"
+      "task-detail": "web/assets/css/widget.css"
     }
   },
   "positions": {
     "task.detail.sidebar": [
       {
-        "renderer": "Module\\Acme\\TelegramNotifier\\Controllers\\WebSettingsController::renderSidebarWidget",
+        "renderer": "Module\\Acme\\TelegramNotifier\\Position\\TaskSidebarPanel::render",
         "priority": 15,
-        "key": "acme_telegram_sidebar"
+        "key": "telegram_notifier"
       }
     ]
   },
-  "hooks": {
-    "task.status_changed": [
-      {
-        "handler": "Module\\Acme\\TelegramNotifier\\Handlers\\StatusChangeHandler::handle",
-        "priority": 10
-      }
-    ],
-    "comment.added": [
-      {
-        "handler": "Module\\Acme\\TelegramNotifier\\Handlers\\CommentHandler::handle",
-        "priority": 5
-      }
-    ]
-  }
+  "hooks": {}
 }
 ```
 
 ---
 
-## 4. Провайдер сервисов (AbstractModuleServiceProvider) и внедрение зависимостей
+## 4. Провайдер сервисов (AbstractModuleServiceProvider), DI-контейнер и RBAC
 
 Класс `ServiceProvider` связывает модуль с ядром CRM. Рекомендуется наследовать класс от `Api\System\Library\Module\AbstractModuleServiceProvider`, который реализует интерфейс `ModuleServiceProviderInterface`.
 
 ### Жизненный цикл провайдера
 
 1. **`register(Container $container): void`**
-   - Вызывается на этапе сборки зависимостей контейнера до загрузки маршрутов и обработки запроса.
-   - Здесь регистрируются собственные сервисы модуля, синглтоны, клиенты API и модели в DI-контейнер ядра.
-   - **Важно:** В методе `register()` нельзя обращаться к другим модулям или выполнять побочные действия, так как остальные сервисы еще могут быть не инициализированы.
+   - Вызывается в методе `App::initModuleSystem()` на этапе сборки зависимостей контейнера.
+   - Здесь регистрируются собственные сервисы модуля, синглтоны и клиенты API в DI-контейнер ядра (`$container->singleton(...)` или `$container->set(...)`).
+   - **Важно:** В методе `register()` нельзя вызывать методы других сервисов ядра или модулей, так как они могут быть еще не зарегистрированы.
 
 2. **`boot(Container $container): void`**
-   - Вызывается после того, как все модули и сервисы ядра зарегистрированы.
-   - Здесь подписываются динамические слушатели событий, настраиваются обработчики хуков, проверяются динамические условия окружения.
+   - Вызывается после того, как все сервис-провайдеры завершили этап `register()`.
+   - Здесь подписываются слушатели событий в `HookManager`, выполняются начальные проверки и инициализации.
 
 ### Методы декларативного контракта ServiceProvider
 
 | Метод | Возвращаемый тип | Описание |
 |---|---|---|
 | `getHooks()` | `array` | Массив слушателей событий вида `[event_name => [['handler' => ..., 'priority' => 10]]]` |
-| `getPermissions()` | `array<int, string>` | Список уникальных ключей прав доступа, добавляемых модулем в систему RBAC |
-| `getMenuItems()` | `array<int, array>` | Элементы навигационного меню CRM, публикуемые модулем |
-| `getConfig()` | `array<string, mixed>` | Динамические или дефолтные конфигурации модуля |
-| `getAssets()` | `array<string, mixed>` | Регистрация публичных скриптов и стилей |
-| `getScheduledTasks()` | `array<int, ScheduledTask>` | Экземпляры объектов `ScheduledTask` для планировщика Cron |
+| `getPermissions()` | `array<int, string>` | Список уникальных RBAC-прав. Автоматически регистрируется в системе прав CRM! |
+| `getMenuItems()` | `array<int, array>` | Элементы навигационного меню CRM: `['route', 'label', 'icon', 'permission', 'parent']` |
+| `getConfig()` | `array<string, mixed>` | Динамические конфигурационные параметры модуля |
+| `getAssets()` | `array<string, mixed>` | Регистрация ресурсов модуля |
+| `getScheduledTasks()` | `array<int, ScheduledTask>` | Задачи для Cron-планировщика ядра |
 
-### Эталонный пример ServiceProvider.php
+### Регистрация прав RBAC
+Коды разрешений, возвращаемые методом `getPermissions()`, ядро автоматически регистрирует в системном репозитории разрешений (`PermissionRepository::ensureRegistry()`). Точечный формат прав (например, `acme.telegram.manage`) преобразуется в человекочитаемый вид (`acme telegram manage`) и становится доступен в панели назначения ролей пользователей.
+
+### Пример реализации ServiceProvider.php
 
 ```php
 <?php
@@ -253,55 +273,41 @@ declare(strict_types=1);
 namespace Module\Acme\TelegramNotifier;
 
 use Api\System\Library\Container;
+use Api\System\Library\Hook\HookManager;
 use Api\System\Library\Module\AbstractModuleServiceProvider;
 use Api\System\Library\Module\ModuleEvents;
 use Api\System\Library\Module\ScheduledTask;
-use Module\Acme\TelegramNotifier\Services\TelegramService;
-use Module\Acme\TelegramNotifier\Cron\NotificationQueueHandler;
+use Module\Acme\TelegramNotifier\Service\TelegramService;
+use Module\Acme\TelegramNotifier\Cron\QueueWorkerHandler;
 
-class ServiceProvider extends AbstractModuleServiceProvider
+final class TelegramNotifierServiceProvider extends AbstractModuleServiceProvider
 {
     public function register(Container $container): void
     {
-        // Регистрация сервиса в контейнере зависимостей ядра
+        // Регистрация сервиса как singleton в DI-контейнере ядра
         $container->singleton(TelegramService::class, static function (Container $c): TelegramService {
-            $config = $c->get('config');
             $pdo = $c->get(\PDO::class);
-            return new TelegramService(
-                botToken: (string)($config['telegram_bot_token'] ?? ''),
-                pdo: $pdo
-            );
+            return new TelegramService($pdo);
         });
     }
 
     public function boot(Container $container): void
     {
-        // Динамическая логика при старте модуля
-    }
+        /** @var HookManager $hooks */
+        $hooks = $container->get('hook.manager');
 
-    public function getHooks(): array
-    {
-        return [
-            ModuleEvents::TASK_STATUS_CHANGED => [
-                [
-                    'handler' => '\\Module\\Acme\\TelegramNotifier\\Handlers\\StatusChangeHandler::handle',
-                    'priority' => 20,
-                ],
-            ],
-            ModuleEvents::COMMENT_ADDED => [
-                [
-                    'handler' => '\\Module\\Acme\\TelegramNotifier\\Handlers\\CommentHandler::handle',
-                    'priority' => 10,
-                ],
-            ],
-        ];
+        // Подписка на событие смены статуса задачи с приоритетом 100
+        $hooks->register(ModuleEvents::TASK_STATUS_CHANGED, function (array &$context): void {
+            $telegram = $this->container->get(TelegramService::class);
+            $telegram->onStatusChanged($context);
+        }, 100);
     }
 
     public function getPermissions(): array
     {
         return [
+            'acme.telegram.view',
             'acme.telegram.manage',
-            'acme.telegram.view_logs',
         ];
     }
 
@@ -309,11 +315,11 @@ class ServiceProvider extends AbstractModuleServiceProvider
     {
         return [
             [
-                'route' => 'module/acme_telegram/settings',
+                'route' => 'module-telegram-settings',
                 'label' => 'Telegram Бот',
-                'icon' => 'bi bi-telegram',
+                'icon' => '<i class="bi bi-telegram"></i>',
                 'permission' => 'acme.telegram.manage',
-                'parent' => 'settings',
+                'parent' => null,
             ],
         ];
     }
@@ -322,10 +328,10 @@ class ServiceProvider extends AbstractModuleServiceProvider
     {
         return [
             new ScheduledTask(
-                moduleName: 'acme.telegram_notifier',
+                moduleName: 'acme.telegram-notifier',
                 taskName: 'flush_telegram_queue',
-                schedule: '*/2 * * * *', // Каждые 2 минуты
-                handlerClass: NotificationQueueHandler::class,
+                schedule: '*/2 * * * *',
+                handlerClass: QueueWorkerHandler::class,
                 handlerMethod: 'run'
             ),
         ];
@@ -335,11 +341,17 @@ class ServiceProvider extends AbstractModuleServiceProvider
 
 ---
 
-## 5. Шина событий и полный каталог ModuleEvents
+## 5. Шина событий: полный каталог ModuleEvents и HookManager
 
-TropaTT CRM включает событийную шину, построенную вокруг класса `ModuleEvents` (`Api\System\Library\Module\ModuleEvents`). При наступлении ключевых бизнес-событий ядро диспетчеризирует их через `HookManager`.
+Ядро TropaTT CRM управляет событиями жизненного цикла через `HookManager` (`Api\System\Library\Hook\HookManager`). Каталог доступных имен событий строго централизован в финальном классе `Api\System\Library\Module\ModuleEvents`.
 
-### Полный каталог констант ModuleEvents
+### Сигнатура вызова обработчика хука
+```php
+function (array &$context): void
+```
+Контекст `$context` передается **по ссылке**. Обработчик может не только считывать параметры события, но и обогащать их, не прерывая выполнение запроса. Ошибки внутри хуков перехватываются `HookManager` и логируются в системный лог без падения основного процесса CRM.
+
+### Полный каталог констант ModuleEvents (35+ событий)
 
 ```php
 namespace Api\System\Library\Module;
@@ -363,7 +375,7 @@ final class ModuleEvents
     public const USER_UPDATED          = 'user.updated';
     public const USER_DELETED          = 'user.deleted';
 
-    // Жизненный цикл спринтов / рабочих циклов (WorkCycleController)
+    // Жизненный цикл рабочих циклов / спринтов (WorkCycleController)
     public const CYCLE_CREATED         = 'cycle.created';
     public const CYCLE_STARTED         = 'cycle.started';
     public const CYCLE_COMPLETED       = 'cycle.completed';
@@ -371,7 +383,7 @@ final class ModuleEvents
     public const CYCLE_ARCHIVED        = 'cycle.archived';
     public const CYCLE_DELETED         = 'cycle.deleted';
 
-    // CRM сущности (клиенты, контрагенты, контакты, компании, организации)
+    // CRM записи (клиенты, контрагенты, контакты, компании, организации)
     public const CLIENT_CREATED        = 'client.created';
     public const CLIENT_UPDATED        = 'client.updated';
     public const CLIENT_DELETED        = 'client.deleted';
@@ -388,7 +400,7 @@ final class ModuleEvents
     public const ORGANIZATION_UPDATED  = 'organization.updated';
     public const ORGANIZATION_DELETED  = 'organization.deleted';
 
-    // Таксономия и классификаторы
+    // Таксономия и конфигурационные сущности
     public const TAG_CREATED           = 'tag.created';
     public const TAG_UPDATED           = 'tag.updated';
     public const TAG_DELETED           = 'tag.deleted';
@@ -402,188 +414,210 @@ final class ModuleEvents
     public const CUSTOM_FIELD_UPDATED  = 'custom_field.updated';
     public const CUSTOM_FIELD_DELETED  = 'custom_field.deleted';
 
-    // Совместная работа, чат и файлы
+    // Коллаборация, файлы и чат
     public const COMMENT_ADDED         = 'comment.added';
     public const FILE_UPLOADED         = 'file.uploaded';
     public const CHAT_MESSAGE_CREATED  = 'chat.message_created';
     public const CHAT_MESSAGE_UPDATED  = 'chat.message_updated';
     public const CHAT_MESSAGE_DELETED  = 'chat.message_deleted';
 
-    // Рендеринг интерфейса ядра (Web\Controller)
+    // Рендеринг интерфейса ядра (Web\Core\Controller)
     public const RENDER_BEFORE         = 'render.before';
     public const RENDER_AFTER          = 'render.after';
 }
 ```
 
-### Формат обработчика событий
+---
 
-Обработчик хука может быть представлен статическим методом или замыканием. В качестве первого аргумента передается контекстный ассоциативный массив данных события:
+## 6. Web UI интеграция: слоты позиций (PositionRegistry), render-хуки и i18n
+
+Для неинвазивного внедрения элементов интерфейса используется реестр позиций `Web\System\Module\PositionRegistry`.
+
+### Реализованные позиции шаблонов ядра
+
+В шаблонах страниц CRM ядро вызывает хелпер `module_position($slotName, $context)`:
+
+| Слот позиции | Шаблон ядра | Передаваемый контекст (`$context`) |
+|---|---|---|
+| `task.detail.sidebar` | `view/template/page/task_detail.php` | `['route' => 'task-detail', 'task_public_id' => 'tsk_...']` |
+| `project.detail.sidebar` | `view/template/page/project_detail.php` | `['route' => 'project-detail', 'project_public_id' => 'prj_...']` |
+| `gantt.content.after` | `view/template/page/gantt.php` | `['route' => 'gantt']` |
+| `kanban.board.after` | `view/template/page/kanban.php` | `['route' => 'kanban']` |
+| `tasks.list.after` | `view/template/page/tasks.php` | `['route' => 'tasks']` |
+| `calendar.content.after` | `view/template/page/calendar.php` | `['route' => 'calendar']` |
+| `counterparties.content.after` | `view/template/page/counterparties.php` | `['route' => 'counterparties']` |
+| `profile.content.after` | `view/template/page/profile.php` | `['route' => 'profile']` |
+| `dashboard.content.after` | `view/template/page/dashboard.php` | `['route' => 'dashboard']` |
+
+### Регистрация позиции в manifest.json
+Каждый рендерер позиции описывается структурой с полями `renderer` (статический метод вида `Class::method`), `priority` (сортировка от большего к меньшему) и `key` (уникальный идентификатор блока):
+
+```json
+"positions": {
+  "task.detail.sidebar": [
+    {
+      "renderer": "Module\\Acme\\TelegramNotifier\\Position\\TaskSidebarPanel::render",
+      "priority": 10,
+      "key": "telegram_panel"
+    }
+  ]
+}
+```
+
+### Рендерер позиции (Position/TaskSidebarPanel.php)
+Метод рендерера обязан принимать массив контекста и возвращать готовую HTML-строку:
 
 ```php
 <?php
 declare(strict_types=1);
 
-namespace Module\Acme\TelegramNotifier\Handlers;
+namespace Module\Acme\TelegramNotifier\Position;
 
-final class StatusChangeHandler
+final class TaskSidebarPanel
 {
-    /**
-     * @param array{
-     *     task_id: int,
-     *     task_public_id: string,
-     *     old_status: string,
-     *     new_status: string,
-     *     user_id: int,
-     *     title: string
-     * } $payload
-     */
-    public static function handle(array $payload): void
+    public static function render(array $context): string
     {
-        $taskKey = $payload['task_key'] ?? ('Task #' . ($payload['task_id'] ?? 0));
-        $oldStatus = $payload['old_status'] ?? 'unknown';
-        $newStatus = $payload['new_status'] ?? 'unknown';
+        $taskPublicId = trim((string)($context['task_public_id'] ?? ''));
+        if ($taskPublicId === '') {
+            return '';
+        }
 
-        // Отправка в транзакционную очередь фоновых задач
-        // (не блокируя HTTP-ответ пользователя!)
-        \Module\Acme\TelegramNotifier\Services\TelegramQueue::push([
-            'text' => sprintf("Задача %s сменила статус с %s на %s", $taskKey, $oldStatus, $newStatus),
-        ]);
+        $safePublicId = htmlspecialchars($taskPublicId, ENT_QUOTES, 'UTF-8');
+
+        return '<div class="crm-card mb-3" data-task-public-id="' . $safePublicId . '">'
+            . '<div class="crm-side-card-head">'
+            . '<h2 class="h6 mb-0"><i class="bi bi-telegram text-primary me-1"></i> Telegram Уведомления</h2>'
+            . '</div>'
+            . '<div class="p-3 small">'
+            . '<p class="text-muted mb-2">Уведомления по задаче отправляются в привязанный чат.</p>'
+            . '</div>'
+            . '</div>';
     }
 }
 ```
 
----
-
-## 6. Web UI интеграция: слоты позиций (PositionRegistry) и шаблоны
-
-Для внедрения кастомных блоков интерфейса без изменения шаблонов ядра используется реестр слотов позиций — `Web\System\Module\PositionRegistry`.
-
-### Принцип работы слотов
-
-В шаблонах ядра вызывается функция-помощник:
-`<?= module_position('task.detail.sidebar', ['task' => $task, 'public_id' => $publicId]) ?>`
-
-Реестр собирает всех зарегистрированных поставщиков контента для этой позиции, сортирует их по параметру `priority` (по убыванию: 100 выше, чем 10) и оборачивает вывод в безопасный контейнер с ключом `key`.
-
-### Поддерживаемые позиции ядра
-
-| Позиция | Страница / Контекст ядра | Передаваемый контекст ($context) |
-|---|---|---|
-| `task.detail.sidebar` | Боковая панель детального просмотра задачи | `['task' => array, 'task_id' => int, 'public_id' => string]` |
-| `task.detail.tabs` | Дополнительные вкладки в карточке задачи | `['task' => array, 'task_id' => int]` |
-| `project.detail.sidebar` | Сайдбар карточки проекта | `['project' => array, 'project_id' => int]` |
-| `client.detail.sidebar` | Сайдбар карточки клиента CRM | `['client' => array, 'client_id' => int]` |
-| `dashboard.widgets.top` | Верхний ряд виджетов главного дашборда | `['user_id' => int, 'dashboard_data' => array]` |
-| `header.actions.right` | Правый блок быстрых действий в верхней навигационной панели | `['current_user' => array]` |
-
-### Пример рендерера для слота
-
+### Локализация интерфейса (i18n)
+Если модуль содержит поддиректорию `web/language/`, ядро автоматически загружает переводы для текущей локали пользователя (`web/language/ru-ru.php`, `web/language/en-us.php`):
 ```php
 <?php
-declare(strict_types=1);
-
-namespace Module\Acme\TelegramNotifier\Controllers;
-
-final class WebSettingsController
-{
-    /**
-     * Рендеринг виджета в сайдбаре карточки задачи.
-     * @param array<string, mixed> $context
-     * @return string HTML-разметка виджета
-     */
-    public static function renderSidebarWidget(array $context): string
-    {
-        $task = $context['task'] ?? [];
-        $taskId = (int)($task['id'] ?? 0);
-        $taskKey = htmlspecialchars((string)($task['task_key'] ?? ''), ENT_QUOTES, 'UTF-8');
-
-        // Рендерим HTML
-        ob_start();
-        ?>
-        <div class="card mb-3 acme-telegram-widget" data-task-id="<?= $taskId ?>">
-            <div class="card-header d-flex justify-content-between align-items-center py-2">
-                <span class="fw-semibold small"><i class="bi bi-telegram text-primary me-1"></i> Telegram Чат</span>
-                <span class="badge bg-success-subtle text-success">Подключен</span>
-            </div>
-            <div class="card-body py-2 small">
-                <p class="text-muted mb-2">Уведомления для задачи <strong><?= $taskKey ?></strong> отправляются в общий чат разработки.</p>
-                <button type="button" class="btn btn-sm btn-outline-primary w-100" onclick="AcmeTelegram.testNotification(<?= $taskId ?>)">
-                    Тестовое уведомление
-                </button>
-            </div>
-        </div>
-        <?php
-        return (string)ob_get_clean();
-    }
-}
+// web/language/ru-ru.php
+return [
+    'module_telegram_settings' => [
+        'title' => 'Настройки Telegram-бота',
+        'bot_token' => 'Токен бота',
+        'save' => 'Сохранить',
+    ],
+];
 ```
 
 ---
 
 ## 7. Маршрутизация Web и REST API
 
-Модуль может объявлять как публичные и закрытые эндпоинты REST API (`api_routes.php`), так и маршруты веб-интерфейса CRM (`web_routes.php`).
+Модули в TropaTT CRM регистрируют как REST API эндпоинты, так и страницы интерфейса.
 
-### Регистрация REST API маршрутов (`api_routes.php`)
+### Маршрутизация REST API (`api/config/routes.php`)
 
-Файл возвращает ассоциативный массив маршрутов или регистрирует их через предоставленный объект роутера:
+**Важнейшая особенность ядра:**
+При регистрации маршрутов через `Router::addManyFromModule($routes, $modulePrefix)` ядро автоматически добавляет к пути маршрута префикс:
+`/_module/{vendor}.{name}`
 
+Файл `routes.php` должен возвращать массив спецификаций:
 ```php
 <?php
 declare(strict_types=1);
 
-use Module\Acme\TelegramNotifier\Controllers\ApiTelegramController;
+use Module\Acme\TelegramNotifier\Controller\ApiTelegramController;
 
 return [
-    'POST /api/v1/module/acme-telegram/test' => [
+    [
+        'methods'    => ['GET'],
+        'route'      => '/settings', // Преобразуется в /_module/acme.telegram-notifier/settings
+        'controller' => ApiTelegramController::class,
+        'action'     => 'getSettings',
+        'auth'       => true,
+    ],
+    [
+        'methods'    => ['POST'],
+        'route'      => '/test-message', // Преобразуется в /_module/acme.telegram-notifier/test-message
         'controller' => ApiTelegramController::class,
         'action'     => 'sendTest',
-        'permission' => 'acme.telegram.manage',
-        'rate_limit' => 30, // 30 запросов в минуту
-    ],
-    'GET /api/v1/module/acme-telegram/logs' => [
-        'controller' => ApiTelegramController::class,
-        'action'     => 'listLogs',
-        'permission' => 'acme.telegram.view_logs',
+        'auth'       => true,
     ],
 ];
 ```
 
-### Контроллер REST API модуля
-
-Контроллеры API возвращают структурированный массив данных, который сериализуется ядром в единый формат ответов TropaTT API (`ApiResponse`):
+### API Контроллер и JsonResponse
+API-контроллеры модулей принимают `Container` через конструктор и возвращают объект ответа `Api\System\Library\Http\JsonResponse`:
 
 ```php
 <?php
 declare(strict_types=1);
 
-namespace Module\Acme\TelegramNotifier\Controllers;
+namespace Module\Acme\TelegramNotifier\Controller;
 
-use Api\System\Library\Support\ApiResponse;
 use Api\System\Library\Container;
+use Api\System\Library\Http\JsonResponse;
 
 final class ApiTelegramController
 {
-    public function __construct(
-        private readonly Container $container
-    ) {}
+    public function __construct(private readonly Container $container) {}
 
-    public function sendTest(array $params): array
+    public function getSettings(array $params = []): JsonResponse
     {
-        $chatId = (string)($params['chat_id'] ?? '');
+        return JsonResponse::success('TELEGRAM_SETTINGS', 'OK', [
+            'bot_configured' => true,
+        ]);
+    }
+
+    public function sendTest(array $params = []): JsonResponse
+    {
+        $raw = file_get_contents('php://input');
+        $body = json_decode($raw ?: '{}', true) ?: [];
+
+        $chatId = trim((string)($body['chat_id'] ?? ''));
         if ($chatId === '') {
-            return ApiResponse::error('CHAT_ID_REQUIRED', 'Укажите ID чата Telegram', 400);
+            return JsonResponse::error('INVALID_PARAM', 'chat_id is required', 400);
         }
 
-        /** @var \Module\Acme\TelegramNotifier\Services\TelegramService $telegram */
-        $telegram = $this->container->get(\Module\Acme\TelegramNotifier\Services\TelegramService::class);
-        $result = $telegram->sendMessage($chatId, "Тестовое уведомление от TropaTT CRM!");
+        return JsonResponse::success('SENT', 'Test message dispatched');
+    }
+}
+```
 
-        if (!$result['success']) {
-            return ApiResponse::error('SEND_FAILED', $result['error'] ?? 'Ошибка отправки', 502);
-        }
+### Маршрутизация Web-страниц (`web/config/routes.php`)
+Файл веб-маршрутов возвращает ассоциативную карту:
+```php
+<?php
+declare(strict_types=1);
 
-        return ApiResponse::success(['delivered' => true, 'timestamp' => time()]);
+use Module\Acme\TelegramNotifier\Controller\WebSettingsController;
+
+return [
+    'module-telegram-settings' => [WebSettingsController::class, 'index'],
+];
+```
+Обращение к этой странице в браузере выполняется по стандартному роуту:
+`https://crm.example.com/web/index.php?route=module-telegram-settings`
+
+### Web Контроллер
+Контроллеры веб-интерфейса наследуют `Web\System\Core\Controller`:
+```php
+<?php
+declare(strict_types=1);
+
+namespace Module\Acme\TelegramNotifier\Controller;
+
+use Web\System\Core\Controller;
+
+final class WebSettingsController extends Controller
+{
+    public function index(): void
+    {
+        $this->render(__DIR__ . '/../template/page/settings.php', [
+            'title' => 'Настройки Telegram',
+            'route' => 'module-telegram-settings',
+        ]);
     }
 }
 ```
@@ -592,86 +626,78 @@ final class ApiTelegramController
 
 ## 8. Управление ресурсами (Assets: CSS, JS)
 
-Ядро TropaTT управляет модульными скриптами и стилями через класс `Web\System\Module\ModuleAssetManager`.
+Ядро управляет ресурсами модулей через `Web\System\Module\ModuleAssetManager`.
 
-### Секция assets в manifest.json
-
-- **`assets.css`**: Массив CSS-файлов, подключаемых глобально на всех страницах CRM.
-- **`assets.js`**: Массив JavaScript-файлов, подключаемых глобально.
-- **`assets.css_routes`**: Словарь `{"route_name": "assets/path.css"}` для точечного подключения стилей только на конкретных маршрутах CRM (например, только в карточке задачи `task-detail`).
-- **`assets.js_routes`**: Словарь для точечного подключения скриптов по маршруту.
+### Режимы подключения ресурсов в manifest.json:
+- **Глобальные стили/скрипты:**
+  - `assets.css`: список файлов, подключаемых на **всех** страницах CRM.
+  - `assets.js`: список скриптов, подключаемых глобально.
+- **Маршрутные стили/скрипты (Route-scoped):**
+  - `assets.css_routes`: ассоциативный массив `{"route_name": "path/to.css"}`.
+  - `assets.js_routes`: ассоциативный массив `{"route_name": "path/to.js"}`.
 
 ```json
 "assets": {
   "css": [
-    "assets/css/global_badge.css"
-  ],
-  "js": [
-    "assets/js/core_notifier.js"
+    "web/assets/css/global-badge.css"
   ],
   "css_routes": {
-    "task-detail": "assets/css/widget.css",
-    "module/acme_telegram/settings": "assets/css/settings.css"
+    "task-detail": "web/assets/css/widget.css",
+    "module-telegram-settings": "web/assets/css/settings.css"
   },
   "js_routes": {
-    "task-detail": "assets/js/widget_interaction.js"
+    "task-detail": "web/assets/js/widget.js"
   }
 }
 ```
-
-Все пути автоматически трансформируются ядром в публичные URL вида:
-`/modules/{vendor}.{name}/assets/...` с добавлением версионирующего хэша (`?v=1.0.0`) для инвалидации кэша браузера.
 
 ---
 
 ## 9. Миграции базы данных и жизненный цикл схемы
 
-Модуль может создавать собственные таблицы, индексы и наполнять начальные данные. Выполнение миграций контролирует `Api\System\Library\Module\ModuleMigrationRunner`.
+Миграции модуля выполняются транзакционно через класс `Api\System\Library\Module\ModuleMigrationRunner`.
 
-### Правила организации SQL-миграций
+### Поддерживаемые соглашения по именованию файлов миграций
 
-1. SQL-файлы размещаются в каталоге, указанном в `manifest.json` (например, `migrations/`).
-2. Имена файлов должны строго следовать шаблону нумерации и направления:
-   - `{номер}_{название}.up.sql` — применение миграции.
-   - `{номер}_{название}.down.sql` — откат миграции.
-3. Пример:
-   - `001_create_telegram_tables.up.sql`
-   - `001_create_telegram_tables.down.sql`
-   - `002_add_retry_index.up.sql`
-   - `002_add_retry_index.down.sql`
+`ModuleMigrationRunner` поддерживает два стандартных формата именования:
 
-### Пример файла миграции (001_create_telegram_tables.up.sql)
+1. **Суффикс `_rollback.sql` (стандарт встроенных модулей TropaTT):**
+   - Накат: `001_create_tables.sql`
+   - Откат: `001_create_tables_rollback.sql`
+   - Накат: `002_add_index.sql`
+   - Откат: `002_add_index_rollback.sql`
 
+2. **Суффикс `.up.sql` / `.down.sql`:**
+   - Накат: `001_init.up.sql`
+   - Откат: `001_init.down.sql`
+
+Файлы сортируются естественным порядком (`strnatcmp`), что гарантирует строго последовательное применение: `001 -> 002 -> 003`.
+
+### Пример файла миграции (`api/migrations/001_create_tables.sql`)
 ```sql
-CREATE TABLE IF NOT EXISTS `module_acme_telegram_logs` (
+CREATE TABLE IF NOT EXISTS `module_acme_telegram_queue` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    `task_id` BIGINT UNSIGNED NULL,
     `chat_id` VARCHAR(64) NOT NULL,
     `message_text` TEXT NOT NULL,
     `status` ENUM('pending', 'sent', 'failed') NOT NULL DEFAULT 'pending',
-    `response_payload` JSON NULL,
-    `error_message` VARCHAR(512) NULL,
+    `attempts` INT UNSIGNED NOT NULL DEFAULT 0,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `sent_at` DATETIME NULL,
     PRIMARY KEY (`id`),
-    KEY `idx_status_created` (`status`, `created_at`),
-    KEY `idx_task_id` (`task_id`)
+    KEY `idx_status_created` (`status`, `created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
-### Пример файла отката (001_create_telegram_tables.down.sql)
-
+### Пример файла отката (`api/migrations/001_create_tables_rollback.sql`)
 ```sql
-DROP TABLE IF EXISTS `module_acme_telegram_logs`;
+DROP TABLE IF EXISTS `module_acme_telegram_queue`;
 ```
-
-При активации модуля ядро атомарно в транзакции применяет все невыполненные `.up.sql` файлы и делает запись в таблицу `module_migrations`. При удалении модуля ядро последовательно в обратном порядке накатывает соответствующие `.down.sql` скрипты.
 
 ---
 
 ## 10. Фоновые задачи: Cron-планировщик и транзакционная очередь задач
 
-На shared-хостинге нет возможности держать постоянные демоны типа RabbitMQ или Supervisor. Архитектура TropaTT предлагает два механизма асинхронной обработки:
+На shared-хостинге нет возможности держать постоянные демоны. Архитектура TropaTT предлагает два механизма фоновой обработки:
 
 ### 1. Планировщик Cron (`ModuleCronScheduler`)
 
@@ -679,36 +705,36 @@ DROP TABLE IF EXISTS `module_acme_telegram_logs`;
 
 ```php
 new ScheduledTask(
-    moduleName: 'acme.telegram_notifier',
-    taskName: 'telegram_retry_queue',
+    moduleName: 'acme.telegram-notifier',
+    taskName: 'telegram_queue_worker',
     schedule: '*/5 * * * *', // Каждые 5 минут
-    handlerClass: NotificationQueueHandler::class,
+    handlerClass: QueueWorkerHandler::class,
     handlerMethod: 'run'
 )
 ```
 
 **Ограничения безопасности Cron:**
-- **Handler Allowlist:** Классы обработчиков cron обязаны находиться в доверенных пространствах имен (`Api\...` или `Module\...`).
-- **Method Allowlist:** Разрешены только безопасные имена методов (`run`, `execute`, `handle`, `process`, `freshnessScan`, `draftsCleanup`, `versionsCleanup`, `reindexSearch`, `captureDaily`, `autoClosePeriods`, `dispatchQueue`).
+- **Handler Allowlist:** Классы обработчиков cron обязаны находиться строго в пространствах имен `Api\...` или `Module\...`.
+- **Method Allowlist:** Разрешены только следующие методы:
+  `run`, `execute`, `handle`, `process`, `freshnessScan`, `draftsCleanup`, `versionsCleanup`, `reindexSearch`, `captureDaily`, `autoClosePeriods`, `dispatchQueue`.
 - Если модуль деактивирован, планировщик автоматически пропускает выполнение его задач (`skipped`), предотвращая ошибки.
 
 ### 2. Транзакционная очередь задач (`ModuleJobDispatcher`)
 
-Для отложенного выполнения длительных операций (отправка внешних HTTP-запросов, генерация документов) используется таблица `module_jobs` через `ModuleJobDispatcher`.
+Для отложенного выполнения длительных операций без создания кастомных таблиц используется системная очередь `module_jobs` через `ModuleJobDispatcher`.
 
 ```php
 use Api\System\Library\Module\ModuleJobDispatcher;
 
-// Постановка задачи в очередь с задержкой 10 секунд
 $dispatcher = $container->get(ModuleJobDispatcher::class);
 $jobId = $dispatcher->dispatch(
-    moduleName: 'acme.telegram_notifier',
+    moduleName: 'acme.telegram-notifier',
     jobName: 'send_telegram_http_message',
     payload: [
         'chat_id' => '-100123456789',
-        'text' => 'Привет из очереди!',
+        'text' => 'Привет из транзакционной очереди!',
     ],
-    delay: 10
+    delay: 10 // Задержка 10 секунд
 );
 ```
 
@@ -753,14 +779,13 @@ private array $forbiddenFunctions = [
 
 ### Структура архива для распространения
 
-В корне архива `.zip` должны сразу находиться файлы модуля (без лишней верхней вложенной папки):
+В корне архива `.zip` должны сразу находиться файлы модуля (без лишней верхней папки):
 ```
 module-acme-telegram-1.0.0.zip
 ├── manifest.json
-├── ServiceProvider.php
-├── api_routes.php
-├── migrations/
-└── ...
+├── README.md
+├── api/
+└── web/
 ```
 
 ### Удаленная установка (`ModuleRemoteInstaller`)
@@ -772,9 +797,9 @@ use Api\System\Library\Module\ModuleRemoteInstaller;
 
 $installer = $container->get(ModuleRemoteInstaller::class);
 
-// Установка по защищенному HTTPS URL:
+// Установка по HTTPS URL:
 $moduleName = $installer->installFromUrl(
-    url: 'https://marketplace.tropatt.com/downloads/acme.telegram_notifier-1.0.0.zip',
+    url: 'https://marketplace.tropatt.com/downloads/acme.telegram-notifier-1.0.0.zip',
     verifySignature: true
 );
 ```
@@ -792,7 +817,7 @@ $moduleName = $installer->installFromUrl(
 
 ---
 
-## 13. Полный эталонный пример модуля: Acme Telegram Notifier
+## 13. Полный эталонный рабочий модуль: Acme Telegram Notifier
 
 Ниже представлен завершенный пример готового к установке модуля, объединяющего все ключевые возможности подсистемы.
 
@@ -800,20 +825,22 @@ $moduleName = $installer->installFromUrl(
 
 ```json
 {
-  "name": "acme.telegram_notifier",
+  "name": "acme.telegram-notifier",
   "version": "1.0.0",
-  "vendor": "Acme",
+  "vendor": "acme",
   "author": "Anton Barinov",
   "author_url": "https://github.com/Anton-Barinov",
   "title": "Telegram Notifier",
-  "description": "Оповещения в Telegram-чаты при событиях по задачам TropaTT CRM",
-  "category": "integrations",
+  "description": "Оповещения в Telegram-чаты при событиях задач TropaTT CRM",
+  "category": "integration",
+  "license": "MIT",
   "core_version": ">=1.0.0",
   "dependencies": [],
   "require_permissions": ["tasks.read"],
-  "service_provider": "Module\\Acme\\TelegramNotifier\\ServiceProvider",
-  "api_routes": "api_routes.php",
-  "migrations": "migrations",
+  "service_provider": "Module\\Acme\\TelegramNotifier\\TelegramNotifierServiceProvider",
+  "api_routes": "api/config/routes.php",
+  "web_routes": "web/config/routes.php",
+  "migrations": "api/migrations/",
   "config_defaults": {
     "bot_token": "",
     "chat_id": ""
@@ -821,24 +848,17 @@ $moduleName = $installer->installFromUrl(
   "positions": {
     "task.detail.sidebar": [
       {
-        "renderer": "Module\\Acme\\TelegramNotifier\\Controllers\\SidebarController::render",
-        "priority": 20,
-        "key": "telegram_sidebar"
+        "renderer": "Module\\Acme\\TelegramNotifier\\Position\\TaskSidebarPanel::render",
+        "priority": 15,
+        "key": "telegram_panel"
       }
     ]
   },
-  "hooks": {
-    "task.status_changed": [
-      {
-        "handler": "Module\\Acme\\TelegramNotifier\\Handlers\\StatusHandler::handle",
-        "priority": 10
-      }
-    ]
-  }
+  "hooks": {}
 }
 ```
 
-### Файл `ServiceProvider.php`
+### Файл `api/TelegramNotifierServiceProvider.php`
 
 ```php
 <?php
@@ -849,59 +869,16 @@ namespace Module\Acme\TelegramNotifier;
 use Api\System\Library\Container;
 use Api\System\Library\Module\AbstractModuleServiceProvider;
 
-final class ServiceProvider extends AbstractModuleServiceProvider
+final class TelegramNotifierServiceProvider extends AbstractModuleServiceProvider
 {
     public function register(Container $container): void
     {
-        // Регистрация сервисов модуля
+        // Регистрация сервисов
     }
 
     public function boot(Container $container): void
     {
-        // Выполняется после инициализации всех сервисов
-    }
-}
-```
-
-### Файл `Handlers/StatusHandler.php`
-
-```php
-<?php
-declare(strict_types=1);
-
-namespace Module\Acme\TelegramNotifier\Handlers;
-
-use Api\System\Library\Support\AppLog;
-
-final class StatusHandler
-{
-    public static function handle(array $data): void
-    {
-        $taskTitle = $data['title'] ?? 'Без названия';
-        $newStatus = $data['new_status'] ?? 'неизвестно';
-        AppLog::info(sprintf("[TelegramNotifier] Задача '%s' перешла в статус '%s'", $taskTitle, $newStatus));
-    }
-}
-```
-
-### Файл `Controllers/SidebarController.php`
-
-```php
-<?php
-declare(strict_types=1);
-
-namespace Module\Acme\TelegramNotifier\Controllers;
-
-final class SidebarController
-{
-    public static function render(array $context): string
-    {
-        $task = $context['task'] ?? [];
-        $title = htmlspecialchars((string)($task['title'] ?? ''), ENT_QUOTES, 'UTF-8');
-
-        return '<div class="alert alert-info py-2 small mb-3">'
-             . '<i class="bi bi-telegram me-1"></i> Telegram-уведомления активны для: <strong>' . $title . '</strong>'
-             . '</div>';
+        // Логика инициализации
     }
 }
 ```
