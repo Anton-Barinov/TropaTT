@@ -3189,7 +3189,7 @@ $tools[] = $this->tool(
             [
                 'action' => ['type' => 'string', 'enum' => [
                     'overview', 'search', 'analytics', 'suggest', 'entity_pages',
-                    'list_spaces', 'get_space', 'create_space', 'update_space', 'archive_space', 'restore_space', 'delete_space',
+                    'list_spaces', 'get_space', 'create_space', 'update_space', 'archive_space', 'restore_space', 'delete_space', 'restore_deleted_space', 'purge_space', 'list_trashed_spaces',
                     'get_space_permissions', 'add_space_permission', 'remove_space_permission',
                     'list_pages', 'get_page', 'create_page', 'update_page', 'archive_page', 'restore_page',
                     'move_page', 'duplicate_page', 'publish_page', 'lock_page', 'unlock_page',
@@ -4794,6 +4794,9 @@ $tools[] = $this->tool(
             'archive_space' => $this->crmArchiveKnowledgeSpace($args),
             'restore_space' => $this->crmRestoreKnowledgeSpace($args),
             'delete_space' => $this->crmDeleteKnowledgeSpace($args),
+            'restore_deleted_space' => $this->crmRestoreDeletedKnowledgeSpace($args),
+            'purge_space' => $this->crmPurgeKnowledgeSpace($args),
+            'list_trashed_spaces' => $this->crmListTrashedKnowledgeSpaces($args),
             'get_space_permissions' => $this->crmGetKnowledgeSpacePermissions($args),
             'add_space_permission' => $this->crmAddKnowledgeSpacePermission($args),
             'remove_space_permission' => $this->crmRemoveKnowledgeSpacePermission($args),
@@ -10184,7 +10187,38 @@ $tools[] = $this->tool(
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
-        $result = $this->knowledge()->deleteSpace($publicId, $this->pick($arguments, [
+        $result = $this->knowledge()->trashSpace($publicId, $this->actor());
+        if ($result === null) {
+            return ['error' => 'Knowledge space not found.'];
+        }
+        if ($result === 'SYSTEM_SPACE') {
+            return ['error' => 'A system knowledge space cannot be deleted.'];
+        }
+        $this->invalidateCache('knowledge');
+        return ['deleted' => true, 'trashed' => true, 'result' => $result];
+    }
+
+    private function crmRestoreDeletedKnowledgeSpace(array $arguments): array
+    {
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        $result = $this->knowledge()->restoreTrashedSpace($publicId, $this->actor());
+        if ($result === null) {
+            return ['error' => 'Knowledge space is not in the recycle bin.'];
+        }
+        $this->invalidateCache('knowledge');
+        return ['restored' => true, 'result' => $result];
+    }
+
+    private function crmPurgeKnowledgeSpace(array $arguments): array
+    {
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        $result = $this->knowledge()->purgeSpace($publicId, $this->pick($arguments, [
             'reassign_space_public_id', 'reassign_parent_public_id', 'cascade',
         ]), $this->actor());
         if ($result === null) {
@@ -10199,7 +10233,12 @@ $tools[] = $this->tool(
             return ['error' => $messages[$result] ?? 'Knowledge space cannot be deleted.'];
         }
         $this->invalidateCache('knowledge');
-        return ['deleted' => true, 'result' => $result];
+        return ['purged' => true, 'result' => $result];
+    }
+
+    private function crmListTrashedKnowledgeSpaces(array $arguments): array
+    {
+        return ['items' => $this->publicData($this->knowledge()->trashedSpaces($this->filters($arguments, 50, 200), $this->actor()))];
     }
 
     private function crmListKnowledgeSpaces(array $arguments): array

@@ -1820,6 +1820,7 @@ CREATE TABLE IF NOT EXISTS `knowledge_spaces` (
   `row_version` int(11) DEFAULT 1,
   `created_at` datetime,
   `updated_at` datetime,
+  `deleted_at` datetime DEFAULT NULL,
   `source_type` varchar(64),
   `source_id` varchar(255),
   `source_url` varchar(2048),
@@ -1829,6 +1830,7 @@ CREATE TABLE IF NOT EXISTS `knowledge_spaces` (
   UNIQUE KEY `public_id` (`public_id`),
   UNIQUE KEY `slug` (`slug`),
   KEY `idx_knowledge_spaces_archived_sort` (`is_archived`,`sort_order`),
+  KEY `idx_knowledge_spaces_deleted` (`deleted_at`),
   KEY `idx_knowledge_spaces_owner` (`owner_user_id`),
   KEY `idx_knowledge_spaces_parent` (`parent_id`),
   KEY `idx_knowledge_spaces_source` (`source_type`,`source_id`)

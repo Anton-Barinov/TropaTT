@@ -31,8 +31,30 @@ final class KnowledgeRepository
         'owner' => 50,
     ];
 
+    /** null = not probed yet; guards installs that have not run the trash migration. */
+    private ?bool $spaceTrashSupported = null;
+
     public function __construct(private readonly PDO $pdo)
     {
+    }
+
+    /**
+     * True when knowledge_spaces has the recycle-bin column. Installations that
+     * have not applied KnowledgeSpacesTrashMigration yet keep working (nothing is
+     * filtered) instead of throwing on every listing.
+     */
+    private function spaceTrashSupported(): bool
+    {
+        if ($this->spaceTrashSupported !== null) {
+            return $this->spaceTrashSupported;
+        }
+        try {
+            $this->pdo->query('SELECT deleted_at FROM knowledge_spaces LIMIT 1');
+            $this->spaceTrashSupported = true;
+        } catch (\Throwable $e) {
+            $this->spaceTrashSupported = false;
+        }
+        return $this->spaceTrashSupported;
     }
 
     public function overview(array $filters = [], ?array $actor = null): array
@@ -169,9 +191,13 @@ final class KnowledgeRepository
         return $space;
     }
 
-    public function space(string $publicId, ?array $actor = null, string $minAccess = 'view'): ?array
+    /**
+     * @param bool|null $trashed false = live spaces only (default), true = recycle-bin only,
+     *                          null = any state (used by bin operations).
+     */
+    public function space(string $publicId, ?array $actor = null, string $minAccess = 'view', ?bool $trashed = false): ?array
     {
-        [$aclSql, $aclParams] = $this->spaceAccessSql('s', $actor, $minAccess);
+        [$aclSql, $aclParams] = $this->spaceAccessSql('s', $actor, $minAccess, $trashed);
         $stmt = $this->pdo->prepare(
             "SELECT s.*, (SELECT COUNT(*) FROM knowledge_pages p WHERE p.space_id = s.id AND p.deleted_at IS NULL) AS pages_count "
             . "FROM knowledge_spaces s WHERE s.public_id = :public_id AND {$aclSql} LIMIT 1"
@@ -484,7 +510,9 @@ final class KnowledgeRepository
     }
 
     /**
-     * Permanently delete a knowledge space (issue #18).
+     * Permanently delete a knowledge space (issue #18). Used for sections that were
+     * already moved to the recycle bin and purged from there, but it also accepts a
+     * live section so callers keep working.
      *
      * Deleting a space is destructive, so its contents must be handled explicitly
      * instead of silently disappearing:
@@ -494,9 +522,9 @@ final class KnowledgeRepository
      *
      * @return array|string|null summary array, an error code string, or null when the space is not visible.
      */
-    public function deleteSpace(string $publicId, array $options = [], ?array $actor = null): array|string|null
+    public function purgeSpace(string $publicId, array $options = [], ?array $actor = null): array|string|null
     {
-        $space = $this->space($publicId, $actor, 'manage');
+        $space = $this->space($publicId, $actor, 'manage', null);
         if (!$space) {
             return null;
         }
@@ -589,6 +617,121 @@ final class KnowledgeRepository
         }
 
         return $summary;
+    }
+
+    /**
+     * Move a section (and its whole sub-tree) to the recycle bin instead of
+     * destroying it. "Dangerous" only in the sense that it hides content, so the
+     * section can be restored later; permanent removal happens with purgeSpace().
+     *
+     * @return array{spaces_trashed:int,pages_hidden:int}|string|null
+     */
+    public function trashSpace(string $publicId, ?array $actor = null): array|string|null
+    {
+        $space = $this->space($publicId, $actor, 'manage');
+        if (!$space) {
+            return null;
+        }
+        if (!empty($space['is_system'])) {
+            return 'SYSTEM_SPACE';
+        }
+
+        $spaceId = (int)$space['id'];
+        $hasParentCol = array_key_exists('parent_id', $space);
+        $ids = array_merge([$spaceId], $hasParentCol ? $this->spaceDescendantIds($spaceId) : []);
+        $now = gmdate('Y-m-d H:i:s');
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+
+        $this->pdo->beginTransaction();
+        try {
+            $stmt = $this->pdo->prepare("UPDATE knowledge_spaces SET deleted_at = ?, row_version = row_version + 1, updated_at = ? WHERE deleted_at IS NULL AND id IN ({$placeholders})");
+            $stmt->execute(array_merge([$now, $now], $ids));
+            $trashed = $stmt->rowCount();
+
+            $pageStmt = $this->pdo->prepare("SELECT COUNT(*) FROM knowledge_pages WHERE deleted_at IS NULL AND space_id IN ({$placeholders})");
+            $pageStmt->execute($ids);
+            $pagesHidden = (int)$pageStmt->fetchColumn();
+
+            $this->pdo->commit();
+        } catch (\Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $e;
+        }
+
+        return ['spaces_trashed' => $trashed, 'pages_hidden' => $pagesHidden];
+    }
+
+    /**
+     * Restore a section and its sub-tree from the recycle bin. When the parent
+     * section is still in the bin the restored section becomes a root section,
+     * so nothing reappears under a hidden parent.
+     *
+     * @return array{spaces_restored:int,detached:bool}|null
+     */
+    public function restoreTrashedSpace(string $publicId, ?array $actor = null): ?array
+    {
+        $space = $this->space($publicId, $actor, 'manage', true);
+        if (!$space) {
+            return null;
+        }
+
+        $spaceId = (int)$space['id'];
+        $hasParentCol = array_key_exists('parent_id', $space);
+        $ids = array_merge([$spaceId], $hasParentCol ? $this->spaceDescendantIds($spaceId) : []);
+        $now = gmdate('Y-m-d H:i:s');
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+
+        $this->pdo->beginTransaction();
+        try {
+            $stmt = $this->pdo->prepare("UPDATE knowledge_spaces SET deleted_at = NULL, row_version = row_version + 1, updated_at = ? WHERE id IN ({$placeholders})");
+            $stmt->execute(array_merge([$now], $ids));
+            $restored = $stmt->rowCount();
+
+            $detached = false;
+            $parentId = (int)($space['parent_id'] ?? 0);
+            if ($hasParentCol && $parentId > 0) {
+                $parentStmt = $this->pdo->prepare('SELECT deleted_at FROM knowledge_spaces WHERE id = ?');
+                $parentStmt->execute([$parentId]);
+                $parentDeletedAt = $parentStmt->fetchColumn();
+                if ($parentDeletedAt !== false && $parentDeletedAt !== null) {
+                    $this->pdo->prepare('UPDATE knowledge_spaces SET parent_id = NULL WHERE id = ?')->execute([$spaceId]);
+                    $detached = true;
+                }
+            }
+
+            $this->pdo->commit();
+        } catch (\Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $e;
+        }
+
+        return ['spaces_restored' => $restored, 'detached' => $detached];
+    }
+
+    /** Sections currently held in the recycle bin, newest removal first. */
+    public function trashedSpaces(array $filters = [], ?array $actor = null): array
+    {
+        $limit = min(200, max(1, (int)($filters['limit'] ?? 100)));
+        [$aclSql, $aclParams] = $this->spaceAccessSql('s', $actor, (string)($filters['min_access'] ?? 'view'), true);
+        $stmt = $this->pdo->prepare(
+            'SELECT s.*, '
+            . '(SELECT COUNT(*) FROM knowledge_pages p WHERE p.space_id = s.id AND p.deleted_at IS NULL) AS pages_count, '
+            . '(SELECT COUNT(*) FROM knowledge_spaces c WHERE c.parent_id = s.id AND c.deleted_at IS NOT NULL) AS trashed_children_count '
+            . "FROM knowledge_spaces s WHERE {$aclSql} ORDER BY s.deleted_at DESC, s.title ASC LIMIT {$limit}"
+        );
+        $stmt->execute($aclParams);
+        $spaces = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        foreach ($spaces as &$space) {
+            $space['pages_count'] = (int)($space['pages_count'] ?? 0);
+            $space['trashed_children_count'] = (int)($space['trashed_children_count'] ?? 0);
+            $space['parent_id'] = isset($space['parent_id']) ? (int)$space['parent_id'] : null;
+        }
+        unset($space);
+        return $spaces;
     }
 
     /** Direct child space ids (one level below the given space). */
@@ -1574,8 +1717,11 @@ final class KnowledgeRepository
 
     private function pageAccessSql(string $pageAlias, string $spaceAlias, ?array $actor, string $minAccess = 'view'): array
     {
+        // Pages of a section that sits in the recycle bin stay hidden until it is restored.
+        $stateSql = $this->spaceTrashSupported() ? $spaceAlias . '.deleted_at IS NULL' : '1=1';
+
         if ($this->actorBypassesKnowledgeAcl($actor)) {
-            return ['1=1', []];
+            return [$stateSql, []];
         }
 
         $actorId = $this->actorUserId($actor);
@@ -1646,7 +1792,7 @@ final class KnowledgeRepository
 
         $rankSql = $this->accessRankSql('perm.access_level');
         $defaultRankSql = $this->accessRankSql($spaceAlias . '.default_access_level');
-        $sql = "(
+        $sql = "({$stateSql}) AND (
             ({$spaceAlias}.visibility = 'public' AND {$defaultRankSql} >= :acl_public_rank)
             OR {$spaceAlias}.owner_user_id = :acl_space_owner_user_id
             OR {$pageAlias}.owner_user_id = :acl_page_owner_user_id
@@ -1667,10 +1813,20 @@ final class KnowledgeRepository
         return [$sql, $params];
     }
 
-    private function spaceAccessSql(string $spaceAlias, ?array $actor, string $minAccess = 'view'): array
+    private function spaceAccessSql(string $spaceAlias, ?array $actor, string $minAccess = 'view', ?bool $trashed = false): array
     {
+        if (!$this->spaceTrashSupported()) {
+            $stateSql = '1=1';
+        } else {
+            $stateSql = $trashed === null
+                ? '1=1'
+                : ($trashed
+                    ? $spaceAlias . '.deleted_at IS NOT NULL'
+                    : $spaceAlias . '.deleted_at IS NULL');
+        }
+
         if ($this->actorBypassesKnowledgeAcl($actor)) {
-            return ['1=1', []];
+            return [$stateSql, []];
         }
 
         $actorId = $this->actorUserId($actor);
@@ -1720,7 +1876,7 @@ final class KnowledgeRepository
 
         $rankSql = $this->accessRankSql('perm.access_level');
         $defaultRankSql = $this->accessRankSql($spaceAlias . '.default_access_level');
-        $sql = "(
+        $sql = "({$stateSql}) AND (
             ({$spaceAlias}.visibility = 'public' AND {$defaultRankSql} >= :acl_space_public_rank)
             OR {$spaceAlias}.owner_user_id = :acl_space_owner_user_id
             OR EXISTS (

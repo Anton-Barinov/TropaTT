@@ -53,6 +53,15 @@
         <div class="table-responsive">
           <table class="table crm-table align-middle mb-0"><thead><tr><th><?= htmlspecialchars($t('knowledge.field_title', 'Название'), ENT_QUOTES, 'UTF-8') ?></th><th><?= htmlspecialchars($t('knowledge.visibility', 'Видимость'), ENT_QUOTES, 'UTF-8') ?></th><th><?= htmlspecialchars($t('knowledge.stat_pages', 'Страниц'), ENT_QUOTES, 'UTF-8') ?></th><th><?= htmlspecialchars($t('admin_knowledge.th_permissions', 'Доступ'), ENT_QUOTES, 'UTF-8') ?></th><th></th></tr></thead><tbody id="adminKnowledgeSpaces"><tr><td colspan="5" class="text-muted"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></td></tr></tbody></table>
         </div>
+        <div class="crm-section-head mt-4" id="adminKnowledgeTrashBlock">
+          <div>
+            <h3 class="h6 mb-0"><i class="fa-solid fa-trash-can me-1" aria-hidden="true"></i><?= htmlspecialchars($t('admin_knowledge.trash_title', 'Корзина'), ENT_QUOTES, 'UTF-8') ?> <span class="crm-badge crm-badge-secondary" id="adminKnowledgeTrashCount">0</span></h3>
+            <p class="text-muted mb-0 small"><?= htmlspecialchars($t('admin_knowledge.trash_hint', 'Удалённые разделы можно восстановить.'), ENT_QUOTES, 'UTF-8') ?></p>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table crm-table align-middle mb-0"><tbody id="adminKnowledgeTrash"><tr><td class="text-muted"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></td></tr></tbody></table>
+        </div>
       </section>
     </div>
     <div class="tab-pane fade" id="kb-panel-templates" role="tabpanel" aria-labelledby="kb-tab-templates">
@@ -282,12 +291,28 @@
   </form></div>
 </div>
 
+<div class="modal fade" id="adminKnowledgeTrashSpaceModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title"><?= htmlspecialchars($t('admin_knowledge.trash_space_title', 'Переместить раздел в корзину'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('common.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>"></button></div>
+    <div class="modal-body">
+      <input type="hidden" id="adminKnowledgeTrashSpaceId">
+      <p class="mb-2"><?= htmlspecialchars($t('admin_knowledge.trash_space_confirm', 'Переместить раздел в корзину?'), ENT_QUOTES, 'UTF-8') ?> <strong id="adminKnowledgeTrashSpaceTitle"></strong></p>
+      <p class="text-muted small" id="adminKnowledgeTrashSpaceSummary"></p>
+      <p class="text-muted small mb-0"><?= htmlspecialchars($t('admin_knowledge.trash_space_hint', 'Раздел и его содержимое скроются, но их можно будет восстановить.'), ENT_QUOTES, 'UTF-8') ?></p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal"><?= htmlspecialchars($t('common.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button type="button" class="btn crm-btn-danger-soft" id="adminKnowledgeTrashSpaceSubmit"><?= htmlspecialchars($t('admin_knowledge.trash_space_submit', 'В корзину'), ENT_QUOTES, 'UTF-8') ?></button>
+    </div>
+  </div></div>
+</div>
+
 <div class="modal fade" id="adminKnowledgeDeleteSpaceModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
-    <div class="modal-header"><h5 class="modal-title"><?= htmlspecialchars($t('admin_knowledge.delete_space_title', 'Удалить раздел'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('common.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>"></button></div>
+    <div class="modal-header"><h5 class="modal-title"><?= htmlspecialchars($t('admin_knowledge.purge_space_title', 'Удалить раздел навсегда'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('common.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>"></button></div>
     <div class="modal-body">
       <input type="hidden" id="adminKnowledgeDeleteSpaceId">
-      <p class="mb-2"><?= htmlspecialchars($t('admin_knowledge.delete_space_confirm', 'Удалить раздел безвозвратно?'), ENT_QUOTES, 'UTF-8') ?> <strong id="adminKnowledgeDeleteSpaceTitle"></strong></p>
+      <p class="mb-2"><?= htmlspecialchars($t('admin_knowledge.purge_space_confirm', 'Удалить раздел безвозвратно?'), ENT_QUOTES, 'UTF-8') ?> <strong id="adminKnowledgeDeleteSpaceTitle"></strong></p>
       <p class="text-muted small" id="adminKnowledgeDeleteSummary"></p>
       <div class="form-check mb-2">
         <input class="form-check-input" type="radio" name="adminKnowledgeDeleteMode" id="adminKnowledgeDeleteModeMove" value="move" checked>
@@ -305,7 +330,7 @@
     </div>
     <div class="modal-footer">
       <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal"><?= htmlspecialchars($t('common.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
-      <button type="button" class="btn crm-btn-danger" id="adminKnowledgeDeleteSubmit"><?= htmlspecialchars($t('admin_knowledge.btn_delete_space', 'Удалить'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button type="button" class="btn crm-btn-danger" id="adminKnowledgeDeleteSubmit"><?= htmlspecialchars($t('admin_knowledge.btn_purge_space', 'Удалить навсегда'), ENT_QUOTES, 'UTF-8') ?></button>
     </div>
   </div></div>
 </div>
@@ -357,6 +382,8 @@
   }
   var adminSpaces = {};
   var adminSpaceList = [];
+  var adminTrashed = {};
+  var adminTrashedList = [];
   var adminSpaceCanManage = !window.CRM || !window.CRM.api || typeof window.CRM.api.hasPermission !== 'function' || window.CRM.api.hasPermission('knowledge.manage');
   async function load() {
     var overview = await request('api/v1/knowledge/overview', { method: 'GET' });
@@ -375,11 +402,12 @@
         : '<button class="btn btn-sm crm-btn-danger-soft" data-space-archive="' + esc(space.public_id) + '">' + esc(t('admin_knowledge.btn_archive_space', 'Архивировать')) + '</button>';
       var manageBtn = adminSpaceCanManage
         ? '<button class="btn btn-sm crm-btn-secondary" data-space-edit="' + esc(space.public_id) + '" aria-label="' + esc(t('admin_knowledge.btn_edit_space', 'Редактировать')) + '" title="' + esc(t('admin_knowledge.btn_edit_space', 'Редактировать')) + '"><i class="fa-solid fa-pen" aria-hidden="true"></i></button>'
-          + '<button class="btn btn-sm crm-btn-danger-soft" data-space-delete="' + esc(space.public_id) + '" aria-label="' + esc(t('admin_knowledge.btn_delete_space', 'Удалить')) + '" title="' + esc(t('admin_knowledge.btn_delete_space', 'Удалить')) + '"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>'
+          + '<button class="btn btn-sm crm-btn-danger-soft" data-space-trash="' + esc(space.public_id) + '" aria-label="' + esc(t('admin_knowledge.btn_trash_space', 'Удалить')) + '" title="' + esc(t('admin_knowledge.btn_trash_space', 'Удалить')) + '"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>'
         : '';
       var archLabel = arch ? '<span class="crm-badge crm-badge-light">' + esc(t('admin_knowledge.archived', 'Архив')) + '</span>' : '';
       return '<tr><td><strong>' + esc(space.title) + ' ' + archLabel + '</strong><div class="text-muted small">' + esc(space.description || '') + '</div></td><td>' + esc(space.visibility || '') + '</td><td>' + esc(space.pages_count || 0) + '</td><td><button class="btn btn-sm crm-btn-secondary" data-space-permissions="' + esc(space.public_id) + '" data-space-title="' + esc(space.title) + '">' + esc(t('admin_knowledge.btn_permissions', 'Доступ')) + '</button></td><td class="crm-table-actions"><div class="d-flex gap-1 justify-content-end">' + manageBtn + actionBtn + '</div></td></tr>';
     }).join('') || '<tr><td colspan="5" class="text-muted">' + esc(t('knowledge.empty_spaces', 'Разделов пока нет.')) + '</td></tr>';
+    await loadTrash();
     list(document.getElementById('adminKnowledgeReview'), data.review_queue || [], t('knowledge.empty_review', 'Нет страниц на проверке.'));
     list(document.getElementById('adminKnowledgeOutdated'), data.outdated || [], t('admin_knowledge.empty_outdated', 'Нет просроченных ревью.'));
     try {
@@ -520,12 +548,54 @@
       openSpaceEdit(editBtn.getAttribute('data-space-edit'));
       return;
     }
-    var deleteBtn = e.target.closest('[data-space-delete]');
-    if (deleteBtn) {
-      openSpaceDelete(deleteBtn.getAttribute('data-space-delete'));
+    var trashBtn = e.target.closest('[data-space-trash]');
+    if (trashBtn) {
+      openSpaceTrash(trashBtn.getAttribute('data-space-trash'));
+      return;
+    }
+    var purgeBtn = e.target.closest('[data-space-purge]');
+    if (purgeBtn) {
+      openSpacePurge(purgeBtn.getAttribute('data-space-purge'));
+      return;
+    }
+    var binRestoreBtn = e.target.closest('[data-space-restore-deleted]');
+    if (binRestoreBtn) {
+      var restoreId = binRestoreBtn.getAttribute('data-space-restore-deleted');
+      binRestoreBtn.disabled = true;
+      request('api/v1/knowledge/spaces/' + encodeURIComponent(restoreId) + '/restore-deleted', { method: 'POST', idempotent: true })
+        .then(load)
+        .catch(function () { window.alert(t('admin_knowledge.trash_restore_error', 'Не удалось восстановить раздел.')); })
+        .then(function () { binRestoreBtn.disabled = false; });
       return;
     }
   });
+
+  async function loadTrash() {
+    var target = document.getElementById('adminKnowledgeTrash');
+    if (!target) return;
+    try {
+      var envelope = await request('api/v1/knowledge/trash', { method: 'GET' });
+      adminTrashedList = (envelope.data && envelope.data.items) || [];
+      adminTrashed = {};
+      adminTrashedList.forEach(function (space) { adminTrashed[space.public_id] = space; });
+      document.getElementById('adminKnowledgeTrashCount').textContent = String(adminTrashedList.length);
+      target.innerHTML = adminTrashedList.map(function (space) {
+        var deletedAt = space.deleted_at ? String(space.deleted_at).substring(0, 10) : '';
+        var actions = adminSpaceCanManage
+          ? '<div class="d-flex gap-1 justify-content-end">'
+            + '<button class="btn btn-sm crm-btn-secondary" data-space-restore-deleted="' + esc(space.public_id) + '">' + esc(t('admin_knowledge.trash_restore', 'Восстановить')) + '</button>'
+            + '<button class="btn btn-sm crm-btn-danger-soft" data-space-purge="' + esc(space.public_id) + '">' + esc(t('admin_knowledge.trash_purge', 'Удалить навсегда')) + '</button>'
+            + '</div>'
+          : '';
+        return '<tr><td><strong>' + esc(space.title) + '</strong><div class="text-muted small">' + esc(space.description || '') + '</div></td>'
+          + '<td class="text-muted small">' + esc(deletedAt) + '</td>'
+          + '<td>' + esc(space.pages_count || 0) + '</td>'
+          + '<td class="crm-table-actions">' + actions + '</td></tr>';
+      }).join('') || '<tr><td class="text-muted">' + esc(t('admin_knowledge.trash_empty', 'Корзина пуста.')) + '</td></tr>';
+    } catch (e) {
+      target.innerHTML = '<tr><td class="text-muted">' + esc(t('knowledge.load_error', 'Не удалось загрузить базу знаний.')) + '</td></tr>';
+    }
+  }
 
   function openSpaceEdit(spaceId) {
     var space = adminSpaces[spaceId];
@@ -540,13 +610,23 @@
     modal && modal.show();
   }
 
-  function openSpaceDelete(spaceId) {
+  function openSpaceTrash(spaceId) {
     var space = adminSpaces[spaceId];
+    if (!space) return;
+    document.getElementById('adminKnowledgeTrashSpaceId').value = spaceId;
+    document.getElementById('adminKnowledgeTrashSpaceTitle').textContent = space.title || '';
+    document.getElementById('adminKnowledgeTrashSpaceSummary').textContent = t('admin_knowledge.delete_summary', 'Страниц в разделе: ') + String(space.pages_count || 0);
+    var modal = window.bootstrap && bootstrap.Modal.getOrCreateInstance(document.getElementById('adminKnowledgeTrashSpaceModal'));
+    modal && modal.show();
+  }
+
+  function openSpacePurge(spaceId) {
+    var space = adminTrashed[spaceId] || adminSpaces[spaceId];
     if (!space) return;
     document.getElementById('adminKnowledgeDeleteSpaceId').value = spaceId;
     document.getElementById('adminKnowledgeDeleteSpaceTitle').textContent = space.title || '';
     document.getElementById('adminKnowledgeDeleteSummary').textContent = t('admin_knowledge.delete_summary', 'Страниц в разделе: ') + String(space.pages_count || 0);
-    var targets = adminSpaceList.filter(function (item) { return item.public_id !== spaceId && !item.is_archived; });
+    var targets = adminSpaceList.filter(function (item) { return item.public_id !== spaceId && !item.is_archived && !item.deleted_at; });
     var select = document.getElementById('adminKnowledgeDeleteTarget');
     select.innerHTML = targets.map(function (item) { return '<option value="' + esc(item.public_id) + '">' + esc(item.title) + '</option>'; }).join('');
     var moveRadio = document.getElementById('adminKnowledgeDeleteModeMove');
@@ -584,20 +664,34 @@
     btn.disabled = false;
   });
 
+  document.getElementById('adminKnowledgeTrashSpaceSubmit').addEventListener('click', async function () {
+    var spaceId = document.getElementById('adminKnowledgeTrashSpaceId').value;
+    var btn = this;
+    btn.disabled = true;
+    try {
+      await request('api/v1/knowledge/spaces/' + encodeURIComponent(spaceId) + '/delete', { method: 'POST', idempotent: true });
+      window.bootstrap && bootstrap.Modal.getOrCreateInstance(document.getElementById('adminKnowledgeTrashSpaceModal')).hide();
+      await load();
+    } catch (e) {
+      window.alert(t('admin_knowledge.delete_error', 'Не удалось удалить раздел.'));
+    }
+    btn.disabled = false;
+  });
+
   document.getElementById('adminKnowledgeDeleteSubmit').addEventListener('click', async function () {
     var spaceId = document.getElementById('adminKnowledgeDeleteSpaceId').value;
-    var purge = document.getElementById('adminKnowledgeDeleteModePurge').checked;
-    var body = purge
+    var cascade = document.getElementById('adminKnowledgeDeleteModePurge').checked;
+    var body = cascade
       ? { cascade: true }
       : { reassign_space_public_id: document.getElementById('adminKnowledgeDeleteTarget').value, reassign_parent_public_id: '' };
-    if (!purge && !body.reassign_space_public_id) {
+    if (!cascade && !body.reassign_space_public_id) {
       window.alert(t('admin_knowledge.delete_select_target', 'Выберите раздел, в который перенести страницы.'));
       return;
     }
     var btn = this;
     btn.disabled = true;
     try {
-      await request('api/v1/knowledge/spaces/' + encodeURIComponent(spaceId) + '/delete', { method: 'POST', body: body, idempotent: true });
+      await request('api/v1/knowledge/spaces/' + encodeURIComponent(spaceId) + '/purge', { method: 'POST', body: body, idempotent: true });
       window.bootstrap && bootstrap.Modal.getOrCreateInstance(document.getElementById('adminKnowledgeDeleteSpaceModal')).hide();
       await load();
     } catch (e) {

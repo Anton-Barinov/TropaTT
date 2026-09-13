@@ -216,15 +216,59 @@ final class KnowledgeController extends BaseController
     }
 
     /**
-     * Permanently delete a knowledge space (issue #18).
+     * Move a knowledge space to the recycle bin (issue #18).
      *
-     * Contents are never dropped silently: the caller must pass either
-     * `reassign_space_public_id` / `reassign_parent_public_id` (move them) or
-     * `cascade=true` (delete the whole sub-tree) when the space is not empty.
+     * Removing a section is reversible: the section and its whole sub-tree are
+     * hidden and can be restored. Permanent removal uses purgeSpace().
      */
     public function deleteSpace(array $params): JsonResponse
     {
-        $result = $this->repo()->deleteSpace((string)$params['public_id'], $this->request()->allInput(), $this->actor());
+        $result = $this->repo()->trashSpace((string)$params['public_id'], $this->actor());
+        if ($result === 'SYSTEM_SPACE') {
+            return $this->error('KNOWLEDGE_SPACE_SYSTEM', $this->t('knowledge/messages.space_system_locked', 'A system knowledge space cannot be deleted'), 422);
+        }
+        if (!$result) {
+            return $this->error('KNOWLEDGE_SPACE_NOT_FOUND', $this->t('knowledge/messages.space_not_found', 'Knowledge space not found'), 404);
+        }
+        $this->invalidateCache('knowledge');
+        $this->auditLog('knowledge_space', (string)$params['public_id'], 'space_trashed', $result);
+        return $this->success('KNOWLEDGE_SPACE_TRASHED', $this->t('knowledge/messages.space_trashed', 'Knowledge space moved to the recycle bin'), [
+            'result' => $result,
+        ]);
+    }
+
+    /** Restore a section (and its sub-tree) from the recycle bin. */
+    public function restoreDeletedSpace(array $params): JsonResponse
+    {
+        $result = $this->repo()->restoreTrashedSpace((string)$params['public_id'], $this->actor());
+        if (!$result) {
+            return $this->error('KNOWLEDGE_SPACE_NOT_FOUND', $this->t('knowledge/messages.space_not_found', 'Knowledge space not found'), 404);
+        }
+        $this->invalidateCache('knowledge');
+        $this->auditLog('knowledge_space', (string)$params['public_id'], 'space_restored_from_trash', $result);
+        return $this->success('KNOWLEDGE_SPACE_TRASH_RESTORED', $this->t('knowledge/messages.space_trash_restored', 'Knowledge space restored from the recycle bin'), [
+            'result' => $result,
+        ]);
+    }
+
+    /** Recycle bin contents. */
+    public function trashedSpaces(): JsonResponse
+    {
+        $items = $this->repo()->trashedSpaces($this->request()->allInput(), $this->actor());
+        return $this->success('KNOWLEDGE_TRASH_SPACES', $this->t('knowledge/messages.trash_spaces', 'Recycle bin sections loaded'), [
+            'items' => $items,
+        ], meta: ['count' => count($items)]);
+    }
+
+    /**
+     * Permanently remove a section. Contents are never dropped silently: the
+     * caller must pass either `reassign_space_public_id` / `reassign_parent_public_id`
+     * (move them) or `cascade=true` (delete the whole sub-tree) when the section
+     * is not empty.
+     */
+    public function purgeSpace(array $params): JsonResponse
+    {
+        $result = $this->repo()->purgeSpace((string)$params['public_id'], $this->request()->allInput(), $this->actor());
         if ($result === 'SYSTEM_SPACE') {
             return $this->error('KNOWLEDGE_SPACE_SYSTEM', $this->t('knowledge/messages.space_system_locked', 'A system knowledge space cannot be deleted'), 422);
         }
@@ -238,8 +282,8 @@ final class KnowledgeController extends BaseController
             return $this->error('KNOWLEDGE_SPACE_NOT_FOUND', $this->t('knowledge/messages.space_not_found', 'Knowledge space not found'), 404);
         }
         $this->invalidateCache('knowledge');
-        $this->auditLog('knowledge_space', (string)$params['public_id'], 'space_deleted', $result);
-        return $this->success('KNOWLEDGE_SPACE_DELETED', $this->t('knowledge/messages.space_deleted', 'Knowledge space deleted'), [
+        $this->auditLog('knowledge_space', (string)$params['public_id'], 'space_purged', $result);
+        return $this->success('KNOWLEDGE_SPACE_PURGED', $this->t('knowledge/messages.space_purged', 'Knowledge space permanently deleted'), [
             'result' => $result,
         ]);
     }
