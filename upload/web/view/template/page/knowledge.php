@@ -87,6 +87,7 @@
               <span class="fw-semibold small"><i class="fa-solid fa-trash-can me-1" aria-hidden="true"></i><?= htmlspecialchars($t('knowledge.trash_title', 'Корзина'), ENT_QUOTES, 'UTF-8') ?> <span class="crm-badge crm-badge-secondary" id="kbTrashCount">0</span></span>
               <button type="button" class="btn btn-sm crm-btn-secondary" id="kbTrashClose" aria-label="<?= htmlspecialchars($t('common.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
             </div>
+            <div class="text-muted small mb-2" id="kbTrashSchedule"></div>
             <div id="kbTrashItems" class="kb-trash-items"></div>
           </div>
         </div>
@@ -832,12 +833,29 @@
     try {
       var r = await req('api/v1/knowledge/trash', {method:'GET'});
       trashedSpaces = r.data && r.data.items || [];
+      var retentionDays = Number((r.data && r.data.retention_days) || 0);
       var badge = document.getElementById('kbTrashBadge');
       if(badge){
         badge.textContent = String(trashedSpaces.length);
         badge.classList.toggle('d-none', trashedSpaces.length === 0);
       }
       document.getElementById('kbTrashCount').textContent = String(trashedSpaces.length);
+
+      var scheduleEl = document.getElementById('kbTrashSchedule');
+      if(scheduleEl){
+        if(trashedSpaces.length === 0){
+          scheduleEl.textContent = _t('knowledge.trash_schedule_empty','Корзина пуста.');
+        } else if(retentionDays <= 0){
+          scheduleEl.textContent = _t('knowledge.trash_schedule_forever','Автоудаление отключено — разделы хранятся бессрочно.');
+        } else {
+          var soonest = null;
+          trashedSpaces.forEach(function(x){ if(x.purge_at && (!soonest || x.purge_at < soonest)){ soonest = x.purge_at; } });
+          scheduleEl.textContent = _t('knowledge.trash_schedule','В корзине: %d. Ближайшее автоудаление: %s.')
+            .replace('%d', String(trashedSpaces.length))
+            .replace('%s', soonest ? String(soonest).substring(0,10) : '—');
+        }
+      }
+
       list.innerHTML = trashedSpaces.map(function(s){
         var actions = canManageSpaces()
           ? '<div class="d-flex gap-1">'
@@ -845,8 +863,17 @@
             + '<button type="button" class="btn btn-sm crm-btn-danger-soft" data-space-purge="'+esc(s.public_id)+'">'+esc(_t('knowledge.trash_purge','Удалить навсегда'))+'</button>'
             + '</div>'
           : '';
+        var sched = '';
+        if(retentionDays <= 0){
+          sched = _t('knowledge.trash_keep_forever','хранится бессрочно');
+        } else if(s.purge_at){
+          sched = (Number(s.days_left) === 0
+            ? _t('knowledge.trash_purge_today','удалится сегодня')
+            : _t('knowledge.trash_purge_in_days','удалится через %d дн.').replace('%d', String(s.days_left)))
+            + ' (' + String(s.purge_at).substring(0,10) + ')';
+        }
         return '<div class="kb-trash-item"><div class="min-w-0"><div class="text-truncate">'+esc(s.title)+'</div>'
-          + '<div class="text-muted small">'+esc(s.pages_count||0)+' ' + esc(_t('knowledge.stat_pages','страниц')) + '</div></div>'+actions+'</div>';
+          + '<div class="text-muted small">'+esc(s.pages_count||0)+' ' + esc(_t('knowledge.stat_pages','страниц')) + (sched ? ' · ' + esc(sched) : '') + '</div></div>'+actions+'</div>';
       }).join('') || '<div class="text-muted small p-2">'+esc(_t('knowledge.trash_empty','Корзина пуста'))+'</div>';
     } catch(err){ list.innerHTML = '<div class="text-muted small p-2">'+esc(_t('knowledge.error_loading','Ошибка загрузки'))+'</div>'; }
   }
