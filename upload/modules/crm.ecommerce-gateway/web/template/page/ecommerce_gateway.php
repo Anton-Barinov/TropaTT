@@ -313,7 +313,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label" for="modalWebhookUrl"><?= htmlspecialchars($t('ecommerce_gateway.modal_webhook_url', 'Webhook URL витрины (для синхронизации статусов)'), ENT_QUOTES, 'UTF-8') ?></label>
-                            <input type="url" class="form-control" id="modalWebhookUrl" placeholder="https://shop.example.com/index.php?route=extension/tropatt/webhook">
+                            <input type="url" class="form-control" id="modalWebhookUrl" placeholder="https://shop.example.com/api/tropatt/webhook">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label" for="modalStoreStatus"><?= htmlspecialchars($t('ecommerce_gateway.modal_status', 'Статус активности'), ENT_QUOTES, 'UTF-8') ?></label>
