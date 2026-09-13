@@ -131,4 +131,5 @@ return [
     'page_unlocked' => '页面已解锁',
     'validation_failed' => '验证失败。请查看服务器日志了解详情。',
     'link_not_found' => '知识库链接未找到',
+    'trash_purged' => '回收站栏目已清除',
 ];

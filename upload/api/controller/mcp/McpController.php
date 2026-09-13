@@ -3189,7 +3189,7 @@ $tools[] = $this->tool(
             [
                 'action' => ['type' => 'string', 'enum' => [
                     'overview', 'search', 'analytics', 'suggest', 'entity_pages',
-                    'list_spaces', 'get_space', 'create_space', 'update_space', 'archive_space', 'restore_space', 'delete_space', 'restore_deleted_space', 'purge_space', 'list_trashed_spaces',
+                    'list_spaces', 'get_space', 'create_space', 'update_space', 'archive_space', 'restore_space', 'delete_space', 'restore_deleted_space', 'purge_space', 'list_trashed_spaces', 'purge_expired_trash',
                     'get_space_permissions', 'add_space_permission', 'remove_space_permission',
                     'list_pages', 'get_page', 'create_page', 'update_page', 'archive_page', 'restore_page',
                     'move_page', 'duplicate_page', 'publish_page', 'lock_page', 'unlock_page',
@@ -3218,6 +3218,7 @@ $tools[] = $this->tool(
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
                 'access_level' => ['type' => 'string', 'description' => 'Access level (view/edit/manage).'],
                 'cascade' => ['type' => 'boolean', 'description' => 'With delete_space: delete the space together with its pages and sub-sections.'],
+                'retention_days' => ['type' => 'integer', 'minimum' => 0, 'description' => 'With purge_expired_trash: override the recycle-bin retention window (days) for this call. 0 disables the sweep (keep sections forever).'],
                 'change_note' => ['type' => 'string', 'description' => 'Note for the restored version.'],
                 'change_summary' => ['type' => 'string', 'description' => 'Short summary of the change.'],
                 'color' => ['type' => 'string', 'description' => 'Colour token or hex value.'],
@@ -4797,6 +4798,7 @@ $tools[] = $this->tool(
             'restore_deleted_space' => $this->crmRestoreDeletedKnowledgeSpace($args),
             'purge_space' => $this->crmPurgeKnowledgeSpace($args),
             'list_trashed_spaces' => $this->crmListTrashedKnowledgeSpaces($args),
+            'purge_expired_trash' => $this->crmPurgeExpiredKnowledgeTrash($args),
             'get_space_permissions' => $this->crmGetKnowledgeSpacePermissions($args),
             'add_space_permission' => $this->crmAddKnowledgeSpacePermission($args),
             'remove_space_permission' => $this->crmRemoveKnowledgeSpacePermission($args),
@@ -10239,6 +10241,21 @@ $tools[] = $this->tool(
     private function crmListTrashedKnowledgeSpaces(array $arguments): array
     {
         return ['items' => $this->publicData($this->knowledge()->trashedSpaces($this->filters($arguments, 50, 200), $this->actor()))];
+    }
+
+    /**
+     * Runs the scheduled recycle-bin sweep on demand (same code path as the
+     * `knowledge.trash.purge` cron job). `retention_days` overrides the configured
+     * window for this single call, which is handy for an immediate clean-up.
+     */
+    private function crmPurgeExpiredKnowledgeTrash(array $arguments): array
+    {
+        $retention = isset($arguments['retention_days']) && is_numeric($arguments['retention_days'])
+            ? (int)$arguments['retention_days']
+            : null;
+        $service = new \Api\System\Library\Service\KnowledgeCronService($this->pdo());
+
+        return $service->trashCleanup($retention);
     }
 
     private function crmListKnowledgeSpaces(array $arguments): array

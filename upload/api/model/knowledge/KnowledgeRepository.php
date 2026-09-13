@@ -34,6 +34,9 @@ final class KnowledgeRepository
     /** null = not probed yet; guards installs that have not run the trash migration. */
     private ?bool $spaceTrashSupported = null;
 
+    /** null = not probed yet; guards installs that predate the hierarchy migration. */
+    private ?bool $spaceParentSupported = null;
+
     public function __construct(private readonly PDO $pdo)
     {
     }
@@ -55,6 +58,24 @@ final class KnowledgeRepository
             $this->spaceTrashSupported = false;
         }
         return $this->spaceTrashSupported;
+    }
+
+    /**
+     * True when knowledge_spaces has the hierarchy column. Older schema revisions
+     * (before sections could nest) keep working without parent-aware queries.
+     */
+    private function spaceParentSupported(): bool
+    {
+        if ($this->spaceParentSupported !== null) {
+            return $this->spaceParentSupported;
+        }
+        try {
+            $this->pdo->query('SELECT parent_id FROM knowledge_spaces LIMIT 1');
+            $this->spaceParentSupported = true;
+        } catch (\Throwable $e) {
+            $this->spaceParentSupported = false;
+        }
+        return $this->spaceParentSupported;
     }
 
     public function overview(array $filters = [], ?array $actor = null): array
@@ -732,6 +753,70 @@ final class KnowledgeRepository
         }
         unset($space);
         return $spaces;
+    }
+
+    /**
+     * Permanently remove recycle-bin sections whose retention window has elapsed.
+     *
+     * Unattended system sweep: there is no operator to pick a reassignment target,
+     * so expired sections are purged together with their whole sub-tree (cascade).
+     * Only "root" trashed sections are selected — a trashed child whose parent is
+     * itself trashed is already covered by the parent's cascade.
+     *
+     * @param int $retentionDays How long a section may stay in the bin; <= 0 disables the sweep.
+     * @return array{enabled:bool,cutoff:?string,spaces_purged:int,pages_deleted:int,skipped:int}
+     */
+    public function purgeExpiredTrashedSpaces(int $retentionDays = 30, ?array $actor = null): array
+    {
+        $summary = [
+            'enabled' => $retentionDays > 0,
+            'cutoff' => null,
+            'spaces_purged' => 0,
+            'pages_deleted' => 0,
+            'skipped' => 0,
+        ];
+
+        if ($retentionDays <= 0 || !$this->spaceTrashSupported()) {
+            return $summary;
+        }
+
+        $cutoff = gmdate('Y-m-d H:i:s', time() - ($retentionDays * 86400));
+        $summary['cutoff'] = $cutoff;
+
+        $parentGuard = '';
+        if ($this->spaceParentSupported()) {
+            $parentGuard = 'AND (s.parent_id IS NULL OR s.parent_id = 0 OR NOT EXISTS ('
+                . 'SELECT 1 FROM knowledge_spaces parent WHERE parent.id = s.parent_id AND parent.deleted_at IS NOT NULL))';
+        }
+
+        $stmt = $this->pdo->prepare(
+            "SELECT s.public_id, s.is_system FROM knowledge_spaces s "
+            . "WHERE s.deleted_at IS NOT NULL AND s.deleted_at < :cutoff {$parentGuard} "
+            . 'ORDER BY s.deleted_at ASC, s.id ASC'
+        );
+        $stmt->execute(['cutoff' => $cutoff]);
+        $expired = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        // System sections can never be deleted, and a reminder sweep runs without
+        // a logged-in operator — use a synthetic root actor that bypasses the ACL.
+        $systemActor = $actor ?? ['is_root' => true];
+
+        foreach ($expired as $row) {
+            if (!empty($row['is_system'])) {
+                $summary['skipped']++;
+                continue;
+            }
+            $result = $this->purgeSpace((string)$row['public_id'], ['cascade' => true], $systemActor);
+            if (is_array($result)) {
+                $summary['spaces_purged'] += (int)($result['spaces_deleted'] ?? 0);
+                $summary['pages_deleted'] += (int)($result['pages_deleted'] ?? 0);
+            } else {
+                // Already removed by a parent's cascade, or no longer visible.
+                $summary['skipped']++;
+            }
+        }
+
+        return $summary;
     }
 
     /** Direct child space ids (one level below the given space). */

@@ -131,4 +131,5 @@ return array (
     'page_unlocked' => 'Página desbloqueada',
     'validation_failed' => 'Error de validación. Consulte los registros del servidor para más detalles.',
     'link_not_found' => 'Enlace de la base de conocimientos no encontrado',
+    'trash_purged' => 'Secciones de la papelera eliminadas',
 );

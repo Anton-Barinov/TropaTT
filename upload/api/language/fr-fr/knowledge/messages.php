@@ -131,4 +131,5 @@ return array (
     'page_unlocked' => 'Page déverrouillée',
     'validation_failed' => 'Échec de la validation. Consultez les journaux du serveur pour plus de détails.',
     'link_not_found' => 'Lien de la base de connaissances introuvable',
+    'trash_purged' => 'Sections de la corbeille supprimées',
 );

@@ -131,4 +131,5 @@ return array (
     'page_unlocked' => 'Seite entsperrt',
     'validation_failed' => 'Validierung fehlgeschlagen. Überprüfen Sie die Serverprotokolle.',
     'link_not_found' => 'Knowledge-Link nicht gefunden',
+    'trash_purged' => 'Papierkorb-Bereiche entfernt',
 );
