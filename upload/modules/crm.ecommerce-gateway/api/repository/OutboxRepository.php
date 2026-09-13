@@ -238,15 +238,17 @@ final class OutboxRepository
 
     public function markDelivering(int $id): bool
     {
+        $now = $this->now();
         $stmt = $this->pdo->prepare(
             'UPDATE ecommerce_outbox_events
-             SET status = "delivering", last_attempt_at = :now, updated_at = :now
+             SET status = "delivering", last_attempt_at = :last_attempt_at, updated_at = :updated_at
              WHERE id = :id AND status IN ("pending", "delivering")'
         );
 
         return $stmt->execute([
             'id' => $id,
-            'now' => $this->now(),
+            'last_attempt_at' => $now,
+            'updated_at' => $now,
         ]);
     }
 
@@ -273,11 +275,11 @@ final class OutboxRepository
         $stmt = $this->pdo->prepare(
             'UPDATE ecommerce_outbox_events
              SET status = "delivered",
-                 delivered_at = :now,
+                 delivered_at = :delivered_at,
                  last_http_code = :http_code,
                  last_response_body = :response_body,
                  last_error = NULL,
-                 updated_at = :now
+                 updated_at = :updated_at
              WHERE id = :id'
         );
 
@@ -285,7 +287,8 @@ final class OutboxRepository
             'id' => $id,
             'http_code' => $httpCode,
             'response_body' => $responseBody !== null ? mb_substr($responseBody, 0, 4000) : null,
-            'now' => $now,
+            'delivered_at' => $now,
+            'updated_at' => $now,
         ]);
     }
 
@@ -338,7 +341,7 @@ final class OutboxRepository
     {
         $now = $this->now();
         $conditions = ['status IN ("failed", "dead")'];
-        $params = ['now' => $now];
+        $params = ['next_attempt_at' => $now, 'updated_at' => $now];
 
         if ($storeId > 0) {
             $conditions[] = 'store_id = :store_id';
@@ -351,7 +354,7 @@ final class OutboxRepository
         }
 
         $sql = 'UPDATE ecommerce_outbox_events
-                SET status = "pending", attempts = 0, next_attempt_at = :now, updated_at = :now
+                SET status = "pending", attempts = 0, next_attempt_at = :next_attempt_at, updated_at = :updated_at
                 WHERE ' . implode(' AND ', $conditions);
 
         $stmt = $this->pdo->prepare($sql);
@@ -431,10 +434,10 @@ final class OutboxRepository
         if ($taskId > 0 || $taskPublicId !== '') {
             $stmt = $this->pdo->prepare(
                 'SELECT store_id, external_order_id FROM ecommerce_outbox_events
-                 WHERE (crm_task_id = :task_id OR (:public_id != "" AND crm_task_public_id = :public_id))
+                 WHERE (crm_task_id = :task_id OR (:has_public_id != "" AND crm_task_public_id = :public_id))
                  ORDER BY id DESC LIMIT 1'
             );
-            $stmt->execute(['task_id' => $taskId, 'public_id' => $taskPublicId]);
+            $stmt->execute(['task_id' => $taskId, 'has_public_id' => $taskPublicId, 'public_id' => $taskPublicId]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             if (is_array($row) && !empty($row['store_id']) && !empty($row['external_order_id'])) {
                 return ['store_id' => (int)$row['store_id'], 'external_order_id' => (string)$row['external_order_id']];

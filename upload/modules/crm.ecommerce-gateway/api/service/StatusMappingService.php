@@ -28,13 +28,14 @@ final class StatusMappingService
             'SELECT external_status FROM ecommerce_status_mappings
              WHERE store_id = :store_id AND (entity_scope = :scope OR entity_scope = "all")
                AND (crm_status_code = :raw_code OR crm_status_code = :norm_code)
-             ORDER BY CASE WHEN crm_status_code = :raw_code THEN 0 ELSE 1 END ASC
+             ORDER BY CASE WHEN crm_status_code = :raw_code_order THEN 0 ELSE 1 END ASC
              LIMIT 1'
         );
         $stmt->execute([
             'store_id' => $storeId,
             'scope' => $scope,
             'raw_code' => $crmStatus,
+            'raw_code_order' => $crmStatus,
             'norm_code' => $normalized,
         ]);
 
@@ -80,12 +81,13 @@ final class StatusMappingService
         $stmt = $this->pdo->prepare(
             'SELECT public_id, store_id, entity_scope, external_status, crm_status_code
              FROM ecommerce_status_mappings
-             WHERE store_id = :store_id AND (entity_scope = :scope OR :scope = "all")
+             WHERE store_id = :store_id AND (entity_scope = :scope OR :scope_check = "all")
              ORDER BY id ASC'
         );
         $stmt->execute([
             'store_id' => $storeId,
             'scope' => $scope,
+            'scope_check' => $scope,
         ]);
 
         /** @var list<array{public_id: string, store_id: int, entity_scope: string, external_status: string, crm_status_code: string}> */
