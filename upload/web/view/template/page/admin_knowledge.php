@@ -57,6 +57,7 @@
           <div>
             <h3 class="h6 mb-0"><i class="fa-solid fa-trash-can me-1" aria-hidden="true"></i><?= htmlspecialchars($t('admin_knowledge.trash_title', 'Корзина'), ENT_QUOTES, 'UTF-8') ?> <span class="crm-badge crm-badge-secondary" id="adminKnowledgeTrashCount">0</span></h3>
             <p class="text-muted mb-0 small"><?= htmlspecialchars($t('admin_knowledge.trash_hint', 'Удалённые разделы можно восстановить.'), ENT_QUOTES, 'UTF-8') ?></p>
+            <p class="text-muted mb-0 small fw-semibold" id="adminKnowledgeTrashSchedule"></p>
           </div>
         </div>
         <div class="table-responsive">
@@ -589,11 +590,40 @@
     try {
       var envelope = await request('api/v1/knowledge/trash', { method: 'GET' });
       adminTrashedList = (envelope.data && envelope.data.items) || [];
+      var retentionDays = Number((envelope.data && envelope.data.retention_days) || 0);
       adminTrashed = {};
       adminTrashedList.forEach(function (space) { adminTrashed[space.public_id] = space; });
       document.getElementById('adminKnowledgeTrashCount').textContent = String(adminTrashedList.length);
+
+      var scheduleEl = document.getElementById('adminKnowledgeTrashSchedule');
+      if (scheduleEl) {
+        if (adminTrashedList.length === 0) {
+          scheduleEl.textContent = t('admin_knowledge.trash_schedule_empty', 'Корзина пуста — удалять нечего.');
+        } else if (retentionDays <= 0) {
+          scheduleEl.textContent = t('admin_knowledge.trash_schedule_forever', 'Автоудаление отключено: разделы хранятся в корзине бессрочно.');
+        } else {
+          var soonest = null;
+          adminTrashedList.forEach(function (space) {
+            if (space.purge_at && (!soonest || space.purge_at < soonest)) { soonest = space.purge_at; }
+          });
+          scheduleEl.textContent = t('admin_knowledge.trash_schedule', 'В корзине разделов: %d. Срок хранения: %s дн. Ближайшее автоудаление: %s.')
+            .replace('%d', String(adminTrashedList.length))
+            .replace('%s', String(retentionDays))
+            .replace('%s', soonest ? String(soonest).substring(0, 10) : '—');
+        }
+      }
+
       target.innerHTML = adminTrashedList.map(function (space) {
         var deletedAt = space.deleted_at ? String(space.deleted_at).substring(0, 10) : '';
+        var schedule = '';
+        if (retentionDays <= 0) {
+          schedule = t('admin_knowledge.trash_keep_forever', 'Хранится бессрочно');
+        } else if (space.purge_at) {
+          schedule = (Number(space.days_left) === 0
+            ? t('admin_knowledge.trash_purge_today', 'удалится сегодня')
+            : t('admin_knowledge.trash_purge_in_days', 'удалится через %d дн.').replace('%d', String(space.days_left)))
+            + ' (' + String(space.purge_at).substring(0, 10) + ')';
+        }
         var actions = adminSpaceCanManage
           ? '<div class="d-flex gap-1 justify-content-end">'
             + '<button class="btn btn-sm crm-btn-secondary" data-space-restore-deleted="' + esc(space.public_id) + '">' + esc(t('admin_knowledge.trash_restore', 'Восстановить')) + '</button>'
@@ -601,7 +631,9 @@
             + '</div>'
           : '';
         return '<tr><td><strong>' + esc(space.title) + '</strong><div class="text-muted small">' + esc(space.description || '') + '</div></td>'
-          + '<td class="text-muted small">' + esc(deletedAt) + '</td>'
+          + '<td class="text-muted small">' + esc(deletedAt)
+            + (schedule ? '<div class="text-muted small"><i class="fa-regular fa-clock me-1" aria-hidden="true"></i>' + esc(schedule) + '</div>' : '')
+            + '</td>'
           + '<td>' + esc(space.pages_count || 0) + '</td>'
           + '<td class="crm-table-actions">' + actions + '</td></tr>';
       }).join('') || '<tr><td class="text-muted">' + esc(t('admin_knowledge.trash_empty', 'Корзина пуста.')) + '</td></tr>';

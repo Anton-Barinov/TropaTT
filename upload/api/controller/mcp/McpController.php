@@ -10240,7 +10240,16 @@ $tools[] = $this->tool(
 
     private function crmListTrashedKnowledgeSpaces(array $arguments): array
     {
-        return ['items' => $this->publicData($this->knowledge()->trashedSpaces($this->filters($arguments, 50, 200), $this->actor()))];
+        $retention = (new \Api\System\Library\Service\KnowledgeCronService($this->pdo()))->trashRetentionDays();
+        $scheduled = \Api\Model\Knowledge\KnowledgeRepository::withPurgeSchedule(
+            $this->knowledge()->trashedSpaces($this->filters($arguments, 50, 200), $this->actor()),
+            $retention
+        );
+
+        return [
+            'retention_days' => $scheduled['retention_days'],
+            'items' => $this->publicData($scheduled['items']),
+        ];
     }
 
     /**

@@ -251,12 +251,22 @@ final class KnowledgeController extends BaseController
         ]);
     }
 
-    /** Recycle bin contents. */
+    /**
+     * Recycle bin contents. Each row carries the automatic removal schedule
+     * (`purge_at` / `days_left`) derived from the configured retention window, so a
+     * client can show when the sweep will take the section for good.
+     */
     public function trashedSpaces(): JsonResponse
     {
-        $items = $this->repo()->trashedSpaces($this->request()->allInput(), $this->actor());
+        $retention = (new \Api\System\Library\Service\KnowledgeCronService($this->container->get('db.pdo')))->trashRetentionDays();
+        $scheduled = KnowledgeRepository::withPurgeSchedule(
+            $this->repo()->trashedSpaces($this->request()->allInput(), $this->actor()),
+            $retention
+        );
+        $items = $scheduled['items'];
         return $this->success('KNOWLEDGE_TRASH_SPACES', $this->t('knowledge/messages.trash_spaces', 'Recycle bin sections loaded'), [
             'items' => $items,
+            'retention_days' => $scheduled['retention_days'],
         ], meta: ['count' => count($items)]);
     }
 

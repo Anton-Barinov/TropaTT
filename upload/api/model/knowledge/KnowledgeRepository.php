@@ -756,6 +756,45 @@ final class KnowledgeRepository
     }
 
     /**
+     * Decorates recycle-bin rows with the automatic removal schedule for a retention
+     * window, so the UI can say when a section disappears on its own.
+     *
+     * A retention of 0 (or less) keeps sections forever: the rows come back without
+     * a schedule instead of pretending they expire.
+     *
+     * @param list<array<string,mixed>> $spaces rows from trashedSpaces()
+     * @param int $retentionDays window in days; <= 0 = kept forever
+     * @return array{retention_days:int,items:list<array<string,mixed>>}
+     */
+    public static function withPurgeSchedule(array $spaces, int $retentionDays, ?int $nowTs = null): array
+    {
+        $nowTs ??= time();
+        $items = [];
+
+        foreach ($spaces as $space) {
+            $space['purge_at'] = null;
+            $space['days_left'] = null;
+
+            $deletedAt = trim((string)($space['deleted_at'] ?? ''));
+            if ($retentionDays > 0 && $deletedAt !== '') {
+                $deletedTs = strtotime($deletedAt . ' UTC');
+                if ($deletedTs === false) {
+                    $deletedTs = strtotime($deletedAt);
+                }
+                if ($deletedTs !== false) {
+                    $purgeTs = $deletedTs + ($retentionDays * 86400);
+                    $space['purge_at'] = gmdate('Y-m-d H:i:s', $purgeTs);
+                    $space['days_left'] = max(0, (int)ceil(($purgeTs - $nowTs) / 86400));
+                }
+            }
+
+            $items[] = $space;
+        }
+
+        return ['retention_days' => $retentionDays, 'items' => $items];
+    }
+
+    /**
      * Permanently remove recycle-bin sections whose retention window has elapsed.
      *
      * Unattended system sweep: there is no operator to pick a reassignment target,
