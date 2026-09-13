@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\Model\Estimate;
 
 use Api\System\Library\Support\AppLog;
+use Api\System\Library\Support\TaskStatusSemantics;
 use PDO;
 
 final class TaskEstimateRepository
@@ -227,8 +228,8 @@ final class TaskEstimateRepository
                 COUNT(DISTINCT te.id) AS tasks_estimated,
                 COUNT(DISTINCT t.id) - COUNT(DISTINCT te.id) AS tasks_unestimated,
                 COALESCE(SUM(te.numeric_value), 0) AS total_value,
-                COALESCE(SUM(CASE WHEN t.status_code IN ('done','closed','cancelled') THEN te.numeric_value ELSE 0 END), 0) AS completed_value,
-                COALESCE(SUM(CASE WHEN t.status_code NOT IN ('done','closed','cancelled') THEN te.numeric_value ELSE 0 END), 0) AS open_value,
+                COALESCE(SUM(CASE WHEN t.status_code IN (" . $this->completedLiteralList() . ") THEN te.numeric_value ELSE 0 END), 0) AS completed_value,
+                COALESCE(SUM(CASE WHEN t.status_code NOT IN (" . $this->openLiteralList() . ") THEN te.numeric_value ELSE 0 END), 0) AS open_value,
                 COALESCE(AVG(te.numeric_value), 0) AS average_value
             FROM tasks t
             INNER JOIN estimate_sets es ON (es.scope_type = 'global' OR (es.scope_type = 'project' AND es.project_id = :project_id))
@@ -270,8 +271,8 @@ final class TaskEstimateRepository
                     COUNT(DISTINCT t.id) AS tasks_total,
                     COUNT(DISTINCT te.id) AS tasks_estimated,
                     COALESCE(SUM(te.numeric_value), 0) AS total_value,
-                    COALESCE(SUM(CASE WHEN t.status_code IN ('done','closed','cancelled') THEN te.numeric_value ELSE 0 END), 0) AS completed_value,
-                    COALESCE(SUM(CASE WHEN t.status_code NOT IN ('done','closed','cancelled') THEN te.numeric_value ELSE 0 END), 0) AS open_value
+                    COALESCE(SUM(CASE WHEN t.status_code IN (" . $this->completedLiteralList() . ") THEN te.numeric_value ELSE 0 END), 0) AS completed_value,
+                    COALESCE(SUM(CASE WHEN t.status_code NOT IN (" . $this->openLiteralList() . ") THEN te.numeric_value ELSE 0 END), 0) AS open_value
                 FROM cycle_tasks ct
                 INNER JOIN tasks t ON t.id = ct.task_id AND t.deleted_at IS NULL
                 INNER JOIN estimate_sets es ON (es.scope_type = 'global' OR (es.scope_type = 'project' AND es.project_id = t.project_id))
@@ -360,8 +361,8 @@ final class TaskEstimateRepository
                     COUNT(DISTINCT t.id) AS tasks_total,
                     COUNT(DISTINCT te.id) AS tasks_estimated,
                     COALESCE(SUM(te.numeric_value), 0) AS total_value,
-                    COALESCE(SUM(CASE WHEN t.status_code IN ('done','closed','cancelled') THEN te.numeric_value ELSE 0 END), 0) AS completed_value,
-                    COALESCE(SUM(CASE WHEN t.status_code NOT IN ('done','closed','cancelled') THEN te.numeric_value ELSE 0 END), 0) AS open_value
+                    COALESCE(SUM(CASE WHEN t.status_code IN (" . $this->completedLiteralList() . ") THEN te.numeric_value ELSE 0 END), 0) AS completed_value,
+                    COALESCE(SUM(CASE WHEN t.status_code NOT IN (" . $this->openLiteralList() . ") THEN te.numeric_value ELSE 0 END), 0) AS open_value
                 FROM project_module_tasks pmt
                 INNER JOIN tasks t ON t.id = pmt.task_id AND t.deleted_at IS NULL
                 INNER JOIN estimate_sets es ON (es.scope_type = 'global' OR (es.scope_type = 'project' AND es.project_id = t.project_id))
@@ -385,5 +386,15 @@ final class TaskEstimateRepository
             AppLog::error('[TaskEstimateRepository::summaryByModuleId] ' . $e->getMessage());
             return [];
         }
+    }
+
+    private function completedLiteralList(): string
+    {
+        return TaskStatusSemantics::literalList($this->db, TaskStatusSemantics::COMPLETED_CODES);
+    }
+
+    private function openLiteralList(): string
+    {
+        return TaskStatusSemantics::terminalLiteralList($this->db);
     }
 }

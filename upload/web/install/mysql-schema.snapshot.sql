@@ -2438,6 +2438,7 @@ CREATE TABLE IF NOT EXISTS `statuses` (
   `color` varchar(32),
   `sort_order` int(11),
   `is_active` int(11) DEFAULT 1,
+  `is_closed` int(11) NOT NULL DEFAULT 0,
   `created_at` datetime,
   `updated_at` datetime,
   `wip_limit` int(11) NOT NULL DEFAULT 0,

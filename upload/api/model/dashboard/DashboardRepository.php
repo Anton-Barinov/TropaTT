@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\Model\Dashboard;
 
 use Api\System\Library\Database\Builder\QueryBuilder;
+use Api\System\Library\Support\TaskStatusSemantics;
 use PDO;
 
 final class DashboardRepository
@@ -29,8 +30,10 @@ final class DashboardRepository
 
     private function countActiveTasks(int $userId, bool $isRoot, array $accessibleTeamPublicIds): int
     {
+        [$sql, $params] = TaskStatusSemantics::notTerminalSql($this->pdo, 't.status_code');
+
         return $this->buildVisibleTasksQuery($userId, $isRoot, $accessibleTeamPublicIds)
-            ->whereRaw('t.status_code NOT IN (?, ?)', ['done', 'archived'])
+            ->whereRaw($sql, $params)
             ->count();
     }
 
@@ -45,8 +48,10 @@ final class DashboardRepository
 
     private function countOverdueTasks(int $userId, bool $isRoot, string $todayStart, array $accessibleTeamPublicIds): int
     {
+        [$sql, $params] = TaskStatusSemantics::notTerminalSql($this->pdo, 't.status_code');
+
         return $this->buildVisibleTasksQuery($userId, $isRoot, $accessibleTeamPublicIds)
-            ->whereRaw('t.status_code NOT IN (?, ?)', ['done', 'archived'])
+            ->whereRaw($sql, $params)
             ->whereNotNull('t.due_at')
             ->where('t.due_at', '<', $todayStart)
             ->count();

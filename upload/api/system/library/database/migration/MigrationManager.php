@@ -83,6 +83,7 @@ final class MigrationManager
             new ApiKeyPreviewMigration(),
             new AgentMemoryMigration(),
             new KnowledgeSpacesTrashMigration(),
+            new TaskStatusClosureMigration(),
         ];
     }
 

@@ -6,6 +6,7 @@ namespace Api\Model\Project;
 use Api\System\Library\Database\Builder\Expression;
 use Api\System\Library\Database\Builder\QueryBuilder;
 use Api\System\Library\Sync\CursorCodec;
+use Api\System\Library\Support\TaskStatusSemantics;
 use PDO;
 
 final class ProjectRepository
@@ -232,7 +233,7 @@ final class ProjectRepository
      */
     public function countOpenTasksByProjectId(int $projectId, array $closedStatuses = []): int
     {
-        $closed = $closedStatuses !== [] ? $closedStatuses : ['done', 'completed', 'archived', 'cancelled', 'canceled'];
+        $closed = $closedStatuses !== [] ? $closedStatuses : TaskStatusSemantics::terminalCodes($this->pdo);
         $placeholders = implode(',', array_fill(0, count($closed), '?'));
         $params = array_merge([$projectId], array_values($closed));
         $stmt = $this->pdo->prepare(

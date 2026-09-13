@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\Model\Analytics;
 
 use Api\System\Library\Database\Builder\QueryBuilder;
+use Api\System\Library\Support\TaskStatusSemantics;
 use PDO;
 
 final class AnalyticsRepository
@@ -48,9 +49,9 @@ final class AnalyticsRepository
                 'p.public_id',
                 'p.title',
                 'SUM(CASE WHEN t.id IS NOT NULL AND t.deleted_at IS NULL AND t.archived_at IS NULL THEN 1 ELSE 0 END) AS total_tasks',
-                "SUM(CASE WHEN t.deleted_at IS NULL AND t.archived_at IS NULL AND t.status_code IN ('done','closed') THEN 1 ELSE 0 END) AS completed_tasks",
-                "SUM(CASE WHEN t.deleted_at IS NULL AND t.archived_at IS NULL AND t.status_code NOT IN ('done','closed','archived') AND t.due_at IS NOT NULL AND t.due_at < " . $this->pdo->quote($now) . " THEN 1 ELSE 0 END) AS overdue_tasks",
-                "SUM(CASE WHEN t.deleted_at IS NULL AND t.archived_at IS NULL AND t.status_code NOT IN ('done','closed','archived') THEN 1 ELSE 0 END) AS active_tasks",
+                "SUM(CASE WHEN t.deleted_at IS NULL AND t.archived_at IS NULL AND t.status_code IN (" . TaskStatusSemantics::completedLiteralList($this->pdo) . ") THEN 1 ELSE 0 END) AS completed_tasks",
+                "SUM(CASE WHEN t.deleted_at IS NULL AND t.archived_at IS NULL AND t.status_code NOT IN (" . TaskStatusSemantics::terminalLiteralList($this->pdo) . ") AND t.due_at IS NOT NULL AND t.due_at < " . $this->pdo->quote($now) . " THEN 1 ELSE 0 END) AS overdue_tasks",
+                "SUM(CASE WHEN t.deleted_at IS NULL AND t.archived_at IS NULL AND t.status_code NOT IN (" . TaskStatusSemantics::terminalLiteralList($this->pdo) . ") THEN 1 ELSE 0 END) AS active_tasks",
             ])
             ->groupBy(['p.id', 'p.public_id', 'p.title'])
             ->orderBy('total_tasks', 'DESC')
@@ -97,14 +98,14 @@ final class AnalyticsRepository
                       AND p.archived_at IS NULL
                       AND t.deleted_at IS NULL
                       AND t.archived_at IS NULL" . $workloadVisibility . "
-                      AND t.status_code NOT IN ('done','closed','archived')) AS assigned_active_tasks",
+                      AND t.status_code NOT IN (" . TaskStatusSemantics::terminalLiteralList($this->pdo) . ")) AS assigned_active_tasks",
                 "(SELECT COUNT(*) FROM tasks t
                     LEFT JOIN projects p ON p.id = t.project_id
                     WHERE t.assignee_user_id = u.id
                       AND p.archived_at IS NULL
                       AND t.deleted_at IS NULL
                       AND t.archived_at IS NULL" . $workloadVisibility . "
-                      AND t.status_code NOT IN ('done','closed','archived')
+                      AND t.status_code NOT IN (" . TaskStatusSemantics::terminalLiteralList($this->pdo) . ")
                       AND t.due_at IS NOT NULL
                       AND t.due_at < " . $this->pdo->quote($now) . ") AS assigned_overdue_tasks",
                 "(SELECT COALESCE(SUM(w.minutes_spent), 0) FROM work_logs w
@@ -145,19 +146,24 @@ final class AnalyticsRepository
 
     private function countCompletedTasks(int $actorUserId, bool $actorIsRoot, array $accessibleTeamPublicIds = []): int
     {
+        $placeholders = implode(', ', array_fill(0, count(TaskStatusSemantics::COMPLETED_CODES), '?'));
+
         return $this->buildVisibleTasksQuery($actorUserId, $actorIsRoot, $accessibleTeamPublicIds)
-            ->whereRaw('t.status_code IN (?, ?)', ['done', 'closed'])
+            ->whereRaw('t.status_code IN (' . $placeholders . ')', TaskStatusSemantics::COMPLETED_CODES)
             ->count();
     }
 
     private function countOverdueTasks(int $actorUserId, bool $actorIsRoot, string $now, array $accessibleTeamPublicIds = []): int
     {
+        [$sql, $params] = TaskStatusSemantics::notTerminalSql($this->pdo, 't.status_code');
+
         return $this->buildVisibleTasksQuery($actorUserId, $actorIsRoot, $accessibleTeamPublicIds)
-            ->whereRaw('t.status_code NOT IN (?, ?, ?)', ['done', 'closed', 'archived'])
+            ->whereRaw($sql, $params)
             ->whereNotNull('t.due_at')
             ->where('t.due_at', '<', $now)
             ->count();
     }
+
 
     private function sumWorklogMinutesWeek(int $actorUserId, bool $actorIsRoot, string $weekStart, string $weekEnd): int
     {

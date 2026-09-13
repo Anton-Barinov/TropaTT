@@ -6,10 +6,14 @@ namespace Api\Model\Project;
 use Api\System\Library\Database\Builder\QueryBuilder;
 use PDO;
 use Api\System\Library\Support\LikeEscaper;
+use Api\System\Library\Support\TaskStatusSemantics;
 
 final class ProjectModuleRepository
 {
     private const ALLOWED_SORT = ['sort_order', 'title', 'status', 'target_at', 'created_at', 'updated_at'];
+
+    /** Module progress treats an archived task as finished, but not a cancelled one. */
+    private const COMPLETED_OR_ARCHIVED = ['done', 'completed', 'closed', 'archived'];
 
     public function __construct(private readonly PDO $pdo)
     {
@@ -110,7 +114,7 @@ final class ProjectModuleRepository
                 ->where('pmt.module_id', '=', $moduleId)
                 ->whereNull('pmt.deleted_at')
                 ->whereNull('t.deleted_at')
-                ->whereRaw('t.status_code IN (?, ?, ?)', ['done', 'closed', 'archived'])
+                ->whereRaw(...$this->completedOrArchivedCondition())
                 ->count();
             $item['members_count'] = (int)(new QueryBuilder($this->pdo))
                 ->from('project_module_members')
@@ -169,7 +173,7 @@ final class ProjectModuleRepository
             ->where('pmt.module_id', '=', $moduleId)
             ->whereNull('pmt.deleted_at')
             ->whereNull('t.deleted_at')
-            ->whereRaw('t.status_code IN (?, ?, ?)', ['done', 'closed', 'archived'])
+            ->whereRaw(...$this->completedOrArchivedCondition())
             ->count();
 
         $row['members_count'] = (int)(new QueryBuilder($this->pdo))
@@ -261,5 +265,13 @@ final class ProjectModuleRepository
             ->first();
 
         return isset($row['id']) ? (int)$row['id'] : null;
+    }
+
+    /** @return array{0: string, 1: list<string>} */
+    private function completedOrArchivedCondition(): array
+    {
+        $placeholders = implode(', ', array_fill(0, count(self::COMPLETED_OR_ARCHIVED), '?'));
+
+        return ['t.status_code IN (' . $placeholders . ')', self::COMPLETED_OR_ARCHIVED];
     }
 }

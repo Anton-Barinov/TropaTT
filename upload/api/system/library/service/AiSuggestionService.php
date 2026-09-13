@@ -11,6 +11,7 @@ use Api\System\Library\Config;
 use Api\System\Library\Language\LanguageManager;
 use Api\System\Library\Language\TranslatableTrait;
 use Api\System\Library\Logger\JsonLogger;
+use Api\System\Library\Support\TaskStatusSemantics;
 use Throwable;
 
 final class AiSuggestionService
@@ -1848,7 +1849,7 @@ final class AiSuggestionService
                 continue;
             }
             $status = strtolower(trim((string)($task['status_code'] ?? '')));
-            if (in_array($status, ['done', 'completed', 'archived', 'cancelled'], true)) {
+            if (TaskStatusSemantics::isCanonicalTerminal($status)) {
                 continue;
             }
             $priority = strtolower(trim((string)($task['priority_code'] ?? 'normal')));
@@ -2043,7 +2044,7 @@ final class AiSuggestionService
                 continue;
             }
             $status = strtolower(trim((string)($task['status_code'] ?? '')));
-            if (in_array($status, ['done', 'completed', 'archived', 'cancelled'], true)) {
+            if (TaskStatusSemantics::isCanonicalTerminal($status)) {
                 continue;
             }
 
@@ -2240,7 +2241,7 @@ final class AiSuggestionService
                 }
             }
 
-            $statusPenalty = in_array($statusCode, ['done', 'completed', 'cancelled', 'archived'], true) ? -500 : 0;
+            $statusPenalty = TaskStatusSemantics::isCanonicalTerminal($statusCode) ? -500 : 0;
             $score = $priorityScore + $dueScore + $statusPenalty;
             $reasonParts = [];
             if (in_array($priorityCode, ['critical', 'urgent', 'high'], true)) {

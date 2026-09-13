@@ -21,6 +21,39 @@ window.CRM.pageApiBindings = (function () {
   var userDirectoryLoaded = false;
   var projectStatusTitleMap = {};
 
+  // Single source of truth for task status semantics on the client. Mirrors
+  // Api\System\Library\Support\TaskStatusSemantics: the `statuses` dictionary
+  // (is_closed) is authoritative for the codes it contains; legacy alias codes
+  // such as `completed` fall back to the canonical list. Pages that load the
+  // dictionary call registerStatusSemantics() so a custom terminal status is
+  // honoured in Kanban/Gantt filters too.
+  var STATUS_SEMANTICS_FALLBACK = ['done', 'completed', 'closed', 'canceled', 'cancelled', 'archived'];
+  var STATUS_SEMANTICS_COMPLETED = ['done', 'completed', 'closed'];
+  var statusSemanticsDict = null;
+
+  function registerStatusSemantics(statuses) {
+    var map = {};
+    (statuses || []).forEach(function (status) {
+      var code = String((status && status.code) || '').toLowerCase().trim();
+      if (!code) return;
+      map[code] = Number((status && status.is_closed) || 0) === 1;
+    });
+    statusSemanticsDict = map;
+  }
+
+  function statusIsTerminal(code) {
+    var key = String(code || '').toLowerCase().trim();
+    if (key === '') return false;
+    if (statusSemanticsDict && Object.prototype.hasOwnProperty.call(statusSemanticsDict, key)) {
+      return statusSemanticsDict[key] === true;
+    }
+    return STATUS_SEMANTICS_FALLBACK.indexOf(key) !== -1;
+  }
+
+  function statusIsCompleted(code) {
+    return STATUS_SEMANTICS_COMPLETED.indexOf(String(code || '').toLowerCase().trim()) !== -1;
+  }
+
   function routeName() {
     if (window.CRM.api && typeof window.CRM.api.currentRoute === 'function') {
       return window.CRM.api.currentRoute('dashboard');
@@ -4861,6 +4894,7 @@ window.CRM.pageApiBindings = (function () {
       var statusItems = mapItems(statusEnv).filter(function (status) {
         return !status.scope || String(status.scope) === 'task';
       });
+      registerStatusSemantics(statusItems);
       fillSelect(tasksStatusSelect, statusItems, 'code', function (status) {
         return status.title || status.code;
       });
@@ -14861,18 +14895,22 @@ window.CRM.pageApiBindings = (function () {
     function renderStatusRows(tbody, scopeItems, emptyText) {
       if (!tbody) return;
       if (!envelope.success) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-danger">' + safeText(tp('admin.statuses_load_fail_prefix', 'Failed to load statuses: ')) + safeText(envelope.message || envelope.code || 'UNKNOWN_ERROR') + '</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-danger">' + safeText(tp('admin.statuses_load_fail_prefix', 'Failed to load statuses: ')) + safeText(envelope.message || envelope.code || 'UNKNOWN_ERROR') + '</td></tr>';
       } else if (!scopeItems.length) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-muted">' + safeText(emptyText) + '</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-muted">' + safeText(emptyText) + '</td></tr>';
       } else {
         tbody.innerHTML = scopeItems.map(function (item) {
           var statusId = statusIdOf(item);
           var disabled = statusId ? '' : ' disabled';
           var badgeTextColor = contrastTextColor(item.color || '');
+          var closedBadge = Number(item.is_closed || 0) === 1
+            ? '<span class="crm-badge active">' + safeText(tp('admin.status_closed_yes', 'Yes')) + '</span>'
+            : '<span class="text-muted">' + safeText(tp('admin.status_closed_no', 'No')) + '</span>';
           return '<tr>'
             + '<td>' + safeText(item.title || item.code) + '<div class="small text-muted">' + safeText(item.code || '—') + '</div></td>'
             + '<td><span class="crm-badge ' + statusClass(item.code) + '" style="background:' + safeText(item.color || '') + ';color:' + safeText(badgeTextColor) + ';">' + safeText(item.title || item.code) + '</span></td>'
             + '<td>' + safeText(item.sort_order || 0) + '</td>'
+            + '<td>' + closedBadge + '</td>'
             + '<td><div class="d-flex gap-1"><button class="btn btn-sm crm-btn-secondary" data-status-edit="' + safeText(statusId) + '"' + disabled + '>' + safeText(tp('common.edit', 'Edit')) + '</button><button class="btn btn-sm crm-btn-danger" data-status-delete="' + safeText(statusId) + '"' + disabled + '>' + safeText(tp('common.delete', 'Delete')) + '</button></div></td>'
             + '</tr>';
         }).join('');
@@ -14963,7 +15001,8 @@ window.CRM.pageApiBindings = (function () {
           code: String((createForm.querySelector('[name="code"]') || {}).value || '').trim(),
           scope: String((createForm.querySelector('[name="scope"]') || {}).value || 'task').trim(),
           color: String((createForm.querySelector('[name="color"]') || {}).value || '#64748b').trim(),
-          sort_order: Number((createForm.querySelector('[name="sort_order"]') || {}).value || 100)
+          sort_order: Number((createForm.querySelector('[name="sort_order"]') || {}).value || 100),
+          is_closed: (createForm.querySelector('[name="is_closed"]') || {}).checked ? 1 : 0
         };
         if (!body.title || !body.code || !body.scope) {
           notify(tp('admin.status_required_fields', 'Fill required status fields'), 'warning');
@@ -15005,7 +15044,8 @@ window.CRM.pageApiBindings = (function () {
           code: String((editForm.querySelector('[name="code"]') || {}).value || '').trim(),
           scope: String((editForm.querySelector('[name="scope"]') || {}).value || 'task').trim(),
           color: String((editForm.querySelector('[name="color"]') || {}).value || '#64748b').trim(),
-          sort_order: Number((editForm.querySelector('[name="sort_order"]') || {}).value || 100)
+          sort_order: Number((editForm.querySelector('[name="sort_order"]') || {}).value || 100),
+          is_closed: (editForm.querySelector('[name="is_closed"]') || {}).checked ? 1 : 0
         };
         try {
           await updateStatus(statusId, body);
@@ -15059,6 +15099,8 @@ window.CRM.pageApiBindings = (function () {
         (editForm.querySelector('[name="scope"]') || {}).value = String(status.scope || 'task');
         (editForm.querySelector('[name="color"]') || {}).value = String(status.color || '#64748b');
         (editForm.querySelector('[name="sort_order"]') || {}).value = String(status.sort_order || 100);
+        var editClosed = editForm.querySelector('[name="is_closed"]');
+        if (editClosed) editClosed.checked = Number(status.is_closed || 0) === 1;
         refreshEditColor(String(status.color || '#64748b'));
         if (window.bootstrap) {
           var editModal = document.getElementById('statusEditModal');
@@ -19163,7 +19205,7 @@ window.CRM.pageApiBindings = (function () {
       due: end,
       kind: crmGanttStatusKind(task.status_code || task.status || 'new'),
       statusKind: crmGanttStatusKind(task.status_code || task.status || 'new'),
-      isOverdue: end < crmGanttStartOfDay(Date.now()) && !['done', 'completed', 'closed', 'archived'].includes(String(task.status_code || task.status || '').toLowerCase()),
+      isOverdue: end < crmGanttStartOfDay(Date.now()) && !statusIsTerminal(task.status_code || task.status),
       isBlocked: ['blocked', 'on_hold', 'paused'].includes(String(task.status_code || task.status || '').toLowerCase())
     };
   }
@@ -19652,10 +19694,10 @@ window.CRM.pageApiBindings = (function () {
   function applyGanttFilter(items, filter) {
     if (filter === 'all') return items;
     return items.filter(function (item) {
-      if (filter === 'active') return !['completed', 'done', 'archived'].includes(item.statusCode);
+      if (filter === 'active') return !statusIsTerminal(item.statusCode);
       if (filter === 'overdue') return item.isOverdue;
       if (filter === 'blocked') return item.isBlocked;
-      if (filter === 'completed') return ['completed', 'done'].includes(item.statusCode);
+      if (filter === 'completed') return statusIsCompleted(item.statusCode);
       if (filter === 'without_dates') return !item.start || !item.end;
       return true;
     });
@@ -20986,8 +21028,7 @@ window.CRM.pageApiBindings = (function () {
   }
 
   function kanbanIsDone(task) {
-    var status = String(task && task.status_code || '').toLowerCase();
-    return ['done', 'completed', 'closed', 'archived'].indexOf(status) >= 0;
+    return statusIsTerminal(String(task && task.status_code || ''));
   }
 
   function kanbanDateOnly(value) {
@@ -21559,9 +21600,10 @@ window.CRM.pageApiBindings = (function () {
       }
       if (statusesEnvelope && statusesEnvelope.success !== false) {
         var allStatuses = mapItems(statusesEnvelope).map(function (s) {
-          return { code: String(s.code || ''), title: String(s.title || s.code || ''), sort_order: Number(s.sort_order || 0), scope: String(s.scope || '') };
+          return { code: String(s.code || ''), title: String(s.title || s.code || ''), sort_order: Number(s.sort_order || 0), scope: String(s.scope || ''), is_closed: Number(s.is_closed || 0) };
         }).filter(function (s) { return s.code !== ''; }).sort(function (a, b) { return a.sort_order - b.sort_order; });
         var taskStatuses = allStatuses.filter(function (s) { return s.scope === 'task'; });
+        registerStatusSemantics(taskStatuses);
         if (taskStatuses.length > 0) {
           statusOrder = taskStatuses.map(function (s) { return s.code; });
           window.CRM.kanbanStatusMap = window.CRM.kanbanStatusMap || {};

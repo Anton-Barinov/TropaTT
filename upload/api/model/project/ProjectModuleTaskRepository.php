@@ -4,11 +4,15 @@ declare(strict_types=1);
 namespace Api\Model\Project;
 
 use Api\System\Library\Database\Builder\QueryBuilder;
+use Api\System\Library\Support\TaskStatusSemantics;
 use Api\System\Library\Support\Ulid;
 use PDO;
 
 final class ProjectModuleTaskRepository
 {
+    /** Module progress treats an archived task as finished, but not a cancelled one. */
+    private const COMPLETED_OR_ARCHIVED = ['done', 'completed', 'closed', 'archived'];
+
     public function __construct(private readonly PDO $pdo)
     {
     }
@@ -176,7 +180,7 @@ final class ProjectModuleTaskRepository
                 'u.public_id AS user_public_id',
                 'u.full_name AS name',
                 'COUNT(*) AS total',
-                "SUM(CASE WHEN t.status_code IN ('done','closed','archived') THEN 1 ELSE 0 END) AS completed",
+                "SUM(CASE WHEN t.status_code IN (" . $this->completedOrArchivedList() . ") THEN 1 ELSE 0 END) AS completed",
             ])
             ->where('pmt.module_id', '=', $moduleId)
             ->whereNull('pmt.deleted_at')
@@ -196,7 +200,7 @@ final class ProjectModuleTaskRepository
             $count = (int)$row['cnt'];
             $byStatus[$code] = $count;
 
-            if (in_array($code, ['done', 'closed', 'archived'], true)) {
+            if (in_array($code, self::COMPLETED_OR_ARCHIVED, true)) {
                 $completed += $count;
             } else {
                 $open += $count;
@@ -216,7 +220,7 @@ final class ProjectModuleTaskRepository
             ->where('pmt.module_id', '=', $moduleId)
             ->whereNull('pmt.deleted_at')
             ->whereNull('t.deleted_at')
-            ->whereRaw("t.status_code NOT IN (?, ?, ?)", ['done', 'closed', 'archived'])
+            ->whereRaw(...TaskStatusSemantics::notTerminalSql($this->pdo, 't.status_code'))
             ->whereNotNull('t.due_at')
             ->where('t.due_at', '<', $now)
             ->first();
@@ -280,5 +284,10 @@ final class ProjectModuleTaskRepository
             ->whereNull('pm.deleted_at')
             ->whereNull('pm.archived_at')
             ->get();
+    }
+
+    private function completedOrArchivedList(): string
+    {
+        return TaskStatusSemantics::literalList($this->pdo, self::COMPLETED_OR_ARCHIVED);
     }
 }

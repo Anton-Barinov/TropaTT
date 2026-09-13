@@ -8,6 +8,7 @@ use Api\Model\Common\UserRepository;
 use Api\Model\Project\ProjectRepository;
 use Api\Model\Team\TeamRepository;
 use Api\Model\Task\TaskKeyCounterRepository;
+use Api\System\Library\Support\TaskStatusSemantics;
 use Api\System\Library\Support\Ulid;
 use PDOException;
 
@@ -291,7 +292,7 @@ final class ProjectService
             $set['status_code'] = (string)$input['status'];
             // ТЗ 7.3: нельзя завершить проект, пока есть незакрытые задачи
             $oldStatus = (string)($project['status_code'] ?? '');
-            if ($set['status_code'] !== $oldStatus && in_array($set['status_code'], ['done', 'completed'], true)) {
+            if ($set['status_code'] !== $oldStatus && TaskStatusSemantics::isCompleted($set['status_code'])) {
                 $openTasks = $this->projects->countOpenTasksByProjectId((int)$project['id']);
                 if ($openTasks > 0) {
                     return ['error' => 'PROJECT_HAS_OPEN_TASKS', 'open_task_count' => $openTasks];

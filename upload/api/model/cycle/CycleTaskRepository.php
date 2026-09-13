@@ -4,10 +4,14 @@ declare(strict_types=1);
 namespace Api\Model\Cycle;
 
 use Api\System\Library\Database\Builder\QueryBuilder;
+use Api\System\Library\Support\TaskStatusSemantics;
 use PDO;
 
 final class CycleTaskRepository
 {
+    /** Cycle metrics treat an archived task as finished, but not a cancelled one. */
+    private const COMPLETED_OR_ARCHIVED = ['done', 'completed', 'closed', 'archived'];
+
     public function __construct(private readonly PDO $pdo)
     {
     }
@@ -171,7 +175,7 @@ final class CycleTaskRepository
             ->where('ct.cycle_id', '=', $cycleId)
             ->whereNull('ct.deleted_at')
             ->whereNull('t.deleted_at')
-            ->whereRaw("t.status_code NOT IN (?, ?, ?)", ['done', 'closed', 'archived'])
+            ->whereRaw(...$this->notTerminalCondition())
             ->get();
     }
 
@@ -245,7 +249,7 @@ final class CycleTaskRepository
                 'u.public_id AS user_public_id',
                 'u.full_name AS name',
                 'COUNT(*) AS total',
-                "SUM(CASE WHEN t.status_code IN ('done','closed','archived') THEN 1 ELSE 0 END) AS completed",
+                "SUM(CASE WHEN t.status_code IN (" . $this->completedOrArchivedList() . ") THEN 1 ELSE 0 END) AS completed",
             ])
             ->where('ct.cycle_id', '=', $cycleId)
             ->whereNull('ct.deleted_at')
@@ -266,7 +270,7 @@ final class CycleTaskRepository
             $count = (int)$row['cnt'];
             $byStatus[$code] = $count;
 
-            if (in_array($code, ['done', 'closed', 'archived'], true)) {
+            if (in_array($code, self::COMPLETED_OR_ARCHIVED, true)) {
                 $completed += $count;
             } else {
                 $open += $count;
@@ -286,7 +290,7 @@ final class CycleTaskRepository
             ->where('ct.cycle_id', '=', $cycleId)
             ->whereNull('ct.deleted_at')
             ->whereNull('t.deleted_at')
-            ->whereRaw("t.status_code NOT IN (?, ?, ?)", ['done', 'closed', 'archived'])
+            ->whereRaw(...$this->notTerminalCondition())
             ->whereNotNull('t.due_at')
             ->where('t.due_at', '<', $now)
             ->first();
@@ -330,9 +334,9 @@ final class CycleTaskRepository
                     u.public_id AS user_public_id,
                     u.full_name AS name,
                     COUNT(DISTINCT t.id) AS tasks_total,
-                    SUM(CASE WHEN t.status_code IN ('done','closed','archived') THEN 1 ELSE 0 END) AS tasks_completed,
+                    SUM(CASE WHEN t.status_code IN (" . $this->completedOrArchivedList() . ") THEN 1 ELSE 0 END) AS tasks_completed,
                     COALESCE(SUM(te.numeric_value), 0) AS points_total,
-                    COALESCE(SUM(CASE WHEN t.status_code IN ('done','closed','archived') THEN te.numeric_value ELSE 0 END), 0) AS points_completed
+                    COALESCE(SUM(CASE WHEN t.status_code IN (" . $this->completedOrArchivedList() . ") THEN te.numeric_value ELSE 0 END), 0) AS points_completed
                 FROM cycle_tasks ct
                 INNER JOIN tasks t ON t.id = ct.task_id AND t.deleted_at IS NULL
                 LEFT JOIN users u ON u.id = t.assignee_user_id
@@ -347,7 +351,7 @@ final class CycleTaskRepository
                     u.public_id AS user_public_id,
                     u.full_name AS name,
                     COUNT(DISTINCT t.id) AS tasks_total,
-                    SUM(CASE WHEN t.status_code IN ('done','closed','archived') THEN 1 ELSE 0 END) AS tasks_completed,
+                    SUM(CASE WHEN t.status_code IN (" . $this->completedOrArchivedList() . ") THEN 1 ELSE 0 END) AS tasks_completed,
                     0 AS points_total,
                     0 AS points_completed
                 FROM cycle_tasks ct
@@ -370,5 +374,16 @@ final class CycleTaskRepository
         unset($row);
 
         return $rows;
+    }
+
+    /** @return array{0: string, 1: list<string>} */
+    private function notTerminalCondition(): array
+    {
+        return TaskStatusSemantics::notTerminalSql($this->pdo, 't.status_code');
+    }
+
+    private function completedOrArchivedList(): string
+    {
+        return TaskStatusSemantics::literalList($this->pdo, self::COMPLETED_OR_ARCHIVED);
     }
 }
