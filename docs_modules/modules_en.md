@@ -80,6 +80,10 @@ The TropaTT CRM module subsystem is designed according to **Zero-Daemon** princi
 Each module resides in its dedicated directory inside the CRM modules directory:
 `modules/{vendor}.{name}/` (in git/server root: `upload/modules/{vendor}.{name}/`).
 
+A stock installation ships that directory empty — only its `.htaccess` is present. Modules are
+installed on demand from the official marketplace (`marketplace.tropatt.com`) or by copying a
+package into `modules/`; the ready-made examples live in `docs_modules/examples/modules/`.
+
 ### Module Naming Convention
 - Identifier pattern: `^[a-z0-9]+\.[a-z0-9\-]+$` (lowercase letters, numbers, and dashes, max 64 chars).
 - Examples: `crm.wip-limit`, `crm.slack-integration`, `acme.telegram-notifier`.

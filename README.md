@@ -486,7 +486,7 @@ You describe an idea → AI evaluates scope/risks/complexity → AI proposes a s
 Yes. TropaTT includes a built-in MCP (Model Context Protocol) server with 620 tools and 6 resources. Point your AI agent to `POST /api/index.php?route=api/v1/mcp` with a Bearer token. The agent can search, create, and update tasks, counterparties, knowledge articles, and chats under the exact same RBAC permissions as human users. Details: [`docs_mcp/mcp_en.md`](docs_mcp/mcp_en.md).
 
 **How do I build a custom module?**
-Modules live in `upload/modules/<module-name>/`. Each module contains a `manifest.json`, a `ServiceProvider.php` (for DI container binding), event listeners (`ModuleEvents`), UI slot injections (`PositionRegistry`), and transactional database migrations (`up()`/`down()`). Complete step-by-step developer tutorial: [`docs_modules/modules_en.md`](docs_modules/modules_en.md).
+A stock installation ships **without** modules: `upload/modules/` holds only its `.htaccess`, and modules are installed on demand from the marketplace (`marketplace.tropatt.com`) via **Administration → Modules → Marketplace** or by copying a package into that directory. The example modules live in `docs_modules/examples/modules/`. Modules live in `upload/modules/<module-name>/`. Each module contains a `manifest.json`, a `ServiceProvider.php` (for DI container binding), event listeners (`ModuleEvents`), UI slot injections (`PositionRegistry`), and transactional database migrations (`up()`/`down()`). Complete step-by-step developer tutorial: [`docs_modules/modules_en.md`](docs_modules/modules_en.md).
 
 **Where's my data?**
 On your server. 100%. TropaTT never syncs to a cloud. No one — including the developer — has access to your installation.
@@ -1074,7 +1074,7 @@ TropaTT полностью открыта. Разворачивайте сист
 Да. В TropaTT встроен MCP-сервер (620 инструментов, 6 ресурсов). Подключите агента к адресу `POST /api/index.php?route=api/v1/mcp` с Bearer-токеном. Агент сможет безопасно искать, создавать и обновлять задачи, проекты, базу знаний и записи клиентов с соблюдением ролевых прав (RBAC). Подробнее: [`docs_mcp/mcp_ru.md`](docs_mcp/mcp_ru.md).
 
 **Как разработать собственный модуль?**
-Модули размещаются в папке `upload/modules/<имя_модуля>/`. Модуль содержит `manifest.json`, класс `ServiceProvider.php` (для регистрации в DI-контейнере), обработчики событий (`ModuleEvents`), слоты внедрения интерфейса (`PositionRegistry`) и транзакционные миграции базы (`up()`/`down()`). Подробное пошаговое руководство разработчика: [`docs_modules/modules_ru.md`](docs_modules/modules_ru.md).
+Стандартная установка поставляется **без модулей**: в каталоге `upload/modules/` лежит только `.htaccess`, а модули ставятся по необходимости из маркетплейса (`marketplace.tropatt.com`) через **Администрирование → Модули → Маркетплейс** либо копированием пакета в этот каталог. Модули-примеры опубликованы в `docs_modules/examples/modules/`. Модули размещаются в папке `upload/modules/<имя_модуля>/`. Модуль содержит `manifest.json`, класс `ServiceProvider.php` (для регистрации в DI-контейнере), обработчики событий (`ModuleEvents`), слоты внедрения интерфейса (`PositionRegistry`) и транзакционные миграции базы (`up()`/`down()`). Подробное пошаговое руководство разработчика: [`docs_modules/modules_ru.md`](docs_modules/modules_ru.md).
 
 **Где физически хранятся данные?**
 Исключительно на вашем сервере. TropaTT никуда не отправляет данные и не имеет удаленного доступа к вашей установке. Полный суверенитет и соответствие 152-ФЗ.
@@ -1653,7 +1653,7 @@ TropaTT 彻底开源。将其部署在您所信任的服务器上，随意审查
 TropaTT 原生内置了遵循标准 Model Context Protocol 的 MCP 服务器，提供 620 个全功能工具与 6 个数据资源。只需将智能体对接到 `POST /api/index.php?route=api/v1/mcp` 并配置 Bearer 令牌，智能体即可像真人一样安全高效地检索资料、派发任务、更新状态并编写知识库。详见：[`docs_mcp/mcp_zh.md`](docs_mcp/mcp_zh.md)。
 
 **如何开发专属的扩展模块？**
-所有插件模块存放于 `upload/modules/<模块名称>/` 目录下。模块包含规范的 `manifest.json`、服务容器注册类 `ServiceProvider.php`、事件监听器（`ModuleEvents`）、14 个界面插槽注入（`PositionRegistry`）以及数据库事务迁移（`up()` / `down()`）。详见详尽的开发者指南：[`docs_modules/modules_zh.md`](docs_modules/modules_zh.md)。
+标准安装**不带任何模块**：`upload/modules/` 目录中只有 `.htaccess`，模块按需从官方市场（`marketplace.tropatt.com`）安装，可通过 **管理后台 → 模块 → 市场**，或直接将安装包复制到该目录。示例模块发布在 `docs_modules/examples/modules/`。所有插件模块存放于 `upload/modules/<模块名称>/` 目录下。模块包含规范的 `manifest.json`、服务容器注册类 `ServiceProvider.php`、事件监听器（`ModuleEvents`）、14 个界面插槽注入（`PositionRegistry`）以及数据库事务迁移（`up()` / `down()`）。详见详尽的开发者指南：[`docs_modules/modules_zh.md`](docs_modules/modules_zh.md)。
 
 **我的企业数据保存在哪里？**
 100% 留存在您自己的服务器或私有云中。TropaTT 没有任何云端遥测后门，即使是官方开发者也绝对无法访问您的任何数据。完全满足严格的数据隐私与法规监管要求。

@@ -40,6 +40,9 @@ TropaTT CRM 模块子系统遵循 **Zero-Daemon** 原则构建，专门针对共
 
 模块放置在 CRM 模块根目录下的专用子文件夹中：`modules/{vendor}.{name}/`。
 
+标准安装的模块目录是空的，其中只有 `.htaccess`。模块按需从官方市场（`marketplace.tropatt.com`）安装，
+或直接将安装包复制到 `modules/` 目录；现成的示例模块发布在 `docs_modules/examples/modules/`。
+
 ### 模块命名规范
 - 格式正则：`^[a-z0-9]+\.[a-z0-9\-]+$`（仅允许小写字母、数字及中划线，最多 64 字符）。
 - 示例：`crm.wip-limit`, `crm.slack-integration`, `acme.telegram-notifier`。

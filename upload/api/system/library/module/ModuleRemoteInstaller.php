@@ -302,7 +302,10 @@ final class ModuleRemoteInstaller
     private function extract(string $archive, string $destDir): void
     {
         $realDestDir = realpath($destDir);
-        if ($realDestDir === false || !str_starts_with($realDestDir, sys_get_temp_dir())) {
+        // Сравниваем реальные пути: на macOS /var — симлинк на /private/var,
+        // поэтому realpath('/var/folders/…') не начинается с сырого sys_get_temp_dir().
+        $realTempDir = realpath(sys_get_temp_dir()) ?: sys_get_temp_dir();
+        if ($realDestDir === false || !str_starts_with($realDestDir, $realTempDir)) {
             throw new RuntimeException('Invalid extraction directory');
         }
 

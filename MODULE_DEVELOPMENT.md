@@ -9,10 +9,12 @@ This guide documents how to build a **self-contained module** for TropaTT. Modul
 
 A module is a directory under `modules/` named `vendor.name` (for example `crm.wip-limit`). The contents of `upload/` are installed into the server document root, so a module lives at `modules/vendor.name/` next to the core `api/` and `web/` applications.
 
-> **Reference implementations** in the main repository:
-> - [`crm.position-example`](upload/modules/crm.position-example) — the smallest possible module: one position renderer + route-scoped assets.
-> - [`crm.wip-limit`](upload/modules/crm.wip-limit) — full example: service provider, event hooks, scoped assets, position renderer, migrations, API + web routes.
-> - [`crm.slack-integration`](upload/modules/crm.slack-integration) — subscribes to the whole event catalog and fans events out to user-defined rules.
+> **A stock installation ships no modules.** `upload/modules/` contains nothing but its own `.htaccess`: modules are installed on demand from the official marketplace (`marketplace.tropatt.com`) — from **Administration → Modules → Marketplace** in the UI, or by dropping a package into `modules/` yourself. The examples below are published with this documentation instead of being installed with the core, so the guide stays runnable while a fresh install stays lean.
+
+> **Reference implementations** (published with this guide, not installed with the core):
+> - [`crm.position-example`](docs_modules/examples/modules/crm.position-example) — the smallest possible module: one position renderer + route-scoped assets.
+> - [`crm.wip-limit`](docs_modules/examples/modules/crm.wip-limit) — full example: service provider, event hooks, scoped assets, position renderer, migrations, API + web routes.
+> - `crm.slack-integration` — subscribes to the whole event catalog and fans events out to user-defined rules; install it from the marketplace.
 
 ---
 
