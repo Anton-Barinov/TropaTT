@@ -64,6 +64,7 @@ php bin/cron.php publish-channels
 php bin/cron.php build-status                 # show all builds as JSON
 php bin/cron.php reset-locks                  # reset expired locks
 php bin/cron.php rebuild --sha=<sha>          # rebuild a specific build
+php bin/cron.php rebuild-store [--force]      # recovery: rebuild the build registry from the packages on disk
 php bin/cron.php bootstrap-build --sha=<sha> [--from=<sha>]   # first build from a base commit
 ```
 
@@ -345,6 +346,7 @@ The update system is designed for the **most basic shared hosting**:
 
 | Symptom | Cause / fix |
 |---|---|
+| **Every** installation reports "no updates" (the page shows "no published build in channel …") | The update server has nothing published in that channel. Most often its build registry was lost — `storage/cache/core_builds.json` truncated to 0 bytes by a failed write (disk full) or a rejected JSON payload; the cron then keeps reporting success because `scan-github` only looks for commits newer than `sources.last_seen_sha` and `publish-channels` has no build to publish. On the update server: `php bin/cron.php rebuild-store --force` (rebuilds the registry from the signed packages on disk), then `php bin/cron.php publish-channels`; verify `products/<product>/channels/<channel>` returns a `latest_build`. Store writes are now atomic, so a failed write can no longer destroy the previous state. |
 | "Update server unreachable" | `update.tropatt.com` is down or `TROPATT_UPDATE_CENTER_URL` is misconfigured. Check outbound HTTPS access to the update server. Access to your own public domain is no longer required for normal preflight. |
 | "Signature verification failed" | The public key `updater/keys/update_public.pem` does not match the update server's key. |
 | 429 RATE_LIMITED | Too many preflight/download requests from one IP. Wait for `Retry-After` (usually up to 15 minutes). |

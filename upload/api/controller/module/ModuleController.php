@@ -516,7 +516,7 @@ final class ModuleController
             return JsonResponse::success('MODULE_INSTALLED', $this->t('module/messages.installed_from_url'), ['name' => $name]);
         } catch (\Throwable $e) {
             AppLog::error('[ModuleController::installFromUrl] ' . $e->getMessage());
-            return JsonResponse::error('INSTALL_FAILED', 'Module operation failed. Check server logs for details.', 500);
+            return JsonResponse::error('INSTALL_FAILED', $this->t('module/messages.install_failed'), 500);
         }
     }
 
@@ -560,7 +560,7 @@ final class ModuleController
             return JsonResponse::success('MODULE_INSTALLED', $this->t('module/messages.installed_from_file'), ['name' => $name]);
         } catch (\Throwable $e) {
             AppLog::error('[ModuleController::unknown] ' . $e->getMessage());
-            return JsonResponse::error('INSTALL_FAILED', 'Module operation failed. Check server logs for details.', 500);
+            return JsonResponse::error('INSTALL_FAILED', $this->t('module/messages.install_failed'), 500);
         } finally {
             foreach (glob($tmpDir . '/*') ?: [] as $f) @unlink($f);
             foreach (glob($tmpDir . '/*') ?: [] as $d) { if (is_dir($d)) { $this->cleanDir($d); } }
@@ -595,7 +595,7 @@ final class ModuleController
             return JsonResponse::success('CONFIG_UPDATED', $this->t('module/messages.config_updated'), ['name' => $name, 'config' => $mc->getAll($name)]);
         } catch (\Throwable $e) {
             AppLog::error('[ModuleController::updateConfig] ' . $e->getMessage());
-            return JsonResponse::error('UPDATE_FAILED', 'Module update failed. Check server logs for details.', 500);
+            return JsonResponse::error('UPDATE_FAILED', $this->t('module/messages.update_failed'), 500);
         }
     }
 
@@ -652,7 +652,7 @@ final class ModuleController
             return JsonResponse::success('ERRORS_CLEARED', $this->t('module/messages.errors_cleared'));
         } catch (\Throwable $e) {
             AppLog::error('[ModuleController::clearErrors] ' . $e->getMessage());
-            return JsonResponse::error('CLEAR_FAILED', 'Module clear operation failed. Check server logs for details.', 500);
+            return JsonResponse::error('CLEAR_FAILED', $this->t('module/messages.clear_failed'), 500);
         }
     }
 
@@ -666,7 +666,9 @@ final class ModuleController
     {
         $user = $this->user();
         if (!$user || empty($user['is_root'])) {
-            return JsonResponse::error('FORBIDDEN', 'Root access required for this operation.', 403);
+            // Translated like every other refusal on this controller: a hardcoded
+            // English string here left non-English users without a translation.
+            return JsonResponse::error('FORBIDDEN', $this->t('module/messages.root_required'), 403);
         }
         return null;
     }

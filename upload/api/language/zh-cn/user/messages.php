@@ -11,6 +11,7 @@ return [
     'max_120' => '最多 120 个字符',
     'create_failed' => '无法创建用户',
     'update_failed' => '无法更新用户',
+    'invalid_external_role' => '无效的外部角色',
     'delete_failed' => '无法删除用户',
     'token_info_failed' => '无法获取用户 Token 信息',
     'token_info' => '用户 Token 信息',

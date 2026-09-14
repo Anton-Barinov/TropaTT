@@ -47,6 +47,7 @@
   </div>
   <div class="crm-kanban-due-filters" role="group">
     <button class="btn crm-btn-secondary" type="button" id="tasksHideDoneToggle" data-tasks-filter="hide_done" aria-pressed="false" data-i18n="tasks.filter_hide_done"><?= htmlspecialchars($t('tasks.filter_hide_done', 'Скрыть выполненные'), ENT_QUOTES, 'UTF-8') ?></button>
+    <button class="btn crm-btn-secondary" type="button" id="tasksIncludeArchivedProjectsToggle" data-tasks-filter="include_archived_projects" aria-pressed="false" title="<?= htmlspecialchars($t('tasks.filter_include_archived_projects_title', 'Показывать задачи проектов, отправленных в архив. По умолчанию скрыты — как в счётчиках дашборда.'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-title="tasks.filter_include_archived_projects_title" data-i18n="tasks.filter_include_archived_projects"><?= htmlspecialchars($t('tasks.filter_include_archived_projects', 'Включая архивные проекты'), ENT_QUOTES, 'UTF-8') ?></button>
     <button class="btn crm-btn-secondary" type="button" data-kanban-due="overdue" data-i18n="tasks.filter_overdue"><?= htmlspecialchars($t('tasks.filter_overdue', 'Просроченные'), ENT_QUOTES, 'UTF-8') ?></button>
     <button class="btn crm-btn-secondary" type="button" data-kanban-due="today" data-i18n="tasks.filter_today"><?= htmlspecialchars($t('tasks.filter_today', 'Сегодня'), ENT_QUOTES, 'UTF-8') ?></button>
     <button class="btn crm-btn-secondary" type="button" data-kanban-due="week" data-i18n="tasks.filter_week"><?= htmlspecialchars($t('tasks.filter_week', 'На неделе'), ENT_QUOTES, 'UTF-8') ?></button>

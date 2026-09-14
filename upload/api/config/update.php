@@ -118,6 +118,18 @@ return [
         'api/config/*.local.php',
         'web/config/*.local.php',
     ],
+    // Official module marketplace (catalog + one-click install of published
+    // modules). The base URL is taken from the environment only — never from a
+    // request parameter — so an admin session cannot turn it into an SSRF pivot.
+    // `MODULE_SIGNING_KEY` (see .env.example) must match the key the marketplace
+    // signs its release manifests with, otherwise ModuleRemoteInstaller rejects
+    // every package as unsigned.
+    'marketplace' => [
+        'enabled' => !in_array(strtolower(trim((string)(getenv('TROPATT_MARKETPLACE_ENABLED') ?: '1'))), ['0', 'false', 'no', 'off'], true),
+        'base_url' => rtrim(trim((string)(getenv('TROPATT_MARKETPLACE_URL') ?: 'https://marketplace.tropatt.com')), '/'),
+        'timeout_sec' => max(1, (int)(getenv('TROPATT_MARKETPLACE_TIMEOUT_SEC') ?: 8)),
+        'catalog_cache_ttl' => max(0, (int)(getenv('TROPATT_MARKETPLACE_CACHE_TTL') ?: 300)),
+    ],
     'endpoints' => [
         'health' => '/api/v1/health',
         'product' => '/api/v1/products/{product}',

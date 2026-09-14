@@ -54,7 +54,7 @@ $collect = static function (string $file) use (&$references, $projectRoot): void
 
     if (str_ends_with($file, '.js')) {
         preg_match_all(
-            '/(?:window\.CRM\.i18n\.t|\b(?:tpFmt|tp|_t|t|translate))\(\s*([\'\"])([^\'\"]+)\1\s*,\s*([\'\"])((?:\\\\.|(?!\3).)*)\3/s',
+            '/(?:window\.CRM\.i18n\.t|\b(?:tpFmt|mpT|tp|_t|t|translate))\(\s*([\'\"])([^\'\"]+)\1\s*,\s*([\'\"])((?:\\\\.|(?!\3).)*)\3/s',
             $source,
             $matches,
             PREG_OFFSET_CAPTURE

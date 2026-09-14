@@ -168,6 +168,8 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
   - `hide_done=1`: Исключает завершённые, отменённые и архивные задачи (`done`, `completed`, `canceled`, `cancelled`, `archived`).
   - `active_only=1`: Полный аналог флага `hide_done=1`.
   - `exclude_statuses=done,archived`: Явный список исключений через запятую с автоматическим разворачиванием алиасов.
+  - `include_archived_projects=1`: Возвращает задачи проектов, отправленных в архив. По умолчанию они **скрыты**, поэтому `GET /tasks?hide_done=1` отдаёт ровно тот же набор, что счётчики дашборда «Активные задачи» / `overdue_tasks` (это изменение поведения — см. CHANGELOG). Задачи без проекта видны всегда, а просмотр архива (`archived=1`) не сужается.
+  - `include_ancestors=1`: В связке с фильтром `status` дополнительно возвращает родительские задачи дочерних, попавших в выборку, даже если родитель находится в другом статусе. Предназначен для иерархического/дерево вида, чтобы структура вложенности сохранялась при фильтрации по статусу. Фильтр `exclude_statuses` / `hide_done` также не применяется к таким родительским задачам.
 
 ### Манифест A2A Agent Card
 
@@ -977,6 +979,11 @@ TropaTT реализует унифицированный протокол ве�
 | DELETE | `/api/v1/knowledge/spaces/{public_id}` | Архивация пространства | Да | `knowledge.manage` | — |
 | POST | `/api/v1/knowledge/spaces/{public_id}/archive` | Архивация (альт.) | Да | `knowledge.manage` | — |
 | POST | `/api/v1/knowledge/spaces/{public_id}/restore` | Восстановление | Да | `knowledge.manage` | — |
+| POST | `/api/v1/knowledge/spaces/{public_id}/delete` | Перенос пространства в корзину | Да | `knowledge.manage` | Мягкое удаление; пространство восстановимо до конца срока хранения |
+| POST | `/api/v1/knowledge/spaces/{public_id}/restore-deleted` | Восстановление из корзины | Да | `knowledge.manage` | — |
+| POST | `/api/v1/knowledge/spaces/{public_id}/purge` | Удаление безвозвратно | Да | `knowledge.manage` | Отменить нельзя |
+| GET | `/api/v1/knowledge/trash` | Пространства в корзине | Да | `knowledge.view` | Возвращает `retention_days` и `purge_at` |
+| POST | `/api/v1/admin/knowledge/trash/purge` | Очистка корзины целиком | Да | `knowledge.admin` | Только root; удаляет все просроченные пространства сразу |
 | GET | `/api/v1/knowledge/spaces/{public_id}/tree` | Дерево страниц | Да | `knowledge.view` | — |
 | GET | `/api/v1/knowledge/spaces/{public_id}/permissions` | Права пространства | Да | `knowledge.permission_manage` | — |
 | POST | `/api/v1/knowledge/spaces/{public_id}/permissions` | Добавление права | Да | `knowledge.permission_manage` | — |
@@ -1264,6 +1271,19 @@ TropaTT реализует унифицированный протокол ве�
 | DELETE | `/api/v1/modules/{name}/errors` | Очистка ошибок | Да | `settings.manage` | — |
 | POST | `/api/v1/modules/install-from-url` | Установка из URL | Да | `settings.manage` | — |
 | POST | `/api/v1/modules/install-from-file` | Установка из файла | Да | `settings.manage` | `multipart/form-data` |
+
+### Маркетплейс модулей
+
+Прокси-доступ только для чтения к официальному маркетплейсу модулей (`https://marketplace.tropatt.com`). Адрес берётся из конфигурации сервера (`TROPATT_MARKETPLACE_URL`) и никогда — из параметров запроса. Ответ каталога содержит `status` (включён ли маркетплейс, настроен ли адрес, доступен ли сервис), нормализованные `items` и `meta` для пагинации.
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/api/v1/marketplace/catalog` | Каталог маркетплейса | Да | `settings.manage` | Фильтры: `q`, `category`, `page`, `limit` |
+| GET | `/api/v1/marketplace/categories` | Категории маркетплейса | Да | `settings.manage` | — |
+| GET | `/api/v1/marketplace/modules/{full_code}` | Детали модуля маркетплейса | Да | `settings.manage` | Включает опубликованные релизы |
+| POST | `/api/v1/marketplace/install` | Установка модуля из маркетплейса | Да | `settings.manage` | Только root. Body: `full_code`, `activate` |
+
+Ответы установки явно называют состояние установки: `ALREADY_INSTALLED` (409) — модуль зарегистрирован, `MODULE_DISCOVERED_LOCALLY` (409) — файлы модуля уже есть в CRM, но он не зарегистрирован (ставьте локальную копию: `POST /api/v1/modules/{code}/install`; удалённый установщик не пишет поверх существующего каталога), `MARKETPLACE_PACKAGE_MISMATCH` (502) — пакет маркетплейса объявляет другой код модуля, чем каталог, и `INVALID_PARAM` (400) — `full_code` не является кодом вида `<vendor>.<module>`.
 
 ### Ideas
 

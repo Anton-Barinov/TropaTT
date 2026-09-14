@@ -40,4 +40,10 @@ return [
     'chat_id_required' => '需要聊天ID',
     'restore_failed' => '恢复失败',
     'file_type_not_allowed' => '文件类型不允许',
+    'loaded' => '聊天消息已加载',
+    'send_failed' => '发送消息失败',
+    'create_failed' => '创建聊天失败',
+    'external_only_participant' => '客户端聊天只能添加外部（门户）用户',
+    'participant_inactive' => '该用户已停用',
+    'participant_other_counterparty' => '该用户不属于此项目的客户',
 ];

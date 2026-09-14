@@ -9,10 +9,12 @@ This guide documents how to build a **self-contained module** for TropaTT. Modul
 
 A module is a directory under `modules/` named `vendor.name` (for example `crm.wip-limit`). The contents of `upload/` are installed into the server document root, so a module lives at `modules/vendor.name/` next to the core `api/` and `web/` applications.
 
-> **Reference implementations** in the main repository:
-> - [`crm.position-example`](upload/modules/crm.position-example) — the smallest possible module: one position renderer + route-scoped assets.
-> - [`crm.wip-limit`](upload/modules/crm.wip-limit) — full example: service provider, event hooks, scoped assets, position renderer, migrations, API + web routes.
-> - [`crm.slack-integration`](upload/modules/crm.slack-integration) — subscribes to the whole event catalog and fans events out to user-defined rules.
+> **A stock installation ships no modules.** `upload/modules/` contains nothing but its own `.htaccess`: modules are installed on demand from the official marketplace (`marketplace.tropatt.com`) — from **Administration → Modules → Marketplace** in the UI, or by dropping a package into `modules/` yourself. The examples below are published with this documentation instead of being installed with the core, so the guide stays runnable while a fresh install stays lean.
+
+> **Reference implementations** (published with this guide, not installed with the core):
+> - [`crm.position-example`](docs_modules/examples/modules/crm.position-example) — the smallest possible module: one position renderer + route-scoped assets.
+> - [`crm.wip-limit`](docs_modules/examples/modules/crm.wip-limit) — full example: service provider, event hooks, scoped assets, position renderer, migrations, API + web routes.
+> - `crm.slack-integration` — subscribes to the whole event catalog and fans events out to user-defined rules; install it from the marketplace.
 
 ---
 
@@ -246,7 +248,7 @@ Handlers are stateless public static methods resolved by `Web\System\Module\Modu
 - **API routes** — `api/config/routes.php` returns an array of route definitions. They are auto-prefixed with `/_module/vendor.name/`.
 - **Web routes** — `web/config/routes.php` adds page routes to the web router.
 - **Service provider** — extend `Api\System\Library\Module\AbstractModuleServiceProvider` and implement `register()`/`boot()`, plus optional `getPermissions()`, `getMenuItems()`, `getScheduledTasks()`, `getConfig()`.
-- **Migrations** — SQL files in the directory named by `migrations`; applied/rolled back by the module manager.
+- **Migrations** — SQL files in the directory named by `migrations`; applied/rolled back by the module manager. Uninstall keeps your tables (the owner's data must survive), so a re-install runs the migrations again against the schema your module left behind: write them so that re-running is harmless — `CREATE TABLE IF NOT EXISTS`, `DROP ... IF EXISTS`, and guarded `ALTER`s. The runner tolerates DDL that is already applied (duplicate table/column/key/constraint, "nothing to drop") and applies a multi-clause `ALTER TABLE` clause by clause, so the parts still missing are added; a statement that fails for any other reason — invalid SQL, or an `ALTER` against a table that does not exist — still fails the migration and is not recorded as applied.
 
 ## 8. Checklist for a self-contained module
 

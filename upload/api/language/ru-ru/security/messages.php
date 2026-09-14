@@ -49,4 +49,5 @@ return [
     'impersonation_stopped' => 'Режим перевоплощения остановлен',
     'impersonation_start_failed' => 'Не удалось запустить режим перевоплощения',
     'impersonation_stop_failed' => 'Не удалось остановить режим перевоплощения',
+    'unauthorized' => 'Требуется авторизация',
 ];

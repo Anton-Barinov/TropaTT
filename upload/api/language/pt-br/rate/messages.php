@@ -5,6 +5,7 @@ return [
     'has_assignments' => 'A tabela de preços está atribuída a uma contraparte ou projeto — remova a atribuição antes de arquivar',
     'at_least_one_rate' => 'Informe pelo menos uma taxa',
     'invalid_scope' => 'Tipo de escopo inválido',
+    'scope_not_found' => 'O escopo selecionado não foi encontrado',
     'date_range_required' => 'Informe um intervalo de datas (date_from e date_to)',
     'invalid_date_format' => 'Formato de data inválido. Esperado AAAA-MM-DD.',
     'date_from_after_to' => 'A data "de" não pode ser posterior a "até".',

@@ -168,6 +168,8 @@ Authorization: Bearer <token>
   - `hide_done=1`：排除已完成、已取消和已归档的任务（`done`, `completed`, `canceled`, `cancelled`, `archived`）。
   - `active_only=1`：等价于 `hide_done=1` 的别名。
   - `exclude_statuses=done,archived`：显式逗号分隔的排除项列表，支持自动展开别名。
+  - `include_archived_projects=1`：返回属于已归档项目的任务。默认情况下这些任务**被隐藏**，因此 `GET /tasks?hide_done=1` 与仪表板「活跃任务」/ `overdue_tasks` 计数完全一致（行为变更，见 CHANGELOG）。无项目的任务始终可见，归档视图（`archived=1`）不会被收窄。
+  - `include_ancestors=1`：与 `status` 筛选器配合使用时，额外返回匹配子任务的父任务，即使父任务处于不同状态。专为层级/树形视图设计，以便在按状态筛选时保持树结构。`exclude_statuses` / `hide_done` 筛选器也不应用于这些父任务。
 
 ### A2A Agent Card 清单
 
@@ -946,6 +948,11 @@ TropaTT 为 CRM 出站事件与外部电商 CMS 连接器（OpenCart 1.5–4.x, 
 | DELETE | `/api/v1/knowledge/spaces/{public_id}` | 归档空间 | 是 | `knowledge.manage` | — |
 | POST | `/api/v1/knowledge/spaces/{public_id}/archive` | 归档（备选） | 是 | `knowledge.manage` | — |
 | POST | `/api/v1/knowledge/spaces/{public_id}/restore` | 恢复 | 是 | `knowledge.manage` | — |
+| POST | `/api/v1/knowledge/spaces/{public_id}/delete` | 将空间移入回收站 | 是 | `knowledge.manage` | 软删除；在保留期结束前可恢复 |
+| POST | `/api/v1/knowledge/spaces/{public_id}/restore-deleted` | 从回收站恢复 | 是 | `knowledge.manage` | — |
+| POST | `/api/v1/knowledge/spaces/{public_id}/purge` | 彻底删除 | 是 | `knowledge.manage` | 无法撤销 |
+| GET | `/api/v1/knowledge/trash` | 回收站中的空间 | 是 | `knowledge.view` | 返回 `retention_days` 与 `purge_at` |
+| POST | `/api/v1/admin/knowledge/trash/purge` | 清空回收站 | 是 | `knowledge.admin` | 仅 root；立即删除所有已过期的空间 |
 | GET | `/api/v1/knowledge/spaces/{public_id}/tree` | 页面树 | 是 | `knowledge.view` | — |
 | GET | `/api/v1/knowledge/spaces/{public_id}/permissions` | 空间权限 | 是 | `knowledge.permission_manage` | — |
 | POST | `/api/v1/knowledge/spaces/{public_id}/permissions` | 添加权限 | 是 | `knowledge.permission_manage` | — |
@@ -1231,6 +1238,19 @@ TropaTT 为 CRM 出站事件与外部电商 CMS 连接器（OpenCart 1.5–4.x, 
 | DELETE | `/api/v1/modules/{name}/errors` | 清除错误 | 是 | `settings.manage` | — |
 | POST | `/api/v1/modules/install-from-url` | 设置从 URL | 是 | `settings.manage` | — |
 | POST | `/api/v1/modules/install-from-file` | 设置从文件 | 是 | `settings.manage` | `multipart/form-data` |
+
+### 模块市场
+
+官方模块市场（`https://marketplace.tropatt.com`）的只读代理。地址来自服务器配置（`TROPATT_MARKETPLACE_URL`），绝不来自请求参数。目录响应包含 `status`（是否启用、是否配置、是否可达）以及规范化的 `items` 和分页 `meta`。
+
+| 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/api/v1/marketplace/catalog` | 市场目录 | 是 | `settings.manage` | 过滤器：`q`、`category`、`page`、`limit` |
+| GET | `/api/v1/marketplace/categories` | 市场分类 | 是 | `settings.manage` | — |
+| GET | `/api/v1/marketplace/modules/{full_code}` | 市场模块详情 | 是 | `settings.manage` | 包含已发布版本 |
+| POST | `/api/v1/marketplace/install` | 从市场安装模块 | 是 | `settings.manage` | 仅 root。Body：`full_code`、`activate` |
+
+安装接口会明确返回安装状态：`ALREADY_INSTALLED`（409）表示模块已注册，`MODULE_DISCOVERED_LOCALLY`（409）表示模块文件已在 CRM 中但未注册（请安装本地副本：`POST /api/v1/modules/{code}/install`，远程安装器不会覆盖已存在的目录），`MARKETPLACE_PACKAGE_MISMATCH`（502）表示市场包声明的模块代码与目录不一致，`INVALID_PARAM`（400）表示 `full_code` 不是 `<vendor>.<module>` 形式的代码。
 
 ### 想法
 

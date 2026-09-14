@@ -51,20 +51,15 @@ final class ModuleMigrationRunner
                 }
 
                 $this->pdo->beginTransaction();
-                $this->pdo->exec($sql);
+                $this->execSqlScript($sql);
 
-                if (!$this->pdo->inTransaction()) {
-                    $this->pdo->beginTransaction();
-                }
-
+                $this->beginIfNotInTransaction();
                 $this->recordMigration($moduleName, $migrationName);
-                $this->pdo->commit();
+                $this->commitIfActive();
 
                 $result['applied'][] = $migrationName;
             } catch (\Throwable $e) {
-                if ($this->pdo->inTransaction()) {
-                    $this->pdo->rollBack();
-                }
+                $this->rollBackIfActive();
                 $result['errors'][] = "{$migrationName}: " . $e->getMessage();
             }
         }
@@ -101,20 +96,15 @@ final class ModuleMigrationRunner
                 }
 
                     $this->pdo->beginTransaction();
-                    $this->pdo->exec($sql);
+                    $this->execSqlScript($sql);
 
-                    if (!$this->pdo->inTransaction()) {
-                        $this->pdo->beginTransaction();
-                    }
-
+                    $this->beginIfNotInTransaction();
                     $this->removeMigrationRecord($moduleName, $migration);
-                    $this->pdo->commit();
+                    $this->commitIfActive();
 
                 $result['rolled_back'][] = $migration;
             } catch (\Throwable $e) {
-                if ($this->pdo->inTransaction()) {
-                    $this->pdo->rollBack();
-                }
+                $this->rollBackIfActive();
                 $result['errors'][] = "{$migration}: " . $e->getMessage();
             }
         }
@@ -215,26 +205,454 @@ final class ModuleMigrationRunner
                     }
 
                     $this->pdo->beginTransaction();
-                    $this->pdo->exec($sql);
+                    $this->execSqlScript($sql);
 
-                    if (!$this->pdo->inTransaction()) {
-                        $this->pdo->beginTransaction();
-                    }
-
+                    $this->beginIfNotInTransaction();
                     $this->recordMigration($moduleName, $migrationName);
-                    $this->pdo->commit();
+                    $this->commitIfActive();
 
                     $result['applied'][] = $migrationName;
                 } catch (\Throwable $e) {
-                    if ($this->pdo->inTransaction()) {
-                        $this->pdo->rollBack();
-                    }
+                    $this->rollBackIfActive();
                     $result['errors'][] = "{$migrationName}: " . $e->getMessage();
                 }
             }
         }
 
         return $result;
+    }
+
+    /**
+     * Start a transaction only when the connection is not already in one.
+     *
+     * After a DDL script the driver's transaction flag cannot be trusted (see
+     * commitIfActive()), so this guards the record write instead of asserting
+     * the state: whatever the flag says, the INSERT either joins the live
+     * transaction or runs in autocommit — both persist.
+     */
+    private function beginIfNotInTransaction(): void
+    {
+        try {
+            if (!$this->pdo->inTransaction()) {
+                $this->pdo->beginTransaction();
+            }
+        } catch (\Throwable $e) {
+            AppLog::warning('[ModuleMigrationRunner] beginTransaction skipped: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Commit the migration record, tolerating a transaction the server closed
+     * behind PDO's back.
+     *
+     * MySQL (and MariaDB) commit implicitly before and after every DDL
+     * statement, `ALTER TABLE` included, while PDO keeps reporting
+     * `inTransaction() === true` for the transaction it opened. Calling
+     * `commit()` then fails with "There is no active transaction" — that made
+     * every module install whose migrations contain DDL answer HTTP 500 at the
+     * very last step, after the schema had already been changed. There is
+     * nothing to commit in that case: the statements ran in autocommit and are
+     * durable, and so is the record written just before this call.
+     */
+    private function commitIfActive(): void
+    {
+        try {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->commit();
+            }
+        } catch (\PDOException $e) {
+            if (!str_contains(strtolower($e->getMessage()), 'no active transaction')) {
+                throw $e;
+            }
+        }
+    }
+
+    /**
+     * Roll back when there is a transaction to roll back; never mask the original
+     * migration error with a rollback error.
+     */
+    private function rollBackIfActive(): void
+    {
+        try {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+        } catch (\Throwable $e) {
+            AppLog::warning('[ModuleMigrationRunner] rollBack skipped: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Execute every statement of a migration script, one exec() per statement.
+     *
+     * Migration files are whole scripts, and rollback files in particular often
+     * hold several statements ("SET FOREIGN_KEY_CHECKS = 0; DROP TABLE a; DROP
+     * TABLE b; SET FOREIGN_KEY_CHECKS = 1;" — that is exactly what the published
+     * crm.wip-limit rollback contains). Passing such a string to a single
+     * PDO::exec() executes only the first statement on MySQL and leaves the
+     * remaining result sets pending, so the very next query on that connection
+     * dies with "SQLSTATE[HY000] General error: 2014 Cannot execute queries while
+     * other unbuffered queries are active" — which is what made every module
+     * uninstall fail with UNINSTALL_FAILED (HTTP 500) and leave a registry row
+     * behind after the files were already gone.
+     */
+    private function execSqlScript(string $sql): void
+    {
+        foreach (self::splitStatements($sql) as $statement) {
+            try {
+                $stmt = $this->pdo->query($statement);
+                if ($stmt !== false) {
+                    $this->drainStatement($stmt);
+                }
+            } catch (\Throwable $e) {
+                if (!$this->isAlreadyAppliedError($statement, $e)) {
+                    throw $e;
+                }
+
+                // The statement (or part of it) is already applied to this
+                // database. That is the normal case when a module is installed
+                // again over the schema a previous install left behind: module
+                // uninstall intentionally keeps the tables (user data survives),
+                // so the migration log and the schema disagree.
+                //
+                // A multi-clause ALTER TABLE fails as a whole, so one missing
+                // clause would keep the others from being applied — run the
+                // clauses one by one and tolerate the ones already in place.
+                $clauses = self::splitAlterClauses($statement);
+                if ($clauses === null) {
+                    AppLog::warning(
+                        '[ModuleMigrationRunner] statement already applied, skipped: '
+                        . self::oneLine($statement) . ' — ' . $e->getMessage()
+                    );
+                    continue;
+                }
+
+                foreach ($clauses as $clause) {
+                    try {
+                        $stmt = $this->pdo->query($clause);
+                        if ($stmt !== false) {
+                            $this->drainStatement($stmt);
+                        }
+                    } catch (\Throwable $inner) {
+                        if (!$this->isAlreadyAppliedError($clause, $inner)) {
+                            throw $inner;
+                        }
+                        AppLog::warning(
+                            '[ModuleMigrationRunner] clause already applied, skipped: '
+                            . self::oneLine($clause) . ' — ' . $inner->getMessage()
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Is the failure the schema telling us this migration is already applied?
+     *
+     * Only schema statements are judged — a failing `INSERT` or `SET` is a real
+     * error. Duplicate-object failures are always benign (the object exists, so
+     * the migration's intent is satisfied), while "there is nothing to drop"
+     * is tolerated for DROP statements only: an ALTER against a table that does
+     * not exist is a broken migration and must still fail loudly, otherwise the
+     * migration would be recorded as applied over a schema that was never built.
+     *
+     * @param int $code driver error code (MySQL error number)
+     */
+    private function isAlreadyAppliedError(string $statement, \Throwable $e): bool
+    {
+        if (preg_match('/^\s*(CREATE|ALTER|DROP|INSERT|RENAME)\b/i', $statement) !== 1) {
+            return false;
+        }
+
+        $code = $e instanceof \PDOException ? (int)($e->errorInfo[1] ?? 0) : 0;
+        $message = strtolower($e->getMessage());
+
+        // ER_DUP_KEY(1022), ER_TABLE_EXISTS_ERROR(1050), ER_DUP_FIELDNAME(1060),
+        // ER_DUP_KEYNAME(1061), ER_DUP_ENTRY(1062), ER_FK_DUP_NAME(1826).
+        if (in_array($code, [1022, 1050, 1060, 1061, 1062, 1826], true)) {
+            return true;
+        }
+
+        foreach ([
+            'duplicate column name',
+            'duplicate table',
+            'duplicate_table',
+            'duplicate_object',
+            'duplicate_column',
+            'duplicate key name',
+            'duplicate foreign key constraint name',
+            'duplicate entry',
+            'unique constraint failed',
+            'already exists',
+        ] as $needle) {
+            if (str_contains($message, $needle)) {
+                return true;
+            }
+        }
+
+        if (preg_match('/^\s*DROP\b/i', $statement) === 1) {
+            // ER_BAD_TABLE_ERROR(1051), ER_CANT_DROP_FIELD_OR_KEY(1091).
+            if (in_array($code, [1051, 1091], true)) {
+                return true;
+            }
+            foreach (['no such table', 'no such column', 'no such index', 'unknown table', 'unknown column', 'does not exist', "can't drop", 'cannot drop'] as $needle) {
+                if (str_contains($message, $needle)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Split a multi-clause `ALTER TABLE t ...` into one statement per clause.
+     *
+     * Returns null when the statement is not an ALTER TABLE with a comma-separated
+     * clause list; a single-clause ALTER, an ALTER of one INDEX over several
+     * columns (`ADD INDEX i (a, b)`) and every non-ALTER statement must be left
+     * exactly as written.
+     *
+     * @return array<int,string>|null
+     */
+    private static function splitAlterClauses(string $statement): ?array
+    {
+        if (preg_match('/^\s*ALTER\s+TABLE\s+(`[^`]+`|"[^"]+"|`?[A-Za-z0-9_.$]+`?)\s+(.*)$/is', $statement, $m) !== 1) {
+            return null;
+        }
+
+        $parts = self::splitTopLevelCommas($m[2]);
+        if (count($parts) < 2) {
+            return null;
+        }
+
+        $clauses = [];
+        foreach ($parts as $part) {
+            $part = trim($part);
+            // Each comma-separated part of a multi-clause ALTER starts with its
+            // own action; the comma inside `ADD INDEX i (a, b)` is nested in
+            // parentheses and is therefore not a separator.
+            if (preg_match('/^(ADD|DROP|MODIFY|CHANGE|ALTER|RENAME|CONVERT|COMMENT|ENGINE)\b/i', $part) !== 1) {
+                return null;
+            }
+            $clauses[] = 'ALTER TABLE ' . $m[1] . ' ' . $part;
+        }
+
+        return $clauses;
+    }
+
+    /**
+     * Split on commas that are not inside parentheses, string literals or
+     * quoted identifiers.
+     *
+     * @return array<int,string>
+     */
+    private static function splitTopLevelCommas(string $sql): array
+    {
+        $parts = [];
+        $buffer = '';
+        $depth = 0;
+        $quote = '';
+        $length = strlen($sql);
+
+        for ($i = 0; $i < $length; $i++) {
+            $char = $sql[$i];
+            $next = $i + 1 < $length ? $sql[$i + 1] : '';
+
+            if ($quote !== '') {
+                $buffer .= $char;
+                if ($char === '\\' && $quote !== '`' && $next !== '') {
+                    $buffer .= $next;
+                    $i++;
+                    continue;
+                }
+                if ($char === $quote) {
+                    if ($next === $quote) {
+                        $buffer .= $next;
+                        $i++;
+                        continue;
+                    }
+                    $quote = '';
+                }
+                continue;
+            }
+
+            if ($char === "'" || $char === '"' || $char === '`') {
+                $quote = $char;
+                $buffer .= $char;
+                continue;
+            }
+
+            if ($char === '(') {
+                $depth++;
+            } elseif ($char === ')' && $depth > 0) {
+                $depth--;
+            } elseif ($char === ',' && $depth === 0) {
+                $parts[] = $buffer;
+                $buffer = '';
+                continue;
+            }
+
+            $buffer .= $char;
+        }
+
+        $parts[] = $buffer;
+
+        return $parts;
+    }
+
+    /**
+     * Keep log lines readable: a migration statement can span many lines.
+     */
+    private static function oneLine(string $sql, int $limit = 220): string
+    {
+        $flat = trim((string)preg_replace('/\s+/', ' ', $sql));
+        return mb_strlen($flat) > $limit ? mb_substr($flat, 0, $limit) . '…' : $flat;
+    }
+
+    /**
+     * Consume and close whatever a statement produced.
+     *
+     * A row-returning statement executed through PDO::exec() leaves its result
+     * set pending on the connection, and the next statement then fails with
+     * "SQLSTATE[HY000] General error: 2014 Cannot execute queries while other
+     * unbuffered queries are active" — even for a harmless trailing `SELECT 1;`,
+     * which is exactly how the published crm.activecollab-migration rollback
+     * ends ("the migration is intentionally irreversible" + `SELECT 1;`).
+     * Going through a PDOStatement and draining it keeps the connection usable.
+     */
+    private function drainStatement(\PDOStatement $stmt): void
+    {
+        try {
+            if ($stmt->columnCount() > 0) {
+                $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
+
+            $driver = '';
+            try {
+                $driver = (string)$this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+            } catch (\Throwable $e) {
+                // Attribute support is driver-specific; the loop below then only
+                // runs its first iteration.
+            }
+
+            // Several statements in one call (or a procedure) can queue more
+            // result sets; SQLite has no such concept and would throw.
+            if ($driver !== 'sqlite') {
+                while ($stmt->nextRowset()) {
+                    if ($stmt->columnCount() > 0) {
+                        $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            // Draining is best-effort: a statement that cannot report rows must
+            // not fail the migration that ran it.
+        } finally {
+            try {
+                $stmt->closeCursor();
+            } catch (\Throwable $e) {
+                // ignore
+            }
+        }
+    }
+
+    /**
+     * Split a SQL script into individual statements.
+     *
+     * Semicolons inside string literals and inside comments are ignored, and both
+     * `--` line comments and slash-star block comments are dropped; identifiers
+     * quoted with backticks, single or double quotes are kept verbatim.
+     *
+     * @return array<int,string> Statements without their trailing semicolon
+     */
+    public static function splitStatements(string $sql): array
+    {
+        $statements = [];
+        $buffer = '';
+        $length = strlen($sql);
+        $quote = '';
+        $inLineComment = false;
+        $inBlockComment = false;
+
+        for ($i = 0; $i < $length; $i++) {
+            $char = $sql[$i];
+            $next = $i + 1 < $length ? $sql[$i + 1] : '';
+
+            if ($inLineComment) {
+                if ($char === "\n") {
+                    $inLineComment = false;
+                    $buffer .= $char;
+                }
+                continue;
+            }
+
+            if ($inBlockComment) {
+                if ($char === '*' && $next === '/') {
+                    $inBlockComment = false;
+                    $i++;
+                }
+                continue;
+            }
+
+            if ($quote !== '') {
+                $buffer .= $char;
+                // Backslash escapes are MySQL-specific and are not honoured inside
+                // backtick-quoted identifiers.
+                if ($char === '\\' && $quote !== '`' && $next !== '') {
+                    $buffer .= $next;
+                    $i++;
+                    continue;
+                }
+                if ($char === $quote) {
+                    if ($next === $quote) {
+                        // A doubled quote is an escaped quote, not the end.
+                        $buffer .= $next;
+                        $i++;
+                        continue;
+                    }
+                    $quote = '';
+                }
+                continue;
+            }
+
+            if ($char === '-' && $next === '-') {
+                $inLineComment = true;
+                $i++;
+                continue;
+            }
+
+            if ($char === '/' && $next === '*') {
+                $inBlockComment = true;
+                $i++;
+                continue;
+            }
+
+            if ($char === "'" || $char === '"' || $char === '`') {
+                $quote = $char;
+                $buffer .= $char;
+                continue;
+            }
+
+            if ($char === ';') {
+                $statement = trim($buffer);
+                if ($statement !== '') {
+                    $statements[] = $statement;
+                }
+                $buffer = '';
+                continue;
+            }
+
+            $buffer .= $char;
+        }
+
+        $tail = trim($buffer);
+        if ($tail !== '') {
+            $statements[] = $tail;
+        }
+
+        return $statements;
     }
 
     /**

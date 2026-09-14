@@ -5,6 +5,7 @@ return [
     'has_assignments' => 'Preisliste ist einem Geschäftspartner oder Projekt zugeordnet — erst Zuordnung entfernen, dann archivieren',
     'at_least_one_rate' => 'Mindestens einen Satz angeben',
     'invalid_scope' => 'Ungültiger Bereichstyp',
+    'scope_not_found' => 'Der gewählte Bereich wurde nicht gefunden',
     'date_range_required' => 'Datumsbereich angeben (date_from und date_to)',
     'invalid_date_format' => 'Ungültiges Datumsformat. Erwartet JJJJ-MM-TT.',
     'date_from_after_to' => '"Von" darf nicht nach "Bis" liegen.',

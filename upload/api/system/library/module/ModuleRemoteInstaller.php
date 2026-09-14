@@ -21,9 +21,13 @@ final class ModuleRemoteInstaller
 
     /**
      * Install a module from a remote URL.
+     *
+     * @param string|null $expectedName Canonical module code the caller selected
+     *        (for example a marketplace `full_code`). When given, the package
+     *        manifest must declare exactly this name.
      * @return string Module name
      */
-    public function installFromUrl(string $url, bool $verifySignature = true): string
+    public function installFromUrl(string $url, bool $verifySignature = true, ?string $expectedName = null): string
     {
         $tmpDir = sys_get_temp_dir() . '/crm_module_' . bin2hex(random_bytes(8));
         @mkdir($tmpDir, 0755, true);
@@ -31,7 +35,7 @@ final class ModuleRemoteInstaller
         try {
             $archive = $tmpDir . '/module.zip';
             $this->download($url, $archive);
-            return $this->installFromFile($archive, $verifySignature);
+            return $this->installFromFile($archive, $verifySignature, $expectedName);
         } finally {
             $this->cleanDir($tmpDir);
         }
@@ -39,9 +43,12 @@ final class ModuleRemoteInstaller
 
     /**
      * Install from a local package file.
+     *
+     * @param string|null $expectedName Canonical module code the caller selected;
+     *        see installFromUrl().
      * @return string Module name
      */
-    public function installFromFile(string $filePath, bool $verifySignature = true): string
+    public function installFromFile(string $filePath, bool $verifySignature = true, ?string $expectedName = null): string
     {
         if (!is_file($filePath)) {
             throw new RuntimeException("Package file not found: {$filePath}");
@@ -78,9 +85,24 @@ final class ModuleRemoteInstaller
                 throw new RuntimeException("Module name not specified in manifest");
             }
 
-            // Sanitize module name: allow only alphanumeric, underscore, hyphen
-            if (!preg_match('/^[a-z0-9](?:[a-z0-9_-]{0,62})$/', $moduleName)) {
+            // Sanitize module name. Published module codes use the
+            // "<vendor>.<name>" form (for example "crm.wip-limit"), which is the
+            // same shape PluginManager::isValidName() accepts elsewhere — a dots-
+            // rejecting pattern here made every marketplace package impossible to
+            // install. Dots stay blocked as traversal sequences ("..") and as
+            // path separators (no slashes are allowed by the pattern).
+            if (!preg_match('/^[a-z0-9][a-z0-9_.-]{0,63}$/', $moduleName) || str_contains($moduleName, '..')) {
                 throw new RuntimeException("Invalid module name: {$moduleName}");
+            }
+
+            // A package must install under the name its caller selected. A catalog
+            // release whose archived manifest names a different module (a bare
+            // "name" while the catalog advertises "<vendor>.<module>") would
+            // otherwise be rejected several layers later by manifest validation,
+            // or silently register under an unexpected code.
+            $expectedName = $expectedName !== null ? trim($expectedName) : null;
+            if ($expectedName !== null && $expectedName !== '' && $moduleName !== $expectedName) {
+                throw new ModulePackageMismatchException($moduleName, $expectedName);
             }
 
             $targetDir = $this->projectRoot . '/modules/' . $moduleName;
@@ -280,7 +302,10 @@ final class ModuleRemoteInstaller
     private function extract(string $archive, string $destDir): void
     {
         $realDestDir = realpath($destDir);
-        if ($realDestDir === false || !str_starts_with($realDestDir, sys_get_temp_dir())) {
+        // Сравниваем реальные пути: на macOS /var — симлинк на /private/var,
+        // поэтому realpath('/var/folders/…') не начинается с сырого sys_get_temp_dir().
+        $realTempDir = realpath(sys_get_temp_dir()) ?: sys_get_temp_dir();
+        if ($realDestDir === false || !str_starts_with($realDestDir, $realTempDir)) {
             throw new RuntimeException('Invalid extraction directory');
         }
 
@@ -290,8 +315,15 @@ final class ModuleRemoteInstaller
                 throw new RuntimeException("Cannot open ZIP archive: {$archive}");
             }
 
-            // Validate each entry before extraction (zip-slip protection)
-            for ($i = 0; $i < $zip->numEntries; $i++) {
+            // Validate each entry before extraction (zip-slip protection).
+            // The entry count must come from numFiles: numEntries does not exist
+            // on every PHP build (PHP 8.2 here reports it as an undefined
+            // property), and an undefined bound evaluated to null made this loop
+            // run zero times — so traversal entries were only caught by the
+            // post-extraction realpath check, i.e. after extractTo() had already
+            // written the files outside $destDir.
+            $entryCount = $zip->numFiles;
+            for ($i = 0; $i < $entryCount; $i++) {
                 $name = $zip->getNameIndex($i);
                 if ($name === false) continue;
                 $normalizedName = str_replace('\\', '/', $name);

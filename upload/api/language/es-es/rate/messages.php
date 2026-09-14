@@ -5,6 +5,7 @@ return [
     'has_assignments' => 'La lista de precios está asignada a una contraparte o proyecto: desasigne antes de archivar',
     'at_least_one_rate' => 'Indique al menos una tarifa',
     'invalid_scope' => 'Tipo de ámbito no válido',
+    'scope_not_found' => 'No se encontró el ámbito seleccionado',
     'date_range_required' => 'Indique un rango de fechas (date_from y date_to)',
     'invalid_date_format' => 'Formato de fecha no válido. Se espera AAAA-MM-DD.',
     'date_from_after_to' => 'La fecha "desde" no puede ser posterior a "hasta".',

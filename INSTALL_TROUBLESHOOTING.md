@@ -250,6 +250,53 @@ Then clear any cache in `storage/cache/`.
 
 ---
 
+## MCP / API client errors over HTTPS
+
+### `SSL: UNEXPECTED_EOF_WHILE_READING` or "EOF occurred in violation of protocol"
+
+**Symptoms:** An MCP or REST client (agent, integration, test script) intermittently fails with
+`URLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol'))`,
+usually in bursts of a few calls in a row, while other calls in the same minute succeed.
+
+**What it means:** the TLS connection was closed before the server answered. It is a *transport
+path* symptom, not a CRM error. There is no HTTP status for it, because no HTTP response was ever
+produced.
+
+**How to tell whether the server or the path is at fault** (run these on the machine that sees the error):
+
+1. Check the server's own access log for the failing window. Requests that reached the web server are
+   logged there. If the failing calls are **absent** from the access log, they never arrived — the
+   connection died in the network path, not in CRM.
+2. Compare timings from the client and from the server:
+   ```
+   curl -s -o /dev/null -w "http=%{http_code} tls=%{time_appconnect}s total=%{time_total}s\n" \
+     https://your-crm.example.com/api/index.php?route=api/v1/mcp
+   ```
+   A client that is several times slower than the server points at a proxy/VPN in between.
+3. Check the web server error log for real server-side causes (`upstream prematurely closed connection`,
+   `504`, PHP fatals). Those are different problems and must be fixed on the server.
+
+**Most common causes and fixes:**
+
+- **Client-side VPN/proxy/tunnel** (Clash, WireGuard, corporate proxy, anti-virus TLS scanning):
+  the tunnel stalls for a few seconds and drops in-flight TLS handshakes. Fix: route the CRM domain
+  directly (bypass the proxy) — e.g. add a `DOMAIN-SUFFIX,your-crm.example.com,DIRECT` rule — or add
+  retries with backoff to the client.
+- **Idle keep-alive connection reuse:** the web server closes idle connections after `keepalive_timeout`
+  (often 30–75 s) while the client keeps reusing the pooled socket. Fix: enable connection retry in the
+  client (most HTTP clients do this automatically; some agent runtimes need it configured), or lower the
+  client's idle-pool lifetime.
+- **Client retry policy too weak:** a single retry after one second does not survive a 10-second stall.
+  This project's own test client (`tests/lib/http_client.py`) now retries transient transport failures
+  with exponential backoff and a fresh TLS context per attempt; agent clients should do the same.
+- **Server-side certificate/privacy proxies** that terminate TLS in front of the CRM can also close
+  connections; check their logs too.
+
+**Not a cause:** CRM permissions, rate limits or database state. A rate-limited request still gets a
+complete HTTP `429` answer (with `Retry-After`), not a TLS EOF.
+
+---
+
 ## Browser installer not starting
 
 ### White page or no installer when opening the domain
