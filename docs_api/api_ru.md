@@ -1265,6 +1265,17 @@ TropaTT реализует унифицированный протокол ве�
 | POST | `/api/v1/modules/install-from-url` | Установка из URL | Да | `settings.manage` | — |
 | POST | `/api/v1/modules/install-from-file` | Установка из файла | Да | `settings.manage` | `multipart/form-data` |
 
+### Маркетплейс модулей
+
+Прокси-доступ только для чтения к официальному маркетплейсу модулей (`https://marketplace.tropatt.com`). Адрес берётся из конфигурации сервера (`TROPATT_MARKETPLACE_URL`) и никогда — из параметров запроса. Ответ каталога содержит `status` (включён ли маркетплейс, настроен ли адрес, доступен ли сервис), нормализованные `items` и `meta` для пагинации.
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/api/v1/marketplace/catalog` | Каталог маркетплейса | Да | `settings.manage` | Фильтры: `q`, `category`, `page`, `limit` |
+| GET | `/api/v1/marketplace/categories` | Категории маркетплейса | Да | `settings.manage` | — |
+| GET | `/api/v1/marketplace/modules/{full_code}` | Детали модуля маркетплейса | Да | `settings.manage` | Включает опубликованные релизы |
+| POST | `/api/v1/marketplace/install` | Установка модуля из маркетплейса | Да | `settings.manage` | Только root. Body: `full_code`, `activate` |
+
 ### Ideas
 
 | Метод | Endpoint | Назначение | Auth | Permissions | Описание |

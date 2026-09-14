@@ -25,4 +25,13 @@ return [
     'operation_failed' => 'A operação do módulo falhou',
     'purged' => 'Módulo removido fisicamente do disco',
     'file_too_large' => 'O arquivo do módulo é muito grande',
+    'marketplace_unavailable' => 'O marketplace de módulos está indisponível ou desativado',
+    'marketplace_unreachable' => 'O marketplace de módulos não responde',
+    'marketplace_module_unavailable' => 'Não foi possível carregar os detalhes do módulo do marketplace',
+    'marketplace_root_required' => 'Apenas o administrador principal pode instalar módulos do marketplace',
+    'marketplace_already_installed' => 'O módulo já está instalado',
+    'marketplace_install_failed' => 'Não foi possível instalar o módulo do marketplace',
+    'marketplace_installed' => 'Módulo instalado do marketplace',
+    'marketplace_activation_failed' => 'Módulo instalado mas não ativado — ative-o manualmente',
+    'marketplace_package_mismatch' => 'O pacote do marketplace não corresponde ao catálogo: o manifesto declara outro nome de módulo. Informe o fornecedor ou publique uma nova versão',
 ];

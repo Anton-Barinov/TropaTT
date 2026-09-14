@@ -25,4 +25,13 @@ return [
     'operation_failed' => 'Moduloperation fehlgeschlagen',
     'purged' => 'Modul vollständig von der Festplatte gelöscht',
     'file_too_large' => 'Die Moduldatei ist zu groß',
+    'marketplace_unavailable' => 'Der Modul-Marktplatz ist nicht verfügbar oder deaktiviert',
+    'marketplace_unreachable' => 'Der Modul-Marktplatz antwortet nicht',
+    'marketplace_module_unavailable' => 'Moduldetails konnten nicht vom Marktplatz geladen werden',
+    'marketplace_root_required' => 'Nur der Hauptadministrator kann Module aus dem Marktplatz installieren',
+    'marketplace_already_installed' => 'Das Modul ist bereits installiert',
+    'marketplace_install_failed' => 'Modul konnte nicht aus dem Marktplatz installiert werden',
+    'marketplace_installed' => 'Modul vom Marktplatz installiert',
+    'marketplace_activation_failed' => 'Modul installiert, aber nicht aktiviert — bitte manuell aktivieren',
+    'marketplace_package_mismatch' => 'Das Marktplatz-Paket passt nicht zum Katalog: Das Manifest nennt einen anderen Modulnamen. Melden Sie es dem Anbieter oder veröffentlichen Sie ein neues Release',
 ];

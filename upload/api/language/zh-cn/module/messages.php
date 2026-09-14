@@ -25,4 +25,13 @@ return [
     'operation_failed' => '模块操作失败',
     'purged' => '模块已从磁盘完全删除',
     'file_too_large' => '模块文件过大',
+    'marketplace_unavailable' => '模块市场不可用或已禁用',
+    'marketplace_unreachable' => '模块市场无响应',
+    'marketplace_module_unavailable' => '无法从市场加载模块详情',
+    'marketplace_root_required' => '只有超级管理员可以从市场安装模块',
+    'marketplace_already_installed' => '模块已安装',
+    'marketplace_install_failed' => '无法从市场安装模块',
+    'marketplace_installed' => '已从市场安装模块',
+    'marketplace_activation_failed' => '模块已安装但未启用——请手动启用',
+    'marketplace_package_mismatch' => '市场包与目录不一致：其 manifest 声明的模块名不同。请通知供应商或发布新版本',
 ];

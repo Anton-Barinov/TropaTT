@@ -51,7 +51,7 @@ final class ModuleMigrationRunner
                 }
 
                 $this->pdo->beginTransaction();
-                $this->pdo->exec($sql);
+                $this->execSqlScript($sql);
 
                 if (!$this->pdo->inTransaction()) {
                     $this->pdo->beginTransaction();
@@ -101,7 +101,7 @@ final class ModuleMigrationRunner
                 }
 
                     $this->pdo->beginTransaction();
-                    $this->pdo->exec($sql);
+                    $this->execSqlScript($sql);
 
                     if (!$this->pdo->inTransaction()) {
                         $this->pdo->beginTransaction();
@@ -215,7 +215,7 @@ final class ModuleMigrationRunner
                     }
 
                     $this->pdo->beginTransaction();
-                    $this->pdo->exec($sql);
+                    $this->execSqlScript($sql);
 
                     if (!$this->pdo->inTransaction()) {
                         $this->pdo->beginTransaction();
@@ -235,6 +235,174 @@ final class ModuleMigrationRunner
         }
 
         return $result;
+    }
+
+    /**
+     * Execute every statement of a migration script, one exec() per statement.
+     *
+     * Migration files are whole scripts, and rollback files in particular often
+     * hold several statements ("SET FOREIGN_KEY_CHECKS = 0; DROP TABLE a; DROP
+     * TABLE b; SET FOREIGN_KEY_CHECKS = 1;" — that is exactly what the published
+     * crm.wip-limit rollback contains). Passing such a string to a single
+     * PDO::exec() executes only the first statement on MySQL and leaves the
+     * remaining result sets pending, so the very next query on that connection
+     * dies with "SQLSTATE[HY000] General error: 2014 Cannot execute queries while
+     * other unbuffered queries are active" — which is what made every module
+     * uninstall fail with UNINSTALL_FAILED (HTTP 500) and leave a registry row
+     * behind after the files were already gone.
+     */
+    private function execSqlScript(string $sql): void
+    {
+        foreach (self::splitStatements($sql) as $statement) {
+            $stmt = $this->pdo->query($statement);
+            if ($stmt !== false) {
+                $this->drainStatement($stmt);
+            }
+        }
+    }
+
+    /**
+     * Consume and close whatever a statement produced.
+     *
+     * A row-returning statement executed through PDO::exec() leaves its result
+     * set pending on the connection, and the next statement then fails with
+     * "SQLSTATE[HY000] General error: 2014 Cannot execute queries while other
+     * unbuffered queries are active" — even for a harmless trailing `SELECT 1;`,
+     * which is exactly how the published crm.activecollab-migration rollback
+     * ends ("the migration is intentionally irreversible" + `SELECT 1;`).
+     * Going through a PDOStatement and draining it keeps the connection usable.
+     */
+    private function drainStatement(\PDOStatement $stmt): void
+    {
+        try {
+            if ($stmt->columnCount() > 0) {
+                $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
+
+            $driver = '';
+            try {
+                $driver = (string)$this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+            } catch (\Throwable $e) {
+                // Attribute support is driver-specific; the loop below then only
+                // runs its first iteration.
+            }
+
+            // Several statements in one call (or a procedure) can queue more
+            // result sets; SQLite has no such concept and would throw.
+            if ($driver !== 'sqlite') {
+                while ($stmt->nextRowset()) {
+                    if ($stmt->columnCount() > 0) {
+                        $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            // Draining is best-effort: a statement that cannot report rows must
+            // not fail the migration that ran it.
+        } finally {
+            try {
+                $stmt->closeCursor();
+            } catch (\Throwable $e) {
+                // ignore
+            }
+        }
+    }
+
+    /**
+     * Split a SQL script into individual statements.
+     *
+     * Semicolons inside string literals and inside comments are ignored, and both
+     * `--` line comments and slash-star block comments are dropped; identifiers
+     * quoted with backticks, single or double quotes are kept verbatim.
+     *
+     * @return array<int,string> Statements without their trailing semicolon
+     */
+    public static function splitStatements(string $sql): array
+    {
+        $statements = [];
+        $buffer = '';
+        $length = strlen($sql);
+        $quote = '';
+        $inLineComment = false;
+        $inBlockComment = false;
+
+        for ($i = 0; $i < $length; $i++) {
+            $char = $sql[$i];
+            $next = $i + 1 < $length ? $sql[$i + 1] : '';
+
+            if ($inLineComment) {
+                if ($char === "\n") {
+                    $inLineComment = false;
+                    $buffer .= $char;
+                }
+                continue;
+            }
+
+            if ($inBlockComment) {
+                if ($char === '*' && $next === '/') {
+                    $inBlockComment = false;
+                    $i++;
+                }
+                continue;
+            }
+
+            if ($quote !== '') {
+                $buffer .= $char;
+                // Backslash escapes are MySQL-specific and are not honoured inside
+                // backtick-quoted identifiers.
+                if ($char === '\\' && $quote !== '`' && $next !== '') {
+                    $buffer .= $next;
+                    $i++;
+                    continue;
+                }
+                if ($char === $quote) {
+                    if ($next === $quote) {
+                        // A doubled quote is an escaped quote, not the end.
+                        $buffer .= $next;
+                        $i++;
+                        continue;
+                    }
+                    $quote = '';
+                }
+                continue;
+            }
+
+            if ($char === '-' && $next === '-') {
+                $inLineComment = true;
+                $i++;
+                continue;
+            }
+
+            if ($char === '/' && $next === '*') {
+                $inBlockComment = true;
+                $i++;
+                continue;
+            }
+
+            if ($char === "'" || $char === '"' || $char === '`') {
+                $quote = $char;
+                $buffer .= $char;
+                continue;
+            }
+
+            if ($char === ';') {
+                $statement = trim($buffer);
+                if ($statement !== '') {
+                    $statements[] = $statement;
+                }
+                $buffer = '';
+                continue;
+            }
+
+            $buffer .= $char;
+        }
+
+        $tail = trim($buffer);
+        if ($tail !== '') {
+            $statements[] = $tail;
+        }
+
+        return $statements;
     }
 
     /**

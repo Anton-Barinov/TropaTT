@@ -231,6 +231,45 @@ final class ModuleConfig
     }
 
     /**
+     * Drop a registry entry whose module is no longer on disk.
+     *
+     * A module can be registered while its directory is gone: a failed uninstall
+     * or purge deletes the files, and the migration rollback used to abort before
+     * the row was removed ("SQLSTATE[HY000] General error: 2014" on the first
+     * multi-statement rollback file). The leftover is then invisible — /api/v1/modules
+     * lists discovered manifests, so the module shows up in no list at all — while
+     * every install attempt is refused with ALREADY_INSTALLED. Callers use this to
+     * repair that state before installing, so a stale row can never block a
+     * reinstall.
+     *
+     * @return bool true when a stale entry was removed
+     */
+    public function unregisterStale(string $moduleName, string $modulesDir): bool
+    {
+        // The name goes into a filesystem path, so reject anything that could
+        // leave the modules directory before touching the registry.
+        if (
+            $moduleName === ''
+            || str_contains($moduleName, '/')
+            || str_contains($moduleName, '\\')
+            || str_contains($moduleName, '..')
+        ) {
+            return false;
+        }
+
+        if (is_dir(rtrim($modulesDir, '/') . '/' . $moduleName)) {
+            return false;
+        }
+
+        if ($this->getRegistry($moduleName) === null) {
+            return false;
+        }
+
+        $this->unregister($moduleName);
+        return true;
+    }
+
+    /**
      * Get module registry info.
      * @return array<string, mixed>|null
      */

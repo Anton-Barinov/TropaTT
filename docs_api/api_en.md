@@ -1270,6 +1270,17 @@ Module objects returned by `GET /api/v1/modules` and `GET /api/v1/modules/{name}
 | POST | `/api/v1/modules/install-from-url` | Set from URL | Yes | `settings.manage` | — |
 | POST | `/api/v1/modules/install-from-file` | Set from file | Yes | `settings.manage` | `multipart/form-data` |
 
+### Module marketplace
+
+Read-only proxy to the official module marketplace (`https://marketplace.tropatt.com`). The base URL comes from the server configuration (`TROPATT_MARKETPLACE_URL`) and never from request data. Catalog responses carry `status` (whether the marketplace is enabled, configured and reachable) plus normalized `items` and `meta` for pagination.
+
+| Method | Endpoint | Description | Auth | Permissions | Notes |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/api/v1/marketplace/catalog` | Marketplace catalog | Yes | `settings.manage` | Filters: `q`, `category`, `page`, `limit` |
+| GET | `/api/v1/marketplace/categories` | Marketplace categories | Yes | `settings.manage` | — |
+| GET | `/api/v1/marketplace/modules/{full_code}` | Marketplace module details | Yes | `settings.manage` | Includes published releases |
+| POST | `/api/v1/marketplace/install` | Install a marketplace module | Yes | `settings.manage` | Root only. Body: `full_code`, `activate` |
+
 ### Ideas
 
 | Method | Endpoint | Description | Auth | Permissions | Notes |

@@ -25,4 +25,13 @@ return [
     'operation_failed' => 'Module operation failed',
     'bulk_completed' => 'Bulk action completed',
     'file_too_large' => 'Module file is too large',
+    'marketplace_unavailable' => 'The module marketplace is unavailable or disabled',
+    'marketplace_unreachable' => 'The module marketplace is not responding',
+    'marketplace_module_unavailable' => 'Could not load the module details from the marketplace',
+    'marketplace_root_required' => 'Only the root administrator can install modules from the marketplace',
+    'marketplace_already_installed' => 'The module is already installed',
+    'marketplace_install_failed' => 'Could not install the module from the marketplace',
+    'marketplace_installed' => 'Module installed from the marketplace',
+    'marketplace_activation_failed' => 'Module installed but not activated — activate it manually',
+    'marketplace_package_mismatch' => 'The marketplace package does not match the catalog: its manifest declares a different module name. Report it to the vendor or publish a new release',
 ];

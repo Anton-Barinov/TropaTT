@@ -1232,6 +1232,17 @@ TropaTT 为 CRM 出站事件与外部电商 CMS 连接器（OpenCart 1.5–4.x, 
 | POST | `/api/v1/modules/install-from-url` | 设置从 URL | 是 | `settings.manage` | — |
 | POST | `/api/v1/modules/install-from-file` | 设置从文件 | 是 | `settings.manage` | `multipart/form-data` |
 
+### 模块市场
+
+官方模块市场（`https://marketplace.tropatt.com`）的只读代理。地址来自服务器配置（`TROPATT_MARKETPLACE_URL`），绝不来自请求参数。目录响应包含 `status`（是否启用、是否配置、是否可达）以及规范化的 `items` 和分页 `meta`。
+
+| 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/api/v1/marketplace/catalog` | 市场目录 | 是 | `settings.manage` | 过滤器：`q`、`category`、`page`、`limit` |
+| GET | `/api/v1/marketplace/categories` | 市场分类 | 是 | `settings.manage` | — |
+| GET | `/api/v1/marketplace/modules/{full_code}` | 市场模块详情 | 是 | `settings.manage` | 包含已发布版本 |
+| POST | `/api/v1/marketplace/install` | 从市场安装模块 | 是 | `settings.manage` | 仅 root。Body：`full_code`、`activate` |
+
 ### 想法
 
 | 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
