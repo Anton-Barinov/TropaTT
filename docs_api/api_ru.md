@@ -1498,6 +1498,7 @@ TropaTT реализует унифицированный протокол ве�
 | POST | `/_module/crm.ecommerce-gateway/v1/callbacks` | Приём заявки на обратный звонок | Нет | — | Подпись витрины; идемпотентно |
 | POST | `/_module/crm.ecommerce-gateway/v1/feedback` | Приём обращения из формы связи | Нет | — | Подпись витрины; идемпотентно |
 | POST | `/_module/crm.ecommerce-gateway/v1/forms` | Приём произвольной формы / лида | Нет | — | Подпись витрины; идемпотентно |
+| POST | `/_module/crm.ecommerce-gateway/v1/stock` | Приём партии остатков (встречная сторона `syncStock` коннекторов) | Нет | — | Подпись витрины; до 500 строк; идемпотентность по `{store_key}:stock:{sku}` |
 | GET | `/_module/crm.ecommerce-gateway/v1/stores` | Список витрин | Да | `module.ecommerce-gateway.view` | — |
 | POST | `/_module/crm.ecommerce-gateway/v1/stores` | Создание витрины | Да | `module.ecommerce-gateway.manage`, `module.ecommerce-gateway.secret_manage` | Секрет выдаётся один раз |
 | GET | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}` | Детали витрины | Да | `module.ecommerce-gateway.view` | — |

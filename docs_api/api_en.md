@@ -1504,6 +1504,7 @@ Store-to-CRM ingestion is authenticated with an HMAC-SHA256 signature over the s
 | POST | `/_module/crm.ecommerce-gateway/v1/callbacks` | Ingest a callback request | No | — | Signed by store key; idempotent |
 | POST | `/_module/crm.ecommerce-gateway/v1/feedback` | Ingest a feedback form | No | — | Signed by store key; idempotent |
 | POST | `/_module/crm.ecommerce-gateway/v1/forms` | Ingest a custom form or lead | No | — | Signed by store key; idempotent |
+| POST | `/_module/crm.ecommerce-gateway/v1/stock` | Ingest a stock batch (the CRM side of the connector `syncStock`) | No | — | Signed by store key; up to 500 lines; idempotent per `{store_key}:stock:{sku}` |
 | GET | `/_module/crm.ecommerce-gateway/v1/stores` | List stores | Yes | `module.ecommerce-gateway.view` | — |
 | POST | `/_module/crm.ecommerce-gateway/v1/stores` | Create store | Yes | `module.ecommerce-gateway.manage`, `module.ecommerce-gateway.secret_manage` | Secret returned once |
 | GET | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}` | Store details | Yes | `module.ecommerce-gateway.view` | — |
