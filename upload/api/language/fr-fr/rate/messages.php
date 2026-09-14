@@ -5,6 +5,7 @@ return [
     'has_assignments' => 'La grille tarifaire est affectée à un tiers ou un projet — retirez l\'affectation avant d\'archiver',
     'at_least_one_rate' => 'Indiquez au moins un taux',
     'invalid_scope' => 'Type de périmètre invalide',
+    'scope_not_found' => 'La portée sélectionnée est introuvable',
     'date_range_required' => 'Indiquez une plage de dates (date_from et date_to)',
     'invalid_date_format' => 'Format de date invalide. Attendu AAAA-MM-JJ.',
     'date_from_after_to' => 'La date "de" ne peut pas être postérieure à "à".',

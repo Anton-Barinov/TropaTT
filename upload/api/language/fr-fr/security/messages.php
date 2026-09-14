@@ -49,4 +49,5 @@ return [
     'impersonation_stopped' => 'Usurpation d\'identité arrêtée',
     'impersonation_start_failed' => 'Échec du démarrage de l\'usurpation d\'identité',
     'impersonation_stop_failed' => 'Échec de l\'arrêt de l\'usurpation d\'identité',
+    'unauthorized' => 'Non autorisé',
 ];

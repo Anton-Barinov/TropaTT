@@ -49,4 +49,5 @@ return [
     'impersonation_stopped' => 'Impersonação encerrada',
     'impersonation_start_failed' => 'Falha ao iniciar impersonação',
     'impersonation_stop_failed' => 'Falha ao encerrar impersonação',
+    'unauthorized' => 'Não autorizado',
 ];

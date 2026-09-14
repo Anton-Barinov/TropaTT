@@ -1457,10 +1457,10 @@ final class ChatController extends BaseController
         // project grant. Outright reject adding internal users or guests
         // from unrelated counterparties to a client chat.
         if (empty($participant['is_external'])) {
-            return $this->error('VALIDATION', 'Only external (portal) users can be added to a client chat.', 422);
+            return $this->error('VALIDATION', $this->t('chat/messages.external_only_participant'), 422);
         }
         if (empty($participant['is_active'])) {
-            return $this->error('VALIDATION', 'The user is inactive.', 422);
+            return $this->error('VALIDATION', $this->t('chat/messages.participant_inactive'), 422);
         }
         $externalUserService = $this->container->get('service.external_user');
         if ($externalUserService) {
@@ -1469,7 +1469,7 @@ final class ChatController extends BaseController
             $projectCpid = $project['client_public_id'] ?? '';
             $okCp = ($participantCpid !== '' && $projectCpid !== '' && $participantCpid === $projectCpid);
             if (!$okCp) {
-                return $this->error('VALIDATION', 'User does not belong to this project\'s counterparty.', 422);
+                return $this->error('VALIDATION', $this->t('chat/messages.participant_other_counterparty'), 422);
             }
         }
 

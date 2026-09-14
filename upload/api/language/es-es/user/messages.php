@@ -11,6 +11,7 @@ return [
     'max_120' => 'Máximo 120 caracteres',
     'create_failed' => 'Error al crear el usuario',
     'update_failed' => 'Error al actualizar el usuario',
+    'invalid_external_role' => 'Rol externo no válido',
     'delete_failed' => 'Error al eliminar el usuario',
     'token_info_failed' => 'Error al obtener los datos del token del usuario',
     'token_info' => 'Datos del token del usuario',

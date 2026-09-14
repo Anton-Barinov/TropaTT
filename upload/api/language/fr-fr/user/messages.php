@@ -11,6 +11,7 @@ return [
     'max_120' => 'Maximum 120 caractères',
     'create_failed' => 'Échec de la création de l\'utilisateur',
     'update_failed' => 'Échec de la mise à jour de l\'utilisateur',
+    'invalid_external_role' => 'Rôle externe non valide',
     'delete_failed' => 'Échec de la suppression de l\'utilisateur',
     'token_info_failed' => 'Échec de la récupération des données de jeton de l\'utilisateur',
     'token_info' => 'Données de jeton de l\'utilisateur',

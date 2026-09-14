@@ -49,4 +49,5 @@ return [
     'impersonation_stopped' => 'Suplantación detenida',
     'impersonation_start_failed' => 'Error al iniciar la suplantación',
     'impersonation_stop_failed' => 'Error al detener la suplantación',
+    'unauthorized' => 'No autorizado',
 ];

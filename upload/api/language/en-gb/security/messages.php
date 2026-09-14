@@ -49,4 +49,5 @@ return [
     'impersonation_stopped' => 'Impersonation stopped',
     'impersonation_start_failed' => 'Failed to start impersonation',
     'impersonation_stop_failed' => 'Failed to stop impersonation',
+    'unauthorized' => 'Unauthorized',
 ];

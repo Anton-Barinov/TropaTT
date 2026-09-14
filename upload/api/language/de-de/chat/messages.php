@@ -40,4 +40,10 @@ return [
     'chat_id_required' => 'Chat ID required',
     'restore_failed' => 'Failed to restore chat',
     'file_type_not_allowed' => 'This file type is not allowed in chat',
+    'loaded' => 'Chat-Nachrichten geladen',
+    'send_failed' => 'Nachricht konnte nicht gesendet werden',
+    'create_failed' => 'Chat konnte nicht erstellt werden',
+    'external_only_participant' => 'Zu einem Kunden-Chat können nur externe (Portal-)Benutzer hinzugefügt werden',
+    'participant_inactive' => 'Der Benutzer ist inaktiv',
+    'participant_other_counterparty' => 'Der Benutzer gehört nicht zum Kunden dieses Projekts',
 ];

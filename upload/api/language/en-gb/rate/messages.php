@@ -5,6 +5,7 @@ return [
     'has_assignments' => 'Rate card is assigned to a counterparty or project — unassign before archiving',
     'at_least_one_rate' => 'Provide at least one rate',
     'invalid_scope' => 'Invalid scope type',
+    'scope_not_found' => 'The selected scope was not found',
     'date_range_required' => 'Provide a date range (date_from and date_to)',
     'invalid_date_format' => 'Invalid date format. Expected YYYY-MM-DD.',
     'date_from_after_to' => 'Date from must not be after date to.',

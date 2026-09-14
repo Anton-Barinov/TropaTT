@@ -49,4 +49,5 @@ return [
     'impersonation_stopped' => '身份模拟模式已停止',
     'impersonation_start_failed' => '无法启动身份模拟模式',
     'impersonation_stop_failed' => '无法停止身份模拟模式',
+    'unauthorized' => '未授权',
 ];
