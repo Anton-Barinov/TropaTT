@@ -982,6 +982,11 @@ TropaTT implements a unified webhook protocol for outbound CRM events and extern
 | DELETE | `/api/v1/knowledge/spaces/{public_id}` | Archive space | Yes | `knowledge.manage` | — |
 | POST | `/api/v1/knowledge/spaces/{public_id}/archive` | Archive (alt.) | Yes | `knowledge.manage` | — |
 | POST | `/api/v1/knowledge/spaces/{public_id}/restore` | Restore | Yes | `knowledge.manage` | — |
+| POST | `/api/v1/knowledge/spaces/{public_id}/delete` | Move space to the recycle bin | Yes | `knowledge.manage` | Soft delete; the space stays recoverable until the retention window ends |
+| POST | `/api/v1/knowledge/spaces/{public_id}/restore-deleted` | Restore from the recycle bin | Yes | `knowledge.manage` | — |
+| POST | `/api/v1/knowledge/spaces/{public_id}/purge` | Delete permanently | Yes | `knowledge.manage` | Cannot be undone |
+| GET | `/api/v1/knowledge/trash` | Spaces in the recycle bin | Yes | `knowledge.view` | Includes `retention_days` and `purge_at` |
+| POST | `/api/v1/admin/knowledge/trash/purge` | Purge the whole recycle bin | Yes | `knowledge.admin` | Root only; removes every expired space immediately |
 | GET | `/api/v1/knowledge/spaces/{public_id}/tree` | Pages tree | Yes | `knowledge.view` | — |
 | GET | `/api/v1/knowledge/spaces/{public_id}/permissions` | Space permissions | Yes | `knowledge.permission_manage` | — |
 | POST | `/api/v1/knowledge/spaces/{public_id}/permissions` | Add permission | Yes | `knowledge.permission_manage` | — |
@@ -1280,6 +1285,8 @@ Read-only proxy to the official module marketplace (`https://marketplace.tropatt
 | GET | `/api/v1/marketplace/categories` | Marketplace categories | Yes | `settings.manage` | — |
 | GET | `/api/v1/marketplace/modules/{full_code}` | Marketplace module details | Yes | `settings.manage` | Includes published releases |
 | POST | `/api/v1/marketplace/install` | Install a marketplace module | Yes | `settings.manage` | Root only. Body: `full_code`, `activate` |
+
+Install answers are explicit about the state of the installation: `ALREADY_INSTALLED` (409) when the module is registered, `MODULE_DISCOVERED_LOCALLY` (409) when its files are present but it is not registered (install it from the local copy, `POST /api/v1/modules/{code}/install` — the remote installer refuses an existing target directory), `MARKETPLACE_PACKAGE_MISMATCH` (502) when the published package declares a different module code than the catalog, and `INVALID_PARAM` (400) when `full_code` is not a `<vendor>.<module>` code.
 
 ### Ideas
 

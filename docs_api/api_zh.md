@@ -946,6 +946,11 @@ TropaTT 为 CRM 出站事件与外部电商 CMS 连接器（OpenCart 1.5–4.x, 
 | DELETE | `/api/v1/knowledge/spaces/{public_id}` | 归档空间 | 是 | `knowledge.manage` | — |
 | POST | `/api/v1/knowledge/spaces/{public_id}/archive` | 归档（备选） | 是 | `knowledge.manage` | — |
 | POST | `/api/v1/knowledge/spaces/{public_id}/restore` | 恢复 | 是 | `knowledge.manage` | — |
+| POST | `/api/v1/knowledge/spaces/{public_id}/delete` | 将空间移入回收站 | 是 | `knowledge.manage` | 软删除；在保留期结束前可恢复 |
+| POST | `/api/v1/knowledge/spaces/{public_id}/restore-deleted` | 从回收站恢复 | 是 | `knowledge.manage` | — |
+| POST | `/api/v1/knowledge/spaces/{public_id}/purge` | 彻底删除 | 是 | `knowledge.manage` | 无法撤销 |
+| GET | `/api/v1/knowledge/trash` | 回收站中的空间 | 是 | `knowledge.view` | 返回 `retention_days` 与 `purge_at` |
+| POST | `/api/v1/admin/knowledge/trash/purge` | 清空回收站 | 是 | `knowledge.admin` | 仅 root；立即删除所有已过期的空间 |
 | GET | `/api/v1/knowledge/spaces/{public_id}/tree` | 页面树 | 是 | `knowledge.view` | — |
 | GET | `/api/v1/knowledge/spaces/{public_id}/permissions` | 空间权限 | 是 | `knowledge.permission_manage` | — |
 | POST | `/api/v1/knowledge/spaces/{public_id}/permissions` | 添加权限 | 是 | `knowledge.permission_manage` | — |
@@ -1242,6 +1247,8 @@ TropaTT 为 CRM 出站事件与外部电商 CMS 连接器（OpenCart 1.5–4.x, 
 | GET | `/api/v1/marketplace/categories` | 市场分类 | 是 | `settings.manage` | — |
 | GET | `/api/v1/marketplace/modules/{full_code}` | 市场模块详情 | 是 | `settings.manage` | 包含已发布版本 |
 | POST | `/api/v1/marketplace/install` | 从市场安装模块 | 是 | `settings.manage` | 仅 root。Body：`full_code`、`activate` |
+
+安装接口会明确返回安装状态：`ALREADY_INSTALLED`（409）表示模块已注册，`MODULE_DISCOVERED_LOCALLY`（409）表示模块文件已在 CRM 中但未注册（请安装本地副本：`POST /api/v1/modules/{code}/install`，远程安装器不会覆盖已存在的目录），`MARKETPLACE_PACKAGE_MISMATCH`（502）表示市场包声明的模块代码与目录不一致，`INVALID_PARAM`（400）表示 `full_code` 不是 `<vendor>.<module>` 形式的代码。
 
 ### 想法
 

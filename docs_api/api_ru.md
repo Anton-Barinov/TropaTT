@@ -977,6 +977,11 @@ TropaTT реализует унифицированный протокол ве�
 | DELETE | `/api/v1/knowledge/spaces/{public_id}` | Архивация пространства | Да | `knowledge.manage` | — |
 | POST | `/api/v1/knowledge/spaces/{public_id}/archive` | Архивация (альт.) | Да | `knowledge.manage` | — |
 | POST | `/api/v1/knowledge/spaces/{public_id}/restore` | Восстановление | Да | `knowledge.manage` | — |
+| POST | `/api/v1/knowledge/spaces/{public_id}/delete` | Перенос пространства в корзину | Да | `knowledge.manage` | Мягкое удаление; пространство восстановимо до конца срока хранения |
+| POST | `/api/v1/knowledge/spaces/{public_id}/restore-deleted` | Восстановление из корзины | Да | `knowledge.manage` | — |
+| POST | `/api/v1/knowledge/spaces/{public_id}/purge` | Удаление безвозвратно | Да | `knowledge.manage` | Отменить нельзя |
+| GET | `/api/v1/knowledge/trash` | Пространства в корзине | Да | `knowledge.view` | Возвращает `retention_days` и `purge_at` |
+| POST | `/api/v1/admin/knowledge/trash/purge` | Очистка корзины целиком | Да | `knowledge.admin` | Только root; удаляет все просроченные пространства сразу |
 | GET | `/api/v1/knowledge/spaces/{public_id}/tree` | Дерево страниц | Да | `knowledge.view` | — |
 | GET | `/api/v1/knowledge/spaces/{public_id}/permissions` | Права пространства | Да | `knowledge.permission_manage` | — |
 | POST | `/api/v1/knowledge/spaces/{public_id}/permissions` | Добавление права | Да | `knowledge.permission_manage` | — |
@@ -1275,6 +1280,8 @@ TropaTT реализует унифицированный протокол ве�
 | GET | `/api/v1/marketplace/categories` | Категории маркетплейса | Да | `settings.manage` | — |
 | GET | `/api/v1/marketplace/modules/{full_code}` | Детали модуля маркетплейса | Да | `settings.manage` | Включает опубликованные релизы |
 | POST | `/api/v1/marketplace/install` | Установка модуля из маркетплейса | Да | `settings.manage` | Только root. Body: `full_code`, `activate` |
+
+Ответы установки явно называют состояние установки: `ALREADY_INSTALLED` (409) — модуль зарегистрирован, `MODULE_DISCOVERED_LOCALLY` (409) — файлы модуля уже есть в CRM, но он не зарегистрирован (ставьте локальную копию: `POST /api/v1/modules/{code}/install`; удалённый установщик не пишет поверх существующего каталога), `MARKETPLACE_PACKAGE_MISMATCH` (502) — пакет маркетплейса объявляет другой код модуля, чем каталог, и `INVALID_PARAM` (400) — `full_code` не является кодом вида `<vendor>.<module>`.
 
 ### Ideas
 
