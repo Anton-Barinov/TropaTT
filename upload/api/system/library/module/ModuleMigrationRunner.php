@@ -53,18 +53,13 @@ final class ModuleMigrationRunner
                 $this->pdo->beginTransaction();
                 $this->execSqlScript($sql);
 
-                if (!$this->pdo->inTransaction()) {
-                    $this->pdo->beginTransaction();
-                }
-
+                $this->beginIfNotInTransaction();
                 $this->recordMigration($moduleName, $migrationName);
-                $this->pdo->commit();
+                $this->commitIfActive();
 
                 $result['applied'][] = $migrationName;
             } catch (\Throwable $e) {
-                if ($this->pdo->inTransaction()) {
-                    $this->pdo->rollBack();
-                }
+                $this->rollBackIfActive();
                 $result['errors'][] = "{$migrationName}: " . $e->getMessage();
             }
         }
@@ -103,18 +98,13 @@ final class ModuleMigrationRunner
                     $this->pdo->beginTransaction();
                     $this->execSqlScript($sql);
 
-                    if (!$this->pdo->inTransaction()) {
-                        $this->pdo->beginTransaction();
-                    }
-
+                    $this->beginIfNotInTransaction();
                     $this->removeMigrationRecord($moduleName, $migration);
-                    $this->pdo->commit();
+                    $this->commitIfActive();
 
                 $result['rolled_back'][] = $migration;
             } catch (\Throwable $e) {
-                if ($this->pdo->inTransaction()) {
-                    $this->pdo->rollBack();
-                }
+                $this->rollBackIfActive();
                 $result['errors'][] = "{$migration}: " . $e->getMessage();
             }
         }
@@ -217,24 +207,79 @@ final class ModuleMigrationRunner
                     $this->pdo->beginTransaction();
                     $this->execSqlScript($sql);
 
-                    if (!$this->pdo->inTransaction()) {
-                        $this->pdo->beginTransaction();
-                    }
-
+                    $this->beginIfNotInTransaction();
                     $this->recordMigration($moduleName, $migrationName);
-                    $this->pdo->commit();
+                    $this->commitIfActive();
 
                     $result['applied'][] = $migrationName;
                 } catch (\Throwable $e) {
-                    if ($this->pdo->inTransaction()) {
-                        $this->pdo->rollBack();
-                    }
+                    $this->rollBackIfActive();
                     $result['errors'][] = "{$migrationName}: " . $e->getMessage();
                 }
             }
         }
 
         return $result;
+    }
+
+    /**
+     * Start a transaction only when the connection is not already in one.
+     *
+     * After a DDL script the driver's transaction flag cannot be trusted (see
+     * commitIfActive()), so this guards the record write instead of asserting
+     * the state: whatever the flag says, the INSERT either joins the live
+     * transaction or runs in autocommit — both persist.
+     */
+    private function beginIfNotInTransaction(): void
+    {
+        try {
+            if (!$this->pdo->inTransaction()) {
+                $this->pdo->beginTransaction();
+            }
+        } catch (\Throwable $e) {
+            AppLog::warning('[ModuleMigrationRunner] beginTransaction skipped: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Commit the migration record, tolerating a transaction the server closed
+     * behind PDO's back.
+     *
+     * MySQL (and MariaDB) commit implicitly before and after every DDL
+     * statement, `ALTER TABLE` included, while PDO keeps reporting
+     * `inTransaction() === true` for the transaction it opened. Calling
+     * `commit()` then fails with "There is no active transaction" — that made
+     * every module install whose migrations contain DDL answer HTTP 500 at the
+     * very last step, after the schema had already been changed. There is
+     * nothing to commit in that case: the statements ran in autocommit and are
+     * durable, and so is the record written just before this call.
+     */
+    private function commitIfActive(): void
+    {
+        try {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->commit();
+            }
+        } catch (\PDOException $e) {
+            if (!str_contains(strtolower($e->getMessage()), 'no active transaction')) {
+                throw $e;
+            }
+        }
+    }
+
+    /**
+     * Roll back when there is a transaction to roll back; never mask the original
+     * migration error with a rollback error.
+     */
+    private function rollBackIfActive(): void
+    {
+        try {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+        } catch (\Throwable $e) {
+            AppLog::warning('[ModuleMigrationRunner] rollBack skipped: ' . $e->getMessage());
+        }
     }
 
     /**
