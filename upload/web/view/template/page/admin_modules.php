@@ -4,10 +4,18 @@
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
 <main class="crm-content crm-admin-page crm-admin-modules-page"><div class="crm-page-head"><div><ol class="breadcrumb mb-1"><li class="breadcrumb-item"><a href="index.php?route=admin" data-i18n="admin_modules.link_admin"><?= htmlspecialchars($t('admin_modules.link_admin', 'Админка'), ENT_QUOTES, 'UTF-8') ?></a></li><li class="breadcrumb-item active" data-i18n="admin_modules.breadcrumb"><?= htmlspecialchars($t('admin_modules.breadcrumb', 'Модули'), ENT_QUOTES, 'UTF-8') ?></li></ol><h1 class="crm-page-title" data-i18n="admin_modules.page_title"><?= htmlspecialchars($t('admin_modules.page_title', 'Модули'), ENT_QUOTES, 'UTF-8') ?></h1><p class="crm-subtitle" data-i18n="admin_modules.subtitle"><?= htmlspecialchars($t('admin_modules.subtitle', 'Управление модулями расширения: установка, активация, деактивация и удаление.'), ENT_QUOTES, 'UTF-8') ?></p></div><div class="crm-page-actions"><a class="btn crm-btn-primary" href="index.php?route=admin-modules-install" data-i18n="admin_modules.link_install_module"><i class="fa-solid fa-plus" aria-hidden="true"></i> <?= htmlspecialchars($t('admin_modules.link_install_module', 'Установить модуль'), ENT_QUOTES, 'UTF-8') ?></a></div></div>
 
-<div class="crm-card crm-admin-tabs mb-3">
-  <ul class="nav nav-pills gap-2" id="moduleTabs" role="tablist">
-    <li class="nav-item" role="presentation"><button class="nav-link active" id="moduleInstalledTab" data-bs-toggle="tab" data-bs-target="#installedPane" type="button" role="tab" aria-controls="installedPane" aria-selected="true" data-i18n="admin_modules.tab_installed"><?= htmlspecialchars($t('admin_modules.tab_installed', 'Установленные'), ENT_QUOTES, 'UTF-8') ?></button></li>
-    <li class="nav-item" role="presentation"><button class="nav-link" id="moduleMarketplaceTab" data-bs-toggle="tab" data-bs-target="#marketplacePane" type="button" role="tab" aria-controls="marketplacePane" aria-selected="false" data-i18n="admin_modules.tab_marketplace"><?= htmlspecialchars($t('admin_modules.tab_marketplace', 'Маркетплейс'), ENT_QUOTES, 'UTF-8') ?></button></li>
+<!--
+  Segmented view switcher, the same control the rest of the admin area uses
+  (#moduleCategoryFilters on this page, the filter bars on the logs and team
+  pages): one bordered track whose segments are separated by hairlines, the
+  current one tinted. It carries an icon and a live count per view, because the
+  count is how a visitor decides which tab to open. Bootstrap's tab plugin drives
+  it through data-bs-toggle/data-bs-target, so the panes below are unchanged.
+-->
+<div class="crm-module-tabs mb-3">
+  <ul class="nav" id="moduleTabs" role="tablist" aria-label="<?= htmlspecialchars($t('admin_modules.tabs_aria', 'Разделы страницы модулей'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="admin_modules.tabs_aria">
+    <li class="nav-item" role="presentation"><button class="nav-link active" id="moduleInstalledTab" data-bs-toggle="tab" data-bs-target="#installedPane" type="button" role="tab" aria-controls="installedPane" aria-selected="true"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-boxes-stacked"></i></span><span data-i18n="admin_modules.tab_installed"><?= htmlspecialchars($t('admin_modules.tab_installed', 'Установленные'), ENT_QUOTES, 'UTF-8') ?></span><span class="crm-tab-count" id="moduleInstalledCount" hidden>0</span></button></li>
+    <li class="nav-item" role="presentation"><button class="nav-link" id="moduleMarketplaceTab" data-bs-toggle="tab" data-bs-target="#marketplacePane" type="button" role="tab" aria-controls="marketplacePane" aria-selected="false"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-store"></i></span><span data-i18n="admin_modules.tab_marketplace"><?= htmlspecialchars($t('admin_modules.tab_marketplace', 'Маркетплейс'), ENT_QUOTES, 'UTF-8') ?></span><span class="crm-tab-count" id="moduleMarketplaceCount" hidden>0</span></button></li>
   </ul>
 </div>
 
@@ -69,7 +77,12 @@
     var tableBody = document.getElementById('moduleTableBody');
     if (!tableBody) return;
 
-    var state = { selected: {}, modules: [], filter: 'all' };
+    // `modulesLoaded`/`modulesError` describe the *installed-modules* list, which
+    // the marketplace tab needs to classify its cards. Without them the grid
+    // treated "list not here yet" as "module not installed" and offered an
+    // install button for a module that is registered or already on disk — the
+    // click could then only answer 409 ALREADY_INSTALLED / MODULE_DISCOVERED_LOCALLY.
+    var state = { selected: {}, modules: [], filter: 'all', modulesLoaded: false, modulesError: false };
     var COLSPAN = 6;
     var CATEGORY_ORDER = ['migration', 'calendar', 'integration', 'productivity', 'diagram'];
 
@@ -198,19 +211,83 @@
             .then(function (env) {
                 var modules = env.data || [];
                 state.modules = modules;
+                state.modulesLoaded = true;
+                state.modulesError = false;
+                setTabCount('moduleInstalledCount', modules.length);
                 if (modules.length === 0) {
                     tableBody.innerHTML = '<tr><td colspan="' + COLSPAN + '" class="text-muted">' + window.CRM.i18n.t('admin_modules.empty', 'Модули не найдены.') + ' <a href="index.php?route=admin-modules-install">' + window.CRM.i18n.t('admin_modules.link_install_first', 'Установить первый модуль') + '</a></td></tr>';
                     renderFilters();
                     updateBulkToolbar();
+                    mpRefreshCardStates();
                     return;
                 }
 
                 renderFilters();
                 renderRows();
+                mpRefreshCardStates();
             })
             .catch(function (err) {
+                state.modulesError = true;
+                state.modulesLoaded = false;
+                // No count is honest here: the list could not be read.
+                setTabCount('moduleInstalledCount', null);
                 tableBody.innerHTML = '<tr><td colspan="' + COLSPAN + '" class="text-danger">' + window.CRM.i18n.t('admin_modules.error_load', 'Ошибка загрузки') + ': ' + esc((err.envelope && err.envelope.message) || (err.message) || window.CRM.i18n.t('admin_modules.unknown_error', 'Неизвестная ошибка')) + '</td></tr>';
+                // The catalogue may already be on screen; its cards must stop
+                // claiming to know the module state they could not read.
+                mpRefreshCardStates();
             });
+    }
+
+    /**
+     * Re-classify the marketplace cards after the installed-modules list
+     * arrived (or failed). Without this the grid kept the classification it
+     * derived while the list was still in flight, so a registered module showed
+     * an install button for the rest of the session.
+     */
+    /**
+     * Write a count onto a view tab. Pass `null` to hide it: a count that could
+     * not be read (or has not arrived) is worse than no count at all, because
+     * the tab is the only place the visitor sees how much is behind it.
+     */
+    function setTabCount(id, value) {
+        var node = document.getElementById(id);
+        if (!node) return;
+        if (value === null || value === undefined || isNaN(value)) {
+            node.hidden = true;
+            node.textContent = '';
+            return;
+        }
+        node.textContent = String(value);
+        node.hidden = false;
+    }
+
+    /**
+     * Keep `aria-selected` in step with the class the tab plugin toggles.
+     * Bootstrap moves `.active` between the triggers; the attribute is what a
+     * screen reader announces, and it is authored in the markup, so it has to be
+     * updated by hand or the announced tab sticks to the first one forever.
+     */
+    function syncTabAria() {
+        var list = document.getElementById('moduleTabs');
+        if (!list) return;
+        list.querySelectorAll('[role="tab"]').forEach(function (tab) {
+            tab.setAttribute('aria-selected', tab.classList.contains('active') ? 'true' : 'false');
+        });
+    }
+
+    function mpRefreshCardStates() {
+        if (mpState.loaded && !mpState.loading) {
+            mpRenderGrid();
+        }
+    }
+
+    /**
+     * Whether the installed-modules list is in hand: 'ready' once it arrived,
+     * 'error' when the request failed, 'pending' while it is still in flight.
+     */
+    function mpListReadiness() {
+        if (state.modulesLoaded) return 'ready';
+        return state.modulesError ? 'error' : 'pending';
     }
 
     function renderRows() {
@@ -598,13 +675,25 @@
      * rejects a target directory that already exists. Such an entry is therefore
      * its own state: install from the local copy instead of downloading.
      *
+     * `listState` says whether that payload is actually in hand: 'ready', 'pending'
+     * (still loading) or 'error' (the request failed). An unknown list must never
+     * answer "available" — the catalogue request and the modules request race each
+     * other, and when the catalogue won, a registered or on-disk module showed an
+     * install button whose only possible answer was 409 ALREADY_INSTALLED /
+     * MODULE_DISCOVERED_LOCALLY (reported from admin-modules on 2026-09-14).
+     *
      * Pure on purpose, so the classification can be unit-tested: active —
      * registered and enabled; installed — registered but not enabled;
-     * discovered — present on disk, not registered; available — not on disk.
+     * discovered — present on disk, not registered; available — not on disk;
+     * unknown / unavailable — the installed-modules list is not (yet) known.
      */
-    function mpCardState(fullCode, modules) {
+    function mpCardState(fullCode, modules, listState) {
         var code = String(fullCode == null ? '' : fullCode);
         if (code === '') return 'available';
+        var readiness = listState || 'ready';
+        if (readiness !== 'ready') {
+            return readiness === 'error' ? 'unavailable' : 'unknown';
+        }
         var list = modules || [];
         for (var i = 0; i < list.length; i++) {
             var entry = list[i];
@@ -740,7 +829,7 @@
         var html = '';
         items.forEach(function (m) {
             var code = m.full_code || '';
-            var cardState = mpCardState(code, state.modules);
+            var cardState = mpCardState(code, state.modules, mpListReadiness());
 
             html += '<div class="col-12 col-md-6 col-xl-4">';
             html += '<div class="crm-card crm-section-card h-100 p-3 d-flex flex-column">';
@@ -782,13 +871,31 @@
             }
 
             html += '<div class="d-flex flex-wrap align-items-center gap-2 mt-auto">';
-            if (cardState === 'active' || cardState === 'installed') {
+            if (cardState === 'unknown' || cardState === 'unavailable') {
+                // The installed-modules list has not arrived (or failed): the page
+                // cannot know whether this module is installable, so it must not
+                // offer an install that can only come back as a conflict.
+                html += cardState === 'unavailable'
+                    ? '<span class="badge bg-danger">' + esc(mpT('admin_modules.state_unavailable', 'Состояние модулей неизвестно')) + '</span>'
+                    : '<span class="badge bg-secondary">' + esc(mpT('admin_modules.state_unknown', 'Определяем состояние…')) + '</span>';
+                if (cardState === 'unavailable') {
+                    html += '<button type="button" class="btn btn-sm crm-btn-secondary mp-reload-modules" data-code="' + esc(code)
+                        + '">' + esc(mpT('admin_modules.mp_retry_modules', 'Повторить загрузку')) + '</button>';
+                }
+            } else if (cardState === 'active' || cardState === 'installed') {
                 // Mirrors the installed-modules tab: registered + enabled is
-                // "Активен", registered but disabled is "Установлен".
+                // "Активен", registered but disabled is "Установлен". A registered
+                // but disabled module gets an activate action — the marketplace
+                // install with activate=true is exactly what the visitor meant.
                 var stateBadge = cardState === 'active'
                     ? '<span class="badge bg-success">' + esc(mpT('admin_modules.state_active', 'Активен')) + '</span>'
                     : '<span class="badge bg-warning">' + esc(mpT('admin_modules.mp_installed', 'Установлен')) + '</span>';
                 html += stateBadge;
+                if (cardState === 'installed') {
+                    html += '<button type="button" class="btn btn-sm crm-btn-primary mp-activate" data-code="' + esc(code)
+                        + '" title="' + esc(mpT('admin_modules.mp_activate', 'Активировать')) + '"' + (mpState.canInstall ? '' : ' disabled')
+                        + '>' + esc(mpT('admin_modules.mp_activate', 'Активировать')) + '</button>';
+                }
             } else if (cardState === 'discovered') {
                 // The package is already on disk (shipped by the build), so there
                 // is nothing to download: registering the local copy is exactly
@@ -841,6 +948,36 @@
                 moduleAction(this.getAttribute('data-code') || '', 'install', self, function () {
                     mpLoad(parseInt(mpState.meta.page, 10) || 1, true);
                 });
+            });
+        });
+
+        // A registered-but-disabled module: the visitor asked to install it, so
+        // offer the step that is actually left — activation.
+        grid.querySelectorAll('.mp-activate').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var code = this.getAttribute('data-code') || '';
+                var self = this;
+                confirmModuleAction({
+                    title: mpT('admin_modules.mp_activate_confirm_title', 'Активировать модуль?'),
+                    message: mpT('admin_modules.mp_activate_confirm_msg', 'Модуль {name} уже установлен в CRM — он будет активирован без загрузки с маркетплейса.').replace('{name}', code),
+                    actionText: mpT('admin_modules.mp_activate', 'Активировать'),
+                    actionClass: 'crm-btn-primary'
+                }).then(function (ok) {
+                    if (!ok) return;
+                    self.disabled = true;
+                    self.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+                    moduleAction(code, 'activate', self, function () {
+                        mpLoad(parseInt(mpState.meta.page, 10) || 1, true);
+                    });
+                });
+            });
+        });
+
+        // The modules list failed: give the visitor a way to retry the read the
+        // card states depend on.
+        grid.querySelectorAll('.mp-reload-modules').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                loadModules();
             });
         });
 
@@ -909,6 +1046,9 @@
                 if (data.marketplace_url) mpState.marketplaceUrl = data.marketplace_url;
                 mpState.loaded = true;
                 mpBusy(false);
+                // The catalog page size is smaller than the catalog itself, so
+                // the tab count is the marketplace's total, not the page length.
+                setTabCount('moduleMarketplaceCount', (data.meta && data.meta.total) || (data.status && data.status.total));
 
                 if (mpState.categories.length === 0) {
                     mpLoadCategories();
@@ -1041,6 +1181,14 @@
             nextBtn.addEventListener('click', function () {
                 mpLoad((parseInt(mpState.meta.page, 10) || 1) + 1);
             });
+        }
+
+        var tabs = document.getElementById('moduleTabs');
+        if (tabs) {
+            tabs.querySelectorAll('[role="tab"]').forEach(function (node) {
+                node.addEventListener('shown.bs.tab', syncTabAria);
+            });
+            syncTabAria();
         }
 
         var tab = document.getElementById('moduleMarketplaceTab');

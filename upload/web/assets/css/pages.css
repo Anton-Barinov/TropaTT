@@ -2664,6 +2664,173 @@ font-size: 0.72rem;
   z-index: 5;
 }
 
+/* ----------------------------------------------------------------------------
+   Modules page: view switcher (Установленные | Маркетплейс)
+
+   Built as the segmented control the rest of the interface uses (the category
+   filter right below it, the logs filter bar, the team switcher): one bordered
+   track, hairline-separated segments, the current one tinted. The tab plugin
+   only moves `.active`, so every colour here is driven by tokens and stays
+   correct in all five themes.
+   -------------------------------------------------------------------------- */
+.crm-admin-modules-page .crm-module-tabs {
+  position: sticky;
+  top: 0.75rem;
+  z-index: 5;
+  display: inline-flex;
+  align-items: stretch;
+  max-width: 100%;
+  border: 1px solid var(--crm-border);
+  border-radius: var(--crm-radius-md);
+  background: var(--crm-surface);
+  box-shadow: var(--crm-shadow-sm);
+  overflow: hidden;
+}
+
+.crm-admin-modules-page .crm-module-tabs > .nav {
+  flex-wrap: nowrap;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.crm-admin-modules-page .crm-module-tabs > .nav::-webkit-scrollbar {
+  display: none;
+}
+
+.crm-admin-modules-page .crm-module-tabs .nav-item {
+  display: flex;
+}
+
+.crm-admin-modules-page .crm-module-tabs .nav-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 18px;
+  border: 0;
+  border-right: 1px solid var(--crm-border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--crm-text-muted);
+  font-size: 13.5px;
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.crm-admin-modules-page .crm-module-tabs .nav-item:last-child .nav-link {
+  border-right: 0;
+}
+
+.crm-admin-modules-page .crm-module-tabs .nav-link .crm-icon {
+  width: 16px;
+  height: 16px;
+  font-size: 14px;
+}
+
+.crm-admin-modules-page .crm-module-tabs .nav-link:hover:not(.active) {
+  background: var(--crm-surface-2);
+  color: var(--crm-text);
+}
+
+/* The current view: a tinted fill, its own label in the ordinary text colour and
+   an accent underline. The label stays the body text colour because the accent
+   tint the other segmented controls put on their active item fails AA on
+   graphite (--crm-accent-strong #C96845 on --crm-success-soft #122B24 =
+   3.97:1). The underline is drawn by a pseudo-element, not a box-shadow: the
+   contrast theme strips every box-shadow, and there --crm-success-soft equals
+   the track's --crm-surface, so the underline is the only thing left that marks
+   the current view. */
+.crm-admin-modules-page .crm-module-tabs .nav-link.active {
+  background: var(--crm-success-soft);
+  color: var(--crm-text);
+  font-weight: 700;
+}
+
+.crm-admin-modules-page .crm-module-tabs .nav-link.active::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: var(--crm-success);
+}
+
+.crm-admin-modules-page .crm-module-tabs .nav-link:focus-visible {
+  z-index: 1;
+  outline: 2px solid color-mix(in srgb, var(--crm-accent) 28%, transparent);
+  outline-offset: -2px;
+}
+
+/* The count is the reason to pick a tab, so it sits inside the segment and
+   tints itself from the label colour (no separate palette to keep in step). */
+.crm-admin-modules-page .crm-module-tabs .crm-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  color: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.crm-admin-modules-page .crm-module-tabs .crm-tab-count[hidden] {
+  display: none;
+}
+
+/* Phones: the two segments plus their counts have to fit a 360px viewport
+   without an inner scrollbar (a horizontally scrolling tab bar hides the second
+   view, which is exactly the one a visitor is looking for). */
+@media (max-width: 575.98px) {
+  .crm-admin-modules-page .crm-module-tabs {
+    display: flex;
+    width: 100%;
+  }
+
+  .crm-admin-modules-page .crm-module-tabs > .nav {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  .crm-admin-modules-page .crm-module-tabs .nav-item {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .crm-admin-modules-page .crm-module-tabs .nav-link {
+    width: 100%;
+    padding: 0 10px;
+    gap: 6px;
+    font-size: 13px;
+  }
+
+  .crm-admin-modules-page .crm-module-tabs .nav-link .crm-icon {
+    width: 14px;
+    height: 14px;
+    font-size: 13px;
+  }
+
+  .crm-admin-modules-page .crm-module-tabs .crm-tab-count {
+    min-width: 20px;
+    height: 18px;
+    padding: 0 4px;
+    font-size: 11px;
+  }
+}
+
 .crm-admin-page .crm-admin-ai-tabs .nav,
 .crm-admin-page .crm-admin-tabs .nav {
   flex-wrap: nowrap;
