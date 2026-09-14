@@ -248,7 +248,7 @@ Handlers are stateless public static methods resolved by `Web\System\Module\Modu
 - **API routes** — `api/config/routes.php` returns an array of route definitions. They are auto-prefixed with `/_module/vendor.name/`.
 - **Web routes** — `web/config/routes.php` adds page routes to the web router.
 - **Service provider** — extend `Api\System\Library\Module\AbstractModuleServiceProvider` and implement `register()`/`boot()`, plus optional `getPermissions()`, `getMenuItems()`, `getScheduledTasks()`, `getConfig()`.
-- **Migrations** — SQL files in the directory named by `migrations`; applied/rolled back by the module manager.
+- **Migrations** — SQL files in the directory named by `migrations`; applied/rolled back by the module manager. Uninstall keeps your tables (the owner's data must survive), so a re-install runs the migrations again against the schema your module left behind: write them so that re-running is harmless — `CREATE TABLE IF NOT EXISTS`, `DROP ... IF EXISTS`, and guarded `ALTER`s. The runner tolerates DDL that is already applied (duplicate table/column/key/constraint, "nothing to drop") and applies a multi-clause `ALTER TABLE` clause by clause, so the parts still missing are added; a statement that fails for any other reason — invalid SQL, or an `ALTER` against a table that does not exist — still fails the migration and is not recorded as applied.
 
 ## 8. Checklist for a self-contained module
 

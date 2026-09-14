@@ -254,11 +254,216 @@ final class ModuleMigrationRunner
     private function execSqlScript(string $sql): void
     {
         foreach (self::splitStatements($sql) as $statement) {
-            $stmt = $this->pdo->query($statement);
-            if ($stmt !== false) {
-                $this->drainStatement($stmt);
+            try {
+                $stmt = $this->pdo->query($statement);
+                if ($stmt !== false) {
+                    $this->drainStatement($stmt);
+                }
+            } catch (\Throwable $e) {
+                if (!$this->isAlreadyAppliedError($statement, $e)) {
+                    throw $e;
+                }
+
+                // The statement (or part of it) is already applied to this
+                // database. That is the normal case when a module is installed
+                // again over the schema a previous install left behind: module
+                // uninstall intentionally keeps the tables (user data survives),
+                // so the migration log and the schema disagree.
+                //
+                // A multi-clause ALTER TABLE fails as a whole, so one missing
+                // clause would keep the others from being applied — run the
+                // clauses one by one and tolerate the ones already in place.
+                $clauses = self::splitAlterClauses($statement);
+                if ($clauses === null) {
+                    AppLog::warning(
+                        '[ModuleMigrationRunner] statement already applied, skipped: '
+                        . self::oneLine($statement) . ' — ' . $e->getMessage()
+                    );
+                    continue;
+                }
+
+                foreach ($clauses as $clause) {
+                    try {
+                        $stmt = $this->pdo->query($clause);
+                        if ($stmt !== false) {
+                            $this->drainStatement($stmt);
+                        }
+                    } catch (\Throwable $inner) {
+                        if (!$this->isAlreadyAppliedError($clause, $inner)) {
+                            throw $inner;
+                        }
+                        AppLog::warning(
+                            '[ModuleMigrationRunner] clause already applied, skipped: '
+                            . self::oneLine($clause) . ' — ' . $inner->getMessage()
+                        );
+                    }
+                }
             }
         }
+    }
+
+    /**
+     * Is the failure the schema telling us this migration is already applied?
+     *
+     * Only schema statements are judged — a failing `INSERT` or `SET` is a real
+     * error. Duplicate-object failures are always benign (the object exists, so
+     * the migration's intent is satisfied), while "there is nothing to drop"
+     * is tolerated for DROP statements only: an ALTER against a table that does
+     * not exist is a broken migration and must still fail loudly, otherwise the
+     * migration would be recorded as applied over a schema that was never built.
+     *
+     * @param int $code driver error code (MySQL error number)
+     */
+    private function isAlreadyAppliedError(string $statement, \Throwable $e): bool
+    {
+        if (preg_match('/^\s*(CREATE|ALTER|DROP|INSERT|RENAME)\b/i', $statement) !== 1) {
+            return false;
+        }
+
+        $code = $e instanceof \PDOException ? (int)($e->errorInfo[1] ?? 0) : 0;
+        $message = strtolower($e->getMessage());
+
+        // ER_DUP_KEY(1022), ER_TABLE_EXISTS_ERROR(1050), ER_DUP_FIELDNAME(1060),
+        // ER_DUP_KEYNAME(1061), ER_DUP_ENTRY(1062), ER_FK_DUP_NAME(1826).
+        if (in_array($code, [1022, 1050, 1060, 1061, 1062, 1826], true)) {
+            return true;
+        }
+
+        foreach ([
+            'duplicate column name',
+            'duplicate table',
+            'duplicate_table',
+            'duplicate_object',
+            'duplicate_column',
+            'duplicate key name',
+            'duplicate foreign key constraint name',
+            'duplicate entry',
+            'unique constraint failed',
+            'already exists',
+        ] as $needle) {
+            if (str_contains($message, $needle)) {
+                return true;
+            }
+        }
+
+        if (preg_match('/^\s*DROP\b/i', $statement) === 1) {
+            // ER_BAD_TABLE_ERROR(1051), ER_CANT_DROP_FIELD_OR_KEY(1091).
+            if (in_array($code, [1051, 1091], true)) {
+                return true;
+            }
+            foreach (['no such table', 'no such column', 'no such index', 'unknown table', 'unknown column', 'does not exist', "can't drop", 'cannot drop'] as $needle) {
+                if (str_contains($message, $needle)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Split a multi-clause `ALTER TABLE t ...` into one statement per clause.
+     *
+     * Returns null when the statement is not an ALTER TABLE with a comma-separated
+     * clause list; a single-clause ALTER, an ALTER of one INDEX over several
+     * columns (`ADD INDEX i (a, b)`) and every non-ALTER statement must be left
+     * exactly as written.
+     *
+     * @return array<int,string>|null
+     */
+    private static function splitAlterClauses(string $statement): ?array
+    {
+        if (preg_match('/^\s*ALTER\s+TABLE\s+(`[^`]+`|"[^"]+"|`?[A-Za-z0-9_.$]+`?)\s+(.*)$/is', $statement, $m) !== 1) {
+            return null;
+        }
+
+        $parts = self::splitTopLevelCommas($m[2]);
+        if (count($parts) < 2) {
+            return null;
+        }
+
+        $clauses = [];
+        foreach ($parts as $part) {
+            $part = trim($part);
+            // Each comma-separated part of a multi-clause ALTER starts with its
+            // own action; the comma inside `ADD INDEX i (a, b)` is nested in
+            // parentheses and is therefore not a separator.
+            if (preg_match('/^(ADD|DROP|MODIFY|CHANGE|ALTER|RENAME|CONVERT|COMMENT|ENGINE)\b/i', $part) !== 1) {
+                return null;
+            }
+            $clauses[] = 'ALTER TABLE ' . $m[1] . ' ' . $part;
+        }
+
+        return $clauses;
+    }
+
+    /**
+     * Split on commas that are not inside parentheses, string literals or
+     * quoted identifiers.
+     *
+     * @return array<int,string>
+     */
+    private static function splitTopLevelCommas(string $sql): array
+    {
+        $parts = [];
+        $buffer = '';
+        $depth = 0;
+        $quote = '';
+        $length = strlen($sql);
+
+        for ($i = 0; $i < $length; $i++) {
+            $char = $sql[$i];
+            $next = $i + 1 < $length ? $sql[$i + 1] : '';
+
+            if ($quote !== '') {
+                $buffer .= $char;
+                if ($char === '\\' && $quote !== '`' && $next !== '') {
+                    $buffer .= $next;
+                    $i++;
+                    continue;
+                }
+                if ($char === $quote) {
+                    if ($next === $quote) {
+                        $buffer .= $next;
+                        $i++;
+                        continue;
+                    }
+                    $quote = '';
+                }
+                continue;
+            }
+
+            if ($char === "'" || $char === '"' || $char === '`') {
+                $quote = $char;
+                $buffer .= $char;
+                continue;
+            }
+
+            if ($char === '(') {
+                $depth++;
+            } elseif ($char === ')' && $depth > 0) {
+                $depth--;
+            } elseif ($char === ',' && $depth === 0) {
+                $parts[] = $buffer;
+                $buffer = '';
+                continue;
+            }
+
+            $buffer .= $char;
+        }
+
+        $parts[] = $buffer;
+
+        return $parts;
+    }
+
+    /**
+     * Keep log lines readable: a migration statement can span many lines.
+     */
+    private static function oneLine(string $sql, int $limit = 220): string
+    {
+        $flat = trim((string)preg_replace('/\s+/', ' ', $sql));
+        return mb_strlen($flat) > $limit ? mb_substr($flat, 0, $limit) . '…' : $flat;
     }
 
     /**
