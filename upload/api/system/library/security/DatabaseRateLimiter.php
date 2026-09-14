@@ -5,6 +5,7 @@ namespace Api\System\Library\Security;
 
 use PDO;
 use Api\System\Library\Database\IndexHelper;
+use Api\System\Library\Support\AppLog;
 
 final class DatabaseRateLimiter implements RateLimiterInterface
 {
@@ -70,7 +71,7 @@ final class DatabaseRateLimiter implements RateLimiterInterface
 
             return $this->hitGeneric($key, $now, $windowStart);
         } catch (\Throwable $e) {
-            error_log('[DatabaseRateLimiter::hit] ' . $e->getMessage());
+            AppLog::error('[DatabaseRateLimiter::hit] ' . $e->getMessage());
             return ['blocked' => false, 'retry_after' => 0];
         }
     }
@@ -214,10 +215,10 @@ final class DatabaseRateLimiter implements RateLimiterInterface
             if ((string)$e->getCode() === '23000' && (int)($e->errorInfo[1] ?? 0) === 1062) {
                 return false;
             }
-            error_log('[DatabaseRateLimiter::tryInsert] ' . $e->getMessage());
+            AppLog::error('[DatabaseRateLimiter::tryInsert] ' . $e->getMessage());
             return false;
         } catch (\Throwable $e) {
-            error_log('[DatabaseRateLimiter::tryInsert] ' . $e->getMessage());
+            AppLog::error('[DatabaseRateLimiter::tryInsert] ' . $e->getMessage());
             return false;
         }
     }
@@ -248,26 +249,60 @@ final class DatabaseRateLimiter implements RateLimiterInterface
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             return $row !== false ? $row : null;
         } catch (\Throwable $e) {
-            error_log('[DatabaseRateLimiter::fetch] SELECT failed: ' . $e->getMessage());
+            AppLog::error('[DatabaseRateLimiter::fetch] SELECT failed: ' . $e->getMessage());
             return null;
         }
     }
 
     private function fetchForUpdate(string $key): ?array
     {
-        try {
-            if ($this->driver === 'mysql') {
-                $stmt = $this->pdo->prepare('SELECT `key`, attempts_count, window_start, blocked_until FROM rate_limits WHERE `key` = ? FOR UPDATE');
-            } else {
-                $stmt = $this->pdo->prepare('SELECT `key`, attempts_count, window_start, blocked_until FROM rate_limits WHERE `key` = ?');
+        $attempt = 0;
+        while (true) {
+            try {
+                if ($this->driver === 'mysql') {
+                    $stmt = $this->pdo->prepare('SELECT `key`, attempts_count, window_start, blocked_until FROM rate_limits WHERE `key` = ? FOR UPDATE');
+                } else {
+                    $stmt = $this->pdo->prepare('SELECT `key`, attempts_count, window_start, blocked_until FROM rate_limits WHERE `key` = ?');
+                }
+                $stmt->execute([$key]);
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                return $row !== false ? $row : null;
+            } catch (\Throwable $e) {
+                // A deadlock (or lock-wait timeout) is a transient concurrency
+                // condition under parallel AJAX/MCP bursts: InnoDB has already
+                // rolled the whole transaction back. Retrying the statement once
+                // in a *new* transaction keeps the caller's commit() valid;
+                // returning null here instead made hit() believe the row was
+                // missing and skip the counter update (the limiter silently
+                // stopped counting exactly when the load was highest).
+                if ($attempt === 0 && $this->isRetryableLockError($e)) {
+                    $attempt++;
+                    if ($this->pdo->inTransaction()) {
+                        $this->pdo->rollBack();
+                    }
+                    $this->pdo->beginTransaction();
+                    AppLog::warning('[DatabaseRateLimiter::fetchForUpdate] retrying after lock error', [
+                        'error' => $e->getMessage(),
+                    ]);
+                    usleep(20000);
+                    continue;
+                }
+
+                AppLog::error('[DatabaseRateLimiter::fetchForUpdate] SELECT failed: ' . $e->getMessage());
+                throw $e;
             }
-            $stmt->execute([$key]);
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $row !== false ? $row : null;
-        } catch (\Throwable $e) {
-            error_log('[DatabaseRateLimiter::fetchForUpdate] SELECT failed: ' . $e->getMessage());
-            return null;
         }
+    }
+
+    /** MySQL deadlock (1213/40001) and lock-wait timeout (1205/41000) are retryable. */
+    private function isRetryableLockError(\Throwable $e): bool
+    {
+        if ($this->driver !== 'mysql' || !$e instanceof \PDOException) {
+            return false;
+        }
+        $driverCode = (int)($e->errorInfo[1] ?? 0);
+        $sqlState = (string)($e->errorInfo[0] ?? $e->getCode());
+        return in_array($driverCode, [1213, 1205], true) || in_array($sqlState, ['40001', '41000'], true);
     }
 
     private function getAttemptsCount(array $row, int $now): int
@@ -301,7 +336,7 @@ final class DatabaseRateLimiter implements RateLimiterInterface
             $this->schemaReady = true;
             return true;
         } catch (\Throwable $e) {
-            error_log('[DatabaseRateLimiter::ensureSchema] ' . $e->getMessage());
+            AppLog::error('[DatabaseRateLimiter::ensureSchema] ' . $e->getMessage());
             return false;
         }
     }
@@ -346,7 +381,7 @@ final class DatabaseRateLimiter implements RateLimiterInterface
                 $this->pdo->exec('ALTER TABLE rate_limits ADD COLUMN attempts_count INTEGER NOT NULL DEFAULT 0');
             }
         } catch (\Throwable $e) {
-            error_log('[DatabaseRateLimiter::ensureNewColumns] schema check failed: ' . $e->getMessage());
+            AppLog::error('[DatabaseRateLimiter::ensureNewColumns] schema check failed: ' . $e->getMessage());
             // The column may already have been added by a concurrent request.
         }
 
@@ -357,7 +392,7 @@ final class DatabaseRateLimiter implements RateLimiterInterface
                 $this->pdo->exec('ALTER TABLE rate_limits ADD COLUMN window_start INTEGER NOT NULL DEFAULT 0');
             }
         } catch (\Throwable $e) {
-            error_log('[DatabaseRateLimiter::ensureNewColumns] schema check failed: ' . $e->getMessage());
+            AppLog::error('[DatabaseRateLimiter::ensureNewColumns] schema check failed: ' . $e->getMessage());
             // The column may already have been added by a concurrent request.
         }
 
@@ -372,7 +407,7 @@ final class DatabaseRateLimiter implements RateLimiterInterface
             $this->pdo->query('SELECT `key`, attempts_count, window_start, blocked_until FROM rate_limits LIMIT 0');
             return true;
         } catch (\Throwable $e) {
-            error_log('[DatabaseRateLimiter::hasExpectedColumns] schema check failed: ' . $e->getMessage());
+            AppLog::error('[DatabaseRateLimiter::hasExpectedColumns] schema check failed: ' . $e->getMessage());
             return false;
         }
     }
@@ -387,7 +422,7 @@ final class DatabaseRateLimiter implements RateLimiterInterface
             $this->pdo->query('SELECT attempts FROM rate_limits LIMIT 0');
             $this->hasLegacyAttemptsColumn = true;
         } catch (\Throwable $e) {
-            error_log('[DatabaseRateLimiter::hasLegacyAttemptsColumn] legacy column check failed: ' . $e->getMessage());
+            AppLog::error('[DatabaseRateLimiter::hasLegacyAttemptsColumn] legacy column check failed: ' . $e->getMessage());
             $this->hasLegacyAttemptsColumn = false;
         }
 
@@ -404,7 +439,7 @@ final class DatabaseRateLimiter implements RateLimiterInterface
                 $this->pdo->exec("DELETE FROM rate_limits WHERE updated_at < datetime('now', '-3600 seconds')");
             }
         } catch (\Throwable $e) {
-            error_log('[DatabaseRateLimiter::collectGarbage] cleanup failed: ' . $e->getMessage());
+            AppLog::error('[DatabaseRateLimiter::collectGarbage] cleanup failed: ' . $e->getMessage());
             // Best-effort cleanup
         }
     }
