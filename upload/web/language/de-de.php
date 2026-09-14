@@ -2,6 +2,8 @@
 return array (
   'admin' => 
   array (
+    'card_ecommerce_gateway_desc' => 'Onlineshops verwalten, Statuszuordnung und Synchronisationsprotokoll.',
+    'card_ecommerce_gateway_title' => 'Shop-Gateway',
     'active_state' => 'Active',
     'admin_user_fallback' => 'administrator',
     'all_systems_ok' => 'All systems are operational',
@@ -681,6 +683,8 @@ return array (
   ),
   'admin_api_clients' => 
   array (
+    'scope_search' => 'Berechtigungen suchen...',
+    'toggle_all' => 'Alle auswählen/abwählen',
     'back_to_admin' => 'Admin',
     'create_client_btn' => 'Create API client',
     'title' => 'TropaTT — API-Clients',
@@ -961,6 +965,20 @@ return array (
   ),
   'admin_knowledge' => 
   array (
+    'btn_purge_space' => 'Endgültig löschen',
+    'delete_mode_move' => 'Inhalt in einen anderen Abschnitt verschieben',
+    'delete_mode_purge' => 'Abschnitt mit dem gesamten Inhalt löschen',
+    'delete_target_hint' => 'Unterabschnitte werden zu Abschnitten der obersten Ebene.',
+    'delete_target_label' => 'Zielabschnitt',
+    'edit_space_title' => 'Abschnitt bearbeiten',
+    'purge_space_confirm' => 'Abschnitt endgültig löschen?',
+    'purge_space_title' => 'Abschnitt endgültig löschen',
+    'trash_hint' => 'Gelöschte Abschnitte können wiederhergestellt werden.',
+    'trash_space_confirm' => 'Abschnitt in den Papierkorb verschieben?',
+    'trash_space_hint' => 'Der Abschnitt und sein Inhalt werden ausgeblendet, können aber wiederhergestellt werden.',
+    'trash_space_submit' => 'In den Papierkorb',
+    'trash_space_title' => 'Abschnitt in den Papierkorb verschieben',
+    'trash_title' => 'Papierkorb',
     'btn_cleanup_drafts' => 'Clean up old drafts',
     'btn_rebuild_permissions' => 'Rebuild permissions',
     'btn_reindex' => 'Rebuild search index',
@@ -3207,6 +3225,14 @@ return array (
   ),
   'counterparty_detail' => 
   array (
+    'project_untitled' => 'Ohne Titel',
+    'projects_empty' => 'Keine Projekte für diesen Geschäftspartner.',
+    'projects_empty_create' => 'Erstes Projekt erstellen',
+    'projects_error' => 'Projekte konnten nicht geladen werden.',
+    'rates_card_lines_title' => 'Positionen der zugewiesenen Preisliste',
+    'rates_th_activity' => 'Leistungsart',
+    'rates_th_role' => 'Rolle',
+    'rates_th_source' => 'Quelle',
     'breadcrumb' => 'Counterparty card',
     'contact_add_title' => 'Add contact',
     'contact_added' => 'Contact added',
@@ -3686,6 +3712,7 @@ return array (
   ),
   'docs' => 
   array (
+    'mcp_title' => 'KI-Agenten (MCP)',
     'admin_item1' => '<strong>Users</strong> — creation, blocking, password changes.',
     'admin_item10' => '<strong>Logs</strong> — audit, actions, errors.',
     'admin_item11' => '<strong>Modules</strong> — module management.',
@@ -7298,6 +7325,27 @@ return array (
   ),
   'knowledge' => 
   array (
+    'access_comment' => 'Kommentieren',
+    'access_edit' => 'Bearbeiten',
+    'access_view' => 'Ansehen',
+    'btn_purge_space' => 'Endgültig löschen',
+    'default_access_level' => 'Standardzugriffsstufe',
+    'delete_mode_move' => 'Seiten in einen anderen Abschnitt verschieben',
+    'delete_mode_purge' => 'Abschnitt mit dem gesamten Inhalt löschen',
+    'delete_space_confirm' => 'Abschnitt endgültig löschen?',
+    'delete_target_hint' => 'Unterabschnitte werden zu Abschnitten der obersten Ebene.',
+    'delete_target_label' => 'Zielabschnitt',
+    'edit_space_title' => 'Abschnitt bearbeiten',
+    'field_sort_order' => 'Reihenfolge',
+    'purge_space_title' => 'Abschnitt endgültig löschen',
+    'trash_space_confirm' => 'Abschnitt in den Papierkorb verschieben?',
+    'trash_space_hint' => 'Der Abschnitt und sein Inhalt werden ausgeblendet, können aber wiederhergestellt werden.',
+    'trash_space_submit' => 'In den Papierkorb',
+    'trash_space_title' => 'Abschnitt in den Papierkorb verschieben',
+    'trash_title' => 'Papierkorb',
+    'visibility_private' => 'Privat',
+    'visibility_public' => 'Öffentlich',
+    'visibility_restricted' => 'Eingeschränkt',
     'desc_checklist' => 'Action item checklist.',
     'desc_client_note' => 'Client-specific notes.',
     'desc_decision' => 'Recorded decision log.',
@@ -8118,6 +8166,9 @@ return array (
   ),
   'page' => 
   array (
+    'copied' => 'Kopiert',
+    'copy' => 'Kopieren',
+    'done' => 'Fertig',
     'all' => 'All',
     'all_counterparties' => 'All counterparties',
     'all_roles' => 'All roles',

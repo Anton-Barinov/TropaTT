@@ -2,6 +2,8 @@
 return array (
   'admin' => 
   array (
+    'card_ecommerce_gateway_desc' => 'Gerenciar lojas online, mapeamento de status e log de sincronização.',
+    'card_ecommerce_gateway_title' => 'Gateway de vitrines',
     'active_state' => 'Active',
     'admin_user_fallback' => 'administrator',
     'all_systems_ok' => 'All systems are operational',
@@ -681,6 +683,8 @@ return array (
   ),
   'admin_api_clients' => 
   array (
+    'scope_search' => 'Buscar permissões...',
+    'toggle_all' => 'Selecionar/desmarcar tudo',
     'back_to_admin' => 'Admin',
     'create_client_btn' => 'Create API client',
     'title' => 'TropaTT — Clientes de API',
@@ -961,6 +965,20 @@ return array (
   ),
   'admin_knowledge' => 
   array (
+    'btn_purge_space' => 'Excluir permanentemente',
+    'delete_mode_move' => 'Mover o conteúdo para outra seção',
+    'delete_mode_purge' => 'Excluir a seção com todo o conteúdo',
+    'delete_target_hint' => 'As subseções passarão a ser seções de nível superior.',
+    'delete_target_label' => 'Seção de destino',
+    'edit_space_title' => 'Editar seção',
+    'purge_space_confirm' => 'Excluir a seção permanentemente?',
+    'purge_space_title' => 'Excluir seção permanentemente',
+    'trash_hint' => 'As seções excluídas podem ser restauradas.',
+    'trash_space_confirm' => 'Mover a seção para a lixeira?',
+    'trash_space_hint' => 'A seção e seu conteúdo ficarão ocultos, mas poderão ser restaurados.',
+    'trash_space_submit' => 'Mover para a lixeira',
+    'trash_space_title' => 'Mover seção para a lixeira',
+    'trash_title' => 'Lixeira',
     'btn_cleanup_drafts' => 'Clean up old drafts',
     'btn_rebuild_permissions' => 'Rebuild permissions',
     'btn_reindex' => 'Rebuild search index',
@@ -3207,6 +3225,14 @@ return array (
   ),
   'counterparty_detail' => 
   array (
+    'project_untitled' => 'Sem título',
+    'projects_empty' => 'Nenhum projeto para este cliente.',
+    'projects_empty_create' => 'Criar o primeiro projeto',
+    'projects_error' => 'Erro ao carregar os projetos.',
+    'rates_card_lines_title' => 'Linhas da tabela de preços atribuída',
+    'rates_th_activity' => 'Tipo de trabalho',
+    'rates_th_role' => 'Função',
+    'rates_th_source' => 'Origem',
     'breadcrumb' => 'Counterparty card',
     'contact_add_title' => 'Add contact',
     'contact_added' => 'Contact added',
@@ -3686,6 +3712,7 @@ return array (
   ),
   'docs' => 
   array (
+    'mcp_title' => 'Agentes de IA (MCP)',
     'admin_item1' => '<strong>Users</strong> — creation, blocking, password changes.',
     'admin_item10' => '<strong>Logs</strong> — audit, actions, errors.',
     'admin_item11' => '<strong>Modules</strong> — module management.',
@@ -7298,6 +7325,27 @@ return array (
   ),
   'knowledge' => 
   array (
+    'access_comment' => 'Comentar',
+    'access_edit' => 'Editar',
+    'access_view' => 'Visualizar',
+    'btn_purge_space' => 'Excluir permanentemente',
+    'default_access_level' => 'Nível de acesso padrão',
+    'delete_mode_move' => 'Mover páginas para outra seção',
+    'delete_mode_purge' => 'Excluir a seção com todo o conteúdo',
+    'delete_space_confirm' => 'Excluir a seção permanentemente?',
+    'delete_target_hint' => 'As subseções passarão a ser seções de nível superior.',
+    'delete_target_label' => 'Seção de destino',
+    'edit_space_title' => 'Editar seção',
+    'field_sort_order' => 'Ordem',
+    'purge_space_title' => 'Excluir seção permanentemente',
+    'trash_space_confirm' => 'Mover a seção para a lixeira?',
+    'trash_space_hint' => 'A seção e seu conteúdo ficarão ocultos, mas poderão ser restaurados.',
+    'trash_space_submit' => 'Mover para a lixeira',
+    'trash_space_title' => 'Mover seção para a lixeira',
+    'trash_title' => 'Lixeira',
+    'visibility_private' => 'Privado',
+    'visibility_public' => 'Público',
+    'visibility_restricted' => 'Restrito',
     'desc_checklist' => 'Action item checklist.',
     'desc_client_note' => 'Client-specific notes.',
     'desc_decision' => 'Recorded decision log.',
@@ -8118,6 +8166,9 @@ return array (
   ),
   'page' => 
   array (
+    'copied' => 'Copiado',
+    'copy' => 'Copiar',
+    'done' => 'Concluído',
     'all' => 'All',
     'all_counterparties' => 'All counterparties',
     'all_roles' => 'All roles',

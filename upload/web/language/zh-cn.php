@@ -479,6 +479,7 @@ return array (
   ),
   'docs' => 
   array (
+    'mcp_title' => 'AI 代理（MCP）',
     'admin_item1' => '<strong>Users</strong> — creation, blocking, password changes.',
     'admin_item10' => '<strong>Logs</strong> — audit, actions, errors.',
     'admin_item11' => '<strong>Modules</strong> — module management.',
@@ -857,6 +858,27 @@ return array (
   ),
   'knowledge' => 
   array (
+    'access_comment' => '评论',
+    'access_edit' => '编辑',
+    'access_view' => '查看',
+    'btn_purge_space' => '永久删除',
+    'default_access_level' => '默认访问级别',
+    'delete_mode_move' => '将页面移到其他分区',
+    'delete_mode_purge' => '删除分区及其全部内容',
+    'delete_space_confirm' => '永久删除此分区？',
+    'delete_target_hint' => '子分区将变为顶级分区。',
+    'delete_target_label' => '目标分区',
+    'edit_space_title' => '编辑分区',
+    'field_sort_order' => '排序',
+    'purge_space_title' => '永久删除分区',
+    'trash_space_confirm' => '将分区移入回收站？',
+    'trash_space_hint' => '分区及其内容将被隐藏，但可以恢复。',
+    'trash_space_submit' => '移入回收站',
+    'trash_space_title' => '将分区移入回收站',
+    'trash_title' => '回收站',
+    'visibility_private' => '私有',
+    'visibility_public' => '公开',
+    'visibility_restricted' => '受限',
     'desc_checklist' => 'Action item checklist.',
     'desc_client_note' => 'Client-specific notes.',
     'desc_decision' => 'Recorded decision log.',
@@ -1127,6 +1149,20 @@ return array (
   ),
   'admin_knowledge' => 
   array (
+    'btn_purge_space' => '永久删除',
+    'delete_mode_move' => '将内容移到其他分区',
+    'delete_mode_purge' => '删除分区及其全部内容',
+    'delete_target_hint' => '子分区将变为顶级分区。',
+    'delete_target_label' => '目标分区',
+    'edit_space_title' => '编辑分区',
+    'purge_space_confirm' => '永久删除此分区？',
+    'purge_space_title' => '永久删除分区',
+    'trash_hint' => '已删除的分区可以恢复。',
+    'trash_space_confirm' => '将分区移入回收站？',
+    'trash_space_hint' => '分区及其内容将被隐藏，但可以恢复。',
+    'trash_space_submit' => '移入回收站',
+    'trash_space_title' => '将分区移入回收站',
+    'trash_title' => '回收站',
     'permissions_level_owner' => 'Owner',
     'title' => 'TropaTT — 知识库设置',
     'page_title' => '知识库设置',
@@ -4282,6 +4318,9 @@ return array (
   ),
   'page' => 
   array (
+    'copied' => '已复制',
+    'copy' => '复制',
+    'done' => '完成',
     'all' => 'All',
     'all_counterparties' => 'All counterparties',
     'all_roles' => 'All roles',
@@ -5575,6 +5614,14 @@ return array (
   ),
   'counterparty_detail' => 
   array (
+    'project_untitled' => '无标题',
+    'projects_empty' => '该对手方没有项目。',
+    'projects_empty_create' => '创建第一个项目',
+    'projects_error' => '加载项目失败。',
+    'rates_card_lines_title' => '已分配价目表的条目',
+    'rates_th_activity' => '工作类型',
+    'rates_th_role' => '角色',
+    'rates_th_source' => '来源',
     'breadcrumb' => 'Counterparty card',
     'contact_add_title' => 'Add contact',
     'contact_added' => 'Contact added',
@@ -6997,6 +7044,8 @@ return array (
   ),
   'admin' => 
   array (
+    'card_ecommerce_gateway_desc' => '管理在线商店、状态映射与同步日志。',
+    'card_ecommerce_gateway_title' => '店铺网关',
     'active_state' => 'Active',
     'admin_user_fallback' => 'administrator',
     'all_systems_ok' => 'All systems are operational',
@@ -7773,6 +7822,8 @@ return array (
   ),
   'admin_api_clients' => 
   array (
+    'scope_search' => '搜索权限...',
+    'toggle_all' => '全选/取消全选',
     'back_to_admin' => 'Admin',
     'create_client_btn' => 'Create API client',
     'title' => 'TropaTT — API 客户端',

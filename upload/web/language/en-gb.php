@@ -858,6 +858,27 @@ return array (
   ),
   'knowledge' => 
   array (
+    'access_comment' => 'Comment',
+    'access_edit' => 'Edit',
+    'access_view' => 'View',
+    'btn_purge_space' => 'Delete permanently',
+    'default_access_level' => 'Default access level',
+    'delete_mode_move' => 'Move pages to another section',
+    'delete_mode_purge' => 'Delete the section with all its content',
+    'delete_space_confirm' => 'Delete this section permanently?',
+    'delete_target_hint' => 'Subsections become top-level sections.',
+    'delete_target_label' => 'Destination section',
+    'edit_space_title' => 'Edit section',
+    'field_sort_order' => 'Order',
+    'purge_space_title' => 'Delete section permanently',
+    'trash_space_confirm' => 'Move this section to trash?',
+    'trash_space_hint' => 'The section and its content will be hidden but can be restored.',
+    'trash_space_submit' => 'Move to trash',
+    'trash_space_title' => 'Move section to trash',
+    'trash_title' => 'Trash',
+    'visibility_private' => 'Private',
+    'visibility_public' => 'Public',
+    'visibility_restricted' => 'Restricted',
     'title' => 'TropaTT — Knowledge base',
     'page_title' => 'Knowledge base',
     'subtitle' => 'Policies, instructions, FAQ and project knowledge for the team.',
@@ -1128,6 +1149,20 @@ return array (
   ),
   'admin_knowledge' => 
   array (
+    'btn_purge_space' => 'Delete permanently',
+    'delete_mode_move' => 'Move content to another section',
+    'delete_mode_purge' => 'Delete the section with all its content',
+    'delete_target_hint' => 'Subsections become top-level sections.',
+    'delete_target_label' => 'Destination section',
+    'edit_space_title' => 'Edit section',
+    'purge_space_confirm' => 'Delete this section permanently?',
+    'purge_space_title' => 'Delete section permanently',
+    'trash_hint' => 'Deleted sections can be restored.',
+    'trash_space_confirm' => 'Move this section to trash?',
+    'trash_space_hint' => 'The section and its content will be hidden but can be restored.',
+    'trash_space_submit' => 'Move to trash',
+    'trash_space_title' => 'Move section to trash',
+    'trash_title' => 'Trash',
     'permissions_level_owner' => 'Owner',
     'title' => 'TropaTT — Knowledge settings',
     'page_title' => 'Knowledge settings',
@@ -5558,6 +5593,10 @@ return array (
   ),
   'counterparty_detail' => 
   array (
+    'rates_card_lines_title' => 'Lines of the assigned price list',
+    'rates_th_activity' => 'Activity type',
+    'rates_th_role' => 'Role',
+    'rates_th_source' => 'Source',
     'breadcrumb' => 'Counterparty card',
     'contact_add_title' => 'Add contact',
     'contact_added' => 'Contact added',
@@ -6911,6 +6950,8 @@ return array (
   ),
   'admin' => 
   array (
+    'card_ecommerce_gateway_desc' => 'Manage online stores, status mapping and the synchronisation log.',
+    'card_ecommerce_gateway_title' => 'Storefront gateway',
     'active_state' => 'Active',
     'admin_user_fallback' => 'administrator',
     'all_systems_ok' => 'All systems are operational',
@@ -7697,6 +7738,8 @@ return array (
   ),
   'admin_api_clients' => 
   array (
+    'scope_search' => 'Search permissions...',
+    'toggle_all' => 'Select/deselect all',
     'title' => 'TropaTT — API Clients',
     'page_title' => 'API Clients',
     'subtitle' => 'Integration applications and their access keys.',

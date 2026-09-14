@@ -858,6 +858,27 @@ return array (
   ),
   'knowledge' => 
   array (
+    'access_comment' => 'Комментирование',
+    'access_edit' => 'Редактирование',
+    'access_view' => 'Просмотр',
+    'btn_purge_space' => 'Удалить навсегда',
+    'default_access_level' => 'Доступ по умолчанию',
+    'delete_mode_move' => 'Перенести страницы в другой раздел',
+    'delete_mode_purge' => 'Удалить раздел вместе со всем содержимым',
+    'delete_space_confirm' => 'Удалить раздел безвозвратно?',
+    'delete_target_hint' => 'Подразделы станут разделами верхнего уровня.',
+    'delete_target_label' => 'Раздел-получатель',
+    'edit_space_title' => 'Редактировать раздел',
+    'field_sort_order' => 'Порядок',
+    'purge_space_title' => 'Удалить раздел навсегда',
+    'trash_space_confirm' => 'Переместить раздел в корзину?',
+    'trash_space_hint' => 'Раздел и его содержимое скроются, но их можно будет восстановить.',
+    'trash_space_submit' => 'В корзину',
+    'trash_space_title' => 'Переместить раздел в корзину',
+    'trash_title' => 'Корзина',
+    'visibility_private' => 'Приватный',
+    'visibility_public' => 'Публичный',
+    'visibility_restricted' => 'Ограниченный',
     'title' => 'TropaTT — База знаний',
     'page_title' => 'База знаний',
     'subtitle' => 'Регламенты, инструкции, FAQ и проектные знания команды.',
@@ -1128,6 +1149,20 @@ return array (
   ),
   'admin_knowledge' => 
   array (
+    'btn_purge_space' => 'Удалить навсегда',
+    'delete_mode_move' => 'Перенести содержимое в другой раздел',
+    'delete_mode_purge' => 'Удалить раздел вместе со всем содержимым',
+    'delete_target_hint' => 'Подразделы станут разделами верхнего уровня.',
+    'delete_target_label' => 'Раздел-получатель',
+    'edit_space_title' => 'Редактировать раздел',
+    'purge_space_confirm' => 'Удалить раздел безвозвратно?',
+    'purge_space_title' => 'Удалить раздел навсегда',
+    'trash_hint' => 'Удалённые разделы можно восстановить.',
+    'trash_space_confirm' => 'Переместить раздел в корзину?',
+    'trash_space_hint' => 'Раздел и его содержимое скроются, но их можно будет восстановить.',
+    'trash_space_submit' => 'В корзину',
+    'trash_space_title' => 'Переместить раздел в корзину',
+    'trash_title' => 'Корзина',
     'permissions_level_owner' => 'Владелец',
     'title' => 'TropaTT — Настройки базы знаний',
     'page_title' => 'Настройки базы знаний',
@@ -5579,6 +5614,10 @@ return array (
   ),
   'counterparty_detail' => 
   array (
+    'rates_card_lines_title' => 'Строки назначенного прайса',
+    'rates_th_activity' => 'Вид работ',
+    'rates_th_role' => 'Роль',
+    'rates_th_source' => 'Источник',
     'breadcrumb' => 'Карточка контрагента',
     'contact_add_title' => 'Добавить контакт',
     'contact_added' => 'Контакт добавлен',
@@ -7012,6 +7051,8 @@ return array (
   ),
   'admin' => 
   array (
+    'card_ecommerce_gateway_desc' => 'Управление интернет-магазинами, маппинг статусов и журнал синхронизации.',
+    'card_ecommerce_gateway_title' => 'Шлюз витрин',
     'active_state' => 'Активен',
     'admin_user_fallback' => 'администратор',
     'all_systems_ok' => 'Все системы работают нормально',
@@ -7798,6 +7839,8 @@ return array (
   ),
   'admin_api_clients' => 
   array (
+    'scope_search' => 'Поиск прав...',
+    'toggle_all' => 'Выбрать/снять все',
     'title' => 'TropaTT — API-клиенты',
     'page_title' => 'API-клиенты',
     'subtitle' => 'Интеграционные приложения и их ключи доступа.',

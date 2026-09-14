@@ -2,6 +2,8 @@
 return array (
   'admin' => 
   array (
+    'card_ecommerce_gateway_desc' => 'Gestión de tiendas online, mapeo de estados y registro de sincronización.',
+    'card_ecommerce_gateway_title' => 'Pasarela de tiendas',
     'active_state' => 'Active',
     'admin_user_fallback' => 'administrator',
     'all_systems_ok' => 'All systems are operational',
@@ -681,6 +683,8 @@ return array (
   ),
   'admin_api_clients' => 
   array (
+    'scope_search' => 'Buscar permisos...',
+    'toggle_all' => 'Seleccionar/deseleccionar todo',
     'back_to_admin' => 'Admin',
     'create_client_btn' => 'Create API client',
     'title' => 'TropaTT — Clientes API',
@@ -961,6 +965,20 @@ return array (
   ),
   'admin_knowledge' => 
   array (
+    'btn_purge_space' => 'Eliminar permanentemente',
+    'delete_mode_move' => 'Mover el contenido a otra sección',
+    'delete_mode_purge' => 'Eliminar la sección con todo su contenido',
+    'delete_target_hint' => 'Las subsecciones pasarán a ser secciones de nivel superior.',
+    'delete_target_label' => 'Sección de destino',
+    'edit_space_title' => 'Editar sección',
+    'purge_space_confirm' => '¿Eliminar la sección permanentemente?',
+    'purge_space_title' => 'Eliminar sección permanentemente',
+    'trash_hint' => 'Las secciones eliminadas se pueden restaurar.',
+    'trash_space_confirm' => '¿Mover la sección a la papelera?',
+    'trash_space_hint' => 'La sección y su contenido se ocultarán, pero podrán restaurarse.',
+    'trash_space_submit' => 'Mover a la papelera',
+    'trash_space_title' => 'Mover sección a la papelera',
+    'trash_title' => 'Papelera',
     'btn_cleanup_drafts' => 'Clean up old drafts',
     'btn_rebuild_permissions' => 'Rebuild permissions',
     'btn_reindex' => 'Rebuild search index',
@@ -3207,6 +3225,14 @@ return array (
   ),
   'counterparty_detail' => 
   array (
+    'project_untitled' => 'Sin título',
+    'projects_empty' => 'No hay proyectos para este cliente.',
+    'projects_empty_create' => 'Crear el primer proyecto',
+    'projects_error' => 'Error al cargar los proyectos.',
+    'rates_card_lines_title' => 'Líneas de la tarifa asignada',
+    'rates_th_activity' => 'Tipo de trabajo',
+    'rates_th_role' => 'Rol',
+    'rates_th_source' => 'Origen',
     'breadcrumb' => 'Counterparty card',
     'contact_add_title' => 'Add contact',
     'contact_added' => 'Contact added',
@@ -3686,6 +3712,7 @@ return array (
   ),
   'docs' => 
   array (
+    'mcp_title' => 'Agentes de IA (MCP)',
     'admin_item1' => '<strong>Users</strong> — creation, blocking, password changes.',
     'admin_item10' => '<strong>Logs</strong> — audit, actions, errors.',
     'admin_item11' => '<strong>Modules</strong> — module management.',
@@ -7298,6 +7325,27 @@ return array (
   ),
   'knowledge' => 
   array (
+    'access_comment' => 'Comentar',
+    'access_edit' => 'Editar',
+    'access_view' => 'Ver',
+    'btn_purge_space' => 'Eliminar permanentemente',
+    'default_access_level' => 'Nivel de acceso predeterminado',
+    'delete_mode_move' => 'Mover páginas a otra sección',
+    'delete_mode_purge' => 'Eliminar la sección con todo su contenido',
+    'delete_space_confirm' => '¿Eliminar la sección permanentemente?',
+    'delete_target_hint' => 'Las subsecciones pasarán a ser secciones de nivel superior.',
+    'delete_target_label' => 'Sección de destino',
+    'edit_space_title' => 'Editar sección',
+    'field_sort_order' => 'Orden',
+    'purge_space_title' => 'Eliminar sección permanentemente',
+    'trash_space_confirm' => '¿Mover la sección a la papelera?',
+    'trash_space_hint' => 'La sección y su contenido se ocultarán, pero podrán restaurarse.',
+    'trash_space_submit' => 'Mover a la papelera',
+    'trash_space_title' => 'Mover sección a la papelera',
+    'trash_title' => 'Papelera',
+    'visibility_private' => 'Privado',
+    'visibility_public' => 'Público',
+    'visibility_restricted' => 'Restringido',
     'desc_checklist' => 'Action item checklist.',
     'desc_client_note' => 'Client-specific notes.',
     'desc_decision' => 'Recorded decision log.',
@@ -8118,6 +8166,9 @@ return array (
   ),
   'page' => 
   array (
+    'copied' => 'Copiado',
+    'copy' => 'Copiar',
+    'done' => 'Hecho',
     'all' => 'All',
     'all_counterparties' => 'All counterparties',
     'all_roles' => 'All roles',

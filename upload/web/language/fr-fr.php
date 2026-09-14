@@ -2,6 +2,8 @@
 return array (
   'admin' => 
   array (
+    'card_ecommerce_gateway_desc' => 'Gérer les boutiques en ligne, la correspondance des statuts et le journal de synchronisation.',
+    'card_ecommerce_gateway_title' => 'Passerelle des boutiques',
     'active_state' => 'Active',
     'admin_user_fallback' => 'administrator',
     'all_systems_ok' => 'All systems are operational',
@@ -681,6 +683,8 @@ return array (
   ),
   'admin_api_clients' => 
   array (
+    'scope_search' => 'Rechercher des permissions...',
+    'toggle_all' => 'Tout sélectionner/désélectionner',
     'back_to_admin' => 'Admin',
     'create_client_btn' => 'Create API client',
     'title' => 'TropaTT — Clients API',
@@ -961,6 +965,20 @@ return array (
   ),
   'admin_knowledge' => 
   array (
+    'btn_purge_space' => 'Supprimer définitivement',
+    'delete_mode_move' => 'Déplacer le contenu vers une autre section',
+    'delete_mode_purge' => 'Supprimer la section avec tout son contenu',
+    'delete_target_hint' => 'Les sous-sections deviendront des sections de premier niveau.',
+    'delete_target_label' => 'Section de destination',
+    'edit_space_title' => 'Modifier la section',
+    'purge_space_confirm' => 'Supprimer définitivement la section ?',
+    'purge_space_title' => 'Supprimer définitivement la section',
+    'trash_hint' => 'Les sections supprimées peuvent être restaurées.',
+    'trash_space_confirm' => 'Déplacer la section vers la corbeille ?',
+    'trash_space_hint' => 'La section et son contenu seront masqués, mais pourront être restaurés.',
+    'trash_space_submit' => 'Mettre à la corbeille',
+    'trash_space_title' => 'Déplacer la section vers la corbeille',
+    'trash_title' => 'Corbeille',
     'btn_cleanup_drafts' => 'Clean up old drafts',
     'btn_rebuild_permissions' => 'Rebuild permissions',
     'btn_reindex' => 'Rebuild search index',
@@ -3207,6 +3225,14 @@ return array (
   ),
   'counterparty_detail' => 
   array (
+    'project_untitled' => 'Sans titre',
+    'projects_empty' => 'Aucun projet pour ce tiers.',
+    'projects_empty_create' => 'Créer le premier projet',
+    'projects_error' => 'Échec du chargement des projets.',
+    'rates_card_lines_title' => 'Lignes du tarif assigné',
+    'rates_th_activity' => 'Type de prestation',
+    'rates_th_role' => 'Rôle',
+    'rates_th_source' => 'Source',
     'breadcrumb' => 'Counterparty card',
     'contact_add_title' => 'Add contact',
     'contact_added' => 'Contact added',
@@ -3686,6 +3712,7 @@ return array (
   ),
   'docs' => 
   array (
+    'mcp_title' => 'Agents IA (MCP)',
     'admin_item1' => '<strong>Users</strong> — creation, blocking, password changes.',
     'admin_item10' => '<strong>Logs</strong> — audit, actions, errors.',
     'admin_item11' => '<strong>Modules</strong> — module management.',
@@ -7298,6 +7325,27 @@ return array (
   ),
   'knowledge' => 
   array (
+    'access_comment' => 'Commenter',
+    'access_edit' => 'Modifier',
+    'access_view' => 'Consultation',
+    'btn_purge_space' => 'Supprimer définitivement',
+    'default_access_level' => 'Niveau d\'accès par défaut',
+    'delete_mode_move' => 'Déplacer les pages vers une autre section',
+    'delete_mode_purge' => 'Supprimer la section avec tout son contenu',
+    'delete_space_confirm' => 'Supprimer définitivement la section ?',
+    'delete_target_hint' => 'Les sous-sections deviendront des sections de premier niveau.',
+    'delete_target_label' => 'Section de destination',
+    'edit_space_title' => 'Modifier la section',
+    'field_sort_order' => 'Ordre',
+    'purge_space_title' => 'Supprimer définitivement la section',
+    'trash_space_confirm' => 'Déplacer la section vers la corbeille ?',
+    'trash_space_hint' => 'La section et son contenu seront masqués, mais pourront être restaurés.',
+    'trash_space_submit' => 'Mettre à la corbeille',
+    'trash_space_title' => 'Déplacer la section vers la corbeille',
+    'trash_title' => 'Corbeille',
+    'visibility_private' => 'Privé',
+    'visibility_public' => 'Public',
+    'visibility_restricted' => 'Restreint',
     'desc_checklist' => 'Action item checklist.',
     'desc_client_note' => 'Client-specific notes.',
     'desc_decision' => 'Recorded decision log.',
@@ -8118,6 +8166,9 @@ return array (
   ),
   'page' => 
   array (
+    'copied' => 'Copié',
+    'copy' => 'Copier',
+    'done' => 'Terminé',
     'all' => 'All',
     'all_counterparties' => 'All counterparties',
     'all_roles' => 'All roles',
