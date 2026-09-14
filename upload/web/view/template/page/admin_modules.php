@@ -1046,9 +1046,15 @@
                 if (data.marketplace_url) mpState.marketplaceUrl = data.marketplace_url;
                 mpState.loaded = true;
                 mpBusy(false);
-                // The catalog page size is smaller than the catalog itself, so
-                // the tab count is the marketplace's total, not the page length.
-                setTabCount('moduleMarketplaceCount', (data.meta && data.meta.total) || (data.status && data.status.total));
+                // How much is behind the tab, exactly like the installed tab
+                // counts every installed module. The API reports the total of
+                // the *current* query (a search for one module answers 1), so the
+                // catalogue size is the largest total seen — the tab is opened
+                // unfiltered, which is where that number comes from, and it must
+                // not shrink to "1" just because the visitor searched.
+                var shownTotal = (data.status && data.status.total) || (data.meta && data.meta.total) || 0;
+                mpState.catalogTotal = Math.max(mpState.catalogTotal || 0, shownTotal);
+                setTabCount('moduleMarketplaceCount', mpState.catalogTotal > 0 ? mpState.catalogTotal : null);
 
                 if (mpState.categories.length === 0) {
                     mpLoadCategories();
