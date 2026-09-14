@@ -170,6 +170,7 @@ To eliminate enum friction across external systems, AI agents, and frontend clie
   - `hide_done=1`: Excludes finished, canceled, and archived tasks (`done`, `completed`, `canceled`, `cancelled`, `archived`).
   - `active_only=1`: Equivalent alias to `hide_done=1`.
   - `exclude_statuses=done,archived`: Comma-separated exclusion list with automatic alias expansion.
+  - `include_archived_projects=1`: Includes tasks that belong to archived projects. They are **hidden by default**, so `GET /tasks?hide_done=1` returns exactly the same set as the dashboard KPI «Активные задачи» / `overdue_tasks` (a behaviour change — see CHANGELOG). Tasks without a project are always visible, and `archived=1` (the archive view) is never narrowed.
 
 ### A2A Agent Card Manifest
 

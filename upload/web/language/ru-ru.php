@@ -4778,6 +4778,8 @@ return array (
     'filter_project' => 'Проект',
     'filter_all_projects' => 'Все проекты',
     'filter_hide_done' => 'Скрыть выполненные',
+    'filter_include_archived_projects' => 'Включая архивные проекты',
+    'filter_include_archived_projects_title' => 'Показывать задачи проектов, отправленных в архив. По умолчанию скрыты — как в счётчиках дашборда.',
     'filter_overdue' => 'Просроченные',
     'filter_today' => 'Сегодня',
     'filter_week' => 'На этой неделе',

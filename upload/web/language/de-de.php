@@ -9053,6 +9053,8 @@ return array (
     'filter_project' => 'Projekt',
     'filter_all_projects' => 'Alle Projekte',
     'filter_hide_done' => 'Erledigte ausblenden',
+    'filter_include_archived_projects' => 'Inkl. archivierte Projekte',
+    'filter_include_archived_projects_title' => 'Aufgaben aus archivierten Projekten anzeigen. Standardmäßig ausgeblendet – wie in den Dashboard-Zählern.',
     'filter_overdue' => 'Überfällig',
     'filter_today' => 'Heute',
     'filter_week' => 'Diese Woche',

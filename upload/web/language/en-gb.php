@@ -4757,6 +4757,8 @@ return array (
     'filter_project' => 'Project',
     'filter_all_projects' => 'All projects',
     'filter_hide_done' => 'Hide completed',
+    'filter_include_archived_projects' => 'Including archived projects',
+    'filter_include_archived_projects_title' => 'Show tasks of projects that were archived. Hidden by default, matching the dashboard counters.',
     'filter_overdue' => 'Overdue',
     'filter_today' => 'Today',
     'filter_week' => 'This week',

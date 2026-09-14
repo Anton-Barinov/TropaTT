@@ -168,6 +168,7 @@ Authorization: Bearer <token>
   - `hide_done=1`：排除已完成、已取消和已归档的任务（`done`, `completed`, `canceled`, `cancelled`, `archived`）。
   - `active_only=1`：等价于 `hide_done=1` 的别名。
   - `exclude_statuses=done,archived`：显式逗号分隔的排除项列表，支持自动展开别名。
+  - `include_archived_projects=1`：返回属于已归档项目的任务。默认情况下这些任务**被隐藏**，因此 `GET /tasks?hide_done=1` 与仪表板「活跃任务」/ `overdue_tasks` 计数完全一致（行为变更，见 CHANGELOG）。无项目的任务始终可见，归档视图（`archived=1`）不会被收窄。
 
 ### A2A Agent Card 清单
 

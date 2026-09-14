@@ -4772,6 +4772,8 @@ return array (
     'filter_project' => '项目',
     'filter_all_projects' => '所有项目',
     'filter_hide_done' => '隐藏已完成',
+    'filter_include_archived_projects' => '包含已归档项目',
+    'filter_include_archived_projects_title' => '显示已归档项目中的任务。默认隐藏，与仪表板计数保持一致。',
     'filter_overdue' => '已逾期',
     'filter_today' => '今天',
     'filter_week' => '本周',

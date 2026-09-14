@@ -9053,6 +9053,8 @@ return array (
     'filter_project' => 'Proyecto',
     'filter_all_projects' => 'Todos los proyectos',
     'filter_hide_done' => 'Ocultar completadas',
+    'filter_include_archived_projects' => 'Incl. proyectos archivados',
+    'filter_include_archived_projects_title' => 'Mostrar tareas de proyectos archivados. Ocultas por defecto, igual que en los contadores del panel.',
     'filter_overdue' => 'Vencidas',
     'filter_today' => 'Hoy',
     'filter_week' => 'Esta semana',

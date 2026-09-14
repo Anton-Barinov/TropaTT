@@ -9053,6 +9053,8 @@ return array (
     'filter_project' => 'Projet',
     'filter_all_projects' => 'Tous les projets',
     'filter_hide_done' => 'Masquer les terminées',
+    'filter_include_archived_projects' => 'Y compris projets archivés',
+    'filter_include_archived_projects_title' => 'Afficher les tâches des projets archivés. Masquées par défaut, comme dans les compteurs du tableau de bord.',
     'filter_overdue' => 'En retard',
     'filter_today' => 'Aujourd\'hui',
     'filter_week' => 'Cette semaine',

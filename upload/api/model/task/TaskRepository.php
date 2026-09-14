@@ -681,6 +681,25 @@ final class TaskRepository
         if (($filters['archived'] ?? '0') !== '1') {
             $qb->whereNull('t.archived_at')
                 ->whereNull('t.deleted_at');
+
+            // Задачи архивных проектов скрыты по умолчанию. Счётчики дашборда
+            // (DashboardRepository::buildVisibleTasksQuery) и аналитики уже
+            // фильтруют `p.archived_at`, а список — нет, из-за чего KPI
+            // «Активные задачи» и список по его же ссылке (`tasks&kpi=active`)
+            // показывали разные числа на одном и том же наборе фильтров.
+            // Явный `include_archived_projects=1` возвращает эти задачи
+            // (в том числе в выгрузке и на канбане). Задачи без проекта
+            // остаются видимыми: LEFT JOIN даёт p.archived_at = NULL.
+            // Просмотр архива (`archived=1`) намеренно не сужается — он и так
+            // запрашивает архивные сущности явно.
+            $includeArchivedProjects = in_array(
+                strtolower(trim((string)($filters['include_archived_projects'] ?? ''))),
+                ['1', 'true', 'yes', 'on'],
+                true
+            );
+            if (!$includeArchivedProjects) {
+                $qb->whereNull('p.archived_at');
+            }
         }
 
         if (!empty($filters['status'])) {

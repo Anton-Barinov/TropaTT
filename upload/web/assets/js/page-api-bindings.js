@@ -4240,6 +4240,9 @@ window.CRM.pageApiBindings = (function () {
     var tagFilter = String(query.get('tag') || '').trim();
     var dueFilter = String(query.get('due') || '').trim();
     var hideDoneFilter = String(query.get('hide_done') || '').trim() === '1' || kpi === 'active';
+    // Задачи архивных проектов видимы, только если запрошены явно: счётчики
+    // дашборда считают без них, поэтому по умолчанию список идёт тем же путём.
+    var includeArchivedProjectsFilter = String(query.get('include_archived_projects') || '').trim() === '1';
     // Многоуровневая сортировка: уровни хранятся как массив {key, dir} и в URL
     // кодируются одним параметром sort=key1:ASC,key2:DESC (до 4 уровней).
     // Старый формат sort=key&order=ASC тоже читается (совместимость со ссылками).
@@ -4308,6 +4311,9 @@ window.CRM.pageApiBindings = (function () {
       apiQuery.hide_done = 1;
       apiQuery.exclude_statuses = 'done,completed,archived';
     }
+    if (includeArchivedProjectsFilter) {
+      apiQuery.include_archived_projects = '1';
+    }
     if (kpi === 'overdue') {
       var overdueBounds = kanbanDueBounds('overdue');
       if (overdueBounds) apiQuery.due_at_to = overdueBounds.to;
@@ -4375,7 +4381,7 @@ window.CRM.pageApiBindings = (function () {
 
     function applyTaskRouteQuery(next) {
       var queryObj = getCurrentQueryObject();
-      ['search', 'status', 'priority', 'assignee', 'manager', 'project', 'client', 'cycle_public_id', 'tag', 'due', 'hide_done', 'sort', 'order', 'page', 'view_public_id'].forEach(function (key) {
+      ['search', 'status', 'priority', 'assignee', 'manager', 'project', 'client', 'cycle_public_id', 'tag', 'due', 'hide_done', 'include_archived_projects', 'sort', 'order', 'page', 'view_public_id'].forEach(function (key) {
         delete queryObj[key];
       });
       if (next.search) queryObj.search = next.search;
@@ -4389,6 +4395,7 @@ window.CRM.pageApiBindings = (function () {
       if (next.tag) queryObj.tag = next.tag;
       if (next.due) queryObj.due = next.due;
       if (next.hide_done) queryObj.hide_done = next.hide_done;
+      if (next.include_archived_projects) queryObj.include_archived_projects = next.include_archived_projects;
       if (next.sort) queryObj.sort = next.sort;
       if (next.order) queryObj.order = next.order;
       if (next.page && Number(next.page) > 1) queryObj.page = String(next.page);
@@ -4595,6 +4602,8 @@ window.CRM.pageApiBindings = (function () {
       var activeDueBtn = document.querySelector('.crm-kanban-due-filters [data-kanban-due].is-active');
       var hideDoneBtn = document.getElementById('tasksHideDoneToggle');
       var isHideDone = hideDoneBtn && (hideDoneBtn.classList.contains('active') || hideDoneBtn.classList.contains('is-active') || hideDoneBtn.getAttribute('aria-pressed') === 'true');
+      var includeArchivedProjectsBtn = document.getElementById('tasksIncludeArchivedProjectsToggle');
+      var isIncludeArchivedProjects = includeArchivedProjectsBtn && (includeArchivedProjectsBtn.classList.contains('active') || includeArchivedProjectsBtn.classList.contains('is-active') || includeArchivedProjectsBtn.getAttribute('aria-pressed') === 'true');
       return {
         search: searchInput ? searchInput.value.trim() : '',
         status: tasksStatusSelect ? tasksStatusSelect.value : '',
@@ -4607,6 +4616,7 @@ window.CRM.pageApiBindings = (function () {
         tag: tagSelect ? tagSelect.value : '',
         due: activeDueBtn ? String(activeDueBtn.getAttribute('data-kanban-due') || '') : '',
         hide_done: isHideDone ? '1' : '',
+        include_archived_projects: isIncludeArchivedProjects ? '1' : '',
         sort: encodeTaskSort(parseTaskSort(pageQuery().get('sort'), pageQuery().get('order')))
       };
     }
@@ -4623,6 +4633,7 @@ window.CRM.pageApiBindings = (function () {
       var summary = document.getElementById('tasksResultSummary');
       var dueBtns = document.querySelectorAll('.crm-kanban-due-filters [data-kanban-due]');
       var hideDoneBtn = document.getElementById('tasksHideDoneToggle');
+      var includeArchivedProjectsBtn = document.getElementById('tasksIncludeArchivedProjectsToggle');
 
       if (statusSelect) statusSelect.value = statusFilter;
       if (assigneeSelect) assigneeSelect.value = assigneeFilter;
@@ -4643,6 +4654,21 @@ window.CRM.pageApiBindings = (function () {
             applyTaskRouteQuery(f);
           });
           hideDoneBtn.dataset.bound = '1';
+        }
+      }
+
+      if (includeArchivedProjectsBtn) {
+        includeArchivedProjectsBtn.classList.toggle('active', Boolean(includeArchivedProjectsFilter));
+        includeArchivedProjectsBtn.classList.toggle('is-active', Boolean(includeArchivedProjectsFilter));
+        includeArchivedProjectsBtn.setAttribute('aria-pressed', includeArchivedProjectsFilter ? 'true' : 'false');
+        if (includeArchivedProjectsBtn.dataset.bound !== '1') {
+          includeArchivedProjectsBtn.addEventListener('click', function () {
+            var nextActive = !includeArchivedProjectsBtn.classList.contains('active') && !includeArchivedProjectsBtn.classList.contains('is-active');
+            var f = tasksFiltersFromDom();
+            f.include_archived_projects = nextActive ? '1' : '';
+            applyTaskRouteQuery(f);
+          });
+          includeArchivedProjectsBtn.dataset.bound = '1';
         }
       }
 
@@ -4716,13 +4742,17 @@ window.CRM.pageApiBindings = (function () {
             hideDoneBtn.classList.remove('active', 'is-active');
             hideDoneBtn.setAttribute('aria-pressed', 'false');
           }
-          applyTaskRouteQuery({ search: '', status: '', priority: '', assignee: '', manager: '', project: '', client: '', cycle: '', tag: '', due: '', hide_done: '', sort: '' });
+          if (includeArchivedProjectsBtn) {
+            includeArchivedProjectsBtn.classList.remove('active', 'is-active');
+            includeArchivedProjectsBtn.setAttribute('aria-pressed', 'false');
+          }
+          applyTaskRouteQuery({ search: '', status: '', priority: '', assignee: '', manager: '', project: '', client: '', cycle: '', tag: '', due: '', hide_done: '', include_archived_projects: '', sort: '' });
         });
         resetBtn.dataset.bound = '1';
       }
 
       // Enable/disable reset button based on active filters
-      var hasActive = Boolean(searchFilter || statusFilter || assigneeFilter || managerFilter || projectFilter || clientFilter || cycleFilter || tagFilter || dueFilter || hideDoneFilter || kpi);
+      var hasActive = Boolean(searchFilter || statusFilter || assigneeFilter || managerFilter || projectFilter || clientFilter || cycleFilter || tagFilter || dueFilter || hideDoneFilter || includeArchivedProjectsFilter || kpi);
       if (resetBtn) {
         resetBtn.disabled = !hasActive;
         resetBtn.classList.toggle('is-active', hasActive);
