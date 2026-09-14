@@ -767,6 +767,22 @@ $auJs = [
     return !!(state.plan && state.plan.update_available === true);
   }
 
+  // True when the check produced no package AND the channel it came from has no
+  // published build at all. "No updates" then only means the update center has
+  // nothing to offer anyone, so the page must not report a healthy,
+  // up-to-date state (see CoreUpdatePlanner::channelStateFromResponses()).
+  function centerChannelEmpty() {
+    const plan = state.plan;
+    return !!(plan
+      && plan.update_available === false
+      && plan.center_channel
+      && plan.center_channel.state === 'empty_channel');
+  }
+
+  function centerChannelName() {
+    return (state.plan && state.plan.center_channel && state.plan.center_channel.channel) || 'stable';
+  }
+
   // The build the last successful apply installed, or '' when the last job was
   // not an apply.
   function latestAppliedTarget() {
@@ -791,6 +807,7 @@ $auJs = [
     const latest = state.status && state.status.latest_job;
     if (latest && latest.state === 'failed') return 'danger';
     if (updateCenterUnavailable()) return 'danger';
+    if (centerChannelEmpty()) return 'warn';
     if (updateInstalledIsCurrent()) return 'ok';
     if (!updateAvailable()) return state.plan ? 'ok' : 'neutral';
     // Available and not installed yet: prepared/preflighted or still to prepare.
@@ -801,6 +818,7 @@ $auJs = [
     const latest = state.status && state.status.latest_job;
     if (updateCenterUnavailable()) return tr('statusCenterDown', 'Сервер обновлений недоступен');
     if (latest && latest.state === 'failed') return tr('statusFailed', 'Есть ошибка');
+    if (centerChannelEmpty()) return tr('statusChannelEmpty', 'Сервер обновлений не отдал ни одной сборки');
     if (updateInstalledIsCurrent()) return tr('statusApplied', 'Обновление установлено');
     if (!updateAvailable()) {
       return state.plan ? tr('statusNoUpdates', 'Обновлений нет') : tr('statusChecking', 'Проверяем...');
@@ -851,6 +869,10 @@ $auJs = [
         }
       }
       setPrimary('refresh', tr('primaryRefresh', 'Обновить статус'));
+    } else if (centerChannelEmpty()) {
+      $('nextTitle').textContent = tr('recommendChannelEmptyTitle', 'Сервер обновлений не отдал ни одной сборки');
+      $('nextText').textContent = tr('recommendChannelEmptyText', 'CRM не может проверить обновления: в канале {channel} на сервере обновлений нет ни одной опубликованной сборки, поэтому обновлений не получает ни одна установка — и старая, и новая. Это не значит, что ваша версия актуальна: проверьте публикацию сборок на сервере обновлений (scan-github / process-builds / publish-channels).', {channel: centerChannelName()});
+      setPrimary('refresh', tr('primaryRefresh', 'Обновить статус'));
     } else if (plan && plan.update_available === false) {
       $('nextTitle').textContent = tr('recommendLatestTitle', 'CRM уже актуальна');
       $('nextText').textContent = tr('recommendLatestText', 'Устанавливать ничего не нужно. Архив обновления не требуется, рисков для текущей версии нет.');
@@ -873,7 +895,7 @@ $auJs = [
       setPrimary('check', tr('primaryCheck', 'Проверить обновления'));
     }
     setBadge('nextStatusBadge', pipelineKind(), pipelineText());
-    setBadge('nextPlanBadge', updateCenterUnavailable() ? 'danger' : (plan ? (plan.update_available === true ? 'warn' : (plan.update_available === false ? 'ok' : 'neutral')) : 'neutral'), updateCenterUnavailable() ? tr('statusCenterDown', 'Сервер обновлений недоступен') : (plan ? (plan.update_available === true ? tr('statusUpdateFound', 'Есть обновление') : (plan.update_available === false ? tr('statusNoUpdates', 'Обновлений нет') : tr('statusUnknown', 'Неизвестно'))) : tr('plan_not_checked', 'Не проверено')));
+    setBadge('nextPlanBadge', updateCenterUnavailable() ? 'danger' : (plan ? (plan.update_available === true ? 'warn' : (plan.update_available === false ? (centerChannelEmpty() ? 'warn' : 'ok') : 'neutral')) : 'neutral'), updateCenterUnavailable() ? tr('statusCenterDown', 'Сервер обновлений недоступен') : (plan ? (plan.update_available === true ? tr('statusUpdateFound', 'Есть обновление') : (plan.update_available === false ? (centerChannelEmpty() ? tr('statusChannelEmpty', 'Сервер обновлений не отдал ни одной сборки') : tr('statusNoUpdates', 'Обновлений нет')) : tr('statusUnknown', 'Неизвестно'))) : tr('plan_not_checked', 'Не проверено')));
     setBadge('detailsBadge', pipelineKind(), pipelineText());
     renderControlState(pipelineKind());
   }
@@ -1010,6 +1032,8 @@ $auJs = [
       if (plan.target_sha) {
         targetMeta += ` · SHA ${String(plan.target_sha).slice(0, 12)}...`;
       }
+    } else if (centerChannelEmpty()) {
+      targetMeta = tr('kpiTargetMetaChannelEmpty', 'В канале {channel} на сервере обновлений нет ни одной опубликованной сборки.', {channel: centerChannelName()});
     } else {
       targetMeta = tr('kpiTargetMetaLatest', 'Новых сборок для установки нет.');
     }
