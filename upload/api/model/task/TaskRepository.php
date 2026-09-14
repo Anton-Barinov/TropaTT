@@ -705,7 +705,27 @@ final class TaskRepository
         if (!empty($filters['status'])) {
             $statusParts = $this->splitFilterList((string)$filters['status']);
             $expandedStatuses = $this->expandStatusAliases($statusParts);
-            if (count($expandedStatuses) === 1) {
+            $includeAncestors = in_array(
+                strtolower(trim((string)($filters['include_ancestors'] ?? ''))),
+                ['1', 'true', 'yes', 'on'],
+                true
+            );
+            if ($includeAncestors && $expandedStatuses !== []) {
+                // В режиме иерархии: показываем задачи с нужным статусом И их
+                // родительские задачи (даже в другом статусе), чтобы дерево
+                // сохраняло вложенность при фильтрации.
+                $placeholders = implode(', ', array_fill(0, count($expandedStatuses), '?'));
+                $qb->whereRaw(
+                    '(t.status_code IN (' . $placeholders . ')'
+                    . ' OR t.id IN ('
+                    .   'SELECT tr.parent_task_id FROM task_relations tr'
+                    .   ' INNER JOIN tasks child ON child.id = tr.child_task_id'
+                    .   ' WHERE tr.relation_type = ?'
+                    .   ' AND child.status_code IN (' . $placeholders . ')'
+                    . '))',
+                    array_merge($expandedStatuses, ['subtask'], $expandedStatuses)
+                );
+            } elseif (count($expandedStatuses) === 1) {
                 $qb->where('t.status_code', '=', $expandedStatuses[0]);
             } elseif (count($expandedStatuses) > 1) {
                 $qb->whereIn('t.status_code', $expandedStatuses);
@@ -723,7 +743,15 @@ final class TaskRepository
         if (!empty($filters['hide_done']) || !empty($filters['active_only'])) {
             $excludeStatuses = array_merge($excludeStatuses, TaskStatusSemantics::terminalCodes($this->pdo));
         }
-        if ($excludeStatuses !== []) {
+        // В режиме иерархии (include_ancestors) исключение завершённых статусов
+        // отключается: родительские задачи в завершённом статусе должны
+        // оставаться видимыми, пока хотя бы один их потомок соответствует фильтру.
+        $includeAncestorsForExclude = in_array(
+            strtolower(trim((string)($filters['include_ancestors'] ?? ''))),
+            ['1', 'true', 'yes', 'on'],
+            true
+        );
+        if ($excludeStatuses !== [] && !$includeAncestorsForExclude) {
             $expandedExclude = $this->expandStatusAliases($excludeStatuses);
             $placeholders = implode(', ', array_fill(0, count($expandedExclude), '?'));
             $qb->whereRaw('t.status_code NOT IN (' . $placeholders . ')', $expandedExclude);

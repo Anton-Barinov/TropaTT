@@ -39,7 +39,10 @@ final class DashboardRepository
 
     private function countTasksDueInRange(int $userId, bool $isRoot, string $from, string $to, array $accessibleTeamPublicIds): int
     {
+        [$sql, $params] = TaskStatusSemantics::notTerminalSql($this->pdo, 't.status_code');
+
         return $this->buildVisibleTasksQuery($userId, $isRoot, $accessibleTeamPublicIds)
+            ->whereRaw($sql, $params)
             ->whereNotNull('t.due_at')
             ->where('t.due_at', '>=', $from)
             ->where('t.due_at', '<=', $to)

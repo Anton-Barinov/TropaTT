@@ -169,6 +169,7 @@ Authorization: Bearer <token>
   - `active_only=1`：等价于 `hide_done=1` 的别名。
   - `exclude_statuses=done,archived`：显式逗号分隔的排除项列表，支持自动展开别名。
   - `include_archived_projects=1`：返回属于已归档项目的任务。默认情况下这些任务**被隐藏**，因此 `GET /tasks?hide_done=1` 与仪表板「活跃任务」/ `overdue_tasks` 计数完全一致（行为变更，见 CHANGELOG）。无项目的任务始终可见，归档视图（`archived=1`）不会被收窄。
+  - `include_ancestors=1`：与 `status` 筛选器配合使用时，额外返回匹配子任务的父任务，即使父任务处于不同状态。专为层级/树形视图设计，以便在按状态筛选时保持树结构。`exclude_statuses` / `hide_done` 筛选器也不应用于这些父任务。
 
 ### A2A Agent Card 清单
 

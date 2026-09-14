@@ -4314,6 +4314,12 @@ window.CRM.pageApiBindings = (function () {
     if (includeArchivedProjectsFilter) {
       apiQuery.include_archived_projects = '1';
     }
+    // В иерархическом виде при наличии фильтра по статусу запрашиваем
+    // родительские задачи (даже в другом статусе), чтобы дерево
+    // сохраняло вложенность при фильтрации.
+    if (currentView === 'tree' && statusFilter) {
+      apiQuery.include_ancestors = '1';
+    }
     if (kpi === 'overdue') {
       var overdueBounds = kanbanDueBounds('overdue');
       if (overdueBounds) apiQuery.due_at_to = overdueBounds.to;

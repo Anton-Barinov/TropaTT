@@ -2986,6 +2986,7 @@ $tools[] = $this->tool(
                 'priority' => ['type' => 'string', 'enum' => ['low', 'normal', 'high', 'urgent']],
                 'project_public_id' => ['type' => 'string', 'description' => 'Project public_id (prj_...). Filter or assign task to project.'],
                 'include_archived_projects' => ['type' => 'boolean', 'description' => 'Task list/board: include tasks that belong to archived projects. Off by default so the list matches the dashboard KPIs.'],
+                'include_ancestors' => ['type' => 'boolean', 'description' => 'Task list/tree: with a status filter, also return parent tasks of matching children even if the parents have a different status. For hierarchy view.'],
                 'assignee_user_public_id' => ['type' => 'string', 'description' => 'Assignee as usr_... id (recommended).'],
                 'due_at' => ['type' => 'string', 'description' => 'Due date ISO 8601.'],
                 'start_at' => ['type' => 'string'],
@@ -14189,7 +14190,7 @@ $tools[] = $this->tool(
     {
         $filters = $this->pick($arguments, [
             'page', 'project_public_id', 'status', 'priority', 'assigned_user_id', 'updated_since',
-            'space_public_id', 'sort', 'order', 'include_archived_projects',
+            'space_public_id', 'sort', 'order', 'include_archived_projects', 'include_ancestors',
         ]);
         $filters['limit'] = $this->limit($arguments, $defaultLimit, $maxLimit);
 

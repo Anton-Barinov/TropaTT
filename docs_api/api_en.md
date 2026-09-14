@@ -171,6 +171,7 @@ To eliminate enum friction across external systems, AI agents, and frontend clie
   - `active_only=1`: Equivalent alias to `hide_done=1`.
   - `exclude_statuses=done,archived`: Comma-separated exclusion list with automatic alias expansion.
   - `include_archived_projects=1`: Includes tasks that belong to archived projects. They are **hidden by default**, so `GET /tasks?hide_done=1` returns exactly the same set as the dashboard KPI «Активные задачи» / `overdue_tasks` (a behaviour change — see CHANGELOG). Tasks without a project are always visible, and `archived=1` (the archive view) is never narrowed.
+  - `include_ancestors=1`: When combined with a `status` filter, also returns parent tasks of matching children even if the parents have a different status. Intended for the hierarchy/tree view so that the tree structure is preserved during status filtering. The `exclude_statuses` / `hide_done` filter is also relaxed for ancestor tasks.
 
 ### A2A Agent Card Manifest
 
