@@ -39,6 +39,7 @@ return [
     'marketplace_already_installed' => 'The module is already installed',
     'marketplace_discovered_locally' => 'The module is already present in the CRM (for example from the core build) but is not installed — use the local install endpoint: /api/v1/modules/{code}/install',
     'marketplace_install_failed' => 'Could not install the module from the marketplace',
+    'marketplace_not_installable' => 'This is a virtual marketplace product (for example a donation), not a module: it cannot be installed into the CRM',
     'marketplace_installed' => 'Module installed from the marketplace',
     'marketplace_activation_failed' => 'Module installed but not activated — activate it manually',
     'marketplace_package_mismatch' => 'The marketplace package does not match the catalog: its manifest declares a different module name. Report it to the vendor or publish a new release',

@@ -121,9 +121,15 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
         }
 
         try {
+            $detail = $this->client()->module($fullCode);
+            $installable = $this->client()->isInstallableProduct($detail);
+
             return $this->success('MODULE_MARKETPLACE_MODULE', $this->t('common/messages.ok'), [
-                'module' => $this->client()->module($fullCode),
-                'can_install' => $this->isRoot(),
+                'module' => $detail,
+                // A virtual product (the donation) is payable but not installable,
+                // so it is never offered as an install even to a root admin.
+                'can_install' => $this->isRoot() && $installable,
+                'installable' => $installable,
             ]);
         } catch (\Throwable $e) {
             AppLog::error('[ModuleMarketplaceController::module] ' . $e->getMessage());
@@ -160,6 +166,18 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
         $mc = $this->container->get('module.config');
         $registry = $mc->getRegistry($fullCode);
 
+        // Virtual products (the donation) carry no package and must not be turned
+        // into a CRM module. Checked after the local conflict checks so a request
+        // that can be answered from disk never reaches the network.
+        $assertInstallable = function () use ($client, $fullCode): bool {
+            try {
+                return $client->isInstallableProduct($client->module($fullCode));
+            } catch (\Throwable $e) {
+                AppLog::warning('[ModuleMarketplaceController::install] installability check failed for ' . $fullCode . ': ' . $e->getMessage());
+                return true;
+            }
+        };
+
         // Installing over an existing directory would fail deep inside the
         // installer with a filesystem error; report it as a normal conflict. The
         // directory is the only thing that can block the install: a registry row
@@ -185,6 +203,12 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
         }
         if ($mc->unregisterStale($fullCode, $pm->getModulesDir())) {
             AppLog::warning('[ModuleMarketplaceController::install] removed stale registry entry for ' . $fullCode);
+        }
+
+        if (!$assertInstallable()) {
+            return $this->error('MARKETPLACE_NOT_INSTALLABLE', $this->t('module/messages.marketplace_not_installable'), 409, [
+                'name' => $fullCode,
+            ]);
         }
 
         try {

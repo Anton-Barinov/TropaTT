@@ -39,6 +39,7 @@ return [
     'marketplace_already_installed' => '模块已安装',
     'marketplace_discovered_locally' => '该模块已存在于 CRM 中（例如来自内核构建），但尚未安装 — 请使用本地安装接口：/api/v1/modules/{code}/install',
     'marketplace_install_failed' => '无法从市场安装模块',
+    'marketplace_not_installable' => '这是市场的虚拟商品（例如捐赠），并非模块：无法安装到 CRM 中',
     'marketplace_installed' => '已从市场安装模块',
     'marketplace_activation_failed' => '模块已安装但未启用——请手动启用',
     'marketplace_package_mismatch' => '市场包与目录不一致：其 manifest 声明的模块名不同。请通知供应商或发布新版本',

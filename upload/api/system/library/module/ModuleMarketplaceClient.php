@@ -28,6 +28,17 @@ final class ModuleMarketplaceClient
      */
     private const CODE_PATTERN = '/^[a-z0-9]+\.[a-z0-9-]+$/';
 
+    /**
+     * Catalogue product types that are not installable modules.
+     *
+     * The marketplace also lists virtual products (currently the donation). They
+     * have prices and orders but no package, so they must never reach the
+     * "installable modules" list of a CRM installation. The marketplace already
+     * filters them out of /api/v1/catalog; this set is the client-side guard for
+     * a stale catalogue cache or an older marketplace build.
+     */
+    private const VIRTUAL_PRODUCT_TYPES = ['donation', 'virtual', 'service'];
+
     /** @param array<string,mixed> $config */
     public function __construct(
         private readonly array $config,
@@ -118,15 +129,47 @@ final class ModuleMarketplaceClient
         $items = is_array($response['data'] ?? null) ? $response['data'] : [];
         $meta = is_array($response['meta'] ?? null) ? $response['meta'] : [];
 
+        $items = array_values(array_filter($items, 'is_array'));
+        $before = count($items);
+        $items = array_values(array_filter($items, [$this, 'isInstallableProduct']));
+        $dropped = $before - count($items);
+
         return [
-            'items' => array_values(array_map([$this, 'normalizeModuleSummary'], array_filter($items, 'is_array'))),
+            'items' => array_values(array_map([$this, 'normalizeModuleSummary'], $items)),
             'meta' => [
                 'page' => max(1, (int)($meta['page'] ?? $query['page'])),
                 'limit' => max(1, (int)($meta['limit'] ?? $query['limit'])),
-                'total' => max(0, (int)($meta['total'] ?? count($items))),
+                // Virtual products were filtered out of this page, so the count
+                // the UI paginates on has to shrink by the same amount.
+                'total' => max(0, (int)($meta['total'] ?? $before) - $dropped),
                 'pages' => max(1, (int)($meta['pages'] ?? 1)),
             ],
         ];
+    }
+
+    /**
+     * Is this raw catalogue entry an installable module rather than a virtual
+     * product (a donation)?
+     *
+     * @param mixed $raw
+     */
+    public function isInstallableProduct($raw): bool
+    {
+        if (!is_array($raw)) {
+            return false;
+        }
+
+        if (($raw['installable'] ?? true) === false) {
+            return false;
+        }
+
+        if ((int)($raw['is_donation'] ?? 0) === 1) {
+            return false;
+        }
+
+        $type = strtolower(trim((string)($raw['product_type'] ?? 'module')));
+
+        return $type === '' || !in_array($type, self::VIRTUAL_PRODUCT_TYPES, true);
     }
 
     /**
@@ -332,6 +375,7 @@ final class ModuleMarketplaceClient
             'author' => (string)($raw['author'] ?? ''),
             'author_url' => $this->safeHttpUrl((string)($raw['author_url'] ?? '')),
             'latest_version' => (string)($raw['latest_version'] ?? ($raw['version'] ?? '')),
+            'product_type' => strtolower(trim((string)($raw['product_type'] ?? 'module'))) ?: 'module',
         ];
     }
 
