@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<modification>
+    <name>TropaTT CRM Gateway — order history fallback hook</name>
+    <code>tropatt_order_history_fallback</code>
+    <version>1.0.0</version>
+    <author>Anton Barinov</author>
+    <link>https://tropatt.com</link>
+
+    <!--
+      OpenCart 2.3 already fires `model/checkout/order/addOrderHistory/after`
+      for every model method call (system/engine/loader.php + the `event`
+      table read by catalog/controller/startup/event.php), so the connector
+      works without this file: the admin install() method registers the row
+      `tropatt_order_history` and that is all that is needed.
+
+      Apply this OCMOD modification only on builds where the event mechanism is
+      unavailable or disabled (no oc_event table, customised
+      catalog/controller/startup/event.php, or an ocStore fork that never
+      routes model events). It calls the connector straight from the order
+      model instead.
+
+      The push itself is idempotent on the CRM side (`X-TropaTT-Idempotency-Key`
+      = `{store_key}:order:{order_id}` extends the existing intake item when the
+      body changes), but leaving this modification enabled *together with* the
+      event row doubles every request, so pick one mechanism:
+
+        events available    -> keep the event row, do not enable this file
+        events unavailable  -> enable this file (Modifications -> Refresh)
+    -->
+    <file path="catalog/model/checkout/order.php">
+        <operation>
+            <search><![CDATA[public function addOrderHistory($order_id, $order_status_id]]></search>
+            <add position="after"><![CDATA[
+		// TropaTT CRM fallback hook. The order row already exists at this
+		// point and the new status travels in the arguments, so the payload
+		// carries the right status even though the UPDATE below has not run
+		// yet.
+		if ($this->config->get('module_tropatt_status')) {
+			$this->load->model('extension/module/tropatt');
+			$this->model_extension_module_tropatt->pushOrderToCrm($order_id, $order_status_id);
+		}
+]]></add>
+        </operation>
+    </file>
+</modification>

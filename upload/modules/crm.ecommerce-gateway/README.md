@@ -20,7 +20,7 @@
 | E-COM-13 | Совместимость с Shared-хостингом (Zero-Daemon, cron/web-cron, MySQL locks, лимиты памяти < 32MB) | готово |
 | E-COM-14 | Комплексное QA и сквозное E2E-тестирование: синтетическая имитация полного жизненного цикла | готово |
 | E-COM-15 | Релизный гейт качества, деплой на demo.tropatt.com и итоговая верификация | готово |
-| Connectors | Референсные плагины для OpenCart 3.0, OpenCart 4.0, WooCommerce и сборка дистрибутивов | готово |
+| Connectors | Референсные плагины для OpenCart 2.3, OpenCart 3.0, OpenCart 4.0, WooCommerce и сборка дистрибутивов | готово |
 
 Проверки: `php -l` по всем файлам модуля, контрактные тесты
 `upload/api/tests/unit/ecommerce_gateway_signature_unit.php`,
@@ -163,7 +163,8 @@ PHP 8.1+, MySQL 8.x/MariaDB, расширения `openssl` (AES-256-GCM) и `pd
 ## Референсные модули интеграции (Connectors)
 
 В директории `connectors/` представлены готовые к установке модули для популярных CMS:
+- `connectors/opencart-2.3/`: официальное расширение для OpenCart 2.3.0.x / ocStore 2.3.0.x — самая массовая версия в РФ/СНГ (шаблоны `.tpl`, токен `token`, события через `model('extension/event')`, OCMOD-fallback в `install.xml`, распознавание реквизитов из полей SimpleCheckout, постраничная синхронизация остатков `syncStock` с блокировкой строк).
 - `connectors/opencart-3.0/`: официальное расширение для OpenCart 3.0.x / ocStore 3.0.x (Twig, user_token, события `catalog/model/checkout/order/addOrderHistory/after`, защита от эхо-петель).
 - `connectors/opencart-4.0/`: официальное расширение для OpenCart 4.0.x (PSR-4 пространства имен `Opencart\...`, вызовы событий по ссылке).
 - `connectors/woocommerce/`: официальный плагин WordPress / WooCommerce (хуки оформления и изменения статусов, REST-эндпоинт `/tropatt/v1/webhook`).
-- `connectors/dist/`: готовые zip-архивы для загрузки через админку CMS (`tropatt-opencart-3.ocmod.zip`, `tropatt-opencart-4.ocmod.zip`, `tropatt-woocommerce.zip`).
+- `connectors/dist/`: готовые zip-архивы для загрузки через админку CMS (`tropatt-opencart-2.3.ocmod.zip`, `tropatt-opencart-3.ocmod.zip`, `tropatt-opencart-4.ocmod.zip`, `tropatt-woocommerce.zip`).

@@ -267,6 +267,640 @@ if ($zip->open($wcPkg) === true) {
     assert_true(false, "Failed to open WooCommerce zip archive");
 }
 
+// --- 5. OpenCart 2.3 Connector ---
+//
+// Unlike the sections above, this one executes the connector code itself: the
+// catalog model is loaded with a minimal OpenCart 2.3 harness and the payload
+// it produces is validated by the very same PayloadValidator the ingestion API
+// uses. OpenCart 2.3 differences that must not silently regress are asserted on
+// the sources: `.tpl` templates, `extension/` paths, the `event` table API and
+// the `token` (not `user_token`) admin session.
+echo "\n--- 5. OpenCart / ocStore 2.3.x Connector (.tpl, extension/ events) ---\n";
+
+$oc23Dir = dirname(__DIR__) . '/connectors/opencart-2.3';
+$oc23AdminControllerFile = $oc23Dir . '/upload/admin/controller/extension/module/tropatt.php';
+$oc23AdminTemplateFile = $oc23Dir . '/upload/admin/view/template/extension/module/tropatt.tpl';
+$oc23CatalogControllerFile = $oc23Dir . '/upload/catalog/controller/extension/module/tropatt.php';
+$oc23ModelFile = $oc23Dir . '/upload/catalog/model/extension/module/tropatt.php';
+
+assert_true(
+    is_file($oc23AdminControllerFile) && is_file($oc23CatalogControllerFile) && is_file($oc23ModelFile),
+    'OpenCart 2.3 connector ships admin controller, catalog controller and catalog model'
+);
+assert_true(
+    is_file($oc23AdminTemplateFile),
+    'OpenCart 2.3 connector ships a .tpl template (2.3 renders PHP templates, not Twig)'
+);
+assert_true(
+    is_file($oc23Dir . '/upload/admin/language/ru-ru/extension/module/tropatt.php')
+        && is_file($oc23Dir . '/upload/admin/language/en-gb/extension/module/tropatt.php'),
+    'OpenCart 2.3 connector ships ru-ru and en-gb admin languages'
+);
+assert_true(is_file($oc23Dir . '/install.xml'), 'OpenCart 2.3 OCMOD fallback install.xml exists');
+
+$oc23AdminSource = (string)file_get_contents($oc23AdminControllerFile);
+assert_true(
+    strpos($oc23AdminSource, "'catalog/model/checkout/order/addOrderHistory/after'") !== false
+        && strpos($oc23AdminSource, "'extension/module/tropatt/onOrderHistoryAdd'") !== false,
+    'OpenCart 2.3 admin registers addOrderHistory/after -> extension/module/tropatt/onOrderHistoryAdd'
+);
+assert_true(
+    strpos($oc23AdminSource, "model('extension/event')") !== false
+        && strpos($oc23AdminSource, 'model_extension_event->deleteEvent(') !== false,
+    "OpenCart 2.3 admin uses model('extension/event') and deleteEvent() (deleteEventByCode is 3.0+)"
+);
+assert_true(
+    strpos($oc23AdminSource, "session->data['user_token']") === false
+        && strpos($oc23AdminSource, "session->data['token']") !== false,
+    'OpenCart 2.3 admin reads the 2.3 session token (session->data[token], not user_token)'
+);
+assert_true(
+    strpos($oc23AdminSource, "url->link('extension/extension'") !== false
+        && strpos($oc23AdminSource, "url->link('marketplace/extension'") === false,
+    'OpenCart 2.3 admin links the 2.3 extension list route extension/extension'
+);
+
+$oc23CatalogSource = (string)file_get_contents($oc23CatalogControllerFile);
+assert_true(
+    strpos($oc23CatalogSource, 'base64_encode(hash_hmac(\'sha256\', $timestamp . \'.\' . $raw_body, $store_secret, true))') !== false,
+    "OpenCart 2.3 webhook verifies the CRM outbound signature base64(HMAC(secret, timestamp.'.'.body))"
+);
+assert_true(
+    strpos($oc23CatalogSource, 'addOrderHistory($order_id, $target_status_id, $comment, false)') !== false,
+    'OpenCart 2.3 webhook uses the 2.3 four-argument addOrderHistory() signature'
+);
+assert_true(
+    strpos($oc23CatalogSource, 'secureEquals(') !== false,
+    'OpenCart 2.3 webhook compares the signature in constant time'
+);
+
+$oc23ModelSource = (string)file_get_contents($oc23ModelFile);
+assert_true(
+    strpos($oc23ModelSource, "'/_module/crm.ecommerce-gateway/v1/orders'") !== false
+        && strpos($oc23ModelSource, "'/_module/crm.ecommerce-gateway/v1/ping'") !== false,
+    'OpenCart 2.3 model signs the canonical gateway paths for /orders and /ping'
+);
+assert_true(
+    strpos($oc23ModelSource, 'FOR UPDATE') !== false,
+    'OpenCart 2.3 stock batch locks the rows it rewrites (SELECT ... FOR UPDATE)'
+);
+
+// Minimal OpenCart 2.3 runtime so the connector code can be executed for real.
+if (!defined('DB_PREFIX')) {
+    define('DB_PREFIX', 'oc_');
+}
+
+if (!class_exists('Model', false)) {
+    abstract class Model {
+        protected $registry;
+        public function __construct($registry) { $this->registry = $registry; }
+        public function __get($key) { return $this->registry->get($key); }
+    }
+}
+
+if (!class_exists('Controller', false)) {
+    abstract class Controller {
+        protected $registry;
+        public function __construct($registry) { $this->registry = $registry; }
+        public function __get($key) { return $this->registry->get($key); }
+    }
+}
+
+if (!class_exists('Log', false)) {
+    class Log {
+        public function __construct($filename) {}
+        public function write($message) {}
+    }
+}
+
+final class Oc23TestRegistry {
+    private $data = array();
+    public function get($key) { return isset($this->data[$key]) ? $this->data[$key] : null; }
+    public function set($key, $value) { $this->data[$key] = $value; }
+    public function has($key) { return isset($this->data[$key]); }
+}
+
+final class Oc23TestConfig {
+    private $values;
+    public function __construct(array $values) { $this->values = $values; }
+    public function get($key) { return isset($this->values[$key]) ? $this->values[$key] : null; }
+}
+
+final class Oc23TestResult {
+    public $row = array();
+    public $rows = array();
+    public $num_rows = 0;
+    public function __construct(array $rows) {
+        $this->rows = $rows;
+        $this->num_rows = count($rows);
+        $this->row = $rows ? $rows[0] : array();
+    }
+}
+
+final class Oc23TestDb {
+    public $queries = array();
+
+    public function escape($value) { return addslashes((string)$value); }
+
+    public function getLastId() { return 0; }
+
+    public function query($sql) {
+        $this->queries[] = $sql;
+        $normalized = preg_replace('/\s+/', ' ', trim((string)$sql));
+
+        if (stripos($normalized, 'custom_field_description') !== false) {
+            return new Oc23TestResult(array(
+                array('custom_field_id' => '1', 'name' => 'ИНН'),
+                array('custom_field_id' => '2', 'name' => 'КПП'),
+                array('custom_field_id' => '3', 'name' => 'Название организации'),
+                array('custom_field_id' => '4', 'name' => 'Юридический адрес'),
+                array('custom_field_id' => '5', 'name' => 'Комментарий курьеру'),
+            ));
+        }
+
+        if (stripos($normalized, 'decimal_place') !== false) {
+            return new Oc23TestResult(array(array('decimal_place' => '2')));
+        }
+
+        if (stripos($normalized, 'for update') !== false) {
+            if (strpos($normalized, "'42'") !== false || strpos($normalized, 'ART-101') !== false) {
+                return new Oc23TestResult(array(array('product_id' => '42', 'quantity' => '7')));
+            }
+
+            if (strpos($normalized, "'43'") !== false || strpos($normalized, 'ART-102') !== false) {
+                return new Oc23TestResult(array(array('product_id' => '43', 'quantity' => '0')));
+            }
+
+            return new Oc23TestResult(array());
+        }
+
+        if (stripos($normalized, 'count(*)') !== false) {
+            return new Oc23TestResult(array(array('total' => '2')));
+        }
+
+        if (stripos($normalized, 'product_description') !== false) {
+            return new Oc23TestResult(array(
+                array(
+                    'product_id' => '42',
+                    'model' => 'ART-101',
+                    'quantity' => '7',
+                    'price' => '1500.0000',
+                    'status' => '1',
+                    'date_modified' => '2026-09-14 09:12:00',
+                    'name' => 'Беспроводные наушники Pro',
+                ),
+                array(
+                    'product_id' => '43',
+                    'model' => 'ART-102',
+                    'quantity' => '0',
+                    'price' => '990.0000',
+                    'status' => '1',
+                    'date_modified' => '2026-09-13 10:00:00',
+                    'name' => 'Чехол',
+                ),
+            ));
+        }
+
+        return new Oc23TestResult(array());
+    }
+}
+
+final class Oc23TestLoader {
+    private $registry;
+    public $providers = array();
+
+    public function __construct($registry) { $this->registry = $registry; }
+
+    public function model($route) {
+        $key = 'model_' . str_replace(array('/', '-', '.'), array('_', '', ''), $route);
+        if ($this->registry->has($key)) {
+            return;
+        }
+
+        if (isset($this->providers[$route])) {
+            $this->registry->set($key, $this->providers[$route]);
+            return;
+        }
+
+        if ($route === 'extension/module/tropatt') {
+            $this->registry->set($key, new ModelExtensionModuleTropatt($this->registry));
+            return;
+        }
+
+        throw new RuntimeException('Unexpected model load in the 2.3 connector: ' . $route);
+    }
+}
+
+final class Oc23TestCheckoutOrder {
+    private $order;
+    public $history = array();
+
+    public function __construct(array $order) { $this->order = $order; }
+    public function getOrder($order_id) { return $this->order; }
+
+    public function addOrderHistory($order_id, $order_status_id, $comment = '', $notify = false) {
+        $this->history[] = array(
+            'order_id' => (int)$order_id,
+            'order_status_id' => (int)$order_status_id,
+            'comment' => (string)$comment,
+            'notify' => (bool)$notify,
+        );
+    }
+}
+
+final class Oc23TestAccountOrder {
+    private $products;
+    private $totals;
+    private $options;
+
+    public function __construct(array $products, array $totals, array $options = array()) {
+        $this->products = $products;
+        $this->totals = $totals;
+        $this->options = $options;
+    }
+
+    public function getOrderProducts($order_id) { return $this->products; }
+    public function getOrderTotals($order_id) { return $this->totals; }
+    public function getOrderOptions($order_id, $order_product_id) { return $this->options; }
+}
+
+final class Oc23TestRequest {
+    public $server = array();
+    public $get = array();
+    public $post = array();
+}
+
+final class Oc23TestResponse {
+    public $headers = array();
+    public $output = '';
+
+    public function addHeader($header) { $this->headers[] = $header; }
+    public function setOutput($output) { $this->output = (string)$output; }
+    public function getOutput() { return $this->output; }
+    public function json() { return json_decode($this->output, true); }
+    public function status() {
+        // The harness reuses one Response object for several calls, so the last
+        // status header wins (a real request has exactly one).
+        $status = 0;
+        foreach ($this->headers as $header) {
+            if (preg_match('/^HTTP\/1\.1\s+(\d{3})/', $header, $matches)) {
+                $status = (int)$matches[1];
+            }
+        }
+
+        return $status;
+    }
+}
+
+// The connector sources are loaded before the harness subclasses them, because
+// a class that extends an unknown parent fails at declaration time.
+require_once $oc23ModelFile;
+require_once $oc23CatalogControllerFile;
+
+final class Oc23TestConnectorController extends ControllerExtensionModuleTropatt {
+    public $test_body = '';
+    public $request;
+    public $response;
+    protected function rawBody() { return $this->test_body; }
+}
+
+$oc23Order = array(
+    'order_id' => 1042,
+    'firstname' => 'Иван',
+    'lastname' => 'Иванов',
+    'email' => 'ivan@example.ru',
+    'telephone' => '+7 (999) 111-22-33',
+    'comment' => 'Позвонить перед доставкой',
+    'total' => '1150.0000',
+    'currency_code' => 'RUB',
+    'order_status_id' => 1,
+    'date_added' => '2026-09-14 08:30:00',
+    'shipping_method' => 'Доставка СДЭК',
+    'payment_method' => 'Банковская карта онлайн',
+    'shipping_iso_code_2' => 'RU',
+    'shipping_zone' => 'Москва',
+    'shipping_city' => 'Москва',
+    'shipping_address_1' => 'ул. Ленина, д. 5',
+    'shipping_address_2' => 'кв. 12',
+    'shipping_postcode' => '101000',
+    'payment_company' => '',
+    'shipping_company' => '',
+    'ip' => '127.0.0.1',
+    'payment_code' => 'card',
+    'shipping_code' => 'cdek.cdek',
+    'store_name' => 'Demo Store',
+    'custom_field' => array(
+        '1' => '7701234567',
+        '2' => '770101001',
+        '3' => 'ООО Ромашка',
+        '4' => 'г. Москва, ул. Ленина, д. 1',
+        '5' => 'Домофон 42B',
+    ),
+    'payment_custom_field' => array(),
+    'shipping_custom_field' => array(),
+);
+
+$oc23Products = array(array(
+    'order_product_id' => 11,
+    'product_id' => 42,
+    'name' => 'Беспроводные наушники Pro',
+    'model' => 'ART-101',
+    'quantity' => '0.5',
+    'price' => '1500.0000',
+    'total' => '750.0000',
+    'tax' => '100.0000',
+));
+
+$oc23Totals = array(
+    array('code' => 'sub_total', 'title' => 'Sub-Total', 'value' => '750.0000'),
+    array('code' => 'shipping', 'title' => 'Shipping', 'value' => '350.0000'),
+    array('code' => 'tax', 'title' => 'VAT', 'value' => '100.0000'),
+    array('code' => 'coupon', 'title' => 'Coupon', 'value' => '-50.0000'),
+    array('code' => 'total', 'title' => 'Total', 'value' => '1150.0000'),
+);
+
+$oc23Config = new Oc23TestConfig(array(
+    'module_tropatt_gateway_url' => 'https://crm.example.com/api/index.php?route=/_module/crm.ecommerce-gateway/v1',
+    'module_tropatt_store_key' => $storeKey,
+    'module_tropatt_store_secret' => $secret,
+    'module_tropatt_status' => 1,
+    'module_tropatt_paid_statuses' => array(5),
+    'module_tropatt_status_mapping' => array(5 => 'completed'),
+    'module_tropatt_debug' => 0,
+    'config_language_id' => 1,
+    'config_currency' => 'RUB',
+    'config_url' => 'https://shop.example.com/',
+));
+
+$oc23Db = new Oc23TestDb();
+$oc23Registry = new Oc23TestRegistry();
+$oc23Registry->set('config', $oc23Config);
+$oc23Registry->set('db', $oc23Db);
+$oc23Loader = new Oc23TestLoader($oc23Registry);
+$oc23Registry->set('load', $oc23Loader);
+$oc23Loader->providers['checkout/order'] = new Oc23TestCheckoutOrder($oc23Order);
+$oc23Loader->providers['account/order'] = new Oc23TestAccountOrder(
+    $oc23Products,
+    $oc23Totals,
+    array(array('name' => 'Цвет', 'value' => 'Чёрный'))
+);
+
+$oc23Connector = new ModelExtensionModuleTropatt($oc23Registry);
+assert_true(
+    ModelExtensionModuleTropatt::EMPTY_BODY_SHA256 === SignatureService::EMPTY_BODY_SHA256,
+    'OpenCart 2.3 connector shares the CRM empty-body digest used by the ping canonical string'
+);
+
+$oc23Payload = $oc23Connector->buildOrderPayload($oc23Order, 5);
+$oc23Validation = $validator->validate('order', $oc23Payload);
+assert_true(
+    $oc23Validation['ok'],
+    'OpenCart 2.3 payload built by the connector passes PayloadValidator::validate("order")'
+        . ($oc23Validation['ok'] ? '' : ' -> ' . json_encode($oc23Validation['errors'], JSON_UNESCAPED_UNICODE))
+);
+
+$oc23Body = $oc23Payload['payload'];
+assert_true(
+    $oc23Payload['external_id'] === '1042' && $oc23Body['order_number'] === '1042' && $oc23Body['order_status'] === '5',
+    'OpenCart 2.3 ids: external_id/order_number/order_status come from the order and the event arguments'
+);
+assert_true(
+    $oc23Body['total']['amount_minor'] === 115000
+        && $oc23Body['subtotal']['amount_minor'] === 75000
+        && $oc23Body['delivery_total']['amount_minor'] === 35000
+        && $oc23Body['tax_total']['amount_minor'] === 10000,
+    'OpenCart 2.3 money: order_total rows are converted to minor units of the configured currency'
+);
+assert_true(
+    $oc23Body['discount_total']['amount_minor'] === 5000,
+    'OpenCart 2.3 discounts: a negative coupon total becomes a positive amount_minor (the contract forbids negatives)'
+);
+assert_true($oc23Body['paid'] === true, 'OpenCart 2.3 paid follows the configured paid order statuses');
+assert_true(
+    $oc23Body['items'][0]['quantity'] === 1,
+    'OpenCart 2.3 quantity: a fractional line is rounded up to a whole quantity instead of failing the order'
+);
+assert_true(
+    in_array('opencart_quantity: 0.5', $oc23Body['items'][0]['options'], true)
+        && in_array('Цвет: Чёрный', $oc23Body['items'][0]['options'], true),
+    'OpenCart 2.3 options: product options and the original fractional quantity survive in the line options'
+);
+assert_true(
+    $oc23Body['delivery_address']['country_code'] === 'RU'
+        && $oc23Body['delivery_address']['city'] === 'Москва'
+        && $oc23Body['delivery_address']['street'] === 'ул. Ленина, д. 5'
+        && $oc23Body['delivery_address']['house'] === 'кв. 12'
+        && $oc23Body['delivery_address']['postal_code'] === '101000',
+    'OpenCart 2.3 address: shipping_iso_code_2 provides the ISO country code (not the country name)'
+);
+assert_true(
+    $oc23Body['billing_entity']['tax_id'] === '7701234567'
+        && $oc23Body['billing_entity']['kpp'] === '770101001'
+        && $oc23Body['billing_entity']['company_name'] === 'ООО Ромашка'
+        && $oc23Body['billing_entity']['legal_address']['street'] === 'г. Москва, ул. Ленина, д. 1',
+    'OpenCart 2.3 requisites: INN/KPP/company/legal address custom fields map to billing_entity'
+);
+assert_true(
+    isset($oc23Body['attributes']['cf_field_5'])
+        && strpos($oc23Body['attributes']['cf_field_5'], 'Домофон 42B') !== false
+        && strpos($oc23Body['attributes']['cf_field_5'], 'Комментарий курьеру') !== false,
+    'OpenCart 2.3 attributes: a non-Latin custom field keeps its label and does not collide on a shared key'
+);
+assert_true(
+    $oc23Body['comment'] === 'Позвонить перед доставкой'
+        && $oc23Body['customer']['full_name'] === 'Иван Иванов',
+    'OpenCart 2.3 comment/customer map to the first-class contract fields'
+);
+
+// The webhook and syncStock endpoints run through the real controller: the
+// request body is injected because php://input is empty in CLI.
+$oc23Controller = new Oc23TestConnectorController($oc23Registry);
+$oc23Controller->response = new Oc23TestResponse();
+$oc23Controller->request = new Oc23TestRequest();
+
+$oc23Controller->webhook();
+assert_true(
+    $oc23Controller->response->status() === 401
+        && $oc23Controller->response->json()['error'] === 'Missing authentication headers',
+    'OpenCart 2.3 webhook rejects a request without authentication headers (401)'
+);
+
+$oc23Controller->request->server['HTTP_X_TROPATT_TIMESTAMP'] = (string)(time() - 4000);
+$oc23Controller->request->server['HTTP_X_TROPATT_SIGNATURE'] = 'irrelevant';
+$oc23Controller->webhook();
+assert_true(
+    $oc23Controller->response->json()['error'] === 'Timestamp out of tolerance window',
+    'OpenCart 2.3 webhook rejects a request outside the +/-300s window'
+);
+
+$oc23Controller->request->server['HTTP_X_TROPATT_TIMESTAMP'] = (string)time();
+$oc23Controller->request->server['HTTP_X_TROPATT_SIGNATURE'] = 'not-the-signature';
+$oc23Controller->webhook();
+assert_true(
+    $oc23Controller->response->json()['error'] === 'Invalid cryptographic signature',
+    'OpenCart 2.3 webhook rejects a wrong signature'
+);
+
+$oc23CheckoutOrder = $oc23Loader->providers['checkout/order'];
+$oc23Controller->request->server['HTTP_X_TROPATT_EVENT'] = 'order.status_changed';
+
+// A signed status change carrying an explicit OpenCart status id.
+$oc23StatusBody = json_encode(array(
+    'event' => 'order.status_changed',
+    'store_key' => $storeKey,
+    'external_order_id' => '1042',
+    'new_status' => 'completed',
+    'external_status' => '5',
+    'crm_task_public_id' => 'tsk_2_3_TEST',
+), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+$oc23Controller->test_body = $oc23StatusBody;
+$oc23Now = (string)time();
+$oc23Controller->request->server['HTTP_X_TROPATT_TIMESTAMP'] = $oc23Now;
+$oc23Controller->request->server['HTTP_X_TROPATT_SIGNATURE'] = SignatureService::signOutbound($secret, $oc23Now, $oc23StatusBody);
+$oc23Controller->webhook();
+assert_true(
+    $oc23Controller->response->status() === 200
+        && $oc23Controller->response->json()['success'] === true
+        && $oc23Controller->response->json()['updated_status_id'] === 5,
+    'OpenCart 2.3 webhook applies a correctly signed CRM status change'
+);
+assert_true(
+    count($oc23CheckoutOrder->history) === 1
+        && $oc23CheckoutOrder->history[0]['order_status_id'] === 5
+        && $oc23CheckoutOrder->history[0]['notify'] === false
+        && strpos($oc23CheckoutOrder->history[0]['comment'], 'tsk_2_3_TEST') !== false,
+    'OpenCart 2.3 webhook writes the 2.3 addOrderHistory() call with a comment that links the CRM task'
+);
+assert_true(
+    ControllerExtensionModuleTropatt::$suppress_echo === false,
+    'OpenCart 2.3 anti-echo loop: the echo flag is restored after the CRM-driven status write'
+);
+
+// A signed status change without external_status must resolve through the module mapping.
+$oc23MappedBody = json_encode(array(
+    'event' => 'order.status_changed',
+    'external_order_id' => '1042',
+    'new_status' => 'completed',
+), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+$oc23Controller->test_body = $oc23MappedBody;
+$oc23Now = (string)time();
+$oc23Controller->request->server['HTTP_X_TROPATT_TIMESTAMP'] = $oc23Now;
+$oc23Controller->request->server['HTTP_X_TROPATT_SIGNATURE'] = SignatureService::signOutbound($secret, $oc23Now, $oc23MappedBody);
+$oc23Controller->webhook();
+assert_true(
+    $oc23Controller->response->json()['updated_status_id'] === 5
+        && count($oc23CheckoutOrder->history) === 2,
+    'OpenCart 2.3 webhook resolves a CRM stage through the status mapping table'
+);
+
+// An unmapped stage is acknowledged and ignored, never applied to a random status.
+$oc23UnmappedBody = json_encode(array(
+    'event' => 'order.status_changed',
+    'external_order_id' => '1042',
+    'new_status' => 'stage_without_mapping',
+), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+$oc23Controller->test_body = $oc23UnmappedBody;
+$oc23Now = (string)time();
+$oc23Controller->request->server['HTTP_X_TROPATT_TIMESTAMP'] = $oc23Now;
+$oc23Controller->request->server['HTTP_X_TROPATT_SIGNATURE'] = SignatureService::signOutbound($secret, $oc23Now, $oc23UnmappedBody);
+$oc23Controller->webhook();
+assert_true(
+    $oc23Controller->response->status() === 200
+        && strpos((string)$oc23Controller->response->json()['notice'], 'no mapping') !== false
+        && count($oc23CheckoutOrder->history) === 2,
+    'OpenCart 2.3 webhook ignores an unmapped CRM stage (200 + notice, no status write)'
+);
+
+// syncStock: signed, paginated pull over a consistent snapshot.
+$oc23Controller->test_body = '';
+$oc23Controller->request->get = array('mode' => 'pull', 'page' => '1', 'limit' => '50');
+$oc23Now = (string)time();
+$oc23Controller->request->server['HTTP_X_TROPATT_TIMESTAMP'] = $oc23Now;
+$oc23Controller->request->server['HTTP_X_TROPATT_SIGNATURE'] = SignatureService::signOutbound($secret, $oc23Now, '');
+$oc23Db->queries = array();
+$oc23Controller->syncStock();
+$oc23Stock = $oc23Controller->response->json();
+assert_true(
+    $oc23Controller->response->status() === 200
+        && $oc23Stock['success'] === true
+        && $oc23Stock['mode'] === 'pull'
+        && $oc23Stock['total'] === 2
+        && count($oc23Stock['products']) === 2
+        && $oc23Stock['products'][0]['sku'] === 'ART-101'
+        && $oc23Stock['products'][0]['price']['amount_minor'] === 150000,
+    'OpenCart 2.3 syncStock mode=pull returns one signed, paginated catalogue page'
+);
+assert_true(
+    in_array('START TRANSACTION', array_map(function ($sql) { return trim($sql); }, $oc23Db->queries), true)
+        && in_array('COMMIT', array_map(function ($sql) { return trim($sql); }, $oc23Db->queries), true),
+    'OpenCart 2.3 syncStock reads the page inside a transaction (consistent snapshot)'
+);
+
+$oc23PushBody = json_encode(array(
+    'mode' => 'push',
+    'dry_run' => true,
+    'items' => array(
+        array('sku' => 'ART-101', 'quantity' => 12),
+        array('product_id' => 43, 'quantity' => 4),
+        array('sku' => 'MISSING', 'quantity' => 1),
+        array('sku' => 'ART-101', 'quantity' => -3),
+    ),
+), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+$oc23Controller->test_body = $oc23PushBody;
+$oc23Controller->request->get = array();
+$oc23Now = (string)time();
+$oc23Controller->request->server['HTTP_X_TROPATT_TIMESTAMP'] = $oc23Now;
+$oc23Controller->request->server['HTTP_X_TROPATT_SIGNATURE'] = SignatureService::signOutbound($secret, $oc23Now, $oc23PushBody);
+$oc23Controller->syncStock();
+$oc23Push = $oc23Controller->response->json();
+assert_true(
+    $oc23Controller->response->status() === 200
+        && $oc23Push['mode'] === 'push'
+        && $oc23Push['total'] === 4
+        && $oc23Push['summary']['updated'] === 2
+        && $oc23Push['summary']['skipped'] === 2
+        && $oc23Push['results'][0]['previous_quantity'] === 7
+        && $oc23Push['results'][0]['result'] === 'would_update',
+    'OpenCart 2.3 syncStock mode=push dry-run reports per-line results without writing'
+);
+assert_true(
+    stripos(implode("\n", $oc23Db->queries), 'UPDATE `oc_product`') === false,
+    'OpenCart 2.3 syncStock dry-run performs no UPDATE'
+);
+
+$oc23PushBodyLive = str_replace('"dry_run":true', '"dry_run":false', $oc23PushBody);
+$oc23Controller->test_body = $oc23PushBodyLive;
+$oc23Now = (string)time();
+$oc23Controller->request->server['HTTP_X_TROPATT_TIMESTAMP'] = $oc23Now;
+$oc23Controller->request->server['HTTP_X_TROPATT_SIGNATURE'] = SignatureService::signOutbound($secret, $oc23Now, $oc23PushBodyLive);
+$oc23Db->queries = array();
+$oc23Controller->syncStock();
+assert_true(
+    stripos(implode("\n", $oc23Db->queries), 'FOR UPDATE') !== false
+        && stripos(implode("\n", $oc23Db->queries), 'UPDATE `oc_product` SET quantity') !== false
+        && stripos(implode("\n", $oc23Db->queries), 'COMMIT') !== false,
+    'OpenCart 2.3 syncStock mode=push locks each row (FOR UPDATE) and commits the batch'
+);
+
+// --- 5.1. Distribution package ---
+$oc23Pkg = $distDir . '/tropatt-opencart-2.3.ocmod.zip';
+assert_true(
+    file_exists($oc23Pkg) && filesize($oc23Pkg) > 1000,
+    'tropatt-opencart-2.3.ocmod.zip package exists and is non-empty'
+);
+
+if (file_exists($oc23Pkg) && $zip->open($oc23Pkg) === true) {
+    assert_true($zip->locateName('upload/admin/controller/extension/module/tropatt.php') !== false, 'OpenCart 2.3 zip contains admin controller');
+    assert_true($zip->locateName('upload/catalog/controller/extension/module/tropatt.php') !== false, 'OpenCart 2.3 zip contains catalog controller');
+    assert_true($zip->locateName('upload/catalog/model/extension/module/tropatt.php') !== false, 'OpenCart 2.3 zip contains catalog model');
+    assert_true($zip->locateName('upload/admin/view/template/extension/module/tropatt.tpl') !== false, 'OpenCart 2.3 zip contains the .tpl template');
+    assert_true($zip->locateName('install.xml') !== false, 'OpenCart 2.3 zip contains the OCMOD install.xml');
+    assert_true($zip->locateName('README.md') !== false, 'OpenCart 2.3 zip contains the README');
+    $zip->close();
+} else {
+    assert_true(false, 'Failed to open OpenCart 2.3 zip archive');
+}
+
 echo "\n=======================================================\n";
 echo "Total Tests Run: " . ($passed + $failed) . "\n";
 echo "Tests Passed: {$passed}/" . ($passed + $failed) . "\n";
