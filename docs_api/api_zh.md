@@ -1465,6 +1465,7 @@ TropaTT 为 CRM 出站事件与外部电商 CMS 连接器（OpenCart 1.5–4.x, 
 | POST | `/_module/crm.ecommerce-gateway/v1/callbacks` | 接收回电请求 | 否 | — | 店铺签名校验；幂等 |
 | POST | `/_module/crm.ecommerce-gateway/v1/feedback` | 接收反馈表单 | 否 | — | 店铺签名校验；幂等 |
 | POST | `/_module/crm.ecommerce-gateway/v1/forms` | 接收自定义表单 / 线索 | 否 | — | 店铺签名校验；幂等 |
+| POST | `/_module/crm.ecommerce-gateway/v1/stock` | 接收库存批次（连接器 `syncStock` 的 CRM 侧） | 否 | — | 店铺签名校验；最多 500 行；按 `{store_key}:stock:{sku}` 幂等 |
 | GET | `/_module/crm.ecommerce-gateway/v1/stores` | 店铺列表 | 是 | `module.ecommerce-gateway.view` | — |
 | POST | `/_module/crm.ecommerce-gateway/v1/stores` | 创建店铺 | 是 | `module.ecommerce-gateway.manage`, `module.ecommerce-gateway.secret_manage` | 密钥仅返回一次 |
 | GET | `/_module/crm.ecommerce-gateway/v1/stores/{public_id}` | 店铺详情 | 是 | `module.ecommerce-gateway.view` | — |
