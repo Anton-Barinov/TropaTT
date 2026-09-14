@@ -666,7 +666,9 @@ final class ModuleController
     {
         $user = $this->user();
         if (!$user || empty($user['is_root'])) {
-            return JsonResponse::error('FORBIDDEN', 'Root access required for this operation.', 403);
+            // Translated like every other refusal on this controller: a hardcoded
+            // English string here left non-English users without a translation.
+            return JsonResponse::error('FORBIDDEN', $this->t('module/messages.root_required'), 403);
         }
         return null;
     }

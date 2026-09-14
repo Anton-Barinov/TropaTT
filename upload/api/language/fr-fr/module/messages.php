@@ -29,6 +29,7 @@ return [
     'marketplace_unreachable' => 'Le marketplace de modules ne répond pas',
     'marketplace_module_unavailable' => 'Impossible de charger les détails du module depuis le marketplace',
     'marketplace_root_required' => 'Seul l’administrateur principal peut installer des modules depuis le marketplace',
+    'root_required' => 'Accès administrateur principal requis pour cette opération',
     'marketplace_already_installed' => 'Le module est déjà installé',
     'marketplace_discovered_locally' => 'Le module est déjà présent dans le CRM (par exemple issu du build du noyau) mais n\'est pas installé — utilisez l\'installation locale : /api/v1/modules/{code}/install',
     'marketplace_install_failed' => 'Impossible d’installer le module depuis le marketplace',

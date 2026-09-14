@@ -29,6 +29,7 @@ return [
     'marketplace_unreachable' => 'Сервер маркетплейса модулей не отвечает',
     'marketplace_module_unavailable' => 'Не удалось получить данные модуля из маркетплейса',
     'marketplace_root_required' => 'Установка модулей из маркетплейса доступна только главному администратору',
+    'root_required' => 'Требуется доступ главного администратора',
     'marketplace_already_installed' => 'Модуль уже установлен',
     'marketplace_discovered_locally' => 'Модуль уже присутствует в CRM (например, из сборки ядра), но не установлен — выполните локальную установку: /api/v1/modules/{code}/install',
     'marketplace_install_failed' => 'Не удалось установить модуль из маркетплейса',

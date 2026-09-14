@@ -29,6 +29,7 @@ return [
     'marketplace_unreachable' => 'O marketplace de módulos não responde',
     'marketplace_module_unavailable' => 'Não foi possível carregar os detalhes do módulo do marketplace',
     'marketplace_root_required' => 'Apenas o administrador principal pode instalar módulos do marketplace',
+    'root_required' => 'É necessário acesso de administrador principal para esta operação',
     'marketplace_already_installed' => 'O módulo já está instalado',
     'marketplace_discovered_locally' => 'O módulo já está presente no CRM (por exemplo, da compilação do núcleo), mas não está instalado — use a instalação local: /api/v1/modules/{code}/install',
     'marketplace_install_failed' => 'Não foi possível instalar o módulo do marketplace',
