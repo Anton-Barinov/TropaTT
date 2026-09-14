@@ -30,6 +30,7 @@ return [
     'marketplace_module_unavailable' => '无法从市场加载模块详情',
     'marketplace_root_required' => '只有超级管理员可以从市场安装模块',
     'marketplace_already_installed' => '模块已安装',
+    'marketplace_discovered_locally' => '该模块已存在于 CRM 中（例如来自内核构建），但尚未安装 — 请使用本地安装接口：/api/v1/modules/{code}/install',
     'marketplace_install_failed' => '无法从市场安装模块',
     'marketplace_installed' => '已从市场安装模块',
     'marketplace_activation_failed' => '模块已安装但未启用——请手动启用',

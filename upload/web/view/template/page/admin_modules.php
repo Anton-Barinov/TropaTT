@@ -980,8 +980,17 @@
                         btn.disabled = false;
                         btn.textContent = mpT('admin_modules.mp_install', 'Установить');
                     }
+                    var code = (err.envelope && err.envelope.code) || '';
                     var detail = (err.envelope && err.envelope.message) || err.message || '';
                     notify(mpT('admin_modules.mp_install_failed', 'Не удалось установить модуль: {error}').replace('{error}', detail), 'error');
+
+                    // The module turned out to be on disk already (someone else
+                    // installed it, or a build shipped it) — the catalog card is
+                    // stale, so re-read both lists instead of leaving a button
+                    // that can only fail again.
+                    if (code === 'MODULE_DISCOVERED_LOCALLY' || code === 'ALREADY_INSTALLED') {
+                        Promise.resolve(loadModules()).then(function () { mpLoad(parseInt(mpState.meta.page, 10) || 1, true); });
+                    }
                 });
         });
     }

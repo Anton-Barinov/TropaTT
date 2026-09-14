@@ -116,7 +116,7 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
     public function module(array $params = []): JsonResponse
     {
         $fullCode = trim((string)($params['full_code'] ?? ''));
-        if ($fullCode === '') {
+        if (!ModuleMarketplaceClient::isValidCode($fullCode)) {
             return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         }
 
@@ -148,9 +148,17 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
             return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         }
 
+        // The code becomes a filesystem path and part of an outbound request, so
+        // it is validated here: a malformed value must answer "invalid parameter"
+        // instead of failing later as a generic install error.
+        if (!ModuleMarketplaceClient::isValidCode($fullCode)) {
+            return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
+        }
+
         $client = $this->client();
         $pm = $this->container->get('plugin.manager');
         $mc = $this->container->get('module.config');
+        $registry = $mc->getRegistry($fullCode);
 
         // Installing over an existing directory would fail deep inside the
         // installer with a filesystem error; report it as a normal conflict. The
@@ -160,6 +168,17 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
         // install ever again (absent from /api/v1/modules, yet every attempt
         // answered ALREADY_INSTALLED). Repair that state instead of refusing.
         if (is_dir($pm->getModulesDir() . '/' . $fullCode)) {
+            // Files without a registry entry are not an installed module (the
+            // core build ships module directories), and a marketplace download
+            // cannot be used either — the installer refuses an existing target
+            // directory. Name the state instead of answering "already installed".
+            if ($registry === null) {
+                return $this->error('MODULE_DISCOVERED_LOCALLY', $this->t('module/messages.marketplace_discovered_locally'), 409, [
+                    'name' => $fullCode,
+                    'install_endpoint' => '/api/v1/modules/' . $fullCode . '/install',
+                ]);
+            }
+
             return $this->error('ALREADY_INSTALLED', $this->t('module/messages.marketplace_already_installed'), 409, [
                 'name' => $fullCode,
             ]);

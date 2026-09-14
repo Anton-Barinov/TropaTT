@@ -21,8 +21,12 @@ use RuntimeException;
  */
 final class ModuleMarketplaceClient
 {
-    /** Module code shape shared with PluginManager::isValidName()/the installer. */
-    private const CODE_PATTERN = '/^[a-z0-9][a-z0-9_.-]{0,63}$/';
+    /**
+     * Module code shape: exactly "<vendor>.<module>", the same rule
+     * PluginManager::isValidName() and the installer enforce, so a code accepted
+     * here is one the installer can place under modules/<code>.
+     */
+    private const CODE_PATTERN = '/^[a-z0-9]+\.[a-z0-9-]+$/';
 
     /** @param array<string,mixed> $config */
     public function __construct(
@@ -273,10 +277,31 @@ final class ModuleMarketplaceClient
         }
     }
 
+    /**
+     * Whether a string is a module code the marketplace can publish and the
+     * installer can place under modules/<code>.
+     *
+     * Public so a caller can answer with a proper "invalid parameter" before a
+     * filesystem path or an outbound request is built from the value; the
+     * pattern is the module-code shape used by PluginManager::isValidName() and
+     * the installer, so a code accepted here is one the installer accepts.
+     */
+    public static function isValidCode(string $fullCode): bool
+    {
+        $fullCode = trim($fullCode);
+
+        return $fullCode !== ''
+            && strlen($fullCode) <= 64
+            && !str_contains($fullCode, '..')
+            && !str_contains($fullCode, '/')
+            && !str_contains($fullCode, '\\')
+            && preg_match(self::CODE_PATTERN, $fullCode) === 1;
+    }
+
     private function assertCode(string $fullCode): string
     {
         $fullCode = trim($fullCode);
-        if ($fullCode === '' || preg_match(self::CODE_PATTERN, $fullCode) !== 1 || str_contains($fullCode, '..')) {
+        if (!self::isValidCode($fullCode)) {
             throw new RuntimeException('Invalid marketplace module code');
         }
 

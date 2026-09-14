@@ -30,6 +30,7 @@ return [
     'marketplace_module_unavailable' => 'No se pudieron cargar los detalles del módulo desde el marketplace',
     'marketplace_root_required' => 'Solo el administrador principal puede instalar módulos del marketplace',
     'marketplace_already_installed' => 'El módulo ya está instalado',
+    'marketplace_discovered_locally' => 'El módulo ya está presente en el CRM (por ejemplo, desde la compilación del núcleo) pero no está instalado — use la instalación local: /api/v1/modules/{code}/install',
     'marketplace_install_failed' => 'No se pudo instalar el módulo desde el marketplace',
     'marketplace_installed' => 'Módulo instalado desde el marketplace',
     'marketplace_activation_failed' => 'Módulo instalado pero no activado: actívelo manualmente',

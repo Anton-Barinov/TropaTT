@@ -30,6 +30,7 @@ return [
     'marketplace_module_unavailable' => 'Не удалось получить данные модуля из маркетплейса',
     'marketplace_root_required' => 'Установка модулей из маркетплейса доступна только главному администратору',
     'marketplace_already_installed' => 'Модуль уже установлен',
+    'marketplace_discovered_locally' => 'Модуль уже присутствует в CRM (например, из сборки ядра), но не установлен — выполните локальную установку: /api/v1/modules/{code}/install',
     'marketplace_install_failed' => 'Не удалось установить модуль из маркетплейса',
     'marketplace_installed' => 'Модуль установлен из маркетплейса',
     'marketplace_activation_failed' => 'Модуль установлен, но не активирован — активируйте его вручную',
