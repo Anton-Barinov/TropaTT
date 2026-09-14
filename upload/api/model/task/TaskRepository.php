@@ -9,6 +9,7 @@ use Api\System\Library\Sync\CursorCodec;
 use PDO;
 use Api\System\Library\Support\LikeEscaper;
 use Api\System\Library\Support\TaskStatusSemantics;
+use Throwable;
 
 final class TaskRepository
 {
@@ -22,6 +23,38 @@ final class TaskRepository
     // Keep in sync with TASK_SORT_KEYS in page-api-bindings.js (web side).
     private const SORT_ALLOWLIST = ['title', 'task_key', 'project_title', 'due_at', 'created_at', 'updated_at', 'status_code', 'priority_code'];
     private const SORT_MAX_LEVELS = 4;
+
+    /**
+     * First active, non-terminal status of the task dictionary.
+     *
+     * Creating a task without an explicit status used the hard-coded 'new'. On an
+     * installation whose dictionary does not contain 'new' (for example
+     * todo/in_progress/review/done/canceled) every such task landed in a code the
+     * UI cannot resolve, and dozens of tasks accumulated in an unknown status —
+     * observed on work.tropatt.com on 2026-09-15 (57 tasks in 'new'). Resolve the
+     * dictionary instead; return null when it is empty/unavailable so the caller
+     * can keep the historical fallback.
+     */
+    public function defaultStatusCode(): ?string
+    {
+        try {
+            $rows = (new QueryBuilder($this->pdo))
+                ->from('statuses')
+                ->select(['code'])
+                ->where('scope', '=', 'task')
+                ->where('is_active', '=', 1)
+                ->whereRaw('(is_closed = 0 OR is_closed IS NULL)')
+                ->orderBy('sort_order', 'ASC')
+                ->orderBy('id', 'ASC')
+                ->limit(1)
+                ->get();
+            $code = trim((string)($rows[0]['code'] ?? ''));
+
+            return $code !== '' ? $code : null;
+        } catch (Throwable $e) {
+            return null;
+        }
+    }
 
     /**
      * Parse a multi-level sort spec into an ordered list of [key, direction]

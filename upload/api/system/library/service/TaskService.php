@@ -258,7 +258,7 @@ final class TaskService
             'task_sequence_number' => $taskSequenceNumber,
             'title' => trim((string)$input['title']),
             'description' => trim((string)($input['description'] ?? '')),
-            'status_code' => (string)($input['status'] ?? 'new'),
+            'status_code' => (string)($input['status'] ?? $this->tasks->defaultStatusCode() ?? 'new'),
             'priority_code' => (string)($input['priority'] ?? 'normal'),
             'activity_code' => !empty($input['activity_code']) ? (string)$input['activity_code'] : null,
             'override_cost_rate' => $this->normalizeRateInput($input['override_cost_rate'] ?? null),
