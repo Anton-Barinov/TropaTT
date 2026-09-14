@@ -15,7 +15,10 @@ $languageRoot = $webRoot . '/language';
 /** @var array<string, array<int, array{file: string, line: int, fallback: string}>> $references */
 $references = [];
 
-$collect = static function (string $file) use (&$references, $projectRoot): void {
+/** @var array<string, array<int, string>> $mapIssues Inline JS i18n maps missing a key the script asks for */
+$mapIssues = [];
+
+$collect = static function (string $file) use (&$references, &$mapIssues, $projectRoot): void {
     $source = (string)file_get_contents($file);
     $lineAt = static function (int $offset) use ($source): int {
         return substr_count(substr($source, 0, $offset), "\n") + 1;
@@ -49,6 +52,34 @@ $collect = static function (string $file) use (&$references, $projectRoot): void
                 'line' => $lineAt((int)$keyMatch[1]),
                 'fallback' => '',
             ];
+        }
+
+        // Pages that embed their own map for JavaScript
+        // (`const i18n = json_encode($auJs, ...)` + `$auJs = [...]`) look strings
+        // up with `tr('key', 'русский литерал')`. A key the script asks for but
+        // that the map does not carry silently falls back to that Russian
+        // literal for every locale — and the locale comparison below cannot see
+        // it, because the language file does contain the key. Exactly that
+        // happened to the empty-update-channel messages on 2026-09-14.
+        if (preg_match_all('/const\s+\w+\s*=\s*<\?=\s*json_encode\(\$(\w+)/', $source, $mapRefs) && $mapRefs[1] !== []) {
+            preg_match_all("/\\btr\\(\\s*'([A-Za-z0-9_.]+)'/", $source, $usedKeys);
+            $asked = array_values(array_unique($usedKeys[1] ?? []));
+            foreach (array_unique($mapRefs[1]) as $mapVar) {
+                $arrayStart = strpos($source, '$' . $mapVar . ' = [');
+                if ($arrayStart === false) {
+                    continue;
+                }
+                $arrayEnd = strpos($source, '];', $arrayStart);
+                if ($arrayEnd === false) {
+                    continue;
+                }
+                $block = substr($source, $arrayStart, $arrayEnd - $arrayStart);
+                preg_match_all("/^\\s*'([A-Za-z0-9_.]+)'\\s*=>/m", $block, $definedKeys);
+                $unmapped = array_values(array_diff($asked, array_unique($definedKeys[1] ?? [])));
+                if ($unmapped !== []) {
+                    $mapIssues[substr($file, strlen($projectRoot) + 1)] = $unmapped;
+                }
+            }
         }
     }
 
@@ -96,6 +127,17 @@ $flatten = static function (mixed $value, string $prefix = '') use (&$flatten): 
 };
 
 $failed = false;
+
+// Locale-independent: a key missing from an inline map shows the Russian literal
+// in every locale, so it is reported once, before the per-locale comparison.
+foreach ($mapIssues as $file => $unmapped) {
+    $failed = true;
+    echo "[FAIL] {$file}: " . count($unmapped) . " key(s) used by tr() are missing from the inline i18n map\n";
+    foreach ($unmapped as $key) {
+        echo "  - {$key}\n";
+    }
+}
+
 foreach (glob($languageRoot . '/*.php') ?: [] as $languageFile) {
     // NOTE: never name this variable `$locale` — required language files
     // (js_overrides.php) run top-level `foreach (... as $locale => ...)` loops
@@ -138,6 +180,10 @@ foreach (glob($languageRoot . '/*.php') ?: [] as $languageFile) {
         $reference = $references[$key][0] ?? ['file' => '', 'line' => 0, 'fallback' => ''];
         printf("  - %s (%s:%d)\n", $key, $reference['file'], $reference['line']);
     }
+}
+
+if ($mapIssues === []) {
+    echo "[OK] inline JS i18n maps cover every tr() key\n";
 }
 
 exit($failed ? 1 : 0);

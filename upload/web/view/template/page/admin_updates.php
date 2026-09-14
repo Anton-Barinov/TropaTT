@@ -212,6 +212,23 @@ $auJs = [
   'writableHintText' => $au('writable_hint_text', 'Веб-серверу не хватает прав на запись в каталоги: {dirs}. Это часто случается после ручной загрузки файлов по FTP (владелец файлов — FTP-пользователь, а PHP работает от другого пользователя). Через SSH выполните chmod -R 775 <каталоги> или установите владельца каталогов, как у storage/, затем нажмите «Проверить безопасность» ещё раз.'),
   'applyInProgress' => $au('apply_in_progress', 'Обновление выполняется. Не обновляйте и не закрывайте страницу.'),
   'retryInProgress' => $au('retry_in_progress', 'Сетевая ошибка, повторяем... ({attempt} из {max})'),
+  // Keys the page script asks for by name. Every one of them must be present
+  // here: `tr()` falls back to the literal passed in the call, and those
+  // literals are Russian, so a key missing from this map shows Russian text to
+  // an English or Chinese visitor — exactly what the empty-channel messages
+  // (added after the map was written) did on 2026-09-14.
+  'statusChannelEmpty' => $au('statusChannelEmpty', 'Сервер обновлений не отдал ни одной сборки'),
+  'recommendChannelEmptyTitle' => $au('recommendChannelEmptyTitle', 'Сервер обновлений не отдал ни одной сборки'),
+  'recommendChannelEmptyText' => $au('recommendChannelEmptyText', 'CRM не может проверить обновления: в канале {channel} на сервере обновлений нет ни одной опубликованной сборки, поэтому обновлений не получает ни одна установка — и старая, и новая. Это не значит, что ваша версия актуальна: проверьте публикацию сборок на сервере обновлений (scan-github / process-builds / publish-channels).'),
+  'kpiTargetMetaChannelEmpty' => $au('kpiTargetMetaChannelEmpty', 'В канале {channel} на сервере обновлений нет ни одной опубликованной сборки.'),
+  'bridgeNote' => $au('bridgeNote', 'Установка пройдёт в два шага: сначала обновится конфигурация и механизм обновлений, затем придет сборка с модулями. Просто повторите установку после первого обновления.'),
+  'forbiddenPathsTitle' => $au('forbiddenPathsTitle', 'Защищённые пути в архиве:'),
+  'apply_in_progress' => $au('apply_in_progress', 'Обновление выполняется. Не обновляйте и не закрывайте страницу.'),
+  'retry_in_progress' => $au('retry_in_progress', 'Сетевая ошибка, повторяем... ({attempt} из {max})'),
+  'kpi_installed' => $au('kpi_installed', 'Текущая версия'),
+  'kpi_target' => $au('kpi_target', 'Доступная версия'),
+  'kpi_target_loading' => $au('kpi_target_loading', 'Покажем после проверки.'),
+  'technical_changes' => $au('technical_changes', 'Технические данные изменений'),
 ];
 ?>
 <body data-page="admin-updates" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
