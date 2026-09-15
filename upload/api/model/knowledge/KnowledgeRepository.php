@@ -1752,27 +1752,14 @@ final class KnowledgeRepository
 
     private function legacyAddVersion(string $pagePublicId, ?int $actorId, string $summary): void
     {
-        $page = $this->pageRaw($pagePublicId);
-        if (!$page) {
-            return;
-        }
-        $stmt = $this->pdo->prepare('SELECT COALESCE(MAX(version_number), 0) + 1 FROM knowledge_page_versions WHERE page_id = :page_id');
-        $stmt->execute(['page_id' => (int)$page['id']]);
-        $next = (int)$stmt->fetchColumn();
-        $insert = $this->pdo->prepare('INSERT INTO knowledge_page_versions (public_id, page_id, page_public_id, version_number, title, content, content_text, change_type, change_note, created_by_user_id, created_at) VALUES (:public_id, :page_id, :page_public_id, :version_number, :title, :content, :content_text, :change_type, :change_note, :created_by_user_id, :created_at)');
-        $insert->execute([
-            'public_id' => 'kpv_' . bin2hex(random_bytes(16)),
-            'page_id' => (int)$page['id'],
-            'page_public_id' => (string)$page['public_id'],
-            'version_number' => $next,
-            'title' => (string)$page['title'],
-            'content' => (string)$page['content_html'],
-            'content_text' => (string)$page['content_text'],
-            'change_type' => 'update',
-            'change_note' => $summary,
-            'created_by_user_id' => $actorId,
-            'created_at' => gmdate('Y-m-d H:i:s'),
-        ]);
+        // Version snapshots are written by the version repository, not by hand:
+        // the previous inline INSERT left `content_hash` empty and never advanced
+        // `knowledge_pages.last_version_number`, so the page counter disagreed with
+        // the versions that actually existed and identical saves kept duplicating
+        // snapshots. The repository also rejects a save that changed nothing,
+        // exactly like KnowledgePageVersionService::createVersionFromPage().
+        (new KnowledgePageVersionRepository($this->pdo))
+            ->recordSnapshot($pagePublicId, $actorId, $summary, 'update');
     }
 
     private function pageWhere(array $filters, ?array $actor = null): array

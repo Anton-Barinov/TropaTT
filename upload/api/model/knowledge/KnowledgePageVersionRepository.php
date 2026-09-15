@@ -167,6 +167,113 @@ final class KnowledgePageVersionRepository
         return $val !== false ? (int)$val : null;
     }
 
+    /**
+     * Canonical snapshot of a page row for version hashing.
+     *
+     * Both the version service and the page create/update path
+     * (`KnowledgeRepository`) build their snapshots here, so a hash produced by
+     * one path is comparable with a hash produced by the other — without that,
+     * duplicate detection silently stops working for mixed history.
+     *
+     * @param array<string,mixed> $page
+     * @return array<string,mixed>
+     */
+    public static function buildSnapshot(array $page): array
+    {
+        return [
+            'title' => (string)($page['title'] ?? ''),
+            'content' => $page['content_html'] ?? '',
+            'content_text' => $page['content_text'] ?? '',
+            'summary' => $page['excerpt'] ?? '',
+            'visibility' => $page['visibility'] ?? null,
+            'status' => $page['status'] ?? null,
+            'tags' => $page['tags_json'] ?? null,
+            'links' => $page['links_json'] ?? null,
+            'meta' => $page['meta_json'] ?? null,
+        ];
+    }
+
+    /**
+     * SHA-256 of a snapshot, used to detect "saved without changes".
+     *
+     * @param array<string,mixed> $snapshot
+     */
+    public static function hashSnapshot(array $snapshot): string
+    {
+        $normalized = json_encode([
+            'title' => $snapshot['title'] ?? '',
+            'content' => $snapshot['content'] ?? '',
+            'content_text' => $snapshot['content_text'] ?? '',
+            'summary' => $snapshot['summary'] ?? '',
+            'visibility' => $snapshot['visibility'] ?? '',
+            'status' => $snapshot['status'] ?? '',
+            'tags' => $snapshot['tags'] ?? '[]',
+            'links' => $snapshot['links'] ?? '[]',
+            'meta' => $snapshot['meta'] ?? '{}',
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        return hash('sha256', $normalized);
+    }
+
+    /**
+     * Record a version snapshot for a page directly from its stored row.
+     *
+     * This is the path used when a page is created or updated through
+     * `KnowledgeRepository`. It used to insert the version by hand: the snapshot
+     * carried no `content_hash` and the page's `last_version_number` was never
+     * advanced. As a result the counter claimed "no versions" while versions
+     * existed, and saving a page without changing anything kept piling up
+     * identical snapshots (whereas the version service correctly rejects them).
+     *
+     * @return array|string|null version row, or 'KNOWLEDGE_PAGE_VERSION_DUPLICATE_CONTENT'
+     *                           when the page content did not change
+     */
+    public function recordSnapshot(
+        string $pagePublicId,
+        ?int $actorId,
+        string $changeNote,
+        string $changeType = 'update'
+    ): array|string|null {
+        $page = $this->getPage($pagePublicId);
+        if ($page === null) {
+            return null;
+        }
+
+        $snapshot = self::buildSnapshot($page);
+        $contentHash = self::hashSnapshot($snapshot);
+
+        $latest = $this->latestByPageId((int)$page['id']);
+        if ($latest !== null && (string)($latest['content_hash'] ?? '') === $contentHash) {
+            return 'KNOWLEDGE_PAGE_VERSION_DUPLICATE_CONTENT';
+        }
+
+        $nextVersion = $this->nextVersionNumberForPageId((int)$page['id']);
+
+        $version = $this->create([
+            'page_id' => (int)$page['id'],
+            'page_public_id' => (string)$page['public_id'],
+            'version_number' => $nextVersion,
+            'title' => $snapshot['title'],
+            'content' => $snapshot['content'],
+            'content_text' => $snapshot['content_text'],
+            'summary' => $snapshot['summary'],
+            'visibility' => $snapshot['visibility'],
+            'status' => $snapshot['status'],
+            'tags_json' => $snapshot['tags'],
+            'links_json' => $snapshot['links'],
+            'meta_json' => $snapshot['meta'],
+            'change_type' => $changeType,
+            'change_note' => $changeNote,
+            'created_by_user_id' => $actorId,
+            'content_hash' => $contentHash,
+        ]);
+
+        // Keep the page counter in sync with the version that was just written.
+        $this->updatePageLock($pagePublicId, ['last_version_number' => $nextVersion]);
+
+        return $version;
+    }
+
     public function updatePageLock(string $pagePublicId, array $set): bool
     {
         $setParts = [];

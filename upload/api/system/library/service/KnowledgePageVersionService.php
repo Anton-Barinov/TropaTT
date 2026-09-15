@@ -372,24 +372,14 @@ final class KnowledgePageVersionService
 
     /**
      * Build a snapshot from a page record.
+     *
+     * The definition lives in the repository layer so page create/update (which
+     * writes versions without going through this service) produces hashes that are
+     * comparable with the ones produced here.
      */
     public function buildSnapshot(array $page): array
     {
-        $tagsJson = $page['tags_json'] ?? null;
-        $linksJson = $page['links_json'] ?? null;
-        $metaJson = $page['meta_json'] ?? null;
-
-        return [
-            'title' => (string)($page['title'] ?? ''),
-            'content' => $page['content_html'] ?? '',
-            'content_text' => $page['content_text'] ?? '',
-            'summary' => $page['excerpt'] ?? '',
-            'visibility' => $page['visibility'] ?? null,
-            'status' => $page['status'] ?? null,
-            'tags' => $tagsJson,
-            'links' => $linksJson,
-            'meta' => $metaJson,
-        ];
+        return KnowledgePageVersionRepository::buildSnapshot($page);
     }
 
     /**
@@ -397,18 +387,6 @@ final class KnowledgePageVersionService
      */
     public function computeContentHash(array $snapshot): string
     {
-        $normalized = json_encode([
-            'title' => $snapshot['title'] ?? '',
-            'content' => $snapshot['content'] ?? '',
-            'content_text' => $snapshot['content_text'] ?? '',
-            'summary' => $snapshot['summary'] ?? '',
-            'visibility' => $snapshot['visibility'] ?? '',
-            'status' => $snapshot['status'] ?? '',
-            'tags' => $snapshot['tags'] ?? '[]',
-            'links' => $snapshot['links'] ?? '[]',
-            'meta' => $snapshot['meta'] ?? '{}',
-        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-
-        return hash('sha256', $normalized);
+        return KnowledgePageVersionRepository::hashSnapshot($snapshot);
     }
 }
