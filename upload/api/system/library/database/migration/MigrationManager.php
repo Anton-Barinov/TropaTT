@@ -84,6 +84,7 @@ final class MigrationManager
             new AgentMemoryMigration(),
             new KnowledgeSpacesTrashMigration(),
             new TaskStatusClosureMigration(),
+            new KnowledgePageVersionCounterBackfillMigration(),
         ];
     }
 
