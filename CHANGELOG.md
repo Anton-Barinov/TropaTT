@@ -30,6 +30,8 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ### Fixed
 
+- **The stream-detail widget could not be used at all before a project was chosen.** With no `project_public_id` in the request the service answered `project: null, projects: []`, so the very first load of the card showed "Нет доступных потоков" with an empty picker — and since the picker was the only way to store a choice, the widget never recovered on its own (root users, who have no pre-selected fallback, hit it every time). The service now builds the option list first and opens on the first entry of the same risk-ranked list the streams widget shows, so the card arrives with data and the picker functions; an organisation with no projects still gets the empty state instead of an error. Covered by `analytics_service_stream_detail_unit.php` (11 assertions; the old behaviour fails the first one).
+
 - **The stream-detail project picker was a plain `<select>` after all.** The renderer's comment said the select would be upgraded by `page-api-bindings`, but its id was never added to `applySearchableSelects()`, so on an installation with dozens of projects the manager had to scroll a raw dropdown to find one. `#dashboardInsightStreamSelect` is now in the project-selector list, which also re-wraps it after every re-render.
 
 - **`throughput_per_day` was returned by the endpoint and rendered nowhere.** The field is the rate the "разбор текущего объёма ~N дн." estimate is derived from, so the backlog verdict now prints it next to the estimate (`· темп 0.5 задач/день`), turning an unexplained number of days into one the reader can check.
