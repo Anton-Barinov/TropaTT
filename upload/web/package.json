@@ -9,6 +9,7 @@
     "test:admin-modules": "if [ -f tests/admin_modules_marketplace.test.js ]; then node --test tests/admin_modules_marketplace.test.js; else echo \"SKIP: test file not present (upload/web/tests/ is local-only, git-ignored)\"; fi",
     "lint": "echo 'Linting: check for console.log with sensitive data' && grep -rn 'console\\.log.*\\(token\\|secret\\|password\\|plain_key\\)' assets/js/ || echo 'No sensitive data in console.log'",
     "check-size": "echo 'JS file sizes:' && wc -l assets/js/*.js | sort -rn | head -10",
-    "check-domains": "echo 'Domain modules:' && ls -la assets/js/domains/"
+    "check-domains": "echo 'Domain modules:' && ls -la assets/js/domains/",
+    "test:dashboard-insights": "if [ -f tests/dashboard_insights_widgets.test.js ]; then node --test tests/dashboard_insights_widgets.test.js; else echo \"SKIP: test file not present (upload/web/tests/ is local-only, git-ignored)\"; fi"
   }
 }
