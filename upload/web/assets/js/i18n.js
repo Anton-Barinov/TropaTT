@@ -48,6 +48,13 @@ window.CRM.i18n = (function () {
           }
         }
         if (!updated) {
+          // Контейнер может показывать подпись через дочерний элемент
+          // (<button data-i18n="…"><span>Создать задачу</span></button>): если
+          // элемент уже отображает этот текст, второй раз его не добавляем.
+          var existing = String(node.textContent || '').replace(/\s+/g, ' ').trim();
+          if (existing !== '' && existing === String(value).replace(/\s+/g, ' ').trim()) {
+            return;
+          }
           // Если явного текстового узла не было, добавляем текст в начало перед дочерними тегами
           node.insertAdjacentText('afterbegin', value + ' ');
         }
