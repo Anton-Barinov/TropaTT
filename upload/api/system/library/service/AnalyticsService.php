@@ -391,37 +391,37 @@ final class AnalyticsService
             $this->accessibleTeamPublicIds($actor)
         );
 
-        if (!$isRoot) {
-            if ($accessible === []) {
-                return null;
-            }
-            if ($requested === '') {
-                $requested = (string)$accessible[0];
-            }
-            if (!in_array($requested, $accessible, true)) {
-                return null;
-            }
-        }
-
-        if ($requested === '') {
-            return ['project' => null, 'projects' => [], 'period_days' => $periodDays];
-        }
-
-        $detail = $this->insights()->projectDetail($requested, [
-            'now' => $now,
-            'period_start' => gmdate('Y-m-d 00:00:00', strtotime('-' . $periodDays . ' days', strtotime($now))),
-        ]);
-        if ($detail === []) {
+        if (!$isRoot && $accessible === []) {
             return null;
         }
 
-        $options = $this->insights()->projectsOverview($accessible, $isRoot, [
+        $window = [
             'now' => $now,
             'period_start' => gmdate('Y-m-d 00:00:00', strtotime('-' . $periodDays . ' days', strtotime($now))),
-        ]);
+        ];
         $options = array_map(static function (array $row): array {
             return ['project_public_id' => $row['project_public_id'], 'title' => $row['title']];
-        }, $options);
+        }, $this->insights()->projectsOverview($accessible, $isRoot, $window));
+
+        if (!$isRoot && $requested !== '' && !in_array($requested, $accessible, true)) {
+            return null;
+        }
+
+        // No stored choice yet: open on the first stream of the same risk-ranked
+        // list the streams widget shows. The card used to answer an empty payload
+        // on its very first load, so a root user saw "Нет доступных потоков" with a
+        // picker that had nothing in it - and no way left to choose anything.
+        if ($requested === '') {
+            $requested = (string)($options[0]['project_public_id'] ?? '');
+        }
+        if ($requested === '') {
+            return ['project' => null, 'projects' => $options, 'period_days' => $periodDays];
+        }
+
+        $detail = $this->insights()->projectDetail($requested, $window);
+        if ($detail === []) {
+            return null;
+        }
 
         return $this->stripFinancialFields([
             'project' => $detail,
