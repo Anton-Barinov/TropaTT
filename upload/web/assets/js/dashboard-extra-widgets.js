@@ -28,7 +28,9 @@
     webhook_health: { route: 'api/v1/webhooks/deliveries', kind: 'webhooks', query: { limit: 6 }, link: 'index.php?route=admin-webhooks' },
     workflow_automation: { route: 'api/v1/workflow/rules', kind: 'workflows', query: { limit: 6 }, link: 'index.php?route=admin-workflow' },
     system_health: { route: 'api/v1/health/status', kind: 'health', link: 'index.php?route=admin' },
-    active_sessions: { route: 'api/v1/security/sessions', kind: 'sessions', query: { limit: 6 }, link: 'index.php?route=profile' }
+    active_sessions: { route: 'api/v1/security/sessions', kind: 'sessions', query: { limit: 6 }, link: 'index.php?route=profile' },
+    my_workload_efficiency: { route: 'api/v1/dashboard/insights', kind: 'insights_my_load', query: { widget: 'my_workload_efficiency', period: 30 }, link: 'index.php?route=analytics' },
+    tasks_actual_time: { route: 'api/v1/dashboard/insights', kind: 'insights_actual_time', query: { widget: 'tasks_actual_time', period: 30 }, link: 'index.php?route=time-analytics' }
   };
 
   function api() {
@@ -376,6 +378,94 @@
       + (health.version ? '<small class="text-muted">' + safe(health.version) + '</small>' : '');
   }
 
+  // ---------------------------------------------------------------------------
+  // Insights widgets (GET /api/v1/dashboard/insights?widget=...&period=...)
+  // The server decides visibility: personal metrics are self-scoped, task time
+  // is limited to the actor's visible users, and money fields never travel here.
+  // ---------------------------------------------------------------------------
+  function insightsPayload(envelope) {
+    var payload = data(envelope);
+    return payload && typeof payload.data === 'object' && payload.data !== null ? payload.data : {};
+  }
+
+  function insightTile(label, value, signal) {
+    var cls = signal ? ' crm-dashboard-insight-tile--' + signal : '';
+    return '<div class="crm-dashboard-insight-tile' + cls + '"><span class="crm-dashboard-insight-label">'
+      + safe(label) + '</span><strong>' + safe(value) + '</strong></div>';
+  }
+
+  function renderMyLoad(container, envelope, definition) {
+    if (!envelope || envelope.success === false) {
+      container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.extra_unavailable', 'Данные недоступны')) + '</div>';
+      return;
+    }
+    var payload = insightsPayload(envelope);
+    if (!payload || !Number(payload.active_tasks || 0) && !Number(payload.minutes_week || 0) && !Number(payload.completed_period || 0)) {
+      container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.extra_empty', 'Пока нет данных')) + '</div>';
+      return;
+    }
+    var daily = Array.isArray(payload.daily_minutes) ? payload.daily_minutes : [];
+    var maxMinutes = 1;
+    daily.forEach(function (day) { maxMinutes = Math.max(maxMinutes, Number(day.minutes || 0)); });
+    var bars = daily.map(function (day) {
+      var width = Math.max(2, Math.min(100, Math.round(Number(day.minutes || 0) / maxMinutes * 100)));
+      return '<div class="crm-dashboard-insight-bar" title="' + safe(day.date) + ' · ' + safe(formatMinutesCompact(day.minutes)) + '">'
+        + '<i style="width:' + width + '%"></i></div>';
+    }).join('');
+    var signalText = payload.load_signal === 'overload'
+      ? translate('dashboard.extra_insights_overload', 'перегруз')
+      : (payload.load_signal === 'underload' ? translate('dashboard.extra_insights_underload', 'недогруз') : translate('dashboard.extra_insights_normal', 'норма'));
+
+    container.innerHTML = '<div class="crm-dashboard-insight-grid">'
+      + insightTile(translate('dashboard.extra_insights_active', 'Активные'), String(Number(payload.active_tasks || 0)), null)
+      + insightTile(translate('dashboard.extra_insights_overdue', 'Просрочено'), String(Number(payload.overdue_tasks || 0)), Number(payload.overdue_tasks || 0) > 0 ? 'risk' : null)
+      + insightTile(translate('dashboard.extra_insights_hours_week', 'Часы за 7 дней'), formatMinutesCompact(payload.minutes_week), null)
+      + insightTile(translate('dashboard.extra_insights_completed', 'Завершено'), String(Number(payload.completed_period || 0)), null)
+      + insightTile(translate('dashboard.extra_insights_cycle', 'Время выполнения'), formatMinutesCompact(payload.cycle_time_median_minutes), null)
+      + insightTile(translate('dashboard.extra_insights_efficiency', 'Эффективность'), Number(payload.efficiency_percent || 0) + '%', null)
+      + insightTile(translate('dashboard.extra_insights_load', 'Загрузка'), Number(payload.load_percent || 0) + '% · ' + signalText, payload.load_signal)
+      + '</div>'
+      + '<div class="crm-dashboard-insight-bars" aria-hidden="true">' + bars + '</div>';
+  }
+
+  function renderActualTime(container, envelope, definition) {
+    if (!envelope || envelope.success === false) {
+      container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.extra_unavailable', 'Данные недоступны')) + '</div>';
+      return;
+    }
+    var payload = insightsPayload(envelope);
+    var tasks = Array.isArray(payload.top_tasks) ? payload.top_tasks : [];
+    if (!tasks.length) {
+      container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.extra_empty', 'Пока нет данных')) + '</div>';
+      return;
+    }
+    var maxMinutes = 1;
+    tasks.forEach(function (task) { maxMinutes = Math.max(maxMinutes, Number(task.minutes || 0)); });
+    var rows = tasks.map(function (task) {
+      var width = Math.max(2, Math.min(100, Math.round(Number(task.minutes || 0) / maxMinutes * 100)));
+      var project = String(task.project_title || '');
+      return '<div class="crm-dashboard-wl-row">'
+        + '<div class="crm-dashboard-wl-head"><span class="text-truncate" title="' + safe(task.title) + '">' + safe(task.title) + '</span>'
+        + '<strong>' + safe(formatMinutesCompact(task.minutes)) + '</strong></div>'
+        + '<div class="crm-dashboard-time-bar" aria-hidden="true"><i style="width:' + width + '%"></i></div>'
+        + '<div class="crm-dashboard-wl-meta"><span>' + safe(project || translate('dashboard.extra_insights_no_project', 'Без проекта')) + '</span>'
+        + '<span class="text-muted">' + safe(String(Number(task.sessions || 0))) + ' ' + safe(translate('dashboard.extra_insights_sessions', 'сессий')) + '</span></div>'
+        + '</div>';
+    }).join('');
+    var activities = Array.isArray(payload.by_activity) ? payload.by_activity : [];
+    var activityChips = activities.slice(0, 5).map(function (row) {
+      return '<span class="crm-chip">' + safe(row.activity_code) + ' · ' + safe(formatMinutesCompact(row.minutes)) + '</span>';
+    }).join(' ');
+    container.innerHTML = '<div class="crm-dashboard-insight-grid">'
+      + insightTile(translate('dashboard.extra_insights_total', 'Всего часов'), formatMinutesCompact(payload.total_minutes), null)
+      + insightTile(translate('dashboard.extra_insights_median', 'Медиана на задачу'), formatMinutesCompact(payload.median_minutes), null)
+      + insightTile(translate('dashboard.extra_insights_average', 'Среднее на задачу'), formatMinutesCompact(payload.average_minutes), null)
+      + insightTile(translate('dashboard.extra_insights_covered', 'Задач с ворклогами'), Number(payload.covered_percent || 0) + '%', null)
+      + '</div>'
+      + rows
+      + (activityChips ? '<div class="crm-dashboard-insight-chips">' + activityChips + '</div>' : '');
+  }
+
   function render(definition, envelope) {
     var key = definition.key;
     var container = document.querySelector('[data-extra-widget-body="' + key + '"]');
@@ -387,6 +477,8 @@
     if (definition.kind === 'time_team') return renderTeamTime(container, envelope, definition);
     if (definition.kind === 'workload') return renderWorkload(container, envelope, definition);
     if (definition.kind === 'milestones') return renderMilestones(container, envelope, definition);
+    if (definition.kind === 'insights_my_load') return renderMyLoad(container, envelope, definition);
+    if (definition.kind === 'insights_actual_time') return renderActualTime(container, envelope, definition);
     return renderList(container, envelope, definition);
   }
 

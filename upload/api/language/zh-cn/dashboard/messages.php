@@ -27,4 +27,8 @@ return [
     'sticky_notes_color_label' => '颜色',
     'sticky_notes_created' => '便签已创建',
     'sticky_notes_create_error' => '创建失败',
+
+    // Dashboard insights widgets (analytics metrics)
+    'insights' => '仪表板小组件指标',
+    'insights_unknown_widget' => '未知的仪表板小组件',
 ];

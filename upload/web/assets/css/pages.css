@@ -7527,6 +7527,64 @@ body.modal-open {
   font-size: var(--text-sm);
   color: var(--crm-text);
 }
+/* Analytics insights widgets: KPI tiles, 7-day bars and activity chips. */
+.crm-dashboard-page .crm-dashboard-insight-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+.crm-dashboard-page .crm-dashboard-insight-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--crm-border);
+  border-radius: 8px;
+  background: var(--crm-bg-soft);
+}
+.crm-dashboard-page .crm-dashboard-insight-tile--risk {
+  border-color: var(--crm-danger);
+}
+.crm-dashboard-page .crm-dashboard-insight-tile--overload {
+  border-color: var(--crm-warning, var(--crm-danger));
+}
+.crm-dashboard-page .crm-dashboard-insight-tile--underload {
+  border-color: var(--crm-border);
+  opacity: 0.85;
+}
+.crm-dashboard-page .crm-dashboard-insight-label {
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--crm-text-muted);
+}
+.crm-dashboard-page .crm-dashboard-insight-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 48px;
+  margin-top: 10px;
+}
+.crm-dashboard-page .crm-dashboard-insight-bar {
+  position: relative;
+  flex: 1 1 0;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--crm-bg-deep);
+  overflow: hidden;
+}
+.crm-dashboard-page .crm-dashboard-insight-bar i {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  border-radius: 4px;
+  background: var(--crm-accent);
+}
+.crm-dashboard-page .crm-dashboard-insight-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
 .crm-dashboard-page .crm-dashboard-time-bar {
   flex: 1 1 60px;
   height: 6px;
