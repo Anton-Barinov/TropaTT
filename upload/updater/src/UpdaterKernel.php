@@ -870,7 +870,20 @@ final class UpdaterKernel
             // apply progress (possibly 'finalized'). A rollback is a
             // continuation only while inside the rollback flow, so a finished
             // or downloaded job always starts rollback() fresh.
+            //
+            // The stored progress must also BE a rollback phase: a job that
+            // failed while applying files (state 'failed', phase 'apply_files')
+            // or a rollback attempt that died before writing its own progress
+            // (state 'rollback_failed', phase still 'apply_files') used to be
+            // treated as a continuation and aborted with "Unknown rollback
+            // phase: apply_files", leaving the installation in maintenance mode
+            // with no way back through the UI. Such a job now restarts the
+            // rollback from the database step.
+            $rollbackPhases = ['restore_db', 'restore_files', 'health', 'finalize'];
+            $currentPhase = $progress !== null ? (string)($progress['phase'] ?? '') : '';
             $isContinuation = $progress !== null
+                && $currentPhase !== ''
+                && in_array($currentPhase, $rollbackPhases, true)
                 && in_array((string)($stored['state'] ?? ''), ['rolling_back', 'rollback_failed'], true);
 
             if ($isContinuation) {
@@ -964,7 +977,8 @@ final class UpdaterKernel
             'restore_files' => $this->rollbackPhaseRestoreFiles($state, $progress, $budget, $steps, $logger, $backupId),
             'health' => $this->rollbackPhaseHealth($state),
             'finalize' => $this->rollbackPhaseFinalize($state, $steps, $logger, $backupId),
-            default => throw new \RuntimeException('Unknown rollback phase: ' . $phase),
+            default => throw new \RuntimeException('Unknown rollback phase: ' . $phase . ' (expected one of: '
+                . implode(', ', ['restore_db', 'restore_files', 'health', 'finalize']) . ')'),
         };
     }
 
