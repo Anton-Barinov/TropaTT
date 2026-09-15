@@ -7579,6 +7579,45 @@ body.modal-open {
   border-radius: 4px;
   background: var(--crm-accent);
 }
+/* Insights: tables, persona signals and the stream selector. */
+.crm-dashboard-page .crm-dashboard-insight-table {
+  margin-bottom: 0;
+  font-size: var(--text-sm);
+}
+.crm-dashboard-page .crm-dashboard-insight-table th {
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--crm-text-muted);
+}
+.crm-dashboard-page .crm-dashboard-insight-select {
+  max-width: 320px;
+}
+.crm-dashboard-page .crm-dashboard-wl-signal {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: var(--text-xs, 0.75rem);
+  background: var(--crm-bg-deep);
+  color: var(--crm-text-muted);
+}
+.crm-dashboard-page .crm-dashboard-wl-signal.is-over {
+  background: var(--crm-danger);
+  color: #fff;
+}
+.crm-dashboard-page .crm-dashboard-wl-signal.is-warn {
+  background: var(--crm-warning, var(--crm-danger));
+  color: #1f2937;
+}
+.crm-dashboard-page .crm-dashboard-insight-delta {
+  font-variant-numeric: tabular-nums;
+  color: var(--crm-text-muted);
+}
+.crm-dashboard-page .crm-dashboard-insight-delta.is-up {
+  color: var(--crm-success, #198754);
+}
+.crm-dashboard-page .crm-dashboard-insight-delta.is-down {
+  color: var(--crm-danger);
+}
 .crm-dashboard-page .crm-dashboard-insight-chips {
   display: flex;
   flex-wrap: wrap;

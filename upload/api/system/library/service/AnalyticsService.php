@@ -14,7 +14,8 @@ final class AnalyticsService
         private readonly AnalyticsRepository $analytics,
         private readonly TeamRepository $teams,
         private readonly UserManagementRepository $userManagement,
-        private readonly ?InsightsRepository $insights = null
+        private readonly ?InsightsRepository $insights = null,
+        private readonly ?\Api\Model\Department\DepartmentRepository $departments = null
     ) {
     }
 
@@ -148,6 +149,277 @@ final class AnalyticsService
         $data['period_days'] = $periodDays;
 
         return $this->stripFinancialFields($data);
+    }
+
+    /**
+     * Personal KPI scorecard with deltas against the previous period.
+     *
+     * @param array<string,mixed> $actor
+     * @param array<string,mixed> $filters
+     * @return array<string,mixed>
+     */
+    public function personalScorecard(array $actor, array $filters): array
+    {
+        $periodDays = self::normalizePeriodDays($filters['period'] ?? 30);
+        $now = gmdate('Y-m-d H:i:s');
+        $currentStart = gmdate('Y-m-d 00:00:00', strtotime('-' . $periodDays . ' days', strtotime($now)));
+        $previousStart = gmdate('Y-m-d 00:00:00', strtotime('-' . ($periodDays * 2) . ' days', strtotime($now)));
+
+        $data = $this->insights()->personalScorecard((int)($actor['id'] ?? 0), [
+            'now' => $now,
+            'period_start' => $currentStart,
+            'previous_start' => $previousStart,
+        ], ['period_start' => $currentStart, 'previous_start' => $previousStart]);
+
+        $data['period_days'] = $periodDays;
+
+        return $this->stripFinancialFields($data);
+    }
+
+    /**
+     * Assignee load aggregated per department.
+     *
+     * A department has no member list of its own, so it is composed from its
+     * manager: the manager, their hierarchy descendants and the members of teams
+     * they manage. Metrics are summed per department; a user can contribute to
+     * more than one department when they belong to several.
+     *
+     * @param array<string,mixed> $actor
+     * @param array<string,mixed> $filters
+     * @return array<string,mixed>
+     */
+    public function assigneeDepartmentLoad(array $actor, array $filters): array
+    {
+        $periodDays = self::normalizePeriodDays($filters['period'] ?? 30);
+        $now = gmdate('Y-m-d H:i:s');
+        $window = [
+            'now' => $now,
+            'week_start' => gmdate('Y-m-d 00:00:00', strtotime('-6 days', strtotime($now))),
+            'period_start' => gmdate('Y-m-d 00:00:00', strtotime('-' . $periodDays . ' days', strtotime($now))),
+        ];
+
+        $isRoot = (bool)($actor['is_root'] ?? false);
+        $userIds = $isRoot ? [] : $this->visibleUserIds($actor);
+        if (!$isRoot && $userIds === []) {
+            $userIds = [-1];
+        }
+
+        $assignees = $this->insights()->assigneeLoad($userIds, $isRoot, $window);
+        $byUserId = [];
+        foreach ($assignees as $row) {
+            $byUserId[(string)$row['user_public_id']] = $row;
+        }
+
+        $departments = [];
+        try {
+            [$items] = $this->departments->list(['limit' => 200], null, true);
+            foreach ($items as $department) {
+                $managerId = (int)($department['manager_user_id'] ?? 0);
+                if ($managerId <= 0) {
+                    continue;
+                }
+
+                $memberIds = array_values(array_unique(array_merge(
+                    [$managerId],
+                    $this->userManagement->descendantIds($managerId),
+                    $this->teams->findMemberIdsByManager($managerId)
+                )));
+
+                $rows = [];
+                $active = 0;
+                $overdue = 0;
+                $minutes = 0;
+                foreach ($memberIds as $memberId) {
+                    $member = $this->findAssigneeRowById($assignees, $memberId);
+                    if ($member === null) {
+                        continue;
+                    }
+                    $rows[] = $member;
+                    $active += (int)$member['active_tasks'];
+                    $overdue += (int)$member['overdue_tasks'];
+                    $minutes += (int)$member['minutes_week'];
+                }
+
+                $capacity = count($rows) * 40 * 60;
+                $loadPercent = $capacity > 0 ? round($minutes / $capacity * 100, 1) : 0.0;
+
+                $departments[] = [
+                    'public_id' => (string)($department['public_id'] ?? ''),
+                    'title' => (string)($department['title'] ?? ''),
+                    'members_count' => count($rows),
+                    'active_tasks' => $active,
+                    'overdue_tasks' => $overdue,
+                    'minutes_week' => $minutes,
+                    'load_percent' => $loadPercent,
+                    'signal' => InsightsRepository::workloadSignal($loadPercent, $overdue),
+                    'members' => $rows,
+                ];
+            }
+        } catch (\Throwable $e) {
+            $departments = [];
+        }
+
+        return $this->stripFinancialFields([
+            'assignees' => $assignees,
+            'departments' => $departments,
+            'period_days' => $periodDays,
+        ]);
+    }
+
+    /**
+     * Weekly throughput, WIP and cycle time.
+     *
+     * @param array<string,mixed> $actor
+     * @param array<string,mixed> $filters
+     * @return array<string,mixed>
+     */
+    public function completionVelocity(array $actor, array $filters): array
+    {
+        $isRoot = (bool)($actor['is_root'] ?? false);
+        $userIds = $isRoot ? [] : $this->visibleUserIds($actor);
+        if (!$isRoot && $userIds === []) {
+            $userIds = [-1];
+        }
+
+        $data = $this->insights()->completionVelocity($userIds, $isRoot, gmdate('Y-m-d H:i:s'), 13);
+        $data['scope_users'] = $isRoot ? null : count($this->visibleUserIds($actor));
+
+        return $this->stripFinancialFields($data);
+    }
+
+    /**
+     * Management view over the visible scope: load, efficiency and signals.
+     *
+     * @param array<string,mixed> $actor
+     * @param array<string,mixed> $filters
+     * @return array<string,mixed>
+     */
+    public function workloadManagement(array $actor, array $filters): array
+    {
+        $load = $this->assigneeDepartmentLoad($actor, $filters);
+        $assignees = $load['assignees'];
+
+        $summary = ['overload' => 0, 'underload' => 0, 'risk' => 0, 'normal' => 0];
+        $loadSum = 0.0;
+        $efficiencySum = 0.0;
+        foreach ($assignees as $row) {
+            $signal = (string)($row['signal'] ?? 'normal');
+            $summary[$signal] = ($summary[$signal] ?? 0) + 1;
+            $loadSum += (float)$row['load_percent'];
+            $efficiencySum += (float)$row['efficiency_percent'];
+        }
+        $count = count($assignees);
+
+        return $this->stripFinancialFields([
+            'assignees' => $assignees,
+            'summary' => $summary + [
+                'people' => $count,
+                'average_load_percent' => $count > 0 ? round($loadSum / $count, 1) : 0.0,
+                'average_efficiency_percent' => $count > 0 ? round($efficiencySum / $count, 1) : 0.0,
+            ],
+            'period_days' => $load['period_days'],
+        ]);
+    }
+
+    /**
+     * Project ("stream") overview for the accessible scope.
+     *
+     * @param array<string,mixed> $actor
+     * @param array<string,mixed> $filters
+     * @return array<string,mixed>
+     */
+    public function streamsOverview(array $actor, array $filters): array
+    {
+        $periodDays = self::normalizePeriodDays($filters['period'] ?? 30);
+        $now = gmdate('Y-m-d H:i:s');
+        $isRoot = (bool)($actor['is_root'] ?? false);
+        $projectIds = $isRoot ? [] : $this->insights()->accessibleProjectPublicIds(
+            (int)($actor['id'] ?? 0),
+            $this->accessibleTeamPublicIds($actor)
+        );
+
+        $items = $this->insights()->projectsOverview($projectIds, $isRoot, [
+            'now' => $now,
+            'period_start' => gmdate('Y-m-d 00:00:00', strtotime('-' . $periodDays . ' days', strtotime($now))),
+        ]);
+
+        return $this->stripFinancialFields([
+            'projects' => $items,
+            'period_days' => $periodDays,
+        ]);
+    }
+
+    /**
+     * Detailed metrics for one project, or null when the actor cannot see it.
+     *
+     * @param array<string,mixed> $actor
+     * @param array<string,mixed> $filters
+     * @return array<string,mixed>|null
+     */
+    public function streamDetail(array $actor, array $filters): ?array
+    {
+        $periodDays = self::normalizePeriodDays($filters['period'] ?? 30);
+        $now = gmdate('Y-m-d H:i:s');
+        $isRoot = (bool)($actor['is_root'] ?? false);
+        $requested = trim((string)($filters['project_public_id'] ?? ''));
+
+        $accessible = $isRoot ? [] : $this->insights()->accessibleProjectPublicIds(
+            (int)($actor['id'] ?? 0),
+            $this->accessibleTeamPublicIds($actor)
+        );
+
+        if (!$isRoot) {
+            if ($accessible === []) {
+                return null;
+            }
+            if ($requested === '') {
+                $requested = (string)$accessible[0];
+            }
+            if (!in_array($requested, $accessible, true)) {
+                return null;
+            }
+        }
+
+        if ($requested === '') {
+            return ['project' => null, 'projects' => [], 'period_days' => $periodDays];
+        }
+
+        $detail = $this->insights()->projectDetail($requested, [
+            'now' => $now,
+            'period_start' => gmdate('Y-m-d 00:00:00', strtotime('-' . $periodDays . ' days', strtotime($now))),
+        ]);
+        if ($detail === []) {
+            return null;
+        }
+
+        $options = $this->insights()->projectsOverview($accessible, $isRoot, [
+            'now' => $now,
+            'period_start' => gmdate('Y-m-d 00:00:00', strtotime('-' . $periodDays . ' days', strtotime($now))),
+        ]);
+        $options = array_map(static function (array $row): array {
+            return ['project_public_id' => $row['project_public_id'], 'title' => $row['title']];
+        }, $options);
+
+        return $this->stripFinancialFields([
+            'project' => $detail,
+            'projects' => $options,
+            'period_days' => $periodDays,
+        ]);
+    }
+
+    /**
+     * @param array<int, array<string,mixed>> $rows
+     * @return array<string,mixed>|null
+     */
+    private function findAssigneeRowById(array $rows, int $userId): ?array
+    {
+        foreach ($rows as $row) {
+            if ((int)($row['user_id'] ?? 0) === $userId) {
+                return $row;
+            }
+        }
+
+        return null;
     }
 
     /**
