@@ -738,9 +738,16 @@
           + safe(String(task.title || task.task_public_id || '')) + '</a>'
           + (task.due_at ? '<small>' + safe(dateText(task.due_at)) + '</small>' : '') + '</div></div>';
       }).join('');
+      // The endpoint caps the list while the count covers every task, so the head has
+      // to say how many of them are actually shown - otherwise it claims 30 and
+      // lists 5.
+      var unloggedHead = unlogged.length > 0 && unlogged.length < unloggedCount
+        ? translate('dashboard.extra_insights_unlogged_title', 'Активные задачи без учёта времени') + ': '
+          + formatPlaceholders(translate('dashboard.extra_insights_first_of', 'первые %s из %s'), [unlogged.length, unloggedCount])
+        : translate('dashboard.extra_insights_unlogged_title', 'Активные задачи без учёта времени') + ': ' + String(unloggedCount);
       unloggedBlock = '<div class="crm-dashboard-insight-alert">'
         + '<div class="crm-dashboard-insight-alert-head">'
-        + safe(translate('dashboard.extra_insights_unlogged_title', 'Активные задачи без учёта времени') + ': ' + String(unloggedCount))
+        + safe(unloggedHead)
         + '</div>' + unloggedRows
         + '<a class="btn btn-sm crm-btn-secondary mt-2" href="' + safe(tasksListUrl({})) + '">'
         + safe(translate('dashboard.extra_insights_open_tasks', 'Открыть задачи')) + '</a></div>';
