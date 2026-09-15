@@ -71,6 +71,25 @@ final class ModuleCronScheduler
                 continue;
             }
 
+            // A task whose module handler class is gone belongs to a module that
+            // was uninstalled (or whose code was removed) while its row stayed
+            // behind. Disable it once instead of failing "Handler class not found"
+            // on every tick; re-installing the module re-enables the row through
+            // registerTask(). Core tasks (Api\... handlers) keep the old behaviour.
+            $missingHandlerClass = (string)($task['handler_class'] ?? '');
+            $missingHandlerMethod = (string)($task['handler_method'] ?? '');
+            if ($this->hasMissingModuleHandler($missingHandlerClass, $missingHandlerMethod)) {
+                $this->disableTask((int)$task['id'], $missingHandlerClass, $missingHandlerMethod);
+                $result['results'][] = [
+                    'status' => 'disabled',
+                    'module' => (string)$task['module_name'],
+                    'task' => (string)$task['task_name'],
+                    'duration_ms' => 0,
+                    'error' => 'Handler class not found; task disabled',
+                ];
+                continue;
+            }
+
             try {
                 $taskResult = $this->executeTask(
                     (int)$task['id'],
@@ -329,6 +348,44 @@ final class ModuleCronScheduler
         } catch (\Throwable $e) {
             AppLog::error('[ModuleCronScheduler::getDueTasks] ' . $e->getMessage());
             return [];
+        }
+    }
+
+    /**
+     * Whether a module-namespaced handler class can no longer be resolved.
+     *
+     * Only `Module\...` handlers are considered: core tasks use `Api\...`
+     * classes and are left to the regular failure path, so a core task with a
+     * wrong class keeps being reported instead of silently disappearing.
+     */
+    private function hasMissingModuleHandler(string $handlerClass, string $handlerMethod): bool
+    {
+        if ($handlerClass === '' || !str_starts_with($handlerClass, 'Module\\')) {
+            return false;
+        }
+
+        if (!class_exists($handlerClass)) {
+            return true;
+        }
+
+        return $handlerMethod === '' || !method_exists($handlerClass, $handlerMethod);
+    }
+
+    /**
+     * Disables a task whose handler cannot be resolved and records why.
+     */
+    private function disableTask(int $taskId, string $handlerClass, string $handlerMethod): void
+    {
+        try {
+            $stmt = $this->pdo->prepare("UPDATE {$this->tasksTable} SET enabled = 0, last_status = 'disabled', last_error = :error, updated_at = :now WHERE id = :id");
+            $stmt->execute([
+                'error' => mb_substr("Handler not found: {$handlerClass}::{$handlerMethod}", 0, 500),
+                'now' => gmdate('Y-m-d H:i:s'),
+                'id' => $taskId,
+            ]);
+            AppLog::error('[ModuleCronScheduler] Disabled cron task without a resolvable handler: ' . $handlerClass . '::' . $handlerMethod);
+        } catch (\Throwable $e) {
+            AppLog::error('[ModuleCronScheduler::disableTask] ' . $e->getMessage());
         }
     }
 
