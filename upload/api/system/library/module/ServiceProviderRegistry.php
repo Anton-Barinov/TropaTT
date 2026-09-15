@@ -166,6 +166,28 @@ final class ServiceProviderRegistry
     }
 
     /**
+     * Scheduled tasks keyed by the module that declared them.
+     *
+     * ModuleCronScheduler::registerTask() stores one row per
+     * (module_name, task_name), so the registration path needs the owning module
+     * name — `getAllScheduledTasks()` alone flattened it away and module cron
+     * tasks were therefore never registered at all.
+     *
+     * @return array<string, array<int, ScheduledTask>>
+     */
+    public function getScheduledTasksByModule(): array
+    {
+        $byModule = [];
+        foreach ($this->providers as $name => $provider) {
+            $tasks = $provider->getScheduledTasks();
+            if ($tasks !== []) {
+                $byModule[(string)$name] = array_values($tasks);
+            }
+        }
+        return $byModule;
+    }
+
+    /**
      * @return array<string, array<string, mixed>>
      */
     public function getErrors(): array

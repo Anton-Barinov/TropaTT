@@ -2032,6 +2032,25 @@ final class App
         }
         $this->container->set('module.service_provider_registry', $spRegistry);
 
+        // Modules declare cron work through ModuleServiceProviderInterface::getScheduledTasks().
+        // Nothing consumed that declaration before, so the scheduler table stayed
+        // empty and module cron tasks (for example the e-commerce-gateway outbox
+        // delivery required by E-COM-04) never ran on any installation.
+        try {
+            if ($this->container->has('module.cron_scheduler')) {
+                $moduleCronScheduler = $this->container->get('module.cron_scheduler');
+                if ($moduleCronScheduler instanceof \Api\System\Library\Module\ModuleCronScheduler) {
+                    foreach ($spRegistry->getScheduledTasksByModule() as $moduleName => $moduleTasks) {
+                        foreach ($moduleTasks as $moduleTask) {
+                            $moduleCronScheduler->registerTask((string)$moduleName, $moduleTask);
+                        }
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            AppLog::error('[App::initModuleSystem] Module cron task registration failed: ' . $e->getMessage());
+        }
+
         $modulePermissions = [];
         foreach ($spRegistry->getProviders() as $provider) {
             foreach ($provider->getPermissions() as $permCode) {

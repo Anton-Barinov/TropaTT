@@ -110,7 +110,10 @@ final class Request
     public function header(string $name, ?string $default = null): ?string
     {
         foreach ($this->headers as $k => $v) {
-            if (strtolower($k) === strtolower($name)) {
+            // PHP turns numeric-string array keys ("0", "1", ...) into integers, so a
+            // malformed request header must be cast before strtolower() — otherwise the
+            // whole API request dies with a TypeError instead of a 400/401 answer.
+            if (strtolower((string)$k) === strtolower($name)) {
                 return is_array($v) ? (string)($v[0] ?? $default) : (string)$v;
             }
         }
