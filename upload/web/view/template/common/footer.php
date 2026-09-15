@@ -159,6 +159,11 @@ $needsBr1NotifyOnly = !$needsBr1 && !in_array($currentRoute, [
   'password-reset-confirm',
   'invitation-accept',
 ], true);
+// Any page that can open the global create/edit-task modal needs the visual
+// editor: modals.js injects its description field with
+// data-crm-visual-editor="1", and without this bundle the field silently stays a
+// plain textarea. The tasks list was missing here, which is exactly the
+// "visual editor does not work when creating a task from the task list" report.
 $needsVisualEditor = in_array($currentRoute, [
   'knowledge',
   'knowledge-page',
@@ -166,6 +171,20 @@ $needsVisualEditor = in_array($currentRoute, [
   'ideas',
   'idea-detail',
   'work-cycles',
+  'app',
+  'chat',
+  'dashboard',
+  'gantt',
+  'kanban',
+  'my-day',
+  'my-week',
+  'project-detail',
+  'tasks',
+  'client-detail',
+  'counterparty-detail',
+  'contacts',
+  'companies',
+  'calendar',
 ], true);
 ?>
 <script defer src="assets/vendor/bootstrap/bootstrap.bundle.min.js?v=<?= urlencode($assetsVersion) ?>"></script>

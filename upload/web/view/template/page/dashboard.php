@@ -23,8 +23,8 @@
             <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
             <span data-i18n="dashboard.builder_edit"><?= htmlspecialchars($t('dashboard.builder_edit', 'Редактировать'), ENT_QUOTES, 'UTF-8') ?></span>
           </button>
-          <button class="btn crm-btn-primary d-inline-flex align-items-center gap-2" data-open-modal="createTaskModal" type="button" data-i18n="dashboard.btn_create_task">
-            <span><?= htmlspecialchars($t('dashboard.btn_create_task', 'Создать задачу'), ENT_QUOTES, 'UTF-8') ?></span>
+          <button class="btn crm-btn-primary d-inline-flex align-items-center gap-2" data-open-modal="createTaskModal" type="button">
+            <span data-i18n="dashboard.btn_create_task"><?= htmlspecialchars($t('dashboard.btn_create_task', 'Создать задачу'), ENT_QUOTES, 'UTF-8') ?></span>
           </button>
         </div>
       </div>
@@ -383,6 +383,14 @@
           ['key' => 'workflow_automation', 'size' => 'crm-col-6', 'title' => 'Workflow', 'href' => 'index.php?route=admin-workflow'],
           ['key' => 'system_health', 'size' => 'crm-col-4', 'title' => 'Состояние системы', 'href' => 'index.php?route=admin'],
           ['key' => 'active_sessions', 'size' => 'crm-col-4', 'title' => 'Активные сессии', 'href' => 'index.php?route=profile'],
+          ['key' => 'my_workload_efficiency', 'size' => 'crm-col-6', 'title' => 'Моя нагрузка и эффективность', 'href' => 'index.php?route=analytics'],
+          ['key' => 'tasks_actual_time', 'size' => 'crm-col-6', 'title' => 'Фактическое время выполнения задач', 'href' => 'index.php?route=time-analytics'],
+          ['key' => 'my_kpi_scorecard', 'size' => 'crm-col-6', 'title' => 'Мои персональные показатели', 'href' => 'index.php?route=analytics'],
+          ['key' => 'assignee_department_load', 'size' => 'crm-col-12', 'title' => 'Загрузка исполнителей и отделов', 'href' => 'index.php?route=analytics'],
+          ['key' => 'tasks_completion_velocity', 'size' => 'crm-col-6', 'title' => 'Скорость завершения', 'href' => 'index.php?route=analytics'],
+          ['key' => 'workload_efficiency_management', 'size' => 'crm-col-12', 'title' => 'Управление нагрузкой и эффективностью', 'href' => 'index.php?route=analytics'],
+          ['key' => 'streams_load_efficiency', 'size' => 'crm-col-12', 'title' => 'Потоки: загрузка и эффективность', 'href' => 'index.php?route=projects'],
+          ['key' => 'stream_detail_load_efficiency', 'size' => 'crm-col-12', 'title' => 'Поток: детальный анализ', 'href' => 'index.php?route=projects'],
       ];
       foreach ($extraDashboardWidgets as $extraWidget):
           $extraKey = (string)$extraWidget['key'];
