@@ -16,7 +16,16 @@ use Api\System\Library\Service\AnalyticsService;
  */
 final class InsightsController extends BaseController
 {
-    private const WIDGETS = ['my_workload_efficiency', 'tasks_actual_time'];
+    private const WIDGETS = [
+        'my_workload_efficiency',
+        'tasks_actual_time',
+        'my_kpi_scorecard',
+        'assignee_department_load',
+        'tasks_completion_velocity',
+        'workload_efficiency_management',
+        'streams_load_efficiency',
+        'stream_detail_load_efficiency',
+    ];
 
     public function show(): \Api\System\Library\Http\JsonResponse
     {
@@ -40,9 +49,36 @@ final class InsightsController extends BaseController
         $service = $this->container->get('service.analytics');
         $actor = $authUser['user'];
 
-        $data = $widget === 'tasks_actual_time'
-            ? $service->taskActualTime($actor, $input)
-            : $service->personalLoad($actor, $input);
+        switch ($widget) {
+            case 'tasks_actual_time':
+                $data = $service->taskActualTime($actor, $input);
+                break;
+            case 'my_kpi_scorecard':
+                $data = $service->personalScorecard($actor, $input);
+                break;
+            case 'assignee_department_load':
+                $data = $service->assigneeDepartmentLoad($actor, $input);
+                break;
+            case 'tasks_completion_velocity':
+                $data = $service->completionVelocity($actor, $input);
+                break;
+            case 'workload_efficiency_management':
+                $data = $service->workloadManagement($actor, $input);
+                break;
+            case 'streams_load_efficiency':
+                $data = $service->streamsOverview($actor, $input);
+                break;
+            case 'stream_detail_load_efficiency':
+                // null means "the actor cannot see this project": answer 403
+                // without revealing whether the project exists.
+                $data = $service->streamDetail($actor, $input);
+                if ($data === null) {
+                    return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
+                }
+                break;
+            default:
+                $data = $service->personalLoad($actor, $input);
+        }
 
         return $this->success('DASHBOARD_INSIGHTS', $this->t('dashboard/messages.insights'), [
             'widget' => $widget,

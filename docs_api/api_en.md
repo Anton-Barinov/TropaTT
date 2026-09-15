@@ -703,7 +703,7 @@ Price lists (`rate_cards`) define three rate kinds — cost, bill, and payout �
 | GET | `/api/v1/analytics/projects` 🔄 | Analytics by projects | Yes | `task.manage` | — |
 | GET | `/api/v1/analytics/users` 🔄 | Analytics by users | Yes | `task.manage` | — |
 | GET | `/api/v1/dashboard/widgets` | Dashboard widgets | Yes | — | Current user widgets |
-| GET | `/api/v1/dashboard/insights` | Dashboard widget metrics | Yes | `task.manage` | `widget` = `my_workload_efficiency` \| `tasks_actual_time`, `period` = 7 \| 30 \| 90 |
+| GET | `/api/v1/dashboard/insights` | Dashboard widget metrics | Yes | `task.manage` | `widget` = `my_workload_efficiency` \| `tasks_actual_time` \| `my_kpi_scorecard` \| `assignee_department_load` \| `tasks_completion_velocity` \| `workload_efficiency_management` \| `streams_load_efficiency` \| `stream_detail_load_efficiency`, `period` = 7 \| 30 \| 90, `project_public_id` for the stream detail |
 | PUT | `/api/v1/dashboard/widgets` | Save widgets | Yes | — | Update current user widgets |
 
 ### Search

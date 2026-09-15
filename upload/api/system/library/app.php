@@ -1476,7 +1476,8 @@ final class App
             $c->get('repository.analytics'),
             $c->get('repository.team'),
             $c->get('repository.user_management'),
-            $c->get('repository.analytics_insights')
+            $c->get('repository.analytics_insights'),
+            $c->get('repository.department')
         ));
         $this->container->factory('service.task_activity', fn(Container $c) => new TaskActivityService(
             $c->get('repository.task_activity')

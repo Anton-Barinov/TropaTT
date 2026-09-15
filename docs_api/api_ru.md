@@ -698,7 +698,7 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | GET | `/api/v1/analytics/projects` 🔄 | Аналитика по проектам | Да | `task.manage` | — |
 | GET | `/api/v1/analytics/users` 🔄 | Аналитика по пользователям | Да | `task.manage` | — |
 | GET | `/api/v1/dashboard/widgets` | Виджеты дашборда | Да | — | Текущие виджеты пользователя |
-| GET | `/api/v1/dashboard/insights` | Метрики виджетов дашборда | Yes | `task.manage` | `widget` = `my_workload_efficiency` \| `tasks_actual_time`, `period` = 7 \| 30 \| 90 |
+| GET | `/api/v1/dashboard/insights` | Метрики виджетов дашборда | Yes | `task.manage` | `widget` = `my_workload_efficiency` \| `tasks_actual_time` \| `my_kpi_scorecard` \| `assignee_department_load` \| `tasks_completion_velocity` \| `workload_efficiency_management` \| `streams_load_efficiency` \| `stream_detail_load_efficiency`, `period` = 7 \| 30 \| 90, `project_public_id` для детализации потока |
 | PUT | `/api/v1/dashboard/widgets` | Сохранение виджетов | Да | — | Обновление виджетов текущего пользователя |
 
 ### Search
