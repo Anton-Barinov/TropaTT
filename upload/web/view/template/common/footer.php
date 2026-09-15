@@ -159,33 +159,14 @@ $needsBr1NotifyOnly = !$needsBr1 && !in_array($currentRoute, [
   'password-reset-confirm',
   'invitation-accept',
 ], true);
-// Any page that can open the global create/edit-task modal needs the visual
-// editor: modals.js injects its description field with
-// data-crm-visual-editor="1", and without this bundle the field silently stays a
-// plain textarea. The tasks list was missing here, which is exactly the
-// "visual editor does not work when creating a task from the task list" report.
-$needsVisualEditor = in_array($currentRoute, [
-  'knowledge',
-  'knowledge-page',
-  'task-detail',
-  'ideas',
-  'idea-detail',
-  'work-cycles',
-  'app',
-  'chat',
-  'dashboard',
-  'gantt',
-  'kanban',
-  'my-day',
-  'my-week',
-  'project-detail',
-  'tasks',
-  'client-detail',
-  'counterparty-detail',
-  'contacts',
-  'companies',
-  'calendar',
-], true);
+// WEB-VE-001: the visual editor bundle is enqueued unconditionally below.
+// modals.js runs on every route and injects the global create/edit-task modal
+// with a `data-crm-visual-editor="1"` description field, so gating the bundle
+// behind a route list left that field a plain textarea wherever the list was
+// incomplete — reported three times (tasks, then six more routes, then
+// projects/clients/counterparties/docs/intake/...). A route list can never be
+// complete; visual_editor_routes_contract_unit.php now guards the opposite: the
+// bundle must load for every route.
 ?>
 <script defer src="assets/vendor/bootstrap/bootstrap.bundle.min.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php if ($needsSortable): ?>
@@ -214,9 +195,7 @@ $needsVisualEditor = in_array($currentRoute, [
 <?php if ($needsRichText): ?>
 <script defer src="assets/js/richtext.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif; ?>
-<?php if ($needsVisualEditor): ?>
 <script defer src="assets/js/visual-editor.js?v=<?= urlencode($assetsVersion) ?>"></script>
-<?php endif; ?>
 <?php if ($needsBr1): ?>
 <script defer src="assets/js/br1.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php elseif ($needsBr1NotifyOnly): ?>
