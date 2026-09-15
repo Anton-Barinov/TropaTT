@@ -3690,6 +3690,7 @@ return array (
     'extra_insights_no_deadlines_short' => 'keine Fristen',
     'extra_insights_of_deadlines' => 'von %s mit Frist',
     'extra_insights_capacity_target' => 'Ziel %s',
+    'extra_insights_pace' => 'Tempo %s Aufgaben/Tag',
     'extra_insights_backlog_growing' => 'Backlog wächst: +%s im Zeitraum',
     'extra_insights_backlog_clearing' => 'Backlog sinkt: −%s im Zeitraum',
     'extra_insights_backlog_stable' => 'Backlog stabil',

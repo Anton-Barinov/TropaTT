@@ -4669,6 +4669,7 @@ return array (
     'extra_insights_no_deadlines_short' => 'no deadlines',
     'extra_insights_of_deadlines' => 'of %s with a deadline',
     'extra_insights_capacity_target' => 'target %s',
+    'extra_insights_pace' => 'pace %s tasks/day',
     'extra_insights_backlog_growing' => 'Backlog grows: +%s in period',
     'extra_insights_backlog_clearing' => 'Backlog shrinks: −%s in period',
     'extra_insights_backlog_stable' => 'Backlog is stable',

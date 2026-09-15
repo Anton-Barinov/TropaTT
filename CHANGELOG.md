@@ -30,6 +30,10 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ### Fixed
 
+- **The stream-detail project picker was a plain `<select>` after all.** The renderer's comment said the select would be upgraded by `page-api-bindings`, but its id was never added to `applySearchableSelects()`, so on an installation with dozens of projects the manager had to scroll a raw dropdown to find one. `#dashboardInsightStreamSelect` is now in the project-selector list, which also re-wraps it after every re-render.
+
+- **`throughput_per_day` was returned by the endpoint and rendered nowhere.** The field is the rate the "разбор текущего объёма ~N дн." estimate is derived from, so the backlog verdict now prints it next to the estimate (`· темп 0.5 задач/день`), turning an unexplained number of days into one the reader can check.
+
 - **The collapsed dashboard tables printed the wrong total in "первые N из M".** The hint that explains a truncated list was built with `split('%s').join(first).split('%s').join(second)`, and `join()` replaces *every* occurrence, so both placeholders received the first value: a twelve-row list announced "первые 10 из 10" while the button underneath it offered "Показать всех (12)". All three call sites now go through a `formatPlaceholders()` helper that fills positional tokens in order.
 
 - **A scope with no dated tasks is no longer painted as a risk on the personal load card.** The on-time tile took a `risk` marker whenever the payload carried no deadline sample, so an employee who simply had not created a deadline yet saw an alarming red KPI. "No sample" is unknown, not a risk: the tile is now neutral and the hint ("из N с дедлайном") still says what the percentage is measured over.
