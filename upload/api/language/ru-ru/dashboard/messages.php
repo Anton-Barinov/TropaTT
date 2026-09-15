@@ -29,5 +29,8 @@ return [
     'sticky_notes_color_label' => 'Цвет',
     'sticky_notes_created' => 'Заметка создана',
     'sticky_notes_create_error' => 'Ошибка создания',
-];
 
+    // Dashboard insights widgets (analytics metrics)
+    'insights' => 'Метрики виджета дашборда',
+    'insights_unknown_widget' => 'Неизвестный виджет дашборда',
+];

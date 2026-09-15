@@ -27,4 +27,8 @@ return [
     'sticky_notes_color_label' => 'Cor',
     'sticky_notes_created' => 'Nota criada',
     'sticky_notes_create_error' => 'Erro de criação',
+
+    // Dashboard insights widgets (analytics metrics)
+    'insights' => 'Métricas do widget do painel',
+    'insights_unknown_widget' => 'Widget do painel desconhecido',
 ];

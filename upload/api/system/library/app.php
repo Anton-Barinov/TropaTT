@@ -990,6 +990,7 @@ final class App
         $this->container->factory('repository.calendar_event', fn(Container $c) => new \Api\Model\Calendar\CalendarEventRepository($c->get('db.pdo')));
         $this->container->factory('repository.business_calendar', fn(Container $c) => new \Api\Model\Calendar\BusinessCalendarRepository($c->get('db.pdo')));
         $this->container->factory('repository.analytics', fn(Container $c) => new \Api\Model\Analytics\AnalyticsRepository($c->get('db.pdo')));
+        $this->container->factory('repository.analytics_insights', fn(Container $c) => new \Api\Model\Analytics\InsightsRepository($c->get('db.pdo')));
         $this->container->factory('repository.activity', fn(Container $c) => new \Api\Model\Activity\ActivityRepository($c->get('db.pdo')));
         $this->container->factory('repository.admin_widget', fn(Container $c) => new \Api\Model\Admin\OperationalWidgetRepository($c->get('db.pdo')));
         $this->container->factory('repository.api_client', fn(Container $c) => new \Api\Model\ApiClient\ApiClientRepository($c->get('db.pdo')));
@@ -1474,7 +1475,8 @@ final class App
         $this->container->factory('service.analytics', fn(Container $c) => new AnalyticsService(
             $c->get('repository.analytics'),
             $c->get('repository.team'),
-            $c->get('repository.user_management')
+            $c->get('repository.user_management'),
+            $c->get('repository.analytics_insights')
         ));
         $this->container->factory('service.task_activity', fn(Container $c) => new TaskActivityService(
             $c->get('repository.task_activity')
