@@ -711,7 +711,18 @@ final class TaskRepository
             ->leftJoin('counterparties c', 'c.public_id', '=', 'p.client_public_id')
             ->leftJoin('counterparties tc', 'tc.public_id', '=', 't.client_public_id');
 
-        if (($filters['archived'] ?? '0') !== '1') {
+        // Задачи архивных проектов скрыты по умолчанию. Флаг вычисляется до
+        // WHERE-секции: он нужен и подзапросу include_ancestors, чтобы
+        // «родитель по фильтру» находился только через детей, которые сами
+        // видны в текущем режиме списка.
+        $includeArchivedProjects = in_array(
+            strtolower(trim((string)($filters['include_archived_projects'] ?? ''))),
+            ['1', 'true', 'yes', 'on'],
+            true
+        );
+        $archiveMode = ($filters['archived'] ?? '0') === '1';
+
+        if (!$archiveMode) {
             $qb->whereNull('t.archived_at')
                 ->whereNull('t.deleted_at');
 
@@ -725,16 +736,27 @@ final class TaskRepository
             // остаются видимыми: LEFT JOIN даёт p.archived_at = NULL.
             // Просмотр архива (`archived=1`) намеренно не сужается — он и так
             // запрашивает архивные сущности явно.
-            $includeArchivedProjects = in_array(
-                strtolower(trim((string)($filters['include_archived_projects'] ?? ''))),
-                ['1', 'true', 'yes', 'on'],
-                true
-            );
             if (!$includeArchivedProjects) {
                 $qb->whereNull('p.archived_at');
             }
         }
 
+        // Видимость дочерней задачи для include_ancestors подчиняется тем же
+        // правилам, что и основной список (мягко удалённые, архивные, задачи
+        // архивных проектов). Без этого архивная подзадача со статусом из
+        // фильтра вытягивала своего завершённого родителя в выборку по
+        // статусу, хотя среди видимых детей совпадений нет.
+        $childVisibilitySql = '';
+        if (!$archiveMode) {
+            $childVisibilitySql .= ' AND child.deleted_at IS NULL AND child.archived_at IS NULL';
+            if (!$includeArchivedProjects) {
+                $childVisibilitySql .= ' AND (child.project_id IS NULL'
+                    . ' OR child.project_id NOT IN (SELECT ap.id FROM projects ap WHERE ap.archived_at IS NOT NULL))';
+            }
+        }
+
+        $ancestorMatchSql = null;
+        $ancestorMatchBindings = [];
         if (!empty($filters['status'])) {
             $statusParts = $this->splitFilterList((string)$filters['status']);
             $expandedStatuses = $this->expandStatusAliases($statusParts);
@@ -748,15 +770,17 @@ final class TaskRepository
                 // родительские задачи (даже в другом статусе), чтобы дерево
                 // сохраняло вложенность при фильтрации.
                 $placeholders = implode(', ', array_fill(0, count($expandedStatuses), '?'));
+                $ancestorMatchSql = 't.id IN ('
+                    . 'SELECT tr.parent_task_id FROM task_relations tr'
+                    . ' INNER JOIN tasks child ON child.id = tr.child_task_id'
+                    . ' WHERE tr.relation_type = ?'
+                    . ' AND child.status_code IN (' . $placeholders . ')'
+                    . $childVisibilitySql
+                    . ')';
+                $ancestorMatchBindings = array_merge(['subtask'], $expandedStatuses);
                 $qb->whereRaw(
-                    '(t.status_code IN (' . $placeholders . ')'
-                    . ' OR t.id IN ('
-                    .   'SELECT tr.parent_task_id FROM task_relations tr'
-                    .   ' INNER JOIN tasks child ON child.id = tr.child_task_id'
-                    .   ' WHERE tr.relation_type = ?'
-                    .   ' AND child.status_code IN (' . $placeholders . ')'
-                    . '))',
-                    array_merge($expandedStatuses, ['subtask'], $expandedStatuses)
+                    '(t.status_code IN (' . $placeholders . ') OR ' . $ancestorMatchSql . ')',
+                    array_merge($expandedStatuses, $ancestorMatchBindings)
                 );
             } elseif (count($expandedStatuses) === 1) {
                 $qb->where('t.status_code', '=', $expandedStatuses[0]);
@@ -776,18 +800,22 @@ final class TaskRepository
         if (!empty($filters['hide_done']) || !empty($filters['active_only'])) {
             $excludeStatuses = array_merge($excludeStatuses, TaskStatusSemantics::terminalCodes($this->pdo));
         }
-        // В режиме иерархии (include_ancestors) исключение завершённых статусов
-        // отключается: родительские задачи в завершённом статусе должны
-        // оставаться видимыми, пока хотя бы один их потомок соответствует фильтру.
-        $includeAncestorsForExclude = in_array(
-            strtolower(trim((string)($filters['include_ancestors'] ?? ''))),
-            ['1', 'true', 'yes', 'on'],
-            true
-        );
-        if ($excludeStatuses !== [] && !$includeAncestorsForExclude) {
+        // В режиме иерархии (include_ancestors) завершённый родитель остаётся
+        // видимым ТОЛЬКО как рамка дерева — когда он ведёт к видимому ребёнку,
+        // попавшему в фильтр по статусу. Раньше исключение завершённых статусов
+        // отключалось целиком, из-за чего в список попадали любые завершённые
+        // задачи, а не только родительские.
+        if ($excludeStatuses !== []) {
             $expandedExclude = $this->expandStatusAliases($excludeStatuses);
             $placeholders = implode(', ', array_fill(0, count($expandedExclude), '?'));
-            $qb->whereRaw('t.status_code NOT IN (' . $placeholders . ')', $expandedExclude);
+            if ($ancestorMatchSql !== null) {
+                $qb->whereRaw(
+                    '(t.status_code NOT IN (' . $placeholders . ') OR ' . $ancestorMatchSql . ')',
+                    array_merge($expandedExclude, $ancestorMatchBindings)
+                );
+            } else {
+                $qb->whereRaw('t.status_code NOT IN (' . $placeholders . ')', $expandedExclude);
+            }
         }
 
         if (!empty($filters['tag_public_id'])) {
