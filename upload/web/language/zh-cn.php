@@ -4815,6 +4815,7 @@ return array (
     'extra_insights_no_deadlines_short' => '无期限',
     'extra_insights_of_deadlines' => '共 %s 个有期限',
     'extra_insights_capacity_target' => '目标 %s',
+    'extra_insights_pace' => '速度 %s 任务/天',
     'extra_insights_backlog_growing' => '积压增加：期间 +%s',
     'extra_insights_backlog_clearing' => '积压减少：期间 −%s',
     'extra_insights_backlog_stable' => '积压稳定',

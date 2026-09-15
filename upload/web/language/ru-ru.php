@@ -4688,6 +4688,7 @@ return array (
     'extra_insights_no_deadlines_short' => 'нет дедлайнов',
     'extra_insights_of_deadlines' => 'из %s с дедлайном',
     'extra_insights_capacity_target' => 'цель %s',
+    'extra_insights_pace' => 'темп %s задач/день',
     'extra_insights_backlog_growing' => 'Бэклог растёт: +%s за период',
     'extra_insights_backlog_clearing' => 'Бэклог снижается: −%s за период',
     'extra_insights_backlog_stable' => 'Бэклог стабилен',

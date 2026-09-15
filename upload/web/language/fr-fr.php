@@ -3690,6 +3690,7 @@ return array (
     'extra_insights_no_deadlines_short' => 'aucune échéance',
     'extra_insights_of_deadlines' => 'sur %s avec échéance',
     'extra_insights_capacity_target' => 'objectif %s',
+    'extra_insights_pace' => 'rythme %s tâches/jour',
     'extra_insights_backlog_growing' => 'Backlog en hausse : +%s sur la période',
     'extra_insights_backlog_clearing' => 'Backlog en baisse : −%s sur la période',
     'extra_insights_backlog_stable' => 'Backlog stable',

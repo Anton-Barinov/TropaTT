@@ -597,9 +597,15 @@
       : signal === 'clearing'
         ? translate('dashboard.extra_insights_backlog_clearing', 'Бэклог снижается: %s за период').replace('%s', String(Math.max(0, completed - created)))
         : translate('dashboard.extra_insights_backlog_stable', 'Бэклог стабилен');
+    // throughput_per_day is the rate the day estimate is derived from; showing it
+    // turns "~30 дн." into a number the reader can sanity-check.
+    var pace = Number(payload.throughput_per_day || 0);
+    var paceText = pace > 0
+      ? ' · ' + formatPlaceholders(translate('dashboard.extra_insights_pace', 'темп %s задач/день'), [pace])
+      : '';
     var tail = days === null || days === undefined
       ? translate('dashboard.extra_insights_backlog_no_speed', 'нет завершений для оценки скорости')
-      : translate('dashboard.extra_insights_backlog_days', 'разбор текущего объёма ~%s дн.').replace('%s', String(days));
+      : translate('dashboard.extra_insights_backlog_days', 'разбор текущего объёма ~%s дн.').replace('%s', String(days)) + paceText;
 
     return '<div class="crm-dashboard-insight-verdict' + cls + '" title="'
       + safe(translate('dashboard.extra_insights_backlog_hint', 'Сравнение созданных и завершённых задач за период')) + '">'
