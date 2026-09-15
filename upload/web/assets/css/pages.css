@@ -7624,6 +7624,128 @@ body.modal-open {
   gap: 4px;
   margin-top: 8px;
 }
+/* Insights: per-card view controls, verdicts, forecasts and callouts. */
+.crm-dashboard-page .crm-dashboard-insight-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.crm-dashboard-page .crm-dashboard-insight-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.crm-dashboard-page .crm-dashboard-insight-toolbar-label {
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--crm-text-muted);
+}
+.crm-dashboard-page .crm-dashboard-insight-option {
+  padding: 1px 8px;
+  border: 1px solid var(--crm-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--crm-text-muted);
+  font-size: var(--text-xs, 0.75rem);
+  line-height: 1.6;
+}
+.crm-dashboard-page .crm-dashboard-insight-option.is-active {
+  border-color: var(--crm-accent);
+  color: var(--crm-accent);
+  background: var(--crm-bg-soft);
+}
+.crm-dashboard-page .crm-dashboard-insight-verdict {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 6px 10px;
+  border-left: 3px solid var(--crm-border);
+  border-radius: 6px;
+  background: var(--crm-bg-soft);
+  font-size: var(--text-sm);
+}
+.crm-dashboard-page .crm-dashboard-insight-verdict.is-warn {
+  border-left-color: var(--crm-warning, var(--crm-danger));
+}
+.crm-dashboard-page .crm-dashboard-insight-verdict.is-good {
+  border-left-color: var(--crm-success, #198754);
+}
+.crm-dashboard-page .crm-dashboard-insight-alert {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--crm-warning, var(--crm-danger));
+  border-radius: 8px;
+  background: var(--crm-bg-soft);
+}
+.crm-dashboard-page .crm-dashboard-insight-alert-head {
+  font-weight: 600;
+}
+.crm-dashboard-page .crm-dashboard-insight-section-title {
+  margin: 12px 0 4px;
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--crm-text-muted);
+}
+.crm-dashboard-page .crm-dashboard-insight-legend {
+  margin-top: 8px;
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--crm-text-muted);
+}
+.crm-dashboard-page .crm-dashboard-insight-progress {
+  display: inline-block;
+  width: 72px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--crm-bg-deep);
+  overflow: hidden;
+  vertical-align: middle;
+}
+.crm-dashboard-page .crm-dashboard-insight-progress i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--crm-accent);
+}
+.crm-dashboard-page .crm-dashboard-insight-forecast {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border: 1px dashed var(--crm-border);
+  border-radius: 8px;
+  background: var(--crm-bg-soft);
+}
+.crm-dashboard-page .crm-dashboard-insight-forecast-head {
+  margin-bottom: 4px;
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--crm-text-muted);
+}
+.crm-dashboard-page .crm-dashboard-insight-forecast-body {
+  font-size: var(--text-sm);
+}
+.crm-dashboard-page .crm-dashboard-insight-recommendation {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--crm-accent);
+  border-radius: 8px;
+  background: var(--crm-bg-soft);
+}
+.crm-dashboard-page .crm-dashboard-insight-recommendation-links {
+  margin-top: 4px;
+  font-size: var(--text-xs, 0.75rem);
+}
+.crm-dashboard-page .crm-dashboard-insight-stream-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.crm-dashboard-page .crm-dashboard-insight-table .is-overdue,
+.crm-dashboard-page .crm-dashboard-extra-row .is-overdue {
+  color: var(--crm-danger);
+}
 .crm-dashboard-page .crm-dashboard-time-bar {
   flex: 1 1 60px;
   height: 6px;

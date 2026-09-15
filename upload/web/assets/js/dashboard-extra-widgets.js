@@ -389,87 +389,380 @@
   // The server decides visibility: personal metrics are self-scoped, task time
   // is limited to the actor's visible users, and money fields never travel here.
   // ---------------------------------------------------------------------------
+
+  // Each card remembers its own view options (period, sort, expanded rows,
+  // selected project). They live in localStorage instead of user settings so a
+  // widget can be re-configured without a server round trip on every click.
+  var INSIGHT_PERIODS = [7, 30, 90];
+
+  function insightOption(key, name, fallback, allowed) {
+    try {
+      var stored = window.localStorage.getItem('crm.dashboard.insight.' + name + '.' + key);
+      if (stored !== null && stored !== '' && (!allowed || allowed.indexOf(stored) >= 0)) return stored;
+    } catch (e) {
+      // Storage can be unavailable (private mode) - fall back to the default.
+    }
+    return fallback;
+  }
+
+  function saveInsightOption(key, name, value) {
+    try {
+      window.localStorage.setItem('crm.dashboard.insight.' + name + '.' + key, String(value));
+    } catch (e) {
+      // Ignore: the option is a convenience, not required for the widget to work.
+    }
+  }
+
+  function widgetPeriod(definition) {
+    var fallback = String(Number((definition.query || {}).period) || 30);
+    return Number(insightOption(definition.key, 'period', fallback, ['7', '30', '90']));
+  }
+
+  function widgetSort(definition, allowed, fallback) {
+    return insightOption(definition.key, 'sort', fallback, allowed);
+  }
+
+  function widgetExpanded(definition) {
+    return insightOption(definition.key, 'expanded', '0', ['0', '1']) === '1';
+  }
+
+  function periodOptions() {
+    return INSIGHT_PERIODS.map(function (days) {
+      return { value: days, label: translate('dashboard.extra_period_' + days, days + ' дн.') };
+    });
+  }
+
+  // One segmented control markup for period/sort/expand so every insights card
+  // looks and behaves the same.
+  function insightToolbar(definition, groups) {
+    return '<div class="crm-dashboard-insight-toolbar" data-insight-toolbar="' + safe(definition.key) + '">'
+      + groups.map(function (group) {
+        return '<span class="crm-dashboard-insight-group"><span class="crm-dashboard-insight-toolbar-label">' + safe(group.label) + '</span>'
+          + group.options.map(function (option) {
+            var active = String(option.value) === String(group.value) ? ' is-active' : '';
+            return '<button type="button" class="crm-dashboard-insight-option' + active + '" data-insight-option="'
+              + safe(group.name) + '" data-insight-option-value="' + safe(option.value) + '">' + safe(option.label) + '</button>';
+          }).join('') + '</span>';
+      }).join('') + '</div>';
+  }
+
+  function bindInsightToolbar(container, definition) {
+    var toolbar = container.querySelector('[data-insight-toolbar]');
+    if (!toolbar) return;
+    toolbar.addEventListener('click', function (event) {
+      var button = event.target && event.target.closest ? event.target.closest('[data-insight-option]') : null;
+      if (!button) return;
+      event.preventDefault();
+      saveInsightOption(definition.key, button.getAttribute('data-insight-option'), button.getAttribute('data-insight-option-value'));
+      reloadWidget(definition);
+    });
+  }
+
+  // Only the options the endpoint understands travel back: sorting is a client-side
+  // reorder of the same payload, so it stays in localStorage.
+  function insightQuery(definition) {
+    var query = Object.assign({}, definition.query || {}, { period: widgetPeriod(definition) });
+    if (definition.key === 'stream_detail_load_efficiency') {
+      var project = insightOption(definition.key, 'project', '', null);
+      if (project) query.project_public_id = project;
+    }
+    return query;
+  }
+
+  function reloadWidget(definition) {
+    var container = document.querySelector('[data-extra-widget-body="' + definition.key + '"]');
+    if (!container) return;
+    container.innerHTML = loadingHtml();
+    if (definition.key === 'milestone_watch') {
+      loadMilestones(definition).then(function (envelope) { render(definition, envelope); });
+      return;
+    }
+    request(definition, insightQuery(definition)).then(function (envelope) { render(definition, envelope); });
+  }
+
+  function taskDetailUrl(id) {
+    return 'index.php?route=task-detail&task_public_id=' + encodeURIComponent(String(id || ''));
+  }
+
+  function projectDetailUrl(id) {
+    return 'index.php?route=project-detail&project_public_id=' + encodeURIComponent(String(id || ''));
+  }
+
+  // Raw & is intentional: safe() escapes it once to &amp;, and the browser decodes
+  // it back to & when the link is followed (same convention as entityUrl()).
+  function tasksListUrl(params) {
+    var parts = ['index.php?route=tasks'];
+    Object.keys(params || {}).forEach(function (key) {
+      var value = params[key];
+      if (value === undefined || value === null || String(value) === '') return;
+      parts.push(encodeURIComponent(key) + '=' + encodeURIComponent(String(value)));
+    });
+    return parts.join('&');
+  }
+
+  function loadingHtml() {
+    return '<div class="text-muted small">' + safe(translate('dashboard.loading_widget', 'Загрузка...')) + '</div>';
+  }
+
+  function unavailableHtml() {
+    return '<div class="text-muted small">' + safe(translate('dashboard.extra_unavailable', 'Данные недоступны')) + '</div>';
+  }
+
+  function emptyHtml() {
+    return '<div class="text-muted small">' + safe(translate('dashboard.extra_empty', 'Пока нет данных')) + '</div>';
+  }
+
+  // Fill positional %s placeholders in order. split/join would replace *every*
+  // placeholder with the first value, which printed "первые 10 из 10" for a
+  // twelve-row list.
+  function formatPlaceholders(template, values) {
+    var index = 0;
+    return String(template).replace(/%s/g, function () {
+      var value = index < values.length ? values[index] : '';
+      index += 1;
+      return String(value);
+    });
+  }
+
+  function deltaBadge(value) {
+    if (value === null || value === undefined || value === '') return '';
+    var num = Number(value || 0);
+    var cls = num > 0 ? 'is-up' : (num < 0 ? 'is-down' : '');
+    return ' <span class="crm-dashboard-insight-delta ' + cls + '">' + (num > 0 ? '+' : '') + num + '%</span>';
+  }
+
+  function dateText(value) {
+    var text = String(value === null || value === undefined ? '' : value).trim();
+    if (text === '') return '';
+    var parts = text.slice(0, 10).split('-');
+    if (parts.length !== 3) return text;
+    return parts[2] + '.' + parts[1] + '.' + parts[0];
+  }
+
+  function progressBar(percent) {
+    var width = Math.max(0, Math.min(100, Math.round(Number(percent || 0))));
+    return '<span class="crm-dashboard-insight-progress" aria-hidden="true"><i style="width:' + width + '%"></i></span>';
+  }
+
+  function formatPercentOr(value, emptyLabel) {
+    if (value === null || value === undefined || value === '') return emptyLabel;
+    return Number(value) + '%';
+  }
+
+  // Activity codes are stored in English; the label is translated per locale and an
+  // unknown code is shown as-is instead of being hidden.
+  var ACTIVITY_LABEL_KEYS = {
+    development: 'dashboard.extra_activity_dev',
+    dev: 'dashboard.extra_activity_dev',
+    qa: 'dashboard.extra_activity_qa',
+    testing: 'dashboard.extra_activity_qa',
+    design: 'dashboard.extra_activity_design',
+    meeting: 'dashboard.extra_activity_meeting',
+    support: 'dashboard.extra_activity_support',
+    admin: 'dashboard.extra_activity_admin',
+    research: 'dashboard.extra_activity_research',
+    management: 'dashboard.extra_activity_management',
+    unassigned: 'dashboard.extra_activity_unassigned'
+  };
+
+  function activityLabel(code) {
+    var key = String(code || '').trim().toLowerCase();
+    var labelKey = ACTIVITY_LABEL_KEYS[key];
+    if (!labelKey) return String(code || '');
+    return translate(labelKey, String(code || ''));
+  }
+
   function insightsPayload(envelope) {
     var payload = data(envelope);
     return payload && typeof payload.data === 'object' && payload.data !== null ? payload.data : {};
   }
 
-  function insightTile(label, value, signal) {
+  function insightTile(label, value, signal, valueIsHtml) {
     var cls = signal ? ' crm-dashboard-insight-tile--' + signal : '';
     return '<div class="crm-dashboard-insight-tile' + cls + '"><span class="crm-dashboard-insight-label">'
-      + safe(label) + '</span><strong>' + safe(value) + '</strong></div>';
+      + safe(label) + '</span><strong>' + (valueIsHtml ? String(value) : safe(value)) + '</strong></div>';
+  }
+
+  // The single sentence that says whether the queue is winning or losing.
+  function backlogVerdictHtml(payload) {
+    var signal = String(payload.backlog_signal || '');
+    if (signal === '') return '';
+
+    var created = Number(payload.created_period || 0);
+    var completed = Number(payload.completed_period || 0);
+    var days = payload.backlog_days_to_clear;
+    var cls = signal === 'growing' ? ' is-warn' : (signal === 'clearing' ? ' is-good' : '');
+    var text = signal === 'growing'
+      ? translate('dashboard.extra_insights_backlog_growing', 'Бэклог растёт: +%s за период').replace('%s', String(Math.max(0, created - completed)))
+      : signal === 'clearing'
+        ? translate('dashboard.extra_insights_backlog_clearing', 'Бэклог снижается: %s за период').replace('%s', String(Math.max(0, completed - created)))
+        : translate('dashboard.extra_insights_backlog_stable', 'Бэклог стабилен');
+    var tail = days === null || days === undefined
+      ? translate('dashboard.extra_insights_backlog_no_speed', 'нет завершений для оценки скорости')
+      : translate('dashboard.extra_insights_backlog_days', 'разбор текущего объёма ~%s дн.').replace('%s', String(days));
+
+    return '<div class="crm-dashboard-insight-verdict' + cls + '" title="'
+      + safe(translate('dashboard.extra_insights_backlog_hint', 'Сравнение созданных и завершённых задач за период')) + '">'
+      + '<span>' + safe(text) + '</span><small>' + safe(tail) + '</small></div>';
   }
 
   function renderMyLoad(container, envelope, definition) {
+    var toolbar = insightToolbar(definition, [{
+      name: 'period',
+      label: translate('dashboard.extra_period', 'Период'),
+      value: widgetPeriod(definition),
+      options: periodOptions()
+    }]);
+
     if (!envelope || envelope.success === false) {
-      container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.extra_unavailable', 'Данные недоступны')) + '</div>';
+      container.innerHTML = toolbar + unavailableHtml();
+      bindInsightToolbar(container, definition);
       return;
     }
+
     var payload = insightsPayload(envelope);
-    if (!payload || !Number(payload.active_tasks || 0) && !Number(payload.minutes_week || 0) && !Number(payload.completed_period || 0)) {
-      container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.extra_empty', 'Пока нет данных')) + '</div>';
+    var hasData = Number(payload.active_tasks || 0) || Number(payload.minutes_week || 0)
+      || Number(payload.completed_period || 0) || Number(payload.minutes_period || 0);
+    if (!hasData) {
+      container.innerHTML = toolbar + emptyHtml();
+      bindInsightToolbar(container, definition);
       return;
     }
-    var daily = Array.isArray(payload.daily_minutes) ? payload.daily_minutes : [];
+
+    var daily = Array.isArray(payload.period_daily_minutes) && payload.period_daily_minutes.length
+      ? payload.period_daily_minutes
+      : (Array.isArray(payload.daily_minutes) ? payload.daily_minutes : []);
     var maxMinutes = 1;
     daily.forEach(function (day) { maxMinutes = Math.max(maxMinutes, Number(day.minutes || 0)); });
     var bars = daily.map(function (day) {
       var width = Math.max(2, Math.min(100, Math.round(Number(day.minutes || 0) / maxMinutes * 100)));
-      return '<div class="crm-dashboard-insight-bar" title="' + safe(day.date) + ' · ' + safe(formatMinutesCompact(day.minutes)) + '">'
+      return '<div class="crm-dashboard-insight-bar" title="' + safe(dateText(day.date) + ' · ' + formatMinutesCompact(day.minutes)) + '">'
         + '<i style="width:' + width + '%"></i></div>';
     }).join('');
-    var signalText = payload.load_signal === 'overload'
-      ? translate('dashboard.extra_insights_overload', 'перегруз')
-      : (payload.load_signal === 'underload' ? translate('dashboard.extra_insights_underload', 'недогруз') : translate('dashboard.extra_insights_normal', 'норма'));
 
-    container.innerHTML = '<div class="crm-dashboard-insight-grid">'
-      + insightTile(translate('dashboard.extra_insights_active', 'Активные'), String(Number(payload.active_tasks || 0)), null)
-      + insightTile(translate('dashboard.extra_insights_overdue', 'Просрочено'), String(Number(payload.overdue_tasks || 0)), Number(payload.overdue_tasks || 0) > 0 ? 'risk' : null)
-      + insightTile(translate('dashboard.extra_insights_hours_week', 'Часы за 7 дней'), formatMinutesCompact(payload.minutes_week), null)
-      + insightTile(translate('dashboard.extra_insights_completed', 'Завершено'), String(Number(payload.completed_period || 0)), null)
-      + insightTile(translate('dashboard.extra_insights_cycle', 'Время выполнения'), formatMinutesCompact(payload.cycle_time_median_minutes), null)
-      + insightTile(translate('dashboard.extra_insights_efficiency', 'Эффективность'), Number(payload.efficiency_percent || 0) + '%', null)
-      + insightTile(translate('dashboard.extra_insights_load', 'Загрузка'), Number(payload.load_percent || 0) + '% · ' + signalText, payload.load_signal)
+    var delta = payload.delta_percent || {};
+    var hasOnTime = payload.on_time_percent !== null && payload.on_time_percent !== undefined && payload.on_time_percent !== '';
+    var onTimeHint = Number(payload.on_time_sample || 0) > 0
+      ? ' · ' + translate('dashboard.extra_insights_of_deadlines', 'из %s с дедлайном').replace('%s', String(Number(payload.on_time_sample)))
+      : '';
+    var onTime = formatPercentOr(payload.on_time_percent, translate('dashboard.extra_insights_no_deadlines', 'нет задач с дедлайном'));
+    var capacity = Number(payload.capacity_minutes_week || 2400);
+    // "цель", not "норма": the signal label already reads "норма", so a second
+    // "норма" on the same tile would just repeat itself.
+    var loadValue = Math.round(Number(payload.load_percent || 0)) + '% · ' + signalLabel(payload.load_signal)
+      + ' · ' + translate('dashboard.extra_insights_capacity_target', 'цель %s').replace('%s', formatMinutesCompact(capacity));
+
+    container.innerHTML = toolbar
+      + '<div class="crm-dashboard-insight-grid">'
+      + insightTile(translate('dashboard.extra_insights_active_now', 'Активные (сейчас)'), String(Number(payload.active_tasks || 0)))
+      + insightTile(translate('dashboard.extra_insights_overdue_now', 'Просрочено (сейчас)'), String(Number(payload.overdue_tasks || 0)), Number(payload.overdue_tasks || 0) > 0 ? 'risk' : null)
+      + insightTile(translate('dashboard.extra_insights_hours_week', 'Часы за 7 дней'), formatMinutesCompact(payload.minutes_week))
+      + insightTile(translate('dashboard.extra_insights_completed_period', 'Завершено за период'), String(Number(payload.completed_period || 0)) + deltaBadge(delta.completed), null, true)
+      + insightTile(translate('dashboard.extra_insights_cycle', 'Время выполнения (медиана)'), formatMinutesCompact(payload.cycle_time_median_minutes))
+      // No deadline sample is *unknown*, not a risk: a risk marker here would make
+      // the card look alarming on a scope that simply has no dated tasks yet.
+      + insightTile(translate('dashboard.extra_insights_on_time', 'Вовремя'), onTime + onTimeHint, null)
+      + insightTile(translate('dashboard.extra_insights_load', 'Загрузка'), loadValue, payload.load_signal)
       + '</div>'
+      + backlogVerdictHtml(payload)
       + '<div class="crm-dashboard-insight-bars" aria-hidden="true">' + bars + '</div>';
+
+    bindInsightToolbar(container, definition);
   }
 
   function renderActualTime(container, envelope, definition) {
+    var toolbar = insightToolbar(definition, [
+      {
+        name: 'period',
+        label: translate('dashboard.extra_period', 'Период'),
+        value: widgetPeriod(definition),
+        options: periodOptions()
+      },
+      {
+        name: 'sort',
+        label: translate('dashboard.extra_insights_sort', 'Сортировка'),
+        value: widgetSort(definition, ['minutes', 'recent'], 'minutes'),
+        options: [
+          { value: 'minutes', label: translate('dashboard.extra_insights_sort_minutes', 'По времени') },
+          { value: 'recent', label: translate('dashboard.extra_insights_sort_recent', 'По свежести') }
+        ]
+      }
+    ]);
+
     if (!envelope || envelope.success === false) {
-      container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.extra_unavailable', 'Данные недоступны')) + '</div>';
+      container.innerHTML = toolbar + unavailableHtml();
+      bindInsightToolbar(container, definition);
       return;
     }
+
     var payload = insightsPayload(envelope);
-    var tasks = Array.isArray(payload.top_tasks) ? payload.top_tasks : [];
-    if (!tasks.length) {
-      container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.extra_empty', 'Пока нет данных')) + '</div>';
+    var tasks = Array.isArray(payload.top_tasks) ? payload.top_tasks.slice() : [];
+    var unloggedCount = Number(payload.active_without_logs || 0);
+    var unlogged = Array.isArray(payload.active_without_logs_list) ? payload.active_without_logs_list : [];
+
+    if (!tasks.length && unloggedCount === 0) {
+      container.innerHTML = toolbar + emptyHtml();
+      bindInsightToolbar(container, definition);
       return;
     }
+
+    if (widgetSort(definition, ['minutes', 'recent'], 'minutes') === 'recent') {
+      tasks.sort(function (a, b) {
+        return String(b.last_logged_at || '').localeCompare(String(a.last_logged_at || ''))
+          || Number(b.minutes || 0) - Number(a.minutes || 0);
+      });
+    }
+
     var maxMinutes = 1;
     tasks.forEach(function (task) { maxMinutes = Math.max(maxMinutes, Number(task.minutes || 0)); });
     var rows = tasks.map(function (task) {
       var width = Math.max(2, Math.min(100, Math.round(Number(task.minutes || 0) / maxMinutes * 100)));
       var project = String(task.project_title || '');
+      var share = Number(task.share_percent || 0) > 0 ? ' · ' + Number(task.share_percent) + '%' : '';
       return '<div class="crm-dashboard-wl-row">'
-        + '<div class="crm-dashboard-wl-head"><span class="text-truncate" title="' + safe(task.title) + '">' + safe(task.title) + '</span>'
+        + '<div class="crm-dashboard-wl-head"><span class="text-truncate"><a href="' + safe(taskDetailUrl(task.task_public_id))
+        + '" title="' + safe(task.title) + '">' + safe(task.title) + '</a></span>'
         + '<strong>' + safe(formatMinutesCompact(task.minutes)) + '</strong></div>'
         + '<div class="crm-dashboard-time-bar" aria-hidden="true"><i style="width:' + width + '%"></i></div>'
         + '<div class="crm-dashboard-wl-meta"><span>' + safe(project || translate('dashboard.extra_insights_no_project', 'Без проекта')) + '</span>'
-        + '<span class="text-muted">' + safe(String(Number(task.sessions || 0))) + ' ' + safe(translate('dashboard.extra_insights_sessions', 'сессий')) + '</span></div>'
+        + '<span class="text-muted">' + safe(String(Number(task.sessions || 0))) + ' ' + safe(translate('dashboard.extra_insights_sessions', 'сессий')) + safe(share) + '</span></div>'
         + '</div>';
     }).join('');
+
+    // The unlogged list is the actionable half of `covered_percent`: it names the
+    // tasks whose time was never recorded instead of only showing a percentage.
+    var unloggedBlock = '';
+    if (unloggedCount > 0) {
+      var unloggedRows = unlogged.map(function (task) {
+        return '<div class="crm-dashboard-extra-row"><div class="text-truncate"><a href="' + safe(taskDetailUrl(task.task_public_id)) + '">'
+          + safe(String(task.title || task.task_public_id || '')) + '</a>'
+          + (task.due_at ? '<small>' + safe(dateText(task.due_at)) + '</small>' : '') + '</div></div>';
+      }).join('');
+      unloggedBlock = '<div class="crm-dashboard-insight-alert">'
+        + '<div class="crm-dashboard-insight-alert-head">'
+        + safe(translate('dashboard.extra_insights_unlogged_title', 'Активные задачи без учёта времени') + ': ' + String(unloggedCount))
+        + '</div>' + unloggedRows
+        + '<a class="btn btn-sm crm-btn-secondary mt-2" href="' + safe(tasksListUrl({})) + '">'
+        + safe(translate('dashboard.extra_insights_open_tasks', 'Открыть задачи')) + '</a></div>';
+    }
+
     var activities = Array.isArray(payload.by_activity) ? payload.by_activity : [];
     var activityChips = activities.slice(0, 5).map(function (row) {
-      return '<span class="crm-chip">' + safe(row.activity_code) + ' · ' + safe(formatMinutesCompact(row.minutes)) + '</span>';
+      return '<span class="crm-chip">' + safe(activityLabel(row.activity_code)) + ' · ' + safe(formatMinutesCompact(row.minutes)) + '</span>';
     }).join(' ');
-    container.innerHTML = '<div class="crm-dashboard-insight-grid">'
-      + insightTile(translate('dashboard.extra_insights_total', 'Всего часов'), formatMinutesCompact(payload.total_minutes), null)
-      + insightTile(translate('dashboard.extra_insights_median', 'Медиана на задачу'), formatMinutesCompact(payload.median_minutes), null)
-      + insightTile(translate('dashboard.extra_insights_average', 'Среднее на задачу'), formatMinutesCompact(payload.average_minutes), null)
-      + insightTile(translate('dashboard.extra_insights_covered', 'Задач с ворклогами'), Number(payload.covered_percent || 0) + '%', null)
+
+    container.innerHTML = toolbar
+      + '<div class="crm-dashboard-insight-grid">'
+      + insightTile(translate('dashboard.extra_insights_total', 'Всего часов'), formatMinutesCompact(payload.total_minutes))
+      + insightTile(translate('dashboard.extra_insights_median', 'Медиана на задачу'), formatMinutesCompact(payload.median_minutes))
+      + insightTile(translate('dashboard.extra_insights_average', 'Среднее на задачу'), formatMinutesCompact(payload.average_minutes))
+      + insightTile(translate('dashboard.extra_insights_covered', 'Задач с ворклогами'), Number(payload.covered_percent || 0) + '%', unloggedCount > 0 ? 'risk' : null)
       + '</div>'
       + rows
-      + (activityChips ? '<div class="crm-dashboard-insight-chips">' + activityChips + '</div>' : '');
+      + (activityChips ? '<div class="crm-dashboard-insight-chips">' + activityChips + '</div>' : '')
+      + unloggedBlock;
+
+    bindInsightToolbar(container, definition);
   }
 
   function signalClass(signal) {
@@ -509,41 +802,112 @@
   }
 
   function renderKpi(container, envelope, definition) {
+    var toolbar = insightToolbar(definition, [{
+      name: 'period',
+      label: translate('dashboard.extra_period', 'Период'),
+      value: widgetPeriod(definition),
+      options: periodOptions()
+    }]);
+
     if (!envelope || envelope.success === false) {
-      container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.extra_unavailable', 'Данные недоступны')) + '</div>';
+      container.innerHTML = toolbar + unavailableHtml();
+      bindInsightToolbar(container, definition);
       return;
     }
+
     var payload = insightsPayload(envelope);
-    if (!payload || !Number(payload.completed || 0) && !Number(payload.minutes || 0) && !Number(payload.overdue || 0)) {
-      container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.extra_empty', 'Пока нет данных')) + '</div>';
+    var hasData = Number(payload.completed || 0) || Number(payload.minutes || 0) || Number(payload.overdue || 0)
+      || Number(payload.streak_days || 0);
+    if (!hasData) {
+      container.innerHTML = toolbar + emptyHtml();
+      bindInsightToolbar(container, definition);
       return;
     }
+
     var delta = payload.delta_percent || {};
     var deltaCell = function (value) {
+      if (value === null || value === undefined) return '—';
       var num = Number(value || 0);
       var cls = num > 0 ? 'is-up' : (num < 0 ? 'is-down' : '');
       return '<span class="crm-dashboard-insight-delta ' + cls + '">' + (num > 0 ? '+' : '') + num + '%</span>';
     };
+    var link = function (label, href) {
+      return '<a href="' + safe(href) + '">' + safe(label) + '</a>';
+    };
+    var hasOnTime = payload.on_time_percent !== null && payload.on_time_percent !== undefined && payload.on_time_percent !== '';
+    var onTimeValue = hasOnTime
+      ? Number(payload.on_time_percent) + '%' + (Number(payload.on_time_sample || 0) > 0
+        ? ' <small class="text-muted">' + safe(translate('dashboard.extra_insights_of_deadlines', 'из %s с дедлайном').replace('%s', String(Number(payload.on_time_sample)))) + '</small>'
+        : '')
+      : safe(translate('dashboard.extra_insights_no_deadlines_short', 'нет дедлайнов'));
+
     var rows = [
       [safe(translate('dashboard.extra_insights_completed', 'Завершено')), '<strong>' + safe(String(Number(payload.completed || 0))) + '</strong>', deltaCell(delta.completed)],
       [safe(translate('dashboard.extra_insights_hours', 'Часы')), '<strong>' + safe(formatMinutesCompact(payload.minutes)) + '</strong>', deltaCell(delta.minutes)],
+      [safe(translate('dashboard.extra_insights_on_time', 'Вовремя')), '<strong>' + onTimeValue + '</strong>', deltaCell(payload.trend_percent)],
       [safe(translate('dashboard.extra_insights_average', 'Среднее на задачу')), '<strong>' + safe(formatMinutesCompact(payload.average_minutes_per_task)) + '</strong>', '—'],
-      [safe(translate('dashboard.extra_insights_overdue', 'Просрочено')), '<strong>' + safe(String(Number(payload.overdue || 0))) + '</strong>', '—'],
+      [safe(translate('dashboard.extra_insights_overdue_now', 'Просрочено (сейчас)')), '<strong>' + link(String(Number(payload.overdue || 0)), tasksListUrl({ due: 'overdue' })) + '</strong>', '—'],
       [safe(translate('dashboard.extra_insights_stale', 'Без движения > 7 дней')), '<strong>' + safe(Number(payload.stale_share_percent || 0) + '%') + '</strong>', '—'],
       [safe(translate('dashboard.extra_insights_streak', 'Дней подряд с ворклогами')), '<strong>' + safe(String(Number(payload.streak_days || 0))) + '</strong>', '—']
     ];
-    container.innerHTML = insightsTable(
-      [safe(translate('dashboard.extra_insights_metric', 'Метрика')), safe(translate('dashboard.extra_insights_value', 'Значение')), 'Δ'],
-      rows
-    );
+
+    var weekly = Array.isArray(payload.weekly) ? payload.weekly : [];
+    var maxCompleted = 1;
+    weekly.forEach(function (week) { maxCompleted = Math.max(maxCompleted, Number(week.completed || 0)); });
+    var bars = weekly.map(function (week) {
+      var width = Math.max(2, Math.min(100, Math.round(Number(week.completed || 0) / maxCompleted * 100)));
+      return '<div class="crm-dashboard-insight-bar" title="' + safe(dateText(week.week_start) + ' · ' + formatMinutesCompact(week.minutes)) + '">'
+        + '<i style="width:' + width + '%"></i></div>';
+    }).join('');
+
+    container.innerHTML = toolbar
+      + (bars ? '<div class="crm-dashboard-insight-bars" aria-hidden="true">' + bars + '</div>' : '')
+      + insightsTable(
+        [
+          safe(translate('dashboard.extra_insights_metric', 'Метрика')),
+          safe(translate('dashboard.extra_insights_value', 'Значение')),
+          safe(translate('dashboard.extra_insights_delta_short', 'Δ 4 нед.'))
+        ],
+        rows
+      )
+      + '<div class="crm-dashboard-insight-legend">'
+      + safe(translate('dashboard.extra_insights_legend_snapshot', '«сейчас» — снимок на текущий момент, остальное — за выбранный период'))
+      + '</div>';
+
+    bindInsightToolbar(container, definition);
   }
 
-  function assigneeRows(list, groupLabel) {
+  var SIGNAL_ORDER = { overload: 0, critical: 0, risk: 1, normal: 2, ok: 2, underload: 3 };
+
+  function signalRank(signal) {
+    var key = String(signal || '').trim().toLowerCase();
+    return SIGNAL_ORDER[key] === undefined ? 2 : SIGNAL_ORDER[key];
+  }
+
+  // "Who needs help first": the default order is by severity, not alphabetically.
+  function sortedAssigneeRows(list, sort) {
+    var rows = list.slice();
+    rows.sort(function (a, b) {
+      if (sort === 'load') return Number(b.load_percent || 0) - Number(a.load_percent || 0);
+      if (sort === 'overdue') return Number(b.overdue_tasks || 0) - Number(a.overdue_tasks || 0);
+      if (sort === 'name') return String(a.full_name || a.login || '').localeCompare(String(b.full_name || b.login || ''));
+      return signalRank(a.signal) - signalRank(b.signal)
+        || Number(b.overdue_tasks || 0) - Number(a.overdue_tasks || 0)
+        || Number(b.load_percent || 0) - Number(a.load_percent || 0);
+    });
+    return rows;
+  }
+
+  function assigneeRows(list, options) {
+    options = options || {};
     return list.map(function (row) {
       var name = String(row.full_name || row.login || row.user_public_id || '');
-      var label = groupLabel ? groupLabel(row) : name;
+      var label = options.plain
+        ? safe(name)
+        : '<a href="' + safe(tasksListUrl({ assignee: row.user_public_id })) + '" title="'
+          + safe(translate('dashboard.extra_insights_person_tasks', 'Задачи сотрудника')) + '">' + safe(name) + '</a>';
       return [
-        safe(label),
+        label,
         safe(String(Number(row.active_tasks || 0))),
         safe(String(Number(row.overdue_tasks || 0))),
         safe(formatMinutesCompact(row.minutes_week)),
@@ -564,71 +928,244 @@
     ];
   };
 
-  function renderAssigneeLoad(container, envelope, definition) {
-    if (!envelope || envelope.success === false) {
-      container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.extra_unavailable', 'Данные недоступны')) + '</div>';
-      return;
-    }
-    var payload = insightsPayload(envelope);
-    var assignees = Array.isArray(payload.assignees) ? payload.assignees : [];
-    if (!assignees.length) {
-      container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.extra_empty', 'Пока нет данных')) + '</div>';
-      return;
-    }
-    var rows = assigneeRows(assignees);
-    (payload.departments || []).forEach(function (department) {
-      rows.push([
-        '<strong>' + safe(translate('dashboard.extra_insights_department', 'Отдел')) + ': ' + safe(department.title) + '</strong>',
+  var DEPARTMENT_HEADERS = function () {
+    return [
+      safe(translate('dashboard.extra_insights_department', 'Отдел')),
+      safe(translate('dashboard.extra_insights_members', 'Участники')),
+      safe(translate('dashboard.extra_insights_active', 'Активные')),
+      safe(translate('dashboard.extra_insights_overdue', 'Просрочено')),
+      safe(translate('dashboard.extra_insights_hours_week', 'Часы за 7 дней')),
+      safe(translate('dashboard.extra_insights_load', 'Загрузка')),
+      safe(translate('dashboard.extra_insights_signal', 'Сигнал'))
+    ];
+  };
+
+  function departmentRows(departments) {
+    return sortedAssigneeRows(departments, 'signal').map(function (department) {
+      return [
+        safe(String(department.title || '')),
+        safe(String(Number(department.members_count || 0))),
         safe(String(Number(department.active_tasks || 0))),
         safe(String(Number(department.overdue_tasks || 0))),
         safe(formatMinutesCompact(department.minutes_week)),
         safe(Number(department.load_percent || 0) + '%'),
         '<span class="crm-dashboard-wl-signal' + signalClass(department.signal) + '">' + safe(signalLabel(department.signal)) + '</span>'
-      ]);
+      ];
     });
-    container.innerHTML = insightsTable(ASSIGNEE_HEADERS(), rows);
+  }
+
+  function signalLegendHtml() {
+    return '<div class="crm-dashboard-insight-legend">'
+      + safe(translate('dashboard.extra_insights_legend_signals', 'Перегруз > 110% загрузки, недогруз < 50% без просрочек, риск — есть просрочка. Норма — 40 ч/нед (2400 мин).'))
+      + '</div>';
+  }
+
+  function limitStateHtml(definition, total, visible) {
+    if (widgetExpanded(definition) || total <= visible) return '';
+    return '<button type="button" class="btn btn-sm crm-btn-secondary mt-2" data-insight-option="expanded" data-insight-option-value="1">'
+      + safe(translate('dashboard.extra_insights_show_all', 'Показать всех') + ' (' + String(total) + ')') + '</button>';
+  }
+
+  function renderAssigneeLoad(container, envelope, definition) {
+    var toolbar = insightToolbar(definition, [
+      {
+        name: 'period',
+        label: translate('dashboard.extra_period', 'Период'),
+        value: widgetPeriod(definition),
+        options: periodOptions()
+      },
+      {
+        name: 'sort',
+        label: translate('dashboard.extra_insights_sort', 'Сортировка'),
+        value: widgetSort(definition, ['signal', 'load', 'overdue', 'name'], 'signal'),
+        options: [
+          { value: 'signal', label: translate('dashboard.extra_insights_sort_risk', 'По риску') },
+          { value: 'load', label: translate('dashboard.extra_insights_sort_load', 'По загрузке') },
+          { value: 'overdue', label: translate('dashboard.extra_insights_sort_overdue', 'По просрочке') },
+          { value: 'name', label: translate('dashboard.extra_insights_sort_name', 'По имени') }
+        ]
+      }
+    ]);
+
+    if (!envelope || envelope.success === false) {
+      container.innerHTML = toolbar + unavailableHtml();
+      bindInsightToolbar(container, definition);
+      return;
+    }
+
+    var payload = insightsPayload(envelope);
+    var assignees = Array.isArray(payload.assignees) ? payload.assignees : [];
+    var departments = Array.isArray(payload.departments) ? payload.departments : [];
+    if (!assignees.length && !departments.length) {
+      container.innerHTML = toolbar + emptyHtml();
+      bindInsightToolbar(container, definition);
+      return;
+    }
+
+    var sort = widgetSort(definition, ['signal', 'load', 'overdue', 'name'], 'signal');
+    var ordered = sortedAssigneeRows(assignees, sort);
+    var visible = widgetExpanded(definition) ? ordered : ordered.slice(0, 10);
+    var hidden = ordered.length - visible.length;
+
+    var departmentsBlock = '';
+    if (departments.length) {
+      departmentsBlock = '<div class="crm-dashboard-insight-section-title">'
+        + safe(translate('dashboard.extra_insights_departments', 'Отделы')) + '</div>'
+        + insightsTable(DEPARTMENT_HEADERS(), departmentRows(departments));
+    }
+
+    var peopleBlock = '<div class="crm-dashboard-insight-section-title">'
+      + safe(translate('dashboard.extra_insights_people_title', 'Сотрудники'))
+      + (hidden > 0 ? ' <span class="text-muted">' + safe(formatPlaceholders(
+        translate('dashboard.extra_insights_first_of', 'первые %s из %s'), [visible.length, ordered.length]
+      )) + '</span>' : '')
+      + '</div>'
+      + insightsTable(ASSIGNEE_HEADERS(), assigneeRows(visible))
+      + limitStateHtml(definition, ordered.length, 10);
+
+    container.innerHTML = toolbar + departmentsBlock + peopleBlock + signalLegendHtml();
+    bindInsightToolbar(container, definition);
   }
 
   function renderVelocity(container, envelope, definition) {
+    var toolbar = insightToolbar(definition, [{
+      name: 'period',
+      label: translate('dashboard.extra_period', 'Период'),
+      value: widgetPeriod(definition),
+      options: periodOptions()
+    }]);
+
     if (!envelope || envelope.success === false) {
-      container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.extra_unavailable', 'Данные недоступны')) + '</div>';
+      container.innerHTML = toolbar + unavailableHtml();
+      bindInsightToolbar(container, definition);
       return;
     }
+
     var payload = insightsPayload(envelope);
     var weeks = Array.isArray(payload.weeks) ? payload.weeks : [];
     if (!weeks.length) {
-      container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.extra_empty', 'Пока нет данных')) + '</div>';
+      container.innerHTML = toolbar + emptyHtml();
+      bindInsightToolbar(container, definition);
       return;
     }
+
     var max = 1;
     weeks.forEach(function (week) { max = Math.max(max, Number(week.completed || 0)); });
     var bars = weeks.map(function (week) {
       var width = Math.round(Number(week.completed || 0) / max * 100);
-      return barRow(week.week_start, String(Number(week.completed || 0)), width, translate('dashboard.extra_insights_wip', 'В работе') + ': ' + Number(week.wip || 0));
+      var meta = translate('dashboard.extra_insights_wip', 'В работе') + ': ' + Number(week.wip || 0)
+        + ' · ' + translate('dashboard.extra_insights_opened', 'создано') + ': ' + Number(week.opened || 0);
+      return barRow(dateText(week.week_start), String(Number(week.completed || 0)), width, meta);
     }).join('');
-    container.innerHTML = '<div class="crm-dashboard-insight-grid">'
-      + insightTile(translate('dashboard.extra_insights_cycle_median', 'Cycle time (медиана)'), formatMinutesCompact(payload.cycle_time_median_minutes), null)
-      + insightTile(translate('dashboard.extra_insights_cycle_p90', 'Cycle time (p90)'), formatMinutesCompact(payload.cycle_time_p90_minutes), null)
-      + insightTile(translate('dashboard.extra_insights_wip', 'В работе'), String(Number(payload.wip || 0)), null)
-      + insightTile('Δ ' + translate('dashboard.extra_insights_throughput', 'Throughput'), Number(payload.throughput_delta_percent || 0) + '%', null)
-      + '</div>' + bars;
+
+    // Forecast is deliberately worded as an estimate: it is a linear projection of
+    // the last four weeks, not a commitment.
+    var forecast = payload.forecast || {};
+    var forecastBlock = '';
+    if (forecast.weeks_to_finish !== null && forecast.weeks_to_finish !== undefined) {
+      forecastBlock = '<div class="crm-dashboard-insight-forecast">'
+        + '<div class="crm-dashboard-insight-forecast-head">'
+        + safe(translate('dashboard.extra_insights_forecast_title', 'Прогноз по среднему темпу за 4 недели')) + '</div>'
+        + '<div class="crm-dashboard-insight-forecast-body">'
+        + safe(translate('dashboard.extra_insights_forecast_speed', 'Средний темп')) + ': <strong>' + safe(String(Number(forecast.average_per_week || 0)))
+        + '</strong> ' + safe(translate('dashboard.extra_insights_per_week', 'задач/нед'))
+        + ' · ' + safe(translate('dashboard.extra_insights_forecast_open', 'в работе')) + ': <strong>' + safe(String(Number(forecast.open_tasks || 0))) + '</strong>'
+        + ' · ≈ ' + safe(String(Number(forecast.weeks_to_finish))) + ' ' + safe(translate('dashboard.extra_insights_weeks', 'нед.'))
+        + (forecast.finish_date ? ' · ' + safe(translate('dashboard.extra_insights_forecast_date', 'финиш ~%s').replace('%s', dateText(forecast.finish_date))) : '')
+        + '</div></div>';
+    }
+
+    var wipTrend = String(payload.wip_trend || 'stable');
+    var wipHint = wipTrend === 'growing'
+      ? translate('dashboard.extra_insights_wip_growing', 'растёт')
+      : (wipTrend === 'shrinking' ? translate('dashboard.extra_insights_wip_shrinking', 'снижается') : translate('dashboard.extra_insights_wip_stable', 'стабильно'));
+
+    container.innerHTML = toolbar
+      + '<div class="crm-dashboard-insight-grid">'
+      // Older cached payloads predate cycle_time_median_period_minutes; fall back to
+      // the all-history median rather than showing a false 0.
+      + insightTile(translate('dashboard.extra_insights_cycle_median_period', 'Cycle time (медиана, период)'), formatMinutesCompact(
+        payload.cycle_time_median_period_minutes !== undefined && payload.cycle_time_median_period_minutes !== null
+          ? payload.cycle_time_median_period_minutes
+          : payload.cycle_time_median_minutes
+      ))
+      + insightTile(translate('dashboard.extra_insights_cycle_p90', 'Cycle time (p90)'), formatMinutesCompact(payload.cycle_time_p90_minutes))
+      + insightTile(translate('dashboard.extra_insights_wip', 'В работе'), String(Number(payload.wip || 0)) + ' · ' + wipHint, wipTrend === 'growing' ? 'risk' : null)
+      + insightTile('Δ ' + translate('dashboard.extra_insights_throughput', 'Throughput') + ' ' + translate('dashboard.extra_insights_four_weeks', '4 нед.'), Number(payload.trend_percent || 0) + '%')
+      + '</div>'
+      + forecastBlock
+      + bars;
+
+    bindInsightToolbar(container, definition);
   }
 
   function renderWorkloadMgmt(container, envelope, definition) {
+    var toolbar = insightToolbar(definition, [
+      {
+        name: 'period',
+        label: translate('dashboard.extra_period', 'Период'),
+        value: widgetPeriod(definition),
+        options: periodOptions()
+      },
+      {
+        name: 'sort',
+        label: translate('dashboard.extra_insights_sort', 'Сортировка'),
+        value: widgetSort(definition, ['signal', 'load', 'overdue', 'name'], 'signal'),
+        options: [
+          { value: 'signal', label: translate('dashboard.extra_insights_sort_risk', 'По риску') },
+          { value: 'load', label: translate('dashboard.extra_insights_sort_load', 'По загрузке') },
+          { value: 'overdue', label: translate('dashboard.extra_insights_sort_overdue', 'По просрочке') }
+        ]
+      }
+    ]);
+
     if (!envelope || envelope.success === false) {
-      container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.extra_unavailable', 'Данные недоступны')) + '</div>';
+      container.innerHTML = toolbar + unavailableHtml();
+      bindInsightToolbar(container, definition);
       return;
     }
+
     var payload = insightsPayload(envelope);
     var assignees = Array.isArray(payload.assignees) ? payload.assignees : [];
+    var departments = Array.isArray(payload.departments) ? payload.departments : [];
     var summary = payload.summary || {};
-    if (!assignees.length) {
-      container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.extra_empty', 'Пока нет данных')) + '</div>';
+    if (!assignees.length && !departments.length) {
+      container.innerHTML = toolbar + emptyHtml();
+      bindInsightToolbar(container, definition);
       return;
     }
-    var rows = assignees.map(function (row) {
+
+    // The recommendation is the only actionable part of this widget: without it the
+    // card only reports numbers and leaves the manager to do the math.
+    var recommendationBlock = '';
+    var recommendation = payload.recommendation;
+    if (recommendation && recommendation.from && recommendation.to) {
+      recommendationBlock = '<div class="crm-dashboard-insight-recommendation">'
+        + '<div class="crm-dashboard-insight-alert-head">' + safe(translate('dashboard.extra_insights_rebalance_title', 'Рекомендация по ребалансировке')) + '</div>'
+        + '<div class="crm-dashboard-insight-recommendation-body">'
+        + safe(translate('dashboard.extra_insights_rebalance_body', 'Передать %tasks задач: от %from к %to').replace('%tasks', String(Number(recommendation.tasks || 0)))
+          .replace('%from', String(recommendation.from.name || ''))
+          .replace('%to', String(recommendation.to.name || '')))
+        + '</div>'
+        + '<div class="crm-dashboard-insight-recommendation-links">'
+        + '<a href="' + safe(tasksListUrl({ assignee: recommendation.from.user_public_id })) + '">' + safe(translate('dashboard.extra_insights_person_tasks', 'Задачи сотрудника')) + ': ' + safe(String(recommendation.from.name || '')) + '</a>'
+        + ' · <a href="' + safe(tasksListUrl({ assignee: recommendation.to.user_public_id })) + '">' + safe(String(recommendation.to.name || '')) + '</a>'
+        + '</div></div>';
+    }
+
+    var sort = widgetSort(definition, ['signal', 'load', 'overdue', 'name'], 'signal');
+    var ordered = sortedAssigneeRows(assignees, sort);
+    var visible = widgetExpanded(definition) ? ordered : ordered.slice(0, 10);
+    var hidden = ordered.length - visible.length;
+
+    var departmentsBlock = departments.length
+      ? '<div class="crm-dashboard-insight-section-title">' + safe(translate('dashboard.extra_insights_departments', 'Отделы')) + '</div>'
+        + insightsTable(DEPARTMENT_HEADERS(), departmentRows(departments))
+      : '';
+
+    var peopleRows = visible.map(function (row) {
       return [
-        safe(String(row.full_name || row.login || row.user_public_id || '')),
+        '<a href="' + safe(tasksListUrl({ assignee: row.user_public_id })) + '">' + safe(String(row.full_name || row.login || row.user_public_id || '')) + '</a>',
         safe(Number(row.load_percent || 0) + '%'),
         safe(Number(row.efficiency_percent || 0) + '%'),
         safe(String(Number(row.overdue_tasks || 0))),
@@ -636,13 +1173,12 @@
         '<span class="crm-dashboard-wl-signal' + signalClass(row.signal) + '">' + safe(signalLabel(row.signal)) + '</span>'
       ];
     });
-    container.innerHTML = '<div class="crm-dashboard-insight-grid">'
-      + insightTile(translate('dashboard.extra_insights_people', 'Сотрудников'), String(Number(summary.people || 0)), null)
-      + insightTile(translate('dashboard.extra_insights_overload', 'перегруз'), String(Number(summary.overload || 0)), 'overload')
-      + insightTile(translate('dashboard.extra_insights_underload', 'недогруз'), String(Number(summary.underload || 0)), null)
-      + insightTile(translate('dashboard.extra_insights_risk', 'риск'), String(Number(summary.risk || 0)), 'risk')
-      + insightTile(translate('dashboard.extra_insights_avg_load', 'Средняя загрузка'), Number(summary.average_load_percent || 0) + '%', null)
-      + insightTile(translate('dashboard.extra_insights_avg_efficiency', 'Средняя эффективность'), Number(summary.average_efficiency_percent || 0) + '%', null)
+
+    var peopleBlock = '<div class="crm-dashboard-insight-section-title">'
+      + safe(translate('dashboard.extra_insights_people_title', 'Сотрудники'))
+      + (hidden > 0 ? ' <span class="text-muted">' + safe(formatPlaceholders(
+        translate('dashboard.extra_insights_first_of', 'первые %s из %s'), [visible.length, ordered.length]
+      )) + '</span>' : '')
       + '</div>'
       + insightsTable([
         safe(translate('dashboard.extra_insights_person', 'Сотрудник')),
@@ -651,45 +1187,140 @@
         safe(translate('dashboard.extra_insights_overdue', 'Просрочено')),
         safe(translate('dashboard.extra_insights_active', 'Активные')),
         safe(translate('dashboard.extra_insights_signal', 'Сигнал'))
-      ], rows);
+      ], peopleRows)
+      + limitStateHtml(definition, ordered.length, 10);
+
+    container.innerHTML = toolbar
+      + '<div class="crm-dashboard-insight-grid">'
+      + insightTile(translate('dashboard.extra_insights_people', 'Сотрудников'), String(Number(summary.people || 0)))
+      + insightTile(translate('dashboard.extra_insights_overload', 'перегруз'), String(Number(summary.overload || 0)), 'overload')
+      + insightTile(translate('dashboard.extra_insights_underload', 'недогруз'), String(Number(summary.underload || 0)))
+      + insightTile(translate('dashboard.extra_insights_risk', 'риск'), String(Number(summary.risk || 0)), 'risk')
+      + insightTile(translate('dashboard.extra_insights_avg_load', 'Средняя загрузка'), Number(summary.average_load_percent || 0) + '%')
+      + insightTile(translate('dashboard.extra_insights_avg_efficiency', 'Средняя эффективность'), Number(summary.average_efficiency_percent || 0) + '%')
+      + '</div>'
+      + recommendationBlock
+      + departmentsBlock
+      + peopleBlock
+      + signalLegendHtml();
+
+    bindInsightToolbar(container, definition);
+  }
+
+  // Projects are ordered client-side so the same payload can answer "what is at
+  // risk" and "where did the hours go" without another request.
+  function sortedProjectRows(list, sort) {
+    var rows = list.slice();
+    rows.sort(function (a, b) {
+      if (sort === 'hours') return Number(b.minutes_period || 0) - Number(a.minutes_period || 0);
+      if (sort === 'progress') return Number(b.progress_percent || 0) - Number(a.progress_percent || 0);
+      if (sort === 'overdue') return Number(b.overdue_tasks || 0) - Number(a.overdue_tasks || 0);
+      return signalRank(a.health) - signalRank(b.health)
+        || Number(b.overdue_tasks || 0) - Number(a.overdue_tasks || 0);
+    });
+    return rows;
+  }
+
+  function milestoneCellHtml(project, nowMs) {
+    var due = String(project.next_milestone_at || '').trim();
+    if (due === '') return '<span class="text-muted">' + safe(translate('dashboard.extra_insights_no_milestone', 'нет вехи')) + '</span>';
+    var ts = Date.parse(due.replace(' ', 'T'));
+    var overdue = Number.isFinite(ts) && ts < nowMs && Number(project.active_tasks || 0) > 0;
+    return '<span class="' + (overdue ? 'is-overdue' : '') + '" title="'
+      + safe(translate('dashboard.extra_insights_next_milestone', 'Ближайшая веха проекта')) + '">' + safe(dateText(due)) + '</span>';
   }
 
   function renderStreams(container, envelope, definition) {
+    var toolbar = insightToolbar(definition, [
+      {
+        name: 'period',
+        label: translate('dashboard.extra_period', 'Период'),
+        value: widgetPeriod(definition),
+        options: periodOptions()
+      },
+      {
+        name: 'sort',
+        label: translate('dashboard.extra_insights_sort', 'Сортировка'),
+        value: widgetSort(definition, ['risk', 'overdue', 'hours', 'progress'], 'risk'),
+        options: [
+          { value: 'risk', label: translate('dashboard.extra_insights_sort_risk', 'По риску') },
+          { value: 'overdue', label: translate('dashboard.extra_insights_sort_overdue', 'По просрочке') },
+          { value: 'hours', label: translate('dashboard.extra_insights_sort_hours', 'По часам') },
+          { value: 'progress', label: translate('dashboard.extra_insights_sort_progress', 'По прогрессу') }
+        ]
+      }
+    ]);
+
     if (!envelope || envelope.success === false) {
-      container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.extra_unavailable', 'Данные недоступны')) + '</div>';
+      container.innerHTML = toolbar + unavailableHtml();
+      bindInsightToolbar(container, definition);
       return;
     }
+
     var payload = insightsPayload(envelope);
     var projects = Array.isArray(payload.projects) ? payload.projects : [];
     if (!projects.length) {
-      container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.extra_empty', 'Пока нет данных')) + '</div>';
+      container.innerHTML = toolbar + emptyHtml();
+      bindInsightToolbar(container, definition);
       return;
     }
-    var rows = projects.map(function (project) {
+
+    var sort = widgetSort(definition, ['risk', 'overdue', 'hours', 'progress'], 'risk');
+    var ordered = sortedProjectRows(projects, sort);
+    var visible = widgetExpanded(definition) ? ordered : ordered.slice(0, 10);
+    var hidden = ordered.length - visible.length;
+    var nowMs = Date.now();
+
+    var rows = visible.map(function (project) {
+      var title = String(project.title || project.project_public_id || '');
+      var overdue = Number(project.overdue_tasks || 0);
       return [
-        safe(project.title),
-        safe(Number(project.progress_percent || 0) + '%'),
+        '<a href="' + safe(projectDetailUrl(project.project_public_id)) + '">' + safe(title) + '</a>',
+        progressBar(project.progress_percent) + ' <small>' + safe(Number(project.progress_percent || 0) + '%') + '</small>',
         safe(String(Number(project.active_tasks || 0))),
-        safe(String(Number(project.overdue_tasks || 0))),
+        overdue > 0
+          ? '<a class="is-overdue" href="' + safe(tasksListUrl({ project: project.project_public_id, due: 'overdue' })) + '">' + safe(String(overdue)) + '</a>'
+          : safe('0'),
         safe(formatMinutesCompact(project.minutes_period)),
         safe(String(Number(project.members || 0))),
+        milestoneCellHtml(project, nowMs),
         '<span class="crm-dashboard-wl-signal' + signalClass(project.health) + '">' + safe(signalLabel(project.health)) + '</span>'
       ];
     });
-    container.innerHTML = insightsTable([
-      safe(translate('dashboard.extra_insights_project', 'Поток (проект)')),
-      safe(translate('dashboard.extra_insights_progress', 'Прогресс')),
-      safe(translate('dashboard.extra_insights_active', 'Активные')),
-      safe(translate('dashboard.extra_insights_overdue', 'Просрочено')),
-      safe(translate('dashboard.extra_insights_hours', 'Часы')),
-      safe(translate('dashboard.extra_insights_members', 'Участники')),
-      safe(translate('dashboard.extra_insights_signal', 'Сигнал'))
-    ], rows);
+
+    container.innerHTML = toolbar
+      + (hidden > 0 ? '<div class="text-muted small mb-1">' + safe(formatPlaceholders(
+        translate('dashboard.extra_insights_first_of', 'первые %s из %s'), [visible.length, ordered.length]
+      )) + '</div>' : '')
+      + insightsTable([
+        safe(translate('dashboard.extra_insights_project', 'Поток (проект)')),
+        safe(translate('dashboard.extra_insights_progress', 'Прогресс')),
+        safe(translate('dashboard.extra_insights_active', 'Активные')),
+        safe(translate('dashboard.extra_insights_overdue', 'Просрочено')),
+        safe(translate('dashboard.extra_insights_hours', 'Часы')),
+        safe(translate('dashboard.extra_insights_members', 'Участники')),
+        safe(translate('dashboard.extra_insights_milestone', 'Ближайшая веха')),
+        safe(translate('dashboard.extra_insights_signal', 'Сигнал'))
+      ], rows)
+      + limitStateHtml(definition, ordered.length, 10)
+      + '<div class="crm-dashboard-insight-legend">'
+      + safe(translate('dashboard.extra_insights_legend_streams', 'Критично — просрочено более 20% активных задач или веха в прошлом; риск — есть просрочка или веха на этой неделе.'))
+      + '</div>';
+
+    bindInsightToolbar(container, definition);
   }
 
   function renderStreamDetail(container, envelope, definition) {
+    var toolbar = insightToolbar(definition, [{
+      name: 'period',
+      label: translate('dashboard.extra_period', 'Период'),
+      value: widgetPeriod(definition),
+      options: periodOptions()
+    }]);
+
     if (!envelope || envelope.success === false) {
-      container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.extra_unavailable', 'Данные недоступны')) + '</div>';
+      container.innerHTML = toolbar + unavailableHtml();
+      bindInsightToolbar(container, definition);
       return;
     }
     var payload = insightsPayload(envelope);
@@ -697,7 +1328,9 @@
     var options = Array.isArray(payload.projects) ? payload.projects : [];
     var selector = '';
     if (options.length) {
-      selector = '<select class="form-select form-select-sm crm-dashboard-insight-select" data-insights-project>'
+      // The id is registered in page-api-bindings' searchable-select list, so the
+      // existing makeSelectSearchable() handles it - no second implementation here.
+      selector = '<select class="form-select form-select-sm crm-dashboard-insight-select" id="dashboardInsightStreamSelect" data-insights-project>'
         + options.map(function (option) {
           var selected = project && option.project_public_id === project.project_public_id ? ' selected' : '';
           return '<option value="' + safe(option.project_public_id) + '"' + selected + '>' + safe(option.title) + '</option>';
@@ -705,49 +1338,94 @@
         + '</select>';
     }
     if (!project) {
-      container.innerHTML = selector + '<div class="text-muted small mt-2">' + safe(translate('dashboard.extra_insights_no_streams', 'Нет доступных потоков')) + '</div>';
+      container.innerHTML = toolbar + selector + '<div class="text-muted small mt-2">'
+        + safe(translate('dashboard.extra_insights_no_streams', 'Нет доступных потоков')) + '</div>';
+      bindInsightToolbar(container, definition);
+      bindStreamProjectSelect(container, definition);
       return;
     }
     var weeks = Array.isArray(project.throughput_weeks) ? project.throughput_weeks : [];
     var max = 1;
     weeks.forEach(function (week) { max = Math.max(max, Number(week.completed || 0)); });
     var bars = weeks.map(function (week) {
-      return barRow(week.week_start, String(Number(week.completed || 0)), Math.round(Number(week.completed || 0) / max * 100), '');
+      return barRow(dateText(week.week_start), String(Number(week.completed || 0)), Math.round(Number(week.completed || 0) / max * 100), '');
     }).join('');
     var statuses = (project.by_status || []).map(function (row) {
       return '<span class="crm-chip">' + safe(row.status_code) + ' · ' + safe(String(Number(row.tasks || 0))) + '</span>';
     }).join(' ');
     var members = (project.top_members || []).map(function (row) {
-      return barRow(row.full_name, formatMinutesCompact(row.minutes), 100, '');
+      var name = String(row.full_name || row.login || '');
+      var label = row.user_public_id
+        ? '<a href="' + safe(tasksListUrl({ assignee: row.user_public_id })) + '">' + safe(name) + '</a>'
+        : safe(name);
+      var width = 100;
+      return '<div class="crm-dashboard-wl-row"><div class="crm-dashboard-wl-head"><span class="text-truncate">' + label
+        + '</span><strong>' + safe(formatMinutesCompact(row.minutes)) + '</strong></div>'
+        + '<div class="crm-dashboard-time-bar" aria-hidden="true"><i style="width:' + width + '%"></i></div></div>';
     }).join('');
     var overdue = (project.overdue_list || []).map(function (row) {
-      return '<div class="crm-dashboard-extra-row"><span class="text-truncate" title="' + safe(row.title) + '">' + safe(row.title) + '</span><span class="text-muted">' + safe(row.due_at) + '</span></div>';
+      return '<div class="crm-dashboard-extra-row"><div class="text-truncate"><a href="' + safe(taskDetailUrl(row.task_public_id)) + '" title="'
+        + safe(row.title) + '">' + safe(row.title) + '</a><small class="is-overdue">' + safe(dateText(row.due_at)) + '</small></div></div>';
     }).join('');
 
-    container.innerHTML = selector
-      + '<div class="crm-dashboard-insight-grid mt-2">'
-      + insightTile(translate('dashboard.extra_insights_progress', 'Прогресс'), Number(project.progress_percent || 0) + '%', null)
-      + insightTile(translate('dashboard.extra_insights_active', 'Активные'), String(Number(project.active_tasks || 0)), null)
-      + insightTile(translate('dashboard.extra_insights_overdue', 'Просрочено'), String(Number(project.overdue_tasks || 0)), Number(project.overdue_tasks || 0) > 0 ? 'risk' : null)
-      + insightTile(translate('dashboard.extra_insights_cycle_median', 'Cycle time (медиана)'), formatMinutesCompact(project.cycle_time_median_minutes), null)
-      + '</div>'
-      + (bars ? '<div class="crm-dashboard-insight-chips mt-2">' + safe(translate('dashboard.extra_insights_throughput', 'Throughput')) + '</div>' + bars : '')
-      + (statuses ? '<div class="crm-dashboard-insight-chips mt-2">' + statuses + '</div>' : '')
-      + (members ? '<div class="mt-2">' + safe(translate('dashboard.extra_insights_top_members', 'Топ исполнителей по часам')) + '</div>' + members : '')
-      + (overdue ? '<div class="mt-2">' + safe(translate('dashboard.extra_insights_overdue_list', 'Просроченные задачи')) + '</div>' + overdue : '');
+    // Milestones arrive in the payload but are usually the only future-facing data
+    // point of a project, so they get their own block with an overdue highlight.
+    var nowMs = Date.now();
+    var milestones = (project.milestones || []).map(function (milestone) {
+      var due = String(milestone.due_at || '');
+      var ts = Date.parse(due.replace(' ', 'T'));
+      var status = String(milestone.status || '').toLowerCase();
+      var closed = status === 'done' || status === 'completed' || status === 'cancelled';
+      var isOverdue = !closed && Number.isFinite(ts) && ts < nowMs;
+      return '<div class="crm-dashboard-extra-row"><div class="text-truncate"><a href="'
+        + safe(projectDetailUrl(project.project_public_id)) + '" title="' + safe(milestone.title) + '">' + safe(milestone.title) + '</a>'
+        + '<small class="' + (isOverdue ? 'is-overdue' : '') + '">' + safe(dateText(due) + (isOverdue ? ' · ' + translate('dashboard.extra_insights_overdue_short', 'просрочена') : '')) + '</small>'
+        + '</div></div>';
+    }).join('');
 
+    var health = String(project.health || '');
+    var healthHint = health === 'critical'
+      ? translate('dashboard.extra_insights_health_critical', 'просрочено > 20% активных задач или веха в прошлом')
+      : (health === 'risk' ? translate('dashboard.extra_insights_health_risk', 'есть просрочка или веха на этой неделе')
+        : translate('dashboard.extra_insights_health_ok', 'риска нет'));
+
+    var averagePerWeek = weeks.length
+      ? Math.round(weeks.reduce(function (sum, week) { return sum + Number(week.completed || 0); }, 0) / weeks.length * 10) / 10
+      : 0;
+    var remaining = Number(project.active_tasks || 0);
+    var finishHint = averagePerWeek > 0 && remaining > 0
+      ? translate('dashboard.extra_insights_stream_eta', 'остаток ~%s нед. при текущем темпе').replace('%s', String(Math.round(remaining / averagePerWeek * 10) / 10))
+      : '';
+
+    container.innerHTML = toolbar
+      + '<div class="crm-dashboard-insight-stream-head">' + selector
+      + '<span class="crm-dashboard-wl-signal' + signalClass(project.health) + '">' + safe(signalLabel(project.health)) + '</span></div>'
+      + '<div class="crm-dashboard-insight-grid mt-2">'
+      + insightTile(translate('dashboard.extra_insights_progress', 'Прогресс'), progressBar(project.progress_percent) + ' ' + Number(project.progress_percent || 0) + '%', null, true)
+      + insightTile(translate('dashboard.extra_insights_active', 'Активные'), String(remaining))
+      + insightTile(translate('dashboard.extra_insights_overdue', 'Просрочено'), String(Number(project.overdue_tasks || 0)), Number(project.overdue_tasks || 0) > 0 ? 'risk' : null)
+      + insightTile(translate('dashboard.extra_insights_cycle_median', 'Cycle time (медиана)'), formatMinutesCompact(project.cycle_time_median_minutes))
+      + '</div>'
+      + '<div class="crm-dashboard-insight-legend">' + safe(healthHint) + (finishHint ? ' · ' + safe(finishHint) : '') + '</div>'
+      + (bars ? '<div class="crm-dashboard-insight-chips mt-2">' + safe(translate('dashboard.extra_insights_throughput', 'Throughput')) + '</div>' + bars : '')
+      + (milestones ? '<div class="crm-dashboard-insight-section-title">' + safe(translate('dashboard.extra_insights_milestones', 'Вехи')) + '</div>' + milestones : '')
+      + (statuses ? '<div class="crm-dashboard-insight-chips mt-2">' + statuses + '</div>' : '')
+      + (members ? '<div class="crm-dashboard-insight-section-title">' + safe(translate('dashboard.extra_insights_top_members', 'Топ исполнителей по часам')) + '</div>' + members : '')
+      + (overdue ? '<div class="crm-dashboard-insight-section-title">' + safe(translate('dashboard.extra_insights_overdue_list', 'Просроченные задачи')) + '</div>' + overdue : '');
+
+    bindInsightToolbar(container, definition);
+    bindStreamProjectSelect(container, definition);
+  }
+
+  // The selected project is remembered per widget so reopening the dashboard keeps
+  // the manager on the stream they were inspecting.
+  function bindStreamProjectSelect(container, definition) {
     var select = container.querySelector('[data-insights-project]');
-    if (select && api()) {
-      select.addEventListener('change', function () {
-        var query = Object.assign({}, definition.query || {}, { project_public_id: select.value });
-        container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.loading_widget', 'Загрузка...')) + '</div>';
-        api().request(definition.route, { method: 'GET', query: query }).then(function (next) {
-          renderStreamDetail(container, next, definition);
-        }).catch(function () {
-          container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.extra_unavailable', 'Данные недоступны')) + '</div>';
-        });
-      });
-    }
+    if (!select) return;
+    select.addEventListener('change', function () {
+      saveInsightOption(definition.key, 'project', select.value);
+      reloadWidget(definition);
+    });
   }
 
   function render(definition, envelope) {
@@ -812,6 +1490,11 @@
       }
       if (key === 'milestone_watch') {
         return loadMilestones(definition).then(function (envelope) { render(definition, envelope); });
+      }
+      // Insights widgets honour the period/sort/project the user last chose for that
+      // card, so a refresh does not silently reset the view.
+      if (definition.kind && definition.kind.indexOf('insights_') === 0) {
+        queryOverride = insightQuery(definition);
       }
       return request(definition, queryOverride).then(function (envelope) { render(definition, envelope); });
     })).catch(function () { loaded = false; });

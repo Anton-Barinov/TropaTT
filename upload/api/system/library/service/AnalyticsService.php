@@ -110,6 +110,8 @@ final class AnalyticsService
             'now' => $now,
             'week_start' => gmdate('Y-m-d 00:00:00', strtotime('-6 days', strtotime($now))),
             'period_start' => gmdate('Y-m-d 00:00:00', strtotime('-' . $periodDays . ' days', strtotime($now))),
+            'previous_start' => gmdate('Y-m-d 00:00:00', strtotime('-' . ($periodDays * 2) . ' days', strtotime($now))),
+            'period_days' => $periodDays,
         ]);
 
         $data['period_days'] = $periodDays;
@@ -262,6 +264,7 @@ final class AnalyticsService
         return $this->stripFinancialFields([
             'assignees' => $assignees,
             'departments' => $departments,
+            'capacity_minutes_week' => InsightsRepository::WEEK_CAPACITY_MINUTES,
             'period_days' => $periodDays,
         ]);
     }
@@ -281,8 +284,17 @@ final class AnalyticsService
             $userIds = [-1];
         }
 
-        $data = $this->insights()->completionVelocity($userIds, $isRoot, gmdate('Y-m-d H:i:s'), 13);
-        $data['scope_users'] = $isRoot ? null : count($this->visibleUserIds($actor));
+        $periodDays = self::normalizePeriodDays($filters['period'] ?? 30);
+        $now = gmdate('Y-m-d H:i:s');
+        $data = $this->insights()->completionVelocity(
+            $userIds,
+            $isRoot,
+            $now,
+            13,
+            gmdate('Y-m-d 00:00:00', strtotime('-' . $periodDays . ' days', strtotime($now)))
+        );
+        $data['scope_users'] = $isRoot ? null : count($userIds);
+        $data['period_days'] = $periodDays;
 
         return $this->stripFinancialFields($data);
     }
@@ -310,8 +322,19 @@ final class AnalyticsService
         }
         $count = count($assignees);
 
+        // Department aggregates already exist in the load payload; the member lists
+        // are dropped here because this widget renders the summary rows only.
+        $departments = [];
+        foreach (($load['departments'] ?? []) as $department) {
+            unset($department['members']);
+            $departments[] = $department;
+        }
+
         return $this->stripFinancialFields([
             'assignees' => $assignees,
+            'departments' => $departments,
+            'recommendation' => InsightsRepository::rebalanceRecommendation($assignees),
+            'capacity_minutes_week' => InsightsRepository::WEEK_CAPACITY_MINUTES,
             'summary' => $summary + [
                 'people' => $count,
                 'average_load_percent' => $count > 0 ? round($loadSum / $count, 1) : 0.0,
