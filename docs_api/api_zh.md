@@ -164,6 +164,7 @@ Authorization: Bearer <token>
 
 消除外部电商系统、AI 代理与 CRM 枚举之间的映射阻抗：
 - **双向状态别名**：`todo` $\leftrightarrow$ `new`，`done` $\leftrightarrow$ `completed`，`canceled` $\leftrightarrow$ `cancelled`。使用 `status=todo` 查询可透明匹配 `todo` 与 `new` 状态的记录。
+- **负责人字段别名**：`assignee_user_public_id`（响应与本文件所用名称）在 `POST /api/v1/tasks` 与 `PATCH /api/v1/tasks/{public_id}` 中作为 `assignee_user_id` 的同义词被接受。显式传入的 `assignee_user_id` 优先；`assignee_user_id: null` 仍表示取消分配。指向不存在的用户将返回 `404 ASSIGNEE_NOT_FOUND` 而不再被忽略，因此无法再意外创建未分配负责人的任务（见 CHANGELOG，PRJ-434）。
 - **快速活动过滤器**：
   - `hide_done=1`：排除已完成、已取消和已归档的任务（`done`, `completed`, `canceled`, `cancelled`, `archived`）。
   - `active_only=1`：等价于 `hide_done=1` 的别名。

@@ -164,6 +164,13 @@ final class TaskController extends BaseController
                     'description' => ['Description is too long'],
                 ]);
             }
+            // PRJ-434: naming an assignee that does not exist is an error, not a
+            // task created without one.
+            if ($item === 'ASSIGNEE_NOT_FOUND') {
+                return $this->error('ASSIGNEE_NOT_FOUND', $this->t('task/messages.assignee_not_found'), 404, [
+                    'assignee_user_public_id' => [$this->t('task/messages.assignee_not_found')],
+                ]);
+            }
             if ($item === 'PARENT_TASK_NOT_FOUND') {
                 return $this->error('PARENT_TASK_NOT_FOUND', $this->t('common/messages.task_not_found'), 404, [
                     'parent_task_public_id' => [$this->t('common/messages.task_not_found')],
@@ -346,6 +353,13 @@ final class TaskController extends BaseController
         if ($item === 'PROJECT_NOT_FOUND') {
             return $this->error('PROJECT_NOT_FOUND', $this->t('common/messages.project_not_found'), 404, [
                 'project' => [$this->t('common/messages.project_not_found')],
+            ]);
+        }
+        // PRJ-434: `PATCH {assignee_user_public_id}` used to answer TASK_UPDATED
+        // while changing nothing; an unknown assignee now fails loudly.
+        if ($item === 'ASSIGNEE_NOT_FOUND') {
+            return $this->error('ASSIGNEE_NOT_FOUND', $this->t('task/messages.assignee_not_found'), 404, [
+                'assignee_user_public_id' => [$this->t('task/messages.assignee_not_found')],
             ]);
         }
         if ($item === 'PARENT_TASK_NOT_FOUND') {
