@@ -421,7 +421,7 @@ final class InsightsRepository
             $scopeParams = $userIds;
         }
 
-        $weekStartTs = strtotime('monday this week', strtotime($now));
+        $weekStartTs = $this->mondayTsUtc($now);
         $buckets = [];
         for ($i = $weeks - 1; $i >= 0; $i--) {
             $start = $weekStartTs - $i * 604800;
@@ -1332,9 +1332,14 @@ final class InsightsRepository
             }
         }
 
+        // The day list has to carry the same UTC dates the query grouped by. Both ends
+        // used to be parsed as *local* midnight and then labelled with gmdate(), which
+        // on any server east of UTC shifted the range to [from - 1 day, to - 1 day]:
+        // the window's last day - today - was never emitted, so minutes logged on the
+        // current day did not reach the weekly series at all and a weekly goal read 0 %.
         $days = [];
-        $cursor = strtotime(substr($from, 0, 10) . ' 00:00:00');
-        $end = strtotime(substr($to, 0, 10) . ' 00:00:00');
+        $cursor = strtotime(substr($from, 0, 10) . ' 00:00:00 UTC');
+        $end = strtotime(substr($to, 0, 10) . ' 00:00:00 UTC');
         while ($cursor !== false && $end !== false && $cursor <= $end) {
             $day = gmdate('Y-m-d', $cursor);
             $days[] = ['date' => $day, 'minutes' => $byDate[$day] ?? 0];
@@ -1995,8 +2000,8 @@ final class InsightsRepository
         }
 
         $weeks = max(2, min(13, $weeks));
-        $mondayTs = strtotime('monday this week', strtotime($to));
-        if ($mondayTs === false) {
+        $mondayTs = $this->mondayTsUtc($to);
+        if ($mondayTs <= 0) {
             return [];
         }
 
@@ -2084,9 +2089,33 @@ final class InsightsRepository
     }
 
     /** Monday bucket key (Y-m-d) for a day inside the reported window. */
+    /**
+     * Monday 00:00 UTC of the week holding the given "Y-m-d H:i:s" UTC stamp.
+     *
+     * Every timestamp these aggregates bucket (`logged_at`, `tasks.created_at`,
+     * `task_status_history.created_at`) is stored in UTC, so the week arithmetic has
+     * to be UTC as well. `strtotime('monday this week', ...)` resolves in the
+     * *server's* timezone instead, which on a UTC+3 host returns Sunday 21:00 UTC: the
+     * `week_start` labels came out a day early on the card and work done on the local
+     * Sunday evening was bucketed into the week before.
+     */
+    private function mondayTsUtc(string $utcStamp): int
+    {
+        $day = substr($utcStamp, 0, 10);
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $day) !== 1) {
+            return 0;
+        }
+
+        $ts = (int)strtotime($day . ' 00:00:00 UTC');
+        $weekday = (int)gmdate('N', $ts); // 1 = Monday ... 7 = Sunday
+
+        return $ts - ($weekday - 1) * 86400;
+    }
+
     private function weekKeyFor(string $day, int $mondayTs): ?string
     {
-        $ts = strtotime($day . ' 00:00:00');
+        // UTC, like the timestamps being bucketed - see mondayTsUtc().
+        $ts = strtotime($day . ' 00:00:00 UTC');
         if ($ts === false) {
             return null;
         }
