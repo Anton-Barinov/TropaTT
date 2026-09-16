@@ -3713,6 +3713,7 @@ return array (
     'extra_insights_departments' => 'Services',
     'extra_insights_people_title' => 'Personnes',
     'extra_insights_first_of' => 'premières %s sur %s',
+    'extra_insights_bucket_days' => '1 barre = %s jour(s)',
     'extra_insights_show_all' => 'Tout afficher',
     'extra_insights_person_tasks' => 'Tâches de la personne',
     'extra_insights_legend_signals' => 'Surcharge au-delà de 110 %, sous-charge sous 50 % sans retard, risque = retard. Norme : 40 h/semaine (2400 min).',

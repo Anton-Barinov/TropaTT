@@ -80,6 +80,11 @@ final class InsightsRepository
         $throughputPerDay = round($completedPeriod / $periodDays, 2);
         $backlogDays = $throughputPerDay > 0 ? (int)ceil($active / $throughputPerDay) : null;
 
+        // The bar chart covers the reported period in at most MAX_DAILY_POINTS bars;
+        // `period_daily_bucket_days` tells the card how many days one bar stands for.
+        $periodDailyMinutes = $this->periodDailyMinutes([$userId], $periodStart, $now, $periodDays);
+        $periodDailyBucketDays = (int)($periodDailyMinutes[0]['days'] ?? 1);
+
         return [
             'active_tasks' => $active,
             'overdue_tasks' => $overdue,
@@ -102,7 +107,8 @@ final class InsightsRepository
             'load_percent' => $loadPercent,
             'load_signal' => self::loadSignal($loadPercent),
             'daily_minutes' => $this->dailyMinutes([$userId], $weekStart, $now),
-            'period_daily_minutes' => $this->periodDailyMinutes([$userId], $periodStart, $now),
+            'period_daily_minutes' => $periodDailyMinutes,
+            'period_daily_bucket_days' => $periodDailyBucketDays,
         ];
     }
 
@@ -1196,20 +1202,51 @@ final class InsightsRepository
     }
 
     /**
-     * Zero-filled day series for the widget period, capped to the last 30 days so a
-     * 90-day period does not ship 90 bars into the card.
+     * Zero-filled minute breakdown for the widget period.
+     *
+     * The window the metrics use is inclusive (`period_start` .. now), so it holds
+     * one more calendar day than `period_days`; the card reports the last
+     * `period_days` days, so the extra leading day is dropped here.
+     *
+     * A single bar per day would ship 90 bars into a 90-day card, so longer windows
+     * are merged into equal contiguous buckets. The buckets always span the **whole**
+     * reported period: trimming the oldest days instead would silently turn the
+     * 90-day chart into a 30-day one while still claiming the full period.
      *
      * @param int[] $userIds
-     * @return array<int, array{date:string,minutes:int}>
+     * @return array<int, array{date:string,minutes:int,end_date?:string,days?:int}>
      */
-    private function periodDailyMinutes(array $userIds, string $from, string $to): array
+    private function periodDailyMinutes(array $userIds, string $from, string $to, int $periodDays): array
     {
-        $series = $this->dailyMinutes($userIds, $from, $to);
-        if (count($series) > self::MAX_DAILY_POINTS) {
-            $series = array_slice($series, -self::MAX_DAILY_POINTS);
+        $series = array_values($this->dailyMinutes($userIds, $from, $to));
+        if (count($series) > $periodDays) {
+            $series = array_slice($series, -$periodDays);
         }
 
-        return array_values($series);
+        $days = count($series);
+        if ($days <= self::MAX_DAILY_POINTS) {
+            return $series;
+        }
+
+        // Equal buckets of whole days: ceil keeps the bar count inside the cap while
+        // every day of the period stays accounted for.
+        $bucketDays = (int)ceil($days / self::MAX_DAILY_POINTS);
+        $buckets = [];
+        for ($i = 0; $i < $days; $i += $bucketDays) {
+            $chunk = array_slice($series, $i, $bucketDays);
+            $minutes = 0;
+            foreach ($chunk as $day) {
+                $minutes += (int)$day['minutes'];
+            }
+            $buckets[] = [
+                'date' => (string)$chunk[0]['date'],
+                'end_date' => (string)$chunk[count($chunk) - 1]['date'],
+                'days' => count($chunk),
+                'minutes' => $minutes,
+            ];
+        }
+
+        return $buckets;
     }
 
     /**

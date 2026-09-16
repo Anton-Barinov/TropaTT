@@ -3713,6 +3713,7 @@ return array (
     'extra_insights_departments' => 'Abteilungen',
     'extra_insights_people_title' => 'Mitarbeitende',
     'extra_insights_first_of' => 'erste %s von %s',
+    'extra_insights_bucket_days' => '1 Balken = %s Tag(e)',
     'extra_insights_show_all' => 'Alle anzeigen',
     'extra_insights_person_tasks' => 'Aufgaben der Person',
     'extra_insights_legend_signals' => 'Überlast über 110 %, Unterlast unter 50 % ohne Überfälligkeiten, Risiko bedeutet überfällige Arbeit. Norm: 40 h/Woche (2400 min).',

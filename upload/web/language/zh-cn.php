@@ -4838,6 +4838,7 @@ return array (
     'extra_insights_departments' => '部门',
     'extra_insights_people_title' => '人员',
     'extra_insights_first_of' => '前 %s 条，共 %s',
+    'extra_insights_bucket_days' => '1 根柱 = %s 天',
     'extra_insights_show_all' => '显示全部',
     'extra_insights_person_tasks' => '该人员任务',
     'extra_insights_legend_signals' => '超载高于 110%，欠载低于 50% 且无逾期，风险表示存在逾期。标准 40 小时/周（2400 分钟）。',
