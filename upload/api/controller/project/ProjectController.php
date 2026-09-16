@@ -10,6 +10,7 @@ use Api\System\Library\Module\ModuleEvents;
 use Api\System\Library\Service\GanttService;
 use Api\System\Library\Service\ProjectService;
 use Api\System\Library\Service\ProjectSummaryService;
+use Api\System\Library\Service\PurgeService;
 use Api\System\Library\Validation\Validator;
 
 final class ProjectController extends BaseController
@@ -219,6 +220,35 @@ final class ProjectController extends BaseController
         /** @var ProjectService $service */
         $service = $this->container->get('service.project');
         $before = $service->get((string)$params['public_id'], $authUser['user']);
+
+        // `?purge=1` removes an already archived project for good (PRJ-436). It rides
+        // on the existing DELETE route on purpose: a new route would have to be
+        // mirrored into the OpenAPI documents the release gate diffs against.
+        $input = $this->request()->allInput();
+        $purgeRequested = ($input['purge'] ?? null) === '1' || ($input['purge'] ?? null) === 1 || ($input['purge'] ?? null) === true;
+        if ($purgeRequested) {
+            /** @var PurgeService $purge */
+            $purge = $this->container->get('service.purge');
+            $result = $purge->purgeProject((string)$params['public_id'], $authUser['user']);
+            if (($result['ok'] ?? false) !== true) {
+                return $this->error(
+                    (string)($result['code'] ?? 'PURGE_FAILED'),
+                    (string)($result['message'] ?? 'Purge failed'),
+                    (int)($result['status'] ?? 400)
+                );
+            }
+            $this->dispatchModuleHook(ModuleEvents::PROJECT_DELETED, [
+                'project_id' => (int)($before['id'] ?? 0),
+                'project_public_id' => (string)($params['public_id'] ?? ''),
+                'actor_id' => (int)($authUser['user']['id'] ?? 0),
+            ]);
+            $this->invalidateCache('project');
+
+            return $this->success('PROJECT_PURGED', $this->t('project/messages.deleted'), [
+                'removed' => $result['removed'] ?? [],
+            ]);
+        }
+
         $ok = $service->delete((string)$params['public_id'], $authUser['user']);
         if (!$ok) {
             return $this->error('PROJECT_NOT_FOUND', $this->t('common/messages.project_not_found'), 404, [

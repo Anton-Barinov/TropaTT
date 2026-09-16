@@ -102,6 +102,7 @@ use Api\System\Library\Service\PermissionService;
 use Api\System\Library\Service\PriorityService;
 use Api\System\Library\Service\ProjectAiContextBuilder;
 use Api\System\Library\Service\ProjectService;
+use Api\System\Library\Service\PurgeService;
 use Api\System\Library\Service\ProjectSummaryService;
 use Api\System\Library\Service\RecycleBinService;
 use Api\System\Library\Service\DependencyService;
@@ -1114,6 +1115,12 @@ final class App
             $c->get('service.task_key'),
             $c->get('repository.task_key_counter'),
             $c->get('service.external_user')
+        ));
+        // Physical removal of rows a DELETE only parks (archived project, deleted
+        // task). Root-only and gated on the row already being in the reversible
+        // state — see PurgeService (PRJ-436).
+        $this->container->factory('service.purge', fn(Container $c) => new PurgeService(
+            $c->get('db.pdo')
         ));
         $this->container->factory('service.project_summary', fn(Container $c) => new ProjectSummaryService(
             $c->get('repository.project_summary'),
