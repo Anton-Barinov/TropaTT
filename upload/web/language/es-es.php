@@ -3691,6 +3691,8 @@ return array (
     'extra_insights_no_deadlines_short' => 'sin plazos',
     'extra_insights_of_deadlines' => 'de %s con plazo',
     'extra_insights_capacity_target' => 'objetivo %s',
+    'extra_insights_overruns_hint' => 'real / estimación · exceso',
+    'extra_insights_overruns_title' => 'Exceso sobre la estimación',
     'extra_insights_live_tasks_note' => 'solo se cuentan tareas no eliminadas ni archivadas',
     'extra_insights_without_estimate' => 'Tareas con tiempo registrado pero sin estimación',
     'extra_insights_points' => 'unidades',

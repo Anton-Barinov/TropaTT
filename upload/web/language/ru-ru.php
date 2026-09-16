@@ -4688,6 +4688,8 @@ return array (
     'extra_insights_no_deadlines_short' => 'нет дедлайнов',
     'extra_insights_of_deadlines' => 'из %s с дедлайном',
     'extra_insights_capacity_target' => 'цель %s',
+    'extra_insights_overruns_hint' => 'факт / оценка · перерасход',
+    'extra_insights_overruns_title' => 'Перерасход против оценки',
     'extra_insights_live_tasks_note' => 'учитываются только неудалённые и неархивные задачи',
     'extra_insights_without_estimate' => 'Задачи с учётом времени, но без оценки',
     'extra_insights_points' => 'ед.',
