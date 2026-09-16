@@ -4669,6 +4669,8 @@ return array (
     'extra_insights_no_deadlines_short' => 'no deadlines',
     'extra_insights_of_deadlines' => 'of %s with a deadline',
     'extra_insights_capacity_target' => 'target %s',
+    'extra_insights_overruns_hint' => 'actual / estimate · overrun',
+    'extra_insights_overruns_title' => 'Overrun against the estimate',
     'extra_insights_live_tasks_note' => 'only non-deleted, non-archived tasks are counted',
     'extra_insights_without_estimate' => 'Tasks with logged time but no estimate',
     'extra_insights_points' => 'units',

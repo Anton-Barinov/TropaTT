@@ -360,6 +360,7 @@ return [
         'get_sla_report' => ['mode' => 'all', 'permissions' => ['task.manage']],
         'list' => ['mode' => 'all', 'permissions' => ['task.manage']],
         'list_approvals' => ['mode' => 'all', 'permissions' => ['approval.manage']],
+        'list_checklist_items' => ['mode' => 'all', 'permissions' => ['task.manage']],
         'list_checklists' => ['mode' => 'all', 'permissions' => ['task.manage']],
         'list_comments' => ['mode' => 'all', 'permissions' => ['task.manage']],
         'list_dependencies' => ['mode' => 'all', 'permissions' => ['task.manage']],

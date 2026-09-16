@@ -202,6 +202,10 @@ final class InsightsRepository
             ? round(count($estimatedTaskIds) / $tasksWithLogs * 100, 1)
             : null;
 
+        // Computed once: the card shows the five worst overruns while the head says how
+        // many there are in total, so the number and the list can never disagree.
+        $overruns = $this->estimateOverruns($minutesByTask);
+
         return [
             'top_tasks' => $topTasks,
             'tasks_with_logs' => $tasksWithLogs,
@@ -220,6 +224,11 @@ final class InsightsRepository
             'tasks_without_estimate_total' => max(0, $tasksWithLogs - count($estimatedTaskIds)),
             'tasks_without_estimate' => $this->tasksWithoutEstimate($loggedTaskIds, $estimatedTaskIds, $minutesByTask),
             'estimate_sets' => $this->estimateCalibration($minutesByTask),
+            // "Where did we overrun the plan?" is the question the card could not answer.
+            // A task-level answer only exists for estimates whose unit really is time, so
+            // the list is built from those sets and never from a points-to-hours guess.
+            'estimate_overruns' => array_slice($overruns, 0, 5),
+            'estimate_overruns_total' => count($overruns),
             'by_activity' => $this->minutesByActivity($userIds, $isRoot, $periodStart, $now, $projectPublicId),
             'limit' => $limit,
             'project_filter' => $projectPublicId,
@@ -1492,6 +1501,91 @@ final class InsightsRepository
         usort($out, static fn(array $a, array $b): int => $b['tasks'] <=> $a['tasks']);
 
         return $out;
+    }
+
+    /**
+     * Tasks whose logged time beat their own estimate, worst overrun first.
+     *
+     * Only estimates measured in time take part: for a story-point task an "overrun"
+     * would require a points-to-hours conversion that the schema does not hold, and
+     * inventing one is exactly what this widget refuses to do. A task counts once per
+     * set - the largest estimate wins when a task carries several - so the same work
+     * cannot be reported twice.
+     *
+     * Rows carry their titles because the card links them; hours under the estimate are
+     * not overruns and are left out, so the list stays a to-do list rather than noise.
+     *
+     * @param array<string,int> $minutesByTask task public id => minutes inside the period
+     * @return array<int, array{task_public_id:string,title:string,estimated_minutes:int,minutes:int,overrun_percent:float}>
+     */
+    private function estimateOverruns(array $minutesByTask): array
+    {
+        if ($minutesByTask === []) {
+            return [];
+        }
+        $taskIds = array_keys($minutesByTask);
+        $stmt = $this->pdo->prepare(
+            'SELECT te.task_public_id, te.numeric_value, es.name, es.unit_label, es.estimate_type, es.currency_code
+             FROM task_estimates te
+             INNER JOIN estimate_sets es ON es.id = te.estimate_set_id
+             WHERE te.deleted_at IS NULL AND te.numeric_value IS NOT NULL
+               AND te.task_public_id IN (' . implode(', ', array_fill(0, count($taskIds), '?')) . ')'
+        );
+        $stmt->execute($taskIds);
+
+        $worst = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            if (($row['currency_code'] ?? null) !== null && (string)$row['currency_code'] !== '') {
+                continue;
+            }
+            if (!self::isTimeEstimateUnit((string)$row['estimate_type'], $row['unit_label'] !== null ? (string)$row['unit_label'] : null)) {
+                continue;
+            }
+            $estimateMinutes = (int)round((float)$row['numeric_value'] * 60);
+            if ($estimateMinutes <= 0) {
+                continue;
+            }
+            $taskPublicId = (string)$row['task_public_id'];
+            $minutes = (int)($minutesByTask[$taskPublicId] ?? 0);
+            if ($minutes <= $estimateMinutes) {
+                continue;
+            }
+            // A second set for the same task only replaces the first when it promises
+            // more hours: the card must not list one task twice with two verdicts.
+            if (isset($worst[$taskPublicId]) && $worst[$taskPublicId]['estimated_minutes'] >= $estimateMinutes) {
+                continue;
+            }
+            $worst[$taskPublicId] = [
+                'task_public_id' => $taskPublicId,
+                'title' => '',
+                'estimated_minutes' => $estimateMinutes,
+                'minutes' => $minutes,
+                'overrun_percent' => round(($minutes - $estimateMinutes) / $estimateMinutes * 100, 1),
+            ];
+        }
+
+        if ($worst === []) {
+            return [];
+        }
+        // Sort first, then read the ids off the sorted list: `usort` reindexes, so doing
+        // it the other way round silently fetches titles for tasks "0" and "1".
+        usort($worst, static fn(array $a, array $b): int => $b['overrun_percent'] <=> $a['overrun_percent']);
+
+        $rows = array_values($worst);
+        $ids = array_column($rows, 'task_public_id');
+        $titleStmt = $this->pdo->prepare(
+            'SELECT public_id, title FROM tasks WHERE public_id IN (' . implode(', ', array_fill(0, count($ids), '?')) . ')'
+        );
+        $titleStmt->execute($ids);
+        $titles = [];
+        foreach ($titleStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $titles[(string)$row['public_id']] = (string)$row['title'];
+        }
+        foreach ($rows as $index => $row) {
+            $rows[$index]['title'] = $titles[$row['task_public_id']] ?? '';
+        }
+
+        return $rows;
     }
 
     /** Whether an estimate set measures time (an hour estimate) rather than an abstract scale. */

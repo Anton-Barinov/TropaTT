@@ -2966,7 +2966,7 @@ $tools[] = $this->tool(
                     'get_comment_draft', 'save_comment_draft', 'delete_comment_draft',
                     'list_subtasks', 'create_subtask', 'update_subtask', 'delete_subtask',
                     'list_tags', 'attach_tag', 'detach_tag',
-                    'list_checklists', 'create_checklist', 'update_checklist', 'create_checklist_item', 'update_checklist_item', 'delete_checklist', 'delete_checklist_item',
+                    'list_checklists', 'list_checklist_items', 'create_checklist', 'update_checklist', 'create_checklist_item', 'update_checklist_item', 'delete_checklist', 'delete_checklist_item',
                     'list_dependencies', 'create_dependency', 'delete_dependency',
                     'list_relations', 'create_relation', 'delete_relation',
                     'list_estimates', 'assign_estimate', 'remove_estimate',
@@ -2983,6 +2983,7 @@ $tools[] = $this->tool(
                 'title' => ['type' => 'string', 'description' => 'Task title. Required for create.'],
                 'description' => ['type' => 'string', 'description' => 'Task/subtask description (Markdown).'],
                 'status' => ['type' => 'string', 'description' => 'Status code (todo, new, in_progress, review, blocked, done, archived, etc.).'],
+                'status_code' => ['type' => 'string', 'description' => 'Alias for `status`: the documented agent workflow passes status_code, the dispatcher maps it onto status. Used by list/board filters and by update.'],
                 'priority' => ['type' => 'string', 'enum' => ['low', 'normal', 'high', 'urgent']],
                 'project_public_id' => ['type' => 'string', 'description' => 'Project public_id (prj_...). Filter or assign task to project.'],
                 'include_archived_projects' => ['type' => 'boolean', 'description' => 'Task list/board: include tasks that belong to archived projects. Off by default so the list matches the dashboard KPIs.'],
@@ -4499,6 +4500,8 @@ $tools[] = $this->tool(
             );
         }
 
+        $arguments = self::applyStatusAlias($arguments);
+
         $res = match ($toolName) {
             'crm_task' => $this->dispatchTaskMega($action, $arguments),
             'crm_project' => $this->dispatchProjectMega($action, $arguments),
@@ -4523,6 +4526,33 @@ $tools[] = $this->tool(
         }
 
         return $res;
+    }
+
+    /**
+     * Accept the documented `status_code` spelling as an alias of `status`.
+     *
+     * MR-9: the agent regulations (AGENT_CONTEXT.md, CRM_WORKFLOW.md) tell callers to
+     * pass `status_code`, but every dispatcher arm reads `status`. The mismatch used to
+     * be silent: `action=list status_code="todo"` returned every task unfiltered and
+     * `action=update status_code="done"` answered without errors while the status never
+     * changed. An explicit `status` always wins over the alias.
+     *
+     * @param array<string,mixed> $arguments
+     * @return array<string,mixed>
+     */
+    private static function applyStatusAlias(array $arguments): array
+    {
+        $statusCode = $arguments['status_code'] ?? null;
+        if (!is_string($statusCode)) {
+            return $arguments;
+        }
+
+        $statusCode = trim($statusCode);
+        if ($statusCode !== '' && !isset($arguments['status'])) {
+            $arguments['status'] = $statusCode;
+        }
+
+        return $arguments;
     }
 
     /**
@@ -4579,6 +4609,7 @@ $tools[] = $this->tool(
             'list_checklists' => $this->crmListTaskChecklists($args),
             'create_checklist' => $this->crmCreateTaskChecklist($args),
             'update_checklist' => $this->crmUpdateChecklist($args),
+            'list_checklist_items' => $this->crmListChecklistItems($args),
             'create_checklist_item' => $this->crmCreateChecklistItem($args),
             'update_checklist_item' => $this->crmUpdateChecklistItem($args),
             'delete_checklist' => $this->crmDeleteChecklist($args),
@@ -12201,7 +12232,9 @@ $tools[] = $this->tool(
 
     private function crmListChecklistItems(array $arguments): array
     {
-        $checklistPublicId = trim((string)($arguments['checklist_public_id'] ?? ''));
+        // The mega-tool documents `public_id` as "checklist public_id" for checklist
+        // actions, so accept it as a fallback to the fine-grained argument name.
+        $checklistPublicId = trim((string)($arguments['checklist_public_id'] ?? $arguments['public_id'] ?? ''));
         if ($checklistPublicId === '') {
             return ['error' => 'checklist_public_id is required.'];
         }

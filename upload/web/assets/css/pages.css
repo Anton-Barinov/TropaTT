@@ -7698,6 +7698,11 @@ body.modal-open {
 .crm-dashboard-page .crm-dashboard-insight-alert-head {
   font-weight: 600;
 }
+/* A block that reports actual damage (an overrun, a broken deadline) reads red;
+   the plain alert already carries the warning colour for "worth a look". */
+.crm-dashboard-page .crm-dashboard-insight-alert.is-risk {
+  border-color: var(--crm-danger, #dc3545);
+}
 .crm-dashboard-page .crm-dashboard-insight-section-title {
   margin: 12px 0 4px;
   font-size: var(--text-xs, 0.75rem);

@@ -914,6 +914,30 @@
         + '</div>'
       : '';
 
+    // "Where did we overrun?" - a task-level answer, so it is a list of tasks with their
+    // own numbers and links, not a percentage that leaves the reader guessing which work
+    // to look at. Only estimates measured in hours can produce one.
+    var overruns = Array.isArray(payload.estimate_overruns) ? payload.estimate_overruns : [];
+    var overrunsTotal = Number(payload.estimate_overruns_total || overruns.length);
+    var overrunBlock = '';
+    if (overruns.length) {
+      var overrunHead = overruns.length < overrunsTotal
+        ? formatPlaceholders(translate('dashboard.extra_insights_first_of', 'первые %s из %s'), [overruns.length, overrunsTotal])
+        : String(overrunsTotal);
+      overrunBlock = '<div class="crm-dashboard-insight-alert is-risk">'
+        + '<div class="crm-dashboard-insight-alert-head">'
+        + safe(translate('dashboard.extra_insights_overruns_title', 'Перерасход против оценки') + ': ' + overrunHead)
+        + '</div>'
+        + '<div class="text-muted small">' + safe(translate('dashboard.extra_insights_overruns_hint', 'факт / оценка')) + '</div>'
+        + overruns.map(function (task) {
+          return '<div class="crm-dashboard-extra-row"><div class="text-truncate"><a href="' + safe(taskDetailUrl(task.task_public_id))
+            + '" title="' + safe(task.title) + '">' + safe(String(task.title || task.task_public_id || '')) + '</a>'
+            + '<small class="is-overdue">' + safe(formatMinutesCompact(task.minutes)) + ' / '
+            + safe(formatMinutesCompact(task.estimated_minutes)) + ' · +' + safe(String(Number(task.overrun_percent || 0))) + '%</small></div></div>';
+        }).join('')
+        + '</div>';
+    }
+
     var coverageValue = payload.estimate_coverage_percent === null || payload.estimate_coverage_percent === undefined
       ? translate('dashboard.extra_insights_no_data', 'нет данных')
       : Number(payload.estimate_coverage_percent) + '%';
@@ -941,6 +965,7 @@
       + ' · ' + safe(translate('dashboard.extra_insights_live_tasks_note', 'учитываются только неудалённые и неархивные задачи'))
       + '</div>'
       + rows
+      + overrunBlock
       + calibrationBlock
       + (activityChips ? '<div class="crm-dashboard-insight-chips">' + activityChips + '</div>' : '')
       + unloggedBlock
