@@ -32,6 +32,26 @@ final class TaskKeyCounterRepository
     }
 
     /**
+     * `INSERT IGNORE` is MySQL-only and `FOR UPDATE` is not valid SQLite syntax; the
+     * rest of the key path runs unchanged on both. A SQLite installation (local
+     * development, the unit suite) used to fail here with a syntax error instead of
+     * assigning a key, which also meant none of this was covered by a test.
+     */
+    private function isSqlite(): bool
+    {
+        return (string)$this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite';
+    }
+
+    private function insertIgnoreSql(): string
+    {
+        return $this->isSqlite()
+            ? 'INSERT OR IGNORE INTO task_key_counters (scope_key, scope_type, project_id, prefix, current_value, created_at, updated_at)
+             VALUES (:scope_key, :scope_type, :project_id, :prefix, 0, :created_at, :updated_at)'
+            : 'INSERT IGNORE INTO task_key_counters (scope_key, scope_type, project_id, prefix, current_value, created_at, updated_at)
+             VALUES (:scope_key, :scope_type, :project_id, :prefix, 0, :created_at, :updated_at)';
+    }
+
+    /**
      * Ensure a project counter exists.
      */
     public function ensureProjectCounter(int $projectId, string $prefix): void
@@ -39,10 +59,7 @@ final class TaskKeyCounterRepository
         $scopeKey = 'project:' . $projectId;
         $now = gmdate('Y-m-d H:i:s');
 
-        $stmt = $this->pdo->prepare(
-            'INSERT IGNORE INTO task_key_counters (scope_key, scope_type, project_id, prefix, current_value, created_at, updated_at)
-             VALUES (:scope_key, :scope_type, :project_id, :prefix, 0, :created_at, :updated_at)'
-        );
+        $stmt = $this->pdo->prepare($this->insertIgnoreSql());
         $stmt->execute([
             'scope_key' => $scopeKey,
             'scope_type' => 'project',
@@ -60,10 +77,12 @@ final class TaskKeyCounterRepository
     {
         $now = gmdate('Y-m-d H:i:s');
 
-        $stmt = $this->pdo->prepare(
-            'INSERT IGNORE INTO task_key_counters (scope_key, scope_type, project_id, prefix, current_value, created_at, updated_at)
+        $sql = $this->isSqlite()
+            ? 'INSERT OR IGNORE INTO task_key_counters (scope_key, scope_type, project_id, prefix, current_value, created_at, updated_at)
              VALUES (\'global\', \'global\', NULL, :prefix, 0, :created_at, :updated_at)'
-        );
+            : 'INSERT IGNORE INTO task_key_counters (scope_key, scope_type, project_id, prefix, current_value, created_at, updated_at)
+             VALUES (\'global\', \'global\', NULL, :prefix, 0, :created_at, :updated_at)';
+        $stmt = $this->pdo->prepare($sql);
         $stmt->execute([
             'prefix' => $prefix,
             'created_at' => $now,
@@ -113,10 +132,7 @@ final class TaskKeyCounterRepository
         $this->pdo->beginTransaction();
         try {
             // Ensure counter row exists
-            $stmt = $this->pdo->prepare(
-                'INSERT IGNORE INTO task_key_counters (scope_key, scope_type, project_id, prefix, current_value, created_at, updated_at)
-                 VALUES (:scope_key, :scope_type, :project_id, :prefix, 0, :created_at, :updated_at)'
-            );
+            $stmt = $this->pdo->prepare($this->insertIgnoreSql());
             $stmt->execute([
                 'scope_key' => $scopeKey,
                 'scope_type' => $scopeType,
@@ -126,10 +142,13 @@ final class TaskKeyCounterRepository
                 'updated_at' => $now,
             ]);
 
-            // SELECT ... FOR UPDATE to lock the row
-            $stmt = $this->pdo->prepare(
-                'SELECT id, current_value FROM task_key_counters WHERE scope_key = :scope_key FOR UPDATE'
-            );
+            // SELECT ... FOR UPDATE locks the row for the read-modify-write below.
+            // SQLite has no such clause (and serialises writers anyway), so it reads
+            // the row plainly rather than refusing to run.
+            $lockSql = $this->isSqlite()
+                ? 'SELECT id, current_value FROM task_key_counters WHERE scope_key = :scope_key'
+                : 'SELECT id, current_value FROM task_key_counters WHERE scope_key = :scope_key FOR UPDATE';
+            $stmt = $this->pdo->prepare($lockSql);
             $stmt->execute(['scope_key' => $scopeKey]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
