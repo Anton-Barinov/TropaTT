@@ -3725,6 +3725,7 @@ return array (
     'extra_insights_projects_title' => 'Projets de la période',
     'extra_insights_projects_more' => 'Les %s premiers projets sur %s sont affichés',
     'extra_insights_scope_no_dated' => 'Aucun collègue n\'a de tâche avec échéance — rien à comparer',
+    'extra_insights_scope_equal' => 'exactement à la médiane',
     'extra_insights_capacity_default' => 'par défaut',
     'extra_insights_capacity_setting' => 'par paramètre',
     'extra_insights_capacity_calendar' => 'par calendrier',

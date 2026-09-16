@@ -4703,6 +4703,7 @@ return array (
     'extra_insights_projects_title' => 'Projects of the period',
     'extra_insights_projects_more' => 'Showing the first %s of %s projects',
     'extra_insights_scope_no_dated' => 'None of your colleagues has a dated task — nothing to compare with',
+    'extra_insights_scope_equal' => 'exactly at the median',
     'extra_insights_capacity_default' => 'by default',
     'extra_insights_capacity_setting' => 'by setting',
     'extra_insights_capacity_calendar' => 'by calendar',

@@ -1107,7 +1107,13 @@
     var deltaSuffix = function (delta) {
       if (!set(delta)) return '';
       var value = Math.abs(Number(delta));
-      return Number(delta) >= 0
+      // "выше медианы на 0" is not a comparison, it is a rounding artefact - being
+      // exactly at the median is a fact and has its own wording.
+      if (Number(delta) === 0) {
+        return ' · ' + translate('dashboard.extra_insights_scope_equal', 'ровно на медиане');
+      }
+
+      return Number(delta) > 0
         ? ' · ' + formatPlaceholders(translate('dashboard.extra_insights_scope_above', 'выше медианы на %s'), [value])
         : ' · ' + formatPlaceholders(translate('dashboard.extra_insights_scope_below', 'ниже медианы на %s'), [value]);
     };
@@ -1188,7 +1194,10 @@
     var hasData = Number(payload.completed || 0) || Number(payload.minutes || 0) || Number(payload.overdue || 0)
       || Number(payload.streak_days || 0);
     if (!hasData) {
-      container.innerHTML = toolbar + emptyHtml();
+      // A configured goal is data in its own right. «Пока нет данных» alone throws the
+      // goal away exactly when it matters most - at the start of a period the honest
+      // answer is «0 / 8», and the comparison line says whether that is normal here.
+      container.innerHTML = toolbar + emptyHtml() + kpiGoalsHtml(payload) + kpiScopeHtml(payload);
       bindInsightToolbar(container, definition);
       return;
     }

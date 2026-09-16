@@ -3725,6 +3725,7 @@ return array (
     'extra_insights_projects_title' => 'Proyectos del periodo',
     'extra_insights_projects_more' => 'Se muestran los primeros %s de %s proyectos',
     'extra_insights_scope_no_dated' => 'Ningún compañero tiene una tarea con fecha límite: no hay nada con lo que comparar',
+    'extra_insights_scope_equal' => 'justo en la mediana',
     'extra_insights_capacity_default' => 'por defecto',
     'extra_insights_capacity_setting' => 'por configuración',
     'extra_insights_capacity_calendar' => 'por calendario',

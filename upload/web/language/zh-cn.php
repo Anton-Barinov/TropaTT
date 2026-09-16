@@ -4849,6 +4849,7 @@ return array (
     'extra_insights_projects_title' => '本期项目',
     'extra_insights_projects_more' => '显示前 %s 个，共 %s 个项目',
     'extra_insights_scope_no_dated' => '同事都没有带截止日期的任务 — 无法比较',
+    'extra_insights_scope_equal' => '恰好处于中位数',
     'extra_insights_capacity_default' => '默认',
     'extra_insights_capacity_setting' => '按设置',
     'extra_insights_capacity_calendar' => '按日历',

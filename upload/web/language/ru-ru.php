@@ -4722,6 +4722,7 @@ return array (
     'extra_insights_projects_title' => 'Проекты периода',
     'extra_insights_projects_more' => 'Показаны первые %s из %s проектов',
     'extra_insights_scope_no_dated' => 'Ни у кого из коллег нет задач со сроком — сравнить не с чем',
+    'extra_insights_scope_equal' => 'ровно на медиане',
     'extra_insights_capacity_default' => 'по умолчанию',
     'extra_insights_capacity_setting' => 'по настройке',
     'extra_insights_capacity_calendar' => 'по календарю',

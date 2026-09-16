@@ -3725,6 +3725,7 @@ return array (
     'extra_insights_projects_title' => 'Projekte des Zeitraums',
     'extra_insights_projects_more' => 'Die ersten %s von %s Projekten werden angezeigt',
     'extra_insights_scope_no_dated' => 'Keine Kollegin und kein Kollege hat eine Aufgabe mit Frist — es gibt nichts zu vergleichen',
+    'extra_insights_scope_equal' => 'genau im Median',
     'extra_insights_capacity_default' => 'standardmäßig',
     'extra_insights_capacity_setting' => 'nach Einstellung',
     'extra_insights_capacity_calendar' => 'nach Kalender',
