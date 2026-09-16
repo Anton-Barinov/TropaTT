@@ -59,6 +59,9 @@ final class PurgeService
     /** @var array<string,bool> */
     private array $tableCache = [];
 
+    /** @var array<string,list<string>> */
+    private array $columnCache = [];
+
     public function __construct(private readonly PDO $pdo)
     {
     }
@@ -202,9 +205,24 @@ final class PurgeService
             if (!$this->exists($table)) {
                 continue;
             }
-            $sql = sprintf('DELETE FROM %s WHERE entity_type = ? AND entity_public_id = ?', $table);
+            // The (entity_type, entity_public_id) pair is the convention, not a
+            // guarantee: `recurring_instances` carries only `entity_public_id`
+            // (the type lives on the rule it points at), so a blind pair delete
+            // failed with "Unknown column 'entity_type'" on the stand while the
+            // SQLite test schema — which declares every column — passed. Ask the
+            // table what it has and match on that; a table with neither column is
+            // not a link table for this entity and is skipped.
+            $columns = $this->columns($table);
+            $hasPublicId = in_array('entity_public_id', $columns, true);
+            if (!$hasPublicId) {
+                continue;
+            }
+            $hasType = in_array('entity_type', $columns, true);
+            $sql = $hasType
+                ? sprintf('DELETE FROM %s WHERE entity_type = ? AND entity_public_id = ?', $table)
+                : sprintf('DELETE FROM %s WHERE entity_public_id = ?', $table);
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([$entityType, $entityPublicId]);
+            $stmt->execute($hasType ? [$entityType, $entityPublicId] : [$entityPublicId]);
             $this->count($removed, $table, $stmt->rowCount());
         }
         if ($this->exists('knowledge_entity_links')) {
@@ -268,6 +286,9 @@ final class PurgeService
         if ($values === [] || !$this->exists($table)) {
             return;
         }
+        if (!in_array($column, $this->columns($table), true)) {
+            return;
+        }
         $placeholders = implode(', ', array_fill(0, count($values), '?'));
         $stmt = $this->pdo->prepare(sprintf('DELETE FROM %s WHERE %s IN (%s)', $table, $column, $placeholders));
         $stmt->execute(array_values($values));
@@ -279,6 +300,10 @@ final class PurgeService
      */
     private function deleteEither(array &$removed, string $table, string $left, string $right, int $value): void
     {
+        $columns = $this->columns($table);
+        if (!in_array($left, $columns, true) || !in_array($right, $columns, true)) {
+            return;
+        }
         $stmt = $this->pdo->prepare(sprintf('DELETE FROM %s WHERE %s = ? OR %s = ?', $table, $left, $right));
         $stmt->execute([$value, $value]);
         $this->count($removed, $table, $stmt->rowCount());
@@ -354,6 +379,36 @@ final class PurgeService
         $stmt->execute($params);
 
         return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN) ?: []);
+    }
+
+    /**
+     * Column names of a table, cached. Reads the live schema on purpose: the
+     * cascade has to survive host databases that drifted from the shipped
+     * schema (optional migrations, columns added by hand on a stand).
+     *
+     * @return list<string>
+     */
+    private function columns(string $table): array
+    {
+        if (isset($this->columnCache[$table])) {
+            return $this->columnCache[$table];
+        }
+
+        $columns = [];
+        try {
+            $stmt = $this->pdo->prepare('SELECT * FROM ' . $table . ' WHERE 1 = 0');
+            $stmt->execute();
+            for ($i = 0; $i < $stmt->columnCount(); $i++) {
+                $meta = $stmt->getColumnMeta($i);
+                if (is_array($meta) && isset($meta['name'])) {
+                    $columns[] = (string)$meta['name'];
+                }
+            }
+        } catch (Throwable) {
+            $columns = [];
+        }
+
+        return $this->columnCache[$table] = $columns;
     }
 
     private function exists(string $table): bool
