@@ -391,7 +391,12 @@ final class AnalyticsService
             $this->accessibleTeamPublicIds($actor)
         );
 
-        if (!$isRoot && $accessible === []) {
+        // A user whose scope holds no project at all has nothing to detail: that is an
+        // empty card, not a permission error, and the card must not paint "данные
+        // недоступны" over a simply empty dashboard. Only an explicit request for a
+        // project outside the scope is refused (checked below), so nothing outside the
+        // actor's scope can be reached either way.
+        if (!$isRoot && $accessible === [] && $requested !== '') {
             return null;
         }
 
