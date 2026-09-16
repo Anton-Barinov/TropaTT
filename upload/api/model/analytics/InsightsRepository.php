@@ -49,6 +49,13 @@ final class InsightsRepository
      */
     private const MIN_ESTIMATE_SAMPLE = 3;
 
+    /**
+     * How close a deadline has to be before a stream is flagged `soon`.
+     * Seven days is the window the project milestones summary already calls
+     * "upcoming", so the two screens agree on what "на этой неделе" means.
+     */
+    private const SCHEDULE_SOON_DAYS = 7;
+
     public function __construct(private readonly PDO $pdo)
     {
     }
@@ -546,6 +553,9 @@ final class InsightsRepository
         $terminalSql = TaskStatusSemantics::terminalLiteralList($this->pdo);
         $completedSql = TaskStatusSemantics::completedLiteralList($this->pdo);
         $sql = 'SELECT p.id, p.public_id, p.title, p.status_code,
+                       p.team_public_id, p.client_public_id,
+                       tm.title AS team_title,
+                       cp.title AS client_title,
                        COUNT(t.id) AS total_tasks,
                        SUM(CASE WHEN t.status_code IN (' . $completedSql . ') THEN 1 ELSE 0 END) AS completed_tasks,
                        SUM(CASE WHEN t.status_code NOT IN (' . $terminalSql . ') THEN 1 ELSE 0 END) AS active_tasks,
@@ -553,20 +563,40 @@ final class InsightsRepository
                                   AND t.due_at IS NOT NULL AND t.due_at < ? THEN 1 ELSE 0 END) AS overdue_tasks,
                        COUNT(DISTINCT CASE WHEN t.assignee_user_id IS NOT NULL THEN t.assignee_user_id END) AS members,
                        COALESCE(wl.minutes, 0) AS minutes_period,
-                       ms.next_milestone_at
+                       ms.next_milestone_at,
+                       ms.overdue_milestones,
+                       ms.earliest_overdue_milestone_at,
+                       dl.next_task_due_at,
+                       dl.earliest_overdue_task_at
                 FROM projects p
+                LEFT JOIN teams tm ON tm.public_id = p.team_public_id
+                LEFT JOIN counterparties cp ON cp.public_id = p.client_public_id
                 LEFT JOIN tasks t ON t.project_id = p.id AND t.deleted_at IS NULL AND t.archived_at IS NULL
                 LEFT JOIN (SELECT t.project_id AS pid, COALESCE(SUM(w.minutes_spent), 0) AS minutes
                              FROM work_logs w
                              JOIN tasks t ON t.id = w.task_id AND t.deleted_at IS NULL AND t.archived_at IS NULL
                             WHERE w.logged_at >= ?
                             GROUP BY t.project_id) wl ON wl.pid = p.id
-                LEFT JOIN (SELECT m.project_id AS pid, MIN(m.due_at) AS next_milestone_at
+                -- One pass per source: a completed milestone is not a deadline any more,
+                -- so `status <> \'done\'` (the same rule as ProjectSummaryRepository) is
+                -- what makes both "next" and "missed" honest.
+                LEFT JOIN (SELECT m.project_id AS pid,
+                                  MIN(CASE WHEN m.due_at >= ? THEN m.due_at END) AS next_milestone_at,
+                                  SUM(CASE WHEN m.due_at < ? THEN 1 ELSE 0 END) AS overdue_milestones,
+                                  MIN(CASE WHEN m.due_at < ? THEN m.due_at END) AS earliest_overdue_milestone_at
                              FROM milestones m
-                            WHERE m.due_at IS NOT NULL AND m.due_at >= ?
+                            WHERE m.due_at IS NOT NULL AND m.status <> \'done\'
                             GROUP BY m.project_id) ms ON ms.pid = p.id
+                LEFT JOIN (SELECT t2.project_id AS pid,
+                                  MIN(CASE WHEN t2.due_at >= ? THEN t2.due_at END) AS next_task_due_at,
+                                  MIN(CASE WHEN t2.due_at < ? THEN t2.due_at END) AS earliest_overdue_task_at
+                             FROM tasks t2
+                            WHERE t2.deleted_at IS NULL AND t2.archived_at IS NULL
+                              AND t2.due_at IS NOT NULL
+                              AND t2.status_code NOT IN (' . $terminalSql . ')
+                            GROUP BY t2.project_id) dl ON dl.pid = p.id
                 WHERE p.archived_at IS NULL';
-        $params = [$now, $periodStart, $now];
+        $params = [$now, $periodStart, $now, $now, $now, $now, $now];
 
         if (!$isRoot) {
             if ($accessibleProjectPublicIds === []) {
@@ -575,7 +605,9 @@ final class InsightsRepository
             $sql .= ' AND p.public_id IN (' . implode(', ', array_fill(0, count($accessibleProjectPublicIds), '?')) . ')';
             $params = array_merge($params, $accessibleProjectPublicIds);
         }
-        $sql .= ' GROUP BY p.id, p.public_id, p.title, p.status_code, wl.minutes, ms.next_milestone_at'
+        $sql .= ' GROUP BY p.id, p.public_id, p.title, p.status_code, p.team_public_id, p.client_public_id,'
+            . ' tm.title, cp.title, wl.minutes, ms.next_milestone_at, ms.overdue_milestones,'
+            . ' ms.earliest_overdue_milestone_at, dl.next_task_due_at, dl.earliest_overdue_task_at'
             . ' ORDER BY overdue_tasks DESC, active_tasks DESC, p.title ASC';
 
         $stmt = $this->pdo->prepare($sql);
@@ -589,9 +621,23 @@ final class InsightsRepository
             $overdue = (int)$row['overdue_tasks'];
             $progress = $total > 0 ? round($completed / $total * 100, 1) : 0.0;
 
+            $nextMilestoneAt = self::nonEmptyString($row['next_milestone_at'] ?? null);
+            $variance = self::scheduleVariance([
+                'next_milestone_at' => $nextMilestoneAt,
+                'next_task_due_at' => self::nonEmptyString($row['next_task_due_at'] ?? null),
+                'overdue_milestones' => (int)($row['overdue_milestones'] ?? 0),
+                'earliest_overdue_milestone_at' => self::nonEmptyString($row['earliest_overdue_milestone_at'] ?? null),
+                'overdue_tasks' => $overdue,
+                'earliest_overdue_task_at' => self::nonEmptyString($row['earliest_overdue_task_at'] ?? null),
+            ], $now);
+
             $rows[] = [
                 'project_public_id' => (string)$row['public_id'],
                 'title' => (string)$row['title'],
+                'team_public_id' => self::nonEmptyString($row['team_public_id'] ?? null),
+                'team_title' => self::nonEmptyString($row['team_title'] ?? null),
+                'client_public_id' => self::nonEmptyString($row['client_public_id'] ?? null),
+                'client_title' => self::nonEmptyString($row['client_title'] ?? null),
                 'progress_percent' => $progress,
                 'total_tasks' => $total,
                 'completed_tasks' => $completed,
@@ -599,8 +645,15 @@ final class InsightsRepository
                 'overdue_tasks' => $overdue,
                 'minutes_period' => (int)$row['minutes_period'],
                 'members' => (int)$row['members'],
-                'next_milestone_at' => $row['next_milestone_at'] !== null ? (string)$row['next_milestone_at'] : null,
-                'health' => self::projectHealth($active, $overdue, $row['next_milestone_at'] !== null ? (string)$row['next_milestone_at'] : null, $now),
+                'next_milestone_at' => $nextMilestoneAt,
+                'overdue_milestones' => $variance['overdue_milestones'],
+                'next_deadline_at' => $variance['next_deadline_at'],
+                'next_deadline_source' => $variance['next_deadline_source'],
+                'next_future_deadline_at' => $variance['next_future_deadline_at'],
+                'days_to_deadline' => $variance['days_to_deadline'],
+                'schedule_lag_days' => $variance['schedule_lag_days'],
+                'schedule_state' => $variance['schedule_state'],
+                'health' => self::projectHealth($active, $overdue, $nextMilestoneAt, $now),
             ];
         }
 
@@ -1015,6 +1068,184 @@ final class InsightsRepository
         }
 
         return $overdue > 0 ? 'risk' : 'normal';
+    }
+
+    /**
+     * Deadline and lag for one project row.
+     *
+     * The card could say "просрочено" and "ближайшая веха" but never "мы успеваем?":
+     * a milestone is only one kind of deadline, and a project whose milestones are all
+     * behind it still has task due dates ahead. Both sources are folded into a single
+     * nearest deadline with its origin kept (`next_deadline_source`), plus how far away
+     * it is and how long ago the earliest missed deadline was.
+     *
+     * `schedule_state` is deliberately explicit about the no-data case: `none` means
+     * "this project has nothing scheduled", which is an answer, not a blank column.
+     *
+     * `next_deadline_at` is the nearest deadline to now in either direction, so a
+     * project that has already missed its only deadline still names that date (with a
+     * negative `days_to_deadline` and the lag beside it) instead of going blank.
+     *
+     * @param array<string,mixed> $row
+     * @return array{next_deadline_at:?string,next_deadline_source:?string,days_to_deadline:?int,schedule_lag_days:?int,schedule_state:string,overdue_milestones:int}
+     */
+    public static function scheduleVariance(array $row, string $now): array
+    {
+        $milestoneAt = self::nonEmptyString($row['next_milestone_at'] ?? null);
+        $taskDueAt = self::nonEmptyString($row['next_task_due_at'] ?? null);
+        $overdueMilestones = (int)($row['overdue_milestones'] ?? 0);
+        $overdueTasks = (int)($row['overdue_tasks'] ?? 0);
+
+        // The milestone wins a tie: it is the commitment a client sees, while a task
+        // due date is usually the internal plan that serves it.
+        $futureDeadlineAt = null;
+        $futureDeadlineSource = null;
+        if ($milestoneAt !== null && ($taskDueAt === null || $milestoneAt <= $taskDueAt)) {
+            $futureDeadlineAt = $milestoneAt;
+            $futureDeadlineSource = 'milestone';
+        } elseif ($taskDueAt !== null) {
+            $futureDeadlineAt = $taskDueAt;
+            $futureDeadlineSource = 'task';
+        }
+        $nextDeadlineAt = $futureDeadlineAt;
+        $nextDeadlineSource = $futureDeadlineSource;
+
+        $nowTs = strtotime($now);
+
+        // Lag answers "how late are we", so it is measured from the earliest deadline
+        // already missed - a milestone when there is one, a task due date otherwise.
+        $earliestOverdueAt = $overdueMilestones > 0
+            ? self::nonEmptyString($row['earliest_overdue_milestone_at'] ?? null)
+            : null;
+        $earliestOverdueSource = $earliestOverdueAt === null ? null : 'milestone';
+        if ($earliestOverdueAt === null && $overdueTasks > 0) {
+            $earliestOverdueAt = self::nonEmptyString($row['earliest_overdue_task_at'] ?? null);
+            $earliestOverdueSource = $earliestOverdueAt === null ? null : 'task';
+        }
+
+        // Which deadline binds the project *first* is the earliest one still unresolved,
+        // past or future: a row that prints "отставание 5 дн." without naming the date it
+        // missed leaves the reader without the fact they came for. A missed deadline on
+        // its own (nothing left ahead) is therefore named here too - and the payload
+        // also carries the nearest date still ahead, which is what a portfolio line
+        // answers "what is due next" from.
+        if ($earliestOverdueAt !== null && ($nextDeadlineAt === null || $earliestOverdueAt < $nextDeadlineAt)) {
+            $nextDeadlineAt = $earliestOverdueAt;
+            $nextDeadlineSource = $earliestOverdueSource;
+        }
+
+        $lagDays = null;
+        if ($earliestOverdueAt !== null && $nowTs !== false) {
+            $overdueTs = strtotime($earliestOverdueAt);
+            if ($overdueTs !== false) {
+                $lagDays = max(0, (int)floor(($nowTs - $overdueTs) / 86400));
+            }
+        }
+
+        // Measured after the missed deadline has taken over: that date is now the
+        // nearest one, so its distance is negative rather than absent.
+        $daysToDeadline = null;
+        if ($nextDeadlineAt !== null && $nowTs !== false) {
+            $deadlineTs = strtotime($nextDeadlineAt);
+            if ($deadlineTs !== false) {
+                $daysToDeadline = (int)floor(($deadlineTs - $nowTs) / 86400);
+            }
+        }
+
+        if ($lagDays !== null || $overdueMilestones > 0 || $overdueTasks > 0) {
+            $scheduleState = 'overdue';
+        } elseif ($daysToDeadline !== null) {
+            $scheduleState = $daysToDeadline <= self::SCHEDULE_SOON_DAYS ? 'soon' : 'ok';
+        } else {
+            $scheduleState = 'none';
+        }
+
+        return [
+            'next_deadline_at' => $nextDeadlineAt,
+            'next_deadline_source' => $nextDeadlineSource,
+            'next_future_deadline_at' => $futureDeadlineAt,
+            'days_to_deadline' => $daysToDeadline,
+            'schedule_lag_days' => $lagDays,
+            'schedule_state' => $scheduleState,
+            'overdue_milestones' => $overdueMilestones,
+        ];
+    }
+
+    /**
+     * Portfolio roll-up over the rows the actor is allowed to see.
+     *
+     * The per-project table answered "which stream is late" but not "how late are we
+     * as a whole", which is the question that decides whether the portfolio needs
+     * attention. Computed from the already scoped rows, so it can never widen them.
+     *
+     * @param array<int,array<string,mixed>> $rows
+     * @return array{projects:int,critical:int,risk:int,ok:int,overdue_tasks:int,overdue_milestones:int,without_deadline:int,next_deadline_at:?string,progress_percent:float}
+     */
+    public static function portfolioAggregates(array $rows): array
+    {
+        $aggregates = [
+            'projects' => count($rows),
+            'critical' => 0,
+            'risk' => 0,
+            'ok' => 0,
+            'overdue_tasks' => 0,
+            'overdue_milestones' => 0,
+            'without_deadline' => 0,
+            'next_deadline_at' => null,
+            'progress_percent' => 0.0,
+        ];
+        $completed = 0;
+        $tasks = 0;
+
+        foreach ($rows as $row) {
+            $health = (string)($row['health'] ?? 'ok');
+            if (isset($aggregates[$health]) && is_int($aggregates[$health])) {
+                $aggregates[$health]++;
+            }
+            $aggregates['overdue_tasks'] += (int)($row['overdue_tasks'] ?? 0);
+            $aggregates['overdue_milestones'] += (int)($row['overdue_milestones'] ?? 0);
+            if ((string)($row['schedule_state'] ?? 'none') === 'none') {
+                $aggregates['without_deadline']++;
+            }
+
+            // The nearest date still *ahead*, not the earliest missed one: this tile
+            // answers "what is due next", while work that is already late is reported as
+            // late (the tile above counts it) and each row names its own missed date.
+            $deadline = self::nonEmptyString($row['next_future_deadline_at'] ?? null);
+            if ($deadline === null) {
+                // A row from before the field existed carries one date only, and it is
+                // trusted just as far as it is not in the past.
+                $legacy = self::nonEmptyString($row['next_deadline_at'] ?? null);
+                $days = $row['days_to_deadline'] ?? null;
+                if ($legacy !== null && ($days === null || (int)$days >= 0)) {
+                    $deadline = $legacy;
+                }
+            }
+            if ($deadline !== null
+                && ($aggregates['next_deadline_at'] === null || $deadline < $aggregates['next_deadline_at'])) {
+                $aggregates['next_deadline_at'] = $deadline;
+            }
+
+            $completed += (int)($row['completed_tasks'] ?? 0);
+            $tasks += (int)($row['total_tasks'] ?? 0);
+        }
+
+        // Weighted by tasks, not averaged over projects: a 3-task project must not
+        // weigh as much as a 300-task one when the row says "прогресс портфеля".
+        $aggregates['progress_percent'] = $tasks > 0 ? round($completed / $tasks * 100, 1) : 0.0;
+
+        return $aggregates;
+    }
+
+    private static function nonEmptyString(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $text = trim((string)$value);
+
+        return $text === '' ? null : $text;
     }
 
     public static function projectHealth(int $active, int $overdue, ?string $nextMilestoneAt, string $now): string

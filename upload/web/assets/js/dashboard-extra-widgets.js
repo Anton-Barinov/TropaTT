@@ -447,9 +447,14 @@
   }
 
   function bindInsightToolbar(container, definition) {
-    var toolbar = container.querySelector('[data-insight-toolbar]');
-    if (!toolbar) return;
-    toolbar.addEventListener('click', function (event) {
+    // One delegated listener per card. innerHTML is replaced on every render while the
+    // container element itself survives, so binding per render would stack handlers and
+    // fire the same option once per past render. Delegating on the container (rather
+    // than on the toolbar) is also what lets "Показать всех" - a button that lives
+    // outside the toolbar - respond at all.
+    if (container.__crmInsightToolbarBound) return;
+    container.__crmInsightToolbarBound = true;
+    container.addEventListener('click', function (event) {
       var button = event.target && event.target.closest ? event.target.closest('[data-insight-option]') : null;
       if (!button) return;
       event.preventDefault();
@@ -1478,13 +1483,377 @@
     return rows;
   }
 
-  function milestoneCellHtml(project, nowMs) {
-    var due = String(project.next_milestone_at || '').trim();
-    if (due === '') return '<span class="text-muted">' + safe(translate('dashboard.extra_insights_no_milestone', 'нет вехи')) + '</span>';
-    var ts = Date.parse(due.replace(' ', 'T'));
-    var overdue = Number.isFinite(ts) && ts < nowMs && Number(project.active_tasks || 0) > 0;
-    return '<span class="' + (overdue ? 'is-overdue' : '') + '" title="'
-      + safe(translate('dashboard.extra_insights_next_milestone', 'Ближайшая веха проекта')) + '">' + safe(dateText(due)) + '</span>';
+  // ---- Streams card: schedule column, search, grouping, portfolio line -----------
+  //
+  // The card answered "what is at risk" but not "мы успеваем?": the milestone column
+  // went blank as soon as a project had no milestone, and a portfolio of dozens of
+  // streams could only be sorted. `schedule_state` is derived server-side from the
+  // nearest milestone *or* task deadline, so the column, the health badge and the
+  // portfolio line cannot disagree with each other.
+
+  var STREAM_GROUPS = ['none', 'team', 'client'];
+  var STREAM_ROW_LIMIT = 10;
+
+  function streamViewState(definition) {
+    return {
+      search: String(insightOption(definition.key, 'search', '', null) || ''),
+      group: insightOption(definition.key, 'group', 'none', STREAM_GROUPS)
+    };
+  }
+
+  // Search runs over the payload the card already has (name, team, client) so a
+  // keystroke never costs a request and can never ask for a project outside the scope.
+  function streamMatchesSearch(project, query) {
+    var needle = String(query === null || query === undefined ? '' : query).trim().toLowerCase();
+    if (needle === '') return true;
+    var haystack = [project.title, project.team_title, project.client_title].map(function (value) {
+      return String(value === null || value === undefined ? '' : value).toLowerCase();
+    }).join('\n');
+
+    return haystack.indexOf(needle) >= 0;
+  }
+
+  // The states the API can send, in the order "nothing scheduled" .. "already late".
+  var STREAM_SCHEDULE_STATES = ['none', 'ok', 'soon', 'overdue'];
+
+  function streamScheduleState(project) {
+    var state = String(project.schedule_state || '').trim();
+    if (STREAM_SCHEDULE_STATES.indexOf(state) >= 0) return state;
+    // A payload from an older build (or a cached response) still carries the raw
+    // dates: deriving the verdict here keeps the column honest instead of printing
+    // "нет вех/сроков" over a project that does have a deadline.
+    if (Number(project.overdue_tasks || 0) > 0 || Number(project.overdue_milestones || 0) > 0) return 'overdue';
+    var deadline = String(project.next_deadline_at || project.next_milestone_at || '').trim();
+    if (deadline === '') return 'none';
+    // A deadline whose distance is unknown is not "due any day now": saying "soon"
+    // off a missing number would be a guess printed as a warning.
+    var days = project.days_to_deadline;
+    if (days === null || days === undefined || days === '') return 'ok';
+
+    return Number(days) <= 7 ? 'soon' : 'ok';
+  }
+
+  function scheduleCellHtml(project) {
+    var state = streamScheduleState(project);
+    if (state === 'none') {
+      return '<span class="text-muted" title="' + safe(translate('dashboard.extra_insights_no_schedule_hint', 'У проекта нет ни вех с датой, ни задач с дедлайном — проверить сроки не по чему')) + '">'
+        + safe(translate('dashboard.extra_insights_no_schedule', 'нет вех/сроков')) + '</span>';
+    }
+
+    var deadline = String(project.next_deadline_at || project.next_milestone_at || '').trim();
+    var parts = [];
+    if (deadline !== '') {
+      var source = String(project.next_deadline_source || '') === 'task'
+        ? translate('dashboard.extra_insights_deadline_task', 'дедлайн задачи')
+        : translate('dashboard.extra_insights_deadline_milestone', 'веха');
+      parts.push('<span class="' + (state === 'soon' ? 'is-warn' : '') + '" title="'
+        + safe(translate('dashboard.extra_insights_next_deadline', 'Ближайший срок проекта') + ': ' + source) + '">'
+        + safe(dateText(deadline)) + ' <small class="text-muted">' + safe(source) + '</small></span>');
+    }
+
+    if (state === 'overdue') {
+      var lag = project.schedule_lag_days;
+      parts.push('<span class="is-overdue">' + safe(lag === null || lag === undefined || lag === ''
+        ? translate('dashboard.extra_insights_lag_unknown', 'есть просрочка')
+        : formatPlaceholders(translate('dashboard.extra_insights_lag_days', 'отставание %s дн.'), [Number(lag)])) + '</span>');
+    } else if (state === 'soon') {
+      parts.push('<span class="text-muted">' + safe(formatPlaceholders(
+        translate('dashboard.extra_insights_days_left', 'осталось %s дн.'), [Number(project.days_to_deadline || 0)]
+      )) + '</span>');
+    }
+    if (Number(project.overdue_milestones || 0) > 0) {
+      parts.push('<span class="text-muted">' + safe(formatPlaceholders(
+        translate('dashboard.extra_insights_milestones_late', 'просроченных вех: %s'), [Number(project.overdue_milestones)]
+      )) + '</span>');
+    }
+
+    return parts.join(' · ');
+  }
+
+  function streamGroupLabel(project, group) {
+    if (group === 'team') {
+      return String(project.team_title || '').trim() || translate('dashboard.extra_insights_no_team', 'без команды');
+    }
+    if (group === 'client') {
+      return String(project.client_title || '').trim() || translate('dashboard.extra_insights_no_client', 'без клиента');
+    }
+
+    return '';
+  }
+
+  // Grouping is a re-layout of the rows the card already has, so the order inside a
+  // group stays whatever the sort chose and no extra request is made. The first group
+  // is the one holding the most severe stream, because the list arrives risk-ordered.
+  function groupedStreamRows(list, group) {
+    if (STREAM_GROUPS.indexOf(group) <= 0) return [{ key: '', label: '', rows: list }];
+
+    var order = [];
+    var buckets = {};
+    list.forEach(function (project) {
+      var key = group + ':' + String(group === 'team' ? project.team_public_id || '' : project.client_public_id || '');
+      if (!buckets[key]) {
+        buckets[key] = { key: key, label: streamGroupLabel(project, group), rows: [] };
+        order.push(key);
+      }
+      buckets[key].rows.push(project);
+    });
+
+    return order.map(function (key) { return buckets[key]; });
+  }
+
+  function capStreamRows(list, expanded, max) {
+    if (expanded || list.length <= max) return { rows: list, hidden: 0 };
+
+    return { rows: list.slice(0, max), hidden: list.length - max };
+  }
+
+  // Rolled up from the same scoped rows the table shows. The server sends it (one
+  // definition of "критично"), but a payload from an older build still paints the
+  // line instead of silently dropping "how late are we as a whole".
+  function streamPortfolioAggregates(projects, given) {
+    if (given && typeof given === 'object' && Number(given.projects || 0) > 0) return given;
+
+    var out = {
+      projects: projects.length,
+      critical: 0,
+      risk: 0,
+      ok: 0,
+      overdue_tasks: 0,
+      overdue_milestones: 0,
+      without_deadline: 0,
+      next_deadline_at: null,
+      progress_percent: 0
+    };
+    var completed = 0;
+    var total = 0;
+
+    projects.forEach(function (project) {
+      var health = String(project.health || 'ok');
+      if (health === 'critical' || health === 'risk' || health === 'ok') out[health] += 1;
+      out.overdue_tasks += Number(project.overdue_tasks || 0);
+      out.overdue_milestones += Number(project.overdue_milestones || 0);
+      if (streamScheduleState(project) === 'none') out.without_deadline += 1;
+      var deadline = String(project.next_deadline_at || '').trim();
+      if (deadline !== '' && (out.next_deadline_at === null || deadline < out.next_deadline_at)) {
+        out.next_deadline_at = deadline;
+      }
+      completed += Number(project.completed_tasks || 0);
+      total += Number(project.total_tasks || 0);
+    });
+    out.progress_percent = total > 0 ? Math.round(completed / total * 1000) / 10 : 0;
+
+    return out;
+  }
+
+  function streamPortfolioHtml(aggregates) {
+    var overdueTasks = Number(aggregates.overdue_tasks || 0);
+    var overdueMilestones = Number(aggregates.overdue_milestones || 0);
+    var withoutDeadline = Number(aggregates.without_deadline || 0);
+    var deadline = String(aggregates.next_deadline_at || '').trim();
+
+    var tiles = insightTile(translate('dashboard.extra_insights_portfolio_projects', 'Потоков'), String(Number(aggregates.projects || 0)))
+      + insightTile(translate('dashboard.extra_insights_critical', 'Критично'), String(Number(aggregates.critical || 0)), 'critical')
+      + insightTile(translate('dashboard.extra_insights_risk', 'риск'), String(Number(aggregates.risk || 0)), 'risk')
+      + insightTile(translate('dashboard.extra_insights_portfolio_progress', 'Прогресс портфеля'), Number(aggregates.progress_percent || 0) + '%')
+      + insightTile(translate('dashboard.extra_insights_overdue', 'Просрочено'), String(overdueTasks), overdueTasks > 0 ? 'critical' : '', false, tasksListUrl({ due: 'overdue' }))
+      + insightTile(translate('dashboard.extra_insights_overdue_milestones', 'Просроченных вех'), String(overdueMilestones), overdueMilestones > 0 ? 'critical' : '')
+      + insightTile(translate('dashboard.extra_insights_without_schedule', 'Без сроков'), String(withoutDeadline));
+    if (deadline !== '') {
+      tiles += insightTile(translate('dashboard.extra_insights_next_deadline', 'Ближайший срок'), dateText(deadline));
+    }
+
+    var legend = withoutDeadline > 0
+      ? '<div class="crm-dashboard-insight-legend">' + safe(formatPlaceholders(
+        translate('dashboard.extra_insights_without_schedule_hint', 'У %s потоков нет ни вех, ни дедлайнов задач — отставание по ним посчитать нельзя.'),
+        [withoutDeadline]
+      )) + '</div>'
+      : '';
+
+    return '<div class="crm-dashboard-insight-section-title">'
+      + safe(translate('dashboard.extra_insights_portfolio', 'Портфель')) + '</div>'
+      + '<div class="crm-dashboard-insight-grid">' + tiles + '</div>'
+      + legend;
+  }
+
+  function streamsSearchHtml(state) {
+    return '<div class="crm-dashboard-insight-controls">'
+      + '<input type="search" class="form-control form-control-sm crm-dashboard-insight-search" data-insights-search="1" '
+      + 'placeholder="' + safe(translate('dashboard.extra_insights_search_stream', 'Поиск потока, команды или клиента')) + '" '
+      + 'aria-label="' + safe(translate('dashboard.extra_insights_search', 'Поиск')) + '" value="' + safe(state.search) + '">'
+      + '</div>';
+  }
+
+  // Group headings need a cell that spans the table, which the shared insightsTable
+  // helper cannot express (it wraps every cell in its own <td>).
+  function streamsTable(headers, groups) {
+    var columns = headers.length;
+    var head = headers.map(function (header) { return '<th>' + safe(header) + '</th>'; }).join('');
+    var body = groups.map(function (group) {
+      var heading = group.label === ''
+        ? ''
+        : '<tr class="crm-dashboard-insight-table-group"><td colspan="' + columns + '">'
+          + safe(group.label) + ' <span class="text-muted">' + safe(String(group.rows.length)) + '</span></td></tr>';
+
+      return heading + group.rows.map(function (project) {
+        return '<tr>' + streamRowCells(project).map(function (cell) { return '<td>' + cell + '</td>'; }).join('') + '</tr>';
+      }).join('');
+    }).join('');
+
+    return '<div class="table-responsive"><table class="table table-sm crm-dashboard-insight-table"><thead><tr>'
+      + head + '</tr></thead><tbody>' + body + '</tbody></table></div>';
+  }
+
+  function streamHeaders() {
+    return [
+      translate('dashboard.extra_insights_project', 'Поток (проект)'),
+      translate('dashboard.extra_insights_progress', 'Прогресс'),
+      translate('dashboard.extra_insights_active', 'Активные'),
+      translate('dashboard.extra_insights_overdue', 'Просрочено'),
+      translate('dashboard.extra_insights_hours', 'Часы'),
+      translate('dashboard.extra_insights_members', 'Участники'),
+      translate('dashboard.extra_insights_schedule', 'Ближайший срок'),
+      translate('dashboard.extra_insights_signal', 'Сигнал')
+    ];
+  }
+
+  function streamRowCells(project) {
+    var title = String(project.title || project.project_public_id || '');
+    var overdue = Number(project.overdue_tasks || 0);
+
+    return [
+      '<a href="' + safe(projectDetailUrl(project.project_public_id)) + '">' + safe(title) + '</a>',
+      progressBar(project.progress_percent) + ' <small>' + safe(Number(project.progress_percent || 0) + '%') + '</small>',
+      safe(String(Number(project.active_tasks || 0))),
+      overdue > 0
+        ? '<a class="is-overdue" href="' + safe(tasksListUrl({ project: project.project_public_id, due: 'overdue' })) + '">' + safe(String(overdue)) + '</a>'
+        : safe('0'),
+      safe(formatMinutesCompact(project.minutes_period)),
+      safe(String(Number(project.members || 0))),
+      scheduleCellHtml(project),
+      '<span class="crm-dashboard-wl-signal' + signalClass(project.health) + '">' + safe(signalLabel(project.health)) + '</span>'
+    ];
+  }
+
+  function streamsExpandHtml(definition, total, shown) {
+    if (widgetExpanded(definition) || total <= shown) return '';
+
+    return '<button type="button" class="btn btn-sm crm-btn-secondary mt-2" data-insights-expand="1">'
+      + safe(translate('dashboard.extra_insights_show_all', 'Показать всех') + ' (' + String(total) + ')') + '</button>';
+  }
+
+  // The table and its counter live in their own wrapper so a keystroke can repaint
+  // them without touching the search input that produced it.
+  function streamsBodyHtml(definition, payload, projects, sort) {
+    var state = streamViewState(definition);
+    var expanded = widgetExpanded(definition);
+    var ordered = sortedProjectRows(projects, sort).filter(function (project) {
+      return streamMatchesSearch(project, state.search);
+    });
+
+    var groups = groupedStreamRows(ordered, state.group).map(function (group) {
+      var capped = capStreamRows(group.rows, expanded, STREAM_ROW_LIMIT);
+      return { key: group.key, label: group.label, rows: capped.rows, hidden: capped.hidden, total: group.rows.length };
+    });
+    var shown = groups.reduce(function (sum, group) { return sum + group.rows.length; }, 0);
+
+    var table;
+    if (!ordered.length) {
+      table = '<div class="text-muted small">' + safe(state.search === ''
+        ? translate('dashboard.extra_empty', 'Пока нет данных')
+        : formatPlaceholders(translate('dashboard.extra_insights_no_match', 'Ничего не найдено по запросу «%s»'), [state.search])) + '</div>';
+    } else {
+      table = streamsTable(streamHeaders(), groups)
+        + (shown < ordered.length ? '<div class="text-muted small mb-1">' + safe(formatPlaceholders(
+          translate('dashboard.extra_insights_first_of', 'первые %s из %s'), [shown, ordered.length]
+        )) + '</div>' : '')
+        + streamsExpandHtml(definition, ordered.length, shown);
+    }
+
+    return '<div data-insights-streams-body="1">' + table + '</div>';
+  }
+
+  function streamsHtml(definition, payload, projects, sort) {
+    var state = streamViewState(definition);
+    var aggregates = streamPortfolioAggregates(projects, payload.aggregates);
+
+    return insightToolbar(definition, [
+      {
+        name: 'period',
+        label: translate('dashboard.extra_period', 'Период'),
+        value: widgetPeriod(definition),
+        options: periodOptions()
+      },
+      {
+        name: 'sort',
+        label: translate('dashboard.extra_insights_sort', 'Сортировка'),
+        value: widgetSort(definition, ['risk', 'overdue', 'hours', 'progress'], 'risk'),
+        options: [
+          { value: 'risk', label: translate('dashboard.extra_insights_sort_risk', 'По риску') },
+          { value: 'overdue', label: translate('dashboard.extra_insights_sort_overdue', 'По просрочке') },
+          { value: 'hours', label: translate('dashboard.extra_insights_sort_hours', 'По часам') },
+          { value: 'progress', label: translate('dashboard.extra_insights_sort_progress', 'По прогрессу') }
+        ]
+      },
+      {
+        name: 'group',
+        label: translate('dashboard.extra_insights_group', 'Группировка'),
+        value: state.group,
+        options: [
+          { value: 'none', label: translate('dashboard.extra_insights_group_none', 'Без группировки') },
+          { value: 'team', label: translate('dashboard.extra_insights_group_team', 'По команде') },
+          { value: 'client', label: translate('dashboard.extra_insights_group_client', 'По клиенту') }
+        ]
+      }
+    ])
+      + streamPortfolioHtml(aggregates)
+      + streamsSearchHtml(state)
+      + streamsBodyHtml(definition, payload, projects, sort)
+      + '<div class="crm-dashboard-insight-legend">'
+      + safe(translate('dashboard.extra_insights_legend_streams', 'Критично — просрочено более 20% активных задач или веха в прошлом; риск — есть просрочка или веха на этой неделе.'))
+      + '</div>'
+      + '<div class="crm-dashboard-insight-legend">'
+      // The line says what it counts before someone disproves it by clicking through
+      // to the task list: a task without a project is not part of any stream.
+      + safe(translate('dashboard.extra_insights_portfolio_scope', 'Портфель считает только задачи и вехи внутри потоков — задачи без проекта в него не входят.'))
+      + '</div>';
+  }
+
+  // Search and "show all" re-paint from the payload already in hand: filtering is a
+  // view of the same scoped rows, so a keystroke must not cost a request (and cannot
+  // widen the scope). Period and sorting keep going through the shared toolbar.
+  function paintStreams(container, definition, payload, projects, sort) {
+    container.innerHTML = streamsHtml(definition, payload, projects, sort);
+    bindInsightToolbar(container, definition);
+    bindStreamsBody(container, definition, payload, projects, sort);
+    if (typeof container.querySelector !== 'function') return;
+
+    var search = container.querySelector('[data-insights-search]');
+    if (search) {
+      search.addEventListener('input', function () {
+        saveInsightOption(definition.key, 'search', search.value);
+        repaintStreamsBody(container, definition, payload, projects, sort);
+      });
+    }
+  }
+
+  // Only the table is replaced, never the input that is being typed into: swapping
+  // the whole card on every keystroke dropped the caret - and with it the rest of
+  // the query - so the box stopped working after the first character.
+  function repaintStreamsBody(container, definition, payload, projects, sort) {
+    var body = container.querySelector('[data-insights-streams-body]');
+    if (!body) return;
+    body.innerHTML = streamsBodyHtml(definition, payload, projects, sort);
+    bindStreamsBody(container, definition, payload, projects, sort);
+  }
+
+  function bindStreamsBody(container, definition, payload, projects, sort) {
+    if (typeof container.querySelector !== 'function') return;
+    var expand = container.querySelector('[data-insights-expand]');
+    if (!expand) return;
+    expand.addEventListener('click', function () {
+      saveInsightOption(definition.key, 'expanded', '1');
+      paintStreams(container, definition, payload, projects, sort);
+    });
   }
 
   function renderStreams(container, envelope, definition) {
@@ -1522,49 +1891,9 @@
       return;
     }
 
-    var sort = widgetSort(definition, ['risk', 'overdue', 'hours', 'progress'], 'risk');
-    var ordered = sortedProjectRows(projects, sort);
-    var visible = widgetExpanded(definition) ? ordered : ordered.slice(0, 10);
-    var hidden = ordered.length - visible.length;
-    var nowMs = Date.now();
-
-    var rows = visible.map(function (project) {
-      var title = String(project.title || project.project_public_id || '');
-      var overdue = Number(project.overdue_tasks || 0);
-      return [
-        '<a href="' + safe(projectDetailUrl(project.project_public_id)) + '">' + safe(title) + '</a>',
-        progressBar(project.progress_percent) + ' <small>' + safe(Number(project.progress_percent || 0) + '%') + '</small>',
-        safe(String(Number(project.active_tasks || 0))),
-        overdue > 0
-          ? '<a class="is-overdue" href="' + safe(tasksListUrl({ project: project.project_public_id, due: 'overdue' })) + '">' + safe(String(overdue)) + '</a>'
-          : safe('0'),
-        safe(formatMinutesCompact(project.minutes_period)),
-        safe(String(Number(project.members || 0))),
-        milestoneCellHtml(project, nowMs),
-        '<span class="crm-dashboard-wl-signal' + signalClass(project.health) + '">' + safe(signalLabel(project.health)) + '</span>'
-      ];
-    });
-
-    container.innerHTML = toolbar
-      + (hidden > 0 ? '<div class="text-muted small mb-1">' + safe(formatPlaceholders(
-        translate('dashboard.extra_insights_first_of', 'первые %s из %s'), [visible.length, ordered.length]
-      )) + '</div>' : '')
-      + insightsTable([
-        safe(translate('dashboard.extra_insights_project', 'Поток (проект)')),
-        safe(translate('dashboard.extra_insights_progress', 'Прогресс')),
-        safe(translate('dashboard.extra_insights_active', 'Активные')),
-        safe(translate('dashboard.extra_insights_overdue', 'Просрочено')),
-        safe(translate('dashboard.extra_insights_hours', 'Часы')),
-        safe(translate('dashboard.extra_insights_members', 'Участники')),
-        safe(translate('dashboard.extra_insights_milestone', 'Ближайшая веха')),
-        safe(translate('dashboard.extra_insights_signal', 'Сигнал'))
-      ], rows)
-      + limitStateHtml(definition, ordered.length, 10)
-      + '<div class="crm-dashboard-insight-legend">'
-      + safe(translate('dashboard.extra_insights_legend_streams', 'Критично — просрочено более 20% активных задач или веха в прошлом; риск — есть просрочка или веха на этой неделе.'))
-      + '</div>';
-
-    bindInsightToolbar(container, definition);
+    // Sorting stays client-side: the same payload answers "what is at risk" and
+    // "where did the hours go", so switching the order costs no request.
+    paintStreams(container, definition, payload, projects, widgetSort(definition, ['risk', 'overdue', 'hours', 'progress'], 'risk'));
   }
 
   function renderStreamDetail(container, envelope, definition) {
