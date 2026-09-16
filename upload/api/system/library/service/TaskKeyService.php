@@ -5,6 +5,8 @@ namespace Api\System\Library\Service;
 
 use Api\Model\Task\TaskKeyCounterRepository;
 use Api\Model\Project\ProjectRepository;
+use Api\System\Library\Support\AppLog;
+use PDOException;
 
 final class TaskKeyService
 {
@@ -71,7 +73,10 @@ final class TaskKeyService
             $suffix = 2;
 
             while ($suffix <= 999) {
-                $candidate = substr($base, 0, 8) . (string)$suffix;
+                // The whole prefix has to fit the VARCHAR(10) that holds it: a
+                // three-digit suffix on a ten-character base used to overflow it.
+                $suffixText = (string)$suffix;
+                $candidate = substr($base, 0, 10 - strlen($suffixText)) . $suffixText;
                 if (!in_array($candidate, self::RESERVED_PREFIXES, true) && !$this->projects->taskKeyPrefixExists($candidate, $exceptProjectPublicId)) {
                     return $candidate;
                 }
@@ -93,12 +98,19 @@ final class TaskKeyService
     /**
      * Assign the next task key for a project or global scope.
      *
+     * A project without a stored prefix no longer falls back to the shared 'PRJ'
+     * string. The counter is kept per project, so a second prefix-less project would
+     * start again at PRJ-1 and hit the unique index `uq_tasks_task_key` while creating
+     * its very first task - the 500 this method used to cause. The prefix is now
+     * derived from the project title, made unique and *stored on the project*, so
+     * every later task, key and card in that project agrees on it.
+     *
      * @return array{task_key: string, task_key_prefix: string, task_sequence_number: int}|null
      */
     public function assignNextTaskKey(?int $projectId, ?string $projectPrefix = null): ?array
     {
         if ($projectId !== null && $projectId > 0) {
-            $prefix = $projectPrefix ?? 'PRJ';
+            $prefix = $projectPrefix ?? $this->projectPrefix($projectId);
             $this->counters->ensureProjectCounter($projectId, $prefix);
             return $this->counters->nextForProject($projectId, $prefix);
         }
@@ -107,6 +119,69 @@ final class TaskKeyService
         $prefix = $projectPrefix ?? self::GLOBAL_PREFIX;
         $this->counters->ensureGlobalCounter($prefix);
         return $this->counters->nextGlobal($prefix);
+    }
+
+    /**
+     * The prefix a project's tasks must be keyed with, generating and persisting one
+     * when the project has none yet.
+     *
+     * Called on the task-creation path, so it has to be safe under concurrency: the
+     * prefix is checked for uniqueness, then written, and the unique index on
+     * `projects.task_key_prefix` decides the race. A losing writer adopts whatever the
+     * winner stored (so both requests key their tasks identically) or suffixes its own
+     * candidate and tries again.
+     */
+    private function projectPrefix(int $projectId): string
+    {
+        $stored = trim((string)($this->projects->taskKeyPrefixById($projectId) ?? ''));
+        if ($stored !== '') {
+            return $stored;
+        }
+
+        $project = $this->projects->findById($projectId);
+        if ($project === null) {
+            // No project row at all (nothing to persist onto): keep the historical
+            // fallback rather than failing the insert outright.
+            return 'PRJ';
+        }
+
+        $exceptPublicId = (string)($project['public_id'] ?? '');
+        $base = $this->generateProjectPrefix((string)($project['title'] ?? ''));
+
+        for ($attempt = 0; $attempt < 5; $attempt++) {
+            $candidate = $this->ensureUniqueProjectPrefix($base, $exceptPublicId);
+
+            try {
+                $this->projects->setTaskKeyPrefixById($projectId, $candidate);
+
+                return $candidate;
+            } catch (PDOException $e) {
+                if (!$this->isTaskKeyPrefixDuplicate($e)) {
+                    throw $e;
+                }
+
+                // Another request took the prefix between the check and the write.
+                // If this project won the race, adopt the stored value; otherwise
+                // suffix the base and try again.
+                $nowStored = trim((string)($this->projects->taskKeyPrefixById($projectId) ?? ''));
+                if ($nowStored !== '') {
+                    return $nowStored;
+                }
+
+                AppLog::warning('[TaskKeyService::projectPrefix] prefix taken concurrently, retrying: ' . $candidate);
+                $base = $candidate;
+            }
+        }
+
+        return $this->ensureUniqueProjectPrefix($base, $exceptPublicId);
+    }
+
+    private function isTaskKeyPrefixDuplicate(PDOException $exception): bool
+    {
+        $message = strtolower($exception->getMessage());
+
+        return (string)$exception->getCode() === '23000'
+            && (str_contains($message, 'task_key_prefix') || str_contains($message, 'uq_projects_task_key_prefix'));
     }
 
     /**

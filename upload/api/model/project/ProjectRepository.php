@@ -227,6 +227,40 @@ final class ProjectRepository
     }
 
     /**
+     * A project row by numeric id.
+     *
+     * @return array<string,mixed>|null
+     */
+    public function findById(int $projectId): ?array
+    {
+        return (new QueryBuilder($this->pdo))
+            ->from('projects')
+            ->where('id', '=', $projectId)
+            ->first();
+    }
+
+    /**
+     * Store the task-key prefix of a project, by numeric id.
+     *
+     * Deliberately does not bump `row_version`: this is the system filling in a
+     * prefix the project never had (see TaskKeyService::projectPrefix), not a user
+     * editing the project card, and bumping it would fail the optimistic lock of
+     * anybody who has that project open. Uniqueness is still enforced by the
+     * database through `uq_projects_task_key_prefix`, which is what the caller
+     * retries on.
+     */
+    public function setTaskKeyPrefixById(int $projectId, string $prefix): void
+    {
+        (new QueryBuilder($this->pdo))
+            ->from('projects')
+            ->where('id', '=', $projectId)
+            ->update([
+                'task_key_prefix' => $prefix,
+                'updated_at' => gmdate('Y-m-d H:i:s'),
+            ]);
+    }
+
+    /**
      * Количество открытых задач проекта (для защиты от преждевременного закрытия проекта, ТЗ 7.3).
      *
      * @param string[] $closedStatuses

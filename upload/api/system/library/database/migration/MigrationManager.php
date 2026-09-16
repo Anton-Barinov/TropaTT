@@ -85,6 +85,7 @@ final class MigrationManager
             new KnowledgeSpacesTrashMigration(),
             new TaskStatusClosureMigration(),
             new KnowledgePageVersionCounterBackfillMigration(),
+            new ProjectTaskKeyPrefixBackfillMigration(),
         ];
     }
 

@@ -11,6 +11,7 @@ use Api\Model\Project\ProjectRepository;
 use Api\System\Library\Security\HtmlSanitizer;
 use Api\System\Library\Support\AppLog;
 use Api\System\Library\Support\Ulid;
+use PDOException;
 
 final class TaskService
 {
@@ -294,7 +295,7 @@ final class TaskService
             unset($input['override_cost_rate'], $input['override_bill_rate'], $input['override_payout_rate']);
         }
 
-        $this->tasks->create([
+        $createPayload = [
             'public_id' => $publicId,
             'project_id' => $projectId,
             'client_public_id' => $directClientPublicId !== '' ? $directClientPublicId : null,
@@ -321,7 +322,31 @@ final class TaskService
             'created_at' => $createdAt,
             'updated_at' => $updatedAt,
             'row_version' => 1,
-        ]);
+        ];
+
+        // A taken `task_key` can only be detected by the unique index, because the key
+        // is assigned before the row exists. That is exactly the "Controller
+        // invocation failed" a project without a prefix used to answer with, and a
+        // bare 500 is the wrong answer for a key counter that simply needed to move
+        // on: the counter has already advanced, so assigning the next key is enough.
+        // Retry a couple of times, then let a genuinely broken table surface as is.
+        for ($attempt = 1; ; $attempt++) {
+            try {
+                $this->tasks->create($createPayload);
+                break;
+            } catch (PDOException $e) {
+                if (!$this->isDuplicateTaskKey($e) || $attempt >= 3) {
+                    throw $e;
+                }
+
+                AppLog::warning('[TaskService::create] task key already taken, assigning the next one: ' . (string)$taskKey);
+                $taskKeyData = $this->generateTaskKey($projectId, $input);
+                $taskKey = $taskKeyData['task_key'] ?? null;
+                $createPayload['task_key'] = $taskKey;
+                $createPayload['task_key_prefix'] = $taskKeyData['task_key_prefix'] ?? null;
+                $createPayload['task_sequence_number'] = $taskKeyData['task_sequence_number'] ?? null;
+            }
+        }
 
         if ($parentTask) {
             $createdTaskId = $this->tasks->taskIdByPublicId($publicId);
@@ -820,6 +845,20 @@ final class TaskService
         }
 
         return array_values(array_unique(array_filter(array_map('intval', $decoded), static fn(int $value): bool => $value > 0)));
+    }
+
+    /**
+     * Is this exception the task_key unique index `uq_tasks_task_key`?
+     *
+     * Matched narrowly on purpose: the same insert can also fail on the public_id or
+     * row-version indexes, and retrying those with a new key would be useless noise.
+     */
+    private function isDuplicateTaskKey(PDOException $exception): bool
+    {
+        $message = strtolower($exception->getMessage());
+
+        return (string)$exception->getCode() === '23000'
+            && (str_contains($message, 'uq_tasks_task_key') || str_contains($message, 'task_key'));
     }
 
     /** @return array{task_key: string|null, task_key_prefix: string|null, task_sequence_number: int|null} */
