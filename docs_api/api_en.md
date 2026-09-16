@@ -166,6 +166,7 @@ Mutations on core entities (`tasks`, `projects`, `clients`, etc.) support optimi
 
 To eliminate enum friction across external systems, AI agents, and frontend clients:
 - **Bidirectional status aliasing**: `todo` $\leftrightarrow$ `new`, `done` $\leftrightarrow$ `completed`, `canceled` $\leftrightarrow$ `cancelled`. Querying `status=todo` matches both `todo` and `new` records transparently.
+- **Assignee field aliasing**: `assignee_user_public_id` — the name the responses and this document use — is accepted as a synonym of `assignee_user_id` on `POST /api/v1/tasks` and `PATCH /api/v1/tasks/{public_id}`. An explicit `assignee_user_id` wins; `assignee_user_id: null` still unassigns. A reference that names nobody is answered with `404 ASSIGNEE_NOT_FOUND` instead of being ignored, so a task can no longer be created unassigned by accident (see CHANGELOG, PRJ-434).
 - **Fast activity filters**:
   - `hide_done=1`: Excludes finished, canceled, and archived tasks (`done`, `completed`, `canceled`, `cancelled`, `archived`).
   - `active_only=1`: Equivalent alias to `hide_done=1`.

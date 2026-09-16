@@ -164,6 +164,7 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 
 Для устранения рассогласования enum-статусов между CRM, AI-агентами и внешними CMS:
 - **Двунаправленные алиасы статусов**: `todo` $\leftrightarrow$ `new`, `done` $\leftrightarrow$ `completed`, `canceled` $\leftrightarrow$ `cancelled`. Запрос `status=todo` прозрачно возвращает как задачи со статусом `todo`, так и `new`.
+- **Алиас поля исполнителя**: `assignee_user_public_id` — именно это имя используют ответы API и этот документ — принимается как синоним `assignee_user_id` в `POST /api/v1/tasks` и `PATCH /api/v1/tasks/{public_id}`. Явно переданный `assignee_user_id` имеет приоритет; `assignee_user_id: null` по-прежнему снимает исполнителя. Ссылка, которая ни на кого не указывает, отвечает `404 ASSIGNEE_NOT_FOUND`, а не игнорируется, — случайно создать задачу без исполнителя больше нельзя (см. CHANGELOG, PRJ-434).
 - **Быстрые фильтры активности**:
   - `hide_done=1`: Исключает завершённые, отменённые и архивные задачи (`done`, `completed`, `canceled`, `cancelled`, `archived`).
   - `active_only=1`: Полный аналог флага `hide_done=1`.

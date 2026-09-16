@@ -283,8 +283,14 @@ final class TaskService
         // assignee_user_id in the payload would leak internal user ids and
         // let a guest hand work to a staff member outside their project.
         if ($isExternalActor) {
-            unset($input['assignee_user_id']);
+            unset($input['assignee_user_id'], $input['assignee_user_public_id']);
         }
+
+        $assigneeInput = $this->normalizeAssigneeInput($input);
+        if (is_string($assigneeInput)) {
+            return $assigneeInput;
+        }
+        $input = $assigneeInput;
 
         $input['description'] = $this->sanitizeDescription((string)($input['description'] ?? ''));
         if (mb_strlen($input['description']) > 65000) {
@@ -495,6 +501,11 @@ final class TaskService
         if (array_key_exists('end_at', $input)) {
             $set['end_at'] = $this->normalizeTaskDate($input['end_at']);
         }
+        $assigneeInput = $this->normalizeAssigneeInput($input);
+        if (is_string($assigneeInput)) {
+            return $assigneeInput;
+        }
+        $input = $assigneeInput;
         if (array_key_exists('assignee_user_id', $input)) {
             $set['assignee_user_id'] = $this->resolveAssigneeUserId($input);
         }
@@ -775,6 +786,55 @@ final class TaskService
         }
 
         return $trimmed;
+    }
+
+    /**
+     * PRJ-434: the REST API names the assignee `assignee_user_public_id` — that is
+     * what the responses, the docs and the MCP schema all use — but create/update
+     * only ever read `assignee_user_id`, so the documented field was silently
+     * ignored (36 tasks created through REST ended up with no assignee, and a
+     * repeated PATCH changed nothing while still answering `TASK_UPDATED`).
+     *
+     * The alias is accepted now, an explicit `assignee_user_id` keeps priority, and
+     * an unknown reference becomes `ASSIGNEE_NOT_FOUND` instead of silence: a caller
+     * who names somebody has to learn that nobody was assigned. Clearing still works
+     * (`assignee_user_id: null` stays a deliberate unassign).
+     *
+     * @param array<string,mixed> $input
+     * @return array<string,mixed>|string normalized input, or 'ASSIGNEE_NOT_FOUND'
+     */
+    private function normalizeAssigneeInput(array $input): array|string
+    {
+        if (!array_key_exists('assignee_user_id', $input)
+            && array_key_exists('assignee_user_public_id', $input)) {
+            $input['assignee_user_id'] = $input['assignee_user_public_id'];
+        }
+
+        if (!array_key_exists('assignee_user_id', $input)) {
+            return $input;
+        }
+
+        $raw = $input['assignee_user_id'];
+        $resolved = $this->resolveAssigneeUserId($input);
+
+        // The reference is only "unknown" when something was actually named: an
+        // empty value clears the assignee, which is not a failure.
+        $named = is_int($raw)
+            ? $raw > 0
+            : trim((string)$raw) !== '';
+        if ($resolved === null && $named) {
+            return 'ASSIGNEE_NOT_FOUND';
+        }
+
+        // A bare integer id was previously trusted without a lookup, so a typo
+        // quietly wrote a dangling foreign key. Verify it like a public id.
+        if ($resolved !== null && $this->teams->usersByIds([$resolved]) === []) {
+            return 'ASSIGNEE_NOT_FOUND';
+        }
+
+        $input['assignee_user_id'] = $resolved;
+
+        return $input;
     }
 
     /**
