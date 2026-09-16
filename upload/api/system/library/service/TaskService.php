@@ -9,6 +9,7 @@ use Api\Model\Task\TaskRepository;
 use Api\Model\Task\TaskKeyCounterRepository;
 use Api\Model\Project\ProjectRepository;
 use Api\System\Library\Security\HtmlSanitizer;
+use Api\System\Library\Support\AppLog;
 use Api\System\Library\Support\Ulid;
 
 final class TaskService
@@ -40,6 +41,50 @@ final class TaskService
         }
         $rate = (float)$value;
         return $rate < 0 ? null : $rate;
+    }
+
+    /**
+     * Normalize a task date input into the `Y-m-d H:i:s` (UTC) literal the
+     * `tasks` table stores.
+     *
+     * The REST and MCP contracts advertise `due_at`/`start_at`/`end_at` as
+     * ISO 8601, so callers legitimately send `2026-09-30T00:00:00Z`. Writing that
+     * literal straight into the DATETIME column made MySQL reject the statement
+     * and the caller received an opaque "Controller invocation failed" instead
+     * of a created task (MCP `crm_task action=create`). Values that are already
+     * storage-ready (date-only, `Y-m-d H:i:s`) keep the exact same bytes, so the
+     * change is invisible to every existing caller.
+     */
+    private function normalizeTaskDate(mixed $value): ?string
+    {
+        if ($value === null || is_array($value) || is_object($value)) {
+            return null;
+        }
+
+        $raw = trim((string)$value);
+        if ($raw === '') {
+            return null;
+        }
+
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw) === 1) {
+            return $raw;
+        }
+        if (preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/', $raw) === 1) {
+            return $raw;
+        }
+
+        try {
+            // A value without an explicit zone is treated as UTC, matching how the
+            // platform stores timestamps (gmdate()), so the result does not depend on
+            // the hosting timezone.
+            $hasZone = preg_match('/(?:[zZ]|[+-]\d{2}:?\d{2})$/', $raw) === 1;
+            $date = new \DateTimeImmutable($hasZone ? $raw : $raw . ' UTC', new \DateTimeZone('UTC'));
+
+            return $date->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+        } catch (\Throwable $e) {
+            AppLog::error('[TaskService::normalizeTaskDate] ' . $e->getMessage());
+            return null;
+        }
     }
 
     /**
@@ -264,9 +309,9 @@ final class TaskService
             'override_cost_rate' => $this->normalizeRateInput($input['override_cost_rate'] ?? null),
             'override_bill_rate' => $this->normalizeRateInput($input['override_bill_rate'] ?? null),
             'override_payout_rate' => $this->normalizeRateInput($input['override_payout_rate'] ?? null),
-            'due_at' => !empty($input['due_at']) ? (string)$input['due_at'] : null,
-            'start_at' => !empty($input['start_at']) ? (string)$input['start_at'] : null,
-            'end_at' => !empty($input['end_at']) ? (string)$input['end_at'] : null,
+            'due_at' => $this->normalizeTaskDate($input['due_at'] ?? null),
+            'start_at' => $this->normalizeTaskDate($input['start_at'] ?? null),
+            'end_at' => $this->normalizeTaskDate($input['end_at'] ?? null),
             'assignee_user_id' => $this->resolveAssigneeUserId($input),
             'creator_user_id' => $creatorUserId,
             'source_type' => !empty($input['source_type']) ? substr(trim((string)$input['source_type']), 0, 64) : null,
@@ -417,13 +462,13 @@ final class TaskService
             $set['override_payout_rate'] = $this->normalizeRateInput($input['override_payout_rate']);
         }
         if (array_key_exists('due_at', $input)) {
-            $set['due_at'] = $input['due_at'] !== '' ? (string)$input['due_at'] : null;
+            $set['due_at'] = $this->normalizeTaskDate($input['due_at']);
         }
         if (array_key_exists('start_at', $input)) {
-            $set['start_at'] = $input['start_at'] !== '' ? (string)$input['start_at'] : null;
+            $set['start_at'] = $this->normalizeTaskDate($input['start_at']);
         }
         if (array_key_exists('end_at', $input)) {
-            $set['end_at'] = $input['end_at'] !== '' ? (string)$input['end_at'] : null;
+            $set['end_at'] = $this->normalizeTaskDate($input['end_at']);
         }
         if (array_key_exists('assignee_user_id', $input)) {
             $set['assignee_user_id'] = $this->resolveAssigneeUserId($input);
