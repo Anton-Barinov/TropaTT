@@ -4706,6 +4706,7 @@ return array (
     'extra_insights_backlog_hint' => 'Created versus completed tasks in the period',
     'extra_insights_unlogged_title' => 'Active tasks without logged time',
     'extra_insights_open_tasks' => 'Open tasks',
+    'extra_insights_log_time' => 'Log time',
     'extra_activity_dev' => 'Development',
     'extra_activity_qa' => 'QA',
     'extra_activity_design' => 'Design',

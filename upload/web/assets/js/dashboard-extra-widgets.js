@@ -488,6 +488,13 @@
     return 'index.php?route=task-detail&task_public_id=' + encodeURIComponent(String(id || ''));
   }
 
+  // Deep link into the time-logging tab of the task card: the card reads
+  // `worklog=1`, activates the tab and expands the create form, so "Залогировать
+  // время" lands on the form instead of a tab the user still has to find.
+  function taskWorklogUrl(id) {
+    return taskDetailUrl(id) + '&worklog=1';
+  }
+
   function projectDetailUrl(id) {
     return 'index.php?route=project-detail&project_public_id=' + encodeURIComponent(String(id || ''));
   }
@@ -835,9 +842,14 @@
     var unloggedBlock = '';
     if (unloggedCount > 0) {
       var unloggedRows = unlogged.map(function (task) {
+        // The row is the task; the button is the action that clears it from the
+        // block - logging the missing time - and it carries the task with it.
         return '<div class="crm-dashboard-extra-row"><div class="text-truncate"><a href="' + safe(taskDetailUrl(task.task_public_id)) + '">'
           + safe(String(task.title || task.task_public_id || '')) + '</a>'
-          + (task.due_at ? '<small>' + safe(dateText(task.due_at)) + '</small>' : '') + '</div></div>';
+          + (task.due_at ? '<small>' + safe(dateText(task.due_at)) + '</small>' : '') + '</div>'
+          + '<a class="btn btn-sm crm-btn-subtle crm-btn-compact crm-insights-log-time" href="'
+          + safe(taskWorklogUrl(task.task_public_id)) + '">'
+          + safe(translate('dashboard.extra_insights_log_time', 'Залогировать время')) + '</a></div>';
       }).join('');
       // The endpoint caps the list while the count covers every task, so the head has
       // to say how many of them are actually shown - otherwise it claims 30 and

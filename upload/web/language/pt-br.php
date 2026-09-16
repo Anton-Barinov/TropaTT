@@ -3728,6 +3728,7 @@ return array (
     'extra_insights_backlog_hint' => 'Tarefas criadas versus concluídas no período',
     'extra_insights_unlogged_title' => 'Tarefas ativas sem tempo lançado',
     'extra_insights_open_tasks' => 'Abrir tarefas',
+    'extra_insights_log_time' => 'Registrar tempo',
     'extra_activity_dev' => 'Desenvolvimento',
     'extra_activity_qa' => 'QA',
     'extra_activity_design' => 'Design',

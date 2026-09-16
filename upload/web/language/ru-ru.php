@@ -4725,6 +4725,7 @@ return array (
     'extra_insights_backlog_hint' => 'Сравнение созданных и завершённых задач за период',
     'extra_insights_unlogged_title' => 'Активные задачи без учёта времени',
     'extra_insights_open_tasks' => 'Открыть задачи',
+    'extra_insights_log_time' => 'Залогировать время',
     'extra_activity_dev' => 'Разработка',
     'extra_activity_qa' => 'Тестирование',
     'extra_activity_design' => 'Дизайн',

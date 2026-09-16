@@ -4852,6 +4852,7 @@ return array (
     'extra_insights_backlog_hint' => '期间新建与完成对比',
     'extra_insights_unlogged_title' => '未记录工时的活跃任务',
     'extra_insights_open_tasks' => '打开任务',
+    'extra_insights_log_time' => '记录工时',
     'extra_activity_dev' => '开发',
     'extra_activity_qa' => '测试',
     'extra_activity_design' => '设计',

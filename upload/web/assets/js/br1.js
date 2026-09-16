@@ -8189,6 +8189,60 @@ window.CRM.br1 = (function () {
     tabsNav.dataset.deferredLoadsBound = '1';
     var initialTab = tabsNav.querySelector('.nav-link.active[data-bs-target]');
     loadForTab(initialTab && initialTab.getAttribute('data-bs-target'));
+
+    openWorklogTabFromQuery(tabsNav, loadForTab);
+  }
+
+  /**
+   * "Залогировать время" on the dashboard's actual-time card links to
+   * `index.php?route=task-detail&task_public_id=<tsk_...>&worklog=1`. Landing on the
+   * card's first tab would leave the user hunting for the time form, so the marker
+   * activates the worklogs tab and expands the create form.
+   */
+  function wantsWorklogDeepLink() {
+    try {
+      var params = new URLSearchParams(window.location.search || '');
+      var flag = String(params.get('worklog') || '').trim().toLowerCase();
+
+      return flag === '1' || flag === 'true';
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /** Open the "add worklog" form through the existing toggle button. */
+  function openWorklogCreateForm() {
+    var form = document.getElementById('worklogCreateForm');
+    var toggle = document.getElementById('worklogAddToggleBtn');
+    if (!form || !toggle) return;
+
+    if (form.classList.contains('d-none')) {
+      // Routed through the button so the same state machine runs (worklogAddOpen,
+      // draft reset) - a second code path into the form would drift from the button.
+      toggle.click();
+    }
+
+    var minutes = form.querySelector('input[name="minutes_spent"]');
+    if (minutes && typeof minutes.focus === 'function') minutes.focus();
+  }
+
+  function openWorklogTabFromQuery(tabsNav, loadForTab) {
+    if (!wantsWorklogDeepLink()) return;
+
+    var worklogTab = tabsNav.querySelector('[data-bs-target="#detailWorklogs"]');
+    if (!worklogTab) return;
+
+    if (window.bootstrap && window.bootstrap.Tab) {
+      window.bootstrap.Tab.getOrCreateInstance(worklogTab).show();
+    } else {
+      worklogTab.click();
+    }
+
+    // The form is rendered by the worklog flow, which runs once the tab's data has
+    // loaded - opening it earlier would be undone by the next render.
+    Promise.resolve(loadForTab('#detailWorklogs')).then(function () {
+      window.requestAnimationFrame(openWorklogCreateForm);
+    });
   }
 
   async function initTaskDetailFlow() {
