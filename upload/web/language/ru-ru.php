@@ -4711,6 +4711,7 @@ return array (
     'extra_insights_departments' => 'Отделы',
     'extra_insights_people_title' => 'Сотрудники',
     'extra_insights_first_of' => 'первые %s из %s',
+    'extra_insights_bucket_days' => '1 столбец = %s дн.',
     'extra_insights_show_all' => 'Показать всех',
     'extra_insights_person_tasks' => 'Задачи сотрудника',
     'extra_insights_legend_signals' => 'Перегруз > 110% загрузки, недогруз < 50% без просрочек, риск — есть просрочка. Норма — 40 ч/нед (2400 мин).',

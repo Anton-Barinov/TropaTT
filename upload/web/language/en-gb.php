@@ -4692,6 +4692,7 @@ return array (
     'extra_insights_departments' => 'Departments',
     'extra_insights_people_title' => 'People',
     'extra_insights_first_of' => 'first %s of %s',
+    'extra_insights_bucket_days' => '1 bar = %s day(s)',
     'extra_insights_show_all' => 'Show all',
     'extra_insights_person_tasks' => 'Person tasks',
     'extra_insights_legend_signals' => 'Overload above 110% load, underload below 50% with no overdue work, risk means overdue work. Norm: 40 h/week (2400 min).',

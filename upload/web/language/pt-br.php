@@ -3713,6 +3713,7 @@ return array (
     'extra_insights_departments' => 'Departamentos',
     'extra_insights_people_title' => 'Pessoas',
     'extra_insights_first_of' => 'primeiras %s de %s',
+    'extra_insights_bucket_days' => '1 barra = %s dia(s)',
     'extra_insights_show_all' => 'Mostrar todos',
     'extra_insights_person_tasks' => 'Tarefas da pessoa',
     'extra_insights_legend_signals' => 'Sobrecarga acima de 110%, subcarga abaixo de 50% sem atrasos, risco significa atraso. Norma: 40 h/semana (2400 min).',

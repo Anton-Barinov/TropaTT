@@ -640,11 +640,24 @@
       : (Array.isArray(payload.daily_minutes) ? payload.daily_minutes : []);
     var maxMinutes = 1;
     daily.forEach(function (day) { maxMinutes = Math.max(maxMinutes, Number(day.minutes || 0)); });
+    // Long periods come back as multi-day buckets; the tooltip has to name the range
+    // the bar stands for, otherwise every bar claims a single day it does not cover.
+    var barSpan = function (day) {
+      var from = dateText(day.date);
+      var to = dateText(day.end_date);
+      return to && to !== from ? from + '\u2013' + to : from;
+    };
     var bars = daily.map(function (day) {
       var width = Math.max(2, Math.min(100, Math.round(Number(day.minutes || 0) / maxMinutes * 100)));
-      return '<div class="crm-dashboard-insight-bar" title="' + safe(dateText(day.date) + ' · ' + formatMinutesCompact(day.minutes)) + '">'
+      return '<div class="crm-dashboard-insight-bar" title="' + safe(barSpan(day) + ' · ' + formatMinutesCompact(day.minutes)) + '">'
         + '<i style="width:' + width + '%"></i></div>';
     }).join('');
+    var bucketDays = Number(payload.period_daily_bucket_days || 1);
+    var barsLegend = bucketDays > 1
+      ? '<div class="crm-dashboard-insight-legend">'
+        + safe(formatPlaceholders(translate('dashboard.extra_insights_bucket_days', '1 столбец = %s дн.'), [bucketDays]))
+        + '</div>'
+      : '';
 
     var delta = payload.delta_percent || {};
     var hasOnTime = payload.on_time_percent !== null && payload.on_time_percent !== undefined && payload.on_time_percent !== '';
@@ -671,7 +684,8 @@
       + insightTile(translate('dashboard.extra_insights_load', 'Загрузка'), loadValue, payload.load_signal)
       + '</div>'
       + backlogVerdictHtml(payload)
-      + '<div class="crm-dashboard-insight-bars" aria-hidden="true">' + bars + '</div>';
+      + '<div class="crm-dashboard-insight-bars" aria-hidden="true">' + bars + '</div>'
+      + barsLegend;
 
     bindInsightToolbar(container, definition);
   }
