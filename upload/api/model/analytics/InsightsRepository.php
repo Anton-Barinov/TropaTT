@@ -44,7 +44,12 @@ final class InsightsRepository
      * counter is period-based, and `delta_percent` compares the period with the
      * equally long window that precedes it.
      *
-     * @param array{now:string,week_start:string,period_start:string,previous_start?:string,period_days?:int} $window
+     * The weekly capacity the load percentage is measured against is supplied by
+     * the caller (`capacity_minutes_week`) because the organisation's working week
+     * is a service-level fact (setting or business calendar); the repository only
+     * falls back to the 40-hour default when nobody told it otherwise.
+     *
+     * @param array{now:string,week_start:string,period_start:string,previous_start?:string,period_days?:int,capacity_minutes_week?:int} $window
      * @return array<string,mixed>
      */
     public function personalLoad(int $userId, array $window): array
@@ -54,6 +59,7 @@ final class InsightsRepository
         $periodStart = (string)$window['period_start'];
         $previousStart = (string)($window['previous_start'] ?? $periodStart);
         $periodDays = max(1, (int)($window['period_days'] ?? 30));
+        $capacityMinutes = self::normalizeCapacity($window['capacity_minutes_week'] ?? null);
 
         $active = $this->countAssignedTasks($userId, false, $now);
         $overdue = $this->countAssignedTasks($userId, true, $now);
@@ -74,7 +80,7 @@ final class InsightsRepository
         $efficiency = ($completedPeriod + $overdue) > 0
             ? round($completedPeriod / ($completedPeriod + $overdue) * 100, 1)
             : 0.0;
-        $loadPercent = round($minutesWeek / self::WEEK_CAPACITY_MINUTES * 100, 1);
+        $loadPercent = round($minutesWeek / $capacityMinutes * 100, 1);
 
         // Queue balance: how fast work is finished versus how fast it arrives.
         $throughputPerDay = round($completedPeriod / $periodDays, 2);
@@ -90,7 +96,7 @@ final class InsightsRepository
             'overdue_tasks' => $overdue,
             'minutes_week' => $minutesWeek,
             'minutes_period' => $minutesPeriod,
-            'capacity_minutes_week' => self::WEEK_CAPACITY_MINUTES,
+            'capacity_minutes_week' => $capacityMinutes,
             'completed_period' => $completedPeriod,
             'cycle_time_median_minutes' => $medianCycleMinutes,
             'on_time_percent' => $onTime['percent'],
@@ -227,6 +233,7 @@ final class InsightsRepository
         $now = (string)$window['now'];
         $weekStart = (string)$window['week_start'];
         $periodStart = (string)$window['period_start'];
+        $capacityMinutes = self::normalizeCapacity($window['capacity_minutes_week'] ?? null);
 
         $sql = 'SELECT u.id AS user_id, u.public_id, u.login, u.full_name
                 FROM users u
@@ -264,10 +271,13 @@ final class InsightsRepository
             $overdue = (int)($taskCounts[$userId]['overdue'] ?? 0);
             $minutesWeek = (int)($minutesByUser[$userId] ?? 0);
             $completed = (int)($completedByUser[$userId] ?? 0);
-            $loadPercent = round($minutesWeek / self::WEEK_CAPACITY_MINUTES * 100, 1);
+            $loadPercent = round($minutesWeek / $capacityMinutes * 100, 1);
             $efficiency = ($completed + $overdue) > 0
                 ? round($completed / ($completed + $overdue) * 100, 1)
                 : 0.0;
+            // Someone with no work and no logs is not "underloaded" - there is
+            // simply nothing to measure yet. The card needs to tell those apart.
+            $hasData = $minutesWeek > 0 || $active > 0 || $completed > 0;
 
             $rows[] = [
                 'user_id' => $userId,
@@ -280,7 +290,8 @@ final class InsightsRepository
                 'completed_period' => $completed,
                 'load_percent' => $loadPercent,
                 'efficiency_percent' => $efficiency,
-                'signal' => self::workloadSignal($loadPercent, $overdue),
+                'has_data' => $hasData,
+                'signal' => $hasData ? self::workloadSignal($loadPercent, $overdue) : 'no_data',
             ];
         }
 
@@ -1648,5 +1659,181 @@ final class InsightsRepository
         }
 
         return 'normal';
+    }
+
+    /**
+     * A capacity the repository is willing to divide by.
+     *
+     * The service resolves the organisation's week; anything non-numeric or
+     * non-positive that reaches here (a broken setting, a null column) must not
+     * turn every load percentage into an error or a divide-by-zero, so the
+     * historical 40-hour default applies instead.
+     *
+     * @param mixed $value
+     */
+    private static function normalizeCapacity($value): int
+    {
+        if (is_numeric($value)) {
+            $minutes = (int)$value;
+            if ($minutes > 0) {
+                return $minutes;
+            }
+        }
+
+        return self::WEEK_CAPACITY_MINUTES;
+    }
+
+    /**
+     * Weekly minutes described by the best business calendar, if any.
+     *
+     * Picks the calendar covering the most weekdays (ties: the oldest row) and sums
+     * one span per weekday, taking the longest span when a calendar lists the same
+     * day twice. The join is deliberate: orphaned `working_hours` rows - of which
+     * the demo database has fifteen, pointing at calendars that no longer exist - do
+     * not describe anybody's week and must not become a capacity.
+     *
+     * Coverage is returned alongside the minutes so the caller can decide whether
+     * the calendar is complete enough to be trusted.
+     *
+     * @return array{minutes:?int,weekdays:int,calendar_public_id:?string}
+     */
+    public function calendarWeeklyCapacity(): array
+    {
+        $sql = 'SELECT c.id AS calendar_id, c.public_id AS calendar_public_id, w.weekday, w.start_time, w.end_time
+                FROM working_hours w
+                INNER JOIN business_calendars c ON c.id = w.calendar_id
+                WHERE w.weekday IS NOT NULL'
+            . ' ORDER BY c.id ASC';
+
+        $stmt = $this->pdo->query($sql);
+        $rows = $stmt === false ? [] : $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $byCalendar = [];
+        foreach ($rows as $row) {
+            $calendarId = (int)$row['calendar_id'];
+            $weekday = (int)$row['weekday'];
+            $span = self::minutesBetween((string)($row['start_time'] ?? ''), (string)($row['end_time'] ?? ''));
+            if ($span <= 0) {
+                continue;
+            }
+            if (!isset($byCalendar[$calendarId])) {
+                $byCalendar[$calendarId] = [
+                    'calendar_public_id' => (string)$row['calendar_public_id'],
+                    'weekdays' => [],
+                ];
+            }
+            $byCalendar[$calendarId]['weekdays'][$weekday] = max(
+                $byCalendar[$calendarId]['weekdays'][$weekday] ?? 0,
+                $span
+            );
+        }
+
+        $best = null;
+        foreach ($byCalendar as $entry) {
+            $weekdays = count($entry['weekdays']);
+            if ($weekdays === 0) {
+                continue;
+            }
+            if ($best === null || $weekdays > $best['weekdays']) {
+                $best = [
+                    'minutes' => (int)array_sum($entry['weekdays']),
+                    'weekdays' => $weekdays,
+                    'calendar_public_id' => $entry['calendar_public_id'],
+                ];
+            }
+        }
+
+        return $best ?? ['minutes' => null, 'weekdays' => 0, 'calendar_public_id' => null];
+    }
+
+    /**
+     * Median load percentage across the supplied scope, plus its sample size.
+     *
+     * Answers "is my week heavy compared with the people I can see?" without ever
+     * leaving the caller's scope: when `$isRoot` is false only the ids passed in are
+     * read, so a limited actor cannot learn the organisation's shape from a median.
+     * The median is taken over users, not over worklogs, and users with no logs count
+     * as zero - an idle colleague is part of the distribution.
+     *
+     * @param int[] $userIds ignored when $isRoot is true
+     * @return array{median:?float,sample:int,capacity_minutes_week:int}
+     */
+    public function loadPercentMedian(array $userIds, bool $isRoot, string $from, string $to, int $capacityMinutes): array
+    {
+        $capacity = self::normalizeCapacity($capacityMinutes);
+        $ids = $userIds;
+        if ($isRoot) {
+            $stmt = $this->pdo->query('SELECT id FROM users WHERE is_active = 1 AND deleted_at IS NULL');
+            $ids = array_map(static fn(array $row): int => (int)$row['id'], $stmt === false ? [] : $stmt->fetchAll(PDO::FETCH_ASSOC));
+        }
+        $ids = array_values(array_unique(array_filter($ids, static fn(int $id): bool => $id > 0)));
+        if ($ids === []) {
+            return ['median' => null, 'sample' => 0, 'capacity_minutes_week' => $capacity];
+        }
+
+        $minutes = $this->loggedMinutesByUser($ids, $from, $to);
+        $loads = [];
+        foreach ($ids as $id) {
+            $loads[] = (float)($minutes[$id] ?? 0) / $capacity * 100;
+        }
+        sort($loads);
+
+        return [
+            'median' => self::medianFloat($loads),
+            'sample' => count($loads),
+            'capacity_minutes_week' => $capacity,
+        ];
+    }
+
+    /**
+     * Minutes between two `HH:MM[:SS]` clock times, tolerating a span that crosses
+     * midnight (a night shift ends on the next day).
+     */
+    private static function minutesBetween(string $start, string $end): int
+    {
+        $startMinutes = self::clockMinutes($start);
+        $endMinutes = self::clockMinutes($end);
+        if ($startMinutes === null || $endMinutes === null) {
+            return 0;
+        }
+        if ($endMinutes < $startMinutes) {
+            $endMinutes += 24 * 60;
+        }
+
+        return $endMinutes - $startMinutes;
+    }
+
+    private static function clockMinutes(string $time): ?int
+    {
+        if (preg_match('/^(\d{1,2}):(\d{2})(?::\d{2})?$/', trim($time), $m) !== 1) {
+            return null;
+        }
+        $hours = (int)$m[1];
+        $minutes = (int)$m[2];
+        if ($hours > 24 || $minutes > 59) {
+            return null;
+        }
+
+        return $hours * 60 + $minutes;
+    }
+
+    /**
+     * Median of a float series (the integer `median()` above is for cycle minutes).
+     *
+     * @param float[] $values
+     */
+    private static function medianFloat(array $values): ?float
+    {
+        if ($values === []) {
+            return null;
+        }
+        sort($values);
+        $count = count($values);
+        $middle = intdiv($count, 2);
+        $median = $count % 2 === 1
+            ? $values[$middle]
+            : ($values[$middle - 1] + $values[$middle]) / 2;
+
+        return round($median, 1);
     }
 }

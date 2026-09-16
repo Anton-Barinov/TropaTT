@@ -577,10 +577,53 @@
     return payload && typeof payload.data === 'object' && payload.data !== null ? payload.data : {};
   }
 
-  function insightTile(label, value, signal, valueIsHtml) {
+  // With `href` the tile becomes a link to the filtered list behind the number, so a
+  // snapshot counter is a place to go rather than a dead end.
+  function insightTile(label, value, signal, valueIsHtml, href) {
     var cls = signal ? ' crm-dashboard-insight-tile--' + signal : '';
-    return '<div class="crm-dashboard-insight-tile' + cls + '"><span class="crm-dashboard-insight-label">'
-      + safe(label) + '</span><strong>' + (valueIsHtml ? String(value) : safe(value)) + '</strong></div>';
+    var body = '<span class="crm-dashboard-insight-label">'
+      + safe(label) + '</span><strong>' + (valueIsHtml ? String(value) : safe(value)) + '</strong>';
+    if (href) {
+      return '<a class="crm-dashboard-insight-tile is-link' + cls + '" href="' + safe(href) + '">' + body + '</a>';
+    }
+
+    return '<div class="crm-dashboard-insight-tile' + cls + '">' + body + '</div>';
+  }
+
+  // Where the weekly capacity came from: a number presented as "the target" must
+  // say whether it is the org's calendar, an explicit setting or the 40h default.
+  function capacitySourceLabel(source) {
+    var map = {
+      calendar: translate('dashboard.extra_insights_capacity_calendar', 'по календарю'),
+      setting: translate('dashboard.extra_insights_capacity_setting', 'по настройке')
+    };
+
+    return map[String(source || '')] || translate('dashboard.extra_insights_capacity_default', 'по умолчанию');
+  }
+
+  // "Медиана команды: 42% — вы выше на 8 п.п." - the comparison the load number
+  // needs to mean anything. Null median means the scope had nothing to compare.
+  function scopeMedianHtml(payload) {
+    var median = payload.scope_median_load_percent;
+    var sample = Number(payload.scope_sample || 0);
+    if (median === null || median === undefined || median === '' || sample <= 1) {
+      return sample <= 1
+        ? '<div class="crm-dashboard-insight-legend">' + safe(translate('dashboard.extra_insights_scope_none', 'Нет коллег в доступном скоупе для сравнения')) + '</div>'
+        : '';
+    }
+
+    var delta = payload.load_vs_scope_median_percent;
+    var deltaText = '';
+    if (delta !== null && delta !== undefined && delta !== '') {
+      var value = Math.abs(Number(delta));
+      deltaText = Number(delta) >= 0
+        ? ' · ' + formatPlaceholders(translate('dashboard.extra_insights_scope_above', 'выше медианы на %s'), [value])
+        : ' · ' + formatPlaceholders(translate('dashboard.extra_insights_scope_below', 'ниже медианы на %s'), [value]);
+    }
+
+    return '<div class="crm-dashboard-insight-legend">'
+      + safe(formatPlaceholders(translate('dashboard.extra_insights_scope_median', 'Медиана команды: %s'), [Math.round(Number(median)) + '%']))
+      + safe(deltaText) + '</div>';
   }
 
   // The single sentence that says whether the queue is winning or losing.
@@ -669,12 +712,19 @@
     // "цель", not "норма": the signal label already reads "норма", so a second
     // "норма" on the same tile would just repeat itself.
     var loadValue = Math.round(Number(payload.load_percent || 0)) + '% · ' + signalLabel(payload.load_signal)
-      + ' · ' + translate('dashboard.extra_insights_capacity_target', 'цель %s').replace('%s', formatMinutesCompact(capacity));
+      + ' · ' + translate('dashboard.extra_insights_capacity_target', 'цель %s').replace('%s', formatMinutesCompact(capacity))
+      + ' (' + capacitySourceLabel(payload.capacity_source) + ')';
+    // The two live snapshot tiles lead to the tasks behind them. "Завершено за
+    // период" deliberately stays plain: the task list has no "completed in this
+    // period" filter, so a link would promise a list it cannot show.
+    var me = String(payload.user_public_id || '');
+    var activeHref = me ? tasksListUrl({ assignee: me, kpi: 'active' }) : '';
+    var overdueHref = me ? tasksListUrl({ assignee: me, kpi: 'overdue' }) : '';
 
     container.innerHTML = toolbar
       + '<div class="crm-dashboard-insight-grid">'
-      + insightTile(translate('dashboard.extra_insights_active_now', 'Активные (сейчас)'), String(Number(payload.active_tasks || 0)))
-      + insightTile(translate('dashboard.extra_insights_overdue_now', 'Просрочено (сейчас)'), String(Number(payload.overdue_tasks || 0)), Number(payload.overdue_tasks || 0) > 0 ? 'risk' : null)
+      + insightTile(translate('dashboard.extra_insights_active_now', 'Активные (сейчас)'), String(Number(payload.active_tasks || 0)), null, false, activeHref)
+      + insightTile(translate('dashboard.extra_insights_overdue_now', 'Просрочено (сейчас)'), String(Number(payload.overdue_tasks || 0)), Number(payload.overdue_tasks || 0) > 0 ? 'risk' : null, false, overdueHref)
       + insightTile(translate('dashboard.extra_insights_hours_week', 'Часы за 7 дней'), formatMinutesCompact(payload.minutes_week))
       + insightTile(translate('dashboard.extra_insights_completed_period', 'Завершено за период'), String(Number(payload.completed_period || 0)) + deltaBadge(delta.completed), null, true)
       + insightTile(translate('dashboard.extra_insights_cycle', 'Время выполнения (медиана)'), formatMinutesCompact(payload.cycle_time_median_minutes))
@@ -683,6 +733,7 @@
       + insightTile(translate('dashboard.extra_insights_on_time', 'Вовремя'), onTime + onTimeHint, null)
       + insightTile(translate('dashboard.extra_insights_load', 'Загрузка'), loadValue, payload.load_signal)
       + '</div>'
+      + scopeMedianHtml(payload)
       + backlogVerdictHtml(payload)
       + '<div class="crm-dashboard-insight-bars" aria-hidden="true">' + bars + '</div>'
       + barsLegend;
@@ -805,7 +856,8 @@
       risk: translate('dashboard.extra_insights_risk', 'риск'),
       critical: translate('dashboard.extra_insights_critical', 'критично'),
       normal: translate('dashboard.extra_insights_normal', 'норма'),
-      ok: translate('dashboard.extra_insights_ok', 'норма')
+      ok: translate('dashboard.extra_insights_ok', 'норма'),
+      no_data: translate('dashboard.extra_insights_no_data', 'нет данных')
     };
     return map[signal] || map.normal;
   }
@@ -904,7 +956,9 @@
     bindInsightToolbar(container, definition);
   }
 
-  var SIGNAL_ORDER = { overload: 0, critical: 0, risk: 1, normal: 2, ok: 2, underload: 3 };
+  // `no_data` sorts last on purpose: somebody with nothing assigned yet is not a
+  // workload problem and must not jump above a real overload.
+  var SIGNAL_ORDER = { overload: 0, critical: 0, risk: 1, normal: 2, ok: 2, underload: 3, no_data: 4 };
 
   function signalRank(signal) {
     var key = String(signal || '').trim().toLowerCase();
@@ -967,10 +1021,31 @@
     ];
   };
 
+  // A department's members are rendered as links instead of a "drill-down" filter:
+  // the task list has no department filter (departments have no membership column),
+  // so the honest destination for "who is in this department" is each person.
+  function departmentTitleCell(department) {
+    var members = Array.isArray(department.members) ? department.members.slice(0, 5) : [];
+    var links = members.map(function (member) {
+      var name = String(member.full_name || member.login || member.user_public_id || '');
+      return '<a href="' + safe(tasksListUrl({ assignee: member.user_public_id })) + '">' + safe(name) + '</a>';
+    }).join(', ');
+    var more = Number(department.members_count || 0) - members.length;
+    var tail = more > 0 ? ' + ' + safe(String(more)) : '';
+    var noManager = department.no_manager
+      ? '<div class="crm-dashboard-wl-signal is-warn">' + safe(translate('dashboard.extra_insights_department_no_manager', 'нет руководителя — состав не определён')) + '</div>'
+      : '';
+    var membersLine = links !== ''
+      ? '<div class="text-muted small text-truncate">' + links + tail + '</div>'
+      : '';
+
+    return safe(String(department.title || '')) + noManager + membersLine;
+  }
+
   function departmentRows(departments) {
     return sortedAssigneeRows(departments, 'signal').map(function (department) {
       return [
-        safe(String(department.title || '')),
+        departmentTitleCell(department),
         safe(String(Number(department.members_count || 0))),
         safe(String(Number(department.active_tasks || 0))),
         safe(String(Number(department.overdue_tasks || 0))),
@@ -981,9 +1056,20 @@
     });
   }
 
-  function signalLegendHtml() {
+  // The legend has to name the capacity that is actually in force, otherwise it
+  // keeps claiming "40 h/week" after an admin set the org's own week.
+  function signalLegendHtml(payload) {
+    payload = payload || {};
+    var capacity = Number(payload.capacity_minutes_week || 2400);
+    var source = capacitySourceLabel(payload.capacity_source);
+    var base = translate('dashboard.extra_insights_legend_signals', 'Перегруз > 110% загрузки, недогруз < 50% без просрочек, риск — есть просрочка. {capacity}.');
+    var capacityText = formatPlaceholders(
+      translate('dashboard.extra_insights_legend_capacity', 'Норма — %s/нед, источник: %s'),
+      [formatMinutesCompact(capacity), source]
+    );
+
     return '<div class="crm-dashboard-insight-legend">'
-      + safe(translate('dashboard.extra_insights_legend_signals', 'Перегруз > 110% загрузки, недогруз < 50% без просрочек, риск — есть просрочка. Норма — 40 ч/нед (2400 мин).'))
+      + safe(base.replace('{capacity}', capacityText))
       + '</div>';
   }
 
@@ -1050,7 +1136,7 @@
       + insightsTable(ASSIGNEE_HEADERS(), assigneeRows(visible))
       + limitStateHtml(definition, ordered.length, 10);
 
-    container.innerHTML = toolbar + departmentsBlock + peopleBlock + signalLegendHtml();
+    container.innerHTML = toolbar + departmentsBlock + peopleBlock + signalLegendHtml(payload);
     bindInsightToolbar(container, definition);
   }
 
@@ -1229,7 +1315,7 @@
       + recommendationBlock
       + departmentsBlock
       + peopleBlock
-      + signalLegendHtml();
+      + signalLegendHtml(payload);
 
     bindInsightToolbar(container, definition);
   }

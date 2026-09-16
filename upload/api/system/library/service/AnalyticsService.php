@@ -10,13 +10,96 @@ use Api\Model\User\UserManagementRepository;
 
 final class AnalyticsService
 {
+    /**
+     * Explicit weekly-capacity override, stored like the finance keys: a dotted
+     * namespace inside the `system` scope, so the existing admin settings page (which
+     * lists scope=system) can offer it without a new endpoint.
+     */
+    private const CAPACITY_SCOPE = 'system';
+    private const CAPACITY_NAME = 'insights.weekly_capacity_minutes';
+
+    /**
+     * A working week shorter than this, or longer than that, is not a week a
+     * human works: the value is treated as broken calendar data and ignored.
+     */
+    private const CAPACITY_MIN_MINUTES = 300;
+    private const CAPACITY_MAX_MINUTES = 6000;
+
+    /**
+     * `working_hours` must describe at least this many days of the week before it
+     * is trusted as a capacity source. A calendar that only lists one day (or
+     * none) is treated as incomplete, not as a 9-hour week.
+     */
+    private const CAPACITY_MIN_WEEKDAYS = 3;
+
+    /** @var array<string,mixed>|null resolved once per request */
+    private ?array $weeklyCapacityCache = null;
+
     public function __construct(
         private readonly AnalyticsRepository $analytics,
         private readonly TeamRepository $teams,
         private readonly UserManagementRepository $userManagement,
         private readonly ?InsightsRepository $insights = null,
-        private readonly ?\Api\Model\Department\DepartmentRepository $departments = null
+        private readonly ?\Api\Model\Department\DepartmentRepository $departments = null,
+        private readonly ?SettingService $settings = null
     ) {
+    }
+
+    /**
+     * Weekly capacity every load percentage in the insights widgets is measured
+     * against, with the source it came from.
+     *
+     * Precedence is explicit-over-implicit: an administrator who sets the
+     * `insights.weekly_capacity_minutes` setting overrides the calendar, because the
+     * calendar may describe one office while the org runs a different week. A
+     * calendar is used only when it describes a coherent week; otherwise the
+     * historical 40-hour default applies and the payload says so, so the card can
+     * write "цель 40 ч (по умолчанию)" instead of presenting a guess as a fact.
+     *
+     * @return array{minutes:int,source:string,calendar_public_id:?string,weekdays_covered:int}
+     */
+    private function weeklyCapacity(): array
+    {
+        if ($this->weeklyCapacityCache !== null) {
+            return $this->weeklyCapacityCache;
+        }
+
+        $setting = $this->settings?->get(self::CAPACITY_SCOPE, self::CAPACITY_NAME);
+        $settingValue = is_array($setting) ? ($setting['value'] ?? null) : null;
+        if (is_numeric($settingValue)) {
+            $minutes = (int)$settingValue;
+            if ($minutes >= self::CAPACITY_MIN_MINUTES && $minutes <= self::CAPACITY_MAX_MINUTES) {
+                return $this->weeklyCapacityCache = [
+                    'minutes' => $minutes,
+                    'source' => 'setting',
+                    'calendar_public_id' => null,
+                    'weekdays_covered' => 0,
+                ];
+            }
+        }
+
+        $calendar = $this->insights !== null ? $this->insights->calendarWeeklyCapacity() : ['minutes' => null, 'weekdays' => 0, 'calendar_public_id' => null];
+        $calendarMinutes = $calendar['minutes'];
+        if (
+            $calendarMinutes !== null
+            && (int)$calendar['weekdays'] >= self::CAPACITY_MIN_WEEKDAYS
+            && $calendarMinutes >= self::CAPACITY_MIN_MINUTES
+            && $calendarMinutes <= self::CAPACITY_MAX_MINUTES
+        ) {
+            return $this->weeklyCapacityCache = [
+                'minutes' => (int)$calendarMinutes,
+                'source' => 'calendar',
+                'calendar_public_id' => $calendar['calendar_public_id'],
+                'weekdays_covered' => (int)$calendar['weekdays'],
+            ];
+        }
+
+        return $this->weeklyCapacityCache = [
+            'minutes' => InsightsRepository::WEEK_CAPACITY_MINUTES,
+            'source' => 'default_40h',
+            'calendar_public_id' => null,
+            'weekdays_covered' => (int)($calendar['weekdays'] ?? 0),
+        ];
     }
 
     public function summary(array $actor): array
@@ -106,16 +189,40 @@ final class AnalyticsService
         $periodDays = self::normalizePeriodDays($filters['period'] ?? 30);
         $now = gmdate('Y-m-d H:i:s');
 
+        $weekStart = gmdate('Y-m-d 00:00:00', strtotime('-6 days', strtotime($now)));
+        $capacity = $this->weeklyCapacity();
+
         $data = $this->insights()->personalLoad((int)($actor['id'] ?? 0), [
             'now' => $now,
-            'week_start' => gmdate('Y-m-d 00:00:00', strtotime('-6 days', strtotime($now))),
+            'week_start' => $weekStart,
             'period_start' => gmdate('Y-m-d 00:00:00', strtotime('-' . $periodDays . ' days', strtotime($now))),
             'previous_start' => gmdate('Y-m-d 00:00:00', strtotime('-' . ($periodDays * 2) . ' days', strtotime($now))),
             'period_days' => $periodDays,
+            'capacity_minutes_week' => $capacity['minutes'],
         ]);
+
+        // How the actor's week compares with the people they can see. The median
+        // (not the average) is deliberate: one person logging 200 h must not move
+        // the line everyone else is measured against.
+        $isRoot = (bool)($actor['is_root'] ?? false);
+        $scopeIds = $isRoot ? [] : $this->visibleUserIds($actor);
+        $median = $this->insights()->loadPercentMedian(
+            $scopeIds === [] && !$isRoot ? [-1] : $scopeIds,
+            $isRoot,
+            $weekStart,
+            $now,
+            $capacity['minutes']
+        );
 
         $data['period_days'] = $periodDays;
         $data['user_public_id'] = (string)($actor['public_id'] ?? '');
+        $data['capacity_source'] = $capacity['source'];
+        $data['capacity_calendar_public_id'] = $capacity['calendar_public_id'];
+        $data['scope_median_load_percent'] = $median['median'];
+        $data['scope_sample'] = $median['sample'];
+        $data['load_vs_scope_median_percent'] = $median['median'] === null
+            ? null
+            : round((float)$data['load_percent'] - (float)$median['median'], 1);
 
         return $this->stripFinancialFields($data);
     }
@@ -186,6 +293,12 @@ final class AnalyticsService
      * they manage. Metrics are summed per department; a user can contribute to
      * more than one department when they belong to several.
      *
+     * `departments` has no membership column of its own, so a department without a
+     * manager cannot be measured at all. Such rows are still returned - with
+     * `no_manager: true` and zero members - instead of being dropped silently,
+     * because "the org has three departments and the widget shows none" is exactly
+     * the confusion this card caused before.
+     *
      * @param array<string,mixed> $actor
      * @param array<string,mixed> $filters
      * @return array<string,mixed>
@@ -206,6 +319,9 @@ final class AnalyticsService
             $userIds = [-1];
         }
 
+        $capacity = $this->weeklyCapacity();
+        $window['capacity_minutes_week'] = $capacity['minutes'];
+
         $assignees = $this->insights()->assigneeLoad($userIds, $isRoot, $window);
         $byUserId = [];
         foreach ($assignees as $row) {
@@ -218,6 +334,18 @@ final class AnalyticsService
             foreach ($items as $department) {
                 $managerId = (int)($department['manager_user_id'] ?? 0);
                 if ($managerId <= 0) {
+                    $departments[] = [
+                        'public_id' => (string)($department['public_id'] ?? ''),
+                        'title' => (string)($department['title'] ?? ''),
+                        'members_count' => 0,
+                        'active_tasks' => 0,
+                        'overdue_tasks' => 0,
+                        'minutes_week' => 0,
+                        'load_percent' => 0.0,
+                        'signal' => 'no_data',
+                        'no_manager' => true,
+                        'members' => [],
+                    ];
                     continue;
                 }
 
@@ -242,8 +370,10 @@ final class AnalyticsService
                     $minutes += (int)$member['minutes_week'];
                 }
 
-                $capacity = count($rows) * 40 * 60;
-                $loadPercent = $capacity > 0 ? round($minutes / $capacity * 100, 1) : 0.0;
+                // Capacity follows the organisation's week (calendar or explicit
+                // setting), not a hardcoded 40 h per head.
+                $departmentCapacity = count($rows) * $capacity['minutes'];
+                $loadPercent = $departmentCapacity > 0 ? round($minutes / $departmentCapacity * 100, 1) : 0.0;
 
                 $departments[] = [
                     'public_id' => (string)($department['public_id'] ?? ''),
@@ -253,7 +383,10 @@ final class AnalyticsService
                     'overdue_tasks' => $overdue,
                     'minutes_week' => $minutes,
                     'load_percent' => $loadPercent,
-                    'signal' => InsightsRepository::workloadSignal($loadPercent, $overdue),
+                    'signal' => count($rows) === 0
+                        ? 'no_data'
+                        : InsightsRepository::workloadSignal($loadPercent, $overdue),
+                    'no_manager' => false,
                     'members' => $rows,
                 ];
             }
@@ -264,7 +397,10 @@ final class AnalyticsService
         return $this->stripFinancialFields([
             'assignees' => $assignees,
             'departments' => $departments,
-            'capacity_minutes_week' => InsightsRepository::WEEK_CAPACITY_MINUTES,
+            'departments_source' => 'manager_hierarchy',
+            'capacity_minutes_week' => $capacity['minutes'],
+            'capacity_source' => $capacity['source'],
+            'capacity_calendar_public_id' => $capacity['calendar_public_id'],
             'period_days' => $periodDays,
         ]);
     }
@@ -334,7 +470,8 @@ final class AnalyticsService
             'assignees' => $assignees,
             'departments' => $departments,
             'recommendation' => InsightsRepository::rebalanceRecommendation($assignees),
-            'capacity_minutes_week' => InsightsRepository::WEEK_CAPACITY_MINUTES,
+            'capacity_minutes_week' => $load['capacity_minutes_week'],
+            'capacity_source' => $load['capacity_source'] ?? 'default_40h',
             'summary' => $summary + [
                 'people' => $count,
                 'average_load_percent' => $count > 0 ? round($loadSum / $count, 1) : 0.0,
