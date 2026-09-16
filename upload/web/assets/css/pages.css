@@ -7766,6 +7766,21 @@ body.modal-open {
   margin-top: 4px;
   font-size: var(--text-xs, 0.75rem);
 }
+/* Streams card: the search box over the table and the group headings inside it. */
+.crm-dashboard-page .crm-dashboard-insight-controls {
+  margin: 0 0 8px;
+}
+.crm-dashboard-page .crm-dashboard-insight-search {
+  max-width: 320px;
+}
+.crm-dashboard-page .crm-dashboard-insight-table-group td {
+  background: var(--crm-bg-soft);
+  font-weight: 600;
+}
+.crm-dashboard-page .crm-dashboard-insight-table .is-warn,
+.crm-dashboard-page .crm-dashboard-extra-row .is-warn {
+  color: var(--crm-warning);
+}
 .crm-dashboard-page .crm-dashboard-insight-stream-head {
   display: flex;
   flex-wrap: wrap;

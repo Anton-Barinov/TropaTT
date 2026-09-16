@@ -561,6 +561,9 @@ final class AnalyticsService
 
         return $this->stripFinancialFields([
             'projects' => $items,
+            // Rolled up from the same scoped rows: the portfolio line must never see
+            // a project the actor could not open.
+            'aggregates' => InsightsRepository::portfolioAggregates($items),
             'period_days' => $periodDays,
         ]);
     }
