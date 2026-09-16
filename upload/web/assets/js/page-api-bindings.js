@@ -32823,7 +32823,9 @@ window.CRM.pageApiBindings = (function () {
       '#tasksProjectFilter',
       // Stream-detail dashboard widget: the project list is long, and the widget
       // re-renders the select on every change, so the mutation observer re-wraps it.
-      '#dashboardInsightStreamSelect'
+      '#dashboardInsightStreamSelect',
+      // Actual-time widget gained the same optional narrowing to one project.
+      '#dashboardInsightActualProjectSelect'
     ];
     selectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
     projectSelectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
