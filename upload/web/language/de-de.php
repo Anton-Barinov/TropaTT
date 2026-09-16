@@ -3691,6 +3691,7 @@ return array (
     'extra_insights_no_deadlines_short' => 'keine Fristen',
     'extra_insights_of_deadlines' => 'von %s mit Frist',
     'extra_insights_capacity_target' => 'Ziel %s',
+    'extra_insights_live_tasks_note' => 'nur nicht gelöschte und nicht archivierte Aufgaben werden gezählt',
     'extra_insights_without_estimate' => 'Aufgaben mit Zeiterfassung, aber ohne Schätzung',
     'extra_insights_points' => 'Einheiten',
     'extra_insights_estimate_rate_hint' => 'Ist-Zeit je Einheit der Skala',

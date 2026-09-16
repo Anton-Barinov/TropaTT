@@ -4815,6 +4815,7 @@ return array (
     'extra_insights_no_deadlines_short' => '无期限',
     'extra_insights_of_deadlines' => '共 %s 个有期限',
     'extra_insights_capacity_target' => '目标 %s',
+    'extra_insights_live_tasks_note' => '仅统计未删除、未归档的任务',
     'extra_insights_without_estimate' => '有工时记录但无估算的任务',
     'extra_insights_points' => '单位',
     'extra_insights_estimate_rate_hint' => '每个估算单位的实际工时',
