@@ -1029,6 +1029,153 @@
       + head + '</tr></thead><tbody>' + body + '</tbody></table></div>';
   }
 
+  // Personal goals, and only when the person actually set one. "8 tasks" answers
+  // nothing on its own; "5 / 8 (63 %)" does. A goal that was never configured must
+  // leave the card exactly as it looked before, so the whole block is skipped.
+  function kpiGoalsHtml(payload) {
+    var goals = payload.goals || {};
+    var progress = payload.goal_progress_percent || {};
+    var set = function (value) { return value !== null && value !== undefined && value !== ''; };
+    if (!set(goals.completed_per_period) && !set(goals.on_time_percent) && !set(goals.weekly_minutes)) {
+      return '';
+    }
+
+    var percentCell = function (value) {
+      if (!set(value)) return '<span class="crm-dashboard-insight-delta">—</span>';
+      var num = Number(value);
+      // Red only when the goal is genuinely out of reach so far; a met goal is not
+      // an achievement worth a badge, it is simply not a problem.
+      return '<span class="crm-dashboard-insight-delta ' + (num >= 100 ? 'is-up' : 'is-down') + '">' + num + '%</span>';
+    };
+    var factCell = function (achieved, goal, format) {
+      return '<strong>' + safe(format(achieved) + ' / ' + format(goal)) + '</strong>';
+    };
+    var plain = function (value) { return String(Number(value)); };
+    var percentText = function (value) {
+      return value === null || value === undefined || value === '' ? '—' : Number(value) + '%';
+    };
+
+    var rows = [];
+    if (set(goals.completed_per_period)) {
+      rows.push([
+        safe(translate('dashboard.extra_insights_completed', 'Завершено')),
+        factCell(Number(payload.completed || 0), Number(goals.completed_per_period), plain),
+        percentCell(progress.completed)
+      ]);
+    }
+    if (set(goals.on_time_percent)) {
+      rows.push([
+        safe(translate('dashboard.extra_insights_on_time', 'Вовремя')),
+        factCell(payload.on_time_percent, Number(goals.on_time_percent), percentText),
+        percentCell(progress.on_time)
+      ]);
+    }
+    if (set(goals.weekly_minutes)) {
+      rows.push([
+        safe(translate('dashboard.extra_insights_hours_week', 'Часы за 7 дней')),
+        factCell(Number(payload.weekly_minutes_last || 0), Number(goals.weekly_minutes), formatMinutesCompact),
+        percentCell(progress.weekly_minutes)
+      ]);
+    }
+
+    return '<div class="crm-dashboard-insight-section-title">' + safe(translate('dashboard.extra_insights_goals_title', 'Личные цели')) + '</div>'
+      + insightsTable(
+        [
+          safe(translate('dashboard.extra_insights_metric', 'Метрика')),
+          safe(translate('dashboard.extra_insights_value', 'Значение')),
+          safe(translate('dashboard.extra_insights_goal_percent', '% цели'))
+        ],
+        rows
+      )
+      + '<div class="crm-dashboard-insight-legend">'
+      + safe(translate('dashboard.extra_insights_goals_legend', 'Красным отмечены цели, до которых не хватило'))
+      + '</div>';
+  }
+
+  // "Is my 6 a lot?" - answered against the people the actor can see, never against
+  // the whole organisation. Both lines stay away when the distribution is too thin
+  // to mean anything (nobody to compare with, or nobody with dated work).
+  function kpiScopeHtml(payload) {
+    var sample = Number(payload.scope_sample || 0);
+    if (sample <= 1) {
+      return '<div class="crm-dashboard-insight-legend">'
+        + safe(translate('dashboard.extra_insights_scope_none', 'Нет коллег в доступном скоупе для сравнения'))
+        + '</div>';
+    }
+
+    var set = function (value) { return value !== null && value !== undefined && value !== ''; };
+    var deltaSuffix = function (delta) {
+      if (!set(delta)) return '';
+      var value = Math.abs(Number(delta));
+      // "выше медианы на 0" is not a comparison, it is a rounding artefact - being
+      // exactly at the median is a fact and has its own wording.
+      if (Number(delta) === 0) {
+        return ' · ' + translate('dashboard.extra_insights_scope_equal', 'ровно на медиане');
+      }
+
+      return Number(delta) > 0
+        ? ' · ' + formatPlaceholders(translate('dashboard.extra_insights_scope_above', 'выше медианы на %s'), [value])
+        : ' · ' + formatPlaceholders(translate('dashboard.extra_insights_scope_below', 'ниже медианы на %s'), [value]);
+    };
+
+    var html = '';
+    if (set(payload.scope_median_completed)) {
+      html += '<div class="crm-dashboard-insight-legend">'
+        + safe(formatPlaceholders(translate('dashboard.extra_insights_scope_completed_median', 'Медиана команды: %s завершённых'), [String(Number(payload.scope_median_completed))]))
+        + safe(deltaSuffix(payload.completed_vs_scope_median))
+        + '</div>';
+    }
+    if (set(payload.scope_median_on_time_percent)) {
+      var people = Number(payload.scope_on_time_sample || 0);
+      html += '<div class="crm-dashboard-insight-legend">'
+        + safe(formatPlaceholders(translate('dashboard.extra_insights_scope_on_time_median', 'Вовремя у команды: %s'), [Number(payload.scope_median_on_time_percent) + '%']))
+        + safe(people > 0 ? ' · ' + formatPlaceholders(translate('dashboard.extra_insights_scope_people', 'по %s чел.'), [String(people)]) : '')
+        + safe(deltaSuffix(payload.on_time_vs_scope_median))
+        + '</div>';
+    } else {
+      // Colleagues exist, but not one of them finished a dated task, so the on-time
+      // median is not 0 % - it does not exist. Naming the gap is the difference
+      // between an honest empty state and a number nobody should act on.
+      html += '<div class="crm-dashboard-insight-legend">'
+        + safe(translate('dashboard.extra_insights_scope_no_dated', 'Ни у кого из коллег нет задач со сроком — сравнить не с чем'))
+        + '</div>';
+    }
+
+    return html;
+  }
+
+  // Where the period actually went, project by project. The head is honest about
+  // the cap: the endpoint ranks the projects and the card shows the first five.
+  function kpiProjectsHtml(payload) {
+    var projects = Array.isArray(payload.projects) ? payload.projects : [];
+    if (!projects.length) return '';
+
+    var rows = projects.map(function (project) {
+      return [
+        '<a href="' + safe(tasksListUrl({ project: String(project.project_public_id || '') })) + '">'
+          + safe(String(project.title || project.project_public_id || '')) + '</a>',
+        safe(String(Number(project.completed || 0))),
+        safe(formatMinutesCompact(project.minutes))
+      ];
+    });
+    var total = Number(payload.projects_total || projects.length);
+
+    return '<div class="crm-dashboard-insight-section-title">' + safe(translate('dashboard.extra_insights_projects_title', 'Проекты периода')) + '</div>'
+      + insightsTable(
+        [
+          safe(translate('dashboard.extra_insights_project', 'Проект')),
+          safe(translate('dashboard.extra_insights_completed', 'Завершено')),
+          safe(translate('dashboard.extra_insights_hours', 'Часы'))
+        ],
+        rows
+      )
+      + (total > projects.length
+        ? '<div class="crm-dashboard-insight-legend">'
+          + safe(formatPlaceholders(translate('dashboard.extra_insights_projects_more', 'Показаны первые %s из %s проектов'), [String(projects.length), String(total)]))
+          + '</div>'
+        : '');
+  }
+
   function renderKpi(container, envelope, definition) {
     var toolbar = insightToolbar(definition, [{
       name: 'period',
@@ -1047,7 +1194,10 @@
     var hasData = Number(payload.completed || 0) || Number(payload.minutes || 0) || Number(payload.overdue || 0)
       || Number(payload.streak_days || 0);
     if (!hasData) {
-      container.innerHTML = toolbar + emptyHtml();
+      // A configured goal is data in its own right. «Пока нет данных» alone throws the
+      // goal away exactly when it matters most - at the start of a period the honest
+      // answer is «0 / 8», and the comparison line says whether that is normal here.
+      container.innerHTML = toolbar + emptyHtml() + kpiGoalsHtml(payload) + kpiScopeHtml(payload);
       bindInsightToolbar(container, definition);
       return;
     }
@@ -1100,7 +1250,10 @@
       )
       + '<div class="crm-dashboard-insight-legend">'
       + safe(translate('dashboard.extra_insights_legend_snapshot', '«сейчас» — снимок на текущий момент, остальное — за выбранный период'))
-      + '</div>';
+      + '</div>'
+      + kpiGoalsHtml(payload)
+      + kpiScopeHtml(payload)
+      + kpiProjectsHtml(payload);
 
     bindInsightToolbar(container, definition);
   }

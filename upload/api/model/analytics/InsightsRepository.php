@@ -2451,6 +2451,189 @@ final class InsightsRepository
     }
 
     /**
+     * Per-person median of the two scorecard metrics, over the caller's own scope.
+     *
+     * The widget could say "you completed 6 tasks" but not whether 6 is a lot, and
+     * a company average cannot answer that either: one person closing 90 tasks
+     * would move the line everyone else is judged by. Medians are taken over users
+     * (an idle colleague counts as zero completed, which is part of the shape of
+     * the team) and never over a wider scope than the caller was given - with
+     * `$isRoot` false only the passed ids are read.
+     *
+     * On-time has no meaningful value for a user with no dated work, so those users
+     * are left out of that distribution and `on_time_sample` reports how many
+     * people actually contributed a percentage.
+     *
+     * @param int[] $userIds ignored when $isRoot is true
+     * @return array{completed_median:?int,on_time_median:?float,sample:int,on_time_sample:int}
+     */
+    public function personalScorecardScope(array $userIds, bool $isRoot, string $from, string $to): array
+    {
+        $ids = $userIds;
+        if ($isRoot) {
+            $stmt = $this->pdo->query('SELECT id FROM users WHERE is_active = 1 AND deleted_at IS NULL');
+            $ids = array_map(static fn(array $row): int => (int)$row['id'], $stmt === false ? [] : $stmt->fetchAll(PDO::FETCH_ASSOC));
+        }
+        $ids = array_values(array_unique(array_filter($ids, static fn(int $id): bool => $id > 0)));
+        if ($ids === []) {
+            return ['completed_median' => null, 'on_time_median' => null, 'sample' => 0, 'on_time_sample' => 0];
+        }
+
+        $completedByUser = $this->completedTasksByUser($ids, $from, $to);
+        $completedSeries = [];
+        foreach ($ids as $id) {
+            $completedSeries[] = (int)($completedByUser[$id] ?? 0);
+        }
+
+        $onTime = $this->onTimePercentByUser($ids, $from, $to);
+        $onTimeSeries = array_values($onTime['percents']);
+
+        return [
+            'completed_median' => self::median($completedSeries),
+            'on_time_median' => self::medianFloat($onTimeSeries),
+            'sample' => count($ids),
+            'on_time_sample' => count($onTimeSeries),
+        ];
+    }
+
+    /**
+     * On-time percentage per user, over the tasks that were finished in the window.
+     *
+     * Same first-finish semantics as `onTimeCompletion()`: only the first terminal
+     * transition of a task counts, and only tasks carrying a due date can be late.
+     *
+     * @param int[] $userIds
+     * @return array{percents:array<int,float>,samples:array<int,int>}
+     */
+    private function onTimePercentByUser(array $userIds, string $from, string $to): array
+    {
+        if ($userIds === []) {
+            return ['percents' => [], 'samples' => []];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($userIds), '?'));
+        $stmt = $this->pdo->prepare(
+            'SELECT t.assignee_user_id AS uid,
+                    COUNT(*) AS total,
+                    SUM(CASE WHEN f.finished_at <= t.due_at THEN 1 ELSE 0 END) AS on_time
+               FROM (' . $this->firstFinishSubquery($placeholders) . ') f
+               JOIN tasks t ON t.id = f.task_id
+              WHERE t.due_at IS NOT NULL AND f.finished_at >= ? AND f.finished_at <= ?
+              GROUP BY t.assignee_user_id'
+        );
+        $stmt->execute(array_merge($userIds, [$from, $to]));
+
+        $percents = [];
+        $samples = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $userId = (int)$row['uid'];
+            $total = (int)($row['total'] ?? 0);
+            if ($userId <= 0 || $total <= 0) {
+                continue;
+            }
+            $percents[$userId] = round((int)($row['on_time'] ?? 0) / $total * 100, 1);
+            $samples[$userId] = $total;
+        }
+
+        return ['percents' => $percents, 'samples' => $samples];
+    }
+
+    /**
+     * The projects a single person's period was spent on, by completed tasks and
+     * logged time.
+     *
+     * The rows are that person's own tasks and own work logs, so the breakdown can
+     * never show work they did not do. It is deliberately *not* additionally
+     * filtered by the project-access list the picker uses: a person who logged two
+     * hours on a project they neither created, manage nor share a team with would
+     * see those hours disappear from "where my period went" - the one question this
+     * block exists to answer - while the same project title is already visible on
+     * their own task. The scope that matters here is "whose data", and that is the
+     * actor's.
+     *
+     * Ordering is completed-first because that is the metric the widget ranks on;
+     * a project the person only logged time on still appears (dropping it would
+     * hide a real slice of the period).
+     *
+     * Both halves use the very same definitions as the tiles above them, so the
+     * rows reconcile with the card: completed is `countCompletedTasks` (no
+     * archived/deleted filter) and hours are `sumLoggedMinutes` (archived tasks
+     * excluded - the same rule that produced the "Часы" tile). A narrower filter
+     * here would make the split add up to less than the number right above it,
+     * and the reader would trust neither.
+     *
+     * @return array{projects:list<array{project_public_id:string,title:string,completed:int,minutes:int}>,total:int}
+     */
+    public function completedByProject(int $userId, string $from, string $to, int $limit): array
+    {
+        if ($userId <= 0) {
+            return ['projects' => [], 'total' => 0];
+        }
+
+        $completedStmt = $this->pdo->prepare(
+            'SELECT p.public_id AS project_public_id, p.title AS title, COUNT(DISTINCT t.id) AS completed
+               FROM task_status_history h
+               JOIN tasks t ON t.id = h.task_id
+               JOIN projects p ON p.id = t.project_id
+              WHERE h.new_status IN (' . TaskStatusSemantics::completedLiteralList($this->pdo) . ')
+                AND h.created_at >= ? AND h.created_at <= ?
+                AND t.assignee_user_id = ?
+              GROUP BY p.public_id, p.title'
+        );
+        $completedStmt->execute([$from, $to, $userId]);
+
+        $minutesStmt = $this->pdo->prepare(
+            'SELECT p.public_id AS project_public_id, p.title AS title, COALESCE(SUM(w.minutes_spent), 0) AS minutes
+               FROM work_logs w
+               JOIN tasks t ON t.id = w.task_id AND t.deleted_at IS NULL AND t.archived_at IS NULL
+               JOIN projects p ON p.id = t.project_id
+              WHERE w.user_id = ? AND w.logged_at >= ? AND w.logged_at <= ?
+              GROUP BY p.public_id, p.title'
+        );
+        $minutesStmt->execute([$userId, $from, $to]);
+
+        $rows = [];
+        foreach ($completedStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $key = (string)$row['project_public_id'];
+            $rows[$key] = [
+                'project_public_id' => $key,
+                'title' => (string)($row['title'] ?? ''),
+                'completed' => (int)($row['completed'] ?? 0),
+                'minutes' => 0,
+            ];
+        }
+        foreach ($minutesStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $key = (string)$row['project_public_id'];
+            if (!isset($rows[$key])) {
+                $rows[$key] = [
+                    'project_public_id' => $key,
+                    'title' => (string)($row['title'] ?? ''),
+                    'completed' => 0,
+                    'minutes' => 0,
+                ];
+            }
+            $rows[$key]['minutes'] = (int)($row['minutes'] ?? 0);
+        }
+
+        $list = array_values($rows);
+        usort($list, static function (array $a, array $b): int {
+            if ($a['completed'] !== $b['completed']) {
+                return $b['completed'] <=> $a['completed'];
+            }
+            if ($a['minutes'] !== $b['minutes']) {
+                return $b['minutes'] <=> $a['minutes'];
+            }
+
+            return strcmp($a['title'], $b['title']);
+        });
+
+        return [
+            'projects' => array_slice($list, 0, max(1, $limit)),
+            'total' => count($list),
+        ];
+    }
+
+    /**
      * Minutes between two `HH:MM[:SS]` clock times, tolerating a span that crosses
      * midnight (a night shift ends on the next day).
      */
