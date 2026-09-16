@@ -3728,6 +3728,7 @@ return array (
     'extra_insights_backlog_hint' => 'Erstellte versus erledigte Aufgaben im Zeitraum',
     'extra_insights_unlogged_title' => 'Aktive Aufgaben ohne Zeiterfassung',
     'extra_insights_open_tasks' => 'Aufgaben öffnen',
+    'extra_insights_log_time' => 'Zeit erfassen',
     'extra_activity_dev' => 'Entwicklung',
     'extra_activity_qa' => 'Test',
     'extra_activity_design' => 'Design',

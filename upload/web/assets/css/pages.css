@@ -7476,6 +7476,15 @@ body.modal-open {
   text-underline-offset: 2px;
 }
 
+/* Per-row action ("Залогировать время") next to a task row: the generic row-link
+   rule above would otherwise strip the button's own weight and colour. */
+.crm-dashboard-page .crm-dashboard-extra-row a.crm-insights-log-time {
+  flex: 0 0 auto;
+  align-self: center;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .crm-dashboard-page .crm-dashboard-extra-row small {
   display: block;
   margin-top: 2px;
