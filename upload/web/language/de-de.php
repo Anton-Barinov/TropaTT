@@ -3777,6 +3777,7 @@ return array (
     'extra_insights_no_match' => 'Keine Treffer für "%s"',
     'extra_insights_no_team' => 'ohne Team',
     'extra_insights_no_client' => 'ohne Kunde',
+    'extra_insights_portfolio_scope' => 'Das Portfolio zählt nur Aufgaben und Meilensteine innerhalb der Ströme — Aufgaben ohne Projekt gehören zu keinem.',
     'extra_insights_wip_growing' => 'wächst',
     'extra_insights_wip_shrinking' => 'sinkt',
     'extra_insights_wip_stable' => 'stabil',

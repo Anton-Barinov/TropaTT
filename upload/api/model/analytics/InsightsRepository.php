@@ -649,6 +649,7 @@ final class InsightsRepository
                 'overdue_milestones' => $variance['overdue_milestones'],
                 'next_deadline_at' => $variance['next_deadline_at'],
                 'next_deadline_source' => $variance['next_deadline_source'],
+                'next_future_deadline_at' => $variance['next_future_deadline_at'],
                 'days_to_deadline' => $variance['days_to_deadline'],
                 'schedule_lag_days' => $variance['schedule_lag_days'],
                 'schedule_state' => $variance['schedule_state'],
@@ -1081,6 +1082,10 @@ final class InsightsRepository
      * `schedule_state` is deliberately explicit about the no-data case: `none` means
      * "this project has nothing scheduled", which is an answer, not a blank column.
      *
+     * `next_deadline_at` is the nearest deadline to now in either direction, so a
+     * project that has already missed its only deadline still names that date (with a
+     * negative `days_to_deadline` and the lag beside it) instead of going blank.
+     *
      * @param array<string,mixed> $row
      * @return array{next_deadline_at:?string,next_deadline_source:?string,days_to_deadline:?int,schedule_lag_days:?int,schedule_state:string,overdue_milestones:int}
      */
@@ -1093,32 +1098,40 @@ final class InsightsRepository
 
         // The milestone wins a tie: it is the commitment a client sees, while a task
         // due date is usually the internal plan that serves it.
-        $nextDeadlineAt = null;
-        $nextDeadlineSource = null;
+        $futureDeadlineAt = null;
+        $futureDeadlineSource = null;
         if ($milestoneAt !== null && ($taskDueAt === null || $milestoneAt <= $taskDueAt)) {
-            $nextDeadlineAt = $milestoneAt;
-            $nextDeadlineSource = 'milestone';
+            $futureDeadlineAt = $milestoneAt;
+            $futureDeadlineSource = 'milestone';
         } elseif ($taskDueAt !== null) {
-            $nextDeadlineAt = $taskDueAt;
-            $nextDeadlineSource = 'task';
+            $futureDeadlineAt = $taskDueAt;
+            $futureDeadlineSource = 'task';
         }
+        $nextDeadlineAt = $futureDeadlineAt;
+        $nextDeadlineSource = $futureDeadlineSource;
 
         $nowTs = strtotime($now);
-        $daysToDeadline = null;
-        if ($nextDeadlineAt !== null && $nowTs !== false) {
-            $deadlineTs = strtotime($nextDeadlineAt);
-            if ($deadlineTs !== false) {
-                $daysToDeadline = (int)floor(($deadlineTs - $nowTs) / 86400);
-            }
-        }
 
         // Lag answers "how late are we", so it is measured from the earliest deadline
         // already missed - a milestone when there is one, a task due date otherwise.
         $earliestOverdueAt = $overdueMilestones > 0
             ? self::nonEmptyString($row['earliest_overdue_milestone_at'] ?? null)
             : null;
+        $earliestOverdueSource = $earliestOverdueAt === null ? null : 'milestone';
         if ($earliestOverdueAt === null && $overdueTasks > 0) {
             $earliestOverdueAt = self::nonEmptyString($row['earliest_overdue_task_at'] ?? null);
+            $earliestOverdueSource = $earliestOverdueAt === null ? null : 'task';
+        }
+
+        // Which deadline binds the project *first* is the earliest one still unresolved,
+        // past or future: a row that prints "отставание 5 дн." without naming the date it
+        // missed leaves the reader without the fact they came for. A missed deadline on
+        // its own (nothing left ahead) is therefore named here too - and the payload
+        // also carries the nearest date still ahead, which is what a portfolio line
+        // answers "what is due next" from.
+        if ($earliestOverdueAt !== null && ($nextDeadlineAt === null || $earliestOverdueAt < $nextDeadlineAt)) {
+            $nextDeadlineAt = $earliestOverdueAt;
+            $nextDeadlineSource = $earliestOverdueSource;
         }
 
         $lagDays = null;
@@ -1126,6 +1139,16 @@ final class InsightsRepository
             $overdueTs = strtotime($earliestOverdueAt);
             if ($overdueTs !== false) {
                 $lagDays = max(0, (int)floor(($nowTs - $overdueTs) / 86400));
+            }
+        }
+
+        // Measured after the missed deadline has taken over: that date is now the
+        // nearest one, so its distance is negative rather than absent.
+        $daysToDeadline = null;
+        if ($nextDeadlineAt !== null && $nowTs !== false) {
+            $deadlineTs = strtotime($nextDeadlineAt);
+            if ($deadlineTs !== false) {
+                $daysToDeadline = (int)floor(($deadlineTs - $nowTs) / 86400);
             }
         }
 
@@ -1140,6 +1163,7 @@ final class InsightsRepository
         return [
             'next_deadline_at' => $nextDeadlineAt,
             'next_deadline_source' => $nextDeadlineSource,
+            'next_future_deadline_at' => $futureDeadlineAt,
             'days_to_deadline' => $daysToDeadline,
             'schedule_lag_days' => $lagDays,
             'schedule_state' => $scheduleState,
@@ -1184,7 +1208,19 @@ final class InsightsRepository
                 $aggregates['without_deadline']++;
             }
 
-            $deadline = self::nonEmptyString($row['next_deadline_at'] ?? null);
+            // The nearest date still *ahead*, not the earliest missed one: this tile
+            // answers "what is due next", while work that is already late is reported as
+            // late (the tile above counts it) and each row names its own missed date.
+            $deadline = self::nonEmptyString($row['next_future_deadline_at'] ?? null);
+            if ($deadline === null) {
+                // A row from before the field existed carries one date only, and it is
+                // trusted just as far as it is not in the past.
+                $legacy = self::nonEmptyString($row['next_deadline_at'] ?? null);
+                $days = $row['days_to_deadline'] ?? null;
+                if ($legacy !== null && ($days === null || (int)$days >= 0)) {
+                    $deadline = $legacy;
+                }
+            }
             if ($deadline !== null
                 && ($aggregates['next_deadline_at'] === null || $deadline < $aggregates['next_deadline_at'])) {
                 $aggregates['next_deadline_at'] = $deadline;

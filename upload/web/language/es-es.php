@@ -3777,6 +3777,7 @@ return array (
     'extra_insights_no_match' => 'Nada coincide con «%s»',
     'extra_insights_no_team' => 'sin equipo',
     'extra_insights_no_client' => 'sin cliente',
+    'extra_insights_portfolio_scope' => 'El portafolio cuenta solo las tareas e hitos dentro de los flujos — una tarea sin proyecto no forma parte de ninguno.',
     'extra_insights_wip_growing' => 'creciendo',
     'extra_insights_wip_shrinking' => 'bajando',
     'extra_insights_wip_stable' => 'estable',

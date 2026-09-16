@@ -4755,6 +4755,7 @@ return array (
     'extra_insights_no_match' => 'Nothing matches "%s"',
     'extra_insights_no_team' => 'no team',
     'extra_insights_no_client' => 'no client',
+    'extra_insights_portfolio_scope' => 'The portfolio counts only the tasks and milestones inside streams — a task without a project does not belong to one.',
     'extra_insights_wip_growing' => 'growing',
     'extra_insights_wip_shrinking' => 'shrinking',
     'extra_insights_wip_stable' => 'stable',

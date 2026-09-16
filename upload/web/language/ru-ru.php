@@ -4774,6 +4774,7 @@ return array (
     'extra_insights_no_match' => 'Ничего не найдено по запросу «%s»',
     'extra_insights_no_team' => 'без команды',
     'extra_insights_no_client' => 'без клиента',
+    'extra_insights_portfolio_scope' => 'Портфель считает только задачи и вехи внутри потоков — задачи без проекта в него не входят.',
     'extra_insights_wip_growing' => 'растёт',
     'extra_insights_wip_shrinking' => 'снижается',
     'extra_insights_wip_stable' => 'стабильно',

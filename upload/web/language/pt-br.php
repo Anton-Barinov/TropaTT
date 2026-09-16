@@ -3777,6 +3777,7 @@ return array (
     'extra_insights_no_match' => 'Nada encontrado para "%s"',
     'extra_insights_no_team' => 'sem equipe',
     'extra_insights_no_client' => 'sem cliente',
+    'extra_insights_portfolio_scope' => 'O portfólio conta apenas as tarefas e marcos dentro dos fluxos — uma tarefa sem projeto não pertence a nenhum.',
     'extra_insights_wip_growing' => 'crescendo',
     'extra_insights_wip_shrinking' => 'diminuindo',
     'extra_insights_wip_stable' => 'estável',

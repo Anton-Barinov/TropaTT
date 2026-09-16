@@ -4901,6 +4901,7 @@ return array (
     'extra_insights_no_match' => '没有匹配“%s”的结果',
     'extra_insights_no_team' => '无团队',
     'extra_insights_no_client' => '无客户',
+    'extra_insights_portfolio_scope' => '组合只统计流内的任务与里程碑，未归属项目的任务不计入。',
     'extra_insights_wip_growing' => '增加',
     'extra_insights_wip_shrinking' => '减少',
     'extra_insights_wip_stable' => '稳定',

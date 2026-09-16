@@ -3777,6 +3777,7 @@ return array (
     'extra_insights_no_match' => 'Aucun résultat pour « %s »',
     'extra_insights_no_team' => 'sans équipe',
     'extra_insights_no_client' => 'sans client',
+    'extra_insights_portfolio_scope' => 'Le portefeuille ne compte que les tâches et jalons des flux ; une tâche sans projet ne figure dans aucun flux.',
     'extra_insights_wip_growing' => 'en hausse',
     'extra_insights_wip_shrinking' => 'en baisse',
     'extra_insights_wip_stable' => 'stable',

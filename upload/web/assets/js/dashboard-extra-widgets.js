@@ -1741,7 +1741,9 @@
       + safe(translate('dashboard.extra_insights_show_all', 'Показать всех') + ' (' + String(total) + ')') + '</button>';
   }
 
-  function streamsHtml(definition, payload, projects, sort) {
+  // The table and its counter live in their own wrapper so a keystroke can repaint
+  // them without touching the search input that produced it.
+  function streamsBodyHtml(definition, payload, projects, sort) {
     var state = streamViewState(definition);
     var expanded = widgetExpanded(definition);
     var ordered = sortedProjectRows(projects, sort).filter(function (project) {
@@ -1766,6 +1768,13 @@
         )) + '</div>' : '')
         + streamsExpandHtml(definition, ordered.length, shown);
     }
+
+    return '<div data-insights-streams-body="1">' + table + '</div>';
+  }
+
+  function streamsHtml(definition, payload, projects, sort) {
+    var state = streamViewState(definition);
+    var aggregates = streamPortfolioAggregates(projects, payload.aggregates);
 
     return insightToolbar(definition, [
       {
@@ -1796,11 +1805,16 @@
         ]
       }
     ])
-      + streamPortfolioHtml(streamPortfolioAggregates(projects, payload.aggregates))
+      + streamPortfolioHtml(aggregates)
       + streamsSearchHtml(state)
-      + table
+      + streamsBodyHtml(definition, payload, projects, sort)
       + '<div class="crm-dashboard-insight-legend">'
       + safe(translate('dashboard.extra_insights_legend_streams', 'Критично — просрочено более 20% активных задач или веха в прошлом; риск — есть просрочка или веха на этой неделе.'))
+      + '</div>'
+      + '<div class="crm-dashboard-insight-legend">'
+      // The line says what it counts before someone disproves it by clicking through
+      // to the task list: a task without a project is not part of any stream.
+      + safe(translate('dashboard.extra_insights_portfolio_scope', 'Портфель считает только задачи и вехи внутри потоков — задачи без проекта в него не входят.'))
       + '</div>';
   }
 
@@ -1810,32 +1824,36 @@
   function paintStreams(container, definition, payload, projects, sort) {
     container.innerHTML = streamsHtml(definition, payload, projects, sort);
     bindInsightToolbar(container, definition);
+    bindStreamsBody(container, definition, payload, projects, sort);
     if (typeof container.querySelector !== 'function') return;
 
     var search = container.querySelector('[data-insights-search]');
     if (search) {
       search.addEventListener('input', function () {
         saveInsightOption(definition.key, 'search', search.value);
-        paintStreams(container, definition, payload, projects, sort);
-        // The repaint replaced the input: keep the caret where it was, otherwise
-        // typing stops after the first character.
-        var next = container.querySelector('[data-insights-search]');
-        if (next && typeof next.focus === 'function') {
-          next.focus();
-          if (typeof next.setSelectionRange === 'function') {
-            try { next.setSelectionRange(next.value.length, next.value.length); } catch (e) { /* not a text input */ }
-          }
-        }
+        repaintStreamsBody(container, definition, payload, projects, sort);
       });
     }
+  }
 
+  // Only the table is replaced, never the input that is being typed into: swapping
+  // the whole card on every keystroke dropped the caret - and with it the rest of
+  // the query - so the box stopped working after the first character.
+  function repaintStreamsBody(container, definition, payload, projects, sort) {
+    var body = container.querySelector('[data-insights-streams-body]');
+    if (!body) return;
+    body.innerHTML = streamsBodyHtml(definition, payload, projects, sort);
+    bindStreamsBody(container, definition, payload, projects, sort);
+  }
+
+  function bindStreamsBody(container, definition, payload, projects, sort) {
+    if (typeof container.querySelector !== 'function') return;
     var expand = container.querySelector('[data-insights-expand]');
-    if (expand) {
-      expand.addEventListener('click', function () {
-        saveInsightOption(definition.key, 'expanded', '1');
-        paintStreams(container, definition, payload, projects, sort);
-      });
-    }
+    if (!expand) return;
+    expand.addEventListener('click', function () {
+      saveInsightOption(definition.key, 'expanded', '1');
+      paintStreams(container, definition, payload, projects, sort);
+    });
   }
 
   function renderStreams(container, envelope, definition) {
