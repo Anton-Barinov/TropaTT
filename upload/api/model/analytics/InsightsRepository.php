@@ -421,7 +421,7 @@ final class InsightsRepository
             $scopeParams = $userIds;
         }
 
-        $weekStartTs = strtotime('monday this week', strtotime($now));
+        $weekStartTs = $this->mondayTsUtc($now);
         $buckets = [];
         for ($i = $weeks - 1; $i >= 0; $i--) {
             $start = $weekStartTs - $i * 604800;
@@ -1332,9 +1332,14 @@ final class InsightsRepository
             }
         }
 
+        // The day list has to carry the same UTC dates the query grouped by. Both ends
+        // used to be parsed as *local* midnight and then labelled with gmdate(), which
+        // on any server east of UTC shifted the range to [from - 1 day, to - 1 day]:
+        // the window's last day - today - was never emitted, so minutes logged on the
+        // current day did not reach the weekly series at all and a weekly goal read 0 %.
         $days = [];
-        $cursor = strtotime(substr($from, 0, 10) . ' 00:00:00');
-        $end = strtotime(substr($to, 0, 10) . ' 00:00:00');
+        $cursor = strtotime(substr($from, 0, 10) . ' 00:00:00 UTC');
+        $end = strtotime(substr($to, 0, 10) . ' 00:00:00 UTC');
         while ($cursor !== false && $end !== false && $cursor <= $end) {
             $day = gmdate('Y-m-d', $cursor);
             $days[] = ['date' => $day, 'minutes' => $byDate[$day] ?? 0];
@@ -1995,8 +2000,8 @@ final class InsightsRepository
         }
 
         $weeks = max(2, min(13, $weeks));
-        $mondayTs = strtotime('monday this week', strtotime($to));
-        if ($mondayTs === false) {
+        $mondayTs = $this->mondayTsUtc($to);
+        if ($mondayTs <= 0) {
             return [];
         }
 
@@ -2084,9 +2089,33 @@ final class InsightsRepository
     }
 
     /** Monday bucket key (Y-m-d) for a day inside the reported window. */
+    /**
+     * Monday 00:00 UTC of the week holding the given "Y-m-d H:i:s" UTC stamp.
+     *
+     * Every timestamp these aggregates bucket (`logged_at`, `tasks.created_at`,
+     * `task_status_history.created_at`) is stored in UTC, so the week arithmetic has
+     * to be UTC as well. `strtotime('monday this week', ...)` resolves in the
+     * *server's* timezone instead, which on a UTC+3 host returns Sunday 21:00 UTC: the
+     * `week_start` labels came out a day early on the card and work done on the local
+     * Sunday evening was bucketed into the week before.
+     */
+    private function mondayTsUtc(string $utcStamp): int
+    {
+        $day = substr($utcStamp, 0, 10);
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $day) !== 1) {
+            return 0;
+        }
+
+        $ts = (int)strtotime($day . ' 00:00:00 UTC');
+        $weekday = (int)gmdate('N', $ts); // 1 = Monday ... 7 = Sunday
+
+        return $ts - ($weekday - 1) * 86400;
+    }
+
     private function weekKeyFor(string $day, int $mondayTs): ?string
     {
-        $ts = strtotime($day . ' 00:00:00');
+        // UTC, like the timestamps being bucketed - see mondayTsUtc().
+        $ts = strtotime($day . ' 00:00:00 UTC');
         if ($ts === false) {
             return null;
         }
@@ -2542,32 +2571,52 @@ final class InsightsRepository
      * The projects a single person's period was spent on, by completed tasks and
      * logged time.
      *
-     * The rows are that person's own tasks and own work logs, so the breakdown can
-     * never show work they did not do. It is deliberately *not* additionally
-     * filtered by the project-access list the picker uses: a person who logged two
-     * hours on a project they neither created, manage nor share a team with would
-     * see those hours disappear from "where my period went" - the one question this
-     * block exists to answer - while the same project title is already visible on
-     * their own task. The scope that matters here is "whose data", and that is the
-     * actor's.
+     * Two scopes at once, and both have to hold: the rows are that person's *own*
+     * tasks and own work logs, and the projects are the ones that person can reach
+     * (`accessibleProjectPublicIds` - created by, managed by or on a team of theirs,
+     * exactly the list the stream widgets and the project pickers use). The split
+     * therefore can never name a project the actor has no access to, and never
+     * reports work somebody else did. A non-root actor with no accessible project
+     * gets an empty list rather than the organisation's projects - the same
+     * fail-closed rule the other project-scoped widgets follow.
      *
      * Ordering is completed-first because that is the metric the widget ranks on;
      * a project the person only logged time on still appears (dropping it would
      * hide a real slice of the period).
      *
-     * Both halves use the very same definitions as the tiles above them, so the
-     * rows reconcile with the card: completed is `countCompletedTasks` (no
-     * archived/deleted filter) and hours are `sumLoggedMinutes` (archived tasks
-     * excluded - the same rule that produced the "Часы" tile). A narrower filter
-     * here would make the split add up to less than the number right above it,
-     * and the reader would trust neither.
+     * Both halves use the very same definitions as the tiles above them, so the rows
+     * reconcile with the card: completed is `countCompletedTasks` (no
+     * archived/deleted filter, plus the accessible-project filter above) and hours
+     * are `sumLoggedMinutes` (archived tasks excluded - the same rule that produced
+     * the "Часы" tile). The access scope can still make the rows add up to less than
+     * the tile directly above them, because work done on a project the actor cannot
+     * reach is not named here. That is the deliberate trade: the block may
+     * under-report the actor's own time, but it can never disclose a project to
+     * somebody who has no access to it.
      *
+     * @param string[] $accessibleProjectPublicIds empty when $isRoot is true
      * @return array{projects:list<array{project_public_id:string,title:string,completed:int,minutes:int}>,total:int}
      */
-    public function completedByProject(int $userId, string $from, string $to, int $limit): array
-    {
+    public function completedByProject(
+        int $userId,
+        array $accessibleProjectPublicIds,
+        bool $isRoot,
+        string $from,
+        string $to,
+        int $limit
+    ): array {
         if ($userId <= 0) {
             return ['projects' => [], 'total' => 0];
+        }
+
+        $scopeSql = '';
+        $scopeParams = [];
+        if (!$isRoot) {
+            if ($accessibleProjectPublicIds === []) {
+                return ['projects' => [], 'total' => 0];
+            }
+            $scopeSql = ' AND p.public_id IN (' . implode(', ', array_fill(0, count($accessibleProjectPublicIds), '?')) . ')';
+            $scopeParams = $accessibleProjectPublicIds;
         }
 
         $completedStmt = $this->pdo->prepare(
@@ -2577,20 +2626,20 @@ final class InsightsRepository
                JOIN projects p ON p.id = t.project_id
               WHERE h.new_status IN (' . TaskStatusSemantics::completedLiteralList($this->pdo) . ')
                 AND h.created_at >= ? AND h.created_at <= ?
-                AND t.assignee_user_id = ?
+                AND t.assignee_user_id = ?' . $scopeSql . '
               GROUP BY p.public_id, p.title'
         );
-        $completedStmt->execute([$from, $to, $userId]);
+        $completedStmt->execute(array_merge([$from, $to, $userId], $scopeParams));
 
         $minutesStmt = $this->pdo->prepare(
             'SELECT p.public_id AS project_public_id, p.title AS title, COALESCE(SUM(w.minutes_spent), 0) AS minutes
                FROM work_logs w
                JOIN tasks t ON t.id = w.task_id AND t.deleted_at IS NULL AND t.archived_at IS NULL
                JOIN projects p ON p.id = t.project_id
-              WHERE w.user_id = ? AND w.logged_at >= ? AND w.logged_at <= ?
+              WHERE w.user_id = ? AND w.logged_at >= ? AND w.logged_at <= ?' . $scopeSql . '
               GROUP BY p.public_id, p.title'
         );
-        $minutesStmt->execute([$userId, $from, $to]);
+        $minutesStmt->execute(array_merge([$userId, $from, $to], $scopeParams));
 
         $rows = [];
         foreach ($completedStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {

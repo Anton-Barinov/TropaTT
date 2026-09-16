@@ -447,12 +447,22 @@ final class AnalyticsService
             ? null
             : round($onTimePercent - (float)$scope['on_time_median'], 1);
 
-        // The project breakdown answers "where did my period go" and is therefore
-        // read strictly from the actor's own completed tasks and own work logs -
-        // somebody else's project can never appear, and a project the actor only
-        // logged time on still does (see InsightsRepository::completedByProject).
+        // The project breakdown answers "where did my period go" and is read from
+        // the actor's own completed tasks and own work logs, intersected with the
+        // projects the actor can actually reach - a project they cannot see never
+        // appears, and an outsider never sees the organisation's project names
+        // (fail-closed, like the stream widgets; see
+        // InsightsRepository::completedByProject).
+        $actorIsRoot = (bool)($actor['is_root'] ?? false);
         $byProject = $this->insights()->completedByProject(
             (int)($actor['id'] ?? 0),
+            $actorIsRoot
+                ? []
+                : $this->insights()->accessibleProjectPublicIds(
+                    (int)($actor['id'] ?? 0),
+                    $this->accessibleTeamPublicIds($actor)
+                ),
+            $actorIsRoot,
             $currentStart,
             $now,
             5
