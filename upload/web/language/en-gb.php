@@ -4669,6 +4669,7 @@ return array (
     'extra_insights_no_deadlines_short' => 'no deadlines',
     'extra_insights_of_deadlines' => 'of %s with a deadline',
     'extra_insights_capacity_target' => 'target %s',
+    'extra_insights_live_tasks_note' => 'only non-deleted, non-archived tasks are counted',
     'extra_insights_without_estimate' => 'Tasks with logged time but no estimate',
     'extra_insights_points' => 'units',
     'extra_insights_estimate_rate_hint' => 'actual time per unit of the scale',

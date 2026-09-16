@@ -3691,6 +3691,7 @@ return array (
     'extra_insights_no_deadlines_short' => 'aucune échéance',
     'extra_insights_of_deadlines' => 'sur %s avec échéance',
     'extra_insights_capacity_target' => 'objectif %s',
+    'extra_insights_live_tasks_note' => 'seules les tâches non supprimées et non archivées sont comptées',
     'extra_insights_without_estimate' => 'Tâches avec temps saisi mais sans estimation',
     'extra_insights_points' => 'unités',
     'extra_insights_estimate_rate_hint' => 'temps réel par unité de l’échelle',

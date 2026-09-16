@@ -931,11 +931,14 @@
       + insightTile(translate('dashboard.extra_insights_estimate_coverage', 'Задач с оценкой'), coverageValue,
         Number(payload.estimate_coverage_percent) > 0 && Number(payload.estimate_coverage_percent) < 50 ? 'risk' : null)
       + '</div>'
+      // "Only live tasks" is stated, not assumed: without it a manager who deleted a
+      // task would see hours disappear from the card and read it as a bug.
       + '<div class="crm-dashboard-insight-legend">'
       + safe(translate('dashboard.extra_insights_p90_hint', 'p90 = 90% задач быстрее этого значения; среднее искажают выбросы'))
       + (Number(payload.tasks_with_logs || 0) > 0
         ? ' · ' + safe(formatPlaceholders(translate('dashboard.extra_insights_percentile_sample', 'выборка: %s задач с учётом'), [Number(payload.tasks_with_logs || 0)]))
         : '')
+      + ' · ' + safe(translate('dashboard.extra_insights_live_tasks_note', 'учитываются только неудалённые и неархивные задачи'))
       + '</div>'
       + rows
       + calibrationBlock
