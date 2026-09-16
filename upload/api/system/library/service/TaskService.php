@@ -646,11 +646,15 @@ final class TaskService
         if (!$task) {
             return false;
         }
-        if ((string)($task['deleted_at'] ?? '') !== '') {
-            return false;
-        }
         if (!$this->canAccess($task, $actor)) {
             return false;
+        }
+        // DELETE is idempotent: an already deleted task counts as deleted instead of
+        // reporting "not found", so a repeated cleanup (e2e sweeps, recycle bin) can
+        // always confirm the row is gone (PRJ-426). Access is checked first, so this
+        // never confirms the existence of a task the actor may not see.
+        if ((string)($task['deleted_at'] ?? '') !== '') {
+            return true;
         }
 
         $deleted = $this->tasks->softDeleteByPublicId($publicId, gmdate('Y-m-d H:i:s'));

@@ -382,6 +382,16 @@ final class ProjectService
             return false;
         }
 
+        // DELETE is idempotent: a project that is already archived counts as deleted.
+        // The archive statement carries `whereNull('archived_at')`, so a repeated
+        // DELETE used to answer 404 and nobody could confirm the project was gone —
+        // recycle-bin scripts and the e2e sweeps ended up unable to clean up after
+        // themselves (PRJ-426). The permission check stays first, so an actor without
+        // manage rights still learns nothing about an unreadable project.
+        if ((string)($project['archived_at'] ?? '') !== '') {
+            return true;
+        }
+
         $archived = $this->projects->archiveByPublicId($publicId, gmdate('Y-m-d H:i:s'));
         if ($archived) {
             $this->semanticIndex?->removeEntityDocument('project', $publicId);
