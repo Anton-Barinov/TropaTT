@@ -33,6 +33,12 @@ final class InsightsRepository
     /** Longest day breakdown returned for a widget period. */
     private const MAX_DAILY_POINTS = 30;
 
+    /**
+     * Fewest estimated-and-logged tasks before an estimate set is reported at all.
+     * A "minutes per point" rate from a single task is a coin flip, not a rate.
+     */
+    private const MIN_ESTIMATE_SAMPLE = 3;
+
     public function __construct(private readonly PDO $pdo)
     {
     }
@@ -121,13 +127,35 @@ final class InsightsRepository
     /**
      * Actual execution time of tasks across the visible scope.
      *
+     * `p90_minutes` and `max_minutes` sit next to the median because the average
+     * alone is not honest here: a single task carrying a million logged minutes (real
+     * data on the demo) pulls the mean to 83 481 minutes against a median of 135. The
+     * three numbers together say "typical", "bad case" and "the outlier you have".
+     *
+     * Estimates are deliberately **not** compared with minutes. `task_estimates`
+     * stores story points, t-shirt sizes, complexity, risk or bug severity - never
+     * hours - so "estimation vs fact" as minutes cannot be computed without inventing
+     * a conversion. What the data does support is reported instead: how many logged
+     * tasks carry an estimate at all, and per estimate set either the cooling rate
+     * (minutes per point) or, for a set whose unit really is hours, the overrun.
+     * Sets priced in a currency are skipped: points of money cannot be divided by time.
+     *
      * @param int[] $userIds visible user ids; ignored when $isRoot is true
+     * @param string|null $projectPublicId narrows every query to one project; the caller
+     *        must have checked access, because the repository only trusts the id it is given
      * @return array<string,mixed>
      */
-    public function actualTime(array $userIds, bool $isRoot, string $periodStart, string $now, int $limit = 10): array
-    {
+    public function actualTime(
+        array $userIds,
+        bool $isRoot,
+        string $periodStart,
+        string $now,
+        int $limit = 10,
+        ?string $projectPublicId = null
+    ): array {
         $limit = max(1, min(50, $limit));
-        $perTask = $this->minutesPerTask($userIds, $isRoot, $periodStart, $now);
+        $projectPublicId = $projectPublicId !== null && trim($projectPublicId) !== '' ? trim($projectPublicId) : null;
+        $perTask = $this->minutesPerTask($userIds, $isRoot, $periodStart, $now, $projectPublicId);
 
         usort($perTask, static function (array $a, array $b): int {
             return ((int)$b['minutes']) <=> ((int)$a['minutes']);
@@ -151,22 +179,62 @@ final class InsightsRepository
         // task can have logs while its status never changed in the period.)
         $tasksWithLogs = count($perTask);
         $loggedTaskIds = array_column($perTask, 'task_public_id');
-        $activeWithoutLogs = $this->countActiveTasksWithoutLogs($userIds, $isRoot, $loggedTaskIds);
+        $activeWithoutLogs = $this->countActiveTasksWithoutLogs($userIds, $isRoot, $loggedTaskIds, $projectPublicId);
         $coverageBase = $tasksWithLogs + $activeWithoutLogs;
         $covered = $coverageBase > 0 ? round($tasksWithLogs / $coverageBase * 100, 1) : 0.0;
+
+        $minutesByTask = [];
+        foreach ($perTask as $row) {
+            $minutesByTask[(string)$row['task_public_id']] = (int)$row['minutes'];
+        }
+        $estimatedTaskIds = $this->taskIdsWithActiveEstimate($loggedTaskIds);
+        $estimateCoverage = $tasksWithLogs > 0
+            ? round(count($estimatedTaskIds) / $tasksWithLogs * 100, 1)
+            : null;
 
         return [
             'top_tasks' => $topTasks,
             'tasks_with_logs' => $tasksWithLogs,
             'active_without_logs' => $activeWithoutLogs,
-            'active_without_logs_list' => $this->activeTasksWithoutLogsList($userIds, $isRoot, $loggedTaskIds),
+            'active_without_logs_list' => $this->activeTasksWithoutLogsList($userIds, $isRoot, $loggedTaskIds, 5, $projectPublicId),
             'covered_percent' => $covered,
             'total_minutes' => $totalMinutes,
             'median_minutes' => self::median($durations),
             'average_minutes' => $durations !== [] ? (int)round($totalMinutes / count($durations)) : 0,
-            'by_activity' => $this->minutesByActivity($userIds, $isRoot, $periodStart, $now),
+            'p90_minutes' => self::percentile($durations, 90),
+            'max_minutes' => $durations !== [] ? max($durations) : 0,
+            'estimate_coverage_percent' => $estimateCoverage,
+            'estimated_tasks' => count($estimatedTaskIds),
+            // The list is capped; the total is not, so the card can say "5 of 23"
+            // instead of implying the scope only holds five unestimated tasks.
+            'tasks_without_estimate_total' => max(0, $tasksWithLogs - count($estimatedTaskIds)),
+            'tasks_without_estimate' => $this->tasksWithoutEstimate($loggedTaskIds, $estimatedTaskIds, $minutesByTask),
+            'estimate_sets' => $this->estimateCalibration($minutesByTask),
+            'by_activity' => $this->minutesByActivity($userIds, $isRoot, $periodStart, $now, $projectPublicId),
             'limit' => $limit,
+            'project_filter' => $projectPublicId,
         ];
+    }
+
+    /**
+     * Percentile of a series of per-task minutes.
+     *
+     * Nearest-rank on the ascending series, computed on the full set the caller passes
+     * in (never on a truncated list) so the number describes the period rather than the
+     * rendered page. Empty input answers 0 instead of failing.
+     *
+     * @param int[] $values
+     */
+    public static function percentile(array $values, int $percent): int
+    {
+        if ($values === []) {
+            return 0;
+        }
+        sort($values);
+        $percent = max(1, min(100, $percent));
+        $index = (int)ceil(count($values) * $percent / 100) - 1;
+
+        return (int)$values[max(0, min(count($values) - 1, $index))];
     }
 
     /**
@@ -543,6 +611,41 @@ final class InsightsRepository
         $stmt->execute($params);
 
         return array_map(static fn(array $row): string => (string)$row['public_id'], $stmt->fetchAll(PDO::FETCH_ASSOC));
+    }
+
+    /**
+     * Lightweight id/title list of the projects a filter may narrow to.
+     *
+     * `projectsOverview()` cannot be reused for a picker: it runs three grouped
+     * passes over tasks, work logs and milestones, and a filter control needs none
+     * of those numbers. This reads one indexed row per project, so the cost stays
+     * with the project count rather than with the amount of work in them.
+     *
+     * @param string[] $accessibleProjectPublicIds empty when $isRoot is true
+     * @return array<int, array{project_public_id:string,title:string}>
+     */
+    public function projectOptions(array $accessibleProjectPublicIds, bool $isRoot): array
+    {
+        $sql = 'SELECT p.public_id, p.title FROM projects p WHERE p.archived_at IS NULL';
+        $params = [];
+        if (!$isRoot) {
+            if ($accessibleProjectPublicIds === []) {
+                return [];
+            }
+            $sql .= ' AND p.public_id IN (' . implode(', ', array_fill(0, count($accessibleProjectPublicIds), '?')) . ')';
+            $params = $accessibleProjectPublicIds;
+        }
+        $sql .= ' ORDER BY p.title ASC, p.public_id ASC';
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+
+        return array_map(static function (array $row): array {
+            return [
+                'project_public_id' => (string)$row['public_id'],
+                'title' => (string)$row['title'],
+            ];
+        }, $stmt->fetchAll(PDO::FETCH_ASSOC));
     }
 
     /**
@@ -1052,7 +1155,7 @@ final class InsightsRepository
      * @param int[] $userIds
      * @return array<int, array<string,mixed>>
      */
-    private function minutesPerTask(array $userIds, bool $isRoot, string $from, string $to): array
+    private function minutesPerTask(array $userIds, bool $isRoot, string $from, string $to, ?string $projectPublicId = null): array
     {
         $sql = 'SELECT t.public_id, t.title, p.title AS project_title,
                        COALESCE(SUM(w.minutes_spent), 0) AS minutes,
@@ -1072,6 +1175,7 @@ final class InsightsRepository
             $params = array_merge($params, $userIds);
         }
 
+        $sql .= $this->projectFilterClause($projectPublicId, $params);
         $sql .= ' GROUP BY t.id, t.public_id, t.title, p.title ORDER BY minutes DESC';
 
         $stmt = $this->pdo->prepare($sql);
@@ -1098,9 +1202,9 @@ final class InsightsRepository
      * @param int[] $userIds
      * @param string[] $loggedTaskPublicIds
      */
-    private function countActiveTasksWithoutLogs(array $userIds, bool $isRoot, array $loggedTaskPublicIds): int
+    private function countActiveTasksWithoutLogs(array $userIds, bool $isRoot, array $loggedTaskPublicIds, ?string $projectPublicId = null): int
     {
-        [$where, $params] = $this->activeWithoutLogsWhere($userIds, $isRoot, $loggedTaskPublicIds);
+        [$where, $params] = $this->activeWithoutLogsWhere($userIds, $isRoot, $loggedTaskPublicIds, $projectPublicId);
         if ($where === null) {
             return 0;
         }
@@ -1119,9 +1223,14 @@ final class InsightsRepository
      * @param string[] $loggedTaskPublicIds
      * @return array<int, array<string,mixed>>
      */
-    private function activeTasksWithoutLogsList(array $userIds, bool $isRoot, array $loggedTaskPublicIds, int $limit = 5): array
-    {
-        [$where, $params] = $this->activeWithoutLogsWhere($userIds, $isRoot, $loggedTaskPublicIds);
+    private function activeTasksWithoutLogsList(
+        array $userIds,
+        bool $isRoot,
+        array $loggedTaskPublicIds,
+        int $limit = 5,
+        ?string $projectPublicId = null
+    ): array {
+        [$where, $params] = $this->activeWithoutLogsWhere($userIds, $isRoot, $loggedTaskPublicIds, $projectPublicId);
         if ($where === null) {
             return [];
         }
@@ -1154,8 +1263,12 @@ final class InsightsRepository
      * @param string[] $loggedTaskPublicIds
      * @return array{0:string|null,1:array<int,string|int>}
      */
-    private function activeWithoutLogsWhere(array $userIds, bool $isRoot, array $loggedTaskPublicIds): array
-    {
+    private function activeWithoutLogsWhere(
+        array $userIds,
+        bool $isRoot,
+        array $loggedTaskPublicIds,
+        ?string $projectPublicId = null
+    ): array {
         $sql = 't.deleted_at IS NULL AND t.archived_at IS NULL
                 AND t.status_code NOT IN (' . TaskStatusSemantics::terminalLiteralList($this->pdo) . ')';
         $params = [];
@@ -1173,6 +1286,9 @@ final class InsightsRepository
             $params = array_merge($params, $loggedTaskPublicIds);
         }
 
+        $sql .= $this->projectFilterClause($projectPublicId, $params);
+
+
         return [$sql, $params];
     }
 
@@ -1180,12 +1296,212 @@ final class InsightsRepository
      * @param int[] $userIds
      * @return array<int, array{activity_code:string,minutes:int}>
      */
-    private function minutesByActivity(array $userIds, bool $isRoot, string $from, string $to): array
+    /**
+     * Optional project narrowing shared by the actual-time queries.
+     *
+     * The check that the actor may see the project belongs to the service (it owns
+     * visibility); this only turns the id into SQL. An empty or missing id means "no
+     * narrowing", never "match nothing".
+     *
+     * @param array<int,string|int> $params appended in place
+     */
+    private function projectFilterClause(?string $projectPublicId, array &$params): string
     {
-        $sql = 'SELECT activity_code, COALESCE(SUM(minutes_spent), 0) AS minutes
+        $id = trim((string)$projectPublicId);
+        if ($id === '') {
+            return '';
+        }
+        $params[] = $id;
+
+        return ' AND t.project_id IN (SELECT id FROM projects WHERE public_id = ?)';
+    }
+
+    /**
+     * Which of the given tasks carry a live estimate.
+     *
+     * @param string[] $taskPublicIds
+     * @return array<int,string> the subset that is estimated
+     */
+    private function taskIdsWithActiveEstimate(array $taskPublicIds): array
+    {
+        if ($taskPublicIds === []) {
+            return [];
+        }
+        $placeholders = implode(', ', array_fill(0, count($taskPublicIds), '?'));
+        $stmt = $this->pdo->prepare(
+            'SELECT DISTINCT task_public_id FROM task_estimates
+             WHERE deleted_at IS NULL AND task_public_id IN (' . $placeholders . ')'
+        );
+        $stmt->execute($taskPublicIds);
+
+        return array_map(static fn(array $row): string => (string)$row['task_public_id'], $stmt->fetchAll(PDO::FETCH_ASSOC));
+    }
+
+    /**
+     * Logged tasks with no estimate, worst first.
+     *
+     * Ordered by minutes so the list points at the work where a missing plan costs the
+     * most, not at the alphabetically first row. Titles are resolved in one extra query
+     * for the capped list only: a bare public id is not clickable-by-title for a human
+     * and the card is meant to be actionable.
+     *
+     * @param string[] $taskPublicIds all logged tasks
+     * @param array<int,string> $estimatedTaskIds
+     * @param array<string,int> $minutesByTask
+     * @return array<int, array{task_public_id:string,title:string,minutes:int}>
+     */
+    private function tasksWithoutEstimate(array $taskPublicIds, array $estimatedTaskIds, array $minutesByTask, int $limit = 5): array
+    {
+        $estimated = array_flip($estimatedTaskIds);
+        $missing = [];
+        foreach ($taskPublicIds as $taskPublicId) {
+            $taskPublicId = (string)$taskPublicId;
+            if (isset($estimated[$taskPublicId])) {
+                continue;
+            }
+            $missing[] = ['task_public_id' => $taskPublicId, 'minutes' => (int)($minutesByTask[$taskPublicId] ?? 0)];
+        }
+        usort($missing, static fn(array $a, array $b): int => $b['minutes'] <=> $a['minutes']);
+        $missing = array_slice($missing, 0, max(1, min(25, $limit)));
+
+        if ($missing === []) {
+            return [];
+        }
+        $ids = array_column($missing, 'task_public_id');
+        $stmt = $this->pdo->prepare(
+            'SELECT public_id, title FROM tasks WHERE public_id IN (' . implode(', ', array_fill(0, count($ids), '?')) . ')'
+        );
+        $stmt->execute($ids);
+        $titles = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $titles[(string)$row['public_id']] = (string)$row['title'];
+        }
+        foreach ($missing as $index => $row) {
+            $missing[$index]['title'] = $titles[$row['task_public_id']] ?? '';
+        }
+
+        return $missing;
+    }
+
+    /**
+     * What the estimate sets in use actually say about the logged time.
+     *
+     * An `estimate_sets` row describes its own scale: `estimate_type` (story points,
+     * t-shirt, complexity, risk, bug severity, custom) with an optional `unit_label`.
+     * Only sets with at least `MIN_ESTIMATE_SAMPLE` estimated tasks that were logged in
+     * the period are reported - a rate computed from one task is noise dressed as a
+     * measurement - and money sets are skipped outright.
+     *
+     * For a set whose unit is time the classic overrun is computable and reported as
+     * `overrun_percent`; for every other unit the honest metric is the cooling rate
+     * (`minutes_per_point`): how many logged minutes one point of that scale costs.
+     *
+     * @param array<string,int> $minutesByTask task public id => minutes inside the period
+     * @return array<int, array<string,mixed>>
+     */
+    private function estimateCalibration(array $minutesByTask): array
+    {
+        if ($minutesByTask === []) {
+            return [];
+        }
+        $taskIds = array_keys($minutesByTask);
+        $placeholders = implode(', ', array_fill(0, count($taskIds), '?'));
+        $stmt = $this->pdo->prepare(
+            'SELECT te.task_public_id, te.numeric_value, es.name, es.unit_label, es.estimate_type, es.currency_code
+             FROM task_estimates te
+             INNER JOIN estimate_sets es ON es.id = te.estimate_set_id
+             WHERE te.deleted_at IS NULL AND te.numeric_value IS NOT NULL
+               AND te.task_public_id IN (' . $placeholders . ')'
+        );
+        $stmt->execute($taskIds);
+
+        $bySet = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            if (($row['currency_code'] ?? null) !== null && (string)$row['currency_code'] !== '') {
+                continue; // a price is not a unit of work
+            }
+            $taskPublicId = (string)$row['task_public_id'];
+            $key = (string)$row['name'] . '|' . (string)($row['unit_label'] ?? '');
+            if (!isset($bySet[$key])) {
+                $bySet[$key] = [
+                    'set_name' => (string)$row['name'],
+                    'unit_label' => $row['unit_label'] !== null ? (string)$row['unit_label'] : null,
+                    'estimate_type' => (string)$row['estimate_type'],
+                    'points' => 0.0,
+                    'minutes' => 0,
+                    'tasks' => [],
+                ];
+            }
+            $bySet[$key]['points'] += (float)$row['numeric_value'];
+            if (!isset($bySet[$key]['tasks'][$taskPublicId])) {
+                // One estimate per task per set: a task is never counted twice, so the
+                // rate cannot be distorted by a duplicated row.
+                $bySet[$key]['tasks'][$taskPublicId] = true;
+                $bySet[$key]['minutes'] += (int)($minutesByTask[$taskPublicId] ?? 0);
+            }
+        }
+
+        $out = [];
+        foreach ($bySet as $entry) {
+            $taskCount = count($entry['tasks']);
+            if ($taskCount < self::MIN_ESTIMATE_SAMPLE || $entry['points'] <= 0) {
+                continue;
+            }
+            $row = [
+                'set_name' => $entry['set_name'],
+                'unit_label' => $entry['unit_label'],
+                'estimate_type' => $entry['estimate_type'],
+                'tasks' => $taskCount,
+                'points' => round($entry['points'], 2),
+                'minutes' => (int)$entry['minutes'],
+                'is_time_unit' => self::isTimeEstimateUnit($entry['estimate_type'], $entry['unit_label']),
+            ];
+            if ($row['is_time_unit']) {
+                $estimatedMinutes = $entry['points'] * 60;
+                $row['estimated_minutes'] = (int)round($estimatedMinutes);
+                $row['overrun_percent'] = round(($entry['minutes'] - $estimatedMinutes) / $estimatedMinutes * 100, 1);
+            } else {
+                $row['minutes_per_point'] = round($entry['minutes'] / $entry['points'], 2);
+            }
+            $out[] = $row;
+        }
+        usort($out, static fn(array $a, array $b): int => $b['tasks'] <=> $a['tasks']);
+
+        return $out;
+    }
+
+    /** Whether an estimate set measures time (an hour estimate) rather than an abstract scale. */
+    private static function isTimeEstimateUnit(string $estimateType, ?string $unitLabel): bool
+    {
+        $type = strtolower(trim($estimateType));
+        if (in_array($type, ['hours', 'hour', 'time', 'estimate_hours'], true)) {
+            return true;
+        }
+        $unit = strtolower(trim((string)$unitLabel));
+
+        return in_array($unit, ['h', 'hr', 'hrs', 'hour', 'hours', 'ч', 'час', 'часы', '小时'], true);
+    }
+
+    private function minutesByActivity(array $userIds, bool $isRoot, string $from, string $to, ?string $projectPublicId = null): array
+    {
+        $projectFilter = trim((string)$projectPublicId) !== ''
+            ? ' AND t.project_id IN (SELECT id FROM projects WHERE public_id = ?)'
+            : '';
+        // The tasks join only exists when a project filter asks for it: joining always
+        // would silently drop the logs of deleted tasks from the activity split.
+        $sql = $projectFilter === ''
+            ? 'SELECT activity_code, COALESCE(SUM(minutes_spent), 0) AS minutes
                 FROM work_logs
-                WHERE logged_at >= ? AND logged_at <= ?';
+                WHERE logged_at >= ? AND logged_at <= ?'
+            : 'SELECT w.activity_code, COALESCE(SUM(w.minutes_spent), 0) AS minutes
+                FROM work_logs w
+                JOIN tasks t ON t.id = w.task_id
+                WHERE w.logged_at >= ? AND w.logged_at <= ?';
         $params = [$from, $to];
+        if ($projectFilter !== '') {
+            $sql .= $projectFilter;
+            $params[] = trim((string)$projectPublicId);
+        }
 
         if (!$isRoot) {
             if ($userIds === []) {

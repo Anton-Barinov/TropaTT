@@ -247,15 +247,71 @@ final class AnalyticsService
             $userIds = [-1];
         }
 
+        // Two optional narrowings, both resolved against the actor's own visibility
+        // before they reach the repository. A filter the actor cannot see must only
+        // ever return less data, never more: an inaccessible project collapses the
+        // scope to nothing and the payload says so through `project_filter` being null.
+        $projectFilter = null;
+        $requestedProject = trim((string)($filters['project_public_id'] ?? ''));
+        if ($requestedProject !== '') {
+            $allowed = $isRoot || in_array(
+                $requestedProject,
+                $this->insights()->accessibleProjectPublicIds((int)($actor['id'] ?? 0), $this->accessibleTeamPublicIds($actor)),
+                true
+            );
+            if ($allowed) {
+                $projectFilter = $requestedProject;
+            } else {
+                $userIds = [-1];
+            }
+        }
+
+        $requestedAssignee = trim((string)($filters['assignee_user_public_id'] ?? ''));
+        if ($requestedAssignee !== '') {
+            $assignee = $this->userManagement->findByPublicId($requestedAssignee);
+            $assigneeId = (int)($assignee['id'] ?? 0);
+            if ($assigneeId <= 0) {
+                $userIds = [-1];
+            } elseif ($isRoot) {
+                // Narrowing a root actor to one person is still a narrowing: keep the
+                // "sees everything" branch out of it so the filter cannot be ignored.
+                $isRoot = false;
+                $userIds = [$assigneeId];
+            } else {
+                // A non-root actor may only narrow to somebody they already see; the ids
+                // come from the same resolver the rest of the widget family uses.
+                $userIds = in_array($assigneeId, $this->visibleUserIds($actor), true) ? [$assigneeId] : [-1];
+            }
+        }
+
+        // The picker offers what the *actor* can reach, so it is built from the actor's
+        // original role rather than from `$isRoot`, which the assignee narrowing above
+        // may have flipped to false to keep the repository out of its "sees everything"
+        // branch. Otherwise a root user who narrowed to one person would be offered
+        // only the projects that person happens to manage.
+        $actorIsRoot = (bool)($actor['is_root'] ?? false);
+        $accessibleProjects = $actorIsRoot ? [] : $this->insights()->accessibleProjectPublicIds(
+            (int)($actor['id'] ?? 0),
+            $this->accessibleTeamPublicIds($actor)
+        );
+
         $data = $this->insights()->actualTime(
             $userIds,
             $isRoot,
             gmdate('Y-m-d 00:00:00', strtotime('-' . $periodDays . ' days', strtotime($now))),
             $now,
-            10
+            10,
+            $projectFilter
         );
 
+        // A narrowing the actor asked for but cannot have must not be silently
+        // ignored: the payload distinguishes "no filter" from "a filter that could
+        // not be applied" through `project_filter`/`project_filter_denied`, and the
+        // picker only ever offers projects of the actor's own scope.
         $data['period_days'] = $periodDays;
+        $data['assignee_filter'] = $requestedAssignee !== '' && ($userIds !== [-1]) ? $requestedAssignee : null;
+        $data['project_filter_denied'] = $requestedProject !== '' && $projectFilter === null;
+        $data['projects'] = $this->insights()->projectOptions($accessibleProjects, $actorIsRoot);
 
         return $this->stripFinancialFields($data);
     }

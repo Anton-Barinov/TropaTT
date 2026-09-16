@@ -462,12 +462,16 @@
   // reorder of the same payload, so it stays in localStorage.
   function insightQuery(definition) {
     var query = Object.assign({}, definition.query || {}, { period: widgetPeriod(definition) });
-    if (definition.key === 'stream_detail_load_efficiency') {
+    // Widgets with a project picker send the stored choice; the rest never carry the
+    // parameter, so a stale value in localStorage cannot leak into them.
+    if (PROJECT_FILTER_WIDGETS.indexOf(definition.key) >= 0) {
       var project = insightOption(definition.key, 'project', '', null);
       if (project) query.project_public_id = project;
     }
     return query;
   }
+
+  var PROJECT_FILTER_WIDGETS = ['stream_detail_load_efficiency', 'tasks_actual_time'];
 
   function reloadWidget(definition) {
     var container = document.querySelector('[data-extra-widget-body="' + definition.key + '"]');
@@ -767,13 +771,39 @@
     }
 
     var payload = insightsPayload(envelope);
+    // The picker is built from the payload, so it can only ever offer projects the
+    // server decided this actor may reach - the client never widens the scope.
+    var projectOptions = Array.isArray(payload.projects) ? payload.projects : [];
+    var selector = '';
+    if (projectOptions.length) {
+      var currentProject = String(payload.project_filter || '');
+      selector = '<select class="form-select form-select-sm crm-dashboard-insight-select" id="dashboardInsightActualProjectSelect" data-insights-project>'
+        + '<option value="">' + safe(translate('dashboard.extra_insights_all_projects', 'Все проекты')) + '</option>'
+        + projectOptions.map(function (option) {
+          var selected = String(option.project_public_id) === currentProject ? ' selected' : '';
+          return '<option value="' + safe(option.project_public_id) + '"' + selected + '>' + safe(option.title) + '</option>';
+        }).join('')
+        + '</select>';
+    }
+    // A refused narrowing must say so: silently showing the whole scope under a filter
+    // the user did set reads as "your project really is everywhere".
+    var deniedNotice = payload.project_filter_denied
+      ? '<div class="crm-dashboard-insight-legend is-warn">'
+        + safe(translate('dashboard.extra_insights_project_denied', 'Проект недоступен: показан весь ваш скоуп')) + '</div>'
+      : '';
+
     var tasks = Array.isArray(payload.top_tasks) ? payload.top_tasks.slice() : [];
     var unloggedCount = Number(payload.active_without_logs || 0);
     var unlogged = Array.isArray(payload.active_without_logs_list) ? payload.active_without_logs_list : [];
+    var estimateSets = Array.isArray(payload.estimate_sets) ? payload.estimate_sets : [];
+    var withoutEstimate = Array.isArray(payload.tasks_without_estimate) ? payload.tasks_without_estimate : [];
 
     if (!tasks.length && unloggedCount === 0) {
-      container.innerHTML = toolbar + emptyHtml();
+      container.innerHTML = toolbar + selector
+        + '<div class="text-muted small mt-2">' + safe(translate('dashboard.extra_insights_no_logs', 'За выбранный период учёта времени нет')) + '</div>'
+        + deniedNotice;
       bindInsightToolbar(container, definition);
+      bindStreamProjectSelect(container, definition);
       return;
     }
 
@@ -829,18 +859,92 @@
       return '<span class="crm-chip">' + safe(activityLabel(row.activity_code)) + ' · ' + safe(formatMinutesCompact(row.minutes)) + '</span>';
     }).join(' ');
 
+    // Below the average:
+    // - p90 is the "bad case" the average hides (one 1 000 000-minute task on the
+    //   demo pulls the mean to tens of thousands while the median stays at 135);
+    // - the estimate block answers "does anyone estimate at all, and how far off is
+    //   it" - the endpoint reports minutes per point per estimate set, never a
+    //   points-to-minutes conversion, because the schema has no such mapping.
+    var maxSetTasks = 1;
+    estimateSets.forEach(function (set) { maxSetTasks = Math.max(maxSetTasks, Number(set.tasks || 0)); });
+    var calibrationRows = estimateSets.map(function (set) {
+      var unit = String(set.unit_label || '');
+      // Two shapes come out of the endpoint and both are honest: a set measured in
+      // hours yields the overrun against the estimate, any other scale yields the
+      // cooling rate (logged minutes per one unit of the scale).
+      var value;
+      if (set.is_time_unit) {
+        value = formatMinutesCompact(set.minutes) + ' / ' + formatMinutesCompact(set.estimated_minutes);
+      } else if (Number(set.minutes_per_point || 0) > 0) {
+        value = formatMinutesCompact(set.minutes_per_point) + (unit ? ' / ' + unit : '');
+      } else {
+        value = String(translate('dashboard.extra_insights_estimate_no_unit', 'нет данных по часам'));
+      }
+      var meta = Number(set.tasks || 0) + ' ' + translate('dashboard.extra_insights_estimate_tasks', 'задач с оценкой');
+      if (set.is_time_unit) {
+        var overrun = Number(set.overrun_percent);
+        meta += ' · ' + (overrun > 0 ? '+' : '') + overrun + '% '
+          + translate('dashboard.extra_insights_estimate_overrun', 'к оценке');
+      } else if (Number(set.points || 0) > 0) {
+        meta += ' · ' + String(set.points) + ' ' + safe(unit || translate('dashboard.extra_insights_points', 'ед.'))
+          + ' · ' + translate('dashboard.extra_insights_estimate_rate_hint', 'факт на единицу оценки');
+      }
+      return barRow(String(set.set_name || ''), value, Math.round(Number(set.tasks || 0) / maxSetTasks * 100), meta);
+    }).join('');
+    var calibrationBlock = estimateSets.length
+      ? '<div class="crm-dashboard-insight-section-title">'
+        + safe(translate('dashboard.extra_insights_estimate_calibration', 'Оценка против факта (часы на единицу оценки)')) + '</div>'
+        + calibrationRows
+      : '';
+
+    var withoutEstimateTotal = Number(payload.tasks_without_estimate_total || withoutEstimate.length);
+    var withoutEstimateHead = withoutEstimate.length > 0 && withoutEstimate.length < withoutEstimateTotal
+      ? formatPlaceholders(translate('dashboard.extra_insights_first_of', 'первые %s из %s'), [withoutEstimate.length, withoutEstimateTotal])
+      : String(withoutEstimateTotal);
+    var withoutEstimateBlock = withoutEstimate.length
+      ? '<div class="crm-dashboard-insight-alert">'
+        + '<div class="crm-dashboard-insight-alert-head">'
+        + safe(translate('dashboard.extra_insights_without_estimate', 'Задачи с учётом времени, но без оценки') + ': ' + withoutEstimateHead)
+        + '</div>'
+        + withoutEstimate.map(function (task) {
+          return '<div class="crm-dashboard-extra-row"><div class="text-truncate"><a href="' + safe(taskDetailUrl(task.task_public_id))
+            + '" title="' + safe(task.title) + '">' + safe(String(task.title || task.task_public_id || '')) + '</a>'
+            + '<small>' + safe(formatMinutesCompact(task.minutes)) + '</small></div></div>';
+        }).join('')
+        + '</div>'
+      : '';
+
+    var coverageValue = payload.estimate_coverage_percent === null || payload.estimate_coverage_percent === undefined
+      ? translate('dashboard.extra_insights_no_data', 'нет данных')
+      : Number(payload.estimate_coverage_percent) + '%';
+
     container.innerHTML = toolbar
+      + (selector ? '<div class="crm-dashboard-insight-stream-head">' + selector + '</div>' : '')
+      + deniedNotice
       + '<div class="crm-dashboard-insight-grid">'
       + insightTile(translate('dashboard.extra_insights_total', 'Всего часов'), formatMinutesCompact(payload.total_minutes))
       + insightTile(translate('dashboard.extra_insights_median', 'Медиана на задачу'), formatMinutesCompact(payload.median_minutes))
+      + insightTile(translate('dashboard.extra_insights_p90', 'p90 на задачу'), formatMinutesCompact(payload.p90_minutes))
+      + insightTile(translate('dashboard.extra_insights_max', 'Максимум на задачу'), formatMinutesCompact(payload.max_minutes))
       + insightTile(translate('dashboard.extra_insights_average', 'Среднее на задачу'), formatMinutesCompact(payload.average_minutes))
       + insightTile(translate('dashboard.extra_insights_covered', 'Задач с ворклогами'), Number(payload.covered_percent || 0) + '%', unloggedCount > 0 ? 'risk' : null)
+      + insightTile(translate('dashboard.extra_insights_estimate_coverage', 'Задач с оценкой'), coverageValue,
+        Number(payload.estimate_coverage_percent) > 0 && Number(payload.estimate_coverage_percent) < 50 ? 'risk' : null)
+      + '</div>'
+      + '<div class="crm-dashboard-insight-legend">'
+      + safe(translate('dashboard.extra_insights_p90_hint', 'p90 = 90% задач быстрее этого значения; среднее искажают выбросы'))
+      + (Number(payload.tasks_with_logs || 0) > 0
+        ? ' · ' + safe(formatPlaceholders(translate('dashboard.extra_insights_percentile_sample', 'выборка: %s задач с учётом'), [Number(payload.tasks_with_logs || 0)]))
+        : '')
       + '</div>'
       + rows
+      + calibrationBlock
       + (activityChips ? '<div class="crm-dashboard-insight-chips">' + activityChips + '</div>' : '')
-      + unloggedBlock;
+      + unloggedBlock
+      + withoutEstimateBlock;
 
     bindInsightToolbar(container, definition);
+    bindStreamProjectSelect(container, definition);
   }
 
   function signalClass(signal) {
