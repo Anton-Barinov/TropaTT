@@ -13,6 +13,7 @@ use Api\System\Library\Service\TaskBulkService;
 use Api\System\Library\Service\TaskBoardService;
 use Api\System\Library\Security\HtmlSanitizer;
 use Api\System\Library\Security\FinancialFieldPolicy;
+use Api\System\Library\Service\PurgeService;
 use Api\System\Library\Service\TaskService;
 use Api\System\Library\Validation\Validator;
 
@@ -459,6 +460,37 @@ final class TaskController extends BaseController
         /** @var TaskService $service */
         $service = $this->container->get('service.task');
         $before = $service->get((string)$params['public_id'], $authUser['user']);
+
+        // `?purge=1` removes an already deleted task for good (PRJ-436); it shares
+        // the DELETE route with the soft delete so the OpenAPI documents the gate
+        // diffs stay untouched.
+        $input = $this->request()->allInput();
+        $purgeRequested = ($input['purge'] ?? null) === '1' || ($input['purge'] ?? null) === 1 || ($input['purge'] ?? null) === true;
+        if ($purgeRequested) {
+            /** @var PurgeService $purge */
+            $purge = $this->container->get('service.purge');
+            $result = $purge->purgeTask((string)$params['public_id'], $authUser['user']);
+            if (($result['ok'] ?? false) !== true) {
+                return $this->error(
+                    (string)($result['code'] ?? 'PURGE_FAILED'),
+                    (string)($result['message'] ?? 'Purge failed'),
+                    (int)($result['status'] ?? 400)
+                );
+            }
+            $this->dispatchModuleHook(ModuleEvents::TASK_DELETED, [
+                'task_id' => (int)($before['id'] ?? 0),
+                'task_public_id' => (string)($params['public_id'] ?? ''),
+                'status_code' => (string)($before['status_code'] ?? ''),
+                'assignee_id' => (int)($before['assignee_user_id'] ?? 0),
+                'actor_id' => (int)($authUser['user']['id'] ?? 0),
+            ]);
+            $this->invalidateTaskCaches();
+
+            return $this->success('TASK_PURGED', $this->t('task/messages.deleted'), [
+                'removed' => $result['removed'] ?? [],
+            ]);
+        }
+
         $ok = $service->delete((string)$params['public_id'], $authUser['user']);
         if (!$ok) {
             return $this->error('TASK_NOT_FOUND', $this->t('common/messages.task_not_found'), 404, [
