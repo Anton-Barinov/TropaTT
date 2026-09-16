@@ -317,6 +317,72 @@ final class AnalyticsService
     }
 
     /**
+     * Per-user KPI goals, stored like the other personal preferences
+     * (`user:<public_id>` scope) so the existing settings API can set them without
+     * a new endpoint. Read-only here: the scorecard reports progress, it does not
+     * decide what the goals are.
+     *
+     * A goal of 0 (or a value outside the range the metric can hold) means the goal
+     * is switched off, not "a goal of zero" - nothing can be 0 % of a goal that
+     * does not exist, and dividing by it would be a division by zero.
+     */
+    private const KPI_GOALS_NAME = 'kpi_goals';
+    private const KPI_GOAL_MAX_COMPLETED = 1000;
+    private const KPI_GOAL_MAX_WEEKLY_MINUTES = 10080;
+
+    /**
+     * The three personal goals the scorecard can measure, normalised.
+     *
+     * @return array{completed_per_period:?int,on_time_percent:?float,weekly_minutes:?int}
+     */
+    private function kpiGoals(string $userPublicId): array
+    {
+        $off = ['completed_per_period' => null, 'on_time_percent' => null, 'weekly_minutes' => null];
+        if ($userPublicId === '' || $this->settings === null) {
+            return $off;
+        }
+
+        $setting = $this->settings->get('user:' . $userPublicId, self::KPI_GOALS_NAME);
+        $value = is_array($setting) ? ($setting['value'] ?? null) : null;
+        if (!is_array($value)) {
+            return $off;
+        }
+
+        $completed = self::goalValue($value['completed_per_period'] ?? null, 1, self::KPI_GOAL_MAX_COMPLETED);
+        $onTime = self::goalValue($value['on_time_percent'] ?? null, 1, 100);
+        $weekly = self::goalValue($value['weekly_minutes'] ?? null, 1, self::KPI_GOAL_MAX_WEEKLY_MINUTES);
+
+        return [
+            'completed_per_period' => $completed === null ? null : (int)$completed,
+            'on_time_percent' => $onTime,
+            'weekly_minutes' => $weekly === null ? null : (int)$weekly,
+        ];
+    }
+
+    private static function goalValue(mixed $raw, int $min, int $max): ?float
+    {
+        if ($raw === null || $raw === '' || !is_numeric($raw)) {
+            return null;
+        }
+        $value = (float)$raw;
+        if ($value < $min || $value > $max) {
+            return null;
+        }
+
+        return $value;
+    }
+
+    /** How far the achieved value is from the goal, or null when the goal is off. */
+    private static function goalProgress(?float $goal, ?float $achieved): ?float
+    {
+        if ($goal === null || $goal <= 0 || $achieved === null) {
+            return null;
+        }
+
+        return round($achieved / $goal * 100, 1);
+    }
+
+    /**
      * Personal KPI scorecard with deltas against the previous period.
      *
      * @param array<string,mixed> $actor
@@ -337,6 +403,62 @@ final class AnalyticsService
         ], ['period_start' => $currentStart, 'previous_start' => $previousStart]);
 
         $data['period_days'] = $periodDays;
+        $data['user_public_id'] = (string)($actor['public_id'] ?? '');
+
+        // The week a weekly goal is measured over is the newest week of the series
+        // the card already draws, so the tile and the bars can never disagree.
+        $weekly = is_array($data['weekly'] ?? null) ? $data['weekly'] : [];
+        $lastWeek = $weekly === [] ? [] : (array)$weekly[count($weekly) - 1];
+        $weeklyMinutes = (int)($lastWeek['minutes'] ?? 0);
+        $onTimePercent = $data['on_time_percent'] === null || $data['on_time_percent'] === '' ? null : (float)$data['on_time_percent'];
+
+        $goals = $this->kpiGoals((string)($actor['public_id'] ?? ''));
+        $data['goals'] = $goals;
+        $data['weekly_minutes_last'] = $weeklyMinutes;
+        $data['goal_progress_percent'] = [
+            'completed' => self::goalProgress($goals['completed_per_period'] === null ? null : (float)$goals['completed_per_period'], (float)(int)($data['completed'] ?? 0)),
+            'on_time' => self::goalProgress($goals['on_time_percent'], $onTimePercent),
+            'weekly_minutes' => self::goalProgress($goals['weekly_minutes'] === null ? null : (float)$goals['weekly_minutes'], (float)$weeklyMinutes),
+        ];
+
+        // How the actor compares with the people they can see. Same visibility model
+        // as the load widget, and the same fail-closed rule: a non-root actor whose
+        // scope resolves to nobody must not fall through to the organisation-wide
+        // distribution.
+        $isRoot = (bool)($actor['is_root'] ?? false);
+        // An empty non-root scope stays empty: the repository answers with a zero
+        // sample, which is what the card needs to say "nobody to compare with"
+        // instead of quietly ranking the actor against the whole organisation.
+        $scope = $this->insights()->personalScorecardScope(
+            $isRoot ? [] : $this->visibleUserIds($actor),
+            $isRoot,
+            $currentStart,
+            $now
+        );
+
+        $data['scope_median_completed'] = $scope['completed_median'];
+        $data['scope_median_on_time_percent'] = $scope['on_time_median'];
+        $data['scope_sample'] = $scope['sample'];
+        $data['scope_on_time_sample'] = $scope['on_time_sample'];
+        $data['completed_vs_scope_median'] = $scope['completed_median'] === null
+            ? null
+            : (int)($data['completed'] ?? 0) - (int)$scope['completed_median'];
+        $data['on_time_vs_scope_median'] = ($scope['on_time_median'] === null || $onTimePercent === null)
+            ? null
+            : round($onTimePercent - (float)$scope['on_time_median'], 1);
+
+        // The project breakdown answers "where did my period go" and is therefore
+        // read strictly from the actor's own completed tasks and own work logs -
+        // somebody else's project can never appear, and a project the actor only
+        // logged time on still does (see InsightsRepository::completedByProject).
+        $byProject = $this->insights()->completedByProject(
+            (int)($actor['id'] ?? 0),
+            $currentStart,
+            $now,
+            5
+        );
+        $data['projects'] = $byProject['projects'];
+        $data['projects_total'] = $byProject['total'];
 
         return $this->stripFinancialFields($data);
     }
