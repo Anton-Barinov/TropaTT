@@ -21,6 +21,16 @@ use PDO;
  * `tasks` has no "completed_at" column, so completion speed and throughput are
  * derived from `task_status_history` transitions into a terminal status, which is
  * the only durable record of when work actually finished.
+ *
+ * **One rule for logged time: only live tasks count.** Every aggregate that reads
+ * `work_logs` joins `tasks` and skips rows whose task is soft-deleted or archived,
+ * so the whole widget family reports the same period. Deleted tasks keep their log
+ * rows, and counting them was wrong twice over: a card ranked them (the link
+ * answered 404), and their hours dominated totals nobody could explain - on the
+ * demo the entire top-10 of `tasks_actual_time` came from deleted test runs, led by
+ * a single 1 000 344-minute row that set the average at 83 481 minutes. The
+ * trade-off is deliberate: time logged on a task that is deleted afterwards leaves
+ * the task analytics (it is still in the work-log list itself).
  */
 final class InsightsRepository
 {
@@ -539,7 +549,7 @@ final class InsightsRepository
                 LEFT JOIN tasks t ON t.project_id = p.id AND t.deleted_at IS NULL AND t.archived_at IS NULL
                 LEFT JOIN (SELECT t.project_id AS pid, COALESCE(SUM(w.minutes_spent), 0) AS minutes
                              FROM work_logs w
-                             JOIN tasks t ON t.id = w.task_id
+                             JOIN tasks t ON t.id = w.task_id AND t.deleted_at IS NULL AND t.archived_at IS NULL
                             WHERE w.logged_at >= ?
                             GROUP BY t.project_id) wl ON wl.pid = p.id
                 LEFT JOIN (SELECT m.project_id AS pid, MIN(m.due_at) AS next_milestone_at
@@ -695,7 +705,7 @@ final class InsightsRepository
         $membersStmt = $this->pdo->prepare(
             'SELECT u.public_id, u.full_name, u.login, COALESCE(SUM(w.minutes_spent), 0) AS minutes
              FROM work_logs w
-             JOIN tasks t ON t.id = w.task_id
+             JOIN tasks t ON t.id = w.task_id AND t.deleted_at IS NULL AND t.archived_at IS NULL
              JOIN users u ON u.id = w.user_id
              WHERE t.project_id = ? AND w.logged_at >= ?
              GROUP BY u.id, u.public_id, u.full_name, u.login
@@ -866,8 +876,10 @@ final class InsightsRepository
         $from = gmdate('Y-m-d 00:00:00', strtotime('-120 days', strtotime($now)));
 
         $stmt = $this->pdo->prepare(
-            'SELECT DISTINCT SUBSTR(logged_at, 1, 10) AS day FROM work_logs
-             WHERE user_id IN (' . $placeholders . ') AND logged_at >= ?'
+            'SELECT DISTINCT SUBSTR(w.logged_at, 1, 10) AS day
+               FROM work_logs w
+               JOIN tasks t ON t.id = w.task_id AND t.deleted_at IS NULL AND t.archived_at IS NULL
+              WHERE w.user_id IN (' . $placeholders . ') AND w.logged_at >= ?'
         );
         $stmt->execute(array_merge($userIds, [$from]));
         $days = array_flip(array_map(static fn(array $row): string => (string)$row['day'], $stmt->fetchAll(PDO::FETCH_ASSOC)));
@@ -1046,8 +1058,10 @@ final class InsightsRepository
 
         $placeholders = implode(', ', array_fill(0, count($userIds), '?'));
         $stmt = $this->pdo->prepare(
-            "SELECT COALESCE(SUM(minutes_spent), 0) FROM work_logs
-             WHERE user_id IN ({$placeholders}) AND logged_at >= ? AND logged_at <= ?"
+            "SELECT COALESCE(SUM(w.minutes_spent), 0)
+               FROM work_logs w
+               JOIN tasks t ON t.id = w.task_id AND t.deleted_at IS NULL AND t.archived_at IS NULL
+              WHERE w.user_id IN ({$placeholders}) AND w.logged_at >= ? AND w.logged_at <= ?"
         );
         $stmt->execute(array_merge($userIds, [$from, $to]));
 
@@ -1066,10 +1080,11 @@ final class InsightsRepository
         if ($userIds !== []) {
             $placeholders = implode(', ', array_fill(0, count($userIds), '?'));
             $stmt = $this->pdo->prepare(
-                "SELECT SUBSTR(logged_at, 1, 10) AS day, COALESCE(SUM(minutes_spent), 0) AS minutes
-                 FROM work_logs
-                 WHERE user_id IN ({$placeholders}) AND logged_at >= ? AND logged_at <= ?
-                 GROUP BY SUBSTR(logged_at, 1, 10)"
+                "SELECT SUBSTR(w.logged_at, 1, 10) AS day, COALESCE(SUM(w.minutes_spent), 0) AS minutes
+                   FROM work_logs w
+                   JOIN tasks t ON t.id = w.task_id AND t.deleted_at IS NULL AND t.archived_at IS NULL
+                  WHERE w.user_id IN ({$placeholders}) AND w.logged_at >= ? AND w.logged_at <= ?
+                  GROUP BY SUBSTR(w.logged_at, 1, 10)"
             );
             $stmt->execute(array_merge($userIds, [$from, $to]));
             foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
@@ -1157,6 +1172,14 @@ final class InsightsRepository
      */
     private function minutesPerTask(array $userIds, bool $isRoot, string $from, string $to, ?string $projectPublicId = null): array
     {
+        // A deleted or archived task is not part of the work anyone can look at any
+        // more: listing it produces a row whose link answers 404, and its hours push
+        // the period totals and the percentiles around. On the demo every one of the
+        // top ten rows came from an unfinished test run that had been deleted
+        // afterwards - including the 1 000 344-minute outlier that dominated the
+        // average. The filter matches every other task-level aggregate in this
+        // repository, so the widget's task list and the rest of the dashboard agree
+        // on what "the period" contains.
         $sql = 'SELECT t.public_id, t.title, p.title AS project_title,
                        COALESCE(SUM(w.minutes_spent), 0) AS minutes,
                        COUNT(w.id) AS sessions,
@@ -1164,7 +1187,8 @@ final class InsightsRepository
                 FROM work_logs w
                 JOIN tasks t ON t.id = w.task_id
                 LEFT JOIN projects p ON p.id = t.project_id
-                WHERE w.logged_at >= ? AND w.logged_at <= ?';
+                WHERE w.logged_at >= ? AND w.logged_at <= ?
+                  AND t.deleted_at IS NULL AND t.archived_at IS NULL';
         $params = [$from, $to];
 
         if (!$isRoot) {
@@ -1487,16 +1511,15 @@ final class InsightsRepository
         $projectFilter = trim((string)$projectPublicId) !== ''
             ? ' AND t.project_id IN (SELECT id FROM projects WHERE public_id = ?)'
             : '';
-        // The tasks join only exists when a project filter asks for it: joining always
-        // would silently drop the logs of deleted tasks from the activity split.
-        $sql = $projectFilter === ''
-            ? 'SELECT activity_code, COALESCE(SUM(minutes_spent), 0) AS minutes
-                FROM work_logs
-                WHERE logged_at >= ? AND logged_at <= ?'
-            : 'SELECT w.activity_code, COALESCE(SUM(w.minutes_spent), 0) AS minutes
+        // The split has to describe the same work as `top_tasks` and `total_minutes`,
+        // so it joins tasks unconditionally and applies the same live-task filter: a
+        // deleted task's hours used to be counted here but not there, and the chips
+        // then summed to more than the card's own total.
+        $sql = 'SELECT w.activity_code, COALESCE(SUM(w.minutes_spent), 0) AS minutes
                 FROM work_logs w
                 JOIN tasks t ON t.id = w.task_id
-                WHERE w.logged_at >= ? AND w.logged_at <= ?';
+                WHERE w.logged_at >= ? AND w.logged_at <= ?
+                  AND t.deleted_at IS NULL AND t.archived_at IS NULL';
         $params = [$from, $to];
         if ($projectFilter !== '') {
             $sql .= $projectFilter;
@@ -1507,11 +1530,11 @@ final class InsightsRepository
             if ($userIds === []) {
                 return [];
             }
-            $sql .= ' AND user_id IN (' . implode(', ', array_fill(0, count($userIds), '?')) . ')';
+            $sql .= ' AND w.user_id IN (' . implode(', ', array_fill(0, count($userIds), '?')) . ')';
             $params = array_merge($params, $userIds);
         }
 
-        $sql .= ' GROUP BY activity_code ORDER BY minutes DESC';
+        $sql .= ' GROUP BY w.activity_code ORDER BY minutes DESC';
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
@@ -1796,6 +1819,7 @@ final class InsightsRepository
         $stmt = $this->pdo->prepare(
             'SELECT w.user_id AS uid, COALESCE(SUM(w.minutes_spent), 0) AS minutes
              FROM work_logs w
+             JOIN tasks t ON t.id = w.task_id AND t.deleted_at IS NULL AND t.archived_at IS NULL
              WHERE w.user_id IN (' . $placeholders . ') AND w.logged_at >= ? AND w.logged_at <= ?
              GROUP BY w.user_id'
         );
