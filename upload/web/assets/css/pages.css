@@ -7545,6 +7545,22 @@ body.modal-open {
 .crm-dashboard-page .crm-dashboard-insight-tile--risk {
   border-color: var(--crm-danger);
 }
+/* A tile that opens the filtered task list: keeps the tile look, adds affordance. */
+.crm-dashboard-page a.crm-dashboard-insight-tile.is-link {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+.crm-dashboard-page a.crm-dashboard-insight-tile.is-link:hover,
+.crm-dashboard-page a.crm-dashboard-insight-tile.is-link:focus-visible {
+  border-color: var(--crm-primary);
+  background: var(--crm-bg);
+}
+.crm-dashboard-page a.crm-dashboard-insight-tile.is-link .crm-dashboard-insight-label::after {
+  content: ' \2192';
+  font-size: 0.75em;
+  opacity: 0.6;
+}
 .crm-dashboard-page .crm-dashboard-insight-tile--overload {
   border-color: var(--crm-warning, var(--crm-danger));
 }

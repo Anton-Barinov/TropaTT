@@ -183,6 +183,15 @@ final class SettingController extends BaseController
             }
         }
 
+        if ($scope === 'system' && str_starts_with($name, 'insights.')) {
+            $insightsError = $this->validateInsightsSetting($name, $input['value']);
+            if ($insightsError !== null) {
+                return $this->error('VALIDATION_ERROR', $insightsError, 422, [
+                    'value' => [$insightsError],
+                ]);
+            }
+        }
+
         /** @var SettingService $service */
         $service = $this->container->get('service.setting');
         $item = $service->set($scope, $name, $input['value']);
@@ -220,6 +229,24 @@ final class SettingController extends BaseController
      * or null when valid. Whitespace-lists / numeric ranges enforced here; the
      * values are never interpolated into SQL by this controller.
      */
+    /**
+     * Validate the insights.* settings: the working week the dashboard measures load
+     * against. A week outside 5–100 hours is refused here rather than silently
+     * ignored later, so an admin gets told instead of wondering why nothing changed.
+     */
+    private function validateInsightsSetting(string $name, mixed $value): ?string
+    {
+        if ($name === 'insights.weekly_capacity_minutes') {
+            if (!is_numeric($value) || (int)$value < 300 || (int)$value > 6000) {
+                return $this->t('setting/messages.invalid_weekly_capacity');
+            }
+
+            return null;
+        }
+
+        return null;
+    }
+
     private function validateFinanceSetting(string $name, mixed $value): ?string
     {
         if ($name === 'finance.cost_from_payout_markup_percent') {

@@ -26307,14 +26307,15 @@ window.CRM.pageApiBindings = (function () {
     var refreshBtn = document.getElementById('adminSettingsRefreshBtn');
     if (!userPrefsState && !systemBody && !retentionBody) return;
 
-    var editableSettingNames = ['max_requests_per_minute', 'api_file_cache_enabled', 'api_file_cache_ttl', 'kanban_max_cards', 'gantt_max_tasks', 'time_rounding_minutes'];
+    var editableSettingNames = ['max_requests_per_minute', 'api_file_cache_enabled', 'api_file_cache_ttl', 'kanban_max_cards', 'gantt_max_tasks', 'time_rounding_minutes', 'insights.weekly_capacity_minutes'];
     var settingLabels = {
       max_requests_per_minute: tp('admin_settings.setting_max_requests', 'Requests per minute limit'),
       api_file_cache_enabled: tp('admin_settings.setting_api_cache_enabled', 'API cache (enabled/disabled)'),
       api_file_cache_ttl: tp('admin_settings.setting_api_cache_ttl', 'Cache TTL (sec)'),
       kanban_max_cards: tp('admin_settings.setting_kanban_max_cards', 'Kanban: cards loaded per batch (0 = default 100)'),
       gantt_max_tasks: tp('admin_settings.setting_gantt_max_tasks', 'Gantt max tasks (0 = show all)'),
-      time_rounding_minutes: tp('admin_settings.setting_time_rounding', 'Time rounding (minutes, 0 = off)')
+      time_rounding_minutes: tp('admin_settings.setting_time_rounding', 'Time rounding (minutes, 0 = off)'),
+      'insights.weekly_capacity_minutes': tp('admin_settings.setting_weekly_capacity', 'Dashboard: weekly capacity per person (minutes, 300–6000)')
     };
     var retentionLabels = {
       request_logs_days: tp('admin_settings.retention_request_logs', 'Request logs'),
@@ -26428,6 +26429,12 @@ window.CRM.pageApiBindings = (function () {
         }
         if (!settingsItems.some(function (item) { return String(item.name || '') === 'time_rounding_minutes'; })) {
           settingsItems.push({ scope: 'system', name: 'time_rounding_minutes', value: 0 });
+        }
+        // The dashboard load metrics divide by this week. Seeded with the default the
+        // widgets already use, so the field shows the effective value before an admin
+        // ever touches it - and saving it makes the choice explicit in the payload.
+        if (!settingsItems.some(function (item) { return String(item.name || '') === 'insights.weekly_capacity_minutes'; })) {
+          settingsItems.push({ scope: 'system', name: 'insights.weekly_capacity_minutes', value: 2400 });
         }
         if (!settingsItems.length) {
           var emptyRow = document.createElement('tr');
