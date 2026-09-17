@@ -69,6 +69,19 @@ final class InsightsRepository
     private const SPRINT_SAMPLE_WEEKS = 4;
 
     /**
+     * Load bands the rebalancing advice is built on, as a share of the weekly
+     * capacity. These are the historical hardcoded values: the organisation can
+     * override both through settings, and the payload always reports which pair
+     * was in force, so the card's legend cannot describe a threshold the numbers
+     * did not use.
+     */
+    public const DEFAULT_OVERLOAD_PERCENT = 110;
+    public const DEFAULT_UNDERLOAD_PERCENT = 50;
+
+    /** An SLA deadline this close counts as at risk, not yet missed. */
+    private const SLA_SOON_DAYS = 3;
+
+    /**
      * How close a deadline has to be before a stream is flagged `soon`.
      * Seven days is the window the project milestones summary already calls
      * "upcoming", so the two screens agree on what "на этой неделе" means.
@@ -91,7 +104,7 @@ final class InsightsRepository
      * is a service-level fact (setting or business calendar); the repository only
      * falls back to the 40-hour default when nobody told it otherwise.
      *
-     * @param array{now:string,week_start:string,period_start:string,previous_start?:string,period_days?:int,capacity_minutes_week?:int} $window
+     * @param array{now:string,week_start:string,period_start:string,previous_start?:string,period_days?:int,capacity_minutes_week?:int,load_thresholds?:array<string,int>} $window
      * @return array<string,mixed>
      */
     public function personalLoad(int $userId, array $window): array
@@ -153,7 +166,7 @@ final class InsightsRepository
             ],
             'efficiency_percent' => $efficiency,
             'load_percent' => $loadPercent,
-            'load_signal' => self::loadSignal($loadPercent),
+            'load_signal' => self::loadSignal($loadPercent, self::bands($window['load_thresholds'] ?? null)),
             'daily_minutes' => $this->dailyMinutes([$userId], $weekStart, $now),
             'period_daily_minutes' => $periodDailyMinutes,
             'period_daily_bucket_days' => $periodDailyBucketDays,
@@ -347,6 +360,7 @@ final class InsightsRepository
         $weekStart = (string)$window['week_start'];
         $periodStart = (string)$window['period_start'];
         $capacityMinutes = self::normalizeCapacity($window['capacity_minutes_week'] ?? null);
+        $bands = self::bands($window['load_thresholds'] ?? null);
 
         $sql = 'SELECT u.id AS user_id, u.public_id, u.login, u.full_name
                 FROM users u
@@ -376,6 +390,10 @@ final class InsightsRepository
         $taskCounts = $this->assignedTaskCountsByUser($userIds, $now);
         $minutesByUser = $this->loggedMinutesByUser($userIds, $weekStart, $now);
         $completedByUser = $this->completedTasksByUser($userIds, $periodStart, $now);
+        // SLA risk is what turns "this person has a lot of work" into "this person
+        // is about to miss a commitment", which is what a hand-over has to be
+        // justified with.
+        $slaRiskByUser = $this->slaRiskTaskCountsByUser($userIds, $now);
 
         $rows = [];
         foreach ($users as $user) {
@@ -399,12 +417,13 @@ final class InsightsRepository
                 'full_name' => (string)($user['full_name'] ?? ''),
                 'active_tasks' => $active,
                 'overdue_tasks' => $overdue,
+                'sla_risk_tasks' => (int)($slaRiskByUser[$userId] ?? 0),
                 'minutes_week' => $minutesWeek,
                 'completed_period' => $completed,
                 'load_percent' => $loadPercent,
                 'efficiency_percent' => $efficiency,
                 'has_data' => $hasData,
-                'signal' => $hasData ? self::workloadSignal($loadPercent, $overdue) : 'no_data',
+                'signal' => $hasData ? self::workloadSignal($loadPercent, $overdue, $bands) : 'no_data',
             ];
         }
 
@@ -1244,17 +1263,22 @@ final class InsightsRepository
      * @param array<int, array<string,mixed>> $assignees
      * @return array<string,mixed>|null
      */
-    public static function rebalanceRecommendation(array $assignees): ?array
+    public static function rebalanceRecommendation(array $assignees, array $bands = []): ?array
     {
+        $bands = self::bands($bands);
         $from = null;
         $to = null;
         foreach ($assignees as $row) {
             $load = (float)($row['load_percent'] ?? 0);
             $active = (int)($row['active_tasks'] ?? 0);
-            if ($load > 110 && $active > 1 && ($from === null || $load > (float)$from['load_percent'])) {
+            if ($load > $bands['overload_percent'] && $active > 1 && ($from === null || $load > (float)$from['load_percent'])) {
                 $from = $row;
             }
-            if ($load < 50 && (int)($row['overdue_tasks'] ?? 0) === 0 && ($to === null || $load < (float)$to['load_percent'])) {
+            // A recipient has to be able to take the work: nobody below the band who
+            // is already late, and nobody whose own SLA commitments are burning. The
+            // advice is a plan, not a way to move a problem sideways.
+            $toEligible = (int)($row['overdue_tasks'] ?? 0) === 0 && (int)($row['sla_risk_tasks'] ?? 0) === 0;
+            if ($load < $bands['underload_percent'] && $toEligible && ($to === null || $load < (float)$to['load_percent'])) {
                 $to = $row;
             }
         }
@@ -1265,35 +1289,174 @@ final class InsightsRepository
 
         $active = (int)$from['active_tasks'];
         $excess = (int)floor(((float)$from['load_percent'] - 100) / 100 * $active);
+        $fromMetrics = self::personMetrics($from);
+        $toMetrics = self::personMetrics($to);
+
+        // The factors are what makes the advice defensible: overload alone used to be
+        // the whole story, so a person drowning in late work and broken SLA promises
+        // looked exactly like somebody merely busy.
+        $factors = ['overload', 'backlog'];
+        if ($fromMetrics['overdue_tasks'] > 0) {
+            $factors[] = 'overdue';
+        }
+        if ($fromMetrics['sla_risk_tasks'] > 0) {
+            $factors[] = 'sla_risk';
+        }
+        $factors[] = 'spare_capacity';
 
         return [
             'reason' => 'rebalance_overload',
+            // `reason_summary` is the plain-language version for logs and API consumers;
+            // the card renders its own localised sentence from the factors and metrics.
+            'reason_summary' => sprintf(
+                'load %.1f%% (band >%d%%), %d active tasks, %d overdue, %d SLA at risk; recipient at %.1f%% with spare capacity',
+                $fromMetrics['load_percent'],
+                $bands['overload_percent'],
+                $fromMetrics['active_tasks'],
+                $fromMetrics['overdue_tasks'],
+                $fromMetrics['sla_risk_tasks'],
+                $toMetrics['load_percent']
+            ),
+            'reason_factors' => $factors,
+            'reason_metrics' => [
+                'overload_percent' => $bands['overload_percent'],
+                'underload_percent' => $bands['underload_percent'],
+                'from_load_percent' => $fromMetrics['load_percent'],
+                'from_active_tasks' => $fromMetrics['active_tasks'],
+                'from_overdue_tasks' => $fromMetrics['overdue_tasks'],
+                'from_sla_risk_tasks' => $fromMetrics['sla_risk_tasks'],
+                'to_load_percent' => $toMetrics['load_percent'],
+                'to_active_tasks' => $toMetrics['active_tasks'],
+                'to_overdue_tasks' => $toMetrics['overdue_tasks'],
+                'to_sla_risk_tasks' => $toMetrics['sla_risk_tasks'],
+            ],
             'tasks' => max(1, min($active - 1, $excess)),
-            'from' => [
-                'user_public_id' => (string)$from['user_public_id'],
-                'name' => (string)($from['full_name'] !== '' ? $from['full_name'] : $from['login']),
-                'load_percent' => (float)$from['load_percent'],
-                'active_tasks' => $active,
-            ],
-            'to' => [
-                'user_public_id' => (string)$to['user_public_id'],
-                'name' => (string)($to['full_name'] !== '' ? $to['full_name'] : $to['login']),
-                'load_percent' => (float)$to['load_percent'],
-                'active_tasks' => (int)$to['active_tasks'],
-            ],
+            'from' => ['user_public_id' => (string)$from['user_public_id']] + $fromMetrics,
+            'to' => ['user_public_id' => (string)$to['user_public_id']] + $toMetrics,
         ];
     }
 
-    public static function workloadSignal(float $loadPercent, int $overdue): string
+    /**
+     * The bottleneck the card falls back to when no hand-over can be advised.
+     *
+     * The recommendation used to be the only thing the block could say, and it is
+     * silent whenever the pair is missing - which is most of the time. "Nobody is
+     * overloaded" and "somebody is overloaded but there is nobody to hand work to"
+     * are different answers, and the manager needs to see which one applies, plus
+     * the busiest and the most overdue person even when there is no advice.
+     *
+     * @param array<int,array<string,mixed>> $assignees
+     * @return array{most_loaded:?array<string,mixed>,most_overdue:?array<string,mixed>,blocked_reason:?string,overload_percent:int,underload_percent:int}
+     */
+    public static function bottleneck(array $assignees, array $bands = []): array
     {
-        if ($loadPercent > 110) {
+        $bands = self::bands($bands);
+        $loaded = null;
+        $overdue = null;
+        $overloaded = null;
+        $recipient = null;
+        foreach ($assignees as $row) {
+            if (($row['has_data'] ?? true) === false) {
+                continue;
+            }
+            $load = (float)($row['load_percent'] ?? 0);
+            $late = (int)($row['overdue_tasks'] ?? 0);
+            if ($loaded === null || $load > (float)$loaded['load_percent']) {
+                $loaded = $row;
+            }
+            if ($late > 0 && ($overdue === null || $late > (int)$overdue['overdue_tasks'])) {
+                $overdue = $row;
+            }
+            if ($load > $bands['overload_percent'] && (int)($row['active_tasks'] ?? 0) > 1) {
+                $overloaded = true;
+            }
+            if ($load < $bands['underload_percent'] && $late === 0 && (int)($row['sla_risk_tasks'] ?? 0) === 0) {
+                $recipient = true;
+            }
+        }
+
+        // Why the advice is missing, so the card explains itself instead of going quiet.
+        $blockedReason = null;
+        if ($loaded === null) {
+            $blockedReason = 'no_data';
+        } elseif ($overloaded !== true) {
+            $blockedReason = 'no_overload';
+        } elseif ($recipient !== true) {
+            $blockedReason = 'no_spare_capacity';
+        } else {
+            $blockedReason = 'same_person';
+        }
+
+        return [
+            'most_loaded' => $loaded !== null ? self::personMetrics($loaded) : null,
+            'most_overdue' => $overdue !== null ? self::personMetrics($overdue) : null,
+            'blocked_reason' => $blockedReason,
+            'overload_percent' => $bands['overload_percent'],
+            'underload_percent' => $bands['underload_percent'],
+        ];
+    }
+
+    /**
+     * The readable half of an assignee row: numbers plus who the person is.
+     *
+     * @param array<string,mixed> $row
+     * @return array<string,mixed>
+     */
+    private static function personMetrics(array $row): array
+    {
+        return [
+            'name' => (string)(($row['full_name'] ?? '') !== '' ? $row['full_name'] : ($row['login'] ?? '')),
+            'load_percent' => (float)($row['load_percent'] ?? 0),
+            'active_tasks' => (int)($row['active_tasks'] ?? 0),
+            'overdue_tasks' => (int)($row['overdue_tasks'] ?? 0),
+            'sla_risk_tasks' => (int)($row['sla_risk_tasks'] ?? 0),
+        ];
+    }
+
+    public static function workloadSignal(float $loadPercent, int $overdue, array $bands = []): string
+    {
+        $bands = self::bands($bands);
+        if ($loadPercent > $bands['overload_percent']) {
             return 'overload';
         }
-        if ($loadPercent < 50 && $overdue === 0) {
+        if ($loadPercent < $bands['underload_percent'] && $overdue === 0) {
             return 'underload';
         }
 
         return $overdue > 0 ? 'risk' : 'normal';
+    }
+
+    /**
+     * Normalise a load band pair, falling back to the historical constants.
+     *
+     * Written as a reader rather than a validator: a broken band that reaches this
+     * far must not turn every signal into an error or divide by nonsense, so an
+     * unusable pair is discarded and the default applies (the service validates the
+     * human-facing input where it is entered).
+     *
+     * @param mixed $bands
+     * @return array{overload_percent:int,underload_percent:int}
+     */
+    public static function bands($bands): array
+    {
+        $overload = self::DEFAULT_OVERLOAD_PERCENT;
+        $underload = self::DEFAULT_UNDERLOAD_PERCENT;
+        if (!is_array($bands)) {
+            return ['overload_percent' => $overload, 'underload_percent' => $underload];
+        }
+
+        $inputOverload = $bands['overload_percent'] ?? null;
+        $inputUnderload = $bands['underload_percent'] ?? null;
+        // Any positive band is a legitimate business choice: an organisation that
+        // wants the alarm at 90 % (people also answer mail) may set it.
+        if (is_numeric($inputOverload) && (int)$inputOverload >= 1) {
+            $overload = (int)$inputOverload;
+        }
+        if (is_numeric($inputUnderload) && (int)$inputUnderload >= 0 && (int)$inputUnderload < $overload) {
+            $underload = (int)$inputUnderload;
+        }
+
+        return ['overload_percent' => $overload, 'underload_percent' => $underload];
     }
 
     /**
@@ -2355,6 +2518,53 @@ final class InsightsRepository
      * @param int[] $userIds
      * @return array<int, array{active:int,overdue:int}>
      */
+    /**
+     * Open tasks per user whose SLA commitment is already missed or about to be.
+     *
+     * The task row carries the SLA snapshot written when a policy was assigned
+     * (`sla_policy_id`, `sla_response_deadline`, `sla_resolve_deadline`,
+     * `sla_breached`), so the risk is read from `tasks` itself; `sla_policies` only
+     * holds the definition. A deadline counts when it has passed or falls inside the
+     * next `SLA_SOON_DAYS`, and a task already flagged as breached counts even if it
+     * no longer carries a deadline.
+     *
+     * @param int[] $userIds
+     * @return array<int,int> user id => tasks at risk
+     */
+    private function slaRiskTaskCountsByUser(array $userIds, string $now): array
+    {
+        if ($userIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($userIds), '?'));
+        $terminal = TaskStatusSemantics::terminalLiteralList($this->pdo);
+        $soon = gmdate('Y-m-d H:i:s', strtotime('+' . self::SLA_SOON_DAYS . ' days', strtotime($now)) ?: time());
+        $stmt = $this->pdo->prepare(
+            'SELECT t.assignee_user_id AS uid, COUNT(*) AS at_risk
+             FROM tasks t
+             WHERE t.deleted_at IS NULL AND t.archived_at IS NULL
+               AND t.status_code NOT IN (' . $terminal . ')
+               AND t.assignee_user_id IN (' . $placeholders . ')
+               AND (
+                   t.sla_breached = 1
+                   OR (t.sla_response_deadline IS NOT NULL AND t.sla_response_deadline <= ?)
+                   OR (t.sla_resolve_deadline IS NOT NULL AND t.sla_resolve_deadline <= ?)
+               )
+             GROUP BY t.assignee_user_id'
+        );
+        // The `IN (...)` placeholder comes first in the statement, so the user ids are
+        // bound before the two deadline bounds.
+        $stmt->execute(array_merge($userIds, [$soon, $soon]));
+
+        $counts = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $counts[(int)$row['uid']] = (int)$row['at_risk'];
+        }
+
+        return $counts;
+    }
+
     private function assignedTaskCountsByUser(array $userIds, string $now): array
     {
         if ($userIds === []) {
@@ -2600,12 +2810,13 @@ final class InsightsRepository
         return (int)round(($values[$middle - 1] + $values[$middle]) / 2);
     }
 
-    public static function loadSignal(float $loadPercent): string
+    public static function loadSignal(float $loadPercent, array $bands = []): string
     {
-        if ($loadPercent > 110) {
+        $bands = self::bands($bands);
+        if ($loadPercent > $bands['overload_percent']) {
             return 'overload';
         }
-        if ($loadPercent < 50) {
+        if ($loadPercent < $bands['underload_percent']) {
             return 'underload';
         }
 

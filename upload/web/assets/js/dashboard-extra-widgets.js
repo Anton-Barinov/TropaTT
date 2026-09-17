@@ -462,6 +462,16 @@
     if (container.__crmInsightToolbarBound) return;
     container.__crmInsightToolbarBound = true;
     container.addEventListener('click', function (event) {
+      var handover = event.target && event.target.closest ? event.target.closest('[data-insights-handover]') : null;
+      if (handover) {
+        event.preventDefault();
+        var envelope = container.__crmInsightEnvelope;
+        var recommendation = envelope ? insightsPayload(envelope).recommendation : null;
+        if (recommendation && recommendation.to) {
+          openHandoverTask(recommendation);
+        }
+        return;
+      }
       var button = event.target && event.target.closest ? event.target.closest('[data-insight-option]') : null;
       if (!button) return;
       event.preventDefault();
@@ -1366,12 +1376,17 @@
   }
 
   // The legend has to name the capacity that is actually in force, otherwise it
-  // keeps claiming "40 h/week" after an admin set the org's own week.
+  // keeps claiming "40 h/week" after an admin set the org's own week - and the same
+  // goes for the load bands, which used to be printed as a hardcoded "110 % / 50 %"
+  // while the signals were computed from whatever the organisation had configured.
   function signalLegendHtml(payload) {
     payload = payload || {};
     var capacity = Number(payload.capacity_minutes_week || 2400);
     var source = capacitySourceLabel(payload.capacity_source);
-    var base = translate('dashboard.extra_insights_legend_signals', 'Перегруз > 110% загрузки, недогруз < 50% без просрочек, риск — есть просрочка. {capacity}.');
+    var bands = payload.load_thresholds || {};
+    var base = translate('dashboard.extra_insights_legend_signals', 'Перегруз > %over% загрузки, недогруз < %under% без просрочек, риск — есть просрочка. {capacity}.')
+      .replace('%over%', Number(bands.overload_percent || 110) + '%')
+      .replace('%under%', Number(bands.underload_percent || 50) + '%');
     var capacityText = formatPlaceholders(
       translate('dashboard.extra_insights_legend_capacity', 'Норма — %s/нед, источник: %s'),
       [formatMinutesCompact(capacity), source]
@@ -1379,7 +1394,99 @@
 
     return '<div class="crm-dashboard-insight-legend">'
       + safe(base.replace('{capacity}', capacityText))
+      + (payload.load_thresholds_source === 'setting'
+        ? ' <span class="crm-dashboard-insight-legend-note">'
+          + safe(translate('dashboard.extra_insights_thresholds_from_settings', 'Пороги заданы в настройках организации.')) + '</span>'
+        : '')
       + '</div>';
+  }
+
+  // Why the advice says what it says, in the numbers it was built on. A hand-over
+  // used to be justified only by "load > 110 %", so a person drowning in late work
+  // and broken SLA promises looked exactly like somebody merely busy.
+  function rebalanceReasonsHtml(recommendation) {
+    var factors = Array.isArray(recommendation.reason_factors) ? recommendation.reason_factors : [];
+    if (!factors.length) return '';
+    var labels = {
+      overload: translate('dashboard.extra_insights_factor_overload', 'перегруз'),
+      backlog: translate('dashboard.extra_insights_factor_backlog', 'очередь задач'),
+      overdue: translate('dashboard.extra_insights_factor_overdue', 'просрочки'),
+      sla_risk: translate('dashboard.extra_insights_factor_sla', 'SLA под риском'),
+      spare_capacity: translate('dashboard.extra_insights_factor_spare', 'есть свободная мощность')
+    };
+    var parts = factors.map(function (code) { return labels[code] || String(code); });
+
+    return '<div class="crm-dashboard-insight-recommendation-factors">'
+      + safe(translate('dashboard.extra_insights_rebalance_why', 'Почему')) + ': ' + safe(parts.join(' · '))
+      + '</div>';
+  }
+
+  function personSummaryHtml(row, label) {
+    if (!row) return '';
+    var line = translate('dashboard.extra_insights_bottleneck_line', '%load% загрузки · %active% в работе · %over% просрочено · %sla% SLA под риском')
+      .replace('%load%', Number(row.load_percent || 0) + '%')
+      .replace('%active%', String(Number(row.active_tasks || 0)))
+      .replace('%over%', String(Number(row.overdue_tasks || 0)))
+      .replace('%sla%', String(Number(row.sla_risk_tasks || 0)));
+
+    return '<div class="crm-dashboard-insight-bottleneck-row">'
+      + '<span class="crm-dashboard-insight-bottleneck-label">' + safe(label) + '</span> '
+      + '<a href="' + safe(tasksListUrl({ assignee: row.user_public_id })) + '">' + safe(String(row.name || '')) + '</a>'
+      + '<div class="crm-dashboard-insight-bottleneck-meta">' + safe(line) + '</div>'
+      + '</div>';
+  }
+
+  // When no hand-over can be advised the card says who the bottleneck is and why
+  // there is no advice - "nobody is overloaded" and "somebody is overloaded with
+  // nobody to hand work to" are different answers, and the block used to go silent
+  // for both.
+  function bottleneckHtml(payload) {
+    var bottleneck = payload.bottleneck;
+    if (!bottleneck) return '';
+    var reasons = {
+      no_overload: translate('dashboard.extra_insights_bottleneck_no_overload', 'Перегруза нет — передавать нечего.'),
+      no_spare_capacity: translate('dashboard.extra_insights_bottleneck_no_spare', 'Есть перегруженный сотрудник, но нет свободного получателя без просрочек и SLA-риска.'),
+      same_person: translate('dashboard.extra_insights_bottleneck_same_person', 'Перегруженный и свободный — один и тот же человек.'),
+      no_data: translate('dashboard.extra_insights_bottleneck_no_data', 'Нет данных для оценки узкого места.')
+    };
+    var reason = reasons[String(bottleneck.blocked_reason || '')] || '';
+
+    return '<div class="crm-dashboard-insight-bottleneck">'
+      + '<div class="crm-dashboard-insight-alert-head">'
+      + safe(translate('dashboard.extra_insights_bottleneck_title', 'Узкое место'))
+      + '</div>'
+      + (reason ? '<div class="crm-dashboard-insight-bottleneck-reason">' + safe(reason) + '</div>' : '')
+      + personSummaryHtml(bottleneck.most_loaded, translate('dashboard.extra_insights_bottleneck_most_loaded', 'Самый нагруженный'))
+      + personSummaryHtml(bottleneck.most_overdue, translate('dashboard.extra_insights_bottleneck_most_overdue', 'Самый просроченный'))
+      + '</div>';
+  }
+
+  // Opens the global task modal with the hand-over prefilled. Falls back to the
+  // filtered task list when the modal is not on this page, so the button is never
+  // a dead end.
+  function openHandoverTask(recommendation) {
+    var from = String((recommendation.from || {}).name || '');
+    var to = String((recommendation.to || {}).name || '');
+    var tasks = Number(recommendation.tasks || 0);
+    var prefill = {
+      title: formatPlaceholders(
+        translate('dashboard.extra_insights_rebalance_task_title', 'Передать %s задач: от %s к %s'),
+        [tasks, from, to]
+      ),
+      description: formatPlaceholders(
+        translate('dashboard.extra_insights_rebalance_task_body', 'Передача задач в рамках ребалансировки нагрузки по виджету «Управление нагрузкой и эффективностью».%sОт: %s%sКому: %s'),
+        ['\n', from, '\n', to]
+      ),
+      assignee_user_public_id: String((recommendation.to || {}).user_public_id || '')
+    };
+    window._taskCreatePrefill = prefill;
+    var modalEl = document.getElementById('createTaskModal');
+    if (modalEl && window.bootstrap && window.bootstrap.Modal) {
+      window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+      return;
+    }
+
+    window.location.href = tasksListUrl({ assignee: prefill.assignee_user_public_id });
   }
 
   function limitStateHtml(definition, total, visible) {
@@ -1695,10 +1802,21 @@
           .replace('%from', String(recommendation.from.name || ''))
           .replace('%to', String(recommendation.to.name || '')))
         + '</div>'
+        + rebalanceReasonsHtml(recommendation)
         + '<div class="crm-dashboard-insight-recommendation-links">'
         + '<a href="' + safe(tasksListUrl({ assignee: recommendation.from.user_public_id })) + '">' + safe(translate('dashboard.extra_insights_person_tasks', 'Задачи сотрудника')) + ': ' + safe(String(recommendation.from.name || '')) + '</a>'
         + ' · <a href="' + safe(tasksListUrl({ assignee: recommendation.to.user_public_id })) + '">' + safe(String(recommendation.to.name || '')) + '</a>'
+        // The advice was readable but not actionable: the hand-over still had to be
+        // typed out by hand. The button carries the who, the volume and the recipient
+        // into the global task modal.
+        + '</div>'
+        + '<div class="crm-dashboard-insight-recommendation-action">'
+        + '<button type="button" class="btn btn-sm crm-btn-primary" data-insights-handover="1">'
+        + '<i class="fa-solid fa-arrow-right-arrow-left" aria-hidden="true"></i> '
+        + safe(translate('dashboard.extra_insights_rebalance_action', 'Создать задачу передачи')) + '</button>'
         + '</div></div>';
+    } else {
+      recommendationBlock = bottleneckHtml(payload);
     }
 
     var sort = widgetSort(definition, ['signal', 'load', 'overdue', 'name'], 'signal');
@@ -2304,6 +2422,9 @@
     var key = definition.key;
     var container = document.querySelector('[data-extra-widget-body="' + key + '"]');
     if (!container) return;
+    // The last payload stays on the container so a control that acts on the data
+    // (the hand-over button) does not have to re-request it.
+    container.__crmInsightEnvelope = envelope;
     if (definition.kind === 'summary') return renderSummary(container, envelope, definition);
     if (definition.kind === 'count') return renderCount(container, envelope, definition);
     if (definition.kind === 'health') return renderHealth(container, envelope);

@@ -1958,7 +1958,8 @@ window.CRM.br1 = (function () {
 
     // Full prefill object (used when opening the modal from a chat message or
     // any other rich entry point): { title, description, project_public_id,
-    // client_public_id, source_type, source_id, source_url, source_payload_json }.
+    // client_public_id, assignee_user_public_id, source_type, source_id,
+    // source_url, source_payload_json }.
     var prefill = window._taskCreatePrefill || null;
     var legacyClient = window._taskClientPrefill || '';
     window._taskCreatePrefill = null;
@@ -1987,6 +1988,17 @@ window.CRM.br1 = (function () {
       clientSelect.value = client;
       if (clientSelect.dataset && clientSelect.dataset.searchable === '1') {
         clientSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }
+
+    // A hand-over task knows who receives the work before it exists (the dashboard's
+    // rebalancing advice opens this modal prefilled), so the assignee travels too.
+    var assigneeSelect = form ? form.querySelector('select[name="assignee_user_public_id"]') : null;
+    var assignee = prefill && prefill.assignee_user_public_id ? String(prefill.assignee_user_public_id) : '';
+    if (assignee && assigneeSelect) {
+      assigneeSelect.value = assignee;
+      if (assigneeSelect.dataset && assigneeSelect.dataset.searchable === '1') {
+        assigneeSelect.dispatchEvent(new Event('change', { bubbles: true }));
       }
     }
 
