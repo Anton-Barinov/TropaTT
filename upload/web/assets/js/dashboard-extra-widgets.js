@@ -2348,9 +2348,21 @@
       var label = row.user_public_id
         ? '<a href="' + safe(tasksListUrl({ assignee: row.user_public_id })) + '">' + safe(name) + '</a>'
         : safe(name);
+      var activeTasks = Number(row.active_tasks || 0);
+      var activeMinutes = Number(row.active_minutes || 0);
+      var loadTag = activeTasks === 0
+        ? '<span class="text-success">' + safe(translate('dashboard.extra_insights_member_free', 'свободен')) + '</span>'
+        : '';
+      var detailParts = [safe(formatMinutesCompact(row.minutes))];
+      if (activeTasks > 0) {
+        detailParts.push(safe(translate('dashboard.extra_insights_member_active_tasks', '%s задач')).replace('%s', String(activeTasks)));
+      }
+      if (activeMinutes > 0) {
+        detailParts.push(safe(formatMinutesCompact(activeMinutes)));
+      }
       var width = 100;
       return '<div class="crm-dashboard-wl-row"><div class="crm-dashboard-wl-head"><span class="text-truncate">' + label
-        + '</span><strong>' + safe(formatMinutesCompact(row.minutes)) + '</strong></div>'
+        + ' ' + loadTag + '</span><strong>' + safe(detailParts.join(' · ')) + '</strong></div>'
         + '<div class="crm-dashboard-time-bar" aria-hidden="true"><i style="width:' + width + '%"></i></div></div>';
     }).join('');
     var overdue = (project.overdue_list || []).map(function (row) {
@@ -2387,6 +2399,69 @@
       ? translate('dashboard.extra_insights_stream_eta', 'остаток ~%s нед. при текущем темпе').replace('%s', String(Math.round(remaining / averagePerWeek * 10) / 10))
       : '';
 
+    // --- Estimate vs Actual block ---
+    var eva = project.estimate_vs_actual || null;
+    var evaHtml = '';
+    if (eva && Number(eva.total_active_tasks || 0) > 0) {
+      var coverage = Number(eva.coverdown_percent || eva.coverage_percent || 0);
+      var estTasks = Number(eva.estimated_tasks || 0);
+      var totalActive = Number(eva.total_active_tasks || 0);
+      var setsHtml = (eva.sets || []).map(function (set) {
+        var parts = [safe(set.set_name)];
+        if (set.is_time_unit && set.overrun_percent !== undefined) {
+          var overrun = Number(set.overrun_percent || 0);
+          var cls = overrun > 20 ? 'is-overdue' : (overrun > 0 ? 'text-warning' : 'text-success');
+          parts.push('<span class="' + cls + '">' + safe((overrun > 0 ? '+' : '') + overrun + '%') + '</span>');
+          parts.push(safe(translate('dashboard.extra_insights_eva_tasks', '%s задач')).replace('%s', String(set.tasks)));
+        } else if (!set.is_time_unit && set.minutes_per_point !== undefined) {
+          parts.push(safe(formatMinutesCompact(set.minutes_per_point)) + '/' + safe(set.unit_label || set.estimate_type));
+          parts.push(safe(translate('dashboard.extra_insights_eva_tasks', '%s задач')).replace('%s', String(set.tasks)));
+        }
+        return '<div class="crm-dashboard-extra-row"><span>' + parts.join(' · ') + '</span></div>';
+      }).join('');
+      var overrunHtml = (eva.top_overrun || []).map(function (task) {
+        return '<div class="crm-dashboard-extra-row"><div class="text-truncate"><a href="' + safe(taskDetailUrl(task.task_public_id)) + '" title="' + safe(task.title) + '">' + safe(task.title) + '</a>'
+          + '<small class="is-overdue">+' + safe(String(task.overrun_percent)) + '% (' + safe(formatMinutesCompact(task.minutes)) + ' / ' + safe(formatMinutesCompact(task.estimated_minutes)) + ')</small>'
+          + '</div></div>';
+      }).join('');
+      evaHtml = '<div class="crm-dashboard-insight-section-title">' + safe(translate('dashboard.extra_insights_estimate_vs_actual', 'Оценки vs Факт')) + '</div>'
+        + '<div class="crm-dashboard-insight-legend">'
+        + safe(translate('dashboard.extra_insights_eva_coverage', 'Покрытие оценками: %s из %s активных задач')).replace('%s', String(estTasks)).replace('%s', String(totalActive))
+        + (coverage < 50 ? ' <span class="text-warning">' + safe(translate('dashboard.extra_insights_eva_low_coverage', '⚠ низкое покрытие')) + '</span>' : '')
+        + '</div>'
+        + (setsHtml ? '<div class="crm-dashboard-insight-chips mt-1">' + setsHtml + '</div>' : '')
+        + (overrunHtml ? '<div class="crm-dashboard-insight-section-title small">' + safe(translate('dashboard.extra_insights_top_overrun', 'Топ перерасхода')) + '</div>' + overrunHtml : '');
+    }
+
+    // --- SLA Risk block ---
+    var sla = project.sla_risk || null;
+    var slaHtml = '';
+    if (sla && (Number(sla.total_with_sla || 0) > 0)) {
+      var breachedHtml = (sla.breached || []).map(function (item) {
+        return '<div class="crm-dashboard-extra-row"><div class="text-truncate"><a href="' + safe(taskDetailUrl(item.task_public_id)) + '" title="' + safe(item.title) + '">' + safe(item.title) + '</a>'
+          + '<small class="is-overdue">' + safe(item.policy_title || '') + ' · ' + safe(translate('dashboard.extra_insights_sla_breached', 'нарушен')) + '</small>'
+          + '</div></div>';
+      }).join('');
+      var nearHtml = (sla.near || []).map(function (item) {
+        return '<div class="crm-dashboard-extra-row"><div class="text-truncate"><a href="' + safe(taskDetailUrl(item.task_public_id)) + '" title="' + safe(item.title) + '">' + safe(item.title) + '</a>'
+          + '<small class="text-warning">' + safe(item.policy_title || '') + ' · ' + safe(translate('dashboard.extra_insights_sla_near', 'близко к нарушению')) + '</small>'
+          + '</div></div>';
+      }).join('');
+      slaHtml = '<div class="crm-dashboard-insight-section-title">' + safe(translate('dashboard.extra_insights_sla_risk', 'SLA-риск')) + '</div>'
+        + '<div class="crm-dashboard-insight-legend">' + safe(translate('dashboard.extra_insights_sla_total', 'С SLA: %s')).replace('%s', String(sla.total_with_sla))
+        + (sla.breached && sla.breached.length ? ' · <span class="is-overdue">' + safe(String(sla.breached.length)) + ' ' + safe(translate('dashboard.extra_insights_sla_breached_count', 'нарушено')) + '</span>' : '')
+        + (sla.near && sla.near.length ? ' · <span class="text-warning">' + safe(String(sla.near.length)) + ' ' + safe(translate('dashboard.extra_insights_sla_near_count', 'под угрозой')) + '</span>' : '')
+        + '</div>'
+        + breachedHtml + nearHtml;
+    }
+
+    // --- Export buttons ---
+    var exportHtml = '<div class="crm-dashboard-insight-export mt-2">'
+      + '<button class="btn btn-outline-secondary btn-sm" data-stream-export="csv" title="' + safe(translate('dashboard.extra_insights_export_csv', 'Экспорт в CSV')) + '">'
+      + '<i class="fa fa-download"></i> CSV</button>'
+      + '<button class="btn btn-outline-secondary btn-sm" data-stream-export="print" title="' + safe(translate('dashboard.extra_insights_export_print', 'Печать')) + '">'
+      + '<i class="fa fa-print"></i> ' + safe(translate('dashboard.extra_insights_print', 'Печать')) + '</button></div>';
+
     container.innerHTML = toolbar
       + '<div class="crm-dashboard-insight-stream-head">' + selector
       + '<span class="crm-dashboard-wl-signal' + signalClass(project.health) + '">' + safe(signalLabel(project.health)) + '</span></div>'
@@ -2398,13 +2473,17 @@
       + '</div>'
       + '<div class="crm-dashboard-insight-legend">' + safe(healthHint) + (finishHint ? ' · ' + safe(finishHint) : '') + '</div>'
       + (bars ? '<div class="crm-dashboard-insight-chips mt-2">' + safe(translate('dashboard.extra_insights_throughput', 'Throughput')) + '</div>' + bars : '')
+      + evaHtml
+      + slaHtml
       + (milestones ? '<div class="crm-dashboard-insight-section-title">' + safe(translate('dashboard.extra_insights_milestones', 'Вехи')) + '</div>' + milestones : '')
       + (statuses ? '<div class="crm-dashboard-insight-chips mt-2">' + statuses + '</div>' : '')
-      + (members ? '<div class="crm-dashboard-insight-section-title">' + safe(translate('dashboard.extra_insights_top_members', 'Топ исполнителей по часам')) + '</div>' + members : '')
-      + (overdue ? '<div class="crm-dashboard-insight-section-title">' + safe(translate('dashboard.extra_insights_overdue_list', 'Просроченные задачи')) + '</div>' + overdue : '');
+      + (members ? '<div class="crm-dashboard-insight-section-title">' + safe(translate('dashboard.extra_insights_top_members', 'Участники проекта')) + '</div>' + members : '')
+      + (overdue ? '<div class="crm-dashboard-insight-section-title">' + safe(translate('dashboard.extra_insights_overdue_list', 'Просроченные задачи')) + '</div>' + overdue : '')
+      + exportHtml;
 
     bindInsightToolbar(container, definition);
     bindStreamProjectSelect(container, definition);
+    bindStreamExport(container);
   }
 
   // The selected project is remembered per widget so reopening the dashboard keeps
@@ -2416,6 +2495,57 @@
       saveInsightOption(definition.key, 'project', select.value);
       reloadWidget(definition);
     });
+  }
+
+  function bindStreamExport(container) {
+    container.querySelectorAll('[data-stream-export]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var mode = btn.getAttribute('data-stream-export');
+        var envelope = container.__crmInsightEnvelope;
+        if (!envelope) return;
+        var payload = insightsPayload(envelope);
+        var project = payload.project;
+        if (!project) return;
+        if (mode === 'csv') {
+          exportProjectCsv(project);
+        } else if (mode === 'print') {
+          window.print();
+        }
+      });
+    });
+  }
+
+  function exportProjectCsv(project) {
+    var lines = [];
+    lines.push('"' + (project.title || '') + '"');
+    lines.push('"' + translate('dashboard.extra_insights_progress', 'Прогресс') + '","' + Number(project.progress_percent || 0) + '%"');
+    lines.push('"' + translate('dashboard.extra_insights_active', 'Активные') + '","' + Number(project.active_tasks || 0) + '"');
+    lines.push('"' + translate('dashboard.extra_insights_overdue', 'Просрочено') + '","' + Number(project.overdue_tasks || 0) + '"');
+    lines.push('"' + translate('dashboard.extra_insights_cycle_median', 'Cycle time (медиана)') + '","' + formatMinutesCompact(project.cycle_time_median_minutes) + '"');
+    lines.push('');
+    // Members
+    lines.push('"' + translate('dashboard.extra_insights_top_members', 'Участники') + '"');
+    lines.push('"' + translate('dashboard.extra_insights_member_name', 'Имя') + '","' + translate('dashboard.extra_insights_member_minutes', 'Часы') + '","' + translate('dashboard.extra_insights_member_active_tasks', 'Активные задачи') + '","' + translate('dashboard.extra_insights_member_active_minutes', 'Активные часы') + '"');
+    (project.top_members || []).forEach(function (m) {
+      lines.push('"' + (m.full_name || m.login || '') + '","' + formatMinutesCompact(m.minutes) + '","' + Number(m.active_tasks || 0) + '","' + formatMinutesCompact(m.active_minutes || 0) + '"');
+    });
+    lines.push('');
+    // Overdue
+    if ((project.overdue_list || []).length) {
+      lines.push('"' + translate('dashboard.extra_insights_overdue_list', 'Просроченные задачи') + '"');
+      lines.push('"' + translate('dashboard.extra_insights_task_title', 'Задача') + '","' + translate('dashboard.extra_insights_task_due', 'Срок') + '"');
+      (project.overdue_list || []).forEach(function (t) {
+        lines.push('"' + (t.title || '') + '","' + dateText(t.due_at) + '"');
+      });
+    }
+    var csv = lines.join('\n');
+    var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = (project.title || 'project') + '_detail.csv';
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   function render(definition, envelope) {

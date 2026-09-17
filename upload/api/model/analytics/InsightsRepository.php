@@ -1086,6 +1086,15 @@ final class InsightsRepository
 
         $cycleDurations = $this->projectCycleMinutes($projectId, $periodStart, $now);
 
+        // --- Estimate vs Actual for the project ---
+        $estimateVsActual = $this->projectEstimateVsActual($projectId, $periodStart, $now);
+
+        // --- SLA risk: tasks in this project with breached or near-breached SLA ---
+        $slaRisk = $this->projectSlaRisk($projectId, $now);
+
+        // --- Enhanced members: add active_tasks and active_minutes to each member ---
+        $members = $this->enhanceProjectMembers($projectId, $members, $periodStart, $now);
+
         return [
             'project_public_id' => (string)$project['public_id'],
             'title' => (string)$project['title'],
@@ -1100,6 +1109,8 @@ final class InsightsRepository
             'top_members' => $members,
             'milestones' => $milestones,
             'overdue_list' => $overdueTasks,
+            'estimate_vs_actual' => $estimateVsActual,
+            'sla_risk' => $slaRisk,
             'health' => self::projectHealth(
                 $active,
                 $overdue,
@@ -1135,6 +1146,359 @@ final class InsightsRepository
         }
 
         return $durations;
+    }
+
+    /**
+     * Estimate vs Actual for a single project: aggregated estimate coverage and
+     * per-set calibration, plus top-5 overrun tasks.
+     *
+     * Only time-based estimate sets are compared with minutes. Currency sets are
+     * skipped (a price is not a unit of work). Sets with fewer than MIN_ESTIMATE_SAMPLE
+     * tasks are omitted to avoid publishing noise.
+     *
+     * @return array{coverage_percent:float,estimated_tasks:int,total_active_tasks:int,sets:list<array>,top_overrun:list<array>}
+     */
+    private function projectEstimateVsActual(int $projectId, string $periodStart, string $now): array
+    {
+        // Active tasks in the project with at least one estimate
+        $estStmt = $this->pdo->prepare(
+            'SELECT DISTINCT t.public_id AS task_public_id
+             FROM tasks t
+             INNER JOIN task_estimates te ON te.task_id = t.id AND te.deleted_at IS NULL
+             WHERE t.project_id = ? AND t.deleted_at IS NULL AND t.archived_at IS NULL
+               AND t.status_code NOT IN (' . TaskStatusSemantics::terminalLiteralList($this->pdo) . ')'
+        );
+        $estStmt->execute([$projectId]);
+        $estimatedTaskIds = [];
+        foreach ($estStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $estimatedTaskIds[] = (string)$row['task_public_id'];
+        }
+
+        $activeStmt = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM tasks t
+             WHERE t.project_id = ? AND t.deleted_at IS NULL AND t.archived_at IS NULL
+               AND t.status_code NOT IN (' . TaskStatusSemantics::terminalLiteralList($this->pdo) . ')'
+        );
+        $activeStmt->execute([$projectId]);
+        $totalActive = (int)$activeStmt->fetchColumn();
+
+        $coveragePercent = $totalActive > 0 ? round(count($estimatedTaskIds) / $totalActive * 100, 1) : 0.0;
+
+        // Minutes per task in the project for the period
+        $minutesStmt = $this->pdo->prepare(
+            'SELECT t.public_id AS task_public_id, COALESCE(SUM(w.minutes_spent), 0) AS minutes
+             FROM work_logs w
+             JOIN tasks t ON t.id = w.task_id AND t.deleted_at IS NULL AND t.archived_at IS NULL
+             WHERE t.project_id = ? AND w.logged_at >= ?
+             GROUP BY t.id, t.public_id'
+        );
+        $minutesStmt->execute([$projectId, $periodStart]);
+        $minutesByTask = [];
+        foreach ($minutesStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $minutesByTask[(string)$row['task_public_id']] = (int)$row['minutes'];
+        }
+
+        // Per-set calibration (reuse estimateCalibration pattern)
+        $sets = [];
+        if ($estimatedTaskIds !== []) {
+            $placeholders = implode(', ', array_fill(0, count($estimatedTaskIds), '?'));
+            $setStmt = $this->pdo->prepare(
+                'SELECT te.task_public_id, te.numeric_value, es.name, es.unit_label, es.estimate_type, es.currency_code
+                 FROM task_estimates te
+                 INNER JOIN estimate_sets es ON es.id = te.estimate_set_id
+                 WHERE te.deleted_at IS NULL AND te.numeric_value IS NOT NULL
+                   AND te.task_public_id IN (' . $placeholders . ')'
+            );
+            $setStmt->execute($estimatedTaskIds);
+
+            $bySet = [];
+            foreach ($setStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                if (($row['currency_code'] ?? null) !== null && (string)$row['currency_code'] !== '') {
+                    continue;
+                }
+                $taskPid = (string)$row['task_public_id'];
+                $key = (string)$row['name'] . '|' . (string)($row['unit_label'] ?? '');
+                if (!isset($bySet[$key])) {
+                    $bySet[$key] = [
+                        'set_name' => (string)$row['name'],
+                        'unit_label' => $row['unit_label'] !== null ? (string)$row['unit_label'] : null,
+                        'estimate_type' => (string)$row['estimate_type'],
+                        'points' => 0.0,
+                        'minutes' => 0,
+                        'task_count' => 0,
+                        'seen_tasks' => [],
+                    ];
+                }
+                $bySet[$key]['points'] += (float)$row['numeric_value'];
+                if (!isset($bySet[$key]['seen_tasks'][$taskPid])) {
+                    $bySet[$key]['seen_tasks'][$taskPid] = true;
+                    $bySet[$key]['task_count']++;
+                    $bySet[$key]['minutes'] += (int)($minutesByTask[$taskPid] ?? 0);
+                }
+            }
+
+            foreach ($bySet as $entry) {
+                if ($entry['task_count'] < self::MIN_ESTIMATE_SAMPLE || $entry['points'] <= 0) {
+                    continue;
+                }
+                $isTime = self::isTimeEstimateUnit($entry['estimate_type'], $entry['unit_label']);
+                $setRow = [
+                    'set_name' => $entry['set_name'],
+                    'unit_label' => $entry['unit_label'],
+                    'estimate_type' => $entry['estimate_type'],
+                    'tasks' => $entry['task_count'],
+                    'points' => round($entry['points'], 2),
+                    'minutes' => (int)$entry['minutes'],
+                    'is_time_unit' => $isTime,
+                ];
+                if ($isTime) {
+                    $estimatedMinutes = (int)round($entry['points'] * 60);
+                    $setRow['estimated_minutes'] = $estimatedMinutes;
+                    $setRow['overrun_percent'] = $estimatedMinutes > 0
+                        ? round(($entry['minutes'] - $estimatedMinutes) / $estimatedMinutes * 100, 1)
+                        : 0.0;
+                } else {
+                    $setRow['minutes_per_point'] = round($entry['minutes'] / $entry['points'], 2);
+                }
+                $sets[] = $setRow;
+            }
+            usort($sets, static fn(array $a, array $b): int => $b['tasks'] <=> $a['tasks']);
+        }
+
+        // Top-5 overrun tasks (time-based estimates only)
+        $topOverrun = [];
+        if ($estimatedTaskIds !== []) {
+            $placeholders = implode(', ', array_fill(0, count($estimatedTaskIds), '?'));
+            $overrunStmt = $this->pdo->prepare(
+                'SELECT te.task_public_id, t.title, te.numeric_value, es.estimate_type, es.unit_label, es.currency_code
+                 FROM task_estimates te
+                 INNER JOIN estimate_sets es ON es.id = te.estimate_set_id
+                 INNER JOIN tasks t ON t.id = te.task_id
+                 WHERE te.deleted_at IS NULL AND te.numeric_value IS NOT NULL
+                   AND te.task_public_id IN (' . $placeholders . ')'
+            );
+            $overrunStmt->execute($estimatedTaskIds);
+
+            $taskOverruns = [];
+            $seenOverrun = [];
+            foreach ($overrunStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                if (($row['currency_code'] ?? null) !== null && (string)$row['currency_code'] !== '') {
+                    continue;
+                }
+                if (!self::isTimeEstimateUnit((string)$row['estimate_type'], $row['unit_label'] !== null ? (string)$row['unit_label'] : null)) {
+                    continue;
+                }
+                $estimateMinutes = (int)round((float)$row['numeric_value'] * 60);
+                if ($estimateMinutes <= 0) {
+                    continue;
+                }
+                $taskPid = (string)$row['task_public_id'];
+                $minutes = (int)($minutesByTask[$taskPid] ?? 0);
+                if ($minutes <= $estimateMinutes) {
+                    continue;
+                }
+                if (isset($seenOverrun[$taskPid])) {
+                    continue;
+                }
+                $seenOverrun[$taskPid] = true;
+                $taskOverruns[$taskPid] = [
+                    'task_public_id' => $taskPid,
+                    'title' => (string)$row['title'],
+                    'estimated_minutes' => $estimateMinutes,
+                    'minutes' => $minutes,
+                    'overrun_percent' => round(($minutes - $estimateMinutes) / $estimateMinutes * 100, 1),
+                ];
+            }
+            usort($taskOverruns, static fn(array $a, array $b): int => $b['overrun_percent'] <=> $a['overrun_percent']);
+            $topOverrun = array_slice($taskOverruns, 0, 5);
+        }
+
+        return [
+            'coverage_percent' => $coveragePercent,
+            'estimated_tasks' => count($estimatedTaskIds),
+            'total_active_tasks' => $totalActive,
+            'sets' => $sets,
+            'top_overrun' => $topOverrun,
+        ];
+    }
+
+    /**
+     * SLA risk for a project: active tasks with breached or near-breached SLA.
+     *
+     * A task is "breached" when sla_breached=1 or a deadline has passed.
+     * "near" means within 25% of the remaining time (or within 1 hour if <4 hours left).
+     *
+     * @return array{breached:list<array>,near:list<array>,total_with_sla:int}
+     */
+    private function projectSlaRisk(int $projectId, string $now): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT t.public_id, t.title, t.sla_breached, t.sla_response_deadline, t.sla_resolve_deadline,
+                    sp.title AS policy_title, sp.response_minutes, sp.resolve_minutes
+             FROM tasks t
+             LEFT JOIN sla_policies sp ON sp.id = t.sla_policy_id
+             WHERE t.project_id = ? AND t.deleted_at IS NULL AND t.archived_at IS NULL
+               AND t.status_code NOT IN (' . TaskStatusSemantics::terminalLiteralList($this->pdo) . ')
+               AND (t.sla_breached = 1 OR t.sla_response_deadline IS NOT NULL OR t.sla_resolve_deadline IS NOT NULL)'
+        );
+        $stmt->execute([$projectId]);
+
+        $nowTs = strtotime($now);
+        $breached = [];
+        $near = [];
+        $totalWithSla = 0;
+
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $totalWithSla++;
+            $taskPid = (string)$row['public_id'];
+            $title = (string)$row['title'];
+            $isBreached = (int)$row['sla_breached'] === 1;
+
+            // Check response and resolve deadlines
+            $responseDeadline = $row['sla_response_deadline'] ? (string)$row['sla_response_deadline'] : null;
+            $resolveDeadline = $row['sla_resolve_deadline'] ? (string)$row['sla_resolve_deadline'] : null;
+
+            $deadlineBreached = false;
+            $deadlineNear = false;
+            $nearestDeadline = null;
+            $deadlineType = null;
+
+            $deadlines = [];
+            if ($responseDeadline !== null) { $deadlines[$responseDeadline] = 'response'; }
+            if ($resolveDeadline !== null) { $deadlines[$resolveDeadline] = 'resolve'; }
+            foreach ($deadlines as $dl => $type) {
+                $dlTs = strtotime($dl);
+                if ($dlTs === false) {
+                    continue;
+                }
+                if ($dlTs < $nowTs) {
+                    $deadlineBreached = true;
+                    $nearestDeadline = $dl;
+                    $deadlineType = $type;
+                    break;
+                }
+                // Near: within 25% of remaining time or within 1 hour
+                $remaining = $dlTs - $nowTs;
+                $policyMinutes = $type === 'response'
+                    ? (int)($row['response_minutes'] ?? 0)
+                    : (int)($row['resolve_minutes'] ?? 0);
+                $threshold = max(3600, (int)round($policyMinutes * 60 * 0.25));
+                if ($remaining <= $threshold) {
+                    $deadlineNear = true;
+                    if ($nearestDeadline === null || $dlTs < strtotime($nearestDeadline)) {
+                        $nearestDeadline = $dl;
+                        $deadlineType = $type;
+                    }
+                }
+            }
+
+            $entry = [
+                'task_public_id' => $taskPid,
+                'title' => $title,
+                'policy_title' => (string)($row['policy_title'] ?? ''),
+                'deadline_type' => $deadlineType,
+                'deadline_at' => $nearestDeadline,
+            ];
+
+            if ($isBreached || $deadlineBreached) {
+                $breached[] = $entry;
+            } elseif ($deadlineNear) {
+                $near[] = $entry;
+            }
+        }
+
+        // Sort breached by deadline (most overdue first), near by deadline (closest first)
+        usort($breached, static fn(array $a, array $b): int =>
+            ($a['deadline_at'] ?? '') <=> ($b['deadline_at'] ?? ''));
+        usort($near, static fn(array $a, array $b): int =>
+            ($a['deadline_at'] ?? '') <=> ($b['deadline_at'] ?? ''));
+
+        return [
+            'breached' => $breached,
+            'near' => $near,
+            'total_with_sla' => $totalWithSla,
+        ];
+    }
+
+    /**
+     * Enhance member rows with active_tasks count and active_minutes (worklog in period
+     * on active tasks only) so the card can show who is free.
+     *
+     * @param array<int, array<string,mixed>> $members
+     * @return array<int, array<string,mixed>>
+     */
+    private function enhanceProjectMembers(int $projectId, array $members, string $periodStart, string $now): array
+    {
+        if ($members === []) {
+            return $members;
+        }
+
+        $userPublicIds = array_column($members, 'user_public_id');
+        $placeholders = implode(', ', array_fill(0, count($userPublicIds), '?'));
+
+        // Map public_id -> user_id for queries
+        $userMapStmt = $this->pdo->prepare(
+            'SELECT id, public_id FROM users WHERE public_id IN (' . $placeholders . ')'
+        );
+        $userMapStmt->execute($userPublicIds);
+        $publicToId = [];
+        foreach ($userMapStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $publicToId[(string)$row['public_id']] = (int)$row['id'];
+        }
+
+        $userIdToKey = [];
+        foreach ($members as $idx => &$member) {
+            $uid = $publicToId[$member['user_public_id']] ?? 0;
+            if ($uid > 0) {
+                $userIdToKey[$uid] = $idx;
+            }
+            $member['active_tasks'] = 0;
+            $member['active_minutes'] = 0;
+        }
+        unset($member);
+
+        if ($userIdToKey === []) {
+            return $members;
+        }
+
+        $ids = array_keys($userIdToKey);
+        $idPlaceholders = implode(', ', array_fill(0, count($ids), '?'));
+
+        // Active tasks per member in this project
+        $activeStmt = $this->pdo->prepare(
+            'SELECT assignee_user_id, COUNT(*) AS cnt
+             FROM tasks
+             WHERE project_id = ? AND assignee_user_id IN (' . $idPlaceholders . ')
+               AND deleted_at IS NULL AND archived_at IS NULL
+               AND status_code NOT IN (' . TaskStatusSemantics::terminalLiteralList($this->pdo) . ')
+             GROUP BY assignee_user_id'
+        );
+        $activeStmt->execute(array_merge([$projectId], $ids));
+        foreach ($activeStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $uid = (int)$row['assignee_user_id'];
+            if (isset($userIdToKey[$uid])) {
+                $members[$userIdToKey[$uid]]['active_tasks'] = (int)$row['cnt'];
+            }
+        }
+
+        // Active minutes (worklog on active tasks in the period)
+        $minutesStmt = $this->pdo->prepare(
+            'SELECT w.user_id, COALESCE(SUM(w.minutes_spent), 0) AS minutes
+             FROM work_logs w
+             INNER JOIN tasks t ON t.id = w.task_id AND t.deleted_at IS NULL AND t.archived_at IS NULL
+               AND t.status_code NOT IN (' . TaskStatusSemantics::terminalLiteralList($this->pdo) . ')
+             WHERE t.project_id = ? AND w.user_id IN (' . $idPlaceholders . ') AND w.logged_at >= ?
+             GROUP BY w.user_id'
+        );
+        $minutesStmt->execute(array_merge([$projectId], $ids, [$periodStart]));
+        foreach ($minutesStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $uid = (int)$row['user_id'];
+            if (isset($userIdToKey[$uid])) {
+                $members[$userIdToKey[$uid]]['active_minutes'] = (int)$row['minutes'];
+            }
+        }
+
+        return $members;
     }
 
     /**
