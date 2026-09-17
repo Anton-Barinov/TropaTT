@@ -203,6 +203,10 @@ final class TaskService
             ];
         }
 
+        if (isset($result['hierarchy']) && is_array($result['hierarchy'])) {
+            $meta['hierarchy'] = $result['hierarchy'];
+        }
+
         if (!empty($filters['updated_since'])) {
             $meta['sync'] = [
                 'updated_since' => (string)$filters['updated_since'],

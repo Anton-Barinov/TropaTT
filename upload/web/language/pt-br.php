@@ -5498,6 +5498,7 @@ return array (
       'tasks_section_denied' => 'Tasks section unavailable for your role.',
       'tasks_unarchived' => 'Tasks unarchived',
       'tasks_without_subtasks' => 'Tasks without subtasks',
+      'tasks_parent_unavailable' => 'Tarefas cujo item pai está indisponível',
       'team' => 'Team',
       'team_assigned_to_project' => 'Team assigned to project',
       'time_logged_prefix' => 'Time logged',

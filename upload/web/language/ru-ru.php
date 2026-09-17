@@ -2265,6 +2265,7 @@ return array (
       'tasks_section_denied' => 'Раздел задач недоступен для вашей роли.',
       'tasks_unarchived' => 'Задачи восстановлены из архива',
       'tasks_without_subtasks' => 'Задачи без подзадач',
+      'tasks_parent_unavailable' => 'Задачи с недоступным родителем',
       'team_assigned_to_project' => 'Команда назначена на проект',
       'time_logged_prefix' => 'Затраченное время',
       'to_task_list' => 'К списку задач',

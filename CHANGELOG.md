@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09-17
+
+- Fixed the task hierarchy view so server-side pagination operates on root groups and returns each selected tree in full; children no longer appear as standalone tasks when their parent would have fallen on another page.
+
 All notable public changes to TropaTT should be documented here.
 
 This project follows a lightweight Keep a Changelog style. Dates are added when a release is actually created.

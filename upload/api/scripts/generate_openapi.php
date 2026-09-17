@@ -320,6 +320,7 @@ foreach ($routes as $route) {
                 'hide_done' => 'Set to "1" to exclude finished, canceled and archived tasks (same as active_only).',
                 'active_only' => 'Alias of hide_done=1.',
                 'include_archived_projects' => 'Set to "1" to include tasks of archived projects. Hidden by default so the list matches the dashboard KPIs.',
+                'hierarchy' => 'Set to "1" to paginate complete task trees by root group. Matching tasks include their visible ancestor paths; meta.hierarchy reports group and item totals.',
                 'sort' => 'Sort column: title, due_at, created_at, updated_at, status_code, priority_code.',
                 'order' => 'Sort direction: ASC or DESC.',
                 'limit' => 'Page size (0 = unlimited, default 20, max 500).',
