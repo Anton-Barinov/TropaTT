@@ -1818,6 +1818,14 @@ final class InsightsRepository
         }
         if (is_numeric($inputUnderload) && (int)$inputUnderload >= 0 && (int)$inputUnderload < $overload) {
             $underload = (int)$inputUnderload;
+        } elseif ($underload >= $overload) {
+            // The 50% default only makes sense below the historical 110% default; a
+            // custom overload alone (no underload override, or one rejected above)
+            // can move the ceiling below it, and leaving the default in place would
+            // hand back a crossed pair - every load between the two would then read
+            // as both "underload" and "overload" depending on which check runs
+            // first. Tighten the floor along with the ceiling instead.
+            $underload = max(0, $overload - 1);
         }
 
         return ['overload_percent' => $overload, 'underload_percent' => $underload];
