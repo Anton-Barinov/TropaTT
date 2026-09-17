@@ -3711,6 +3711,8 @@ return array (
     'extra_insights_no_logs' => 'Nenhum tempo registrado no período selecionado',
     'extra_insights_project_denied' => 'Projeto indisponível: exibindo todo o seu escopo',
     'extra_insights_all_projects' => 'Todos os projetos',
+    'extra_insights_assignee_denied' => 'Responsável indisponível: exibindo todo o seu escopo',
+    'extra_insights_all_assignees' => 'Todos os responsáveis',
     'extra_insights_legend_capacity' => 'Norma — %s/semana, origem: %s',
     'extra_insights_department_no_manager' => 'sem responsável — composição indefinida',
     'extra_insights_no_data' => 'sem dados',

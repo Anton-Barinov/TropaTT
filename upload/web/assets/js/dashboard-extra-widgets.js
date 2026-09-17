@@ -490,10 +490,17 @@
       var project = insightOption(definition.key, 'project', '', null);
       if (project) query.project_public_id = project;
     }
+    // Same rule for the (root-only in practice, server-enforced either way) assignee
+    // narrowing - only the widget that offers the picker ever sends the parameter.
+    if (ASSIGNEE_FILTER_WIDGETS.indexOf(definition.key) >= 0) {
+      var assignee = insightOption(definition.key, 'assignee', '', null);
+      if (assignee) query.assignee_user_public_id = assignee;
+    }
     return query;
   }
 
   var PROJECT_FILTER_WIDGETS = ['stream_detail_load_efficiency', 'tasks_actual_time'];
+  var ASSIGNEE_FILTER_WIDGETS = ['tasks_actual_time'];
 
   function reloadWidget(definition) {
     var container = document.querySelector('[data-extra-widget-body="' + definition.key + '"]');
@@ -828,6 +835,27 @@
         + safe(translate('dashboard.extra_insights_project_denied', 'Проект недоступен: показан весь ваш скоуп')) + '</div>'
       : '';
 
+    // Root's second narrowing: the picker only ever lists people the actor can already
+    // see (root gets everyone, a manager gets their own visible set), same contract as
+    // the project picker above.
+    var assigneeOptions = Array.isArray(payload.assignees) ? payload.assignees : [];
+    var assigneeSelector = '';
+    if (assigneeOptions.length) {
+      var currentAssignee = String(payload.assignee_filter || '');
+      assigneeSelector = '<select class="form-select form-select-sm crm-dashboard-insight-select" id="dashboardInsightActualAssigneeSelect" data-insights-assignee>'
+        + '<option value="">' + safe(translate('dashboard.extra_insights_all_assignees', 'Все исполнители')) + '</option>'
+        + assigneeOptions.map(function (option) {
+          var selected = String(option.user_public_id) === currentAssignee ? ' selected' : '';
+          return '<option value="' + safe(option.user_public_id) + '"' + selected + '>' + safe(option.full_name) + '</option>';
+        }).join('')
+        + '</select>';
+    }
+    if (payload.assignee_filter_denied) {
+      deniedNotice += '<div class="crm-dashboard-insight-legend is-warn">'
+        + safe(translate('dashboard.extra_insights_assignee_denied', 'Исполнитель недоступен: показан весь ваш скоуп')) + '</div>';
+    }
+    selector += assigneeSelector;
+
     var tasks = Array.isArray(payload.top_tasks) ? payload.top_tasks.slice() : [];
     var unloggedCount = Number(payload.active_without_logs || 0);
     var unlogged = Array.isArray(payload.active_without_logs_list) ? payload.active_without_logs_list : [];
@@ -840,6 +868,7 @@
         + deniedNotice;
       bindInsightToolbar(container, definition);
       bindStreamProjectSelect(container, definition);
+      bindInsightAssigneeSelect(container, definition);
       return;
     }
 
@@ -1014,6 +1043,7 @@
 
     bindInsightToolbar(container, definition);
     bindStreamProjectSelect(container, definition);
+    bindInsightAssigneeSelect(container, definition);
   }
 
   function signalClass(signal) {
@@ -2513,6 +2543,17 @@
     if (!select) return;
     select.addEventListener('change', function () {
       saveInsightOption(definition.key, 'project', select.value);
+      reloadWidget(definition);
+    });
+  }
+
+  // Same contract as bindStreamProjectSelect, for the assignee narrowing that only
+  // tasks_actual_time offers.
+  function bindInsightAssigneeSelect(container, definition) {
+    var select = container.querySelector('[data-insights-assignee]');
+    if (!select) return;
+    select.addEventListener('change', function () {
+      saveInsightOption(definition.key, 'assignee', select.value);
       reloadWidget(definition);
     });
   }

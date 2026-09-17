@@ -4836,6 +4836,8 @@ return array (
     'extra_insights_no_logs' => '所选期间没有工时记录',
     'extra_insights_project_denied' => '项目不可用：显示您的全部范围',
     'extra_insights_all_projects' => '所有项目',
+    'extra_insights_assignee_denied' => '负责人不可用：显示您的全部范围',
+    'extra_insights_all_assignees' => '所有负责人',
     'extra_insights_legend_capacity' => '标准 — %s/周，来源：%s',
     'extra_insights_department_no_manager' => '未指定负责人 — 成员构成未知',
     'extra_insights_no_data' => '无数据',

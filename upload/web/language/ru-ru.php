@@ -4709,6 +4709,8 @@ return array (
     'extra_insights_no_logs' => 'За выбранный период учёта времени нет',
     'extra_insights_project_denied' => 'Проект недоступен: показан весь ваш скоуп',
     'extra_insights_all_projects' => 'Все проекты',
+    'extra_insights_assignee_denied' => 'Исполнитель недоступен: показан весь ваш скоуп',
+    'extra_insights_all_assignees' => 'Все исполнители',
     'extra_insights_legend_capacity' => 'Норма — %s/нед, источник: %s',
     'extra_insights_department_no_manager' => 'нет руководителя — состав не определён',
     'extra_insights_no_data' => 'нет данных',

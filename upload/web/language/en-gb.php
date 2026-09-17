@@ -4690,6 +4690,8 @@ return array (
     'extra_insights_no_logs' => 'No time logged in the selected period',
     'extra_insights_project_denied' => 'Project not available: showing your whole scope',
     'extra_insights_all_projects' => 'All projects',
+    'extra_insights_assignee_denied' => 'Assignee not available: showing your whole scope',
+    'extra_insights_all_assignees' => 'All assignees',
     'extra_insights_legend_capacity' => 'Norm — %s/week, source: %s',
     'extra_insights_department_no_manager' => 'no manager — composition undefined',
     'extra_insights_no_data' => 'no data',
