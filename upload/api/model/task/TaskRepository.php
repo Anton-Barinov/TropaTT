@@ -109,6 +109,10 @@ final class TaskRepository
         // 0 = unlimited (offset mode only; cursor mode always keeps a positive page size).
         $limit = $requestedLimit === 0 && $paginationMode !== 'cursor' ? 0 : min(500, max(1, $requestedLimit));
 
+        if ($this->isHierarchyMode($filters)) {
+            return $this->listHierarchy($filters, $actorUserId, $actorIsRoot, $rlsScoped, $sortPairs, $order, $limit);
+        }
+
         $builder = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $order, $rlsScoped)
             ->leftJoin('users au', 'au.id', '=', 't.assignee_user_id')
             ->leftJoin('users pm', 'pm.id', '=', 'p.manager_user_id')
@@ -254,6 +258,105 @@ final class TaskRepository
             'has_more' => false,
             'next_cursor' => null,
         ];
+    }
+
+    private function isHierarchyMode(array $filters): bool
+    {
+        return in_array(strtolower(trim((string)($filters['hierarchy'] ?? ''))), ['1', 'true', 'yes', 'on'], true);
+    }
+
+    /**
+     * Page complete root groups instead of cutting the flat task stream. The
+     * first two queries load identifiers only; full rows are loaded for the
+     * selected groups after all visible ancestor paths have been restored.
+     *
+     * @param array<int,array{0:string,1:string}> $sortPairs
+     */
+    private function listHierarchy(
+        array $filters,
+        ?int $actorUserId,
+        bool $actorIsRoot,
+        bool $rlsScoped,
+        array $sortPairs,
+        string $order,
+        int $limit
+    ): array {
+        $page = max(1, (int)($filters['page'] ?? 1));
+        $matchingRows = $this->lightweightHierarchyRows($filters, $actorUserId, $actorIsRoot, $rlsScoped, $sortPairs, $order);
+
+        $scopeFilters = array_intersect_key($filters, array_flip([
+            'archived', 'include_archived_projects', 'accessible_team_public_ids', 'executor_project_ids',
+        ]));
+        // For an external observer this value is an RLS boundary. For an
+        // internal user it is merely a content filter and may not hide a parent.
+        if ($rlsScoped && isset($filters['client_public_id'])) {
+            $scopeFilters['client_public_id'] = $filters['client_public_id'];
+        }
+        $scopeRows = $this->lightweightHierarchyRows($scopeFilters, $actorUserId, $actorIsRoot, $rlsScoped, $sortPairs, $order);
+        $hierarchy = TaskHierarchyPaginator::paginate($matchingRows, $scopeRows, $page, $limit);
+
+        $items = [];
+        if ($hierarchy['public_ids'] !== []) {
+            $fullFilters = $scopeFilters;
+            $fullFilters['hierarchy_public_ids'] = $hierarchy['public_ids'];
+            $fullFilters['limit'] = 0;
+            unset($fullFilters['hierarchy'], $fullFilters['cursor'], $fullFilters['pagination_mode']);
+            $fullResult = $this->list($fullFilters, $actorUserId, $actorIsRoot, $rlsScoped);
+            $byId = [];
+            foreach ((array)($fullResult['items'] ?? []) as $row) {
+                if (in_array((string)($row['public_id'] ?? ''), $hierarchy['restricted_root_ids'], true)) {
+                    // Do not expose identifiers or titles of a parent outside
+                    // the actor's scope. The Web client renders a safe state.
+                    $row['parent_task_public_id'] = null;
+                    $row['parent_task_title'] = null;
+                    $row['parent_access_limited'] = 1;
+                }
+                $byId[(string)($row['public_id'] ?? '')] = $row;
+            }
+            foreach ($hierarchy['public_ids'] as $id) {
+                if (isset($byId[$id])) $items[] = $byId[$id];
+            }
+        }
+
+        return [
+            'items' => $items,
+            'total' => $hierarchy['total_roots'],
+            'page' => $page,
+            'limit' => $limit,
+            'mode' => 'offset',
+            'has_more' => $limit > 0 && ($page * $limit) < $hierarchy['total_roots'],
+            'next_cursor' => null,
+            'hierarchy' => [
+                'pagination_unit' => 'root_groups',
+                'total_groups' => $hierarchy['total_roots'],
+                'total_items' => $hierarchy['total_items'],
+                'matched_items' => $hierarchy['matched_items'],
+                'returned_groups' => count($hierarchy['root_ids']),
+                'returned_items' => count($items),
+                'restricted_roots' => count($hierarchy['restricted_root_ids']),
+            ],
+        ];
+    }
+
+    /** @return array<int,array<string,mixed>> */
+    private function lightweightHierarchyRows(
+        array $filters,
+        ?int $actorUserId,
+        bool $actorIsRoot,
+        bool $rlsScoped,
+        array $sortPairs,
+        string $order
+    ): array {
+        $builder = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $order, $rlsScoped)
+            ->select([
+                't.public_id',
+                "(SELECT parent_task.public_id FROM task_relations trp INNER JOIN tasks parent_task ON parent_task.id = trp.parent_task_id WHERE trp.child_task_id = t.id AND trp.relation_type = 'subtask' LIMIT 1) AS parent_task_public_id",
+            ]);
+        foreach ($sortPairs as [$sortKey, $sortDir]) {
+            $builder->orderBy($sortKey === 'project_title' ? 'p.title' : 't.' . $sortKey, $sortDir);
+        }
+        $builder->orderBy('t.public_id', $sortPairs[0][1] ?? 'DESC');
+        return $builder->get();
     }
 
     /**
@@ -857,6 +960,18 @@ final class TaskRepository
                 $qb->whereIn('p.public_id', $ids);
             }
             // else: only commas/whitespace were given — nothing to filter by.
+        }
+
+        if (array_key_exists('hierarchy_public_ids', $filters)) {
+            $ids = array_values(array_filter(array_map(
+                static fn($value): string => trim((string)$value),
+                (array)$filters['hierarchy_public_ids']
+            ), static fn(string $value): bool => $value !== ''));
+            if ($ids === []) {
+                $qb->whereRaw('1 = 0');
+            } else {
+                $qb->whereIn('t.public_id', $ids);
+            }
         }
 
         if (!empty($filters['assignee_user_public_id'])) {

@@ -32,8 +32,31 @@ final class AnalyticsService
      */
     private const CAPACITY_MIN_WEEKDAYS = 3;
 
+    /**
+     * Where the load bands live, next to the finance and capacity keys: a dotted
+     * namespace inside the `system` scope, so **Administration -> Settings** lists
+     * them without a new endpoint. The historical constants stay the defaults.
+     */
+    private const BAND_SCOPE = 'system';
+    private const BAND_OVERLOAD_NAME = 'insights.overload_percent';
+    private const BAND_UNDERLOAD_NAME = 'insights.underload_percent';
+
+    /**
+     * A band outside these limits is refused rather than obeyed.
+     *
+     * `overload` must be positive - an organisation may well want the alarm at 90 %,
+     * since its people also answer mail - and it must stay above `underload`, so the
+     * two bands can never cross and leave one load percentage that is simultaneously
+     * both overloaded and underloaded.
+     */
+    private const BAND_MIN_OVERLOAD = 1;
+    private const BAND_MAX = 500;
+
     /** @var array<string,mixed>|null resolved once per request */
     private ?array $weeklyCapacityCache = null;
+
+    /** @var array<string,mixed>|null resolved once per request */
+    private ?array $loadThresholdsCache = null;
 
     public function __construct(
         private readonly AnalyticsRepository $analytics,
@@ -100,6 +123,63 @@ final class AnalyticsService
             'calendar_public_id' => null,
             'weekdays_covered' => (int)($calendar['weekdays'] ?? 0),
         ];
+    }
+
+    /**
+     * The load bands every signal, legend and recommendation is measured against.
+     *
+     * Read once per request from the `system` settings and returned together with
+     * the source, so the payload can say which pair was in force: the card used to
+     * print "≥110 %" as a hardcoded legend even when the organisation had changed
+     * the threshold, which is a legend describing numbers nobody used.
+     *
+     * An unusable entry is ignored, never obeyed: a value of `0`, a blank, a
+     * non-numeric string or a pair whose bands cross falls back to the historical
+     * default for that band alone.
+     *
+     * @return array{overload_percent:int,underload_percent:int,source:string}
+     */
+    private function loadThresholds(): array
+    {
+        if ($this->loadThresholdsCache !== null) {
+            return $this->loadThresholdsCache;
+        }
+
+        $overload = InsightsRepository::DEFAULT_OVERLOAD_PERCENT;
+        $underload = InsightsRepository::DEFAULT_UNDERLOAD_PERCENT;
+        $source = 'default';
+
+        $overloadValue = $this->settingValue(self::BAND_OVERLOAD_NAME);
+        if (is_numeric($overloadValue)) {
+            $candidate = (int)$overloadValue;
+            if ($candidate >= self::BAND_MIN_OVERLOAD && $candidate <= self::BAND_MAX) {
+                $overload = $candidate;
+                $source = 'setting';
+            }
+        }
+
+        $underloadValue = $this->settingValue(self::BAND_UNDERLOAD_NAME);
+        if (is_numeric($underloadValue)) {
+            $candidate = (int)$underloadValue;
+            if ($candidate >= 0 && $candidate < $overload) {
+                $underload = $candidate;
+                $source = 'setting';
+            }
+        }
+
+        return $this->loadThresholdsCache = [
+            'overload_percent' => $overload,
+            'underload_percent' => $underload,
+            'source' => $source,
+        ];
+    }
+
+    /** Raw value of a `system` setting, or null when it is not set at all. */
+    private function settingValue(string $name): mixed
+    {
+        $setting = $this->settings?->get(self::BAND_SCOPE, $name);
+
+        return is_array($setting) ? ($setting['value'] ?? null) : null;
     }
 
     public function summary(array $actor): array
@@ -192,6 +272,8 @@ final class AnalyticsService
         $weekStart = gmdate('Y-m-d 00:00:00', strtotime('-6 days', strtotime($now)));
         $capacity = $this->weeklyCapacity();
 
+        $thresholds = $this->loadThresholds();
+
         $data = $this->insights()->personalLoad((int)($actor['id'] ?? 0), [
             'now' => $now,
             'week_start' => $weekStart,
@@ -199,6 +281,7 @@ final class AnalyticsService
             'previous_start' => gmdate('Y-m-d 00:00:00', strtotime('-' . ($periodDays * 2) . ' days', strtotime($now))),
             'period_days' => $periodDays,
             'capacity_minutes_week' => $capacity['minutes'],
+            'load_thresholds' => $thresholds,
         ]);
 
         // How the actor's week compares with the people they can see. The median
@@ -218,6 +301,9 @@ final class AnalyticsService
         $data['user_public_id'] = (string)($actor['public_id'] ?? '');
         $data['capacity_source'] = $capacity['source'];
         $data['capacity_calendar_public_id'] = $capacity['calendar_public_id'];
+        // The legend has to describe the bands the signal was computed with.
+        $data['load_thresholds'] = $thresholds;
+        $data['load_thresholds_source'] = $thresholds['source'];
         $data['scope_median_load_percent'] = $median['median'];
         $data['scope_sample'] = $median['sample'];
         $data['load_vs_scope_median_percent'] = $median['median'] === null
@@ -509,6 +595,8 @@ final class AnalyticsService
 
         $capacity = $this->weeklyCapacity();
         $window['capacity_minutes_week'] = $capacity['minutes'];
+        $thresholds = $this->loadThresholds();
+        $window['load_thresholds'] = $thresholds;
 
         $assignees = $this->insights()->assigneeLoad($userIds, $isRoot, $window);
         $byUserId = [];
@@ -573,7 +661,7 @@ final class AnalyticsService
                     'load_percent' => $loadPercent,
                     'signal' => count($rows) === 0
                         ? 'no_data'
-                        : InsightsRepository::workloadSignal($loadPercent, $overdue),
+                        : InsightsRepository::workloadSignal($loadPercent, $overdue, $thresholds),
                     'no_manager' => false,
                     'members' => $rows,
                 ];
@@ -589,6 +677,8 @@ final class AnalyticsService
             'capacity_minutes_week' => $capacity['minutes'],
             'capacity_source' => $capacity['source'],
             'capacity_calendar_public_id' => $capacity['calendar_public_id'],
+            'load_thresholds' => $thresholds,
+            'load_thresholds_source' => $thresholds['source'],
             'period_days' => $periodDays,
         ]);
     }
@@ -619,6 +709,19 @@ final class AnalyticsService
         );
         $data['scope_users'] = $isRoot ? null : count($userIds);
         $data['period_days'] = $periodDays;
+
+        // The sprint face of the same card. It travels with the weekly block instead
+        // of behind its own request: the toggle then switches between two payloads
+        // the card already holds, and the endpoint keeps answering additively.
+        $data['sprint'] = $this->insights()->currentSprintVelocity(
+            $isRoot ? [] : $this->insights()->accessibleProjectPublicIds(
+                (int)($actor['id'] ?? 0),
+                $this->accessibleTeamPublicIds($actor)
+            ),
+            $isRoot,
+            $userIds,
+            $now
+        );
 
         return $this->stripFinancialFields($data);
     }
@@ -654,10 +757,17 @@ final class AnalyticsService
             $departments[] = $department;
         }
 
+        $thresholds = $load['load_thresholds'] ?? $this->loadThresholds();
+
         return $this->stripFinancialFields([
             'assignees' => $assignees,
             'departments' => $departments,
-            'recommendation' => InsightsRepository::rebalanceRecommendation($assignees),
+            'recommendation' => InsightsRepository::rebalanceRecommendation($assignees, $thresholds),
+            // When no hand-over can be advised the card still names the bottleneck,
+            // so "no advice" is an answer rather than an empty block.
+            'bottleneck' => InsightsRepository::bottleneck($assignees, $thresholds),
+            'load_thresholds' => $thresholds + ['source' => $load['load_thresholds_source'] ?? 'default'],
+            'load_thresholds_source' => $load['load_thresholds_source'] ?? 'default',
             'capacity_minutes_week' => $load['capacity_minutes_week'],
             'capacity_source' => $load['capacity_source'] ?? 'default_40h',
             'summary' => $summary + [

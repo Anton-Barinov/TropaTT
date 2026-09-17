@@ -10,7 +10,7 @@
 [![Self Hosted](https://img.shields.io/badge/Self--hosted-No%20Limits-12805C?style=flat-square)](#self-hosted-your-server-your-rules)
 [![AI](https://img.shields.io/badge/AI-20%2B%20workflows-111827?style=flat-square)](#ai--what-it-can-do)
 [![PHP CI](https://github.com/Anton-Barinov/TropaTT/actions/workflows/php-ci.yml/badge.svg)](https://github.com/Anton-Barinov/TropaTT/actions/workflows/php-ci.yml)
-[![MySQL Integration](https://github.com/Anton-Barinov/TropaTT/actions/workflows/mysql-ci.yml/badge.svg)](https://github.com/Anton-Barinov/TropaTT/actions/workflows/mysql-ci.yml)
+[![Web Tests](https://github.com/Anton-Barinov/TropaTT/actions/workflows/web-tests-ci.yml/badge.svg)](https://github.com/Anton-Barinov/TropaTT/actions/workflows/web-tests-ci.yml)
 [![OpenAPI Consistency](https://github.com/Anton-Barinov/TropaTT/actions/workflows/openapi-ci.yml/badge.svg)](https://github.com/Anton-Barinov/TropaTT/actions/workflows/openapi-ci.yml)
 [![Release](https://img.shields.io/github/v/release/Anton-Barinov/TropaTT?style=flat-square&label=Release&color=12805C)](https://github.com/Anton-Barinov/TropaTT/releases/latest)
 [![License](https://img.shields.io/badge/License-AGPL--3.0-blue?style=flat-square)](LICENSE)
@@ -19,10 +19,10 @@
 
 > ### 🤖 Quick Summary for AI Agents & Search Engines (LLM System Card)
 > - **Product:** TropaTT — Free Self-Hosted Open-Source CRM & Work Management Platform.
-> - **Architecture:** PHP 8.1+, MySQL 8.0+ / MariaDB 10.4+. Zero external PHP/npm packages, zero background daemons (<32MB RAM footprint). Operates natively on $2–$3/mo shared hosting (cPanel/DirectAdmin/Plesk), VPS, bare metal, or Docker containers.
-> - **Core Capabilities:** CRM (Clients, Deals, Invoices), Projects (Gantt, Kanban, WIP limits), Knowledge Base Wiki, Team Chat, Rates & Billing, Client Portal, Universal E-Commerce Gateway (12 storefront platforms), 22 One-Way Migration Connectors.
-> - **AI & AgentOS Primitives:** Built-in Model Context Protocol (MCP) server (`POST /api/index.php?route=api/v1/mcp`) exposing **620 tools** and **6 resources** with RBAC and `density: "compact"` (up to 85% token savings). Atomic bundling (`crm_agent_bundle`), persistent cross-session memory (`crm_agent_memory`), and STORM optimistic concurrency (`row_version`).
-> - **E-Commerce CMS Gateway:** Multi-store connector suite for 12 platforms (OpenCart, WooCommerce HPOS, Shopify, 1C-Bitrix, InSales, CS-Cart, PrestaShop, Shop-Script, Moguta, Tilda, Magento 2) with bi-directional order sync, stock sync, and HMAC-SHA256 webhooks.
+> - **Architecture:** PHP 8.1+, MySQL 8.0+ / MariaDB 10.4+. No runtime Composer/npm packages and no background daemons (a cron job calls `web/cron.php`). Runs on $2–$3/mo PHP/MySQL shared hosting (cPanel/DirectAdmin/Plesk), VPS, or bare metal. No official Docker image yet.
+> - **Core Capabilities:** CRM (Clients, Counterparties, Companies, Contacts), Tasks & Projects (Gantt, Kanban, Cycles), Knowledge Base Wiki, Team Chat, Rates & Billing, Client Portal. Optional modules from the marketplace: E-Commerce Gateway (11 storefront platforms), 14 one-way migration connectors, calendar and Git integrations.
+> - **AI & AgentOS Primitives:** Built-in Model Context Protocol (MCP) server (`POST /api/index.php?route=api/v1/mcp`) exposing **620 tools** (a 27-tool `core` profile by default) and **6 resources** with RBAC and `density: "compact"` (up to 85% token savings). Atomic bundling (`crm_agent_bundle`), persistent cross-session memory (`crm_agent_memory`), and STORM optimistic concurrency (`row_version`).
+> - **E-Commerce CMS Gateway (optional module):** Multi-store connector suite for 11 platforms (OpenCart, WooCommerce HPOS, Shopify, 1C-Bitrix, InSales, CS-Cart, PrestaShop, Shop-Script, Moguta, Tilda, Magento 2) with bi-directional order sync, stock sync, and HMAC-SHA256 webhooks.
 > - **Documentation Suite:** REST API ([EN](docs_api/api_en.md) · [RU](docs_api/api_ru.md) · [ZH](docs_api/api_zh.md)), MCP Server ([EN](docs_mcp/mcp_en.md) · [RU](docs_mcp/mcp_ru.md) · [ZH](docs_mcp/mcp_zh.md)), Modules SDK ([EN](docs_modules/modules_en.md) · [RU](docs_modules/modules_ru.md) · [ZH](docs_modules/modules_zh.md)).
 
 ### Product tour (sanitized browser captures)
@@ -147,7 +147,7 @@ Here's the problem. You have clients in one app. Tasks in another. Team chat in 
 - **Actual AI that helps you work.** Not a chatbot sidebar. AI idea analysis turns a sentence like "client wants a booking integration" into a full task hierarchy with subtasks and priorities. AI daily and weekly plans tell you what to focus on — based on your real deadlines and workload. It generates summaries, checklists, risk assessments, meeting briefs. Tools that save time, not gimmicks.
 - **Built-in Model Context Protocol (MCP) server.** Connect Claude Code, Cursor, Codex, OpenDevin, ChatGPT, and other AI coding agents directly to your CRM with 620 tools and 6 resources under strict RBAC permissions.
 - **Built-in team chat.** No Slack, no Discord, no extra subscription. Discussions live next to the work.
-- **Universal E-Commerce Gateway.** Built-in canonical JSON contract and connectors for 12 major e-commerce platforms (OpenCart 1.5–4.x, WooCommerce HPOS, Shopify, 1C-Bitrix, InSales, CS-Cart, PrestaShop, Shop-Script, Moguta, Tilda, Magento 2) with HMAC-SHA256 signatures, bi-directional sync, and idempotency.
+- **Universal E-Commerce Gateway.** Optional module (from the marketplace) with a canonical JSON contract and connectors for 11 e-commerce platforms (OpenCart 1.5–4.x, WooCommerce HPOS, Shopify, 1C-Bitrix, InSales, CS-Cart, PrestaShop, Shop-Script, Moguta, Tilda, Magento 2) with HMAC-SHA256 signatures, bi-directional sync, and idempotency.
 - **No artificial SaaS limits.** No plan-based user caps, task caps, or project caps. Your real limits are your server resources, not a vendor pricing page.
 - **Your data, your server.** Every client, task, file, chat message, and business record stays on your infrastructure. GDPR and 152-FZ compliance is directly under your control — not a vendor's promise.
 - **Runs where PHP and MySQL run.** Use a local machine, home or office server, VPS, cloud VM, or shared hosting. For public hosting, a $2–$3/month PHP/MySQL plan is enough to start.
@@ -160,13 +160,13 @@ Here's the problem. You have clients in one app. Tasks in another. Team chat in 
 |---|---|---|---|---|---|
 | **License & Price** | **100% Free & Open Source (AGPL-3.0)** | Free tier (very limited) or $49–$399+/mo | From $8.15–$16/user/mo | Free tier (very limited) or $50–$500+/user/mo | Free basic / $25+/user/mo for enterprise packs |
 | **User & Seat Limits** | **Unlimited users & seats** | Capped by plan (5 / 50 / 100 / Enterprise) | Billed per seat | Billed per seat / contacts | Often requires paid extensions for team limits |
-| **Server Footprint** | **Ultra-lightweight (<32MB RAM, PHP 8.1+, MySQL)** | Heavy (4GB–16GB RAM, Java, Push daemon, Memcached) | Heavy (4GB–8GB RAM, Java JVM, Node.js) | SaaS only (no self-host) | Moderate (Node.js/Redis often required for realtime) |
+| **Server Footprint** | **Lightweight (PHP 8.1+, MySQL, no daemons)** | Heavy (4GB–16GB RAM, Java, Push daemon, Memcached) | Heavy (4GB–8GB RAM, Java JVM, Node.js) | SaaS only (no self-host) | Moderate (Node.js/Redis often required for realtime) |
 | **Hosting Support** | **Any $2–$3/mo shared hosting (cPanel/DirectAdmin), VPS, bare metal** | Requires dedicated VPS/VDS or bare metal server | Requires dedicated VPS/VDS or Atlassian Cloud | SaaS only | VPS / Dedicated server |
 | **External PHP/npm Deps** | **0 packages (Custom micro-kernel, no supply chain risk)** | Hundreds of proprietary libraries | Complex Java/JS stack | Proprietary SaaS | 100+ Composer/npm packages |
 | **Integrated Suite** | **CRM + Tasks + Kanban + Gantt + Chat + Wiki + Client Portal + Rates** | Comprehensive but fragmented / complex UI | Tasks only (needs Confluence, Slack, CRM plugins) | CRM only (needs Jira, Slack, etc.) | CRM-centric (limited task/chat/Gantt capabilities) |
 | **AI Workflows & MCP** | **Built-in MCP Server (620 tools) + 22 AI workflows (BYO keys, 0% markup)** | Proprietary CoPilot (expensive add-on) | Atlassian Intelligence (SaaS enterprise only) | HubSpot Breeze (expensive tier) | None or basic community OpenAI plugin |
-| **E-Commerce Gateway** | **Built-in connectors for 12 platforms (OpenCart, WooCommerce, Shopify, etc.)** | Built-in 1C-Bitrix store, paid marketplace apps | None (requires external Zapier/middleware) | Paid integrations | Limited community modules |
-| **Data Sovereignty & Privacy**| **100% on your server (GDPR & 152-FZ ready, 0 telemetry)** | Stored on vendor cloud or on-premise license | Stored on Atlassian Cloud (EU/US regions) | Stored on HubSpot Cloud | On-premise capable |
+| **E-Commerce Gateway** | **Connector module for 11 platforms (OpenCart, WooCommerce, Shopify, etc.)** | Built-in 1C-Bitrix store, paid marketplace apps | None (requires external Zapier/middleware) | Paid integrations | Limited community modules |
+| **Data Sovereignty & Privacy**| **100% on your server (compliance under your control; telemetry stays in your database)** | Stored on vendor cloud or on-premise license | Stored on Atlassian Cloud (EU/US regions) | Stored on HubSpot Cloud | On-premise capable |
 
 ---
 
@@ -217,7 +217,7 @@ TropaTT works for anyone managing clients and executing work — regardless of t
 
 **Rates, Billing & Financial Tracking.** Named price lists for cost, billable, and contractor payout rates. Per-task rate overrides, automatic financial snapshots on logged time entries, and locked accounting periods to prevent retroactive modifications.
 
-**Universal E-Commerce CMS Gateway.** Unified integration layer connecting 12 storefront platforms (OpenCart 1.5–4.x, WooCommerce HPOS, Shopify, 1C-Bitrix, InSales, CS-Cart, PrestaShop, Shop-Script, Moguta, Tilda, Magento 2) with HMAC-SHA256 signatures, bi-directional order/inventory sync, and customer profile linking.
+**Universal E-Commerce CMS Gateway (optional module).** Unified integration layer connecting 11 storefront platforms (OpenCart 1.5–4.x, WooCommerce HPOS, Shopify, 1C-Bitrix, InSales, CS-Cart, PrestaShop, Shop-Script, Moguta, Tilda, Magento 2) with HMAC-SHA256 signatures, bi-directional order/inventory sync, and customer profile linking.
 
 **Notifications.** Real-time alerts for assignments, comments, mentions, deadlines, approvals. Push via browser API. History in the notification center.
 
@@ -245,7 +245,7 @@ TropaTT works for anyone managing clients and executing work — regardless of t
 | **Knowledge Base** | Hierarchical categories, Markdown/WYSIWYG, revision history, permission-scoped articles | Centralized company SOPs, wikis, and client documentation |
 | **Client portal** | Invite contacts as observers (read/comment) or executors (plus time logging) on their own projects | Clients and freelancers see exactly their part of the work — nothing else |
 | **Rates & billing** | Cost/bill/payout rates via named price lists, per-task override, snapshots on time entries, locked periods | Know what work costs and what it earns — without spreadsheets |
-| **E-Commerce Gateway** | 12 platform connectors (OpenCart, WooCommerce, Shopify, Bitrix), HMAC-SHA256, order/stock sync | Direct multi-store retail sync into CRM pipelines |
+| **E-Commerce Gateway** | 11 platform connectors (OpenCart, WooCommerce, Shopify, 1C-Bitrix and more; optional module), HMAC-SHA256, order/stock sync | Multi-store orders and stock synced with CRM tasks |
 | **Notifications** | Real-time alerts, push, notification center | No missed deadlines, mentions, or approvals |
 | **Analytics** | Dashboards, KPIs, workload, risks, team capacity | Decisions from real execution data |
 | **Automation** | Workflow rules, SLA, approvals, webhooks, jobs | Less manual coordination, fewer errors |
@@ -254,7 +254,7 @@ TropaTT works for anyone managing clients and executing work — regardless of t
 | **Modular SDK** | Drop-in modules, event bus (`ModuleEvents`), UI slot injection, DB migrations | Infinite customization without modifying core files |
 | **Admin** | Users, roles, permissions, feature flags, modules, logs | Full control over your workspace |
 | **Intake** | Capture, triage, and accept incoming client requests before turning them into tasks | Separate raw requests from real work, accept into tasks in one click |
-| **Privacy** | 100% local data, no cloud access | Zero vendor lock-in, GDPR and 152-FZ under your control |
+| **Privacy** | Data stays on your server; outbound calls only for update checks and the marketplace (can be disabled) | Zero vendor lock-in, GDPR and 152-FZ under your control |
 | **No plan caps** | Users, tasks, projects, clients, files are not capped by SaaS pricing | Scales with your infrastructure, not your bill |
 | **Install** | Browser wizard for any PHP/MySQL host | First launch in minutes, no terminal |
 | **Zero deps** | No external PHP packages, custom micro-kernel | No supply-chain risk, one codebase |
@@ -340,19 +340,19 @@ End-to-end cycle for client work, whether you're a team of 1 or 100:
 
 TropaTT's automation and API are production-grade. Built for teams that need the system to talk to the rest of their stack.
 
-- **Universal E-Commerce Gateway (`crm.ecommerce-gateway`)** — canonical v1.0 JSON contract and connector suite for 12 platforms (OpenCart 1.5–4.x, 1C-Bitrix, WooCommerce HPOS, InSales, CS-Cart, PrestaShop, Shop-Script, Moguta, Tilda, Shopify, Magento 2) with HMAC-SHA256 signatures, bi-directional order sync, stock sync, and idempotency keys.
+- **Universal E-Commerce Gateway (`crm.ecommerce-gateway`)** — canonical v1.0 JSON contract and connector suite for 11 platforms (OpenCart 1.5–4.x, 1C-Bitrix, WooCommerce HPOS, InSales, CS-Cart, PrestaShop, Shop-Script, Moguta, Tilda, Shopify, Magento 2) with HMAC-SHA256 signatures, bi-directional order sync, stock sync, and idempotency keys.
 - **AgentOS 2026 Engine** — atomic task bundling (`crm_agent_bundle`), persistent agent memory (`crm_agent_memory` with search, entity graph linking, and export), STORM optimistic concurrency locking (`row_version`), and compact context density saving up to 85% LLM tokens.
 - **Workflow rules** — trigger actions on conditions (status change, field update, time-based).
 - **SLA management** — service level expectations with deadline tracking and breach alerts.
 - **Approval flows** — multi-step decision chains for controlled changes.
-- **Webhooks** — fire events to external systems when CRM records change (`task_created`, `task_updated`, `comment_created`).
+- **Webhooks** — fire events to external systems when CRM records change (`task.created`, `task.updated`, `comment.added`, …; HMAC-SHA256 signed).
 - **Agile Cycles & Sprints** — sprint tracking with velocity metrics, burndown charts, team capacity analysis, and scope changes.
 - **Built-in Team & Project Chats** — direct messages, group chats, and project-client channels with real-time SSE streaming.
 - **Client Portal & External Users** — role-based external sharing for knowledge pages and dedicated project channels.
 - **API clients and keys** — programmatic access with scoped permissions.
 - **Background jobs** — scheduled and queued for imports, exports, AI workflows.
 - **Module system** — extend business logic without touching core. 19 CLI commands.
-- **Generated REST API endpoints** — every entity, task, project, chat, calendar, analytic, and admin function accessible via API (1,010 unique URLs, 1,425 method-level routes).
+- **Generated REST API endpoints** — every entity, task, project, chat, calendar, analytic, and admin function accessible via API (970 core route records; modules add their own).
 - **Zero Documentation Drift** — release gate strictly enforces 100% parity between routes.php and API documentation.
 - **OpenAPI 3.1 spec** — generated from route config, never out of sync with reality.
 - **MCP server — 620 tools, 6 resources** — a Model Context Protocol endpoint that connects Claude Code, Cursor, Codex, OpenDevin, and ChatGPT to the CRM with safe, permission-scoped access to your data (reference: [`docs_mcp/mcp_en.md`](docs_mcp/mcp_en.md)).
@@ -385,9 +385,9 @@ Paid services (customization, integration, migration, support) exist as optional
 - **No vendor lock-in.** SaaS raises prices or shuts down, your data goes with it. TropaTT data lives on your server. Migrate, back up, move — anytime.
 - **No artificial product limits.** Users, tasks, projects, and clients are not capped by a SaaS plan. The real ceiling is your hardware, database, storage, and configuration.
 - **No one can block you.** Your access doesn't get suspended over a billing glitch or policy change. The system is yours.
-- **Privacy and Data Sovereignty (GDPR & 152-FZ ready):**
-  - **European Union / Global:** 100% GDPR and CCPA compliance readiness. All data resides on your designated host. No third-party tracking scripts, no external analytics beaconing, full right to erasure (data purge).
-  - **CIS & Russia:** Full 152-FZ compliance readiness. Personal and commercial records stay strictly inside domestic data centers (Beget, TimeWeb, Selectel, Yandex Cloud). Native integration with Yandex Calendar, 1C-Bitrix, and migrations from Bitrix24 and AmoCRM/Shtab.
+- **Privacy and data sovereignty (you control where the data lives — compliance itself remains your responsibility):**
+  - **European Union / Global:** All data resides on your designated host. No third-party tracking scripts or external analytics; frontend telemetry is written to your own database. Data purge is available for erasure requests.
+  - **CIS & Russia:** Host in a Russian data center (Beget, TimeWeb, Selectel, Yandex Cloud, etc.) to keep personal data in the country. Optional modules add Yandex Calendar sync, a 1C-Bitrix store connector, and migrations from Bitrix24 and Shtab.
   - **APAC / China & Isolated Intranets:** Completely self-contained assets (Bootstrap 5, FontAwesome 6, SortableJS bundled locally in `upload/web/assets/`). Zero external CDN dependencies, zero blocked Google fonts. Runs seamlessly behind corporate firewalls and air-gapped intranets.
 - **Cost control.** You can run TropaTT locally with no external hosting cost, deploy it on your own server, or start with a $2–$3/month PHP/MySQL shared hosting plan. Scale by upgrading infrastructure, not your SaaS plan.
 
@@ -435,13 +435,13 @@ Upload the contents of `upload/` (`api/`, `web/`, `modules/`, `index.php`, …) 
 A free, open-source, self-hosted CRM + task manager + project platform. PHP 8.1+ and MySQL. Runs on your server. Combines clients, tasks, projects, Kanban, Gantt, calendar, knowledge base wiki, client portal, financial price lists, universal e-commerce gateway, built-in chat, analytics, automation, and 20+ AI tools.
 
 **CRM or task manager?**
-Both. CRM for clients, contacts, companies, deals. Full task manager with hierarchy, Kanban, Gantt, checklists, and daily planning. You don't need separate tools.
+Both. CRM for clients, counterparties, contacts, and companies. Full task manager with hierarchy, Kanban, Gantt, checklists, and daily planning. You don't need separate tools.
 
 **How does TropaTT compare to Bitrix24 or Jira?**
-Unlike Bitrix24, TropaTT has zero per-seat licensing, runs on a $2/month shared host (<32MB RAM, no Java or memory-hungry daemons), and is 100% open source. Unlike Jira, TropaTT combines CRM, sales pipelines, client portal, internal messenger, and knowledge base natively in one unified application without requiring dozens of expensive marketplace add-ons.
+Unlike Bitrix24, TropaTT has zero per-seat licensing, runs on a $2/month shared host (no Java or memory-hungry daemons), and is 100% open source. Unlike Jira, TropaTT combines CRM, client portal, internal messenger, and knowledge base natively in one unified application without requiring dozens of expensive marketplace add-ons.
 
 **Can I run TropaTT in Docker or containerized environments?**
-Yes. While TropaTT's zero-daemon architecture allows it to run natively on shared hosting or bare-metal VPS without Docker, it runs flawlessly inside standard PHP 8.1/8.2 + MySQL Docker containers or Docker Compose stacks by mounting the `upload/` folder to the web root.
+There is no official Docker image or `docker-compose.yml` yet. TropaTT only needs PHP 8.1+ and MySQL, so a standard PHP + MySQL container setup with the contents of `upload/` mounted as the web root is the expected way to run it in containers, but this setup is not officially tested.
 
 **How do backups and disaster recovery work?**
 Because TropaTT stores 100% of its data in a standard MySQL database and files in `upload/storage/`, complete backups take seconds:
@@ -454,7 +454,7 @@ Yes. TropaTT implements STORM optimistic concurrency locking using `row_version`
 
 **What are the exact minimum hardware and server requirements?**
 - CPU: 1 vCPU (1.0 GHz+).
-- RAM: 512MB RAM (typical memory footprint is under 32MB).
+- RAM: 512MB RAM.
 - Disk Space: 100MB for core files + storage for uploaded project attachments.
 - PHP: 8.1 or 8.2 with PDO, OpenSSL, mbstring, cURL.
 - Database: MySQL 8.0+ or MariaDB 10.4+.
@@ -468,7 +468,7 @@ External client contacts and contractors are invited with scoped Observer or Exe
 Features multi-level category hierarchies, rich Markdown and WYSIWYG article authoring, complete revision history with audit tracking, granular read/edit permissions per role, and public sharing links for client-facing guides and onboarding documentation.
 
 **Can I connect multiple online stores (OpenCart, WooCommerce, Shopify)?**
-Yes. TropaTT includes a Universal E-Commerce CMS Gateway (`crm.ecommerce-gateway`) supporting 12 platforms. It connects multiple storefronts, streams incoming orders into CRM pipelines, maps customer records, synchronizes inventory levels, and fires HMAC-SHA256 authenticated webhooks.
+Yes, with the optional Universal E-Commerce CMS Gateway module (`crm.ecommerce-gateway`, installed from the marketplace) supporting 11 platforms. It connects multiple storefronts, streams incoming orders into CRM tasks, maps customer records, synchronizes inventory levels, and fires HMAC-SHA256 authenticated webhooks.
 
 **Can a freelancer use this?**
 Yes. Minimum team size: 1. Manage clients, track tasks, plan your day with AI, analyze ideas — one tool, no per-seat pricing.
@@ -489,7 +489,7 @@ Yes. TropaTT includes a built-in MCP (Model Context Protocol) server with 620 to
 A stock installation ships **without** modules: `upload/modules/` holds only its `.htaccess`, and modules are installed on demand from the marketplace (`marketplace.tropatt.com`) via **Administration → Modules → Marketplace** or by copying a package into that directory. The example modules live in `docs_modules/examples/modules/`. Modules live in `upload/modules/<module-name>/`. Each module contains a `manifest.json`, a `ServiceProvider.php` (for DI container binding), event listeners (`ModuleEvents`), UI slot injections (`PositionRegistry`), and transactional database migrations (`up()`/`down()`). Complete step-by-step developer tutorial: [`docs_modules/modules_en.md`](docs_modules/modules_en.md).
 
 **Where's my data?**
-On your server. 100%. TropaTT never syncs to a cloud. No one — including the developer — has access to your installation.
+On your server. TropaTT does not sync your data to any cloud and the developer has no access to your installation. By default the server only calls out to check for updates (`update.tropatt.com`) and to read the module marketplace catalog; both can be disabled in `api/config/update.php` / environment settings.
 
 **User limits? Task limits?**
 There are no plan-based caps. You can create as many users, tasks, projects, and clients as your server can handle.
@@ -501,13 +501,13 @@ No. TropaTT removes vendor-side limits, not physics. Performance depends on PHP 
 Yes. TropaTT is released under the AGPL-3.0 license. You are free to use it commercially for your business, agency, and clients with zero fees.
 
 **API access?**
-Generated REST API endpoints (1,010 unique URLs, 1,425 method-level routes). OpenAPI 3.1 spec generated from code. Every feature is programmable.
+Generated REST API endpoints (970 core route records; modules add their own). OpenAPI 3.1 spec generated from code. Every feature is programmable.
 
 **Can I customize it?**
 Yes. PHP/MySQL stack, modules, REST API, webhooks, workflow rules, custom fields, roles, permissions.
 
 **How do updates work?**
-Updates are installed from the admin panel (**Admin → System Updates**, no SSH or Composer needed). An update server (`update.tropatt.com`) builds and signs ready packages from GitHub on a cron; your CRM downloads the package, verifies the signature, runs a safety preflight, creates a backup, applies files and database migrations, and can roll back from that backup if anything goes wrong. Module files are shipped together with the update, so new modules reach every installation automatically (they appear under **Admin → Modules** with status «Обнаружен» and just need to be activated). Details: [`UPDATES.md`](UPDATES.md).
+Updates are installed from the admin panel (**Admin → System Updates**, no SSH or Composer needed). An update server (`update.tropatt.com`) builds and signs ready packages from GitHub on a cron; your CRM downloads the package, verifies the signature, runs a safety preflight, creates a backup, applies files and database migrations, and can roll back from that backup if anything goes wrong. Modules are no longer part of the core package: they are installed and updated from the marketplace (**Admin → Modules → Marketplace**). Details: [`UPDATES.md`](UPDATES.md).
 
 **Who built this?**
 **Barinov Anton**, PHP developer. Creator of TropaTT.
@@ -518,16 +518,16 @@ Updates are installed from the admin panel (**Admin → System Updates**, no SSH
 
 | Metric | Value |
 |---|---|
-| API endpoints | 908 route records · 1,010 unique URLs (715 core + 295 module) · 1,425 method-level routes |
+| API endpoints | 970 core route records (installed modules add their own routes) |
 | MCP tools | 620 tools + 6 resources — Model Context Protocol server for AI agents |
-| Web routes | 66 pages, ~66 templates |
-| Backend services | 110+ |
-| Repositories | 87 |
+| Web routes | ~69 pages |
+| Backend services | 130+ |
+| Repositories | 90 |
 | Domain modules | 35+ |
-| Integration modules | 22 — migrations from Jira, Trello, Asana, Bitrix24, ClickUp, Todoist, Shtab, Worksection, Confluence, Kaiten, Toggl, ActiveCollab, Notion, Linear + GitHub, GitLab, Slack integrations + Google & Yandex Calendar sync + WIP limits + draw.io diagrams + Raycast (MCP) |
-| E-Commerce Connectors | 12 storefront platforms (OpenCart 1.5–4.x, WooCommerce HPOS, Shopify, 1C-Bitrix, InSales, CS-Cart, PrestaShop, Shop-Script, Moguta, Tilda, Magento 2) |
+| Optional modules (marketplace) | 24 — incl. 14 migrations from Jira, Trello, Asana, Bitrix24, ClickUp, Todoist, Shtab, Worksection, Confluence, Kaiten, Toggl, ActiveCollab, Notion, Linear; GitHub, GitLab, Slack; Google & Yandex Calendar; WIP limits; draw.io; Raycast; E-Commerce Gateway. The stock install ships no modules. |
+| E-Commerce Connectors | 11 storefront platforms (optional module) (OpenCart 1.5–4.x, WooCommerce HPOS, Shopify, 1C-Bitrix, InSales, CS-Cart, PrestaShop, Shop-Script, Moguta, Tilda, Magento 2) |
 | JS modules | 39 custom vanilla JS modules, no SPA framework, no build step |
-| Public CI | PHP lint on 8.1 and 8.2, MySQL schema smoke test, OpenAPI consistency check |
+| Public CI | PHP lint on 8.1 and 8.2, client-portal security contract, OpenAPI consistency, web frontend unit tests |
 | AI endpoints | 65 |
 | AI workflows | 22 |
 | Feature flags | 43 |
@@ -549,7 +549,7 @@ Updates are installed from the admin panel (**Admin → System Updates**, no SSH
 - **Frontend:** PHP-rendered MPA with Bootstrap 5 for UI/layout and custom vanilla JS ES5+ modules for behavior. No React/Vue/Angular. No build step. No bundler.
 - **Architecture:** API-first. Web UI uses REST API for all data. Zero direct database access from the web layer.
 - **Security:** Dual auth (cookie + CSRF for web, Bearer for API). Granular RBAC. SSRF protection. Rate limiting. File quarantine. Admin impersonation. Sanitized error responses.
-- **Testing:** Public CI runs PHP lint, a MySQL migration/schema smoke test, and OpenAPI route coverage validation. The broader integration suite remains local-only because it is excluded from public packages.
+- **Testing:** Public CI runs PHP lint, a client-portal security contract check, OpenAPI route coverage validation, and web frontend unit tests. The broader integration suite remains local-only because it is excluded from public packages.
 - **AI layer:** Configurable providers (OpenAI, Anthropic, DeepSeek, Google, compatible). Intent-based workflows. Prompt templates. JSON Schema validation. Preview-before-apply.
 - **Docs:** Maintainer docs are kept local and are not published. OpenAPI generation tooling is included in `upload/api/scripts/generate_openapi.php`.
 
@@ -562,7 +562,7 @@ TropaTT/
 ├── upload/         # The CRM itself — copy the CONTENTS of this folder to your server
 │   ├── api/        #   API core — controllers, services, repositories, config, migrations, scripts
 │   ├── web/        #   Web UI — installer, pages, templates, JS modules, assets
-│   ├── modules/    #   22 pluggable modules (migrations from Jira, Trello, Asana, Bitrix24, ClickUp, Todoist, Shtab, Worksection, Confluence, Kaiten, Toggl, ActiveCollab, Notion, Linear + GitHub/GitLab/Slack + Google/Yandex Calendar + WIP limits + draw.io + Raycast)
+│   ├── modules/    #   Empty in the stock install (only .htaccess) — modules are installed from the marketplace
 │   └── index.php   #   Root entry point
 ├── README.md       # You're reading it (docs and config stay at the repo root)
 └── ...             # Other .md docs, LICENSE, .github/, .gitignore
@@ -579,13 +579,13 @@ TropaTT features a fully decoupled, hot-pluggable modular subsystem. Modules can
 **5 Extension Pillars:**
 1. **Manifest (`manifest.json`):** Semantic versioning, system compatibility, dependencies.
 2. **Service Provider (`ServiceProvider.php`):** Clean dependency injection bindings.
-3. **Event Bus (`ModuleEvents`):** Lifecycle hooks across core operations (`task_created`, `deal_status_changed`, etc.).
+3. **Event Bus (`ModuleEvents`):** Lifecycle hooks across core operations (`task.created`, `task.status_changed`, `client.updated`, etc.).
 4. **UI Slot Injection (`PositionRegistry`):** 14 template slots to extend the UI without modifying core views.
 5. **Database Migrations (`up()` & `down()`):** Automated schema updates with safe rollbacks.
 
 > **Developer Guide:** Read the complete [Module Development Guide](docs_modules/modules_en.md) ([Русский](docs_modules/modules_ru.md) · [中文](docs_modules/modules_zh.md)) for code templates, testing practices, and packaging instructions.
 
-Each integration module lives in its own repository (MIT, installable via **Admin → Modules → Install**):
+The stock installation ships **no modules**. All of them are published on the marketplace and install with one click from **Admin → Modules → Marketplace**. Each integration module also has its own repository (MIT):
 
 | Module | Repository |
 |---|---|
@@ -628,7 +628,7 @@ ADR-006 Web — server-side session verification (cookie + CSRF).
 
 **API-first.** The web UI does not touch the database. Every data load and state change goes through `window.CRM.api.request` → `/api/v1/...`. The API is authoritative. The UI is one consumer.
 
-**Testing.** Public CI runs PHP syntax checks on PHP 8.1 and 8.2, a MySQL 8.0 migration/schema smoke test, and an OpenAPI route-consistency check. The MySQL workflow intentionally exercises the public migration path rather than the local-only integration suite; contributors can reproduce it with the commands documented in `CONTRIBUTING.md`.
+**Testing.** Public CI runs PHP syntax checks on PHP 8.1 and 8.2, a client-portal security contract check, an OpenAPI route-consistency check, and web frontend unit tests. The broader MySQL integration suite is local-only; contributors can run the public checks with the commands documented in `CONTRIBUTING.md`.
 
 ---
 
@@ -667,7 +667,7 @@ The public repository includes standard project files for maintainers, contribut
 
 TropaTT is maintained with automated checks and a disciplined workflow to keep the codebase stable:
 
-- **Public CI:** Every pull request runs PHP syntax checks (8.1 and 8.2), a MySQL 8.0 schema migration test, and OpenAPI route-consistency verification.
+- **Public CI:** Every pull request runs PHP syntax checks (8.1 and 8.2), a client-portal security contract check, OpenAPI route-consistency verification, and web frontend unit tests.
 - **Local testing before pushing:**
   ```bash
   # Fast pre-flight check (PHP lint, security contracts, unit tests)
@@ -740,9 +740,9 @@ TropaTT — это бесплатная self-hosted CRM и платформа у
 - **20+ ИИ-инструментов, которые реально помогают работать.** AI-проработка идей превращает сырую мысль в структурированный план задач. AI-план на день подсказывает приоритеты. AI генерирует сводки, декомпозиции, чеклисты, оценки рисков, подготовку к встречам — не покидая рабочее пространство.
 - **Встроенный сервер Model Context Protocol (MCP).** Подключайте Claude Code, Cursor, Codex, OpenDevin, ChatGPT и других ИИ-агентов напрямую к CRM (620 инструментов, 6 ресурсов) с разделением прав доступа (RBAC).
 - **Встроенный командный чат.** Обсуждайте проекты и задачи там же, где идёт работа. Никакого Slack, Discord или отдельной подписки на мессенджер.
-- **Универсальный E-Commerce CMS Шлюз.** Канонический JSON-контракт и набор коннекторов для 12 платформ (OpenCart 1.5–4.x, 1С-Битрикс, WooCommerce HPOS, InSales, CS-Cart, PrestaShop, Shop-Script, Могута, Tilda, Shopify, Magento 2) с HMAC-SHA256 подписями, двусторонней синхронизацией заказов и остатков.
+- **Универсальный E-Commerce CMS Шлюз.** Канонический JSON-контракт и набор коннекторов для 11 платформ (OpenCart 1.5–4.x, 1С-Битрикс, WooCommerce HPOS, InSales, CS-Cart, PrestaShop, Shop-Script, Могута, Tilda, Shopify, Magento 2) с HMAC-SHA256 подписями, двусторонней синхронизацией заказов и остатков.
 - **Без искусственных SaaS-лимитов.** Пользователи, задачи, проекты и клиенты не ограничены тарифным планом. Реальные ограничения задаёт ваш сервер, база данных, хранилище и настройки.
-- **Полная приватность и соответствие 152-ФЗ / GDPR.** Клиенты, задачи, файлы, чаты и бизнес-данные остаются на вашем сервере в выбранной юрисдикции. Никаких внешних трекеров и сторонних облаков.
+- **Полная приватность.** Клиенты, задачи, файлы, чаты и бизнес-данные остаются на вашем сервере в выбранной юрисдикции — выполнение 152-ФЗ и GDPR под вашим контролем. Никаких внешних трекеров и сторонних облаков.
 - **Работает везде, где есть PHP и MySQL.** Локальный компьютер, домашний или офисный сервер, VPS, облачная VM или недорогой шаред-хостинг.
 - **Ноль внешних PHP-зависимостей.** Никаких Laravel, Symfony, Doctrine, Composer-дерева из сотен пакетов. Всё микроядро написано вручную. Вы разворачиваете одну надежную кодовую базу.
 - **Установка через браузер.** Загрузите файлы, откройте установщик в браузере, введите данные MySQL, создайте администратора. Без терминала, командной строки и DevOps.
@@ -753,13 +753,13 @@ TropaTT — это бесплатная self-hosted CRM и платформа у
 |---|---|---|---|---|---|
 | **Лицензия и стоимость** | **100% Бесплатно и Open Source (AGPL-3.0)** | Бесплатный тариф сильно урезан / от 1 990 до 13 990+ ₽/мес | От $8.15–$16/пользователь/мес | От $50–$500+/мес | Бесплатная база / платные пакеты расширений |
 | **Ограничения по пользователям** | **Без ограничений (0 ₽ за рабочее место)** | Лимиты по тарифам (5 / 50 / 100 / Enterprise) | Оплата за каждого пользователя | Оплата за пользователей и контакты | Часто требует покупки Enterprise-расширений |
-| **Системные требования** | **Ультралегкая (<32MB RAM, PHP 8.1+, MySQL)** | Высокие (от 4–8GB RAM, Java, Push-демон, Redis) | Высокие (от 4–8GB RAM, Java JVM, Node.js) | Только облако (нет on-premise) | Средние (требует Node.js/Redis для очередей) |
+| **Системные требования** | **Лёгкая (PHP 8.1+, MySQL, без демонов)** | Высокие (от 4–8GB RAM, Java, Push-демон, Redis) | Высокие (от 4–8GB RAM, Java JVM, Node.js) | Только облако (нет on-premise) | Средние (требует Node.js/Redis для очередей) |
 | **Поддержка хостинга** | **Любой шаред-хостинг от 150 ₽/мес (cPanel/ISPmanager), VPS, сервер** | Требуется мощный VPS/VDS или выделенный сервер | Требуется выделенный VPS или Atlassian Cloud | Только SaaS | VPS / Выделенный сервер |
 | **Внешние PHP/npm зависимости** | **0 пакетов (Собственное микроядро, защита от supply-chain)** | Сотни проприетарных библиотек | Сложный стек Java/JS | Закрытый SaaS | 100+ пакетов Composer/npm |
 | **Единый комбайн** | **CRM + Задачи + Канбан + Гант + Чат + База знаний + Портал + Прайсы** | Комплексный, но перегруженный интерфейс | Только задачи (нужны Confluence, Slack, CRM) | Только CRM (нужны Jira, Slack и др.) | Фокус на CRM (слабые задачи/чат/Гант) |
 | **ИИ и протокол MCP** | **Встроенный MCP-сервер (620 инструментов) + 22 ИИ-процесса (свои ключи, 0% наценки)** | Проприетарный CoPilot (платные пакеты) | Atlassian Intelligence (только enterprise) | HubSpot Breeze (дорогие тарифы) | Нет или базовый плагин сообщества |
-| **E-Commerce интеграции** | **Встроенные коннекторы для 12 CMS (OpenCart, 1С-Битрикс, InSales, WooCommerce)** | Встроенный магазин 1С-Битрикс, платные модули | Нет (требуется Zapier/самописный шлюз) | Платные интеграции | Ограниченные сторонние модули |
-| **Суверенитет данных** | **100% на вашем сервере (152-ФЗ и GDPR ready, 0 телеметрии)** | Хранение в облаке вендора или в коробке | Atlassian Cloud (серверы за пределами РФ) | Облако HubSpot | Доступен self-hosted |
+| **E-Commerce интеграции** | **Модуль-коннектор для 11 CMS (OpenCart, 1С-Битрикс, InSales, WooCommerce и др.)** | Встроенный магазин 1С-Битрикс, платные модули | Нет (требуется Zapier/самописный шлюз) | Платные интеграции | Ограниченные сторонние модули |
+| **Суверенитет данных** | **100% на вашем сервере (соответствие законам — под вашим контролем; телеметрия остаётся в вашей базе)** | Хранение в облаке вендора или в коробке | Atlassian Cloud (серверы за пределами РФ) | Облако HubSpot | Доступен self-hosted |
 
 ---
 
@@ -810,7 +810,7 @@ TropaTT подходит всем, кто управляет клиентами 
 
 **Прайс-листы, финансовые ставки и биллинг.** Учет себестоимости, ставок биллинга клиентам и выплат подрядчикам. Финансовые снепшоты при логировании трудозатрат и закрытие отчетных периодов от изменений задним числом.
 
-**Универсальный E-Commerce CMS Шлюз.** Единый интеграционный слой для 12 CMS (OpenCart 1.5–4.x, 1С-Битрикс, WooCommerce HPOS, InSales, CS-Cart, PrestaShop, Shop-Script, Могута, Tilda, Shopify, Magento 2) с HMAC-SHA256 подписями, синхронизацией заказов, клиентов и складских остатков.
+**Универсальный E-Commerce CMS Шлюз.** Единый интеграционный слой для 11 CMS (OpenCart 1.5–4.x, 1С-Битрикс, WooCommerce HPOS, InSales, CS-Cart, PrestaShop, Shop-Script, Могута, Tilda, Shopify, Magento 2) с HMAC-SHA256 подписями, синхронизацией заказов, клиентов и складских остатков.
 
 **Уведомления.** Оповещения в реальном времени о назначении задач, комментариях, упоминаниях, изменениях сроков, согласованиях и системных событиях. Push-уведомления через браузерное API. Центр уведомлений с историей.
 
@@ -838,7 +838,7 @@ TropaTT подходит всем, кто управляет клиентами 
 | **База знаний** | Иерархия разделов, Markdown/WYSIWYG, версионирование, права | Регламенты, инструкции и документация внутри компании |
 | **Клиентский портал**| Гостевой доступ для заказчиков (просмотр, согласование, задачи) | Прозрачность для клиента без риска утечки внутренних данных |
 | **Ставки и прайсы** | Учет себестоимости, биллинга и выплат через именованные прайс-листы | Точный финансовый учет трудозатрат и рентабельности |
-| **CMS Шлюз** | Коннекторы к 12 платформам (OpenCart, 1С-Битрикс, WooCommerce и др.) | Автоматический импорт заказов и синхронизация остатков |
+| **CMS Шлюз** | Коннекторы к 11 платформам (модуль) (OpenCart, 1С-Битрикс, WooCommerce и др.) | Автоматический импорт заказов и синхронизация остатков |
 | **Уведомления** | Оповещения в реальном времени, web push, центр истории | Контроль дедлайнов, согласований и назначений |
 | **Аналитика** | Дашборды, KPI, загрузка команды, карта рисков | Управленческие решения на основе фактических данных |
 | **Автоматизация** | Workflow-правила, SLA-контроль, согласования, вебхуки | Меньше рутины, защита от человеческого фактора |
@@ -847,7 +847,7 @@ TropaTT подходит всем, кто управляет клиентами 
 | **Модульный SDK** | Hot-pluggable модули, шина событий `ModuleEvents`, UI-слоты, миграции | Расширение функционала без правок ядра |
 | **Администрирование** | Пользователи, роли, RBAC-права, feature-флаги, логи аудита | Полный контроль над безопасностью и функционалом |
 | **Интейк заявок** | Сбор и первичная сортировка входящих обращений до создания задач | Отделение сырых лидов от утвержденного бэклога |
-| **Приватность** | 100% данных на вашем сервере, соответствие 152-ФЗ и GDPR | Полный суверенитет, отсутствие облачной слежки |
+| **Приватность** | Данные на вашем сервере; наружу — только проверка обновлений и каталог маркетплейса (отключаются) | Полный суверенитет, соответствие 152-ФЗ и GDPR под вашим контролем |
 | **Без лимитов** | Пользователи, задачи, проекты и файлы не ограничены тарифом | Масштабирование зависит от вашего сервера, а не чека SaaS |
 | **Установка** | Браузерный мастер для любого хостинга c PHP/MySQL | Быстрый старт за 5 минут без консоли и DevOps |
 | **Zero Deps** | Ноль сторонних PHP-пакетов, собственное микроядро | Отсутствие рисков supply-chain, надежная архитектура |
@@ -933,19 +933,19 @@ AI-анализ идей · Декомпозиция задач · План на
 
 Автоматизация и API TropaTT рассчитаны на продакшен-нагрузки и интеграцию в любую корпоративную инфраструктуру:
 
-- **Универсальный E-Commerce CMS Шлюз (`crm.ecommerce-gateway`)** — канонический контракт v1.0 JSON и коннекторы для 12 платформ (OpenCart 1.5–4.x, 1С-Битрикс, WooCommerce HPOS, InSales, CS-Cart, PrestaShop, Shop-Script, Могута, Tilda, Shopify, Magento 2) с HMAC-SHA256 подписями, двусторонней синхронизацией заказов, остатков и защитой от дублирования (идемпотентность).
+- **Универсальный E-Commerce CMS Шлюз (`crm.ecommerce-gateway`)** — канонический контракт v1.0 JSON и коннекторы для 11 платформ (OpenCart 1.5–4.x, 1С-Битрикс, WooCommerce HPOS, InSales, CS-Cart, PrestaShop, Shop-Script, Могута, Tilda, Shopify, Magento 2) с HMAC-SHA256 подписями, двусторонней синхронизацией заказов, остатков и защитой от дублирования (идемпотентность).
 - **Движок AgentOS 2026** — пакетная обработка задач (`crm_agent_bundle`), долговременная память ИИ (`crm_agent_memory` с семантическим графовым поиском), оптимистическая блокировка STORM (`row_version`) и экономия до 85% токенов с режимом `density: "compact"`.
 - **Workflow-правила** — автоматические действия при изменении статусов, полей или наступлении сроков.
 - **SLA-контроль** — мониторинг времени реакции и решения с предупреждениями о рисках просрочки.
 - **Маршруты согласований** — цепочки многоэтапного утверждения изменений и документов.
-- **Вебхуки** — оповещение внешних систем при событиях (`task_created`, `task_updated`, `comment_created` и др.).
+- **Вебхуки** — оповещение внешних систем при событиях (`task.created`, `task.updated`, `comment.added` и др.; подпись HMAC-SHA256).
 - **Agile-спринты и циклы** — трекинг скорости команды (velocity), диаграммы сгорания (burndown) и управление скоупом.
 - **Встроенные чаты с SSE-стримингом** — мгновенная доставка сообщений без перезагрузки страниц.
 - **Клиентский портал** — ролевое разделение доступа к проектам и статьям базы знаний для заказчиков.
 - **API-клиенты и ключи** — программный доступ с точечными правами (scopes).
 - **Фоновые задачи** — очереди импорта, экспорта, уведомлений и ИИ-обработки.
 - **Модульная система** — расширение логики без вмешательства в ядро, 19 консольных команд.
-- **Сгенерированные эндпоинты REST API** — 1 010 уникальных URL, 1 425 маршрутов уровня методов.
+- **Сгенерированные эндпоинты REST API** — 970 записей маршрутов ядра (модули добавляют свои).
 - **Контроль документации (Zero Drift)** — строгий гейт CI, гарантирующий 100% соответствие кода и документации.
 - **Спецификация OpenAPI 3.1** — актуальная автогенерируемая схема API.
 - **Сервер MCP (620 инструментов, 6 ресурсов)** — подключение Claude Code, Cursor, Codex, OpenDevin и ChatGPT с контролем доступа (справочник: [`docs_mcp/mcp_ru.md`](docs_mcp/mcp_ru.md)).
@@ -978,9 +978,9 @@ TropaTT полностью открыта. Разворачивайте сист
 - **Никакой зависимости от вендора.** Облачные сервисы могут закрыться, заблокировать аккаунт или поднять цены. Ваши данные в TropaTT всегда принадлежат вам.
 - **Никаких искусственных ограничений.** Количество пользователей, клиентов, проектов, задач и файлов ограничивается только мощностью вашего сервера.
 - **Вас невозможно отключить.** Доступ не заблокируют из-за проблем с иностранными платежами или изменения политики провайдера.
-- **Суверенитет данных и соответствие 152-ФЗ / GDPR:**
-  - **Российская Федерация (152-ФЗ):** 100% локализация персональных данных на российских серверах (Selectel, Beget, TimeWeb, Yandex Cloud и др.). Интеграция с Яндекс.Календарем, коннекторы к 1С-Битрикс, InSales, Могута и миграции из Битрикс24, Штаб.
-  - **Европейский союз и мир (GDPR/CCPA):** Полный суверенитет, отсутствие трекеров и телеметрии, встроенная процедура безвозвратного удаления данных по запросу.
+- **Суверенитет данных (где лежат данные, решаете вы; выполнение требований закона остаётся за вами):**
+  - **Российская Федерация (152-ФЗ):** размещение на серверах в России (Selectel, Beget, TimeWeb, Yandex Cloud и др.) позволяет хранить персональные данные в стране. Модули из маркетплейса добавляют синхронизацию с Яндекс.Календарём, коннекторы к 1С-Битрикс, InSales, Могута и миграции из Битрикс24 и Штаба.
+  - **Европейский союз и мир (GDPR/CCPA):** данные на выбранном вами хостинге, без сторонних трекеров; телеметрия интерфейса пишется в вашу же базу; есть процедура безвозвратного удаления данных по запросу.
   - **Изолированные сети и китайский сегмент:** Полностью локальные ассеты (Bootstrap, FontAwesome, SortableJS хранятся локально в `upload/web/assets/`). Никаких внешних запросов к заблокированным CDN или Google Fonts. Идеально для корпоративных интранетов.
 - **Экономия бюджета.** Систему можно запускать локально бесплатно или на недорогом shared-хостинге за 150–250 ₽/мес. Рост нагрузки масштабируется апгрейдом сервера, а не переходом на тариф за десятки тысяч рублей в месяц.
 
@@ -1031,10 +1031,10 @@ TropaTT полностью открыта. Разворачивайте сист
 И то, и другое. Полноценная CRM для ведения базы контрагентов, контактов, сделок и документов. И глубокий таск-менеджер с иерархией задач, Канбаном, Гантом, чеклистами и ежедневным планированием.
 
 **Чем TropaTT отличается от Битрикс24 или Jira?**
-В отличие от Битрикс24, в TropaTT нет платы за рабочие места, она работает на обычном хостинге за 200 ₽/мес (<32MB RAM, без тяжелых Java-демонов и очередей Redis) и имеет открытый код. В отличие от Jira, TropaTT «из коробки» включает CRM, воронки продаж, чат, базу знаний, клиентский портал и финансовый учет без необходимости докупать десятки сторонних плагинов.
+В отличие от Битрикс24, в TropaTT нет платы за рабочие места, она работает на обычном хостинге за 200 ₽/мес (без тяжёлых Java-демонов и очередей Redis) и имеет открытый код. В отличие от Jira, TropaTT «из коробки» включает CRM, чат, базу знаний, клиентский портал и финансовый учет без необходимости докупать десятки сторонних плагинов.
 
 **Можно ли развернуть TropaTT в Docker или контейнерах?**
-Да. Хотя архитектура без демонов позволяет запускать TropaTT прямо на виртуальном хостинге без Docker, она отлично работает в стандартных контейнерах Docker (образ `php:8.1-apache` или `php:8.2-fpm` + `mysql:8.0`), смонтировав папку `upload/` в корень сайта.
+Официального Docker-образа и `docker-compose.yml` пока нет. TropaTT нужны только PHP 8.1+ и MySQL, поэтому в контейнерах её можно запускать на стандартных образах PHP и MySQL, смонтировав содержимое `upload/` в корень сайта, но такая конфигурация официально не тестировалась.
 
 **Как устроены резервное копирование и восстановление?**
 Поскольку 100% данных хранятся в стандартной реляционной базе MySQL, а файлы — в директории `upload/storage/`, бэкап делается стандартными системными средствами за несколько секунд:
@@ -1047,7 +1047,7 @@ TropaTT полностью открыта. Разворачивайте сист
 
 **Каковы точные минимальные системные требования к серверу?**
 - Процессор: 1 vCPU (от 1.0 ГГц).
-- Оперативная память: 512MB RAM (фактическое потребление памяти приложением обычно не превышает 32MB).
+- Оперативная память: 512MB RAM.
 - Диск: 100MB под кодовую базу + место под загружаемые вложения проектов.
 - Программное обеспечение: PHP 8.1 или 8.2 (с расширениями PDO, OpenSSL, mbstring, cURL), MySQL 8.0+ или MariaDB 10.4+, веб-сервер Apache (с mod_rewrite) или Nginx.
 - Поддерживаемые платформы: любой виртуальный хостинг от 150–250 ₽/мес (cPanel, ISPmanager, FastPanel, DirectAdmin), VPS, локальные ПК (macOS, Linux, Windows с Open Server / XAMPP).
@@ -1059,7 +1059,7 @@ TropaTT полностью открыта. Разворачивайте сист
 Поддерживает древовидную иерархию разделов и статей, форматирование в Markdown и WYSIWYG, историю ревизий с возможностью сравнения версий, ролевое разграничение прав на чтение и редактирование, а также генерацию публичных ссылок для внешних регламентов и инструкций клиентам.
 
 **Можно ли подключить несколько интернет-магазинов (OpenCart, WooCommerce, 1С-Битрикс)?**
-Да. Встроенный модуль `crm.ecommerce-gateway` поддерживает 12 популярных платформ, позволяет подключать неограниченное число магазинов, принимает входящие заказы, сопоставляет покупателей с базой контрагентов и синхронизирует складские остатки по защищенному протоколу с HMAC-SHA256.
+Да. Модуль `crm.ecommerce-gateway` (ставится из маркетплейса) поддерживает 11 популярных платформ, позволяет подключать неограниченное число магазинов, принимает входящие заказы, сопоставляет покупателей с базой контрагентов и синхронизирует складские остатки по защищенному протоколу с HMAC-SHA256.
 
 **Подходит ли система для фрилансера-одиночки?**
 Да. Минимальный размер команды — 1 человек. Вы ведете клиентов, управляете задачами, используете ИИ для декомпозиции и планирования дня — в одном месте и без ежемесячных платежей.
@@ -1077,7 +1077,7 @@ TropaTT полностью открыта. Разворачивайте сист
 Стандартная установка поставляется **без модулей**: в каталоге `upload/modules/` лежит только `.htaccess`, а модули ставятся по необходимости из маркетплейса (`marketplace.tropatt.com`) через **Администрирование → Модули → Маркетплейс** либо копированием пакета в этот каталог. Модули-примеры опубликованы в `docs_modules/examples/modules/`. Модули размещаются в папке `upload/modules/<имя_модуля>/`. Модуль содержит `manifest.json`, класс `ServiceProvider.php` (для регистрации в DI-контейнере), обработчики событий (`ModuleEvents`), слоты внедрения интерфейса (`PositionRegistry`) и транзакционные миграции базы (`up()`/`down()`). Подробное пошаговое руководство разработчика: [`docs_modules/modules_ru.md`](docs_modules/modules_ru.md).
 
 **Где физически хранятся данные?**
-Исключительно на вашем сервере. TropaTT никуда не отправляет данные и не имеет удаленного доступа к вашей установке. Полный суверенитет и соответствие 152-ФЗ.
+На вашем сервере. TropaTT не синхронизирует ваши данные с облаком, у разработчика нет доступа к установке. По умолчанию сервер обращается наружу только для проверки обновлений (`update.tropatt.com`) и чтения каталога маркетплейса — оба обращения отключаются настройками (`api/config/update.php` / переменные окружения).
 
 **Есть ли ограничения по пользователям или задачам?**
 Никаких тарифных лимитов нет. Создавайте столько пользователей, проектов, задач и клиентов, сколько позволяет мощность вашего сервера и объем диска.
@@ -1097,16 +1097,16 @@ TropaTT полностью открыта. Разворачивайте сист
 
 | Метрика | Значение |
 |---|---|
-| API эндпоинты | 908 записей маршрутов · 1 010 уникальных URL (715 ядро + 295 модули) · 1 425 маршрутов уровня методов |
+| API эндпоинты | 970 записей маршрутов ядра (установленные модули добавляют свои) |
 | MCP инструменты | 620 tools + 6 ресурсов — сервер Model Context Protocol для ИИ-агентов |
-| Веб-маршруты | 66 страниц, ~66 шаблонов |
-| Бэкенд-сервисы | 110+ |
-| Репозитории | 87 |
+| Веб-маршруты | ~69 страниц |
+| Бэкенд-сервисы | 130+ |
+| Репозитории | 90 |
 | Доменные модули | 35+ |
-| Интеграционные модули | 22 — миграции из Jira, Trello, Asana, Битрикс24, ClickUp, Todoist, Штаб, Worksection, Confluence, Kaiten, Toggl, ActiveCollab, Notion, Linear + интеграции GitHub, GitLab, Slack + календарь Google и Яндекс + WIP-лимиты + диаграммы draw.io + Raycast (MCP) |
-| CMS-коннекторы | 12 платформ (OpenCart 1.5–4.x, 1С-Битрикс, WooCommerce HPOS, InSales, CS-Cart, PrestaShop, Shop-Script, Могута, Tilda, Shopify, Magento 2) |
+| Модули (маркетплейс) | 24 — в т.ч. 14 миграций из Jira, Trello, Asana, Битрикс24, ClickUp, Todoist, Штаб, Worksection, Confluence, Kaiten, Toggl, ActiveCollab, Notion, Linear; GitHub, GitLab, Slack; календари Google и Яндекс; WIP-лимиты; draw.io; Raycast; E-Commerce шлюз. Стандартная установка поставляется без модулей. |
+| CMS-коннекторы | 11 платформ (модуль) (OpenCart 1.5–4.x, 1С-Битрикс, WooCommerce HPOS, InSales, CS-Cart, PrestaShop, Shop-Script, Могута, Tilda, Shopify, Magento 2) |
 | JS-модули | 39 собственных модулей на чистом JS, без SPA-фреймворков и сборщиков |
-| Публичный CI | PHP lint (8.1 и 8.2), smoke-тест миграций MySQL, валидация покрытия маршрутов OpenAPI |
+| Публичный CI | PHP lint (8.1 и 8.2), контракт безопасности клиентского портала, покрытие маршрутов OpenAPI, unit-тесты фронтенда |
 | AI-эндпоинты | 65 |
 | AI-сценарии | 22 |
 | Feature-флаги | 43 |
@@ -1141,7 +1141,7 @@ TropaTT/
 ├── upload/         # Сама CRM — скопируйте СОДЕРЖИМОЕ этой папки на ваш сервер
 │   ├── api/        #   Ядро API — контроллеры, сервисы, репозитории, конфиги, миграции
 │   ├── web/        #   Веб-интерфейс — установщик, страницы, шаблоны, JS-модули, ассеты
-│   ├── modules/    #   22 подключаемых модуля (миграции, интеграции, календари, диаграммы)
+│   ├── modules/    #   В стандартной установке пусто (только .htaccess) — модули ставятся из маркетплейса
 │   └── index.php   #   Единая точка входа
 ├── README.md       # Главная документация проекта
 └── ...             # Лицензия, руководства разработчика, конфигурация .github/
@@ -1158,7 +1158,7 @@ TropaTT/
 **5 архитектурных опор:**
 1. **Манифест (`manifest.json`):** Версионирование, совместимость с ядром, зависимости.
 2. **Сервис-провайдер (`ServiceProvider.php`):** Регистрация зависимостей в DI-контейнере.
-3. **Шина событий (`ModuleEvents`):** Хуки на ключевые события (`task_created`, `deal_status_changed` и др.).
+3. **Шина событий (`ModuleEvents`):** Хуки на ключевые события (`task.created`, `task.status_changed`, `client.updated` и др.).
 4. **Внедрение в интерфейс (`PositionRegistry`):** 14 слотов в шаблонах для безопасного расширения UI без правок ядра.
 5. **Миграции базы данных (`up()` и `down()`):** Автоматическое обновление структуры БД с возможностью отката.
 
@@ -1207,7 +1207,7 @@ ADR-006 Web — серверная верификация сессии чере�
 
 **API-first дизайн.** Веб-интерфейс не имеет прямого доступа к базе данных. Каждая загрузка данных, отправка формы, изменение состояния идёт через `window.CRM.api.request` → `/api/v1/...`. API — авторитетный слой данных, веб-интерфейс — лишь один из потребителей.
 
-**Тестирование.** Публичный CI выполняет проверку синтаксиса PHP на 8.1 и 8.2, smoke-тест миграций и схемы MySQL 8.0, а также проверку соответствия маршрутов OpenAPI. MySQL workflow проверяет публичный путь миграций; расширенный интеграционный набор остаётся локальным и исключён из публичных пакетов.
+**Тестирование.** Публичный CI выполняет проверку синтаксиса PHP на 8.1 и 8.2, контрактную проверку безопасности клиентского портала, проверку соответствия маршрутов OpenAPI и unit-тесты фронтенда. Расширенный интеграционный набор с MySQL остаётся локальным и исключён из публичных пакетов.
 
 ---
 
@@ -1246,7 +1246,7 @@ ADR-006 Web — серверная верификация сессии чере�
 
 Стабильность кодовой базы обеспечивается автоматическими проверками и регламентом разработки:
 
-- **Публичный CI:** На каждый Pull Request запускается проверка синтаксиса PHP (8.1 и 8.2), накат миграций MySQL 8.0 и валидация схемы OpenAPI.
+- **Публичный CI:** На каждый Pull Request запускается проверка синтаксиса PHP (8.1 и 8.2), контракт безопасности клиентского портала, валидация схемы OpenAPI и unit-тесты фронтенда.
 - **Локальное тестирование перед коммитом:**
   ```bash
   # Быстрый pre-flight чек (линтер PHP, контракты безопасности, юнит-тесты)
@@ -1319,9 +1319,9 @@ TropaTT 是一款完全免费、自托管、开源的 PHP/MySQL 客户关系与�
 - **真正实用、大幅提效的 20+ AI 工作流。** 绝非简单的边栏聊天机器人。AI 创意分析能将一句简短需求（如“客户希望在官网上增加在线预约和支付”）自动拆解为包含优先级、工时评估和执行逻辑的完整子任务树。AI 每日/每周工作计划基于您的真实排期自动生成今日重点。
 - **原生内置 Model Context Protocol (MCP) 服务器。** 直接连接 Claude Code、Cursor、Codex、OpenDevin、ChatGPT 等主流 AI 代码与自主智能体，暴露 620 个工具与 6 个资源，支持严密的 RBAC 权限控制。
 - **全内置团队即时通讯。** 无需额外部署或付费订阅 Slack / Discord。项目群聊、私聊与任务上下文紧密绑定。
-- **通用电商 CMS 网关。** 原生提供 v1.0 标准规范 JSON 协议与 12 大电商系统连接器（OpenCart 1.5–4.x、WooCommerce HPOS、Shopify、1C-Bitrix、InSales、CS-Cart、PrestaShop、Shop-Script、Moguta、Tilda、Magento 2），支持 HMAC-SHA256 签名、双向订单同步、库存同步与幂等防重。
+- **通用电商 CMS 网关。** 原生提供 v1.0 标准规范 JSON 协议与 11 大电商系统连接器（OpenCart 1.5–4.x、WooCommerce HPOS、Shopify、1C-Bitrix、InSales、CS-Cart、PrestaShop、Shop-Script、Moguta、Tilda、Magento 2），支持 HMAC-SHA256 签名、双向订单同步、库存同步与幂等防重。
 - **没有任何人为的 SaaS 限制。** 用户数、项目数、任务数和客户数不受任何软件许可限制。唯一的天花板是您服务器的物理硬件资源。
-- **绝对的数据主权与隐私安全。** 所有客户档案、往来合同、机密文件、沟通记录完全留存在您掌控的服务器上。满足 GDPR、数据本地化与内部审计合规要求。
+- **绝对的数据主权与隐私安全。** 所有客户档案、往来合同、机密文件、沟通记录完全留存在您掌控的服务器上。数据存放位置由您决定，GDPR 与数据本地化合规由您自主掌控。
 - **极低的运行环境门槛。** 只要能运行 PHP 8.1+ 和 MySQL 的环境均可部署：本地电脑、办公室 NAS、VPS、云主机乃至最普通的共享虚拟主机（Shared Hosting，低至 15–20 元/月）。
 - **零外部 PHP 扩展包依赖。** 无需臃肿的 Laravel / Symfony / Doctrine 框架，没有 200 多个 Composer 依赖包形成的依赖地狱。整个微内核纯手工编写，无供应链投毒风险。
 - **一键纯浏览器图形化安装。** 上传代码，在浏览器中打开安装向导，输入 MySQL 账号密码，创建首位管理员即可完成。无需 SSH 命令行，无需 Docker，无需 DevOps 运维背景。
@@ -1332,13 +1332,13 @@ TropaTT 是一款完全免费、自托管、开源的 PHP/MySQL 客户关系与�
 |---|---|---|---|---|---|
 | **许可与价格** | **100% 免费开源 (AGPL-3.0)** | 免费版限制极大 / 商业版每月数百至数千元 | 按人头计费（每人每月 $8.15–$16 起） | 免费版功能极简 / 专业版每月数十至数百美元 | 基础开源 / 商业功能包与支持需额外付费 |
 | **用户席位上限** | **无限制（0 元/坐席）** | 严格按套餐限制人数 (5 / 50 / 100 / 无限版极贵) | 严格按人头月结，随人数线性暴增 | 严格按席位及联系人数量计费 | 超过人数或需要团队权限常需购买商业包 |
-| **系统资源开销** | **极度轻量（<32MB RAM，PHP 8.1+, MySQL）** | 极重（要求 4GB–16GB RAM，Java、Push守护进程、Memcached） | 极重（要求 4GB–8GB RAM，Java JVM，Node.js） | 纯 SaaS 托管（无法私有化部署） | 中等（部分实时功能需要 Node.js/Redis） |
+| **系统资源开销** | **轻量（PHP 8.1+、MySQL，无常驻守护进程）** | 极重（要求 4GB–16GB RAM，Java、Push守护进程、Memcached） | 极重（要求 4GB–8GB RAM，Java JVM，Node.js） | 纯 SaaS 托管（无法私有化部署） | 中等（部分实时功能需要 Node.js/Redis） |
 | **主机支持度** | **任何 $2–$3/月 共享主机 (cPanel/DirectAdmin)、VPS、裸机** | 必须专属高配置 VPS 或独立物理服务器 | 必须专属服务器或 Atlassian Cloud | 仅限厂商云端 | VPS 或独立服务器 |
 | **外部 PHP/npm 依赖** | **0 个依赖包（自研微内核，彻底杜绝供应链风险）** | 数百个闭源专有类库 | 极其复杂的 Java/JS 技术栈 | 专有闭源 SaaS | 100+ Composer/npm 外部依赖包 |
 | **一体化业务中台** | **CRM + 任务 + 看板 + 甘特图 + 聊天 + 知识库 + 客户门户 + 费率** | 功能全面但极其臃肿割裂，上手成本高 | 仅限项目协作（需额外采购 Confluence、Slack、CRM） | 仅限销售与营销（缺乏深度项目管理与甘特图） | 偏向传统客户管理，任务与即时沟通能力弱 |
 | **AI 工作流与 MCP** | **内置 620 个 MCP 工具 + 22 项 AI 工作流（支持自带 Key，零加价）** | 专有 CoPilot（按月高额额外收费） | Atlassian Intelligence（仅限高阶云端企业版） | HubSpot Breeze（高额高级套餐门槛） | 无或仅有极基础的社区第三方 OpenAI 插件 |
-| **电商 CMS 网关** | **内置 12 大主流独立站连接器（OpenCart、WooCommerce、Shopify 等）** | 仅深度整合 1C-Bitrix 商城，其余需采购插件 | 无（需通过 Zapier 或自研中间件桥接） | 依赖应用商店付费扩展 | 仅有部分社区第三方扩展 |
-| **数据主权与隐私** | **100% 留存在自有服务器（零遥测、无第三方监控）** | 数据托管在服务商云端或受制于专有许可限制 | 数据托管在海外 Atlassian 节点 | 数据完全存储在 HubSpot 云端 | 支持本地私有化部署 |
+| **电商 CMS 网关** | **11 大主流独立站连接器模块（OpenCart、WooCommerce、Shopify 等）** | 仅深度整合 1C-Bitrix 商城，其余需采购插件 | 无（需通过 Zapier 或自研中间件桥接） | 依赖应用商店付费扩展 | 仅有部分社区第三方扩展 |
+| **数据主权与隐私** | **100% 留存在自有服务器（遥测数据仅写入您自己的数据库）** | 数据托管在服务商云端或受制于专有许可限制 | 数据托管在海外 Atlassian 节点 | 数据完全存储在 HubSpot 云端 | 支持本地私有化部署 |
 
 ---
 
@@ -1389,7 +1389,7 @@ TropaTT 专为管理客户资源并执行业务交付的各类组织量身打造
 
 **价格表、工时费率与财务核算。** 支持为不同人员、工种或项目定义成本费率、客户报价费率与外包结算费率。记录工时时自动固化财务快照，支持锁定期限防止历史财务记录被窜改。
 
-**通用电商 CMS 网关。** 标准化集成层连接 12 大电商独立站与商城系统（OpenCart 1.5–4.x、WooCommerce HPOS、Shopify、1C-Bitrix、InSales、CS-Cart、PrestaShop、Shop-Script、Moguta、Tilda、Magento 2），采用 HMAC-SHA256 签名，支持多店铺订单归集、客户画像沉淀与实时库存回传。
+**通用电商 CMS 网关。** 标准化集成层连接 11 大电商独立站与商城系统（OpenCart 1.5–4.x、WooCommerce HPOS、Shopify、1C-Bitrix、InSales、CS-Cart、PrestaShop、Shop-Script、Moguta、Tilda、Magento 2），采用 HMAC-SHA256 签名，支持多店铺订单归集、客户画像沉淀与实时库存回传。
 
 **实时消息与通知中心。** 任务指派、讨论提及、状态流转、审批提醒、超期预警实时推达。支持标准浏览器 Web Push 推送以及通知中心历史归档。
 
@@ -1417,7 +1417,7 @@ TropaTT 专为管理客户资源并执行业务交付的各类组织量身打造
 | **知识库 (Wiki)** | 树状目录、Markdown/富文本、版本历史、权限管控 | 统一沉淀企业 SOP、技术规范与客户服务文档 |
 | **客户门户** | 客户及外包成员隔离权限（进度查阅、交付确认、工时） | 对外展现专业交付透明度，杜绝内部机密外泄 |
 | **工时与费率** | 成本率/账单率/外包结算率、工时财务快照、锁定财务周期 | 告别繁琐 Excel，实时洞悉每个项目的真实盈亏 |
-| **电商 CMS 网关** | 12 大电商独立站连接器（OpenCart、Shopify 等），双向同步 | 多渠道零售订单实时流转至 CRM 履约工作流 |
+| **电商 CMS 网关** | 11 大电商独立站连接器（可选模块）（OpenCart、Shopify 等），双向同步 | 多渠道零售订单实时流转至 CRM 履约工作流 |
 | **通知推送** | 实时系统提醒、浏览器 Web Push、通知历史中心 | 杜绝错过关键截止期、客户审批与重要讨论 |
 | **统计分析** | 经营指标看板、团队负载分析、交付风险预警 | 告别拍脑袋决策，依据真实业务数据科学经营 |
 | **自动化流** | 触发式工作流规则、SLA 违约熔断、多级审批链、Webhooks | 大幅减少人工跟进成本，防范流程漏单跑偏 |
@@ -1512,19 +1512,19 @@ TropaTT 在系统内部实现了原生的高性能团队沟通工具。并非简
 
 TropaTT 具备企业级的自动化与系统集成能力，专为融入复杂的企业 IT 基础设施而生：
 
-- **通用电商 CMS 网关（`crm.ecommerce-gateway`）** — 提供标准 v1.0 JSON 规范，覆盖 12 大电商独立站与商城系统（OpenCart 1.5–4.x、1C-Bitrix、WooCommerce HPOS、InSales、CS-Cart、PrestaShop、Shop-Script、Moguta、Tilda、Shopify、Magento 2），内置 HMAC-SHA256 签名校验、双向订单同步、库存多仓扣减与幂等性防护。
+- **通用电商 CMS 网关（`crm.ecommerce-gateway`）** — 提供标准 v1.0 JSON 规范，覆盖 11 大电商独立站与商城系统（OpenCart 1.5–4.x、1C-Bitrix、WooCommerce HPOS、InSales、CS-Cart、PrestaShop、Shop-Script、Moguta、Tilda、Shopify、Magento 2），内置 HMAC-SHA256 签名校验、双向订单同步、库存多仓扣减与幂等性防护。
 - **AgentOS 2026 核心机制** — 原子化任务批处理（`crm_agent_bundle`）、智能体持久记忆引擎（`crm_agent_memory`，具备图谱关联与语义检索）、STORM 乐观并发锁（`row_version`），以及利用 `density: "compact"` 缩减高达 85% 的 Token 消耗。
 - **业务工作流规则** — 基于触发条件（状态变更、字段修改、超时触发）自动执行既定动作。
 - **SLA 履约保障引擎** — 定义响应与解决时间上限，自动化预警超时违约风险。
 - **多级审批流** — 关键决策、报价优惠与敏感变更支持严密的顺序/并行审批链路。
-- **Webhooks 消息分发** — 实体发生变更时（如 `task_created`、`task_updated`、`comment_created` 等）向外部系统发送标准 JSON 回调。
+- **Webhooks 消息分发** — 实体发生变更时（如 `task.created`、`task.updated`、`comment.added` 等，采用 HMAC-SHA256 签名）向外部系统发送标准 JSON 回调。
 - **敏捷迭代与周期（Agile Sprints & Cycles）** — 支持团队速度（Velocity）统计、燃尽图（Burndown）、容量规划与范围变更管理。
 - **内置 SSE 流式通讯** — 页面无刷新即时接收任务讨论与系统推送。
 - **客户门户与外部权限** — 支持按角色隔离开放指定项目进度与知识库页面供客户浏览。
 - **API 客户端与令牌** — 支持基于 Scope 细粒度权限的第三方系统接入凭证管理。
 - **后台异步调度中心** — 稳定处理大批量数据导入导出、消息队列与 AI 耗时计算。
 - **模块化插件架构** — 保持核心微内核纯净，通过 19 个命令行指令快捷扩展业务逻辑。
-- **标准化 REST API 矩阵** — 1 010 个唯一 URL，1 425 个方法级路由，所有业务实体皆可通过 API 全功能操作。
+- **标准化 REST API 矩阵** — 核心共 970 条路由定义（模块可追加），所有业务实体皆可通过 API 全功能操作。
 - **文档零漂移保障机制（Zero Documentation Drift）** — CI 发布门禁严格校验路由代码与技术文档的 100% 同步。
 - **OpenAPI 3.1 规范** — 根据实际路由配置全自动生成机器可读的 OpenAPI 规范定义。
 - **Model Context Protocol (MCP) 服务器** — 提供包含 620 个工具与 6 个资源的开放端点，供 Claude Code、Cursor、ChatGPT 等前沿 AI 智能体安全接入（参考文档：[`docs_mcp/mcp_zh.md`](docs_mcp/mcp_zh.md)）。
@@ -1559,7 +1559,7 @@ TropaTT 彻底开源。将其部署在您所信任的服务器上，随意审查
 - **永不被停服封禁。** 绝不会因海外支付失败、账号风控或政策变动导致整个公司的日常协作系统陷入瘫痪。系统所有权 100% 属于您。
 - **严格的数据主权与多区域合规支持：**
   - **中国及亚太地区网络环境优化：** 静态前端资源（Bootstrap 5、FontAwesome 6、SortableJS）全部内置于本地 `upload/web/assets/` 目录中。绝无任何依赖外部 CDN 或被墙 Google 域名的外部请求，在局域网、政企专网或弱网环境下加载极速稳定。
-  - **欧洲及全球隐私保护（GDPR / CCPA）：** 所有数据严格存放于您自选的数据中心。全系统零追踪探针、零外部遥测上传，内置符合合规要求的用户与客户数据彻底擦除机制。
+  - **欧洲及全球隐私保护（GDPR / CCPA）：** 所有数据严格存放于您自选的数据中心。无第三方追踪脚本，前端遥测仅写入您自己的数据库，并提供数据彻底擦除机制。
   - **独联体与俄罗斯数据合规（152-FZ）：** 100% 符合数据本地化要求，与 Yandex Calendar、1C-Bitrix 等本土生态深度打通，无缝支持 Bitrix24、Shtab 的数据迁移。
 - **极致的成本控制。** TropaTT 既可以在个人电脑上零成本单机体验，也可以稳定运行在低至 15–20 元/月的轻量级虚拟主机或 VPS 上。业务扩张时，仅需按硬件市场价升级云主机即可。
 
@@ -1610,10 +1610,10 @@ TropaTT 彻底开源。将其部署在您所信任的服务器上，随意审查
 兼具两者精髓。既是完备的 CRM，可管理商机、合同、往来企业与商务联系人；同时也是深度的任务与项目管理系统，支持多层级任务树、看板、甘特图、清单与个人日程规划。一套系统即可替代多种收费软件。
 
 **与 Bitrix24 或 Jira 相比有哪些优势？**
-与 Bitrix24 相比，TropaTT 完全免费且开源，无任何人头坐席费；运行开销极小（内存占用 <32MB，无需庞大的 Java 守护进程或 Redis 内存开销），可稳定跑在十几元钱的虚拟主机上。与 Jira 相比，TropaTT 开箱即有一体化的 CRM、客户协同门户、内置聊天室与知识库，无需采购和维护复杂的第三方商业插件。
+与 Bitrix24 相比，TropaTT 完全免费且开源，无任何人头坐席费；运行开销小（无需庞大的 Java 守护进程或 Redis 内存开销），可稳定跑在十几元钱的虚拟主机上。与 Jira 相比，TropaTT 开箱即有一体化的 CRM、客户协同门户、内置聊天室与知识库，无需采购和维护复杂的第三方商业插件。
 
 **是否支持在 Docker 或容器化环境中运行？**
-完全支持。尽管 TropaTT 的零守护进程设计允许其无需 Docker 直接运行在虚拟主机或裸机 VPS 上，但它完全兼容标准 Docker 容器（如官方 `php:8.1-apache` 或 `php:8.2-fpm` + `mysql:8.0` 镜像），只需将 `upload/` 目录挂载至 Web 容器根目录即可。
+目前尚无官方 Docker 镜像或 `docker-compose.yml`。TropaTT 只需要 PHP 8.1+ 与 MySQL，可使用标准 PHP 与 MySQL 镜像并将 `upload/` 目录内容挂载为网站根目录运行，但该方式尚未经过官方测试。
 
 **备份与灾难恢复如何进行？**
 由于 TropaTT 将 100% 的业务数据保存在标准的 MySQL 关系型数据库中，上传附件保存在 `upload/storage/` 下，全量备份仅需数秒：
@@ -1626,7 +1626,7 @@ TropaTT 彻底开源。将其部署在您所信任的服务器上，随意审查
 
 **服务器物理硬件与运行环境的最低要求是什么？**
 - 处理器：1 vCPU（主频 1.0 GHz 以上）。
-- 内存开销：512MB RAM 即可流畅运行（应用运行时实际内存占用通常低于 32MB）。
+- 内存开销：512MB RAM。
 - 磁盘容量：程序核心仅需约 100MB 空间 + 实际上传的项目附件存储空间。
 - 基础运行环境：PHP 8.1 或 8.2（需启用 PDO、OpenSSL、mbstring、cURL 扩展），MySQL 8.0+ 或 MariaDB 10.4+，Web 服务器推荐 Apache（开启 mod_rewrite）或 Nginx。
 - 支持环境：任何常规虚拟主机（cPanel、DirectAdmin、Plesk、宝塔等）、VPS、云主机或本地开发机。
@@ -1638,7 +1638,7 @@ TropaTT 彻底开源。将其部署在您所信任的服务器上，随意审查
 支持多级分类树状目录、Markdown 与富文本排版、历史修订版本对照、基于角色的精细化读写权限控制，并支持生成外部公开外链供客户查阅产品使用规范与常见问题。
 
 **是否支持连接多个独立电商网站（如 OpenCart、WooCommerce、Shopify）？**
-完全支持。TropaTT 内置通用电商 CMS 网关（`crm.ecommerce-gateway`），原生支持 12 大电商独立站。支持绑定多个不同店铺，自动抓取并归集外部订单，智能匹配客户资料，并通过基于 HMAC-SHA256 签名的安全通道同步双向库存与发货状态。
+完全支持。TropaTT 内置通用电商 CMS 网关（`crm.ecommerce-gateway`），支持 11 大电商独立站（模块需从市场安装）。支持绑定多个不同店铺，自动抓取并归集外部订单，智能匹配客户资料，并通过基于 HMAC-SHA256 签名的安全通道同步双向库存与发货状态。
 
 **独立个人或自由职业者适合使用吗？**
 非常适合。团队规模 1 人起用。一个人也能从容管理数十个客户的项目交付，借助 AI 进行需求分析与每日时间安排，完全免除昂贵的人头软件按月续费压力。
@@ -1656,7 +1656,7 @@ TropaTT 原生内置了遵循标准 Model Context Protocol 的 MCP 服务器，�
 标准安装**不带任何模块**：`upload/modules/` 目录中只有 `.htaccess`，模块按需从官方市场（`marketplace.tropatt.com`）安装，可通过 **管理后台 → 模块 → 市场**，或直接将安装包复制到该目录。示例模块发布在 `docs_modules/examples/modules/`。所有插件模块存放于 `upload/modules/<模块名称>/` 目录下。模块包含规范的 `manifest.json`、服务容器注册类 `ServiceProvider.php`、事件监听器（`ModuleEvents`）、14 个界面插槽注入（`PositionRegistry`）以及数据库事务迁移（`up()` / `down()`）。详见详尽的开发者指南：[`docs_modules/modules_zh.md`](docs_modules/modules_zh.md)。
 
 **我的企业数据保存在哪里？**
-100% 留存在您自己的服务器或私有云中。TropaTT 没有任何云端遥测后门，即使是官方开发者也绝对无法访问您的任何数据。完全满足严格的数据隐私与法规监管要求。
+留存在您自己的服务器或私有云中。TropaTT 不会把数据同步到任何云端，开发者也无法访问您的系统。默认情况下服务器仅对外检查更新（`update.tropatt.com`）并读取模块市场目录，二者均可在 `api/config/update.php` / 环境变量中关闭。
 
 **系统存在用户数或项目数限制吗？**
 没有任何人为限制。只要服务器硬件配置、磁盘空间和数据库负载允许，您可以自由创建任意数量的用户、客户、任务和项目。
@@ -1676,14 +1676,14 @@ TropaTT 原生内置了遵循标准 Model Context Protocol 的 MCP 服务器，�
 
 | 核心指标 | 数据详情 |
 |---|---|
-| API 接口规模 | 908 条路由定义 · 1 010 个唯一 URL（715 个核心 + 295 个模块） · 1 425 个方法级处理路由 |
+| API 接口规模 | 核心 970 条路由定义（已安装模块可追加路由） |
 | MCP 智能体工具 | 620 个原生工具 + 6 个数据资源 —— 面向自主 AI 代理的标准通信底座 |
-| Web 前端路由 | 66 个独立页面，~66 个视图模板 |
-| 后端业务服务 | 110+ 个核心业务服务类 |
-| 代码仓库矩阵 | 87 个模块与支持仓库 |
+| Web 前端路由 | 约 69 个页面 |
+| 后端业务服务 | 130+ 个核心业务服务类 |
+| 数据仓储类 | 90 个 Repository 类 |
 | 业务领域模块 | 35+ 个领域划分 |
-| 独立集成模块 | 22 个 —— 支持从 Jira、Trello、Asana、Bitrix24、ClickUp、Todoist、Shtab、Worksection、Confluence、Kaiten、Toggl、ActiveCollab、Notion、Linear 一键迁移；集成 GitHub、GitLab、Slack；同步 Google 与 Yandex 日历；WIP 看板流控；draw.io 流程图绘制；Raycast 快速检索 |
-| 电商 CMS 连接器 | 12 大主流独立站（OpenCart 1.5–4.x、1C-Bitrix、WooCommerce HPOS、InSales、CS-Cart、PrestaShop、Shop-Script、Moguta、Tilda、Shopify、Magento 2） |
+| 可选模块（市场） | 24 个 —— 含 14 个迁移模块（Jira、Trello、Asana、Bitrix24、ClickUp、Todoist、Shtab、Worksection、Confluence、Kaiten、Toggl、ActiveCollab、Notion、Linear）；GitHub、GitLab、Slack；Google 与 Yandex 日历；WIP 看板流控；draw.io；Raycast；电商网关。标准安装不附带任何模块。 |
+| 电商 CMS 连接器 | 11 大主流独立站（可选模块）（OpenCart 1.5–4.x、1C-Bitrix、WooCommerce HPOS、InSales、CS-Cart、PrestaShop、Shop-Script、Moguta、Tilda、Shopify、Magento 2） |
 | 原生 JS 模块 | 39 个自研纯原生 ES5+ 模块，彻底摒弃 SPA 前端重型构建步骤 |
 | 公开自动化 CI | PHP 8.1 / 8.2 语法全量扫描、MySQL 数据迁移完整性校验、OpenAPI 路由契约一致性核查 |
 | AI 专用端点 | 65 个 |
@@ -1720,7 +1720,7 @@ TropaTT/
 ├── upload/         # CRM 完整应用 —— 请将本目录“内部的文件与文件夹”上传至服务器
 │   ├── api/        #   API 核心后端 —— 控制器、业务服务、仓储层、配置文件、数据迁移、脚本
 │   ├── web/        #   Web 交互前端 —— 安装引导向导、功能页面、视图模板、JS 原生模块、静态资源
-│   ├── modules/    #   22 个即插即用扩展模块（各大系统数据迁移、代码平台联动、日程同步等）
+│   ├── modules/    #   标准安装中为空（仅 .htaccess）——模块从市场安装
 │   └── index.php   #   应用程序根入口
 ├── README.md       # 官方主文档（即当前阅读的文件）
 └── ...             # 许可协议、开发者指南、CI 工作流定义
@@ -1737,7 +1737,7 @@ TropaTT 拥有完全解耦、支持热插拔的模块化体系。模块可以向
 **5 大架构支柱：**
 1. **模块清单（`manifest.json`）：** 语义化版本声明、系统兼容性检查、模块间依赖管理。
 2. **服务提供者（`ServiceProvider.php`）：** 纯净的 DI 容器服务绑定。
-3. **事件总线（`ModuleEvents`）：** 挂钩核心业务生命周期（如 `task_created`、`deal_status_changed` 等）。
+3. **事件总线（`ModuleEvents`）：** 挂钩核心业务生命周期（如 `task.created`、`task.status_changed`、`client.updated` 等）。
 4. **界面插槽注入（`PositionRegistry`）：** 覆盖任务详情、看板顶部、全局侧栏等 14 个模板插槽，无需修改核心视图代码即可扩展 UI。
 5. **事务性数据库迁移（`up()` 与 `down()`）：** 自动化版本迭代迁移，发生异常安全平滑回滚。
 
@@ -1786,7 +1786,7 @@ ADR-006 Web — 服务端基于 HttpOnly Cookie 与 CSRF 令牌的双重会话�
 
 **坚定的 API 优先设计。** Web 前端界面严禁绕过 API 直接碰触底层数据库。任何页面数据查询、表单提交、流程状态跃迁全部严格经过 `window.CRM.api.request` → `/api/v1/...` 完成。API 是全系统唯一权威的数据守门员，Web 控制台仅仅是 API 的其中一个合法调用端。
 
-**严密的测试验证体系。** 公共 CI 持续在 PHP 8.1 与 8.2 环境下执行代码语法检测、MySQL 8.0 真实迁移回放 Smoke Test 以及 OpenAPI 契约比对。MySQL CI 流水线专注检验公开发布的迁移逻辑；大规模深层次的集成测试矩阵保留在内部发布流水线中。
+**测试验证体系。** 公共 CI 在 PHP 8.1 与 8.2 环境下执行语法检测、客户门户安全契约检查、OpenAPI 契约比对以及前端单元测试。基于 MySQL 的深度集成测试保留在本地发布流程中。
 
 ---
 
@@ -1825,7 +1825,7 @@ ADR-006 Web — 服务端基于 HttpOnly Cookie 与 CSRF 令牌的双重会话�
 
 为确保系统工业级的稳定性与代码品质，所有合并遵循严格的规范化工作流：
 
-- **自动化 CI 门禁：** 每个 PR 必须通过 PHP 8.1 / 8.2 双版本语法核验、MySQL 8.0 真实数据库迁移回放与 OpenAPI 规范一致性审查。
+- **自动化 CI 门禁：** 每个 PR 必须通过 PHP 8.1 / 8.2 双版本语法核验、客户门户安全契约检查、OpenAPI 规范一致性审查与前端单元测试。
 - **推送前本地全量自测：**
   ```bash
   # 极速预检（PHP 语法、安全契约与核心单元测试）

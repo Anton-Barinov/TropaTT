@@ -1482,30 +1482,36 @@ window.CRM.pageApiBindings = (function () {
       + '</section>';
   }
 
-  function renderTaskTreeStandalone(nodes) {
+  function renderTaskTreeStandalone(nodes, title) {
     if (!nodes.length) return '';
     return '<section class="crm-task-tree-standalone">'
-      + '<div class="crm-task-tree-standalone-head">' + window.CRM.i18n.t('js.pab.tasks_without_subtasks', 'Tasks without subtasks') + '</div>'
+      + '<div class="crm-task-tree-standalone-head">' + title + '</div>'
       + nodes.map(function (node) {
         return renderTaskTreeItem(node, 0);
       }).join('')
       + '</section>';
   }
 
-  function renderTaskTree(items) {
+  function renderTaskTree(items, hierarchyMeta) {
     var roots = buildTaskTree(items);
     if (!roots.length) {
       return '<div class="crm-empty-state"><strong>' + window.CRM.i18n.t('js.pab.hierarchy_empty', 'Hierarchy is empty') + '</strong><p class="mb-0">' + window.CRM.i18n.t('js.pab.no_tasks_for_filters', 'No tasks for selected filters.') + '</p></div>';
     }
     var groups = roots.filter(function (node) { return (node.children || []).length > 0; });
-    var standalone = roots.filter(function (node) { return !(node.children || []).length; });
+    var restricted = roots.filter(function (node) { return Boolean((node.item || {}).parent_access_limited); });
+    var standalone = roots.filter(function (node) { return !(node.children || []).length && !Boolean((node.item || {}).parent_access_limited); });
     var parentGroups = roots.filter(function (node) { return (node.children || []).length > 0; }).length;
     var nestedTasks = roots.reduce(function (sum, node) { return sum + countTaskTreeChildren(node); }, 0);
+    var totalGroups = Number(hierarchyMeta && hierarchyMeta.total_groups);
+    var totalItems = Number(hierarchyMeta && hierarchyMeta.total_items);
+    var groupCount = Number.isFinite(totalGroups) ? totalGroups : parentGroups;
+    var itemCount = Number.isFinite(totalItems) ? totalItems : (roots.length + nestedTasks);
     return '<div class="crm-task-tree-summary"><div><strong>' + window.CRM.i18n.t('js.pab.task_hierarchy', 'Task hierarchy') + '</strong><span>' + window.CRM.i18n.t('js.pab.parent_and_subtasks', 'Parent tasks and nested subtasks.') + '</span></div>'
-      + '<div class="crm-task-tree-summary-stats"><span>' + safeText(String(parentGroups)) + ' ' + tpPlural('task_tree.group', parentGroups, { one: 'group', few: 'groups', many: 'groups' }) + '</span><span>' + safeText(String(nestedTasks)) + ' ' + tpPlural('task_tree.subtask', nestedTasks, { one: 'subtask', few: 'subtasks', many: 'subtasks' }) + '</span></div></div>'
+      + '<div class="crm-task-tree-summary-stats"><span>' + safeText(String(groupCount)) + ' ' + tpPlural('task_tree.group', groupCount, { one: 'group', few: 'groups', many: 'groups' }) + '</span><span>' + safeText(String(itemCount)) + ' ' + window.CRM.i18n.t('js.pab.tasks', 'tasks') + '</span></div></div>'
       + '<div class="crm-task-tree">'
       + groups.map(renderTaskTreeGroup).join('')
-      + renderTaskTreeStandalone(standalone)
+      + renderTaskTreeStandalone(standalone, window.CRM.i18n.t('js.pab.tasks_without_subtasks', 'Tasks without subtasks'))
+      + renderTaskTreeStandalone(restricted, window.CRM.i18n.t('js.pab.tasks_parent_unavailable', 'Tasks whose parent is unavailable'))
       + '</div>';
   }
 
@@ -4286,6 +4292,7 @@ window.CRM.pageApiBindings = (function () {
     // Серверная пагинация и серверные фильтры: при большом объёме данных (5000+ задач)
     // фильтровать и резать страницы нужно на сервере, а не на клиенте по первым 200 записям.
     var apiQuery = { limit: 50, page: pageFilter };
+    if (currentView === 'tree') apiQuery.hierarchy = '1';
     if (statusFilter) apiQuery.status = statusFilter;
     if (priorityFilter) apiQuery.priority = priorityFilter;
     if (searchFilter) apiQuery.search = searchFilter;
@@ -4313,12 +4320,6 @@ window.CRM.pageApiBindings = (function () {
     }
     if (includeArchivedProjectsFilter) {
       apiQuery.include_archived_projects = '1';
-    }
-    // В иерархическом виде при наличии фильтра по статусу запрашиваем
-    // родительские задачи (даже в другом статусе), чтобы дерево
-    // сохраняло вложенность при фильтрации.
-    if (currentView === 'tree' && statusFilter) {
-      apiQuery.include_ancestors = '1';
     }
     if (kpi === 'overdue') {
       var overdueBounds = kanbanDueBounds('overdue');
@@ -4722,9 +4723,11 @@ window.CRM.pageApiBindings = (function () {
 
       // Summary
       if (summary) {
-        var summaryTotal = (envelope && envelope.meta && envelope.meta.pagination && envelope.meta.pagination.total)
-          ? Number(envelope.meta.pagination.total)
-          : items.length;
+        var summaryTotal = currentView === 'tree' && envelope && envelope.meta && envelope.meta.hierarchy
+          ? Number(envelope.meta.hierarchy.total_items || items.length)
+          : ((envelope && envelope.meta && envelope.meta.pagination && envelope.meta.pagination.total)
+            ? Number(envelope.meta.pagination.total)
+            : items.length);
         summary.textContent = window.CRM.i18n.t('js.pab.showing', 'Showing') + ' ' + items.length + ' ' + window.CRM.i18n.t('js.pab.of', 'of') + ' ' + summaryTotal + ' ' + window.CRM.i18n.t('js.pab.tasks', 'tasks');
       }
 
@@ -5005,10 +5008,12 @@ window.CRM.pageApiBindings = (function () {
 
     // Серверная пагинация: страница уже загружена целиком (limit=50 с сервера).
     var metaPagination = (envelope && envelope.meta && envelope.meta.pagination) ? envelope.meta.pagination : null;
+    var hierarchyMeta = (envelope && envelope.meta && envelope.meta.hierarchy) ? envelope.meta.hierarchy : null;
     var totalTasks = metaPagination ? (Number(metaPagination.total) || displayItems.length) : displayItems.length;
     var totalPages = metaPagination ? (Number(metaPagination.pages) || 1) : Math.max(1, Math.ceil(displayItems.length / 30));
     var currentPage = Math.min(Math.max(1, pageFilter), Math.max(1, totalPages));
-    var pageStart = (currentPage - 1) * 50;
+    var pageLimit = metaPagination ? (Number(metaPagination.limit) || 50) : 50;
+    var pageStart = (currentPage - 1) * pageLimit;
     var pagedItems = displayItems;
 
     document.querySelectorAll('#tasksStates [data-state-item]').forEach(function (node) {
@@ -5023,7 +5028,7 @@ window.CRM.pageApiBindings = (function () {
     }
 
     tbody.innerHTML = currentView === 'list' ? pagedItems.map(mapTaskRow).join('') : '';
-    if (treeView) treeView.innerHTML = currentView === 'tree' ? renderTaskTree(pagedItems) : '';
+    if (treeView) treeView.innerHTML = currentView === 'tree' ? renderTaskTree(pagedItems, hierarchyMeta) : '';
     if (cardsView) cardsView.innerHTML = currentView === 'cards' ? renderTaskCards(pagedItems) : '';
     bindTaskDeleteOnPage();
     if (currentView === 'list') {
@@ -5039,9 +5044,15 @@ window.CRM.pageApiBindings = (function () {
         pagerNode.innerHTML = '';
       } else {
         pagerNode.classList.remove('d-none');
+        var returnedUnits = currentView === 'tree' && hierarchyMeta
+          ? Number(hierarchyMeta.returned_groups || 0)
+          : pagedItems.length;
+        var unitLabel = currentView === 'tree'
+          ? tpPlural('task_tree.group', totalTasks, { one: 'group', few: 'groups', many: 'groups' })
+          : window.CRM.i18n.t('js.pab.tasks', 'tasks');
         pagerNode.innerHTML = '<div class="small text-muted">' + window.CRM.i18n.t('js.pab.showing', 'Showing') + ' '
-          + safeText(String(pageStart + 1)) + '–' + safeText(String(Math.min(pageStart + pagedItems.length, totalTasks)))
-          + ' ' + window.CRM.i18n.t('js.pab.of', 'of') + ' ' + safeText(String(totalTasks)) + '</div>'
+          + safeText(String(pageStart + 1)) + '–' + safeText(String(Math.min(pageStart + returnedUnits, totalTasks)))
+          + ' ' + window.CRM.i18n.t('js.pab.of', 'of') + ' ' + safeText(String(totalTasks)) + ' ' + unitLabel + '</div>'
           + '<div class="crm-table-pager-controls">'
           + '<button class="btn crm-btn-secondary" type="button" data-tasks-page-prev' + (currentPage <= 1 ? ' disabled' : '') + '>' + window.CRM.i18n.t('js.pab.back', 'Back') + '</button>'
           + '<span class="small">' + window.CRM.i18n.t('js.pab.page', 'Page') + ' ' + safeText(String(currentPage)) + ' ' + window.CRM.i18n.t('js.pab.of', 'of') + ' ' + safeText(String(totalPages)) + '</span>'

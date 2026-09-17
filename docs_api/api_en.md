@@ -173,6 +173,7 @@ To eliminate enum friction across external systems, AI agents, and frontend clie
   - `exclude_statuses=done,archived`: Comma-separated exclusion list with automatic alias expansion.
   - `include_archived_projects=1`: Includes tasks that belong to archived projects. They are **hidden by default**, so `GET /tasks?hide_done=1` returns exactly the same set as the dashboard KPI «Активные задачи» / `overdue_tasks` (a behaviour change — see CHANGELOG). Tasks without a project are always visible, and `archived=1` (the archive view) is never narrowed.
   - `include_ancestors=1`: When combined with a `status` filter, also returns parent tasks of matching children even if the parents have a different status. Intended for the hierarchy/tree view so that the tree structure is preserved during status filtering. Only **visible** children count — a soft-deleted subtask, an archived one or one living in an archived project never pulls its parent into the list — and the `exclude_statuses` / `hide_done` filter is relaxed for ancestor rows only, so a completed task is returned solely as the tree frame of a matching child, never as a standalone row.
+  - `hierarchy=1`: Enables pagination by complete root groups. `limit` is the number of root groups per page and the response contains every accessible descendant in those groups. Active filters retain accessible ancestor paths; `meta.hierarchy` reports group, match and returned-item counts. Cursor pagination is replaced by offset pagination in this mode.
 
 ### A2A Agent Card Manifest
 
@@ -1909,4 +1910,3 @@ Browser push notifications (Web Push, RFC 8291) notify users of task updates, me
 **Requirements:** the server must be able to make outbound HTTPS connections to browser push services (Firefox autopush endpoint, Google FCM, etc.). The `openssl` extension must support `prime256v1` EC keys for VAPID.
 
 Deprecated aliases (`/api/v1/notification/push-*`) are excluded from OpenAPI and will be removed in a future version.
-

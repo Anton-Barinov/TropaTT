@@ -422,6 +422,13 @@
     return insightOption(definition.key, 'sort', fallback, allowed);
   }
 
+  // A mode is a client-side re-cut of the payload the card already holds (the
+  // velocity card ships both the 13-week series and its active sprints), so it is
+  // remembered exactly like period and sort.
+  function widgetMode(definition, allowed, fallback) {
+    return insightOption(definition.key, 'mode', fallback, allowed);
+  }
+
   function widgetExpanded(definition) {
     return insightOption(definition.key, 'expanded', '0', ['0', '1']) === '1';
   }
@@ -455,6 +462,16 @@
     if (container.__crmInsightToolbarBound) return;
     container.__crmInsightToolbarBound = true;
     container.addEventListener('click', function (event) {
+      var handover = event.target && event.target.closest ? event.target.closest('[data-insights-handover]') : null;
+      if (handover) {
+        event.preventDefault();
+        var envelope = container.__crmInsightEnvelope;
+        var recommendation = envelope ? insightsPayload(envelope).recommendation : null;
+        if (recommendation && recommendation.to) {
+          openHandoverTask(recommendation);
+        }
+        return;
+      }
       var button = event.target && event.target.closest ? event.target.closest('[data-insight-option]') : null;
       if (!button) return;
       event.preventDefault();
@@ -1359,12 +1376,17 @@
   }
 
   // The legend has to name the capacity that is actually in force, otherwise it
-  // keeps claiming "40 h/week" after an admin set the org's own week.
+  // keeps claiming "40 h/week" after an admin set the org's own week - and the same
+  // goes for the load bands, which used to be printed as a hardcoded "110 % / 50 %"
+  // while the signals were computed from whatever the organisation had configured.
   function signalLegendHtml(payload) {
     payload = payload || {};
     var capacity = Number(payload.capacity_minutes_week || 2400);
     var source = capacitySourceLabel(payload.capacity_source);
-    var base = translate('dashboard.extra_insights_legend_signals', 'Перегруз > 110% загрузки, недогруз < 50% без просрочек, риск — есть просрочка. {capacity}.');
+    var bands = payload.load_thresholds || {};
+    var base = translate('dashboard.extra_insights_legend_signals', 'Перегруз > %over% загрузки, недогруз < %under% без просрочек, риск — есть просрочка. {capacity}.')
+      .replace('%over%', Number(bands.overload_percent || 110) + '%')
+      .replace('%under%', Number(bands.underload_percent || 50) + '%');
     var capacityText = formatPlaceholders(
       translate('dashboard.extra_insights_legend_capacity', 'Норма — %s/нед, источник: %s'),
       [formatMinutesCompact(capacity), source]
@@ -1372,7 +1394,99 @@
 
     return '<div class="crm-dashboard-insight-legend">'
       + safe(base.replace('{capacity}', capacityText))
+      + (payload.load_thresholds_source === 'setting'
+        ? ' <span class="crm-dashboard-insight-legend-note">'
+          + safe(translate('dashboard.extra_insights_thresholds_from_settings', 'Пороги заданы в настройках организации.')) + '</span>'
+        : '')
       + '</div>';
+  }
+
+  // Why the advice says what it says, in the numbers it was built on. A hand-over
+  // used to be justified only by "load > 110 %", so a person drowning in late work
+  // and broken SLA promises looked exactly like somebody merely busy.
+  function rebalanceReasonsHtml(recommendation) {
+    var factors = Array.isArray(recommendation.reason_factors) ? recommendation.reason_factors : [];
+    if (!factors.length) return '';
+    var labels = {
+      overload: translate('dashboard.extra_insights_factor_overload', 'перегруз'),
+      backlog: translate('dashboard.extra_insights_factor_backlog', 'очередь задач'),
+      overdue: translate('dashboard.extra_insights_factor_overdue', 'просрочки'),
+      sla_risk: translate('dashboard.extra_insights_factor_sla', 'SLA под риском'),
+      spare_capacity: translate('dashboard.extra_insights_factor_spare', 'есть свободная мощность')
+    };
+    var parts = factors.map(function (code) { return labels[code] || String(code); });
+
+    return '<div class="crm-dashboard-insight-recommendation-factors">'
+      + safe(translate('dashboard.extra_insights_rebalance_why', 'Почему')) + ': ' + safe(parts.join(' · '))
+      + '</div>';
+  }
+
+  function personSummaryHtml(row, label) {
+    if (!row) return '';
+    var line = translate('dashboard.extra_insights_bottleneck_line', '%load% загрузки · %active% в работе · %over% просрочено · %sla% SLA под риском')
+      .replace('%load%', Number(row.load_percent || 0) + '%')
+      .replace('%active%', String(Number(row.active_tasks || 0)))
+      .replace('%over%', String(Number(row.overdue_tasks || 0)))
+      .replace('%sla%', String(Number(row.sla_risk_tasks || 0)));
+
+    return '<div class="crm-dashboard-insight-bottleneck-row">'
+      + '<span class="crm-dashboard-insight-bottleneck-label">' + safe(label) + '</span> '
+      + '<a href="' + safe(tasksListUrl({ assignee: row.user_public_id })) + '">' + safe(String(row.name || '')) + '</a>'
+      + '<div class="crm-dashboard-insight-bottleneck-meta">' + safe(line) + '</div>'
+      + '</div>';
+  }
+
+  // When no hand-over can be advised the card says who the bottleneck is and why
+  // there is no advice - "nobody is overloaded" and "somebody is overloaded with
+  // nobody to hand work to" are different answers, and the block used to go silent
+  // for both.
+  function bottleneckHtml(payload) {
+    var bottleneck = payload.bottleneck;
+    if (!bottleneck) return '';
+    var reasons = {
+      no_overload: translate('dashboard.extra_insights_bottleneck_no_overload', 'Перегруза нет — передавать нечего.'),
+      no_spare_capacity: translate('dashboard.extra_insights_bottleneck_no_spare', 'Есть перегруженный сотрудник, но нет свободного получателя без просрочек и SLA-риска.'),
+      same_person: translate('dashboard.extra_insights_bottleneck_same_person', 'Перегруженный и свободный — один и тот же человек.'),
+      no_data: translate('dashboard.extra_insights_bottleneck_no_data', 'Нет данных для оценки узкого места.')
+    };
+    var reason = reasons[String(bottleneck.blocked_reason || '')] || '';
+
+    return '<div class="crm-dashboard-insight-bottleneck">'
+      + '<div class="crm-dashboard-insight-alert-head">'
+      + safe(translate('dashboard.extra_insights_bottleneck_title', 'Узкое место'))
+      + '</div>'
+      + (reason ? '<div class="crm-dashboard-insight-bottleneck-reason">' + safe(reason) + '</div>' : '')
+      + personSummaryHtml(bottleneck.most_loaded, translate('dashboard.extra_insights_bottleneck_most_loaded', 'Самый нагруженный'))
+      + personSummaryHtml(bottleneck.most_overdue, translate('dashboard.extra_insights_bottleneck_most_overdue', 'Самый просроченный'))
+      + '</div>';
+  }
+
+  // Opens the global task modal with the hand-over prefilled. Falls back to the
+  // filtered task list when the modal is not on this page, so the button is never
+  // a dead end.
+  function openHandoverTask(recommendation) {
+    var from = String((recommendation.from || {}).name || '');
+    var to = String((recommendation.to || {}).name || '');
+    var tasks = Number(recommendation.tasks || 0);
+    var prefill = {
+      title: formatPlaceholders(
+        translate('dashboard.extra_insights_rebalance_task_title', 'Передать %s задач: от %s к %s'),
+        [tasks, from, to]
+      ),
+      description: formatPlaceholders(
+        translate('dashboard.extra_insights_rebalance_task_body', 'Передача задач в рамках ребалансировки нагрузки по виджету «Управление нагрузкой и эффективностью».%sОт: %s%sКому: %s'),
+        ['\n', from, '\n', to]
+      ),
+      assignee_user_public_id: String((recommendation.to || {}).user_public_id || '')
+    };
+    window._taskCreatePrefill = prefill;
+    var modalEl = document.getElementById('createTaskModal');
+    if (modalEl && window.bootstrap && window.bootstrap.Modal) {
+      window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+      return;
+    }
+
+    window.location.href = tasksListUrl({ assignee: prefill.assignee_user_public_id });
   }
 
   function limitStateHtml(definition, total, visible) {
@@ -1442,13 +1556,125 @@
     bindInsightToolbar(container, definition);
   }
 
+  // Deep link into the sprint board: the card names a cycle and the reader can act
+  // on it instead of hunting for the project it belongs to.
+  function cycleBoardUrl(publicId) {
+    return 'index.php?route=kanban&cycle_public_id=' + encodeURIComponent(String(publicId || ''));
+  }
+
+  function sprintDaysLabel(days) {
+    var value = Number(days || 0);
+    if (value < 0) {
+      return translate('dashboard.extra_insights_sprint_overdue_days', 'просрочен на %s дн.').replace('%s', String(Math.abs(value)));
+    }
+
+    return translate('dashboard.extra_insights_sprint_days_left', 'осталось %s дн.').replace('%s', String(value));
+  }
+
+  // A projection is printed only when its sample supports it. With a healthy sample
+  // the block states the pace and the projected finish; with none or a handful of
+  // completions it says so instead, because «60 нед · финиш 2027-11-10» off half a
+  // task a week reads as a commitment the data cannot make.
+  function velocityForecastHtml(forecast, openLabel, title) {
+    var data = forecast || {};
+    var confidence = String(data.confidence || '');
+    var open = Number(data.open_tasks !== undefined && data.open_tasks !== null ? data.open_tasks : (data.remaining || 0));
+    if (confidence === 'none' || confidence === 'low') {
+      var completions = Number(data.sample_completions || 0);
+      var reason = completions > 0
+        ? translate('dashboard.extra_insights_forecast_low', 'Мало данных для прогноза: %s завершений за %s нед.')
+          .replace('%s', String(completions)).replace('%s', String(Math.max(1, Number(data.sample_weeks || 0))))
+        : translate('dashboard.extra_insights_forecast_none', 'Мало данных для прогноза: за 4 недели нет ни одного завершения.');
+      return '<div class="crm-dashboard-insight-forecast is-low">'
+        + '<div class="crm-dashboard-insight-forecast-head">' + safe(title) + '</div>'
+        + '<div class="crm-dashboard-insight-forecast-body">'
+        + '<i class="fa-solid fa-circle-info" aria-hidden="true"></i> ' + safe(reason)
+        + ' · ' + safe(openLabel) + ': <strong>' + safe(String(open)) + '</strong>'
+        + '</div></div>';
+    }
+    if (data.weeks_to_finish === null || data.weeks_to_finish === undefined) {
+      return '';
+    }
+
+    return '<div class="crm-dashboard-insight-forecast">'
+      + '<div class="crm-dashboard-insight-forecast-head">' + safe(title) + '</div>'
+      + '<div class="crm-dashboard-insight-forecast-body">'
+      + safe(translate('dashboard.extra_insights_forecast_speed', 'Средний темп')) + ': <strong>' + safe(String(Number(data.average_per_week || 0)))
+      + '</strong> ' + safe(translate('dashboard.extra_insights_per_week', 'задач/нед'))
+      + ' · ' + safe(openLabel) + ': <strong>' + safe(String(open)) + '</strong>'
+      + ' · ≈ ' + safe(String(Number(data.weeks_to_finish))) + ' ' + safe(translate('dashboard.extra_insights_weeks', 'нед.'))
+      + (data.finish_date ? ' · ' + safe(translate('dashboard.extra_insights_forecast_date', 'финиш ~%s').replace('%s', dateText(data.finish_date))) : '')
+      + (data.confidence === 'medium' ? ' · ' + safe(translate('dashboard.extra_insights_forecast_medium', 'выборка небольшая')) : '')
+      + '</div></div>';
+  }
+
+  // The sprint face of the card. «Успеем ли в этом спринте» is answered by the
+  // cycle's own numbers: what it holds, what finished, what is still open, how much
+  // of that is blocked, and a projection over the sprint's remaining work.
+  function sprintVelocityHtml(payload) {
+    var sprint = payload.sprint || {};
+    var cycles = Array.isArray(sprint.cycles) ? sprint.cycles : [];
+    if (!cycles.length) {
+      return '<div class="crm-dashboard-insight-legend">'
+        + safe(translate('dashboard.extra_insights_sprint_none', 'Активных спринтов нет. Запустите спринт в проекте — и он появится здесь со своим темпом.'))
+        + '</div>';
+    }
+
+    return cycles.map(function (cycle) {
+      var blocked = Number(cycle.blocked_tasks || 0);
+      var blockShort = translate('dashboard.extra_insights_blocked_short', 'блок.');
+      var head = '<div class="crm-dashboard-insight-legend"><strong>' + safe(cycle.project_title || '') + '</strong> · '
+        + '<a href="' + safe(cycleBoardUrl(cycle.cycle_public_id)) + '">' + safe(cycle.title || '') + '</a>'
+        + (cycle.days_left !== null && cycle.days_left !== undefined ? ' · ' + safe(sprintDaysLabel(cycle.days_left)) : '')
+        + '</div>';
+      var tiles = '<div class="crm-dashboard-insight-grid">'
+        + insightTile(translate('dashboard.extra_insights_sprint_progress', 'Прогресс спринта'), Number(cycle.progress_percent || 0) + '%')
+        + insightTile(translate('dashboard.extra_insights_sprint_completed', 'Завершено'), String(Number(cycle.completed_tasks || 0)) + ' / ' + String(Number(cycle.total_tasks || 0)))
+        + insightTile(
+          translate('dashboard.extra_insights_wip', 'В работе'),
+          String(Number(cycle.wip || 0)) + (blocked > 0 ? ' · ' + blockShort + ' ' + blocked : ''),
+          blocked > 0 ? 'risk' : null
+        )
+        + insightTile(translate('dashboard.extra_insights_sprint_created', 'Добавлено в спринт'), String(Number(cycle.created_tasks || 0)))
+        + '</div>';
+      var breakdown = '<div class="crm-dashboard-wl-row"><div class="crm-dashboard-wl-meta"><span>'
+        + safe(translate('dashboard.extra_insights_sprint_breakdown', 'Разбивка спринта')) + ': '
+        + safe(translate('dashboard.extra_insights_sprint_done', 'завершено')) + ' ' + Number(cycle.completed_tasks || 0)
+        + ' · ' + safe(translate('dashboard.extra_insights_wip', 'В работе')) + ' ' + Number(cycle.wip || 0)
+        + ' · ' + safe(translate('dashboard.extra_insights_blocked', 'заблокировано')) + ' ' + blocked
+        + (cycle.days_elapsed !== null && cycle.days_elapsed !== undefined
+          ? ' · ' + safe(translate('dashboard.extra_insights_sprint_elapsed', 'идёт дней')) + ' ' + Number(cycle.days_elapsed)
+          : '')
+        + '</span></div></div>';
+
+      return head + tiles + velocityForecastHtml(
+        cycle.forecast,
+        translate('dashboard.extra_insights_sprint_remaining', 'остаток спринта'),
+        translate('dashboard.extra_insights_sprint_forecast_title', 'Прогноз по темпу спринта')
+      ) + breakdown;
+    }).join('');
+  }
+
   function renderVelocity(container, envelope, definition) {
-    var toolbar = insightToolbar(definition, [{
-      name: 'period',
-      label: translate('dashboard.extra_period', 'Период'),
-      value: widgetPeriod(definition),
-      options: periodOptions()
-    }]);
+    var toolbar = insightToolbar(definition, [
+      {
+        name: 'period',
+        label: translate('dashboard.extra_period', 'Период'),
+        value: widgetPeriod(definition),
+        options: periodOptions()
+      },
+      // "Когда мы разгребём бэклог" and "успеем ли в этом спринте" are different
+      // questions, and the manager opens the card for the second one.
+      {
+        name: 'mode',
+        label: translate('dashboard.extra_insights_velocity_cut', 'Разрез'),
+        value: widgetMode(definition, ['weeks', 'sprint'], 'weeks'),
+        options: [
+          { value: 'weeks', label: translate('dashboard.extra_insights_velocity_cut_weeks', '13 недель') },
+          { value: 'sprint', label: translate('dashboard.extra_insights_velocity_cut_sprint', 'Текущий спринт') }
+        ]
+      }
+    ]);
 
     if (!envelope || envelope.success === false) {
       container.innerHTML = toolbar + unavailableHtml();
@@ -1457,6 +1683,13 @@
     }
 
     var payload = insightsPayload(envelope);
+
+    if (widgetMode(definition, ['weeks', 'sprint'], 'weeks') === 'sprint') {
+      container.innerHTML = toolbar + sprintVelocityHtml(payload);
+      bindInsightToolbar(container, definition);
+      return;
+    }
+
     var weeks = Array.isArray(payload.weeks) ? payload.weeks : [];
     if (!weeks.length) {
       container.innerHTML = toolbar + emptyHtml();
@@ -1474,26 +1707,27 @@
     }).join('');
 
     // Forecast is deliberately worded as an estimate: it is a linear projection of
-    // the last four weeks, not a commitment.
-    var forecast = payload.forecast || {};
-    var forecastBlock = '';
-    if (forecast.weeks_to_finish !== null && forecast.weeks_to_finish !== undefined) {
-      forecastBlock = '<div class="crm-dashboard-insight-forecast">'
-        + '<div class="crm-dashboard-insight-forecast-head">'
-        + safe(translate('dashboard.extra_insights_forecast_title', 'Прогноз по среднему темпу за 4 недели')) + '</div>'
-        + '<div class="crm-dashboard-insight-forecast-body">'
-        + safe(translate('dashboard.extra_insights_forecast_speed', 'Средний темп')) + ': <strong>' + safe(String(Number(forecast.average_per_week || 0)))
-        + '</strong> ' + safe(translate('dashboard.extra_insights_per_week', 'задач/нед'))
-        + ' · ' + safe(translate('dashboard.extra_insights_forecast_open', 'в работе')) + ': <strong>' + safe(String(Number(forecast.open_tasks || 0))) + '</strong>'
-        + ' · ≈ ' + safe(String(Number(forecast.weeks_to_finish))) + ' ' + safe(translate('dashboard.extra_insights_weeks', 'нед.'))
-        + (forecast.finish_date ? ' · ' + safe(translate('dashboard.extra_insights_forecast_date', 'финиш ~%s').replace('%s', dateText(forecast.finish_date))) : '')
-        + '</div></div>';
-    }
+    // the last four weeks, not a commitment - and only when the sample allows it.
+    var forecastBlock = velocityForecastHtml(
+      payload.forecast,
+      translate('dashboard.extra_insights_forecast_open', 'в работе'),
+      translate('dashboard.extra_insights_forecast_title', 'Прогноз по среднему темпу за 4 недели')
+    );
 
     var wipTrend = String(payload.wip_trend || 'stable');
     var wipHint = wipTrend === 'growing'
       ? translate('dashboard.extra_insights_wip_growing', 'растёт')
       : (wipTrend === 'shrinking' ? translate('dashboard.extra_insights_wip_shrinking', 'снижается') : translate('dashboard.extra_insights_wip_stable', 'стабильно'));
+
+    // Blocked work sits in the WIP but cannot move: without this the WIP tile reads
+    // as work in flight.
+    var blockedCount = Number(payload.blocked_count || 0);
+    var blockedHint = blockedCount > 0
+      ? '<div class="crm-dashboard-insight-legend crm-dashboard-insight-legend--risk">'
+        + '<i class="fa-solid fa-ban" aria-hidden="true"></i> '
+        + safe(translate('dashboard.extra_insights_blocked_hint', 'Заблокировано задач: %s — они числятся в работе, но не двигаются.').replace('%s', String(blockedCount)))
+        + '</div>'
+      : '';
 
     container.innerHTML = toolbar
       + '<div class="crm-dashboard-insight-grid">'
@@ -1505,10 +1739,16 @@
           : payload.cycle_time_median_minutes
       ))
       + insightTile(translate('dashboard.extra_insights_cycle_p90', 'Cycle time (p90)'), formatMinutesCompact(payload.cycle_time_p90_minutes))
-      + insightTile(translate('dashboard.extra_insights_wip', 'В работе'), String(Number(payload.wip || 0)) + ' · ' + wipHint, wipTrend === 'growing' ? 'risk' : null)
+      + insightTile(
+        translate('dashboard.extra_insights_wip', 'В работе'),
+        String(Number(payload.wip || 0)) + ' · ' + wipHint
+          + (blockedCount > 0 ? ' · ' + translate('dashboard.extra_insights_blocked_short', 'блок.') + ' ' + blockedCount : ''),
+        wipTrend === 'growing' || blockedCount > 0 ? 'risk' : null
+      )
       + insightTile('Δ ' + translate('dashboard.extra_insights_throughput', 'Throughput') + ' ' + translate('dashboard.extra_insights_four_weeks', '4 нед.'), Number(payload.trend_percent || 0) + '%')
       + '</div>'
       + forecastBlock
+      + blockedHint
       + bars;
 
     bindInsightToolbar(container, definition);
@@ -1562,10 +1802,21 @@
           .replace('%from', String(recommendation.from.name || ''))
           .replace('%to', String(recommendation.to.name || '')))
         + '</div>'
+        + rebalanceReasonsHtml(recommendation)
         + '<div class="crm-dashboard-insight-recommendation-links">'
         + '<a href="' + safe(tasksListUrl({ assignee: recommendation.from.user_public_id })) + '">' + safe(translate('dashboard.extra_insights_person_tasks', 'Задачи сотрудника')) + ': ' + safe(String(recommendation.from.name || '')) + '</a>'
         + ' · <a href="' + safe(tasksListUrl({ assignee: recommendation.to.user_public_id })) + '">' + safe(String(recommendation.to.name || '')) + '</a>'
+        // The advice was readable but not actionable: the hand-over still had to be
+        // typed out by hand. The button carries the who, the volume and the recipient
+        // into the global task modal.
+        + '</div>'
+        + '<div class="crm-dashboard-insight-recommendation-action">'
+        + '<button type="button" class="btn btn-sm crm-btn-primary" data-insights-handover="1">'
+        + '<i class="fa-solid fa-arrow-right-arrow-left" aria-hidden="true"></i> '
+        + safe(translate('dashboard.extra_insights_rebalance_action', 'Создать задачу передачи')) + '</button>'
         + '</div></div>';
+    } else {
+      recommendationBlock = bottleneckHtml(payload);
     }
 
     var sort = widgetSort(definition, ['signal', 'load', 'overdue', 'name'], 'signal');
@@ -2097,9 +2348,21 @@
       var label = row.user_public_id
         ? '<a href="' + safe(tasksListUrl({ assignee: row.user_public_id })) + '">' + safe(name) + '</a>'
         : safe(name);
+      var activeTasks = Number(row.active_tasks || 0);
+      var activeMinutes = Number(row.active_minutes || 0);
+      var loadTag = activeTasks === 0
+        ? '<span class="text-success">' + safe(translate('dashboard.extra_insights_member_free', 'свободен')) + '</span>'
+        : '';
+      var detailParts = [safe(formatMinutesCompact(row.minutes))];
+      if (activeTasks > 0) {
+        detailParts.push(safe(translate('dashboard.extra_insights_member_active_tasks', '%s задач')).replace('%s', String(activeTasks)));
+      }
+      if (activeMinutes > 0) {
+        detailParts.push(safe(formatMinutesCompact(activeMinutes)));
+      }
       var width = 100;
       return '<div class="crm-dashboard-wl-row"><div class="crm-dashboard-wl-head"><span class="text-truncate">' + label
-        + '</span><strong>' + safe(formatMinutesCompact(row.minutes)) + '</strong></div>'
+        + ' ' + loadTag + '</span><strong>' + safe(detailParts.join(' · ')) + '</strong></div>'
         + '<div class="crm-dashboard-time-bar" aria-hidden="true"><i style="width:' + width + '%"></i></div></div>';
     }).join('');
     var overdue = (project.overdue_list || []).map(function (row) {
@@ -2136,6 +2399,69 @@
       ? translate('dashboard.extra_insights_stream_eta', 'остаток ~%s нед. при текущем темпе').replace('%s', String(Math.round(remaining / averagePerWeek * 10) / 10))
       : '';
 
+    // --- Estimate vs Actual block ---
+    var eva = project.estimate_vs_actual || null;
+    var evaHtml = '';
+    if (eva && Number(eva.total_active_tasks || 0) > 0) {
+      var coverage = Number(eva.coverdown_percent || eva.coverage_percent || 0);
+      var estTasks = Number(eva.estimated_tasks || 0);
+      var totalActive = Number(eva.total_active_tasks || 0);
+      var setsHtml = (eva.sets || []).map(function (set) {
+        var parts = [safe(set.set_name)];
+        if (set.is_time_unit && set.overrun_percent !== undefined) {
+          var overrun = Number(set.overrun_percent || 0);
+          var cls = overrun > 20 ? 'is-overdue' : (overrun > 0 ? 'text-warning' : 'text-success');
+          parts.push('<span class="' + cls + '">' + safe((overrun > 0 ? '+' : '') + overrun + '%') + '</span>');
+          parts.push(safe(translate('dashboard.extra_insights_eva_tasks', '%s задач')).replace('%s', String(set.tasks)));
+        } else if (!set.is_time_unit && set.minutes_per_point !== undefined) {
+          parts.push(safe(formatMinutesCompact(set.minutes_per_point)) + '/' + safe(set.unit_label || set.estimate_type));
+          parts.push(safe(translate('dashboard.extra_insights_eva_tasks', '%s задач')).replace('%s', String(set.tasks)));
+        }
+        return '<div class="crm-dashboard-extra-row"><span>' + parts.join(' · ') + '</span></div>';
+      }).join('');
+      var overrunHtml = (eva.top_overrun || []).map(function (task) {
+        return '<div class="crm-dashboard-extra-row"><div class="text-truncate"><a href="' + safe(taskDetailUrl(task.task_public_id)) + '" title="' + safe(task.title) + '">' + safe(task.title) + '</a>'
+          + '<small class="is-overdue">+' + safe(String(task.overrun_percent)) + '% (' + safe(formatMinutesCompact(task.minutes)) + ' / ' + safe(formatMinutesCompact(task.estimated_minutes)) + ')</small>'
+          + '</div></div>';
+      }).join('');
+      evaHtml = '<div class="crm-dashboard-insight-section-title">' + safe(translate('dashboard.extra_insights_estimate_vs_actual', 'Оценки vs Факт')) + '</div>'
+        + '<div class="crm-dashboard-insight-legend">'
+        + safe(translate('dashboard.extra_insights_eva_coverage', 'Покрытие оценками: %s из %s активных задач')).replace('%s', String(estTasks)).replace('%s', String(totalActive))
+        + (coverage < 50 ? ' <span class="text-warning">' + safe(translate('dashboard.extra_insights_eva_low_coverage', '⚠ низкое покрытие')) + '</span>' : '')
+        + '</div>'
+        + (setsHtml ? '<div class="crm-dashboard-insight-chips mt-1">' + setsHtml + '</div>' : '')
+        + (overrunHtml ? '<div class="crm-dashboard-insight-section-title small">' + safe(translate('dashboard.extra_insights_top_overrun', 'Топ перерасхода')) + '</div>' + overrunHtml : '');
+    }
+
+    // --- SLA Risk block ---
+    var sla = project.sla_risk || null;
+    var slaHtml = '';
+    if (sla && (Number(sla.total_with_sla || 0) > 0)) {
+      var breachedHtml = (sla.breached || []).map(function (item) {
+        return '<div class="crm-dashboard-extra-row"><div class="text-truncate"><a href="' + safe(taskDetailUrl(item.task_public_id)) + '" title="' + safe(item.title) + '">' + safe(item.title) + '</a>'
+          + '<small class="is-overdue">' + safe(item.policy_title || '') + ' · ' + safe(translate('dashboard.extra_insights_sla_breached', 'нарушен')) + '</small>'
+          + '</div></div>';
+      }).join('');
+      var nearHtml = (sla.near || []).map(function (item) {
+        return '<div class="crm-dashboard-extra-row"><div class="text-truncate"><a href="' + safe(taskDetailUrl(item.task_public_id)) + '" title="' + safe(item.title) + '">' + safe(item.title) + '</a>'
+          + '<small class="text-warning">' + safe(item.policy_title || '') + ' · ' + safe(translate('dashboard.extra_insights_sla_near', 'близко к нарушению')) + '</small>'
+          + '</div></div>';
+      }).join('');
+      slaHtml = '<div class="crm-dashboard-insight-section-title">' + safe(translate('dashboard.extra_insights_sla_risk', 'SLA-риск')) + '</div>'
+        + '<div class="crm-dashboard-insight-legend">' + safe(translate('dashboard.extra_insights_sla_total', 'С SLA: %s')).replace('%s', String(sla.total_with_sla))
+        + (sla.breached && sla.breached.length ? ' · <span class="is-overdue">' + safe(String(sla.breached.length)) + ' ' + safe(translate('dashboard.extra_insights_sla_breached_count', 'нарушено')) + '</span>' : '')
+        + (sla.near && sla.near.length ? ' · <span class="text-warning">' + safe(String(sla.near.length)) + ' ' + safe(translate('dashboard.extra_insights_sla_near_count', 'под угрозой')) + '</span>' : '')
+        + '</div>'
+        + breachedHtml + nearHtml;
+    }
+
+    // --- Export buttons ---
+    var exportHtml = '<div class="crm-dashboard-insight-export mt-2">'
+      + '<button class="btn btn-outline-secondary btn-sm" data-stream-export="csv" title="' + safe(translate('dashboard.extra_insights_export_csv', 'Экспорт в CSV')) + '">'
+      + '<i class="fa fa-download"></i> CSV</button>'
+      + '<button class="btn btn-outline-secondary btn-sm" data-stream-export="print" title="' + safe(translate('dashboard.extra_insights_export_print', 'Печать')) + '">'
+      + '<i class="fa fa-print"></i> ' + safe(translate('dashboard.extra_insights_print', 'Печать')) + '</button></div>';
+
     container.innerHTML = toolbar
       + '<div class="crm-dashboard-insight-stream-head">' + selector
       + '<span class="crm-dashboard-wl-signal' + signalClass(project.health) + '">' + safe(signalLabel(project.health)) + '</span></div>'
@@ -2147,13 +2473,17 @@
       + '</div>'
       + '<div class="crm-dashboard-insight-legend">' + safe(healthHint) + (finishHint ? ' · ' + safe(finishHint) : '') + '</div>'
       + (bars ? '<div class="crm-dashboard-insight-chips mt-2">' + safe(translate('dashboard.extra_insights_throughput', 'Throughput')) + '</div>' + bars : '')
+      + evaHtml
+      + slaHtml
       + (milestones ? '<div class="crm-dashboard-insight-section-title">' + safe(translate('dashboard.extra_insights_milestones', 'Вехи')) + '</div>' + milestones : '')
       + (statuses ? '<div class="crm-dashboard-insight-chips mt-2">' + statuses + '</div>' : '')
-      + (members ? '<div class="crm-dashboard-insight-section-title">' + safe(translate('dashboard.extra_insights_top_members', 'Топ исполнителей по часам')) + '</div>' + members : '')
-      + (overdue ? '<div class="crm-dashboard-insight-section-title">' + safe(translate('dashboard.extra_insights_overdue_list', 'Просроченные задачи')) + '</div>' + overdue : '');
+      + (members ? '<div class="crm-dashboard-insight-section-title">' + safe(translate('dashboard.extra_insights_top_members', 'Участники проекта')) + '</div>' + members : '')
+      + (overdue ? '<div class="crm-dashboard-insight-section-title">' + safe(translate('dashboard.extra_insights_overdue_list', 'Просроченные задачи')) + '</div>' + overdue : '')
+      + exportHtml;
 
     bindInsightToolbar(container, definition);
     bindStreamProjectSelect(container, definition);
+    bindStreamExport(container);
   }
 
   // The selected project is remembered per widget so reopening the dashboard keeps
@@ -2167,10 +2497,65 @@
     });
   }
 
+  function bindStreamExport(container) {
+    if (!container.querySelectorAll) return;
+    container.querySelectorAll('[data-stream-export]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var mode = btn.getAttribute('data-stream-export');
+        var envelope = container.__crmInsightEnvelope;
+        if (!envelope) return;
+        var payload = insightsPayload(envelope);
+        var project = payload.project;
+        if (!project) return;
+        if (mode === 'csv') {
+          exportProjectCsv(project);
+        } else if (mode === 'print') {
+          window.print();
+        }
+      });
+    });
+  }
+
+  function exportProjectCsv(project) {
+    var lines = [];
+    lines.push('"' + (project.title || '') + '"');
+    lines.push('"' + translate('dashboard.extra_insights_progress', 'Прогресс') + '","' + Number(project.progress_percent || 0) + '%"');
+    lines.push('"' + translate('dashboard.extra_insights_active', 'Активные') + '","' + Number(project.active_tasks || 0) + '"');
+    lines.push('"' + translate('dashboard.extra_insights_overdue', 'Просрочено') + '","' + Number(project.overdue_tasks || 0) + '"');
+    lines.push('"' + translate('dashboard.extra_insights_cycle_median', 'Cycle time (медиана)') + '","' + formatMinutesCompact(project.cycle_time_median_minutes) + '"');
+    lines.push('');
+    // Members
+    lines.push('"' + translate('dashboard.extra_insights_top_members', 'Участники') + '"');
+    lines.push('"' + translate('dashboard.extra_insights_member_name', 'Имя') + '","' + translate('dashboard.extra_insights_member_minutes', 'Часы') + '","' + translate('dashboard.extra_insights_member_active_tasks', 'Активные задачи') + '","' + translate('dashboard.extra_insights_member_active_minutes', 'Активные часы') + '"');
+    (project.top_members || []).forEach(function (m) {
+      lines.push('"' + (m.full_name || m.login || '') + '","' + formatMinutesCompact(m.minutes) + '","' + Number(m.active_tasks || 0) + '","' + formatMinutesCompact(m.active_minutes || 0) + '"');
+    });
+    lines.push('');
+    // Overdue
+    if ((project.overdue_list || []).length) {
+      lines.push('"' + translate('dashboard.extra_insights_overdue_list', 'Просроченные задачи') + '"');
+      lines.push('"' + translate('dashboard.extra_insights_task_title', 'Задача') + '","' + translate('dashboard.extra_insights_task_due', 'Срок') + '"');
+      (project.overdue_list || []).forEach(function (t) {
+        lines.push('"' + (t.title || '') + '","' + dateText(t.due_at) + '"');
+      });
+    }
+    var csv = lines.join('\n');
+    var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = (project.title || 'project') + '_detail.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   function render(definition, envelope) {
     var key = definition.key;
     var container = document.querySelector('[data-extra-widget-body="' + key + '"]');
     if (!container) return;
+    // The last payload stays on the container so a control that acts on the data
+    // (the hand-over button) does not have to re-request it.
+    container.__crmInsightEnvelope = envelope;
     if (definition.kind === 'summary') return renderSummary(container, envelope, definition);
     if (definition.kind === 'count') return renderCount(container, envelope, definition);
     if (definition.kind === 'health') return renderHealth(container, envelope);

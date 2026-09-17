@@ -50,6 +50,38 @@ final class InsightsRepository
     private const MIN_ESTIMATE_SAMPLE = 3;
 
     /**
+     * Forecast confidence thresholds, in completions observed over the window the
+     * projection averages. Below `MIN` - or with fewer than two weeks that produced
+     * anything at all - the payload reports "little data" and withholds the
+     * projected date instead of printing one derived from noise.
+     */
+    private const FORECAST_MIN_SAMPLE_COMPLETIONS = 3;
+    private const FORECAST_HIGH_SAMPLE_COMPLETIONS = 8;
+
+    /**
+     * Cycle statuses the sprint view treats as finished.
+     * Mirrors `CycleTaskRepository::COMPLETED_OR_ARCHIVED`: an archived task counts
+     * as done for its cycle, a cancelled one deliberately does not.
+     */
+    private const SPRINT_COMPLETED_CODES = ['done', 'completed', 'closed', 'archived'];
+
+    /** Completion weeks a sprint projection is allowed to be scored on. */
+    private const SPRINT_SAMPLE_WEEKS = 4;
+
+    /**
+     * Load bands the rebalancing advice is built on, as a share of the weekly
+     * capacity. These are the historical hardcoded values: the organisation can
+     * override both through settings, and the payload always reports which pair
+     * was in force, so the card's legend cannot describe a threshold the numbers
+     * did not use.
+     */
+    public const DEFAULT_OVERLOAD_PERCENT = 110;
+    public const DEFAULT_UNDERLOAD_PERCENT = 50;
+
+    /** An SLA deadline this close counts as at risk, not yet missed. */
+    private const SLA_SOON_DAYS = 3;
+
+    /**
      * How close a deadline has to be before a stream is flagged `soon`.
      * Seven days is the window the project milestones summary already calls
      * "upcoming", so the two screens agree on what "на этой неделе" means.
@@ -72,7 +104,7 @@ final class InsightsRepository
      * is a service-level fact (setting or business calendar); the repository only
      * falls back to the 40-hour default when nobody told it otherwise.
      *
-     * @param array{now:string,week_start:string,period_start:string,previous_start?:string,period_days?:int,capacity_minutes_week?:int} $window
+     * @param array{now:string,week_start:string,period_start:string,previous_start?:string,period_days?:int,capacity_minutes_week?:int,load_thresholds?:array<string,int>} $window
      * @return array<string,mixed>
      */
     public function personalLoad(int $userId, array $window): array
@@ -134,7 +166,7 @@ final class InsightsRepository
             ],
             'efficiency_percent' => $efficiency,
             'load_percent' => $loadPercent,
-            'load_signal' => self::loadSignal($loadPercent),
+            'load_signal' => self::loadSignal($loadPercent, self::bands($window['load_thresholds'] ?? null)),
             'daily_minutes' => $this->dailyMinutes([$userId], $weekStart, $now),
             'period_daily_minutes' => $periodDailyMinutes,
             'period_daily_bucket_days' => $periodDailyBucketDays,
@@ -328,6 +360,7 @@ final class InsightsRepository
         $weekStart = (string)$window['week_start'];
         $periodStart = (string)$window['period_start'];
         $capacityMinutes = self::normalizeCapacity($window['capacity_minutes_week'] ?? null);
+        $bands = self::bands($window['load_thresholds'] ?? null);
 
         $sql = 'SELECT u.id AS user_id, u.public_id, u.login, u.full_name
                 FROM users u
@@ -357,6 +390,10 @@ final class InsightsRepository
         $taskCounts = $this->assignedTaskCountsByUser($userIds, $now);
         $minutesByUser = $this->loggedMinutesByUser($userIds, $weekStart, $now);
         $completedByUser = $this->completedTasksByUser($userIds, $periodStart, $now);
+        // SLA risk is what turns "this person has a lot of work" into "this person
+        // is about to miss a commitment", which is what a hand-over has to be
+        // justified with.
+        $slaRiskByUser = $this->slaRiskTaskCountsByUser($userIds, $now);
 
         $rows = [];
         foreach ($users as $user) {
@@ -380,12 +417,13 @@ final class InsightsRepository
                 'full_name' => (string)($user['full_name'] ?? ''),
                 'active_tasks' => $active,
                 'overdue_tasks' => $overdue,
+                'sla_risk_tasks' => (int)($slaRiskByUser[$userId] ?? 0),
                 'minutes_week' => $minutesWeek,
                 'completed_period' => $completed,
                 'load_percent' => $loadPercent,
                 'efficiency_percent' => $efficiency,
                 'has_data' => $hasData,
-                'signal' => $hasData ? self::workloadSignal($loadPercent, $overdue) : 'no_data',
+                'signal' => $hasData ? self::workloadSignal($loadPercent, $overdue, $bands) : 'no_data',
             ];
         }
 
@@ -414,7 +452,16 @@ final class InsightsRepository
                     'trend_percent' => 0.0,
                     'wip' => 0,
                     'wip_trend' => 'stable',
-                    'forecast' => ['average_per_week' => 0.0, 'open_tasks' => 0, 'weeks_to_finish' => null, 'finish_date' => null],
+                    'blocked_count' => 0,
+                    'forecast' => [
+                        'average_per_week' => 0.0,
+                        'open_tasks' => 0,
+                        'weeks_to_finish' => null,
+                        'finish_date' => null,
+                        'confidence' => 'none',
+                        'sample_completions' => 0,
+                        'sample_weeks' => 0,
+                    ],
                 ];
             }
             $scopeSql = ' AND t.assignee_user_id IN (' . implode(', ', array_fill(0, count($userIds), '?')) . ')';
@@ -507,12 +554,19 @@ final class InsightsRepository
         $p90Index = $durations !== [] ? (int)min(count($durations) - 1, floor(count($durations) * 0.9)) : 0;
 
         // Forecast: four-week average throughput against the open queue. Deliberately
-        // blunt - the UI presents it as an estimate, not a commitment.
+        // blunt - the UI presents it as an estimate, not a commitment - and honest
+        // about the sample behind it: a projection drawn from one completion in four
+        // weeks used to print a confident «60 нед · финиш 2027-11-10», so the date is
+        // now withheld until the history supports it (`forecast.confidence`).
         $recent = array_slice($throughput, -4);
         $previousWindow = array_slice($throughput, -8, -4);
         $average = $recent !== [] ? array_sum($recent) / count($recent) : 0.0;
         $previousAverage = count($previousWindow) === 4 ? array_sum($previousWindow) / 4 : 0.0;
         $weeksToFinish = $average > 0 ? round($openTasks / $average, 1) : null;
+        $sampleCompletions = array_sum($recent);
+        $sampleWeeks = count(array_filter($recent, static fn(int $completed): bool => $completed > 0));
+        $confidence = self::forecastConfidence($sampleCompletions, $sampleWeeks);
+        $trustworthy = $confidence === 'medium' || $confidence === 'high';
 
         return [
             'weeks' => $weekRows,
@@ -526,15 +580,206 @@ final class InsightsRepository
             'trend_percent' => self::deltaPercent((int)round($average), (int)round($previousAverage)),
             'wip' => $lastWip,
             'wip_trend' => $lastWip > $previousWip ? 'growing' : ($lastWip < $previousWip ? 'shrinking' : 'stable'),
+            // Blocked work is not "in progress": the WIP tile says how much of the
+            // queue cannot move, so an open but stuck task stops reading as work.
+            'blocked_count' => $this->countBlockedOpenTasks($userIds, $isRoot),
             'forecast' => [
                 'average_per_week' => round($average, 1),
                 'open_tasks' => $openTasks,
-                'weeks_to_finish' => $weeksToFinish,
-                'finish_date' => $weeksToFinish !== null
+                'weeks_to_finish' => $trustworthy ? $weeksToFinish : null,
+                'finish_date' => $trustworthy && $weeksToFinish !== null
                     ? gmdate('Y-m-d', strtotime($now) + (int)round($weeksToFinish * 604800))
                     : null,
+                'confidence' => $confidence,
+                'sample_completions' => $sampleCompletions,
+                'sample_weeks' => $sampleWeeks,
             ],
         ];
+    }
+
+    /**
+     * Active sprints in the actor's scope, with the metrics the velocity card needs
+     * to answer «успеем ли в этом спринте?».
+     *
+     * Weekly throughput answers a planning question six weeks out; the sprint view
+     * answers the one a team asks on Monday. Each active cycle reports what it holds,
+     * what finished, what is still open (and how much of that is blocked), and a
+     * projection over the cycle's own completion history - under the same confidence
+     * rule as the weekly forecast, so a sprint that produced two completions does not
+     * print a finish date either.
+     *
+     * Visibility is applied twice on purpose: cycles come from the actor's accessible
+     * projects, and their tasks from the actor's visible users, so neither another
+     * team's sprint nor a stranger's task can reach the payload.
+     *
+     * @param string[] $accessibleProjectPublicIds empty when $isRoot is true
+     * @param int[] $userIds empty when $isRoot is true
+     * @return array{active_cycles:int,cycles:array<int,array<string,mixed>>}
+     */
+    public function currentSprintVelocity(array $accessibleProjectPublicIds, bool $isRoot, array $userIds, string $now): array
+    {
+        $empty = ['active_cycles' => 0, 'cycles' => []];
+        if (!$isRoot && ($accessibleProjectPublicIds === [] || $userIds === [])) {
+            return $empty;
+        }
+
+        $where = "c.status = 'active' AND c.archived_at IS NULL AND c.deleted_at IS NULL";
+        $params = [];
+        if (!$isRoot) {
+            $where .= ' AND p.public_id IN (' . implode(', ', array_fill(0, count($accessibleProjectPublicIds), '?')) . ')';
+            $params = array_values($accessibleProjectPublicIds);
+        }
+
+        $stmt = $this->pdo->prepare(
+            'SELECT c.id, c.public_id, c.title, c.start_at, c.end_at,
+                    p.public_id AS project_public_id, p.title AS project_title
+             FROM work_cycles c
+             JOIN projects p ON p.id = c.project_id
+             WHERE ' . $where . '
+             ORDER BY c.end_at IS NULL ASC, c.end_at ASC'
+        );
+        $stmt->execute($params);
+        $cycles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        if ($cycles === []) {
+            return $empty;
+        }
+
+        $cycleIds = array_map(static fn(array $row): int => (int)$row['id'], $cycles);
+        $idPlaceholders = implode(', ', array_fill(0, count($cycleIds), '?'));
+        $scopeSql = '';
+        $scopeParams = [];
+        if (!$isRoot) {
+            $scopeSql = ' AND t.assignee_user_id IN (' . implode(', ', array_fill(0, count($userIds), '?')) . ')';
+            $scopeParams = array_values($userIds);
+        }
+
+        // One pass for every active cycle instead of a query per card refresh.
+        $taskStmt = $this->pdo->prepare(
+            'SELECT ct.cycle_id, t.id AS task_id, t.status_code, t.created_at
+             FROM cycle_tasks ct
+             JOIN tasks t ON t.id = ct.task_id
+             WHERE ct.deleted_at IS NULL AND ct.cycle_id IN (' . $idPlaceholders . ')
+               AND t.deleted_at IS NULL AND t.archived_at IS NULL' . $scopeSql
+        );
+        $taskStmt->execute(array_merge($cycleIds, $scopeParams));
+
+        // Completion timestamps come from history (`tasks` has no completed_at) and are
+        // bucketed into weeks in PHP, so the sprint projection is scored on exactly the
+        // same confidence rule as the weekly one.
+        $historyStmt = $this->pdo->prepare(
+            'SELECT ct.cycle_id, h.task_id, MIN(h.created_at) AS finished_at
+             FROM task_status_history h
+             JOIN cycle_tasks ct ON ct.task_id = h.task_id AND ct.deleted_at IS NULL
+             JOIN tasks t ON t.id = h.task_id
+             WHERE ct.cycle_id IN (' . $idPlaceholders . ')
+               AND h.new_status IN (' . TaskStatusSemantics::completedLiteralList($this->pdo) . ')
+               AND t.deleted_at IS NULL AND t.archived_at IS NULL' . $scopeSql . '
+             GROUP BY ct.cycle_id, h.task_id'
+        );
+        $historyStmt->execute(array_merge($cycleIds, $scopeParams));
+
+        $completionWeeks = [];
+        foreach ($historyStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $finishedTs = strtotime((string)$row['finished_at']);
+            if ($finishedTs === false) {
+                continue;
+            }
+            $week = gmdate('Y-m-d', $this->mondayTsUtc(gmdate('Y-m-d H:i:s', $finishedTs)));
+            $completionWeeks[(int)$row['cycle_id']][$week] = true;
+        }
+
+        $tasksByCycle = [];
+        foreach ($taskStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $tasksByCycle[(int)$row['cycle_id']][] = $row;
+        }
+
+        $nowTs = strtotime($now) ?: time();
+        $out = [];
+        foreach ($cycles as $cycle) {
+            $cycleId = (int)$cycle['id'];
+            $startTs = $cycle['start_at'] !== null ? strtotime((string)$cycle['start_at']) : false;
+            $endTs = $cycle['end_at'] !== null ? strtotime((string)$cycle['end_at']) : false;
+
+            $total = 0;
+            $completed = 0;
+            $open = 0;
+            $blocked = 0;
+            $created = 0;
+            foreach (($tasksByCycle[$cycleId] ?? []) as $task) {
+                $total++;
+                $code = strtolower(trim((string)$task['status_code']));
+                if (in_array($code, self::SPRINT_COMPLETED_CODES, true)) {
+                    $completed++;
+                } else {
+                    $open++;
+                    if ($code === 'blocked') {
+                        $blocked++;
+                    }
+                }
+                if ($startTs !== false) {
+                    $createdTs = strtotime((string)$task['created_at']);
+                    if ($createdTs !== false && $createdTs >= $startTs) {
+                        $created++;
+                    }
+                }
+            }
+
+            $sampleWeeks = min(self::SPRINT_SAMPLE_WEEKS, count($completionWeeks[$cycleId] ?? []));
+            $confidence = self::forecastConfidence($completed, $sampleWeeks);
+            $trustworthy = $confidence === 'medium' || $confidence === 'high';
+            $weeksElapsed = $startTs !== false ? max(0.5, ($nowTs - $startTs) / 604800) : 1.0;
+            $average = $completed / $weeksElapsed;
+            $weeksToFinish = $average > 0 ? round($open / $average, 1) : null;
+
+            $out[] = [
+                'cycle_public_id' => (string)$cycle['public_id'],
+                'title' => (string)($cycle['title'] ?? ''),
+                'project_public_id' => (string)$cycle['project_public_id'],
+                'project_title' => (string)($cycle['project_title'] ?? ''),
+                'start_at' => $cycle['start_at'],
+                'end_at' => $cycle['end_at'],
+                'days_left' => $endTs !== false ? (int)floor(($endTs - $nowTs) / 86400) : null,
+                'days_elapsed' => $startTs !== false ? max(0, (int)floor(($nowTs - $startTs) / 86400)) : null,
+                'total_tasks' => $total,
+                'completed_tasks' => $completed,
+                'created_tasks' => $created,
+                'wip' => $open,
+                'blocked_tasks' => $blocked,
+                'progress_percent' => $total > 0 ? round($completed / $total * 100, 1) : 0.0,
+                'forecast' => [
+                    'average_per_week' => round($average, 1),
+                    'remaining' => $open,
+                    'weeks_to_finish' => $trustworthy ? $weeksToFinish : null,
+                    'finish_date' => $trustworthy && $weeksToFinish !== null
+                        ? gmdate('Y-m-d', $nowTs + (int)round($weeksToFinish * 604800))
+                        : null,
+                    'confidence' => $confidence,
+                    'sample_completions' => $completed,
+                    'sample_weeks' => $sampleWeeks,
+                ],
+            ];
+        }
+
+        return ['active_cycles' => count($out), 'cycles' => $out];
+    }
+
+    /**
+     * How much a projection can be trusted, from the sample it was built on.
+     *
+     * `none` (nothing completed) and `low` (a handful of completions, or a single
+     * productive week) mean the caller withholds the date and says why instead of
+     * presenting a straight line through noise as a plan.
+     */
+    public static function forecastConfidence(int $completions, int $sampleWeeks): string
+    {
+        if ($completions <= 0) {
+            return 'none';
+        }
+        if ($completions < self::FORECAST_MIN_SAMPLE_COMPLETIONS || $sampleWeeks < 2) {
+            return 'low';
+        }
+
+        return $completions < self::FORECAST_HIGH_SAMPLE_COMPLETIONS ? 'medium' : 'high';
     }
 
     /**
@@ -841,6 +1086,15 @@ final class InsightsRepository
 
         $cycleDurations = $this->projectCycleMinutes($projectId, $periodStart, $now);
 
+        // --- Estimate vs Actual for the project ---
+        $estimateVsActual = $this->projectEstimateVsActual($projectId, $periodStart, $now);
+
+        // --- SLA risk: tasks in this project with breached or near-breached SLA ---
+        $slaRisk = $this->projectSlaRisk($projectId, $now);
+
+        // --- Enhanced members: add active_tasks and active_minutes to each member ---
+        $members = $this->enhanceProjectMembers($projectId, $members, $periodStart, $now);
+
         return [
             'project_public_id' => (string)$project['public_id'],
             'title' => (string)$project['title'],
@@ -855,6 +1109,8 @@ final class InsightsRepository
             'top_members' => $members,
             'milestones' => $milestones,
             'overdue_list' => $overdueTasks,
+            'estimate_vs_actual' => $estimateVsActual,
+            'sla_risk' => $slaRisk,
             'health' => self::projectHealth(
                 $active,
                 $overdue,
@@ -890,6 +1146,359 @@ final class InsightsRepository
         }
 
         return $durations;
+    }
+
+    /**
+     * Estimate vs Actual for a single project: aggregated estimate coverage and
+     * per-set calibration, plus top-5 overrun tasks.
+     *
+     * Only time-based estimate sets are compared with minutes. Currency sets are
+     * skipped (a price is not a unit of work). Sets with fewer than MIN_ESTIMATE_SAMPLE
+     * tasks are omitted to avoid publishing noise.
+     *
+     * @return array{coverage_percent:float,estimated_tasks:int,total_active_tasks:int,sets:list<array>,top_overrun:list<array>}
+     */
+    private function projectEstimateVsActual(int $projectId, string $periodStart, string $now): array
+    {
+        // Active tasks in the project with at least one estimate
+        $estStmt = $this->pdo->prepare(
+            'SELECT DISTINCT t.public_id AS task_public_id
+             FROM tasks t
+             INNER JOIN task_estimates te ON te.task_id = t.id AND te.deleted_at IS NULL
+             WHERE t.project_id = ? AND t.deleted_at IS NULL AND t.archived_at IS NULL
+               AND t.status_code NOT IN (' . TaskStatusSemantics::terminalLiteralList($this->pdo) . ')'
+        );
+        $estStmt->execute([$projectId]);
+        $estimatedTaskIds = [];
+        foreach ($estStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $estimatedTaskIds[] = (string)$row['task_public_id'];
+        }
+
+        $activeStmt = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM tasks t
+             WHERE t.project_id = ? AND t.deleted_at IS NULL AND t.archived_at IS NULL
+               AND t.status_code NOT IN (' . TaskStatusSemantics::terminalLiteralList($this->pdo) . ')'
+        );
+        $activeStmt->execute([$projectId]);
+        $totalActive = (int)$activeStmt->fetchColumn();
+
+        $coveragePercent = $totalActive > 0 ? round(count($estimatedTaskIds) / $totalActive * 100, 1) : 0.0;
+
+        // Minutes per task in the project for the period
+        $minutesStmt = $this->pdo->prepare(
+            'SELECT t.public_id AS task_public_id, COALESCE(SUM(w.minutes_spent), 0) AS minutes
+             FROM work_logs w
+             JOIN tasks t ON t.id = w.task_id AND t.deleted_at IS NULL AND t.archived_at IS NULL
+             WHERE t.project_id = ? AND w.logged_at >= ?
+             GROUP BY t.id, t.public_id'
+        );
+        $minutesStmt->execute([$projectId, $periodStart]);
+        $minutesByTask = [];
+        foreach ($minutesStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $minutesByTask[(string)$row['task_public_id']] = (int)$row['minutes'];
+        }
+
+        // Per-set calibration (reuse estimateCalibration pattern)
+        $sets = [];
+        if ($estimatedTaskIds !== []) {
+            $placeholders = implode(', ', array_fill(0, count($estimatedTaskIds), '?'));
+            $setStmt = $this->pdo->prepare(
+                'SELECT te.task_public_id, te.numeric_value, es.name, es.unit_label, es.estimate_type, es.currency_code
+                 FROM task_estimates te
+                 INNER JOIN estimate_sets es ON es.id = te.estimate_set_id
+                 WHERE te.deleted_at IS NULL AND te.numeric_value IS NOT NULL
+                   AND te.task_public_id IN (' . $placeholders . ')'
+            );
+            $setStmt->execute($estimatedTaskIds);
+
+            $bySet = [];
+            foreach ($setStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                if (($row['currency_code'] ?? null) !== null && (string)$row['currency_code'] !== '') {
+                    continue;
+                }
+                $taskPid = (string)$row['task_public_id'];
+                $key = (string)$row['name'] . '|' . (string)($row['unit_label'] ?? '');
+                if (!isset($bySet[$key])) {
+                    $bySet[$key] = [
+                        'set_name' => (string)$row['name'],
+                        'unit_label' => $row['unit_label'] !== null ? (string)$row['unit_label'] : null,
+                        'estimate_type' => (string)$row['estimate_type'],
+                        'points' => 0.0,
+                        'minutes' => 0,
+                        'task_count' => 0,
+                        'seen_tasks' => [],
+                    ];
+                }
+                $bySet[$key]['points'] += (float)$row['numeric_value'];
+                if (!isset($bySet[$key]['seen_tasks'][$taskPid])) {
+                    $bySet[$key]['seen_tasks'][$taskPid] = true;
+                    $bySet[$key]['task_count']++;
+                    $bySet[$key]['minutes'] += (int)($minutesByTask[$taskPid] ?? 0);
+                }
+            }
+
+            foreach ($bySet as $entry) {
+                if ($entry['task_count'] < self::MIN_ESTIMATE_SAMPLE || $entry['points'] <= 0) {
+                    continue;
+                }
+                $isTime = self::isTimeEstimateUnit($entry['estimate_type'], $entry['unit_label']);
+                $setRow = [
+                    'set_name' => $entry['set_name'],
+                    'unit_label' => $entry['unit_label'],
+                    'estimate_type' => $entry['estimate_type'],
+                    'tasks' => $entry['task_count'],
+                    'points' => round($entry['points'], 2),
+                    'minutes' => (int)$entry['minutes'],
+                    'is_time_unit' => $isTime,
+                ];
+                if ($isTime) {
+                    $estimatedMinutes = (int)round($entry['points'] * 60);
+                    $setRow['estimated_minutes'] = $estimatedMinutes;
+                    $setRow['overrun_percent'] = $estimatedMinutes > 0
+                        ? round(($entry['minutes'] - $estimatedMinutes) / $estimatedMinutes * 100, 1)
+                        : 0.0;
+                } else {
+                    $setRow['minutes_per_point'] = round($entry['minutes'] / $entry['points'], 2);
+                }
+                $sets[] = $setRow;
+            }
+            usort($sets, static fn(array $a, array $b): int => $b['tasks'] <=> $a['tasks']);
+        }
+
+        // Top-5 overrun tasks (time-based estimates only)
+        $topOverrun = [];
+        if ($estimatedTaskIds !== []) {
+            $placeholders = implode(', ', array_fill(0, count($estimatedTaskIds), '?'));
+            $overrunStmt = $this->pdo->prepare(
+                'SELECT te.task_public_id, t.title, te.numeric_value, es.estimate_type, es.unit_label, es.currency_code
+                 FROM task_estimates te
+                 INNER JOIN estimate_sets es ON es.id = te.estimate_set_id
+                 INNER JOIN tasks t ON t.id = te.task_id
+                 WHERE te.deleted_at IS NULL AND te.numeric_value IS NOT NULL
+                   AND te.task_public_id IN (' . $placeholders . ')'
+            );
+            $overrunStmt->execute($estimatedTaskIds);
+
+            $taskOverruns = [];
+            $seenOverrun = [];
+            foreach ($overrunStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                if (($row['currency_code'] ?? null) !== null && (string)$row['currency_code'] !== '') {
+                    continue;
+                }
+                if (!self::isTimeEstimateUnit((string)$row['estimate_type'], $row['unit_label'] !== null ? (string)$row['unit_label'] : null)) {
+                    continue;
+                }
+                $estimateMinutes = (int)round((float)$row['numeric_value'] * 60);
+                if ($estimateMinutes <= 0) {
+                    continue;
+                }
+                $taskPid = (string)$row['task_public_id'];
+                $minutes = (int)($minutesByTask[$taskPid] ?? 0);
+                if ($minutes <= $estimateMinutes) {
+                    continue;
+                }
+                if (isset($seenOverrun[$taskPid])) {
+                    continue;
+                }
+                $seenOverrun[$taskPid] = true;
+                $taskOverruns[$taskPid] = [
+                    'task_public_id' => $taskPid,
+                    'title' => (string)$row['title'],
+                    'estimated_minutes' => $estimateMinutes,
+                    'minutes' => $minutes,
+                    'overrun_percent' => round(($minutes - $estimateMinutes) / $estimateMinutes * 100, 1),
+                ];
+            }
+            usort($taskOverruns, static fn(array $a, array $b): int => $b['overrun_percent'] <=> $a['overrun_percent']);
+            $topOverrun = array_slice($taskOverruns, 0, 5);
+        }
+
+        return [
+            'coverage_percent' => $coveragePercent,
+            'estimated_tasks' => count($estimatedTaskIds),
+            'total_active_tasks' => $totalActive,
+            'sets' => $sets,
+            'top_overrun' => $topOverrun,
+        ];
+    }
+
+    /**
+     * SLA risk for a project: active tasks with breached or near-breached SLA.
+     *
+     * A task is "breached" when sla_breached=1 or a deadline has passed.
+     * "near" means within 25% of the remaining time (or within 1 hour if <4 hours left).
+     *
+     * @return array{breached:list<array>,near:list<array>,total_with_sla:int}
+     */
+    private function projectSlaRisk(int $projectId, string $now): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT t.public_id, t.title, t.sla_breached, t.sla_response_deadline, t.sla_resolve_deadline,
+                    sp.title AS policy_title, sp.response_minutes, sp.resolve_minutes
+             FROM tasks t
+             LEFT JOIN sla_policies sp ON sp.id = t.sla_policy_id
+             WHERE t.project_id = ? AND t.deleted_at IS NULL AND t.archived_at IS NULL
+               AND t.status_code NOT IN (' . TaskStatusSemantics::terminalLiteralList($this->pdo) . ')
+               AND (t.sla_breached = 1 OR t.sla_response_deadline IS NOT NULL OR t.sla_resolve_deadline IS NOT NULL)'
+        );
+        $stmt->execute([$projectId]);
+
+        $nowTs = strtotime($now);
+        $breached = [];
+        $near = [];
+        $totalWithSla = 0;
+
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $totalWithSla++;
+            $taskPid = (string)$row['public_id'];
+            $title = (string)$row['title'];
+            $isBreached = (int)$row['sla_breached'] === 1;
+
+            // Check response and resolve deadlines
+            $responseDeadline = $row['sla_response_deadline'] ? (string)$row['sla_response_deadline'] : null;
+            $resolveDeadline = $row['sla_resolve_deadline'] ? (string)$row['sla_resolve_deadline'] : null;
+
+            $deadlineBreached = false;
+            $deadlineNear = false;
+            $nearestDeadline = null;
+            $deadlineType = null;
+
+            $deadlines = [];
+            if ($responseDeadline !== null) { $deadlines[$responseDeadline] = 'response'; }
+            if ($resolveDeadline !== null) { $deadlines[$resolveDeadline] = 'resolve'; }
+            foreach ($deadlines as $dl => $type) {
+                $dlTs = strtotime($dl);
+                if ($dlTs === false) {
+                    continue;
+                }
+                if ($dlTs < $nowTs) {
+                    $deadlineBreached = true;
+                    $nearestDeadline = $dl;
+                    $deadlineType = $type;
+                    break;
+                }
+                // Near: within 25% of remaining time or within 1 hour
+                $remaining = $dlTs - $nowTs;
+                $policyMinutes = $type === 'response'
+                    ? (int)($row['response_minutes'] ?? 0)
+                    : (int)($row['resolve_minutes'] ?? 0);
+                $threshold = max(3600, (int)round($policyMinutes * 60 * 0.25));
+                if ($remaining <= $threshold) {
+                    $deadlineNear = true;
+                    if ($nearestDeadline === null || $dlTs < strtotime($nearestDeadline)) {
+                        $nearestDeadline = $dl;
+                        $deadlineType = $type;
+                    }
+                }
+            }
+
+            $entry = [
+                'task_public_id' => $taskPid,
+                'title' => $title,
+                'policy_title' => (string)($row['policy_title'] ?? ''),
+                'deadline_type' => $deadlineType,
+                'deadline_at' => $nearestDeadline,
+            ];
+
+            if ($isBreached || $deadlineBreached) {
+                $breached[] = $entry;
+            } elseif ($deadlineNear) {
+                $near[] = $entry;
+            }
+        }
+
+        // Sort breached by deadline (most overdue first), near by deadline (closest first)
+        usort($breached, static fn(array $a, array $b): int =>
+            ($a['deadline_at'] ?? '') <=> ($b['deadline_at'] ?? ''));
+        usort($near, static fn(array $a, array $b): int =>
+            ($a['deadline_at'] ?? '') <=> ($b['deadline_at'] ?? ''));
+
+        return [
+            'breached' => $breached,
+            'near' => $near,
+            'total_with_sla' => $totalWithSla,
+        ];
+    }
+
+    /**
+     * Enhance member rows with active_tasks count and active_minutes (worklog in period
+     * on active tasks only) so the card can show who is free.
+     *
+     * @param array<int, array<string,mixed>> $members
+     * @return array<int, array<string,mixed>>
+     */
+    private function enhanceProjectMembers(int $projectId, array $members, string $periodStart, string $now): array
+    {
+        if ($members === []) {
+            return $members;
+        }
+
+        $userPublicIds = array_column($members, 'user_public_id');
+        $placeholders = implode(', ', array_fill(0, count($userPublicIds), '?'));
+
+        // Map public_id -> user_id for queries
+        $userMapStmt = $this->pdo->prepare(
+            'SELECT id, public_id FROM users WHERE public_id IN (' . $placeholders . ')'
+        );
+        $userMapStmt->execute($userPublicIds);
+        $publicToId = [];
+        foreach ($userMapStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $publicToId[(string)$row['public_id']] = (int)$row['id'];
+        }
+
+        $userIdToKey = [];
+        foreach ($members as $idx => &$member) {
+            $uid = $publicToId[$member['user_public_id']] ?? 0;
+            if ($uid > 0) {
+                $userIdToKey[$uid] = $idx;
+            }
+            $member['active_tasks'] = 0;
+            $member['active_minutes'] = 0;
+        }
+        unset($member);
+
+        if ($userIdToKey === []) {
+            return $members;
+        }
+
+        $ids = array_keys($userIdToKey);
+        $idPlaceholders = implode(', ', array_fill(0, count($ids), '?'));
+
+        // Active tasks per member in this project
+        $activeStmt = $this->pdo->prepare(
+            'SELECT assignee_user_id, COUNT(*) AS cnt
+             FROM tasks
+             WHERE project_id = ? AND assignee_user_id IN (' . $idPlaceholders . ')
+               AND deleted_at IS NULL AND archived_at IS NULL
+               AND status_code NOT IN (' . TaskStatusSemantics::terminalLiteralList($this->pdo) . ')
+             GROUP BY assignee_user_id'
+        );
+        $activeStmt->execute(array_merge([$projectId], $ids));
+        foreach ($activeStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $uid = (int)$row['assignee_user_id'];
+            if (isset($userIdToKey[$uid])) {
+                $members[$userIdToKey[$uid]]['active_tasks'] = (int)$row['cnt'];
+            }
+        }
+
+        // Active minutes (worklog on active tasks in the period)
+        $minutesStmt = $this->pdo->prepare(
+            'SELECT w.user_id, COALESCE(SUM(w.minutes_spent), 0) AS minutes
+             FROM work_logs w
+             INNER JOIN tasks t ON t.id = w.task_id AND t.deleted_at IS NULL AND t.archived_at IS NULL
+               AND t.status_code NOT IN (' . TaskStatusSemantics::terminalLiteralList($this->pdo) . ')
+             WHERE t.project_id = ? AND w.user_id IN (' . $idPlaceholders . ') AND w.logged_at >= ?
+             GROUP BY w.user_id'
+        );
+        $minutesStmt->execute(array_merge([$projectId], $ids, [$periodStart]));
+        foreach ($minutesStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $uid = (int)$row['user_id'];
+            if (isset($userIdToKey[$uid])) {
+                $members[$userIdToKey[$uid]]['active_minutes'] = (int)$row['minutes'];
+            }
+        }
+
+        return $members;
     }
 
     /**
@@ -1018,17 +1627,22 @@ final class InsightsRepository
      * @param array<int, array<string,mixed>> $assignees
      * @return array<string,mixed>|null
      */
-    public static function rebalanceRecommendation(array $assignees): ?array
+    public static function rebalanceRecommendation(array $assignees, array $bands = []): ?array
     {
+        $bands = self::bands($bands);
         $from = null;
         $to = null;
         foreach ($assignees as $row) {
             $load = (float)($row['load_percent'] ?? 0);
             $active = (int)($row['active_tasks'] ?? 0);
-            if ($load > 110 && $active > 1 && ($from === null || $load > (float)$from['load_percent'])) {
+            if ($load > $bands['overload_percent'] && $active > 1 && ($from === null || $load > (float)$from['load_percent'])) {
                 $from = $row;
             }
-            if ($load < 50 && (int)($row['overdue_tasks'] ?? 0) === 0 && ($to === null || $load < (float)$to['load_percent'])) {
+            // A recipient has to be able to take the work: nobody below the band who
+            // is already late, and nobody whose own SLA commitments are burning. The
+            // advice is a plan, not a way to move a problem sideways.
+            $toEligible = (int)($row['overdue_tasks'] ?? 0) === 0 && (int)($row['sla_risk_tasks'] ?? 0) === 0;
+            if ($load < $bands['underload_percent'] && $toEligible && ($to === null || $load < (float)$to['load_percent'])) {
                 $to = $row;
             }
         }
@@ -1039,35 +1653,174 @@ final class InsightsRepository
 
         $active = (int)$from['active_tasks'];
         $excess = (int)floor(((float)$from['load_percent'] - 100) / 100 * $active);
+        $fromMetrics = self::personMetrics($from);
+        $toMetrics = self::personMetrics($to);
+
+        // The factors are what makes the advice defensible: overload alone used to be
+        // the whole story, so a person drowning in late work and broken SLA promises
+        // looked exactly like somebody merely busy.
+        $factors = ['overload', 'backlog'];
+        if ($fromMetrics['overdue_tasks'] > 0) {
+            $factors[] = 'overdue';
+        }
+        if ($fromMetrics['sla_risk_tasks'] > 0) {
+            $factors[] = 'sla_risk';
+        }
+        $factors[] = 'spare_capacity';
 
         return [
             'reason' => 'rebalance_overload',
+            // `reason_summary` is the plain-language version for logs and API consumers;
+            // the card renders its own localised sentence from the factors and metrics.
+            'reason_summary' => sprintf(
+                'load %.1f%% (band >%d%%), %d active tasks, %d overdue, %d SLA at risk; recipient at %.1f%% with spare capacity',
+                $fromMetrics['load_percent'],
+                $bands['overload_percent'],
+                $fromMetrics['active_tasks'],
+                $fromMetrics['overdue_tasks'],
+                $fromMetrics['sla_risk_tasks'],
+                $toMetrics['load_percent']
+            ),
+            'reason_factors' => $factors,
+            'reason_metrics' => [
+                'overload_percent' => $bands['overload_percent'],
+                'underload_percent' => $bands['underload_percent'],
+                'from_load_percent' => $fromMetrics['load_percent'],
+                'from_active_tasks' => $fromMetrics['active_tasks'],
+                'from_overdue_tasks' => $fromMetrics['overdue_tasks'],
+                'from_sla_risk_tasks' => $fromMetrics['sla_risk_tasks'],
+                'to_load_percent' => $toMetrics['load_percent'],
+                'to_active_tasks' => $toMetrics['active_tasks'],
+                'to_overdue_tasks' => $toMetrics['overdue_tasks'],
+                'to_sla_risk_tasks' => $toMetrics['sla_risk_tasks'],
+            ],
             'tasks' => max(1, min($active - 1, $excess)),
-            'from' => [
-                'user_public_id' => (string)$from['user_public_id'],
-                'name' => (string)($from['full_name'] !== '' ? $from['full_name'] : $from['login']),
-                'load_percent' => (float)$from['load_percent'],
-                'active_tasks' => $active,
-            ],
-            'to' => [
-                'user_public_id' => (string)$to['user_public_id'],
-                'name' => (string)($to['full_name'] !== '' ? $to['full_name'] : $to['login']),
-                'load_percent' => (float)$to['load_percent'],
-                'active_tasks' => (int)$to['active_tasks'],
-            ],
+            'from' => ['user_public_id' => (string)$from['user_public_id']] + $fromMetrics,
+            'to' => ['user_public_id' => (string)$to['user_public_id']] + $toMetrics,
         ];
     }
 
-    public static function workloadSignal(float $loadPercent, int $overdue): string
+    /**
+     * The bottleneck the card falls back to when no hand-over can be advised.
+     *
+     * The recommendation used to be the only thing the block could say, and it is
+     * silent whenever the pair is missing - which is most of the time. "Nobody is
+     * overloaded" and "somebody is overloaded but there is nobody to hand work to"
+     * are different answers, and the manager needs to see which one applies, plus
+     * the busiest and the most overdue person even when there is no advice.
+     *
+     * @param array<int,array<string,mixed>> $assignees
+     * @return array{most_loaded:?array<string,mixed>,most_overdue:?array<string,mixed>,blocked_reason:?string,overload_percent:int,underload_percent:int}
+     */
+    public static function bottleneck(array $assignees, array $bands = []): array
     {
-        if ($loadPercent > 110) {
+        $bands = self::bands($bands);
+        $loaded = null;
+        $overdue = null;
+        $overloaded = null;
+        $recipient = null;
+        foreach ($assignees as $row) {
+            if (($row['has_data'] ?? true) === false) {
+                continue;
+            }
+            $load = (float)($row['load_percent'] ?? 0);
+            $late = (int)($row['overdue_tasks'] ?? 0);
+            if ($loaded === null || $load > (float)$loaded['load_percent']) {
+                $loaded = $row;
+            }
+            if ($late > 0 && ($overdue === null || $late > (int)$overdue['overdue_tasks'])) {
+                $overdue = $row;
+            }
+            if ($load > $bands['overload_percent'] && (int)($row['active_tasks'] ?? 0) > 1) {
+                $overloaded = true;
+            }
+            if ($load < $bands['underload_percent'] && $late === 0 && (int)($row['sla_risk_tasks'] ?? 0) === 0) {
+                $recipient = true;
+            }
+        }
+
+        // Why the advice is missing, so the card explains itself instead of going quiet.
+        $blockedReason = null;
+        if ($loaded === null) {
+            $blockedReason = 'no_data';
+        } elseif ($overloaded !== true) {
+            $blockedReason = 'no_overload';
+        } elseif ($recipient !== true) {
+            $blockedReason = 'no_spare_capacity';
+        } else {
+            $blockedReason = 'same_person';
+        }
+
+        return [
+            'most_loaded' => $loaded !== null ? self::personMetrics($loaded) : null,
+            'most_overdue' => $overdue !== null ? self::personMetrics($overdue) : null,
+            'blocked_reason' => $blockedReason,
+            'overload_percent' => $bands['overload_percent'],
+            'underload_percent' => $bands['underload_percent'],
+        ];
+    }
+
+    /**
+     * The readable half of an assignee row: numbers plus who the person is.
+     *
+     * @param array<string,mixed> $row
+     * @return array<string,mixed>
+     */
+    private static function personMetrics(array $row): array
+    {
+        return [
+            'name' => (string)(($row['full_name'] ?? '') !== '' ? $row['full_name'] : ($row['login'] ?? '')),
+            'load_percent' => (float)($row['load_percent'] ?? 0),
+            'active_tasks' => (int)($row['active_tasks'] ?? 0),
+            'overdue_tasks' => (int)($row['overdue_tasks'] ?? 0),
+            'sla_risk_tasks' => (int)($row['sla_risk_tasks'] ?? 0),
+        ];
+    }
+
+    public static function workloadSignal(float $loadPercent, int $overdue, array $bands = []): string
+    {
+        $bands = self::bands($bands);
+        if ($loadPercent > $bands['overload_percent']) {
             return 'overload';
         }
-        if ($loadPercent < 50 && $overdue === 0) {
+        if ($loadPercent < $bands['underload_percent'] && $overdue === 0) {
             return 'underload';
         }
 
         return $overdue > 0 ? 'risk' : 'normal';
+    }
+
+    /**
+     * Normalise a load band pair, falling back to the historical constants.
+     *
+     * Written as a reader rather than a validator: a broken band that reaches this
+     * far must not turn every signal into an error or divide by nonsense, so an
+     * unusable pair is discarded and the default applies (the service validates the
+     * human-facing input where it is entered).
+     *
+     * @param mixed $bands
+     * @return array{overload_percent:int,underload_percent:int}
+     */
+    public static function bands($bands): array
+    {
+        $overload = self::DEFAULT_OVERLOAD_PERCENT;
+        $underload = self::DEFAULT_UNDERLOAD_PERCENT;
+        if (!is_array($bands)) {
+            return ['overload_percent' => $overload, 'underload_percent' => $underload];
+        }
+
+        $inputOverload = $bands['overload_percent'] ?? null;
+        $inputUnderload = $bands['underload_percent'] ?? null;
+        // Any positive band is a legitimate business choice: an organisation that
+        // wants the alarm at 90 % (people also answer mail) may set it.
+        if (is_numeric($inputOverload) && (int)$inputOverload >= 1) {
+            $overload = (int)$inputOverload;
+        }
+        if (is_numeric($inputUnderload) && (int)$inputUnderload >= 0 && (int)$inputUnderload < $overload) {
+            $underload = (int)$inputUnderload;
+        }
+
+        return ['overload_percent' => $overload, 'underload_percent' => $underload];
     }
 
     /**
@@ -2129,6 +2882,53 @@ final class InsightsRepository
      * @param int[] $userIds
      * @return array<int, array{active:int,overdue:int}>
      */
+    /**
+     * Open tasks per user whose SLA commitment is already missed or about to be.
+     *
+     * The task row carries the SLA snapshot written when a policy was assigned
+     * (`sla_policy_id`, `sla_response_deadline`, `sla_resolve_deadline`,
+     * `sla_breached`), so the risk is read from `tasks` itself; `sla_policies` only
+     * holds the definition. A deadline counts when it has passed or falls inside the
+     * next `SLA_SOON_DAYS`, and a task already flagged as breached counts even if it
+     * no longer carries a deadline.
+     *
+     * @param int[] $userIds
+     * @return array<int,int> user id => tasks at risk
+     */
+    private function slaRiskTaskCountsByUser(array $userIds, string $now): array
+    {
+        if ($userIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($userIds), '?'));
+        $terminal = TaskStatusSemantics::terminalLiteralList($this->pdo);
+        $soon = gmdate('Y-m-d H:i:s', strtotime('+' . self::SLA_SOON_DAYS . ' days', strtotime($now)) ?: time());
+        $stmt = $this->pdo->prepare(
+            'SELECT t.assignee_user_id AS uid, COUNT(*) AS at_risk
+             FROM tasks t
+             WHERE t.deleted_at IS NULL AND t.archived_at IS NULL
+               AND t.status_code NOT IN (' . $terminal . ')
+               AND t.assignee_user_id IN (' . $placeholders . ')
+               AND (
+                   t.sla_breached = 1
+                   OR (t.sla_response_deadline IS NOT NULL AND t.sla_response_deadline <= ?)
+                   OR (t.sla_resolve_deadline IS NOT NULL AND t.sla_resolve_deadline <= ?)
+               )
+             GROUP BY t.assignee_user_id'
+        );
+        // The `IN (...)` placeholder comes first in the statement, so the user ids are
+        // bound before the two deadline bounds.
+        $stmt->execute(array_merge($userIds, [$soon, $soon]));
+
+        $counts = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $counts[(int)$row['uid']] = (int)$row['at_risk'];
+        }
+
+        return $counts;
+    }
+
     private function assignedTaskCountsByUser(array $userIds, string $now): array
     {
         if ($userIds === []) {
@@ -2300,6 +3100,37 @@ final class InsightsRepository
         return $byDay;
     }
 
+    /**
+     * Open tasks that are explicitly blocked.
+     *
+     * `blocked` is the dictionary status a task carries when somebody decided it
+     * cannot move - a dependency is waiting, an answer is missing - and such a task
+     * nonetheless counts as WIP everywhere else. The WIP tile has to be able to say
+     * how much of the queue is stuck rather than in flight.
+     */
+    private function countBlockedOpenTasks(array $userIds, bool $isRoot): int
+    {
+        $scopeSql = '';
+        $params = [];
+        if (!$isRoot) {
+            if ($userIds === []) {
+                return 0;
+            }
+            $scopeSql = ' AND t.assignee_user_id IN (' . implode(', ', array_fill(0, count($userIds), '?')) . ')';
+            $params = $userIds;
+        }
+
+        $stmt = $this->pdo->prepare(
+            "SELECT COUNT(*) FROM tasks t
+             WHERE t.deleted_at IS NULL AND t.archived_at IS NULL
+               AND LOWER(t.status_code) = 'blocked'
+               AND t.status_code NOT IN (" . TaskStatusSemantics::terminalLiteralList($this->pdo) . ')' . $scopeSql
+        );
+        $stmt->execute($params);
+
+        return (int)$stmt->fetchColumn();
+    }
+
     /** Live open queue (non-terminal tasks) in scope. */
     private function countOpenTasks(array $userIds, bool $isRoot): int
     {
@@ -2343,12 +3174,13 @@ final class InsightsRepository
         return (int)round(($values[$middle - 1] + $values[$middle]) / 2);
     }
 
-    public static function loadSignal(float $loadPercent): string
+    public static function loadSignal(float $loadPercent, array $bands = []): string
     {
-        if ($loadPercent > 110) {
+        $bands = self::bands($bands);
+        if ($loadPercent > $bands['overload_percent']) {
             return 'overload';
         }
-        if ($loadPercent < 50) {
+        if ($loadPercent < $bands['underload_percent']) {
             return 'underload';
         }
 
