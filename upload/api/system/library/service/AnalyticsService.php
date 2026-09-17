@@ -620,6 +620,19 @@ final class AnalyticsService
         $data['scope_users'] = $isRoot ? null : count($userIds);
         $data['period_days'] = $periodDays;
 
+        // The sprint face of the same card. It travels with the weekly block instead
+        // of behind its own request: the toggle then switches between two payloads
+        // the card already holds, and the endpoint keeps answering additively.
+        $data['sprint'] = $this->insights()->currentSprintVelocity(
+            $isRoot ? [] : $this->insights()->accessibleProjectPublicIds(
+                (int)($actor['id'] ?? 0),
+                $this->accessibleTeamPublicIds($actor)
+            ),
+            $isRoot,
+            $userIds,
+            $now
+        );
+
         return $this->stripFinancialFields($data);
     }
 

@@ -422,6 +422,13 @@
     return insightOption(definition.key, 'sort', fallback, allowed);
   }
 
+  // A mode is a client-side re-cut of the payload the card already holds (the
+  // velocity card ships both the 13-week series and its active sprints), so it is
+  // remembered exactly like period and sort.
+  function widgetMode(definition, allowed, fallback) {
+    return insightOption(definition.key, 'mode', fallback, allowed);
+  }
+
   function widgetExpanded(definition) {
     return insightOption(definition.key, 'expanded', '0', ['0', '1']) === '1';
   }
@@ -1442,13 +1449,125 @@
     bindInsightToolbar(container, definition);
   }
 
+  // Deep link into the sprint board: the card names a cycle and the reader can act
+  // on it instead of hunting for the project it belongs to.
+  function cycleBoardUrl(publicId) {
+    return 'index.php?route=kanban&cycle_public_id=' + encodeURIComponent(String(publicId || ''));
+  }
+
+  function sprintDaysLabel(days) {
+    var value = Number(days || 0);
+    if (value < 0) {
+      return translate('dashboard.extra_insights_sprint_overdue_days', 'просрочен на %s дн.').replace('%s', String(Math.abs(value)));
+    }
+
+    return translate('dashboard.extra_insights_sprint_days_left', 'осталось %s дн.').replace('%s', String(value));
+  }
+
+  // A projection is printed only when its sample supports it. With a healthy sample
+  // the block states the pace and the projected finish; with none or a handful of
+  // completions it says so instead, because «60 нед · финиш 2027-11-10» off half a
+  // task a week reads as a commitment the data cannot make.
+  function velocityForecastHtml(forecast, openLabel, title) {
+    var data = forecast || {};
+    var confidence = String(data.confidence || '');
+    var open = Number(data.open_tasks !== undefined && data.open_tasks !== null ? data.open_tasks : (data.remaining || 0));
+    if (confidence === 'none' || confidence === 'low') {
+      var completions = Number(data.sample_completions || 0);
+      var reason = completions > 0
+        ? translate('dashboard.extra_insights_forecast_low', 'Мало данных для прогноза: %s завершений за %s нед.')
+          .replace('%s', String(completions)).replace('%s', String(Math.max(1, Number(data.sample_weeks || 0))))
+        : translate('dashboard.extra_insights_forecast_none', 'Мало данных для прогноза: за 4 недели нет ни одного завершения.');
+      return '<div class="crm-dashboard-insight-forecast is-low">'
+        + '<div class="crm-dashboard-insight-forecast-head">' + safe(title) + '</div>'
+        + '<div class="crm-dashboard-insight-forecast-body">'
+        + '<i class="fa-solid fa-circle-info" aria-hidden="true"></i> ' + safe(reason)
+        + ' · ' + safe(openLabel) + ': <strong>' + safe(String(open)) + '</strong>'
+        + '</div></div>';
+    }
+    if (data.weeks_to_finish === null || data.weeks_to_finish === undefined) {
+      return '';
+    }
+
+    return '<div class="crm-dashboard-insight-forecast">'
+      + '<div class="crm-dashboard-insight-forecast-head">' + safe(title) + '</div>'
+      + '<div class="crm-dashboard-insight-forecast-body">'
+      + safe(translate('dashboard.extra_insights_forecast_speed', 'Средний темп')) + ': <strong>' + safe(String(Number(data.average_per_week || 0)))
+      + '</strong> ' + safe(translate('dashboard.extra_insights_per_week', 'задач/нед'))
+      + ' · ' + safe(openLabel) + ': <strong>' + safe(String(open)) + '</strong>'
+      + ' · ≈ ' + safe(String(Number(data.weeks_to_finish))) + ' ' + safe(translate('dashboard.extra_insights_weeks', 'нед.'))
+      + (data.finish_date ? ' · ' + safe(translate('dashboard.extra_insights_forecast_date', 'финиш ~%s').replace('%s', dateText(data.finish_date))) : '')
+      + (data.confidence === 'medium' ? ' · ' + safe(translate('dashboard.extra_insights_forecast_medium', 'выборка небольшая')) : '')
+      + '</div></div>';
+  }
+
+  // The sprint face of the card. «Успеем ли в этом спринте» is answered by the
+  // cycle's own numbers: what it holds, what finished, what is still open, how much
+  // of that is blocked, and a projection over the sprint's remaining work.
+  function sprintVelocityHtml(payload) {
+    var sprint = payload.sprint || {};
+    var cycles = Array.isArray(sprint.cycles) ? sprint.cycles : [];
+    if (!cycles.length) {
+      return '<div class="crm-dashboard-insight-legend">'
+        + safe(translate('dashboard.extra_insights_sprint_none', 'Активных спринтов нет. Запустите спринт в проекте — и он появится здесь со своим темпом.'))
+        + '</div>';
+    }
+
+    return cycles.map(function (cycle) {
+      var blocked = Number(cycle.blocked_tasks || 0);
+      var blockShort = translate('dashboard.extra_insights_blocked_short', 'блок.');
+      var head = '<div class="crm-dashboard-insight-legend"><strong>' + safe(cycle.project_title || '') + '</strong> · '
+        + '<a href="' + safe(cycleBoardUrl(cycle.cycle_public_id)) + '">' + safe(cycle.title || '') + '</a>'
+        + (cycle.days_left !== null && cycle.days_left !== undefined ? ' · ' + safe(sprintDaysLabel(cycle.days_left)) : '')
+        + '</div>';
+      var tiles = '<div class="crm-dashboard-insight-grid">'
+        + insightTile(translate('dashboard.extra_insights_sprint_progress', 'Прогресс спринта'), Number(cycle.progress_percent || 0) + '%')
+        + insightTile(translate('dashboard.extra_insights_sprint_completed', 'Завершено'), String(Number(cycle.completed_tasks || 0)) + ' / ' + String(Number(cycle.total_tasks || 0)))
+        + insightTile(
+          translate('dashboard.extra_insights_wip', 'В работе'),
+          String(Number(cycle.wip || 0)) + (blocked > 0 ? ' · ' + blockShort + ' ' + blocked : ''),
+          blocked > 0 ? 'risk' : null
+        )
+        + insightTile(translate('dashboard.extra_insights_sprint_created', 'Добавлено в спринт'), String(Number(cycle.created_tasks || 0)))
+        + '</div>';
+      var breakdown = '<div class="crm-dashboard-wl-row"><div class="crm-dashboard-wl-meta"><span>'
+        + safe(translate('dashboard.extra_insights_sprint_breakdown', 'Разбивка спринта')) + ': '
+        + safe(translate('dashboard.extra_insights_sprint_done', 'завершено')) + ' ' + Number(cycle.completed_tasks || 0)
+        + ' · ' + safe(translate('dashboard.extra_insights_wip', 'В работе')) + ' ' + Number(cycle.wip || 0)
+        + ' · ' + safe(translate('dashboard.extra_insights_blocked', 'заблокировано')) + ' ' + blocked
+        + (cycle.days_elapsed !== null && cycle.days_elapsed !== undefined
+          ? ' · ' + safe(translate('dashboard.extra_insights_sprint_elapsed', 'идёт дней')) + ' ' + Number(cycle.days_elapsed)
+          : '')
+        + '</span></div></div>';
+
+      return head + tiles + velocityForecastHtml(
+        cycle.forecast,
+        translate('dashboard.extra_insights_sprint_remaining', 'остаток спринта'),
+        translate('dashboard.extra_insights_sprint_forecast_title', 'Прогноз по темпу спринта')
+      ) + breakdown;
+    }).join('');
+  }
+
   function renderVelocity(container, envelope, definition) {
-    var toolbar = insightToolbar(definition, [{
-      name: 'period',
-      label: translate('dashboard.extra_period', 'Период'),
-      value: widgetPeriod(definition),
-      options: periodOptions()
-    }]);
+    var toolbar = insightToolbar(definition, [
+      {
+        name: 'period',
+        label: translate('dashboard.extra_period', 'Период'),
+        value: widgetPeriod(definition),
+        options: periodOptions()
+      },
+      // "Когда мы разгребём бэклог" and "успеем ли в этом спринте" are different
+      // questions, and the manager opens the card for the second one.
+      {
+        name: 'mode',
+        label: translate('dashboard.extra_insights_velocity_cut', 'Разрез'),
+        value: widgetMode(definition, ['weeks', 'sprint'], 'weeks'),
+        options: [
+          { value: 'weeks', label: translate('dashboard.extra_insights_velocity_cut_weeks', '13 недель') },
+          { value: 'sprint', label: translate('dashboard.extra_insights_velocity_cut_sprint', 'Текущий спринт') }
+        ]
+      }
+    ]);
 
     if (!envelope || envelope.success === false) {
       container.innerHTML = toolbar + unavailableHtml();
@@ -1457,6 +1576,13 @@
     }
 
     var payload = insightsPayload(envelope);
+
+    if (widgetMode(definition, ['weeks', 'sprint'], 'weeks') === 'sprint') {
+      container.innerHTML = toolbar + sprintVelocityHtml(payload);
+      bindInsightToolbar(container, definition);
+      return;
+    }
+
     var weeks = Array.isArray(payload.weeks) ? payload.weeks : [];
     if (!weeks.length) {
       container.innerHTML = toolbar + emptyHtml();
@@ -1474,26 +1600,27 @@
     }).join('');
 
     // Forecast is deliberately worded as an estimate: it is a linear projection of
-    // the last four weeks, not a commitment.
-    var forecast = payload.forecast || {};
-    var forecastBlock = '';
-    if (forecast.weeks_to_finish !== null && forecast.weeks_to_finish !== undefined) {
-      forecastBlock = '<div class="crm-dashboard-insight-forecast">'
-        + '<div class="crm-dashboard-insight-forecast-head">'
-        + safe(translate('dashboard.extra_insights_forecast_title', 'Прогноз по среднему темпу за 4 недели')) + '</div>'
-        + '<div class="crm-dashboard-insight-forecast-body">'
-        + safe(translate('dashboard.extra_insights_forecast_speed', 'Средний темп')) + ': <strong>' + safe(String(Number(forecast.average_per_week || 0)))
-        + '</strong> ' + safe(translate('dashboard.extra_insights_per_week', 'задач/нед'))
-        + ' · ' + safe(translate('dashboard.extra_insights_forecast_open', 'в работе')) + ': <strong>' + safe(String(Number(forecast.open_tasks || 0))) + '</strong>'
-        + ' · ≈ ' + safe(String(Number(forecast.weeks_to_finish))) + ' ' + safe(translate('dashboard.extra_insights_weeks', 'нед.'))
-        + (forecast.finish_date ? ' · ' + safe(translate('dashboard.extra_insights_forecast_date', 'финиш ~%s').replace('%s', dateText(forecast.finish_date))) : '')
-        + '</div></div>';
-    }
+    // the last four weeks, not a commitment - and only when the sample allows it.
+    var forecastBlock = velocityForecastHtml(
+      payload.forecast,
+      translate('dashboard.extra_insights_forecast_open', 'в работе'),
+      translate('dashboard.extra_insights_forecast_title', 'Прогноз по среднему темпу за 4 недели')
+    );
 
     var wipTrend = String(payload.wip_trend || 'stable');
     var wipHint = wipTrend === 'growing'
       ? translate('dashboard.extra_insights_wip_growing', 'растёт')
       : (wipTrend === 'shrinking' ? translate('dashboard.extra_insights_wip_shrinking', 'снижается') : translate('dashboard.extra_insights_wip_stable', 'стабильно'));
+
+    // Blocked work sits in the WIP but cannot move: without this the WIP tile reads
+    // as work in flight.
+    var blockedCount = Number(payload.blocked_count || 0);
+    var blockedHint = blockedCount > 0
+      ? '<div class="crm-dashboard-insight-legend crm-dashboard-insight-legend--risk">'
+        + '<i class="fa-solid fa-ban" aria-hidden="true"></i> '
+        + safe(translate('dashboard.extra_insights_blocked_hint', 'Заблокировано задач: %s — они числятся в работе, но не двигаются.').replace('%s', String(blockedCount)))
+        + '</div>'
+      : '';
 
     container.innerHTML = toolbar
       + '<div class="crm-dashboard-insight-grid">'
@@ -1505,10 +1632,16 @@
           : payload.cycle_time_median_minutes
       ))
       + insightTile(translate('dashboard.extra_insights_cycle_p90', 'Cycle time (p90)'), formatMinutesCompact(payload.cycle_time_p90_minutes))
-      + insightTile(translate('dashboard.extra_insights_wip', 'В работе'), String(Number(payload.wip || 0)) + ' · ' + wipHint, wipTrend === 'growing' ? 'risk' : null)
+      + insightTile(
+        translate('dashboard.extra_insights_wip', 'В работе'),
+        String(Number(payload.wip || 0)) + ' · ' + wipHint
+          + (blockedCount > 0 ? ' · ' + translate('dashboard.extra_insights_blocked_short', 'блок.') + ' ' + blockedCount : ''),
+        wipTrend === 'growing' || blockedCount > 0 ? 'risk' : null
+      )
       + insightTile('Δ ' + translate('dashboard.extra_insights_throughput', 'Throughput') + ' ' + translate('dashboard.extra_insights_four_weeks', '4 нед.'), Number(payload.trend_percent || 0) + '%')
       + '</div>'
       + forecastBlock
+      + blockedHint
       + bars;
 
     bindInsightToolbar(container, definition);

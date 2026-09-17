@@ -50,6 +50,25 @@ final class InsightsRepository
     private const MIN_ESTIMATE_SAMPLE = 3;
 
     /**
+     * Forecast confidence thresholds, in completions observed over the window the
+     * projection averages. Below `MIN` - or with fewer than two weeks that produced
+     * anything at all - the payload reports "little data" and withholds the
+     * projected date instead of printing one derived from noise.
+     */
+    private const FORECAST_MIN_SAMPLE_COMPLETIONS = 3;
+    private const FORECAST_HIGH_SAMPLE_COMPLETIONS = 8;
+
+    /**
+     * Cycle statuses the sprint view treats as finished.
+     * Mirrors `CycleTaskRepository::COMPLETED_OR_ARCHIVED`: an archived task counts
+     * as done for its cycle, a cancelled one deliberately does not.
+     */
+    private const SPRINT_COMPLETED_CODES = ['done', 'completed', 'closed', 'archived'];
+
+    /** Completion weeks a sprint projection is allowed to be scored on. */
+    private const SPRINT_SAMPLE_WEEKS = 4;
+
+    /**
      * How close a deadline has to be before a stream is flagged `soon`.
      * Seven days is the window the project milestones summary already calls
      * "upcoming", so the two screens agree on what "на этой неделе" means.
@@ -414,7 +433,16 @@ final class InsightsRepository
                     'trend_percent' => 0.0,
                     'wip' => 0,
                     'wip_trend' => 'stable',
-                    'forecast' => ['average_per_week' => 0.0, 'open_tasks' => 0, 'weeks_to_finish' => null, 'finish_date' => null],
+                    'blocked_count' => 0,
+                    'forecast' => [
+                        'average_per_week' => 0.0,
+                        'open_tasks' => 0,
+                        'weeks_to_finish' => null,
+                        'finish_date' => null,
+                        'confidence' => 'none',
+                        'sample_completions' => 0,
+                        'sample_weeks' => 0,
+                    ],
                 ];
             }
             $scopeSql = ' AND t.assignee_user_id IN (' . implode(', ', array_fill(0, count($userIds), '?')) . ')';
@@ -507,12 +535,19 @@ final class InsightsRepository
         $p90Index = $durations !== [] ? (int)min(count($durations) - 1, floor(count($durations) * 0.9)) : 0;
 
         // Forecast: four-week average throughput against the open queue. Deliberately
-        // blunt - the UI presents it as an estimate, not a commitment.
+        // blunt - the UI presents it as an estimate, not a commitment - and honest
+        // about the sample behind it: a projection drawn from one completion in four
+        // weeks used to print a confident «60 нед · финиш 2027-11-10», so the date is
+        // now withheld until the history supports it (`forecast.confidence`).
         $recent = array_slice($throughput, -4);
         $previousWindow = array_slice($throughput, -8, -4);
         $average = $recent !== [] ? array_sum($recent) / count($recent) : 0.0;
         $previousAverage = count($previousWindow) === 4 ? array_sum($previousWindow) / 4 : 0.0;
         $weeksToFinish = $average > 0 ? round($openTasks / $average, 1) : null;
+        $sampleCompletions = array_sum($recent);
+        $sampleWeeks = count(array_filter($recent, static fn(int $completed): bool => $completed > 0));
+        $confidence = self::forecastConfidence($sampleCompletions, $sampleWeeks);
+        $trustworthy = $confidence === 'medium' || $confidence === 'high';
 
         return [
             'weeks' => $weekRows,
@@ -526,15 +561,206 @@ final class InsightsRepository
             'trend_percent' => self::deltaPercent((int)round($average), (int)round($previousAverage)),
             'wip' => $lastWip,
             'wip_trend' => $lastWip > $previousWip ? 'growing' : ($lastWip < $previousWip ? 'shrinking' : 'stable'),
+            // Blocked work is not "in progress": the WIP tile says how much of the
+            // queue cannot move, so an open but stuck task stops reading as work.
+            'blocked_count' => $this->countBlockedOpenTasks($userIds, $isRoot),
             'forecast' => [
                 'average_per_week' => round($average, 1),
                 'open_tasks' => $openTasks,
-                'weeks_to_finish' => $weeksToFinish,
-                'finish_date' => $weeksToFinish !== null
+                'weeks_to_finish' => $trustworthy ? $weeksToFinish : null,
+                'finish_date' => $trustworthy && $weeksToFinish !== null
                     ? gmdate('Y-m-d', strtotime($now) + (int)round($weeksToFinish * 604800))
                     : null,
+                'confidence' => $confidence,
+                'sample_completions' => $sampleCompletions,
+                'sample_weeks' => $sampleWeeks,
             ],
         ];
+    }
+
+    /**
+     * Active sprints in the actor's scope, with the metrics the velocity card needs
+     * to answer «успеем ли в этом спринте?».
+     *
+     * Weekly throughput answers a planning question six weeks out; the sprint view
+     * answers the one a team asks on Monday. Each active cycle reports what it holds,
+     * what finished, what is still open (and how much of that is blocked), and a
+     * projection over the cycle's own completion history - under the same confidence
+     * rule as the weekly forecast, so a sprint that produced two completions does not
+     * print a finish date either.
+     *
+     * Visibility is applied twice on purpose: cycles come from the actor's accessible
+     * projects, and their tasks from the actor's visible users, so neither another
+     * team's sprint nor a stranger's task can reach the payload.
+     *
+     * @param string[] $accessibleProjectPublicIds empty when $isRoot is true
+     * @param int[] $userIds empty when $isRoot is true
+     * @return array{active_cycles:int,cycles:array<int,array<string,mixed>>}
+     */
+    public function currentSprintVelocity(array $accessibleProjectPublicIds, bool $isRoot, array $userIds, string $now): array
+    {
+        $empty = ['active_cycles' => 0, 'cycles' => []];
+        if (!$isRoot && ($accessibleProjectPublicIds === [] || $userIds === [])) {
+            return $empty;
+        }
+
+        $where = "c.status = 'active' AND c.archived_at IS NULL AND c.deleted_at IS NULL";
+        $params = [];
+        if (!$isRoot) {
+            $where .= ' AND p.public_id IN (' . implode(', ', array_fill(0, count($accessibleProjectPublicIds), '?')) . ')';
+            $params = array_values($accessibleProjectPublicIds);
+        }
+
+        $stmt = $this->pdo->prepare(
+            'SELECT c.id, c.public_id, c.title, c.start_at, c.end_at,
+                    p.public_id AS project_public_id, p.title AS project_title
+             FROM work_cycles c
+             JOIN projects p ON p.id = c.project_id
+             WHERE ' . $where . '
+             ORDER BY c.end_at IS NULL ASC, c.end_at ASC'
+        );
+        $stmt->execute($params);
+        $cycles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        if ($cycles === []) {
+            return $empty;
+        }
+
+        $cycleIds = array_map(static fn(array $row): int => (int)$row['id'], $cycles);
+        $idPlaceholders = implode(', ', array_fill(0, count($cycleIds), '?'));
+        $scopeSql = '';
+        $scopeParams = [];
+        if (!$isRoot) {
+            $scopeSql = ' AND t.assignee_user_id IN (' . implode(', ', array_fill(0, count($userIds), '?')) . ')';
+            $scopeParams = array_values($userIds);
+        }
+
+        // One pass for every active cycle instead of a query per card refresh.
+        $taskStmt = $this->pdo->prepare(
+            'SELECT ct.cycle_id, t.id AS task_id, t.status_code, t.created_at
+             FROM cycle_tasks ct
+             JOIN tasks t ON t.id = ct.task_id
+             WHERE ct.deleted_at IS NULL AND ct.cycle_id IN (' . $idPlaceholders . ')
+               AND t.deleted_at IS NULL AND t.archived_at IS NULL' . $scopeSql
+        );
+        $taskStmt->execute(array_merge($cycleIds, $scopeParams));
+
+        // Completion timestamps come from history (`tasks` has no completed_at) and are
+        // bucketed into weeks in PHP, so the sprint projection is scored on exactly the
+        // same confidence rule as the weekly one.
+        $historyStmt = $this->pdo->prepare(
+            'SELECT ct.cycle_id, h.task_id, MIN(h.created_at) AS finished_at
+             FROM task_status_history h
+             JOIN cycle_tasks ct ON ct.task_id = h.task_id AND ct.deleted_at IS NULL
+             JOIN tasks t ON t.id = h.task_id
+             WHERE ct.cycle_id IN (' . $idPlaceholders . ')
+               AND h.new_status IN (' . TaskStatusSemantics::completedLiteralList($this->pdo) . ')
+               AND t.deleted_at IS NULL AND t.archived_at IS NULL' . $scopeSql . '
+             GROUP BY ct.cycle_id, h.task_id'
+        );
+        $historyStmt->execute(array_merge($cycleIds, $scopeParams));
+
+        $completionWeeks = [];
+        foreach ($historyStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $finishedTs = strtotime((string)$row['finished_at']);
+            if ($finishedTs === false) {
+                continue;
+            }
+            $week = gmdate('Y-m-d', $this->mondayTsUtc(gmdate('Y-m-d H:i:s', $finishedTs)));
+            $completionWeeks[(int)$row['cycle_id']][$week] = true;
+        }
+
+        $tasksByCycle = [];
+        foreach ($taskStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $tasksByCycle[(int)$row['cycle_id']][] = $row;
+        }
+
+        $nowTs = strtotime($now) ?: time();
+        $out = [];
+        foreach ($cycles as $cycle) {
+            $cycleId = (int)$cycle['id'];
+            $startTs = $cycle['start_at'] !== null ? strtotime((string)$cycle['start_at']) : false;
+            $endTs = $cycle['end_at'] !== null ? strtotime((string)$cycle['end_at']) : false;
+
+            $total = 0;
+            $completed = 0;
+            $open = 0;
+            $blocked = 0;
+            $created = 0;
+            foreach (($tasksByCycle[$cycleId] ?? []) as $task) {
+                $total++;
+                $code = strtolower(trim((string)$task['status_code']));
+                if (in_array($code, self::SPRINT_COMPLETED_CODES, true)) {
+                    $completed++;
+                } else {
+                    $open++;
+                    if ($code === 'blocked') {
+                        $blocked++;
+                    }
+                }
+                if ($startTs !== false) {
+                    $createdTs = strtotime((string)$task['created_at']);
+                    if ($createdTs !== false && $createdTs >= $startTs) {
+                        $created++;
+                    }
+                }
+            }
+
+            $sampleWeeks = min(self::SPRINT_SAMPLE_WEEKS, count($completionWeeks[$cycleId] ?? []));
+            $confidence = self::forecastConfidence($completed, $sampleWeeks);
+            $trustworthy = $confidence === 'medium' || $confidence === 'high';
+            $weeksElapsed = $startTs !== false ? max(0.5, ($nowTs - $startTs) / 604800) : 1.0;
+            $average = $completed / $weeksElapsed;
+            $weeksToFinish = $average > 0 ? round($open / $average, 1) : null;
+
+            $out[] = [
+                'cycle_public_id' => (string)$cycle['public_id'],
+                'title' => (string)($cycle['title'] ?? ''),
+                'project_public_id' => (string)$cycle['project_public_id'],
+                'project_title' => (string)($cycle['project_title'] ?? ''),
+                'start_at' => $cycle['start_at'],
+                'end_at' => $cycle['end_at'],
+                'days_left' => $endTs !== false ? (int)floor(($endTs - $nowTs) / 86400) : null,
+                'days_elapsed' => $startTs !== false ? max(0, (int)floor(($nowTs - $startTs) / 86400)) : null,
+                'total_tasks' => $total,
+                'completed_tasks' => $completed,
+                'created_tasks' => $created,
+                'wip' => $open,
+                'blocked_tasks' => $blocked,
+                'progress_percent' => $total > 0 ? round($completed / $total * 100, 1) : 0.0,
+                'forecast' => [
+                    'average_per_week' => round($average, 1),
+                    'remaining' => $open,
+                    'weeks_to_finish' => $trustworthy ? $weeksToFinish : null,
+                    'finish_date' => $trustworthy && $weeksToFinish !== null
+                        ? gmdate('Y-m-d', $nowTs + (int)round($weeksToFinish * 604800))
+                        : null,
+                    'confidence' => $confidence,
+                    'sample_completions' => $completed,
+                    'sample_weeks' => $sampleWeeks,
+                ],
+            ];
+        }
+
+        return ['active_cycles' => count($out), 'cycles' => $out];
+    }
+
+    /**
+     * How much a projection can be trusted, from the sample it was built on.
+     *
+     * `none` (nothing completed) and `low` (a handful of completions, or a single
+     * productive week) mean the caller withholds the date and says why instead of
+     * presenting a straight line through noise as a plan.
+     */
+    public static function forecastConfidence(int $completions, int $sampleWeeks): string
+    {
+        if ($completions <= 0) {
+            return 'none';
+        }
+        if ($completions < self::FORECAST_MIN_SAMPLE_COMPLETIONS || $sampleWeeks < 2) {
+            return 'low';
+        }
+
+        return $completions < self::FORECAST_HIGH_SAMPLE_COMPLETIONS ? 'medium' : 'high';
     }
 
     /**
@@ -2298,6 +2524,37 @@ final class InsightsRepository
         }
 
         return $byDay;
+    }
+
+    /**
+     * Open tasks that are explicitly blocked.
+     *
+     * `blocked` is the dictionary status a task carries when somebody decided it
+     * cannot move - a dependency is waiting, an answer is missing - and such a task
+     * nonetheless counts as WIP everywhere else. The WIP tile has to be able to say
+     * how much of the queue is stuck rather than in flight.
+     */
+    private function countBlockedOpenTasks(array $userIds, bool $isRoot): int
+    {
+        $scopeSql = '';
+        $params = [];
+        if (!$isRoot) {
+            if ($userIds === []) {
+                return 0;
+            }
+            $scopeSql = ' AND t.assignee_user_id IN (' . implode(', ', array_fill(0, count($userIds), '?')) . ')';
+            $params = $userIds;
+        }
+
+        $stmt = $this->pdo->prepare(
+            "SELECT COUNT(*) FROM tasks t
+             WHERE t.deleted_at IS NULL AND t.archived_at IS NULL
+               AND LOWER(t.status_code) = 'blocked'
+               AND t.status_code NOT IN (" . TaskStatusSemantics::terminalLiteralList($this->pdo) . ')' . $scopeSql
+        );
+        $stmt->execute($params);
+
+        return (int)$stmt->fetchColumn();
     }
 
     /** Live open queue (non-terminal tasks) in scope. */
