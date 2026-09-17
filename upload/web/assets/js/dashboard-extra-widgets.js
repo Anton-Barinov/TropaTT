@@ -2498,6 +2498,7 @@
   }
 
   function bindStreamExport(container) {
+    if (!container.querySelectorAll) return;
     container.querySelectorAll('[data-stream-export]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var mode = btn.getAttribute('data-stream-export');
