@@ -4660,6 +4660,7 @@ return array (
     'extra_insights_sort_load' => 'By load',
     'extra_insights_sort_overdue' => 'By overdue',
     'extra_insights_sort_name' => 'By name',
+    'extra_insights_sort_free' => 'Free first',
     'extra_insights_sort_hours' => 'By hours',
     'extra_insights_sort_progress' => 'By progress',
     'extra_insights_active_now' => 'Active (now)',

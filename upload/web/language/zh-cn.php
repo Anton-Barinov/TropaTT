@@ -4806,6 +4806,7 @@ return array (
     'extra_insights_sort_load' => '按负载',
     'extra_insights_sort_overdue' => '按逾期',
     'extra_insights_sort_name' => '按名称',
+    'extra_insights_sort_free' => '空闲优先',
     'extra_insights_sort_hours' => '按工时',
     'extra_insights_sort_progress' => '按进度',
     'extra_insights_active_now' => '活跃（当前）',

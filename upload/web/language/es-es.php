@@ -3681,6 +3681,7 @@ return array (
     'extra_insights_sort_load' => 'Por carga',
     'extra_insights_sort_overdue' => 'Por atraso',
     'extra_insights_sort_name' => 'Por nombre',
+    'extra_insights_sort_free' => 'Disponibles primero',
     'extra_insights_sort_hours' => 'Por horas',
     'extra_insights_sort_progress' => 'Por progreso',
     'extra_insights_active_now' => 'Activas (ahora)',

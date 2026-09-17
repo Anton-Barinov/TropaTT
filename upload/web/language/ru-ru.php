@@ -4679,6 +4679,7 @@ return array (
     'extra_insights_sort_load' => 'По загрузке',
     'extra_insights_sort_overdue' => 'По просрочке',
     'extra_insights_sort_name' => 'По имени',
+    'extra_insights_sort_free' => 'Свободные впереди',
     'extra_insights_sort_hours' => 'По часам',
     'extra_insights_sort_progress' => 'По прогрессу',
     'extra_insights_active_now' => 'Активные (сейчас)',

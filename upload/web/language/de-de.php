@@ -3681,6 +3681,7 @@ return array (
     'extra_insights_sort_load' => 'Nach Auslastung',
     'extra_insights_sort_overdue' => 'Nach Überfälligkeit',
     'extra_insights_sort_name' => 'Nach Name',
+    'extra_insights_sort_free' => 'Freie zuerst',
     'extra_insights_sort_hours' => 'Nach Stunden',
     'extra_insights_sort_progress' => 'Nach Fortschritt',
     'extra_insights_active_now' => 'Aktiv (aktuell)',
