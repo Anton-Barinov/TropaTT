@@ -299,11 +299,12 @@ abstract class Controller
             }
         }
 
-        // Module translations use their own top-level namespace. Preserve every
-        // loaded module namespace without re-sending unrelated page dictionaries.
-        foreach (['jira_migration', 'confluence_migration'] as $namespace) {
-            if (array_key_exists($namespace, $messages)) {
-                $selected[$namespace] = $messages[$namespace];
+        // Module translations use their own top-level namespace (e.g. "module_handover").
+        // Include every loaded module namespace so the client-side applyToDom() can
+        // resolve data-i18n keys that were server-rendered into the page HTML.
+        foreach ($messages as $key => $value) {
+            if (str_starts_with($key, 'module_') && is_array($value)) {
+                $selected[$key] = $value;
             }
         }
 
