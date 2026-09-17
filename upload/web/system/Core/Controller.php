@@ -211,6 +211,16 @@ abstract class Controller
                     $moduleNames[$m[1]] = true;
                 }
             }
+            foreach (self::$moduleCssRoutes ?? [] as $css) {
+                if (preg_match('#^modules/([a-z0-9]+\.[a-z0-9\-]+)/#', $css, $m)) {
+                    $moduleNames[$m[1]] = true;
+                }
+            }
+            foreach (self::$moduleJsRoutes ?? [] as $js) {
+                if (preg_match('#^modules/([a-z0-9]+\.[a-z0-9\-]+)/#', $js, $m)) {
+                    $moduleNames[$m[1]] = true;
+                }
+            }
             foreach ($moduleNames as $modName => $_) {
                 $parts = explode('.', $modName, 2);
                 if (count($parts) === 2) {
