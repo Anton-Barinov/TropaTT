@@ -53,6 +53,12 @@ final class PluginManager
                 continue;
             }
 
+            // Skip directories that don't match the vendor.name naming convention
+            // (e.g. backup dirs like "crm.handover.bak.20260917_133615").
+            if (!preg_match('/^[a-z0-9]+\.[a-z0-9\-]+$/', $item)) {
+                continue;
+            }
+
             $manifestPath = $this->modulesDir . '/' . $item . '/manifest.json';
             if (!is_file($manifestPath)) {
                 continue;

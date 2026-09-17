@@ -90,6 +90,28 @@ if (is_file($rateLimitFile)) {
 $autoloader = new Api\System\Library\Support\Autoloader($apiRoot);
 $autoloader->register();
 
+// Module cron handlers live in Module\Vendor\Name\... and are resolved by the
+// module autoloader that the web application registers in app.php on a normal
+// request. This HTTP entrypoint runs standalone (shared hosting without CLI
+// cron), so without the same registration every module task failed to load
+// its handler class and ModuleCronScheduler::hasMissingModuleHandler() saw a
+// missing class and disabled the task outright (last_status = 'disabled') —
+// mirrors the same block in api/scripts/scheduler.php.
+$moduleAutoloader = new Api\System\Library\Module\ModuleAutoloader($projectRoot);
+$moduleAutoloader->register();
+
+try {
+    $pluginManager = new Api\System\Library\Module\PluginManager($projectRoot);
+    $pluginManager->discover();
+
+    foreach ($pluginManager->getDiscovered() as $manifest) {
+        $moduleAutoloader->registerModule($manifest->name, $manifest->vendor);
+    }
+} catch (\Throwable $e) {
+    // A broken module or config must never stop cron from running core tasks.
+    \Api\System\Library\Support\AppLog::error('[Cron] Module autoloader registration failed: ' . $e->getMessage());
+}
+
 $config = new Api\System\Library\Config();
 $config->load($apiRoot . '/config/database.php', 'database');
 $config->load($apiRoot . '/config/notifications.php', 'notifications');

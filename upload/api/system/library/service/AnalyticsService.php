@@ -145,31 +145,38 @@ final class AnalyticsService
             return $this->loadThresholdsCache;
         }
 
-        $overload = InsightsRepository::DEFAULT_OVERLOAD_PERCENT;
-        $underload = InsightsRepository::DEFAULT_UNDERLOAD_PERCENT;
         $source = 'default';
+        $input = [];
 
         $overloadValue = $this->settingValue(self::BAND_OVERLOAD_NAME);
         if (is_numeric($overloadValue)) {
             $candidate = (int)$overloadValue;
             if ($candidate >= self::BAND_MIN_OVERLOAD && $candidate <= self::BAND_MAX) {
-                $overload = $candidate;
+                $input['overload_percent'] = $candidate;
                 $source = 'setting';
             }
         }
 
         $underloadValue = $this->settingValue(self::BAND_UNDERLOAD_NAME);
+        $underloadCandidate = null;
         if (is_numeric($underloadValue)) {
-            $candidate = (int)$underloadValue;
-            if ($candidate >= 0 && $candidate < $overload) {
-                $underload = $candidate;
-                $source = 'setting';
-            }
+            $underloadCandidate = (int)$underloadValue;
+            $input['underload_percent'] = $underloadCandidate;
+        }
+
+        // Delegate the actual pairing to the one place that guards against a
+        // crossed band (InsightsRepository::bands()), so a custom overload below
+        // the 50% default cannot leave the underload floor above it here while
+        // staying safe everywhere bands() is called directly (e.g. from a fixture
+        // with no service in front of it).
+        $bands = InsightsRepository::bands($input);
+        if ($underloadCandidate !== null && $bands['underload_percent'] === $underloadCandidate) {
+            $source = 'setting';
         }
 
         return $this->loadThresholdsCache = [
-            'overload_percent' => $overload,
-            'underload_percent' => $underload,
+            'overload_percent' => $bands['overload_percent'],
+            'underload_percent' => $bands['underload_percent'],
             'source' => $source,
         ];
     }

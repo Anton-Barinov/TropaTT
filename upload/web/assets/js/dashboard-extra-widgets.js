@@ -706,7 +706,14 @@
     var hasData = Number(payload.active_tasks || 0) || Number(payload.minutes_week || 0)
       || Number(payload.completed_period || 0) || Number(payload.minutes_period || 0);
     if (!hasData) {
-      container.innerHTML = toolbar + emptyHtml();
+      // The generic "no data yet" leaves the person guessing what would make
+      // the card fill in; this one names the two things that do (logged time,
+      // a completed task) so an empty card reads as a to-do, not a dead end.
+      container.innerHTML = toolbar
+        + '<div class="text-muted small">' + safe(translate(
+          'dashboard.extra_insights_my_load_empty',
+          'No data for this period: log time on your tasks or complete at least one to see load and efficiency.'
+        )) + '</div>';
       bindInsightToolbar(container, definition);
       return;
     }
@@ -1291,6 +1298,15 @@
       if (sort === 'load') return Number(b.load_percent || 0) - Number(a.load_percent || 0);
       if (sort === 'overdue') return Number(b.overdue_tasks || 0) - Number(a.overdue_tasks || 0);
       if (sort === 'name') return String(a.full_name || a.login || '').localeCompare(String(b.full_name || b.login || ''));
+      if (sort === 'free') {
+        // Who can take on work, listed first - the opposite question from the
+        // default "who needs help". A row with no measurable data is not
+        // "free" (it is unknown), so it sinks to the bottom instead of
+        // winning the ascending-load sort by having nothing to sort on.
+        var aUnknown = a.signal === 'no_data' ? 1 : 0;
+        var bUnknown = b.signal === 'no_data' ? 1 : 0;
+        return aUnknown - bUnknown || Number(a.load_percent || 0) - Number(b.load_percent || 0);
+      }
       return signalRank(a.signal) - signalRank(b.signal)
         || Number(b.overdue_tasks || 0) - Number(a.overdue_tasks || 0)
         || Number(b.load_percent || 0) - Number(a.load_percent || 0);
@@ -1361,8 +1377,8 @@
     return safe(String(department.title || '')) + noManager + membersLine;
   }
 
-  function departmentRows(departments) {
-    return sortedAssigneeRows(departments, 'signal').map(function (department) {
+  function departmentRows(departments, sort) {
+    return sortedAssigneeRows(departments, sort || 'signal').map(function (department) {
       return [
         departmentTitleCell(department),
         safe(String(Number(department.members_count || 0))),
@@ -1506,10 +1522,11 @@
       {
         name: 'sort',
         label: translate('dashboard.extra_insights_sort', 'Сортировка'),
-        value: widgetSort(definition, ['signal', 'load', 'overdue', 'name'], 'signal'),
+        value: widgetSort(definition, ['signal', 'load', 'free', 'overdue', 'name'], 'signal'),
         options: [
           { value: 'signal', label: translate('dashboard.extra_insights_sort_risk', 'По риску') },
           { value: 'load', label: translate('dashboard.extra_insights_sort_load', 'По загрузке') },
+          { value: 'free', label: translate('dashboard.extra_insights_sort_free', 'Свободные впереди') },
           { value: 'overdue', label: translate('dashboard.extra_insights_sort_overdue', 'По просрочке') },
           { value: 'name', label: translate('dashboard.extra_insights_sort_name', 'По имени') }
         ]
@@ -1531,7 +1548,7 @@
       return;
     }
 
-    var sort = widgetSort(definition, ['signal', 'load', 'overdue', 'name'], 'signal');
+    var sort = widgetSort(definition, ['signal', 'load', 'free', 'overdue', 'name'], 'signal');
     var ordered = sortedAssigneeRows(assignees, sort);
     var visible = widgetExpanded(definition) ? ordered : ordered.slice(0, 10);
     var hidden = ordered.length - visible.length;
@@ -1540,7 +1557,10 @@
     if (departments.length) {
       departmentsBlock = '<div class="crm-dashboard-insight-section-title">'
         + safe(translate('dashboard.extra_insights_departments', 'Отделы')) + '</div>'
-        + insightsTable(DEPARTMENT_HEADERS(), departmentRows(departments));
+        // The department table used to always sort by signal regardless of the
+        // toolbar's own selection - the "free first" control looked like it did
+        // nothing for departments, only for the people table below it.
+        + insightsTable(DEPARTMENT_HEADERS(), departmentRows(departments, sort));
     }
 
     var peopleBlock = '<div class="crm-dashboard-insight-section-title">'
@@ -1826,7 +1846,7 @@
 
     var departmentsBlock = departments.length
       ? '<div class="crm-dashboard-insight-section-title">' + safe(translate('dashboard.extra_insights_departments', 'Отделы')) + '</div>'
-        + insightsTable(DEPARTMENT_HEADERS(), departmentRows(departments))
+        + insightsTable(DEPARTMENT_HEADERS(), departmentRows(departments, sort))
       : '';
 
     var peopleRows = visible.map(function (row) {

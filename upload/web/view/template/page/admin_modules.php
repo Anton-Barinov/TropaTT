@@ -314,7 +314,7 @@
             }
 
             rows += '<tr>';
-            rows += '<td class="text-center"><input type="checkbox" class="module-select" data-name="' + esc(m.name) + '" aria-label="' + window.CRM.i18n.t('admin_modules.select_module', 'Выбрать модуль') + ' ' + esc(m.name) + '"></td>';
+            if (m.status === 'not_installed') { rows += '<td class="text-center"></td>'; } else { rows += '<td class="text-center"><input type="checkbox" class="module-select" data-name="' + esc(m.name) + '" aria-label="' + window.CRM.i18n.t('admin_modules.select_module', 'Выбрать модуль') + ' ' + esc(m.name) + '"></td>'; }
             rows += '<td><a href="index.php?route=admin-module-detail&module=' + encodeURIComponent(m.name) + '" class="text-decoration-none"><strong>' + esc(m.title || m.name) + '</strong></a>';
             if (m.category) rows += ' <span class="badge bg-light text-muted border crm-module-cat">' + esc(categoryLabel(m.category)) + '</span>';
             rows += '<br><small class="text-muted">' + esc(m.name) + '</small>';
