@@ -3684,6 +3684,7 @@ return array (
     'extra_insights_sort_hours' => 'Por horas',
     'extra_insights_sort_progress' => 'Por progresso',
     'extra_insights_active_now' => 'Ativas (agora)',
+    'extra_insights_my_load_empty' => 'Sem dados para este período: registre tempo em suas tarefas ou conclua pelo menos uma para ver a carga e a eficiência.',
     'extra_insights_overdue_now' => 'Atrasadas (agora)',
     'extra_insights_completed_period' => 'Concluídas no período',
     'extra_insights_on_time' => 'No prazo',

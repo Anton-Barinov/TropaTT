@@ -4663,6 +4663,7 @@ return array (
     'extra_insights_sort_hours' => 'By hours',
     'extra_insights_sort_progress' => 'By progress',
     'extra_insights_active_now' => 'Active (now)',
+    'extra_insights_my_load_empty' => 'No data for this period: log time on your tasks or complete at least one to see load and efficiency.',
     'extra_insights_overdue_now' => 'Overdue (now)',
     'extra_insights_completed_period' => 'Completed in period',
     'extra_insights_on_time' => 'On time',

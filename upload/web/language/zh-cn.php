@@ -4809,6 +4809,7 @@ return array (
     'extra_insights_sort_hours' => '按工时',
     'extra_insights_sort_progress' => '按进度',
     'extra_insights_active_now' => '活跃（当前）',
+    'extra_insights_my_load_empty' => '该时段暂无数据：请为任务记录工时，或至少完成一个任务，即可查看负载和效率。',
     'extra_insights_overdue_now' => '逾期（当前）',
     'extra_insights_completed_period' => '期间完成',
     'extra_insights_on_time' => '按时',

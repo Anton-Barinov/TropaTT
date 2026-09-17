@@ -706,7 +706,14 @@
     var hasData = Number(payload.active_tasks || 0) || Number(payload.minutes_week || 0)
       || Number(payload.completed_period || 0) || Number(payload.minutes_period || 0);
     if (!hasData) {
-      container.innerHTML = toolbar + emptyHtml();
+      // The generic "no data yet" leaves the person guessing what would make
+      // the card fill in; this one names the two things that do (logged time,
+      // a completed task) so an empty card reads as a to-do, not a dead end.
+      container.innerHTML = toolbar
+        + '<div class="text-muted small">' + safe(translate(
+          'dashboard.extra_insights_my_load_empty',
+          'No data for this period: log time on your tasks or complete at least one to see load and efficiency.'
+        )) + '</div>';
       bindInsightToolbar(container, definition);
       return;
     }

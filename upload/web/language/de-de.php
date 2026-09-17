@@ -3684,6 +3684,7 @@ return array (
     'extra_insights_sort_hours' => 'Nach Stunden',
     'extra_insights_sort_progress' => 'Nach Fortschritt',
     'extra_insights_active_now' => 'Aktiv (aktuell)',
+    'extra_insights_my_load_empty' => 'Keine Daten für diesen Zeitraum: Erfassen Sie Zeit für Ihre Aufgaben oder schließen Sie mindestens eine ab, um Auslastung und Effizienz zu sehen.',
     'extra_insights_overdue_now' => 'Überfällig (aktuell)',
     'extra_insights_completed_period' => 'Im Zeitraum erledigt',
     'extra_insights_on_time' => 'Pünktlich',
