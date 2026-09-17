@@ -360,11 +360,13 @@ final class AnalyticsService
         }
 
         $requestedAssignee = trim((string)($filters['assignee_user_public_id'] ?? ''));
+        $assigneeDenied = false;
         if ($requestedAssignee !== '') {
             $assignee = $this->userManagement->findByPublicId($requestedAssignee);
             $assigneeId = (int)($assignee['id'] ?? 0);
             if ($assigneeId <= 0) {
                 $userIds = [-1];
+                $assigneeDenied = true;
             } elseif ($isRoot) {
                 // Narrowing a root actor to one person is still a narrowing: keep the
                 // "sees everything" branch out of it so the filter cannot be ignored.
@@ -373,7 +375,12 @@ final class AnalyticsService
             } else {
                 // A non-root actor may only narrow to somebody they already see; the ids
                 // come from the same resolver the rest of the widget family uses.
-                $userIds = in_array($assigneeId, $this->visibleUserIds($actor), true) ? [$assigneeId] : [-1];
+                if (in_array($assigneeId, $this->visibleUserIds($actor), true)) {
+                    $userIds = [$assigneeId];
+                } else {
+                    $userIds = [-1];
+                    $assigneeDenied = true;
+                }
             }
         }
 
@@ -403,8 +410,14 @@ final class AnalyticsService
         // picker only ever offers projects of the actor's own scope.
         $data['period_days'] = $periodDays;
         $data['assignee_filter'] = $requestedAssignee !== '' && ($userIds !== [-1]) ? $requestedAssignee : null;
+        $data['assignee_filter_denied'] = $assigneeDenied;
         $data['project_filter_denied'] = $requestedProject !== '' && $projectFilter === null;
         $data['projects'] = $this->insights()->projectOptions($accessibleProjects, $actorIsRoot);
+        // Same actor-scope rule as the project picker above: built from the actor's
+        // original role, not the possibly-narrowed $isRoot, so a root user who just
+        // narrowed to one person is still offered the full people list next time.
+        $accessibleUserIds = $actorIsRoot ? [] : $this->visibleUserIds($actor);
+        $data['assignees'] = $this->insights()->assigneeOptions($accessibleUserIds, $actorIsRoot);
 
         return $this->stripFinancialFields($data);
     }

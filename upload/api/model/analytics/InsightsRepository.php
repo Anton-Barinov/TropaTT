@@ -966,6 +966,40 @@ final class InsightsRepository
     }
 
     /**
+     * Lightweight id/name list of the users an assignee filter may narrow to.
+     *
+     * Mirrors `projectOptions()`: root sees every active user, everyone else only
+     * the ids their own visibility already resolved to, so the picker can never
+     * offer a person the filter itself would reject.
+     *
+     * @param int[] $visibleUserIds empty when $isRoot is true
+     * @return array<int, array{user_public_id:string,full_name:string}>
+     */
+    public function assigneeOptions(array $visibleUserIds, bool $isRoot): array
+    {
+        $sql = 'SELECT u.public_id, u.full_name, u.login FROM users u WHERE u.deleted_at IS NULL AND u.is_active = 1';
+        $params = [];
+        if (!$isRoot) {
+            if ($visibleUserIds === []) {
+                return [];
+            }
+            $sql .= ' AND u.id IN (' . implode(', ', array_fill(0, count($visibleUserIds), '?')) . ')';
+            $params = $visibleUserIds;
+        }
+        $sql .= ' ORDER BY u.full_name ASC, u.login ASC';
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+
+        return array_map(static function (array $row): array {
+            return [
+                'user_public_id' => (string)$row['public_id'],
+                'full_name' => (string)($row['full_name'] !== null && $row['full_name'] !== '' ? $row['full_name'] : $row['login']),
+            ];
+        }, $stmt->fetchAll(PDO::FETCH_ASSOC));
+    }
+
+    /**
      * Detailed metrics for a single project.
      *
      * @return array<string,mixed>

@@ -3711,6 +3711,8 @@ return array (
     'extra_insights_no_logs' => 'Aucun temps saisi pour la période sélectionnée',
     'extra_insights_project_denied' => 'Projet indisponible : tout votre périmètre est affiché',
     'extra_insights_all_projects' => 'Tous les projets',
+    'extra_insights_assignee_denied' => 'Responsable indisponible : tout votre périmètre est affiché',
+    'extra_insights_all_assignees' => 'Tous les responsables',
     'extra_insights_legend_capacity' => 'Norme — %s/semaine, source : %s',
     'extra_insights_department_no_manager' => 'aucun responsable — composition indéterminée',
     'extra_insights_no_data' => 'aucune donnée',

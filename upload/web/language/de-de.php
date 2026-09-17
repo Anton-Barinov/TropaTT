@@ -3711,6 +3711,8 @@ return array (
     'extra_insights_no_logs' => 'Im gewählten Zeitraum wurde keine Zeit erfasst',
     'extra_insights_project_denied' => 'Projekt nicht verfügbar: gesamter Bereich wird angezeigt',
     'extra_insights_all_projects' => 'Alle Projekte',
+    'extra_insights_assignee_denied' => 'Bearbeiter nicht verfügbar: gesamter Bereich wird angezeigt',
+    'extra_insights_all_assignees' => 'Alle Bearbeiter',
     'extra_insights_legend_capacity' => 'Norm — %s/Woche, Quelle: %s',
     'extra_insights_department_no_manager' => 'kein Leiter — Zusammensetzung unbestimmt',
     'extra_insights_no_data' => 'keine Daten',
