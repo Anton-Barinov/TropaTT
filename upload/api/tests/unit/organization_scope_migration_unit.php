@@ -25,8 +25,12 @@ $pdo->exec('CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, is_root IN
 $pdo->exec('CREATE TABLE organization_memberships (id INTEGER PRIMARY KEY AUTOINCREMENT, public_id VARCHAR(64) UNIQUE, organization_id INTEGER, user_id INTEGER, role_code VARCHAR(32), created_at DATETIME)');
 $pdo->exec('INSERT INTO users (is_root) VALUES (1), (0)');
 $pdo->exec('CREATE TABLE projects (id INTEGER PRIMARY KEY AUTOINCREMENT, public_id VARCHAR(64) UNIQUE)');
+$pdo->exec('CREATE TABLE clients (id INTEGER PRIMARY KEY AUTOINCREMENT, public_id VARCHAR(64) UNIQUE)');
+$pdo->exec('CREATE TABLE files (id INTEGER PRIMARY KEY AUTOINCREMENT, public_id VARCHAR(64) UNIQUE)');
 $pdo->exec('CREATE TABLE tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, public_id VARCHAR(64) UNIQUE, organization_id INTEGER NULL)');
 $pdo->exec('INSERT INTO projects (public_id) VALUES ("legacy-project")');
+$pdo->exec('INSERT INTO clients (public_id) VALUES ("legacy-client")');
+$pdo->exec('INSERT INTO files (public_id) VALUES ("legacy-file")');
 $pdo->exec('INSERT INTO tasks (public_id, organization_id) VALUES ("legacy-task", NULL)');
 
 $migration = new OrganizationScopeMigration();
@@ -37,6 +41,8 @@ $orgId = (int)$pdo->query('SELECT id FROM organizations ORDER BY id LIMIT 1')->f
 organizationScopeAssert($orgId > 0, 'Default organization must be created');
 organizationScopeAssert((string)$pdo->query('SELECT public_id FROM organizations LIMIT 1')->fetchColumn() === 'org_default_workspace', 'Default organization public id must be deterministic');
 organizationScopeAssert((int)$pdo->query('SELECT organization_id FROM projects LIMIT 1')->fetchColumn() === $orgId, 'Project must be backfilled');
+organizationScopeAssert((int)$pdo->query('SELECT organization_id FROM clients LIMIT 1')->fetchColumn() === $orgId, 'Client must be backfilled');
+organizationScopeAssert((int)$pdo->query('SELECT organization_id FROM files LIMIT 1')->fetchColumn() === $orgId, 'File must be backfilled');
 organizationScopeAssert((int)$pdo->query('SELECT organization_id FROM tasks LIMIT 1')->fetchColumn() === $orgId, 'Task must be backfilled');
 organizationScopeAssert((int)$pdo->query('SELECT COUNT(*) FROM organization_memberships')->fetchColumn() === 2, 'All users need a default membership');
 organizationScopeAssert((int)$pdo->query("SELECT COUNT(*) FROM organization_memberships WHERE role_code = 'owner'")->fetchColumn() === 1, 'Exactly one owner is expected');
@@ -50,5 +56,19 @@ organizationScopeAssert((int)$pdo->query("SELECT COUNT(*) FROM sqlite_master WHE
 $managerSource = (string)file_get_contents(__DIR__ . '/../../system/library/database/migration/MigrationManager.php');
 organizationScopeAssert(str_contains($managerSource, 'new OrganizationScopeMigration()'), 'Migration must be registered in MigrationManager');
 organizationScopeAssert(str_contains($managerSource, 'beginTransaction'), 'Migration runner must transactionally journal each migration');
+
+// An installation that already has Organizations must reuse its oldest
+// workspace instead of creating a second default during upgrade.
+$existingPdo = new PDO('sqlite::memory:');
+$existingPdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$existingPdo->exec('CREATE TABLE organizations (id INTEGER PRIMARY KEY AUTOINCREMENT, public_id VARCHAR(64) UNIQUE, title VARCHAR(255), slug VARCHAR(120), created_at DATETIME, updated_at DATETIME)');
+$existingPdo->exec('CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, is_root INTEGER DEFAULT 0)');
+$existingPdo->exec('CREATE TABLE organization_memberships (id INTEGER PRIMARY KEY AUTOINCREMENT, public_id VARCHAR(64) UNIQUE, organization_id INTEGER, user_id INTEGER, role_code VARCHAR(32), created_at DATETIME)');
+$existingPdo->exec("INSERT INTO organizations (public_id,title,slug) VALUES ('org_existing','Existing','existing')");
+$existingPdo->exec('INSERT INTO users (is_root) VALUES (1)');
+$existingPdo->exec('CREATE TABLE projects (id INTEGER PRIMARY KEY AUTOINCREMENT, public_id VARCHAR(64) UNIQUE)');
+(new OrganizationScopeMigration())->up($existingPdo, 'sqlite');
+organizationScopeAssert((int)$existingPdo->query('SELECT COUNT(*) FROM organizations')->fetchColumn() === 1, 'Existing organization must be reused');
+organizationScopeAssert((string)$existingPdo->query('SELECT public_id FROM organizations LIMIT 1')->fetchColumn() === 'org_existing', 'Existing organization public id must remain unchanged');
 
 echo "[OK] organization scope migration creates default workspace, backfills legacy rows, and is idempotent\n";
