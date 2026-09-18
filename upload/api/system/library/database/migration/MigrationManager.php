@@ -43,6 +43,8 @@ final class MigrationManager
             new CrmEntityConsolidationMigration(),
             new OrganizationScopeMigration(),
             new OrganizationInvitationScopeMigration(),
+            new OrganizationRecycleBinScopeMigration(),
+            new OrganizationSecondaryScopeMigration(),
             new CoreUpdateSystemMigration(),
             new KnowledgeSpacesHierarchyMigration(),
             new RecurringProcessorMigration(),
