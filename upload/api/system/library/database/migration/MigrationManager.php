@@ -41,6 +41,7 @@ final class MigrationManager
             new NotificationPushQueueRuntimeMigration(),
             new WebhookDeliveriesQueueRuntimeMigration(),
             new CrmEntityConsolidationMigration(),
+            new OrganizationScopeMigration(),
             new CoreUpdateSystemMigration(),
             new KnowledgeSpacesHierarchyMigration(),
             new RecurringProcessorMigration(),
