@@ -683,12 +683,12 @@ final class TaskRepository
     }
 
     /** @return array<int,array<string,mixed>> */
-    public function boardItems(array $filters, ?int $actorUserId = null, bool $actorIsRoot = false, int $limit = 500, bool $rlsScoped = false): array
+    public function boardItems(array $filters, ?int $actorUserId = null, bool $actorIsRoot = false, int $limit = 500, bool $rlsScoped = false, ?int $organizationId = null): array
     {
         $sort = in_array(($filters['sort'] ?? ''), ['updated_at', 'due_at', 'priority_code', 'title'], true) ? (string)$filters['sort'] : 'updated_at';
         $order = strtoupper((string)($filters['order'] ?? 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
 
-        $qb = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $order, $rlsScoped)
+        $qb = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $order, $rlsScoped, $organizationId)
             ->leftJoin('users u', 'u.id', '=', 't.assignee_user_id')
             ->select([
                 't.public_id',

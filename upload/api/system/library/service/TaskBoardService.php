@@ -25,12 +25,15 @@ final class TaskBoardService
 
     public function board(array $filters, array $actor): array
     {
+        $organizationId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
         $limit = min(1000, max(1, (int)($filters['limit'] ?? 500)));
         $items = $this->tasks->boardItems(
             $filters,
             (int)($actor['id'] ?? 0),
             (bool)($actor['is_root'] ?? false),
-            $limit
+            $limit,
+            false,
+            $organizationId
         );
 
         $columns = $this->loadColumns();
