@@ -319,6 +319,7 @@ final class AiRuntimeRepository
                 'created_at',
                 'updated_at',
                 'expires_at',
+                'organization_id',
             ], true)) {
                 continue;
             }
@@ -484,6 +485,7 @@ final class AiRuntimeRepository
                 'suggestion_json',
                 'status',
                 'created_by_user_id',
+                'organization_id',
                 'confirmed_by_user_id',
                 'created_at',
                 'updated_at',
@@ -579,6 +581,15 @@ final class AiRuntimeRepository
 
         if (!empty($filters['status'])) {
             $query->where('status', '=', trim((string)$filters['status']));
+        }
+
+        if (array_key_exists('organization_id', $filters)) {
+            $organizationId = (int)$filters['organization_id'];
+            if ($organizationId > 0) {
+                $query->where('organization_id', '=', $organizationId);
+            } else {
+                $query->whereNull('organization_id');
+            }
         }
 
         return $query;

@@ -37,6 +37,7 @@ final class MigrationManager
             new AiAuthorTimestampCoverageMigration(),
             new AiSuggestionsInputHashMigration(),
             new AiSuggestionsCacheFreshnessMigration(),
+            new AiSuggestionsOrganizationScopeMigration(),
             new ImportExportJobsQueueRuntimeMigration(),
             new NotificationPushQueueRuntimeMigration(),
             new WebhookDeliveriesQueueRuntimeMigration(),
