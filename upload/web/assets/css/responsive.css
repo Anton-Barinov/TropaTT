@@ -1521,3 +1521,10 @@
   .crm-filter-offcanvas { left:0; right:auto; width:min(420px, calc(100vw - 12px)); max-width:calc(100vw - 12px); }
   .crm-filter-offcanvas .offcanvas-body { padding-inline:16px; overflow-x:hidden; }
 }
+@media (max-width: 767.98px) {
+  body[data-page="admin-tags"] .crm-table tbody td:nth-child(1)::before { content:"Name" !important; }
+  body[data-page="admin-tags"] .crm-table tbody td:nth-child(2)::before { content:"Color" !important; }
+  body[data-page="admin-tags"] .crm-table tbody td:nth-child(3)::before { content:"Description" !important; }
+  body[data-page="admin-tags"] .crm-table tbody td:nth-child(4)::before { content:"Usage" !important; }
+  body[data-page="admin-tags"] .crm-table tbody td:nth-child(5)::before { content:"Actions" !important; }
+}
