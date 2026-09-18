@@ -2595,11 +2595,9 @@ font-size: 0.72rem;
   margin-bottom: 1rem;
 }
 
-.crm-admin-page .crm-card.p-0.table-responsive,
 .crm-tasks-page .crm-card.p-0.table-responsive,
 .crm-projects-page .crm-card.p-0.table-responsive,
 .crm-teams-page .crm-card.p-0.table-responsive,
-.crm-admin-page .table-responsive,
 .crm-tasks-page .table-responsive,
 .crm-projects-page .table-responsive,
 .crm-teams-page .table-responsive {
@@ -2623,6 +2621,25 @@ font-size: 0.72rem;
 .crm-admin-page .crm-metric-tile pre {
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+/* Admin statuses tables: mobile readability */
+@media (max-width: 576px) {
+  .crm-admin-page .crm-card.p-0.table-responsive .crm-table {
+    font-size: 0.8125rem;
+  }
+  .crm-admin-page .crm-card.p-0.table-responsive .crm-table th,
+  .crm-admin-page .crm-card.p-0.table-responsive .crm-table td {
+    padding: 0.35rem 0.5rem;
+  }
+  .crm-admin-page .crm-card.p-0.table-responsive .crm-table .d-flex.gap-1 {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .crm-admin-page .crm-card.p-0.table-responsive .crm-table .d-flex.gap-1 .btn {
+    font-size: 0.75rem;
+    padding: 0.15rem 0.4rem;
+  }
 }
 
 .crm-admin-page .crm-admin-ai-quickstart {
