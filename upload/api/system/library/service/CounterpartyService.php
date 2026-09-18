@@ -54,7 +54,7 @@ final class CounterpartyService
             $filters['created_by_user_ids'] = $scope['limit_to_creator_ids'];
         }
 
-        [$items, $total, $page, $limit] = $this->counterparties->list($filters);
+        [$items, $total, $page, $limit] = $this->counterparties->list($filters, null, $this->organizationId($actor));
 
         $normalizedItems = array_map(function ($item) {
             return $this->normalizeCounterparty($item);
@@ -75,7 +75,7 @@ final class CounterpartyService
 
     public function get(string $publicId, array $actor): ?array
     {
-        $item = $this->counterparties->findByPublicId($publicId);
+        $item = $this->counterparties->findByPublicId($publicId, $this->organizationId($actor));
         if (!$item || !$this->canAccess($item, $actor)) {
             return null;
         }
@@ -102,7 +102,7 @@ final class CounterpartyService
             'created_by_user_id' => (int)($actor['id'] ?? 0) ?: null,
             'created_at' => $now,
             'updated_at' => $now,
-        ]);
+        ], $this->organizationId($actor));
 
         return $this->get($publicId, $actor) ?? [];
     }
@@ -117,7 +117,7 @@ final class CounterpartyService
         $set = $this->extractCounterpartySet($input, false);
         if ($set !== []) {
             $set['updated_at'] = gmdate('Y-m-d H:i:s');
-            $this->counterparties->updateByPublicId($publicId, $set);
+            $this->counterparties->updateByPublicId($publicId, $set, $this->organizationId($actor));
             $this->semanticIndex?->removeEntityDocument('counterparty', $publicId);
         }
 
@@ -136,7 +136,7 @@ final class CounterpartyService
         // access to orphaned projects/tasks after that relationship disappears.
         $this->contactService?->revokeExternalUsersForCounterparty((int)($current['id'] ?? 0));
 
-        $deleted = $this->counterparties->deleteByPublicId($publicId);
+        $deleted = $this->counterparties->deleteByPublicId($publicId, $this->organizationId($actor));
         if ($deleted) {
             $this->semanticIndex?->removeEntityDocument('counterparty', $publicId);
         }
@@ -162,6 +162,12 @@ final class CounterpartyService
         }
 
         return ['limit_to_creator_ids' => $descendants];
+    }
+
+    private function organizationId(array $actor): ?int
+    {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
     }
 
     /**

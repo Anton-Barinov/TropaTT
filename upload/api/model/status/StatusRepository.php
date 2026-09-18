@@ -40,6 +40,9 @@ final class StatusRepository
         if (!empty($filters['scope'])) {
             $query->where('scope', '=', (string)$filters['scope']);
         }
+        if ((int)($filters['organization_id'] ?? 0) > 0) {
+            $query->where('organization_id', '=', (int)$filters['organization_id']);
+        }
 
         if (isset($filters['is_active']) && $filters['is_active'] !== '') {
             $query->where('is_active', '=', (int)((string)$filters['is_active'] === '1'));

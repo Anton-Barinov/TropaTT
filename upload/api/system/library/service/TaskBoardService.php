@@ -109,6 +109,7 @@ final class TaskBoardService
         [$items] = $this->statuses->list([
             'scope' => 'task',
             'is_active' => 1,
+            'organization_id' => (int)($organizationId ?? 0),
             'page' => 1,
             'limit' => 200,
         ]);

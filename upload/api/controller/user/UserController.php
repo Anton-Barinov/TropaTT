@@ -15,6 +15,16 @@ final class UserController extends BaseController
     {
         $input = $this->request()->allInput();
 
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $actor = $this->user()['user'] ?? [];
+        $scopedActor = $this->organizationScopedActor((array)$actor);
+        if (!empty($scopedActor['organization_id'])) {
+            $input['organization_id'] = (int)$scopedActor['organization_id'];
+        }
+
         // SEC-004: Non-root users should only see their own team members
         $auth = $this->user();
         if ($auth && !(bool)($auth['user']['is_root'] ?? false)) {

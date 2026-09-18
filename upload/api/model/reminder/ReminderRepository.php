@@ -89,7 +89,7 @@ final class ReminderRepository
 
     public function findByPublicIdForUser(string $publicId, int $userId): ?array
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('reminders r')
             ->leftJoin('tasks t', 't.id', '=', 'r.task_id')
             ->select([
@@ -103,6 +103,7 @@ final class ReminderRepository
             ->where('r.public_id', '=', $publicId)
             ->where('r.user_id', '=', $userId)
             ->first();
+        return $query;
     }
 
     public function updateByPublicIdForUser(string $publicId, int $userId, array $set): bool
@@ -137,9 +138,9 @@ final class ReminderRepository
             ->count();
     }
 
-    public function listInRange(int $userId, string $startAt, string $endAt): array
+    public function listInRange(int $userId, string $startAt, string $endAt, ?int $organizationId = null): array
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('reminders r')
             ->leftJoin('tasks t', 't.id', '=', 'r.task_id')
             ->select([
@@ -152,9 +153,9 @@ final class ReminderRepository
             ])
             ->where('r.user_id', '=', $userId)
             ->where('r.remind_at', '>=', $startAt)
-            ->where('r.remind_at', '<=', $endAt)
-            ->orderBy('r.remind_at', 'ASC')
-            ->get();
+            ->where('r.remind_at', '<=', $endAt);
+        if ($organizationId !== null && $organizationId > 0) $query->where('r.organization_id', '=', $organizationId);
+        return $query->orderBy('r.remind_at', 'ASC')->get();
     }
 
     /** @return array<int,array<string,mixed>> */

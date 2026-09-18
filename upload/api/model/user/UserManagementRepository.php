@@ -197,6 +197,12 @@ final class UserManagementRepository
             ->from('users')
             ->whereNull('deleted_at');
 
+        $organizationId = (int)($filters['organization_id'] ?? 0);
+        if ($organizationId > 0) {
+            $qb->join('organization_memberships om', 'om.user_id', '=', 'users.id')
+                ->where('om.organization_id', '=', $organizationId);
+        }
+
         if (!empty($filters['search'])) {
             $term = '%' . $this->escapeLikeValue((string)$filters['search']) . '%';
             $qb->whereRaw('(login LIKE ? OR email LIKE ? OR full_name LIKE ?)', [$term, $term, $term]);

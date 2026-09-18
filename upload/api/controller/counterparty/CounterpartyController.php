@@ -18,6 +18,11 @@ final class CounterpartyController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $cache = $this->cacheApi();
         if ($cache !== null) {
@@ -44,6 +49,11 @@ final class CounterpartyController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var CounterpartyService $service */
         $service = $this->container->get('service.counterparty');
@@ -63,6 +73,11 @@ final class CounterpartyController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         if (empty($input['counterparty_type'])) $input['counterparty_type'] = 'organization';
@@ -95,6 +110,11 @@ final class CounterpartyController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var CounterpartyService $service */
         $service = $this->container->get('service.counterparty');
@@ -139,6 +159,11 @@ final class CounterpartyController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var CounterpartyService $service */
         $service = $this->container->get('service.counterparty');

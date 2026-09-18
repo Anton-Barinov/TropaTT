@@ -136,6 +136,12 @@ final class IntakeItemRepository
         $where = ['ii.deleted_at IS NULL'];
         $params = [];
 
+        $organizationId = (int)($filters['organization_id'] ?? 0);
+        if ($organizationId > 0) {
+            $where[] = 'ii.organization_id = :organization_id';
+            $params['organization_id'] = $organizationId;
+        }
+
         if (!$ignoreStatus && !empty($filters['status'])) {
             $where[] = 'ii.status = :status';
             $params['status'] = (string)$filters['status'];

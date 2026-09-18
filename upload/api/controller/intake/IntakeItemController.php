@@ -14,11 +14,16 @@ final class IntakeItemController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         /** @var IntakeItemService $service */
         $service = $this->container->get('service.intake_item');
-        $result = $service->list($input);
+        $result = $service->list($input, $authUser['user']);
 
         if (is_string($result)) {
             return $this->error($result, $this->t('common/messages.error', 'Error'), 422);
@@ -35,6 +40,11 @@ final class IntakeItemController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         /** @var IntakeItemService $service */
@@ -62,6 +72,11 @@ final class IntakeItemController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var IntakeItemService $service */
         $service = $this->container->get('service.intake_item');
@@ -84,6 +99,11 @@ final class IntakeItemController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         /** @var IntakeItemService $service */
@@ -119,6 +139,11 @@ final class IntakeItemController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var IntakeItemService $service */
         $service = $this->container->get('service.intake_item');
@@ -137,6 +162,11 @@ final class IntakeItemController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         /** @var IntakeItemService $service */
@@ -173,6 +203,11 @@ final class IntakeItemController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         /** @var IntakeItemService $service */
@@ -206,6 +241,11 @@ final class IntakeItemController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         /** @var IntakeItemService $service */
@@ -239,6 +279,11 @@ final class IntakeItemController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         /** @var IntakeItemService $service */
@@ -273,6 +318,11 @@ final class IntakeItemController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         /** @var IntakeItemService $service */
@@ -302,6 +352,11 @@ final class IntakeItemController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         $action = (string)($input['action'] ?? '');
@@ -356,6 +411,11 @@ final class IntakeItemController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $filters = $this->request()->allInput();
         /** @var IntakeItemService $service */

@@ -18,6 +18,14 @@ final class StatusController extends BaseController
         }
 
         $input = $this->request()->allInput();
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $scopedActor = $this->organizationScopedActor((array)($auth['user'] ?? []));
+        if (!empty($scopedActor['organization_id'])) {
+            $input['organization_id'] = (int)$scopedActor['organization_id'];
+        }
 
         // External executors (client portal) may list only the work-type dictionary
         // needed to fill the time-entry form (TZ 8.6). Any requested scope is forced

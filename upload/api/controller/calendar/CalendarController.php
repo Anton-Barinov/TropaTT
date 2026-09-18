@@ -16,6 +16,11 @@ final class CalendarController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $cache = $this->cacheApi();
         if ($cache !== null) {
@@ -42,6 +47,11 @@ final class CalendarController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         $v = new Validator();
@@ -83,6 +93,11 @@ final class CalendarController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var CalendarService $service */
         $service = $this->container->get('service.calendar');
@@ -102,6 +117,11 @@ final class CalendarController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         $v = new Validator();
@@ -143,6 +163,11 @@ final class CalendarController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var CalendarService $service */
         $service = $this->container->get('service.calendar');
@@ -184,6 +209,11 @@ final class CalendarController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $cache = $this->cacheApi();
         if ($cache !== null) {
@@ -210,6 +240,11 @@ final class CalendarController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $cache = $this->cacheApi();
         if ($cache !== null) {
@@ -236,6 +271,11 @@ final class CalendarController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $cache = $this->cacheApi();
         if ($cache !== null) {
@@ -273,6 +313,11 @@ final class CalendarController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         $v = new Validator();
@@ -314,6 +359,11 @@ final class CalendarController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         $v = new Validator();
@@ -343,6 +393,11 @@ final class CalendarController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var BusinessCalendarService $service */
         $service = $this->container->get('service.business_calendar');
@@ -386,6 +441,11 @@ final class CalendarController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         $v = new Validator();
@@ -439,6 +499,11 @@ final class CalendarController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         if (array_key_exists('holiday_date', $input) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$input['holiday_date']) !== 1) {
@@ -467,6 +532,11 @@ final class CalendarController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var BusinessCalendarService $service */
         $service = $this->container->get('service.business_calendar');
@@ -510,6 +580,11 @@ final class CalendarController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         $v = new Validator();
@@ -574,6 +649,11 @@ final class CalendarController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         if (array_key_exists('weekday', $input)) {
@@ -615,6 +695,11 @@ final class CalendarController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var BusinessCalendarService $service */
         $service = $this->container->get('service.business_calendar');

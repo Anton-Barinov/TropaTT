@@ -15,9 +15,14 @@ final class ChatController extends BaseController
     public function list(): JsonResponse
     {
         $pdo = $this->container->get('db.pdo');
-        $user = $this->user()['user'] ?? [];
+        $auth = $this->user();
+        $user = $auth['user'] ?? [];
         $userId = (int)($user['id'] ?? 0);
         if ($userId <= 0) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+        $user = $this->organizationScopedActor($user);
+        $organizationId = (int)($user['organization_id'] ?? 0);
         $isExternal = !empty((int)($user['is_external'] ?? 0));
         $archived = (string)($this->request()->input('archived', '')) === '1';
 
@@ -35,6 +40,7 @@ final class ChatController extends BaseController
                 if (!$hasArchivedColumn) {
                     return $this->success('CHATS_ARCHIVED', $this->t('common/messages.ok'), ['items' => []]);
                 }
+                $chatOrgFilter = $organizationId > 0 ? ' AND c.organization_id = :organization_id' : '';
                 $stmt = $pdo->prepare("
                     SELECT c.*, 0 as is_favorite, null as muted_until, 0 as last_read_id, 0 as unread,
                         (SELECT text FROM chat_messages WHERE chat_id = c.id AND deleted_at IS NULL ORDER BY id DESC LIMIT 1) as last_message,
@@ -43,9 +49,12 @@ final class ChatController extends BaseController
                         c.archived_participant_ids as participant_names_raw
                     FROM chats c
                     WHERE c.archived_at IS NOT NULL AND c.archived_by_user_id = :archived_by
+                      {$chatOrgFilter}
                     ORDER BY c.archived_at DESC
                 ");
-                $stmt->execute(['archived_by' => $userId]);
+                $archivedParams = ['archived_by' => $userId];
+                if ($organizationId > 0) $archivedParams['organization_id'] = $organizationId;
+                $stmt->execute($archivedParams);
                 $items = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
                 foreach ($items as &$item) {
                     $ids = json_decode($item['participant_names_raw'] ?? '[]', true) ?: [];
@@ -71,6 +80,9 @@ final class ChatController extends BaseController
             }
 
             $archivedFilter = $hasArchivedColumn ? 'WHERE c.archived_at IS NULL' : '';
+            if ($organizationId > 0) {
+                $archivedFilter .= ($archivedFilter ? ' AND' : 'WHERE') . ' c.organization_id = :organization_id';
+            }
             // Defence-in-depth: external users only see project_client chats
             if ($isExternal) {
                 $archivedFilter = ($archivedFilter ? $archivedFilter . ' AND' : 'WHERE') . " c.type = 'project_client'";
@@ -98,7 +110,9 @@ final class ChatController extends BaseController
                 {$archivedFilter}
                 ORDER BY cp.is_favorite DESC, COALESCE(c.last_message_at, c.created_at) DESC
             ");
-            $stmt->execute(['uid' => $userId, 'uid2' => $userId, 'uid3' => $userId]);
+            $params = ['uid' => $userId, 'uid2' => $userId, 'uid3' => $userId];
+            if ($organizationId > 0) $params['organization_id'] = $organizationId;
+            $stmt->execute($params);
             $items = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
             // Staff (non-external) must also see the project_client chat of any

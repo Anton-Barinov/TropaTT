@@ -54,6 +54,7 @@ final class MigrationManager
             new KnowledgeEntityLinkUniquenessMigration(),
             new KnowledgeCommentsRepairMigration(),
             new IntakeItemsMigration(),
+            new OrganizationCoverageMigration(),
             new TaskHumanReadableKeysMigration(),
             new TaskRelationsV2Migration(),
             new SavedViewsV2Migration(),
