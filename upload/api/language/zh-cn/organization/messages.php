@@ -29,4 +29,5 @@ return [
     'load_members_error' => '无法加载成员',
     'confirm_delete' => '删除此组织？',
     'deleted_notify' => '组织已删除',
+    'context_not_found' => '组织上下文不可用。',
 ];

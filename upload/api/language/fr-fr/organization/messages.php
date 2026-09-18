@@ -29,4 +29,5 @@ return [
     'load_members_error' => 'Échec du chargement des membres',
     'confirm_delete' => 'Supprimer l\'organisation ?',
     'deleted_notify' => 'Organisation supprimée',
+    'context_not_found' => 'Le contexte de l’organisation est indisponible.',
 ];

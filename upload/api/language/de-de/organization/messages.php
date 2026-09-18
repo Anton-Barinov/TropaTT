@@ -29,4 +29,5 @@ return [
     'load_members_error' => 'Failed to load members',
     'confirm_delete' => 'Delete organization?',
     'deleted_notify' => 'Organization deleted',
+    'context_not_found' => 'Organisationskontext ist nicht verfügbar.',
 ];

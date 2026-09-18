@@ -208,9 +208,9 @@ abstract class BaseController
         // workspace. Keep the response indistinguishable from a missing one.
         return $this->error(
             'ORGANIZATION_CONTEXT_NOT_FOUND',
-            'Organization context is unavailable.',
+            $this->t('organization/messages.context_not_found'),
             404,
-            ['organization' => ['Organization context is unavailable.']]
+            ['organization' => [$this->t('organization/messages.context_not_found')]]
         );
     }
 

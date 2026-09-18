@@ -29,4 +29,5 @@ return [
     'load_members_error' => 'Falha ao carregar membros',
     'confirm_delete' => 'Excluir organizacao?',
     'deleted_notify' => 'Organizacao excluida',
+    'context_not_found' => 'O contexto da organização não está disponível.',
 ];
