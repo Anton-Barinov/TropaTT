@@ -69,6 +69,10 @@ final class OrganizationRepository implements OrganizationMembershipReader
             ->from('organization_memberships om')
             ->join('organizations o', 'o.id', '=', 'om.organization_id')
             ->select([
+                // Keep the internal id in the context reader so an explicitly
+                // selected workspace is converted to organization_id before
+                // domain services run their tenant-scoped queries.
+                'o.id',
                 'o.public_id',
                 'o.title',
                 'o.slug',
@@ -85,7 +89,7 @@ final class OrganizationRepository implements OrganizationMembershipReader
     {
         return (new QueryBuilder($this->pdo))
             ->from('organizations')
-            ->select(['public_id', 'title', 'slug', 'created_at', 'updated_at'])
+            ->select(['id', 'public_id', 'title', 'slug', 'created_at', 'updated_at'])
             ->orderBy('title', 'ASC')
             ->get();
     }

@@ -110,10 +110,24 @@ window.CRM.api = (function () {
 
   function setOrganizationContext(publicId) {
     var value = String(publicId || '').trim();
+    var previous = getOrganizationContext();
     try {
       if (value) localStorage.setItem(ORGANIZATION_CONTEXT_KEY, value);
       else localStorage.removeItem(ORGANIZATION_CONTEXT_KEY);
     } catch (e) {}
+    // Workspace is part of the data identity. Invalidate in-memory and
+    // session reference caches and notify already-mounted pages immediately;
+    // otherwise a request made before switching can be reused for the new
+    // workspace for the lifetime of its TTL.
+    if (previous !== value) {
+      Object.keys(referenceGetCache).forEach(function (key) { delete referenceGetCache[key]; });
+      try {
+        var event = new CustomEvent('crm:organization-changed', {
+          detail: { previous: previous, current: value }
+        });
+        window.dispatchEvent(event);
+      } catch (e) {}
+    }
     return value;
   }
 
@@ -749,7 +763,8 @@ window.CRM.api = (function () {
   }
 
   function referenceCacheKey(route, query) {
-    return buildUrl(route, query) + '|locale=' + getPreferredLocale() + '|auth_scope=' + authReferenceCacheScope();
+    return buildUrl(route, query) + '|locale=' + getPreferredLocale() + '|auth_scope=' + authReferenceCacheScope()
+      + '|organization=' + getOrganizationContext();
   }
 
   function referenceCacheStorageKey(cacheKey) {
@@ -862,7 +877,8 @@ window.CRM.api = (function () {
       && !opts.signal
       && !hasCustomHeaders;
     if (canDedupeGet) {
-      var dedupeKey = buildUrl(route, requestQuery) + '|locale=' + getPreferredLocale();
+      var dedupeKey = buildUrl(route, requestQuery) + '|locale=' + getPreferredLocale()
+        + '|organization=' + getOrganizationContext();
       if (inFlightGetRequests[dedupeKey]) {
         return inFlightGetRequests[dedupeKey];
       }
