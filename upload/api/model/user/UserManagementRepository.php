@@ -19,7 +19,7 @@ final class UserManagementRepository
         $offset = ($page - 1) * $limit;
 
         $items = $this->buildListQuery($filters)
-            ->select(['id', 'public_id', 'login', 'email', 'full_name', 'locale', 'is_active', 'is_root', 'cost_rate', 'bill_rate', 'payout_rate', 'created_by_user_id', 'created_at', 'updated_at'])
+            ->select(['users.id', 'users.public_id', 'users.login', 'users.email', 'users.full_name', 'users.locale', 'users.is_active', 'users.is_root', 'users.cost_rate', 'users.bill_rate', 'users.payout_rate', 'users.created_by_user_id', 'users.created_at', 'users.updated_at'])
             ->orderBy('created_at', 'DESC')
             ->limit($limit)
             ->offset($offset)
