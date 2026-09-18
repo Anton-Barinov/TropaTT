@@ -30688,16 +30688,22 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         body.innerHTML = items.map(function (item) {
           var id = item.public_id || '';
           var memberCount = Number(item.member_count || item.members_count || 0);
+          var labels = {
+            name: _t('organizations.th_name', 'Название'),
+            participants: _t('organizations.th_participants', 'Участников'),
+            created: _t('organizations.th_created', 'Дата создания'),
+            actions: _t('organizations.th_actions', 'Действия')
+          };
           return '<tr data-org-id="' + safeText(id) + '">'
-            + '<td>' + safeText(item.title || item.name || item.company_name || id) + '</td>'
-            + '<td>' + safeText(String(memberCount)) + '</td>'
-            + '<td>' + safeText(formatDate(item.created_at || '')) + '</td>'
-            + '<td>'
+            + '<td data-label="' + safeText(labels.name) + '" class="crm-org-name"><span class="crm-org-title">' + safeText(item.title || item.name || item.company_name || id) + '</span></td>'
+            + '<td data-label="' + safeText(labels.participants) + '">' + safeText(String(memberCount)) + '</td>'
+            + '<td data-label="' + safeText(labels.created) + '">' + safeText(formatDate(item.created_at || '')) + '</td>'
+            + '<td data-label="' + safeText(labels.actions) + '" class="crm-table-actions crm-org-actions"><div class="crm-org-actions-inner">'
             + '<button class="btn btn-sm crm-btn-primary crm-btn-compact" data-org-select="' + safeText(id) + '">' + (window.CRM.api.getOrganizationContext() === id ? _t('organization.selected', 'Активный workspace') : _t('organization.select', 'Выбрать workspace')) + '</button>'
             + '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-org-edit="' + safeText(id) + '">' + _t('organization.btn_edit', 'Изменить') + '</button>'
             + '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-org-members="' + safeText(id) + '">' + _t('organization.btn_members', 'Участники') + '</button>'
             + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-org-delete="' + safeText(id) + '">' + _t('organization.btn_delete', 'Удалить') + '</button>'
-            + '</td>'
+            + '</div></td>'
             + '</tr>';
         }).join('');
       } catch (error) {

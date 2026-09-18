@@ -8,6 +8,31 @@
    semantics on desktop and present each record as a readable card on touch
    screens so actions and long text never force page-wide horizontal scroll. */
 @media (max-width: 575.98px) {
+  /* Organizations: turn the four-column table into readable, scroll-free cards.
+     The desktop table remains unchanged; mobile actions wrap inside the card so
+     the last buttons can never sit outside the viewport. */
+  body[data-page="organizations"] .crm-page-head { align-items: stretch; }
+  body[data-page="organizations"] .crm-page-head > .d-flex { display: grid !important; grid-template-columns: 1fr; width: 100%; }
+  body[data-page="organizations"] .crm-page-head > .d-flex .btn { width: 100%; min-height: 44px; }
+  body[data-page="organizations"] .crm-section-head { display: flex; flex-wrap: wrap; gap: .65rem; }
+  body[data-page="organizations"] .crm-section-head > div,
+  body[data-page="organizations"] .crm-section-head > label { min-width: 0; width: 100%; }
+  body[data-page="organizations"] .crm-section-head .form-control { min-height: 44px; width: 100%; }
+  body[data-page="organizations"] .crm-table-responsive { overflow: visible; }
+  body[data-page="organizations"] .crm-table { display: block; width: 100%; min-width: 0; table-layout: auto; }
+  body[data-page="organizations"] .crm-table thead { display: none; }
+  body[data-page="organizations"] .crm-table tbody { display: grid; gap: .75rem; }
+  body[data-page="organizations"] .crm-table tbody tr { display: grid; gap: .55rem; padding: .85rem; border: 1px solid var(--crm-border); border-radius: var(--radius-md); background: var(--crm-surface); }
+  body[data-page="organizations"] .crm-table tbody td { display: grid; grid-template-columns: minmax(7rem, 34%) minmax(0, 1fr); gap: .55rem; width: auto !important; min-width: 0 !important; padding: 0 !important; border: 0 !important; overflow-wrap: anywhere; white-space: normal; }
+  body[data-page="organizations"] .crm-table tbody td::before { content: attr(data-label); color: var(--crm-text-muted); font-size: var(--text-xs); font-weight: 700; }
+  body[data-page="organizations"] .crm-table tbody td[colspan] { display: block; }
+  body[data-page="organizations"] .crm-table tbody td[colspan]::before { display: none; }
+  body[data-page="organizations"] .crm-org-title { min-width: 0; overflow-wrap: anywhere; word-break: break-word; font-weight: 650; }
+  body[data-page="organizations"] .crm-table tbody td.crm-org-actions { display: block; padding-top: .3rem !important; border-top: 1px solid var(--crm-border) !important; }
+  body[data-page="organizations"] .crm-org-actions::before { display: block; margin-bottom: .4rem; }
+  body[data-page="organizations"] .crm-org-actions-inner { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+  body[data-page="organizations"] .crm-org-actions-inner .btn { width: 100%; min-width: 0; min-height: 44px; white-space: normal; line-height: 1.2; }
+
   .crm-knowledge-page .crm-page-head,
   .crm-knowledge-page .kb-panel-head,
   .crm-admin-knowledge-page .crm-page-head,
