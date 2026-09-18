@@ -12,6 +12,11 @@ final class WorkCycleController extends BaseController
 {
     public function list(): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -23,7 +28,7 @@ final class WorkCycleController extends BaseController
         $filters = $this->request()->allInput();
         unset($filters['route']);
 
-        $result = $service->list($filters, $authUser['user']);
+        $result = $service->list($filters, $this->organizationScopedActor((array)$authUser['user']));
 
         return $this->success('CYCLE_LIST', $this->t('task/messages.cycle_list', 'Cycles'), [
             'items' => $result['items'],
@@ -32,6 +37,11 @@ final class WorkCycleController extends BaseController
 
     public function create(): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -43,19 +53,24 @@ final class WorkCycleController extends BaseController
         $input = $this->request()->allInput();
         unset($input['route']);
 
-        $result = $service->create($input, $authUser['user']);
+        $result = $service->create($input, $this->organizationScopedActor((array)$authUser['user']));
 
         if (is_string($result)) {
             return $this->mapError($result);
         }
 
-        $this->dispatchCycleEvent(ModuleEvents::CYCLE_CREATED, $authUser['user'], $result);
+        $this->dispatchCycleEvent(ModuleEvents::CYCLE_CREATED, $this->organizationScopedActor((array)$authUser['user']), $result);
 
         return $this->success('CYCLE_CREATED', $this->t('task/messages.cycle_created', 'Cycle created'), $result);
     }
 
     public function get(array $params): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -64,7 +79,7 @@ final class WorkCycleController extends BaseController
         /** @var WorkCycleService $service */
         $service = $this->container->get('service.work_cycle');
 
-        $result = $service->get((string)$params['public_id'], $authUser['user']);
+        $result = $service->get((string)$params['public_id'], $this->organizationScopedActor((array)$authUser['user']));
 
         if (is_string($result)) {
             return $this->mapError($result);
@@ -75,6 +90,11 @@ final class WorkCycleController extends BaseController
 
     public function update(array $params): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -86,7 +106,7 @@ final class WorkCycleController extends BaseController
         $input = $this->request()->allInput();
         unset($input['route']);
 
-        $result = $service->update((string)$params['public_id'], $input, $authUser['user']);
+        $result = $service->update((string)$params['public_id'], $input, $this->organizationScopedActor((array)$authUser['user']));
 
         if (is_string($result)) {
             return $this->mapError($result);
@@ -97,6 +117,11 @@ final class WorkCycleController extends BaseController
 
     public function delete(array $params): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -105,9 +130,9 @@ final class WorkCycleController extends BaseController
         /** @var WorkCycleService $service */
         $service = $this->container->get('service.work_cycle');
 
-        $cycle = $service->get((string)$params['public_id'], $authUser['user']);
+        $cycle = $service->get((string)$params['public_id'], $this->organizationScopedActor((array)$authUser['user']));
 
-        $result = $service->delete((string)$params['public_id'], $authUser['user']);
+        $result = $service->delete((string)$params['public_id'], $this->organizationScopedActor((array)$authUser['user']));
 
         if (is_string($result)) {
             return $this->mapError($result);
@@ -115,7 +140,7 @@ final class WorkCycleController extends BaseController
 
         $this->dispatchCycleEvent(
             ModuleEvents::CYCLE_DELETED,
-            $authUser['user'],
+            $this->organizationScopedActor((array)$authUser['user']),
             is_array($cycle) ? $cycle : ['public_id' => (string)$params['public_id']]
         );
 
@@ -124,6 +149,11 @@ final class WorkCycleController extends BaseController
 
     public function start(array $params): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -135,19 +165,24 @@ final class WorkCycleController extends BaseController
         $input = $this->request()->allInput();
         unset($input['route']);
 
-        $result = $service->start((string)$params['public_id'], $input, $authUser['user']);
+        $result = $service->start((string)$params['public_id'], $input, $this->organizationScopedActor((array)$authUser['user']));
 
         if (is_string($result)) {
             return $this->mapError($result);
         }
 
-        $this->dispatchCycleEvent(ModuleEvents::CYCLE_STARTED, $authUser['user'], $result);
+        $this->dispatchCycleEvent(ModuleEvents::CYCLE_STARTED, $this->organizationScopedActor((array)$authUser['user']), $result);
 
         return $this->success('CYCLE_STARTED', $this->t('task/messages.cycle_started', 'Cycle started'), $result);
     }
 
     public function complete(array $params): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -159,19 +194,24 @@ final class WorkCycleController extends BaseController
         $input = $this->request()->allInput();
         unset($input['route']);
 
-        $result = $service->complete((string)$params['public_id'], $input, $authUser['user']);
+        $result = $service->complete((string)$params['public_id'], $input, $this->organizationScopedActor((array)$authUser['user']));
 
         if (is_string($result)) {
             return $this->mapError($result);
         }
 
-        $this->dispatchCycleEvent(ModuleEvents::CYCLE_COMPLETED, $authUser['user'], $result);
+        $this->dispatchCycleEvent(ModuleEvents::CYCLE_COMPLETED, $this->organizationScopedActor((array)$authUser['user']), $result);
 
         return $this->success('CYCLE_COMPLETED', $this->t('task/messages.cycle_completed', 'Cycle completed'), $result);
     }
 
     public function reopen(array $params): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -183,19 +223,24 @@ final class WorkCycleController extends BaseController
         $input = $this->request()->allInput();
         unset($input['route']);
 
-        $result = $service->reopen((string)$params['public_id'], $input, $authUser['user']);
+        $result = $service->reopen((string)$params['public_id'], $input, $this->organizationScopedActor((array)$authUser['user']));
 
         if (is_string($result)) {
             return $this->mapError($result);
         }
 
-        $this->dispatchCycleEvent(ModuleEvents::CYCLE_REOPENED, $authUser['user'], $result);
+        $this->dispatchCycleEvent(ModuleEvents::CYCLE_REOPENED, $this->organizationScopedActor((array)$authUser['user']), $result);
 
         return $this->success('CYCLE_REOPENED', $this->t('task/messages.cycle_reopened', 'Cycle reopened'), $result);
     }
 
     public function archive(array $params): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -207,9 +252,9 @@ final class WorkCycleController extends BaseController
         $input = $this->request()->allInput();
         unset($input['route']);
 
-        $cycle = $service->get((string)$params['public_id'], $authUser['user']);
+        $cycle = $service->get((string)$params['public_id'], $this->organizationScopedActor((array)$authUser['user']));
 
-        $result = $service->archive((string)$params['public_id'], $input, $authUser['user']);
+        $result = $service->archive((string)$params['public_id'], $input, $this->organizationScopedActor((array)$authUser['user']));
 
         if (is_string($result)) {
             return $this->mapError($result);
@@ -217,7 +262,7 @@ final class WorkCycleController extends BaseController
 
         $this->dispatchCycleEvent(
             ModuleEvents::CYCLE_ARCHIVED,
-            $authUser['user'],
+            $this->organizationScopedActor((array)$authUser['user']),
             is_array($cycle) ? $cycle : ['public_id' => (string)$params['public_id']]
         );
 
@@ -226,6 +271,11 @@ final class WorkCycleController extends BaseController
 
     public function tasks(array $params): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -237,7 +287,7 @@ final class WorkCycleController extends BaseController
         $filters = $this->request()->allInput();
         unset($filters['route']);
 
-        $result = $service->tasks((string)$params['public_id'], $filters, $authUser['user']);
+        $result = $service->tasks((string)$params['public_id'], $filters, $this->organizationScopedActor((array)$authUser['user']));
 
         if (is_string($result)) {
             return $this->mapError($result);
@@ -248,6 +298,11 @@ final class WorkCycleController extends BaseController
 
     public function addTasks(array $params): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -259,7 +314,7 @@ final class WorkCycleController extends BaseController
         $input = $this->request()->allInput();
         unset($input['route']);
 
-        $result = $service->addTasks((string)$params['public_id'], $input, $authUser['user']);
+        $result = $service->addTasks((string)$params['public_id'], $input, $this->organizationScopedActor((array)$authUser['user']));
 
         if (is_string($result)) {
             return $this->mapError($result);
@@ -270,6 +325,11 @@ final class WorkCycleController extends BaseController
 
     public function removeTask(array $params): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -278,7 +338,7 @@ final class WorkCycleController extends BaseController
         /** @var WorkCycleService $service */
         $service = $this->container->get('service.work_cycle');
 
-        $result = $service->removeTask((string)$params['public_id'], (string)$params['task_public_id'], $authUser['user']);
+        $result = $service->removeTask((string)$params['public_id'], (string)$params['task_public_id'], $this->organizationScopedActor((array)$authUser['user']));
 
         if (is_string($result)) {
             return $this->mapError($result);
@@ -289,6 +349,11 @@ final class WorkCycleController extends BaseController
 
     public function summary(array $params): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -297,7 +362,7 @@ final class WorkCycleController extends BaseController
         /** @var WorkCycleService $service */
         $service = $this->container->get('service.work_cycle');
 
-        $result = $service->summary((string)$params['public_id'], $authUser['user']);
+        $result = $service->summary((string)$params['public_id'], $this->organizationScopedActor((array)$authUser['user']));
 
         if (is_string($result)) {
             return $this->mapError($result);
@@ -308,6 +373,11 @@ final class WorkCycleController extends BaseController
 
     public function transferUnfinished(array $params): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -319,7 +389,7 @@ final class WorkCycleController extends BaseController
         $input = $this->request()->allInput();
         unset($input['route']);
 
-        $result = $service->transferUnfinished((string)$params['public_id'], $input, $authUser['user']);
+        $result = $service->transferUnfinished((string)$params['public_id'], $input, $this->organizationScopedActor((array)$authUser['user']));
 
         if (is_string($result)) {
             return $this->mapError($result);
@@ -330,6 +400,11 @@ final class WorkCycleController extends BaseController
 
     public function burndown(array $params): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -338,7 +413,7 @@ final class WorkCycleController extends BaseController
         /** @var WorkCycleService $service */
         $service = $this->container->get('service.work_cycle');
 
-        $result = $service->burndown((string)$params['public_id'], $authUser['user']);
+        $result = $service->burndown((string)$params['public_id'], $this->organizationScopedActor((array)$authUser['user']));
 
         if (is_string($result)) {
             return $this->mapError($result);
@@ -349,6 +424,11 @@ final class WorkCycleController extends BaseController
 
     public function scope(array $params): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -357,7 +437,7 @@ final class WorkCycleController extends BaseController
         /** @var WorkCycleService $service */
         $service = $this->container->get('service.work_cycle');
 
-        $result = $service->scope((string)$params['public_id'], $authUser['user']);
+        $result = $service->scope((string)$params['public_id'], $this->organizationScopedActor((array)$authUser['user']));
 
         if (is_string($result)) {
             return $this->mapError($result);
@@ -368,6 +448,11 @@ final class WorkCycleController extends BaseController
 
     public function capacity(array $params): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -376,7 +461,7 @@ final class WorkCycleController extends BaseController
         /** @var WorkCycleService $service */
         $service = $this->container->get('service.work_cycle');
 
-        $result = $service->capacity((string)$params['public_id'], $authUser['user']);
+        $result = $service->capacity((string)$params['public_id'], $this->organizationScopedActor((array)$authUser['user']));
 
         if (is_string($result)) {
             return $this->mapError($result);
@@ -387,6 +472,11 @@ final class WorkCycleController extends BaseController
 
     public function velocity(): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -401,7 +491,7 @@ final class WorkCycleController extends BaseController
             return $this->error('CYCLE_PROJECT_REQUIRED', $this->t('task/messages.cycle_project_required', 'Project is required'), 422);
         }
 
-        $result = $service->velocity($projectPublicId, $authUser['user']);
+        $result = $service->velocity($projectPublicId, $this->organizationScopedActor((array)$authUser['user']));
 
         if (is_string($result)) {
             return $this->mapError($result);

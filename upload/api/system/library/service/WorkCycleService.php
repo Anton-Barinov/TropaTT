@@ -11,6 +11,12 @@ use Api\System\Library\Support\Ulid;
 
 final class WorkCycleService
 {
+    private function setOrganizationScope(array $actor): void
+    {
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        $this->cycles->setOrganizationId($organizationId > 0 ? $organizationId : null);
+    }
+
     private const ALLOWED_STATUSES = ['planned', 'active', 'completed', 'archived'];
     private const VALID_TRANSITIONS = [
         'planned' => ['active', 'archived'],
@@ -34,6 +40,7 @@ final class WorkCycleService
 
     public function list(array $filters, array $actor): array
     {
+        $this->setOrganizationScope($actor);
         $result = $this->cycles->list(
             $filters,
             (int)($actor['id'] ?? 0),
@@ -65,6 +72,7 @@ final class WorkCycleService
 
     public function create(array $input, array $actor): array|string
     {
+        $this->setOrganizationScope($actor);
         // Validate title
         $title = trim((string)($input['title'] ?? ''));
         if ($title === '') {
@@ -131,6 +139,7 @@ final class WorkCycleService
         $this->cycles->create([
             'public_id' => $publicId,
             'project_id' => $projectId,
+            'organization_id' => (int)($actor['organization_id'] ?? 0) ?: null,
             'title' => $title,
             'description' => trim((string)($input['description'] ?? '')),
             'goal' => trim((string)($input['goal'] ?? '')),
@@ -167,6 +176,7 @@ final class WorkCycleService
 
     public function get(string $cyclePublicId, array $actor): array|string|null
     {
+        $this->setOrganizationScope($actor);
         $cycle = $this->cycles->findByPublicId($cyclePublicId);
         if (!$cycle) {
             return 'CYCLE_NOT_FOUND';
@@ -181,6 +191,7 @@ final class WorkCycleService
 
     public function update(string $cyclePublicId, array $input, array $actor): array|string|null
     {
+        $this->setOrganizationScope($actor);
         $cycle = $this->cycles->findByPublicId($cyclePublicId);
         if (!$cycle) {
             return 'CYCLE_NOT_FOUND';
@@ -292,6 +303,7 @@ final class WorkCycleService
 
     public function delete(string $cyclePublicId, array $actor): bool|string
     {
+        $this->setOrganizationScope($actor);
         $cycle = $this->cycles->findByPublicId($cyclePublicId);
         if (!$cycle) {
             return 'CYCLE_NOT_FOUND';
@@ -308,6 +320,7 @@ final class WorkCycleService
 
     public function start(string $cyclePublicId, array $input, array $actor): array|string|null
     {
+        $this->setOrganizationScope($actor);
         $cycle = $this->cycles->findByPublicId($cyclePublicId);
         if (!$cycle) {
             return 'CYCLE_NOT_FOUND';
@@ -370,6 +383,7 @@ final class WorkCycleService
 
     public function complete(string $cyclePublicId, array $input, array $actor): array|string|null
     {
+        $this->setOrganizationScope($actor);
         $cycle = $this->cycles->findByPublicId($cyclePublicId);
         if (!$cycle) {
             return 'CYCLE_NOT_FOUND';
@@ -469,6 +483,7 @@ final class WorkCycleService
 
     public function reopen(string $cyclePublicId, array $input, array $actor): array|string|null
     {
+        $this->setOrganizationScope($actor);
         $cycle = $this->cycles->findByPublicId($cyclePublicId);
         if (!$cycle) {
             return 'CYCLE_NOT_FOUND';
@@ -515,6 +530,7 @@ final class WorkCycleService
 
     public function archive(string $cyclePublicId, array $input, array $actor): bool|string
     {
+        $this->setOrganizationScope($actor);
         $cycle = $this->cycles->findByPublicId($cyclePublicId);
         if (!$cycle) {
             return 'CYCLE_NOT_FOUND';
@@ -555,6 +571,7 @@ final class WorkCycleService
 
     public function addTasks(string $cyclePublicId, array $input, array $actor): array|string|null
     {
+        $this->setOrganizationScope($actor);
         $cycle = $this->cycles->findByPublicId($cyclePublicId);
         if (!$cycle) {
             return 'CYCLE_NOT_FOUND';
@@ -679,6 +696,7 @@ final class WorkCycleService
 
     public function removeTask(string $cyclePublicId, string $taskPublicId, array $actor): bool|string
     {
+        $this->setOrganizationScope($actor);
         $cycle = $this->cycles->findByPublicId($cyclePublicId);
         if (!$cycle) {
             return 'CYCLE_NOT_FOUND';
@@ -723,6 +741,7 @@ final class WorkCycleService
 
     public function tasks(string $cyclePublicId, array $filters, array $actor): array|string|null
     {
+        $this->setOrganizationScope($actor);
         $cycle = $this->cycles->findByPublicId($cyclePublicId);
         if (!$cycle) {
             return 'CYCLE_NOT_FOUND';
@@ -737,6 +756,7 @@ final class WorkCycleService
 
     public function summary(string $cyclePublicId, array $actor): array|string|null
     {
+        $this->setOrganizationScope($actor);
         $cycle = $this->cycles->findByPublicId($cyclePublicId);
         if (!$cycle) {
             return 'CYCLE_NOT_FOUND';
@@ -805,6 +825,7 @@ final class WorkCycleService
 
     public function transferUnfinished(string $cyclePublicId, array $input, array $actor): array|string|null
     {
+        $this->setOrganizationScope($actor);
         $cycle = $this->cycles->findByPublicId($cyclePublicId);
         if (!$cycle) {
             return 'CYCLE_NOT_FOUND';
@@ -888,6 +909,7 @@ final class WorkCycleService
 
     public function burndown(string $cyclePublicId, array $actor): array|string|null
     {
+        $this->setOrganizationScope($actor);
         $cycle = $this->cycles->findByPublicId($cyclePublicId);
         if (!$cycle) {
             return 'CYCLE_NOT_FOUND';
@@ -984,6 +1006,7 @@ final class WorkCycleService
 
     public function scope(string $cyclePublicId, array $actor): array|string|null
     {
+        $this->setOrganizationScope($actor);
         $cycle = $this->cycles->findByPublicId($cyclePublicId);
         if (!$cycle) {
             return 'CYCLE_NOT_FOUND';
@@ -1024,6 +1047,7 @@ final class WorkCycleService
 
     public function velocity(string $projectPublicId, array $actor): array|string|null
     {
+        $this->setOrganizationScope($actor);
         $project = $this->projects->get($projectPublicId, $actor);
         if (!$project) {
             return 'CYCLE_PROJECT_NOT_FOUND';
@@ -1074,6 +1098,7 @@ final class WorkCycleService
 
     public function capacity(string $cyclePublicId, array $actor): array|string|null
     {
+        $this->setOrganizationScope($actor);
         $cycle = $this->cycles->findByPublicId($cyclePublicId);
         if (!$cycle) {
             return 'CYCLE_NOT_FOUND';

@@ -60,6 +60,7 @@ final class MigrationManager
             new SavedViewsV2Migration(),
             new TaskActivityFeedMigration(),
             new WorkCyclesMigration(),
+            new OrganizationCycleScopeMigration(),
             new ProjectModulesMigration(),
             new KnowledgePageVersionsMigration(),
             new StickyNotesMigration(),

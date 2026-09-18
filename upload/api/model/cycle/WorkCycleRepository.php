@@ -10,6 +10,13 @@ use Api\System\Library\Support\TaskStatusSemantics;
 
 final class WorkCycleRepository
 {
+    private ?int $organizationId = null;
+
+    public function setOrganizationId(?int $organizationId): void
+    {
+        $this->organizationId = $organizationId !== null && $organizationId > 0 ? $organizationId : null;
+    }
+
     /** Cycle metrics treat an archived task as finished, but not a cancelled one. */
     private const COMPLETED_OR_ARCHIVED = ['done', 'completed', 'closed', 'archived'];
 
@@ -17,8 +24,9 @@ final class WorkCycleRepository
     {
     }
 
-    public function list(array $filters, int $actorUserId, bool $isRoot): array
+    public function list(array $filters, int $actorUserId, bool $isRoot, ?int $organizationId = null): array
     {
+        $organizationId = $organizationId ?? $this->organizationId;
         $sortWhitelist = ['start_at', 'end_at', 'created_at', 'updated_at', 'title', 'status', 'sort_order'];
         $sort = in_array(($filters['sort'] ?? ''), $sortWhitelist, true) ? (string)$filters['sort'] : 'start_at';
         $order = strtoupper((string)($filters['order'] ?? 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
@@ -41,6 +49,10 @@ final class WorkCycleRepository
                 "(SELECT COUNT(*) FROM cycle_tasks ct INNER JOIN tasks t ON t.id = ct.task_id WHERE ct.cycle_id = wc.id AND ct.deleted_at IS NULL AND t.status_code IN (" . TaskStatusSemantics::literalList($this->pdo, self::COMPLETED_OR_ARCHIVED) . ")) AS completed_tasks_count",
                 "(SELECT COUNT(*) FROM cycle_tasks ct INNER JOIN tasks t ON t.id = ct.task_id WHERE ct.cycle_id = wc.id AND ct.deleted_at IS NULL AND t.status_code NOT IN (" . TaskStatusSemantics::literalList($this->pdo, self::COMPLETED_OR_ARCHIVED) . ")) AS open_tasks_count",
             ]);
+
+        if ($organizationId !== null && $organizationId > 0) {
+            $qb->where('wc.organization_id', '=', $organizationId);
+        }
 
         if (!empty($filters['project_public_id'])) {
             $qb->where('p.public_id', '=', (string)$filters['project_public_id']);
@@ -127,9 +139,10 @@ final class WorkCycleRepository
         ];
     }
 
-    public function findByPublicId(string $publicId): ?array
+    public function findByPublicId(string $publicId, ?int $organizationId = null): ?array
     {
-        $row = (new QueryBuilder($this->pdo))
+        $organizationId = $organizationId ?? $this->organizationId;
+        $rowQuery = (new QueryBuilder($this->pdo))
             ->from('work_cycles wc')
             ->leftJoin('users o', 'o.id', '=', 'wc.owner_user_id')
             ->leftJoin('projects p', 'p.id', '=', 'wc.project_id')
@@ -142,8 +155,12 @@ final class WorkCycleRepository
                 'p.title AS project_title',
             ])
             ->where('wc.public_id', '=', $publicId)
-            ->whereNull('wc.deleted_at')
-            ->first();
+            ->whereNull('wc.deleted_at');
+
+        if ($organizationId !== null && $organizationId > 0) {
+            $rowQuery->where('wc.organization_id', '=', $organizationId);
+        }
+        $row = $rowQuery->first();
 
         if (!$row) {
             return null;
@@ -180,15 +197,15 @@ final class WorkCycleRepository
         return ['t.status_code IN (' . $placeholders . ')', self::COMPLETED_OR_ARCHIVED];
     }
 
-    public function findById(int $id): ?array
+    public function findById(int $id, ?int $organizationId = null): ?array
     {
-        $row = (new QueryBuilder($this->pdo))
+        $organizationId = $organizationId ?? $this->organizationId;
+        $query = (new QueryBuilder($this->pdo))
             ->from('work_cycles')
             ->where('id', '=', $id)
-            ->whereNull('deleted_at')
-            ->first();
-
-        return $row;
+            ->whereNull('deleted_at');
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        return $query->first();
     }
 
     public function create(array $payload): array
@@ -200,8 +217,9 @@ final class WorkCycleRepository
         return $payload;
     }
 
-    public function updateByPublicId(string $publicId, array $set): bool
+    public function updateByPublicId(string $publicId, array $set, ?int $organizationId = null): bool
     {
+        $organizationId = $organizationId ?? $this->organizationId;
         if ($set === []) {
             return false;
         }
@@ -209,19 +227,17 @@ final class WorkCycleRepository
         $set['row_version'] = new \Api\System\Library\Database\Builder\Expression('row_version + 1');
         $set['updated_at'] = gmdate('Y-m-d H:i:s');
 
-        return (new QueryBuilder($this->pdo))
-            ->from('work_cycles')
-            ->where('public_id', '=', $publicId)
-            ->whereNull('deleted_at')
-            ->update($set) > 0;
+        $query = (new QueryBuilder($this->pdo))->from('work_cycles')->where('public_id', '=', $publicId)->whereNull('deleted_at');
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        return $query->update($set) > 0;
     }
 
-    public function softDeleteByPublicId(string $publicId, string $deletedAt): bool
+    public function softDeleteByPublicId(string $publicId, string $deletedAt, ?int $organizationId = null): bool
     {
-        return (new QueryBuilder($this->pdo))
-            ->from('work_cycles')
-            ->where('public_id', '=', $publicId)
-            ->whereNull('deleted_at')
+        $organizationId = $organizationId ?? $this->organizationId;
+        $query = (new QueryBuilder($this->pdo))->from('work_cycles')->where('public_id', '=', $publicId)->whereNull('deleted_at');
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        return $query
             ->update([
                 'deleted_at' => $deletedAt,
                 'updated_at' => $deletedAt,
@@ -229,12 +245,12 @@ final class WorkCycleRepository
             ]) > 0;
     }
 
-    public function archiveByPublicId(string $publicId, string $archivedAt): bool
+    public function archiveByPublicId(string $publicId, string $archivedAt, ?int $organizationId = null): bool
     {
-        return (new QueryBuilder($this->pdo))
-            ->from('work_cycles')
-            ->where('public_id', '=', $publicId)
-            ->whereNull('deleted_at')
+        $organizationId = $organizationId ?? $this->organizationId;
+        $query = (new QueryBuilder($this->pdo))->from('work_cycles')->where('public_id', '=', $publicId)->whereNull('deleted_at');
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        return $query
             ->update([
                 'archived_at' => $archivedAt,
                 'updated_at' => $archivedAt,
@@ -266,18 +282,19 @@ final class WorkCycleRepository
 
     public function findActiveByProjectId(int $projectId): ?array
     {
+        $organizationId = $this->organizationId;
         if ($projectId <= 0) {
             return null;
         }
 
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('work_cycles')
             ->where('project_id', '=', $projectId)
             ->where('status', '=', 'active')
             ->whereNull('archived_at')
-            ->whereNull('deleted_at')
-            ->orderBy('start_at', 'DESC')
-            ->first();
+            ->whereNull('deleted_at');
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        return $query->orderBy('start_at', 'DESC')->first();
     }
 
     /**
@@ -288,13 +305,14 @@ final class WorkCycleRepository
      */
     public function listActive(): array
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('work_cycles')
             ->select(['id', 'public_id', 'status', 'start_at', 'end_at'])
             ->where('status', '=', 'active')
             ->whereNull('archived_at')
-            ->whereNull('deleted_at')
-            ->get();
+            ->whereNull('deleted_at');
+        if ($this->organizationId !== null && $this->organizationId > 0) $query->where('organization_id', '=', $this->organizationId);
+        return $query->get();
     }
 
     public function listCompletedByProjectId(int $projectId): array
@@ -303,7 +321,7 @@ final class WorkCycleRepository
             return [];
         }
 
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('work_cycles wc')
             ->leftJoin('projects p', 'p.id', '=', 'wc.project_id')
             ->select([
@@ -313,9 +331,9 @@ final class WorkCycleRepository
             ])
             ->where('wc.project_id', '=', $projectId)
             ->where('wc.status', '=', 'completed')
-            ->whereNull('wc.deleted_at')
-            ->orderBy('wc.completed_at', 'ASC')
-            ->get();
+            ->whereNull('wc.deleted_at');
+        if ($this->organizationId !== null && $this->organizationId > 0) $query->where('wc.organization_id', '=', $this->organizationId);
+        return $query->orderBy('wc.completed_at', 'ASC')->get();
     }
 
     public function hasAssigneeInCycle(int $cycleId, int $userId): bool
