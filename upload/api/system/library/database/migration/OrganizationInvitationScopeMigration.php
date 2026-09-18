@@ -36,12 +36,14 @@ final class OrganizationInvitationScopeMigration implements MigrationInterface
         if ($this->columnExists($pdo, $driver, 'invitations', 'organization_id')) {
             // MIN avoids driver-specific UPDATE-alias/LIMIT syntax and gives
             // repeatable results when an inviter belongs to several workspaces.
-            $pdo->exec(
-                'UPDATE invitations SET organization_id = ('
-                . 'SELECT MIN(om.organization_id) FROM organization_memberships om '
-                . 'WHERE om.user_id = invitations.invited_by_user_id'
-                . ') WHERE organization_id IS NULL'
-            );
+            if ($this->columnExists($pdo, $driver, 'invitations', 'invited_by_user_id')) {
+                $pdo->exec(
+                    'UPDATE invitations SET organization_id = ('
+                    . 'SELECT MIN(om.organization_id) FROM organization_memberships om '
+                    . 'WHERE om.user_id = invitations.invited_by_user_id'
+                    . ') WHERE organization_id IS NULL'
+                );
+            }
             $default = $pdo->query('SELECT id FROM organizations ORDER BY id ASC LIMIT 1')->fetchColumn();
             if ($default !== false && $default !== null) {
                 $stmt = $pdo->prepare('UPDATE invitations SET organization_id = :organization_id WHERE organization_id IS NULL');
