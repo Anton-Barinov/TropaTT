@@ -10593,4 +10593,5 @@ return array (
   'organization.role_owner' => 'Eigentümer',
   'organization.members_saved' => 'Arbeitsbereich-Mitglieder aktualisiert',
   'organization.members_save_error' => 'Arbeitsbereich-Mitglieder konnten nicht aktualisiert werden',
+  'organization.selected_short' => 'Aktuell',
 );

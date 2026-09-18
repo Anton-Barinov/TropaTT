@@ -10593,4 +10593,5 @@ return array (
   'organization.role_owner' => '所有者',
   'organization.members_saved' => '工作空间成员已更新',
   'organization.members_save_error' => '无法更新工作空间成员',
+  'organization.selected_short' => '当前',
 );

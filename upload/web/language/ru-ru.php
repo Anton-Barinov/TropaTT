@@ -10536,6 +10536,7 @@ return array (
   'organization.create_title' => 'Создать организацию',
   'organization.prompt_title' => 'Название рабочего пространства',
   'organization.selected' => 'Активное рабочее пространство',
+  'organization.selected_short' => 'Текущее',
   'organization.select' => 'Выбрать пространство',
   'organization.members_title' => 'Участники рабочего пространства',
   'organization.members_search' => 'Найти участника',

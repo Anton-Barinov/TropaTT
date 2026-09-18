@@ -10536,6 +10536,7 @@ return array (
   'organization.create_title' => 'Create organization',
   'organization.prompt_title' => 'Workspace name',
   'organization.selected' => 'Active workspace',
+  'organization.selected_short' => 'Current',
   'organization.select' => 'Select workspace',
   'organization.members_title' => 'Workspace members',
   'organization.members_search' => 'Find a member',

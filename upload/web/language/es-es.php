@@ -10593,4 +10593,5 @@ return array (
   'organization.role_owner' => 'Propietario',
   'organization.members_saved' => 'Miembros del espacio actualizados',
   'organization.members_save_error' => 'No se pudieron actualizar los miembros',
+  'organization.selected_short' => 'Actual',
 );
