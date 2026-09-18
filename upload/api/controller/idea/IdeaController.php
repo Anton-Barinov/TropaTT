@@ -13,13 +13,36 @@ use PDO;
 
 final class IdeaController extends BaseController
 {
+    private function activeOrganizationId(): ?int
+    {
+        $actor = $this->organizationScopedActor((array)($this->user()['user'] ?? []));
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
+    }
+
+    private function ideaInActiveOrganization(string $publicId): ?array
+    {
+        $pdo = $this->container->get('db.pdo');
+        $sql = 'SELECT id, public_id, author_user_id, title FROM ideas WHERE public_id = :pid';
+        $params = ['pid' => $publicId];
+        if (($org = $this->activeOrganizationId()) !== null) {
+            $sql .= ' AND organization_id = :organization_id';
+            $params['organization_id'] = $org;
+        }
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
     public function list(): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) return $contextError;
         $cache = $this->cacheApi();
         if ($cache !== null) {
             $input = $this->request()->allInput();
             ksort($input);
-            $cacheKey = 'list:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($input));
+            $cacheKey = 'list:' . $this->cacheUserId() . ':' . $this->organizationContextCacheKey() . ':' . hash('sha256', json_encode($input));
             $result = $cache->remember('idea', $cacheKey, 60, function () use ($input) {
                 return $this->executeListQuery($input);
             });
@@ -47,9 +70,11 @@ final class IdeaController extends BaseController
 
         $user = $this->user()['user'] ?? [];
         $userId = (int)($user['id'] ?? 0);
+        $organizationId = $this->activeOrganizationId();
 
         $where = [];
         $params = [];
+        if ($organizationId !== null) { $where[] = 'i.organization_id = :organization_id'; $params['organization_id'] = $organizationId; }
         if ($status !== '') { $where[] = 'i.status = :status'; $params['status'] = $status; }
         if ($category !== '') { $where[] = 'i.category = :category'; $params['category'] = $category; }
         if ($userId > 0) {
@@ -91,22 +116,23 @@ final class IdeaController extends BaseController
 
     public function get(array $params = []): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) return $contextError;
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
         $idea = null;
         $cache = $this->cacheApi();
         if ($cache !== null) {
-            $cacheKey = 'get:' . $this->cacheUserId() . ':' . $publicId;
+            $cacheKey = 'get:' . $this->cacheUserId() . ':' . $this->organizationContextCacheKey() . ':' . $publicId;
             $idea = $cache->remember('idea', $cacheKey, 60, function () use ($publicId) {
                 /** @var IdeaService $service */
                 $service = $this->container->get('service.idea');
-                return $service->get($publicId);
+                return $service->get($publicId, $this->activeOrganizationId());
             });
         } else {
             /** @var IdeaService $service */
             $service = $this->container->get('service.idea');
-            $idea = $service->get($publicId);
+            $idea = $service->get($publicId, $this->activeOrganizationId());
         }
 
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
@@ -125,6 +151,7 @@ final class IdeaController extends BaseController
 
     public function create(): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) return $contextError;
         $input = $this->request()->allInput();
         $title = trim((string)($input['title'] ?? ''));
         $description = (new HtmlSanitizer())->sanitize(trim((string)($input['description'] ?? '')));
@@ -142,8 +169,8 @@ final class IdeaController extends BaseController
         $pdo = $this->container->get('db.pdo');
         $publicId = 'idea_' . bin2hex(random_bytes(12));
 
-        $stmt = $pdo->prepare("INSERT INTO ideas (public_id, title, description, author_user_id, category, region, visibility, target_date, created_at) VALUES (:pid, :title, :desc, :uid, :cat, :region, :vis, :target_date, NOW())");
-        $stmt->execute(['pid' => $publicId, 'title' => $title, 'desc' => $description, 'uid' => $userId, 'cat' => $category, 'region' => $region, 'vis' => $visibility, 'target_date' => $targetDate]);
+        $stmt = $pdo->prepare("INSERT INTO ideas (public_id, title, description, author_user_id, category, region, visibility, target_date, organization_id, created_at) VALUES (:pid, :title, :desc, :uid, :cat, :region, :vis, :target_date, :organization_id, NOW())");
+        $stmt->execute(['pid' => $publicId, 'title' => $title, 'desc' => $description, 'uid' => $userId, 'cat' => $category, 'region' => $region, 'vis' => $visibility, 'target_date' => $targetDate, 'organization_id' => $this->activeOrganizationId()]);
 
         try {
             if ($this->container->has('service.notification')) {
@@ -168,12 +195,13 @@ final class IdeaController extends BaseController
 
     public function update(array $params = []): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) return $contextError;
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
         $pdo = $this->container->get('db.pdo');
-        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at FROM ideas WHERE public_id = :pid");
-        $stmt->execute(['pid' => $publicId]);
+        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at FROM ideas WHERE public_id = :pid AND (:organization_id IS NULL OR organization_id = :organization_id)");
+        $stmt->execute(['pid' => $publicId, 'organization_id' => $this->activeOrganizationId()]);
         $idea = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
@@ -200,12 +228,13 @@ final class IdeaController extends BaseController
 
     public function delete(array $params = []): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) return $contextError;
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
         $pdo = $this->container->get('db.pdo');
-        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at FROM ideas WHERE public_id = :pid");
-        $stmt->execute(['pid' => $publicId]);
+        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at FROM ideas WHERE public_id = :pid AND (:organization_id IS NULL OR organization_id = :organization_id)");
+        $stmt->execute(['pid' => $publicId, 'organization_id' => $this->activeOrganizationId()]);
         $idea = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
@@ -327,7 +356,7 @@ final class IdeaController extends BaseController
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
         $service = $this->container->get('service.idea');
-        $idea = $service->getByPublicId($publicId);
+        $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         $pdo = $this->container->get('db.pdo');
         $this->ensureIdeaWorkflowTables($pdo);
@@ -1036,7 +1065,7 @@ final class IdeaController extends BaseController
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
-        $idea = $service->getByPublicId($publicId);
+        $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         $ideaId = (int)$idea['id'];
         $pdo = $this->container->get('db.pdo');
@@ -1180,7 +1209,7 @@ final class IdeaController extends BaseController
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
         $pdo = $this->container->get('db.pdo');
-        $idea = $service->getByPublicId($publicId);
+        $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         $ideaId = (int)$idea['id'];
 
@@ -1338,7 +1367,7 @@ PROMPT;
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
         $pdo = $this->container->get('db.pdo');
-        $idea = $service->getByPublicId($publicId);
+        $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         $ideaId = (int)$idea['id'];
         $this->ensureIdeaWorkflowTables($pdo);
@@ -1493,7 +1522,7 @@ PROMPT;
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
         $pdo = $this->container->get('db.pdo');
-        $idea = $service->getByPublicId($publicId);
+        $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         $ideaId = (int)$idea['id'];
 
@@ -1655,7 +1684,7 @@ PROMPT;
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
         $pdo = $this->container->get('db.pdo');
-        $idea = $service->getByPublicId($publicId);
+        $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         $ideaId = (int)$idea['id'];
         $this->ensureIdeaWorkflowTables($pdo);
@@ -1825,7 +1854,7 @@ PROMPT;
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
         $pdo = $this->container->get('db.pdo');
-        $idea = $service->getByPublicId($publicId);
+        $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         $ideaId = (int)$idea['id'];
         $this->ensureIdeaWorkflowTables($pdo);
@@ -1960,7 +1989,7 @@ PROMPT;
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
         $pdo = $this->container->get('db.pdo');
-        $idea = $service->getByPublicId($publicId);
+        $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         $ideaId = (int)$idea['id'];
         $this->ensureIdeaWorkflowTables($pdo);
@@ -2053,7 +2082,7 @@ PROMPT;
         $service = $this->container->get('service.idea');
         $pdo = $this->container->get('db.pdo');
         $this->ensureIdeaWorkflowTables($pdo);
-        $idea = $service->getByPublicId($publicId);
+        $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         $ideaId = (int)$idea['id'];
 
@@ -2143,7 +2172,7 @@ PROMPT;
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
         $pdo = $this->container->get('db.pdo');
-        $idea = $service->getByPublicId($publicId);
+        $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         $ideaId = (int)$idea['id'];
 
@@ -2226,7 +2255,7 @@ PROMPT;
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
         $pdo = $this->container->get('db.pdo');
-        $idea = $service->getByPublicId($publicId);
+        $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         $ideaId = (int)$idea['id'];
 
@@ -2352,7 +2381,7 @@ PROMPT;
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
         $pdo = $this->container->get('db.pdo');
-        $idea = $service->getByPublicId($publicId);
+        $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         $ideaId = (int)$idea['id'];
 
@@ -2444,7 +2473,7 @@ PROMPT;
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $pdo = $this->container->get('db.pdo');
-        $idea = $this->container->get('service.idea')->getByPublicId($publicId);
+        $idea = $this->container->get('service.idea')->getByPublicId($publicId, $this->activeOrganizationId());
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         $ideaId = (int)$idea['id'];
         $userId = (int)($this->user()['user']['id'] ?? 0);
@@ -2584,7 +2613,7 @@ PROMPT;
             $publicId = (string)($params['public_id'] ?? '');
             if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
             $service = $this->container->get('service.idea');
-            $idea = $service->getByPublicId($publicId);
+            $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
             if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
             $ideaId = (int)$idea['id'];
             $pdo = $this->container->get('db.pdo');
@@ -2601,7 +2630,7 @@ PROMPT;
 
         $service = $this->container->get('service.idea');
         $pdo = $this->container->get('db.pdo');
-        $idea = $service->getByPublicId($publicId);
+        $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
         $ideaId = (int)$idea['id'];
@@ -2876,7 +2905,7 @@ PROMPT;
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
         $service = $this->container->get('service.idea');
-        $idea = $service->getByPublicId($publicId);
+        $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
         $ideaId = (int)$idea['id'];
@@ -3018,7 +3047,7 @@ PROMPT;
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
         $service = $this->container->get('service.idea');
-        $idea = $service->getByPublicId($publicId);
+        $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
         $pdo = $this->container->get('db.pdo');
@@ -3144,7 +3173,7 @@ PROMPT;
         }
 
         $service = $this->container->get('service.idea');
-        $idea = $service->getByPublicId($publicId);
+        $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
         $service->saveAnswers((int)$idea['id'], $answers);
@@ -3163,7 +3192,7 @@ PROMPT;
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
         $service = $this->container->get('service.idea');
-        $idea = $service->getByPublicId($publicId);
+        $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
         $drafts = $service->getTaskDrafts((int)$idea['id']);
@@ -3215,7 +3244,7 @@ PROMPT;
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
         $service = $this->container->get('service.idea');
-        $idea = $service->getByPublicId($publicId);
+        $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
         $ideaId = (int)$idea['id'];
@@ -3291,7 +3320,7 @@ PROMPT;
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
         $service = $this->container->get('service.idea');
-        $idea = $service->getByPublicId($publicId);
+        $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
         // Get existing analyses for context
@@ -3346,7 +3375,7 @@ PROMPT;
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
         $service = $this->container->get('service.idea');
-        $idea = $service->getByPublicId($publicId);
+        $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
         $pdo = $this->container->get('db.pdo');
@@ -3411,7 +3440,7 @@ PROMPT;
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
         $service = $this->container->get('service.idea');
-        $idea = $service->getByPublicId($publicId);
+        $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         if (($idea['status'] ?? '') !== 'ready_for_analysis') {
             return $this->error('ANALYSIS_NOT_READY', $this->t('idea/messages.analysis_not_ready_status'), 422);
@@ -3507,7 +3536,7 @@ PROMPT;
         if ($publicId === '' || $stepKey === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
         $service = $this->container->get('service.idea');
-        $idea = $service->getByPublicId($publicId);
+        $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         if (!in_array($stepKey, $this->analysisStepKeys(), true)) {
             return $this->error('INVALID_STEP', $this->t('idea/messages.unknown_step_key'), 422);
@@ -3776,7 +3805,7 @@ PROMPT;
         if ($publicId === '' || $analysisType === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
         $service = $this->container->get('service.idea');
-        $idea = $service->getByPublicId($publicId);
+        $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
         // Get existing completed analyses for context
