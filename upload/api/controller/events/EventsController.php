@@ -22,8 +22,9 @@ final class EventsController extends BaseController
             ];
         }
 
-        $actor = $auth['user'];
+        $actor = $this->organizationScopedActor($auth['user']);
         $userId = (int)($actor['id'] ?? 0);
+        $organizationId = (int)($actor['organization_id'] ?? 0) ?: null;
 
         /** @var NotificationService $notifications */
         $notifications = $this->container->get('service.notification');
@@ -32,11 +33,11 @@ final class EventsController extends BaseController
         $headerAfterId = max(0, (int)$this->parseLastEventId((string)$request->header('Last-Event-ID', '')));
         $streamAfterId = max($requestedAfterId, $headerAfterId);
         if ($streamAfterId <= 0) {
-            $streamAfterId = $notifications->latestInternalIdByUser($userId);
+            $streamAfterId = $notifications->latestInternalIdByUser($userId, $organizationId);
         }
 
         return [
-            'stream' => function () use ($notifications, $userId, $streamAfterId, $request): void {
+            'stream' => function () use ($notifications, $userId, $organizationId, $streamAfterId, $request): void {
                 while (ob_get_level() > 0) {
                     @ob_end_clean();
                 }
@@ -56,7 +57,7 @@ final class EventsController extends BaseController
                 $maxDuration = 15;
                 $heartbeatInterval = 5;
                 $nextHeartbeatAt = time() + $heartbeatInterval;
-                $lastStateHash = $notifications->stateHashByUser($userId);
+                $lastStateHash = $notifications->stateHashByUser($userId, $organizationId);
 
                 echo 'event: stream.ready' . "\n";
                 echo 'data: ' . json_encode([
@@ -80,7 +81,7 @@ final class EventsController extends BaseController
                         break;
                     }
 
-                    $newItems = $notifications->streamItemsAfterId($userId, $lastId, 100);
+                    $newItems = $notifications->streamItemsAfterId($userId, $lastId, 100, $organizationId);
                     if ($newItems !== []) {
                         foreach ($newItems as $item) {
                             $itemId = (int)($item['id'] ?? 0);
@@ -94,7 +95,7 @@ final class EventsController extends BaseController
                             echo 'data: ' . json_encode([
                                 'type' => 'notification.created',
                                 'notification' => $item,
-                                'counters' => $notifications->counters(['id' => $userId]),
+                                'counters' => $notifications->counters(['id' => $userId, 'organization_id' => $organizationId]),
                                 'meta' => [
                                     'timestamp' => gmdate('c'),
                                 ],
@@ -102,17 +103,17 @@ final class EventsController extends BaseController
                             @ob_flush();
                             @flush();
                         }
-                        $lastStateHash = $notifications->stateHashByUser($userId);
+                        $lastStateHash = $notifications->stateHashByUser($userId, $organizationId);
                     }
 
-                    $currentHash = $notifications->stateHashByUser($userId);
+                    $currentHash = $notifications->stateHashByUser($userId, $organizationId);
                     if ($currentHash !== $lastStateHash) {
                         $lastStateHash = $currentHash;
                         echo 'event: notification.updated' . "\n";
                         echo 'data: ' . json_encode([
                             'type' => 'notification.updated',
                             'event' => 'notification.updated',
-                            'counters' => $notifications->counters(['id' => $userId]),
+                            'counters' => $notifications->counters(['id' => $userId, 'organization_id' => $organizationId]),
                             'meta' => [
                                 'timestamp' => gmdate('c'),
                                 'state_changed' => true,
@@ -123,7 +124,7 @@ final class EventsController extends BaseController
                         echo 'data: ' . json_encode([
                             'type' => 'notification.state',
                             'event' => 'notification.state',
-                            'counters' => $notifications->counters(['id' => $userId]),
+                            'counters' => $notifications->counters(['id' => $userId, 'organization_id' => $organizationId]),
                             'meta' => [
                                 'timestamp' => gmdate('c'),
                                 'state_changed' => true,

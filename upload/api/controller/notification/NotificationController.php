@@ -18,9 +18,11 @@ final class NotificationController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
+        if ($error = $this->rejectInvalidOrganizationContext()) return $error;
+        $actor = $this->organizationScopedActor($authUser['user']);
         /** @var NotificationService $service */
         $service = $this->container->get('service.notification');
-        $result = $service->list($this->request()->allInput(), $authUser['user']);
+        $result = $service->list($this->request()->allInput(), $actor);
 
         return $this->success('NOTIFICATION_LIST', $this->t('notification/messages.list'), ['items' => $result['items']], meta: $result['meta']);
     }
@@ -32,15 +34,17 @@ final class NotificationController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
+        if ($error = $this->rejectInvalidOrganizationContext()) return $error;
+        $actor = $this->organizationScopedActor($authUser['user']);
         /** @var NotificationService $service */
         $service = $this->container->get('service.notification');
         /** @var ReminderService $reminders */
         $reminders = $this->container->get('service.reminder');
 
-        $reminders->dispatchDueNotificationsForUser($authUser['user'], gmdate('Y-m-d H:i:s'));
-        $service->dispatchOverdueSignalsForUser((int)($authUser['user']['id'] ?? 0), $authUser['user']);
-        $counters = $service->counters($authUser['user']);
-        $counters['reminders_due'] = $reminders->pendingDueCount($authUser['user'], gmdate('Y-m-d H:i:s'));
+        $reminders->dispatchDueNotificationsForUser($actor, gmdate('Y-m-d H:i:s'));
+        $service->dispatchOverdueSignalsForUser((int)($actor['id'] ?? 0), $actor);
+        $counters = $service->counters($actor);
+        $counters['reminders_due'] = $reminders->pendingDueCount($actor, gmdate('Y-m-d H:i:s'));
 
         return $this->success('NOTIFICATION_COUNTERS', $this->t('notification/messages.counters'), ['counters' => $counters]);
     }
@@ -72,9 +76,11 @@ final class NotificationController extends BaseController
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $v->errors());
         }
 
+        if ($error = $this->rejectInvalidOrganizationContext()) return $error;
+        $actor = $this->organizationScopedActor($authUser['user']);
         /** @var NotificationService $service */
         $service = $this->container->get('service.notification');
-        $item = $service->create($input, $authUser['user']);
+        $item = $service->create($input, $actor);
 
         return $this->success('NOTIFICATION_CREATED', $this->t('notification/messages.created'), ['notification' => $item], 201);
     }
@@ -86,9 +92,11 @@ final class NotificationController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
+        if ($error = $this->rejectInvalidOrganizationContext()) return $error;
+        $actor = $this->organizationScopedActor($authUser['user']);
         /** @var NotificationService $service */
         $service = $this->container->get('service.notification');
-        $item = $service->markRead((string)$params['public_id'], $authUser['user']);
+        $item = $service->markRead((string)$params['public_id'], $actor);
         if (!$item) {
             return $this->error('NOTIFICATION_NOT_FOUND', $this->t('notification/messages.not_found'), 404, [
                 'notification' => [$this->t('notification/messages.not_found')],
@@ -105,9 +113,11 @@ final class NotificationController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
+        if ($error = $this->rejectInvalidOrganizationContext()) return $error;
+        $actor = $this->organizationScopedActor($authUser['user']);
         /** @var NotificationService $service */
         $service = $this->container->get('service.notification');
-        $item = $service->markUnread((string)$params['public_id'], $authUser['user']);
+        $item = $service->markUnread((string)$params['public_id'], $actor);
         if (!$item) {
             return $this->error('NOTIFICATION_NOT_FOUND', $this->t('notification/messages.not_found'), 404, [
                 'notification' => [$this->t('notification/messages.not_found')],
@@ -129,9 +139,11 @@ final class NotificationController extends BaseController
             $category = null;
         }
 
+        if ($error = $this->rejectInvalidOrganizationContext()) return $error;
+        $actor = $this->organizationScopedActor($authUser['user']);
         /** @var NotificationService $service */
         $service = $this->container->get('service.notification');
-        $updated = $service->markAllRead($authUser['user'], $category);
+        $updated = $service->markAllRead($actor, $category);
 
         return $this->success('NOTIFICATION_MARK_ALL_READ', $this->t('notification/messages.mark_all_read'), [
             'updated' => $updated,

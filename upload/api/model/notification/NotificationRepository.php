@@ -12,16 +12,16 @@ final class NotificationRepository
     {
     }
 
-    public function listByUser(int $userId, array $filters): array
+    public function listByUser(int $userId, array $filters, ?int $organizationId = null): array
     {
         $page = max(1, (int)($filters['page'] ?? 1));
         $limit = min(100, max(1, (int)($filters['limit'] ?? 20)));
         $offset = ($page - 1) * $limit;
 
-        $countQuery = $this->buildListQuery($userId, $filters);
+        $countQuery = $this->buildListQuery($userId, $filters, $organizationId);
         $total = $countQuery->count();
 
-        $items = $this->buildListQuery($userId, $filters)
+        $items = $this->buildListQuery($userId, $filters, $organizationId)
             ->select([
                 'n.public_id',
                 'n.category',
@@ -48,11 +48,11 @@ final class NotificationRepository
     }
 
     /** @return array<int,array<string,mixed>> */
-    public function listForUserAfterId(int $userId, int $afterId, int $limit = 50): array
+    public function listForUserAfterId(int $userId, int $afterId, int $limit = 50, ?int $organizationId = null): array
     {
         $safeLimit = min(200, max(1, $limit));
 
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('notifications n')
             ->select([
                 'n.id',
@@ -73,21 +73,19 @@ final class NotificationRepository
                 'n.read_at',
             ])
             ->where('n.user_id', '=', $userId)
-            ->where('n.id', '>', $afterId)
-            ->orderBy('n.id', 'ASC')
-            ->limit($safeLimit)
-            ->get();
+            ->where('n.id', '>', $afterId);
+        if ($organizationId !== null && $organizationId > 0) $query->where('n.organization_id', '=', $organizationId);
+        return $query->orderBy('n.id', 'ASC')->limit($safeLimit)->get();
     }
 
-    public function latestInternalIdByUser(int $userId): int
+    public function latestInternalIdByUser(int $userId, ?int $organizationId = null): int
     {
-        $row = (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('notifications')
             ->select(['id'])
-            ->where('user_id', '=', $userId)
-            ->orderBy('id', 'DESC')
-            ->limit(1)
-            ->first();
+            ->where('user_id', '=', $userId);
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        $row = $query->orderBy('id', 'DESC')->limit(1)->first();
 
         return $row ? (int)($row['id'] ?? 0) : 0;
     }
@@ -99,9 +97,9 @@ final class NotificationRepository
             ->insert($payload);
     }
 
-    public function findByPublicIdForUser(string $publicId, int $userId): ?array
+    public function findByPublicIdForUser(string $publicId, int $userId, ?int $organizationId = null): ?array
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('notifications')
             ->select([
                 'public_id',
@@ -121,42 +119,46 @@ final class NotificationRepository
                 'read_at',
             ])
             ->where('public_id', '=', $publicId)
-            ->where('user_id', '=', $userId)
-            ->first();
+            ->where('user_id', '=', $userId);
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        return $query->first();
     }
 
-    public function markRead(string $publicId, int $userId, string $readAt): bool
+    public function markRead(string $publicId, int $userId, string $readAt, ?int $organizationId = null): bool
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('notifications')
             ->where('public_id', '=', $publicId)
             ->where('user_id', '=', $userId)
-            ->where('is_read', '=', 0)
-            ->update([
+            ->where('is_read', '=', 0);
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        return $query->update([
                 'is_read' => 1,
                 'read_at' => $readAt,
             ]) > 0;
     }
 
-    public function markUnread(string $publicId, int $userId): bool
+    public function markUnread(string $publicId, int $userId, ?int $organizationId = null): bool
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('notifications')
             ->where('public_id', '=', $publicId)
             ->where('user_id', '=', $userId)
-            ->where('is_read', '=', 1)
-            ->update([
+            ->where('is_read', '=', 1);
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        return $query->update([
                 'is_read' => 0,
                 'read_at' => null,
             ]) > 0;
     }
 
-    public function markAllRead(int $userId, ?string $category, string $readAt): int
+    public function markAllRead(int $userId, ?string $category, string $readAt, ?int $organizationId = null): int
     {
         $query = (new QueryBuilder($this->pdo))
             ->from('notifications')
             ->where('user_id', '=', $userId)
             ->where('is_read', '=', 0);
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
 
         if ($category !== null && $category !== '') {
             $query->where('category', '=', $category);
@@ -168,25 +170,26 @@ final class NotificationRepository
         ]);
     }
 
-    public function countersByUser(int $userId): array
+    public function countersByUser(int $userId, ?int $organizationId = null): array
     {
-        $total = (new QueryBuilder($this->pdo))
+        $totalQuery = (new QueryBuilder($this->pdo))
+            ->from('notifications')
+            ->where('user_id', '=', $userId);
+        $unreadQuery = (new QueryBuilder($this->pdo))
             ->from('notifications')
             ->where('user_id', '=', $userId)
-            ->count();
-        $unread = (new QueryBuilder($this->pdo))
-            ->from('notifications')
-            ->where('user_id', '=', $userId)
-            ->where('is_read', '=', 0)
-            ->count();
+            ->where('is_read', '=', 0);
+        if ($organizationId !== null && $organizationId > 0) { $totalQuery->where('organization_id', '=', $organizationId); $unreadQuery->where('organization_id', '=', $organizationId); }
+        $total = $totalQuery->count();
+        $unread = $unreadQuery->count();
 
-        $rows = (new QueryBuilder($this->pdo))
+        $rowsQuery = (new QueryBuilder($this->pdo))
             ->from('notifications')
             ->select(['category', 'COUNT(*) AS unread_count'])
             ->where('user_id', '=', $userId)
-            ->where('is_read', '=', 0)
-            ->groupBy('category')
-            ->get();
+            ->where('is_read', '=', 0);
+        if ($organizationId !== null && $organizationId > 0) $rowsQuery->where('organization_id', '=', $organizationId);
+        $rows = $rowsQuery->groupBy('category')->get();
 
         $byCategory = [];
         foreach ($rows as $row) {
@@ -201,9 +204,9 @@ final class NotificationRepository
         ];
     }
 
-    public function stateHashByUser(int $userId): string
+    public function stateHashByUser(int $userId, ?int $organizationId = null): string
     {
-        $row = (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('notifications')
             ->select([
                 'MAX(created_at) AS max_created_at',
@@ -211,8 +214,9 @@ final class NotificationRepository
                 'COUNT(*) AS total_count',
                 'SUM(CASE WHEN is_read = 0 THEN 1 ELSE 0 END) AS unread_count',
             ])
-            ->where('user_id', '=', $userId)
-            ->first();
+            ->where('user_id', '=', $userId);
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        $row = $query->first();
 
         if (!$row) {
             return 'empty:0:0';
@@ -247,11 +251,12 @@ final class NotificationRepository
             ->count() > 0;
     }
 
-    private function buildListQuery(int $userId, array $filters): QueryBuilder
+    private function buildListQuery(int $userId, array $filters, ?int $organizationId = null): QueryBuilder
     {
         $query = (new QueryBuilder($this->pdo))
             ->from('notifications n')
             ->where('n.user_id', '=', $userId);
+        if ($organizationId !== null && $organizationId > 0) $query->where('n.organization_id', '=', $organizationId);
 
         if (array_key_exists('is_read', $filters) && $filters['is_read'] !== '' && $filters['is_read'] !== null) {
             $isRead = ((string)$filters['is_read'] === '1' || (string)$filters['is_read'] === 'true') ? 1 : 0;
