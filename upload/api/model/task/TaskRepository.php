@@ -370,9 +370,9 @@ final class TaskRepository
      *
      * @return array<string,int> status_code => count
      */
-    public function countByStatus(array $filters, ?int $actorUserId = null, bool $actorIsRoot = false, bool $rlsScoped = false): array
+    public function countByStatus(array $filters, ?int $actorUserId = null, bool $actorIsRoot = false, bool $rlsScoped = false, ?int $organizationId = null): array
     {
-        $rows = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, 'DESC', $rlsScoped, $this->organizationIdFromFilters($filters))
+        $rows = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, 'DESC', $rlsScoped, $organizationId ?? $this->organizationIdFromFilters($filters))
             ->select([
                 't.status_code AS status_code',
                 'COUNT(*) AS task_count',

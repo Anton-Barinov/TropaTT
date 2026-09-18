@@ -240,6 +240,31 @@ abstract class BaseController
     }
 
     /**
+     * Attach the resolved workspace id to the actor envelope consumed by
+     * domain services. Legacy requests without an active context keep the
+     * original actor unchanged, so rollout remains backward compatible.
+     *
+     * @param array<string,mixed> $actor
+     * @return array<string,mixed>
+     */
+    protected function organizationScopedActor(array $actor): array
+    {
+        if (!$this->container->has('service.organization_context')) {
+            return $actor;
+        }
+        $resolved = $this->container->get('service.organization_context')->resolve(
+            $this->request(),
+            $actor
+        );
+        $organization = $resolved['organization'] ?? null;
+        if (($resolved['status'] ?? '') === 'active' && is_array($organization) && isset($organization['id'])) {
+            $actor['organization_id'] = (int)$organization['id'];
+            $actor['organization_public_id'] = (string)($organization['public_id'] ?? '');
+        }
+        return $actor;
+    }
+
+    /**
      * Return only the allowed input keys from the request body.
      * Prevents mass assignment by discarding unexpected fields.
      *

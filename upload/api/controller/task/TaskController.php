@@ -25,6 +25,7 @@ final class TaskController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $cache = $this->cacheApi();
         if ($cache !== null) {
@@ -57,6 +58,7 @@ final class TaskController extends BaseController
         if ($contextError !== null) {
             return $contextError;
         }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         $errors = [];
@@ -103,6 +105,7 @@ final class TaskController extends BaseController
         if ($contextError !== null) {
             return $contextError;
         }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         $v = new Validator();
@@ -278,6 +281,7 @@ final class TaskController extends BaseController
         if ($contextError !== null) {
             return $contextError;
         }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var TaskService $service */
         $service = $this->container->get('service.task');
