@@ -8989,6 +8989,7 @@ return array (
     'subtitle' => 'Deleted items: restore or permanently delete.',
     'th_deleted_at' => 'Deleted',
     'th_deleted_by' => 'Deleted by',
+    'th_actions' => 'Actions',
     'th_name' => 'Name',
     'th_type' => 'Type',
     'title' => 'TropaTT — Recycle bin',

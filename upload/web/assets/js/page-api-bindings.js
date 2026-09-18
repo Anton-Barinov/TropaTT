@@ -11498,73 +11498,101 @@ window.CRM.pageApiBindings = (function () {
       if (id) counterpartiesMap[id] = cp;
     });
 
+    var isMobileBreakpoint = window.matchMedia && window.matchMedia('(max-width: 767.98px)').matches;
     var table = document.getElementById('counterpartiesTable');
     if (table) table.classList.toggle('crm-compact-table', compact);
     var tableBody = document.getElementById('counterpartiesTableBody');
-    if (tableBody) {
-      if (!counterparties.length) {
-        tableBody.innerHTML = '<tr><td colspan="7" class="text-muted">' + tp('counterparties.empty_table', 'Counterparties not found.') + '</td></tr>';
-      } else {
-        tableBody.innerHTML = counterparties.map(function (cp) {
-          var id = String(cp.public_id || '').trim();
-          var statusCode = String(cp.status || '').trim();
-          return '<tr>'
-            + '<td><input class="form-check-input" type="checkbox" name="counterparty_bulk" data-counterparty-bulk-id="' + safeText(id) + '" aria-label="' + safeText(tp('counterparties.select_counterparty_prefix', 'Select counterparty ') + resolveCounterpartyTitle(cp)) + '"></td>'
-            + '<td class="crm-cp-name"><a class="fw-semibold text-decoration-none crm-counterparty-name-link" href="index.php?route=counterparty-detail&counterparty_public_id=' + encodeURIComponent(id) + '">' + safeText(resolveCounterpartyTitle(cp)) + '</a>'
-            + (cp.tax_inn ? '<div class="crm-cp-inn">' + safeText(tp('counterparties.inn', 'TIN')) + ': ' + safeText(cp.tax_inn) + '</div>' : '')
-            + '</td>'
-            + '<td class="crm-cp-type-status">'
-            + '<div class="crm-cp-line"><span class="crm-chip">' + safeText(typeLabel(cp.counterparty_type)) + '</span></div>'
-            + '<div class="crm-cp-line"><span class="crm-badge ' + counterpartyStatusClass(statusCode) + '">' + safeText(counterpartyStatusLabel(statusCode || '—')) + '</span></div>'
-            + '</td>'
-            + '<td class="crm-cp-contacts">'
-            + (cp.email ? '<div class="crm-cp-line" title="Email: ' + safeText(cp.email) + '">' + safeText(cp.email) + '</div>' : '')
-            + (cp.phone ? '<div class="crm-cp-line" title="' + safeText(tp('counterparties.phone', 'Phone')) + ': ' + safeText(cp.phone) + '">' + safeText(cp.phone) + '</div>' : '')
-            + (!cp.email && !cp.phone ? '<span class="text-muted">—</span>' : '')
-            + '</td>'
-            + '<td>' + renderExtraChips(cp.extra_attributes) + '</td>'
-            + '<td>' + safeText(formatDate(cp.updated_at)) + '</td>'
-            + '<td><div class="crm-counterparty-actions">'
-            + '<button class="btn btn-sm crm-btn-secondary-icon" type="button" data-counterparty-edit="' + safeText(id) + '" aria-label="' + safeText(tp('counterparties.edit_counterparty', 'Edit counterparty')) + '" title="' + safeText(tp('counterparties.edit_counterparty', 'Edit counterparty')) + '">'
-            + '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-pen-to-square" aria-hidden="true"></i></span>'
-            + '</button>'
-            + '<button class="btn btn-sm crm-btn-danger-icon" type="button" data-counterparty-delete="' + safeText(id) + '" aria-label="' + safeText(tp('counterparties.delete_counterparty', 'Delete counterparty')) + '" title="' + safeText(tp('counterparties.delete_counterparty', 'Delete counterparty')) + '">'
-            + '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></span>'
-            + '</button>'
-            + '</div></td>'
-            + '</tr>';
-        }).join('');
+    var mobileList = document.getElementById('counterpartiesMobileList');
+
+    function buildDesktopRows(list) {
+      if (!list.length) {
+        return '<tr><td colspan="7" class="text-muted">' + tp('counterparties.empty_table', 'Counterparties not found.') + '</td></tr>';
       }
+      return list.map(function (cp) {
+        var id = String(cp.public_id || '').trim();
+        var statusCode = String(cp.status || '').trim();
+        return '<tr>'
+          + '<td><input class="form-check-input" type="checkbox" name="counterparty_bulk" data-counterparty-bulk-id="' + safeText(id) + '" aria-label="' + safeText(tp('counterparties.select_counterparty_prefix', 'Select counterparty ') + resolveCounterpartyTitle(cp)) + '"></td>'
+          + '<td class="crm-cp-name"><a class="fw-semibold text-decoration-none crm-counterparty-name-link" href="index.php?route=counterparty-detail&counterparty_public_id=' + encodeURIComponent(id) + '">' + safeText(resolveCounterpartyTitle(cp)) + '</a>'
+          + (cp.tax_inn ? '<div class="crm-cp-inn">' + safeText(tp('counterparties.inn', 'TIN')) + ': ' + safeText(cp.tax_inn) + '</div>' : '')
+          + '</td>'
+          + '<td class="crm-cp-type-status">'
+          + '<div class="crm-cp-line"><span class="crm-chip">' + safeText(typeLabel(cp.counterparty_type)) + '</span></div>'
+          + '<div class="crm-cp-line"><span class="crm-badge ' + counterpartyStatusClass(statusCode) + '">' + safeText(counterpartyStatusLabel(statusCode || '—')) + '</span></div>'
+          + '</td>'
+          + '<td class="crm-cp-contacts">'
+          + (cp.email ? '<div class="crm-cp-line" title="Email: ' + safeText(cp.email) + '">' + safeText(cp.email) + '</div>' : '')
+          + (cp.phone ? '<div class="crm-cp-line" title="' + safeText(tp('counterparties.phone', 'Phone')) + ': ' + safeText(cp.phone) + '">' + safeText(cp.phone) + '</div>' : '')
+          + (!cp.email && !cp.phone ? '<span class="text-muted">—</span>' : '')
+          + '</td>'
+          + '<td>' + renderExtraChips(cp.extra_attributes) + '</td>'
+          + '<td>' + safeText(formatDate(cp.updated_at)) + '</td>'
+          + '<td><div class="crm-counterparty-actions">'
+          + '<button class="btn btn-sm crm-btn-secondary-icon" type="button" data-counterparty-edit="' + safeText(id) + '" aria-label="' + safeText(tp('counterparties.edit_counterparty', 'Edit counterparty')) + '" title="' + safeText(tp('counterparties.edit_counterparty', 'Edit counterparty')) + '">'
+          + '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-pen-to-square" aria-hidden="true"></i></span>'
+          + '</button>'
+          + '<button class="btn btn-sm crm-btn-danger-icon" type="button" data-counterparty-delete="' + safeText(id) + '" aria-label="' + safeText(tp('counterparties.delete_counterparty', 'Delete counterparty')) + '" title="' + safeText(tp('counterparties.delete_counterparty', 'Delete counterparty')) + '">'
+          + '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></span>'
+          + '</button>'
+          + '</div></td>'
+          + '</tr>';
+      }).join('');
     }
 
-    var mobileList = document.getElementById('counterpartiesMobileList');
-    if (mobileList) {
-      if (!counterparties.length) {
-        mobileList.innerHTML = '<div class="crm-empty-state"><strong>' + tp('counterparties.empty_title', 'Counterparties not found') + '</strong><p class="mb-0">' + tp('counterparties.empty_body', 'Change filters or create a new counterparty.') + '</p></div>';
-      } else {
-        mobileList.innerHTML = counterparties.map(function (cp) {
-          var id = String(cp.public_id || '').trim();
-          var title = resolveCounterpartyTitle(cp);
-          var statusCode = String(cp.status || '').trim();
-          return '<article class="crm-counterparty-mobile-card">'
-            + '<div class="crm-counterparty-mobile-head">'
-            + '<label class="crm-counterparty-mobile-check"><input class="form-check-input" type="checkbox" name="counterparty_bulk" data-counterparty-bulk-id="' + safeText(id) + '" aria-label="' + safeText(tp('counterparties.select_counterparty_prefix', 'Select counterparty ') + title) + '"></label>'
-            + '<div><a class="crm-counterparty-mobile-title" href="index.php?route=counterparty-detail&counterparty_public_id=' + encodeURIComponent(id) + '">' + safeText(title) + '</a>'
-            + '<div class="crm-counterparty-mobile-meta"><span class="crm-chip">' + safeText(typeLabel(cp.counterparty_type)) + '</span><span class="crm-badge ' + counterpartyStatusClass(statusCode) + '">' + safeText(counterpartyStatusLabel(statusCode || '—')) + '</span></div></div>'
-            + '</div>'
-            + '<dl class="crm-counterparty-mobile-details">'
-            + '<div><dt>' + tp('counterparties.inn', 'TIN') + '</dt><dd>' + safeText(cp.tax_inn || '—') + '</dd></div>'
-            + '<div><dt>Email</dt><dd>' + safeText(cp.email || '—') + '</dd></div>'
-            + '<div><dt>' + tp('counterparties.phone', 'Phone') + '</dt><dd>' + safeText(cp.phone || '—') + '</dd></div>'
-            + '<div><dt>' + tp('counterparties.updated', 'Updated') + '</dt><dd>' + safeText(formatDate(cp.updated_at)) + '</dd></div>'
-            + '</dl>'
-            + '<div class="crm-counterparty-mobile-actions">'
-            + '<button class="btn btn-sm crm-btn-secondary" type="button" data-counterparty-edit="' + safeText(id) + '">' + tp('counterparties.edit', 'Edit') + '</button>'
-            + '<button class="btn btn-sm crm-btn-danger-soft" type="button" data-counterparty-delete="' + safeText(id) + '">' + tp('counterparties.delete', 'Delete') + '</button>'
-            + '</div>'
-            + '</article>';
-        }).join('');
+    function buildMobileCards(list) {
+      if (!list.length) {
+        return '<div class="crm-empty-state"><strong>' + tp('counterparties.empty_title', 'Counterparties not found') + '</strong><p class="mb-0">' + tp('counterparties.empty_body', 'Change filters or create a new counterparty.') + '</p></div>';
       }
+      return list.map(function (cp) {
+        var id = String(cp.public_id || '').trim();
+        var title = resolveCounterpartyTitle(cp);
+        var statusCode = String(cp.status || '').trim();
+        return '<article class="crm-counterparty-mobile-card">'
+          + '<div class="crm-counterparty-mobile-head">'
+          + '<label class="crm-counterparty-mobile-check"><input class="form-check-input" type="checkbox" name="counterparty_bulk" data-counterparty-bulk-id="' + safeText(id) + '" aria-label="' + safeText(tp('counterparties.select_counterparty_prefix', 'Select counterparty ') + title) + '"></label>'
+          + '<div><a class="crm-counterparty-mobile-title" href="index.php?route=counterparty-detail&counterparty_public_id=' + encodeURIComponent(id) + '">' + safeText(title) + '</a>'
+          + '<div class="crm-counterparty-mobile-meta"><span class="crm-chip">' + safeText(typeLabel(cp.counterparty_type)) + '</span><span class="crm-badge ' + counterpartyStatusClass(statusCode) + '">' + safeText(counterpartyStatusLabel(statusCode || '—')) + '</span></div></div>'
+          + '</div>'
+          + '<dl class="crm-counterparty-mobile-details">'
+          + '<div><dt>' + tp('counterparties.inn', 'TIN') + '</dt><dd>' + safeText(cp.tax_inn || '—') + '</dd></div>'
+          + '<div><dt>Email</dt><dd>' + safeText(cp.email || '—') + '</dd></div>'
+          + '<div><dt>' + tp('counterparties.phone', 'Phone') + '</dt><dd>' + safeText(cp.phone || '—') + '</dd></div>'
+          + '<div><dt>' + tp('counterparties.updated', 'Updated') + '</dt><dd>' + safeText(formatDate(cp.updated_at)) + '</dd></div>'
+          + '</dl>'
+          + '<div class="crm-counterparty-mobile-actions">'
+          + '<button class="btn btn-sm crm-btn-secondary" type="button" data-counterparty-edit="' + safeText(id) + '">' + tp('counterparties.edit', 'Edit') + '</button>'
+          + '<button class="btn btn-sm crm-btn-danger-soft" type="button" data-counterparty-delete="' + safeText(id) + '">' + tp('counterparties.delete', 'Delete') + '</button>'
+          + '</div>'
+          + '</article>';
+      }).join('');
+    }
+
+    function renderCounterpartiesList() {
+      var nowMobile = window.matchMedia && window.matchMedia('(max-width: 767.98px)').matches;
+      if (nowMobile) {
+        if (mobileList) mobileList.innerHTML = buildMobileCards(counterparties);
+        if (tableBody) tableBody.innerHTML = '';
+      } else {
+        if (tableBody) tableBody.innerHTML = buildDesktopRows(counterparties);
+        if (mobileList) mobileList.innerHTML = '';
+      }
+    }
+    renderCounterpartiesList();
+
+    if (!renderCounterpartiesPage._resizeBound) {
+      renderCounterpartiesPage._resizeBound = true;
+      var _cpResizeTimer = null;
+      window.addEventListener('resize', function () {
+        if (_cpResizeTimer) clearTimeout(_cpResizeTimer);
+        _cpResizeTimer = setTimeout(function () {
+          var wasMobile = isMobileBreakpoint;
+          var nowMobile = window.matchMedia && window.matchMedia('(max-width: 767.98px)').matches;
+          if (wasMobile !== nowMobile) {
+            isMobileBreakpoint = nowMobile;
+            renderCounterpartiesList();
+          }
+        }, 150);
+      });
     }
 
     var counterpartiesBulkBar = document.getElementById('counterpartiesBulkActionsBar');
