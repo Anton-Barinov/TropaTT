@@ -56,21 +56,23 @@ final class StatusRepository
         return $query;
     }
 
-    public function findByPublicId(string $publicId): ?array
+    public function findByPublicId(string $publicId, ?int $organizationId = null): ?array
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('statuses')
-            ->where('public_id', '=', $publicId)
-            ->first();
+            ->where('public_id', '=', $publicId);
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        return $query->first();
     }
 
-    public function findByScopeAndCode(string $scope, string $code): ?array
+    public function findByScopeAndCode(string $scope, string $code, ?int $organizationId = null): ?array
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('statuses')
             ->where('scope', '=', $scope)
-            ->where('code', '=', $code)
-            ->first();
+            ->where('code', '=', $code);
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        return $query->first();
     }
 
     public function create(array $payload): void
@@ -82,28 +84,30 @@ final class StatusRepository
         TaskStatusSemantics::resetCache($this->pdo);
     }
 
-    public function updateByPublicId(string $publicId, array $set): bool
+    public function updateByPublicId(string $publicId, array $set, ?int $organizationId = null): bool
     {
         if ($set === []) {
             return false;
         }
 
-        $updated = (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('statuses')
-            ->where('public_id', '=', $publicId)
-            ->update($set) > 0;
+            ->where('public_id', '=', $publicId);
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        $updated = $query->update($set) > 0;
 
         TaskStatusSemantics::resetCache($this->pdo);
 
         return $updated;
     }
 
-    public function deleteByPublicId(string $publicId): bool
+    public function deleteByPublicId(string $publicId, ?int $organizationId = null): bool
     {
-        $deleted = (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('statuses')
-            ->where('public_id', '=', $publicId)
-            ->delete() > 0;
+            ->where('public_id', '=', $publicId);
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        $deleted = $query->delete() > 0;
 
         TaskStatusSemantics::resetCache($this->pdo);
 

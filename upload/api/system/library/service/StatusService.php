@@ -52,18 +52,18 @@ final class StatusService
         return $this->statuses->findByPublicId($publicId);
     }
 
-    public function create(array $input)
+    public function create(array $input, ?int $organizationId = null)
     {
         $scope = trim((string)$input['scope']);
         $code = trim((string)$input['code']);
-        if ($this->statuses->findByScopeAndCode($scope, $code)) {
+        if ($this->statuses->findByScopeAndCode($scope, $code, $organizationId)) {
             return 'STATUS_CODE_EXISTS';
         }
 
         $publicId = Ulid::generate('sts');
         $now = gmdate('Y-m-d H:i:s');
 
-        $this->statuses->create([
+        $payload = [
             'public_id' => $publicId,
             'scope' => $scope,
             'code' => $code,
@@ -74,14 +74,16 @@ final class StatusService
             'is_closed' => self::flag($input, 'is_closed', false),
             'created_at' => $now,
             'updated_at' => $now,
-        ]);
+        ];
+        if ($organizationId !== null && $organizationId > 0) $payload['organization_id'] = $organizationId;
+        $this->statuses->create($payload);
 
-        return $this->statuses->findByPublicId($publicId) ?: ['public_id' => $publicId];
+        return $this->statuses->findByPublicId($publicId, $organizationId) ?: ['public_id' => $publicId];
     }
 
-    public function update(string $publicId, array $input)
+    public function update(string $publicId, array $input, ?int $organizationId = null)
     {
-        $current = $this->statuses->findByPublicId($publicId);
+        $current = $this->statuses->findByPublicId($publicId, $organizationId);
         if (!$current) {
             return null;
         }
@@ -99,7 +101,7 @@ final class StatusService
         }
 
         if (($newScope !== (string)$current['scope'] || $newCode !== (string)$current['code'])
-            && $this->statuses->findByScopeAndCode($newScope, $newCode)
+            && $this->statuses->findByScopeAndCode($newScope, $newCode, $organizationId)
         ) {
             return 'STATUS_CODE_EXISTS';
         }
@@ -121,14 +123,14 @@ final class StatusService
         }
         $set['updated_at'] = gmdate('Y-m-d H:i:s');
 
-        $this->statuses->updateByPublicId($publicId, $set);
+        $this->statuses->updateByPublicId($publicId, $set, $organizationId);
 
-        return $this->statuses->findByPublicId($publicId);
+        return $this->statuses->findByPublicId($publicId, $organizationId);
     }
 
-    public function delete(string $publicId, ?string $remapToPublicId = null): array
+    public function delete(string $publicId, ?string $remapToPublicId = null, ?int $organizationId = null): array
     {
-        $current = $this->statuses->findByPublicId($publicId);
+        $current = $this->statuses->findByPublicId($publicId, $organizationId);
         if (!$current) {
             return ['ok' => false, 'code' => 'STATUS_NOT_FOUND'];
         }
@@ -146,7 +148,7 @@ final class StatusService
         }
 
         if ($usage > 0) {
-            $target = $this->statuses->findByPublicId($remapToPublicId);
+            $target = $this->statuses->findByPublicId($remapToPublicId, $organizationId);
             if (!$target) {
                 return ['ok' => false, 'code' => 'REMAP_STATUS_NOT_FOUND'];
             }
@@ -162,7 +164,7 @@ final class StatusService
             $this->statuses->remapUsage($scope, $code, (string)$target['code']);
         }
 
-        $ok = $this->statuses->deleteByPublicId($publicId);
+        $ok = $this->statuses->deleteByPublicId($publicId, $organizationId);
         if (!$ok) {
             return ['ok' => false, 'code' => 'STATUS_NOT_FOUND'];
         }

@@ -129,7 +129,7 @@ final class TaskController extends BaseController
         }
         if (array_key_exists('status', $input)) {
             $statusCode = trim((string)$input['status']);
-            if ($statusCode !== '' && !$this->isAllowedTaskStatus($statusCode)) {
+            if ($statusCode !== '' && !$this->isAllowedTaskStatus($statusCode, (int)($authUser['user']['organization_id'] ?? 0))) {
                 $errors['status'][] = $this->t('task/messages.invalid_status');
             }
         }
@@ -336,7 +336,7 @@ final class TaskController extends BaseController
         $errors = $v->errors();
         if (array_key_exists('status', $input)) {
             $statusCode = trim((string)$input['status']);
-            if ($statusCode !== '' && !$this->isAllowedTaskStatus($statusCode)) {
+            if ($statusCode !== '' && !$this->isAllowedTaskStatus($statusCode, (int)($authUser['user']['organization_id'] ?? 0))) {
                 $errors['status'][] = $this->t('task/messages.invalid_status');
             }
         }
@@ -669,7 +669,7 @@ final class TaskController extends BaseController
         }
         if (array_key_exists('status', $changes)) {
             $statusCode = trim((string)$changes['status']);
-            if ($statusCode !== '' && !$this->isAllowedTaskStatus($statusCode)) {
+            if ($statusCode !== '' && !$this->isAllowedTaskStatus($statusCode, (int)($authUser['user']['organization_id'] ?? 0))) {
                 $errors['status'][] = $this->t('task/messages.invalid_status');
             }
         }
@@ -842,7 +842,7 @@ final class TaskController extends BaseController
      *
      * @param array<string, mixed> $payload
      */
-    private function isAllowedTaskStatus(string $statusCode): bool
+    private function isAllowedTaskStatus(string $statusCode, ?int $organizationId = null): bool
     {
         if (in_array($statusCode, ['new', 'todo', 'in_progress', 'review', 'blocked', 'done', 'completed', 'canceled', 'cancelled'], true)) {
             return true;
@@ -850,7 +850,7 @@ final class TaskController extends BaseController
 
         /** @var StatusRepository $statuses */
         $statuses = $this->container->get('repository.status');
-        $status = $statuses->findByScopeAndCode('task', $statusCode);
+        $status = $statuses->findByScopeAndCode('task', $statusCode, $organizationId);
 
         return $status !== null && (int)($status['is_active'] ?? 1) === 1;
     }

@@ -69,6 +69,11 @@ final class StatusController extends BaseController
 
     public function create(): \Api\System\Library\Http\JsonResponse
     {
+        $authUser = $this->user();
+        if (!$authUser) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+        $actor = $this->organizationScopedActor((array)$authUser['user']);
         $input = $this->request()->allInput();
         $v = new Validator();
         $v->require($input, 'scope', $this->t('common/messages.field_required'))
@@ -84,7 +89,7 @@ final class StatusController extends BaseController
 
         /** @var StatusService $service */
         $service = $this->container->get('service.status');
-        $item = $service->create($input);
+        $item = $service->create($input, !empty($actor['organization_id']) ? (int)$actor['organization_id'] : null);
         if (is_string($item) && $item === 'STATUS_CODE_EXISTS') {
             return $this->error('STATUS_CODE_EXISTS', $this->t('status/messages.code_exists'), 409, [
                 'code' => [$this->t('status/messages.code_exists_scope')],
@@ -106,6 +111,11 @@ final class StatusController extends BaseController
 
     public function update(array $params): \Api\System\Library\Http\JsonResponse
     {
+        $authUser = $this->user();
+        if (!$authUser) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+        $actor = $this->organizationScopedActor((array)$authUser['user']);
         $input = $this->request()->allInput();
         $v = new Validator();
         $v->maxLen($input, 'scope', 64, $this->t('status/messages.max_64'))
@@ -118,7 +128,7 @@ final class StatusController extends BaseController
 
         /** @var StatusService $service */
         $service = $this->container->get('service.status');
-        $item = $service->update((string)$params['public_id'], $input);
+        $item = $service->update((string)$params['public_id'], $input, !empty($actor['organization_id']) ? (int)$actor['organization_id'] : null);
         if ($item === null) {
             return $this->error('STATUS_NOT_FOUND', $this->t('status/messages.not_found'), 404, [
                 'status' => [$this->t('status/messages.not_found')],
@@ -145,6 +155,11 @@ final class StatusController extends BaseController
 
     public function delete(array $params): \Api\System\Library\Http\JsonResponse
     {
+        $authUser = $this->user();
+        if (!$authUser) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+        $actor = $this->organizationScopedActor((array)$authUser['user']);
         $input = $this->request()->allInput();
         $remapToPublicId = isset($input['remap_to_public_id']) ? trim((string)$input['remap_to_public_id']) : null;
         if ($remapToPublicId === '') {
@@ -153,7 +168,7 @@ final class StatusController extends BaseController
 
         /** @var StatusService $service */
         $service = $this->container->get('service.status');
-        $result = $service->delete((string)$params['public_id'], $remapToPublicId);
+        $result = $service->delete((string)$params['public_id'], $remapToPublicId, !empty($actor['organization_id']) ? (int)$actor['organization_id'] : null);
         if (!(bool)($result['ok'] ?? false)) {
             $code = (string)($result['code'] ?? 'STATUS_NOT_FOUND');
             $status = match ($code) {
