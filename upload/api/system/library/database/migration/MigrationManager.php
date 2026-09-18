@@ -45,6 +45,7 @@ final class MigrationManager
             new OrganizationInvitationScopeMigration(),
             new OrganizationRecycleBinScopeMigration(),
             new OrganizationSecondaryScopeMigration(),
+            new OrganizationRateCardsScopeMigration(),
             new OrganizationKnowledgeScopeMigration(),
             new OrganizationIdeasScopeMigration(),
             new CoreUpdateSystemMigration(),
