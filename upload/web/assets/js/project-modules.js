@@ -196,14 +196,14 @@ window.CRM.projectModules = (function () {
       var descriptionPreview = plainText(m.description || '');
 
       return '<tr>'
-        + '<td><strong>' + esc(m.title) + '</strong>' + (descriptionPreview ? '<br><small class="text-muted">' + esc(descriptionPreview.slice(0, 80)) + '</small>' : '') + '</td>'
-        + '<td>' + esc(projectTitle) + '</td>'
-        + '<td>' + statusBadgeHtml(m.status || 'planned') + '</td>'
-        + '<td>' + esc(leadName || t('project_modules.no_lead', '—')) + '</td>'
-        + '<td style="min-width:100px"><div class="progress" style="height:6px"><div class="progress-bar" style="width:' + progress + '%;background:var(--crm-primary)"></div></div><small class="text-muted">' + progress + '%</small></td>'
-        + '<td>' + esc(tasksCount) + '</td>'
-        + '<td><small>' + esc(targetStr || t('project_modules.no_target', '—')) + '</small></td>'
-        + '<td class="text-end" style="white-space:nowrap">'
+        + '<td data-label="' + esc(t('project_modules.th_title', 'Название')) + '"><strong>' + esc(m.title) + '</strong>' + (descriptionPreview ? '<br><small class="text-muted">' + esc(descriptionPreview.slice(0, 80)) + '</small>' : '') + '</td>'
+        + '<td data-label="' + esc(t('project_modules.th_project', 'Проект')) + '">' + esc(projectTitle) + '</td>'
+        + '<td data-label="' + esc(t('project_modules.th_status', 'Статус')) + '">' + statusBadgeHtml(m.status || 'planned') + '</td>'
+        + '<td data-label="' + esc(t('project_modules.th_lead', 'Ответственный')) + '">' + esc(leadName || t('project_modules.no_lead', '—')) + '</td>'
+        + '<td data-label="' + esc(t('project_modules.th_progress', 'Прогресс')) + '" style="min-width:100px"><div class="progress" style="height:6px"><div class="progress-bar" style="width:' + progress + '%;background:var(--crm-primary)"></div></div><small class="text-muted">' + progress + '%</small></td>'
+        + '<td data-label="' + esc(t('project_modules.th_tasks', 'Задачи')) + '">' + esc(tasksCount) + '</td>'
+        + '<td data-label="' + esc(t('project_modules.th_target', 'Срок')) + '"><small>' + esc(targetStr || t('project_modules.no_target', '—')) + '</small></td>'
+        + '<td data-label="" class="text-end" style="white-space:nowrap">'
         + '<button class="btn btn-sm crm-btn-secondary pm-edit-btn" data-pm-id="' + esc(m.public_id) + '" style="font-size:11px;padding:2px 8px">' + esc(t('page.edit', 'Edit')) + '</button> '
         + '<button class="btn btn-sm crm-btn-secondary pm-archive-btn" data-pm-id="' + esc(m.public_id) + '" style="font-size:11px;padding:2px 8px">' + esc(t('project_modules.archive_btn', 'Archive')) + '</button>'
         + '</td></tr>';

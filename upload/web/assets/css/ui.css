@@ -4988,6 +4988,173 @@ body {
   line-height: 1.25;
 }
 
+/* Responsive entity cards -------------------------------------------------
+ * Dense entity/admin tables must remain useful on a phone.  The renderer
+ * adds data-label attributes from the localized header text; on desktop the
+ * native table layout is kept intact.  On small screens each row becomes a
+ * bounded card, so no horizontal page scroll is required and all actions
+ * remain reachable with a thumb.
+ */
+@media (max-width: 767.98px) {
+  .crm-clients-page .table-responsive,
+  .crm-contacts-page .table-responsive,
+  .crm-companies-page .table-responsive,
+  .crm-admin-page .table-responsive,
+  .crm-content > .crm-card > .crm-table,
+  .crm-content .crm-section-card > .crm-table {
+    overflow-x: visible !important;
+  }
+
+  .crm-clients-page .crm-table,
+  .crm-contacts-page .crm-table,
+  .crm-companies-page .crm-table,
+  .crm-admin-page .crm-table,
+  .crm-content .crm-section-card > .crm-table,
+  .crm-content .crm-section-card > .table-responsive > .crm-table,
+  .crm-recycle-bin-page .crm-table {
+    display: block;
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: auto !important;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .crm-clients-page .crm-table thead,
+  .crm-contacts-page .crm-table thead,
+  .crm-companies-page .crm-table thead,
+  .crm-admin-page .crm-table thead,
+  .crm-content .crm-section-card > .crm-table thead,
+  .crm-content .crm-section-card > .table-responsive > .crm-table thead,
+  .crm-recycle-bin-page .crm-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .crm-clients-page .crm-table tbody,
+  .crm-contacts-page .crm-table tbody,
+  .crm-companies-page .crm-table tbody,
+  .crm-admin-page .crm-table tbody,
+  .crm-content .crm-section-card > .crm-table tbody,
+  .crm-content .crm-section-card > .table-responsive > .crm-table tbody,
+  .crm-recycle-bin-page .crm-table tbody {
+    display: grid;
+    gap: .75rem;
+  }
+
+  .crm-clients-page .crm-table tbody tr,
+  .crm-contacts-page .crm-table tbody tr,
+  .crm-companies-page .crm-table tbody tr,
+  .crm-admin-page .crm-table tbody tr,
+  .crm-content .crm-section-card > .crm-table tbody tr,
+  .crm-content .crm-section-card > .table-responsive > .crm-table tbody tr,
+  .crm-recycle-bin-page .crm-table tbody tr {
+    display: grid;
+    gap: .4rem;
+    padding: .8rem .9rem;
+    border: 1px solid var(--crm-border);
+    border-radius: .85rem;
+    background: var(--crm-surface);
+    box-shadow: 0 5px 16px color-mix(in srgb, var(--crm-ink) 5%, transparent);
+  }
+
+  .crm-clients-page .crm-table tbody td,
+  .crm-contacts-page .crm-table tbody td,
+  .crm-companies-page .crm-table tbody td,
+  .crm-admin-page .crm-table tbody td,
+  .crm-content .crm-section-card > .crm-table tbody td,
+  .crm-content .crm-section-card > .table-responsive > .crm-table tbody td,
+  .crm-recycle-bin-page .crm-table tbody td {
+    display: grid;
+    grid-template-columns: minmax(5.5rem, 34%) minmax(0, 1fr);
+    gap: .65rem;
+    align-items: start;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    padding: .3rem 0;
+    border: 0;
+    overflow: visible !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+
+  .crm-clients-page .crm-table tbody td::before,
+  .crm-contacts-page .crm-table tbody td::before,
+  .crm-companies-page .crm-table tbody td::before,
+  .crm-admin-page .crm-table tbody td::before,
+  .crm-content .crm-section-card > .crm-table tbody td::before,
+  .crm-content .crm-section-card > .table-responsive > .crm-table tbody td::before,
+  .crm-recycle-bin-page .crm-table tbody td::before {
+    content: attr(data-label);
+    color: var(--crm-text-muted);
+    font-size: .72rem;
+    font-weight: 700;
+    line-height: 1.35;
+    text-transform: uppercase;
+    letter-spacing: .035em;
+  }
+
+  .crm-clients-page .crm-table tbody td[colspan],
+  .crm-contacts-page .crm-table tbody td[colspan],
+  .crm-companies-page .crm-table tbody td[colspan],
+  .crm-admin-page .crm-table tbody td[colspan],
+  .crm-content .crm-section-card > .crm-table tbody td[colspan],
+  .crm-content .crm-section-card > .table-responsive > .crm-table tbody td[colspan],
+  .crm-recycle-bin-page .crm-table tbody td[colspan] {
+    display: block;
+    padding: .35rem 0;
+  }
+
+  .crm-clients-page .crm-table tbody td[colspan]::before,
+  .crm-contacts-page .crm-table tbody td[colspan]::before,
+  .crm-companies-page .crm-table tbody td[colspan]::before,
+  .crm-admin-page .crm-table tbody td[colspan]::before,
+  .crm-content .crm-section-card > .crm-table tbody td[colspan]::before,
+  .crm-content .crm-section-card > .table-responsive > .crm-table tbody td[colspan]::before,
+  .crm-recycle-bin-page .crm-table tbody td[colspan]::before { content: none; }
+
+  .crm-clients-page .crm-table tbody td:first-child,
+  .crm-contacts-page .crm-table tbody td:last-child,
+  .crm-companies-page .crm-table tbody td:last-child,
+  .crm-admin-page .crm-table tbody td:last-child,
+  .crm-content .crm-section-card > .crm-table tbody td:last-child,
+  .crm-content .crm-section-card > .table-responsive > .crm-table tbody td:last-child,
+  .crm-recycle-bin-page .crm-table tbody td:last-child {
+    grid-template-columns: 1fr;
+    padding-top: .55rem;
+    border-top: 1px solid color-mix(in srgb, var(--crm-border) 70%, transparent);
+  }
+
+  .crm-clients-page .crm-table tbody td:first-child::before { content: none; }
+  .crm-clients-page .crm-table tbody td:first-child { display: flex; align-items: center; }
+  .crm-clients-page .crm-table tbody td:first-child > * { min-width: 0; }
+
+  .crm-clients-page .crm-table .crm-client-actions,
+  .crm-contacts-page .crm-table .crm-contact-actions,
+  .crm-admin-page .crm-table .crm-action-list,
+  .crm-admin-page .crm-table td:last-child > div,
+  .crm-recycle-bin-page .crm-table td:last-child {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .45rem;
+  }
+
+  .crm-clients-page .crm-table .crm-client-actions .btn,
+  .crm-contacts-page .crm-table .crm-contact-actions .btn,
+  .crm-admin-page .crm-table td:last-child .btn,
+  .crm-recycle-bin-page .crm-table td:last-child .btn {
+    min-height: 40px;
+    flex: 1 1 auto;
+  }
+}
+
 .crm-admin-page .crm-table,
 .crm-clients-page .crm-table,
 .crm-companies-page .crm-table,

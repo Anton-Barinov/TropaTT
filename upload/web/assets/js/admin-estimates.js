@@ -76,8 +76,11 @@ window.CRM.adminEstimates = (function () {
 
   function loadSets() {
     var body = document.getElementById('adminEstimatesBody');
+    var mobile = document.getElementById('adminEstimatesMobileList');
     if (!body) return;
-    body.innerHTML = '<tr><td colspan="6" class="text-muted">' + esc(t('page.loading', 'Loading...')) + '</td></tr>';
+    var loading = esc(t('page.loading', 'Loading...'));
+    body.innerHTML = '<tr><td colspan="6" class="text-muted">' + loading + '</td></tr>';
+    if (mobile) mobile.innerHTML = '<div class="text-muted small p-3" role="status">' + loading + '</div>';
 
     req('api/v1/estimate-sets', { query: { limit: 100 } })
       .then(function (envelope) {
@@ -88,7 +91,9 @@ window.CRM.adminEstimates = (function () {
         renderSets();
       })
       .catch(function () {
-        body.innerHTML = '<tr><td colspan="6" class="text-muted">' + esc(t('admin_estimates.load_error', 'Failed to load estimate sets')) + '</td></tr>';
+        var message = esc(t('admin_estimates.load_error', 'Failed to load estimate sets'));
+        body.innerHTML = '<tr><td colspan="6" class="text-danger">' + message + '</td></tr>';
+        if (mobile) mobile.innerHTML = '<div class="alert alert-danger mb-0" role="alert">' + message + '</div>';
       });
   }
 
@@ -107,15 +112,28 @@ window.CRM.adminEstimates = (function () {
 
   function renderSets() {
     var body = document.getElementById('adminEstimatesBody');
+    var mobile = document.getElementById('adminEstimatesMobileList');
     if (!body) return;
 
     var items = state.sets;
     if (!items.length) {
       body.innerHTML = '<tr><td colspan="6" class="text-muted">' + esc(t('admin_estimates.no_sets', 'No estimate sets found')) + '</td></tr>';
+      if (mobile) mobile.innerHTML = '<div class="crm-estimates-empty text-muted p-3 text-center">' + esc(t('admin_estimates.no_sets', 'No estimate sets found')) + '</div>';
       return;
     }
 
-    body.innerHTML = items.map(function (set) {
+    function actionMarkup(set) {
+      return '<div class="crm-admin-estimate-actions">'
+        + '<button class="btn btn-sm crm-btn-secondary admin-estimates-edit-btn" type="button" data-set-id="' + esc(set.public_id) + '">' + esc(t('page.edit', 'Edit')) + '</button>'
+        + '<div class="dropdown d-inline-flex">'
+        + '<button class="btn btn-sm crm-btn-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="' + esc(t('admin_estimates.more_actions', 'More actions')) + '"><i class="fa-solid fa-ellipsis"></i></button>'
+        + '<ul class="dropdown-menu dropdown-menu-end">'
+        + '<li><button class="dropdown-item admin-estimates-archive-btn" type="button" data-set-id="' + esc(set.public_id) + '">' + esc(t('admin_estimates.archive_btn', 'Archive')) + '</button></li>'
+        + '<li><button class="dropdown-item text-danger admin-estimates-delete-btn" type="button" data-set-id="' + esc(set.public_id) + '">' + esc(t('page.delete', 'Delete')) + '</button></li>'
+        + '</ul></div></div>';
+    }
+
+    function rowData(set) {
       var optionsList = (set.options || []).map(function (o) {
         return '<span class="crm-admin-estimate-option">' + esc(optionLabel(o)) + '</span>';
       }).join('');
@@ -124,22 +142,43 @@ window.CRM.adminEstimates = (function () {
         ? set.project_title
         : (set.scope_type === 'project' ? t('admin_estimates.scope_project', 'Project') : t('admin_estimates.scope_global', 'Global'));
 
+      return {
+        optionsList: optionsList || '<span class="text-muted small">' + esc(t('admin_estimates.no_options_short', 'Нет опций')) + '</span>',
+        scopeLabel: scopeLabel,
+        name: set.name || set.code || '—',
+        code: set.code || '—',
+        type: typeLabel(set.estimate_type),
+        description: set.description || '',
+        actions: actionMarkup(set)
+      };
+    }
+
+    body.innerHTML = items.map(function (set) {
+      var data = rowData(set);
       return '<tr>'
-        + '<td><strong>' + esc(set.name || set.code) + '</strong>' + (set.description ? '<br><small class="text-muted">' + esc(set.description) + '</small>' : '') + '</td>'
-        + '<td><code>' + esc(set.code) + '</code></td>'
-        + '<td><span class="crm-badge crm-badge-info">' + esc(typeLabel(set.estimate_type)) + '</span></td>'
-        + '<td>' + esc(scopeLabel) + '</td>'
-        + '<td><div class="crm-admin-estimate-options">' + (optionsList || '<span class="text-muted small">' + esc(t('admin_estimates.no_options_short', 'Нет опций')) + '</span>') + '</div></td>'
-        + '<td class="crm-admin-estimate-actions">'
-        + '<button class="btn btn-sm crm-btn-secondary admin-estimates-edit-btn" data-set-id="' + esc(set.public_id) + '">' + esc(t('page.edit', 'Edit')) + '</button>'
-        + '<div class="dropdown d-inline-flex">'
-        + '<button class="btn btn-sm crm-btn-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="' + esc(t('admin_estimates.more_actions', 'More actions')) + '"><i class="fa-solid fa-ellipsis"></i></button>'
-        + '<ul class="dropdown-menu dropdown-menu-end">'
-        + '<li><button class="dropdown-item admin-estimates-archive-btn" type="button" data-set-id="' + esc(set.public_id) + '">' + esc(t('admin_estimates.archive_btn', 'Archive')) + '</button></li>'
-        + '<li><button class="dropdown-item text-danger admin-estimates-delete-btn" type="button" data-set-id="' + esc(set.public_id) + '">' + esc(t('page.delete', 'Delete')) + '</button></li>'
-        + '</ul></div>'
-        + '</td></tr>';
+        + '<td><strong>' + esc(data.name) + '</strong>' + (data.description ? '<br><small class="text-muted">' + esc(data.description) + '</small>' : '') + '</td>'
+        + '<td><code>' + esc(data.code) + '</code></td>'
+        + '<td><span class="crm-badge crm-badge-info">' + esc(data.type) + '</span></td>'
+        + '<td>' + esc(data.scopeLabel) + '</td>'
+        + '<td><div class="crm-admin-estimate-options">' + data.optionsList + '</div></td>'
+        + '<td>' + data.actions + '</td></tr>';
     }).join('');
+
+    if (mobile) {
+      mobile.innerHTML = items.map(function (set) {
+        var data = rowData(set);
+        return '<article class="crm-estimate-mobile-card">'
+          + '<div class="crm-estimate-mobile-card-head"><div class="min-width-0"><h3 class="crm-estimate-mobile-title">' + esc(data.name) + '</h3>'
+          + (data.description ? '<p class="text-muted small mb-0">' + esc(data.description) + '</p>' : '') + '</div>'
+          + '<span class="crm-badge crm-badge-info flex-shrink-0">' + esc(data.type) + '</span></div>'
+          + '<dl class="crm-estimate-mobile-meta">'
+          + '<div><dt>' + esc(t('admin_estimates.th_code', 'Код')) + '</dt><dd><code>' + esc(data.code) + '</code></dd></div>'
+          + '<div><dt>' + esc(t('admin_estimates.th_scope', 'Область')) + '</dt><dd>' + esc(data.scopeLabel) + '</dd></div>'
+          + '</dl>'
+          + '<div class="crm-estimate-mobile-options"><div class="crm-estimate-mobile-label">' + esc(t('admin_estimates.th_options', 'Опции')) + '</div><div class="crm-admin-estimate-options">' + data.optionsList + '</div></div>'
+          + '<div class="crm-estimate-mobile-actions">' + data.actions + '</div></article>';
+      }).join('');
+    }
 
     bindTableEvents();
   }

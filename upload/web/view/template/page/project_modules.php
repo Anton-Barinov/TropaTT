@@ -2,14 +2,14 @@
 <?php $title = $t('project_modules.page_title', 'TropaTT — Модули проектов'); ?>
 <body data-page="project-modules" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
-<main class="crm-content">
+<main class="crm-content crm-project-modules-page">
 
 <div class="crm-page-head">
   <div>
     <h1 class="crm-page-title" data-i18n="project_modules.page_title"><?= htmlspecialchars($t('project_modules.page_title', 'Модули проектов'), ENT_QUOTES, 'UTF-8') ?></h1>
     <p class="crm-subtitle" data-i18n="project_modules.subtitle"><?= htmlspecialchars($t('project_modules.subtitle', 'Управление функциональными модулями и направлениями внутри проектов.'), ENT_QUOTES, 'UTF-8') ?></p>
   </div>
-  <div class="d-flex gap-2">
+  <div class="d-flex gap-2 crm-project-modules-toolbar">
     <select id="projectModulesProjectFilter" class="form-select crm-field-w-250" data-i18n-placeholder="project_modules.filter_project_placeholder">
       <option value="" data-i18n="project_modules.filter_all_projects"><?= htmlspecialchars($t('project_modules.filter_all_projects', 'Все проекты'), ENT_QUOTES, 'UTF-8') ?></option>
     </select>
@@ -20,13 +20,13 @@
 
 <div class="row g-3">
   <div class="col-12">
-    <div class="crm-card crm-section-card">
+    <div class="crm-card crm-section-card crm-project-modules-table-wrap">
       <div class="crm-section-head">
         <div>
           <h2 class="h6 mb-0" data-i18n="project_modules.section_list_title"><?= htmlspecialchars($t('project_modules.section_list_title', 'Модули'), ENT_QUOTES, 'UTF-8') ?></h2>
         </div>
       </div>
-      <table class="table table-sm crm-table mb-0">
+      <table class="table table-sm crm-table crm-project-modules-table mb-0">
         <thead>
           <tr>
             <th data-i18n="project_modules.th_title"><?= htmlspecialchars($t('project_modules.th_title', 'Название'), ENT_QUOTES, 'UTF-8') ?></th>

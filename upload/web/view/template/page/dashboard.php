@@ -421,6 +421,16 @@
   </div>
   <div class="offcanvas-body">
     <p class="text-muted small mb-3" data-i18n="dashboard.catalog_hint"><?= htmlspecialchars($t('dashboard.catalog_hint', 'Выберите виджеты, чтобы добавить их на дашборд. Готово — закройте каталог и нажмите «Сохранить».'), ENT_QUOTES, 'UTF-8') ?></p>
+    <div class="crm-dashboard-catalog-tools" role="search">
+      <label class="visually-hidden" for="dashboardCatalogSearch">Поиск виджетов</label>
+      <input type="search" class="form-control" id="dashboardCatalogSearch" data-dashboard-catalog-search placeholder="Поиск виджетов" autocomplete="off">
+      <label class="visually-hidden" for="dashboardCatalogFilter">Фильтр виджетов</label>
+      <select class="form-select" id="dashboardCatalogFilter" data-dashboard-catalog-filter>
+        <option value="all">Все виджеты</option>
+        <option value="available">Доступные</option>
+        <option value="added">Добавленные</option>
+      </select>
+    </div>
     <div class="crm-dashboard-catalog-list" id="dashboardCatalogList" data-dashboard-catalog-list>
       <div class="d-flex align-items-center gap-2 py-1"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span> <span data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка'), ENT_QUOTES, 'UTF-8') ?></span></div>
     </div>

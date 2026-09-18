@@ -61,10 +61,6 @@
             <label class="form-check-label" for="rateCardIsDefault" data-i18n="rate_cards.field_default"><?= htmlspecialchars($t('rate_cards.field_default', 'Прайс по умолчанию'), ENT_QUOTES, 'UTF-8') ?></label>
             <div class="form-text" data-i18n="rate_cards.field_default_hint"><?= htmlspecialchars($t('rate_cards.field_default_hint', 'Применяется, когда нет привязки к контрагенту или проекту'), ENT_QUOTES, 'UTF-8') ?></div>
           </div>
-          <div class="d-flex justify-content-end gap-2">
-            <button class="btn crm-btn-secondary" type="button" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
-            <button class="btn crm-btn-primary" type="submit" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
-          </div>
         </form>
       </div>
       <!-- Tab: Lines -->
@@ -119,10 +115,14 @@
       <!-- Tab: Assignments (for this card) -->
       <div class="tab-pane fade" id="rateTabAssignments" role="tabpanel">
         <div id="rateCardAssignmentsList">
-          <div class="text-muted small" data-i18n="rate_cards.lines_loading"><?= htmlspecialchars($t('rate_cards.lines_loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>
+          <div class="text-muted small" data-i18n="rate_cards.assignments_loading"><?= htmlspecialchars($t('rate_cards.assignments_loading', 'Загрузка привязок...'), ENT_QUOTES, 'UTF-8') ?></div>
         </div>
       </div>
     </div>
+  </div>
+  <div class="modal-footer crm-rate-modal-footer">
+    <button class="btn crm-btn-secondary" type="button" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+    <button class="btn crm-btn-primary" type="submit" form="rateCardUnifiedForm" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
   </div>
 </div></div></div>
 

@@ -27,8 +27,8 @@
           <div class="crm-section-note" data-i18n="admin_estimates.section_list_note"><?= htmlspecialchars($t('admin_estimates.section_list_note', 'Все доступные наборы оценок в системе.'), ENT_QUOTES, 'UTF-8') ?></div>
         </div>
       </div>
-      <div class="table-responsive">
-        <table class="table table-sm crm-table mb-0">
+      <div class="table-responsive crm-estimates-table-wrap">
+        <table class="table table-sm crm-table crm-estimates-desktop-table mb-0">
           <thead>
             <tr>
               <th data-i18n="admin_estimates.th_name"><?= htmlspecialchars($t('admin_estimates.th_name', 'Название'), ENT_QUOTES, 'UTF-8') ?></th>
@@ -43,6 +43,9 @@
             <tr><td colspan="6" class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></td></tr>
           </tbody>
         </table>
+      </div>
+      <div id="adminEstimatesMobileList" class="crm-estimates-mobile-list" aria-live="polite">
+        <div class="text-muted small p-3" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>
       </div>
     </div>
   </div>
