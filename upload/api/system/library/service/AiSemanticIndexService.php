@@ -44,7 +44,7 @@ final class AiSemanticIndexService
      * @param array<string,mixed> $meta
      * @return array{ok:bool,code:string}
      */
-    public function indexEntityDocument(string $entityType, string $entityPublicId, string $text, array $meta = []): array
+    public function indexEntityDocument(string $entityType, string $entityPublicId, string $text, array $meta = [], ?string $organizationPublicId = null): array
     {
         $normalizedType = $this->normalizeEntityType($entityType);
         $entityPublicId = trim($entityPublicId);
@@ -55,24 +55,29 @@ final class AiSemanticIndexService
             return ['ok' => false, 'code' => 'AI_SEMANTIC_FILE_TEXT_NOT_ALLOWED'];
         }
 
+        $organizationPublicId = $this->normalizeOrganizationPublicId($organizationPublicId ?? ($meta['organization_public_id'] ?? null));
         return $this->indexDocument($normalizedType . ':' . $entityPublicId, $text, array_merge($meta, [
             'entity_type' => $normalizedType,
             'entity_public_id' => $entityPublicId,
-        ]));
+        ]), $organizationPublicId);
     }
 
     /**
      * @param array<string,mixed> $meta
      * @return array{ok:bool,code:string}
      */
-    public function indexDocument(string $documentPublicId, string $text, array $meta = []): array
+    public function indexDocument(string $documentPublicId, string $text, array $meta = [], ?string $organizationPublicId = null): array
     {
         $documentPublicId = trim($documentPublicId);
         if ($documentPublicId === '' || trim($text) === '') {
             return ['ok' => false, 'code' => 'AI_SEMANTIC_INDEX_INVALID_INPUT'];
         }
 
-        $index = $this->loadIndex();
+        $organizationPublicId = $this->normalizeOrganizationPublicId($organizationPublicId ?? ($meta['organization_public_id'] ?? null));
+        if ($organizationPublicId !== null) {
+            $meta['organization_public_id'] = $organizationPublicId;
+        }
+        $index = $this->loadIndex($organizationPublicId);
         $index[$documentPublicId] = [
             'document_public_id' => $documentPublicId,
             'text' => mb_substr($text, 0, 20000),
@@ -92,14 +97,14 @@ final class AiSemanticIndexService
     /**
      * @return array{ok:bool,items:array<int,array<string,mixed>>}
      */
-    public function search(string $query, int $limit = 10): array
+    public function search(string $query, int $limit = 10, ?string $organizationPublicId = null): array
     {
         $needle = mb_strtolower(trim($query));
         if ($needle === '') {
             return ['ok' => true, 'items' => []];
         }
 
-        $index = $this->loadIndex();
+        $index = $this->loadIndex($this->normalizeOrganizationPublicId($organizationPublicId));
         $queryVector = $this->textVector($needle);
         $items = [];
         foreach ($index as $item) {
@@ -131,13 +136,13 @@ final class AiSemanticIndexService
     /**
      * @return array{ok:bool,code:string}
      */
-    public function removeDocument(string $documentPublicId): array
+    public function removeDocument(string $documentPublicId, ?string $organizationPublicId = null): array
     {
         $documentPublicId = trim($documentPublicId);
         if ($documentPublicId === '') {
             return ['ok' => false, 'code' => 'AI_SEMANTIC_INDEX_INVALID_INPUT'];
         }
-        $index = $this->loadIndex();
+        $index = $this->loadIndex($this->normalizeOrganizationPublicId($organizationPublicId));
         unset($index[$documentPublicId]);
         $this->saveIndex($index);
 
@@ -147,7 +152,7 @@ final class AiSemanticIndexService
     /**
      * @return array{ok:bool,code:string}
      */
-    public function removeEntityDocument(string $entityType, string $entityPublicId): array
+    public function removeEntityDocument(string $entityType, string $entityPublicId, ?string $organizationPublicId = null): array
     {
         $normalizedType = $this->normalizeEntityType($entityType);
         $entityPublicId = trim($entityPublicId);
@@ -155,13 +160,13 @@ final class AiSemanticIndexService
             return ['ok' => false, 'code' => 'AI_SEMANTIC_ENTITY_NOT_INDEXABLE'];
         }
 
-        return $this->removeDocument($normalizedType . ':' . $entityPublicId);
+        return $this->removeDocument($normalizedType . ':' . $entityPublicId, $organizationPublicId);
     }
 
     /** @return array<string,mixed> */
-    private function loadIndex(): array
+    private function loadIndex(?string $organizationPublicId = null): array
     {
-        $file = $this->indexFile();
+        $file = $this->indexFile($organizationPublicId);
         if (!is_file($file)) {
             return [];
         }
@@ -189,11 +194,20 @@ final class AiSemanticIndexService
         @file_put_contents($file, $encoded, LOCK_EX);
     }
 
-    private function indexFile(): string
+    private function indexFile(?string $organizationPublicId = null): string
     {
         $defaultBase = rtrim((string)$this->config->get('default.storage.base', dirname(__DIR__, 5) . '/storage_api'), '/\\');
         $base = (string)$this->config->get('ai.storage.cache', $defaultBase . '/ai/cache');
-        return rtrim($base, '/\\') . '/semantic-index.json';
+        if ($organizationPublicId === null) {
+            return rtrim($base, '/\\') . '/semantic-index.json';
+        }
+        return rtrim($base, '/\\') . '/semantic-index-org-' . hash('sha256', $organizationPublicId) . '.json';
+    }
+
+    private function normalizeOrganizationPublicId(mixed $value): ?string
+    {
+        $value = trim((string)$value);
+        return $value === '' ? null : substr($value, 0, 128);
     }
 
     /** @param array<string,mixed> $meta @return array<string,mixed> */
