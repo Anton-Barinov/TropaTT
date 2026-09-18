@@ -905,7 +905,13 @@ final class TaskService
             return [];
         }
 
-        return $this->teams->listAccessiblePublicIdsForUser((int)($actor['id'] ?? 0));
+        return $this->teams->listAccessiblePublicIdsForUser((int)($actor['id'] ?? 0), $this->organizationId($actor));
+    }
+
+    private function organizationId(array $actor): ?int
+    {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
     }
 
     /** @return int[] */

@@ -24,7 +24,12 @@ final class DepartmentService
     {
         $filters['team_type'] = self::DEPARTMENT_TYPE;
 
-        [$items, $total, $page, $limit] = $this->teams->list($filters, (int)($actor['id'] ?? 0), (bool)($actor['is_root'] ?? false));
+        [$items, $total, $page, $limit] = $this->teams->list(
+            $filters,
+            (int)($actor['id'] ?? 0),
+            (bool)($actor['is_root'] ?? false),
+            $this->organizationId($actor)
+        );
 
         return [
             'items' => $items,
@@ -41,7 +46,7 @@ final class DepartmentService
 
     public function get(string $publicId, array $actor): ?array
     {
-        $item = $this->teams->findByPublicId($publicId);
+        $item = $this->teams->findByPublicId($publicId, $this->organizationId($actor));
         if (!$item || !$this->canAccess($item, $actor)) {
             return null;
         }
@@ -74,14 +79,14 @@ final class DepartmentService
             'member_user_ids' => json_encode([], JSON_UNESCAPED_UNICODE),
             'created_at' => $now,
             'updated_at' => $now,
-        ]);
+        ], $this->organizationId($actor));
 
-        return $this->teams->findByPublicId($publicId) ?: ['public_id' => $publicId];
+        return $this->teams->findByPublicId($publicId, $this->organizationId($actor)) ?: ['public_id' => $publicId];
     }
 
     public function update(string $publicId, array $input, array $actor): ?array
     {
-        $item = $this->teams->findByPublicId($publicId);
+        $item = $this->teams->findByPublicId($publicId, $this->organizationId($actor));
         if (!$item || !$this->canAccess($item, $actor)) {
             return null;
         }
@@ -102,14 +107,14 @@ final class DepartmentService
         }
 
         $set['updated_at'] = gmdate('Y-m-d H:i:s');
-        $this->teams->updateByPublicId($publicId, $set);
+        $this->teams->updateByPublicId($publicId, $set, $this->organizationId($actor));
 
-        return $this->teams->findByPublicId($publicId);
+        return $this->teams->findByPublicId($publicId, $this->organizationId($actor));
     }
 
     public function delete(string $publicId, array $actor): bool
     {
-        $item = $this->teams->findByPublicId($publicId);
+        $item = $this->teams->findByPublicId($publicId, $this->organizationId($actor));
         if (!$item || !$this->canAccess($item, $actor)) {
             return false;
         }
@@ -118,7 +123,7 @@ final class DepartmentService
             return false;
         }
 
-        return $this->teams->deleteByPublicId($publicId);
+        return $this->teams->deleteByPublicId($publicId, $this->organizationId($actor));
     }
 
     private function canAccess(array $item, array $actor): bool
@@ -128,5 +133,11 @@ final class DepartmentService
         }
 
         return $this->teams->userHasAccessToTeam($item, (int)($actor['id'] ?? 0));
+    }
+
+    private function organizationId(array $actor): ?int
+    {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
     }
 }

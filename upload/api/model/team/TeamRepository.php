@@ -172,16 +172,20 @@ final class TeamRepository
     }
 
     /** @return string[] */
-    public function listAccessiblePublicIdsForUser(int $actorUserId): array
+    public function listAccessiblePublicIdsForUser(int $actorUserId, ?int $organizationId = null): array
     {
         if ($actorUserId <= 0) {
             return [];
         }
 
-        $rows = (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('teams')
             ->select(['public_id', 'manager_user_id', 'member_user_ids'])
-            ->get();
+            ;
+        if ($organizationId !== null && $organizationId > 0) {
+            $query->where('organization_id', '=', $organizationId);
+        }
+        $rows = $query->get();
 
         $result = [];
         foreach ($rows as $row) {

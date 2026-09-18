@@ -1118,7 +1118,7 @@ final class WorklogService
         $actorId = $this->resolveActorId($actor);
         $accessibleTeamPublicIds = $actorIsRoot
             ? []
-            : $this->teamRepo->listAccessiblePublicIdsForUser($actorId);
+            : $this->teamRepo->listAccessiblePublicIdsForUser($actorId, ((int)($actor['organization_id'] ?? 0) > 0) ? (int)$actor['organization_id'] : null);
         $teams = $this->worklogs->listTeams($actorIsRoot, $accessibleTeamPublicIds);
         $projects = $this->worklogs->listProjects($actorIsRoot, $actorId, $accessibleTeamPublicIds);
 

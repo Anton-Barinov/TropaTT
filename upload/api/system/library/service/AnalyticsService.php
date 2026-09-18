@@ -962,7 +962,7 @@ final class AnalyticsService
             return [];
         }
 
-        return $this->teams->listAccessiblePublicIdsForUser((int)($actor['id'] ?? 0));
+        return $this->teams->listAccessiblePublicIdsForUser((int)($actor['id'] ?? 0), $this->organizationId($actor));
     }
 
     /** @return int[] */
