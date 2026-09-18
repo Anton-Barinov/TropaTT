@@ -5916,9 +5916,27 @@ $tools[] = $this->tool(
         if ($query === '') {
             return ['error' => 'query is required.'];
         }
+        $actor = $this->organizationScopedActorForArguments($this->actor(), $arguments);
         /** @var AiSemanticIndexService $service */
         $service = $this->container->get('service.ai_semantic_index');
-        return $this->publicData($service->search($query, $this->limit($arguments, 10, 50)));
+        // The index is a filesystem-wide search index.  Never return its raw
+        // rows from MCP: resolve every hit through the same entity access
+        // checks as the REST semantic-search endpoint, including the active
+        // organization carried by the MCP arguments.
+        $limit = $this->limit($arguments, 10, 50);
+        $result = $service->search($query, min(100, $limit * 3));
+        $items = [];
+        foreach ((array)($result['items'] ?? []) as $item) {
+            if (!is_array($item) || !$this->canAccessSemanticEntity($item, $actor)) {
+                continue;
+            }
+            $items[] = $item;
+            if (count($items) >= $limit) {
+                break;
+            }
+        }
+
+        return $this->publicData(['ok' => (bool)($result['ok'] ?? true), 'items' => $items]);
     }
 
     private function crmListAiRetentionPolicies(): array
@@ -7237,7 +7255,7 @@ $tools[] = $this->tool(
         }
         /** @var TaskService $service */
         $service = $this->container->get('service.task');
-        return $this->publicData($service->list($this->filters($arguments, 20, 50), $this->actor()));
+        return $this->publicData($service->list($this->filters($arguments, 20, 50), $this->organizationScopedActorForArguments($this->actor(), $arguments)));
     }
 
     private function crmGetTask(array $arguments): array
@@ -7253,7 +7271,8 @@ $tools[] = $this->tool(
 
         /** @var TaskService $service */
         $service = $this->container->get('service.task');
-        $task = $service->get($publicId, $this->actor());
+        $actor = $this->organizationScopedActorForArguments($this->actor(), $arguments);
+        $task = $service->get($publicId, $actor);
         if (!$task) {
             return ['error' => 'Task not found.'];
         }
@@ -7265,7 +7284,7 @@ $tools[] = $this->tool(
             try {
                 /** @var \Api\System\Library\Service\FileService $fileService */
                 $fileService = $this->container->get('service.file');
-                $files = $fileService->listByEntity('task', $publicId, $this->actor()) ?? [];
+                $files = $fileService->listByEntity('task', $publicId, $actor) ?? [];
                 $attachedImages = [];
                 $attachedFiles = [];
                 foreach ($files as $f) {
@@ -9871,7 +9890,7 @@ $tools[] = $this->tool(
         }
         /** @var ProjectService $service */
         $service = $this->container->get('service.project');
-        return $this->publicData($service->list($this->filters($arguments, 20, 50), $this->actor()));
+        return $this->publicData($service->list($this->filters($arguments, 20, 50), $this->organizationScopedActorForArguments($this->actor(), $arguments)));
     }
 
     private function crmGetProject(array $arguments): array
@@ -9887,7 +9906,7 @@ $tools[] = $this->tool(
 
         /** @var ProjectService $service */
         $service = $this->container->get('service.project');
-        $project = $service->get($publicId, $this->actor());
+        $project = $service->get($publicId, $this->organizationScopedActorForArguments($this->actor(), $arguments));
         return $project ? ['project' => $this->publicData($project)] : ['error' => 'Project not found.'];
     }
 
