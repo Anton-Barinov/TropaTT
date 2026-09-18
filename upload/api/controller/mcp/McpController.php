@@ -5924,7 +5924,7 @@ $tools[] = $this->tool(
         // checks as the REST semantic-search endpoint, including the active
         // organization carried by the MCP arguments.
         $limit = $this->limit($arguments, 10, 50);
-        $result = $service->search($query, min(100, $limit * 3));
+        $result = $service->search($query, min(100, $limit * 3), (string)($actor['organization_public_id'] ?? '') ?: null);
         $items = [];
         foreach ((array)($result['items'] ?? []) as $item) {
             if (!is_array($item) || !$this->canAccessSemanticEntity($item, $actor)) {

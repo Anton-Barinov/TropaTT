@@ -1759,7 +1759,9 @@ final class KnowledgeController extends BaseController
             'status' => trim((string)($page['status'] ?? 'published')),
         ];
         try {
-            $this->container->get('service.ai_semantic_index')->indexEntityDocument('knowledge', $publicId, $combined, $meta);
+            $scopedActor = $this->organizationScopedActor((array)($this->user()['user'] ?? []));
+            $organizationPublicId = trim((string)($scopedActor['organization_public_id'] ?? '')) ?: null;
+            $this->container->get('service.ai_semantic_index')->indexEntityDocument('knowledge', $publicId, $combined, $meta, $organizationPublicId);
         } catch (\Throwable $e) {
             // Indexing failure is non-critical
         }

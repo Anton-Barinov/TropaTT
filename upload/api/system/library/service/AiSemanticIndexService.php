@@ -89,7 +89,7 @@ final class AiSemanticIndexService
             'meta' => $this->sanitizeMeta($meta),
             'updated_at' => gmdate('Y-m-d H:i:s'),
         ];
-        $this->saveIndex($index);
+        $this->saveIndex($index, $organizationPublicId);
 
         return ['ok' => true, 'code' => 'AI_SEMANTIC_INDEXED'];
     }
@@ -144,7 +144,7 @@ final class AiSemanticIndexService
         }
         $index = $this->loadIndex($this->normalizeOrganizationPublicId($organizationPublicId));
         unset($index[$documentPublicId]);
-        $this->saveIndex($index);
+        $this->saveIndex($index, $organizationPublicId);
 
         return ['ok' => true, 'code' => 'AI_SEMANTIC_REMOVED'];
     }
@@ -179,9 +179,9 @@ final class AiSemanticIndexService
     }
 
     /** @param array<string,mixed> $index */
-    private function saveIndex(array $index): void
+    private function saveIndex(array $index, ?string $organizationPublicId = null): void
     {
-        $file = $this->indexFile();
+        $file = $this->indexFile($organizationPublicId);
         $dir = dirname($file);
         if (!is_dir($dir)) {
             @mkdir($dir, 0775, true);
