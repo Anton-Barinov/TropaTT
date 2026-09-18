@@ -293,6 +293,13 @@ window.CRM.pageApiBindings = (function () {
     statusNode.style.zIndex = '1085';
     statusNode.style.maxWidth = 'min(460px, calc(100vw - 24px))';
     statusNode.style.textAlign = 'center';
+    function positionStatusNode() {
+      var topbar = document.querySelector('.crm-topbar');
+      var top = topbar ? Math.ceil(topbar.getBoundingClientRect().bottom + 8) : 64;
+      statusNode.style.setProperty('top', top + 'px', 'important');
+    }
+    positionStatusNode();
+    window.addEventListener('resize', positionStatusNode, { passive: true });
     statusNode.style.padding = '8px 14px';
     statusNode.style.borderRadius = '999px';
     statusNode.style.fontSize = '13px';

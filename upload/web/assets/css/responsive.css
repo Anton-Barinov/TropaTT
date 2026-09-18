@@ -1508,7 +1508,7 @@
   body[data-page="admin-tags"] .crm-table tbody td:nth-child(3) { overflow-wrap:anywhere; word-break:normal; line-height:1.45; }
 
   /* Keep the API status message below the sticky topbar. */
-  #crmApiStatusBar { top:calc(var(--crm-topbar-height, 56px) + 8px) !important; max-width:calc(100vw - 24px); }
+  #crmApiStatusBar { max-width:calc(100vw - 24px); }
 
   /* Modal body owns scrolling and reserves space for the sticky action row. */
   .modal-dialog { max-height:calc(100dvh - var(--crm-topbar-height, 56px) - 24px); margin-top:calc(var(--crm-topbar-height, 56px) + 8px); margin-bottom:16px; }
