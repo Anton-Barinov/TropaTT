@@ -7244,7 +7244,7 @@ $tools[] = $this->tool(
 
         /** @var SearchService $service */
         $service = $this->container->get('service.search');
-        return $this->compactGlobalSearch($this->publicData($service->global($q, $this->actor(), $this->limit($arguments, 10, 50))));
+        return $this->compactGlobalSearch($this->publicData($service->global($q, $this->organizationScopedActorForArguments($this->actor(), $arguments), $this->limit($arguments, 10, 50))));
     }
 
     private function crmListTasks(array $arguments): array
@@ -7624,7 +7624,7 @@ $tools[] = $this->tool(
 
         /** @var TaskBoardService $service */
         $service = $this->container->get('service.task_board');
-        $result = $service->board($input, $this->actor());
+        $result = $service->board($input, $this->organizationScopedActorForArguments($this->actor(), $arguments));
 
         return ['board' => $result['board'] ?? [], 'meta' => $result['meta'] ?? []];
     }
@@ -7638,7 +7638,7 @@ $tools[] = $this->tool(
 
         /** @var TaskService $service */
         $service = $this->container->get('service.task');
-        $item = $service->getByTaskKey($key, $this->actor());
+        $item = $service->getByTaskKey($key, $this->organizationScopedActorForArguments($this->actor(), $arguments));
 
         return is_array($item) ? ['task' => $this->publicData($item)] : ['error' => 'Task not found.'];
     }
@@ -13648,28 +13648,14 @@ $tools[] = $this->tool(
         if (!$this->container->has('service.organization_context')) {
             return null;
         }
-        $originalRequest = $this->container->get('request');
-        if (!$originalRequest instanceof Request) {
+        $request = $this->organizationRequestForArguments($arguments);
+        if (!$request instanceof Request) {
             return null;
         }
 
         /** @var \Api\System\Library\Service\OrganizationContextService $context */
         $resolved = $this->container->get('service.organization_context')->resolve(
-            new Request(
-                method: $originalRequest->method,
-                uri: $originalRequest->uri,
-                path: $originalRequest->path,
-                query: [],
-                post: [],
-                cookies: $originalRequest->cookies,
-                files: [],
-                server: $originalRequest->server,
-                headers: $originalRequest->headers,
-                rawBody: json_encode($arguments, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '',
-                requestId: $originalRequest->requestId,
-                correlationId: $originalRequest->correlationId,
-                locale: $originalRequest->locale,
-            ),
+            $request,
             $this->actor()
         );
         if (($resolved['status'] ?? '') !== 'forbidden') {
@@ -13681,6 +13667,96 @@ $tools[] = $this->tool(
             'code' => 'ORGANIZATION_CONTEXT_NOT_FOUND',
             'status' => 404,
         ];
+    }
+
+    /**
+     * Build the request context for an MCP tool call. MCP arguments live in
+     * the JSON-RPC envelope rather than in the outer Request input, so the
+     * regular controller resolver cannot see organization_public_id unless we
+     * provide this small synthetic request.
+     */
+    private function organizationRequestForArguments(array $arguments): ?Request
+    {
+        $originalRequest = $this->container->get('request');
+        if (!$originalRequest instanceof Request) {
+            return null;
+        }
+
+        return new Request(
+            method: $originalRequest->method,
+            uri: $originalRequest->uri,
+            path: $originalRequest->path,
+            query: [],
+            post: [],
+            cookies: $originalRequest->cookies,
+            files: [],
+            server: $originalRequest->server,
+            headers: $originalRequest->headers,
+            rawBody: json_encode($arguments, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '',
+            requestId: $originalRequest->requestId,
+            correlationId: $originalRequest->correlationId,
+            locale: $originalRequest->locale,
+        );
+    }
+
+    /** @param array<string,mixed> $actor @param array<string,mixed> $arguments */
+    private function organizationScopedActorForArguments(array $actor, array $arguments): array
+    {
+        if (!$this->container->has('service.organization_context')) {
+            return $actor;
+        }
+        $request = $this->organizationRequestForArguments($arguments);
+        if (!$request instanceof Request) {
+            return $actor;
+        }
+
+        /** @var \Api\System\Library\Service\OrganizationContextService $context */
+        $resolved = $this->container->get('service.organization_context')->resolve($request, $actor);
+        $organization = $resolved['organization'] ?? null;
+        if (($resolved['status'] ?? '') === 'active' && is_array($organization) && isset($organization['id'])) {
+            $actor['organization_id'] = (int)$organization['id'];
+            $actor['organization_public_id'] = (string)($organization['public_id'] ?? '');
+        }
+
+        return $actor;
+    }
+
+    /** @param array<string,mixed> $item @param array<string,mixed> $actor */
+    private function canAccessSemanticEntity(array $item, array $actor): bool
+    {
+        $meta = is_array($item['meta'] ?? null) ? (array)$item['meta'] : [];
+        $entityType = $this->normalizeSemanticEntityType((string)($meta['entity_type'] ?? ''));
+        $entityPublicId = trim((string)($meta['entity_public_id'] ?? ''));
+        if ($entityType === '' || $entityPublicId === '') {
+            return false;
+        }
+
+        return match ($entityType) {
+            'task' => is_array($this->container->get('service.task')->get($entityPublicId, $actor)),
+            'project' => is_array($this->container->get('service.project')->get($entityPublicId, $actor)),
+            'client' => $this->container->get('service.client')->get($entityPublicId, $actor) !== null,
+            'company' => $this->container->get('service.company')->get($entityPublicId, $actor) !== null,
+            'contact' => $this->container->get('service.contact')->get($entityPublicId, $actor) !== null,
+            'comment' => (bool)$this->container->get('service.entity_access')->canAccess('comment', $entityPublicId, $actor),
+            'file' => (bool)($this->container->get('service.file')->canDownloadInternal($entityPublicId, $actor)['ok'] ?? false),
+            'knowledge' => (bool)$this->container->get('repository.knowledge')->page($entityPublicId, $actor),
+            default => false,
+        };
+    }
+
+    private function normalizeSemanticEntityType(string $entityType): string
+    {
+        return match (strtolower(trim($entityType))) {
+            'tasks' => 'task',
+            'projects' => 'project',
+            'clients' => 'client',
+            'companies' => 'company',
+            'contacts' => 'contact',
+            'comments' => 'comment',
+            'files' => 'file',
+            'knowledge' => 'knowledge',
+            default => strtolower(trim($entityType)),
+        };
     }
 
     private function toolPayloadFromResponse(JsonResponse $response): array
