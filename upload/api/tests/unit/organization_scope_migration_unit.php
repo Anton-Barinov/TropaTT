@@ -35,6 +35,7 @@ $migration->up($pdo, 'sqlite');
 
 $orgId = (int)$pdo->query('SELECT id FROM organizations ORDER BY id LIMIT 1')->fetchColumn();
 organizationScopeAssert($orgId > 0, 'Default organization must be created');
+organizationScopeAssert((string)$pdo->query('SELECT public_id FROM organizations LIMIT 1')->fetchColumn() === 'org_default_workspace', 'Default organization public id must be deterministic');
 organizationScopeAssert((int)$pdo->query('SELECT organization_id FROM projects LIMIT 1')->fetchColumn() === $orgId, 'Project must be backfilled');
 organizationScopeAssert((int)$pdo->query('SELECT organization_id FROM tasks LIMIT 1')->fetchColumn() === $orgId, 'Task must be backfilled');
 organizationScopeAssert((int)$pdo->query('SELECT COUNT(*) FROM organization_memberships')->fetchColumn() === 2, 'All users need a default membership');
@@ -48,5 +49,6 @@ organizationScopeAssert((int)$pdo->query("SELECT COUNT(*) FROM sqlite_master WHE
 
 $managerSource = (string)file_get_contents(__DIR__ . '/../../system/library/database/migration/MigrationManager.php');
 organizationScopeAssert(str_contains($managerSource, 'new OrganizationScopeMigration()'), 'Migration must be registered in MigrationManager');
+organizationScopeAssert(str_contains($managerSource, 'beginTransaction'), 'Migration runner must transactionally journal each migration');
 
 echo "[OK] organization scope migration creates default workspace, backfills legacy rows, and is idempotent\n";

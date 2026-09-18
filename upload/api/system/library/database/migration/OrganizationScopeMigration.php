@@ -91,7 +91,10 @@ final class OrganizationScopeMigration implements MigrationInterface
         // creating a duplicate workspace during an update of an installation
         // that already has organizations, while still providing a deterministic
         // default for pre-Organizations databases.
-        $existing = $pdo->query('SELECT id FROM organizations ORDER BY id ASC LIMIT 1')->fetchColumn();
+        $existing = $pdo->query("SELECT id FROM organizations WHERE slug = 'default-workspace' ORDER BY id ASC LIMIT 1")->fetchColumn();
+        if ($existing === false || $existing === null) {
+            $existing = $pdo->query('SELECT id FROM organizations ORDER BY id ASC LIMIT 1')->fetchColumn();
+        }
         if ($existing !== false && $existing !== null) {
             return;
         }
@@ -102,7 +105,10 @@ final class OrganizationScopeMigration implements MigrationInterface
             . 'VALUES (:public_id, :title, :slug, :created_at, :updated_at)'
         );
         $stmt->execute([
-            'public_id' => 'org_' . strtoupper(bin2hex(random_bytes(8))),
+            // A stable public id makes retries and restore rehearsals
+            // deterministic. Existing installations still reuse their oldest
+            // organization above, so this cannot duplicate a live workspace.
+            'public_id' => 'org_default_workspace',
             'title' => 'Основное рабочее пространство',
             'slug' => 'default-workspace',
             'created_at' => $now,

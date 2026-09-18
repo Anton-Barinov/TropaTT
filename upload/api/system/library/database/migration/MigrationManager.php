@@ -138,11 +138,22 @@ final class MigrationManager
                 continue;
             }
 
+            $startedTransaction = false;
             try {
+                if (!$pdo->inTransaction()) {
+                    $pdo->beginTransaction();
+                    $startedTransaction = true;
+                }
                 $migration->up($pdo, $driver);
                 $this->markApplied($pdo, $migration);
+                if ($startedTransaction && $pdo->inTransaction()) {
+                    $pdo->commit();
+                }
                 $executed[] = $migration->key();
             } catch (\Throwable $e) {
+                if ($startedTransaction && $pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
                 // Log and rethrow: a failed migration must fail the update
                 // loudly so the updater never finalizes over a partially
                 // migrated database, and never silently retries the same
