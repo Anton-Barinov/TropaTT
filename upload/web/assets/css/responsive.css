@@ -474,6 +474,18 @@
    narrow screens so a crm-col-4/6 widget cannot create implicit columns and
    collapse into a 70px strip. */
 @media (max-width: 767px) {
+  /* Keep the API status toast below the sticky mobile topbar and constrain it
+     to the viewport so it cannot cover the navigation controls. */
+  #crmApiStatusBar {
+    top: 64px !important;
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    max-width: none !important;
+    transform: none !important;
+    text-align: center;
+  }
+
   /* Task hierarchy: nested grid items must retain the card width. The old
      two-column tree layout let the title column shrink to 0px, so child task
      names were rendered one character per line on narrow screens. */
@@ -997,5 +1009,467 @@
   .crm-topbar-timer-link {
     max-width: 130px;
     padding: 0.25rem 0.5rem;
+  }
+}
+
+/* Mobile work surfaces: preserve readable cards and keep dense desktop
+ * layouts inside their own intentional scroll areas. These rules are kept
+ * at the end of the bundle so they win over the page-specific desktop
+ * polish rules in pages.css. */
+@media (max-width: 767.98px) {
+  /* Chat is a two-step mobile surface: list first, conversation second. */
+  body[data-page="chat"] .crm-content.crm-chat-page {
+    height: calc(100dvh - var(--topbar-height, 56px));
+    min-height: 0;
+  }
+
+  body[data-page="chat"] .crm-chat-layout {
+    min-height: 0;
+    height: 100%;
+  }
+
+  body[data-page="chat"] .crm-chat-sidebar,
+  body[data-page="chat"] .crm-chat-conversation {
+    min-width: 0;
+    width: 100%;
+  }
+
+  body[data-page="chat"] .crm-chat-sidebar-head {
+    min-height: 64px;
+    padding: .75rem 1rem;
+  }
+
+  body[data-page="chat"] .crm-chat-sidebar-head > div,
+  body[data-page="chat"] .crm-chat-conversation-head > *,
+  body[data-page="chat"] .crm-chat-head-main {
+    min-width: 0;
+  }
+
+  body[data-page="chat"] .crm-chat-conversation-head {
+    padding: .7rem .85rem;
+    gap: .55rem;
+    align-items: flex-start;
+  }
+
+  body[data-page="chat"] .crm-chat-conversation-head h2,
+  body[data-page="chat"] .crm-chat-conversation-type,
+  body[data-page="chat"] .crm-chat-participants-link {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  body[data-page="chat"] .crm-chat-head-actions {
+    flex: 0 0 auto;
+    gap: .25rem;
+  }
+
+  body[data-page="chat"] .crm-chat-messages {
+    padding: .75rem .65rem;
+  }
+
+  body[data-page="chat"] .crm-chat-compose {
+    padding: .55rem .65rem calc(.55rem + env(safe-area-inset-bottom));
+  }
+
+  body[data-page="chat"] .crm-chat-compose-row {
+    min-width: 0;
+  }
+
+  body[data-page="chat"] .crm-chat-message-input {
+    min-width: 0;
+    max-height: 7rem;
+  }
+
+  /* The feed scrolls inside its panel. This prevents a large notification
+   * history from pushing every control thousands of pixels down the page. */
+  body[data-page="notifications"] .crm-notifications-page,
+  body[data-page="notifications"] .crm-notifications-layout {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  body[data-page="notifications"] .crm-notifications-feed {
+    min-height: 0;
+  }
+
+  body[data-page="notifications"] .crm-notifications-list {
+    height: min(62dvh, 600px);
+    min-height: 240px;
+    max-height: min(62dvh, 600px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body[data-page="notifications"] .crm-notification-item {
+    min-height: 0;
+    padding: .8rem !important;
+  }
+
+  body[data-page="notifications"] .crm-notification-item > .d-flex {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr);
+    gap: .65rem !important;
+  }
+
+  body[data-page="notifications"] .crm-notification-actions {
+    display: flex;
+    align-items: stretch;
+  }
+
+  body[data-page="notifications"] .crm-notification-actions .btn {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  /* Seven month columns cannot carry a useful event title at phone width.
+   * Keep the calendar surface readable with a deliberate inner scroller. */
+  body[data-page="calendar"] [data-calendar-surface] {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+
+  body[data-page="calendar"] .crm-calendar-month-grid,
+  body[data-page="calendar"] .crm-calendar-weekdays {
+    min-width: 560px;
+  }
+
+  body[data-page="calendar"] .crm-calendar-day {
+    min-height: 100px;
+    padding: .45rem;
+  }
+
+  body[data-page="calendar"] .crm-calendar-event-title {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    font-size: .7rem;
+  }
+
+  body[data-page="calendar"] .crm-calendar-panel-head {
+    padding: .75rem;
+  }
+
+  body[data-page="calendar"] .crm-calendar-period-title,
+  body[data-page="calendar"] .crm-calendar-current-period {
+    min-width: 0;
+  }
+
+  body[data-page="calendar"] .crm-calendar-current-period {
+    max-width: 10rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Kanban filters become a compact stack; columns remain horizontally
+   * scrollable by design and never widen the document itself. */
+  body[data-page="kanban"] .crm-kanban-filters {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    padding: .75rem;
+    gap: .65rem;
+  }
+
+  body[data-page="kanban"] .crm-kanban-filters > *,
+  body[data-page="kanban"] .crm-kanban-search,
+  body[data-page="kanban"] .crm-kanban-filter-summary {
+    min-width: 0;
+    width: 100%;
+    margin-left: 0;
+  }
+
+  body[data-page="kanban"] .crm-kanban-filters select,
+  body[data-page="kanban"] .crm-kanban-search input {
+    width: 100%;
+    min-width: 0;
+  }
+
+  body[data-page="kanban"] .crm-kanban-filter-summary #kanbanFiltersResetBtn {
+    width: 100%;
+  }
+
+  body[data-page="kanban"] .crm-kanban-scroll-wrap {
+    max-width: 100%;
+    min-width: 0;
+    position: relative;
+  }
+
+  body[data-page="kanban"] .crm-kanban {
+    max-width: 100%;
+    padding-inline: .1rem;
+  }
+}
+
+/* Mobile UX pass: knowledge, planning and conversation surfaces.  These
+ * overrides live after pages.css so desktop table dimensions cannot force a
+ * 360–430px viewport to scroll horizontally or collapse the primary column. */
+@media (max-width: 767.98px) {
+  /* Knowledge list: keep the search and filters usable as a vertical form. */
+  body[data-page="knowledge"] .crm-page-head,
+  body[data-page="knowledge-page"] .kb-page-header {
+    align-items: stretch;
+    gap: .75rem;
+  }
+  body[data-page="knowledge"] .crm-page-actions,
+  body[data-page="knowledge-page"] .kb-header-actions {
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .5rem !important;
+  }
+  body[data-page="knowledge"] .crm-page-actions .btn,
+  body[data-page="knowledge-page"] .kb-header-actions .btn {
+    min-height: 44px;
+    width: 100%;
+    margin: 0 !important;
+  }
+  body[data-page="knowledge"] .kb-filter-bar,
+  body[data-page="knowledge"] .kb-filter-bar > * {
+    min-width: 0 !important;
+    width: 100%;
+  }
+  body[data-page="knowledge"] .kb-filter-bar .input-group {
+    width: 100%;
+  }
+  body[data-page="knowledge"] .crm-knowledge-layout,
+  body[data-page="knowledge-page"] .crm-knowledge-detail-layout {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+  }
+  body[data-page="knowledge"] .crm-knowledge-spaces-panel,
+  body[data-page="knowledge-page"] .crm-knowledge-tree-sidebar,
+  body[data-page="knowledge-page"] .crm-knowledge-center,
+  body[data-page="knowledge-page"] .crm-knowledge-side {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+  }
+  body[data-page="knowledge"] .crm-knowledge-space-link,
+  body[data-page="knowledge-page"] .crm-knowledge-tree-item-row,
+  body[data-page="knowledge-page"] .crm-knowledge-tree-item-row > a {
+    min-width: 0;
+    max-width: 100%;
+  }
+  body[data-page="knowledge"] .crm-knowledge-space-info strong,
+  body[data-page="knowledge-page"] .crm-knowledge-tree-item-row > a {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+  body[data-page="knowledge-page"] .kb-page-title,
+  body[data-page="knowledge-page"] .kb-description,
+  body[data-page="knowledge-page"] .crm-knowledge-content,
+  body[data-page="knowledge-page"] .crm-knowledge-article {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+  body[data-page="knowledge-page"] .crm-knowledge-content pre,
+  body[data-page="knowledge-page"] .crm-knowledge-content table {
+    max-width: 100%;
+    overflow-x: auto;
+    display: block;
+  }
+  body[data-page="knowledge-page"] .crm-knowledge-tab-nav {
+    max-width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+  body[data-page="knowledge-page"] .crm-knowledge-tab-btn {
+    flex: 0 0 auto;
+    min-height: 44px;
+  }
+
+  /* My day / week: cards stack, while each desktop table becomes a labelled
+   * record. The task field gets the full row so a title never shrinks to a
+   * few characters beside fixed desktop columns. */
+  body[data-page="day"] .crm-planner-page,
+  body[data-page="week"] .crm-planner-page,
+  body[data-page="day"] .crm-planner-overview,
+  body[data-page="week"] .crm-planner-overview,
+  body[data-page="day"] .crm-planner-primary,
+  body[data-page="week"] .crm-planner-primary,
+  body[data-page="day"] .crm-planner-aside,
+  body[data-page="week"] .crm-planner-aside {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+  body[data-page="day"] .crm-planner-aside,
+  body[data-page="week"] .crm-planner-aside {
+    display: flex;
+    flex-direction: column;
+  }
+  body[data-page="day"] .crm-planner-page .crm-table-wrap,
+  body[data-page="week"] .crm-planner-page .crm-table-wrap {
+    overflow: visible;
+  }
+  body[data-page="day"] .crm-planner-task-table,
+  body[data-page="week"] .crm-planner-task-table {
+    display: block;
+    width: 100% !important;
+    table-layout: auto !important;
+  }
+  body[data-page="day"] .crm-planner-task-table colgroup,
+  body[data-page="week"] .crm-planner-task-table colgroup,
+  body[data-page="day"] .crm-planner-task-table thead,
+  body[data-page="week"] .crm-planner-task-table thead {
+    display: none;
+  }
+  body[data-page="day"] .crm-planner-task-table tbody,
+  body[data-page="week"] .crm-planner-task-table tbody {
+    display: grid;
+    gap: .65rem;
+  }
+  body[data-page="day"] .crm-planner-task-table tbody tr,
+  body[data-page="week"] .crm-planner-task-table tbody tr {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: .5rem;
+    padding: .75rem;
+    border: 1px solid var(--crm-border);
+    border-radius: var(--radius-md, 10px);
+    background: var(--crm-surface);
+  }
+  body[data-page="day"] .crm-planner-task-table tbody tr.crm-day-row,
+  body[data-page="week"] .crm-planner-task-table tbody tr.crm-day-row {
+    display: block;
+    padding: .55rem .75rem;
+    background: var(--crm-surface-soft, var(--crm-surface-2));
+  }
+  body[data-page="day"] .crm-planner-task-table tbody td,
+  body[data-page="week"] .crm-planner-task-table tbody td {
+    display: grid;
+    grid-template-columns: minmax(5.5rem, 34%) minmax(0, 1fr);
+    gap: .5rem;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    padding: 0 !important;
+    border: 0 !important;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: start !important;
+  }
+  body[data-page="day"] .crm-planner-task-table tbody td::before,
+  body[data-page="week"] .crm-planner-task-table tbody td::before {
+    content: attr(data-label);
+    color: var(--crm-text-muted);
+    font-size: var(--text-xs, .72rem);
+    font-weight: 700;
+  }
+  body[data-page="day"] .crm-planner-task-table tbody td:first-child,
+  body[data-page="week"] .crm-planner-task-table tbody td:first-child {
+    display: block;
+    padding-left: .5rem !important;
+    border-left: 3px solid var(--crm-primary) !important;
+  }
+  body[data-page="day"] .crm-planner-task-table tbody td:first-child::before,
+  body[data-page="week"] .crm-planner-task-table tbody td:first-child::before {
+    display: none;
+  }
+  body[data-page="day"] .crm-task-name,
+  body[data-page="week"] .crm-task-name,
+  body[data-page="day"] .crm-planner-who-name,
+  body[data-page="week"] .crm-planner-who-name {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-overflow: clip;
+  }
+  body[data-page="day"] .crm-planner-actions-cell,
+  body[data-page="week"] .crm-planner-actions-cell {
+    justify-content: flex-start;
+  }
+
+  /* Chat: reserve the whole viewport for the active pane and keep composer
+   * controls inside the safe width. The back button is always reachable. */
+  body[data-page="chat"] .crm-content.crm-chat-page {
+    height: calc(100dvh - var(--topbar-height, 56px));
+    min-height: 0;
+    overflow: hidden;
+  }
+  body[data-page="chat"] .crm-chat-layout {
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  body[data-page="chat"] .crm-chat-sidebar,
+  body[data-page="chat"] .crm-chat-conversation {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+  body[data-page="chat"] .crm-chat-sidebar-head,
+  body[data-page="chat"] .crm-chat-conversation-head {
+    padding-inline: .75rem;
+  }
+  body[data-page="chat"] .crm-chat-conversation-head {
+    align-items: flex-start;
+    gap: .5rem;
+  }
+  body[data-page="chat"] .crm-chat-head-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  body[data-page="chat"] .crm-chat-conversation-head h2 {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  body[data-page="chat"] .crm-chat-messages {
+    padding: .75rem;
+  }
+  body[data-page="chat"] .crm-chat-compose {
+    padding: .65rem .75rem calc(.65rem + env(safe-area-inset-bottom));
+  }
+  body[data-page="chat"] .crm-chat-compose-row {
+    flex-wrap: wrap;
+    gap: .35rem;
+  }
+  body[data-page="chat"] .crm-chat-message-input {
+    flex: 1 1 100%;
+    order: 2;
+    min-width: 0;
+  }
+  body[data-page="chat"] .crm-chat-send-btn {
+    order: 2;
+    min-width: 44px;
+  }
+  body[data-page="chat"] .crm-chat-message {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+  body[data-page="chat"] .crm-chat-message p,
+  body[data-page="chat"] .crm-chat-quote span {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+  body[data-page="chat"] .crm-chat-file-attachment {
+    max-width: 100%;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  body[data-page="chat"] .crm-chat-file-attachment small { grid-column: 2; }
+
+  /* Admin knowledge and AI tabs remain scrollable within their cards, never
+   * widening the document. */
+  body[data-page="admin-knowledge"] .nav-tabs,
+  body[data-page="admin-ai"] .nav-pills {
+    flex-wrap: nowrap;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+  body[data-page="admin-knowledge"] .nav-tabs .nav-link,
+  body[data-page="admin-ai"] .nav-pills .nav-link {
+    flex: 0 0 auto;
+    min-height: 44px;
+  }
+  body[data-page="admin-knowledge"] .crm-table-responsive,
+  body[data-page="admin-knowledge"] .table-responsive {
+    max-width: 100%;
   }
 }
