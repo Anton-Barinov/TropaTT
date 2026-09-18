@@ -52,4 +52,5 @@ return [
     'invitation_resend_failed' => 'Unable to resend organization invitation',
     'invitation_invalid_role' => 'Invalid invitation role',
     'max_190' => 'Maximum 190 characters',
+    'available' => '可用工作空间',
 ];

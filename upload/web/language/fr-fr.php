@@ -10579,4 +10579,16 @@ return array (
   'custom_field.create_title' => 'Créer un champ personnalisé',
   'organization.create_title' => 'Créer une organisation',
   'priority.create_title' => 'Créer une priorité',
+
+  'topbar.workspace_label' => 'Espace de travail',
+  'organization.members_search' => 'Rechercher un membre',
+  'organization.members_save' => 'Enregistrer les membres',
+  'organization.members_count' => '{shown} sur {total} utilisateurs',
+  'organization.members_empty' => 'Aucun utilisateur trouvé',
+  'organization.member_role' => 'Rôle',
+  'organization.role_member' => 'Membre',
+  'organization.role_admin' => 'Administrateur',
+  'organization.role_owner' => 'Propriétaire',
+  'organization.members_saved' => 'Membres de l’espace mis à jour',
+  'organization.members_save_error' => 'Impossible de mettre à jour les membres',
 );

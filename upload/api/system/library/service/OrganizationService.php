@@ -47,6 +47,31 @@ final class OrganizationService
         ];
     }
 
+    /**
+     * Workspaces available for the global switcher. Unlike the management
+     * list, this endpoint is available to every authenticated member and
+     * intentionally returns only public display fields.
+     *
+     * @return array{items:array<int,array<string,mixed>>,is_root:bool}
+     */
+    public function availableForActor(array $actor): array
+    {
+        $isRoot = (bool)($actor['is_root'] ?? false);
+        $items = $isRoot
+            ? $this->organizations->listAll()
+            : $this->organizations->listForUser((int)($actor['id'] ?? 0));
+
+        $items = array_map(static function (array $item): array {
+            return [
+                'public_id' => (string)($item['public_id'] ?? ''),
+                'title' => (string)($item['title'] ?? ''),
+                'slug' => (string)($item['slug'] ?? ''),
+            ];
+        }, $items);
+
+        return ['items' => $items, 'is_root' => $isRoot];
+    }
+
     public function get(string $publicId, array $actor): ?array
     {
         $organization = $this->organizations->findByPublicId($publicId);

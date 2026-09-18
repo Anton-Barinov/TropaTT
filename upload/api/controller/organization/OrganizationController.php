@@ -10,6 +10,18 @@ use Api\System\Library\Validation\Validator;
 
 final class OrganizationController extends BaseController
 {
+    public function available(): \Api\System\Library\Http\JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
+        /** @var OrganizationService $service */
+        $result = $this->container->get('service.organization')->availableForActor($auth['user']);
+        return $this->success('ORGANIZATION_AVAILABLE_LIST', $this->t('organization/messages.available', 'Доступные рабочие пространства'), ['items' => $result['items'], 'is_root' => $result['is_root']]);
+    }
+
     public function list(): \Api\System\Library\Http\JsonResponse
     {
         $auth = $this->user();

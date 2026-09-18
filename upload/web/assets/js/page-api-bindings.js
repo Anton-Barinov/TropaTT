@@ -30682,7 +30682,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           return String(item.title || item.name || item.company_name || item.public_id || '').toLowerCase().indexOf(query) !== -1;
         });
         if (!items.length) {
-          body.innerHTML = '<tr><td colspan="4" class="text-muted">' + (organizationItems.length ? _t('organization.search_empty', 'Ничего не найдено') : _t('organization.empty', 'Нет организаций')) + '</td></tr>';
+          body.innerHTML = '<tr><td colspan="4" class="text-muted">' + (organizationItems.length ? _t('organization.search_empty', 'Ничего не найдено') : _t('organization.empty', 'Нет рабочих пространств')) + '</td></tr>';
           return;
         }
         body.innerHTML = items.map(function (item) {
@@ -30699,7 +30699,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
             + '<td data-label="' + safeText(labels.participants) + '">' + safeText(String(memberCount)) + '</td>'
             + '<td data-label="' + safeText(labels.created) + '">' + safeText(formatDate(item.created_at || '')) + '</td>'
             + '<td data-label="' + safeText(labels.actions) + '" class="crm-table-actions crm-org-actions"><div class="crm-org-actions-inner">'
-            + '<button class="btn btn-sm crm-btn-primary crm-btn-compact" data-org-select="' + safeText(id) + '">' + (window.CRM.api.getOrganizationContext() === id ? _t('organization.selected', 'Активный workspace') : _t('organization.select', 'Выбрать workspace')) + '</button>'
+            + '<button class="btn btn-sm crm-btn-primary crm-btn-compact" data-org-select="' + safeText(id) + '">' + (window.CRM.api.getOrganizationContext() === id ? _t('organization.selected', 'Активное пространство') : _t('organization.select', 'Выбрать пространство')) + '</button>'
             + '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-org-edit="' + safeText(id) + '">' + _t('organization.btn_edit', 'Изменить') + '</button>'
             + '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-org-members="' + safeText(id) + '">' + _t('organization.btn_members', 'Участники') + '</button>'
             + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-org-delete="' + safeText(id) + '">' + _t('organization.btn_delete', 'Удалить') + '</button>'
@@ -30730,7 +30730,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       createBtn.dataset.bound = '1';
       createBtn.addEventListener('click', async function () {
         var values = await requestCrmForm(_t('organization.create_title', 'Создать организацию'), [
-          { name: 'title', label: _t('organization.prompt_title', 'Название организации'), required: true }
+          { name: 'title', label: _t('organization.prompt_title', 'Название рабочего пространства'), required: true }
         ], _t('page.create', 'Создать'));
         if (!values) return;
         var trimmedTitle = String(values.title || '').trim();
@@ -30745,7 +30745,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
               title: trimmedTitle
             }
           });
-          notify(_t('organization.created_notify', 'Организация создана'));
+          notify(_t('organization.created_notify', 'Рабочее пространство создано'));
           await loadOrganizations();
         } catch (error) {
           var normalized = window.CRM.api.normalizeError(error, _t('organization.create_failed', 'Не удалось создать организацию'));
@@ -30755,6 +30755,113 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     }
 
     var orgsBody = document.getElementById('organizationsBody');
+    async function openOrganizationMembersModal(orgId) {
+      var membersEnvelope = await request('api/v1/organizations/' + encodeURIComponent(orgId) + '/members', { query: { limit: 500 }, noCache: true });
+      var usersEnvelope = await request('api/v1/users', { query: { limit: 500, is_active: 1 }, noCache: true });
+      var members = mapItems(membersEnvelope);
+      var users = mapItems(usersEnvelope);
+      var organization = organizationItems.find(function (item) { return String(item.public_id || '') === orgId; }) || {};
+      var existing = {};
+      members.forEach(function (member) {
+        existing[String(member.user_public_id || '')] = String(member.role_code || 'member');
+      });
+
+      var oldModal = document.getElementById('organizationMembersModal');
+      if (oldModal && oldModal.parentNode) oldModal.parentNode.removeChild(oldModal);
+      var modal = document.createElement('div');
+      modal.className = 'modal fade';
+      modal.id = 'organizationMembersModal';
+      modal.tabIndex = -1;
+      modal.setAttribute('aria-hidden', 'true');
+      modal.innerHTML = '<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-xl"><div class="modal-content">'
+        + '<div class="modal-header"><div><h5 class="modal-title"><i class="fa-solid fa-users me-2" aria-hidden="true"></i>'
+        + safeText(_t('organization.members_title', 'Участники рабочего пространства')) + '</h5><div class="text-muted small">'
+        + safeText(organization.title || orgId) + '</div></div>'
+        + '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + safeText(_t('page.close', 'Закрыть')) + '"></button></div>'
+        + '<div class="modal-body"><div class="d-flex flex-wrap gap-2 align-items-center mb-3">'
+        + '<input class="form-control" data-member-search type="search" placeholder="' + safeText(_t('organization.members_search', 'Найти участника')) + '" aria-label="' + safeText(_t('organization.members_search', 'Найти участника')) + '">'
+        + '<span class="text-muted small" data-member-count></span></div>'
+        + '<div class="crm-organization-members-list" data-member-list></div></div>'
+        + '<div class="modal-footer"><button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal">' + safeText(_t('page.cancel', 'Отмена')) + '</button>'
+        + '<button type="button" class="btn crm-btn-primary" data-member-save><i class="fa-solid fa-check me-1" aria-hidden="true"></i>' + safeText(_t('organization.members_save', 'Сохранить участников')) + '</button></div>'
+        + '</div></div>';
+      document.body.appendChild(modal);
+
+      var list = modal.querySelector('[data-member-list]');
+      var searchInput = modal.querySelector('[data-member-search]');
+      var countNode = modal.querySelector('[data-member-count]');
+      function renderMembers() {
+        var query = String(searchInput.value || '').trim().toLowerCase();
+        var visible = users.filter(function (user) {
+          var haystack = [user.full_name, user.login, user.email, user.public_id].join(' ').toLowerCase();
+          return !query || haystack.indexOf(query) !== -1;
+        });
+        countNode.textContent = _t('organization.members_count', '{shown} из {total} пользователей').replace('{shown}', String(visible.length)).replace('{total}', String(users.length));
+        if (!visible.length) {
+          list.innerHTML = '<div class="text-muted py-4 text-center">' + safeText(_t('organization.members_empty', 'Пользователи не найдены')) + '</div>';
+          return;
+        }
+        list.innerHTML = visible.map(function (user) {
+          var uid = String(user.public_id || '');
+          var checked = Object.prototype.hasOwnProperty.call(existing, uid);
+          var role = existing[uid] || 'member';
+          var label = String(user.full_name || user.login || uid);
+          var secondary = [user.login, user.email].filter(Boolean).join(' · ');
+          return '<label class="crm-organization-member-row" data-member-row data-member-search-text="' + safeText((label + ' ' + secondary).toLowerCase()) + '">'
+            + '<input class="form-check-input mt-1" type="checkbox" data-member-check value="' + safeText(uid) + '"' + (checked ? ' checked' : '') + '>'
+            + '<span class="crm-organization-member-main"><strong>' + safeText(label) + '</strong><span class="text-muted small">' + safeText(secondary) + '</span></span>'
+            + '<select class="form-select form-select-sm crm-organization-member-role" data-member-role aria-label="' + safeText(_t('organization.member_role', 'Роль')) + '"' + (checked ? '' : ' disabled') + '>'
+            + '<option value="member"' + (role === 'member' ? ' selected' : '') + '>' + safeText(_t('organization.role_member', 'Участник')) + '</option>'
+            + '<option value="admin"' + (role === 'admin' ? ' selected' : '') + '>' + safeText(_t('organization.role_admin', 'Администратор')) + '</option>'
+            + '<option value="owner"' + (role === 'owner' ? ' selected' : '') + '>' + safeText(_t('organization.role_owner', 'Владелец')) + '</option></select></label>';
+        }).join('');
+        list.querySelectorAll('[data-member-check]').forEach(function (checkbox) {
+          checkbox.addEventListener('change', function () {
+            var role = checkbox.parentNode.querySelector('[data-member-role]');
+            if (role) role.disabled = !checkbox.checked;
+          });
+        });
+      }
+      searchInput.addEventListener('input', renderMembers);
+      renderMembers();
+
+      var bsModal = new bootstrap.Modal(modal);
+      modal.querySelector('[data-member-save]').addEventListener('click', async function () {
+        var saveBtn = this;
+        var selected = {};
+        list.querySelectorAll('[data-member-check]:checked').forEach(function (checkbox) {
+          var role = checkbox.parentNode.querySelector('[data-member-role]');
+          selected[String(checkbox.value || '')] = role ? String(role.value || 'member') : 'member';
+        });
+        saveBtn.disabled = true;
+        try {
+          var removals = Object.keys(existing).filter(function (uid) { return !Object.prototype.hasOwnProperty.call(selected, uid); });
+          for (var r = 0; r < removals.length; r += 1) {
+            await request('api/v1/organizations/' + encodeURIComponent(orgId) + '/members/' + encodeURIComponent(removals[r]), { method: 'DELETE' });
+          }
+          var selectedIds = Object.keys(selected);
+          for (var a = 0; a < selectedIds.length; a += 1) {
+            var uid = selectedIds[a];
+            if (!Object.prototype.hasOwnProperty.call(existing, uid)) {
+              await request('api/v1/organizations/' + encodeURIComponent(orgId) + '/members', { method: 'POST', body: { user_public_id: uid, role_code: selected[uid] } });
+            } else if (existing[uid] !== selected[uid]) {
+              await request('api/v1/organizations/' + encodeURIComponent(orgId) + '/members/' + encodeURIComponent(uid), { method: 'PATCH', body: { role_code: selected[uid] } });
+            }
+          }
+          bsModal.hide();
+          if (modal.parentNode) modal.parentNode.removeChild(modal);
+          notify(_t('organization.members_saved', 'Участники рабочего пространства обновлены'));
+          await loadOrganizations();
+        } catch (error) {
+          saveBtn.disabled = false;
+          var normalized = window.CRM.api.normalizeError(error, _t('organization.members_save_error', 'Не удалось обновить участников'));
+          notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
+        }
+      });
+      modal.addEventListener('hidden.bs.modal', function () { if (modal.parentNode) modal.parentNode.removeChild(modal); });
+      bsModal.show();
+    }
+
     if (orgsBody && orgsBody.dataset.bound !== '1') {
       orgsBody.dataset.bound = '1';
       orgsBody.addEventListener('click', async function (event) {
@@ -30763,7 +30870,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           var selectedId = String(selectBtn.getAttribute('data-org-select') || '').trim();
           if (!selectedId) return;
           window.CRM.api.setOrganizationContext(selectedId);
-          notify(_t('organization.selected', 'Активный workspace'));
+          notify(_t('organization.selected', 'Активное рабочее пространство'));
           await loadOrganizations();
           return;
         }
@@ -30778,7 +30885,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           if (!values || !String(values.title || '').trim()) return;
           try {
             await request('api/v1/organizations/' + encodeURIComponent(editId), { method: 'PATCH', body: { title: String(values.title).trim() } });
-            notify(_t('organization.updated_notify', 'Организация обновлена'));
+            notify(_t('organization.updated_notify', 'Рабочее пространство обновлено'));
             await loadOrganizations();
           } catch (error) {
             var editError = window.CRM.api.normalizeError(error, _t('organization.update_failed', 'Не удалось обновить организацию'));
@@ -30791,12 +30898,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           var orgId = String(membersBtn.getAttribute('data-org-members') || '').trim();
           if (!orgId) return;
           try {
-            var envelope = await request('api/v1/organizations/' + encodeURIComponent(orgId) + '/members', { query: { limit: 100 } });
-            var members = mapItems(envelope);
-            var memberList = members.map(function (m) {
-              return '- ' + safeText(m.full_name || m.login || m.public_id || '—');
-            }).join('\n');
-            window.alert(_t('organization.members_title', 'Участники организации:') + '\n\n' + (memberList || _t('organization.no_members', 'Нет участников')));
+            await openOrganizationMembersModal(orgId);
           } catch (error) {
             var normalized = window.CRM.api.normalizeError(error, _t('organization.load_members_error', 'Не удалось загрузить участников'));
             notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');

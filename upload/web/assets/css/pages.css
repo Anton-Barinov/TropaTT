@@ -20565,3 +20565,20 @@ a.task-tag:hover {
   .crm-client-cabinet-page .crm-table tbody td:last-child > .d-flex { display: grid !important; grid-template-columns: 1fr 1fr; gap: .5rem !important; }
   .crm-client-cabinet-page .crm-table tbody td:last-child > .d-flex .btn:first-child { grid-column: 1 / -1; }
 }
+/* Workspace context switcher: compact on desktop, full-width in the mobile
+ * topbar so the current data scope is always obvious before a reload. */
+.crm-workspace-switcher { min-width: 190px; max-width: 260px; }
+.crm-workspace-switcher .form-select { min-height: 38px; border-color: var(--crm-border); font-weight: 600; }
+.crm-organization-members-list { display: grid; gap: .5rem; }
+.crm-organization-member-row { display: grid; grid-template-columns: auto minmax(0, 1fr) 150px; gap: .75rem; align-items: center; padding: .7rem .8rem; border: 1px solid var(--crm-border); border-radius: var(--radius-md); cursor: pointer; }
+.crm-organization-member-row:hover { background: var(--crm-surface-muted); }
+.crm-organization-member-main { min-width: 0; display: grid; gap: .15rem; }
+.crm-organization-member-main strong, .crm-organization-member-main span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 575.98px) {
+  .crm-organization-member-row { grid-template-columns: auto minmax(0, 1fr); }
+  .crm-organization-member-role { grid-column: 2; width: 100%; }
+}
+@media (max-width: 575.98px) {
+  .crm-workspace-switcher { min-width: 0; max-width: none; width: min(58vw, 230px); }
+  .crm-workspace-switcher .form-select { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+}

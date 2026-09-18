@@ -646,6 +646,65 @@ window.CRM.navigation = (function () {
         }
       });
     }
+
+    ensureWorkspaceSwitcher(right);
+  }
+
+  // Show the workspace switcher only to members who belong to more than one
+  // workspace. Root administrators manage all workspaces from Administration
+  // and should not receive a misleading personal-context switcher.
+  function ensureWorkspaceSwitcher(right) {
+    if (!right || right.dataset.workspaceSwitcherBound === '1') return;
+    right.dataset.workspaceSwitcherBound = '1';
+    if (!window.CRM.api || typeof window.CRM.api.request !== 'function') return;
+
+    Promise.all([
+      typeof window.CRM.api.me === 'function' ? window.CRM.api.me().catch(function () { return null; }) : Promise.resolve(null),
+      window.CRM.api.request('api/v1/organizations/available', { noCache: true }).catch(function () { return null; })
+    ]).then(function (results) {
+      var userEnvelope = results[0] && results[0].data ? results[0].data : {};
+      var user = userEnvelope.user || (window.CRM.api.getUser ? window.CRM.api.getUser() : null) || {};
+      var envelope = results[1];
+      var data = envelope && envelope.data ? envelope.data : {};
+      var items = Array.isArray(data.items) ? data.items : [];
+      if (user.is_root === true || data.is_root === true || items.length <= 1) return;
+
+      var current = window.CRM.api.getOrganizationContext();
+      var hasCurrent = items.some(function (item) { return String(item.public_id || '') === current; });
+      if (!hasCurrent) {
+        current = String(items[0].public_id || '');
+        window.CRM.api.setOrganizationContext(current);
+      }
+
+      var wrapper = document.createElement('div');
+      wrapper.className = 'crm-workspace-switcher dropdown';
+      wrapper.setAttribute('data-workspace-switcher', '1');
+      wrapper.innerHTML = '<label class="visually-hidden" for="crmWorkspaceSwitcher">'
+        + t('topbar.workspace_label', 'Рабочее пространство')
+        + '</label><select id="crmWorkspaceSwitcher" class="form-select form-select-sm" aria-label="'
+        + t('topbar.workspace_label', 'Рабочее пространство') + '">'
+        + items.map(function (item) {
+          var id = String(item.public_id || '');
+          return '<option value="' + id.replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '"'
+            + (id === current ? ' selected' : '') + '>'
+            + String(item.title || item.slug || id).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            + '</option>';
+        }).join('') + '</select>';
+
+      var anchor = right.querySelector('[data-search-toggle]') || right.firstChild;
+      if (anchor) right.insertBefore(wrapper, anchor);
+      else right.appendChild(wrapper);
+
+      var select = wrapper.querySelector('select');
+      if (select) {
+        select.addEventListener('change', function () {
+          var next = String(select.value || '').trim();
+          if (!next || next === window.CRM.api.getOrganizationContext()) return;
+          window.CRM.api.setOrganizationContext(next);
+          window.location.reload();
+        });
+      }
+    });
   }
 
   function markActive() {

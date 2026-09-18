@@ -10579,4 +10579,16 @@ return array (
   'custom_field.create_title' => '创建自定义字段',
   'organization.create_title' => '创建组织',
   'priority.create_title' => '创建优先级',
+
+  'topbar.workspace_label' => '工作空间',
+  'organization.members_search' => '查找成员',
+  'organization.members_save' => '保存成员',
+  'organization.members_count' => '{shown} / {total} 位用户',
+  'organization.members_empty' => '未找到用户',
+  'organization.member_role' => '角色',
+  'organization.role_member' => '成员',
+  'organization.role_admin' => '管理员',
+  'organization.role_owner' => '所有者',
+  'organization.members_saved' => '工作空间成员已更新',
+  'organization.members_save_error' => '无法更新工作空间成员',
 );

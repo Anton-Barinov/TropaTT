@@ -10579,4 +10579,16 @@ return array (
   'custom_field.create_title' => 'Benutzerdefiniertes Feld erstellen',
   'organization.create_title' => 'Organisation erstellen',
   'priority.create_title' => 'Priorität erstellen',
+
+  'topbar.workspace_label' => 'Arbeitsbereich',
+  'organization.members_search' => 'Mitglied suchen',
+  'organization.members_save' => 'Mitglieder speichern',
+  'organization.members_count' => '{shown} von {total} Benutzern',
+  'organization.members_empty' => 'Keine Benutzer gefunden',
+  'organization.member_role' => 'Rolle',
+  'organization.role_member' => 'Mitglied',
+  'organization.role_admin' => 'Administrator',
+  'organization.role_owner' => 'Eigentümer',
+  'organization.members_saved' => 'Arbeitsbereich-Mitglieder aktualisiert',
+  'organization.members_save_error' => 'Arbeitsbereich-Mitglieder konnten nicht aktualisiert werden',
 );
