@@ -759,9 +759,11 @@ MD;
                 'project_public_id' => ['type' => 'string'],
                 'status' => ['type' => 'string'],
                 'assigned_user_id' => ['type' => 'integer'],
+                'organization_public_id' => ['type' => 'string', 'description' => 'Optional active workspace context. It must belong to the current user.'],
             ]);
             $tools[] = $this->tool('crm_get_task_by_key', 'Get a task by its human-readable key (e.g. TASK-123).', [
                 'task_key' => ['type' => 'string'],
+                'organization_public_id' => ['type' => 'string', 'description' => 'Optional active workspace context. It must belong to the current user.'],
             ], ['task_key']);
             $tools[] = $this->tool('crm_list_task_activity', 'List activity/change history for a task.', [
                 'task_public_id' => ['type' => 'string'],
@@ -1257,9 +1259,11 @@ MD;
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
                 'q' => ['type' => 'string', 'description' => 'Search by login, full name or email.'],
                 'is_active' => ['type' => 'integer', 'enum' => [0, 1]],
+                'organization_public_id' => ['type' => 'string', 'description' => 'Optional active workspace context. It must belong to the current user.'],
             ]);
             $tools[] = $this->tool('crm_get_user', 'Get one CRM user by public id.', [
                 'public_id' => ['type' => 'string'],
+                'organization_public_id' => ['type' => 'string', 'description' => 'Optional active workspace context. It must belong to the current user.'],
             ], ['public_id']);
             $tools[] = $this->tool('crm_create_user', 'Create a CRM user.', [
                 'login' => ['type' => 'string'],
@@ -2654,9 +2658,11 @@ MD;
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
                 'scope' => ['type' => 'string'],
                 'is_active' => ['type' => 'integer', 'enum' => [0, 1]],
+                'organization_public_id' => ['type' => 'string', 'description' => 'Optional active workspace context. It must belong to the current user.'],
             ]);
             $tools[] = $this->tool('crm_get_status', 'Get one status dictionary entry by public id.', [
                 'public_id' => ['type' => 'string'],
+                'organization_public_id' => ['type' => 'string', 'description' => 'Optional active workspace context. It must belong to the current user.'],
             ], ['public_id']);
             $tools[] = $this->tool('crm_create_status', 'Create a status dictionary entry.', $this->statusSchema(), ['scope', 'code', 'title']);
             $tools[] = $this->tool('crm_update_status', 'Update a status dictionary entry by public id.', ['public_id' => ['type' => 'string']] + $this->statusSchema(), ['public_id']);
@@ -7612,6 +7618,10 @@ $tools[] = $this->tool(
 
     private function crmGetTaskBoard(array $arguments): array
     {
+        $contextError = $this->organizationContextError($arguments);
+        if ($contextError !== null) {
+            return $contextError;
+        }
         $input = [];
         foreach (['project_public_id', 'status', 'assigned_user_id'] as $field) {
             if (!empty($arguments[$field])) {
@@ -7631,6 +7641,10 @@ $tools[] = $this->tool(
 
     private function crmGetTaskByKey(array $arguments): array
     {
+        $contextError = $this->organizationContextError($arguments);
+        if ($contextError !== null) {
+            return $contextError;
+        }
         $key = trim((string)($arguments['task_key'] ?? ''));
         if ($key === '') {
             return ['error' => 'task_key is required.'];
@@ -9421,9 +9435,18 @@ $tools[] = $this->tool(
 
     private function crmListUsers(array $arguments): array
     {
+        $contextError = $this->organizationContextError($arguments);
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActorForArguments($this->actor(), $arguments);
+        $filters = $this->userFilters($arguments);
+        if (!empty($actor['organization_id'])) {
+            $filters['organization_id'] = (int)$actor['organization_id'];
+        }
         /** @var UserService $service */
         $service = $this->container->get('service.user');
-        return $this->publicData($service->list($this->userFilters($arguments)));
+        return $this->publicData($service->list($filters));
     }
 
     private function crmListTeams(array $arguments): array
@@ -12143,13 +12166,26 @@ $tools[] = $this->tool(
 
     private function crmListStatuses(array $arguments): array
     {
+        $contextError = $this->organizationContextError($arguments);
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActorForArguments($this->actor(), $arguments);
+        $filters = $this->statusFilters($arguments);
+        if (!empty($actor['organization_id'])) {
+            $filters['organization_id'] = (int)$actor['organization_id'];
+        }
         /** @var StatusService $service */
         $service = $this->container->get('service.status');
-        return $this->publicData($service->list($this->statusFilters($arguments)));
+        return $this->publicData($service->list($filters));
     }
 
     private function crmGetStatus(array $arguments): array
     {
+        $contextError = $this->organizationContextError($arguments);
+        if ($contextError !== null) {
+            return $contextError;
+        }
         $publicId = trim((string)($arguments['public_id'] ?? ''));
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
@@ -12157,7 +12193,7 @@ $tools[] = $this->tool(
 
         /** @var StatusService $service */
         $service = $this->container->get('service.status');
-        $status = $service->get($publicId);
+        $status = $service->get($publicId, (int)($this->organizationScopedActorForArguments($this->actor(), $arguments)['organization_id'] ?? 0) ?: null);
         return $status ? ['status' => $this->publicData($status)] : ['error' => 'Status not found.'];
     }
 
