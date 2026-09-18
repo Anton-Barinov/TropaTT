@@ -153,6 +153,17 @@
 }
 
 @media (max-width: 767px) {
+  /* ui.css is loaded after this file and otherwise leaves a 20px strip of
+     the closed drawer over page content on narrow screens. */
+  .crm-sidebar {
+    left: calc(-1 * min(320px, 85vw)) !important;
+    width: min(320px, 85vw) !important;
+  }
+
+  body.sidebar-open .crm-sidebar {
+    left: 0 !important;
+  }
+
   .crm-content {
     padding: var(--space-4) var(--space-4);
   }
