@@ -1484,3 +1484,40 @@
     max-width: 100%;
   }
 }
+
+/* Mobile administrative records: preserve readable values instead of
+   forcing every table cell into a narrow label/value column. */
+@media (max-width: 767.98px) {
+  body[data-page="admin-modules"] .crm-admin-modules-table-card .crm-table tbody tr,
+  body[data-page="admin-tags"] .crm-table tbody tr { min-width: 0; }
+  body[data-page="admin-modules"] .crm-admin-modules-table-card .crm-table tbody td:nth-child(1) { display:flex; justify-content:flex-end; width:100% !important; }
+  body[data-page="admin-modules"] .crm-admin-modules-table-card .crm-table tbody td:nth-child(2) { display:block; width:100% !important; }
+  body[data-page="admin-modules"] .crm-admin-modules-table-card .crm-table tbody td:nth-child(2)::before { display:none; }
+  body[data-page="admin-modules"] .crm-admin-modules-table-card .crm-table tbody td:nth-child(2) small { display:block; max-width:100%; line-height:1.45; overflow-wrap:anywhere; word-break:normal; }
+  body[data-page="admin-modules"] .crm-admin-modules-table-card .crm-table tbody td:nth-child(2) small:last-of-type { margin-top:.45rem; color:var(--crm-text-muted); }
+  body[data-page="admin-modules"] .crm-admin-modules-table-card .crm-table tbody td:nth-child(3)::before { content:"Version"; }
+  body[data-page="admin-modules"] .crm-admin-modules-table-card .crm-table tbody td:nth-child(4)::before { content:"Vendor"; }
+  body[data-page="admin-modules"] .crm-admin-modules-table-card .crm-table tbody td:nth-child(5)::before { content:"Status"; }
+  body[data-page="admin-modules"] .crm-admin-modules-table-card .crm-table tbody td:nth-child(6)::before { content:"Actions"; }
+  body[data-page="admin-tags"] .crm-table tbody td:nth-child(1)::before { content:"Name"; }
+  body[data-page="admin-tags"] .crm-table tbody td:nth-child(2)::before { content:"Color"; }
+  body[data-page="admin-tags"] .crm-table tbody td:nth-child(3) { display:block; }
+  body[data-page="admin-tags"] .crm-table tbody td:nth-child(3)::before { display:block; content:"Description"; margin-bottom:.25rem; }
+  body[data-page="admin-tags"] .crm-table tbody td:nth-child(4)::before { content:"Usage"; }
+  body[data-page="admin-tags"] .crm-table tbody td:nth-child(5)::before { content:"Actions"; }
+  body[data-page="admin-tags"] .crm-table tbody td:nth-child(3) { overflow-wrap:anywhere; word-break:normal; line-height:1.45; }
+
+  /* Keep the API status message below the sticky topbar. */
+  #crmApiStatusBar { top:calc(var(--crm-topbar-height, 56px) + 8px) !important; max-width:calc(100vw - 24px); }
+
+  /* Modal body owns scrolling and reserves space for the sticky action row. */
+  .modal-dialog { max-height:calc(100dvh - var(--crm-topbar-height, 56px) - 24px); margin-top:calc(var(--crm-topbar-height, 56px) + 8px); margin-bottom:16px; }
+  .modal-dialog .modal-content { max-height:calc(100dvh - var(--crm-topbar-height, 56px) - 24px); }
+  .modal-dialog .modal-body { scroll-padding-block:16px calc(92px + env(safe-area-inset-bottom)); padding-bottom:calc(24px + env(safe-area-inset-bottom)); }
+  .modal-dialog .modal-footer { padding-bottom:calc(12px + env(safe-area-inset-bottom)); }
+}
+@media (max-width: 767.98px) {
+  .crm-main-wrap, .crm-content { position:relative; left:0; margin-left:0; transform:none; width:100%; max-width:100%; }
+  .crm-filter-offcanvas { left:0; right:auto; width:min(420px, calc(100vw - 12px)); max-width:calc(100vw - 12px); }
+  .crm-filter-offcanvas .offcanvas-body { padding-inline:16px; overflow-x:hidden; }
+}
