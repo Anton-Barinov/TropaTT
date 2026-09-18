@@ -295,7 +295,9 @@ window.CRM.pageApiBindings = (function () {
     statusNode.style.textAlign = 'center';
     function positionStatusNode() {
       var topbar = document.querySelector('.crm-topbar');
-      var top = topbar ? Math.ceil(topbar.getBoundingClientRect().bottom + 8) : 64;
+      var pageHead = document.querySelector('.crm-page-head');
+      var anchor = pageHead || topbar;
+      var top = anchor ? Math.ceil(anchor.getBoundingClientRect().bottom + 8) : 64;
       statusNode.style.setProperty('top', top + 'px', 'important');
     }
     positionStatusNode();
