@@ -35,6 +35,7 @@ final class FileService
 
     public function create(array $input, array $rawFiles, int $uploaderUserId, array $actor): array
     {
+        $organizationId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
         $publicId = Ulid::generate('fil');
         $now = gmdate('Y-m-d H:i:s');
 
@@ -122,12 +123,12 @@ final class FileService
             'is_deleted' => 0,
             'is_internal' => $isInternal,
             'created_at' => $now,
-        ]);
+        ], $organizationId);
 
-        $created = $this->files->findByPublicId($publicId) ?: ['public_id' => $publicId];
+        $created = $this->files->findByPublicId($publicId, $organizationId) ?: ['public_id' => $publicId];
 
         if ($entityType === 'task' && $entityPublicId !== '') {
-            $task = $this->tasks->findByPublicId($entityPublicId);
+            $task = $this->tasks->findByPublicId($entityPublicId, $organizationId);
             if ($task) {
                 $this->activity?->recordFileAdded($task, [
                     'public_id' => $publicId,
@@ -176,7 +177,8 @@ final class FileService
 
     public function get(string $publicId, array $actor): ?array
     {
-        $file = $this->files->findByPublicId($publicId);
+        $organizationId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
+        $file = $this->files->findByPublicId($publicId, $organizationId);
         if (!$file) {
             return null;
         }
@@ -190,6 +192,7 @@ final class FileService
 
     public function listByEntity(string $entityType, string $entityPublicId, array $actor): ?array
     {
+        $organizationId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
         $type = trim($entityType);
         $entityId = trim($entityPublicId);
         if ($type === '' || $entityId === '') {
@@ -200,7 +203,7 @@ final class FileService
             return null;
         }
 
-        $items = $this->files->listByEntity($type, $entityId);
+        $items = $this->files->listByEntity($type, $entityId, $organizationId);
 
         // M-3: Filter out internal files for external users.
         if ((bool)($actor['is_external'] ?? false)) {
@@ -212,7 +215,8 @@ final class FileService
 
     public function delete(string $publicId, array $actor): bool
     {
-        $file = $this->files->findByPublicId($publicId);
+        $organizationId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
+        $file = $this->files->findByPublicId($publicId, $organizationId);
         if (!$file) {
             return false;
         }
@@ -220,7 +224,7 @@ final class FileService
             return false;
         }
 
-        $deleted = $this->files->softDelete($publicId, gmdate('Y-m-d H:i:s'));
+        $deleted = $this->files->softDelete($publicId, gmdate('Y-m-d H:i:s'), $organizationId);
         if ($deleted) {
             $this->semanticIndex?->removeEntityDocument('file', $publicId);
             $path = (string)$file['storage_path'];
@@ -228,7 +232,7 @@ final class FileService
                 @rename($path, $path . '.deleted');
             }
             if (($file['entity_type'] ?? '') === 'task' && ($file['entity_public_id'] ?? '') !== '') {
-                $task = $this->tasks->findByPublicId((string)$file['entity_public_id']);
+                $task = $this->tasks->findByPublicId((string)$file['entity_public_id'], $organizationId);
                 if ($task) {
                     $this->activity?->recordFileDeleted($task, [
                         'public_id' => $publicId,
@@ -255,7 +259,8 @@ final class FileService
 
     public function canDownloadInternal(string $publicId, array $actor): array
     {
-        $file = $this->files->findByPublicId($publicId);
+        $organizationId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
+        $file = $this->files->findByPublicId($publicId, $organizationId);
         if (!$file || (int)($file['is_deleted'] ?? 0) === 1) {
             return ['ok' => false, 'error' => 'FILE_NOT_FOUND'];
         }
