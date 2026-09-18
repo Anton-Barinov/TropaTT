@@ -144,9 +144,9 @@ final class OrganizationRepository implements OrganizationMembershipReader
             ->delete() > 0;
     }
 
-    public function listMembers(string $organizationPublicId): array
+    public function listMembers(string $organizationPublicId, array $filters = []): array
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('organization_memberships om')
             ->join('organizations o', 'o.id', '=', 'om.organization_id')
             ->join('users u', 'u.id', '=', 'om.user_id')
@@ -160,8 +160,14 @@ final class OrganizationRepository implements OrganizationMembershipReader
                 'u.full_name',
                 'u.is_active',
             ])
-            ->where('o.public_id', '=', $organizationPublicId)
-            ->orderBy('om.created_at', 'ASC')
+            ->where('o.public_id', '=', $organizationPublicId);
+        if (!empty($filters['search'])) {
+            $term = '%' . LikeEscaper::escape((string)$filters['search']) . '%';
+            $query->whereRaw('(u.login LIKE ? OR u.email LIKE ? OR u.full_name LIKE ?)', [$term, $term, $term]);
+        }
+        return $query->orderBy('om.created_at', 'ASC')
+            ->limit(min(100, max(1, (int)($filters['limit'] ?? 100))))
+            ->offset(max(0, ((int)($filters['page'] ?? 1) - 1) * min(100, max(1, (int)($filters['limit'] ?? 100)))))
             ->get();
     }
 
@@ -173,26 +179,39 @@ final class OrganizationRepository implements OrganizationMembershipReader
             return false;
         }
 
-        $existing = $this->membershipByOrgAndUser($organizationId, $userId);
-        if ($existing) {
-            (new QueryBuilder($this->pdo))
-                ->from('organization_memberships')
-                ->where('id', '=', (int)$existing['id'])
-                ->update(['role_code' => $roleCode]);
+        return $this->transactional(function () use ($organizationId, $userId, $roleCode, $membershipPublicId, $createdAt): bool {
+            $existing = $this->membershipByOrgAndUser($organizationId, $userId);
+            if ($existing) {
+                return (new QueryBuilder($this->pdo))
+                    ->from('organization_memberships')
+                    ->where('id', '=', (int)$existing['id'])
+                    ->update(['role_code' => $roleCode]) > 0;
+            }
+
+            (new QueryBuilder($this->pdo))->from('organization_memberships')->insert([
+                'public_id' => $membershipPublicId,
+                'organization_id' => $organizationId,
+                'user_id' => $userId,
+                'role_code' => $roleCode,
+                'created_at' => $createdAt,
+            ]);
             return true;
-        }
+        });
+    }
 
-        (new QueryBuilder($this->pdo))
-            ->from('organization_memberships')
-            ->insert([
-            'public_id' => $membershipPublicId,
-            'organization_id' => $organizationId,
-            'user_id' => $userId,
-            'role_code' => $roleCode,
-            'created_at' => $createdAt,
-        ]);
-
-        return true;
+    public function updateMemberRole(string $organizationPublicId, string $userPublicId, string $roleCode, string $updatedAt): bool
+    {
+        $organizationId = $this->resolveOrganizationId($organizationPublicId);
+        $userId = $this->resolveUserId($userPublicId);
+        if ($organizationId <= 0 || $userId <= 0) return false;
+        return $this->transactional(function () use ($organizationId, $userId, $roleCode, $updatedAt): bool {
+            $existing = $this->membershipByOrgAndUser($organizationId, $userId);
+            if (!$existing) return false;
+            if ((string)$existing['role_code'] === 'owner' && $roleCode !== 'owner' && $this->countOwnersById($organizationId) <= 1) return false;
+            return (new QueryBuilder($this->pdo))->from('organization_memberships')
+                ->where('id', '=', (int)$existing['id'])
+                ->update(['role_code' => $roleCode]) > 0;
+        });
     }
 
     public function removeMember(string $organizationPublicId, string $userPublicId): bool
@@ -203,11 +222,16 @@ final class OrganizationRepository implements OrganizationMembershipReader
             return false;
         }
 
-        return (new QueryBuilder($this->pdo))
+        return $this->transactional(function () use ($organizationId, $userId): bool {
+            $membership = $this->membershipByOrgAndUser($organizationId, $userId);
+            if (!$membership) return false;
+            if ((string)$membership['role_code'] === 'owner' && $this->countOwnersById($organizationId) <= 1) return false;
+            return (new QueryBuilder($this->pdo))
             ->from('organization_memberships')
             ->where('organization_id', '=', $organizationId)
             ->where('user_id', '=', $userId)
             ->delete() > 0;
+        });
     }
 
     public function isMember(string $organizationPublicId, int $userId): bool
@@ -287,5 +311,25 @@ final class OrganizationRepository implements OrganizationMembershipReader
             ->where('organization_id', '=', $organizationId)
             ->where('user_id', '=', $userId)
             ->first();
+    }
+
+    private function countOwnersById(int $organizationId): int
+    {
+        return (new QueryBuilder($this->pdo))->from('organization_memberships')
+            ->where('organization_id', '=', $organizationId)->where('role_code', '=', 'owner')->count();
+    }
+
+    private function transactional(callable $operation): bool
+    {
+        $nested = $this->pdo->inTransaction();
+        if (!$nested) $this->pdo->beginTransaction();
+        try {
+            $result = (bool)$operation();
+            if (!$nested) $this->pdo->commit();
+            return $result;
+        } catch (\Throwable $e) {
+            if (!$nested && $this->pdo->inTransaction()) $this->pdo->rollBack();
+            return false;
+        }
     }
 }

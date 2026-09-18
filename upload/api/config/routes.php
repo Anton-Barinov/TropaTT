@@ -655,6 +655,7 @@ return [
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/organizations/{public_id}', 'controller' => Api\Controller\Organization\OrganizationController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['organization.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/organizations/{public_id}/members', 'controller' => Api\Controller\Organization\OrganizationController::class, 'action' => 'listMembers', 'auth' => true, 'required_permissions' => ['organization.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/organizations/{public_id}/members', 'controller' => Api\Controller\Organization\OrganizationController::class, 'action' => 'addMember', 'auth' => true, 'required_permissions' => ['organization.manage']],
+    ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/organizations/{public_id}/members/{user_public_id}', 'controller' => Api\Controller\Organization\OrganizationController::class, 'action' => 'updateMemberRole', 'auth' => true, 'required_permissions' => ['organization.manage']],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/organizations/{public_id}/members/{user_public_id}', 'controller' => Api\Controller\Organization\OrganizationController::class, 'action' => 'removeMember', 'auth' => true, 'required_permissions' => ['organization.manage']],
 
     // intake items

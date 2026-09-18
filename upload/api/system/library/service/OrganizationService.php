@@ -14,6 +14,8 @@ final class OrganizationService
 {
     use TranslatableTrait;
 
+    private string $lastMemberError = 'ORGANIZATION_MEMBER_MUTATION_FAILED';
+
     public function __construct(
         private readonly OrganizationRepository $organizations,
         private readonly UserRepository $users,
@@ -140,23 +142,40 @@ final class OrganizationService
         return $deleted;
     }
 
-    public function listMembers(string $publicId, array $actor): ?array
+    public function listMembers(string $publicId, array $actor, array $filters = []): ?array
     {
         if (!$this->canAccess($publicId, $actor)) {
             return null;
         }
 
-        return $this->organizations->listMembers($publicId);
+        return $this->organizations->listMembers($publicId, $filters);
+    }
+
+    public function memberError(): string
+    {
+        return $this->lastMemberError;
     }
 
     public function addMember(string $publicId, string $userPublicId, string $roleCode, array $actor): bool
     {
+        $this->lastMemberError = 'ORGANIZATION_MEMBER_UPSERT_FAILED';
         if (!$this->canManage($publicId, $actor)) {
+            $this->lastMemberError = 'ORGANIZATION_MEMBER_FORBIDDEN';
+            return false;
+        }
+
+        if (!in_array($roleCode, ['owner', 'admin', 'member'], true)) {
+            $this->lastMemberError = 'ORGANIZATION_MEMBER_INVALID_ROLE';
             return false;
         }
 
         $user = $this->users->findByPublicId($userPublicId);
         if (!$user) {
+            $this->lastMemberError = 'ORGANIZATION_MEMBER_NOT_FOUND';
+            return false;
+        }
+        if (!(bool)($user['is_active'] ?? false)) {
+            $this->lastMemberError = 'ORGANIZATION_MEMBER_DISABLED';
             return false;
         }
 
@@ -182,20 +201,69 @@ final class OrganizationService
         return $added;
     }
 
+    public function updateMemberRole(string $publicId, string $userPublicId, string $roleCode, array $actor): bool
+    {
+        $this->lastMemberError = 'ORGANIZATION_MEMBER_ROLE_UPDATE_FAILED';
+        if (!$this->canManage($publicId, $actor)) {
+            $this->lastMemberError = 'ORGANIZATION_MEMBER_FORBIDDEN';
+            return false;
+        }
+        if (!in_array($roleCode, ['owner', 'admin', 'member'], true)) {
+            $this->lastMemberError = 'ORGANIZATION_MEMBER_INVALID_ROLE';
+            return false;
+        }
+        $target = $this->users->findByPublicId($userPublicId);
+        if (!$target) {
+            $this->lastMemberError = 'ORGANIZATION_MEMBER_NOT_FOUND';
+            return false;
+        }
+        if (!(bool)($target['is_active'] ?? false)) {
+            $this->lastMemberError = 'ORGANIZATION_MEMBER_DISABLED';
+            return false;
+        }
+        $changed = $this->organizations->updateMemberRole($publicId, $userPublicId, $roleCode, gmdate('Y-m-d H:i:s'));
+        if (!$changed) {
+            $this->lastMemberError = 'ORGANIZATION_MEMBER_LAST_OWNER';
+            return false;
+        }
+        $this->logger->audit([
+            'action' => 'organization_member_role_changed',
+            'actor_public_id' => $actor['public_id'] ?? null,
+            'entity_type' => 'organization_membership',
+            'entity_public_id' => $publicId,
+            'target_user_public_id' => $userPublicId,
+            'after' => ['role_code' => $roleCode],
+        ]);
+        return true;
+    }
+
     public function removeMember(string $publicId, string $userPublicId, array $actor): bool
     {
+        $this->lastMemberError = 'ORGANIZATION_MEMBER_REMOVE_FAILED';
         if (!$this->canManage($publicId, $actor)) {
+            $this->lastMemberError = 'ORGANIZATION_MEMBER_FORBIDDEN';
+            return false;
+        }
+
+        if ((string)($actor['public_id'] ?? '') === $userPublicId) {
+            $this->lastMemberError = 'ORGANIZATION_MEMBER_SELF_REMOVE';
             return false;
         }
 
         $target = $this->users->findByPublicId($userPublicId);
         if (!$target) {
+            $this->lastMemberError = 'ORGANIZATION_MEMBER_NOT_FOUND';
+            return false;
+        }
+        if (!(bool)($target['is_active'] ?? false)) {
+            $this->lastMemberError = 'ORGANIZATION_MEMBER_DISABLED';
             return false;
         }
 
         $targetId = (int)$target['id'];
         $targetRole = $this->organizations->memberRole($publicId, $targetId);
         if ($targetRole === 'owner' && $this->organizations->countOwners($publicId) <= 1) {
+            $this->lastMemberError = 'ORGANIZATION_MEMBER_LAST_OWNER';
             return false;
         }
 

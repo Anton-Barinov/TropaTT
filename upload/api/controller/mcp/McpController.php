@@ -943,6 +943,11 @@ MD;
                 'user_public_id' => ['type' => 'string'],
                 'role' => ['type' => 'string'],
             ], ['organization_public_id', 'user_public_id']);
+            $tools[] = $this->tool('crm_update_organization_member_role', 'Change an organization member role.', [
+                'organization_public_id' => ['type' => 'string'],
+                'user_public_id' => ['type' => 'string'],
+                'role' => ['type' => 'string', 'enum' => ['owner', 'admin', 'member']],
+            ], ['organization_public_id', 'user_public_id', 'role']);
             $tools[] = $this->tool('crm_remove_organization_member', 'Remove a member from an organization.', [
                 'organization_public_id' => ['type' => 'string'],
                 'user_public_id' => ['type' => 'string'],
@@ -3931,6 +3936,7 @@ $tools[] = $this->tool(
             'crm_get_organization' => $this->withPermission('organization.manage', fn() => $this->toolResult($this->crmGetOrganization($arguments))),
             'crm_list_organization_members' => $this->withPermission('organization.manage', fn() => $this->toolResult($this->crmListOrganizationMembers($arguments))),
             'crm_add_organization_member' => $this->withPermission('organization.manage', fn() => $this->toolResult($this->crmAddOrganizationMember($arguments))),
+            'crm_update_organization_member_role' => $this->withPermission('organization.manage', fn() => $this->toolResult($this->crmUpdateOrganizationMemberRole($arguments))),
             'crm_remove_organization_member' => $this->withPermission('organization.manage', fn() => $this->toolResult($this->crmRemoveOrganizationMember($arguments))),
             'crm_get_worklog_earnings' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetWorklogEarnings($arguments))),
             'crm_get_worklog_matrix' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetWorklogMatrix($arguments))),
@@ -8359,6 +8365,20 @@ $tools[] = $this->tool(
         $service = $this->container->get('service.organization');
         $ok = $service->removeMember($orgPublicId, $userPublicId, $this->actor());
         return $ok ? ['deleted' => true] : ['error' => 'Failed to remove member.'];
+    }
+
+    private function crmUpdateOrganizationMemberRole(array $arguments): array
+    {
+        $orgPublicId = trim((string)($arguments['organization_public_id'] ?? ''));
+        $userPublicId = trim((string)($arguments['user_public_id'] ?? ''));
+        $role = trim((string)($arguments['role'] ?? ''));
+        if ($orgPublicId === '' || $userPublicId === '' || !in_array($role, ['owner', 'admin', 'member'], true)) {
+            return ['error' => 'organization_public_id, user_public_id and a valid role are required.'];
+        }
+        /** @var OrganizationService $service */
+        $service = $this->container->get('service.organization');
+        $ok = $service->updateMemberRole($orgPublicId, $userPublicId, $role, $this->actor());
+        return $ok ? ['ok' => true] : ['error' => $service->memberError()];
     }
 
     private function crmGetWorklogEarnings(array $arguments): array
