@@ -14,24 +14,25 @@ final class AnalyticsRepository
     }
 
     /** @param string[] $accessibleTeamPublicIds */
-    public function summary(int $actorUserId, bool $actorIsRoot, string $now, string $weekStart, string $weekEnd, array $accessibleTeamPublicIds = []): array
+    public function summary(int $actorUserId, bool $actorIsRoot, string $now, string $weekStart, string $weekEnd, array $accessibleTeamPublicIds = [], ?int $organizationId = null): array
     {
         return [
-            'total_projects' => $this->countProjects($actorUserId, $actorIsRoot, $accessibleTeamPublicIds),
-            'total_tasks' => $this->countTasks($actorUserId, $actorIsRoot, $accessibleTeamPublicIds),
-            'completed_tasks' => $this->countCompletedTasks($actorUserId, $actorIsRoot, $accessibleTeamPublicIds),
-            'overdue_tasks' => $this->countOverdueTasks($actorUserId, $actorIsRoot, $now, $accessibleTeamPublicIds),
-            'worklog_minutes_week' => $this->sumWorklogMinutesWeek($actorUserId, $actorIsRoot, $weekStart, $weekEnd),
+            'total_projects' => $this->countProjects($actorUserId, $actorIsRoot, $accessibleTeamPublicIds, $organizationId),
+            'total_tasks' => $this->countTasks($actorUserId, $actorIsRoot, $accessibleTeamPublicIds, $organizationId),
+            'completed_tasks' => $this->countCompletedTasks($actorUserId, $actorIsRoot, $accessibleTeamPublicIds, $organizationId),
+            'overdue_tasks' => $this->countOverdueTasks($actorUserId, $actorIsRoot, $now, $accessibleTeamPublicIds, $organizationId),
+            'worklog_minutes_week' => $this->sumWorklogMinutesWeek($actorUserId, $actorIsRoot, $weekStart, $weekEnd, $organizationId),
         ];
     }
 
     /** @param string[] $accessibleTeamPublicIds */
-    public function projectsBreakdown(int $actorUserId, bool $actorIsRoot, int $limit, string $now, array $accessibleTeamPublicIds = []): array
+    public function projectsBreakdown(int $actorUserId, bool $actorIsRoot, int $limit, string $now, array $accessibleTeamPublicIds = [], ?int $organizationId = null): array
     {
         $query = (new QueryBuilder($this->pdo))
             ->from('projects p')
             ->leftJoin('tasks t', 't.project_id', '=', 'p.id')
             ->whereNull('p.archived_at');
+        if ($organizationId !== null && $organizationId > 0) $query->where('p.organization_id', '=', $organizationId);
 
         if (!$actorIsRoot) {
             $params = [$actorUserId, $actorUserId];
@@ -61,11 +62,15 @@ final class AnalyticsRepository
     }
 
     /** @param int[] $visibleUserIds @param string[] $accessibleTeamPublicIds */
-    public function usersWorkload(int $actorUserId, bool $actorIsRoot, int $limit, string $now, string $weekStart, string $weekEnd, array $visibleUserIds = [], array $accessibleTeamPublicIds = []): array
+    public function usersWorkload(int $actorUserId, bool $actorIsRoot, int $limit, string $now, string $weekStart, string $weekEnd, array $visibleUserIds = [], array $accessibleTeamPublicIds = [], ?int $organizationId = null): array
     {
         $query = (new QueryBuilder($this->pdo))
             ->from('users u')
             ->where('u.is_active', '=', 1);
+        if ($organizationId !== null && $organizationId > 0) {
+            $query->join('organization_memberships om', 'om.user_id', '=', 'u.id')
+                ->where('om.organization_id', '=', $organizationId);
+        }
 
         if (!$actorIsRoot) {
             $query->whereIn('u.id', $visibleUserIds !== [] ? $visibleUserIds : [-1]);
@@ -95,14 +100,14 @@ final class AnalyticsRepository
                 "(SELECT COUNT(*) FROM tasks t
                     LEFT JOIN projects p ON p.id = t.project_id
                     WHERE t.assignee_user_id = u.id
-                      AND p.archived_at IS NULL
+                      AND p.archived_at IS NULL" . ($organizationId !== null && $organizationId > 0 ? ' AND t.organization_id = ' . (int)$organizationId . ' AND p.organization_id = ' . (int)$organizationId : '') . "
                       AND t.deleted_at IS NULL
                       AND t.archived_at IS NULL" . $workloadVisibility . "
                       AND t.status_code NOT IN (" . TaskStatusSemantics::terminalLiteralList($this->pdo) . ")) AS assigned_active_tasks",
                 "(SELECT COUNT(*) FROM tasks t
                     LEFT JOIN projects p ON p.id = t.project_id
                     WHERE t.assignee_user_id = u.id
-                      AND p.archived_at IS NULL
+                      AND p.archived_at IS NULL" . ($organizationId !== null && $organizationId > 0 ? ' AND t.organization_id = ' . (int)$organizationId . ' AND p.organization_id = ' . (int)$organizationId : '') . "
                       AND t.deleted_at IS NULL
                       AND t.archived_at IS NULL" . $workloadVisibility . "
                       AND t.status_code NOT IN (" . TaskStatusSemantics::terminalLiteralList($this->pdo) . ")
@@ -110,6 +115,7 @@ final class AnalyticsRepository
                       AND t.due_at < " . $this->pdo->quote($now) . ") AS assigned_overdue_tasks",
                 "(SELECT COALESCE(SUM(w.minutes_spent), 0) FROM work_logs w
                     WHERE w.user_id = u.id
+                      " . ($organizationId !== null && $organizationId > 0 ? ' AND w.organization_id = ' . (int)$organizationId : '') . "
                       AND w.logged_at >= " . $this->pdo->quote($weekStart) . "
                       AND w.logged_at <= " . $this->pdo->quote($weekEnd) . ") AS worklog_minutes_week",
             ])
@@ -119,11 +125,12 @@ final class AnalyticsRepository
             ->get();
     }
 
-    private function countProjects(int $actorUserId, bool $actorIsRoot, array $accessibleTeamPublicIds = []): int
+    private function countProjects(int $actorUserId, bool $actorIsRoot, array $accessibleTeamPublicIds = [], ?int $organizationId = null): int
     {
         $query = (new QueryBuilder($this->pdo))
             ->from('projects p')
             ->whereNull('p.archived_at');
+        if ($organizationId !== null && $organizationId > 0) $query->where('p.organization_id', '=', $organizationId);
 
         if (!$actorIsRoot) {
             $params = [$actorUserId, $actorUserId];
@@ -139,25 +146,25 @@ final class AnalyticsRepository
         return $query->count();
     }
 
-    private function countTasks(int $actorUserId, bool $actorIsRoot, array $accessibleTeamPublicIds = []): int
+    private function countTasks(int $actorUserId, bool $actorIsRoot, array $accessibleTeamPublicIds = [], ?int $organizationId = null): int
     {
-        return $this->buildVisibleTasksQuery($actorUserId, $actorIsRoot, $accessibleTeamPublicIds)->count();
+        return $this->buildVisibleTasksQuery($actorUserId, $actorIsRoot, $accessibleTeamPublicIds, $organizationId)->count();
     }
 
-    private function countCompletedTasks(int $actorUserId, bool $actorIsRoot, array $accessibleTeamPublicIds = []): int
+    private function countCompletedTasks(int $actorUserId, bool $actorIsRoot, array $accessibleTeamPublicIds = [], ?int $organizationId = null): int
     {
         $placeholders = implode(', ', array_fill(0, count(TaskStatusSemantics::COMPLETED_CODES), '?'));
 
-        return $this->buildVisibleTasksQuery($actorUserId, $actorIsRoot, $accessibleTeamPublicIds)
+        return $this->buildVisibleTasksQuery($actorUserId, $actorIsRoot, $accessibleTeamPublicIds, $organizationId)
             ->whereRaw('t.status_code IN (' . $placeholders . ')', TaskStatusSemantics::COMPLETED_CODES)
             ->count();
     }
 
-    private function countOverdueTasks(int $actorUserId, bool $actorIsRoot, string $now, array $accessibleTeamPublicIds = []): int
+    private function countOverdueTasks(int $actorUserId, bool $actorIsRoot, string $now, array $accessibleTeamPublicIds = [], ?int $organizationId = null): int
     {
         [$sql, $params] = TaskStatusSemantics::notTerminalSql($this->pdo, 't.status_code');
 
-        return $this->buildVisibleTasksQuery($actorUserId, $actorIsRoot, $accessibleTeamPublicIds)
+        return $this->buildVisibleTasksQuery($actorUserId, $actorIsRoot, $accessibleTeamPublicIds, $organizationId)
             ->whereRaw($sql, $params)
             ->whereNotNull('t.due_at')
             ->where('t.due_at', '<', $now)
@@ -165,12 +172,13 @@ final class AnalyticsRepository
     }
 
 
-    private function sumWorklogMinutesWeek(int $actorUserId, bool $actorIsRoot, string $weekStart, string $weekEnd): int
+    private function sumWorklogMinutesWeek(int $actorUserId, bool $actorIsRoot, string $weekStart, string $weekEnd, ?int $organizationId = null): int
     {
         $query = (new QueryBuilder($this->pdo))
             ->from('work_logs')
             ->where('logged_at', '>=', $weekStart)
             ->where('logged_at', '<=', $weekEnd);
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
 
         if (!$actorIsRoot) {
             $query->where('user_id', '=', $actorUserId);
@@ -183,7 +191,7 @@ final class AnalyticsRepository
         return (int)($row['total_minutes'] ?? 0);
     }
 
-    private function buildVisibleTasksQuery(int $actorUserId, bool $actorIsRoot, array $accessibleTeamPublicIds = []): QueryBuilder
+    private function buildVisibleTasksQuery(int $actorUserId, bool $actorIsRoot, array $accessibleTeamPublicIds = [], ?int $organizationId = null): QueryBuilder
     {
         $query = (new QueryBuilder($this->pdo))
             ->from('tasks t')
@@ -191,6 +199,9 @@ final class AnalyticsRepository
             ->whereNull('p.archived_at')
             ->whereNull('t.deleted_at')
             ->whereNull('t.archived_at');
+        if ($organizationId !== null && $organizationId > 0) {
+            $query->where('t.organization_id', '=', $organizationId)->where('p.organization_id', '=', $organizationId);
+        }
 
         if (!$actorIsRoot) {
             $params = [$actorUserId, $actorUserId, $actorUserId, $actorUserId];

@@ -202,7 +202,8 @@ final class AnalyticsService
             $now,
             $weekStart,
             $weekEnd,
-            $teamIds
+            $teamIds,
+            $this->organizationId($actor)
         );
 
         $totalTasks = (int)($data['total_tasks'] ?? 0);
@@ -222,7 +223,8 @@ final class AnalyticsService
             (bool)($actor['is_root'] ?? false),
             $limit,
             $now,
-            $this->accessibleTeamPublicIds($actor)
+            $this->accessibleTeamPublicIds($actor),
+            $this->organizationId($actor)
         );
 
         foreach ($items as &$item) {
@@ -251,7 +253,8 @@ final class AnalyticsService
             $weekStart,
             $weekEnd,
             $this->visibleUserIds($actor),
-            $this->accessibleTeamPublicIds($actor)
+            $this->accessibleTeamPublicIds($actor),
+            $this->organizationId($actor)
         );
 
         foreach ($items as &$item) {
@@ -944,6 +947,12 @@ final class AnalyticsService
         }
 
         return $this->insights;
+    }
+
+    private function organizationId(array $actor): ?int
+    {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
     }
 
     /** @return string[] */
