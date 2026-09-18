@@ -155,10 +155,13 @@ final class KnowledgeRepository
             $parentId = (int)$payload['parent_id'];
         }
         $hasParentCol = $this->columnExists('knowledge_spaces', 'parent_id');
-        if ($hasParentCol) {
-            $stmt = $this->pdo->prepare('INSERT INTO knowledge_spaces (public_id, title, slug, description, icon, color, owner_user_id, visibility, default_access_level, parent_id, sort_order, created_at, updated_at) VALUES (:public_id, :title, :slug, :description, :icon, :color, :owner_user_id, :visibility, :default_access_level, :parent_id, :sort_order, :created_at, :updated_at)');
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        $scopeColumn = $organizationId > 0 && $this->columnExists('knowledge_spaces', 'organization_id');
+        if ($hasParentCol && $scopeColumn) {
+            $stmt = $this->pdo->prepare('INSERT INTO knowledge_spaces (public_id, organization_id, title, slug, description, icon, color, owner_user_id, visibility, default_access_level, parent_id, sort_order, created_at, updated_at) VALUES (:public_id, :organization_id, :title, :slug, :description, :icon, :color, :owner_user_id, :visibility, :default_access_level, :parent_id, :sort_order, :created_at, :updated_at)');
             $params = [
                 'public_id' => $publicId,
+                'organization_id' => $organizationId,
                 'title' => $title,
                 'slug' => $slug,
                 'description' => $this->nullableText($payload['description'] ?? null),
@@ -172,10 +175,11 @@ final class KnowledgeRepository
                 'created_at' => $now,
                 'updated_at' => $now,
             ];
-        } else {
-            $stmt = $this->pdo->prepare('INSERT INTO knowledge_spaces (public_id, title, slug, description, icon, color, owner_user_id, visibility, default_access_level, sort_order, created_at, updated_at) VALUES (:public_id, :title, :slug, :description, :icon, :color, :owner_user_id, :visibility, :default_access_level, :sort_order, :created_at, :updated_at)');
+        } elseif ($scopeColumn) {
+            $stmt = $this->pdo->prepare('INSERT INTO knowledge_spaces (public_id, organization_id, title, slug, description, icon, color, owner_user_id, visibility, default_access_level, sort_order, created_at, updated_at) VALUES (:public_id, :organization_id, :title, :slug, :description, :icon, :color, :owner_user_id, :visibility, :default_access_level, :sort_order, :created_at, :updated_at)');
             $params = [
                 'public_id' => $publicId,
+                'organization_id' => $organizationId,
                 'title' => $title,
                 'slug' => $slug,
                 'description' => $this->nullableText($payload['description'] ?? null),
@@ -972,9 +976,14 @@ final class KnowledgeRepository
         $html = $this->sanitizeHtml((string)($payload['content_html'] ?? $payload['content'] ?? ''));
         $now = gmdate('Y-m-d H:i:s');
         $publicId = $this->publicId('kbp');
-        $stmt = $this->pdo->prepare('INSERT INTO knowledge_pages (public_id, space_id, parent_id, title, slug, page_type, status, content_html, content_text, content_json, excerpt, owner_user_id, last_editor_user_id, sort_order, path, depth, client_visible, created_at, updated_at) VALUES (:public_id, :space_id, :parent_id, :title, :slug, :page_type, :status, :content_html, :content_text, :content_json, :excerpt, :owner_user_id, :last_editor_user_id, :sort_order, :path, :depth, :client_visible, :created_at, :updated_at)');
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        $scopeColumn = $organizationId > 0 && $this->columnExists('knowledge_pages', 'organization_id');
+        $stmt = $this->pdo->prepare($scopeColumn
+            ? 'INSERT INTO knowledge_pages (public_id, organization_id, space_id, parent_id, title, slug, page_type, status, content_html, content_text, content_json, excerpt, owner_user_id, last_editor_user_id, sort_order, path, depth, client_visible, created_at, updated_at) VALUES (:public_id, :organization_id, :space_id, :parent_id, :title, :slug, :page_type, :status, :content_html, :content_text, :content_json, :excerpt, :owner_user_id, :last_editor_user_id, :sort_order, :path, :depth, :client_visible, :created_at, :updated_at)'
+            : 'INSERT INTO knowledge_pages (public_id, space_id, parent_id, title, slug, page_type, status, content_html, content_text, content_json, excerpt, owner_user_id, last_editor_user_id, sort_order, path, depth, client_visible, created_at, updated_at) VALUES (:public_id, :space_id, :parent_id, :title, :slug, :page_type, :status, :content_html, :content_text, :content_json, :excerpt, :owner_user_id, :last_editor_user_id, :sort_order, :path, :depth, :client_visible, :created_at, :updated_at)');
         $stmt->execute([
             'public_id' => $publicId,
+            ...($scopeColumn ? ['organization_id' => $organizationId] : []),
             'space_id' => (int)$space['id'],
             'parent_id' => $parent ? (int)$parent['id'] : null,
             'title' => $title,
@@ -1029,9 +1038,9 @@ final class KnowledgeRepository
         return is_array($page) ? $page : null;
     }
 
-    public function recordView(string $pagePublicId, ?int $userId, string $source = 'direct'): void
+    public function recordView(string $pagePublicId, ?int $userId, string $source = 'direct', ?array $actor = null): void
     {
-        $page = $this->page($pagePublicId);
+        $page = $this->page($pagePublicId, $actor);
         if (!$page) {
             return;
         }
@@ -1831,8 +1840,10 @@ final class KnowledgeRepository
         // Pages of a section that sits in the recycle bin stay hidden until it is restored.
         $stateSql = $this->spaceTrashSupported() ? $spaceAlias . '.deleted_at IS NULL' : '1=1';
 
+        $scopeParams = [];
+        $scopeSql = $this->organizationScopeSql($spaceAlias, $actor, $scopeParams);
         if ($this->actorBypassesKnowledgeAcl($actor)) {
-            return [$stateSql, []];
+            return [$scopeSql . ' AND ' . $stateSql, $scopeParams];
         }
 
         $actorId = $this->actorUserId($actor);
@@ -1921,7 +1932,7 @@ final class KnowledgeRepository
             )
         )";
 
-        return [$sql, $params];
+        return [$scopeSql . ' AND (' . $sql . ')', $scopeParams + $params];
     }
 
     private function spaceAccessSql(string $spaceAlias, ?array $actor, string $minAccess = 'view', ?bool $trashed = false): array
@@ -1936,8 +1947,10 @@ final class KnowledgeRepository
                     : $spaceAlias . '.deleted_at IS NULL');
         }
 
+        $scopeParams = [];
+        $scopeSql = $this->organizationScopeSql($spaceAlias, $actor, $scopeParams);
         if ($this->actorBypassesKnowledgeAcl($actor)) {
-            return [$stateSql, []];
+            return [$scopeSql . ' AND ' . $stateSql, $scopeParams];
         }
 
         $actorId = $this->actorUserId($actor);
@@ -1998,7 +2011,21 @@ final class KnowledgeRepository
             )
         )";
 
-        return [$sql, $params];
+        return [$scopeSql . ' AND (' . $sql . ')', $scopeParams + $params];
+    }
+
+    /** Add the active workspace boundary before ACL evaluation. */
+    private function organizationScopeSql(string $alias, ?array $actor, array &$params): string
+    {
+        if (is_array($actor) && array_key_exists('organization_id', $actor) && (int)$actor['organization_id'] <= 0) {
+            return '0=1';
+        }
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        if ($organizationId <= 0 || !$this->columnExists('knowledge_spaces', 'organization_id')) {
+            return '1=1';
+        }
+        $params['knowledge_organization_id'] = $organizationId;
+        return $alias . '.organization_id = :knowledge_organization_id';
     }
 
     private function actorBypassesKnowledgeAcl(?array $actor): bool
