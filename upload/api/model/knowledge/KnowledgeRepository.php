@@ -1849,8 +1849,9 @@ final class KnowledgeRepository
         $actorId = $this->actorUserId($actor);
         $rank = $this->accessRank($minAccess);
         $roleIds = $actorId > 0 ? $this->actorRoleIds($actorId) : [];
-        $teamIds = $actorId > 0 ? $this->actorTeamIds($actorId) : [];
-        $departmentIds = $actorId > 0 ? $this->actorDepartmentIds($actorId) : [];
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        $teamIds = $actorId > 0 ? $this->actorTeamIds($actorId, $organizationId > 0 ? $organizationId : null) : [];
+        $departmentIds = $actorId > 0 ? $this->actorDepartmentIds($actorId, $organizationId > 0 ? $organizationId : null) : [];
         $params = [
             'acl_public_rank' => $rank,
             'acl_space_perm_rank' => $rank,
@@ -1956,8 +1957,9 @@ final class KnowledgeRepository
         $actorId = $this->actorUserId($actor);
         $rank = $this->accessRank($minAccess);
         $roleIds = $actorId > 0 ? $this->actorRoleIds($actorId) : [];
-        $teamIds = $actorId > 0 ? $this->actorTeamIds($actorId) : [];
-        $departmentIds = $actorId > 0 ? $this->actorDepartmentIds($actorId) : [];
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        $teamIds = $actorId > 0 ? $this->actorTeamIds($actorId, $organizationId > 0 ? $organizationId : null) : [];
+        $departmentIds = $actorId > 0 ? $this->actorDepartmentIds($actorId, $organizationId > 0 ? $organizationId : null) : [];
         $params = [
             'acl_space_public_rank' => $rank,
             'acl_space_owner_user_id' => $actorId,
@@ -2068,36 +2070,44 @@ final class KnowledgeRepository
         return array_values(array_unique(array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [])));
     }
 
-    private function actorTeamIds(int $userId): array
+    private function actorTeamIds(int $userId, ?int $organizationId = null): array
     {
         if ($userId <= 0) {
             return [];
         }
         static $cache = [];
-        if (isset($cache[$userId])) {
-            return $cache[$userId];
+        $cacheKey = $userId . ':' . (string)($organizationId ?? 0);
+        if (isset($cache[$cacheKey])) {
+            return $cache[$cacheKey];
         }
-        $stmt = $this->pdo->prepare('SELECT id FROM teams WHERE manager_user_id = :uid1 OR created_by_user_id = :uid2 OR FIND_IN_SET(:uid3, COALESCE(member_user_ids, \'\')) > 0');
-        $stmt->execute(['uid1' => $userId, 'uid2' => $userId, 'uid3' => $userId]);
+        $sql = 'SELECT id FROM teams WHERE (manager_user_id = :uid1 OR created_by_user_id = :uid2 OR FIND_IN_SET(:uid3, COALESCE(member_user_ids, \'\')) > 0)';
+        $params = ['uid1' => $userId, 'uid2' => $userId, 'uid3' => $userId];
+        if ($organizationId !== null && $organizationId > 0) {
+            $sql .= ' AND organization_id = :organization_id';
+            $params['organization_id'] = $organizationId;
+        }
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
         $ids = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN) ?: []);
         $ids = array_values(array_unique(array_filter($ids, static fn(int $id): bool => $id > 0)));
-        $cache[$userId] = $ids;
+        $cache[$cacheKey] = $ids;
         return $ids;
     }
 
-    private function actorDepartmentIds(int $userId): array
+    private function actorDepartmentIds(int $userId, ?int $organizationId = null): array
     {
         if ($userId <= 0) {
             return [];
         }
         static $cache = [];
-        if (isset($cache[$userId])) {
-            return $cache[$userId];
+        $cacheKey = $userId . ':' . (string)($organizationId ?? 0);
+        if (isset($cache[$cacheKey])) {
+            return $cache[$cacheKey];
         }
         $stmt = $this->pdo->prepare('SELECT id FROM departments WHERE manager_user_id = :user_id');
         $stmt->execute(['user_id' => $userId]);
         $ids = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN) ?: []);
-        $cache[$userId] = $ids;
+        $cache[$cacheKey] = $ids;
         return $ids;
     }
 
@@ -2202,14 +2212,6 @@ final class KnowledgeRepository
 
     private function totals(?array $actor = null): array
     {
-        if ($this->actorBypassesKnowledgeAcl($actor)) {
-            return [
-                'spaces' => (int)$this->pdo->query('SELECT COUNT(*) FROM knowledge_spaces WHERE is_archived = 0')->fetchColumn(),
-                'pages' => (int)$this->pdo->query('SELECT COUNT(*) FROM knowledge_pages WHERE deleted_at IS NULL')->fetchColumn(),
-                'published' => (int)$this->pdo->query("SELECT COUNT(*) FROM knowledge_pages WHERE deleted_at IS NULL AND status = 'published'")->fetchColumn(),
-                'drafts' => (int)$this->pdo->query("SELECT COUNT(*) FROM knowledge_pages WHERE deleted_at IS NULL AND status = 'draft'")->fetchColumn(),
-            ];
-        }
         [$spaceAclSql, $spaceAclParams] = $this->spaceAccessSql('s', $actor, 'view');
         [$pageAclSql, $pageAclParams] = $this->pageAccessSql('p', 's', $actor, 'view');
         $spaces = $this->pdo->prepare("SELECT COUNT(*) FROM knowledge_spaces s WHERE s.is_archived = 0 AND {$spaceAclSql}");
