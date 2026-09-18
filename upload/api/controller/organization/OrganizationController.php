@@ -158,7 +158,8 @@ final class OrganizationController extends BaseController
 
         /** @var OrganizationService $service */
         $service = $this->container->get('service.organization');
-        $ok = $service->addMember((string)$params['public_id'], (string)$input['user_public_id'], $roleCode, $auth['user']);
+        $actor = array_merge($auth['user'], ['request_id' => $this->request()->requestId]);
+        $ok = $service->addMember((string)$params['public_id'], (string)$input['user_public_id'], $roleCode, $actor);
         if (!$ok) {
             $code = $service->memberError();
             return $this->error($code, $this->t('organization/messages.' . strtolower($code), $this->t('organization/messages.member_upsert_failed')), 422, ['organization' => [$code]]);
@@ -177,7 +178,8 @@ final class OrganizationController extends BaseController
         if ($v->fails()) return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $v->errors());
         /** @var OrganizationService $service */
         $service = $this->container->get('service.organization');
-        $ok = $service->updateMemberRole((string)$params['public_id'], (string)$params['user_public_id'], (string)$input['role_code'], $auth['user']);
+        $actor = array_merge($auth['user'], ['request_id' => $this->request()->requestId]);
+        $ok = $service->updateMemberRole((string)$params['public_id'], (string)$params['user_public_id'], (string)$input['role_code'], $actor);
         if (!$ok) {
             $code = $service->memberError();
             return $this->error($code, $this->t('organization/messages.' . strtolower($code), $this->t('organization/messages.member_role_update_failed')), 422, ['member' => [$code]]);
@@ -194,7 +196,8 @@ final class OrganizationController extends BaseController
 
         /** @var OrganizationService $service */
         $service = $this->container->get('service.organization');
-        $ok = $service->removeMember((string)$params['public_id'], (string)$params['user_public_id'], $auth['user']);
+        $actor = array_merge($auth['user'], ['request_id' => $this->request()->requestId]);
+        $ok = $service->removeMember((string)$params['public_id'], (string)$params['user_public_id'], $actor);
         if (!$ok) {
             $code = $service->memberError();
             return $this->error($code, $this->t('organization/messages.' . strtolower($code), $this->t('organization/messages.member_remove_failed')), 422, ['organization' => [$code]]);

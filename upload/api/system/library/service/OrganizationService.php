@@ -179,6 +179,7 @@ final class OrganizationService
             return false;
         }
 
+        $beforeRole = $this->organizations->memberRole($publicId, (int)$user['id']);
         $added = $this->organizations->addOrUpdateMember(
             $publicId,
             $userPublicId,
@@ -194,7 +195,9 @@ final class OrganizationService
                 'entity_type' => 'organization',
                 'entity_public_id' => $publicId,
                 'target_user_public_id' => $userPublicId,
-                'role_code' => $roleCode,
+                'before' => ['role_code' => $beforeRole],
+                'after' => ['role_code' => $roleCode],
+                'request_id' => $actor['request_id'] ?? null,
             ]);
         }
 
@@ -233,6 +236,7 @@ final class OrganizationService
             'entity_public_id' => $publicId,
             'target_user_public_id' => $userPublicId,
             'after' => ['role_code' => $roleCode],
+            'request_id' => $actor['request_id'] ?? null,
         ]);
         return true;
     }
@@ -275,6 +279,9 @@ final class OrganizationService
                 'entity_type' => 'organization',
                 'entity_public_id' => $publicId,
                 'target_user_public_id' => $userPublicId,
+                'before' => ['role_code' => $targetRole],
+                'after' => null,
+                'request_id' => $actor['request_id'] ?? null,
             ]);
         }
 
