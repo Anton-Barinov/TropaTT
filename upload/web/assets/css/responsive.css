@@ -807,6 +807,25 @@
   .crm-page-head, .crm-page-head > div, .crm-section-head, .crm-section-head > div { min-width: 0; max-width: 100%; }
   .crm-page-title, .breadcrumb, .breadcrumb-item, .crm-subtitle { overflow-wrap: anywhere; }
 
+  /* Organizations has a plain page shell (without a page-specific hero), so
+   * reserve a real top inset for the sticky mobile bar and keep the heading's
+   * ascenders/descenders inside the first line box. The selector is scoped to
+   * this page and is deliberately more specific than the later global UI
+   * shell rules, which otherwise overwrite the mobile padding. */
+  body[data-page="organizations"] .crm-content {
+    padding-top: max(28px, calc(env(safe-area-inset-top) + 16px));
+  }
+  body[data-page="organizations"] .crm-page-head {
+    margin-top: 2px;
+    padding-top: 4px;
+  }
+  body[data-page="organizations"] .crm-page-title {
+    max-width: 100%;
+    line-height: 1.18;
+    overflow: visible;
+    overflow-wrap: anywhere;
+  }
+
   /* A table is still available on larger screens. On phones its row is a
    * record with a stable label column so important fields and actions remain
    * visible without a hidden horizontal gesture. */
