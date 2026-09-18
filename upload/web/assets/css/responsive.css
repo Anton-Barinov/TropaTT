@@ -474,6 +474,45 @@
    narrow screens so a crm-col-4/6 widget cannot create implicit columns and
    collapse into a 70px strip. */
 @media (max-width: 767px) {
+  /* Task hierarchy: nested grid items must retain the card width. The old
+     two-column tree layout let the title column shrink to 0px, so child task
+     names were rendered one character per line on narrow screens. */
+  .crm-tasks-page .crm-task-tree-content {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    padding-left: calc(var(--task-level, 0) * 12px);
+  }
+
+  .crm-tasks-page .crm-task-tree-body,
+  .crm-tasks-page .crm-task-tree-main,
+  .crm-tasks-page .crm-task-tree-title-wrap {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .crm-tasks-page .crm-task-tree-title,
+  .crm-tasks-page .crm-task-card-title {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .crm-tasks-page .crm-task-tree-item.is-child > .crm-task-tree-content {
+    margin-left: 0.65rem;
+    width: calc(100% - 0.65rem);
+  }
+
+  .crm-tasks-page .crm-task-tree-children {
+    margin-left: 0.65rem;
+    padding-left: 0.65rem;
+  }
+
   .crm-dashboard-page .crm-dashboard-grid {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--space-4);
@@ -733,6 +772,210 @@
     background: var(--crm-primary);
     color: var(--crm-on-accent);
   }
+}
+
+/* Mobile component repairs for the remaining administrative and work-list
+ * pages. Keep the desktop table markup intact, but turn each record into a
+ * labelled card at the point where a desktop table becomes unreadable. */
+@media (max-width: 767.98px) {
+  html, body { max-width: 100%; overflow-x: clip; }
+  .crm-app, .crm-main-wrap, .crm-content { min-width: 0; max-width: 100%; }
+  .crm-content { padding-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right)); }
+  .crm-page-head, .crm-page-head > div, .crm-section-head, .crm-section-head > div { min-width: 0; max-width: 100%; }
+  .crm-page-title, .breadcrumb, .breadcrumb-item, .crm-subtitle { overflow-wrap: anywhere; }
+
+  /* A table is still available on larger screens. On phones its row is a
+   * record with a stable label column so important fields and actions remain
+   * visible without a hidden horizontal gesture. */
+  body[data-page="mentions"] .table-responsive,
+  body[data-page="admin-statuses"] .table-responsive,
+  body[data-page="admin-jobs"] .table-responsive,
+  body[data-page="admin-logs"] .table-responsive,
+  body[data-page="admin-updates"] .table-responsive,
+  body[data-page="admin-webhooks"] .table-responsive,
+  body[data-page="admin-api-clients"] .table-responsive,
+  body[data-page="time-analytics"] .table-responsive {
+    overflow: visible;
+    max-width: 100%;
+  }
+
+  body[data-page="mentions"] .crm-table,
+  body[data-page="admin-statuses"] .crm-table,
+  body[data-page="admin-jobs"] .crm-table,
+  body[data-page="admin-logs"] .crm-table,
+  body[data-page="admin-updates"] .crm-table,
+  body[data-page="admin-webhooks"] .crm-table,
+  body[data-page="admin-api-clients"] .crm-table,
+  body[data-page="time-analytics"] .crm-table {
+    display: block;
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: auto;
+  }
+  body[data-page="admin-modules"] .crm-admin-modules-table-card .table-responsive,
+  body[data-page="admin-tags"] .table-responsive,
+  body[data-page="admin"] .crm-has-hscroll { overflow: visible; max-width: 100%; }
+  body[data-page="admin-modules"] .crm-admin-modules-table-card .crm-table,
+  body[data-page="admin-tags"] .crm-table,
+  body[data-page="admin"] .crm-has-hscroll .crm-table {
+    display: block; width: 100% !important; min-width: 0 !important;
+  }
+  body[data-page="admin-modules"] .crm-admin-modules-table-card .crm-table thead,
+  body[data-page="admin-tags"] .crm-table thead,
+  body[data-page="admin"] .crm-has-hscroll .crm-table thead { display: none; }
+  body[data-page="admin-modules"] .crm-admin-modules-table-card .crm-table tbody,
+  body[data-page="admin-tags"] .crm-table tbody,
+  body[data-page="admin"] .crm-has-hscroll .crm-table tbody { display: grid; gap: .75rem; }
+  body[data-page="admin-modules"] .crm-admin-modules-table-card .crm-table tbody tr,
+  body[data-page="admin-tags"] .crm-table tbody tr,
+  body[data-page="admin"] .crm-has-hscroll .crm-table tbody tr {
+    display: grid; gap: .55rem; padding: .85rem; border: 1px solid var(--crm-border);
+    border-radius: var(--radius-md); background: var(--crm-surface);
+  }
+  body[data-page="admin-modules"] .crm-admin-modules-table-card .crm-table tbody td,
+  body[data-page="admin-tags"] .crm-table tbody td,
+  body[data-page="admin"] .crm-has-hscroll .crm-table tbody td {
+    display: grid; grid-template-columns: minmax(5.5rem, 38%) minmax(0, 1fr); gap: .55rem;
+    width: auto !important; min-width: 0 !important; padding: 0 !important; border: 0 !important;
+    overflow-wrap: anywhere; white-space: normal; text-align: start !important;
+  }
+  body[data-page="admin-modules"] .crm-admin-modules-table-card .crm-table tbody td::before,
+  body[data-page="admin-tags"] .crm-table tbody td::before,
+  body[data-page="admin"] .crm-has-hscroll .crm-table tbody td::before {
+    content: attr(data-label); color: var(--crm-text-muted); font-size: var(--text-xs); font-weight: 700;
+  }
+  body[data-page="admin-modules"] .crm-admin-modules-table-card .crm-table tbody td[colspan],
+  body[data-page="admin-tags"] .crm-table tbody td[colspan],
+  body[data-page="admin"] .crm-has-hscroll .crm-table tbody td[colspan] { display: block; }
+  body[data-page="admin-modules"] .crm-admin-modules-table-card .crm-table tbody td[colspan]::before,
+  body[data-page="admin-tags"] .crm-table tbody td[colspan]::before,
+  body[data-page="admin"] .crm-has-hscroll .crm-table tbody td[colspan]::before { display: none; }
+  body[data-page="mentions"] .crm-table thead,
+  body[data-page="admin-statuses"] .crm-table thead,
+  body[data-page="admin-jobs"] .crm-table thead,
+  body[data-page="admin-logs"] .crm-table thead,
+  body[data-page="admin-updates"] .crm-table thead,
+  body[data-page="admin-webhooks"] .crm-table thead,
+  body[data-page="admin-api-clients"] .crm-table thead,
+  body[data-page="time-analytics"] .crm-table thead { display: none; }
+  body[data-page="mentions"] .crm-table tbody,
+  body[data-page="admin-statuses"] .crm-table tbody,
+  body[data-page="admin-jobs"] .crm-table tbody,
+  body[data-page="admin-logs"] .crm-table tbody,
+  body[data-page="admin-updates"] .crm-table tbody,
+  body[data-page="admin-webhooks"] .crm-table tbody,
+  body[data-page="admin-api-clients"] .crm-table tbody,
+  body[data-page="time-analytics"] .crm-table tbody { display: grid; gap: .75rem; }
+  body[data-page="mentions"] .crm-table tbody tr,
+  body[data-page="admin-statuses"] .crm-table tbody tr,
+  body[data-page="admin-jobs"] .crm-table tbody tr,
+  body[data-page="admin-logs"] .crm-table tbody tr,
+  body[data-page="admin-updates"] .crm-table tbody tr,
+  body[data-page="admin-webhooks"] .crm-table tbody tr,
+  body[data-page="admin-api-clients"] .crm-table tbody tr,
+  body[data-page="time-analytics"] .crm-table tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: .55rem;
+    padding: .85rem;
+    border: 1px solid var(--crm-border);
+    border-radius: var(--radius-md);
+    background: var(--crm-surface);
+  }
+  body[data-page="mentions"] .crm-table tbody td,
+  body[data-page="admin-statuses"] .crm-table tbody td,
+  body[data-page="admin-jobs"] .crm-table tbody td,
+  body[data-page="admin-logs"] .crm-table tbody td,
+  body[data-page="admin-updates"] .crm-table tbody td,
+  body[data-page="admin-webhooks"] .crm-table tbody td,
+  body[data-page="admin-api-clients"] .crm-table tbody td,
+  body[data-page="time-analytics"] .crm-table tbody td {
+    display: grid;
+    grid-template-columns: minmax(5.5rem, 38%) minmax(0, 1fr);
+    gap: .55rem;
+    width: auto !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    white-space: normal;
+    text-align: start !important;
+  }
+  body[data-page="mentions"] .crm-table tbody td::before,
+  body[data-page="admin-statuses"] .crm-table tbody td::before,
+  body[data-page="admin-jobs"] .crm-table tbody td::before,
+  body[data-page="admin-logs"] .crm-table tbody td::before,
+  body[data-page="admin-updates"] .crm-table tbody td::before,
+  body[data-page="admin-webhooks"] .crm-table tbody td::before,
+  body[data-page="admin-api-clients"] .crm-table tbody td::before,
+  body[data-page="time-analytics"] .crm-table tbody td::before {
+    content: attr(data-label);
+    color: var(--crm-text-muted);
+    font-size: var(--text-xs);
+    font-weight: 700;
+  }
+  body[data-page="mentions"] .crm-table tbody td[colspan],
+  body[data-page="admin-statuses"] .crm-table tbody td[colspan],
+  body[data-page="admin-jobs"] .crm-table tbody td[colspan],
+  body[data-page="admin-logs"] .crm-table tbody td[colspan],
+  body[data-page="admin-updates"] .crm-table tbody td[colspan],
+  body[data-page="admin-webhooks"] .crm-table tbody td[colspan],
+  body[data-page="admin-api-clients"] .crm-table tbody td[colspan],
+  body[data-page="time-analytics"] .crm-table tbody td[colspan] { display: block; }
+  body[data-page="mentions"] .crm-table tbody td[colspan]::before,
+  body[data-page="admin-statuses"] .crm-table tbody td[colspan]::before,
+  body[data-page="admin-jobs"] .crm-table tbody td[colspan]::before,
+  body[data-page="admin-logs"] .crm-table tbody td[colspan]::before,
+  body[data-page="admin-updates"] .crm-table tbody td[colspan]::before,
+  body[data-page="admin-webhooks"] .crm-table tbody td[colspan]::before,
+  body[data-page="admin-api-clients"] .crm-table tbody td[colspan]::before,
+  body[data-page="time-analytics"] .crm-table tbody td[colspan]::before { display: none; }
+
+  /* Admin AI has long metadata labels and five tabs. Allow the content to
+   * flow naturally while keeping the tab strip scrollable inside its card. */
+  body[data-page="admin-ai"] .crm-admin-ai-hero,
+  body[data-page="admin-ai"] .crm-admin-ai-hero-meta,
+  body[data-page="admin-ai"] .crm-admin-ai-hero-actions { min-width: 0; }
+  body[data-page="admin-ai"] .crm-admin-ai-hero-meta { grid-template-columns: 1fr !important; }
+  body[data-page="admin-ai"] .crm-admin-ai-hero-meta > div,
+  body[data-page="admin-ai"] .crm-admin-ai-hero-meta strong { min-width: 0; overflow-wrap: anywhere; }
+  body[data-page="admin-ai"] .crm-admin-ai-tabs { overflow: hidden; }
+  body[data-page="admin-ai"] .crm-admin-ai-tabs .nav-pills { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; padding-bottom: .35rem; scrollbar-width: thin; }
+  body[data-page="admin-ai"] .crm-admin-ai-tabs .nav-link { flex: 0 0 auto; min-height: 44px; }
+
+  /* Modal forms reserve space for the action bar, including helper/error text
+   * under the last input. */
+  .modal-dialog-scrollable .modal-body,
+  .modal-content > form .modal-body { padding-bottom: calc(1rem + env(safe-area-inset-bottom) + 4rem); scroll-padding-bottom: 5rem; }
+  .modal-dialog .modal-footer { flex-wrap: wrap; gap: .5rem; }
+  .modal-dialog .modal-footer .btn { min-height: 44px; }
+
+  /* The API live status belongs below the sticky navigation on phones. Keep
+   * it readable without covering search, notifications or the menu button. */
+  #crmApiStatusBar {
+    top: 64px !important;
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    max-width: none !important;
+    transform: none !important;
+    text-align: center;
+    white-space: normal;
+    border-radius: var(--radius-md, 10px) !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .crm-content { padding-inline: 10px; }
+  body[data-page="mentions"] .crm-table tbody td,
+  body[data-page="admin-statuses"] .crm-table tbody td,
+  body[data-page="admin-jobs"] .crm-table tbody td,
+  body[data-page="admin-logs"] .crm-table tbody td,
+  body[data-page="admin-updates"] .crm-table tbody td,
+  body[data-page="admin-webhooks"] .crm-table tbody td,
+  body[data-page="admin-api-clients"] .crm-table tbody td,
+  body[data-page="time-analytics"] .crm-table tbody td { grid-template-columns: minmax(4.75rem, 42%) minmax(0, 1fr); }
 }
 
 @media (max-width: 575.98px) {
