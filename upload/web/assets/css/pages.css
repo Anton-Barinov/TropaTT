@@ -4,6 +4,46 @@
   gap: var(--space-4);
 }
 
+/* Workspaces: keep the desktop table calm and scannable.  The action cell is
+   deliberately a flex row with its own gap instead of relying on adjacent
+   inline buttons, which made the controls look like one merged control. */
+@media (min-width: 576px) {
+  body[data-page="organizations"] .crm-page-head > .d-flex {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: .75rem !important;
+  }
+
+  body[data-page="organizations"] .crm-org-actions-inner {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    gap: .5rem;
+  }
+
+  body[data-page="organizations"] .crm-org-actions-inner .btn {
+    margin: 0;
+  }
+}
+
+body[data-page="organizations"] .crm-section-head {
+  gap: var(--space-4);
+}
+
+body[data-page="organizations"] .crm-filter-control {
+  min-width: min(100%, 12rem);
+}
+
+body[data-page="organizations"] .crm-table tbody tr {
+  transition: background-color .15s ease;
+}
+
+body[data-page="organizations"] .crm-table tbody tr:hover {
+  background: color-mix(in srgb, var(--crm-primary-soft) 32%, transparent);
+}
+
 /* Mobile layouts for the remaining information-heavy pages.  Keep table
    semantics on desktop and present each record as a readable card on touch
    screens so actions and long text never force page-wide horizontal scroll. */
