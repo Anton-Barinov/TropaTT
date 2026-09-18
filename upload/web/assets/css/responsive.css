@@ -470,6 +470,116 @@
   }
 }
 
+/* Dashboard widgets use twelve-column desktop spans. Reset those spans on
+   narrow screens so a crm-col-4/6 widget cannot create implicit columns and
+   collapse into a 70px strip. */
+@media (max-width: 767px) {
+  .crm-dashboard-page .crm-dashboard-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .crm-dashboard-page .crm-dashboard-grid > [data-dashboard-widget] {
+    grid-column: 1 / -1 !important;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .crm-dashboard-page .crm-dashboard-widget,
+  .crm-dashboard-page .crm-dashboard-section {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .crm-dashboard-page .crm-dashboard-widget h2,
+  .crm-dashboard-page .crm-dashboard-widget h3,
+  .crm-dashboard-page .crm-dashboard-section h2,
+  .crm-dashboard-page .crm-dashboard-section h3 {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .crm-dashboard-page .crm-dashboard-widget .table-responsive,
+  .crm-dashboard-page .crm-dashboard-widget [class*="table-wrap"] {
+    max-width: 100%;
+  }
+
+  .crm-dashboard-edit-mode .crm-widget-builder-controls {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    gap: 0.35rem;
+    opacity: 1;
+  }
+
+  .crm-dashboard-edit-mode .crm-widget-builder-drag,
+  .crm-dashboard-edit-mode .crm-widget-builder-remove {
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .crm-dashboard-builder-bar {
+    position: sticky;
+    top: 0.5rem;
+    z-index: 20;
+    align-items: stretch;
+  }
+
+  .crm-dashboard-builder-bar > .crm-dashboard-builder-hint {
+    flex: 1 1 100%;
+  }
+
+  .crm-dashboard-builder-bar > div {
+    width: 100%;
+    margin-left: 0 !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .crm-dashboard-builder-bar .btn {
+    min-height: 44px;
+    white-space: normal;
+  }
+
+  .crm-dashboard-catalog-tools {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: grid;
+    gap: 0.5rem;
+    padding-bottom: 0.75rem;
+    background: var(--crm-surface);
+  }
+
+  .crm-dashboard-catalog-list {
+    padding-bottom: 2rem;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  .crm-dashboard-page .crm-dashboard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .crm-dashboard-page .crm-dashboard-grid > .crm-col-12,
+  .crm-dashboard-page .crm-dashboard-grid > .crm-col-8,
+  .crm-dashboard-page .crm-dashboard-grid > .crm-col-6 {
+    grid-column: 1 / -1 !important;
+  }
+
+  .crm-dashboard-page .crm-dashboard-grid > .crm-col-4 {
+    grid-column: span 1 !important;
+  }
+}
+
 @media (max-width: 575px) {
   .crm-dashboard-page .crm-dashboard-kpi strong {
     font-size: clamp(1.5rem, 8vw, 2rem);
