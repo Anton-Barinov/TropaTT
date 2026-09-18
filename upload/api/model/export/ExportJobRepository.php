@@ -14,14 +14,14 @@ final class ExportJobRepository
     {
     }
 
-    public function list(array $filters, ?int $actorUserId = null, bool $actorIsRoot = false): array
+    public function list(array $filters, ?int $actorUserId = null, bool $actorIsRoot = false, ?int $organizationId = null): array
     {
         $page = max(1, (int)($filters['page'] ?? 1));
         $limit = min(100, max(1, (int)($filters['limit'] ?? 20)));
         $offset = ($page - 1) * $limit;
 
-        $total = $this->buildListQuery($filters, $actorUserId, $actorIsRoot)->count();
-        $items = $this->buildListQuery($filters, $actorUserId, $actorIsRoot)
+        $total = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $organizationId)->count();
+        $items = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $organizationId)
             ->select([
                 'ej.public_id',
                 'ej.type',
@@ -50,7 +50,7 @@ final class ExportJobRepository
         return [$items, $total, $page, $limit];
     }
 
-    private function buildListQuery(array $filters, ?int $actorUserId, bool $actorIsRoot): QueryBuilder
+    private function buildListQuery(array $filters, ?int $actorUserId, bool $actorIsRoot, ?int $organizationId = null): QueryBuilder
     {
         $query = (new QueryBuilder($this->pdo))
             ->from('export_jobs ej')
@@ -58,6 +58,9 @@ final class ExportJobRepository
 
         if (!$actorIsRoot && $actorUserId !== null && $actorUserId > 0) {
             $query->where('ej.user_id', '=', $actorUserId);
+        }
+        if ($organizationId !== null && $organizationId > 0) {
+            $query->where('ej.organization_id', '=', $organizationId);
         }
 
         if (!empty($filters['type'])) {
@@ -76,13 +79,14 @@ final class ExportJobRepository
         return $query;
     }
 
-    public function findByPublicId(string $publicId): ?array
+    public function findByPublicId(string $publicId, ?int $organizationId = null): ?array
     {
-        $row = (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('export_jobs ej')
             ->leftJoin('users u', 'u.id', '=', 'ej.user_id')
             ->select([
                 'ej.id',
+                'ej.organization_id',
                 'ej.user_id',
                 'ej.public_id',
                 'ej.type',
@@ -102,8 +106,11 @@ final class ExportJobRepository
                 'u.login AS user_login',
                 'u.full_name AS user_full_name',
             ])
-            ->where('ej.public_id', '=', $publicId)
-            ->first();
+            ->where('ej.public_id', '=', $publicId);
+        if ($organizationId !== null && $organizationId > 0) {
+            $query->where('ej.organization_id', '=', $organizationId);
+        }
+        $row = $query->first();
 
         return $row ?: null;
     }
@@ -115,16 +122,19 @@ final class ExportJobRepository
             ->insert($payload);
     }
 
-    public function updateByPublicId(string $publicId, array $set): bool
+    public function updateByPublicId(string $publicId, array $set, ?int $organizationId = null): bool
     {
         if ($set === []) {
             return false;
         }
 
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('export_jobs')
-            ->where('public_id', '=', $publicId)
-            ->update($set) > 0;
+            ->where('public_id', '=', $publicId);
+        if ($organizationId !== null && $organizationId > 0) {
+            $query->where('organization_id', '=', $organizationId);
+        }
+        return $query->update($set) > 0;
     }
 
     public function claimNextRunnable(string $now): ?array
@@ -132,7 +142,7 @@ final class ExportJobRepository
         $this->pdo->beginTransaction();
         try {
             $stmt = $this->pdo->prepare(
-                "SELECT id, public_id FROM export_jobs
+                "SELECT id, public_id, organization_id FROM export_jobs
                  WHERE dead_letter = 0
                    AND status IN ('queued','retry')
                    AND (next_run_at IS NULL OR next_run_at <= :now)
@@ -162,7 +172,10 @@ final class ExportJobRepository
             }
 
             $this->pdo->commit();
-            return $this->findByPublicId((string)$row['public_id']);
+            $organizationId = isset($row['organization_id']) && (int)$row['organization_id'] > 0
+                ? (int)$row['organization_id']
+                : null;
+            return $this->findByPublicId((string)$row['public_id'], $organizationId);
         } catch (\Throwable $e) {
             AppLog::error('[ExportJobRepository::claimNextRunnable] ' . $e->getMessage());
             if ($this->pdo->inTransaction()) {

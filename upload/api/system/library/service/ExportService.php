@@ -32,7 +32,8 @@ final class ExportService
         [$items, $total, $page, $limit] = $this->exports->list(
             $filters,
             (int)($actor['id'] ?? 0),
-            (bool)($actor['is_root'] ?? false)
+            (bool)($actor['is_root'] ?? false),
+            $this->organizationId($actor)
         );
 
         return [
@@ -50,6 +51,9 @@ final class ExportService
 
     public function create(array $input, array $actor): array
     {
+        if (!$this->inputOrganizationMatches($input, $actor)) {
+            return ['error' => 'ORGANIZATION_CONTEXT_NOT_FOUND'];
+        }
         $publicId = Ulid::generate('exp');
         $now = gmdate('Y-m-d H:i:s');
         $type = (string)$input['type'];
@@ -63,6 +67,7 @@ final class ExportService
         ];
         $this->exports->create([
             'public_id' => $publicId,
+            'organization_id' => $this->organizationId($actor),
             'user_id' => (int)($actor['id'] ?? 0),
             'type' => $type,
             'status' => 'queued',
@@ -118,7 +123,7 @@ final class ExportService
                 'finished_at' => gmdate('Y-m-d H:i:s'),
                 'last_error' => null,
                 'updated_at' => gmdate('Y-m-d H:i:s'),
-            ]);
+            ], $this->organizationId($actor));
 
             $this->logger->audit([
                 'action' => 'export_job_create',
@@ -146,7 +151,7 @@ final class ExportService
                 'locked_at' => null,
                 'last_error' => 'Export job failed.',
                 'updated_at' => gmdate('Y-m-d H:i:s'),
-            ]);
+            ], $this->organizationId($actor));
 
             $this->logger->error([
                 'action' => 'export_job_failed',
@@ -188,7 +193,10 @@ final class ExportService
                     throw new RuntimeException('EXPORT_JOB_PAYLOAD_INVALID');
                 }
 
-                $rows = $this->collectRows($type, (array)($sourceInput['filters'] ?? []), ['id' => (int)($job['user_id'] ?? 0)]);
+                $rows = $this->collectRows($type, (array)($sourceInput['filters'] ?? []), [
+                    'id' => (int)($job['user_id'] ?? 0),
+                    'organization_id' => $this->organizationId($job),
+                ]);
                 $csv = $this->buildCsv($rows);
                 $directory = rtrim($this->storageBase, '/') . '/generated/exports';
                 if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
@@ -220,7 +228,7 @@ final class ExportService
                     'finished_at' => gmdate('Y-m-d H:i:s'),
                     'last_error' => null,
                     'updated_at' => gmdate('Y-m-d H:i:s'),
-                ]);
+                ], $this->organizationId($job));
                 $completed++;
             } catch (Throwable $e) {
                 $attempts = (int)($job['attempts'] ?? 0) + 1;
@@ -235,7 +243,7 @@ final class ExportService
                     'last_error' => 'Export job failed.',
                     'finished_at' => $isDead ? gmdate('Y-m-d H:i:s') : null,
                     'updated_at' => gmdate('Y-m-d H:i:s'),
-                ]);
+                ], $this->organizationId($job));
                 if ($isDead) {
                     $deadLettered++;
                 } else {
@@ -258,7 +266,7 @@ final class ExportService
 
     public function cancel(string $publicId, array $actor): array
     {
-        $job = $this->exports->findByPublicId($publicId);
+        $job = $this->exports->findByPublicId($publicId, $this->organizationId($actor));
         if (!$job || !$this->canAccess($job, $actor)) {
             return ['ok' => false, 'code' => 'EXPORT_JOB_NOT_FOUND'];
         }
@@ -271,15 +279,15 @@ final class ExportService
         $this->exports->updateByPublicId($publicId, [
             'status' => 'cancelled',
             'updated_at' => gmdate('Y-m-d H:i:s'),
-        ]);
+        ], $this->organizationId($job));
 
-        $updated = $this->exports->findByPublicId($publicId);
+        $updated = $this->exports->findByPublicId($publicId, $this->organizationId($job));
         return ['ok' => true, 'job' => $updated ? $this->normalizeJob($updated) : ['public_id' => $publicId]];
     }
 
     public function retry(string $publicId, array $actor): array
     {
-        $job = $this->exports->findByPublicId($publicId);
+        $job = $this->exports->findByPublicId($publicId, $this->organizationId($actor));
         if (!$job || !$this->canAccess($job, $actor)) {
             return ['ok' => false, 'code' => 'EXPORT_JOB_NOT_FOUND'];
         }
@@ -301,7 +309,7 @@ final class ExportService
 
     public function get(string $publicId, array $actor): ?array
     {
-        $job = $this->exports->findByPublicId($publicId);
+        $job = $this->exports->findByPublicId($publicId, $this->organizationId($actor));
         if (!$job || !$this->canAccess($job, $actor)) {
             return null;
         }
@@ -311,7 +319,7 @@ final class ExportService
 
     public function download(string $publicId, array $actor): array
     {
-        $job = $this->exports->findByPublicId($publicId);
+        $job = $this->exports->findByPublicId($publicId, $this->organizationId($actor));
         if (!$job || !$this->canAccess($job, $actor)) {
             return ['error' => 'EXPORT_JOB_NOT_FOUND'];
         }
@@ -478,11 +486,36 @@ final class ExportService
 
     private function canAccess(array $job, array $actor): bool
     {
+        $actorOrganizationId = $this->organizationId($actor);
+        $jobOrganizationId = $this->organizationId($job);
+        if ($actorOrganizationId !== null && $jobOrganizationId !== null && $actorOrganizationId !== $jobOrganizationId) {
+            return false;
+        }
         if ((bool)($actor['is_root'] ?? false)) {
             return true;
         }
 
         return (int)($job['user_id'] ?? 0) === (int)($actor['id'] ?? 0);
+    }
+
+    private function organizationId(array $value): ?int
+    {
+        $id = (int)($value['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
+    }
+
+    private function inputOrganizationMatches(array $input, array $actor): bool
+    {
+        $actorId = $this->organizationId($actor);
+        if ($actorId === null) {
+            return true;
+        }
+        if (array_key_exists('organization_id', $input) && $input['organization_id'] !== null && $input['organization_id'] !== '') {
+            return (int)$input['organization_id'] === $actorId;
+        }
+        $requestedPublicId = trim((string)($input['organization_public_id'] ?? ''));
+        $actorPublicId = trim((string)($actor['organization_public_id'] ?? ''));
+        return $requestedPublicId === '' || $actorPublicId === '' || hash_equals($actorPublicId, $requestedPublicId);
     }
 
     /** @param array<string,mixed> $job */

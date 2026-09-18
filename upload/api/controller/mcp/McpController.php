@@ -1842,6 +1842,8 @@ MD;
             'has_header' => ['type' => 'boolean'],
             'columns' => ['type' => 'array', 'items' => ['type' => 'string']],
             'async' => ['type' => 'boolean'],
+            'organization_id' => ['type' => 'integer', 'description' => 'Optional internal workspace id; must match the active workspace.'],
+            'organization_public_id' => ['type' => 'string', 'description' => 'Optional workspace public id; must match the active workspace.'],
         ], ['type']);
         $tools[] = $this->tool('crm_cancel_import_job', 'Cancel an import job.', [
             'public_id' => ['type' => 'string'],
@@ -1863,6 +1865,8 @@ MD;
             'type' => ['type' => 'string'],
             'filters' => ['type' => 'object', 'additionalProperties' => true],
             'async' => ['type' => 'boolean'],
+            'organization_id' => ['type' => 'integer', 'description' => 'Optional internal workspace id; must match the active workspace.'],
+            'organization_public_id' => ['type' => 'string', 'description' => 'Optional workspace public id; must match the active workspace.'],
         ], ['type']);
         $tools[] = $this->tool('crm_cancel_export_job', 'Cancel an export job.', [
             'public_id' => ['type' => 'string'],
@@ -3370,6 +3374,8 @@ $tools[] = $this->tool(
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
                 'assignee_user_id' => ['type' => 'string', 'description' => 'Assignee user id.'],
                 'async' => ['type' => 'boolean', 'description' => 'Boolean flag.'],
+                'organization_id' => ['type' => 'integer', 'description' => 'Optional internal workspace id; must match the active workspace.'],
+                'organization_public_id' => ['type' => 'string', 'description' => 'Optional workspace public id; must match the active workspace.'],
                 'client_public_id' => ['type' => 'string', 'description' => 'Client public_id.'],
                 'columns' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'List of values.'],
                 'config' => ['type' => 'object', 'additionalProperties' => true, 'description' => 'Structured object.'],
@@ -6463,7 +6469,7 @@ $tools[] = $this->tool(
     {
         /** @var ImportService $service */
         $service = $this->container->get('service.import');
-        return $this->publicData($service->list($this->jobFilters($arguments), $this->actor()));
+        return $this->publicData($service->list($this->jobFilters($arguments), $this->organizationScopedActor($this->actor())));
     }
 
     private function crmGetImportJob(array $arguments): array
@@ -6475,7 +6481,7 @@ $tools[] = $this->tool(
 
         /** @var ImportService $service */
         $service = $this->container->get('service.import');
-        $job = $service->get($publicId, $this->actor());
+        $job = $service->get($publicId, $this->organizationScopedActor($this->actor()));
         return $job ? $this->publicData($job) : ['error' => 'Import job not found.'];
     }
 
@@ -6483,7 +6489,7 @@ $tools[] = $this->tool(
     {
         /** @var ImportService $service */
         $service = $this->container->get('service.import');
-        $result = $service->create($this->pick($arguments, ['type', 'rows', 'content_base64', 'delimiter', 'has_header', 'columns', 'async']), $this->actor());
+        $result = $service->create($this->pick($arguments, ['type', 'rows', 'content_base64', 'delimiter', 'has_header', 'columns', 'async', 'organization_id', 'organization_public_id']), $this->organizationScopedActor($this->actor()));
         return is_array($result) ? $this->publicData($result) : ['error' => (string)$result];
     }
 
@@ -6495,7 +6501,7 @@ $tools[] = $this->tool(
         }
         /** @var ImportService $service */
         $service = $this->container->get('service.import');
-        $result = $service->cancel($publicId, $this->actor());
+        $result = $service->cancel($publicId, $this->organizationScopedActor($this->actor()));
         return is_array($result) ? $this->publicData($result) : ['error' => (string)$result];
     }
 
@@ -6507,7 +6513,7 @@ $tools[] = $this->tool(
         }
         /** @var ImportService $service */
         $service = $this->container->get('service.import');
-        $result = $service->retry($publicId, $this->actor());
+        $result = $service->retry($publicId, $this->organizationScopedActor($this->actor()));
         return is_array($result) ? $this->publicData($result) : ['error' => (string)$result];
     }
 
@@ -6515,7 +6521,7 @@ $tools[] = $this->tool(
     {
         /** @var ExportService $service */
         $service = $this->container->get('service.export');
-        return $this->publicData($service->list($this->jobFilters($arguments), $this->actor()));
+        return $this->publicData($service->list($this->jobFilters($arguments), $this->organizationScopedActor($this->actor())));
     }
 
     private function crmGetExportJob(array $arguments): array
@@ -6526,7 +6532,7 @@ $tools[] = $this->tool(
         }
         /** @var ExportService $service */
         $service = $this->container->get('service.export');
-        $job = $service->get($publicId, $this->actor());
+        $job = $service->get($publicId, $this->organizationScopedActor($this->actor()));
         return $job ? $this->publicData($job) : ['error' => 'Export job not found.'];
     }
 
@@ -6534,7 +6540,7 @@ $tools[] = $this->tool(
     {
         /** @var ExportService $service */
         $service = $this->container->get('service.export');
-        $result = $service->create($this->pick($arguments, ['type', 'filters', 'async']), $this->actor());
+        $result = $service->create($this->pick($arguments, ['type', 'filters', 'async', 'organization_id', 'organization_public_id']), $this->organizationScopedActor($this->actor()));
         return is_array($result) ? $this->publicData($result) : ['error' => (string)$result];
     }
 
@@ -6546,7 +6552,7 @@ $tools[] = $this->tool(
         }
         /** @var ExportService $service */
         $service = $this->container->get('service.export');
-        $result = $service->cancel($publicId, $this->actor());
+        $result = $service->cancel($publicId, $this->organizationScopedActor($this->actor()));
         return is_array($result) ? $this->publicData($result) : ['error' => (string)$result];
     }
 
@@ -6558,7 +6564,7 @@ $tools[] = $this->tool(
         }
         /** @var ExportService $service */
         $service = $this->container->get('service.export');
-        $result = $service->retry($publicId, $this->actor());
+        $result = $service->retry($publicId, $this->organizationScopedActor($this->actor()));
         return is_array($result) ? $this->publicData($result) : ['error' => (string)$result];
     }
 
@@ -6570,7 +6576,7 @@ $tools[] = $this->tool(
         }
         /** @var ExportService $service */
         $service = $this->container->get('service.export');
-        $download = $service->download($publicId, $this->actor());
+        $download = $service->download($publicId, $this->organizationScopedActor($this->actor()));
         if (!is_array($download) || isset($download['error'])) {
             return ['error' => (string)($download['error'] ?? 'Export file not found.')];
         }
