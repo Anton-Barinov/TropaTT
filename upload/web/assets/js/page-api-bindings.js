@@ -11598,7 +11598,6 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           + '</article>';
       }).join('');
     }
-
     function renderCounterpartiesList() {
       var nowMobile = window.matchMedia && window.matchMedia('(max-width: 767.98px)').matches;
       if (nowMobile) {
@@ -11609,23 +11608,24 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         if (mobileList) mobileList.innerHTML = '';
       }
     }
-    renderCounterpartiesList();
 
-    if (!renderCounterpartiesPage._resizeBound) {
-      renderCounterpartiesPage._resizeBound = true;
+    if (!window._cpResizeBound) {
+      window._cpResizeBound = true;
       var _cpResizeTimer = null;
+      var _cpWasMobile = isMobileBreakpoint;
       window.addEventListener('resize', function () {
         if (_cpResizeTimer) clearTimeout(_cpResizeTimer);
         _cpResizeTimer = setTimeout(function () {
-          var wasMobile = isMobileBreakpoint;
           var nowMobile = window.matchMedia && window.matchMedia('(max-width: 767.98px)').matches;
-          if (wasMobile !== nowMobile) {
+          if (_cpWasMobile !== nowMobile) {
+            _cpWasMobile = nowMobile;
             isMobileBreakpoint = nowMobile;
             renderCounterpartiesList();
           }
         }, 150);
       });
     }
+    renderCounterpartiesList();
 
     var counterpartiesBulkBar = document.getElementById('counterpartiesBulkActionsBar');
     var counterpartiesBulkCount = document.querySelector('[data-counterparties-selected-count]');
