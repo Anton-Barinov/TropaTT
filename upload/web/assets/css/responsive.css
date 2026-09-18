@@ -813,7 +813,7 @@
    * this page and is deliberately more specific than the later global UI
    * shell rules, which otherwise overwrite the mobile padding. */
   body[data-page="organizations"] .crm-content {
-    padding-top: max(28px, calc(env(safe-area-inset-top) + 16px));
+    padding-top: max(44px, calc(env(safe-area-inset-top) + 28px));
   }
   body[data-page="organizations"] .crm-page-head {
     margin-top: 2px;
