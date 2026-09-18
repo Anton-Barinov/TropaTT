@@ -211,18 +211,18 @@ final class StatusRepository
         $updatedAt = gmdate('Y-m-d H:i:s');
         $affected = 0;
 
-        $affected += (new QueryBuilder($this->pdo))
+        $workLogsQuery = (new QueryBuilder($this->pdo))
             ->from('work_logs')
-            ->where('activity_code', '=', $fromCode)
-            ->when($organizationId !== null && $organizationId > 0, fn($q) => $q->where('organization_id', '=', $organizationId))
-            ->update(['activity_code' => $toCode]);
+            ->where('activity_code', '=', $fromCode);
+        if ($organizationId !== null && $organizationId > 0) $workLogsQuery->where('organization_id', '=', $organizationId);
+        $affected += $workLogsQuery->update(['activity_code' => $toCode]);
 
-        $affected += (new QueryBuilder($this->pdo))
+        $tasksQuery = (new QueryBuilder($this->pdo))
             ->from('tasks')
             ->where('activity_code', '=', $fromCode)
-            ->when($organizationId !== null && $organizationId > 0, fn($q) => $q->where('organization_id', '=', $organizationId))
-            ->whereNull('deleted_at')
-            ->update([
+            ->whereNull('deleted_at');
+        if ($organizationId !== null && $organizationId > 0) $tasksQuery->where('organization_id', '=', $organizationId);
+        $affected += $tasksQuery->update([
                 'activity_code' => $toCode,
                 'updated_at' => $updatedAt,
             ]);

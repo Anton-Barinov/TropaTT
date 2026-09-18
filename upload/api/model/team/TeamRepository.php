@@ -83,7 +83,7 @@ final class TeamRepository
 
     public function findByPublicId(string $publicId, ?int $organizationId = null): ?array
     {
-        $row = (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('teams t')
             ->leftJoin('users u', 'u.id', '=', 't.manager_user_id')
             ->leftJoin('users cu', 'cu.id', '=', 't.created_by_user_id')
@@ -99,9 +99,11 @@ final class TeamRepository
                 'pt.public_id AS parent_team_public_id',
                 'pt.title AS parent_team_title',
             ])
-            ->where('t.public_id', '=', $publicId)
-            ->when($organizationId !== null && $organizationId > 0, static fn(QueryBuilder $q): QueryBuilder => $q->where('t.organization_id', '=', $organizationId))
-            ->first();
+            ->where('t.public_id', '=', $publicId);
+        if ($organizationId !== null && $organizationId > 0) {
+            $query->where('t.organization_id', '=', $organizationId);
+        }
+        $row = $query->first();
 
         return $row ? $this->hydrateTeamRow($row) : null;
     }
