@@ -198,7 +198,7 @@ final class AnalyticsService
 
         $data = $this->analytics->summary(
             (int)($actor['id'] ?? 0),
-            (bool)($actor['is_root'] ?? false),
+            ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0),
             $now,
             $weekStart,
             $weekEnd,
@@ -220,7 +220,7 @@ final class AnalyticsService
 
         $items = $this->analytics->projectsBreakdown(
             (int)($actor['id'] ?? 0),
-            (bool)($actor['is_root'] ?? false),
+            ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0),
             $limit,
             $now,
             $this->accessibleTeamPublicIds($actor),
@@ -247,7 +247,7 @@ final class AnalyticsService
 
         $items = $this->analytics->usersWorkload(
             (int)($actor['id'] ?? 0),
-            (bool)($actor['is_root'] ?? false),
+            ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0),
             $limit,
             $now,
             $weekStart,
@@ -297,7 +297,7 @@ final class AnalyticsService
         // How the actor's week compares with the people they can see. The median
         // (not the average) is deliberate: one person logging 200 h must not move
         // the line everyone else is measured against.
-        $isRoot = (bool)($actor['is_root'] ?? false);
+        $isRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
         $scopeIds = $isRoot ? [] : $this->visibleUserIds($actor);
         $median = $this->insights()->loadPercentMedian(
             $scopeIds === [] && !$isRoot ? [-1] : $scopeIds,
@@ -334,7 +334,7 @@ final class AnalyticsService
     {
         $periodDays = self::normalizePeriodDays($filters['period'] ?? 30);
         $now = gmdate('Y-m-d H:i:s');
-        $isRoot = (bool)($actor['is_root'] ?? false);
+        $isRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
 
         // Fail closed: a non-root actor with an empty visible set must never fall
         // through to the "root sees everything" branch of the repository.
@@ -392,7 +392,7 @@ final class AnalyticsService
         // may have flipped to false to keep the repository out of its "sees everything"
         // branch. Otherwise a root user who narrowed to one person would be offered
         // only the projects that person happens to manage.
-        $actorIsRoot = (bool)($actor['is_root'] ?? false);
+        $actorIsRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
         $accessibleProjects = $actorIsRoot ? [] : $this->insights()->accessibleProjectPublicIds(
             (int)($actor['id'] ?? 0),
             $this->accessibleTeamPublicIds($actor)
@@ -534,7 +534,7 @@ final class AnalyticsService
         // as the load widget, and the same fail-closed rule: a non-root actor whose
         // scope resolves to nobody must not fall through to the organisation-wide
         // distribution.
-        $isRoot = (bool)($actor['is_root'] ?? false);
+        $isRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
         // An empty non-root scope stays empty: the repository answers with a zero
         // sample, which is what the card needs to say "nobody to compare with"
         // instead of quietly ranking the actor against the whole organisation.
@@ -562,7 +562,7 @@ final class AnalyticsService
         // appears, and an outsider never sees the organisation's project names
         // (fail-closed, like the stream widgets; see
         // InsightsRepository::completedByProject).
-        $actorIsRoot = (bool)($actor['is_root'] ?? false);
+        $actorIsRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
         $byProject = $this->insights()->completedByProject(
             (int)($actor['id'] ?? 0),
             $actorIsRoot
@@ -610,7 +610,7 @@ final class AnalyticsService
             'period_start' => gmdate('Y-m-d 00:00:00', strtotime('-' . $periodDays . ' days', strtotime($now))),
         ];
 
-        $isRoot = (bool)($actor['is_root'] ?? false);
+        $isRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
         $userIds = $isRoot ? [] : $this->visibleUserIds($actor);
         if (!$isRoot && $userIds === []) {
             $userIds = [-1];
@@ -715,7 +715,7 @@ final class AnalyticsService
      */
     public function completionVelocity(array $actor, array $filters): array
     {
-        $isRoot = (bool)($actor['is_root'] ?? false);
+        $isRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
         $userIds = $isRoot ? [] : $this->visibleUserIds($actor);
         if (!$isRoot && $userIds === []) {
             $userIds = [-1];
@@ -813,7 +813,7 @@ final class AnalyticsService
     {
         $periodDays = self::normalizePeriodDays($filters['period'] ?? 30);
         $now = gmdate('Y-m-d H:i:s');
-        $isRoot = (bool)($actor['is_root'] ?? false);
+        $isRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
         $projectIds = $isRoot ? [] : $this->insights()->accessibleProjectPublicIds(
             (int)($actor['id'] ?? 0),
             $this->accessibleTeamPublicIds($actor)
@@ -844,7 +844,7 @@ final class AnalyticsService
     {
         $periodDays = self::normalizePeriodDays($filters['period'] ?? 30);
         $now = gmdate('Y-m-d H:i:s');
-        $isRoot = (bool)($actor['is_root'] ?? false);
+        $isRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
         $requested = trim((string)($filters['project_public_id'] ?? ''));
 
         $accessible = $isRoot ? [] : $this->insights()->accessibleProjectPublicIds(
@@ -958,7 +958,7 @@ final class AnalyticsService
     /** @return string[] */
     private function accessibleTeamPublicIds(array $actor): array
     {
-        if ((bool)($actor['is_root'] ?? false)) {
+        if (((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0)) {
             return [];
         }
 
@@ -968,7 +968,7 @@ final class AnalyticsService
     /** @return int[] */
     private function visibleUserIds(array $actor): array
     {
-        if ((bool)($actor['is_root'] ?? false)) {
+        if (((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0)) {
             return [];
         }
 
