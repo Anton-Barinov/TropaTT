@@ -18,7 +18,7 @@ final class TeamService
 
     public function list(array $filters, array $actor): array
     {
-        [$items, $total, $page, $limit] = $this->teams->list($filters, (int)($actor['id'] ?? 0), (bool)($actor['is_root'] ?? false));
+        [$items, $total, $page, $limit] = $this->teams->list($filters, (int)($actor['id'] ?? 0), (bool)($actor['is_root'] ?? false), $this->organizationId($actor));
         $items = array_map(fn(array $item): array => $this->decorateTeam($item, $actor), $items);
 
         return [
@@ -36,7 +36,7 @@ final class TeamService
 
     public function get(string $publicId, array $actor): ?array
     {
-        $team = $this->teams->findByPublicId($publicId);
+        $team = $this->teams->findByPublicId($publicId, $this->organizationId($actor));
         if (!$team || !$this->canView($team, $actor)) {
             return null;
         }
@@ -65,9 +65,9 @@ final class TeamService
             'member_user_ids' => json_encode($memberUserIds, JSON_UNESCAPED_UNICODE),
             'created_at' => $now,
             'updated_at' => $now,
-        ]);
+        ], $this->organizationId($actor));
 
-        $team = $this->teams->findByPublicId($publicId) ?: ['public_id' => $publicId];
+        $team = $this->teams->findByPublicId($publicId, $this->organizationId($actor)) ?: ['public_id' => $publicId];
         if (!is_array($team)) {
             return ['public_id' => $publicId];
         }
@@ -79,7 +79,7 @@ final class TeamService
 
     public function update(string $publicId, array $input, array $actor): ?array
     {
-        $team = $this->teams->findByPublicId($publicId);
+        $team = $this->teams->findByPublicId($publicId, $this->organizationId($actor));
         if (!$team || !$this->canManage($team, $actor)) {
             return null;
         }
@@ -117,9 +117,9 @@ final class TeamService
         }
 
         $set['updated_at'] = gmdate('Y-m-d H:i:s');
-        $this->teams->updateByPublicId($publicId, $set);
+        $this->teams->updateByPublicId($publicId, $set, $this->organizationId($actor));
 
-        $updated = $this->teams->findByPublicId($publicId);
+        $updated = $this->teams->findByPublicId($publicId, $this->organizationId($actor));
         if (!$updated) {
             return null;
         }
@@ -137,18 +137,24 @@ final class TeamService
 
     public function delete(string $publicId, array $actor): bool
     {
-        $team = $this->teams->findByPublicId($publicId);
+        $team = $this->teams->findByPublicId($publicId, $this->organizationId($actor));
         if (!$team || !$this->canManage($team, $actor)) {
             return false;
         }
 
-        $deleted = $this->teams->deleteByPublicId($publicId);
+        $deleted = $this->teams->deleteByPublicId($publicId, $this->organizationId($actor));
         if ($deleted) {
             // the team's system chat must not outlive the team
             $this->chats?->archiveSystemChatFor((int)($team['id'] ?? 0), null);
         }
 
         return $deleted;
+    }
+
+    private function organizationId(array $actor): ?int
+    {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
     }
 
     private function canView(array $team, array $actor): bool
@@ -217,7 +223,7 @@ final class TeamService
     private function resolveParentId(array $input, array $actor): ?int
     {
         if (!empty($input['parent_public_id'])) {
-            $parent = $this->teams->findByPublicId((string)$input['parent_public_id']);
+            $parent = $this->teams->findByPublicId((string)$input['parent_public_id'], $this->organizationId($actor));
             if ($parent && $this->canView($parent, $actor)) {
                 return (int)$parent['id'];
             }

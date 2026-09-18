@@ -13,11 +13,11 @@ final class TeamRepository
     {
     }
 
-    public function list(array $filters, ?int $actorUserId = null, bool $actorIsRoot = false): array
+    public function list(array $filters, ?int $actorUserId = null, bool $actorIsRoot = false, ?int $organizationId = null): array
     {
         $page = max(1, (int)($filters['page'] ?? 1));
         $limit = min(100, max(1, (int)($filters['limit'] ?? 20)));
-        $rows = $this->buildListQuery($filters)
+        $rows = $this->buildListQuery($filters, $organizationId)
             ->select([
                 't.public_id',
                 't.title',
@@ -54,13 +54,17 @@ final class TeamRepository
         return [$items, $total, $page, $limit];
     }
 
-    private function buildListQuery(array $filters): QueryBuilder
+    private function buildListQuery(array $filters, ?int $organizationId = null): QueryBuilder
     {
         $query = (new QueryBuilder($this->pdo))
             ->from('teams t')
             ->leftJoin('users u', 'u.id', '=', 't.manager_user_id')
             ->leftJoin('users cu', 'cu.id', '=', 't.created_by_user_id')
             ->leftJoin('teams pt', 'pt.id', '=', 't.parent_id');
+
+        if ($organizationId !== null && $organizationId > 0) {
+            $query->where('t.organization_id', '=', $organizationId);
+        }
 
         if (!empty($filters['search'])) {
             $query->where('t.title', 'LIKE', '%' . (string)$filters['search'] . '%');
@@ -77,7 +81,7 @@ final class TeamRepository
         return $query;
     }
 
-    public function findByPublicId(string $publicId): ?array
+    public function findByPublicId(string $publicId, ?int $organizationId = null): ?array
     {
         $row = (new QueryBuilder($this->pdo))
             ->from('teams t')
@@ -96,36 +100,46 @@ final class TeamRepository
                 'pt.title AS parent_team_title',
             ])
             ->where('t.public_id', '=', $publicId)
+            ->when($organizationId !== null && $organizationId > 0, static fn(QueryBuilder $q): QueryBuilder => $q->where('t.organization_id', '=', $organizationId))
             ->first();
 
         return $row ? $this->hydrateTeamRow($row) : null;
     }
 
-    public function create(array $payload): void
+    public function create(array $payload, ?int $organizationId = null): void
     {
+        if ($organizationId !== null && $organizationId > 0) {
+            $payload['organization_id'] = $organizationId;
+        }
         (new QueryBuilder($this->pdo))
             ->from('teams')
             ->insert($payload);
     }
 
-    public function updateByPublicId(string $publicId, array $set): bool
+    public function updateByPublicId(string $publicId, array $set, ?int $organizationId = null): bool
     {
         if ($set === []) {
             return false;
         }
 
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('teams')
-            ->where('public_id', '=', $publicId)
-            ->update($set) > 0;
+            ->where('public_id', '=', $publicId);
+        if ($organizationId !== null && $organizationId > 0) {
+            $query->where('organization_id', '=', $organizationId);
+        }
+        return $query->update($set) > 0;
     }
 
-    public function deleteByPublicId(string $publicId): bool
+    public function deleteByPublicId(string $publicId, ?int $organizationId = null): bool
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('teams')
-            ->where('public_id', '=', $publicId)
-            ->delete() > 0;
+            ->where('public_id', '=', $publicId);
+        if ($organizationId !== null && $organizationId > 0) {
+            $query->where('organization_id', '=', $organizationId);
+        }
+        return $query->delete() > 0;
     }
 
     /**
