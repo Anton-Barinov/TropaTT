@@ -75,7 +75,8 @@ final class DashboardController extends BaseController
 
         /** @var DashboardService $service */
         $service = $this->container->get('service.dashboard');
-        $summary = $service->summary($authUser['user']);
+        if ($error = $this->rejectInvalidOrganizationContext()) return $error;
+        $summary = $service->summary($this->organizationScopedActor($authUser['user']));
 
         return $this->success('DASHBOARD_SUMMARY', $this->t('dashboard/messages.summary'), ['summary' => $summary]);
     }
