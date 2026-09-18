@@ -30669,14 +30669,20 @@ tableBody.innerHTML = counterparties.map(function (cp) {
 
   async function renderOrganizationsPage() {
     var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
+    var organizationItems = [];
     async function loadOrganizations() {
       var body = document.getElementById('organizationsBody');
       if (!body) return;
       try {
         var envelope = await request('api/v1/organizations', { query: { limit: 100 } });
-        var items = mapItems(envelope);
+        organizationItems = mapItems(envelope);
+        var query = String((document.getElementById('organizationsSearch') || {}).value || '').trim().toLowerCase();
+        var items = organizationItems.filter(function (item) {
+          if (!query) return true;
+          return String(item.title || item.name || item.company_name || item.public_id || '').toLowerCase().indexOf(query) !== -1;
+        });
         if (!items.length) {
-          body.innerHTML = '<tr><td colspan="4" class="text-muted">' + _t('organization.empty', 'Нет организаций') + '</td></tr>';
+          body.innerHTML = '<tr><td colspan="4" class="text-muted">' + (organizationItems.length ? _t('organization.search_empty', 'Ничего не найдено') : _t('organization.empty', 'Нет организаций')) + '</td></tr>';
           return;
         }
         body.innerHTML = items.map(function (item) {
@@ -30687,7 +30693,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
             + '<td>' + safeText(String(memberCount)) + '</td>'
             + '<td>' + safeText(formatDate(item.created_at || '')) + '</td>'
             + '<td>'
-            + '<a class="btn btn-sm crm-btn-subtle crm-btn-compact" href="index.php?route=organizations&edit=' + encodeURIComponent(id) + '">' + _t('organization.btn_edit', 'Изменить') + '</a>'
+            + '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-org-edit="' + safeText(id) + '">' + _t('organization.btn_edit', 'Изменить') + '</button>'
             + '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-org-members="' + safeText(id) + '">' + _t('organization.btn_members', 'Участники') + '</button>'
             + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-org-delete="' + safeText(id) + '">' + _t('organization.btn_delete', 'Удалить') + '</button>'
             + '</td>'
@@ -30704,6 +30710,12 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       refreshBtn.addEventListener('click', function () {
         loadOrganizations();
       });
+    }
+
+    var search = document.getElementById('organizationsSearch');
+    if (search && search.dataset.bound !== '1') {
+      search.dataset.bound = '1';
+      search.addEventListener('input', function () { loadOrganizations(); });
     }
 
     var createBtn = document.getElementById('organizationsCreateBtn');
@@ -30739,6 +30751,25 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     if (orgsBody && orgsBody.dataset.bound !== '1') {
       orgsBody.dataset.bound = '1';
       orgsBody.addEventListener('click', async function (event) {
+        var editBtn = event.target.closest('[data-org-edit]');
+        if (editBtn) {
+          var editId = String(editBtn.getAttribute('data-org-edit') || '').trim();
+          var current = organizationItems.find(function (item) { return String(item.public_id || '') === editId; });
+          if (!current) return;
+          var values = await requestCrmForm(_t('organization.edit_title', 'Изменить организацию'), [
+            { name: 'title', label: _t('organization.prompt_title', 'Название организации'), required: true, value: String(current.title || '') }
+          ], _t('page.save', 'Сохранить'));
+          if (!values || !String(values.title || '').trim()) return;
+          try {
+            await request('api/v1/organizations/' + encodeURIComponent(editId), { method: 'PATCH', body: { title: String(values.title).trim() } });
+            notify(_t('organization.updated_notify', 'Организация обновлена'));
+            await loadOrganizations();
+          } catch (error) {
+            var editError = window.CRM.api.normalizeError(error, _t('organization.update_failed', 'Не удалось обновить организацию'));
+            notify(window.CRM.api.formatErrorMessage(editError, { withRequestId: true }), 'error');
+          }
+          return;
+        }
         var membersBtn = event.target.closest('[data-org-members]');
         if (membersBtn) {
           var orgId = String(membersBtn.getAttribute('data-org-members') || '').trim();
