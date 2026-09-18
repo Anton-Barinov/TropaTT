@@ -15,6 +15,8 @@ final class AiSemanticSearchController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
 
         /** @var FeatureFlagService $flags */
         $flags = $this->container->get('service.feature_flag');

@@ -642,6 +642,7 @@ MD;
             $tools[] = $this->tool('crm_search', 'Search tasks, projects, counterparties, contacts and published knowledge pages visible to the current CRM user.', [
                 'q' => ['type' => 'string', 'description' => 'Search query, at least 2 characters.'],
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 10],
+                'organization_public_id' => ['type' => 'string', 'description' => 'Optional active workspace context. It must belong to the current user.'],
             ], ['q']);
         }
 
@@ -1612,6 +1613,7 @@ MD;
         $tools[] = $this->tool('crm_search_ai_semantic', 'Run semantic AI search.', [
             'query' => ['type' => 'string'],
             'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 10],
+            'organization_public_id' => ['type' => 'string', 'description' => 'Optional active workspace context. It must belong to the current user.'],
         ], ['query']);
         $tools[] = $this->tool('crm_list_ai_retention_policies', 'List AI retention policies.', []);
         $tools[] = $this->tool('crm_list_ai_suggestions', 'List AI suggestions.', [
@@ -5906,6 +5908,10 @@ $tools[] = $this->tool(
 
     private function crmSearchAiSemantic(array $arguments): array
     {
+        $contextError = $this->organizationContextError($arguments);
+        if ($contextError !== null) {
+            return $contextError;
+        }
         $query = trim((string)($arguments['query'] ?? ''));
         if ($query === '') {
             return ['error' => 'query is required.'];
@@ -7209,6 +7215,10 @@ $tools[] = $this->tool(
 
     private function crmSearch(array $arguments): array
     {
+        $contextError = $this->organizationContextError($arguments);
+        if ($contextError !== null) {
+            return $contextError;
+        }
         $q = trim((string)($arguments['q'] ?? ''));
         if (mb_strlen($q) < 2) {
             return ['error' => 'Query must contain at least 2 characters.'];
