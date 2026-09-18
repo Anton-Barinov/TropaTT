@@ -151,9 +151,9 @@
                 if (migrations.length === 0) { t.innerHTML = '<tr><td colspan="3" class="text-muted">' + window.CRM.i18n.t('admin_module_detail.no_migrations', 'Нет миграций') + '</td></tr>'; return; }
 
                 t.innerHTML = migrations.map(function (m) {
-                    return '<tr><td>' + window.CRM.text.escapeHtml(m.name) + '</td>'
-                        + '<td><span class="badge ' + (m.applied ? 'bg-success' : 'bg-secondary') + '">' + (m.applied ? window.CRM.i18n.t('admin_module_detail.state_applied', 'Применена') : window.CRM.i18n.t('admin_module_detail.state_not_applied', 'Не применена')) + '</span></td>'
-                        + '<td><small class="text-muted">' + (m.applied_at ? window.CRM.text.escapeHtml(m.applied_at) : '—') + '</small></td></tr>';
+                    return '<tr><td data-label="' + window.CRM.i18n.t('admin_module_detail.th_migration', 'Миграция') + '">' + window.CRM.text.escapeHtml(m.name) + '</td>'
+                        + '<td data-label="' + window.CRM.i18n.t('admin_module_detail.th_status', 'Статус') + '"><span class="badge ' + (m.applied ? 'bg-success' : 'bg-secondary') + '">' + (m.applied ? window.CRM.i18n.t('admin_module_detail.state_applied', 'Применена') : window.CRM.i18n.t('admin_module_detail.state_not_applied', 'Не применена')) + '</span></td>'
+                        + '<td data-label="' + window.CRM.i18n.t('admin_module_detail.th_applied', 'Применена') + '"><small class="text-muted">' + (m.applied_at ? window.CRM.text.escapeHtml(m.applied_at) : '—') + '</small></td></tr>';
                 }).join('');
             })
             .catch(function () { t.innerHTML = '<tr><td colspan="3" class="text-muted">' + window.CRM.i18n.t('admin_module_detail.error_load_migrations', 'Не удалось загрузить') + '</td></tr>'; });
@@ -168,10 +168,10 @@
 
                 document.getElementById('clearErrorsBtn').style.display = '';
                 t.innerHTML = errors.map(function (e) {
-                    return '<tr><td>' + window.CRM.text.escapeHtml(e.context) + '</td>'
-                        + '<td><code>' + window.CRM.text.escapeHtml(e.error_code || '') + '</code></td>'
-                        + '<td>' + window.CRM.text.escapeHtml(e.error_message || '') + '</td>'
-                        + '<td><small class="text-muted">' + window.CRM.text.escapeHtml(e.created_at || '') + '</small></td></tr>';
+                    return '<tr><td data-label="' + window.CRM.i18n.t('admin_module_detail.th_context', 'Контекст') + '">' + window.CRM.text.escapeHtml(e.context) + '</td>'
+                        + '<td data-label="' + window.CRM.i18n.t('admin_module_detail.th_code', 'Код') + '"><code>' + window.CRM.text.escapeHtml(e.error_code || '') + '</code></td>'
+                        + '<td data-label="' + window.CRM.i18n.t('admin_module_detail.th_message', 'Сообщение') + '">' + window.CRM.text.escapeHtml(e.error_message || '') + '</td>'
+                        + '<td data-label="' + window.CRM.i18n.t('admin_module_detail.th_date', 'Дата') + '"><small class="text-muted">' + window.CRM.text.escapeHtml(e.created_at || '') + '</small></td></tr>';
                 }).join('');
             })
             .catch(function () { t.innerHTML = '<tr><td colspan="4" class="text-muted">' + window.CRM.i18n.t('admin_module_detail.error_load_errors', 'Не удалось загрузить') + '</td></tr>'; });
