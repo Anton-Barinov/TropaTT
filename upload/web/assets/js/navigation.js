@@ -676,32 +676,49 @@ window.CRM.navigation = (function () {
         window.CRM.api.setOrganizationContext(current);
       }
 
+      var currentItem = items.find(function (item) { return String(item.public_id || '') === current; }) || items[0];
+      var workspaceLabel = t('topbar.workspace_label', 'Рабочее пространство');
+      var workspaceTitle = String(currentItem.title || currentItem.slug || current);
       var wrapper = document.createElement('div');
       wrapper.className = 'crm-workspace-switcher dropdown';
       wrapper.setAttribute('data-workspace-switcher', '1');
-      wrapper.innerHTML = '<label class="visually-hidden" for="crmWorkspaceSwitcher">'
-        + t('topbar.workspace_label', 'Рабочее пространство')
-        + '</label><select id="crmWorkspaceSwitcher" class="form-select form-select-sm" aria-label="'
-        + t('topbar.workspace_label', 'Рабочее пространство') + '">'
+      wrapper.innerHTML = '<button type="button" class="crm-workspace-trigger dropdown-toggle" id="crmWorkspaceSwitcher" aria-haspopup="true" aria-expanded="false" aria-label="'
+        + escapeHtml(workspaceLabel) + '"><span class="crm-workspace-trigger-icon" aria-hidden="true"><i class="fa-solid fa-building-columns"></i></span><span class="crm-workspace-trigger-copy"><span class="crm-workspace-trigger-caption">'
+        + escapeHtml(workspaceLabel) + '</span><strong class="crm-workspace-trigger-title">' + escapeHtml(workspaceTitle) + '</strong></span><span class="crm-workspace-trigger-chevron" aria-hidden="true"><i class="fa-solid fa-chevron-down"></i></span></button>'
+        + '<div class="crm-workspace-menu dropdown-menu dropdown-menu-end" role="menu" aria-labelledby="crmWorkspaceSwitcher"><div class="crm-workspace-menu-heading">'
+        + escapeHtml(workspaceLabel) + '</div>'
         + items.map(function (item) {
           var id = String(item.public_id || '');
-          return '<option value="' + id.replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '"'
-            + (id === current ? ' selected' : '') + '>'
-            + String(item.title || item.slug || id).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-            + '</option>';
-        }).join('') + '</select>';
+          var title = String(item.title || item.slug || id);
+          return '<button type="button" class="crm-workspace-option dropdown-item' + (id === current ? ' is-active' : '') + '" role="menuitem" data-workspace-value="' + escapeHtml(id) + '"><span class="crm-workspace-option-mark" aria-hidden="true"><i class="fa-solid fa-check"></i></span><span class="crm-workspace-option-title">' + escapeHtml(title) + '</span>' + (id === current ? '<span class="crm-workspace-option-current">' + escapeHtml(t('organization.selected_short', 'Текущее')) + '</span>' : '') + '</button>';
+        }).join('') + '</div>';
 
       var anchor = right.querySelector('[data-search-toggle]') || right.firstChild;
       if (anchor) right.insertBefore(wrapper, anchor);
       else right.appendChild(wrapper);
 
-      var select = wrapper.querySelector('select');
-      if (select) {
-        select.addEventListener('change', function () {
-          var next = String(select.value || '').trim();
-          if (!next || next === window.CRM.api.getOrganizationContext()) return;
-          window.CRM.api.setOrganizationContext(next);
-          window.location.reload();
+      var trigger = wrapper.querySelector('.crm-workspace-trigger');
+      var menu = wrapper.querySelector('.crm-workspace-menu');
+      if (trigger && menu) {
+        trigger.addEventListener('click', function () {
+          var open = wrapper.classList.toggle('show');
+          trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+          menu.classList.toggle('show', open);
+        });
+        wrapper.querySelectorAll('[data-workspace-value]').forEach(function (option) {
+          option.addEventListener('click', function () {
+            var next = String(option.getAttribute('data-workspace-value') || '').trim();
+            if (!next || next === window.CRM.api.getOrganizationContext()) return;
+            window.CRM.api.setOrganizationContext(next);
+            window.location.reload();
+          });
+        });
+        document.addEventListener('click', function (event) {
+          if (!wrapper.contains(event.target)) {
+            wrapper.classList.remove('show');
+            menu.classList.remove('show');
+            trigger.setAttribute('aria-expanded', 'false');
+          }
         });
       }
     });

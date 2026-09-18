@@ -20565,10 +20565,26 @@ a.task-tag:hover {
   .crm-client-cabinet-page .crm-table tbody td:last-child > .d-flex { display: grid !important; grid-template-columns: 1fr 1fr; gap: .5rem !important; }
   .crm-client-cabinet-page .crm-table tbody td:last-child > .d-flex .btn:first-child { grid-column: 1 / -1; }
 }
-/* Workspace context switcher: compact on desktop, full-width in the mobile
- * topbar so the current data scope is always obvious before a reload. */
-.crm-workspace-switcher { min-width: 190px; max-width: 260px; }
-.crm-workspace-switcher .form-select { min-height: 38px; border-color: var(--crm-border); font-weight: 600; }
+/* Workspace context switcher: a quiet, readable control that keeps the
+ * current data scope visible without competing with the topbar actions. */
+.crm-workspace-switcher { position: relative; min-width: 208px; max-width: 270px; }
+.crm-workspace-trigger { display: flex; align-items: center; gap: .6rem; width: 100%; min-height: 42px; padding: .35rem .65rem; border: 1px solid var(--crm-border); border-radius: 12px; background: var(--crm-surface, #fff); color: var(--crm-text, #172033); text-align: left; box-shadow: 0 2px 8px rgba(22, 32, 51, .06); transition: border-color .18s ease, box-shadow .18s ease, background .18s ease; }
+.crm-workspace-trigger:hover, .crm-workspace-switcher.show .crm-workspace-trigger { border-color: var(--crm-primary, #4967e8); background: var(--crm-surface-muted, #f8faff); box-shadow: 0 5px 16px rgba(22, 32, 51, .1); }
+.crm-workspace-trigger::after { display: none; }
+.crm-workspace-trigger-icon { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 28px; width: 28px; height: 28px; border-radius: 8px; background: color-mix(in srgb, var(--crm-primary, #4967e8) 12%, transparent); color: var(--crm-primary, #4967e8); font-size: .78rem; }
+.crm-workspace-trigger-copy { display: grid; min-width: 0; flex: 1 1 auto; line-height: 1.15; }
+.crm-workspace-trigger-caption { color: var(--crm-text-muted, #748096); font-size: .65rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.crm-workspace-trigger-title { overflow: hidden; color: inherit; font-size: .82rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.crm-workspace-trigger-chevron { color: var(--crm-text-muted, #748096); font-size: .7rem; transition: transform .18s ease; }
+.crm-workspace-switcher.show .crm-workspace-trigger-chevron { transform: rotate(180deg); }
+.crm-workspace-menu { right: 0; left: auto; width: min(310px, calc(100vw - 2rem)); margin-top: .45rem; padding: .45rem; border: 1px solid var(--crm-border); border-radius: 14px; background: var(--crm-surface, #fff); box-shadow: 0 14px 34px rgba(22, 32, 51, .16); }
+.crm-workspace-menu-heading { padding: .45rem .65rem .5rem; color: var(--crm-text-muted, #748096); font-size: .67rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.crm-workspace-option { display: flex; align-items: center; gap: .55rem; width: 100%; min-height: 42px; padding: .55rem .65rem; border-radius: 9px; color: var(--crm-text, #172033); }
+.crm-workspace-option:hover, .crm-workspace-option:focus { background: var(--crm-surface-muted, #f5f7fc); color: var(--crm-text, #172033); }
+.crm-workspace-option-mark { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 18px; width: 18px; color: var(--crm-primary, #4967e8); font-size: .72rem; opacity: 0; }
+.crm-workspace-option.is-active .crm-workspace-option-mark { opacity: 1; }
+.crm-workspace-option-title { min-width: 0; overflow: hidden; font-size: .82rem; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.crm-workspace-option-current { margin-left: auto; color: var(--crm-text-muted, #748096); font-size: .68rem; white-space: nowrap; }
 .crm-organization-members-list { display: grid; gap: .5rem; }
 .crm-organization-member-row { display: grid; grid-template-columns: auto minmax(0, 1fr) 150px; gap: .75rem; align-items: center; padding: .7rem .8rem; border: 1px solid var(--crm-border); border-radius: var(--radius-md); cursor: pointer; }
 .crm-organization-member-row:hover { background: var(--crm-surface-muted); }
@@ -20580,5 +20596,8 @@ a.task-tag:hover {
 }
 @media (max-width: 575.98px) {
   .crm-workspace-switcher { min-width: 0; max-width: none; width: min(58vw, 230px); }
-  .crm-workspace-switcher .form-select { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .crm-workspace-trigger { min-height: 40px; padding-inline: .5rem; }
+  .crm-workspace-trigger-caption { font-size: .58rem; }
+  .crm-workspace-trigger-title { font-size: .76rem; }
+  .crm-workspace-menu { position: fixed; top: 4.2rem; right: .75rem; width: min(310px, calc(100vw - 1.5rem)); }
 }
