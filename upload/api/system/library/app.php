@@ -1289,6 +1289,9 @@ final class App
             $c->get('logger'),
             $c->get('lang')
         ));
+        $this->container->factory('service.organization_context', fn(Container $c) => new \Api\System\Library\Service\OrganizationContextService(
+            $c->get('repository.organization')
+        ));
         $this->container->factory('service.tag', fn(Container $c) => new TagService(
             $c->get('repository.tag'),
             $c->get('service.task')

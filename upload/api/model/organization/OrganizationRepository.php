@@ -6,8 +6,9 @@ namespace Api\Model\Organization;
 use Api\System\Library\Database\Builder\QueryBuilder;
 use PDO;
 use Api\System\Library\Support\LikeEscaper;
+use Api\System\Library\Organization\OrganizationMembershipReader;
 
-final class OrganizationRepository
+final class OrganizationRepository implements OrganizationMembershipReader
 {
     public function __construct(private readonly PDO $pdo)
     {
@@ -55,6 +56,38 @@ final class OrganizationRepository
         }
 
         return $query;
+    }
+
+    /** @return array<int,array<string,mixed>> */
+    public function listForUser(int $userId): array
+    {
+        if ($userId <= 0) {
+            return [];
+        }
+
+        return (new QueryBuilder($this->pdo))
+            ->from('organization_memberships om')
+            ->join('organizations o', 'o.id', '=', 'om.organization_id')
+            ->select([
+                'o.public_id',
+                'o.title',
+                'o.slug',
+                'om.role_code',
+                'om.created_at AS membership_created_at',
+            ])
+            ->where('om.user_id', '=', $userId)
+            ->orderBy('o.title', 'ASC')
+            ->get();
+    }
+
+    /** @return array<int,array<string,mixed>> */
+    public function listAll(): array
+    {
+        return (new QueryBuilder($this->pdo))
+            ->from('organizations')
+            ->select(['public_id', 'title', 'slug', 'created_at', 'updated_at'])
+            ->orderBy('title', 'ASC')
+            ->get();
     }
 
     public function findByPublicId(string $publicId): ?array
