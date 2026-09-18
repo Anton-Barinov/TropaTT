@@ -6494,6 +6494,9 @@ return array (
     'th_name' => 'Name',
     'th_participants' => 'Members',
     'th_created' => 'Created date',
+    'search' => 'Search',
+    'search_placeholder' => 'Search organizations',
+    'th_actions' => 'Actions',
   ),
   'chat' => 
   array (
@@ -9507,6 +9510,11 @@ return array (
     'deleted_notify' => 'Organization deleted',
     'create_failed' => 'Failed to create organization',
     'delete_failed' => 'Failed to delete organization',
+    'search_empty' => 'Nothing found',
+    'edit_title' => 'Edit organization',
+    'updated_notify' => 'Organization updated',
+    'update_failed' => 'Failed to update organization',
+
   ),
   'priority' => 
   array (

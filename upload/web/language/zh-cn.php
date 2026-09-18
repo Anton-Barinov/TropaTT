@@ -6508,6 +6508,9 @@ return array (
     'th_name' => '名称',
     'th_participants' => '成员数',
     'th_created' => '创建日期',
+    'search' => 'Search',
+    'search_placeholder' => 'Search organizations',
+    'th_actions' => 'Actions',
   ),
   'chat' => 
   array (
@@ -9534,6 +9537,11 @@ return array (
     'deleted_notify' => '组织已删除',
     'create_failed' => '创建组织失败',
     'delete_failed' => '删除组织失败',
+    'search_empty' => 'Nothing found',
+    'edit_title' => 'Edit organization',
+    'updated_notify' => 'Organization updated',
+    'update_failed' => 'Failed to update organization',
+
   ),
   'template' => 
   array (

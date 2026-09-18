@@ -8415,6 +8415,11 @@ return array (
     'deleted_notify' => 'Organización eliminada',
     'create_failed' => 'Error al crear la organización',
     'delete_failed' => 'Error al eliminar la organización',
+    'search_empty' => 'Nothing found',
+    'edit_title' => 'Edit organization',
+    'updated_notify' => 'Organization updated',
+    'update_failed' => 'Failed to update organization',
+
   ),
   'organizations' => 
   array (
@@ -8428,6 +8433,9 @@ return array (
     'th_name' => 'Nombre',
     'th_participants' => 'Miembros',
     'th_created' => 'Fecha de creación',
+    'search' => 'Search',
+    'search_placeholder' => 'Search organizations',
+    'th_actions' => 'Actions',
   ),
   'page' => 
   array (

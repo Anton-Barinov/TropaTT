@@ -6515,6 +6515,9 @@ return array (
     'th_name' => 'Название',
     'th_participants' => 'Участников',
     'th_created' => 'Дата создания',
+    'search' => 'Поиск',
+    'search_placeholder' => 'Поиск организаций',
+    'th_actions' => 'Действия',
   ),
   'chat' => 
   array (
@@ -9608,6 +9611,11 @@ return array (
     'deleted_notify' => 'Организация удалена',
     'create_failed' => 'Не удалось создать организацию',
     'delete_failed' => 'Не удалось удалить организацию',
+    'search_empty' => 'Ничего не найдено',
+    'edit_title' => 'Изменить организацию',
+    'updated_notify' => 'Организация обновлена',
+    'update_failed' => 'Не удалось обновить организацию',
+
   ),
   'template' => 
   array (
