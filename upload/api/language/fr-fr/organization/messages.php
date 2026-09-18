@@ -41,4 +41,15 @@ return [
     'deleted_notify' => 'Organisation supprimée',
     'context_not_found' => 'Le contexte de l’organisation est indisponible.',
     'context_required' => 'Select an organization context before continuing.',
+
+    'invitation_list' => 'Organization invitation list',
+    'invitation_list_failed' => 'Unable to list organization invitations',
+    'invitation_created' => 'Organization invitation created',
+    'invitation_create_failed' => 'Unable to create organization invitation',
+    'invitation_revoked' => 'Organization invitation revoked',
+    'invitation_revoke_failed' => 'Unable to revoke organization invitation',
+    'invitation_resent' => 'Organization invitation resent',
+    'invitation_resend_failed' => 'Unable to resend organization invitation',
+    'invitation_invalid_role' => 'Invalid invitation role',
+    'max_190' => 'Maximum 190 characters',
 ];

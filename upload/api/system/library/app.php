@@ -1339,7 +1339,8 @@ final class App
             $c->get('security.hasher'),
             $c->get('security.token'),
             $c->get('logger'),
-            $c->get('service.rate_limiter')
+            $c->get('service.rate_limiter'),
+            $c->get('repository.organization')
         ));
         $this->container->factory('service.password_reset', fn(Container $c) => new PasswordResetService(
             $c->get('repository.password_reset'),
