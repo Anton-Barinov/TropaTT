@@ -577,10 +577,10 @@
       var date = p.updated_at ? p.updated_at.substring(0,10) : '';
       return '<tr class="kb-article-row" data-id="'+esc(p.public_id)+'">'
         +'<td><div class="d-flex align-items-center gap-2"><i class="'+typeIcon+' text-muted" aria-hidden="true"></i><div class="min-w-0"><div class="kb-article-title text-truncate">'+esc(p.title)+'</div>'+(desc?'<div class="kb-article-desc">'+esc(desc)+'</div>':'')+'</div></div></td>'
-        +'<td class="d-none d-md-table-cell"><span class="kb-type-badge">'+esc(typeLabel)+'</span></td>'
-        +'<td><span class="kb-status-badge '+st+'">'+esc(stLabel)+'</span></td>'
-        +'<td class="d-none d-md-table-cell text-muted kb-col-date">'+esc(date)+'</td>'
-        +'<td class="d-none d-lg-table-cell text-muted kb-col-views">'+esc(p.views_count||0)+'</td>'
+        +'<td class="d-none d-md-table-cell" data-label="'+esc(_t('knowledge.th_type','Тип'))+'"><span class="kb-type-badge">'+esc(typeLabel)+'</span></td>'
+        +'<td data-label="'+esc(_t('knowledge.th_status','Статус'))+'"><span class="kb-status-badge '+st+'">'+esc(stLabel)+'</span></td>'
+        +'<td class="d-none d-md-table-cell text-muted kb-col-date" data-label="'+esc(_t('knowledge.th_updated','Обновлено'))+'">'+esc(date)+'</td>'
+        +'<td class="d-none d-lg-table-cell text-muted kb-col-views" data-label="'+esc(_t('knowledge.th_views','Просм.'))+'">'+esc(p.views_count||0)+'</td>'
         +'</tr>';
     }).join('');
 

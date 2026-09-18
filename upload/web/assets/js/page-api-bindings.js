@@ -30923,7 +30923,7 @@ window.CRM.pageApiBindings = (function () {
           }
           var entityLabel = safeText(item.entity_title || item.task_title || item.entity_public_id || '—');
           var entityDisplay = entityLink ? '<a href="' + entityLink + '">' + entityLabel + '</a>' : entityLabel;
-          return '<tr><td>' + safeText(entityType) + ': ' + entityDisplay + '</td><td class="small">' + safeText(context) + '</td><td>' + safeText(mentionedBy) + '</td><td>' + safeText(date) + '</td></tr>';
+          return '<tr><td data-label="' + safeText(_t('mentions.th_entity', 'Сущность')) + '">' + safeText(entityType) + ': ' + entityDisplay + '</td><td class="small" data-label="' + safeText(_t('mentions.th_context', 'Контекст')) + '">' + safeText(context) + '</td><td data-label="' + safeText(_t('mentions.th_mentioned_by', 'Упомянул')) + '">' + safeText(mentionedBy) + '</td><td data-label="' + safeText(_t('mentions.th_date', 'Дата')) + '">' + safeText(date) + '</td></tr>';
         }).join('');
       } catch (error) {
         var normalized = window.CRM.api.normalizeError(error, _t('page.mentions_load_error', 'Ошибка загрузки'));
