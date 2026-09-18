@@ -1531,5 +1531,5 @@
 @media (max-width: 767.98px) {
   /* Leave a small visual buffer before the scrollable form starts so the
      first field near the fold never appears underneath the sticky footer. */
-  .modal-dialog .modal-body { padding-top:16px; scroll-padding-top:16px; }
+  .modal-dialog .modal-body { padding-top:40px; scroll-padding-top:40px; }
 }
