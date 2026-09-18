@@ -120,6 +120,16 @@ final class PageDataController extends BaseController
         ], $actor);
         $calendar = $calendarService->myDay($actor, $date);
 
+        $aiSuggestion = $this->latestMyDaySuggestion($actor);
+        // A suggestion is a snapshot of the source tasks/events. Do not show
+        // an old user-scoped snapshot after switching to an empty workspace.
+        if ((int)($actor['organization_id'] ?? 0) > 0
+            && ($today['items'] ?? []) === []
+            && ($overdue['items'] ?? []) === []
+            && ($calendar['events'] ?? []) === []) {
+            $aiSuggestion = null;
+        }
+
         return [
             'date' => $date,
             'overdue_tasks' => [
@@ -131,7 +141,7 @@ final class PageDataController extends BaseController
                 'meta' => (array)($today['meta'] ?? []),
             ],
             'calendar' => $calendar,
-            'ai_suggestion' => $this->latestMyDaySuggestion($actor),
+            'ai_suggestion' => $aiSuggestion,
         ];
     }
 
@@ -154,6 +164,14 @@ final class PageDataController extends BaseController
         ], $actor);
         $calendar = $calendarService->myWeek($actor, $date);
 
+        $aiSuggestion = $this->latestMyWeekSuggestion($actor);
+        if ((int)($actor['organization_id'] ?? 0) > 0
+            && ($weekTasks['items'] ?? []) === []
+            && ($overdue['items'] ?? []) === []
+            && ($calendar['events'] ?? []) === []) {
+            $aiSuggestion = null;
+        }
+
         return [
             'date' => $date,
             'week_from' => $weekStart,
@@ -167,7 +185,7 @@ final class PageDataController extends BaseController
                 'meta' => (array)($overdue['meta'] ?? []),
             ],
             'calendar' => $calendar,
-            'ai_suggestion' => $this->latestMyWeekSuggestion($actor),
+            'ai_suggestion' => $aiSuggestion,
         ];
     }
 
