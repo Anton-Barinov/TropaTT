@@ -650,9 +650,9 @@ window.CRM.navigation = (function () {
     ensureWorkspaceSwitcher(right);
   }
 
-  // Show the workspace switcher only to members who belong to more than one
-  // workspace. Root administrators manage all workspaces from Administration
-  // and should not receive a misleading personal-context switcher.
+  // Show the workspace switcher to users with more than one workspace. Root
+  // administrators are the exception: they can inspect every workspace and
+  // therefore always get the same quick context control.
   function ensureWorkspaceSwitcher(right) {
     if (!right || right.dataset.workspaceSwitcherBound === '1') return;
     right.dataset.workspaceSwitcherBound = '1';
@@ -667,7 +667,7 @@ window.CRM.navigation = (function () {
       var envelope = results[1];
       var data = envelope && envelope.data ? envelope.data : {};
       var items = Array.isArray(data.items) ? data.items : [];
-      if (user.is_root === true || data.is_root === true || items.length <= 1) return;
+      if (items.length <= 1) return;
 
       var current = window.CRM.api.getOrganizationContext();
       var hasCurrent = items.some(function (item) { return String(item.public_id || '') === current; });
