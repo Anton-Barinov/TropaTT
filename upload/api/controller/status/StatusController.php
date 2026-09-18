@@ -55,9 +55,18 @@ final class StatusController extends BaseController
 
     public function get(array $params): \Api\System\Library\Http\JsonResponse
     {
+        $authUser = $this->user();
+        if (!$authUser) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)$authUser['user']);
         /** @var StatusService $service */
         $service = $this->container->get('service.status');
-        $item = $service->get((string)$params['public_id']);
+        $item = $service->get((string)$params['public_id'], !empty($actor['organization_id']) ? (int)$actor['organization_id'] : null);
         if (!$item) {
             return $this->error('STATUS_NOT_FOUND', $this->t('status/messages.not_found'), 404, [
                 'status' => [$this->t('status/messages.not_found')],

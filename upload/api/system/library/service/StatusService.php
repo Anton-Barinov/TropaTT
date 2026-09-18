@@ -47,9 +47,9 @@ final class StatusService
         ];
     }
 
-    public function get(string $publicId): ?array
+    public function get(string $publicId, ?int $organizationId = null): ?array
     {
-        return $this->statuses->findByPublicId($publicId);
+        return $this->statuses->findByPublicId($publicId, $organizationId);
     }
 
     public function create(array $input, ?int $organizationId = null)
@@ -137,7 +137,7 @@ final class StatusService
 
         $scope = (string)($current['scope'] ?? '');
         $code = (string)($current['code'] ?? '');
-        $usage = $this->statuses->usageCount($scope, $code);
+        $usage = $this->statuses->usageCount($scope, $code, $organizationId);
 
         if ($usage > 0 && $remapToPublicId === null) {
             return [
@@ -161,7 +161,7 @@ final class StatusService
                 return ['ok' => false, 'code' => 'REMAP_SCOPE_MISMATCH'];
             }
 
-            $this->statuses->remapUsage($scope, $code, (string)$target['code']);
+            $this->statuses->remapUsage($scope, $code, (string)$target['code'], $organizationId);
         }
 
         $ok = $this->statuses->deleteByPublicId($publicId, $organizationId);
