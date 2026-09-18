@@ -40,4 +40,5 @@ return [
     'confirm_delete' => 'Delete organization?',
     'deleted_notify' => 'Organization deleted',
     'context_not_found' => 'Organization context is unavailable.',
+    'context_required' => 'Select an organization context before continuing.',
 ];

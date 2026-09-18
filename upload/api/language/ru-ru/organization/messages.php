@@ -40,4 +40,5 @@ return [
     'confirm_delete' => 'Удалить организацию?',
     'deleted_notify' => 'Организация удалена',
     'context_not_found' => 'Контекст организации недоступен.',
+    'context_required' => 'Select an organization context before continuing.',
 ];

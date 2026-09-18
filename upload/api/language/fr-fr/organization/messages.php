@@ -40,4 +40,5 @@ return [
     'confirm_delete' => 'Supprimer l\'organisation ?',
     'deleted_notify' => 'Organisation supprimée',
     'context_not_found' => 'Le contexte de l’organisation est indisponible.',
+    'context_required' => 'Select an organization context before continuing.',
 ];

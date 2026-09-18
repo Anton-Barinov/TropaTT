@@ -200,6 +200,14 @@ abstract class BaseController
         /** @var \Api\System\Library\Service\OrganizationContextService $context */
         $context = $this->container->get('service.organization_context');
         $resolved = $context->resolve($this->request(), (array)($auth['user'] ?? []));
+        if (($resolved['status'] ?? '') === 'selection_required') {
+            return $this->error(
+                'ORGANIZATION_CONTEXT_REQUIRED',
+                $this->t('organization/messages.context_required'),
+                409,
+                ['organization' => [$this->t('organization/messages.context_required')]]
+            );
+        }
         if (($resolved['status'] ?? '') !== 'forbidden') {
             return null;
         }
