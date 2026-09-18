@@ -16,15 +16,14 @@
   }
 
   body[data-page="organizations"] .crm-org-actions-inner {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    align-items: center;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: .5rem;
   }
 
   body[data-page="organizations"] .crm-org-actions-inner .btn {
     margin: 0;
+    width: 100%;
   }
 }
 
