@@ -21,6 +21,10 @@ final class ProjectController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
 
         $input = $this->request()->allInput();
         $errors = [];
@@ -37,7 +41,7 @@ final class ProjectController extends BaseController
         $cache = $this->cacheApi();
         if ($cache !== null) {
             ksort($input);
-            $cacheKey = 'list:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($input));
+            $cacheKey = 'list:' . $this->cacheUserId() . ':' . $this->organizationContextCacheKey() . ':' . hash('sha256', json_encode($input));
             $result = $cache->remember('project', $cacheKey, 60, function () use ($input, $authUser) {
                 /** @var ProjectService $service */
                 $service = $this->container->get('service.project');
@@ -59,6 +63,10 @@ final class ProjectController extends BaseController
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
         }
 
         /** @var ProjectService $service */
@@ -124,6 +132,10 @@ final class ProjectController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
 
         /** @var ProjectService $service */
         $service = $this->container->get('service.project');
@@ -147,6 +159,10 @@ final class ProjectController extends BaseController
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
         }
 
         $input = $this->request()->allInput();
@@ -215,6 +231,10 @@ final class ProjectController extends BaseController
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
         }
 
         /** @var ProjectService $service */

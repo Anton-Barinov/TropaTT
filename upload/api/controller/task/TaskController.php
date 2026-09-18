@@ -53,6 +53,10 @@ final class TaskController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
 
         $input = $this->request()->allInput();
         $errors = [];
@@ -69,7 +73,7 @@ final class TaskController extends BaseController
         $cache = $this->cacheApi();
         if ($cache !== null) {
             ksort($input);
-            $cacheKey = 'list:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($input));
+            $cacheKey = 'list:' . $this->cacheUserId() . ':' . $this->organizationContextCacheKey() . ':' . hash('sha256', json_encode($input));
             $result = $cache->remember('task', $cacheKey, 60, function () use ($input, $authUser) {
                 /** @var TaskService $service */
                 $service = $this->container->get('service.task');
@@ -94,6 +98,10 @@ final class TaskController extends BaseController
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
         }
 
         $input = $this->request()->allInput();
@@ -265,6 +273,10 @@ final class TaskController extends BaseController
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
         }
 
         /** @var TaskService $service */

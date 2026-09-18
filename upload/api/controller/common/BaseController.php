@@ -184,6 +184,62 @@ abstract class BaseController
     }
 
     /**
+     * Validate an explicitly supplied organization context without changing
+     * legacy requests that do not send one. The data tables are migrated to
+     * organization scope in a later step, so this guard deliberately rejects
+     * only a foreign/unknown context and keeps the existing no-context
+     * behaviour during the rollout.
+     */
+    protected function rejectInvalidOrganizationContext(): ?JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth || !$this->container->has('service.organization_context')) {
+            return null;
+        }
+
+        /** @var \Api\System\Library\Service\OrganizationContextService $context */
+        $context = $this->container->get('service.organization_context');
+        $resolved = $context->resolve($this->request(), (array)($auth['user'] ?? []));
+        if (($resolved['status'] ?? '') !== 'forbidden') {
+            return null;
+        }
+
+        // Do not disclose whether a submitted public id exists in another
+        // workspace. Keep the response indistinguishable from a missing one.
+        return $this->error(
+            'ORGANIZATION_CONTEXT_NOT_FOUND',
+            'Organization context is unavailable.',
+            404,
+            ['organization' => ['Organization context is unavailable.']]
+        );
+    }
+
+    /**
+     * Context-aware cache suffix. Including it now prevents a cache collision
+     * when organization_id becomes part of repository queries in the next
+     * migration step; legacy requests retain a stable suffix.
+     */
+    protected function organizationContextCacheKey(): string
+    {
+        $auth = $this->user();
+        if (!$auth || !$this->container->has('service.organization_context')) {
+            return 'legacy';
+        }
+
+        /** @var \Api\System\Library\Service\OrganizationContextService $context */
+        $resolved = $this->container->get('service.organization_context')->resolve(
+            $this->request(),
+            (array)($auth['user'] ?? [])
+        );
+        $publicId = (string)($resolved['organization_public_id'] ?? '');
+        if ($publicId !== '') {
+            return hash('sha256', $publicId);
+        }
+
+        return (string)($resolved['status'] ?? 'legacy_unscoped');
+    }
+
+    /**
      * Return only the allowed input keys from the request body.
      * Prevents mass assignment by discarding unexpected fields.
      *
