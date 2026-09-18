@@ -30693,6 +30693,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
             + '<td>' + safeText(String(memberCount)) + '</td>'
             + '<td>' + safeText(formatDate(item.created_at || '')) + '</td>'
             + '<td>'
+            + '<button class="btn btn-sm crm-btn-primary crm-btn-compact" data-org-select="' + safeText(id) + '">' + (window.CRM.api.getOrganizationContext() === id ? _t('organization.selected', 'Активный workspace') : _t('organization.select', 'Выбрать workspace')) + '</button>'
             + '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-org-edit="' + safeText(id) + '">' + _t('organization.btn_edit', 'Изменить') + '</button>'
             + '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-org-members="' + safeText(id) + '">' + _t('organization.btn_members', 'Участники') + '</button>'
             + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-org-delete="' + safeText(id) + '">' + _t('organization.btn_delete', 'Удалить') + '</button>'
@@ -30751,6 +30752,15 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     if (orgsBody && orgsBody.dataset.bound !== '1') {
       orgsBody.dataset.bound = '1';
       orgsBody.addEventListener('click', async function (event) {
+        var selectBtn = event.target.closest('[data-org-select]');
+        if (selectBtn) {
+          var selectedId = String(selectBtn.getAttribute('data-org-select') || '').trim();
+          if (!selectedId) return;
+          window.CRM.api.setOrganizationContext(selectedId);
+          notify(_t('organization.selected', 'Активный workspace'));
+          await loadOrganizations();
+          return;
+        }
         var editBtn = event.target.closest('[data-org-edit]');
         if (editBtn) {
           var editId = String(editBtn.getAttribute('data-org-edit') || '').trim();

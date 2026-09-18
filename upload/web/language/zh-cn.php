@@ -9541,6 +9541,8 @@ return array (
     'edit_title' => 'Edit organization',
     'updated_notify' => 'Organization updated',
     'update_failed' => 'Failed to update organization',
+    'select' => 'Use workspace',
+    'selected' => 'Active workspace',
 
   ),
   'template' => 

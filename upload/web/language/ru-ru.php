@@ -9615,6 +9615,8 @@ return array (
     'edit_title' => 'Изменить организацию',
     'updated_notify' => 'Организация обновлена',
     'update_failed' => 'Не удалось обновить организацию',
+    'select' => 'Выбрать workspace',
+    'selected' => 'Активный workspace',
 
   ),
   'template' => 
