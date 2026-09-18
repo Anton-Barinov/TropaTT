@@ -8400,14 +8400,14 @@ return array (
   ),
   'organization' => 
   array (
-    'empty' => 'Aucune organisation',
+    'empty' => 'Aucun espace de travail',
     'btn_edit' => 'Modifier',
     'btn_members' => 'Membres',
     'btn_delete' => 'Supprimer',
     'load_error' => 'Erreur de chargement',
     'prompt_title' => 'Titre de l\'organisation',
     'title_empty' => 'Le titre de l\'organisation ne peut pas être vide',
-    'created_notify' => 'Organisation créée',
+    'created_notify' => 'Espace de travail créé',
     'members_title' => 'Membres de l\'organisation :',
     'no_members' => 'Aucun membre',
     'load_members_error' => 'Échec du chargement des membres',
