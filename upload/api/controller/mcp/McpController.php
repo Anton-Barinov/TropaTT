@@ -6430,7 +6430,7 @@ $tools[] = $this->tool(
     {
         /** @var RecycleBinService $service */
         $service = $this->container->get('service.recycle_bin');
-        return $this->publicData($service->list($this->recycleBinFilters($arguments)));
+        return $this->publicData($service->list($this->recycleBinFilters($arguments), $this->organizationScopedActor($this->actor())));
     }
 
     private function crmRestoreRecycleBinItem(array $arguments): array
@@ -6442,7 +6442,7 @@ $tools[] = $this->tool(
 
         /** @var RecycleBinService $service */
         $service = $this->container->get('service.recycle_bin');
-        $result = $service->restore($publicId, $this->actor());
+        $result = $service->restore($publicId, $this->organizationScopedActor($this->actor()));
         return is_array($result) ? $this->publicData($result) : ['error' => (string)$result];
     }
 
@@ -6455,7 +6455,7 @@ $tools[] = $this->tool(
 
         /** @var RecycleBinService $service */
         $service = $this->container->get('service.recycle_bin');
-        $result = $service->purge($publicId, $this->actor());
+        $result = $service->purge($publicId, $this->organizationScopedActor($this->actor()));
         return is_array($result) ? $this->publicData($result) : ['error' => (string)$result];
     }
 

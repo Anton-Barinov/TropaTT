@@ -68,23 +68,25 @@ final class FileRepository
             ]) > 0;
     }
 
-    public function restore(string $publicId): bool
+    public function restore(string $publicId, ?int $organizationId = null): bool
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('files')
             ->where('public_id', '=', $publicId)
-            ->where('is_deleted', '=', 1)
-            ->update([
+            ->where('is_deleted', '=', 1);
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        return $query->update([
                 'is_deleted' => 0,
                 'deleted_at' => null,
             ]) > 0;
     }
 
-    public function hardDelete(string $publicId): bool
+    public function hardDelete(string $publicId, ?int $organizationId = null): bool
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('files')
-            ->where('public_id', '=', $publicId)
-            ->delete() > 0;
+            ->where('public_id', '=', $publicId);
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        return $query->delete() > 0;
     }
 }

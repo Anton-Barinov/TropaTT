@@ -443,7 +443,8 @@ final class FileService
             return;
         }
 
-        $existing = $this->recycleBin->findActiveByEntity('file', $publicId);
+        $organizationId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
+        $existing = $this->recycleBin->findActiveByEntity('file', $publicId, $organizationId);
         if ($existing) {
             return;
         }
@@ -462,7 +463,7 @@ final class FileService
             'deleted_by_user_id' => (int)($actor['id'] ?? 0),
             'deleted_at' => gmdate('Y-m-d H:i:s'),
             'restored_at' => null,
-        ]);
+        ], $organizationId);
     }
 
     private function ensureDir(string $dir): void
