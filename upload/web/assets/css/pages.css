@@ -35,6 +35,13 @@ body[data-page="organizations"] .crm-filter-control {
   min-width: min(100%, 12rem);
 }
 
+/* The list is often shorter than one viewport.  Removing the generic page
+   bottom padding keeps the small amount of available scroll from hiding the
+   heading beneath the fixed top bar. */
+body[data-page="organizations"] .crm-content {
+  padding-bottom: 0;
+}
+
 body[data-page="organizations"] .crm-table tbody tr {
   transition: background-color .15s ease;
 }
