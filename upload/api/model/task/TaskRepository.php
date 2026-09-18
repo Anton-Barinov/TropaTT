@@ -95,7 +95,7 @@ final class TaskRepository
         return $pairs;
     }
 
-    public function list(array $filters, ?int $actorUserId = null, bool $actorIsRoot = false, bool $rlsScoped = false): array
+    public function list(array $filters, ?int $actorUserId = null, bool $actorIsRoot = false, bool $rlsScoped = false, ?int $organizationId = null): array
     {
         // Multi-level sort: filters['sort'] accepts a comma-separated chain of
         // "key:DIR" pairs (e.g. "title:ASC,priority_code:DESC"), up to 4 levels.
@@ -109,11 +109,12 @@ final class TaskRepository
         // 0 = unlimited (offset mode only; cursor mode always keeps a positive page size).
         $limit = $requestedLimit === 0 && $paginationMode !== 'cursor' ? 0 : min(500, max(1, $requestedLimit));
 
+        $organizationId ??= $this->organizationIdFromFilters($filters);
         if ($this->isHierarchyMode($filters)) {
-            return $this->listHierarchy($filters, $actorUserId, $actorIsRoot, $rlsScoped, $sortPairs, $order, $limit);
+            return $this->listHierarchy($filters, $actorUserId, $actorIsRoot, $rlsScoped, $sortPairs, $order, $limit, $organizationId);
         }
 
-        $builder = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $order, $rlsScoped)
+        $builder = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $order, $rlsScoped, $organizationId)
             ->leftJoin('users au', 'au.id', '=', 't.assignee_user_id')
             ->leftJoin('users pm', 'pm.id', '=', 'p.manager_user_id')
             ->leftJoin('users tm', 'tm.id', '=', 'pt.manager_user_id')
@@ -247,7 +248,7 @@ final class TaskRepository
         }
         $items = $builder->get();
 
-        $total = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $order, $rlsScoped)->count();
+        $total = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $order, $rlsScoped, $organizationId)->count();
 
         return [
             'items' => $items,
@@ -279,10 +280,11 @@ final class TaskRepository
         bool $rlsScoped,
         array $sortPairs,
         string $order,
-        int $limit
+        int $limit,
+        ?int $organizationId = null
     ): array {
         $page = max(1, (int)($filters['page'] ?? 1));
-        $matchingRows = $this->lightweightHierarchyRows($filters, $actorUserId, $actorIsRoot, $rlsScoped, $sortPairs, $order);
+        $matchingRows = $this->lightweightHierarchyRows($filters, $actorUserId, $actorIsRoot, $rlsScoped, $sortPairs, $order, $organizationId);
 
         $scopeFilters = array_intersect_key($filters, array_flip([
             'archived', 'include_archived_projects', 'accessible_team_public_ids', 'executor_project_ids',
@@ -292,7 +294,7 @@ final class TaskRepository
         if ($rlsScoped && isset($filters['client_public_id'])) {
             $scopeFilters['client_public_id'] = $filters['client_public_id'];
         }
-        $scopeRows = $this->lightweightHierarchyRows($scopeFilters, $actorUserId, $actorIsRoot, $rlsScoped, $sortPairs, $order);
+        $scopeRows = $this->lightweightHierarchyRows($scopeFilters, $actorUserId, $actorIsRoot, $rlsScoped, $sortPairs, $order, $organizationId);
         $hierarchy = TaskHierarchyPaginator::paginate($matchingRows, $scopeRows, $page, $limit);
 
         $items = [];
@@ -301,7 +303,7 @@ final class TaskRepository
             $fullFilters['hierarchy_public_ids'] = $hierarchy['public_ids'];
             $fullFilters['limit'] = 0;
             unset($fullFilters['hierarchy'], $fullFilters['cursor'], $fullFilters['pagination_mode']);
-            $fullResult = $this->list($fullFilters, $actorUserId, $actorIsRoot, $rlsScoped);
+            $fullResult = $this->list($fullFilters, $actorUserId, $actorIsRoot, $rlsScoped, $organizationId);
             $byId = [];
             foreach ((array)($fullResult['items'] ?? []) as $row) {
                 if (in_array((string)($row['public_id'] ?? ''), $hierarchy['restricted_root_ids'], true)) {
@@ -345,9 +347,10 @@ final class TaskRepository
         bool $actorIsRoot,
         bool $rlsScoped,
         array $sortPairs,
-        string $order
+        string $order,
+        ?int $organizationId = null
     ): array {
-        $builder = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $order, $rlsScoped)
+        $builder = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $order, $rlsScoped, $organizationId)
             ->select([
                 't.public_id',
                 "(SELECT parent_task.public_id FROM task_relations trp INNER JOIN tasks parent_task ON parent_task.id = trp.parent_task_id WHERE trp.child_task_id = t.id AND trp.relation_type = 'subtask' LIMIT 1) AS parent_task_public_id",
@@ -369,7 +372,7 @@ final class TaskRepository
      */
     public function countByStatus(array $filters, ?int $actorUserId = null, bool $actorIsRoot = false, bool $rlsScoped = false): array
     {
-        $rows = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, 'DESC', $rlsScoped)
+        $rows = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, 'DESC', $rlsScoped, $this->organizationIdFromFilters($filters))
             ->select([
                 't.status_code AS status_code',
                 'COUNT(*) AS task_count',
@@ -385,9 +388,9 @@ final class TaskRepository
         return $counts;
     }
 
-    public function findByPublicId(string $publicId): ?array
+    public function findByPublicId(string $publicId, ?int $organizationId = null): ?array
     {
-        return (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('tasks t')
             ->leftJoin('projects p', 'p.id', '=', 't.project_id')
             ->leftJoin('counterparties c', 'c.public_id', '=', 'p.client_public_id')
@@ -449,32 +452,42 @@ final class TaskRepository
                   WHERE pmt.task_id = t.id AND pmt.deleted_at IS NULL AND pm.deleted_at IS NULL
                 ) AS modules",
             ])
-            ->where('t.public_id', '=', $publicId)
-            ->first();
+            ->where('t.public_id', '=', $publicId);
+        $this->applyOrganizationScope($qb, $organizationId, 't', 'p');
+        return $qb->first();
     }
 
-    public function create(array $payload): void
+    public function create(array $payload, ?int $organizationId = null): void
     {
+        $this->scopePayload($payload, $organizationId);
         (new QueryBuilder($this->pdo))
             ->from('tasks')
             ->insert($payload);
     }
 
-    public function taskIdByPublicId(string $taskPublicId): ?int
+    public function taskIdByPublicId(string $taskPublicId, ?int $organizationId = null): ?int
     {
-        $row = (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('tasks')
             ->select(['id'])
             ->where('public_id', '=', $taskPublicId)
-            ->whereNull('deleted_at')
-            ->first();
+            ->whereNull('deleted_at');
+        $this->applyOrganizationScope($qb, $organizationId, null, null);
+        $row = $qb->first();
         $id = $row['id'] ?? false;
 
         return $id !== false ? (int)$id : null;
     }
 
-    public function createRelation(array $payload): void
+    public function createRelation(array $payload, ?int $organizationId = null): void
     {
+        if ($organizationId !== null && $organizationId > 0) {
+            $parentId = (int)($payload['parent_task_id'] ?? 0);
+            $childId = (int)($payload['child_task_id'] ?? 0);
+            if ($parentId <= 0 || $childId <= 0 || !$this->sameOrganization($parentId, $childId, $organizationId)) {
+                throw new \InvalidArgumentException('Parent and child tasks must belong to the same organization');
+            }
+        }
         (new QueryBuilder($this->pdo))
             ->from('task_relations')
             ->insert($payload);
@@ -550,7 +563,7 @@ final class TaskRepository
         return max(0, (int)($row['max_sort_order'] ?? 0)) + 10;
     }
 
-    public function updateByPublicId(string $publicId, array $set, ?int $expectedRowVersion = null): bool
+    public function updateByPublicId(string $publicId, array $set, ?int $expectedRowVersion = null, ?int $organizationId = null): bool
     {
         if ($set === []) {
             return false;
@@ -561,6 +574,7 @@ final class TaskRepository
         $qb = (new QueryBuilder($this->pdo))
             ->from('tasks')
             ->where('public_id', '=', $publicId);
+        $this->applyOrganizationScope($qb, $organizationId, null, null);
 
         if ($expectedRowVersion !== null) {
             $qb->where('row_version', '=', $expectedRowVersion);
@@ -569,21 +583,22 @@ final class TaskRepository
         return $qb->update($set) > 0;
     }
 
-    public function projectIdByPublicId(string $projectPublicId): ?int
+    public function projectIdByPublicId(string $projectPublicId, ?int $organizationId = null): ?int
     {
-        $row = (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('projects')
             ->select(['id'])
-            ->where('public_id', '=', $projectPublicId)
-            ->first();
+            ->where('public_id', '=', $projectPublicId);
+        $this->applyProjectOrganizationScope($qb, $organizationId);
+        $row = $qb->first();
         $id = $row['id'] ?? false;
 
         return $id !== false ? (int)$id : null;
     }
 
-    public function findByTaskKey(string $taskKey): ?array
+    public function findByTaskKey(string $taskKey, ?int $organizationId = null): ?array
     {
-        return (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('tasks t')
             ->leftJoin('projects p', 'p.id', '=', 't.project_id')
             ->leftJoin('counterparties c', 'c.public_id', '=', 'p.client_public_id')
@@ -615,8 +630,9 @@ final class TaskRepository
                 'pm.public_id AS project_manager_user_public_id',
                 'pm.full_name AS project_manager_name',
             ])
-            ->where('t.task_key', '=', $taskKey)
-            ->first();
+            ->where('t.task_key', '=', $taskKey);
+        $this->applyOrganizationScope($qb, $organizationId, 't', 'p');
+        return $qb->first();
     }
 
     public function taskKeyExists(string $taskKey): bool
@@ -631,14 +647,15 @@ final class TaskRepository
         return $row !== null;
     }
 
-    public function taskIdByTaskKey(string $taskKey): ?int
+    public function taskIdByTaskKey(string $taskKey, ?int $organizationId = null): ?int
     {
-        $row = (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('tasks')
             ->select(['id'])
             ->where('task_key', '=', $taskKey)
-            ->whereNull('deleted_at')
-            ->first();
+            ->whereNull('deleted_at');
+        $this->applyOrganizationScope($qb, $organizationId, null, null);
+        $row = $qb->first();
         $id = $row['id'] ?? false;
 
         return $id !== false ? (int)$id : null;
@@ -651,13 +668,14 @@ final class TaskRepository
             ->insert($payload);
     }
 
-    public function softDeleteByPublicId(string $publicId, string $deletedAt): bool
+    public function softDeleteByPublicId(string $publicId, string $deletedAt, ?int $organizationId = null): bool
     {
-        return (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('tasks')
             ->where('public_id', '=', $publicId)
-            ->whereNull('deleted_at')
-            ->update([
+            ->whereNull('deleted_at');
+        $this->applyOrganizationScope($qb, $organizationId, null, null);
+        return $qb->update([
                 'deleted_at' => $deletedAt,
                 'updated_at' => $deletedAt,
                 'row_version' => new Expression('row_version + 1'),
@@ -805,7 +823,79 @@ final class TaskRepository
         ];
     }
 
-    private function buildListQuery(array $filters, ?int $actorUserId, bool $actorIsRoot, string $order = 'DESC', bool $rlsScoped = false): QueryBuilder
+    private function organizationIdFromFilters(array $filters): ?int
+    {
+        $id = isset($filters['organization_id']) ? (int)$filters['organization_id'] : 0;
+        return $id > 0 ? $id : null;
+    }
+
+    /** Apply tenant scope only when explicitly adopted by the caller. */
+    private function applyOrganizationScope(QueryBuilder $qb, ?int $organizationId, ?string $taskAlias = null, ?string $projectAlias = null): void
+    {
+        if ($organizationId === null || $organizationId <= 0) return;
+        if (!$this->hasOrganizationColumn('tasks') || !$this->hasOrganizationColumn('projects')) {
+            $qb->whereRaw('1 = 0');
+            return;
+        }
+        $taskColumn = $taskAlias !== null ? $taskAlias . '.organization_id' : 'organization_id';
+        $projectIdColumn = $projectAlias !== null ? $projectAlias . '.id' : 'project_id';
+        $projectOrgColumn = $projectAlias !== null ? $projectAlias . '.organization_id' : null;
+        $qb->where($taskColumn, '=', $organizationId);
+        if ($projectAlias !== null) {
+            $qb->whereRaw('(' . $projectIdColumn . ' IS NULL OR ' . $projectOrgColumn . ' = ?)', [$organizationId]);
+        }
+    }
+
+    private function applyProjectOrganizationScope(QueryBuilder $qb, ?int $organizationId): void
+    {
+        if ($organizationId === null || $organizationId <= 0) return;
+        if (!$this->hasOrganizationColumn('projects')) {
+            $qb->whereRaw('1 = 0');
+            return;
+        }
+        $qb->where('projects.organization_id', '=', $organizationId);
+    }
+
+    private function scopePayload(array &$payload, ?int $organizationId): void
+    {
+        if ($organizationId === null || $organizationId <= 0) return;
+        if (!$this->hasOrganizationColumn('tasks')) {
+            throw new \RuntimeException('Organization scope is unavailable for tasks');
+        }
+        $payload['organization_id'] = $organizationId;
+    }
+
+    private function sameOrganization(int $parentId, int $childId, int $organizationId): bool
+    {
+        if (!$this->hasOrganizationColumn('tasks')) return false;
+        $stmt = $this->pdo->prepare('SELECT organization_id FROM tasks WHERE id IN (?, ?) ORDER BY id');
+        $stmt->execute([$parentId, $childId]);
+        $values = array_map(static fn($row): ?int => isset($row['organization_id']) ? (int)$row['organization_id'] : null, $stmt->fetchAll(PDO::FETCH_ASSOC));
+        return count($values) === 2 && $values[0] === $organizationId && $values[1] === $organizationId;
+    }
+
+    private function hasOrganizationColumn(string $table): bool
+    {
+        static $columns = [];
+        if (array_key_exists($table, $columns)) return $columns[$table];
+        try {
+            $driver = (string)$this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+            if ($driver === 'sqlite') {
+                $stmt = $this->pdo->query('PRAGMA table_info(' . $table . ')');
+                foreach ($stmt?->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+                    if ((string)($row['name'] ?? '') === 'organization_id') return $columns[$table] = true;
+                }
+                return $columns[$table] = false;
+            }
+            $stmt = $this->pdo->prepare('SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = :table AND column_name = \'organization_id\' LIMIT 1');
+            $stmt->execute(['table' => $table]);
+            return $columns[$table] = $stmt->fetchColumn() !== false;
+        } catch (Throwable) {
+            return $columns[$table] = false;
+        }
+    }
+
+    private function buildListQuery(array $filters, ?int $actorUserId, bool $actorIsRoot, string $order = 'DESC', bool $rlsScoped = false, ?int $organizationId = null): QueryBuilder
     {
         $qb = (new QueryBuilder($this->pdo))
             ->from('tasks t')
@@ -813,6 +903,8 @@ final class TaskRepository
             ->leftJoin('teams pt', 'pt.public_id', '=', 'p.team_public_id')
             ->leftJoin('counterparties c', 'c.public_id', '=', 'p.client_public_id')
             ->leftJoin('counterparties tc', 'tc.public_id', '=', 't.client_public_id');
+
+        $this->applyOrganizationScope($qb, $organizationId, 't', 'p');
 
         // Задачи архивных проектов скрыты по умолчанию. Флаг вычисляется до
         // WHERE-секции: он нужен и подзапросу include_ancestors, чтобы

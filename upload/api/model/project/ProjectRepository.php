@@ -12,20 +12,23 @@ use PDO;
 final class ProjectRepository
 {
     private CursorCodec $cursorCodec;
+    /** @var array<string,bool> */
+    private array $organizationColumns = [];
 
     public function __construct(private readonly PDO $pdo)
     {
         $this->cursorCodec = new CursorCodec();
     }
 
-    public function list(array $filters, ?int $actorUserId = null, bool $actorIsRoot = false, bool $rlsScoped = false): array
+    public function list(array $filters, ?int $actorUserId = null, bool $actorIsRoot = false, bool $rlsScoped = false, ?int $organizationId = null): array
     {
         $limit = min(100, max(1, (int)($filters['limit'] ?? 20)));
         $sort = in_array(($filters['sort'] ?? ''), ['title', 'created_at', 'updated_at'], true) ? (string)$filters['sort'] : 'updated_at';
         $order = strtoupper((string)($filters['order'] ?? 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
         $paginationMode = (($filters['pagination_mode'] ?? '') === 'cursor' || !empty($filters['cursor'])) ? 'cursor' : 'offset';
 
-        $listBuilder = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $order, $rlsScoped);
+        $organizationId ??= $this->organizationIdFromFilters($filters);
+        $listBuilder = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $order, $rlsScoped, $organizationId);
         $listBuilder = $listBuilder
             ->select([
                 'p.public_id',
@@ -96,7 +99,7 @@ final class ProjectRepository
             ->offset($offset)
             ->get();
 
-        $countBuilder = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $order, $rlsScoped)
+        $countBuilder = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $order, $rlsScoped, $organizationId)
             ->select(['p.id']);
         $total = $countBuilder->count();
 
@@ -111,16 +114,17 @@ final class ProjectRepository
         ];
     }
 
-    public function create(array $payload): void
+    public function create(array $payload, ?int $organizationId = null): void
     {
+        $this->scopePayload($payload, $organizationId);
         (new QueryBuilder($this->pdo))
             ->from('projects')
             ->insert($payload);
     }
 
-    public function findByPublicId(string $publicId): ?array
+    public function findByPublicId(string $publicId, ?int $organizationId = null): ?array
     {
-        return (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('projects p')
             ->leftJoin('users mu', 'mu.id', '=', 'p.manager_user_id')
             ->leftJoin('users cu', 'cu.id', '=', 'p.created_by_user_id')
@@ -139,11 +143,12 @@ final class ProjectRepository
                 't.member_user_ids AS team_member_user_ids',
                 'c.title AS client_title',
             ])
-            ->where('p.public_id', '=', $publicId)
-            ->first();
+            ->where('p.public_id', '=', $publicId);
+        $this->applyOrganizationScope($qb, 'p', $organizationId);
+        return $qb->first();
     }
 
-    public function updateByPublicId(string $publicId, array $set, ?int $expectedRowVersion = null): bool
+    public function updateByPublicId(string $publicId, array $set, ?int $expectedRowVersion = null, ?int $organizationId = null): bool
     {
         if ($set === []) {
             return false;
@@ -154,6 +159,7 @@ final class ProjectRepository
         $qb = (new QueryBuilder($this->pdo))
             ->from('projects')
             ->where('public_id', '=', $publicId);
+        $this->applyOrganizationScope($qb, null, $organizationId);
 
         if ($expectedRowVersion !== null) {
             $qb->where('row_version', '=', $expectedRowVersion);
@@ -162,13 +168,14 @@ final class ProjectRepository
         return $qb->update($set) > 0;
     }
 
-    public function archiveByPublicId(string $publicId, string $archivedAt): bool
+    public function archiveByPublicId(string $publicId, string $archivedAt, ?int $organizationId = null): bool
     {
-        return (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('projects')
             ->where('public_id', '=', $publicId)
-            ->whereNull('archived_at')
-            ->update([
+            ->whereNull('archived_at');
+        $this->applyOrganizationScope($qb, null, $organizationId);
+        return $qb->update([
                 'archived_at' => $archivedAt,
                 'updated_at' => $archivedAt,
                 'row_version' => new Expression('row_version + 1'),
@@ -202,13 +209,14 @@ final class ProjectRepository
         return $row !== null;
     }
 
-    public function projectIdByPublicId(string $projectPublicId): ?int
+    public function projectIdByPublicId(string $projectPublicId, ?int $organizationId = null): ?int
     {
-        $row = (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('projects')
             ->select(['id'])
-            ->where('public_id', '=', $projectPublicId)
-            ->first();
+            ->where('public_id', '=', $projectPublicId);
+        $this->applyOrganizationScope($qb, null, $organizationId);
+        $row = $qb->first();
         $id = $row['id'] ?? false;
 
         return $id !== false ? (int)$id : null;
@@ -231,12 +239,13 @@ final class ProjectRepository
      *
      * @return array<string,mixed>|null
      */
-    public function findById(int $projectId): ?array
+    public function findById(int $projectId, ?int $organizationId = null): ?array
     {
-        return (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('projects')
-            ->where('id', '=', $projectId)
-            ->first();
+            ->where('id', '=', $projectId);
+        $this->applyOrganizationScope($qb, null, $organizationId);
+        return $qb->first();
     }
 
     /**
@@ -280,13 +289,15 @@ final class ProjectRepository
         return (int)$stmt->fetchColumn();
     }
 
-    private function buildListQuery(array $filters, ?int $actorUserId, bool $actorIsRoot, string $order = 'DESC', bool $rlsScoped = false): QueryBuilder
+    private function buildListQuery(array $filters, ?int $actorUserId, bool $actorIsRoot, string $order = 'DESC', bool $rlsScoped = false, ?int $organizationId = null): QueryBuilder
     {
         $qb = (new QueryBuilder($this->pdo))
             ->from('projects p')
             ->leftJoin('users mu', 'mu.id', '=', 'p.manager_user_id')
             ->leftJoin('teams t', 't.public_id', '=', 'p.team_public_id')
             ->leftJoin('counterparties c', 'c.public_id', '=', 'p.client_public_id');
+
+        $this->applyOrganizationScope($qb, 'p', $organizationId);
 
         if (($filters['archived'] ?? '0') !== '1') {
             $qb->whereNull('p.archived_at');
@@ -377,6 +388,53 @@ final class ProjectRepository
         }
 
         return $qb;
+    }
+
+    private function organizationIdFromFilters(array $filters): ?int
+    {
+        $id = isset($filters['organization_id']) ? (int)$filters['organization_id'] : 0;
+        return $id > 0 ? $id : null;
+    }
+
+    /** Apply an opt-in tenant predicate; null keeps pre-Organizations behavior. */
+    private function applyOrganizationScope(QueryBuilder $qb, ?string $alias, ?int $organizationId): void
+    {
+        if ($organizationId === null || $organizationId <= 0) return;
+        $column = $alias !== null ? $alias . '.organization_id' : 'organization_id';
+        if (!$this->hasOrganizationColumn('projects')) {
+            $qb->whereRaw('1 = 0');
+            return;
+        }
+        $qb->where($column, '=', $organizationId);
+    }
+
+    private function scopePayload(array &$payload, ?int $organizationId): void
+    {
+        if ($organizationId === null || $organizationId <= 0) return;
+        if (!$this->hasOrganizationColumn('projects')) {
+            throw new \RuntimeException('Organization scope is unavailable for projects');
+        }
+        $payload['organization_id'] = $organizationId;
+    }
+
+    private function hasOrganizationColumn(string $table): bool
+    {
+        if (array_key_exists($table, $this->organizationColumns)) return $this->organizationColumns[$table];
+        try {
+            $driver = (string)$this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+            if ($driver === 'sqlite') {
+                $stmt = $this->pdo->query('PRAGMA table_info(' . $table . ')');
+                foreach ($stmt?->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+                    if ((string)($row['name'] ?? '') === 'organization_id') return $this->organizationColumns[$table] = true;
+                }
+                return $this->organizationColumns[$table] = false;
+            }
+            $stmt = $this->pdo->prepare('SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = :table AND column_name = \'organization_id\' LIMIT 1');
+            $stmt->execute(['table' => $table]);
+            return $this->organizationColumns[$table] = $stmt->fetchColumn() !== false;
+        } catch (\Throwable) {
+            return $this->organizationColumns[$table] = false;
+        }
     }
 
     private function escapeLikeValue(string $value): string
