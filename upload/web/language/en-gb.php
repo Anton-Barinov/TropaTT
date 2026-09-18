@@ -7214,6 +7214,8 @@ return array (
   array (
     'card_ecommerce_gateway_desc' => 'Manage online stores, status mapping and the synchronisation log.',
     'card_ecommerce_gateway_title' => 'Storefront gateway',
+    'card_workspaces_desc' => 'Manage workspaces, members and access roles.',
+    'card_workspaces_title' => 'Workspaces',
     'active_state' => 'Active',
     'admin_user_fallback' => 'administrator',
     'all_systems_ok' => 'All systems are operational',

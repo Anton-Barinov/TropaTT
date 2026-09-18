@@ -4,6 +4,8 @@ return array (
   array (
     'card_ecommerce_gateway_desc' => 'Gerenciar lojas online, mapeamento de status e log de sincronização.',
     'card_ecommerce_gateway_title' => 'Gateway de vitrines',
+    'card_workspaces_desc' => 'Gerencie espaços de trabalho, membros e funções de acesso.',
+    'card_workspaces_title' => 'Espaços de trabalho',
     'active_state' => 'Active',
     'admin_user_fallback' => 'administrator',
     'all_systems_ok' => 'All systems are operational',

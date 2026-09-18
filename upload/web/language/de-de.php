@@ -4,6 +4,8 @@ return array (
   array (
     'card_ecommerce_gateway_desc' => 'Onlineshops verwalten, Statuszuordnung und Synchronisationsprotokoll.',
     'card_ecommerce_gateway_title' => 'Shop-Gateway',
+    'card_workspaces_desc' => 'Arbeitsbereiche, Mitglieder und Zugriffsrollen verwalten.',
+    'card_workspaces_title' => 'Arbeitsbereiche',
     'active_state' => 'Active',
     'admin_user_fallback' => 'administrator',
     'all_systems_ok' => 'All systems are operational',

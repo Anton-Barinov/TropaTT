@@ -7307,6 +7307,8 @@ return array (
   array (
     'card_ecommerce_gateway_desc' => '管理在线商店、状态映射与同步日志。',
     'card_ecommerce_gateway_title' => '店铺网关',
+    'card_workspaces_desc' => '管理工作区、成员和访问角色。',
+    'card_workspaces_title' => '工作区',
     'active_state' => 'Active',
     'admin_user_fallback' => 'administrator',
     'all_systems_ok' => 'All systems are operational',

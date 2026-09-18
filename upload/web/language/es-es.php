@@ -4,6 +4,8 @@ return array (
   array (
     'card_ecommerce_gateway_desc' => 'Gestión de tiendas online, mapeo de estados y registro de sincronización.',
     'card_ecommerce_gateway_title' => 'Pasarela de tiendas',
+    'card_workspaces_desc' => 'Gestiona espacios de trabajo, miembros y roles de acceso.',
+    'card_workspaces_title' => 'Espacios de trabajo',
     'active_state' => 'Active',
     'admin_user_fallback' => 'administrator',
     'all_systems_ok' => 'All systems are operational',

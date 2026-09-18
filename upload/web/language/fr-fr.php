@@ -4,6 +4,8 @@ return array (
   array (
     'card_ecommerce_gateway_desc' => 'Gérer les boutiques en ligne, la correspondance des statuts et le journal de synchronisation.',
     'card_ecommerce_gateway_title' => 'Passerelle des boutiques',
+    'card_workspaces_desc' => 'Gérez les espaces de travail, les membres et les rôles d’accès.',
+    'card_workspaces_title' => 'Espaces de travail',
     'active_state' => 'Active',
     'admin_user_fallback' => 'administrator',
     'all_systems_ok' => 'All systems are operational',

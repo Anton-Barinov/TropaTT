@@ -7315,6 +7315,8 @@ return array (
   array (
     'card_ecommerce_gateway_desc' => 'Управление интернет-магазинами, маппинг статусов и журнал синхронизации.',
     'card_ecommerce_gateway_title' => 'Шлюз витрин',
+    'card_workspaces_desc' => 'Управление рабочими пространствами, участниками и ролями доступа.',
+    'card_workspaces_title' => 'Рабочие пространства',
     'active_state' => 'Активен',
     'admin_user_fallback' => 'администратор',
     'all_systems_ok' => 'Все системы работают нормально',
