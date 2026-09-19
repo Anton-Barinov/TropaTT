@@ -28,7 +28,7 @@ final class OrganizationRepository implements OrganizationMembershipReader
                 'o.slug',
                 'o.created_at',
                 'o.updated_at',
-                '(SELECT COUNT(*) FROM organization_memberships om WHERE om.organization_id = o.id) AS members_count',
+                '(SELECT COUNT(*) FROM organization_memberships om JOIN users u ON u.id = om.user_id WHERE om.organization_id = o.id) AS members_count',
             ])
             ->orderBy('o.created_at', 'DESC')
             ->limit($limit)
@@ -170,8 +170,8 @@ final class OrganizationRepository implements OrganizationMembershipReader
             $query->whereRaw('(u.login LIKE ? OR u.email LIKE ? OR u.full_name LIKE ?)', [$term, $term, $term]);
         }
         return $query->orderBy('om.created_at', 'ASC')
-            ->limit(min(100, max(1, (int)($filters['limit'] ?? 100))))
-            ->offset(max(0, ((int)($filters['page'] ?? 1) - 1) * min(100, max(1, (int)($filters['limit'] ?? 100)))))
+            ->limit(min(500, max(1, (int)($filters['limit'] ?? 500))))
+            ->offset(max(0, ((int)($filters['page'] ?? 1) - 1) * min(500, max(1, (int)($filters['limit'] ?? 500)))))
             ->get();
     }
 
