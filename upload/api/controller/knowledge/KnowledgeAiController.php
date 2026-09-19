@@ -202,10 +202,11 @@ final class KnowledgeAiController extends BaseController
             $limit = max(1, min(20, (int)$this->request()->input('limit', 10)));
             /** @var AiSemanticIndexService $semanticIndex */
             $semanticIndex = $this->container->get('service.ai_semantic_index');
-            $result = $semanticIndex->search($text, $limit * 3);
+            $scopedActor = $this->organizationScopedActor($this->actor());
+            $result = $semanticIndex->search($text, $limit * 3, (string)($scopedActor['organization_public_id'] ?? '') ?: null);
             $items = [];
             $currentPublicId = (string)$params['public_id'];
-            $actor = $this->actor();
+            $actor = $scopedActor;
             foreach ((array)($result['items'] ?? []) as $item) {
                 if (!is_array($item)) {
                     continue;
@@ -588,9 +589,10 @@ final class KnowledgeAiController extends BaseController
             $limit = max(1, min(20, (int)$this->request()->input('limit', 10)));
             /** @var AiSemanticIndexService $semanticIndex */
             $semanticIndex = $this->container->get('service.ai_semantic_index');
-            $result = $semanticIndex->search($query, $limit * 3);
+            $scopedActor = $this->organizationScopedActor($this->actor());
+            $result = $semanticIndex->search($query, $limit * 3, (string)($scopedActor['organization_public_id'] ?? '') ?: null);
             $items = [];
-            $actor = $this->actor();
+            $actor = $scopedActor;
             foreach ((array)($result['items'] ?? []) as $item) {
                 if (!is_array($item)) {
                     continue;

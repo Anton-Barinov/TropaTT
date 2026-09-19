@@ -33,6 +33,9 @@ final class InsightsController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
 
         $input = $this->request()->allInput();
         $widget = strtolower(trim((string)($input['widget'] ?? '')));
@@ -47,7 +50,7 @@ final class InsightsController extends BaseController
 
         /** @var AnalyticsService $service */
         $service = $this->container->get('service.analytics');
-        $actor = $authUser['user'];
+        $actor = $this->organizationScopedActor((array)$authUser['user']);
 
         switch ($widget) {
             case 'tasks_actual_time':

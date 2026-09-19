@@ -5,6 +5,7 @@ window.CRM.api = (function () {
   var LEGACY_TOKEN_KEY = 'crm_api_access_token_v1';
   var LEGACY_USER_KEY = 'crm_api_user_v1';
   var LOCALE_KEY = 'crm_api_locale_v1';
+  var ORGANIZATION_CONTEXT_KEY = 'crm_active_organization_public_id_v1';
 
   window.CRM.theme = (function () {
     var STORAGE_KEY = 'crm_theme';
@@ -102,6 +103,33 @@ window.CRM.api = (function () {
     'admin-jobs': ['import.manage', 'export.manage', 'ai.admin', 'ai.view_cron_results', 'ai.manage_cron_jobs'],
     'admin-ai': ['ai.admin']
   };
+
+  function getOrganizationContext() {
+    try { return String(localStorage.getItem(ORGANIZATION_CONTEXT_KEY) || '').trim(); } catch (e) { return ''; }
+  }
+
+  function setOrganizationContext(publicId) {
+    var value = String(publicId || '').trim();
+    var previous = getOrganizationContext();
+    try {
+      if (value) localStorage.setItem(ORGANIZATION_CONTEXT_KEY, value);
+      else localStorage.removeItem(ORGANIZATION_CONTEXT_KEY);
+    } catch (e) {}
+    // Workspace is part of the data identity. Invalidate in-memory and
+    // session reference caches and notify already-mounted pages immediately;
+    // otherwise a request made before switching can be reused for the new
+    // workspace for the lifetime of its TTL.
+    if (previous !== value) {
+      Object.keys(referenceGetCache).forEach(function (key) { delete referenceGetCache[key]; });
+      try {
+        var event = new CustomEvent('crm:organization-changed', {
+          detail: { previous: previous, current: value }
+        });
+        window.dispatchEvent(event);
+      } catch (e) {}
+    }
+    return value;
+  }
 
   function normalizeLocaleCode(locale) {
     var value = String(locale || '').trim().toLowerCase().replace('_', '-');
@@ -735,7 +763,8 @@ window.CRM.api = (function () {
   }
 
   function referenceCacheKey(route, query) {
-    return buildUrl(route, query) + '|locale=' + getPreferredLocale() + '|auth_scope=' + authReferenceCacheScope();
+    return buildUrl(route, query) + '|locale=' + getPreferredLocale() + '|auth_scope=' + authReferenceCacheScope()
+      + '|organization=' + getOrganizationContext();
   }
 
   function referenceCacheStorageKey(cacheKey) {
@@ -848,7 +877,8 @@ window.CRM.api = (function () {
       && !opts.signal
       && !hasCustomHeaders;
     if (canDedupeGet) {
-      var dedupeKey = buildUrl(route, requestQuery) + '|locale=' + getPreferredLocale();
+      var dedupeKey = buildUrl(route, requestQuery) + '|locale=' + getPreferredLocale()
+        + '|organization=' + getOrganizationContext();
       if (inFlightGetRequests[dedupeKey]) {
         return inFlightGetRequests[dedupeKey];
       }
@@ -861,6 +891,10 @@ window.CRM.api = (function () {
 
     if (!headers['X-Locale'] && !headers['x-locale']) {
       headers['X-Locale'] = getPreferredLocale();
+    }
+    var organizationContext = getOrganizationContext();
+    if (organizationContext && !headers['X-Organization-Id'] && !headers['X-Organization-Public-Id'] && !headers['x-organization-id'] && !headers['x-organization-public-id']) {
+      headers['X-Organization-Id'] = organizationContext;
     }
 
     if (opts.noCache === true) {
@@ -1265,6 +1299,7 @@ window.CRM.api = (function () {
     TOKEN_KEY: LEGACY_TOKEN_KEY,
     USER_KEY: LEGACY_USER_KEY,
     LOCALE_KEY: LOCALE_KEY,
+    ORGANIZATION_CONTEXT_KEY: ORGANIZATION_CONTEXT_KEY,
     buildUrl: buildUrl,
     buildWebUrl: buildWebUrl,
     currentRoute: currentRoute,
@@ -1291,6 +1326,8 @@ window.CRM.api = (function () {
     clearAuth: clearAuth,
     setPreferredLocale: setPreferredLocale,
     getPreferredLocale: getPreferredLocale,
+    getOrganizationContext: getOrganizationContext,
+    setOrganizationContext: setOrganizationContext,
     getActiveImpersonation: getActiveImpersonation,
     activateImpersonationSession: activateImpersonationSession,
     restoreOriginalSessionAfterImpersonation: restoreOriginalSessionAfterImpersonation,

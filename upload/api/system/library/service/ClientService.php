@@ -68,7 +68,8 @@ final class ClientService
             }
         }
 
-        [$items, $total, $page, $limit] = $this->counterparties->list($filters, $typeFilter);
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        [$items, $total, $page, $limit] = $this->counterparties->list($filters, $typeFilter, $organizationId > 0 ? $organizationId : null);
 
         return [
             'items' => $items,

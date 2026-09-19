@@ -37,10 +37,18 @@ final class MigrationManager
             new AiAuthorTimestampCoverageMigration(),
             new AiSuggestionsInputHashMigration(),
             new AiSuggestionsCacheFreshnessMigration(),
+            new AiSuggestionsOrganizationScopeMigration(),
             new ImportExportJobsQueueRuntimeMigration(),
             new NotificationPushQueueRuntimeMigration(),
             new WebhookDeliveriesQueueRuntimeMigration(),
             new CrmEntityConsolidationMigration(),
+            new OrganizationScopeMigration(),
+            new OrganizationInvitationScopeMigration(),
+            new OrganizationRecycleBinScopeMigration(),
+            new OrganizationSecondaryScopeMigration(),
+            new OrganizationRateCardsScopeMigration(),
+            new OrganizationKnowledgeScopeMigration(),
+            new OrganizationIdeasScopeMigration(),
             new CoreUpdateSystemMigration(),
             new KnowledgeSpacesHierarchyMigration(),
             new RecurringProcessorMigration(),
@@ -50,11 +58,13 @@ final class MigrationManager
             new KnowledgeEntityLinkUniquenessMigration(),
             new KnowledgeCommentsRepairMigration(),
             new IntakeItemsMigration(),
+            new OrganizationCoverageMigration(),
             new TaskHumanReadableKeysMigration(),
             new TaskRelationsV2Migration(),
             new SavedViewsV2Migration(),
             new TaskActivityFeedMigration(),
             new WorkCyclesMigration(),
+            new OrganizationCycleScopeMigration(),
             new ProjectModulesMigration(),
             new KnowledgePageVersionsMigration(),
             new StickyNotesMigration(),
@@ -86,6 +96,8 @@ final class MigrationManager
             new TaskStatusClosureMigration(),
             new KnowledgePageVersionCounterBackfillMigration(),
             new ProjectTaskKeyPrefixBackfillMigration(),
+            new OrganizationFunctionalScopeMigration(),
+            new OrganizationDashboardWidgetScopeMigration(),
         ];
     }
 
@@ -137,11 +149,22 @@ final class MigrationManager
                 continue;
             }
 
+            $startedTransaction = false;
             try {
+                if (!$pdo->inTransaction()) {
+                    $pdo->beginTransaction();
+                    $startedTransaction = true;
+                }
                 $migration->up($pdo, $driver);
                 $this->markApplied($pdo, $migration);
+                if ($startedTransaction && $pdo->inTransaction()) {
+                    $pdo->commit();
+                }
                 $executed[] = $migration->key();
             } catch (\Throwable $e) {
+                if ($startedTransaction && $pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
                 // Log and rethrow: a failed migration must fail the update
                 // loudly so the updater never finalizes over a partially
                 // migrated database, and never silently retries the same

@@ -298,7 +298,7 @@ final class AiSuggestionController extends BaseController
 
         /** @var AiSuggestionService $service */
         $service = $this->container->get('service.ai_suggestion');
-        $result = $service->list($this->request()->allInput(), $auth['user']);
+        $result = $service->list($this->request()->allInput(), $this->organizationScopedActor((array)$auth['user']));
 
         return $this->success('AI_SUGGESTION_LIST', $this->t('ai/messages.suggestion_list'), [
             'items' => $result['items'],
@@ -507,7 +507,7 @@ final class AiSuggestionController extends BaseController
         return $this->withIdempotency(function () use ($auth, $serviceMethod): \Api\System\Library\Http\JsonResponse {
             /** @var AiSuggestionService $service */
             $service = $this->container->get('service.ai_suggestion');
-            $result = $service->{$serviceMethod}($this->request()->allInput(), $auth['user']);
+            $result = $service->{$serviceMethod}($this->request()->allInput(), $this->organizationScopedActor((array)$auth['user']));
             if (!(bool)($result['ok'] ?? false)) {
                 $code = $this->normalizeAiCode((string)($result['code'] ?? 'AI_SUGGESTION_CREATE_FAILED'));
                 $status = match ($code) {

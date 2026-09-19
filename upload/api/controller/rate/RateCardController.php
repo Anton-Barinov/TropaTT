@@ -18,6 +18,7 @@ final class RateCardController extends BaseController
 
     public function list(): \Api\System\Library\Http\JsonResponse
     {
+        if ($error = $this->rejectInvalidOrganizationContext()) return $error;
         $pdo = $this->container->get('db.pdo');
         $q = (new QueryBuilder($pdo))
             ->from('rate_cards c')
@@ -27,19 +28,22 @@ final class RateCardController extends BaseController
                 '(SELECT COUNT(*) FROM rate_card_lines l WHERE l.rate_card_id = c.id AND l.deleted_at IS NULL) AS line_count',
                 '(SELECT COUNT(*) FROM rate_card_assignments a WHERE a.rate_card_id = c.id AND a.deleted_at IS NULL) AS assignment_count',
             ])
-            ->where('c.deleted_at', 'IS', null)
-            ->orderBy('c.is_default', 'DESC')
+            ->where('c.deleted_at', 'IS', null);
+        $this->applyOrganizationScope($q, 'c.organization_id');
+        $q->orderBy('c.is_default', 'DESC')
             ->orderBy('c.title', 'ASC');
         return $this->success('RATE_CARD_LIST', '', ['items' => $q->get()]);
     }
 
     public function get(array $params): \Api\System\Library\Http\JsonResponse
     {
-        $card = (new QueryBuilder($this->container->get('db.pdo')))
+        if ($error = $this->rejectInvalidOrganizationContext()) return $error;
+        $cardQuery = (new QueryBuilder($this->container->get('db.pdo')))
             ->from('rate_cards')
             ->where('public_id', '=', (string)$params['public_id'])
-            ->where('deleted_at', 'IS', null)
-            ->first();
+            ->where('deleted_at', 'IS', null);
+        $this->applyOrganizationScope($cardQuery, 'organization_id');
+        $card = $cardQuery->first();
         if (!$card) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
         return $this->success('RATE_CARD', '', ['card' => $card]);
@@ -47,6 +51,7 @@ final class RateCardController extends BaseController
 
     public function create(): \Api\System\Library\Http\JsonResponse
     {
+        if ($error = $this->rejectInvalidOrganizationContext()) return $error;
         $input = $this->request()->allInput();
         $title = trim((string)($input['title'] ?? ''));
         if ($title === '') return $this->error('VALIDATION', $this->t('common/messages.validation_error'), 422);
@@ -54,6 +59,7 @@ final class RateCardController extends BaseController
         $pdo = $this->container->get('db.pdo');
         $now = gmdate('Y-m-d H:i:s');
         $publicId = Ulid::generate('rcd');
+        $organizationId = $this->organizationId();
 
         $pdo->beginTransaction();
         try {
@@ -62,6 +68,7 @@ final class RateCardController extends BaseController
             }
             (new QueryBuilder($pdo))->from('rate_cards')->insert([
                 'public_id' => $publicId,
+                'organization_id' => $organizationId,
                 'title' => $title,
                 'description' => $input['description'] ?? null,
                 'currency_code' => $input['currency_code'] ?? null,
@@ -82,11 +89,12 @@ final class RateCardController extends BaseController
 
     public function update(array $params): \Api\System\Library\Http\JsonResponse
     {
+        if ($error = $this->rejectInvalidOrganizationContext()) return $error;
         $pid = (string)$params['public_id'];
         $input = $this->request()->allInput();
         $pdo = $this->container->get('db.pdo');
 
-        $card = (new QueryBuilder($pdo))->from('rate_cards')->where('public_id', '=', $pid)->where('deleted_at', 'IS', null)->first();
+        $card = $this->findCard($pdo, $pid);
         if (!$card) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
         $set = ['updated_at' => gmdate('Y-m-d H:i:s')];
@@ -98,14 +106,18 @@ final class RateCardController extends BaseController
             try {
                 if (!empty($input['is_default'])) $this->clearDefaultCard($pdo);
                 $set['is_default'] = (int)(!empty($input['is_default']));
-                (new QueryBuilder($pdo))->from('rate_cards')->where('public_id', '=', $pid)->update($set);
+                $q = (new QueryBuilder($pdo))->from('rate_cards')->where('public_id', '=', $pid);
+                $this->applyOrganizationScope($q, 'organization_id');
+                $q->update($set);
                 $pdo->commit();
             } catch (\Throwable $e) {
                 if ($pdo->inTransaction()) { $pdo->rollBack(); }
                 throw $e;
             }
         } else {
-            (new QueryBuilder($pdo))->from('rate_cards')->where('public_id', '=', $pid)->update($set);
+            $q = (new QueryBuilder($pdo))->from('rate_cards')->where('public_id', '=', $pid);
+            $this->applyOrganizationScope($q, 'organization_id');
+            $q->update($set);
         }
 
         $this->invalidateCache('worklog');
@@ -114,19 +126,24 @@ final class RateCardController extends BaseController
 
     public function archive(array $params): \Api\System\Library\Http\JsonResponse
     {
+        if ($error = $this->rejectInvalidOrganizationContext()) return $error;
         $pid = (string)$params['public_id'];
         $pdo = $this->container->get('db.pdo');
-        $card = (new QueryBuilder($pdo))->from('rate_cards')->where('public_id', '=', $pid)->where('deleted_at', 'IS', null)->first();
+        $card = $this->findCard($pdo, $pid);
         if (!$card) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
         $now = gmdate('Y-m-d H:i:s');
 
         // Cascade soft-delete active assignments before archiving
-        (new QueryBuilder($pdo))->from('rate_card_assignments')
+        $assignments = (new QueryBuilder($pdo))->from('rate_card_assignments')
             ->where('rate_card_id', '=', (int)$card['id'])->where('deleted_at', 'IS', null)
-            ->update(['deleted_at' => $now, 'updated_at' => $now]);
+            ;
+        $this->applyOrganizationScope($assignments, 'organization_id');
+        $assignments->update(['deleted_at' => $now, 'updated_at' => $now]);
 
-        (new QueryBuilder($pdo))->from('rate_cards')->where('public_id', '=', $pid)->update([
+        $cardUpdate = (new QueryBuilder($pdo))->from('rate_cards')->where('public_id', '=', $pid);
+        $this->applyOrganizationScope($cardUpdate, 'organization_id');
+        $cardUpdate->update([
             'is_archived' => 1, 'updated_at' => $now,
         ]);
         $this->invalidateCache('worklog');
@@ -137,19 +154,20 @@ final class RateCardController extends BaseController
 
     public function listLines(array $params): \Api\System\Library\Http\JsonResponse
     {
-        $card = (new QueryBuilder($this->container->get('db.pdo')))->from('rate_cards')
-            ->where('public_id', '=', (string)$params['public_id'])->where('deleted_at', 'IS', null)->first();
+        if ($error = $this->rejectInvalidOrganizationContext()) return $error;
+        $card = $this->findCard($this->container->get('db.pdo'), (string)$params['public_id']);
         if (!$card) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
-        $lines = (new QueryBuilder($this->container->get('db.pdo')))->from('rate_card_lines l')
+        $linesQuery = (new QueryBuilder($this->container->get('db.pdo')))->from('rate_card_lines l')
             ->leftJoin('users u', 'u.id', '=', 'l.user_id')
             ->select(['l.public_id', 'l.user_id', 'u.public_id AS user_public_id', 'u.login', 'u.full_name', 'l.role_code',
                 'l.activity_code', 'l.cost_rate', 'l.bill_rate', 'l.payout_rate',
                 'l.currency_code', 'l.effective_from', 'l.effective_to', 'l.note'])
             ->where('l.rate_card_id', '=', (int)$card['id'])
             ->where('l.deleted_at', 'IS', null)
-            ->orderBy('l.effective_from', 'DESC')
-            ->get();
+            ->orderBy('l.effective_from', 'DESC');
+        $this->applyOrganizationScope($linesQuery, 'l.organization_id');
+        $lines = $linesQuery->get();
 
         // H-4: apply FinancialFieldPolicy — strip financial columns the actor
         // is not authorised to see (cost_rate/bill_rate/payout_rate).
@@ -166,9 +184,9 @@ final class RateCardController extends BaseController
 
     public function createLine(array $params): \Api\System\Library\Http\JsonResponse
     {
+        if ($error = $this->rejectInvalidOrganizationContext()) return $error;
         $pdo = $this->container->get('db.pdo');
-        $card = (new QueryBuilder($pdo))->from('rate_cards')
-            ->where('public_id', '=', (string)$params['public_id'])->where('deleted_at', 'IS', null)->first();
+        $card = $this->findCard($pdo, (string)$params['public_id']);
         if (!$card) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
         $input = $this->request()->allInput();
@@ -184,8 +202,10 @@ final class RateCardController extends BaseController
 
         $now = gmdate('Y-m-d H:i:s');
         $publicId = Ulid::generate('rcl');
+        $organizationId = $this->organizationId();
         (new QueryBuilder($pdo))->from('rate_card_lines')->insert([
             'public_id' => $publicId,
+            'organization_id' => $organizationId,
             'rate_card_id' => (int)$card['id'],
             'user_id' => $input['user_id'] ?? null,
             'role_code' => $input['role_code'] ?? null,
@@ -206,11 +226,14 @@ final class RateCardController extends BaseController
 
     public function updateLine(array $params): \Api\System\Library\Http\JsonResponse
     {
+        if ($error = $this->rejectInvalidOrganizationContext()) return $error;
         $pid = (string)$params['public_id'];
         $input = $this->request()->allInput();
         $input = $this->normalizeLineUserRef($input);
         $pdo = $this->container->get('db.pdo');
-        $line = (new QueryBuilder($pdo))->from('rate_card_lines')->where('public_id', '=', $pid)->first();
+        $lineQuery = (new QueryBuilder($pdo))->from('rate_card_lines')->where('public_id', '=', $pid);
+        $this->applyOrganizationScope($lineQuery, 'organization_id');
+        $line = $lineQuery->first();
         if (!$line) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
         $errKey = $this->lineValidationError(array_merge($line, $input), (int)$line['rate_card_id'], $pid);
@@ -223,19 +246,26 @@ final class RateCardController extends BaseController
             'currency_code','effective_from','effective_to','note'] as $f) {
             if (array_key_exists($f, $input)) $set[$f] = $input[$f];
         }
-        (new QueryBuilder($pdo))->from('rate_card_lines')->where('public_id', '=', $pid)->update($set);
+        $lineUpdate = (new QueryBuilder($pdo))->from('rate_card_lines')->where('public_id', '=', $pid);
+        $this->applyOrganizationScope($lineUpdate, 'organization_id');
+        $lineUpdate->update($set);
         $this->invalidateCache('worklog');
         return $this->success('LINE_UPDATED', '');
     }
 
     public function deleteLine(array $params): \Api\System\Library\Http\JsonResponse
     {
+        if ($error = $this->rejectInvalidOrganizationContext()) return $error;
         $pid = (string)$params['public_id'];
         $pdo = $this->container->get('db.pdo');
-        $line = (new QueryBuilder($pdo))->from('rate_card_lines')
-            ->where('public_id', '=', $pid)->where('deleted_at', 'IS', null)->first();
+        $lineQuery = (new QueryBuilder($pdo))->from('rate_card_lines')
+            ->where('public_id', '=', $pid)->where('deleted_at', 'IS', null);
+        $this->applyOrganizationScope($lineQuery, 'organization_id');
+        $line = $lineQuery->first();
         if (!$line) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
-        (new QueryBuilder($pdo))->from('rate_card_lines')->where('public_id', '=', $pid)->update([
+        $lineDelete = (new QueryBuilder($pdo))->from('rate_card_lines')->where('public_id', '=', $pid);
+        $this->applyOrganizationScope($lineDelete, 'organization_id');
+        $lineDelete->update([
             'deleted_at' => gmdate('Y-m-d H:i:s'),
             'updated_at' => gmdate('Y-m-d H:i:s'),
         ]);
@@ -247,22 +277,24 @@ final class RateCardController extends BaseController
 
     public function listAssignments(): \Api\System\Library\Http\JsonResponse
     {
-        $items = (new QueryBuilder($this->container->get('db.pdo')))->from('rate_card_assignments a')
+        if ($error = $this->rejectInvalidOrganizationContext()) return $error;
+        $itemsQuery = (new QueryBuilder($this->container->get('db.pdo')))->from('rate_card_assignments a')
             ->leftJoin('rate_cards c', 'c.id', '=', 'a.rate_card_id')
             ->select(['a.public_id', 'c.public_id AS card_public_id', 'c.title AS card_title',
                 'a.scope_type', 'a.scope_ref', 'a.priority', 'a.effective_from', 'a.effective_to'])
             ->where('a.deleted_at', 'IS', null)
-            ->orderBy('c.title', 'ASC')
-            ->get();
+            ->orderBy('c.title', 'ASC');
+        $this->applyOrganizationScope($itemsQuery, 'a.organization_id');
+        $items = $itemsQuery->get();
         return $this->success('ASSIGNMENTS', '', ['items' => $items]);
     }
 
     public function createAssignment(): \Api\System\Library\Http\JsonResponse
     {
+        if ($error = $this->rejectInvalidOrganizationContext()) return $error;
         $input = $this->request()->allInput();
         $pdo = $this->container->get('db.pdo');
-        $card = (new QueryBuilder($pdo))->from('rate_cards')
-            ->where('public_id', '=', (string)($input['rate_card_public_id'] ?? ''))->first();
+        $card = $this->findCard($pdo, (string)($input['rate_card_public_id'] ?? ''));
         if (!$card) return $this->error('CARD_NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
         $scope = (string)($input['scope_type'] ?? '');
@@ -283,8 +315,10 @@ final class RateCardController extends BaseController
 
         $now = gmdate('Y-m-d H:i:s');
         $publicId = Ulid::generate('rca');
+        $organizationId = $this->organizationId();
         (new QueryBuilder($pdo))->from('rate_card_assignments')->insert([
             'public_id' => $publicId,
+            'organization_id' => $organizationId,
             'rate_card_id' => (int)$card['id'],
             'scope_type' => $scope,
             'scope_ref' => $scopeRef,
@@ -301,12 +335,17 @@ final class RateCardController extends BaseController
 
     public function deleteAssignment(array $params): \Api\System\Library\Http\JsonResponse
     {
+        if ($error = $this->rejectInvalidOrganizationContext()) return $error;
         $pid = (string)$params['public_id'];
         $pdo = $this->container->get('db.pdo');
-        $assignment = (new QueryBuilder($pdo))->from('rate_card_assignments')
-            ->where('public_id', '=', $pid)->where('deleted_at', 'IS', null)->first();
+        $assignmentQuery = (new QueryBuilder($pdo))->from('rate_card_assignments')
+            ->where('public_id', '=', $pid)->where('deleted_at', 'IS', null);
+        $this->applyOrganizationScope($assignmentQuery, 'organization_id');
+        $assignment = $assignmentQuery->first();
         if (!$assignment) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
-        (new QueryBuilder($pdo))->from('rate_card_assignments')->where('public_id', '=', $pid)->update([
+        $assignmentDelete = (new QueryBuilder($pdo))->from('rate_card_assignments')->where('public_id', '=', $pid);
+        $this->applyOrganizationScope($assignmentDelete, 'organization_id');
+        $assignmentDelete->update([
             'deleted_at' => gmdate('Y-m-d H:i:s'),
             'updated_at' => gmdate('Y-m-d H:i:s'),
         ]);
@@ -318,7 +357,33 @@ final class RateCardController extends BaseController
 
     private function clearDefaultCard(\PDO $pdo): void
     {
-        (new QueryBuilder($pdo))->from('rate_cards')->where('is_default', '=', 1)->update(['is_default' => 0]);
+        $q = (new QueryBuilder($pdo))->from('rate_cards')->where('is_default', '=', 1);
+        $this->applyOrganizationScope($q, 'organization_id');
+        $q->update(['is_default' => 0]);
+    }
+
+    private function findCard(\PDO $pdo, string $publicId): ?array
+    {
+        $q = (new QueryBuilder($pdo))->from('rate_cards')
+            ->where('public_id', '=', $publicId)->where('deleted_at', 'IS', null);
+        $this->applyOrganizationScope($q, 'organization_id');
+        return $q->first();
+    }
+
+    private function organizationId(): ?int
+    {
+        $auth = $this->user();
+        $actor = $this->organizationScopedActor((array)($auth['user'] ?? []));
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
+    }
+
+    private function applyOrganizationScope(QueryBuilder $query, string $column): void
+    {
+        $id = $this->organizationId();
+        if ($id !== null) {
+            $query->where($column, '=', $id);
+        }
     }
 
     private function actorId(): ?int
@@ -342,6 +407,11 @@ final class RateCardController extends BaseController
             ->where('public_id', '=', $scopeRef)
             ->where('deleted_at', 'IS', null)
             ->first();
+        if ($row !== null) {
+            $scopeQuery = (new QueryBuilder($pdo))->from($table)->where('public_id', '=', $scopeRef)->where('deleted_at', 'IS', null);
+            $this->applyOrganizationScope($scopeQuery, 'organization_id');
+            $row = $scopeQuery->first();
+        }
         return $row !== null;
     }
 

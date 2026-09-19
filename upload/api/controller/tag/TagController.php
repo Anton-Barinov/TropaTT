@@ -21,16 +21,16 @@ final class TagController extends BaseController
         if ($cache !== null) {
             $input = $this->request()->allInput();
             ksort($input);
-            $cacheKey = 'list:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($input));
+            $cacheKey = 'list:' . $this->cacheUserId() . ':' . $this->organizationContextCacheKey() . ':' . hash('sha256', json_encode($input));
             $result = $cache->remember('tag', $cacheKey, 60, function () use ($input) {
                 /** @var TagService $service */
                 $service = $this->container->get('service.tag');
-                return $service->list($input);
+                return $service->list($input, (array)$auth['user']);
             });
         } else {
             /** @var TagService $service */
             $service = $this->container->get('service.tag');
-            $result = $service->list($this->request()->allInput());
+            $result = $service->list($this->request()->allInput(), (array)$auth['user']);
         }
 
         return $this->success('TAG_LIST', $this->t('tag/messages.list'), ['items' => $result['items']], meta: $result['meta']);

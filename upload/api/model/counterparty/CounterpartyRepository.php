@@ -12,7 +12,7 @@ final class CounterpartyRepository
     {
     }
 
-    public function list(array $filters, ?array $typeFilter = null): array
+    public function list(array $filters, ?array $typeFilter = null, ?int $organizationId = null): array
     {
         // Fail-closed scope: keep the -1 sentinel from accessScope() so an actor
         // without a valid id (id <= 0) matches nothing instead of widening to
@@ -26,8 +26,8 @@ final class CounterpartyRepository
         $limit = min(100, max(1, (int)($filters['limit'] ?? 20)));
         $offset = ($page - 1) * $limit;
 
-        $total = $this->buildListQuery($filters, $creatorIds, $typeFilter)->count();
-        $items = $this->buildListQuery($filters, $creatorIds, $typeFilter)
+        $total = $this->buildListQuery($filters, $creatorIds, $typeFilter, $organizationId)->count();
+        $items = $this->buildListQuery($filters, $creatorIds, $typeFilter, $organizationId)
             ->orderBy(...$this->resolveSorting($filters))
             ->orderBy('cp.id', 'DESC')
             ->limit($limit)
@@ -38,10 +38,11 @@ final class CounterpartyRepository
     }
 
     /** @param array<int,int> $creatorIds @param string[]|null $typeFilter */
-    private function buildListQuery(array $filters, array $creatorIds, ?array $typeFilter = null): QueryBuilder
+    private function buildListQuery(array $filters, array $creatorIds, ?array $typeFilter = null, ?int $organizationId = null): QueryBuilder
     {
         $query = (new QueryBuilder($this->pdo))
             ->from('counterparties cp');
+        if ($organizationId !== null && $organizationId > 0) $query->where('cp.organization_id', '=', $organizationId);
 
         if (!empty($filters['search'])) {
             $search = '%' . $this->escapeLikeValue((string)$filters['search']) . '%';
@@ -169,38 +170,42 @@ final class CounterpartyRepository
         return gmdate('Y-m-d H:i:s', $timestamp);
     }
 
-    public function findByPublicId(string $publicId): ?array
+    public function findByPublicId(string $publicId, ?int $organizationId = null): ?array
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('counterparties cp')
-            ->where('cp.public_id', '=', $publicId)
-            ->first();
+            ->where('cp.public_id', '=', $publicId);
+        if ($organizationId !== null && $organizationId > 0) $query->where('cp.organization_id', '=', $organizationId);
+        return $query->first();
     }
 
-    public function create(array $payload): void
+    public function create(array $payload, ?int $organizationId = null): void
     {
+        if ($organizationId !== null && $organizationId > 0) $payload['organization_id'] = $organizationId;
         (new QueryBuilder($this->pdo))
             ->from('counterparties')
             ->insert($payload);
     }
 
-    public function updateByPublicId(string $publicId, array $set): bool
+    public function updateByPublicId(string $publicId, array $set, ?int $organizationId = null): bool
     {
         if ($set === []) {
             return false;
         }
 
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('counterparties')
-            ->where('public_id', '=', $publicId)
-            ->update($set) > 0;
+            ->where('public_id', '=', $publicId);
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        return $query->update($set) > 0;
     }
 
-    public function deleteByPublicId(string $publicId): bool
+    public function deleteByPublicId(string $publicId, ?int $organizationId = null): bool
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('counterparties')
-            ->where('public_id', '=', $publicId)
-            ->delete() > 0;
+            ->where('public_id', '=', $publicId);
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        return $query->delete() > 0;
     }
 }

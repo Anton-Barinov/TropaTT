@@ -29,6 +29,10 @@ final class WorkflowService
 
     public function listRules(array $filters, array $actor): array
     {
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        if ($organizationId > 0) {
+            $filters['organization_id'] = $organizationId;
+        }
         $scope = $this->accessScope($actor);
         if ($scope['limit_to_creator_ids'] !== null) {
             $filters['created_by_user_ids'] = $scope['limit_to_creator_ids'];
@@ -62,6 +66,7 @@ final class WorkflowService
             'payload' => $this->encodePayload($input['payload'] ?? []),
             'is_enabled' => isset($input['is_enabled']) && (int)$input['is_enabled'] === 0 ? 0 : 1,
             'created_by_user_id' => (int)($actor['id'] ?? 0) ?: null,
+            'organization_id' => (int)($actor['organization_id'] ?? 0) ?: null,
             'created_at' => $now,
             'updated_at' => $now,
         ]);
@@ -168,6 +173,10 @@ final class WorkflowService
 
     public function listRuns(array $filters, array $actor): array
     {
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        if ($organizationId > 0) {
+            $filters['organization_id'] = $organizationId;
+        }
         $scope = $this->accessScope($actor);
         if ($scope['limit_to_creator_ids'] !== null) {
             $filters['created_by_user_ids'] = $scope['limit_to_creator_ids'];

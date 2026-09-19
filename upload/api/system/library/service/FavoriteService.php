@@ -21,10 +21,11 @@ final class FavoriteService
             }
         }
 
+        $filters['organization_id'] = (int)($actor['organization_id'] ?? 0);
         [$items, $total, $page, $limit] = $this->favorites->list(
             $filters,
             (int)($actor['id'] ?? 0),
-            (bool)($actor['is_root'] ?? false)
+            ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0)
         );
 
         return [
@@ -49,7 +50,7 @@ final class FavoriteService
             return 'FORBIDDEN';
         }
 
-        return $this->favorites->create($entityType, $entityPublicId, (int)($actor['id'] ?? 0));
+        return $this->favorites->create($entityType, $entityPublicId, (int)($actor['id'] ?? 0), (int)($actor['organization_id'] ?? 0) ?: null);
     }
 
     public function delete(string $publicId, array $actor): bool|string
@@ -59,7 +60,7 @@ final class FavoriteService
             return false;
         }
 
-        $isRoot = (bool)($actor['is_root'] ?? false);
+        $isRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
         if (!$isRoot && (int)($item['user_id'] ?? 0) !== (int)($actor['id'] ?? 0)) {
             return 'FORBIDDEN';
         }

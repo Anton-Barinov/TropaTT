@@ -400,6 +400,7 @@ return [
             'crm_delete_organization',
             'crm_list_organization_members',
             'crm_add_organization_member',
+            'crm_update_organization_member_role',
             'crm_remove_organization_member',
             // Invitations
             'crm_list_invitations',

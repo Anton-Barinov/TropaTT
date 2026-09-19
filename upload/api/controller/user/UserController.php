@@ -15,6 +15,16 @@ final class UserController extends BaseController
     {
         $input = $this->request()->allInput();
 
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $actor = $this->user()['user'] ?? [];
+        $scopedActor = $this->organizationScopedActor((array)$actor);
+        if (!empty($scopedActor['organization_id'])) {
+            $input['organization_id'] = (int)$scopedActor['organization_id'];
+        }
+
         // SEC-004: Non-root users should only see their own team members
         $auth = $this->user();
         if ($auth && !(bool)($auth['user']['is_root'] ?? false)) {
@@ -24,7 +34,7 @@ final class UserController extends BaseController
         $cache = $this->cacheApi();
         if ($cache !== null) {
             ksort($input);
-            $cacheKey = 'list:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($input));
+            $cacheKey = 'list:' . $this->cacheUserId() . ':' . $this->organizationContextCacheKey() . ':' . hash('sha256', json_encode($input));
             $result = $cache->remember('user', $cacheKey, 60, function () use ($input) {
                 /** @var UserService $service */
                 $service = $this->container->get('service.user');
@@ -71,6 +81,9 @@ final class UserController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+        $scopedActor = $this->organizationScopedActor((array)$auth['user']);
 
         // `is_active` belongs here as much as it belongs to update(): a caller who
         // asks for an inactive account must not silently receive an active one —
@@ -97,10 +110,23 @@ final class UserController extends BaseController
 
         /** @var UserService $service */
         $service = $this->container->get('service.user');
-        $result = $service->create($input, $auth['user']);
+        $result = $service->create($input, $scopedActor);
 
         if (!$result['ok']) {
             return $this->error((string)$result['code'], $this->t('user/messages.create_failed'), 403, ['user' => [(string)$result['code']]]);
+        }
+
+        // A user created from an active workspace must immediately belong to
+        // that workspace. Without this membership the account was created in
+        // the global users table but remained invisible to the workspace.
+        if (!empty($scopedActor['organization_public_id']) && !empty($result['user']['public_id'])) {
+            $organizationService = $this->container->get('service.organization');
+            $organizationService->addMember(
+                (string)$scopedActor['organization_public_id'],
+                (string)$result['user']['public_id'],
+                'member',
+                array_merge($scopedActor, ['request_id' => $this->request()->requestId])
+            );
         }
 
         // SEC-002: Financial fields (cost_rate/bill_rate) are root-only data.

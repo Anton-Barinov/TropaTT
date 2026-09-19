@@ -58,12 +58,16 @@ final class RecycleBinRepository
             $query->where('rb.entity_public_id', '=', (string)$filters['entity_public_id']);
         }
 
+        if (isset($filters['organization_id']) && (int)$filters['organization_id'] > 0) {
+            $query->where('rb.organization_id', '=', (int)$filters['organization_id']);
+        }
+
         return $query;
     }
 
-    public function findByPublicId(string $publicId): ?array
+    public function findByPublicId(string $publicId, ?int $organizationId = null): ?array
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('recycle_bin rb')
             ->leftJoin('users u', 'u.id', '=', 'rb.deleted_by_user_id')
             ->select([
@@ -78,42 +82,57 @@ final class RecycleBinRepository
                 'u.login AS deleted_by_login',
                 'u.full_name AS deleted_by_full_name',
             ])
-            ->where('rb.public_id', '=', $publicId)
-            ->first();
+            ->where('rb.public_id', '=', $publicId);
+        if ($organizationId !== null && $organizationId > 0) {
+            $query->where('rb.organization_id', '=', $organizationId);
+        }
+        return $query->first();
     }
 
-    public function findActiveByEntity(string $entityType, string $entityPublicId): ?array
+    public function findActiveByEntity(string $entityType, string $entityPublicId, ?int $organizationId = null): ?array
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('recycle_bin')
             ->select(['id', 'public_id', 'entity_type', 'entity_public_id', 'payload', 'deleted_at', 'restored_at'])
             ->where('entity_type', '=', $entityType)
             ->where('entity_public_id', '=', $entityPublicId)
-            ->whereNull('restored_at')
-            ->first();
+            ->whereNull('restored_at');
+        if ($organizationId !== null && $organizationId > 0) {
+            $query->where('organization_id', '=', $organizationId);
+        }
+        return $query->first();
     }
 
-    public function create(array $payload): void
+    public function create(array $payload, ?int $organizationId = null): void
     {
+        if ($organizationId !== null && $organizationId > 0) {
+            $payload['organization_id'] = $organizationId;
+        }
         (new QueryBuilder($this->pdo))
             ->from('recycle_bin')
             ->insert($payload);
     }
 
-    public function markRestoredByPublicId(string $publicId, string $restoredAt): bool
+    public function markRestoredByPublicId(string $publicId, string $restoredAt, ?int $organizationId = null): bool
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('recycle_bin')
             ->where('public_id', '=', $publicId)
-            ->whereNull('restored_at')
-            ->update(['restored_at' => $restoredAt]) > 0;
+            ->whereNull('restored_at');
+        if ($organizationId !== null && $organizationId > 0) {
+            $query->where('organization_id', '=', $organizationId);
+        }
+        return $query->update(['restored_at' => $restoredAt]) > 0;
     }
 
-    public function deleteByPublicId(string $publicId): bool
+    public function deleteByPublicId(string $publicId, ?int $organizationId = null): bool
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('recycle_bin')
-            ->where('public_id', '=', $publicId)
-            ->delete() > 0;
+            ->where('public_id', '=', $publicId);
+        if ($organizationId !== null && $organizationId > 0) {
+            $query->where('organization_id', '=', $organizationId);
+        }
+        return $query->delete() > 0;
     }
 }

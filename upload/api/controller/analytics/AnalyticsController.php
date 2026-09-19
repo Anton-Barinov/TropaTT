@@ -18,9 +18,13 @@ final class AnalyticsController extends BaseController
         // Analytics aggregates are authorization-sensitive. Do not serve a
         // stale file-cache entry after role, team membership, or hierarchy
         // changes; the service applies the current actor scope on every call.
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
         /** @var AnalyticsService $service */
         $service = $this->container->get('service.analytics');
-        $summary = $service->summary($authUser['user']);
+        $actor = $this->organizationScopedActor((array)$authUser['user']);
+        $summary = $service->summary($actor);
 
         return $this->success('ANALYTICS_SUMMARY', $this->t('analytics/messages.summary'), [
             'summary' => $summary,
@@ -36,9 +40,13 @@ final class AnalyticsController extends BaseController
 
         // Keep the current authorization scope authoritative for every request.
         // In particular, a team or role change must not wait for a cache TTL.
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
         /** @var AnalyticsService $service */
         $service = $this->container->get('service.analytics');
-        $items = $service->projects($authUser['user'], $this->request()->allInput());
+        $actor = $this->organizationScopedActor((array)$authUser['user']);
+        $items = $service->projects($actor, $this->request()->allInput());
 
         return $this->success('ANALYTICS_PROJECTS', $this->t('analytics/messages.projects'), [
             'items' => $items,
@@ -54,9 +62,13 @@ final class AnalyticsController extends BaseController
 
         // User workload is also object-scoped and must be recalculated after
         // hierarchy/team changes instead of being served from a stale cache.
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
         /** @var AnalyticsService $service */
         $service = $this->container->get('service.analytics');
-        $items = $service->users($authUser['user'], $this->request()->allInput());
+        $actor = $this->organizationScopedActor((array)$authUser['user']);
+        $items = $service->users($actor, $this->request()->allInput());
 
         return $this->success('ANALYTICS_USERS', $this->t('analytics/messages.users'), [
             'items' => $items,

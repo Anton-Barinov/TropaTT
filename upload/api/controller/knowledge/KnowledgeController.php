@@ -25,7 +25,15 @@ final class KnowledgeController extends BaseController
     private function actor(): array
     {
         $auth = $this->user();
-        return is_array($auth['user'] ?? null) ? $auth['user'] : [];
+        $actor = is_array($auth['user'] ?? null) ? $auth['user'] : [];
+        $scoped = $this->organizationScopedActor($actor);
+        if ($this->container->has('service.organization_context')) {
+            $resolved = $this->container->get('service.organization_context')->resolve($this->request(), $actor);
+            if (($resolved['status'] ?? '') === 'forbidden') {
+                $scoped['organization_id'] = -1;
+            }
+        }
+        return $scoped;
     }
 
     private function actorUserId(): int
@@ -124,7 +132,7 @@ final class KnowledgeController extends BaseController
         $actor = $this->actor();
         $cache = $this->cacheApi();
         if ($cache !== null) {
-            $cacheUser = (string)($actor['public_id'] ?? $this->cacheUserId());
+            $cacheUser = (string)($actor['public_id'] ?? $this->cacheUserId()) . ':' . (string)($actor['organization_id'] ?? 'all');
             $data = $cache->remember('knowledge', 'overview:' . $cacheUser, 60, fn(): array => $this->repo()->overview($this->request()->allInput(), $actor));
         } else {
             $data = $this->repo()->overview($this->request()->allInput(), $actor);
@@ -457,7 +465,7 @@ final class KnowledgeController extends BaseController
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
         $auth = $this->user();
-        $this->repo()->recordView((string)$params['public_id'], $this->actorUserId() ?: null, (string)$this->request()->input('source', 'direct'));
+        $this->repo()->recordView((string)$params['public_id'], $this->actorUserId() ?: null, (string)$this->request()->input('source', 'direct'), $this->actor());
         return $this->success('KNOWLEDGE_PAGE_DETAIL', $this->t('knowledge/messages.page_detail', 'Knowledge page loaded'), [
             'page' => $page,
             'links' => $this->visibleLinks((string)$params['public_id']),
@@ -1759,7 +1767,9 @@ final class KnowledgeController extends BaseController
             'status' => trim((string)($page['status'] ?? 'published')),
         ];
         try {
-            $this->container->get('service.ai_semantic_index')->indexEntityDocument('knowledge', $publicId, $combined, $meta);
+            $scopedActor = $this->organizationScopedActor((array)($this->user()['user'] ?? []));
+            $organizationPublicId = trim((string)($scopedActor['organization_public_id'] ?? '')) ?: null;
+            $this->container->get('service.ai_semantic_index')->indexEntityDocument('knowledge', $publicId, $combined, $meta, $organizationPublicId);
         } catch (\Throwable $e) {
             // Indexing failure is non-critical
         }

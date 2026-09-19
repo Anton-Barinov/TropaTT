@@ -20,6 +20,7 @@ return [
     'crm_add_members_to_project_module' => ['mode' => 'all', 'permissions' => ['project.manage']],
     'crm_add_mention' => ['mode' => 'any', 'permissions' => ['task.manage', 'project.manage']],
     'crm_add_organization_member' => ['mode' => 'all', 'permissions' => ['organization.manage']],
+    'crm_update_organization_member_role' => ['mode' => 'all', 'permissions' => ['organization.manage']],
     'crm_add_project_module_link' => ['mode' => 'all', 'permissions' => ['project.manage']],
     'crm_add_reaction' => ['mode' => 'self', 'permissions' => []],
     'crm_add_task_comment' => ['mode' => 'all', 'permissions' => ['task.manage']],

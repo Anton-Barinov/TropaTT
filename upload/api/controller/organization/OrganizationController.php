@@ -10,6 +10,18 @@ use Api\System\Library\Validation\Validator;
 
 final class OrganizationController extends BaseController
 {
+    public function available(): \Api\System\Library\Http\JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
+        /** @var OrganizationService $service */
+        $result = $this->container->get('service.organization')->availableForActor($auth['user']);
+        return $this->success('ORGANIZATION_AVAILABLE_LIST', $this->t('organization/messages.available', 'Доступные рабочие пространства'), ['items' => $result['items'], 'is_root' => $result['is_root']]);
+    }
+
     public function list(): \Api\System\Library\Http\JsonResponse
     {
         $auth = $this->user();
@@ -131,7 +143,7 @@ final class OrganizationController extends BaseController
 
         /** @var OrganizationService $service */
         $service = $this->container->get('service.organization');
-        $items = $service->listMembers((string)$params['public_id'], $auth['user']);
+        $items = $service->listMembers((string)$params['public_id'], $auth['user'], $this->request()->allInput());
         if ($items === null) {
             return $this->error('ORGANIZATION_NOT_FOUND', $this->t('organization/messages.not_found'), 404, ['organization' => [$this->t('organization/messages.not_found')]]);
         }
@@ -158,12 +170,33 @@ final class OrganizationController extends BaseController
 
         /** @var OrganizationService $service */
         $service = $this->container->get('service.organization');
-        $ok = $service->addMember((string)$params['public_id'], (string)$input['user_public_id'], $roleCode, $auth['user']);
+        $actor = array_merge($auth['user'], ['request_id' => $this->request()->requestId]);
+        $ok = $service->addMember((string)$params['public_id'], (string)$input['user_public_id'], $roleCode, $actor);
         if (!$ok) {
-            return $this->error('ORGANIZATION_MEMBER_UPSERT_FAILED', $this->t('organization/messages.member_upsert_failed'), 422, ['organization' => [$this->t('organization/messages.member_upsert_failed')]]);
+            $code = $service->memberError();
+            return $this->error($code, $this->t('organization/messages.' . strtolower($code), $this->t('organization/messages.member_upsert_failed')), 422, ['organization' => [$code]]);
         }
 
         return $this->success('ORGANIZATION_MEMBER_UPSERTED', $this->t('organization/messages.member_upserted'));
+    }
+
+    public function updateMemberRole(array $params): \Api\System\Library\Http\JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        $input = $this->request()->allInput();
+        $v = new Validator();
+        $v->enum($input, 'role_code', ['owner', 'admin', 'member'], $this->t('organization/messages.invalid_role'));
+        if ($v->fails()) return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $v->errors());
+        /** @var OrganizationService $service */
+        $service = $this->container->get('service.organization');
+        $actor = array_merge($auth['user'], ['request_id' => $this->request()->requestId]);
+        $ok = $service->updateMemberRole((string)$params['public_id'], (string)$params['user_public_id'], (string)$input['role_code'], $actor);
+        if (!$ok) {
+            $code = $service->memberError();
+            return $this->error($code, $this->t('organization/messages.' . strtolower($code), $this->t('organization/messages.member_role_update_failed')), 422, ['member' => [$code]]);
+        }
+        return $this->success('ORGANIZATION_MEMBER_ROLE_UPDATED', $this->t('organization/messages.member_role_updated'));
     }
 
     public function removeMember(array $params): \Api\System\Library\Http\JsonResponse
@@ -175,11 +208,54 @@ final class OrganizationController extends BaseController
 
         /** @var OrganizationService $service */
         $service = $this->container->get('service.organization');
-        $ok = $service->removeMember((string)$params['public_id'], (string)$params['user_public_id'], $auth['user']);
+        $actor = array_merge($auth['user'], ['request_id' => $this->request()->requestId]);
+        $ok = $service->removeMember((string)$params['public_id'], (string)$params['user_public_id'], $actor);
         if (!$ok) {
-            return $this->error('ORGANIZATION_MEMBER_REMOVE_FAILED', $this->t('organization/messages.member_remove_failed'), 422, ['organization' => [$this->t('organization/messages.member_remove_failed')]]);
+            $code = $service->memberError();
+            return $this->error($code, $this->t('organization/messages.' . strtolower($code), $this->t('organization/messages.member_remove_failed')), 422, ['organization' => [$code]]);
         }
 
         return $this->success('ORGANIZATION_MEMBER_REMOVED', $this->t('organization/messages.member_removed'));
+    }
+
+    public function listInvitations(array $params): \Api\System\Library\Http\JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        /** @var \Api\System\Library\Service\InvitationService $service */
+        $result = $this->container->get('service.invitation')->listForOrganization((string)$params['public_id'], $this->request()->allInput(), $auth['user']);
+        if (!(bool)($result['ok'] ?? false)) return $this->error((string)$result['code'], $this->t('organization/messages.invitation_list_failed'), 403);
+        return $this->success('ORGANIZATION_INVITATION_LIST', $this->t('organization/messages.invitation_list'), ['items' => $result['items']], meta: $result['meta']);
+    }
+
+    public function createInvitation(array $params): \Api\System\Library\Http\JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        $input = $this->request()->allInput();
+        $v = new Validator();
+        $v->require($input, 'email', $this->t('common/messages.field_required'))->maxLen($input, 'email', 190, $this->t('organization/messages.max_190'));
+        if ($v->fails() || !filter_var(trim((string)($input['email'] ?? '')), FILTER_VALIDATE_EMAIL)) return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $v->errors());
+        $result = $this->container->get('service.invitation')->createForOrganization((string)$params['public_id'], $input, $auth['user']);
+        if (!(bool)($result['ok'] ?? false)) return $this->error((string)$result['code'], $this->t('organization/messages.invitation_create_failed'), 409);
+        return $this->success('ORGANIZATION_INVITATION_CREATED', $this->t('organization/messages.invitation_created'), ['invitation' => $result['invitation'], 'accept_token' => $result['accept_token']], 201);
+    }
+
+    public function revokeInvitation(array $params): \Api\System\Library\Http\JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        $result = $this->container->get('service.invitation')->revokeForOrganization((string)$params['public_id'], (string)$params['invitation_public_id'], $auth['user']);
+        if (!(bool)($result['ok'] ?? false)) return $this->error((string)$result['code'], $this->t('organization/messages.invitation_revoke_failed'), 422);
+        return $this->success('ORGANIZATION_INVITATION_REVOKED', $this->t('organization/messages.invitation_revoked'));
+    }
+
+    public function resendInvitation(array $params): \Api\System\Library\Http\JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        $result = $this->container->get('service.invitation')->resendForOrganization((string)$params['public_id'], (string)$params['invitation_public_id'], $auth['user']);
+        if (!(bool)($result['ok'] ?? false)) return $this->error((string)$result['code'], $this->t('organization/messages.invitation_resend_failed'), 422);
+        return $this->success('ORGANIZATION_INVITATION_RESENT', $this->t('organization/messages.invitation_resent'), ['invitation' => $result['invitation'], 'accept_token' => $result['accept_token']]);
     }
 }

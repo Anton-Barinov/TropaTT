@@ -19,7 +19,7 @@ final class UserManagementRepository
         $offset = ($page - 1) * $limit;
 
         $items = $this->buildListQuery($filters)
-            ->select(['id', 'public_id', 'login', 'email', 'full_name', 'locale', 'is_active', 'is_root', 'cost_rate', 'bill_rate', 'payout_rate', 'created_by_user_id', 'created_at', 'updated_at'])
+            ->select(['users.id', 'users.public_id', 'users.login', 'users.email', 'users.full_name', 'users.locale', 'users.is_active', 'users.is_root', 'users.cost_rate', 'users.bill_rate', 'users.payout_rate', 'users.created_by_user_id', 'users.created_at', 'users.updated_at'])
             ->orderBy('created_at', 'DESC')
             ->limit($limit)
             ->offset($offset)
@@ -191,11 +191,33 @@ final class UserManagementRepository
         return array_map('intval', array_keys($result));
     }
 
+    /** @return int[] */
+    public function organizationMemberIds(int $organizationId): array
+    {
+        if ($organizationId <= 0) {
+            return [];
+        }
+        $rows = (new QueryBuilder($this->pdo))
+            ->from('users u')
+            ->join('organization_memberships om', 'om.user_id', '=', 'u.id')
+            ->select(['u.id'])
+            ->where('om.organization_id', '=', $organizationId)
+            ->whereNull('u.deleted_at')
+            ->get();
+        return array_values(array_unique(array_map(static fn(array $row): int => (int)$row['id'], $rows)));
+    }
+
     private function buildListQuery(array $filters): QueryBuilder
     {
         $qb = (new QueryBuilder($this->pdo))
             ->from('users')
             ->whereNull('deleted_at');
+
+        $organizationId = (int)($filters['organization_id'] ?? 0);
+        if ($organizationId > 0) {
+            $qb->join('organization_memberships om', 'om.user_id', '=', 'users.id')
+                ->where('om.organization_id', '=', $organizationId);
+        }
 
         if (!empty($filters['search'])) {
             $term = '%' . $this->escapeLikeValue((string)$filters['search']) . '%';

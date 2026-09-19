@@ -29,24 +29,27 @@ final class IdeaService
     }
 
     /** @return array<string,mixed>|null */
-    public function getByPublicId(string $publicId): ?array
+    public function getByPublicId(string $publicId, ?int $organizationId = null): ?array
     {
+        $scope = $organizationId !== null ? ' AND i.organization_id = :organization_id' : '';
         $stmt = $this->pdo()->prepare(
             "SELECT i.*, u.full_name AS author_name, u.login AS author_login, u.public_id AS author_public_id,
                 (SELECT COUNT(*) FROM comments c WHERE c.entity_type = 'idea' AND c.entity_public_id = i.public_id) AS comment_count
              FROM ideas i
              LEFT JOIN users u ON u.id = i.author_user_id
-             WHERE i.public_id = :pid"
+             WHERE i.public_id = :pid{$scope}"
         );
-        $stmt->execute(['pid' => $publicId]);
+        $params = ['pid' => $publicId];
+        if ($organizationId !== null) $params['organization_id'] = $organizationId;
+        $stmt->execute($params);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
     }
 
     /** @return array<string,mixed>|null */
-    public function get(string $publicId): ?array
+    public function get(string $publicId, ?int $organizationId = null): ?array
     {
-        return $this->getByPublicId($publicId);
+        return $this->getByPublicId($publicId, $organizationId);
     }
 
     public function getById(int $id): ?array
@@ -66,6 +69,10 @@ final class IdeaService
 
         $where = [];
         $params = [];
+        if (isset($filters['organization_id']) && (int)$filters['organization_id'] > 0) {
+            $where[] = 'i.organization_id = :organization_id';
+            $params['organization_id'] = (int)$filters['organization_id'];
+        }
         if ($status !== '') { $where[] = 'status = :status'; $params['status'] = $status; }
         $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 

@@ -359,6 +359,37 @@ $footerUpdateBadgeTemplate = $footerT('update_available_badge', 'Update {version
   </div>
 </div>
 
+<script nonce="<?= $csp_nonce ?>">
+(function () {
+  /* Responsive table cards reuse the server-rendered header text. This keeps
+   * labels localized and prevents the mobile renderer from duplicating every
+   * page's column names in CSS. */
+  function labelResponsiveTables() {
+    if (!document.body || window.innerWidth > 767) return;
+    var page = document.body.getAttribute('data-page') || '';
+    var pages = ['mentions', 'admin-jobs', 'admin-logs', 'admin-updates', 'admin-webhooks', 'admin-api-clients', 'time-analytics', 'admin-modules', 'admin-tags'];
+    var tables = pages.indexOf(page) !== -1 ? document.querySelectorAll('.crm-table') : [];
+    if (page === 'admin') tables = document.querySelectorAll('.crm-has-hscroll .crm-table');
+    if (!tables.length) return;
+    Array.prototype.forEach.call(tables, function (table) {
+      var headers = Array.prototype.map.call(table.querySelectorAll('thead th'), function (th) {
+        return String(th.textContent || '').replace(/\s+/g, ' ').trim();
+      });
+      table.querySelectorAll('tbody tr').forEach(function (row) {
+        row.querySelectorAll('td').forEach(function (cell, index) {
+          if (!cell.hasAttribute('data-label') && !cell.hasAttribute('colspan')) {
+            cell.setAttribute('data-label', headers[index] || '');
+          }
+        });
+      });
+    });
+  }
+  labelResponsiveTables();
+  window.addEventListener('resize', labelResponsiveTables, { passive: true });
+  document.addEventListener('crm:table-rendered', labelResponsiveTables);
+})();
+</script>
+
 <div class="modal fade" id="crmConfirmModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-sm">
     <div class="modal-content">

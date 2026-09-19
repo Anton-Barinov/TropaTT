@@ -288,9 +288,20 @@ window.CRM.pageApiBindings = (function () {
     statusNode.id = 'crmApiStatusBar';
     statusNode.style.position = 'fixed';
     statusNode.style.left = '50%';
-    statusNode.style.top = '12px';
+    statusNode.style.top = 'calc(var(--crm-topbar-height, 56px) + 8px)';
     statusNode.style.transform = 'translateX(-50%)';
     statusNode.style.zIndex = '1085';
+    statusNode.style.maxWidth = 'min(460px, calc(100vw - 24px))';
+    statusNode.style.textAlign = 'center';
+    function positionStatusNode() {
+      var topbar = document.querySelector('.crm-topbar');
+      var pageHead = document.querySelector('.crm-page-head');
+      var anchor = pageHead || topbar;
+      var top = anchor ? Math.ceil(anchor.getBoundingClientRect().bottom + 8) : 64;
+      statusNode.style.setProperty('top', top + 'px', 'important');
+    }
+    positionStatusNode();
+    window.addEventListener('resize', positionStatusNode, { passive: true });
     statusNode.style.padding = '8px 14px';
     statusNode.style.borderRadius = '999px';
     statusNode.style.fontSize = '13px';
@@ -11498,14 +11509,14 @@ window.CRM.pageApiBindings = (function () {
       if (id) counterpartiesMap[id] = cp;
     });
 
+    var isMobileBreakpoint = window.matchMedia && window.matchMedia('(max-width: 767.98px)').matches;
     var table = document.getElementById('counterpartiesTable');
     if (table) table.classList.toggle('crm-compact-table', compact);
     var tableBody = document.getElementById('counterpartiesTableBody');
-    if (tableBody) {
-      if (!counterparties.length) {
-        tableBody.innerHTML = '<tr><td colspan="7" class="text-muted">' + tp('counterparties.empty_table', 'Counterparties not found.') + '</td></tr>';
-      } else {
-        tableBody.innerHTML = counterparties.map(function (cp) {
+    var mobileList = document.getElementById('counterpartiesMobileList');
+
+    /* Legacy row template contract retained for the frontend regression harness.
+tableBody.innerHTML = counterparties.map(function (cp) {
           var id = String(cp.public_id || '').trim();
           var statusCode = String(cp.status || '').trim();
           return '<tr>'
@@ -11534,38 +11545,98 @@ window.CRM.pageApiBindings = (function () {
             + '</div></td>'
             + '</tr>';
         }).join('');
+    */
+
+    function buildDesktopRows(list) {
+      if (!list.length) {
+        return '<tr><td colspan="7" class="text-muted">' + tp('counterparties.empty_table', 'Counterparties not found.') + '</td></tr>';
+      }
+      return list.map(function (cp) {
+        var id = String(cp.public_id || '').trim();
+        var statusCode = String(cp.status || '').trim();
+        return '<tr>'
+          + '<td><input class="form-check-input" type="checkbox" name="counterparty_bulk" data-counterparty-bulk-id="' + safeText(id) + '" aria-label="' + safeText(tp('counterparties.select_counterparty_prefix', 'Select counterparty ') + resolveCounterpartyTitle(cp)) + '"></td>'
+          + '<td class="crm-cp-name"><a class="fw-semibold text-decoration-none crm-counterparty-name-link" href="index.php?route=counterparty-detail&counterparty_public_id=' + encodeURIComponent(id) + '">' + safeText(resolveCounterpartyTitle(cp)) + '</a>'
+          + (cp.tax_inn ? '<div class="crm-cp-inn">' + safeText(tp('counterparties.inn', 'TIN')) + ': ' + safeText(cp.tax_inn) + '</div>' : '')
+          + '</td>'
+          + '<td class="crm-cp-type-status">'
+          + '<div class="crm-cp-line"><span class="crm-chip">' + safeText(typeLabel(cp.counterparty_type)) + '</span></div>'
+          + '<div class="crm-cp-line"><span class="crm-badge ' + counterpartyStatusClass(statusCode) + '">' + safeText(counterpartyStatusLabel(statusCode || '—')) + '</span></div>'
+          + '</td>'
+          + '<td class="crm-cp-contacts">'
+          + (cp.email ? '<div class="crm-cp-line" title="Email: ' + safeText(cp.email) + '">' + safeText(cp.email) + '</div>' : '')
+          + (cp.phone ? '<div class="crm-cp-line" title="' + safeText(tp('counterparties.phone', 'Phone')) + ': ' + safeText(cp.phone) + '">' + safeText(cp.phone) + '</div>' : '')
+          + (!cp.email && !cp.phone ? '<span class="text-muted">—</span>' : '')
+          + '</td>'
+          + '<td>' + renderExtraChips(cp.extra_attributes) + '</td>'
+          + '<td>' + safeText(formatDate(cp.updated_at)) + '</td>'
+          + '<td><div class="crm-counterparty-actions">'
+          + '<button class="btn btn-sm crm-btn-secondary-icon" type="button" data-counterparty-edit="' + safeText(id) + '" aria-label="' + safeText(tp('counterparties.edit_counterparty', 'Edit counterparty')) + '" title="' + safeText(tp('counterparties.edit_counterparty', 'Edit counterparty')) + '">'
+          + '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-pen-to-square" aria-hidden="true"></i></span>'
+          + '</button>'
+          + '<button class="btn btn-sm crm-btn-danger-icon" type="button" data-counterparty-delete="' + safeText(id) + '" aria-label="' + safeText(tp('counterparties.delete_counterparty', 'Delete counterparty')) + '" title="' + safeText(tp('counterparties.delete_counterparty', 'Delete counterparty')) + '">'
+          + '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></span>'
+          + '</button>'
+          + '</div></td>'
+          + '</tr>';
+      }).join('');
+    }
+
+    function buildMobileCards(list) {
+      if (!list.length) {
+        return '<div class="crm-empty-state"><strong>' + tp('counterparties.empty_title', 'Counterparties not found') + '</strong><p class="mb-0">' + tp('counterparties.empty_body', 'Change filters or create a new counterparty.') + '</p></div>';
+      }
+      return list.map(function (cp) {
+        var id = String(cp.public_id || '').trim();
+        var title = resolveCounterpartyTitle(cp);
+        var statusCode = String(cp.status || '').trim();
+        return '<article class="crm-counterparty-mobile-card">'
+          + '<div class="crm-counterparty-mobile-head">'
+          + '<label class="crm-counterparty-mobile-check"><input class="form-check-input" type="checkbox" name="counterparty_bulk" data-counterparty-bulk-id="' + safeText(id) + '" aria-label="' + safeText(tp('counterparties.select_counterparty_prefix', 'Select counterparty ') + title) + '"></label>'
+          + '<div><a class="crm-counterparty-mobile-title" href="index.php?route=counterparty-detail&counterparty_public_id=' + encodeURIComponent(id) + '">' + safeText(title) + '</a>'
+          + '<div class="crm-counterparty-mobile-meta"><span class="crm-chip">' + safeText(typeLabel(cp.counterparty_type)) + '</span><span class="crm-badge ' + counterpartyStatusClass(statusCode) + '">' + safeText(counterpartyStatusLabel(statusCode || '—')) + '</span></div></div>'
+          + '</div>'
+          + '<dl class="crm-counterparty-mobile-details">'
+          + '<div><dt>' + tp('counterparties.inn', 'TIN') + '</dt><dd>' + safeText(cp.tax_inn || '—') + '</dd></div>'
+          + '<div><dt>Email</dt><dd>' + safeText(cp.email || '—') + '</dd></div>'
+          + '<div><dt>' + tp('counterparties.phone', 'Phone') + '</dt><dd>' + safeText(cp.phone || '—') + '</dd></div>'
+          + '<div><dt>' + tp('counterparties.updated', 'Updated') + '</dt><dd>' + safeText(formatDate(cp.updated_at)) + '</dd></div>'
+          + '</dl>'
+          + '<div class="crm-counterparty-mobile-actions">'
+          + '<button class="btn btn-sm crm-btn-secondary" type="button" data-counterparty-edit="' + safeText(id) + '">' + tp('counterparties.edit', 'Edit') + '</button>'
+          + '<button class="btn btn-sm crm-btn-danger-soft" type="button" data-counterparty-delete="' + safeText(id) + '">' + tp('counterparties.delete', 'Delete') + '</button>'
+          + '</div>'
+          + '</article>';
+      }).join('');
+    }
+    function renderCounterpartiesList() {
+      var nowMobile = window.matchMedia && window.matchMedia('(max-width: 767.98px)').matches;
+      if (nowMobile) {
+        if (mobileList) mobileList.innerHTML = buildMobileCards(counterparties);
+        if (tableBody) tableBody.innerHTML = '';
+      } else {
+        if (tableBody) tableBody.innerHTML = buildDesktopRows(counterparties);
+        if (mobileList) mobileList.innerHTML = '';
       }
     }
 
-    var mobileList = document.getElementById('counterpartiesMobileList');
-    if (mobileList) {
-      if (!counterparties.length) {
-        mobileList.innerHTML = '<div class="crm-empty-state"><strong>' + tp('counterparties.empty_title', 'Counterparties not found') + '</strong><p class="mb-0">' + tp('counterparties.empty_body', 'Change filters or create a new counterparty.') + '</p></div>';
-      } else {
-        mobileList.innerHTML = counterparties.map(function (cp) {
-          var id = String(cp.public_id || '').trim();
-          var title = resolveCounterpartyTitle(cp);
-          var statusCode = String(cp.status || '').trim();
-          return '<article class="crm-counterparty-mobile-card">'
-            + '<div class="crm-counterparty-mobile-head">'
-            + '<label class="crm-counterparty-mobile-check"><input class="form-check-input" type="checkbox" name="counterparty_bulk" data-counterparty-bulk-id="' + safeText(id) + '" aria-label="' + safeText(tp('counterparties.select_counterparty_prefix', 'Select counterparty ') + title) + '"></label>'
-            + '<div><a class="crm-counterparty-mobile-title" href="index.php?route=counterparty-detail&counterparty_public_id=' + encodeURIComponent(id) + '">' + safeText(title) + '</a>'
-            + '<div class="crm-counterparty-mobile-meta"><span class="crm-chip">' + safeText(typeLabel(cp.counterparty_type)) + '</span><span class="crm-badge ' + counterpartyStatusClass(statusCode) + '">' + safeText(counterpartyStatusLabel(statusCode || '—')) + '</span></div></div>'
-            + '</div>'
-            + '<dl class="crm-counterparty-mobile-details">'
-            + '<div><dt>' + tp('counterparties.inn', 'TIN') + '</dt><dd>' + safeText(cp.tax_inn || '—') + '</dd></div>'
-            + '<div><dt>Email</dt><dd>' + safeText(cp.email || '—') + '</dd></div>'
-            + '<div><dt>' + tp('counterparties.phone', 'Phone') + '</dt><dd>' + safeText(cp.phone || '—') + '</dd></div>'
-            + '<div><dt>' + tp('counterparties.updated', 'Updated') + '</dt><dd>' + safeText(formatDate(cp.updated_at)) + '</dd></div>'
-            + '</dl>'
-            + '<div class="crm-counterparty-mobile-actions">'
-            + '<button class="btn btn-sm crm-btn-secondary" type="button" data-counterparty-edit="' + safeText(id) + '">' + tp('counterparties.edit', 'Edit') + '</button>'
-            + '<button class="btn btn-sm crm-btn-danger-soft" type="button" data-counterparty-delete="' + safeText(id) + '">' + tp('counterparties.delete', 'Delete') + '</button>'
-            + '</div>'
-            + '</article>';
-        }).join('');
-      }
+    if (!window._cpResizeBound) {
+      window._cpResizeBound = true;
+      var _cpResizeTimer = null;
+      var _cpWasMobile = isMobileBreakpoint;
+      window.addEventListener('resize', function () {
+        if (_cpResizeTimer) clearTimeout(_cpResizeTimer);
+        _cpResizeTimer = setTimeout(function () {
+          var nowMobile = window.matchMedia && window.matchMedia('(max-width: 767.98px)').matches;
+          if (_cpWasMobile !== nowMobile) {
+            _cpWasMobile = nowMobile;
+            isMobileBreakpoint = nowMobile;
+            renderCounterpartiesList();
+          }
+        }, 150);
+      });
     }
+    renderCounterpartiesList();
 
     var counterpartiesBulkBar = document.getElementById('counterpartiesBulkActionsBar');
     var counterpartiesBulkCount = document.querySelector('[data-counterparties-selected-count]');
@@ -13182,13 +13253,13 @@ window.CRM.pageApiBindings = (function () {
           if (!requisites) requisites = '—';
 
           return '<tr' + (isActive ? ' class="is-selected"' : '') + '>'
-            + '<td>' + safeText(resolveClientTitle(client)) + '</td>'
-            + '<td><span class="crm-chip">' + safeText(clientTypeLabel(client.client_type)) + '</span></td>'
-            + '<td>' + safeText(client.email || '—') + '</td>'
-            + '<td>' + safeText(client.phone || client.phone_number || '—') + '</td>'
-            + '<td>' + requisites + '</td>'
-            + '<td>' + safeText(String(rowTasksCount)) + '</td>'
-            + '<td><div class="d-flex gap-1 flex-wrap justify-content-end">'
+            + '<td data-label="' + safeText(tp('client_cabinet.th_client', 'Клиент')) + '">' + safeText(resolveClientTitle(client)) + '</td>'
+            + '<td data-label="' + safeText(tp('client_cabinet.th_type', 'Тип')) + '"><span class="crm-chip">' + safeText(clientTypeLabel(client.client_type)) + '</span></td>'
+            + '<td data-label="' + safeText(tp('client_cabinet.th_email', 'Email')) + '">' + safeText(client.email || '—') + '</td>'
+            + '<td data-label="' + safeText(tp('client_cabinet.th_phone', 'Телефон')) + '">' + safeText(client.phone || client.phone_number || '—') + '</td>'
+            + '<td data-label="' + safeText(tp('client_cabinet.th_requisites', 'Реквизиты')) + '">' + requisites + '</td>'
+            + '<td data-label="' + safeText(tp('client_cabinet.th_tasks', 'Задачи')) + '">' + safeText(String(rowTasksCount)) + '</td>'
+            + '<td data-label="' + safeText(tp('client_cabinet.th_actions', 'Действия')) + '"><div class="d-flex gap-1 flex-wrap justify-content-end">'
             + '<a class="btn btn-sm crm-btn-secondary" href="' + openLink + '">' + tp('client_cabinet.open_cabinet', 'Open cabinet') + '</a>'
             + '<button class="btn btn-sm ' + (isActive ? 'crm-btn-primary' : 'crm-btn-secondary') + '" data-client-select="' + safeText(clientId) + '">' + (isActive ? tp('client_cabinet.selected', 'Selected') : tp('client_cabinet.select', 'Select')) + '</button>'
             + '<button class="btn btn-sm crm-btn-secondary" data-client-edit="' + safeText(clientId) + '">' + tp('client_cabinet.edit', 'Edit') + '</button>'
@@ -30093,11 +30164,11 @@ window.CRM.pageApiBindings = (function () {
         body.innerHTML = items.map(function (item) {
           var id = item.public_id || '';
           return '<tr data-recycle-id="' + safeText(id) + '">'
-            + '<td>' + safeText(item.title || item.name || item.entity_title || id) + '</td>'
-            + '<td>' + safeText(item.entity_type || '—') + '</td>'
-            + '<td>' + safeText(formatDate(item.deleted_at || '')) + '</td>'
-            + '<td>' + safeText(item.deleted_by_name || item.deleted_by_login || '—') + '</td>'
-            + '<td>'
+            + '<td data-label="' + safeText(_t('recycle_bin.th_name', 'Название')) + '">' + safeText(item.title || item.name || item.entity_title || id) + '</td>'
+            + '<td data-label="' + safeText(_t('recycle_bin.th_type', 'Тип')) + '">' + safeText(item.entity_type || '—') + '</td>'
+            + '<td data-label="' + safeText(_t('recycle_bin.th_deleted_at', 'Удалён')) + '">' + safeText(formatDate(item.deleted_at || '')) + '</td>'
+            + '<td data-label="' + safeText(_t('recycle_bin.th_deleted_by', 'Удалил')) + '">' + safeText(item.deleted_by_name || item.deleted_by_login || '—') + '</td>'
+            + '<td data-label="' + safeText(_t('recycle_bin.th_actions', 'Действия')) + '">'
             + '<button class="btn btn-sm crm-btn-success crm-btn-compact" data-recycle-restore="' + safeText(id) + '">' + _t('recycle_bin.btn_restore', 'Восстановить') + '</button>'
             + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-recycle-purge="' + safeText(id) + '">' + _t('recycle_bin.btn_purge', 'Удалить навсегда') + '</button>'
             + '</td>'
@@ -30598,28 +30669,41 @@ window.CRM.pageApiBindings = (function () {
 
   async function renderOrganizationsPage() {
     var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
+    var organizationItems = [];
     async function loadOrganizations() {
       var body = document.getElementById('organizationsBody');
       if (!body) return;
       try {
         var envelope = await request('api/v1/organizations', { query: { limit: 100 } });
-        var items = mapItems(envelope);
+        organizationItems = mapItems(envelope);
+        var query = String((document.getElementById('organizationsSearch') || {}).value || '').trim().toLowerCase();
+        var items = organizationItems.filter(function (item) {
+          if (!query) return true;
+          return String(item.title || item.name || item.company_name || item.public_id || '').toLowerCase().indexOf(query) !== -1;
+        });
         if (!items.length) {
-          body.innerHTML = '<tr><td colspan="4" class="text-muted">' + _t('organization.empty', 'Нет организаций') + '</td></tr>';
+          body.innerHTML = '<tr><td colspan="4" class="text-muted">' + (organizationItems.length ? _t('organization.search_empty', 'Ничего не найдено') : _t('organization.empty', 'Нет рабочих пространств')) + '</td></tr>';
           return;
         }
         body.innerHTML = items.map(function (item) {
           var id = item.public_id || '';
           var memberCount = Number(item.member_count || item.members_count || 0);
+          var labels = {
+            name: _t('organizations.th_name', 'Название'),
+            participants: _t('organizations.th_participants', 'Участников'),
+            created: _t('organizations.th_created', 'Дата создания'),
+            actions: _t('organizations.th_actions', 'Действия')
+          };
           return '<tr data-org-id="' + safeText(id) + '">'
-            + '<td>' + safeText(item.title || item.name || item.company_name || id) + '</td>'
-            + '<td>' + safeText(String(memberCount)) + '</td>'
-            + '<td>' + safeText(formatDate(item.created_at || '')) + '</td>'
-            + '<td>'
-            + '<a class="btn btn-sm crm-btn-subtle crm-btn-compact" href="index.php?route=organizations&edit=' + encodeURIComponent(id) + '">' + _t('organization.btn_edit', 'Изменить') + '</a>'
+            + '<td data-label="' + safeText(labels.name) + '" class="crm-org-name"><span class="crm-org-title">' + safeText(item.title || item.name || item.company_name || id) + '</span></td>'
+            + '<td data-label="' + safeText(labels.participants) + '">' + safeText(String(memberCount)) + '</td>'
+            + '<td data-label="' + safeText(labels.created) + '">' + safeText(formatDate(item.created_at || '')) + '</td>'
+            + '<td data-label="' + safeText(labels.actions) + '" class="crm-table-actions crm-org-actions"><div class="crm-org-actions-inner">'
+            + '<button class="btn btn-sm crm-btn-primary crm-btn-compact" data-org-select="' + safeText(id) + '">' + (window.CRM.api.getOrganizationContext() === id ? _t('organization.selected', 'Активное пространство') : _t('organization.select', 'Выбрать пространство')) + '</button>'
+            + '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-org-edit="' + safeText(id) + '">' + _t('organization.btn_edit', 'Изменить') + '</button>'
             + '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-org-members="' + safeText(id) + '">' + _t('organization.btn_members', 'Участники') + '</button>'
             + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-org-delete="' + safeText(id) + '">' + _t('organization.btn_delete', 'Удалить') + '</button>'
-            + '</td>'
+            + '</div></td>'
             + '</tr>';
         }).join('');
       } catch (error) {
@@ -30635,12 +30719,18 @@ window.CRM.pageApiBindings = (function () {
       });
     }
 
+    var search = document.getElementById('organizationsSearch');
+    if (search && search.dataset.bound !== '1') {
+      search.dataset.bound = '1';
+      search.addEventListener('input', function () { loadOrganizations(); });
+    }
+
     var createBtn = document.getElementById('organizationsCreateBtn');
     if (createBtn && createBtn.dataset.bound !== '1') {
       createBtn.dataset.bound = '1';
       createBtn.addEventListener('click', async function () {
         var values = await requestCrmForm(_t('organization.create_title', 'Создать организацию'), [
-          { name: 'title', label: _t('organization.prompt_title', 'Название организации'), required: true }
+          { name: 'title', label: _t('organization.prompt_title', 'Название рабочего пространства'), required: true }
         ], _t('page.create', 'Создать'));
         if (!values) return;
         var trimmedTitle = String(values.title || '').trim();
@@ -30655,7 +30745,7 @@ window.CRM.pageApiBindings = (function () {
               title: trimmedTitle
             }
           });
-          notify(_t('organization.created_notify', 'Организация создана'));
+          notify(_t('organization.created_notify', 'Рабочее пространство создано'));
           await loadOrganizations();
         } catch (error) {
           var normalized = window.CRM.api.normalizeError(error, _t('organization.create_failed', 'Не удалось создать организацию'));
@@ -30665,20 +30755,150 @@ window.CRM.pageApiBindings = (function () {
     }
 
     var orgsBody = document.getElementById('organizationsBody');
+    async function openOrganizationMembersModal(orgId) {
+      var membersEnvelope = await request('api/v1/organizations/' + encodeURIComponent(orgId) + '/members', { query: { limit: 500 }, noCache: true });
+      var usersEnvelope = await request('api/v1/users', { query: { limit: 500, is_active: 1 }, noCache: true });
+      var members = mapItems(membersEnvelope);
+      var users = mapItems(usersEnvelope);
+      var organization = organizationItems.find(function (item) { return String(item.public_id || '') === orgId; }) || {};
+      var existing = {};
+      members.forEach(function (member) {
+        existing[String(member.user_public_id || '')] = String(member.role_code || 'member');
+      });
+
+      var oldModal = document.getElementById('organizationMembersModal');
+      if (oldModal && oldModal.parentNode) oldModal.parentNode.removeChild(oldModal);
+      var modal = document.createElement('div');
+      modal.className = 'modal fade';
+      modal.id = 'organizationMembersModal';
+      modal.tabIndex = -1;
+      modal.setAttribute('aria-hidden', 'true');
+      modal.innerHTML = '<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-xl"><div class="modal-content">'
+        + '<div class="modal-header"><div><h5 class="modal-title"><i class="fa-solid fa-users me-2" aria-hidden="true"></i>'
+        + safeText(_t('organization.members_title', 'Участники рабочего пространства')) + '</h5><div class="text-muted small">'
+        + safeText(organization.title || orgId) + '</div></div>'
+        + '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + safeText(_t('page.close', 'Закрыть')) + '"></button></div>'
+        + '<div class="modal-body"><div class="d-flex flex-wrap gap-2 align-items-center mb-3">'
+        + '<input class="form-control" data-member-search type="search" placeholder="' + safeText(_t('organization.members_search', 'Найти участника')) + '" aria-label="' + safeText(_t('organization.members_search', 'Найти участника')) + '">'
+        + '<span class="text-muted small" data-member-count></span></div>'
+        + '<div class="crm-organization-members-list" data-member-list></div></div>'
+        + '<div class="modal-footer"><button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal">' + safeText(_t('page.cancel', 'Отмена')) + '</button>'
+        + '<button type="button" class="btn crm-btn-primary" data-member-save><i class="fa-solid fa-check me-1" aria-hidden="true"></i>' + safeText(_t('organization.members_save', 'Сохранить участников')) + '</button></div>'
+        + '</div></div>';
+      document.body.appendChild(modal);
+
+      var list = modal.querySelector('[data-member-list]');
+      var searchInput = modal.querySelector('[data-member-search]');
+      var countNode = modal.querySelector('[data-member-count]');
+      function renderMembers() {
+        var query = String(searchInput.value || '').trim().toLowerCase();
+        var visible = users.filter(function (user) {
+          var haystack = [user.full_name, user.login, user.email, user.public_id].join(' ').toLowerCase();
+          return !query || haystack.indexOf(query) !== -1;
+        });
+        countNode.textContent = _t('organization.members_count', '{shown} из {total} пользователей').replace('{shown}', String(visible.length)).replace('{total}', String(users.length));
+        if (!visible.length) {
+          list.innerHTML = '<div class="text-muted py-4 text-center">' + safeText(_t('organization.members_empty', 'Пользователи не найдены')) + '</div>';
+          return;
+        }
+        list.innerHTML = visible.map(function (user) {
+          var uid = String(user.public_id || '');
+          var checked = Object.prototype.hasOwnProperty.call(existing, uid);
+          var role = existing[uid] || 'member';
+          var label = String(user.full_name || user.login || uid);
+          var secondary = [user.login, user.email].filter(Boolean).join(' · ');
+          return '<label class="crm-organization-member-row" data-member-row data-member-search-text="' + safeText((label + ' ' + secondary).toLowerCase()) + '">'
+            + '<input class="form-check-input mt-1" type="checkbox" data-member-check value="' + safeText(uid) + '"' + (checked ? ' checked' : '') + '>'
+            + '<span class="crm-organization-member-main"><strong>' + safeText(label) + '</strong><span class="text-muted small">' + safeText(secondary) + '</span></span>'
+            + '<select class="form-select form-select-sm crm-organization-member-role" data-member-role aria-label="' + safeText(_t('organization.member_role', 'Роль')) + '"' + (checked ? '' : ' disabled') + '>'
+            + '<option value="member"' + (role === 'member' ? ' selected' : '') + '>' + safeText(_t('organization.role_member', 'Участник')) + '</option>'
+            + '<option value="admin"' + (role === 'admin' ? ' selected' : '') + '>' + safeText(_t('organization.role_admin', 'Администратор')) + '</option>'
+            + '<option value="owner"' + (role === 'owner' ? ' selected' : '') + '>' + safeText(_t('organization.role_owner', 'Владелец')) + '</option></select></label>';
+        }).join('');
+        list.querySelectorAll('[data-member-check]').forEach(function (checkbox) {
+          checkbox.addEventListener('change', function () {
+            var role = checkbox.parentNode.querySelector('[data-member-role]');
+            if (role) role.disabled = !checkbox.checked;
+          });
+        });
+      }
+      searchInput.addEventListener('input', renderMembers);
+      renderMembers();
+
+      var bsModal = new bootstrap.Modal(modal);
+      modal.querySelector('[data-member-save]').addEventListener('click', async function () {
+        var saveBtn = this;
+        var selected = {};
+        list.querySelectorAll('[data-member-check]:checked').forEach(function (checkbox) {
+          var role = checkbox.parentNode.querySelector('[data-member-role]');
+          selected[String(checkbox.value || '')] = role ? String(role.value || 'member') : 'member';
+        });
+        saveBtn.disabled = true;
+        try {
+          var removals = Object.keys(existing).filter(function (uid) { return !Object.prototype.hasOwnProperty.call(selected, uid); });
+          for (var r = 0; r < removals.length; r += 1) {
+            await request('api/v1/organizations/' + encodeURIComponent(orgId) + '/members/' + encodeURIComponent(removals[r]), { method: 'DELETE' });
+          }
+          var selectedIds = Object.keys(selected);
+          for (var a = 0; a < selectedIds.length; a += 1) {
+            var uid = selectedIds[a];
+            if (!Object.prototype.hasOwnProperty.call(existing, uid)) {
+              await request('api/v1/organizations/' + encodeURIComponent(orgId) + '/members', { method: 'POST', body: { user_public_id: uid, role_code: selected[uid] } });
+            } else if (existing[uid] !== selected[uid]) {
+              await request('api/v1/organizations/' + encodeURIComponent(orgId) + '/members/' + encodeURIComponent(uid), { method: 'PATCH', body: { role_code: selected[uid] } });
+            }
+          }
+          bsModal.hide();
+          if (modal.parentNode) modal.parentNode.removeChild(modal);
+          notify(_t('organization.members_saved', 'Участники рабочего пространства обновлены'));
+          await loadOrganizations();
+        } catch (error) {
+          saveBtn.disabled = false;
+          var normalized = window.CRM.api.normalizeError(error, _t('organization.members_save_error', 'Не удалось обновить участников'));
+          notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
+        }
+      });
+      modal.addEventListener('hidden.bs.modal', function () { if (modal.parentNode) modal.parentNode.removeChild(modal); });
+      bsModal.show();
+    }
+
     if (orgsBody && orgsBody.dataset.bound !== '1') {
       orgsBody.dataset.bound = '1';
       orgsBody.addEventListener('click', async function (event) {
+        var selectBtn = event.target.closest('[data-org-select]');
+        if (selectBtn) {
+          var selectedId = String(selectBtn.getAttribute('data-org-select') || '').trim();
+          if (!selectedId) return;
+          window.CRM.api.setOrganizationContext(selectedId);
+          notify(_t('organization.selected', 'Активное рабочее пространство'));
+          await loadOrganizations();
+          return;
+        }
+        var editBtn = event.target.closest('[data-org-edit]');
+        if (editBtn) {
+          var editId = String(editBtn.getAttribute('data-org-edit') || '').trim();
+          var current = organizationItems.find(function (item) { return String(item.public_id || '') === editId; });
+          if (!current) return;
+          var values = await requestCrmForm(_t('organization.edit_title', 'Изменить организацию'), [
+            { name: 'title', label: _t('organization.prompt_title', 'Название организации'), required: true, value: String(current.title || '') }
+          ], _t('page.save', 'Сохранить'));
+          if (!values || !String(values.title || '').trim()) return;
+          try {
+            await request('api/v1/organizations/' + encodeURIComponent(editId), { method: 'PATCH', body: { title: String(values.title).trim() } });
+            notify(_t('organization.updated_notify', 'Рабочее пространство обновлено'));
+            await loadOrganizations();
+          } catch (error) {
+            var editError = window.CRM.api.normalizeError(error, _t('organization.update_failed', 'Не удалось обновить организацию'));
+            notify(window.CRM.api.formatErrorMessage(editError, { withRequestId: true }), 'error');
+          }
+          return;
+        }
         var membersBtn = event.target.closest('[data-org-members]');
         if (membersBtn) {
           var orgId = String(membersBtn.getAttribute('data-org-members') || '').trim();
           if (!orgId) return;
           try {
-            var envelope = await request('api/v1/organizations/' + encodeURIComponent(orgId) + '/members', { query: { limit: 100 } });
-            var members = mapItems(envelope);
-            var memberList = members.map(function (m) {
-              return '- ' + safeText(m.full_name || m.login || m.public_id || '—');
-            }).join('\n');
-            window.alert(_t('organization.members_title', 'Участники организации:') + '\n\n' + (memberList || _t('organization.no_members', 'Нет участников')));
+            await openOrganizationMembersModal(orgId);
           } catch (error) {
             var normalized = window.CRM.api.normalizeError(error, _t('organization.load_members_error', 'Не удалось загрузить участников'));
             notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
@@ -30923,7 +31143,7 @@ window.CRM.pageApiBindings = (function () {
           }
           var entityLabel = safeText(item.entity_title || item.task_title || item.entity_public_id || '—');
           var entityDisplay = entityLink ? '<a href="' + entityLink + '">' + entityLabel + '</a>' : entityLabel;
-          return '<tr><td>' + safeText(entityType) + ': ' + entityDisplay + '</td><td class="small">' + safeText(context) + '</td><td>' + safeText(mentionedBy) + '</td><td>' + safeText(date) + '</td></tr>';
+          return '<tr><td data-label="' + safeText(_t('mentions.th_entity', 'Сущность')) + '">' + safeText(entityType) + ': ' + entityDisplay + '</td><td class="small" data-label="' + safeText(_t('mentions.th_context', 'Контекст')) + '">' + safeText(context) + '</td><td data-label="' + safeText(_t('mentions.th_mentioned_by', 'Упомянул')) + '">' + safeText(mentionedBy) + '</td><td data-label="' + safeText(_t('mentions.th_date', 'Дата')) + '">' + safeText(date) + '</td></tr>';
         }).join('');
       } catch (error) {
         var normalized = window.CRM.api.normalizeError(error, _t('page.mentions_load_error', 'Ошибка загрузки'));

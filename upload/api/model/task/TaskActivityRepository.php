@@ -17,9 +17,7 @@ final class TaskActivityRepository
     {
         $publicId = $payload['public_id'] ?? throw new \InvalidArgumentException('public_id is required');
 
-        $qb = new QueryBuilder($this->pdo);
-        $qb->from('task_activity_events')
-            ->insert([
+        $values = [
                 'public_id' => $publicId,
                 'task_id' => (int)($payload['task_id'] ?? 0),
                 'task_public_id' => (string)($payload['task_public_id'] ?? ''),
@@ -45,10 +43,14 @@ final class TaskActivityRepository
                 'source_type' => (string)($payload['source_type'] ?? ''),
                 'source_ref' => (string)($payload['source_ref'] ?? ''),
                 'created_at' => gmdate('Y-m-d H:i:s'),
-            ]);
+        ];
+        if ($this->hasOrganizationColumn()) {
+            $values['organization_id'] = isset($payload['organization_id']) ? (int)$payload['organization_id'] : null;
+        }
+        (new QueryBuilder($this->pdo))->from('task_activity_events')->insert($values);
 
         // Return the created event
-        $row = $this->pdo->query("SELECT id, public_id, task_id, task_public_id, actor_user_id, actor_type, actor_public_id, actor_display_name, event_type, field_name, old_value, new_value, old_label, new_label, related_entity_type, related_entity_id, related_entity_public_id, related_entity_label, message_key, message_text, payload_json, visibility, request_id, source_type, source_ref, created_at, deleted_at FROM task_activity_events WHERE public_id = " . $this->pdo->quote($publicId))->fetch(PDO::FETCH_ASSOC);
+        $row = $this->pdo->query("SELECT id, public_id, task_id, task_public_id, actor_user_id, actor_type, actor_public_id, actor_display_name, event_type, field_name, old_value, new_value, old_label, new_label, related_entity_type, related_entity_id, related_entity_public_id, related_entity_label, message_key, message_text, payload_json, visibility, request_id, source_type, source_ref, created_at, deleted_at FROM task_activity_events WHERE public_id = " . $this->pdo->quote($publicId) . " LIMIT 1")->fetch(PDO::FETCH_ASSOC);
         return $row ?: $payload;
     }
 
@@ -62,6 +64,9 @@ final class TaskActivityRepository
             ->from('task_activity_events e')
             ->where('e.task_public_id', '=', $taskPublicId)
             ->where('e.deleted_at', '=', null);
+        if ($this->hasOrganizationColumn() && isset($filters['organization_id']) && (int)$filters['organization_id'] > 0) {
+            $qb->where('e.organization_id', '=', (int)$filters['organization_id']);
+        }
 
         // Optional filters
         if (!empty($filters['event_type'])) {
@@ -105,6 +110,9 @@ final class TaskActivityRepository
             ->from('task_activity_events')
             ->where('task_public_id', '=', $taskPublicId)
             ->where('deleted_at', '=', null);
+        if ($this->hasOrganizationColumn() && isset($filters['organization_id']) && (int)$filters['organization_id'] > 0) {
+            $countQb->where('organization_id', '=', (int)$filters['organization_id']);
+        }
 
         if (!empty($filters['event_type'])) {
             $countQb->where('event_type', '=', (string)$filters['event_type']);
@@ -142,12 +150,26 @@ final class TaskActivityRepository
         return true;
     }
 
-    public function taskIdByPublicId(string $taskPublicId): ?int
+    public function taskIdByPublicId(string $taskPublicId, ?int $organizationId = null): ?int
     {
-        $stmt = $this->pdo->prepare('SELECT id FROM tasks WHERE public_id = ? AND deleted_at IS NULL LIMIT 1');
-        $stmt->execute([$taskPublicId]);
+        $sql = 'SELECT id FROM tasks WHERE public_id = ? AND deleted_at IS NULL';
+        $params = [$taskPublicId];
+        if ($this->hasOrganizationColumn() && $organizationId !== null && $organizationId > 0) { $sql .= ' AND organization_id = ?'; $params[] = $organizationId; }
+        $sql .= ' LIMIT 1';
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
         return $row ? (int)$row['id'] : null;
+    }
+
+    private function hasOrganizationColumn(): bool
+    {
+        try {
+            $this->pdo->query('SELECT organization_id FROM task_activity_events LIMIT 0');
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
     }
 }

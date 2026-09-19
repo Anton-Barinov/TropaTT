@@ -22,7 +22,7 @@ final class WorklogController extends BaseController
         if ($cache !== null) {
             $input = $this->request()->allInput();
             ksort($input);
-            $cacheKey = 'list:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($input));
+            $cacheKey = 'list:' . $this->cacheUserId() . ':' . $this->organizationContextCacheKey() . ':' . hash('sha256', json_encode($input));
             $result = $cache->remember('worklog', $cacheKey, 60, function () use ($input, $authUser) {
                 /** @var WorklogService $service */
                 $service = $this->container->get('service.worklog');
@@ -286,7 +286,7 @@ final class WorklogController extends BaseController
         if ($cache !== null) {
             $input = $this->request()->allInput();
             ksort($input);
-            $cacheKey = 'summary:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($input));
+            $cacheKey = 'summary:' . $this->cacheUserId() . ':' . $this->organizationContextCacheKey() . ':' . hash('sha256', json_encode($input));
             $result = $cache->remember('worklog', $cacheKey, 60, function () use ($input, $authUser) {
                 /** @var WorklogService $service */
                 $service = $this->container->get('service.worklog');
@@ -312,7 +312,7 @@ final class WorklogController extends BaseController
         if ($cache !== null) {
             $input = $this->request()->allInput();
             ksort($input);
-            $cacheKey = 'earnings:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($input));
+            $cacheKey = 'earnings:' . $this->cacheUserId() . ':' . $this->organizationContextCacheKey() . ':' . hash('sha256', json_encode($input));
             $result = $cache->remember('worklog', $cacheKey, 60, function () use ($input, $authUser) {
                 /** @var WorklogService $service */
                 $service = $this->container->get('service.worklog');
@@ -363,7 +363,7 @@ final class WorklogController extends BaseController
         if ($cache !== null) {
             $input = $this->request()->allInput();
             ksort($input);
-            $cacheKey = 'matrix:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($input));
+            $cacheKey = 'matrix:' . $this->cacheUserId() . ':' . $this->organizationContextCacheKey() . ':' . (int)($authUser['user']['organization_id'] ?? 0) . ':' . hash('sha256', json_encode($input));
             $result = $cache->remember('worklog', $cacheKey, 60, function () use ($input, $authUser) {
                 /** @var WorklogService $service */
                 $service = $this->container->get('service.worklog');
@@ -397,7 +397,7 @@ final class WorklogController extends BaseController
         $cache = $this->cacheApi();
         if ($cache !== null) {
             ksort($input);
-            $cacheKey = 'detail:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($input));
+            $cacheKey = 'detail:' . $this->cacheUserId() . ':' . $this->organizationContextCacheKey() . ':' . hash('sha256', json_encode($input));
             $result = $cache->remember('worklog', $cacheKey, 60, function () use ($input, $authUser) {
                 $day = (string)($input['day'] ?? '');
                 $userPublicId = (string)($input['user_public_id'] ?? '');

@@ -15,6 +15,14 @@ use Api\Model\Rate\RateCardRepository;
  */
 final class RateController extends BaseController
 {
+    private function activeOrganizationId(): ?int
+    {
+        $auth = $this->user();
+        $actor = $this->organizationScopedActor((array)($auth['user'] ?? []));
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
+    }
+
     /**
      * GET /api/v1/rates/preview — diagnostic trace (TZ 7.3).
      */
@@ -69,7 +77,8 @@ final class RateController extends BaseController
             $date,
             $activityCode,
             $projectPublicId !== '' ? $projectPublicId : null,
-            $clientPublicId !== '' ? $clientPublicId : null
+            $clientPublicId !== '' ? $clientPublicId : null,
+            $this->activeOrganizationId()
         );
 
         $policy = new FinancialFieldPolicy();
@@ -159,7 +168,7 @@ final class RateController extends BaseController
             foreach ($rows as $row) {
                 try {
                     $d = (new \DateTimeImmutable((string)$row['logged_at'], new \DateTimeZone('UTC')))->format('Y-m-d');
-                    $r = $resolver->resolve((int)$row['user_id'], $row['task_id'] ? (int)$row['task_id'] : null, $d, $row['activity_code'] ?? null);
+                    $r = $resolver->resolve((int)$row['user_id'], $row['task_id'] ? (int)$row['task_id'] : null, $d, $row['activity_code'] ?? null, null, null, $this->activeOrganizationId());
                     (new QueryBuilder($pdo))->from('work_logs')->where('id', '=', (int)$row['id'])->update([
                         'cost_rate_snapshot' => $r['cost']['rate'] ?? null,
                         'bill_rate_snapshot' => $r['bill']['rate'] ?? null,

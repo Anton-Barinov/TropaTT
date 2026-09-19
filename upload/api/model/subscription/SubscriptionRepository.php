@@ -59,6 +59,9 @@ final class SubscriptionRepository
         if (!empty($filters['user_public_id'])) {
             $query->where('u.public_id', '=', (string)$filters['user_public_id']);
         }
+        if ((int)($filters['organization_id'] ?? 0) > 0 && $this->hasOrganizationColumn()) {
+            $query->where('s.organization_id', '=', (int)$filters['organization_id']);
+        }
 
         return $query;
     }
@@ -93,7 +96,7 @@ final class SubscriptionRepository
             ->first();
     }
 
-    public function create(string $entityType, string $entityPublicId, int $userId): array
+    public function create(string $entityType, string $entityPublicId, int $userId, int $organizationId = 0): array
     {
         $existing = $this->findByEntityAndUser($entityType, $entityPublicId, $userId);
         if ($existing) {
@@ -101,17 +104,31 @@ final class SubscriptionRepository
         }
 
         $publicId = Ulid::generate('sub');
-        (new QueryBuilder($this->pdo))
-            ->from('subscriptions')
-            ->insert([
+        $payload = [
             'public_id' => $publicId,
             'entity_type' => $entityType,
             'entity_public_id' => $entityPublicId,
             'user_id' => $userId,
             'created_at' => gmdate('Y-m-d H:i:s'),
-        ]);
+        ];
+        if ($organizationId > 0 && $this->hasOrganizationColumn()) {
+            $payload['organization_id'] = $organizationId;
+        }
+        (new QueryBuilder($this->pdo))
+            ->from('subscriptions')
+            ->insert($payload);
 
         return $this->findByPublicId($publicId) ?? [];
+    }
+
+    private function hasOrganizationColumn(): bool
+    {
+        try {
+            $this->pdo->query('SELECT organization_id FROM subscriptions LIMIT 0');
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     public function deleteByPublicId(string $publicId): bool

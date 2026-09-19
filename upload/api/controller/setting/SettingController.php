@@ -21,7 +21,7 @@ final class SettingController extends BaseController
         if ($cache !== null) {
             ksort($input);
             $cachePayload = json_encode($input, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            $cacheKey = 'list:' . hash('sha256', $cachePayload !== false ? $cachePayload : serialize($input));
+            $cacheKey = 'list:' . $this->organizationContextCacheKey() . ':' . hash('sha256', $cachePayload !== false ? $cachePayload : serialize($input));
             $result = $cache->remember('setting', $cacheKey, 60, function () use ($input) {
                 /** @var SettingService $service */
                 $service = $this->container->get('service.setting');
@@ -111,7 +111,7 @@ final class SettingController extends BaseController
 
         $cache = $this->cacheApi();
         if ($cache !== null) {
-            $cacheKey = 'get:' . hash('sha256', $scope . ':' . $name);
+            $cacheKey = 'get:' . $this->organizationContextCacheKey() . ':' . hash('sha256', $scope . ':' . $name);
             $item = $cache->remember('setting', $cacheKey, 60, function () use ($scope, $name) {
                 /** @var SettingService $service */
                 $service = $this->container->get('service.setting');

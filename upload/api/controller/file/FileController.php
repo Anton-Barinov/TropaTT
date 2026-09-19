@@ -17,6 +17,9 @@ final class FileController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var FileService $service */
         $service = $this->container->get('service.file');
@@ -38,6 +41,9 @@ final class FileController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var FileService $service */
         $service = $this->container->get('service.file');
@@ -84,6 +90,9 @@ final class FileController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var FileService $service */
         $service = $this->container->get('service.file');
@@ -106,6 +115,9 @@ final class FileController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var FileService $service */
         $service = $this->container->get('service.file');
@@ -126,6 +138,7 @@ final class FileController extends BaseController
         if (!$authUser) {
             return ['error' => 'UNAUTHORIZED'];
         }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var FileService $service */
         $service = $this->container->get('service.file');

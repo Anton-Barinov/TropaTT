@@ -36,7 +36,8 @@ final class ImportService
         [$items, $total, $page, $limit] = $this->imports->list(
             $filters,
             (int)($actor['id'] ?? 0),
-            (bool)($actor['is_root'] ?? false)
+            (bool)($actor['is_root'] ?? false),
+            $this->organizationId($actor)
         );
 
         return [
@@ -54,6 +55,9 @@ final class ImportService
 
     public function create(array $input, array $actor): array
     {
+        if (!$this->inputOrganizationMatches($input, $actor)) {
+            return ['error' => 'ORGANIZATION_CONTEXT_NOT_FOUND'];
+        }
         $publicId = Ulid::generate('imp');
         $now = gmdate('Y-m-d H:i:s');
         $type = (string)$input['type'];
@@ -69,6 +73,7 @@ final class ImportService
         ];
         $this->imports->create([
             'public_id' => $publicId,
+            'organization_id' => $this->organizationId($actor),
             'user_id' => (int)($actor['id'] ?? 0),
             'type' => $type,
             'status' => 'queued',
@@ -101,7 +106,7 @@ final class ImportService
                 'finished_at' => gmdate('Y-m-d H:i:s'),
                 'last_error' => null,
                 'updated_at' => gmdate('Y-m-d H:i:s'),
-            ]);
+            ], $this->organizationId($actor));
 
             $this->logger->audit([
                 'action' => 'import_job_create',
@@ -132,7 +137,7 @@ final class ImportService
                 'locked_at' => null,
                 'last_error' => 'Import job failed.',
                 'updated_at' => gmdate('Y-m-d H:i:s'),
-            ]);
+            ], $this->organizationId($actor));
 
             $this->logger->error([
                 'action' => 'import_job_failed',
@@ -174,7 +179,10 @@ final class ImportService
                     throw new RuntimeException('IMPORT_JOB_PAYLOAD_INVALID');
                 }
 
-                $result = $this->execute($type, $sourceInput, ['id' => (int)($job['user_id'] ?? 0)]);
+                $result = $this->execute($type, $sourceInput, [
+                    'id' => (int)($job['user_id'] ?? 0),
+                    'organization_id' => $this->organizationId($job),
+                ]);
                 $status = (int)($result['summary']['failed'] ?? 0) > 0 ? 'completed_with_errors' : 'completed';
                 $this->imports->updateByPublicId($publicId, [
                     'status' => $status,
@@ -184,7 +192,7 @@ final class ImportService
                     'finished_at' => gmdate('Y-m-d H:i:s'),
                     'last_error' => null,
                     'updated_at' => gmdate('Y-m-d H:i:s'),
-                ]);
+                ], $this->organizationId($job));
                 $completed++;
             } catch (Throwable $e) {
                 $attempts = (int)($job['attempts'] ?? 0) + 1;
@@ -199,7 +207,7 @@ final class ImportService
                     'last_error' => 'Import job failed.',
                     'finished_at' => $isDead ? gmdate('Y-m-d H:i:s') : null,
                     'updated_at' => gmdate('Y-m-d H:i:s'),
-                ]);
+                ], $this->organizationId($job));
                 if ($isDead) {
                     $deadLettered++;
                 } else {
@@ -222,7 +230,7 @@ final class ImportService
 
     public function cancel(string $publicId, array $actor): array
     {
-        $job = $this->imports->findByPublicId($publicId);
+        $job = $this->imports->findByPublicId($publicId, $this->organizationId($actor));
         if (!$job || !$this->canAccess($job, $actor)) {
             return ['ok' => false, 'code' => 'IMPORT_JOB_NOT_FOUND'];
         }
@@ -235,15 +243,15 @@ final class ImportService
         $this->imports->updateByPublicId($publicId, [
             'status' => 'cancelled',
             'updated_at' => gmdate('Y-m-d H:i:s'),
-        ]);
+        ], $this->organizationId($job));
 
-        $updated = $this->imports->findByPublicId($publicId);
+        $updated = $this->imports->findByPublicId($publicId, $this->organizationId($job));
         return ['ok' => true, 'job' => $updated ? $this->normalizeJob($updated) : ['public_id' => $publicId]];
     }
 
     public function retry(string $publicId, array $actor): array
     {
-        $job = $this->imports->findByPublicId($publicId);
+        $job = $this->imports->findByPublicId($publicId, $this->organizationId($actor));
         if (!$job || !$this->canAccess($job, $actor)) {
             return ['ok' => false, 'code' => 'IMPORT_JOB_NOT_FOUND'];
         }
@@ -265,7 +273,7 @@ final class ImportService
 
     public function get(string $publicId, array $actor): ?array
     {
-        $job = $this->imports->findByPublicId($publicId);
+        $job = $this->imports->findByPublicId($publicId, $this->organizationId($actor));
         if (!$job || !$this->canAccess($job, $actor)) {
             return null;
         }
@@ -479,11 +487,36 @@ final class ImportService
 
     private function canAccess(array $job, array $actor): bool
     {
+        $actorOrganizationId = $this->organizationId($actor);
+        $jobOrganizationId = $this->organizationId($job);
+        if ($actorOrganizationId !== null && $jobOrganizationId !== null && $actorOrganizationId !== $jobOrganizationId) {
+            return false;
+        }
         if ((bool)($actor['is_root'] ?? false)) {
             return true;
         }
 
         return (int)($job['user_id'] ?? 0) === (int)($actor['id'] ?? 0);
+    }
+
+    private function organizationId(array $value): ?int
+    {
+        $id = (int)($value['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
+    }
+
+    private function inputOrganizationMatches(array $input, array $actor): bool
+    {
+        $actorId = $this->organizationId($actor);
+        if ($actorId === null) {
+            return true;
+        }
+        if (array_key_exists('organization_id', $input) && $input['organization_id'] !== null && $input['organization_id'] !== '') {
+            return (int)$input['organization_id'] === $actorId;
+        }
+        $requestedPublicId = trim((string)($input['organization_public_id'] ?? ''));
+        $actorPublicId = trim((string)($actor['organization_public_id'] ?? ''));
+        return $requestedPublicId === '' || $actorPublicId === '' || hash_equals($actorPublicId, $requestedPublicId);
     }
 
     /** @param array<string,mixed> $job */

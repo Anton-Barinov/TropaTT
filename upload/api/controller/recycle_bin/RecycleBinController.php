@@ -14,10 +14,13 @@ final class RecycleBinController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var RecycleBinService $service */
         $service = $this->container->get('service.recycle_bin');
-        $result = $service->list($this->request()->allInput());
+        $result = $service->list($this->request()->allInput(), $auth['user']);
 
         return $this->success('RECYCLE_BIN_LIST', $this->t('recycle_bin/messages.list'), [
             'items' => $result['items'],
@@ -30,6 +33,9 @@ final class RecycleBinController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var RecycleBinService $service */
         $service = $this->container->get('service.recycle_bin');
@@ -58,6 +64,9 @@ final class RecycleBinController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var RecycleBinService $service */
         $service = $this->container->get('service.recycle_bin');

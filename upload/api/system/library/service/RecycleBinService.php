@@ -16,8 +16,16 @@ final class RecycleBinService
     ) {
     }
 
-    public function list(array $filters): array
+    public function list(array $filters, array $actor = []): array
     {
+        $organizationId = $this->organizationId($actor);
+        if ($organizationId !== null) {
+            $filters['organization_id'] = $organizationId;
+        } else {
+            // Never let a legacy request choose an arbitrary tenant by query
+            // parameter; it retains the historical unscoped fallback only.
+            unset($filters['organization_id']);
+        }
         [$items, $total, $page, $limit] = $this->recycleBin->list($filters);
 
         return [
@@ -35,7 +43,8 @@ final class RecycleBinService
 
     public function restore(string $publicId, array $actor): array
     {
-        $item = $this->recycleBin->findByPublicId($publicId);
+        $organizationId = $this->organizationId($actor);
+        $item = $this->recycleBin->findByPublicId($publicId, $organizationId);
         if (!$item) {
             return ['ok' => false, 'code' => 'RECYCLE_BIN_ITEM_NOT_FOUND'];
         }
@@ -47,7 +56,7 @@ final class RecycleBinService
             return ['ok' => false, 'code' => 'RECYCLE_BIN_ENTITY_UNSUPPORTED'];
         }
 
-        $file = $this->files->findByPublicId((string)$item['entity_public_id']);
+        $file = $this->files->findByPublicId((string)$item['entity_public_id'], $organizationId);
         if (!$file) {
             return ['ok' => false, 'code' => 'RECYCLE_BIN_ENTITY_NOT_FOUND'];
         }
@@ -58,8 +67,8 @@ final class RecycleBinService
             @rename($deletedPath, $storagePath);
         }
 
-        $this->files->restore((string)$file['public_id']);
-        $this->recycleBin->markRestoredByPublicId($publicId, gmdate('Y-m-d H:i:s'));
+        $this->files->restore((string)$file['public_id'], $organizationId);
+        $this->recycleBin->markRestoredByPublicId($publicId, gmdate('Y-m-d H:i:s'), $organizationId);
 
         $this->logger->audit([
             'action' => 'recycle_bin_restore',
@@ -70,7 +79,7 @@ final class RecycleBinService
             'restored_entity_public_id' => (string)$file['public_id'],
         ]);
 
-        $updated = $this->recycleBin->findByPublicId($publicId);
+        $updated = $this->recycleBin->findByPublicId($publicId, $organizationId);
 
         return [
             'ok' => true,
@@ -80,7 +89,8 @@ final class RecycleBinService
 
     public function purge(string $publicId, array $actor): array
     {
-        $item = $this->recycleBin->findByPublicId($publicId);
+        $organizationId = $this->organizationId($actor);
+        $item = $this->recycleBin->findByPublicId($publicId, $organizationId);
         if (!$item) {
             return ['ok' => false, 'code' => 'RECYCLE_BIN_ITEM_NOT_FOUND'];
         }
@@ -92,7 +102,7 @@ final class RecycleBinService
             return ['ok' => false, 'code' => 'RECYCLE_BIN_ENTITY_UNSUPPORTED'];
         }
 
-        $file = $this->files->findByPublicId((string)$item['entity_public_id']);
+        $file = $this->files->findByPublicId((string)$item['entity_public_id'], $organizationId);
         if ($file) {
             $storagePath = (string)($file['storage_path'] ?? '');
             $deletedPath = $storagePath !== '' ? $storagePath . '.deleted' : '';
@@ -103,10 +113,10 @@ final class RecycleBinService
                 @unlink($storagePath);
             }
 
-            $this->files->hardDelete((string)$file['public_id']);
+            $this->files->hardDelete((string)$file['public_id'], $organizationId);
         }
 
-        $this->recycleBin->deleteByPublicId($publicId);
+        $this->recycleBin->deleteByPublicId($publicId, $organizationId);
 
         $this->logger->audit([
             'action' => 'recycle_bin_purge',
@@ -121,6 +131,12 @@ final class RecycleBinService
             'ok' => true,
             'item' => $this->normalizeItem($item),
         ];
+    }
+
+    private function organizationId(array $actor): ?int
+    {
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        return $organizationId > 0 ? $organizationId : null;
     }
 
     /** @param array<string,mixed> $item */

@@ -30,8 +30,15 @@ final class DashboardService
             $todayEnd,
             $weekStart,
             $weekEnd,
-            $this->accessibleTeamPublicIds($actor)
+            $this->accessibleTeamPublicIds($actor),
+            $this->organizationId($actor)
         );
+    }
+
+    private function organizationId(array $actor): ?int
+    {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
     }
 
     /** @return string[] */
@@ -41,6 +48,6 @@ final class DashboardService
             return [];
         }
 
-        return $this->teams->listAccessiblePublicIdsForUser((int)($actor['id'] ?? 0));
+        return $this->teams->listAccessiblePublicIdsForUser((int)($actor['id'] ?? 0), $this->organizationId($actor));
     }
 }

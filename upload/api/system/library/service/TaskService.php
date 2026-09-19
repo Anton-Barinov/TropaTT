@@ -126,6 +126,7 @@ final class TaskService
 
     public function list(array $filters, array $actor): array
     {
+        $organizationId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
         // Strict per-project access check only for a single project filter; a
         // comma-separated multi-project list goes straight to the repository,
         // which scopes results by the actor's own access rules anyway.
@@ -173,7 +174,8 @@ final class TaskService
             $filters,
             (int)($actor['id'] ?? 0),
             (bool)($actor['is_root'] ?? false),
-            $rlsScoped
+            $rlsScoped,
+            $organizationId
         );
 
         $items = (array)($result['items'] ?? []);
@@ -221,7 +223,8 @@ final class TaskService
                 $filters,
                 (int)($actor['id'] ?? 0),
                 (bool)($actor['is_root'] ?? false),
-                $rlsScoped
+                $rlsScoped,
+                $organizationId
             );
         }
 
@@ -233,6 +236,7 @@ final class TaskService
 
     public function create(array $input, array $actor): array|string
     {
+        $organizationId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
         // RLS: external users may only create tasks inside a project that
         // already belongs to their own counterparty (checked below via
         // ProjectService::get(), which is is_external-aware). A "loose" task
@@ -261,7 +265,7 @@ final class TaskService
             if (!$this->projects->get($projectPublicId, $actor)) {
                 return 'PROJECT_NOT_FOUND';
             }
-            $projectId = $this->tasks->projectIdByPublicId($projectPublicId);
+            $projectId = $this->tasks->projectIdByPublicId($projectPublicId, $organizationId);
         }
 
         if ($parentTaskPublicId !== '') {
@@ -342,7 +346,7 @@ final class TaskService
         // Retry a couple of times, then let a genuinely broken table surface as is.
         for ($attempt = 1; ; $attempt++) {
             try {
-                $this->tasks->create($createPayload);
+                $this->tasks->create($createPayload, $organizationId);
                 break;
             } catch (PDOException $e) {
                 if (!$this->isDuplicateTaskKey($e) || $attempt >= 3) {
@@ -359,7 +363,7 @@ final class TaskService
         }
 
         if ($parentTask) {
-            $createdTaskId = $this->tasks->taskIdByPublicId($publicId);
+            $createdTaskId = $this->tasks->taskIdByPublicId($publicId, $organizationId);
             if ($createdTaskId !== null) {
                 $sortOrder = isset($input['sort_order'])
                     ? max(0, (int)$input['sort_order'])
@@ -374,11 +378,11 @@ final class TaskService
                     'legacy_subtask_public_id' => null,
                     'created_at' => $createdAt,
                     'updated_at' => $updatedAt,
-                ]);
+                ], $organizationId);
             }
         }
 
-        $createdTask = $this->tasks->findByPublicId($publicId) ?: ['public_id' => $publicId];
+        $createdTask = $this->tasks->findByPublicId($publicId, $organizationId) ?: ['public_id' => $publicId];
         if (is_array($createdTask)) {
             $this->notifications?->notifyTaskCreated($createdTask, $actor);
             $this->activity?->recordTaskCreated($createdTask, $actor, ['source_type' => $input['source_type'] ?? 'web']);
@@ -389,7 +393,8 @@ final class TaskService
 
     public function get(string $publicId, array $actor): ?array
     {
-        $task = $this->tasks->findByPublicId($publicId);
+        $organizationId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
+        $task = $this->tasks->findByPublicId($publicId, $organizationId);
         if (!$task) {
             return null;
         }
@@ -406,6 +411,7 @@ final class TaskService
 
     public function getByTaskKey(string $taskKey, array $actor): ?array
     {
+        $organizationId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
         $normalized = strtoupper(trim($taskKey));
 
         // Validate format
@@ -413,7 +419,7 @@ final class TaskService
             return null;
         }
 
-        $task = $this->tasks->findByTaskKey($normalized);
+        $task = $this->tasks->findByTaskKey($normalized, $organizationId);
         if (!$task) {
             return null;
         }
@@ -431,7 +437,8 @@ final class TaskService
     /** @return array<string,mixed>|null|'ROW_VERSION_CONFLICT'|'PROJECT_NOT_FOUND'|'PARENT_TASK_NOT_FOUND'|'INVALID_PARENT_TASK'|'FORBIDDEN_TASK_IDENTITY_EDIT'|'CYCLIC_DEPENDENCY_DETECTED'|'DESCRIPTION_TOO_LONG' */
     public function update(string $publicId, array $input, int $actorUserId, array $actor): array|string|null
     {
-        $task = $this->tasks->findByPublicId($publicId);
+        $organizationId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
+        $task = $this->tasks->findByPublicId($publicId, $organizationId);
         if (!$task) {
             return null;
         }
@@ -526,7 +533,7 @@ final class TaskService
                 if (!$this->projects->get($projectPublicId, $actor)) {
                     return 'PROJECT_NOT_FOUND';
                 }
-                $projectId = $this->tasks->projectIdByPublicId($projectPublicId);
+                $projectId = $this->tasks->projectIdByPublicId($projectPublicId, $organizationId);
                 if ($projectId === null) {
                     return 'PROJECT_NOT_FOUND';
                 }
@@ -568,7 +575,7 @@ final class TaskService
         $set['updated_at'] = gmdate('Y-m-d H:i:s');
 
         $oldStatus = (string)$task['status_code'];
-        $updated = $this->tasks->updateByPublicId($publicId, $set, $expectedRowVersion);
+        $updated = $this->tasks->updateByPublicId($publicId, $set, $expectedRowVersion, $organizationId);
         if (!$updated && $expectedRowVersion !== null) {
             return 'ROW_VERSION_CONFLICT';
         }
@@ -621,7 +628,7 @@ final class TaskService
             ]);
         }
 
-        $updatedTask = $this->tasks->findByPublicId($publicId);
+        $updatedTask = $this->tasks->findByPublicId($publicId, $organizationId);
         if (!$updatedTask || !$this->canAccess($updatedTask, $actor)) {
             return null;
         }
@@ -657,7 +664,8 @@ final class TaskService
 
     public function delete(string $publicId, array $actor): bool
     {
-        $task = $this->tasks->findByPublicId($publicId);
+        $organizationId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
+        $task = $this->tasks->findByPublicId($publicId, $organizationId);
         if (!$task) {
             return false;
         }
@@ -672,7 +680,7 @@ final class TaskService
             return true;
         }
 
-        $deleted = $this->tasks->softDeleteByPublicId($publicId, gmdate('Y-m-d H:i:s'));
+        $deleted = $this->tasks->softDeleteByPublicId($publicId, gmdate('Y-m-d H:i:s'), $organizationId);
         if ($deleted) {
             // Subtasks are separate task rows linked through task_relations: without
             // this cascade they survived their parent, kept showing up in task lists
@@ -897,7 +905,13 @@ final class TaskService
             return [];
         }
 
-        return $this->teams->listAccessiblePublicIdsForUser((int)($actor['id'] ?? 0));
+        return $this->teams->listAccessiblePublicIdsForUser((int)($actor['id'] ?? 0), $this->organizationId($actor));
+    }
+
+    private function organizationId(array $actor): ?int
+    {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
     }
 
     /** @return int[] */

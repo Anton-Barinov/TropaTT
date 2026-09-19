@@ -25,12 +25,17 @@ final class TaskController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $cache = $this->cacheApi();
         if ($cache !== null) {
             $input = $this->request()->allInput();
             ksort($input);
-            $cacheKey = 'board:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($input));
+            $cacheKey = 'board:' . $this->cacheUserId() . ':' . $this->organizationContextCacheKey() . ':' . hash('sha256', json_encode($input));
             $result = $cache->remember('task', $cacheKey, 60, function () use ($input, $authUser) {
                 /** @var TaskBoardService $service */
                 $service = $this->container->get('service.task_board');
@@ -53,6 +58,11 @@ final class TaskController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         $errors = [];
@@ -69,7 +79,7 @@ final class TaskController extends BaseController
         $cache = $this->cacheApi();
         if ($cache !== null) {
             ksort($input);
-            $cacheKey = 'list:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($input));
+            $cacheKey = 'list:' . $this->cacheUserId() . ':' . $this->organizationContextCacheKey() . ':' . hash('sha256', json_encode($input));
             $result = $cache->remember('task', $cacheKey, 60, function () use ($input, $authUser) {
                 /** @var TaskService $service */
                 $service = $this->container->get('service.task');
@@ -95,6 +105,11 @@ final class TaskController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         $v = new Validator();
@@ -118,7 +133,7 @@ final class TaskController extends BaseController
         }
         if (array_key_exists('status', $input)) {
             $statusCode = trim((string)$input['status']);
-            if ($statusCode !== '' && !$this->isAllowedTaskStatus($statusCode)) {
+            if ($statusCode !== '' && !$this->isAllowedTaskStatus($statusCode, (int)($authUser['user']['organization_id'] ?? 0))) {
                 $errors['status'][] = $this->t('task/messages.invalid_status');
             }
         }
@@ -266,6 +281,11 @@ final class TaskController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var TaskService $service */
         $service = $this->container->get('service.task');
@@ -320,7 +340,7 @@ final class TaskController extends BaseController
         $errors = $v->errors();
         if (array_key_exists('status', $input)) {
             $statusCode = trim((string)$input['status']);
-            if ($statusCode !== '' && !$this->isAllowedTaskStatus($statusCode)) {
+            if ($statusCode !== '' && !$this->isAllowedTaskStatus($statusCode, (int)($authUser['user']['organization_id'] ?? 0))) {
                 $errors['status'][] = $this->t('task/messages.invalid_status');
             }
         }
@@ -653,7 +673,7 @@ final class TaskController extends BaseController
         }
         if (array_key_exists('status', $changes)) {
             $statusCode = trim((string)$changes['status']);
-            if ($statusCode !== '' && !$this->isAllowedTaskStatus($statusCode)) {
+            if ($statusCode !== '' && !$this->isAllowedTaskStatus($statusCode, (int)($authUser['user']['organization_id'] ?? 0))) {
                 $errors['status'][] = $this->t('task/messages.invalid_status');
             }
         }
@@ -826,7 +846,7 @@ final class TaskController extends BaseController
      *
      * @param array<string, mixed> $payload
      */
-    private function isAllowedTaskStatus(string $statusCode): bool
+    private function isAllowedTaskStatus(string $statusCode, ?int $organizationId = null): bool
     {
         if (in_array($statusCode, ['new', 'todo', 'in_progress', 'review', 'blocked', 'done', 'completed', 'canceled', 'cancelled'], true)) {
             return true;
@@ -834,7 +854,7 @@ final class TaskController extends BaseController
 
         /** @var StatusRepository $statuses */
         $statuses = $this->container->get('repository.status');
-        $status = $statuses->findByScopeAndCode('task', $statusCode);
+        $status = $statuses->findByScopeAndCode('task', $statusCode, $organizationId);
 
         return $status !== null && (int)($status['is_active'] ?? 1) === 1;
     }

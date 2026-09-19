@@ -30,6 +30,7 @@ final class ProjectService
 
     public function list(array $filters, array $actor): array
     {
+        $organizationId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
         $filters['accessible_team_public_ids'] = $this->accessibleTeamPublicIds($actor);
 
         // RLS: external users can only see projects for their counterparty.
@@ -68,7 +69,8 @@ final class ProjectService
             $filters,
             (int)($actor['id'] ?? 0),
             (bool)($actor['is_root'] ?? false),
-            $rlsScoped
+            $rlsScoped,
+            $organizationId
         );
 
         $items = (array)($result['items'] ?? []);
@@ -150,6 +152,7 @@ final class ProjectService
     /** @return array<string,mixed>|'PROJECT_TASK_PREFIX_ALREADY_EXISTS' */
     public function create(array $input, array $actor): array|string
     {
+        $organizationId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
         $now = gmdate('Y-m-d H:i:s');
         $publicId = Ulid::generate('prj');
         $creatorUserId = (int)($actor['id'] ?? 0);
@@ -195,7 +198,7 @@ final class ProjectService
                     'created_at' => $now,
                     'updated_at' => $now,
                     'row_version' => 1,
-                ]);
+                ], $organizationId);
                 break;
             } catch (PDOException $e) {
                 AppLog::error('[ProjectService::create] task_key_prefix conflict: ' . $e->getMessage());
@@ -211,7 +214,7 @@ final class ProjectService
             }
         }
 
-        $project = $this->projects->findByPublicId($publicId);
+        $project = $this->projects->findByPublicId($publicId, $organizationId);
 
         if (is_array($project)) {
             // Initialize task key counter for this project
@@ -243,7 +246,8 @@ final class ProjectService
 
     public function get(string $publicId, array $actor): ?array
     {
-        $project = $this->projects->findByPublicId($publicId);
+        $organizationId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
+        $project = $this->projects->findByPublicId($publicId, $organizationId);
         if (!$project) {
             return null;
         }
@@ -258,7 +262,8 @@ final class ProjectService
     /** @return array<string,mixed>|null|'ROW_VERSION_CONFLICT' */
     public function update(string $publicId, array $input, array $actor): array|string|null
     {
-        $project = $this->projects->findByPublicId($publicId);
+        $organizationId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
+        $project = $this->projects->findByPublicId($publicId, $organizationId);
         if (!$project) {
             return null;
         }
@@ -333,7 +338,7 @@ final class ProjectService
             $set['task_key_prefix'] = $resolved;
         }
 
-        $updated = $this->projects->updateByPublicId($publicId, $set, $expectedRowVersion);
+        $updated = $this->projects->updateByPublicId($publicId, $set, $expectedRowVersion, $organizationId);
         if (!$updated && $expectedRowVersion !== null) {
             return 'ROW_VERSION_CONFLICT';
         }
@@ -347,7 +352,7 @@ final class ProjectService
             }
         }
 
-        $updated = $this->projects->findByPublicId($publicId);
+        $updated = $this->projects->findByPublicId($publicId, $organizationId);
         if (!$updated || !$this->canAccess($updated, $actor)) {
             return null;
         }
@@ -374,7 +379,8 @@ final class ProjectService
 
     public function delete(string $publicId, array $actor): bool
     {
-        $project = $this->projects->findByPublicId($publicId);
+        $organizationId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
+        $project = $this->projects->findByPublicId($publicId, $organizationId);
         if (!$project) {
             return false;
         }
@@ -392,7 +398,7 @@ final class ProjectService
             return true;
         }
 
-        $archived = $this->projects->archiveByPublicId($publicId, gmdate('Y-m-d H:i:s'));
+        $archived = $this->projects->archiveByPublicId($publicId, gmdate('Y-m-d H:i:s'), $organizationId);
         if ($archived) {
             $this->semanticIndex?->removeEntityDocument('project', $publicId);
             // the project's system chat must not outlive the project
@@ -465,7 +471,13 @@ final class ProjectService
             return [];
         }
 
-        return $this->teams->listAccessiblePublicIdsForUser((int)($actor['id'] ?? 0));
+        return $this->teams->listAccessiblePublicIdsForUser((int)($actor['id'] ?? 0), $this->organizationId($actor));
+    }
+
+    private function organizationId(array $actor): ?int
+    {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
     }
 
     private function resolveTeamPublicId(array $input, array $actor): ?string

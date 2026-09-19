@@ -34,7 +34,7 @@ final class ReminderService
     public function list(array $filters, array $actor): array
     {
         $userId = (int)($actor['id'] ?? 0);
-        [$items, $total, $page, $limit] = $this->reminders->listByUser($userId, $filters);
+        [$items, $total, $page, $limit] = $this->reminders->listByUser($userId, $filters, $this->organizationId($actor));
 
         return [
             'items' => $items,
@@ -56,7 +56,7 @@ final class ReminderService
             return null;
         }
 
-        return $this->reminders->findByPublicIdForUser($publicId, $userId);
+        return $this->reminders->findByPublicIdForUser($publicId, $userId, $this->organizationId($actor));
     }
 
     public function create(array $input, array $actor)
@@ -83,6 +83,7 @@ final class ReminderService
             'remind_at' => $this->normalizeDatetime((string)$input['remind_at']),
             'status' => (string)($input['status'] ?? 'new'),
             'created_at' => gmdate('Y-m-d H:i:s'),
+            'organization_id' => $this->organizationId($actor),
         ]);
 
         $this->logger->audit([
@@ -93,10 +94,10 @@ final class ReminderService
             'task_id' => $taskId,
         ]);
 
-        $created = $this->reminders->findByPublicIdForUser($publicId, $userId) ?: ['public_id' => $publicId];
+        $created = $this->reminders->findByPublicIdForUser($publicId, $userId, $this->organizationId($actor)) ?: ['public_id' => $publicId];
         $remindAt = trim((string)($created['remind_at'] ?? ''));
         if ($remindAt !== '' && strtotime($remindAt) <= time()) {
-            $this->notifications?->notifyReminderDue(is_array($created) ? $created : ['public_id' => $publicId], $userId);
+            $this->notifications?->notifyReminderDue(is_array($created) ? $created : ['public_id' => $publicId], $userId, $actor);
         }
 
         return $created;
@@ -109,7 +110,7 @@ final class ReminderService
             return null;
         }
 
-        $existing = $this->reminders->findByPublicIdForUser($publicId, $userId);
+        $existing = $this->reminders->findByPublicIdForUser($publicId, $userId, $this->organizationId($actor));
         if (!$existing) {
             return null;
         }
@@ -134,7 +135,7 @@ final class ReminderService
         }
 
         if ($set !== []) {
-            $this->reminders->updateByPublicIdForUser($publicId, $userId, $set);
+            $this->reminders->updateByPublicIdForUser($publicId, $userId, $set, $this->organizationId($actor));
         }
 
         $this->logger->audit([
@@ -145,7 +146,7 @@ final class ReminderService
             'changes' => $set,
         ]);
 
-        $updated = $this->reminders->findByPublicIdForUser($publicId, $userId);
+        $updated = $this->reminders->findByPublicIdForUser($publicId, $userId, $this->organizationId($actor));
         if (is_array($updated)) {
             $beforeStatus = strtolower(trim((string)($existing['status'] ?? '')));
             $afterStatus = strtolower(trim((string)($updated['status'] ?? '')));
@@ -167,7 +168,7 @@ final class ReminderService
             return false;
         }
 
-        $ok = $this->reminders->deleteByPublicIdForUser($publicId, $userId);
+        $ok = $this->reminders->deleteByPublicIdForUser($publicId, $userId, $this->organizationId($actor));
         if ($ok) {
             $this->logger->audit([
                 'action' => 'reminder_deleted',
@@ -187,7 +188,7 @@ final class ReminderService
             return 0;
         }
 
-        return $this->reminders->countPendingDueUntil($userId, $until);
+        return $this->reminders->countPendingDueUntil($userId, $until, $this->organizationId($actor));
     }
 
     public function dispatchDueNotificationsForUser(array $actor, ?string $until = null): int
@@ -198,12 +199,18 @@ final class ReminderService
         }
 
         $cutoff = $until !== null && trim($until) !== '' ? (string)$until : gmdate('Y-m-d H:i:s');
-        $items = $this->reminders->listDueActiveByUser($userId, $cutoff, 200);
+        $items = $this->reminders->listDueActiveByUser($userId, $cutoff, 200, $this->organizationId($actor));
         $created = 0;
         foreach ($items as $item) {
-            $created += $this->notifications->notifyReminderDue($item, $userId);
+            $created += $this->notifications->notifyReminderDue($item, $userId, $actor);
         }
 
         return $created;
+    }
+
+    private function organizationId(array $actor): ?int
+    {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
     }
 }

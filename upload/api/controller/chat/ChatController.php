@@ -15,9 +15,14 @@ final class ChatController extends BaseController
     public function list(): JsonResponse
     {
         $pdo = $this->container->get('db.pdo');
-        $user = $this->user()['user'] ?? [];
+        $auth = $this->user();
+        $user = $auth['user'] ?? [];
         $userId = (int)($user['id'] ?? 0);
         if ($userId <= 0) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+        $user = $this->organizationScopedActor($user);
+        $organizationId = (int)($user['organization_id'] ?? 0);
         $isExternal = !empty((int)($user['is_external'] ?? 0));
         $archived = (string)($this->request()->input('archived', '')) === '1';
 
@@ -35,6 +40,7 @@ final class ChatController extends BaseController
                 if (!$hasArchivedColumn) {
                     return $this->success('CHATS_ARCHIVED', $this->t('common/messages.ok'), ['items' => []]);
                 }
+                $chatOrgFilter = $organizationId > 0 ? ' AND c.organization_id = :organization_id' : '';
                 $stmt = $pdo->prepare("
                     SELECT c.*, 0 as is_favorite, null as muted_until, 0 as last_read_id, 0 as unread,
                         (SELECT text FROM chat_messages WHERE chat_id = c.id AND deleted_at IS NULL ORDER BY id DESC LIMIT 1) as last_message,
@@ -43,9 +49,12 @@ final class ChatController extends BaseController
                         c.archived_participant_ids as participant_names_raw
                     FROM chats c
                     WHERE c.archived_at IS NOT NULL AND c.archived_by_user_id = :archived_by
+                      {$chatOrgFilter}
                     ORDER BY c.archived_at DESC
                 ");
-                $stmt->execute(['archived_by' => $userId]);
+                $archivedParams = ['archived_by' => $userId];
+                if ($organizationId > 0) $archivedParams['organization_id'] = $organizationId;
+                $stmt->execute($archivedParams);
                 $items = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
                 foreach ($items as &$item) {
                     $ids = json_decode($item['participant_names_raw'] ?? '[]', true) ?: [];
@@ -71,6 +80,9 @@ final class ChatController extends BaseController
             }
 
             $archivedFilter = $hasArchivedColumn ? 'WHERE c.archived_at IS NULL' : '';
+            if ($organizationId > 0) {
+                $archivedFilter .= ($archivedFilter ? ' AND' : 'WHERE') . ' c.organization_id = :organization_id';
+            }
             // Defence-in-depth: external users only see project_client chats
             if ($isExternal) {
                 $archivedFilter = ($archivedFilter ? $archivedFilter . ' AND' : 'WHERE') . " c.type = 'project_client'";
@@ -98,7 +110,9 @@ final class ChatController extends BaseController
                 {$archivedFilter}
                 ORDER BY cp.is_favorite DESC, COALESCE(c.last_message_at, c.created_at) DESC
             ");
-            $stmt->execute(['uid' => $userId, 'uid2' => $userId, 'uid3' => $userId]);
+            $params = ['uid' => $userId, 'uid2' => $userId, 'uid3' => $userId];
+            if ($organizationId > 0) $params['organization_id'] = $organizationId;
+            $stmt->execute($params);
             $items = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
             // Staff (non-external) must also see the project_client chat of any
@@ -151,6 +165,8 @@ final class ChatController extends BaseController
 
     public function get(array $params = []): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
         // External users: defence-in-depth type check
         $actor = $this->user()['user'] ?? [];
         if (!empty((int)($actor['is_external'] ?? 0))) {
@@ -946,6 +962,10 @@ final class ChatController extends BaseController
             $service = $this->container->get('service.chat');
             $chat = $service->findProjectClientChatByPublicId($publicId);
             if ($chat && !empty($chat['project_public_id'])) {
+                $organizationId = (int)($this->organizationScopedActor($actor)['organization_id'] ?? 0);
+                if ($organizationId > 0 && (int)($chat['organization_id'] ?? 0) !== $organizationId) {
+                    return null;
+                }
                 /** @var \Api\System\Library\Service\ProjectService $projectService */
                 $projectService = $this->container->get('service.project');
                 if ($projectService->get((string)$chat['project_public_id'], $actor)) {
@@ -961,6 +981,9 @@ final class ChatController extends BaseController
         $publicId = trim($publicId);
         $userId = $this->currentUserId();
         if ($publicId === '' || $userId <= 0) return null;
+        $actor = $this->organizationScopedActor((array)(($this->user()['user'] ?? [])));
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        $organizationFilter = $organizationId > 0 ? ' AND c.organization_id = :organization_id' : '';
 
         // project_public_id / project_client_public_id are needed by the chat
         // page to prefill the task-create dialog with the linked project and
@@ -973,9 +996,12 @@ final class ChatController extends BaseController
             LEFT JOIN chat_read_markers rm ON rm.chat_id = c.id AND rm.user_id = :uid2
             LEFT JOIN projects p ON p.id = c.project_id
             WHERE c.public_id = :pid
+              {$organizationFilter}
             LIMIT 1
         ");
-        $stmt->execute(['pid' => $publicId, 'uid' => $userId, 'uid2' => $userId]);
+        $params = ['pid' => $publicId, 'uid' => $userId, 'uid2' => $userId];
+        if ($organizationId > 0) $params['organization_id'] = $organizationId;
+        $stmt->execute($params);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return is_array($row) ? $row : null;
     }
@@ -985,6 +1011,9 @@ final class ChatController extends BaseController
         $publicId = trim($publicId);
         $userId = $this->currentUserId();
         if ($publicId === '' || $userId <= 0) return null;
+        $actor = $this->organizationScopedActor((array)(($this->user()['user'] ?? [])));
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        $organizationFilter = $organizationId > 0 ? ' AND c.organization_id = :organization_id' : '';
 
         $stmt = $this->container->get('db.pdo')->prepare("
             SELECT c.*, p.public_id AS project_public_id, p.client_public_id AS project_client_public_id,
@@ -994,9 +1023,12 @@ final class ChatController extends BaseController
             WHERE c.public_id = :pid
               AND c.archived_by_user_id = :uid
               AND c.archived_at IS NOT NULL
+              {$organizationFilter}
             LIMIT 1
         ");
-        $stmt->execute(['pid' => $publicId, 'uid' => $userId]);
+        $params = ['pid' => $publicId, 'uid' => $userId];
+        if ($organizationId > 0) $params['organization_id'] = $organizationId;
+        $stmt->execute($params);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return is_array($row) ? $row : null;
     }

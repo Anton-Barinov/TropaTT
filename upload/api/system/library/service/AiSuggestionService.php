@@ -580,6 +580,7 @@ final class AiSuggestionService
                 ],
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'created_by_user_id' => (int)($actor['id'] ?? 0) ?: null,
+            'organization_id' => (int)($actor['organization_id'] ?? 0) > 0 ? (int)$actor['organization_id'] : null,
             'confirmed_by_user_id' => null,
             'created_at' => $now,
             'updated_at' => $now,
@@ -1361,6 +1362,13 @@ final class AiSuggestionService
 
     public function list(array $filters, array $actor): array
     {
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        // A workspace administrator may view all suggestions in the selected
+        // workspace, but never suggestions generated in another workspace.
+        // Global/root context keeps the legacy global suggestions visible.
+        if ($organizationId > 0) {
+            $filters['organization_id'] = $organizationId;
+        }
         [$items, $total, $page, $limit] = $this->runtime->listSuggestions(
             $filters,
             $this->canViewAllSuggestions($actor),
@@ -2476,6 +2484,12 @@ final class AiSuggestionService
     /** @param array<string,mixed> $actor */
     private function canManageCronJobs(array $actor): bool
     {
+        $actorOrganizationId = (int)($actor['organization_id'] ?? 0);
+        $itemOrganizationId = (int)($item['organization_id'] ?? 0);
+        if ($actorOrganizationId > 0 && $itemOrganizationId !== $actorOrganizationId) {
+            return false;
+        }
+
         if ((bool)($actor['is_root'] ?? false)) {
             return true;
         }
@@ -4322,6 +4336,7 @@ final class AiSuggestionService
             'prompt_version' => $promptVersion,
             'filters' => $this->sanitizeInput($input),
             'permissions' => array_values(array_map('strval', (array)($actor['permission_codes'] ?? []))),
+            'organization_id' => (int)($actor['organization_id'] ?? 0),
         ];
 
         return hash('sha256', json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '');

@@ -4,6 +4,8 @@ return array (
   array (
     'card_ecommerce_gateway_desc' => 'Onlineshops verwalten, Statuszuordnung und Synchronisationsprotokoll.',
     'card_ecommerce_gateway_title' => 'Shop-Gateway',
+    'card_workspaces_desc' => 'Arbeitsbereiche, Mitglieder und Zugriffsrollen verwalten.',
+    'card_workspaces_title' => 'Arbeitsbereiche',
     'active_state' => 'Active',
     'admin_user_fallback' => 'administrator',
     'all_systems_ok' => 'All systems are operational',
@@ -8400,21 +8402,28 @@ return array (
   ),
   'organization' => 
   array (
-    'empty' => 'Keine Organisationen',
+    'empty' => 'Keine Arbeitsbereiche',
     'btn_edit' => 'Bearbeiten',
     'btn_members' => 'Mitglieder',
     'btn_delete' => 'Löschen',
     'load_error' => 'Ladefehler',
     'prompt_title' => 'Organisationstitel',
     'title_empty' => 'Organisationstitel darf nicht leer sein',
-    'created_notify' => 'Organisation erstellt',
-    'members_title' => 'Organisationsmitglieder:',
+    'created_notify' => 'Arbeitsbereich erstellt',
+    'members_title' => 'Arbeitsbereich-Mitglieder:',
     'no_members' => 'Keine Mitglieder',
     'load_members_error' => 'Mitglieder konnten nicht geladen werden',
-    'confirm_delete' => 'Organisation löschen?',
+    'confirm_delete' => 'Arbeitsbereich löschen?',
     'deleted_notify' => 'Organisation gelöscht',
     'create_failed' => 'Organisation konnte nicht erstellt werden',
     'delete_failed' => 'Organisation konnte nicht gelöscht werden',
+    'search_empty' => 'Nothing found',
+    'edit_title' => 'Edit organization',
+    'updated_notify' => 'Organization updated',
+    'update_failed' => 'Failed to update organization',
+    'select' => 'Use workspace',
+    'selected' => 'Active workspace',
+
   ),
   'organizations' => 
   array (
@@ -8428,6 +8437,9 @@ return array (
     'th_name' => 'Name',
     'th_participants' => 'Mitglieder',
     'th_created' => 'Erstellungsdatum',
+    'search' => 'Search',
+    'search_placeholder' => 'Search organizations',
+    'th_actions' => 'Actions',
   ),
   'page' => 
   array (
@@ -8989,6 +9001,7 @@ return array (
     'subtitle' => 'Deleted items: restore or permanently delete.',
     'th_deleted_at' => 'Deleted',
     'th_deleted_by' => 'Deleted by',
+    'th_actions' => 'Aktionen',
     'th_name' => 'Name',
     'th_type' => 'Type',
     'title' => 'TropaTT — Recycle bin',
@@ -10568,4 +10581,17 @@ return array (
   'custom_field.create_title' => 'Benutzerdefiniertes Feld erstellen',
   'organization.create_title' => 'Organisation erstellen',
   'priority.create_title' => 'Priorität erstellen',
+
+  'topbar.workspace_label' => 'Arbeitsbereich',
+  'organization.members_search' => 'Mitglied suchen',
+  'organization.members_save' => 'Mitglieder speichern',
+  'organization.members_count' => '{shown} von {total} Benutzern',
+  'organization.members_empty' => 'Keine Benutzer gefunden',
+  'organization.member_role' => 'Rolle',
+  'organization.role_member' => 'Mitglied',
+  'organization.role_admin' => 'Administrator',
+  'organization.role_owner' => 'Eigentümer',
+  'organization.members_saved' => 'Arbeitsbereich-Mitglieder aktualisiert',
+  'organization.members_save_error' => 'Arbeitsbereich-Mitglieder konnten nicht aktualisiert werden',
+  'organization.selected_short' => 'Aktuell',
 );

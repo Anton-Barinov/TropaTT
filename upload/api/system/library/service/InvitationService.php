@@ -7,6 +7,7 @@ use Api\System\Library\Security\PasswordPolicy;
 use Api\Model\Common\UserRepository;
 use Api\Model\Role\RoleRepository;
 use Api\Model\Security\InvitationRepository;
+use Api\Model\Organization\OrganizationRepository;
 use Api\Model\User\UserManagementRepository;
 use Api\System\Library\Logger\JsonLogger;
 use Api\System\Library\Security\PasswordHasher;
@@ -23,7 +24,8 @@ final class InvitationService
         private readonly PasswordHasher $hasher,
         private readonly TokenManager $tokens,
         private readonly JsonLogger $logger,
-        private readonly RateLimitService $rateLimiter
+        private readonly RateLimitService $rateLimiter,
+        private readonly OrganizationRepository $organizations
     ) {
     }
 
@@ -94,6 +96,67 @@ final class InvitationService
         }
 
         return $this->normalizeInvitation($item);
+    }
+
+    /** @return array<string,mixed> */
+    public function listForOrganization(string $organizationPublicId, array $filters, array $actor): array
+    {
+        if (!$this->canManageOrganization($organizationPublicId, $actor)) {
+            return ['ok' => false, 'code' => 'ORGANIZATION_INVITATION_FORBIDDEN'];
+        }
+        [$items, $total, $page, $limit] = $this->invitations->listForOrganization($organizationPublicId, $filters);
+        return ['ok' => true, 'items' => array_map([$this, 'normalizeInvitation'], $items), 'meta' => ['pagination' => ['page' => $page, 'limit' => $limit, 'total' => $total, 'pages' => (int)ceil($total / max(1, $limit))]]];
+    }
+
+    /** Create a workspace membership invitation while leaving legacy security invitations untouched. */
+    public function createForOrganization(string $organizationPublicId, array $input, array $actor): array
+    {
+        if (!$this->canManageOrganization($organizationPublicId, $actor)) return ['ok' => false, 'code' => 'ORGANIZATION_INVITATION_FORBIDDEN'];
+        $organization = $this->organizations->findByPublicId($organizationPublicId);
+        if (!$organization) return ['ok' => false, 'code' => 'ORGANIZATION_NOT_FOUND'];
+        $email = mb_strtolower(trim((string)($input['email'] ?? '')));
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) return ['ok' => false, 'code' => 'INVITATION_INVALID_EMAIL'];
+        if ($this->users->findByEmail($email)) return ['ok' => false, 'code' => 'INVITATION_EMAIL_EXISTS'];
+        $role = (string)($input['role_code'] ?? 'member');
+        if (!in_array($role, ['admin', 'member'], true)) return ['ok' => false, 'code' => 'ORGANIZATION_INVITATION_INVALID_ROLE'];
+        $plainToken = $this->tokens->generate(24);
+        $publicId = Ulid::generate('inv');
+        $now = gmdate('Y-m-d H:i:s');
+        $expiresAt = gmdate('Y-m-d H:i:s', time() + 86400 * max(1, min(30, (int)($input['expires_in_days'] ?? 7))));
+        $this->invitations->create(['public_id' => $publicId, 'email' => $email, 'invited_by_user_id' => (int)($actor['id'] ?? 0), 'token_hash' => $this->tokens->hash($plainToken), 'expires_at' => $expiresAt, 'accepted_at' => null, 'created_at' => $now, 'organization_id' => (int)$organization['id'], 'role_code' => $role, 'revoked_at' => null]);
+        $this->logger->audit(['action' => 'organization_invitation_create', 'actor_public_id' => $actor['public_id'] ?? null, 'entity_type' => 'organization_invitation', 'entity_public_id' => $publicId, 'organization_public_id' => $organizationPublicId, 'email' => $email, 'role_code' => $role]);
+        return ['ok' => true, 'invitation' => $this->normalizeInvitation($this->invitations->findByPublicId($publicId) ?: ['public_id' => $publicId, 'email' => $email, 'expires_at' => $expiresAt, 'role_code' => $role]), 'accept_token' => $plainToken];
+    }
+
+    public function revokeForOrganization(string $organizationPublicId, string $invitationPublicId, array $actor): array
+    {
+        if (!$this->canManageOrganization($organizationPublicId, $actor)) return ['ok' => false, 'code' => 'ORGANIZATION_INVITATION_FORBIDDEN'];
+        if (!$this->invitations->revokeForOrganization($invitationPublicId, $organizationPublicId, gmdate('Y-m-d H:i:s'))) return ['ok' => false, 'code' => 'ORGANIZATION_INVITATION_NOT_FOUND_OR_FINAL'];
+        $this->logger->audit(['action' => 'organization_invitation_revoke', 'actor_public_id' => $actor['public_id'] ?? null, 'entity_type' => 'organization_invitation', 'entity_public_id' => $invitationPublicId, 'organization_public_id' => $organizationPublicId]);
+        return ['ok' => true];
+    }
+
+    public function resendForOrganization(string $organizationPublicId, string $invitationPublicId, array $actor): array
+    {
+        if (!$this->canManageOrganization($organizationPublicId, $actor)) return ['ok' => false, 'code' => 'ORGANIZATION_INVITATION_FORBIDDEN'];
+        $item = $this->invitations->findByPublicId($invitationPublicId);
+        if (!$item || (string)($item['organization_public_id'] ?? '') !== $organizationPublicId || !empty($item['accepted_at']) || !empty($item['revoked_at'])) return ['ok' => false, 'code' => 'ORGANIZATION_INVITATION_NOT_FOUND_OR_FINAL'];
+        $plainToken = $this->tokens->generate(24);
+        $expiresAt = gmdate('Y-m-d H:i:s', time() + 86400 * 7);
+        if (!$this->invitations->refreshForOrganization($invitationPublicId, $organizationPublicId, $this->tokens->hash($plainToken), $expiresAt)) return ['ok' => false, 'code' => 'ORGANIZATION_INVITATION_RESEND_FAILED'];
+        $this->logger->audit(['action' => 'organization_invitation_resend', 'actor_public_id' => $actor['public_id'] ?? null, 'entity_type' => 'organization_invitation', 'entity_public_id' => $invitationPublicId, 'organization_public_id' => $organizationPublicId]);
+        return ['ok' => true, 'invitation' => $this->normalizeInvitation($this->invitations->findByPublicId($invitationPublicId) ?: $item), 'accept_token' => $plainToken];
+    }
+
+    public function acceptForOrganization(string $organizationPublicId, array $input, string $ip = ''): array
+    {
+        $invitation = $this->invitations->findActiveByTokenHashForOrganization($this->tokens->hash(trim((string)($input['invitation_token'] ?? ''))), $organizationPublicId);
+        if (!$invitation) return ['ok' => false, 'code' => 'INVITATION_NOT_FOUND'];
+        $result = $this->accept($input, $ip);
+        if (!(bool)($result['ok'] ?? false)) return $result;
+        $role = in_array((string)($invitation['role_code'] ?? 'member'), ['admin', 'member'], true) ? (string)$invitation['role_code'] : 'member';
+        $this->organizations->addOrUpdateMember($organizationPublicId, (string)($result['user']['public_id'] ?? ''), $role, Ulid::generate('orm'), gmdate('Y-m-d H:i:s'));
+        return $result;
     }
 
     public function accept(array $input, string $ip = ''): array
@@ -207,6 +270,8 @@ final class InvitationService
         return [
             'public_id' => (string)($invitation['public_id'] ?? ''),
             'email' => (string)($invitation['email'] ?? ''),
+            'organization_public_id' => (string)($invitation['organization_public_id'] ?? ''),
+            'role_code' => (string)($invitation['role_code'] ?? 'member'),
             'invited_by' => [
                 'public_id' => (string)($invitation['invited_by_public_id'] ?? ''),
                 'login' => (string)($invitation['invited_by_login'] ?? ''),
@@ -215,6 +280,13 @@ final class InvitationService
             'expires_at' => (string)($invitation['expires_at'] ?? ''),
             'accepted_at' => (string)($invitation['accepted_at'] ?? ''),
             'created_at' => (string)($invitation['created_at'] ?? ''),
+            'revoked_at' => (string)($invitation['revoked_at'] ?? ''),
         ];
+    }
+
+    private function canManageOrganization(string $organizationPublicId, array $actor): bool
+    {
+        if ((bool)($actor['is_root'] ?? false)) return $this->organizations->findByPublicId($organizationPublicId) !== null;
+        return in_array($this->organizations->memberRole($organizationPublicId, (int)($actor['id'] ?? 0)), ['owner', 'admin'], true);
     }
 }

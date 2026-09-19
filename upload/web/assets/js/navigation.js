@@ -581,8 +581,8 @@ window.CRM.navigation = (function () {
     }
 
     var profileButton = bar.querySelector('[data-profile-dropdown] .dropdown-toggle')
-      || bar.querySelector('[data-global-actions] .dropdown .dropdown-toggle')
-      || bar.querySelector('.ms-auto .dropdown .dropdown-toggle');
+      || bar.querySelector('[data-global-actions] .dropdown:not(.crm-workspace-switcher) .dropdown-toggle')
+      || bar.querySelector('.ms-auto .dropdown:not(.crm-workspace-switcher) .dropdown-toggle');
     if (profileButton) {
       profileButton.setAttribute('data-session-user-btn', '1');
     }
@@ -646,6 +646,82 @@ window.CRM.navigation = (function () {
         }
       });
     }
+
+    ensureWorkspaceSwitcher(right);
+  }
+
+  // Show the workspace switcher to users with more than one workspace. Root
+  // administrators are the exception: they can inspect every workspace and
+  // therefore always get the same quick context control.
+  function ensureWorkspaceSwitcher(right) {
+    if (!right || right.dataset.workspaceSwitcherBound === '1') return;
+    right.dataset.workspaceSwitcherBound = '1';
+    if (!window.CRM.api || typeof window.CRM.api.request !== 'function') return;
+
+    Promise.all([
+      typeof window.CRM.api.me === 'function' ? window.CRM.api.me().catch(function () { return null; }) : Promise.resolve(null),
+      window.CRM.api.request('api/v1/organizations/available', { noCache: true }).catch(function () { return null; })
+    ]).then(function (results) {
+      var userEnvelope = results[0] && results[0].data ? results[0].data : {};
+      var user = userEnvelope.user || (window.CRM.api.getUser ? window.CRM.api.getUser() : null) || {};
+      var envelope = results[1];
+      var data = envelope && envelope.data ? envelope.data : {};
+      var items = Array.isArray(data.items) ? data.items : [];
+      if (items.length <= 1) return;
+
+      var current = window.CRM.api.getOrganizationContext();
+      var hasCurrent = items.some(function (item) { return String(item.public_id || '') === current; });
+      if (!hasCurrent) {
+        current = String(items[0].public_id || '');
+        window.CRM.api.setOrganizationContext(current);
+      }
+
+      var currentItem = items.find(function (item) { return String(item.public_id || '') === current; }) || items[0];
+      var workspaceLabel = t('topbar.workspace_label', 'Рабочее пространство');
+      var workspaceTitle = String(currentItem.title || currentItem.slug || current);
+      var wrapper = document.createElement('div');
+      wrapper.className = 'crm-workspace-switcher dropdown';
+      wrapper.setAttribute('data-workspace-switcher', '1');
+      wrapper.innerHTML = '<button type="button" class="crm-workspace-trigger dropdown-toggle" id="crmWorkspaceSwitcher" aria-haspopup="true" aria-expanded="false" aria-label="'
+        + escapeHtml(workspaceLabel) + '"><span class="crm-workspace-trigger-icon" aria-hidden="true"><i class="fa-solid fa-building-columns"></i></span><span class="crm-workspace-trigger-copy"><span class="crm-workspace-trigger-caption">'
+        + escapeHtml(workspaceLabel) + '</span><strong class="crm-workspace-trigger-title">' + escapeHtml(workspaceTitle) + '</strong></span><span class="crm-workspace-trigger-chevron" aria-hidden="true"><i class="fa-solid fa-chevron-down"></i></span></button>'
+        + '<div class="crm-workspace-menu dropdown-menu dropdown-menu-end" role="menu" aria-labelledby="crmWorkspaceSwitcher"><div class="crm-workspace-menu-heading">'
+        + escapeHtml(workspaceLabel) + '</div>'
+        + items.map(function (item) {
+          var id = String(item.public_id || '');
+          var title = String(item.title || item.slug || id);
+          return '<button type="button" class="crm-workspace-option dropdown-item' + (id === current ? ' is-active' : '') + '" role="menuitem" data-workspace-value="' + escapeHtml(id) + '"><span class="crm-workspace-option-mark" aria-hidden="true"><i class="fa-solid fa-check"></i></span><span class="crm-workspace-option-title">' + escapeHtml(title) + '</span>' + (id === current ? '<span class="crm-workspace-option-current">' + escapeHtml(t('organization.selected_short', 'Текущее')) + '</span>' : '') + '</button>';
+        }).join('') + '</div>';
+
+      var anchor = right.querySelector('[data-search-toggle]') || right.firstChild;
+      if (anchor) right.insertBefore(wrapper, anchor);
+      else right.appendChild(wrapper);
+
+      var trigger = wrapper.querySelector('.crm-workspace-trigger');
+      var menu = wrapper.querySelector('.crm-workspace-menu');
+      if (trigger && menu) {
+        trigger.addEventListener('click', function () {
+          var open = wrapper.classList.toggle('show');
+          trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+          menu.classList.toggle('show', open);
+        });
+        wrapper.querySelectorAll('[data-workspace-value]').forEach(function (option) {
+          option.addEventListener('click', function () {
+            var next = String(option.getAttribute('data-workspace-value') || '').trim();
+            if (!next || next === window.CRM.api.getOrganizationContext()) return;
+            window.CRM.api.setOrganizationContext(next);
+            window.location.reload();
+          });
+        });
+        document.addEventListener('click', function (event) {
+          if (!wrapper.contains(event.target)) {
+            wrapper.classList.remove('show');
+            menu.classList.remove('show');
+            trigger.setAttribute('aria-expanded', 'false');
+          }
+        });
+      }
+    });
   }
 
   function markActive() {

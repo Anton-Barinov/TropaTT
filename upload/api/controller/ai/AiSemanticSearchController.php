@@ -15,6 +15,8 @@ final class AiSemanticSearchController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
 
         /** @var FeatureFlagService $flags */
         $flags = $this->container->get('service.feature_flag');
@@ -37,13 +39,14 @@ final class AiSemanticSearchController extends BaseController
 
         /** @var AiSemanticIndexService $semanticIndex */
         $semanticIndex = $this->container->get('service.ai_semantic_index');
-        $result = $semanticIndex->search($query, $limit * 3);
+        $scopedActor = $this->organizationScopedActor((array)$auth['user']);
+        $result = $semanticIndex->search($query, $limit * 3, (string)($scopedActor['organization_public_id'] ?? '') ?: null);
         $items = [];
         foreach ((array)($result['items'] ?? []) as $item) {
             if (!is_array($item)) {
                 continue;
             }
-            $presented = $this->presentResult($item, (array)$auth['user'], $includeArchived);
+            $presented = $this->presentResult($item, $scopedActor, $includeArchived);
             if ($presented === null) {
                 continue;
             }

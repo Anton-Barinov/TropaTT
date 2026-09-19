@@ -68,8 +68,12 @@ final class IntakeItemService
      * @param array<string,mixed> $actor
      * @return array<string,mixed>|string
      */
-    public function list(array $filters): array|string
+    public function list(array $filters, array $actor = []): array|string
     {
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        if ($organizationId > 0) {
+            $filters['organization_id'] = $organizationId;
+        }
         $result = $this->repository->list($filters);
 
         $meta = [

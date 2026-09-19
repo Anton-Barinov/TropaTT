@@ -33,7 +33,8 @@ final class CompanyService
 
         $filters['counterparty_type'] = self::COMPANY_COUNTERPARTY_TYPE;
 
-        [$items, $total, $page, $limit] = $this->counterparties->list($filters);
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        [$items, $total, $page, $limit] = $this->counterparties->list($filters, null, $organizationId > 0 ? $organizationId : null);
 
         return [
             'items' => array_map(fn(array $item): array => $this->publicCompany($item), $items),

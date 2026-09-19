@@ -136,4 +136,18 @@ final class InvitationController extends BaseController
             'user_token' => $result['user_token'],
         ], 201);
     }
+
+    public function acceptOrganization(array $params): \Api\System\Library\Http\JsonResponse
+    {
+        $input = $this->request()->allInput();
+        $validator = new Validator();
+        $validator->require($input, 'invitation_token', $this->t('common/messages.field_required'))
+            ->require($input, 'login', $this->t('common/messages.field_required'))
+            ->require($input, 'full_name', $this->t('common/messages.field_required'))
+            ->require($input, 'password', $this->t('common/messages.field_required'));
+        if ($validator->fails() || !PasswordPolicy::isStrong((string)($input['password'] ?? ''))) return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $validator->errors());
+        $result = $this->container->get('service.invitation')->acceptForOrganization((string)$params['public_id'], $input, $this->request()->ip());
+        if (!(bool)($result['ok'] ?? false)) return $this->error((string)$result['code'], $this->t('security/messages.invitation_accept_failed'), 400);
+        return $this->success('ORGANIZATION_INVITATION_ACCEPTED', $this->t('security/messages.invitation_accepted'), ['invitation' => $result['invitation'], 'user' => $result['user'], 'user_token' => $result['user_token']], 201);
+    }
 }

@@ -27,7 +27,8 @@ final class CalendarService
         [$items, $total, $page, $limit] = $this->events->listByUser(
             (int)$actor['id'],
             (bool)($actor['is_root'] ?? false),
-            $filters
+            $filters,
+            isset($actor['organization_id']) ? (int)$actor['organization_id'] : null
         );
 
         return [
@@ -84,6 +85,7 @@ final class CalendarService
             'owner_user_id' => $ownerUserId,
             'project_id' => $projectId,
             'task_id' => $taskId,
+            'organization_id' => $this->organizationId($actor),
             'created_at' => $now,
             'updated_at' => $now,
         ]);
@@ -95,7 +97,7 @@ final class CalendarService
             'entity_public_id' => $publicId,
         ]);
 
-        $createdEvent = $this->events->findByPublicId($publicId, (int)$actor['id'], (bool)($actor['is_root'] ?? false));
+        $createdEvent = $this->events->findByPublicId($publicId, (int)$actor['id'], (bool)($actor['is_root'] ?? false), $this->organizationId($actor));
         if (is_array($createdEvent)) {
             $targetUserIds = $this->calendarEventStakeholderIds($createdEvent, (int)($actor['id'] ?? 0));
             if ($targetUserIds !== []) {
@@ -108,12 +110,12 @@ final class CalendarService
 
     public function getEvent(string $publicId, array $actor): ?array
     {
-        return $this->events->findByPublicId($publicId, (int)$actor['id'], (bool)($actor['is_root'] ?? false));
+        return $this->events->findByPublicId($publicId, (int)$actor['id'], (bool)($actor['is_root'] ?? false), $this->organizationId($actor));
     }
 
     public function updateEvent(string $publicId, array $input, array $actor)
     {
-        $existing = $this->events->findByPublicId($publicId, (int)$actor['id'], (bool)($actor['is_root'] ?? false));
+        $existing = $this->events->findByPublicId($publicId, (int)$actor['id'], (bool)($actor['is_root'] ?? false), $this->organizationId($actor));
         if (!$existing) {
             return null;
         }
@@ -156,7 +158,7 @@ final class CalendarService
 
         if ($set !== []) {
             $set['updated_at'] = gmdate('Y-m-d H:i:s');
-            $this->events->updateByPublicId($publicId, (int)$actor['id'], (bool)($actor['is_root'] ?? false), $set);
+            $this->events->updateByPublicId($publicId, (int)$actor['id'], (bool)($actor['is_root'] ?? false), $set, $this->organizationId($actor));
         }
 
         $this->logger->audit([
@@ -167,7 +169,7 @@ final class CalendarService
             'changes' => $set,
         ]);
 
-        $updatedEvent = $this->events->findByPublicId($publicId, (int)$actor['id'], (bool)($actor['is_root'] ?? false));
+        $updatedEvent = $this->events->findByPublicId($publicId, (int)$actor['id'], (bool)($actor['is_root'] ?? false), $this->organizationId($actor));
         if (is_array($updatedEvent)) {
             $targetUserIds = $this->calendarEventStakeholderIds($updatedEvent, (int)($actor['id'] ?? 0));
             if ($targetUserIds !== []) {
@@ -180,8 +182,8 @@ final class CalendarService
 
     public function deleteEvent(string $publicId, array $actor): bool
     {
-        $existing = $this->events->findByPublicId($publicId, (int)$actor['id'], (bool)($actor['is_root'] ?? false));
-        $ok = $this->events->deleteByPublicId($publicId, (int)$actor['id'], (bool)($actor['is_root'] ?? false));
+        $existing = $this->events->findByPublicId($publicId, (int)$actor['id'], (bool)($actor['is_root'] ?? false), $this->organizationId($actor));
+        $ok = $this->events->deleteByPublicId($publicId, (int)$actor['id'], (bool)($actor['is_root'] ?? false), $this->organizationId($actor));
         if ($ok) {
             $this->logger->audit([
                 'action' => 'calendar_event_deleted',
@@ -243,9 +245,10 @@ final class CalendarService
         $userId = (int)$actor['id'];
         $isRoot = (bool)($actor['is_root'] ?? false);
 
-        $events = $this->events->listInRange($userId, $isRoot, $startAt, $endAt);
-        $tasks = $this->events->listTasksDueInRange($userId, $isRoot, $startAt, $endAt);
-        $reminders = $this->reminders->listInRange($userId, $startAt, $endAt);
+        $events = $this->events->listInRange($userId, $isRoot, $startAt, $endAt, $this->organizationId($actor));
+        $organizationId = $this->organizationId($actor);
+        $tasks = $this->events->listTasksDueInRange($userId, $isRoot, $startAt, $endAt, $organizationId);
+        $reminders = $this->reminders->listInRange($userId, $startAt, $endAt, $organizationId);
 
         return [
             'period' => $period,
@@ -262,6 +265,12 @@ final class CalendarService
                 'reminders_count' => count($reminders),
             ],
         ];
+    }
+
+    private function organizationId(array $actor): ?int
+    {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
     }
 
     private function normalizeDate(?string $date): string

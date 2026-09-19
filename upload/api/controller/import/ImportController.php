@@ -11,6 +11,7 @@ final class ImportController extends BaseController
 {
     public function list(): \Api\System\Library\Http\JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) return $contextError;
         $auth = $this->user();
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -18,7 +19,7 @@ final class ImportController extends BaseController
 
         /** @var ImportService $service */
         $service = $this->container->get('service.import');
-        $result = $service->list($this->request()->allInput(), $auth['user']);
+        $result = $service->list($this->request()->allInput(), $this->organizationScopedActor((array)$auth['user']));
 
         return $this->success('IMPORT_JOB_LIST', $this->t('import/messages.list'), [
             'items' => $result['items'],
@@ -27,6 +28,7 @@ final class ImportController extends BaseController
 
     public function create(): \Api\System\Library\Http\JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) return $contextError;
         $auth = $this->user();
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -53,7 +55,10 @@ final class ImportController extends BaseController
         return $this->withIdempotency(function () use ($input, $auth): \Api\System\Library\Http\JsonResponse {
             /** @var ImportService $service */
             $service = $this->container->get('service.import');
-            $result = $service->create($input, $auth['user']);
+            $result = $service->create($input, $this->organizationScopedActor((array)$auth['user']));
+            if (isset($result['error'])) {
+                return $this->error((string)$result['error'], $this->t('organization/messages.context_not_found'), 404);
+            }
 
             return $this->success('IMPORT_JOB_CREATED', $this->t('import/messages.created'), [
                 'job' => $result['job'],
@@ -63,6 +68,7 @@ final class ImportController extends BaseController
 
     public function get(array $params): \Api\System\Library\Http\JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) return $contextError;
         $auth = $this->user();
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -70,7 +76,7 @@ final class ImportController extends BaseController
 
         /** @var ImportService $service */
         $service = $this->container->get('service.import');
-        $result = $service->get((string)$params['public_id'], $auth['user']);
+        $result = $service->get((string)$params['public_id'], $this->organizationScopedActor((array)$auth['user']));
         if (!$result) {
             return $this->error('IMPORT_JOB_NOT_FOUND', $this->t('import/messages.not_found'), 404, [
                 'import' => [$this->t('import/messages.not_found')],
@@ -89,6 +95,7 @@ final class ImportController extends BaseController
 
     public function cancel(array $params): \Api\System\Library\Http\JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) return $contextError;
         $auth = $this->user();
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -96,7 +103,7 @@ final class ImportController extends BaseController
 
         /** @var ImportService $service */
         $service = $this->container->get('service.import');
-        $result = $service->cancel((string)$params['public_id'], $auth['user']);
+        $result = $service->cancel((string)$params['public_id'], $this->organizationScopedActor((array)$auth['user']));
         if (($result['ok'] ?? false) !== true) {
             $code = (string)($result['code'] ?? 'IMPORT_JOB_CANCEL_NOT_ALLOWED');
             $status = $code === 'IMPORT_JOB_NOT_FOUND' ? 404 : 409;
@@ -110,6 +117,7 @@ final class ImportController extends BaseController
 
     public function retry(array $params): \Api\System\Library\Http\JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) return $contextError;
         $auth = $this->user();
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -117,7 +125,7 @@ final class ImportController extends BaseController
 
         /** @var ImportService $service */
         $service = $this->container->get('service.import');
-        $result = $service->retry((string)$params['public_id'], $auth['user']);
+        $result = $service->retry((string)$params['public_id'], $this->organizationScopedActor((array)$auth['user']));
         if (($result['ok'] ?? false) !== true) {
             $code = (string)($result['code'] ?? 'IMPORT_JOB_RETRY_NOT_ALLOWED');
             $status = $code === 'IMPORT_JOB_NOT_FOUND' ? 404 : 409;

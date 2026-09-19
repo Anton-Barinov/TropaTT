@@ -14,6 +14,8 @@ final class SearchController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
 
         $query = trim((string)$this->request()->input('q', ''));
         if (mb_strlen($query) < 2) {
@@ -37,6 +39,8 @@ final class SearchController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
 
         $query = trim((string)$this->request()->input('q', ''));
         if (mb_strlen($query) < 2) {
@@ -64,6 +68,8 @@ final class SearchController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
 
         $query = trim((string)$this->request()->input('q', ''));
         if (mb_strlen($query) < 2) {
@@ -91,6 +97,8 @@ final class SearchController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
 
         $query = trim((string)$this->request()->input('q', ''));
         if (mb_strlen($query) < 2) {
@@ -127,6 +135,8 @@ final class SearchController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
 
         $query = trim((string)$this->request()->input('q', ''));
         if (mb_strlen($query) < 2) {
@@ -159,6 +169,8 @@ final class SearchController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
 
         $query = trim((string)$this->request()->input('q', ''));
         if (mb_strlen($query) < 2) {

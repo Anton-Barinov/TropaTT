@@ -32,7 +32,7 @@ final class MilestoneController extends BaseController
 
             $cache = $this->cacheApi();
             if ($cache !== null) {
-                $cacheKey = 'list:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($projectPublicIds));
+                $cacheKey = 'list:' . $this->cacheUserId() . ':' . $this->organizationContextCacheKey() . ':' . hash('sha256', json_encode($projectPublicIds));
                 $byProject = $cache->remember('milestone', $cacheKey, 60, function () use ($projectPublicIds, $auth) {
                     /** @var MilestoneService $service */
                     $service = $this->container->get('service.milestone');
@@ -56,7 +56,7 @@ final class MilestoneController extends BaseController
 
         $cache = $this->cacheApi();
         if ($cache !== null) {
-            $cacheKey = 'list:' . $this->cacheUserId() . ':' . $projectPublicId;
+            $cacheKey = 'list:' . $this->cacheUserId() . ':' . $this->organizationContextCacheKey() . ':' . $projectPublicId;
             $items = $cache->remember('milestone', $cacheKey, 60, function () use ($projectPublicId, $auth) {
                 /** @var MilestoneService $service */
                 $service = $this->container->get('service.milestone');

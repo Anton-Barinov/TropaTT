@@ -55,6 +55,9 @@ final class FavoriteRepository
         if (!empty($filters['entity_public_id'])) {
             $query->where('f.entity_public_id', '=', (string)$filters['entity_public_id']);
         }
+        if ((int)($filters['organization_id'] ?? 0) > 0) {
+            $query->where('f.organization_id', '=', (int)$filters['organization_id']);
+        }
 
         if (!empty($filters['user_public_id'])) {
             $query->where('u.public_id', '=', (string)$filters['user_public_id']);
@@ -93,7 +96,7 @@ final class FavoriteRepository
             ->first();
     }
 
-    public function create(string $entityType, string $entityPublicId, int $userId): array
+    public function create(string $entityType, string $entityPublicId, int $userId, ?int $organizationId = null): array
     {
         $existing = $this->findByEntityAndUser($entityType, $entityPublicId, $userId);
         if ($existing) {
@@ -109,7 +112,7 @@ final class FavoriteRepository
             'entity_type' => $entityType,
             'entity_public_id' => $entityPublicId,
             'created_at' => gmdate('Y-m-d H:i:s'),
-        ]);
+        ] + (($organizationId !== null && $organizationId > 0) ? ['organization_id' => $organizationId] : []));
 
         return $this->findByPublicId($publicId) ?? [];
     }

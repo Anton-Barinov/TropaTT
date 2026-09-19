@@ -90,7 +90,8 @@ final class NotificationService
     public function list(array $filters, array $actor): array
     {
         $targetUserId = $this->resolveTargetUserId($filters, $actor);
-        [$items, $total, $page, $limit] = $this->notifications->listByUser($targetUserId, $filters);
+        $organizationId = $this->organizationId($actor);
+        [$items, $total, $page, $limit] = $this->notifications->listByUser($targetUserId, $filters, $organizationId);
         $items = array_map(fn(array $item): array => $this->normalizeItem($item), $items);
 
         return [
@@ -119,22 +120,23 @@ final class NotificationService
             'target_user_id' => $targetUserId,
         ]);
 
-        $item = $this->notifications->findByPublicIdForUser($publicId, $targetUserId);
+        $item = $this->notifications->findByPublicIdForUser($publicId, $targetUserId, $this->organizationId($actor));
         return $item ? $this->normalizeItem($item) : ['public_id' => $publicId];
     }
 
     /** @param array<int,int> $userIds */
-    public function notifyUsers(array $userIds, array $payload, ?int $skipUserId = null): int
+    public function notifyUsers(array $userIds, array $payload, mixed $skipUserId = null): int
     {
         $normalizedIds = array_values(array_unique(array_filter(
             array_map('intval', $userIds),
             static fn(int $userId): bool => $userId > 0
         )));
 
-        if ($skipUserId !== null && $skipUserId > 0) {
+        $skipId = is_int($skipUserId) || is_numeric($skipUserId) ? (int)$skipUserId : null;
+        if ($skipId !== null && $skipId > 0) {
             $normalizedIds = array_values(array_filter(
                 $normalizedIds,
-                static fn(int $userId): bool => $userId !== $skipUserId
+                static fn(int $userId): bool => $userId !== $skipId
             ));
         }
 
@@ -144,7 +146,7 @@ final class NotificationService
 
         $created = 0;
         foreach ($normalizedIds as $userId) {
-            $this->createRecordForUser($userId, $payload);
+            $this->createRecordForUser($userId, $payload, is_array($skipUserId) ? $skipUserId : []);
             $created++;
         }
 
@@ -490,8 +492,9 @@ final class NotificationService
             return null;
         }
 
-        $this->notifications->markRead($publicId, $userId, gmdate('Y-m-d H:i:s'));
-        $item = $this->notifications->findByPublicIdForUser($publicId, $userId);
+        $organizationId = $this->organizationId($actor);
+        $this->notifications->markRead($publicId, $userId, gmdate('Y-m-d H:i:s'), $organizationId);
+        $item = $this->notifications->findByPublicIdForUser($publicId, $userId, $organizationId);
         return $item ? $this->normalizeItem($item) : null;
     }
 
@@ -502,8 +505,9 @@ final class NotificationService
             return null;
         }
 
-        $this->notifications->markUnread($publicId, $userId);
-        $item = $this->notifications->findByPublicIdForUser($publicId, $userId);
+        $organizationId = $this->organizationId($actor);
+        $this->notifications->markUnread($publicId, $userId, $organizationId);
+        $item = $this->notifications->findByPublicIdForUser($publicId, $userId, $organizationId);
         return $item ? $this->normalizeItem($item) : null;
     }
 
@@ -514,7 +518,7 @@ final class NotificationService
             return 0;
         }
 
-        $updated = $this->notifications->markAllRead($userId, $category, gmdate('Y-m-d H:i:s'));
+        $updated = $this->notifications->markAllRead($userId, $category, gmdate('Y-m-d H:i:s'), $this->organizationId($actor));
 
         $this->logger->audit([
             'action' => 'notifications_mark_all_read',
@@ -539,36 +543,36 @@ final class NotificationService
             ];
         }
 
-        return $this->notifications->countersByUser($userId);
+        return $this->notifications->countersByUser($userId, $this->organizationId($actor));
     }
 
     /** @return array<int,array<string,mixed>> */
-    public function streamItemsAfterId(int $userId, int $afterId, int $limit = 50): array
+    public function streamItemsAfterId(int $userId, int $afterId, int $limit = 50, ?int $organizationId = null): array
     {
         if ($userId <= 0) {
             return [];
         }
 
-        $items = $this->notifications->listForUserAfterId($userId, $afterId, $limit);
+        $items = $this->notifications->listForUserAfterId($userId, $afterId, $limit, $organizationId);
         return array_map(fn(array $item): array => $this->normalizeItem($item), $items);
     }
 
-    public function latestInternalIdByUser(int $userId): int
+    public function latestInternalIdByUser(int $userId, ?int $organizationId = null): int
     {
         if ($userId <= 0) {
             return 0;
         }
 
-        return $this->notifications->latestInternalIdByUser($userId);
+        return $this->notifications->latestInternalIdByUser($userId, $organizationId);
     }
 
-    public function stateHashByUser(int $userId): string
+    public function stateHashByUser(int $userId, ?int $organizationId = null): string
     {
         if ($userId <= 0) {
             return 'empty:0:0';
         }
 
-        return $this->notifications->stateHashByUser($userId);
+        return $this->notifications->stateHashByUser($userId, $organizationId);
     }
 
     /** @param array<string,mixed> $team */
@@ -919,14 +923,14 @@ final class NotificationService
     }
 
     /** @param array<string,mixed> $reminder */
-    public function notifyReminderDue(array $reminder, int $ownerUserId): int
+    public function notifyReminderDue(array $reminder, int $ownerUserId, array $actor = []): int
     {
         $reminderPublicId = trim((string)($reminder['public_id'] ?? ''));
         if ($ownerUserId <= 0 || $reminderPublicId === '') {
             return 0;
         }
 
-        if ($this->notifiedRecently($ownerUserId, 'reminder_due', 'reminder', $reminderPublicId, 3600)) {
+        if ($this->notifiedRecently($ownerUserId, 'reminder_due', 'reminder', $reminderPublicId, 3600, $this->organizationId($actor))) {
             return 0;
         }
 
@@ -941,6 +945,7 @@ final class NotificationService
             'entity_type' => 'reminder',
             'entity_public_id' => $reminderPublicId,
             'action_code' => 'reminder_due',
+            'organization_id' => $this->organizationId($actor),
             'link' => 'index.php?route=my-day',
             'payload' => [
                 'reminder_public_id' => $reminderPublicId,
@@ -1154,7 +1159,8 @@ final class NotificationService
         $actorPublicId = trim((string)($input['actor_public_id'] ?? ($actor['public_id'] ?? '')));
         $actorName = trim((string)($input['actor_name'] ?? $this->actorName($actor)));
 
-        $this->notifications->create([
+        $organizationId = (int)($input['organization_id'] ?? ($actor['organization_id'] ?? 0));
+        $record = [
             'public_id' => $publicId,
             'user_id' => $userId,
             'category' => trim((string)($input['category'] ?? 'system')),
@@ -1171,7 +1177,9 @@ final class NotificationService
             'is_read' => 0,
             'created_at' => gmdate('Y-m-d H:i:s'),
             'read_at' => null,
-        ]);
+        ];
+        if ($organizationId > 0) $record['organization_id'] = $organizationId;
+        $this->notifications->create($record);
 
         $category = trim((string)($input['category'] ?? 'system'));
         if ($this->isPushChannelEnabled($userId, $category)) {
@@ -1186,6 +1194,12 @@ final class NotificationService
         }
 
         return $publicId;
+    }
+
+    private function organizationId(array $actor): ?int
+    {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
     }
 
     /** @param array<string,mixed> $task */
@@ -1263,14 +1277,14 @@ final class NotificationService
         return 'index.php?route=notifications';
     }
 
-    private function notifiedRecently(int $userId, string $actionCode, string $entityType, string $entityPublicId, int $windowSeconds): bool
+    private function notifiedRecently(int $userId, string $actionCode, string $entityType, string $entityPublicId, int $windowSeconds, ?int $organizationId = null): bool
     {
         if ($windowSeconds <= 0) {
             return false;
         }
 
         $since = gmdate('Y-m-d H:i:s', time() - $windowSeconds);
-        return $this->notifications->hasActionForUserEntitySince($userId, $actionCode, $entityType, $entityPublicId, $since);
+        return $this->notifications->hasActionForUserEntitySince($userId, $actionCode, $entityType, $entityPublicId, $since, $organizationId);
     }
 
     private function statusLabel(string $statusCode): string

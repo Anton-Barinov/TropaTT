@@ -60,10 +60,16 @@ final class WorklogService
         return 0;
     }
 
+    private function organizationId(array $actor): ?int
+    {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
+    }
+
     private function getVisibleUserIds(array $actor): array
     {
         $actorId = $this->resolveActorId($actor);
-        $isRoot = (bool)($actor['is_root'] ?? false);
+        $isRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
 
         if ($isRoot) {
             return [];
@@ -82,13 +88,19 @@ final class WorklogService
         $teamMemberIds = $this->teamRepo->findMemberIdsByManager($actorId);
 
         // Merge, deduplicate, return
-        return array_values(array_unique(array_merge($hierarchyIds, $teamMemberIds)));
+        $ids = array_values(array_unique(array_merge($hierarchyIds, $teamMemberIds)));
+        $organizationId = $this->organizationId($actor);
+        if ($organizationId !== null) {
+            $allowed = array_fill_keys($this->userManagement->organizationMemberIds($organizationId), true);
+            $ids = array_values(array_filter($ids, static fn(int $id): bool => isset($allowed[$id])));
+        }
+        return $ids;
     }
 
     public function list(array $filters, array $actor): array
     {
         $visibleUserIds = $this->getVisibleUserIds($actor);
-        $isRoot = (bool)($actor['is_root'] ?? false);
+        $isRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
         [$items, $total, $page, $limit] = $this->worklogs->list(
             $filters,
             $visibleUserIds,
@@ -125,7 +137,7 @@ final class WorklogService
         $publicId = Ulid::generate('wlg');
         $now = gmdate('Y-m-d H:i:s');
         $userId = $this->resolveActorId($actor);
-        if (!empty($input['user_public_id']) && (bool)($actor['is_root'] ?? false)) {
+        if (!empty($input['user_public_id']) && ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0)) {
             $targetUser = $this->worklogs->findUserByPublicId((string)$input['user_public_id']);
             if ($targetUser) {
                 $userId = (int)$targetUser['id'];
@@ -161,7 +173,10 @@ final class WorklogService
                 $userId,
                 $taskId,
                 $logDate,
-                $input['activity_code'] ?? null
+                $input['activity_code'] ?? null,
+                null,
+                null,
+                $this->organizationId($actor)
             );
             $snapshot = [
                 'cost_rate_snapshot' => $resolution['cost']['rate'] ?? null,
@@ -287,7 +302,10 @@ final class WorklogService
                         (int)($existing['user_id'] ?? 0),
                         $currentTaskId ? (int)$currentTaskId : null,
                         $this->parseLogDate((string)$currentLoggedAt),
-                        $currentActivityCode
+                        $currentActivityCode,
+                        null,
+                        null,
+                        $this->organizationId($actor)
                     );
                     $snapshot = [
                         'cost_rate_snapshot' => $resolution['cost']['rate'] ?? null,
@@ -348,7 +366,7 @@ final class WorklogService
 
     private function canAccessWorklog(array $worklog, array $actor): bool
     {
-        if ((bool)($actor['is_root'] ?? false)) {
+        if (((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0)) {
             return true;
         }
 
@@ -358,7 +376,7 @@ final class WorklogService
 
     private function canAccessTask(array $task, array $actor): bool
     {
-        if ((bool)($actor['is_root'] ?? false)) {
+        if (((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0)) {
             return true;
         }
 
@@ -543,7 +561,7 @@ final class WorklogService
     public function summary(array $filters, array $actor): array
     {
         $visibleUserIds = $this->getVisibleUserIds($actor);
-        $actorIsRoot = (bool)($actor['is_root'] ?? false);
+        $actorIsRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
         $teamPublicId = (string)($filters['team_public_id'] ?? '');
         $rows = $this->worklogs->summaryByDay($filters, $visibleUserIds, $actorIsRoot, $teamPublicId ?: null);
         $aggregates = $this->aggregateIntervals(
@@ -560,7 +578,7 @@ final class WorklogService
         }
 
         $visibleUserIds = $this->getVisibleUserIds($actor);
-        $actorIsRoot = (bool)($actor['is_root'] ?? false);
+        $actorIsRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
         $teamPublicId = (string)($filters['team_public_id'] ?? '');
 
         // Fetch per-row data with snapshot rates (TZ 2.9)
@@ -730,7 +748,7 @@ final class WorklogService
     public function earningsExpanded(array $filters, array $actor): array
     {
         $visibleUserIds = $this->getVisibleUserIds($actor);
-        $actorIsRoot = (bool)($actor['is_root'] ?? false);
+        $actorIsRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
         $teamPublicId = (string)($filters['team_public_id'] ?? '');
 
         $rows = $this->worklogs->earningsRowsForPeriod($filters, $visibleUserIds, $actorIsRoot, $teamPublicId ?: null);
@@ -918,14 +936,14 @@ final class WorklogService
             return null;
         }
         $visibleUserIds = $this->getVisibleUserIds($actor);
-        $actorIsRoot = (bool)($actor['is_root'] ?? false);
+        $actorIsRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
         return $this->worklogs->taskSummary($taskPublicId, $visibleUserIds, $actorIsRoot);
     }
 
     public function matrix(array $filters, array $actor): array
     {
         $visibleUserIds = $this->getVisibleUserIds($actor);
-        $actorIsRoot = (bool)($actor['is_root'] ?? false);
+        $actorIsRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
         $from = (string)($filters['from'] ?? '');
         $to = (string)($filters['to'] ?? '');
         $userPublicId = (string)($filters['user_public_id'] ?? '');
@@ -1118,7 +1136,7 @@ final class WorklogService
         $actorId = $this->resolveActorId($actor);
         $accessibleTeamPublicIds = $actorIsRoot
             ? []
-            : $this->teamRepo->listAccessiblePublicIdsForUser($actorId);
+            : $this->teamRepo->listAccessiblePublicIdsForUser($actorId, ((int)($actor['organization_id'] ?? 0) > 0) ? (int)$actor['organization_id'] : null);
         $teams = $this->worklogs->listTeams($actorIsRoot, $accessibleTeamPublicIds);
         $projects = $this->worklogs->listProjects($actorIsRoot, $actorId, $accessibleTeamPublicIds);
 
@@ -1226,7 +1244,7 @@ final class WorklogService
     public function detail(string $day, string $userPublicId, ?string $projectPublicId, array $actor): array
     {
         $visibleUserIds = $this->getVisibleUserIds($actor);
-        $actorIsRoot = (bool)($actor['is_root'] ?? false);
+        $actorIsRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
         $rows = $this->worklogs->detailByDayUser($day, $userPublicId, $projectPublicId, $visibleUserIds, $actorIsRoot);
 
         $recorded = 0;

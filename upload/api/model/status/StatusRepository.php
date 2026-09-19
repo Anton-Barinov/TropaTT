@@ -40,6 +40,9 @@ final class StatusRepository
         if (!empty($filters['scope'])) {
             $query->where('scope', '=', (string)$filters['scope']);
         }
+        if ((int)($filters['organization_id'] ?? 0) > 0) {
+            $query->where('organization_id', '=', (int)$filters['organization_id']);
+        }
 
         if (isset($filters['is_active']) && $filters['is_active'] !== '') {
             $query->where('is_active', '=', (int)((string)$filters['is_active'] === '1'));
@@ -53,21 +56,23 @@ final class StatusRepository
         return $query;
     }
 
-    public function findByPublicId(string $publicId): ?array
+    public function findByPublicId(string $publicId, ?int $organizationId = null): ?array
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('statuses')
-            ->where('public_id', '=', $publicId)
-            ->first();
+            ->where('public_id', '=', $publicId);
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        return $query->first();
     }
 
-    public function findByScopeAndCode(string $scope, string $code): ?array
+    public function findByScopeAndCode(string $scope, string $code, ?int $organizationId = null): ?array
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('statuses')
             ->where('scope', '=', $scope)
-            ->where('code', '=', $code)
-            ->first();
+            ->where('code', '=', $code);
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        return $query->first();
     }
 
     public function create(array $payload): void
@@ -79,88 +84,94 @@ final class StatusRepository
         TaskStatusSemantics::resetCache($this->pdo);
     }
 
-    public function updateByPublicId(string $publicId, array $set): bool
+    public function updateByPublicId(string $publicId, array $set, ?int $organizationId = null): bool
     {
         if ($set === []) {
             return false;
         }
 
-        $updated = (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('statuses')
-            ->where('public_id', '=', $publicId)
-            ->update($set) > 0;
+            ->where('public_id', '=', $publicId);
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        $updated = $query->update($set) > 0;
 
         TaskStatusSemantics::resetCache($this->pdo);
 
         return $updated;
     }
 
-    public function deleteByPublicId(string $publicId): bool
+    public function deleteByPublicId(string $publicId, ?int $organizationId = null): bool
     {
-        $deleted = (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('statuses')
-            ->where('public_id', '=', $publicId)
-            ->delete() > 0;
+            ->where('public_id', '=', $publicId);
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        $deleted = $query->delete() > 0;
 
         TaskStatusSemantics::resetCache($this->pdo);
 
         return $deleted;
     }
 
-    public function usageCount(string $scope, string $code): int
+    public function usageCount(string $scope, string $code, ?int $organizationId = null): int
     {
         return match ($scope) {
-            'task' => $this->usageCountTaskScope($code),
-            'project' => $this->usageCountProjectScope($code),
-            'worklog_activity' => $this->usageCountWorklogActivityScope($code),
+            'task' => $this->usageCountTaskScope($code, $organizationId),
+            'project' => $this->usageCountProjectScope($code, $organizationId),
+            'worklog_activity' => $this->usageCountWorklogActivityScope($code, $organizationId),
             default => 0,
         };
     }
 
-    public function remapUsage(string $scope, string $fromCode, string $toCode): int
+    public function remapUsage(string $scope, string $fromCode, string $toCode, ?int $organizationId = null): int
     {
         return match ($scope) {
-            'task' => $this->remapTaskScope($fromCode, $toCode),
-            'project' => $this->remapProjectScope($fromCode, $toCode),
-            'worklog_activity' => $this->remapWorklogActivityScope($fromCode, $toCode),
+            'task' => $this->remapTaskScope($fromCode, $toCode, $organizationId),
+            'project' => $this->remapProjectScope($fromCode, $toCode, $organizationId),
+            'worklog_activity' => $this->remapWorklogActivityScope($fromCode, $toCode, $organizationId),
             default => 0,
         };
     }
 
-    private function usageCountTaskScope(string $code): int
+    private function usageCountTaskScope(string $code, ?int $organizationId = null): int
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('tasks')
-            ->where('status_code', '=', $code)
-            ->count();
+            ->where('status_code', '=', $code);
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        return $query->count();
     }
 
-    private function usageCountProjectScope(string $code): int
+    private function usageCountProjectScope(string $code, ?int $organizationId = null): int
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('projects')
-            ->where('status_code', '=', $code)
-            ->count();
+            ->where('status_code', '=', $code);
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        return $query->count();
     }
 
-    private function remapTaskScope(string $fromCode, string $toCode): int
+    private function remapTaskScope(string $fromCode, string $toCode, ?int $organizationId = null): int
     {
         $updatedAt = gmdate('Y-m-d H:i:s');
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('tasks')
-            ->where('status_code', '=', $fromCode)
-            ->update([
+            ->where('status_code', '=', $fromCode);
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        return $query->update([
                 'status_code' => $toCode,
                 'updated_at' => $updatedAt,
             ]);
     }
 
-    private function remapProjectScope(string $fromCode, string $toCode): int
+    private function remapProjectScope(string $fromCode, string $toCode, ?int $organizationId = null): int
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('projects')
-            ->where('status_code', '=', $fromCode)
-            ->update([
+            ->where('status_code', '=', $fromCode);
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        return $query->update([
                 'status_code' => $toCode,
                 'updated_at' => gmdate('Y-m-d H:i:s'),
             ]);
@@ -171,18 +182,20 @@ final class StatusRepository
      * A code that is referenced anywhere counts as "in use" and cannot be
      * deleted without a remap target.
      */
-    private function usageCountWorklogActivityScope(string $code): int
+    private function usageCountWorklogActivityScope(string $code, ?int $organizationId = null): int
     {
-        $workLogs = (new QueryBuilder($this->pdo))
+        $workLogsQuery = (new QueryBuilder($this->pdo))
             ->from('work_logs')
-            ->where('activity_code', '=', $code)
-            ->count();
+            ->where('activity_code', '=', $code);
+        if ($organizationId !== null && $organizationId > 0) $workLogsQuery->where('organization_id', '=', $organizationId);
+        $workLogs = $workLogsQuery->count();
 
-        $tasks = (new QueryBuilder($this->pdo))
+        $tasksQuery = (new QueryBuilder($this->pdo))
             ->from('tasks')
             ->where('activity_code', '=', $code)
-            ->whereNull('deleted_at')
-            ->count();
+            ->whereNull('deleted_at');
+        if ($organizationId !== null && $organizationId > 0) $tasksQuery->where('organization_id', '=', $organizationId);
+        $tasks = $tasksQuery->count();
 
         $lines = (new QueryBuilder($this->pdo))
             ->from('rate_card_lines')
@@ -193,21 +206,23 @@ final class StatusRepository
         return (int)$workLogs + (int)$tasks + (int)$lines;
     }
 
-    private function remapWorklogActivityScope(string $fromCode, string $toCode): int
+    private function remapWorklogActivityScope(string $fromCode, string $toCode, ?int $organizationId = null): int
     {
         $updatedAt = gmdate('Y-m-d H:i:s');
         $affected = 0;
 
-        $affected += (new QueryBuilder($this->pdo))
+        $workLogsQuery = (new QueryBuilder($this->pdo))
             ->from('work_logs')
-            ->where('activity_code', '=', $fromCode)
-            ->update(['activity_code' => $toCode]);
+            ->where('activity_code', '=', $fromCode);
+        if ($organizationId !== null && $organizationId > 0) $workLogsQuery->where('organization_id', '=', $organizationId);
+        $affected += $workLogsQuery->update(['activity_code' => $toCode]);
 
-        $affected += (new QueryBuilder($this->pdo))
+        $tasksQuery = (new QueryBuilder($this->pdo))
             ->from('tasks')
             ->where('activity_code', '=', $fromCode)
-            ->whereNull('deleted_at')
-            ->update([
+            ->whereNull('deleted_at');
+        if ($organizationId !== null && $organizationId > 0) $tasksQuery->where('organization_id', '=', $organizationId);
+        $affected += $tasksQuery->update([
                 'activity_code' => $toCode,
                 'updated_at' => $updatedAt,
             ]);

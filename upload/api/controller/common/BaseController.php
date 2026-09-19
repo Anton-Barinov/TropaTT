@@ -47,7 +47,24 @@ abstract class BaseController
 
     protected function user(): ?array
     {
-        return $this->container->has('auth_user') ? $this->container->get('auth_user') : null;
+        if (!$this->container->has('auth_user')) {
+            return null;
+        }
+
+        $auth = $this->container->get('auth_user');
+        if (!is_array($auth) || !isset($auth['user']) || !is_array($auth['user'])) {
+            return $auth;
+        }
+
+        // Every controller receives the active workspace on its actor. This
+        // closes the easy-to-miss gap where a dashboard widget (or another
+        // secondary endpoint) passes the raw auth envelope to a service and
+        // silently falls back to data from the default workspace.
+        if ($this->container->has('service.organization_context')) {
+            $auth['user'] = $this->organizationScopedActor($auth['user']);
+        }
+
+        return $auth;
     }
 
     protected function lang(): LanguageManager
@@ -181,6 +198,87 @@ abstract class BaseController
         $auth = $this->user();
         // Prefer public_id (always present) over id (may be missing from auth user object)
         return (string)($auth['user']['public_id'] ?? $auth['user']['id'] ?? '0');
+    }
+
+    /**
+     * Validate an explicitly supplied organization context without changing
+     * legacy requests that do not send one. The data tables are migrated to
+     * organization scope in a later step, so this guard deliberately rejects
+     * only a foreign/unknown context and keeps the existing no-context
+     * behaviour during the rollout.
+     */
+    protected function rejectInvalidOrganizationContext(): ?JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth || !$this->container->has('service.organization_context')) {
+            return null;
+        }
+
+        /** @var \Api\System\Library\Service\OrganizationContextService $context */
+        $context = $this->container->get('service.organization_context');
+        $resolved = $context->resolve($this->request(), (array)($auth['user'] ?? []));
+        if (($resolved['status'] ?? '') !== 'forbidden') {
+            return null;
+        }
+
+        // Do not disclose whether a submitted public id exists in another
+        // workspace. Keep the response indistinguishable from a missing one.
+        return $this->error(
+            'ORGANIZATION_CONTEXT_NOT_FOUND',
+            $this->t('organization/messages.context_not_found'),
+            404,
+            ['organization' => [$this->t('organization/messages.context_not_found')]]
+        );
+    }
+
+    /**
+     * Context-aware cache suffix. Including it now prevents a cache collision
+     * when organization_id becomes part of repository queries in the next
+     * migration step; legacy requests retain a stable suffix.
+     */
+    protected function organizationContextCacheKey(): string
+    {
+        $auth = $this->user();
+        if (!$auth || !$this->container->has('service.organization_context')) {
+            return 'legacy';
+        }
+
+        /** @var \Api\System\Library\Service\OrganizationContextService $context */
+        $resolved = $this->container->get('service.organization_context')->resolve(
+            $this->request(),
+            (array)($auth['user'] ?? [])
+        );
+        $publicId = (string)($resolved['organization_public_id'] ?? '');
+        if ($publicId !== '') {
+            return hash('sha256', $publicId);
+        }
+
+        return (string)($resolved['status'] ?? 'legacy_unscoped');
+    }
+
+    /**
+     * Attach the resolved workspace id to the actor envelope consumed by
+     * domain services. Legacy requests without an active context keep the
+     * original actor unchanged, so rollout remains backward compatible.
+     *
+     * @param array<string,mixed> $actor
+     * @return array<string,mixed>
+     */
+    protected function organizationScopedActor(array $actor): array
+    {
+        if (!$this->container->has('service.organization_context')) {
+            return $actor;
+        }
+        $resolved = $this->container->get('service.organization_context')->resolve(
+            $this->request(),
+            $actor
+        );
+        $organization = $resolved['organization'] ?? null;
+        if (($resolved['status'] ?? '') === 'active' && is_array($organization) && isset($organization['id'])) {
+            $actor['organization_id'] = (int)$organization['id'];
+            $actor['organization_public_id'] = (string)($organization['public_id'] ?? '');
+        }
+        return $actor;
     }
 
     /**

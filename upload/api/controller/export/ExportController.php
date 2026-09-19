@@ -11,6 +11,7 @@ final class ExportController extends BaseController
 {
     public function list(): \Api\System\Library\Http\JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) return $contextError;
         $auth = $this->user();
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -18,7 +19,7 @@ final class ExportController extends BaseController
 
         /** @var ExportService $service */
         $service = $this->container->get('service.export');
-        $result = $service->list($this->request()->allInput(), $auth['user']);
+        $result = $service->list($this->request()->allInput(), $this->organizationScopedActor((array)$auth['user']));
 
         return $this->success('EXPORT_JOB_LIST', $this->t('export/messages.list'), [
             'items' => $result['items'],
@@ -27,6 +28,7 @@ final class ExportController extends BaseController
 
     public function create(): \Api\System\Library\Http\JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) return $contextError;
         $auth = $this->user();
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -44,7 +46,10 @@ final class ExportController extends BaseController
         return $this->withIdempotency(function () use ($input, $auth): \Api\System\Library\Http\JsonResponse {
             /** @var ExportService $service */
             $service = $this->container->get('service.export');
-            $result = $service->create($input, $auth['user']);
+            $result = $service->create($input, $this->organizationScopedActor((array)$auth['user']));
+            if (isset($result['error'])) {
+                return $this->error((string)$result['error'], $this->t('organization/messages.context_not_found'), 404);
+            }
 
             return $this->success('EXPORT_JOB_CREATED', $this->t('export/messages.created'), [
                 'job' => $result['job'],
@@ -54,6 +59,7 @@ final class ExportController extends BaseController
 
     public function get(array $params): \Api\System\Library\Http\JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) return $contextError;
         $auth = $this->user();
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -61,7 +67,7 @@ final class ExportController extends BaseController
 
         /** @var ExportService $service */
         $service = $this->container->get('service.export');
-        $result = $service->get((string)$params['public_id'], $auth['user']);
+        $result = $service->get((string)$params['public_id'], $this->organizationScopedActor((array)$auth['user']));
         if (!$result) {
             return $this->error('EXPORT_JOB_NOT_FOUND', $this->t('export/messages.not_found'), 404, [
                 'export' => [$this->t('export/messages.not_found')],
@@ -75,6 +81,7 @@ final class ExportController extends BaseController
 
     public function download(array $params): array
     {
+        if ($this->rejectInvalidOrganizationContext() !== null) return ['error' => 'ORGANIZATION_CONTEXT_NOT_FOUND'];
         $auth = $this->user();
         if (!$auth) {
             return ['error' => 'UNAUTHORIZED'];
@@ -83,7 +90,7 @@ final class ExportController extends BaseController
         /** @var ExportService $service */
         $service = $this->container->get('service.export');
 
-        return $service->download((string)$params['public_id'], $auth['user']);
+        return $service->download((string)$params['public_id'], $this->organizationScopedActor((array)$auth['user']));
     }
 
     public function createAlias(): \Api\System\Library\Http\JsonResponse
@@ -93,6 +100,7 @@ final class ExportController extends BaseController
 
     public function cancel(array $params): \Api\System\Library\Http\JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) return $contextError;
         $auth = $this->user();
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -100,7 +108,7 @@ final class ExportController extends BaseController
 
         /** @var ExportService $service */
         $service = $this->container->get('service.export');
-        $result = $service->cancel((string)$params['public_id'], $auth['user']);
+        $result = $service->cancel((string)$params['public_id'], $this->organizationScopedActor((array)$auth['user']));
         if (($result['ok'] ?? false) !== true) {
             $code = (string)($result['code'] ?? 'EXPORT_JOB_CANCEL_NOT_ALLOWED');
             $status = $code === 'EXPORT_JOB_NOT_FOUND' ? 404 : 409;
@@ -114,6 +122,7 @@ final class ExportController extends BaseController
 
     public function retry(array $params): \Api\System\Library\Http\JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) return $contextError;
         $auth = $this->user();
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -121,7 +130,7 @@ final class ExportController extends BaseController
 
         /** @var ExportService $service */
         $service = $this->container->get('service.export');
-        $result = $service->retry((string)$params['public_id'], $auth['user']);
+        $result = $service->retry((string)$params['public_id'], $this->organizationScopedActor((array)$auth['user']));
         if (($result['ok'] ?? false) !== true) {
             $code = (string)($result['code'] ?? 'EXPORT_JOB_RETRY_NOT_ALLOWED');
             $status = $code === 'EXPORT_JOB_NOT_FOUND' ? 404 : 409;

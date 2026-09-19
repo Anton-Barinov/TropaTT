@@ -911,12 +911,19 @@ final class InsightsRepository
      * @param string[] $accessibleTeamPublicIds
      * @return string[]
      */
-    public function accessibleProjectPublicIds(int $actorUserId, array $accessibleTeamPublicIds = []): array
+    public function accessibleProjectPublicIds(int $actorUserId, array $accessibleTeamPublicIds = [], ?int $organizationId = null): array
     {
         $sql = 'SELECT p.public_id FROM projects p
-                WHERE p.archived_at IS NULL
-                  AND (p.created_by_user_id = ? OR p.manager_user_id = ?';
-        $params = [$actorUserId, $actorUserId];
+                WHERE p.archived_at IS NULL';
+        $params = [];
+
+        if ($organizationId !== null && $organizationId > 0) {
+            $sql .= ' AND p.organization_id = ?';
+            $params[] = $organizationId;
+        }
+        $sql .= ' AND (p.created_by_user_id = ? OR p.manager_user_id = ?';
+        $params[] = $actorUserId;
+        $params[] = $actorUserId;
 
         if ($accessibleTeamPublicIds !== []) {
             $sql .= ' OR p.team_public_id IN (' . implode(', ', array_fill(0, count($accessibleTeamPublicIds), '?')) . ')';

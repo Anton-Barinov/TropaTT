@@ -18,15 +18,19 @@ final class PageDataController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
 
         $input = $this->request()->allInput();
         $date = $this->normalizeDate((string)($input['date'] ?? ''));
         $yesterday = (new \DateTimeImmutable($date . ' 00:00:00'))->modify('-1 day')->format('Y-m-d');
-        $actor = $auth['user'];
+        $actor = $this->organizationScopedActor((array)$auth['user']);
 
         $cache = $this->cacheApi();
         if ($cache !== null) {
-            $cacheKey = 'myDay:' . $this->cacheUserId() . ':' . hash('sha256', json_encode(['date' => $date], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            $cacheKey = 'myDay:' . $this->cacheUserId() . ':' . $this->organizationContextCacheKey() . ':' . hash('sha256', json_encode(['date' => $date], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
             $payload = $cache->remember('page', $cacheKey, 45, function () use ($actor, $date, $yesterday) {
                 return $this->buildMyDayPayload($actor, $date, $yesterday);
             });
@@ -43,6 +47,10 @@ final class PageDataController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
 
         $input = $this->request()->allInput();
         $date = $this->normalizeDate((string)($input['date'] ?? ''));
@@ -50,11 +58,11 @@ final class PageDataController extends BaseController
         $weekStart = $base->modify('monday this week')->format('Y-m-d');
         $weekEnd = $base->modify('monday this week')->modify('+6 day')->format('Y-m-d');
         $yesterday = (new \DateTimeImmutable($date . ' 00:00:00'))->modify('-1 day')->format('Y-m-d');
-        $actor = $auth['user'];
+        $actor = $this->organizationScopedActor((array)$auth['user']);
 
         $cache = $this->cacheApi();
         if ($cache !== null) {
-            $cacheKey = 'myWeek:' . $this->cacheUserId() . ':' . hash('sha256', json_encode(['date' => $date], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            $cacheKey = 'myWeek:' . $this->cacheUserId() . ':' . $this->organizationContextCacheKey() . ':' . hash('sha256', json_encode(['date' => $date], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
             $payload = $cache->remember('page', $cacheKey, 45, function () use ($actor, $date, $weekStart, $weekEnd, $yesterday) {
                 return $this->buildMyWeekPayload($actor, $date, $weekStart, $weekEnd, $yesterday);
             });
@@ -71,11 +79,15 @@ final class PageDataController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
 
-        $actor = $auth['user'];
+        $actor = $this->organizationScopedActor((array)$auth['user']);
         $cache = $this->cacheApi();
         if ($cache !== null) {
-            $cacheKey = 'kanban:' . $this->cacheUserId();
+            $cacheKey = 'kanban:' . $this->cacheUserId() . ':' . $this->organizationContextCacheKey();
             $payload = $cache->remember('page', $cacheKey, 30, function () use ($actor) {
                 return $this->buildKanbanPayload($actor);
             });
@@ -108,6 +120,16 @@ final class PageDataController extends BaseController
         ], $actor);
         $calendar = $calendarService->myDay($actor, $date);
 
+        $aiSuggestion = $this->latestMyDaySuggestion($actor);
+        // A suggestion is a snapshot of the source tasks/events. Do not show
+        // an old user-scoped snapshot after switching to an empty workspace.
+        if ((int)($actor['organization_id'] ?? 0) > 0
+            && ($today['items'] ?? []) === []
+            && ($overdue['items'] ?? []) === []
+            && ($calendar['events'] ?? []) === []) {
+            $aiSuggestion = null;
+        }
+
         return [
             'date' => $date,
             'overdue_tasks' => [
@@ -119,7 +141,7 @@ final class PageDataController extends BaseController
                 'meta' => (array)($today['meta'] ?? []),
             ],
             'calendar' => $calendar,
-            'ai_suggestion' => $this->latestMyDaySuggestion($actor),
+            'ai_suggestion' => $aiSuggestion,
         ];
     }
 
@@ -142,6 +164,14 @@ final class PageDataController extends BaseController
         ], $actor);
         $calendar = $calendarService->myWeek($actor, $date);
 
+        $aiSuggestion = $this->latestMyWeekSuggestion($actor);
+        if ((int)($actor['organization_id'] ?? 0) > 0
+            && ($weekTasks['items'] ?? []) === []
+            && ($overdue['items'] ?? []) === []
+            && ($calendar['events'] ?? []) === []) {
+            $aiSuggestion = null;
+        }
+
         return [
             'date' => $date,
             'week_from' => $weekStart,
@@ -155,7 +185,7 @@ final class PageDataController extends BaseController
                 'meta' => (array)($overdue['meta'] ?? []),
             ],
             'calendar' => $calendar,
-            'ai_suggestion' => $this->latestMyWeekSuggestion($actor),
+            'ai_suggestion' => $aiSuggestion,
         ];
     }
 
@@ -185,9 +215,13 @@ final class PageDataController extends BaseController
             'limit' => $kanbanChunk,
             'with_status_counts' => '1',
         ], $actor);
-        $statuses = $statusService->list([
+        $statusFilters = [
             'limit' => 200,
-        ]);
+        ];
+        if (!empty($actor['organization_id'])) {
+            $statusFilters['organization_id'] = (int)$actor['organization_id'];
+        }
+        $statuses = $statusService->list($statusFilters);
 
         return [
             'tasks' => [

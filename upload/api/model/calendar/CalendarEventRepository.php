@@ -12,14 +12,14 @@ final class CalendarEventRepository
     {
     }
 
-    public function listByUser(int $userId, bool $isRoot, array $filters): array
+    public function listByUser(int $userId, bool $isRoot, array $filters, ?int $organizationId = null): array
     {
         $page = max(1, (int)($filters['page'] ?? 1));
         $limit = min(100, max(1, (int)($filters['limit'] ?? 20)));
         $offset = ($page - 1) * $limit;
 
-        $total = $this->buildListByUserQuery($userId, $isRoot, $filters)->count();
-        $items = $this->buildListByUserQuery($userId, $isRoot, $filters)
+        $total = $this->buildListByUserQuery($userId, $isRoot, $filters, $organizationId)->count();
+        $items = $this->buildListByUserQuery($userId, $isRoot, $filters, $organizationId)
             ->select([
                 'e.public_id',
                 'e.owner_user_id',
@@ -42,7 +42,7 @@ final class CalendarEventRepository
         return [$items, $total, $page, $limit];
     }
 
-    private function buildListByUserQuery(int $userId, bool $isRoot, array $filters): QueryBuilder
+    private function buildListByUserQuery(int $userId, bool $isRoot, array $filters, ?int $organizationId = null): QueryBuilder
     {
         $query = (new QueryBuilder($this->pdo))
             ->from('calendar_events e')
@@ -55,6 +55,9 @@ final class CalendarEventRepository
             // Root users may see normal shared CRM events, but never another
             // user's private external-calendar event.
             $query->whereRaw("(e.source_type IS NULL OR e.source_type NOT IN ('google_calendar', 'yandex_calendar') OR e.source_owner_user_id = ?)", [$userId]);
+        }
+        if ($organizationId !== null && $organizationId > 0) {
+            $query->where('e.organization_id', '=', $organizationId);
         }
 
         if (!empty($filters['from'])) {
@@ -75,7 +78,7 @@ final class CalendarEventRepository
             ->insert($payload);
     }
 
-    public function findByPublicId(string $publicId, int $userId, bool $isRoot): ?array
+    public function findByPublicId(string $publicId, int $userId, bool $isRoot, ?int $organizationId = null): ?array
     {
         $query = (new QueryBuilder($this->pdo))
             ->from('calendar_events e')
@@ -104,11 +107,12 @@ final class CalendarEventRepository
         } else {
             $query->whereRaw("(e.source_type IS NULL OR e.source_type NOT IN ('google_calendar', 'yandex_calendar') OR e.source_owner_user_id = ?)", [$userId]);
         }
+        if ($organizationId !== null && $organizationId > 0) $query->where('e.organization_id', '=', $organizationId);
 
         return $query->first();
     }
 
-    public function updateByPublicId(string $publicId, int $userId, bool $isRoot, array $set): bool
+    public function updateByPublicId(string $publicId, int $userId, bool $isRoot, array $set, ?int $organizationId = null): bool
     {
         if ($set === []) {
             return false;
@@ -123,11 +127,12 @@ final class CalendarEventRepository
         } else {
             $query->whereRaw("(source_type IS NULL OR source_type NOT IN ('google_calendar', 'yandex_calendar') OR source_owner_user_id = ?)", [$userId]);
         }
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
 
         return $query->update($set) > 0;
     }
 
-    public function deleteByPublicId(string $publicId, int $userId, bool $isRoot): bool
+    public function deleteByPublicId(string $publicId, int $userId, bool $isRoot, ?int $organizationId = null): bool
     {
         $query = (new QueryBuilder($this->pdo))
             ->from('calendar_events')
@@ -138,11 +143,12 @@ final class CalendarEventRepository
         } else {
             $query->whereRaw("(source_type IS NULL OR source_type NOT IN ('google_calendar', 'yandex_calendar') OR source_owner_user_id = ?)", [$userId]);
         }
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
 
         return $query->delete() > 0;
     }
 
-    public function listInRange(int $userId, bool $isRoot, string $startAt, string $endAt): array
+    public function listInRange(int $userId, bool $isRoot, string $startAt, string $endAt, ?int $organizationId = null): array
     {
         $query = (new QueryBuilder($this->pdo))
             ->from('calendar_events e')
@@ -168,6 +174,7 @@ final class CalendarEventRepository
         } else {
             $query->whereRaw("(e.source_type IS NULL OR e.source_type NOT IN ('google_calendar', 'yandex_calendar') OR e.source_owner_user_id = ?)", [$userId]);
         }
+        if ($organizationId !== null && $organizationId > 0) $query->where('e.organization_id', '=', $organizationId);
 
         return $query
             ->orderBy('e.starts_at', 'ASC')
@@ -200,7 +207,7 @@ final class CalendarEventRepository
             ->get();
     }
 
-    public function listTasksDueInRange(int $userId, bool $isRoot, string $startAt, string $endAt): array
+    public function listTasksDueInRange(int $userId, bool $isRoot, string $startAt, string $endAt, ?int $organizationId = null): array
     {
         $query = (new QueryBuilder($this->pdo))
             ->from('tasks t')
@@ -226,6 +233,7 @@ final class CalendarEventRepository
                 [$userId, $userId, $userId, $userId]
             );
         }
+        if ($organizationId !== null && $organizationId > 0) $query->where('t.organization_id', '=', $organizationId);
 
         return $query
             ->orderBy('t.due_at', 'ASC')

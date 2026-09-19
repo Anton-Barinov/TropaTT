@@ -31,7 +31,10 @@ final class IndexHelper
     {
         try {
             $driver ??= (string)$pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
-            $cacheKey = $driver . '|' . $table . '|' . $index;
+            // Include the PDO connection identity: long-lived workers and
+            // upgrade tests can use more than one database in one process.
+            // A process-wide cache must never make a fresh connection skip DDL.
+            $cacheKey = $driver . '|' . spl_object_id($pdo) . '|' . $table . '|' . $index;
             if (isset(self::$ensuredIndexes[$cacheKey]) || self::indexExists($pdo, $driver, $table, $index)) {
                 self::$ensuredIndexes[$cacheKey] = true;
                 return;
@@ -78,7 +81,7 @@ final class IndexHelper
     {
         try {
             $driver ??= (string)$pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
-            $cacheKey = $driver . '|' . $table . '|' . $column;
+            $cacheKey = $driver . '|' . spl_object_id($pdo) . '|' . $table . '|' . $column;
             if (isset(self::$ensuredColumns[$cacheKey]) || self::columnExists($pdo, $driver, $table, $column)) {
                 self::$ensuredColumns[$cacheKey] = true;
                 return;
