@@ -368,14 +368,21 @@ Authorization: Bearer <token>
 
 | 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
 |-------|----------|------------|:---:|-------------|----------|
+| GET | `/api/v1/organizations/available` 🔄 | 用户可用的组织 | 是 | — | 返回可访问的组织 + is_root 标志 |
 | GET | `/api/v1/organizations` 🔄 | 组织列表 | 是 | `organization.manage` | 过滤器：`q`、`type` |
 | POST | `/api/v1/organizations` 🔄 | 创建组织 | 是 | `organization.manage` | — |
 | GET | `/api/v1/organizations/{public_id}` 🔄 | 组织详情 | 是 | `organization.manage` | — |
 | PATCH, PUT | `/api/v1/organizations/{public_id}` 🔄 | 更新组织 | 是 | `organization.manage` | 乐观锁 |
 | DELETE | `/api/v1/organizations/{public_id}` 🔄 | 删除组织 | 是 | `organization.manage` | — |
-| GET | `/api/v1/organizations/{public_id}/members` 🔄 | 组织成员 | 是 | `organization.manage` | — |
-| POST | `/api/v1/organizations/{public_id}/members` 🔄 | 添加成员 | 是 | `organization.manage` | — |
+| GET | `/api/v1/organizations/{public_id}/members` 🔄 | 组织成员列表 | 是 | `organization.manage` | — |
+| POST | `/api/v1/organizations/{public_id}/members` 🔄 | 添加成员 | 是 | `organization.manage` | 请求体：`user_public_id`、`role_code` |
+| PATCH, PUT | `/api/v1/organizations/{public_id}/members/{user_public_id}` 🔄 | 更新成员角色 | 是 | `organization.manage` | 请求体：`role_code` |
 | DELETE | `/api/v1/organizations/{public_id}/members/{user_public_id}` 🔄 | 删除成员 | 是 | `organization.manage` | — |
+| GET | `/api/v1/organizations/{public_id}/invitations` 🔄 | 邀请列表 | 是 | `organization.manage` | — |
+| POST | `/api/v1/organizations/{public_id}/invitations` 🔄 | 创建邀请 | 是 | `organization.manage` | 请求体：`email` |
+| POST | `/api/v1/organizations/{public_id}/invitations/{invitation_public_id}/resend` 🔄 | 重新发送邀请 | 是 | `organization.manage` | — |
+| DELETE | `/api/v1/organizations/{public_id}/invitations/{invitation_public_id}` 🔄 | 撤销邀请 | 是 | `organization.manage` | — |
+| POST | `/api/v1/organizations/{public_id}/invitations/accept` 🔄 | 接受邀请 | 否 | — | 请求体：`token` |
 
 ### 状态、优先级、标签
 
