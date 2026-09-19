@@ -10594,4 +10594,13 @@ return array (
   'organization.members_saved' => 'Membres de l’espace mis à jour',
   'organization.members_save_error' => 'Impossible de mettre à jour les membres',
   'organization.selected_short' => 'Actuel',
+  'organization.section_info' => 'Informations',
+  'organization.members_hint' => 'Ajoutez des membres via la recherche à droite. Chaque membre peut se voir attribuer un rôle.',
+  'organization.participant_title' => 'Membres',
+  'organization.empty_add_participants' => 'Ajouter des membres',
+  'organization.hint_search_add' => 'Utilisez la recherche pour ajouter rapidement',
+  'page.remove' => 'Supprimer',
+  'organization.search_empty_suffix' => '»',
+  'organization.added' => 'Ajouté',
+  'organization.add' => '+ Ajouter',
 );

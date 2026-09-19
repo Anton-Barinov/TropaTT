@@ -10594,4 +10594,13 @@ return array (
   'organization.members_saved' => '工作空间成员已更新',
   'organization.members_save_error' => '无法更新工作空间成员',
   'organization.selected_short' => '当前',
+  'organization.section_info' => '信息',
+  'organization.members_hint' => '通过右侧搜索添加成员。可以为每个成员分配角色。',
+  'organization.participant_title' => '成员',
+  'organization.empty_add_participants' => '添加成员',
+  'organization.hint_search_add' => '使用搜索快速添加',
+  'page.remove' => '删除',
+  'organization.search_empty_suffix' => '»',
+  'organization.added' => '已添加',
+  'organization.add' => '+ 添加',
 );
