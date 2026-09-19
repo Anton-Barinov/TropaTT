@@ -96,6 +96,7 @@ final class MigrationManager
             new TaskStatusClosureMigration(),
             new KnowledgePageVersionCounterBackfillMigration(),
             new ProjectTaskKeyPrefixBackfillMigration(),
+            new OrganizationFunctionalScopeMigration(),
         ];
     }
 

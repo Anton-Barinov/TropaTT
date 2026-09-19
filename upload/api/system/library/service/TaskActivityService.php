@@ -21,11 +21,15 @@ final class TaskActivityService
      */
     public function list(string $taskPublicId, array $filters, array $actor): array|string|null
     {
-        $taskId = $this->repository->taskIdByPublicId($taskPublicId);
+        $organizationId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
+        $taskId = $this->repository->taskIdByPublicId($taskPublicId, $organizationId);
         if ($taskId === null) {
             return 'TASK_NOT_FOUND';
         }
 
+        if ($organizationId !== null && $organizationId > 0) {
+            $filters['organization_id'] = $organizationId;
+        }
         $result = $this->repository->listByTaskPublicId($taskPublicId, $filters);
 
         $isExternal = !empty((int)($actor['is_external'] ?? 0));
@@ -375,6 +379,7 @@ final class TaskActivityService
             $this->repository->create([
                 'public_id' => Ulid::generate('tac'),
                 'task_id' => (int)($task['id'] ?? 0),
+                'organization_id' => isset($task['organization_id']) ? (int)$task['organization_id'] : (isset($actor['organization_id']) ? (int)$actor['organization_id'] : null),
                 'task_public_id' => (string)($task['public_id'] ?? ''),
                 'actor_user_id' => $actorUserId,
                 'actor_type' => $actorType,
