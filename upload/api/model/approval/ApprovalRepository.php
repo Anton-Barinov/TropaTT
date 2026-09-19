@@ -58,7 +58,7 @@ final class ApprovalRepository
         if (!empty($filters['status'])) {
             $query->where('ar.status', '=', (string)$filters['status']);
         }
-        if ((int)($filters['organization_id'] ?? 0) > 0) {
+        if ((int)($filters['organization_id'] ?? 0) > 0 && $this->hasOrganizationColumn()) {
             $query->where('ar.organization_id', '=', (int)$filters['organization_id']);
         }
 
@@ -135,9 +135,26 @@ final class ApprovalRepository
 
     public function createRequest(array $payload): int
     {
+        // Older installations and isolated unit-test schemas may predate the
+        // workspace column. Keep request creation compatible while upgraded
+        // databases use the column for tenant isolation.
+        if (!$this->hasOrganizationColumn()) {
+            unset($payload['organization_id']);
+        }
+
         return (new QueryBuilder($this->pdo))
             ->from('approval_requests')
             ->insertGetId($payload);
+    }
+
+    private function hasOrganizationColumn(): bool
+    {
+        try {
+            $this->pdo->query('SELECT organization_id FROM approval_requests LIMIT 0');
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     public function updateRequestById(int $requestId, array $set): bool
