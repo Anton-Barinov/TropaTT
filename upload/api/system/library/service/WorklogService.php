@@ -88,7 +88,13 @@ final class WorklogService
         $teamMemberIds = $this->teamRepo->findMemberIdsByManager($actorId);
 
         // Merge, deduplicate, return
-        return array_values(array_unique(array_merge($hierarchyIds, $teamMemberIds)));
+        $ids = array_values(array_unique(array_merge($hierarchyIds, $teamMemberIds)));
+        $organizationId = $this->organizationId($actor);
+        if ($organizationId !== null) {
+            $allowed = array_fill_keys($this->userManagement->organizationMemberIds($organizationId), true);
+            $ids = array_values(array_filter($ids, static fn(int $id): bool => isset($allowed[$id])));
+        }
+        return $ids;
     }
 
     public function list(array $filters, array $actor): array

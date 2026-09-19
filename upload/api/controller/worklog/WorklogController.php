@@ -363,7 +363,7 @@ final class WorklogController extends BaseController
         if ($cache !== null) {
             $input = $this->request()->allInput();
             ksort($input);
-            $cacheKey = 'matrix:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($input));
+            $cacheKey = 'matrix:' . $this->cacheUserId() . ':' . (int)($authUser['user']['organization_id'] ?? 0) . ':' . hash('sha256', json_encode($input));
             $result = $cache->remember('worklog', $cacheKey, 60, function () use ($input, $authUser) {
                 /** @var WorklogService $service */
                 $service = $this->container->get('service.worklog');
