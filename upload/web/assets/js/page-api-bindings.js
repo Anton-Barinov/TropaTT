@@ -30788,7 +30788,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       modal.id = 'organizationMembersModal';
       modal.tabIndex = -1;
       modal.setAttribute('aria-hidden', 'true');
-      modal.innerHTML = '<div class="modal-dialog modal-team-edit modal-dialog-centered" style="max-width:820px"><div class="modal-content">'
+      modal.innerHTML = '<div class="modal-dialog modal-team-edit modal-dialog-centered" style="max-width:460px"><div class="modal-content">'
         + '<div class="team-modal-header">'
         + '<div class="team-modal-header-left">'
         + '<div class="team-modal-icon"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-users" aria-hidden="true"></i></span></div>'
@@ -30797,13 +30797,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         + '<div class="team-modal-subtitle">' + safeText(organization.title || orgId) + '</div>'
         + '</div></div>'
         + '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + safeText(_t('page.close', 'Закрыть')) + '"></button></div>'
-        + '<div class="modal-body"><div class="team-modal-grid">'
-        + '<div class="team-modal-left">'
-        + '<div class="team-section-card">'
-        + '<h6 class="team-section-title">' + safeText(_t('organization.section_info', 'Информация')) + '</h6>'
-        + '<p class="text-muted small mb-0">' + safeText(_t('organization.members_hint', 'Добавьте участников через поиск справа. Каждому участнику можно назначить роль.')) + '</p>'
-        + '</div></div>'
-        + '<div class="team-modal-right">'
+        + '<div class="modal-body">'
         + '<div class="team-participant-panel">'
         + '<div class="team-participant-toolbar">'
         + '<h6 class="team-participant-title"><span>' + safeText(_t('organization.participant_title', 'Участники')) + '</span> <span class="team-participant-count" data-org-count>' + String(members.length) + '</span></h6>'
@@ -30818,7 +30812,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         + '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-user-plus" aria-hidden="true"></i></span>'
         + '<p>' + safeText(_t('organization.empty_add_participants', 'Добавьте участников')) + '</p>'
         + '<span class="team-empty-hint">' + safeText(_t('organization.hint_search_add', 'Используйте поиск для быстрого добавления')) + '</span>'
-        + '</div></div></div></div></div>'
+        + '</div></div>'
         + '<div class="team-modal-footer"><div class="team-footer-spacer"></div><div class="team-footer-actions">'
         + '<button class="btn btn crm-btn-secondary crm-btn-compact" type="button" data-bs-dismiss="modal">' + safeText(_t('page.cancel', 'Отмена')) + '</button>'
         + '<button class="btn btn crm-btn-primary crm-btn-compact" type="button" data-org-save>'
