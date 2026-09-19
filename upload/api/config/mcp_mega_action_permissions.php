@@ -59,7 +59,7 @@ return [
         'list_analytics_users' => ['mode' => 'any', 'permissions' => ['analytics.view', 'task.manage']],
         'list_api_client_keys' => ['mode' => 'any', 'permissions' => ['api_client.manage', 'api_client.view']],
         'list_api_clients' => ['mode' => 'any', 'permissions' => ['api_client.manage', 'api_client.view']],
-        'list_api_endpoints' => ['mode' => 'self', 'permissions' => []],
+        'list_api_endpoints' => ['mode' => 'all', 'permissions' => ['task.manage']],
         'list_audit_log' => ['mode' => 'any', 'permissions' => ['logs.view', 'settings.manage']],
         'list_custom_fields' => ['mode' => 'all', 'permissions' => ['task.manage']],
         'list_export_jobs' => ['mode' => 'all', 'permissions' => ['export.manage']],
