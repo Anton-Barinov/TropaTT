@@ -50,9 +50,10 @@ final class RateResolutionService
         string $loggedAtDate,
         ?string $activityCode,
         ?string $explicitProjectPublicId = null,
-        ?string $explicitClientPublicId = null
+        ?string $explicitClientPublicId = null,
+        ?int $organizationId = null
     ): array {
-        $cacheKey = "{$userId}|{$taskId}|{$explicitProjectPublicId}|{$explicitClientPublicId}|{$loggedAtDate}|{$activityCode}";
+        $cacheKey = "{$organizationId}|{$userId}|{$taskId}|{$explicitProjectPublicId}|{$explicitClientPublicId}|{$loggedAtDate}|{$activityCode}";
         if (isset($this->memo[$cacheKey])) {
             return $this->memo[$cacheKey];
         }
@@ -94,30 +95,30 @@ final class RateResolutionService
 
         // Collect rate card IDs from active assignments (task OR explicit scope)
         if ($projectPublicId !== null) {
-            $assigns = $this->repo->activeAssignments('project', $projectPublicId, $loggedAtDate);
+            $assigns = $this->repo->activeAssignments('project', $projectPublicId, $loggedAtDate, $organizationId);
 
             if ($assigns !== []) {
                 $cardIds = array_map(static fn(array $a): int => (int)$a['rate_card_id'], $assigns);
-                $projectCardLines = $this->repo->candidateLines($cardIds, $userId, $effectiveActivityCode, $roleCodes, $loggedAtDate);
+                $projectCardLines = $this->repo->candidateLines($cardIds, $userId, $effectiveActivityCode, $roleCodes, $loggedAtDate, $organizationId);
                 $projectCardData = $this->cardDataForAssignments($cardIds);
             }
         }
         if ($clientPublicId !== null) {
-            $assigns = $this->repo->activeAssignments('counterparty', $clientPublicId, $loggedAtDate);
+            $assigns = $this->repo->activeAssignments('counterparty', $clientPublicId, $loggedAtDate, $organizationId);
 
             if ($assigns !== []) {
                 $cardIds = array_map(static fn(array $a): int => (int)$a['rate_card_id'], $assigns);
-                $counterpartyCardLines = $this->repo->candidateLines($cardIds, $userId, $effectiveActivityCode, $roleCodes, $loggedAtDate);
+                $counterpartyCardLines = $this->repo->candidateLines($cardIds, $userId, $effectiveActivityCode, $roleCodes, $loggedAtDate, $organizationId);
 
                 $counterpartyCardData = $this->cardDataForAssignments($cardIds);
             }
         }
 
         // Default card
-        $defaultCard = $this->repo->defaultCard();
+        $defaultCard = $this->repo->defaultCard($organizationId);
         if ($defaultCard !== null) {
             $defaultCardId = (int)$defaultCard['id'];
-            $defaultCardLines = $this->repo->candidateLines([$defaultCardId], $userId, $effectiveActivityCode, $roleCodes, $loggedAtDate);
+            $defaultCardLines = $this->repo->candidateLines([$defaultCardId], $userId, $effectiveActivityCode, $roleCodes, $loggedAtDate, $organizationId);
             $defaultCardData = $defaultCard;
         }
 

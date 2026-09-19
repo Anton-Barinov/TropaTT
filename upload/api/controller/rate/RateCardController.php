@@ -407,6 +407,11 @@ final class RateCardController extends BaseController
             ->where('public_id', '=', $scopeRef)
             ->where('deleted_at', 'IS', null)
             ->first();
+        if ($row !== null) {
+            $scopeQuery = (new QueryBuilder($pdo))->from($table)->where('public_id', '=', $scopeRef)->where('deleted_at', 'IS', null);
+            $this->applyOrganizationScope($scopeQuery, 'organization_id');
+            $row = $scopeQuery->first();
+        }
         return $row !== null;
     }
 

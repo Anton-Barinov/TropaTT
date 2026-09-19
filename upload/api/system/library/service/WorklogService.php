@@ -60,6 +60,12 @@ final class WorklogService
         return 0;
     }
 
+    private function organizationId(array $actor): ?int
+    {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
+    }
+
     private function getVisibleUserIds(array $actor): array
     {
         $actorId = $this->resolveActorId($actor);
@@ -161,7 +167,10 @@ final class WorklogService
                 $userId,
                 $taskId,
                 $logDate,
-                $input['activity_code'] ?? null
+                $input['activity_code'] ?? null,
+                null,
+                null,
+                $this->organizationId($actor)
             );
             $snapshot = [
                 'cost_rate_snapshot' => $resolution['cost']['rate'] ?? null,
@@ -287,7 +296,10 @@ final class WorklogService
                         (int)($existing['user_id'] ?? 0),
                         $currentTaskId ? (int)$currentTaskId : null,
                         $this->parseLogDate((string)$currentLoggedAt),
-                        $currentActivityCode
+                        $currentActivityCode,
+                        null,
+                        null,
+                        $this->organizationId($actor)
                     );
                     $snapshot = [
                         'cost_rate_snapshot' => $resolution['cost']['rate'] ?? null,

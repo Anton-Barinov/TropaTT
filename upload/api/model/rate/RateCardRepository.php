@@ -24,45 +24,47 @@ final class RateCardRepository
      *
      * @return array<int, array{rate_card_id: int, public_id: string, priority: int}>
      */
-    public function activeAssignments(string $scopeType, string $scopeRef, string $date): array
+    public function activeAssignments(string $scopeType, string $scopeRef, string $date, ?int $organizationId = null): array
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('rate_card_assignments')
             ->select(['rate_card_id', 'public_id', 'priority'])
             ->where('scope_type', '=', $scopeType)
             ->where('scope_ref', '=', $scopeRef)
             ->where('deleted_at', 'IS', null)
             ->where('effective_from', '<=', $date)
-            ->whereRaw('(effective_to IS NULL OR effective_to >= ?)', [$date])
-            ->orderBy('priority', 'ASC')
-            ->get();
+            ->whereRaw('(effective_to IS NULL OR effective_to >= ?)', [$date]);
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        return $query->orderBy('priority', 'ASC')->get();
     }
 
     /**
      * Get the active default rate card (non-archived, non-deleted).
      */
-    public function defaultCard(): ?array
+    public function defaultCard(?int $organizationId = null): ?array
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('rate_cards')
             ->select(['id', 'public_id', 'currency_code'])
             ->where('is_default', '=', 1)
             ->where('is_archived', '=', 0)
-            ->where('deleted_at', 'IS', null)
-            ->first();
+            ->where('deleted_at', 'IS', null);
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        return $query->first();
     }
 
     /**
      * Get a rate card by its integer ID.
      */
-    public function findCardById(int $id): ?array
+    public function findCardById(int $id, ?int $organizationId = null): ?array
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('rate_cards')
             ->select(['id', 'public_id', 'currency_code', 'is_archived', 'is_default'])
             ->where('id', '=', $id)
-            ->where('deleted_at', 'IS', null)
-            ->first();
+            ->where('deleted_at', 'IS', null);
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        return $query->first();
     }
 
     /**
@@ -81,7 +83,8 @@ final class RateCardRepository
         int $userId,
         ?string $activityCode,
         array $roleCodes,
-        string $date
+        string $date,
+        ?int $organizationId = null
     ): array {
         if ($cardIds === []) {
             return [];
@@ -99,6 +102,7 @@ final class RateCardRepository
             ->where('l.effective_from', '<=', $date)
             ->whereRaw('(l.effective_to IS NULL OR l.effective_to >= ?)', [$date])
             ->whereIn('l.rate_card_id', $cardIds);
+        if ($organizationId !== null && $organizationId > 0) $qb->where('l.organization_id', '=', $organizationId);
 
         // user_id filter
         $qb->whereRaw('(l.user_id IS NULL OR l.user_id = ?)', [$userId]);
