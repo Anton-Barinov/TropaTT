@@ -235,20 +235,22 @@ final class NotificationRepository
         string $actionCode,
         string $entityType,
         string $entityPublicId,
-        string $since
+        string $since,
+        ?int $organizationId = null
     ): bool {
         if ($userId <= 0 || $actionCode === '' || $entityType === '' || $entityPublicId === '') {
             return false;
         }
 
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('notifications')
             ->where('user_id', '=', $userId)
             ->where('action_code', '=', $actionCode)
             ->where('entity_type', '=', $entityType)
             ->where('entity_public_id', '=', $entityPublicId)
-            ->where('created_at', '>=', $since)
-            ->count() > 0;
+            ->where('created_at', '>=', $since);
+        if ($organizationId !== null && $organizationId > 0) $query->where('organization_id', '=', $organizationId);
+        return $query->count() > 0;
     }
 
     private function buildListQuery(int $userId, array $filters, ?int $organizationId = null): QueryBuilder

@@ -923,14 +923,14 @@ final class NotificationService
     }
 
     /** @param array<string,mixed> $reminder */
-    public function notifyReminderDue(array $reminder, int $ownerUserId): int
+    public function notifyReminderDue(array $reminder, int $ownerUserId, array $actor = []): int
     {
         $reminderPublicId = trim((string)($reminder['public_id'] ?? ''));
         if ($ownerUserId <= 0 || $reminderPublicId === '') {
             return 0;
         }
 
-        if ($this->notifiedRecently($ownerUserId, 'reminder_due', 'reminder', $reminderPublicId, 3600)) {
+        if ($this->notifiedRecently($ownerUserId, 'reminder_due', 'reminder', $reminderPublicId, 3600, $this->organizationId($actor))) {
             return 0;
         }
 
@@ -945,6 +945,7 @@ final class NotificationService
             'entity_type' => 'reminder',
             'entity_public_id' => $reminderPublicId,
             'action_code' => 'reminder_due',
+            'organization_id' => $this->organizationId($actor),
             'link' => 'index.php?route=my-day',
             'payload' => [
                 'reminder_public_id' => $reminderPublicId,
@@ -1276,14 +1277,14 @@ final class NotificationService
         return 'index.php?route=notifications';
     }
 
-    private function notifiedRecently(int $userId, string $actionCode, string $entityType, string $entityPublicId, int $windowSeconds): bool
+    private function notifiedRecently(int $userId, string $actionCode, string $entityType, string $entityPublicId, int $windowSeconds, ?int $organizationId = null): bool
     {
         if ($windowSeconds <= 0) {
             return false;
         }
 
         $since = gmdate('Y-m-d H:i:s', time() - $windowSeconds);
-        return $this->notifications->hasActionForUserEntitySince($userId, $actionCode, $entityType, $entityPublicId, $since);
+        return $this->notifications->hasActionForUserEntitySince($userId, $actionCode, $entityType, $entityPublicId, $since, $organizationId);
     }
 
     private function statusLabel(string $statusCode): string
