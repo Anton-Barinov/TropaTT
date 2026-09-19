@@ -57,15 +57,18 @@ Authorization: Bearer <token>
 | Пользователи | `user.view`, `user.manage` |
 | Роли | `role.view`, `role.manage` |
 | Команды и отделы | `team.manage`, `department.manage` |
-| Проекты | `project.manage` |
-| Задачи | `task.manage` |
-| Клиенты и компании | `client.manage`, `company.manage`, `contact.manage`, `counterparty.manage` |
+| Проекты | `project.manage`, `project.view` |
+| Задачи | `task.manage`, `task.view` |
+| Клиенты и компании | `client.manage`, `client.view`, `company.manage`, `contact.manage`, `counterparty.manage` |
 | Организации | `organization.manage` |
-| Знания | `knowledge.view`, `knowledge.create`, `knowledge.edit`, `knowledge.delete`, `knowledge.publish`, `knowledge.comment`, `knowledge.manage` |
-| Настройки | `settings.manage` |
+| Знания | `knowledge.view`, `knowledge.create`, `knowledge.edit`, `knowledge.delete`, `knowledge.publish`, `knowledge.comment`, `knowledge.manage`, `knowledge.analytics_view`, `knowledge.template_manage`, `knowledge.permission_manage`, `knowledge.admin`, `knowledge.import` |
+| Настройки | `settings.manage`, `settings.view` |
+| Трудозатраты | `worklog.view`, `worklog.manage` |
 | Вебхуки | `webhook.manage` |
 | Логи | `logs.view` |
-| AI | `ai.use`, `ai.admin` |
+| AI | `ai.use`, `ai.admin`, `ai.view_cron_results`, `ai.manage_cron_jobs` |
+| Фича-флаги | `feature_flag.manage` |
+| Финансы | `finance.ratecard.manage`, `finance.rate.manage`, `finance.rate.view_own_payout` |
 | Импорт / экспорт | `import.manage`, `export.manage` |
 | Согласования | `approval.manage` |
 | Корзина | `recycle_bin.manage` |
@@ -206,10 +209,10 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | Метод | Endpoint | Назначение | Auth | Permissions | Описание |
 |-------|----------|------------|:---:|-------------|----------|
 | GET | `/api/v1/health/status` | Базовая проверка здоровья | Да | — | Статус сервиса |
-| GET | `/api/v1/health/deep` | Глубокая проверка здоровья | Да | — | Проверка БД, кэша, AI |
+| GET | `/api/v1/health/deep` | Глубокая проверка здоровья | Да (только root) | — | Проверка БД, кэша, AI |
 | GET | `/api/v1/version` | Версия CRM (публичный) | Нет | — | Текущая версия без авторизации |
 | GET | `/api/v1/agent-card` | Манифест A2A Agent Card | Нет | — | RFC 8615 карточка агента и открытий протоколов |
-| POST | `/api/v1/mcp` | Model Context Protocol | Да | — | JSON-RPC для AI-агентов |
+| POST | `/api/v1/mcp` | Model Context Protocol | Да (делегированный RBAC по инструментам) | — | JSON-RPC для AI-агентов |
 
 ### Core Update
 
@@ -246,7 +249,7 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 
 | Метод | Endpoint | Назначение | Auth | Permissions | Описание |
 |-------|----------|------------|:---:|-------------|----------|
-| POST | `/api/v1/telemetry/frontend-event` | Фронтенд-событие | Да | — | Телеметрия с клиента |
+| POST | `/api/v1/telemetry/frontend-event` | Фронтенд-событие | Да | — | Телеметрия с клиента; Доступно для внешних гостей |
 | POST | `/api/v1/telemetry/csp-report` | CSP-отчёт | Нет | — | Content Security Policy нарушения |
 | POST | `/api/v1/telemetry/login-debug` | Лог отладки входа | Да | `logs.view` | Отладочная информация при входе |
 
@@ -322,9 +325,9 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | GET | `/api/v1/companies/{public_id}` 🔄 | Детали компании | Да | `company.manage` | — |
 | PATCH, PUT | `/api/v1/companies/{public_id}` 🔄 | Обновление компании | Да | `company.manage` | — |
 | DELETE | `/api/v1/companies/{public_id}` 🔄 | Удаление компании | Да | `company.manage` | — |
-| GET | `/api/v1/clients` 🔄 | Список клиентов | Да | `client.manage` | — |
+| GET | `/api/v1/clients` 🔄 | Список клиентов | Да | `client.manage \| client.view` | — |
 | POST | `/api/v1/clients` 🔄 | Создание клиента | Да | `client.manage` | — |
-| GET | `/api/v1/clients/{public_id}` 🔄 | Детали клиента | Да | `client.manage` | — |
+| GET | `/api/v1/clients/{public_id}` 🔄 | Детали клиента | Да | `client.manage \| client.view` | — |
 | PATCH, PUT | `/api/v1/clients/{public_id}` 🔄 | Обновление клиента | Да | `client.manage` | — |
 | DELETE | `/api/v1/clients/{public_id}` 🔄 | Удаление клиента | Да | `client.manage` | — |
 | GET | `/api/v1/counterparties` 🔄 | Список контрагентов | Да | `counterparty.manage` | Фильтр по типу, поиску |
@@ -389,7 +392,7 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 
 | Метод | Endpoint | Назначение | Auth | Permissions | Описание |
 |-------|----------|------------|:---:|-------------|----------|
-| GET | `/api/v1/statuses` 🔄 | Список статусов | Да | `task.manage` | Фильтр по `scope` (task/project) |
+| GET | `/api/v1/statuses` 🔄 | Список статусов | Да | `task.manage` | Фильтр по `scope` (task/project); Доступно для внешних исполнителей (коды worklog_activity) |
 | POST | `/api/v1/statuses` 🔄 | Создание статуса | Да | `task.manage` | Требуется `title`, `code` (уникальный), `scope` (task/project), `color` (HEX) |
 | GET | `/api/v1/statuses/{public_id}` 🔄 | Детали статуса | Да | `task.manage` | — |
 | PATCH, PUT | `/api/v1/statuses/{public_id}` 🔄 | Обновление статуса | Да | `task.manage` | — |
@@ -418,9 +421,9 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 
 | Метод | Endpoint | Назначение | Auth | Permissions | Описание |
 |-------|----------|------------|:---:|-------------|----------|
-| GET | `/api/v1/projects` 🔄 | Список проектов | Да | `project.manage` | Cursor-based, фильтры: `status`, `client_public_id`, `q` |
+| GET | `/api/v1/projects` 🔄 | Список проектов | Да | `project.manage \| project.view` | Cursor-based, фильтры: `status`, `client_public_id`, `q` |
 | POST | `/api/v1/projects` 🔄 | Создание проекта | Да | `project.manage` | — |
-| GET | `/api/v1/projects/{public_id}` 🔄 | Детали проекта | Да | `project.manage` | — |
+| GET | `/api/v1/projects/{public_id}` 🔄 | Детали проекта | Да | `project.manage \| project.view` | — |
 | PATCH, PUT | `/api/v1/projects/{public_id}` 🔄 | Обновление проекта | Да | `project.manage` | Optimistic locking |
 | DELETE | `/api/v1/projects/{public_id}` 🔄 | Архивация проекта | Да | `project.manage` | Soft-delete |
 | GET | `/api/v1/projects/{public_id}/timeline` 🔄 | Таймлайн (Gantt) | Да | `project.manage` | — |
@@ -436,16 +439,16 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 
 | Метод | Endpoint | Назначение | Auth | Permissions | Описание |
 |-------|----------|------------|:---:|-------------|----------|
-| GET | `/api/v1/tasks` 🔄 | Список задач | Да | `task.manage` | Cursor-based, фильтры |
+| GET | `/api/v1/tasks` 🔄 | Список задач | Да | `task.manage \| task.view` | Cursor-based, фильтры |
 | POST | `/api/v1/tasks` 🔄 | Создание задачи | Да | `task.manage` | — |
 | GET | `/api/v1/tasks/board` 🔄 | Канбан-доска | Да | `task.manage` | Группировка по статусам |
 | POST | `/api/v1/tasks/bulk` 🔄 | Массовое обновление | Да | `task.manage` | — |
 | GET | `/api/v1/tasks/by-key/{task_key}` | Задача по ключу | Да | `task.manage` | Человекочитаемый ключ |
-| GET | `/api/v1/tasks/{public_id}` 🔄 | Детали задачи | Да | `task.manage` | С комментариями, файлами и т.д. |
+| GET | `/api/v1/tasks/{public_id}` 🔄 | Детали задачи | Да | `task.manage \| task.view` | С комментариями, файлами и т.д. |
 | PATCH, PUT | `/api/v1/tasks/{public_id}` 🔄 | Обновление задачи | Да | `task.manage` | Optimistic locking, `identity_edit_forbidden` |
 | DELETE | `/api/v1/tasks/{public_id}` 🔄 | Удаление задачи (корзина) | Да | `task.manage` | Soft-delete |
 | POST | `/api/v1/tasks/{public_id}/move` 🔄 | Перемещение на доске | Да | `task.manage` | Тело: `to_status_public_id` (или `to_status`) |
-| GET | `/api/v1/tasks/{public_id}/activity` | Активность задачи | Да | `task.manage` | Лента действий |
+| GET | `/api/v1/tasks/{public_id}/activity` | Активность задачи | Да | `task.manage` | Лента действий; Доступно для внешних исполнителей |
 | GET | `/api/v1/tasks/{public_id}/comments` 🔄 | Комментарии задачи | Да | `task.manage` | — |
 | POST | `/api/v1/tasks/{public_id}/comments` 🔄 | Добавление комментария | Да | `task.manage` | Тело: `body` (string, max 8000). Возвращает созданный комментарий с `public_id` |
 | GET | `/api/v1/tasks/{public_id}/files` | Файлы задачи | Да | `task.manage` | — |
@@ -657,8 +660,8 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 
 | Метод | Endpoint | Назначение | Auth | Permissions | Описание |
 |-------|----------|------------|:---:|-------------|----------|
-| GET | `/api/v1/worklogs` 🔄 | Список записей времени | Да | `task.manage` | — |
-| POST | `/api/v1/worklogs` 🔄 | Создание записи времени | Да | `task.manage` | Требуется `task_public_id`, `minutes_spent` (int, минуты), `logged_at` (YYYY-MM-DD), `activity_code` (строка) |
+| GET | `/api/v1/worklogs` 🔄 | Список записей времени | Да | `task.manage \| worklog.view` | — |
+| POST | `/api/v1/worklogs` 🔄 | Создание записи времени | Да | `task.manage \| worklog.manage` | Требуется `task_public_id`, `minutes_spent` (int, минуты), `logged_at` (YYYY-MM-DD), `activity_code` (строка) |
 | GET | `/api/v1/worklogs/summary` | Сводка по времени | Да | `task.manage` | — |
 | GET | `/api/v1/worklogs/earnings` | Доходы по времени | Да | `task.manage` | — |
 | GET | `/api/v1/worklogs/matrix` | Матрица времени | Да | `task.manage` | — |
@@ -784,14 +787,14 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 
 | Метод | Endpoint | Назначение | Auth | Permissions | Описание |
 |-------|----------|------------|:---:|-------------|----------|
-| GET | `/api/v1/settings` 🔄 | Список настроек | Да | `settings.manage` | — |
+| GET | `/api/v1/settings` 🔄 | Список настроек | Да | `settings.manage \| settings.view` | — |
 | GET | `/api/v1/settings/{name}` 🔄 | Значение настройки | Да | `settings.manage` | — |
 | POST, PUT, PATCH | `/api/v1/settings/{name}` 🔄 | Установка настройки | Да | `settings.manage` | — |
 | GET | `/api/v1/retention/metadata` 🔄 | Метаданные retention | Да | `settings.manage` | — |
 | POST, PUT, PATCH | `/api/v1/retention/metadata` 🔄 | Установка retention | Да | `settings.manage` | — |
 | GET | `/api/v1/feature-flags` 🔄 | Список feature flags | Да | `feature_flag.manage` | — |
 | PATCH, PUT | `/api/v1/feature-flags/{public_id}` 🔄 | Обновление feature flag | Да | `feature_flag.manage` | — |
-| GET | `/api/v1/settings/public` | Публичные настройки приложения | Yes | `task.manage` | — |
+| GET | `/api/v1/settings/public` | Публичные настройки приложения | Yes | `task.manage` | Доступно для внешних исполнителей |
 
 ### Custom Fields
 
@@ -969,8 +972,8 @@ TropaTT реализует унифицированный протокол ве�
 | GET | `/api/v1/knowledge/templates` | Шаблоны страниц | Да | `knowledge.view` | — |
 | POST | `/api/v1/knowledge/templates` | Создание шаблона | Да | `knowledge.template_manage` | — |
 | GET | `/api/v1/knowledge/entities/{entity_type}/{entity_public_id}/pages` | Страницы сущности | Да | `knowledge.view` | — |
-| GET | `/api/v1/knowledge/client-page/{public_id}` | Публичная страница для клиентов | Yes | — | Доступно клиентам |
-| GET | `/api/v1/knowledge/project/{project_public_id}/client-pages` | Страницы клиентов проекта | Yes | — | Доступно клиентам проекта |
+| GET | `/api/v1/knowledge/client-page/{public_id}` | Публичная страница для клиентов | Yes | — | Доступно клиентам; Доступно для внешних пользователей |
+| GET | `/api/v1/knowledge/project/{project_public_id}/client-pages` | Страницы клиентов проекта | Yes | — | Доступно клиентам проекта; Доступно для внешних пользователей |
 | GET | `/api/v1/knowledge/team-materials-counts` | Счётчики материалов команды | Yes | `knowledge.view` | — |
 | GET | `/api/v1/knowledge/entities/{entity_type}/{entity_public_id}/team-pages` | Материалы команды сущности | Yes | `knowledge.view` | — |
 | GET | `/api/v1/knowledge/pages/{public_id}/permissions` | Права доступа к странице | Yes | `knowledge.permission_manage` | — |
