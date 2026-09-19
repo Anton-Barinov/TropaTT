@@ -10594,4 +10594,13 @@ return array (
   'organization.members_saved' => 'Arbeitsbereich-Mitglieder aktualisiert',
   'organization.members_save_error' => 'Arbeitsbereich-Mitglieder konnten nicht aktualisiert werden',
   'organization.selected_short' => 'Aktuell',
+  'organization.section_info' => 'Information',
+  'organization.members_hint' => 'Fügen Sie Mitglieder über die Suche rechts hinzu. Jedem Mitglied kann eine Rolle zugewiesen werden.',
+  'organization.participant_title' => 'Mitglieder',
+  'organization.empty_add_participants' => 'Mitglieder hinzufügen',
+  'organization.hint_search_add' => 'Verwenden Sie die Suche zum Hinzufügen',
+  'page.remove' => 'Entfernen',
+  'organization.search_empty_suffix' => '«',
+  'organization.added' => 'Hinzugefügt',
+  'organization.add' => '+ Hinzufügen',
 );

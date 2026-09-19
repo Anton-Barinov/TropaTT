@@ -10594,4 +10594,13 @@ return array (
   'organization.members_saved' => 'Miembros del espacio actualizados',
   'organization.members_save_error' => 'No se pudieron actualizar los miembros',
   'organization.selected_short' => 'Actual',
+  'organization.section_info' => 'Información',
+  'organization.members_hint' => 'Agregue miembros a través de la búsqueda a la derecha. A cada miembro se le puede asignar un rol.',
+  'organization.participant_title' => 'Miembros',
+  'organization.empty_add_participants' => 'Agregar miembros',
+  'organization.hint_search_add' => 'Use la búsqueda para agregar rápidamente',
+  'page.remove' => 'Eliminar',
+  'organization.search_empty_suffix' => '»',
+  'organization.added' => 'Agregado',
+  'organization.add' => '+ Agregar',
 );
