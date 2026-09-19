@@ -374,14 +374,21 @@ Beyond permission checks, a hard route allowlist (`external_ok` in `routes.php`,
 
 | Method | Endpoint | Description | Auth | Permissions | Notes |
 |-------|----------|------------|:---:|-------------|----------|
+| GET | `/api/v1/organizations/available` 🔄 | Organizations available to user | Yes | — | Returns accessible orgs + is_root flag |
 | GET | `/api/v1/organizations` 🔄 | List organizations | Yes | `organization.manage` | Filter: `q`, `type` |
 | POST | `/api/v1/organizations` 🔄 | Create organization | Yes | `organization.manage` | — |
-| GET | `/api/v1/organizations/{public_id}` 🔄 | organization details | Yes | `organization.manage` | — |
+| GET | `/api/v1/organizations/{public_id}` 🔄 | Organization details | Yes | `organization.manage` | — |
 | PATCH, PUT | `/api/v1/organizations/{public_id}` 🔄 | Update organization | Yes | `organization.manage` | Optimistic locking |
 | DELETE | `/api/v1/organizations/{public_id}` 🔄 | Delete organization | Yes | `organization.manage` | — |
-| GET | `/api/v1/organizations/{public_id}/members` 🔄 | Organization members | Yes | `organization.manage` | — |
-| POST | `/api/v1/organizations/{public_id}/members` 🔄 | Add member | Yes | `organization.manage` | — |
-| DELETE | `/api/v1/organizations/{public_id}/members/{user_public_id}` 🔄 | Delete member | Yes | `organization.manage` | — |
+| GET | `/api/v1/organizations/{public_id}/members` 🔄 | List organization members | Yes | `organization.manage` | — |
+| POST | `/api/v1/organizations/{public_id}/members` 🔄 | Add member | Yes | `organization.manage` | Body: `user_public_id`, `role_code` |
+| PATCH, PUT | `/api/v1/organizations/{public_id}/members/{user_public_id}` 🔄 | Update member role | Yes | `organization.manage` | Body: `role_code` |
+| DELETE | `/api/v1/organizations/{public_id}/members/{user_public_id}` 🔄 | Remove member | Yes | `organization.manage` | — |
+| GET | `/api/v1/organizations/{public_id}/invitations` 🔄 | List invitations | Yes | `organization.manage` | — |
+| POST | `/api/v1/organizations/{public_id}/invitations` 🔄 | Create invitation | Yes | `organization.manage` | Body: `email` |
+| POST | `/api/v1/organizations/{public_id}/invitations/{invitation_public_id}/resend` 🔄 | Resend invitation | Yes | `organization.manage` | — |
+| DELETE | `/api/v1/organizations/{public_id}/invitations/{invitation_public_id}` 🔄 | Revoke invitation | Yes | `organization.manage` | — |
+| POST | `/api/v1/organizations/{public_id}/invitations/accept` 🔄 | Accept invitation | No | — | Body: `token` |
 
 ### Statuses, Priorities, Tags
 

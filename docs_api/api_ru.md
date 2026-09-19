@@ -369,14 +369,21 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 
 | Метод | Endpoint | Назначение | Auth | Permissions | Описание |
 |-------|----------|------------|:---:|-------------|----------|
+| GET | `/api/v1/organizations/available` 🔄 | Доступные пользователю организации | Да | — | Возвращает доступные orgs + флаг is_root |
 | GET | `/api/v1/organizations` 🔄 | Список организаций | Да | `organization.manage` | Фильтр: `q`, `type` |
 | POST | `/api/v1/organizations` 🔄 | Создание организации | Да | `organization.manage` | — |
 | GET | `/api/v1/organizations/{public_id}` 🔄 | Детали организации | Да | `organization.manage` | — |
 | PATCH, PUT | `/api/v1/organizations/{public_id}` 🔄 | Обновление организации | Да | `organization.manage` | Optimistic locking |
 | DELETE | `/api/v1/organizations/{public_id}` 🔄 | Удаление организации | Да | `organization.manage` | — |
 | GET | `/api/v1/organizations/{public_id}/members` 🔄 | Участники организации | Да | `organization.manage` | — |
-| POST | `/api/v1/organizations/{public_id}/members` 🔄 | Добавление участника | Да | `organization.manage` | — |
+| POST | `/api/v1/organizations/{public_id}/members` 🔄 | Добавление участника | Да | `organization.manage` | Тело: `user_public_id`, `role_code` |
+| PATCH, PUT | `/api/v1/organizations/{public_id}/members/{user_public_id}` 🔄 | Обновление роли участника | Да | `organization.manage` | Тело: `role_code` |
 | DELETE | `/api/v1/organizations/{public_id}/members/{user_public_id}` 🔄 | Удаление участника | Да | `organization.manage` | — |
+| GET | `/api/v1/organizations/{public_id}/invitations` 🔄 | Список приглашений | Да | `organization.manage` | — |
+| POST | `/api/v1/organizations/{public_id}/invitations` 🔄 | Создание приглашения | Да | `organization.manage` | Тело: `email` |
+| POST | `/api/v1/organizations/{public_id}/invitations/{invitation_public_id}/resend` 🔄 | Повторная отправка приглашения | Да | `organization.manage` | — |
+| DELETE | `/api/v1/organizations/{public_id}/invitations/{invitation_public_id}` 🔄 | Отзыв приглашения | Да | `organization.manage` | — |
+| POST | `/api/v1/organizations/{public_id}/invitations/accept` 🔄 | Принятие приглашения | Нет | — | Тело: `token` |
 
 ### Statuses, Priorities, Tags
 
