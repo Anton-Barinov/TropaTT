@@ -26,6 +26,7 @@ final class ContactService
 
     public function list(array $filters, array $actor): array
     {
+        $filters['organization_id'] = (int)($actor['organization_id'] ?? 0);
         $scope = $this->accessScope($actor);
         if ($scope['limit_to_creator_ids'] !== null) {
             $filters['created_by_user_ids'] = $scope['limit_to_creator_ids'];

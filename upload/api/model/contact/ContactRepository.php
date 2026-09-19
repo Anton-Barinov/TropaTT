@@ -90,6 +90,9 @@ final class ContactRepository
         if (!empty($filters['counterparty_public_id'])) {
             $query->where('cp.public_id', '=', (string)$filters['counterparty_public_id']);
         }
+        if ((int)($filters['organization_id'] ?? 0) > 0) {
+            $query->where('ct.organization_id', '=', (int)$filters['organization_id']);
+        }
 
         if ($creatorIds !== []) {
             if (!empty($filters['include_unowned'])) {

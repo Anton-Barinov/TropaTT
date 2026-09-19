@@ -58,6 +58,9 @@ final class ApprovalRepository
         if (!empty($filters['status'])) {
             $query->where('ar.status', '=', (string)$filters['status']);
         }
+        if ((int)($filters['organization_id'] ?? 0) > 0) {
+            $query->where('ar.organization_id', '=', (int)$filters['organization_id']);
+        }
 
         if (!empty($filters['entity_type'])) {
             $query->where('ar.entity_type', '=', (string)$filters['entity_type']);

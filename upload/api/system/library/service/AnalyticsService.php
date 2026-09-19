@@ -352,7 +352,7 @@ final class AnalyticsService
         if ($requestedProject !== '') {
             $allowed = $isRoot || in_array(
                 $requestedProject,
-                $this->insights()->accessibleProjectPublicIds((int)($actor['id'] ?? 0), $this->accessibleTeamPublicIds($actor)),
+                $this->insights()->accessibleProjectPublicIds((int)($actor['id'] ?? 0), $this->accessibleTeamPublicIds($actor), $this->organizationId($actor)),
                 true
             );
             if ($allowed) {
@@ -395,7 +395,8 @@ final class AnalyticsService
         $actorIsRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
         $accessibleProjects = $actorIsRoot ? [] : $this->insights()->accessibleProjectPublicIds(
             (int)($actor['id'] ?? 0),
-            $this->accessibleTeamPublicIds($actor)
+            $this->accessibleTeamPublicIds($actor),
+            $this->organizationId($actor)
         );
 
         $data = $this->insights()->actualTime(
@@ -569,7 +570,8 @@ final class AnalyticsService
                 ? []
                 : $this->insights()->accessibleProjectPublicIds(
                     (int)($actor['id'] ?? 0),
-                    $this->accessibleTeamPublicIds($actor)
+                    $this->accessibleTeamPublicIds($actor),
+                    $this->organizationId($actor)
                 ),
             $actorIsRoot,
             $currentStart,
@@ -739,7 +741,8 @@ final class AnalyticsService
         $data['sprint'] = $this->insights()->currentSprintVelocity(
             $isRoot ? [] : $this->insights()->accessibleProjectPublicIds(
                 (int)($actor['id'] ?? 0),
-                $this->accessibleTeamPublicIds($actor)
+                $this->accessibleTeamPublicIds($actor),
+                $this->organizationId($actor)
             ),
             $isRoot,
             $userIds,
@@ -816,7 +819,8 @@ final class AnalyticsService
         $isRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
         $projectIds = $isRoot ? [] : $this->insights()->accessibleProjectPublicIds(
             (int)($actor['id'] ?? 0),
-            $this->accessibleTeamPublicIds($actor)
+            $this->accessibleTeamPublicIds($actor),
+            $this->organizationId($actor)
         );
 
         $items = $this->insights()->projectsOverview($projectIds, $isRoot, [
@@ -849,7 +853,8 @@ final class AnalyticsService
 
         $accessible = $isRoot ? [] : $this->insights()->accessibleProjectPublicIds(
             (int)($actor['id'] ?? 0),
-            $this->accessibleTeamPublicIds($actor)
+            $this->accessibleTeamPublicIds($actor),
+            $this->organizationId($actor)
         );
 
         // A user whose scope holds no project at all has nothing to detail: that is an

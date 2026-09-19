@@ -20,9 +20,10 @@ final class ApprovalService
 
     public function list(array $filters, array $actor): array
     {
-        if (!(bool)($actor['is_root'] ?? false)) {
+        if (!((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0)) {
             $filters['involved_user_public_id'] = (string)($actor['public_id'] ?? '');
         }
+        $filters['organization_id'] = (int)($actor['organization_id'] ?? 0);
 
         [$items, $total, $page, $limit] = $this->approvals->listRequests($filters);
 
@@ -72,6 +73,7 @@ final class ApprovalService
             'comment' => $requestComment,
             'created_at' => $now,
             'updated_at' => $now,
+            'organization_id' => (int)($actor['organization_id'] ?? 0) ?: null,
         ]);
 
         $comment = $requestComment;
@@ -234,7 +236,7 @@ final class ApprovalService
 
     private function canAccess(array $request, array $actor): bool
     {
-        if ((bool)($actor['is_root'] ?? false)) {
+        if (((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0)) {
             return true;
         }
 

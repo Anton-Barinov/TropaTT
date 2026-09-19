@@ -24,7 +24,7 @@ final class SubscriptionService
         [$items, $total, $page, $limit] = $this->subscriptions->list(
             $filters,
             (int)($actor['id'] ?? 0),
-            (bool)($actor['is_root'] ?? false)
+            ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0)
         );
 
         return [
@@ -59,7 +59,7 @@ final class SubscriptionService
             return false;
         }
 
-        $isRoot = (bool)($actor['is_root'] ?? false);
+        $isRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
         if (!$isRoot && (int)($item['user_id'] ?? 0) !== (int)($actor['id'] ?? 0)) {
             return 'FORBIDDEN';
         }
