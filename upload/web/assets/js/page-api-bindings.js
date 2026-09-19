@@ -30773,79 +30773,249 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       modal.id = 'organizationMembersModal';
       modal.tabIndex = -1;
       modal.setAttribute('aria-hidden', 'true');
-      modal.innerHTML = '<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-xl"><div class="modal-content">'
-        + '<div class="modal-header"><div><h5 class="modal-title"><i class="fa-solid fa-users me-2" aria-hidden="true"></i>'
-        + safeText(_t('organization.members_title', 'Участники рабочего пространства')) + '</h5><div class="text-muted small">'
-        + safeText(organization.title || orgId) + '</div></div>'
+      modal.innerHTML = '<div class="modal-dialog modal-team-edit modal-dialog-centered" style="max-width:820px"><div class="modal-content">'
+        + '<div class="team-modal-header">'
+        + '<div class="team-modal-header-left">'
+        + '<div class="team-modal-icon"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-users" aria-hidden="true"></i></span></div>'
+        + '<div class="team-modal-title-group">'
+        + '<h5 class="team-modal-title">' + safeText(_t('organization.members_title', 'Участники рабочего пространства')) + '</h5>'
+        + '<div class="team-modal-subtitle">' + safeText(organization.title || orgId) + '</div>'
+        + '</div></div>'
         + '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + safeText(_t('page.close', 'Закрыть')) + '"></button></div>'
-        + '<div class="modal-body"><div class="d-flex flex-wrap gap-2 align-items-center mb-3">'
-        + '<input class="form-control" data-member-search type="search" placeholder="' + safeText(_t('organization.members_search', 'Найти участника')) + '" aria-label="' + safeText(_t('organization.members_search', 'Найти участника')) + '">'
-        + '<span class="text-muted small" data-member-count></span></div>'
-        + '<div class="crm-organization-members-list" data-member-list></div></div>'
-        + '<div class="modal-footer"><button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal">' + safeText(_t('page.cancel', 'Отмена')) + '</button>'
-        + '<button type="button" class="btn crm-btn-primary" data-member-save><i class="fa-solid fa-check me-1" aria-hidden="true"></i>' + safeText(_t('organization.members_save', 'Сохранить участников')) + '</button></div>'
+        + '<div class="modal-body"><div class="team-modal-grid">'
+        + '<div class="team-modal-left">'
+        + '<div class="team-section-card">'
+        + '<h6 class="team-section-title">' + safeText(_t('organization.section_info', 'Информация')) + '</h6>'
+        + '<p class="text-muted small mb-0">' + safeText(_t('organization.members_hint', 'Добавьте участников через поиск справа. Каждому участнику можно назначить роль.')) + '</p>'
+        + '</div></div>'
+        + '<div class="team-modal-right">'
+        + '<div class="team-participant-panel">'
+        + '<div class="team-participant-toolbar">'
+        + '<h6 class="team-participant-title"><span>' + safeText(_t('organization.participant_title', 'Участники')) + '</span> <span class="team-participant-count" data-org-count>' + String(members.length) + '</span></h6>'
+        + '</div>'
+        + '<div class="team-participant-search-wrap">'
+        + '<span class="crm-icon team-search-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></span>'
+        + '<input type="text" class="team-search-input" data-org-search placeholder="' + safeText(_t('organization.members_search', 'Найти участника')) + '">'
+        + '<div class="team-search-dropdown" data-org-search-results hidden></div>'
+        + '</div>'
+        + '<div class="team-participant-list" data-org-participant-list role="listbox"></div>'
+        + '<div class="team-empty-state" data-org-empty' + (members.length > 0 ? ' hidden' : '') + '>'
+        + '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-user-plus" aria-hidden="true"></i></span>'
+        + '<p>' + safeText(_t('organization.empty_add_participants', 'Добавьте участников')) + '</p>'
+        + '<span class="team-empty-hint">' + safeText(_t('organization.hint_search_add', 'Используйте поиск для быстрого добавления')) + '</span>'
+        + '</div></div></div></div></div>'
+        + '<div class="team-modal-footer"><div class="team-footer-spacer"></div><div class="team-footer-actions">'
+        + '<button class="btn btn crm-btn-secondary crm-btn-compact" type="button" data-bs-dismiss="modal">' + safeText(_t('page.cancel', 'Отмена')) + '</button>'
+        + '<button class="btn btn crm-btn-primary crm-btn-compact" type="button" data-org-save>'
+        + '<span>' + safeText(_t('organization.members_save', 'Сохранить участников')) + '</span>'
+        + '<span class="spinner-border spinner-border-sm" data-org-save-spinner hidden></span>'
+        + '</button></div></div>'
         + '</div></div>';
       document.body.appendChild(modal);
 
-      var list = modal.querySelector('[data-member-list]');
-      var searchInput = modal.querySelector('[data-member-search]');
-      var countNode = modal.querySelector('[data-member-count]');
-      function renderMembers() {
-        var query = String(searchInput.value || '').trim().toLowerCase();
-        var visible = users.filter(function (user) {
-          var haystack = [user.full_name, user.login, user.email, user.public_id].join(' ').toLowerCase();
-          return !query || haystack.indexOf(query) !== -1;
-        });
-        countNode.textContent = _t('organization.members_count', '{shown} из {total} пользователей').replace('{shown}', String(visible.length)).replace('{total}', String(users.length));
-        if (!visible.length) {
-          list.innerHTML = '<div class="text-muted py-4 text-center">' + safeText(_t('organization.members_empty', 'Пользователи не найдены')) + '</div>';
-          return;
-        }
-        list.innerHTML = visible.map(function (user) {
-          var uid = String(user.public_id || '');
-          var checked = Object.prototype.hasOwnProperty.call(existing, uid);
-          var role = existing[uid] || 'member';
-          var label = String(user.full_name || user.login || uid);
-          var secondary = [user.login, user.email].filter(Boolean).join(' · ');
-          return '<label class="crm-organization-member-row" data-member-row data-member-search-text="' + safeText((label + ' ' + secondary).toLowerCase()) + '">'
-            + '<input class="form-check-input mt-1" type="checkbox" data-member-check value="' + safeText(uid) + '"' + (checked ? ' checked' : '') + '>'
-            + '<span class="crm-organization-member-main"><strong>' + safeText(label) + '</strong><span class="text-muted small">' + safeText(secondary) + '</span></span>'
-            + '<select class="form-select form-select-sm crm-organization-member-role" data-member-role aria-label="' + safeText(_t('organization.member_role', 'Роль')) + '"' + (checked ? '' : ' disabled') + '>'
+      var participantList = modal.querySelector('[data-org-participant-list]');
+      var searchInput = modal.querySelector('[data-org-search]');
+      var searchResults = modal.querySelector('[data-org-search-results]');
+      var countEl = modal.querySelector('[data-org-count]');
+      var emptyState = modal.querySelector('[data-org-empty]');
+      var participants = [];
+      var searchActiveIndex = -1;
+
+      function getUserInitials(name) {
+        var parts = String(name || '').trim().split(/\s+/);
+        if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+        if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+        return '??';
+      }
+
+      function updateOrgCount() {
+        if (countEl) countEl.textContent = String(participants.length);
+        if (emptyState) emptyState.hidden = participants.length > 0;
+      }
+
+      function renderOrgParticipants() {
+        if (!participantList) return;
+        participantList.innerHTML = participants.map(function (p) {
+          var initials = getUserInitials(p.full_name || p.login);
+          var role = p._role || 'member';
+          return '<div class="team-participant-row is-adding" data-user-id="' + safeText(p.public_id) + '" role="option">'
+            + '<div class="team-participant-avatar">' + safeText(initials) + '</div>'
+            + '<div class="team-participant-info">'
+            + '<div class="team-participant-name">' + safeText(p.full_name || p.login || p.public_id) + '</div>'
+            + '<div class="team-participant-detail">' + safeText(p.login || '') + '</div>'
+            + '</div>'
+            + '<select class="form-select form-select-sm org-member-role" data-role-select aria-label="' + safeText(_t('organization.member_role', 'Роль')) + '">'
             + '<option value="member"' + (role === 'member' ? ' selected' : '') + '>' + safeText(_t('organization.role_member', 'Участник')) + '</option>'
             + '<option value="admin"' + (role === 'admin' ? ' selected' : '') + '>' + safeText(_t('organization.role_admin', 'Администратор')) + '</option>'
-            + '<option value="owner"' + (role === 'owner' ? ' selected' : '') + '>' + safeText(_t('organization.role_owner', 'Владелец')) + '</option></select></label>';
+            + '<option value="owner"' + (role === 'owner' ? ' selected' : '') + '>' + safeText(_t('organization.role_owner', 'Владелец')) + '</option></select>'
+            + '<button type="button" class="team-participant-remove" data-remove="' + safeText(p.public_id) + '" aria-label="' + safeText(_t('page.remove', 'Удалить')) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-xmark" aria-hidden="true"></i></span></button>'
+            + '</div>';
         }).join('');
-        list.querySelectorAll('[data-member-check]').forEach(function (checkbox) {
-          checkbox.addEventListener('change', function () {
-            var role = checkbox.parentNode.querySelector('[data-member-role]');
-            if (role) role.disabled = !checkbox.checked;
+        updateOrgCount();
+
+        participantList.querySelectorAll('.team-participant-remove').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var userId = btn.getAttribute('data-remove');
+            removeOrgParticipant(userId);
+          });
+        });
+
+        participantList.querySelectorAll('[data-role-select]').forEach(function (select) {
+          select.addEventListener('change', function () {
+            var row = select.closest('[data-user-id]');
+            if (!row) return;
+            var uid = row.getAttribute('data-user-id');
+            var p = participants.find(function (x) { return x.public_id === uid; });
+            if (p) p._role = select.value;
           });
         });
       }
-      searchInput.addEventListener('input', renderMembers);
-      renderMembers();
+
+      function addOrgParticipant(user) {
+        if (participants.some(function (p) { return p.public_id === user.public_id; })) return;
+        var role = existing[user.public_id] || 'member';
+        var entry = Object.assign({}, user, { _role: role });
+        participants.push(entry);
+        renderOrgParticipants();
+        hideOrgSearchDropdown();
+        if (searchInput) searchInput.value = '';
+      }
+
+      function removeOrgParticipant(userId) {
+        var row = participantList ? participantList.querySelector('[data-user-id="' + userId + '"]') : null;
+        if (row) {
+          row.classList.add('is-removing');
+          setTimeout(function () {
+            participants = participants.filter(function (p) { return p.public_id !== userId; });
+            renderOrgParticipants();
+          }, 150);
+        } else {
+          participants = participants.filter(function (p) { return p.public_id !== userId; });
+          renderOrgParticipants();
+        }
+      }
+
+      function isOrgParticipant(userId) {
+        return participants.some(function (p) { return p.public_id === userId; });
+      }
+
+      function showOrgSearchDropdown(items, query) {
+        if (!searchResults) return;
+        if (!items.length) {
+          searchResults.innerHTML = '<div class="team-search-no-results"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></span>' + safeText(_t('organization.search_empty', 'Ничего не найдено для «')) + safeText(query) + safeText(_t('organization.search_empty_suffix', '»')) + '</div>';
+          searchResults.hidden = false;
+          return;
+        }
+        searchResults.innerHTML = items.map(function (u, idx) {
+          var initials = getUserInitials(u.full_name || u.login);
+          var added = isOrgParticipant(u.public_id);
+          return '<div class="team-search-item' + (added ? ' is-added' : '') + '" data-search-idx="' + idx + '" data-user-id="' + safeText(u.public_id) + '">'
+            + '<div class="team-search-item-avatar">' + safeText(initials) + '</div>'
+            + '<div class="team-search-item-info">'
+            + '<div class="team-search-item-name">' + safeText(u.full_name || u.login || u.public_id) + '</div>'
+            + '<div class="team-search-item-detail">' + safeText(u.login || '') + '</div>'
+            + '</div>'
+            + '<div class="team-search-item-action">'
+            + (added ? '<span class="crm-chip">' + safeText(_t('organization.added', 'Добавлен')) + '</span>' : '<button type="button" class="btn crm-btn-primary crm-btn-compact" data-add-user="' + safeText(u.public_id) + '">' + safeText(_t('organization.add', '+ Добавить')) + '</button>')
+            + '</div></div>';
+        }).join('');
+        searchResults.hidden = false;
+        searchActiveIndex = -1;
+
+        searchResults.querySelectorAll('[data-add-user]').forEach(function (btn) {
+          btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var userId = btn.getAttribute('data-add-user');
+            var user = users.find(function (u) { return u.public_id === userId; });
+            if (user) addOrgParticipant(user);
+          });
+        });
+
+        searchResults.querySelectorAll('.team-search-item:not(.is-added)').forEach(function (item) {
+          item.addEventListener('click', function () {
+            var userId = item.getAttribute('data-user-id');
+            var user = users.find(function (u) { return u.public_id === userId; });
+            if (user) addOrgParticipant(user);
+          });
+        });
+      }
+
+      function hideOrgSearchDropdown() {
+        if (searchResults) {
+          searchResults.hidden = true;
+          searchResults.innerHTML = '';
+        }
+        searchActiveIndex = -1;
+      }
+
+      var doOrgSearch = debounce(function (q) {
+        var query = q.trim();
+        if (!query) { hideOrgSearchDropdown(); return; }
+        var filtered = users.filter(function (u) {
+          var name = (u.full_name || u.login || '').toLowerCase();
+          return name.indexOf(query.toLowerCase()) >= 0;
+        }).slice(0, 15);
+        showOrgSearchDropdown(filtered, query);
+      }, 250);
+
+      if (searchInput) {
+        searchInput.addEventListener('input', function () { doOrgSearch(searchInput.value); });
+        searchInput.addEventListener('keydown', function (e) {
+          var items = searchResults ? searchResults.querySelectorAll('.team-search-item:not(.is-added)') : [];
+          if (!items.length) return;
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            searchActiveIndex = Math.min(searchActiveIndex + 1, items.length - 1);
+            items.forEach(function (item, i) { item.classList.toggle('is-active', i === searchActiveIndex); });
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            searchActiveIndex = Math.max(searchActiveIndex - 1, 0);
+            items.forEach(function (item, i) { item.classList.toggle('is-active', i === searchActiveIndex); });
+          } else if (e.key === 'Enter' && searchActiveIndex >= 0) {
+            e.preventDefault();
+            var activeItem = items[searchActiveIndex];
+            if (activeItem) activeItem.click();
+          } else if (e.key === 'Escape') {
+            hideOrgSearchDropdown();
+          }
+        });
+      }
+
+      document.addEventListener('click', function (e) {
+        if (searchResults && !searchResults.contains(e.target) && e.target !== searchInput) {
+          hideOrgSearchDropdown();
+        }
+      });
+
+      members.forEach(function (m) {
+        var user = users.find(function (u) { return u.public_id === m.user_public_id; });
+        if (user) {
+          participants.push(Object.assign({}, user, { _role: m.role_code || 'member' }));
+        }
+      });
+      renderOrgParticipants();
 
       var bsModal = new bootstrap.Modal(modal);
-      modal.querySelector('[data-member-save]').addEventListener('click', async function () {
+      modal.querySelector('[data-org-save]').addEventListener('click', async function () {
         var saveBtn = this;
-        var selected = {};
-        list.querySelectorAll('[data-member-check]:checked').forEach(function (checkbox) {
-          var role = checkbox.parentNode.querySelector('[data-member-role]');
-          selected[String(checkbox.value || '')] = role ? String(role.value || 'member') : 'member';
-        });
+        var spinner = modal.querySelector('[data-org-save-spinner]');
         saveBtn.disabled = true;
+        if (spinner) spinner.hidden = false;
         try {
-          var removals = Object.keys(existing).filter(function (uid) { return !Object.prototype.hasOwnProperty.call(selected, uid); });
+          var removals = Object.keys(existing).filter(function (uid) {
+            return !participants.some(function (p) { return p.public_id === uid; });
+          });
           for (var r = 0; r < removals.length; r += 1) {
             await request('api/v1/organizations/' + encodeURIComponent(orgId) + '/members/' + encodeURIComponent(removals[r]), { method: 'DELETE' });
           }
-          var selectedIds = Object.keys(selected);
-          for (var a = 0; a < selectedIds.length; a += 1) {
-            var uid = selectedIds[a];
+          for (var a = 0; a < participants.length; a += 1) {
+            var p = participants[a];
+            var uid = p.public_id;
+            var role = p._role || 'member';
             if (!Object.prototype.hasOwnProperty.call(existing, uid)) {
-              await request('api/v1/organizations/' + encodeURIComponent(orgId) + '/members', { method: 'POST', body: { user_public_id: uid, role_code: selected[uid] } });
-            } else if (existing[uid] !== selected[uid]) {
-              await request('api/v1/organizations/' + encodeURIComponent(orgId) + '/members/' + encodeURIComponent(uid), { method: 'PATCH', body: { role_code: selected[uid] } });
+              await request('api/v1/organizations/' + encodeURIComponent(orgId) + '/members', { method: 'POST', body: { user_public_id: uid, role_code: role } });
+            } else if (existing[uid] !== role) {
+              await request('api/v1/organizations/' + encodeURIComponent(orgId) + '/members/' + encodeURIComponent(uid), { method: 'PATCH', body: { role_code: role } });
             }
           }
           bsModal.hide();
@@ -30854,6 +31024,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           await loadOrganizations();
         } catch (error) {
           saveBtn.disabled = false;
+          if (spinner) spinner.hidden = true;
           var normalized = window.CRM.api.normalizeError(error, _t('organization.members_save_error', 'Не удалось обновить участников'));
           notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
         }
