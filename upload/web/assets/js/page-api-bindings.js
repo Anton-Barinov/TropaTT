@@ -30756,8 +30756,13 @@ tableBody.innerHTML = counterparties.map(function (cp) {
 
     var orgsBody = document.getElementById('organizationsBody');
     async function openOrganizationMembersModal(orgId) {
-      var membersEnvelope = await request('api/v1/organizations/' + encodeURIComponent(orgId) + '/members', { query: { limit: 500 }, noCache: true });
-      var usersEnvelope = await request('api/v1/users', { query: { limit: 500, is_active: 1 }, noCache: true });
+      var membersEnvelope, usersEnvelope;
+      try {
+        membersEnvelope = await request('api/v1/organizations/' + encodeURIComponent(orgId) + '/members', { query: { limit: 500 }, noCache: true });
+      } catch (e) { console.error('[org-members] /members failed:', e); throw e; }
+      try {
+        usersEnvelope = await request('api/v1/users', { query: { limit: 500, is_active: 1 }, noCache: true });
+      } catch (e) { console.error('[org-members] /users failed:', e); throw e; }
       var members = mapItems(membersEnvelope);
       var users = mapItems(usersEnvelope);
       var organization = organizationItems.find(function (item) { return String(item.public_id || '') === orgId; }) || {};
@@ -31071,6 +31076,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           try {
             await openOrganizationMembersModal(orgId);
           } catch (error) {
+            console.error('[org-members] openOrganizationMembersModal failed:', error);
             var normalized = window.CRM.api.normalizeError(error, _t('organization.load_members_error', 'Не удалось загрузить участников'));
             notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
           }
