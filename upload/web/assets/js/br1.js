@@ -1203,7 +1203,10 @@ window.CRM.br1 = (function () {
     });
 
     // Fallback for server-rendered topbars that mark the user dropdown toggle.
-    document.querySelectorAll('.crm-topbar [data-profile-dropdown] .dropdown-toggle, .crm-topbar [data-global-actions] .dropdown .dropdown-toggle').forEach(function (el) {
+    // Workspace switcher is also a dropdown in the global actions area, but it
+    // must always keep the workspace title. Restrict this fallback to the
+    // explicitly marked profile menu so session hydration cannot overwrite it.
+    document.querySelectorAll('.crm-topbar [data-profile-dropdown] .dropdown-toggle').forEach(function (el) {
       if (el.textContent && el.textContent.trim()) {
         el.textContent = fullName;
       }

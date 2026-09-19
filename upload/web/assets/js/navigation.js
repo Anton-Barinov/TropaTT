@@ -581,8 +581,8 @@ window.CRM.navigation = (function () {
     }
 
     var profileButton = bar.querySelector('[data-profile-dropdown] .dropdown-toggle')
-      || bar.querySelector('[data-global-actions] .dropdown .dropdown-toggle')
-      || bar.querySelector('.ms-auto .dropdown .dropdown-toggle');
+      || bar.querySelector('[data-global-actions] .dropdown:not(.crm-workspace-switcher) .dropdown-toggle')
+      || bar.querySelector('.ms-auto .dropdown:not(.crm-workspace-switcher) .dropdown-toggle');
     if (profileButton) {
       profileButton.setAttribute('data-session-user-btn', '1');
     }
