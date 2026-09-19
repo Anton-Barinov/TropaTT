@@ -47,7 +47,24 @@ abstract class BaseController
 
     protected function user(): ?array
     {
-        return $this->container->has('auth_user') ? $this->container->get('auth_user') : null;
+        if (!$this->container->has('auth_user')) {
+            return null;
+        }
+
+        $auth = $this->container->get('auth_user');
+        if (!is_array($auth) || !isset($auth['user']) || !is_array($auth['user'])) {
+            return $auth;
+        }
+
+        // Every controller receives the active workspace on its actor. This
+        // closes the easy-to-miss gap where a dashboard widget (or another
+        // secondary endpoint) passes the raw auth envelope to a service and
+        // silently falls back to data from the default workspace.
+        if ($this->container->has('service.organization_context')) {
+            $auth['user'] = $this->organizationScopedActor($auth['user']);
+        }
+
+        return $auth;
     }
 
     protected function lang(): LanguageManager
