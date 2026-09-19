@@ -26,7 +26,7 @@ final class CalendarController extends BaseController
         if ($cache !== null) {
             $input = $this->request()->allInput();
             ksort($input);
-            $cacheKey = 'events:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($input));
+            $cacheKey = 'events:' . $this->cacheUserId() . ':' . $this->organizationContextCacheKey() . ':' . hash('sha256', json_encode($input));
             $result = $cache->remember('calendar', $cacheKey, 60, function () use ($input, $authUser) {
                 /** @var CalendarService $service */
                 $service = $this->container->get('service.calendar');
@@ -219,7 +219,7 @@ final class CalendarController extends BaseController
         if ($cache !== null) {
             $input = $this->request()->allInput();
             ksort($input);
-            $cacheKey = 'myDay:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($input));
+            $cacheKey = 'myDay:' . $this->cacheUserId() . ':' . $this->organizationContextCacheKey() . ':' . hash('sha256', json_encode($input));
             $payload = $cache->remember('calendar', $cacheKey, 60, function () use ($input, $authUser) {
                 /** @var CalendarService $service */
                 $service = $this->container->get('service.calendar');
@@ -250,7 +250,7 @@ final class CalendarController extends BaseController
         if ($cache !== null) {
             $input = $this->request()->allInput();
             ksort($input);
-            $cacheKey = 'myWeek:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($input));
+            $cacheKey = 'myWeek:' . $this->cacheUserId() . ':' . $this->organizationContextCacheKey() . ':' . hash('sha256', json_encode($input));
             $payload = $cache->remember('calendar', $cacheKey, 60, function () use ($input, $authUser) {
                 /** @var CalendarService $service */
                 $service = $this->container->get('service.calendar');
@@ -281,7 +281,7 @@ final class CalendarController extends BaseController
         if ($cache !== null) {
             $input = $this->request()->allInput();
             ksort($input);
-            $cacheKey = 'myMonth:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($input));
+            $cacheKey = 'myMonth:' . $this->cacheUserId() . ':' . $this->organizationContextCacheKey() . ':' . hash('sha256', json_encode($input));
             $payload = $cache->remember('calendar', $cacheKey, 60, function () use ($input, $authUser) {
                 /** @var CalendarService $service */
                 $service = $this->container->get('service.calendar');

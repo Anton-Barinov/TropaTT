@@ -147,6 +147,9 @@ final class McpController extends BaseController
 {
     private const PROTOCOL_VERSION = '2025-06-18';
 
+    /** Workspace context carried inside the current JSON-RPC tool call. */
+    private array $activeMcpArguments = [];
+
     public function handle(): RawJsonResponse
     {
         $originError = $this->validateOrigin();
@@ -3680,6 +3683,11 @@ $tools[] = $this->tool(
         // an agent that read a value via MCP must be able to write that same
         // value back without persisting the markers into the database.
         $arguments = $this->stripSandboxMarkers($arguments);
+        // JSON-RPC arguments are not part of the outer HTTP request. Keep them
+        // on the controller for the duration of this call so every service
+        // receiving actor() gets the same workspace context, including legacy
+        // MCP handlers that predate the explicit argument-aware helper.
+        $this->activeMcpArguments = $arguments;
 
         if ($name === '') {
             return $this->toolError('Tool name is required');
@@ -14449,7 +14457,11 @@ $tools[] = $this->tool(
     private function actor(): array
     {
         $auth = $this->user();
-        return is_array($auth['user'] ?? null) ? $auth['user'] : [];
+        $actor = is_array($auth['user'] ?? null) ? $auth['user'] : [];
+        if ($this->activeMcpArguments !== []) {
+            return $this->organizationScopedActorForArguments($actor, $this->activeMcpArguments);
+        }
+        return $actor;
     }
 
     private function knowledge(): KnowledgeRepository

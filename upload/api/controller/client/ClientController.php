@@ -24,7 +24,7 @@ final class ClientController extends BaseController
         if ($cache !== null) {
             $input = $this->request()->allInput();
             ksort($input);
-            $cacheKey = 'list:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($input));
+            $cacheKey = 'list:' . $this->cacheUserId() . ':' . $this->organizationContextCacheKey() . ':' . hash('sha256', json_encode($input));
             $result = $cache->remember('client', $cacheKey, 60, function () use ($input, $authUser) {
                 /** @var ClientService $service */
                 $service = $this->container->get('service.client');

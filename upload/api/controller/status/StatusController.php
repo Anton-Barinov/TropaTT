@@ -38,7 +38,7 @@ final class StatusController extends BaseController
         $cache = $this->cacheApi();
         if ($cache !== null) {
             ksort($input);
-            $cacheKey = 'list:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($input));
+            $cacheKey = 'list:' . $this->cacheUserId() . ':' . $this->organizationContextCacheKey() . ':' . hash('sha256', json_encode($input));
             $result = $cache->remember('status', $cacheKey, 60, function () use ($input) {
                 /** @var StatusService $service */
                 $service = $this->container->get('service.status');
