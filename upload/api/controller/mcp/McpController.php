@@ -219,7 +219,9 @@ final class McpController extends BaseController
                 'notifications/initialized' => null,
                 default => $this->methodNotFound($method),
             };
+            $this->activeMcpArguments = [];
         } catch (Throwable $e) {
+            $this->activeMcpArguments = [];
             try {
                 $logger = $this->container->get('logger');
                 $logger->error(['mcp_error' => $e->getMessage(), 'method' => $method, 'trace' => $e->getTraceAsString()]);
