@@ -30754,6 +30754,16 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       });
     }
 
+    function debounce(fn, delay) {
+      var timer;
+      return function () {
+        var args = arguments;
+        var ctx = this;
+        clearTimeout(timer);
+        timer = setTimeout(function () { fn.apply(ctx, args); }, delay);
+      };
+    }
+
     var orgsBody = document.getElementById('organizationsBody');
     async function openOrganizationMembersModal(orgId) {
       var membersEnvelope, usersEnvelope;
