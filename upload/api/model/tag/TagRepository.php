@@ -42,6 +42,9 @@ final class TagRepository
             $search = '%' . LikeEscaper::escape((string)$filters['search']) . '%';
             $query->whereRaw('(code LIKE ? OR title LIKE ?)', [$search, $search]);
         }
+        if ((int)($filters['organization_id'] ?? 0) > 0) {
+            $query->where('organization_id', '=', (int)$filters['organization_id']);
+        }
 
         return $query;
     }

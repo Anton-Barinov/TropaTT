@@ -985,10 +985,16 @@ final class AnalyticsService
         // Same visibility model as WorklogService::getVisibleUserIds(): actor +
         // users created by them (hierarchy) + members of teams where the actor
         // is the manager. Keeps the workload and worklog widget scopes consistent.
-        return array_values(array_unique(array_merge(
+        $ids = array_values(array_unique(array_merge(
             [$actorId],
             $this->userManagement->descendantIds($actorId),
             $this->teams->findMemberIdsByManager($actorId)
         )));
+        $organizationId = $this->organizationId($actor);
+        if ($organizationId !== null) {
+            $allowed = array_fill_keys($this->userManagement->organizationMemberIds($organizationId), true);
+            $ids = array_values(array_filter($ids, static fn(int $id): bool => isset($allowed[$id])));
+        }
+        return $ids;
     }
 }

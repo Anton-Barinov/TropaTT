@@ -65,6 +65,10 @@ final class WorkflowRepository
             $query->whereRaw('(title LIKE ? OR trigger_code LIKE ? OR action_code LIKE ?)', [$search, $search, $search]);
         }
 
+        if ((int)($filters['organization_id'] ?? 0) > 0 && $this->hasOrganizationColumn('automation_rules')) {
+            $query->where('organization_id', '=', (int)$filters['organization_id']);
+        }
+
         if ($creatorIds !== []) {
             if (!empty($filters['include_unowned'])) {
                 $placeholders = implode(',', array_fill(0, count($creatorIds), '?'));
@@ -90,6 +94,9 @@ final class WorkflowRepository
 
     public function createRule(array $payload): void
     {
+        if (!$this->hasOrganizationColumn('automation_rules')) {
+            unset($payload['organization_id']);
+        }
         (new QueryBuilder($this->pdo))
             ->from('automation_rules')
             ->insert($payload);
@@ -120,6 +127,16 @@ final class WorkflowRepository
         (new QueryBuilder($this->pdo))
             ->from('automation_runs')
             ->insert($payload);
+    }
+
+    private function hasOrganizationColumn(string $table): bool
+    {
+        try {
+            $this->pdo->query("SELECT organization_id FROM {$table} LIMIT 0");
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     public function listRuns(array $filters): array
@@ -169,6 +186,10 @@ final class WorkflowRepository
 
         if (!empty($filters['rule_public_id'])) {
             $query->where('ar.public_id', '=', (string)$filters['rule_public_id']);
+        }
+
+        if ((int)($filters['organization_id'] ?? 0) > 0 && $this->hasOrganizationColumn('automation_rules')) {
+            $query->where('ar.organization_id', '=', (int)$filters['organization_id']);
         }
 
         if ($creatorIds !== []) {

@@ -14,8 +14,12 @@ final class TagService
     ) {
     }
 
-    public function list(array $filters): array
+    public function list(array $filters, array $actor = []): array
     {
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        if ($organizationId > 0) {
+            $filters['organization_id'] = $organizationId;
+        }
         [$items, $total, $page, $limit] = $this->tags->list($filters);
 
         return [

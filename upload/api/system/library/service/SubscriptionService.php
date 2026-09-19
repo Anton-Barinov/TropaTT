@@ -22,7 +22,7 @@ final class SubscriptionService
         }
 
         [$items, $total, $page, $limit] = $this->subscriptions->list(
-            $filters,
+            $filters + ((int)($actor['organization_id'] ?? 0) > 0 ? ['organization_id' => (int)$actor['organization_id']] : []),
             (int)($actor['id'] ?? 0),
             ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0)
         );
@@ -49,7 +49,7 @@ final class SubscriptionService
             return 'FORBIDDEN';
         }
 
-        return $this->subscriptions->create($entityType, $entityPublicId, (int)($actor['id'] ?? 0));
+        return $this->subscriptions->create($entityType, $entityPublicId, (int)($actor['id'] ?? 0), (int)($actor['organization_id'] ?? 0));
     }
 
     public function delete(string $publicId, array $actor): bool|string

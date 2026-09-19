@@ -191,6 +191,22 @@ final class UserManagementRepository
         return array_map('intval', array_keys($result));
     }
 
+    /** @return int[] */
+    public function organizationMemberIds(int $organizationId): array
+    {
+        if ($organizationId <= 0) {
+            return [];
+        }
+        $rows = (new QueryBuilder($this->pdo))
+            ->from('users u')
+            ->join('organization_memberships om', 'om.user_id', '=', 'u.id')
+            ->select(['u.id'])
+            ->where('om.organization_id', '=', $organizationId)
+            ->whereNull('u.deleted_at')
+            ->get();
+        return array_values(array_unique(array_map(static fn(array $row): int => (int)$row['id'], $rows)));
+    }
+
     private function buildListQuery(array $filters): QueryBuilder
     {
         $qb = (new QueryBuilder($this->pdo))
