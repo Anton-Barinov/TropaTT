@@ -17,7 +17,7 @@ final class PermissionController extends BaseController
 
         $cache = $this->cacheApi();
         if ($cache !== null) {
-            $cacheKey = 'list:' . $this->cacheUserId();
+            $cacheKey = 'list:' . $this->cacheUserId() . ':' . $this->organizationContextCacheKey();
             $result = $cache->remember('permission', $cacheKey, 60, function () {
                 /** @var PermissionService $service */
                 $service = $this->container->get('service.permission');
@@ -41,7 +41,7 @@ final class PermissionController extends BaseController
 
         $cache = $this->cacheApi();
         if ($cache !== null) {
-            $cacheKey = 'list:' . $this->cacheUserId() . ':' . $params['public_id'];
+            $cacheKey = 'list:' . $this->cacheUserId() . ':' . $this->organizationContextCacheKey() . ':' . $params['public_id'];
             $result = $cache->remember('permission', $cacheKey, 60, function () use ($params) {
                 /** @var PermissionService $service */
                 $service = $this->container->get('service.permission');

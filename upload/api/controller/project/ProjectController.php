@@ -302,7 +302,7 @@ final class ProjectController extends BaseController
         if ($cache !== null) {
             $input = $this->request()->allInput();
             ksort($input);
-            $cacheKey = 'timeline:' . $this->cacheUserId() . ':' . (string)$params['public_id'] . ':' . hash('sha256', json_encode($input));
+            $cacheKey = 'timeline:' . $this->cacheUserId() . ':' . $this->organizationContextCacheKey() . ':' . (string)$params['public_id'] . ':' . hash('sha256', json_encode($input));
             $result = $cache->remember('project', $cacheKey, 60, function () use ($params, $input, $authUser) {
                 /** @var GanttService $service */
                 $service = $this->container->get('service.gantt');
