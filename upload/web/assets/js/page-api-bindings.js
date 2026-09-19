@@ -30998,9 +30998,10 @@ tableBody.innerHTML = counterparties.map(function (cp) {
 
       members.forEach(function (m) {
         var user = users.find(function (u) { return u.public_id === m.user_public_id; });
-        if (user) {
-          participants.push(Object.assign({}, user, { _role: m.role_code || 'member' }));
-        }
+        var entry = user
+          ? Object.assign({}, user, { _role: m.role_code || 'member' })
+          : { public_id: m.user_public_id, full_name: m.full_name || '', login: m.login || '', email: m.email || '', _role: m.role_code || 'member' };
+        participants.push(entry);
       });
       renderOrgParticipants();
 

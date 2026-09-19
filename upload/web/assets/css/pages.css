@@ -20642,9 +20642,10 @@ a.task-tag:hover {
   flex-shrink: 0;
 }
 @media (max-width: 575.98px) {
-  .crm-workspace-switcher { min-width: 0; max-width: none; width: min(58vw, 230px); }
-  .crm-workspace-trigger { min-height: 40px; padding-inline: .5rem; }
-  .crm-workspace-trigger-caption { font-size: .58rem; }
-  .crm-workspace-trigger-title { font-size: .76rem; }
+  .crm-workspace-switcher { min-width: 0; max-width: none; width: auto; }
+  .crm-workspace-trigger { min-height: 40px; padding: .35rem; justify-content: center; width: auto; }
+  .crm-workspace-trigger-copy { display: none; }
+  .crm-workspace-trigger-chevron { display: none; }
+  .crm-workspace-trigger-icon { flex: 0 0 32px; width: 32px; height: 32px; }
   .crm-workspace-menu { position: fixed; top: 4.2rem; right: .75rem; width: min(310px, calc(100vw - 1.5rem)); }
 }
