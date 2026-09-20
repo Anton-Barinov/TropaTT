@@ -49,7 +49,7 @@ final class ContactService
 
     public function get(string $publicId, array $actor): ?array
     {
-        $item = $this->contacts->findByPublicId($publicId);
+        $item = $this->contacts->findByPublicId($publicId, $this->organizationId($actor));
         if (!$item || !$this->canAccess($item, $actor)) {
             return null;
         }
@@ -74,14 +74,14 @@ final class ContactService
             'created_by_user_id' => (int)($actor['id'] ?? 0) ?: null,
             'created_at' => $now,
             'updated_at' => $now,
-        ]);
+        ], $this->organizationId($actor));
 
-        return $this->contacts->findByPublicId($publicId) ?: ['public_id' => $publicId];
+        return $this->contacts->findByPublicId($publicId, $this->organizationId($actor)) ?: ['public_id' => $publicId];
     }
 
     public function update(string $publicId, array $input, array $actor): ?array
     {
-        $item = $this->contacts->findByPublicId($publicId);
+        $item = $this->contacts->findByPublicId($publicId, $this->organizationId($actor));
         if (!$item || !$this->canAccess($item, $actor)) {
             return null;
         }
@@ -111,15 +111,15 @@ final class ContactService
         }
 
         $set['updated_at'] = gmdate('Y-m-d H:i:s');
-        $this->contacts->updateByPublicId($publicId, $set);
+        $this->contacts->updateByPublicId($publicId, $set, $this->organizationId($actor));
         $this->semanticIndex?->removeEntityDocument('contact', $publicId);
 
-        return $this->contacts->findByPublicId($publicId);
+        return $this->contacts->findByPublicId($publicId, $this->organizationId($actor));
     }
 
     public function delete(string $publicId, array $actor): bool
     {
-        $item = $this->contacts->findByPublicId($publicId);
+        $item = $this->contacts->findByPublicId($publicId, $this->organizationId($actor));
         if (!$item || !$this->canAccess($item, $actor)) {
             return false;
         }
@@ -128,7 +128,7 @@ final class ContactService
         // account remains active with a valid session, even though its data scope
         // becomes empty/orphaned after the contact disappears.
         $this->revokeLinkedExternalUser((int)($item['user_id'] ?? 0));
-        $deleted = $this->contacts->deleteByPublicId($publicId);
+        $deleted = $this->contacts->deleteByPublicId($publicId, $this->organizationId($actor));
         if ($deleted) {
             $this->semanticIndex?->removeEntityDocument('contact', $publicId);
         }
@@ -223,6 +223,12 @@ final class ContactService
      * Records without an owner (created_by_user_id IS NULL) belong to nobody
      * and are therefore root-only (see AGENTS.md object-level authorization).
      */
+    private function organizationId(array $actor): ?int
+    {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
+    }
+
     private function canAccess(array $item, array $actor): bool
     {
         if ((int)($actor['is_root'] ?? 0) === 1) {

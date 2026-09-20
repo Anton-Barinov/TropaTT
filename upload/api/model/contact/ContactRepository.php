@@ -106,9 +106,9 @@ final class ContactRepository
         return $query;
     }
 
-    public function findByPublicId(string $publicId): ?array
+    public function findByPublicId(string $publicId, ?int $organizationId = null): ?array
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('contacts ct')
             ->leftJoin('companies co', 'co.id', '=', 'ct.company_id')
             ->leftJoin('clients cl', 'cl.id', '=', 'ct.client_id')
@@ -123,8 +123,13 @@ final class ContactRepository
                 'cp.title AS counterparty_title',
                 'cp.counterparty_type AS counterparty_type',
             ])
-            ->where('ct.public_id', '=', $publicId)
-            ->first();
+            ->where('ct.public_id', '=', $publicId);
+
+        if ($organizationId !== null) {
+            $query->where('ct.organization_id', '=', $organizationId);
+        }
+
+        return $query->first();
     }
 
     public function companyIdByPublicId(string $publicId): ?int
@@ -151,31 +156,44 @@ final class ContactRepository
         return $id !== false ? (int)$id : null;
     }
 
-    public function create(array $payload): void
+    public function create(array $payload, ?int $organizationId = null): void
     {
+        if ($organizationId !== null && $organizationId > 0) {
+            $payload['organization_id'] = $organizationId;
+        }
         (new QueryBuilder($this->pdo))
             ->from('contacts')
             ->insert($payload);
     }
 
-    public function updateByPublicId(string $publicId, array $set): bool
+    public function updateByPublicId(string $publicId, array $set, ?int $organizationId = null): bool
     {
         if ($set === []) {
             return false;
         }
 
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('contacts')
-            ->where('public_id', '=', $publicId)
-            ->update($set) > 0;
+            ->where('public_id', '=', $publicId);
+
+        if ($organizationId !== null) {
+            $query->where('organization_id', '=', $organizationId);
+        }
+
+        return $query->update($set) > 0;
     }
 
-    public function deleteByPublicId(string $publicId): bool
+    public function deleteByPublicId(string $publicId, ?int $organizationId = null): bool
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('contacts')
-            ->where('public_id', '=', $publicId)
-            ->delete() > 0;
+            ->where('public_id', '=', $publicId);
+
+        if ($organizationId !== null) {
+            $query->where('organization_id', '=', $organizationId);
+        }
+
+        return $query->delete() > 0;
     }
 
     public function findById(int $id): ?array
