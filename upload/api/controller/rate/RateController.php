@@ -24,6 +24,52 @@ final class RateController extends BaseController
     }
 
     /**
+     * Multi-tenant guard for work_logs financial mutations (lock/unlock/
+     * recalculate). work_logs has no organization_id column of its own, so
+     * scope through the owning task's organization_id; a non-root actor
+     * scoped to one organization must never lock/unlock/recalculate another
+     * organization's billing data (see AGENTS.md object-level authorization).
+     * A worklog with no task (task_id IS NULL) is excluded from a scoped
+     * query — fail closed rather than silently including unscoped rows.
+     */
+    private function applyOrganizationScope(QueryBuilder $qb, string $tableAlias = 'work_logs'): void
+    {
+        $organizationId = $this->activeOrganizationId();
+        if ($organizationId === null) {
+            return;
+        }
+        $qb->join('tasks', 'tasks.id', '=', $tableAlias . '.task_id')
+            ->where('tasks.organization_id', '=', $organizationId);
+    }
+
+    /**
+     * QueryBuilder::update()/delete() compile only the base table (they drop
+     * any join()), so an organization-scoped UPDATE/DELETE on work_logs must
+     * first resolve which ids are in scope via a joined SELECT, then mutate
+     * by "id IN (...)". Returns null when the actor is unscoped (true
+     * platform root — no WHERE restriction needed at all).
+     *
+     * @return int[]|null
+     */
+    private function scopedWorkLogIds(\PDO $pdo, string $from, string $to, bool $onlyLocked): ?array
+    {
+        $organizationId = $this->activeOrganizationId();
+        if ($organizationId === null) {
+            return null;
+        }
+
+        $qb = (new QueryBuilder($pdo))->from('work_logs')
+            ->select(['work_logs.id'])
+            ->join('tasks', 'tasks.id', '=', 'work_logs.task_id')
+            ->where('tasks.organization_id', '=', $organizationId)
+            ->where('logged_at', '>=', $from)
+            ->where('logged_at', '<=', $to . ' 23:59:59')
+            ->where('rate_locked_at', $onlyLocked ? 'IS NOT' : 'IS', null);
+
+        return array_map(static fn(array $row): int => (int)$row['id'], $qb->get());
+    }
+
+    /**
      * GET /api/v1/rates/preview — diagnostic trace (TZ 7.3).
      */
     public function preview(): \Api\System\Library\Http\JsonResponse
@@ -128,12 +174,14 @@ final class RateController extends BaseController
             $user = (new QueryBuilder($pdo))->from('users')->where('public_id', '=', $userPublicId)->first();
             if ($user) $qb->where('user_id', '=', (int)$user['id']);
         }
+        $this->applyOrganizationScope($qb);
         $totalRows = $qb->count();
-        $lockedRows = (new QueryBuilder($pdo))->from('work_logs')
+        $lockedQb = (new QueryBuilder($pdo))->from('work_logs')
             ->where('logged_at', '>=', $from)
             ->where('logged_at', '<=', $to . ' 23:59:59')
-            ->where('rate_locked_at', 'IS NOT', null)
-            ->count();
+            ->where('rate_locked_at', 'IS NOT', null);
+        $this->applyOrganizationScope($lockedQb);
+        $lockedRows = $lockedQb->count();
 
         if ($dryRun) {
             return $this->success('RECALCULATE_DRY_RUN', '', [
@@ -150,7 +198,7 @@ final class RateController extends BaseController
         $now = gmdate('Y-m-d H:i:s');
 
         $batchQb = (new QueryBuilder($pdo))->from('work_logs')
-            ->select(['id', 'user_id', 'task_id', 'logged_at', 'activity_code', 'public_id'])
+            ->select(['work_logs.id', 'work_logs.user_id', 'work_logs.task_id', 'work_logs.logged_at', 'work_logs.activity_code', 'work_logs.public_id'])
             ->where('logged_at', '>=', $from)
             ->where('logged_at', '<=', $to . ' 23:59:59')
             ->where('rate_locked_at', 'IS', null);
@@ -158,6 +206,7 @@ final class RateController extends BaseController
             $user = (new QueryBuilder($pdo))->from('users')->where('public_id', '=', $userPublicId)->first();
             if ($user) $batchQb->where('user_id', '=', (int)$user['id']);
         }
+        $this->applyOrganizationScope($batchQb);
         $batchQb->limit($batchSize);
 
         $offset = 0;
@@ -218,11 +267,18 @@ final class RateController extends BaseController
 
         $pdo = $this->container->get('db.pdo');
         $now = gmdate('Y-m-d H:i:s');
-        $updated = (new QueryBuilder($pdo))->from('work_logs')
+        $scopedIds = $this->scopedWorkLogIds($pdo, $from, $to, false);
+        $lockQb = (new QueryBuilder($pdo))->from('work_logs')
             ->where('logged_at', '>=', $from)
             ->where('logged_at', '<=', $to . ' 23:59:59')
-            ->where('rate_locked_at', 'IS', null)
-            ->update(['rate_locked_at' => $now]);
+            ->where('rate_locked_at', 'IS', null);
+        if ($scopedIds !== null) {
+            if ($scopedIds === []) {
+                return $this->success('RATE_LOCKED', '', ['locked_rows' => 0]);
+            }
+            $lockQb->whereIn('id', $scopedIds);
+        }
+        $updated = $lockQb->update(['rate_locked_at' => $now]);
 
         // Store locked period so new worklogs in this range are blocked too (TZ 5.4).
         $this->addLockedPeriod($pdo, $from, $to);
@@ -250,11 +306,18 @@ final class RateController extends BaseController
         }
 
         $pdo = $this->container->get('db.pdo');
-        $updated = (new QueryBuilder($pdo))->from('work_logs')
+        $scopedIds = $this->scopedWorkLogIds($pdo, $from, $to, true);
+        $unlockQb = (new QueryBuilder($pdo))->from('work_logs')
             ->where('logged_at', '>=', $from)
             ->where('logged_at', '<=', $to . ' 23:59:59')
-            ->where('rate_locked_at', 'IS NOT', null)
-            ->update(['rate_locked_at' => null]);
+            ->where('rate_locked_at', 'IS NOT', null);
+        if ($scopedIds !== null) {
+            if ($scopedIds === []) {
+                return $this->success('RATE_UNLOCKED', '', ['unlocked_rows' => 0]);
+            }
+            $unlockQb->whereIn('id', $scopedIds);
+        }
+        $updated = $unlockQb->update(['rate_locked_at' => null]);
 
         // Remove from locked periods registry.
         $this->removeLockedPeriod($pdo, $from, $to);
@@ -295,10 +358,12 @@ final class RateController extends BaseController
         }
 
         // Locked work-log days grouped into contiguous periods.
-        $rows = (new QueryBuilder($pdo))
+        $lockedDaysQb = (new QueryBuilder($pdo))
             ->from('work_logs w')
             ->select(['DATE(w.logged_at) AS d', 'COUNT(*) AS cnt'])
-            ->where('w.rate_locked_at', 'IS NOT', null)
+            ->where('w.rate_locked_at', 'IS NOT', null);
+        $this->applyOrganizationScope($lockedDaysQb, 'w');
+        $rows = $lockedDaysQb
             ->groupBy('DATE(w.logged_at)')
             ->orderBy('d', 'ASC')
             ->get();
@@ -347,11 +412,12 @@ final class RateController extends BaseController
                 if ($covered) {
                     continue;
                 }
-                $cnt = (new QueryBuilder($pdo))->from('work_logs')
+                $rpCountQb = (new QueryBuilder($pdo))->from('work_logs')
                     ->where('rate_locked_at', 'IS NOT', null)
                     ->where('logged_at', '>=', $rpFrom)
-                    ->where('logged_at', '<=', $rpTo . ' 23:59:59')
-                    ->count();
+                    ->where('logged_at', '<=', $rpTo . ' 23:59:59');
+                $this->applyOrganizationScope($rpCountQb);
+                $cnt = $rpCountQb->count();
                 $periods[] = ['from' => $rpFrom, 'to' => $rpTo, 'row_count' => (int)$cnt];
             }
             usort($periods, static fn(array $a, array $b): int => strcmp((string)$a['from'], (string)$b['from']));
