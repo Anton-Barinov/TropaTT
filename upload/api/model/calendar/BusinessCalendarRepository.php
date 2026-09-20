@@ -40,16 +40,25 @@ final class BusinessCalendarRepository
             $query->whereRaw('(title LIKE ? OR timezone LIKE ?)', [$search, $search]);
         }
 
+        if ((int)($filters['organization_id'] ?? 0) > 0) {
+            $query->where('organization_id', '=', (int)$filters['organization_id']);
+        }
+
         return $query;
     }
 
-    public function findCalendarByPublicId(string $publicId): ?array
+    public function findCalendarByPublicId(string $publicId, ?int $organizationId = null): ?array
     {
-        $row = (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('business_calendars')
             ->select(['*'])
-            ->where('public_id', '=', $publicId)
-            ->first();
+            ->where('public_id', '=', $publicId);
+
+        if ($organizationId !== null) {
+            $query->where('organization_id', '=', $organizationId);
+        }
+
+        $row = $query->first();
 
         return $row ?: null;
     }
@@ -61,29 +70,39 @@ final class BusinessCalendarRepository
             ->insert($payload);
     }
 
-    public function updateCalendarByPublicId(string $publicId, array $set): bool
+    public function updateCalendarByPublicId(string $publicId, array $set, ?int $organizationId = null): bool
     {
         if ($set === []) {
             return false;
         }
 
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('business_calendars')
-            ->where('public_id', '=', $publicId)
-            ->update($set) > 0;
+            ->where('public_id', '=', $publicId);
+
+        if ($organizationId !== null) {
+            $query->where('organization_id', '=', $organizationId);
+        }
+
+        return $query->update($set) > 0;
     }
 
-    public function deleteCalendarByPublicId(string $publicId): bool
+    public function deleteCalendarByPublicId(string $publicId, ?int $organizationId = null): bool
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('business_calendars')
-            ->where('public_id', '=', $publicId)
-            ->delete() > 0;
+            ->where('public_id', '=', $publicId);
+
+        if ($organizationId !== null) {
+            $query->where('organization_id', '=', $organizationId);
+        }
+
+        return $query->delete() > 0;
     }
 
-    public function listHolidays(string $calendarPublicId, array $filters): array
+    public function listHolidays(string $calendarPublicId, array $filters, ?int $organizationId = null): array
     {
-        $calendar = $this->findCalendarByPublicId($calendarPublicId);
+        $calendar = $this->findCalendarByPublicId($calendarPublicId, $organizationId);
         if (!$calendar) {
             return [null, 0, 1, 20];
         }
@@ -121,14 +140,19 @@ final class BusinessCalendarRepository
         return $query;
     }
 
-    public function findHolidayByPublicId(string $publicId): ?array
+    public function findHolidayByPublicId(string $publicId, ?int $organizationId = null): ?array
     {
-        $row = (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('holidays h')
             ->join('business_calendars bc', 'bc.id', '=', 'h.calendar_id')
             ->select(['h.*', 'bc.public_id AS calendar_public_id'])
-            ->where('h.public_id', '=', $publicId)
-            ->first();
+            ->where('h.public_id', '=', $publicId);
+
+        if ($organizationId !== null) {
+            $query->where('h.organization_id', '=', $organizationId);
+        }
+
+        $row = $query->first();
 
         return $row ?: null;
     }
@@ -140,9 +164,19 @@ final class BusinessCalendarRepository
             ->insert($payload);
     }
 
-    public function updateHolidayByPublicId(string $publicId, array $set): bool
+    /**
+     * QueryBuilder::update()/delete() compile only the base table and drop
+     * any join(), so a scoped mutation resolves the id via findHolidayByPublicId()
+     * first (which does join+filter for the read) and then updates/deletes
+     * "holidays" directly by that already-authorized row's own id/public_id.
+     */
+    public function updateHolidayByPublicId(string $publicId, array $set, ?int $organizationId = null): bool
     {
         if ($set === []) {
+            return false;
+        }
+
+        if ($organizationId !== null && $this->findHolidayByPublicId($publicId, $organizationId) === null) {
             return false;
         }
 
@@ -152,17 +186,21 @@ final class BusinessCalendarRepository
             ->update($set) > 0;
     }
 
-    public function deleteHolidayByPublicId(string $publicId): bool
+    public function deleteHolidayByPublicId(string $publicId, ?int $organizationId = null): bool
     {
+        if ($organizationId !== null && $this->findHolidayByPublicId($publicId, $organizationId) === null) {
+            return false;
+        }
+
         return (new QueryBuilder($this->pdo))
             ->from('holidays')
             ->where('public_id', '=', $publicId)
             ->delete() > 0;
     }
 
-    public function listWorkingHours(string $calendarPublicId, array $filters): array
+    public function listWorkingHours(string $calendarPublicId, array $filters, ?int $organizationId = null): array
     {
-        $calendar = $this->findCalendarByPublicId($calendarPublicId);
+        $calendar = $this->findCalendarByPublicId($calendarPublicId, $organizationId);
         if (!$calendar) {
             return [null, 0, 1, 20];
         }
@@ -197,14 +235,19 @@ final class BusinessCalendarRepository
         return $query;
     }
 
-    public function findWorkingHoursByPublicId(string $publicId): ?array
+    public function findWorkingHoursByPublicId(string $publicId, ?int $organizationId = null): ?array
     {
-        $row = (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('working_hours w')
             ->join('business_calendars bc', 'bc.id', '=', 'w.calendar_id')
             ->select(['w.*', 'bc.public_id AS calendar_public_id'])
-            ->where('w.public_id', '=', $publicId)
-            ->first();
+            ->where('w.public_id', '=', $publicId);
+
+        if ($organizationId !== null) {
+            $query->where('w.organization_id', '=', $organizationId);
+        }
+
+        $row = $query->first();
 
         return $row ?: null;
     }
@@ -216,9 +259,13 @@ final class BusinessCalendarRepository
             ->insert($payload);
     }
 
-    public function updateWorkingHoursByPublicId(string $publicId, array $set): bool
+    public function updateWorkingHoursByPublicId(string $publicId, array $set, ?int $organizationId = null): bool
     {
         if ($set === []) {
+            return false;
+        }
+
+        if ($organizationId !== null && $this->findWorkingHoursByPublicId($publicId, $organizationId) === null) {
             return false;
         }
 
@@ -228,8 +275,12 @@ final class BusinessCalendarRepository
             ->update($set) > 0;
     }
 
-    public function deleteWorkingHoursByPublicId(string $publicId): bool
+    public function deleteWorkingHoursByPublicId(string $publicId, ?int $organizationId = null): bool
     {
+        if ($organizationId !== null && $this->findWorkingHoursByPublicId($publicId, $organizationId) === null) {
+            return false;
+        }
+
         return (new QueryBuilder($this->pdo))
             ->from('working_hours')
             ->where('public_id', '=', $publicId)

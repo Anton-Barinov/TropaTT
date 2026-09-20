@@ -298,9 +298,12 @@ final class CalendarController extends BaseController
 
     public function businessList(): \Api\System\Library\Http\JsonResponse
     {
+        $authUser = $this->user();
+        $actor = $authUser ? $this->organizationScopedActor((array)($authUser['user'] ?? [])) : [];
+
         /** @var BusinessCalendarService $service */
         $service = $this->container->get('service.business_calendar');
-        $result = $service->listCalendars($this->request()->allInput());
+        $result = $service->listCalendars($this->request()->allInput(), $actor);
 
         return $this->success('BUSINESS_CALENDAR_LIST', $this->t('calendar/messages.business_list'), [
             'items' => $result['items'],
@@ -339,9 +342,12 @@ final class CalendarController extends BaseController
 
     public function businessGet(array $params): \Api\System\Library\Http\JsonResponse
     {
+        $authUser = $this->user();
+        $actor = $authUser ? $this->organizationScopedActor((array)($authUser['user'] ?? [])) : [];
+
         /** @var BusinessCalendarService $service */
         $service = $this->container->get('service.business_calendar');
-        $item = $service->getCalendar((string)$params['public_id']);
+        $item = $service->getCalendar((string)$params['public_id'], $actor);
         if (!$item) {
             return $this->error('BUSINESS_CALENDAR_NOT_FOUND', $this->t('calendar/messages.business_not_found'), 404, [
                 'calendar' => [$this->t('calendar/messages.business_not_found')],
@@ -421,9 +427,12 @@ final class CalendarController extends BaseController
             ]);
         }
 
+        $authUser = $this->user();
+        $actor = $authUser ? $this->organizationScopedActor((array)($authUser['user'] ?? [])) : [];
+
         /** @var BusinessCalendarService $service */
         $service = $this->container->get('service.business_calendar');
-        $result = $service->listHolidays($calendarPublicId, $input);
+        $result = $service->listHolidays($calendarPublicId, $input, $actor);
         if (!(bool)($result['ok'] ?? false)) {
             return $this->error('CALENDAR_NOT_FOUND', $this->t('calendar/messages.business_not_found'), 404, [
                 'calendar_public_id' => [$this->t('calendar/messages.business_not_found')],
@@ -479,9 +488,12 @@ final class CalendarController extends BaseController
 
     public function holidaysGet(array $params): \Api\System\Library\Http\JsonResponse
     {
+        $authUser = $this->user();
+        $actor = $authUser ? $this->organizationScopedActor((array)($authUser['user'] ?? [])) : [];
+
         /** @var BusinessCalendarService $service */
         $service = $this->container->get('service.business_calendar');
-        $item = $service->getHoliday((string)$params['public_id']);
+        $item = $service->getHoliday((string)$params['public_id'], $actor);
         if (!$item) {
             return $this->error('CALENDAR_HOLIDAY_NOT_FOUND', $this->t('calendar/messages.holiday_not_found'), 404, [
                 'holiday' => [$this->t('calendar/messages.holiday_not_found')],
@@ -560,9 +572,12 @@ final class CalendarController extends BaseController
             ]);
         }
 
+        $authUser = $this->user();
+        $actor = $authUser ? $this->organizationScopedActor((array)($authUser['user'] ?? [])) : [];
+
         /** @var BusinessCalendarService $service */
         $service = $this->container->get('service.business_calendar');
-        $result = $service->listWorkingHours($calendarPublicId, $input);
+        $result = $service->listWorkingHours($calendarPublicId, $input, $actor);
         if (!(bool)($result['ok'] ?? false)) {
             return $this->error('CALENDAR_NOT_FOUND', $this->t('calendar/messages.business_not_found'), 404, [
                 'calendar_public_id' => [$this->t('calendar/messages.business_not_found')],
@@ -629,9 +644,12 @@ final class CalendarController extends BaseController
 
     public function workingHoursGet(array $params): \Api\System\Library\Http\JsonResponse
     {
+        $authUser = $this->user();
+        $actor = $authUser ? $this->organizationScopedActor((array)($authUser['user'] ?? [])) : [];
+
         /** @var BusinessCalendarService $service */
         $service = $this->container->get('service.business_calendar');
-        $item = $service->getWorkingHours((string)$params['public_id']);
+        $item = $service->getWorkingHours((string)$params['public_id'], $actor);
         if (!$item) {
             return $this->error('CALENDAR_WORKING_HOURS_NOT_FOUND', $this->t('calendar/messages.working_hours_not_found'), 404, [
                 'working_hours' => [$this->t('calendar/messages.working_hours_not_found')],
