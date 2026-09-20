@@ -27,7 +27,7 @@ final class EstimateSetRepository
      * @param array<string,mixed> $filters
      * @return array{items: array<int,array<string,mixed>>, total: int, page: int, limit: int}
      */
-    public function list(array $filters, int $actorUserId, bool $isRoot): array
+    public function list(array $filters, int $actorUserId, bool $isRoot, ?int $organizationId = null): array
     {
         $page = max(1, (int)($filters['page'] ?? 1));
         $limit = max(1, min(100, (int)($filters['limit'] ?? 20)));
@@ -35,6 +35,11 @@ final class EstimateSetRepository
 
         $where = ['es.deleted_at IS NULL'];
         $params = [];
+
+        if ($organizationId !== null && $organizationId > 0) {
+            $where[] = 'es.organization_id = :organization_id';
+            $params['organization_id'] = $organizationId;
+        }
 
         if (!empty($filters['scope_type'])) {
             $where[] = 'es.scope_type = :scope_type';
@@ -132,19 +137,23 @@ final class EstimateSetRepository
         ];
     }
 
-    public function findByPublicId(string $publicId): ?array
+    public function findByPublicId(string $publicId, ?int $organizationId = null): ?array
     {
-        $stmt = $this->db->prepare(
-            "SELECT es.id, es.public_id, es.scope_type, es.project_id, es.name, es.code, es.estimate_type,
+        $sql = "SELECT es.id, es.public_id, es.scope_type, es.project_id, es.name, es.code, es.estimate_type,
                 es.unit_label, es.currency_code, es.description,
                 es.is_default, es.is_active, es.is_locked, es.active_key, es.sort_order,
                 es.created_by_user_id, es.row_version, es.created_at, es.updated_at,
                 es.deleted_at, es.archived_at, es.updated_by_user_id, p.public_id AS project_public_id, p.title AS project_title
             FROM estimate_sets es
             LEFT JOIN projects p ON p.id = es.project_id
-            WHERE es.public_id = :public_id"
-        );
-        $stmt->execute(['public_id' => $publicId]);
+            WHERE es.public_id = :public_id";
+        $params = ['public_id' => $publicId];
+        if ($organizationId !== null && $organizationId > 0) {
+            $sql .= " AND es.organization_id = :organization_id";
+            $params['organization_id'] = $organizationId;
+        }
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$row) {
             return null;
@@ -176,17 +185,20 @@ final class EstimateSetRepository
                 public_id, scope_type, project_id, name, code, estimate_type,
                 unit_label, currency_code, description,
                 is_default, is_active, is_locked, active_key, sort_order,
-                created_by_user_id, row_version, created_at, updated_at
+                created_by_user_id, organization_id, row_version, created_at, updated_at
             ) VALUES (
                 :public_id, :scope_type, :project_id, :name, :code, :estimate_type,
                 :unit_label, :currency_code, :description,
                 :is_default, :is_active, :is_locked, :active_key, :sort_order,
-                :created_by_user_id, 1, :created_at, :updated_at
+                :created_by_user_id, :organization_id, 1, :created_at, :updated_at
             )"
         );
 
         $publicId = $payload['public_id'];
         $now = gmdate('Y-m-d H:i:s');
+        $organizationId = isset($payload['organization_id']) && (int)$payload['organization_id'] > 0
+            ? (int)$payload['organization_id']
+            : null;
 
         $stmt->execute([
             'public_id' => $publicId,
@@ -204,14 +216,15 @@ final class EstimateSetRepository
             'active_key' => $payload['active_key'] ?? null,
             'sort_order' => (int)($payload['sort_order'] ?? 65535),
             'created_by_user_id' => $payload['created_by_user_id'],
+            'organization_id' => $organizationId,
             'created_at' => $now,
             'updated_at' => $now,
         ]);
 
-        return $this->findByPublicId($publicId) ?? $payload;
+        return $this->findByPublicId($publicId, $organizationId) ?? $payload;
     }
 
-    public function updateByPublicId(string $publicId, array $set): bool
+    public function updateByPublicId(string $publicId, array $set, ?int $organizationId = null): bool
     {
         if ($set === []) {
             return false;
@@ -228,43 +241,61 @@ final class EstimateSetRepository
         $fields[] = "updated_at = :updated_at";
 
         $sql = "UPDATE estimate_sets SET " . implode(', ', $fields) . " WHERE public_id = :public_id";
-        $stmt = $this->db->prepare($sql);
         $params = $set;
         $params['public_id'] = $publicId;
+        if ($organizationId !== null && $organizationId > 0) {
+            $sql .= " AND organization_id = :organization_id";
+            $params['organization_id'] = $organizationId;
+        }
+        $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
         return $stmt->rowCount() > 0;
     }
 
-    public function archiveByPublicId(string $publicId, string $archivedAt): bool
+    public function archiveByPublicId(string $publicId, string $archivedAt, ?int $organizationId = null): bool
     {
-        $stmt = $this->db->prepare(
-            "UPDATE estimate_sets SET archived_at = :archived_at, active_key = NULL, updated_at = :updated_at WHERE public_id = :public_id AND archived_at IS NULL"
-        );
-        $stmt->execute([
+        $sql = "UPDATE estimate_sets SET archived_at = :archived_at, active_key = NULL, updated_at = :updated_at WHERE public_id = :public_id AND archived_at IS NULL";
+        $params = [
             'archived_at' => $archivedAt,
             'updated_at' => $archivedAt,
             'public_id' => $publicId,
-        ]);
+        ];
+        if ($organizationId !== null && $organizationId > 0) {
+            $sql .= " AND organization_id = :organization_id";
+            $params['organization_id'] = $organizationId;
+        }
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
         return $stmt->rowCount() > 0;
     }
 
-    public function softDeleteByPublicId(string $publicId, string $deletedAt): bool
+    public function softDeleteByPublicId(string $publicId, string $deletedAt, ?int $organizationId = null): bool
     {
-        $stmt = $this->db->prepare(
-            "UPDATE estimate_sets SET deleted_at = :deleted_at, active_key = NULL, updated_at = :updated_at WHERE public_id = :public_id AND deleted_at IS NULL"
-        );
-        $stmt->execute([
+        $sql = "UPDATE estimate_sets SET deleted_at = :deleted_at, active_key = NULL, updated_at = :updated_at WHERE public_id = :public_id AND deleted_at IS NULL";
+        $params = [
             'deleted_at' => $deletedAt,
             'updated_at' => $deletedAt,
             'public_id' => $publicId,
-        ]);
+        ];
+        if ($organizationId !== null && $organizationId > 0) {
+            $sql .= " AND organization_id = :organization_id";
+            $params['organization_id'] = $organizationId;
+        }
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
         return $stmt->rowCount() > 0;
     }
 
-    public function projectIdByPublicId(string $projectPublicId): ?int
+    public function projectIdByPublicId(string $projectPublicId, ?int $organizationId = null): ?int
     {
-        $stmt = $this->db->prepare("SELECT id FROM projects WHERE public_id = :public_id");
-        $stmt->execute(['public_id' => $projectPublicId]);
+        $sql = "SELECT id FROM projects WHERE public_id = :public_id";
+        $params = ['public_id' => $projectPublicId];
+        if ($organizationId !== null && $organizationId > 0) {
+            $sql .= " AND organization_id = :organization_id";
+            $params['organization_id'] = $organizationId;
+        }
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ? (int)$row['id'] : null;
     }

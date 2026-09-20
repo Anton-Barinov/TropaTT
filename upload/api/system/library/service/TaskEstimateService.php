@@ -73,7 +73,7 @@ final class TaskEstimateService
     {
         $isRoot = (bool)($actor['is_root'] ?? false);
         $actorId = (int)($actor['id'] ?? 0);
-        $result = $this->estimateSetRepository->list($filters, $actorId, $isRoot);
+        $result = $this->estimateSetRepository->list($filters, $actorId, $isRoot, $this->organizationId($actor));
 
         return [
             'items' => $result['items'],
@@ -121,7 +121,7 @@ final class TaskEstimateService
             if (empty($input['project_public_id'])) {
                 return self::ERROR_CODES['SET_PROJECT_REQUIRED'];
             }
-            $projectId = $this->estimateSetRepository->projectIdByPublicId((string)$input['project_public_id']);
+            $projectId = $this->estimateSetRepository->projectIdByPublicId((string)$input['project_public_id'], $this->organizationId($actor));
             if ($projectId === null) {
                 return self::ERROR_CODES['SET_PROJECT_NOT_FOUND'];
             }
@@ -169,6 +169,7 @@ final class TaskEstimateService
             'active_key' => $activeKey,
             'sort_order' => (int)($input['sort_order'] ?? 65535),
             'created_by_user_id' => (int)($actor['id'] ?? 0),
+            'organization_id' => $this->organizationId($actor),
         ]);
 
         // If nested options provided, create them
@@ -177,7 +178,7 @@ final class TaskEstimateService
             foreach ($input['options'] as $opt) {
                 $this->createOptionInternal($setId, $opt, $actor);
             }
-            $set = $this->estimateSetRepository->findByPublicId($publicId);
+            $set = $this->estimateSetRepository->findByPublicId($publicId, $this->organizationId($actor));
         }
 
         return $set;
@@ -185,7 +186,7 @@ final class TaskEstimateService
 
     public function getSet(string $setPublicId, array $actor): array|string|null
     {
-        $set = $this->estimateSetRepository->findByPublicId($setPublicId);
+        $set = $this->estimateSetRepository->findByPublicId($setPublicId, $this->organizationId($actor));
         if (!$set || ($set['deleted_at'] ?? null) !== null) {
             return null;
         }
@@ -194,7 +195,7 @@ final class TaskEstimateService
 
     public function updateSet(string $setPublicId, array $input, array $actor): array|string|null
     {
-        $set = $this->estimateSetRepository->findByPublicId($setPublicId);
+        $set = $this->estimateSetRepository->findByPublicId($setPublicId, $this->organizationId($actor));
         if (!$set || ($set['deleted_at'] ?? null) !== null) {
             return null;
         }
@@ -246,36 +247,36 @@ final class TaskEstimateService
         }
 
         $setUpdate['row_version'] = (int)($set['row_version'] ?? 0) + 1;
-        $this->estimateSetRepository->updateByPublicId($setPublicId, $setUpdate);
+        $this->estimateSetRepository->updateByPublicId($setPublicId, $setUpdate, $this->organizationId($actor));
 
-        return $this->estimateSetRepository->findByPublicId($setPublicId);
+        return $this->estimateSetRepository->findByPublicId($setPublicId, $this->organizationId($actor));
     }
 
     public function archiveSet(string $setPublicId, array $actor): bool|string
     {
-        $set = $this->estimateSetRepository->findByPublicId($setPublicId);
+        $set = $this->estimateSetRepository->findByPublicId($setPublicId, $this->organizationId($actor));
         if (!$set || ($set['deleted_at'] ?? null) !== null) {
             return false;
         }
         $now = gmdate('Y-m-d H:i:s');
-        return $this->estimateSetRepository->archiveByPublicId($setPublicId, $now);
+        return $this->estimateSetRepository->archiveByPublicId($setPublicId, $now, $this->organizationId($actor));
     }
 
     public function deleteSet(string $setPublicId, array $actor): bool|string
     {
-        $set = $this->estimateSetRepository->findByPublicId($setPublicId);
+        $set = $this->estimateSetRepository->findByPublicId($setPublicId, $this->organizationId($actor));
         if (!$set || ($set['deleted_at'] ?? null) !== null) {
             return false;
         }
         $now = gmdate('Y-m-d H:i:s');
-        return $this->estimateSetRepository->softDeleteByPublicId($setPublicId, $now);
+        return $this->estimateSetRepository->softDeleteByPublicId($setPublicId, $now, $this->organizationId($actor));
     }
 
     // ========== Estimate Options ==========
 
     public function listOptions(string $setPublicId, array $filters, array $actor): array|string|null
     {
-        $set = $this->estimateSetRepository->findByPublicId($setPublicId);
+        $set = $this->estimateSetRepository->findByPublicId($setPublicId, $this->organizationId($actor));
         if (!$set || ($set['deleted_at'] ?? null) !== null) {
             return null;
         }
@@ -284,7 +285,7 @@ final class TaskEstimateService
 
     public function createOption(string $setPublicId, array $input, array $actor): array|string|null
     {
-        $set = $this->estimateSetRepository->findByPublicId($setPublicId);
+        $set = $this->estimateSetRepository->findByPublicId($setPublicId, $this->organizationId($actor));
         if (!$set || ($set['deleted_at'] ?? null) !== null) {
             return null;
         }
@@ -338,12 +339,13 @@ final class TaskEstimateService
             'active_key' => $activeKey,
             'sort_order' => (int)($input['sort_order'] ?? 65535),
             'created_by_user_id' => (int)($actor['id'] ?? 0),
+            'organization_id' => $this->organizationId($actor),
         ]);
     }
 
     public function updateOption(string $optionPublicId, array $input, array $actor): array|string|null
     {
-        $option = $this->estimateOptionRepository->findByPublicId($optionPublicId);
+        $option = $this->estimateOptionRepository->findByPublicId($optionPublicId, $this->organizationId($actor));
         if (!$option) {
             return null;
         }
@@ -407,29 +409,29 @@ final class TaskEstimateService
         }
 
         $update['row_version'] = (int)($option['row_version'] ?? 0) + 1;
-        $this->estimateOptionRepository->updateByPublicId($optionPublicId, $update);
+        $this->estimateOptionRepository->updateByPublicId($optionPublicId, $update, $this->organizationId($actor));
 
-        return $this->estimateOptionRepository->findByPublicId($optionPublicId);
+        return $this->estimateOptionRepository->findByPublicId($optionPublicId, $this->organizationId($actor));
     }
 
     public function archiveOption(string $optionPublicId, array $actor): bool|string
     {
-        $option = $this->estimateOptionRepository->findByPublicId($optionPublicId);
+        $option = $this->estimateOptionRepository->findByPublicId($optionPublicId, $this->organizationId($actor));
         if (!$option) {
             return false;
         }
         $now = gmdate('Y-m-d H:i:s');
-        return $this->estimateOptionRepository->archiveByPublicId($optionPublicId, $now);
+        return $this->estimateOptionRepository->archiveByPublicId($optionPublicId, $now, $this->organizationId($actor));
     }
 
     public function deleteOption(string $optionPublicId, array $actor): bool|string
     {
-        $option = $this->estimateOptionRepository->findByPublicId($optionPublicId);
+        $option = $this->estimateOptionRepository->findByPublicId($optionPublicId, $this->organizationId($actor));
         if (!$option) {
             return false;
         }
         $now = gmdate('Y-m-d H:i:s');
-        return $this->estimateOptionRepository->softDeleteByPublicId($optionPublicId, $now);
+        return $this->estimateOptionRepository->softDeleteByPublicId($optionPublicId, $now, $this->organizationId($actor));
     }
 
     // ========== Task Estimates ==========
@@ -455,13 +457,23 @@ final class TaskEstimateService
             return self::ERROR_CODES['TASK_SET_REQUIRED'];
         }
 
-        $set = $this->estimateSetRepository->findByPublicId((string)$input['estimate_set_public_id']);
+        $set = $this->estimateSetRepository->findByPublicId((string)$input['estimate_set_public_id'], $this->organizationId($actor));
         if (!$set || ($set['deleted_at'] ?? null) !== null) {
             return self::ERROR_CODES['SET_NOT_FOUND'];
         }
 
         if (!(int)($set['is_active'] ?? 0)) {
             return self::ERROR_CODES['SET_NOT_FOUND'];
+        }
+
+        // A project-scoped set must belong to the same project as the task
+        // it is being assigned to; a global set or one already confirmed to
+        // be within the actor's organization is otherwise acceptable.
+        if ((string)($set['scope_type'] ?? '') === 'project') {
+            $taskProjectId = (int)($task['project_id'] ?? 0);
+            if ($taskProjectId > 0 && (int)($set['project_id'] ?? 0) !== $taskProjectId) {
+                return self::ERROR_CODES['SET_NOT_FOUND'];
+            }
         }
 
         $taskId = (int)($task['id'] ?? 0);
@@ -472,7 +484,7 @@ final class TaskEstimateService
         $currencyCode = null;
 
         if (!empty($input['estimate_option_public_id'])) {
-            $option = $this->estimateOptionRepository->findByPublicId((string)$input['estimate_option_public_id']);
+            $option = $this->estimateOptionRepository->findByPublicId((string)$input['estimate_option_public_id'], $this->organizationId($actor));
             if (!$option) {
                 return self::ERROR_CODES['OPTION_NOT_FOUND'];
             }
@@ -518,7 +530,7 @@ final class TaskEstimateService
             return false;
         }
 
-        $set = $this->estimateSetRepository->findByPublicId($estimateSetPublicId);
+        $set = $this->estimateSetRepository->findByPublicId($estimateSetPublicId, $this->organizationId($actor));
         if (!$set) {
             return false;
         }
@@ -534,7 +546,7 @@ final class TaskEstimateService
 
     public function summaryByProject(string $projectPublicId, array $filters, array $actor): array|string|null
     {
-        $projectId = $this->estimateSetRepository->projectIdByPublicId($projectPublicId);
+        $projectId = $this->estimateSetRepository->projectIdByPublicId($projectPublicId, $this->organizationId($actor));
         if ($projectId === null) {
             return null;
         }
@@ -551,8 +563,15 @@ final class TaskEstimateService
     {
         // Find cycle by public_id using PDO directly
         try {
-            $stmt = $this->db->prepare("SELECT id FROM work_cycles WHERE public_id = :public_id AND deleted_at IS NULL");
-            $stmt->execute(['public_id' => $cyclePublicId]);
+            $organizationId = $this->organizationId($actor);
+            $sql = "SELECT id FROM work_cycles WHERE public_id = :public_id AND deleted_at IS NULL";
+            $params = ['public_id' => $cyclePublicId];
+            if ($organizationId !== null) {
+                $sql .= " AND organization_id = :organization_id";
+                $params['organization_id'] = $organizationId;
+            }
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
             if (!$row) {
                 return null;
@@ -569,8 +588,15 @@ final class TaskEstimateService
     public function summaryByModule(string $modulePublicId, array $filters, array $actor): array|string|null
     {
         try {
-            $stmt = $this->db->prepare("SELECT id FROM project_modules WHERE public_id = :public_id AND deleted_at IS NULL");
-            $stmt->execute(['public_id' => $modulePublicId]);
+            $organizationId = $this->organizationId($actor);
+            $sql = "SELECT id FROM project_modules WHERE public_id = :public_id AND deleted_at IS NULL";
+            $params = ['public_id' => $modulePublicId];
+            if ($organizationId !== null) {
+                $sql .= " AND organization_id = :organization_id";
+                $params['organization_id'] = $organizationId;
+            }
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
             if (!$row) {
                 return null;
@@ -585,6 +611,12 @@ final class TaskEstimateService
     }
 
     // ========== Helpers ==========
+
+    private function organizationId(array $actor): ?int
+    {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
+    }
 
     private function slugify(string $value): string
     {

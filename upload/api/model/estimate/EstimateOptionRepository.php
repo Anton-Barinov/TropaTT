@@ -53,15 +53,19 @@ final class EstimateOptionRepository
         return $items;
     }
 
-    public function findByPublicId(string $publicId): ?array
+    public function findByPublicId(string $publicId, ?int $organizationId = null): ?array
     {
-        $stmt = $this->db->prepare(
-            "SELECT eo.*, es.public_id AS estimate_set_public_id, es.name AS estimate_set_name, es.estimate_type, es.unit_label, es.currency_code
+        $sql = "SELECT eo.*, es.public_id AS estimate_set_public_id, es.name AS estimate_set_name, es.estimate_type, es.unit_label, es.currency_code
             FROM estimate_options eo
             INNER JOIN estimate_sets es ON es.id = eo.estimate_set_id
-            WHERE eo.public_id = :public_id"
-        );
-        $stmt->execute(['public_id' => $publicId]);
+            WHERE eo.public_id = :public_id";
+        $params = ['public_id' => $publicId];
+        if ($organizationId !== null && $organizationId > 0) {
+            $sql .= " AND eo.organization_id = :organization_id";
+            $params['organization_id'] = $organizationId;
+        }
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$row) {
             return null;
@@ -84,16 +88,19 @@ final class EstimateOptionRepository
             "INSERT INTO estimate_options (
                 public_id, estimate_set_id, label, code, numeric_value, color,
                 description, is_default, is_active, active_key, sort_order,
-                created_by_user_id, row_version, created_at, updated_at
+                created_by_user_id, organization_id, row_version, created_at, updated_at
             ) VALUES (
                 :public_id, :estimate_set_id, :label, :code, :numeric_value, :color,
                 :description, :is_default, :is_active, :active_key, :sort_order,
-                :created_by_user_id, 1, :created_at, :updated_at
+                :created_by_user_id, :organization_id, 1, :created_at, :updated_at
             )"
         );
 
         $publicId = $payload['public_id'];
         $now = gmdate('Y-m-d H:i:s');
+        $organizationId = isset($payload['organization_id']) && (int)$payload['organization_id'] > 0
+            ? (int)$payload['organization_id']
+            : null;
 
         $stmt->execute([
             'public_id' => $publicId,
@@ -108,14 +115,15 @@ final class EstimateOptionRepository
             'active_key' => $payload['active_key'] ?? null,
             'sort_order' => (int)($payload['sort_order'] ?? 65535),
             'created_by_user_id' => $payload['created_by_user_id'],
+            'organization_id' => $organizationId,
             'created_at' => $now,
             'updated_at' => $now,
         ]);
 
-        return $this->findByPublicId($publicId) ?? $payload;
+        return $this->findByPublicId($publicId, $organizationId) ?? $payload;
     }
 
-    public function updateByPublicId(string $publicId, array $set): bool
+    public function updateByPublicId(string $publicId, array $set, ?int $organizationId = null): bool
     {
         if ($set === []) {
             return false;
@@ -132,36 +140,48 @@ final class EstimateOptionRepository
         $fields[] = "updated_at = :updated_at";
 
         $sql = "UPDATE estimate_options SET " . implode(', ', $fields) . " WHERE public_id = :public_id";
-        $stmt = $this->db->prepare($sql);
         $params = $set;
         $params['public_id'] = $publicId;
+        if ($organizationId !== null && $organizationId > 0) {
+            $sql .= " AND organization_id = :organization_id";
+            $params['organization_id'] = $organizationId;
+        }
+        $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
         return $stmt->rowCount() > 0;
     }
 
-    public function archiveByPublicId(string $publicId, string $archivedAt): bool
+    public function archiveByPublicId(string $publicId, string $archivedAt, ?int $organizationId = null): bool
     {
-        $stmt = $this->db->prepare(
-            "UPDATE estimate_options SET archived_at = :archived_at, active_key = NULL, updated_at = :updated_at WHERE public_id = :public_id AND archived_at IS NULL"
-        );
-        $stmt->execute([
+        $sql = "UPDATE estimate_options SET archived_at = :archived_at, active_key = NULL, updated_at = :updated_at WHERE public_id = :public_id AND archived_at IS NULL";
+        $params = [
             'archived_at' => $archivedAt,
             'updated_at' => $archivedAt,
             'public_id' => $publicId,
-        ]);
+        ];
+        if ($organizationId !== null && $organizationId > 0) {
+            $sql .= " AND organization_id = :organization_id";
+            $params['organization_id'] = $organizationId;
+        }
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
         return $stmt->rowCount() > 0;
     }
 
-    public function softDeleteByPublicId(string $publicId, string $deletedAt): bool
+    public function softDeleteByPublicId(string $publicId, string $deletedAt, ?int $organizationId = null): bool
     {
-        $stmt = $this->db->prepare(
-            "UPDATE estimate_options SET deleted_at = :deleted_at, active_key = NULL, updated_at = :updated_at WHERE public_id = :public_id AND deleted_at IS NULL"
-        );
-        $stmt->execute([
+        $sql = "UPDATE estimate_options SET deleted_at = :deleted_at, active_key = NULL, updated_at = :updated_at WHERE public_id = :public_id AND deleted_at IS NULL";
+        $params = [
             'deleted_at' => $deletedAt,
             'updated_at' => $deletedAt,
             'public_id' => $publicId,
-        ]);
+        ];
+        if ($organizationId !== null && $organizationId > 0) {
+            $sql .= " AND organization_id = :organization_id";
+            $params['organization_id'] = $organizationId;
+        }
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
         return $stmt->rowCount() > 0;
     }
 
