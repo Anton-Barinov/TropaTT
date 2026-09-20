@@ -33,7 +33,8 @@ final class ProjectModuleService
         $result = $this->modules->list(
             $filters,
             (int)($actor['id'] ?? 0),
-            (bool)($actor['is_root'] ?? false)
+            (bool)($actor['is_root'] ?? false),
+            $this->organizationId($actor)
         );
 
         $items = $result['items'] ?? [];
@@ -126,10 +127,12 @@ final class ProjectModuleService
         $now = gmdate('Y-m-d H:i:s');
         $publicId = Ulid::generate('pmod');
         $creatorUserId = (int)($actor['id'] ?? 0);
+        $organizationId = $this->organizationId($actor);
 
         $this->modules->create([
             'public_id' => $publicId,
             'project_id' => $projectId,
+            'organization_id' => $organizationId,
             'title' => $title,
             'description' => trim((string)($input['description'] ?? '')),
             'status' => $status,
@@ -147,7 +150,7 @@ final class ProjectModuleService
 
         // Auto-add lead as member
         if ($leadUserId !== null) {
-            $createdModule = $this->modules->findByPublicId($publicId);
+            $createdModule = $this->modules->findByPublicId($publicId, $organizationId);
             $moduleId = (int)($createdModule['id'] ?? 0);
 
             if ($moduleId > 0) {
@@ -156,6 +159,7 @@ final class ProjectModuleService
                 $this->moduleMembers->addMember([
                     'public_id' => $memberPublicId,
                     'module_id' => $moduleId,
+                    'organization_id' => $organizationId,
                     'user_id' => $leadUserId,
                     'role_code' => 'lead',
                     'active_key' => $activeKey,
@@ -172,7 +176,7 @@ final class ProjectModuleService
 
     public function get(string $modulePublicId, array $actor): array|string|null
     {
-        $module = $this->modules->findByPublicId($modulePublicId);
+        $module = $this->modules->findByPublicId($modulePublicId, $this->organizationId($actor));
         if (!$module) {
             return 'PROJECT_MODULE_NOT_FOUND';
         }
@@ -188,14 +192,15 @@ final class ProjectModuleService
 
     public function update(string $modulePublicId, array $input, array $actor): array|string|null
     {
-        $module = $this->modules->findByPublicId($modulePublicId);
+        $module = $this->modules->findByPublicId($modulePublicId, $this->organizationId($actor));
         if (!$module) {
             return 'PROJECT_MODULE_NOT_FOUND';
         }
 
-        // Check project access
+        // Check project access — write actions require manager-level access,
+        // not just membership (canAccess() would allow any team member).
         $project = $this->projectService->get((string)$module['project_public_id'], $actor);
-        if (!$project) {
+        if (!$project || !$this->projectService->canManage($project, $actor)) {
             return 'PROJECT_MODULE_FORBIDDEN';
         }
 
@@ -234,13 +239,14 @@ final class ProjectModuleService
 
                 // Auto-add lead as member if not already
                 $moduleId = (int)$module['id'];
-                if (!$this->moduleMembers->memberAlreadyExists($moduleId, $leadId)) {
+                if (!$this->moduleMembers->memberAlreadyExists($moduleId, $leadId, $this->organizationId($actor))) {
                     $now = gmdate('Y-m-d H:i:s');
                     $memberPublicId = Ulid::generate('pmm');
                     $activeKey = 'module:' . $moduleId . ':user:' . $leadId;
                     $this->moduleMembers->addMember([
                         'public_id' => $memberPublicId,
                         'module_id' => $moduleId,
+                        'organization_id' => $this->organizationId($actor),
                         'user_id' => $leadId,
                         'role_code' => 'lead',
                         'active_key' => $activeKey,
@@ -331,40 +337,40 @@ final class ProjectModuleService
             return $this->get($modulePublicId, $actor);
         }
 
-        $this->modules->updateByPublicId($modulePublicId, $set);
+        $this->modules->updateByPublicId($modulePublicId, $set, $this->organizationId($actor));
 
         return $this->get($modulePublicId, $actor);
     }
 
     public function archive(string $modulePublicId, array $actor): bool|string
     {
-        $module = $this->modules->findByPublicId($modulePublicId);
+        $module = $this->modules->findByPublicId($modulePublicId, $this->organizationId($actor));
         if (!$module) {
             return 'PROJECT_MODULE_NOT_FOUND';
         }
 
         $project = $this->projectService->get((string)$module['project_public_id'], $actor);
-        if (!$project) {
+        if (!$project || !$this->projectService->canManage($project, $actor)) {
             return 'PROJECT_MODULE_FORBIDDEN';
         }
 
-        $this->modules->archiveByPublicId($modulePublicId, gmdate('Y-m-d H:i:s'));
+        $this->modules->archiveByPublicId($modulePublicId, gmdate('Y-m-d H:i:s'), $this->organizationId($actor));
         return true;
     }
 
     public function delete(string $modulePublicId, array $actor): bool|string
     {
-        $module = $this->modules->findByPublicId($modulePublicId);
+        $module = $this->modules->findByPublicId($modulePublicId, $this->organizationId($actor));
         if (!$module) {
             return 'PROJECT_MODULE_NOT_FOUND';
         }
 
         $project = $this->projectService->get((string)$module['project_public_id'], $actor);
-        if (!$project) {
+        if (!$project || !$this->projectService->canManage($project, $actor)) {
             return 'PROJECT_MODULE_FORBIDDEN';
         }
 
-        $this->modules->softDeleteByPublicId($modulePublicId, gmdate('Y-m-d H:i:s'));
+        $this->modules->softDeleteByPublicId($modulePublicId, gmdate('Y-m-d H:i:s'), $this->organizationId($actor));
         return true;
     }
 
@@ -372,7 +378,7 @@ final class ProjectModuleService
 
     public function tasks(string $modulePublicId, array $filters, array $actor): array|string|null
     {
-        $module = $this->modules->findByPublicId($modulePublicId);
+        $module = $this->modules->findByPublicId($modulePublicId, $this->organizationId($actor));
         if (!$module) {
             return 'PROJECT_MODULE_NOT_FOUND';
         }
@@ -382,18 +388,18 @@ final class ProjectModuleService
             return 'PROJECT_MODULE_FORBIDDEN';
         }
 
-        return $this->moduleTasks->listTasksByModuleId((int)$module['id'], $filters);
+        return $this->moduleTasks->listTasksByModuleId((int)$module['id'], $filters, $this->organizationId($actor));
     }
 
     public function addTasks(string $modulePublicId, array $input, array $actor): array|string|null
     {
-        $module = $this->modules->findByPublicId($modulePublicId);
+        $module = $this->modules->findByPublicId($modulePublicId, $this->organizationId($actor));
         if (!$module) {
             return 'PROJECT_MODULE_NOT_FOUND';
         }
 
         $project = $this->projectService->get((string)$module['project_public_id'], $actor);
-        if (!$project) {
+        if (!$project || !$this->projectService->canManage($project, $actor)) {
             return 'PROJECT_MODULE_FORBIDDEN';
         }
 
@@ -452,7 +458,7 @@ final class ProjectModuleService
             }
 
             // Check duplicate
-            if ($this->moduleTasks->taskAlreadyInModule($moduleId, $taskId)) {
+            if ($this->moduleTasks->taskAlreadyInModule($moduleId, $taskId, $this->organizationId($actor))) {
                 $errors[] = ['task_public_id' => $taskPublicId, 'error' => 'PROJECT_MODULE_TASK_ALREADY_EXISTS'];
                 continue;
             }
@@ -463,6 +469,7 @@ final class ProjectModuleService
             $this->moduleTasks->addTask([
                 'public_id' => $moduleTaskPublicId,
                 'module_id' => $moduleId,
+                'organization_id' => $this->organizationId($actor),
                 'task_id' => $taskId,
                 'active_key' => $activeKey,
                 'added_by_user_id' => $actorUserId,
@@ -487,13 +494,13 @@ final class ProjectModuleService
 
     public function removeTask(string $modulePublicId, string $taskPublicId, array $actor): bool|string
     {
-        $module = $this->modules->findByPublicId($modulePublicId);
+        $module = $this->modules->findByPublicId($modulePublicId, $this->organizationId($actor));
         if (!$module) {
             return 'PROJECT_MODULE_NOT_FOUND';
         }
 
         $project = $this->projectService->get((string)$module['project_public_id'], $actor);
-        if (!$project) {
+        if (!$project || !$this->projectService->canManage($project, $actor)) {
             return 'PROJECT_MODULE_FORBIDDEN';
         }
 
@@ -506,14 +513,14 @@ final class ProjectModuleService
         $actorUserId = (int)($actor['id'] ?? 0);
         $now = gmdate('Y-m-d H:i:s');
 
-        return $this->moduleTasks->removeTask($moduleId, $taskId, $actorUserId, $now);
+        return $this->moduleTasks->removeTask($moduleId, $taskId, $actorUserId, $now, $this->organizationId($actor));
     }
 
     // ── Members ──
 
     public function members(string $modulePublicId, array $actor): array|string|null
     {
-        $module = $this->modules->findByPublicId($modulePublicId);
+        $module = $this->modules->findByPublicId($modulePublicId, $this->organizationId($actor));
         if (!$module) {
             return 'PROJECT_MODULE_NOT_FOUND';
         }
@@ -523,18 +530,18 @@ final class ProjectModuleService
             return 'PROJECT_MODULE_FORBIDDEN';
         }
 
-        return $this->moduleMembers->listByModuleId((int)$module['id']);
+        return $this->moduleMembers->listByModuleId((int)$module['id'], $this->organizationId($actor));
     }
 
     public function addMembers(string $modulePublicId, array $input, array $actor): array|string|null
     {
-        $module = $this->modules->findByPublicId($modulePublicId);
+        $module = $this->modules->findByPublicId($modulePublicId, $this->organizationId($actor));
         if (!$module) {
             return 'PROJECT_MODULE_NOT_FOUND';
         }
 
         $project = $this->projectService->get((string)$module['project_public_id'], $actor);
-        if (!$project) {
+        if (!$project || !$this->projectService->canManage($project, $actor)) {
             return 'PROJECT_MODULE_FORBIDDEN';
         }
 
@@ -566,7 +573,7 @@ final class ProjectModuleService
                 continue;
             }
 
-            if ($this->moduleMembers->memberAlreadyExists($moduleId, $userId)) {
+            if ($this->moduleMembers->memberAlreadyExists($moduleId, $userId, $this->organizationId($actor))) {
                 $errors[] = ['user_public_id' => $userPublicId, 'error' => 'PROJECT_MODULE_MEMBER_ALREADY_EXISTS'];
                 continue;
             }
@@ -577,6 +584,7 @@ final class ProjectModuleService
             $this->moduleMembers->addMember([
                 'public_id' => $memberPublicId,
                 'module_id' => $moduleId,
+                'organization_id' => $this->organizationId($actor),
                 'user_id' => $userId,
                 'role_code' => $roleCode,
                 'active_key' => $activeKey,
@@ -597,13 +605,13 @@ final class ProjectModuleService
 
     public function removeMember(string $modulePublicId, string $userPublicId, array $actor): bool|string
     {
-        $module = $this->modules->findByPublicId($modulePublicId);
+        $module = $this->modules->findByPublicId($modulePublicId, $this->organizationId($actor));
         if (!$module) {
             return 'PROJECT_MODULE_NOT_FOUND';
         }
 
         $project = $this->projectService->get((string)$module['project_public_id'], $actor);
-        if (!$project) {
+        if (!$project || !$this->projectService->canManage($project, $actor)) {
             return 'PROJECT_MODULE_FORBIDDEN';
         }
 
@@ -616,14 +624,14 @@ final class ProjectModuleService
         $actorUserId = (int)($actor['id'] ?? 0);
         $now = gmdate('Y-m-d H:i:s');
 
-        return $this->moduleMembers->removeMember($moduleId, $userId, $actorUserId, $now);
+        return $this->moduleMembers->removeMember($moduleId, $userId, $actorUserId, $now, $this->organizationId($actor));
     }
 
     // ── Links ──
 
     public function links(string $modulePublicId, array $actor): array|string|null
     {
-        $module = $this->modules->findByPublicId($modulePublicId);
+        $module = $this->modules->findByPublicId($modulePublicId, $this->organizationId($actor));
         if (!$module) {
             return 'PROJECT_MODULE_NOT_FOUND';
         }
@@ -633,7 +641,7 @@ final class ProjectModuleService
             return 'PROJECT_MODULE_FORBIDDEN';
         }
 
-        $links = $this->moduleLinks->listByModuleId((int)$module['id']);
+        $links = $this->moduleLinks->listByModuleId((int)$module['id'], $this->organizationId($actor));
 
         // Clean internal fields
         foreach ($links as &$link) {
@@ -646,13 +654,13 @@ final class ProjectModuleService
 
     public function addLink(string $modulePublicId, array $input, array $actor): array|string|null
     {
-        $module = $this->modules->findByPublicId($modulePublicId);
+        $module = $this->modules->findByPublicId($modulePublicId, $this->organizationId($actor));
         if (!$module) {
             return 'PROJECT_MODULE_NOT_FOUND';
         }
 
         $project = $this->projectService->get((string)$module['project_public_id'], $actor);
-        if (!$project) {
+        if (!$project || !$this->projectService->canManage($project, $actor)) {
             return 'PROJECT_MODULE_FORBIDDEN';
         }
 
@@ -688,6 +696,7 @@ final class ProjectModuleService
         $this->moduleLinks->create([
             'public_id' => $publicId,
             'module_id' => (int)$module['id'],
+            'organization_id' => $this->organizationId($actor),
             'title' => $title,
             'url' => $url,
             'link_type' => $linkType,
@@ -697,24 +706,24 @@ final class ProjectModuleService
             'updated_at' => $now,
         ]);
 
-        return $this->moduleLinks->findByPublicId($publicId);
+        return $this->moduleLinks->findByPublicId($publicId, $this->organizationId($actor));
     }
 
     public function updateLink(string $linkPublicId, array $input, array $actor): array|string|null
     {
-        $link = $this->moduleLinks->findByPublicId($linkPublicId);
+        $link = $this->moduleLinks->findByPublicId($linkPublicId, $this->organizationId($actor));
         if (!$link) {
             return 'PROJECT_MODULE_LINK_NOT_FOUND';
         }
 
         // Check module access
-        $module = $this->modules->findById((int)$link['module_id']);
+        $module = $this->modules->findById((int)$link['module_id'], $this->organizationId($actor));
         if (!$module) {
             return 'PROJECT_MODULE_NOT_FOUND';
         }
 
         $project = $this->projectService->get((string)$module['project_public_id'], $actor);
-        if (!$project) {
+        if (!$project || !$this->projectService->canManage($project, $actor)) {
             return 'PROJECT_MODULE_FORBIDDEN';
         }
 
@@ -755,32 +764,32 @@ final class ProjectModuleService
         $set['updated_at'] = gmdate('Y-m-d H:i:s');
 
         if (count($set) <= 1) {
-            return $this->moduleLinks->findByPublicId($linkPublicId);
+            return $this->moduleLinks->findByPublicId($linkPublicId, $this->organizationId($actor));
         }
 
-        $this->moduleLinks->updateByPublicId($linkPublicId, $set);
+        $this->moduleLinks->updateByPublicId($linkPublicId, $set, $this->organizationId($actor));
 
-        return $this->moduleLinks->findByPublicId($linkPublicId);
+        return $this->moduleLinks->findByPublicId($linkPublicId, $this->organizationId($actor));
     }
 
     public function deleteLink(string $linkPublicId, array $actor): bool|string
     {
-        $link = $this->moduleLinks->findByPublicId($linkPublicId);
+        $link = $this->moduleLinks->findByPublicId($linkPublicId, $this->organizationId($actor));
         if (!$link) {
             return 'PROJECT_MODULE_LINK_NOT_FOUND';
         }
 
-        $module = $this->modules->findById((int)$link['module_id']);
+        $module = $this->modules->findById((int)$link['module_id'], $this->organizationId($actor));
         if (!$module) {
             return 'PROJECT_MODULE_NOT_FOUND';
         }
 
         $project = $this->projectService->get((string)$module['project_public_id'], $actor);
-        if (!$project) {
+        if (!$project || !$this->projectService->canManage($project, $actor)) {
             return 'PROJECT_MODULE_FORBIDDEN';
         }
 
-        $this->moduleLinks->softDeleteByPublicId($linkPublicId, gmdate('Y-m-d H:i:s'));
+        $this->moduleLinks->softDeleteByPublicId($linkPublicId, gmdate('Y-m-d H:i:s'), $this->organizationId($actor));
         return true;
     }
 
@@ -788,7 +797,7 @@ final class ProjectModuleService
 
     public function summary(string $modulePublicId, array $actor): array|string|null
     {
-        $module = $this->modules->findByPublicId($modulePublicId);
+        $module = $this->modules->findByPublicId($modulePublicId, $this->organizationId($actor));
         if (!$module) {
             return 'PROJECT_MODULE_NOT_FOUND';
         }
@@ -804,6 +813,12 @@ final class ProjectModuleService
     }
 
     // ── Private ──
+
+    private function organizationId(array $actor): ?int
+    {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
+    }
 
     private function enrichModule(array $module): array
     {

@@ -12,15 +12,20 @@ final class ProjectModuleLinkRepository
     {
     }
 
-    public function listByModuleId(int $moduleId): array
+    public function listByModuleId(int $moduleId, ?int $organizationId = null): array
     {
-        return (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('project_module_links')
             ->where('module_id', '=', $moduleId)
             ->whereNull('deleted_at')
             ->orderBy('sort_order', 'ASC')
-            ->orderBy('created_at', 'DESC')
-            ->get();
+            ->orderBy('created_at', 'DESC');
+
+        if ($organizationId !== null && $organizationId > 0) {
+            $qb->where('organization_id', '=', $organizationId);
+        }
+
+        return $qb->get();
     }
 
     public function create(array $payload): array
@@ -32,34 +37,47 @@ final class ProjectModuleLinkRepository
         return $payload;
     }
 
-    public function updateByPublicId(string $publicId, array $set): bool
+    public function updateByPublicId(string $publicId, array $set, ?int $organizationId = null): bool
     {
-        return (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('project_module_links')
             ->where('public_id', '=', $publicId)
-            ->whereNull('deleted_at')
-            ->update($set) > 0;
+            ->whereNull('deleted_at');
+
+        if ($organizationId !== null && $organizationId > 0) {
+            $qb->where('organization_id', '=', $organizationId);
+        }
+
+        return $qb->update($set) > 0;
     }
 
-    public function softDeleteByPublicId(string $publicId, string $deletedAt): bool
+    public function softDeleteByPublicId(string $publicId, string $deletedAt, ?int $organizationId = null): bool
     {
-        return (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('project_module_links')
-            ->where('public_id', '=', $publicId)
-            ->update([
-                'deleted_at' => $deletedAt,
-                'updated_at' => $deletedAt,
-            ]) > 0;
+            ->where('public_id', '=', $publicId);
+
+        if ($organizationId !== null && $organizationId > 0) {
+            $qb->where('organization_id', '=', $organizationId);
+        }
+
+        return $qb->update([
+            'deleted_at' => $deletedAt,
+            'updated_at' => $deletedAt,
+        ]) > 0;
     }
 
-    public function findByPublicId(string $publicId): ?array
+    public function findByPublicId(string $publicId, ?int $organizationId = null): ?array
     {
-        $row = (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('project_module_links')
             ->where('public_id', '=', $publicId)
-            ->whereNull('deleted_at')
-            ->first();
+            ->whereNull('deleted_at');
 
-        return $row;
+        if ($organizationId !== null && $organizationId > 0) {
+            $qb->where('organization_id', '=', $organizationId);
+        }
+
+        return $qb->first();
     }
 }
