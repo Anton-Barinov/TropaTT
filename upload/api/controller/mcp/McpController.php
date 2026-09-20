@@ -4336,7 +4336,7 @@ $tools[] = $this->tool(
             'crm_admin' => $this->handleMegaTool('crm_admin', $arguments),
             'crm_agent_bundle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmAgentBundle($arguments))),
             'crm_agent_memory' => $this->toolResult($this->crmAgentMemory($arguments)),
-            'crm_chat' => $this->withPermissionAny(['chat.use', 'task.manage', 'project.manage'], fn() => $this->toolResult($this->crmChat($arguments))),
+            'crm_chat' => $this->withPermissionAny(['chat.use', 'task.manage', 'project.manage'], fn() => $this->handleMegaTool('crm_chat', $arguments)),
             default => $this->toolError('Unknown tool: ' . $name),
         };
         } catch (Throwable $e) {
@@ -4555,6 +4555,7 @@ $tools[] = $this->tool(
             'crm_knowledge' => $this->dispatchKnowledgeMega($action, $arguments),
             'crm_ai' => $this->dispatchAiMega($action, $arguments),
             'crm_admin' => $this->dispatchAdminMega($action, $arguments),
+            'crm_chat' => $this->dispatchChatMega($action, $arguments),
             default => $this->toolError('Unknown mega-tool: ' . $toolName),
         };
 
@@ -4565,6 +4566,8 @@ $tools[] = $this->tool(
                 $res['structuredContent'] = $this->compactProjectPayload($res['structuredContent']);
             } elseif ($toolName === 'crm_knowledge') {
                 $res['structuredContent'] = $this->compactKnowledgePayload($res['structuredContent']);
+            } elseif ($toolName === 'crm_chat') {
+                $res['structuredContent'] = $this->compactChatPayload($res['structuredContent'], $action);
             }
             $res['content'] = [['type' => 'text', 'text' => json_encode($res['structuredContent'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]];
         }
@@ -5067,6 +5070,19 @@ $tools[] = $this->tool(
             'get_admin_system_widget' => $this->toolResult($this->crmGetAdminSystemWidget()),
             default => null,
         }, 'crm_admin', $action);
+    }
+
+    private function dispatchChatMega(string $action, array $args): array
+    {
+        return $this->megaResult(match ($action) {
+            'list_chats' => $this->crmListChats($args),
+            'get_chat' => $this->crmGetChat($args),
+            'create_chat' => $this->crmCreateChat($args),
+            'send_message' => $this->crmSendChatMessage($args),
+            'list_messages' => $this->crmListChatMessages($args),
+            'mark_read' => $this->crmMarkChatRead($args),
+            default => null,
+        }, 'crm_chat', $action);
     }
 
     private function crmGetCurrentUser(): array
@@ -11029,6 +11045,9 @@ $tools[] = $this->tool(
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
+        if (!$this->knowledge()->page($publicId, $this->actor(), 'edit')) {
+            return ['error' => 'Knowledge page not found or access denied.'];
+        }
         $page = $this->knowledge()->publish($publicId, (int)($this->actor()['id'] ?? 0), trim((string)($arguments['change_summary'] ?? '')));
         return $page ? ['page' => $this->publicData($page)] : ['error' => 'Knowledge page not found.'];
     }
@@ -11038,6 +11057,9 @@ $tools[] = $this->tool(
         $publicId = trim((string)($arguments['public_id'] ?? ''));
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
+        }
+        if (!$this->knowledge()->page($publicId, $this->actor(), 'edit')) {
+            return ['error' => 'Knowledge page not found or access denied.'];
         }
         $page = $this->knowledge()->setStatus($publicId, 'archived', (int)($this->actor()['id'] ?? 0));
         return $page ? ['page' => $this->publicData($page)] : ['error' => 'Knowledge page not found.'];
@@ -11049,6 +11071,9 @@ $tools[] = $this->tool(
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
+        if (!$this->knowledge()->page($publicId, $this->actor(), 'edit')) {
+            return ['error' => 'Knowledge page not found or access denied.'];
+        }
         $page = $this->knowledge()->setStatus($publicId, 'draft', (int)($this->actor()['id'] ?? 0));
         return $page ? ['page' => $this->publicData($page)] : ['error' => 'Knowledge page not found.'];
     }
@@ -11058,6 +11083,9 @@ $tools[] = $this->tool(
         $publicId = trim((string)($arguments['public_id'] ?? ''));
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
+        }
+        if (!$this->knowledge()->page($publicId, $this->actor(), 'edit')) {
+            return ['error' => 'Knowledge page not found or access denied.'];
         }
         $page = $this->knowledge()->setStatus($publicId, 'review', (int)($this->actor()['id'] ?? 0));
         return $page ? ['page' => $this->publicData($page)] : ['error' => 'Knowledge page not found.'];
@@ -11069,6 +11097,9 @@ $tools[] = $this->tool(
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
+        if (!$this->knowledge()->page($publicId, $this->actor(), 'edit')) {
+            return ['error' => 'Knowledge page not found or access denied.'];
+        }
         $page = $this->knowledge()->publish($publicId, (int)($this->actor()['id'] ?? 0), trim((string)($arguments['change_summary'] ?? '')));
         return $page ? ['page' => $this->publicData($page)] : ['error' => 'Knowledge page not found.'];
     }
@@ -11078,6 +11109,9 @@ $tools[] = $this->tool(
         $publicId = trim((string)($arguments['public_id'] ?? ''));
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
+        }
+        if (!$this->knowledge()->page($publicId, $this->actor(), 'edit')) {
+            return ['error' => 'Knowledge page not found or access denied.'];
         }
         $page = $this->knowledge()->setStatus($publicId, 'draft', (int)($this->actor()['id'] ?? 0));
         return $page ? ['page' => $this->publicData($page)] : ['error' => 'Knowledge page not found.'];
@@ -13045,18 +13079,34 @@ $tools[] = $this->tool(
         }
 
         $reply = $this->resolveReplyMessage((int)$chat['id'], trim((string)($arguments['reply_to_message_public_id'] ?? '')));
-        $messagePublicId = 'msg_' . bin2hex(random_bytes(8));
-        $this->pdo()->prepare("
-            INSERT INTO chat_messages (public_id, chat_id, sender_user_id, reply_to_message_id, message_type, text, created_at)
-            VALUES (:public_id, :chat_id, :sender_user_id, :reply_to_message_id, :message_type, :text, NOW())
-        ")->execute([
-            'public_id' => $messagePublicId,
-            'chat_id' => (int)$chat['id'],
-            'sender_user_id' => $userId,
-            'reply_to_message_id' => $reply ? (int)$reply['id'] : null,
-            'message_type' => $messageType,
-            'text' => $text,
-        ]);
+        $chatOrgId = (int)($chat['organization_id'] ?? ($actor['organization_id'] ?? 0));
+        $hasMsgOrg = $this->tableHasColumn('chat_messages', 'organization_id');
+        if ($hasMsgOrg && $chatOrgId > 0) {
+            $this->pdo()->prepare("
+                INSERT INTO chat_messages (public_id, organization_id, chat_id, sender_user_id, reply_to_message_id, message_type, text, created_at)
+                VALUES (:public_id, :org_id, :chat_id, :sender_user_id, :reply_to_message_id, :message_type, :text, NOW())
+            ")->execute([
+                'public_id' => $messagePublicId,
+                'org_id' => $chatOrgId,
+                'chat_id' => (int)$chat['id'],
+                'sender_user_id' => $userId,
+                'reply_to_message_id' => $reply ? (int)$reply['id'] : null,
+                'message_type' => $messageType,
+                'text' => $text,
+            ]);
+        } else {
+            $this->pdo()->prepare("
+                INSERT INTO chat_messages (public_id, chat_id, sender_user_id, reply_to_message_id, message_type, text, created_at)
+                VALUES (:public_id, :chat_id, :sender_user_id, :reply_to_message_id, :message_type, :text, NOW())
+            ")->execute([
+                'public_id' => $messagePublicId,
+                'chat_id' => (int)$chat['id'],
+                'sender_user_id' => $userId,
+                'reply_to_message_id' => $reply ? (int)$reply['id'] : null,
+                'message_type' => $messageType,
+                'text' => $text,
+            ]);
+        }
         $this->pdo()->prepare("UPDATE chats SET last_message_at = NOW() WHERE id = :chat_id")
             ->execute(['chat_id' => (int)$chat['id']]);
 
@@ -13187,10 +13237,19 @@ $tools[] = $this->tool(
             @unlink($tmpFile);
             return ['error' => 'Message text is too long.'];
         }
-        $this->pdo()->prepare("
-            INSERT INTO chat_messages (public_id, chat_id, sender_user_id, message_type, text, created_at)
-            VALUES (:pid, :cid, :uid, 'attachment', :text, NOW())
-        ")->execute(['pid' => $messagePublicId, 'cid' => (int)$chat['id'], 'uid' => $userId, 'text' => $text]);
+        $chatOrgId = (int)($chat['organization_id'] ?? ($actor['organization_id'] ?? 0));
+        $hasMsgOrg = $this->tableHasColumn('chat_messages', 'organization_id');
+        if ($hasMsgOrg && $chatOrgId > 0) {
+            $this->pdo()->prepare("
+                INSERT INTO chat_messages (public_id, organization_id, chat_id, sender_user_id, message_type, text, created_at)
+                VALUES (:pid, :org_id, :cid, :uid, 'attachment', :text, NOW())
+            ")->execute(['pid' => $messagePublicId, 'org_id' => $chatOrgId, 'cid' => (int)$chat['id'], 'uid' => $userId, 'text' => $text]);
+        } else {
+            $this->pdo()->prepare("
+                INSERT INTO chat_messages (public_id, chat_id, sender_user_id, message_type, text, created_at)
+                VALUES (:pid, :cid, :uid, 'attachment', :text, NOW())
+            ")->execute(['pid' => $messagePublicId, 'cid' => (int)$chat['id'], 'uid' => $userId, 'text' => $text]);
+        }
         $messageId = (int)$this->pdo()->lastInsertId();
         $fileRow = $this->storeChatAttachment($messagePublicId, $raw);
         $this->pdo()->prepare("UPDATE chats SET last_message_at = NOW() WHERE id = :cid")->execute(['cid' => (int)$chat['id']]);
@@ -15780,11 +15839,16 @@ $tools[] = $this->tool(
 
     private function chatForUser(string $chatPublicId, int $userId): ?array
     {
+        $actor = $this->actor();
+        $isExternal = !empty((int)($actor['is_external'] ?? 0));
+        $externalFilter = $isExternal ? " AND c.type = 'project_client'" : '';
+
         $stmt = $this->pdo()->prepare("
             SELECT c.*
             FROM chats c
             JOIN chat_participants cp ON cp.chat_id = c.id AND cp.user_id = :uid
             WHERE c.public_id = :public_id
+              {$externalFilter}
             LIMIT 1
         ");
         $stmt->execute([

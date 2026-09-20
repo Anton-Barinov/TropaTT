@@ -88,7 +88,7 @@ final class StickyNoteService
 
         // Validate context references
         if ($contextType !== 'personal') {
-            $ctxResult = $this->validateContext($contextType, $contextPublicId, $actorUserId);
+            $ctxResult = $this->validateContext($contextType, $contextPublicId, $actorUserId, $this->organizationId($actor));
             if ($ctxResult !== null) {
                 return $ctxResult;
             }
@@ -105,7 +105,7 @@ final class StickyNoteService
             'background_color' => $payload['background_color'] ?? null,
             'visibility' => (string)($payload['visibility'] ?? 'private'),
             'is_pinned' => !empty($payload['is_pinned']),
-            'sort_order' => (int)($payload['sort_order'] ?? 65535),
+            'sort_order' => array_key_exists('sort_order', $payload) && $payload['sort_order'] !== null ? (int)$payload['sort_order'] : null,
             'meta_json' => $payload['meta_json'] ?? null,
         ]);
 
@@ -433,6 +433,9 @@ final class StickyNoteService
         ];
 
         $actorArr = ['id' => $actorUserId, 'is_root' => $isRoot];
+        if ($organizationId !== null) {
+            $actorArr['organization_id'] = $organizationId;
+        }
         try {
             $page = $this->knowledgeRepo->createPage($pagePayload, $actorUserId, $actorArr);
         } catch (\Throwable $e) {
@@ -494,10 +497,17 @@ final class StickyNoteService
             $errors['color'] = 'Invalid color. Allowed: ' . implode(', ', self::ALLOWED_COLORS);
         }
 
+        if (isset($payload['background_color']) && $payload['background_color'] !== null && $payload['background_color'] !== '') {
+            $bg = (string)$payload['background_color'];
+            if (!preg_match('/^#([a-fA-F0-9]{3}|[a-fA-F0-9]{6}|[a-fA-F0-9]{8})$/', $bg) && !in_array($bg, self::ALLOWED_COLORS, true)) {
+                $errors['background_color'] = 'Invalid background_color format. Must be a valid hex color or allowed color name.';
+            }
+        }
+
         return $errors;
     }
 
-    private function validateContext(string $contextType, ?string $contextPublicId, int $actorUserId): ?array
+    private function validateContext(string $contextType, ?string $contextPublicId, int $actorUserId, ?int $organizationId = null): ?array
     {
         // 'personal' and 'dashboard' don't require context_public_id
         if ($contextPublicId === null || $contextPublicId === '') {
@@ -508,12 +518,12 @@ final class StickyNoteService
         }
 
         if ($contextType === 'task') {
-            $task = $this->repo->taskByPublicId($contextPublicId);
+            $task = $this->repo->taskByPublicId($contextPublicId, $organizationId);
             if ($task === null) {
                 return ['error' => 'TASK_NOT_FOUND'];
             }
         } elseif ($contextType === 'project') {
-            $project = $this->repo->projectByPublicId($contextPublicId);
+            $project = $this->repo->projectByPublicId($contextPublicId, $organizationId);
             if ($project === null) {
                 return ['error' => 'PROJECT_NOT_FOUND'];
             }

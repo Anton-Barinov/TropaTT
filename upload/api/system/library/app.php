@@ -1595,7 +1595,8 @@ final class App
             new \Api\Model\Knowledge\KnowledgePageVersionRepository($c->get('db.pdo')),
             $c->get('service.project'),
             $c->get('logger'),
-            $c->get('request')->requestId
+            $c->get('request')->requestId,
+            $c->get('repository.knowledge')
         ));
 
         $this->container->factory('service.activity', fn(Container $c) => new ActivityService(

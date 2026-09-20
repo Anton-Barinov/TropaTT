@@ -192,6 +192,39 @@ final class KnowledgeRepository
                 'created_at' => $now,
                 'updated_at' => $now,
             ];
+        } elseif ($hasParentCol) {
+            $stmt = $this->pdo->prepare('INSERT INTO knowledge_spaces (public_id, title, slug, description, icon, color, owner_user_id, visibility, default_access_level, parent_id, sort_order, created_at, updated_at) VALUES (:public_id, :title, :slug, :description, :icon, :color, :owner_user_id, :visibility, :default_access_level, :parent_id, :sort_order, :created_at, :updated_at)');
+            $params = [
+                'public_id' => $publicId,
+                'title' => $title,
+                'slug' => $slug,
+                'description' => $this->nullableText($payload['description'] ?? null),
+                'icon' => $this->nullableShort($payload['icon'] ?? 'book-open', 64),
+                'color' => $this->nullableShort($payload['color'] ?? '#0f8f72', 32),
+                'owner_user_id' => $actorId,
+                'visibility' => $this->choice((string)($payload['visibility'] ?? 'public'), ['public', 'restricted', 'private'], 'public'),
+                'default_access_level' => $this->choice((string)($payload['default_access_level'] ?? 'view'), ['view', 'comment', 'edit'], 'view'),
+                'parent_id' => $parentId,
+                'sort_order' => (int)($payload['sort_order'] ?? 100),
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        } else {
+            $stmt = $this->pdo->prepare('INSERT INTO knowledge_spaces (public_id, title, slug, description, icon, color, owner_user_id, visibility, default_access_level, sort_order, created_at, updated_at) VALUES (:public_id, :title, :slug, :description, :icon, :color, :owner_user_id, :visibility, :default_access_level, :sort_order, :created_at, :updated_at)');
+            $params = [
+                'public_id' => $publicId,
+                'title' => $title,
+                'slug' => $slug,
+                'description' => $this->nullableText($payload['description'] ?? null),
+                'icon' => $this->nullableShort($payload['icon'] ?? 'book-open', 64),
+                'color' => $this->nullableShort($payload['color'] ?? '#0f8f72', 32),
+                'owner_user_id' => $actorId,
+                'visibility' => $this->choice((string)($payload['visibility'] ?? 'public'), ['public', 'restricted', 'private'], 'public'),
+                'default_access_level' => $this->choice((string)($payload['default_access_level'] ?? 'view'), ['view', 'comment', 'edit'], 'view'),
+                'sort_order' => (int)($payload['sort_order'] ?? 100),
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
         }
         $stmt->execute($params);
         return $this->spaceRaw($publicId) ?? [];
@@ -239,6 +272,18 @@ final class KnowledgeRepository
     private function columnExists(string $table, string $column): bool
     {
         try {
+            $driver = $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+            if ($driver === 'sqlite') {
+                $stmt = $this->pdo->prepare("PRAGMA table_info({$table})");
+                $stmt->execute();
+                $cols = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+                foreach ($cols as $col) {
+                    if (strcasecmp((string)($col['name'] ?? ''), $column) === 0) {
+                        return true;
+                    }
+                }
+                return false;
+            }
             $stmt = $this->pdo->prepare("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ? LIMIT 1");
             $stmt->execute([$table, $column]);
             return $stmt->fetch() !== false;
@@ -1924,19 +1969,19 @@ final class KnowledgeRepository
         $rankSql = $this->accessRankSql('perm.access_level');
         $defaultRankSql = $this->accessRankSql($spaceAlias . '.default_access_level');
         $sql = "({$stateSql}) AND (
-            ({$spaceAlias}.visibility = 'public' AND {$defaultRankSql} >= :acl_public_rank)
+            ({$spaceAlias}.visibility = 'public' AND {$defaultRankSql} >= (0 + :acl_public_rank))
             OR {$spaceAlias}.owner_user_id = :acl_space_owner_user_id
             OR {$pageAlias}.owner_user_id = :acl_page_owner_user_id
             OR EXISTS (
                 SELECT 1 FROM knowledge_space_permissions perm
                 WHERE perm.space_id = {$spaceAlias}.id
-                  AND {$rankSql} >= :acl_space_perm_rank
+                  AND {$rankSql} >= (0 + :acl_space_perm_rank)
                   AND ((perm.subject_type = 'user' AND perm.subject_id = :acl_space_perm_user_id) OR ({$spaceRoleClause}) OR ({$spaceTeamClause}) OR ({$spaceDepartmentClause}))
             )
             OR EXISTS (
                 SELECT 1 FROM knowledge_page_permissions perm
                 WHERE perm.page_id = {$pageAlias}.id
-                  AND {$rankSql} >= :acl_page_perm_rank
+                  AND {$rankSql} >= (0 + :acl_page_perm_rank)
                   AND ((perm.subject_type = 'user' AND perm.subject_id = :acl_page_perm_user_id) OR ({$pageRoleClause}) OR ({$pageTeamClause}) OR ({$pageDepartmentClause}))
             )
         )";
@@ -2011,12 +2056,12 @@ final class KnowledgeRepository
         $rankSql = $this->accessRankSql('perm.access_level');
         $defaultRankSql = $this->accessRankSql($spaceAlias . '.default_access_level');
         $sql = "({$stateSql}) AND (
-            ({$spaceAlias}.visibility = 'public' AND {$defaultRankSql} >= :acl_space_public_rank)
+            ({$spaceAlias}.visibility = 'public' AND {$defaultRankSql} >= (0 + :acl_space_public_rank))
             OR {$spaceAlias}.owner_user_id = :acl_space_owner_user_id
             OR EXISTS (
                 SELECT 1 FROM knowledge_space_permissions perm
                 WHERE perm.space_id = {$spaceAlias}.id
-                  AND {$rankSql} >= :acl_space_perm_rank
+                  AND {$rankSql} >= (0 + :acl_space_perm_rank)
                   AND ((perm.subject_type = 'user' AND perm.subject_id = :acl_space_perm_user_id) OR ({$roleClause}) OR ({$teamClause}) OR ({$departmentClause}))
             )
         )";

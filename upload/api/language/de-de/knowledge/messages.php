@@ -129,6 +129,7 @@ return array (
     'version_detail' => 'Versionsdetails',
     'page_locked' => 'Die Seite ist bereits gesperrt',
     'page_unlocked' => 'Seite entsperrt',
+    'unlock_forbidden' => 'Eine von einem anderen Benutzer gesperrte Seite kann nicht entsperrt werden',
     'validation_failed' => 'Validierung fehlgeschlagen. Überprüfen Sie die Serverprotokolle.',
     'link_not_found' => 'Knowledge-Link nicht gefunden',
     'trash_purged' => 'Papierkorb-Bereiche entfernt',

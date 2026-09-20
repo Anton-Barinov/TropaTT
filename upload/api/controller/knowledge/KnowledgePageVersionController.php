@@ -133,6 +133,10 @@ final class KnowledgePageVersionController extends BaseController
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
 
+        if ($result === 'KNOWLEDGE_PAGE_UNLOCK_FORBIDDEN') {
+            return $this->error('FORBIDDEN', $this->t('knowledge/messages.unlock_forbidden', 'Cannot unlock page locked by another user'), 403);
+        }
+
         if ($result === 'ROW_VERSION_CONFLICT') {
             return $this->error('ROW_VERSION_CONFLICT', $this->t('knowledge/messages.row_version_conflict', 'The page was changed by another user'), 409);
         }

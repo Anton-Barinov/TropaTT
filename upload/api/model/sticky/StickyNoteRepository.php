@@ -278,18 +278,78 @@ final class StickyNoteRepository
         return (int)$stmt->fetchColumn();
     }
 
-    public function taskByPublicId(string $taskPublicId): ?array
+    /** @var array<string,bool> */
+    private array $columnCache = [];
+
+    private function tableHasColumn(string $table, string $column): bool
     {
-        $stmt = $this->pdo->prepare('SELECT id, public_id, project_id, title FROM tasks WHERE public_id = :public_id AND deleted_at IS NULL LIMIT 1');
-        $stmt->execute(['public_id' => $taskPublicId]);
+        $key = $table . '.' . $column;
+        if (isset($this->columnCache[$key])) {
+            return $this->columnCache[$key];
+        }
+        try {
+            $driver = $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+            if ($driver === 'sqlite') {
+                $stmt = $this->pdo->prepare("PRAGMA table_info({$table})");
+                $stmt->execute();
+                $cols = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+                foreach ($cols as $col) {
+                    if (strcasecmp((string)($col['name'] ?? ''), $column) === 0) {
+                        return $this->columnCache[$key] = true;
+                    }
+                }
+                return $this->columnCache[$key] = false;
+            }
+            $stmt = $this->pdo->prepare('SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = :table AND column_name = :col LIMIT 1');
+            $stmt->execute(['table' => $table, 'col' => $column]);
+            return $this->columnCache[$key] = ($stmt->fetchColumn() !== false);
+        } catch (\Throwable) {
+            return $this->columnCache[$key] = false;
+        }
+    }
+
+    public function taskByPublicId(string $taskPublicId, ?int $organizationId = null): ?array
+    {
+        $hasDeleted = $this->tableHasColumn('tasks', 'deleted_at');
+        $hasOrg = $organizationId !== null && $this->tableHasColumn('tasks', 'organization_id');
+
+        $where = ['public_id = :public_id'];
+        $params = ['public_id' => $taskPublicId];
+
+        if ($hasDeleted) {
+            $where[] = 'deleted_at IS NULL';
+        }
+        if ($hasOrg) {
+            $where[] = 'organization_id = :organization_id';
+            $params['organization_id'] = $organizationId;
+        }
+
+        $sql = 'SELECT id, public_id, project_id, title FROM tasks WHERE ' . implode(' AND ', $where) . ' LIMIT 1';
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return is_array($row) ? $row : null;
     }
 
-    public function projectByPublicId(string $projectPublicId): ?array
+    public function projectByPublicId(string $projectPublicId, ?int $organizationId = null): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT id, public_id, title FROM projects WHERE public_id = :public_id LIMIT 1');
-        $stmt->execute(['public_id' => $projectPublicId]);
+        $hasArchived = $this->tableHasColumn('projects', 'archived_at');
+        $hasOrg = $organizationId !== null && $this->tableHasColumn('projects', 'organization_id');
+
+        $where = ['public_id = :public_id'];
+        $params = ['public_id' => $projectPublicId];
+
+        if ($hasArchived) {
+            $where[] = 'archived_at IS NULL';
+        }
+        if ($hasOrg) {
+            $where[] = 'organization_id = :organization_id';
+            $params['organization_id'] = $organizationId;
+        }
+
+        $sql = 'SELECT id, public_id, title FROM projects WHERE ' . implode(' AND ', $where) . ' LIMIT 1';
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return is_array($row) ? $row : null;
     }
