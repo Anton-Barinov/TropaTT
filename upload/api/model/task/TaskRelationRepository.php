@@ -161,6 +161,55 @@ final class TaskRelationRepository
     }
 
     /**
+     * Can `$fromId` already reach `$toId` via active relations of `$type`?
+     *
+     * Used to refuse a new directed edge that would close a cycle (e.g. A
+     * blocked_by B while B is already blocked_by A, directly or transitively).
+     * Relations are stored directed source_task_id -> target_task_id, so the
+     * new edge is safe unless $toId already reaches $fromId.
+     */
+    public function reachesByType(int $fromId, int $toId, string $type): bool
+    {
+        if ($fromId === $toId) {
+            return true;
+        }
+
+        $visited = [];
+        $stack = [$fromId];
+        while ($stack !== []) {
+            $current = (int)array_pop($stack);
+            if (isset($visited[$current])) {
+                continue;
+            }
+            $visited[$current] = true;
+            foreach ($this->outgoingIdsByType($current, $type) as $next) {
+                if ($next === $toId) {
+                    return true;
+                }
+                if (!isset($visited[$next])) {
+                    $stack[] = $next;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /** @return list<int> */
+    private function outgoingIdsByType(int $taskId, string $type): array
+    {
+        $rows = (new QueryBuilder($this->pdo))
+            ->from('task_relations_v2')
+            ->select(['target_task_id'])
+            ->where('source_task_id', '=', $taskId)
+            ->where('relation_type', '=', $type)
+            ->whereNull('deleted_at')
+            ->get();
+
+        return array_map(static fn(array $row): int => (int)$row['target_task_id'], $rows);
+    }
+
+    /**
      * Find task internal ID by public_id.
      */
     public function taskIdByPublicId(string $taskPublicId): ?int

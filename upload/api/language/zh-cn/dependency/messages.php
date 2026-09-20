@@ -25,4 +25,5 @@ return [
     'type_sf' => '开始-完成',
     'type_blocks' => '阻塞',
     'different_projects' => '依赖关系只能在同一个项目的任务之间创建',
+    'cyclic_dependency' => '依赖关系会在任务之间形成循环',
 ];

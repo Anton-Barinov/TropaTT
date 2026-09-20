@@ -100,6 +100,13 @@ final class DependencyRepository
             return 'DEPENDENCY_SELF_FORBIDDEN';
         }
 
+        // Reject transitive cycles (A -> B -> A, A -> B -> C -> A). A direct
+        // self-link is caught above; anything longer would deadlock the graph
+        // and blow the stack in recursive progress/critical-path walks.
+        if ($this->hasCyclePath($taskId, $dependsOnTaskId)) {
+            return 'CYCLIC_DEPENDENCY_DETECTED';
+        }
+
         $projects = $this->taskProjects([$taskId, $dependsOnTaskId]);
         if (count(array_unique($projects)) > 1) {
             return 'DEPENDENCY_DIFFERENT_PROJECTS';
@@ -131,6 +138,53 @@ final class DependencyRepository
             ->from('task_dependencies')
             ->where('public_id', '=', $publicId)
             ->delete() > 0;
+    }
+
+    /**
+     * Would inserting the edge "taskId depends on dependsOnTaskId" close a cycle?
+     *
+     * The dependency graph is directed task_id -> depends_on_task_id. Adding
+     * taskId -> dependsOnTaskId is safe unless dependsOnTaskId already reaches
+     * taskId along existing edges (that would form a loop). DFS with a visited
+     * set keeps the walk linear in the number of edges.
+     */
+    public function hasCyclePath(int $taskId, int $dependsOnTaskId): bool
+    {
+        if ($taskId === $dependsOnTaskId) {
+            return true;
+        }
+
+        $visited = [];
+        $stack = [$dependsOnTaskId];
+        while ($stack !== []) {
+            $current = (int)array_pop($stack);
+            if (isset($visited[$current])) {
+                continue;
+            }
+            $visited[$current] = true;
+            if ($current === $taskId) {
+                return true;
+            }
+            foreach ($this->dependencyTargetIds($current) as $next) {
+                if (!isset($visited[$next])) {
+                    $stack[] = $next;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /** @return list<int> */
+    private function dependencyTargetIds(int $taskId): array
+    {
+        $rows = (new QueryBuilder($this->pdo))
+            ->from('task_dependencies')
+            ->select(['depends_on_task_id'])
+            ->where('task_id', '=', $taskId)
+            ->get();
+
+        return array_map(static fn(array $row): int => (int)$row['depends_on_task_id'], $rows);
     }
 
     private function taskIdByPublicId(string $taskPublicId): ?int

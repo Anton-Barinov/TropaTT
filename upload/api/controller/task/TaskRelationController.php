@@ -87,6 +87,11 @@ final class TaskRelationController extends BaseController
                 $this->t('task_relations/messages.already_exists', 'This relation already exists'),
                 409
             ),
+            'TASK_RELATION_CYCLE_DETECTED' => $this->error(
+                'TASK_RELATION_CYCLE_DETECTED',
+                $this->t('task_relations/messages.cyclic_relation', 'This relation would create a dependency cycle'),
+                422
+            ),
             'TASK_RELATION_NOTE_TOO_LONG' => $this->error(
                 'TASK_RELATION_NOTE_TOO_LONG',
                 $this->t('task_relations/messages.note_too_long', 'Note exceeds maximum length'),
