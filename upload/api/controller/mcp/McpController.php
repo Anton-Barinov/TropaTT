@@ -7194,7 +7194,7 @@ $tools[] = $this->tool(
     {
         /** @var WebhookService $service */
         $service = $this->container->get('service.webhook');
-        return $this->publicData($service->listSubscriptions($this->filters($arguments, 50, 100)));
+        return $this->publicData($service->listSubscriptions($this->filters($arguments, 50, 100), $this->actor()));
     }
 
     private function crmListWebhookDeliveries(array $arguments): array
@@ -7206,7 +7206,7 @@ $tools[] = $this->tool(
 
         /** @var WebhookService $service */
         $service = $this->container->get('service.webhook');
-        return $this->publicData($service->listDeliveries($filters));
+        return $this->publicData($service->listDeliveries($filters, $this->actor()));
     }
 
     private function crmListModules(): array
@@ -10666,7 +10666,8 @@ $tools[] = $this->tool(
         if (!$this->knowledge()->page($publicId, $this->actor(), 'edit')) {
             return ['error' => 'Knowledge page not found.'];
         }
-        $tag = $this->tagRepo()->findByPublicId($tagPublicId);
+        $organizationId = (int)($this->actor()['organization_id'] ?? 0);
+        $tag = $this->tagRepo()->findByPublicId($tagPublicId, $organizationId > 0 ? $organizationId : null);
         if (!$tag) {
             return ['error' => 'Tag not found.'];
         }
@@ -10685,7 +10686,8 @@ $tools[] = $this->tool(
         if (!$this->knowledge()->page($publicId, $this->actor(), 'edit')) {
             return ['error' => 'Knowledge page not found.'];
         }
-        $tag = $this->tagRepo()->findByPublicId($tagPublicId);
+        $organizationId = (int)($this->actor()['organization_id'] ?? 0);
+        $tag = $this->tagRepo()->findByPublicId($tagPublicId, $organizationId > 0 ? $organizationId : null);
         if (!$tag) {
             return ['error' => 'Tag not found.'];
         }

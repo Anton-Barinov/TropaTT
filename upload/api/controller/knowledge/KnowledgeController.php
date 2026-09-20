@@ -1625,7 +1625,8 @@ final class KnowledgeController extends BaseController
         if (!$this->requirePageAccess((string)$params['public_id'], 'edit')) {
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
-        $tag = $this->tagRepo()->findByPublicId((string)$params['tag_public_id']);
+        $organizationId = (int)($this->actor()['organization_id'] ?? 0);
+        $tag = $this->tagRepo()->findByPublicId((string)$params['tag_public_id'], $organizationId > 0 ? $organizationId : null);
         if (!$tag) {
             return $this->error('TAG_NOT_FOUND', $this->t('knowledge/messages.tag_not_found', 'Tag not found'), 404);
         }
@@ -1639,7 +1640,8 @@ final class KnowledgeController extends BaseController
         if (!$this->requirePageAccess((string)$params['public_id'], 'edit')) {
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
-        $tag = $this->tagRepo()->findByPublicId((string)$params['tag_public_id']);
+        $organizationId = (int)($this->actor()['organization_id'] ?? 0);
+        $tag = $this->tagRepo()->findByPublicId((string)$params['tag_public_id'], $organizationId > 0 ? $organizationId : null);
         if (!$tag) {
             return $this->error('TAG_NOT_FOUND', $this->t('knowledge/messages.tag_not_found', 'Tag not found'), 404);
         }
