@@ -13,8 +13,13 @@ use Api\System\Library\Support\Ulid;
 final class WebhookService
 {
     private UrlSafetyValidator $urlSafety;
-    /** @var list<array<string,mixed>>|null per-request cache for event fan-out */
-    private ?array $activeSubscriptions = null;
+    /**
+     * Per-request cache for event fan-out, keyed by organization_id (0 stands
+     * for "no organization"). Keeping the cache per-org avoids org A's lookup
+     * ever satisfying org B's dispatch within the same request.
+     * @var array<int,list<array<string,mixed>>>
+     */
+    private array $activeSubscriptionsByOrg = [];
 
     public function __construct(
         private readonly WebhookRepository $repository,
@@ -24,8 +29,12 @@ final class WebhookService
         $this->urlSafety = new UrlSafetyValidator();
     }
 
-    public function listSubscriptions(array $filters): array
+    public function listSubscriptions(array $filters, array $actor = []): array
     {
+        $organizationId = $this->organizationId($actor);
+        if ($organizationId !== null) {
+            $filters['organization_id'] = $organizationId;
+        }
         [$items, $total, $page, $limit] = $this->repository->listSubscriptions($filters);
 
         return [
@@ -56,6 +65,7 @@ final class WebhookService
             return $endpointValidation;
         }
 
+        $organizationId = $this->organizationId($actor);
         $this->repository->createSubscription([
 
             'public_id' => $publicId,
@@ -66,9 +76,9 @@ final class WebhookService
             'is_active' => (int)($input['is_active'] ?? 1) === 1 ? 1 : 0,
             'created_at' => $now,
             'updated_at' => $now,
-        ]);
+        ], $organizationId);
 
-        $item = $this->normalizeSubscription($this->repository->findSubscriptionByPublicId($publicId));
+        $item = $this->normalizeSubscription($this->repository->findSubscriptionByPublicId($publicId, $organizationId));
         $this->logger->audit([
             'action' => 'webhook_subscription_create',
             'actor_public_id' => $actor['public_id'] ?? null,
@@ -79,9 +89,9 @@ final class WebhookService
         return ['ok' => true, 'webhook' => $item];
     }
 
-    public function findSubscription(string $publicId): ?array
+    public function findSubscription(string $publicId, array $actor = []): ?array
     {
-        $item = $this->repository->findSubscriptionByPublicId($publicId);
+        $item = $this->repository->findSubscriptionByPublicId($publicId, $this->organizationId($actor));
         return $item ? $this->normalizeSubscription($item) : null;
     }
 
@@ -91,7 +101,8 @@ final class WebhookService
             return ['ok' => false, 'code' => 'FORBIDDEN'];
         }
 
-        $current = $this->repository->findSubscriptionByPublicId($publicId);
+        $organizationId = $this->organizationId($actor);
+        $current = $this->repository->findSubscriptionByPublicId($publicId, $organizationId);
         if (!$current) {
             return ['ok' => false, 'code' => 'WEBHOOK_NOT_FOUND'];
         }
@@ -120,7 +131,7 @@ final class WebhookService
         }
         $set['updated_at'] = gmdate('Y-m-d H:i:s');
 
-        $this->repository->updateSubscriptionByPublicId($publicId, $set);
+        $this->repository->updateSubscriptionByPublicId($publicId, $set, $organizationId);
 
         $this->logger->audit([
             'action' => 'webhook_subscription_update',
@@ -129,7 +140,7 @@ final class WebhookService
             'entity_public_id' => $publicId,
         ]);
 
-        return ['ok' => true, 'webhook' => $this->normalizeSubscription($this->repository->findSubscriptionByPublicId($publicId))];
+        return ['ok' => true, 'webhook' => $this->normalizeSubscription($this->repository->findSubscriptionByPublicId($publicId, $organizationId))];
     }
 
     public function deleteSubscription(string $publicId, array $actor): array
@@ -138,12 +149,13 @@ final class WebhookService
             return ['ok' => false, 'code' => 'FORBIDDEN'];
         }
 
-        $existing = $this->repository->findSubscriptionByPublicId($publicId);
+        $organizationId = $this->organizationId($actor);
+        $existing = $this->repository->findSubscriptionByPublicId($publicId, $organizationId);
         if (!$existing) {
             return ['ok' => false, 'code' => 'WEBHOOK_NOT_FOUND'];
         }
 
-        $this->repository->deleteSubscriptionByPublicId($publicId);
+        $this->repository->deleteSubscriptionByPublicId($publicId, $organizationId);
         $this->logger->audit([
             'action' => 'webhook_subscription_delete',
             'actor_public_id' => $actor['public_id'] ?? null,
@@ -154,8 +166,12 @@ final class WebhookService
         return ['ok' => true];
     }
 
-    public function listDeliveries(array $filters): array
+    public function listDeliveries(array $filters, array $actor = []): array
     {
+        $organizationId = $this->organizationId($actor);
+        if ($organizationId !== null) {
+            $filters['organization_id'] = $organizationId;
+        }
         [$items, $total, $page, $limit] = $this->repository->listDeliveries($filters);
 
         return [
@@ -177,7 +193,8 @@ final class WebhookService
             return ['ok' => false, 'code' => 'FORBIDDEN'];
         }
 
-        $webhook = $this->repository->findSubscriptionByPublicId($publicId);
+        $organizationId = $this->organizationId($actor);
+        $webhook = $this->repository->findSubscriptionByPublicId($publicId, $organizationId);
         if (!$webhook) {
             return ['ok' => false, 'code' => 'WEBHOOK_NOT_FOUND'];
         }
@@ -210,14 +227,19 @@ final class WebhookService
             backoffMs: $backoffMs
         );
 
-        $this->repository->createDelivery([
+        $webhookOrganizationId = (int)($webhook['organization_id'] ?? 0) ?: null;
+        $deliveryPayload = [
             'public_id' => Ulid::generate('whd'),
             'webhook_id' => (int)$webhook['id'],
             'event_code' => 'webhook.test',
             'status' => $status,
             'response_code' => $responseCode,
             'created_at' => gmdate('Y-m-d H:i:s'),
-        ]);
+        ];
+        if ($webhookOrganizationId !== null) {
+            $deliveryPayload['organization_id'] = $webhookOrganizationId;
+        }
+        $this->repository->createDelivery($deliveryPayload);
 
         $autoDisabled = false;
         if ($status !== 'sent') {
@@ -236,7 +258,7 @@ final class WebhookService
                 $autoDisabled = $this->repository->updateSubscriptionByPublicId((string)$webhook['public_id'], [
                     'is_active' => 0,
                     'updated_at' => gmdate('Y-m-d H:i:s'),
-                ]);
+                ], $webhookOrganizationId);
             }
         }
 
@@ -284,7 +306,8 @@ final class WebhookService
             return ['ok' => false, 'code' => 'FORBIDDEN'];
         }
 
-        $webhook = $this->repository->findSubscriptionByPublicId($publicId);
+        $organizationId = $this->organizationId($actor);
+        $webhook = $this->repository->findSubscriptionByPublicId($publicId, $organizationId);
         if (!$webhook) {
             return ['ok' => false, 'code' => 'WEBHOOK_NOT_FOUND'];
         }
@@ -301,7 +324,7 @@ final class WebhookService
         $deliveryPublicId = Ulid::generate('whd');
         $now = gmdate('Y-m-d H:i:s');
 
-        $this->repository->createDelivery([
+        $deliveryPayload = [
             'public_id' => $deliveryPublicId,
             'webhook_id' => (int)$webhook['id'],
             'event_code' => 'webhook.test',
@@ -316,7 +339,12 @@ final class WebhookService
             'dead_letter' => 0,
             'created_at' => $now,
             'updated_at' => $now,
-        ]);
+        ];
+        $webhookOrganizationId = (int)($webhook['organization_id'] ?? 0) ?: null;
+        if ($webhookOrganizationId !== null) {
+            $deliveryPayload['organization_id'] = $webhookOrganizationId;
+        }
+        $this->repository->createDelivery($deliveryPayload);
 
         $this->logger->audit([
             'action' => 'webhook_delivery_enqueued',
@@ -350,17 +378,24 @@ final class WebhookService
      * a real event. Deliveries are queued and sent by runQueued() with the usual
      * retries and HMAC signature.
      *
+     * $organizationId is the organization that produced the event (the actor's
+     * workspace at the controller call site). It is REQUIRED to keep the
+     * fan-out tenant-scoped: without it, every org's webhooks would receive
+     * every org's events (the 2026-09-20 cross-org leak). A null value only
+     * matches subscriptions that themselves have no organization_id (legacy /
+     * single-tenant installs), never "all organizations".
+     *
      * @param array<string,mixed> $payload
      * @return int number of queued deliveries
      */
-    public function dispatchEvent(string $event, array $payload): int
+    public function dispatchEvent(string $event, array $payload, ?int $organizationId = null): int
     {
         $event = substr(trim($event), 0, 128);
         if ($event === '') {
             return 0;
         }
 
-        $subscriptions = $this->activeSubscriptionsForEvent($event);
+        $subscriptions = $this->activeSubscriptionsForEvent($event, $organizationId);
         if ($subscriptions === []) {
             return 0;
         }
@@ -379,7 +414,7 @@ final class WebhookService
             $deliveryPublicId = Ulid::generate('whd');
             $signature = $this->signatureForWebhookPayload($webhook, $envelope);
 
-            $this->repository->createDelivery([
+            $deliveryPayload = [
                 'public_id' => $deliveryPublicId,
                 'webhook_id' => (int)$webhook['id'],
                 'event_code' => $event,
@@ -394,7 +429,13 @@ final class WebhookService
                 'dead_letter' => 0,
                 'created_at' => $now,
                 'updated_at' => $now,
-            ]);
+            ];
+            $webhookOrganizationId = (int)($webhook['organization_id'] ?? 0) ?: null;
+            if ($webhookOrganizationId !== null) {
+                $deliveryPayload['organization_id'] = $webhookOrganizationId;
+            }
+
+            $this->repository->createDelivery($deliveryPayload);
             $enqueued++;
         }
 
@@ -402,6 +443,7 @@ final class WebhookService
             'action' => 'webhook_event_enqueued',
             'entity_type' => 'webhook_subscription',
             'event_code' => $event,
+            'organization_id' => $organizationId,
             'deliveries' => $enqueued,
         ]);
 
@@ -411,21 +453,24 @@ final class WebhookService
     /**
      * @return list<array<string,mixed>>
      */
-    private function activeSubscriptionsForEvent(string $event): array
+    private function activeSubscriptionsForEvent(string $event, ?int $organizationId): array
     {
-        if ($this->activeSubscriptions === null) {
+        // Cache per-organization within the request: dispatching several
+        // events for org A must never reuse (or pollute) org B's lookup.
+        $cacheKey = $organizationId ?? 0;
+        if (!isset($this->activeSubscriptionsByOrg[$cacheKey])) {
             try {
-                $this->activeSubscriptions = $this->repository->listActiveSubscriptions();
+                $this->activeSubscriptionsByOrg[$cacheKey] = $this->repository->listActiveSubscriptions($organizationId);
             } catch (\Throwable $e) {
                 // A missing table on a partially migrated install must not break
                 // the core request that triggered the event.
                 $this->logger->warning('webhook_subscriptions_lookup_failed', ['error' => $e->getMessage()]);
-                $this->activeSubscriptions = [];
+                $this->activeSubscriptionsByOrg[$cacheKey] = [];
             }
         }
 
         $matched = [];
-        foreach ($this->activeSubscriptions as $webhook) {
+        foreach ($this->activeSubscriptionsByOrg[$cacheKey] as $webhook) {
             $events = array_map(static fn($value): string => strtolower((string)$value), (array)($webhook['events'] ?? []));
             if ($events === [] || in_array(strtolower($event), $events, true) || in_array('*', $events, true)) {
                 $matched[] = $webhook;
@@ -603,6 +648,12 @@ final class WebhookService
     public function summary(): array
     {
         return $this->repository->summary();
+    }
+
+    private function organizationId(array $actor): ?int
+    {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
     }
 
     private function normalizeSubscription(?array $row): ?array

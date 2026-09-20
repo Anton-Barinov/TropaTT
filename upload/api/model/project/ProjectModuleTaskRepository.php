@@ -17,7 +17,7 @@ final class ProjectModuleTaskRepository
     {
     }
 
-    public function listTasksByModuleId(int $moduleId, array $filters = []): array
+    public function listTasksByModuleId(int $moduleId, array $filters = [], ?int $organizationId = null): array
     {
         $limit = min(500, max(1, (int)($filters['limit'] ?? 100)));
         $page = max(1, (int)($filters['page'] ?? 1));
@@ -43,6 +43,10 @@ final class ProjectModuleTaskRepository
             ->where('pmt.module_id', '=', $moduleId)
             ->whereNull('pmt.deleted_at')
             ->whereNull('t.deleted_at');
+
+        if ($organizationId !== null && $organizationId > 0) {
+            $qb->where('pmt.organization_id', '=', $organizationId);
+        }
 
         $total = $qb->count();
 
@@ -79,20 +83,25 @@ final class ProjectModuleTaskRepository
         return $payload;
     }
 
-    public function removeTask(int $moduleId, int $taskId, int $actorUserId, string $now): bool
+    public function removeTask(int $moduleId, int $taskId, int $actorUserId, string $now, ?int $organizationId = null): bool
     {
-        return (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('project_module_tasks')
             ->where('module_id', '=', $moduleId)
             ->where('task_id', '=', $taskId)
-            ->whereNull('deleted_at')
-            ->update([
-                'deleted_at' => $now,
-                'removed_by_user_id' => $actorUserId,
-                'removed_at' => $now,
-                'updated_at' => $now,
-                'active_key' => null,
-            ]) > 0;
+            ->whereNull('deleted_at');
+
+        if ($organizationId !== null && $organizationId > 0) {
+            $qb->where('organization_id', '=', $organizationId);
+        }
+
+        return $qb->update([
+            'deleted_at' => $now,
+            'removed_by_user_id' => $actorUserId,
+            'removed_at' => $now,
+            'updated_at' => $now,
+            'active_key' => null,
+        ]) > 0;
     }
 
     public function taskIdByPublicId(string $taskPublicId): ?int
@@ -119,27 +128,37 @@ final class ProjectModuleTaskRepository
         return isset($row['id']) ? (int)$row['id'] : null;
     }
 
-    public function moduleIdByPublicId(string $modulePublicId): ?int
+    public function moduleIdByPublicId(string $modulePublicId, ?int $organizationId = null): ?int
     {
-        $row = (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('project_modules')
             ->select(['id', 'project_id', 'status'])
             ->where('public_id', '=', $modulePublicId)
-            ->whereNull('deleted_at')
-            ->first();
+            ->whereNull('deleted_at');
+
+        if ($organizationId !== null && $organizationId > 0) {
+            $qb->where('organization_id', '=', $organizationId);
+        }
+
+        $row = $qb->first();
 
         return isset($row['id']) ? (int)$row['id'] : null;
     }
 
-    public function taskAlreadyInModule(int $moduleId, int $taskId): bool
+    public function taskAlreadyInModule(int $moduleId, int $taskId, ?int $organizationId = null): bool
     {
-        $row = (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('project_module_tasks')
             ->select(['id'])
             ->where('module_id', '=', $moduleId)
             ->where('task_id', '=', $taskId)
-            ->whereNull('deleted_at')
-            ->first();
+            ->whereNull('deleted_at');
+
+        if ($organizationId !== null && $organizationId > 0) {
+            $qb->where('organization_id', '=', $organizationId);
+        }
+
+        $row = $qb->first();
 
         return $row !== null && $row !== false;
     }

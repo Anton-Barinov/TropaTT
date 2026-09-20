@@ -81,13 +81,18 @@ final class WorkflowRepository
         return $query;
     }
 
-    public function findRuleByPublicId(string $publicId): ?array
+    public function findRuleByPublicId(string $publicId, ?int $organizationId = null): ?array
     {
-        $row = (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('automation_rules')
             ->select(['id', 'public_id', 'title', 'trigger_code', 'action_code', 'payload', 'is_enabled', 'created_by_user_id', 'created_at', 'updated_at'])
-            ->where('public_id', '=', $publicId)
-            ->first();
+            ->where('public_id', '=', $publicId);
+
+        if ($organizationId !== null && $organizationId > 0 && $this->hasOrganizationColumn('automation_rules')) {
+            $query->where('organization_id', '=', $organizationId);
+        }
+
+        $row = $query->first();
 
         return $row ?: null;
     }
@@ -102,24 +107,34 @@ final class WorkflowRepository
             ->insert($payload);
     }
 
-    public function updateRuleByPublicId(string $publicId, array $set): bool
+    public function updateRuleByPublicId(string $publicId, array $set, ?int $organizationId = null): bool
     {
         if ($set === []) {
             return false;
         }
 
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('automation_rules')
-            ->where('public_id', '=', $publicId)
-            ->update($set) > 0;
+            ->where('public_id', '=', $publicId);
+
+        if ($organizationId !== null && $organizationId > 0 && $this->hasOrganizationColumn('automation_rules')) {
+            $query->where('organization_id', '=', $organizationId);
+        }
+
+        return $query->update($set) > 0;
     }
 
-    public function deleteRuleByPublicId(string $publicId): bool
+    public function deleteRuleByPublicId(string $publicId, ?int $organizationId = null): bool
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('automation_rules')
-            ->where('public_id', '=', $publicId)
-            ->delete() > 0;
+            ->where('public_id', '=', $publicId);
+
+        if ($organizationId !== null && $organizationId > 0 && $this->hasOrganizationColumn('automation_rules')) {
+            $query->where('organization_id', '=', $organizationId);
+        }
+
+        return $query->delete() > 0;
     }
 
     public function createRun(array $payload): void

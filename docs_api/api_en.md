@@ -59,15 +59,18 @@ Each protected endpoint declares required permissions (for example `task.manage`
 | Users | `user.view`, `user.manage` |
 | Roles | `role.view`, `role.manage` |
 | Teams & departments | `team.manage`, `department.manage` |
-| Projects | `project.manage` |
-| Tasks | `task.manage` |
-| Clients & companies | `client.manage`, `company.manage`, `contact.manage`, `counterparty.manage` |
+| Projects | `project.manage`, `project.view` |
+| Tasks | `task.manage`, `task.view` |
+| Clients & companies | `client.manage`, `client.view`, `company.manage`, `contact.manage`, `counterparty.manage` |
 | Organizations | `organization.manage` |
-| Knowledge | `knowledge.view`, `knowledge.create`, `knowledge.edit`, `knowledge.delete`, `knowledge.publish`, `knowledge.comment`, `knowledge.manage` |
-| Settings | `settings.manage` |
+| Knowledge | `knowledge.view`, `knowledge.create`, `knowledge.edit`, `knowledge.delete`, `knowledge.publish`, `knowledge.comment`, `knowledge.manage`, `knowledge.analytics_view`, `knowledge.template_manage`, `knowledge.permission_manage`, `knowledge.admin`, `knowledge.import` |
+| Settings | `settings.manage`, `settings.view` |
+| Feature flags | `feature_flag.manage` |
 | Webhooks | `webhook.manage` |
 | Logs | `logs.view` |
-| AI | `ai.use`, `ai.admin` |
+| AI | `ai.use`, `ai.admin`, `ai.view_cron_results`, `ai.manage_cron_jobs` |
+| Worklogs | `worklog.view`, `worklog.manage` |
+| Finance | `finance.ratecard.manage`, `finance.rate.manage`, `finance.rate.view_own_payout` |
 | Import / export | `import.manage`, `export.manage` |
 | Approvals | `approval.manage` |
 | Recycle bin | `recycle_bin.manage` |
@@ -208,10 +211,10 @@ To eliminate enum friction across external systems, AI agents, and frontend clie
 | Method | Endpoint | Description | Auth | Permissions | Notes |
 |-------|----------|------------|:---:|-------------|----------|
 | GET | `/api/v1/health/status` | Basic health check | Yes | — | Service status |
-| GET | `/api/v1/health/deep` | Deep health check | Yes | — | Check DB, cache, AI |
+| GET | `/api/v1/health/deep` | Deep health check | Yes (root-only) | — | Check DB, cache, AI |
 | GET | `/api/v1/version` | CRM version (public) | No | — | Current version without auth |
 | GET | `/api/v1/agent-card` | A2A Agent Card manifest | No | — | RFC 8615 A2A protocol discovery card |
-| POST | `/api/v1/mcp` | Model Context Protocol | Yes | — | JSON-RPC for AI agents |
+| POST | `/api/v1/mcp` | Model Context Protocol | Yes (delegated per-tool RBAC) | — | JSON-RPC for AI agents |
 
 ### Core Update
 
@@ -248,7 +251,7 @@ To eliminate enum friction across external systems, AI agents, and frontend clie
 
 | Method | Endpoint | Description | Auth | Permissions | Notes |
 |-------|----------|------------|:---:|-------------|----------|
-| POST | `/api/v1/telemetry/frontend-event` | Frontend event | Yes | — | Client-side telemetry |
+| POST | `/api/v1/telemetry/frontend-event` | Frontend event | Yes | — | External guests allowed |
 | POST | `/api/v1/telemetry/csp-report` | CSP report | No | — | Content Security Policy violations |
 | POST | `/api/v1/telemetry/login-debug` | Login debug log | Yes | `logs.view` | Login debug information |
 
@@ -327,9 +330,9 @@ To eliminate enum friction across external systems, AI agents, and frontend clie
 | GET | `/api/v1/companies/{public_id}` 🔄 | company details | Yes | `company.manage` | — |
 | PATCH, PUT | `/api/v1/companies/{public_id}` 🔄 | Update company | Yes | `company.manage` | — |
 | DELETE | `/api/v1/companies/{public_id}` 🔄 | Delete company | Yes | `company.manage` | — |
-| GET | `/api/v1/clients` 🔄 | List clients | Yes | `client.manage` | — |
+| GET | `/api/v1/clients` 🔄 | List clients | Yes | `client.manage | client.view` | — |
 | POST | `/api/v1/clients` 🔄 | Create client | Yes | `client.manage` | — |
-| GET | `/api/v1/clients/{public_id}` 🔄 | client details | Yes | `client.manage` | — |
+| GET | `/api/v1/clients/{public_id}` 🔄 | client details | Yes | `client.manage | client.view` | — |
 | PATCH, PUT | `/api/v1/clients/{public_id}` 🔄 | Update client | Yes | `client.manage` | — |
 | DELETE | `/api/v1/clients/{public_id}` 🔄 | Delete client | Yes | `client.manage` | — |
 | GET | `/api/v1/counterparties` 🔄 | List counterparties | Yes | `counterparty.manage` | Filter by type, search |
@@ -394,7 +397,7 @@ Beyond permission checks, a hard route allowlist (`external_ok` in `routes.php`,
 
 | Method | Endpoint | Description | Auth | Permissions | Notes |
 |-------|----------|------------|:---:|-------------|----------|
-| GET | `/api/v1/statuses` 🔄 | List statuses | Yes | `task.manage` | Filter by `scope` (task/project) |
+| GET | `/api/v1/statuses` 🔄 | List statuses | Yes | `task.manage` | External executors allowed (worklog_activity codes) |
 | POST | `/api/v1/statuses` 🔄 | Create status | Yes | `task.manage` | Requires `title`, `code` (unique), `scope` (task/project), `color` (HEX) |
 | GET | `/api/v1/statuses/{public_id}` 🔄 | status details | Yes | `task.manage` | — |
 | PATCH, PUT | `/api/v1/statuses/{public_id}` 🔄 | Update status | Yes | `task.manage` | — |
@@ -423,9 +426,9 @@ Beyond permission checks, a hard route allowlist (`external_ok` in `routes.php`,
 
 | Method | Endpoint | Description | Auth | Permissions | Notes |
 |-------|----------|------------|:---:|-------------|----------|
-| GET | `/api/v1/projects` 🔄 | List projects | Yes | `project.manage` | Cursor-based, filters: `status`, `client_public_id`, `q` |
+| GET | `/api/v1/projects` 🔄 | List projects | Yes | `project.manage | project.view` | Cursor-based, filters: `status`, `client_public_id`, `q` |
 | POST | `/api/v1/projects` 🔄 | Create project | Yes | `project.manage` | — |
-| GET | `/api/v1/projects/{public_id}` 🔄 | project details | Yes | `project.manage` | — |
+| GET | `/api/v1/projects/{public_id}` 🔄 | project details | Yes | `project.manage | project.view` | — |
 | PATCH, PUT | `/api/v1/projects/{public_id}` 🔄 | Update project | Yes | `project.manage` | Optimistic locking |
 | DELETE | `/api/v1/projects/{public_id}` 🔄 | Archive project | Yes | `project.manage` | Soft-delete |
 | GET | `/api/v1/projects/{public_id}/timeline` 🔄 | Timeline (Gantt) | Yes | `project.manage` | — |
@@ -441,16 +444,16 @@ Beyond permission checks, a hard route allowlist (`external_ok` in `routes.php`,
 
 | Method | Endpoint | Description | Auth | Permissions | Notes |
 |-------|----------|------------|:---:|-------------|----------|
-| GET | `/api/v1/tasks` 🔄 | List tasks | Yes | `task.manage` | Cursor-based, filters |
+| GET | `/api/v1/tasks` 🔄 | List tasks | Yes | `task.manage | task.view` | Cursor-based, filters |
 | POST | `/api/v1/tasks` 🔄 | Create task | Yes | `task.manage` | — |
 | GET | `/api/v1/tasks/board` 🔄 | Kanban board | Yes | `task.manage` | Grouped by statuses |
 | POST | `/api/v1/tasks/bulk` 🔄 | Bulk update | Yes | `task.manage` | — |
 | GET | `/api/v1/tasks/by-key/{task_key}` | Task by key | Yes | `task.manage` | Human-readable key |
-| GET | `/api/v1/tasks/{public_id}` 🔄 | task details | Yes | `task.manage` | With comments, files, etc. |
+| GET | `/api/v1/tasks/{public_id}` 🔄 | task details | Yes | `task.manage | task.view` | With comments, files, etc. |
 | PATCH, PUT | `/api/v1/tasks/{public_id}` 🔄 | Update task | Yes | `task.manage` | Optimistic locking, `identity_edit_forbidden` |
 | DELETE | `/api/v1/tasks/{public_id}` 🔄 | Delete task (recycle bin) | Yes | `task.manage` | Soft-delete |
 | POST | `/api/v1/tasks/{public_id}/move` 🔄 | Move task on board | Yes | `task.manage` | Body: `to_status_public_id` (or `to_status`) |
-| GET | `/api/v1/tasks/{public_id}/activity` | Task activity | Yes | `task.manage` | Activity feed |
+| GET | `/api/v1/tasks/{public_id}/activity` | Task activity | Yes | `task.manage` | External executors allowed |
 | GET | `/api/v1/tasks/{public_id}/comments` 🔄 | Task comments | Yes | `task.manage` | — |
 | POST | `/api/v1/tasks/{public_id}/comments` 🔄 | Add comment | Yes | `task.manage` | Body: `body` (string, max 8000). Returns the created comment with `public_id` |
 | GET | `/api/v1/tasks/{public_id}/files` | Task files | Yes | `task.manage` | — |
@@ -662,8 +665,8 @@ Beyond permission checks, a hard route allowlist (`external_ok` in `routes.php`,
 
 | Method | Endpoint | Description | Auth | Permissions | Notes |
 |-------|----------|------------|:---:|-------------|----------|
-| GET | `/api/v1/worklogs` 🔄 | List time entries | Yes | `task.manage` | — |
-| POST | `/api/v1/worklogs` 🔄 | Create time entry | Yes | `task.manage` | Requires `task_public_id`, `minutes_spent` (int, minutes), `logged_at` (YYYY-MM-DD), `activity_code` (string) |
+| GET | `/api/v1/worklogs` 🔄 | List time entries | Yes | `task.manage | worklog.view` | — |
+| POST | `/api/v1/worklogs` 🔄 | Create time entry | Yes | `task.manage | worklog.manage` | Requires `task_public_id`, `minutes_spent` (int, minutes), `logged_at` (YYYY-MM-DD), `activity_code` (string) |
 | GET | `/api/v1/worklogs/summary` | Time summary | Yes | `task.manage` | — |
 | GET | `/api/v1/worklogs/earnings` | Time earnings | Yes | `task.manage` | — |
 | GET | `/api/v1/worklogs/matrix` | Time matrix | Yes | `task.manage` | — |
@@ -789,14 +792,14 @@ Price lists (`rate_cards`) define three rate kinds — cost, bill, and payout �
 
 | Method | Endpoint | Description | Auth | Permissions | Notes |
 |-------|----------|------------|:---:|-------------|----------|
-| GET | `/api/v1/settings` 🔄 | List settings | Yes | `settings.manage` | — |
+| GET | `/api/v1/settings` 🔄 | List settings | Yes | `settings.manage | settings.view` | — |
 | GET | `/api/v1/settings/{name}` 🔄 | Setting value | Yes | `settings.manage` | — |
 | POST, PUT, PATCH | `/api/v1/settings/{name}` 🔄 | Set setting | Yes | `settings.manage` | — |
 | GET | `/api/v1/retention/metadata` 🔄 | Retention metadata | Yes | `settings.manage` | — |
 | POST, PUT, PATCH | `/api/v1/retention/metadata` 🔄 | Set retention | Yes | `settings.manage` | — |
 | GET | `/api/v1/feature-flags` 🔄 | List feature flags | Yes | `feature_flag.manage` | — |
 | PATCH, PUT | `/api/v1/feature-flags/{public_id}` 🔄 | Update feature flag | Yes | `feature_flag.manage` | — |
-| GET | `/api/v1/settings/public` | Public settings | Yes | `task.manage` | — |
+| GET | `/api/v1/settings/public` | Public settings | Yes | `task.manage` | External executors allowed |
 
 ### Custom Fields
 
@@ -974,8 +977,8 @@ TropaTT implements a unified webhook protocol for outbound CRM events and extern
 | GET | `/api/v1/knowledge/templates` | Page templates | Yes | `knowledge.view` | — |
 | POST | `/api/v1/knowledge/templates` | Create template | Yes | `knowledge.template_manage` | — |
 | GET | `/api/v1/knowledge/entities/{entity_type}/{entity_public_id}/pages` | Entity pages | Yes | `knowledge.view` | — |
-| GET | `/api/v1/knowledge/client-page/{public_id}` | Client published page | Yes | — | Client-shared page |
-| GET | `/api/v1/knowledge/project/{project_public_id}/client-pages` | Project client pages | Yes | — | Client-shared pages for project |
+| GET | `/api/v1/knowledge/client-page/{public_id}` | Client published page | Yes | — | External users allowed |
+| GET | `/api/v1/knowledge/project/{project_public_id}/client-pages` | Project client pages | Yes | — | External users allowed |
 | GET | `/api/v1/knowledge/team-materials-counts` | Team materials count | Yes | `knowledge.view` | — |
 | GET | `/api/v1/knowledge/entities/{entity_type}/{entity_public_id}/team-pages` | Entity team pages | Yes | `knowledge.view` | — |
 | GET | `/api/v1/knowledge/pages/{public_id}/permissions` | Page permissions | Yes | `knowledge.permission_manage` | — |

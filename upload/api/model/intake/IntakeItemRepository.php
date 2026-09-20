@@ -252,10 +252,9 @@ final class IntakeItemRepository
         return $counts;
     }
 
-    public function findByPublicId(string $publicId): ?array
+    public function findByPublicId(string $publicId, ?int $organizationId = null): ?array
     {
-        $stmt = $this->db->prepare(
-            "SELECT ii.*,
+        $sql = "SELECT ii.*,
                 p.public_id AS project_public_id, p.title AS project_title,
                 cl.public_id AS client_public_id, cl.title AS client_name,
                 co.public_id AS contact_public_id, co.full_name AS contact_name,
@@ -273,9 +272,14 @@ final class IntakeItemRepository
             LEFT JOIN tasks accepted_task ON accepted_task.id = ii.accepted_task_id AND accepted_task.deleted_at IS NULL
             LEFT JOIN intake_items dii ON dii.id = ii.duplicate_intake_item_id AND dii.deleted_at IS NULL
             LEFT JOIN tasks dt ON dt.id = ii.duplicate_task_id AND dt.deleted_at IS NULL
-            WHERE ii.public_id = :public_id"
-        );
-        $stmt->execute(['public_id' => $publicId]);
+            WHERE ii.public_id = :public_id";
+        $params = ['public_id' => $publicId];
+        if ($organizationId !== null && $organizationId > 0) {
+            $sql .= " AND ii.organization_id = :organization_id";
+            $params['organization_id'] = $organizationId;
+        }
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$row) {
             return null;
@@ -311,7 +315,7 @@ final class IntakeItemRepository
                 status, priority_code,
                 source_type, source_ref, source_email, external_source, external_id, extra_json,
                 due_at, snoozed_until,
-                assignee_user_id, creator_user_id,
+                assignee_user_id, creator_user_id, organization_id,
                 row_version, created_at, updated_at
             ) VALUES (
                 :public_id, :project_id, :client_id, :contact_id,
@@ -319,7 +323,7 @@ final class IntakeItemRepository
                 :status, :priority_code,
                 :source_type, :source_ref, :source_email, :external_source, :external_id, :extra_json,
                 :due_at, :snoozed_until,
-                :assignee_user_id, :creator_user_id,
+                :assignee_user_id, :creator_user_id, :organization_id,
                 1, :created_at, :updated_at
             )"
         );
@@ -343,6 +347,7 @@ final class IntakeItemRepository
             'snoozed_until' => $data['snoozed_until'] ?? null,
             'assignee_user_id' => $data['assignee_user_id'] ?? null,
             'creator_user_id' => $data['creator_user_id'],
+            'organization_id' => $data['organization_id'] ?? null,
             'created_at' => $data['created_at'] ?? gmdate('Y-m-d H:i:s'),
             'updated_at' => $data['updated_at'] ?? gmdate('Y-m-d H:i:s'),
         ]);
@@ -350,7 +355,7 @@ final class IntakeItemRepository
         return $this->findByPublicId($data['public_id']) ?? $data;
     }
 
-    public function updateByPublicId(string $publicId, array $set): bool
+    public function updateByPublicId(string $publicId, array $set, ?int $organizationId = null): bool
     {
         if ($set === []) {
             return false;
@@ -367,23 +372,31 @@ final class IntakeItemRepository
         $fields[] = "updated_at = :updated_at";
 
         $sql = "UPDATE intake_items SET " . implode(', ', $fields) . " WHERE public_id = :public_id";
-        $stmt = $this->db->prepare($sql);
         $params = $set;
         $params['public_id'] = $publicId;
+        if ($organizationId !== null && $organizationId > 0) {
+            $sql .= " AND organization_id = :organization_id";
+            $params['organization_id'] = $organizationId;
+        }
+        $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
         return $stmt->rowCount() > 0;
     }
 
-    public function softDeleteByPublicId(string $publicId, string $deletedAt): bool
+    public function softDeleteByPublicId(string $publicId, string $deletedAt, ?int $organizationId = null): bool
     {
-        $stmt = $this->db->prepare(
-            "UPDATE intake_items SET deleted_at = :deleted_at, updated_at = :updated_at WHERE public_id = :public_id AND deleted_at IS NULL"
-        );
-        $stmt->execute([
+        $sql = "UPDATE intake_items SET deleted_at = :deleted_at, updated_at = :updated_at WHERE public_id = :public_id AND deleted_at IS NULL";
+        $params = [
             'deleted_at' => $deletedAt,
             'updated_at' => $deletedAt,
             'public_id' => $publicId,
-        ]);
+        ];
+        if ($organizationId !== null && $organizationId > 0) {
+            $sql .= " AND organization_id = :organization_id";
+            $params['organization_id'] = $organizationId;
+        }
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
         return $stmt->rowCount() > 0;
     }
 

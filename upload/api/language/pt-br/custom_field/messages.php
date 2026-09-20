@@ -6,6 +6,7 @@ return [
     'updated' => 'Campo personalizado atualizado',
     'deleted' => 'Campo personalizado excluído',
     'not_found' => 'Campo personalizado não encontrado',
+    'entity_not_found' => 'Entidade não encontrada',
     'code_exists' => 'Código do campo já existe no escopo',
     'invalid_scope' => 'Escopo inválido',
     'invalid_type' => 'Tipo de campo inválido',

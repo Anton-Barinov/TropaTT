@@ -138,6 +138,10 @@ final class FileController extends BaseController
         if (!$authUser) {
             return ['error' => 'UNAUTHORIZED'];
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return ['error' => 'ORGANIZATION_CONTEXT_NOT_FOUND'];
+        }
         $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var FileService $service */

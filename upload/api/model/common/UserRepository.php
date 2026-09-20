@@ -63,6 +63,33 @@ final class UserRepository
     }
 
     /**
+     * Org-scoped variant of findByPublicId(): resolves a user by public_id
+     * only when they belong to the given organization (via
+     * organization_memberships). Mirrors
+     * TeamRepository::userIdInOrganization() to close the same class of
+     * cross-org IDOR for a *_public_id-based lookup: naming another
+     * organization's user must never resolve, e.g. ApprovalService::create()
+     * naming a reviewer (TROPATTCRM-557 — see approval_org_scope_unit.php).
+     * $organizationId === null (or <= 0) skips the membership filter, for
+     * root actors operating outside any single organization.
+     */
+    public function findByPublicIdInOrganization(string $publicId, ?int $organizationId): ?array
+    {
+        $query = (new QueryBuilder($this->pdo))
+            ->from('users u')
+            ->select(['u.id', 'u.public_id', 'u.login', 'u.full_name', 'u.is_active', 'u.is_external', 'u.external_role', 'u.deleted_at'])
+            ->where('u.public_id', '=', $publicId);
+
+        if ($organizationId !== null && $organizationId > 0) {
+            $query->join('organization_memberships om', 'om.user_id', '=', 'u.id')
+                ->where('om.organization_id', '=', $organizationId);
+        }
+
+        $row = $query->first();
+        return $row ?: null;
+    }
+
+    /**
      * Find administrator users: root flag OR an admin-family role code
      * (admin/administrator/super_admin/super_administrator/root).
      * Used by the key-guard notification path; explicit columns only.

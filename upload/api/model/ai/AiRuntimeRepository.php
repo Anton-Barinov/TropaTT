@@ -622,6 +622,15 @@ final class AiRuntimeRepository
             $query->where('is_sensitive_context', '=', (int)((bool)$filters['is_sensitive_context']));
         }
 
+        if (array_key_exists('organization_id', $filters)) {
+            $organizationId = (int)$filters['organization_id'];
+            if ($organizationId > 0) {
+                $query->where('organization_id', '=', $organizationId);
+            } else {
+                $query->whereNull('organization_id');
+            }
+        }
+
         return $query;
     }
 

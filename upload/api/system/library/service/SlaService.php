@@ -12,8 +12,18 @@ final class SlaService
     {
     }
 
-    public function list(array $filters): array
+    private function organizationId(array $actor): ?int
     {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
+    }
+
+    public function list(array $filters, array $actor = []): array
+    {
+        $orgId = $this->organizationId($actor);
+        if ($orgId !== null) {
+            $filters['organization_id'] = $orgId;
+        }
         [$items, $total, $page, $limit] = $this->sla->list($filters);
         $items = array_map([$this, 'normalizePolicy'], $items);
 
@@ -30,7 +40,7 @@ final class SlaService
         ];
     }
 
-    public function create(array $input): array
+    public function create(array $input, array $actor = []): array
     {
         $publicId = Ulid::generate('sla');
         $now = gmdate('Y-m-d H:i:s');
@@ -41,16 +51,17 @@ final class SlaService
             'response_minutes' => max(1, (int)$input['response_minutes']),
             'resolve_minutes' => max(1, (int)$input['resolve_minutes']),
             'escalation_payload' => $this->encodePayload($input['escalation_payload'] ?? []),
+            'organization_id' => $this->organizationId($actor),
             'created_at' => $now,
             'updated_at' => $now,
         ]);
 
-        return $this->get($publicId) ?? ['public_id' => $publicId];
+        return $this->get($publicId, $actor) ?? ['public_id' => $publicId];
     }
 
-    public function get(string $publicId): ?array
+    public function get(string $publicId, array $actor = []): ?array
     {
-        $item = $this->sla->findByPublicId($publicId);
+        $item = $this->sla->findByPublicId($publicId, $this->organizationId($actor));
         if (!$item) {
             return null;
         }
@@ -58,9 +69,10 @@ final class SlaService
         return $this->normalizePolicy($item);
     }
 
-    public function update(string $publicId, array $input): ?array
+    public function update(string $publicId, array $input, array $actor = []): ?array
     {
-        $existing = $this->sla->findByPublicId($publicId);
+        $orgId = $this->organizationId($actor);
+        $existing = $this->sla->findByPublicId($publicId, $orgId);
         if (!$existing) {
             return null;
         }
@@ -79,18 +91,18 @@ final class SlaService
             $set['escalation_payload'] = $this->encodePayload($input['escalation_payload']);
         }
 
-        $this->sla->updateByPublicId($publicId, $set);
-        return $this->get($publicId);
+        $this->sla->updateByPublicId($publicId, $set, $orgId);
+        return $this->get($publicId, $actor);
     }
 
-    public function delete(string $publicId): bool
+    public function delete(string $publicId, array $actor = []): bool
     {
-        return $this->sla->deleteByPublicId($publicId);
+        return $this->sla->deleteByPublicId($publicId, $this->organizationId($actor));
     }
 
-    public function report(): array
+    public function report(array $actor = []): array
     {
-        return $this->sla->reportSummary();
+        return $this->sla->reportSummary($this->organizationId($actor));
     }
 
     private function encodePayload(mixed $payload): string
@@ -109,12 +121,13 @@ final class SlaService
         return $item;
     }
 
-    public function assignToTask(string $taskPublicId, string $slaPublicId): ?array
+    public function assignToTask(string $taskPublicId, string $slaPublicId, array $actor = []): ?array
     {
-        $policy = $this->sla->findByPublicId($slaPublicId);
+        $orgId = $this->organizationId($actor);
+        $policy = $this->sla->findByPublicId($slaPublicId, $orgId);
         if (!$policy) return null;
 
-        $task = $this->sla->findTaskByPublicId($taskPublicId);
+        $task = $this->sla->findTaskByPublicId($taskPublicId, $orgId);
         if (!$task) return null;
 
         $now = date('Y-m-d H:i:s');

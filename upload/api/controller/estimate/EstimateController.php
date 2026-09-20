@@ -16,6 +16,7 @@ final class EstimateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         /** @var TaskEstimateService $service */
@@ -37,6 +38,7 @@ final class EstimateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         /** @var TaskEstimateService $service */
@@ -66,6 +68,7 @@ final class EstimateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var TaskEstimateService $service */
         $service = $this->container->get('service.task_estimate');
@@ -88,6 +91,7 @@ final class EstimateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         /** @var TaskEstimateService $service */
@@ -121,6 +125,7 @@ final class EstimateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var TaskEstimateService $service */
         $service = $this->container->get('service.task_estimate');
@@ -139,6 +144,7 @@ final class EstimateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var TaskEstimateService $service */
         $service = $this->container->get('service.task_estimate');
@@ -159,6 +165,7 @@ final class EstimateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $filters = $this->request()->allInput();
         /** @var TaskEstimateService $service */
@@ -180,6 +187,7 @@ final class EstimateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         /** @var TaskEstimateService $service */
@@ -210,6 +218,7 @@ final class EstimateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         /** @var TaskEstimateService $service */
@@ -239,6 +248,7 @@ final class EstimateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var TaskEstimateService $service */
         $service = $this->container->get('service.task_estimate');
@@ -257,6 +267,7 @@ final class EstimateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var TaskEstimateService $service */
         $service = $this->container->get('service.task_estimate');
@@ -277,6 +288,7 @@ final class EstimateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var TaskEstimateService $service */
         $service = $this->container->get('service.task_estimate');
@@ -297,6 +309,7 @@ final class EstimateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         /** @var TaskEstimateService $service */
@@ -327,6 +340,7 @@ final class EstimateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var TaskEstimateService $service */
         $service = $this->container->get('service.task_estimate');
@@ -347,6 +361,7 @@ final class EstimateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $filters = $this->request()->allInput();
         /** @var TaskEstimateService $service */
@@ -368,6 +383,7 @@ final class EstimateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $filters = $this->request()->allInput();
         /** @var TaskEstimateService $service */
@@ -389,6 +405,7 @@ final class EstimateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $filters = $this->request()->allInput();
         /** @var TaskEstimateService $service */

@@ -18,7 +18,7 @@ final class RecurringController extends BaseController
 
         /** @var RecurringService $service */
         $service = $this->container->get('service.recurring');
-        $result = $service->list($this->request()->allInput(), (int)($authUser['user']['id'] ?? 0));
+        $result = $service->list($this->request()->allInput(), (int)($authUser['user']['id'] ?? 0), $this->organizationId($authUser));
 
         return $this->success('RECURRING_LIST', $this->t('recurring/messages.list'), [
             'items' => $result['items'],
@@ -54,7 +54,7 @@ final class RecurringController extends BaseController
             ]);
         }
         try {
-            $item = $service->create($input, (int)($authUser['user']['id'] ?? 0));
+            $item = $service->create($input, (int)($authUser['user']['id'] ?? 0), $this->organizationId($authUser));
         } catch (\RuntimeException $e) {
             if ($e->getMessage() === 'RECURRING_ENTITY_FORBIDDEN') {
                 return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
@@ -76,7 +76,7 @@ final class RecurringController extends BaseController
 
         /** @var RecurringService $service */
         $service = $this->container->get('service.recurring');
-        $item = $service->get((string)$params['public_id'], (int)($authUser['user']['id'] ?? 0));
+        $item = $service->get((string)$params['public_id'], (int)($authUser['user']['id'] ?? 0), $this->organizationId($authUser));
         if (!$item) {
             return $this->error('RECURRING_NOT_FOUND', $this->t('recurring/messages.not_found'), 404);
         }
@@ -111,7 +111,7 @@ final class RecurringController extends BaseController
             ]);
         }
         try {
-            $item = $service->update((string)$params['public_id'], $input, (int)($authUser['user']['id'] ?? 0));
+            $item = $service->update((string)$params['public_id'], $input, (int)($authUser['user']['id'] ?? 0), $this->organizationId($authUser));
         } catch (\RuntimeException $e) {
             if ($e->getMessage() === 'RECURRING_ENTITY_FORBIDDEN') {
                 return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
@@ -146,7 +146,7 @@ final class RecurringController extends BaseController
 
         /** @var RecurringService $service */
         $service = $this->container->get('service.recurring');
-        $ok = $service->delete((string)$params['public_id'], (int)($authUser['user']['id'] ?? 0));
+        $ok = $service->delete((string)$params['public_id'], (int)($authUser['user']['id'] ?? 0), $this->organizationId($authUser));
         if (!$ok) {
             return $this->error('RECURRING_NOT_FOUND', $this->t('recurring/messages.not_found'), 404);
         }
@@ -174,8 +174,8 @@ final class RecurringController extends BaseController
         /** @var RecurringService $service */
         $service = $this->container->get('service.recurring');
         $item = $active
-            ? $service->resume($publicId, (int)($authUser['user']['id'] ?? 0))
-            : $service->pause($publicId, (int)($authUser['user']['id'] ?? 0));
+            ? $service->resume($publicId, (int)($authUser['user']['id'] ?? 0), $this->organizationId($authUser))
+            : $service->pause($publicId, (int)($authUser['user']['id'] ?? 0), $this->organizationId($authUser));
         if (!$item) {
             return $this->error('RECURRING_NOT_FOUND', $this->t('recurring/messages.not_found'), 404);
         }
@@ -187,5 +187,11 @@ final class RecurringController extends BaseController
                 : $this->t('recurring/messages.paused'),
             ['rule' => $item]
         );
+    }
+
+    private function organizationId(array $authUser): ?int
+    {
+        $id = (int)($authUser['user']['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
     }
 }

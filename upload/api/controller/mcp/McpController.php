@@ -5165,6 +5165,13 @@ $tools[] = $this->tool(
 
     private function crmGetFrontendErrorsChart(array $arguments): array
     {
+        // TROPATTCRM-556: backed by the system-wide security_logs table (no
+        // organization_id); the equivalent REST endpoint
+        // (LogsController::frontendErrorChart) is root-only, so this MCP
+        // tool is restricted the same way.
+        if (!$this->isRootActor()) {
+            return ['error' => 'FORBIDDEN: root/platform access required for system-wide log data.'];
+        }
         /** @var LogsService $service */
         $service = $this->container->get('service.logs');
         return $this->publicData($service->frontendErrorChart($this->pick($arguments, ['hours', 'from', 'to'])));
@@ -5865,9 +5872,15 @@ $tools[] = $this->tool(
 
     private function crmListAiAudit(array $arguments): array
     {
+        // TROPATTCRM-556: the underlying audit_logs table is system-wide
+        // (no organization_id), so this MCP tool is restricted to
+        // root/platform actors only.
+        if (!$this->isRootActor()) {
+            return ['error' => 'FORBIDDEN: root/platform access required for system-wide AI audit log data.'];
+        }
         /** @var AiUsageService $service */
         $service = $this->container->get('service.ai_usage');
-        return $this->publicData($service->auditList($this->aiUsageFilters($arguments)));
+        return $this->publicData($service->auditList($this->aiUsageFilters($arguments), $this->actor()));
     }
 
     private function crmListAiJobs(array $arguments): array
@@ -7122,6 +7135,12 @@ $tools[] = $this->tool(
 
     private function crmListAuditLog(array $arguments): array
     {
+        // TROPATTCRM-556: audit_logs is system-wide (no organization_id),
+        // so this MCP tool is restricted to root/platform actors only —
+        // an org-scoped actor gets an explicit error, not cross-tenant rows.
+        if (!$this->isRootActor()) {
+            return ['error' => 'FORBIDDEN: root/platform access required for system-wide audit log data.'];
+        }
         /** @var LogsService $service */
         $service = $this->container->get('service.logs');
         return $this->publicData($service->auditList($this->filters($arguments, 50, 100)));
@@ -7129,6 +7148,11 @@ $tools[] = $this->tool(
 
     private function crmListSecurityLog(array $arguments): array
     {
+        // TROPATTCRM-556: security_logs is system-wide (no organization_id),
+        // so this MCP tool is restricted to root/platform actors only.
+        if (!$this->isRootActor()) {
+            return ['error' => 'FORBIDDEN: root/platform access required for system-wide security log data.'];
+        }
         /** @var LogsService $service */
         $service = $this->container->get('service.logs');
         return $this->publicData($service->securityList($this->filters($arguments, 50, 100)));
@@ -7170,7 +7194,7 @@ $tools[] = $this->tool(
     {
         /** @var WebhookService $service */
         $service = $this->container->get('service.webhook');
-        return $this->publicData($service->listSubscriptions($this->filters($arguments, 50, 100)));
+        return $this->publicData($service->listSubscriptions($this->filters($arguments, 50, 100), $this->actor()));
     }
 
     private function crmListWebhookDeliveries(array $arguments): array
@@ -7182,7 +7206,7 @@ $tools[] = $this->tool(
 
         /** @var WebhookService $service */
         $service = $this->container->get('service.webhook');
-        return $this->publicData($service->listDeliveries($filters));
+        return $this->publicData($service->listDeliveries($filters, $this->actor()));
     }
 
     private function crmListModules(): array
@@ -8329,7 +8353,7 @@ $tools[] = $this->tool(
         }
         /** @var StickyNoteService $service */
         $service = $this->container->get('service.sticky_note');
-        $result = $service->delete($publicId, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false));
+        $result = $service->delete($publicId, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false), $this->actor());
         return isset($result['error']) ? $result : ['deleted' => true];
     }
 
@@ -8551,6 +8575,11 @@ $tools[] = $this->tool(
 
     private function crmListRequestLogs(array $arguments): array
     {
+        // TROPATTCRM-556: request_logs is system-wide (no organization_id),
+        // so this MCP tool is restricted to root/platform actors only.
+        if (!$this->isRootActor()) {
+            return ['error' => 'FORBIDDEN: root/platform access required for system-wide request log data.'];
+        }
         $filters = [
             'limit' => max(1, min(100, (int)($arguments['limit'] ?? 50))),
             'page' => max(1, (int)($arguments['page'] ?? 1)),
@@ -8596,7 +8625,7 @@ $tools[] = $this->tool(
         }
         /** @var StickyNoteService $service */
         $service = $this->container->get('service.sticky_note');
-        $result = $service->convertToTask($publicId, $payload, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false));
+        $result = $service->convertToTask($publicId, $payload, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false), $this->actor());
         return isset($result['error']) ? $result : ['task' => $result['task'] ?? null];
     }
 
@@ -8612,7 +8641,7 @@ $tools[] = $this->tool(
         }
         /** @var StickyNoteService $service */
         $service = $this->container->get('service.sticky_note');
-        $result = $service->convertToKnowledgePage($publicId, $payload, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false));
+        $result = $service->convertToKnowledgePage($publicId, $payload, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false), $this->actor());
         return isset($result['error']) ? $result : ['page' => $result['page'] ?? null];
     }
 
@@ -8624,7 +8653,7 @@ $tools[] = $this->tool(
         }
         /** @var StickyNoteService $service */
         $service = $this->container->get('service.sticky_note');
-        $result = $service->reorder($items, (int)($this->actor()['id'] ?? 0));
+        $result = $service->reorder($items, (int)($this->actor()['id'] ?? 0), $this->actor());
         return isset($result['error']) ? $result : ['ok' => true];
     }
 
@@ -10637,7 +10666,8 @@ $tools[] = $this->tool(
         if (!$this->knowledge()->page($publicId, $this->actor(), 'edit')) {
             return ['error' => 'Knowledge page not found.'];
         }
-        $tag = $this->tagRepo()->findByPublicId($tagPublicId);
+        $organizationId = (int)($this->actor()['organization_id'] ?? 0);
+        $tag = $this->tagRepo()->findByPublicId($tagPublicId, $organizationId > 0 ? $organizationId : null);
         if (!$tag) {
             return ['error' => 'Tag not found.'];
         }
@@ -10656,7 +10686,8 @@ $tools[] = $this->tool(
         if (!$this->knowledge()->page($publicId, $this->actor(), 'edit')) {
             return ['error' => 'Knowledge page not found.'];
         }
-        $tag = $this->tagRepo()->findByPublicId($tagPublicId);
+        $organizationId = (int)($this->actor()['organization_id'] ?? 0);
+        $tag = $this->tagRepo()->findByPublicId($tagPublicId, $organizationId > 0 ? $organizationId : null);
         if (!$tag) {
             return ['error' => 'Tag not found.'];
         }
@@ -11624,7 +11655,7 @@ $tools[] = $this->tool(
     {
         /** @var StickyNoteService $service */
         $service = $this->container->get('service.sticky_note');
-        return $this->publicData($service->list($this->stickyNoteFilters($arguments), (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false)));
+        return $this->publicData($service->list($this->stickyNoteFilters($arguments), (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false), $this->actor()));
     }
 
     private function crmGetStickyNote(array $arguments): array
@@ -11636,7 +11667,7 @@ $tools[] = $this->tool(
 
         /** @var StickyNoteService $service */
         $service = $this->container->get('service.sticky_note');
-        $item = $service->get($publicId, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false));
+        $item = $service->get($publicId, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false), $this->actor());
         return isset($item['error']) ? ['error' => (string)$item['error']] : ['sticky_note' => $this->publicData($item)];
     }
 
@@ -11648,7 +11679,7 @@ $tools[] = $this->tool(
 
         /** @var StickyNoteService $service */
         $service = $this->container->get('service.sticky_note');
-        $item = $service->create($this->stickyNoteInput($arguments), (int)($this->actor()['id'] ?? 0));
+        $item = $service->create($this->stickyNoteInput($arguments), (int)($this->actor()['id'] ?? 0), $this->actor());
         return isset($item['error']) ? ['error' => (string)$item['error'], 'details' => $item['errors'] ?? null] : ['sticky_note' => $this->publicData($item)];
     }
 
@@ -11661,7 +11692,7 @@ $tools[] = $this->tool(
 
         /** @var StickyNoteService $service */
         $service = $this->container->get('service.sticky_note');
-        $item = $service->update($publicId, $this->stickyNoteInput($arguments), (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false));
+        $item = $service->update($publicId, $this->stickyNoteInput($arguments), (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false), $this->actor());
         return isset($item['error']) ? ['error' => (string)$item['error'], 'details' => $item['errors'] ?? null] : ['sticky_note' => $this->publicData($item)];
     }
 
@@ -11675,8 +11706,8 @@ $tools[] = $this->tool(
         /** @var StickyNoteService $service */
         $service = $this->container->get('service.sticky_note');
         $result = $archived
-            ? $service->archive($publicId, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false))
-            : $service->unarchive($publicId, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false));
+            ? $service->archive($publicId, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false), $this->actor())
+            : $service->unarchive($publicId, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false), $this->actor());
 
         return isset($result['error']) ? ['error' => (string)$result['error']] : $this->publicData($result);
     }
@@ -11923,7 +11954,12 @@ $tools[] = $this->tool(
 
         /** @var CustomFieldService $service */
         $service = $this->container->get('service.custom_field');
-        return ['items' => $this->publicData($service->values($entityType, $entityPublicId))];
+        $items = $service->values($entityType, $entityPublicId, $this->actor());
+        if ($items === 'ENTITY_NOT_FOUND') {
+            return ['error' => 'Entity not found.'];
+        }
+
+        return ['items' => $this->publicData($items)];
     }
 
     private function crmSetCustomFieldValues(array $arguments): array
@@ -12236,7 +12272,7 @@ $tools[] = $this->tool(
     {
         /** @var TagService $service */
         $service = $this->container->get('service.tag');
-        return $this->publicData($service->list($this->tagFilters($arguments)));
+        return $this->publicData($service->list($this->tagFilters($arguments), $this->actor()));
     }
 
     private function crmGetTag(array $arguments): array
@@ -12248,7 +12284,7 @@ $tools[] = $this->tool(
 
         /** @var TagService $service */
         $service = $this->container->get('service.tag');
-        $tag = $service->get($publicId);
+        $tag = $service->get($publicId, $this->actor());
         return $tag ? ['tag' => $this->publicData($tag)] : ['error' => 'Tag not found.'];
     }
 
@@ -14454,6 +14490,18 @@ $tools[] = $this->tool(
         }
 
         return false;
+    }
+
+    /**
+     * TROPATTCRM-556: true only for root/platform-level actors. Used to gate
+     * MCP tools that read the system-wide logs/audit tables (no
+     * organization_id column, no per-tenant ownership model), so an
+     * org-scoped actor — even one holding an org-assignable permission like
+     * `logs.view` or `settings.manage` — cannot read cross-tenant log data.
+     */
+    private function isRootActor(): bool
+    {
+        return (bool)($this->actor()['is_root'] ?? false);
     }
 
     private function actor(): array

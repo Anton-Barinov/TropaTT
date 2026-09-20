@@ -57,15 +57,18 @@ Authorization: Bearer <token>
 | 用户 | `user.view`、`user.manage` |
 | 角色 | `role.view`、`role.manage` |
 | 团队与部门 | `team.manage`、`department.manage` |
-| 项目 | `project.manage` |
-| 任务 | `task.manage` |
-| 客户与公司 | `client.manage`、`company.manage`、`contact.manage`、`counterparty.manage` |
+| 项目 | `project.manage`、`project.view` |
+| 任务 | `task.manage`、`task.view` |
+| 客户与公司 | `client.manage`、`client.view`、`company.manage`、`contact.manage`、`counterparty.manage` |
 | 组织 | `organization.manage` |
-| 知识 | `knowledge.view`、`knowledge.create`、`knowledge.edit`、`knowledge.delete`、`knowledge.publish`、`knowledge.comment`、`knowledge.manage` |
-| 设置 | `settings.manage` |
+| 知识 | `knowledge.view`、`knowledge.create`、`knowledge.edit`、`knowledge.delete`、`knowledge.publish`、`knowledge.comment`、`knowledge.manage`、`knowledge.analytics_view`、`knowledge.template_manage`、`knowledge.permission_manage`、`knowledge.admin`、`knowledge.import` |
+| 设置 | `settings.manage`、`settings.view` |
 | Webhook | `webhook.manage` |
 | 日志 | `logs.view` |
-| AI | `ai.use`、`ai.admin` |
+| AI | `ai.use`、`ai.admin`、`ai.view_cron_results`、`ai.manage_cron_jobs` |
+| 工时记录 | `worklog.view`、`worklog.manage` |
+| 功能标志 | `feature_flag.manage` |
+| 财务 | `finance.ratecard.manage`、`finance.rate.manage`、`finance.rate.view_own_payout` |
 | 导入 / 导出 | `import.manage`、`export.manage` |
 | 审批 | `approval.manage` |
 | 回收站 | `recycle_bin.manage` |
@@ -205,10 +208,10 @@ Authorization: Bearer <token>
 | 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
 |-------|----------|------------|:---:|-------------|----------|
 | GET | `/api/v1/health/status` | 基本健康检查 | 是 | — | 服务状态 |
-| GET | `/api/v1/health/deep` | 深度健康检查 | 是 | — | 检查数据库、缓存、AI |
+| GET | `/api/v1/health/deep` | 深度健康检查 | 是（仅root） | — | 检查数据库、缓存、AI |
 | GET | `/api/v1/version` | CRM 版本（公开） | 否 | — | 无需认证的当前版本 |
 | GET | `/api/v1/agent-card` | A2A Agent Card 清单 | 否 | — | RFC 8615 代理协议发现卡片 |
-| POST | `/api/v1/mcp` | Model Context Protocol | 是 | — | 面向 AI 代理的 JSON-RPC |
+| POST | `/api/v1/mcp` | Model Context Protocol | 是（按工具委托RBAC） | — | 面向 AI 代理的 JSON-RPC |
 
 ### 核心更新
 
@@ -245,7 +248,7 @@ Authorization: Bearer <token>
 
 | 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
 |-------|----------|------------|:---:|-------------|----------|
-| POST | `/api/v1/telemetry/frontend-event` | 前端事件 | 是 | — | 客户端遥测 |
+| POST | `/api/v1/telemetry/frontend-event` | 前端事件 | 是 | — | 允许外部访客；客户端遥测 |
 | POST | `/api/v1/telemetry/csp-report` | CSP 报告 | 否 | — | Content Security Policy 违规 |
 | POST | `/api/v1/telemetry/login-debug` | 登录调试日志 | 是 | `logs.view` | 登录调试信息 |
 
@@ -321,9 +324,9 @@ Authorization: Bearer <token>
 | GET | `/api/v1/companies/{public_id}` 🔄 | 公司详情 | 是 | `company.manage` | — |
 | PATCH, PUT | `/api/v1/companies/{public_id}` 🔄 | 更新公司 | 是 | `company.manage` | — |
 | DELETE | `/api/v1/companies/{public_id}` 🔄 | 删除公司 | 是 | `company.manage` | — |
-| GET | `/api/v1/clients` 🔄 | 客户列表 | 是 | `client.manage` | — |
+| GET | `/api/v1/clients` 🔄 | 客户列表 | 是 | `client.manage | client.view` | — |
 | POST | `/api/v1/clients` 🔄 | 创建客户 | 是 | `client.manage` | — |
-| GET | `/api/v1/clients/{public_id}` 🔄 | 客户详情 | 是 | `client.manage` | — |
+| GET | `/api/v1/clients/{public_id}` 🔄 | 客户详情 | 是 | `client.manage | client.view` | — |
 | PATCH, PUT | `/api/v1/clients/{public_id}` 🔄 | 更新客户 | 是 | `client.manage` | — |
 | DELETE | `/api/v1/clients/{public_id}` 🔄 | 删除客户 | 是 | `client.manage` | — |
 | GET | `/api/v1/counterparties` 🔄 | 交易方列表 | 是 | `counterparty.manage` | 按类型、搜索过滤 |
@@ -388,7 +391,7 @@ Authorization: Bearer <token>
 
 | 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
 |-------|----------|------------|:---:|-------------|----------|
-| GET | `/api/v1/statuses` 🔄 | 状态列表 | 是 | `task.manage` | 按 `scope`（task/project）过滤 |
+| GET | `/api/v1/statuses` 🔄 | 状态列表 | 是 | `task.manage` | 允许外部执行者访问（工时活动代码） |
 | POST | `/api/v1/statuses` 🔄 | 创建状态 | 是 | `task.manage` | 需要 `title`、`code`（唯一）、`scope`（task/project）、`color`（HEX） |
 | GET | `/api/v1/statuses/{public_id}` 🔄 | 状态详情 | 是 | `task.manage` | — |
 | PATCH, PUT | `/api/v1/statuses/{public_id}` 🔄 | 更新状态 | 是 | `task.manage` | — |
@@ -417,9 +420,9 @@ Authorization: Bearer <token>
 
 | 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
 |-------|----------|------------|:---:|-------------|----------|
-| GET | `/api/v1/projects` 🔄 | 项目列表 | 是 | `project.manage` | 基于游标，过滤器：`status`、`client_public_id`、`q` |
+| GET | `/api/v1/projects` 🔄 | 项目列表 | 是 | `project.manage | project.view` | 基于游标，过滤器：`status`、`client_public_id`、`q` |
 | POST | `/api/v1/projects` 🔄 | 创建项目 | 是 | `project.manage` | — |
-| GET | `/api/v1/projects/{public_id}` 🔄 | 项目详情 | 是 | `project.manage` | — |
+| GET | `/api/v1/projects/{public_id}` 🔄 | 项目详情 | 是 | `project.manage | project.view` | — |
 | PATCH, PUT | `/api/v1/projects/{public_id}` 🔄 | 更新项目 | 是 | `project.manage` | 乐观锁 |
 | DELETE | `/api/v1/projects/{public_id}` 🔄 | 归档项目 | 是 | `project.manage` | 软删除 |
 | GET | `/api/v1/projects/{public_id}/timeline` 🔄 | 时间线（甘特图） | 是 | `project.manage` | — |
@@ -432,16 +435,16 @@ Authorization: Bearer <token>
 
 | 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
 |-------|----------|------------|:---:|-------------|----------|
-| GET | `/api/v1/tasks` 🔄 | 任务列表 | 是 | `task.manage` | 基于游标，带过滤器 |
+| GET | `/api/v1/tasks` 🔄 | 任务列表 | 是 | `task.manage | task.view` | 基于游标，带过滤器 |
 | POST | `/api/v1/tasks` 🔄 | 创建任务 | 是 | `task.manage` | — |
 | GET | `/api/v1/tasks/board` 🔄 | 看板 | 是 | `task.manage` | 按状态分组 |
 | POST | `/api/v1/tasks/bulk` 🔄 | 批量更新 | 是 | `task.manage` | — |
 | GET | `/api/v1/tasks/by-key/{task_key}` | 按键获取任务 | 是 | `task.manage` | 人类可读的键 |
-| GET | `/api/v1/tasks/{public_id}` 🔄 | 任务详情 | 是 | `task.manage` | 包含评论、文件等 |
+| GET | `/api/v1/tasks/{public_id}` 🔄 | 任务详情 | 是 | `task.manage | task.view` | 包含评论、文件等 |
 | PATCH, PUT | `/api/v1/tasks/{public_id}` 🔄 | 更新任务 | 是 | `task.manage` | 乐观锁，`identity_edit_forbidden` |
 | DELETE | `/api/v1/tasks/{public_id}` 🔄 | 删除任务（回收站） | 是 | `task.manage` | 软删除 |
 | POST | `/api/v1/tasks/{public_id}/move` 🔄 | 移动看板上的任务 | 是 | `task.manage` | 请求体：`to_status_public_id`（或 `to_status`） |
-| GET | `/api/v1/tasks/{public_id}/activity` | 任务活动 | 是 | `task.manage` | 活动流 |
+| GET | `/api/v1/tasks/{public_id}/activity` | 任务活动 | 是 | `task.manage` | 允许外部执行者访问 |
 | GET | `/api/v1/tasks/{public_id}/comments` 🔄 | 任务评论 | 是 | `task.manage` | — |
 | POST | `/api/v1/tasks/{public_id}/comments` 🔄 | 添加评论 | 是 | `task.manage` | 请求体：`body`（字符串，最大 8000）。返回带 `public_id` 的新评论 |
 | GET | `/api/v1/tasks/{public_id}/files` | 任务文件 | 是 | `task.manage` | — |
@@ -646,8 +649,8 @@ Authorization: Bearer <token>
 
 | 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
 |-------|----------|------------|:---:|-------------|----------|
-| GET | `/api/v1/worklogs` 🔄 | 时间记录列表 | 是 | `task.manage` | — |
-| POST | `/api/v1/worklogs` 🔄 | 创建时间记录 | 是 | `task.manage` | 需要 `task_public_id`、`minutes_spent`（整数，分钟）、`logged_at`（YYYY-MM-DD）、`activity_code`（字符串） |
+| GET | `/api/v1/worklogs` 🔄 | 时间记录列表 | 是 | `task.manage | worklog.view` | — |
+| POST | `/api/v1/worklogs` 🔄 | 创建时间记录 | 是 | `task.manage | worklog.manage` | 需要 `task_public_id`、`minutes_spent`（整数，分钟）、`logged_at`（YYYY-MM-DD）、`activity_code`（字符串） |
 | GET | `/api/v1/worklogs/summary` | 时间摘要 | 是 | `task.manage` | — |
 | GET | `/api/v1/worklogs/earnings` | 时间收益 | 是 | `task.manage` | — |
 | GET | `/api/v1/worklogs/matrix` | 时间矩阵 | 是 | `task.manage` | — |
@@ -769,13 +772,14 @@ Authorization: Bearer <token>
 
 | 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
 |-------|----------|------------|:---:|-------------|----------|
-| GET | `/api/v1/settings` 🔄 | 设置列表 | 是 | `settings.manage` | — |
+| GET | `/api/v1/settings` 🔄 | 设置列表 | 是 | `settings.manage | settings.view` | — |
 | GET | `/api/v1/settings/{name}` 🔄 | 设置值 | 是 | `settings.manage` | — |
 | POST, PUT, PATCH | `/api/v1/settings/{name}` 🔄 | 设置设置 | 是 | `settings.manage` | — |
 | GET | `/api/v1/retention/metadata` 🔄 | 保留元数据 | 是 | `settings.manage` | — |
 | POST, PUT, PATCH | `/api/v1/retention/metadata` 🔄 | 设置保留 | 是 | `settings.manage` | — |
 | GET | `/api/v1/feature-flags` 🔄 | 功能开关列表 | 是 | `feature_flag.manage` | — |
 | PATCH, PUT | `/api/v1/feature-flags/{public_id}` 🔄 | 更新功能开关 | 是 | `feature_flag.manage` | — |
+| GET | `/api/v1/settings/public` | 公开设置 | 是 | `task.manage` | 允许外部执行者访问 |
 
 ### 自定义字段
 
@@ -943,6 +947,8 @@ TropaTT 为 CRM 出站事件与外部电商 CMS 连接器（OpenCart 1.5–4.x, 
 | GET | `/api/v1/knowledge/templates` | 页面模板 | 是 | `knowledge.view` | — |
 | POST | `/api/v1/knowledge/templates` | 创建模板 | 是 | `knowledge.template_manage` | — |
 | GET | `/api/v1/knowledge/entities/{entity_type}/{entity_public_id}/pages` | 实体页面 | 是 | `knowledge.view` | — |
+| GET | `/api/v1/knowledge/client-page/{public_id}` | 客户公开页面 | 是 | — | 允许外部用户访问 |
+| GET | `/api/v1/knowledge/project/{project_public_id}/client-pages` | 项目客户页面 | 是 | — | 允许外部用户访问 |
 
 ### 知识 — 空间
 

@@ -44,7 +44,7 @@ final class ApprovalController extends BaseController
             $result = $service->create($input, $auth['user']);
             if (!(bool)($result['ok'] ?? false)) {
                 $status = match ((string)($result['code'] ?? '')) {
-                    'REVIEWER_NOT_FOUND' => 404,
+                    'REVIEWER_NOT_FOUND', 'ENTITY_NOT_FOUND' => 404,
                     'REVIEWER_INACTIVE', 'APPROVAL_REVIEWERS_REQUIRED' => 422,
                     default => 400,
                 };

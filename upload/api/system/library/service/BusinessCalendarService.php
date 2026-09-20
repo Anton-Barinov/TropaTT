@@ -15,8 +15,18 @@ final class BusinessCalendarService
     ) {
     }
 
-    public function listCalendars(array $filters): array
+    private function organizationId(array $actor): ?int
     {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
+    }
+
+    public function listCalendars(array $filters, array $actor = []): array
+    {
+        $orgId = $this->organizationId($actor);
+        if ($orgId !== null) {
+            $filters['organization_id'] = $orgId;
+        }
         [$items, $total, $page, $limit] = $this->repo->listCalendars($filters);
 
         return [
@@ -41,6 +51,7 @@ final class BusinessCalendarService
             'public_id' => $publicId,
             'title' => trim((string)$input['title']),
             'timezone' => trim((string)($input['timezone'] ?? 'UTC')),
+            'organization_id' => $this->organizationId($actor),
             'created_at' => $now,
             'updated_at' => $now,
         ]);
@@ -52,17 +63,17 @@ final class BusinessCalendarService
             'entity_public_id' => $publicId,
         ]);
 
-        return (array)$this->repo->findCalendarByPublicId($publicId);
+        return (array)$this->repo->findCalendarByPublicId($publicId, $this->organizationId($actor));
     }
 
-    public function getCalendar(string $publicId): ?array
+    public function getCalendar(string $publicId, array $actor = []): ?array
     {
-        return $this->repo->findCalendarByPublicId($publicId);
+        return $this->repo->findCalendarByPublicId($publicId, $this->organizationId($actor));
     }
 
     public function updateCalendar(string $publicId, array $input, array $actor): ?array
     {
-        $existing = $this->repo->findCalendarByPublicId($publicId);
+        $existing = $this->repo->findCalendarByPublicId($publicId, $this->organizationId($actor));
         if (!$existing) {
             return null;
         }
@@ -76,7 +87,7 @@ final class BusinessCalendarService
         }
         if ($set !== []) {
             $set['updated_at'] = gmdate('Y-m-d H:i:s');
-            $this->repo->updateCalendarByPublicId($publicId, $set);
+            $this->repo->updateCalendarByPublicId($publicId, $set, $this->organizationId($actor));
         }
 
         $this->logger->audit([
@@ -87,12 +98,12 @@ final class BusinessCalendarService
             'changes' => $set,
         ]);
 
-        return $this->repo->findCalendarByPublicId($publicId);
+        return $this->repo->findCalendarByPublicId($publicId, $this->organizationId($actor));
     }
 
     public function deleteCalendar(string $publicId, array $actor): bool
     {
-        $ok = $this->repo->deleteCalendarByPublicId($publicId);
+        $ok = $this->repo->deleteCalendarByPublicId($publicId, $this->organizationId($actor));
         if ($ok) {
             $this->logger->audit([
                 'action' => 'business_calendar_deleted',
@@ -105,9 +116,9 @@ final class BusinessCalendarService
         return $ok;
     }
 
-    public function listHolidays(string $calendarPublicId, array $filters): array
+    public function listHolidays(string $calendarPublicId, array $filters, array $actor = []): array
     {
-        [$items, $total, $page, $limit] = $this->repo->listHolidays($calendarPublicId, $filters);
+        [$items, $total, $page, $limit] = $this->repo->listHolidays($calendarPublicId, $filters, $this->organizationId($actor));
         if ($items === null) {
             return ['ok' => false, 'code' => 'CALENDAR_NOT_FOUND'];
         }
@@ -128,7 +139,7 @@ final class BusinessCalendarService
 
     public function createHoliday(array $input, array $actor): array
     {
-        $calendar = $this->repo->findCalendarByPublicId((string)$input['calendar_public_id']);
+        $calendar = $this->repo->findCalendarByPublicId((string)$input['calendar_public_id'], $this->organizationId($actor));
         if (!$calendar) {
             return ['ok' => false, 'code' => 'CALENDAR_NOT_FOUND'];
         }
@@ -139,6 +150,7 @@ final class BusinessCalendarService
             'calendar_id' => (int)$calendar['id'],
             'holiday_date' => (string)$input['holiday_date'],
             'title' => trim((string)$input['title']),
+            'organization_id' => $calendar['organization_id'] ?? $this->organizationId($actor),
             'created_at' => gmdate('Y-m-d H:i:s'),
         ]);
 
@@ -150,17 +162,17 @@ final class BusinessCalendarService
             'calendar_public_id' => $calendar['public_id'] ?? null,
         ]);
 
-        return ['ok' => true, 'holiday' => $this->repo->findHolidayByPublicId($publicId)];
+        return ['ok' => true, 'holiday' => $this->repo->findHolidayByPublicId($publicId, $this->organizationId($actor))];
     }
 
-    public function getHoliday(string $publicId): ?array
+    public function getHoliday(string $publicId, array $actor = []): ?array
     {
-        return $this->repo->findHolidayByPublicId($publicId);
+        return $this->repo->findHolidayByPublicId($publicId, $this->organizationId($actor));
     }
 
     public function updateHoliday(string $publicId, array $input, array $actor): ?array
     {
-        $existing = $this->repo->findHolidayByPublicId($publicId);
+        $existing = $this->repo->findHolidayByPublicId($publicId, $this->organizationId($actor));
         if (!$existing) {
             return null;
         }
@@ -173,7 +185,7 @@ final class BusinessCalendarService
             $set['title'] = trim((string)$input['title']);
         }
         if ($set !== []) {
-            $this->repo->updateHolidayByPublicId($publicId, $set);
+            $this->repo->updateHolidayByPublicId($publicId, $set, $this->organizationId($actor));
         }
 
         $this->logger->audit([
@@ -184,12 +196,12 @@ final class BusinessCalendarService
             'changes' => $set,
         ]);
 
-        return $this->repo->findHolidayByPublicId($publicId);
+        return $this->repo->findHolidayByPublicId($publicId, $this->organizationId($actor));
     }
 
     public function deleteHoliday(string $publicId, array $actor): bool
     {
-        $ok = $this->repo->deleteHolidayByPublicId($publicId);
+        $ok = $this->repo->deleteHolidayByPublicId($publicId, $this->organizationId($actor));
         if ($ok) {
             $this->logger->audit([
                 'action' => 'calendar_holiday_deleted',
@@ -202,9 +214,9 @@ final class BusinessCalendarService
         return $ok;
     }
 
-    public function listWorkingHours(string $calendarPublicId, array $filters): array
+    public function listWorkingHours(string $calendarPublicId, array $filters, array $actor = []): array
     {
-        [$items, $total, $page, $limit] = $this->repo->listWorkingHours($calendarPublicId, $filters);
+        [$items, $total, $page, $limit] = $this->repo->listWorkingHours($calendarPublicId, $filters, $this->organizationId($actor));
         if ($items === null) {
             return ['ok' => false, 'code' => 'CALENDAR_NOT_FOUND'];
         }
@@ -225,7 +237,7 @@ final class BusinessCalendarService
 
     public function createWorkingHours(array $input, array $actor): array
     {
-        $calendar = $this->repo->findCalendarByPublicId((string)$input['calendar_public_id']);
+        $calendar = $this->repo->findCalendarByPublicId((string)$input['calendar_public_id'], $this->organizationId($actor));
         if (!$calendar) {
             return ['ok' => false, 'code' => 'CALENDAR_NOT_FOUND'];
         }
@@ -238,6 +250,7 @@ final class BusinessCalendarService
             'weekday' => (int)$input['weekday'],
             'start_time' => (string)$input['start_time'],
             'end_time' => (string)$input['end_time'],
+            'organization_id' => $calendar['organization_id'] ?? $this->organizationId($actor),
             'created_at' => $now,
             'updated_at' => $now,
         ]);
@@ -250,17 +263,17 @@ final class BusinessCalendarService
             'calendar_public_id' => $calendar['public_id'] ?? null,
         ]);
 
-        return ['ok' => true, 'working_hours' => $this->repo->findWorkingHoursByPublicId($publicId)];
+        return ['ok' => true, 'working_hours' => $this->repo->findWorkingHoursByPublicId($publicId, $this->organizationId($actor))];
     }
 
-    public function getWorkingHours(string $publicId): ?array
+    public function getWorkingHours(string $publicId, array $actor = []): ?array
     {
-        return $this->repo->findWorkingHoursByPublicId($publicId);
+        return $this->repo->findWorkingHoursByPublicId($publicId, $this->organizationId($actor));
     }
 
     public function updateWorkingHours(string $publicId, array $input, array $actor): ?array
     {
-        $existing = $this->repo->findWorkingHoursByPublicId($publicId);
+        $existing = $this->repo->findWorkingHoursByPublicId($publicId, $this->organizationId($actor));
         if (!$existing) {
             return null;
         }
@@ -277,7 +290,7 @@ final class BusinessCalendarService
         }
         if ($set !== []) {
             $set['updated_at'] = gmdate('Y-m-d H:i:s');
-            $this->repo->updateWorkingHoursByPublicId($publicId, $set);
+            $this->repo->updateWorkingHoursByPublicId($publicId, $set, $this->organizationId($actor));
         }
 
         $this->logger->audit([
@@ -288,12 +301,12 @@ final class BusinessCalendarService
             'changes' => $set,
         ]);
 
-        return $this->repo->findWorkingHoursByPublicId($publicId);
+        return $this->repo->findWorkingHoursByPublicId($publicId, $this->organizationId($actor));
     }
 
     public function deleteWorkingHours(string $publicId, array $actor): bool
     {
-        $ok = $this->repo->deleteWorkingHoursByPublicId($publicId);
+        $ok = $this->repo->deleteWorkingHoursByPublicId($publicId, $this->organizationId($actor));
         if ($ok) {
             $this->logger->audit([
                 'action' => 'calendar_working_hours_deleted',

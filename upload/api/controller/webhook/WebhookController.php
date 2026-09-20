@@ -11,18 +11,28 @@ final class WebhookController extends BaseController
 {
     public function list(): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
         /** @var WebhookService $service */
         $service = $this->container->get('service.webhook');
-        $result = $service->listSubscriptions($this->request()->allInput());
+        $result = $service->listSubscriptions($this->request()->allInput(), $auth['user']);
 
         return $this->success('WEBHOOK_LIST', $this->t('webhook/messages.list'), ['items' => $result['items']], meta: $result['meta']);
     }
 
     public function get(array $params): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
         /** @var WebhookService $service */
         $service = $this->container->get('service.webhook');
-        $item = $service->findSubscription((string)$params['public_id']);
+        $item = $service->findSubscription((string)$params['public_id'], $auth['user']);
         if (!$item) {
             return $this->error('WEBHOOK_NOT_FOUND', $this->t('webhook/messages.not_found'), 404);
         }
@@ -110,6 +120,11 @@ final class WebhookController extends BaseController
 
     public function deliveries(array $params = []): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
         $filters = $this->request()->allInput();
         if (isset($params['public_id'])) {
             $filters['webhook_public_id'] = (string)$params['public_id'];
@@ -117,7 +132,7 @@ final class WebhookController extends BaseController
 
         /** @var WebhookService $service */
         $service = $this->container->get('service.webhook');
-        $result = $service->listDeliveries($filters);
+        $result = $service->listDeliveries($filters, $auth['user']);
 
         return $this->success('WEBHOOK_DELIVERIES', $this->t('webhook/messages.deliveries'), ['items' => $result['items']], meta: $result['meta']);
     }

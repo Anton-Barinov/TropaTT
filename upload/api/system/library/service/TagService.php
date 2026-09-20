@@ -16,8 +16,8 @@ final class TagService
 
     public function list(array $filters, array $actor = []): array
     {
-        $organizationId = (int)($actor['organization_id'] ?? 0);
-        if ($organizationId > 0) {
+        $organizationId = $this->organizationId($actor);
+        if ($organizationId !== null) {
             $filters['organization_id'] = $organizationId;
         }
         [$items, $total, $page, $limit] = $this->tags->list($filters);
@@ -35,15 +35,16 @@ final class TagService
         ];
     }
 
-    public function get(string $publicId): ?array
+    public function get(string $publicId, array $actor = []): ?array
     {
-        return $this->tags->findByPublicId($publicId);
+        return $this->tags->findByPublicId($publicId, $this->organizationId($actor));
     }
 
-    public function create(array $input)
+    public function create(array $input, array $actor = [])
     {
+        $organizationId = $this->organizationId($actor);
         $code = trim((string)$input['code']);
-        if ($this->tags->findByCode($code)) {
+        if ($this->tags->findByCode($code, $organizationId)) {
             return 'TAG_CODE_EXISTS';
         }
 
@@ -58,14 +59,15 @@ final class TagService
             'color' => (string)($input['color'] ?? '#64748b'),
             'description' => (string)($input['description'] ?? ''),
             'created_at' => gmdate('Y-m-d H:i:s'),
-        ]);
+        ], $organizationId);
 
-        return $this->tags->findByPublicId($publicId) ?: ['public_id' => $publicId];
+        return $this->tags->findByPublicId($publicId, $organizationId) ?: ['public_id' => $publicId];
     }
 
-    public function update(string $publicId, array $input)
+    public function update(string $publicId, array $input, array $actor = [])
     {
-        $current = $this->tags->findByPublicId($publicId);
+        $organizationId = $this->organizationId($actor);
+        $current = $this->tags->findByPublicId($publicId, $organizationId);
         if (!$current) {
             return null;
         }
@@ -73,7 +75,7 @@ final class TagService
         $set = [];
         if (array_key_exists('code', $input)) {
             $newCode = trim((string)$input['code']);
-            if ($newCode !== (string)$current['code'] && $this->tags->findByCode($newCode)) {
+            if ($newCode !== (string)$current['code'] && $this->tags->findByCode($newCode, $organizationId)) {
                 return 'TAG_CODE_EXISTS';
             }
             $set['code'] = $newCode;
@@ -93,14 +95,14 @@ final class TagService
             $set['description'] = (string)$input['description'];
         }
 
-        $this->tags->updateByPublicId($publicId, $set);
+        $this->tags->updateByPublicId($publicId, $set, $organizationId);
 
-        return $this->tags->findByPublicId($publicId);
+        return $this->tags->findByPublicId($publicId, $organizationId);
     }
 
-    public function delete(string $publicId): bool
+    public function delete(string $publicId, array $actor = []): bool
     {
-        return $this->tags->deleteByPublicId($publicId);
+        return $this->tags->deleteByPublicId($publicId, $this->organizationId($actor));
     }
 
     public function listTaskTags(string $taskPublicId, array $actor): ?array
@@ -120,7 +122,7 @@ final class TagService
             return false;
         }
 
-        $tag = $this->tags->findByPublicId($tagPublicId);
+        $tag = $this->tags->findByPublicId($tagPublicId, $this->organizationId($actor));
         if (!$tag) {
             return false;
         }
@@ -137,11 +139,17 @@ final class TagService
             return false;
         }
 
-        $tag = $this->tags->findByPublicId($tagPublicId);
+        $tag = $this->tags->findByPublicId($tagPublicId, $this->organizationId($actor));
         if (!$tag) {
             return false;
         }
 
         return $this->tags->detachFromEntity('task', $taskPublicId, (int)$tag['id']);
+    }
+
+    private function organizationId(array $actor): ?int
+    {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
     }
 }

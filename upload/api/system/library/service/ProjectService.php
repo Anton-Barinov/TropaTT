@@ -448,7 +448,13 @@ final class ProjectService
             || in_array($actorId, $this->decodeTeamMemberIds($project['team_member_user_ids'] ?? null), true);
     }
 
-    private function canManage(array $project, array $actor): bool
+    /**
+     * Manager-level check, stricter than canAccess(): the project's creator,
+     * assigned manager or the project's team manager. Reused by other
+     * services (e.g. ProjectModuleService) that gate destructive project-scoped
+     * actions on the same standard used for project-level writes here.
+     */
+    public function canManage(array $project, array $actor): bool
     {
         if ((bool)($actor['is_root'] ?? false)) {
             return true;

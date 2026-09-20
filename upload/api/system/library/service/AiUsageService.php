@@ -15,10 +15,15 @@ final class AiUsageService
 
     /**
      * @param array<string,mixed> $filters
+     * @param array<string,mixed> $actor
      * @return array{items:array<int,array<string,mixed>>,meta:array<string,mixed>}
      */
-    public function usageList(array $filters): array
+    public function usageList(array $filters, array $actor = []): array
     {
+        $organizationId = $this->organizationId($actor);
+        if ($organizationId !== null) {
+            $filters['organization_id'] = $organizationId;
+        }
         [$items, $total, $page, $limit] = $this->runtime->listUsageLogs($filters);
         $normalized = [];
         foreach ($items as $item) {
@@ -40,10 +45,23 @@ final class AiUsageService
 
     /**
      * @param array<string,mixed> $filters
+     * @param array<string,mixed> $actor
      * @return array{items:array<int,array<string,mixed>>,meta:array<string,mixed>}
      */
-    public function auditList(array $filters): array
+    public function auditList(array $filters, array $actor = []): array
     {
+        // NOTE (TROPATTCRM-550 / TROPATTCRM-556): the generic `audit_logs`
+        // table backing LogsService::auditList() has no organization_id
+        // column and no per-tenant ownership model today, so it cannot be
+        // scoped per-organization without a schema/ownership decision from
+        // the owner of that system-wide audit trail (see option (a) in the
+        // TROPATTCRM-556 ticket). Pending that decision, the owner-applied
+        // default (option (b)) is to restrict this system-wide view to
+        // root/platform-level actors only, rather than leak cross-tenant
+        // rows to org-scoped actors or silently return empty results.
+        if (!(bool)($actor['is_root'] ?? false)) {
+            throw new \RuntimeException('FORBIDDEN');
+        }
         $filters['action_prefix'] = 'ai_';
         $rows = $this->logs->auditList($filters);
         $items = is_array($rows['items'] ?? null) ? (array)$rows['items'] : [];
@@ -101,6 +119,13 @@ final class AiUsageService
             'details' => $details,
             'created_at' => (string)($row['created_at'] ?? ''),
         ];
+    }
+
+    /** @param array<string,mixed> $actor */
+    private function organizationId(array $actor): ?int
+    {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
     }
 
     /** @return array<string,mixed> */

@@ -76,7 +76,7 @@ final class WorkflowService
 
     public function getRule(string $publicId, array $actor): ?array
     {
-        $item = $this->workflow->findRuleByPublicId($publicId);
+        $item = $this->workflow->findRuleByPublicId($publicId, $this->organizationId($actor));
         if (!$item || !$this->canAccess($item, $actor)) {
             return null;
         }
@@ -86,7 +86,7 @@ final class WorkflowService
 
     public function updateRule(string $publicId, array $input, array $actor): ?array
     {
-        $existing = $this->workflow->findRuleByPublicId($publicId);
+        $existing = $this->workflow->findRuleByPublicId($publicId, $this->organizationId($actor));
         if (!$existing || !$this->canAccess($existing, $actor)) {
             return null;
         }
@@ -108,24 +108,24 @@ final class WorkflowService
             $set['is_enabled'] = ((int)$input['is_enabled'] === 0) ? 0 : 1;
         }
 
-        $this->workflow->updateRuleByPublicId($publicId, $set);
+        $this->workflow->updateRuleByPublicId($publicId, $set, $this->organizationId($actor));
 
         return $this->getRule($publicId, $actor);
     }
 
     public function deleteRule(string $publicId, array $actor): bool
     {
-        $existing = $this->workflow->findRuleByPublicId($publicId);
+        $existing = $this->workflow->findRuleByPublicId($publicId, $this->organizationId($actor));
         if (!$existing || !$this->canAccess($existing, $actor)) {
             return false;
         }
 
-        return $this->workflow->deleteRuleByPublicId($publicId);
+        return $this->workflow->deleteRuleByPublicId($publicId, $this->organizationId($actor));
     }
 
     public function runTest(string $rulePublicId, array $input, array $actor): array|string
     {
-        $rule = $this->workflow->findRuleByPublicId($rulePublicId);
+        $rule = $this->workflow->findRuleByPublicId($rulePublicId, $this->organizationId($actor));
         if (!$rule || !$this->canAccess($rule, $actor)) {
             return 'RULE_NOT_FOUND';
         }
@@ -229,6 +229,12 @@ final class WorkflowService
      * Records without an owner (created_by_user_id IS NULL) belong to nobody
      * and are therefore root-only (see AGENTS.md object-level authorization).
      */
+    private function organizationId(array $actor): ?int
+    {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
+    }
+
     private function canAccess(array $item, array $actor): bool
     {
         if ((int)($actor['is_root'] ?? 0) === 1) {

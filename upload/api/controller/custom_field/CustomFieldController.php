@@ -190,8 +190,13 @@ final class CustomFieldController extends BaseController
 
     public function values(): \Api\System\Library\Http\JsonResponse
     {
-        if (!$this->user()) {
+        $authUser = $this->user();
+        if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
         }
 
         $input = $this->request()->allInput();
@@ -204,9 +209,14 @@ final class CustomFieldController extends BaseController
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $v->errors());
         }
 
+        $actor = $this->organizationScopedActor((array)($authUser['user'] ?? []));
+
         /** @var CustomFieldService $service */
         $service = $this->container->get('service.custom_field');
-        $items = $service->values((string)$input['entity_type'], (string)$input['entity_public_id']);
+        $items = $service->values((string)$input['entity_type'], (string)$input['entity_public_id'], $actor);
+        if ($items === 'ENTITY_NOT_FOUND') {
+            return $this->error('CUSTOM_FIELD_ENTITY_NOT_FOUND', $this->t('custom_field/messages.entity_not_found'), 404);
+        }
 
         return $this->success('CUSTOM_FIELD_VALUES', $this->t('custom_field/messages.values'), [
             'items' => $items,
@@ -215,8 +225,13 @@ final class CustomFieldController extends BaseController
 
     public function setValues(): \Api\System\Library\Http\JsonResponse
     {
-        if (!$this->user()) {
+        $authUser = $this->user();
+        if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
         }
 
         $input = $this->request()->allInput();
@@ -234,13 +249,19 @@ final class CustomFieldController extends BaseController
             ]);
         }
 
+        $actor = $this->organizationScopedActor((array)($authUser['user'] ?? []));
+
         /** @var CustomFieldService $service */
         $service = $this->container->get('service.custom_field');
         $result = $service->setValues(
             (string)$input['entity_type'],
             (string)$input['entity_public_id'],
-            (array)$input['values']
+            (array)$input['values'],
+            $actor
         );
+        if ($result === 'ENTITY_NOT_FOUND') {
+            return $this->error('CUSTOM_FIELD_ENTITY_NOT_FOUND', $this->t('custom_field/messages.entity_not_found'), 404);
+        }
         if ($result === 'FIELD_NOT_FOUND') {
             return $this->error('CUSTOM_FIELD_NOT_FOUND', $this->t('custom_field/messages.any_field_not_found'), 404);
         }

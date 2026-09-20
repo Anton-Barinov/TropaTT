@@ -51,7 +51,7 @@ final class CompanyService
 
     public function get(string $publicId, array $actor): ?array
     {
-        $item = $this->counterparties->findByPublicId($publicId);
+        $item = $this->counterparties->findByPublicId($publicId, $this->organizationId($actor));
         if (!$item || !$this->canAccess($item, $actor)) {
             return null;
         }
@@ -78,16 +78,16 @@ final class CompanyService
             'created_by_user_id' => (int)($actor['id'] ?? 0) ?: null,
             'created_at' => $now,
             'updated_at' => $now,
-        ]);
+        ], $this->organizationId($actor));
 
-        $created = $this->counterparties->findByPublicId($publicId) ?: ['public_id' => $publicId];
+        $created = $this->counterparties->findByPublicId($publicId, $this->organizationId($actor)) ?: ['public_id' => $publicId];
 
         return $this->publicCompany($created);
     }
 
     public function update(string $publicId, array $input, array $actor): ?array
     {
-        $item = $this->counterparties->findByPublicId($publicId);
+        $item = $this->counterparties->findByPublicId($publicId, $this->organizationId($actor));
         if (!$item || !$this->canAccess($item, $actor)) {
             return null;
         }
@@ -111,17 +111,17 @@ final class CompanyService
         }
         $set['updated_at'] = gmdate('Y-m-d H:i:s');
 
-        $this->counterparties->updateByPublicId($publicId, $set);
+        $this->counterparties->updateByPublicId($publicId, $set, $this->organizationId($actor));
         $this->semanticIndex?->removeEntityDocument('company', $publicId);
 
-        $updated = $this->counterparties->findByPublicId($publicId);
+        $updated = $this->counterparties->findByPublicId($publicId, $this->organizationId($actor));
 
         return $updated === null ? null : $this->publicCompany($updated);
     }
 
     public function delete(string $publicId, array $actor): bool
     {
-        $item = $this->counterparties->findByPublicId($publicId);
+        $item = $this->counterparties->findByPublicId($publicId, $this->organizationId($actor));
         if (!$item || !$this->canAccess($item, $actor)) {
             return false;
         }
@@ -130,7 +130,7 @@ final class CompanyService
             return false;
         }
 
-        $deleted = $this->counterparties->deleteByPublicId($publicId);
+        $deleted = $this->counterparties->deleteByPublicId($publicId, $this->organizationId($actor));
         if ($deleted) {
             $this->semanticIndex?->removeEntityDocument('company', $publicId);
         }
@@ -161,6 +161,12 @@ final class CompanyService
         }
 
         return $this->hierarchy->isAncestor($actorId, $creatorId);
+    }
+
+    private function organizationId(array $actor): ?int
+    {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
     }
 
     /**

@@ -19,7 +19,7 @@ final class ProjectModuleRepository
     {
     }
 
-    public function list(array $filters, int $actorUserId, bool $isRoot): array
+    public function list(array $filters, int $actorUserId, bool $isRoot, ?int $organizationId = null): array
     {
         $limit = min(100, max(1, (int)($filters['limit'] ?? 20)));
         $page = max(1, (int)($filters['page'] ?? 1));
@@ -41,6 +41,14 @@ final class ProjectModuleRepository
                 'p.title AS project_title',
             ])
             ->whereNull('pm.deleted_at');
+
+        // Tenant scope: an actor bound to an organization must never see
+        // another organization's modules. Root callers may pass a null
+        // organizationId (no scoping requested) elsewhere in the app, but the
+        // service always resolves the actor's own organization_id here.
+        if ($organizationId !== null && $organizationId > 0) {
+            $qb->where('pm.organization_id', '=', $organizationId);
+        }
 
         // Filter by project
         if (!empty($filters['project_public_id'])) {
@@ -137,9 +145,9 @@ final class ProjectModuleRepository
         ];
     }
 
-    public function findByPublicId(string $publicId): ?array
+    public function findByPublicId(string $publicId, ?int $organizationId = null): ?array
     {
-        $row = (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('project_modules pm')
             ->leftJoin('users u', 'u.id', '=', 'pm.lead_user_id')
             ->leftJoin('projects p', 'p.id', '=', 'pm.project_id')
@@ -152,8 +160,13 @@ final class ProjectModuleRepository
                 'p.title AS project_title',
             ])
             ->where('pm.public_id', '=', $publicId)
-            ->whereNull('pm.deleted_at')
-            ->first();
+            ->whereNull('pm.deleted_at');
+
+        if ($organizationId !== null && $organizationId > 0) {
+            $qb->where('pm.organization_id', '=', $organizationId);
+        }
+
+        $row = $qb->first();
 
         if ($row === null || $row === false) {
             return null;
@@ -191,15 +204,23 @@ final class ProjectModuleRepository
         return $row;
     }
 
-    public function findById(int $id): ?array
+    public function findById(int $id, ?int $organizationId = null): ?array
     {
-        $row = (new QueryBuilder($this->pdo))
-            ->from('project_modules')
-            ->where('id', '=', $id)
-            ->whereNull('deleted_at')
-            ->first();
+        // Joins projects for project_public_id: callers (e.g. link update/delete
+        // in ProjectModuleService) resolve the parent project's access/manage
+        // rights from this row, same as findByPublicId().
+        $qb = (new QueryBuilder($this->pdo))
+            ->from('project_modules pm')
+            ->leftJoin('projects p', 'p.id', '=', 'pm.project_id')
+            ->select(['pm.*', 'p.public_id AS project_public_id'])
+            ->where('pm.id', '=', $id)
+            ->whereNull('pm.deleted_at');
 
-        return $row;
+        if ($organizationId !== null && $organizationId > 0) {
+            $qb->where('pm.organization_id', '=', $organizationId);
+        }
+
+        return $qb->first();
     }
 
     public function create(array $payload): array
@@ -211,36 +232,51 @@ final class ProjectModuleRepository
         return $payload;
     }
 
-    public function updateByPublicId(string $publicId, array $set): bool
+    public function updateByPublicId(string $publicId, array $set, ?int $organizationId = null): bool
     {
-        return (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('project_modules')
-            ->where('public_id', '=', $publicId)
-            ->update($set) > 0;
+            ->where('public_id', '=', $publicId);
+
+        if ($organizationId !== null && $organizationId > 0) {
+            $qb->where('organization_id', '=', $organizationId);
+        }
+
+        return $qb->update($set) > 0;
     }
 
-    public function archiveByPublicId(string $publicId, string $archivedAt): bool
+    public function archiveByPublicId(string $publicId, string $archivedAt, ?int $organizationId = null): bool
     {
-        return (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('project_modules')
             ->where('public_id', '=', $publicId)
-            ->whereNull('deleted_at')
-            ->update([
-                'archived_at' => $archivedAt,
-                'status' => 'archived',
-                'updated_at' => $archivedAt,
-            ]) > 0;
+            ->whereNull('deleted_at');
+
+        if ($organizationId !== null && $organizationId > 0) {
+            $qb->where('organization_id', '=', $organizationId);
+        }
+
+        return $qb->update([
+            'archived_at' => $archivedAt,
+            'status' => 'archived',
+            'updated_at' => $archivedAt,
+        ]) > 0;
     }
 
-    public function softDeleteByPublicId(string $publicId, string $deletedAt): bool
+    public function softDeleteByPublicId(string $publicId, string $deletedAt, ?int $organizationId = null): bool
     {
-        return (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('project_modules')
-            ->where('public_id', '=', $publicId)
-            ->update([
-                'deleted_at' => $deletedAt,
-                'updated_at' => $deletedAt,
-            ]) > 0;
+            ->where('public_id', '=', $publicId);
+
+        if ($organizationId !== null && $organizationId > 0) {
+            $qb->where('organization_id', '=', $organizationId);
+        }
+
+        return $qb->update([
+            'deleted_at' => $deletedAt,
+            'updated_at' => $deletedAt,
+        ]) > 0;
     }
 
     public function projectIdByPublicId(string $projectPublicId): ?int

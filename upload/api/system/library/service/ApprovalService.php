@@ -10,12 +10,31 @@ use Api\System\Library\Support\Ulid;
 
 final class ApprovalService
 {
+    /**
+     * Per entity_type ownership/access checkers for the entity an approval
+     * request is raised about, mirroring
+     * CustomFieldService::$entityAccessors: each entry is
+     * callable(string $entityPublicId, array $actor): ?array, identical in
+     * shape to that entity's own ...Service::get() (returns null when the
+     * actor's organization/access does not include that entity). An
+     * unregistered/unknown entity_type is rejected too (fail-closed), not
+     * silently allowed through.
+     *
+     * @var array<string, callable(string, array): ?array>
+     */
+    private readonly array $entityAccessors;
+
+    /**
+     * @param array<string, callable(string, array): ?array> $entityAccessors
+     */
     public function __construct(
         private readonly ApprovalRepository $approvals,
         private readonly UserRepository $users,
         private readonly JsonLogger $logger,
-        private readonly ?NotificationService $notifications = null
+        private readonly ?NotificationService $notifications = null,
+        array $entityAccessors = []
     ) {
+        $this->entityAccessors = $entityAccessors;
     }
 
     public function list(array $filters, array $actor): array
@@ -42,14 +61,33 @@ final class ApprovalService
 
     public function create(array $input, array $actor): array
     {
+        $entityType = trim((string)($input['entity_type'] ?? ''));
+        $entityPublicId = trim((string)($input['entity_public_id'] ?? ''));
+        if (!$this->actorCanAccessEntity($entityType, $entityPublicId, $actor)) {
+            // Fail-closed: the entity being approved must actually resolve
+            // (and belong to the actor's organization) before a request can
+            // be raised about it — otherwise org A could raise an approval
+            // request against an org B entity it has no business knowing
+            // about (TROPATTCRM-557).
+            return ['ok' => false, 'code' => 'ENTITY_NOT_FOUND'];
+        }
+
         $reviewerPublicIds = $this->normalizeReviewerPublicIds($input);
         if ($reviewerPublicIds === []) {
             return ['ok' => false, 'code' => 'APPROVAL_REVIEWERS_REQUIRED'];
         }
 
+        $organizationId = $this->organizationId($actor);
         $reviewers = [];
         foreach ($reviewerPublicIds as $reviewerPublicId) {
-            $reviewer = $this->users->findByPublicId($reviewerPublicId);
+            // Org-scoped lookup: a reviewer public_id that does not belong to
+            // the actor's own organization must not resolve, otherwise a
+            // user from org B could be silently wired into an org A approval
+            // step (the underlying cross-org IDOR this test suite is named
+            // for — TROPATTCRM-557). Reported as the existing
+            // REVIEWER_NOT_FOUND code, matching how an unknown public_id was
+            // already reported before this fix.
+            $reviewer = $this->users->findByPublicIdInOrganization($reviewerPublicId, $organizationId);
             if (!$reviewer) {
                 return ['ok' => false, 'code' => 'REVIEWER_NOT_FOUND'];
             }
@@ -65,15 +103,15 @@ final class ApprovalService
         $requestTitle = trim((string)($input['title'] ?? ''));
         $requestId = $this->approvals->createRequest([
             'public_id' => $requestPublicId,
-            'entity_type' => trim((string)$input['entity_type']),
-            'entity_public_id' => trim((string)$input['entity_public_id']),
+            'entity_type' => $entityType,
+            'entity_public_id' => $entityPublicId,
             'title' => $requestTitle,
             'requester_user_id' => (int)$actor['id'],
             'status' => 'pending',
             'comment' => $requestComment,
             'created_at' => $now,
             'updated_at' => $now,
-            'organization_id' => (int)($actor['organization_id'] ?? 0) ?: null,
+            'organization_id' => $organizationId,
         ]);
 
         $comment = $requestComment;
@@ -94,8 +132,8 @@ final class ApprovalService
             'actor_public_id' => $actor['public_id'] ?? null,
             'entity_type' => 'approval_request',
             'entity_public_id' => $requestPublicId,
-            'target_entity_type' => trim((string)$input['entity_type']),
-            'target_entity_public_id' => trim((string)$input['entity_public_id']),
+            'target_entity_type' => $entityType,
+            'target_entity_public_id' => $entityPublicId,
         ]);
 
         $createdApproval = $this->get($requestPublicId, $actor)['approval'] ?? ['public_id' => $requestPublicId];
@@ -115,7 +153,7 @@ final class ApprovalService
 
     public function get(string $publicId, array $actor): array
     {
-        $request = $this->approvals->findRequestByPublicId($publicId);
+        $request = $this->approvals->findRequestByPublicId($publicId, $this->organizationId($actor));
         if (!$request) {
             return ['ok' => false, 'code' => 'APPROVAL_NOT_FOUND'];
         }
@@ -145,7 +183,7 @@ final class ApprovalService
 
     private function review(string $publicId, string $decision, array $input, array $actor): array
     {
-        $request = $this->approvals->findRequestByPublicId($publicId);
+        $request = $this->approvals->findRequestByPublicId($publicId, $this->organizationId($actor));
         if (!$request) {
             return ['ok' => false, 'code' => 'APPROVAL_NOT_FOUND'];
         }
@@ -232,6 +270,31 @@ final class ApprovalService
         }
 
         return $normalized;
+    }
+
+    /**
+     * Mirrors CounterpartyService::organizationId()/WorkflowService::organizationId():
+     * null means "no single-organization restriction" (root actor operating
+     * globally), never "organization 0".
+     */
+    private function organizationId(array $actor): ?int
+    {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
+    }
+
+    private function actorCanAccessEntity(string $entityType, string $entityPublicId, array $actor): bool
+    {
+        if ($entityType === '' || $entityPublicId === '') {
+            return false;
+        }
+
+        $accessor = $this->entityAccessors[$entityType] ?? null;
+        if ($accessor === null) {
+            return false;
+        }
+
+        return $accessor($entityPublicId, $actor) !== null;
     }
 
     private function canAccess(array $request, array $actor): bool

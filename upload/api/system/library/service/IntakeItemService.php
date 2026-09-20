@@ -268,6 +268,7 @@ final class IntakeItemService
             'due_at' => !empty($input['due_at']) ? (string)$input['due_at'] : null,
             'assignee_user_id' => $assigneeUserId,
             'creator_user_id' => (int)($actor['id'] ?? 0),
+            'organization_id' => $this->organizationId($actor),
             'created_at' => $now,
             'updated_at' => $now,
         ]);
@@ -307,7 +308,7 @@ final class IntakeItemService
      */
     public function get(string $publicId, array $actor): ?array
     {
-        $item = $this->repository->findByPublicId($publicId);
+        $item = $this->repository->findByPublicId($publicId, $this->organizationId($actor));
         if (!$item || ($item['deleted_at'] ?? null) !== null) {
             return null;
         }
@@ -321,7 +322,7 @@ final class IntakeItemService
      */
     public function update(string $publicId, array $input, array $actor): array|string|null
     {
-        $item = $this->repository->findByPublicId($publicId);
+        $item = $this->repository->findByPublicId($publicId, $this->organizationId($actor));
         if (!$item || ($item['deleted_at'] ?? null) !== null) {
             return null;
         }
@@ -454,7 +455,7 @@ final class IntakeItemService
         }
 
         $set['row_version'] = (int)($item['row_version'] ?? 0) + 1;
-        $this->repository->updateByPublicId($publicId, $set);
+        $this->repository->updateByPublicId($publicId, $set, $this->organizationId($actor));
 
         // Log activities for changed fields
         $itemId = (int)$item['id'];
@@ -466,7 +467,7 @@ final class IntakeItemService
             }
         }
 
-        $updated = $this->repository->findByPublicId($publicId);
+        $updated = $this->repository->findByPublicId($publicId, $this->organizationId($actor));
         return $updated;
     }
 
@@ -476,13 +477,13 @@ final class IntakeItemService
      */
     public function delete(string $publicId, array $actor): bool|string
     {
-        $item = $this->repository->findByPublicId($publicId);
+        $item = $this->repository->findByPublicId($publicId, $this->organizationId($actor));
         if (!$item || ($item['deleted_at'] ?? null) !== null) {
             return false;
         }
 
         $now = gmdate('Y-m-d H:i:s');
-        $deleted = $this->repository->softDeleteByPublicId($publicId, $now);
+        $deleted = $this->repository->softDeleteByPublicId($publicId, $now, $this->organizationId($actor));
         if ($deleted) {
             $this->logActivity((int)$item['id'], $actor, 'deleted');
         }
@@ -497,7 +498,7 @@ final class IntakeItemService
      */
     public function accept(string $publicId, array $input, array $actor): array|string|null
     {
-        $item = $this->repository->findByPublicId($publicId);
+        $item = $this->repository->findByPublicId($publicId, $this->organizationId($actor));
         if (!$item || ($item['deleted_at'] ?? null) !== null) {
             return null;
         }
@@ -562,7 +563,7 @@ final class IntakeItemService
             'accepted_task_id' => $taskId > 0 ? $taskId : null,
             'row_version' => (int)($item['row_version'] ?? 0) + 1,
             'updated_at' => $now,
-        ]);
+        ], $this->organizationId($actor));
 
         $this->logActivity((int)$item['id'], $actor, 'accepted');
         $this->logActivity((int)$item['id'], $actor, 'linked_task_created', null, null, null, 'Task: ' . $task['public_id']);
@@ -592,7 +593,7 @@ final class IntakeItemService
             }
         }
 
-        $updated = $this->repository->findByPublicId($publicId);
+        $updated = $this->repository->findByPublicId($publicId, $this->organizationId($actor));
         return [
             'item' => $updated,
             'task' => $task,
@@ -606,7 +607,7 @@ final class IntakeItemService
      */
     public function reject(string $publicId, array $input, array $actor): array|string|null
     {
-        $item = $this->repository->findByPublicId($publicId);
+        $item = $this->repository->findByPublicId($publicId, $this->organizationId($actor));
         if (!$item || ($item['deleted_at'] ?? null) !== null) {
             return null;
         }
@@ -637,7 +638,7 @@ final class IntakeItemService
             'resolved_at' => $now,
             'row_version' => (int)($item['row_version'] ?? 0) + 1,
             'updated_at' => $now,
-        ]);
+        ], $this->organizationId($actor));
 
         $this->logActivity((int)$item['id'], $actor, 'rejected', null, null, null, $reason);
 
@@ -666,7 +667,7 @@ final class IntakeItemService
             }
         }
 
-        return $this->repository->findByPublicId($publicId);
+        return $this->repository->findByPublicId($publicId, $this->organizationId($actor));
     }
 
     /**
@@ -676,7 +677,7 @@ final class IntakeItemService
      */
     public function snooze(string $publicId, array $input, array $actor): array|string|null
     {
-        $item = $this->repository->findByPublicId($publicId);
+        $item = $this->repository->findByPublicId($publicId, $this->organizationId($actor));
         if (!$item || ($item['deleted_at'] ?? null) !== null) {
             return null;
         }
@@ -707,7 +708,7 @@ final class IntakeItemService
             'snoozed_until' => $snoozedUntil,
             'row_version' => (int)($item['row_version'] ?? 0) + 1,
             'updated_at' => $now,
-        ]);
+        ], $this->organizationId($actor));
 
         $this->logActivity((int)$item['id'], $actor, 'snoozed', null, null, null, $reason);
 
@@ -736,7 +737,7 @@ final class IntakeItemService
             }
         }
 
-        return $this->repository->findByPublicId($publicId);
+        return $this->repository->findByPublicId($publicId, $this->organizationId($actor));
     }
 
     /**
@@ -746,7 +747,7 @@ final class IntakeItemService
      */
     public function markDuplicate(string $publicId, array $input, array $actor): array|string|null
     {
-        $item = $this->repository->findByPublicId($publicId);
+        $item = $this->repository->findByPublicId($publicId, $this->organizationId($actor));
         if (!$item || ($item['deleted_at'] ?? null) !== null) {
             return null;
         }
@@ -776,7 +777,7 @@ final class IntakeItemService
         $reason = !empty($input['reason']) ? trim((string)$input['reason']) : null;
 
         if ($duplicateIntakeItemPublicId !== '') {
-            $dupItem = $this->repository->findByPublicId($duplicateIntakeItemPublicId);
+            $dupItem = $this->repository->findByPublicId($duplicateIntakeItemPublicId, $this->organizationId($actor));
             if (!$dupItem) {
                 return self::ERROR_CODES['DUPLICATE_TARGET_NOT_FOUND'];
             }
@@ -801,7 +802,7 @@ final class IntakeItemService
             'resolved_at' => $now,
             'row_version' => (int)($item['row_version'] ?? 0) + 1,
             'updated_at' => $now,
-        ]);
+        ], $this->organizationId($actor));
 
         $this->logActivity((int)$item['id'], $actor, 'marked_duplicate', null, null, null, $reason);
 
@@ -831,7 +832,7 @@ final class IntakeItemService
             }
         }
 
-        return $this->repository->findByPublicId($publicId);
+        return $this->repository->findByPublicId($publicId, $this->organizationId($actor));
     }
 
     /**
@@ -840,7 +841,7 @@ final class IntakeItemService
      */
     public function reopen(string $publicId, array $actor): array|string|null
     {
-        $item = $this->repository->findByPublicId($publicId);
+        $item = $this->repository->findByPublicId($publicId, $this->organizationId($actor));
         if (!$item || ($item['deleted_at'] ?? null) !== null) {
             return null;
         }
@@ -859,11 +860,11 @@ final class IntakeItemService
             'resolved_at' => null,
             'row_version' => (int)($item['row_version'] ?? 0) + 1,
             'updated_at' => $now,
-        ]);
+        ], $this->organizationId($actor));
 
         $this->logActivity((int)$item['id'], $actor, 'reopened');
 
-        return $this->repository->findByPublicId($publicId);
+        return $this->repository->findByPublicId($publicId, $this->organizationId($actor));
     }
 
     /**
@@ -873,7 +874,7 @@ final class IntakeItemService
      */
     public function activities(string $publicId, array $filters, array $actor): array|string|null
     {
-        $item = $this->repository->findByPublicId($publicId);
+        $item = $this->repository->findByPublicId($publicId, $this->organizationId($actor));
         if (!$item || ($item['deleted_at'] ?? null) !== null) {
             return null;
         }
@@ -924,6 +925,12 @@ final class IntakeItemService
             'comment' => $comment,
             'created_at' => gmdate('Y-m-d H:i:s'),
         ]);
+    }
+
+    private function organizationId(array $actor): ?int
+    {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
     }
 
     private function error(string $code, string $message): string

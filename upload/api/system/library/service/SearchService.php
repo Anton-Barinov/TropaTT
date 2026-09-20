@@ -21,13 +21,14 @@ final class SearchService
     {
         $normalized = $this->normalizeQuery($query);
         $actorUserId = (int)($actor['id'] ?? 0);
-        $actorIsRoot = (bool)($actor['is_root'] ?? false);
+        $actorIsRoot = $this->isTrueRoot($actor);
+        $organizationId = $this->organizationScope($actor);
 
-        $tasks = $this->search->searchTasks($normalized, $limit, $actorUserId, $actorIsRoot);
-        $projects = $this->search->searchProjects($normalized, $limit, $actorUserId, $actorIsRoot);
+        $tasks = $this->search->searchTasks($normalized, $limit, $actorUserId, $actorIsRoot, $organizationId);
+        $projects = $this->search->searchProjects($normalized, $limit, $actorUserId, $actorIsRoot, $organizationId);
         $creatorIds = $this->creatorScope($actor);
-        $counterparties = $this->rankCounterpartyRows($this->search->searchCounterparties($normalized, max($limit * 3, 30), null, $creatorIds), $normalized, $limit);
-        $contacts = $this->search->searchContacts($normalized, $limit, $creatorIds);
+        $counterparties = $this->rankCounterpartyRows($this->search->searchCounterparties($normalized, max($limit * 3, 30), null, $creatorIds, $organizationId), $normalized, $limit);
+        $contacts = $this->search->searchContacts($normalized, $limit, $creatorIds, $organizationId);
         $knowledge = $this->knowledge->search($normalized, ['limit' => $limit, 'status' => 'published'], $actor);
 
         return [
@@ -57,7 +58,8 @@ final class SearchService
             $normalized,
             $limit,
             (int)($actor['id'] ?? 0),
-            (bool)($actor['is_root'] ?? false)
+            $this->isTrueRoot($actor),
+            $this->organizationScope($actor)
         );
     }
 
@@ -69,7 +71,8 @@ final class SearchService
             $normalized,
             $limit,
             (int)($actor['id'] ?? 0),
-            (bool)($actor['is_root'] ?? false)
+            $this->isTrueRoot($actor),
+            $this->organizationScope($actor)
         );
     }
 
@@ -84,7 +87,7 @@ final class SearchService
     {
         $normalized = $this->normalizeQuery($query);
         return $this->rankCounterpartyRows(
-            $this->search->searchCounterparties($normalized, max($limit * 3, 30), $typeFilter, $this->creatorScope($actor)),
+            $this->search->searchCounterparties($normalized, max($limit * 3, 30), $typeFilter, $this->creatorScope($actor), $this->organizationScope($actor)),
             $normalized,
             $limit
         );
@@ -103,14 +106,15 @@ final class SearchService
     {
         $normalized = $this->normalizeQuery($query);
         $actorUserId = (int)($actor['id'] ?? 0);
-        $actorIsRoot = (bool)($actor['is_root'] ?? false);
+        $actorIsRoot = $this->isTrueRoot($actor);
+        $organizationId = $this->organizationScope($actor);
         $perTypeLimit = max(1, (int)ceil($limit / 6));
 
-        $taskRows = $this->search->searchTasks($normalized, $perTypeLimit, $actorUserId, $actorIsRoot);
-        $projectRows = $this->search->searchProjects($normalized, $perTypeLimit, $actorUserId, $actorIsRoot);
+        $taskRows = $this->search->searchTasks($normalized, $perTypeLimit, $actorUserId, $actorIsRoot, $organizationId);
+        $projectRows = $this->search->searchProjects($normalized, $perTypeLimit, $actorUserId, $actorIsRoot, $organizationId);
         $creatorIds = $this->creatorScope($actor);
-        $counterpartyRows = $this->rankCounterpartyRows($this->search->searchCounterparties($normalized, max($perTypeLimit * 3, 15), null, $creatorIds), $normalized, $perTypeLimit);
-        $contactRows = $this->search->searchContacts($normalized, $perTypeLimit, $creatorIds);
+        $counterpartyRows = $this->rankCounterpartyRows($this->search->searchCounterparties($normalized, max($perTypeLimit * 3, 15), null, $creatorIds, $organizationId), $normalized, $perTypeLimit);
+        $contactRows = $this->search->searchContacts($normalized, $perTypeLimit, $creatorIds, $organizationId);
         $knowledgeRows = $this->knowledge->search($normalized, ['limit' => $perTypeLimit, 'status' => 'published'], $actor);
 
         $items = [];
@@ -192,15 +196,18 @@ final class SearchService
 
     /**
      * Fail-closed creator scope for search, mirroring CounterpartyService and
-     * ContactService: root sees everything (empty list = no scope); non-root is
-     * limited to records created by themselves or their hierarchy subtree.
+     * ContactService: a true platform superadmin sees everything (empty list =
+     * no scope); every other actor — including an ordinary org owner/admin who
+     * also carries is_root=1 alongside a real organization_id — is limited to
+     * records created by themselves or their hierarchy subtree, and is always
+     * additionally confined to their own organization via organizationScope().
      *
      * @param array<string,mixed> $actor
      * @return int[]
      */
     private function creatorScope(array $actor): array
     {
-        if ((int)($actor['is_root'] ?? 0) === 1) {
+        if ($this->isTrueRoot($actor)) {
             return [];
         }
 
@@ -215,6 +222,42 @@ final class SearchService
         }
 
         return $descendants;
+    }
+
+    /**
+     * True platform superadmin, per this codebase's established convention
+     * (see AnalyticsService::assigneeDepartmentLoad()/completionVelocity()/
+     * streamsOverview() and SubscriptionService::list()/delete()):
+     * is_root=1 AND organization_id <= 0. An ordinary org owner/admin can also
+     * carry is_root=1 while belonging to a real organization (see
+     * UserService::create()'s $actorIsRoot check paired with hierarchy scope,
+     * and how actor rows are built) — such an actor is NOT a true superadmin
+     * and must always stay confined to their own organization_id.
+     *
+     * @param array<string,mixed> $actor
+     */
+    private function isTrueRoot(array $actor): bool
+    {
+        return (bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0;
+    }
+
+    /**
+     * Multi-tenant workspace boundary for search: null means "no boundary" and
+     * is returned ONLY for a true platform superadmin (see isTrueRoot()).
+     * Every other actor gets their own organization_id, or the -1 sentinel
+     * (fail-closed, matches nothing) when they have none — never a permissive
+     * default.
+     *
+     * @param array<string,mixed> $actor
+     */
+    private function organizationScope(array $actor): ?int
+    {
+        if ($this->isTrueRoot($actor)) {
+            return null;
+        }
+
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        return $organizationId > 0 ? $organizationId : -1;
     }
 
     private function normalizeQuery(string $query): string

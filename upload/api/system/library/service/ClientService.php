@@ -86,7 +86,7 @@ final class ClientService
 
     public function get(string $publicId, array $actor): ?array
     {
-        $item = $this->counterparties->findByPublicId($publicId);
+        $item = $this->counterparties->findByPublicId($publicId, $this->organizationId($actor));
         if (!$item || !$this->canAccess($item, $actor)) {
             return null;
         }
@@ -115,16 +115,16 @@ final class ClientService
             'created_by_user_id' => (int)($actor['id'] ?? 0) ?: null,
             'created_at' => $now,
             'updated_at' => $now,
-        ]);
+        ], $this->organizationId($actor));
 
-        $created = $this->counterparties->findByPublicId($publicId);
+        $created = $this->counterparties->findByPublicId($publicId, $this->organizationId($actor));
 
         return $created ? $this->hydrateClient($created) : ['public_id' => $publicId];
     }
 
     public function update(string $publicId, array $input, array $actor): ?array
     {
-        $item = $this->counterparties->findByPublicId($publicId);
+        $item = $this->counterparties->findByPublicId($publicId, $this->organizationId($actor));
         if (!$item || !$this->canAccess($item, $actor)) {
             return null;
         }
@@ -141,17 +141,17 @@ final class ClientService
         }
 
         $set['updated_at'] = gmdate('Y-m-d H:i:s');
-        $this->counterparties->updateByPublicId($publicId, $set);
+        $this->counterparties->updateByPublicId($publicId, $set, $this->organizationId($actor));
         $this->semanticIndex?->removeEntityDocument('client', $publicId);
 
-        $updated = $this->counterparties->findByPublicId($publicId);
+        $updated = $this->counterparties->findByPublicId($publicId, $this->organizationId($actor));
 
         return $updated ? $this->hydrateClient($updated) : null;
     }
 
     public function delete(string $publicId, array $actor): bool
     {
-        $item = $this->counterparties->findByPublicId($publicId);
+        $item = $this->counterparties->findByPublicId($publicId, $this->organizationId($actor));
         if (!$item || !$this->canAccess($item, $actor)) {
             return false;
         }
@@ -160,7 +160,7 @@ final class ClientService
             return false;
         }
 
-        $deleted = $this->counterparties->deleteByPublicId($publicId);
+        $deleted = $this->counterparties->deleteByPublicId($publicId, $this->organizationId($actor));
         if ($deleted) {
             $this->semanticIndex?->removeEntityDocument('client', $publicId);
         }
@@ -220,6 +220,12 @@ final class ClientService
         }
 
         return ['limit_to_creator_ids' => $descendants];
+    }
+
+    private function organizationId(array $actor): ?int
+    {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
     }
 
     private function extractClientSet(array $input, bool $forCreate): array

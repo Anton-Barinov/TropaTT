@@ -12,9 +12,9 @@ final class ProjectModuleMemberRepository
     {
     }
 
-    public function listByModuleId(int $moduleId): array
+    public function listByModuleId(int $moduleId, ?int $organizationId = null): array
     {
-        return (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('project_module_members pmm')
             ->leftJoin('users u', 'u.id', '=', 'pmm.user_id')
             ->select([
@@ -26,8 +26,13 @@ final class ProjectModuleMemberRepository
             ->where('pmm.module_id', '=', $moduleId)
             ->whereNull('pmm.deleted_at')
             ->whereNull('u.deleted_at')
-            ->orderBy('pmm.added_at', 'ASC')
-            ->get();
+            ->orderBy('pmm.added_at', 'ASC');
+
+        if ($organizationId !== null && $organizationId > 0) {
+            $qb->where('pmm.organization_id', '=', $organizationId);
+        }
+
+        return $qb->get();
     }
 
     public function addMember(array $payload): array
@@ -48,31 +53,41 @@ final class ProjectModuleMemberRepository
         return $payload;
     }
 
-    public function removeMember(int $moduleId, int $userId, int $actorUserId, string $now): bool
+    public function removeMember(int $moduleId, int $userId, int $actorUserId, string $now, ?int $organizationId = null): bool
     {
-        return (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('project_module_members')
             ->where('module_id', '=', $moduleId)
             ->where('user_id', '=', $userId)
-            ->whereNull('deleted_at')
-            ->update([
-                'deleted_at' => $now,
-                'removed_by_user_id' => $actorUserId,
-                'removed_at' => $now,
-                'updated_at' => $now,
-                'active_key' => null,
-            ]) > 0;
+            ->whereNull('deleted_at');
+
+        if ($organizationId !== null && $organizationId > 0) {
+            $qb->where('organization_id', '=', $organizationId);
+        }
+
+        return $qb->update([
+            'deleted_at' => $now,
+            'removed_by_user_id' => $actorUserId,
+            'removed_at' => $now,
+            'updated_at' => $now,
+            'active_key' => null,
+        ]) > 0;
     }
 
-    public function memberAlreadyExists(int $moduleId, int $userId): bool
+    public function memberAlreadyExists(int $moduleId, int $userId, ?int $organizationId = null): bool
     {
-        $row = (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('project_module_members')
             ->select(['id'])
             ->where('module_id', '=', $moduleId)
             ->where('user_id', '=', $userId)
-            ->whereNull('deleted_at')
-            ->first();
+            ->whereNull('deleted_at');
+
+        if ($organizationId !== null && $organizationId > 0) {
+            $qb->where('organization_id', '=', $organizationId);
+        }
+
+        $row = $qb->first();
 
         return $row !== null && $row !== false;
     }

@@ -13,9 +13,9 @@ final class SearchRepository
     {
     }
 
-    public function searchTasks(string $query, int $limit, int $actorUserId, bool $actorIsRoot): array
+    public function searchTasks(string $query, int $limit, int $actorUserId, bool $actorIsRoot, ?int $organizationId = null): array
     {
-        return $this->buildTasksQuery($query, $actorUserId, $actorIsRoot)
+        return $this->buildTasksQuery($query, $actorUserId, $actorIsRoot, $organizationId)
             ->select([
                 't.public_id',
                 't.title',
@@ -30,9 +30,9 @@ final class SearchRepository
             ->get();
     }
 
-    public function searchProjects(string $query, int $limit, int $actorUserId, bool $actorIsRoot): array
+    public function searchProjects(string $query, int $limit, int $actorUserId, bool $actorIsRoot, ?int $organizationId = null): array
     {
-        return $this->buildProjectsQuery($query, $actorUserId, $actorIsRoot)
+        return $this->buildProjectsQuery($query, $actorUserId, $actorIsRoot, $organizationId)
             ->select([
                 'p.public_id',
                 'p.title',
@@ -51,9 +51,9 @@ final class SearchRepository
      * @param int[] $createdByUserIds Scope-фильтр: пустой массив для root (все),
      *                                иначе — только записи этих создателей (владелец + иерархия).
      */
-    public function searchCounterparties(string $query, int $limit, ?array $typeFilter = null, array $createdByUserIds = []): array
+    public function searchCounterparties(string $query, int $limit, ?array $typeFilter = null, array $createdByUserIds = [], ?int $organizationId = null): array
     {
-        $qb = $this->buildCounterpartyQuery($query, $createdByUserIds);
+        $qb = $this->buildCounterpartyQuery($query, $createdByUserIds, $organizationId);
 
         if ($typeFilter !== null && $typeFilter !== []) {
             $placeholders = implode(',', array_fill(0, count($typeFilter), '?'));
@@ -82,9 +82,9 @@ final class SearchRepository
      * @deprecated Используйте searchCounterparties()
      * @param int[] $createdByUserIds Scope-фильтр, см. searchCounterparties()
      */
-    public function searchClients(string $query, int $limit, array $createdByUserIds = []): array
+    public function searchClients(string $query, int $limit, array $createdByUserIds = [], ?int $organizationId = null): array
     {
-        return $this->searchCounterparties($query, $limit, ['individual', 'sole_proprietor', 'legal_entity'], $createdByUserIds);
+        return $this->searchCounterparties($query, $limit, ['individual', 'sole_proprietor', 'legal_entity'], $createdByUserIds, $organizationId);
     }
 
     /**
@@ -92,18 +92,18 @@ final class SearchRepository
      * @deprecated Используйте searchCounterparties()
      * @param int[] $createdByUserIds Scope-фильтр, см. searchCounterparties()
      */
-    public function searchCompanies(string $query, int $limit, array $createdByUserIds = []): array
+    public function searchCompanies(string $query, int $limit, array $createdByUserIds = [], ?int $organizationId = null): array
     {
-        return $this->searchCounterparties($query, $limit, ['organization'], $createdByUserIds);
+        return $this->searchCounterparties($query, $limit, ['organization'], $createdByUserIds, $organizationId);
     }
 
     /**
      * @param int[] $createdByUserIds Scope-фильтр: пустой массив для root (все),
      *                                иначе — только контакты этих создателей.
      */
-    public function searchContacts(string $query, int $limit, array $createdByUserIds = []): array
+    public function searchContacts(string $query, int $limit, array $createdByUserIds = [], ?int $organizationId = null): array
     {
-        return $this->buildContactsQuery($query, $createdByUserIds)
+        return $this->buildContactsQuery($query, $createdByUserIds, $organizationId)
             ->select([
                 'ct.public_id',
                 'ct.full_name',
@@ -119,7 +119,7 @@ final class SearchRepository
             ->get();
     }
 
-    private function buildTasksQuery(string $query, int $actorUserId, bool $actorIsRoot): QueryBuilder
+    private function buildTasksQuery(string $query, int $actorUserId, bool $actorIsRoot, ?int $organizationId = null): QueryBuilder
     {
         $like = '%' . LikeEscaper::escape($query) . '%';
         $qb = (new QueryBuilder($this->pdo))
@@ -136,10 +136,12 @@ final class SearchRepository
             );
         }
 
+        $this->applyOrganizationScope($qb, 'tasks', 't', $organizationId);
+
         return $qb;
     }
 
-    private function buildProjectsQuery(string $query, int $actorUserId, bool $actorIsRoot): QueryBuilder
+    private function buildProjectsQuery(string $query, int $actorUserId, bool $actorIsRoot, ?int $organizationId = null): QueryBuilder
     {
         $like = '%' . LikeEscaper::escape($query) . '%';
         $qb = (new QueryBuilder($this->pdo))
@@ -154,11 +156,13 @@ final class SearchRepository
             );
         }
 
+        $this->applyOrganizationScope($qb, 'projects', 'p', $organizationId);
+
         return $qb;
     }
 
     /** @param int[] $createdByUserIds */
-    private function buildCounterpartyQuery(string $query, array $createdByUserIds = []): QueryBuilder
+    private function buildCounterpartyQuery(string $query, array $createdByUserIds = [], ?int $organizationId = null): QueryBuilder
     {
         $like = '%' . LikeEscaper::escape($query) . '%';
 
@@ -167,6 +171,7 @@ final class SearchRepository
             ->whereRaw('(cp.title LIKE ? OR cp.legal_name LIKE ? OR cp.tax_inn LIKE ? OR cp.website LIKE ? OR cp.email LIKE ? OR cp.phone LIKE ?)', [$like, $like, $like, $like, $like, $like]);
 
         $this->applyCreatorScope($qb, 'cp', $createdByUserIds);
+        $this->applyOrganizationScope($qb, 'counterparties', 'cp', $organizationId);
 
         return $qb;
     }
@@ -200,7 +205,7 @@ final class SearchRepository
     }
 
     /** @param int[] $createdByUserIds */
-    private function buildContactsQuery(string $query, array $createdByUserIds = []): QueryBuilder
+    private function buildContactsQuery(string $query, array $createdByUserIds = [], ?int $organizationId = null): QueryBuilder
     {
         $like = '%' . LikeEscaper::escape($query) . '%';
 
@@ -210,8 +215,62 @@ final class SearchRepository
             ->whereRaw('(ct.full_name LIKE ? OR ct.email LIKE ? OR ct.phone LIKE ?)', [$like, $like, $like]);
 
         $this->applyCreatorScope($qb, 'ct', $createdByUserIds);
+        $this->applyOrganizationScope($qb, 'contacts', 'ct', $organizationId);
 
         return $qb;
+    }
+
+    /**
+     * Multi-tenant workspace boundary: filters the query to the actor's own
+     * organization. $organizationId === null means "no boundary to apply" and
+     * is used ONLY for a true platform superadmin
+     * (is_root && organization_id <= 0, see SearchService::isTrueRoot()).
+     * Every other actor must always pass a value here — including a
+     * non-positive sentinel (e.g. -1 for an actor with no organization),
+     * which must NOT be treated as "no filter": it is applied as-is so the
+     * query matches nothing, the fail-closed behaviour for an actor without a
+     * valid organization (mirrors applyCreatorScope()'s -1 sentinel).
+     *
+     * Fail-closed: if the target table does not (yet) have an
+     * organization_id column, the query is made to match nothing rather than
+     * silently falling back to unscoped results (mirrors
+     * TaskRepository::applyOrganizationScope()).
+     */
+    private function applyOrganizationScope(QueryBuilder $qb, string $table, string $alias, ?int $organizationId): void
+    {
+        if ($organizationId === null) {
+            return;
+        }
+        if (!$this->hasOrganizationColumn($table)) {
+            $qb->whereRaw('1 = 0');
+            return;
+        }
+        $qb->where($alias . '.organization_id', '=', $organizationId);
+    }
+
+    private function hasOrganizationColumn(string $table): bool
+    {
+        static $columns = [];
+        if (array_key_exists($table, $columns)) {
+            return $columns[$table];
+        }
+        try {
+            $driver = (string)$this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+            if ($driver === 'sqlite') {
+                $stmt = $this->pdo->query('PRAGMA table_info(' . $table . ')');
+                foreach ($stmt?->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+                    if ((string)($row['name'] ?? '') === 'organization_id') {
+                        return $columns[$table] = true;
+                    }
+                }
+                return $columns[$table] = false;
+            }
+            $stmt = $this->pdo->prepare('SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = :table AND column_name = \'organization_id\' LIMIT 1');
+            $stmt->execute(['table' => $table]);
+            return $columns[$table] = $stmt->fetchColumn() !== false;
+        } catch (\Throwable) {
+            return $columns[$table] = false;
+        }
     }
 
     /**

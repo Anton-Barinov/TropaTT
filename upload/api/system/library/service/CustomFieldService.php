@@ -8,8 +8,41 @@ use Api\System\Library\Support\Ulid;
 
 final class CustomFieldService
 {
-    public function __construct(private readonly CustomFieldRepository $fields)
+    /**
+     * Per entity_type ownership/access checkers. Each entry is
+     * callable(string $entityPublicId, array $actor): ?array, mirroring the
+     * corresponding domain service's get() method (returns null when the
+     * actor's organization/access does not include that entity).
+     *
+     * @var array<string, callable(string, array): ?array>
+     */
+    private readonly array $entityAccessors;
+
+    /**
+     * @param array<string, callable(string, array): ?array> $entityAccessors
+     */
+    public function __construct(
+        private readonly CustomFieldRepository $fields,
+        array $entityAccessors = []
+    ) {
+        $this->entityAccessors = $entityAccessors;
+    }
+
+    /**
+     * Verify the actor actually has access to the given entity before its
+     * custom field values are read or written. Returns false when the
+     * entity_type has no registered accessor (unsupported/unknown type) or
+     * when the accessor cannot resolve the entity for this actor (wrong
+     * organization, deleted, or otherwise inaccessible).
+     */
+    private function actorCanAccessEntity(string $entityType, string $entityPublicId, array $actor): bool
     {
+        $accessor = $this->entityAccessors[$entityType] ?? null;
+        if ($accessor === null) {
+            return false;
+        }
+
+        return $accessor($entityPublicId, $actor) !== null;
     }
 
     public function list(array $filters): array
@@ -107,7 +140,25 @@ final class CustomFieldService
         return $this->fields->deleteByPublicId($publicId);
     }
 
-    public function values(string $entityType, string $entityPublicId): array
+    /**
+     * @param array<string,mixed> $actor
+     * @return array|string 'ENTITY_NOT_FOUND' when the actor has no access to
+     *                       the target entity, otherwise the list of values.
+     */
+    public function values(string $entityType, string $entityPublicId, array $actor): array|string
+    {
+        if (!$this->actorCanAccessEntity($entityType, $entityPublicId, $actor)) {
+            return 'ENTITY_NOT_FOUND';
+        }
+
+        return $this->valuesUnchecked($entityType, $entityPublicId);
+    }
+
+    /**
+     * Internal helper: fetch values without re-checking entity access. Used
+     * once access has already been verified by values()/setValues().
+     */
+    private function valuesUnchecked(string $entityType, string $entityPublicId): array
     {
         $rows = $this->fields->valuesByEntity($entityType, $entityPublicId);
         $items = [];
@@ -132,8 +183,15 @@ final class CustomFieldService
         return $items;
     }
 
-    public function setValues(string $entityType, string $entityPublicId, array $values): array|string
+    /**
+     * @param array<string,mixed> $actor
+     */
+    public function setValues(string $entityType, string $entityPublicId, array $values, array $actor): array|string
     {
+        if (!$this->actorCanAccessEntity($entityType, $entityPublicId, $actor)) {
+            return 'ENTITY_NOT_FOUND';
+        }
+
         $upserted = [];
         $now = gmdate('Y-m-d H:i:s');
         foreach ($values as $fieldPublicId => $value) {
@@ -173,7 +231,7 @@ final class CustomFieldService
 
         return [
             'upserted' => $upserted,
-            'items' => $this->values($entityType, $entityPublicId),
+            'items' => $this->valuesUnchecked($entityType, $entityPublicId),
         ];
     }
 

@@ -1589,6 +1589,14 @@ final class KnowledgeRepository
         return is_array($row) ? $row : null;
     }
 
+    public function commentPagePublicId(string $publicId): ?string
+    {
+        $stmt = $this->pdo->prepare('SELECT p.public_id FROM knowledge_comments c JOIN knowledge_pages p ON p.id = c.page_id WHERE c.public_id = :public_id LIMIT 1');
+        $stmt->execute(['public_id' => $publicId]);
+        $pagePublicId = $stmt->fetchColumn();
+        return $pagePublicId !== false ? (string)$pagePublicId : null;
+    }
+
     public function deleteComment(string $publicId, int $userId): bool
     {
         $comment = $this->comment($publicId);

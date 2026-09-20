@@ -6,6 +6,7 @@ return [
     'updated' => 'Champ personnalisé mis à jour',
     'deleted' => 'Champ personnalisé supprimé',
     'not_found' => 'Champ personnalisé introuvable',
+    'entity_not_found' => 'Entité introuvable',
     'code_exists' => 'Le code du champ existe déjà dans le périmètre',
     'invalid_scope' => 'Périmètre invalide',
     'invalid_type' => 'Type de champ invalide',

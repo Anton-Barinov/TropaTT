@@ -107,9 +107,16 @@ final class ApprovalRepository
         return $query;
     }
 
-    public function findRequestByPublicId(string $publicId): ?array
+    /**
+     * $organizationId, when given and > 0, restricts the lookup to that
+     * organization's own request (direct WHERE guard on
+     * approval_requests.organization_id, unlike listRequests() this used to
+     * be missing entirely — TROPATTCRM-557). null skips the guard, for root
+     * actors operating outside any single organization.
+     */
+    public function findRequestByPublicId(string $publicId, ?int $organizationId = null): ?array
     {
-        $row = (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('approval_requests ar')
             ->join('users ru', 'ru.id', '=', 'ar.requester_user_id')
             ->select([
@@ -127,8 +134,13 @@ final class ApprovalRepository
                 'ru.login AS requester_login',
                 'ru.full_name AS requester_full_name',
             ])
-            ->where('ar.public_id', '=', $publicId)
-            ->first();
+            ->where('ar.public_id', '=', $publicId);
+
+        if ($organizationId !== null && $organizationId > 0 && $this->hasOrganizationColumn()) {
+            $query->where('ar.organization_id', '=', $organizationId);
+        }
+
+        $row = $query->first();
 
         return $row ?: null;
     }

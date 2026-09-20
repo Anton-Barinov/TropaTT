@@ -1008,7 +1008,7 @@ final class App
         $this->container->factory('repository.milestone', fn(Container $c) => new \Api\Model\Milestone\MilestoneRepository($c->get('db.pdo')));
         $this->container->factory('repository.dependency', fn(Container $c) => new \Api\Model\Dependency\DependencyRepository($c->get('db.pdo')));
         $this->container->factory('repository.template', fn(Container $c) => new \Api\Model\Template\TemplateRepository($c->get('db.pdo')));
-        $this->container->factory('repository.recurring', fn(Container $c) => new \Api\Model\Recurring\RecurringRepository($c->get('db.pdo'), $c->get('lang')));
+        $this->container->factory('repository.recurring', fn(Container $c) => new \Api\Model\Recurring\RecurringRepository($c->get('db.pdo'), $c->get('lang'), $c->get('repository.task'), $c->get('repository.project')));
         $this->container->factory('repository.custom_field', fn(Container $c) => new \Api\Model\Custom_field\CustomFieldRepository($c->get('db.pdo')));
         $this->container->factory('repository.workflow', fn(Container $c) => new \Api\Model\Workflow\WorkflowRepository($c->get('db.pdo')));
         $this->container->factory('repository.intake_item', fn(Container $c) => new \Api\Model\Intake\IntakeItemRepository($c->get('db.pdo')));
@@ -1239,7 +1239,20 @@ final class App
             $c->get('lang')
         ));
         $this->container->factory('service.custom_field', fn(Container $c) => new \Api\System\Library\Service\CustomFieldService(
-            $c->get('repository.custom_field')
+            $c->get('repository.custom_field'),
+            [
+                // Ownership/access checks for custom field values: before a
+                // value is read or written for a given entity_type +
+                // entity_public_id, verify the actor's organization/access
+                // actually includes that entity via the entity's own
+                // service, exactly as its own controller would (TROPATTCRM-553).
+                'task' => fn(string $publicId, array $actor) => $c->get('service.task')->get($publicId, $actor),
+                'project' => fn(string $publicId, array $actor) => $c->get('service.project')->get($publicId, $actor),
+                'client' => fn(string $publicId, array $actor) => $c->get('service.client')->get($publicId, $actor),
+                'company' => fn(string $publicId, array $actor) => $c->get('service.company')->get($publicId, $actor),
+                'contact' => fn(string $publicId, array $actor) => $c->get('service.contact')->get($publicId, $actor),
+                'user' => fn(string $publicId, array $actor) => $c->get('service.user')->get($publicId, $actor),
+            ]
         ));
         $this->container->factory('service.workflow', fn(Container $c) => new WorkflowService(
             $c->get('repository.workflow'),
@@ -1256,7 +1269,28 @@ final class App
             $c->get('repository.approval'),
             $c->get('repository.user'),
             $c->get('logger'),
-            $c->get('service.notification')
+            $c->get('service.notification'),
+            [
+                // Ownership/access checks for the entity an approval request
+                // is raised about: before a request can be created, verify
+                // the actor's organization/access actually includes that
+                // entity via the entity's own service, exactly as its own
+                // controller would (mirrors service.custom_field's
+                // entityAccessors wiring above — TROPATTCRM-557).
+                'task' => fn(string $publicId, array $actor) => $c->get('service.task')->get($publicId, $actor),
+                'project' => fn(string $publicId, array $actor) => $c->get('service.project')->get($publicId, $actor),
+                'comment' => function (string $publicId, array $actor) use ($c) {
+                    $comment = $c->get('repository.comment')->findByPublicId($publicId);
+                    if (!$comment || (string)($comment['deleted_at'] ?? '') !== '') {
+                        return null;
+                    }
+                    $taskPublicId = (string)($comment['task_public_id'] ?? '');
+                    if ($taskPublicId === '' || $c->get('service.task')->get($taskPublicId, $actor) === null) {
+                        return null;
+                    }
+                    return $comment;
+                },
+            ]
         ));
         $this->container->factory('service.recycle_bin', fn(Container $c) => new RecycleBinService(
             $c->get('repository.recycle_bin'),
@@ -1535,7 +1569,8 @@ final class App
             $c->get('repository.project'),
             $c->get('service.task'),
             $c->get('logger'),
-            $c->get('request')->requestId
+            $c->get('request')->requestId,
+            new HtmlSanitizer()
         ));
 
         $this->container->factory('repository.agent_memory', fn(Container $c) => new \Api\Model\Agent\AgentMemoryRepository($c->get('db.pdo')));

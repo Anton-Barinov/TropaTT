@@ -108,6 +108,42 @@ final class TeamRepository
         return $row ? $this->hydrateTeamRow($row) : null;
     }
 
+    /**
+     * Find a team by its raw numeric id, scoped to an organization exactly
+     * like findByPublicId(). Used to validate raw-integer parent_id input
+     * so it cannot reference another organization's team (TROPATTCRM-555).
+     */
+    public function findById(int $id, ?int $organizationId = null): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+
+        $query = (new QueryBuilder($this->pdo))
+            ->from('teams t')
+            ->leftJoin('users u', 'u.id', '=', 't.manager_user_id')
+            ->leftJoin('users cu', 'cu.id', '=', 't.created_by_user_id')
+            ->leftJoin('teams pt', 'pt.id', '=', 't.parent_id')
+            ->select([
+                't.*',
+                'u.public_id AS manager_user_public_id',
+                'u.full_name AS manager_name',
+                'u.login AS manager_login',
+                'cu.public_id AS creator_user_public_id',
+                'cu.full_name AS creator_name',
+                'cu.login AS creator_login',
+                'pt.public_id AS parent_team_public_id',
+                'pt.title AS parent_team_title',
+            ])
+            ->where('t.id', '=', $id);
+        if ($organizationId !== null && $organizationId > 0) {
+            $query->where('t.organization_id', '=', $organizationId);
+        }
+        $row = $query->first();
+
+        return $row ? $this->hydrateTeamRow($row) : null;
+    }
+
     public function create(array $payload, ?int $organizationId = null): void
     {
         if ($organizationId !== null && $organizationId > 0) {
@@ -238,15 +274,53 @@ final class TeamRepository
         return (int)($team['created_by_user_id'] ?? 0) === $actorUserId;
     }
 
-    public function userIdByPublicId(string $publicId): ?int
+    /**
+     * Resolve a user's numeric id by public_id, optionally scoped to an
+     * organization via organization_memberships (TROPATTCRM-555).
+     */
+    public function userIdByPublicId(string $publicId, ?int $organizationId = null): ?int
     {
-        $id = (new QueryBuilder($this->pdo))
-            ->from('users')
-            ->where('public_id', '=', $publicId)
-            ->whereNull('deleted_at')
-            ->value('id');
+        $query = (new QueryBuilder($this->pdo))
+            ->from('users u')
+            ->where('u.public_id', '=', $publicId)
+            ->whereNull('u.deleted_at');
 
-        return $id !== false ? (int)$id : null;
+        if ($organizationId !== null && $organizationId > 0) {
+            $query->join('organization_memberships om', 'om.user_id', '=', 'u.id')
+                ->where('om.organization_id', '=', $organizationId);
+        }
+
+        $id = $query->value('u.id');
+
+        return $id !== false && $id !== null ? (int)$id : null;
+    }
+
+    /**
+     * Verify a raw numeric user id exists and, when an organization is
+     * given, belongs to it (via organization_memberships). Used to close
+     * the raw-integer-id IDOR on manager_user_id (TROPATTCRM-555): unlike
+     * the *_public_id lookup, a bare integer previously skipped this check
+     * entirely and could reference another organization's user.
+     */
+    public function userIdInOrganization(int $userId, ?int $organizationId = null): ?int
+    {
+        if ($userId <= 0) {
+            return null;
+        }
+
+        $query = (new QueryBuilder($this->pdo))
+            ->from('users u')
+            ->where('u.id', '=', $userId)
+            ->whereNull('u.deleted_at');
+
+        if ($organizationId !== null && $organizationId > 0) {
+            $query->join('organization_memberships om', 'om.user_id', '=', 'u.id')
+                ->where('om.organization_id', '=', $organizationId);
+        }
+
+        $id = $query->value('u.id');
+
+        return $id !== false && $id !== null ? (int)$id : null;
     }
 
     /** @param string[] $publicIds @return int[] */
