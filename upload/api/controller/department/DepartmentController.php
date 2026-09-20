@@ -45,6 +45,9 @@ final class DepartmentController extends BaseController
         $service = $this->container->get('service.department');
         $item = $service->create($input, $auth['user']);
 
+        $this->invalidateCache('team');
+        $this->invalidateCache('worklog');
+
         return $this->success('DEPARTMENT_CREATED', $this->t('department/messages.created'), ['department' => $item], 201);
     }
 
@@ -85,6 +88,9 @@ final class DepartmentController extends BaseController
             ]);
         }
 
+        $this->invalidateCache('team');
+        $this->invalidateCache('worklog');
+
         return $this->success('DEPARTMENT_UPDATED', $this->t('department/messages.updated'), ['department' => $item]);
     }
 
@@ -104,6 +110,9 @@ final class DepartmentController extends BaseController
                 'department' => [$this->t('department/messages.not_found')],
             ]);
         }
+
+        $this->invalidateCache('team');
+        $this->invalidateCache('worklog');
 
         return $this->success('DEPARTMENT_DELETED', $this->t('department/messages.deleted'));
     }
