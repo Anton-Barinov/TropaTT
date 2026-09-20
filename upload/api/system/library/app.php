@@ -1269,7 +1269,28 @@ final class App
             $c->get('repository.approval'),
             $c->get('repository.user'),
             $c->get('logger'),
-            $c->get('service.notification')
+            $c->get('service.notification'),
+            [
+                // Ownership/access checks for the entity an approval request
+                // is raised about: before a request can be created, verify
+                // the actor's organization/access actually includes that
+                // entity via the entity's own service, exactly as its own
+                // controller would (mirrors service.custom_field's
+                // entityAccessors wiring above — TROPATTCRM-557).
+                'task' => fn(string $publicId, array $actor) => $c->get('service.task')->get($publicId, $actor),
+                'project' => fn(string $publicId, array $actor) => $c->get('service.project')->get($publicId, $actor),
+                'comment' => function (string $publicId, array $actor) use ($c) {
+                    $comment = $c->get('repository.comment')->findByPublicId($publicId);
+                    if (!$comment || (string)($comment['deleted_at'] ?? '') !== '') {
+                        return null;
+                    }
+                    $taskPublicId = (string)($comment['task_public_id'] ?? '');
+                    if ($taskPublicId === '' || $c->get('service.task')->get($taskPublicId, $actor) === null) {
+                        return null;
+                    }
+                    return $comment;
+                },
+            ]
         ));
         $this->container->factory('service.recycle_bin', fn(Container $c) => new RecycleBinService(
             $c->get('repository.recycle_bin'),
