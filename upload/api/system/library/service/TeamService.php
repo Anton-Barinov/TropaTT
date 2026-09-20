@@ -178,14 +178,19 @@ final class TeamService
     private function resolveManagerId(array $input, array $actor): int
     {
         $actorId = (int)($actor['id'] ?? 0);
+        $organizationId = $this->organizationId($actor);
 
         if (!empty($input['manager_user_public_id'])) {
-            $managerId = $this->teams->userIdByPublicId((string)$input['manager_user_public_id']);
+            $managerId = $this->teams->userIdByPublicId((string)$input['manager_user_public_id'], $organizationId);
             return $managerId ?? $actorId;
         }
 
+        // TROPATTCRM-555: a raw integer manager_user_id must be verified to
+        // belong to the actor's own organization, exactly like the
+        // *_public_id path above, instead of being trusted blindly.
         if (isset($input['manager_user_id']) && (int)$input['manager_user_id'] > 0) {
-            return (int)$input['manager_user_id'];
+            $managerId = $this->teams->userIdInOrganization((int)$input['manager_user_id'], $organizationId);
+            return $managerId ?? $actorId;
         }
 
         return $actorId;
@@ -227,10 +232,21 @@ final class TeamService
             if ($parent && $this->canView($parent, $actor)) {
                 return (int)$parent['id'];
             }
+
+            return null;
         }
 
+        // TROPATTCRM-555: a raw integer parent_id must go through the same
+        // organization-scoped existence + visibility check as parent_public_id
+        // above, instead of being trusted as-is. Without this, an actor could
+        // reference another organization's team as parent_id directly.
         if (isset($input['parent_id']) && (int)$input['parent_id'] > 0) {
-            return (int)$input['parent_id'];
+            $parent = $this->teams->findById((int)$input['parent_id'], $this->organizationId($actor));
+            if ($parent && $this->canView($parent, $actor)) {
+                return (int)$parent['id'];
+            }
+
+            return null;
         }
 
         return null;
