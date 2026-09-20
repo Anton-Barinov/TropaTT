@@ -20,9 +20,12 @@ final class AiUsageController extends BaseController
             ]);
         }
 
+        $authUser = $this->user();
+        $actor = $authUser ? $this->organizationScopedActor((array)($authUser['user'] ?? [])) : [];
+
         /** @var AiUsageService $service */
         $service = $this->container->get('service.ai_usage');
-        $result = $service->usageList($this->request()->allInput());
+        $result = $service->usageList($this->request()->allInput(), $actor);
 
         return $this->success('AI_USAGE_LIST', $this->t('ai/messages.action_result'), [
             'items' => $result['items'],
@@ -41,9 +44,12 @@ final class AiUsageController extends BaseController
             ]);
         }
 
+        $authUser = $this->user();
+        $actor = $authUser ? $this->organizationScopedActor((array)($authUser['user'] ?? [])) : [];
+
         /** @var AiUsageService $service */
         $service = $this->container->get('service.ai_usage');
-        $result = $service->auditList($this->request()->allInput());
+        $result = $service->auditList($this->request()->allInput(), $actor);
 
         return $this->success('AI_AUDIT_LIST', $this->t('ai/messages.action_result'), [
             'items' => $result['items'],
