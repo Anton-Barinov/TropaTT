@@ -50,7 +50,7 @@ final class SlaRepository
     {
         $query = (new QueryBuilder($this->pdo))
             ->from('sla_policies')
-            ->select(['public_id', 'title', 'response_minutes', 'resolve_minutes', 'escalation_payload', 'created_at', 'updated_at'])
+            ->select(['id', 'public_id', 'title', 'response_minutes', 'resolve_minutes', 'escalation_payload', 'created_at', 'updated_at'])
             ->where('public_id', '=', $publicId);
 
         if ($organizationId !== null) {
