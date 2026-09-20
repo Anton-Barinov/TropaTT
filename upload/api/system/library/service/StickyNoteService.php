@@ -7,6 +7,7 @@ use Api\Model\Sticky\StickyNoteRepository;
 use Api\Model\Knowledge\KnowledgeRepository;
 use Api\Model\Project\ProjectRepository;
 use Api\System\Library\Logger\JsonLogger;
+use Api\System\Library\Security\HtmlSanitizer;
 
 final class StickyNoteService
 {
@@ -23,21 +24,41 @@ final class StickyNoteService
         private readonly ?TaskService $taskService,
         private readonly JsonLogger $logger,
         private readonly string $requestId,
+        private readonly ?HtmlSanitizer $htmlSanitizer = null,
     ) {
+    }
+
+    /**
+     * Resolve the active organization id from an actor envelope. Returns null
+     * when the actor carries no (or a non-positive) organization_id, which
+     * repository calls treat as "do not scope" for backward compatibility.
+     *
+     * @param array<string,mixed> $actor
+     */
+    private function organizationId(array $actor): ?int
+    {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
+    }
+
+    private function sanitizeBody(string $body): string
+    {
+        $sanitized = ($this->htmlSanitizer ?? new HtmlSanitizer())->sanitize($body);
+        return mb_strlen($sanitized) <= self::MAX_BODY_LENGTH ? $sanitized : mb_substr($sanitized, 0, self::MAX_BODY_LENGTH);
     }
 
     /**
      * @param array<string,mixed> $filters
      * @return array{items:array<int,array<string,mixed>>,total:int,page:int,limit:int,pages:int}
      */
-    public function list(array $filters, int $actorUserId, bool $isRoot): array
+    public function list(array $filters, int $actorUserId, bool $isRoot, array $actor = []): array
     {
-        return $this->repo->list($filters, $actorUserId, $isRoot);
+        return $this->repo->list($filters, $actorUserId, $isRoot, $this->organizationId($actor));
     }
 
-    public function get(string $publicId, int $actorUserId, bool $isRoot): array
+    public function get(string $publicId, int $actorUserId, bool $isRoot, array $actor = []): array
     {
-        $note = $this->repo->findByPublicId($publicId);
+        $note = $this->repo->findByPublicId($publicId, $this->organizationId($actor));
         if ($note === null || $note === []) {
             $this->logger->warning('sticky_note_not_found', ['public_id' => $publicId, 'request_id' => $this->requestId]);
             return ['error' => 'STICKY_NOTE_NOT_FOUND'];
@@ -55,7 +76,7 @@ final class StickyNoteService
      * @param array<string,mixed> $payload
      * @return array<string,mixed>
      */
-    public function create(array $payload, int $actorUserId): array
+    public function create(array $payload, int $actorUserId, array $actor = []): array
     {
         $errors = $this->validate($payload);
         if ($errors !== []) {
@@ -75,10 +96,11 @@ final class StickyNoteService
 
         $note = $this->repo->create([
             'owner_user_id' => $actorUserId,
+            'organization_id' => $this->organizationId($actor),
             'context_type' => $contextType,
             'context_public_id' => $contextPublicId,
             'title' => $payload['title'] ?? null,
-            'body' => (string)($payload['body'] ?? ''),
+            'body' => $this->sanitizeBody((string)($payload['body'] ?? '')),
             'color' => (string)($payload['color'] ?? 'yellow'),
             'background_color' => $payload['background_color'] ?? null,
             'visibility' => (string)($payload['visibility'] ?? 'private'),
@@ -105,9 +127,10 @@ final class StickyNoteService
      * @param array<string,mixed> $payload
      * @return array<string,mixed>
      */
-    public function update(string $publicId, array $payload, int $actorUserId, bool $isRoot): array
+    public function update(string $publicId, array $payload, int $actorUserId, bool $isRoot, array $actor = []): array
     {
-        $note = $this->repo->findByPublicId($publicId);
+        $organizationId = $this->organizationId($actor);
+        $note = $this->repo->findByPublicId($publicId, $organizationId);
         if ($note === null || $note === []) {
             return ['error' => 'STICKY_NOTE_NOT_FOUND'];
         }
@@ -141,7 +164,11 @@ final class StickyNoteService
             $set['is_pinned'] = !empty($set['is_pinned']) ? 1 : 0;
         }
 
-        $ok = $this->repo->updateByPublicId($publicId, $set);
+        if (array_key_exists('body', $set)) {
+            $set['body'] = $this->sanitizeBody((string)$set['body']);
+        }
+
+        $ok = $this->repo->updateByPublicId($publicId, $set, $organizationId);
         if (!$ok) {
             return ['error' => 'STICKY_NOTE_NOT_FOUND'];
         }
@@ -153,12 +180,13 @@ final class StickyNoteService
             'request_id' => $this->requestId,
         ]);
 
-        return $this->repo->findByPublicId($publicId) ?? ['error' => 'INTERNAL_ERROR'];
+        return $this->repo->findByPublicId($publicId, $organizationId) ?? ['error' => 'INTERNAL_ERROR'];
     }
 
-    public function delete(string $publicId, int $actorUserId, bool $isRoot): array
+    public function delete(string $publicId, int $actorUserId, bool $isRoot, array $actor = []): array
     {
-        $note = $this->repo->findByPublicId($publicId);
+        $organizationId = $this->organizationId($actor);
+        $note = $this->repo->findByPublicId($publicId, $organizationId);
         if ($note === null || $note === []) {
             return ['error' => 'STICKY_NOTE_NOT_FOUND'];
         }
@@ -167,7 +195,7 @@ final class StickyNoteService
             return ['error' => 'FORBIDDEN'];
         }
 
-        $ok = $this->repo->softDeleteByPublicId($publicId, gmdate('Y-m-d H:i:s'));
+        $ok = $this->repo->softDeleteByPublicId($publicId, gmdate('Y-m-d H:i:s'), $organizationId);
         if (!$ok) {
             return ['error' => 'STICKY_NOTE_NOT_FOUND'];
         }
@@ -181,9 +209,10 @@ final class StickyNoteService
         return ['success' => true, 'public_id' => $publicId];
     }
 
-    public function archive(string $publicId, int $actorUserId, bool $isRoot): array
+    public function archive(string $publicId, int $actorUserId, bool $isRoot, array $actor = []): array
     {
-        $note = $this->repo->findByPublicId($publicId);
+        $organizationId = $this->organizationId($actor);
+        $note = $this->repo->findByPublicId($publicId, $organizationId);
         if ($note === null || $note === []) {
             return ['error' => 'STICKY_NOTE_NOT_FOUND'];
         }
@@ -192,7 +221,7 @@ final class StickyNoteService
             return ['error' => 'FORBIDDEN'];
         }
 
-        $ok = $this->repo->archiveByPublicId($publicId, gmdate('Y-m-d H:i:s'));
+        $ok = $this->repo->archiveByPublicId($publicId, gmdate('Y-m-d H:i:s'), $organizationId);
         if (!$ok) {
             return ['error' => 'STICKY_NOTE_NOT_FOUND'];
         }
@@ -206,9 +235,10 @@ final class StickyNoteService
         return ['success' => true, 'public_id' => $publicId];
     }
 
-    public function unarchive(string $publicId, int $actorUserId, bool $isRoot): array
+    public function unarchive(string $publicId, int $actorUserId, bool $isRoot, array $actor = []): array
     {
-        $note = $this->repo->findByPublicId($publicId);
+        $organizationId = $this->organizationId($actor);
+        $note = $this->repo->findByPublicId($publicId, $organizationId);
         if ($note === null || $note === []) {
             return ['error' => 'STICKY_NOTE_NOT_FOUND'];
         }
@@ -217,7 +247,7 @@ final class StickyNoteService
             return ['error' => 'FORBIDDEN'];
         }
 
-        $ok = $this->repo->unarchiveByPublicId($publicId);
+        $ok = $this->repo->unarchiveByPublicId($publicId, $organizationId);
         if (!$ok) {
             return ['error' => 'STICKY_NOTE_NOT_FOUND'];
         }
@@ -234,15 +264,17 @@ final class StickyNoteService
     /**
      * @param array<int,array{public_id:string,sort_order:int}> $items
      */
-    public function reorder(array $items, int $actorUserId): array
+    public function reorder(array $items, int $actorUserId, array $actor = []): array
     {
         if ($items === []) {
             return ['success' => true];
         }
 
+        $organizationId = $this->organizationId($actor);
+
         // Validate ownership
         foreach ($items as $item) {
-            $note = $this->repo->findByPublicId((string)$item['public_id']);
+            $note = $this->repo->findByPublicId((string)$item['public_id'], $organizationId);
             if ($note === null || $note === []) {
                 return ['error' => 'STICKY_NOTE_NOT_FOUND', 'public_id' => $item['public_id']];
             }
@@ -251,7 +283,7 @@ final class StickyNoteService
             }
         }
 
-        $this->repo->reorder($items, $actorUserId);
+        $this->repo->reorder($items, $actorUserId, $organizationId);
 
         $this->logger->info('sticky_notes_reordered', [
             'count' => count($items),
@@ -266,9 +298,10 @@ final class StickyNoteService
      * @param array<string,mixed> $payload
      * @return array<string,mixed>
      */
-    public function convertToTask(string $publicId, array $payload, int $actorUserId, bool $isRoot): array
+    public function convertToTask(string $publicId, array $payload, int $actorUserId, bool $isRoot, array $actor = []): array
     {
-        $note = $this->getForConvert($publicId, $actorUserId, $isRoot);
+        $organizationId = $this->organizationId($actor);
+        $note = $this->getForConvert($publicId, $actorUserId, $isRoot, $organizationId);
         if (isset($note['error'])) {
             return $note;
         }
@@ -346,7 +379,7 @@ final class StickyNoteService
             'converted_to_entity_public_id' => $task['public_id'] ?? '',
             'converted_at' => gmdate('Y-m-d H:i:s'),
             'converted_by_user_id' => $actorUserId,
-        ]);
+        ], $organizationId);
 
         $this->logger->info('sticky_note_converted_to_task', [
             'note_public_id' => $publicId,
@@ -366,9 +399,10 @@ final class StickyNoteService
      * @param array<string,mixed> $payload
      * @return array<string,mixed>
      */
-    public function convertToKnowledgePage(string $publicId, array $payload, int $actorUserId, bool $isRoot): array
+    public function convertToKnowledgePage(string $publicId, array $payload, int $actorUserId, bool $isRoot, array $actor = []): array
     {
-        $note = $this->getForConvert($publicId, $actorUserId, $isRoot);
+        $organizationId = $this->organizationId($actor);
+        $note = $this->getForConvert($publicId, $actorUserId, $isRoot, $organizationId);
         if (isset($note['error'])) {
             return $note;
         }
@@ -416,7 +450,7 @@ final class StickyNoteService
             'converted_to_entity_public_id' => $page['public_id'] ?? '',
             'converted_at' => gmdate('Y-m-d H:i:s'),
             'converted_by_user_id' => $actorUserId,
-        ]);
+        ], $organizationId);
 
         $this->logger->info('sticky_note_converted_to_page', [
             'note_public_id' => $publicId,
@@ -488,9 +522,9 @@ final class StickyNoteService
         return null;
     }
 
-    private function getForConvert(string $publicId, int $actorUserId, bool $isRoot): array
+    private function getForConvert(string $publicId, int $actorUserId, bool $isRoot, ?int $organizationId = null): array
     {
-        $note = $this->repo->findByPublicId($publicId);
+        $note = $this->repo->findByPublicId($publicId, $organizationId);
         if ($note === null || $note === []) {
             $this->logger->warning('sticky_note_not_found', ['public_id' => $publicId, 'request_id' => $this->requestId]);
             return ['error' => 'STICKY_NOTE_NOT_FOUND'];

@@ -8329,7 +8329,7 @@ $tools[] = $this->tool(
         }
         /** @var StickyNoteService $service */
         $service = $this->container->get('service.sticky_note');
-        $result = $service->delete($publicId, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false));
+        $result = $service->delete($publicId, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false), $this->actor());
         return isset($result['error']) ? $result : ['deleted' => true];
     }
 
@@ -8596,7 +8596,7 @@ $tools[] = $this->tool(
         }
         /** @var StickyNoteService $service */
         $service = $this->container->get('service.sticky_note');
-        $result = $service->convertToTask($publicId, $payload, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false));
+        $result = $service->convertToTask($publicId, $payload, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false), $this->actor());
         return isset($result['error']) ? $result : ['task' => $result['task'] ?? null];
     }
 
@@ -8612,7 +8612,7 @@ $tools[] = $this->tool(
         }
         /** @var StickyNoteService $service */
         $service = $this->container->get('service.sticky_note');
-        $result = $service->convertToKnowledgePage($publicId, $payload, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false));
+        $result = $service->convertToKnowledgePage($publicId, $payload, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false), $this->actor());
         return isset($result['error']) ? $result : ['page' => $result['page'] ?? null];
     }
 
@@ -8624,7 +8624,7 @@ $tools[] = $this->tool(
         }
         /** @var StickyNoteService $service */
         $service = $this->container->get('service.sticky_note');
-        $result = $service->reorder($items, (int)($this->actor()['id'] ?? 0));
+        $result = $service->reorder($items, (int)($this->actor()['id'] ?? 0), $this->actor());
         return isset($result['error']) ? $result : ['ok' => true];
     }
 
@@ -11624,7 +11624,7 @@ $tools[] = $this->tool(
     {
         /** @var StickyNoteService $service */
         $service = $this->container->get('service.sticky_note');
-        return $this->publicData($service->list($this->stickyNoteFilters($arguments), (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false)));
+        return $this->publicData($service->list($this->stickyNoteFilters($arguments), (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false), $this->actor()));
     }
 
     private function crmGetStickyNote(array $arguments): array
@@ -11636,7 +11636,7 @@ $tools[] = $this->tool(
 
         /** @var StickyNoteService $service */
         $service = $this->container->get('service.sticky_note');
-        $item = $service->get($publicId, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false));
+        $item = $service->get($publicId, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false), $this->actor());
         return isset($item['error']) ? ['error' => (string)$item['error']] : ['sticky_note' => $this->publicData($item)];
     }
 
@@ -11648,7 +11648,7 @@ $tools[] = $this->tool(
 
         /** @var StickyNoteService $service */
         $service = $this->container->get('service.sticky_note');
-        $item = $service->create($this->stickyNoteInput($arguments), (int)($this->actor()['id'] ?? 0));
+        $item = $service->create($this->stickyNoteInput($arguments), (int)($this->actor()['id'] ?? 0), $this->actor());
         return isset($item['error']) ? ['error' => (string)$item['error'], 'details' => $item['errors'] ?? null] : ['sticky_note' => $this->publicData($item)];
     }
 
@@ -11661,7 +11661,7 @@ $tools[] = $this->tool(
 
         /** @var StickyNoteService $service */
         $service = $this->container->get('service.sticky_note');
-        $item = $service->update($publicId, $this->stickyNoteInput($arguments), (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false));
+        $item = $service->update($publicId, $this->stickyNoteInput($arguments), (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false), $this->actor());
         return isset($item['error']) ? ['error' => (string)$item['error'], 'details' => $item['errors'] ?? null] : ['sticky_note' => $this->publicData($item)];
     }
 
@@ -11675,8 +11675,8 @@ $tools[] = $this->tool(
         /** @var StickyNoteService $service */
         $service = $this->container->get('service.sticky_note');
         $result = $archived
-            ? $service->archive($publicId, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false))
-            : $service->unarchive($publicId, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false));
+            ? $service->archive($publicId, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false), $this->actor())
+            : $service->unarchive($publicId, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false), $this->actor());
 
         return isset($result['error']) ? ['error' => (string)$result['error']] : $this->publicData($result);
     }
@@ -11923,7 +11923,12 @@ $tools[] = $this->tool(
 
         /** @var CustomFieldService $service */
         $service = $this->container->get('service.custom_field');
-        return ['items' => $this->publicData($service->values($entityType, $entityPublicId))];
+        $items = $service->values($entityType, $entityPublicId, $this->actor());
+        if ($items === 'ENTITY_NOT_FOUND') {
+            return ['error' => 'Entity not found.'];
+        }
+
+        return ['items' => $this->publicData($items)];
     }
 
     private function crmSetCustomFieldValues(array $arguments): array
@@ -12236,7 +12241,7 @@ $tools[] = $this->tool(
     {
         /** @var TagService $service */
         $service = $this->container->get('service.tag');
-        return $this->publicData($service->list($this->tagFilters($arguments)));
+        return $this->publicData($service->list($this->tagFilters($arguments), $this->actor()));
     }
 
     private function crmGetTag(array $arguments): array
@@ -12248,7 +12253,7 @@ $tools[] = $this->tool(
 
         /** @var TagService $service */
         $service = $this->container->get('service.tag');
-        $tag = $service->get($publicId);
+        $tag = $service->get($publicId, $this->actor());
         return $tag ? ['tag' => $this->publicData($tag)] : ['error' => 'Tag not found.'];
     }
 

@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Controller\Sticky;
 
-use Api\System\Library\Controller\BaseController;
+use Api\Controller\Common\BaseController;
 use Api\System\Library\Http\JsonResponse;
 use Api\System\Library\Language\LanguageManager;
 use Api\System\Library\Service\StickyNoteService;
@@ -25,10 +25,11 @@ final class StickyNoteController extends BaseController
 
     public function list(): JsonResponse
     {
-        $filters = $this->request->allInput();
-        $actor = $this->authUser();
-        $isRoot = $this->isRoot();
-        $result = $this->service()->list($filters, (int)$actor['user']['id'], $isRoot);
+        $filters = $this->request()->allInput();
+        $authUser = $this->user();
+        $actor = $authUser ? $this->organizationScopedActor((array)($authUser['user'] ?? [])) : [];
+        $isRoot = !empty($actor['is_root']);
+        $result = $this->service()->list($filters, (int)($actor['id'] ?? 0), $isRoot, $actor);
 
         return JsonResponse::success(
             'STICKY_NOTES_LISTED',
@@ -39,9 +40,10 @@ final class StickyNoteController extends BaseController
 
     public function get(array $params): JsonResponse
     {
-        $actor = $this->authUser();
-        $isRoot = $this->isRoot();
-        $result = $this->service()->get((string)$params['public_id'], (int)$actor['user']['id'], $isRoot);
+        $authUser = $this->user();
+        $actor = $authUser ? $this->organizationScopedActor((array)($authUser['user'] ?? [])) : [];
+        $isRoot = !empty($actor['is_root']);
+        $result = $this->service()->get((string)$params['public_id'], (int)($actor['id'] ?? 0), $isRoot, $actor);
 
         if (isset($result['error'])) {
             return $this->errorResponse($result);
@@ -56,9 +58,10 @@ final class StickyNoteController extends BaseController
 
     public function create(): JsonResponse
     {
-        $payload = $this->request->allInput();
-        $actor = $this->authUser();
-        $result = $this->service()->create($payload, (int)$actor['user']['id']);
+        $payload = $this->request()->allInput();
+        $authUser = $this->user();
+        $actor = $authUser ? $this->organizationScopedActor((array)($authUser['user'] ?? [])) : [];
+        $result = $this->service()->create($payload, (int)($actor['id'] ?? 0), $actor);
 
         if (isset($result['error'])) {
             return $this->errorResponse($result);
@@ -74,10 +77,11 @@ final class StickyNoteController extends BaseController
 
     public function update(array $params): JsonResponse
     {
-        $payload = $this->request->allInput();
-        $actor = $this->authUser();
-        $isRoot = $this->isRoot();
-        $result = $this->service()->update((string)$params['public_id'], $payload, (int)$actor['user']['id'], $isRoot);
+        $payload = $this->request()->allInput();
+        $authUser = $this->user();
+        $actor = $authUser ? $this->organizationScopedActor((array)($authUser['user'] ?? [])) : [];
+        $isRoot = !empty($actor['is_root']);
+        $result = $this->service()->update((string)$params['public_id'], $payload, (int)($actor['id'] ?? 0), $isRoot, $actor);
 
         if (isset($result['error'])) {
             return $this->errorResponse($result);
@@ -92,9 +96,10 @@ final class StickyNoteController extends BaseController
 
     public function delete(array $params): JsonResponse
     {
-        $actor = $this->authUser();
-        $isRoot = $this->isRoot();
-        $result = $this->service()->delete((string)$params['public_id'], (int)$actor['user']['id'], $isRoot);
+        $authUser = $this->user();
+        $actor = $authUser ? $this->organizationScopedActor((array)($authUser['user'] ?? [])) : [];
+        $isRoot = !empty($actor['is_root']);
+        $result = $this->service()->delete((string)$params['public_id'], (int)($actor['id'] ?? 0), $isRoot, $actor);
 
         if (isset($result['error'])) {
             return $this->errorResponse($result);
@@ -108,9 +113,10 @@ final class StickyNoteController extends BaseController
 
     public function archive(array $params): JsonResponse
     {
-        $actor = $this->authUser();
-        $isRoot = $this->isRoot();
-        $result = $this->service()->archive((string)$params['public_id'], (int)$actor['user']['id'], $isRoot);
+        $authUser = $this->user();
+        $actor = $authUser ? $this->organizationScopedActor((array)($authUser['user'] ?? [])) : [];
+        $isRoot = !empty($actor['is_root']);
+        $result = $this->service()->archive((string)$params['public_id'], (int)($actor['id'] ?? 0), $isRoot, $actor);
 
         if (isset($result['error'])) {
             return $this->errorResponse($result);
@@ -125,9 +131,10 @@ final class StickyNoteController extends BaseController
 
     public function unarchive(array $params): JsonResponse
     {
-        $actor = $this->authUser();
-        $isRoot = $this->isRoot();
-        $result = $this->service()->unarchive((string)$params['public_id'], (int)$actor['user']['id'], $isRoot);
+        $authUser = $this->user();
+        $actor = $authUser ? $this->organizationScopedActor((array)($authUser['user'] ?? [])) : [];
+        $isRoot = !empty($actor['is_root']);
+        $result = $this->service()->unarchive((string)$params['public_id'], (int)($actor['id'] ?? 0), $isRoot, $actor);
 
         if (isset($result['error'])) {
             return $this->errorResponse($result);
@@ -142,10 +149,11 @@ final class StickyNoteController extends BaseController
 
     public function reorder(): JsonResponse
     {
-        $payload = $this->request->allInput();
+        $payload = $this->request()->allInput();
         $items = (array)($payload['items'] ?? []);
-        $actor = $this->authUser();
-        $result = $this->service()->reorder($items, (int)$actor['user']['id']);
+        $authUser = $this->user();
+        $actor = $authUser ? $this->organizationScopedActor((array)($authUser['user'] ?? [])) : [];
+        $result = $this->service()->reorder($items, (int)($actor['id'] ?? 0), $actor);
 
         if (isset($result['error'])) {
             return $this->errorResponse($result);
@@ -159,10 +167,11 @@ final class StickyNoteController extends BaseController
 
     public function convertToTask(array $params): JsonResponse
     {
-        $payload = $this->request->allInput();
-        $actor = $this->authUser();
-        $isRoot = $this->isRoot();
-        $result = $this->service()->convertToTask((string)$params['public_id'], $payload, (int)$actor['user']['id'], $isRoot);
+        $payload = $this->request()->allInput();
+        $authUser = $this->user();
+        $actor = $authUser ? $this->organizationScopedActor((array)($authUser['user'] ?? [])) : [];
+        $isRoot = !empty($actor['is_root']);
+        $result = $this->service()->convertToTask((string)$params['public_id'], $payload, (int)($actor['id'] ?? 0), $isRoot, $actor);
 
         if (isset($result['error'])) {
             return $this->errorResponse($result);
@@ -177,10 +186,11 @@ final class StickyNoteController extends BaseController
 
     public function convertToKnowledgePage(array $params): JsonResponse
     {
-        $payload = $this->request->allInput();
-        $actor = $this->authUser();
-        $isRoot = $this->isRoot();
-        $result = $this->service()->convertToKnowledgePage((string)$params['public_id'], $payload, (int)$actor['user']['id'], $isRoot);
+        $payload = $this->request()->allInput();
+        $authUser = $this->user();
+        $actor = $authUser ? $this->organizationScopedActor((array)($authUser['user'] ?? [])) : [];
+        $isRoot = !empty($actor['is_root']);
+        $result = $this->service()->convertToKnowledgePage((string)$params['public_id'], $payload, (int)($actor['id'] ?? 0), $isRoot, $actor);
 
         if (isset($result['error'])) {
             return $this->errorResponse($result);
@@ -229,19 +239,4 @@ final class StickyNoteController extends BaseController
         );
     }
 
-    private function lang(): LanguageManager
-    {
-        return $this->container->get('lang');
-    }
-
-    private function authUser(): array
-    {
-        return $this->container->get('auth_user');
-    }
-
-    private function isRoot(): bool
-    {
-        $user = $this->authUser();
-        return !empty($user['user']['is_root']);
-    }
 }

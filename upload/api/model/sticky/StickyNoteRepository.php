@@ -13,10 +13,15 @@ final class StickyNoteRepository
     {
     }
 
-    public function list(array $filters, int $actorUserId, bool $isRoot): array
+    public function list(array $filters, int $actorUserId, bool $isRoot, ?int $organizationId = null): array
     {
         $where = ['sn.deleted_at IS NULL'];
         $params = [];
+
+        if ($organizationId !== null) {
+            $where[] = 'sn.organization_id = :organization_id';
+            $params['organization_id'] = $organizationId;
+        }
 
         if (!$isRoot) {
             $where[] = '(sn.owner_user_id = :actor_user_id OR (sn.visibility = \'shared\' AND sn.owner_user_id != :actor_user_id2))';
@@ -109,10 +114,17 @@ final class StickyNoteRepository
         ];
     }
 
-    public function findByPublicId(string $publicId): ?array
+    public function findByPublicId(string $publicId, ?int $organizationId = null): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT sn.id, sn.public_id, sn.owner_user_id, sn.context_type, sn.context_public_id, sn.title, sn.body, sn.color, sn.background_color, sn.visibility, sn.is_pinned, sn.sort_order, sn.converted_to_entity_type, sn.converted_to_entity_public_id, sn.converted_at, sn.converted_by_user_id, sn.meta_json, sn.row_version, sn.archived_at, sn.deleted_at, sn.created_at, sn.updated_at, u.public_id AS owner_public_id, COALESCE(u.full_name, u.login, u.public_id) AS owner_name FROM sticky_notes sn LEFT JOIN users u ON u.id = sn.owner_user_id WHERE sn.public_id = :public_id AND sn.deleted_at IS NULL LIMIT 1');
-        $stmt->execute(['public_id' => $publicId]);
+        $sql = 'SELECT sn.id, sn.public_id, sn.owner_user_id, sn.context_type, sn.context_public_id, sn.title, sn.body, sn.color, sn.background_color, sn.visibility, sn.is_pinned, sn.sort_order, sn.converted_to_entity_type, sn.converted_to_entity_public_id, sn.converted_at, sn.converted_by_user_id, sn.meta_json, sn.row_version, sn.archived_at, sn.deleted_at, sn.created_at, sn.updated_at, u.public_id AS owner_public_id, COALESCE(u.full_name, u.login, u.public_id) AS owner_name FROM sticky_notes sn LEFT JOIN users u ON u.id = sn.owner_user_id WHERE sn.public_id = :public_id AND sn.deleted_at IS NULL';
+        $params = ['public_id' => $publicId];
+        if ($organizationId !== null) {
+            $sql .= ' AND sn.organization_id = :organization_id';
+            $params['organization_id'] = $organizationId;
+        }
+        $sql .= ' LIMIT 1';
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return is_array($row) ? $row : null;
     }
@@ -123,14 +135,14 @@ final class StickyNoteRepository
         $now = gmdate('Y-m-d H:i:s');
 
         $stmt = $this->pdo->prepare('INSERT INTO sticky_notes (
-            public_id, owner_user_id, context_type, context_public_id,
+            public_id, owner_user_id, organization_id, context_type, context_public_id,
             title, body, color, background_color, visibility,
             is_pinned, sort_order,
             converted_to_entity_type, converted_to_entity_public_id, converted_at, converted_by_user_id,
             meta_json,
             row_version, archived_at, deleted_at, created_at, updated_at
         ) VALUES (
-            :public_id, :owner_user_id, :context_type, :context_public_id,
+            :public_id, :owner_user_id, :organization_id, :context_type, :context_public_id,
             :title, :body, :color, :background_color, :visibility,
             :is_pinned, :sort_order,
             :converted_to_entity_type, :converted_to_entity_public_id, :converted_at, :converted_by_user_id,
@@ -141,6 +153,7 @@ final class StickyNoteRepository
         $stmt->execute([
             'public_id' => $publicId,
             'owner_user_id' => (int)($payload['owner_user_id'] ?? 0),
+            'organization_id' => isset($payload['organization_id']) && (int)$payload['organization_id'] > 0 ? (int)$payload['organization_id'] : null,
             'context_type' => (string)($payload['context_type'] ?? 'personal'),
             'context_public_id' => $payload['context_public_id'] ?? null,
             'title' => $payload['title'] ?? null,
@@ -162,7 +175,7 @@ final class StickyNoteRepository
         return $this->findByPublicId($publicId) ?? [];
     }
 
-    public function updateByPublicId(string $publicId, array $set): bool
+    public function updateByPublicId(string $publicId, array $set, ?int $organizationId = null): bool
     {
         // Always bump updated_at, but never duplicate the named parameter: a
         // caller may already have put 'updated_at' into $set (e.g. markConverted),
@@ -178,50 +191,80 @@ final class StickyNoteRepository
         }
 
         $sql = 'UPDATE sticky_notes SET ' . implode(', ', $setParts) . ' WHERE public_id = :public_id';
+        if ($organizationId !== null) {
+            $sql .= ' AND organization_id = :where_organization_id';
+            $params['where_organization_id'] = $organizationId;
+        }
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
         return $stmt->rowCount() > 0;
     }
 
-    public function archiveByPublicId(string $publicId, string $archivedAt): bool
+    public function archiveByPublicId(string $publicId, string $archivedAt, ?int $organizationId = null): bool
     {
-        $stmt = $this->pdo->prepare('UPDATE sticky_notes SET archived_at = :archived_at, updated_at = :updated_at WHERE public_id = :public_id');
-        $stmt->execute(['archived_at' => $archivedAt, 'updated_at' => gmdate('Y-m-d H:i:s'), 'public_id' => $publicId]);
+        $sql = 'UPDATE sticky_notes SET archived_at = :archived_at, updated_at = :updated_at WHERE public_id = :public_id';
+        $params = ['archived_at' => $archivedAt, 'updated_at' => gmdate('Y-m-d H:i:s'), 'public_id' => $publicId];
+        if ($organizationId !== null) {
+            $sql .= ' AND organization_id = :organization_id';
+            $params['organization_id'] = $organizationId;
+        }
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
         return $stmt->rowCount() > 0;
     }
 
-    public function unarchiveByPublicId(string $publicId): bool
+    public function unarchiveByPublicId(string $publicId, ?int $organizationId = null): bool
     {
-        $stmt = $this->pdo->prepare('UPDATE sticky_notes SET archived_at = NULL, updated_at = :updated_at WHERE public_id = :public_id');
-        $stmt->execute(['updated_at' => gmdate('Y-m-d H:i:s'), 'public_id' => $publicId]);
+        $sql = 'UPDATE sticky_notes SET archived_at = NULL, updated_at = :updated_at WHERE public_id = :public_id';
+        $params = ['updated_at' => gmdate('Y-m-d H:i:s'), 'public_id' => $publicId];
+        if ($organizationId !== null) {
+            $sql .= ' AND organization_id = :organization_id';
+            $params['organization_id'] = $organizationId;
+        }
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
         return $stmt->rowCount() > 0;
     }
 
-    public function softDeleteByPublicId(string $publicId, string $deletedAt): bool
+    public function softDeleteByPublicId(string $publicId, string $deletedAt, ?int $organizationId = null): bool
     {
-        $stmt = $this->pdo->prepare('UPDATE sticky_notes SET deleted_at = :deleted_at, updated_at = :updated_at WHERE public_id = :public_id');
-        $stmt->execute(['deleted_at' => $deletedAt, 'updated_at' => gmdate('Y-m-d H:i:s'), 'public_id' => $publicId]);
+        $sql = 'UPDATE sticky_notes SET deleted_at = :deleted_at, updated_at = :updated_at WHERE public_id = :public_id';
+        $params = ['deleted_at' => $deletedAt, 'updated_at' => gmdate('Y-m-d H:i:s'), 'public_id' => $publicId];
+        if ($organizationId !== null) {
+            $sql .= ' AND organization_id = :organization_id';
+            $params['organization_id'] = $organizationId;
+        }
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
         return $stmt->rowCount() > 0;
     }
 
-    public function reorder(array $items, int $actorUserId): void
+    public function reorder(array $items, int $actorUserId, ?int $organizationId = null): void
     {
-        $stmt = $this->pdo->prepare('UPDATE sticky_notes SET sort_order = :sort_order, updated_at = :updated_at WHERE public_id = :public_id AND owner_user_id = :owner_user_id');
+        $sql = 'UPDATE sticky_notes SET sort_order = :sort_order, updated_at = :updated_at WHERE public_id = :public_id AND owner_user_id = :owner_user_id';
+        if ($organizationId !== null) {
+            $sql .= ' AND organization_id = :organization_id';
+        }
+        $stmt = $this->pdo->prepare($sql);
         $now = gmdate('Y-m-d H:i:s');
         foreach ($items as $item) {
-            $stmt->execute([
+            $params = [
                 'sort_order' => (int)($item['sort_order'] ?? 65535),
                 'updated_at' => $now,
                 'public_id' => (string)$item['public_id'],
                 'owner_user_id' => $actorUserId,
-            ]);
+            ];
+            if ($organizationId !== null) {
+                $params['organization_id'] = $organizationId;
+            }
+            $stmt->execute($params);
         }
     }
 
-    public function markConverted(string $publicId, array $set): bool
+    public function markConverted(string $publicId, array $set, ?int $organizationId = null): bool
     {
         $set['updated_at'] = gmdate('Y-m-d H:i:s');
-        return $this->updateByPublicId($publicId, $set);
+        return $this->updateByPublicId($publicId, $set, $organizationId);
     }
 
     public function nextSortOrder(int $ownerUserId, string $contextType, ?string $contextPublicId): int
