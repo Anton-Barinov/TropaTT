@@ -38,9 +38,14 @@ final class TagController extends BaseController
 
     public function get(array $params): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
         /** @var TagService $service */
         $service = $this->container->get('service.tag');
-        $item = $service->get((string)$params['public_id']);
+        $item = $service->get((string)$params['public_id'], (array)$auth['user']);
         if (!$item) {
             return $this->error('TAG_NOT_FOUND', $this->t('tag/messages.not_found'), 404, [
                 'tag' => [$this->t('tag/messages.not_found')],
@@ -52,6 +57,11 @@ final class TagController extends BaseController
 
     public function create(): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
         $input = $this->request()->allInput();
         // Accept 'name' as alias for 'title'
         if (empty($input['title']) && !empty($input['name'])) {
@@ -73,7 +83,7 @@ final class TagController extends BaseController
 
         /** @var TagService $service */
         $service = $this->container->get('service.tag');
-        $item = $service->create($input);
+        $item = $service->create($input, (array)$auth['user']);
         if (is_string($item) && $item === 'TAG_CODE_EXISTS') {
             return $this->error('TAG_CODE_EXISTS', $this->t('tag/messages.code_exists'), 409, [
                 'code' => [$this->t('tag/messages.code_exists')],
@@ -87,13 +97,18 @@ final class TagController extends BaseController
             'tag_public_id' => (string)($item['public_id'] ?? ''),
             'code' => (string)($item['code'] ?? ''),
             'title' => (string)($item['title'] ?? ''),
-            'actor_id' => (int)($authUser['user']['id'] ?? 0),
+            'actor_id' => (int)($auth['user']['id'] ?? 0),
         ]);
         return $this->success('TAG_CREATED', $this->t('tag/messages.created'), ['tag' => $item], 201);
     }
 
     public function update(array $params): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
         $input = $this->request()->allInput();
         // Accept 'name' as alias for 'title'
         if (empty($input['title']) && !empty($input['name'])) {
@@ -109,7 +124,7 @@ final class TagController extends BaseController
 
         /** @var TagService $service */
         $service = $this->container->get('service.tag');
-        $item = $service->update((string)$params['public_id'], $input);
+        $item = $service->update((string)$params['public_id'], $input, (array)$auth['user']);
         if ($item === null) {
             return $this->error('TAG_NOT_FOUND', $this->t('tag/messages.not_found'), 404, [
                 'tag' => [$this->t('tag/messages.not_found')],
@@ -128,16 +143,21 @@ final class TagController extends BaseController
             'tag_public_id' => (string)($item['public_id'] ?? ''),
             'code' => (string)($item['code'] ?? ''),
             'title' => (string)($item['title'] ?? ''),
-            'actor_id' => (int)($authUser['user']['id'] ?? 0),
+            'actor_id' => (int)($auth['user']['id'] ?? 0),
         ]);
         return $this->success('TAG_UPDATED', $this->t('tag/messages.updated'), ['tag' => $item]);
     }
 
     public function delete(array $params): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
         /** @var TagService $service */
         $service = $this->container->get('service.tag');
-        $ok = $service->delete((string)$params['public_id']);
+        $ok = $service->delete((string)$params['public_id'], (array)$auth['user']);
         if (!$ok) {
             return $this->error('TAG_NOT_FOUND', $this->t('tag/messages.not_found'), 404, [
                 'tag' => [$this->t('tag/messages.not_found')],
