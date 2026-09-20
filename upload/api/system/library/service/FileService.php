@@ -352,6 +352,8 @@ final class FileService
             return false;
         }
 
+        $organizationId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
+
         // RLS for client-portal guests. An external user is never a creator, assignee,
         // manager or team member, so every ownership check below would deny them — including
         // files attached to their own tasks, which is the main thing the portal exists for.
@@ -369,7 +371,7 @@ final class FileService
             }
 
             if ($entityType === 'task') {
-                $task = $this->tasks->findByPublicId($entityPublicId);
+                $task = $this->tasks->findByPublicId($entityPublicId, $organizationId);
                 if (!$task) {
                     return false;
                 }
@@ -380,13 +382,16 @@ final class FileService
 
                 $taskClientPublicId = (string)($task['task_client_public_id'] ?? '');
                 $projectClientPublicId = (string)($task['client_public_id'] ?? '');
+                // L-9: Use canonical client: task-level if set, otherwise project-level.
+                // This prevents a task with client X in project of client Y from being
+                // visible to observers of both (mirrors TaskService::canAccess()).
+                $effectiveClient = $taskClientPublicId !== '' ? $taskClientPublicId : $projectClientPublicId;
 
-                return ($taskClientPublicId !== '' && $taskClientPublicId === $cpPublicId)
-                    || ($projectClientPublicId !== '' && $projectClientPublicId === $cpPublicId);
+                return $effectiveClient !== '' && $effectiveClient === $cpPublicId;
             }
 
             if ($entityType === 'project') {
-                $project = $this->projects->findByPublicId($entityPublicId);
+                $project = $this->projects->findByPublicId($entityPublicId, $organizationId);
                 if (!$project) {
                     return false;
                 }
@@ -402,7 +407,7 @@ final class FileService
         }
 
         if ($entityType === 'task') {
-            $task = $this->tasks->findByPublicId($entityPublicId);
+            $task = $this->tasks->findByPublicId($entityPublicId, $organizationId);
             if (!$task) {
                 return false;
             }
@@ -416,7 +421,7 @@ final class FileService
         }
 
         if ($entityType === 'project') {
-            $project = $this->projects->findByPublicId($entityPublicId);
+            $project = $this->projects->findByPublicId($entityPublicId, $organizationId);
             if (!$project) {
                 return false;
             }
