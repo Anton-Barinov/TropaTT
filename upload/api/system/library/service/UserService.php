@@ -293,8 +293,14 @@ final class UserService
 
         $this->assignToTeam($publicId, $input['team_public_id'] ?? null);
 
-        $set['updated_at'] = gmdate('Y-m-d H:i:s');
+        $now = gmdate('Y-m-d H:i:s');
+        $set['updated_at'] = $now;
         $this->users->updateByPublicId($publicId, $set);
+
+        if ((array_key_exists('password', $input) && trim((string)$input['password']) !== '')
+            || (array_key_exists('is_active', $set) && (int)$set['is_active'] === 0)) {
+            $this->sessions->revokeAllByUserId((int)$target['id'], $now);
+        }
 
         $this->logger->audit([
             'action' => 'user_update',

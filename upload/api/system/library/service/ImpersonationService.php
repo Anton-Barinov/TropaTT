@@ -54,15 +54,18 @@ final class ImpersonationService
             return ['ok' => false, 'code' => 'IMPERSONATION_SELF_FORBIDDEN'];
         }
 
-        $actorIsRoot = (int)($actorFull['is_root'] ?? 0) === 1;
-        $targetIsRoot = (int)($target['is_root'] ?? 0) === 1;
+        $actorRoles = $this->users->roleCodesByUserId($actorId);
+        $actorIsSuperAdmin = (int)($actorFull['is_root'] ?? 0) === 1 || in_array('super_admin', $actorRoles, true);
 
-        if ($targetIsRoot && !$actorIsRoot) {
-            return ['ok' => false, 'code' => 'FORBIDDEN_ROOT_PROTECTED'];
+        if (!$actorIsSuperAdmin) {
+            return ['ok' => false, 'code' => 'FORBIDDEN'];
         }
 
-        if (!$actorIsRoot && !$this->hierarchy->canManageUser($actorFull, $target)) {
-            return ['ok' => false, 'code' => 'FORBIDDEN_HIERARCHY'];
+        $targetRoles = $this->users->roleCodesByUserId($targetId);
+        $targetIsProtected = (int)($target['is_root'] ?? 0) === 1 || in_array('super_admin', $targetRoles, true);
+
+        if ($targetIsProtected) {
+            return ['ok' => false, 'code' => 'FORBIDDEN_ROOT_PROTECTED'];
         }
 
         $existing = $this->impersonations->findActiveByAdminAndTarget($actorId, $targetId);

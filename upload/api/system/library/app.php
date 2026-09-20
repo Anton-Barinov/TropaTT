@@ -855,6 +855,16 @@ final class App
         $logChannels = (array)$this->config->get('logging.channels', []);
         $maskKeys = (array)$this->config->get('logging.mask_keys', []);
         $logWriter = function (string $channel, array $context) use ($db): void {
+            if ($channel === 'audit' && $this->container->has('auth_user')) {
+                $authUser = $this->container->get('auth_user');
+                $actor = is_array($authUser) && isset($authUser['user']) && is_array($authUser['user']) ? $authUser['user'] : [];
+                if (!empty($actor['impersonated_by_user_id']) && empty($context['impersonated_by_user_id'])) {
+                    $context['impersonated_by_user_id'] = (int)$actor['impersonated_by_user_id'];
+                }
+                if (!empty($actor['impersonated_by_user_public_id']) && empty($context['impersonated_by_user_public_id'])) {
+                    $context['impersonated_by_user_public_id'] = (string)$actor['impersonated_by_user_public_id'];
+                }
+            }
             $pdo = $db->connect();
             $repo = new \Api\Model\Logs\LogsRepository($pdo);
 

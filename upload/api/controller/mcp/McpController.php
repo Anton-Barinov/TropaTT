@@ -1152,7 +1152,11 @@ MD;
                 'reason' => ['type' => 'string'],
             ], ['target_user_public_id']);
             $tools[] = $this->tool('crm_get_impersonation_status', 'Check if currently impersonating another user.', []);
-            $tools[] = $this->tool('crm_stop_impersonation', 'Stop impersonating and return to own identity.', []);
+            $tools[] = $this->tool('crm_stop_impersonation', 'Stop impersonating and return to own identity.', [
+                'audit_public_id' => ['type' => 'string', 'description' => 'Optional audit ID of the impersonation to stop.'],
+                'session_public_id' => ['type' => 'string', 'description' => 'Optional session public ID to stop.'],
+                'impersonation_session_public_id' => ['type' => 'string', 'description' => 'Alias for session_public_id.'],
+            ]);
             $tools[] = $this->tool('crm_request_password_reset', 'Request a password reset email for an account.', [
                 'identifier' => ['type' => 'string', 'description' => 'Login or email of the account.'],
             ], ['identifier']);
@@ -3125,10 +3129,13 @@ $tools[] = $this->tool(
                 'permission_codes' => ['type' => 'array', 'items' => ['type' => 'string']],
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                'audit_public_id' => ['type' => 'string', 'description' => 'Impersonation audit public_id.'],
                 'bill_rate' => ['type' => 'string', 'description' => 'Value.'],
                 'code' => ['type' => 'string', 'description' => 'Unique code.'],
                 'cost_rate' => ['type' => 'string', 'description' => 'Value.'],
                 'description' => ['type' => 'string', 'description' => 'Free-form description.'],
+                'impersonation_public_id' => ['type' => 'string', 'description' => 'Alias for audit_public_id.'],
+                'impersonation_session_public_id' => ['type' => 'string', 'description' => 'Alias for session_public_id.'],
                 'is_active' => ['type' => 'boolean', 'description' => 'Boolean flag.'],
                 'is_root' => ['type' => 'boolean', 'description' => 'Boolean flag.'],
                 'locale' => ['type' => 'string', 'description' => 'Locale code, e.g. ru-ru.'],
@@ -3136,6 +3143,7 @@ $tools[] = $this->tool(
                 'payout_rate' => ['type' => 'string', 'description' => 'Value.'],
                 'reason' => ['type' => 'string', 'description' => 'Reason text.'],
                 'role_public_id' => ['type' => 'string', 'description' => 'Role public_id.'],
+                'session_public_id' => ['type' => 'string', 'description' => 'Session public_id.'],
                 'target_user_public_id' => ['type' => 'string', 'description' => 'Target user public_id.'],
                 'title' => ['type' => 'string', 'description' => 'Display title.'],
                 'token' => ['type' => 'string', 'description' => 'Login token factor value.'],
@@ -4012,7 +4020,7 @@ $tools[] = $this->tool(
             'crm_disable_2fa' => $this->toolResult($this->crmDisable2fa($arguments)),
             'crm_start_impersonation' => $this->withPermission('user.manage', fn() => $this->toolResult($this->crmStartImpersonation($arguments))),
             'crm_get_impersonation_status' => $this->toolResult($this->crmGetImpersonationStatus()),
-            'crm_stop_impersonation' => $this->toolResult($this->crmStopImpersonation()),
+            'crm_stop_impersonation' => $this->toolResult($this->crmStopImpersonation($arguments)),
             'crm_request_password_reset' => $this->toolResult($this->crmRequestPasswordReset($arguments)),
             'crm_confirm_password_reset' => $this->toolResult($this->crmConfirmPasswordReset($arguments)),
             'crm_accept_invitation' => $this->toolResult($this->crmAcceptInvitation($arguments)),
@@ -4769,7 +4777,7 @@ $tools[] = $this->tool(
             'list_invitations' => $this->toolResult($this->crmListInvitations($args)),
             'create_invitation' => $this->toolResult($this->crmCreateInvitation($args)),
             'start_impersonation' => $this->withPermission('admin.impersonate', fn() => $this->toolResult($this->crmStartImpersonation($args))),
-            'stop_impersonation' => $this->toolResult($this->crmStopImpersonation()),
+            'stop_impersonation' => $this->toolResult($this->crmStopImpersonation($args)),
             'get_impersonation_status' => $this->toolResult($this->crmGetImpersonationStatus()),
             default => null,
         }, 'crm_people', $action);
@@ -9173,11 +9181,30 @@ $tools[] = $this->tool(
         return ['current' => $result['current'] ?? null, 'active_started_by_me' => $result['active_started_by_me'] ?? null];
     }
 
-    private function crmStopImpersonation(): array
+    private function crmStopImpersonation(array $arguments = []): array
     {
         /** @var ImpersonationService $service */
         $service = $this->container->get('service.impersonation');
-        $result = $service->stop($this->actor(), (string)($this->actor()['session_public_id'] ?? ''), null, '', '');
+        $sessionPublicId = trim((string)($arguments['session_public_id'] ?? $arguments['impersonation_session_public_id'] ?? $this->actor()['session_public_id'] ?? ''));
+        $auditPublicId = trim((string)($arguments['audit_public_id'] ?? $arguments['impersonation_public_id'] ?? ''));
+
+        if ($auditPublicId === '' && $sessionPublicId === '') {
+            $actorId = (int)($this->actor()['id'] ?? 0);
+            if ($actorId > 0 && $this->container->has('repository.impersonation')) {
+                $activeList = $this->container->get('repository.impersonation')->listActiveByAdminUserId($actorId, 1);
+                if (!empty($activeList)) {
+                    $auditPublicId = (string)($activeList[0]['public_id'] ?? '');
+                }
+            }
+        }
+
+        $result = $service->stop(
+            $this->actor(),
+            $sessionPublicId,
+            $auditPublicId !== '' ? $auditPublicId : null,
+            $this->request()->ip(),
+            $this->request()->userAgent()
+        );
         if (!(bool)($result['ok'] ?? false)) {
             return ['error' => (string)($result['code'] ?? 'Failed to stop impersonation.')];
         }

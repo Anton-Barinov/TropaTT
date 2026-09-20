@@ -67,9 +67,26 @@ final class RoleRepository
 
     public function deleteByPublicId(string $publicId): bool
     {
+        $role = $this->findByPublicId($publicId);
+        if (!$role) {
+            return false;
+        }
+
+        $roleId = (int)$role['id'];
+
+        (new QueryBuilder($this->pdo))
+            ->from('role_permissions')
+            ->where('role_id', '=', $roleId)
+            ->delete();
+
+        (new QueryBuilder($this->pdo))
+            ->from('user_roles')
+            ->where('role_id', '=', $roleId)
+            ->delete();
+
         return (new QueryBuilder($this->pdo))
             ->from('roles')
-            ->where('public_id', '=', $publicId)
+            ->where('id', '=', $roleId)
             ->delete() > 0;
     }
 

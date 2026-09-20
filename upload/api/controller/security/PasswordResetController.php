@@ -22,7 +22,12 @@ final class PasswordResetController extends BaseController
 
         /** @var PasswordResetService $service */
         $service = $this->container->get('service.password_reset');
-        $service->request($input, $this->request()->ip());
+        $result = $service->request($input, $this->request()->ip());
+        if (!(bool)($result['ok'] ?? false)) {
+            return $this->error('RATE_LIMITED', $this->t('common/messages.rate_limited'), 429, [], [
+                'retry_after' => (int)($result['retry_after'] ?? 60),
+            ]);
+        }
 
         return $this->success('PASSWORD_RESET_REQUESTED', $this->t('security/messages.password_reset_requested'), [
             'accepted' => true,

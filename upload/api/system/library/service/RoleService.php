@@ -103,7 +103,8 @@ final class RoleService
             return ['ok' => false, 'code' => 'ROLE_NOT_FOUND'];
         }
 
-        if ((int)$role['is_system'] === 1) {
+        $protectedCodes = ['super_admin', 'admin', 'member', 'client', 'guest'];
+        if ((int)$role['is_system'] === 1 || in_array((string)($role['code'] ?? ''), $protectedCodes, true)) {
             return ['ok' => false, 'code' => 'ROLE_SYSTEM_PROTECTED'];
         }
 

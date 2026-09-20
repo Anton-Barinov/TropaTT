@@ -376,6 +376,17 @@ final class TaskActivityService
                 $actorDisplayName = (string)($actor['actor_display_name'] ?? 'System');
             }
 
+            $payloadJson = $params['payload_json'] ?? [];
+            if (!is_array($payloadJson)) {
+                $payloadJson = [];
+            }
+            if (!empty($actor['impersonated_by_user_id'])) {
+                $payloadJson['impersonated_by_user_id'] = (int)$actor['impersonated_by_user_id'];
+            }
+            if (!empty($actor['impersonated_by_user_public_id'])) {
+                $payloadJson['impersonated_by_user_public_id'] = (string)$actor['impersonated_by_user_public_id'];
+            }
+
             $this->repository->create([
                 'public_id' => Ulid::generate('tac'),
                 'task_id' => (int)($task['id'] ?? 0),
@@ -397,7 +408,7 @@ final class TaskActivityService
                 'related_entity_label' => mb_substr((string)($params['related_entity_label'] ?? ''), 0, 255),
                 'message_key' => (string)($params['message_key'] ?? ''),
                 'message_text' => mb_substr((string)($params['message_text'] ?? ''), 0, 1000),
-                'payload_json' => $params['payload_json'] ?? null,
+                'payload_json' => !empty($payloadJson) ? $payloadJson : null,
                 'visibility' => (string)($params['visibility'] ?? 'default'),
                 'request_id' => (string)($context['request_id'] ?? ''),
                 'source_type' => (string)($context['source_type'] ?? ''),
@@ -557,6 +568,8 @@ final class TaskActivityService
             'actor_type' => $item['actor_type'] ?? 'user',
             'actor_user_public_id' => $item['actor_public_id'] ?? '',
             'actor_display_name' => $item['actor_display_name'] ?? '',
+            'impersonated_by_user_id' => is_array($payload) ? ($payload['impersonated_by_user_id'] ?? null) : null,
+            'impersonated_by_user_public_id' => is_array($payload) ? ($payload['impersonated_by_user_public_id'] ?? null) : null,
             'payload' => $payload,
             'created_at' => $item['created_at'] ?? '',
         ];
