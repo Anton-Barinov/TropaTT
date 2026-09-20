@@ -290,8 +290,9 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 
 | Метод | Endpoint | Назначение | Auth | Permissions | Описание |
 |-------|----------|------------|:---:|-------------|----------|
-| GET | `/api/v1/api-clients` 🔄 | Список API-клиентов | Да | `api_client.view` | — |
-| POST | `/api/v1/api-clients` 🔄 | Создание API-клиента | Да | `api_client.manage` | — |
+| GET | `/api/v1/api-clients` 🔄 | Список API-клиентов | Да | `api_client.view` | Каждый элемент: keys_count, active_keys_count |
+| GET | `/api/v1/api-clients/options` 🔄 | Опции API-клиентов | Да | `api_client.view` | — |
+| POST | `/api/v1/api-clients` 🔄 | Создание API-клиента | Да | `api_client.manage` | Автоматически выдаёт первый ключ (api_key + plain_key, показывается однократно). Тело: title, is_active, необязательно scopes (массив кодов прав), key_name, key_expires_at |
 | GET | `/api/v1/api-clients/{public_id}` 🔄 | Детали API-клиента | Да | `api_client.view` | — |
 | PATCH, PUT | `/api/v1/api-clients/{public_id}` 🔄 | Обновление API-клиента | Да | `api_client.manage` | — |
 | DELETE | `/api/v1/api-clients/{public_id}` 🔄 | Удаление API-клиента | Да | `api_client.manage` | — |
@@ -431,9 +432,9 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | GET | `/api/v1/projects/{public_id}/milestones-summary` 🔄 | Сводка по вехам | Да | `project.manage` | — |
 | GET | `/api/v1/projects/{public_id}/risks` 🔄 | Риски проекта | Да | `project.manage` | — |
 | GET | `/api/v1/projects/{public_id}/workload` 🔄 | Загрузка участников | Да | `project.manage` | — |
-| POST | `/api/v1/projects/{project_public_id}/client-chat` | Создать чат проекта с клиентом | Yes | `project.manage` | — |
-| POST | `/api/v1/projects/{project_public_id}/client-chat/participants` | Добавить участника в чат | Yes | `project.manage` | — |
-| DELETE | `/api/v1/projects/{project_public_id}/client-chat/participants/{user_public_id}` | Удалить участника из чата | Yes | `project.manage` | — |
+| POST | `/api/v1/projects/{project_public_id}/client-chat` | Создать чат проекта с клиентом | Да | `project.manage` | — |
+| POST | `/api/v1/projects/{project_public_id}/client-chat/participants` | Добавить участника в чат | Да | `project.manage` | — |
+| DELETE | `/api/v1/projects/{project_public_id}/client-chat/participants/{user_public_id}` | Удалить участника из чата | Да | `project.manage` | — |
 
 ### Tasks
 
@@ -453,8 +454,8 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | POST | `/api/v1/tasks/{public_id}/comments` 🔄 | Добавление комментария | Да | `task.manage` | Тело: `body` (string, max 8000). Возвращает созданный комментарий с `public_id` |
 | GET | `/api/v1/tasks/{public_id}/files` | Файлы задачи | Да | `task.manage` | — |
 | POST | `/api/v1/tasks/{public_id}/knowledge-pages` | Привязка страницы знаний | Да | `task.manage`, `knowledge.view` | Привязка страницы базы знаний к задаче |
-| GET | `/api/v1/tasks/sidebar` | Статистика боковой панели задач | Yes | `task.manage` | — |
-| PUT | `/api/v1/tasks/sidebar` | Обновить боковую панель задач | Yes | `task.manage` | — |
+| GET | `/api/v1/tasks/sidebar` | Статистика боковой панели задач | Да | `task.manage` | — |
+| PUT | `/api/v1/tasks/sidebar` | Обновить боковую панель задач | Да | `task.manage` | — |
 
 ### Task Relations v2
 
@@ -523,10 +524,10 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | DELETE | `/api/v1/cycles/{public_id}/tasks/{task_public_id}` | Удаление задачи из цикла | Да | `project.manage` | — |
 | GET | `/api/v1/cycles/{public_id}/summary` | Сводка по циклу | Да | `task.manage` | — |
 | POST | `/api/v1/cycles/{public_id}/transfer-unfinished` | Перенос незавершённых | Да | `project.manage` | — |
-| GET | `/api/v1/cycles/velocity` | Метрики скорости цикла | Yes | `task.manage` | — |
-| GET | `/api/v1/cycles/{public_id}/burndown` | Данные диаграммы сгорания | Yes | `task.manage` | — |
-| GET | `/api/v1/cycles/{public_id}/capacity` | Анализ доступности команды | Yes | `task.manage` | — |
-| GET | `/api/v1/cycles/{public_id}/scope` | Метрики изменения объёма | Yes | `task.manage` | — |
+| GET | `/api/v1/cycles/velocity` | Метрики скорости цикла | Да | `task.manage` | — |
+| GET | `/api/v1/cycles/{public_id}/burndown` | Данные диаграммы сгорания | Да | `task.manage` | — |
+| GET | `/api/v1/cycles/{public_id}/capacity` | Анализ доступности команды | Да | `task.manage` | — |
+| GET | `/api/v1/cycles/{public_id}/scope` | Метрики изменения объёма | Да | `task.manage` | — |
 
 ### Project Modules
 
@@ -576,7 +577,7 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | GET | `/api/v1/files/{public_id}` | Метаданные файла | Да | `task.manage` | — |
 | GET | `/api/v1/files/{public_id}/download` | Скачивание файла | Да | `task.manage` | Binary response |
 | DELETE | `/api/v1/files/{public_id}` | Удаление файла | Да | `task.manage` | — |
-| GET | `/api/v1/visual-editor/image/{year}/{month}/{name}` | Поток изображений визуального редактора | Yes | — | Бинарный поток |
+| GET | `/api/v1/visual-editor/image/{year}/{month}/{name}` | Поток изображений визуального редактора | Да | — | Бинарный поток |
 
 ### Templates
 
@@ -710,7 +711,7 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | GET | `/api/v1/analytics/projects` 🔄 | Аналитика по проектам | Да | `task.manage` | — |
 | GET | `/api/v1/analytics/users` 🔄 | Аналитика по пользователям | Да | `task.manage` | — |
 | GET | `/api/v1/dashboard/widgets` | Виджеты дашборда | Да | — | Текущие виджеты пользователя |
-| GET | `/api/v1/dashboard/insights` | Метрики виджетов дашборда | Yes | `task.manage` | `widget` = `my_workload_efficiency` \| `tasks_actual_time` \| `my_kpi_scorecard` \| `assignee_department_load` \| `tasks_completion_velocity` \| `workload_efficiency_management` \| `streams_load_efficiency` \| `stream_detail_load_efficiency`, `period` = 7 \| 30 \| 90, `project_public_id` для детализации потока |
+| GET | `/api/v1/dashboard/insights` | Метрики виджетов дашборда | Да | `task.manage` | `widget` = `my_workload_efficiency` \| `tasks_actual_time` \| `my_kpi_scorecard` \| `assignee_department_load` \| `tasks_completion_velocity` \| `workload_efficiency_management` \| `streams_load_efficiency` \| `stream_detail_load_efficiency`, `period` = 7 \| 30 \| 90, `project_public_id` для детализации потока |
 | PUT | `/api/v1/dashboard/widgets` | Сохранение виджетов | Да | — | Обновление виджетов текущего пользователя |
 
 ### Search
@@ -779,9 +780,9 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | GET | `/api/v1/logs/security` | Security-логи | Да | `logs.view` | — |
 | GET | `/api/v1/logs/audit` | Audit-логи | Да | `logs.view` | — |
 | GET | `/api/v1/logs/frontend-errors/chart` | График ошибок фронтенда | Да | `logs.view` | Агрегация ошибок фронтенда |
-| GET | `/api/v1/logs/all-errors` | Все ошибки системы | Yes | `logs.view` | — |
-| GET | `/api/v1/logs/module-errors` | Ошибки модулей | Yes | `logs.view` | — |
-| GET | `/api/v1/logs/server-errors` | Ошибки веб-сервера | Yes | `logs.view` | — |
+| GET | `/api/v1/logs/all-errors` | Все ошибки системы | Да | `logs.view` | — |
+| GET | `/api/v1/logs/module-errors` | Ошибки модулей | Да | `logs.view` | — |
+| GET | `/api/v1/logs/server-errors` | Ошибки веб-сервера | Да | `logs.view` | — |
 
 ### Settings & Feature Flags
 
@@ -794,7 +795,7 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | POST, PUT, PATCH | `/api/v1/retention/metadata` 🔄 | Установка retention | Да | `settings.manage` | — |
 | GET | `/api/v1/feature-flags` 🔄 | Список feature flags | Да | `feature_flag.manage` | — |
 | PATCH, PUT | `/api/v1/feature-flags/{public_id}` 🔄 | Обновление feature flag | Да | `feature_flag.manage` | — |
-| GET | `/api/v1/settings/public` | Публичные настройки приложения | Yes | `task.manage` | Доступно для внешних исполнителей |
+| GET | `/api/v1/settings/public` | Публичные настройки приложения | Да | `task.manage` | Доступно для внешних исполнителей |
 
 ### Custom Fields
 
@@ -819,7 +820,7 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | DELETE | `/api/v1/workflow/rules/{public_id}` 🔄 | Удаление правила | Да | `settings.manage` | — |
 | POST | `/api/v1/workflow/rules/{public_id}/run-test` 🔄 | Тестовый запуск правила | Да | `settings.manage` | — |
 | GET | `/api/v1/workflow/runs` 🔄 | История запусков | Да | `settings.manage` | — |
-| GET | `/api/v1/workflow/rule/logs` | Журнал выполнения правил автоматизации | Yes | `settings.manage` | — |
+| GET | `/api/v1/workflow/rule/logs` | Журнал выполнения правил автоматизации | Да | `settings.manage` | — |
 
 ### SLA
 
@@ -842,9 +843,9 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | GET | `/api/v1/approvals/{public_id}` 🔄 | Детали согласования | Да | `approval.manage` | — |
 | POST | `/api/v1/approvals/{public_id}/approve` 🔄 | Согласование | Да | `approval.manage` | — |
 | POST | `/api/v1/approvals/{public_id}/reject` 🔄 | Отклонение согласования | Да | `approval.manage` | — |
-| POST | `/api/v1/approval/approve/{public_id}` | Согласовать (алиас) | Yes | `approval.manage` | — |
-| POST | `/api/v1/approval/reject/{public_id}` | Отклонить (алиас) | Yes | `approval.manage` | — |
-| POST | `/api/v1/approval/request` | Подать заявку на согласование | Yes | `approval.manage` | — |
+| POST | `/api/v1/approval/approve/{public_id}` | Согласовать (алиас) | Да | `approval.manage` | — |
+| POST | `/api/v1/approval/reject/{public_id}` | Отклонить (алиас) | Да | `approval.manage` | — |
+| POST | `/api/v1/approval/request` | Подать заявку на согласование | Да | `approval.manage` | — |
 
 ### Webhooks
 
@@ -852,7 +853,7 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 |-------|----------|------------|:---:|-------------|----------|
 | GET | `/api/v1/webhooks` 🔄 | Список вебхуков | Да | `webhook.manage` | — |
 | POST | `/api/v1/webhooks` 🔄 | Создание вебхука | Да | `webhook.manage` | Требуется `endpoint` (URL, max 2048), `events` (массив строк) |
-| GET | `/api/v1/webhooks/{public_id}` | Детали вебхука | Yes | `webhook.manage` | — |
+| GET | `/api/v1/webhooks/{public_id}` | Детали вебхука | Да | `webhook.manage` | — |
 | PATCH, PUT | `/api/v1/webhooks/{public_id}` 🔄 | Обновление вебхука | Да | `webhook.manage` | — |
 | DELETE | `/api/v1/webhooks/{public_id}` 🔄 | Удаление вебхука | Да | `webhook.manage` | — |
 | GET | `/api/v1/webhooks/deliveries` 🔄 | Все доставки | Да | `webhook.manage` | — |
@@ -893,11 +894,11 @@ TropaTT реализует унифицированный протокол ве�
 | GET | `/api/v1/export/jobs/{public_id}/download` | Скачивание экспорта | Да | `export.manage` | Binary |
 | POST | `/api/v1/export/jobs/{public_id}/cancel` | Отмена экспорта | Да | `export.manage` | — |
 | POST | `/api/v1/export/jobs/{public_id}/retry` | Повтор экспорта | Да | `export.manage` | — |
-| GET | `/api/v1/export/download/{public_id}` | Скачать файл экспорта | Yes | `export.manage` | — |
-| GET | `/api/v1/export/status` | Статус заданий экспорта | Yes | `export.manage` | — |
-| GET | `/api/v1/export/status/{public_id}` | Детальный статус экспорта | Yes | `export.manage` | — |
-| GET | `/api/v1/import/status` | Статус заданий импорта | Yes | `import.manage` | — |
-| GET | `/api/v1/import/status/{public_id}` | Детальный статус импорта | Yes | `import.manage` | — |
+| GET | `/api/v1/export/download/{public_id}` | Скачать файл экспорта | Да | `export.manage` | — |
+| GET | `/api/v1/export/status` | Статус заданий экспорта | Да | `export.manage` | — |
+| GET | `/api/v1/export/status/{public_id}` | Детальный статус экспорта | Да | `export.manage` | — |
+| GET | `/api/v1/import/status` | Статус заданий импорта | Да | `import.manage` | — |
+| GET | `/api/v1/import/status/{public_id}` | Детальный статус импорта | Да | `import.manage` | — |
 
 ### Recycle Bin
 
@@ -972,13 +973,13 @@ TropaTT реализует унифицированный протокол ве�
 | GET | `/api/v1/knowledge/templates` | Шаблоны страниц | Да | `knowledge.view` | — |
 | POST | `/api/v1/knowledge/templates` | Создание шаблона | Да | `knowledge.template_manage` | — |
 | GET | `/api/v1/knowledge/entities/{entity_type}/{entity_public_id}/pages` | Страницы сущности | Да | `knowledge.view` | — |
-| GET | `/api/v1/knowledge/client-page/{public_id}` | Публичная страница для клиентов | Yes | — | Доступно клиентам; Доступно для внешних пользователей |
-| GET | `/api/v1/knowledge/project/{project_public_id}/client-pages` | Страницы клиентов проекта | Yes | — | Доступно клиентам проекта; Доступно для внешних пользователей |
-| GET | `/api/v1/knowledge/team-materials-counts` | Счётчики материалов команды | Yes | `knowledge.view` | — |
-| GET | `/api/v1/knowledge/entities/{entity_type}/{entity_public_id}/team-pages` | Материалы команды сущности | Yes | `knowledge.view` | — |
-| GET | `/api/v1/knowledge/pages/{public_id}/permissions` | Права доступа к странице | Yes | `knowledge.permission_manage` | — |
-| POST | `/api/v1/knowledge/pages/{public_id}/permissions` | Назначить права на страницу | Yes | `knowledge.permission_manage` | — |
-| DELETE | `/api/v1/knowledge/page-permissions/{permission_id}` | Удалить права со страницы | Yes | `knowledge.permission_manage` | — |
+| GET | `/api/v1/knowledge/client-page/{public_id}` | Публичная страница для клиентов | Да | — | Доступно клиентам; Доступно для внешних пользователей |
+| GET | `/api/v1/knowledge/project/{project_public_id}/client-pages` | Страницы клиентов проекта | Да | — | Доступно клиентам проекта; Доступно для внешних пользователей |
+| GET | `/api/v1/knowledge/team-materials-counts` | Счётчики материалов команды | Да | `knowledge.view` | — |
+| GET | `/api/v1/knowledge/entities/{entity_type}/{entity_public_id}/team-pages` | Материалы команды сущности | Да | `knowledge.view` | — |
+| GET | `/api/v1/knowledge/pages/{public_id}/permissions` | Права доступа к странице | Да | `knowledge.permission_manage` | — |
+| POST | `/api/v1/knowledge/pages/{public_id}/permissions` | Назначить права на страницу | Да | `knowledge.permission_manage` | — |
+| DELETE | `/api/v1/knowledge/page-permissions/{permission_id}` | Удалить права со страницы | Да | `knowledge.permission_manage` | — |
 
 ### Knowledge — Spaces
 
@@ -1117,7 +1118,7 @@ TropaTT реализует унифицированный протокол ве�
 | POST | `/api/v1/intake-items/{public_id}/duplicate` | Дублирование входящего | Да | `intake.manage` | — |
 | POST | `/api/v1/intake-items/{public_id}/reopen` | Переоткрытие входящего | Да | `intake.manage` | — |
 | GET | `/api/v1/intake-items/{public_id}/activities` | Активность входящего | Да | `intake.view` | — |
-| POST | `/api/v1/intake-items/bulk` | Массовое создание входящих | Yes | `intake.manage` | — |
+| POST | `/api/v1/intake-items/bulk` | Массовое создание входящих | Да | `intake.manage` | — |
 
 ### OPS / Admin
 
@@ -1341,8 +1342,9 @@ TropaTT реализует унифицированный протокол ве�
 | GET | `/api/v1/chats/{public_id}/participants` | Участники чата | Да | `chat.use` | — |
 | GET | `/api/v1/chats/{public_id}/messages` | Сообщения чата | Да | `chat.use` | Cursor-based |
 | POST | `/api/v1/chats/{public_id}/messages` | Отправка сообщения | Да | `chat.use` | — |
-| PATCH | `/api/v1/chats/{public_id}/messages/{message_public_id}` | Редактирование сообщения | Да | `chat.use` | — |
-| DELETE | `/api/v1/chats/{public_id}/messages/{message_public_id}` | Удаление сообщения | Да | `chat.use` | Soft-delete |
+| PATCH | `/api/v1/chats/{public_id}/messages/{message_public_id}` | Редактирование сообщения | Да | `chat.use` | Автор, в пределах 60 мин. История сохраняется; внешние пользователи (клиентский портал) могут редактировать только своё сообщение в чате `project_client`, в котором участвуют |
+| DELETE | `/api/v1/chats/{public_id}/messages/{message_public_id}` | Удаление сообщения | Да | `chat.use` | Soft-delete; автор, в пределах 10 мин. Внешние пользователи могут удалять только своё сообщение в чате `project_client`, в котором участвуют |
+| GET | `/api/v1/chats/{public_id}/messages/{message_public_id}/history` | История правок сообщения | Да | `chat.use` | Аудит-трейл |
 | POST | `/api/v1/chats/{public_id}/attachments` | Загрузка вложения | Да | `chat.use` | `multipart/form-data` |
 | GET | `/api/v1/chats/{public_id}/attachments/{file_public_id}/download` | Скачивание вложения | Да | `chat.use` | Binary |
 | POST | `/api/v1/chats/{public_id}/read` | Отметить как прочитанный | Да | `chat.use` | — |
