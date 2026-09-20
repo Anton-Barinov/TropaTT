@@ -11,13 +11,15 @@ final class SlaController extends BaseController
 {
     public function list(): \Api\System\Library\Http\JsonResponse
     {
-        if (!$this->user()) {
+        $authUser = $this->user();
+        if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $actor = $this->organizationScopedActor((array)($authUser['user'] ?? []));
 
         /** @var SlaService $service */
         $service = $this->container->get('service.sla');
-        $result = $service->list($this->request()->allInput());
+        $result = $service->list($this->request()->allInput(), $actor);
 
         return $this->success('SLA_POLICY_LIST', $this->t('sla/messages.list'), [
             'items' => $result['items'],
@@ -26,9 +28,11 @@ final class SlaController extends BaseController
 
     public function create(): \Api\System\Library\Http\JsonResponse
     {
-        if (!$this->user()) {
+        $authUser = $this->user();
+        if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $actor = $this->organizationScopedActor((array)($authUser['user'] ?? []));
 
         $input = $this->request()->allInput();
         $validation = $this->validateInput($input, true);
@@ -36,10 +40,10 @@ final class SlaController extends BaseController
             return $validation;
         }
 
-        return $this->withIdempotency(function () use ($input): \Api\System\Library\Http\JsonResponse {
+        return $this->withIdempotency(function () use ($input, $actor): \Api\System\Library\Http\JsonResponse {
             /** @var SlaService $service */
             $service = $this->container->get('service.sla');
-            $item = $service->create($input);
+            $item = $service->create($input, $actor);
 
             return $this->success('SLA_POLICY_CREATED', $this->t('sla/messages.created'), [
                 'policy' => $item,
@@ -49,13 +53,15 @@ final class SlaController extends BaseController
 
     public function get(array $params): \Api\System\Library\Http\JsonResponse
     {
-        if (!$this->user()) {
+        $authUser = $this->user();
+        if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $actor = $this->organizationScopedActor((array)($authUser['user'] ?? []));
 
         /** @var SlaService $service */
         $service = $this->container->get('service.sla');
-        $item = $service->get((string)$params['public_id']);
+        $item = $service->get((string)$params['public_id'], $actor);
         if (!$item) {
             return $this->error('SLA_POLICY_NOT_FOUND', $this->t('sla/messages.not_found'), 404);
         }
@@ -67,9 +73,11 @@ final class SlaController extends BaseController
 
     public function update(array $params): \Api\System\Library\Http\JsonResponse
     {
-        if (!$this->user()) {
+        $authUser = $this->user();
+        if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $actor = $this->organizationScopedActor((array)($authUser['user'] ?? []));
 
         $input = $this->request()->allInput();
         $validation = $this->validateInput($input, false);
@@ -79,7 +87,7 @@ final class SlaController extends BaseController
 
         /** @var SlaService $service */
         $service = $this->container->get('service.sla');
-        $item = $service->update((string)$params['public_id'], $input);
+        $item = $service->update((string)$params['public_id'], $input, $actor);
         if (!$item) {
             return $this->error('SLA_POLICY_NOT_FOUND', $this->t('sla/messages.not_found'), 404);
         }
@@ -91,13 +99,15 @@ final class SlaController extends BaseController
 
     public function delete(array $params): \Api\System\Library\Http\JsonResponse
     {
-        if (!$this->user()) {
+        $authUser = $this->user();
+        if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $actor = $this->organizationScopedActor((array)($authUser['user'] ?? []));
 
         /** @var SlaService $service */
         $service = $this->container->get('service.sla');
-        $ok = $service->delete((string)$params['public_id']);
+        $ok = $service->delete((string)$params['public_id'], $actor);
         if (!$ok) {
             return $this->error('SLA_POLICY_NOT_FOUND', $this->t('sla/messages.not_found'), 404);
         }
@@ -107,15 +117,17 @@ final class SlaController extends BaseController
 
     public function report(): \Api\System\Library\Http\JsonResponse
     {
-        if (!$this->user()) {
+        $authUser = $this->user();
+        if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $actor = $this->organizationScopedActor((array)($authUser['user'] ?? []));
 
         /** @var SlaService $service */
         $service = $this->container->get('service.sla');
 
         return $this->success('SLA_REPORT', $this->t('sla/messages.report'), [
-            'report' => $service->report(),
+            'report' => $service->report($actor),
         ]);
     }
 
@@ -162,14 +174,16 @@ final class SlaController extends BaseController
 
     public function assignToTask(array $params): \Api\System\Library\Http\JsonResponse
     {
-        if (!$this->user()) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        $authUser = $this->user();
+        if (!$authUser) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        $actor = $this->organizationScopedActor((array)($authUser['user'] ?? []));
 
         $taskId = (string)($params['public_id'] ?? '');
         $slaId = (string)($this->request()->allInput()['sla_policy_id'] ?? '');
         if ($taskId === '' || $slaId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
         $service = $this->container->get('service.sla');
-        $result = $service->assignToTask($taskId, $slaId);
+        $result = $service->assignToTask($taskId, $slaId, $actor);
         if ($result === null) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
         return $this->success('SLA_ASSIGNED', $this->t('sla/messages.assigned'), ['task' => $result]);

@@ -39,16 +39,25 @@ final class SlaRepository
             $query->where('title', 'LIKE', '%' . (string)$filters['search'] . '%');
         }
 
+        if ((int)($filters['organization_id'] ?? 0) > 0) {
+            $query->where('organization_id', '=', (int)$filters['organization_id']);
+        }
+
         return $query;
     }
 
-    public function findByPublicId(string $publicId): ?array
+    public function findByPublicId(string $publicId, ?int $organizationId = null): ?array
     {
-        $row = (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('sla_policies')
             ->select(['public_id', 'title', 'response_minutes', 'resolve_minutes', 'escalation_payload', 'created_at', 'updated_at'])
-            ->where('public_id', '=', $publicId)
-            ->first();
+            ->where('public_id', '=', $publicId);
+
+        if ($organizationId !== null) {
+            $query->where('organization_id', '=', $organizationId);
+        }
+
+        $row = $query->first();
 
         return $row ?: null;
     }
@@ -60,44 +69,64 @@ final class SlaRepository
             ->insert($payload);
     }
 
-    public function updateByPublicId(string $publicId, array $set): bool
+    public function updateByPublicId(string $publicId, array $set, ?int $organizationId = null): bool
     {
         if ($set === []) {
             return false;
         }
 
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('sla_policies')
-            ->where('public_id', '=', $publicId)
-            ->update($set) > 0;
+            ->where('public_id', '=', $publicId);
+
+        if ($organizationId !== null) {
+            $query->where('organization_id', '=', $organizationId);
+        }
+
+        return $query->update($set) > 0;
     }
 
-    public function deleteByPublicId(string $publicId): bool
+    public function deleteByPublicId(string $publicId, ?int $organizationId = null): bool
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('sla_policies')
-            ->where('public_id', '=', $publicId)
-            ->delete() > 0;
+            ->where('public_id', '=', $publicId);
+
+        if ($organizationId !== null) {
+            $query->where('organization_id', '=', $organizationId);
+        }
+
+        return $query->delete() > 0;
     }
 
-    public function reportSummary(): array
+    public function reportSummary(?int $organizationId = null): array
     {
-        $summary = (new QueryBuilder($this->pdo))
+        $summaryQuery = (new QueryBuilder($this->pdo))
             ->from('sla_policies')
             ->select([
                 'COUNT(*) AS policies_total',
                 'AVG(response_minutes) AS avg_response_minutes',
                 'AVG(resolve_minutes) AS avg_resolve_minutes',
-            ])
-            ->first() ?: [];
+            ]);
 
-        $tasksOverdue = (new QueryBuilder($this->pdo))
+        if ($organizationId !== null) {
+            $summaryQuery->where('organization_id', '=', $organizationId);
+        }
+
+        $summary = $summaryQuery->first() ?: [];
+
+        $tasksQuery = (new QueryBuilder($this->pdo))
             ->from('tasks')
             ->whereNotNull('due_at')
             ->where('due_at', '<', gmdate('Y-m-d H:i:s'))
             ->whereNull('deleted_at')
-            ->whereNull('archived_at')
-            ->count();
+            ->whereNull('archived_at');
+
+        if ($organizationId !== null) {
+            $tasksQuery->where('organization_id', '=', $organizationId);
+        }
+
+        $tasksOverdue = $tasksQuery->count();
 
         return [
             'policies_total' => (int)($summary['policies_total'] ?? 0),
@@ -107,9 +136,15 @@ final class SlaRepository
         ];
     }
 
-    public function findTaskByPublicId(string $publicId): ?array
+    public function findTaskByPublicId(string $publicId, ?int $organizationId = null): ?array
     {
-        return (new QueryBuilder($this->pdo))->from('tasks')->where('public_id', '=', $publicId)->whereNull('deleted_at')->first();
+        $query = (new QueryBuilder($this->pdo))->from('tasks')->where('public_id', '=', $publicId)->whereNull('deleted_at');
+
+        if ($organizationId !== null) {
+            $query->where('organization_id', '=', $organizationId);
+        }
+
+        return $query->first();
     }
 
     public function updateTaskSla(int $taskId, int $slaId, string $responseDeadline, string $resolveDeadline): void
