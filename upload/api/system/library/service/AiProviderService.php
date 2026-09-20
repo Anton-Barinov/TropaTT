@@ -553,7 +553,9 @@ final class AiProviderService
         $forbidden = [
             'authorization',
             'proxy-authorization',
+            'api-key',
             'x-api-key',
+            'x-goog-api-key',
             'cookie',
             'set-cookie',
             'host',
@@ -640,7 +642,19 @@ final class AiProviderService
             'timeout_ms' => (int)($provider['timeout_ms'] ?? 0),
             'max_tokens' => (int)($provider['max_tokens'] ?? 0),
             'temperature' => (string)($provider['temperature'] ?? ''),
-            'extra_headers' => $this->decodeJson((string)($provider['extra_headers'] ?? '{}')),
+            'extra_headers' => (function () use ($provider): array {
+                $raw = $this->decodeJson((string)($provider['extra_headers'] ?? '{}'));
+                $masked = [];
+                foreach ($raw as $k => $v) {
+                    $lowerK = strtolower((string)$k);
+                    if (str_contains($lowerK, 'key') || str_contains($lowerK, 'token') || str_contains($lowerK, 'secret') || str_contains($lowerK, 'auth')) {
+                        $masked[$k] = '***';
+                    } else {
+                        $masked[$k] = $v;
+                    }
+                }
+                return $masked;
+            })(),
             'provider_payload' => $providerPayload,
             'is_active' => (int)($provider['is_active'] ?? 0) === 1,
             'is_default' => (int)($provider['is_default'] ?? 0) === 1,
@@ -711,7 +725,7 @@ final class AiProviderService
             return null;
         }
         $len = strlen($normalized);
-        return $len > 4 ? substr($normalized, -4) : $normalized;
+        return $len > 4 ? substr($normalized, -4) : '****';
     }
 
     private function encodeJson(array $value): string
@@ -782,6 +796,14 @@ final class AiProviderService
             $retryable = true;
         }
 
+        $message = trim((string)($result['message'] ?? ''));
+        if ($message !== '') {
+            $message = preg_replace('/(sk-[a-zA-Z0-9_\-]{8,}|bearer\s+[a-zA-Z0-9_\-\.]{8,}|[a-zA-Z0-9_\-]{32,})/i', '***REDACTED***', $message) ?? $message;
+        }
+        if ($category === 'auth') {
+            $message = 'Authentication failed with the AI provider. Please verify credentials.';
+        }
+
         return [
             'ok' => false,
             'code' => $code,
@@ -790,7 +812,7 @@ final class AiProviderService
                 'retryable' => $retryable,
                 'http_status' => $httpStatus,
             ],
-            'message' => trim((string)($result['message'] ?? '')),
+            'message' => $message,
         ];
     }
 

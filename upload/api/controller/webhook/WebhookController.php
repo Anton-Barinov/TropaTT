@@ -11,6 +11,11 @@ final class WebhookController extends BaseController
 {
     public function list(): \Api\System\Library\Http\JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
         $auth = $this->user();
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -25,6 +30,11 @@ final class WebhookController extends BaseController
 
     public function get(array $params): \Api\System\Library\Http\JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
         $auth = $this->user();
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -42,6 +52,11 @@ final class WebhookController extends BaseController
 
     public function create(): \Api\System\Library\Http\JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
         $auth = $this->user();
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -75,6 +90,11 @@ final class WebhookController extends BaseController
 
     public function update(array $params): \Api\System\Library\Http\JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
         $auth = $this->user();
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -100,6 +120,11 @@ final class WebhookController extends BaseController
 
     public function delete(array $params): \Api\System\Library\Http\JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
         $auth = $this->user();
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -120,6 +145,11 @@ final class WebhookController extends BaseController
 
     public function deliveries(array $params = []): \Api\System\Library\Http\JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
         $auth = $this->user();
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -139,6 +169,11 @@ final class WebhookController extends BaseController
 
     public function test(array $params): \Api\System\Library\Http\JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
         $auth = $this->user();
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);

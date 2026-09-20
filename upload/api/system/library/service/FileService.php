@@ -220,7 +220,7 @@ final class FileService
         if (!$file) {
             return false;
         }
-        if (!$this->canAccessFile($file, $actor)) {
+        if (!$this->canDeleteFile($file, $actor)) {
             return false;
         }
 
@@ -279,14 +279,13 @@ final class FileService
         if ($this->isQuarantinedPath($path)) {
             $this->logger->security([
                 'actor_public_id' => (string)($actor['public_id'] ?? ''),
-                'event_type' => 'file_download_quarantine_denied',
+                'event_type' => 'file_download_quarantined_safe_stream',
                 'details' => [
                     'file_public_id' => $publicId,
                     'original_name' => (string)($file['original_name'] ?? ''),
+                    'mime_override' => 'application/octet-stream',
                 ],
             ]);
-
-            return ['ok' => false, 'error' => 'FILE_QUARANTINED'];
         }
 
         $this->logger->audit([
@@ -307,6 +306,65 @@ final class FileService
             'mime' => $this->quarantineMimeOverride($path, (string)$file['mime_type']),
             'size' => (int)$file['size_bytes'],
         ];
+    }
+
+    /** @param array<string,mixed> $file */
+    /** @param array<string,mixed> $actor */
+    public function canDeleteFile(array $file, array $actor): bool
+    {
+        if (!$this->canAccessFile($file, $actor)) {
+            return false;
+        }
+
+        if ((bool)($actor['is_root'] ?? false)) {
+            return true;
+        }
+
+        $actorId = (int)($actor['id'] ?? 0);
+        if ($actorId <= 0) {
+            return false;
+        }
+
+        $uploaderId = (int)($file['uploader_user_id'] ?? 0);
+        // The uploader can always delete their own file
+        if ($uploaderId > 0 && $actorId === $uploaderId) {
+            return true;
+        }
+
+        // External users (guests) can never delete someone else's file
+        if (!empty((int)($actor['is_external'] ?? 0))) {
+            return false;
+        }
+
+        $roleCode = (string)($actor['role_code'] ?? '');
+        if (in_array($roleCode, ['admin', 'super_admin'], true)) {
+            return true;
+        }
+
+        $organizationId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
+        $entityType = (string)($file['entity_type'] ?? '');
+        $entityPublicId = (string)($file['entity_public_id'] ?? '');
+
+        if ($entityType === 'task') {
+            $task = $this->tasks->findByPublicId($entityPublicId, $organizationId);
+            if ($task) {
+                return (int)($task['creator_user_id'] ?? 0) === $actorId
+                    || (int)($task['project_creator_user_id'] ?? 0) === $actorId
+                    || (int)($task['project_manager_user_id'] ?? 0) === $actorId
+                    || (int)($task['project_team_manager_user_id'] ?? 0) === $actorId;
+            }
+        }
+
+        if ($entityType === 'project') {
+            $project = $this->projects->findByPublicId($entityPublicId, $organizationId);
+            if ($project) {
+                return (int)($project['created_by_user_id'] ?? 0) === $actorId
+                    || (int)($project['manager_user_id'] ?? 0) === $actorId
+                    || (int)($project['team_manager_user_id'] ?? 0) === $actorId;
+            }
+        }
+
+        return false;
     }
 
     /** @param array<string,mixed> $file */
