@@ -46,6 +46,7 @@ return [
     'day_wed' => 'Wed',
     'day_thu' => 'Thu',
     'day_fri' => 'Fri',
-    'day_sat' => 'Sat',
-    'day_sun' => 'Sun',
+    'day_sat' => 'Sa',
+    'day_sun' => 'So',
+    'invalid_timezone' => 'Ungültige Zeitzone',
 ];

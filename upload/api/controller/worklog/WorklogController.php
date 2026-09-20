@@ -74,6 +74,24 @@ final class WorklogController extends BaseController
                 'minutes_spent' => [$this->t('worklog/messages.minutes_positive')],
             ]);
         }
+        if ($minutes > 1440) {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
+                'minutes_spent' => [$this->t('worklog/messages.minutes_max_1440', 'Single entry cannot exceed 1440 minutes (24 hours)')],
+            ]);
+        }
+        if (!empty($input['logged_at']) && date('Y-m-d', strtotime((string)$input['logged_at'])) > gmdate('Y-m-d')) {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
+                'logged_at' => [$this->t('worklog/messages.cannot_log_future', 'Logging time in the future is not allowed')],
+            ]);
+        }
+        if (!empty($input['started_at'])) {
+            $startedTs = strtotime((string)$input['started_at']);
+            if ($startedTs !== false && $startedTs > (time() + 60)) {
+                return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
+                    'started_at' => [$this->t('worklog/messages.cannot_log_future', 'Logging time in the future is not allowed')],
+                ]);
+            }
+        }
 
         $intervalError = $this->validateIntervalPair($input);
         if ($intervalError !== null) {
@@ -86,6 +104,26 @@ final class WorklogController extends BaseController
         if ($item === 'TASK_NOT_FOUND') {
             return $this->error('TASK_NOT_FOUND', $this->t('common/messages.task_not_found'), 404, [
                 'task_public_id' => [$this->t('common/messages.task_not_found')],
+            ]);
+        }
+        if ($item === 'TASK_CLOSED') {
+            return $this->error('TASK_CLOSED', $this->t('worklog/messages.task_closed', 'Logging time on closed or archived tasks is not allowed'), 422, [
+                'task' => [$this->t('worklog/messages.task_closed', 'Logging time on closed or archived tasks is not allowed')],
+            ]);
+        }
+        if ($item === 'MINUTES_OUT_OF_RANGE') {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
+                'minutes_spent' => [$this->t('worklog/messages.minutes_max_1440', 'Single entry cannot exceed 1440 minutes (24 hours)')],
+            ]);
+        }
+        if ($item === 'FUTURE_DATE_FORBIDDEN') {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
+                'logged_at' => [$this->t('worklog/messages.cannot_log_future', 'Logging time in the future is not allowed')],
+            ]);
+        }
+        if ($item === 'DAILY_LIMIT_EXCEEDED') {
+            return $this->error('DAILY_LIMIT_EXCEEDED', $this->t('worklog/messages.daily_limit_exceeded', 'Daily logged time cannot exceed 1440 minutes (24 hours)'), 422, [
+                'minutes_spent' => [$this->t('worklog/messages.daily_limit_exceeded', 'Daily logged time cannot exceed 1440 minutes (24 hours)')],
             ]);
         }
         if ($item === 'FORBIDDEN') {
@@ -207,10 +245,31 @@ final class WorklogController extends BaseController
         if ($intervalError !== null) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $intervalError);
         }
-        if (array_key_exists('minutes_spent', $input) && (int)$input['minutes_spent'] <= 0) {
+        if (array_key_exists('minutes_spent', $input)) {
+            $m = (int)$input['minutes_spent'];
+            if ($m <= 0) {
+                return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
+                    'minutes_spent' => [$this->t('worklog/messages.minutes_positive')],
+                ]);
+            }
+            if ($m > 1440) {
+                return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
+                    'minutes_spent' => [$this->t('worklog/messages.minutes_max_1440', 'Single entry cannot exceed 1440 minutes (24 hours)')],
+                ]);
+            }
+        }
+        if (array_key_exists('logged_at', $input) && !empty($input['logged_at']) && date('Y-m-d', strtotime((string)$input['logged_at'])) > gmdate('Y-m-d')) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
-                'minutes_spent' => [$this->t('worklog/messages.minutes_positive')],
+                'logged_at' => [$this->t('worklog/messages.cannot_log_future', 'Logging time in the future is not allowed')],
             ]);
+        }
+        if (array_key_exists('started_at', $input) && !empty($input['started_at'])) {
+            $startedTs = strtotime((string)$input['started_at']);
+            if ($startedTs !== false && $startedTs > (time() + 60)) {
+                return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
+                    'started_at' => [$this->t('worklog/messages.cannot_log_future', 'Logging time in the future is not allowed')],
+                ]);
+            }
         }
 
         /** @var WorklogService $service */
@@ -231,6 +290,26 @@ final class WorklogController extends BaseController
         if ($item === 'TASK_NOT_FOUND') {
             return $this->error('TASK_NOT_FOUND', $this->t('common/messages.task_not_found'), 404, [
                 'task_public_id' => [$this->t('common/messages.task_not_found')],
+            ]);
+        }
+        if ($item === 'TASK_CLOSED') {
+            return $this->error('TASK_CLOSED', $this->t('worklog/messages.task_closed', 'Logging time on closed or archived tasks is not allowed'), 422, [
+                'task' => [$this->t('worklog/messages.task_closed', 'Logging time on closed or archived tasks is not allowed')],
+            ]);
+        }
+        if ($item === 'MINUTES_OUT_OF_RANGE') {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
+                'minutes_spent' => [$this->t('worklog/messages.minutes_max_1440', 'Single entry cannot exceed 1440 minutes (24 hours)')],
+            ]);
+        }
+        if ($item === 'FUTURE_DATE_FORBIDDEN') {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
+                'logged_at' => [$this->t('worklog/messages.cannot_log_future', 'Logging time in the future is not allowed')],
+            ]);
+        }
+        if ($item === 'DAILY_LIMIT_EXCEEDED') {
+            return $this->error('DAILY_LIMIT_EXCEEDED', $this->t('worklog/messages.daily_limit_exceeded', 'Daily logged time cannot exceed 1440 minutes (24 hours)'), 422, [
+                'minutes_spent' => [$this->t('worklog/messages.daily_limit_exceeded', 'Daily logged time cannot exceed 1440 minutes (24 hours)')],
             ]);
         }
         if ($item === 'FORBIDDEN') {

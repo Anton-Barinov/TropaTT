@@ -136,6 +136,11 @@ final class RruleParser
         return $this->byMonthDay;
     }
 
+    public function getCount(): ?int
+    {
+        return $this->count;
+    }
+
     private function computeNextWeekly(\DateTimeImmutable $from): \DateTimeImmutable
     {
         if ($this->byDay === []) {
@@ -152,15 +157,19 @@ final class RruleParser
         }
         sort($targetDays);
 
+        if ($targetDays === []) {
+            return $from->add(new \DateInterval("P" . ($this->interval * 7) . "D"));
+        }
+
         $currentDow = (int)$from->format('N');
         $currentDate = $from;
 
         for ($weekOffset = 0; $weekOffset <= $this->interval; $weekOffset++) {
             foreach ($targetDays as $targetDow) {
-                if ($weekOffset === 0 && $targetDow <= $currentDow) {
+                $diff = $targetDow - $currentDow + ($weekOffset * 7);
+                if ($diff <= 0) {
                     continue;
                 }
-                $diff = $targetDow - $currentDow + ($weekOffset * 7);
                 $candidate = $from->add(new \DateInterval("P{$diff}D"));
                 if ($candidate > $from) {
                     return $candidate;
@@ -186,6 +195,10 @@ final class RruleParser
             }
         }
         sort($targetDays);
+
+        if ($targetDays === []) {
+            return $from->add(new \DateInterval("P" . ($this->interval * 7) . "D"));
+        }
 
         $currentDow = (int)$from->format('N');
         $currentDate = $from;

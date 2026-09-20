@@ -1273,7 +1273,8 @@ final class App
             $c->get('repository.worklog'),
         ));
         $this->container->factory('service.sla', fn(Container $c) => new SlaService(
-            $c->get('repository.sla')
+            $c->get('repository.sla'),
+            $c->get('service.business_calendar')
         ));
         $this->container->factory('service.approval', fn(Container $c) => new ApprovalService(
             $c->get('repository.approval'),
@@ -1509,11 +1510,20 @@ final class App
             $c->get('repository.project'),
             $c->get('repository.reminder'),
             $c->get('logger'),
-            $c->get('service.notification')
+            $c->get('service.notification'),
+            $c->get('repository.user')
         ));
         $this->container->factory('service.business_calendar', fn(Container $c) => new BusinessCalendarService(
             $c->get('repository.business_calendar'),
             $c->get('logger')
+        ));
+        $this->container->factory('service.recurring_processor', fn(Container $c) => new \Api\System\Library\Service\RecurringProcessorService(
+            $c->get('repository.recurring'),
+            $c->get('repository.task'),
+            $c->get('repository.project'),
+            $c->get('repository.reminder'),
+            $c->get('repository.calendar_event'),
+            $c->get('db')
         ));
         $this->container->factory('service.worklog', fn(Container $c) => new WorklogService(
             $c->get('repository.worklog'),

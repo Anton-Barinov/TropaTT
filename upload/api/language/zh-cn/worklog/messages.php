@@ -20,4 +20,8 @@ return [
     'earnings' => '工时记录收益',
     'task_summary' => '任务工时摘要',
     'matrix' => '工时记录矩阵',
+    'minutes_max_1440' => '单次记录时间不能超过 1440 分钟（24 小时）',
+    'cannot_log_future' => '不允许记录未来的工时',
+    'daily_limit_exceeded' => '每日记录的总工时不能超过 1440 分钟（24 小时）',
+    'task_closed' => '不允许在已关闭或已归档的任务上记录工时',
 ];

@@ -20,4 +20,8 @@ return [
     'earnings' => 'Arbeitsprotokoll-Einnahmen',
     'task_summary' => 'Arbeitsprotokoll-Zusammenfassung der Aufgabe',
     'matrix' => 'Arbeitsprotokoll-Matrix',
+    'minutes_max_1440' => 'Einzeleintrag darf 1440 Minuten (24 Stunden) nicht überschreiten',
+    'cannot_log_future' => 'Zeiterfassung in der Zukunft ist nicht erlaubt',
+    'daily_limit_exceeded' => 'Die tägliche erfasste Zeit darf 1440 Minuten (24 Stunden) nicht überschreiten',
+    'task_closed' => 'Die Zeiterfassung für geschlossene oder archivierte Aufgaben ist nicht erlaubt',
 ];

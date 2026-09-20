@@ -20,4 +20,8 @@ return [
     'earnings' => 'Ganancias de registros de trabajo',
     'task_summary' => 'Resumen de tiempos de la tarea',
     'matrix' => 'Matriz de registros de trabajo',
+    'minutes_max_1440' => 'La entrada individual no puede exceder los 1440 minutos (24 horas)',
+    'cannot_log_future' => 'No se permite registrar tiempo en el futuro',
+    'daily_limit_exceeded' => 'El tiempo diario registrado no puede exceder los 1440 minutos (24 horas)',
+    'task_closed' => 'No se permite registrar tiempo en tareas cerradas o archivadas',
 ];

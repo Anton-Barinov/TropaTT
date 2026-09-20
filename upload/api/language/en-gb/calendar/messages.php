@@ -48,4 +48,5 @@ return [
     'day_fri' => 'Fri',
     'day_sat' => 'Sat',
     'day_sun' => 'Sun',
+    'invalid_timezone' => 'Invalid timezone',
 ];

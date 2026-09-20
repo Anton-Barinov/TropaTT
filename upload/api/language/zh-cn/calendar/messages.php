@@ -48,4 +48,5 @@ return [
     'day_fri' => '周五',
     'day_sat' => '周六',
     'day_sun' => '周日',
+    'invalid_timezone' => '无效的时区',
 ];

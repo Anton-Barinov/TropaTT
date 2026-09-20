@@ -48,4 +48,5 @@ return [
     'day_fri' => 'Sex',
     'day_sat' => 'Sáb',
     'day_sun' => 'Dom',
+    'invalid_timezone' => 'Fuso horário inválido',
 ];

@@ -26,7 +26,16 @@ final class WorklogService
         private readonly JsonLogger $logger,
         private readonly ?ExternalUserService $externalUsers = null,
         private ?RateResolutionService $rateResolver = null,
+        private ?AuthzService $authz = null,
     ) {
+    }
+
+    private function getAuthz(): AuthzService
+    {
+        if ($this->authz === null) {
+            $this->authz = new AuthzService(new \Api\Model\Permission\RolePermissionRepository($this->worklogs->getPdo()));
+        }
+        return $this->authz;
     }
 
     private function getRateResolver(): RateResolutionService
@@ -122,6 +131,24 @@ final class WorklogService
 
     public function create(array $input, array $actor)
     {
+        $minutesSpent = (int)($input['minutes_spent'] ?? 0);
+        if ($minutesSpent <= 0 || $minutesSpent > 1440) {
+            return 'MINUTES_OUT_OF_RANGE';
+        }
+
+        $now = gmdate('Y-m-d H:i:s');
+        $logDate = $this->parseLogDate((string)($input['logged_at'] ?? $now));
+        $today = gmdate('Y-m-d');
+        if ($logDate > $today) {
+            return 'FUTURE_DATE_FORBIDDEN';
+        }
+        if (!empty($input['started_at'])) {
+            $startedTs = strtotime((string)$input['started_at']);
+            if ($startedTs !== false && $startedTs > (time() + 60)) {
+                return 'FUTURE_DATE_FORBIDDEN';
+            }
+        }
+
         $taskId = null;
         if (!empty($input['task_public_id'])) {
             $task = $this->tasks->findByPublicId((string)$input['task_public_id']);
@@ -131,11 +158,13 @@ final class WorklogService
             if (!$this->canAccessTask($task, $actor)) {
                 return 'FORBIDDEN';
             }
+            if (!empty($task['deleted_at']) || !empty((int)($task['is_closed'] ?? 0)) || \Api\System\Library\Support\TaskStatusSemantics::isTerminal($this->worklogs->getPdo(), (string)($task['status_code'] ?? ''))) {
+                return 'TASK_CLOSED';
+            }
             $taskId = (int)$task['id'];
         }
 
         $publicId = Ulid::generate('wlg');
-        $now = gmdate('Y-m-d H:i:s');
         $userId = $this->resolveActorId($actor);
         if (!empty($input['user_public_id']) && ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0)) {
             $targetUser = $this->worklogs->findUserByPublicId((string)$input['user_public_id']);
@@ -144,8 +173,12 @@ final class WorklogService
             }
         }
 
+        $dailyTotal = $this->worklogs->getDailyTotalMinutes($userId, $logDate);
+        if ($dailyTotal + $minutesSpent > 1440) {
+            return 'DAILY_LIMIT_EXCEEDED';
+        }
+
         // Check if the target date falls in a locked period (TZ 5.4).
-        $logDate = $this->parseLogDate((string)($input['logged_at'] ?? $now));
         if ($this->worklogs->hasLockedWorklogsInDateRange($logDate, $logDate . ' 23:59:59')) {
             return 'RATE_PERIOD_LOCKED';
         }
@@ -157,7 +190,7 @@ final class WorklogService
             'public_id' => $publicId,
             'user_id' => $userId,
             'task_id' => $taskId,
-            'minutes_spent' => (int)$input['minutes_spent'],
+            'minutes_spent' => $minutesSpent,
             'note' => trim((string)($input['note'] ?? '')),
             'logged_at' => (string)($input['logged_at'] ?? $now),
             'started_at' => $this->parseIntervalTime($input['started_at'] ?? null),
@@ -231,21 +264,35 @@ final class WorklogService
             return null;
         }
 
-        if (!$this->canAccessWorklog($existing, $actor)) {
+        if (!$this->canModifyWorklog($existing, $actor)) {
             return 'FORBIDDEN';
         }
 
         $set = [];
         if (array_key_exists('minutes_spent', $input)) {
-            $set['minutes_spent'] = (int)$input['minutes_spent'];
+            $minutesSpent = (int)$input['minutes_spent'];
+            if ($minutesSpent <= 0 || $minutesSpent > 1440) {
+                return 'MINUTES_OUT_OF_RANGE';
+            }
+            $set['minutes_spent'] = $minutesSpent;
         }
         if (array_key_exists('note', $input)) {
             $set['note'] = trim((string)$input['note']);
         }
         if (array_key_exists('logged_at', $input)) {
+            $logDate = $this->parseLogDate((string)$input['logged_at']);
+            if ($logDate > gmdate('Y-m-d')) {
+                return 'FUTURE_DATE_FORBIDDEN';
+            }
             $set['logged_at'] = (string)$input['logged_at'];
         }
         if (array_key_exists('started_at', $input) || array_key_exists('ended_at', $input)) {
+            if (!empty($input['started_at'])) {
+                $startedTs = strtotime((string)$input['started_at']);
+                if ($startedTs !== false && $startedTs > (time() + 60)) {
+                    return 'FUTURE_DATE_FORBIDDEN';
+                }
+            }
             $set['started_at'] = $this->parseIntervalTime($input['started_at'] ?? null);
             $set['ended_at'] = $this->parseIntervalTime($input['ended_at'] ?? null);
         }
@@ -265,8 +312,20 @@ final class WorklogService
                 if (!$this->canAccessTask($task, $actor)) {
                     return 'FORBIDDEN';
                 }
+                if (!empty($task['deleted_at']) || !empty((int)($task['is_closed'] ?? 0)) || \Api\System\Library\Support\TaskStatusSemantics::isTerminal($this->worklogs->getPdo(), (string)($task['status_code'] ?? ''))) {
+                    return 'TASK_CLOSED';
+                }
                 $set['task_id'] = (int)$task['id'];
             }
+        }
+
+        // Validate daily total minutes on update
+        $targetMinutes = (int)($set['minutes_spent'] ?? $existing['minutes_spent'] ?? 0);
+        $targetLoggedAt = (string)($set['logged_at'] ?? $existing['logged_at'] ?? gmdate('Y-m-d'));
+        $targetDate = $this->parseLogDate($targetLoggedAt);
+        $dailyTotal = $this->worklogs->getDailyTotalMinutes((int)($existing['user_id'] ?? 0), $targetDate, (int)($existing['id'] ?? 0));
+        if ($dailyTotal + $targetMinutes > 1440) {
+            return 'DAILY_LIMIT_EXCEEDED';
         }
 
         if ($set !== []) {
@@ -347,7 +406,7 @@ final class WorklogService
         if (!$existing) {
             return false;
         }
-        if (!$this->canAccessWorklog($existing, $actor)) {
+        if (!$this->canModifyWorklog($existing, $actor)) {
             return 'FORBIDDEN';
         }
 
@@ -362,6 +421,24 @@ final class WorklogService
         }
 
         return $ok;
+    }
+
+    private function canModifyWorklog(array $worklog, array $actor): bool
+    {
+        if (((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0)) {
+            return true;
+        }
+
+        $actorId = $this->resolveActorId($actor);
+        if ($actorId > 0 && (int)($worklog['user_id'] ?? 0) === $actorId) {
+            return true;
+        }
+
+        if ($this->getAuthz()->hasPermissions($actor, ['worklog.manage_all'])) {
+            return true;
+        }
+
+        return false;
     }
 
     private function canAccessWorklog(array $worklog, array $actor): bool
