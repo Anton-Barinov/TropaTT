@@ -35,13 +35,18 @@ final class WebhookRepository
         return [$rows, $total, $page, $limit];
     }
 
-    public function findSubscriptionByPublicId(string $publicId): ?array
+    public function findSubscriptionByPublicId(string $publicId, ?int $organizationId = null): ?array
     {
-        $row = (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('webhook_subscriptions')
             ->select(['*'])
-            ->where('public_id', '=', $publicId)
-            ->first();
+            ->where('public_id', '=', $publicId);
+
+        if ($organizationId !== null) {
+            $query->where('organization_id', '=', $organizationId);
+        }
+
+        $row = $query->first();
         if (!$row) {
             return null;
         }
@@ -51,8 +56,12 @@ final class WebhookRepository
         return $row;
     }
 
-    public function createSubscription(array $payload): void
+    public function createSubscription(array $payload, ?int $organizationId = null): void
     {
+        if ($organizationId !== null && $organizationId > 0) {
+            $payload['organization_id'] = $organizationId;
+        }
+
         (new QueryBuilder($this->pdo))
             ->from('webhook_subscriptions')
             ->insert($payload);
@@ -63,15 +72,32 @@ final class WebhookRepository
      * the automatic event dispatcher needs in order to create and sign a
      * delivery (the public list view deliberately omits both).
      *
+     * $organizationId scopes the fan-out to the organization that produced the
+     * event — without it every org's webhooks would receive every org's events.
+     *
+     * Unlike the find/update/delete guards below (where a null organizationId
+     * intentionally means "no filter", for a genuine cross-org admin query), a
+     * null $organizationId here means the caller could not resolve an acting
+     * organization at all: it must match ONLY subscriptions that themselves
+     * have no organization_id, never fall back to broadcasting the event to
+     * every organization's subscriptions.
+     *
      * @return list<array<string,mixed>>
      */
-    public function listActiveSubscriptions(): array
+    public function listActiveSubscriptions(?int $organizationId = null): array
     {
-        $rows = (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('webhook_subscriptions')
-            ->select(['id', 'public_id', 'endpoint', 'secret_hash', 'events', 'is_active'])
-            ->where('is_active', '=', 1)
-            ->get();
+            ->select(['id', 'public_id', 'organization_id', 'endpoint', 'secret_hash', 'events', 'is_active'])
+            ->where('is_active', '=', 1);
+
+        if ($organizationId !== null) {
+            $query->where('organization_id', '=', $organizationId);
+        } else {
+            $query->whereNull('organization_id');
+        }
+
+        $rows = $query->get();
         foreach ($rows as &$row) {
             $row['events'] = $this->decodeList($row['events'] ?? null);
             $row['is_active'] = (int)($row['is_active'] ?? 0);
@@ -81,24 +107,34 @@ final class WebhookRepository
         return $rows;
     }
 
-    public function updateSubscriptionByPublicId(string $publicId, array $set): bool
+    public function updateSubscriptionByPublicId(string $publicId, array $set, ?int $organizationId = null): bool
     {
         if ($set === []) {
             return false;
         }
 
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('webhook_subscriptions')
-            ->where('public_id', '=', $publicId)
-            ->update($set) > 0;
+            ->where('public_id', '=', $publicId);
+
+        if ($organizationId !== null) {
+            $query->where('organization_id', '=', $organizationId);
+        }
+
+        return $query->update($set) > 0;
     }
 
-    public function deleteSubscriptionByPublicId(string $publicId): bool
+    public function deleteSubscriptionByPublicId(string $publicId, ?int $organizationId = null): bool
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('webhook_subscriptions')
-            ->where('public_id', '=', $publicId)
-            ->delete() > 0;
+            ->where('public_id', '=', $publicId);
+
+        if ($organizationId !== null) {
+            $query->where('organization_id', '=', $organizationId);
+        }
+
+        return $query->delete() > 0;
     }
 
     public function createDelivery(array $payload): void
@@ -201,6 +237,10 @@ final class WebhookRepository
             );
         }
 
+        if ((int)($filters['organization_id'] ?? 0) > 0) {
+            $query->where('organization_id', '=', (int)$filters['organization_id']);
+        }
+
         return $query;
     }
 
@@ -220,6 +260,10 @@ final class WebhookRepository
 
         if (!empty($filters['webhook_public_id'])) {
             $query->where('w.public_id', '=', trim((string)$filters['webhook_public_id']));
+        }
+
+        if ((int)($filters['organization_id'] ?? 0) > 0) {
+            $query->where('d.organization_id', '=', (int)$filters['organization_id']);
         }
 
         return $query;
