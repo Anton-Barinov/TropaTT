@@ -25,4 +25,5 @@ return [
     'type_ff' => 'Finish-Finish',
     'type_sf' => 'Start-Finish',
     'type_blocks' => 'Blocks',
+    'cyclic_dependency' => 'Dependency would create a cycle between tasks',
 ];

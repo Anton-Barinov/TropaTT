@@ -11,4 +11,5 @@ return [
     'created' => 'Aufgabenverknüpfung erstellt',
     'not_found' => 'Verknüpfung nicht gefunden',
     'deleted' => 'Aufgabenverknüpfung gelöscht',
+    'cyclic_relation' => 'Diese Beziehung würde einen Zyklus zwischen Aufgaben erzeugen',
 ];

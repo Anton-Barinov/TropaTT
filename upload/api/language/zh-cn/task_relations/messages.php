@@ -11,4 +11,5 @@ return [
     'created' => '任务关系已创建',
     'not_found' => '未找到关系',
     'deleted' => '任务关系已删除',
+    'cyclic_relation' => '该关联会在任务之间形成循环',
 ];

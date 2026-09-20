@@ -30,6 +30,17 @@ final class TaskRelationService
         'duplicate',
     ];
 
+    /**
+     * Directed relation types where a cycle is a real deadlock (ordering or
+     * hierarchy), so a new edge closing a loop must be refused. Symmetric
+     * types (relates_to, duplicate) cannot deadlock.
+     */
+    private const DIRECTED_CYCLE_TYPES = [
+        'blocked_by',
+        'caused_by',
+        'parent_of',
+    ];
+
     /** Types whose alias means the user intent is reversed */
     private const REVERSE_ALIASES = [
         'blocks' => 'blocked_by',
@@ -128,6 +139,16 @@ final class TaskRelationService
         // Check duplicate
         if ($this->relations->existsByActiveKey($activeKey)) {
             return 'TASK_RELATION_ALREADY_EXISTS';
+        }
+
+        // Refuse a directed edge that would close a cycle (A blocked_by B while
+        // B is already blocked_by A, directly or transitively). Both the
+        // recursive progress walk and the critical-path computation assume an
+        // acyclic graph.
+        if (in_array($normalized, self::DIRECTED_CYCLE_TYPES, true)
+            && $this->relations->reachesByType($targetId, $sourceId, $normalized)
+        ) {
+            return 'TASK_RELATION_CYCLE_DETECTED';
         }
 
         // Validate note length

@@ -11,4 +11,5 @@ return [
     'created' => 'Task relation created',
     'not_found' => 'Relation not found',
     'deleted' => 'Task relation deleted',
+    'cyclic_relation' => 'This relation would create a cycle between tasks',
 ];

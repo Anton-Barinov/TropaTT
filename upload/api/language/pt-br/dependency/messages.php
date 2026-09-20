@@ -25,4 +25,5 @@ return [
     'type_sf' => 'Iniciar-Finalizar',
     'type_blocks' => 'Bloqueia',
     'different_projects' => 'Dependências só podem ser criadas entre tarefas do mesmo projeto',
+    'cyclic_dependency' => 'A dependência criaria um ciclo entre as tarefas',
 ];

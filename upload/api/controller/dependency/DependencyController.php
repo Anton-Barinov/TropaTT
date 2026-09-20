@@ -68,6 +68,9 @@ final class DependencyController extends BaseController
         if ($item === 'DEPENDENCY_DIFFERENT_PROJECTS') {
             return $this->error('DEPENDENCY_DIFFERENT_PROJECTS', $this->t('dependency/messages.different_projects'), 422);
         }
+        if ($item === 'CYCLIC_DEPENDENCY_DETECTED') {
+            return $this->error('CYCLIC_DEPENDENCY_DETECTED', $this->t('dependency/messages.cyclic_dependency'), 422);
+        }
 
         $this->invalidateCache('dependency');
 

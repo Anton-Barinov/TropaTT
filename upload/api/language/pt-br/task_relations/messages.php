@@ -11,4 +11,5 @@ return [
     'created' => 'Relação entre tarefas criada',
     'not_found' => 'Relação não encontrada',
     'deleted' => 'Relação entre tarefas excluída',
+    'cyclic_relation' => 'Esta relação criaria um ciclo entre as tarefas',
 ];
