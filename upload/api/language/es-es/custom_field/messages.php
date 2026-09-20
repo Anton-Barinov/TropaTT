@@ -6,6 +6,7 @@ return [
     'updated' => 'Campo personalizado actualizado',
     'deleted' => 'Campo personalizado eliminado',
     'not_found' => 'Campo personalizado no encontrado',
+    'entity_not_found' => 'Entidad no encontrada',
     'code_exists' => 'El código del campo ya existe en el alcance',
     'invalid_scope' => 'Alcance inválido',
     'invalid_type' => 'Tipo de campo inválido',

@@ -6,6 +6,7 @@ return [
     'updated' => '自定义字段已更新',
     'deleted' => '自定义字段已删除',
     'not_found' => '自定义字段未找到',
+    'entity_not_found' => '实体未找到',
     'code_exists' => '该字段代码在当前范围内已存在',
     'invalid_scope' => '范围无效',
     'invalid_type' => '字段类型无效',

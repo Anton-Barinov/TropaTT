@@ -6,6 +6,7 @@ return [
     'updated' => 'Custom field updated',
     'deleted' => 'Custom field deleted',
     'not_found' => 'Custom field not found',
+    'entity_not_found' => 'Entity not found',
     'code_exists' => 'Field code already exists in scope',
     'invalid_scope' => 'Invalid scope',
     'invalid_type' => 'Invalid field type',
