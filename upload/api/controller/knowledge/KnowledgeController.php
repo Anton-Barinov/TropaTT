@@ -945,7 +945,12 @@ final class KnowledgeController extends BaseController
 
     public function resolveComment(array $params): JsonResponse
     {
-        if (!$this->repo()->resolveComment((string)$params['comment_public_id'])) {
+        $commentPublicId = (string)$params['comment_public_id'];
+        $pagePublicId = $this->repo()->commentPagePublicId($commentPublicId);
+        if ($pagePublicId === null || !$this->requirePageAccess($pagePublicId, 'comment')) {
+            return $this->error('KNOWLEDGE_COMMENT_NOT_FOUND', $this->t('knowledge/messages.comment_not_found', 'Comment not found'), 404);
+        }
+        if (!$this->repo()->resolveComment($commentPublicId)) {
             return $this->error('KNOWLEDGE_COMMENT_NOT_FOUND', $this->t('knowledge/messages.comment_not_found', 'Comment not found'), 404);
         }
         return $this->success('KNOWLEDGE_COMMENT_RESOLVED', $this->t('knowledge/messages.comment_resolved', 'Comment resolved'));
@@ -953,7 +958,12 @@ final class KnowledgeController extends BaseController
 
     public function reopenComment(array $params): JsonResponse
     {
-        if (!$this->repo()->reopenComment((string)$params['comment_public_id'])) {
+        $commentPublicId = (string)$params['comment_public_id'];
+        $pagePublicId = $this->repo()->commentPagePublicId($commentPublicId);
+        if ($pagePublicId === null || !$this->requirePageAccess($pagePublicId, 'comment')) {
+            return $this->error('KNOWLEDGE_COMMENT_NOT_FOUND', $this->t('knowledge/messages.comment_not_found', 'Comment not found'), 404);
+        }
+        if (!$this->repo()->reopenComment($commentPublicId)) {
             return $this->error('KNOWLEDGE_COMMENT_NOT_FOUND', $this->t('knowledge/messages.comment_not_found', 'Comment not found'), 404);
         }
         return $this->success('KNOWLEDGE_COMMENT_REOPENED', $this->t('knowledge/messages.comment_reopened', 'Comment reopened'));
