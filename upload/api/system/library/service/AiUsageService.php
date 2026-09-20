@@ -53,10 +53,15 @@ final class AiUsageService
         // NOTE (TROPATTCRM-550 / TROPATTCRM-556): the generic `audit_logs`
         // table backing LogsService::auditList() has no organization_id
         // column and no per-tenant ownership model today, so it cannot be
-        // scoped here without a schema/ownership decision from the owner of
-        // that system-wide audit trail. $actor is accepted for interface
-        // consistency with usageList() but intentionally not yet applied.
-        unset($actor);
+        // scoped per-organization without a schema/ownership decision from
+        // the owner of that system-wide audit trail (see option (a) in the
+        // TROPATTCRM-556 ticket). Pending that decision, the owner-applied
+        // default (option (b)) is to restrict this system-wide view to
+        // root/platform-level actors only, rather than leak cross-tenant
+        // rows to org-scoped actors or silently return empty results.
+        if (!(bool)($actor['is_root'] ?? false)) {
+            throw new \RuntimeException('FORBIDDEN');
+        }
         $filters['action_prefix'] = 'ai_';
         $rows = $this->logs->auditList($filters);
         $items = is_array($rows['items'] ?? null) ? (array)$rows['items'] : [];

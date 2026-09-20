@@ -5165,6 +5165,13 @@ $tools[] = $this->tool(
 
     private function crmGetFrontendErrorsChart(array $arguments): array
     {
+        // TROPATTCRM-556: backed by the system-wide security_logs table (no
+        // organization_id); the equivalent REST endpoint
+        // (LogsController::frontendErrorChart) is root-only, so this MCP
+        // tool is restricted the same way.
+        if (!$this->isRootActor()) {
+            return ['error' => 'FORBIDDEN: root/platform access required for system-wide log data.'];
+        }
         /** @var LogsService $service */
         $service = $this->container->get('service.logs');
         return $this->publicData($service->frontendErrorChart($this->pick($arguments, ['hours', 'from', 'to'])));
@@ -5865,9 +5872,15 @@ $tools[] = $this->tool(
 
     private function crmListAiAudit(array $arguments): array
     {
+        // TROPATTCRM-556: the underlying audit_logs table is system-wide
+        // (no organization_id), so this MCP tool is restricted to
+        // root/platform actors only.
+        if (!$this->isRootActor()) {
+            return ['error' => 'FORBIDDEN: root/platform access required for system-wide AI audit log data.'];
+        }
         /** @var AiUsageService $service */
         $service = $this->container->get('service.ai_usage');
-        return $this->publicData($service->auditList($this->aiUsageFilters($arguments)));
+        return $this->publicData($service->auditList($this->aiUsageFilters($arguments), $this->actor()));
     }
 
     private function crmListAiJobs(array $arguments): array
@@ -7122,6 +7135,12 @@ $tools[] = $this->tool(
 
     private function crmListAuditLog(array $arguments): array
     {
+        // TROPATTCRM-556: audit_logs is system-wide (no organization_id),
+        // so this MCP tool is restricted to root/platform actors only —
+        // an org-scoped actor gets an explicit error, not cross-tenant rows.
+        if (!$this->isRootActor()) {
+            return ['error' => 'FORBIDDEN: root/platform access required for system-wide audit log data.'];
+        }
         /** @var LogsService $service */
         $service = $this->container->get('service.logs');
         return $this->publicData($service->auditList($this->filters($arguments, 50, 100)));
@@ -7129,6 +7148,11 @@ $tools[] = $this->tool(
 
     private function crmListSecurityLog(array $arguments): array
     {
+        // TROPATTCRM-556: security_logs is system-wide (no organization_id),
+        // so this MCP tool is restricted to root/platform actors only.
+        if (!$this->isRootActor()) {
+            return ['error' => 'FORBIDDEN: root/platform access required for system-wide security log data.'];
+        }
         /** @var LogsService $service */
         $service = $this->container->get('service.logs');
         return $this->publicData($service->securityList($this->filters($arguments, 50, 100)));
@@ -8551,6 +8575,11 @@ $tools[] = $this->tool(
 
     private function crmListRequestLogs(array $arguments): array
     {
+        // TROPATTCRM-556: request_logs is system-wide (no organization_id),
+        // so this MCP tool is restricted to root/platform actors only.
+        if (!$this->isRootActor()) {
+            return ['error' => 'FORBIDDEN: root/platform access required for system-wide request log data.'];
+        }
         $filters = [
             'limit' => max(1, min(100, (int)($arguments['limit'] ?? 50))),
             'page' => max(1, (int)($arguments['page'] ?? 1)),
@@ -14459,6 +14488,18 @@ $tools[] = $this->tool(
         }
 
         return false;
+    }
+
+    /**
+     * TROPATTCRM-556: true only for root/platform-level actors. Used to gate
+     * MCP tools that read the system-wide logs/audit tables (no
+     * organization_id column, no per-tenant ownership model), so an
+     * org-scoped actor — even one holding an org-assignable permission like
+     * `logs.view` or `settings.manage` — cannot read cross-tenant log data.
+     */
+    private function isRootActor(): bool
+    {
+        return (bool)($this->actor()['is_root'] ?? false);
     }
 
     private function actor(): array
