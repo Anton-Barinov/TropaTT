@@ -18,9 +18,9 @@ final class RecurringService
         $this->lang = $lang;
     }
 
-    public function list(array $filters, int $actorId = 0): array
+    public function list(array $filters, int $actorId = 0, ?int $organizationId = null): array
     {
-        [$items, $total, $page, $limit] = $this->recurring->list($filters, $actorId);
+        [$items, $total, $page, $limit] = $this->recurring->list($filters, $actorId, $organizationId);
         $items = array_map(fn(array $item): array => $this->normalizeRule($item, $actorId), $items);
 
         return [
@@ -36,9 +36,9 @@ final class RecurringService
         ];
     }
 
-    public function create(array $input, int $actorId = 0): array
+    public function create(array $input, int $actorId = 0, ?int $organizationId = null): array
     {
-        if (!$this->canUseEntity((string)($input['entity_type'] ?? ''), (string)($input['entity_public_id'] ?? ''), $actorId)) {
+        if (!$this->canUseEntity((string)($input['entity_type'] ?? ''), (string)($input['entity_public_id'] ?? ''), $actorId, $organizationId)) {
             throw new \RuntimeException('RECURRING_ENTITY_FORBIDDEN');
         }
         $publicId = Ulid::generate('rrl');
@@ -52,14 +52,14 @@ final class RecurringService
             'is_active' => isset($input['is_active']) && (int)$input['is_active'] === 0 ? 0 : 1,
             'created_at' => $now,
             'updated_at' => $now,
-        ]);
+        ], $organizationId);
 
-        return $this->get($publicId, $actorId) ?? ['public_id' => $publicId];
+        return $this->get($publicId, $actorId, $organizationId) ?? ['public_id' => $publicId];
     }
 
-    public function get(string $publicId, int $actorId = 0): ?array
+    public function get(string $publicId, int $actorId = 0, ?int $organizationId = null): ?array
     {
-        $item = $this->recurring->findByPublicId($publicId, $actorId);
+        $item = $this->recurring->findByPublicId($publicId, $actorId, $organizationId);
         if (!$item) {
             return null;
         }
@@ -67,9 +67,9 @@ final class RecurringService
         return $this->normalizeRule($item, $actorId);
     }
 
-    public function update(string $publicId, array $input, int $actorId = 0): ?array
+    public function update(string $publicId, array $input, int $actorId = 0, ?int $organizationId = null): ?array
     {
-        $existing = $this->recurring->findByPublicId($publicId, $actorId);
+        $existing = $this->recurring->findByPublicId($publicId, $actorId, $organizationId);
         if (!$existing) {
             return null;
         }
@@ -84,13 +84,13 @@ final class RecurringService
         if (array_key_exists('entity_public_id', $input)) {
             $entityType = (string)($input['entity_type'] ?? $existing['entity_type'] ?? '');
             $entityId = trim((string)$input['entity_public_id']);
-            if (!$this->canUseEntity($entityType, $entityId, $actorId)) {
+            if (!$this->canUseEntity($entityType, $entityId, $actorId, $organizationId)) {
                 throw new \RuntimeException('RECURRING_ENTITY_FORBIDDEN');
             }
             $set['entity_public_id'] = $entityId;
         }
         if (array_key_exists('entity_type', $input) && !array_key_exists('entity_public_id', $input)) {
-            if (!$this->canUseEntity((string)$input['entity_type'], (string)($existing['entity_public_id'] ?? ''), $actorId)) {
+            if (!$this->canUseEntity((string)$input['entity_type'], (string)($existing['entity_public_id'] ?? ''), $actorId, $organizationId)) {
                 throw new \RuntimeException('RECURRING_ENTITY_FORBIDDEN');
             }
         }
@@ -101,42 +101,42 @@ final class RecurringService
             $set['is_active'] = ((int)$input['is_active'] === 0) ? 0 : 1;
         }
 
-        $this->recurring->updateByPublicId($publicId, $set, $actorId);
-        return $this->get($publicId, $actorId);
+        $this->recurring->updateByPublicId($publicId, $set, $actorId, $organizationId);
+        return $this->get($publicId, $actorId, $organizationId);
     }
 
-    public function pause(string $publicId, int $actorId = 0): ?array
+    public function pause(string $publicId, int $actorId = 0, ?int $organizationId = null): ?array
     {
-        if ($this->get($publicId, $actorId) === null) return null;
+        if ($this->get($publicId, $actorId, $organizationId) === null) return null;
         $ok = $this->recurring->updateByPublicId($publicId, [
             'is_active' => 0,
             'updated_at' => gmdate('Y-m-d H:i:s'),
-        ], $actorId);
+        ], $actorId, $organizationId);
         if (!$ok) {
             return null;
         }
 
-        return $this->get($publicId, $actorId);
+        return $this->get($publicId, $actorId, $organizationId);
     }
 
-    public function resume(string $publicId, int $actorId = 0): ?array
+    public function resume(string $publicId, int $actorId = 0, ?int $organizationId = null): ?array
     {
-        if ($this->get($publicId, $actorId) === null) return null;
+        if ($this->get($publicId, $actorId, $organizationId) === null) return null;
         $ok = $this->recurring->updateByPublicId($publicId, [
             'is_active' => 1,
             'updated_at' => gmdate('Y-m-d H:i:s'),
-        ], $actorId);
+        ], $actorId, $organizationId);
         if (!$ok) {
             return null;
         }
 
-        return $this->get($publicId, $actorId);
+        return $this->get($publicId, $actorId, $organizationId);
     }
 
-    public function delete(string $publicId, int $actorId = 0): bool
+    public function delete(string $publicId, int $actorId = 0, ?int $organizationId = null): bool
     {
-        if ($this->get($publicId, $actorId) === null) return false;
-        return $this->recurring->deleteByPublicId($publicId, $actorId);
+        if ($this->get($publicId, $actorId, $organizationId) === null) return false;
+        return $this->recurring->deleteByPublicId($publicId, $actorId, $organizationId);
     }
 
     public function isValidRrule(string $rrule): bool
@@ -155,9 +155,9 @@ final class RecurringService
         }
     }
 
-    public function canUseEntity(string $entityType, string $entityPublicId, int $actorId = 0): bool
+    public function canUseEntity(string $entityType, string $entityPublicId, int $actorId = 0, ?int $organizationId = null): bool
     {
-        return $this->recurring->canUseEntity($entityType, $entityPublicId, $actorId);
+        return $this->recurring->canUseEntity($entityType, $entityPublicId, $actorId, $organizationId);
     }
 
     private function normalizeRule(array $item, int $actorId = 0): array
