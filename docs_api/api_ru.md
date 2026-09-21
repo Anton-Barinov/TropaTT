@@ -1905,3 +1905,593 @@ TropaTT реализует унифицированный протокол ве�
 | POST | `/api/v1/notifications/push-test` | Тестовая отправка | Да | self-service | `dispatch.attempted/delivered/deactivated/failures[]` |
 
 **Требования:** исходящий HTTPS к push-сервисам; `openssl` с `prime256v1` для VAPID. Устаревшие алиасы `/api/v1/notification/push-*` исключены из OpenAPI.
+
+**Автоматически сгенерированные секции для документации**
+**Незадокументированных маршрутов:** 234
+
+### Security — Invitations
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/security/invitations/list` | Список | Да | user.manage | — |
+| 'POST' | `/api/v1/security/invitations/create` | Создание | Да | user.manage | — |
+| 'GET' | `/api/v1/security/invitations/get/{public_id}` | Получение | Да | user.manage | — |
+
+### Security — Sessions
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/security/sessions/list` | Список | Да | — | — |
+| 'DELETE' | `/api/v1/security/sessions/revoke/{public_id}` | Отзыв | Да | — | — |
+| 'POST' | `/api/v1/security/devices/revoke` | Отзыв | Да | — | — |
+
+### Security — Password Reset
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'POST' | `/api/v1/security/password-reset/request` | Запрос | Нет | — | — |
+
+### Project — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'POST' | `/api/v1/project/create` 🔄 | Создание | Да | project.manage | — |
+| 'GET' | `/api/v1/project/list` 🔄 | Список | Да | project.manage | — |
+| 'GET' | `/api/v1/project/get/{public_id}` 🔄 | Получение | Да | project.manage | — |
+| 'PATCH', 'PUT' | `/api/v1/project/update/{public_id}` 🔄 | Обновление | Да | project.manage | — |
+| 'DELETE' | `/api/v1/project/delete/{public_id}` 🔄 | Удаление | Да | project.manage | — |
+| 'GET' | `/api/v1/project/timeline/{public_id}` | Timeline | Да | project.manage | — |
+| 'GET' | `/api/v1/project/summary/{public_id}` | Сводка | Да | project.manage | — |
+| 'GET' | `/api/v1/project/milestones-summary/{public_id}` | Milestones summary | Да | project.manage | — |
+| 'GET' | `/api/v1/project/risks/{public_id}` | Risks | Да | project.manage | — |
+| 'GET' | `/api/v1/project/workload/{public_id}` | Workload | Да | project.manage | — |
+
+### Task — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'POST' | `/api/v1/task/create` 🔄 | Создание | Да | task.manage | — |
+| 'GET' | `/api/v1/task/list` 🔄 | Список | Да | task.manage | — |
+| 'GET' | `/api/v1/task/board` | Board | Да | task.manage | — |
+| 'POST' | `/api/v1/task/bulk/update` | Обновление | Да | task.manage | — |
+| 'POST' | `/api/v1/task/move/{public_id}` | Перемещение | Да | task.manage | — |
+| 'GET' | `/api/v1/task/get/{public_id}` 🔄 | Получение | Да | task.manage | — |
+| 'PATCH', 'PUT' | `/api/v1/task/update/{public_id}` 🔄 | Обновление | Да | task.manage | — |
+| 'DELETE' | `/api/v1/task/delete/{public_id}` 🔄 | Удаление | Да | task.manage | — |
+
+### Template — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/template/task/list` | Список | Да | task.manage | — |
+| 'POST' | `/api/v1/template/task/create` | Создание | Да | task.manage | — |
+| 'GET' | `/api/v1/template/project/list` | Список | Да | project.manage | — |
+| 'POST' | `/api/v1/template/project/create` | Создание | Да | project.manage | — |
+
+### Recurring
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/recurring/list` 🔄 | Список | Да | task.manage | — |
+| 'POST' | `/api/v1/recurring/create` 🔄 | Создание | Да | task.manage | — |
+
+### Custom Fields — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/custom-field/list` | Список | Да | settings.manage | — |
+| 'POST' | `/api/v1/custom-field/create` | Создание | Да | settings.manage | — |
+
+### Workflow — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/workflow/rule/list` | Список | Да | settings.manage | — |
+| 'POST' | `/api/v1/workflow/rule/create` | Создание | Да | settings.manage | — |
+| 'PATCH', 'PUT' | `/api/v1/workflow/rule/update/{public_id}` | Обновление | Да | settings.manage | — |
+
+### SLA
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/sla/report/get` | Получение | Да | settings.manage | — |
+
+### SLA — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/sla/list` 🔄 | Список | Да | settings.manage | — |
+| 'POST' | `/api/v1/sla/create` 🔄 | Создание | Да | settings.manage | — |
+| 'PATCH', 'PUT' | `/api/v1/sla/update/{public_id}` 🔄 | Обновление | Да | settings.manage | — |
+
+### Approvals — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/approval/list` 🔄 | Список | Да | approval.manage | — |
+
+### Recycle Bin
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/recycle-bin/list` | Список | Да | recycle_bin.manage | — |
+| 'POST' | `/api/v1/recycle-bin/restore/{public_id}` | Восстановление | Да | recycle_bin.manage | — |
+| 'DELETE', 'POST' | `/api/v1/recycle-bin/purge/{public_id}` | Очистка | Да | recycle_bin.manage | — |
+
+### Import
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'POST' | `/api/v1/import/create` 🔄 | Создание | Да | import.manage | — |
+
+### Export
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'POST' | `/api/v1/export/create` 🔄 | Создание | Да | export.manage | — |
+
+### Comments — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'POST' | `/api/v1/comment/add/{public_id}` | Добавление | Да | task.manage | — |
+| 'PATCH', 'PUT' | `/api/v1/comment/update/{public_id}` 🔄 | Обновление | Да | task.manage | — |
+| 'DELETE' | `/api/v1/comment/delete/{public_id}` 🔄 | Удаление | Да | — | — |
+| 'GET' | `/api/v1/comment/draft/get/{public_id}` | Получение | Да | task.manage | — |
+| 'POST', 'PUT', 'PATCH' | `/api/v1/comment/draft/save/{public_id}` | Сохранение | Да | task.manage | — |
+| 'DELETE' | `/api/v1/comment/draft/delete/{public_id}` | Удаление | Да | task.manage | — |
+
+### Notifications — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/notification/list` 🔄 | Список | Да | — | — |
+| 'POST' | `/api/v1/notification/create` 🔄 | Создание | Да | — | — |
+| 'GET' | `/api/v1/notification/counters` | Counters | Да | — | — |
+| 'POST' | `/api/v1/notification/mark-all-read` 🔄 | Отметить все прочитанными | Да | — | — |
+| 'PATCH', 'PUT' | `/api/v1/notification/read/{public_id}` 🔄 | Отметить прочитанным | Да | — | — |
+| 'PATCH', 'PUT' | `/api/v1/notification/unread/{public_id}` 🔄 | Отметить непрочитанным | Да | — | — |
+
+### Reminders — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/reminder/list` 🔄 | Список | Да | — | — |
+| 'POST' | `/api/v1/reminder/create` 🔄 | Создание | Да | — | — |
+| 'GET' | `/api/v1/reminder/get/{public_id}` 🔄 | Получение | Да | — | — |
+| 'PATCH', 'PUT' | `/api/v1/reminder/update/{public_id}` 🔄 | Обновление | Да | — | — |
+| 'DELETE' | `/api/v1/reminder/delete/{public_id}` 🔄 | Удаление | Да | — | — |
+
+### Calendar — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/calendar/event/list` | Список | Да | task.manage | — |
+| 'POST' | `/api/v1/calendar/event/create` | Создание | Да | task.manage | — |
+| 'GET' | `/api/v1/calendar/event/get/{public_id}` | Получение | Да | task.manage | — |
+| 'PATCH', 'PUT' | `/api/v1/calendar/event/update/{public_id}` | Обновление | Да | task.manage | — |
+| 'DELETE' | `/api/v1/calendar/event/delete/{public_id}` | Удаление | Да | task.manage | — |
+| 'GET' | `/api/v1/calendar/day` | Day | Да | task.manage | — |
+| 'GET' | `/api/v1/calendar/week` | Week | Да | task.manage | — |
+| 'GET' | `/api/v1/calendar/month` | Month | Да | task.manage | — |
+
+### Worklogs — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/worklog/list` 🔄 | Список | Да | task.manage | — |
+| 'POST' | `/api/v1/worklog/create` 🔄 | Создание | Да | task.manage | — |
+| 'GET' | `/api/v1/worklog/get/{public_id}` 🔄 | Получение | Да | task.manage | — |
+| 'PATCH', 'PUT' | `/api/v1/worklog/update/{public_id}` 🔄 | Обновление | Да | task.manage | — |
+| 'DELETE' | `/api/v1/worklog/delete/{public_id}` 🔄 | Удаление | Да | task.manage | — |
+
+### Dashboard & Analytics — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/dashboard/get-summary` 🔄 | Получение сводки | Да | task.manage | — |
+| 'GET' | `/api/v1/analytics/get-summary` 🔄 | Получение сводки | Да | task.manage | — |
+| 'GET' | `/api/v1/analytics/get-projects` 🔄 | Получение проектов | Да | task.manage | — |
+| 'GET' | `/api/v1/analytics/get-users` 🔄 | Получение пользователей | Да | task.manage | — |
+
+### Search — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/search/all` | All | Да | task.manage | — |
+| 'GET' | `/api/v1/search/task` | Task | Да | task.manage | — |
+| 'GET' | `/api/v1/search/project` | Project | Да | task.manage | — |
+| 'GET' | `/api/v1/search/client` | Client | Да | task.manage | — |
+
+### Mentions — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/mention/list` 🔄 | Список | Да | task.manage | — |
+| 'POST' | `/api/v1/mention/add` | Добавление | Да | task.manage | — |
+| 'DELETE' | `/api/v1/mention/delete/{public_id}` 🔄 | Удаление | Да | task.manage | — |
+
+### Reactions — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/reaction/list` 🔄 | Список | Да | task.manage | — |
+| 'POST' | `/api/v1/reaction/add` | Добавление | Да | task.manage | — |
+| 'DELETE' | `/api/v1/reaction/remove/{public_id}` 🔄 | Удаление | Да | task.manage | — |
+
+### Subscriptions — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/subscription/list` 🔄 | Список | Да | task.manage | — |
+| 'POST' | `/api/v1/subscription/create` 🔄 | Создание | Да | task.manage | — |
+| 'DELETE' | `/api/v1/subscription/delete/{public_id}` 🔄 | Удаление | Да | task.manage | — |
+
+### Favorites — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/favorite/list` 🔄 | Список | Да | task.manage | — |
+| 'POST' | `/api/v1/favorite/create` 🔄 | Создание | Да | task.manage | — |
+| 'DELETE' | `/api/v1/favorite/delete/{public_id}` 🔄 | Удаление | Да | task.manage | — |
+
+### Saved Views — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/view/list` 🔄 | Список | Да | task.manage | — |
+| 'POST' | `/api/v1/view/save` 🔄 | Сохранение | Да | task.manage | — |
+| 'PATCH', 'PUT' | `/api/v1/view/update/{public_id}` 🔄 | Обновление | Да | task.manage | — |
+| 'DELETE' | `/api/v1/view/delete/{public_id}` 🔄 | Удаление | Да | task.manage | — |
+
+### Activity & Audit — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/activity/list` 🔄 | Список | Да | logs.view | — |
+| 'GET' | `/api/v1/history/entity` | Entity | Да | logs.view | — |
+
+### Audit Logs — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/audit/get-list` 🔄 | Получение списка | Да | logs.view | — |
+| 'GET' | `/api/v1/audit/by-user/{public_id}` 🔄 | По пользователю | Да | logs.view | — |
+| 'GET' | `/api/v1/audit/by-entity/{entity_type}/{public_id}` | — | Да | logs.view | — |
+
+### Settings — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/setting/get` 🔄 | Получение | Да | settings.manage | — |
+| 'GET' | `/api/v1/setting/get/{name}` 🔄 | Получение | Да | settings.manage | — |
+| 'POST', 'PUT', 'PATCH' | `/api/v1/setting/set` 🔄 | Установка | Да | settings.manage | — |
+| 'POST', 'PUT', 'PATCH' | `/api/v1/setting/set/{name}` 🔄 | Установка | Да | settings.manage | — |
+
+### Settings — Retention
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/retention/get` 🔄 | Получение | Да | settings.manage | — |
+| 'POST', 'PUT', 'PATCH' | `/api/v1/retention/set` 🔄 | Установка | Да | settings.manage | — |
+
+### Organizations — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/organization/list` 🔄 | Список | Да | organization.manage | — |
+| 'POST' | `/api/v1/organization/create` 🔄 | Создание | Да | organization.manage | — |
+| 'GET' | `/api/v1/organization/get/{public_id}` 🔄 | Получение | Да | organization.manage | — |
+| 'PATCH', 'PUT' | `/api/v1/organization/update/{public_id}` 🔄 | Обновление | Да | organization.manage | — |
+| 'DELETE' | `/api/v1/organization/delete/{public_id}` 🔄 | Удаление | Да | organization.manage | — |
+
+### Statuses — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/status/list` 🔄 | Список | Да | task.manage | — |
+| 'POST' | `/api/v1/status/create` 🔄 | Создание | Да | task.manage | — |
+| 'GET' | `/api/v1/status/get/{public_id}` 🔄 | Получение | Да | task.manage | — |
+| 'PATCH', 'PUT' | `/api/v1/status/update/{public_id}` 🔄 | Обновление | Да | task.manage | — |
+| 'DELETE' | `/api/v1/status/delete/{public_id}` 🔄 | Удаление | Да | task.manage | — |
+| 'POST' | `/api/v1/status/remap-delete/{public_id}` | Удаление с переназначением | Да | task.manage | — |
+
+### Admin — Role Matrix
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/admin/role-matrix/get` | Получение | Да | role.manage | — |
+| 'POST', 'PUT', 'PATCH' | `/api/v1/admin/role-matrix/set` | Установка | Да | role.manage | — |
+
+### Admin — Widgets
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/admin/widget/summary` | Сводка | Да | logs.view | — |
+| 'GET' | `/api/v1/admin/widget/system` | Информация о системе | Да | logs.view | — |
+
+### API Clients — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/api-client/list` | Список | Да | api_client.view | — |
+| 'POST' | `/api/v1/api-client/create` | Создание | Да | api_client.manage | — |
+| 'GET' | `/api/v1/api-client/get/{public_id}` | Получение | Да | api_client.view | — |
+| 'PATCH', 'PUT', 'POST' | `/api/v1/api-client/update/{public_id}` | Обновление | Да | api_client.manage | — |
+| 'DELETE', 'POST' | `/api/v1/api-client/delete/{public_id}` | Удаление | Да | api_client.manage | — |
+| 'GET' | `/api/v1/api-client/keys/{public_id}` | Keys | Да | api_client.view | — |
+| 'POST' | `/api/v1/api-client/key/issue/{public_id}` | Issue | Да | api_client.manage | — |
+| 'POST' | `/api/v1/api-client/key/rotate/{public_id}` | Ротация | Да | api_client.manage | — |
+| 'POST', 'DELETE' | `/api/v1/api-client/key/revoke/{public_id}` | Отзыв | Да | api_client.manage | — |
+| 'GET' | `/api/v1/api-client/key/usage/{public_id}` | Статистика использования | Да | api_client.view | — |
+
+### Ops — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/ops/system/get` | Получение | Да | logs.view | — |
+| 'GET' | `/api/v1/ops/metrics/get` | Получение | Да | logs.view | — |
+| 'POST' | `/api/v1/ops/jobs/run-now` | Запуск немедленно | Да | logs.view | — |
+
+### Telemetry — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'POST' | `/api/v1/telemetry/frontend-event/create` | Создание | Да | — | — |
+
+### Webhooks — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/webhook/list` 🔄 | Список | Да | webhook.manage | — |
+| 'POST' | `/api/v1/webhook/create` 🔄 | Создание | Да | webhook.manage | — |
+| 'PATCH', 'PUT', 'POST' | `/api/v1/webhook/update/{public_id}` 🔄 | Обновление | Да | webhook.manage | — |
+| 'DELETE', 'POST' | `/api/v1/webhook/delete/{public_id}` 🔄 | Удаление | Да | webhook.manage | — |
+| 'GET' | `/api/v1/webhook/deliveries` | Доставки | Да | webhook.manage | — |
+| 'GET' | `/api/v1/webhook/deliveries/{public_id}` | Доставки | Да | webhook.manage | — |
+| 'POST' | `/api/v1/webhook/test/{public_id}` | Тест | Да | webhook.manage | — |
+
+### Priorities — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/priority/list` 🔄 | Список | Да | task.manage | — |
+| 'POST' | `/api/v1/priority/create` 🔄 | Создание | Да | task.manage | — |
+| 'GET' | `/api/v1/priority/get/{public_id}` 🔄 | Получение | Да | task.manage | — |
+| 'PATCH', 'PUT' | `/api/v1/priority/update/{public_id}` 🔄 | Обновление | Да | task.manage | — |
+| 'DELETE' | `/api/v1/priority/delete/{public_id}` 🔄 | Удаление | Да | task.manage | — |
+
+### Tags — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/tag/list` 🔄 | Список | Да | task.manage | — |
+| 'POST' | `/api/v1/tag/create` 🔄 | Создание | Да | task.manage | — |
+| 'GET' | `/api/v1/tag/get/{public_id}` 🔄 | Получение | Да | task.manage | — |
+| 'PATCH', 'PUT' | `/api/v1/tag/update/{public_id}` 🔄 | Обновление | Да | task.manage | — |
+| 'DELETE' | `/api/v1/tag/delete/{public_id}` 🔄 | Удаление | Да | task.manage | — |
+
+### Task-Tag Binding — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/task/tags/{task_public_id}` | Tags | Да | task.manage | — |
+| 'POST' | `/api/v1/task/tag/attach/{task_public_id}/{tag_public_id}` | — | Да | task.manage | — |
+| 'DELETE' | `/api/v1/task/tag/detach/{task_public_id}/{tag_public_id}` | — | Да | task.manage | — |
+
+### Milestones — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/milestone/list` 🔄 | Список | Да | project.manage | — |
+| 'POST' | `/api/v1/milestone/create` 🔄 | Создание | Да | project.manage | — |
+| 'GET' | `/api/v1/milestone/get/{public_id}` 🔄 | Получение | Да | project.manage | — |
+| 'PATCH', 'PUT' | `/api/v1/milestone/update/{public_id}` 🔄 | Обновление | Да | project.manage | — |
+| 'DELETE' | `/api/v1/milestone/delete/{public_id}` 🔄 | Удаление | Да | project.manage | — |
+
+### Dependencies — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/dependency/list` 🔄 | Список | Да | task.manage | — |
+| 'POST' | `/api/v1/dependency/create` 🔄 | Создание | Да | task.manage | — |
+| 'DELETE' | `/api/v1/dependency/delete/{public_id}` 🔄 | Удаление | Да | task.manage | — |
+
+### Subtasks — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/task/subtasks/{public_id}` | Subtasks | Да | task.manage | — |
+| 'POST' | `/api/v1/task/subtasks/{public_id}` | Subtasks | Да | task.manage | — |
+| 'GET' | `/api/v1/subtask/get/{public_id}` 🔄 | Получение | Да | task.manage | — |
+| 'PATCH', 'PUT' | `/api/v1/subtask/update/{public_id}` 🔄 | Обновление | Да | task.manage | — |
+| 'DELETE' | `/api/v1/subtask/delete/{public_id}` 🔄 | Удаление | Да | task.manage | — |
+
+### Checklists — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/task/checklists/{public_id}` | Checklists | Да | task.manage | — |
+| 'POST' | `/api/v1/task/checklists/{public_id}` | Checklists | Да | task.manage | — |
+| 'GET' | `/api/v1/checklist/get/{public_id}` 🔄 | Получение | Да | task.manage | — |
+| 'PATCH', 'PUT' | `/api/v1/checklist/update/{public_id}` 🔄 | Обновление | Да | task.manage | — |
+| 'DELETE' | `/api/v1/checklist/delete/{public_id}` 🔄 | Удаление | Да | task.manage | — |
+| 'GET' | `/api/v1/checklist/items/{public_id}` | Items | Да | task.manage | — |
+| 'POST' | `/api/v1/checklist/item/add/{public_id}` | Добавление | Да | task.manage | — |
+| 'GET' | `/api/v1/checklist/item/get/{public_id}` | Получение | Да | task.manage | — |
+| 'PATCH', 'PUT' | `/api/v1/checklist/item/update/{public_id}` | Обновление | Да | task.manage | — |
+| 'DELETE' | `/api/v1/checklist/item/delete/{public_id}` | Удаление | Да | task.manage | — |
+
+### Users — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/user/list` 🔄 | Список | Да | user.view | — |
+| 'GET' | `/api/v1/user/get/{public_id}` 🔄 | Получение | Да | user.view | — |
+| 'POST' | `/api/v1/user/create` 🔄 | Создание | Да | user.manage | — |
+| 'PATCH', 'PUT' | `/api/v1/user/update/{public_id}` 🔄 | Обновление | Да | user.manage | — |
+| 'DELETE' | `/api/v1/user/delete/{public_id}` 🔄 | Удаление | Да | user.manage | — |
+| 'GET' | `/api/v1/user/tokens/{public_id}` | Tokens | Да | user.view | — |
+| 'POST' | `/api/v1/user/tokens/rotate/{public_id}` | Ротация | Да | user.manage | — |
+| 'DELETE' | `/api/v1/user/tokens/{public_id}` | Tokens | Да | user.manage | — |
+| 'GET' | `/api/v1/user/activity/{public_id}` | Activity | Да | user.view | — |
+
+### Roles — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/role/list` 🔄 | Список | Да | role.view | — |
+| 'POST' | `/api/v1/role/create` 🔄 | Создание | Да | role.manage | — |
+| 'PATCH', 'PUT' | `/api/v1/role/update/{public_id}` 🔄 | Обновление | Да | role.manage | — |
+| 'DELETE' | `/api/v1/role/delete/{public_id}` 🔄 | Удаление | Да | role.manage | — |
+
+### Permissions — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/permission/list` 🔄 | Список | Да | role.view | — |
+
+### Teams — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/team/list` 🔄 | Список | Да | team.manage | — |
+| 'POST' | `/api/v1/team/create` 🔄 | Создание | Да | team.manage | — |
+| 'GET' | `/api/v1/team/get/{public_id}` 🔄 | Получение | Да | team.manage | — |
+| 'PATCH', 'PUT' | `/api/v1/team/update/{public_id}` 🔄 | Обновление | Да | team.manage | — |
+| 'DELETE' | `/api/v1/team/delete/{public_id}` 🔄 | Удаление | Да | team.manage | — |
+
+### Departments — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/department/list` 🔄 | Список | Да | department.manage | — |
+| 'POST' | `/api/v1/department/create` 🔄 | Создание | Да | department.manage | — |
+| 'GET' | `/api/v1/department/get/{public_id}` 🔄 | Получение | Да | department.manage | — |
+| 'PATCH', 'PUT' | `/api/v1/department/update/{public_id}` 🔄 | Обновление | Да | department.manage | — |
+| 'DELETE' | `/api/v1/department/delete/{public_id}` 🔄 | Удаление | Да | department.manage | — |
+
+### Clients — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/client/list` 🔄 | Список | Да | client.manage | — |
+| 'POST' | `/api/v1/client/create` 🔄 | Создание | Да | client.manage | — |
+| 'GET' | `/api/v1/client/get/{public_id}` 🔄 | Получение | Да | client.manage | — |
+| 'PATCH', 'PUT' | `/api/v1/client/update/{public_id}` 🔄 | Обновление | Да | client.manage | — |
+| 'DELETE' | `/api/v1/client/delete/{public_id}` 🔄 | Удаление | Да | client.manage | — |
+| 'GET' | `/api/v1/client/cabinet/projects` | Projects | Да | client.manage | — |
+| 'GET' | `/api/v1/client/cabinet/project/{public_id}` | Project | Да | client.manage | — |
+| 'GET' | `/api/v1/client/cabinet/project/{public_id}/tasks` | Tasks | Да | client.manage | — |
+
+### Contacts — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/contact/list` 🔄 | Список | Да | contact.manage | — |
+| 'POST' | `/api/v1/contact/create` 🔄 | Создание | Да | contact.manage | — |
+| 'GET' | `/api/v1/contact/get/{public_id}` 🔄 | Получение | Да | contact.manage | — |
+| 'PATCH', 'PUT' | `/api/v1/contact/update/{public_id}` 🔄 | Обновление | Да | contact.manage | — |
+| 'DELETE' | `/api/v1/contact/delete/{public_id}` 🔄 | Удаление | Да | contact.manage | — |
+
+### Profile
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/profile/get` 🔄 | Получение | Да | — | — |
+| 'PATCH', 'PUT', 'POST' | `/api/v1/profile/update` 🔄 | Обновление | Да | — | — |
+| 'GET' | `/api/v1/profile/preferences/get` | Получение | Да | — | — |
+| 'PATCH', 'PUT', 'POST' | `/api/v1/profile/preferences/set` | Установка | Да | — | — |
+| 'POST' | `/api/v1/profile/password/change` | Change | Да | — | — |
+
+### Health & Version
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/.well-known/agent-card.json` | — | Нет | — | — |
+
+### Feature Flags — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/feature-flags/list` | Список | Да | feature_flag.manage | — |
+| 'PATCH', 'PUT' | `/api/v1/feature-flags/update/{public_id}` | Обновление | Да | feature_flag.manage | — |
+
+### Logs — Audit
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/logs/audit/list` | Список | Да | logs.view | — |
+
+### Companies — RPC Aliases
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| 'GET' | `/api/v1/company/list` 🔄 | Список | Да | company.manage | — |
+| 'POST' | `/api/v1/company/create` 🔄 | Создание | Да | company.manage | — |
+| 'GET' | `/api/v1/company/get/{public_id}` 🔄 | Получение | Да | company.manage | — |
+| 'PATCH', 'PUT' | `/api/v1/company/update/{public_id}` 🔄 | Обновление | Да | company.manage | — |
+| 'DELETE' | `/api/v1/company/delete/{public_id}` 🔄 | Удаление | Да | company.manage | — |
+
+---
+**Итого незадокументированных маршрутов:** 234
+
+**По секциям:**
+- Security — Invitations: 3
+- Security — Sessions: 3
+- Security — Password Reset: 1
+- Project — RPC Aliases: 10
+- Task — RPC Aliases: 8
+- Template — RPC Aliases: 4
+- Recurring: 2
+- Custom Fields — RPC Aliases: 2
+- Workflow — RPC Aliases: 3
+- SLA: 1
+- SLA — RPC Aliases: 3
+- Approvals — RPC Aliases: 1
+- Recycle Bin: 3
+- Import: 1
+- Export: 1
+- Comments — RPC Aliases: 6
+- Notifications — RPC Aliases: 6
+- Reminders — RPC Aliases: 5
+- Calendar — RPC Aliases: 8
+- Worklogs — RPC Aliases: 5
+- Dashboard & Analytics — RPC Aliases: 4
+- Search — RPC Aliases: 4
+- Mentions — RPC Aliases: 3
+- Reactions — RPC Aliases: 3
+- Subscriptions — RPC Aliases: 3
+- Favorites — RPC Aliases: 3
+- Saved Views — RPC Aliases: 4
+- Activity & Audit — RPC Aliases: 2
+- Audit Logs — RPC Aliases: 3
+- Settings — RPC Aliases: 4
+- Settings — Retention: 2
+- Organizations — RPC Aliases: 5
+- Statuses — RPC Aliases: 6
+- Admin — Role Matrix: 2
+- Admin — Widgets: 2
+- API Clients — RPC Aliases: 10
+- Ops — RPC Aliases: 3
+- Telemetry — RPC Aliases: 1
+- Webhooks — RPC Aliases: 7
+- Priorities — RPC Aliases: 5
+- Tags — RPC Aliases: 5
+- Task-Tag Binding — RPC Aliases: 3
+- Milestones — RPC Aliases: 5
+- Dependencies — RPC Aliases: 3
+- Subtasks — RPC Aliases: 5
+- Checklists — RPC Aliases: 10
+- Users — RPC Aliases: 9
+- Roles — RPC Aliases: 4
+- Permissions — RPC Aliases: 1
+- Teams — RPC Aliases: 5
+- Departments — RPC Aliases: 5
+- Clients — RPC Aliases: 8
+- Contacts — RPC Aliases: 5
+- Profile: 5
+- Health & Version: 1
+- Feature Flags — RPC Aliases: 2
+- Logs — Audit: 1
+- Companies — RPC Aliases: 5
