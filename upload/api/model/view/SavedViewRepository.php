@@ -15,11 +15,28 @@ final class SavedViewRepository
     }
 
     /**
+     * Org scope for queries (TROPATTCRM-607). The saved_views.organization_id
+     * column exists (OrganizationScopeMigration) but was never applied here, so
+     * a user of one organization could read public/system views — and their
+     * filters — from another organization. Root (no organization) sees all.
+     * Returns [sql|null, params].
+     *
+     * @return array{0:?string,1:array<string,mixed>}
+     */
+    private function organizationScope(?int $organizationId): array
+    {
+        if ($organizationId === null || $organizationId <= 0) {
+            return [null, []];
+        }
+        return ['v.organization_id = :scope_organization_id', ['scope_organization_id' => $organizationId]];
+    }
+
+    /**
      * List saved views with visibility rules (v2).
      *
      * @return array{items:array,meta:array}
      */
-    public function list(array $filters, int $actorUserId, bool $actorIsRoot): array
+    public function list(array $filters, int $actorUserId, bool $actorIsRoot, ?int $organizationId = null): array
     {
         $page = max(1, (int)($filters['page'] ?? 1));
         $limit = min(100, max(1, (int)($filters['limit'] ?? 50)));
@@ -79,6 +96,12 @@ final class SavedViewRepository
             ->from('saved_views v')
             ->leftJoin('users u', 'u.id', '=', 'v.user_id');
 
+        // TROPATTCRM-607: hard tenant boundary before any visibility rule.
+        [$orgSql, $orgParams] = $this->organizationScope($organizationId);
+        if ($orgSql !== null) {
+            $qb->whereRaw($orgSql, array_values($orgParams));
+        }
+
         // Visibility: private views of owner, public views, system views; root sees all
         if (!$actorIsRoot) {
             $qb->whereRaw(
@@ -131,9 +154,9 @@ final class SavedViewRepository
     /**
      * Find a saved view by public_id with all fields.
      */
-    public function findByPublicId(string $publicId): ?array
+    public function findByPublicId(string $publicId, ?int $organizationId = null): ?array
     {
-        $row = (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('saved_views v')
             ->leftJoin('users u', 'u.id', '=', 'v.user_id')
             ->select([
@@ -142,8 +165,15 @@ final class SavedViewRepository
                 'u.login AS user_login',
                 'u.full_name AS user_name',
             ])
-            ->where('v.public_id', '=', $publicId)
-            ->first();
+            ->where('v.public_id', '=', $publicId);
+
+        // TROPATTCRM-607: naming another organization's view must not resolve.
+        [$orgSql, $orgParams] = $this->organizationScope($organizationId);
+        if ($orgSql !== null) {
+            $query->whereRaw($orgSql, array_values($orgParams));
+        }
+
+        $row = $query->first();
 
         return $row !== null ? $row : null;
     }
@@ -151,14 +181,12 @@ final class SavedViewRepository
     /**
      * Create a new saved view (v2).
      */
-    public function create(array $payload): array
+    public function create(array $payload, ?int $organizationId = null): array
     {
         $publicId = Ulid::generate('viw');
         $now = gmdate('Y-m-d H:i:s');
 
-        (new QueryBuilder($this->pdo))
-            ->from('saved_views')
-            ->insert([
+        $insert = [
                 'public_id' => $publicId,
                 'user_id' => (int)($payload['user_id'] ?? 0),
                 'entity_type' => (string)($payload['entity_type'] ?? 'task'),
@@ -178,9 +206,16 @@ final class SavedViewRepository
                 'sort_order' => (int)($payload['sort_order'] ?? 65535),
                 'created_at' => $now,
                 'updated_at' => $now,
-            ]);
+        ];
+        if ($organizationId !== null && $organizationId > 0) {
+            $insert['organization_id'] = $organizationId;
+        }
 
-        return $this->findByPublicId($publicId) ?? [];
+        (new QueryBuilder($this->pdo))
+            ->from('saved_views')
+            ->insert($insert);
+
+        return $this->findByPublicId($publicId, $organizationId) ?? [];
     }
 
     /**

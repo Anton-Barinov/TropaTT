@@ -125,6 +125,11 @@ final class AiActionService
         if (!empty($input['response_format'])) {
             $promptPayload['response_format'] = $input['response_format'];
         }
+        // TROPATTCRM-618: лёгкие шаги (классификация, вопросы) могут request-ить
+        // настроенную быструю модель; тянется из provider_payload.fast_model.
+        if (!empty($input['prefer_fast_model'])) {
+            $promptPayload['prefer_fast_model'] = true;
+        }
 
         $jobPublicId = $this->runtime->claimInteractiveSlot([
             'job_type' => 'interactive',

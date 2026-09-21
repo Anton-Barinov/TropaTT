@@ -24,7 +24,11 @@ final class KnowledgePageVersionService
         if ($this->knowledgeRepo !== null) {
             return $this->knowledgeRepo->page($pagePublicId, $actor, $minAccess);
         }
-        return $this->versions->getPage($pagePublicId);
+        // TROPATTCRM-605: the previous fallback resolved the page WITHOUT any
+        // actor/access check — every method of this service was effectively
+        // unauthenticated whenever the ACL-aware repository was unavailable.
+        // Fail closed: no ACL-capable repository, no access.
+        return null;
     }
 
     /**

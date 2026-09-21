@@ -100,6 +100,7 @@ final class MigrationManager
             new OrganizationDashboardWidgetScopeMigration(),
             new CalendarEventAttendeesMigration(),
             new RecurringRuleGeneratedCountMigration(),
+            new ApiClientOrganizationScopeMigration(),
         ];
     }
 

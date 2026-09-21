@@ -11,9 +11,15 @@ final class ApiClientController extends BaseController
 {
     public function list(): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
         /** @var ApiClientService $service */
         $service = $this->container->get('service.api_client');
-        $result = $service->listClients($this->request()->allInput());
+        // TROPATTCRM-606: the actor's organization scopes the listing.
+        $result = $service->listClients($this->request()->allInput(), $auth['user']);
 
         return $this->success('API_CLIENT_LIST', $this->t('api_client/messages.list'), ['items' => $result['items']], meta: $result['meta']);
     }
@@ -72,9 +78,14 @@ final class ApiClientController extends BaseController
 
     public function get(array $params): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
         /** @var ApiClientService $service */
         $service = $this->container->get('service.api_client');
-        $client = $service->getClient((string)$params['public_id']);
+        $client = $service->getClient((string)$params['public_id'], $auth['user']);
         if (!$client) {
             return $this->error('API_CLIENT_NOT_FOUND', $this->t('api_client/messages.not_found'), 404, [
                 'api_client' => [$this->t('api_client/messages.not_found')],
@@ -130,9 +141,14 @@ final class ApiClientController extends BaseController
 
     public function listKeys(array $params): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
         /** @var ApiClientService $service */
         $service = $this->container->get('service.api_client');
-        $result = $service->listKeys((string)$params['public_id']);
+        $result = $service->listKeys((string)$params['public_id'], $auth['user']);
         if (!$result['ok']) {
             return $this->error((string)$result['code'], $this->t('api_client/messages.not_found'), 404, [
                 'api_client' => [$this->t('api_client/messages.not_found')],
@@ -225,10 +241,15 @@ final class ApiClientController extends BaseController
 
     public function keyUsage(array $params): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
         /** @var ApiClientService $service */
         $service = $this->container->get('service.api_client');
         $limit = max(1, min(200, (int)$this->request()->input('limit', 50)));
-        $result = $service->usage((string)$params['public_id'], $limit);
+        $result = $service->usage((string)$params['public_id'], $limit, $auth['user']);
         if (!$result['ok']) {
             return $this->error((string)$result['code'], $this->t('api_client/messages.key_not_found'), 404, [
                 'api_key' => [$this->t('api_client/messages.key_not_found')],

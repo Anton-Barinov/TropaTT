@@ -18,9 +18,17 @@ final class ActivityRepository
     }
 
     /**
+     * @param string $actorPublicId
+     * @param bool $actorIsRoot
+     * @param int|null $actorOrganizationId TROPATTCRM-609: when the actor is
+     *        bound to a workspace (root included — a multi-org root has a home
+     *        organization), the log tables carry no organization_id, so rows
+     *        are filtered to actors who are members of the same workspace via
+     *        organization_memberships. NULL (pre-organizations installs)
+     *        keeps the legacy unscoped behaviour.
      * @return array{0:array<int,array<string,mixed>>,1:int|null,2:int,3:int,4:bool}
      */
-    public function feed(array $filters, string $actorPublicId, bool $actorIsRoot): array
+    public function feed(array $filters, string $actorPublicId, bool $actorIsRoot, ?int $actorOrganizationId = null): array
     {
         $page = max(1, (int)($filters['page'] ?? 1));
         $limit = min(200, max(1, (int)($filters['limit'] ?? 50)));
@@ -33,19 +41,19 @@ final class ActivityRepository
         $params = [];
 
         if (in_array('audit', $channels, true)) {
-            [$sql, $bind] = $this->buildAuditPart($filters, $actorPublicId, $actorIsRoot);
+            [$sql, $bind] = $this->buildAuditPart($filters, $actorPublicId, $actorIsRoot, $actorOrganizationId);
             $parts[] = $sql;
             $params = array_merge($params, $bind);
         }
 
         if (in_array('security', $channels, true)) {
-            [$sql, $bind] = $this->buildSecurityPart($filters, $actorPublicId, $actorIsRoot);
+            [$sql, $bind] = $this->buildSecurityPart($filters, $actorPublicId, $actorIsRoot, $actorOrganizationId);
             $parts[] = $sql;
             $params = array_merge($params, $bind);
         }
 
         if (in_array('request', $channels, true)) {
-            [$sql, $bind] = $this->buildRequestPart($filters, $actorPublicId, $actorIsRoot);
+            [$sql, $bind] = $this->buildRequestPart($filters, $actorPublicId, $actorIsRoot, $actorOrganizationId);
             $parts[] = $sql;
             $params = array_merge($params, $bind);
         }
@@ -106,8 +114,31 @@ final class ActivityRepository
         return in_array($channel, $allowed, true) ? [$channel] : ['audit', 'security', 'request'];
     }
 
+    /**
+     * TROPATTCRM-609: shared scope expression. When $actorOrganizationId is
+     * set, restrict rows to actors who belong to the same workspace. The
+     * actor's own rows always pass (even for a membership glitch).
+     *
+     * @return array{0:string,1:array<string,mixed>}
+     */
+    private function organizationFilter(string $actorColumn, string $actorPublicId, ?int $actorOrganizationId): array
+    {
+        if ($actorOrganizationId === null || $actorOrganizationId <= 0) {
+            return [null, []];
+        }
+        $params = ['org_actor_public_id' => $actorPublicId, 'org_scope_id' => $actorOrganizationId];
+        $sql = "({$actorColumn} = :org_actor_public_id OR EXISTS (
+            SELECT 1 FROM organization_memberships org_scope_m
+            JOIN users org_scope_u ON org_scope_u.id = org_scope_m.user_id
+            WHERE org_scope_m.organization_id = :org_scope_id
+              AND org_scope_u.public_id = {$actorColumn}
+              AND org_scope_u.deleted_at IS NULL
+        ))";
+        return [$sql, $params];
+    }
+
     /** @return array{0:string,1:array<string,mixed>} */
-    private function buildAuditPart(array $filters, string $actorPublicId, bool $actorIsRoot): array
+    private function buildAuditPart(array $filters, string $actorPublicId, bool $actorIsRoot, ?int $actorOrganizationId = null): array
     {
         $query = (new QueryBuilder($this->pdo))
             ->from('audit_logs a')
@@ -130,6 +161,11 @@ final class ActivityRepository
 
         if (!$actorIsRoot) {
             $query->where('a.actor_public_id', '=', $actorPublicId);
+        } else {
+            [$orgSql, $orgParams] = $this->organizationFilter('a.actor_public_id', $actorPublicId, $actorOrganizationId);
+            if ($orgSql !== null) {
+                $query->whereRaw($orgSql, array_values($orgParams));
+            }
         }
 
         if (!empty($filters['actor_public_id'])) {
@@ -155,7 +191,7 @@ final class ActivityRepository
     }
 
     /** @return array{0:string,1:array<string,mixed>} */
-    private function buildSecurityPart(array $filters, string $actorPublicId, bool $actorIsRoot): array
+    private function buildSecurityPart(array $filters, string $actorPublicId, bool $actorIsRoot, ?int $actorOrganizationId = null): array
     {
         $query = (new QueryBuilder($this->pdo))
             ->from('security_logs s')
@@ -178,6 +214,11 @@ final class ActivityRepository
 
         if (!$actorIsRoot) {
             $query->where('s.actor_public_id', '=', $actorPublicId);
+        } else {
+            [$orgSql, $orgParams] = $this->organizationFilter('s.actor_public_id', $actorPublicId, $actorOrganizationId);
+            if ($orgSql !== null) {
+                $query->whereRaw($orgSql, array_values($orgParams));
+            }
         }
 
         if (!empty($filters['actor_public_id'])) {
@@ -197,7 +238,7 @@ final class ActivityRepository
     }
 
     /** @return array{0:string,1:array<string,mixed>} */
-    private function buildRequestPart(array $filters, string $actorPublicId, bool $actorIsRoot): array
+    private function buildRequestPart(array $filters, string $actorPublicId, bool $actorIsRoot, ?int $actorOrganizationId = null): array
     {
         $query = (new QueryBuilder($this->pdo))
             ->from('request_logs r')
@@ -220,6 +261,11 @@ final class ActivityRepository
 
         if (!$actorIsRoot) {
             $query->where('r.user_public_id', '=', $actorPublicId);
+        } else {
+            [$orgSql, $orgParams] = $this->organizationFilter('r.user_public_id', $actorPublicId, $actorOrganizationId);
+            if ($orgSql !== null) {
+                $query->whereRaw($orgSql, array_values($orgParams));
+            }
         }
 
         if (!empty($filters['actor_public_id'])) {

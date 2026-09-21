@@ -13,14 +13,32 @@ final class ApiClientRepository
     {
     }
 
-    public function listClients(array $filters): array
+    /**
+     * Tenant boundary for API clients/keys (TROPATTCRM-606). The columns were
+     * missing entirely until ApiClientOrganizationScopeMigration; both tables
+     * now carry a nullable organization_id backfilled to the legacy workspace.
+     * Actors with an organization only ever see/modify their own clients; a
+     * null organization (root operating across orgs) keeps the previous,
+     * unscoped behaviour. Returns [sql|null, params].
+     *
+     * @return array{0:?string,1:array<string,mixed>}
+     */
+    private function organizationScope(?int $organizationId, string $alias = 'api_clients'): array
+    {
+        if ($organizationId === null || $organizationId <= 0) {
+            return [null, []];
+        }
+        return [$alias . '.organization_id = :scope_organization_id', ['scope_organization_id' => $organizationId]];
+    }
+
+    public function listClients(array $filters, ?int $organizationId = null): array
     {
         $page = max(1, (int)($filters['page'] ?? 1));
         $limit = min(100, max(1, (int)($filters['limit'] ?? 20)));
         $offset = ($page - 1) * $limit;
 
-        $total = $this->buildClientsListQuery($filters)->count();
-        $rows = $this->buildClientsListQuery($filters)
+        $total = $this->buildClientsListQuery($filters, $organizationId)->count();
+        $rows = $this->buildClientsListQuery($filters, $organizationId)
             ->select([
                 'public_id',
                 'title',
@@ -46,10 +64,16 @@ final class ApiClientRepository
         return [$rows, $total, $page, $limit];
     }
 
-    private function buildClientsListQuery(array $filters): QueryBuilder
+    private function buildClientsListQuery(array $filters, ?int $organizationId = null): QueryBuilder
     {
         $query = (new QueryBuilder($this->pdo))
             ->from('api_clients');
+
+        // TROPATTCRM-607/606: hard tenant boundary before any other filter.
+        [$orgSql, $orgParams] = $this->organizationScope($organizationId);
+        if ($orgSql !== null) {
+            $query->whereRaw($orgSql, array_values($orgParams));
+        }
 
         if (!empty($filters['search'])) {
             $search = '%' . LikeEscaper::escape(trim((string)$filters['search'])) . '%';
@@ -67,17 +91,24 @@ final class ApiClientRepository
         return $query;
     }
 
-    public function findClientByPublicId(string $publicId): ?array
+    public function findClientByPublicId(string $publicId, ?int $organizationId = null): ?array
     {
-        $row = (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('api_clients')
             ->select([
                 '*',
                 '(SELECT COUNT(*) FROM api_keys ak WHERE ak.client_id = api_clients.id) AS keys_count',
                 '(SELECT COUNT(*) FROM api_keys ak WHERE ak.client_id = api_clients.id AND ak.revoked_at IS NULL) AS active_keys_count',
             ])
-            ->where('public_id', '=', $publicId)
-            ->first();
+            ->where('public_id', '=', $publicId);
+
+        // TROPATTCRM-606: another organization's client id must not resolve.
+        [$orgSql, $orgParams] = $this->organizationScope($organizationId);
+        if ($orgSql !== null) {
+            $query->whereRaw($orgSql, array_values($orgParams));
+        }
+
+        $row = $query->first();
         if (!$row) {
             return null;
         }
@@ -108,12 +139,18 @@ final class ApiClientRepository
             ->update($set) > 0;
     }
 
-    public function deleteClientByPublicId(string $publicId): bool
+    public function deleteClientByPublicId(string $publicId, ?int $organizationId = null): bool
     {
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('api_clients')
-            ->where('public_id', '=', $publicId)
-            ->delete() > 0;
+            ->where('public_id', '=', $publicId);
+
+        [$orgSql, $orgParams] = $this->organizationScope($organizationId);
+        if ($orgSql !== null) {
+            $query->whereRaw($orgSql, array_values($orgParams));
+        }
+
+        return $query->delete() > 0;
     }
 
     public function listKeysByClientId(int $clientId): array
@@ -161,14 +198,33 @@ final class ApiClientRepository
             ->insert($payload);
     }
 
-    public function findKeyByPublicId(string $publicId): ?array
+    public function updateKeyByPublicId(string $publicId, array $set): bool
     {
-        $row = (new QueryBuilder($this->pdo))
+        if ($set === []) {
+            return false;
+        }
+        return (new QueryBuilder($this->pdo))
+            ->from('api_keys')
+            ->where('public_id', '=', $publicId)
+            ->update($set) > 0;
+    }
+
+    public function findKeyByPublicId(string $publicId, ?int $organizationId = null): ?array
+    {
+        $query = (new QueryBuilder($this->pdo))
             ->from('api_keys k')
             ->join('api_clients c', 'c.id', '=', 'k.client_id')
             ->select(['k.id', 'k.public_id', 'k.client_id', 'k.name', 'k.key_preview', 'k.scopes', 'k.expires_at', 'k.revoked_at', 'k.created_at', 'c.public_id AS client_public_id', 'c.title AS client_title', 'c.scopes AS client_scopes'])
-            ->where('k.public_id', '=', $publicId)
-            ->first();
+            ->where('k.public_id', '=', $publicId);
+
+        // TROPATTCRM-606: keys are scoped through their owning client. Legacy
+        // rows (NULL org on the client) stay visible so pre-migration keys do
+        // not break after the upgrade.
+        if ($organizationId !== null && $organizationId > 0) {
+            $query->whereRaw('(c.organization_id = ? OR c.organization_id IS NULL)', [$organizationId]);
+        }
+
+        $row = $query->first();
         if (!$row) {
             return null;
         }
