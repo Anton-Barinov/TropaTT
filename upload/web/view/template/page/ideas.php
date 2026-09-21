@@ -70,17 +70,17 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
 // === AI Pipeline: sequential block execution with proper save detection ===
 (function(){
   var steps = [
-    {id:'interview',       actionEl:'#interviewBtn',        saveEl:'#saveIvAnswersBtn',       statusEl:'#interviewStatus',       cardId:'interviewCard',       desc:'<?= htmlspecialchars($t('ideas.pipeline_interview', 'Вопросы и ответы'), ENT_QUOTES, 'UTF-8') ?>',              type:'questions', parent:'#interviewQuestions'},
-    {id:'clarifications',  actionEl:'#clarifyBtn',          saveEl:'#saveClarificationsBtn',  statusEl:'#clarificationsStatus',   cardId:'clarificationsCard',   desc:'<?= htmlspecialchars($t('ideas.pipeline_clarifications', 'Дополнительные уточнения'), ENT_QUOTES, 'UTF-8') ?>',      type:'questions', parent:'#clarificationsBody', saveLabel:'<?= htmlspecialchars($t('ideas.pipeline_clarifications_saved', 'Уточнения сохранены'), ENT_QUOTES, 'UTF-8') ?>'},
-    {id:'understanding',   actionEl:'#buildCardBtn',        statusEl:'#cardUpdated',          okCheck:function(){return hasAnalysisResult('#understandingCardBody',['<?= htmlspecialchars($t('ideas.analysis_short_summary', 'Краткое резюме'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_idea_type', 'Тип идеи'), ENT_QUOTES, 'UTF-8') ?>']);}, cardId:'understandingCard',  desc:'<?= htmlspecialchars($t('ideas.pipeline_understanding', 'Карточка понимания идеи'), ENT_QUOTES, 'UTF-8') ?>',       type:'analysis'},
-    {id:'gapQuestions',    actionEl:'#gapBtn',              saveEl:'#saveGapBtn',             statusEl:'#gapStatus',             cardId:'gapQuestionsCard',    desc:'<?= htmlspecialchars($t('ideas.pipeline_gaps', 'Каких данных не хватает'), ENT_QUOTES, 'UTF-8') ?>',       type:'questions', parent:'#gapBody', saveLabel:'<?= htmlspecialchars($t('ideas.pipeline_gaps_saved', 'Уточнения сохранены'), ENT_QUOTES, 'UTF-8') ?>'},
-    {id:'refined',         actionEl:'#buildRefinedBtn',     statusEl:'#refinedUpdated',       okCheck:function(){return hasAnalysisResult('#refinedCardBody',['<?= htmlspecialchars($t('ideas.analysis_short_summary', 'Краткое резюме'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_idea_type', 'Тип идеи'), ENT_QUOTES, 'UTF-8') ?>']);}, cardId:'refinedCard', desc:'<?= htmlspecialchars($t('ideas.pipeline_refined', 'Уточненная карточка'), ENT_QUOTES, 'UTF-8') ?>',          type:'analysis'},
-    {id:'potential',       actionEl:'#calcPotentialBtn',    statusEl:'#potentialUpdated',     okCheck:function(){return hasAnalysisResult('#potentialCardBody',['<?= htmlspecialchars($t('ideas.analysis_out_of', 'из 100'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_potential', 'Потенциал'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_verdict', 'Вывод'), ENT_QUOTES, 'UTF-8') ?>']);}, cardId:'potentialCard', desc:'<?= htmlspecialchars($t('ideas.pipeline_potential', 'Потенциал идеи'), ENT_QUOTES, 'UTF-8') ?>',               type:'analysis'},
-    {id:'risks',           actionEl:'#calcRiskBtn',         statusEl:'#riskUpdated',          okCheck:function(){return hasAnalysisResult('#riskCardBody',['<?= htmlspecialchars($t('ideas.analysis_risk_level', 'Уровень риска'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_assessment', 'Оценка'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_summary', 'Резюме'), ENT_QUOTES, 'UTF-8') ?>']);}, cardId:'riskCard', desc:'<?= htmlspecialchars($t('ideas.pipeline_risks', 'Риски идеи'), ENT_QUOTES, 'UTF-8') ?>',                   type:'analysis'},
-    {id:'pitfalls',        actionEl:'#calcPitfallsBtn',     statusEl:'#pitfallsUpdated',      okCheck:function(){return hasAnalysisResult('#pitfallsCardBody',['<?= htmlspecialchars($t('ideas.analysis_complexity', 'Сложность'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_found', 'Найдено'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_summary', 'Резюме'), ENT_QUOTES, 'UTF-8') ?>']);}, cardId:'pitfallsCard', desc:'<?= htmlspecialchars($t('ideas.pipeline_pitfalls', 'Подводные камни'), ENT_QUOTES, 'UTF-8') ?>',              type:'analysis'},
-    {id:'plan',            actionEl:'#buildPlanBtn',        statusEl:'#planUpdated',          okCheck:function(){return hasAnalysisResult('#planCardBody',['<?= htmlspecialchars($t('ideas.analysis_summary', 'Резюме'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_stages', 'Этапы'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_next_7_days', 'Ближайшие 7 дней'), ENT_QUOTES, 'UTF-8') ?>']);}, cardId:'planCard', desc:'<?= htmlspecialchars($t('ideas.pipeline_plan', 'План реализации'), ENT_QUOTES, 'UTF-8') ?>',              type:'analysis'},
-    {id:'final',           actionEl:'#buildFinalBtn',       statusEl:'#finalUpdated',         okCheck:function(){return hasAnalysisResult('#finalCardBody',['<?= htmlspecialchars($t('ideas.analysis_out_of', 'из 100'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_recommendation', 'Рекомендация'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_verdict', 'Вывод'), ENT_QUOTES, 'UTF-8') ?>']);}, cardId:'finalCard', desc:'<?= htmlspecialchars($t('ideas.pipeline_final', 'Итоговая рекомендация'), ENT_QUOTES, 'UTF-8') ?>',        type:'analysis'},
-    {id:'tasks',           actionEl:'#buildTasksBtn',       statusEl:'#tasksUpdated',         okCheck:function(){return hasAnalysisResult('#tasksCardBody',['<?= htmlspecialchars($t('ideas.analysis_summary', 'Резюме'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_tasks', 'Задачи'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_stage', 'Этап'), ENT_QUOTES, 'UTF-8') ?>']);}, cardId:'tasksCard', desc:'<?= htmlspecialchars($t('ideas.pipeline_tasks', 'Предлагаемые задачи'), ENT_QUOTES, 'UTF-8') ?>',          type:'analysis'},
+    {id:'interview',       actionEl:'#interviewBtn',        saveEl:'#saveIvAnswersBtn',       statusEl:'#interviewStatus',       cardId:'interviewCard',       desc:'<?= htmlspecialchars($t('ideas.pipeline_interview', 'Вопросы и ответы'), ENT_QUOTES, 'UTF-8') ?>',              type:'questions', parent:'#interviewQuestions', deps:[]},
+    {id:'clarifications',  actionEl:'#clarifyBtn',          saveEl:'#saveClarificationsBtn',  statusEl:'#clarificationsStatus',   cardId:'clarificationsCard',   desc:'<?= htmlspecialchars($t('ideas.pipeline_clarifications', 'Дополнительные уточнения'), ENT_QUOTES, 'UTF-8') ?>',      type:'questions', parent:'#clarificationsBody', saveLabel:'<?= htmlspecialchars($t('ideas.pipeline_clarifications_saved', 'Уточнения сохранены'), ENT_QUOTES, 'UTF-8') ?>', deps:['interview']},
+    {id:'understanding',   actionEl:'#buildCardBtn',        statusEl:'#cardUpdated',          okCheck:function(){return hasAnalysisResult('#understandingCardBody',['<?= htmlspecialchars($t('ideas.analysis_short_summary', 'Краткое резюме'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_idea_type', 'Тип идеи'), ENT_QUOTES, 'UTF-8') ?>']);}, cardId:'understandingCard',  desc:'<?= htmlspecialchars($t('ideas.pipeline_understanding', 'Карточка понимания идеи'), ENT_QUOTES, 'UTF-8') ?>',       type:'analysis', deps:['clarifications']},
+    {id:'gapQuestions',    actionEl:'#gapBtn',              saveEl:'#saveGapBtn',             statusEl:'#gapStatus',             cardId:'gapQuestionsCard',    desc:'<?= htmlspecialchars($t('ideas.pipeline_gaps', 'Каких данных не хватает'), ENT_QUOTES, 'UTF-8') ?>',       type:'questions', parent:'#gapBody', saveLabel:'<?= htmlspecialchars($t('ideas.pipeline_gaps_saved', 'Уточнения сохранены'), ENT_QUOTES, 'UTF-8') ?>', deps:['understanding']},
+    {id:'refined',         actionEl:'#buildRefinedBtn',     statusEl:'#refinedUpdated',       okCheck:function(){return hasAnalysisResult('#refinedCardBody',['<?= htmlspecialchars($t('ideas.analysis_short_summary', 'Краткое резюме'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_idea_type', 'Тип идеи'), ENT_QUOTES, 'UTF-8') ?>']);}, cardId:'refinedCard', desc:'<?= htmlspecialchars($t('ideas.pipeline_refined', 'Уточненная карточка'), ENT_QUOTES, 'UTF-8') ?>',          type:'analysis', deps:['gapQuestions']},
+    {id:'potential',       actionEl:'#calcPotentialBtn',    statusEl:'#potentialUpdated',     okCheck:function(){return hasAnalysisResult('#potentialCardBody',['<?= htmlspecialchars($t('ideas.analysis_out_of', 'из 100'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_potential', 'Потенциал'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_verdict', 'Вывод'), ENT_QUOTES, 'UTF-8') ?>']);}, cardId:'potentialCard', desc:'<?= htmlspecialchars($t('ideas.pipeline_potential', 'Потенциал идеи'), ENT_QUOTES, 'UTF-8') ?>',               type:'analysis', deps:['understanding']},
+    {id:'risks',           actionEl:'#calcRiskBtn',         statusEl:'#riskUpdated',          okCheck:function(){return hasAnalysisResult('#riskCardBody',['<?= htmlspecialchars($t('ideas.analysis_risk_level', 'Уровень риска'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_assessment', 'Оценка'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_summary', 'Резюме'), ENT_QUOTES, 'UTF-8') ?>']);}, cardId:'riskCard', desc:'<?= htmlspecialchars($t('ideas.pipeline_risks', 'Риски идеи'), ENT_QUOTES, 'UTF-8') ?>',                   type:'analysis', deps:['understanding','refined']},
+    {id:'pitfalls',        actionEl:'#calcPitfallsBtn',     statusEl:'#pitfallsUpdated',      okCheck:function(){return hasAnalysisResult('#pitfallsCardBody',['<?= htmlspecialchars($t('ideas.analysis_complexity', 'Сложность'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_found', 'Найдено'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_summary', 'Резюме'), ENT_QUOTES, 'UTF-8') ?>']);}, cardId:'pitfallsCard', desc:'<?= htmlspecialchars($t('ideas.pipeline_pitfalls', 'Подводные камни'), ENT_QUOTES, 'UTF-8') ?>',              type:'analysis', deps:['understanding','refined']},
+    {id:'plan',            actionEl:'#buildPlanBtn',        statusEl:'#planUpdated',          okCheck:function(){return hasAnalysisResult('#planCardBody',['<?= htmlspecialchars($t('ideas.analysis_summary', 'Резюме'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_stages', 'Этапы'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_next_7_days', 'Ближайшие 7 дней'), ENT_QUOTES, 'UTF-8') ?>']);}, cardId:'planCard', desc:'<?= htmlspecialchars($t('ideas.pipeline_plan', 'План реализации'), ENT_QUOTES, 'UTF-8') ?>',              type:'analysis', deps:['understanding','refined']},
+    {id:'final',           actionEl:'#buildFinalBtn',       statusEl:'#finalUpdated',         okCheck:function(){return hasAnalysisResult('#finalCardBody',['<?= htmlspecialchars($t('ideas.analysis_out_of', 'из 100'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_recommendation', 'Рекомендация'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_verdict', 'Вывод'), ENT_QUOTES, 'UTF-8') ?>']);}, cardId:'finalCard', desc:'<?= htmlspecialchars($t('ideas.pipeline_final', 'Итоговая рекомендация'), ENT_QUOTES, 'UTF-8') ?>',        type:'analysis', deps:['refined','potential','risks','pitfalls','plan']},
+    {id:'tasks',           actionEl:'#buildTasksBtn',       statusEl:'#tasksUpdated',         okCheck:function(){return hasAnalysisResult('#tasksCardBody',['<?= htmlspecialchars($t('ideas.analysis_summary', 'Резюме'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_tasks', 'Задачи'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_stage', 'Этап'), ENT_QUOTES, 'UTF-8') ?>']);}, cardId:'tasksCard', desc:'<?= htmlspecialchars($t('ideas.pipeline_tasks', 'Предлагаемые задачи'), ENT_QUOTES, 'UTF-8') ?>',          type:'analysis', deps:['final','plan']},
   ];
 
   var storageKey = 'ai_pipeline_<?=e($publicId)?>';
@@ -175,10 +175,16 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
 	    window.CRM.resumeIdeaAiPipelineAfterQuestions=resumeIdeaAiPipelineAfterQuestions;
 	    if(document.documentElement)document.documentElement.setAttribute('data-idea-ai-pipeline-hooks','ready');
 	  }
+	  // TROPATTCRM-617: analysis-block triggers register themselves here so the
+	  // parallel orchestrator can call the real request+render function directly
+	  // (and read the real API response code) instead of clicking the button and
+	  // polling the DOM for rendered text.
+	  var pipelineTriggers={};
 	  window.CRM_IDEA_AI_PIPELINE={
 	    syncStep:function(stepId,isReady){syncIdeaAiStepState(stepId,isReady,false);},
 	    syncResultVisibility:syncIdeaAiResultVisibilityState,
-	    resumeAfterQuestions:resumeIdeaAiPipelineAfterQuestions
+	    resumeAfterQuestions:resumeIdeaAiPipelineAfterQuestions,
+	    registerTrigger:function(stepId,fn){pipelineTriggers[stepId]=fn;}
 	  };
 	  installIdeaAiPipelineHooks();
 	  var hookInstallCount=0;
@@ -296,10 +302,15 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
     // Show only question blocks; analysis blocks run in background
     if(stepDef.type==='questions'&&stepDef.cardId) showBlock(stepDef.cardId);
 
-    // Scroll to block
-    var card=document.getElementById(stepDef.id+'Card')||document.querySelector(stepDef.actionEl)?.closest('.crm-card');
-    if(card)card.scrollIntoView({behavior:'smooth',block:'center'});
-    await sleep(800);
+    // TROPATTCRM-617: only scroll/pause for interactive question blocks —
+    // the user needs to see those. Analysis blocks run in the background
+    // (often several at once), so scrolling to and pausing for each one no
+    // longer makes sense and only slows the pipeline down.
+    if(stepDef.type==='questions'){
+      var card=document.getElementById(stepDef.id+'Card')||document.querySelector(stepDef.actionEl)?.closest('.crm-card');
+      if(card)card.scrollIntoView({behavior:'smooth',block:'center'});
+      await sleep(800);
+    }
 
 	    if(stepDef.type==='questions'){
 	      // --- Question block: click action, wait for questions, wait for user save ---
@@ -372,22 +383,51 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
       if(stepDef.cardId) hideBlock(stepDef.cardId);
       scrollToPipeline();
     } else {
-      // --- Analysis block: run in background, always process ---
-      var actionBtn=document.querySelector(stepDef.actionEl);
-      if(!actionBtn||actionBtn.disabled){s.status='pending';saveState();renderSteps();return;}
-
-      actionBtn.click();
-      var resultOk=await waitFor(function(){
-        return stepDef.okCheck?stepDef.okCheck():false;
-      },180000,'analysis result');
-      if(runToken!==pipelineRunToken)return;
-      s.status=resultOk?'success':'error';
-      saveState();renderSteps();
+      // --- Analysis block: call the extracted trigger directly and read the
+      // real API response code (TROPATTCRM-617) instead of clicking the
+      // button and polling the DOM for rendered text. Falls back to the old
+      // click+DOM-poll path only if the block never registered a trigger
+      // (defensive — should not happen for the 8 analysis blocks above).
+      var trigger=pipelineTriggers[stepDef.id];
+      if(trigger){
+        var triggerResult=await trigger();
+        if(runToken!==pipelineRunToken)return;
+        s.status=(triggerResult&&triggerResult.ok)?'success':'error';
+        s.resultCode=triggerResult?String(triggerResult.code||''):'';
+        s.fallback=!!(s.resultCode&&s.resultCode.indexOf('FALLBACK')!==-1);
+        saveState();renderSteps();
+      } else {
+        var actionBtn=document.querySelector(stepDef.actionEl);
+        if(!actionBtn||actionBtn.disabled){s.status='pending';saveState();renderSteps();return;}
+        actionBtn.click();
+        var resultOk=await waitFor(function(){
+          return stepDef.okCheck?stepDef.okCheck():false;
+        },180000,'analysis result');
+        if(runToken!==pipelineRunToken)return;
+        s.status=resultOk?'success':'error';
+        saveState();renderSteps();
+      }
     }
 
     document.getElementById('pipelineStatus').textContent=s.status==='success'?stepDef.desc+' <?= htmlspecialchars($t('ideas.state_done', 'готово'), ENT_QUOTES, 'UTF-8') ?>':stepDef.desc+' <?= htmlspecialchars($t('ideas.state_stopped', 'остановлено'), ENT_QUOTES, 'UTF-8') ?>';
-    if(s.status==='error') running=false;
+    // Note: `running` is only ever cleared by runPipeline() itself now (see
+    // below) — with several steps in flight at once, one step's error must
+    // not flip `running` false while its siblings are still executing.
   }
+
+	  // TROPATTCRM-617: bounded pool instead of one call at a time. Independent
+	  // blocks run concurrently once their dependencies (see deps: on the
+	  // step definitions above) are satisfied; AI_BUSY under this concurrency
+	  // is handled with backoff at the request layer (TROPATTCRM-616).
+	  var MAX_CONCURRENT_ANALYSIS=3;
+	  function stepIndexById(id){return steps.findIndex(function(s){return s.id===id;});}
+	  function depsSatisfied(stepDef){
+	    if(!stepDef.deps||!stepDef.deps.length)return true;
+	    return stepDef.deps.every(function(depId){
+	      var idx=stepIndexById(depId);
+	      return idx>=0&&state.steps[idx]&&state.steps[idx].status==='success';
+	    });
+	  }
 
 	  async function runPipeline(){
 	    if(running)return;running=true;
@@ -400,17 +440,48 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
 	      setAllSteps('pending');
 	    }
 
-	    for(var i=0;i<steps.length;i++){
-      var s=state.steps[i];
-      if(s.status==='success')continue;
-      if(s.status==='error'){
-        if(!confirm('<?= htmlspecialchars($t('ideas.confirm_retry_block', 'Блок «'), ENT_QUOTES, 'UTF-8') ?>'+steps[i].desc+'<?= htmlspecialchars($t('ideas.confirm_retry_block_end', '» ранее завершился ошибкой. Попробовать снова?'), ENT_QUOTES, 'UTF-8') ?>'))continue;
-        s.status='pending';saveState();
-      }
-      await runStep(i,runToken);
-      if(runToken!==pipelineRunToken)return;
-      if(state.steps[i].status==='error')break;
+	    // Steps left over in 'error' from an earlier partial run: ask once,
+	    // upfront, whether to retry each (same confirmation as before). A step
+	    // that stays 'error' simply never satisfies depsSatisfied() for its
+	    // dependents below, so independent branches still complete instead of
+	    // the whole run stopping dead, as the old strictly-sequential loop did.
+	    for(var ei=0;ei<steps.length;ei++){
+	      if(state.steps[ei].status==='error'){
+	        if(confirm('<?= htmlspecialchars($t('ideas.confirm_retry_block', 'Блок «'), ENT_QUOTES, 'UTF-8') ?>'+steps[ei].desc+'<?= htmlspecialchars($t('ideas.confirm_retry_block_end', '» ранее завершился ошибкой. Попробовать снова?'), ENT_QUOTES, 'UTF-8') ?>')){
+	          state.steps[ei].status='pending';
+	        }
+	      }
 	    }
+	    saveState();
+
+	    var inFlight={};
+	    while(runToken===pipelineRunToken){
+	      if(state.steps.every(function(s){return s.status==='success';}))break;
+
+	      for(var i=0;i<steps.length;i++){
+	        if(Object.keys(inFlight).length>=MAX_CONCURRENT_ANALYSIS)break;
+	        var s=state.steps[i];
+	        if(s.status!=='pending')continue;
+	        if(inFlight[steps[i].id])continue;
+	        if(!depsSatisfied(steps[i]))continue;
+	        // Only one interactive question step waits on the user at a time.
+	        if(steps[i].type==='questions'&&state.awaitingQuestionStep&&state.awaitingQuestionStep!==steps[i].id)continue;
+	        (function(idx){
+	          var stepId=steps[idx].id;
+	          inFlight[stepId]=runStep(idx,runToken).catch(function(){}).then(function(){delete inFlight[stepId];});
+	        })(i);
+	      }
+
+	      if(Object.keys(inFlight).length===0){
+	        // Nothing runnable and not all done: whatever is left pending is
+	        // blocked by a step stuck in 'error' upstream — stop here, same end
+	        // state as the old sequential loop's "break" on error.
+	        break;
+	      }
+	      await Promise.race(Object.keys(inFlight).map(function(k){return inFlight[k];}));
+	    }
+	    if(runToken!==pipelineRunToken)return;
+
 	    running=false;
 	    setStartButtonIdle();
 	    if(state.steps.every(function(s){return s.status==='success';})){
@@ -993,18 +1064,26 @@ window._renderClarifications=function(data){
 
   function escapeHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');}
 
-  document.getElementById('buildCardBtn').addEventListener('click',function(){
-    var b=this;b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_building', 'Собираю...'), ENT_QUOTES, 'UTF-8') ?>';
+  // TROPATTCRM-617: trigger extracted from the click handler so the pipeline
+  // orchestrator can call it directly and await the real API response code,
+  // instead of clicking the button and polling the DOM for rendered text.
+  function triggerUnderstanding(){
+    var b=document.getElementById('buildCardBtn');
+    b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_building', 'Собираю...'), ENT_QUOTES, 'UTF-8') ?>';
     body.innerHTML='<p class="text-muted"><?= htmlspecialchars($t('ideas.state_ai_analyzing_card', 'AI анализирует идею...'), ENT_QUOTES, 'UTF-8') ?></p>';
-      window.CRM.api.request('api/v1/ideas/'+pid+'/understanding-card',{method:'POST',timeoutMs:120000}).then(function(env){
+    return window.CRM.api.request('api/v1/ideas/'+pid+'/understanding-card',{method:'POST',timeoutMs:120000}).then(function(env){
       renderCard(env.data||{});
       b.disabled=false;b.innerHTML='<i class="fa-solid fa-wand-magic-sparkles me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_rebuild', 'Собрать заново'), ENT_QUOTES, 'UTF-8') ?>';
+      return {ok:true, code:String(env.code||'')};
     }).catch(function(err){
       b.disabled=false;b.innerHTML='<i class="fa-solid fa-wand-magic-sparkles me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_rebuild', 'Собрать заново'), ENT_QUOTES, 'UTF-8') ?>';
       var cardErr=err&&err.envelope&&err.envelope.message?err.envelope.message:'<?= htmlspecialchars($t('ideas.state_card_error', 'Ошибка: AI не смог собрать карточку. Попробуйте позже.'), ENT_QUOTES, 'UTF-8') ?>';
       body.innerHTML='<p class="text-danger">'+escapeHtml(cardErr)+'</p>';
+      return {ok:false, code:(err&&err.envelope&&err.envelope.code)||'ERROR'};
     });
-  });
+  }
+  document.getElementById('buildCardBtn').addEventListener('click',function(){triggerUnderstanding();});
+  if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.registerTrigger('understanding',triggerUnderstanding);
 
   document.getElementById('clearCardBtn').addEventListener('click',function(){
     if(!confirm('<?= htmlspecialchars($t('ideas.confirm_clear_card', 'Удалить карточку понимания идеи? Вопросы и ответы останутся.'), ENT_QUOTES, 'UTF-8') ?>'))return;
@@ -1153,17 +1232,22 @@ window._renderGaps=function(data){
     body.innerHTML=h;
   }
 
-  document.getElementById('buildRefinedBtn').addEventListener('click',function(){
-    var b=this;b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_refining', 'Уточняю...'), ENT_QUOTES, 'UTF-8') ?>';
+  function triggerRefined(){
+    var b=document.getElementById('buildRefinedBtn');
+    b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_refining', 'Уточняю...'), ENT_QUOTES, 'UTF-8') ?>';
     body.innerHTML='<p class="text-muted"><?= htmlspecialchars($t('ideas.state_ai_refining', 'AI пересобирает карточку с учётом ответов...'), ENT_QUOTES, 'UTF-8') ?></p>';
-    window.CRM.api.request('api/v1/ideas/'+pid+'/refined-card',{method:'POST',timeoutMs:120000}).then(function(env){
+    return window.CRM.api.request('api/v1/ideas/'+pid+'/refined-card',{method:'POST',timeoutMs:120000}).then(function(env){
       renderRefined(env.data||{});
       b.disabled=false;b.innerHTML='<i class="fa-solid fa-wand-magic-sparkles me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_rebuild', 'Собрать заново'), ENT_QUOTES, 'UTF-8') ?>';
-    }).catch(function(){
+      return {ok:true, code:String(env.code||'')};
+    }).catch(function(err){
       b.disabled=false;b.innerHTML='<i class="fa-solid fa-wand-magic-sparkles me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_rebuild', 'Собрать заново'), ENT_QUOTES, 'UTF-8') ?>';
       body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_refined_error', 'Ошибка: AI не смог уточнить карточку.'), ENT_QUOTES, 'UTF-8') ?></p>';
+      return {ok:false, code:(err&&err.envelope&&err.envelope.code)||'ERROR'};
     });
-  });
+  }
+  document.getElementById('buildRefinedBtn').addEventListener('click',function(){triggerRefined();});
+  if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.registerTrigger('refined',triggerRefined);
 
   document.getElementById('clearRefinedBtn').addEventListener('click',function(){
     if(!confirm('<?= htmlspecialchars($t('ideas.confirm_clear_refined', 'Удалить уточненную карточку?'), ENT_QUOTES, 'UTF-8') ?>'))return;
@@ -1217,11 +1301,14 @@ window._renderGaps=function(data){
     body.innerHTML=h;
   }
 
-  document.getElementById('calcPotentialBtn').addEventListener('click',function(){
-    var b=this;b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_calculating', 'Считаю...'), ENT_QUOTES, 'UTF-8') ?>';
+  function triggerPotential(){
+    var b=document.getElementById('calcPotentialBtn');
+    b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_calculating', 'Считаю...'), ENT_QUOTES, 'UTF-8') ?>';
     body.innerHTML='<p class="text-muted"><?= htmlspecialchars($t('ideas.state_ai_calculating_potential', 'AI рассчитывает потенциал...'), ENT_QUOTES, 'UTF-8') ?></p>';
-    window.CRM.api.request('api/v1/ideas/'+pid+'/potential',{method:'POST',timeoutMs:120000}).then(function(env){renderPotential(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-calculator me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Пересчитать'), ENT_QUOTES, 'UTF-8') ?>';}).catch(function(){b.disabled=false;b.innerHTML='<i class="fa-solid fa-calculator me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Пересчитать'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_potential_error', 'Ошибка расчета потенциала.'), ENT_QUOTES, 'UTF-8') ?></p>';});
-  });
+    return window.CRM.api.request('api/v1/ideas/'+pid+'/potential',{method:'POST',timeoutMs:120000}).then(function(env){renderPotential(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-calculator me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Пересчитать'), ENT_QUOTES, 'UTF-8') ?>';return {ok:true, code:String(env.code||'')};}).catch(function(err){b.disabled=false;b.innerHTML='<i class="fa-solid fa-calculator me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Пересчитать'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_potential_error', 'Ошибка расчета потенциала.'), ENT_QUOTES, 'UTF-8') ?></p>';return {ok:false, code:(err&&err.envelope&&err.envelope.code)||'ERROR'};});
+  }
+  document.getElementById('calcPotentialBtn').addEventListener('click',function(){triggerPotential();});
+  if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.registerTrigger('potential',triggerPotential);
   document.getElementById('clearPotentialBtn').addEventListener('click',function(){
     if(!confirm('<?= htmlspecialchars($t('ideas.confirm_clear_potential', 'Удалить расчет потенциала?'), ENT_QUOTES, 'UTF-8') ?>'))return;
     var b=this;b.disabled=true;
@@ -1271,11 +1358,14 @@ window._renderGaps=function(data){
     body.innerHTML=h;
   }
 
-  document.getElementById('calcRiskBtn').addEventListener('click',function(){
-    var b=this;b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_calculating_risks', 'Считаю риски...'), ENT_QUOTES, 'UTF-8') ?>';
+  function triggerRisks(){
+    var b=document.getElementById('calcRiskBtn');
+    b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_calculating_risks', 'Считаю риски...'), ENT_QUOTES, 'UTF-8') ?>';
     body.innerHTML='<p class="text-muted"><?= htmlspecialchars($t('ideas.state_ai_analyzing_risks', 'AI анализирует риски...'), ENT_QUOTES, 'UTF-8') ?></p>';
-    window.CRM.api.request('api/v1/ideas/'+pid+'/risk-report',{method:'POST',timeoutMs:120000}).then(function(env){renderRisk(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-shield-halved me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Рассчитать заново'), ENT_QUOTES, 'UTF-8') ?>';}).catch(function(){b.disabled=false;b.innerHTML='<i class="fa-solid fa-shield-halved me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Рассчитать заново'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_risk_error', 'Ошибка расчета рисков.'), ENT_QUOTES, 'UTF-8') ?></p>';});
-  });
+    return window.CRM.api.request('api/v1/ideas/'+pid+'/risk-report',{method:'POST',timeoutMs:120000}).then(function(env){renderRisk(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-shield-halved me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Рассчитать заново'), ENT_QUOTES, 'UTF-8') ?>';return {ok:true, code:String(env.code||'')};}).catch(function(err){b.disabled=false;b.innerHTML='<i class="fa-solid fa-shield-halved me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Рассчитать заново'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_risk_error', 'Ошибка расчета рисков.'), ENT_QUOTES, 'UTF-8') ?></p>';return {ok:false, code:(err&&err.envelope&&err.envelope.code)||'ERROR'};});
+  }
+  document.getElementById('calcRiskBtn').addEventListener('click',function(){triggerRisks();});
+  if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.registerTrigger('risks',triggerRisks);
   document.getElementById('clearRiskBtn').addEventListener('click',function(){
     if(!confirm('<?= htmlspecialchars($t('ideas.confirm_clear_risk', 'Удалить риск-отчет? Идея и вопросы не будут удалены.'), ENT_QUOTES, 'UTF-8') ?>'))return;
     var b=this;b.disabled=true;
@@ -1314,11 +1404,14 @@ window._renderGaps=function(data){
     body.innerHTML=h;
   }
 
-  document.getElementById('calcPitfallsBtn').addEventListener('click',function(){
-    var b=this;b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_searching_pitfalls', 'Ищу камни...'), ENT_QUOTES, 'UTF-8') ?>';
+  function triggerPitfalls(){
+    var b=document.getElementById('calcPitfallsBtn');
+    b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_searching_pitfalls', 'Ищу камни...'), ENT_QUOTES, 'UTF-8') ?>';
     body.innerHTML='<p class="text-muted"><?= htmlspecialchars($t('ideas.state_ai_searching_pitfalls', 'AI ищет подводные камни...'), ENT_QUOTES, 'UTF-8') ?></p>';
-    window.CRM.api.request('api/v1/ideas/'+pid+'/pitfalls',{method:'POST',timeoutMs:120000}).then(function(env){renderPitfalls(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-magnifying-glass-chart me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Рассчитать заново'), ENT_QUOTES, 'UTF-8') ?>';}).catch(function(){b.disabled=false;b.innerHTML='<i class="fa-solid fa-magnifying-glass-chart me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Рассчитать заново'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_pitfalls_error', 'Ошибка поиска подводных камней.'), ENT_QUOTES, 'UTF-8') ?></p>';});
-  });
+    return window.CRM.api.request('api/v1/ideas/'+pid+'/pitfalls',{method:'POST',timeoutMs:120000}).then(function(env){renderPitfalls(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-magnifying-glass-chart me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Рассчитать заново'), ENT_QUOTES, 'UTF-8') ?>';return {ok:true, code:String(env.code||'')};}).catch(function(err){b.disabled=false;b.innerHTML='<i class="fa-solid fa-magnifying-glass-chart me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Рассчитать заново'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_pitfalls_error', 'Ошибка поиска подводных камней.'), ENT_QUOTES, 'UTF-8') ?></p>';return {ok:false, code:(err&&err.envelope&&err.envelope.code)||'ERROR'};});
+  }
+  document.getElementById('calcPitfallsBtn').addEventListener('click',function(){triggerPitfalls();});
+  if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.registerTrigger('pitfalls',triggerPitfalls);
   document.getElementById('clearPitfallsBtn').addEventListener('click',function(){
     if(!confirm('<?= htmlspecialchars($t('ideas.confirm_clear_pitfalls', 'Удалить подводные камни? Идея и вопросы не будут удалены.'), ENT_QUOTES, 'UTF-8') ?>'))return;
     var b=this;b.disabled=true;
@@ -1361,11 +1454,14 @@ window._renderGaps=function(data){
     body.innerHTML=h;
   }
 
-  document.getElementById('buildPlanBtn').addEventListener('click',function(){
-    var b=this;b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_building_plan', 'Собираю план...'), ENT_QUOTES, 'UTF-8') ?>';
+  function triggerPlan(){
+    var b=document.getElementById('buildPlanBtn');
+    b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_building_plan', 'Собираю план...'), ENT_QUOTES, 'UTF-8') ?>';
     body.innerHTML='<p class="text-muted"><?= htmlspecialchars($t('ideas.state_ai_building_plan', 'AI составляет план...'), ENT_QUOTES, 'UTF-8') ?></p>';
-    window.CRM.api.request('api/v1/ideas/'+pid+'/implementation-plan',{method:'POST',timeoutMs:120000}).then(function(env){renderPlan(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-play me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_rebuild', 'Собрать заново'), ENT_QUOTES, 'UTF-8') ?>';}).catch(function(){b.disabled=false;b.innerHTML='<i class="fa-solid fa-play me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_rebuild', 'Собрать заново'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_plan_error', 'Ошибка сборки плана.'), ENT_QUOTES, 'UTF-8') ?></p>';});
-  });
+    return window.CRM.api.request('api/v1/ideas/'+pid+'/implementation-plan',{method:'POST',timeoutMs:120000}).then(function(env){renderPlan(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-play me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_rebuild', 'Собрать заново'), ENT_QUOTES, 'UTF-8') ?>';return {ok:true, code:String(env.code||'')};}).catch(function(err){b.disabled=false;b.innerHTML='<i class="fa-solid fa-play me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_rebuild', 'Собрать заново'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_plan_error', 'Ошибка сборки плана.'), ENT_QUOTES, 'UTF-8') ?></p>';return {ok:false, code:(err&&err.envelope&&err.envelope.code)||'ERROR'};});
+  }
+  document.getElementById('buildPlanBtn').addEventListener('click',function(){triggerPlan();});
+  if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.registerTrigger('plan',triggerPlan);
   document.getElementById('clearPlanBtn').addEventListener('click',function(){
     if(!confirm('<?= htmlspecialchars($t('ideas.confirm_clear_plan', 'Удалить план реализации?'), ENT_QUOTES, 'UTF-8') ?>'))return;
     var b=this;b.disabled=true;
@@ -1409,11 +1505,14 @@ window._renderGaps=function(data){
     body.innerHTML=h;
   }
 
-  document.getElementById('buildFinalBtn').addEventListener('click',function(){
-    var b=this;b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_building_final', 'Формирую...'), ENT_QUOTES, 'UTF-8') ?>';
+  function triggerFinal(){
+    var b=document.getElementById('buildFinalBtn');
+    b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_building_final', 'Формирую...'), ENT_QUOTES, 'UTF-8') ?>';
     body.innerHTML='<p class="text-muted"><?= htmlspecialchars($t('ideas.state_ai_building_final', 'AI формирует итоговую рекомендацию...'), ENT_QUOTES, 'UTF-8') ?></p>';
-    window.CRM.api.request('api/v1/ideas/'+pid+'/final-recommendation',{method:'POST',timeoutMs:120000}).then(function(env){renderFinal(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-gavel me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_rebuild_final', 'Сформировать заново'), ENT_QUOTES, 'UTF-8') ?>';}).catch(function(){b.disabled=false;b.innerHTML='<i class="fa-solid fa-gavel me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_rebuild_final', 'Сформировать заново'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_final_error', 'Ошибка формирования рекомендации.'), ENT_QUOTES, 'UTF-8') ?></p>';});
-  });
+    return window.CRM.api.request('api/v1/ideas/'+pid+'/final-recommendation',{method:'POST',timeoutMs:120000}).then(function(env){renderFinal(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-gavel me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_rebuild_final', 'Сформировать заново'), ENT_QUOTES, 'UTF-8') ?>';return {ok:true, code:String(env.code||'')};}).catch(function(err){b.disabled=false;b.innerHTML='<i class="fa-solid fa-gavel me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_rebuild_final', 'Сформировать заново'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_final_error', 'Ошибка формирования рекомендации.'), ENT_QUOTES, 'UTF-8') ?></p>';return {ok:false, code:(err&&err.envelope&&err.envelope.code)||'ERROR'};});
+  }
+  document.getElementById('buildFinalBtn').addEventListener('click',function(){triggerFinal();});
+  if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.registerTrigger('final',triggerFinal);
   document.getElementById('clearFinalBtn').addEventListener('click',function(){
     if(!confirm('<?= htmlspecialchars($t('ideas.confirm_clear_final', 'Удалить итоговую рекомендацию?'), ENT_QUOTES, 'UTF-8') ?>'))return;
     var b=this;b.disabled=true;
@@ -1492,11 +1591,14 @@ window._renderGaps=function(data){
     }
   }
 
-  document.getElementById('buildTasksBtn').addEventListener('click',function(){
-    var b=this;b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_building_tasks', 'Формирую...'), ENT_QUOTES, 'UTF-8') ?>';
+  function triggerTasks(){
+    var b=document.getElementById('buildTasksBtn');
+    b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_building_tasks', 'Формирую...'), ENT_QUOTES, 'UTF-8') ?>';
     body.innerHTML='<p class="text-muted"><?= htmlspecialchars($t('ideas.state_ai_building_tasks', 'AI формирует дерево задач...'), ENT_QUOTES, 'UTF-8') ?></p>';
-    window.CRM.api.request('api/v1/ideas/'+pid+'/suggested-tasks',{method:'POST',timeoutMs:120000}).then(function(env){renderTasks(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-list-tree me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_rebuild', 'Сформировать заново'), ENT_QUOTES, 'UTF-8') ?>';}).catch(function(){b.disabled=false;b.innerHTML='<i class="fa-solid fa-list-tree me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_rebuild', 'Сформировать заново'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_tasks_error', 'Ошибка формирования задач.'), ENT_QUOTES, 'UTF-8') ?></p>';});
-  });
+    return window.CRM.api.request('api/v1/ideas/'+pid+'/suggested-tasks',{method:'POST',timeoutMs:120000}).then(function(env){renderTasks(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-list-tree me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_rebuild', 'Сформировать заново'), ENT_QUOTES, 'UTF-8') ?>';return {ok:true, code:String(env.code||'')};}).catch(function(err){b.disabled=false;b.innerHTML='<i class="fa-solid fa-list-tree me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_rebuild', 'Сформировать заново'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_tasks_error', 'Ошибка формирования задач.'), ENT_QUOTES, 'UTF-8') ?></p>';return {ok:false, code:(err&&err.envelope&&err.envelope.code)||'ERROR'};});
+  }
+  document.getElementById('buildTasksBtn').addEventListener('click',function(){triggerTasks();});
+  if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.registerTrigger('tasks',triggerTasks);
   document.getElementById('clearTasksBtn').addEventListener('click',function(){
     if(!confirm('<?= htmlspecialchars($t('ideas.confirm_clear_tasks', 'Удалить предлагаемые задачи?'), ENT_QUOTES, 'UTF-8') ?>'))return;
     var b=this;b.disabled=true;
