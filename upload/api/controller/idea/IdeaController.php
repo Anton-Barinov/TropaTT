@@ -836,7 +836,7 @@ final class IdeaController extends BaseController
 
         // Step 8-9: send ALL previous questions+answers to AI for decide_next_step
         try {
-        set_time_limit(0);
+        set_time_limit(90);
             $user = $this->user()['user'] ?? [];
             $ai = $this->container->get('service.ai_action');
 
@@ -1239,7 +1239,7 @@ final class IdeaController extends BaseController
         if ($questionIds !== []) {
             $placeholders = implode(',', array_fill(0, count($questionIds), '?'));
             $ansStmt = $pdo->prepare(
-                'SELECT a.id, a.question_id, a.cycle_id, a.selected_option_key, a.selected_options, a.answer_text, a.is_custom, a.is_unknown, a.selected_option_label, a.created_at'
+                'SELECT a.id, a.question_id, a.selected_option_key, a.selected_options_json, a.answer_text, a.is_custom, a.is_unknown, a.selected_option_label, a.created_at'
                 . ' FROM idea_answers a'
                 . ' INNER JOIN ('
                 . '   SELECT question_id, MAX(id) AS max_id FROM idea_answers'
@@ -1359,17 +1359,30 @@ Data:
 {$infoJson}
 PROMPT;
 
-        // Send to AI with retry on JSON parse failure
+        // Send to AI with retry on JSON parse failure and AI_BUSY backoff
         try {
             $aiSvc = $this->container->get('service.ai_action');
-            $maxRetries = 1;
+            $maxRetries = 2;
             $data = null;
             $rawText = '';
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
                 $result = $aiSvc->execute('idea_analyze', [
                     '__sys' => $this->t('idea/messages.prompt_analyst_system') . $this->localeInstruction(),
                     '__usr' => $prompt,
+                    'response_format' => ['type' => 'json_object'],
                 ], $this->user()['user'] ?? []);
+
+                // Handle AI_BUSY and provider errors before trying to parse result
+                if (!($result['ok'] ?? false)) {
+                    $errorCode = $result['code'] ?? '';
+                    if ($errorCode === 'AI_BUSY') {
+                        $backoffUs = max(5000000, ($retry + 1) * 2000000);
+                        ai_diag_log("[ADDITIONAL_QUESTIONS_BUSY] attempt=" . ($retry + 1) . " backoff=" . ($backoffUs / 1000000) . "s");
+                        if ($retry < $maxRetries) { usleep($backoffUs); continue; }
+                    }
+                    ai_diag_log("[ADDITIONAL_QUESTIONS_AI_ERROR] code={$errorCode} reason=" . ($result['reason'] ?? ''));
+                    break;
+                }
 
                 $rawText = $result['result']['preview']['summary'] ?? '';
 
@@ -1519,7 +1532,21 @@ PROMPT;
             'do_not_ask_again_topics' => $coverage['do_not_ask_again_topics'] ?? [],
         ];
 
-        $systemPrompt = $this->t('idea/messages.system_prompt_card');
+        $systemPrompt = $this->t('idea/messages/system_prompt_card');
+
+        // Cache check: skip AI call if input hasn't changed
+        $inputHash = hash('sha256', json_encode(['system_prompt' => $systemPrompt, 'payload' => $payload], JSON_UNESCAPED_UNICODE));
+        $existingStmt = $pdo->prepare("SELECT id, ai_request_json FROM idea_understanding_cards WHERE idea_id = :iid");
+        $existingStmt->execute(['iid' => $ideaId]);
+        $existingCard = $existingStmt->fetch(\PDO::FETCH_ASSOC);
+        if ($existingCard && !empty($existingCard['ai_request_json'])) {
+            $existingHash = hash('sha256', $existingCard['ai_request_json']);
+            if ($existingHash === $inputHash) {
+                $freshStmt = $pdo->prepare("SELECT idea_id, profile_json, summary, idea_type, specificity_level, completeness_score, confidence_score, next_action, ai_request_json, ai_response_json, created_at, updated_at FROM idea_understanding_cards WHERE idea_id = :iid");
+                $freshStmt->execute(['iid' => $ideaId]);
+                return $this->success('CARD_CACHED', 'OK', $freshStmt->fetch(\PDO::FETCH_ASSOC) ?: $existingCard);
+            }
+        }
 
         try {
             $aiSvc = $this->container->get('service.ai_action');
@@ -1530,7 +1557,19 @@ PROMPT;
                 $result = $aiSvc->execute('idea_analyze', [
                     '__sys' => $systemPrompt . $this->localeInstruction(),
                     '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT),
+                    'response_format' => ['type' => 'json_object'],
                 ], $this->user()['user'] ?? []);
+
+                if (!($result['ok'] ?? false)) {
+                    $errorCode = $result['code'] ?? '';
+                    if ($errorCode === 'AI_BUSY') {
+                        $backoffUs = max(5000000, ($retry + 1) * 2000000);
+                        ai_diag_log("[UNDERSTANDING_CARD_BUSY] idea_id={$ideaId} attempt=" . ($retry + 1) . " backoff=" . ($backoffUs / 1000000) . "s");
+                        if ($retry < $maxRetries) { usleep($backoffUs); continue; }
+                    }
+                    ai_diag_log("[UNDERSTANDING_CARD_AI_ERROR] idea_id={$ideaId} code={$errorCode} reason=" . ($result['reason'] ?? ''));
+                    break;
+                }
 
                 $rawText = $result['result']['preview']['summary'] ?? '';
                 $parsed = $this->extractAiJson($rawText);
@@ -1539,7 +1578,7 @@ PROMPT;
                     $parsed['data'] = ['idea_profile' => $parsed['data']];
                     break;
                 }
-                ai_diag_log("[UNDERSTANDING_CARD_RETRY] attempt=" . ($retry + 1) . " error=" . ($parsed['error'] ?? 'invalid_resp') . " text_len=" . strlen($rawText));
+                ai_diag_log("[UNDERSTANDING_CARD_RETRY] idea_id={$ideaId} attempt=" . ($retry + 1) . " error=" . ($parsed['error'] ?? 'invalid_resp') . " text_len=" . strlen($rawText));
                 if ($retry < $maxRetries) usleep(1000000);
             }
 
@@ -1715,14 +1754,27 @@ PROMPT;
 
         try {
             $aiSvc = $this->container->get('service.ai_action');
-            $maxRetries = 1;
+            $maxRetries = 2;
             $data = null;
             $rawText = '';
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
                 $result = $aiSvc->execute('idea_analyze', [
                     '__sys' => 'Analyze understanding card. Find gaps. Generate clarifying questions.' . $this->localeInstruction(),
                     '__usr' => $prompt,
+                    'response_format' => ['type' => 'json_object'],
                 ], $this->user()['user'] ?? []);
+
+                // Handle AI_BUSY and provider errors before trying to parse result
+                if (!($result['ok'] ?? false)) {
+                    $errorCode = $result['code'] ?? '';
+                    if ($errorCode === 'AI_BUSY') {
+                        $backoffUs = max(5000000, ($retry + 1) * 2000000);
+                        ai_diag_log("[GAP_QUESTIONS_BUSY] attempt=" . ($retry + 1) . " backoff=" . ($backoffUs / 1000000) . "s");
+                        if ($retry < $maxRetries) { usleep($backoffUs); continue; }
+                    }
+                    ai_diag_log("[GAP_QUESTIONS_AI_ERROR] code={$errorCode} reason=" . ($result['reason'] ?? ''));
+                    break;
+                }
 
                 $rawText = $result['result']['preview']['summary'] ?? '';
 
@@ -1815,7 +1867,7 @@ PROMPT;
         if (($rateLimited = $this->assertAiRateLimit()) !== null) {
             return $rateLimited;
         }
-        set_time_limit(0);
+        set_time_limit(90);
 
         // Read original card
         $origStmt = $pdo->prepare("SELECT idea_id, profile_json, summary, idea_type, specificity_level, completeness_score, confidence_score, next_action, ai_request_json, ai_response_json, created_at, updated_at FROM idea_understanding_cards WHERE idea_id = :iid");
@@ -1875,7 +1927,19 @@ PROMPT;
                 $result = $aiSvc->execute('idea_analyze', [
                     '__sys' => $systemPrompt . $this->localeInstruction(),
                     '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT),
+                    'response_format' => ['type' => 'json_object'],
                 ], $this->user()['user'] ?? []);
+
+                if (!($result['ok'] ?? false)) {
+                    $errorCode = $result['code'] ?? '';
+                    if ($errorCode === 'AI_BUSY') {
+                        $backoffUs = max(5000000, ($retry + 1) * 2000000);
+                        ai_diag_log("[REFINED_CARD_BUSY] idea_id={$ideaId} attempt=" . ($retry + 1) . " backoff=" . ($backoffUs / 1000000) . "s");
+                        if ($retry < $maxRetries) { usleep($backoffUs); continue; }
+                    }
+                    ai_diag_log("[REFINED_CARD_AI_ERROR] idea_id={$ideaId} code={$errorCode} reason=" . ($result['reason'] ?? ''));
+                    break;
+                }
 
                 $rawText = $result['result']['preview']['summary'] ?? '';
                 $parsed = $this->extractAiJson($rawText);
@@ -1884,7 +1948,7 @@ PROMPT;
                     $parsed['data'] = ['idea_profile' => $parsed['data']];
                     break;
                 }
-                ai_diag_log("[REFINED_CARD_RETRY] attempt=" . ($retry + 1) . " error=" . ($parsed['error'] ?? 'invalid_resp') . " text_len=" . strlen($rawText));
+                ai_diag_log("[REFINED_CARD_RETRY] idea_id={$ideaId} attempt=" . ($retry + 1) . " error=" . ($parsed['error'] ?? 'invalid_resp') . " text_len=" . strlen($rawText));
                 if ($retry < $maxRetries) usleep(1000000);
             }
 
@@ -1985,7 +2049,7 @@ PROMPT;
         if (($rateLimited = $this->assertAiRateLimit()) !== null) {
             return $rateLimited;
         }
-        set_time_limit(0);
+        set_time_limit(90);
 
         $questions = $service->getQuestions($ideaId);
         $qaList = [];
@@ -2033,11 +2097,23 @@ PROMPT;
             $rawText = '';
             $parsed = ['ok' => false, 'data' => null, 'error' => 'not_started'];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', ['__sys' => $systemPrompt . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)], $this->user()['user'] ?? []);
+                $result = $aiSvc->execute('idea_analyze', ['__sys' => $systemPrompt . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
+
+                if (!($result['ok'] ?? false)) {
+                    $errorCode = $result['code'] ?? '';
+                    if ($errorCode === 'AI_BUSY') {
+                        $backoffUs = max(5000000, ($retry + 1) * 2000000);
+                        ai_diag_log("[POTENTIAL_BUSY] idea_id={$ideaId} attempt=" . ($retry + 1) . " backoff=" . ($backoffUs / 1000000) . "s");
+                        if ($retry < $maxRetries) { usleep($backoffUs); continue; }
+                    }
+                    ai_diag_log("[POTENTIAL_AI_ERROR] idea_id={$ideaId} code={$errorCode} reason=" . ($result['reason'] ?? ''));
+                    break;
+                }
+
                 $rawText = $result['result']['preview']['summary'] ?? '';
                 $parsed = $this->extractAiJson($rawText);
                 if ($parsed['ok'] && !empty($parsed['data']['potential'])) break;
-                ai_diag_log("[POTENTIAL_RETRY] attempt=" . ($retry + 1) . " error=" . ($parsed['error'] ?? 'invalid_resp') . " text_len=" . strlen($rawText));
+                ai_diag_log("[POTENTIAL_RETRY] idea_id={$ideaId} attempt=" . ($retry + 1) . " error=" . ($parsed['error'] ?? 'invalid_resp') . " text_len=" . strlen($rawText));
                 if ($retry < $maxRetries) usleep(1000000);
             }
 
@@ -2125,7 +2201,7 @@ PROMPT;
         if (($rateLimited = $this->assertAiRateLimit()) !== null) {
             return $rateLimited;
         }
-        set_time_limit(0);
+        set_time_limit(90);
         $questions = $service->getQuestions($ideaId);
         $qaList = []; foreach ($questions as $q) { $ans = $q['last_answer'] ?? null; if (!$ans) continue; $qaList[] = ['question' => $q['question_text'] ?? '', 'dimension' => $q['dimension'] ?? '', 'answer' => $ans['selected_option_label'] ?? $ans['selected_option_key'] ?? $ans['answer_text'] ?? '']; }
         $desc = $idea['description'] ?? ''; $plainDesc = trim(strip_tags(str_replace(['<br>','<br/>','<br />'],"\n",$desc)));
@@ -2144,11 +2220,23 @@ PROMPT;
             $aiSvc = $this->container->get('service.ai_action');
             $maxRetries = 2; $rawText = '';
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)], $this->user()['user'] ?? []);
+                $result = $aiSvc->execute('idea_analyze', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
+
+                if (!($result['ok'] ?? false)) {
+                    $errorCode = $result['code'] ?? '';
+                    if ($errorCode === 'AI_BUSY') {
+                        $backoffUs = max(5000000, ($retry + 1) * 2000000);
+                        ai_diag_log("[RISK_BUSY] idea_id={$ideaId} attempt=" . ($retry+1) . " backoff=" . ($backoffUs / 1000000) . "s");
+                        if ($retry < $maxRetries) { usleep($backoffUs); continue; }
+                    }
+                    ai_diag_log("[RISK_AI_ERROR] idea_id={$ideaId} code={$errorCode} reason=" . ($result['reason'] ?? ''));
+                    break;
+                }
+
                 $rawText = $result['result']['preview']['summary'] ?? '';
                 $parsed = $this->extractAiJson($rawText);
                 if ($parsed['ok'] && !empty($parsed['data']['risk_report'])) break;
-                ai_diag_log("[RISK_RETRY] attempt=" . ($retry+1) . " error=" . ($parsed['error'] ?? 'invalid_resp') . " text_len=" . strlen($rawText));
+                ai_diag_log("[RISK_RETRY] idea_id={$ideaId} attempt=" . ($retry+1) . " error=" . ($parsed['error'] ?? 'invalid_resp') . " text_len=" . strlen($rawText));
                 if ($retry < $maxRetries) usleep(1000000);
             }
 
@@ -2160,9 +2248,11 @@ PROMPT;
 
             if (!$parsed['ok'] || empty($parsed['data']['risk_report'])) {
                 ai_diag_log("[RISK_PARSE_FAIL] text_len=".strlen($rawText)." parse_error=".($parsed['error']??'unknown')." preview=".substr($rawText,0,300));
-                // Save fallback record instead of returning error
+                // Save fallback record instead of returning error — use upsert to avoid duplicate key
                 $row = ['risk_report_json' => json_encode(['risk_report' => ['summary' => $this->t('idea/messages.ai_risk_fallback_summary'), 'risks' => [], 'overall_risk_score' => 1, 'overall_risk_level' => 'unknown', 'confidence_score' => 0]], JSON_UNESCAPED_UNICODE), 'overall_risk_score' => 1, 'overall_risk_level' => 'unknown', 'critical_risks_count' => 0, 'high_risks_count' => 0, 'medium_risks_count' => 0, 'low_risks_count' => 0, 'confidence_score' => 0, 'ai_request_json' => json_encode(['note' => 'AI analysis failed', 'system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
-                $pdo->prepare("INSERT INTO idea_risk_reports (idea_id,risk_report_json,overall_risk_score,overall_risk_level,critical_risks_count,high_risks_count,medium_risks_count,low_risks_count,confidence_score,ai_request_json,ai_response_json) VALUES (:idea_id,:risk_report_json,:overall_risk_score,:overall_risk_level,:critical_risks_count,:high_risks_count,:medium_risks_count,:low_risks_count,:confidence_score,:ai_request_json,:ai_response_json)")->execute($row);
+                $existsRisk = $pdo->prepare("SELECT id FROM idea_risk_reports WHERE idea_id = :iid"); $existsRisk->execute(['iid' => $ideaId]);
+                if ($existsRisk->fetch()) { $pdo->prepare("UPDATE idea_risk_reports SET risk_report_json=:risk_report_json,overall_risk_score=:overall_risk_score,overall_risk_level=:overall_risk_level,critical_risks_count=:critical_risks_count,high_risks_count=:high_risks_count,medium_risks_count=:medium_risks_count,low_risks_count=:low_risks_count,confidence_score=:confidence_score,ai_request_json=:ai_request_json,ai_response_json=:ai_response_json,updated_at=NOW() WHERE idea_id=:idea_id")->execute($row); }
+                else { $pdo->prepare("INSERT INTO idea_risk_reports (idea_id,risk_report_json,overall_risk_score,overall_risk_level,critical_risks_count,high_risks_count,medium_risks_count,low_risks_count,confidence_score,ai_request_json,ai_response_json) VALUES (:idea_id,:risk_report_json,:overall_risk_score,:overall_risk_level,:critical_risks_count,:high_risks_count,:medium_risks_count,:low_risks_count,:confidence_score,:ai_request_json,:ai_response_json)")->execute($row); }
                 $fresh = $pdo->prepare("SELECT id, idea_id, risk_report_json, overall_risk_score, overall_risk_level, critical_risks_count, high_risks_count, medium_risks_count, low_risks_count, confidence_score, ai_request_json, ai_response_json, created_at, updated_at FROM idea_risk_reports WHERE idea_id = :iid"); $fresh->execute(['iid' => $ideaId]);
                 return $this->success('RISK_FALLBACK', 'OK', $fresh->fetch(\PDO::FETCH_ASSOC) ?: $row);
             }
@@ -2222,7 +2312,7 @@ PROMPT;
         if (($rateLimited = $this->assertAiRateLimit()) !== null) {
             return $rateLimited;
         }
-        set_time_limit(0);
+        set_time_limit(90);
         $questions = $service->getQuestions($ideaId);
         $qaList = []; foreach ($questions as $q) { $ans = $q['last_answer'] ?? null; if (!$ans) continue; $qaList[] = ['question' => $q['question_text'] ?? '', 'dimension' => $q['dimension'] ?? '', 'answer' => $ans['selected_option_label'] ?? $ans['selected_option_key'] ?? $ans['answer_text'] ?? '']; }
         $desc = $idea['description'] ?? ''; $plainDesc = trim(strip_tags(str_replace(['<br>','<br/>','<br />'],"\n",$desc)));
@@ -2239,11 +2329,23 @@ PROMPT;
         try {
             $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 2; $rawText = ''; $parsed = ['ok' => false];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)], $this->user()['user'] ?? []);
+                $result = $aiSvc->execute('idea_analyze', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
+
+                if (!($result['ok'] ?? false)) {
+                    $errorCode = $result['code'] ?? '';
+                    if ($errorCode === 'AI_BUSY') {
+                        $backoffUs = max(5000000, ($retry + 1) * 2000000);
+                        ai_diag_log("[PITFALLS_BUSY] idea_id={$ideaId} attempt=" . ($retry+1) . " backoff=" . ($backoffUs / 1000000) . "s");
+                        if ($retry < $maxRetries) { usleep($backoffUs); continue; }
+                    }
+                    ai_diag_log("[PITFALLS_AI_ERROR] idea_id={$ideaId} code={$errorCode} reason=" . ($result['reason'] ?? ''));
+                    break;
+                }
+
                 $rawText = $result['result']['preview']['summary'] ?? '';
                 $parsed = $this->extractAiJson($rawText);
                 if ($parsed['ok'] && !empty($parsed['data']['pitfalls'])) break;
-                ai_diag_log("[PITFALLS_RETRY] attempt=" . ($retry+1) . " error=" . ($parsed['error'] ?? 'invalid_resp'));
+                ai_diag_log("[PITFALLS_RETRY] idea_id={$ideaId} attempt=" . ($retry+1) . " error=" . ($parsed['error'] ?? 'invalid_resp'));
                 if ($retry < $maxRetries) usleep(1000000);
             }
 
@@ -2256,7 +2358,9 @@ PROMPT;
             if (!$parsed['ok'] || empty($parsed['data']['pitfalls'])) {
                 ai_diag_log("[PITFALLS_PARSE_FAIL] parse_error=".($parsed['error']??'unknown')." text_len=".strlen($rawText));
                 $row = ['pitfalls_json' => '[]', 'overall_summary' => $this->t('idea/messages.ai_pitfalls_fallback_summary'), 'data_confidence' => 0, 'ai_request_json' => json_encode(['note' => 'AI analysis failed'], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
-                $pdo->prepare("INSERT INTO idea_pitfalls_reports (idea_id,pitfalls_json,overall_summary,data_confidence,ai_request_json,ai_response_json) VALUES (:idea_id,:pitfalls_json,:overall_summary,:data_confidence,:ai_request_json,:ai_response_json)")->execute($row);
+                $existsPit = $pdo->prepare("SELECT id FROM idea_pitfalls_reports WHERE idea_id = :iid"); $existsPit->execute(['iid' => $ideaId]);
+                if ($existsPit->fetch()) { $pdo->prepare("UPDATE idea_pitfalls_reports SET pitfalls_json=:pitfalls_json,overall_summary=:overall_summary,data_confidence=:data_confidence,ai_request_json=:ai_request_json,ai_response_json=:ai_response_json,updated_at=NOW() WHERE idea_id=:idea_id")->execute($row); }
+                else { $pdo->prepare("INSERT INTO idea_pitfalls_reports (idea_id,pitfalls_json,overall_summary,data_confidence,ai_request_json,ai_response_json) VALUES (:idea_id,:pitfalls_json,:overall_summary,:data_confidence,:ai_request_json,:ai_response_json)")->execute($row); }
                 return $this->success('PITFALLS_FALLBACK', 'OK', $row);
             }
             $data = $parsed['data'];
@@ -2318,7 +2422,7 @@ PROMPT;
         if (($rateLimited = $this->assertAiRateLimit()) !== null) {
             return $rateLimited;
         }
-        set_time_limit(0);
+        set_time_limit(90);
         $questions = $service->getQuestions($ideaId);
         $qaList = []; foreach ($questions as $q) { $ans = $q['last_answer'] ?? null; if (!$ans) continue; $qaList[] = ['question' => $q['question_text'] ?? '', 'dimension' => $q['dimension'] ?? '', 'answer' => $ans['selected_option_label'] ?? $ans['selected_option_key'] ?? $ans['answer_text'] ?? '']; }
         $desc = $idea['description'] ?? ''; $plainDesc = trim(strip_tags(str_replace(['<br>','<br/>','<br />'],"\n",$desc)));
@@ -2335,11 +2439,23 @@ PROMPT;
         try {
             $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 2; $rawText = ''; $parsed = ['ok' => false];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)], $this->user()['user'] ?? []);
+                $result = $aiSvc->execute('idea_analyze', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
+
+                if (!($result['ok'] ?? false)) {
+                    $errorCode = $result['code'] ?? '';
+                    if ($errorCode === 'AI_BUSY') {
+                        $backoffUs = max(5000000, ($retry + 1) * 2000000);
+                        ai_diag_log("[PLAN_BUSY] idea_id={$ideaId} attempt=" . ($retry+1) . " backoff=" . ($backoffUs / 1000000) . "s");
+                        if ($retry < $maxRetries) { usleep($backoffUs); continue; }
+                    }
+                    ai_diag_log("[PLAN_AI_ERROR] idea_id={$ideaId} code={$errorCode} reason=" . ($result['reason'] ?? ''));
+                    break;
+                }
+
                 $rawText = $result['result']['preview']['summary'] ?? '';
                 $parsed = $this->extractAiJson($rawText);
                 if ($parsed['ok'] && !empty($parsed['data']['implementation_plan'])) break;
-                ai_diag_log("[PLAN_RETRY] attempt=" . ($retry+1) . " error=" . ($parsed['error'] ?? 'invalid_resp'));
+                ai_diag_log("[PLAN_RETRY] idea_id={$ideaId} attempt=" . ($retry+1) . " error=" . ($parsed['error'] ?? 'invalid_resp'));
                 if ($retry < $maxRetries) usleep(1000000);
             }
 
@@ -2352,7 +2468,9 @@ PROMPT;
             if (!$parsed['ok'] || empty($parsed['data']['implementation_plan'])) {
                 ai_diag_log("[PLAN_PARSE_FAIL] parse_error=".($parsed['error']??'unknown')." text_len=".strlen($rawText));
                 $row = ['plan_json' => '{}', 'summary' => $this->t('idea/messages.ai_plan_fallback_summary'), 'planning_horizon' => '', 'plan_type' => 'preliminary', 'confidence_score' => 0, 'ai_request_json' => json_encode(['note' => 'AI analysis failed'], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
-                $pdo->prepare("INSERT INTO idea_implementation_plans (idea_id,plan_json,summary,planning_horizon,plan_type,confidence_score,ai_request_json,ai_response_json) VALUES (:idea_id,:plan_json,:summary,:planning_horizon,:plan_type,:confidence_score,:ai_request_json,:ai_response_json)")->execute($row);
+                $existsPlan = $pdo->prepare("SELECT id FROM idea_implementation_plans WHERE idea_id = :iid"); $existsPlan->execute(['iid' => $ideaId]);
+                if ($existsPlan->fetch()) { $pdo->prepare("UPDATE idea_implementation_plans SET plan_json=:plan_json,summary=:summary,planning_horizon=:planning_horizon,plan_type=:plan_type,confidence_score=:confidence_score,ai_request_json=:ai_request_json,ai_response_json=:ai_response_json,updated_at=NOW() WHERE idea_id=:idea_id")->execute($row); }
+                else { $pdo->prepare("INSERT INTO idea_implementation_plans (idea_id,plan_json,summary,planning_horizon,plan_type,confidence_score,ai_request_json,ai_response_json) VALUES (:idea_id,:plan_json,:summary,:planning_horizon,:plan_type,:confidence_score,:ai_request_json,:ai_response_json)")->execute($row); }
                 return $this->success('PLAN_FALLBACK', 'OK', $row);
             }
             $data = $parsed['data'];
@@ -2405,7 +2523,7 @@ PROMPT;
         if (($rateLimited = $this->assertAiRateLimit()) !== null) {
             return $rateLimited;
         }
-        set_time_limit(0);
+        set_time_limit(90);
         $questions = $service->getQuestions($ideaId);
         $qaList = []; foreach ($questions as $q) { $ans = $q['last_answer'] ?? null; if (!$ans) continue; $qaList[] = ['question' => $q['question_text'] ?? '', 'dimension' => $q['dimension'] ?? '', 'answer' => $ans['selected_option_label'] ?? $ans['selected_option_key'] ?? $ans['answer_text'] ?? '']; }
         $desc = $idea['description'] ?? ''; $plainDesc = trim(strip_tags(str_replace(['<br>','<br/>','<br />'],"\n",$desc)));
@@ -2461,11 +2579,23 @@ PROMPT;
         try {
             $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 2; $rawText = ''; $parsed = ['ok' => false, 'data' => null, 'error' => 'not_started'];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)], $this->user()['user'] ?? []);
+                $result = $aiSvc->execute('idea_analyze', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
+
+                if (!($result['ok'] ?? false)) {
+                    $errorCode = $result['code'] ?? '';
+                    if ($errorCode === 'AI_BUSY') {
+                        $backoffUs = max(5000000, ($retry + 1) * 2000000);
+                        ai_diag_log("[FINAL_RECOMMENDATION_BUSY] idea_id={$ideaId} attempt=" . ($retry + 1) . " backoff=" . ($backoffUs / 1000000) . "s");
+                        if ($retry < $maxRetries) { usleep($backoffUs); continue; }
+                    }
+                    ai_diag_log("[FINAL_RECOMMENDATION_AI_ERROR] idea_id={$ideaId} code={$errorCode} reason=" . ($result['reason'] ?? ''));
+                    break;
+                }
+
                 $rawText = $result['result']['preview']['summary'] ?? '';
                 $parsed = $this->extractAiJson($rawText);
                 if ($parsed['ok'] && !empty($parsed['data']['final_recommendation'])) break;
-                ai_diag_log("[FINAL_RECOMMENDATION_RETRY] attempt=" . ($retry + 1) . " error=" . ($parsed['error'] ?? 'invalid_resp') . " text_len=" . strlen($rawText));
+                ai_diag_log("[FINAL_RECOMMENDATION_RETRY] idea_id={$ideaId} attempt=" . ($retry + 1) . " error=" . ($parsed['error'] ?? 'invalid_resp') . " text_len=" . strlen($rawText));
                 if ($retry < $maxRetries) usleep(1000000);
             }
 
@@ -2533,7 +2663,7 @@ PROMPT;
             return $this->success('TASKS_CLEARED', 'OK');
         }
 
-        set_time_limit(0);
+        set_time_limit(90);
 
         // Read final recommendation and implementation plan — extract ONLY summaries, not full JSON
         $loadPlanSummary = function() use ($pdo, $ideaId): array {
@@ -2572,11 +2702,23 @@ PROMPT;
         try {
             $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 2; $rawText = ''; $parsed = ['ok' => false];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)], $this->user()['user'] ?? []);
+                $result = $aiSvc->execute('idea_analyze', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
+
+                if (!($result['ok'] ?? false)) {
+                    $errorCode = $result['code'] ?? '';
+                    if ($errorCode === 'AI_BUSY') {
+                        $backoffUs = max(5000000, ($retry + 1) * 2000000);
+                        ai_diag_log("[TASKS_BUSY] idea_id={$ideaId} attempt=" . ($retry+1) . " backoff=" . ($backoffUs / 1000000) . "s");
+                        if ($retry < $maxRetries) { usleep($backoffUs); continue; }
+                    }
+                    ai_diag_log("[TASKS_AI_ERROR] idea_id={$ideaId} code={$errorCode} reason=" . ($result['reason'] ?? ''));
+                    break;
+                }
+
                 $rawText = $result['result']['preview']['summary'] ?? '';
                 $parsed = $this->extractAiJson($rawText);
                 if ($parsed['ok'] && (!empty($parsed['data']['projects']) || !empty($parsed['data']['tasks']))) break;
-                ai_diag_log("[TASKS_RETRY] attempt=" . ($retry+1) . " error=" . ($parsed['error'] ?? 'invalid_resp'));
+                ai_diag_log("[TASKS_RETRY] idea_id={$ideaId} attempt=" . ($retry+1) . " error=" . ($parsed['error'] ?? 'invalid_resp'));
                 if ($retry < $maxRetries) usleep(1000000);
             }
 
@@ -2589,7 +2731,9 @@ PROMPT;
             if (!$parsed['ok'] || (empty($parsed['data']['projects']) && empty($parsed['data']['tasks']))) {
                 ai_diag_log("[TASKS_PARSE_FAIL] parse_error=".($parsed['error']??'unknown')." text_len=".strlen($rawText));
                 $row = ['tasks_json' => '{}', 'summary' => $this->t('idea/messages.ai_tasks_fallback_summary'), 'ai_request_json' => json_encode(['note' => 'AI analysis failed'], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
-                $pdo->prepare("INSERT INTO idea_suggested_tasks (idea_id,tasks_json,summary,ai_request_json,ai_response_json) VALUES (:idea_id,:tasks_json,:summary,:ai_request_json,:ai_response_json)")->execute($row);
+                $existsTasks = $pdo->prepare("SELECT id FROM idea_suggested_tasks WHERE idea_id = :iid"); $existsTasks->execute(['iid' => $ideaId]);
+                if ($existsTasks->fetch()) { $pdo->prepare("UPDATE idea_suggested_tasks SET tasks_json=:tasks_json,summary=:summary,ai_request_json=:ai_request_json,ai_response_json=:ai_response_json,updated_at=NOW() WHERE idea_id=:idea_id")->execute($row); }
+                else { $pdo->prepare("INSERT INTO idea_suggested_tasks (idea_id,tasks_json,summary,ai_request_json,ai_response_json) VALUES (:idea_id,:tasks_json,:summary,:ai_request_json,:ai_response_json)")->execute($row); }
                 return $this->success('TASKS_FALLBACK', 'OK', $row);
             }
             $data = $parsed['data'];
@@ -2780,7 +2924,7 @@ PROMPT;
             return $this->success('INTERVIEW_CLEARED', $this->t('idea/messages.interview_cleared'));
         }
 
-        set_time_limit(0);
+        set_time_limit(90);
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
@@ -2859,12 +3003,13 @@ PROMPT;
         try {
             $aiSvc = $this->container->get('service.ai_action');
 
-            @set_time_limit(0);
+            @set_time_limit(90);
             $result = $aiSvc->execute('idea_analyze', [
                 '__sys' => $systemPrompt . $this->localeInstruction(),
                 '__usr' => $userPrompt,
-                'max_tokens' => 128000,
-                'timeout_ms' => 240000,
+                'max_tokens' => 4096,
+                'timeout_ms' => 60000,
+                'response_format' => ['type' => 'json_object'],
             ], $this->user()['user'] ?? []);
             
             $rawText = $result['result']['preview']['summary'] ?? ($result['result']['text'] ?? '');

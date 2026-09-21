@@ -245,13 +245,32 @@ final class IdeaService
         $stmt = $this->pdo()->prepare($sql);
         $stmt->execute($params);
         $items = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        // Batch-load last answers for all questions (eliminates N+1 queries)
+        $questionIds = array_filter(array_map('intval', array_column($items, 'id')));
+        $answerMap = [];
+        if ($questionIds !== []) {
+            $placeholders = implode(',', array_fill(0, count($questionIds), '?'));
+            $ansStmt = $this->pdo()->prepare(
+                'SELECT a.id, a.question_id, a.selected_option_key, a.selected_options_json, a.answer_text, a.is_custom, a.is_unknown, a.selected_option_label, a.created_at'
+                . ' FROM idea_answers a'
+                . ' INNER JOIN ('
+                . '   SELECT question_id, MAX(id) AS max_id FROM idea_answers'
+                . "   WHERE question_id IN ({$placeholders})"
+                . '   GROUP BY question_id'
+                . ' ) latest ON latest.question_id = a.question_id AND latest.max_id = a.id'
+            );
+            $ansStmt->execute(array_values($questionIds));
+            foreach ($ansStmt->fetchAll(PDO::FETCH_ASSOC) as $answer) {
+                $answerMap[(int)$answer['question_id']] = $answer;
+            }
+        }
+
         foreach ($items as &$item) {
             $item['options_json'] = json_decode($item['options_json'] ?? '[]', true);
             if (!is_array($item['options_json'])) $item['options_json'] = [];
             $item['options'] = $item['options_json'];
-            $ansStmt = $this->pdo()->prepare("SELECT id, idea_id, question_id, answer_text, selected_option_key, selected_option_label, selected_options_json, is_custom, is_unknown, created_at FROM idea_answers WHERE question_id = :qid ORDER BY created_at DESC LIMIT 1");
-            $ansStmt->execute(['qid' => $item['id']]);
-            $item['last_answer'] = $ansStmt->fetch(PDO::FETCH_ASSOC) ?: null;
+            $item['last_answer'] = $answerMap[(int)$item['id']] ?? null;
         }
         return $items;
     }

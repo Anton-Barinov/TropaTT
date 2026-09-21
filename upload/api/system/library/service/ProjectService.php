@@ -162,7 +162,7 @@ final class ProjectService
         if (array_key_exists('manager_user_public_id', $input)) {
             $managerPublicId = trim((string)$input['manager_user_public_id']);
             if ($managerPublicId !== '') {
-                $manager = $this->users->findByPublicId($managerPublicId);
+                $manager = $this->users->findByPublicIdInOrganization($managerPublicId, $organizationId);
                 if ($manager && (int)($manager['is_active'] ?? 0) === 1) {
                     $managerUserId = (int)$manager['id'];
                 }
@@ -318,7 +318,7 @@ final class ProjectService
             if ($managerPublicId === '') {
                 $set['manager_user_id'] = null;
             } else {
-                $manager = $this->users->findByPublicId($managerPublicId);
+                $manager = $this->users->findByPublicIdInOrganization($managerPublicId, $organizationId);
                 if (!$manager || (int)($manager['is_active'] ?? 0) !== 1) {
                     return null;
                 }

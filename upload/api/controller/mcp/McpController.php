@@ -12912,9 +12912,9 @@ $tools[] = $this->tool(
                 $publicParticipant = trim((string)reset($arguments['participant_public_ids']));
             }
             if ($publicParticipant !== '') {
-                $withUserId = (int)($this->resolveUserIdByPublicId($publicParticipant) ?? 0);
+                $withUserId = (int)($this->resolveUserIdByPublicIdInOrg($publicParticipant, $this->activeOrganizationId()) ?? 0);
                 if ($withUserId <= 0) {
-                    return ['error' => 'User not found.'];
+                    return ['error' => 'User not found in your organization.'];
                 }
             } else {
                 $withUserId = (int)($arguments['user_id'] ?? 0);
@@ -14645,6 +14645,23 @@ $tools[] = $this->tool(
         }
         $stmt = $this->pdo()->prepare('SELECT id FROM users WHERE public_id = :pid AND is_active = 1 AND deleted_at IS NULL LIMIT 1');
         $stmt->execute(['pid' => $publicId]);
+        $value = $stmt->fetchColumn();
+        return $value === false ? null : (int)$value;
+    }
+
+    /** Org-scoped variant: only resolves if user belongs to the given organization. */
+    private function resolveUserIdByPublicIdInOrg(string $publicId, ?int $organizationId): ?int
+    {
+        if ($publicId === '') {
+            return null;
+        }
+        if ($organizationId !== null && $organizationId > 0) {
+            $stmt = $this->pdo()->prepare('SELECT u.id FROM users u JOIN organization_memberships om ON om.user_id = u.id WHERE u.public_id = :pid AND om.organization_id = :oid AND u.is_active = 1 AND u.deleted_at IS NULL LIMIT 1');
+            $stmt->execute(['pid' => $publicId, 'oid' => $organizationId]);
+        } else {
+            $stmt = $this->pdo()->prepare('SELECT id FROM users WHERE public_id = :pid AND is_active = 1 AND deleted_at IS NULL LIMIT 1');
+            $stmt->execute(['pid' => $publicId]);
+        }
         $value = $stmt->fetchColumn();
         return $value === false ? null : (int)$value;
     }

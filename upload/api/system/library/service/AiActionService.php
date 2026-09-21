@@ -121,6 +121,10 @@ final class AiActionService
         if ($maxTokens > 0) {
             $promptPayload['max_tokens'] = $maxTokens;
         }
+        // JSON-режим: если вызывающий код запросил structured output
+        if (!empty($input['response_format'])) {
+            $promptPayload['response_format'] = $input['response_format'];
+        }
 
         $jobPublicId = $this->runtime->claimInteractiveSlot([
             'job_type' => 'interactive',
@@ -180,7 +184,8 @@ final class AiActionService
         // Bookkeeping must not discard a valid completion: the MySQL connection
         // can be closed by the server while the provider is still answering, and
         // before this guard that surfaced as a 500 with the answer thrown away.
-        $this->safeBookkeeping(function () use ($jobPublicId, $mode, $errorCode, $completion, $summary, $provider, $now, $actor, $actionType, $input, $intent, $resolvedModel): void {
+        $finishedAt = gmdate('Y-m-d H:i:s');
+        $this->safeBookkeeping(function () use ($jobPublicId, $mode, $errorCode, $completion, $summary, $provider, $finishedAt, $actor, $actionType, $input, $intent, $resolvedModel): void {
             $this->runtime->updateJobByPublicId($jobPublicId, [
                 'status' => 'completed',
                 'result_json' => json_encode([
@@ -196,8 +201,8 @@ final class AiActionService
                 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 'error_code' => $errorCode,
                 'error_message' => null,
-                'finished_at' => $now,
-                'updated_at' => $now,
+                'finished_at' => $finishedAt,
+                'updated_at' => $finishedAt,
             ]);
 
             $this->runtime->createUsageLog([

@@ -60,7 +60,8 @@ final class MentionService
             return 'FORBIDDEN';
         }
 
-        $mentioned = $this->users->findByPublicId($mentionedUserPublicId);
+        $orgId = (int)($actor['organization_id'] ?? 0);
+        $mentioned = $this->users->findByPublicIdInOrganization($mentionedUserPublicId, $orgId > 0 ? $orgId : null);
         if (!$mentioned || (int)($mentioned['is_active'] ?? 0) !== 1) {
             return 'MENTIONED_USER_NOT_FOUND';
         }
