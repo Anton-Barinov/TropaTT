@@ -4440,6 +4440,10 @@ return array (
   ),
   'ideas' => 
   array (
+    'ai_health_ai_disabled' => 'KI ist in den CRM-Einstellungen deaktiviert: die Analyse startet nicht, solange sie ausgeschaltet ist.',
+    'ai_health_provider_missing' => 'Es ist kein KI-Anbieter konfiguriert: hinterlegen Sie Anbieter und Schlüssel in den KI-Einstellungen.',
+    'ai_health_provider_unhealthy' => 'Der KI-Anbieter ist derzeit nicht erreichbar (die Verbindungsprüfung schlägt fehl), die Analyse endet daher fast sicher mit einem Fehler. Prüfen Sie Schlüssel, Guthaben und Modell in den KI-Einstellungen.',
+    'ai_health_recheck' => 'Erneut prüfen',
     'alert_collect_more_data' => 'Collect more data for an accurate assessment.',
     'alert_preliminary_estimate' => 'The estimate is approximate due to a lack of data.',
     'alert_preliminary_plan' => 'The plan is preliminary — not enough data.',

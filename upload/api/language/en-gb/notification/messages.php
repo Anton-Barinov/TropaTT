@@ -102,4 +102,11 @@ return [
     'until' => 'until',
     'intake_duplicate' => 'Intake item marked as duplicate',
     'marked_intake_duplicate' => 'marked the intake item as duplicate',
+    'ai_provider_incident_title' => 'AI provider failure',
+    'ai_provider_incident_body' => ':reason (provider ":provider"). AI error rate for the last hour: :error_rate. Check the key, balance and model in the AI settings.',
+    'ai_provider_recovered_title' => 'AI provider recovered',
+    'ai_provider_recovered_body' => 'Provider ":provider" answers again, AI features are working. Error rate for the last hour: :error_rate.',
+    'ai_incident_reason_credits' => 'the provider reports insufficient credits',
+    'ai_incident_reason_error_rate' => 'the AI call error rate crossed the threshold',
+    'ai_incident_reason_unreachable' => 'the provider does not answer the health check',
 ];

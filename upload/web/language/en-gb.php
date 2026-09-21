@@ -119,6 +119,10 @@ return array (
   ),
   'ideas' => 
   array (
+    'ai_health_ai_disabled' => 'AI is switched off in the CRM settings: the analysis cannot start until it is enabled.',
+    'ai_health_provider_missing' => 'No AI provider is configured: add a provider and its key in the AI settings.',
+    'ai_health_provider_unhealthy' => 'The AI provider is currently unreachable (its connection check fails), so the analysis will almost certainly end with an error. Check the key, balance and model in the AI settings.',
+    'ai_health_recheck' => 'Check again',
     'alert_collect_more_data' => 'Collect more data for an accurate assessment.',
     'alert_preliminary_estimate' => 'The estimate is approximate due to a lack of data.',
     'alert_preliminary_plan' => 'The plan is preliminary — not enough data.',

@@ -102,4 +102,11 @@ return [
     'rejected_intake' => 'a refusé l’élément de réception',
     'snoozed_intake' => 'a reporté l’élément de réception',
     'until' => 'jusqu’à',
+    'ai_provider_incident_title' => 'Défaillance du fournisseur IA',
+    'ai_provider_incident_body' => ':reason (fournisseur « :provider »). Taux d\'erreurs IA sur la dernière heure : :error_rate. Vérifiez la clé, le solde et le modèle dans les réglages IA.',
+    'ai_provider_recovered_title' => 'Fournisseur IA rétabli',
+    'ai_provider_recovered_body' => 'Le fournisseur « :provider » répond de nouveau, les fonctions IA fonctionnent. Taux d\'erreurs de la dernière heure : :error_rate.',
+    'ai_incident_reason_credits' => 'le fournisseur signale des crédits insuffisants',
+    'ai_incident_reason_error_rate' => 'le taux d\'erreurs des appels IA a dépassé le seuil',
+    'ai_incident_reason_unreachable' => 'le fournisseur ne répond pas au contrôle',
 ];

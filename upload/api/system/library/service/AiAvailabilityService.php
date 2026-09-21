@@ -89,17 +89,69 @@ final class AiAvailabilityService
             ];
         }
 
+        // The last scheduled health check (TROPATTCRM-623) already knows whether the
+        // provider is answering. Surfaces that start a long AI run read `unavailable_reason`
+        // and can say so instead of letting the user wait minutes for the failure.
+        $health = self::providerHealthSnapshot($provider);
+        $unavailableReason = '';
+        if (!$aiEnabled) {
+            $unavailableReason = 'ai_disabled';
+        } elseif (!$providerConfigured) {
+            $unavailableReason = 'provider_missing';
+        } elseif ($health['unhealthy']) {
+            $unavailableReason = 'provider_unhealthy';
+        }
+
         return [
             'ai' => [
                 'enabled' => $aiEnabled,
                 'provider_configured' => $providerConfigured,
                 'provider_public_id' => $providerPublicId,
+                'health' => $health,
+                'unavailable_reason' => $unavailableReason,
             ],
             'actor' => [
                 'can_use_ai' => $canUseAi,
                 'can_manage_ai' => $canManageAi,
             ],
             'intents' => $intents,
+        ];
+    }
+
+    /**
+     * Read the health block the monitor writes into `provider_payload.health`.
+     *
+     * `unhealthy` is true for an open incident or for the last check that failed:
+     * that provider is not going to answer the next call either, so callers must
+     * warn before a long AI run rather than after it. A provider that was never
+     * checked is reported as `unknown` and is deliberately not treated as down.
+     *
+     * @param array<string,mixed>|null $provider
+     * @return array<string,mixed>
+     */
+    public static function providerHealthSnapshot(?array $provider): array
+    {
+        $raw = $provider['provider_payload'] ?? null;
+        $payload = is_array($raw) ? $raw : json_decode((string)$raw, true);
+        $payload = is_array($payload) ? $payload : [];
+        $health = is_array($payload['health'] ?? null) ? (array)$payload['health'] : [];
+        $incident = is_array($health['incident'] ?? null) ? (array)$health['incident'] : [];
+
+        $incidentState = (string)($incident['state'] ?? '');
+        $status = trim((string)($health['status'] ?? ''));
+        if ($status === '') {
+            $status = $health === [] ? 'unknown' : 'ok';
+        }
+
+        return [
+            'status' => $status,
+            'last_checked_at' => (string)($health['last_checked_at'] ?? ''),
+            'last_error_at' => (string)($health['last_error_at'] ?? ''),
+            'last_error_code' => (string)($health['last_error_code'] ?? ''),
+            'incident_state' => $incidentState,
+            'incident_code' => (string)($incident['code'] ?? ''),
+            'incident_opened_at' => (string)($incident['opened_at'] ?? ''),
+            'unhealthy' => $incidentState === 'open' || $status === 'error',
         ];
     }
 

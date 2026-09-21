@@ -102,4 +102,11 @@ return [
     'rejected_intake' => 'hat den Intake-Eintrag abgelehnt',
     'snoozed_intake' => 'hat den Intake-Eintrag zurückgestellt',
     'until' => 'bis',
+    'ai_provider_incident_title' => 'KI-Anbieter ausgefallen',
+    'ai_provider_incident_body' => ':reason (Anbieter ":provider"). Fehlerquote der letzten Stunde: :error_rate. Prüfen Sie Schlüssel, Guthaben und Modell in den KI-Einstellungen.',
+    'ai_provider_recovered_title' => 'KI-Anbieter wieder erreichbar',
+    'ai_provider_recovered_body' => 'Anbieter ":provider" antwortet wieder, KI-Funktionen arbeiten. Fehlerquote der letzten Stunde: :error_rate.',
+    'ai_incident_reason_credits' => 'der Anbieter meldet unzureichendes Guthaben',
+    'ai_incident_reason_error_rate' => 'die Fehlerquote der KI-Aufrufe hat den Schwellenwert überschritten',
+    'ai_incident_reason_unreachable' => 'der Anbieter antwortet nicht auf die Prüfung',
 ];

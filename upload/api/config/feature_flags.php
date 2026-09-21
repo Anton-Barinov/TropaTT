@@ -51,5 +51,10 @@ return [
         'ai.cron.workflow_audit' => false,
         'ai.cron.semantic_index_refresh' => false,
         'ai.cron.suggestion_cleanup' => false,
+        // Proactive AI provider health monitoring (TROPATTCRM-623) is enabled by
+        // default: with it off, a revoked key or an exhausted balance is only
+        // discovered by the first user whose AI call fails. Installations that do
+        // not want the sweep do not install the cron line, or turn this off.
+        'ai.health.monitor' => true,
     ],
 ];

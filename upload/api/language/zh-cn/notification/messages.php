@@ -102,4 +102,11 @@ return [
     'rejected_intake' => '拒绝了收件项',
     'snoozed_intake' => '推迟了收件项',
     'until' => '截至',
+    'ai_provider_incident_title' => 'AI 提供商故障',
+    'ai_provider_incident_body' => ':reason（提供商“:provider”）。最近一小时的 AI 错误率：:error_rate。请在 AI 设置中检查密钥、余额和模型。',
+    'ai_provider_recovered_title' => 'AI 提供商已恢复',
+    'ai_provider_recovered_body' => '提供商“:provider”已恢复响应，AI 功能正常。最近一小时错误率：:error_rate。',
+    'ai_incident_reason_credits' => '提供商报告余额不足',
+    'ai_incident_reason_error_rate' => 'AI 调用错误率超过阈值',
+    'ai_incident_reason_unreachable' => '提供商未响应健康检查',
 ];

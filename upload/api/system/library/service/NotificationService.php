@@ -1023,6 +1023,131 @@ final class NotificationService
         ]);
     }
 
+    /**
+     * One notification per AI provider incident, sent by AiHealthMonitorService
+     * when a provider fails a scheduled probe twice in a row, reports an exhausted
+     * balance, or its recent AI calls error above the configured threshold
+     * (TROPATTCRM-623). Repeats of the same incident are suppressed by the
+     * monitor's incident state, not by the dedupe window here.
+     *
+     * @param array<string,mixed> $provider
+     * @param array<string,mixed> $incident
+     * @param array<string,mixed> $rate
+     * @param list<int> $adminUserIds
+     */
+    public function notifyAiProviderIncident(array $provider, array $incident, array $rate, array $adminUserIds): int
+    {
+        $providerPublicId = trim((string)($provider['public_id'] ?? ''));
+        if ($providerPublicId === '' || $adminUserIds === []) {
+            return 0;
+        }
+
+        $code = trim((string)($incident['code'] ?? ''));
+        if ($code === '') {
+            $code = AiHealthMonitorService::INCIDENT_UNREACHABLE;
+        }
+
+        return $this->notifyUsers($adminUserIds, [
+            'category' => 'system',
+            'title' => $this->t('notification/messages.ai_provider_incident_title'),
+            'body' => str_replace(
+                [':provider', ':reason', ':error_rate'],
+                [
+                    $this->aiProviderLabel($provider),
+                    $this->aiIncidentReason($code),
+                    $this->aiErrorRateLabel($rate),
+                ],
+                $this->t('notification/messages.ai_provider_incident_body')
+            ),
+            'entity_type' => 'ai_provider',
+            'entity_public_id' => $providerPublicId,
+            'action_code' => 'ai_provider_incident',
+            'link' => 'index.php?route=admin-ai',
+            'payload' => [
+                'provider_public_id' => $providerPublicId,
+                'incident_code' => $code,
+                'opened_at' => (string)($incident['opened_at'] ?? ''),
+                'consecutive_failures' => (int)($incident['consecutive_failures'] ?? 0),
+                'error_rate' => (float)($rate['rate'] ?? 0.0),
+                'error_samples' => (int)($rate['samples'] ?? 0),
+            ],
+        ]);
+    }
+
+    /**
+     * The matching "provider is healthy again" notification that closes the
+     * incident opened by notifyAiProviderIncident().
+     *
+     * @param array<string,mixed> $provider
+     * @param array<string,mixed> $incident
+     * @param array<string,mixed> $rate
+     * @param list<int> $adminUserIds
+     */
+    public function notifyAiProviderRecovered(array $provider, array $incident, array $rate, array $adminUserIds): int
+    {
+        $providerPublicId = trim((string)($provider['public_id'] ?? ''));
+        if ($providerPublicId === '' || $adminUserIds === []) {
+            return 0;
+        }
+
+        return $this->notifyUsers($adminUserIds, [
+            'category' => 'system',
+            'title' => $this->t('notification/messages.ai_provider_recovered_title'),
+            'body' => str_replace(
+                [':provider', ':error_rate'],
+                [$this->aiProviderLabel($provider), $this->aiErrorRateLabel($rate)],
+                $this->t('notification/messages.ai_provider_recovered_body')
+            ),
+            'entity_type' => 'ai_provider',
+            'entity_public_id' => $providerPublicId,
+            'action_code' => 'ai_provider_recovered',
+            'link' => 'index.php?route=admin-ai',
+            'payload' => [
+                'provider_public_id' => $providerPublicId,
+                'closed_incident_code' => (string)($incident['code'] ?? ''),
+                'opened_at' => (string)($incident['opened_at'] ?? ''),
+                'error_rate' => (float)($rate['rate'] ?? 0.0),
+            ],
+        ]);
+    }
+
+    /** @param array<string,mixed> $provider */
+    private function aiProviderLabel(array $provider): string
+    {
+        $label = trim((string)($provider['title'] ?? ''));
+        if ($label !== '') {
+            return $label;
+        }
+        $code = trim((string)($provider['provider_code'] ?? ''));
+
+        return $code !== '' ? $code : 'AI';
+    }
+
+    private function aiIncidentReason(string $code): string
+    {
+        return match ($code) {
+            AiHealthMonitorService::INCIDENT_INSUFFICIENT_CREDITS => $this->t('notification/messages.ai_incident_reason_credits'),
+            AiHealthMonitorService::INCIDENT_HIGH_ERROR_RATE => $this->t('notification/messages.ai_incident_reason_error_rate'),
+            default => $this->t('notification/messages.ai_incident_reason_unreachable'),
+        };
+    }
+
+    /**
+     * Error share of the window followed by the sample size, e.g. `40% (7)`.
+     *
+     * The count is always shown, including `0% (0)`: an incident opened by a failed
+     * probe while no AI call was made in the last hour must not leave the statistic
+     * blank in the notification body.
+     *
+     * @param array<string,mixed> $rate
+     */
+    private function aiErrorRateLabel(array $rate): string
+    {
+        $samples = (int)($rate['samples'] ?? 0);
+
+        return round(((float)($rate['rate'] ?? 0.0)) * 100, 1) . '% (' . $samples . ')';
+    }
+
     public function dispatchOverdueSignalsForUser(int $userId, array $actor = []): int
     {
         if ($this->tasks === null || $userId <= 0) {

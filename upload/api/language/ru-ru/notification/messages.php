@@ -102,4 +102,11 @@ return [
     'until' => 'до',
     'intake_duplicate' => 'Intake отмечен как дубликат',
     'marked_intake_duplicate' => 'отметил intake как дубликат',
+    'ai_provider_incident_title' => 'Сбой AI-провайдера',
+    'ai_provider_incident_body' => ':reason (провайдер «:provider»). Доля ошибок AI за последний час: :error_rate. Проверьте ключ, баланс и модель в настройках AI.',
+    'ai_provider_recovered_title' => 'AI-провайдер восстановлен',
+    'ai_provider_recovered_body' => 'Провайдер «:provider» снова отвечает, AI-функции работают. Доля ошибок за последний час: :error_rate.',
+    'ai_incident_reason_credits' => 'провайдер отвечает ошибкой «закончились средства»',
+    'ai_incident_reason_error_rate' => 'доля ошибок вызовов AI превысила порог',
+    'ai_incident_reason_unreachable' => 'провайдер не отвечает на проверку',
 ];
