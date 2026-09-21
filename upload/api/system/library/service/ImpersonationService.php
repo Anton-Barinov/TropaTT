@@ -54,6 +54,12 @@ final class ImpersonationService
             return ['ok' => false, 'code' => 'IMPERSONATION_SELF_FORBIDDEN'];
         }
 
+        // TROPATTCRM-608: impersonation stays inside the actor's active
+        // organization; a user of another workspace is reported as missing.
+        if (!$this->hierarchy->isWithinActorOrganization($actor, $targetId)) {
+            return ['ok' => false, 'code' => 'TARGET_USER_NOT_FOUND'];
+        }
+
         $actorRoles = $this->users->roleCodesByUserId($actorId);
         $actorIsSuperAdmin = (int)($actorFull['is_root'] ?? 0) === 1 || in_array('super_admin', $actorRoles, true);
 

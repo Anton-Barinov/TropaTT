@@ -65,19 +65,17 @@ final class UserService
      */
     public function get(string $publicId, ?array $actor = null): ?array
     {
-        $item = $this->users->findByPublicId($publicId);
+        $item = $actor !== null ? $this->findTargetForActor($publicId, $actor) : $this->users->findByPublicId($publicId);
         if (!$item) {
             return null;
         }
 
-        // H-4: object-level authorization — non-root actors may only view
-        // users they can manage (own subtree) or themselves.
+        // H-4: object-level authorization — actors may only view users they
+        // can manage (own subtree, or any member of the active organization
+        // for root) or themselves. TROPATTCRM-608: root is no longer exempt
+        // here; HierarchyPolicy keeps it inside the active organization.
         if ($actor !== null && !$this->policy->canManageUser($actor, $item)) {
-            $actorId = (int)($actor['id'] ?? 0);
-            $targetId = (int)($item['id'] ?? 0);
-            if ($actorId !== $targetId && !(bool)($actor['is_root'] ?? false)) {
-                return null;
-            }
+            return null;
         }
 
         return $this->withRoleData($item);
@@ -188,7 +186,7 @@ final class UserService
 
     public function update(string $publicId, array $input, array $actor): array
     {
-        $target = $this->users->findByPublicId($publicId);
+        $target = $this->findTargetForActor($publicId, $actor);
         if (!$target) {
             return ['ok' => false, 'code' => 'USER_NOT_FOUND'];
         }
@@ -341,7 +339,7 @@ final class UserService
 
     public function delete(string $publicId, array $actor): array
     {
-        $target = $this->users->findByPublicId($publicId);
+        $target = $this->findTargetForActor($publicId, $actor);
         if (!$target) {
             return ['ok' => false, 'code' => 'USER_NOT_FOUND'];
         }
@@ -373,7 +371,7 @@ final class UserService
 
     public function tokenInfo(string $publicId, array $actor): array
     {
-        $target = $this->users->findByPublicId($publicId);
+        $target = $this->findTargetForActor($publicId, $actor);
         if (!$target) {
             return ['ok' => false, 'code' => 'USER_NOT_FOUND'];
         }
@@ -392,7 +390,7 @@ final class UserService
 
     public function rotateToken(string $publicId, array $input, array $actor): array
     {
-        $target = $this->users->findByPublicId($publicId);
+        $target = $this->findTargetForActor($publicId, $actor);
         if (!$target) {
             return ['ok' => false, 'code' => 'USER_NOT_FOUND'];
         }
@@ -425,7 +423,7 @@ final class UserService
 
     public function revokeToken(string $publicId, array $actor): array
     {
-        $target = $this->users->findByPublicId($publicId);
+        $target = $this->findTargetForActor($publicId, $actor);
         if (!$target) {
             return ['ok' => false, 'code' => 'USER_NOT_FOUND'];
         }
@@ -450,7 +448,7 @@ final class UserService
 
     public function activity(string $publicId, array $filters, array $actor): array
     {
-        $target = $this->users->findByPublicId($publicId);
+        $target = $this->findTargetForActor($publicId, $actor);
         if (!$target) {
             return ['ok' => false, 'code' => 'USER_NOT_FOUND'];
         }
@@ -471,6 +469,25 @@ final class UserService
         ];
     }
 
+    /**
+     * Resolve a management target by public_id, treating users outside the
+     * actor's active organization as missing (TROPATTCRM-608) so the API
+     * does not disclose that they exist in another workspace.
+     */
+    private function findTargetForActor(string $publicId, array $actor): ?array
+    {
+        $target = $this->users->findByPublicId($publicId);
+        if (!$target) {
+            return null;
+        }
+        $isSelf = (int)($actor['id'] ?? 0) > 0 && (int)($actor['id'] ?? 0) === (int)($target['id'] ?? 0);
+        if (!$isSelf && !$this->policy->isWithinActorOrganization($actor, (int)($target['id'] ?? 0))) {
+            return null;
+        }
+
+        return $target;
+    }
+
     private function canManageSensitive(array $actor, array $target): bool
     {
         $actorIsRoot = (bool)($actor['is_root'] ?? false);
@@ -484,14 +501,12 @@ final class UserService
 
     private function canReadSensitive(array $actor, array $target): bool
     {
-        if ((bool)($actor['is_root'] ?? false)) {
-            return true;
-        }
-
         if ((int)($actor['id'] ?? 0) === (int)($target['id'] ?? 0)) {
             return true;
         }
 
+        // Root is handled by the policy, which keeps it inside the actor's
+        // active organization (TROPATTCRM-608).
         return $this->policy->canManageUser($actor, $target);
     }
 
