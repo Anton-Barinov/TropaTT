@@ -3727,19 +3727,6 @@ $tools[] = $this->tool(
         }
 
 
-        if (($ideaTool = $this->ideaWorkflowTools()[$name] ?? null) !== null) {
-            // Per-tool permission (mirrors the REST route): the debug/AI tooling
-            // needs ai.admin, read helpers need idea.view, the rest idea.manage.
-            $required = (array)($ideaTool['permissions'] ?? ['idea.manage']);
-            if (!$this->canAny($required)) {
-                return $this->toolError(
-                    'Insufficient permissions for tool: ' . $name
-                    . '. Required (any): ' . implode(', ', $required)
-                );
-            }
-            return $this->toolResult($this->callIdeaWorkflowTool($name, $arguments));
-        }
-
         // SEC-003: Fail-closed MCP permission registry
         $mcpPermissions = require __DIR__ . '/../../config/mcp_permissions.php';
         if (!isset($mcpPermissions[$name])) {
@@ -4349,7 +4336,9 @@ $tools[] = $this->tool(
             'crm_agent_bundle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmAgentBundle($arguments))),
             'crm_agent_memory' => $this->toolResult($this->crmAgentMemory($arguments)),
             'crm_chat' => $this->withPermissionAny(['chat.use', 'task.manage', 'project.manage'], fn() => $this->handleMegaTool('crm_chat', $arguments)),
-            default => $this->toolError('Unknown tool: ' . $name),
+            default => isset($this->ideaWorkflowTools()[$name])
+                ? $this->toolResult($this->callIdeaWorkflowTool($name, $arguments))
+                : $this->toolError('Unknown tool: ' . $name),
         };
         } catch (Throwable $e) {
             // An unexpected failure inside one tool must stay a tool-level error:
