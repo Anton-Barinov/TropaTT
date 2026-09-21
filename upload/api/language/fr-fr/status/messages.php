@@ -12,4 +12,8 @@ return [
     'remap_required' => 'remap_to_public_id est requis pour la suppression avec remapping',
     'max_64' => 'Maximum 64 caractères',
     'max_255' => 'Maximum 255 caractères',
+    'remap_not_found' => 'Statut cible de réassignation introuvable',
+    'in_use' => 'Impossible de supprimer le statut : il est utilisé par des tâches',
+    'remap_same' => 'Impossible de réassigner un statut à lui-même',
+    'remap_scope_mismatch' => 'Le statut cible de réassignation est dans un périmètre différent',
 ];
