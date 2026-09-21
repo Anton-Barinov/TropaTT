@@ -315,7 +315,7 @@ final class StickyNoteService
             return ['error' => 'VALIDATION_ERROR', 'errors' => ['project_public_id' => 'Required for task conversion']];
         }
 
-        $project = $this->projectRepo->findByPublicId((string)$projectPublicId);
+        $project = $this->projectRepo->findByPublicId((string)$projectPublicId, $organizationId);
         if ($project === null) {
             return ['error' => 'PROJECT_NOT_FOUND'];
         }
@@ -350,6 +350,9 @@ final class StickyNoteService
 
         // Use task service to create task
         $actorArr = ['id' => $actorUserId, 'is_root' => $isRoot];
+        if ($organizationId !== null) {
+            $actorArr['organization_id'] = $organizationId;
+        }
         try {
             $task = $this->taskService->create($taskPayload, $actorArr);
         } catch (\Throwable $e) {
