@@ -2721,7 +2721,10 @@ PROMPT;
             if (!$setting) {
                 return true;
             }
-            return (int)($setting['value'] ?? 1) === 1;
+            $raw = $setting['value'] ?? '1';
+            $decoded = json_decode($raw, true);
+            $val = $decoded !== null ? $decoded : $raw;
+            return filter_var($val, FILTER_VALIDATE_BOOLEAN) || (string)$val === '1';
         } catch (\Throwable $e) {
             $this->logError('idea_feature_flag_lookup_failed', ['flag' => 'ideas_ai_enabled', 'error' => $e->getMessage()]);
             return true;
@@ -2733,7 +2736,13 @@ PROMPT;
         try {
             $setting = (new \Api\Model\Setting\SettingRepository($this->container->get('db.pdo')))
                 ->findByScopeAndName('features', 'ideas_ai_safe_mode');
-            return $setting && ((int)($setting['value'] ?? 0) === 1);
+            if (!$setting) {
+                return false;
+            }
+            $raw = $setting['value'] ?? '0';
+            $decoded = json_decode($raw, true);
+            $val = $decoded !== null ? $decoded : $raw;
+            return filter_var($val, FILTER_VALIDATE_BOOLEAN) || (string)$val === '1';
         } catch (\Throwable $e) {
             $this->logError('idea_feature_flag_lookup_failed', ['flag' => 'ideas_ai_safe_mode', 'error' => $e->getMessage()]);
             return false;
