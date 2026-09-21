@@ -28,7 +28,11 @@ final class SavedViewRepository
         if ($organizationId === null || $organizationId <= 0) {
             return [null, []];
         }
-        return ['v.organization_id = :scope_organization_id', ['scope_organization_id' => $organizationId]];
+        // NOTE: QueryBuilder::whereRaw() only substitutes positional '?'
+        // placeholders with its own internal binding names (see its
+        // implementation) — a named ":placeholder" here is written into the
+        // SQL verbatim without a matching PDO binding and breaks prepare().
+        return ['v.organization_id = ?', [$organizationId]];
     }
 
     /**
@@ -45,7 +49,7 @@ final class SavedViewRepository
         $sort = in_array(($filters['sort'] ?? ''), ['sort_order', 'title', 'created_at', 'updated_at', 'last_used_at'], true) ? (string)$filters['sort'] : 'sort_order';
         $order = strtoupper((string)($filters['order'] ?? 'ASC')) === 'DESC' ? 'DESC' : 'ASC';
 
-        $qb = $this->buildListQuery($filters, $actorUserId, $actorIsRoot);
+        $qb = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $organizationId);
 
         $total = $qb->count();
 
@@ -90,7 +94,7 @@ final class SavedViewRepository
         ];
     }
 
-    private function buildListQuery(array $filters, int $actorUserId, bool $actorIsRoot): QueryBuilder
+    private function buildListQuery(array $filters, int $actorUserId, bool $actorIsRoot, ?int $organizationId = null): QueryBuilder
     {
         $qb = (new QueryBuilder($this->pdo))
             ->from('saved_views v')
