@@ -77,21 +77,31 @@ final class TaskBoardService
             }
         }
 
-        if ($statusCode === '') {
+        $toProjectPublicId = trim((string)($input['to_project_public_id'] ?? ''));
+
+        if ($statusCode === '' && $toProjectPublicId === '') {
             return 'STATUS_REQUIRED';
         }
 
-        if (!$this->isAllowedStatus($statusCode)) {
+        if ($statusCode !== '' && !$this->isAllowedStatus($statusCode)) {
             return 'INVALID_STATUS';
         }
 
-        if ($this->isWipLimitExceeded($statusCode, $task)) {
+        if ($statusCode !== '' && $this->isWipLimitExceeded($statusCode, $task)) {
             return 'WIP_LIMIT_EXCEEDED';
+        }
+
+        $updatePayload = [];
+        if ($statusCode !== '') {
+            $updatePayload['status'] = $statusCode;
+        }
+        if ($toProjectPublicId !== '') {
+            $updatePayload['project_public_id'] = $toProjectPublicId;
         }
 
         $updated = $this->taskService->update(
             $taskPublicId,
-            ['status' => $statusCode],
+            $updatePayload,
             (int)($actor['id'] ?? 0),
             $actor
         );
