@@ -126,11 +126,17 @@ final class ActivityRepository
         if ($actorOrganizationId === null || $actorOrganizationId <= 0) {
             return [null, []];
         }
-        $params = ['org_actor_public_id' => $actorPublicId, 'org_scope_id' => $actorOrganizationId];
-        $sql = "({$actorColumn} = :org_actor_public_id OR EXISTS (
+        // NOTE: QueryBuilder::whereRaw() only substitutes positional '?'
+        // placeholders with its own internal binding names — named
+        // ":placeholder" markers here are written into the SQL verbatim
+        // without a matching PDO binding and break prepare() (same bug
+        // independently found and fixed in SavedViewRepository/
+        // ApiClientRepository for TROPATTCRM-607/606).
+        $params = [$actorPublicId, $actorOrganizationId];
+        $sql = "({$actorColumn} = ? OR EXISTS (
             SELECT 1 FROM organization_memberships org_scope_m
             JOIN users org_scope_u ON org_scope_u.id = org_scope_m.user_id
-            WHERE org_scope_m.organization_id = :org_scope_id
+            WHERE org_scope_m.organization_id = ?
               AND org_scope_u.public_id = {$actorColumn}
               AND org_scope_u.deleted_at IS NULL
         ))";
