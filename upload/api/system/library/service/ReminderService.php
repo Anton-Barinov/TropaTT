@@ -68,7 +68,7 @@ final class ReminderService
 
         $taskId = null;
         if (!empty($input['task_public_id'])) {
-            $task = $this->tasks->findByPublicId((string)$input['task_public_id']);
+            $task = $this->tasks->findByPublicId((string)$input['task_public_id'], $this->organizationId($actor));
             if (!$task) {
                 return 'TASK_NOT_FOUND';
             }
@@ -126,7 +126,7 @@ final class ReminderService
             if ($input['task_public_id'] === null || $input['task_public_id'] === '') {
                 $set['task_id'] = null;
             } else {
-                $task = $this->tasks->findByPublicId((string)$input['task_public_id']);
+                $task = $this->tasks->findByPublicId((string)$input['task_public_id'], $this->organizationId($actor));
                 if (!$task) {
                     return 'TASK_NOT_FOUND';
                 }

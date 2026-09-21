@@ -273,6 +273,10 @@ final class TaskRelationService
             'implemented_by' => 'implements',
             'causes' => 'caused_by',
             'child_of' => 'parent_of',
+            'fs' => 'blocked_by',
+            'ss' => 'relates_to',
+            'ff' => 'relates_to',
+            'sf' => 'relates_to',
             default => null,
         };
     }

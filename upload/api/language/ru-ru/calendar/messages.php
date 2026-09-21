@@ -48,4 +48,5 @@ return [
     'day_fri' => 'Пт',
     'day_sat' => 'Сб',
     'day_sun' => 'Вс',
+    'invalid_timezone' => 'Недопустимый часовой пояс',
 ];

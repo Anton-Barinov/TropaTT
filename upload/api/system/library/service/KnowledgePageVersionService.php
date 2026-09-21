@@ -15,7 +15,20 @@ final class KnowledgePageVersionService
         private readonly ?ProjectService $projectService = null,
         private readonly ?JsonLogger $logger = null,
         private readonly ?string $requestId = null,
+        private readonly ?\Api\Model\Knowledge\KnowledgeRepository $knowledgeRepo = null,
     ) {
+    }
+
+    private function resolveAccessiblePage(string $pagePublicId, array $actor, string $minAccess = 'view'): ?array
+    {
+        if ($this->knowledgeRepo !== null) {
+            return $this->knowledgeRepo->page($pagePublicId, $actor, $minAccess);
+        }
+        // TROPATTCRM-605: the previous fallback resolved the page WITHOUT any
+        // actor/access check — every method of this service was effectively
+        // unauthenticated whenever the ACL-aware repository was unavailable.
+        // Fail closed: no ACL-capable repository, no access.
+        return null;
     }
 
     /**
@@ -24,13 +37,13 @@ final class KnowledgePageVersionService
      */
     public function listVersions(string $pagePublicId, array $filters, array $actor): array|string|null
     {
-        $pageId = $this->versions->pageIdByPublicId($pagePublicId);
-        if ($pageId === null) {
+        $page = $this->resolveAccessiblePage($pagePublicId, $actor, 'view');
+        if (!$page) {
             return 'KNOWLEDGE_PAGE_NOT_FOUND';
         }
 
-        $page = $this->versions->getPage($pagePublicId);
-        if (!$page) {
+        $pageId = (int)($page['id'] ?? $this->versions->pageIdByPublicId($pagePublicId));
+        if ($pageId <= 0) {
             return 'KNOWLEDGE_PAGE_NOT_FOUND';
         }
 
@@ -87,7 +100,7 @@ final class KnowledgePageVersionService
      */
     public function getVersion(string $pagePublicId, string $versionPublicId, array $actor): array|string|null
     {
-        $page = $this->versions->getPage($pagePublicId);
+        $page = $this->resolveAccessiblePage($pagePublicId, $actor, 'view');
         if (!$page) {
             return 'KNOWLEDGE_PAGE_NOT_FOUND';
         }
@@ -177,7 +190,7 @@ final class KnowledgePageVersionService
      */
     public function restoreVersion(string $pagePublicId, string $versionPublicId, array $input, array $actor): array|string|null
     {
-        $page = $this->versions->getPage($pagePublicId);
+        $page = $this->resolveAccessiblePage($pagePublicId, $actor, 'edit');
         if (!$page) {
             return 'KNOWLEDGE_PAGE_NOT_FOUND';
         }
@@ -262,7 +275,7 @@ final class KnowledgePageVersionService
      */
     public function lockPage(string $pagePublicId, array $input, array $actor): array|string|null
     {
-        $page = $this->versions->getPage($pagePublicId);
+        $page = $this->resolveAccessiblePage($pagePublicId, $actor, 'edit');
         if (!$page) {
             return 'KNOWLEDGE_PAGE_NOT_FOUND';
         }
@@ -297,7 +310,7 @@ final class KnowledgePageVersionService
      */
     public function unlockPage(string $pagePublicId, array $input, array $actor): array|string|null
     {
-        $page = $this->versions->getPage($pagePublicId);
+        $page = $this->resolveAccessiblePage($pagePublicId, $actor, 'edit');
         if (!$page) {
             return 'KNOWLEDGE_PAGE_NOT_FOUND';
         }
@@ -310,6 +323,18 @@ final class KnowledgePageVersionService
         // Idempotent: if not locked, return success
         if (empty($page['locked_at'])) {
             return $page;
+        }
+
+        // Permission: only lock author, page owner, or admin/root can unlock
+        $actorId = (int)($actor['id'] ?? 0);
+        $isRoot = !empty($actor['is_root']);
+        $perms = (array)($actor['permission_codes'] ?? []);
+        $isAdmin = $isRoot || in_array('*', $perms, true) || in_array('knowledge.admin', $perms, true) || in_array('knowledge.manage', $perms, true);
+        $lockedBy = (int)($page['locked_by_user_id'] ?? 0);
+        $ownerId = (int)($page['owner_user_id'] ?? 0);
+
+        if ($lockedBy > 0 && $lockedBy !== $actorId && $ownerId !== $actorId && !$isAdmin) {
+            return 'KNOWLEDGE_PAGE_UNLOCK_FORBIDDEN';
         }
 
         $this->versions->updatePageLock($pagePublicId, [
@@ -326,7 +351,7 @@ final class KnowledgePageVersionService
      */
     public function diffVersion(string $pagePublicId, string $versionPublicId, array $actor): array|string|null
     {
-        $page = $this->versions->getPage($pagePublicId);
+        $page = $this->resolveAccessiblePage($pagePublicId, $actor, 'view');
         if (!$page) {
             return 'KNOWLEDGE_PAGE_NOT_FOUND';
         }

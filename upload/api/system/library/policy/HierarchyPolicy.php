@@ -22,6 +22,21 @@ final class HierarchyPolicy
             return false;
         }
 
+        if ($actorId === $targetId) {
+            return true;
+        }
+
+        // TROPATTCRM-608: an actor working inside an organization (active
+        // workspace resolved by OrganizationContextService) may only manage
+        // members of that organization. This applies to root as well — before
+        // this check a multi-organization root could read, edit, delete and
+        // rotate/revoke tokens of any user of any other organization.
+        // Actors without an active organization keep the previous behaviour,
+        // mirroring UserController::list().
+        if (!$this->isWithinActorOrganization($actor, $targetId)) {
+            return false;
+        }
+
         if ($actorIsRoot) {
             return true;
         }
@@ -30,12 +45,22 @@ final class HierarchyPolicy
             return false;
         }
 
-        if ($actorId === $targetId) {
+        // Non-root can manage only their own subtree (actor must be ancestor of target)
+        return $this->isAncestor($actorId, $targetId);
+    }
+
+    /**
+     * True when the actor has no active organization, or the target user is a
+     * member of the actor's active organization.
+     */
+    public function isWithinActorOrganization(array $actor, int $targetUserId): bool
+    {
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        if ($organizationId <= 0) {
             return true;
         }
 
-        // Non-root can manage only their own subtree (actor must be ancestor of target)
-        return $this->isAncestor($actorId, $targetId);
+        return $this->users->isOrganizationMember($targetUserId, $organizationId);
     }
 
     public function isAncestor(int $candidateAncestorId, int $userId): bool

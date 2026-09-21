@@ -508,6 +508,12 @@ final class WorkCycleService
             }
         }
 
+        $projectId = (int)($cycle['project_id'] ?? 0);
+        $existingActive = $this->cycles->findActiveByProjectId($projectId);
+        if ($existingActive !== null && (int)($existingActive['id'] ?? 0) !== (int)($cycle['id'] ?? 0)) {
+            return 'CYCLE_ACTIVE_ALREADY_EXISTS';
+        }
+
         $this->cycles->updateByPublicId($cyclePublicId, [
             'status' => 'active',
             'archived_at' => null,

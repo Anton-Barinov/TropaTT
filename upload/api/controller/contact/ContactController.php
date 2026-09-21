@@ -17,6 +17,11 @@ final class ContactController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var ContactService $service */
         $service = $this->container->get('service.contact');
@@ -31,6 +36,11 @@ final class ContactController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var ContactService $service */
         $service = $this->container->get('service.contact');
@@ -50,6 +60,11 @@ final class ContactController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         $v = new Validator();
@@ -100,6 +115,11 @@ final class ContactController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var ContactService $service */
         $service = $this->container->get('service.contact');
@@ -144,6 +164,11 @@ final class ContactController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var ContactService $service */
         $service = $this->container->get('service.contact');

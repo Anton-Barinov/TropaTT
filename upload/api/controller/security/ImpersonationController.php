@@ -27,7 +27,12 @@ final class ImpersonationController extends BaseController
 
         /** @var ImpersonationService $service */
         $service = $this->container->get('service.impersonation');
-        $result = $service->start($auth['user'], $input, $this->request()->ip(), $this->request()->userAgent());
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)$auth['user']);
+        $result = $service->start($actor, $input, $this->request()->ip(), $this->request()->userAgent());
         if (!(bool)($result['ok'] ?? false)) {
             $code = (string)($result['code'] ?? 'IMPERSONATION_START_FAILED');
             $status = match ($code) {

@@ -98,6 +98,9 @@ final class MigrationManager
             new ProjectTaskKeyPrefixBackfillMigration(),
             new OrganizationFunctionalScopeMigration(),
             new OrganizationDashboardWidgetScopeMigration(),
+            new CalendarEventAttendeesMigration(),
+            new RecurringRuleGeneratedCountMigration(),
+            new ApiClientOrganizationScopeMigration(),
         ];
     }
 

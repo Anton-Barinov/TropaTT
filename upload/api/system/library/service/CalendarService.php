@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\System\Library\Service;
 
 use Api\Model\Calendar\CalendarEventRepository;
+use Api\Model\Common\UserRepository;
 use Api\Model\Project\ProjectRepository;
 use Api\Model\Reminder\ReminderRepository;
 use Api\Model\Task\TaskRepository;
@@ -18,8 +19,71 @@ final class CalendarService
         private readonly ProjectRepository $projects,
         private readonly ReminderRepository $reminders,
         private readonly JsonLogger $logger,
-        private readonly ?NotificationService $notifications = null
+        private readonly ?NotificationService $notifications = null,
+        private readonly ?UserRepository $users = null
     ) {
+    }
+
+    public static function normalizeToUtc(string $datetime, ?string $timezone = null): string
+    {
+        $raw = trim($datetime);
+        if ($raw === '') {
+            return $raw;
+        }
+        try {
+            if (preg_match('/(?:Z|[+-]\d{2}(?::?\d{2})?)$/i', $raw)) {
+                $dt = new \DateTimeImmutable($raw);
+            } elseif (!empty($timezone) && in_array($timezone, \DateTimeZone::listIdentifiers(), true)) {
+                $dt = new \DateTimeImmutable($raw, new \DateTimeZone($timezone));
+            } else {
+                $dt = new \DateTimeImmutable($raw, new \DateTimeZone('UTC'));
+            }
+            return $dt->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+        } catch (\Throwable) {
+            return $raw;
+        }
+    }
+
+    private function resolveAttendeeUserIds(array $input, array $actor): array
+    {
+        $raw = $input['attendees'] ?? $input['attendee_user_ids'] ?? $input['attendee_public_ids'] ?? null;
+        if (!is_array($raw)) {
+            return [];
+        }
+        $ids = [];
+        foreach ($raw as $item) {
+            if (is_int($item) || (is_string($item) && ctype_digit($item))) {
+                $id = (int)$item;
+                if ($id > 0) {
+                    $ids[] = $id;
+                }
+            } elseif (is_string($item) && str_starts_with($item, 'usr_')) {
+                if ($this->users !== null) {
+                    $u = $this->users->findByPublicIdInOrganization($item, $this->organizationId($actor));
+                    if (!$u) {
+                        $u = $this->users->findByPublicId($item);
+                    }
+                    if ($u && !empty($u['id'])) {
+                        $ids[] = (int)$u['id'];
+                    }
+                }
+            } elseif (is_array($item)) {
+                if (!empty($item['id'])) {
+                    $ids[] = (int)$item['id'];
+                } elseif (!empty($item['user_id'])) {
+                    $ids[] = (int)$item['user_id'];
+                } elseif (!empty($item['public_id']) && is_string($item['public_id']) && $this->users !== null) {
+                    $u = $this->users->findByPublicIdInOrganization($item['public_id'], $this->organizationId($actor));
+                    if (!$u) {
+                        $u = $this->users->findByPublicId($item['public_id']);
+                    }
+                    if ($u && !empty($u['id'])) {
+                        $ids[] = (int)$u['id'];
+                    }
+                }
+            }
+        }
+        return array_values(array_unique($ids));
     }
 
     public function listEvents(array $filters, array $actor): array
@@ -65,8 +129,9 @@ final class CalendarService
         }
 
         $publicId = Ulid::generate('evt');
-        $startsAt = (string)$input['starts_at'];
-        $endsAt = (string)($input['ends_at'] ?? $startsAt);
+        $timezone = isset($input['timezone']) && is_string($input['timezone']) ? trim($input['timezone']) : null;
+        $startsAt = self::normalizeToUtc((string)$input['starts_at'], $timezone);
+        $endsAt = self::normalizeToUtc((string)($input['ends_at'] ?? $input['starts_at']), $timezone);
         $now = gmdate('Y-m-d H:i:s');
         // Trusted migration adapters may preserve a mapped owner, but only a
         // root actor may assign an event to another CRM user. Public callers
@@ -76,7 +141,7 @@ final class CalendarService
             $ownerUserId = (int)$input['owner_user_id'];
         }
 
-        $this->events->create([
+        $eventId = $this->events->create([
             'public_id' => $publicId,
             'title' => trim((string)$input['title']),
             'description' => trim((string)($input['description'] ?? '')),
@@ -89,6 +154,11 @@ final class CalendarService
             'created_at' => $now,
             'updated_at' => $now,
         ]);
+
+        $attendeeUserIds = $this->resolveAttendeeUserIds($input, $actor);
+        if ($attendeeUserIds !== []) {
+            $this->events->syncAttendees($eventId, $attendeeUserIds);
+        }
 
         $this->logger->audit([
             'action' => 'calendar_event_created',
@@ -127,11 +197,12 @@ final class CalendarService
         if (array_key_exists('description', $input)) {
             $set['description'] = trim((string)$input['description']);
         }
+        $timezone = isset($input['timezone']) && is_string($input['timezone']) ? trim($input['timezone']) : null;
         if (array_key_exists('starts_at', $input)) {
-            $set['starts_at'] = (string)$input['starts_at'];
+            $set['starts_at'] = self::normalizeToUtc((string)$input['starts_at'], $timezone);
         }
         if (array_key_exists('ends_at', $input)) {
-            $set['ends_at'] = (string)$input['ends_at'];
+            $set['ends_at'] = self::normalizeToUtc((string)$input['ends_at'], $timezone);
         }
         if (array_key_exists('project_public_id', $input)) {
             if ($input['project_public_id'] === null || $input['project_public_id'] === '') {
@@ -159,6 +230,11 @@ final class CalendarService
         if ($set !== []) {
             $set['updated_at'] = gmdate('Y-m-d H:i:s');
             $this->events->updateByPublicId($publicId, (int)$actor['id'], (bool)($actor['is_root'] ?? false), $set, $this->organizationId($actor));
+        }
+
+        if (array_key_exists('attendees', $input) || array_key_exists('attendee_user_ids', $input) || array_key_exists('attendee_public_ids', $input)) {
+            $attendeeUserIds = $this->resolveAttendeeUserIds($input, $actor);
+            $this->events->syncAttendees((int)($existing['id'] ?? 0), $attendeeUserIds);
         }
 
         $this->logger->audit([
@@ -374,6 +450,14 @@ final class CalendarService
                 $userIds[] = (int)($project['manager_user_id'] ?? 0);
                 $userIds[] = (int)($project['team_manager_user_id'] ?? 0);
                 $userIds = array_merge($userIds, $this->decodeTeamMemberIds($project['team_member_user_ids'] ?? null));
+            }
+        }
+
+        if (!empty($event['attendees']) && is_array($event['attendees'])) {
+            foreach ($event['attendees'] as $att) {
+                if (is_array($att) && !empty($att['id'])) {
+                    $userIds[] = (int)$att['id'];
+                }
             }
         }
 

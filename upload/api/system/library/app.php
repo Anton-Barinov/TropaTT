@@ -855,6 +855,16 @@ final class App
         $logChannels = (array)$this->config->get('logging.channels', []);
         $maskKeys = (array)$this->config->get('logging.mask_keys', []);
         $logWriter = function (string $channel, array $context) use ($db): void {
+            if ($channel === 'audit' && $this->container->has('auth_user')) {
+                $authUser = $this->container->get('auth_user');
+                $actor = is_array($authUser) && isset($authUser['user']) && is_array($authUser['user']) ? $authUser['user'] : [];
+                if (!empty($actor['impersonated_by_user_id']) && empty($context['impersonated_by_user_id'])) {
+                    $context['impersonated_by_user_id'] = (int)$actor['impersonated_by_user_id'];
+                }
+                if (!empty($actor['impersonated_by_user_public_id']) && empty($context['impersonated_by_user_public_id'])) {
+                    $context['impersonated_by_user_public_id'] = (string)$actor['impersonated_by_user_public_id'];
+                }
+            }
             $pdo = $db->connect();
             $repo = new \Api\Model\Logs\LogsRepository($pdo);
 
@@ -1263,7 +1273,8 @@ final class App
             $c->get('repository.worklog'),
         ));
         $this->container->factory('service.sla', fn(Container $c) => new SlaService(
-            $c->get('repository.sla')
+            $c->get('repository.sla'),
+            $c->get('service.business_calendar')
         ));
         $this->container->factory('service.approval', fn(Container $c) => new ApprovalService(
             $c->get('repository.approval'),
@@ -1499,11 +1510,20 @@ final class App
             $c->get('repository.project'),
             $c->get('repository.reminder'),
             $c->get('logger'),
-            $c->get('service.notification')
+            $c->get('service.notification'),
+            $c->get('repository.user')
         ));
         $this->container->factory('service.business_calendar', fn(Container $c) => new BusinessCalendarService(
             $c->get('repository.business_calendar'),
             $c->get('logger')
+        ));
+        $this->container->factory('service.recurring_processor', fn(Container $c) => new \Api\System\Library\Service\RecurringProcessorService(
+            $c->get('repository.recurring'),
+            $c->get('repository.task'),
+            $c->get('repository.project'),
+            $c->get('repository.reminder'),
+            $c->get('repository.calendar_event'),
+            $c->get('db')
         ));
         $this->container->factory('service.worklog', fn(Container $c) => new WorklogService(
             $c->get('repository.worklog'),
@@ -1585,7 +1605,8 @@ final class App
             new \Api\Model\Knowledge\KnowledgePageVersionRepository($c->get('db.pdo')),
             $c->get('service.project'),
             $c->get('logger'),
-            $c->get('request')->requestId
+            $c->get('request')->requestId,
+            $c->get('repository.knowledge')
         ));
 
         $this->container->factory('service.activity', fn(Container $c) => new ActivityService(

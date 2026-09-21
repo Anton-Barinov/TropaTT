@@ -318,4 +318,144 @@ final class BusinessCalendarService
 
         return $ok;
     }
+
+    public function addWorkingMinutes(\DateTimeImmutable $from, int $minutes, ?int $calendarId = null, ?int $organizationId = null): \DateTimeImmutable
+    {
+        if ($minutes <= 0) {
+            return $from;
+        }
+
+        $calendar = null;
+        if ($calendarId !== null && $calendarId > 0) {
+            $calendar = $this->repo->findCalendarById($calendarId);
+        }
+        if (!$calendar) {
+            $calendar = $this->repo->getDefaultCalendarForOrganization($organizationId);
+        }
+
+        // If no calendar exists, or no working hours exist:
+        // fall back to astronomical minutes (24/7)
+        if (!$calendar) {
+            return $from->modify("+{$minutes} minutes");
+        }
+
+        $calId = (int)$calendar['id'];
+        $rawWorkingHours = $this->repo->getAllWorkingHoursForCalendar($calId);
+        if ($rawWorkingHours === []) {
+            return $from->modify("+{$minutes} minutes");
+        }
+
+        // Parse calendar timezone
+        $tzStr = trim((string)($calendar['timezone'] ?? 'UTC'));
+        try {
+            $tz = new \DateTimeZone($tzStr !== '' ? $tzStr : 'UTC');
+        } catch (\Throwable) {
+            $tz = new \DateTimeZone('UTC');
+        }
+
+        // Group working hours by weekday 1..7 (1=Mon, 7=Sun)
+        $schedule = [];
+        $is24x7 = true;
+        for ($i = 1; $i <= 7; $i++) {
+            $schedule[$i] = [];
+        }
+
+        foreach ($rawWorkingHours as $wh) {
+            $dow = (int)$wh['weekday'];
+            if ($dow < 1 || $dow > 7) {
+                continue;
+            }
+            $startParts = explode(':', (string)$wh['start_time']);
+            $endParts = explode(':', (string)$wh['end_time']);
+            $startSec = (int)($startParts[0] ?? 0) * 3600 + (int)($startParts[1] ?? 0) * 60 + (int)($startParts[2] ?? 0);
+            $endSec = (int)($endParts[0] ?? 0) * 3600 + (int)($endParts[1] ?? 0) * 60 + (int)($endParts[2] ?? 0);
+            if ($endSec > $startSec) {
+                $schedule[$dow][] = ['start' => $startSec, 'end' => $endSec];
+            }
+        }
+
+        // Check if every day has schedule and if all 7 days cover 00:00 to 24:00 (or >= 86340 sec)
+        for ($i = 1; $i <= 7; $i++) {
+            if (empty($schedule[$i])) {
+                $is24x7 = false;
+                break;
+            }
+            usort($schedule[$i], static fn($a, $b) => $a['start'] <=> $b['start']);
+            $totalDaySec = 0;
+            foreach ($schedule[$i] as $intv) {
+                $totalDaySec += ($intv['end'] - $intv['start']);
+            }
+            if ($totalDaySec < 86340) { // 23h 59m
+                $is24x7 = false;
+            }
+        }
+
+        // Fetch holidays for the next year
+        $startDateStr = $from->setTimezone($tz)->format('Y-m-d');
+        $endDateStr = $from->setTimezone($tz)->modify('+366 days')->format('Y-m-d');
+        $holidayRows = $this->repo->getHolidaysInRange($calId, $startDateStr, $endDateStr);
+        $holidays = [];
+        foreach ($holidayRows as $h) {
+            $holidays[$h['holiday_date']] = true;
+        }
+
+        if ($is24x7 && empty($holidays)) {
+            return $from->modify("+{$minutes} minutes");
+        }
+
+        $current = $from->setTimezone($tz);
+        $remaining = $minutes;
+        $maxDays = 366;
+        $daysCount = 0;
+
+        while ($remaining > 0 && $daysCount < $maxDays) {
+            $dayStr = $current->format('Y-m-d');
+            $dow = (int)$current->format('N');
+
+            if (isset($holidays[$dayStr]) || empty($schedule[$dow])) {
+                $current = $current->modify('+1 day')->setTime(0, 0, 0);
+                $daysCount++;
+                continue;
+            }
+
+            $currentSec = (int)$current->format('H') * 3600 + (int)$current->format('i') * 60 + (int)$current->format('s');
+            $intervals = $schedule[$dow];
+
+            foreach ($intervals as $interval) {
+                $startSec = $interval['start'];
+                $endSec = $interval['end'];
+
+                if ($currentSec >= $endSec) {
+                    continue;
+                }
+
+                if ($currentSec < $startSec) {
+                    $current = $current->setTime((int)intdiv($startSec, 3600), (int)intdiv($startSec % 3600, 60), $startSec % 60);
+                    $currentSec = $startSec;
+                }
+
+                $availableMinutes = (int)floor(($endSec - $currentSec) / 60);
+                if ($availableMinutes <= 0) {
+                    continue;
+                }
+
+                if ($remaining <= $availableMinutes) {
+                    $current = $current->modify("+{$remaining} minutes");
+                    $remaining = 0;
+                    break;
+                }
+
+                $remaining -= $availableMinutes;
+                $current = $current->setTime((int)intdiv($endSec, 3600), (int)intdiv($endSec % 3600, 60), $endSec % 60);
+                $currentSec = $endSec;
+            }
+
+            if ($remaining > 0) {
+                $current = $current->modify('+1 day')->setTime(0, 0, 0);
+                $daysCount++;
+            }
+        }
+
+        return $current->setTimezone($from->getTimezone());
+    }
 }

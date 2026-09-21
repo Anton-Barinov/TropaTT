@@ -137,6 +137,7 @@ final class CustomFieldService
 
     public function delete(string $publicId): bool
     {
+        $this->fields->deleteValuesByFieldPublicId($publicId);
         return $this->fields->deleteByPublicId($publicId);
     }
 
@@ -200,6 +201,11 @@ final class CustomFieldService
                 return 'FIELD_NOT_FOUND';
             }
 
+            $validationError = $this->validateFieldValue($field, $value);
+            if ($validationError !== null) {
+                return $validationError;
+            }
+
             $encodedValue = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             $existing = $this->fields->valueByFieldEntity(
                 (int)$field['id'],
@@ -233,6 +239,27 @@ final class CustomFieldService
             'upserted' => $upserted,
             'items' => $this->valuesUnchecked($entityType, $entityPublicId),
         ];
+    }
+
+    private function validateFieldValue(array $field, mixed $value): ?string
+    {
+        $type = (string)($field['type'] ?? 'text');
+        $options = [];
+        if (!empty($field['options']) && is_string($field['options'])) {
+            $options = json_decode($field['options'], true) ?: [];
+        }
+
+        return match ($type) {
+            'number' => (is_numeric($value) || $value === null) ? null : 'FIELD_VALUE_NOT_NUMERIC',
+            'boolean' => (is_bool($value) || in_array($value, [0, 1, '0', '1', null], true)) ? null : 'FIELD_VALUE_NOT_BOOLEAN',
+            'date' => ($value === null || preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$value) === 1) ? null : 'FIELD_VALUE_INVALID_DATE',
+            'datetime' => ($value === null || preg_match('/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/', (string)$value) === 1) ? null : 'FIELD_VALUE_INVALID_DATETIME',
+            'url' => ($value === null || filter_var((string)$value, FILTER_VALIDATE_URL) !== false) ? null : 'FIELD_VALUE_INVALID_URL',
+            'email' => ($value === null || filter_var((string)$value, FILTER_VALIDATE_EMAIL) !== false) ? null : 'FIELD_VALUE_INVALID_EMAIL',
+            'select' => ($value === null || ($options !== [] && in_array($value, $options, true))) ? null : 'FIELD_VALUE_INVALID_OPTION',
+            'multiselect' => ($value === null || !is_array($value) || ($options !== [] && !array_diff($value, $options))) ? null : 'FIELD_VALUE_INVALID_OPTIONS',
+            default => null,
+        };
     }
 
     /** @param array<string,mixed> $item */

@@ -61,9 +61,16 @@ final class UserController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
+        // TROPATTCRM-608: user management is limited to the active organization.
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)$auth['user']);
+
         /** @var UserService $service */
         $service = $this->container->get('service.user');
-        $user = $service->get((string)$params['public_id'], $auth['user']);
+        $user = $service->get((string)$params['public_id'], $actor);
         if (!$user) {
             return $this->error('USER_NOT_FOUND', $this->t('user/messages.not_found'), 404, ['user' => [$this->t('user/messages.not_found')]]);
         }
@@ -155,6 +162,13 @@ final class UserController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
+        // TROPATTCRM-608: user management is limited to the active organization.
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)$auth['user']);
+
         $input = $this->validatedInput(['email', 'full_name', 'locale', 'cost_rate', 'bill_rate', 'payout_rate', 'is_active', 'password', 'token', 'is_root', 'role_public_ids', 'team_public_id', 'external_role']);
 
         // External guest role (observer/executor) may only be set to the two
@@ -184,7 +198,7 @@ final class UserController extends BaseController
 
         /** @var UserService $service */
         $service = $this->container->get('service.user');
-        $result = $service->update((string)$params['public_id'], $input, $auth['user']);
+        $result = $service->update((string)$params['public_id'], $input, $actor);
 
         if (!$result['ok']) {
             $status = in_array((string)$result['code'], ['USER_NOT_FOUND'], true) ? 404 : 403;
@@ -260,10 +274,17 @@ final class UserController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
+        // TROPATTCRM-608: user management is limited to the active organization.
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)$auth['user']);
+
         /** @var UserService $service */
         $service = $this->container->get('service.user');
         $before = $service->get((string)$params['public_id']);
-        $result = $service->delete((string)$params['public_id'], $auth['user']);
+        $result = $service->delete((string)$params['public_id'], $actor);
 
         if (!$result['ok']) {
             $status = in_array((string)$result['code'], ['USER_NOT_FOUND'], true) ? 404 : 403;
@@ -289,9 +310,16 @@ final class UserController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
+        // TROPATTCRM-608: user management is limited to the active organization.
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)$auth['user']);
+
         /** @var UserService $service */
         $service = $this->container->get('service.user');
-        $result = $service->tokenInfo((string)$params['public_id'], $auth['user']);
+        $result = $service->tokenInfo((string)$params['public_id'], $actor);
         if (!(bool)($result['ok'] ?? false)) {
             $status = (string)($result['code'] ?? '') === 'USER_NOT_FOUND' ? 404 : 403;
             return $this->error((string)$result['code'], $this->t('user/messages.token_info_failed'), $status, [
@@ -311,9 +339,16 @@ final class UserController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
+        // TROPATTCRM-608: user management is limited to the active organization.
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)$auth['user']);
+
         /** @var UserService $service */
         $service = $this->container->get('service.user');
-        $result = $service->rotateToken((string)$params['public_id'], $this->request()->allInput(), $auth['user']);
+        $result = $service->rotateToken((string)$params['public_id'], $this->request()->allInput(), $actor);
         if (!(bool)($result['ok'] ?? false)) {
             $status = (string)($result['code'] ?? '') === 'USER_NOT_FOUND' ? 404 : 403;
             return $this->error((string)$result['code'], $this->t('user/messages.token_rotate_failed'), $status, [
@@ -333,9 +368,16 @@ final class UserController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
+        // TROPATTCRM-608: user management is limited to the active organization.
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)$auth['user']);
+
         /** @var UserService $service */
         $service = $this->container->get('service.user');
-        $result = $service->revokeToken((string)$params['public_id'], $auth['user']);
+        $result = $service->revokeToken((string)$params['public_id'], $actor);
         if (!(bool)($result['ok'] ?? false)) {
             $status = (string)($result['code'] ?? '') === 'USER_NOT_FOUND' ? 404 : 403;
             return $this->error((string)$result['code'], $this->t('user/messages.token_revoke_failed'), $status, [
@@ -378,9 +420,16 @@ final class UserController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
+        // TROPATTCRM-608: user management is limited to the active organization.
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)$auth['user']);
+
         /** @var UserService $service */
         $service = $this->container->get('service.user');
-        $result = $service->activity((string)$params['public_id'], $this->request()->allInput(), $auth['user']);
+        $result = $service->activity((string)$params['public_id'], $this->request()->allInput(), $actor);
         if (!(bool)($result['ok'] ?? false)) {
             $status = (string)($result['code'] ?? '') === 'USER_NOT_FOUND' ? 404 : 403;
             return $this->error((string)$result['code'], $this->t('user/messages.activity_failed'), $status, [

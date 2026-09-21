@@ -21,9 +21,13 @@ final class ApiClientService
     ) {
     }
 
-    public function listClients(array $filters): array
+    public function listClients(array $filters, ?array $actor = null): array
     {
-        [$items, $total, $page, $limit] = $this->repository->listClients($filters);
+        // TROPATTCRM-606: organization-scoped listing. Root keeps unscoped view.
+        [$items, $total, $page, $limit] = $this->repository->listClients(
+            $filters,
+            $this->organizationId($actor)
+        );
 
         return [
             'items' => $items,
@@ -38,9 +42,23 @@ final class ApiClientService
         ];
     }
 
-    public function getClient(string $publicId): ?array
+    /**
+     * Tenant scope of the acting admin (TROPATTCRM-606). Null means a root
+     * actor operating across organizations; anyone else is hard-scoped.
+     */
+    private function organizationId(?array $actor): ?int
     {
-        return $this->normalizeClient($this->repository->findClientByPublicId($publicId));
+        if ($actor === null) {
+            return null;
+        }
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
+    }
+
+    public function getClient(string $publicId, ?array $actor = null): ?array
+    {
+        $client = $this->repository->findClientByPublicId($publicId, $this->organizationId($actor));
+        return $client !== null ? $this->normalizeClient($client) : null;
     }
 
     public function createClient(array $input, array $actor): array
@@ -56,14 +74,19 @@ final class ApiClientService
 
         $now = gmdate('Y-m-d H:i:s');
         $publicId = Ulid::generate('apc');
-        $this->repository->createClient([
+        $orgId = $this->organizationId($actor);
+        $clientPayload = [
             'public_id' => $publicId,
             'title' => trim((string)($input['title'] ?? '')),
             'scopes' => json_encode($scopeResult['scopes'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'is_active' => (int)($input['is_active'] ?? 1) === 1 ? 1 : 0,
             'created_at' => $now,
             'updated_at' => $now,
-        ]);
+        ];
+        if ($orgId !== null) {
+            $clientPayload['organization_id'] = $orgId;
+        }
+        $this->repository->createClient($clientPayload);
 
         $this->logger->audit([
             'action' => 'api_client_create',
@@ -74,11 +97,11 @@ final class ApiClientService
 
         // Client row is fetched before the key insert so the raw id is used
         // for the auto-issued first key (never the normalized response).
-        $rawClient = $this->repository->findClientByPublicId($publicId);
+        $rawClient = $this->repository->findClientByPublicId($publicId, $orgId);
 
         $plain = 'apk_' . $this->tokens->generate(32);
         $keyPublicId = Ulid::generate('apk');
-        $this->repository->createKey([
+        $keyPayload = [
             'public_id' => $keyPublicId,
             'client_id' => (int)($rawClient['id'] ?? 0),
             'user_id' => (int)($actor['id'] ?? 0) > 0 ? (int)$actor['id'] : null,
@@ -89,7 +112,11 @@ final class ApiClientService
             'expires_at' => $this->normalizeExpiresAt($input['key_expires_at'] ?? null),
             'revoked_at' => null,
             'created_at' => $now,
-        ]);
+        ];
+        if ($orgId !== null) {
+            $keyPayload['organization_id'] = $orgId;
+        }
+        $this->repository->createKey($keyPayload);
 
         $key = $this->repository->findKeyByPublicId($keyPublicId);
 
@@ -111,7 +138,7 @@ final class ApiClientService
 
         // Re-read after the insert so keys_count/active_keys_count already
         // include the just-issued first key in the creation response.
-        return ['ok' => true, 'client' => $this->getClient($publicId), 'key' => $key, 'plain_key' => $plain];
+        return ['ok' => true, 'client' => $this->getClient($publicId, $actor), 'key' => $key, 'plain_key' => $plain];
     }
 
     public function updateClient(string $publicId, array $input, array $actor): array
@@ -120,7 +147,7 @@ final class ApiClientService
             return ['ok' => false, 'code' => 'FORBIDDEN'];
         }
 
-        $current = $this->repository->findClientByPublicId($publicId);
+        $current = $this->repository->findClientByPublicId($publicId, $this->organizationId($actor));
         if (!$current) {
             return ['ok' => false, 'code' => 'API_CLIENT_NOT_FOUND'];
         }
@@ -150,7 +177,7 @@ final class ApiClientService
             'entity_public_id' => $publicId,
         ]);
 
-        return ['ok' => true, 'client' => $this->getClient($publicId)];
+        return ['ok' => true, 'client' => $this->getClient($publicId, $actor)];
     }
 
     public function deleteClient(string $publicId, array $actor, array $input = []): array
@@ -159,7 +186,7 @@ final class ApiClientService
             return ['ok' => false, 'code' => 'FORBIDDEN'];
         }
 
-        $client = $this->repository->findClientByPublicId($publicId);
+        $client = $this->repository->findClientByPublicId($publicId, $this->organizationId($actor));
         if (!$client) {
             return ['ok' => false, 'code' => 'API_CLIENT_NOT_FOUND'];
         }
@@ -203,7 +230,7 @@ final class ApiClientService
             }
         }
 
-        $this->repository->deleteClientByPublicId($publicId);
+        $this->repository->deleteClientByPublicId($publicId, $this->organizationId($actor));
 
         $this->logger->audit([
             'action' => 'api_client_delete',
@@ -215,9 +242,9 @@ final class ApiClientService
         return ['ok' => true];
     }
 
-    public function listKeys(string $clientPublicId): array
+    public function listKeys(string $clientPublicId, ?array $actor = null): array
     {
-        $client = $this->repository->findClientByPublicId($clientPublicId);
+        $client = $this->repository->findClientByPublicId($clientPublicId, $this->organizationId($actor));
         if (!$client) {
             return ['ok' => false, 'code' => 'API_CLIENT_NOT_FOUND'];
         }
@@ -235,7 +262,7 @@ final class ApiClientService
             return ['ok' => false, 'code' => 'FORBIDDEN'];
         }
 
-        $client = $this->repository->findClientByPublicId($clientPublicId);
+        $client = $this->repository->findClientByPublicId($clientPublicId, $this->organizationId($actor));
         if (!$client) {
             return ['ok' => false, 'code' => 'API_CLIENT_NOT_FOUND'];
         }
@@ -252,7 +279,7 @@ final class ApiClientService
         $plain = 'apk_' . $this->tokens->generate(32);
         $keyPublicId = Ulid::generate('apk');
         $now = gmdate('Y-m-d H:i:s');
-        $this->repository->createKey([
+        $keyPayload = [
             'public_id' => $keyPublicId,
             'client_id' => (int)$client['id'],
             'user_id' => (int)($actor['id'] ?? 0) > 0 ? (int)$actor['id'] : null,
@@ -263,7 +290,12 @@ final class ApiClientService
             'expires_at' => $this->normalizeExpiresAt($input['expires_at'] ?? null),
             'revoked_at' => null,
             'created_at' => $now,
-        ]);
+        ];
+        $issueOrgId = $this->organizationId($actor);
+        if ($issueOrgId !== null) {
+            $keyPayload['organization_id'] = $issueOrgId;
+        }
+        $this->repository->createKey($keyPayload);
 
         $key = $this->repository->findKeyByPublicId($keyPublicId);
 
@@ -311,7 +343,7 @@ final class ApiClientService
 
         $plain = 'apk_' . $this->tokens->generate(32);
         $newPublicId = Ulid::generate('apk');
-        $this->repository->createKey([
+        $rotatePayload = [
             'public_id' => $newPublicId,
             'client_id' => (int)$current['client_id'],
             'user_id' => (int)($actor['id'] ?? 0) > 0 ? (int)$actor['id'] : null,
@@ -322,7 +354,12 @@ final class ApiClientService
             'expires_at' => $this->normalizeExpiresAt($input['expires_at'] ?? ($current['expires_at'] ?? null)),
             'revoked_at' => null,
             'created_at' => $now,
-        ]);
+        ];
+        $rotateOrgId = $this->organizationId($actor);
+        if ($rotateOrgId !== null) {
+            $rotatePayload['organization_id'] = $rotateOrgId;
+        }
+        $this->repository->createKey($rotatePayload);
 
         $new = $this->repository->findKeyByPublicId($newPublicId);
 
@@ -350,7 +387,7 @@ final class ApiClientService
             return ['ok' => false, 'code' => 'FORBIDDEN'];
         }
 
-        $current = $this->repository->findKeyByPublicId($keyPublicId);
+        $current = $this->repository->findKeyByPublicId($keyPublicId, $this->organizationId($actor));
         if (!$current) {
             return ['ok' => false, 'code' => 'API_KEY_NOT_FOUND'];
         }
@@ -377,9 +414,9 @@ final class ApiClientService
         return ['ok' => true, 'key' => $this->repository->findKeyByPublicId($keyPublicId)];
     }
 
-    public function usage(string $keyPublicId, int $limit = 50): array
+    public function usage(string $keyPublicId, int $limit = 50, ?array $actor = null): array
     {
-        $key = $this->repository->findKeyByPublicId($keyPublicId);
+        $key = $this->repository->findKeyByPublicId($keyPublicId, $this->organizationId($actor));
         if (!$key) {
             return ['ok' => false, 'code' => 'API_KEY_NOT_FOUND'];
         }

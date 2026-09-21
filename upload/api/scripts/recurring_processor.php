@@ -49,6 +49,7 @@ $container->factory('service.recurring_processor', static fn(Container $c) => ne
     $c->get('repository.project'),
     $c->get('repository.reminder'),
     $c->get('repository.calendar_event'),
+    $c->get('db.pdo')
 ));
 
 $limit = 20;

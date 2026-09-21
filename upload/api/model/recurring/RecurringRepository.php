@@ -37,7 +37,7 @@ final class RecurringRepository
 
         $total = $this->buildListQuery($filters, $actorId, $organizationId)->count();
         $items = $this->buildListQuery($filters, $actorId, $organizationId)
-            ->select(['public_id', 'title', 'entity_type', 'entity_public_id', 'rrule', 'is_active', 'last_processed_at', 'created_at', 'updated_at'])
+            ->select(['public_id', 'title', 'entity_type', 'entity_public_id', 'rrule', 'is_active', 'last_processed_at', 'generated_count', 'created_at', 'updated_at'])
             ->orderBy('updated_at', 'DESC')
             ->orderBy('public_id', 'DESC')
             ->limit($limit)
@@ -88,7 +88,7 @@ final class RecurringRepository
     {
         $query = (new QueryBuilder($this->pdo))
             ->from('recurring_rules')
-            ->select(['public_id', 'title', 'entity_type', 'entity_public_id', 'rrule', 'is_active', 'last_processed_at', 'created_at', 'updated_at'])
+            ->select(['public_id', 'title', 'entity_type', 'entity_public_id', 'rrule', 'is_active', 'last_processed_at', 'generated_count', 'created_at', 'updated_at'])
             ->where('public_id', '=', $publicId);
         if ($organizationId !== null && $organizationId > 0) {
             $query->where('organization_id', '=', $organizationId);

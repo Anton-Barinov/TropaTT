@@ -48,4 +48,5 @@ return [
     'day_fri' => 'Ven',
     'day_sat' => 'Sam',
     'day_sun' => 'Dim',
+    'invalid_timezone' => 'Fuseau horaire non valide',
 ];

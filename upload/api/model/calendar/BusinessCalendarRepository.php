@@ -286,4 +286,46 @@ final class BusinessCalendarRepository
             ->where('public_id', '=', $publicId)
             ->delete() > 0;
     }
+
+    public function findCalendarById(int $id): ?array
+    {
+        return (new QueryBuilder($this->pdo))
+            ->from('business_calendars')
+            ->select(['*'])
+            ->where('id', '=', $id)
+            ->first() ?: null;
+    }
+
+    public function getDefaultCalendarForOrganization(?int $organizationId): ?array
+    {
+        $q = (new QueryBuilder($this->pdo))
+            ->from('business_calendars')
+            ->select(['*']);
+        if ($organizationId !== null && $organizationId > 0) {
+            $q->where('organization_id', '=', $organizationId);
+        }
+        return $q->orderBy('id', 'ASC')->first() ?: null;
+    }
+
+    public function getAllWorkingHoursForCalendar(int $calendarId): array
+    {
+        return (new QueryBuilder($this->pdo))
+            ->from('working_hours')
+            ->select(['*'])
+            ->where('calendar_id', '=', $calendarId)
+            ->orderBy('weekday', 'ASC')
+            ->orderBy('start_time', 'ASC')
+            ->get();
+    }
+
+    public function getHolidaysInRange(int $calendarId, string $startDate, string $endDate): array
+    {
+        return (new QueryBuilder($this->pdo))
+            ->from('holidays')
+            ->select(['holiday_date'])
+            ->where('calendar_id', '=', $calendarId)
+            ->where('holiday_date', '>=', $startDate)
+            ->where('holiday_date', '<=', $endDate)
+            ->get();
+    }
 }

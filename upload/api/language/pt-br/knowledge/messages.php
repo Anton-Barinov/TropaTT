@@ -129,6 +129,7 @@ return array (
     'version_detail' => 'Detalhe da versão',
     'page_locked' => 'A página já está bloqueada',
     'page_unlocked' => 'Página desbloqueada',
+    'unlock_forbidden' => 'Não é possível desbloquear uma página bloqueada por outro usuário',
     'validation_failed' => 'Falha na validação. Verifique os logs do servidor para detalhes.',
     'link_not_found' => 'Link da base de conhecimentos não encontrado',
     'trash_purged' => 'Seções da lixeira removidas',

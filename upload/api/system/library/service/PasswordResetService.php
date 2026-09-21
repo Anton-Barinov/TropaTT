@@ -31,19 +31,45 @@ final class PasswordResetService
     {
         $identifier = trim((string)($input['identifier'] ?? $input['login'] ?? ''));
         $normalizedIdentifier = mb_strtolower($identifier);
-        $rateKey = hash('sha256', $normalizedIdentifier . '|' . trim($ip));
-        $check = $this->checkFileRateLimit($rateKey, 'pwrst_req', false);
-        if ($check['blocked'] === true) {
+
+        $ipRateKey = 'ip_' . hash('sha256', trim($ip));
+        $idRateKey = 'id_' . hash('sha256', $normalizedIdentifier);
+
+        $ipCheck = $this->checkFileRateLimit($ipRateKey, 'pwrst_ip', false);
+        $idCheck = $this->checkFileRateLimit($idRateKey, 'pwrst_id', false);
+
+        if ($ipCheck['blocked'] === true || $idCheck['blocked'] === true) {
+            $retryAfter = max((int)($ipCheck['retry_after'] ?? 0), (int)($idCheck['retry_after'] ?? 0));
             $this->logger->security([
                 'event_type' => 'password_reset_rate_limited',
                 'identifier' => $identifier,
                 'ip' => $ip,
-                'retry_after' => $check['retry_after'],
+                'retry_after' => $retryAfter,
             ]);
 
             return [
-                'ok' => true,
-                'accepted' => true,
+                'ok' => false,
+                'code' => 'RATE_LIMITED',
+                'retry_after' => $retryAfter,
+            ];
+        }
+
+        // Unconditionally increment counters for both IP and identifier
+        $this->checkFileRateLimit($ipRateKey, 'pwrst_ip', true);
+        $idHit = $this->checkFileRateLimit($idRateKey, 'pwrst_id', true);
+        if ($idHit['blocked'] === true) {
+            $retryAfter = (int)($idHit['retry_after'] ?? 900);
+            $this->logger->security([
+                'event_type' => 'password_reset_rate_limited',
+                'identifier' => $identifier,
+                'ip' => $ip,
+                'retry_after' => $retryAfter,
+            ]);
+
+            return [
+                'ok' => false,
+                'code' => 'RATE_LIMITED',
+                'retry_after' => $retryAfter,
             ];
         }
 
@@ -57,7 +83,6 @@ final class PasswordResetService
         }
 
         if (!$user || (int)($user['is_active'] ?? 0) !== 1) {
-            $this->checkFileRateLimit($rateKey, 'pwrst_req', true);
             $this->logger->security([
                 'event_type' => 'password_reset_request_missed',
                 'identifier' => $identifier,

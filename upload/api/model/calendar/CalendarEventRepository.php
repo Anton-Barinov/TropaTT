@@ -50,7 +50,7 @@ final class CalendarEventRepository
             ->leftJoin('tasks t', 't.id', '=', 'e.task_id');
 
         if (!$isRoot) {
-            $query->where('e.owner_user_id', '=', $userId);
+            $query->whereRaw('(e.owner_user_id = ? OR (t.assignee_user_id IS NOT NULL AND t.assignee_user_id = ?) OR EXISTS (SELECT 1 FROM calendar_event_attendees cea WHERE cea.event_id = e.id AND cea.user_id = ?))', [$userId, $userId, $userId]);
         } else {
             // Root users may see normal shared CRM events, but never another
             // user's private external-calendar event.
@@ -71,11 +71,12 @@ final class CalendarEventRepository
         return $query;
     }
 
-    public function create(array $payload): void
+    public function create(array $payload): int
     {
         (new QueryBuilder($this->pdo))
             ->from('calendar_events')
             ->insert($payload);
+        return (int)$this->pdo->lastInsertId();
     }
 
     public function findByPublicId(string $publicId, int $userId, bool $isRoot, ?int $organizationId = null): ?array
@@ -85,6 +86,7 @@ final class CalendarEventRepository
             ->leftJoin('projects p', 'p.id', '=', 'e.project_id')
             ->leftJoin('tasks t', 't.id', '=', 'e.task_id')
             ->select([
+                'e.id',
                 'e.public_id',
                 'e.owner_user_id',
                 'e.title',
@@ -103,13 +105,17 @@ final class CalendarEventRepository
             ->where('e.public_id', '=', $publicId);
 
         if (!$isRoot) {
-            $query->where('e.owner_user_id', '=', $userId);
+            $query->whereRaw('(e.owner_user_id = ? OR (t.assignee_user_id IS NOT NULL AND t.assignee_user_id = ?) OR EXISTS (SELECT 1 FROM calendar_event_attendees cea WHERE cea.event_id = e.id AND cea.user_id = ?))', [$userId, $userId, $userId]);
         } else {
             $query->whereRaw("(e.source_type IS NULL OR e.source_type NOT IN ('google_calendar', 'yandex_calendar') OR e.source_owner_user_id = ?)", [$userId]);
         }
         if ($organizationId !== null && $organizationId > 0) $query->where('e.organization_id', '=', $organizationId);
 
-        return $query->first();
+        $row = $query->first();
+        if ($row) {
+            $row['attendees'] = $this->getAttendees((int)$row['id']);
+        }
+        return $row;
     }
 
     public function updateByPublicId(string $publicId, int $userId, bool $isRoot, array $set, ?int $organizationId = null): bool
@@ -170,7 +176,7 @@ final class CalendarEventRepository
             ->where('e.ends_at', '>=', $startAt);
 
         if (!$isRoot) {
-            $query->where('e.owner_user_id', '=', $userId);
+            $query->whereRaw('(e.owner_user_id = ? OR (t.assignee_user_id IS NOT NULL AND t.assignee_user_id = ?) OR EXISTS (SELECT 1 FROM calendar_event_attendees cea WHERE cea.event_id = e.id AND cea.user_id = ?))', [$userId, $userId, $userId]);
         } else {
             $query->whereRaw("(e.source_type IS NULL OR e.source_type NOT IN ('google_calendar', 'yandex_calendar') OR e.source_owner_user_id = ?)", [$userId]);
         }
@@ -188,6 +194,7 @@ final class CalendarEventRepository
             ->leftJoin('projects p', 'p.id', '=', 'e.project_id')
             ->leftJoin('tasks t', 't.id', '=', 'e.task_id')
             ->select([
+                'e.id',
                 'e.public_id',
                 'e.owner_user_id',
                 'e.title',
@@ -200,11 +207,47 @@ final class CalendarEventRepository
                 't.public_id AS task_public_id',
                 't.title AS task_title',
             ])
-            ->where('e.owner_user_id', '=', $userId)
+            ->whereRaw('(e.owner_user_id = ? OR (t.assignee_user_id IS NOT NULL AND t.assignee_user_id = ?) OR EXISTS (SELECT 1 FROM calendar_event_attendees cea WHERE cea.event_id = e.id AND cea.user_id = ?))', [$userId, $userId, $userId])
             ->where('e.starts_at', '>=', $from)
             ->where('e.starts_at', '<=', $to)
             ->orderBy('e.starts_at', 'ASC')
             ->get();
+    }
+
+    public function syncAttendees(int $eventId, array $userIds): void
+    {
+        if ($eventId <= 0) {
+            return;
+        }
+        $this->pdo->prepare('DELETE FROM calendar_event_attendees WHERE event_id = ?')->execute([$eventId]);
+        if ($userIds === []) {
+            return;
+        }
+        $stmt = $this->pdo->prepare('INSERT INTO calendar_event_attendees (event_id, user_id, status, created_at) VALUES (?, ?, ?, ?)');
+        $now = gmdate('Y-m-d H:i:s');
+        foreach (array_unique(array_filter(array_map('intval', $userIds), static fn(int $id): bool => $id > 0)) as $userId) {
+            $stmt->execute([$eventId, $userId, 'accepted', $now]);
+        }
+    }
+
+    public function getAttendees(int $eventId): array
+    {
+        if ($eventId <= 0) {
+            return [];
+        }
+        try {
+            $stmt = $this->pdo->prepare('
+                SELECT u.id, u.public_id, u.name, u.email, cea.status, cea.created_at
+                FROM calendar_event_attendees cea
+                JOIN users u ON u.id = cea.user_id
+                WHERE cea.event_id = ?
+                ORDER BY cea.created_at ASC
+            ');
+            $stmt->execute([$eventId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (\Throwable) {
+            return [];
+        }
     }
 
     public function listTasksDueInRange(int $userId, bool $isRoot, string $startAt, string $endAt, ?int $organizationId = null): array

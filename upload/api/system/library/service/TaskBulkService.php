@@ -32,7 +32,8 @@ final class TaskBulkService
         if (array_key_exists('assignee_user_public_id', $changes)) {
             $assigneePublicId = trim((string)$changes['assignee_user_public_id']);
             if ($assigneePublicId !== '') {
-                $assignee = $this->users->findByPublicId($assigneePublicId);
+                $orgId = (int)($actor['organization_id'] ?? 0);
+                $assignee = $this->users->findByPublicIdInOrganization($assigneePublicId, $orgId > 0 ? $orgId : null);
                 if (!$assignee || (int)($assignee['is_active'] ?? 0) !== 1) {
                     return 'ASSIGNEE_NOT_FOUND';
                 }

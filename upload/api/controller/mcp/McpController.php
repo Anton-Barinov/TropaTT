@@ -1152,7 +1152,11 @@ MD;
                 'reason' => ['type' => 'string'],
             ], ['target_user_public_id']);
             $tools[] = $this->tool('crm_get_impersonation_status', 'Check if currently impersonating another user.', []);
-            $tools[] = $this->tool('crm_stop_impersonation', 'Stop impersonating and return to own identity.', []);
+            $tools[] = $this->tool('crm_stop_impersonation', 'Stop impersonating and return to own identity.', [
+                'audit_public_id' => ['type' => 'string', 'description' => 'Optional audit ID of the impersonation to stop.'],
+                'session_public_id' => ['type' => 'string', 'description' => 'Optional session public ID to stop.'],
+                'impersonation_session_public_id' => ['type' => 'string', 'description' => 'Alias for session_public_id.'],
+            ]);
             $tools[] = $this->tool('crm_request_password_reset', 'Request a password reset email for an account.', [
                 'identifier' => ['type' => 'string', 'description' => 'Login or email of the account.'],
             ], ['identifier']);
@@ -3125,10 +3129,13 @@ $tools[] = $this->tool(
                 'permission_codes' => ['type' => 'array', 'items' => ['type' => 'string']],
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                'audit_public_id' => ['type' => 'string', 'description' => 'Impersonation audit public_id.'],
                 'bill_rate' => ['type' => 'string', 'description' => 'Value.'],
                 'code' => ['type' => 'string', 'description' => 'Unique code.'],
                 'cost_rate' => ['type' => 'string', 'description' => 'Value.'],
                 'description' => ['type' => 'string', 'description' => 'Free-form description.'],
+                'impersonation_public_id' => ['type' => 'string', 'description' => 'Alias for audit_public_id.'],
+                'impersonation_session_public_id' => ['type' => 'string', 'description' => 'Alias for session_public_id.'],
                 'is_active' => ['type' => 'boolean', 'description' => 'Boolean flag.'],
                 'is_root' => ['type' => 'boolean', 'description' => 'Boolean flag.'],
                 'locale' => ['type' => 'string', 'description' => 'Locale code, e.g. ru-ru.'],
@@ -3136,6 +3143,7 @@ $tools[] = $this->tool(
                 'payout_rate' => ['type' => 'string', 'description' => 'Value.'],
                 'reason' => ['type' => 'string', 'description' => 'Reason text.'],
                 'role_public_id' => ['type' => 'string', 'description' => 'Role public_id.'],
+                'session_public_id' => ['type' => 'string', 'description' => 'Session public_id.'],
                 'target_user_public_id' => ['type' => 'string', 'description' => 'Target user public_id.'],
                 'title' => ['type' => 'string', 'description' => 'Display title.'],
                 'token' => ['type' => 'string', 'description' => 'Login token factor value.'],
@@ -3166,6 +3174,18 @@ $tools[] = $this->tool(
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
                 'full_name' => ['type' => 'string', 'description' => 'Value.'],
                 'organization_public_id' => ['type' => 'string', 'description' => 'Organization public_id.'],
+                'email' => ['type' => 'string', 'description' => 'Email address.'],
+                'phone' => ['type' => 'string', 'description' => 'Phone number in international format.'],
+                'tax_inn' => ['type' => 'string', 'description' => 'Tax identifier (INN).'],
+                'tax_kpp' => ['type' => 'string', 'description' => 'Tax KPP code.'],
+                'counterparty_public_id' => ['type' => 'string', 'description' => 'Parent counterparty public_id (for contacts).'],
+                'client_public_id' => ['type' => 'string', 'description' => 'Alias for counterparty_public_id.'],
+                'company_public_id' => ['type' => 'string', 'description' => 'Alias for company counterparty public_id.'],
+                'client_type' => ['type' => 'string', 'enum' => ['individual', 'legal', 'entrepreneur'], 'description' => 'Client type.'],
+                'legal_name' => ['type' => 'string', 'description' => 'Official legal entity name.'],
+                'address_legal' => ['type' => 'string', 'description' => 'Registered legal address.'],
+                'website' => ['type' => 'string', 'description' => 'Official website URL.'],
+                'is_primary' => ['type' => 'boolean', 'description' => 'Primary contact flag.'],
             ],
             ['action']
         );
@@ -3707,19 +3727,6 @@ $tools[] = $this->tool(
         }
 
 
-        if (($ideaTool = $this->ideaWorkflowTools()[$name] ?? null) !== null) {
-            // Per-tool permission (mirrors the REST route): the debug/AI tooling
-            // needs ai.admin, read helpers need idea.view, the rest idea.manage.
-            $required = (array)($ideaTool['permissions'] ?? ['idea.manage']);
-            if (!$this->canAny($required)) {
-                return $this->toolError(
-                    'Insufficient permissions for tool: ' . $name
-                    . '. Required (any): ' . implode(', ', $required)
-                );
-            }
-            return $this->toolResult($this->callIdeaWorkflowTool($name, $arguments));
-        }
-
         // SEC-003: Fail-closed MCP permission registry
         $mcpPermissions = require __DIR__ . '/../../config/mcp_permissions.php';
         if (!isset($mcpPermissions[$name])) {
@@ -4012,7 +4019,7 @@ $tools[] = $this->tool(
             'crm_disable_2fa' => $this->toolResult($this->crmDisable2fa($arguments)),
             'crm_start_impersonation' => $this->withPermission('user.manage', fn() => $this->toolResult($this->crmStartImpersonation($arguments))),
             'crm_get_impersonation_status' => $this->toolResult($this->crmGetImpersonationStatus()),
-            'crm_stop_impersonation' => $this->toolResult($this->crmStopImpersonation()),
+            'crm_stop_impersonation' => $this->toolResult($this->crmStopImpersonation($arguments)),
             'crm_request_password_reset' => $this->toolResult($this->crmRequestPasswordReset($arguments)),
             'crm_confirm_password_reset' => $this->toolResult($this->crmConfirmPasswordReset($arguments)),
             'crm_accept_invitation' => $this->toolResult($this->crmAcceptInvitation($arguments)),
@@ -4328,8 +4335,10 @@ $tools[] = $this->tool(
             'crm_admin' => $this->handleMegaTool('crm_admin', $arguments),
             'crm_agent_bundle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmAgentBundle($arguments))),
             'crm_agent_memory' => $this->toolResult($this->crmAgentMemory($arguments)),
-            'crm_chat' => $this->withPermissionAny(['chat.use', 'task.manage', 'project.manage'], fn() => $this->toolResult($this->crmChat($arguments))),
-            default => $this->toolError('Unknown tool: ' . $name),
+            'crm_chat' => $this->withPermissionAny(['chat.use', 'task.manage', 'project.manage'], fn() => $this->handleMegaTool('crm_chat', $arguments)),
+            default => isset($this->ideaWorkflowTools()[$name])
+                ? $this->toolResult($this->callIdeaWorkflowTool($name, $arguments))
+                : $this->toolError('Unknown tool: ' . $name),
         };
         } catch (Throwable $e) {
             // An unexpected failure inside one tool must stay a tool-level error:
@@ -4547,6 +4556,7 @@ $tools[] = $this->tool(
             'crm_knowledge' => $this->dispatchKnowledgeMega($action, $arguments),
             'crm_ai' => $this->dispatchAiMega($action, $arguments),
             'crm_admin' => $this->dispatchAdminMega($action, $arguments),
+            'crm_chat' => $this->dispatchChatMega($action, $arguments),
             default => $this->toolError('Unknown mega-tool: ' . $toolName),
         };
 
@@ -4557,6 +4567,8 @@ $tools[] = $this->tool(
                 $res['structuredContent'] = $this->compactProjectPayload($res['structuredContent']);
             } elseif ($toolName === 'crm_knowledge') {
                 $res['structuredContent'] = $this->compactKnowledgePayload($res['structuredContent']);
+            } elseif ($toolName === 'crm_chat') {
+                $res['structuredContent'] = $this->compactChatPayload($res['structuredContent'], $action);
             }
             $res['content'] = [['type' => 'text', 'text' => json_encode($res['structuredContent'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]];
         }
@@ -4769,7 +4781,7 @@ $tools[] = $this->tool(
             'list_invitations' => $this->toolResult($this->crmListInvitations($args)),
             'create_invitation' => $this->toolResult($this->crmCreateInvitation($args)),
             'start_impersonation' => $this->withPermission('admin.impersonate', fn() => $this->toolResult($this->crmStartImpersonation($args))),
-            'stop_impersonation' => $this->toolResult($this->crmStopImpersonation()),
+            'stop_impersonation' => $this->toolResult($this->crmStopImpersonation($args)),
             'get_impersonation_status' => $this->toolResult($this->crmGetImpersonationStatus()),
             default => null,
         }, 'crm_people', $action);
@@ -5059,6 +5071,19 @@ $tools[] = $this->tool(
             'get_admin_system_widget' => $this->toolResult($this->crmGetAdminSystemWidget()),
             default => null,
         }, 'crm_admin', $action);
+    }
+
+    private function dispatchChatMega(string $action, array $args): array
+    {
+        return $this->megaResult(match ($action) {
+            'list_chats' => $this->crmListChats($args),
+            'get_chat' => $this->crmGetChat($args),
+            'create_chat' => $this->crmCreateChat($args),
+            'send_message' => $this->crmSendChatMessage($args),
+            'list_messages' => $this->crmListChatMessages($args),
+            'mark_read' => $this->crmMarkChatRead($args),
+            default => null,
+        }, 'crm_chat', $action);
     }
 
     private function crmGetCurrentUser(): array
@@ -9173,11 +9198,30 @@ $tools[] = $this->tool(
         return ['current' => $result['current'] ?? null, 'active_started_by_me' => $result['active_started_by_me'] ?? null];
     }
 
-    private function crmStopImpersonation(): array
+    private function crmStopImpersonation(array $arguments = []): array
     {
         /** @var ImpersonationService $service */
         $service = $this->container->get('service.impersonation');
-        $result = $service->stop($this->actor(), (string)($this->actor()['session_public_id'] ?? ''), null, '', '');
+        $sessionPublicId = trim((string)($arguments['session_public_id'] ?? $arguments['impersonation_session_public_id'] ?? $this->actor()['session_public_id'] ?? ''));
+        $auditPublicId = trim((string)($arguments['audit_public_id'] ?? $arguments['impersonation_public_id'] ?? ''));
+
+        if ($auditPublicId === '' && $sessionPublicId === '') {
+            $actorId = (int)($this->actor()['id'] ?? 0);
+            if ($actorId > 0 && $this->container->has('repository.impersonation')) {
+                $activeList = $this->container->get('repository.impersonation')->listActiveByAdminUserId($actorId, 1);
+                if (!empty($activeList)) {
+                    $auditPublicId = (string)($activeList[0]['public_id'] ?? '');
+                }
+            }
+        }
+
+        $result = $service->stop(
+            $this->actor(),
+            $sessionPublicId,
+            $auditPublicId !== '' ? $auditPublicId : null,
+            $this->request()->ip(),
+            $this->request()->userAgent()
+        );
         if (!(bool)($result['ok'] ?? false)) {
             return ['error' => (string)($result['code'] ?? 'Failed to stop impersonation.')];
         }
@@ -11002,6 +11046,9 @@ $tools[] = $this->tool(
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
+        if (!$this->knowledge()->page($publicId, $this->actor(), 'edit')) {
+            return ['error' => 'Knowledge page not found or access denied.'];
+        }
         $page = $this->knowledge()->publish($publicId, (int)($this->actor()['id'] ?? 0), trim((string)($arguments['change_summary'] ?? '')));
         return $page ? ['page' => $this->publicData($page)] : ['error' => 'Knowledge page not found.'];
     }
@@ -11011,6 +11058,9 @@ $tools[] = $this->tool(
         $publicId = trim((string)($arguments['public_id'] ?? ''));
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
+        }
+        if (!$this->knowledge()->page($publicId, $this->actor(), 'edit')) {
+            return ['error' => 'Knowledge page not found or access denied.'];
         }
         $page = $this->knowledge()->setStatus($publicId, 'archived', (int)($this->actor()['id'] ?? 0));
         return $page ? ['page' => $this->publicData($page)] : ['error' => 'Knowledge page not found.'];
@@ -11022,6 +11072,9 @@ $tools[] = $this->tool(
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
+        if (!$this->knowledge()->page($publicId, $this->actor(), 'edit')) {
+            return ['error' => 'Knowledge page not found or access denied.'];
+        }
         $page = $this->knowledge()->setStatus($publicId, 'draft', (int)($this->actor()['id'] ?? 0));
         return $page ? ['page' => $this->publicData($page)] : ['error' => 'Knowledge page not found.'];
     }
@@ -11031,6 +11084,9 @@ $tools[] = $this->tool(
         $publicId = trim((string)($arguments['public_id'] ?? ''));
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
+        }
+        if (!$this->knowledge()->page($publicId, $this->actor(), 'edit')) {
+            return ['error' => 'Knowledge page not found or access denied.'];
         }
         $page = $this->knowledge()->setStatus($publicId, 'review', (int)($this->actor()['id'] ?? 0));
         return $page ? ['page' => $this->publicData($page)] : ['error' => 'Knowledge page not found.'];
@@ -11042,6 +11098,9 @@ $tools[] = $this->tool(
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
+        if (!$this->knowledge()->page($publicId, $this->actor(), 'edit')) {
+            return ['error' => 'Knowledge page not found or access denied.'];
+        }
         $page = $this->knowledge()->publish($publicId, (int)($this->actor()['id'] ?? 0), trim((string)($arguments['change_summary'] ?? '')));
         return $page ? ['page' => $this->publicData($page)] : ['error' => 'Knowledge page not found.'];
     }
@@ -11051,6 +11110,9 @@ $tools[] = $this->tool(
         $publicId = trim((string)($arguments['public_id'] ?? ''));
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
+        }
+        if (!$this->knowledge()->page($publicId, $this->actor(), 'edit')) {
+            return ['error' => 'Knowledge page not found or access denied.'];
         }
         $page = $this->knowledge()->setStatus($publicId, 'draft', (int)($this->actor()['id'] ?? 0));
         return $page ? ['page' => $this->publicData($page)] : ['error' => 'Knowledge page not found.'];
@@ -12546,7 +12608,7 @@ $tools[] = $this->tool(
 
         /** @var IdeaService $service */
         $service = $this->container->get('service.idea');
-        $idea = $service->get($publicId);
+        $idea = $service->get($publicId, $this->activeOrganizationId());
         return $idea ? ['idea' => $this->publicData($idea)] : ['error' => 'Idea not found.'];
     }
 
@@ -12560,8 +12622,8 @@ $tools[] = $this->tool(
         $publicId = 'idea_' . bin2hex(random_bytes(12));
         $description = (new HtmlSanitizer())->sanitize(trim((string)($arguments['description'] ?? '')));
         $this->pdo()->prepare("
-            INSERT INTO ideas (public_id, title, description, author_user_id, category, region, visibility, target_date, created_at)
-            VALUES (:public_id, :title, :description, :author_user_id, :category, :region, :visibility, :target_date, NOW())
+            INSERT INTO ideas (public_id, title, description, author_user_id, category, region, visibility, target_date, organization_id, created_at)
+            VALUES (:public_id, :title, :description, :author_user_id, :category, :region, :visibility, :target_date, :organization_id, NOW())
         ")->execute([
             'public_id' => $publicId,
             'title' => $title,
@@ -12571,11 +12633,12 @@ $tools[] = $this->tool(
             'region' => trim((string)($arguments['region'] ?? '')),
             'visibility' => in_array((string)($arguments['visibility'] ?? 'public'), ['public', 'private'], true) ? (string)($arguments['visibility'] ?? 'public') : 'public',
             'target_date' => trim((string)($arguments['target_date'] ?? '')) ?: null,
+            'organization_id' => $this->activeOrganizationId(),
         ]);
 
         /** @var IdeaService $service */
         $service = $this->container->get('service.idea');
-        return ['idea' => $this->publicData($service->get($publicId) ?? ['public_id' => $publicId])];
+        return ['idea' => $this->publicData($service->get($publicId, $this->activeOrganizationId()) ?? ['public_id' => $publicId])];
     }
 
     private function crmUpdateIdea(array $arguments): array
@@ -12586,8 +12649,9 @@ $tools[] = $this->tool(
         }
 
         $pdo = $this->pdo();
-        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at FROM ideas WHERE public_id = :pid");
-        $stmt->execute(['pid' => $publicId]);
+        $orgId = $this->activeOrganizationId();
+        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at FROM ideas WHERE public_id = :pid AND organization_id = :organization_id");
+        $stmt->execute(['pid' => $publicId, 'organization_id' => $orgId]);
         $idea = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$idea) {
             return ['error' => 'Idea not found.'];
@@ -12610,7 +12674,7 @@ $tools[] = $this->tool(
         $pdo->prepare("
             UPDATE ideas
             SET title = :title, description = :description, category = :category, region = :region, visibility = :visibility, target_date = :target_date
-            WHERE public_id = :pid
+            WHERE public_id = :pid AND organization_id = :organization_id
         ")->execute([
             'title' => $title,
             'description' => $description,
@@ -12619,12 +12683,13 @@ $tools[] = $this->tool(
             'visibility' => $visibility,
             'target_date' => $targetDate,
             'pid' => $publicId,
+            'organization_id' => $orgId,
         ]);
 
         $this->invalidateCache('idea');
         /** @var IdeaService $service */
         $service = $this->container->get('service.idea');
-        return ['idea' => $this->publicData($service->get($publicId) ?? ['public_id' => $publicId])];
+        return ['idea' => $this->publicData($service->get($publicId, $this->activeOrganizationId()) ?? ['public_id' => $publicId])];
     }
 
     private function crmDeleteIdea(array $arguments): array
@@ -12635,8 +12700,9 @@ $tools[] = $this->tool(
         }
 
         $pdo = $this->pdo();
-        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at FROM ideas WHERE public_id = :pid");
-        $stmt->execute(['pid' => $publicId]);
+        $orgId = $this->activeOrganizationId();
+        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at FROM ideas WHERE public_id = :pid AND organization_id = :organization_id");
+        $stmt->execute(['pid' => $publicId, 'organization_id' => $orgId]);
         $idea = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$idea) {
             return ['error' => 'Idea not found.'];
@@ -12649,7 +12715,7 @@ $tools[] = $this->tool(
 
         $pdo->prepare("DELETE FROM idea_votes WHERE idea_id = :iid")->execute(['iid' => (int)$idea['id']]);
         $pdo->prepare("DELETE FROM comments WHERE entity_type = 'idea' AND entity_public_id = :pid")->execute(['pid' => $publicId]);
-        $pdo->prepare("DELETE FROM ideas WHERE public_id = :pid")->execute(['pid' => $publicId]);
+        $pdo->prepare("DELETE FROM ideas WHERE public_id = :pid AND organization_id = :organization_id")->execute(['pid' => $publicId, 'organization_id' => $orgId]);
         $this->invalidateCache('idea');
 
         return ['deleted' => true];
@@ -12663,8 +12729,8 @@ $tools[] = $this->tool(
         }
 
         $pdo = $this->pdo();
-        $stmt = $pdo->prepare("SELECT id, author_user_id FROM ideas WHERE public_id = :pid");
-        $stmt->execute(['pid' => $publicId]);
+        $stmt = $pdo->prepare("SELECT id, author_user_id FROM ideas WHERE public_id = :pid AND organization_id = :organization_id");
+        $stmt->execute(['pid' => $publicId, 'organization_id' => $this->activeOrganizationId()]);
         $idea = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$idea) {
             return ['error' => 'Idea not found.'];
@@ -12707,12 +12773,12 @@ $tools[] = $this->tool(
         }
 
         $pdo = $this->pdo();
-        $pdo->prepare("UPDATE ideas SET status = :status WHERE public_id = :pid")->execute(['status' => $status, 'pid' => $publicId]);
+        $pdo->prepare("UPDATE ideas SET status = :status WHERE public_id = :pid AND organization_id = :organization_id")->execute(['status' => $status, 'pid' => $publicId, 'organization_id' => $this->activeOrganizationId()]);
         $this->invalidateCache('idea');
 
         /** @var IdeaService $service */
         $service = $this->container->get('service.idea');
-        return ['idea' => $this->publicData($service->get($publicId) ?? ['public_id' => $publicId]), 'status' => $status];
+        return ['idea' => $this->publicData($service->get($publicId, $this->activeOrganizationId()) ?? ['public_id' => $publicId]), 'status' => $status];
     }
 
     private function crmListIdeaComments(array $arguments): array
@@ -12846,9 +12912,9 @@ $tools[] = $this->tool(
                 $publicParticipant = trim((string)reset($arguments['participant_public_ids']));
             }
             if ($publicParticipant !== '') {
-                $withUserId = (int)($this->resolveUserIdByPublicId($publicParticipant) ?? 0);
+                $withUserId = (int)($this->resolveUserIdByPublicIdInOrg($publicParticipant, $this->activeOrganizationId()) ?? 0);
                 if ($withUserId <= 0) {
-                    return ['error' => 'User not found.'];
+                    return ['error' => 'User not found in your organization.'];
                 }
             } else {
                 $withUserId = (int)($arguments['user_id'] ?? 0);
@@ -13018,18 +13084,34 @@ $tools[] = $this->tool(
         }
 
         $reply = $this->resolveReplyMessage((int)$chat['id'], trim((string)($arguments['reply_to_message_public_id'] ?? '')));
-        $messagePublicId = 'msg_' . bin2hex(random_bytes(8));
-        $this->pdo()->prepare("
-            INSERT INTO chat_messages (public_id, chat_id, sender_user_id, reply_to_message_id, message_type, text, created_at)
-            VALUES (:public_id, :chat_id, :sender_user_id, :reply_to_message_id, :message_type, :text, NOW())
-        ")->execute([
-            'public_id' => $messagePublicId,
-            'chat_id' => (int)$chat['id'],
-            'sender_user_id' => $userId,
-            'reply_to_message_id' => $reply ? (int)$reply['id'] : null,
-            'message_type' => $messageType,
-            'text' => $text,
-        ]);
+        $chatOrgId = (int)($chat['organization_id'] ?? ($actor['organization_id'] ?? 0));
+        $hasMsgOrg = $this->tableHasColumn('chat_messages', 'organization_id');
+        if ($hasMsgOrg && $chatOrgId > 0) {
+            $this->pdo()->prepare("
+                INSERT INTO chat_messages (public_id, organization_id, chat_id, sender_user_id, reply_to_message_id, message_type, text, created_at)
+                VALUES (:public_id, :org_id, :chat_id, :sender_user_id, :reply_to_message_id, :message_type, :text, NOW())
+            ")->execute([
+                'public_id' => $messagePublicId,
+                'org_id' => $chatOrgId,
+                'chat_id' => (int)$chat['id'],
+                'sender_user_id' => $userId,
+                'reply_to_message_id' => $reply ? (int)$reply['id'] : null,
+                'message_type' => $messageType,
+                'text' => $text,
+            ]);
+        } else {
+            $this->pdo()->prepare("
+                INSERT INTO chat_messages (public_id, chat_id, sender_user_id, reply_to_message_id, message_type, text, created_at)
+                VALUES (:public_id, :chat_id, :sender_user_id, :reply_to_message_id, :message_type, :text, NOW())
+            ")->execute([
+                'public_id' => $messagePublicId,
+                'chat_id' => (int)$chat['id'],
+                'sender_user_id' => $userId,
+                'reply_to_message_id' => $reply ? (int)$reply['id'] : null,
+                'message_type' => $messageType,
+                'text' => $text,
+            ]);
+        }
         $this->pdo()->prepare("UPDATE chats SET last_message_at = NOW() WHERE id = :chat_id")
             ->execute(['chat_id' => (int)$chat['id']]);
 
@@ -13160,10 +13242,19 @@ $tools[] = $this->tool(
             @unlink($tmpFile);
             return ['error' => 'Message text is too long.'];
         }
-        $this->pdo()->prepare("
-            INSERT INTO chat_messages (public_id, chat_id, sender_user_id, message_type, text, created_at)
-            VALUES (:pid, :cid, :uid, 'attachment', :text, NOW())
-        ")->execute(['pid' => $messagePublicId, 'cid' => (int)$chat['id'], 'uid' => $userId, 'text' => $text]);
+        $chatOrgId = (int)($chat['organization_id'] ?? ($actor['organization_id'] ?? 0));
+        $hasMsgOrg = $this->tableHasColumn('chat_messages', 'organization_id');
+        if ($hasMsgOrg && $chatOrgId > 0) {
+            $this->pdo()->prepare("
+                INSERT INTO chat_messages (public_id, organization_id, chat_id, sender_user_id, message_type, text, created_at)
+                VALUES (:pid, :org_id, :cid, :uid, 'attachment', :text, NOW())
+            ")->execute(['pid' => $messagePublicId, 'org_id' => $chatOrgId, 'cid' => (int)$chat['id'], 'uid' => $userId, 'text' => $text]);
+        } else {
+            $this->pdo()->prepare("
+                INSERT INTO chat_messages (public_id, chat_id, sender_user_id, message_type, text, created_at)
+                VALUES (:pid, :cid, :uid, 'attachment', :text, NOW())
+            ")->execute(['pid' => $messagePublicId, 'cid' => (int)$chat['id'], 'uid' => $userId, 'text' => $text]);
+        }
         $messageId = (int)$this->pdo()->lastInsertId();
         $fileRow = $this->storeChatAttachment($messagePublicId, $raw);
         $this->pdo()->prepare("UPDATE chats SET last_message_at = NOW() WHERE id = :cid")->execute(['cid' => (int)$chat['id']]);
@@ -14558,6 +14649,23 @@ $tools[] = $this->tool(
         return $value === false ? null : (int)$value;
     }
 
+    /** Org-scoped variant: only resolves if user belongs to the given organization. */
+    private function resolveUserIdByPublicIdInOrg(string $publicId, ?int $organizationId): ?int
+    {
+        if ($publicId === '') {
+            return null;
+        }
+        if ($organizationId !== null && $organizationId > 0) {
+            $stmt = $this->pdo()->prepare('SELECT u.id FROM users u JOIN organization_memberships om ON om.user_id = u.id WHERE u.public_id = :pid AND om.organization_id = :oid AND u.is_active = 1 AND u.deleted_at IS NULL LIMIT 1');
+            $stmt->execute(['pid' => $publicId, 'oid' => $organizationId]);
+        } else {
+            $stmt = $this->pdo()->prepare('SELECT id FROM users WHERE public_id = :pid AND is_active = 1 AND deleted_at IS NULL LIMIT 1');
+            $stmt->execute(['pid' => $publicId]);
+        }
+        $value = $stmt->fetchColumn();
+        return $value === false ? null : (int)$value;
+    }
+
     private function activityFilters(array $arguments): array
     {
         $filters = $this->pick($arguments, [
@@ -14694,6 +14802,10 @@ $tools[] = $this->tool(
             'status', 'category', 'sort', 'period', 'offset',
         ]);
         $filters['limit'] = $this->limit($arguments, 20, 50);
+        $orgId = $this->activeOrganizationId();
+        if ($orgId) {
+            $filters['organization_id'] = $orgId;
+        }
 
         return $filters;
     }
@@ -15753,11 +15865,16 @@ $tools[] = $this->tool(
 
     private function chatForUser(string $chatPublicId, int $userId): ?array
     {
+        $actor = $this->actor();
+        $isExternal = !empty((int)($actor['is_external'] ?? 0));
+        $externalFilter = $isExternal ? " AND c.type = 'project_client'" : '';
+
         $stmt = $this->pdo()->prepare("
             SELECT c.*
             FROM chats c
             JOIN chat_participants cp ON cp.chat_id = c.id AND cp.user_id = :uid
             WHERE c.public_id = :public_id
+              {$externalFilter}
             LIMIT 1
         ");
         $stmt->execute([

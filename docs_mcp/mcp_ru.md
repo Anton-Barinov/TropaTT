@@ -414,6 +414,7 @@ AI-действия логируются через AiJobService/AiAuditService;
 | `crm_list_organization_members` | Участники организации | organization.manage | нет |
 | `crm_add_organization_member` | Добавить участника | organization.manage | создание |
 | `crm_remove_organization_member` | Убрать участника | organization.manage | удаление |
+| `crm_update_organization_member_role` | Обновить роль участника организации | organization.manage | изменение |
 | `crm_list_companies` | Список компаний | company.manage | нет |
 | `crm_get_company` | Получить компанию | company.manage | нет |
 | `crm_create_company` | Создать компанию | company.manage | создание |
@@ -554,6 +555,7 @@ AI-действия логируются через AiJobService/AiAuditService;
 | `crm_update_custom_field` | Обновить поле | task.manage | изменение |
 | `crm_get_custom_field_values` | Значения для сущности | task.manage | нет |
 | `crm_set_custom_field_values` | Установить значения | task.manage | изменение |
+| `crm_delete_custom_field` | Удалить кастомное поле | settings.manage | удаление |
 
 ### Шаблоны
 
@@ -1194,6 +1196,69 @@ MCP дублирует функционал REST API поверх безопас
 | `GET /api/v1/export/download/{id}` | Скачивание экспорта | Да | MCP: crm_download_export_job |
 | `POST /api/v1/file/download/{id}` | Скачивание файла | Да | MCP: crm_get_file_download_info |
 | `POST /api/v1/file/upload` | Загрузка файла | Да | MCP: crm_upload_file_base64 |
+
+---
+
+## Idea AI Workflow Tools
+
+Инструменты AI-воркфлоу для идей: анализ, анкетирование, декомпозиция, генерация отчётов и создание проектов из задач идей.
+
+### Чтение (idea.view)
+
+| Tool | Назначение | Permission | Side effects |
+|------|-----------|------------|--------------|
+| `crm_list_idea_ai_iterations` | Список итераций AI-анализа идеи | idea.view | нет |
+| `crm_get_idea_questions` | Вопросы AI для идеи | idea.view | нет |
+| `crm_get_idea_state` | Текущее состояние AI-воркфлоу идеи | idea.view | нет |
+| `crm_get_idea_task_drafts` | Черновики задач, сгенерированные из идеи | idea.view | нет |
+
+### Администрирование и отладка (ai.admin)
+
+| Tool | Назначение | Permission | Side effects |
+|------|-----------|------------|--------------|
+| `crm_get_idea_ai_debug_log` | Лог отладки AI-воркфлоу идеи | ai.admin | нет |
+| `crm_clear_idea_ai_debug_log` | Очистить лог отладки | ai.admin | удаление |
+
+### Запись (idea.manage)
+
+| Tool | Назначение | Permission | Side effects |
+|------|-----------|------------|--------------|
+| `crm_run_idea_analysis` | Запустить полный AI-анализ идеи | idea.manage | вызов AI |
+| `crm_run_idea_analysis_step` | Запустить один шаг AI-анализа | idea.manage | вызов AI |
+| `crm_retry_idea_analysis` | Повторить AI-анализ идеи | idea.manage | вызов AI |
+| `crm_create_idea_ai_analysis` | Создать AI-анализ идеи | idea.manage | вызов AI |
+| `crm_create_idea_ai_refine` | Уточнить идею через AI | idea.manage | вызов AI |
+| `crm_create_idea_ai_tasks` | Сгенерировать задачи из идеи | idea.manage | создание |
+| `crm_generate_idea_ai_interview` | Сгенерировать анкету для идеи | idea.manage | вызов AI |
+| `crm_save_idea_interview_answers` | Сохранить ответы на анкету | idea.manage | изменение |
+| `crm_clear_idea_ai_interview` | Очистить анкету идеи | idea.manage | удаление |
+| `crm_generate_next_idea_questions` | Сгенерировать следующий вопрос | idea.manage | вызов AI |
+| `crm_save_idea_answers` | Сохранить ответы на вопросы | idea.manage | изменение |
+| `crm_submit_idea_answers` | Отправить ответы на вопросы | idea.manage | вызов AI |
+| `crm_decompose_idea_tasks` | Декомпозиция идеи на задачи | idea.manage | вызов AI |
+| `crm_reset_idea_analysis` | Сбросить AI-анализ идеи | idea.manage | удаление |
+| `crm_generate_idea_additional_questions` | Генерация доп. вопросов | idea.manage | вызов AI |
+| `crm_generate_idea_understanding_card` | Карточка понимания идеи | idea.manage | вызов AI |
+| `crm_generate_idea_gap_questions` | Вопросы по пробелам | idea.manage | вызов AI |
+| `crm_generate_idea_refined_card` | Уточнённая карточка идеи | idea.manage | вызов AI |
+| `crm_generate_idea_potential_score` | Оценка потенциала идеи | idea.manage | вызов AI |
+| `crm_generate_idea_risk_report` | Отчёт по рискам | idea.manage | вызов AI |
+| `crm_generate_idea_pitfalls_report` | Отчёт по подводным камням | idea.manage | вызов AI |
+| `crm_generate_idea_implementation_plan` | План реализации | idea.manage | вызов AI |
+| `crm_generate_idea_final_recommendation` | Финальная рекомендация | idea.manage | вызов AI |
+| `crm_generate_idea_suggested_tasks` | Предложенные задачи | idea.manage | вызов AI |
+| `crm_update_idea_task_draft` | Обновить черновик задачи | idea.manage | изменение |
+| `crm_get_idea_additional_questions` | Получить доп. вопросы | idea.manage | нет |
+| `crm_get_idea_understanding_card` | Получить карточку понимания | idea.manage | нет |
+| `crm_get_idea_gap_questions` | Получить вопросы по пробелам | idea.manage | нет |
+| `crm_get_idea_refined_card` | Получить уточнённую карточку | idea.manage | нет |
+| `crm_get_idea_potential_score` | Получить оценку потенциала | idea.manage | нет |
+| `crm_get_idea_risk_report` | Получить отчёт по рискам | idea.manage | нет |
+| `crm_get_idea_pitfalls_report` | Получить отчёт по подводным камням | idea.manage | нет |
+| `crm_get_idea_implementation_plan` | Получить план реализации | idea.manage | нет |
+| `crm_get_idea_final_recommendation` | Получить финальную рекомендацию | idea.manage | нет |
+| `crm_get_idea_suggested_tasks` | Получить предложенные задачи | idea.manage | нет |
+| `crm_create_project_from_idea_tasks` | Создать проект из задач идеи | idea.manage/project.manage | создание проекта |
 
 ---
 

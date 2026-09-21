@@ -238,6 +238,25 @@ final class WorklogRepository
             ->delete() > 0;
     }
 
+    public function getDailyTotalMinutes(int $userId, string $date, ?int $excludeWorklogId = null): int
+    {
+        $startOfDay = $date . ' 00:00:00';
+        $endOfDay = $date . ' 23:59:59';
+        $sql = "SELECT COALESCE(SUM(minutes_spent), 0) FROM work_logs WHERE user_id = :uid AND logged_at >= :start_dt AND logged_at <= :end_dt";
+        $params = [
+            'uid' => $userId,
+            'start_dt' => $startOfDay,
+            'end_dt' => $endOfDay,
+        ];
+        if ($excludeWorklogId !== null && $excludeWorklogId > 0) {
+            $sql .= " AND id != :exclude_id";
+            $params['exclude_id'] = $excludeWorklogId;
+        }
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        return (int)$stmt->fetchColumn();
+    }
+
     /**
      * Apply the common worklog scope (visibility, date range, user/project/
      * team filters) to a query builder that already joins `users u`.

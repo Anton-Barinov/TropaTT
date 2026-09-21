@@ -10,6 +10,7 @@ use Api\Model\Project\ProjectRepository;
 use Api\Model\Reminder\ReminderRepository;
 use Api\Model\Calendar\CalendarEventRepository;
 use Api\System\Library\Support\Ulid;
+use PDO;
 
 final class RecurringProcessorService
 {
@@ -22,6 +23,7 @@ final class RecurringProcessorService
         private readonly ProjectRepository $projects,
         private readonly ReminderRepository $reminders,
         private readonly CalendarEventRepository $events,
+        private readonly ?PDO $pdo = null,
     ) {
     }
 
@@ -40,8 +42,22 @@ final class RecurringProcessorService
         $errors = 0;
 
         foreach ($items as $rule) {
+            $inTx = false;
             try {
+                if ($this->pdo !== null && !$this->pdo->inTransaction()) {
+                    $this->pdo->beginTransaction();
+                    $inTx = true;
+                }
                 $result = $this->processRule($rule, $now);
+                if ($result['status'] === 'error') {
+                    if ($inTx && $this->pdo->inTransaction()) {
+                        $this->pdo->rollBack();
+                    }
+                } else {
+                    if ($inTx && $this->pdo->inTransaction()) {
+                        $this->pdo->commit();
+                    }
+                }
                 $results[] = [
                     'rule_id' => $rule['public_id'] ?? '',
                     'entity_type' => $rule['entity_type'] ?? '',
@@ -57,13 +73,16 @@ final class RecurringProcessorService
                     $errors++;
                 }
             } catch (\Throwable $e) {
+                if ($inTx && $this->pdo !== null && $this->pdo->inTransaction()) {
+                    $this->pdo->rollBack();
+                }
                 AppLog::error('[RecurringProcessorService::process] ' . $e->getMessage());
                 $results[] = [
                     'rule_id' => $rule['public_id'] ?? '',
                     'entity_type' => $rule['entity_type'] ?? '',
                     'status' => 'error',
                     'entity_public_id' => null,
-                    'error' => 'Recurring rule processing failed. Check server logs for details.',
+                    'error' => 'Recurring rule processing failed: ' . $e->getMessage(),
                 ];
                 $errors++;
             }
@@ -91,6 +110,14 @@ final class RecurringProcessorService
         }
 
         $parser = new RruleParser($rruleStr);
+
+        $count = $parser->getCount();
+        $generatedCount = (int)($rule['generated_count'] ?? 0);
+        if ($count !== null && $generatedCount >= $count) {
+            $this->recurring->updateByPublicId($rulePublicId, ['is_active' => 0]);
+            return ['status' => 'skipped', 'error' => null];
+        }
+
         $lastCheck = $lastProcessedAt ?? $now->sub(new \DateInterval('P1D'));
 
         if (!$parser->isDue($lastCheck, $now)) {
@@ -114,10 +141,16 @@ final class RecurringProcessorService
             return ['status' => 'error', 'error' => "Template {$entityType} not found: {$entityPublicId}"];
         }
 
+        $generatedCount++;
         $nowStr = $now->format('Y-m-d H:i:s');
-        $this->recurring->updateByPublicId($rulePublicId, [
+        $updatePayload = [
             'last_processed_at' => $nowStr,
-        ]);
+            'generated_count' => $generatedCount,
+        ];
+        if ($count !== null && $generatedCount >= $count) {
+            $updatePayload['is_active'] = 0;
+        }
+        $this->recurring->updateByPublicId($rulePublicId, $updatePayload);
 
         return [
             'status' => 'created',

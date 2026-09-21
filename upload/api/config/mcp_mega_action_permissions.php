@@ -420,4 +420,12 @@ return [
         'update_working_hours' => ['mode' => 'all', 'permissions' => ['settings.manage']],
         'update_worklog' => ['mode' => 'all', 'permissions' => ['task.manage']],
     ],
+    'crm_chat' => [
+        'create_chat' => ['mode' => 'any', 'permissions' => ['chat.use', 'task.manage', 'project.manage']],
+        'get_chat' => ['mode' => 'any', 'permissions' => ['chat.use', 'task.manage', 'project.manage']],
+        'list_chats' => ['mode' => 'any', 'permissions' => ['chat.use', 'task.manage', 'project.manage']],
+        'list_messages' => ['mode' => 'any', 'permissions' => ['chat.use', 'task.manage', 'project.manage']],
+        'mark_read' => ['mode' => 'any', 'permissions' => ['chat.use', 'task.manage', 'project.manage']],
+        'send_message' => ['mode' => 'any', 'permissions' => ['chat.use', 'task.manage', 'project.manage']],
+    ],
 ];

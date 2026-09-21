@@ -11,12 +11,26 @@ final class ActivityService
     {
     }
 
+    /**
+     * TROPATTCRM-609: workspace scope of the actor. A user without any
+     * organization (legacy installs) yields null — no additional filtering.
+     */
+    private function organizationId(array $actor): ?int
+    {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
+    }
+
     public function feed(array $filters, array $actor): array
     {
         [$items, $total, $page, $limit, $hasMore] = $this->activity->feed(
             $filters,
             (string)($actor['public_id'] ?? ''),
-            (bool)($actor['is_root'] ?? false)
+            (bool)($actor['is_root'] ?? false),
+            // TROPATTCRM-609: an org-bound actor (root included) only sees
+            // activity of actors in their own workspace. Logs have no
+            // organization_id, so the repository filters via memberships.
+            $this->organizationId($actor)
         );
 
         foreach ($items as &$item) {

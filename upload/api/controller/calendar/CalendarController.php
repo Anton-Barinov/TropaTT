@@ -60,6 +60,11 @@ final class CalendarController extends BaseController
             ->maxLen($input, 'title', 255, $this->t('calendar/messages.max_255'))
             ->date($input, 'starts_at', $this->t('common/messages.invalid_date'))
             ->date($input, 'ends_at', $this->t('common/messages.invalid_date'));
+        if (array_key_exists('timezone', $input) && $input['timezone'] !== null && $input['timezone'] !== '') {
+            if (!in_array((string)$input['timezone'], \DateTimeZone::listIdentifiers(), true)) {
+                $v->addError('timezone', $this->t('calendar/messages.invalid_timezone'));
+            }
+        }
         $this->validateEventDates($v, $input, forbidPast: true);
 
         if ($v->fails()) {
@@ -128,6 +133,11 @@ final class CalendarController extends BaseController
         $v->maxLen($input, 'title', 255, $this->t('calendar/messages.max_255'))
             ->date($input, 'starts_at', $this->t('common/messages.invalid_date'))
             ->date($input, 'ends_at', $this->t('common/messages.invalid_date'));
+        if (array_key_exists('timezone', $input) && $input['timezone'] !== null && $input['timezone'] !== '') {
+            if (!in_array((string)$input['timezone'], \DateTimeZone::listIdentifiers(), true)) {
+                $v->addError('timezone', $this->t('calendar/messages.invalid_timezone'));
+            }
+        }
         $this->validateEventDates($v, $input, forbidPast: array_key_exists('starts_at', $input));
         if ($v->fails()) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $v->errors());
@@ -327,6 +337,11 @@ final class CalendarController extends BaseController
         $v->require($input, 'title', $this->t('common/messages.field_required'))
             ->maxLen($input, 'title', 255, $this->t('calendar/messages.max_255'))
             ->maxLen($input, 'timezone', 64, $this->t('calendar/messages.max_64'));
+        if (array_key_exists('timezone', $input) && $input['timezone'] !== null && $input['timezone'] !== '') {
+            if (!in_array((string)$input['timezone'], \DateTimeZone::listIdentifiers(), true)) {
+                $v->addError('timezone', $this->t('calendar/messages.invalid_timezone'));
+            }
+        }
         if ($v->fails()) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $v->errors());
         }
@@ -375,6 +390,11 @@ final class CalendarController extends BaseController
         $v = new Validator();
         $v->maxLen($input, 'title', 255, $this->t('calendar/messages.max_255'))
             ->maxLen($input, 'timezone', 64, $this->t('calendar/messages.max_64'));
+        if (array_key_exists('timezone', $input) && $input['timezone'] !== null && $input['timezone'] !== '') {
+            if (!in_array((string)$input['timezone'], \DateTimeZone::listIdentifiers(), true)) {
+                $v->addError('timezone', $this->t('calendar/messages.invalid_timezone'));
+            }
+        }
         if ($v->fails()) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $v->errors());
         }

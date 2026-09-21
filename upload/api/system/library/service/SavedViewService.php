@@ -23,6 +23,17 @@ final class SavedViewService
     }
 
     /**
+     * Tenant scope of the actor (TROPATTCRM-607). A null/0 organization means
+     * a root actor operating across organizations; every other actor is hard-
+     * scoped to their workspace so cross-org public/system views never leak.
+     */
+    private function organizationId(array $actor): ?int
+    {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
+    }
+
+    /**
      * List saved views (v2).
      */
     public function list(array $filters, array $actor): array
@@ -30,7 +41,8 @@ final class SavedViewService
         $result = $this->views->list(
             $filters,
             (int)($actor['id'] ?? 0),
-            (bool)($actor['is_root'] ?? false)
+            (bool)($actor['is_root'] ?? false),
+            $this->organizationId($actor)
         );
 
         $items = $result['items'];
@@ -63,7 +75,7 @@ final class SavedViewService
      */
     public function get(string $publicId, array $actor): array|string|null
     {
-        $item = $this->views->findByPublicId($publicId);
+        $item = $this->views->findByPublicId($publicId, $this->organizationId($actor));
         if (!$item) {
             return null;
         }
@@ -225,7 +237,7 @@ final class SavedViewService
             'sort_order' => (int)($input['sort_order'] ?? 65535),
         ];
 
-        $item = $this->views->create($payload);
+        $item = $this->views->create($payload, $this->organizationId($actor));
 
         return $this->normalizeItem($item);
     }
@@ -237,7 +249,7 @@ final class SavedViewService
      */
     public function update(string $publicId, array $input, array $actor): array|string|null
     {
-        $existing = $this->views->findByPublicId($publicId);
+        $existing = $this->views->findByPublicId($publicId, $this->organizationId($actor));
         if (!$existing) {
             return null;
         }
@@ -376,7 +388,7 @@ final class SavedViewService
             $this->views->updateByPublicId($publicId, $set);
         }
 
-        $item = $this->views->findByPublicId($publicId);
+        $item = $this->views->findByPublicId($publicId, $this->organizationId($actor));
 
         return $item !== null ? $this->normalizeItem($item) : null;
     }
@@ -388,7 +400,7 @@ final class SavedViewService
      */
     public function archive(string $publicId, array $actor): bool|string
     {
-        $existing = $this->views->findByPublicId($publicId);
+        $existing = $this->views->findByPublicId($publicId, $this->organizationId($actor));
         if (!$existing) {
             return false;
         }
@@ -425,7 +437,7 @@ final class SavedViewService
      */
     public function duplicate(string $publicId, array $input, array $actor): array|string|null
     {
-        $existing = $this->views->findByPublicId($publicId);
+        $existing = $this->views->findByPublicId($publicId, $this->organizationId($actor));
         if (!$existing) {
             return null;
         }
@@ -465,7 +477,7 @@ final class SavedViewService
             'sort_order' => 65535,
         ];
 
-        $item = $this->views->create($payload);
+        $item = $this->views->create($payload, $this->organizationId($actor));
 
         return $this->normalizeItem($item);
     }
@@ -477,7 +489,7 @@ final class SavedViewService
      */
     public function pin(string $publicId, array $input, array $actor): array|string|null
     {
-        $existing = $this->views->findByPublicId($publicId);
+        $existing = $this->views->findByPublicId($publicId, $this->organizationId($actor));
         if (!$existing) {
             return null;
         }
@@ -506,7 +518,7 @@ final class SavedViewService
      */
     public function touchLastUsed(string $publicId, array $actor): bool|string
     {
-        $existing = $this->views->findByPublicId($publicId);
+        $existing = $this->views->findByPublicId($publicId, $this->organizationId($actor));
         if (!$existing) {
             return false;
         }
@@ -570,7 +582,7 @@ final class SavedViewService
      */
     public function getTaskFilters(string $publicId, array $actor): array|string|null
     {
-        $item = $this->views->findByPublicId($publicId);
+        $item = $this->views->findByPublicId($publicId, $this->organizationId($actor));
         if (!$item) {
             return null;
         }

@@ -191,6 +191,26 @@ final class UserManagementRepository
         return array_map('intval', array_keys($result));
     }
 
+    /**
+     * Whether the user belongs to the organization (organization_memberships).
+     * Used by HierarchyPolicy to keep user management inside the actor's
+     * active workspace (TROPATTCRM-608).
+     */
+    public function isOrganizationMember(int $userId, int $organizationId): bool
+    {
+        if ($userId <= 0 || $organizationId <= 0) {
+            return false;
+        }
+        $row = (new QueryBuilder($this->pdo))
+            ->from('organization_memberships')
+            ->select(['user_id'])
+            ->where('user_id', '=', $userId)
+            ->where('organization_id', '=', $organizationId)
+            ->first();
+
+        return $row !== null && $row !== false && $row !== [];
+    }
+
     /** @return int[] */
     public function organizationMemberIds(int $organizationId): array
     {

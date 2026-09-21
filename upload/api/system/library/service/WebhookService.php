@@ -52,7 +52,7 @@ final class WebhookService
 
     public function createSubscription(array $input, array $actor): array
     {
-        if (!(bool)($actor['is_root'] ?? false)) {
+        if (!$this->canManageWebhooks($actor)) {
             return ['ok' => false, 'code' => 'FORBIDDEN'];
         }
 
@@ -97,7 +97,7 @@ final class WebhookService
 
     public function updateSubscription(string $publicId, array $input, array $actor): array
     {
-        if (!(bool)($actor['is_root'] ?? false)) {
+        if (!$this->canManageWebhooks($actor)) {
             return ['ok' => false, 'code' => 'FORBIDDEN'];
         }
 
@@ -145,7 +145,7 @@ final class WebhookService
 
     public function deleteSubscription(string $publicId, array $actor): array
     {
-        if (!(bool)($actor['is_root'] ?? false)) {
+        if (!$this->canManageWebhooks($actor)) {
             return ['ok' => false, 'code' => 'FORBIDDEN'];
         }
 
@@ -189,7 +189,7 @@ final class WebhookService
 
     public function testDelivery(string $publicId, array $actor): array
     {
-        if (!(bool)($actor['is_root'] ?? false)) {
+        if (!$this->canManageWebhooks($actor)) {
             return ['ok' => false, 'code' => 'FORBIDDEN'];
         }
 
@@ -302,7 +302,7 @@ final class WebhookService
 
     public function enqueueTestDelivery(string $publicId, array $actor): array
     {
-        if (!(bool)($actor['is_root'] ?? false)) {
+        if (!$this->canManageWebhooks($actor)) {
             return ['ok' => false, 'code' => 'FORBIDDEN'];
         }
 
@@ -654,6 +654,15 @@ final class WebhookService
     {
         $id = (int)($actor['organization_id'] ?? 0);
         return $id > 0 ? $id : null;
+    }
+
+    private function canManageWebhooks(array $actor): bool
+    {
+        if ((bool)($actor['is_root'] ?? false)) {
+            return true;
+        }
+        $permissions = (array)($actor['permission_codes'] ?? []);
+        return in_array('webhook.manage', $permissions, true);
     }
 
     private function normalizeSubscription(?array $row): ?array

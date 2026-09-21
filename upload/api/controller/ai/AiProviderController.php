@@ -290,6 +290,7 @@ final class AiProviderController extends BaseController
         $meta = [];
         $message = trim((string)($result['message'] ?? ''));
         if ($message !== '') {
+            $message = preg_replace('/(sk-[a-zA-Z0-9_\-]{8,}|bearer\s+[a-zA-Z0-9_\-\.]{8,}|[a-zA-Z0-9_\-]{32,})/i', '***REDACTED***', $message) ?? $message;
             $meta['message'] = $message;
         }
 

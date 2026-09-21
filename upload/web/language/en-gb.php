@@ -207,6 +207,7 @@ return array (
     'btn_show_logs_aria' => 'Show AI logs',
     'btn_start_pipeline' => 'Run',
     'btn_vote' => 'Vote',
+    'btn_unvote' => 'Remove vote',
     'confirm_clear_card' => 'Delete the idea understanding card? Questions and answers will remain.',
     'confirm_clear_clarifications' => 'Delete all clarifications?',
     'confirm_clear_final' => 'Delete the final recommendation?',

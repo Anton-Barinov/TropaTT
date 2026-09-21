@@ -20,4 +20,8 @@ return [
     'earnings' => 'Worklog earnings',
     'task_summary' => 'Task worklog summary',
     'matrix' => 'Worklog matrix',
+    'minutes_max_1440' => 'Single entry cannot exceed 1440 minutes (24 hours)',
+    'cannot_log_future' => 'Logging time in the future is not allowed',
+    'daily_limit_exceeded' => 'Daily logged time cannot exceed 1440 minutes (24 hours)',
+    'task_closed' => 'Logging time on closed or archived tasks is not allowed',
 ];

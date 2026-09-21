@@ -102,6 +102,23 @@ final class CustomFieldRepository
             ->delete() > 0;
     }
 
+    public function deleteValuesByFieldId(int $fieldId): int
+    {
+        return (new QueryBuilder($this->pdo))
+            ->from('custom_field_values')
+            ->where('field_id', '=', $fieldId)
+            ->delete();
+    }
+
+    public function deleteValuesByFieldPublicId(string $fieldPublicId): int
+    {
+        $field = $this->findByPublicId($fieldPublicId);
+        if (!$field) {
+            return 0;
+        }
+        return $this->deleteValuesByFieldId((int)$field['id']);
+    }
+
     public function valuesByEntity(string $entityType, string $entityPublicId): array
     {
         return (new QueryBuilder($this->pdo))

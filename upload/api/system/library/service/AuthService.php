@@ -71,13 +71,50 @@ final class AuthService
             ];
         }
 
+        // M-8 / Task 23: Pre-auth check on login_account to block distributed botnet brute-force
+        // BEFORE burning expensive Argon2id CPU cycles on password_verify
+        $accountLoginCheck = $this->checkAccountRateLimit($login);
+        if ($accountLoginCheck['blocked'] === true) {
+            $this->logger->security([
+                'event_type' => 'auth_account_rate_limited',
+                'login' => $login,
+                'ip' => $ip,
+                'user_agent' => $userAgent,
+                'retry_after' => $accountLoginCheck['retry_after'],
+            ]);
+            return [
+                'ok' => false,
+                'code' => 'AUTH_RATE_LIMITED',
+                'retry_after' => $accountLoginCheck['retry_after'],
+            ];
+        }
+
         $user = $this->users->findByLogin($login);
+        if ($user && (int)($user['id'] ?? 0) > 0) {
+            $accountUidCheck = $this->checkAccountRateLimitByUserId((int)$user['id']);
+            if ($accountUidCheck['blocked'] === true) {
+                $this->logger->security([
+                    'event_type' => 'auth_account_rate_limited',
+                    'user_id' => (int)$user['id'],
+                    'login' => $login,
+                    'ip' => $ip,
+                    'user_agent' => $userAgent,
+                    'retry_after' => $accountUidCheck['retry_after'],
+                ]);
+                return [
+                    'ok' => false,
+                    'code' => 'AUTH_RATE_LIMITED',
+                    'retry_after' => $accountUidCheck['retry_after'],
+                ];
+            }
+        }
+
         if (!$user || (int)($user['is_active'] ?? 0) !== 1) {
             // Timing-attack mitigation (Task 1.5): simulate password hash verification
             // so that non-existent users take the same time as existent ones.
             // Uses a pre-generated Argon2id hash to match the system's actual hash algorithm.
             $this->hasher->verify('dummy_plain_text', '$argon2id$v=19$m=65536,t=4,p=1$c29tZXNhbHR2YWx1ZXMxMjM0NQ$wLdTJFplKxH5XKRhXQz7vA+VL0VvN8gD4v7TyzHGlc0');
-            $state = $this->recordFailedLoginAttempt($rateKey, $ip, (int)($user['id'] ?? 0));
+            $state = $this->recordFailedLoginAttempt($rateKey, $ip, (int)($user['id'] ?? 0), $login);
             $this->logger->security([
                 'event_type' => 'auth_failed',
                 'reason' => 'user_not_found_or_inactive',
@@ -96,7 +133,7 @@ final class AuthService
         }
 
         if (!$this->hasher->verify($password, (string)$user['password_hash'])) {
-            $state = $this->recordFailedLoginAttempt($rateKey, $ip, (int)($user['id'] ?? 0));
+            $state = $this->recordFailedLoginAttempt($rateKey, $ip, (int)($user['id'] ?? 0), $login);
             $this->logger->security([
                 'event_type' => 'auth_failed',
                 'reason' => 'invalid_password',
@@ -116,7 +153,7 @@ final class AuthService
 
         $tokenHash = (string)($user['auth_token_hash'] ?? '');
         if ($tokenHash !== '' && ($token === '' || !hash_equals($tokenHash, hash('sha256', $token)))) {
-            $state = $this->recordFailedLoginAttempt($rateKey, $ip, (int)($user['id'] ?? 0));
+            $state = $this->recordFailedLoginAttempt($rateKey, $ip, (int)($user['id'] ?? 0), $login);
             $this->logger->security([
                 'event_type' => 'auth_failed',
                 'reason' => 'invalid_token_factor',
@@ -135,6 +172,7 @@ final class AuthService
         }
 
         $this->clearLoginRateLimit($rateKey);
+        $this->clearAccountRateLimit((int)$user['id'], $login);
 
         // INFO: Upgrade Argon2 parameters for existing users when they log in.
         // Without this, old users keep their original cost factors forever.
@@ -280,6 +318,16 @@ final class AuthService
             $expiresIn = max(1, $sessionExpiresAt - $now);
         }
 
+        $impersonatedByAdminPublicId = null;
+        $impersonatedByAdminUserId = null;
+        if (preg_match('/impersonation:audit=[^;]+;admin=([^;]+);/u', (string)($session['user_agent'] ?? ''), $m) === 1) {
+            $impersonatedByAdminPublicId = $m[1];
+            $adminUser = $this->users->findByPublicId($impersonatedByAdminPublicId);
+            if ($adminUser) {
+                $impersonatedByAdminUserId = (int)$adminUser['id'];
+            }
+        }
+
         $user = $this->normalizeUser([
             'id' => (int)($session['user_id'] ?? 0),
             'public_id' => (string)$session['user_public_id'],
@@ -293,10 +341,17 @@ final class AuthService
             'created_by_user_id' => $session['created_by_user_id'] ?? null,
         ]);
 
+        if ($impersonatedByAdminPublicId !== null) {
+            $user['impersonated_by_user_public_id'] = $impersonatedByAdminPublicId;
+            $user['impersonated_by_user_id'] = $impersonatedByAdminUserId;
+        }
+
         return [
             'session_public_id' => (string)$session['public_id'],
             'expires_at' => $newExpiresAt,
             'expires_in' => $expiresIn,
+            'impersonated_by_user_public_id' => $impersonatedByAdminPublicId,
+            'impersonated_by_user_id' => $impersonatedByAdminUserId,
             'user' => $user,
         ];
     }
@@ -362,7 +417,7 @@ final class AuthService
         return $this->rateLimiter->check('login', $rateKey, 5, 300, 900, true);
     }
 
-    private function recordFailedLoginAttempt(string $rateKey, string $ip, ?int $userId = null): array
+    private function recordFailedLoginAttempt(string $rateKey, string $ip, ?int $userId = null, string $login = ''): array
     {
         $ipState = $this->hitIpRateLimit($ip);
         $loginState = $this->hitLoginRateLimit($rateKey);
@@ -371,24 +426,65 @@ final class AuthService
 
         // M-8: Per-account rate limit to protect against distributed brute-force
         // (botnet) attacks against a single account from many IPs.
+        if ($login !== '') {
+            $normalizedLogin = strtolower(trim($login));
+            $loginAccState = $this->rateLimiter->check('login_account', 'login:' . $normalizedLogin, 15, 300, 900, true);
+            if (($loginAccState['blocked'] ?? false) === true) {
+                $accountBlocked = true;
+                $accountRetry = max($accountRetry, (int)($loginAccState['retry_after'] ?? 0));
+            }
+        }
+
         if ($userId !== null && $userId > 0) {
             $accountState = $this->rateLimiter->check('login_account', 'uid:' . $userId, 15, 300, 900, true);
-            $accountBlocked = ($accountState['blocked'] ?? false) === true;
-            $accountRetry = (int)($accountState['retry_after'] ?? 0);
-            if ($accountBlocked) {
-                $this->logger->security([
-                    'event_type' => 'auth_account_rate_limited',
-                    'user_id' => $userId,
-                    'ip' => $ip,
-                    'retry_after' => $accountRetry,
-                ]);
+            if (($accountState['blocked'] ?? false) === true) {
+                $accountBlocked = true;
+                $accountRetry = max($accountRetry, (int)($accountState['retry_after'] ?? 0));
             }
+        }
+
+        if ($accountBlocked) {
+            $this->logger->security([
+                'event_type' => 'auth_account_rate_limited',
+                'user_id' => $userId,
+                'login' => $login,
+                'ip' => $ip,
+                'retry_after' => $accountRetry,
+            ]);
         }
 
         return [
             'blocked' => ($ipState['blocked'] ?? false) === true || ($loginState['blocked'] ?? false) === true || $accountBlocked,
             'retry_after' => max((int)($ipState['retry_after'] ?? 0), (int)($loginState['retry_after'] ?? 0), $accountRetry),
         ];
+    }
+
+    private function checkAccountRateLimit(string $login): array
+    {
+        $normalizedLogin = strtolower(trim($login));
+        if ($normalizedLogin === '') {
+            return ['blocked' => false, 'retry_after' => 0];
+        }
+        return $this->rateLimiter->check('login_account', 'login:' . $normalizedLogin, 15, 300, 900, false);
+    }
+
+    private function checkAccountRateLimitByUserId(int $userId): array
+    {
+        if ($userId <= 0) {
+            return ['blocked' => false, 'retry_after' => 0];
+        }
+        return $this->rateLimiter->check('login_account', 'uid:' . $userId, 15, 300, 900, false);
+    }
+
+    private function clearAccountRateLimit(int $userId, string $login): void
+    {
+        if ($userId > 0) {
+            $this->rateLimiter->clear('login_account', 'uid:' . $userId);
+        }
+        $normalizedLogin = strtolower(trim($login));
+        if ($normalizedLogin !== '') {
+            $this->rateLimiter->clear('login_account', 'login:' . $normalizedLogin);
+        }
     }
 
     private function clearLoginRateLimit(string $rateKey): void

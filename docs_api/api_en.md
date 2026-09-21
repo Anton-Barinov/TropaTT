@@ -1920,3 +1920,502 @@ Browser push notifications (Web Push, RFC 8291) notify users of task updates, me
 **Requirements:** the server must be able to make outbound HTTPS connections to browser push services (Firefox autopush endpoint, Google FCM, etc.). The `openssl` extension must support `prime256v1` EC keys for VAPID.
 
 Deprecated aliases (`/api/v1/notification/push-*`) are excluded from OpenAPI and will be removed in a future version.
+
+
+### Security — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/security/invitations/list` 🔄 | — | Yes | user.manage | — |
+| POST | `/api/v1/security/invitations/create` 🔄 | — | Yes | user.manage | — |
+| GET | `/api/v1/security/sessions/list` 🔄 | — | Yes |  | — |
+| DELETE | `/api/v1/security/sessions/revoke/{public_id}` | — | Yes |  | — |
+| POST | `/api/v1/security/devices/revoke` 🔄 | — | Yes |  | — |
+| GET | `/api/v1/security/invitations/get/{public_id}` | — | Yes | user.manage | — |
+| POST | `/api/v1/security/password-reset/request` 🔄 | — | No |  | — |
+
+### Project — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| POST | `/api/v1/project/create` 🔄 | — | Yes | project.manage | — |
+| GET | `/api/v1/project/list` 🔄 | — | Yes | project.manage | — |
+| GET | `/api/v1/project/get/{public_id}` | — | Yes | project.manage | — |
+| PATCH, PUT | `/api/v1/project/update/{public_id}` | — | Yes | project.manage | — |
+| DELETE | `/api/v1/project/delete/{public_id}` | — | Yes | project.manage | — |
+| GET | `/api/v1/project/timeline/{public_id}` | — | Yes | project.manage | — |
+| GET | `/api/v1/project/summary/{public_id}` | — | Yes | project.manage | — |
+| GET | `/api/v1/project/milestones-summary/{public_id}` | — | Yes | project.manage | — |
+| GET | `/api/v1/project/risks/{public_id}` | — | Yes | project.manage | — |
+| GET | `/api/v1/project/workload/{public_id}` | — | Yes | project.manage | — |
+
+### Task — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| POST | `/api/v1/task/create` 🔄 | — | Yes | task.manage | — |
+| GET | `/api/v1/task/list` 🔄 | — | Yes | task.manage | — |
+| GET | `/api/v1/task/board` 🔄 | — | Yes | task.manage | — |
+| POST | `/api/v1/task/bulk/update` 🔄 | — | Yes | task.manage | — |
+| POST | `/api/v1/task/move/{public_id}` | — | Yes | task.manage | — |
+| GET | `/api/v1/task/get/{public_id}` | — | Yes | task.manage | — |
+| PATCH, PUT | `/api/v1/task/update/{public_id}` | — | Yes | task.manage | — |
+| DELETE | `/api/v1/task/delete/{public_id}` | — | Yes | task.manage | — |
+| GET | `/api/v1/task/tags/{task_public_id}` | — | Yes | task.manage | — |
+| POST | `/api/v1/task/tag/attach/{task_public_id}/{tag_public_id}` | — | Yes | task.manage | — |
+| DELETE | `/api/v1/task/tag/detach/{task_public_id}/{tag_public_id}` | — | Yes | task.manage | — |
+| GET | `/api/v1/task/subtasks/{public_id}` | — | Yes | task.manage | — |
+| POST | `/api/v1/task/subtasks/{public_id}` | — | Yes | task.manage | — |
+| GET | `/api/v1/task/checklists/{public_id}` | — | Yes | task.manage | — |
+| POST | `/api/v1/task/checklists/{public_id}` | — | Yes | task.manage | — |
+
+### Templates — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/template/task/list` 🔄 | — | Yes | task.manage | — |
+| POST | `/api/v1/template/task/create` 🔄 | — | Yes | task.manage | — |
+| GET | `/api/v1/template/project/list` 🔄 | — | Yes | project.manage | — |
+| POST | `/api/v1/template/project/create` 🔄 | — | Yes | project.manage | — |
+
+### Recurring Rules — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/recurring/list` 🔄 | — | Yes | task.manage | — |
+| POST | `/api/v1/recurring/create` 🔄 | — | Yes | task.manage | — |
+
+### Custom Fields — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/custom-field/list` 🔄 | — | Yes | settings.manage | — |
+| POST | `/api/v1/custom-field/create` 🔄 | — | Yes | settings.manage | — |
+
+### Workflow — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/workflow/rule/list` 🔄 | — | Yes | settings.manage | — |
+| POST | `/api/v1/workflow/rule/create` 🔄 | — | Yes | settings.manage | — |
+| PATCH, PUT | `/api/v1/workflow/rule/update/{public_id}` | — | Yes | settings.manage | — |
+
+### SLA — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/sla/list` 🔄 | — | Yes | settings.manage | — |
+| POST | `/api/v1/sla/create` 🔄 | — | Yes | settings.manage | — |
+| PATCH, PUT | `/api/v1/sla/update/{public_id}` | — | Yes | settings.manage | — |
+| GET | `/api/v1/sla/report/get` 🔄 | — | Yes | settings.manage | — |
+
+### Approvals — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/approval/list` 🔄 | — | Yes | approval.manage | — |
+
+### Recycle Bin — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/recycle-bin/list` 🔄 | — | Yes | recycle_bin.manage | — |
+| POST | `/api/v1/recycle-bin/restore/{public_id}` | — | Yes | recycle_bin.manage | — |
+| DELETE, POST | `/api/v1/recycle-bin/purge/{public_id}` | — | Yes | recycle_bin.manage | — |
+
+### Import — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| POST | `/api/v1/import/create` 🔄 | — | Yes | import.manage | — |
+
+### Export — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| POST | `/api/v1/export/create` 🔄 | — | Yes | export.manage | — |
+
+### Comments — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| POST | `/api/v1/comment/add/{public_id}` | — | Yes | task.manage | — |
+| PATCH, PUT | `/api/v1/comment/update/{public_id}` | — | Yes | task.manage | — |
+| DELETE | `/api/v1/comment/delete/{public_id}` | — | Yes |  | — |
+| GET | `/api/v1/comment/draft/get/{public_id}` | — | Yes | task.manage | — |
+| POST, PUT, PATCH | `/api/v1/comment/draft/save/{public_id}` | — | Yes | task.manage | — |
+| DELETE | `/api/v1/comment/draft/delete/{public_id}` | — | Yes | task.manage | — |
+
+### Notifications — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/notification/list` 🔄 | — | Yes |  | — |
+| POST | `/api/v1/notification/create` 🔄 | — | Yes |  | — |
+| GET | `/api/v1/notification/counters` 🔄 | — | Yes |  | — |
+| GET | `/api/v1/notification/push-subscriptions` 🔄 | — | Yes |  | — |
+| POST | `/api/v1/notification/push-subscriptions` 🔄 | — | Yes |  | — |
+| DELETE | `/api/v1/notification/push-subscriptions/{public_id}` | — | Yes |  | — |
+| POST | `/api/v1/notification/push-test` 🔄 | — | Yes |  | — |
+| POST | `/api/v1/notification/mark-all-read` 🔄 | — | Yes |  | — |
+| PATCH, PUT | `/api/v1/notification/read/{public_id}` | — | Yes |  | — |
+| PATCH, PUT | `/api/v1/notification/unread/{public_id}` | — | Yes |  | — |
+
+### Reminders — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/reminder/list` 🔄 | — | Yes |  | — |
+| POST | `/api/v1/reminder/create` 🔄 | — | Yes |  | — |
+| GET | `/api/v1/reminder/get/{public_id}` | — | Yes |  | — |
+| PATCH, PUT | `/api/v1/reminder/update/{public_id}` | — | Yes |  | — |
+| DELETE | `/api/v1/reminder/delete/{public_id}` | — | Yes |  | — |
+
+### Calendar — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/calendar/event/list` 🔄 | — | Yes | task.manage | — |
+| POST | `/api/v1/calendar/event/create` 🔄 | — | Yes | task.manage | — |
+| GET | `/api/v1/calendar/event/get/{public_id}` | — | Yes | task.manage | — |
+| PATCH, PUT | `/api/v1/calendar/event/update/{public_id}` | — | Yes | task.manage | — |
+| DELETE | `/api/v1/calendar/event/delete/{public_id}` | — | Yes | task.manage | — |
+| GET | `/api/v1/calendar/day` 🔄 | — | Yes | task.manage | — |
+| GET | `/api/v1/calendar/week` 🔄 | — | Yes | task.manage | — |
+| GET | `/api/v1/calendar/month` 🔄 | — | Yes | task.manage | — |
+
+### Worklogs — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/worklog/list` 🔄 | — | Yes | task.manage | — |
+| POST | `/api/v1/worklog/create` 🔄 | — | Yes | task.manage | — |
+| GET | `/api/v1/worklog/get/{public_id}` | — | Yes | task.manage | — |
+| PATCH, PUT | `/api/v1/worklog/update/{public_id}` | — | Yes | task.manage | — |
+| DELETE | `/api/v1/worklog/delete/{public_id}` | — | Yes | task.manage | — |
+
+### Dashboard — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/dashboard/get-summary` 🔄 | — | Yes | task.manage | — |
+
+### Analytics — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/analytics/get-summary` 🔄 | — | Yes | task.manage | — |
+| GET | `/api/v1/analytics/get-projects` 🔄 | — | Yes | task.manage | — |
+| GET | `/api/v1/analytics/get-users` 🔄 | — | Yes | task.manage | — |
+
+### Search — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/search/all` 🔄 | — | Yes | task.manage | — |
+
+### Mentions — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/mention/list` 🔄 | — | Yes | task.manage | — |
+| POST | `/api/v1/mention/add` 🔄 | — | Yes | task.manage | — |
+| DELETE | `/api/v1/mention/delete/{public_id}` | — | Yes | task.manage | — |
+
+### Reactions — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/reaction/list` 🔄 | — | Yes | task.manage | — |
+| POST | `/api/v1/reaction/add` 🔄 | — | Yes | task.manage | — |
+| DELETE | `/api/v1/reaction/remove/{public_id}` | — | Yes | task.manage | — |
+
+### Subscriptions — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/subscription/list` 🔄 | — | Yes | task.manage | — |
+| POST | `/api/v1/subscription/create` 🔄 | — | Yes | task.manage | — |
+| DELETE | `/api/v1/subscription/delete/{public_id}` | — | Yes | task.manage | — |
+
+### Favorites — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/favorite/list` 🔄 | — | Yes | task.manage | — |
+| POST | `/api/v1/favorite/create` 🔄 | — | Yes | task.manage | — |
+| DELETE | `/api/v1/favorite/delete/{public_id}` | — | Yes | task.manage | — |
+
+### Saved Views — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/view/list` 🔄 | — | Yes | task.manage | — |
+| POST | `/api/v1/view/save` 🔄 | — | Yes | task.manage | — |
+| PATCH, PUT | `/api/v1/view/update/{public_id}` | — | Yes | task.manage | — |
+| DELETE | `/api/v1/view/delete/{public_id}` | — | Yes | task.manage | — |
+
+### Activity Feed — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/activity/list` 🔄 | — | Yes | logs.view | — |
+
+### Settings — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/setting/get` 🔄 | — | Yes | settings.manage | — |
+| GET | `/api/v1/setting/get/{name}` | — | Yes | settings.manage | — |
+| POST, PUT, PATCH | `/api/v1/setting/set` 🔄 | — | Yes | settings.manage | — |
+| POST, PUT, PATCH | `/api/v1/setting/set/{name}` | — | Yes | settings.manage | — |
+
+### Retention — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/retention/get` 🔄 | — | Yes | settings.manage | — |
+| POST, PUT, PATCH | `/api/v1/retention/set` 🔄 | — | Yes | settings.manage | — |
+
+### Feature Flags — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/feature-flags/list` 🔄 | — | Yes | feature_flag.manage | — |
+| PATCH, PUT | `/api/v1/feature-flags/update/{public_id}` | — | Yes | feature_flag.manage | — |
+
+### Organizations — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/organization/list` 🔄 | — | Yes | organization.manage | — |
+| POST | `/api/v1/organization/create` 🔄 | — | Yes | organization.manage | — |
+| GET | `/api/v1/organization/get/{public_id}` | — | Yes | organization.manage | — |
+| PATCH, PUT | `/api/v1/organization/update/{public_id}` | — | Yes | organization.manage | — |
+| DELETE | `/api/v1/organization/delete/{public_id}` | — | Yes | organization.manage | — |
+
+### Statuses — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/status/list` 🔄 | — | Yes | task.manage | — |
+| POST | `/api/v1/status/create` 🔄 | — | Yes | task.manage | — |
+| GET | `/api/v1/status/get/{public_id}` | — | Yes | task.manage | — |
+| PATCH, PUT | `/api/v1/status/update/{public_id}` | — | Yes | task.manage | — |
+| DELETE | `/api/v1/status/delete/{public_id}` | — | Yes | task.manage | — |
+| POST | `/api/v1/status/remap-delete/{public_id}` | — | Yes | task.manage | — |
+
+### Admin — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/admin/role-matrix/get` 🔄 | — | Yes | role.manage | — |
+| POST, PUT, PATCH | `/api/v1/admin/role-matrix/set` 🔄 | — | Yes | role.manage | — |
+| GET | `/api/v1/admin/widget/summary` 🔄 | — | Yes | logs.view | — |
+| GET | `/api/v1/admin/widget/system` 🔄 | — | Yes | logs.view | — |
+
+### API Clients — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/api-client/list` 🔄 | — | Yes | api_client.view | — |
+| POST | `/api/v1/api-client/create` 🔄 | — | Yes | api_client.manage | — |
+| GET | `/api/v1/api-client/get/{public_id}` | — | Yes | api_client.view | — |
+| PATCH, PUT, POST | `/api/v1/api-client/update/{public_id}` | — | Yes | api_client.manage | — |
+| DELETE, POST | `/api/v1/api-client/delete/{public_id}` | — | Yes | api_client.manage | — |
+| GET | `/api/v1/api-client/keys/{public_id}` | — | Yes | api_client.view | — |
+| POST | `/api/v1/api-client/key/issue/{public_id}` | — | Yes | api_client.manage | — |
+| POST | `/api/v1/api-client/key/rotate/{public_id}` | — | Yes | api_client.manage | — |
+| POST, DELETE | `/api/v1/api-client/key/revoke/{public_id}` | — | Yes | api_client.manage | — |
+| GET | `/api/v1/api-client/key/usage/{public_id}` | — | Yes | api_client.view | — |
+
+### Operations — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/ops/system/get` 🔄 | — | Yes | logs.view | — |
+| GET | `/api/v1/ops/metrics/get` 🔄 | — | Yes | logs.view | — |
+| POST | `/api/v1/ops/jobs/run-now` 🔄 | — | Yes | logs.view | — |
+
+### Telemetry — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| POST | `/api/v1/telemetry/frontend-event/create` 🔄 | — | Yes |  | — |
+
+### Webhooks — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/webhook/list` 🔄 | — | Yes | webhook.manage | — |
+| POST | `/api/v1/webhook/create` 🔄 | — | Yes | webhook.manage | — |
+| PATCH, PUT, POST | `/api/v1/webhook/update/{public_id}` | — | Yes | webhook.manage | — |
+| DELETE, POST | `/api/v1/webhook/delete/{public_id}` | — | Yes | webhook.manage | — |
+| GET | `/api/v1/webhook/deliveries` 🔄 | — | Yes | webhook.manage | — |
+| GET | `/api/v1/webhook/deliveries/{public_id}` | — | Yes | webhook.manage | — |
+| POST | `/api/v1/webhook/test/{public_id}` | — | Yes | webhook.manage | — |
+
+### Priorities — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/priority/list` 🔄 | — | Yes | task.manage | — |
+| POST | `/api/v1/priority/create` 🔄 | — | Yes | task.manage | — |
+| GET | `/api/v1/priority/get/{public_id}` | — | Yes | task.manage | — |
+| PATCH, PUT | `/api/v1/priority/update/{public_id}` | — | Yes | task.manage | — |
+| DELETE | `/api/v1/priority/delete/{public_id}` | — | Yes | task.manage | — |
+
+### Tags — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/tag/list` 🔄 | — | Yes | task.manage | — |
+| POST | `/api/v1/tag/create` 🔄 | — | Yes | task.manage | — |
+| GET | `/api/v1/tag/get/{public_id}` | — | Yes | task.manage | — |
+| PATCH, PUT | `/api/v1/tag/update/{public_id}` | — | Yes | task.manage | — |
+| DELETE | `/api/v1/tag/delete/{public_id}` | — | Yes | task.manage | — |
+
+### Milestones — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/milestone/list` 🔄 | — | Yes | project.manage | — |
+| POST | `/api/v1/milestone/create` 🔄 | — | Yes | project.manage | — |
+| GET | `/api/v1/milestone/get/{public_id}` | — | Yes | project.manage | — |
+| PATCH, PUT | `/api/v1/milestone/update/{public_id}` | — | Yes | project.manage | — |
+| DELETE | `/api/v1/milestone/delete/{public_id}` | — | Yes | project.manage | — |
+
+### Dependencies — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/dependency/list` 🔄 | — | Yes | task.manage | — |
+| POST | `/api/v1/dependency/create` 🔄 | — | Yes | task.manage | — |
+| DELETE | `/api/v1/dependency/delete/{public_id}` | — | Yes | task.manage | — |
+
+### Subtasks — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/subtask/get/{public_id}` | — | Yes | task.manage | — |
+| PATCH, PUT | `/api/v1/subtask/update/{public_id}` | — | Yes | task.manage | — |
+| DELETE | `/api/v1/subtask/delete/{public_id}` | — | Yes | task.manage | — |
+
+### Checklists — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/checklist/get/{public_id}` | — | Yes | task.manage | — |
+| PATCH, PUT | `/api/v1/checklist/update/{public_id}` | — | Yes | task.manage | — |
+| DELETE | `/api/v1/checklist/delete/{public_id}` | — | Yes | task.manage | — |
+| GET | `/api/v1/checklist/items/{public_id}` | — | Yes | task.manage | — |
+| POST | `/api/v1/checklist/item/add/{public_id}` | — | Yes | task.manage | — |
+| GET | `/api/v1/checklist/item/get/{public_id}` | — | Yes | task.manage | — |
+| PATCH, PUT | `/api/v1/checklist/item/update/{public_id}` | — | Yes | task.manage | — |
+| DELETE | `/api/v1/checklist/item/delete/{public_id}` | — | Yes | task.manage | — |
+
+### Users — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/user/list` 🔄 | — | Yes | user.view | — |
+| GET | `/api/v1/user/get/{public_id}` | — | Yes | user.view | — |
+| POST | `/api/v1/user/create` 🔄 | — | Yes | user.manage | — |
+| PATCH, PUT | `/api/v1/user/update/{public_id}` | — | Yes | user.manage | — |
+| DELETE | `/api/v1/user/delete/{public_id}` | — | Yes | user.manage | — |
+| GET | `/api/v1/user/tokens/{public_id}` | — | Yes | user.view | — |
+| POST | `/api/v1/user/tokens/rotate/{public_id}` | — | Yes | user.manage | — |
+| DELETE | `/api/v1/user/tokens/{public_id}` | — | Yes | user.manage | — |
+| GET | `/api/v1/user/activity/{public_id}` | — | Yes | user.view | — |
+
+### Roles — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/role/list` 🔄 | — | Yes | role.view | — |
+| POST | `/api/v1/role/create` 🔄 | — | Yes | role.manage | — |
+| PATCH, PUT | `/api/v1/role/update/{public_id}` | — | Yes | role.manage | — |
+| DELETE | `/api/v1/role/delete/{public_id}` | — | Yes | role.manage | — |
+
+### Permissions — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/permission/list` 🔄 | — | Yes | role.view | — |
+
+### Logs — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/logs/audit/list` 🔄 | — | Yes | logs.view | — |
+
+### Audit Logs — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/audit/get-list` 🔄 | — | Yes | logs.view | — |
+| GET | `/api/v1/audit/by-user/{public_id}` | — | Yes | logs.view | — |
+| GET | `/api/v1/audit/by-entity/{entity_type}/{public_id}` | — | Yes | logs.view | — |
+
+### Teams — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/team/list` 🔄 | — | Yes | team.manage | — |
+| POST | `/api/v1/team/create` 🔄 | — | Yes | team.manage | — |
+| GET | `/api/v1/team/get/{public_id}` | — | Yes | team.manage | — |
+| PATCH, PUT | `/api/v1/team/update/{public_id}` | — | Yes | team.manage | — |
+| DELETE | `/api/v1/team/delete/{public_id}` | — | Yes | team.manage | — |
+
+### Departments — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/department/list` 🔄 | — | Yes | department.manage | — |
+| POST | `/api/v1/department/create` 🔄 | — | Yes | department.manage | — |
+| GET | `/api/v1/department/get/{public_id}` | — | Yes | department.manage | — |
+| PATCH, PUT | `/api/v1/department/update/{public_id}` | — | Yes | department.manage | — |
+| DELETE | `/api/v1/department/delete/{public_id}` | — | Yes | department.manage | — |
+
+### Companies — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/company/list` 🔄 | — | Yes | company.manage | — |
+| POST | `/api/v1/company/create` 🔄 | — | Yes | company.manage | — |
+| GET | `/api/v1/company/get/{public_id}` | — | Yes | company.manage | — |
+| PATCH, PUT | `/api/v1/company/update/{public_id}` | — | Yes | company.manage | — |
+| DELETE | `/api/v1/company/delete/{public_id}` | — | Yes | company.manage | — |
+
+### Clients — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/client/list` 🔄 | — | Yes | client.manage | — |
+| POST | `/api/v1/client/create` 🔄 | — | Yes | client.manage | — |
+| GET | `/api/v1/client/get/{public_id}` | — | Yes | client.manage | — |
+| PATCH, PUT | `/api/v1/client/update/{public_id}` | — | Yes | client.manage | — |
+| DELETE | `/api/v1/client/delete/{public_id}` | — | Yes | client.manage | — |
+| GET | `/api/v1/client/cabinet/projects` 🔄 | — | Yes | client.manage | — |
+| GET | `/api/v1/client/cabinet/project/{public_id}` | — | Yes | client.manage | — |
+| GET | `/api/v1/client/cabinet/project/{public_id}/tasks` | — | Yes | client.manage | — |
+
+### Contacts — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/contact/list` 🔄 | — | Yes | contact.manage | — |
+| POST | `/api/v1/contact/create` 🔄 | — | Yes | contact.manage | — |
+| GET | `/api/v1/contact/get/{public_id}` | — | Yes | contact.manage | — |
+| PATCH, PUT | `/api/v1/contact/update/{public_id}` | — | Yes | contact.manage | — |
+| DELETE | `/api/v1/contact/delete/{public_id}` | — | Yes | contact.manage | — |
+
+### Profile — RPC Aliases
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/profile/get` 🔄 | — | Yes |  | — |
+| PATCH, PUT, POST | `/api/v1/profile/update` 🔄 | — | Yes |  | — |
+| GET | `/api/v1/profile/preferences/get` 🔄 | — | Yes |  | — |
+| PATCH, PUT, POST | `/api/v1/profile/preferences/set` 🔄 | — | Yes |  | — |
+| POST | `/api/v1/profile/password/change` 🔄 | — | Yes |  | — |

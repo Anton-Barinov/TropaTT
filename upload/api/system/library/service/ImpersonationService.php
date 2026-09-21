@@ -54,15 +54,24 @@ final class ImpersonationService
             return ['ok' => false, 'code' => 'IMPERSONATION_SELF_FORBIDDEN'];
         }
 
-        $actorIsRoot = (int)($actorFull['is_root'] ?? 0) === 1;
-        $targetIsRoot = (int)($target['is_root'] ?? 0) === 1;
-
-        if ($targetIsRoot && !$actorIsRoot) {
-            return ['ok' => false, 'code' => 'FORBIDDEN_ROOT_PROTECTED'];
+        // TROPATTCRM-608: impersonation stays inside the actor's active
+        // organization; a user of another workspace is reported as missing.
+        if (!$this->hierarchy->isWithinActorOrganization($actor, $targetId)) {
+            return ['ok' => false, 'code' => 'TARGET_USER_NOT_FOUND'];
         }
 
-        if (!$actorIsRoot && !$this->hierarchy->canManageUser($actorFull, $target)) {
-            return ['ok' => false, 'code' => 'FORBIDDEN_HIERARCHY'];
+        $actorRoles = $this->users->roleCodesByUserId($actorId);
+        $actorIsSuperAdmin = (int)($actorFull['is_root'] ?? 0) === 1 || in_array('super_admin', $actorRoles, true);
+
+        if (!$actorIsSuperAdmin) {
+            return ['ok' => false, 'code' => 'FORBIDDEN'];
+        }
+
+        $targetRoles = $this->users->roleCodesByUserId($targetId);
+        $targetIsProtected = (int)($target['is_root'] ?? 0) === 1 || in_array('super_admin', $targetRoles, true);
+
+        if ($targetIsProtected) {
+            return ['ok' => false, 'code' => 'FORBIDDEN_ROOT_PROTECTED'];
         }
 
         $existing = $this->impersonations->findActiveByAdminAndTarget($actorId, $targetId);

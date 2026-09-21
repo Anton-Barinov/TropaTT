@@ -252,6 +252,10 @@ final class ChatController extends BaseController
         $user = $this->user()['user'] ?? [];
         $userId = (int)($user['id'] ?? 0);
         if ($userId <= 0) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+        $user = $this->organizationScopedActor($user);
+        $organizationId = (int)($user['organization_id'] ?? 0);
 
         $pdo = $this->container->get('db.pdo');
         /** @var ChatService $service */
@@ -266,13 +270,22 @@ final class ChatController extends BaseController
                 return $this->error('INVALID_USER', $this->t('chat/messages.select_active_user'), 422);
             }
 
-            $userStmt = $pdo->prepare("SELECT id FROM users WHERE id = :id AND is_active = 1 AND deleted_at IS NULL");
-            $userStmt->execute(['id' => $withUserId]);
+            if ($organizationId > 0) {
+                $userStmt = $pdo->prepare("
+                    SELECT u.id FROM users u
+                    JOIN organization_memberships om ON om.user_id = u.id AND om.organization_id = :org_id
+                    WHERE u.id = :id AND u.is_active = 1 AND u.deleted_at IS NULL
+                ");
+                $userStmt->execute(['id' => $withUserId, 'org_id' => $organizationId]);
+            } else {
+                $userStmt = $pdo->prepare("SELECT id FROM users WHERE id = :id AND is_active = 1 AND deleted_at IS NULL");
+                $userStmt->execute(['id' => $withUserId]);
+            }
             if (!$userStmt->fetchColumn()) {
                 return $this->error('USER_NOT_FOUND', $this->t('chat/messages.user_not_found'), 404);
             }
 
-            $chat = $service->ensureDirectChat($userId, $withUserId);
+            $chat = $service->ensureDirectChat($userId, $withUserId, $organizationId > 0 ? $organizationId : null);
             return $this->success('CHAT_CREATED', $this->t('chat/messages.chat_ready'), ['public_id' => $chat['public_id'] ?? ''], status: 201);
         }
 
@@ -457,18 +470,34 @@ final class ChatController extends BaseController
 
         $pdo = $this->container->get('db.pdo');
         $reply = $this->resolveReplyMessage((int)$chat['id'], (string)($input['reply_to_message_public_id'] ?? ''));
-        $msgPublicId = 'msg_' . bin2hex(random_bytes(8));
-        $pdo->prepare("
-            INSERT INTO chat_messages (public_id, chat_id, sender_user_id, reply_to_message_id, message_type, text, created_at)
-            VALUES (:pid, :cid, :uid, :reply_id, :type, :text, NOW())
-        ")->execute([
-            'pid' => $msgPublicId,
-            'cid' => (int)$chat['id'],
-            'uid' => $this->currentUserId(),
-            'reply_id' => $reply ? (int)$reply['id'] : null,
-            'type' => $messageType,
-            'text' => $text,
-        ]);
+        $chatOrgId = (int)($chat['organization_id'] ?? $this->organizationId());
+        $hasMsgOrg = $this->tableHasColumn($pdo, 'chat_messages', 'organization_id');
+        if ($hasMsgOrg && $chatOrgId > 0) {
+            $pdo->prepare("
+                INSERT INTO chat_messages (public_id, organization_id, chat_id, sender_user_id, reply_to_message_id, message_type, text, created_at)
+                VALUES (:pid, :org_id, :cid, :uid, :reply_id, :type, :text, NOW())
+            ")->execute([
+                'pid' => $msgPublicId,
+                'org_id' => $chatOrgId,
+                'cid' => (int)$chat['id'],
+                'uid' => $this->currentUserId(),
+                'reply_id' => $reply ? (int)$reply['id'] : null,
+                'type' => $messageType,
+                'text' => $text,
+            ]);
+        } else {
+            $pdo->prepare("
+                INSERT INTO chat_messages (public_id, chat_id, sender_user_id, reply_to_message_id, message_type, text, created_at)
+                VALUES (:pid, :cid, :uid, :reply_id, :type, :text, NOW())
+            ")->execute([
+                'pid' => $msgPublicId,
+                'cid' => (int)$chat['id'],
+                'uid' => $this->currentUserId(),
+                'reply_id' => $reply ? (int)$reply['id'] : null,
+                'type' => $messageType,
+                'text' => $text,
+            ]);
+        }
 
         $msgId = (int)$pdo->lastInsertId();
         $pdo->prepare("UPDATE chats SET last_message_at = NOW() WHERE id = :cid")->execute(['cid' => (int)$chat['id']]);
@@ -683,10 +712,19 @@ final class ChatController extends BaseController
         $msgPublicId = 'msg_' . bin2hex(random_bytes(8));
         $text = trim((string)($this->request()->allInput()['text'] ?? ''));
         if (mb_strlen($text) > 4000) return $this->error('TEXT_TOO_LONG', $this->t('chat/messages.message_too_long'), 422);
-        $pdo->prepare("
-            INSERT INTO chat_messages (public_id, chat_id, sender_user_id, message_type, text, created_at)
-            VALUES (:pid, :cid, :uid, 'attachment', :text, NOW())
-        ")->execute(['pid' => $msgPublicId, 'cid' => (int)$chat['id'], 'uid' => $this->currentUserId(), 'text' => $text]);
+        $chatOrgId = (int)($chat['organization_id'] ?? $this->organizationId());
+        $hasMsgOrg = $this->tableHasColumn($pdo, 'chat_messages', 'organization_id');
+        if ($hasMsgOrg && $chatOrgId > 0) {
+            $pdo->prepare("
+                INSERT INTO chat_messages (public_id, organization_id, chat_id, sender_user_id, message_type, text, created_at)
+                VALUES (:pid, :org_id, :cid, :uid, 'attachment', :text, NOW())
+            ")->execute(['pid' => $msgPublicId, 'org_id' => $chatOrgId, 'cid' => (int)$chat['id'], 'uid' => $this->currentUserId(), 'text' => $text]);
+        } else {
+            $pdo->prepare("
+                INSERT INTO chat_messages (public_id, chat_id, sender_user_id, message_type, text, created_at)
+                VALUES (:pid, :cid, :uid, 'attachment', :text, NOW())
+            ")->execute(['pid' => $msgPublicId, 'cid' => (int)$chat['id'], 'uid' => $this->currentUserId(), 'text' => $text]);
+        }
         $msgId = (int)$pdo->lastInsertId();
 
         $fileRow = $this->storeAttachment($msgPublicId, $file);
@@ -847,16 +885,13 @@ final class ChatController extends BaseController
 
         $publicId = (string)($params['public_id'] ?? '');
 
-        $chat = $this->chatForCurrentUser($publicId);
+        $chat = $this->archivedChatForCurrentUser($publicId);
         if (!is_array($chat)) return $this->error('CHAT_NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
         if ((int)($chat['archived_by_user_id'] ?? 0) !== $userId || empty($chat['archived_at'])) {
             return $this->error('CHAT_NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
         }
         /** @var ChatService $service */
         $service = $this->container->get('service.chat');
-        if (!$service->assertParticipant((int)$chat['id'], $this->currentUserId())) {
-            return $this->error('FORBIDDEN', $this->t('chat/messages.not_participant'), 403);
-        }
 
         try {
             $chatId = (int)$chat['id'];

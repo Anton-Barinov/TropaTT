@@ -443,6 +443,18 @@ final class AiProviderService
             return ['ok' => false, 'code' => 'AI_REAL_MODE_PROVIDER_REQUIRED'];
         }
 
+        // TROPATTCRM-618/622: light intents may request the configured fast
+        // model (admin AI page, provider_payload.fast_model). The caller sets
+        // prefer_fast_model=true; the override only applies when a fast model
+        // is actually configured for the chosen provider.
+        if (!empty($payload['prefer_fast_model'])) {
+            $fastModel = $this->payloadModel($provider, 'fast_model');
+            if ($fastModel !== null) {
+                $payload['model'] = $fastModel;
+            }
+        }
+        unset($payload['prefer_fast_model']);
+
         $secret = $this->decryptedSecretByProvider((int)($provider['id'] ?? 0));
         if ($secret === null) {
             $this->logCompletionDiag($provider, $payload, 'failed_preflight', ['code' => 'AI_PROVIDER_SECRET_NOT_CONFIGURED', 'http_status' => 0, 'latency_ms' => 0], false, false);
@@ -470,6 +482,47 @@ final class AiProviderService
             usleep($backoffMs * 1000);
         }
         if (!(bool)($result['ok'] ?? false)) {
+            // TROPATTCRM-622: retry once through the fallback model (and then a
+            // fallback provider) when the primary attempt failed with a provider-
+            // side error. Without this, one DeepSeek outage / exhausted balance
+            // / 429 storm disabled AI across the whole CRM until an admin
+            // intervened, even though admin settings define fallback targets.
+            $fallbackResult = $this->completeViaFallback($provider, $payload, $result);
+            if ($fallbackResult !== null) {
+                $this->logCompletionDiag(
+                    $fallbackResult['provider'],
+                    $payload,
+                    'ok',
+                    [
+                        'code' => 'OK',
+                        'http_status' => (int)($fallbackResult['result']['http_status'] ?? 0),
+                        'latency_ms' => (int)($fallbackResult['result']['latency_ms'] ?? 0),
+                        'fallback_used' => true,
+                    ],
+                    true,
+                    false
+                );
+                $this->persistProviderHealthSnapshot($fallbackResult['provider'], [
+                    'status' => 'ok',
+                    'last_completion_success_at' => gmdate('c'),
+                    'last_error_code' => null,
+                    'needs_recheck' => false,
+                ], []);
+
+                return [
+                    'ok' => true,
+                    'provider_public_id' => (string)($fallbackResult['provider']['public_id'] ?? ''),
+                    'runtime_mode' => $runtimeMode,
+                    'text' => trim((string)($fallbackResult['result']['text'] ?? '')),
+                    'request_tokens' => (int)($fallbackResult['result']['request_tokens'] ?? 0),
+                    'response_tokens' => (int)($fallbackResult['result']['response_tokens'] ?? 0),
+                    'total_tokens' => (int)($fallbackResult['result']['total_tokens'] ?? 0),
+                    'latency_ms' => (int)($fallbackResult['result']['latency_ms'] ?? 0),
+                    'http_status' => (int)($fallbackResult['result']['http_status'] ?? 0),
+                    'fallback_used' => true,
+                ];
+            }
+
             $this->logCompletionDiag(
                 $provider,
                 $payload,
@@ -483,6 +536,11 @@ final class AiProviderService
                 $outboundAttempted,
                 $mockUsed
             );
+            $this->persistProviderHealthSnapshot($provider, [
+                'status' => 'failed',
+                'last_error_code' => (string)($result['code'] ?? 'AI_PROVIDER_UNAVAILABLE'),
+                'needs_recheck' => true,
+            ], []);
             return $this->sanitizeProviderError($result);
         }
 
@@ -553,7 +611,9 @@ final class AiProviderService
         $forbidden = [
             'authorization',
             'proxy-authorization',
+            'api-key',
             'x-api-key',
+            'x-goog-api-key',
             'cookie',
             'set-cookie',
             'host',
@@ -640,7 +700,19 @@ final class AiProviderService
             'timeout_ms' => (int)($provider['timeout_ms'] ?? 0),
             'max_tokens' => (int)($provider['max_tokens'] ?? 0),
             'temperature' => (string)($provider['temperature'] ?? ''),
-            'extra_headers' => $this->decodeJson((string)($provider['extra_headers'] ?? '{}')),
+            'extra_headers' => (function () use ($provider): array {
+                $raw = $this->decodeJson((string)($provider['extra_headers'] ?? '{}'));
+                $masked = [];
+                foreach ($raw as $k => $v) {
+                    $lowerK = strtolower((string)$k);
+                    if (str_contains($lowerK, 'key') || str_contains($lowerK, 'token') || str_contains($lowerK, 'secret') || str_contains($lowerK, 'auth')) {
+                        $masked[$k] = '***';
+                    } else {
+                        $masked[$k] = $v;
+                    }
+                }
+                return $masked;
+            })(),
             'provider_payload' => $providerPayload,
             'is_active' => (int)($provider['is_active'] ?? 0) === 1,
             'is_default' => (int)($provider['is_default'] ?? 0) === 1,
@@ -669,6 +741,126 @@ final class AiProviderService
      * @param array<string,mixed> $updates
      * @param array<string,mixed> $actor
      */
+    /**
+     * Model override the admin configured in provider_payload (fast_model /
+     * fallback_model inputs on the admin AI page are persisted there).
+     * TROPATTCRM-618/622: these settings existed in the UI but the backend
+     * never read them.
+     */
+    private function payloadModel(array $provider, string $key): ?string
+    {
+        $raw = $provider['provider_payload'] ?? null;
+        $payload = is_array($raw) ? $raw : $this->decodeJson((string)$raw);
+        $model = trim((string)($payload[$key] ?? ''));
+        return $model !== '' ? $model : null;
+    }
+
+    /**
+     * Attempt one completion through the fallback chain:
+     * 1) same provider, fallback_model from provider_payload;
+     * 2) another active provider (default first), its configured model.
+     * Returns null when no fallback is configured/possible; the caller then
+     * keeps the original error.
+     *
+     * @param array<string,mixed> $provider
+     * @param array<string,mixed> $payload
+     * @param array<string,mixed> $primaryResult
+     * @return array{provider:array,result:array}|null
+     */
+    private function completeViaFallback(array $provider, array $payload, array $primaryResult): ?array
+    {
+        $primaryCode = strtoupper(trim((string)($primaryResult['code'] ?? '')));
+        // Configuration errors (no secret, provider disabled) will not be fixed
+        // by another attempt against the same infrastructure; auth and billing
+        // errors switch to a DIFFERENT provider, but not to a fallback model.
+        $modelFallbackAllowed = !in_array($primaryCode, ['AI_PROVIDER_SECRET_NOT_CONFIGURED', 'AI_PROVIDER_NOT_CONFIGURED', 'AI_PROVIDER_AUTH_FAILED', 'AI_PROVIDER_INSUFFICIENT_CREDITS'], true);
+
+        // 1) Same provider, fallback model.
+        if ($modelFallbackAllowed) {
+            $fallbackModel = $this->payloadModel($provider, 'fallback_model');
+            $primaryModel = trim((string)($payload['model'] ?? ''));
+            if ($fallbackModel !== null && $fallbackModel !== $primaryModel) {
+                $result = $this->attemptProviderCompletion($provider, $payload, $fallbackModel);
+                if ($result !== null) {
+                    return ['provider' => $provider, 'result' => $result];
+                }
+            }
+        }
+
+        // 2) Another active provider.
+        [$candidateItems] = $this->providers->list(['is_active' => '1', 'limit' => 50]);
+        $currentPublicId = (string)($provider['public_id'] ?? '');
+        $items = is_array($candidateItems) ? $candidateItems : [];
+        // Default provider first, then most recently updated.
+        usort($items, static function (array $a, array $b): int {
+            $ad = (int)($a['is_default'] ?? 0);
+            $bd = (int)($b['is_default'] ?? 0);
+            if ($ad !== $bd) {
+                return $bd <=> $ad;
+            }
+            return strcmp((string)($b['updated_at'] ?? ''), (string)($a['updated_at'] ?? ''));
+        });
+        foreach ($items as $candidate) {
+            $candidatePublicId = (string)($candidate['public_id'] ?? '');
+            if ($candidatePublicId === '' || $candidatePublicId === $currentPublicId) {
+                continue;
+            }
+            if ($this->isMockProvider($candidate)) {
+                continue;
+            }
+            $full = $this->providers->findByPublicId($candidatePublicId);
+            if (!$full || !(bool)($full['is_active'] ?? false)) {
+                continue;
+            }
+            if ($this->decryptedSecretByProvider((int)($full['id'] ?? 0)) === null) {
+                continue;
+            }
+            $candidateModel = $this->payloadModel($full, 'fallback_model')
+                ?? $this->payloadModel($full, 'fast_model')
+                ?? (string)($full['default_model'] ?? '');
+            $result = $this->attemptProviderCompletion($full, $payload, $candidateModel !== '' ? $candidateModel : null);
+            if ($result !== null) {
+                return ['provider' => $full, 'result' => $result];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Single non-retried attempt of $payload against $provider with an
+     * optional model override. Returns the raw success array or null.
+     *
+     * @param array<string,mixed> $provider
+     * @param array<string,mixed> $payload
+     */
+    private function attemptProviderCompletion(array $provider, array $payload, ?string $model): ?array
+    {
+        $secret = $this->decryptedSecretByProvider((int)($provider['id'] ?? 0));
+        if ($secret === null) {
+            return null;
+        }
+
+        $attemptPayload = $payload;
+        if ($model !== null && $model !== '') {
+            $attemptPayload['model'] = $model;
+        }
+
+        try {
+            $client = $this->providerClientFactory->forProvider($provider);
+            $result = $client->completeText($provider, $secret, $attemptPayload);
+        } catch (\Throwable $e) {
+            AppLog::warning('ai_fallback_attempt_failed', [
+                'provider_public_id' => (string)($provider['public_id'] ?? ''),
+                'model' => (string)$model,
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+
+        return ((bool)($result['ok'] ?? false)) && trim((string)($result['text'] ?? '')) !== '' ? $result : null;
+    }
+
     private function persistProviderHealthSnapshot(array $provider, array $updates, array $actor): void
     {
         $publicId = trim((string)($provider['public_id'] ?? ''));
@@ -711,7 +903,7 @@ final class AiProviderService
             return null;
         }
         $len = strlen($normalized);
-        return $len > 4 ? substr($normalized, -4) : $normalized;
+        return $len > 4 ? substr($normalized, -4) : '****';
     }
 
     private function encodeJson(array $value): string
@@ -782,6 +974,14 @@ final class AiProviderService
             $retryable = true;
         }
 
+        $message = trim((string)($result['message'] ?? ''));
+        if ($message !== '') {
+            $message = preg_replace('/(sk-[a-zA-Z0-9_\-]{8,}|bearer\s+[a-zA-Z0-9_\-\.]{8,}|[a-zA-Z0-9_\-]{32,})/i', '***REDACTED***', $message) ?? $message;
+        }
+        if ($category === 'auth') {
+            $message = 'Authentication failed with the AI provider. Please verify credentials.';
+        }
+
         return [
             'ok' => false,
             'code' => $code,
@@ -790,7 +990,7 @@ final class AiProviderService
                 'retryable' => $retryable,
                 'http_status' => $httpStatus,
             ],
-            'message' => trim((string)($result['message'] ?? '')),
+            'message' => $message,
         ];
     }
 

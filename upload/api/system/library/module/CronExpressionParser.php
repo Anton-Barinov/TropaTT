@@ -53,7 +53,7 @@ final class CronExpressionParser
         $from = clone $from;
         $from->modify('+1 minute');
 
-        $maxIterations = 525600;
+        $maxIterations = 10000;
         $iterations = 0;
 
         while (!$this->isDue($expression, $from) && $iterations < $maxIterations) {

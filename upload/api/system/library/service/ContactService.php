@@ -142,13 +142,15 @@ final class ContactService
      */
     private function resolveCounterpartyId(array $input, array $actor, bool $allowNull = false): ?int
     {
+        $orgId = $this->organizationId($actor);
+
         // Primary: counterparty_public_id
         if (array_key_exists('counterparty_public_id', $input)) {
             $publicId = (string)($input['counterparty_public_id'] ?? '');
             if ($publicId === '') {
                 return $allowNull ? null : throw new \RuntimeException('COUNTERPARTY_NOT_FOUND');
             }
-            $cp = $this->counterparties->findByPublicId($publicId);
+            $cp = $this->counterparties->findByPublicId($publicId, $orgId);
             if (!$cp || !$this->canAccess($cp, $actor)) {
                 throw new \RuntimeException('COUNTERPARTY_NOT_FOUND');
             }
@@ -161,7 +163,7 @@ final class ContactService
             if ($publicId === '') {
                 return $allowNull ? null : throw new \RuntimeException('COMPANY_NOT_FOUND');
             }
-            $cp = $this->counterparties->findByPublicId($publicId);
+            $cp = $this->counterparties->findByPublicId($publicId, $orgId);
             if (!$cp || !$this->canAccess($cp, $actor)) {
                 throw new \RuntimeException('COMPANY_NOT_FOUND');
             }
@@ -174,7 +176,7 @@ final class ContactService
             if ($publicId === '') {
                 return $allowNull ? null : throw new \RuntimeException('CLIENT_NOT_FOUND');
             }
-            $cp = $this->counterparties->findByPublicId($publicId);
+            $cp = $this->counterparties->findByPublicId($publicId, $orgId);
             if (!$cp || !$this->canAccess($cp, $actor)) {
                 throw new \RuntimeException('CLIENT_NOT_FOUND');
             }
@@ -231,6 +233,13 @@ final class ContactService
 
     private function canAccess(array $item, array $actor): bool
     {
+        $actorOrgId = $this->organizationId($actor);
+        if ($actorOrgId !== null && isset($item['organization_id']) && $item['organization_id'] !== null) {
+            if ((int)$item['organization_id'] !== $actorOrgId) {
+                return false;
+            }
+        }
+
         if ((int)($actor['is_root'] ?? 0) === 1) {
             return true;
         }

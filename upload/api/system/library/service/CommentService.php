@@ -203,10 +203,6 @@ final class CommentService
     /** @param array<string,mixed> $actor */
     private function canManageComment(array $comment, array $actor): bool
     {
-        if ((bool)($actor['is_root'] ?? false)) {
-            return true;
-        }
-
         $actorId = (int)($actor['id'] ?? 0);
         if ($actorId <= 0) {
             return false;
@@ -215,12 +211,27 @@ final class CommentService
             return true;
         }
 
+        // Root can manage only comments within their organization
+        $orgId = (int)($actor['organization_id'] ?? 0);
+        if ((bool)($actor['is_root'] ?? false) && $orgId > 0) {
+            // Root with org context: check comment's task belongs to same org
+            $taskPublicId = (string)($comment['task_public_id'] ?? '');
+            if ($taskPublicId !== '') {
+                $task = $this->tasks->findByPublicId($taskPublicId, $orgId);
+                return $task !== null;
+            }
+            return false;
+        }
+        if ((bool)($actor['is_root'] ?? false)) {
+            return true;
+        }
+
         $taskPublicId = (string)($comment['task_public_id'] ?? '');
         if ($taskPublicId === '') {
             return false;
         }
 
-        $task = $this->tasks->findByPublicId($taskPublicId);
+        $task = $this->tasks->findByPublicId($taskPublicId, $orgId ?: null);
         if (!$task) {
             return false;
         }

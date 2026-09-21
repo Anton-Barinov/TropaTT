@@ -8,8 +8,10 @@ use Api\System\Library\Support\Ulid;
 
 final class SlaService
 {
-    public function __construct(private readonly SlaRepository $sla)
-    {
+    public function __construct(
+        private readonly SlaRepository $sla,
+        private readonly ?BusinessCalendarService $businessCalendar = null
+    ) {
     }
 
     private function organizationId(array $actor): ?int
@@ -130,9 +132,24 @@ final class SlaService
         $task = $this->sla->findTaskByPublicId($taskPublicId, $orgId);
         if (!$task) return null;
 
-        $now = date('Y-m-d H:i:s');
-        $responseDeadline = date('Y-m-d H:i:s', strtotime($now) + ((int)$policy['response_minutes'] * 60));
-        $resolveDeadline = date('Y-m-d H:i:s', strtotime($now) + ((int)$policy['resolve_minutes'] * 60));
+        $now = new \DateTimeImmutable('now');
+        $calendarId = null;
+        if (!empty($policy['calendar_id'])) {
+            $calendarId = (int)$policy['calendar_id'];
+        } elseif (!empty($task['calendar_id'])) {
+            $calendarId = (int)$task['calendar_id'];
+        }
+
+        if ($this->businessCalendar !== null) {
+            $respDt = $this->businessCalendar->addWorkingMinutes($now, (int)$policy['response_minutes'], $calendarId, $orgId);
+            $resolvDt = $this->businessCalendar->addWorkingMinutes($now, (int)$policy['resolve_minutes'], $calendarId, $orgId);
+            $responseDeadline = $respDt->format('Y-m-d H:i:s');
+            $resolveDeadline = $resolvDt->format('Y-m-d H:i:s');
+        } else {
+            $nowStr = $now->format('Y-m-d H:i:s');
+            $responseDeadline = date('Y-m-d H:i:s', strtotime($nowStr) + ((int)$policy['response_minutes'] * 60));
+            $resolveDeadline = date('Y-m-d H:i:s', strtotime($nowStr) + ((int)$policy['resolve_minutes'] * 60));
+        }
 
         $this->sla->updateTaskSla($task['id'], (int)$policy['id'], $responseDeadline, $resolveDeadline);
 
