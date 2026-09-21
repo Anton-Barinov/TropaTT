@@ -3174,6 +3174,18 @@ $tools[] = $this->tool(
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
                 'full_name' => ['type' => 'string', 'description' => 'Value.'],
                 'organization_public_id' => ['type' => 'string', 'description' => 'Organization public_id.'],
+                'email' => ['type' => 'string', 'description' => 'Email address.'],
+                'phone' => ['type' => 'string', 'description' => 'Phone number in international format.'],
+                'tax_inn' => ['type' => 'string', 'description' => 'Tax identifier (INN).'],
+                'tax_kpp' => ['type' => 'string', 'description' => 'Tax KPP code.'],
+                'counterparty_public_id' => ['type' => 'string', 'description' => 'Parent counterparty public_id (for contacts).'],
+                'client_public_id' => ['type' => 'string', 'description' => 'Alias for counterparty_public_id.'],
+                'company_public_id' => ['type' => 'string', 'description' => 'Alias for company counterparty public_id.'],
+                'client_type' => ['type' => 'string', 'enum' => ['individual', 'legal', 'entrepreneur'], 'description' => 'Client type.'],
+                'legal_name' => ['type' => 'string', 'description' => 'Official legal entity name.'],
+                'address_legal' => ['type' => 'string', 'description' => 'Registered legal address.'],
+                'website' => ['type' => 'string', 'description' => 'Official website URL.'],
+                'is_primary' => ['type' => 'boolean', 'description' => 'Primary contact flag.'],
             ],
             ['action']
         );
