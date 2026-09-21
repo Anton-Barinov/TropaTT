@@ -186,7 +186,16 @@ final class StatusController extends BaseController
                 default => 422,
             };
 
-            $errors = ['status' => [$code]];
+            $message = match ($code) {
+                'STATUS_NOT_FOUND' => $this->t('status/messages.not_found'),
+                'REMAP_STATUS_NOT_FOUND' => $this->t('status/messages.remap_not_found'),
+                'STATUS_IN_USE' => $this->t('status/messages.in_use'),
+                'REMAP_STATUS_SAME' => $this->t('status/messages.remap_same'),
+                'REMAP_SCOPE_MISMATCH' => $this->t('status/messages.remap_scope_mismatch'),
+                default => $this->t('status/messages.delete_failed'),
+            };
+
+            $errors = ['status' => [$message]];
             if (isset($result['usage_count'])) {
                 $errors['usage_count'] = [(string)$result['usage_count']];
             }

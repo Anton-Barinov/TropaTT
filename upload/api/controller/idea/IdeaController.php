@@ -1926,7 +1926,9 @@ PROMPT;
             }
 
             $pdo = $this->refreshPdoIfDropped($pdo);
-            $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
+            $iterStmt = $pdo->prepare("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id = :iid");
+            $iterStmt->execute(['iid' => $ideaId]);
+            $iter = (int)$iterStmt->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'potential_score', :req, :res, NOW())")->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $systemPrompt, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
 
             $data = $parsed['ok'] && is_array($parsed['data']) ? $parsed['data'] : null;
@@ -2032,7 +2034,9 @@ PROMPT;
             }
 
             $pdo = $this->refreshPdoIfDropped($pdo);
-            $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
+            $iterStmt = $pdo->prepare("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id = :iid");
+            $iterStmt->execute(['iid' => $ideaId]);
+            $iter = (int)$iterStmt->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'risk_report', :req, :res, NOW())")->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
 
             if (!$parsed['ok'] || empty($parsed['data']['risk_report'])) {
@@ -2122,7 +2126,9 @@ PROMPT;
             }
 
             $pdo = $this->refreshPdoIfDropped($pdo);
-            $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
+            $iterStmt = $pdo->prepare("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id = :iid");
+            $iterStmt->execute(['iid' => $ideaId]);
+            $iter = (int)$iterStmt->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'pitfalls_report', :req, :res, NOW())")->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
 
             if (!$parsed['ok'] || empty($parsed['data']['pitfalls'])) {
@@ -2213,7 +2219,9 @@ PROMPT;
             }
 
             $pdo = $this->refreshPdoIfDropped($pdo);
-            $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
+            $iterStmt = $pdo->prepare("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id = :iid");
+            $iterStmt->execute(['iid' => $ideaId]);
+            $iter = (int)$iterStmt->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'implementation_plan', :req, :res, NOW())")->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
 
             if (!$parsed['ok'] || empty($parsed['data']['implementation_plan'])) {
@@ -2334,7 +2342,9 @@ PROMPT;
             }
 
             $pdo = $this->refreshPdoIfDropped($pdo);
-            $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
+            $iterStmt = $pdo->prepare("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id = :iid");
+            $iterStmt->execute(['iid' => $ideaId]);
+            $iter = (int)$iterStmt->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'final_recommendation', :req, :res, NOW())")->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
 
             $data = $parsed['ok'] && is_array($parsed['data']) ? $parsed['data'] : null;
@@ -2399,7 +2409,9 @@ PROMPT;
 
         // Read final recommendation and implementation plan — extract ONLY summaries, not full JSON
         $loadPlanSummary = function() use ($pdo, $ideaId): array {
-            $r = $pdo->query("SELECT summary, planning_horizon, plan_type, confidence_score, plan_json FROM idea_implementation_plans WHERE idea_id={$ideaId}")->fetch(\PDO::FETCH_ASSOC);
+            $stmt = $pdo->prepare("SELECT summary, planning_horizon, plan_type, confidence_score, plan_json FROM idea_implementation_plans WHERE idea_id = :iid");
+            $stmt->execute(['iid' => $ideaId]);
+            $r = $stmt->fetch(\PDO::FETCH_ASSOC);
             if (!$r) return ['exists' => false];
             // Extract only stage titles/goals, skip full task trees
             $pj = json_decode($r['plan_json'] ?? '{}', true) ?: [];
@@ -2410,7 +2422,9 @@ PROMPT;
             return ['exists' => true, 'summary' => $r['summary'] ?? '', 'planning_horizon' => $r['planning_horizon'] ?? '', 'plan_type' => $r['plan_type'] ?? '', 'confidence_score' => $r['confidence_score'] ?? null, 'stages' => $stages];
         };
         $loadFinalSummary = function() use ($pdo, $ideaId): array {
-            $r = $pdo->query("SELECT status, status_label, recommendation_score, confidence_score, recommendation_json FROM idea_final_recommendations WHERE idea_id={$ideaId}")->fetch(\PDO::FETCH_ASSOC);
+            $stmt = $pdo->prepare("SELECT status, status_label, recommendation_score, confidence_score, recommendation_json FROM idea_final_recommendations WHERE idea_id = :iid");
+            $stmt->execute(['iid' => $ideaId]);
+            $r = $stmt->fetch(\PDO::FETCH_ASSOC);
             if (!$r) return ['exists' => false];
             $fj = json_decode($r['recommendation_json'] ?? '{}', true) ?: [];
             $fr = $fj['final_recommendation'] ?? [];
@@ -2439,7 +2453,9 @@ PROMPT;
             }
 
             $pdo = $this->refreshPdoIfDropped($pdo);
-            $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
+            $iterStmt = $pdo->prepare("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id = :iid");
+            $iterStmt->execute(['iid' => $ideaId]);
+            $iter = (int)$iterStmt->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'suggested_tasks', :req, :res, NOW())")->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
 
             if (!$parsed['ok'] || (empty($parsed['data']['projects']) && empty($parsed['data']['tasks']))) {
@@ -2617,9 +2633,9 @@ PROMPT;
             if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
             $ideaId = (int)$idea['id'];
             $pdo = $this->container->get('db.pdo');
-            $pdo->exec("DELETE FROM idea_answers WHERE idea_id={$ideaId}");
-            $pdo->exec("DELETE FROM idea_questions WHERE idea_id={$ideaId}");
-            $pdo->exec("DELETE FROM idea_ai_iterations WHERE idea_id={$ideaId}");
+            $pdo->prepare("DELETE FROM idea_answers WHERE idea_id = :iid")->execute(['iid' => $ideaId]);
+            $pdo->prepare("DELETE FROM idea_questions WHERE idea_id = :iid")->execute(['iid' => $ideaId]);
+            $pdo->prepare("DELETE FROM idea_ai_iterations WHERE idea_id = :iid")->execute(['iid' => $ideaId]);
             $pdo->prepare("UPDATE ideas SET coverage_json = NULL WHERE id = :iid")->execute(['iid' => $ideaId]);
             return $this->success('INTERVIEW_CLEARED', $this->t('idea/messages.interview_cleared'));
         }
@@ -2636,7 +2652,9 @@ PROMPT;
         $ideaId = (int)$idea['id'];
 
         // Check question limit (max 25, at least 5 per batch) — exclude clarifications and gaps from limit
-        $totalQ = (int)$pdo->query("SELECT COUNT(*) FROM idea_questions WHERE idea_id={$ideaId}")->fetchColumn();
+        $totalQStmt = $pdo->prepare("SELECT COUNT(*) FROM idea_questions WHERE idea_id = :iid");
+        $totalQStmt->execute(['iid' => $ideaId]);
+        $totalQ = (int)$totalQStmt->fetchColumn();
         $coverage = json_decode($idea['coverage_json'] ?? '{}', true) ?: [];
         $clarPids = [];
         foreach (($coverage['additional_clarifications']['questions'] ?? []) as $cq) {
@@ -2720,7 +2738,9 @@ PROMPT;
             $pdo = $this->refreshPdoIfDropped($pdo);
 
             // Log iteration for debug — include AI error diagnostics
-            $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
+            $iterStmt = $pdo->prepare("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id = :iid");
+            $iterStmt->execute(['iid' => $ideaId]);
+            $iter = (int)$iterStmt->fetchColumn();
             $debugRes = ['raw_text' => $rawText, 'questions_count' => 0, 'ai_mode' => $aiMode];
             if ($aiFailed) {
                 $debugRes['ai_error'] = $topErrorCode !== '' && $topErrorCode !== 'OK'
@@ -2875,7 +2895,9 @@ PROMPT;
         }
 
         // Save questions using service (handles column mapping correctly)
-        $cycleId = (int)$pdo->query("SELECT COALESCE(MAX(cycle_id),0)+1 FROM idea_questions WHERE idea_id={$ideaId}")->fetchColumn();
+        $cycleStmt = $pdo->prepare("SELECT COALESCE(MAX(cycle_id),0)+1 FROM idea_questions WHERE idea_id = :iid");
+        $cycleStmt->execute(['iid' => $ideaId]);
+        $cycleId = (int)$cycleStmt->fetchColumn();
         if ($dedupedQuestions !== []) {
             $service->saveQuestions($ideaId, $cycleId, $dedupedQuestions);
             $interviewQ += count($dedupedQuestions);
