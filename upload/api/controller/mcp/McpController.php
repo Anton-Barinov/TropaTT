@@ -12608,7 +12608,7 @@ $tools[] = $this->tool(
 
         /** @var IdeaService $service */
         $service = $this->container->get('service.idea');
-        $idea = $service->get($publicId);
+        $idea = $service->get($publicId, $this->activeOrganizationId());
         return $idea ? ['idea' => $this->publicData($idea)] : ['error' => 'Idea not found.'];
     }
 
@@ -12622,8 +12622,8 @@ $tools[] = $this->tool(
         $publicId = 'idea_' . bin2hex(random_bytes(12));
         $description = (new HtmlSanitizer())->sanitize(trim((string)($arguments['description'] ?? '')));
         $this->pdo()->prepare("
-            INSERT INTO ideas (public_id, title, description, author_user_id, category, region, visibility, target_date, created_at)
-            VALUES (:public_id, :title, :description, :author_user_id, :category, :region, :visibility, :target_date, NOW())
+            INSERT INTO ideas (public_id, title, description, author_user_id, category, region, visibility, target_date, organization_id, created_at)
+            VALUES (:public_id, :title, :description, :author_user_id, :category, :region, :visibility, :target_date, :organization_id, NOW())
         ")->execute([
             'public_id' => $publicId,
             'title' => $title,
@@ -12633,11 +12633,12 @@ $tools[] = $this->tool(
             'region' => trim((string)($arguments['region'] ?? '')),
             'visibility' => in_array((string)($arguments['visibility'] ?? 'public'), ['public', 'private'], true) ? (string)($arguments['visibility'] ?? 'public') : 'public',
             'target_date' => trim((string)($arguments['target_date'] ?? '')) ?: null,
+            'organization_id' => $this->activeOrganizationId(),
         ]);
 
         /** @var IdeaService $service */
         $service = $this->container->get('service.idea');
-        return ['idea' => $this->publicData($service->get($publicId) ?? ['public_id' => $publicId])];
+        return ['idea' => $this->publicData($service->get($publicId, $this->activeOrganizationId()) ?? ['public_id' => $publicId])];
     }
 
     private function crmUpdateIdea(array $arguments): array
@@ -12648,8 +12649,9 @@ $tools[] = $this->tool(
         }
 
         $pdo = $this->pdo();
-        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at FROM ideas WHERE public_id = :pid");
-        $stmt->execute(['pid' => $publicId]);
+        $orgId = $this->activeOrganizationId();
+        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at FROM ideas WHERE public_id = :pid AND organization_id = :organization_id");
+        $stmt->execute(['pid' => $publicId, 'organization_id' => $orgId]);
         $idea = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$idea) {
             return ['error' => 'Idea not found.'];
@@ -12672,7 +12674,7 @@ $tools[] = $this->tool(
         $pdo->prepare("
             UPDATE ideas
             SET title = :title, description = :description, category = :category, region = :region, visibility = :visibility, target_date = :target_date
-            WHERE public_id = :pid
+            WHERE public_id = :pid AND organization_id = :organization_id
         ")->execute([
             'title' => $title,
             'description' => $description,
@@ -12681,12 +12683,13 @@ $tools[] = $this->tool(
             'visibility' => $visibility,
             'target_date' => $targetDate,
             'pid' => $publicId,
+            'organization_id' => $orgId,
         ]);
 
         $this->invalidateCache('idea');
         /** @var IdeaService $service */
         $service = $this->container->get('service.idea');
-        return ['idea' => $this->publicData($service->get($publicId) ?? ['public_id' => $publicId])];
+        return ['idea' => $this->publicData($service->get($publicId, $this->activeOrganizationId()) ?? ['public_id' => $publicId])];
     }
 
     private function crmDeleteIdea(array $arguments): array
@@ -12697,8 +12700,9 @@ $tools[] = $this->tool(
         }
 
         $pdo = $this->pdo();
-        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at FROM ideas WHERE public_id = :pid");
-        $stmt->execute(['pid' => $publicId]);
+        $orgId = $this->activeOrganizationId();
+        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at FROM ideas WHERE public_id = :pid AND organization_id = :organization_id");
+        $stmt->execute(['pid' => $publicId, 'organization_id' => $orgId]);
         $idea = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$idea) {
             return ['error' => 'Idea not found.'];
@@ -12711,7 +12715,7 @@ $tools[] = $this->tool(
 
         $pdo->prepare("DELETE FROM idea_votes WHERE idea_id = :iid")->execute(['iid' => (int)$idea['id']]);
         $pdo->prepare("DELETE FROM comments WHERE entity_type = 'idea' AND entity_public_id = :pid")->execute(['pid' => $publicId]);
-        $pdo->prepare("DELETE FROM ideas WHERE public_id = :pid")->execute(['pid' => $publicId]);
+        $pdo->prepare("DELETE FROM ideas WHERE public_id = :pid AND organization_id = :organization_id")->execute(['pid' => $publicId, 'organization_id' => $orgId]);
         $this->invalidateCache('idea');
 
         return ['deleted' => true];
@@ -12725,8 +12729,8 @@ $tools[] = $this->tool(
         }
 
         $pdo = $this->pdo();
-        $stmt = $pdo->prepare("SELECT id, author_user_id FROM ideas WHERE public_id = :pid");
-        $stmt->execute(['pid' => $publicId]);
+        $stmt = $pdo->prepare("SELECT id, author_user_id FROM ideas WHERE public_id = :pid AND organization_id = :organization_id");
+        $stmt->execute(['pid' => $publicId, 'organization_id' => $this->activeOrganizationId()]);
         $idea = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$idea) {
             return ['error' => 'Idea not found.'];
@@ -12769,12 +12773,12 @@ $tools[] = $this->tool(
         }
 
         $pdo = $this->pdo();
-        $pdo->prepare("UPDATE ideas SET status = :status WHERE public_id = :pid")->execute(['status' => $status, 'pid' => $publicId]);
+        $pdo->prepare("UPDATE ideas SET status = :status WHERE public_id = :pid AND organization_id = :organization_id")->execute(['status' => $status, 'pid' => $publicId, 'organization_id' => $this->activeOrganizationId()]);
         $this->invalidateCache('idea');
 
         /** @var IdeaService $service */
         $service = $this->container->get('service.idea');
-        return ['idea' => $this->publicData($service->get($publicId) ?? ['public_id' => $publicId]), 'status' => $status];
+        return ['idea' => $this->publicData($service->get($publicId, $this->activeOrganizationId()) ?? ['public_id' => $publicId]), 'status' => $status];
     }
 
     private function crmListIdeaComments(array $arguments): array
@@ -14781,6 +14785,10 @@ $tools[] = $this->tool(
             'status', 'category', 'sort', 'period', 'offset',
         ]);
         $filters['limit'] = $this->limit($arguments, 20, 50);
+        $orgId = $this->activeOrganizationId();
+        if ($orgId) {
+            $filters['organization_id'] = $orgId;
+        }
 
         return $filters;
     }

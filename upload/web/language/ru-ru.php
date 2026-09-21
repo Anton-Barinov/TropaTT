@@ -207,6 +207,7 @@ return array (
     'btn_show_logs_aria' => 'Показать логи AI',
     'btn_start_pipeline' => 'Запустить',
     'btn_vote' => 'Голосовать',
+    'btn_unvote' => 'Отменить голос',
     'confirm_clear_card' => 'Удалить карточку понимания идеи? Вопросы и ответы останутся.',
     'confirm_clear_clarifications' => 'Удалить все уточнения?',
     'confirm_clear_final' => 'Удалить итоговую рекомендацию?',

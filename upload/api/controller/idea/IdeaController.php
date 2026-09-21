@@ -13,6 +13,28 @@ use PDO;
 
 final class IdeaController extends BaseController
 {
+    private static bool $ddlEnsured = false;
+
+    private function assertAiRateLimit(): ?JsonResponse
+    {
+        if (!$this->container->has('service.ai_rate_limit')) {
+            return null;
+        }
+        $user = $this->user()['user'] ?? [];
+        if ((int)($user['id'] ?? 0) <= 0) {
+            return null;
+        }
+        /** @var \Api\System\Library\Service\AiRateLimitService $rateLimit */
+        $rateLimit = $this->container->get('service.ai_rate_limit');
+        $rate = $rateLimit->assertWithinLimits('idea_ai', $user);
+        if (!(bool)($rate['ok'] ?? false)) {
+            return $this->error('AI_RATE_LIMITED', $this->t('common/messages.rate_limited'), 429, [
+                'ai' => ['AI_RATE_LIMITED'],
+            ]);
+        }
+        return null;
+    }
+
     private function activeOrganizationId(): ?int
     {
         $actor = $this->organizationScopedActor((array)($this->user()['user'] ?? []));
@@ -243,7 +265,21 @@ final class IdeaController extends BaseController
             return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
         }
 
-        $pdo->prepare("DELETE FROM idea_votes WHERE idea_id = :iid")->execute(['iid' => $idea['id']]);
+        $ideaId = (int)$idea['id'];
+        $pdo->prepare("DELETE FROM idea_votes WHERE idea_id = :iid")->execute(['iid' => $ideaId]);
+        $pdo->prepare("DELETE FROM idea_answers WHERE idea_id = :iid")->execute(['iid' => $ideaId]);
+        $pdo->prepare("DELETE FROM idea_questions WHERE idea_id = :iid")->execute(['iid' => $ideaId]);
+        $pdo->prepare("DELETE FROM idea_ai_iterations WHERE idea_id = :iid")->execute(['iid' => $ideaId]);
+        $pdo->prepare("DELETE FROM idea_implementation_plans WHERE idea_id = :iid")->execute(['iid' => $ideaId]);
+        $pdo->prepare("DELETE FROM idea_final_recommendations WHERE idea_id = :iid")->execute(['iid' => $ideaId]);
+        $pdo->prepare("DELETE FROM idea_task_drafts WHERE idea_id = :iid")->execute(['iid' => $ideaId]);
+        $pdo->prepare("DELETE FROM idea_understanding_cards WHERE idea_id = :iid")->execute(['iid' => $ideaId]);
+        $pdo->prepare("DELETE FROM idea_refined_cards WHERE idea_id = :iid")->execute(['iid' => $ideaId]);
+        $pdo->prepare("DELETE FROM idea_potential_scores WHERE idea_id = :iid")->execute(['iid' => $ideaId]);
+        $pdo->prepare("DELETE FROM idea_risk_reports WHERE idea_id = :iid")->execute(['iid' => $ideaId]);
+        $pdo->prepare("DELETE FROM idea_pitfalls_reports WHERE idea_id = :iid")->execute(['iid' => $ideaId]);
+        $pdo->prepare("DELETE FROM idea_suggested_tasks WHERE idea_id = :iid")->execute(['iid' => $ideaId]);
+        try { $pdo->prepare("DELETE FROM idea_analyses WHERE idea_id = :iid")->execute(['iid' => $ideaId]); } catch (\Throwable $e) { /* legacy table may not exist */ }
         $pdo->prepare("DELETE FROM comments WHERE entity_type = 'idea' AND entity_public_id = :pid")->execute(['pid' => $publicId]);
         $pdo->prepare("DELETE FROM ideas WHERE public_id = :pid")->execute(['pid' => $publicId]);
 
@@ -254,14 +290,16 @@ final class IdeaController extends BaseController
 
     public function vote(array $params = []): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) return $contextError;
+
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
+        $idea = $this->container->get('service.idea')->getByPublicId($publicId, $this->activeOrganizationId());
+        if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
+        $ideaId = (int)$idea['id'];
+
         $pdo = $this->container->get('db.pdo');
-        $stmt = $pdo->prepare("SELECT id FROM ideas WHERE public_id = :pid");
-        $stmt->execute(['pid' => $publicId]);
-        $ideaId = $stmt->fetchColumn();
-        if (!$ideaId) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
         $user = $this->user()['user'] ?? [];
         $userId = (int)($user['id'] ?? 0);
@@ -297,11 +335,19 @@ final class IdeaController extends BaseController
             }
         }
 
-        return $this->success('IDEA_VOTED', $this->t('idea/messages.' . $action), ['action' => $action]);
+        $countStmt = $pdo->prepare("SELECT vote_count FROM ideas WHERE id = :iid");
+        $countStmt->execute(['iid' => $ideaId]);
+        $newVoteCount = (int)$countStmt->fetchColumn();
+
+        $userHasVoted = ($action === 'voted');
+
+        return $this->success('IDEA_VOTED', $this->t('idea/messages.' . $action), ['action' => $action, 'vote_count' => $newVoteCount, 'user_has_voted' => $userHasVoted]);
     }
 
     public function updateStatus(array $params = []): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) return $contextError;
+
         $publicId = (string)($params['public_id'] ?? '');
         $newStatus = (string)($params['status'] ?? '');
 
@@ -310,9 +356,12 @@ final class IdeaController extends BaseController
         $allowed = ['new', 'under_review', 'approved', 'rejected', 'in_progress', 'completed'];
         if (!in_array($newStatus, $allowed, true)) return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
+        $fetchedIdea = $this->container->get('service.idea')->getByPublicId($publicId, $this->activeOrganizationId());
+        if (!$fetchedIdea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
+
         $pdo = $this->container->get('db.pdo');
-        $stmt = $pdo->prepare("SELECT author_user_id FROM ideas WHERE public_id = :pid");
-        $stmt->execute(['pid' => $publicId]);
+        $stmt = $pdo->prepare("SELECT author_user_id FROM ideas WHERE id = :id");
+        $stmt->execute(['id' => (int)$fetchedIdea['id']]);
         $idea = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
@@ -352,16 +401,15 @@ final class IdeaController extends BaseController
         if (($disabled = $this->requireFeatureEnabled()) !== null) {
             return $disabled;
         }
+        if (($rateLimited = $this->assertAiRateLimit()) !== null) {
+            return $rateLimited;
+        }
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
         $service = $this->container->get('service.idea');
         $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
-        $pdo = $this->container->get('db.pdo');
-        $this->ensureIdeaWorkflowTables($pdo);
-        $pdo = $this->container->get('db.pdo');
-        $this->ensureIdeaWorkflowTables($pdo);
         $pdo = $this->container->get('db.pdo');
         $this->ensureIdeaWorkflowTables($pdo);
 
@@ -667,15 +715,22 @@ final class IdeaController extends BaseController
 
     public function aiRefine(array $params = []): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) return $contextError;
         if (($disabled = $this->requireFeatureEnabled()) !== null) {
             return $disabled;
+        }
+        if (($rateLimited = $this->assertAiRateLimit()) !== null) {
+            return $rateLimited;
         }
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
+        $fetchedIdea = $this->container->get('service.idea')->getByPublicId($publicId, $this->activeOrganizationId());
+        if (!$fetchedIdea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
+
         $pdo = $this->container->get('db.pdo');
-        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at FROM ideas WHERE public_id = :pid");
-        $stmt->execute(['pid' => $publicId]);
+        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at FROM ideas WHERE id = :id");
+        $stmt->execute(['id' => (int)$fetchedIdea['id']]);
         $idea = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
@@ -954,8 +1009,12 @@ final class IdeaController extends BaseController
 
     public function aiCreateTasks(array $params = []): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) return $contextError;
         if (($disabled = $this->requireFeatureEnabledForAiWrite()) !== null) {
             return $disabled;
+        }
+        if (($rateLimited = $this->assertAiRateLimit()) !== null) {
+            return $rateLimited;
         }
         $publicId = (string)($params['public_id'] ?? '');
         $input = $this->request()->allInput();
@@ -969,11 +1028,11 @@ final class IdeaController extends BaseController
         $userId = (int)($user['id'] ?? 0);
         if ($userId <= 0) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
 
+        $fetchedIdea = $this->container->get('service.idea')->getByPublicId($publicId, $this->activeOrganizationId());
+        if (!$fetchedIdea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
+        $ideaId = (int)$fetchedIdea['id'];
+
         $pdo = $this->container->get('db.pdo');
-        $stmt = $pdo->prepare("SELECT id FROM ideas WHERE public_id = :pid");
-        $stmt->execute(['pid' => $publicId]);
-        $ideaId = (int)$stmt->fetchColumn();
-        if ($ideaId <= 0) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
         // No manual transaction here: TaskService::create() manages its own, and
         // nesting them makes PDO fail with "There is already an active transaction".
@@ -1126,12 +1185,17 @@ final class IdeaController extends BaseController
 
     public function aiIterations(array $params = []): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) return $contextError;
+
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
+        $fetchedIdea = $this->container->get('service.idea')->getByPublicId($publicId, $this->activeOrganizationId());
+        if (!$fetchedIdea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
+
         $pdo = $this->container->get('db.pdo');
-        $stmt = $pdo->prepare("SELECT i.* FROM idea_ai_iterations i JOIN ideas d ON d.id = i.idea_id WHERE d.public_id = :pid ORDER BY i.iteration ASC");
-        $stmt->execute(['pid' => $publicId]);
+        $stmt = $pdo->prepare("SELECT i.* FROM idea_ai_iterations i WHERE i.idea_id = :iid ORDER BY i.iteration ASC");
+        $stmt->execute(['iid' => (int)$fetchedIdea['id']]);
         $items = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
         foreach ($items as &$item) {
@@ -1144,12 +1208,17 @@ final class IdeaController extends BaseController
 
     public function questions(array $params = []): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) return $contextError;
+
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
+        $fetchedIdea = $this->container->get('service.idea')->getByPublicId($publicId, $this->activeOrganizationId());
+        if (!$fetchedIdea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
+
         $pdo = $this->container->get('db.pdo');
-        $stmt = $pdo->prepare("SELECT iq.*, d.id as idea_db_id, d.coverage_json FROM idea_questions iq JOIN ideas d ON d.id = iq.idea_id WHERE d.public_id = :pid ORDER BY iq.sort_order ASC");
-        $stmt->execute(['pid' => $publicId]);
+        $stmt = $pdo->prepare("SELECT iq.*, :idea_db_id as idea_db_id, :coverage_json as coverage_json FROM idea_questions iq WHERE iq.idea_id = :iid ORDER BY iq.sort_order ASC");
+        $stmt->execute(['iid' => (int)$fetchedIdea['id'], 'idea_db_id' => (int)$fetchedIdea['id'], 'coverage_json' => $fetchedIdea['coverage_json'] ?? '{}']);
         $items = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
         // Mark clarification and gap questions
@@ -1241,6 +1310,9 @@ final class IdeaController extends BaseController
         }
 
         // POST: generate additional clarifications
+        if (($rateLimited = $this->assertAiRateLimit()) !== null) {
+            return $rateLimited;
+        }
         set_time_limit(120);
 
         // Collect all idea data + questions + answers into $info
@@ -1287,15 +1359,36 @@ Data:
 {$infoJson}
 PROMPT;
 
-        // Send to AI
+        // Send to AI with retry on JSON parse failure
         try {
             $aiSvc = $this->container->get('service.ai_action');
-            $result = $aiSvc->execute('idea_analyze', [
-                '__sys' => $this->t('idea/messages.prompt_analyst_system') . $this->localeInstruction(),
-                '__usr' => $prompt,
-            ], $this->user()['user'] ?? []);
+            $maxRetries = 1;
+            $data = null;
+            $rawText = '';
+            for ($retry = 0; $retry <= $maxRetries; $retry++) {
+                $result = $aiSvc->execute('idea_analyze', [
+                    '__sys' => $this->t('idea/messages.prompt_analyst_system') . $this->localeInstruction(),
+                    '__usr' => $prompt,
+                ], $this->user()['user'] ?? []);
 
-            $rawText = $result['result']['preview']['summary'] ?? '';
+                $rawText = $result['result']['preview']['summary'] ?? '';
+
+                $data = json_decode($rawText, true);
+                if (!is_array($data) && preg_match('/\{.*\}/s', $rawText, $m)) {
+                    $data = json_decode($m[0], true);
+                }
+                if (is_array($data) && isset($data['additional_questions'])) {
+                    break;
+                }
+                ai_diag_log("[ADDITIONAL_QUESTIONS_RETRY] attempt=" . ($retry + 1) . " text_len=" . strlen($rawText));
+                $data = null;
+                if ($retry < $maxRetries) usleep(1000000);
+            }
+
+            if (!is_array($data) || !isset($data['additional_questions'])) {
+                ai_diag_log("[ADDITIONAL_QUESTIONS_PARSE_FAIL] text_len=" . strlen($rawText) . " preview=" . substr($rawText, 0, 300));
+                return $this->error('AI_PARSE_FAILED', $this->t('idea/messages.ai_analysis_failed'), 503);
+            }
 
             // Log to debug iterations
             $maxIterStmt = $pdo->prepare("SELECT COALESCE(MAX(iteration), 0) + 1 FROM idea_ai_iterations WHERE idea_id = :iid");
@@ -1307,11 +1400,6 @@ PROMPT;
                     'req' => json_encode(['user_prompt' => $prompt], JSON_UNESCAPED_UNICODE),
                     'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE),
                 ]);
-
-            $data = json_decode($rawText, true);
-            if (!is_array($data) && preg_match('/\{.*\}/s', $rawText, $m)) {
-                $data = json_decode($m[0], true);
-            }
 
             $additionalQuestions = $data['additional_questions'] ?? [];
 
@@ -1387,6 +1475,9 @@ PROMPT;
         }
 
         // POST: build card
+        if (($rateLimited = $this->assertAiRateLimit()) !== null) {
+            return $rateLimited;
+        }
         set_time_limit(120);
 
         // Collect all questions and answers
@@ -1554,6 +1645,9 @@ PROMPT;
         }
 
         // POST: generate gap questions based on understanding card
+        if (($rateLimited = $this->assertAiRateLimit()) !== null) {
+            return $rateLimited;
+        }
         set_time_limit(120);
 
         // Read understanding card
@@ -1621,23 +1715,39 @@ PROMPT;
 
         try {
             $aiSvc = $this->container->get('service.ai_action');
-            $result = $aiSvc->execute('idea_analyze', [
-                '__sys' => 'Analyze understanding card. Find gaps. Generate clarifying questions.' . $this->localeInstruction(),
-                '__usr' => $prompt,
-            ], $this->user()['user'] ?? []);
+            $maxRetries = 1;
+            $data = null;
+            $rawText = '';
+            for ($retry = 0; $retry <= $maxRetries; $retry++) {
+                $result = $aiSvc->execute('idea_analyze', [
+                    '__sys' => 'Analyze understanding card. Find gaps. Generate clarifying questions.' . $this->localeInstruction(),
+                    '__usr' => $prompt,
+                ], $this->user()['user'] ?? []);
 
-            $rawText = $result['result']['preview']['summary'] ?? '';
+                $rawText = $result['result']['preview']['summary'] ?? '';
+
+                $data = json_decode($rawText, true);
+                if (!is_array($data) && preg_match('/\{.*\}/s', $rawText, $m)) {
+                    $data = json_decode($m[0], true);
+                }
+                if (is_array($data) && isset($data['additional_questions'])) {
+                    break;
+                }
+                ai_diag_log("[GAP_QUESTIONS_RETRY] attempt=" . ($retry + 1) . " text_len=" . strlen($rawText));
+                $data = null;
+                if ($retry < $maxRetries) usleep(1000000);
+            }
+
+            if (!is_array($data) || !isset($data['additional_questions'])) {
+                ai_diag_log("[GAP_QUESTIONS_PARSE_FAIL] text_len=" . strlen($rawText) . " preview=" . substr($rawText, 0, 300));
+                return $this->error('AI_PARSE_FAILED', $this->t('idea/messages.ai_gaps_failed'), 503);
+            }
 
             $maxIterStmt = $pdo->prepare("SELECT COALESCE(MAX(iteration), 0) + 1 FROM idea_ai_iterations WHERE idea_id = :iid");
             $maxIterStmt->execute(['iid' => $ideaId]);
             $iter = (int)$maxIterStmt->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'gap_question', :req, :res, NOW())")
                 ->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['user_prompt' => $prompt], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
-
-            $data = json_decode($rawText, true);
-            if (!is_array($data) && preg_match('/\{.*\}/s', $rawText, $m)) {
-                $data = json_decode($m[0], true);
-            }
 
             $gapQuestions = $data['additional_questions'] ?? [];
             $maxCycleStmt = $pdo->prepare("SELECT COALESCE(MAX(cycle_id), 0) + 1 FROM idea_questions WHERE idea_id = :iid");
@@ -1702,6 +1812,9 @@ PROMPT;
         }
 
         // POST: build refined card
+        if (($rateLimited = $this->assertAiRateLimit()) !== null) {
+            return $rateLimited;
+        }
         set_time_limit(0);
 
         // Read original card
@@ -1869,6 +1982,9 @@ PROMPT;
             return $this->success('POTENTIAL_CLEARED', 'OK');
         }
 
+        if (($rateLimited = $this->assertAiRateLimit()) !== null) {
+            return $rateLimited;
+        }
         set_time_limit(0);
 
         $questions = $service->getQuestions($ideaId);
@@ -2006,6 +2122,9 @@ PROMPT;
             return $this->success('RISK_CLEARED', 'OK');
         }
 
+        if (($rateLimited = $this->assertAiRateLimit()) !== null) {
+            return $rateLimited;
+        }
         set_time_limit(0);
         $questions = $service->getQuestions($ideaId);
         $qaList = []; foreach ($questions as $q) { $ans = $q['last_answer'] ?? null; if (!$ans) continue; $qaList[] = ['question' => $q['question_text'] ?? '', 'dimension' => $q['dimension'] ?? '', 'answer' => $ans['selected_option_label'] ?? $ans['selected_option_key'] ?? $ans['answer_text'] ?? '']; }
@@ -2100,6 +2219,9 @@ PROMPT;
             return $this->success('PITFALLS_CLEARED', 'OK');
         }
 
+        if (($rateLimited = $this->assertAiRateLimit()) !== null) {
+            return $rateLimited;
+        }
         set_time_limit(0);
         $questions = $service->getQuestions($ideaId);
         $qaList = []; foreach ($questions as $q) { $ans = $q['last_answer'] ?? null; if (!$ans) continue; $qaList[] = ['question' => $q['question_text'] ?? '', 'dimension' => $q['dimension'] ?? '', 'answer' => $ans['selected_option_label'] ?? $ans['selected_option_key'] ?? $ans['answer_text'] ?? '']; }
@@ -2193,6 +2315,9 @@ PROMPT;
         }
 
         $this->ensureIdeaWorkflowTables($pdo);
+        if (($rateLimited = $this->assertAiRateLimit()) !== null) {
+            return $rateLimited;
+        }
         set_time_limit(0);
         $questions = $service->getQuestions($ideaId);
         $qaList = []; foreach ($questions as $q) { $ans = $q['last_answer'] ?? null; if (!$ans) continue; $qaList[] = ['question' => $q['question_text'] ?? '', 'dimension' => $q['dimension'] ?? '', 'answer' => $ans['selected_option_label'] ?? $ans['selected_option_key'] ?? $ans['answer_text'] ?? '']; }
@@ -2277,6 +2402,9 @@ PROMPT;
             return $this->success('FINAL_CLEARED', 'OK');
         }
 
+        if (($rateLimited = $this->assertAiRateLimit()) !== null) {
+            return $rateLimited;
+        }
         set_time_limit(0);
         $questions = $service->getQuestions($ideaId);
         $qaList = []; foreach ($questions as $q) { $ans = $q['last_answer'] ?? null; if (!$ans) continue; $qaList[] = ['question' => $q['question_text'] ?? '', 'dimension' => $q['dimension'] ?? '', 'answer' => $ans['selected_option_label'] ?? $ans['selected_option_key'] ?? $ans['answer_text'] ?? '']; }
@@ -2565,7 +2693,7 @@ PROMPT;
         };
         $createTasks($allTasks);
 
-        return $this->success('PROJECT_CREATED', $this->t('idea/messages.project_created') . ' «{$prjTitle}» с {$created} ' . $this->t('idea/messages.tasks_created_count'), ['project_public_id' => $projectPublicId, 'tasks_created' => $created]);
+        return $this->success('PROJECT_CREATED', $this->t('idea/messages.project_created') . ' «' . $prjTitle . '» с ' . $created . ' ' . $this->t('idea/messages.tasks_created_count'), ['project_public_id' => $projectPublicId, 'tasks_created' => $created]);
     }
 
     private function localeInstruction(): string
@@ -2590,7 +2718,10 @@ PROMPT;
         try {
             $setting = (new \Api\Model\Setting\SettingRepository($this->container->get('db.pdo')))
                 ->findByScopeAndName('features', 'ideas_ai_enabled');
-            return $setting && ((int)($setting['value'] ?? 1) === 1);
+            if (!$setting) {
+                return true;
+            }
+            return (int)($setting['value'] ?? 1) === 1;
         } catch (\Throwable $e) {
             $this->logError('idea_feature_flag_lookup_failed', ['flag' => 'ideas_ai_enabled', 'error' => $e->getMessage()]);
             return true;
@@ -3227,15 +3358,20 @@ PROMPT;
      */
     public function updateTaskDraft(array $params = []): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) return $contextError;
+
         $publicId = (string)($params['public_id'] ?? '');
         $draftId = (string)($params['draftTaskId'] ?? '');
         $input = $this->request()->allInput();
 
         if ($publicId === '' || $draftId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
+        $fetchedIdea = $this->container->get('service.idea')->getByPublicId($publicId, $this->activeOrganizationId());
+        if (!$fetchedIdea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
+
         $pdo = $this->container->get('db.pdo');
-        $stmt = $pdo->prepare("SELECT itd.* FROM idea_task_drafts itd JOIN ideas d ON d.id = itd.idea_id WHERE d.public_id = :pid AND itd.public_id = :did");
-        $stmt->execute(['pid' => $publicId, 'did' => $draftId]);
+        $stmt = $pdo->prepare("SELECT itd.* FROM idea_task_drafts itd WHERE itd.idea_id = :iid AND itd.public_id = :did");
+        $stmt->execute(['iid' => (int)$fetchedIdea['id'], 'did' => $draftId]);
         $draft = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$draft) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
@@ -3310,6 +3446,7 @@ PROMPT;
                 'idea_implementation_plans',
                 'idea_final_recommendations',
                 'idea_suggested_tasks',
+                'idea_task_drafts',
             ] as $table) {
                 $deleteFrom($table);
             }
@@ -3338,6 +3475,10 @@ PROMPT;
      */
     public function decomposeTasks(array $params = []): JsonResponse
     {
+        if (($disabled = $this->requireFeatureEnabledForAiWrite()) !== null) {
+            return $disabled;
+        }
+
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
@@ -3458,6 +3599,9 @@ PROMPT;
         if (($disabled = $this->requireFeatureEnabled()) !== null) {
             return $disabled;
         }
+        if (($rateLimited = $this->assertAiRateLimit()) !== null) {
+            return $rateLimited;
+        }
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
@@ -3512,8 +3656,8 @@ PROMPT;
         }
 
         $service->updateStatus($ideaId, 'analysis_in_progress');
-        set_time_limit(55);
-        $deadline = microtime(true) + 50;
+        set_time_limit(30);
+        $deadline = microtime(true) + 28;
         $completed = 0;
 
         while (microtime(true) < $deadline) {
@@ -3553,6 +3697,9 @@ PROMPT;
         if (($disabled = $this->requireFeatureEnabled()) !== null) {
             return $disabled;
         }
+        if (($rateLimited = $this->assertAiRateLimit()) !== null) {
+            return $rateLimited;
+        }
         $publicId = (string)($params['public_id'] ?? '');
         $stepKey = (string)($params['stepKey'] ?? '');
         if ($publicId === '' || $stepKey === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
@@ -3582,6 +3729,11 @@ PROMPT;
 
     private function ensureIdeaWorkflowTables(PDO $pdo): void
     {
+        if (self::$ddlEnsured) {
+            return;
+        }
+        self::$ddlEnsured = true;
+
         $pdo->exec("CREATE TABLE IF NOT EXISTS idea_question_cycles (
             id INT AUTO_INCREMENT PRIMARY KEY,
             idea_id INT NOT NULL,
@@ -3822,9 +3974,17 @@ PROMPT;
         if (($disabled = $this->requireFeatureEnabled()) !== null) {
             return $disabled;
         }
+        if (($rateLimited = $this->assertAiRateLimit()) !== null) {
+            return $rateLimited;
+        }
         $publicId = (string)($params['public_id'] ?? '');
         $analysisType = (string)($params['analysisType'] ?? '');
         if ($publicId === '' || $analysisType === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
+
+        $allowedAnalysisTypes = ['main_analysis', 'final_report', 'critical_analysis', 'potential_score', 'risk_report', 'pitfalls_report', 'implementation_plan', 'final_recommendation', 'refined_card', 'understanding_card'];
+        if (!in_array($analysisType, $allowedAnalysisTypes, true)) {
+            return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
+        }
 
         $service = $this->container->get('service.idea');
         $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());

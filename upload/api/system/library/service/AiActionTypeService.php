@@ -23,6 +23,10 @@ final class AiActionTypeService
         $fromConfig = (array)$this->config->get('ai.actions.allowlist', []);
         $list = array_merge($fromConfig, $fromSettings, [
             'idea_analyze',
+            'idea_initial_questions',
+            'idea_process_answers',
+            'idea_questions',
+            'idea_task_decomposition',
         ]);
 
         $normalized = [];
