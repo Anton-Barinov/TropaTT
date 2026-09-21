@@ -28,7 +28,12 @@ final class ApiClientRepository
         if ($organizationId === null || $organizationId <= 0) {
             return [null, []];
         }
-        return [$alias . '.organization_id = :scope_organization_id', ['scope_organization_id' => $organizationId]];
+        // NOTE: QueryBuilder::whereRaw() only substitutes positional '?'
+        // placeholders with its own internal binding names — a named
+        // ":placeholder" here is written into the SQL verbatim without a
+        // matching PDO binding and breaks prepare() (see also TROPATTCRM-607,
+        // which hit the identical bug in SavedViewRepository).
+        return [$alias . '.organization_id = ?', [$organizationId]];
     }
 
     public function listClients(array $filters, ?int $organizationId = null): array
