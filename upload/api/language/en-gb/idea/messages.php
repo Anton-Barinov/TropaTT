@@ -78,6 +78,7 @@ return [
     'analysis_reset' => 'AI analysis reset. You can start again.',
     'analysis_reset_message' => 'Old AI analysis data cleared. Click "Run" for a new analysis.',
     'analysis_not_ready_status' => 'Analysis can only be started from ready_for_analysis status.',
+    'analysis_pipeline_conflict' => 'This idea was already analysed by the browser pipeline; the MCP analysis must not overwrite its state. Reset the analysis first (crm_reset_idea_analysis).',
     'answer_all_questions_first' => 'Answer all clarification questions before starting the analysis.',
     'demo_analysis' => 'Demo analysis (safe mode)',
     'demo_mode_message' => 'Demo mode. For real AI analysis, disable safe_mode.',

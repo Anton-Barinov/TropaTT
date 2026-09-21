@@ -78,6 +78,7 @@ return [
     'analysis_reset' => 'Análise de IA redefinida. Você pode começar novamente.',
     'analysis_reset_message' => 'Dados antigos da análise de IA limpos. Clique em "Executar" para uma nova análise.',
     'analysis_not_ready_status' => 'A análise só pode ser iniciada a partir do status ready_for_analysis.',
+    'analysis_pipeline_conflict' => 'Esta ideia já foi analisada pelo pipeline do navegador; a análise MCP não deve sobrescrever seu estado. Redefina a análise primeiro (crm_reset_idea_analysis).',
     'answer_all_questions_first' => 'Responda todas as perguntas de esclarecimento antes de iniciar a análise.',
     'demo_analysis' => 'Análise de demonstração (modo seguro)',
     'demo_mode_message' => 'Modo de demonstração. Para uma análise real de IA, desative o safe_mode.',

@@ -78,6 +78,7 @@ return [
     'analysis_reset' => 'AI 分析已重置。可以重新启动。',
     'analysis_reset_message' => '旧的 AI 分析数据已清除。点击"启动"进行新的分析。',
     'analysis_not_ready_status' => '只能从 ready_for_analysis 状态启动分析。',
+    'analysis_pipeline_conflict' => '该想法已由浏览器流水线分析，MCP 分析不能覆盖其状态。请先重置分析（crm_reset_idea_analysis）。',
     'answer_all_questions_first' => '请在启动分析前回答所有澄清问题。',
     'demo_analysis' => '演示分析（安全模式）',
     'demo_mode_message' => '演示模式。如需真实 AI 分析，请关闭 safe_mode。',

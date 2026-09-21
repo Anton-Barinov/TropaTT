@@ -78,6 +78,7 @@ return [
     'analysis_reset' => 'AI-анализ сброшен. Можно запустить заново.',
     'analysis_reset_message' => 'Старые данные AI-анализа очищены. Нажмите «Запустить» для нового анализа.',
     'analysis_not_ready_status' => 'Анализ можно запускать только из статуса ready_for_analysis.',
+    'analysis_pipeline_conflict' => 'Эту идею уже проанализировал браузерный пайплайн: MCP-анализ не может перезаписать его состояние. Сначала сбросьте анализ (crm_reset_idea_analysis).',
     'answer_all_questions_first' => 'Ответьте на все уточняющие вопросы перед запуском анализа.',
     'demo_analysis' => 'Демо-анализ (safe mode)',
     'demo_mode_message' => 'Демо-режим. Для реального AI-анализа отключите safe_mode.',
