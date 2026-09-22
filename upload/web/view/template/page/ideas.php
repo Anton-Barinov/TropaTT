@@ -133,9 +133,18 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
       h+='<div class="'+cls+'">'+icon+' <strong>'+(i+1)+'.</strong> '+d.desc+'</div>';
     });
 	    h+='</div>';
-	    document.getElementById('pipelineSteps').innerHTML=h;
-	    document.getElementById('pipelineStatus').textContent=successCount()+'/'+state.steps.length;
-	    if(!running)setStartButtonIdle();
+    document.getElementById('pipelineSteps').innerHTML=h;
+    // While a question step waits for the human, keep that message stable:
+    // any re-render (answer validation, status sync) used to overwrite it with
+    // the bare step counter and the user lost the "waiting for you" signal.
+    if(state.awaitingQuestionStep){
+      var waitIdx=state.awaitingQuestionIndex;
+      var waitDesc=(typeof waitIdx==='number'&&steps[waitIdx])?steps[waitIdx].desc:'';
+      document.getElementById('pipelineStatus').textContent='<?= htmlspecialchars($t('ideas.state_waiting_answers', 'Ожидает ответов:'), ENT_QUOTES, 'UTF-8') ?> '+waitDesc;
+    }else{
+      document.getElementById('pipelineStatus').textContent=successCount()+'/'+state.steps.length;
+    }
+    if(!running)setStartButtonIdle();
 	  }
 	  function resumePipelineSoon(forceRestart){
 	    if(forceRestart){

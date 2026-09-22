@@ -36,6 +36,11 @@ final class IdeaController extends BaseController
      */
     private const LIVE_STEP_STALE_SECONDS = 900;
 
+    /** Total claim attempts per live step: transient failures (AI_BUSY, network)
+     *  are retried by re-queuing them from 'failed' back to 'pending', while a
+     *  step that keeps failing stays 'failed' and needs a manual reset. */
+    private const LIVE_STEP_MAX_ATTEMPTS = 3;
+
     private const MCP_STATUS_IN_PROGRESS = 'mcp_analysis_in_progress';
     private const MCP_STATUS_READY = 'mcp_analysis_ready';
     private const MCP_STATUS_PARTIAL = 'mcp_analysis_partially_ready';
@@ -4681,6 +4686,14 @@ PROMPT;
         $pdo->prepare("UPDATE idea_analysis_steps SET status = 'pending', updated_at = CURRENT_TIMESTAMP WHERE idea_id = :iid AND pipeline = 'live' AND status = 'running' AND (started_at IS NULL OR started_at < :stale) AND attempts < 3")
             ->execute(['iid' => $ideaId, 'stale' => $staleBefore]);
 
+        // 1b) Re-queue failed steps while they still have attempt budget left.
+        // A transient failure (AI_BUSY, network, provider hiccup) must not wedge
+        // the pipeline forever: claimLiveStep() already bumps attempts per
+        // claim, so after LIVE_STEP_MAX_ATTEMPTS tries the row stays 'failed'
+        // and only a manual reset can revive it (TROPATTCRM-628 live QA).
+        $pdo->prepare("UPDATE idea_analysis_steps SET status = 'pending', updated_at = CURRENT_TIMESTAMP WHERE idea_id = :iid AND pipeline = 'live' AND status = 'failed' AND attempts < :max")
+            ->execute(['iid' => $ideaId, 'max' => self::LIVE_STEP_MAX_ATTEMPTS]);
+
         // 2) A fresh 'running' step of this idea means another worker already
         // executes it (or an earlier step): never hand out a follow-up step in
         // parallel — later steps consume earlier results (race would corrupt
@@ -4770,7 +4783,11 @@ PROMPT;
                 'HTTP_AUTHORIZATION' => 'Bearer ' . ($this->user()['token'] ?? ''),
             ];
 
-            $app = new \Api\System\Library\App(dirname(__DIR__, 3));
+            // App's basePath must be the API root (same as index.php passes):
+            // dirname(__DIR__, 3) resolves one level too high, config/*.php is
+            // never loaded and every simulated step dies with
+            // CONFIG_SECURITY_CSRF_SECRET_REQUIRED in production (live QA 628).
+            $app = new \Api\System\Library\App(dirname(__DIR__, 2));
             $response = $app->run();
             $payload = $response->payload();
             if (!(bool)($payload['success'] ?? false)) {
