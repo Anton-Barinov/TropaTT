@@ -2364,7 +2364,7 @@ PROMPT;
             if (!$parsed['ok'] || empty($parsed['data']['risk_report'])) {
                 ai_diag_log("[RISK_PARSE_FAIL] text_len=".strlen($rawText)." parse_error=".($parsed['error']??'unknown')." preview=".substr($rawText,0,300));
                 // Save fallback record instead of returning error — use upsert to avoid duplicate key
-                $row = ['risk_report_json' => json_encode(['risk_report' => ['summary' => $this->t('idea/messages.ai_risk_fallback_summary'), 'risks' => [], 'overall_risk_score' => 1, 'overall_risk_level' => 'unknown', 'confidence_score' => 0]], JSON_UNESCAPED_UNICODE), 'overall_risk_score' => 1, 'overall_risk_level' => 'unknown', 'critical_risks_count' => 0, 'high_risks_count' => 0, 'medium_risks_count' => 0, 'low_risks_count' => 0, 'confidence_score' => 0, 'ai_request_json' => json_encode(['note' => 'AI analysis failed', 'system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
+                $row = ['risk_report_json' => json_encode(['_is_fallback' => true, 'risk_report' => ['summary' => $this->t('idea/messages.ai_risk_fallback_summary'), 'risks' => [], 'overall_risk_score' => 1, 'overall_risk_level' => 'unknown', 'confidence_score' => 0]], JSON_UNESCAPED_UNICODE), 'overall_risk_score' => 1, 'overall_risk_level' => 'unknown', 'critical_risks_count' => 0, 'high_risks_count' => 0, 'medium_risks_count' => 0, 'low_risks_count' => 0, 'confidence_score' => 0, 'ai_request_json' => json_encode(['note' => 'AI analysis failed — fallback stub', 'system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
                 $existsRisk = $pdo->prepare("SELECT id FROM idea_risk_reports WHERE idea_id = :iid"); $existsRisk->execute(['iid' => $ideaId]);
                 if ($existsRisk->fetch()) { $pdo->prepare("UPDATE idea_risk_reports SET risk_report_json=:risk_report_json,overall_risk_score=:overall_risk_score,overall_risk_level=:overall_risk_level,critical_risks_count=:critical_risks_count,high_risks_count=:high_risks_count,medium_risks_count=:medium_risks_count,low_risks_count=:low_risks_count,confidence_score=:confidence_score,ai_request_json=:ai_request_json,ai_response_json=:ai_response_json,updated_at=NOW() WHERE idea_id=:idea_id")->execute($row); }
                 else { $pdo->prepare("INSERT INTO idea_risk_reports (idea_id,risk_report_json,overall_risk_score,overall_risk_level,critical_risks_count,high_risks_count,medium_risks_count,low_risks_count,confidence_score,ai_request_json,ai_response_json) VALUES (:idea_id,:risk_report_json,:overall_risk_score,:overall_risk_level,:critical_risks_count,:high_risks_count,:medium_risks_count,:low_risks_count,:confidence_score,:ai_request_json,:ai_response_json)")->execute($row); }
@@ -2472,7 +2472,7 @@ PROMPT;
 
             if (!$parsed['ok'] || empty($parsed['data']['pitfalls'])) {
                 ai_diag_log("[PITFALLS_PARSE_FAIL] parse_error=".($parsed['error']??'unknown')." text_len=".strlen($rawText));
-                $row = ['pitfalls_json' => '[]', 'overall_summary' => $this->t('idea/messages.ai_pitfalls_fallback_summary'), 'data_confidence' => 0, 'ai_request_json' => json_encode(['note' => 'AI analysis failed'], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
+                $row = ['pitfalls_json' => json_encode(['_is_fallback' => true], JSON_UNESCAPED_UNICODE), 'overall_summary' => $this->t('idea/messages.ai_pitfalls_fallback_summary'), 'data_confidence' => 0, 'ai_request_json' => json_encode(['note' => 'AI analysis failed — fallback stub'], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
                 $existsPit = $pdo->prepare("SELECT id FROM idea_pitfalls_reports WHERE idea_id = :iid"); $existsPit->execute(['iid' => $ideaId]);
                 if ($existsPit->fetch()) { $pdo->prepare("UPDATE idea_pitfalls_reports SET pitfalls_json=:pitfalls_json,overall_summary=:overall_summary,data_confidence=:data_confidence,ai_request_json=:ai_request_json,ai_response_json=:ai_response_json,updated_at=NOW() WHERE idea_id=:idea_id")->execute($row); }
                 else { $pdo->prepare("INSERT INTO idea_pitfalls_reports (idea_id,pitfalls_json,overall_summary,data_confidence,ai_request_json,ai_response_json) VALUES (:idea_id,:pitfalls_json,:overall_summary,:data_confidence,:ai_request_json,:ai_response_json)")->execute($row); }
@@ -2582,7 +2582,7 @@ PROMPT;
 
             if (!$parsed['ok'] || empty($parsed['data']['implementation_plan'])) {
                 ai_diag_log("[PLAN_PARSE_FAIL] parse_error=".($parsed['error']??'unknown')." text_len=".strlen($rawText));
-                $row = ['plan_json' => '{}', 'summary' => $this->t('idea/messages.ai_plan_fallback_summary'), 'planning_horizon' => '', 'plan_type' => 'preliminary', 'confidence_score' => 0, 'ai_request_json' => json_encode(['note' => 'AI analysis failed'], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
+                $row = ['plan_json' => json_encode(['_is_fallback' => true], JSON_UNESCAPED_UNICODE), 'summary' => $this->t('idea/messages.ai_plan_fallback_summary'), 'planning_horizon' => '', 'plan_type' => 'preliminary', 'confidence_score' => 0, 'ai_request_json' => json_encode(['note' => 'AI analysis failed — fallback stub'], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
                 $existsPlan = $pdo->prepare("SELECT id FROM idea_implementation_plans WHERE idea_id = :iid"); $existsPlan->execute(['iid' => $ideaId]);
                 if ($existsPlan->fetch()) { $pdo->prepare("UPDATE idea_implementation_plans SET plan_json=:plan_json,summary=:summary,planning_horizon=:planning_horizon,plan_type=:plan_type,confidence_score=:confidence_score,ai_request_json=:ai_request_json,ai_response_json=:ai_response_json,updated_at=NOW() WHERE idea_id=:idea_id")->execute($row); }
                 else { $pdo->prepare("INSERT INTO idea_implementation_plans (idea_id,plan_json,summary,planning_horizon,plan_type,confidence_score,ai_request_json,ai_response_json) VALUES (:idea_id,:plan_json,:summary,:planning_horizon,:plan_type,:confidence_score,:ai_request_json,:ai_response_json)")->execute($row); }
@@ -2686,6 +2686,30 @@ PROMPT;
             'pitfalls' => $pitSummary,
             'implementation_plan' => $planSummary,
         ];
+
+        // Detect fallback stubs — blocks whose JSON contains _is_fallback or _fallback flag
+        $detectFallback = function(array $row, string $jsonCol): bool {
+            if (!($row['exists'] ?? false)) return false;
+            $raw = $row[$jsonCol] ?? null;
+            if (!$raw) return false;
+            $decoded = json_decode($raw, true);
+            if (!is_array($decoded)) return false;
+            if (!empty($decoded['_is_fallback'])) return true;
+            // Check nested objects for _fallback flag (potential stores it inside 'potential' key)
+            foreach ($decoded as $v) {
+                if (is_array($v) && !empty($v['_fallback'])) return true;
+            }
+            return false;
+        };
+        $dataGaps = [];
+        if ($detectFallback($riskBlock, 'risk_report_json')) $dataGaps[] = 'risks';
+        if ($detectFallback($pitBlock, 'pitfalls_json')) $dataGaps[] = 'pitfalls';
+        if ($detectFallback($planBlock, 'plan_json')) $dataGaps[] = 'implementation_plan';
+        if ($detectFallback($pot, 'potential_json')) $dataGaps[] = 'potential';
+        if (!empty($dataGaps)) {
+            $blocks['_data_gaps'] = $dataGaps;
+            $blocks['_data_gaps_note'] = 'Some blocks contain fallback stubs (AI failed). Scores from these blocks are unreliable. Reduce confidence and weight for missing/fallback data.';
+        }
 
         $payload = ['idea' => ['title' => $idea['title'] ?? '', 'short_description' => mb_substr($plainDesc, 0, 200), 'description_plain_text' => $plainDesc, 'category' => $idea['category'] ?? '', 'product' => $idea['product'] ?? '', 'region' => $idea['region'] ?? '', 'target_date' => $idea['target_date'] ?? null, 'current_date' => date('Y-m-d')], 'questions_and_answers' => $qaList] + $blocks;
 
@@ -2845,7 +2869,7 @@ PROMPT;
 
             if (!$parsed['ok'] || (empty($parsed['data']['projects']) && empty($parsed['data']['tasks']))) {
                 ai_diag_log("[TASKS_PARSE_FAIL] parse_error=".($parsed['error']??'unknown')." text_len=".strlen($rawText));
-                $row = ['tasks_json' => '{}', 'summary' => $this->t('idea/messages.ai_tasks_fallback_summary'), 'ai_request_json' => json_encode(['note' => 'AI analysis failed'], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
+                $row = ['tasks_json' => json_encode(['_is_fallback' => true], JSON_UNESCAPED_UNICODE), 'summary' => $this->t('idea/messages.ai_tasks_fallback_summary'), 'ai_request_json' => json_encode(['note' => 'AI analysis failed — fallback stub'], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
                 $existsTasks = $pdo->prepare("SELECT id FROM idea_suggested_tasks WHERE idea_id = :iid"); $existsTasks->execute(['iid' => $ideaId]);
                 if ($existsTasks->fetch()) { $pdo->prepare("UPDATE idea_suggested_tasks SET tasks_json=:tasks_json,summary=:summary,ai_request_json=:ai_request_json,ai_response_json=:ai_response_json,updated_at=NOW() WHERE idea_id=:idea_id")->execute($row); }
                 else { $pdo->prepare("INSERT INTO idea_suggested_tasks (idea_id,tasks_json,summary,ai_request_json,ai_response_json) VALUES (:idea_id,:tasks_json,:summary,:ai_request_json,:ai_response_json)")->execute($row); }
