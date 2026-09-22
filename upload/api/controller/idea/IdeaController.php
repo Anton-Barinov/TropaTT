@@ -1480,7 +1480,7 @@ PROMPT;
             $data = null;
             $rawText = '';
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', [
+                $result = $aiSvc->execute('idea_clarifications', ['prefer_fast_model' => true,
                     '__sys' => $this->t('idea/messages.prompt_analyst_system') . $this->localeInstruction(),
                     '__usr' => $prompt,
                     'response_format' => ['type' => 'json_object'],
@@ -1668,7 +1668,7 @@ PROMPT;
             $rawText = '';
             $parsed = ['ok' => false, 'data' => null, 'error' => 'not_started'];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', [
+                $result = $aiSvc->execute('idea_understanding', [
                     '__sys' => $systemPrompt . $this->localeInstruction(),
                     '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT),
                     'response_format' => ['type' => 'json_object'],
@@ -1872,7 +1872,7 @@ PROMPT;
             $data = null;
             $rawText = '';
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', [
+                $result = $aiSvc->execute('idea_gap_questions', ['prefer_fast_model' => true,
                     '__sys' => 'Analyze understanding card. Find gaps. Generate clarifying questions.' . $this->localeInstruction(),
                     '__usr' => $prompt,
                     'response_format' => ['type' => 'json_object'],
@@ -2038,7 +2038,7 @@ PROMPT;
             $rawText = '';
             $parsed = ['ok' => false, 'data' => null, 'error' => 'not_started'];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', [
+                $result = $aiSvc->execute('idea_refined', [
                     '__sys' => $systemPrompt . $this->localeInstruction(),
                     '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT),
                     'response_format' => ['type' => 'json_object'],
@@ -2211,7 +2211,7 @@ PROMPT;
             $rawText = '';
             $parsed = ['ok' => false, 'data' => null, 'error' => 'not_started'];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', ['__sys' => $systemPrompt . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
+                $result = $aiSvc->execute('idea_potential', ['prefer_fast_model' => true, '__sys' => $systemPrompt . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
 
                 if (!($result['ok'] ?? false)) {
                     $errorCode = $result['code'] ?? '';
@@ -2334,7 +2334,7 @@ PROMPT;
             $aiSvc = $this->container->get('service.ai_action');
             $maxRetries = 2; $rawText = '';
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
+                $result = $aiSvc->execute('idea_risks', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
 
                 if (!($result['ok'] ?? false)) {
                     $errorCode = $result['code'] ?? '';
@@ -2443,7 +2443,7 @@ PROMPT;
         try {
             $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 2; $rawText = ''; $parsed = ['ok' => false];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
+                $result = $aiSvc->execute('idea_pitfalls', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
 
                 if (!($result['ok'] ?? false)) {
                     $errorCode = $result['code'] ?? '';
@@ -2553,7 +2553,7 @@ PROMPT;
         try {
             $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 2; $rawText = ''; $parsed = ['ok' => false];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
+                $result = $aiSvc->execute('idea_plan', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
 
                 if (!($result['ok'] ?? false)) {
                     $errorCode = $result['code'] ?? '';
@@ -2693,7 +2693,7 @@ PROMPT;
         try {
             $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 2; $rawText = ''; $parsed = ['ok' => false, 'data' => null, 'error' => 'not_started'];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
+                $result = $aiSvc->execute('idea_final', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
 
                 if (!($result['ok'] ?? false)) {
                     $errorCode = $result['code'] ?? '';
@@ -2816,7 +2816,7 @@ PROMPT;
         try {
             $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 2; $rawText = ''; $parsed = ['ok' => false];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
+                $result = $aiSvc->execute('idea_tasks', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
 
                 if (!($result['ok'] ?? false)) {
                     $errorCode = $result['code'] ?? '';
@@ -3118,7 +3118,7 @@ PROMPT;
             $aiSvc = $this->container->get('service.ai_action');
 
             @set_time_limit(90);
-            $result = $aiSvc->execute('idea_analyze', [
+            $result = $aiSvc->execute('idea_interview', [
                 '__sys' => $systemPrompt . $this->localeInstruction(),
                 '__usr' => $userPrompt,
                 'max_tokens' => 4096,

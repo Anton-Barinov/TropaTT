@@ -164,7 +164,7 @@ final class AiIntentSettingService
                     'feature_flag' => $this->defaultFeatureFlagByIntent($intent),
                     'required_permission' => $this->defaultRequiredPermissionByIntent($intent),
                     'allow_sensitive_context' => 0,
-                    'max_tokens' => 2000,
+                    'max_tokens' => $this->defaultMaxTokensByIntent($intent),
                     'temperature' => '0.2',
                     'is_enabled' => 1,
                     'intent_payload' => '{}',
@@ -251,6 +251,29 @@ final class AiIntentSettingService
         }
 
         return array_values(array_unique($normalized));
+    }
+
+    /**
+     * TROPATTCRM-618: per-intent baseline max_tokens.
+     *
+     * AiActionService::execute() resolves max_tokens as
+     * `(int)($intent['max_tokens'] ?? $input['max_tokens'] ?? 0)`, so the
+     * moment ensureBaseline() seeds a row for an intent its stored value wins
+     * over whatever the caller passed explicitly. A flat 2000 default would
+     * therefore have silently capped IdeaController::aiInterview() (which
+     * passes 4096) the first time anyone opened the AI admin panel — the
+     * interview is long-form and must stay at >= 4096. Heavy JSON blocks get
+     * bigger budgets, light targeted steps keep the old 2000 default.
+     */
+    private function defaultMaxTokensByIntent(string $intent): int
+    {
+        return match ($intent) {
+            'idea_interview' => 4096,
+            'idea_understanding', 'idea_refined', 'idea_risks', 'idea_pitfalls' => 4096,
+            'idea_plan', 'idea_tasks', 'idea_final' => 6000,
+            'idea_clarifications', 'idea_gap_questions', 'idea_potential' => 2000,
+            default => 2000,
+        };
     }
 
     private function defaultFeatureFlagByIntent(string $intent): string
