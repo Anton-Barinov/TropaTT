@@ -419,6 +419,7 @@ return array (
     'state_untitled' => 'Без названия',
     'state_updated' => 'обновлено ',
     'state_waiting_answers' => 'Ожидает ответов:',
+    'state_awaiting_human' => 'Пайплайн ждёт ваших ответов на вопросы интервью...',
     'status_approved' => 'Одобрена',
     'status_draft' => 'Черновик',
     'status_in_progress' => 'В работе',

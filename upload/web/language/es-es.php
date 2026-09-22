@@ -4740,6 +4740,7 @@ return array (
     'state_untitled' => 'Untitled',
     'state_updated' => 'updated ',
     'state_waiting_answers' => 'Waiting for answers:',
+    'state_awaiting_human' => 'El pipeline esta esperando tus respuestas de la entrevista...',
     'status_approved' => 'Approved',
     'status_draft' => 'Draft',
     'status_in_progress' => 'In progress',
