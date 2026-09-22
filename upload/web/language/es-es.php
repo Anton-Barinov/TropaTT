@@ -4666,6 +4666,7 @@ return array (
 
     'state_queuing_analysis' => 'Poniendo análisis en cola...',
     'state_queue_error' => 'Error al poner análisis en cola',
+    'state_queue_in_progress' => 'Los pasos ya estan en cola — rastreando el progreso...',
     'state_analyzing' => 'Analyzing',
     'state_analyzing_gaps' => 'Analyzing gaps...',
     'state_analyzing_idea' => 'Analyzing the idea...',
@@ -4740,6 +4741,7 @@ return array (
     'state_untitled' => 'Untitled',
     'state_updated' => 'updated ',
     'state_waiting_answers' => 'Waiting for answers:',
+    'state_awaiting_human' => 'El pipeline esta esperando tus respuestas de la entrevista...',
     'status_approved' => 'Approved',
     'status_draft' => 'Draft',
     'status_in_progress' => 'In progress',

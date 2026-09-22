@@ -133,9 +133,18 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
       h+='<div class="'+cls+'">'+icon+' <strong>'+(i+1)+'.</strong> '+d.desc+'</div>';
     });
 	    h+='</div>';
-	    document.getElementById('pipelineSteps').innerHTML=h;
-	    document.getElementById('pipelineStatus').textContent=successCount()+'/'+state.steps.length;
-	    if(!running)setStartButtonIdle();
+    document.getElementById('pipelineSteps').innerHTML=h;
+    // While a question step waits for the human, keep that message stable:
+    // any re-render (answer validation, status sync) used to overwrite it with
+    // the bare step counter and the user lost the "waiting for you" signal.
+    if(state.awaitingQuestionStep){
+      var waitIdx=state.awaitingQuestionIndex;
+      var waitDesc=(typeof waitIdx==='number'&&steps[waitIdx])?steps[waitIdx].desc:'';
+      document.getElementById('pipelineStatus').textContent='<?= htmlspecialchars($t('ideas.state_waiting_answers', 'Ожидает ответов:'), ENT_QUOTES, 'UTF-8') ?> '+waitDesc;
+    }else{
+      document.getElementById('pipelineStatus').textContent=successCount()+'/'+state.steps.length;
+    }
+    if(!running)setStartButtonIdle();
 	  }
 	  function resumePipelineSoon(forceRestart){
 	    if(forceRestart){
@@ -514,7 +523,17 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
 	          await pollAnalysisStatus(ideaId, runToken);
 	        }
 	      }catch(e){
-	        document.getElementById('pipelineStatus').textContent='<?= htmlspecialchars($t('ideas.state_queue_error', 'Ошибка постановки в очередь'), ENT_QUOTES, 'UTF-8') ?>';
+	        var queueCode=e&&e.envelope?String(e.envelope.code||''):'';
+	        if(queueCode==='ANALYSIS_IN_PROGRESS'||queueCode==='ANALYSIS_COMPLETE'){
+	          // TROPATTCRM-628: steps queued by an earlier run are still in the
+	          // queue — that is the normal state of a re-run, not an error. Keep
+	          // tracking them: the awaiting-human status below can only appear
+	          // while this poll is running.
+	          document.getElementById('pipelineStatus').textContent='<?= htmlspecialchars($t('ideas.state_queue_in_progress', 'Шаги уже в очереди — отслеживаю выполнение...'), ENT_QUOTES, 'UTF-8') ?>';
+	          await pollAnalysisStatus(ideaId, runToken);
+	        } else {
+	          document.getElementById('pipelineStatus').textContent='<?= htmlspecialchars($t('ideas.state_queue_error', 'Ошибка постановки в очередь'), ENT_QUOTES, 'UTF-8') ?>';
+	        }
 	      }
 	    }
 
@@ -535,10 +554,15 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
   async function pollAnalysisStatus(ideaId, runToken){
     var pollInterval=3000;
     var maxPolls=200;
-    for(var p=0;p<maxPolls;p++){
+    var totalTicks=0;
+    var hardCap=1200; // absolute ceiling (~36 min) no matter what
+    var awaitingHuman=false;
+    for(var p=0;p<maxPolls&&totalTicks<hardCap;p++){
+      totalTicks++;
       if(runToken!==pipelineRunToken)return;
       await sleep(pollInterval);
       if(runToken!==pipelineRunToken)return;
+      awaitingHuman=false;
 
       try{
         var status=await window.CRM.api.request('api/v1/ideas/'+ideaId+'/analysis/status',{method:'GET',timeoutMs:10000});
@@ -568,10 +592,33 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
               browserStep.status='running';
               saveState();renderSteps();
             }
+          }else if(ss.status==='awaiting_human_input'){
+            // TROPATTCRM-628: the worker paused the pipeline until the human
+            // answers the interview — say it in words, not raw statuses.
+            allDone=false;
+            awaitingHuman=true;
+            if(browserStep.status!=='running'&&browserStep.status!=='success'){
+              browserStep.status='running';
+              saveState();renderSteps();
+            }
+            continue;
           }else{
             allDone=false;
           }
           document.getElementById('pipelineStatus').textContent=ss.key+': '+ss.status+(ss.status==='running'?'...':'');
+        }
+        // TROPATTCRM-628: honor the payload flag too — questions can be generated
+        // by a direct endpoint call while the step row is still 'pending', and the
+        // user must still see the waiting state instead of a bare counter.
+        if(!awaitingHuman&&status.data.awaiting_human_input===true){
+          awaitingHuman=true;
+          allDone=false;
+        }
+        if(awaitingHuman){
+          document.getElementById('pipelineStatus').textContent='<?= htmlspecialchars($t('ideas.state_awaiting_human', 'Пайплайн ждёт ваших ответов на вопросы интервью...'), ENT_QUOTES, 'UTF-8') ?>';
+          // Answering takes human time — don't count these ticks against the
+          // poll budget (hard cap still applies).
+          maxPolls=p+200;
         }
         if(allDone)break;
       }catch(e){

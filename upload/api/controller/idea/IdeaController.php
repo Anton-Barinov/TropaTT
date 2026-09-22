@@ -27,6 +27,20 @@ final class IdeaController extends BaseController
      * idea look like a finished live report whose data does not exist.
      * See TROPATTCRM-626.
      */
+    /**
+     * A live step stuck in 'running' longer than this is considered abandoned
+     * (worker died mid-step) and is re-queued. Steps cap their own runtime with
+     * set_time_limit(90..120) + internal HTTP timeout (300s), so 15 minutes is
+     * far beyond any legitimate runtime. Threshold string is built with the PHP
+     * clock (same host as MySQL in this deployment) to keep the SQL portable.
+     */
+    private const LIVE_STEP_STALE_SECONDS = 900;
+
+    /** Total claim attempts per live step: transient failures (AI_BUSY, network)
+     *  are retried by re-queuing them from 'failed' back to 'pending', while a
+     *  step that keeps failing stays 'failed' and needs a manual reset. */
+    private const LIVE_STEP_MAX_ATTEMPTS = 3;
+
     private const MCP_STATUS_IN_PROGRESS = 'mcp_analysis_in_progress';
     private const MCP_STATUS_READY = 'mcp_analysis_ready';
     private const MCP_STATUS_PARTIAL = 'mcp_analysis_partially_ready';
@@ -3403,6 +3417,9 @@ PROMPT;
 
         if ($normalized !== []) {
             $service->saveAnswers($ideaId, $normalized);
+            // The human answered: release the held interview step once nothing is
+            // left to answer, so the async worker can continue with step 2+.
+            $this->releaseAwaitingSteps($pdo, $ideaId);
         }
 
         $updatedQuestions = $service->getQuestions($ideaId);
@@ -3648,6 +3665,9 @@ PROMPT;
 
         $service->saveAnswers((int)$idea['id'], $answers);
         $service->updateStatus((int)$idea['id'], 'questioning');
+        // Same release as in saveInterviewAnswers: answers may also arrive via
+        // this endpoint (MCP crm_save_idea_answers).
+        $this->releaseAwaitingSteps($this->container->get('db.pdo'), (int)$idea['id']);
 
         return $this->success('ANSWERS_SAVED', $this->t('idea/messages.answers_saved'), ['saved' => count($answers)]);
     }
@@ -3953,12 +3973,7 @@ PROMPT;
             return $this->error('ANALYSIS_PIPELINE_CONFLICT', $this->t('idea/messages.analysis_pipeline_conflict'), 409);
         }
         // Guard: must have no unanswered active questions
-        $allCurrentQ = $service->getQuestions($ideaId, $this->getCurrentCycleId($ideaId));
-        $unanswered = false;
-        foreach ($allCurrentQ as $q) {
-            if (empty($q['last_answer'])) { $unanswered = true; break; }
-        }
-        if ($unanswered) {
+        if ($this->hasUnansweredQuestions($pdo, $ideaId)) {
             return $this->error('QUESTIONS_NOT_COMPLETED', $this->t('idea/messages.answer_all_questions_first'), 422);
         }
 
@@ -4427,6 +4442,8 @@ PROMPT;
         $stmt->execute(['iid' => $ideaId]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
+        $openQuestions = $this->hasUnansweredQuestions($pdo, $ideaId);
+
         $steps = [];
         foreach ($rows as $r) {
             $steps[] = [
@@ -4443,12 +4460,17 @@ PROMPT;
         $total = count($this->livePipelineSteps());
         $running = count(array_filter($steps, fn($s) => $s['status'] === 'running'));
         $failed = count(array_filter($steps, fn($s) => $s['status'] === 'failed'));
+        $awaiting = count(array_filter($steps, fn($s) => $s['status'] === 'awaiting_human_input'));
 
         $overallStatus = (string)($idea['status'] ?? '');
         if ($completed >= $total) {
             $overallStatus = 'analysis_ready';
         } elseif ($failed > 0) {
             $overallStatus = 'analysis_partially_ready';
+        } elseif ($awaiting > 0 || $openQuestions) {
+            // Visible separately from "in progress": the pipeline is held until
+            // the human answers the interview questions (TROPATTCRM gate).
+            $overallStatus = 'analysis_awaiting_human';
         } elseif ($running > 0 || $completed > 0) {
             $overallStatus = 'analysis_in_progress';
         }
@@ -4457,7 +4479,8 @@ PROMPT;
             'idea_public_id' => $publicId,
             'idea_status' => $overallStatus,
             'steps' => $steps,
-            'progress' => ['completed' => $completed, 'total' => $total, 'running' => $running, 'failed' => $failed],
+            'progress' => ['completed' => $completed, 'total' => $total, 'running' => $running, 'failed' => $failed, 'awaiting_human' => $awaiting],
+            'awaiting_human_input' => ($completed < $total) && ($awaiting > 0 || $openQuestions),
         ]);
     }
 
@@ -4477,21 +4500,54 @@ PROMPT;
         $pdo = $this->container->get('db.pdo');
         $this->ensureIdeaWorkflowTables($pdo);
 
-        // Find next pending step
-        $next = $pdo->prepare("SELECT step_key, step_order FROM idea_analysis_steps WHERE idea_id = :iid AND pipeline = 'live' AND status = 'pending' ORDER BY step_order ASC LIMIT 1");
-        $next->execute(['iid' => $ideaId]);
-        $stepRow = $next->fetch(PDO::FETCH_ASSOC);
-        if (!$stepRow) {
+        // Select the next step through the human-input gate and claim it with an
+        // atomic compare-and-set, so two parallel worker ticks can never run the
+        // same step twice (status guard in the WHERE clause).
+        $stepKey = null;
+        for ($attempt = 0; $attempt < 3 && $stepKey === null; $attempt++) {
+            $sel = $this->selectNextRunnableLiveStep($pdo, $ideaId);
+            if ($sel['state'] === 'none') {
+                return $this->success('NO_PENDING_STEP', $this->t('idea/messages.no_pending_steps'), ['completed' => true]);
+            }
+            if ($sel['state'] === 'busy') {
+                // Another worker already executes a step of this idea right now —
+                // skip it this tick instead of running steps out of order.
+                return $this->success('STEP_BUSY', $this->t('idea/messages.step_busy'), [
+                    'step' => null,
+                    'running' => true,
+                ]);
+            }
+            if ($sel['state'] === 'blocked') {
+                // Not an error: the worker runs in the background with no user to
+                // report to — skip this idea on this tick (TROPATTCRM gate).
+                return $this->success('AWAITING_HUMAN_INPUT', $this->t('idea/messages.awaiting_human_input'), [
+                    'step' => $sel['step_key'],
+                    'reason' => $sel['reason'],
+                    'awaiting_human_input' => true,
+                ]);
+            }
+            if ($this->claimLiveStep($pdo, $ideaId, (string)$sel['step_key'])) {
+                $stepKey = (string)$sel['step_key'];
+            }
+            // else: another tick claimed it first — re-select on the next attempt.
+        }
+        if ($stepKey === null) {
             return $this->success('NO_PENDING_STEP', $this->t('idea/messages.no_pending_steps'), ['completed' => true]);
         }
-        $stepKey = (string)$stepRow['step_key'];
-
-        // Mark running
-        $pdo->prepare("UPDATE idea_analysis_steps SET status = 'running', attempts = attempts + 1, started_at = NOW(), updated_at = NOW() WHERE idea_id = :iid AND step_key = :k AND pipeline = 'live'")
-            ->execute(['iid' => $ideaId, 'k' => $stepKey]);
 
         try {
             $this->runLivePipelineStep($idea, $stepKey);
+            // Persist the terminal state: the interview step waits for the human
+            // while active questions remain unanswered; every other step (and an
+            // answered interview) completes. Without this a successful live step
+            // stayed 'running' forever and progress never advanced.
+            if ($stepKey === 'interview' && $this->hasUnansweredQuestions($pdo, $ideaId)) {
+                $pdo->prepare("UPDATE idea_analysis_steps SET status = 'awaiting_human_input', updated_at = CURRENT_TIMESTAMP WHERE idea_id = :iid AND step_key = :k AND pipeline = 'live'")
+                    ->execute(['iid' => $ideaId, 'k' => $stepKey]);
+            } else {
+                $pdo->prepare("UPDATE idea_analysis_steps SET status = 'completed', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE idea_id = :iid AND step_key = :k AND pipeline = 'live'")
+                    ->execute(['iid' => $ideaId, 'k' => $stepKey]);
+            }
             $completedCount = $pdo->prepare("SELECT COUNT(*) FROM idea_analysis_steps WHERE idea_id = :iid AND pipeline = 'live' AND status = 'completed'");
             $completedCount->execute(['iid' => $ideaId]);
             $done = (int)$completedCount->fetchColumn();
@@ -4522,33 +4578,182 @@ PROMPT;
         $pdo = $this->container->get('db.pdo');
         $this->ensureIdeaWorkflowTables($pdo);
 
+        // The worker script always targets this endpoint, including with
+        // --idea=IV_XXX. Honor an explicit public_id instead of silently
+        // processing an unrelated idea from the queue head.
+        $targetIdea = trim((string)($params['public_id'] ?? ''));
+        if ($targetIdea !== '') {
+            return $this->runWorkerStep($params);
+        }
+
+        // Walk candidate ideas (ordered by their earliest pending step) and run
+        // the first one that is not held for human input, so one blocked idea can
+        // never starve the rest of the queue.
         $next = $pdo->prepare("
-            SELECT s.idea_id, s.step_key, i.public_id AS idea_public_id
+            SELECT s.idea_id, i.public_id AS idea_public_id
             FROM idea_analysis_steps s
             JOIN ideas i ON i.id = s.idea_id
             WHERE s.pipeline = 'live' AND s.status = 'pending'
-            ORDER BY s.step_order ASC
-            LIMIT 1
+            GROUP BY s.idea_id, i.public_id
+            ORDER BY MIN(s.step_order) ASC
+            LIMIT 20
         ");
         $next->execute();
+        $candidates = $next->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $blocked = 0;
+        $busyIdeas = 0;
+        foreach ($candidates as $cand) {
+            $candIdeaId = (int)$cand['idea_id'];
+            $sel = $this->selectNextRunnableLiveStep($pdo, $candIdeaId);
+            if ($sel['state'] === 'none') {
+                continue;
+            }
+            if ($sel['state'] === 'busy') {
+                // A parallel run already works on this idea — move to the next one.
+                $busyIdeas++;
+                continue;
+            }
+            if ($sel['state'] === 'blocked') {
+                $blocked++;
+                continue;
+            }
+
+            $publicId = (string)$cand['idea_public_id'];
+            $service = $this->container->get('service.idea');
+            $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
+            if (!$idea) {
+                continue;
+            }
+
+            // Delegate to per-idea worker (it re-runs the gate and claims safely)
+            $params['public_id'] = $publicId;
+            return $this->runWorkerStep($params);
+        }
+
+        if ($blocked > 0) {
+            return $this->success('AWAITING_HUMAN_INPUT', $this->t('idea/messages.awaiting_human_input'), [
+                'awaiting_human_input' => true,
+                'blocked_ideas' => $blocked,
+            ]);
+        }
+        if ($busyIdeas > 0) {
+            return $this->success('STEP_BUSY', $this->t('idea/messages.step_busy'), [
+                'running' => true,
+                'busy_ideas' => $busyIdeas,
+            ]);
+        }
+        return $this->success('NO_PENDING_STEP', $this->t('idea/messages.no_pending_steps'), ['completed' => true]);
+    }
+
+    /**
+     * Whether the active (current-cycle) interview still has questions the human
+     * has not answered. Shared by the synchronous analysis guard and the async
+     * live-pipeline worker gate: both must wait for the human before continuing.
+     * Equivalent to the previous inline getQuestions(getCurrentCycleId()) loop.
+     */
+    private function hasUnansweredQuestions(\PDO $pdo, int $ideaId): bool
+    {
+        $cycleStmt = $pdo->prepare("SELECT MAX(cycle_id) FROM idea_questions WHERE idea_id = :iid");
+        $cycleStmt->execute(['iid' => $ideaId]);
+        $cycleId = (int)($cycleStmt->fetchColumn() ?: 1);
+
+        $stmt = $pdo->prepare(
+            "SELECT q.id FROM idea_questions q"
+            . " WHERE q.idea_id = :iid AND q.cycle_id = :cycle"
+            . " AND NOT EXISTS (SELECT 1 FROM idea_answers a WHERE a.question_id = q.id)"
+            . " LIMIT 1"
+        );
+        $stmt->execute(['iid' => $ideaId, 'cycle' => $cycleId]);
+        return $stmt->fetchColumn() !== false;
+    }
+
+    /**
+     * Picks the next live-pipeline step for one idea, applying the human-input
+     * gate: any step after 'interview' may only run when the interview step is
+     * terminal ('completed' — the human answered) AND no active questions are
+     * left unanswered. The gate applies even when the interview row is no longer
+     * 'pending' (running / awaiting / failed), which is exactly the defect the
+     * ungated SELECT had: it happily returned step 2 while step 1 waited.
+     *
+     * @return array{state:string,step_key:?string,step_order:int,reason:?string}
+     */
+    private function selectNextRunnableLiveStep(\PDO $pdo, int $ideaId): array
+    {
+        // 1) Re-queue steps abandoned mid-run (worker crashed / PHP fatal after
+        // claim). Without this a dead 'running' row would wedge the idea forever.
+        $staleBefore = date('Y-m-d H:i:s', time() - self::LIVE_STEP_STALE_SECONDS);
+        $pdo->prepare("UPDATE idea_analysis_steps SET status = 'pending', updated_at = CURRENT_TIMESTAMP WHERE idea_id = :iid AND pipeline = 'live' AND status = 'running' AND (started_at IS NULL OR started_at < :stale) AND attempts < 3")
+            ->execute(['iid' => $ideaId, 'stale' => $staleBefore]);
+
+        // 1b) Re-queue failed steps while they still have attempt budget left.
+        // A transient failure (AI_BUSY, network, provider hiccup) must not wedge
+        // the pipeline forever: claimLiveStep() already bumps attempts per
+        // claim, so after LIVE_STEP_MAX_ATTEMPTS tries the row stays 'failed'
+        // and only a manual reset can revive it (TROPATTCRM-628 live QA).
+        $pdo->prepare("UPDATE idea_analysis_steps SET status = 'pending', updated_at = CURRENT_TIMESTAMP WHERE idea_id = :iid AND pipeline = 'live' AND status = 'failed' AND attempts < :max")
+            ->execute(['iid' => $ideaId, 'max' => self::LIVE_STEP_MAX_ATTEMPTS]);
+
+        // 2) A fresh 'running' step of this idea means another worker already
+        // executes it (or an earlier step): never hand out a follow-up step in
+        // parallel — later steps consume earlier results (race would corrupt
+        // the chain). Caller treats this as STEP_BUSY, not as an error.
+        $freshSince = date('Y-m-d H:i:s', time() - self::LIVE_STEP_STALE_SECONDS);
+        $busy = $pdo->prepare("SELECT COUNT(*) FROM idea_analysis_steps WHERE idea_id = :iid AND pipeline = 'live' AND status = 'running' AND (started_at IS NULL OR started_at >= :fresh)");
+        $busy->execute(['iid' => $ideaId, 'fresh' => $freshSince]);
+        if ((int)$busy->fetchColumn() > 0) {
+            return ['state' => 'busy', 'step_key' => null, 'step_order' => 0, 'reason' => 'step_already_running'];
+        }
+
+        $next = $pdo->prepare("SELECT step_key, step_order FROM idea_analysis_steps WHERE idea_id = :iid AND pipeline = 'live' AND status = 'pending' ORDER BY step_order ASC LIMIT 1");
+        $next->execute(['iid' => $ideaId]);
         $stepRow = $next->fetch(PDO::FETCH_ASSOC);
         if (!$stepRow) {
-            return $this->success('NO_PENDING_STEP', $this->t('idea/messages.no_pending_steps'), ['completed' => true]);
+            return ['state' => 'none', 'step_key' => null, 'step_order' => 0, 'reason' => null];
         }
 
-        $ideaId = (int)$stepRow['idea_id'];
         $stepKey = (string)$stepRow['step_key'];
-        $publicId = (string)$stepRow['idea_public_id'];
-
-        $service = $this->container->get('service.idea');
-        $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
-        if (!$idea) {
-            return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
+        if ($stepKey !== 'interview') {
+            $iv = $pdo->prepare("SELECT status FROM idea_analysis_steps WHERE idea_id = :iid AND pipeline = 'live' AND step_key = 'interview' LIMIT 1");
+            $iv->execute(['iid' => $ideaId]);
+            $interviewStatus = (string)($iv->fetchColumn() ?: '');
+            if ($interviewStatus !== 'completed') {
+                return ['state' => 'blocked', 'step_key' => $stepKey, 'step_order' => (int)$stepRow['step_order'], 'reason' => 'interview_not_completed'];
+            }
+            if ($this->hasUnansweredQuestions($pdo, $ideaId)) {
+                return ['state' => 'blocked', 'step_key' => $stepKey, 'step_order' => (int)$stepRow['step_order'], 'reason' => 'unanswered_questions'];
+            }
         }
 
-        // Delegate to per-idea worker
-        $params['public_id'] = $publicId;
-        return $this->runWorkerStep($params);
+        return ['state' => 'runnable', 'step_key' => $stepKey, 'step_order' => (int)$stepRow['step_order'], 'reason' => null];
+    }
+
+    /**
+     * Atomically claims a pending step (pending -> running). The status guard in
+     * the WHERE clause turns the claim into a single-statement compare-and-set:
+     * of two parallel worker ticks exactly one gets rowCount() > 0, so a step can
+     * never be executed twice (no transaction or FOR UPDATE needed — portable).
+     */
+    private function claimLiveStep(\PDO $pdo, int $ideaId, string $stepKey): bool
+    {
+        $stmt = $pdo->prepare("UPDATE idea_analysis_steps SET status = 'running', attempts = attempts + 1, started_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE idea_id = :iid AND step_key = :k AND pipeline = 'live' AND status = 'pending'");
+        $stmt->execute(['iid' => $ideaId, 'k' => $stepKey]);
+        return $stmt->rowCount() > 0;
+    }
+
+    /**
+     * Releases live-pipeline steps that were held for human input once every
+     * active question has been answered (interview -> 'completed'). Called from
+     * both answer-saving endpoints. Returns the number of released rows.
+     */
+    private function releaseAwaitingSteps(\PDO $pdo, int $ideaId): int
+    {
+        if ($this->hasUnansweredQuestions($pdo, $ideaId)) {
+            return 0;
+        }
+        $stmt = $pdo->prepare("UPDATE idea_analysis_steps SET status = 'completed', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE idea_id = :iid AND pipeline = 'live' AND status = 'awaiting_human_input'");
+        $stmt->execute(['iid' => $ideaId]);
+        return $stmt->rowCount();
     }
 
     /**
@@ -4578,7 +4783,11 @@ PROMPT;
                 'HTTP_AUTHORIZATION' => 'Bearer ' . ($this->user()['token'] ?? ''),
             ];
 
-            $app = new \Api\System\Library\App(dirname(__DIR__, 3));
+            // App's basePath must be the API root (same as index.php passes):
+            // dirname(__DIR__, 3) resolves one level too high, config/*.php is
+            // never loaded and every simulated step dies with
+            // CONFIG_SECURITY_CSRF_SECRET_REQUIRED in production (live QA 628).
+            $app = new \Api\System\Library\App(dirname(__DIR__, 2));
             $response = $app->run();
             $payload = $response->payload();
             if (!(bool)($payload['success'] ?? false)) {

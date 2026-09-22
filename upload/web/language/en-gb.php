@@ -345,6 +345,7 @@ return array (
 
     'state_queuing_analysis' => 'Queuing analysis...',
     'state_queue_error' => 'Error queueing analysis',
+    'state_queue_in_progress' => 'Steps are already queued — tracking progress...',
     'state_analyzing' => 'Analyzing',
     'state_analyzing_gaps' => 'Analyzing gaps...',
     'state_analyzing_idea' => 'Analyzing the idea...',
@@ -419,6 +420,7 @@ return array (
     'state_untitled' => 'Untitled',
     'state_updated' => 'updated ',
     'state_waiting_answers' => 'Waiting for answers:',
+    'state_awaiting_human' => 'The pipeline is waiting for your interview answers...',
     'status_approved' => 'Approved',
     'status_draft' => 'Draft',
     'status_in_progress' => 'In progress',

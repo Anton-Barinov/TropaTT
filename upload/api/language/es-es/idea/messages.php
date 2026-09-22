@@ -83,6 +83,8 @@ return [
     'analysis_queued' => 'Análisis encolado',
 
     'no_pending_steps' => 'No hay pasos pendientes',
+    'awaiting_human_input' => 'Esperando la respuesta del usuario',
+    'step_busy' => 'Otro worker ya está procesando este paso',
     'analysis_pipeline_conflict' => 'Esta idea ya fue analizada por el pipeline del navegador; el análisis MCP no debe sobrescribir su estado. Restablezca primero el análisis (crm_reset_idea_analysis).',
     'answer_all_questions_first' => 'Responda todas las preguntas de aclaración antes de iniciar el análisis.',
     'demo_analysis' => 'Análisis de demostración (modo seguro)',

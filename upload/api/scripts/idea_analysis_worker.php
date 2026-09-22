@@ -40,6 +40,16 @@ function main(array $argv): void
     $targetIdea = $options['idea'] ?? '';
     $results = [];
     $stepsDone = 0;
+    $cleanStop = false;
+
+    // Serialize overlapping runs: a cron tick that outlives its interval must
+    // not start a second pass alongside the first one (double AI calls).
+    // Advisory lock, released automatically when the process exits.
+    $lockHandle = @fopen(sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'crm_idea_analysis_worker.lock', 'c');
+    if ($lockHandle === false || !flock($lockHandle, LOCK_EX | LOCK_NB)) {
+        fwrite(STDERR, "Another idea worker run is already in progress — exiting.\n");
+        exit(0);
+    }
 
     do {
         $payload = ['limit' => $limit];
@@ -59,6 +69,14 @@ function main(array $argv): void
             'response' => $response,
         ];
 
+        $code = (string)($response['payload']['code'] ?? '');
+        if ($ok && in_array($code, ['NO_PENDING_STEP', 'AWAITING_HUMAN_INPUT', 'STEP_BUSY', 'NOT_FOUND'], true)) {
+            // Nothing executable right now: no work left, or the idea waits for
+            // the human / another run. Retrying in a tight loop would only spin.
+            $cleanStop = true;
+            break;
+        }
+
         if ($ok) {
             $stepsDone++;
             $allDone = (bool)($response['payload']['data']['all_done'] ?? false);
@@ -68,10 +86,10 @@ function main(array $argv): void
         }
 
         if (!$ok) {
-            $code = (string)($response['payload']['code'] ?? '');
             $msg = (string)($response['payload']['message'] ?? '');
             fwrite(STDERR, "Step failed: [{$code}] {$msg}\n");
             if ($code === 'NO_PENDING_STEP' || $code === 'NOT_FOUND') {
+                $cleanStop = true;
                 break; // nothing left to do
             }
             if (!$runAll) {
@@ -82,7 +100,7 @@ function main(array $argv): void
 
     if ($options['json']) {
         echo json_encode([
-            'ok' => $stepsDone > 0,
+            'ok' => $stepsDone > 0 || $cleanStop,
             'steps_processed' => $stepsDone,
             'results' => $results,
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "\n";
@@ -91,11 +109,12 @@ function main(array $argv): void
         foreach ($results as $r) {
             $status = $r['ok'] ? 'OK' : 'FAIL';
             $step = $r['response']['payload']['data']['step'] ?? '-';
-            echo "  [{$status}] step={$step}\n";
+            $code = (string)($r['response']['payload']['code'] ?? '');
+            echo "  [{$status}] step={$step}" . ($code !== '' ? " ({$code})" : '') . "\n";
         }
     }
 
-    exit($stepsDone > 0 ? 0 : 1);
+    exit($stepsDone > 0 || $cleanStop ? 0 : 1);
 }
 
 function parseCliArgs(array $argv): array

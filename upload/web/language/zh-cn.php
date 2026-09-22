@@ -344,6 +344,7 @@ return array (
 
     'state_queuing_analysis' => '正在排队分析...',
     'state_queue_error' => '排队分析出错',
+    'state_queue_in_progress' => '步骤已在队列中 — 正在跟踪进度...',
     'state_analyzing' => 'Analyzing',
     'state_analyzing_gaps' => 'Analyzing gaps...',
     'state_analyzing_idea' => 'Analyzing the idea...',
@@ -418,6 +419,7 @@ return array (
     'state_untitled' => 'Untitled',
     'state_updated' => 'updated ',
     'state_waiting_answers' => 'Waiting for answers:',
+    'state_awaiting_human' => '流水线正在等待您回答访谈问题...',
     'status_approved' => 'Approved',
     'status_draft' => 'Draft',
     'status_in_progress' => 'In progress',
