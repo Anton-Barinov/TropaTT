@@ -465,40 +465,118 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
 	    }
 	    saveState();
 
+	    // --- Phase 1: run question steps in browser (need user interaction) ---
 	    var inFlight={};
 	    while(runToken===pipelineRunToken){
-	      if(state.steps.every(function(s){return s.status==='success';}))break;
+	      var questionPending=false;
+	      for(var qi=0;qi<steps.length;qi++){
+	        if(steps[qi].type!=='questions')continue;
+	        if(state.steps[qi].status==='pending'||state.steps[qi].status==='error')questionPending=true;
+	      }
+	      if(!questionPending)break;
 
 	      for(var i=0;i<steps.length;i++){
 	        if(Object.keys(inFlight).length>=MAX_CONCURRENT_ANALYSIS)break;
+	        if(steps[i].type!=='questions')continue;
 	        var s=state.steps[i];
 	        if(s.status!=='pending')continue;
 	        if(inFlight[steps[i].id])continue;
 	        if(!depsSatisfied(steps[i]))continue;
-	        // Only one interactive question step waits on the user at a time.
-	        if(steps[i].type==='questions'&&state.awaitingQuestionStep&&state.awaitingQuestionStep!==steps[i].id)continue;
+	        if(state.awaitingQuestionStep&&state.awaitingQuestionStep!==steps[i].id)continue;
 	        (function(idx){
 	          var stepId=steps[idx].id;
 	          inFlight[stepId]=runStep(idx,runToken).catch(function(){}).then(function(){delete inFlight[stepId];});
 	        })(i);
 	      }
 
-	      if(Object.keys(inFlight).length===0){
-	        // Nothing runnable and not all done: whatever is left pending is
-	        // blocked by a step stuck in 'error' upstream — stop here, same end
-	        // state as the old sequential loop's "break" on error.
-	        break;
-	      }
+	      if(Object.keys(inFlight).length===0)break;
 	      await Promise.race(Object.keys(inFlight).map(function(k){return inFlight[k];}));
 	    }
 	    if(runToken!==pipelineRunToken)return;
 
+	    // --- Phase 2: all question steps done — run analysis steps server-side ---
+	    var analysisStepsPending=false;
+	    for(var ai2=0;ai2<steps.length;ai2++){
+	      if(steps[ai2].type!=='analysis')continue;
+	      if(state.steps[ai2].status!=='success'){analysisStepsPending=true;break;}
+	    }
+
+	    if(analysisStepsPending){
+	      // Queue server-side analysis
+	      var ideaId='<?=e($publicId)?>';
+	      document.getElementById('pipelineStatus').textContent='<?= htmlspecialchars($t('ideas.state_queuing_analysis', 'Постановка анализа в очередь...'), ENT_QUOTES, 'UTF-8') ?>';
+	      try{
+	        var queueResp=await window.CRM.api.request('api/v1/ideas/'+ideaId+'/analysis/run-async',{method:'POST',timeoutMs:15000});
+	        if(!queueResp||!queueResp.success){
+	          document.getElementById('pipelineStatus').textContent='<?= htmlspecialchars($t('ideas.state_queue_error', 'Ошибка постановки в очередь'), ENT_QUOTES, 'UTF-8') ?>';
+	        } else {
+	          // Poll for progress
+	          await pollAnalysisStatus(ideaId, runToken);
+	        }
+	      }catch(e){
+	        document.getElementById('pipelineStatus').textContent='<?= htmlspecialchars($t('ideas.state_queue_error', 'Ошибка постановки в очередь'), ENT_QUOTES, 'UTF-8') ?>';
+	      }
+	    }
+
+	    if(runToken!==pipelineRunToken)return;
 	    running=false;
 	    setStartButtonIdle();
 	    if(state.steps.every(function(s){return s.status==='success';})){
 	      document.getElementById('pipelineStatus').textContent='<?= htmlspecialchars($t('ideas.state_all_done', 'Все блоки выполнены'), ENT_QUOTES, 'UTF-8') ?>';
 	      visibleResults.final=true;visibleResults.tasks=true;renderSteps();
       setTimeout(function(){showBlock('finalCard');showBlock('tasksCard');},500);
+    }
+  }
+
+  // TROPATTCRM-620: poll server-side analysis status and update UI
+  var stepKeyToIndex={};
+  (function(){steps.forEach(function(s,i){stepKeyToIndex[s.id]=i;});})();
+
+  async function pollAnalysisStatus(ideaId, runToken){
+    var pollInterval=3000;
+    var maxPolls=200;
+    for(var p=0;p<maxPolls;p++){
+      if(runToken!==pipelineRunToken)return;
+      await sleep(pollInterval);
+      if(runToken!==pipelineRunToken)return;
+
+      try{
+        var status=await window.CRM.api.request('api/v1/ideas/'+ideaId+'/analysis/status',{method:'GET',timeoutMs:10000});
+        if(!status||!status.data||!status.data.steps)continue;
+
+        var allDone=true;
+        var serverSteps=status.data.steps;
+        for(var si=0;si<serverSteps.length;si++){
+          var ss=serverSteps[si];
+          var idx=stepKeyToIndex[ss.key];
+          if(idx===undefined)continue;
+          var browserStep=state.steps[idx];
+
+          if(ss.status==='completed'&&browserStep.status!=='success'){
+            browserStep.status='success';
+            saveState();renderSteps();
+          }else if(ss.status==='failed'){
+            if(browserStep.status!=='error'){
+              browserStep.status='error';
+              browserStep.errorMsg=ss.error||'';
+              saveState();renderSteps();
+            }
+            allDone=false;
+          }else if(ss.status==='running'||ss.status==='pending'){
+            allDone=false;
+            if(browserStep.status!=='running'&&browserStep.status!=='success'){
+              browserStep.status='running';
+              saveState();renderSteps();
+            }
+          }else{
+            allDone=false;
+          }
+          document.getElementById('pipelineStatus').textContent=ss.key+': '+ss.status+(ss.status==='running'?'...':'');
+        }
+        if(allDone)break;
+      }catch(e){
+        // Network error — retry
+      }
     }
   }
 
