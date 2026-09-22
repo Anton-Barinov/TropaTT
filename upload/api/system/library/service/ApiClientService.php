@@ -325,7 +325,7 @@ final class ApiClientService
             return ['ok' => false, 'code' => 'FORBIDDEN'];
         }
 
-        $current = $this->repository->findKeyByPublicId($keyPublicId);
+        $current = $this->repository->findKeyByPublicId($keyPublicId, $this->organizationId($actor));
         if (!$current) {
             return ['ok' => false, 'code' => 'API_KEY_NOT_FOUND'];
         }
