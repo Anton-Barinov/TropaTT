@@ -2333,6 +2333,7 @@ PROMPT;
         try {
             $aiSvc = $this->container->get('service.ai_action');
             $maxRetries = 2; $rawText = '';
+            $parsed = ['ok' => false, 'data' => null, 'error' => 'not_started'];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
                 $result = $aiSvc->execute('idea_risks', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
 
@@ -3121,7 +3122,7 @@ PROMPT;
             $result = $aiSvc->execute('idea_interview', [
                 '__sys' => $systemPrompt . $this->localeInstruction(),
                 '__usr' => $userPrompt,
-                'max_tokens' => 4096,
+                'max_tokens' => 8192,
                 'timeout_ms' => 60000,
                 'response_format' => ['type' => 'json_object'],
             ], $this->user()['user'] ?? []);

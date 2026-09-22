@@ -190,7 +190,7 @@ final class AiActionService
         // can be closed by the server while the provider is still answering, and
         // before this guard that surfaced as a 500 with the answer thrown away.
         $finishedAt = gmdate('Y-m-d H:i:s');
-        $this->safeBookkeeping(function () use ($jobPublicId, $mode, $errorCode, $completion, $summary, $provider, $finishedAt, $actor, $actionType, $input, $intent, $resolvedModel): void {
+        $this->safeBookkeeping(function () use ($jobPublicId, $mode, $errorCode, $completion, $summary, $provider, $finishedAt, $actor, $actionType, $input, $intent, $resolvedModel, $now): void {
             $this->runtime->updateJobByPublicId($jobPublicId, [
                 'status' => 'completed',
                 'result_json' => json_encode([
