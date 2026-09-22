@@ -342,6 +342,9 @@ return array (
     'state_ai_thinking' => 'AI думает...',
     'state_all_answered' => 'Все вопросы отвечены.',
     'state_all_done' => 'Все блоки выполнены',
+
+    'state_queuing_analysis' => 'Постановка анализа в очередь...',
+    'state_queue_error' => 'Ошибка постановки в очередь',
     'state_analyzing' => 'Анализ',
     'state_analyzing_gaps' => 'Анализирую пробелы...',
     'state_analyzing_idea' => 'Анализирую идею...',

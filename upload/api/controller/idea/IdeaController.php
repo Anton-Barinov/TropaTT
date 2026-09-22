@@ -4482,7 +4482,7 @@ PROMPT;
         $next->execute(['iid' => $ideaId]);
         $stepRow = $next->fetch(PDO::FETCH_ASSOC);
         if (!$stepRow) {
-            return $this->success('NO_PENDING_STEP', 'No pending steps', ['completed' => true]);
+            return $this->success('NO_PENDING_STEP', $this->t('idea/messages.no_pending_steps'), ['completed' => true]);
         }
         $stepKey = (string)$stepRow['step_key'];
 
@@ -4533,7 +4533,7 @@ PROMPT;
         $next->execute();
         $stepRow = $next->fetch(PDO::FETCH_ASSOC);
         if (!$stepRow) {
-            return $this->success('NO_PENDING_STEP', 'No pending steps', ['completed' => true]);
+            return $this->success('NO_PENDING_STEP', $this->t('idea/messages.no_pending_steps'), ['completed' => true]);
         }
 
         $ideaId = (int)$stepRow['idea_id'];

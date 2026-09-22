@@ -78,6 +78,11 @@ return [
     'analysis_reset' => 'Analyse IA réinitialisée. Vous pouvez recommencer.',
     'analysis_reset_message' => 'Anciennes données d\'analyse IA effacées. Cliquer sur « Lancer » pour une nouvelle analyse.',
     'analysis_not_ready_status' => 'L\'analyse ne peut être lancée qu\'à partir du statut ready_for_analysis.',
+
+    'analysis_already_running' => 'Analyse déjà en cours',
+    'analysis_queued' => 'Analyse mise en file d\'attente',
+
+    'no_pending_steps' => 'Aucune étape en attente',
     'analysis_pipeline_conflict' => 'Cette idée a déjà été analysée par le pipeline du navigateur ; l\'analyse MCP ne doit pas écraser son état. Réinitialisez d\'abord l\'analyse (crm_reset_idea_analysis).',
     'answer_all_questions_first' => 'Répondez à toutes les questions de clarification avant de lancer l\'analyse.',
     'demo_analysis' => 'Analyse de démonstration (mode sûr)',

@@ -341,6 +341,9 @@ return array (
     'state_ai_thinking' => 'AI is thinking...',
     'state_all_answered' => 'All questions answered.',
     'state_all_done' => 'All blocks done',
+
+    'state_queuing_analysis' => '正在排队分析...',
+    'state_queue_error' => '排队分析出错',
     'state_analyzing' => 'Analyzing',
     'state_analyzing_gaps' => 'Analyzing gaps...',
     'state_analyzing_idea' => 'Analyzing the idea...',
