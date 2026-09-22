@@ -181,7 +181,8 @@ final class AiActionService
         }
         $completionOk = (bool)($completion['ok'] ?? false) && trim((string)($completion['text'] ?? '')) !== '';
         $rawText = $completionOk ? trim((string)$completion['text']) : '';
-        ai_diag_log("[AI_COMPLETION][{$actionType}] ok=".($completion["ok"]?"1":"0")." text_len=".strlen($rawText)." code=".($completion["code"]??"null")." provider=".($provider["provider_code"]??"?"));
+        $completionMsg = trim((string)($completion['message'] ?? ''));
+        ai_diag_log("[AI_COMPLETION][{$actionType}] ok=".($completion["ok"]?"1":"0")." text_len=".strlen($rawText)." code=".($completion["code"]??"null")." provider=".($provider["provider_code"]??"?").($completionMsg !== '' ? ' msg='.substr($completionMsg, 0, 300) : ''));
         $mode = $completionOk ? 'llm' : 'safe_mock';
         $errorCode = $completionOk ? null : (string)($completion['code'] ?? 'AI_PROVIDER_UNAVAILABLE');
         $summary = $rawText !== '' ? $rawText : $this->t('ai/messages.fallback_error');
