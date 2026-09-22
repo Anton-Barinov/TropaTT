@@ -83,6 +83,8 @@ return [
     'analysis_queued' => 'Análise enfileirada',
 
     'no_pending_steps' => 'Nenhum passo pendente',
+    'awaiting_human_input' => 'Aguardando resposta do usuário',
+    'step_busy' => 'Outro worker já está processando esta etapa',
     'analysis_pipeline_conflict' => 'Esta ideia já foi analisada pelo pipeline do navegador; a análise MCP não deve sobrescrever seu estado. Redefina a análise primeiro (crm_reset_idea_analysis).',
     'answer_all_questions_first' => 'Responda todas as perguntas de esclarecimento antes de iniciar a análise.',
     'demo_analysis' => 'Análise de demonstração (modo seguro)',

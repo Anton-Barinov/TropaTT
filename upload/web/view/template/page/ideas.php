@@ -535,10 +535,15 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
   async function pollAnalysisStatus(ideaId, runToken){
     var pollInterval=3000;
     var maxPolls=200;
-    for(var p=0;p<maxPolls;p++){
+    var totalTicks=0;
+    var hardCap=1200; // absolute ceiling (~36 min) no matter what
+    var awaitingHuman=false;
+    for(var p=0;p<maxPolls&&totalTicks<hardCap;p++){
+      totalTicks++;
       if(runToken!==pipelineRunToken)return;
       await sleep(pollInterval);
       if(runToken!==pipelineRunToken)return;
+      awaitingHuman=false;
 
       try{
         var status=await window.CRM.api.request('api/v1/ideas/'+ideaId+'/analysis/status',{method:'GET',timeoutMs:10000});
@@ -568,10 +573,26 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
               browserStep.status='running';
               saveState();renderSteps();
             }
+          }else if(ss.status==='awaiting_human_input'){
+            // TROPATTCRM-628: the worker paused the pipeline until the human
+            // answers the interview — say it in words, not raw statuses.
+            allDone=false;
+            awaitingHuman=true;
+            if(browserStep.status!=='running'&&browserStep.status!=='success'){
+              browserStep.status='running';
+              saveState();renderSteps();
+            }
+            continue;
           }else{
             allDone=false;
           }
           document.getElementById('pipelineStatus').textContent=ss.key+': '+ss.status+(ss.status==='running'?'...':'');
+        }
+        if(awaitingHuman){
+          document.getElementById('pipelineStatus').textContent='<?= htmlspecialchars($t('ideas.state_awaiting_human', 'Пайплайн ждёт ваших ответов на вопросы интервью...'), ENT_QUOTES, 'UTF-8') ?>';
+          // Answering takes human time — don't count these ticks against the
+          // poll budget (hard cap still applies).
+          maxPolls=p+200;
         }
         if(allDone)break;
       }catch(e){

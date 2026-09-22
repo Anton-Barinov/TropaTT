@@ -83,6 +83,8 @@ return [
     'analysis_queued' => '分析已排队',
 
     'no_pending_steps' => '没有待处理的步骤',
+    'awaiting_human_input' => '等待用户输入',
+    'step_busy' => '另一个工作进程正在处理该步骤',
     'analysis_pipeline_conflict' => '该想法已由浏览器流水线分析，MCP 分析不能覆盖其状态。请先重置分析（crm_reset_idea_analysis）。',
     'answer_all_questions_first' => '请在启动分析前回答所有澄清问题。',
     'demo_analysis' => '演示分析（安全模式）',

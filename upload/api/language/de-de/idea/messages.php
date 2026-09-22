@@ -83,6 +83,8 @@ return [
     'analysis_queued' => 'Analyse in Warteschlange gestellt',
 
     'no_pending_steps' => 'Keine ausstehenden Schritte',
+    'awaiting_human_input' => 'Wartet auf Eingabe des Benutzers',
+    'step_busy' => 'Dieser Schritt wird bereits von einem anderen Worker verarbeitet',
     'analysis_pipeline_conflict' => 'This idea was already analysed by the browser pipeline; the MCP analysis must not overwrite its state. Reset the analysis first (crm_reset_idea_analysis).',
     'answer_all_questions_first' => 'Answer all clarification questions before starting the analysis.',
     'demo_analysis' => 'Demo analysis (safe mode)',
