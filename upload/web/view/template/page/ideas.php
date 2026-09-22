@@ -607,6 +607,13 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
           }
           document.getElementById('pipelineStatus').textContent=ss.key+': '+ss.status+(ss.status==='running'?'...':'');
         }
+        // TROPATTCRM-628: honor the payload flag too — questions can be generated
+        // by a direct endpoint call while the step row is still 'pending', and the
+        // user must still see the waiting state instead of a bare counter.
+        if(!awaitingHuman&&status.data.awaiting_human_input===true){
+          awaitingHuman=true;
+          allDone=false;
+        }
         if(awaitingHuman){
           document.getElementById('pipelineStatus').textContent='<?= htmlspecialchars($t('ideas.state_awaiting_human', 'Пайплайн ждёт ваших ответов на вопросы интервью...'), ENT_QUOTES, 'UTF-8') ?>';
           // Answering takes human time — don't count these ticks against the
