@@ -34,7 +34,7 @@ Base aspects for any idea:
 
 Dig deep. For each aspect ask: do I know specific numbers, dates, names, places? Are risks, alternatives, dependencies clear? If not — ask.
 
-Use ALL remaining_question_count, max 15 per batch.
+Use ALL remaining_question_count, up to 15 questions in THIS single JSON response — the caller interviews in batches until the limit is reached.
 should_ask_questions=false only if remaining=0 OR everything is fully explored.
 
 Each question requires: question (MANDATORY), semantic_key, dimension, priority, why_needed, type, multiple, options (3-7 + not_sure + custom), allow_custom_answer=true.
