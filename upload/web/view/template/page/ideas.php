@@ -328,7 +328,7 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
 	      var actionBtn=document.querySelector(stepDef.actionEl);
 	      if(!actionBtn||actionBtn.disabled){s.status='pending';saveState();renderSteps();return;}
 
-	      if(questionStepIsComplete(stepDef)){
+	      if(s.status==='success'){
 	        finishQuestionStep(index,stepDef);
 	        return;
 	      }
@@ -959,39 +959,9 @@ function renderInterviewHistory(questions){
         });
       });
     }).catch(function(){
-      b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_ai_thinking', 'AI думает...'), ENT_QUOTES, 'UTF-8') ?>';
-      document.getElementById('interviewStatus').textContent='<?= htmlspecialchars($t('ideas.state_generating_questions', 'Генерирую вопросы...'), ENT_QUOTES, 'UTF-8') ?>';
-      window.CRM.api.request('api/v1/ideas/'+pid+'/interview',{method:'POST',timeoutMs:300000}).then(function(env2){
-        var data=env2.data||{};
-        if(data.complete){document.getElementById('interviewStatus').textContent='<?= htmlspecialchars($t('ideas.state_limit_reached', 'Достигнут лимит вопросов (25).'), ENT_QUOTES, 'UTF-8') ?>';b.disabled=false;b.innerHTML='<i class="fa-regular fa-comments me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_ask_ai', 'Задать вопросы AI'), ENT_QUOTES, 'UTF-8') ?>';loadInterview();return;}
-        var generatedQuestions=data.questions||[];
-        renderInterviewQuestions(generatedQuestions);
-        if(generatedQuestions.length){
-          document.getElementById('interviewStatus').textContent='<?= htmlspecialchars($t('ideas.state_questions_count', 'Вопросов: '), ENT_QUOTES, 'UTF-8') ?>'+(data.total||0)+' <?= htmlspecialchars($t('ideas.state_out_of', 'из 25. Выберите ответы.'), ENT_QUOTES, 'UTF-8') ?>';
-        }else{
-          document.getElementById('interviewStatus').textContent='<?= htmlspecialchars($t('ideas.state_all_answered', 'Все вопросы отвечены.'), ENT_QUOTES, 'UTF-8') ?>';
-          document.getElementById('interviewStatus').style.color='green';
-        }
-        b.disabled=false;b.innerHTML='<i class="fa-regular fa-comments me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_ask_more', 'Задать ещё вопросы AI'), ENT_QUOTES, 'UTF-8') ?>';loadInterview();
-      }).catch(function(err){
-        b.disabled=false;b.innerHTML='<i class="fa-regular fa-comments me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_ask_ai', 'Задать вопросы AI'), ENT_QUOTES, 'UTF-8') ?>';
-        window.CRM.api.request('api/v1/ideas/'+pid+'/questions',{method:'GET'}).then(function(env3){
-          var qs3=env3.data.items||[];
-          var unans3=qs3.filter(function(q){return !q.last_answer&&!q.is_clarification&&!q.is_gap;});
-          if(unans3.length>0){
-            renderInterviewQuestions(unans3);
-            document.getElementById('interviewStatus').textContent='<?= htmlspecialchars($t('ideas.state_questions_count', 'Вопросов: '), ENT_QUOTES, 'UTF-8') ?>'+qs3.filter(function(q){return !q.is_clarification&&!q.is_gap;}).length+' <?= htmlspecialchars($t('ideas.state_out_of', 'из 25. Выберите ответы.'), ENT_QUOTES, 'UTF-8') ?>';
-            renderInterviewHistory(qs3);
-          }else{
-            document.getElementById('interviewStatus').textContent='<?= htmlspecialchars($t('ideas.state_try_later', 'Ошибка: попробуйте позже'), ENT_QUOTES, 'UTF-8') ?>';
-            document.getElementById('interviewStatus').style.color='red';
-          }
-        }).catch(function(err3){
-          var iErrMsg=err3&&err3.envelope&&err3.envelope.message?err3.envelope.message:'<?= htmlspecialchars($t('ideas.state_try_later', 'Ошибка: попробуйте позже'), ENT_QUOTES, 'UTF-8') ?>';
-          document.getElementById('interviewStatus').textContent=iErrMsg;
-          document.getElementById('interviewStatus').style.color='red';
-        });
-      });
+      b.disabled=false;b.innerHTML='<i class="fa-regular fa-comments me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_ask_ai', 'Задать вопросы AI'), ENT_QUOTES, 'UTF-8') ?>';
+      document.getElementById('interviewStatus').textContent='<?= htmlspecialchars($t('ideas.state_try_later', 'Ошибка: попробуйте позже'), ENT_QUOTES, 'UTF-8') ?>';
+      document.getElementById('interviewStatus').style.color='red';
     });
   } else {
     setTimeout(function(){document.getElementById('interviewBtn').click();},200);
@@ -1157,7 +1127,6 @@ window._renderClarifications=function(data){
   var status=document.getElementById('clarificationsStatus');
   var questions=(data.questions||[]).filter(function(q){return !!q.public_id;});
   if(!questions.length){
-    if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.syncStep('clarifications',true);
     body.style.display='none';
     var card=document.getElementById('clarificationsCard');if(card)card.classList.remove('pipeline-visible');
     if(status)status.textContent='<?= htmlspecialchars($t('ideas.state_no_clarifications', '— нет уточнений'), ENT_QUOTES, 'UTF-8') ?>';
@@ -1304,6 +1273,7 @@ window._renderClarifications=function(data){
       body.innerHTML='';
       if(status)status.textContent='<?= htmlspecialchars($t('ideas.state_no_questions', '— нет вопросов'), ENT_QUOTES, 'UTF-8') ?>';
       if(status)status.style.color='';
+      if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.syncStep('gapQuestions',true);
       b.disabled=false;
     }).catch(function(){b.disabled=false;if(window.CRM.br1)window.CRM.br1.notify('error','<?= htmlspecialchars($t('ideas.state_delete_error', 'Ошибка удаления'), ENT_QUOTES, 'UTF-8') ?>');});
   });
@@ -1338,7 +1308,6 @@ window._renderGaps=function(data){
   var status=document.getElementById('gapStatus');
   var questions=(data.questions||[]).filter(function(q){return !!q.public_id;});
   if(!questions.length){
-    if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.syncStep('gapQuestions',true);
     body.style.display='none';
     var card=document.getElementById('gapQuestionsCard');if(card)card.classList.remove('pipeline-visible');
     if(status)status.textContent='<?= htmlspecialchars($t('ideas.state_no_questions', '— нет вопросов'), ENT_QUOTES, 'UTF-8') ?>';
