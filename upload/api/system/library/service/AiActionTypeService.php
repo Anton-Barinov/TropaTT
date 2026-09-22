@@ -27,6 +27,20 @@ final class AiActionTypeService
             'idea_process_answers',
             'idea_questions',
             'idea_task_decomposition',
+            // TROPATTCRM-618: per-step intents of the Ideas AI pipeline.
+            // 'idea_analyze' stays allowed for backward compatibility (MCP and
+            // older callers), the live pipeline now routes through these.
+            'idea_interview',
+            'idea_clarifications',
+            'idea_understanding',
+            'idea_gap_questions',
+            'idea_refined',
+            'idea_potential',
+            'idea_risks',
+            'idea_pitfalls',
+            'idea_plan',
+            'idea_final',
+            'idea_tasks',
         ]);
 
         $normalized = [];

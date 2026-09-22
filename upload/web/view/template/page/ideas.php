@@ -46,6 +46,8 @@
 <div class="col-lg-4 crm-idea-side">
 <div class="crm-card crm-section-card mb-3 pipeline-block" id="aiPipelineCard"><div class="crm-section-head d-flex justify-content-between"><h6 class="mb-0"><i class="fa-solid fa-play me-1" aria-hidden="true"></i> <span data-i18n="ideas.section_ai_analysis"><?= htmlspecialchars($t('ideas.section_ai_analysis', 'AI-анализ'), ENT_QUOTES, 'UTF-8') ?></span> <small class="text-muted ms-2" id="pipelineStatus"></small></h6><div><button class="btn btn-sm crm-btn-primary" id="startPipelineBtn" data-i18n="ideas.btn_start_pipeline"><i class="fa-solid fa-forward-step me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_start_pipeline', 'Запустить'), ENT_QUOTES, 'UTF-8') ?></button> <button class="btn btn-sm crm-btn-danger-icon" id="resetPipelineBtn" title="<?= htmlspecialchars($t('ideas.btn_reset_pipeline', 'Сбросить прогресс'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-title="ideas.btn_reset_pipeline" aria-label="<?= htmlspecialchars($t('ideas.btn_reset_pipeline_aria', 'Сбросить прогресс AI-анализа'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="ideas.btn_reset_pipeline_aria"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i></button> <button class="btn btn-sm crm-btn-secondary" id="showDebugBtn" title="<?= htmlspecialchars($t('ideas.btn_show_logs', 'Показать логи'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-title="ideas.btn_show_logs" aria-label="<?= htmlspecialchars($t('ideas.btn_show_logs_aria', 'Показать логи AI'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="ideas.btn_show_logs_aria"><i class="fa-solid fa-bug" aria-hidden="true"></i></button></div></div><div id="pipelineSteps" class="p-3"></div></div>
 
+<div class="alert alert-warning d-none" id="aiHealthBanner" role="alert"><i class="fa-solid fa-triangle-exclamation me-1" aria-hidden="true"></i> <span id="aiHealthBannerText"></span> <button type="button" class="btn btn-sm btn-link p-0 align-baseline" id="aiHealthRecheckBtn" data-i18n="ideas.ai_health_recheck"><?= htmlspecialchars($t('ideas.ai_health_recheck', 'Проверить снова'), ENT_QUOTES, 'UTF-8') ?></button></div>
+
 <div class="crm-card crm-section-card mb-3"><div class="crm-section-head"><h2 class="h6 mb-0" data-i18n="ideas.section_info"><?= htmlspecialchars($t('ideas.section_info', 'Информация'), ENT_QUOTES, 'UTF-8') ?></h2></div><table class="table crm-table crm-idea-info-table mb-0"><tbody><tr><td data-i18n="ideas.info_author"><?= htmlspecialchars($t('ideas.info_author', 'Автор'), ENT_QUOTES, 'UTF-8') ?></td><td id="ideaAuthor">—</td></tr><tr><td data-i18n="ideas.info_category"><?= htmlspecialchars($t('ideas.info_category', 'Категория'), ENT_QUOTES, 'UTF-8') ?></td><td id="ideaCategory">—</td></tr><tr><td data-i18n="ideas.info_region"><?= htmlspecialchars($t('ideas.info_region', 'Регион'), ENT_QUOTES, 'UTF-8') ?></td><td id="ideaRegion">—</td></tr><tr><td data-i18n="ideas.info_visibility"><?= htmlspecialchars($t('ideas.info_visibility', 'Видимость'), ENT_QUOTES, 'UTF-8') ?></td><td id="ideaVisibility">—</td></tr><tr><td data-i18n="ideas.info_target_date"><?= htmlspecialchars($t('ideas.info_target_date', 'Срок'), ENT_QUOTES, 'UTF-8') ?></td><td id="ideaTargetDate">—</td></tr><tr><td data-i18n="ideas.info_date"><?= htmlspecialchars($t('ideas.info_date', 'Дата'), ENT_QUOTES, 'UTF-8') ?></td><td id="ideaDate">—</td></tr><tr><td data-i18n="ideas.info_votes"><?= htmlspecialchars($t('ideas.info_votes', 'Голоса'), ENT_QUOTES, 'UTF-8') ?></td><td id="ideaVotes">0</td></tr></tbody></table></div>
 
 <div class="crm-card crm-section-card"><div class="crm-section-head"><h2 class="h6 mb-0" data-i18n="ideas.section_voting"><?= htmlspecialchars($t('ideas.section_voting', 'Голосование'), ENT_QUOTES, 'UTF-8') ?></h2></div><button class="btn crm-btn-primary w-100" id="voteBtn" data-i18n="ideas.btn_vote"><i class="fa-solid fa-thumbs-up me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_vote', 'Голосовать'), ENT_QUOTES, 'UTF-8') ?></button></div>
@@ -429,8 +431,17 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
 	    });
 	  }
 
-	  async function runPipeline(){
-	    if(running)return;running=true;
+  async function runPipeline(){
+    if(running)return;
+
+    // TROPATTCRM-623 (5): the provider's last health check already knows the run
+    // cannot succeed, so say it now instead of after several minutes of failing
+    // steps. Re-read on every start, so a fixed key is picked up without a reload.
+    // An availability request that fails must never block the pipeline (fail-open).
+    var blocked=await refreshAiHealth();
+    if(blocked){if(!running)setStartButtonIdle();return;}
+
+    running=true;
 	    var runToken=++pipelineRunToken;
 	    var wasComplete=state.steps.length>0&&state.steps.every(function(s){return s.status==='success';});
 	    document.getElementById('startPipelineBtn').disabled=true;
@@ -491,6 +502,42 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
     }
   }
 
+  // TROPATTCRM-623 (5): warn about an unusable AI before the user presses "Запустить".
+  var aiBlockedReason='';
+  function aiHealthReasonText(reason){
+    if(reason==='ai_disabled')return '<?= htmlspecialchars($t('ideas.ai_health_ai_disabled', 'AI отключён в настройках CRM: анализ идеи не запустится, пока он не включён.'), ENT_QUOTES, 'UTF-8') ?>';
+    if(reason==='provider_missing')return '<?= htmlspecialchars($t('ideas.ai_health_provider_missing', 'AI-провайдер не настроен: укажите провайдера и ключ в настройках AI.'), ENT_QUOTES, 'UTF-8') ?>';
+    if(reason==='provider_unhealthy')return '<?= htmlspecialchars($t('ideas.ai_health_provider_unhealthy', 'AI-провайдер сейчас недоступен: проверка подключения не проходит, анализ идеи почти наверняка завершится ошибкой.'), ENT_QUOTES, 'UTF-8') ?>';
+    return '';
+  }
+  function showAiHealthBanner(reason){
+    var banner=document.getElementById('aiHealthBanner');
+    var text=document.getElementById('aiHealthBannerText');
+    if(!banner||!text)return;
+    var message=aiHealthReasonText(reason);
+    if(!message){banner.classList.add('d-none');return;}
+    text.textContent=message;
+    banner.classList.remove('d-none');
+  }
+  function refreshAiHealth(){
+    if(!window.CRM||!window.CRM.api)return Promise.resolve('');
+    return window.CRM.api.request('api/v1/ai/availability',{method:'GET',timeoutMs:15000}).then(function(env){
+      var ai=(env&&env.data&&env.data.ai)||{};
+      aiBlockedReason=String(ai.unavailable_reason||'');
+      showAiHealthBanner(aiBlockedReason);
+      return aiBlockedReason;
+    }).catch(function(){return '';});
+  }
+  document.getElementById('aiHealthRecheckBtn').addEventListener('click',function(e){
+    e.preventDefault();
+    var b=this;b.disabled=true;
+    refreshAiHealth().then(function(){
+      b.disabled=false;
+      var status=document.getElementById('pipelineStatus');
+      if(status&&aiBlockedReason)status.textContent=aiHealthReasonText(aiBlockedReason);
+    });
+  });
+  refreshAiHealth();
   document.getElementById('startPipelineBtn').addEventListener('click',runPipeline);
 	  document.getElementById('showDebugBtn').addEventListener('click',function(){
 	    var dbg=document.getElementById('debugCard');if(!dbg)return;

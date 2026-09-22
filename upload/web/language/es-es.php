@@ -4440,6 +4440,10 @@ return array (
   ),
   'ideas' => 
   array (
+    'ai_health_ai_disabled' => 'La IA está desactivada en la configuración del CRM: el análisis no se iniciará mientras siga desactivada.',
+    'ai_health_provider_missing' => 'No hay ningún proveedor de IA configurado: indique el proveedor y su clave en la configuración de IA.',
+    'ai_health_provider_unhealthy' => 'El proveedor de IA no responde ahora mismo (falla la comprobación de conexión), por lo que el análisis casi con seguridad terminará en error. Revise la clave, el saldo y el modelo en la configuración de IA.',
+    'ai_health_recheck' => 'Comprobar de nuevo',
     'alert_collect_more_data' => 'Collect more data for an accurate assessment.',
     'alert_preliminary_estimate' => 'The estimate is approximate due to a lack of data.',
     'alert_preliminary_plan' => 'The plan is preliminary — not enough data.',

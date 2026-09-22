@@ -13,6 +13,11 @@ final class TemplateRepository
     {
     }
 
+    /**
+     * @param array<string,mixed> $filters Pass `organization_id` (int) to keep the
+     *        listing inside a single workspace. A null/absent value keeps the
+     *        legacy behaviour used by internal callers without an org context.
+     */
     public function list(string $kind, array $filters): array
     {
         [$table] = $this->resolve($kind);
@@ -29,7 +34,7 @@ final class TemplateRepository
             : [];
         $total = $this->buildListQuery($table, $filters, $creatorIds)->count();
         $items = $this->buildListQuery($table, $filters, $creatorIds)
-            ->select(['public_id', 'title', 'payload', 'is_active', 'created_by_user_id', 'created_at', 'updated_at'])
+            ->select(['public_id', 'title', 'payload', 'is_active', 'created_by_user_id', 'organization_id', 'created_at', 'updated_at'])
             ->orderBy('updated_at', 'DESC')
             ->orderBy('public_id', 'DESC')
             ->limit($limit)
@@ -49,6 +54,11 @@ final class TemplateRepository
             $query->where('title', 'LIKE', '%' . (string)$filters['search'] . '%');
         }
 
+        $organizationId = (int)($filters['organization_id'] ?? 0);
+        if ($organizationId > 0) {
+            $query->where('organization_id', '=', $organizationId);
+        }
+
         if (isset($filters['is_active']) && $filters['is_active'] !== '') {
             $query->where('is_active', '=', ((int)$filters['is_active'] === 1) ? 1 : 0);
         }
@@ -65,46 +75,68 @@ final class TemplateRepository
         return $query;
     }
 
-    public function findByPublicId(string $kind, string $publicId): ?array
+    /**
+     * @param int|null $organizationId When given, a template from another
+     *        workspace is treated as non-existent (TROPATTCRM-603).
+     */
+    public function findByPublicId(string $kind, string $publicId, ?int $organizationId = null): ?array
     {
         [$table] = $this->resolve($kind);
-        $row = (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from($table)
-            ->select(['public_id', 'title', 'payload', 'is_active', 'created_by_user_id', 'created_at', 'updated_at'])
-            ->where('public_id', '=', $publicId)
-            ->first();
+            ->select(['public_id', 'title', 'payload', 'is_active', 'created_by_user_id', 'organization_id', 'created_at', 'updated_at'])
+            ->where('public_id', '=', $publicId);
+
+        if ($organizationId !== null && $organizationId > 0) {
+            $query->where('organization_id', '=', $organizationId);
+        }
+
+        $row = $query->first();
 
         return $row ?: null;
     }
 
-    public function create(string $kind, array $payload): void
+    public function create(string $kind, array $payload, ?int $organizationId = null): void
     {
         [$table] = $this->resolve($kind);
+        if ($organizationId !== null && $organizationId > 0) {
+            $payload['organization_id'] = $organizationId;
+        }
         (new QueryBuilder($this->pdo))
             ->from($table)
             ->insert($payload);
     }
 
-    public function updateByPublicId(string $kind, string $publicId, array $set): bool
+    public function updateByPublicId(string $kind, string $publicId, array $set, ?int $organizationId = null): bool
     {
         [$table] = $this->resolve($kind);
         if ($set === []) {
             return false;
         }
 
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from($table)
-            ->where('public_id', '=', $publicId)
-            ->update($set) > 0;
+            ->where('public_id', '=', $publicId);
+
+        if ($organizationId !== null && $organizationId > 0) {
+            $query->where('organization_id', '=', $organizationId);
+        }
+
+        return $query->update($set) > 0;
     }
 
-    public function deleteByPublicId(string $kind, string $publicId): bool
+    public function deleteByPublicId(string $kind, string $publicId, ?int $organizationId = null): bool
     {
         [$table] = $this->resolve($kind);
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from($table)
-            ->where('public_id', '=', $publicId)
-            ->delete() > 0;
+            ->where('public_id', '=', $publicId);
+
+        if ($organizationId !== null && $organizationId > 0) {
+            $query->where('organization_id', '=', $organizationId);
+        }
+
+        return $query->delete() > 0;
     }
 
     /**
@@ -119,13 +151,18 @@ final class TemplateRepository
         return (int)(new QueryBuilder($this->pdo))->from($table)->insertGetId($data);
     }
 
-    public function projectIdByPublicId(string $projectPublicId): ?int
+    public function projectIdByPublicId(string $projectPublicId, ?int $organizationId = null): ?int
     {
-        $row = (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('projects')
             ->select(['id'])
-            ->where('public_id', '=', $projectPublicId)
-            ->first();
+            ->where('public_id', '=', $projectPublicId);
+
+        if ($organizationId !== null && $organizationId > 0) {
+            $query->where('organization_id', '=', $organizationId);
+        }
+
+        $row = $query->first();
 
         return $row !== null ? (int)$row['id'] : null;
     }

@@ -468,7 +468,15 @@ final class AiProviderService
         $retryableCodes = ['AI_PROVIDER_TIMEOUT', 'AI_PROVIDER_CONNECTION_FAILED', 'AI_PROVIDER_SERVER_ERROR', 'AI_PROVIDER_RATE_LIMITED'];
         $result = null;
         $outboundAttempted = !$mockUsed;
-        for ($attempt = 0; $attempt < $maxRetries; $attempt++) {
+        // TROPATTCRM-622: a provider already known to be down (breaker open)
+        // must not charge every caller the full retry/backoff tax (~13s) —
+        // skip straight to the fallback chain.
+        $circuitOpen = !$mockUsed && $this->circuitBreakerOpen($provider);
+        if ($circuitOpen) {
+            $result = ['ok' => false, 'code' => 'AI_PROVIDER_CIRCUIT_OPEN', 'http_status' => 0, 'latency_ms' => 0];
+            $this->logCompletionDiag($provider, $payload, 'failed', ['code' => 'AI_PROVIDER_CIRCUIT_OPEN', 'http_status' => 0, 'latency_ms' => 0, 'attempts' => 0], false, false);
+        }
+        for ($attempt = 0; !$circuitOpen && $attempt < $maxRetries; $attempt++) {
             $result = $client->completeText($provider, $secret, $payload);
             if ((bool)($result['ok'] ?? false)) {
                 break;
@@ -536,11 +544,17 @@ final class AiProviderService
                 $outboundAttempted,
                 $mockUsed
             );
-            $this->persistProviderHealthSnapshot($provider, [
+            $failureUpdates = [
                 'status' => 'failed',
                 'last_error_code' => (string)($result['code'] ?? 'AI_PROVIDER_UNAVAILABLE'),
                 'needs_recheck' => true,
-            ], []);
+            ];
+            if (!$mockUsed) {
+                // TROPATTCRM-622: count the failure towards the breaker so a
+                // provider failing repeatedly is skipped during the cooldown.
+                $failureUpdates = array_merge($failureUpdates, $this->circuitBreakerFailureUpdates($provider));
+            }
+            $this->persistProviderHealthSnapshot($provider, $failureUpdates, []);
             return $this->sanitizeProviderError($result);
         }
 
@@ -557,14 +571,14 @@ final class AiProviderService
             $mockUsed
         );
         if (!$mockUsed) {
-            $this->persistProviderHealthSnapshot($provider, [
+            $this->persistProviderHealthSnapshot($provider, array_merge([
                 'status' => 'ok',
                 'last_real_ai_success_at' => gmdate('c'),
                 'last_completion_success_at' => gmdate('c'),
                 'last_real_ai_request_id' => (string)$this->request->requestId,
                 'last_error_code' => null,
                 'needs_recheck' => false,
-            ], []);
+            ], $this->circuitBreakerSuccessUpdates()), []);
         }
 
         return [
@@ -741,6 +755,61 @@ final class AiProviderService
      * @param array<string,mixed> $updates
      * @param array<string,mixed> $actor
      */
+    /**
+     * TROPATTCRM-622: consecutive failures before the breaker trips, and the
+     * cooldown window during which callers skip straight to the fallback.
+     */
+    private const CIRCUIT_BREAKER_FAILURE_THRESHOLD = 3;
+    private const CIRCUIT_BREAKER_COOLDOWN_SECONDS = 300;
+
+    /** @return array<string,mixed> the provider_payload.health slice */
+    private function circuitHealth(array $provider): array
+    {
+        $rawPayload = $provider['provider_payload'] ?? null;
+        $payload = is_array($rawPayload) ? (array)$rawPayload : $this->decodeJson((string)$rawPayload);
+        return is_array($payload['health'] ?? null) ? (array)$payload['health'] : [];
+    }
+
+    /**
+     * Is the breaker currently open for this provider? An open window in the
+     * past means the cooldown elapsed and the provider deserves a fresh try.
+     */
+    private function circuitBreakerOpen(array $provider): bool
+    {
+        $openUntil = trim((string)($this->circuitHealth($provider)['circuit_open_until'] ?? ''));
+        if ($openUntil === '') {
+            return false;
+        }
+        $ts = strtotime($openUntil);
+        return $ts !== false && $ts > time();
+    }
+
+    /**
+     * Health-snapshot patch for one more consecutive failure: bumps the counter
+     * and, on reaching the threshold, opens the circuit for the cooldown.
+     *
+     * @return array<string,mixed>
+     */
+    private function circuitBreakerFailureUpdates(array $provider): array
+    {
+        $failures = (int)($this->circuitHealth($provider)['consecutive_failures'] ?? 0) + 1;
+        $updates = ['consecutive_failures' => $failures];
+        if ($failures >= self::CIRCUIT_BREAKER_FAILURE_THRESHOLD) {
+            $updates['circuit_open_until'] = gmdate('c', time() + self::CIRCUIT_BREAKER_COOLDOWN_SECONDS);
+        }
+        return $updates;
+    }
+
+    /**
+     * Health-snapshot patch for a successful completion: fully close the breaker.
+     *
+     * @return array<string,mixed>
+     */
+    private function circuitBreakerSuccessUpdates(): array
+    {
+        return ['consecutive_failures' => 0, 'circuit_open_until' => null];
+    }
+
     /**
      * Model override the admin configured in provider_payload (fast_model /
      * fallback_model inputs on the admin AI page are persisted there).

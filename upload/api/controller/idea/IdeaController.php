@@ -15,6 +15,120 @@ final class IdeaController extends BaseController
 {
     private static bool $ddlEnsured = false;
 
+    /**
+     * Idea statuses owned by the MCP analysis path (crm_run_idea_analysis,
+     * crm_run_idea_analysis_step, crm_retry_idea_analysis).
+     *
+     * They are deliberately distinct from the live browser-pipeline statuses
+     * (analysis_in_progress / analysis_ready / analysis_partially_ready): the
+     * live pipeline fills idea_understanding_cards, idea_refined_cards, ...,
+     * idea_final_recommendations, while the MCP path only fills idea_analyses
+     * and idea_analysis_steps. Sharing one status string made an MCP-analysed
+     * idea look like a finished live report whose data does not exist.
+     * See TROPATTCRM-626.
+     */
+    private const MCP_STATUS_IN_PROGRESS = 'mcp_analysis_in_progress';
+    private const MCP_STATUS_READY = 'mcp_analysis_ready';
+    private const MCP_STATUS_PARTIAL = 'mcp_analysis_partially_ready';
+
+    /** Dedicated tables written only by the live browser pipeline. */
+    private const LIVE_PIPELINE_TABLES = [
+        'idea_understanding_cards',
+        'idea_refined_cards',
+        'idea_potential_scores',
+        'idea_risk_reports',
+        'idea_pitfalls_reports',
+        'idea_implementation_plans',
+        'idea_final_recommendations',
+    ];
+
+    private function isMcpAnalysisStatus(string $status): bool
+    {
+        return in_array($status, [
+            self::MCP_STATUS_IN_PROGRESS,
+            self::MCP_STATUS_READY,
+            self::MCP_STATUS_PARTIAL,
+        ], true);
+    }
+
+    /**
+     * Splits idea_analysis_steps rows by owning pipeline.
+     *
+     * The table has exactly one writer today: the MCP analysis path. The live
+     * browser pipeline keeps its block state in the dedicated tables and in the
+     * browser, so it owns no server-side step rows — its list is empty on
+     * purpose, not because the rows were filtered away.
+     *
+     * Ownership is decided by the TABLE, not by matching step keys: 'risks' is a
+     * valid key in both namespaces ('risks' is one of analysisStepKeys() and also
+     * the id of a live pipeline block), so key matching would misattribute the
+     * MCP row. When the live pipeline gains server-side steps (TROPATTCRM-620),
+     * an explicit owner column has to be added here — not a key allowlist.
+     *
+     * @param list<array<string,mixed>> $rows
+     * @return array{live:list<array<string,mixed>>,mcp:list<array<string,mixed>>}
+     */
+    private function splitAnalysisSteps(array $rows): array
+    {
+        return ['live' => [], 'mcp' => array_values($rows)];
+    }
+
+    /**
+     * True when the idea already carries artifacts of the live browser pipeline,
+     * i.e. an MCP analysis run must not repaint its state.
+     */
+    private function hasLivePipelineArtifacts(\PDO $pdo, int $ideaId): bool
+    {
+        foreach (self::LIVE_PIPELINE_TABLES as $table) {
+            try {
+                $stmt = $pdo->prepare("SELECT 1 FROM {$table} WHERE idea_id = :iid LIMIT 1");
+                $stmt->execute(['iid' => $ideaId]);
+                if ($stmt->fetchColumn() !== false) {
+                    return true;
+                }
+            } catch (\Throwable $e) {
+                continue; // table missing on an installation that never ran the live pipeline
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Live-pipeline artifacts exposed with the same keys the generic
+     * idea_analyses rows use, so MCP tools that read idea_analyses no longer see
+     * an empty context for an idea analysed in the browser (TROPATTCRM-626).
+     *
+     * @return array<string,mixed> analysis_type => decoded payload
+     */
+    private function liveAnalysisContext(\PDO $pdo, int $ideaId): array
+    {
+        $context = [];
+        $sources = [
+            'idea_implementation_plans' => ['plan_json', 'implementation_plan'],
+            'idea_final_recommendations' => ['recommendation_json', 'final_recommendation'],
+        ];
+
+        foreach ($sources as $table => [$column, $analysisType]) {
+            try {
+                $stmt = $pdo->prepare("SELECT {$column} FROM {$table} WHERE idea_id = :iid");
+                $stmt->execute(['iid' => $ideaId]);
+                $raw = $stmt->fetchColumn();
+            } catch (\Throwable $e) {
+                continue;
+            }
+            if (!is_string($raw) || $raw === '') {
+                continue;
+            }
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded) && $decoded !== []) {
+                $context[$analysisType] = $decoded;
+            }
+        }
+
+        return $context;
+    }
+
     private function assertAiRateLimit(): ?JsonResponse
     {
         if (!$this->container->has('service.ai_rate_limit')) {
@@ -1366,7 +1480,7 @@ PROMPT;
             $data = null;
             $rawText = '';
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', [
+                $result = $aiSvc->execute('idea_clarifications', ['prefer_fast_model' => true,
                     '__sys' => $this->t('idea/messages.prompt_analyst_system') . $this->localeInstruction(),
                     '__usr' => $prompt,
                     'response_format' => ['type' => 'json_object'],
@@ -1554,7 +1668,7 @@ PROMPT;
             $rawText = '';
             $parsed = ['ok' => false, 'data' => null, 'error' => 'not_started'];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', [
+                $result = $aiSvc->execute('idea_understanding', [
                     '__sys' => $systemPrompt . $this->localeInstruction(),
                     '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT),
                     'response_format' => ['type' => 'json_object'],
@@ -1758,7 +1872,7 @@ PROMPT;
             $data = null;
             $rawText = '';
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', [
+                $result = $aiSvc->execute('idea_gap_questions', ['prefer_fast_model' => true,
                     '__sys' => 'Analyze understanding card. Find gaps. Generate clarifying questions.' . $this->localeInstruction(),
                     '__usr' => $prompt,
                     'response_format' => ['type' => 'json_object'],
@@ -1924,7 +2038,7 @@ PROMPT;
             $rawText = '';
             $parsed = ['ok' => false, 'data' => null, 'error' => 'not_started'];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', [
+                $result = $aiSvc->execute('idea_refined', [
                     '__sys' => $systemPrompt . $this->localeInstruction(),
                     '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT),
                     'response_format' => ['type' => 'json_object'],
@@ -2097,7 +2211,7 @@ PROMPT;
             $rawText = '';
             $parsed = ['ok' => false, 'data' => null, 'error' => 'not_started'];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', ['__sys' => $systemPrompt . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
+                $result = $aiSvc->execute('idea_potential', ['prefer_fast_model' => true, '__sys' => $systemPrompt . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
 
                 if (!($result['ok'] ?? false)) {
                     $errorCode = $result['code'] ?? '';
@@ -2220,7 +2334,7 @@ PROMPT;
             $aiSvc = $this->container->get('service.ai_action');
             $maxRetries = 2; $rawText = '';
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
+                $result = $aiSvc->execute('idea_risks', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
 
                 if (!($result['ok'] ?? false)) {
                     $errorCode = $result['code'] ?? '';
@@ -2329,7 +2443,7 @@ PROMPT;
         try {
             $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 2; $rawText = ''; $parsed = ['ok' => false];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
+                $result = $aiSvc->execute('idea_pitfalls', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
 
                 if (!($result['ok'] ?? false)) {
                     $errorCode = $result['code'] ?? '';
@@ -2439,7 +2553,7 @@ PROMPT;
         try {
             $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 2; $rawText = ''; $parsed = ['ok' => false];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
+                $result = $aiSvc->execute('idea_plan', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
 
                 if (!($result['ok'] ?? false)) {
                     $errorCode = $result['code'] ?? '';
@@ -2579,7 +2693,7 @@ PROMPT;
         try {
             $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 2; $rawText = ''; $parsed = ['ok' => false, 'data' => null, 'error' => 'not_started'];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
+                $result = $aiSvc->execute('idea_final', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
 
                 if (!($result['ok'] ?? false)) {
                     $errorCode = $result['code'] ?? '';
@@ -2702,7 +2816,7 @@ PROMPT;
         try {
             $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 2; $rawText = ''; $parsed = ['ok' => false];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
+                $result = $aiSvc->execute('idea_tasks', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
 
                 if (!($result['ok'] ?? false)) {
                     $errorCode = $result['code'] ?? '';
@@ -3004,7 +3118,7 @@ PROMPT;
             $aiSvc = $this->container->get('service.ai_action');
 
             @set_time_limit(90);
-            $result = $aiSvc->execute('idea_analyze', [
+            $result = $aiSvc->execute('idea_interview', [
                 '__sys' => $systemPrompt . $this->localeInstruction(),
                 '__usr' => $userPrompt,
                 'max_tokens' => 4096,
@@ -3416,10 +3530,23 @@ PROMPT;
         if ($status === 'analysis_ready' || $status === 'analysis_partially_ready') $actions[] = 'view_report';
         if ($finalReportReady) $actions[] = 'task_decomposition';
         if (in_array($status, ['tasks_created', 'tasks_partially_created'])) $actions[] = 'view_tasks';
+        if ($this->isMcpAnalysisStatus($status)) $actions[] = 'view_mcp_analysis';
 
         $stepsStmt = $pdo->prepare("SELECT step_key, step_order, status, error_message, completed_at FROM idea_analysis_steps WHERE idea_id = :iid ORDER BY step_order ASC");
         $stepsStmt->execute(['iid' => (int)$idea['id']]);
-        $analysisSteps = $stepsStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $allStepRows = $stepsStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        // idea_analysis_steps belongs to the MCP path; the live pipeline keeps
+        // its block state in the dedicated tables and in the browser. Report the
+        // two namespaces separately so "analysis_steps" can never be read as
+        // live-report progress (TROPATTCRM-626).
+        $splitSteps = $this->splitAnalysisSteps($allStepRows);
+        $analysisSteps = $splitSteps['live'];
+        $mcpAnalysisSteps = $splitSteps['mcp'];
+        $liveArtifactsPresent = $this->hasLivePipelineArtifacts($pdo, (int)$idea['id']);
+        $analysisPipeline = $mcpAnalysisSteps !== []
+            ? 'mcp'
+            : ($liveArtifactsPresent ? 'live' : null);
 
         $visibleMode = 'initial';
         if ($status === 'questioning' || $status === 'question_generation' || count($questions) > 0) $visibleMode = 'questions';
@@ -3428,6 +3555,11 @@ PROMPT;
         if ($status === 'analysis_ready') $visibleMode = 'analysis_ready';
         if ($status === 'task_decomposition_pending' || $status === 'task_decomposition_ready' || $status === 'tasks_created') $visibleMode = 'task_decomposition';
         if ($status === 'failed') $visibleMode = 'error';
+        // A finished/partial MCP run is NOT a finished live report: its data lives
+        // in idea_analyses, not in the tables the report view reads. Keep it a
+        // separate mode so no client renders an empty report as "ready"
+        // (TROPATTCRM-626).
+        if ($this->isMcpAnalysisStatus($status)) $visibleMode = 'mcp_analysis';
 
         $iid = (int)$idea['id'];
         $allQuestionsForHistory = $service->getQuestions($iid);
@@ -3454,7 +3586,13 @@ PROMPT;
             'active_questions' => $questions,
             'answered_cycles_summary' => $answeredCyclesSummary,
             'analyses' => $rawAnalyses,
+            // analysis_steps = live-pipeline blocks (always empty today: the live
+            // orchestrator has no server-side step rows yet); mcp_analysis_steps =
+            // blocks of the MCP analysis path, which is the only writer of
+            // idea_analysis_steps. See splitAnalysisSteps().
             'analysis_steps' => $analysisSteps,
+            'mcp_analysis_steps' => $mcpAnalysisSteps,
+            'analysis_pipeline' => $analysisPipeline,
             'final_report' => [
                 'status' => $frAnalysis['status'] ?? 'not_started',
                 'is_ready' => $finalReportReady,
@@ -3652,6 +3790,19 @@ PROMPT;
             if ($ea['analysis_type'] === 'implementation_plan') $implPlan = $r;
         }
 
+        // The browser pipeline never writes these analysis types into
+        // idea_analyses — it stores them in idea_implementation_plans and
+        // idea_final_recommendations. Without this fallback the decomposition was
+        // generated from an empty context for every browser-analysed idea
+        // (TROPATTCRM-626).
+        $liveContext = $this->liveAnalysisContext($this->container->get('db.pdo'), (int)$idea['id']);
+        if ($implPlan === [] && isset($liveContext['implementation_plan'])) {
+            $implPlan = (array)$liveContext['implementation_plan'];
+        }
+        if ($finalReport === [] && isset($liveContext['final_recommendation'])) {
+            $finalReport = (array)$liveContext['final_recommendation'];
+        }
+
         try {
             $user = $this->user()['user'] ?? [];
             $ai = $this->container->get('service.ai_action');
@@ -3762,11 +3913,20 @@ PROMPT;
         $service = $this->container->get('service.idea');
         $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
-        if (($idea['status'] ?? '') !== 'ready_for_analysis') {
+        $ideaStatus = (string)($idea['status'] ?? '');
+        // Re-running after a partial MCP run is legitimate; anything else that is
+        // not the live-pipeline entry status is not.
+        if ($ideaStatus !== 'ready_for_analysis' && !$this->isMcpAnalysisStatus($ideaStatus)) {
             return $this->error('ANALYSIS_NOT_READY', $this->t('idea/messages.analysis_not_ready_status'), 422);
         }
         $pdo = $this->container->get('db.pdo');
         $ideaId = (int)$idea['id'];
+        // The two pipelines own different tables and different statuses; running
+        // the MCP analysis over a live-pipeline idea would repaint its state with
+        // data the browser report does not have (TROPATTCRM-626).
+        if ($this->hasLivePipelineArtifacts($pdo, $ideaId)) {
+            return $this->error('ANALYSIS_PIPELINE_CONFLICT', $this->t('idea/messages.analysis_pipeline_conflict'), 409);
+        }
         // Guard: must have no unanswered active questions
         $allCurrentQ = $service->getQuestions($ideaId, $this->getCurrentCycleId($ideaId));
         $unanswered = false;
@@ -3809,7 +3969,7 @@ PROMPT;
             }
         }
 
-        $service->updateStatus($ideaId, 'analysis_in_progress');
+        $service->updateStatus($ideaId, self::MCP_STATUS_IN_PROGRESS);
         set_time_limit(30);
         $deadline = microtime(true) + 28;
         $completed = 0;
@@ -3831,7 +3991,7 @@ PROMPT;
             }
         }
 
-        $finalStatus = $completed >= $totalSteps ? 'analysis_ready' : 'analysis_partially_ready';
+        $finalStatus = $completed >= $totalSteps ? self::MCP_STATUS_READY : self::MCP_STATUS_PARTIAL;
         $service->updateStatus($ideaId, $finalStatus);
 
         return $this->success('ANALYSIS_RUN', $this->t('idea/messages.analysis_completed_label'), [
@@ -3863,6 +4023,10 @@ PROMPT;
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         if (!in_array($stepKey, $this->analysisStepKeys(), true)) {
             return $this->error('INVALID_STEP', $this->t('idea/messages.unknown_step_key'), 422);
+        }
+        $pdo = $this->container->get('db.pdo');
+        if ($this->hasLivePipelineArtifacts($pdo, (int)$idea['id'])) {
+            return $this->error('ANALYSIS_PIPELINE_CONFLICT', $this->t('idea/messages.analysis_pipeline_conflict'), 409);
         }
 
         $result = $this->runAnalysisStepInternal($idea, $stepKey);
@@ -4106,15 +4270,15 @@ PROMPT;
             $pendingStmt = $pdo->prepare("SELECT COUNT(*) FROM idea_analysis_steps WHERE idea_id = :iid AND status IN ('pending','running','failed')");
             $pendingStmt->execute(['iid' => $ideaId]);
             if ((int)$pendingStmt->fetchColumn() === 0) {
-                $service->updateStatus($ideaId, 'analysis_ready');
+                $service->updateStatus($ideaId, self::MCP_STATUS_READY);
             } else {
-                $service->updateStatus($ideaId, 'analysis_partially_ready');
+                $service->updateStatus($ideaId, self::MCP_STATUS_PARTIAL);
             }
             return $structured;
         } catch (\Throwable $e) {
             $pdo->prepare("UPDATE idea_analysis_steps SET status = 'failed', error_message = :msg, updated_at = NOW() WHERE idea_id = :iid AND step_key = :k")
                 ->execute(['iid' => $ideaId, 'k' => $stepKey, 'msg' => $e->getMessage()]);
-            $service->updateStatus($ideaId, 'analysis_partially_ready');
+            $service->updateStatus($ideaId, self::MCP_STATUS_PARTIAL);
             throw $e;
         }
     }
@@ -4152,6 +4316,14 @@ PROMPT;
             if (is_string($r)) { $r = json_decode($r, true); }
             if (is_array($r) && ($ea['status'] ?? '') === 'completed') {
                 $structuredBlocks[$ea['analysis_type']] = $r;
+            }
+        }
+
+        // Live-pipeline artifacts live in dedicated tables, not in idea_analyses,
+        // so merge them before they are missed (TROPATTCRM-626).
+        foreach ($this->liveAnalysisContext($this->container->get('db.pdo'), (int)$idea['id']) as $type => $payload) {
+            if (!isset($structuredBlocks[$type])) {
+                $structuredBlocks[$type] = $payload;
             }
         }
 

@@ -19,6 +19,14 @@ final class TemplateService
 
     public function list(string $kind, array $filters, array $actor): array
     {
+        // Workspace boundary first: the creator/hierarchy filter below only
+        // narrows further, so a root actor (no creator limit) can no longer
+        // see templates from every organization (TROPATTCRM-603).
+        $organizationId = $this->organizationId($actor);
+        if ($organizationId !== null) {
+            $filters['organization_id'] = $organizationId;
+        }
+
         $scope = $this->accessScope($actor);
         if ($scope['limit_to_creator_ids'] !== null) {
             $filters['created_by_user_ids'] = $scope['limit_to_creator_ids'];
@@ -52,14 +60,14 @@ final class TemplateService
             'created_by_user_id' => (int)($actor['id'] ?? 0) ?: null,
             'created_at' => $now,
             'updated_at' => $now,
-        ]);
+        ], $this->organizationId($actor));
 
         return $this->get($kind, $publicId, $actor) ?? ['public_id' => $publicId];
     }
 
     public function get(string $kind, string $publicId, array $actor): ?array
     {
-        $item = $this->templates->findByPublicId($kind, $publicId);
+        $item = $this->templates->findByPublicId($kind, $publicId, $this->organizationId($actor));
         if (!$item || !$this->canAccess($item, $actor)) {
             return null;
         }
@@ -69,7 +77,7 @@ final class TemplateService
 
     public function update(string $kind, string $publicId, array $input, array $actor): ?array
     {
-        $current = $this->templates->findByPublicId($kind, $publicId);
+        $current = $this->templates->findByPublicId($kind, $publicId, $this->organizationId($actor));
         if (!$current || !$this->canAccess($current, $actor)) {
             return null;
         }
@@ -85,18 +93,18 @@ final class TemplateService
             $set['is_active'] = ((int)$input['is_active'] === 0) ? 0 : 1;
         }
 
-        $this->templates->updateByPublicId($kind, $publicId, $set);
+        $this->templates->updateByPublicId($kind, $publicId, $set, $this->organizationId($actor));
         return $this->get($kind, $publicId, $actor);
     }
 
     public function delete(string $kind, string $publicId, array $actor): bool
     {
-        $current = $this->templates->findByPublicId($kind, $publicId);
+        $current = $this->templates->findByPublicId($kind, $publicId, $this->organizationId($actor));
         if (!$current || !$this->canAccess($current, $actor)) {
             return false;
         }
 
-        return $this->templates->deleteByPublicId($kind, $publicId);
+        return $this->templates->deleteByPublicId($kind, $publicId, $this->organizationId($actor));
     }
 
     /**
@@ -105,7 +113,8 @@ final class TemplateService
      */
     public function apply(string $kind, string $publicId, array $actor): ?array
     {
-        $template = $this->templates->findByPublicId($kind, $publicId);
+        $organizationId = $this->organizationId($actor);
+        $template = $this->templates->findByPublicId($kind, $publicId, $organizationId);
         if (!$template || !$this->canAccess($template, $actor)) {
             return null;
         }
@@ -133,6 +142,11 @@ final class TemplateService
             'updated_at' => $now,
             'row_version' => 1,
         ];
+        if ($organizationId !== null) {
+            // Applying a template must create the entity inside the actor's
+            // workspace, otherwise the new task/project lands unscoped.
+            $insert['organization_id'] = $organizationId;
+        }
 
         if ($kind === 'task') {
             // tasks stores the author in creator_user_id (not created_by_user_id).
@@ -141,7 +155,10 @@ final class TemplateService
                 $insert['assignee_user_id'] = (int)$templateData['assignee_user_id'];
             }
             if (!empty($templateData['project_public_id'])) {
-                $projectId = $this->templates->projectIdByPublicId((string)$templateData['project_public_id']);
+                $projectId = $this->templates->projectIdByPublicId(
+                    (string)$templateData['project_public_id'],
+                    $organizationId
+                );
                 if ($projectId !== null) {
                     $insert['project_id'] = $projectId;
                 }
@@ -189,6 +206,14 @@ final class TemplateService
      */
     private function canAccess(array $item, array $actor): bool
     {
+        // Workspace check comes before the root shortcut: a multi-org root
+        // must not reach another organization's template (TROPATTCRM-603).
+        $actorOrgId = $this->organizationId($actor);
+        $itemOrgId = $item['organization_id'] ?? null;
+        if ($actorOrgId !== null && $itemOrgId !== null && (int)$itemOrgId !== $actorOrgId) {
+            return false;
+        }
+
         if ((int)($actor['is_root'] ?? 0) === 1) {
             return true;
         }
@@ -204,6 +229,18 @@ final class TemplateService
         }
 
         return $this->hierarchy->isAncestor($actorId, $creatorId);
+    }
+
+    /**
+     * The actor's active workspace, or null when the caller has no organization
+     * context (pre-organization installations and internal calls). Callers that
+     * must be fail-closed resolve the organization at the controller layer via
+     * organizationScopedActor().
+     */
+    private function organizationId(array $actor): ?int
+    {
+        $id = (int)($actor['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
     }
 
     /** @return array{limit_to_creator_ids:int[]|null} */

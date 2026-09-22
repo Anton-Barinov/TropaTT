@@ -118,6 +118,10 @@ return array (
   ),
   'ideas' => 
   array (
+    'ai_health_ai_disabled' => 'CRM 设置中已关闭 AI：在开启之前无法启动分析。',
+    'ai_health_provider_missing' => '尚未配置 AI 供应商：请在 AI 设置中添加供应商及其密钥。',
+    'ai_health_provider_unhealthy' => 'AI 供应商当前无法访问（连接检查失败），分析几乎肯定会以错误结束。请检查 AI 设置中的密钥、余额和模型。',
+    'ai_health_recheck' => '重新检查',
     'alert_collect_more_data' => 'Collect more data for an accurate assessment.',
     'alert_preliminary_estimate' => 'The estimate is approximate due to a lack of data.',
     'alert_preliminary_plan' => 'The plan is preliminary — not enough data.',

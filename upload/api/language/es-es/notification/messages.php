@@ -102,4 +102,11 @@ return [
     'rejected_intake' => 'rechazó el elemento de recepción',
     'snoozed_intake' => 'pospuso el elemento de recepción',
     'until' => 'hasta',
+    'ai_provider_incident_title' => 'Fallo del proveedor de IA',
+    'ai_provider_incident_body' => ':reason (proveedor ":provider"). Tasa de errores de IA en la última hora: :error_rate. Revise la clave, el saldo y el modelo en la configuración de IA.',
+    'ai_provider_recovered_title' => 'Proveedor de IA restablecido',
+    'ai_provider_recovered_body' => 'El proveedor ":provider" vuelve a responder, las funciones de IA funcionan. Tasa de errores de la última hora: :error_rate.',
+    'ai_incident_reason_credits' => 'el proveedor informa de créditos insuficientes',
+    'ai_incident_reason_error_rate' => 'la tasa de errores de las llamadas de IA superó el umbral',
+    'ai_incident_reason_unreachable' => 'el proveedor no responde a la comprobación',
 ];

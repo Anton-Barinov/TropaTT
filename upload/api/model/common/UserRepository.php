@@ -94,16 +94,25 @@ final class UserRepository
      * (admin/administrator/super_admin/super_administrator/root).
      * Used by the key-guard notification path; explicit columns only.
      *
+     * The columns are table-qualified on purpose: `roles` also has an `id`, so the
+     * unqualified `SELECT id ... JOIN roles` this method used to build was rejected
+     * by the server as an ambiguous column — meaning every admin notification sent
+     * through it (security-key alerts, AI provider incidents) failed silently in the
+     * caller's catch block rather than reaching anyone.
+     *
      * @return array<int, array<string, mixed>>
      */
     public function findAdmins(): array
     {
         $rows = (new QueryBuilder($this->pdo))
             ->from('users')
-            ->select(['id', 'public_id', 'login', 'full_name', 'email', 'is_active', 'is_root'])
+            ->select(['users.id', 'users.public_id', 'users.login', 'users.full_name', 'users.email', 'users.is_active', 'users.is_root'])
             ->leftJoin('user_roles', 'users.id', '=', 'user_roles.user_id')
             ->leftJoin('roles', 'roles.id', '=', 'user_roles.role_id')
             ->whereNull('users.deleted_at')
+            // A deactivated account cannot act on the alert; notifying it only pads
+            // the feed of somebody who has already been switched off.
+            ->where('users.is_active', '=', 1)
             ->whereRaw('(users.is_root = 1 OR roles.code IN (?, ?, ?, ?, ?))', ['admin', 'administrator', 'super_admin', 'super_administrator', 'root'])
             ->get();
 
