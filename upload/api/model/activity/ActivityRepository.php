@@ -37,38 +37,49 @@ final class ActivityRepository
 
         $channels = $this->normalizeChannels((string)($filters['channel'] ?? 'all'));
 
-        $parts = [];
-        $params = [];
+        $queries = [];
 
         if (in_array('audit', $channels, true)) {
-            [$sql, $bind] = $this->buildAuditPart($filters, $actorPublicId, $actorIsRoot, $actorOrganizationId);
-            $parts[] = $sql;
-            $params = array_merge($params, $bind);
+            $queries['audit'] = $this->buildAuditQuery($filters, $actorPublicId, $actorIsRoot, $actorOrganizationId);
         }
 
         if (in_array('security', $channels, true)) {
-            [$sql, $bind] = $this->buildSecurityPart($filters, $actorPublicId, $actorIsRoot, $actorOrganizationId);
-            $parts[] = $sql;
-            $params = array_merge($params, $bind);
+            $queries['security'] = $this->buildSecurityQuery($filters, $actorPublicId, $actorIsRoot, $actorOrganizationId);
         }
 
         if (in_array('request', $channels, true)) {
-            [$sql, $bind] = $this->buildRequestPart($filters, $actorPublicId, $actorIsRoot, $actorOrganizationId);
-            $parts[] = $sql;
-            $params = array_merge($params, $bind);
+            $queries['request'] = $this->buildRequestQuery($filters, $actorPublicId, $actorIsRoot, $actorOrganizationId);
         }
 
-        if ($parts === []) {
+        if ($queries === []) {
             return [[], $includeTotal ? 0 : null, $page, $limit, false];
         }
 
-        $union = implode("\nUNION ALL\n", $parts);
+        // TROPATTCRM-635: COUNT over a UNION of all three channels (with the
+        // full projection, details/payload included) forced MariaDB to
+        // materialise ~500k rows + an OR/EXISTS org filter per row — 7-13s
+        // on demo, enough to trip the release-gate HTTP timeout. Separate
+        // per-channel COUNT(*) queries stay on the actor/created_at indexes
+        // and never touch the payload columns (~0.5-0.9s combined). Each
+        // count is executed with its own bindings, so no placeholder renaming.
+        $total = null;
+        if ($includeTotal) {
+            $total = 0;
+            foreach ($queries as $query) {
+                $total += (int)$this->sqlExecutor->fetchValue(
+                    $query->toCountSql(),
+                    $query->getBindings()
+                );
+            }
+        }
 
-        // Dashboard and entity cards only render the first small page. Counting every
-        // row in three append-only logs is needlessly expensive on shared hosting.
-        $total = $includeTotal
-            ? (int)$this->sqlExecutor->fetchValue('SELECT COUNT(*) FROM (' . $union . ') x', $params)
-            : null;
+        $parts = [];
+        $params = [];
+        foreach ($queries as $prefix => $query) {
+            [$sql, $bind] = $this->renameBindings($query->toSql(), $query->getBindings(), $prefix);
+            $parts[] = $sql;
+            $params = array_merge($params, $bind);
+        }
 
         // A global feed only needs rows that can occur on the requested page.
         // Sorting full request/audit/security logs makes the dashboard slower as
@@ -143,8 +154,7 @@ final class ActivityRepository
         return [$sql, $params];
     }
 
-    /** @return array{0:string,1:array<string,mixed>} */
-    private function buildAuditPart(array $filters, string $actorPublicId, bool $actorIsRoot, ?int $actorOrganizationId = null): array
+    private function buildAuditQuery(array $filters, string $actorPublicId, bool $actorIsRoot, ?int $actorOrganizationId = null): QueryBuilder
     {
         $query = (new QueryBuilder($this->pdo))
             ->from('audit_logs a')
@@ -193,11 +203,10 @@ final class ActivityRepository
             $query->where('a.created_at', '<=', (string)$filters['to']);
         }
 
-        return $this->buildUnionPart($query, 'audit');
+        return $query;
     }
 
-    /** @return array{0:string,1:array<string,mixed>} */
-    private function buildSecurityPart(array $filters, string $actorPublicId, bool $actorIsRoot, ?int $actorOrganizationId = null): array
+    private function buildSecurityQuery(array $filters, string $actorPublicId, bool $actorIsRoot, ?int $actorOrganizationId = null): QueryBuilder
     {
         $query = (new QueryBuilder($this->pdo))
             ->from('security_logs s')
@@ -240,11 +249,10 @@ final class ActivityRepository
             $query->where('s.created_at', '<=', (string)$filters['to']);
         }
 
-        return $this->buildUnionPart($query, 'security');
+        return $query;
     }
 
-    /** @return array{0:string,1:array<string,mixed>} */
-    private function buildRequestPart(array $filters, string $actorPublicId, bool $actorIsRoot, ?int $actorOrganizationId = null): array
+    private function buildRequestQuery(array $filters, string $actorPublicId, bool $actorIsRoot, ?int $actorOrganizationId = null): QueryBuilder
     {
         $query = (new QueryBuilder($this->pdo))
             ->from('request_logs r')
@@ -293,13 +301,7 @@ final class ActivityRepository
             $query->where('r.created_at', '<=', (string)$filters['to']);
         }
 
-        return $this->buildUnionPart($query, 'request');
-    }
-
-    /** @return array{0:string,1:array<string,mixed>} */
-    private function buildUnionPart(QueryBuilder $query, string $prefix): array
-    {
-        return $this->renameBindings($query->toSql(), $query->getBindings(), $prefix);
+        return $query;
     }
 
     /** @param array<string,mixed> $bindings
