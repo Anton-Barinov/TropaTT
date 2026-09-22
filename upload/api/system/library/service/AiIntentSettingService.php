@@ -268,7 +268,12 @@ final class AiIntentSettingService
     private function defaultMaxTokensByIntent(string $intent): int
     {
         return match ($intent) {
-            'idea_interview' => 4096,
+            // The interview produces a long diagnostics+questions JSON and used
+            // to get truncated mid-string at 4096 output tokens (DeepSeek stops
+            // generating, the JSON has no closing brace, the whole batch is
+            // discarded with "0 questions parsed"). 8192 is the model's output
+            // ceiling — the step must be allowed to use it.
+            'idea_interview' => 8192,
             'idea_understanding', 'idea_refined', 'idea_risks', 'idea_pitfalls' => 4096,
             'idea_plan', 'idea_tasks', 'idea_final' => 6000,
             'idea_clarifications', 'idea_gap_questions', 'idea_potential' => 2000,

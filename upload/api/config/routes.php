@@ -1059,6 +1059,10 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/ideas/{public_id}/ai-iterations', 'controller' => Api\Controller\Idea\IdeaController::class, 'action' => 'aiIterations', 'auth' => true, 'required_permissions' => ['idea.view']],
     ['methods' => ['POST','DELETE'], 'pattern' => '/api/v1/ideas/{public_id}/interview', 'controller' => Api\Controller\Idea\IdeaController::class, 'action' => 'aiInterview', 'auth' => true, 'required_permissions' => ['idea.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/ideas/{public_id}/interview-answers', 'controller' => Api\Controller\Idea\IdeaController::class, 'action' => 'saveInterviewAnswers', 'auth' => true, 'required_permissions' => ['idea.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/ideas/queue/run-worker', 'controller' => Api\Controller\Idea\IdeaController::class, 'action' => 'runWorkerStepQueue', 'auth' => true, 'required_permissions' => ['idea.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/ideas/{public_id}/analysis/run-async', 'controller' => Api\Controller\Idea\IdeaController::class, 'action' => 'runAsyncAnalysis', 'auth' => true, 'required_permissions' => ['idea.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/ideas/{public_id}/analysis/status', 'controller' => Api\Controller\Idea\IdeaController::class, 'action' => 'getAnalysisStatus', 'auth' => true, 'required_permissions' => ['idea.view']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/ideas/{public_id}/analysis/run-worker', 'controller' => Api\Controller\Idea\IdeaController::class, 'action' => 'runWorkerStep', 'auth' => true, 'required_permissions' => ['idea.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/ideas/{public_id}/comments', 'controller' => Api\Controller\Idea\IdeaController::class, 'action' => 'addComment', 'auth' => true, 'required_permissions' => ['idea.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/ideas/{public_id}/comments', 'controller' => Api\Controller\Idea\IdeaController::class, 'action' => 'listComments', 'auth' => true, 'required_permissions' => ['idea.view']],
 

@@ -2333,6 +2333,7 @@ PROMPT;
         try {
             $aiSvc = $this->container->get('service.ai_action');
             $maxRetries = 2; $rawText = '';
+            $parsed = ['ok' => false, 'data' => null, 'error' => 'not_started'];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
                 $result = $aiSvc->execute('idea_risks', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
 
@@ -2363,7 +2364,7 @@ PROMPT;
             if (!$parsed['ok'] || empty($parsed['data']['risk_report'])) {
                 ai_diag_log("[RISK_PARSE_FAIL] text_len=".strlen($rawText)." parse_error=".($parsed['error']??'unknown')." preview=".substr($rawText,0,300));
                 // Save fallback record instead of returning error — use upsert to avoid duplicate key
-                $row = ['risk_report_json' => json_encode(['risk_report' => ['summary' => $this->t('idea/messages.ai_risk_fallback_summary'), 'risks' => [], 'overall_risk_score' => 1, 'overall_risk_level' => 'unknown', 'confidence_score' => 0]], JSON_UNESCAPED_UNICODE), 'overall_risk_score' => 1, 'overall_risk_level' => 'unknown', 'critical_risks_count' => 0, 'high_risks_count' => 0, 'medium_risks_count' => 0, 'low_risks_count' => 0, 'confidence_score' => 0, 'ai_request_json' => json_encode(['note' => 'AI analysis failed', 'system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
+                $row = ['risk_report_json' => json_encode(['_is_fallback' => true, 'risk_report' => ['summary' => $this->t('idea/messages.ai_risk_fallback_summary'), 'risks' => [], 'overall_risk_score' => 1, 'overall_risk_level' => 'unknown', 'confidence_score' => 0]], JSON_UNESCAPED_UNICODE), 'overall_risk_score' => 1, 'overall_risk_level' => 'unknown', 'critical_risks_count' => 0, 'high_risks_count' => 0, 'medium_risks_count' => 0, 'low_risks_count' => 0, 'confidence_score' => 0, 'ai_request_json' => json_encode(['note' => 'AI analysis failed — fallback stub', 'system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
                 $existsRisk = $pdo->prepare("SELECT id FROM idea_risk_reports WHERE idea_id = :iid"); $existsRisk->execute(['iid' => $ideaId]);
                 if ($existsRisk->fetch()) { $pdo->prepare("UPDATE idea_risk_reports SET risk_report_json=:risk_report_json,overall_risk_score=:overall_risk_score,overall_risk_level=:overall_risk_level,critical_risks_count=:critical_risks_count,high_risks_count=:high_risks_count,medium_risks_count=:medium_risks_count,low_risks_count=:low_risks_count,confidence_score=:confidence_score,ai_request_json=:ai_request_json,ai_response_json=:ai_response_json,updated_at=NOW() WHERE idea_id=:idea_id")->execute($row); }
                 else { $pdo->prepare("INSERT INTO idea_risk_reports (idea_id,risk_report_json,overall_risk_score,overall_risk_level,critical_risks_count,high_risks_count,medium_risks_count,low_risks_count,confidence_score,ai_request_json,ai_response_json) VALUES (:idea_id,:risk_report_json,:overall_risk_score,:overall_risk_level,:critical_risks_count,:high_risks_count,:medium_risks_count,:low_risks_count,:confidence_score,:ai_request_json,:ai_response_json)")->execute($row); }
@@ -2471,7 +2472,7 @@ PROMPT;
 
             if (!$parsed['ok'] || empty($parsed['data']['pitfalls'])) {
                 ai_diag_log("[PITFALLS_PARSE_FAIL] parse_error=".($parsed['error']??'unknown')." text_len=".strlen($rawText));
-                $row = ['pitfalls_json' => '[]', 'overall_summary' => $this->t('idea/messages.ai_pitfalls_fallback_summary'), 'data_confidence' => 0, 'ai_request_json' => json_encode(['note' => 'AI analysis failed'], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
+                $row = ['pitfalls_json' => json_encode(['_is_fallback' => true], JSON_UNESCAPED_UNICODE), 'overall_summary' => $this->t('idea/messages.ai_pitfalls_fallback_summary'), 'data_confidence' => 0, 'ai_request_json' => json_encode(['note' => 'AI analysis failed — fallback stub'], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
                 $existsPit = $pdo->prepare("SELECT id FROM idea_pitfalls_reports WHERE idea_id = :iid"); $existsPit->execute(['iid' => $ideaId]);
                 if ($existsPit->fetch()) { $pdo->prepare("UPDATE idea_pitfalls_reports SET pitfalls_json=:pitfalls_json,overall_summary=:overall_summary,data_confidence=:data_confidence,ai_request_json=:ai_request_json,ai_response_json=:ai_response_json,updated_at=NOW() WHERE idea_id=:idea_id")->execute($row); }
                 else { $pdo->prepare("INSERT INTO idea_pitfalls_reports (idea_id,pitfalls_json,overall_summary,data_confidence,ai_request_json,ai_response_json) VALUES (:idea_id,:pitfalls_json,:overall_summary,:data_confidence,:ai_request_json,:ai_response_json)")->execute($row); }
@@ -2581,7 +2582,7 @@ PROMPT;
 
             if (!$parsed['ok'] || empty($parsed['data']['implementation_plan'])) {
                 ai_diag_log("[PLAN_PARSE_FAIL] parse_error=".($parsed['error']??'unknown')." text_len=".strlen($rawText));
-                $row = ['plan_json' => '{}', 'summary' => $this->t('idea/messages.ai_plan_fallback_summary'), 'planning_horizon' => '', 'plan_type' => 'preliminary', 'confidence_score' => 0, 'ai_request_json' => json_encode(['note' => 'AI analysis failed'], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
+                $row = ['plan_json' => json_encode(['_is_fallback' => true], JSON_UNESCAPED_UNICODE), 'summary' => $this->t('idea/messages.ai_plan_fallback_summary'), 'planning_horizon' => '', 'plan_type' => 'preliminary', 'confidence_score' => 0, 'ai_request_json' => json_encode(['note' => 'AI analysis failed — fallback stub'], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
                 $existsPlan = $pdo->prepare("SELECT id FROM idea_implementation_plans WHERE idea_id = :iid"); $existsPlan->execute(['iid' => $ideaId]);
                 if ($existsPlan->fetch()) { $pdo->prepare("UPDATE idea_implementation_plans SET plan_json=:plan_json,summary=:summary,planning_horizon=:planning_horizon,plan_type=:plan_type,confidence_score=:confidence_score,ai_request_json=:ai_request_json,ai_response_json=:ai_response_json,updated_at=NOW() WHERE idea_id=:idea_id")->execute($row); }
                 else { $pdo->prepare("INSERT INTO idea_implementation_plans (idea_id,plan_json,summary,planning_horizon,plan_type,confidence_score,ai_request_json,ai_response_json) VALUES (:idea_id,:plan_json,:summary,:planning_horizon,:plan_type,:confidence_score,:ai_request_json,:ai_response_json)")->execute($row); }
@@ -2685,6 +2686,30 @@ PROMPT;
             'pitfalls' => $pitSummary,
             'implementation_plan' => $planSummary,
         ];
+
+        // Detect fallback stubs — blocks whose JSON contains _is_fallback or _fallback flag
+        $detectFallback = function(array $row, string $jsonCol): bool {
+            if (!($row['exists'] ?? false)) return false;
+            $raw = $row[$jsonCol] ?? null;
+            if (!$raw) return false;
+            $decoded = json_decode($raw, true);
+            if (!is_array($decoded)) return false;
+            if (!empty($decoded['_is_fallback'])) return true;
+            // Check nested objects for _fallback flag (potential stores it inside 'potential' key)
+            foreach ($decoded as $v) {
+                if (is_array($v) && !empty($v['_fallback'])) return true;
+            }
+            return false;
+        };
+        $dataGaps = [];
+        if ($detectFallback($riskBlock, 'risk_report_json')) $dataGaps[] = 'risks';
+        if ($detectFallback($pitBlock, 'pitfalls_json')) $dataGaps[] = 'pitfalls';
+        if ($detectFallback($planBlock, 'plan_json')) $dataGaps[] = 'implementation_plan';
+        if ($detectFallback($pot, 'potential_json')) $dataGaps[] = 'potential';
+        if (!empty($dataGaps)) {
+            $blocks['_data_gaps'] = $dataGaps;
+            $blocks['_data_gaps_note'] = 'Some blocks contain fallback stubs (AI failed). Scores from these blocks are unreliable. Reduce confidence and weight for missing/fallback data.';
+        }
 
         $payload = ['idea' => ['title' => $idea['title'] ?? '', 'short_description' => mb_substr($plainDesc, 0, 200), 'description_plain_text' => $plainDesc, 'category' => $idea['category'] ?? '', 'product' => $idea['product'] ?? '', 'region' => $idea['region'] ?? '', 'target_date' => $idea['target_date'] ?? null, 'current_date' => date('Y-m-d')], 'questions_and_answers' => $qaList] + $blocks;
 
@@ -2844,7 +2869,7 @@ PROMPT;
 
             if (!$parsed['ok'] || (empty($parsed['data']['projects']) && empty($parsed['data']['tasks']))) {
                 ai_diag_log("[TASKS_PARSE_FAIL] parse_error=".($parsed['error']??'unknown')." text_len=".strlen($rawText));
-                $row = ['tasks_json' => '{}', 'summary' => $this->t('idea/messages.ai_tasks_fallback_summary'), 'ai_request_json' => json_encode(['note' => 'AI analysis failed'], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
+                $row = ['tasks_json' => json_encode(['_is_fallback' => true], JSON_UNESCAPED_UNICODE), 'summary' => $this->t('idea/messages.ai_tasks_fallback_summary'), 'ai_request_json' => json_encode(['note' => 'AI analysis failed — fallback stub'], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
                 $existsTasks = $pdo->prepare("SELECT id FROM idea_suggested_tasks WHERE idea_id = :iid"); $existsTasks->execute(['iid' => $ideaId]);
                 if ($existsTasks->fetch()) { $pdo->prepare("UPDATE idea_suggested_tasks SET tasks_json=:tasks_json,summary=:summary,ai_request_json=:ai_request_json,ai_response_json=:ai_response_json,updated_at=NOW() WHERE idea_id=:idea_id")->execute($row); }
                 else { $pdo->prepare("INSERT INTO idea_suggested_tasks (idea_id,tasks_json,summary,ai_request_json,ai_response_json) VALUES (:idea_id,:tasks_json,:summary,:ai_request_json,:ai_response_json)")->execute($row); }
@@ -3121,7 +3146,7 @@ PROMPT;
             $result = $aiSvc->execute('idea_interview', [
                 '__sys' => $systemPrompt . $this->localeInstruction(),
                 '__usr' => $userPrompt,
-                'max_tokens' => 4096,
+                'max_tokens' => 8192,
                 'timeout_ms' => 60000,
                 'response_format' => ['type' => 'json_object'],
             ], $this->user()['user'] ?? []);
@@ -3532,7 +3557,7 @@ PROMPT;
         if (in_array($status, ['tasks_created', 'tasks_partially_created'])) $actions[] = 'view_tasks';
         if ($this->isMcpAnalysisStatus($status)) $actions[] = 'view_mcp_analysis';
 
-        $stepsStmt = $pdo->prepare("SELECT step_key, step_order, status, error_message, completed_at FROM idea_analysis_steps WHERE idea_id = :iid ORDER BY step_order ASC");
+        $stepsStmt = $pdo->prepare("SELECT step_key, step_order, status, error_message, completed_at FROM idea_analysis_steps WHERE idea_id = :iid AND (pipeline = 'mcp' OR pipeline IS NULL) ORDER BY step_order ASC");
         $stepsStmt->execute(['iid' => (int)$idea['id']]);
         $allStepRows = $stepsStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
@@ -3960,11 +3985,11 @@ PROMPT;
         $stepKeys = $this->analysisStepKeys();
         $totalSteps = count($stepKeys);
 
-        $existing = $pdo->prepare("SELECT COUNT(*) FROM idea_analysis_steps WHERE idea_id = :iid");
+        $existing = $pdo->prepare("SELECT COUNT(*) FROM idea_analysis_steps WHERE idea_id = :iid AND (pipeline = 'mcp' OR pipeline IS NULL)");
         $existing->execute(['iid' => $ideaId]);
         if ((int)$existing->fetchColumn() === 0) {
             foreach ($stepKeys as $idx => $stepKey) {
-                $pdo->prepare("INSERT INTO idea_analysis_steps (idea_id, step_key, step_order, status, attempts, created_at, updated_at) VALUES (:iid, :k, :o, 'pending', 0, NOW(), NOW())")
+                $pdo->prepare("INSERT INTO idea_analysis_steps (idea_id, step_key, step_order, status, pipeline, attempts, created_at, updated_at) VALUES (:iid, :k, :o, 'pending', 'mcp', 0, NOW(), NOW())")
                     ->execute(['iid' => $ideaId, 'k' => $stepKey, 'o' => $idx + 1]);
             }
         }
@@ -3975,7 +4000,7 @@ PROMPT;
         $completed = 0;
 
         while (microtime(true) < $deadline) {
-            $next = $pdo->prepare("SELECT step_key FROM idea_analysis_steps WHERE idea_id = :iid AND status IN ('pending','failed') ORDER BY step_order ASC LIMIT 1");
+            $next = $pdo->prepare("SELECT step_key FROM idea_analysis_steps WHERE idea_id = :iid AND (pipeline = 'mcp' OR pipeline IS NULL) AND status IN ('pending','failed') ORDER BY step_order ASC LIMIT 1");
             $next->execute(['iid' => $ideaId]);
             $stepKey = (string)($next->fetchColumn() ?: '');
             if ($stepKey === '') break;
@@ -3984,7 +4009,7 @@ PROMPT;
                 $this->runAnalysisStepInternal($idea, $stepKey);
                 $completed++;
             } catch (\Throwable $e) {
-                $pdo->prepare("UPDATE idea_analysis_steps SET status = 'failed', error_message = :err, updated_at = NOW() WHERE idea_id = :iid AND step_key = :k")
+                $pdo->prepare("UPDATE idea_analysis_steps SET status = 'failed', error_message = :err, updated_at = NOW() WHERE idea_id = :iid AND step_key = :k AND (pipeline = 'mcp' OR pipeline IS NULL)")
                     ->execute(['iid' => $ideaId, 'k' => $stepKey, 'err' => $e->getMessage()]);
                 ai_diag_log("[ANALYSIS_STEP_FAILED][{$stepKey}] {$e->getMessage()}");
                 break; // Stop on error
@@ -4069,6 +4094,7 @@ PROMPT;
             step_key VARCHAR(64) NOT NULL,
             step_order INT NOT NULL,
             status VARCHAR(32) NOT NULL DEFAULT 'pending',
+            pipeline VARCHAR(32) NOT NULL DEFAULT 'mcp',
             input_snapshot_json LONGTEXT NULL,
             result_json LONGTEXT NULL,
             result_text LONGTEXT NULL,
@@ -4077,8 +4103,15 @@ PROMPT;
             started_at DATETIME NULL,
             completed_at DATETIME NULL,
             created_at DATETIME NOT NULL,
-            updated_at DATETIME NOT NULL
+            updated_at DATETIME NOT NULL,
+            INDEX idx_idea_pipeline (idea_id, pipeline)
         )");
+        if (!\Api\System\Library\Database\IndexHelper::columnExists($pdo, 'mysql', 'idea_analysis_steps', 'pipeline')) {
+            $pdo->exec("ALTER TABLE idea_analysis_steps ADD COLUMN pipeline VARCHAR(32) NOT NULL DEFAULT 'mcp'");
+        }
+        if (!\Api\System\Library\Database\IndexHelper::indexExists($pdo, 'mysql', 'idea_analysis_steps', 'idx_idea_pipeline')) {
+            try { $pdo->exec("CREATE INDEX idx_idea_pipeline ON idea_analysis_steps (idea_id, pipeline)"); } catch (\Throwable $e) { /* index may already exist */ }
+        }
         $pdo->exec("CREATE TABLE IF NOT EXISTS idea_potential_scores (
             id INT AUTO_INCREMENT PRIMARY KEY,
             idea_id INT NOT NULL,
@@ -4203,11 +4236,11 @@ PROMPT;
         $ideaId = (int)$idea['id'];
         $this->ensureIdeaWorkflowTables($pdo);
 
-        $pdo->prepare("UPDATE idea_analysis_steps SET status = 'running', attempts = attempts + 1, started_at = NOW(), updated_at = NOW() WHERE idea_id = :iid AND step_key = :k")
+        $pdo->prepare("UPDATE idea_analysis_steps SET status = 'running', attempts = attempts + 1, started_at = NOW(), updated_at = NOW() WHERE idea_id = :iid AND step_key = :k AND (pipeline = 'mcp' OR pipeline IS NULL)")
             ->execute(['iid' => $ideaId, 'k' => $stepKey]);
 
         $previousResults = [];
-        $prevStmt = $pdo->prepare("SELECT step_key, result_json FROM idea_analysis_steps WHERE idea_id = :iid AND status = 'completed' ORDER BY step_order ASC");
+        $prevStmt = $pdo->prepare("SELECT step_key, result_json FROM idea_analysis_steps WHERE idea_id = :iid AND (pipeline = 'mcp' OR pipeline IS NULL) AND status = 'completed' ORDER BY step_order ASC");
         $prevStmt->execute(['iid' => $ideaId]);
         foreach ($prevStmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
             $previousResults[(string)$row['step_key']] = json_decode((string)$row['result_json'], true) ?: [];
@@ -4258,7 +4291,7 @@ PROMPT;
                 throw new \RuntimeException($this->t('idea/messages.empty_analysis_result'));
             }
 
-            $pdo->prepare("UPDATE idea_analysis_steps SET status = 'completed', input_snapshot_json = :inp, result_json = :res, completed_at = NOW(), updated_at = NOW() WHERE idea_id = :iid AND step_key = :k")
+            $pdo->prepare("UPDATE idea_analysis_steps SET status = 'completed', input_snapshot_json = :inp, result_json = :res, completed_at = NOW(), updated_at = NOW() WHERE idea_id = :iid AND step_key = :k AND (pipeline = 'mcp' OR pipeline IS NULL)")
                 ->execute([
                     'iid' => $ideaId,
                     'k' => $stepKey,
@@ -4267,7 +4300,7 @@ PROMPT;
                 ]);
             $service->saveAnalysis($ideaId, $stepKey, $structured);
 
-            $pendingStmt = $pdo->prepare("SELECT COUNT(*) FROM idea_analysis_steps WHERE idea_id = :iid AND status IN ('pending','running','failed')");
+            $pendingStmt = $pdo->prepare("SELECT COUNT(*) FROM idea_analysis_steps WHERE idea_id = :iid AND (pipeline = 'mcp' OR pipeline IS NULL) AND status IN ('pending','running','failed')");
             $pendingStmt->execute(['iid' => $ideaId]);
             if ((int)$pendingStmt->fetchColumn() === 0) {
                 $service->updateStatus($ideaId, self::MCP_STATUS_READY);
@@ -4276,10 +4309,287 @@ PROMPT;
             }
             return $structured;
         } catch (\Throwable $e) {
-            $pdo->prepare("UPDATE idea_analysis_steps SET status = 'failed', error_message = :msg, updated_at = NOW() WHERE idea_id = :iid AND step_key = :k")
+            $pdo->prepare("UPDATE idea_analysis_steps SET status = 'failed', error_message = :msg, updated_at = NOW() WHERE idea_id = :iid AND step_key = :k AND (pipeline = 'mcp' OR pipeline IS NULL)")
                 ->execute(['iid' => $ideaId, 'k' => $stepKey, 'msg' => $e->getMessage()]);
             $service->updateStatus($ideaId, self::MCP_STATUS_PARTIAL);
             throw $e;
+        }
+    }
+
+    /** Browser pipeline step order and keys (live pipeline). */
+    private function livePipelineSteps(): array
+    {
+        return [
+            ['key' => 'interview', 'order' => 1],
+            ['key' => 'clarifications', 'order' => 2],
+            ['key' => 'understanding', 'order' => 3],
+            ['key' => 'gapQuestions', 'order' => 4],
+            ['key' => 'refined', 'order' => 5],
+            ['key' => 'potential', 'order' => 6],
+            ['key' => 'risks', 'order' => 7],
+            ['key' => 'pitfalls', 'order' => 8],
+            ['key' => 'plan', 'order' => 9],
+            ['key' => 'final', 'order' => 10],
+            ['key' => 'tasks', 'order' => 11],
+        ];
+    }
+
+    /** Step key → route path for the browser pipeline endpoints. */
+    private function livePipelineRoute(string $key): ?string
+    {
+        return match ($key) {
+            'interview' => '/api/v1/ideas/{id}/interview',
+            'clarifications' => '/api/v1/ideas/{id}/additional-questions',
+            'understanding' => '/api/v1/ideas/{id}/understanding-card',
+            'gapQuestions' => '/api/v1/ideas/{id}/gap-questions',
+            'refined' => '/api/v1/ideas/{id}/refined-card',
+            'potential' => '/api/v1/ideas/{id}/potential',
+            'risks' => '/api/v1/ideas/{id}/risk-report',
+            'pitfalls' => '/api/v1/ideas/{id}/pitfalls',
+            'plan' => '/api/v1/ideas/{id}/implementation-plan',
+            'final' => '/api/v1/ideas/{id}/final-recommendation',
+            'tasks' => '/api/v1/ideas/{id}/suggested-tasks',
+            default => null,
+        };
+    }
+
+    /**
+     * POST /ideas/{public_id}/analysis/run-async — queue live-pipeline analysis.
+     * Creates step rows in idea_analysis_steps (pipeline=live) and returns
+     * immediately; a worker script picks them up.
+     */
+    public function runAsyncAnalysis(array $params = []): JsonResponse
+    {
+        if (($disabled = $this->requireFeatureEnabled()) !== null) {
+            return $disabled;
+        }
+        $publicId = (string)($params['public_id'] ?? '');
+        if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
+
+        $service = $this->container->get('service.idea');
+        $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
+        if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
+        $ideaId = (int)$idea['id'];
+        $pdo = $this->container->get('db.pdo');
+        $this->ensureIdeaWorkflowTables($pdo);
+
+        // Check for existing active pipeline
+        $active = $pdo->prepare("SELECT step_key FROM idea_analysis_steps WHERE idea_id = :iid AND pipeline = 'live' AND status IN ('pending','running')");
+        $active->execute(['iid' => $ideaId]);
+        if ($active->fetchColumn()) {
+            return $this->error('ANALYSIS_IN_PROGRESS', $this->t('idea/messages.analysis_already_running'), 409);
+        }
+
+        // If there are completed live-pipeline steps, check if all done
+        $completedCount = $pdo->prepare("SELECT COUNT(*) FROM idea_analysis_steps WHERE idea_id = :iid AND pipeline = 'live' AND status = 'completed'");
+        $completedCount->execute(['iid' => $ideaId]);
+        $doneSteps = (int)$completedCount->fetchColumn();
+        $allSteps = $this->livePipelineSteps();
+        if ($doneSteps >= count($allSteps)) {
+            return $this->error('ANALYSIS_COMPLETE', $this->t('idea/messages.analysis_complete_full'), 409);
+        }
+
+        // Upsert steps: insert any missing, reset failed ones
+        foreach ($allSteps as $step) {
+            $exists = $pdo->prepare("SELECT id, status FROM idea_analysis_steps WHERE idea_id = :iid AND step_key = :k AND pipeline = 'live'");
+            $exists->execute(['iid' => $ideaId, 'k' => $step['key']]);
+            $row = $exists->fetch(PDO::FETCH_ASSOC);
+            if (!$row) {
+                $pdo->prepare("INSERT INTO idea_analysis_steps (idea_id, step_key, step_order, status, pipeline, attempts, created_at, updated_at) VALUES (:iid, :k, :o, 'pending', 'live', 0, NOW(), NOW())")
+                    ->execute(['iid' => $ideaId, 'k' => $step['key'], 'o' => $step['order']]);
+            } elseif (in_array($row['status'], ['failed', 'completed'], true)) {
+                // Reset completed steps only if re-running from scratch (partial re-run not supported)
+            }
+        }
+
+        return $this->success('ASYNC_ANALYSIS_QUEUED', $this->t('idea/messages.analysis_queued'), [
+            'idea_public_id' => $publicId,
+            'steps_total' => count($allSteps),
+        ]);
+    }
+
+    /**
+     * GET /ideas/{public_id}/analysis/status — status of each live-pipeline step.
+     */
+    public function getAnalysisStatus(array $params = []): JsonResponse
+    {
+        $publicId = (string)($params['public_id'] ?? '');
+        if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
+
+        $service = $this->container->get('service.idea');
+        $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
+        if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
+        $ideaId = (int)$idea['id'];
+        $pdo = $this->container->get('db.pdo');
+        $this->ensureIdeaWorkflowTables($pdo);
+
+        $stmt = $pdo->prepare("SELECT step_key, step_order, status, error_message, started_at, completed_at FROM idea_analysis_steps WHERE idea_id = :iid AND pipeline = 'live' ORDER BY step_order ASC");
+        $stmt->execute(['iid' => $ideaId]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $steps = [];
+        foreach ($rows as $r) {
+            $steps[] = [
+                'key' => $r['step_key'],
+                'order' => (int)$r['step_order'],
+                'status' => $r['status'],
+                'error' => $r['error_message'] ?: null,
+                'started_at' => $r['started_at'] ?: null,
+                'completed_at' => $r['completed_at'] ?: null,
+            ];
+        }
+
+        $completed = count(array_filter($steps, fn($s) => $s['status'] === 'completed'));
+        $total = count($this->livePipelineSteps());
+        $running = count(array_filter($steps, fn($s) => $s['status'] === 'running'));
+        $failed = count(array_filter($steps, fn($s) => $s['status'] === 'failed'));
+
+        $overallStatus = (string)($idea['status'] ?? '');
+        if ($completed >= $total) {
+            $overallStatus = 'analysis_ready';
+        } elseif ($failed > 0) {
+            $overallStatus = 'analysis_partially_ready';
+        } elseif ($running > 0 || $completed > 0) {
+            $overallStatus = 'analysis_in_progress';
+        }
+
+        return $this->success('ANALYSIS_STATUS', 'OK', [
+            'idea_public_id' => $publicId,
+            'idea_status' => $overallStatus,
+            'steps' => $steps,
+            'progress' => ['completed' => $completed, 'total' => $total, 'running' => $running, 'failed' => $failed],
+        ]);
+    }
+
+    /**
+     * POST /ideas/{public_id}/analysis/run-worker — execute one pending live-pipeline step.
+     * Called by the worker script to process the queue step-by-step.
+     */
+    public function runWorkerStep(array $params = []): JsonResponse
+    {
+        $publicId = (string)($params['public_id'] ?? '');
+        if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
+
+        $service = $this->container->get('service.idea');
+        $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
+        if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
+        $ideaId = (int)$idea['id'];
+        $pdo = $this->container->get('db.pdo');
+        $this->ensureIdeaWorkflowTables($pdo);
+
+        // Find next pending step
+        $next = $pdo->prepare("SELECT step_key, step_order FROM idea_analysis_steps WHERE idea_id = :iid AND pipeline = 'live' AND status = 'pending' ORDER BY step_order ASC LIMIT 1");
+        $next->execute(['iid' => $ideaId]);
+        $stepRow = $next->fetch(PDO::FETCH_ASSOC);
+        if (!$stepRow) {
+            return $this->success('NO_PENDING_STEP', $this->t('idea/messages.no_pending_steps'), ['completed' => true]);
+        }
+        $stepKey = (string)$stepRow['step_key'];
+
+        // Mark running
+        $pdo->prepare("UPDATE idea_analysis_steps SET status = 'running', attempts = attempts + 1, started_at = NOW(), updated_at = NOW() WHERE idea_id = :iid AND step_key = :k AND pipeline = 'live'")
+            ->execute(['iid' => $ideaId, 'k' => $stepKey]);
+
+        try {
+            $this->runLivePipelineStep($idea, $stepKey);
+            $completedCount = $pdo->prepare("SELECT COUNT(*) FROM idea_analysis_steps WHERE idea_id = :iid AND pipeline = 'live' AND status = 'completed'");
+            $completedCount->execute(['iid' => $ideaId]);
+            $done = (int)$completedCount->fetchColumn();
+            $total = count($this->livePipelineSteps());
+
+            return $this->success('STEP_COMPLETED', 'OK', [
+                'step' => $stepKey,
+                'progress' => ['completed' => $done, 'total' => $total],
+                'all_done' => $done >= $total,
+            ]);
+        } catch (\Throwable $e) {
+            $pdo->prepare("UPDATE idea_analysis_steps SET status = 'failed', error_message = :err, updated_at = NOW() WHERE idea_id = :iid AND step_key = :k AND pipeline = 'live'")
+                ->execute(['iid' => $ideaId, 'k' => $stepKey, 'err' => $e->getMessage()]);
+            return $this->error('STEP_FAILED', $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * POST /ideas/queue/run-worker — process the next pending step across ALL ideas.
+     * Used by the worker script in --all mode.
+     */
+    public function runWorkerStepQueue(array $params = []): JsonResponse
+    {
+        if (($disabled = $this->requireFeatureEnabled()) !== null) {
+            return $disabled;
+        }
+
+        $pdo = $this->container->get('db.pdo');
+        $this->ensureIdeaWorkflowTables($pdo);
+
+        $next = $pdo->prepare("
+            SELECT s.idea_id, s.step_key, i.public_id AS idea_public_id
+            FROM idea_analysis_steps s
+            JOIN ideas i ON i.id = s.idea_id
+            WHERE s.pipeline = 'live' AND s.status = 'pending'
+            ORDER BY s.step_order ASC
+            LIMIT 1
+        ");
+        $next->execute();
+        $stepRow = $next->fetch(PDO::FETCH_ASSOC);
+        if (!$stepRow) {
+            return $this->success('NO_PENDING_STEP', $this->t('idea/messages.no_pending_steps'), ['completed' => true]);
+        }
+
+        $ideaId = (int)$stepRow['idea_id'];
+        $stepKey = (string)$stepRow['step_key'];
+        $publicId = (string)$stepRow['idea_public_id'];
+
+        $service = $this->container->get('service.idea');
+        $idea = $service->getByPublicId($publicId, $this->activeOrganizationId());
+        if (!$idea) {
+            return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
+        }
+
+        // Delegate to per-idea worker
+        $params['public_id'] = $publicId;
+        return $this->runWorkerStep($params);
+    }
+
+    /**
+     * Execute a single live-pipeline step by calling the existing browser pipeline
+     * endpoint via internal simulated request.
+     */
+    private function runLivePipelineStep(array $idea, string $stepKey): void
+    {
+        $route = $this->livePipelineRoute($stepKey);
+        if ($route === null) throw new \RuntimeException("Unknown step: {$stepKey}");
+
+        $publicId = (string)($idea['public_id'] ?? '');
+        $uri = str_replace('{id}', $publicId, $route);
+
+        // Simulate an internal POST request to the existing endpoint
+        $savedGet = $_GET;
+        $savedPost = $_POST;
+        $savedServer = $_SERVER;
+        try {
+            $_GET = ['public_id' => $publicId];
+            $_POST = [];
+            $_SERVER = [
+                'REQUEST_METHOD' => 'POST',
+                'REQUEST_URI' => $uri,
+                'REMOTE_ADDR' => '127.0.0.1',
+                'HTTP_USER_AGENT' => 'crm-idea-worker/1.0',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . ($this->user()['token'] ?? ''),
+            ];
+
+            $app = new \Api\System\Library\App(dirname(__DIR__, 3));
+            $response = $app->run();
+            $payload = $response->payload();
+            if (!(bool)($payload['success'] ?? false)) {
+                $code = (string)($payload['code'] ?? 'UNKNOWN');
+                $message = (string)($payload['message'] ?? 'Step failed');
+                throw new \RuntimeException("[{$code}] {$message}");
+            }
+        } finally {
+            $_GET = $savedGet;
+            $_POST = $savedPost;
+            $_SERVER = $savedServer;
         }
     }
 

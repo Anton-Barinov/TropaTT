@@ -44,6 +44,11 @@ use Api\System\Library\Service\SettingService;
 use Api\System\Library\Support\AppLog;
 
 require_once __DIR__ . '/../system/library/support/Autoloader.php';
+// ai_diag_log() and friends are loaded by index.php for web requests; the
+// in-process App below bypasses index.php, so include them explicitly —
+// otherwise every IdeaController AI step dies with
+// "Call to undefined function ai_diag_log()".
+require_once __DIR__ . '/../system/library/ai_diag.php';
 
 $basePath = dirname(__DIR__);
 $projectRoot = dirname($basePath);
@@ -55,6 +60,10 @@ if (class_exists(Api\System\Library\Support\EnvLoader::class)) {
     Api\System\Library\Support\EnvLoader::loadFiles([
         $projectRoot . '/.env',
         $basePath . '/.env',
+        // Developer checkout: the repository root .env sits one level above
+        // upload/ (on an installed copy upload/ IS the document root, so the
+        // two paths above already cover it).
+        dirname($projectRoot) . '/.env',
         $projectRoot . '/.env.local',
         $basePath . '/.env.local',
     ]);
@@ -159,10 +168,14 @@ function canaryResolveAuthToken(): string
         trim((string)getenv('CRM_TEST_ROOT_PASSWORD')),
     ], static fn(string $v): bool => $v !== '')));
     $tokens = array_values(array_unique(array_filter([
+        '',
         trim((string)getenv('CRM_AI_CRON_TOTP')),
         trim((string)getenv('CRM_TEST_ROOT_TOKEN')),
         'RootToken#2026!',
     ], static fn(string $v): bool => $v !== '')));
+    // Password-only login first, then TOTP candidates (mirrors ai_cron.php).
+    array_unshift($tokens, '');
+    $tokens = array_values(array_unique($tokens));
 
     foreach ($passwords as $password) {
         foreach ($tokens as $token) {
@@ -171,7 +184,7 @@ function canaryResolveAuthToken(): string
                 'X-Correlation-ID' => 'ai-canary-login-' . bin2hex(random_bytes(4)),
             ]);
             if (($response['status'] ?? 0) === 200 && (bool)($response['payload']['success'] ?? false)) {
-                $tokenOut = (string)($response['payload']['data']['token'] ?? $response['payload']['token'] ?? '');
+                $tokenOut = (string)($response['payload']['data']['access_token'] ?? $response['payload']['data']['token'] ?? $response['payload']['token'] ?? '');
                 if ($tokenOut !== '') {
                     return $tokenOut;
                 }
@@ -203,6 +216,14 @@ function canaryRunStep(array $step, string $token): array
     $message = (string)($payload['error']['message'] ?? $payload['message'] ?? '');
     $data = $payload['data'] ?? null;
     $dataKeys = is_array($data) ? count($data) : ($data === null ? 0 : 1);
+
+    // A *_FALLBACK result code means the block fell back to a canned stub
+    // after an AI error (TROPATTCRM-621: those rows answer 200/success but
+    // are not an AI result). The canary must report them, not pass them.
+    if ($ok && str_ends_with($code, '_FALLBACK')) {
+        $ok = false;
+        $message = 'block fell back to a stub instead of an AI result';
+    }
 
     // A safe-mode/stub block is a failure for the canary: the point of the run
     // is that REAL AI answers come back (TROPATTCRM-621: stubs must never be

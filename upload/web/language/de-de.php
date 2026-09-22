@@ -4663,6 +4663,9 @@ return array (
     'state_ai_thinking' => 'AI is thinking...',
     'state_all_answered' => 'All questions answered.',
     'state_all_done' => 'All blocks done',
+
+    'state_queuing_analysis' => 'Analyse wird in die Warteschlange gestellt...',
+    'state_queue_error' => 'Fehler beim Einreihen der Analyse',
     'state_analyzing' => 'Analyzing',
     'state_analyzing_gaps' => 'Analyzing gaps...',
     'state_analyzing_idea' => 'Analyzing the idea...',
