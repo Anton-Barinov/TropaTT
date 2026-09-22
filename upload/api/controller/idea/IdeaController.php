@@ -3132,6 +3132,25 @@ PROMPT;
         // Build prompts
         $promptSvc = new \Api\System\Library\Service\IdeaInterviewPromptService();
         $systemPrompt = $promptSvc->buildSystemPrompt();
+
+        $genQuestions = [];
+        $aiFailed = false;
+        $rawText = '';
+        $aiMode = 'unknown';
+        // TROPATTCRM-630: a single call was hard-capped at 15 questions ("cap at
+        // 15 per batch"), so the interview always stopped at 15 of 25 until the
+        // user manually clicked "ask more". The model demonstrably produces
+        // further valid batches (10, then 9 more — see idea_ai_iterations), so
+        // keep interviewing inside this single request until the remaining
+        // budget is filled or the model stops returning fresh questions.
+        $maxBatches = 3; // 15+10 fits the budget in two successful batches, third absorbs dedup shortfalls
+        $batchSize = 15; // prompt-level per-response cap; the loop keeps asking until the 25 budget is filled
+        $questionBudget = 25;
+        for ($batch = 0; $batch < $maxBatches && count($genQuestions) < $questionBudget; $batch++) {
+        $remainingInBatch = $questionBudget - $interviewQ - count($genQuestions);
+        if ($remainingInBatch <= 0) {
+            break;
+        }
         $userPrompt = $promptSvc->buildUserPrompt([
             'idea' => [
                 'title' => $this->stripTags($idea['title']),
@@ -3140,23 +3159,25 @@ PROMPT;
                 'region' => $idea['region'] ?? '',
                 'target_date' => $idea['target_date'] ?? null,
             ],
-            'question_limits' => ['total' => 25, 'asked' => $interviewQ],
-            'already_asked_questions' => $asked,
+            'question_limits' => ['total' => $questionBudget, 'asked' => $interviewQ + count($genQuestions)],
+            'already_asked_questions' => array_merge($asked, array_map(fn($gq) => [
+                'question_id' => 'pending', 'question' => $gq['question'],
+                'dimension' => $gq['dimension'], 'semantic_key' => $gq['dimension'],
+                'topic_covered' => false, 'user_knows_answer' => false,
+            ], $genQuestions)),
             'already_covered_topics' => $coverage['already_covered_topics'] ?? [],
             'do_not_ask_again_topics' => $coverage['do_not_ask_again_topics'] ?? [],
             'is_first_interview' => empty($asked),
         ]);
-
-        $genQuestions = [];
-        $aiFailed = false;
-        $rawText = '';
-        $aiMode = 'unknown';
         $maxRetries = 4; // 5 total attempts
         for ($retry = 0; $retry <= $maxRetries; $retry++) {
         try {
             $aiSvc = $this->container->get('service.ai_action');
 
-            @set_time_limit(90);
+            // Keep enough time budget for the follow-up batches: the whole
+            // request must fit into max_execution_time=600 and the web client
+            // polls with a 300s timeout.
+            @set_time_limit(300);
             $result = $aiSvc->execute('idea_interview', [
                 '__sys' => $systemPrompt . $this->localeInstruction(),
                 '__usr' => $userPrompt,
@@ -3215,6 +3236,7 @@ PROMPT;
                     $rawQuestions = $data['questions'] ?? $data['gen_questions'] ?? $data['generated_questions'] ?? [];
                     if (!empty($rawQuestions)) {
                     foreach ($rawQuestions as $q) {
+                        if (count($genQuestions) >= $questionBudget - $interviewQ) break;
                         $qt = $q['question'] ?? $q['question_text'] ?? '';
                         if (trim($qt) === '') continue;
                         $genQuestions[] = [
@@ -3239,6 +3261,9 @@ PROMPT;
                 ai_diag_log("[AI_INTERVIEW_PARSE] idea_id={$ideaId} ai_ok but 0 questions parsed. json_valid=".(is_array($data??null)?'1':'0')." json_error=".json_last_error_msg()." has_questions_key=".(!empty(($data??[])['questions']??[])?'1':'0')." truncated={$truncated} last_char={$lastChar} text_len=".strlen($rawText)." text_preview=".substr(trim($rawText),0,200));
             }
             if (!$aiFailed && count($genQuestions) >= 5) {
+                // A usable batch — leave the retry loop; the outer batch loop
+                // (TROPATTCRM-630) keeps interviewing instead of returning a
+                // partial 15-of-25 result that forced a manual "ask more" click.
                 break;
             }
             if (!$aiFailed && count($genQuestions) > 0) {
@@ -3248,7 +3273,7 @@ PROMPT;
             if ($retry < $maxRetries && $aiFailed) {
                 $errType = $debugRes['ai_error'] ?? '';
                 $retryable = in_array($errType, ['AI_PROVIDER_INVALID_RESPONSE', 'AI_PROVIDER_TIMEOUT', 'AI_PROVIDER_SERVER_ERROR', 'AI_PROVIDER_CONNECTION_FAILED', 'AI_PROVIDER_RATE_LIMITED', 'AI_PROVIDER_HTTP_ERROR', 'AI_BUSY', 'AI_PROVIDER_UNAVAILABLE'], true);
-                if ($retryable) ai_diag_log("[AI_INTERVIEW_RETRY] attempt " . ($retry+2) . " for idea_id={$ideaId} error={$errType}");
+                if ($retryable) ai_diag_log("[AI_INTERVIEW_RETRY] batch={$batch} attempt " . ($retry+2) . " for idea_id={$ideaId} error={$errType}");
                 $backoffUs = $errType === 'AI_BUSY'
                     ? max(5000000, ($retry + 1) * 2000000)
                     : ($retry + 1) * 1500000;
@@ -3258,13 +3283,24 @@ PROMPT;
             if (!$aiFailed) break;
         } catch (\Throwable $e) {
             $aiFailed = true;
-            ai_diag_log("[AI_INTERVIEW_WARN] " . $e->getMessage());
+            ai_diag_log("[AI_INTERVIEW_WARN] batch={$batch} " . $e->getMessage());
             if ($retry < $maxRetries) {
                 usleep(($retry + 1) * 1500000);
                 continue;
             }
         }
         } // end retry loop
+        // TROPATTCRM-630: a failed batch ends the interview (its own retry loop
+        // already made 5 attempts — more batches would just burn rate limits).
+        // Whatever earlier batches produced is kept.
+        if ($aiFailed) {
+            ai_diag_log("[AI_INTERVIEW_BATCH_STOP] idea_id={$ideaId} collected=" . count($genQuestions) . " ai_error=" . ($debugRes['ai_error'] ?? '-'));
+            break;
+        }
+        } // end batch loop (TROPATTCRM-630)
+
+        // Hard budget guarantee: a single batch may overshoot the remaining count.
+        $genQuestions = array_slice($genQuestions, 0, max(0, $questionBudget - $interviewQ));
 
         // Reconnect PDO if the connection dropped during long AI processing
         $pdo = $this->refreshPdoIfDropped($pdo);
@@ -3275,8 +3311,9 @@ PROMPT;
             return $this->error('AI_UNAVAILABLE', $this->t('idea/messages.ai_questions_generation_failed'), 503);
         }
 
-        // Take up to remaining count (cap at 15 per batch for response size)
-        $genQuestions = array_slice($genQuestions, 0, min($remaining, 15));
+        // TROPATTCRM-630: the batch loop already capped every batch at 15 and
+        // the whole collection at the 25-question budget — no extra slice here
+        // (the old min($remaining, 15) cap was the root cause of "15 of 25").
 
         // Deduplicate against existing questions before saving
         // Semantic aliases: when the AI uses a different dimension name for the same topic

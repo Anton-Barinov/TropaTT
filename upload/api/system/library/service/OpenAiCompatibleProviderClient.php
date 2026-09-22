@@ -37,7 +37,9 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
             unset($request['model']);
         }
 
-        $timeout = max(3000, (int)($provider['timeout_ms'] ?? 240000));
+        // TROPATTCRM-630: honor the caller's explicit timeout (payload["timeout_ms"])
+        // — see runtimeConfig(): the larger of provider row / requested value wins.
+        $timeout = max(3000, (int)($provider['timeout_ms'] ?? 240000), (int)($payload['timeout_ms'] ?? 0));
         $timeout = min($timeout, 300000);
         $response = $this->postJson($url, $headers, $request, $timeout, $provider);
         $latencyMs = (int)round((microtime(true) - $startedAt) * 1000);
@@ -309,7 +311,7 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
      */
     private function postJson(string $url, array $headers, array $body, int $timeoutMs, array $provider = []): array
     {
-        $runtime = $this->runtimeConfig($provider, $timeoutMs);
+        $runtime = $this->runtimeConfig($provider, $timeoutMs, $timeoutMs);
         $attempt = 0;
         $lastResponse = [
             'ok' => false,
@@ -449,11 +451,17 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
     /**
      * @return array{timeout_ms:int,max_attempts:int,backoff_ms:int}
      */
-    private function runtimeConfig(array $provider, int $fallbackTimeoutMs): array
+    private function runtimeConfig(array $provider, int $fallbackTimeoutMs, ?int $requestedTimeoutMs = null): array
     {
         $payload = $this->providerPayload($provider);
 
-        $timeoutMs = (int)($provider['timeout_ms'] ?? ($payload['timeout_ms'] ?? $fallbackTimeoutMs));
+        // TROPATTCRM-630: a caller-passed timeout (payload["timeout_ms"], e.g. the
+        // idea interview asking for 60s) used to be silently capped by a stale
+        // provider row (demo had 30000) — long completions died mid-stream and
+        // surfaced as AI_PARSE_FAILED. The larger of the two wins; the 300s
+        // absolute ceiling below still applies either way.
+        $providerTimeoutMs = (int)($provider['timeout_ms'] ?? ($payload['timeout_ms'] ?? $fallbackTimeoutMs));
+        $timeoutMs = max($providerTimeoutMs, max(0, (int)($requestedTimeoutMs ?? 0)));
         $timeoutMs = max(1000, min(300000, $timeoutMs));
 
         $phpMaxExecutionSeconds = (int)ini_get('max_execution_time');

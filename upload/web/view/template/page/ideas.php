@@ -927,7 +927,7 @@ function renderInterviewHistory(questions){
       }
       b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_ai_thinking', 'AI думает...'), ENT_QUOTES, 'UTF-8') ?>';
       document.getElementById('interviewStatus').textContent='<?= htmlspecialchars($t('ideas.state_generating_questions', 'Генерирую вопросы...'), ENT_QUOTES, 'UTF-8') ?>';
-      window.CRM.api.request('api/v1/ideas/'+pid+'/interview',{method:'POST',timeoutMs:120000}).then(function(env2){
+      window.CRM.api.request('api/v1/ideas/'+pid+'/interview',{method:'POST',timeoutMs:300000}).then(function(env2){
         var data=env2.data||{};
         if(data.complete){document.getElementById('interviewStatus').textContent='<?= htmlspecialchars($t('ideas.state_limit_reached', 'Достигнут лимит вопросов (25).'), ENT_QUOTES, 'UTF-8') ?>';b.disabled=false;b.innerHTML='<i class="fa-regular fa-comments me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_ask_ai', 'Задать вопросы AI'), ENT_QUOTES, 'UTF-8') ?>';loadInterview();return;}
         var generatedQuestions=data.questions||[];
@@ -961,7 +961,7 @@ function renderInterviewHistory(questions){
     }).catch(function(){
       b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_ai_thinking', 'AI думает...'), ENT_QUOTES, 'UTF-8') ?>';
       document.getElementById('interviewStatus').textContent='<?= htmlspecialchars($t('ideas.state_generating_questions', 'Генерирую вопросы...'), ENT_QUOTES, 'UTF-8') ?>';
-      window.CRM.api.request('api/v1/ideas/'+pid+'/interview',{method:'POST',timeoutMs:120000}).then(function(env2){
+      window.CRM.api.request('api/v1/ideas/'+pid+'/interview',{method:'POST',timeoutMs:300000}).then(function(env2){
         var data=env2.data||{};
         if(data.complete){document.getElementById('interviewStatus').textContent='<?= htmlspecialchars($t('ideas.state_limit_reached', 'Достигнут лимит вопросов (25).'), ENT_QUOTES, 'UTF-8') ?>';b.disabled=false;b.innerHTML='<i class="fa-regular fa-comments me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_ask_ai', 'Задать вопросы AI'), ENT_QUOTES, 'UTF-8') ?>';loadInterview();return;}
         var generatedQuestions=data.questions||[];
