@@ -4666,6 +4666,7 @@ return array (
 
     'state_queuing_analysis' => 'Enfileirando análise...',
     'state_queue_error' => 'Erro ao enfileirar análise',
+    'state_queue_in_progress' => 'As etapas ja estao na fila — acompanhando o progresso...',
     'state_analyzing' => 'Analyzing',
     'state_analyzing_gaps' => 'Analyzing gaps...',
     'state_analyzing_idea' => 'Analyzing the idea...',

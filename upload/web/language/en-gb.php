@@ -345,6 +345,7 @@ return array (
 
     'state_queuing_analysis' => 'Queuing analysis...',
     'state_queue_error' => 'Error queueing analysis',
+    'state_queue_in_progress' => 'Steps are already queued — tracking progress...',
     'state_analyzing' => 'Analyzing',
     'state_analyzing_gaps' => 'Analyzing gaps...',
     'state_analyzing_idea' => 'Analyzing the idea...',

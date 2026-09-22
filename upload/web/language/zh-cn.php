@@ -344,6 +344,7 @@ return array (
 
     'state_queuing_analysis' => '正在排队分析...',
     'state_queue_error' => '排队分析出错',
+    'state_queue_in_progress' => '步骤已在队列中 — 正在跟踪进度...',
     'state_analyzing' => 'Analyzing',
     'state_analyzing_gaps' => 'Analyzing gaps...',
     'state_analyzing_idea' => 'Analyzing the idea...',

@@ -4666,6 +4666,7 @@ return array (
 
     'state_queuing_analysis' => 'Mise en file d\'attente de l\'analyse...',
     'state_queue_error' => 'Erreur lors de la mise en file d\'attente',
+    'state_queue_in_progress' => 'Les etapes sont deja en file d\'attente — suivi de la progression...',
     'state_analyzing' => 'Analyzing',
     'state_analyzing_gaps' => 'Analyzing gaps...',
     'state_analyzing_idea' => 'Analyzing the idea...',

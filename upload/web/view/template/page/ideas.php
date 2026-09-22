@@ -514,7 +514,17 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
 	          await pollAnalysisStatus(ideaId, runToken);
 	        }
 	      }catch(e){
-	        document.getElementById('pipelineStatus').textContent='<?= htmlspecialchars($t('ideas.state_queue_error', 'Ошибка постановки в очередь'), ENT_QUOTES, 'UTF-8') ?>';
+	        var queueCode=e&&e.envelope?String(e.envelope.code||''):'';
+	        if(queueCode==='ANALYSIS_IN_PROGRESS'||queueCode==='ANALYSIS_COMPLETE'){
+	          // TROPATTCRM-628: steps queued by an earlier run are still in the
+	          // queue — that is the normal state of a re-run, not an error. Keep
+	          // tracking them: the awaiting-human status below can only appear
+	          // while this poll is running.
+	          document.getElementById('pipelineStatus').textContent='<?= htmlspecialchars($t('ideas.state_queue_in_progress', 'Шаги уже в очереди — отслеживаю выполнение...'), ENT_QUOTES, 'UTF-8') ?>';
+	          await pollAnalysisStatus(ideaId, runToken);
+	        } else {
+	          document.getElementById('pipelineStatus').textContent='<?= htmlspecialchars($t('ideas.state_queue_error', 'Ошибка постановки в очередь'), ENT_QUOTES, 'UTF-8') ?>';
+	        }
 	      }
 	    }
 

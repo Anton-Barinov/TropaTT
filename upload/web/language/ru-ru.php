@@ -345,6 +345,7 @@ return array (
 
     'state_queuing_analysis' => 'Постановка анализа в очередь...',
     'state_queue_error' => 'Ошибка постановки в очередь',
+    'state_queue_in_progress' => 'Шаги уже в очереди — отслеживаю выполнение...',
     'state_analyzing' => 'Анализ',
     'state_analyzing_gaps' => 'Анализирую пробелы...',
     'state_analyzing_idea' => 'Анализирую идею...',
