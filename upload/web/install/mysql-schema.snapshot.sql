@@ -1,65 +1,100 @@
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `activity_feed` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `entity_type` varchar(64),
-  `entity_public_id` varchar(64),
-  `action` varchar(64),
-  `actor_public_id` varchar(64),
-  `payload` text,
-  `created_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `entity_type` varchar(64) DEFAULT NULL,
+  `entity_public_id` varchar(64) DEFAULT NULL,
+  `action` varchar(64) DEFAULT NULL,
+  `actor_public_id` varchar(64) DEFAULT NULL,
+  `payload` text DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_activity_feed_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE IF NOT EXISTS `agent_memory` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `public_id` varchar(64) NOT NULL,
+  `scope` varchar(64) NOT NULL DEFAULT 'global',
+  `key_name` varchar(190) NOT NULL,
+  `value_text` longtext NOT NULL,
+  `value_type` varchar(32) NOT NULL DEFAULT 'string',
+  `owner_user_id` bigint(20) unsigned DEFAULT NULL,
+  `metadata_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata_json`)),
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_agent_memory_public_id` (`public_id`),
+  UNIQUE KEY `uq_agent_memory_scope_key` (`scope`,`key_name`),
+  KEY `idx_agent_memory_scope` (`scope`),
+  KEY `idx_agent_memory_owner` (`owner_user_id`),
+  KEY `idx_agent_memory_updated` (`updated_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `ai_intent_settings` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `intent_code` varchar(128),
-  `provider_id` int(11),
-  `model` varchar(190),
-  `feature_flag` varchar(128),
-  `required_permission` varchar(128),
+  `public_id` varchar(64) DEFAULT NULL,
+  `intent_code` varchar(128) DEFAULT NULL,
+  `provider_id` int(11) DEFAULT NULL,
+  `model` varchar(190) DEFAULT NULL,
+  `feature_flag` varchar(128) DEFAULT NULL,
+  `required_permission` varchar(128) DEFAULT NULL,
   `allow_sensitive_context` int(11) DEFAULT 0,
-  `max_tokens` int(11),
-  `temperature` varchar(16),
+  `max_tokens` int(11) DEFAULT NULL,
+  `temperature` varchar(16) DEFAULT NULL,
   `is_enabled` int(11) DEFAULT 1,
-  `intent_payload` text,
-  `created_by_user_id` int(11),
-  `updated_by_user_id` int(11),
-  `created_at` datetime,
-  `updated_at` datetime,
+  `intent_payload` text DEFAULT NULL,
+  `created_by_user_id` int(11) DEFAULT NULL,
+  `updated_by_user_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   UNIQUE KEY `intent_code` (`intent_code`),
   KEY `idx_ai_intent_settings_provider` (`provider_id`),
   KEY `idx_ai_intent_settings_intent_created` (`intent_code`,`updated_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `ai_jobs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `job_type` varchar(64),
-  `action_type` varchar(128),
-  `intent_code` varchar(128),
-  `status` varchar(32),
-  `requested_by_user_id` int(11),
-  `scope_type` varchar(64),
-  `scope_public_id` varchar(64),
-  `idempotency_key_hash` varchar(255),
-  `payload_json` text,
-  `result_json` mediumtext,
-  `error_code` varchar(64),
-  `error_message` text,
-  `created_at` datetime,
-  `started_at` datetime,
-  `finished_at` datetime,
-  `updated_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `job_type` varchar(64) DEFAULT NULL,
+  `action_type` varchar(128) DEFAULT NULL,
+  `intent_code` varchar(128) DEFAULT NULL,
+  `status` varchar(32) DEFAULT NULL,
+  `requested_by_user_id` int(11) DEFAULT NULL,
+  `scope_type` varchar(64) DEFAULT NULL,
+  `scope_public_id` varchar(64) DEFAULT NULL,
+  `idempotency_key_hash` varchar(255) DEFAULT NULL,
+  `payload_json` text DEFAULT NULL,
+  `result_json` mediumtext DEFAULT NULL,
+  `error_code` varchar(64) DEFAULT NULL,
+  `error_message` text DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `started_at` datetime DEFAULT NULL,
+  `finished_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_ai_jobs_status_created` (`status`,`created_at`),
@@ -69,128 +104,130 @@ CREATE TABLE IF NOT EXISTS `ai_jobs` (
   KEY `idx_ai_jobs_intent_created` (`intent_code`,`created_at`),
   KEY `idx_ai_jobs_scope_created` (`scope_type`,`scope_public_id`,`created_at`),
   KEY `idx_ai_jobs_status_created_v2` (`status`,`created_at`),
-  KEY `idx_ai_jobs_actor_created_v2` (`requested_by_user_id`,`created_at`)
+  KEY `idx_ai_jobs_actor_created_v2` (`requested_by_user_id`,`created_at`),
+  KEY `idx_ai_jobs_organization` (`organization_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `ai_json_schemas` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `intent_code` varchar(128),
-  `schema_version` varchar(32),
-  `schema_json` text,
+  `public_id` varchar(64) DEFAULT NULL,
+  `intent_code` varchar(128) DEFAULT NULL,
+  `schema_version` varchar(32) DEFAULT NULL,
+  `schema_json` text DEFAULT NULL,
   `is_active` int(11) DEFAULT 1,
-  `created_by_user_id` int(11),
-  `updated_by_user_id` int(11),
-  `created_at` datetime,
-  `updated_at` datetime,
+  `created_by_user_id` int(11) DEFAULT NULL,
+  `updated_by_user_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_ai_json_schemas_intent` (`intent_code`),
   KEY `idx_ai_json_schemas_public_id` (`public_id`),
   KEY `idx_ai_json_schemas_intent_created` (`intent_code`,`created_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `ai_prompt_templates` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `intent_code` varchar(128),
-  `locale` varchar(16),
+  `public_id` varchar(64) DEFAULT NULL,
+  `intent_code` varchar(128) DEFAULT NULL,
+  `locale` varchar(16) DEFAULT NULL,
   `version` int(11) DEFAULT 1,
-  `template_text` text,
+  `template_text` text DEFAULT NULL,
   `is_active` int(11) DEFAULT 1,
-  `created_by_user_id` int(11),
-  `updated_by_user_id` int(11),
-  `created_at` datetime,
-  `updated_at` datetime,
+  `created_by_user_id` int(11) DEFAULT NULL,
+  `updated_by_user_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_ai_prompt_templates_intent_locale` (`intent_code`,`locale`),
   KEY `idx_ai_prompt_templates_public_id` (`public_id`),
   KEY `idx_ai_prompt_templates_intent_created` (`intent_code`,`created_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `ai_provider_secrets` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `provider_id` int(11),
-  `secret_encrypted` text,
-  `key_hint` varchar(64),
-  `rotated_at` datetime,
-  `created_by_user_id` int(11),
-  `updated_by_user_id` int(11),
-  `created_at` datetime,
-  `updated_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `provider_id` int(11) DEFAULT NULL,
+  `secret_encrypted` text DEFAULT NULL,
+  `key_hint` varchar(64) DEFAULT NULL,
+  `rotated_at` datetime DEFAULT NULL,
+  `created_by_user_id` int(11) DEFAULT NULL,
+  `updated_by_user_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   UNIQUE KEY `uq_ai_provider_secrets_provider_id` (`provider_id`),
   KEY `idx_ai_provider_secrets_public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `ai_providers` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `provider_code` varchar(64),
-  `title` varchar(255),
-  `base_url` text,
-  `api_path` varchar(255),
-  `default_model` varchar(190),
-  `timeout_ms` int(11),
-  `max_tokens` int(11),
-  `temperature` varchar(16),
-  `extra_headers` text,
-  `provider_payload` text,
+  `public_id` varchar(64) DEFAULT NULL,
+  `provider_code` varchar(64) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `base_url` text DEFAULT NULL,
+  `api_path` varchar(255) DEFAULT NULL,
+  `default_model` varchar(190) DEFAULT NULL,
+  `timeout_ms` int(11) DEFAULT NULL,
+  `max_tokens` int(11) DEFAULT NULL,
+  `temperature` varchar(16) DEFAULT NULL,
+  `extra_headers` text DEFAULT NULL,
+  `provider_payload` text DEFAULT NULL,
   `is_active` int(11) DEFAULT 1,
   `is_default` int(11) DEFAULT 0,
-  `created_by_user_id` int(11),
-  `updated_by_user_id` int(11),
-  `created_at` datetime,
-  `updated_at` datetime,
-  `deleted_at` datetime,
+  `created_by_user_id` int(11) DEFAULT NULL,
+  `updated_by_user_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `uq_ai_providers_provider_code_active` (`provider_code`,`is_active`),
   KEY `idx_ai_providers_default_active` (`is_default`,`is_active`),
   KEY `idx_ai_providers_public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `ai_suggestions` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `intent_code` varchar(128),
-  `entity_type` varchar(64),
-  `entity_public_id` varchar(64),
-  `summary` text,
-  `suggestion_json` text,
+  `public_id` varchar(64) DEFAULT NULL,
+  `intent_code` varchar(128) DEFAULT NULL,
+  `entity_type` varchar(64) DEFAULT NULL,
+  `entity_public_id` varchar(64) DEFAULT NULL,
+  `summary` text DEFAULT NULL,
+  `suggestion_json` text DEFAULT NULL,
   `status` varchar(32) DEFAULT 'draft',
-  `created_by_user_id` int(11),
-  `confirmed_by_user_id` int(11),
-  `created_at` datetime,
-  `updated_at` datetime,
-  `expires_at` datetime,
-  `input_hash` varchar(64),
-  `cache_key` varchar(64),
-  `dependency_fingerprint` varchar(64),
-  `cache_status` varchar(32),
-  `stale_reason` varchar(64),
-  `date_bucket` varchar(32),
-  `provider_public_id` varchar(64),
-  `provider_code` varchar(64),
-  `model` varchar(190),
-  `last_used_at` datetime,
+  `created_by_user_id` int(11) DEFAULT NULL,
+  `confirmed_by_user_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `expires_at` datetime DEFAULT NULL,
+  `input_hash` varchar(64) DEFAULT NULL,
+  `cache_key` varchar(64) DEFAULT NULL,
+  `dependency_fingerprint` varchar(64) DEFAULT NULL,
+  `cache_status` varchar(32) DEFAULT NULL,
+  `stale_reason` varchar(64) DEFAULT NULL,
+  `date_bucket` varchar(32) DEFAULT NULL,
+  `provider_public_id` varchar(64) DEFAULT NULL,
+  `provider_code` varchar(64) DEFAULT NULL,
+  `model` varchar(190) DEFAULT NULL,
+  `last_used_at` datetime DEFAULT NULL,
   `usage_count` int(11) DEFAULT 0,
-  `request_id` varchar(64),
-  `invalidated_at` datetime,
-  `result_meta_json` text,
+  `request_id` varchar(64) DEFAULT NULL,
+  `invalidated_at` datetime DEFAULT NULL,
+  `result_meta_json` text DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_ai_suggestions_scope` (`entity_type`,`entity_public_id`,`created_at`),
@@ -202,27 +239,30 @@ CREATE TABLE IF NOT EXISTS `ai_suggestions` (
   KEY `idx_ai_suggestions_actor_created_v2` (`created_by_user_id`,`created_at`),
   KEY `idx_ai_suggestions_input_hash_scope` (`intent_code`,`entity_type`,`entity_public_id`,`input_hash`),
   KEY `idx_ai_suggestions_cache_lookup_v2` (`created_by_user_id`,`intent_code`,`entity_type`,`entity_public_id`,`cache_key`,`created_at`),
-  KEY `idx_ai_suggestions_cache_status_v2` (`cache_status`,`created_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_ai_suggestions_cache_status_v2` (`cache_status`,`created_at`),
+  KEY `idx_ai_suggestions_organization_created` (`organization_id`,`intent_code`,`entity_type`,`entity_public_id`,`created_at`),
+  KEY `idx_ai_suggestions_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `ai_usage_logs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `user_id` int(11),
-  `provider_public_id` varchar(64),
-  `action_type` varchar(128),
-  `intent_code` varchar(128),
-  `status` varchar(32),
-  `error_code` varchar(64),
-  `request_tokens` int(11),
-  `response_tokens` int(11),
-  `total_tokens` int(11),
-  `latency_ms` int(11),
+  `public_id` varchar(64) DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `provider_public_id` varchar(64) DEFAULT NULL,
+  `action_type` varchar(128) DEFAULT NULL,
+  `intent_code` varchar(128) DEFAULT NULL,
+  `status` varchar(32) DEFAULT NULL,
+  `error_code` varchar(64) DEFAULT NULL,
+  `request_tokens` int(11) DEFAULT NULL,
+  `response_tokens` int(11) DEFAULT NULL,
+  `total_tokens` int(11) DEFAULT NULL,
+  `latency_ms` int(11) DEFAULT NULL,
   `is_sensitive_context` int(11) DEFAULT 0,
-  `request_meta` text,
-  `created_at` datetime,
+  `request_meta` text DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_ai_usage_logs_actor_created` (`user_id`,`created_at`),
@@ -230,170 +270,201 @@ CREATE TABLE IF NOT EXISTS `ai_usage_logs` (
   KEY `idx_ai_usage_logs_public_id` (`public_id`),
   KEY `idx_ai_usage_logs_intent_created` (`intent_code`,`created_at`),
   KEY `idx_ai_usage_logs_status_created` (`status`,`created_at`),
-  KEY `idx_ai_usage_logs_actor_created_v2` (`user_id`,`created_at`)
+  KEY `idx_ai_usage_logs_actor_created_v2` (`user_id`,`created_at`),
+  KEY `idx_ai_usage_logs_organization` (`organization_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `api_clients` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `title` varchar(255),
-  `scopes` text,
+  `public_id` varchar(64) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `scopes` text DEFAULT NULL,
   `is_active` int(11) DEFAULT 1,
-  `created_at` datetime,
-  `updated_at` datetime,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_api_clients_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `api_keys` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `client_id` int(11),
-  `user_id` int(11),
+  `public_id` varchar(64) DEFAULT NULL,
+  `client_id` int(11) DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
   `name` varchar(255) DEFAULT NULL,
-  `key_hash` varchar(255),
-  `scopes` text,
-  `expires_at` datetime,
-  `revoked_at` datetime,
-  `created_at` datetime,
+  `key_hash` varchar(255) DEFAULT NULL,
+  `scopes` text DEFAULT NULL,
+  `expires_at` datetime DEFAULT NULL,
+  `revoked_at` datetime DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `key_preview` varchar(64) DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_api_keys_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `approval_requests` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `entity_type` varchar(64),
-  `entity_public_id` varchar(64),
-  `title` varchar(255),
-  `requester_user_id` int(11),
-  `status` varchar(32),
-  `comment` text,
-  `created_at` datetime,
-  `updated_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `entity_type` varchar(64) DEFAULT NULL,
+  `entity_public_id` varchar(64) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `requester_user_id` int(11) DEFAULT NULL,
+  `status` varchar(32) DEFAULT NULL,
+  `comment` text DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_approval_requests_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `approval_steps` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `request_id` int(11),
-  `reviewer_user_id` int(11),
-  `status` varchar(32),
-  `comment` text,
-  `created_at` datetime,
-  `updated_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `request_id` int(11) DEFAULT NULL,
+  `reviewer_user_id` int(11) DEFAULT NULL,
+  `status` varchar(32) DEFAULT NULL,
+  `comment` text DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_approval_steps_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `audit_logs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `actor_public_id` varchar(64),
-  `entity_type` varchar(64),
-  `entity_public_id` varchar(64),
-  `action` varchar(64),
-  `details` text,
-  `created_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `actor_public_id` varchar(64) DEFAULT NULL,
+  `entity_type` varchar(64) DEFAULT NULL,
+  `entity_public_id` varchar(64) DEFAULT NULL,
+  `action` varchar(64) DEFAULT NULL,
+  `details` text DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_audit_entity` (`entity_type`,`entity_public_id`),
   KEY `idx_audit_logs_created` (`created_at`),
   KEY `idx_audit_logs_actor_created` (`actor_public_id`,`created_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=511 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `automation_rules` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `title` varchar(255),
-  `trigger_code` varchar(64),
-  `action_code` varchar(64),
-  `payload` text,
+  `public_id` varchar(64) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `trigger_code` varchar(64) DEFAULT NULL,
+  `action_code` varchar(64) DEFAULT NULL,
+  `payload` text DEFAULT NULL,
   `is_enabled` int(11) DEFAULT 1,
-  `created_by_user_id` int(11),
-  `created_at` datetime,
-  `updated_at` datetime,
+  `created_by_user_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
-  KEY `idx_automation_rules_created_by` (`created_by_user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=81 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_automation_rules_created_by` (`created_by_user_id`),
+  KEY `idx_automation_rules_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `automation_runs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `rule_id` int(11),
-  `status` varchar(32),
-  `error` text,
-  `created_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `rule_id` int(11) DEFAULT NULL,
+  `status` varchar(32) DEFAULT NULL,
+  `error` text DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=15208 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_automation_runs_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `business_calendars` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `title` varchar(255),
-  `timezone` varchar(64),
-  `created_at` datetime,
-  `updated_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `timezone` varchar(64) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_business_calendars_organization` (`organization_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE IF NOT EXISTS `calendar_event_attendees` (
+  `event_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `status` varchar(32) NOT NULL DEFAULT 'accepted',
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`event_id`,`user_id`),
+  KEY `idx_calendar_event_attendees_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `calendar_events` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `title` varchar(255),
-  `description` text,
-  `starts_at` datetime,
-  `ends_at` datetime,
-  `owner_user_id` int(11),
-  `project_id` int(11),
-  `task_id` int(11),
-  `created_at` datetime,
-  `updated_at` datetime,
-  `source_type` varchar(64),
-  `source_owner_user_id` int(11),
-  `source_external_id` varchar(255),
+  `public_id` varchar(64) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `starts_at` datetime DEFAULT NULL,
+  `ends_at` datetime DEFAULT NULL,
+  `owner_user_id` int(11) DEFAULT NULL,
+  `project_id` int(11) DEFAULT NULL,
+  `task_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `source_type` varchar(64) DEFAULT NULL,
+  `source_owner_user_id` int(11) DEFAULT NULL,
+  `source_external_id` varchar(255) DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
-  KEY `idx_calendar_events_source_owner` (`source_type`,`source_owner_user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=77 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_calendar_events_source_owner` (`source_type`,`source_owner_user_id`),
+  KEY `idx_calendar_events_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `chat_message_audit_logs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
+  `public_id` varchar(64) DEFAULT NULL,
   `message_id` int(11) NOT NULL,
   `chat_id` int(11) NOT NULL,
   `actor_user_id` int(11) NOT NULL,
-  `action` varchar(32),
-  `before_text` longtext,
-  `after_text` longtext,
-  `created_at` datetime,
+  `action` varchar(32) DEFAULT NULL,
+  `before_text` longtext DEFAULT NULL,
+  `after_text` longtext DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_chat_message_audit_logs_organization` (`organization_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -403,16 +474,18 @@ CREATE TABLE IF NOT EXISTS `chat_messages` (
   `public_id` varchar(64) NOT NULL,
   `chat_id` int(11) NOT NULL,
   `sender_user_id` int(11) NOT NULL,
-  `reply_to_message_id` int(11),
+  `reply_to_message_id` int(11) DEFAULT NULL,
   `message_type` varchar(32) NOT NULL DEFAULT 'text',
   `text` text NOT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
-  `edited_at` datetime,
-  `deleted_at` datetime,
-  `deleted_by_user_id` int(11),
+  `edited_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
+  `deleted_by_user_id` int(11) DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=33 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_chat_messages_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -422,11 +495,13 @@ CREATE TABLE IF NOT EXISTS `chat_participants` (
   `user_id` int(11) NOT NULL,
   `role` varchar(32) NOT NULL DEFAULT 'member',
   `is_favorite` tinyint(1) NOT NULL DEFAULT 0,
-  `muted_until` datetime,
+  `muted_until` datetime DEFAULT NULL,
   `joined_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_chat_participant` (`chat_id`,`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1508547 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `uq_chat_participant` (`chat_id`,`user_id`),
+  KEY `idx_chat_participants_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -436,9 +511,11 @@ CREATE TABLE IF NOT EXISTS `chat_read_markers` (
   `user_id` int(11) NOT NULL,
   `last_read_message_id` int(11) NOT NULL DEFAULT 0,
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_chat_read` (`chat_id`,`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=271 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `uq_chat_read` (`chat_id`,`user_id`),
+  KEY `idx_chat_read_markers_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -447,180 +524,196 @@ CREATE TABLE IF NOT EXISTS `chats` (
   `public_id` varchar(64) NOT NULL,
   `title` varchar(255) NOT NULL,
   `type` varchar(32) NOT NULL DEFAULT 'direct',
-  `project_id` int(11),
-  `team_id` int(11),
-  `last_message_at` datetime,
+  `project_id` int(11) DEFAULT NULL,
+  `team_id` int(11) DEFAULT NULL,
+  `last_message_at` datetime DEFAULT NULL,
   `created_by_user_id` int(11) NOT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `archived_at` datetime,
-  `archived_by_user_id` int(11),
-  `archived_participant_ids` text,
+  `archived_at` datetime DEFAULT NULL,
+  `archived_by_user_id` int(11) DEFAULT NULL,
+  `archived_participant_ids` text DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1732 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_chats_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `checklist_items` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `checklist_id` int(11),
-  `title` varchar(255),
+  `public_id` varchar(64) DEFAULT NULL,
+  `checklist_id` int(11) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
   `is_done` int(11) DEFAULT 0,
-  `sort_order` int(11),
-  `created_at` datetime,
-  `updated_at` datetime,
+  `sort_order` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=73 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_checklist_items_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `checklists` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `task_id` int(11),
-  `title` varchar(255),
-  `created_at` datetime,
-  `updated_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `task_id` int(11) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=67 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_checklists_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `clients` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `company_id` int(11),
-  `title` varchar(255),
-  `client_type` varchar(32),
-  `legal_name` varchar(255),
-  `person_last_name` varchar(120),
-  `person_first_name` varchar(120),
-  `person_middle_name` varchar(120),
-  `person_birth_date` date,
-  `tax_inn` varchar(12),
-  `tax_kpp` varchar(9),
-  `tax_ogrn` varchar(13),
-  `tax_ogrnip` varchar(15),
-  `bank_account` varchar(34),
-  `bank_name` varchar(255),
-  `bank_bik` varchar(9),
-  `bank_corr_account` varchar(34),
-  `website` varchar(2048),
-  `messenger` varchar(190),
-  `address_legal` text,
-  `address_postal` text,
-  `notes` text,
-  `extra_attributes` text,
-  `email` varchar(190),
-  `phone` varchar(64),
-  `status` varchar(64),
-  `created_by_user_id` int(11),
-  `created_at` datetime,
-  `updated_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `company_id` int(11) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `client_type` varchar(32) DEFAULT NULL,
+  `legal_name` varchar(255) DEFAULT NULL,
+  `person_last_name` varchar(120) DEFAULT NULL,
+  `person_first_name` varchar(120) DEFAULT NULL,
+  `person_middle_name` varchar(120) DEFAULT NULL,
+  `person_birth_date` date DEFAULT NULL,
+  `tax_inn` varchar(12) DEFAULT NULL,
+  `tax_kpp` varchar(9) DEFAULT NULL,
+  `tax_ogrn` varchar(13) DEFAULT NULL,
+  `tax_ogrnip` varchar(15) DEFAULT NULL,
+  `bank_account` varchar(34) DEFAULT NULL,
+  `bank_name` varchar(255) DEFAULT NULL,
+  `bank_bik` varchar(9) DEFAULT NULL,
+  `bank_corr_account` varchar(34) DEFAULT NULL,
+  `website` varchar(2048) DEFAULT NULL,
+  `messenger` varchar(190) DEFAULT NULL,
+  `address_legal` text DEFAULT NULL,
+  `address_postal` text DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `extra_attributes` text DEFAULT NULL,
+  `email` varchar(190) DEFAULT NULL,
+  `phone` varchar(64) DEFAULT NULL,
+  `status` varchar(64) DEFAULT NULL,
+  `created_by_user_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_clients_created_by` (`created_by_user_id`),
   KEY `idx_clients_type` (`client_type`),
-  KEY `idx_clients_tax_inn` (`tax_inn`)
+  KEY `idx_clients_tax_inn` (`tax_inn`),
+  KEY `idx_clients_organization` (`organization_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `comment_drafts` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `user_id` int(11),
-  `task_id` int(11),
-  `body` text,
-  `created_at` datetime,
-  `updated_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `task_id` int(11) DEFAULT NULL,
+  `body` text DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
-  UNIQUE KEY `uq_comment_drafts_user_task` (`user_id`,`task_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `uq_comment_drafts_user_task` (`user_id`,`task_id`),
+  KEY `idx_comment_drafts_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `comments` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `task_id` int(11),
-  `project_id` int(11),
-  `entity_type` varchar(64),
-  `entity_public_id` varchar(64),
-  `author_user_id` int(11),
-  `body` text,
+  `public_id` varchar(64) DEFAULT NULL,
+  `task_id` int(11) DEFAULT NULL,
+  `project_id` int(11) DEFAULT NULL,
+  `entity_type` varchar(64) DEFAULT NULL,
+  `entity_public_id` varchar(64) DEFAULT NULL,
+  `author_user_id` int(11) DEFAULT NULL,
+  `body` text DEFAULT NULL,
   `visibility` varchar(32) DEFAULT 'internal',
-  `created_at` datetime,
-  `updated_at` datetime,
-  `deleted_at` datetime,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
-  KEY `idx_comments_task` (`task_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4994 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_comments_task` (`task_id`),
+  KEY `idx_comments_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `companies` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `title` varchar(255),
-  `created_by_user_id` int(11),
-  `created_at` datetime,
-  `updated_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `created_by_user_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
-  KEY `idx_companies_created_by` (`created_by_user_id`)
+  KEY `idx_companies_created_by` (`created_by_user_id`),
+  KEY `idx_companies_organization` (`organization_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `contacts` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `company_id` int(11),
-  `client_id` int(11),
-  `counterparty_id` int(11),
-  `role` varchar(64),
+  `public_id` varchar(64) DEFAULT NULL,
+  `company_id` int(11) DEFAULT NULL,
+  `client_id` int(11) DEFAULT NULL,
+  `counterparty_id` int(11) DEFAULT NULL,
+  `role` varchar(64) DEFAULT NULL,
   `is_primary` tinyint(1) NOT NULL DEFAULT 0,
-  `full_name` varchar(255),
-  `email` varchar(190),
-  `phone` varchar(64),
-  `created_by_user_id` int(11),
-  `created_at` datetime,
-  `updated_at` datetime,
-  `user_id` int(11),
+  `full_name` varchar(255) DEFAULT NULL,
+  `email` varchar(190) DEFAULT NULL,
+  `phone` varchar(64) DEFAULT NULL,
+  `created_by_user_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_contacts_created_by` (`created_by_user_id`),
   KEY `idx_contacts_counterparty` (`counterparty_id`),
-  KEY `idx_contacts_user_id` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=113 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_contacts_user_id` (`user_id`),
+  KEY `idx_contacts_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `core_update_history` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `job_id` varchar(100) NOT NULL,
-  `from_version` varchar(50),
-  `from_build` varchar(50),
-  `from_sha` char(40),
+  `from_version` varchar(50) DEFAULT NULL,
+  `from_build` varchar(50) DEFAULT NULL,
+  `from_sha` char(40) DEFAULT NULL,
   `to_version` varchar(50) NOT NULL,
   `to_build` varchar(50) NOT NULL,
   `to_sha` char(40) NOT NULL,
   `channel` varchar(50) NOT NULL,
   `status` enum('started','success','failed','rolled_back') NOT NULL,
-  `risk_level` varchar(20),
-  `package_type` varchar(20),
-  `backup_id` varchar(100),
+  `risk_level` varchar(20) DEFAULT NULL,
+  `package_type` varchar(20) DEFAULT NULL,
+  `backup_id` varchar(100) DEFAULT NULL,
   `started_at` datetime NOT NULL,
-  `finished_at` datetime,
-  `error_message` text,
-  `created_by_user_id` bigint(20),
+  `finished_at` datetime DEFAULT NULL,
+  `error_message` text DEFAULT NULL,
+  `created_by_user_id` bigint(20) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_core_update_job` (`job_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -631,9 +724,9 @@ CREATE TABLE IF NOT EXISTS `core_update_log` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `job_id` varchar(100) NOT NULL,
   `level` enum('debug','info','warning','error') NOT NULL,
-  `step` varchar(100),
+  `step` varchar(100) DEFAULT NULL,
   `message` text NOT NULL,
-  `context` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`context`)),
+  `context` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`context`)),
   `created_at` datetime NOT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_core_update_log_job` (`job_id`)
@@ -644,41 +737,43 @@ CREATE TABLE IF NOT EXISTS `core_update_log` (
 CREATE TABLE IF NOT EXISTS `counterparties` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `public_id` varchar(64) NOT NULL,
-  `created_by_user_id` int(11),
+  `created_by_user_id` int(11) DEFAULT NULL,
   `title` varchar(255) NOT NULL,
   `counterparty_type` varchar(32) NOT NULL DEFAULT 'organization',
   `status` varchar(64) NOT NULL DEFAULT 'active',
-  `legal_name` varchar(255),
-  `person_last_name` varchar(120),
-  `person_first_name` varchar(120),
-  `person_middle_name` varchar(120),
-  `person_birth_date` date,
-  `tax_inn` varchar(12),
-  `tax_kpp` varchar(9),
-  `tax_ogrn` varchar(13),
-  `tax_ogrnip` varchar(15),
-  `bank_account` varchar(34),
-  `bank_name` varchar(255),
-  `bank_bik` varchar(9),
-  `bank_corr_account` varchar(34),
-  `website` varchar(2048),
-  `messenger` varchar(190),
-  `address_legal` text,
-  `address_postal` text,
-  `notes` text,
-  `extra_attributes` text,
-  `email` varchar(190),
-  `phone` varchar(64),
+  `legal_name` varchar(255) DEFAULT NULL,
+  `person_last_name` varchar(120) DEFAULT NULL,
+  `person_first_name` varchar(120) DEFAULT NULL,
+  `person_middle_name` varchar(120) DEFAULT NULL,
+  `person_birth_date` date DEFAULT NULL,
+  `tax_inn` varchar(12) DEFAULT NULL,
+  `tax_kpp` varchar(9) DEFAULT NULL,
+  `tax_ogrn` varchar(13) DEFAULT NULL,
+  `tax_ogrnip` varchar(15) DEFAULT NULL,
+  `bank_account` varchar(34) DEFAULT NULL,
+  `bank_name` varchar(255) DEFAULT NULL,
+  `bank_bik` varchar(9) DEFAULT NULL,
+  `bank_corr_account` varchar(34) DEFAULT NULL,
+  `website` varchar(2048) DEFAULT NULL,
+  `messenger` varchar(190) DEFAULT NULL,
+  `address_legal` text DEFAULT NULL,
+  `address_postal` text DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `extra_attributes` text DEFAULT NULL,
+  `email` varchar(190) DEFAULT NULL,
+  `phone` varchar(64) DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `address_actual` text,
+  `address_actual` text DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_counterparties_type` (`counterparty_type`),
   KEY `idx_counterparties_status` (`status`),
   KEY `idx_counterparties_created_by` (`created_by_user_id`),
-  KEY `idx_counterparties_tax_inn` (`tax_inn`)
-) ENGINE=InnoDB AUTO_INCREMENT=331 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_counterparties_tax_inn` (`tax_inn`),
+  KEY `idx_counterparties_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -712,33 +807,37 @@ CREATE TABLE IF NOT EXISTS `crm_wip_scope_limits` (
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `custom_field_values` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `field_id` int(11),
-  `entity_type` varchar(64),
-  `entity_public_id` varchar(64),
-  `value` text,
-  `created_at` datetime,
-  `updated_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `field_id` int(11) DEFAULT NULL,
+  `entity_type` varchar(64) DEFAULT NULL,
+  `entity_public_id` varchar(64) DEFAULT NULL,
+  `value` text DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_custom_field_values_organization` (`organization_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `custom_fields` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `scope` varchar(64),
-  `code` varchar(64),
-  `title` varchar(255),
-  `type` varchar(64),
-  `options` text,
+  `public_id` varchar(64) DEFAULT NULL,
+  `scope` varchar(64) DEFAULT NULL,
+  `code` varchar(64) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `type` varchar(64) DEFAULT NULL,
+  `options` text DEFAULT NULL,
   `is_required` int(11) DEFAULT 0,
-  `created_at` datetime,
-  `updated_at` datetime,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=60 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_custom_fields_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -752,13 +851,15 @@ CREATE TABLE IF NOT EXISTS `cycle_snapshots` (
   `open_tasks` int(11) NOT NULL DEFAULT 0,
   `overdue_tasks` int(11) NOT NULL DEFAULT 0,
   `unassigned_tasks` int(11) NOT NULL DEFAULT 0,
-  `payload_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`payload_json`)),
+  `payload_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`payload_json`)),
   `created_at` datetime NOT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_cycle_snapshots_public_id` (`public_id`),
   UNIQUE KEY `uq_cycle_snapshots_cycle_date` (`cycle_id`,`snapshot_date`),
-  KEY `idx_cycle_snapshots_cycle_created` (`cycle_id`,`created_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=58 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_cycle_snapshots_cycle_created` (`cycle_id`,`created_at`),
+  KEY `idx_cycle_snapshots_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -767,15 +868,16 @@ CREATE TABLE IF NOT EXISTS `cycle_tasks` (
   `public_id` varchar(64) NOT NULL,
   `cycle_id` bigint(20) unsigned NOT NULL,
   `task_id` bigint(20) unsigned NOT NULL,
-  `active_key` varchar(191),
+  `active_key` varchar(191) DEFAULT NULL,
   `added_by_user_id` bigint(20) unsigned NOT NULL,
   `added_at` datetime NOT NULL,
-  `removed_by_user_id` bigint(20) unsigned,
-  `removed_at` datetime,
+  `removed_by_user_id` bigint(20) unsigned DEFAULT NULL,
+  `removed_at` datetime DEFAULT NULL,
   `sort_order` int(11) NOT NULL DEFAULT 65535,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
-  `deleted_at` datetime,
+  `deleted_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_cycle_tasks_public_id` (`public_id`),
   UNIQUE KEY `uq_cycle_tasks_active_key` (`active_key`),
@@ -783,33 +885,38 @@ CREATE TABLE IF NOT EXISTS `cycle_tasks` (
   KEY `idx_cycle_tasks_task_active` (`task_id`,`deleted_at`),
   KEY `idx_cycle_tasks_added_by` (`added_by_user_id`,`added_at`),
   KEY `idx_cycle_tasks_removed_at` (`removed_at`),
-  KEY `idx_cycle_tasks_deleted_at` (`deleted_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=39 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_cycle_tasks_deleted_at` (`deleted_at`),
+  KEY `idx_cycle_tasks_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `departments` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `title` varchar(255),
-  `manager_user_id` int(11),
-  `created_at` datetime,
-  `updated_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `manager_user_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_departments_organization` (`organization_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `entity_tags` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `entity_type` varchar(32),
-  `entity_public_id` varchar(64),
-  `tag_id` int(11),
-  `created_at` datetime,
+  `entity_type` varchar(32) DEFAULT NULL,
+  `entity_public_id` varchar(64) DEFAULT NULL,
+  `tag_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `idx_entity_tags_entity` (`entity_type`,`entity_public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=136 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_entity_tags_entity` (`entity_type`,`entity_public_id`),
+  KEY `idx_entity_tags_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -819,28 +926,30 @@ CREATE TABLE IF NOT EXISTS `estimate_options` (
   `estimate_set_id` bigint(20) unsigned NOT NULL,
   `label` varchar(255) NOT NULL,
   `code` varchar(64) NOT NULL,
-  `numeric_value` decimal(12,2),
-  `color` varchar(32),
-  `description` text,
+  `numeric_value` decimal(12,2) DEFAULT NULL,
+  `color` varchar(32) DEFAULT NULL,
+  `description` text DEFAULT NULL,
   `is_default` tinyint(1) NOT NULL DEFAULT 0,
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
-  `active_key` varchar(191),
+  `active_key` varchar(191) DEFAULT NULL,
   `sort_order` int(11) NOT NULL DEFAULT 65535,
   `created_by_user_id` bigint(20) unsigned NOT NULL,
-  `updated_by_user_id` bigint(20) unsigned,
+  `updated_by_user_id` bigint(20) unsigned DEFAULT NULL,
   `row_version` int(11) NOT NULL DEFAULT 1,
-  `archived_at` datetime,
-  `deleted_at` datetime,
+  `archived_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_estimate_options_public_id` (`public_id`),
   UNIQUE KEY `uq_estimate_options_active_key` (`active_key`),
   KEY `idx_estimate_options_set_active` (`estimate_set_id`,`is_active`),
   KEY `idx_estimate_options_set_sort` (`estimate_set_id`,`sort_order`),
   KEY `idx_estimate_options_numeric` (`numeric_value`),
-  KEY `idx_estimate_options_deleted_at` (`deleted_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_estimate_options_deleted_at` (`deleted_at`),
+  KEY `idx_estimate_options_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -848,25 +957,26 @@ CREATE TABLE IF NOT EXISTS `estimate_sets` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `public_id` varchar(64) NOT NULL,
   `scope_type` varchar(32) NOT NULL DEFAULT 'project',
-  `project_id` bigint(20) unsigned,
+  `project_id` bigint(20) unsigned DEFAULT NULL,
   `name` varchar(255) NOT NULL,
   `code` varchar(64) NOT NULL,
   `estimate_type` varchar(64) NOT NULL DEFAULT 'custom',
-  `unit_label` varchar(32),
-  `currency_code` varchar(8),
-  `description` text,
+  `unit_label` varchar(32) DEFAULT NULL,
+  `currency_code` varchar(8) DEFAULT NULL,
+  `description` text DEFAULT NULL,
   `is_default` tinyint(1) NOT NULL DEFAULT 0,
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
   `is_locked` tinyint(1) NOT NULL DEFAULT 0,
-  `active_key` varchar(191),
+  `active_key` varchar(191) DEFAULT NULL,
   `sort_order` int(11) NOT NULL DEFAULT 65535,
   `created_by_user_id` bigint(20) unsigned NOT NULL,
-  `updated_by_user_id` bigint(20) unsigned,
+  `updated_by_user_id` bigint(20) unsigned DEFAULT NULL,
   `row_version` int(11) NOT NULL DEFAULT 1,
-  `archived_at` datetime,
-  `deleted_at` datetime,
+  `archived_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_estimate_sets_public_id` (`public_id`),
   UNIQUE KEY `uq_estimate_sets_active_key` (`active_key`),
@@ -875,32 +985,35 @@ CREATE TABLE IF NOT EXISTS `estimate_sets` (
   KEY `idx_estimate_sets_type` (`estimate_type`),
   KEY `idx_estimate_sets_code` (`code`),
   KEY `idx_estimate_sets_archived_at` (`archived_at`),
-  KEY `idx_estimate_sets_deleted_at` (`deleted_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_estimate_sets_deleted_at` (`deleted_at`),
+  KEY `idx_estimate_sets_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `export_jobs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `user_id` int(11),
-  `type` varchar(64),
-  `status` varchar(32),
-  `payload` text,
-  `result` text,
-  `created_at` datetime,
-  `updated_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `type` varchar(64) DEFAULT NULL,
+  `status` varchar(32) DEFAULT NULL,
+  `payload` text DEFAULT NULL,
+  `result` text DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
   `attempts` int(11) NOT NULL DEFAULT 0,
-  `next_run_at` datetime,
-  `locked_at` datetime,
-  `started_at` datetime,
-  `finished_at` datetime,
-  `last_error` text,
+  `next_run_at` datetime DEFAULT NULL,
+  `locked_at` datetime DEFAULT NULL,
+  `started_at` datetime DEFAULT NULL,
+  `finished_at` datetime DEFAULT NULL,
+  `last_error` text DEFAULT NULL,
   `dead_letter` int(11) NOT NULL DEFAULT 0,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_export_jobs_queue_runnable` (`status`,`dead_letter`,`next_run_at`,`locked_at`,`created_at`),
-  KEY `idx_export_jobs_attempts` (`attempts`,`updated_at`)
+  KEY `idx_export_jobs_attempts` (`attempts`,`updated_at`),
+  KEY `idx_export_jobs_organization` (`organization_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -909,7 +1022,7 @@ CREATE TABLE IF NOT EXISTS `external_user_project_access` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `user_id` bigint(20) unsigned NOT NULL,
   `project_id` bigint(20) unsigned NOT NULL,
-  `granted_by_user_id` bigint(20) unsigned,
+  `granted_by_user_id` bigint(20) unsigned DEFAULT NULL,
   `created_at` datetime NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_ext_user_project_access` (`user_id`,`project_id`),
@@ -921,55 +1034,61 @@ CREATE TABLE IF NOT EXISTS `external_user_project_access` (
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `favorites` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `user_id` int(11),
-  `entity_type` varchar(64),
-  `entity_public_id` varchar(64),
-  `created_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `entity_type` varchar(64) DEFAULT NULL,
+  `entity_public_id` varchar(64) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_favorites_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `feature_flags` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `code` varchar(128),
+  `public_id` varchar(64) DEFAULT NULL,
+  `code` varchar(128) DEFAULT NULL,
   `is_enabled` int(11) DEFAULT 1,
-  `payload` text,
-  `created_at` datetime,
-  `updated_at` datetime,
+  `payload` text DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   UNIQUE KEY `uq_feature_flags_code` (`code`)
-) ENGINE=InnoDB AUTO_INCREMENT=40 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `files` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `entity_type` varchar(32),
-  `entity_public_id` varchar(64),
-  `uploader_user_id` int(11),
-  `original_name` varchar(255),
-  `storage_path` text,
-  `mime_type` varchar(128),
-  `size_bytes` bigint(20),
+  `public_id` varchar(64) DEFAULT NULL,
+  `entity_type` varchar(32) DEFAULT NULL,
+  `entity_public_id` varchar(64) DEFAULT NULL,
+  `uploader_user_id` int(11) DEFAULT NULL,
+  `original_name` varchar(255) DEFAULT NULL,
+  `storage_path` text DEFAULT NULL,
+  `mime_type` varchar(128) DEFAULT NULL,
+  `size_bytes` bigint(20) DEFAULT NULL,
   `is_deleted` int(11) DEFAULT 0,
-  `created_at` datetime,
-  `source_type` varchar(64),
-  `source_id` varchar(255),
-  `source_url` varchar(2048),
-  `checksum` char(64),
-  `source_payload_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`source_payload_json`)),
-  `deleted_at` datetime,
+  `created_at` datetime DEFAULT NULL,
+  `source_type` varchar(64) DEFAULT NULL,
+  `source_id` varchar(255) DEFAULT NULL,
+  `source_url` varchar(2048) DEFAULT NULL,
+  `checksum` char(64) DEFAULT NULL,
+  `source_payload_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`source_payload_json`)),
+  `deleted_at` datetime DEFAULT NULL,
+  `is_internal` tinyint(1) NOT NULL DEFAULT 0,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_files_entity` (`entity_type`,`entity_public_id`),
-  KEY `idx_files_source` (`source_type`,`source_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_files_source` (`source_type`,`source_id`),
+  KEY `idx_files_is_internal` (`is_internal`),
+  KEY `idx_files_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -977,13 +1096,13 @@ CREATE TABLE IF NOT EXISTS `google_calendar_connections` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `public_id` varchar(64) NOT NULL,
   `user_id` int(11) NOT NULL,
-  `google_account_email` varchar(190),
+  `google_account_email` varchar(190) DEFAULT NULL,
   `refresh_token_encrypted` text NOT NULL,
-  `access_token_encrypted` text,
-  `access_token_expires_at` datetime,
+  `access_token_encrypted` text DEFAULT NULL,
+  `access_token_expires_at` datetime DEFAULT NULL,
   `status` varchar(32) NOT NULL DEFAULT 'active',
-  `last_error` text,
-  `last_sync_at` datetime,
+  `last_error` text DEFAULT NULL,
+  `last_sync_at` datetime DEFAULT NULL,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
   PRIMARY KEY (`id`),
@@ -1004,7 +1123,7 @@ CREATE TABLE IF NOT EXISTS `google_calendar_credentials` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   UNIQUE KEY `uq_google_calendar_credentials_user` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1013,16 +1132,16 @@ CREATE TABLE IF NOT EXISTS `google_calendar_events` (
   `public_id` varchar(64) NOT NULL,
   `source_id` int(11) NOT NULL,
   `google_event_id` varchar(512) NOT NULL,
-  `crm_event_public_id` varchar(64),
-  `recurring_event_id` varchar(512),
-  `etag` varchar(255),
-  `google_updated_at` datetime,
+  `crm_event_public_id` varchar(64) DEFAULT NULL,
+  `recurring_event_id` varchar(512) DEFAULT NULL,
+  `etag` varchar(255) DEFAULT NULL,
+  `google_updated_at` datetime DEFAULT NULL,
   `is_all_day` int(11) NOT NULL DEFAULT 0,
-  `all_day_start` date,
-  `all_day_end` date,
-  `last_synced_at` datetime,
+  `all_day_start` date DEFAULT NULL,
+  `all_day_end` date DEFAULT NULL,
+  `last_synced_at` datetime DEFAULT NULL,
   `status` varchar(32) NOT NULL DEFAULT 'active',
-  `last_error` text,
+  `last_error` text DEFAULT NULL,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
   PRIMARY KEY (`id`),
@@ -1037,20 +1156,20 @@ CREATE TABLE IF NOT EXISTS `google_calendar_sources` (
   `public_id` varchar(64) NOT NULL,
   `connection_id` int(11) NOT NULL,
   `calendar_id` varchar(512) NOT NULL,
-  `summary` varchar(255),
-  `timezone` varchar(128),
+  `summary` varchar(255) DEFAULT NULL,
+  `timezone` varchar(128) DEFAULT NULL,
   `direction` varchar(32) NOT NULL DEFAULT 'google_to_crm',
   `is_enabled` int(11) NOT NULL DEFAULT 1,
   `is_primary` int(11) NOT NULL DEFAULT 0,
-  `sync_token` text,
-  `watch_channel_id` varchar(128),
-  `watch_resource_id` varchar(255),
-  `watch_expiration` bigint(20),
-  `last_sync_at` datetime,
-  `last_error` text,
+  `sync_token` text DEFAULT NULL,
+  `watch_channel_id` varchar(128) DEFAULT NULL,
+  `watch_resource_id` varchar(255) DEFAULT NULL,
+  `watch_expiration` bigint(20) DEFAULT NULL,
+  `last_sync_at` datetime DEFAULT NULL,
+  `last_error` text DEFAULT NULL,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
-  `watch_token_encrypted` text,
+  `watch_token_encrypted` text DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   UNIQUE KEY `uq_google_calendar_source` (`connection_id`,`calendar_id`)
@@ -1060,13 +1179,15 @@ CREATE TABLE IF NOT EXISTS `google_calendar_sources` (
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `holidays` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `calendar_id` int(11),
-  `holiday_date` date,
-  `title` varchar(255),
-  `created_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `calendar_id` int(11) DEFAULT NULL,
+  `holiday_date` date DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_holidays_organization` (`organization_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -1077,12 +1198,14 @@ CREATE TABLE IF NOT EXISTS `idea_ai_iterations` (
   `idea_id` int(11) NOT NULL,
   `iteration` int(11) NOT NULL DEFAULT 1,
   `type` varchar(32) NOT NULL DEFAULT 'analyze',
-  `request_payload` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`request_payload`)),
-  `response_payload` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`response_payload`)),
+  `request_payload` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`request_payload`)),
+  `response_payload` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`response_payload`)),
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=174 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_idea_ai_iterations_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1092,20 +1215,22 @@ CREATE TABLE IF NOT EXISTS `idea_analyses` (
   `idea_id` int(11) NOT NULL,
   `analysis_type` varchar(64) NOT NULL,
   `status` varchar(32) NOT NULL DEFAULT 'pending',
-  `input_snapshot_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`input_snapshot_json`)),
-  `result_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`result_json`)),
-  `input_hash` varchar(64),
-  `prompt_version` varchar(32),
-  `schema_version` varchar(32),
-  `result_text` text,
-  `confidence` varchar(32),
-  `error_message` text,
+  `input_snapshot_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`input_snapshot_json`)),
+  `result_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`result_json`)),
+  `input_hash` varchar(64) DEFAULT NULL,
+  `prompt_version` varchar(32) DEFAULT NULL,
+  `schema_version` varchar(32) DEFAULT NULL,
+  `result_text` text DEFAULT NULL,
+  `confidence` varchar(32) DEFAULT NULL,
+  `error_message` text DEFAULT NULL,
   `attempts` int(11) NOT NULL DEFAULT 1,
-  `started_at` datetime,
-  `completed_at` datetime,
+  `started_at` datetime DEFAULT NULL,
+  `completed_at` datetime DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_idea_analyses_organization` (`organization_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -1116,16 +1241,18 @@ CREATE TABLE IF NOT EXISTS `idea_analysis_steps` (
   `step_key` varchar(64) NOT NULL,
   `step_order` int(11) NOT NULL,
   `status` varchar(32) NOT NULL DEFAULT 'pending',
-  `input_snapshot_json` longtext,
-  `result_json` longtext,
-  `result_text` longtext,
-  `error_message` text,
+  `input_snapshot_json` longtext DEFAULT NULL,
+  `result_json` longtext DEFAULT NULL,
+  `result_text` longtext DEFAULT NULL,
+  `error_message` text DEFAULT NULL,
   `attempts` int(11) NOT NULL DEFAULT 0,
-  `started_at` datetime,
-  `completed_at` datetime,
+  `started_at` datetime DEFAULT NULL,
+  `completed_at` datetime DEFAULT NULL,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
-  PRIMARY KEY (`id`)
+  `pipeline` varchar(32) NOT NULL DEFAULT 'mcp',
+  PRIMARY KEY (`id`),
+  KEY `idx_idea_pipeline` (`idea_id`,`pipeline`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -1134,96 +1261,98 @@ CREATE TABLE IF NOT EXISTS `idea_answers` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `idea_id` int(11) NOT NULL,
   `question_id` int(11) NOT NULL,
-  `answer_text` text,
-  `selected_option_key` text,
-  `selected_option_label` text,
-  `selected_options_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`selected_options_json`)),
+  `answer_text` text DEFAULT NULL,
+  `selected_option_key` text DEFAULT NULL,
+  `selected_option_label` text DEFAULT NULL,
+  `selected_options_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`selected_options_json`)),
   `is_custom` tinyint(4) NOT NULL DEFAULT 0,
   `is_unknown` tinyint(4) NOT NULL DEFAULT 0,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=90 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `organization_id` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_idea_answers_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `idea_final_recommendations` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `idea_id` int(11) NOT NULL,
-  `status` varchar(30),
-  `status_label` varchar(200),
-  `recommendation_score` decimal(5,2),
-  `ai_recommendation_score` decimal(5,2),
-  `calculated_recommendation_score` decimal(5,2),
-  `potential_score` decimal(5,2),
-  `feasibility_score` decimal(5,2),
-  `risk_score` decimal(5,2),
-  `data_completeness_score` decimal(5,2),
-  `plan_quality_score` decimal(5,2),
-  `blocker_score` decimal(5,2),
-  `confidence_score` decimal(5,2),
-  `recommendation_json` mediumtext,
-  `ai_request_json` mediumtext,
-  `ai_response_json` mediumtext,
+  `status` varchar(30) DEFAULT NULL,
+  `status_label` varchar(200) DEFAULT NULL,
+  `recommendation_score` decimal(5,2) DEFAULT NULL,
+  `ai_recommendation_score` decimal(5,2) DEFAULT NULL,
+  `calculated_recommendation_score` decimal(5,2) DEFAULT NULL,
+  `potential_score` decimal(5,2) DEFAULT NULL,
+  `feasibility_score` decimal(5,2) DEFAULT NULL,
+  `risk_score` decimal(5,2) DEFAULT NULL,
+  `data_completeness_score` decimal(5,2) DEFAULT NULL,
+  `plan_quality_score` decimal(5,2) DEFAULT NULL,
+  `blocker_score` decimal(5,2) DEFAULT NULL,
+  `confidence_score` decimal(5,2) DEFAULT NULL,
+  `recommendation_json` mediumtext DEFAULT NULL,
+  `ai_request_json` mediumtext DEFAULT NULL,
+  `ai_response_json` mediumtext DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `idea_id` (`idea_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `idea_implementation_plans` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `idea_id` int(11) NOT NULL,
-  `plan_json` mediumtext,
-  `summary` text,
-  `planning_horizon` varchar(50),
-  `plan_type` varchar(20),
-  `confidence_score` decimal(3,2),
-  `ai_request_json` mediumtext,
-  `ai_response_json` mediumtext,
+  `plan_json` mediumtext DEFAULT NULL,
+  `summary` text DEFAULT NULL,
+  `planning_horizon` varchar(50) DEFAULT NULL,
+  `plan_type` varchar(20) DEFAULT NULL,
+  `confidence_score` decimal(3,2) DEFAULT NULL,
+  `ai_request_json` mediumtext DEFAULT NULL,
+  `ai_response_json` mediumtext DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `idea_id` (`idea_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `idea_pitfalls_reports` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `idea_id` int(11) NOT NULL,
-  `overall_hidden_complexity` varchar(20),
-  `overall_summary` text,
-  `pitfalls_json` mediumtext,
-  `data_confidence` decimal(3,2),
-  `ai_request_json` mediumtext,
-  `ai_response_json` mediumtext,
+  `overall_hidden_complexity` varchar(20) DEFAULT NULL,
+  `overall_summary` text DEFAULT NULL,
+  `pitfalls_json` mediumtext DEFAULT NULL,
+  `data_confidence` decimal(3,2) DEFAULT NULL,
+  `ai_request_json` mediumtext DEFAULT NULL,
+  `ai_response_json` mediumtext DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `idea_id` (`idea_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `idea_potential_scores` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `idea_id` int(11) NOT NULL,
-  `potential_json` mediumtext,
-  `potential_score` decimal(5,2),
-  `potential_level` varchar(20),
-  `confidence_score` decimal(3,2),
-  `completeness_score` decimal(3,2),
-  `calculation_type` varchar(50),
-  `verdict` text,
-  `ai_request_json` mediumtext,
-  `ai_response_json` mediumtext,
+  `potential_json` mediumtext DEFAULT NULL,
+  `potential_score` decimal(5,2) DEFAULT NULL,
+  `potential_level` varchar(20) DEFAULT NULL,
+  `confidence_score` decimal(3,2) DEFAULT NULL,
+  `completeness_score` decimal(3,2) DEFAULT NULL,
+  `calculation_type` varchar(50) DEFAULT NULL,
+  `verdict` text DEFAULT NULL,
+  `ai_request_json` mediumtext DEFAULT NULL,
+  `ai_response_json` mediumtext DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `idea_id` (`idea_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1232,11 +1361,11 @@ CREATE TABLE IF NOT EXISTS `idea_question_cycles` (
   `idea_id` int(11) NOT NULL,
   `cycle_number` int(11) NOT NULL,
   `status` varchar(32) NOT NULL DEFAULT 'pending',
-  `input_snapshot_json` longtext,
-  `ai_response_json` longtext,
-  `summary_for_user` text,
+  `input_snapshot_json` longtext DEFAULT NULL,
+  `ai_response_json` longtext DEFAULT NULL,
+  `summary_for_user` text DEFAULT NULL,
   `created_at` datetime NOT NULL,
-  `completed_at` datetime,
+  `completed_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -1248,76 +1377,78 @@ CREATE TABLE IF NOT EXISTS `idea_questions` (
   `idea_id` int(11) NOT NULL,
   `cycle_id` int(11) NOT NULL DEFAULT 1,
   `question_text` text NOT NULL,
-  `reason` text,
+  `reason` text DEFAULT NULL,
   `question_type` varchar(32) NOT NULL DEFAULT 'single_choice',
-  `options_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`options_json`)),
+  `options_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`options_json`)),
   `allow_custom` tinyint(4) NOT NULL DEFAULT 1,
   `allow_unknown` tinyint(4) NOT NULL DEFAULT 1,
   `required` tinyint(4) NOT NULL DEFAULT 1,
-  `dimension` text,
+  `dimension` text DEFAULT NULL,
   `impact` varchar(32) DEFAULT 'medium',
   `sort_order` int(11) NOT NULL DEFAULT 0,
   `is_active` tinyint(4) NOT NULL DEFAULT 1,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=135 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_idea_questions_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `idea_refined_cards` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `idea_id` int(11) NOT NULL,
-  `profile_json` mediumtext,
-  `summary` text,
-  `idea_type` varchar(50),
-  `specificity_level` varchar(20),
-  `completeness_score` decimal(3,2),
-  `confidence_score` decimal(3,2),
-  `next_action` varchar(50),
-  `ai_request_json` mediumtext,
-  `ai_response_json` mediumtext,
+  `profile_json` mediumtext DEFAULT NULL,
+  `summary` text DEFAULT NULL,
+  `idea_type` varchar(50) DEFAULT NULL,
+  `specificity_level` varchar(20) DEFAULT NULL,
+  `completeness_score` decimal(3,2) DEFAULT NULL,
+  `confidence_score` decimal(3,2) DEFAULT NULL,
+  `next_action` varchar(50) DEFAULT NULL,
+  `ai_request_json` mediumtext DEFAULT NULL,
+  `ai_response_json` mediumtext DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `idea_id` (`idea_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `idea_risk_reports` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `idea_id` int(11) NOT NULL,
-  `risk_report_json` mediumtext,
-  `overall_risk_score` decimal(5,2),
-  `overall_risk_level` varchar(20),
+  `risk_report_json` mediumtext DEFAULT NULL,
+  `overall_risk_score` decimal(5,2) DEFAULT NULL,
+  `overall_risk_level` varchar(20) DEFAULT NULL,
   `critical_risks_count` int(11) DEFAULT 0,
   `high_risks_count` int(11) DEFAULT 0,
   `medium_risks_count` int(11) DEFAULT 0,
   `low_risks_count` int(11) DEFAULT 0,
-  `confidence_score` decimal(3,2),
-  `ai_request_json` mediumtext,
-  `ai_response_json` mediumtext,
+  `confidence_score` decimal(3,2) DEFAULT NULL,
+  `ai_request_json` mediumtext DEFAULT NULL,
+  `ai_response_json` mediumtext DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `idea_id` (`idea_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `idea_suggested_tasks` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `idea_id` int(11) NOT NULL,
-  `tasks_json` mediumtext,
-  `summary` text,
-  `ai_request_json` mediumtext,
-  `ai_response_json` mediumtext,
+  `tasks_json` mediumtext DEFAULT NULL,
+  `summary` text DEFAULT NULL,
+  `ai_request_json` mediumtext DEFAULT NULL,
+  `ai_response_json` mediumtext DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `idea_id` (`idea_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1325,21 +1456,23 @@ CREATE TABLE IF NOT EXISTS `idea_task_drafts` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `public_id` varchar(64) NOT NULL,
   `idea_id` int(11) NOT NULL,
-  `parent_id` int(11),
-  `crm_task_id` int(11),
+  `parent_id` int(11) DEFAULT NULL,
+  `crm_task_id` int(11) DEFAULT NULL,
   `title` varchar(255) NOT NULL,
-  `description` text,
-  `type` varchar(64),
-  `stage` varchar(64),
+  `description` text DEFAULT NULL,
+  `type` varchar(64) DEFAULT NULL,
+  `stage` varchar(64) DEFAULT NULL,
   `priority` varchar(32) DEFAULT 'normal',
-  `acceptance_criteria_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`acceptance_criteria_json`)),
-  `dependencies_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`dependencies_json`)),
-  `estimated_duration` varchar(128),
+  `acceptance_criteria_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`acceptance_criteria_json`)),
+  `dependencies_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`dependencies_json`)),
+  `estimated_duration` varchar(128) DEFAULT NULL,
   `sort_order` int(11) NOT NULL DEFAULT 0,
   `is_selected` tinyint(4) NOT NULL DEFAULT 1,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_idea_task_drafts_organization` (`organization_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -1347,20 +1480,20 @@ CREATE TABLE IF NOT EXISTS `idea_task_drafts` (
 CREATE TABLE IF NOT EXISTS `idea_understanding_cards` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `idea_id` int(11) NOT NULL,
-  `profile_json` mediumtext,
-  `summary` text,
-  `idea_type` varchar(50),
-  `specificity_level` varchar(20),
-  `completeness_score` decimal(3,2),
-  `confidence_score` decimal(3,2),
-  `next_action` varchar(50),
-  `ai_request_json` mediumtext,
-  `ai_response_json` mediumtext,
+  `profile_json` mediumtext DEFAULT NULL,
+  `summary` text DEFAULT NULL,
+  `idea_type` varchar(50) DEFAULT NULL,
+  `specificity_level` varchar(20) DEFAULT NULL,
+  `completeness_score` decimal(3,2) DEFAULT NULL,
+  `confidence_score` decimal(3,2) DEFAULT NULL,
+  `next_action` varchar(50) DEFAULT NULL,
+  `ai_request_json` mediumtext DEFAULT NULL,
+  `ai_response_json` mediumtext DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `idea_id` (`idea_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1369,9 +1502,11 @@ CREATE TABLE IF NOT EXISTS `idea_votes` (
   `idea_id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_idea_vote` (`idea_id`,`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `uq_idea_vote` (`idea_id`,`user_id`),
+  KEY `idx_idea_votes_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1379,95 +1514,99 @@ CREATE TABLE IF NOT EXISTS `ideas` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `public_id` varchar(64) NOT NULL,
   `title` varchar(255) NOT NULL,
-  `description` text,
-  `goal` text,
+  `description` text DEFAULT NULL,
+  `goal` text DEFAULT NULL,
   `author_user_id` int(11) NOT NULL,
   `status` varchar(32) NOT NULL DEFAULT 'new',
-  `category` varchar(64),
-  `region` varchar(190),
+  `category` varchar(64) DEFAULT NULL,
+  `region` varchar(190) DEFAULT NULL,
   `visibility` varchar(16) NOT NULL DEFAULT 'public',
-  `target_date` date,
-  `type` varchar(64),
-  `domain` varchar(128),
-  `maturity` varchar(64),
-  `known_facts_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`known_facts_json`)),
-  `unknowns_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`unknowns_json`)),
-  `assumptions_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`assumptions_json`)),
-  `coverage_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`coverage_json`)),
+  `target_date` date DEFAULT NULL,
+  `type` varchar(64) DEFAULT NULL,
+  `domain` varchar(128) DEFAULT NULL,
+  `maturity` varchar(64) DEFAULT NULL,
+  `known_facts_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`known_facts_json`)),
+  `unknowns_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`unknowns_json`)),
+  `assumptions_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`assumptions_json`)),
+  `coverage_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`coverage_json`)),
   `vote_count` int(11) NOT NULL DEFAULT 0,
   `comment_count` int(11) NOT NULL DEFAULT 0,
-  `ai_analysis` text,
-  `ai_analysis_at` datetime,
+  `ai_analysis` text DEFAULT NULL,
+  `ai_analysis_at` datetime DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `prompt_version` text,
-  `schema_version` text,
-  `source_context_json` text,
+  `prompt_version` text DEFAULT NULL,
+  `schema_version` text DEFAULT NULL,
+  `source_context_json` text DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=99 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_ideas_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `idempotency_keys` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `key_hash` varchar(255),
-  `route` varchar(255),
-  `response_payload` text,
-  `created_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `key_hash` varchar(255) DEFAULT NULL,
+  `route` varchar(255) DEFAULT NULL,
+  `response_payload` text DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=56 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `impersonation_audit` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `admin_user_id` int(11),
-  `target_user_id` int(11),
-  `reason` text,
-  `started_at` datetime,
-  `ended_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `admin_user_id` int(11) DEFAULT NULL,
+  `target_user_id` int(11) DEFAULT NULL,
+  `reason` text DEFAULT NULL,
+  `started_at` datetime DEFAULT NULL,
+  `ended_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `import_jobs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `user_id` int(11),
-  `type` varchar(64),
-  `status` varchar(32),
-  `payload` text,
-  `result` text,
-  `created_at` datetime,
-  `updated_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `type` varchar(64) DEFAULT NULL,
+  `status` varchar(32) DEFAULT NULL,
+  `payload` text DEFAULT NULL,
+  `result` text DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
   `attempts` int(11) NOT NULL DEFAULT 0,
-  `next_run_at` datetime,
-  `locked_at` datetime,
-  `started_at` datetime,
-  `finished_at` datetime,
-  `last_error` text,
+  `next_run_at` datetime DEFAULT NULL,
+  `locked_at` datetime DEFAULT NULL,
+  `started_at` datetime DEFAULT NULL,
+  `finished_at` datetime DEFAULT NULL,
+  `last_error` text DEFAULT NULL,
   `dead_letter` int(11) NOT NULL DEFAULT 0,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_import_jobs_queue_runnable` (`status`,`dead_letter`,`next_run_at`,`locked_at`,`created_at`),
-  KEY `idx_import_jobs_attempts` (`attempts`,`updated_at`)
+  KEY `idx_import_jobs_attempts` (`attempts`,`updated_at`),
+  KEY `idx_import_jobs_organization` (`organization_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `install_state` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `installed_at` datetime,
-  `version` varchar(20),
-  `payload` text,
+  `installed_at` datetime DEFAULT NULL,
+  `version` varchar(20) DEFAULT NULL,
+  `payload` text DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1475,52 +1614,55 @@ CREATE TABLE IF NOT EXISTS `intake_item_activities` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `public_id` varchar(64) NOT NULL,
   `intake_item_id` bigint(20) unsigned NOT NULL,
-  `actor_user_id` bigint(20) unsigned,
+  `actor_user_id` bigint(20) unsigned DEFAULT NULL,
   `event_type` varchar(64) NOT NULL,
-  `field_name` varchar(128),
-  `old_value` text,
-  `new_value` text,
-  `comment` text,
+  `field_name` varchar(128) DEFAULT NULL,
+  `old_value` text DEFAULT NULL,
+  `new_value` text DEFAULT NULL,
+  `comment` text DEFAULT NULL,
   `created_at` datetime NOT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_intake_item_activities_public_id` (`public_id`),
   KEY `idx_intake_item_activities_item_created` (`intake_item_id`,`created_at`),
   KEY `idx_intake_item_activities_actor_created` (`actor_user_id`,`created_at`),
-  KEY `idx_intake_item_activities_type_created` (`event_type`,`created_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=189 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_intake_item_activities_type_created` (`event_type`,`created_at`),
+  KEY `idx_intake_item_activities_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `intake_items` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `public_id` varchar(64) NOT NULL,
-  `project_id` bigint(20) unsigned,
-  `client_id` bigint(20) unsigned,
-  `contact_id` bigint(20) unsigned,
+  `project_id` bigint(20) unsigned DEFAULT NULL,
+  `client_id` bigint(20) unsigned DEFAULT NULL,
+  `contact_id` bigint(20) unsigned DEFAULT NULL,
   `title` varchar(255) NOT NULL,
-  `description` text,
+  `description` text DEFAULT NULL,
   `status` varchar(32) NOT NULL DEFAULT 'pending',
-  `priority_code` varchar(64),
+  `priority_code` varchar(64) DEFAULT NULL,
   `source_type` varchar(64) NOT NULL DEFAULT 'manual',
-  `source_ref` varchar(255),
-  `source_email` varchar(255),
-  `external_source` varchar(255),
-  `external_id` varchar(255),
-  `extra_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`extra_json`)),
-  `due_at` datetime,
-  `snoozed_until` datetime,
-  `assignee_user_id` bigint(20) unsigned,
+  `source_ref` varchar(255) DEFAULT NULL,
+  `source_email` varchar(255) DEFAULT NULL,
+  `external_source` varchar(255) DEFAULT NULL,
+  `external_id` varchar(255) DEFAULT NULL,
+  `extra_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`extra_json`)),
+  `due_at` datetime DEFAULT NULL,
+  `snoozed_until` datetime DEFAULT NULL,
+  `assignee_user_id` bigint(20) unsigned DEFAULT NULL,
   `creator_user_id` bigint(20) unsigned NOT NULL,
-  `accepted_task_id` bigint(20) unsigned,
-  `duplicate_intake_item_id` bigint(20) unsigned,
-  `duplicate_task_id` bigint(20) unsigned,
-  `resolution_note` text,
-  `resolved_by_user_id` bigint(20) unsigned,
-  `resolved_at` datetime,
+  `accepted_task_id` bigint(20) unsigned DEFAULT NULL,
+  `duplicate_intake_item_id` bigint(20) unsigned DEFAULT NULL,
+  `duplicate_task_id` bigint(20) unsigned DEFAULT NULL,
+  `resolution_note` text DEFAULT NULL,
+  `resolved_by_user_id` bigint(20) unsigned DEFAULT NULL,
+  `resolved_at` datetime DEFAULT NULL,
   `row_version` int(11) NOT NULL DEFAULT 1,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
-  `deleted_at` datetime,
+  `deleted_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_intake_items_public_id` (`public_id`),
   KEY `idx_intake_items_status` (`status`),
@@ -1533,99 +1675,113 @@ CREATE TABLE IF NOT EXISTS `intake_items` (
   KEY `idx_intake_items_created_at` (`created_at`),
   KEY `idx_intake_items_updated_at` (`updated_at`),
   KEY `idx_intake_items_deleted_at` (`deleted_at`),
-  KEY `idx_intake_items_external` (`external_source`,`external_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=74 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_intake_items_external` (`external_source`,`external_id`),
+  KEY `idx_intake_items_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `invitations` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `email` varchar(190),
-  `invited_by_user_id` int(11),
-  `token_hash` varchar(255),
-  `expires_at` datetime,
-  `accepted_at` datetime,
-  `created_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `email` varchar(190) DEFAULT NULL,
+  `invited_by_user_id` int(11) DEFAULT NULL,
+  `token_hash` varchar(255) DEFAULT NULL,
+  `expires_at` datetime DEFAULT NULL,
+  `accepted_at` datetime DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
+  `role_code` varchar(32) DEFAULT NULL,
+  `revoked_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_invitations_organization_status` (`organization_id`,`accepted_at`,`revoked_at`),
+  KEY `idx_invitations_token_hash` (`token_hash`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `knowledge_comments` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
+  `public_id` varchar(64) DEFAULT NULL,
   `page_id` int(11) NOT NULL,
-  `parent_id` int(11),
+  `parent_id` int(11) DEFAULT NULL,
   `user_id` int(11) NOT NULL,
   `body` text NOT NULL,
-  `resolved_at` datetime,
-  `created_at` datetime,
-  `updated_at` datetime,
-  `source_type` varchar(64),
-  `source_id` varchar(255),
-  `source_author_name` varchar(255),
-  `source_created_at` datetime,
-  `anchor_text` varchar(500),
-  `anchor_path` varchar(500),
+  `resolved_at` datetime DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `source_type` varchar(64) DEFAULT NULL,
+  `source_id` varchar(255) DEFAULT NULL,
+  `source_author_name` varchar(255) DEFAULT NULL,
+  `source_created_at` datetime DEFAULT NULL,
+  `anchor_text` varchar(500) DEFAULT NULL,
+  `anchor_path` varchar(500) DEFAULT NULL,
   `is_inline` tinyint(1) NOT NULL DEFAULT 0,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_knowledge_comments_page` (`page_id`,`created_at`),
   KEY `idx_knowledge_comments_parent` (`parent_id`),
-  KEY `idx_knowledge_comments_source` (`source_type`,`source_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_knowledge_comments_source` (`source_type`,`source_id`),
+  KEY `idx_knowledge_comments_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `knowledge_drafts` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
+  `public_id` varchar(64) DEFAULT NULL,
   `page_id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
-  `title` varchar(255),
-  `content_html` text,
-  `content_text` text,
-  `content_json` text,
+  `title` varchar(255) DEFAULT NULL,
+  `content_html` text DEFAULT NULL,
+  `content_text` text DEFAULT NULL,
+  `content_json` text DEFAULT NULL,
   `base_row_version` int(11) DEFAULT 1,
-  `autosaved_at` datetime,
-  `created_at` datetime,
-  `updated_at` datetime,
+  `autosaved_at` datetime DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_knowledge_drafts_page_user` (`page_id`,`user_id`),
-  UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_knowledge_drafts_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `knowledge_entity_links` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
+  `public_id` varchar(64) DEFAULT NULL,
   `page_id` int(11) NOT NULL,
-  `entity_type` varchar(64),
-  `entity_public_id` varchar(64),
+  `entity_type` varchar(64) DEFAULT NULL,
+  `entity_public_id` varchar(64) DEFAULT NULL,
   `relation_type` varchar(64) DEFAULT 'related',
-  `created_by_user_id` int(11),
-  `created_at` datetime,
+  `created_by_user_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   UNIQUE KEY `uq_knowledge_links_page_entity` (`page_id`,`entity_type`,`entity_public_id`),
-  KEY `idx_knowledge_links_entity` (`entity_type`,`entity_public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=48 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_knowledge_links_entity` (`entity_type`,`entity_public_id`),
+  KEY `idx_knowledge_entity_links_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `knowledge_page_permissions` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `page_id` int(11) NOT NULL,
-  `subject_type` varchar(32),
-  `subject_id` int(11),
-  `access_level` varchar(32),
-  `created_by_user_id` int(11),
-  `created_at` datetime,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `subject_type` varchar(32) DEFAULT NULL,
+  `subject_id` int(11) DEFAULT NULL,
+  `access_level` varchar(32) DEFAULT NULL,
+  `created_by_user_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_knowledge_page_permissions_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1633,17 +1789,19 @@ CREATE TABLE IF NOT EXISTS `knowledge_page_properties` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `page_id` bigint(20) unsigned NOT NULL,
   `property_key` varchar(190) NOT NULL,
-  `property_value` longtext,
+  `property_value` longtext DEFAULT NULL,
   `property_type` varchar(32) NOT NULL DEFAULT 'string',
-  `source_type` varchar(64),
-  `source_id` varchar(255),
+  `source_type` varchar(64) DEFAULT NULL,
+  `source_id` varchar(255) DEFAULT NULL,
   `sort_order` int(11) NOT NULL DEFAULT 0,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_knowledge_page_property` (`page_id`,`property_key`),
   KEY `idx_knowledge_page_properties_source` (`source_type`,`source_id`),
-  KEY `idx_knowledge_page_properties_key` (`property_key`)
+  KEY `idx_knowledge_page_properties_key` (`property_key`),
+  KEY `idx_knowledge_page_properties_organization` (`organization_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -1655,27 +1813,28 @@ CREATE TABLE IF NOT EXISTS `knowledge_page_versions` (
   `page_public_id` varchar(64) NOT NULL,
   `version_number` int(11) NOT NULL,
   `title` varchar(255) NOT NULL,
-  `content` longtext,
-  `content_text` longtext,
-  `summary` text,
-  `visibility` varchar(32),
-  `status` varchar(32),
-  `tags_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`tags_json`)),
-  `links_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`links_json`)),
-  `meta_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`meta_json`)),
+  `content` longtext DEFAULT NULL,
+  `content_text` longtext DEFAULT NULL,
+  `summary` text DEFAULT NULL,
+  `visibility` varchar(32) DEFAULT NULL,
+  `status` varchar(32) DEFAULT NULL,
+  `tags_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`tags_json`)),
+  `links_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`links_json`)),
+  `meta_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`meta_json`)),
   `change_type` varchar(64) NOT NULL DEFAULT 'update',
-  `change_note` varchar(1000),
-  `restored_from_version_number` int(11),
-  `restored_from_version_public_id` varchar(64),
-  `created_by_user_id` bigint(20) unsigned,
+  `change_note` varchar(1000) DEFAULT NULL,
+  `restored_from_version_number` int(11) DEFAULT NULL,
+  `restored_from_version_public_id` varchar(64) DEFAULT NULL,
+  `created_by_user_id` bigint(20) unsigned DEFAULT NULL,
   `created_by_actor_type` varchar(32) NOT NULL DEFAULT 'user',
-  `created_by_display_name` varchar(255),
-  `request_id` varchar(128),
-  `source_type` varchar(64),
-  `source_ref` varchar(255),
-  `content_hash` char(64),
+  `created_by_display_name` varchar(255) DEFAULT NULL,
+  `request_id` varchar(128) DEFAULT NULL,
+  `source_type` varchar(64) DEFAULT NULL,
+  `source_ref` varchar(255) DEFAULT NULL,
+  `content_hash` char(64) DEFAULT NULL,
   `created_at` datetime NOT NULL,
-  `deleted_at` datetime,
+  `deleted_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_knowledge_page_versions_public_id` (`public_id`),
   UNIQUE KEY `uq_knowledge_page_versions_page_number` (`page_id`,`version_number`),
@@ -1684,46 +1843,49 @@ CREATE TABLE IF NOT EXISTS `knowledge_page_versions` (
   KEY `idx_knowledge_page_versions_created_by` (`created_by_user_id`,`created_at`),
   KEY `idx_knowledge_page_versions_change_type` (`change_type`,`created_at`),
   KEY `idx_knowledge_page_versions_hash` (`content_hash`),
-  KEY `idx_knowledge_page_versions_deleted_at` (`deleted_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=58 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_knowledge_page_versions_deleted_at` (`deleted_at`),
+  KEY `idx_knowledge_page_versions_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `knowledge_page_views` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `page_id` int(11) NOT NULL,
-  `user_id` int(11),
+  `user_id` int(11) DEFAULT NULL,
   `source` varchar(32) DEFAULT 'direct',
-  `viewed_at` datetime,
+  `viewed_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `idx_knowledge_views_page` (`page_id`,`viewed_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=302 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_knowledge_views_page` (`page_id`,`viewed_at`),
+  KEY `idx_knowledge_page_views_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `knowledge_pages` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
+  `public_id` varchar(64) DEFAULT NULL,
   `space_id` int(11) NOT NULL,
-  `parent_id` int(11),
+  `parent_id` int(11) DEFAULT NULL,
   `title` varchar(255) NOT NULL,
-  `slug` varchar(190),
+  `slug` varchar(190) DEFAULT NULL,
   `page_type` varchar(64) DEFAULT 'article',
   `status` varchar(32) DEFAULT 'draft',
-  `content_html` text,
-  `content_text` text,
-  `content_json` text,
-  `excerpt` text,
-  `owner_user_id` int(11),
-  `last_editor_user_id` int(11),
-  `published_by_user_id` int(11),
-  `published_at` datetime,
-  `review_due_at` datetime,
-  `reviewed_at` datetime,
-  `review_status` varchar(32),
-  `reviewer_user_id` int(11),
+  `content_html` text DEFAULT NULL,
+  `content_text` text DEFAULT NULL,
+  `content_json` text DEFAULT NULL,
+  `excerpt` text DEFAULT NULL,
+  `owner_user_id` int(11) DEFAULT NULL,
+  `last_editor_user_id` int(11) DEFAULT NULL,
+  `published_by_user_id` int(11) DEFAULT NULL,
+  `published_at` datetime DEFAULT NULL,
+  `review_due_at` datetime DEFAULT NULL,
+  `reviewed_at` datetime DEFAULT NULL,
+  `review_status` varchar(32) DEFAULT NULL,
+  `reviewer_user_id` int(11) DEFAULT NULL,
   `sort_order` int(11) DEFAULT 0,
-  `path` varchar(2048),
+  `path` varchar(2048) DEFAULT NULL,
   `depth` int(11) DEFAULT 0,
   `children_count` int(11) DEFAULT 0,
   `comments_count` int(11) DEFAULT 0,
@@ -1732,17 +1894,18 @@ CREATE TABLE IF NOT EXISTS `knowledge_pages` (
   `client_visible` tinyint(1) NOT NULL DEFAULT 0,
   `likes_count` int(11) DEFAULT 0,
   `row_version` int(11) DEFAULT 1,
-  `created_at` datetime,
-  `updated_at` datetime,
-  `deleted_at` datetime,
-  `source_type` varchar(64),
-  `source_id` varchar(255),
-  `source_url` varchar(2048),
-  `source_payload_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`source_payload_json`)),
-  `locked_at` datetime,
-  `locked_by_user_id` bigint(20) unsigned,
-  `lock_reason` varchar(1000),
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
+  `source_type` varchar(64) DEFAULT NULL,
+  `source_id` varchar(255) DEFAULT NULL,
+  `source_url` varchar(2048) DEFAULT NULL,
+  `source_payload_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`source_payload_json`)),
+  `locked_at` datetime DEFAULT NULL,
+  `locked_by_user_id` bigint(20) unsigned DEFAULT NULL,
+  `lock_reason` varchar(1000) DEFAULT NULL,
   `last_version_number` int(11) NOT NULL DEFAULT 0,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_knowledge_pages_space_parent_sort` (`space_id`,`parent_id`,`sort_order`),
@@ -1752,37 +1915,42 @@ CREATE TABLE IF NOT EXISTS `knowledge_pages` (
   KEY `idx_knowledge_pages_review_due` (`review_due_at`),
   KEY `idx_knowledge_pages_type` (`page_type`),
   KEY `idx_knowledge_pages_source` (`source_type`,`source_id`),
+  KEY `idx_knowledge_pages_organization` (`organization_id`),
   FULLTEXT KEY `ft_knowledge_pages_title_text` (`title`,`content_text`),
   FULLTEXT KEY `ft_search` (`title`,`content_text`)
-) ENGINE=InnoDB AUTO_INCREMENT=89 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `knowledge_search_index` (
   `page_id` int(11) NOT NULL,
   `space_id` int(11) NOT NULL,
-  `title` varchar(255),
-  `content_text` text,
-  `tags_text` text,
-  `entity_text` text,
-  `status` varchar(32),
-  `page_type` varchar(64),
-  `updated_at` datetime,
+  `title` varchar(255) DEFAULT NULL,
+  `content_text` text DEFAULT NULL,
+  `tags_text` text DEFAULT NULL,
+  `entity_text` text DEFAULT NULL,
+  `status` varchar(32) DEFAULT NULL,
+  `page_type` varchar(64) DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`page_id`),
   KEY `idx_knowledge_search_space_status_updated` (`space_id`,`status`,`updated_at`),
-  KEY `idx_knowledge_search_page_type` (`page_type`)
+  KEY `idx_knowledge_search_page_type` (`page_type`),
+  KEY `idx_knowledge_search_index_organization` (`organization_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `knowledge_search_queries` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `query` varchar(255),
-  `user_id` int(11),
+  `query` varchar(255) DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
   `results_count` int(11) DEFAULT 0,
-  `clicked_page_id` int(11),
-  `created_at` datetime,
-  PRIMARY KEY (`id`)
+  `clicked_page_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_knowledge_search_queries_organization` (`organization_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -1790,25 +1958,27 @@ CREATE TABLE IF NOT EXISTS `knowledge_search_queries` (
 CREATE TABLE IF NOT EXISTS `knowledge_space_permissions` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `space_id` int(11) NOT NULL,
-  `subject_type` varchar(32),
-  `subject_id` int(11),
-  `access_level` varchar(32),
-  `created_by_user_id` int(11),
-  `created_at` datetime,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `subject_type` varchar(32) DEFAULT NULL,
+  `subject_id` int(11) DEFAULT NULL,
+  `access_level` varchar(32) DEFAULT NULL,
+  `created_by_user_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_knowledge_space_permissions_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `knowledge_spaces` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
+  `public_id` varchar(64) DEFAULT NULL,
   `title` varchar(255) NOT NULL,
-  `slug` varchar(160),
-  `description` text,
-  `icon` varchar(64),
-  `color` varchar(32),
-  `owner_user_id` int(11),
+  `slug` varchar(160) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `icon` varchar(64) DEFAULT NULL,
+  `color` varchar(32) DEFAULT NULL,
+  `owner_user_id` int(11) DEFAULT NULL,
   `visibility` varchar(32) DEFAULT 'public',
   `default_access_level` varchar(32) DEFAULT 'view',
   `tree_version` int(11) DEFAULT 1,
@@ -1818,224 +1988,388 @@ CREATE TABLE IF NOT EXISTS `knowledge_spaces` (
   `is_system` int(11) DEFAULT 0,
   `is_archived` int(11) DEFAULT 0,
   `row_version` int(11) DEFAULT 1,
-  `created_at` datetime,
-  `updated_at` datetime,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `source_type` varchar(64) DEFAULT NULL,
+  `source_id` varchar(255) DEFAULT NULL,
+  `source_url` varchar(2048) DEFAULT NULL,
+  `source_payload_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`source_payload_json`)),
+  `parent_id` int(11) DEFAULT NULL,
   `deleted_at` datetime DEFAULT NULL,
-  `source_type` varchar(64),
-  `source_id` varchar(255),
-  `source_url` varchar(2048),
-  `source_payload_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`source_payload_json`)),
-  `parent_id` int(11),
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   UNIQUE KEY `slug` (`slug`),
   KEY `idx_knowledge_spaces_archived_sort` (`is_archived`,`sort_order`),
-  KEY `idx_knowledge_spaces_deleted` (`deleted_at`),
   KEY `idx_knowledge_spaces_owner` (`owner_user_id`),
   KEY `idx_knowledge_spaces_parent` (`parent_id`),
-  KEY `idx_knowledge_spaces_source` (`source_type`,`source_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=87 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_knowledge_spaces_source` (`source_type`,`source_id`),
+  KEY `idx_knowledge_spaces_deleted` (`deleted_at`),
+  KEY `idx_knowledge_spaces_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `knowledge_templates` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `title` varchar(255),
-  `page_type` varchar(64),
-  `description` text,
-  `content_html` text,
-  `content_json` text,
+  `public_id` varchar(64) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `page_type` varchar(64) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `content_html` text DEFAULT NULL,
+  `content_json` text DEFAULT NULL,
   `is_system` int(11) DEFAULT 0,
   `is_active` int(11) DEFAULT 1,
-  `created_by_user_id` int(11),
-  `created_at` datetime,
-  `updated_at` datetime,
+  `created_by_user_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `space_id` int(11) DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
-  KEY `idx_knowledge_templates_type_active` (`page_type`,`is_active`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_knowledge_templates_type_active` (`page_type`,`is_active`),
+  KEY `idx_knowledge_templates_space_id` (`space_id`),
+  KEY `idx_knowledge_templates_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `mentions` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `entity_type` varchar(64),
-  `entity_public_id` varchar(64),
-  `mentioned_user_id` int(11),
-  `created_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `entity_type` varchar(64) DEFAULT NULL,
+  `entity_public_id` varchar(64) DEFAULT NULL,
+  `mentioned_user_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_mentions_organization` (`organization_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `migrations` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `migration_key` varchar(191),
-  `description` varchar(255),
-  `applied_at` datetime,
+  `migration_key` varchar(191) DEFAULT NULL,
+  `description` varchar(255) DEFAULT NULL,
+  `applied_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `migration_key` (`migration_key`)
-) ENGINE=InnoDB AUTO_INCREMENT=83 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `milestones` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `project_id` int(11),
-  `title` varchar(255),
-  `due_at` datetime,
-  `status` varchar(32),
-  `created_at` datetime,
-  `updated_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `project_id` int(11) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `due_at` datetime DEFAULT NULL,
+  `status` varchar(32) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
-  KEY `idx_milestones_project` (`project_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=42 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_milestones_project` (`project_id`),
+  KEY `idx_milestones_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE IF NOT EXISTS `module_audit_log` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `module_name` varchar(190) NOT NULL,
+  `event_type` varchar(190) NOT NULL,
+  `event_name` varchar(190) NOT NULL,
+  `details` varchar(190) DEFAULT NULL,
+  `ip_address` varchar(190) DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_module_audit_module` (`module_name`),
+  KEY `idx_module_audit_created` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE IF NOT EXISTS `module_deprecations` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `module_name` varchar(190) NOT NULL,
+  `message` varchar(190) NOT NULL,
+  `since_version` varchar(190) DEFAULT NULL,
+  `replacement` varchar(190) DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_module_deprecations_module` (`module_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE IF NOT EXISTS `module_errors` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `module_name` varchar(190) NOT NULL,
+  `context` varchar(190) NOT NULL,
+  `error_code` varchar(190) DEFAULT NULL,
+  `error_message` varchar(190) NOT NULL,
+  `stack_trace` varchar(190) DEFAULT NULL,
+  `request_id` varchar(190) DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_module_errors_module` (`module_name`),
+  KEY `idx_module_errors_created` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE IF NOT EXISTS `module_jobs` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `module_name` varchar(190) NOT NULL,
+  `job_name` varchar(190) NOT NULL,
+  `payload` varchar(190) NOT NULL,
+  `status` varchar(190) NOT NULL DEFAULT 'pending',
+  `attempts` int(11) NOT NULL DEFAULT 0,
+  `max_attempts` int(11) NOT NULL DEFAULT 3,
+  `delay_until` datetime DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `completed_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_module_jobs_status` (`status`,`created_at`),
+  KEY `idx_module_jobs_module` (`module_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE IF NOT EXISTS `module_migrations` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `module_name` varchar(190) NOT NULL,
+  `migration_name` varchar(190) NOT NULL,
+  `applied_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `batch` int(11) NOT NULL DEFAULT 1,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_module_migrations_unique` (`module_name`,`migration_name`),
+  KEY `idx_module_migrations_module` (`module_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE IF NOT EXISTS `module_registry` (
+  `module_name` varchar(190) NOT NULL,
+  `vendor` varchar(190) NOT NULL,
+  `version` varchar(190) NOT NULL,
+  `is_active` int(11) NOT NULL DEFAULT 0,
+  `installed_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `activated_at` datetime DEFAULT NULL,
+  `config` longtext NOT NULL,
+  PRIMARY KEY (`module_name`),
+  UNIQUE KEY `idx_module_registry_name` (`module_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE IF NOT EXISTS `module_scheduled_tasks` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `module_name` varchar(190) NOT NULL,
+  `task_name` varchar(190) NOT NULL,
+  `description` varchar(190) DEFAULT NULL,
+  `schedule` varchar(190) NOT NULL,
+  `handler_class` varchar(190) NOT NULL,
+  `handler_method` varchar(190) NOT NULL,
+  `enabled` int(11) NOT NULL DEFAULT 1,
+  `timeout` int(11) NOT NULL DEFAULT 300,
+  `overlap_allowed` int(11) NOT NULL DEFAULT 0,
+  `last_run_at` datetime DEFAULT NULL,
+  `next_run_at` datetime NOT NULL,
+  `last_status` varchar(190) DEFAULT NULL,
+  `last_error` text DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_scheduled_tasks_module_task` (`module_name`,`task_name`),
+  KEY `idx_scheduled_tasks_next` (`next_run_at`,`enabled`),
+  KEY `idx_scheduled_tasks_module` (`module_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE IF NOT EXISTS `module_task_executions` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `module_name` varchar(190) NOT NULL,
+  `task_name` varchar(190) NOT NULL,
+  `started_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `finished_at` datetime DEFAULT NULL,
+  `duration_ms` int(11) DEFAULT NULL,
+  `status` varchar(190) NOT NULL,
+  `output` text DEFAULT NULL,
+  `error_message` text DEFAULT NULL,
+  `error_trace` text DEFAULT NULL,
+  `memory_peak_mb` int(11) DEFAULT NULL,
+  `pid` int(11) DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_task_executions_module` (`module_name`,`task_name`,`started_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE IF NOT EXISTS `module_webhooks` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `module_name` varchar(190) NOT NULL,
+  `event_name` varchar(190) NOT NULL,
+  `url` varchar(190) NOT NULL,
+  `secret` varchar(190) DEFAULT NULL,
+  `is_active` int(11) NOT NULL DEFAULT 1,
+  `headers` varchar(190) DEFAULT NULL,
+  `retry_count` int(11) NOT NULL DEFAULT 3,
+  `timeout` int(11) NOT NULL DEFAULT 30,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_module_webhooks_module` (`module_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `notification_push_queue` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
+  `public_id` varchar(64) DEFAULT NULL,
   `user_id` int(11) NOT NULL,
-  `notification_public_id` varchar(64),
+  `notification_public_id` varchar(64) DEFAULT NULL,
   `payload_json` text NOT NULL,
   `status` varchar(32) NOT NULL,
   `attempts` int(11) NOT NULL DEFAULT 0,
-  `next_run_at` datetime,
-  `locked_at` datetime,
-  `last_error` text,
+  `next_run_at` datetime DEFAULT NULL,
+  `locked_at` datetime DEFAULT NULL,
+  `last_error` text DEFAULT NULL,
   `dead_letter` int(11) NOT NULL DEFAULT 0,
-  `created_at` datetime,
-  `updated_at` datetime,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_push_queue_runnable` (`status`,`dead_letter`,`next_run_at`,`locked_at`,`created_at`),
   KEY `idx_push_queue_user_created` (`user_id`,`created_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=260 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `notification_push_subscriptions` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `user_id` int(11),
-  `endpoint` text,
-  `p256dh` varchar(1024),
-  `auth` varchar(1024),
-  `user_agent` text,
-  `device_label` varchar(255),
+  `public_id` varchar(64) DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `endpoint` text DEFAULT NULL,
+  `p256dh` varchar(1024) DEFAULT NULL,
+  `auth` varchar(1024) DEFAULT NULL,
+  `user_agent` text DEFAULT NULL,
+  `device_label` varchar(255) DEFAULT NULL,
   `is_active` int(11) DEFAULT 1,
-  `last_error` text,
-  `last_seen_at` datetime,
-  `created_at` datetime,
-  `updated_at` datetime,
+  `last_error` text DEFAULT NULL,
+  `last_seen_at` datetime DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_notif_push_subscriptions_user_active` (`user_id`,`is_active`,`updated_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `notifications` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `user_id` int(11),
-  `category` varchar(64),
-  `title` varchar(255),
-  `body` text,
-  `entity_type` varchar(64),
-  `entity_public_id` varchar(64),
-  `action_code` varchar(64),
-  `actor_user_id` int(11),
-  `actor_public_id` varchar(64),
-  `actor_name` varchar(255),
-  `link` varchar(1024),
-  `payload_json` text,
+  `public_id` varchar(64) DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `category` varchar(64) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `body` text DEFAULT NULL,
+  `entity_type` varchar(64) DEFAULT NULL,
+  `entity_public_id` varchar(64) DEFAULT NULL,
+  `action_code` varchar(64) DEFAULT NULL,
+  `actor_user_id` int(11) DEFAULT NULL,
+  `actor_public_id` varchar(64) DEFAULT NULL,
+  `actor_name` varchar(255) DEFAULT NULL,
+  `link` varchar(1024) DEFAULT NULL,
+  `payload_json` text DEFAULT NULL,
   `is_read` int(11) DEFAULT 0,
-  `created_at` datetime,
-  `read_at` datetime,
+  `created_at` datetime DEFAULT NULL,
+  `read_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_notifications_user_created` (`user_id`,`created_at`),
   KEY `idx_notifications_user_unread_created` (`user_id`,`is_read`,`created_at`),
   KEY `idx_notifications_user_category_unread` (`user_id`,`category`,`is_read`),
-  KEY `idx_notifications_entity` (`entity_type`,`entity_public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=8390 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_notifications_entity` (`entity_type`,`entity_public_id`),
+  KEY `idx_notifications_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `organization_memberships` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
+  `public_id` varchar(64) DEFAULT NULL,
   `organization_id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   `role_code` varchar(32) NOT NULL,
-  `created_at` datetime,
+  `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_org_membership_org_user` (`organization_id`,`user_id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_org_membership_user` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=58 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `organizations` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `title` varchar(255),
-  `slug` varchar(120),
-  `created_at` datetime,
-  `updated_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `slug` varchar(120) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=58 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `password_reset_tokens` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `user_id` int(11),
-  `token_hash` varchar(255),
-  `expires_at` datetime,
-  `used_at` datetime,
-  `created_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `token_hash` varchar(255) DEFAULT NULL,
+  `expires_at` datetime DEFAULT NULL,
+  `used_at` datetime DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `permissions` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `code` varchar(128),
-  `title` varchar(255),
-  `created_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `code` varchar(128) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   UNIQUE KEY `code` (`code`)
-) ENGINE=InnoDB AUTO_INCREMENT=160 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `priorities` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `code` varchar(64),
-  `title` varchar(255),
-  `weight` int(11),
-  `color` varchar(32),
-  `created_at` datetime,
-  `updated_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `code` varchar(64) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `weight` int(11) DEFAULT NULL,
+  `color` varchar(32) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=54 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2050,12 +2384,14 @@ CREATE TABLE IF NOT EXISTS `project_module_links` (
   `sort_order` int(11) NOT NULL DEFAULT 65535,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
-  `deleted_at` datetime,
+  `deleted_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_project_module_links_public_id` (`public_id`),
   KEY `idx_project_module_links_module_active` (`module_id`,`deleted_at`),
   KEY `idx_project_module_links_type` (`link_type`),
-  KEY `idx_project_module_links_deleted_at` (`deleted_at`)
+  KEY `idx_project_module_links_deleted_at` (`deleted_at`),
+  KEY `idx_project_module_links_organization` (`organization_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -2068,19 +2404,21 @@ CREATE TABLE IF NOT EXISTS `project_module_members` (
   `role_code` varchar(64) NOT NULL DEFAULT 'member',
   `added_by_user_id` bigint(20) unsigned NOT NULL,
   `added_at` datetime NOT NULL,
-  `removed_by_user_id` bigint(20) unsigned,
-  `removed_at` datetime,
-  `active_key` varchar(191),
+  `removed_by_user_id` bigint(20) unsigned DEFAULT NULL,
+  `removed_at` datetime DEFAULT NULL,
+  `active_key` varchar(191) DEFAULT NULL,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
-  `deleted_at` datetime,
+  `deleted_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_project_module_members_public_id` (`public_id`),
   UNIQUE KEY `uq_project_module_members_active_key` (`active_key`),
   KEY `idx_project_module_members_module_active` (`module_id`,`deleted_at`),
   KEY `idx_project_module_members_user_active` (`user_id`,`deleted_at`),
   KEY `idx_project_module_members_role` (`role_code`),
-  KEY `idx_project_module_members_deleted_at` (`deleted_at`)
+  KEY `idx_project_module_members_deleted_at` (`deleted_at`),
+  KEY `idx_project_module_members_organization` (`organization_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -2092,20 +2430,22 @@ CREATE TABLE IF NOT EXISTS `project_module_tasks` (
   `task_id` bigint(20) unsigned NOT NULL,
   `added_by_user_id` bigint(20) unsigned NOT NULL,
   `added_at` datetime NOT NULL,
-  `removed_by_user_id` bigint(20) unsigned,
-  `removed_at` datetime,
+  `removed_by_user_id` bigint(20) unsigned DEFAULT NULL,
+  `removed_at` datetime DEFAULT NULL,
   `sort_order` int(11) NOT NULL DEFAULT 65535,
-  `active_key` varchar(191),
+  `active_key` varchar(191) DEFAULT NULL,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
-  `deleted_at` datetime,
+  `deleted_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_project_module_tasks_public_id` (`public_id`),
   UNIQUE KEY `uq_project_module_tasks_active_key` (`active_key`),
   KEY `idx_project_module_tasks_module_active` (`module_id`,`deleted_at`),
   KEY `idx_project_module_tasks_task_active` (`task_id`,`deleted_at`),
   KEY `idx_project_module_tasks_added_by` (`added_by_user_id`,`added_at`),
-  KEY `idx_project_module_tasks_deleted_at` (`deleted_at`)
+  KEY `idx_project_module_tasks_deleted_at` (`deleted_at`),
+  KEY `idx_project_module_tasks_organization` (`organization_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -2115,24 +2455,25 @@ CREATE TABLE IF NOT EXISTS `project_modules` (
   `public_id` varchar(64) NOT NULL,
   `project_id` bigint(20) unsigned NOT NULL,
   `title` varchar(255) NOT NULL,
-  `description` text,
+  `description` text DEFAULT NULL,
   `status` varchar(32) NOT NULL DEFAULT 'planned',
-  `lead_user_id` bigint(20) unsigned,
-  `start_at` datetime,
-  `target_at` datetime,
-  `completed_at` datetime,
-  `color` varchar(32),
-  `icon` varchar(64),
+  `lead_user_id` bigint(20) unsigned DEFAULT NULL,
+  `start_at` datetime DEFAULT NULL,
+  `target_at` datetime DEFAULT NULL,
+  `completed_at` datetime DEFAULT NULL,
+  `color` varchar(32) DEFAULT NULL,
+  `icon` varchar(64) DEFAULT NULL,
   `sort_order` int(11) NOT NULL DEFAULT 65535,
-  `meta_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`meta_json`)),
-  `progress_snapshot_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`progress_snapshot_json`)),
+  `meta_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`meta_json`)),
+  `progress_snapshot_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`progress_snapshot_json`)),
   `row_version` int(11) NOT NULL DEFAULT 1,
   `created_by_user_id` bigint(20) unsigned NOT NULL,
-  `updated_by_user_id` bigint(20) unsigned,
-  `archived_at` datetime,
-  `deleted_at` datetime,
+  `updated_by_user_id` bigint(20) unsigned DEFAULT NULL,
+  `archived_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_project_modules_public_id` (`public_id`),
   KEY `idx_project_modules_project_status` (`project_id`,`status`),
@@ -2140,45 +2481,49 @@ CREATE TABLE IF NOT EXISTS `project_modules` (
   KEY `idx_project_modules_lead_status` (`lead_user_id`,`status`),
   KEY `idx_project_modules_target_at` (`target_at`),
   KEY `idx_project_modules_archived_at` (`archived_at`),
-  KEY `idx_project_modules_deleted_at` (`deleted_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_project_modules_deleted_at` (`deleted_at`),
+  KEY `idx_project_modules_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `project_templates` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `title` varchar(255),
-  `payload` text,
+  `public_id` varchar(64) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `payload` text DEFAULT NULL,
   `is_active` int(11) DEFAULT 1,
-  `created_by_user_id` int(11),
-  `created_at` datetime,
-  `updated_at` datetime,
+  `created_by_user_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
-  KEY `idx_project_templates_created_by` (`created_by_user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_project_templates_created_by` (`created_by_user_id`),
+  KEY `idx_project_templates_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `projects` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `title` varchar(255),
-  `description` text,
-  `status_code` varchar(64),
-  `priority_code` varchar(64),
-  `client_public_id` varchar(64),
-  `manager_user_id` int(11),
-  `team_public_id` varchar(64),
-  `task_key_prefix` varchar(10),
+  `public_id` varchar(64) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `status_code` varchar(64) DEFAULT NULL,
+  `priority_code` varchar(64) DEFAULT NULL,
+  `client_public_id` varchar(64) DEFAULT NULL,
+  `manager_user_id` int(11) DEFAULT NULL,
+  `team_public_id` varchar(64) DEFAULT NULL,
+  `task_key_prefix` varchar(10) DEFAULT NULL,
   `task_key_prefix_locked` tinyint(1) NOT NULL DEFAULT 0,
-  `archived_at` datetime,
-  `created_by_user_id` int(11),
-  `created_at` datetime,
-  `updated_at` datetime,
-  `deleted_at` datetime,
+  `archived_at` datetime DEFAULT NULL,
+  `created_by_user_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
   `row_version` int(11) DEFAULT 1,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   UNIQUE KEY `uq_projects_task_key_prefix` (`task_key_prefix`),
@@ -2186,8 +2531,82 @@ CREATE TABLE IF NOT EXISTS `projects` (
   KEY `idx_projects_updated_public` (`updated_at`,`public_id`),
   KEY `idx_projects_archived_updated` (`archived_at`,`updated_at`,`public_id`),
   KEY `idx_projects_creator_archived_updated` (`created_by_user_id`,`archived_at`,`updated_at`),
-  KEY `idx_projects_manager_archived_updated` (`manager_user_id`,`archived_at`,`updated_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=1625 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_projects_manager_archived_updated` (`manager_user_id`,`archived_at`,`updated_at`),
+  KEY `idx_projects_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE IF NOT EXISTS `rate_card_assignments` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `public_id` varchar(64) NOT NULL,
+  `rate_card_id` bigint(20) unsigned NOT NULL,
+  `scope_type` varchar(32) NOT NULL,
+  `scope_ref` varchar(64) NOT NULL,
+  `priority` int(11) NOT NULL DEFAULT 100,
+  `effective_from` date NOT NULL,
+  `effective_to` date DEFAULT NULL,
+  `created_by_user_id` int(11) DEFAULT NULL,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  `deleted_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_rate_card_assign_public_id` (`public_id`),
+  KEY `idx_rate_card_assign_scope` (`scope_type`,`scope_ref`,`deleted_at`),
+  KEY `idx_rate_card_assign_card` (`rate_card_id`),
+  KEY `idx_rate_card_assignments_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE IF NOT EXISTS `rate_card_lines` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `public_id` varchar(64) NOT NULL,
+  `rate_card_id` bigint(20) unsigned NOT NULL,
+  `user_id` bigint(20) unsigned DEFAULT NULL,
+  `role_code` varchar(64) DEFAULT NULL,
+  `activity_code` varchar(64) DEFAULT NULL,
+  `cost_rate` decimal(12,2) DEFAULT NULL,
+  `bill_rate` decimal(12,2) DEFAULT NULL,
+  `payout_rate` decimal(12,2) DEFAULT NULL,
+  `currency_code` varchar(8) DEFAULT NULL,
+  `effective_from` date NOT NULL,
+  `effective_to` date DEFAULT NULL,
+  `note` varchar(500) DEFAULT NULL,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  `deleted_at` datetime DEFAULT NULL,
+  `row_version` int(11) NOT NULL DEFAULT 1,
+  `organization_id` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_rate_card_lines_public_id` (`public_id`),
+  KEY `idx_rate_card_lines_card` (`rate_card_id`,`deleted_at`),
+  KEY `idx_rate_card_lines_lookup` (`rate_card_id`,`user_id`,`activity_code`,`effective_from`),
+  KEY `idx_rate_card_lines_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE IF NOT EXISTS `rate_cards` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `public_id` varchar(64) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `currency_code` varchar(8) DEFAULT NULL,
+  `is_default` tinyint(1) NOT NULL DEFAULT 0,
+  `is_archived` tinyint(1) NOT NULL DEFAULT 0,
+  `created_by_user_id` int(11) DEFAULT NULL,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  `deleted_at` datetime DEFAULT NULL,
+  `row_version` int(11) NOT NULL DEFAULT 1,
+  `organization_id` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_rate_cards_public_id` (`public_id`),
+  KEY `idx_rate_cards_default` (`is_default`,`is_archived`),
+  KEY `idx_rate_cards_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2207,92 +2626,104 @@ CREATE TABLE IF NOT EXISTS `rate_limits` (
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `reactions` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `entity_type` varchar(64),
-  `entity_public_id` varchar(64),
-  `user_id` int(11),
-  `reaction` varchar(32),
-  `created_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `entity_type` varchar(64) DEFAULT NULL,
+  `entity_public_id` varchar(64) DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `reaction` varchar(32) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_reactions_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `recurring_instances` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `rule_id` int(11),
-  `entity_public_id` varchar(64),
-  `generated_at` datetime,
-  `created_at` datetime,
-  `next_occurrence` datetime,
-  `processed_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `rule_id` int(11) DEFAULT NULL,
+  `entity_public_id` varchar(64) DEFAULT NULL,
+  `generated_at` datetime DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `next_occurrence` datetime DEFAULT NULL,
+  `processed_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_recurring_instances_organization` (`organization_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `recurring_rules` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `entity_type` varchar(64),
-  `entity_public_id` varchar(64),
-  `rrule` text,
+  `public_id` varchar(64) DEFAULT NULL,
+  `entity_type` varchar(64) DEFAULT NULL,
+  `entity_public_id` varchar(64) DEFAULT NULL,
+  `rrule` text DEFAULT NULL,
   `is_active` int(11) DEFAULT 1,
-  `created_at` datetime,
-  `updated_at` datetime,
-  `last_processed_at` datetime,
-  `title` varchar(255),
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `last_processed_at` datetime DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
+  `generated_count` int(11) DEFAULT 0,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_recurring_rules_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `recycle_bin` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `entity_type` varchar(64),
-  `entity_public_id` varchar(64),
-  `payload` text,
-  `deleted_by_user_id` int(11),
-  `deleted_at` datetime,
-  `restored_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `entity_type` varchar(64) DEFAULT NULL,
+  `entity_public_id` varchar(64) DEFAULT NULL,
+  `payload` text DEFAULT NULL,
+  `deleted_by_user_id` int(11) DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
+  `restored_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_recycle_bin_organization` (`organization_id`),
+  KEY `idx_recycle_bin_organization_status` (`organization_id`,`restored_at`,`deleted_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `reminders` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `user_id` int(11),
-  `task_id` int(11),
-  `remind_at` datetime,
-  `status` varchar(32),
-  `created_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `task_id` int(11) DEFAULT NULL,
+  `remind_at` datetime DEFAULT NULL,
+  `status` varchar(32) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=71 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_reminders_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `request_logs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `request_id` varchar(64),
-  `correlation_id` varchar(64),
-  `user_public_id` varchar(64),
-  `route` varchar(255),
-  `method` varchar(16),
-  `status_code` int(11),
-  `result_code` varchar(64),
-  `duration_ms` int(11),
-  `payload` text,
-  `created_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `request_id` varchar(64) DEFAULT NULL,
+  `correlation_id` varchar(64) DEFAULT NULL,
+  `user_public_id` varchar(64) DEFAULT NULL,
+  `route` varchar(255) DEFAULT NULL,
+  `method` varchar(16) DEFAULT NULL,
+  `status_code` int(11) DEFAULT NULL,
+  `result_code` varchar(64) DEFAULT NULL,
+  `duration_ms` int(11) DEFAULT NULL,
+  `payload` text DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_request_logs_request` (`request_id`),
@@ -2300,32 +2731,32 @@ CREATE TABLE IF NOT EXISTS `request_logs` (
   KEY `idx_request_logs_user_created` (`user_public_id`,`created_at`),
   KEY `idx_request_logs_method_created` (`method`,`created_at`),
   KEY `idx_request_logs_result_created` (`result_code`,`created_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=53776 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `role_permissions` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `role_id` int(11),
-  `permission_id` int(11),
-  `created_at` datetime,
+  `role_id` int(11) DEFAULT NULL,
+  `permission_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=170 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `roles` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `code` varchar(64),
-  `title` varchar(255),
+  `public_id` varchar(64) DEFAULT NULL,
+  `code` varchar(64) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
   `is_system` int(11) DEFAULT 0,
-  `created_at` datetime,
-  `updated_at` datetime,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   UNIQUE KEY `code` (`code`)
-) ENGINE=InnoDB AUTO_INCREMENT=45 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2336,7 +2767,7 @@ CREATE TABLE IF NOT EXISTS `saved_view_user_preferences` (
   `user_id` bigint(20) unsigned NOT NULL,
   `is_pinned` tinyint(1) NOT NULL DEFAULT 0,
   `sort_order` int(11) NOT NULL DEFAULT 65535,
-  `last_used_at` datetime,
+  `last_used_at` datetime DEFAULT NULL,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
   PRIMARY KEY (`id`),
@@ -2344,107 +2775,113 @@ CREATE TABLE IF NOT EXISTS `saved_view_user_preferences` (
   UNIQUE KEY `uq_saved_view_user_preferences_view_user` (`saved_view_id`,`user_id`),
   KEY `idx_saved_view_user_preferences_user_pinned` (`user_id`,`is_pinned`,`sort_order`),
   KEY `idx_saved_view_user_preferences_last_used` (`user_id`,`last_used_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `saved_views` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `user_id` int(11),
-  `updated_by_user_id` bigint(20) unsigned,
-  `entity_type` varchar(64),
-  `title` varchar(255),
-  `description` text,
-  `filters` text,
+  `public_id` varchar(64) DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `updated_by_user_id` bigint(20) unsigned DEFAULT NULL,
+  `entity_type` varchar(64) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `filters` text DEFAULT NULL,
   `access_level` varchar(32) NOT NULL DEFAULT 'private',
-  `display_filters` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`display_filters`)),
-  `display_properties` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`display_properties`)),
-  `rich_filters` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`rich_filters`)),
+  `display_filters` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`display_filters`)),
+  `display_properties` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`display_properties`)),
+  `rich_filters` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`rich_filters`)),
   `layout` varchar(32) NOT NULL DEFAULT 'list',
-  `group_by` varchar(64),
-  `order_by` varchar(64),
-  `order_dir` varchar(8),
+  `group_by` varchar(64) DEFAULT NULL,
+  `order_by` varchar(64) DEFAULT NULL,
+  `order_dir` varchar(8) DEFAULT NULL,
   `is_locked` tinyint(1) NOT NULL DEFAULT 0,
   `is_system` tinyint(1) NOT NULL DEFAULT 0,
   `sort_order` int(11) NOT NULL DEFAULT 65535,
-  `archived_at` datetime,
-  `created_at` datetime,
-  `updated_at` datetime,
+  `archived_at` datetime DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_saved_views_entity_access` (`entity_type`,`access_level`),
   KEY `idx_saved_views_user_entity` (`user_id`,`entity_type`),
   KEY `idx_saved_views_archived` (`archived_at`),
   KEY `idx_saved_views_sort_order` (`sort_order`),
-  KEY `idx_saved_views_system_locked` (`is_system`,`is_locked`)
-) ENGINE=InnoDB AUTO_INCREMENT=58 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_saved_views_system_locked` (`is_system`,`is_locked`),
+  KEY `idx_saved_views_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `security_logs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `actor_public_id` varchar(64),
-  `event_type` varchar(64),
-  `ip` varchar(128),
-  `user_agent` text,
-  `details` text,
-  `created_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `actor_public_id` varchar(64) DEFAULT NULL,
+  `event_type` varchar(64) DEFAULT NULL,
+  `ip` varchar(128) DEFAULT NULL,
+  `user_agent` text DEFAULT NULL,
+  `details` text DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_security_logs_created` (`created_at`),
   KEY `idx_security_logs_actor_created` (`actor_public_id`,`created_at`),
   KEY `idx_security_logs_event_created` (`event_type`,`created_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=990 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `settings` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `scope` varchar(64),
-  `name` varchar(190),
-  `value` text,
-  `created_at` datetime,
-  `updated_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `scope` varchar(64) DEFAULT NULL,
+  `name` varchar(190) DEFAULT NULL,
+  `value` text DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=61 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `sla_policies` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `title` varchar(255),
-  `response_minutes` int(11),
-  `resolve_minutes` int(11),
-  `escalation_payload` text,
-  `created_at` datetime,
-  `updated_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `response_minutes` int(11) DEFAULT NULL,
+  `resolve_minutes` int(11) DEFAULT NULL,
+  `escalation_payload` text DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=59 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_sla_policies_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `statuses` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `scope` varchar(64),
-  `code` varchar(64),
-  `title` varchar(255),
-  `color` varchar(32),
-  `sort_order` int(11),
+  `public_id` varchar(64) DEFAULT NULL,
+  `scope` varchar(64) DEFAULT NULL,
+  `code` varchar(64) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `color` varchar(32) DEFAULT NULL,
+  `sort_order` int(11) DEFAULT NULL,
   `is_active` int(11) DEFAULT 1,
-  `is_closed` int(11) NOT NULL DEFAULT 0,
-  `created_at` datetime,
-  `updated_at` datetime,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
   `wip_limit` int(11) NOT NULL DEFAULT 0,
+  `is_closed` int(11) NOT NULL DEFAULT 0,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=67 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_statuses_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2453,24 +2890,25 @@ CREATE TABLE IF NOT EXISTS `sticky_notes` (
   `public_id` varchar(64) NOT NULL,
   `owner_user_id` bigint(20) unsigned NOT NULL,
   `context_type` varchar(64) NOT NULL DEFAULT 'personal',
-  `context_public_id` varchar(64),
-  `title` varchar(255),
+  `context_public_id` varchar(64) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
   `body` text NOT NULL,
   `color` varchar(32) NOT NULL DEFAULT 'yellow',
-  `background_color` varchar(32),
+  `background_color` varchar(32) DEFAULT NULL,
   `visibility` varchar(32) NOT NULL DEFAULT 'private',
   `is_pinned` tinyint(1) NOT NULL DEFAULT 0,
   `sort_order` int(11) NOT NULL DEFAULT 65535,
-  `converted_to_entity_type` varchar(64),
-  `converted_to_entity_public_id` varchar(64),
-  `converted_at` datetime,
-  `converted_by_user_id` bigint(20) unsigned,
-  `meta_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`meta_json`)),
+  `converted_to_entity_type` varchar(64) DEFAULT NULL,
+  `converted_to_entity_public_id` varchar(64) DEFAULT NULL,
+  `converted_at` datetime DEFAULT NULL,
+  `converted_by_user_id` bigint(20) unsigned DEFAULT NULL,
+  `meta_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`meta_json`)),
   `row_version` int(11) NOT NULL DEFAULT 1,
-  `archived_at` datetime,
-  `deleted_at` datetime,
+  `archived_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_sticky_notes_public_id` (`public_id`),
   KEY `idx_sticky_notes_owner_context` (`owner_user_id`,`context_type`,`context_public_id`),
@@ -2479,47 +2917,52 @@ CREATE TABLE IF NOT EXISTS `sticky_notes` (
   KEY `idx_sticky_notes_visibility` (`visibility`),
   KEY `idx_sticky_notes_archived_at` (`archived_at`),
   KEY `idx_sticky_notes_deleted_at` (`deleted_at`),
-  KEY `idx_sticky_notes_converted` (`converted_to_entity_type`,`converted_to_entity_public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=83 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_sticky_notes_converted` (`converted_to_entity_type`,`converted_to_entity_public_id`),
+  KEY `idx_sticky_notes_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `subscriptions` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `entity_type` varchar(64),
-  `entity_public_id` varchar(64),
-  `user_id` int(11),
-  `created_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `entity_type` varchar(64) DEFAULT NULL,
+  `entity_public_id` varchar(64) DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_subscriptions_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `subtasks` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `task_id` int(11),
-  `title` varchar(255),
-  `status_code` varchar(64),
-  `assignee_user_id` int(11),
-  `sort_order` int(11),
-  `created_at` datetime,
-  `updated_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `task_id` int(11) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `status_code` varchar(64) DEFAULT NULL,
+  `assignee_user_id` int(11) DEFAULT NULL,
+  `sort_order` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_subtasks_organization` (`organization_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `sync_state` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `user_id` int(11),
-  `scope` varchar(64),
-  `cursor_value` varchar(255),
-  `updated_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `scope` varchar(64) DEFAULT NULL,
+  `cursor_value` varchar(255) DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -2528,15 +2971,17 @@ CREATE TABLE IF NOT EXISTS `sync_state` (
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `tags` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `code` varchar(64),
-  `title` varchar(255),
-  `color` varchar(32),
-  `created_at` datetime,
-  `description` text,
+  `public_id` varchar(64) DEFAULT NULL,
+  `code` varchar(64) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `color` varchar(32) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=134 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_tags_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2545,29 +2990,30 @@ CREATE TABLE IF NOT EXISTS `task_activity_events` (
   `public_id` varchar(64) NOT NULL,
   `task_id` bigint(20) unsigned NOT NULL,
   `task_public_id` varchar(64) NOT NULL,
-  `actor_user_id` bigint(20) unsigned,
+  `actor_user_id` bigint(20) unsigned DEFAULT NULL,
   `actor_type` varchar(32) NOT NULL DEFAULT 'user',
-  `actor_public_id` varchar(64),
-  `actor_display_name` varchar(255),
+  `actor_public_id` varchar(64) DEFAULT NULL,
+  `actor_display_name` varchar(255) DEFAULT NULL,
   `event_type` varchar(96) NOT NULL,
-  `field_name` varchar(128),
-  `old_value` text,
-  `new_value` text,
-  `old_label` varchar(255),
-  `new_label` varchar(255),
-  `related_entity_type` varchar(64),
-  `related_entity_id` bigint(20) unsigned,
-  `related_entity_public_id` varchar(64),
-  `related_entity_label` varchar(255),
-  `message_key` varchar(128),
-  `message_text` varchar(1000),
-  `payload_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`payload_json`)),
+  `field_name` varchar(128) DEFAULT NULL,
+  `old_value` text DEFAULT NULL,
+  `new_value` text DEFAULT NULL,
+  `old_label` varchar(255) DEFAULT NULL,
+  `new_label` varchar(255) DEFAULT NULL,
+  `related_entity_type` varchar(64) DEFAULT NULL,
+  `related_entity_id` bigint(20) unsigned DEFAULT NULL,
+  `related_entity_public_id` varchar(64) DEFAULT NULL,
+  `related_entity_label` varchar(255) DEFAULT NULL,
+  `message_key` varchar(128) DEFAULT NULL,
+  `message_text` varchar(1000) DEFAULT NULL,
+  `payload_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`payload_json`)),
   `visibility` varchar(32) NOT NULL DEFAULT 'default',
-  `request_id` varchar(128),
-  `source_type` varchar(64),
-  `source_ref` varchar(255),
+  `request_id` varchar(128) DEFAULT NULL,
+  `source_type` varchar(64) DEFAULT NULL,
+  `source_ref` varchar(255) DEFAULT NULL,
   `created_at` datetime NOT NULL,
-  `deleted_at` datetime,
+  `deleted_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_task_activity_events_public_id` (`public_id`),
   KEY `idx_task_activity_events_task_created` (`task_id`,`created_at`),
@@ -2576,33 +3022,38 @@ CREATE TABLE IF NOT EXISTS `task_activity_events` (
   KEY `idx_task_activity_events_event_type` (`event_type`,`created_at`),
   KEY `idx_task_activity_events_related` (`related_entity_type`,`related_entity_public_id`),
   KEY `idx_task_activity_events_request_id` (`request_id`),
-  KEY `idx_task_activity_events_deleted_at` (`deleted_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=8060 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_task_activity_events_deleted_at` (`deleted_at`),
+  KEY `idx_task_activity_events_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `task_assignees` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `task_id` int(11),
-  `user_id` int(11),
-  `created_at` datetime,
-  PRIMARY KEY (`id`)
+  `task_id` int(11) DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_task_assignees_organization` (`organization_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `task_dependencies` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `task_id` int(11),
-  `depends_on_task_id` int(11),
-  `dependency_type` varchar(32),
-  `created_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `task_id` int(11) DEFAULT NULL,
+  `depends_on_task_id` int(11) DEFAULT NULL,
+  `dependency_type` varchar(32) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_dep_task` (`task_id`),
-  KEY `idx_dep_depends_on_task` (`depends_on_task_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_dep_depends_on_task` (`depends_on_task_id`),
+  KEY `idx_task_dependencies_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2612,20 +3063,21 @@ CREATE TABLE IF NOT EXISTS `task_estimates` (
   `task_id` bigint(20) unsigned NOT NULL,
   `task_public_id` varchar(64) NOT NULL,
   `estimate_set_id` bigint(20) unsigned NOT NULL,
-  `estimate_option_id` bigint(20) unsigned,
-  `numeric_value` decimal(12,2),
-  `text_value` varchar(255),
-  `currency_code` varchar(8),
-  `note` varchar(1000),
+  `estimate_option_id` bigint(20) unsigned DEFAULT NULL,
+  `numeric_value` decimal(12,2) DEFAULT NULL,
+  `text_value` varchar(255) DEFAULT NULL,
+  `currency_code` varchar(8) DEFAULT NULL,
+  `note` varchar(1000) DEFAULT NULL,
   `assigned_by_user_id` bigint(20) unsigned NOT NULL,
   `assigned_at` datetime NOT NULL,
-  `updated_by_user_id` bigint(20) unsigned,
+  `updated_by_user_id` bigint(20) unsigned DEFAULT NULL,
   `row_version` int(11) NOT NULL DEFAULT 1,
-  `active_key` varchar(191),
-  `archived_at` datetime,
-  `deleted_at` datetime,
+  `active_key` varchar(191) DEFAULT NULL,
+  `archived_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_task_estimates_public_id` (`public_id`),
   UNIQUE KEY `uq_task_estimates_active_key` (`active_key`),
@@ -2634,8 +3086,9 @@ CREATE TABLE IF NOT EXISTS `task_estimates` (
   KEY `idx_task_estimates_set_value` (`estimate_set_id`,`numeric_value`),
   KEY `idx_task_estimates_option` (`estimate_option_id`),
   KEY `idx_task_estimates_assigned_by` (`assigned_by_user_id`,`assigned_at`),
-  KEY `idx_task_estimates_deleted_at` (`deleted_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_task_estimates_deleted_at` (`deleted_at`),
+  KEY `idx_task_estimates_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2643,35 +3096,39 @@ CREATE TABLE IF NOT EXISTS `task_key_counters` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `scope_key` varchar(64) NOT NULL,
   `scope_type` varchar(32) NOT NULL,
-  `project_id` bigint(20) unsigned,
+  `project_id` bigint(20) unsigned DEFAULT NULL,
   `prefix` varchar(10) NOT NULL,
   `current_value` bigint(20) unsigned NOT NULL DEFAULT 0,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_task_key_counters_scope_key` (`scope_key`),
   KEY `idx_task_key_counters_project_id` (`project_id`),
-  KEY `idx_task_key_counters_prefix` (`prefix`)
-) ENGINE=InnoDB AUTO_INCREMENT=11307 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_task_key_counters_prefix` (`prefix`),
+  KEY `idx_task_key_counters_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `task_relations` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `parent_task_id` int(11),
-  `child_task_id` int(11),
-  `relation_type` varchar(32),
+  `public_id` varchar(64) DEFAULT NULL,
+  `parent_task_id` int(11) DEFAULT NULL,
+  `child_task_id` int(11) DEFAULT NULL,
+  `relation_type` varchar(32) DEFAULT NULL,
   `sort_order` int(11) DEFAULT 0,
-  `legacy_subtask_public_id` varchar(64),
-  `created_at` datetime,
-  `updated_at` datetime,
+  `legacy_subtask_public_id` varchar(64) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   UNIQUE KEY `idx_task_rel_child_type` (`child_task_id`,`relation_type`),
   UNIQUE KEY `idx_task_rel_legacy` (`legacy_subtask_public_id`),
-  KEY `idx_task_rel_parent_type_sort` (`parent_task_id`,`relation_type`,`sort_order`)
-) ENGINE=InnoDB AUTO_INCREMENT=132 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_task_rel_parent_type_sort` (`parent_task_id`,`relation_type`,`sort_order`),
+  KEY `idx_task_relations_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2681,13 +3138,14 @@ CREATE TABLE IF NOT EXISTS `task_relations_v2` (
   `source_task_id` bigint(20) unsigned NOT NULL,
   `target_task_id` bigint(20) unsigned NOT NULL,
   `relation_type` varchar(32) NOT NULL,
-  `active_key` varchar(191),
-  `note` text,
+  `active_key` varchar(191) DEFAULT NULL,
+  `note` text DEFAULT NULL,
   `created_by_user_id` bigint(20) unsigned NOT NULL,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
-  `deleted_at` datetime,
+  `deleted_at` datetime DEFAULT NULL,
   `row_version` int(11) NOT NULL DEFAULT 1,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_task_relations_v2_public_id` (`public_id`),
   UNIQUE KEY `uq_task_relations_v2_active_key` (`active_key`),
@@ -2695,82 +3153,94 @@ CREATE TABLE IF NOT EXISTS `task_relations_v2` (
   KEY `idx_task_relations_v2_target` (`target_task_id`,`deleted_at`),
   KEY `idx_task_relations_v2_type` (`relation_type`,`deleted_at`),
   KEY `idx_task_relations_v2_created_by` (`created_by_user_id`,`created_at`),
-  KEY `idx_task_relations_v2_deleted_at` (`deleted_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=47 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_task_relations_v2_deleted_at` (`deleted_at`),
+  KEY `idx_task_relations_v2_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `task_status_history` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `task_id` int(11),
-  `old_status` varchar(64),
-  `new_status` varchar(64),
-  `changed_by_user_id` int(11),
-  `created_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `task_id` int(11) DEFAULT NULL,
+  `old_status` varchar(64) DEFAULT NULL,
+  `new_status` varchar(64) DEFAULT NULL,
+  `changed_by_user_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1903 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_task_status_history_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `task_templates` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `title` varchar(255),
-  `payload` text,
+  `public_id` varchar(64) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `payload` text DEFAULT NULL,
   `is_active` int(11) DEFAULT 1,
-  `created_by_user_id` int(11),
-  `created_at` datetime,
-  `updated_at` datetime,
+  `created_by_user_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
-  KEY `idx_task_templates_created_by` (`created_by_user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=68 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_task_templates_created_by` (`created_by_user_id`),
+  KEY `idx_task_templates_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `task_watchers` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `task_id` int(11),
-  `user_id` int(11),
-  `created_at` datetime,
-  PRIMARY KEY (`id`)
+  `task_id` int(11) DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_task_watchers_organization` (`organization_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `tasks` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `project_id` int(11),
-  `parent_task_id` int(11),
-  `title` varchar(255),
-  `description` text,
-  `status_code` varchar(64),
-  `sla_policy_id` int(11),
-  `sla_response_deadline` datetime,
-  `sla_resolve_deadline` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `project_id` int(11) DEFAULT NULL,
+  `parent_task_id` int(11) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `status_code` varchar(64) DEFAULT NULL,
+  `sla_policy_id` int(11) DEFAULT NULL,
+  `sla_response_deadline` datetime DEFAULT NULL,
+  `sla_resolve_deadline` datetime DEFAULT NULL,
   `sla_breached` tinyint(4) NOT NULL DEFAULT 0,
-  `priority_code` varchar(64),
-  `task_key` varchar(32),
-  `task_key_prefix` varchar(10),
-  `task_sequence_number` bigint(20) unsigned,
-  `due_at` datetime,
-  `start_at` datetime,
-  `end_at` datetime,
-  `assignee_user_id` int(11),
-  `creator_user_id` int(11),
-  `archived_at` datetime,
-  `deleted_at` datetime,
-  `created_at` datetime,
-  `updated_at` datetime,
-  `source_type` varchar(64),
-  `source_id` varchar(255),
-  `source_url` varchar(2048),
-  `source_payload_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`source_payload_json`)),
+  `priority_code` varchar(64) DEFAULT NULL,
+  `task_key` varchar(32) DEFAULT NULL,
+  `task_key_prefix` varchar(10) DEFAULT NULL,
+  `task_sequence_number` bigint(20) unsigned DEFAULT NULL,
+  `due_at` datetime DEFAULT NULL,
+  `start_at` datetime DEFAULT NULL,
+  `end_at` datetime DEFAULT NULL,
+  `assignee_user_id` int(11) DEFAULT NULL,
+  `creator_user_id` int(11) DEFAULT NULL,
+  `archived_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `source_type` varchar(64) DEFAULT NULL,
+  `source_id` varchar(255) DEFAULT NULL,
+  `source_url` varchar(2048) DEFAULT NULL,
+  `source_payload_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`source_payload_json`)),
   `row_version` int(11) DEFAULT 1,
-  `client_public_id` varchar(64),
+  `client_public_id` varchar(64) DEFAULT NULL,
+  `activity_code` varchar(64) DEFAULT NULL,
+  `override_cost_rate` decimal(12,2) DEFAULT NULL,
+  `override_bill_rate` decimal(12,2) DEFAULT NULL,
+  `override_payout_rate` decimal(12,2) DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   UNIQUE KEY `uq_tasks_task_key` (`task_key`),
@@ -2787,96 +3257,103 @@ CREATE TABLE IF NOT EXISTS `tasks` (
   KEY `idx_tasks_task_key_prefix_sequence` (`task_key_prefix`,`task_sequence_number`),
   KEY `idx_tasks_task_sequence_number` (`task_sequence_number`),
   KEY `idx_tasks_client_public_id` (`client_public_id`),
-  KEY `idx_tasks_source` (`source_type`,`source_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6585 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_tasks_source` (`source_type`,`source_id`),
+  KEY `idx_tasks_activity_code` (`activity_code`),
+  KEY `idx_tasks_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `teams` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
+  `public_id` varchar(64) DEFAULT NULL,
   `team_type` varchar(32) NOT NULL DEFAULT 'team',
-  `parent_id` int(11),
-  `code` varchar(64),
-  `title` varchar(255),
-  `manager_user_id` int(11),
-  `created_by_user_id` int(11),
-  `member_user_ids` text,
-  `created_at` datetime,
-  `updated_at` datetime,
+  `parent_id` int(11) DEFAULT NULL,
+  `code` varchar(64) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `manager_user_id` int(11) DEFAULT NULL,
+  `created_by_user_id` int(11) DEFAULT NULL,
+  `member_user_ids` text DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_teams_created_by` (`created_by_user_id`),
   KEY `idx_teams_type` (`team_type`),
-  KEY `idx_teams_parent` (`parent_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=188 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_teams_parent` (`parent_id`),
+  KEY `idx_teams_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `two_factor_secrets` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `user_id` int(11),
-  `secret_hash` varchar(255),
-  `backup_codes` text,
-  `created_at` datetime,
-  `updated_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `secret_hash` varchar(255) DEFAULT NULL,
+  `backup_codes` text DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `last_totp_step` bigint(20) DEFAULT 0,
+  `last_login_nonce_hash` varchar(128) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `user_roles` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `user_id` int(11),
-  `role_id` int(11),
-  `created_at` datetime,
+  `user_id` int(11) DEFAULT NULL,
+  `role_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=80 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `user_sessions` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `user_id` int(11),
-  `token_hash` varchar(255),
-  `ip` varchar(128),
-  `user_agent` text,
-  `device_fingerprint` varchar(64),
-  `device_name` varchar(190),
-  `expires_at` datetime,
-  `revoked_at` datetime,
-  `created_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `token_hash` varchar(255) DEFAULT NULL,
+  `ip` varchar(128) DEFAULT NULL,
+  `user_agent` text DEFAULT NULL,
+  `device_fingerprint` varchar(64) DEFAULT NULL,
+  `device_name` varchar(190) DEFAULT NULL,
+  `expires_at` datetime DEFAULT NULL,
+  `revoked_at` datetime DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_sessions_token` (`token_hash`),
   KEY `idx_sessions_user_device` (`user_id`,`device_fingerprint`)
-) ENGINE=InnoDB AUTO_INCREMENT=656 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `users` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `login` varchar(120),
-  `email` varchar(190),
-  `password_hash` varchar(255),
-  `auth_token_hash` varchar(255),
-  `full_name` varchar(255),
-  `locale` varchar(16),
+  `public_id` varchar(64) DEFAULT NULL,
+  `login` varchar(120) DEFAULT NULL,
+  `email` varchar(190) DEFAULT NULL,
+  `password_hash` varchar(255) DEFAULT NULL,
+  `auth_token_hash` varchar(255) DEFAULT NULL,
+  `full_name` varchar(255) DEFAULT NULL,
+  `locale` varchar(16) DEFAULT NULL,
   `is_active` int(11) DEFAULT 1,
   `is_root` int(11) DEFAULT 0,
-  `created_by_user_id` int(11),
-  `created_at` datetime,
-  `updated_at` datetime,
-  `deleted_at` datetime,
-  `cost_rate` decimal(12,2),
-  `bill_rate` decimal(12,2),
+  `created_by_user_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
+  `cost_rate` decimal(12,2) DEFAULT NULL,
+  `bill_rate` decimal(12,2) DEFAULT NULL,
   `is_external` tinyint(1) NOT NULL DEFAULT 0,
-  `external_invitation_expires_at` datetime,
+  `external_invitation_expires_at` datetime DEFAULT NULL,
   `external_role` varchar(20) NOT NULL DEFAULT 'observer',
+  `payout_rate` decimal(12,2) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   UNIQUE KEY `login` (`login`),
@@ -2885,47 +3362,51 @@ CREATE TABLE IF NOT EXISTS `users` (
   KEY `idx_users_is_external` (`is_external`),
   KEY `idx_users_external_invitation_expiry` (`is_external`,`external_invitation_expires_at`),
   KEY `idx_users_external_role` (`external_role`)
-) ENGINE=InnoDB AUTO_INCREMENT=103 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `webhook_deliveries` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `webhook_id` int(11),
-  `event_code` varchar(64),
-  `status` varchar(32),
-  `response_code` int(11),
-  `created_at` datetime,
-  `payload_json` text,
-  `signature` varchar(255),
+  `public_id` varchar(64) DEFAULT NULL,
+  `webhook_id` int(11) DEFAULT NULL,
+  `event_code` varchar(64) DEFAULT NULL,
+  `status` varchar(32) DEFAULT NULL,
+  `response_code` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `payload_json` text DEFAULT NULL,
+  `signature` varchar(255) DEFAULT NULL,
   `attempts` int(11) NOT NULL DEFAULT 0,
-  `next_run_at` datetime,
-  `locked_at` datetime,
-  `last_error` text,
+  `next_run_at` datetime DEFAULT NULL,
+  `locked_at` datetime DEFAULT NULL,
+  `last_error` text DEFAULT NULL,
   `dead_letter` int(11) NOT NULL DEFAULT 0,
-  `updated_at` datetime,
+  `updated_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   KEY `idx_webhook_deliveries_queue_runnable` (`status`,`dead_letter`,`next_run_at`,`locked_at`,`created_at`),
-  KEY `idx_webhook_deliveries_attempts` (`attempts`,`updated_at`)
+  KEY `idx_webhook_deliveries_attempts` (`attempts`,`updated_at`),
+  KEY `idx_webhook_deliveries_organization` (`organization_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `webhook_subscriptions` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `title` varchar(255),
-  `endpoint` text,
-  `secret_hash` varchar(255),
-  `events` text,
+  `public_id` varchar(64) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `endpoint` text DEFAULT NULL,
+  `secret_hash` varchar(255) DEFAULT NULL,
+  `events` text DEFAULT NULL,
   `is_active` int(11) DEFAULT 1,
-  `created_at` datetime,
-  `updated_at` datetime,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=98 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_webhook_subscriptions_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -2934,24 +3415,25 @@ CREATE TABLE IF NOT EXISTS `work_cycles` (
   `public_id` varchar(64) NOT NULL,
   `project_id` bigint(20) unsigned NOT NULL,
   `title` varchar(255) NOT NULL,
-  `description` text,
-  `goal` text,
+  `description` text DEFAULT NULL,
+  `goal` text DEFAULT NULL,
   `status` varchar(32) NOT NULL DEFAULT 'planned',
-  `start_at` datetime,
-  `end_at` datetime,
-  `timezone` varchar(64),
-  `owner_user_id` bigint(20) unsigned,
+  `start_at` datetime DEFAULT NULL,
+  `end_at` datetime DEFAULT NULL,
+  `timezone` varchar(64) DEFAULT NULL,
+  `owner_user_id` bigint(20) unsigned DEFAULT NULL,
   `created_by_user_id` bigint(20) unsigned NOT NULL,
-  `completed_by_user_id` bigint(20) unsigned,
-  `completed_at` datetime,
-  `archived_at` datetime,
-  `progress_snapshot_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`progress_snapshot_json`)),
-  `meta_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin CHECK (json_valid(`meta_json`)),
+  `completed_by_user_id` bigint(20) unsigned DEFAULT NULL,
+  `completed_at` datetime DEFAULT NULL,
+  `archived_at` datetime DEFAULT NULL,
+  `progress_snapshot_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`progress_snapshot_json`)),
+  `meta_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`meta_json`)),
   `sort_order` int(11) NOT NULL DEFAULT 65535,
   `row_version` int(11) NOT NULL DEFAULT 1,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
-  `deleted_at` datetime,
+  `deleted_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_work_cycles_public_id` (`public_id`),
   KEY `idx_work_cycles_project_status` (`project_id`,`status`),
@@ -2960,40 +3442,65 @@ CREATE TABLE IF NOT EXISTS `work_cycles` (
   KEY `idx_work_cycles_created_by` (`created_by_user_id`,`created_at`),
   KEY `idx_work_cycles_completed_at` (`completed_at`),
   KEY `idx_work_cycles_archived_at` (`archived_at`),
-  KEY `idx_work_cycles_deleted_at` (`deleted_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=38 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_work_cycles_deleted_at` (`deleted_at`),
+  KEY `idx_work_cycles_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `work_logs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `user_id` int(11),
-  `task_id` int(11),
-  `minutes_spent` int(11),
-  `note` text,
-  `logged_at` datetime,
-  `started_at` datetime,
-  `ended_at` datetime,
-  `created_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `task_id` int(11) DEFAULT NULL,
+  `minutes_spent` int(11) DEFAULT NULL,
+  `note` text DEFAULT NULL,
+  `logged_at` datetime DEFAULT NULL,
+  `started_at` datetime DEFAULT NULL,
+  `ended_at` datetime DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `activity_code` varchar(64) DEFAULT NULL,
+  `cost_rate_snapshot` decimal(12,2) DEFAULT NULL,
+  `bill_rate_snapshot` decimal(12,2) DEFAULT NULL,
+  `payout_rate_snapshot` decimal(12,2) DEFAULT NULL,
+  `currency_code` varchar(8) DEFAULT NULL,
+  `cost_source_type` varchar(32) DEFAULT NULL,
+  `cost_source_ref` varchar(64) DEFAULT NULL,
+  `bill_source_type` varchar(32) DEFAULT NULL,
+  `bill_source_ref` varchar(64) DEFAULT NULL,
+  `payout_source_type` varchar(32) DEFAULT NULL,
+  `payout_source_ref` varchar(64) DEFAULT NULL,
+  `rate_resolved_at` datetime DEFAULT NULL,
+  `rate_ambiguous` tinyint(1) NOT NULL DEFAULT 0,
+  `rate_locked_at` datetime DEFAULT NULL,
+  `client_public_id` varchar(64) DEFAULT NULL,
+  `project_public_id` varchar(64) DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
-  KEY `idx_work_logs_interval` (`user_id`,`started_at`,`ended_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=471 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_work_logs_interval` (`user_id`,`started_at`,`ended_at`),
+  KEY `idx_work_logs_client` (`client_public_id`,`logged_at`),
+  KEY `idx_work_logs_project` (`project_public_id`,`logged_at`),
+  KEY `idx_work_logs_activity` (`activity_code`),
+  KEY `idx_work_logs_payout` (`user_id`,`payout_rate_snapshot`),
+  KEY `idx_work_logs_organization` (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `working_hours` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `public_id` varchar(64),
-  `calendar_id` int(11),
-  `weekday` int(11),
-  `start_time` varchar(8),
-  `end_time` varchar(8),
-  `created_at` datetime,
-  `updated_at` datetime,
+  `public_id` varchar(64) DEFAULT NULL,
+  `calendar_id` int(11) DEFAULT NULL,
+  `weekday` int(11) DEFAULT NULL,
+  `start_time` varchar(8) DEFAULT NULL,
+  `end_time` varchar(8) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `organization_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_working_hours_organization` (`organization_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -3007,8 +3514,8 @@ CREATE TABLE IF NOT EXISTS `yandex_calendar_connections` (
   `credential_encrypted` text NOT NULL,
   `auth_mode` varchar(32) NOT NULL DEFAULT 'app_password',
   `status` varchar(32) NOT NULL DEFAULT 'active',
-  `last_error` text,
-  `last_sync_at` datetime,
+  `last_error` text DEFAULT NULL,
+  `last_sync_at` datetime DEFAULT NULL,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
   PRIMARY KEY (`id`),
@@ -3023,19 +3530,19 @@ CREATE TABLE IF NOT EXISTS `yandex_calendar_events` (
   `public_id` varchar(64) NOT NULL,
   `source_id` int(11) NOT NULL,
   `external_uid` varchar(512) NOT NULL,
-  `recurrence_id` varchar(128),
-  `event_href` varchar(1024),
-  `etag` varchar(255),
-  `recurrence_rule` text,
-  `event_start` datetime,
-  `event_end` datetime,
+  `recurrence_id` varchar(128) DEFAULT NULL,
+  `event_href` varchar(1024) DEFAULT NULL,
+  `etag` varchar(255) DEFAULT NULL,
+  `recurrence_rule` text DEFAULT NULL,
+  `event_start` datetime DEFAULT NULL,
+  `event_end` datetime DEFAULT NULL,
   `is_all_day` int(11) NOT NULL DEFAULT 0,
-  `all_day_start` date,
-  `all_day_end` date,
-  `crm_event_public_id` varchar(64),
-  `last_synced_at` datetime,
+  `all_day_start` date DEFAULT NULL,
+  `all_day_end` date DEFAULT NULL,
+  `crm_event_public_id` varchar(64) DEFAULT NULL,
+  `last_synced_at` datetime DEFAULT NULL,
   `status` varchar(32) NOT NULL DEFAULT 'active',
-  `last_error` text,
+  `last_error` text DEFAULT NULL,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
   PRIMARY KEY (`id`),
@@ -3050,14 +3557,14 @@ CREATE TABLE IF NOT EXISTS `yandex_calendar_sources` (
   `public_id` varchar(64) NOT NULL,
   `connection_id` int(11) NOT NULL,
   `calendar_href` varchar(512) NOT NULL,
-  `display_name` varchar(255),
-  `timezone` varchar(128),
+  `display_name` varchar(255) DEFAULT NULL,
+  `timezone` varchar(128) DEFAULT NULL,
   `direction` varchar(32) NOT NULL DEFAULT 'yandex_to_crm',
   `is_enabled` int(11) NOT NULL DEFAULT 1,
   `is_primary` int(11) NOT NULL DEFAULT 0,
-  `ctag` varchar(255),
-  `last_sync_at` datetime,
-  `last_error` text,
+  `ctag` varchar(255) DEFAULT NULL,
+  `last_sync_at` datetime DEFAULT NULL,
+  `last_error` text DEFAULT NULL,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
   PRIMARY KEY (`id`),
@@ -3065,3 +3572,166 @@ CREATE TABLE IF NOT EXISTS `yandex_calendar_sources` (
   UNIQUE KEY `uq_yandex_calendar_source` (`connection_id`,`calendar_href`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+
+
+-- Baseline migrations state
+INSERT IGNORE INTO `migrations` (`migration_key`, `description`, `applied_at`) VALUES
+('20260417_000001_initial_schema', 'Initial CRM schema and dictionaries', NOW()),
+('20260418_000002_comment_drafts', 'Add comment drafts table for task-level draft save/restore', NOW()),
+('20260418_000003_organization_memberships', 'Add organization memberships for workspace isolation baseline', NOW()),
+('20260418_000004_company_client_contact_ownership', 'Add created_by_user_id ownership columns for companies/clients/contacts and indexes', NOW()),
+('20260418_000005_template_workflow_ownership', 'Add created_by_user_id ownership columns for templates and workflow rules', NOW()),
+('20260419_000006_list_query_indexes', 'Hardening indexes for list/search/cursor endpoints (tasks/projects/logs/audit/activity)', NOW()),
+('20260419_000007_index_repair', 'Repair and enforce baseline + list-query indexes for existing installations', NOW()),
+('20260419_000008_session_device_model', 'Add device fingerprint/name fields on user sessions and device index', NOW()),
+('20260420_000009_team_members', 'Add member_user_ids column to teams for team composition', NOW()),
+('20260423_000010_project_teams', 'Add team_public_id column to projects for team ownership and access', NOW()),
+('20260423_000015_team_creators', 'Add created_by_user_id to teams and backfill from manager where possible', NOW()),
+('20260423_000020_notification_event_payload', 'Expand notifications with entity/action/actor/link metadata and indexes', NOW()),
+('20260421_000010_task_subtask_relations', 'Store subtasks as full tasks linked by parent-child relations', NOW()),
+('20260422_000010_client_profile_expansion', 'Expand clients schema with legal/person/bank/profile fields', NOW()),
+('20260424_000001_calendar_event_description', 'Add description field to calendar events', NOW()),
+('20260814_000001_calendar_event_source_privacy', 'Add source ownership metadata to calendar events for private integrations', NOW()),
+('20260425_000001_ai_foundation', 'AI foundation tables, indexes and baseline defaults', NOW()),
+('20260426_000033_ai_jobs_runtime_compatibility', 'Ensure ai_jobs compatibility columns for cron/runtime reads', NOW()),
+('20260427_000034_ai_index_coverage', 'Ensure AI index coverage for public_id/intent/entity/actor/status/created_at access patterns', NOW()),
+('20260427_000035_ai_author_timestamp_coverage', 'Ensure AI mutable tables have author fields where applicable', NOW()),
+('20260427_000036_ai_suggestions_input_hash', 'Add ai_suggestions.input_hash for background deduplication', NOW()),
+('20260430_000037_ai_suggestions_cache_freshness', 'Add ai_suggestions cache/freshness columns and indexes', NOW()),
+('20260505_000040_import_export_jobs_queue_runtime', 'Add queue runtime columns for import/export jobs', NOW()),
+('20260505_000041_notification_push_queue_runtime', 'Create queue table for async push dispatch runtime', NOW()),
+('20260506_000042_webhook_deliveries_queue_runtime', 'Add queue runtime columns for async webhook deliveries', NOW()),
+('20260518_000001_crm_entity_consolidation', 'Consolidate clients+companies into counterparties, add contact roles, unify teams+departments with hierarchy', NOW()),
+('20260618_000001_core_update_system', 'Create core update history/log tables and system.update permission', NOW()),
+('20260615_000001_knowledge_spaces_hierarchy', 'Add parent_id to knowledge_spaces for nested subspaces hierarchy', NOW()),
+('20260606_000001_recurring_processor', 'Add last_processed_at to recurring_rules and next_occurrence to recurring_instances', NOW()),
+('20260607_000001_recurring_rule_title', 'Add human-readable titles to recurring rules', NOW()),
+('20260611_000001_gantt_performance_indexes', 'Add missing indexes for Gantt page performance (milestones, dependencies, entity_tags)', NOW()),
+('20260613_000001_knowledge_base', 'Add Knowledge Base spaces, pages, drafts, versions, links, templates and permissions', NOW()),
+('20260806_000001_knowledge_entity_link_uniqueness', 'Prevent duplicate knowledge entity links per page and entity', NOW()),
+('20260614_000002_knowledge_comments_repair', 'Repair Knowledge Base comments table for existing installations', NOW()),
+('20260616_000001_intake_items', 'Create intake items and intake item activities tables', NOW()),
+('20260616_000002_task_human_readable_keys', 'Add human-readable task keys and project task prefixes', NOW()),
+('20260616_000003_task_relations_v2', 'Create semantic task relations table', NOW()),
+('20260616_000004_saved_views_v2', 'Extend saved views with layouts, access, display properties and user preferences', NOW()),
+('20260616_000005_task_activity_feed', 'Create task activity feed events table', NOW()),
+('20260616_000006_work_cycles', 'Create work cycles, cycle tasks and cycle snapshots', NOW()),
+('20260616_000007_project_modules', 'Create project modules, module tasks, members and links', NOW()),
+('20260616_000008_knowledge_page_versions', 'Add knowledge page versions and locking fields', NOW()),
+('20260616_000008_sticky_notes', 'Create sticky_notes table', NOW()),
+('20260616_000011_task_estimates', 'Create estimate sets, options and task estimates tables', NOW()),
+('20260621_000001_knowledge_source_metadata', 'Add source metadata fields and page properties for external imports (Confluence migration)', NOW()),
+('20260623_000001_rate_limits', 'Create rate_limits table for DB-based rate limiting', NOW()),
+('20260804_000001_counterparty_address_actual', 'Add actual (physical) address field to counterparties', NOW()),
+('20260804_000002_task_direct_client', 'Add direct task-to-client link (client_public_id on tasks)', NOW()),
+('20260810_000001_tags_description', 'Add description column to tags for existing installs', NOW()),
+('20260811_000001_task_chat_source', 'Add source metadata (chat dialogue reference) to tasks', NOW()),
+('20260811_000002_worklog_interval', 'Add exact started_at/ended_at intervals to work_logs for overlap-aware time analytics', NOW()),
+('20260819_000001_external_users', 'External users (client portal): is_external flag, contacts.user_id link, external_guest role', NOW()),
+('20260820_000002_external_invitation_lifecycle', 'External users: invitation expiry metadata and lookup index', NOW()),
+('20260821_000001_external_user_roles', 'External users: observer/executor role + per-project access grants for executors', NOW()),
+('20260821_000003_external_portal_integration', 'Add knowledge_pages.client_visible flag for portal visibility; no schema change needed for chats.type.', NOW()),
+('20260821_000004_projects_deleted_at', 'Add deleted_at column to projects for soft-delete support', NOW()),
+('20260821_000002_rate_cards', 'Rate cards: price lists with per-user/role/activity lines and counterparty/project assignments', NOW()),
+('20260821_000003_worklog_rate_columns', 'Financial rate columns on work_logs, tasks, and users.payout_rate', NOW()),
+('20260821_000004_worklog_rate_indexes', 'Indexes for financial rate columns on work_logs and tasks', NOW()),
+('20260821_000005_finance_permissions', 'Finance permissions: seed codes + grant view_own_payout to external_guest', NOW()),
+('20260821_000006_activity_code_dictionary', 'Seed the worklog activity code dictionary (statuses scope worklog_activity)', NOW()),
+('20260823_000001_file_visibility', 'File visibility: is_internal flag to hide internal attachments from external users', NOW()),
+('20260823_000002_two_factor_hardening', '2FA hardening: TOTP step replay prevention and login token nonce tracking', NOW()),
+('20260824_000001_knowledge_template_space', 'Knowledge templates: add space_id for space-scoped templates', NOW()),
+('20260907_000001_api_keys_name', 'Add name column to api_keys for existing installs', NOW()),
+('20260908_000001_api_key_preview', 'Add key_preview column to api_keys for identification in admin UI', NOW()),
+('20260911_000001_agent_memory', 'Create agent_memory table for autonomous agent scratchpad and persistent state', NOW()),
+('20260913_000001_knowledge_spaces_deleted_at', 'Add deleted_at to knowledge_spaces for the section recycle bin', NOW()),
+('20260913_000002_task_status_closure', 'Add is_closed flag to statuses and backfill terminal task statuses', NOW()),
+('20260915_000002_knowledge_page_version_counter_backfill', 'Backfill knowledge_pages.last_version_number from stored page versions', NOW()),
+('20260916_000001_project_task_key_prefix_backfill', 'Assign a unique task-key prefix to every project that has none', NOW()),
+('20260501_000038_ai_suggestions_organization_scope', 'Scope AI suggestions and analytics explanations by workspace', NOW()),
+('20260918_000001_organization_scope', 'Add nullable organization scope and backfill legacy business data', NOW()),
+('20260918_000002_organization_invitation_scope', 'Add organization scope, role and revocation metadata to invitations', NOW()),
+('20260918_000003_organization_recycle_bin_scope', 'Add organization scope to recycle-bin records and backfill legacy files', NOW()),
+('20260918_000003_organization_secondary_scope', 'Extend organization scope to dependent business stores', NOW()),
+('20260919_000006_organization_rate_cards_scope', 'Scope rate cards, lines and assignments by workspace', NOW()),
+('20260919_000004_organization_knowledge_scope', 'Scope knowledge spaces and pages by workspace', NOW()),
+('20260919_000004_organization_ideas_scope', 'Scope ideas and idea workflow records to the active organization', NOW()),
+('20260919_000001_organization_coverage', 'Scope statuses and intake items by workspace', NOW()),
+('20260919_000001_organization_cycle_scope', 'Add organization scope to work cycles and snapshots', NOW()),
+('20260919_000007_organization_functional_scope', 'Scope feature lifecycle stores and projections by workspace', NOW()),
+('20260919_000008_organization_dashboard_widget_scope', 'Scope dashboard directory, subscription and automation widgets by workspace', NOW()),
+('20260920_000001_calendar_event_attendees', 'Create calendar_event_attendees table for relational event attendees', NOW()),
+('20260920_000002_recurring_rule_generated_count', 'Add generated_count column to recurring_rules table', NOW()),
+('20260921_000001_api_client_organization_scope', 'Scope API clients and keys by workspace (TROPATTCRM-606)', NOW());
+
+
+-- Baseline core permissions
+INSERT IGNORE INTO `permissions` (`public_id`, `code`, `title`, `created_at`) VALUES
+('prm_ai_admin', 'ai.admin', 'Управление AI-настройками и провайдерами', NOW()),
+('prm_ai_manage_cron_jobs', 'ai.manage_cron_jobs', 'Управление AI cron jobs', NOW()),
+('prm_ai_manage_prompts', 'ai.manage_prompts', 'Управление AI prompt templates', NOW()),
+('prm_ai_use', 'ai.use', 'Использование AI-действий', NOW()),
+('prm_ai_use_sensitive_context', 'ai.use_sensitive_context', 'Использование AI с чувствительным контекстом', NOW()),
+('prm_ai_view_audit', 'ai.view_audit', 'Просмотр AI usage/audit', NOW()),
+('prm_ai_view_cron_results', 'ai.view_cron_results', 'Просмотр результатов AI cron jobs', NOW()),
+('prm_api_client_manage', 'api_client.manage', 'Управление API-клиентами и ключами', NOW()),
+('prm_api_client_view', 'api_client.view', 'Просмотр API-клиентов и ключей', NOW()),
+('prm_approval_manage', 'approval.manage', 'Управление согласованиями', NOW()),
+('prm_chat_use', 'chat.use', 'Чат: использование командного чата', NOW()),
+('prm_client_manage', 'client.manage', 'Управление клиентами', NOW()),
+('prm_company_manage', 'company.manage', 'Управление компаниями', NOW()),
+('prm_contact_manage', 'contact.manage', 'Управление контактами', NOW()),
+('prm_counterparty_manage', 'counterparty.manage', 'Управление контрагентами', NOW()),
+('prm_department_manage', 'department.manage', 'Управление департаментами', NOW()),
+('prm_export_manage', 'export.manage', 'Управление экспортом данных', NOW()),
+('prm_feature_flag_manage', 'feature_flag.manage', 'Управление feature flags', NOW()),
+('prm_finance_rate_manage', 'finance.rate.manage', 'Finance: manage rates, recalculate, lock periods', NOW()),
+('prm_finance_rate_view_bill', 'finance.rate.view_bill', 'Finance: view bill rates and margin', NOW()),
+('prm_finance_rate_view_cost', 'finance.rate.view_cost', 'Finance: view team costs', NOW()),
+('prm_finance_rate_view_own_cost', 'finance.rate.view_own_cost', 'Finance: view own cost', NOW()),
+('prm_finance_rate_view_own_payout', 'finance.rate.view_own_payout', 'Finance: view own payout', NOW()),
+('prm_finance_ratecard_manage', 'finance.ratecard.manage', 'Finance: manage rate cards and assignments', NOW()),
+('prm_idea_manage', 'idea.manage', 'Идеи: создание и управление', NOW()),
+('prm_idea_view', 'idea.view', 'Идеи: просмотр', NOW()),
+('prm_import_manage', 'import.manage', 'Управление импортом данных', NOW()),
+('prm_intake_accept', 'intake.accept', 'Заявки: преобразование в задачу', NOW()),
+('prm_intake_create', 'intake.create', 'Заявки: создание', NOW()),
+('prm_intake_delete', 'intake.delete', 'Заявки: мягкое удаление', NOW()),
+('prm_intake_manage', 'intake.manage', 'Заявки: управление', NOW()),
+('prm_intake_view', 'intake.view', 'Заявки: просмотр', NOW()),
+('prm_knowledge_admin', 'knowledge.admin', 'Knowledge: administration', NOW()),
+('prm_knowledge_analytics_view', 'knowledge.analytics_view', 'Knowledge: analytics', NOW()),
+('prm_knowledge_comment', 'knowledge.comment', 'Knowledge: comment pages', NOW()),
+('prm_knowledge_create', 'knowledge.create', 'Knowledge: create pages', NOW()),
+('prm_knowledge_delete', 'knowledge.delete', 'Knowledge: delete/archive pages', NOW()),
+('prm_knowledge_edit', 'knowledge.edit', 'Knowledge: edit pages', NOW()),
+('prm_knowledge_export', 'knowledge.export', 'Knowledge: export', NOW()),
+('prm_knowledge_import', 'knowledge.import', 'Knowledge: import', NOW()),
+('prm_knowledge_manage', 'knowledge.manage', 'Knowledge: manage spaces', NOW()),
+('prm_knowledge_permission_manage', 'knowledge.permission_manage', 'Knowledge: manage permissions', NOW()),
+('prm_knowledge_publish', 'knowledge.publish', 'Knowledge: publish pages', NOW()),
+('prm_knowledge_review', 'knowledge.review', 'Knowledge: review pages', NOW()),
+('prm_knowledge_template_manage', 'knowledge.template_manage', 'Knowledge: manage templates', NOW()),
+('prm_knowledge_view', 'knowledge.view', 'Knowledge: view published pages', NOW()),
+('prm_logs_view', 'logs.view', 'Просмотр логов', NOW()),
+('prm_organization_manage', 'organization.manage', 'Управление организациями/рабочими пространствами', NOW()),
+('prm_project_manage', 'project.manage', 'Управление проектами', NOW()),
+('prm_recycle_bin_manage', 'recycle_bin.manage', 'Управление корзиной и восстановлением', NOW()),
+('prm_role_manage', 'role.manage', 'Управление ролями', NOW()),
+('prm_role_view', 'role.view', 'Просмотр ролей', NOW()),
+('prm_settings_manage', 'settings.manage', 'Управление настройками', NOW()),
+('prm_system_update', 'system.update', 'System: manage core updates', NOW()),
+('prm_task_manage', 'task.manage', 'Управление задачами', NOW()),
+('prm_team_manage', 'team.manage', 'Управление командами', NOW()),
+('prm_user_manage', 'user.manage', 'Управление пользователями', NOW()),
+('prm_user_view', 'user.view', 'Просмотр пользователей', NOW()),
+('prm_webhook_manage', 'webhook.manage', 'Управление webhooks и доставками', NOW());

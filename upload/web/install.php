@@ -2530,12 +2530,10 @@ function importMysqlSchemaSnapshot(PDO $pdo): array
         return $errors;
     }
 
-    // IMPORTANT: do NOT mark migrations as applied here. The snapshot is a
-    // historical schema dump; every migration added after it was generated
-    // (new tables/columns such as counterparties.address_actual,
-    // users.is_external, work_logs.start_at/end_at, core_update_*) is applied
-    // by runDatabaseMigrations() right after this call. Marking everything
-    // applied would leave fresh MySQL installs with an incomplete schema.
+    // The snapshot is a full schema dump of all core tables, indexes,
+    // baseline migrations, and initial dictionary states. runDatabaseMigrations()
+    // right after this call validates that all migrations are recorded and executes
+    // any new migrations added in future releases.
     return [];
 }
 
@@ -2771,6 +2769,193 @@ function seedDictionaries(PDO $pdo): void
             'updated_at' => $now,
         ]);
     }
+
+    // Default System Roles
+    $roles = [
+        ['super_admin', 'Супер-администратор', 1],
+        ['admin', 'Администратор', 1],
+        ['manager', 'Менеджер проектов', 0],
+        ['user', 'Пользователь', 0],
+        ['external_guest', 'External Guest', 1],
+    ];
+    $roleInsert = $pdo->prepare(
+        'INSERT INTO roles (public_id, code, title, is_system, created_at, updated_at)
+         VALUES (:public_id, :code, :title, :is_system, :created_at, :updated_at)'
+    );
+    foreach ($roles as $r) {
+        $check = $pdo->prepare('SELECT id FROM roles WHERE code = :code');
+        $check->execute(['code' => $r[0]]);
+        if ($check->fetch()) {
+            continue;
+        }
+        $roleInsert->execute([
+            'public_id' => 'rol_' . strtoupper(bin2hex(random_bytes(8))),
+            'code' => $r[0],
+            'title' => $r[1],
+            'is_system' => $r[2],
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+    }
+
+    // Core System Permissions
+    $permissions = [
+        'user.view' => 'Просмотр пользователей',
+        'user.manage' => 'Управление пользователями',
+        'role.view' => 'Просмотр ролей',
+        'role.manage' => 'Управление ролями',
+        'project.manage' => 'Управление проектами',
+        'task.manage' => 'Управление задачами',
+        'team.manage' => 'Управление командами',
+        'department.manage' => 'Управление департаментами',
+        'company.manage' => 'Управление компаниями',
+        'client.manage' => 'Управление клиентами',
+        'counterparty.manage' => 'Управление контрагентами',
+        'contact.manage' => 'Управление контактами',
+        'logs.view' => 'Просмотр логов',
+        'settings.manage' => 'Управление настройками',
+        'approval.manage' => 'Управление согласованиями',
+        'recycle_bin.manage' => 'Управление корзиной и восстановлением',
+        'import.manage' => 'Управление импортом данных',
+        'export.manage' => 'Управление экспортом данных',
+        'api_client.view' => 'Просмотр API-клиентов и ключей',
+        'api_client.manage' => 'Управление API-клиентов и ключами',
+        'webhook.manage' => 'Управление webhooks и доставками',
+        'feature_flag.manage' => 'Управление feature flags',
+        'organization.manage' => 'Управление организациями/рабочими пространствами',
+        'ai.use' => 'Использование AI-действий',
+        'ai.admin' => 'Управление AI-настройками и провайдерами',
+        'ai.use_sensitive_context' => 'Использование AI с чувствительным контекстом',
+        'ai.manage_prompts' => 'Управление AI prompt templates',
+        'ai.view_audit' => 'Просмотр AI usage/audit',
+        'ai.view_cron_results' => 'Просмотр результатов AI cron jobs',
+        'ai.manage_cron_jobs' => 'Управление AI cron jobs',
+        'intake.view' => 'Заявки: просмотр',
+        'intake.create' => 'Заявки: создание',
+        'intake.manage' => 'Заявки: управление',
+        'intake.accept' => 'Заявки: преобразование в задачу',
+        'intake.delete' => 'Заявки: мягкое удаление',
+        'chat.use' => 'Чат: использование командного чата',
+        'idea.view' => 'Идеи: просмотр',
+        'idea.manage' => 'Идеи: создание и управление',
+        'knowledge.view' => 'Knowledge: view pages',
+        'knowledge.create' => 'Knowledge: create pages',
+        'knowledge.edit' => 'Knowledge: edit pages',
+        'knowledge.publish' => 'Knowledge: publish pages',
+        'knowledge.review' => 'Knowledge: review pages',
+        'knowledge.comment' => 'Knowledge: comment pages',
+        'knowledge.delete' => 'Knowledge: delete/archive pages',
+        'knowledge.export' => 'Knowledge: export',
+        'knowledge.import' => 'Knowledge: import',
+        'knowledge.manage' => 'Knowledge: manage spaces',
+        'knowledge.admin' => 'Knowledge: admin settings and tools',
+        'finance.rate.view_own_payout' => 'Finance: view own payout',
+        'finance.rate.view_own_cost' => 'Finance: view own cost',
+        'finance.rate.view_cost' => 'Finance: view team costs',
+        'finance.rate.view_bill' => 'Finance: view bill rates and margin',
+        'finance.rate.manage' => 'Finance: manage rates, recalculate, lock periods',
+        'finance.ratecard.manage' => 'Finance: manage rate cards and assignments',
+        'system.update' => 'System: manage core updates',
+    ];
+
+    $permInsert = $pdo->prepare(
+        'INSERT INTO permissions (public_id, code, title, created_at) VALUES (:public_id, :code, :title, :created_at)'
+    );
+    foreach ($permissions as $pCode => $pTitle) {
+        $pCheck = $pdo->prepare('SELECT id FROM permissions WHERE code = :code');
+        $pCheck->execute(['code' => $pCode]);
+        if (!$pCheck->fetch()) {
+            $permInsert->execute([
+                'public_id' => 'prm_' . str_replace('.', '_', $pCode),
+                'code' => $pCode,
+                'title' => $pTitle,
+                'created_at' => $now,
+            ]);
+        }
+    }
+
+    // Assign all permissions to super_admin role
+    $superRole = $pdo->query("SELECT id FROM roles WHERE code = 'super_admin' LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+    if ($superRole) {
+        $roleId = (int)$superRole['id'];
+        $allPerms = $pdo->query('SELECT id FROM permissions')->fetchAll(PDO::FETCH_COLUMN);
+        $linkStmt = $pdo->prepare('INSERT INTO role_permissions (role_id, permission_id, created_at) VALUES (:role_id, :perm_id, :created_at)');
+        $hasLink = $pdo->prepare('SELECT 1 FROM role_permissions WHERE role_id = :role_id AND permission_id = :perm_id');
+        foreach ($allPerms as $permId) {
+            $hasLink->execute(['role_id' => $roleId, 'perm_id' => $permId]);
+            if (!$hasLink->fetchColumn()) {
+                $linkStmt->execute(['role_id' => $roleId, 'perm_id' => $permId, 'created_at' => $now]);
+            }
+        }
+    }
+
+    // Default workspace / organization
+    $orgCheck = $pdo->query("SELECT id FROM organizations WHERE slug = 'main-workspace' LIMIT 1");
+    $orgId = $orgCheck ? $orgCheck->fetchColumn() : false;
+    if ($orgId === false || $orgId === null) {
+        $orgPublicId = 'org_' . strtoupper(bin2hex(random_bytes(12)));
+        $pdo->prepare(
+            'INSERT INTO organizations (public_id, title, slug, created_at, updated_at)
+             VALUES (:public_id, :title, :slug, :created_at, :updated_at)'
+        )->execute([
+            'public_id' => $orgPublicId,
+            'title' => 'Основное рабочее пространство',
+            'slug' => 'main-workspace',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+    }
+
+    // Default Knowledge Space
+    try {
+        $spaceCount = (int)$pdo->query('SELECT COUNT(*) FROM knowledge_spaces')->fetchColumn();
+        if ($spaceCount === 0) {
+            $pdo->prepare(
+                "INSERT INTO knowledge_spaces (public_id, title, slug, description, icon, color, visibility, default_access_level, sort_order, is_system, created_at, updated_at)
+                 VALUES (:public_id, 'Общие материалы', 'general', 'Стартовый раздел базы знаний: инструкции, FAQ и регламенты.', 'book-open', '#0f8f72', 'public', 'view', 10, 1, :created_at, :updated_at)"
+            )->execute([
+                'public_id' => 'ksp_' . strtoupper(bin2hex(random_bytes(8))),
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
+    } catch (\Throwable $e) {
+        error_log('[Install::seedDictionaries] Knowledge space seed: ' . $e->getMessage());
+    }
+
+    // Default Estimate Sets
+    try {
+        $estCount = (int)$pdo->query('SELECT COUNT(*) FROM estimate_sets')->fetchColumn();
+        if ($estCount === 0) {
+            $pdo->exec("INSERT INTO estimate_sets (public_id, scope_type, name, code, estimate_type, unit_label, is_default, is_active, active_key, sort_order, created_at, updated_at)
+                VALUES ('est_fibonacci', 'system', 'Фибоначчи', 'fibonacci', 'points', 'pts', 1, 1, 'system', 10, '{$now}', '{$now}')");
+            $fibId = (int)$pdo->lastInsertId();
+            $fibOptions = [
+                ['1 pt', '1', 1, '#10b981', 10],
+                ['2 pts', '2', 2, '#3b82f6', 20],
+                ['3 pts', '3', 3, '#6366f1', 30],
+                ['5 pts', '5', 5, '#f59e0b', 40],
+                ['8 pts', '8', 8, '#ef4444', 50],
+                ['13 pts', '13', 13, '#dc2626', 60],
+            ];
+            $optStmt = $pdo->prepare('INSERT INTO estimate_options (public_id, estimate_set_id, label, code, numeric_value, color, is_default, is_active, active_key, sort_order, created_at, updated_at) VALUES (:pid, :sid, :label, :code, :val, :color, 0, 1, \'system\', :sort, :created_at, :updated_at)');
+            foreach ($fibOptions as $opt) {
+                $optStmt->execute([
+                    'pid' => 'opt_' . strtoupper(bin2hex(random_bytes(8))),
+                    'sid' => $fibId,
+                    'label' => $opt[0],
+                    'code' => $opt[1],
+                    'val' => $opt[2],
+                    'color' => $opt[3],
+                    'sort' => $opt[4],
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+            }
+        }
+    } catch (\Throwable $e) {
+        error_log('[Install::seedDictionaries] Estimates seed: ' . $e->getMessage());
+    }
 }
 
 function createAdminUser(PDO $pdo, array $data): array
@@ -2848,6 +3033,30 @@ function createAdminUser(PDO $pdo, array $data): array
             'role_id' => $roleId,
             'created_at' => $now,
         ]);
+    }
+
+    // Ensure admin user belongs to the default organization as owner
+    try {
+        $org = $pdo->query('SELECT id FROM organizations ORDER BY id ASC LIMIT 1')->fetch(PDO::FETCH_ASSOC);
+        if ($org) {
+            $orgId = (int)$org['id'];
+            $mCheck = $pdo->prepare('SELECT id FROM organization_memberships WHERE organization_id = :oid AND user_id = :uid LIMIT 1');
+            $mCheck->execute(['oid' => $orgId, 'uid' => $userId]);
+            if (!$mCheck->fetch()) {
+                $pdo->prepare(
+                    'INSERT INTO organization_memberships (public_id, organization_id, user_id, role_code, created_at)
+                     VALUES (:public_id, :organization_id, :user_id, :role_code, :created_at)'
+                )->execute([
+                    'public_id' => 'orgm_' . strtoupper(bin2hex(random_bytes(8))),
+                    'organization_id' => $orgId,
+                    'user_id' => $userId,
+                    'role_code' => 'owner',
+                    'created_at' => $now,
+                ]);
+            }
+        }
+    } catch (\Throwable $e) {
+        error_log('[Install::createAdminUser] Organization membership link: ' . $e->getMessage());
     }
 
     return ['user_id' => $userId, 'public_id' => $publicId, 'role_id' => $roleId];

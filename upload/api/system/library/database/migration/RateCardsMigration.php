@@ -153,5 +153,10 @@ final class RateCardsMigration implements MigrationInterface
             IndexHelper::createIndexIfNotExists($pdo, 'rate_card_assignments', 'idx_rate_card_assign_scope', 'scope_type, scope_ref, deleted_at');
             IndexHelper::createIndexIfNotExists($pdo, 'rate_card_assignments', 'idx_rate_card_assign_card', 'rate_card_id');
         }
+
+        foreach (['rate_cards', 'rate_card_lines', 'rate_card_assignments'] as $tbl) {
+            IndexHelper::addColumnIfNotExists($pdo, $tbl, 'organization_id', 'INTEGER NULL', $driver);
+            IndexHelper::createIndexIfNotExists($pdo, $tbl, 'idx_' . $tbl . '_organization', 'organization_id', false, $driver);
+        }
     }
 }

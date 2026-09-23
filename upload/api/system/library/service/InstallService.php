@@ -169,6 +169,35 @@ final class InstallService
                 ]);
             }
 
+            // Ensure default workspace and link root user as owner
+            $orgStmt = $pdo->query('SELECT id FROM organizations ORDER BY id ASC LIMIT 1');
+            $orgId = $orgStmt ? $orgStmt->fetchColumn() : false;
+            if ($orgId === false || $orgId === null) {
+                $orgPublicId = Ulid::generate('org');
+                $pdo->prepare('INSERT INTO organizations (public_id, title, slug, created_at, updated_at) VALUES (:public_id, :title, :slug, :created_at, :updated_at)')->execute([
+                    'public_id' => $orgPublicId,
+                    'title' => 'Основное рабочее пространство',
+                    'slug' => 'main-workspace',
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+                $orgId = (int)$pdo->lastInsertId();
+            } else {
+                $orgId = (int)$orgId;
+            }
+
+            $mCheck = $pdo->prepare('SELECT id FROM organization_memberships WHERE organization_id = :oid AND user_id = :uid LIMIT 1');
+            $mCheck->execute(['oid' => $orgId, 'uid' => $rootUserId]);
+            if ($mCheck->fetchColumn() === false) {
+                $pdo->prepare('INSERT INTO organization_memberships (public_id, organization_id, user_id, role_code, created_at) VALUES (:public_id, :oid, :uid, :role, :created_at)')->execute([
+                    'public_id' => Ulid::generate('orm'),
+                    'oid' => $orgId,
+                    'uid' => $rootUserId,
+                    'role' => 'owner',
+                    'created_at' => $now,
+                ]);
+            }
+
             $installState = $pdo->prepare('INSERT INTO install_state (installed_at, version, payload) VALUES (:installed_at,:version,:payload)');
             $installState->execute([
                 'installed_at' => $now,
