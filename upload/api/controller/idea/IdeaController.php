@@ -1471,7 +1471,7 @@ final class IdeaController extends BaseController
         $infoJson = json_encode($info, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 
         $prompt = <<<PROMPT
-Analyze the idea data below. Identify gaps, risks, and missing information. Generate clarifying questions. Each question must have 4-7 answer options (include "Not sure" and "Custom"). Do not repeat already answered questions.
+Analyze the idea data below. Identify gaps, risks, and missing information. Generate 3 to 5 key clarifying questions (not more than 5). Each question must have 4-7 answer options (include "Not sure" and "Custom"). Do not repeat already answered questions.
 
 Return only JSON:
 {
@@ -1514,6 +1514,11 @@ PROMPT;
 
                 $rawText = $result['result']['preview']['summary'] ?? '';
 
+                $parsed = $this->extractAiJson($rawText);
+                if ($parsed['ok'] && is_array($parsed['data']) && isset($parsed['data']['additional_questions'])) {
+                    $data = $parsed['data'];
+                    break;
+                }
                 $data = json_decode($rawText, true);
                 if (!is_array($data) && preg_match('/\{.*\}/s', $rawText, $m)) {
                     $data = json_decode($m[0], true);
@@ -1865,7 +1870,7 @@ Additional idea info:
 
 1. Analyze missing_facts, user_unknowns, assumptions, constraints, early_risks.
 2. Identify inaccuracies, contradictions, gaps needing clarification.
-3. Generate questions that close those gaps.
+3. Generate 3 to 5 key questions that close those gaps (not more than 5).
 4. Per question: 4-7 short options, include "Other" + "Don't know yet".
 5. Skip already-answered questions.
 
@@ -1906,6 +1911,11 @@ PROMPT;
 
                 $rawText = $result['result']['preview']['summary'] ?? '';
 
+                $parsed = $this->extractAiJson($rawText);
+                if ($parsed['ok'] && is_array($parsed['data']) && isset($parsed['data']['additional_questions'])) {
+                    $data = $parsed['data'];
+                    break;
+                }
                 $data = json_decode($rawText, true);
                 if (!is_array($data) && preg_match('/\{.*\}/s', $rawText, $m)) {
                     $data = json_decode($m[0], true);
