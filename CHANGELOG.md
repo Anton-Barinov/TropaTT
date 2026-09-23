@@ -1,14 +1,21 @@
 # Changelog
 
-## 2026-09-17
-
-- Fixed the task hierarchy view so server-side pagination operates on root groups and returns each selected tree in full; children no longer appear as standalone tasks when their parent would have fallen on another page.
-
 All notable public changes to TropaTT should be documented here.
 
 This project follows a lightweight Keep a Changelog style. Dates are added when a release is actually created.
 
 ## Unreleased
+
+## [v0.2.0.12] - 2026-09-24
+
+### Highlights
+
+- **Workspaces & Multi-Tenancy**: Organization and workspace isolation across all entities, API clients, activity feeds, and widgets.
+- **Consolidated MCP Mega-Tools & RBAC**: High-performance consolidated MCP tools (`crm_task`, `crm_project`, `crm_crm`, `crm_knowledge`, `crm_ai`, `crm_admin`, `crm_agent_bundle`, `crm_agent_memory`, `crm_chat`, `crm_time`) with action-level RBAC and STORM optimistic locking.
+- **AI Idea Analysis Pipeline**: Server-side asynchronous multi-step pipeline with dynamic interview budget, gap analysis, idempotent execution, and non-blocking human clarification steps.
+- **Installer 2.0 & DB Schema Baseline**: Complete snapshot with 165 core tables, automatic workspace & admin initialization, 0 pending migrations out of the box.
+- **Financial Rate Cards**: Multi-tiered rate resolution across organizations, counterparties, projects, and users.
+- **UI Design System Overhaul**: Elimination of generic AI visual slop, semantic KPI hierarchies, refined Graphite & Dark themes, and responsive segmented controls.
 
 ### Removed
 
@@ -21,6 +28,14 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 - **The temp-directory guard of the module installer compares real paths now.** `ModuleRemoteInstaller::extract()` requires the extraction target to sit inside `sys_get_temp_dir()`, but compared a `realpath()`ed destination against the raw setting — on macOS, where `/var` is a symlink to `/private/var`, the guard rejected even the temp directory itself, so `module_marketplace_unit.php` failed locally with "Invalid extraction directory" while passing on Linux. Both sides are now resolved; the check is unchanged in strength.
 
 ### Added
+
+- **Installer 2.0 & Clean Database Snapshot**: Updated `mysql-schema.snapshot.sql` with full 165 core tables and baseline migration registrations. Fresh installations now automatically create the default workspace, seed comprehensive system dictionaries, assign roles/permissions, and link the initial administrator to the workspace with 0 pending migrations and zero schema drift.
+
+- **AI Idea Analysis Pipeline**: Full server-side asynchronous pipeline with dedicated worker, batch clarification interviews, gap analysis, and risk scoring. Prevents duplicate question cycles, preserves user inputs during awaiting human input stages, and provides circuit-breaker fallback for high provider availability.
+
+- **Financial Rate Cards**: Multi-tier hourly rate resolution system supporting organizations, counterparties, projects, and users with multi-currency handling across time tracking and financial summaries.
+
+- **UI Design System & Anti-Slop Modernization**: Overhauled dashboard KPI cards with strict typographic scale, semantic status indicators, zero-state empty views, and refined Graphite and Dark themes compliant with WCAG AA contrast.
 
 - **The «Управление нагрузкой и эффективностью» card can now justify its advice, act on it, and say who the bottleneck is when it cannot advise anything.** Two bands were literals inside the code — `InsightsRepository::rebalanceRecommendation()` treated load above 110 % as overload (and above that as eligible), and `loadSignal()`/`workloadSignal()` cut at 110 %/50 % — while the card printed the very same numbers as its legend, so the legend could describe a threshold the signals never used. Both bands now resolve from `system` settings (`insights.overload_percent`, `insights.underload_percent`), validated where they are entered (a `0`, a blank, a non-numeric value or a pair whose bands cross is ignored in favour of the default for that band, never obeyed), the payload reports the pair in force as `load_thresholds` plus `load_thresholds_source`, and the legend writes the numbers it was given — including a note when they come from the settings rather than the historical default. The advice itself became defensible: it carries `reason_factors` (`overload`, `backlog`, `overdue`, `sla_risk`, `spare_capacity`), the numeric `reason_metrics` behind every one of them (both bands, both people's load, active, overdue and SLA-risk counts) and a plain-language `reason_summary`, and a recipient whose own queue is already late or whose SLA commitments are burning is no longer offered the work — the advice is a plan, not a way to move a problem sideways. `reason` keeps its previous code value, so existing consumers are untouched. The block also gained an action: «Создать задачу передачи» opens the global task modal prefilled with the volume, both names and the recipient as assignee (`_taskCreatePrefill` now carries `assignee_user_public_id`, which the modal applies), and falls back to the recipient's filtered task list when the modal is not on the page. Finally, silence became an answer — `bottleneck` names the most loaded and the most overdue person with their numbers, and states `blocked_reason` (`no_overload`, `no_spare_capacity`, `same_person`, `no_data`), because «nobody is overloaded» and «somebody is overloaded with nobody to hand work to» are different messages. SLA risk is read from the task's own snapshot (`sla_policy_id`, `sla_response_deadline`, `sla_resolve_deadline`, `sla_breached`), already breached or due inside three days, exposed per person as `sla_risk_tasks`. Covered by `analytics_load_bands_unit.php` (52 assertions: the band reader including crossed and zero bands, both signals under custom bands, the setting-versus-default precedence through the service, the advice's factors and metrics, the refused recipients, and all four bottleneck reasons — one of its assertions caught a real bind-order defect in the SLA-risk query, which had been silently answering `0` for everybody) and five renderer checks; the seven web locales gained the new labels and the legend became parameterised instead of hardcoding 110 %/50 %.
 
