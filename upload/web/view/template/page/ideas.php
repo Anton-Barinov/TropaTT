@@ -559,6 +559,7 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
     var hardCap=1200; // absolute ceiling (~36 min) no matter what
     var awaitingHuman=false;
     var workerTriggeredAtTick=-10;
+    var loadedAwaitingSteps={};
     for(var p=0;p<maxPolls&&totalTicks<hardCap;p++){
       totalTicks++;
       if(runToken!==pipelineRunToken)return;
@@ -582,12 +583,14 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
           var browserStep=state.steps[idx];
 
           if(ss.status==='completed'){
+            delete loadedAwaitingSteps[ss.key];
             if(browserStep.status!=='success'){
               browserStep.status='success';
               saveState();renderSteps();
               if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.reloadStep(ss.key);
             }
           }else if(ss.status==='failed'){
+            delete loadedAwaitingSteps[ss.key];
             if(browserStep.status!=='error'){
               browserStep.status='error';
               browserStep.errorMsg=ss.error||'';
@@ -595,6 +598,7 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
             }
             allDone=false;
           }else if(ss.status==='running'){
+            delete loadedAwaitingSteps[ss.key];
             allDone=false;
             hasRunning=true;
             if(browserStep.status!=='running'&&browserStep.status!=='success'){
@@ -602,6 +606,7 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
               saveState();renderSteps();
             }
           }else if(ss.status==='pending'){
+            delete loadedAwaitingSteps[ss.key];
             allDone=false;
             hasPending=true;
             if(browserStep.status!=='running'&&browserStep.status!=='success'){
@@ -617,9 +622,13 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
               browserStep.status='running';
               saveState();renderSteps();
             }
-            if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.reloadStep(ss.key);
+            if(!loadedAwaitingSteps[ss.key]){
+              loadedAwaitingSteps[ss.key]=true;
+              if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.reloadStep(ss.key);
+            }
             continue;
           }else{
+            delete loadedAwaitingSteps[ss.key];
             allDone=false;
           }
           document.getElementById('pipelineStatus').textContent=ss.key+': '+ss.status+(ss.status==='running'?'...':'');
@@ -1008,6 +1017,22 @@ function renderInterviewQuestions(questions){
   var unanswered=questions.filter(function(q){return !q.last_answer&&!q.is_clarification&&!q.is_gap;});
   if(!unanswered.length){document.getElementById('interviewQuestions').style.display='none';var statusEl=document.getElementById('interviewStatus');var hasMain=questions.some(function(q){return !q.is_clarification&&!q.is_gap;});if(statusEl&&hasMain){if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.syncStep('interview',true);statusEl.textContent='<?= htmlspecialchars($t('ideas.state_all_answered', 'Все вопросы отвечены.'), ENT_QUOTES, 'UTF-8') ?>';statusEl.style.color='green';}var card=document.getElementById('interviewCard');if(card)card.classList.remove('pipeline-visible');return;}
   var card=document.getElementById('interviewCard');if(card)card.classList.add('pipeline-visible');
+
+  var existingBlocks=document.getElementById('interviewQuestions').querySelectorAll('[data-qid]');
+  if(existingBlocks.length===unanswered.length&&existingBlocks.length>0){
+    var match=true;
+    for(var qi=0;qi<unanswered.length;qi++){
+      var qid=unanswered[qi].public_id||unanswered[qi].id||('q'+qi);
+      if(existingBlocks[qi].getAttribute('data-qid')!==String(qid)){
+        match=false;break;
+      }
+    }
+    if(match){
+      document.getElementById('interviewQuestions').style.display='';
+      return;
+    }
+  }
+
   var h='';unanswered.forEach(function(q,i){
     var qid=q.public_id||q.id||('q'+i);
     var opts=q.options||(typeof q.options_json==='string'?JSON.parse(q.options_json):(q.options_json||[]));
@@ -1175,6 +1200,21 @@ window._renderClarifications=function(data){
   if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.syncStep('clarifications',false);
   var card=document.getElementById('clarificationsCard');if(card)card.classList.add('pipeline-visible');
   if(status)status.textContent=questions.length+' <?= htmlspecialchars($t('ideas.state_questions', 'вопросов'), ENT_QUOTES, 'UTF-8') ?>';
+
+  var existingBlocks=body.querySelectorAll('[data-qid]');
+  if(existingBlocks.length===questions.length&&existingBlocks.length>0){
+    var match=true;
+    for(var qi=0;qi<questions.length;qi++){
+      if(existingBlocks[qi].getAttribute('data-qid')!==questions[qi].public_id){
+        match=false;break;
+      }
+    }
+    if(match){
+      body.style.display='';
+      return;
+    }
+  }
+
   var h='';
   questions.forEach(function(q,i){
     var qid=q.public_id;
@@ -1362,6 +1402,21 @@ window._renderGaps=function(data){
   if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.syncStep('gapQuestions',false);
   var card=document.getElementById('gapQuestionsCard');if(card)card.classList.add('pipeline-visible');
   if(status)status.textContent=questions.length+' <?= htmlspecialchars($t('ideas.state_questions', 'вопросов'), ENT_QUOTES, 'UTF-8') ?>';
+
+  var existingBlocks=body.querySelectorAll('[data-qid]');
+  if(existingBlocks.length===questions.length&&existingBlocks.length>0){
+    var match=true;
+    for(var qi=0;qi<questions.length;qi++){
+      if(existingBlocks[qi].getAttribute('data-qid')!==questions[qi].public_id){
+        match=false;break;
+      }
+    }
+    if(match){
+      body.style.display='';
+      return;
+    }
+  }
+
   var h='';
   questions.forEach(function(q,i){
     var qid=q.public_id;
