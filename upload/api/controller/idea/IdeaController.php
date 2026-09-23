@@ -1660,7 +1660,7 @@ PROMPT;
             'do_not_ask_again_topics' => $coverage['do_not_ask_again_topics'] ?? [],
         ];
 
-        $systemPrompt = $this->t('idea/messages/system_prompt_card');
+        $systemPrompt = $this->t('idea/messages.system_prompt_card');
 
         // Cache check: skip AI call if input hasn't changed
         $inputHash = hash('sha256', json_encode(['system_prompt' => $systemPrompt, 'payload' => $payload], JSON_UNESCAPED_UNICODE));
