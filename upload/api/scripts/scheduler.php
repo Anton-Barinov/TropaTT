@@ -79,6 +79,24 @@ switch ($command) {
     case 'run':
         $result = $scheduler->run();
         out("Scheduler run complete: {$result['executed']} executed, {$result['failed']} failed");
+
+        // Process pending idea analysis queue steps if any exist
+        try {
+            $checkStmt = $pdo->prepare("SELECT 1 FROM idea_analysis_steps WHERE pipeline = 'live' AND status = 'pending' LIMIT 1");
+            $checkStmt->execute();
+            if ($checkStmt->fetchColumn()) {
+                $workerScript = __DIR__ . '/idea_analysis_worker.php';
+                if (file_exists($workerScript)) {
+                    $cmd = escapeshellcmd(PHP_BINARY) . ' ' . escapeshellarg($workerScript) . ' --limit=5';
+                    $workerOut = @shell_exec($cmd);
+                    if ($workerOut) {
+                        out("Idea worker pass executed: " . trim($workerOut));
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            // Non-blocking: table might not exist yet or transient DB issue
+        }
         break;
 
     case 'list':

@@ -139,7 +139,7 @@
           <div>
             <h2 class="h5 mb-1 d-inline-flex align-items-center gap-2" data-i18n="dashboard.ai_digest_title">
               <span class="crm-dashboard-inline-icon" aria-hidden="true">
-                <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+                <i class="fa-solid fa-brain" aria-hidden="true"></i>
               </span>
               <?= htmlspecialchars($t('dashboard.ai_digest_title', 'AI-сводка дня'), ENT_QUOTES, 'UTF-8') ?>
             </h2>
@@ -148,8 +148,16 @@
           <button type="button" class="btn btn-sm crm-btn-secondary" id="dashboardAiDigestRefreshBtn" data-i18n="dashboard.ai_digest_refresh"><?= htmlspecialchars($t('dashboard.ai_digest_refresh', 'Обновить AI-сводку'), ENT_QUOTES, 'UTF-8') ?></button>
         </div>
         <div id="dashboardAiDigestSummary" class="crm-dashboard-ai-summary-panel mb-3">
-          <strong data-i18n="dashboard.ai_digest_empty"><?= htmlspecialchars($t('dashboard.ai_digest_empty', 'AI-сводка не сформирована'), ENT_QUOTES, 'UTF-8') ?></strong>
-          <p class="mb-0 crm-dashboard-ai-text" data-i18n="dashboard.ai_digest_hint"><?= htmlspecialchars($t('dashboard.ai_digest_hint', 'Нажмите кнопку «Обновить AI-сводку», чтобы получить рекомендацию.'), ENT_QUOTES, 'UTF-8') ?></p>
+          <div class="d-flex align-items-start gap-3 py-1">
+            <span class="crm-icon text-primary flex-shrink-0 d-inline-flex align-items-center justify-content-center" style="width:42px;height:42px;border-radius:50%;background:color-mix(in srgb, var(--crm-primary) 12%, transparent);font-size:1.2rem;" aria-hidden="true"><i class="fa-solid fa-brain" aria-hidden="true"></i></span>
+            <div>
+              <strong class="d-block text-body" data-i18n="dashboard.ai_digest_empty"><?= htmlspecialchars($t('dashboard.ai_digest_empty', 'AI-сводка не сформирована'), ENT_QUOTES, 'UTF-8') ?></strong>
+              <p class="text-muted small mb-2 crm-dashboard-ai-text" data-i18n="dashboard.ai_digest_hint"><?= htmlspecialchars($t('dashboard.ai_digest_hint', 'Нажмите кнопку «Обновить AI-сводку», чтобы получить рекомендацию.'), ENT_QUOTES, 'UTF-8') ?></p>
+              <button type="button" class="btn btn-sm crm-btn-primary" onclick="var b=document.getElementById('dashboardAiDigestRefreshBtn');if(b)b.click();">
+                <i class="fa-solid fa-bolt me-1" aria-hidden="true"></i> <span data-i18n="dashboard.ai_digest_refresh"><?= htmlspecialchars($t('dashboard.ai_digest_refresh', 'Обновить AI-сводку'), ENT_QUOTES, 'UTF-8') ?></span>
+              </button>
+            </div>
+          </div>
         </div>
         <div class="row g-2">
           <div class="col-12 col-md-6 col-xl-3">

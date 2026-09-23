@@ -146,6 +146,11 @@ final class AiIntentSettingService
                         $compatSet['required_permission'] = 'ai.admin';
                     }
                 }
+                $currentMax = (int)($existing['max_tokens'] ?? 0);
+                $defaultMax = $this->defaultMaxTokensByIntent($intent);
+                if ($currentMax < $defaultMax) {
+                    $compatSet['max_tokens'] = $defaultMax;
+                }
                 if ($compatSet !== []) {
                     $compatSet['updated_at'] = $now;
                     $this->repo->updateByIntentCode($intent, $compatSet);
@@ -274,9 +279,9 @@ final class AiIntentSettingService
             // discarded with "0 questions parsed"). 8192 is the model's output
             // ceiling — the step must be allowed to use it.
             'idea_interview' => 8192,
-            'idea_understanding', 'idea_refined', 'idea_risks', 'idea_pitfalls' => 4096,
+            'idea_understanding', 'idea_refined', 'idea_risks', 'idea_pitfalls', 'idea_clarifications', 'idea_gap_questions' => 4096,
             'idea_plan', 'idea_tasks', 'idea_final' => 6000,
-            'idea_clarifications', 'idea_gap_questions', 'idea_potential' => 2000,
+            'idea_potential' => 3000,
             default => 2000,
         };
     }

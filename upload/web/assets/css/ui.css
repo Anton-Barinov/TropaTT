@@ -923,6 +923,54 @@ textarea.form-control::placeholder {
 
 .crm-dashboard-page .crm-dashboard-kpi {
   box-shadow: none;
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* KPI visual hierarchy (TROPATTCRM-632) */
+.crm-dashboard-page .crm-dashboard-kpi.is-active strong {
+  font-size: 32px;
+}
+.crm-dashboard-kpi.has-alert {
+  border-color: rgba(220, 38, 38, 0.45) !important;
+  background-color: color-mix(in srgb, var(--crm-danger) 4%, var(--crm-card-bg, #fff)) !important;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--crm-danger) 12%, transparent) !important;
+}
+.crm-dashboard-kpi.has-alert strong {
+  color: var(--crm-danger) !important;
+  font-size: 32px !important;
+}
+.crm-dashboard-kpi.is-calm strong {
+  color: var(--crm-text, #1e293b);
+}
+.crm-dashboard-kpi.is-calm .crm-dashboard-kpi-icon {
+  background: color-mix(in srgb, var(--crm-success) 12%, transparent);
+  color: var(--crm-success);
+}
+
+.crm-admin-ai-metric {
+  transition: all 0.2s ease;
+}
+.crm-admin-ai-metric.crm-kpi-primary {
+  border-left: 3px solid var(--crm-primary);
+}
+.crm-admin-ai-metric.crm-kpi-primary h2 {
+  font-size: 1.65rem;
+  font-weight: 700;
+}
+.crm-admin-ai-metric.has-issues {
+  border-color: rgba(234, 88, 12, 0.45) !important;
+  background: color-mix(in srgb, var(--crm-warning) 5%, transparent);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--crm-warning) 12%, transparent);
+}
+.crm-admin-ai-metric.has-issues h2 {
+  color: var(--crm-warning) !important;
+  font-weight: 700;
+}
+.crm-admin-ai-metric.is-healthy {
+  border-color: var(--crm-border-color, rgba(0, 0, 0, 0.08));
+}
+.crm-admin-ai-metric.is-healthy h2 {
+  color: var(--crm-muted, #64748b);
 }
 
 .crm-dashboard-page .crm-dashboard-actions {

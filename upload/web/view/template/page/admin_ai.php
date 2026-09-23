@@ -23,7 +23,7 @@
   </div>
   <div class="crm-admin-ai-hero-actions">
     <button class="btn crm-btn-primary" id="adminAiHeroTestBtn" type="button">
-      <span class="crm-admin-ai-btn-icon" aria-hidden="true"><i class="fa-solid fa-heart-pulse" aria-hidden="true"></i></span>
+      <span class="crm-admin-ai-btn-icon" aria-hidden="true"><i class="fa-solid fa-network-wired" aria-hidden="true"></i></span>
       <span data-i18n="admin_ai.hero_btn_test"><?= htmlspecialchars($t('admin_ai.hero_btn_test', 'Проверить подключение'), ENT_QUOTES, 'UTF-8') ?></span>
     </button>
     <button class="btn crm-btn-secondary" id="adminAiHeroEditBtn" type="button">
@@ -39,9 +39,9 @@
 
 <div class="row g-3 mb-3 crm-kpi-row">
   <div class="col-sm-6 col-xl-3"><div class="crm-card crm-kpi-card crm-admin-ai-metric"><span class="crm-admin-ai-metric-icon" aria-hidden="true"><i class="fa-solid fa-link" aria-hidden="true"></i></span><div><small class="text-muted" data-i18n="admin_ai.kpi_providers"><?= htmlspecialchars($t('admin_ai.kpi_providers', 'Подключения'), ENT_QUOTES, 'UTF-8') ?></small><h2 id="adminAiKpiProviders" class="h4 mb-0">0</h2></div></div></div>
-  <div class="col-sm-6 col-xl-3"><div class="crm-card crm-kpi-card crm-admin-ai-metric"><span class="crm-admin-ai-metric-icon is-success" aria-hidden="true"><i class="fa-solid fa-rocket" aria-hidden="true"></i></span><div><small class="text-muted" data-i18n="admin_ai.kpi_active_intents"><?= htmlspecialchars($t('admin_ai.kpi_active_intents', 'Активные сценарии'), ENT_QUOTES, 'UTF-8') ?></small><h2 id="adminAiKpiEnabledIntents" class="h4 mb-0">0</h2></div></div></div>
+  <div class="col-sm-6 col-xl-3"><div class="crm-card crm-kpi-card crm-admin-ai-metric crm-kpi-primary"><span class="crm-admin-ai-metric-icon is-success" aria-hidden="true"><i class="fa-solid fa-rocket" aria-hidden="true"></i></span><div><small class="text-muted" data-i18n="admin_ai.kpi_active_intents"><?= htmlspecialchars($t('admin_ai.kpi_active_intents', 'Активные сценарии'), ENT_QUOTES, 'UTF-8') ?></small><h2 id="adminAiKpiEnabledIntents" class="h4 mb-0">0</h2></div></div></div>
   <div class="col-sm-6 col-xl-3"><div class="crm-card crm-kpi-card crm-admin-ai-metric"><span class="crm-admin-ai-metric-icon is-info" aria-hidden="true"><i class="fa-solid fa-chart-column" aria-hidden="true"></i></span><div><small class="text-muted" data-i18n="admin_ai.kpi_today_jobs"><?= htmlspecialchars($t('admin_ai.kpi_today_jobs', 'Выполнено сегодня'), ENT_QUOTES, 'UTF-8') ?></small><h2 id="adminAiKpiJobsToday" class="h4 mb-0">0</h2></div></div></div>
-  <div class="col-sm-6 col-xl-3"><div class="crm-card crm-kpi-card crm-admin-ai-metric is-warning"><span class="crm-admin-ai-metric-icon is-warning" aria-hidden="true"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></span><div><small class="text-muted" data-i18n="admin_ai.kpi_needs_attention"><?= htmlspecialchars($t('admin_ai.kpi_needs_attention', 'Требует внимания'), ENT_QUOTES, 'UTF-8') ?></small><h2 id="adminAiKpiErrorsToday" class="h4 mb-0">0</h2></div></div></div>
+  <div class="col-sm-6 col-xl-3"><div id="adminAiKpiAttentionCard" class="crm-card crm-kpi-card crm-admin-ai-metric is-healthy"><span id="adminAiKpiAttentionIcon" class="crm-admin-ai-metric-icon is-success" aria-hidden="true"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></span><div><small class="text-muted" data-i18n="admin_ai.kpi_needs_attention"><?= htmlspecialchars($t('admin_ai.kpi_needs_attention', 'Требует внимания'), ENT_QUOTES, 'UTF-8') ?></small><h2 id="adminAiKpiErrorsToday" class="h4 mb-0">0</h2></div></div></div>
 </div>
 
 <div class="crm-card crm-admin-ai-tabs mb-3">
@@ -70,7 +70,7 @@
             <?= htmlspecialchars($t('admin_ai.btn_configure', 'Настроить'), ENT_QUOTES, 'UTF-8') ?>
           </button>
           <button class="btn btn-sm crm-btn-secondary" id="adminAiPrimaryTestBtn" type="button">
-            <span class="crm-admin-ai-btn-icon" aria-hidden="true"><i class="fa-solid fa-heart-pulse" aria-hidden="true"></i></span>
+            <span class="crm-admin-ai-btn-icon" aria-hidden="true"><i class="fa-solid fa-network-wired" aria-hidden="true"></i></span>
             <?= htmlspecialchars($t('admin_ai.btn_check', 'Проверить'), ENT_QUOTES, 'UTF-8') ?>
           </button>
           <div class="dropdown">

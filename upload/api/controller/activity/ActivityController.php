@@ -17,9 +17,24 @@ final class ActivityController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        /** @var ActivityService $service */
-        $service = $this->container->get('service.activity');
-        $result = $service->feed($this->request()->allInput(), $auth['user']);
+        // TROPATTCRM-635: even with per-channel counts the cold path stays
+        // ~1s; a 20s file-cache layer absorbs repeated dashboard/API polls
+        // (same key shape as calendar/counterparty/idea lists).
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            $input = $this->request()->allInput();
+            ksort($input);
+            $cacheKey = 'feed:' . $this->cacheUserId() . ':' . $this->organizationContextCacheKey() . ':' . hash('sha256', json_encode($input));
+            $result = $cache->remember('activity', $cacheKey, 20, function () use ($input, $auth) {
+                /** @var ActivityService $service */
+                $service = $this->container->get('service.activity');
+                return $service->feed($input, $auth['user']);
+            });
+        } else {
+            /** @var ActivityService $service */
+            $service = $this->container->get('service.activity');
+            $result = $service->feed($this->request()->allInput(), $auth['user']);
+        }
 
         return $this->success('ACTIVITY_FEED', $this->t('activity/messages.feed'), [
             'items' => $result['items'],

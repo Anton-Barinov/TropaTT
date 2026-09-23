@@ -1443,6 +1443,15 @@ final class IdeaController extends BaseController
         }
         set_time_limit(120);
 
+        // If clarifications already exist and call is not explicitly forced,
+        // do not generate duplicate cycles and do not overwrite existing questions.
+        $existingCoverage = json_decode($idea['coverage_json'] ?? '{}', true) ?: [];
+        $existingClarifications = $existingCoverage['additional_clarifications'] ?? null;
+        $isWorker = (($_SERVER['HTTP_USER_AGENT'] ?? '') === 'crm-idea-worker/1.0');
+        if (!empty($existingClarifications['questions']) && ($isWorker || empty($this->request()->post('force')))) {
+            return $this->success('CLARIFICATIONS_GENERATED', 'OK', $existingClarifications);
+        }
+
         // Collect all idea data + questions + answers into $info
         $questions = $service->getQuestions($ideaId);
         $qaList = [];
@@ -1471,7 +1480,7 @@ final class IdeaController extends BaseController
         $infoJson = json_encode($info, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 
         $prompt = <<<PROMPT
-Analyze the idea data below. Identify gaps, risks, and missing information. Generate clarifying questions. Each question must have 4-7 answer options (include "Not sure" and "Custom"). Do not repeat already answered questions.
+Analyze the idea data below. Identify gaps, risks, and missing information. Generate 3 to 5 key clarifying questions (not more than 5). Each question must have 4-7 answer options (include "Not sure" and "Custom"). Do not repeat already answered questions.
 
 Return only JSON:
 {
@@ -1514,6 +1523,11 @@ PROMPT;
 
                 $rawText = $result['result']['preview']['summary'] ?? '';
 
+                $parsed = $this->extractAiJson($rawText);
+                if ($parsed['ok'] && is_array($parsed['data']) && isset($parsed['data']['additional_questions'])) {
+                    $data = $parsed['data'];
+                    break;
+                }
                 $data = json_decode($rawText, true);
                 if (!is_array($data) && preg_match('/\{.*\}/s', $rawText, $m)) {
                     $data = json_decode($m[0], true);
@@ -1660,7 +1674,7 @@ PROMPT;
             'do_not_ask_again_topics' => $coverage['do_not_ask_again_topics'] ?? [],
         ];
 
-        $systemPrompt = $this->t('idea/messages/system_prompt_card');
+        $systemPrompt = $this->t('idea/messages.system_prompt_card');
 
         // Cache check: skip AI call if input hasn't changed
         $inputHash = hash('sha256', json_encode(['system_prompt' => $systemPrompt, 'payload' => $payload], JSON_UNESCAPED_UNICODE));
@@ -1817,6 +1831,14 @@ PROMPT;
         }
         set_time_limit(120);
 
+        // If gap questions already exist and call is not explicitly forced, return existing
+        $existingCoverage = json_decode($idea['coverage_json'] ?? '{}', true) ?: [];
+        $existingGaps = $existingCoverage['gap_clarifications'] ?? null;
+        $isWorker = (($_SERVER['HTTP_USER_AGENT'] ?? '') === 'crm-idea-worker/1.0');
+        if (!empty($existingGaps['questions']) && ($isWorker || empty($this->request()->post('force')))) {
+            return $this->success('GAP_QUESTIONS_LOADED', 'OK', $existingGaps);
+        }
+
         // Read understanding card
         $cardStmt = $pdo->prepare("SELECT idea_id, profile_json, summary, idea_type, specificity_level, completeness_score, confidence_score, next_action, ai_request_json, ai_response_json, created_at, updated_at FROM idea_understanding_cards WHERE idea_id = :iid");
         $cardStmt->execute(['iid' => $ideaId]);
@@ -1865,7 +1887,7 @@ Additional idea info:
 
 1. Analyze missing_facts, user_unknowns, assumptions, constraints, early_risks.
 2. Identify inaccuracies, contradictions, gaps needing clarification.
-3. Generate questions that close those gaps.
+3. Generate 3 to 5 key questions that close those gaps (not more than 5).
 4. Per question: 4-7 short options, include "Other" + "Don't know yet".
 5. Skip already-answered questions.
 
@@ -1906,6 +1928,11 @@ PROMPT;
 
                 $rawText = $result['result']['preview']['summary'] ?? '';
 
+                $parsed = $this->extractAiJson($rawText);
+                if ($parsed['ok'] && is_array($parsed['data']) && isset($parsed['data']['additional_questions'])) {
+                    $data = $parsed['data'];
+                    break;
+                }
                 $data = json_decode($rawText, true);
                 if (!is_array($data) && preg_match('/\{.*\}/s', $rawText, $m)) {
                     $data = json_decode($m[0], true);
@@ -3077,7 +3104,7 @@ PROMPT;
             return $this->success('INTERVIEW_CLEARED', $this->t('idea/messages.interview_cleared'));
         }
 
-        set_time_limit(90);
+        set_time_limit(300);
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
@@ -4425,11 +4452,15 @@ PROMPT;
         $pdo = $this->container->get('db.pdo');
         $this->ensureIdeaWorkflowTables($pdo);
 
-        // Check for existing active pipeline
+        // Check for existing active pipeline — return success with info instead of 409 to prevent red console errors
         $active = $pdo->prepare("SELECT step_key FROM idea_analysis_steps WHERE idea_id = :iid AND pipeline = 'live' AND status IN ('pending','running')");
         $active->execute(['iid' => $ideaId]);
         if ($active->fetchColumn()) {
-            return $this->error('ANALYSIS_IN_PROGRESS', $this->t('idea/messages.analysis_already_running'), 409);
+            return $this->success('ANALYSIS_IN_PROGRESS', $this->t('idea/messages.analysis_already_running'), [
+                'idea_public_id' => $publicId,
+                'steps_total' => count($this->livePipelineSteps()),
+                'already_in_progress' => true,
+            ]);
         }
 
         // If there are completed live-pipeline steps, check if all done
@@ -4438,17 +4469,33 @@ PROMPT;
         $doneSteps = (int)$completedCount->fetchColumn();
         $allSteps = $this->livePipelineSteps();
         if ($doneSteps >= count($allSteps)) {
-            return $this->error('ANALYSIS_COMPLETE', $this->t('idea/messages.analysis_complete_full'), 409);
+            return $this->success('ANALYSIS_COMPLETE', $this->t('idea/messages.analysis_complete_full'), [
+                'idea_public_id' => $publicId,
+                'steps_total' => count($allSteps),
+                'already_complete' => true,
+            ]);
         }
 
-        // Upsert steps: insert any missing, reset failed ones
+        // Upsert steps: insert any missing, mark already answered question steps as completed
+        $coverage = json_decode($idea['coverage_json'] ?? '{}', true) ?: [];
         foreach ($allSteps as $step) {
             $exists = $pdo->prepare("SELECT id, status FROM idea_analysis_steps WHERE idea_id = :iid AND step_key = :k AND pipeline = 'live'");
             $exists->execute(['iid' => $ideaId, 'k' => $step['key']]);
             $row = $exists->fetch(PDO::FETCH_ASSOC);
             if (!$row) {
-                $pdo->prepare("INSERT INTO idea_analysis_steps (idea_id, step_key, step_order, status, pipeline, attempts, created_at, updated_at) VALUES (:iid, :k, :o, 'pending', 'live', 0, NOW(), NOW())")
-                    ->execute(['iid' => $ideaId, 'k' => $step['key'], 'o' => $step['order']]);
+                $initialStatus = 'pending';
+                if ($step['key'] === 'interview') {
+                    $hasQs = (int)($pdo->query("SELECT COUNT(*) FROM idea_questions WHERE idea_id = {$ideaId} AND cycle_id = 1")->fetchColumn() ?: 0);
+                    if ($hasQs > 0 && !$this->hasUnansweredQuestions($pdo, $ideaId)) {
+                        $initialStatus = 'completed';
+                    }
+                } elseif ($step['key'] === 'clarifications') {
+                    if (!empty($coverage['additional_clarifications']['questions']) && !$this->hasUnansweredQuestions($pdo, $ideaId)) {
+                        $initialStatus = 'completed';
+                    }
+                }
+                $pdo->prepare("INSERT INTO idea_analysis_steps (idea_id, step_key, step_order, status, pipeline, attempts, created_at, updated_at) VALUES (:iid, :k, :o, :st, 'live', 0, NOW(), NOW())")
+                    ->execute(['iid' => $ideaId, 'k' => $step['key'], 'o' => $step['order'], 'st' => $initialStatus]);
             } elseif (in_array($row['status'], ['failed', 'completed'], true)) {
                 // Reset completed steps only if re-running from scratch (partial re-run not supported)
             }
@@ -4574,11 +4621,10 @@ PROMPT;
 
         try {
             $this->runLivePipelineStep($idea, $stepKey);
-            // Persist the terminal state: the interview step waits for the human
-            // while active questions remain unanswered; every other step (and an
-            // answered interview) completes. Without this a successful live step
-            // stayed 'running' forever and progress never advanced.
-            if ($stepKey === 'interview' && $this->hasUnansweredQuestions($pdo, $ideaId)) {
+            // Persist the terminal state: question steps wait for the human
+            // while active questions remain unanswered; analysis steps complete.
+            $isQuestionStep = in_array($stepKey, ['interview', 'clarifications', 'gapQuestions'], true);
+            if ($isQuestionStep && $this->hasUnansweredQuestions($pdo, $ideaId)) {
                 $pdo->prepare("UPDATE idea_analysis_steps SET status = 'awaiting_human_input', updated_at = CURRENT_TIMESTAMP WHERE idea_id = :iid AND step_key = :k AND pipeline = 'live'")
                     ->execute(['iid' => $ideaId, 'k' => $stepKey]);
             } else {

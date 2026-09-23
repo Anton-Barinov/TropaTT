@@ -191,11 +191,14 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
 	  // (and read the real API response code) instead of clicking the button and
 	  // polling the DOM for rendered text.
 	  var pipelineTriggers={};
+	  var pipelineLoaders={};
 	  window.CRM_IDEA_AI_PIPELINE={
 	    syncStep:function(stepId,isReady){syncIdeaAiStepState(stepId,isReady,false);},
 	    syncResultVisibility:syncIdeaAiResultVisibilityState,
 	    resumeAfterQuestions:resumeIdeaAiPipelineAfterQuestions,
-	    registerTrigger:function(stepId,fn){pipelineTriggers[stepId]=fn;}
+	    registerTrigger:function(stepId,fn){pipelineTriggers[stepId]=fn;},
+	    registerLoader:function(stepId,fn){pipelineLoaders[stepId]=fn;},
+	    reloadStep:function(stepId){if(typeof pipelineLoaders[stepId]==='function'){try{pipelineLoaders[stepId]();}catch(e){}}}
 	  };
 	  installIdeaAiPipelineHooks();
 	  var hookInstallCount=0;
@@ -249,9 +252,7 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
 	    return text.indexOf('<?= htmlspecialchars($t('ideas.state_all_answered', 'Все вопросы отвечены'), ENT_QUOTES, 'UTF-8') ?>')!==-1||
 	      text.indexOf('<?= htmlspecialchars($t('ideas.state_limit_reached', 'Достигнут лимит'), ENT_QUOTES, 'UTF-8') ?>')!==-1||
 	      text.indexOf('<?= htmlspecialchars($t('ideas.state_answers_saved', 'Ответы сохранены'), ENT_QUOTES, 'UTF-8') ?>')!==-1||
-	      text.indexOf(stepDef.saveLabel||'__never__')!==-1||
-	      text.indexOf('<?= htmlspecialchars($t('ideas.state_no_clarifications', '— нет уточнений'), ENT_QUOTES, 'UTF-8') ?>')!==-1||
-	      text.indexOf('<?= htmlspecialchars($t('ideas.state_no_questions', '— нет вопросов'), ENT_QUOTES, 'UTF-8') ?>')!==-1;
+	      (stepDef.saveLabel && text.indexOf(stepDef.saveLabel)!==-1);
 	  }
 
 	  function finishQuestionStep(index, stepDef){
@@ -328,7 +329,7 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
 	      var actionBtn=document.querySelector(stepDef.actionEl);
 	      if(!actionBtn||actionBtn.disabled){s.status='pending';saveState();renderSteps();return;}
 
-	      if(questionStepIsComplete(stepDef)){
+	      if(s.status==='success'){
 	        finishQuestionStep(index,stepDef);
 	        return;
 	      }
@@ -557,18 +558,23 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
     var totalTicks=0;
     var hardCap=1200; // absolute ceiling (~36 min) no matter what
     var awaitingHuman=false;
+    var workerTriggeredAtTick=-10;
+    var loadedAwaitingSteps={};
     for(var p=0;p<maxPolls&&totalTicks<hardCap;p++){
       totalTicks++;
       if(runToken!==pipelineRunToken)return;
       await sleep(pollInterval);
       if(runToken!==pipelineRunToken)return;
       awaitingHuman=false;
+      var awaitingStepDesc='';
 
       try{
         var status=await window.CRM.api.request('api/v1/ideas/'+ideaId+'/analysis/status',{method:'GET',timeoutMs:10000});
         if(!status||!status.data||!status.data.steps)continue;
 
         var allDone=true;
+        var hasPending=false;
+        var hasRunning=false;
         var serverSteps=status.data.steps;
         for(var si=0;si<serverSteps.length;si++){
           var ss=serverSteps[si];
@@ -576,33 +582,53 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
           if(idx===undefined)continue;
           var browserStep=state.steps[idx];
 
-          if(ss.status==='completed'&&browserStep.status!=='success'){
-            browserStep.status='success';
-            saveState();renderSteps();
+          if(ss.status==='completed'){
+            delete loadedAwaitingSteps[ss.key];
+            if(browserStep.status!=='success'){
+              browserStep.status='success';
+              saveState();renderSteps();
+              if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.reloadStep(ss.key);
+            }
           }else if(ss.status==='failed'){
+            delete loadedAwaitingSteps[ss.key];
             if(browserStep.status!=='error'){
               browserStep.status='error';
               browserStep.errorMsg=ss.error||'';
               saveState();renderSteps();
             }
             allDone=false;
-          }else if(ss.status==='running'||ss.status==='pending'){
+          }else if(ss.status==='running'){
+            delete loadedAwaitingSteps[ss.key];
             allDone=false;
+            hasRunning=true;
+            if(browserStep.status!=='running'&&browserStep.status!=='success'){
+              browserStep.status='running';
+              saveState();renderSteps();
+            }
+          }else if(ss.status==='pending'){
+            delete loadedAwaitingSteps[ss.key];
+            allDone=false;
+            hasPending=true;
             if(browserStep.status!=='running'&&browserStep.status!=='success'){
               browserStep.status='running';
               saveState();renderSteps();
             }
           }else if(ss.status==='awaiting_human_input'){
-            // TROPATTCRM-628: the worker paused the pipeline until the human
-            // answers the interview — say it in words, not raw statuses.
             allDone=false;
             awaitingHuman=true;
+            awaitingStepDesc=(steps[idx]&&steps[idx].desc)?steps[idx].desc:'';
+            if(steps[idx]&&steps[idx].cardId)showBlock(steps[idx].cardId);
             if(browserStep.status!=='running'&&browserStep.status!=='success'){
               browserStep.status='running';
               saveState();renderSteps();
             }
+            if(!loadedAwaitingSteps[ss.key]){
+              loadedAwaitingSteps[ss.key]=true;
+              if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.reloadStep(ss.key);
+            }
             continue;
           }else{
+            delete loadedAwaitingSteps[ss.key];
             allDone=false;
           }
           document.getElementById('pipelineStatus').textContent=ss.key+': '+ss.status+(ss.status==='running'?'...':'');
@@ -615,10 +641,17 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
           allDone=false;
         }
         if(awaitingHuman){
-          document.getElementById('pipelineStatus').textContent='<?= htmlspecialchars($t('ideas.state_awaiting_human', 'Пайплайн ждёт ваших ответов на вопросы интервью...'), ENT_QUOTES, 'UTF-8') ?>';
-          // Answering takes human time — don't count these ticks against the
-          // poll budget (hard cap still applies).
+          document.getElementById('pipelineStatus').textContent=awaitingStepDesc ? ('<?= htmlspecialchars($t('ideas.state_waiting_answers', 'Ожидает ответов:'), ENT_QUOTES, 'UTF-8') ?> '+awaitingStepDesc) : '<?= htmlspecialchars($t('ideas.state_awaiting_human', 'Пайплайн ждёт ваших ответов на вопросы...'), ENT_QUOTES, 'UTF-8') ?>';
+          setStartButtonIdle();
+          // Answering takes human time — don't count these ticks against the poll budget
           maxPolls=p+200;
+        } else if(hasPending && !hasRunning && (totalTicks - workerTriggeredAtTick >= 3)) {
+          // TROPATTCRM-636: Trigger worker if steps are pending and not yet picked up
+          workerTriggeredAtTick = totalTicks;
+          document.getElementById('pipelineStatus').textContent='<?= htmlspecialchars($t('ideas.state_waiting_worker', 'Запуск фонового обработчика очереди...'), ENT_QUOTES, 'UTF-8') ?>';
+          window.CRM.api.request('api/v1/ideas/'+ideaId+'/analysis/run-worker',{method:'POST',timeoutMs:120000}).then(function(){
+            // Immediate check on next loop
+          }).catch(function(){});
         }
         if(allDone)break;
       }catch(e){
@@ -781,6 +814,7 @@ document.getElementById('clearInterviewBtn').addEventListener('click',function()
 });
 // Interview: AI diagnostic questions
 	function loadInterview(){if(!window.CRM||!window.CRM.api){setTimeout(loadInterview,200);return;}window.CRM.api.request('api/v1/ideas/'+pid+'/questions',{method:'GET'}).then(function(env){var qs=env.data.items||[];renderInterviewHistory(qs);renderInterviewQuestions(qs);var mainQs=qs.filter(function(q){return !q.is_clarification&&!q.is_gap;});var unanswered=mainQs.filter(function(q){return !q.last_answer;});var statusEl=document.getElementById('interviewStatus');if(unanswered.length>0&&document.getElementById('interviewQuestions').style.display!=='none'){if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.syncStep('interview',false);statusEl.textContent='<?= htmlspecialchars($t('ideas.state_questions_count', 'Вопросов:'), ENT_QUOTES, 'UTF-8') ?> '+mainQs.length+' <?= htmlspecialchars($t('ideas.state_out_of', 'из'), ENT_QUOTES, 'UTF-8') ?> 25. <?= htmlspecialchars($t('ideas.state_select_answers', 'Выберите ответы.'), ENT_QUOTES, 'UTF-8') ?>';statusEl.style.color='';}else if(mainQs.length>0&&!unanswered.length){if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.syncStep('interview',true);statusEl.textContent='<?= htmlspecialchars($t('ideas.state_all_answered', 'Все вопросы отвечены.'), ENT_QUOTES, 'UTF-8') ?>';statusEl.style.color='green';}}).catch(function(){});}
+	if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.registerLoader('interview',function(){loadInterview();showBlock('interviewCard');});
 function normalizeAnswerOptions(options,allowCustom){
   var list=[];var seen={};var seenKeys={};var hasCustom=false;
   (options||[]).forEach(function(o){
@@ -927,7 +961,13 @@ function renderInterviewHistory(questions){
       }
       b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_ai_thinking', 'AI думает...'), ENT_QUOTES, 'UTF-8') ?>';
       document.getElementById('interviewStatus').textContent='<?= htmlspecialchars($t('ideas.state_generating_questions', 'Генерирую вопросы...'), ENT_QUOTES, 'UTF-8') ?>';
+      var slowNoticeTimer=setTimeout(function(){
+        if(b.disabled){
+          document.getElementById('interviewStatus').textContent='<?= htmlspecialchars($t('ideas.state_generating_slow', 'Генерация занимает больше обычного, продолжаем ждать ответа AI...'), ENT_QUOTES, 'UTF-8') ?>';
+        }
+      },20000);
       window.CRM.api.request('api/v1/ideas/'+pid+'/interview',{method:'POST',timeoutMs:300000}).then(function(env2){
+        clearTimeout(slowNoticeTimer);
         var data=env2.data||{};
         if(data.complete){document.getElementById('interviewStatus').textContent='<?= htmlspecialchars($t('ideas.state_limit_reached', 'Достигнут лимит вопросов (25).'), ENT_QUOTES, 'UTF-8') ?>';b.disabled=false;b.innerHTML='<i class="fa-regular fa-comments me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_ask_ai', 'Задать вопросы AI'), ENT_QUOTES, 'UTF-8') ?>';loadInterview();return;}
         var generatedQuestions=data.questions||[];
@@ -940,6 +980,7 @@ function renderInterviewHistory(questions){
         }
         b.disabled=false;b.innerHTML='<i class="fa-regular fa-comments me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_ask_more', 'Задать ещё вопросы AI'), ENT_QUOTES, 'UTF-8') ?>';loadInterview();
       }).catch(function(err){
+        clearTimeout(slowNoticeTimer);
         b.disabled=false;b.innerHTML='<i class="fa-regular fa-comments me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_ask_ai', 'Задать вопросы AI'), ENT_QUOTES, 'UTF-8') ?>';
         window.CRM.api.request('api/v1/ideas/'+pid+'/questions',{method:'GET'}).then(function(env3){
           var qs3=env3.data.items||[];
@@ -949,7 +990,11 @@ function renderInterviewHistory(questions){
             document.getElementById('interviewStatus').textContent='<?= htmlspecialchars($t('ideas.state_questions_count', 'Вопросов: '), ENT_QUOTES, 'UTF-8') ?>'+qs3.filter(function(q){return !q.is_clarification&&!q.is_gap;}).length+' <?= htmlspecialchars($t('ideas.state_out_of', 'из 25. Выберите ответы.'), ENT_QUOTES, 'UTF-8') ?>';
             renderInterviewHistory(qs3);
           }else{
-            document.getElementById('interviewStatus').textContent='<?= htmlspecialchars($t('ideas.state_try_later', 'Ошибка: попробуйте позже'), ENT_QUOTES, 'UTF-8') ?>';
+            var isTimeout = err && (err.name === 'AbortError' || (err.envelope && (err.envelope.code === 'NETWORK_TIMEOUT' || err.envelope.code === 'REQUEST_ABORTED')));
+            var errMsg = isTimeout
+              ? '<?= htmlspecialchars($t('ideas.state_interview_timeout', 'Время ожидания ответа AI истекло. Нажмите «Задать вопросы AI» для повторной попытки.'), ENT_QUOTES, 'UTF-8') ?>'
+              : '<?= htmlspecialchars($t('ideas.state_try_later', 'Ошибка: попробуйте позже'), ENT_QUOTES, 'UTF-8') ?>';
+            document.getElementById('interviewStatus').textContent=errMsg;
             document.getElementById('interviewStatus').style.color='red';
           }
         }).catch(function(err3){
@@ -959,39 +1004,9 @@ function renderInterviewHistory(questions){
         });
       });
     }).catch(function(){
-      b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_ai_thinking', 'AI думает...'), ENT_QUOTES, 'UTF-8') ?>';
-      document.getElementById('interviewStatus').textContent='<?= htmlspecialchars($t('ideas.state_generating_questions', 'Генерирую вопросы...'), ENT_QUOTES, 'UTF-8') ?>';
-      window.CRM.api.request('api/v1/ideas/'+pid+'/interview',{method:'POST',timeoutMs:300000}).then(function(env2){
-        var data=env2.data||{};
-        if(data.complete){document.getElementById('interviewStatus').textContent='<?= htmlspecialchars($t('ideas.state_limit_reached', 'Достигнут лимит вопросов (25).'), ENT_QUOTES, 'UTF-8') ?>';b.disabled=false;b.innerHTML='<i class="fa-regular fa-comments me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_ask_ai', 'Задать вопросы AI'), ENT_QUOTES, 'UTF-8') ?>';loadInterview();return;}
-        var generatedQuestions=data.questions||[];
-        renderInterviewQuestions(generatedQuestions);
-        if(generatedQuestions.length){
-          document.getElementById('interviewStatus').textContent='<?= htmlspecialchars($t('ideas.state_questions_count', 'Вопросов: '), ENT_QUOTES, 'UTF-8') ?>'+(data.total||0)+' <?= htmlspecialchars($t('ideas.state_out_of', 'из 25. Выберите ответы.'), ENT_QUOTES, 'UTF-8') ?>';
-        }else{
-          document.getElementById('interviewStatus').textContent='<?= htmlspecialchars($t('ideas.state_all_answered', 'Все вопросы отвечены.'), ENT_QUOTES, 'UTF-8') ?>';
-          document.getElementById('interviewStatus').style.color='green';
-        }
-        b.disabled=false;b.innerHTML='<i class="fa-regular fa-comments me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_ask_more', 'Задать ещё вопросы AI'), ENT_QUOTES, 'UTF-8') ?>';loadInterview();
-      }).catch(function(err){
-        b.disabled=false;b.innerHTML='<i class="fa-regular fa-comments me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_ask_ai', 'Задать вопросы AI'), ENT_QUOTES, 'UTF-8') ?>';
-        window.CRM.api.request('api/v1/ideas/'+pid+'/questions',{method:'GET'}).then(function(env3){
-          var qs3=env3.data.items||[];
-          var unans3=qs3.filter(function(q){return !q.last_answer&&!q.is_clarification&&!q.is_gap;});
-          if(unans3.length>0){
-            renderInterviewQuestions(unans3);
-            document.getElementById('interviewStatus').textContent='<?= htmlspecialchars($t('ideas.state_questions_count', 'Вопросов: '), ENT_QUOTES, 'UTF-8') ?>'+qs3.filter(function(q){return !q.is_clarification&&!q.is_gap;}).length+' <?= htmlspecialchars($t('ideas.state_out_of', 'из 25. Выберите ответы.'), ENT_QUOTES, 'UTF-8') ?>';
-            renderInterviewHistory(qs3);
-          }else{
-            document.getElementById('interviewStatus').textContent='<?= htmlspecialchars($t('ideas.state_try_later', 'Ошибка: попробуйте позже'), ENT_QUOTES, 'UTF-8') ?>';
-            document.getElementById('interviewStatus').style.color='red';
-          }
-        }).catch(function(err3){
-          var iErrMsg=err3&&err3.envelope&&err3.envelope.message?err3.envelope.message:'<?= htmlspecialchars($t('ideas.state_try_later', 'Ошибка: попробуйте позже'), ENT_QUOTES, 'UTF-8') ?>';
-          document.getElementById('interviewStatus').textContent=iErrMsg;
-          document.getElementById('interviewStatus').style.color='red';
-        });
-      });
+      b.disabled=false;b.innerHTML='<i class="fa-regular fa-comments me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_ask_ai', 'Задать вопросы AI'), ENT_QUOTES, 'UTF-8') ?>';
+      document.getElementById('interviewStatus').textContent='<?= htmlspecialchars($t('ideas.state_try_later', 'Ошибка: попробуйте позже'), ENT_QUOTES, 'UTF-8') ?>';
+      document.getElementById('interviewStatus').style.color='red';
     });
   } else {
     setTimeout(function(){document.getElementById('interviewBtn').click();},200);
@@ -1002,6 +1017,22 @@ function renderInterviewQuestions(questions){
   var unanswered=questions.filter(function(q){return !q.last_answer&&!q.is_clarification&&!q.is_gap;});
   if(!unanswered.length){document.getElementById('interviewQuestions').style.display='none';var statusEl=document.getElementById('interviewStatus');var hasMain=questions.some(function(q){return !q.is_clarification&&!q.is_gap;});if(statusEl&&hasMain){if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.syncStep('interview',true);statusEl.textContent='<?= htmlspecialchars($t('ideas.state_all_answered', 'Все вопросы отвечены.'), ENT_QUOTES, 'UTF-8') ?>';statusEl.style.color='green';}var card=document.getElementById('interviewCard');if(card)card.classList.remove('pipeline-visible');return;}
   var card=document.getElementById('interviewCard');if(card)card.classList.add('pipeline-visible');
+
+  var existingBlocks=document.getElementById('interviewQuestions').querySelectorAll('[data-qid]');
+  if(existingBlocks.length===unanswered.length&&existingBlocks.length>0){
+    var match=true;
+    for(var qi=0;qi<unanswered.length;qi++){
+      var qid=unanswered[qi].public_id||unanswered[qi].id||('q'+qi);
+      if(existingBlocks[qi].getAttribute('data-qid')!==String(qid)){
+        match=false;break;
+      }
+    }
+    if(match){
+      document.getElementById('interviewQuestions').style.display='';
+      return;
+    }
+  }
+
   var h='';unanswered.forEach(function(q,i){
     var qid=q.public_id||q.id||('q'+i);
     var opts=q.options||(typeof q.options_json==='string'?JSON.parse(q.options_json):(q.options_json||[]));
@@ -1041,6 +1072,7 @@ window._saveClarifications=function(){
         if(st)st.textContent='<?= htmlspecialchars($t('ideas.state_clarifications_saved', 'Уточнения сохранены'), ENT_QUOTES, 'UTF-8') ?>';if(st)st.style.color='green';
         loadInterview();
         if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.resumeAfterQuestions('clarifications');
+        window.CRM.api.request('api/v1/ideas/'+pid+'/analysis/run-worker',{method:'POST',timeoutMs:120000}).catch(function(){});
         if(!window.CRM||!window.CRM.api)return;
         window.CRM.api.request('api/v1/ideas/'+pid+'/additional-questions',{method:'GET'}).then(function(env){
           window._renderClarifications(env.data||{});
@@ -1068,6 +1100,7 @@ window._saveIvAnswers=function(e){
       window.CRM.api.request('api/v1/ideas/'+pid+'/interview-answers',{method:'POST',body:{answers:answers}}).then(function(){
         if(st)st.textContent='<?= htmlspecialchars($t('ideas.state_answers_saved', 'Ответы сохранены'), ENT_QUOTES, 'UTF-8') ?>';if(st)st.style.color='green';if(questionsEl)questionsEl.style.display='none';loadInterview();
         if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.resumeAfterQuestions('interview');
+        window.CRM.api.request('api/v1/ideas/'+pid+'/analysis/run-worker',{method:'POST',timeoutMs:120000}).catch(function(){});
       }).catch(function(err){if(st)st.textContent='<?= htmlspecialchars($t('ideas.state_save_error', 'Ошибка сохранения'), ENT_QUOTES, 'UTF-8') ?>';if(st)st.style.color='red';if(btn)btn.disabled=false;});
     }catch(e2){var st2=document.getElementById('interviewStatus');if(st2){st2.textContent='<?= htmlspecialchars($t('ideas.state_error_prefix', 'Ошибка: '), ENT_QUOTES, 'UTF-8') ?>'+String(e2.message||'<?= htmlspecialchars($t('ideas.state_unknown', 'неизвестная'), ENT_QUOTES, 'UTF-8') ?>');st2.style.color='red';}}
   };
@@ -1143,13 +1176,15 @@ loadInterview();
       document.getElementById('clarificationsBody').innerHTML='';
       document.getElementById('clarificationsStatus').textContent='<?= htmlspecialchars($t('ideas.state_no_clarifications', '— нет уточнений'), ENT_QUOTES, 'UTF-8') ?>';
       document.getElementById('clarificationsStatus').style.color='';
-      if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.syncStep('clarifications',true);
+      if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.syncStep('clarifications',false);
       b.disabled=false;
     }).catch(function(){
       b.disabled=false;
       if(window.CRM.br1)window.CRM.br1.notify('error','<?= htmlspecialchars($t('ideas.state_delete_error', 'Ошибка удаления'), ENT_QUOTES, 'UTF-8') ?>');
     });
   });
+  if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.registerLoader('clarifications',function(){loadClarifications();showBlock('clarificationsCard');});
+  window._loadClarifications=loadClarifications;
   loadClarifications();
 })();
 window._renderClarifications=function(data){
@@ -1157,7 +1192,6 @@ window._renderClarifications=function(data){
   var status=document.getElementById('clarificationsStatus');
   var questions=(data.questions||[]).filter(function(q){return !!q.public_id;});
   if(!questions.length){
-    if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.syncStep('clarifications',true);
     body.style.display='none';
     var card=document.getElementById('clarificationsCard');if(card)card.classList.remove('pipeline-visible');
     if(status)status.textContent='<?= htmlspecialchars($t('ideas.state_no_clarifications', '— нет уточнений'), ENT_QUOTES, 'UTF-8') ?>';
@@ -1166,6 +1200,21 @@ window._renderClarifications=function(data){
   if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.syncStep('clarifications',false);
   var card=document.getElementById('clarificationsCard');if(card)card.classList.add('pipeline-visible');
   if(status)status.textContent=questions.length+' <?= htmlspecialchars($t('ideas.state_questions', 'вопросов'), ENT_QUOTES, 'UTF-8') ?>';
+
+  var existingBlocks=body.querySelectorAll('[data-qid]');
+  if(existingBlocks.length===questions.length&&existingBlocks.length>0){
+    var match=true;
+    for(var qi=0;qi<questions.length;qi++){
+      if(existingBlocks[qi].getAttribute('data-qid')!==questions[qi].public_id){
+        match=false;break;
+      }
+    }
+    if(match){
+      body.style.display='';
+      return;
+    }
+  }
+
   var h='';
   questions.forEach(function(q,i){
     var qid=q.public_id;
@@ -1255,7 +1304,10 @@ window._renderClarifications=function(data){
     });
   }
   document.getElementById('buildCardBtn').addEventListener('click',function(){triggerUnderstanding();});
-  if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.registerTrigger('understanding',triggerUnderstanding);
+  if(window.CRM_IDEA_AI_PIPELINE){
+    window.CRM_IDEA_AI_PIPELINE.registerTrigger('understanding',triggerUnderstanding);
+    window.CRM_IDEA_AI_PIPELINE.registerLoader('understanding',function(){loadCard();showBlock('understandingCard');});
+  }
 
   document.getElementById('clearCardBtn').addEventListener('click',function(){
     if(!confirm('<?= htmlspecialchars($t('ideas.confirm_clear_card', 'Удалить карточку понимания идеи? Вопросы и ответы останутся.'), ENT_QUOTES, 'UTF-8') ?>'))return;
@@ -1304,10 +1356,13 @@ window._renderClarifications=function(data){
       body.innerHTML='';
       if(status)status.textContent='<?= htmlspecialchars($t('ideas.state_no_questions', '— нет вопросов'), ENT_QUOTES, 'UTF-8') ?>';
       if(status)status.style.color='';
+      if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.syncStep('gapQuestions',false);
       b.disabled=false;
     }).catch(function(){b.disabled=false;if(window.CRM.br1)window.CRM.br1.notify('error','<?= htmlspecialchars($t('ideas.state_delete_error', 'Ошибка удаления'), ENT_QUOTES, 'UTF-8') ?>');});
   });
 
+  if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.registerLoader('gapQuestions',function(){loadGaps();showBlock('gapQuestionsCard');});
+  window._loadGaps=loadGaps;
   loadGaps();
 })();
 window._saveGaps=function(){
@@ -1323,6 +1378,7 @@ window._saveGaps=function(){
         if(st)st.textContent='<?= htmlspecialchars($t('ideas.state_clarifications_saved', 'Уточнения сохранены'), ENT_QUOTES, 'UTF-8') ?>';if(st)st.style.color='green';
         loadInterview();
         if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.resumeAfterQuestions('gapQuestions');
+        window.CRM.api.request('api/v1/ideas/'+pid+'/analysis/run-worker',{method:'POST',timeoutMs:120000}).catch(function(){});
         if(!window.CRM||!window.CRM.api)return;
         window.CRM.api.request('api/v1/ideas/'+pid+'/gap-questions',{method:'GET'}).then(function(env){
           window._renderGaps(env.data||{});
@@ -1338,7 +1394,6 @@ window._renderGaps=function(data){
   var status=document.getElementById('gapStatus');
   var questions=(data.questions||[]).filter(function(q){return !!q.public_id;});
   if(!questions.length){
-    if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.syncStep('gapQuestions',true);
     body.style.display='none';
     var card=document.getElementById('gapQuestionsCard');if(card)card.classList.remove('pipeline-visible');
     if(status)status.textContent='<?= htmlspecialchars($t('ideas.state_no_questions', '— нет вопросов'), ENT_QUOTES, 'UTF-8') ?>';
@@ -1347,6 +1402,21 @@ window._renderGaps=function(data){
   if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.syncStep('gapQuestions',false);
   var card=document.getElementById('gapQuestionsCard');if(card)card.classList.add('pipeline-visible');
   if(status)status.textContent=questions.length+' <?= htmlspecialchars($t('ideas.state_questions', 'вопросов'), ENT_QUOTES, 'UTF-8') ?>';
+
+  var existingBlocks=body.querySelectorAll('[data-qid]');
+  if(existingBlocks.length===questions.length&&existingBlocks.length>0){
+    var match=true;
+    for(var qi=0;qi<questions.length;qi++){
+      if(existingBlocks[qi].getAttribute('data-qid')!==questions[qi].public_id){
+        match=false;break;
+      }
+    }
+    if(match){
+      body.style.display='';
+      return;
+    }
+  }
+
   var h='';
   questions.forEach(function(q,i){
     var qid=q.public_id;
@@ -1419,7 +1489,10 @@ window._renderGaps=function(data){
     });
   }
   document.getElementById('buildRefinedBtn').addEventListener('click',function(){triggerRefined();});
-  if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.registerTrigger('refined',triggerRefined);
+  if(window.CRM_IDEA_AI_PIPELINE){
+    window.CRM_IDEA_AI_PIPELINE.registerTrigger('refined',triggerRefined);
+    window.CRM_IDEA_AI_PIPELINE.registerLoader('refined',function(){loadRefined();showBlock('refinedCard');});
+  }
 
   document.getElementById('clearRefinedBtn').addEventListener('click',function(){
     if(!confirm('<?= htmlspecialchars($t('ideas.confirm_clear_refined', 'Удалить уточненную карточку?'), ENT_QUOTES, 'UTF-8') ?>'))return;
@@ -1480,7 +1553,10 @@ window._renderGaps=function(data){
     return window.CRM.api.request('api/v1/ideas/'+pid+'/potential',{method:'POST',timeoutMs:120000}).then(function(env){renderPotential(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-calculator me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Пересчитать'), ENT_QUOTES, 'UTF-8') ?>';return {ok:true, code:String(env.code||'')};}).catch(function(err){b.disabled=false;b.innerHTML='<i class="fa-solid fa-calculator me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Пересчитать'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_potential_error', 'Ошибка расчета потенциала.'), ENT_QUOTES, 'UTF-8') ?></p>';return {ok:false, code:(err&&err.envelope&&err.envelope.code)||'ERROR'};});
   }
   document.getElementById('calcPotentialBtn').addEventListener('click',function(){triggerPotential();});
-  if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.registerTrigger('potential',triggerPotential);
+  if(window.CRM_IDEA_AI_PIPELINE){
+    window.CRM_IDEA_AI_PIPELINE.registerTrigger('potential',triggerPotential);
+    window.CRM_IDEA_AI_PIPELINE.registerLoader('potential',function(){loadPotential();showBlock('potentialCard');});
+  }
   document.getElementById('clearPotentialBtn').addEventListener('click',function(){
     if(!confirm('<?= htmlspecialchars($t('ideas.confirm_clear_potential', 'Удалить расчет потенциала?'), ENT_QUOTES, 'UTF-8') ?>'))return;
     var b=this;b.disabled=true;
@@ -1537,7 +1613,10 @@ window._renderGaps=function(data){
     return window.CRM.api.request('api/v1/ideas/'+pid+'/risk-report',{method:'POST',timeoutMs:120000}).then(function(env){renderRisk(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-shield-halved me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Рассчитать заново'), ENT_QUOTES, 'UTF-8') ?>';return {ok:true, code:String(env.code||'')};}).catch(function(err){b.disabled=false;b.innerHTML='<i class="fa-solid fa-shield-halved me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Рассчитать заново'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_risk_error', 'Ошибка расчета рисков.'), ENT_QUOTES, 'UTF-8') ?></p>';return {ok:false, code:(err&&err.envelope&&err.envelope.code)||'ERROR'};});
   }
   document.getElementById('calcRiskBtn').addEventListener('click',function(){triggerRisks();});
-  if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.registerTrigger('risks',triggerRisks);
+  if(window.CRM_IDEA_AI_PIPELINE){
+    window.CRM_IDEA_AI_PIPELINE.registerTrigger('risks',triggerRisks);
+    window.CRM_IDEA_AI_PIPELINE.registerLoader('risks',function(){loadRisk();showBlock('riskCard');});
+  }
   document.getElementById('clearRiskBtn').addEventListener('click',function(){
     if(!confirm('<?= htmlspecialchars($t('ideas.confirm_clear_risk', 'Удалить риск-отчет? Идея и вопросы не будут удалены.'), ENT_QUOTES, 'UTF-8') ?>'))return;
     var b=this;b.disabled=true;
@@ -1583,7 +1662,10 @@ window._renderGaps=function(data){
     return window.CRM.api.request('api/v1/ideas/'+pid+'/pitfalls',{method:'POST',timeoutMs:120000}).then(function(env){renderPitfalls(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-magnifying-glass-chart me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Рассчитать заново'), ENT_QUOTES, 'UTF-8') ?>';return {ok:true, code:String(env.code||'')};}).catch(function(err){b.disabled=false;b.innerHTML='<i class="fa-solid fa-magnifying-glass-chart me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Рассчитать заново'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_pitfalls_error', 'Ошибка поиска подводных камней.'), ENT_QUOTES, 'UTF-8') ?></p>';return {ok:false, code:(err&&err.envelope&&err.envelope.code)||'ERROR'};});
   }
   document.getElementById('calcPitfallsBtn').addEventListener('click',function(){triggerPitfalls();});
-  if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.registerTrigger('pitfalls',triggerPitfalls);
+  if(window.CRM_IDEA_AI_PIPELINE){
+    window.CRM_IDEA_AI_PIPELINE.registerTrigger('pitfalls',triggerPitfalls);
+    window.CRM_IDEA_AI_PIPELINE.registerLoader('pitfalls',function(){loadPitfalls();showBlock('pitfallsCard');});
+  }
   document.getElementById('clearPitfallsBtn').addEventListener('click',function(){
     if(!confirm('<?= htmlspecialchars($t('ideas.confirm_clear_pitfalls', 'Удалить подводные камни? Идея и вопросы не будут удалены.'), ENT_QUOTES, 'UTF-8') ?>'))return;
     var b=this;b.disabled=true;
@@ -1633,7 +1715,10 @@ window._renderGaps=function(data){
     return window.CRM.api.request('api/v1/ideas/'+pid+'/implementation-plan',{method:'POST',timeoutMs:120000}).then(function(env){renderPlan(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-play me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_rebuild', 'Собрать заново'), ENT_QUOTES, 'UTF-8') ?>';return {ok:true, code:String(env.code||'')};}).catch(function(err){b.disabled=false;b.innerHTML='<i class="fa-solid fa-play me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_rebuild', 'Собрать заново'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_plan_error', 'Ошибка сборки плана.'), ENT_QUOTES, 'UTF-8') ?></p>';return {ok:false, code:(err&&err.envelope&&err.envelope.code)||'ERROR'};});
   }
   document.getElementById('buildPlanBtn').addEventListener('click',function(){triggerPlan();});
-  if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.registerTrigger('plan',triggerPlan);
+  if(window.CRM_IDEA_AI_PIPELINE){
+    window.CRM_IDEA_AI_PIPELINE.registerTrigger('plan',triggerPlan);
+    window.CRM_IDEA_AI_PIPELINE.registerLoader('plan',function(){loadPlan();showBlock('planCard');});
+  }
   document.getElementById('clearPlanBtn').addEventListener('click',function(){
     if(!confirm('<?= htmlspecialchars($t('ideas.confirm_clear_plan', 'Удалить план реализации?'), ENT_QUOTES, 'UTF-8') ?>'))return;
     var b=this;b.disabled=true;
@@ -1684,7 +1769,10 @@ window._renderGaps=function(data){
     return window.CRM.api.request('api/v1/ideas/'+pid+'/final-recommendation',{method:'POST',timeoutMs:120000}).then(function(env){renderFinal(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-gavel me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_rebuild_final', 'Сформировать заново'), ENT_QUOTES, 'UTF-8') ?>';return {ok:true, code:String(env.code||'')};}).catch(function(err){b.disabled=false;b.innerHTML='<i class="fa-solid fa-gavel me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_rebuild_final', 'Сформировать заново'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_final_error', 'Ошибка формирования рекомендации.'), ENT_QUOTES, 'UTF-8') ?></p>';return {ok:false, code:(err&&err.envelope&&err.envelope.code)||'ERROR'};});
   }
   document.getElementById('buildFinalBtn').addEventListener('click',function(){triggerFinal();});
-  if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.registerTrigger('final',triggerFinal);
+  if(window.CRM_IDEA_AI_PIPELINE){
+    window.CRM_IDEA_AI_PIPELINE.registerTrigger('final',triggerFinal);
+    window.CRM_IDEA_AI_PIPELINE.registerLoader('final',function(){loadFinal();showBlock('finalCard');});
+  }
   document.getElementById('clearFinalBtn').addEventListener('click',function(){
     if(!confirm('<?= htmlspecialchars($t('ideas.confirm_clear_final', 'Удалить итоговую рекомендацию?'), ENT_QUOTES, 'UTF-8') ?>'))return;
     var b=this;b.disabled=true;
@@ -1770,7 +1858,10 @@ window._renderGaps=function(data){
     return window.CRM.api.request('api/v1/ideas/'+pid+'/suggested-tasks',{method:'POST',timeoutMs:120000}).then(function(env){renderTasks(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-list-tree me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_rebuild', 'Сформировать заново'), ENT_QUOTES, 'UTF-8') ?>';return {ok:true, code:String(env.code||'')};}).catch(function(err){b.disabled=false;b.innerHTML='<i class="fa-solid fa-list-tree me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('ideas.btn_rebuild', 'Сформировать заново'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_tasks_error', 'Ошибка формирования задач.'), ENT_QUOTES, 'UTF-8') ?></p>';return {ok:false, code:(err&&err.envelope&&err.envelope.code)||'ERROR'};});
   }
   document.getElementById('buildTasksBtn').addEventListener('click',function(){triggerTasks();});
-  if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.registerTrigger('tasks',triggerTasks);
+  if(window.CRM_IDEA_AI_PIPELINE){
+    window.CRM_IDEA_AI_PIPELINE.registerTrigger('tasks',triggerTasks);
+    window.CRM_IDEA_AI_PIPELINE.registerLoader('tasks',function(){loadTasks();showBlock('tasksCard');});
+  }
   document.getElementById('clearTasksBtn').addEventListener('click',function(){
     if(!confirm('<?= htmlspecialchars($t('ideas.confirm_clear_tasks', 'Удалить предлагаемые задачи?'), ENT_QUOTES, 'UTF-8') ?>'))return;
     var b=this;b.disabled=true;
