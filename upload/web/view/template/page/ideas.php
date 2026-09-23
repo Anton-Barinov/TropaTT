@@ -565,6 +565,7 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
       await sleep(pollInterval);
       if(runToken!==pipelineRunToken)return;
       awaitingHuman=false;
+      var awaitingStepDesc='';
 
       try{
         var status=await window.CRM.api.request('api/v1/ideas/'+ideaId+'/analysis/status',{method:'GET',timeoutMs:10000});
@@ -610,6 +611,8 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
           }else if(ss.status==='awaiting_human_input'){
             allDone=false;
             awaitingHuman=true;
+            awaitingStepDesc=(steps[idx]&&steps[idx].desc)?steps[idx].desc:'';
+            if(steps[idx]&&steps[idx].cardId)showBlock(steps[idx].cardId);
             if(browserStep.status!=='running'&&browserStep.status!=='success'){
               browserStep.status='running';
               saveState();renderSteps();
@@ -629,7 +632,8 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
           allDone=false;
         }
         if(awaitingHuman){
-          document.getElementById('pipelineStatus').textContent='<?= htmlspecialchars($t('ideas.state_awaiting_human', 'Пайплайн ждёт ваших ответов на вопросы...'), ENT_QUOTES, 'UTF-8') ?>';
+          document.getElementById('pipelineStatus').textContent=awaitingStepDesc ? ('<?= htmlspecialchars($t('ideas.state_waiting_answers', 'Ожидает ответов:'), ENT_QUOTES, 'UTF-8') ?> '+awaitingStepDesc) : '<?= htmlspecialchars($t('ideas.state_awaiting_human', 'Пайплайн ждёт ваших ответов на вопросы...'), ENT_QUOTES, 'UTF-8') ?>';
+          setStartButtonIdle();
           // Answering takes human time — don't count these ticks against the poll budget
           maxPolls=p+200;
         } else if(hasPending && !hasRunning && (totalTicks - workerTriggeredAtTick >= 3)) {
@@ -1043,6 +1047,7 @@ window._saveClarifications=function(){
         if(st)st.textContent='<?= htmlspecialchars($t('ideas.state_clarifications_saved', 'Уточнения сохранены'), ENT_QUOTES, 'UTF-8') ?>';if(st)st.style.color='green';
         loadInterview();
         if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.resumeAfterQuestions('clarifications');
+        window.CRM.api.request('api/v1/ideas/'+pid+'/analysis/run-worker',{method:'POST',timeoutMs:120000}).catch(function(){});
         if(!window.CRM||!window.CRM.api)return;
         window.CRM.api.request('api/v1/ideas/'+pid+'/additional-questions',{method:'GET'}).then(function(env){
           window._renderClarifications(env.data||{});
@@ -1070,6 +1075,7 @@ window._saveIvAnswers=function(e){
       window.CRM.api.request('api/v1/ideas/'+pid+'/interview-answers',{method:'POST',body:{answers:answers}}).then(function(){
         if(st)st.textContent='<?= htmlspecialchars($t('ideas.state_answers_saved', 'Ответы сохранены'), ENT_QUOTES, 'UTF-8') ?>';if(st)st.style.color='green';if(questionsEl)questionsEl.style.display='none';loadInterview();
         if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.resumeAfterQuestions('interview');
+        window.CRM.api.request('api/v1/ideas/'+pid+'/analysis/run-worker',{method:'POST',timeoutMs:120000}).catch(function(){});
       }).catch(function(err){if(st)st.textContent='<?= htmlspecialchars($t('ideas.state_save_error', 'Ошибка сохранения'), ENT_QUOTES, 'UTF-8') ?>';if(st)st.style.color='red';if(btn)btn.disabled=false;});
     }catch(e2){var st2=document.getElementById('interviewStatus');if(st2){st2.textContent='<?= htmlspecialchars($t('ideas.state_error_prefix', 'Ошибка: '), ENT_QUOTES, 'UTF-8') ?>'+String(e2.message||'<?= htmlspecialchars($t('ideas.state_unknown', 'неизвестная'), ENT_QUOTES, 'UTF-8') ?>');st2.style.color='red';}}
   };
@@ -1332,6 +1338,7 @@ window._saveGaps=function(){
         if(st)st.textContent='<?= htmlspecialchars($t('ideas.state_clarifications_saved', 'Уточнения сохранены'), ENT_QUOTES, 'UTF-8') ?>';if(st)st.style.color='green';
         loadInterview();
         if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.resumeAfterQuestions('gapQuestions');
+        window.CRM.api.request('api/v1/ideas/'+pid+'/analysis/run-worker',{method:'POST',timeoutMs:120000}).catch(function(){});
         if(!window.CRM||!window.CRM.api)return;
         window.CRM.api.request('api/v1/ideas/'+pid+'/gap-questions',{method:'GET'}).then(function(env){
           window._renderGaps(env.data||{});
