@@ -4452,11 +4452,15 @@ PROMPT;
         $pdo = $this->container->get('db.pdo');
         $this->ensureIdeaWorkflowTables($pdo);
 
-        // Check for existing active pipeline
+        // Check for existing active pipeline — return success with info instead of 409 to prevent red console errors
         $active = $pdo->prepare("SELECT step_key FROM idea_analysis_steps WHERE idea_id = :iid AND pipeline = 'live' AND status IN ('pending','running')");
         $active->execute(['iid' => $ideaId]);
         if ($active->fetchColumn()) {
-            return $this->error('ANALYSIS_IN_PROGRESS', $this->t('idea/messages.analysis_already_running'), 409);
+            return $this->success('ANALYSIS_IN_PROGRESS', $this->t('idea/messages.analysis_already_running'), [
+                'idea_public_id' => $publicId,
+                'steps_total' => count($this->livePipelineSteps()),
+                'already_in_progress' => true,
+            ]);
         }
 
         // If there are completed live-pipeline steps, check if all done
@@ -4465,7 +4469,11 @@ PROMPT;
         $doneSteps = (int)$completedCount->fetchColumn();
         $allSteps = $this->livePipelineSteps();
         if ($doneSteps >= count($allSteps)) {
-            return $this->error('ANALYSIS_COMPLETE', $this->t('idea/messages.analysis_complete_full'), 409);
+            return $this->success('ANALYSIS_COMPLETE', $this->t('idea/messages.analysis_complete_full'), [
+                'idea_public_id' => $publicId,
+                'steps_total' => count($allSteps),
+                'already_complete' => true,
+            ]);
         }
 
         // Upsert steps: insert any missing, mark already answered question steps as completed
