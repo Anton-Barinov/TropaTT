@@ -973,9 +973,10 @@ window.CRM.pageApiBindings = (function () {
     delete opts.silent;
     delete opts.critical;
 
-    // Increase timeout for AI requests
-    if (route.indexOf('api/v1/ai/') === 0) {
-      opts.timeoutMs = Math.max(opts.timeoutMs || 0, 120000); // 2 minutes for AI
+    // Increase timeout for AI requests (up to 5 minutes)
+    var isAiRoute = route.indexOf('api/v1/ai/') === 0 || (route.indexOf('api/v1/ideas/') === 0 && /(?:interview|additional-questions|gap-questions|understanding-card|refined-card|potential|risk-report|pitfalls|implementation-plan|final-recommendation|suggested-tasks|analysis)/.test(route));
+    if (isAiRoute) {
+      opts.timeoutMs = Math.max(opts.timeoutMs || 0, 300000); // 5 minutes for AI
     }
 
     try {

@@ -3087,7 +3087,7 @@ PROMPT;
             return $this->success('INTERVIEW_CLEARED', $this->t('idea/messages.interview_cleared'));
         }
 
-        set_time_limit(90);
+        set_time_limit(300);
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 

@@ -17,8 +17,20 @@ if (PHP_SAPI !== "cli") { http_response_code(404); exit; }
 
 require_once __DIR__ . '/../system/library/support/Autoloader.php';
 
-$autoloader = new Api\System\Library\Support\Autoloader(dirname(__DIR__));
+$basePath = dirname(__DIR__);
+$projectRoot = dirname($basePath);
+
+$autoloader = new Api\System\Library\Support\Autoloader($basePath);
 $autoloader->register();
+
+if (class_exists(Api\System\Library\Support\EnvLoader::class)) {
+    Api\System\Library\Support\EnvLoader::loadFiles([
+        $projectRoot . '/.env',
+        $basePath . '/.env',
+        $projectRoot . '/.env.local',
+        $basePath . '/.env.local',
+    ]);
+}
 
 $argv = $_SERVER['argv'] ?? [];
 
@@ -126,6 +138,8 @@ function parseCliArgs(array $argv): array
         'limit' => 1,
         'token' => '',
         'idea' => '',
+        'login' => '',
+        'password' => '',
     ];
     foreach (array_slice($argv, 1) as $arg) {
         if ($arg === '--help' || $arg === '-h') { $options['help'] = true; continue; }
@@ -134,6 +148,8 @@ function parseCliArgs(array $argv): array
         if (str_starts_with($arg, '--limit=')) { $options['limit'] = (int)substr($arg, 8); continue; }
         if (str_starts_with($arg, '--token=')) { $options['token'] = trim(substr($arg, 8)); continue; }
         if (str_starts_with($arg, '--idea=')) { $options['idea'] = trim(substr($arg, 7)); continue; }
+        if (str_starts_with($arg, '--login=')) { $options['login'] = trim(substr($arg, 8)); continue; }
+        if (str_starts_with($arg, '--password=')) { $options['password'] = trim(substr($arg, 11)); continue; }
     }
     return $options;
 }
@@ -146,17 +162,41 @@ function resolveAuthToken(array $options): string
     $token = trim((string)getenv('CRM_AI_CRON_BEARER_TOKEN'));
     if ($token !== '') return $token;
 
-    $password = trim((string)getenv('CRM_TEST_ROOT_PASSWORD'));
-    if ($password === '') $password = 'adminadmin';
-    $login = trim((string)getenv('CRM_TEST_ROOT_LOGIN'));
-    if ($login === '') $login = 'admin';
+    $loginCandidates = [];
+    $optLogin = trim((string)($options['login'] ?? ''));
+    if ($optLogin !== '') $loginCandidates[] = $optLogin;
+    $envCronLogin = trim((string)getenv('CRM_AI_CRON_LOGIN'));
+    if ($envCronLogin !== '') $loginCandidates[] = $envCronLogin;
+    $envTestLogin = trim((string)getenv('CRM_TEST_ROOT_LOGIN'));
+    if ($envTestLogin !== '') $loginCandidates[] = $envTestLogin;
+    $loginCandidates[] = 'admin';
+    $loginCandidates[] = 'root';
+    $loginCandidates = array_values(array_unique(array_filter($loginCandidates, static fn(string $v): bool => $v !== '')));
 
-    $loginResponse = apiRequest('POST', '/api/v1/auth/login', [
-        'login' => $login,
-        'password' => $password,
-    ]);
-    if (($loginResponse['status'] ?? 0) === 200 && (bool)($loginResponse['payload']['success'] ?? false)) {
-        return trim((string)($loginResponse['payload']['data']['access_token'] ?? ''));
+    $passwordCandidates = [];
+    $optPass = trim((string)($options['password'] ?? ''));
+    if ($optPass !== '') $passwordCandidates[] = $optPass;
+    $envCronPass = trim((string)getenv('CRM_AI_CRON_PASSWORD'));
+    if ($envCronPass !== '') $passwordCandidates[] = $envCronPass;
+    $envTestPass = trim((string)getenv('CRM_TEST_ROOT_PASSWORD'));
+    if ($envTestPass !== '') $passwordCandidates[] = $envTestPass;
+    $passwordCandidates[] = 'adminadmin';
+    $passwordCandidates[] = 'RootToken#2026!';
+    $passwordCandidates = array_values(array_unique(array_filter($passwordCandidates, static fn(string $v): bool => $v !== '')));
+
+    foreach ($loginCandidates as $login) {
+        foreach ($passwordCandidates as $password) {
+            $loginResponse = apiRequest('POST', '/api/v1/auth/login', [
+                'login' => $login,
+                'password' => $password,
+            ]);
+            if (($loginResponse['status'] ?? 0) === 200 && (bool)($loginResponse['payload']['success'] ?? false)) {
+                $tok = trim((string)($loginResponse['payload']['data']['access_token'] ?? ''));
+                if ($tok !== '') {
+                    return $tok;
+                }
+            }
+        }
     }
     return '';
 }

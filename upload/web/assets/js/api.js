@@ -945,10 +945,8 @@ window.CRM.api = (function () {
     var antiReplayCap = maxRetries > 0 ? Math.max(maxRetries, 2) : 0;
     // AI generation can legitimately take several minutes. Keep regular API calls
     // responsive, but never abort a long-running assistant request prematurely.
-    // 30s default gives slow shared hosts (ondemand PHP-FPM pools, cold starts)
-    // enough room to answer instead of surfacing a "network error"; the retry
-    // loop below then recovers the rare genuine timeout without a page reload.
-    var timeoutMs = Math.max(0, Math.floor(toNumber(opts.timeoutMs, route.indexOf('api/v1/ai/') === 0 ? 300000 : 30000)));
+    var isAiRoute = route.indexOf('api/v1/ai/') === 0 || (route.indexOf('api/v1/ideas/') === 0 && /(?:interview|additional-questions|gap-questions|understanding-card|refined-card|potential|risk-report|pitfalls|implementation-plan|final-recommendation|suggested-tasks|analysis)/.test(route));
+    var timeoutMs = Math.max(0, Math.floor(toNumber(opts.timeoutMs, isAiRoute ? 300000 : 30000)));
     var attempts = 0;
 
     while (true) {
