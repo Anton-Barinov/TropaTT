@@ -5981,10 +5981,16 @@ window.CRM.pageApiBindings = (function () {
         emptyTd.colSpan = 5;
         emptyTd.className = 'crm-dashboard-empty-cell';
         var emptyBox = document.createElement('div');
-        emptyBox.className = 'crm-empty-state crm-empty-state-compact crm-dashboard-empty-state';
-        emptyBox.textContent = denied
-          ? window.CRM.i18n.t('js.pab.tasks_section_denied', 'Tasks section unavailable for your role.')
-          : window.CRM.i18n.t('js.pab.no_tasks_for_today', 'No relevant tasks found for today.');
+        emptyBox.className = 'crm-empty-state crm-empty-state-compact crm-dashboard-empty-state text-center py-4';
+        if (denied) {
+          emptyBox.innerHTML = '<span class="crm-icon text-muted mb-2 d-inline-flex align-items-center justify-content-center" style="width:38px;height:38px;border-radius:50%;background:color-mix(in srgb, var(--crm-ink, #000) 6%, transparent);font-size:1.1rem;" aria-hidden="true"><i class="fa-solid fa-lock" aria-hidden="true"></i></span>'
+            + '<strong class="d-block mb-1 text-body">' + window.CRM.i18n.t('js.pab.tasks_section_denied', 'Tasks section unavailable for your role.') + '</strong>';
+        } else {
+          emptyBox.innerHTML = '<span class="crm-icon text-primary mb-2 d-inline-flex align-items-center justify-content-center" style="width:40px;height:40px;border-radius:50%;background:color-mix(in srgb, var(--crm-primary) 12%, transparent);font-size:1.1rem;" aria-hidden="true"><i class="fa-regular fa-calendar-check" aria-hidden="true"></i></span>'
+            + '<strong class="d-block mb-1 text-body">' + window.CRM.i18n.t('dashboard.tasks_today_empty_title', 'На сегодня актуальных задач не найдено') + '</strong>'
+            + '<p class="text-muted small mb-3">' + window.CRM.i18n.t('dashboard.tasks_today_empty_desc', 'Все запланированные дела выполнены либо еще не назначены на текущую дату.') + '</p>'
+            + '<button class="btn btn-sm crm-btn-primary" data-open-modal="createTaskModal" type="button"><i class="fa-solid fa-plus me-1" aria-hidden="true"></i> ' + window.CRM.i18n.t('dashboard.btn_create_task', 'Создать задачу') + '</button>';
+        }
         emptyTd.appendChild(emptyBox);
         emptyTr.appendChild(emptyTd);
         tbody.appendChild(emptyTr);
@@ -6052,10 +6058,15 @@ window.CRM.pageApiBindings = (function () {
       }
       if (denied || !Array.isArray(rows) || !rows.length) {
         var emptyArticle = document.createElement('article');
-        emptyArticle.className = 'crm-dashboard-task-card crm-dashboard-empty-state';
-        emptyArticle.textContent = denied
-          ? window.CRM.i18n.t('js.pab.tasks_section_denied', 'Tasks section unavailable for your role.')
-          : window.CRM.i18n.t('js.pab.no_tasks_for_today', 'No relevant tasks found for today.');
+        emptyArticle.className = 'crm-dashboard-task-card crm-dashboard-empty-state text-center py-4';
+        if (denied) {
+          emptyArticle.innerHTML = '<strong class="d-block mb-1 text-body">' + window.CRM.i18n.t('js.pab.tasks_section_denied', 'Tasks section unavailable for your role.') + '</strong>';
+        } else {
+          emptyArticle.innerHTML = '<span class="crm-icon text-primary mb-2 d-inline-flex align-items-center justify-content-center" style="width:40px;height:40px;border-radius:50%;background:color-mix(in srgb, var(--crm-primary) 12%, transparent);font-size:1.1rem;" aria-hidden="true"><i class="fa-regular fa-calendar-check" aria-hidden="true"></i></span>'
+            + '<strong class="d-block mb-1 text-body">' + window.CRM.i18n.t('dashboard.tasks_today_empty_title', 'На сегодня актуальных задач не найдено') + '</strong>'
+            + '<p class="text-muted small mb-3">' + window.CRM.i18n.t('dashboard.tasks_today_empty_desc', 'Все запланированные дела выполнены либо еще не назначены на текущую дату.') + '</p>'
+            + '<button class="btn btn-sm crm-btn-primary" data-open-modal="createTaskModal" type="button"><i class="fa-solid fa-plus me-1" aria-hidden="true"></i> ' + window.CRM.i18n.t('dashboard.btn_create_task', 'Создать задачу') + '</button>';
+        }
         container.appendChild(emptyArticle);
         return;
       }
@@ -6152,9 +6163,20 @@ window.CRM.pageApiBindings = (function () {
         kpiBadges[0].className = 'crm-badge active';
         kpiBadges[0].textContent = Number(summary.active_tasks || 0) > 0 ? window.CRM.i18n.t('js.pab.kpi_has_focus', 'Has focus') : window.CRM.i18n.t('js.pab.kpi_no_active', 'No active');
       }
+      var overdueVal = Number(summary.overdue_tasks || 0);
+      var overdueKpiCard = document.querySelector('[data-kpi-link="overdue_tasks"]');
+      if (overdueKpiCard) {
+        if (overdueVal > 0) {
+          overdueKpiCard.classList.add('has-alert');
+          overdueKpiCard.classList.remove('is-calm');
+        } else {
+          overdueKpiCard.classList.remove('has-alert');
+          overdueKpiCard.classList.add('is-calm');
+        }
+      }
       if (kpiBadges[1]) {
-        kpiBadges[1].className = 'crm-badge ' + (Number(summary.overdue_tasks || 0) > 0 ? 'overdue' : 'success');
-        kpiBadges[1].textContent = Number(summary.overdue_tasks || 0) > 0 ? window.CRM.i18n.t('js.pab.kpi_needs_attention', 'Needs attention') : window.CRM.i18n.t('js.pab.kpi_normal', 'Normal');
+        kpiBadges[1].className = 'crm-badge ' + (overdueVal > 0 ? 'overdue' : 'success');
+        kpiBadges[1].textContent = overdueVal > 0 ? window.CRM.i18n.t('js.pab.kpi_needs_attention', 'Needs attention') : window.CRM.i18n.t('js.pab.kpi_normal', 'Normal');
       }
       if (kpiBadges[2]) {
         kpiBadges[2].className = 'crm-badge active';
@@ -6233,7 +6255,14 @@ window.CRM.pageApiBindings = (function () {
           + ' (' + safeText(formatDate(nearestDueTask.due_at)) + ').</div>');
       }
       if (!alerts.length) {
-        alerts.push('<div class="alert alert-success mb-2">' + window.CRM.i18n.t('js.pab.no_critical_alerts', 'No critical alerts found.') + '</div>');
+        alerts.push(
+          '<div class="crm-empty-state crm-empty-state-compact py-3 text-center">'
+          + '<span class="crm-icon text-success mb-2 d-inline-flex align-items-center justify-content-center" style="width:40px;height:40px;border-radius:50%;background:color-mix(in srgb, var(--crm-success) 12%, transparent);font-size:1.1rem;" aria-hidden="true"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></span>'
+          + '<strong class="d-block mb-1 text-body">' + window.CRM.i18n.t('js.pab.no_critical_alerts', 'No critical alerts found.') + '</strong>'
+          + '<p class="text-muted small mb-2">' + window.CRM.i18n.t('dashboard.risks_all_clear', 'Все дедлайны соблюдаются, заблокированных задач и проблемных проектов нет.') + '</p>'
+          + '<a href="index.php?route=tasks&kpi=overdue" class="btn btn-sm crm-btn-secondary">' + window.CRM.i18n.t('dashboard.risks_check_all', 'Проверить задачи') + '</a>'
+          + '</div>'
+        );
       }
       risksList.innerHTML = alerts.join('');
     }
@@ -7215,8 +7244,16 @@ window.CRM.pageApiBindings = (function () {
             aiDigestSummaryNode.innerHTML = '<strong>' + safeText(digestSummary || window.CRM.i18n.t('js.pab.ai_daily_digest', 'AI daily digest')) + '</strong>'
               + '<p class="mb-0 mt-1">' + window.CRM.i18n.t('js.pab.updated_label', 'Updated:') + ' ' + safeText(formatDate(digestUpdatedAt)) + '</p>';
           } else {
-            aiDigestSummaryNode.innerHTML = '<strong>' + window.CRM.i18n.t('js.pab.ai_digest_not_ready', 'AI digest not generated') + '</strong>'
-              + '<p class="mb-0">' + window.CRM.i18n.t('js.pab.click_refresh_digest', 'Click "Refresh AI digest" to get a recommendation.') + '</p>';
+            aiDigestSummaryNode.innerHTML = '<div class="d-flex align-items-start gap-3 py-1">'
+              + '<span class="crm-icon text-primary flex-shrink-0 d-inline-flex align-items-center justify-content-center" style="width:42px;height:42px;border-radius:50%;background:color-mix(in srgb, var(--crm-primary) 12%, transparent);font-size:1.2rem;" aria-hidden="true"><i class="fa-solid fa-brain" aria-hidden="true"></i></span>'
+              + '<div>'
+              + '<strong class="d-block text-body">' + window.CRM.i18n.t('dashboard.ai_digest_empty', 'AI-сводка не сформирована') + '</strong>'
+              + '<p class="text-muted small mb-2">' + window.CRM.i18n.t('dashboard.ai_digest_hint', 'Нажмите кнопку «Обновить AI-сводку», чтобы получить рекомендацию.') + '</p>'
+              + '<button type="button" class="btn btn-sm crm-btn-primary" onclick="var b=document.getElementById(\'dashboardAiDigestRefreshBtn\');if(b)b.click();">'
+              + '<i class="fa-solid fa-bolt me-1" aria-hidden="true"></i> ' + window.CRM.i18n.t('dashboard.ai_digest_refresh', 'Обновить AI-сводку')
+              + '</button>'
+              + '</div>'
+              + '</div>';
           }
         }
         renderDashboardList(
@@ -23519,7 +23556,23 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     if (kpiProvidersNode) kpiProvidersNode.textContent = String(totalProviders);
     if (kpiEnabledIntentsNode) kpiEnabledIntentsNode.textContent = String(enabledIntents);
     if (kpiJobsTodayNode) kpiJobsTodayNode.textContent = String(jobsToday.length);
-    if (kpiErrorsTodayNode) kpiErrorsTodayNode.textContent = String(providerIssues.length + errorsToday.length);
+    var attentionCount = providerIssues.length + errorsToday.length;
+    if (kpiErrorsTodayNode) kpiErrorsTodayNode.textContent = String(attentionCount);
+    var attentionCard = document.getElementById('adminAiKpiAttentionCard');
+    var attentionIcon = document.getElementById('adminAiKpiAttentionIcon');
+    if (attentionCard && attentionIcon) {
+      if (attentionCount > 0) {
+        attentionCard.classList.add('has-issues');
+        attentionCard.classList.remove('is-healthy');
+        attentionIcon.className = 'crm-admin-ai-metric-icon is-warning';
+        attentionIcon.innerHTML = '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>';
+      } else {
+        attentionCard.classList.remove('has-issues');
+        attentionCard.classList.add('is-healthy');
+        attentionIcon.className = 'crm-admin-ai-metric-icon is-success';
+        attentionIcon.innerHTML = '<i class="fa-solid fa-circle-check" aria-hidden="true"></i>';
+      }
+    }
 
     currentAdminReviewSuggestion = adminReviewSuggestions.slice().sort(function (left, right) {
       var leftMs = parseDateMs(left && (left.updated_at || left.created_at) ? (left.updated_at || left.created_at) : '') || 0;
