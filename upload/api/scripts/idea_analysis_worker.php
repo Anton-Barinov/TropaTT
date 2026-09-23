@@ -57,7 +57,11 @@ function main(array $argv): void
     // Serialize overlapping runs: a cron tick that outlives its interval must
     // not start a second pass alongside the first one (double AI calls).
     // Advisory lock, released automatically when the process exits.
-    $lockHandle = @fopen(sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'crm_idea_analysis_worker.lock', 'c');
+    $lockFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'crm_idea_analysis_worker.lock';
+    $lockHandle = @fopen($lockFile, 'c');
+    if ($lockHandle !== false) {
+        @chmod($lockFile, 0666);
+    }
     if ($lockHandle === false || !flock($lockHandle, LOCK_EX | LOCK_NB)) {
         fwrite(STDERR, "Another idea worker run is already in progress — exiting.\n");
         exit(0);
