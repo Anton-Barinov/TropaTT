@@ -169,6 +169,15 @@ Client loading modes and what they mean for cost:
 
 Server-side toolset filtering helps in all three modes; the cheapest setup is a narrow `?toolset=` in the endpoint URL, optionally combined with lazy loading.
 
+## Documentation discovery
+
+A fresh agent session does not know where the API/MCP reference lives and would otherwise re-read the source tree to reconstruct the contract. The server advertises the documentation in two places:
+
+- **`initialize.instructions`** — every MCP `initialize` response carries an `instructions` string with the documentation URLs and the recommended workflow. Spec-compliant clients (Claude Code and others) surface it to the model automatically, so it costs nothing extra to obtain.
+- **`tropatt://server/docs`** resource — a machine-readable catalogue of the same links (REST API, MCP, Modules SDK; HTML + raw) returned by `resources/read`.
+
+The public REST endpoint `GET /api/v1/version` also returns a `documentation` object with the same links, so a client can discover the docs before it holds a token. On forks or private deployments the base URL can be overridden with the `TROPATT_DOCS_URL` environment variable.
+
 ---
 
 ## Common MCP formats

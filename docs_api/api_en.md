@@ -212,7 +212,7 @@ To eliminate enum friction across external systems, AI agents, and frontend clie
 |-------|----------|------------|:---:|-------------|----------|
 | GET | `/api/v1/health/status` | Basic health check | Yes | — | Service status |
 | GET | `/api/v1/health/deep` | Deep health check | Yes (root-only) | — | Check DB, cache, AI |
-| GET | `/api/v1/version` | CRM version (public) | No | — | Current version without auth |
+| GET | `/api/v1/version` | CRM version (public) | No | — | Current version without auth; includes a `documentation` object with links to the API/MCP/Modules docs |
 | GET | `/api/v1/agent-card` | A2A Agent Card manifest | No | — | RFC 8615 A2A protocol discovery card |
 | POST | `/api/v1/mcp` | Model Context Protocol | Yes (delegated per-tool RBAC) | — | JSON-RPC for AI agents |
 

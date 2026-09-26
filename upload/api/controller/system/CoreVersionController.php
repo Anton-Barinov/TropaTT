@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\Controller\System;
 
 use Api\Controller\Common\BaseController;
+use Api\System\Library\Support\Documentation;
 use Api\System\Library\Update\CoreUpdateConfig;
 use Api\System\Library\Update\CoreVersion;
 
@@ -22,7 +23,13 @@ final class CoreVersionController extends BaseController
         if (!$isAdmin) {
             unset($data['source_sha'], $data['short_sha'], $data['adopted']);
         }
-        
+
+        // Public discovery aid for API/MCP clients (including AI agents): where
+        // the API, MCP and Modules documentation lives. The version endpoint is
+        // unauthenticated, so a fresh client can find the docs before it holds
+        // any credentials.
+        $data['documentation'] = Documentation::links();
+
         return $this->success('CORE_VERSION', $this->t('system/messages.core_version'), $data);
     }
 }

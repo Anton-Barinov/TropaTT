@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\Controller\Mcp;
 
 use Api\System\Library\Support\AppLog;
+use Api\System\Library\Support\Documentation;
 use Api\System\Library\Security\PasswordPolicy;
 use Api\Controller\Common\BaseController;
 use Api\Controller\Admin\CacheController;
@@ -265,6 +266,10 @@ final class McpController extends BaseController
                 'name' => 'TropaTT',
                 'version' => '0.1.0',
             ],
+            // MCP `instructions`: loaded into every agent session. Points the
+            // model at the public API/MCP documentation so a fresh session can
+            // read the contract instead of re-deriving it from the source tree.
+            'instructions' => Documentation::mcpInstructions('/api/index.php?route=api/v1/mcp'),
         ];
     }
 
@@ -312,6 +317,14 @@ final class McpController extends BaseController
                 0.75
             ),
             $this->resource(
+                'tropatt://server/docs',
+                'docs',
+                'TropaTT Documentation Links',
+                'Public REST API, MCP and Modules SDK documentation URLs (human HTML and machine raw) so agents read the docs instead of the source tree.',
+                'application/json',
+                0.85
+            ),
+            $this->resource(
                 'tropatt://user/current',
                 'current-user',
                 'Current CRM User',
@@ -339,6 +352,7 @@ final class McpController extends BaseController
             'tropatt://server/toolsets' => $this->textResource($uri, 'application/json', json_encode($this->listToolsets(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) ?: '{}'),
             'tropatt://server/api-map' => $this->textResource($uri, 'text/markdown', $this->apiMapMarkdown()),
             'tropatt://server/api-endpoints' => !$this->can('settings.manage') ? null : $this->textResource($uri, 'application/json', json_encode(['endpoints' => $this->apiEndpointsIndex()], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) ?: '{}'),
+            'tropatt://server/docs' => $this->textResource($uri, 'application/json', json_encode(['documentation' => Documentation::links()], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) ?: '{}'),
             'tropatt://user/current' => $this->textResource($uri, 'application/json', json_encode($this->crmGetCurrentUser(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) ?: '{}'),
             default => null,
         };
@@ -381,7 +395,13 @@ final class McpController extends BaseController
 
     private function mcpAboutMarkdown(): string
     {
-        return <<<'MD'
+        $docs = "## Documentation\n\n"
+            . "Read these authoritative references instead of scanning the source tree:\n\n"
+            . '- MCP reference (EN): ' . Documentation::rawUrl('mcp', 'en') . "\n"
+            . '- REST API reference (EN): ' . Documentation::rawUrl('api', 'en') . "\n"
+            . '- Modules SDK (EN): ' . Documentation::rawUrl('modules', 'en') . "\n\n";
+
+        return $docs . <<<'MD'
 # TropaTT MCP Server
 
 TropaTT exposes a JSON-RPC MCP endpoint for authenticated CRM users and agent clients.
