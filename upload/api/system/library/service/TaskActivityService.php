@@ -395,13 +395,20 @@ final class TaskActivityService
                 'actor_user_id' => $actorUserId,
                 'actor_type' => $actorType,
                 'actor_public_id' => $actorPublicId,
-                'actor_display_name' => $actorDisplayName,
+                'actor_display_name' => mb_substr($actorDisplayName, 0, 255),
                 'event_type' => (string)($params['event_type'] ?? ''),
                 'field_name' => (string)($params['field_name'] ?? ''),
-                'old_value' => (string)($params['old_value'] ?? ''),
-                'new_value' => (string)($params['new_value'] ?? ''),
-                'old_label' => (string)($params['old_label'] ?? ''),
-                'new_label' => (string)($params['new_label'] ?? ''),
+                // old_value/new_value are TEXT: cap by BYTES (mb_strcut keeps a
+                // valid character boundary), because a long description change
+                // would otherwise exceed the 64 KiB column and abort the insert.
+                'old_value' => mb_strcut((string)($params['old_value'] ?? ''), 0, 65000, 'UTF-8'),
+                'new_value' => mb_strcut((string)($params['new_value'] ?? ''), 0, 65000, 'UTF-8'),
+                // old_label/new_label are varchar(255): a task title (or any
+                // resolved label) longer than that used to fail the insert with
+                // "Data too long for column 'old_label'", silently dropping the
+                // whole event. Truncate like related_entity_label does.
+                'old_label' => mb_substr((string)($params['old_label'] ?? ''), 0, 255),
+                'new_label' => mb_substr((string)($params['new_label'] ?? ''), 0, 255),
                 'related_entity_type' => (string)($params['related_entity_type'] ?? ''),
                 'related_entity_id' => $params['related_entity_id'] ?? null,
                 'related_entity_public_id' => (string)($params['related_entity_public_id'] ?? ''),
