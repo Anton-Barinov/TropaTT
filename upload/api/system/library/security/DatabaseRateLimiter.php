@@ -78,19 +78,25 @@ final class DatabaseRateLimiter implements RateLimiterInterface
 
     private function hitMysql(string $key, int $now, int $windowStart): array
     {
-        // Use explicit transaction with FOR UPDATE row-level lock
-        // to prevent race conditions (Task 1.4).
+        // Fast path: a brand-new key. The INSERT runs in autocommit, OUTSIDE
+        // any transaction. This is what avoids the classic lock-upgrade
+        // deadlock: previously tryInsert() ran INSIDE the transaction, so a
+        // duplicate-key failure held a shared lock on the existing row and the
+        // following SELECT ... FOR UPDATE tried to upgrade it to exclusive —
+        // two parallel requests then deadlocked (MySQL 1213), which is exactly
+        // the parallel-AJAX burst the limiter guards. In autocommit the
+        // statement releases its locks immediately whether it succeeds or
+        // hits the duplicate.
+        if ($this->tryInsert($key, $windowStart)) {
+            return ['blocked' => false, 'retry_after' => 0];
+        }
+
+        // Existing row: take the row lock and update within a transaction.
         if (!$this->pdo->inTransaction()) {
             $this->pdo->beginTransaction();
         }
 
         try {
-            $inserted = $this->tryInsert($key, $windowStart);
-            if ($inserted) {
-                $this->pdo->commit();
-                return ['blocked' => false, 'retry_after' => 0];
-            }
-
             $row = $this->fetchForUpdate($key);
             if ($row === null) {
                 $this->pdo->commit();
