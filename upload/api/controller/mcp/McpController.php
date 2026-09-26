@@ -264,13 +264,33 @@ final class McpController extends BaseController
             ],
             'serverInfo' => [
                 'name' => 'TropaTT',
-                'version' => '0.1.0',
+                'title' => 'TropaTT CRM',
+                'version' => $this->crmServerVersion(),
+                'websiteUrl' => Documentation::baseUrl(),
             ],
             // MCP `instructions`: loaded into every agent session. Points the
             // model at the public API/MCP documentation so a fresh session can
             // read the contract instead of re-deriving it from the source tree.
             'instructions' => Documentation::mcpInstructions('/api/index.php?route=api/v1/mcp'),
         ];
+    }
+
+    /**
+     * Real installed CRM version for MCP `serverInfo`. It used to be a
+     * hardcoded '0.1.0', so clients could not tell which build they were
+     * talking to. Falls back to the plain string when the install has no
+     * version file (for example during a unit test).
+     */
+    private function crmServerVersion(): string
+    {
+        try {
+            $config = CoreUpdateConfig::load();
+            $data = (new CoreVersion((string)$config['storage_dir'], dirname(__DIR__, 3)))->current();
+            $version = trim((string)($data['core_version'] ?? $data['version'] ?? ''));
+            return $version !== '' ? $version : '0.1.0';
+        } catch (\Throwable) {
+            return '0.1.0';
+        }
     }
 
     private function resources(): array
