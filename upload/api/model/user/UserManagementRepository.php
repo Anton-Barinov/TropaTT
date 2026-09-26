@@ -48,6 +48,44 @@ final class UserManagementRepository
             ->first();
     }
 
+    /**
+     * Avatar columns for one user.
+     *
+     * Queried separately from findById()/findByPublicId() on purpose: their
+     * explicit column list must stay valid on an installation that has not run
+     * the avatar migration yet, so schema drift cannot break login/profile.
+     * Returns [] when the columns are absent.
+     *
+     * @return array{avatar_path?:?string,avatar_mime?:?string,avatar_updated_at?:?string}
+     */
+    public function avatarInfoById(int $id): array
+    {
+        return $this->avatarInfo('id', $id);
+    }
+
+    /** @return array{avatar_path?:?string,avatar_mime?:?string,avatar_updated_at?:?string} */
+    public function avatarInfoByPublicId(string $publicId): array
+    {
+        return $this->avatarInfo('public_id', $publicId);
+    }
+
+    /** @return array<string,mixed> */
+    private function avatarInfo(string $column, int|string $value): array
+    {
+        if (!in_array($column, ['id', 'public_id'], true)) {
+            return [];
+        }
+
+        try {
+            $stmt = $this->pdo->prepare("SELECT avatar_path, avatar_mime, avatar_updated_at FROM users WHERE {$column} = :value LIMIT 1");
+            $stmt->execute(['value' => $value]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            return is_array($row) ? $row : [];
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
     public function create(array $payload): int
     {
         return (new QueryBuilder($this->pdo))

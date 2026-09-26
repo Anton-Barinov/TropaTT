@@ -263,6 +263,7 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | PATCH, PUT | `/api/v1/users/{public_id}` 🔄 | Обновление пользователя | Да | `user.manage` | Optimistic locking (`row_version`) |
 | DELETE | `/api/v1/users/{public_id}` 🔄 | Деактивация пользователя | Да | `user.manage` | Soft-delete |
 | GET | `/api/v1/users/{public_id}/tokens` 🔄 | Токены пользователя | Да | `user.view` | — |
+| GET | `/api/v1/users/{public_id}/avatar` | Изображение аватара пользователя | Да | — | Бинарный; доступно любому авторизованному пользователю |
 | POST | `/api/v1/users/{public_id}/tokens/rotate` 🔄 | Ротация токена | Да | `user.manage` | — |
 | DELETE | `/api/v1/users/{public_id}/tokens` 🔄 | Отзыв токена | Да | `user.manage` | — |
 | GET | `/api/v1/users/{public_id}/activity` 🔄 | Активность пользователя | Да | `user.view` | Лента действий |
@@ -1172,6 +1173,8 @@ TropaTT реализует унифицированный протокол ве�
 | GET | `/api/v1/profile/preferences` 🔄 | Мои предпочтения | Да | — | — |
 | PATCH, PUT | `/api/v1/profile/preferences` 🔄 | Обновление предпочтений | Да | — | — |
 | POST | `/api/v1/profile/change-password` 🔄 | Смена пароля | Да | — | — |
+| POST | `/api/v1/profile/avatar` | Загрузка своего аватара (multipart, растровое изображение, ≤2 МБ) | Да | — | Как multipart-поле `file`; только PNG/JPEG/GIF/WebP |
+| DELETE | `/api/v1/profile/avatar` | Удаление своего аватара | Да | — | — |
 
 ### AI — Providers & Models
 

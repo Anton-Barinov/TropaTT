@@ -50,4 +50,10 @@ return [
     'impersonation_start_failed' => 'Échec du démarrage de l\'usurpation d\'identité',
     'impersonation_stop_failed' => 'Échec de l\'arrêt de l\'usurpation d\'identité',
     'unauthorized' => 'Non autorisé',
+    'avatar_updated' => 'Avatar mis à jour',
+    'avatar_removed' => 'Avatar supprimé',
+    'avatar_upload_failed' => 'Échec du téléversement de l’avatar',
+    'avatar_too_large' => 'Le fichier est trop volumineux : 2 Mo maximum',
+    'avatar_invalid_type' => 'Seules les images PNG, JPEG, GIF ou WebP sont autorisées',
+    'avatar_required' => 'Sélectionnez un fichier image',
 ];

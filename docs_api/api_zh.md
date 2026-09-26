@@ -262,6 +262,7 @@ Authorization: Bearer <token>
 | PATCH, PUT | `/api/v1/users/{public_id}` 🔄 | 更新用户 | 是 | `user.manage` | 乐观锁（`row_version`） |
 | DELETE | `/api/v1/users/{public_id}` 🔄 | 停用用户 | 是 | `user.manage` | 软删除 |
 | GET | `/api/v1/users/{public_id}/tokens` 🔄 | 用户令牌 | 是 | `user.view` | — |
+| GET | `/api/v1/users/{public_id}/avatar` | 用户头像图片 | 是 | — | 二进制；任何已认证用户均可读取 |
 | POST | `/api/v1/users/{public_id}/tokens/rotate` 🔄 | 轮换令牌 | 是 | `user.manage` | — |
 | DELETE | `/api/v1/users/{public_id}/tokens` 🔄 | 撤销令牌 | 是 | `user.manage` | — |
 | GET | `/api/v1/users/{public_id}/activity` 🔄 | 用户活动 | 是 | `user.view` | 活动流 |
@@ -1140,6 +1141,8 @@ TropaTT 为 CRM 出站事件与外部电商 CMS 连接器（OpenCart 1.5–4.x, 
 | GET | `/api/v1/profile/preferences` 🔄 | 我的偏好 | 是 | — | — |
 | PATCH, PUT | `/api/v1/profile/preferences` 🔄 | 更新偏好 | 是 | — | — |
 | POST | `/api/v1/profile/change-password` 🔄 | 更改密码 | 是 | — | — |
+| POST | `/api/v1/profile/avatar` | 上传本人头像（multipart，光栅图像，≤2 MB） | 是 | — | multipart 字段 `file`；仅 PNG/JPEG/GIF/WebP |
+| DELETE | `/api/v1/profile/avatar` | 删除本人头像 | 是 | — | — |
 
 ### AI — 提供商与模型
 
