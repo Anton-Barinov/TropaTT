@@ -716,8 +716,8 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/profile/preferences', 'controller' => Api\Controller\Security\ProfileController::class, 'action' => 'getPreferences', 'auth' => true, 'authz_note' => 'self-service: own preferences', 'external_ok' => true],
     ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/profile/preferences', 'controller' => Api\Controller\Security\ProfileController::class, 'action' => 'setPreferences', 'auth' => true, 'authz_note' => 'self-service: own preferences', 'external_ok' => true],
     ['methods' => ['POST'], 'pattern' => '/api/v1/profile/change-password', 'controller' => Api\Controller\Security\ProfileController::class, 'action' => 'changePassword', 'auth' => true, 'authz_note' => 'self-service: requires current password', 'external_ok' => true],
-    ['methods' => ['POST'], 'pattern' => '/api/v1/profile/avatar', 'controller' => Api\Controller\Security\ProfileController::class, 'action' => 'uploadAvatar', 'auth' => true, 'authz_note' => 'self-service: own avatar (multipart file, raster images only)', 'external_ok' => true],
-    ['methods' => ['DELETE'], 'pattern' => '/api/v1/profile/avatar', 'controller' => Api\Controller\Security\ProfileController::class, 'action' => 'deleteAvatar', 'auth' => true, 'authz_note' => 'self-service: own avatar', 'external_ok' => true],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/profile/avatar', 'controller' => Api\Controller\Security\ProfileController::class, 'action' => 'uploadAvatar', 'auth' => true, 'authz_note' => 'self-service: own avatar (multipart file, raster images only); staff only'],
+    ['methods' => ['DELETE'], 'pattern' => '/api/v1/profile/avatar', 'controller' => Api\Controller\Security\ProfileController::class, 'action' => 'deleteAvatar', 'auth' => true, 'authz_note' => 'self-service: own avatar; staff only'],
     ['methods' => ['GET'], 'pattern' => '/api/v1/users/{public_id}/avatar', 'controller' => Api\Controller\Security\AvatarController::class, 'action' => 'show', 'auth' => true, 'binary' => true, 'authz_note' => 'any authenticated user may read a user avatar; storage path is never exposed'],
 
     // OpenCart-style aliases
