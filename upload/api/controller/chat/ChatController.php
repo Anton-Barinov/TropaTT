@@ -469,6 +469,7 @@ final class ChatController extends BaseController
         if (!in_array($messageType, ['text'], true)) $messageType = 'text';
 
         $pdo = $this->container->get('db.pdo');
+        $msgPublicId = 'msg_' . bin2hex(random_bytes(8));
         $reply = $this->resolveReplyMessage((int)$chat['id'], (string)($input['reply_to_message_public_id'] ?? ''));
         $chatOrgId = (int)($chat['organization_id'] ?? $this->organizationId());
         $hasMsgOrg = $this->tableHasColumn($pdo, 'chat_messages', 'organization_id');
