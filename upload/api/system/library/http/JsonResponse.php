@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Http;
 
+use Api\System\Library\Support\Documentation;
+
 final class JsonResponse
 {
     /** @param array<string,mixed>|null $data */
@@ -152,6 +154,20 @@ final class JsonResponse
         header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
         header('Pragma: no-cache');
         header('Expires: 0');
+
+        // RFC 8288 discovery: any HTTP client can find the authoritative REST
+        // and MCP documentation from any response, without a prior out-of-band
+        // URL. Pure, cheap lookup — never allowed to break a response.
+        try {
+            $links = [
+                '<' . Documentation::rawUrl('api') . '>; rel="service-desc"; type="text/markdown"',
+                '<' . Documentation::rawUrl('mcp') . '>; rel="describedby"; type="text/markdown"',
+            ];
+            header('Link: ' . implode(', ', $links));
+        } catch (\Throwable) {
+            // Advisory only: a missing Link header must not fail the request.
+        }
+
         echo json_encode($this->payload(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 }
