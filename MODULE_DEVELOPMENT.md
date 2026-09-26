@@ -264,7 +264,7 @@ Handlers are stateless public static methods resolved by `Web\System\Module\Modu
 
 This is an **explicitly accepted design trade-off** (2026-08-25, C-1). The barriers that do exist are:
 
-1. **Installation gate:** Only the root (admin) user can install modules. The `MODULE_SIGNING_KEY` environment variable is required for remote package installation and must match the server-side signing key — unset or mismatched key → install fails closed.
+1. **Installation gate:** Only the root (admin) user can install modules. Direct URL installs and uploaded ZIP packages require the `MODULE_SIGNING_KEY` environment variable, which must match the server-side signing key — unset or mismatched key → install fails closed. Installs from the official marketplace do not need the key: the archive is verified against the sha256 returned by the marketplace install-request (fetched over TLS from the configured `base_url`), so one-click installs work on a fresh installation.
 2. **Code validation:** `ModuleCodeValidator` runs before files from a remote package are written to disk — dangerous constructs (`eval`, `exec`, `shell_exec`, etc.) cause immediate rejection.
 3. **Filesystem isolation:** `upload/modules/.htaccess` denies direct web access to module PHP files.
 4. **Core stability:** Event handlers that throw are caught and isolated — a broken module cannot crash core requests.

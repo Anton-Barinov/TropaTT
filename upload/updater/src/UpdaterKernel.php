@@ -8,6 +8,7 @@ use Updater\Apply\FileApplier;
 use Updater\Apply\HealthChecker;
 use Updater\Apply\MaintenanceMode;
 use Updater\Apply\MigrationRunner;
+use Updater\Apply\PreflightChecker;
 use Updater\Backup\DatabaseBackupManager;
 use Updater\Backup\FileBackupManager;
 use Updater\Http\JsonResponse;
@@ -166,6 +167,10 @@ final class UpdaterKernel
             'free_space' => disk_free_space($this->basePath) > ((int)$package['size_bytes'] * (int)$this->config['limits']['min_free_space_multiplier']),
             'no_active_lock' => !(new LockManager($this->storageDir))->isLocked(),
         ];
+        // Platform requirements the package declares (php/mysql/updater/
+        // min_core_build) — evaluated BEFORE any mutation so a host that
+        // cannot run the new build is rejected while the old one still works.
+        $checks += PreflightChecker::check($manifest, $this->basePath, $current);
         $ok = !in_array(false, $checks, true);
 
         $report = [
@@ -177,6 +182,7 @@ final class UpdaterKernel
             'checks' => $checks,
             'package_head' => $packageHead,
             'manifest_report' => $manifestReport,
+            'requirements' => is_array($manifest['requirements'] ?? null) ? $manifest['requirements'] : null,
             'modules_note' => 'modules/** are delivered with core updates: module files are added/updated from the package and are never deleted unless the module was removed from the product.',
         ];
         $state->writeFile('plan.json', $plan);
@@ -596,7 +602,8 @@ final class UpdaterKernel
 
     private function applyPhaseHealth(JobState $state): array
     {
-        $health = (new HealthChecker($this->basePath))->check();
+        $manifest = $state->readFile('manifest.json');
+        $health = (new HealthChecker($this->basePath))->check(is_array($manifest) && $manifest !== [] ? $manifest : null);
         $state->writeFile('health.json', $health);
         if (($health['ok'] ?? false) !== true) {
             throw new \RuntimeException('Post-apply health check failed.');
@@ -1047,7 +1054,8 @@ final class UpdaterKernel
 
     private function rollbackPhaseHealth(JobState $state): array
     {
-        $health = (new HealthChecker($this->basePath))->check();
+        $manifest = $state->readFile('manifest.json');
+        $health = (new HealthChecker($this->basePath))->check(is_array($manifest) && $manifest !== [] ? $manifest : null);
         $state->writeFile('health.json', $health);
         if (($health['ok'] ?? false) !== true) {
             throw new \RuntimeException('Post-rollback health check failed.');

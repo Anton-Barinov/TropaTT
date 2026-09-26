@@ -43,4 +43,6 @@ return [
     'marketplace_installed' => 'Modul vom Marktplatz installiert',
     'marketplace_activation_failed' => 'Modul installiert, aber nicht aktiviert — bitte manuell aktivieren',
     'marketplace_package_mismatch' => 'Das Marktplatz-Paket passt nicht zum Katalog: Das Manifest nennt einen anderen Modulnamen. Melden Sie es dem Anbieter oder veröffentlichen Sie ein neues Release',
+    'signing_key_missing' => 'Installation nicht möglich: MODULE_SIGNING_KEY ist in .env nicht gesetzt. Installationen aus dem offiziellen Marktplatz benötigen ihn nicht — der Key gilt nur für direkte URLs und hochgeladene ZIP-Dateien',
+    'marketplace_sha256_mismatch' => 'Das heruntergeladene Paket stimmt nicht mit der sha256-Prüfsumme des Marktplatz-Release überein — das Archiv ist beschädigt oder es wurde eine andere Datei ausgeliefert. Versuchen Sie es erneut',
 ];

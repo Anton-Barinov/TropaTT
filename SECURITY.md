@@ -48,7 +48,7 @@ Please pay special attention to:
 - AI provider keys;
 - server-side AI requests;
 - logging, masking and sensitive error handling.
-- **module code:** modules execute in the same process as core with full access. There is no runtime sandbox. The barriers are: root-only install gate, `MODULE_SIGNING_KEY` requirement (fail-closed), `ModuleCodeValidator` code scanning at install time, and `.htaccess` on `modules/`. Install only modules from trusted sources — you are responsible for the code you activate. See `MODULE_DEVELOPMENT.md` §9.
+- **module code:** modules execute in the same process as core with full access. There is no runtime sandbox. The barriers are: root-only install gate, `MODULE_SIGNING_KEY` requirement (fail-closed for direct URL installs and uploaded ZIPs; official-marketplace installs are pinned instead by the sha256 of the install-request fetched over TLS from the configured `base_url` — the channel itself is the trust anchor, so a fresh install works without the shared key), `ModuleCodeValidator` code scanning at install time, and `.htaccess` on `modules/`. Install only modules from trusted sources — you are responsible for the code you activate. See `MODULE_DEVELOPMENT.md` §9.
 
 ## Response Process
 

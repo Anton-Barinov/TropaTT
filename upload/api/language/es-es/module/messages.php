@@ -43,4 +43,6 @@ return [
     'marketplace_installed' => 'Módulo instalado desde el marketplace',
     'marketplace_activation_failed' => 'Módulo instalado pero no activado: actívelo manualmente',
     'marketplace_package_mismatch' => 'El paquete del marketplace no coincide con el catálogo: su manifiesto declara otro nombre de módulo. Informe al proveedor o publique una nueva versión',
+    'signing_key_missing' => 'Instalación no disponible: MODULE_SIGNING_KEY no está definido en .env. Las instalaciones desde el marketplace oficial no lo requieren — la clave es solo para URL directas y archivos ZIP subidos',
+    'marketplace_sha256_mismatch' => 'El paquete descargado no coincide con el sha256 del release del marketplace — el archivo está dañado o se sirvió otro archivo. Inténtelo de nuevo',
 ];

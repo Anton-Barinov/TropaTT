@@ -6,6 +6,18 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ## Unreleased
 
+### Fixed
+
+- **An update could leave the CRM stuck in maintenance mode on shared hosting even when nothing was actually broken, and a corrupted package could pass the post-apply check.** The updater's post-apply/rollback health gate shelled out to a `php -l` command-line binary: on a host without a usable PHP CLI (or with a CLI of a different version than the web SAPI) the gate returned a wrong verdict, the apply threw, and the site stayed down behind maintenance mode. The three entry points are now parsed in-process with `token_get_all(TOKEN_PARSE)` — the exact PHP that will serve the request, no shell and no version skew — and the package's declared PHP files are checked at the same time, so a corrupted extraction is caught before finalize while a rollback is still one click away.
+
+- **A module could not be installed from the official marketplace on a fresh installation: the install failed with a generic 500 because `MODULE_SIGNING_KEY` was never set.** Marketplace installs are now channel-verified: the downloaded archive is checked against the `sha256` from the marketplace install-request (fetched over TLS from the configured `base_url`), so one-click installs work out of the box without the shared key. Direct URL installs and uploaded ZIP packages stay fail-closed on `MODULE_SIGNING_KEY`, and the distinct failures now carry actionable messages (`MODULE_SIGNING_KEY_MISSING`, `MARKETPLACE_SHA256_MISMATCH`) instead of a bare "install failed". Documented in `SECURITY.md`, `MODULE_DEVELOPMENT.md` and `api/.env.example`.
+
+- **The marketplace's one-click install hand-off was silently ignored.** A redirect to `…&install_marketplace=<code>` opened the Modules page and did nothing; the parameter is now handled, it opens the marketplace tab and starts the standard confirm + install flow. The `package_url`/`sha256` query parameters are deliberately discarded — the release is re-requested server-side through the configured channel, so a crafted link cannot aim the installer at an arbitrary archive.
+
+### Added
+
+- **The update preflight now evaluates the platform requirements a package declares.** `manifest.requirements` (`php`, `mysql`, `updater`, `min_core_build`) is checked against the running PHP, the database server and the installed updater/build BEFORE any file is touched, so an incompatible package is rejected while the current version still works instead of breaking the site only after the new code is live. An unparseable constraint never blocks (the signature-verified manifest stays the source of truth); a declared `mysql` requirement fails closed when the database is unreachable.
+
 ## [v0.2.0.12] - 2026-09-24
 
 ### Highlights
