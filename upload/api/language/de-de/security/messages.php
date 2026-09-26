@@ -50,4 +50,10 @@ return [
     'impersonation_start_failed' => 'Failed to start impersonation',
     'impersonation_stop_failed' => 'Failed to stop impersonation',
     'unauthorized' => 'Nicht autorisiert',
+    'avatar_updated' => 'Avatar aktualisiert',
+    'avatar_removed' => 'Avatar entfernt',
+    'avatar_upload_failed' => 'Avatar konnte nicht hochgeladen werden',
+    'avatar_too_large' => 'Die Datei ist zu groß: maximal 2 MB',
+    'avatar_invalid_type' => 'Nur PNG-, JPEG-, GIF- oder WebP-Bilder sind erlaubt',
+    'avatar_required' => 'Wählen Sie eine Bilddatei',
 ];

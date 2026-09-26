@@ -65,6 +65,55 @@ final class ProfileController extends BaseController
         return $this->success('PROFILE_UPDATED', $this->t('security/messages.profile_updated'), ['user' => $result['user']]);
     }
 
+    public function uploadAvatar(): \Api\System\Library\Http\JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
+        $file = $this->request()->files['file'] ?? null;
+
+        /** @var UserProfileService $service */
+        $service = $this->container->get('service.user_profile');
+        $result = $service->setAvatar($auth['user'], is_array($file) ? $file : null);
+        if (!(bool)($result['ok'] ?? false)) {
+            $code = (string)($result['code'] ?? 'AVATAR_UPLOAD_FAILED');
+            $status = match ($code) {
+                'USER_NOT_FOUND' => 404,
+                'AVATAR_TOO_LARGE', 'AVATAR_INVALID_TYPE' => 422,
+                default => 400,
+            };
+            $messageKey = match ($code) {
+                'AVATAR_TOO_LARGE' => 'security/messages.avatar_too_large',
+                'AVATAR_INVALID_TYPE' => 'security/messages.avatar_invalid_type',
+                'AVATAR_REQUIRED' => 'security/messages.avatar_required',
+                default => 'security/messages.avatar_upload_failed',
+            };
+
+            return $this->error($code, $this->t($messageKey), $status, ['file' => [$code]]);
+        }
+
+        return $this->success('PROFILE_AVATAR_UPDATED', $this->t('security/messages.avatar_updated'), ['user' => $result['user']]);
+    }
+
+    public function deleteAvatar(): \Api\System\Library\Http\JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
+        /** @var UserProfileService $service */
+        $service = $this->container->get('service.user_profile');
+        $result = $service->clearAvatar($auth['user']);
+        if (!(bool)($result['ok'] ?? false)) {
+            return $this->error((string)($result['code'] ?? 'USER_NOT_FOUND'), $this->t('security/messages.user_not_found'), 404);
+        }
+
+        return $this->success('PROFILE_AVATAR_REMOVED', $this->t('security/messages.avatar_removed'), ['user' => $result['user']]);
+    }
+
     public function getPreferences(): \Api\System\Library\Http\JsonResponse
     {
         $auth = $this->user();

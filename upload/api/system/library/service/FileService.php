@@ -111,6 +111,14 @@ final class FileService
             throw new \RuntimeException('FILE_REQUIRED');
         }
 
+        // The file belongs to its linked entity, so it must carry the ENTITY's
+        // organization, not the caller's. A bearer/MCP caller without an active
+        // workspace resolved organization_id = null, and the file then vanished
+        // for every workspace-scoped list/download (the entity org filter no
+        // longer matched). Falls back to the actor's org when the entity has
+        // none (for example a not-yet-scoped knowledge page).
+        $fileOrganizationId = $this->resolveEntityOrganizationId($entityType, $entityPublicId) ?? $organizationId;
+
         $this->files->create([
             'public_id' => $publicId,
             'entity_type' => $entityType,
@@ -123,7 +131,7 @@ final class FileService
             'is_deleted' => 0,
             'is_internal' => $isInternal,
             'created_at' => $now,
-        ], $organizationId);
+        ], $fileOrganizationId);
 
         $created = $this->files->findByPublicId($publicId, $organizationId) ?: ['public_id' => $publicId];
 
@@ -203,7 +211,12 @@ final class FileService
             return null;
         }
 
-        $items = $this->files->listByEntity($type, $entityId, $organizationId);
+        // Access is already gated by canAccessEntity() above. Do NOT narrow the
+        // listing by the actor's workspace org: a file row whose organization_id
+        // does not match the actor's current workspace (legacy null-org rows, or
+        // rows written before this fix) must still appear for the entity it is
+        // attached to, otherwise an uploaded file "disappears" after refresh.
+        $items = $this->files->listByEntity($type, $entityId, null);
 
         // M-3: Filter out internal files for external users.
         if ((bool)($actor['is_external'] ?? false)) {
@@ -306,6 +319,34 @@ final class FileService
             'mime' => $this->quarantineMimeOverride($path, (string)$file['mime_type']),
             'size' => (int)$file['size_bytes'],
         ];
+    }
+
+    /**
+     * Organization that owns the linked entity (task/project/knowledge page).
+     *
+     * A file must inherit the entity's organization rather than the caller's
+     * active workspace: a bearer/MCP caller with no resolved workspace used to
+     * write files with organization_id = null, and a workspace-scoped list then
+     * filtered them out. Entity lookups here intentionally pass a null org —
+     * access was already validated by canAccessEntity().
+     */
+    private function resolveEntityOrganizationId(string $entityType, string $entityPublicId): ?int
+    {
+        if ($entityPublicId === '') {
+            return null;
+        }
+        try {
+            $row = match ($entityType) {
+                'task' => $this->tasks->findByPublicId($entityPublicId, null),
+                'project' => $this->projects->findByPublicId($entityPublicId, null),
+                'knowledge_page' => $this->knowledge->page($entityPublicId),
+                default => null,
+            };
+        } catch (\Throwable) {
+            return null;
+        }
+        $orgId = is_array($row) ? (int)($row['organization_id'] ?? 0) : 0;
+        return $orgId > 0 ? $orgId : null;
     }
 
     /** @param array<string,mixed> $file */

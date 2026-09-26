@@ -3354,6 +3354,9 @@ CREATE TABLE IF NOT EXISTS `users` (
   `external_invitation_expires_at` datetime DEFAULT NULL,
   `external_role` varchar(20) NOT NULL DEFAULT 'observer',
   `payout_rate` decimal(12,2) DEFAULT NULL,
+  `avatar_path` varchar(512) DEFAULT NULL,
+  `avatar_mime` varchar(64) DEFAULT NULL,
+  `avatar_updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   UNIQUE KEY `login` (`login`),
@@ -3671,7 +3674,9 @@ INSERT IGNORE INTO `migrations` (`migration_key`, `description`, `applied_at`) V
 ('20260919_000008_organization_dashboard_widget_scope', 'Scope dashboard directory, subscription and automation widgets by workspace', NOW()),
 ('20260920_000001_calendar_event_attendees', 'Create calendar_event_attendees table for relational event attendees', NOW()),
 ('20260920_000002_recurring_rule_generated_count', 'Add generated_count column to recurring_rules table', NOW()),
-('20260921_000001_api_client_organization_scope', 'Scope API clients and keys by workspace (TROPATTCRM-606)', NOW());
+('20260921_000001_api_client_organization_scope', 'Scope API clients and keys by workspace (TROPATTCRM-606)', NOW()),
+('20260926_000001_file_organization_backfill', 'Backfill files.organization_id from the linked task, project or knowledge page', NOW()),
+('20260926_000002_user_avatar', 'Add avatar_path, avatar_mime and avatar_updated_at columns to users', NOW());
 
 
 -- Baseline core permissions

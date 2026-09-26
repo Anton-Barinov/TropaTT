@@ -13605,6 +13605,107 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       if (titleInput) titleInput.value = profile.title || profile.position || String(preferences.profile_title || '');
     }
 
+    // The identity card at the top of the page must show the SIGNED-IN user.
+    // It used to keep the template's dev placeholders ("Тестовый администратор"
+    // / "test_admin" / "ТА") because nothing updated it after /profile/me.
+    function profileInitials(name) {
+      var parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+      if (!parts.length) return '—';
+      if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+      return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+    }
+    function renderProfileIdentity(user) {
+      var displayName = String((user && (user.full_name || user.login)) || '').trim();
+      var roleText = '';
+      if (user) {
+        roleText = String(user.title || user.position || user.role_name
+          || (Array.isArray(user.roles) && user.roles.length ? user.roles[0] : '')
+          || preferences.profile_title || user.login || '').trim();
+      }
+      var nameEl = document.getElementById('profileNameDisplay');
+      var roleEl = document.getElementById('profileRoleDisplay');
+      var avatarEl = document.getElementById('profileAvatarInitials');
+      var lastLoginEl = document.getElementById('profileLastLoginValue');
+      if (nameEl) nameEl.textContent = displayName || '—';
+      if (roleEl) roleEl.textContent = roleText;
+      if (avatarEl) avatarEl.textContent = profileInitials(displayName || (user && user.email) || '');
+      if (lastLoginEl) {
+        lastLoginEl.textContent = user && user.last_login_at ? formatDate(user.last_login_at) : '—';
+      }
+    }
+    function applyProfileAvatar(user) {
+      var img = document.getElementById('profileAvatarImage');
+      var initials = document.getElementById('profileAvatarInitials');
+      var removeBtn = document.getElementById('profileAvatarRemoveBtn');
+      var publicId = user && user.public_id ? String(user.public_id) : '';
+      var url = '';
+      if (publicId && user.avatar_url) {
+        url = window.CRM.api.buildUrl('api/v1/users/' + encodeURIComponent(publicId) + '/avatar');
+        if (user.avatar_updated_at) url += '&v=' + encodeURIComponent(String(user.avatar_updated_at));
+      }
+      if (img) {
+        if (url) {
+          img.src = url;
+          img.style.display = 'block';
+          if (initials) initials.style.display = 'none';
+        } else {
+          img.removeAttribute('src');
+          img.style.display = 'none';
+          if (initials) initials.style.display = '';
+        }
+      }
+      if (removeBtn) removeBtn.classList.toggle('d-none', !url);
+    }
+
+    var activeProfileUser = profile || (meData && meData.user) || null;
+    renderProfileIdentity(activeProfileUser);
+    applyProfileAvatar(activeProfileUser);
+
+    var avatarInput = document.getElementById('profileAvatarInput');
+    var avatarUploadBtn = document.getElementById('profileAvatarUploadBtn');
+    var avatarRemoveBtn = document.getElementById('profileAvatarRemoveBtn');
+    if (avatarUploadBtn && avatarInput && avatarUploadBtn.dataset.bound !== '1') {
+      avatarUploadBtn.addEventListener('click', function () { avatarInput.click(); });
+      avatarInput.addEventListener('change', async function () {
+        var picked = avatarInput.files && avatarInput.files[0];
+        if (!picked) return;
+        var formData = new FormData();
+        formData.append('file', picked);
+        try {
+          var avatarEnvelope = await request('api/v1/profile/avatar', { method: 'POST', body: formData, idempotent: true });
+          var avatarUser = avatarEnvelope && avatarEnvelope.data ? avatarEnvelope.data.user : null;
+          if (avatarUser) {
+            if (window.CRM.api && typeof window.CRM.api.setUser === 'function') window.CRM.api.setUser(avatarUser);
+            renderProfileIdentity(avatarUser);
+            applyProfileAvatar(avatarUser);
+          }
+          notify(tp('profile.avatar_updated', 'Аватар обновлён'));
+        } catch (avatarError) {
+          var avatarEnv = avatarError && avatarError.envelope ? avatarError.envelope : null;
+          notify((avatarEnv && avatarEnv.message) || tp('profile.avatar_failed', 'Не удалось загрузить аватар'), 'error');
+        }
+        avatarInput.value = '';
+      });
+      avatarUploadBtn.dataset.bound = '1';
+    }
+    if (avatarRemoveBtn && avatarRemoveBtn.dataset.bound !== '1') {
+      avatarRemoveBtn.addEventListener('click', async function () {
+        try {
+          var removeEnvelope = await request('api/v1/profile/avatar', { method: 'DELETE' });
+          var removedUser = removeEnvelope && removeEnvelope.data ? removeEnvelope.data.user : null;
+          if (removedUser) {
+            if (window.CRM.api && typeof window.CRM.api.setUser === 'function') window.CRM.api.setUser(removedUser);
+            renderProfileIdentity(removedUser);
+            applyProfileAvatar(removedUser);
+          }
+          notify(tp('profile.avatar_removed', 'Аватар удалён'));
+        } catch (removeError) {
+          notify(tp('profile.avatar_failed', 'Не удалось удалить аватар'), 'error');
+        }
+      });
+      avatarRemoveBtn.dataset.bound = '1';
+    }
+
     if (startPageSelect) {
       startPageSelect.value = String(preferences.start_page || preferences.landing_page || 'dashboard');
     }

@@ -1374,7 +1374,8 @@ final class App
             $c->get('service.setting'),
             $c->get('security.hasher'),
             $c->get('logger'),
-            $c->get('repository.password_reset')
+            $c->get('repository.password_reset'),
+            (string)$this->config->get('default.storage.avatars', dirname($this->basePath) . '/storage_api/avatars')
         ));
         $this->container->factory('service.invitation', fn(Container $c) => new InvitationService(
             $c->get('repository.invitation'),
@@ -2550,7 +2551,10 @@ final class App
 
         header('Content-Type: ' . $mime);
         header('Content-Length: ' . $size);
-        header('Content-Disposition: ' . $this->contentDispositionAttachment($name));
+        $disposition = !empty($result['inline'])
+            ? $this->contentDispositionInline($name)
+            : $this->contentDispositionAttachment($name);
+        header('Content-Disposition: ' . $disposition);
 
         $fp = fopen($path, 'rb');
         if ($fp === false) {
@@ -2569,6 +2573,19 @@ final class App
             echo fread($fp, 8192);
         }
         fclose($fp);
+    }
+
+    private function contentDispositionInline(string $name): string
+    {
+        $clean = $this->sanitizeDownloadFilename($name);
+        $ascii = preg_replace('/[^\x20-\x7E]/', '_', $clean) ?? 'file.bin';
+        $ascii = preg_replace('/["\\\\]+/', '_', $ascii) ?? 'file.bin';
+        $ascii = trim($ascii);
+        if ($ascii === '') {
+            $ascii = 'file.bin';
+        }
+
+        return 'inline; filename="' . $ascii . '"; filename*=UTF-8\'\'' . rawurlencode($clean);
     }
 
     private function contentDispositionAttachment(string $name): string

@@ -101,6 +101,8 @@ final class MigrationManager
             new CalendarEventAttendeesMigration(),
             new RecurringRuleGeneratedCountMigration(),
             new ApiClientOrganizationScopeMigration(),
+            new FileOrganizationBackfillMigration(),
+            new UserAvatarMigration(),
         ];
     }
 

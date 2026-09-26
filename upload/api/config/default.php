@@ -28,6 +28,7 @@ return [
         'base' => $storageBase,
         'uploads' => $storageBase . '/uploads',
         'quarantine' => $storageBase . '/quarantine',
+        'avatars' => $storageBase . '/avatars',
         'logs' => $storageBase . '/logs',
         'sessions' => $storageBase . '/sessions',
         'temp' => $storageBase . '/temp',

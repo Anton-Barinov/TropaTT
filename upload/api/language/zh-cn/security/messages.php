@@ -50,4 +50,10 @@ return [
     'impersonation_start_failed' => '无法启动身份模拟模式',
     'impersonation_stop_failed' => '无法停止身份模拟模式',
     'unauthorized' => '未授权',
+    'avatar_updated' => '头像已更新',
+    'avatar_removed' => '头像已删除',
+    'avatar_upload_failed' => '无法上传头像',
+    'avatar_too_large' => '文件过大：最大 2 MB',
+    'avatar_invalid_type' => '仅允许 PNG、JPEG、GIF 或 WebP 图像',
+    'avatar_required' => '请选择图像文件',
 ];

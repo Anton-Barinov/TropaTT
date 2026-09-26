@@ -50,4 +50,10 @@ return [
     'impersonation_start_failed' => 'Не удалось запустить режим перевоплощения',
     'impersonation_stop_failed' => 'Не удалось остановить режим перевоплощения',
     'unauthorized' => 'Требуется авторизация',
+    'avatar_updated' => 'Аватар обновлён',
+    'avatar_removed' => 'Аватар удалён',
+    'avatar_upload_failed' => 'Не удалось загрузить аватар',
+    'avatar_too_large' => 'Файл слишком большой: максимум 2 МБ',
+    'avatar_invalid_type' => 'Допустимы только изображения PNG, JPEG, GIF или WebP',
+    'avatar_required' => 'Выберите файл изображения',
 ];

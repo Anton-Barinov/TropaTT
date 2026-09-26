@@ -265,6 +265,7 @@ To eliminate enum friction across external systems, AI agents, and frontend clie
 | PATCH, PUT | `/api/v1/users/{public_id}` 🔄 | Update user | Yes | `user.manage` | Optimistic locking (`row_version`) |
 | DELETE | `/api/v1/users/{public_id}` 🔄 | Deactivate user | Yes | `user.manage` | Soft-delete |
 | GET | `/api/v1/users/{public_id}/tokens` 🔄 | User tokens | Yes | `user.view` | — |
+| GET | `/api/v1/users/{public_id}/avatar` | User avatar image | Yes | — | Binary; any authenticated user may read it |
 | POST | `/api/v1/users/{public_id}/tokens/rotate` 🔄 | Rotate token | Yes | `user.manage` | — |
 | DELETE | `/api/v1/users/{public_id}/tokens` 🔄 | Revoke token | Yes | `user.manage` | — |
 | GET | `/api/v1/users/{public_id}/activity` 🔄 | User activity | Yes | `user.view` | Activity feed |
@@ -1176,6 +1177,8 @@ TropaTT implements a unified webhook protocol for outbound CRM events and extern
 | GET | `/api/v1/profile/preferences` 🔄 | My preferences | Yes | — | — |
 | PATCH, PUT | `/api/v1/profile/preferences` 🔄 | Update preferences | Yes | — | — |
 | POST | `/api/v1/profile/change-password` 🔄 | Change password | Yes | — | — |
+| POST | `/api/v1/profile/avatar` | Upload own avatar (multipart, raster image, ≤2 MB) | Yes | — | Sent as multipart `file`; PNG/JPEG/GIF/WebP only |
+| DELETE | `/api/v1/profile/avatar` | Remove own avatar | Yes | — | — |
 
 ### AI — Providers & Models
 
