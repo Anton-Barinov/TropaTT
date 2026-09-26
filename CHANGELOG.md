@@ -22,6 +22,8 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ### Added
 
+- **API and MCP now advertise where their documentation lives, so an AI agent reads the reference instead of re-deriving the contract from the source tree.** A fresh MCP session otherwise has no idea where the API/MCP docs are and burns a large amount of context re-reading the code; now every MCP `initialize` response carries an `instructions` string (the spec field clients such as Claude Code surface to the model) with the public REST API, MCP and Modules SDK URLs plus the recommended workflow, and a new `tropatt://server/docs` resource returns the same links machine-readably. The public `GET /api/v1/version` response also gained a `documentation` object, so a client can discover the docs before it holds a token. The base URL defaults to the open-source repository and is overridable with `TROPATT_DOCS_URL` for forks and private deployments.
+
 - **The update preflight now evaluates the platform requirements a package declares.** `manifest.requirements` (`php`, `mysql`, `updater`, `min_core_build`) is checked against the running PHP, the database server and the installed updater/build BEFORE any file is touched, so an incompatible package is rejected while the current version still works instead of breaking the site only after the new code is live. An unparseable constraint never blocks (the signature-verified manifest stays the source of truth); a declared `mysql` requirement fails closed when the database is unreachable.
 
 ## [v0.2.0.12] - 2026-09-24

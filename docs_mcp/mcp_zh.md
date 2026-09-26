@@ -169,6 +169,15 @@ AI 操作通过 AiJobService/AiAuditService 记录；导入/导出和工作流�
 
 服务端工具集过滤对三种模式都有帮助；最省成本的做法是在端点 URL 中使用窄 `?toolset=`，并可选地配合懒加载。
 
+## 文档发现
+
+全新的代理会话并不知道 API/MCP 参考文档在哪里，否则只能重新阅读源码来还原接口约定。服务器在两处声明文档位置：
+
+- **`initialize.instructions`** — 每个 MCP `initialize` 响应都带有 `instructions` 字符串，包含文档链接和建议的工作流程。符合规范的客户端（Claude Code 等）会自动将其提供给模型。
+- **`tropatt://server/docs` 资源** — 通过 `resources/read` 返回相同链接的机器可读目录（REST API、MCP、模块 SDK；HTML + raw）。
+
+公开的 REST 端点 `GET /api/v1/version` 也会返回包含这些链接的 `documentation` 对象，因此客户端在获得令牌之前即可发现文档。在分支或私有部署中，可通过环境变量 `TROPATT_DOCS_URL` 覆盖基础 URL。
+
 ---
 
 ## 通用 MCP 格式
