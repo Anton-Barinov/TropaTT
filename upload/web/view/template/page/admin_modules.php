@@ -1205,8 +1205,82 @@
         }
     }
 
+    /**
+     * One-click install handed over by marketplace.tropatt.com: the catalog's
+     * "Установить в один клик" button redirects to
+     * web/index.php?route=admin-modules&install_marketplace=<code>&package_url=…&sha256=…
+     * and the CRM used to ignore that redirect completely — the admin landed on
+     * the modules page and nothing happened.
+     *
+     * The package_url/sha256 parameters are deliberately discarded: the release
+     * is re-requested server-side through the configured marketplace channel
+     * (install-request), so a crafted link can never aim the installer at an
+     * arbitrary archive. The tab opens the standard confirm + install flow.
+     */
+    function mpHandleOneClickHandoff() {
+        var params;
+        try {
+            params = new URLSearchParams(window.location.search);
+        } catch (e) {
+            return;
+        }
+        var code = params.get('install_marketplace');
+        if (!code) {
+            return;
+        }
+        params.delete('install_marketplace');
+        params.delete('package_url');
+        params.delete('sha256');
+        var qs = params.toString();
+        try {
+            window.history.replaceState(null, '', window.location.pathname + (qs ? '?' + qs : '') + window.location.hash);
+        } catch (e) {
+            // History may be unavailable — the parameter is inert after this run anyway.
+        }
+
+        var tab = document.getElementById('moduleMarketplaceTab');
+        if (tab) {
+            tab.click(); // activates the tab, its shown handler starts mpLoad()
+        }
+
+        var tries = 0;
+        var searchedForHandoff = false;
+        var timer = setInterval(function () {
+            tries++;
+            var item = null;
+            if (mpState.loaded) {
+                var items = mpState.items || [];
+                for (var i = 0; i < items.length; i++) {
+                    var candidate = items[i];
+                    if (String(candidate.full_code || candidate.code || candidate.name || '') === code) {
+                        item = candidate;
+                        break;
+                    }
+                }
+                if (!item && !searchedForHandoff && tries >= 8) {
+                    // Not on the first page of the catalog — search for it by code once.
+                    searchedForHandoff = true;
+                    mpState.q = code;
+                    mpLoad(1);
+                    return;
+                }
+            }
+            if (item) {
+                clearInterval(timer);
+                mpInstall(code, String(item.title || item.name || code), null);
+                return;
+            }
+            if (tries >= 120) {
+                // ~30s without the card: give up quietly — mpLoad surfaces its
+                // own error when the catalog itself failed to load.
+                clearInterval(timer);
+            }
+        }, 250);
+    }
+
     bindBulkToolbar();
     bindMarketplaceToolbar();
+    mpHandleOneClickHandoff();
     loadModules();
 })();
 </script>

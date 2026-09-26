@@ -43,4 +43,6 @@ return [
     'marketplace_installed' => '已从市场安装模块',
     'marketplace_activation_failed' => '模块已安装但未启用——请手动启用',
     'marketplace_package_mismatch' => '市场包与目录不一致：其 manifest 声明的模块名不同。请通知供应商或发布新版本',
+    'signing_key_missing' => '无法安装：.env 中未设置 MODULE_SIGNING_KEY（模块包签名密钥）。官方市场安装不需要该密钥——它仅用于直接 URL 和上传的 ZIP 文件',
+    'marketplace_sha256_mismatch' => '下载的包与市场发布的 sha256 不匹配——文件已损坏或返回了错误的归档，请重试',
 ];

@@ -25,9 +25,12 @@ final class ModuleRemoteInstaller
      * @param string|null $expectedName Canonical module code the caller selected
      *        (for example a marketplace `full_code`). When given, the package
      *        manifest must declare exactly this name.
+     * @param string|null $expectedSha256 Hex sha256 the marketplace install-request
+     *        declared for this release. When given, the downloaded archive is
+     *        verified against it (channel-verified install — see installFromFile()).
      * @return string Module name
      */
-    public function installFromUrl(string $url, bool $verifySignature = true, ?string $expectedName = null): string
+    public function installFromUrl(string $url, bool $verifySignature = true, ?string $expectedName = null, ?string $expectedSha256 = null): string
     {
         $tmpDir = sys_get_temp_dir() . '/crm_module_' . bin2hex(random_bytes(8));
         @mkdir($tmpDir, 0755, true);
@@ -35,7 +38,7 @@ final class ModuleRemoteInstaller
         try {
             $archive = $tmpDir . '/module.zip';
             $this->download($url, $archive);
-            return $this->installFromFile($archive, $verifySignature, $expectedName);
+            return $this->installFromFile($archive, $verifySignature, $expectedName, $expectedSha256);
         } finally {
             $this->cleanDir($tmpDir);
         }
@@ -46,12 +49,32 @@ final class ModuleRemoteInstaller
      *
      * @param string|null $expectedName Canonical module code the caller selected;
      *        see installFromUrl().
+     * @param string|null $expectedSha256 Hex sha256 of the archive as declared by
+     *        the trusted channel it came from (the marketplace install-request,
+     *        fetched over TLS from the configured base_url). A mismatch throws
+     *        ModulePackageHashMismatchException BEFORE anything is extracted.
+     *        A pinned archive is "channel-verified": its integrity was proven
+     *        against the marketplace response, so the shared HMAC key is not
+     *        required for it (without a pin, verification stays fail-closed on
+     *        MODULE_SIGNING_KEY — audit C-2).
      * @return string Module name
      */
-    public function installFromFile(string $filePath, bool $verifySignature = true, ?string $expectedName = null): string
+    public function installFromFile(string $filePath, bool $verifySignature = true, ?string $expectedName = null, ?string $expectedSha256 = null): string
     {
         if (!is_file($filePath)) {
             throw new RuntimeException("Package file not found: {$filePath}");
+        }
+
+        $sha256Pinned = false;
+        if ($expectedSha256 !== null && $expectedSha256 !== '') {
+            if (!preg_match('/^[0-9a-f]{64}$/i', $expectedSha256)) {
+                throw new RuntimeException("Invalid sha256 supplied for package verification");
+            }
+            $actual = hash_file('sha256', $filePath);
+            if ($actual === false || !hash_equals(strtolower($expectedSha256), strtolower($actual))) {
+                throw new ModulePackageHashMismatchException(strtolower($expectedSha256));
+            }
+            $sha256Pinned = true;
         }
 
         $extractDir = dirname($filePath) . '/extracted_' . bin2hex(random_bytes(4));
@@ -77,7 +100,7 @@ final class ModuleRemoteInstaller
 
             // SEC-012: Verify module package signature if requested
             if ($verifySignature) {
-                $this->verifyPackageSignature($manifestData);
+                $this->verifyPackageSignature($manifestData, $sha256Pinned);
             }
 
             $moduleName = $manifestData['name'] ?? '';
@@ -188,14 +211,25 @@ final class ModuleRemoteInstaller
     /**
      * Verify module package integrity using HMAC-SHA256 signature.
      * Verifies the manifest content (excluding signature field) with MODULE_SIGNING_KEY.
-     * Fail-closed: if no signing key is configured, verification fails — unsigned
-     * packages are rejected by default. Set MODULE_SIGNING_KEY in .env to enable.
+     *
+     * Two trust paths:
+     *  - $sha256Pinned (official marketplace channel): the archive hash was
+     *    already checked against the install-request response fetched over TLS
+     *    from the configured base_url — both the hash and the archive come from
+     *    the same authenticated channel, so the shared HMAC key adds nothing and
+     *    is not required. This is what makes one-click marketplace installs work
+     *    out of the box on a fresh installation, where the key is never set.
+     *  - No pin (direct URL / uploaded ZIP): fail-closed on MODULE_SIGNING_KEY
+     *    (audit C-2) — unsigned packages are rejected by default.
      */
-    private function verifyPackageSignature(array $manifestData): void
+    private function verifyPackageSignature(array $manifestData, bool $sha256Pinned = false): void
     {
         $signingKey = trim((string)(getenv('MODULE_SIGNING_KEY') ?: ''));
         if ($signingKey === '') {
-            throw new RuntimeException("Module signing key not configured — set MODULE_SIGNING_KEY in .env to install modules");
+            if ($sha256Pinned) {
+                return;
+            }
+            throw new ModuleSigningKeyMissingException();
         }
 
         $signature = (string)($manifestData['signature'] ?? '');

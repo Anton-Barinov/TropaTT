@@ -13,6 +13,7 @@ use Api\System\Library\Module\ModuleConfig;
 use Api\System\Library\Module\ModuleMigrationRunner;
 use Api\System\Library\Module\ModuleErrorHandler;
 use Api\System\Library\Module\ModuleRemoteInstaller;
+use Api\System\Library\Module\ModuleSigningKeyMissingException;
 use Api\System\Library\Module\ModuleCronScheduler;
 use Api\System\Library\Module\ModuleWebhookDispatcher;
 use Api\System\Library\Security\UrlSafetyValidator;
@@ -514,6 +515,9 @@ final class ModuleController
             $installer = new ModuleRemoteInstaller($pm, $mc, $mm, $projectRoot);
             $name = $installer->installFromUrl($url, true);
             return JsonResponse::success('MODULE_INSTALLED', $this->t('module/messages.installed_from_url'), ['name' => $name]);
+        } catch (ModuleSigningKeyMissingException $e) {
+            AppLog::error('[ModuleController::installFromUrl] ' . $e->getMessage());
+            return JsonResponse::error('MODULE_SIGNING_KEY_MISSING', $this->t('module/messages.signing_key_missing'), 500);
         } catch (\Throwable $e) {
             AppLog::error('[ModuleController::installFromUrl] ' . $e->getMessage());
             return JsonResponse::error('INSTALL_FAILED', $this->t('module/messages.install_failed'), 500);
@@ -558,6 +562,9 @@ final class ModuleController
             $installer = new ModuleRemoteInstaller($pm, $mc, $mm, $projectRoot);
             $name = $installer->installFromFile($archivePath, true);
             return JsonResponse::success('MODULE_INSTALLED', $this->t('module/messages.installed_from_file'), ['name' => $name]);
+        } catch (ModuleSigningKeyMissingException $e) {
+            AppLog::error('[ModuleController::installFromFile] ' . $e->getMessage());
+            return JsonResponse::error('MODULE_SIGNING_KEY_MISSING', $this->t('module/messages.signing_key_missing'), 500);
         } catch (\Throwable $e) {
             AppLog::error('[ModuleController::unknown] ' . $e->getMessage());
             return JsonResponse::error('INSTALL_FAILED', $this->t('module/messages.install_failed'), 500);

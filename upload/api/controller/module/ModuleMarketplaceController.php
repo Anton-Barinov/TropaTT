@@ -5,6 +5,7 @@ namespace Api\Controller\Module;
 
 use Api\System\Library\Http\JsonResponse;
 use Api\System\Library\Module\ModuleMarketplaceClient;
+use Api\System\Library\Module\ModulePackageHashMismatchException;
 use Api\System\Library\Module\ModulePackageMismatchException;
 use Api\System\Library\Module\ModuleRemoteInstaller;
 use Api\System\Library\Support\AppLog;
@@ -222,7 +223,22 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
             // The catalog code is authoritative: the downloaded package must
             // declare exactly this name, otherwise the release was published
             // inconsistently and installing it would register the wrong module.
-            $name = $installer->installFromUrl($release['download_url'], true, $fullCode);
+            // The install-request sha256 pins the archive: the download and the
+            // hash both come from the configured marketplace over TLS, so a
+            // matching hash is the channel proof that replaces the shared
+            // MODULE_SIGNING_KEY (which a fresh installation never has).
+            $expectedSha256 = (string)($release['sha256'] ?? '');
+            $name = $installer->installFromUrl(
+                $release['download_url'],
+                true,
+                $fullCode,
+                $expectedSha256 !== '' ? $expectedSha256 : null,
+            );
+        } catch (ModulePackageHashMismatchException $e) {
+            AppLog::error('[ModuleMarketplaceController::install] ' . $fullCode . ': ' . $e->getMessage());
+            return $this->error('MARKETPLACE_SHA256_MISMATCH', $this->t('module/messages.marketplace_sha256_mismatch'), 502, [
+                'name' => $fullCode,
+            ]);
         } catch (ModulePackageMismatchException $e) {
             AppLog::error('[ModuleMarketplaceController::install] ' . $fullCode . ': ' . $e->getMessage());
             return $this->error('MARKETPLACE_PACKAGE_MISMATCH', $this->t('module/messages.marketplace_package_mismatch'), 502, [
