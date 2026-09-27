@@ -457,17 +457,43 @@ window.CRM.pageApiBindings = (function () {
     return String(value);
   }
 
+  // Status labels/classes are shared with br1.js on task pages, but routes like
+  // project-detail load only the br1-notify stub, so window.CRM.br1 there has
+  // no statusLabel/statusBadgeClass. Without a local fallback the project task
+  // table rendered the raw status code ("new", "done") with an "archived"
+  // badge. Keep the same mapping inline so a status is always localised.
   function statusLabel(code) {
     if (window.CRM.br1 && typeof window.CRM.br1.statusLabel === 'function') {
       return window.CRM.br1.statusLabel(code);
     }
-    return code || '—';
+    var key = String(code || '').trim();
+    var map = {
+      new: window.CRM.i18n.t('js.br1.k_vypolneniyu', 'К выполнению'),
+      todo: window.CRM.i18n.t('js.br1.k_vypolneniyu_2', 'К выполнению'),
+      in_progress: window.CRM.i18n.t('js.br1.v_rabote', 'В работе'),
+      active: window.CRM.i18n.t('js.br1.aktivnyy', 'Активный'),
+      planning: window.CRM.i18n.t('js.br1.planning', 'Планирование'),
+      on_hold: window.CRM.i18n.t('js.br1.na_pauze', 'На паузе'),
+      blocked: window.CRM.i18n.t('js.br1.blokirovano', 'Блокировано'),
+      done: window.CRM.i18n.t('js.br1.gotovo', 'Готово'),
+      completed: window.CRM.i18n.t('js.br1.gotovo_2', 'Готово'),
+      archived: window.CRM.i18n.t('js.br1.arkhiv', 'Архив'),
+      review: window.CRM.i18n.t('js.br1.review', 'Ревью'),
+      qa_testing: window.CRM.i18n.t('js.br1.qa_testing', 'QA тестирование'),
+      ready_release: window.CRM.i18n.t('js.br1.ready_release', 'Готова к релизу')
+    };
+    return map[key] || key || '—';
   }
 
   function statusClass(code) {
     if (window.CRM.br1 && typeof window.CRM.br1.statusBadgeClass === 'function') {
       return window.CRM.br1.statusBadgeClass(code);
     }
+    var key = String(code || '').trim();
+    if (key === 'done' || key === 'completed') return 'success';
+    if (key === 'in_progress' || key === 'active' || key === 'planning' || key === 'on_hold') return 'active';
+    if (key === 'blocked') return 'blocked';
+    if (key === 'overdue') return 'overdue';
     return 'archived';
   }
 
