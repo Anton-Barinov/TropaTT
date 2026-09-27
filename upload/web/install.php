@@ -2927,8 +2927,8 @@ function seedDictionaries(PDO $pdo): void
     try {
         $estCount = (int)$pdo->query('SELECT COUNT(*) FROM estimate_sets')->fetchColumn();
         if ($estCount === 0) {
-            $pdo->exec("INSERT INTO estimate_sets (public_id, scope_type, name, code, estimate_type, unit_label, is_default, is_active, active_key, sort_order, created_at, updated_at)
-                VALUES ('est_fibonacci', 'system', 'Фибоначчи', 'fibonacci', 'points', 'pts', 1, 1, 'system', 10, '{$now}', '{$now}')");
+            $pdo->exec("INSERT INTO estimate_sets (public_id, scope_type, name, code, estimate_type, unit_label, is_default, is_active, active_key, sort_order, created_by_user_id, created_at, updated_at)
+                VALUES ('est_fibonacci', 'system', 'Фибоначчи', 'fibonacci', 'points', 'pts', 1, 1, 'system', 10, 1, '{$now}', '{$now}')");
             $fibId = (int)$pdo->lastInsertId();
             $fibOptions = [
                 ['1 pt', '1', 1, '#10b981', 10],
@@ -2938,7 +2938,7 @@ function seedDictionaries(PDO $pdo): void
                 ['8 pts', '8', 8, '#ef4444', 50],
                 ['13 pts', '13', 13, '#dc2626', 60],
             ];
-            $optStmt = $pdo->prepare('INSERT INTO estimate_options (public_id, estimate_set_id, label, code, numeric_value, color, is_default, is_active, active_key, sort_order, created_at, updated_at) VALUES (:pid, :sid, :label, :code, :val, :color, 0, 1, \'system\', :sort, :created_at, :updated_at)');
+            $optStmt = $pdo->prepare('INSERT INTO estimate_options (public_id, estimate_set_id, label, code, numeric_value, color, is_default, is_active, active_key, sort_order, created_by_user_id, created_at, updated_at) VALUES (:pid, :sid, :label, :code, :val, :color, 0, 1, \'system\', :sort, 1, :created_at, :updated_at)');
             foreach ($fibOptions as $opt) {
                 $optStmt->execute([
                     'pid' => 'opt_' . strtoupper(bin2hex(random_bytes(8))),
