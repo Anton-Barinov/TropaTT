@@ -293,6 +293,14 @@ final class TwoFactorController extends BaseController
             return true;
         }
 
+        // When request is not over HTTPS, check if origin is considered secure context
+        // by modern browsers (localhost, 127.0.0.1, ::1, or .onion).
+        $host = strtolower((string)$this->request()->header('Host', ''));
+        $hostPart = explode(':', $host)[0];
+        if ($hostPart === 'localhost' || $hostPart === '127.0.0.1' || $hostPart === '::1' || str_ends_with($hostPart, '.onion')) {
+            return true;
+        }
+
         return false;
     }
 

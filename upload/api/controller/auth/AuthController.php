@@ -216,11 +216,28 @@ final class AuthController extends BaseController
             return false;
         }
 
-        // L-5: When secure_only is true (production default), always set Secure.
-        // This avoids the case where a proxy terminates TLS but does not forward
-        // X-Forwarded-Proto, resulting in cookies without the Secure flag.
-        // Operators who need auto-detection (dev/local) should set secure_only=false.
-        return true;
+        $request = $this->request();
+        $https = strtolower((string)($request->server['HTTPS'] ?? ''));
+        if ($https !== '' && $https !== 'off' && $https !== '0') {
+            return true;
+        }
+
+        $forwardedProto = strtolower((string)$request->header('X-Forwarded-Proto', ''));
+        if ($forwardedProto === 'https') {
+            return true;
+        }
+
+        // When request is not over HTTPS, check if origin is considered secure context
+        // by modern browsers (localhost, 127.0.0.1, ::1, or .onion).
+        // On plain HTTP LAN IPs (e.g. 192.168.x.x, 10.x.x.x), setting the Secure flag
+        // causes browsers (Chrome, Safari, Edge) to reject the cookie per RFC 6265bis.
+        $host = strtolower((string)$request->header('Host', ''));
+        $hostPart = explode(':', $host)[0];
+        if ($hostPart === 'localhost' || $hostPart === '127.0.0.1' || $hostPart === '::1' || str_ends_with($hostPart, '.onion')) {
+            return true;
+        }
+
+        return false;
     }
 
     private function csrfTokenForSession(string $sessionToken): string

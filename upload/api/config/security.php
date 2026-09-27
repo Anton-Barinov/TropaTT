@@ -49,6 +49,17 @@ $accessTokenTtl = (int)(getenv('CRM_AUTH_ACCESS_TOKEN_TTL') ?: getenv('AUTH_ACCE
 $refreshTokenTtl = (int)(getenv('CRM_AUTH_REFRESH_TOKEN_TTL') ?: getenv('AUTH_REFRESH_TOKEN_TTL') ?: (3600 * 24 * 14));
 $maxSessionLifetime = (int)(getenv('CRM_AUTH_MAX_SESSION_LIFETIME') ?: (3600 * 24 * 30));
 
+$cookieSecureOnlyEnv = getenv('CRM_AUTH_COOKIE_SECURE_ONLY');
+if ($cookieSecureOnlyEnv === false) {
+    $cookieSecureOnlyEnv = getenv('COOKIE_SECURE');
+}
+$cookieSecureOnly = ($cookieSecureOnlyEnv !== false && $cookieSecureOnlyEnv !== null)
+    ? filter_var($cookieSecureOnlyEnv, FILTER_VALIDATE_BOOLEAN)
+    : $isProduction;
+
+$cookieSameSiteEnv = trim((string)(getenv('CRM_AUTH_COOKIE_SAME_SITE') ?: getenv('COOKIE_SAME_SITE') ?: ''));
+$cookieSameSite = $cookieSameSiteEnv !== '' ? $cookieSameSiteEnv : 'Lax';
+
 return [
     'auth' => [
         'access_token_ttl' => max(3600, $accessTokenTtl),
@@ -60,8 +71,8 @@ return [
         'cookie' => [
             'name' => 'crm_api_session',
             'path' => '/',
-            'same_site' => 'Strict',
-            'secure_only' => $isProduction,
+            'same_site' => $cookieSameSite,
+            'secure_only' => $cookieSecureOnly,
         ],
         'csrf' => [
             'header' => 'X-CSRF-Token',
