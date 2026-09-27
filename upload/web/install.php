@@ -1,6 +1,14 @@
 <?php
 declare(strict_types=1);
 
+// Compatibility polyfills for platforms without Argon2 (e.g. Android/Termux)
+if (!defined('PASSWORD_ARGON2ID')) {
+    define('PASSWORD_ARGON2ID', PASSWORD_BCRYPT);
+}
+if (!defined('PASSWORD_ARGON2I')) {
+    define('PASSWORD_ARGON2I', PASSWORD_BCRYPT);
+}
+
 // ============================================================================
 // Part 1: Constants
 // ============================================================================
