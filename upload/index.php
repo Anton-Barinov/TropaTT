@@ -1,4 +1,12 @@
 <?php declare(strict_types=1);
+ 
+// Compatibility polyfill for platforms without Argon2 support (e.g. Android/Termux)
+if (!defined('PASSWORD_ARGON2ID')) {
+    define('PASSWORD_ARGON2ID', PASSWORD_BCRYPT);
+}
+if (!defined('PASSWORD_ARGON2I')) {
+    define('PASSWORD_ARGON2I', PASSWORD_BCRYPT);
+}
 
 // Maintenance mode check — blocks all requests during core updates
 require_once __DIR__ . '/web/system/I18n/EarlyResponse.php';

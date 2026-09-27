@@ -8,6 +8,14 @@ ini_set('max_execution_time', '0');
 ini_set('memory_limit', '512M');
 set_time_limit(0);
 
+// Compatibility polyfill for platforms without Argon2 support (e.g. Android/Termux)
+if (!defined('PASSWORD_ARGON2ID')) {
+    define('PASSWORD_ARGON2ID', PASSWORD_BCRYPT);
+}
+if (!defined('PASSWORD_ARGON2I')) {
+    define('PASSWORD_ARGON2I', PASSWORD_BCRYPT);
+}
+
 $baseDir = __DIR__;
 require_once $baseDir . '/system/I18n/EarlyResponse.php';
 
