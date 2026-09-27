@@ -103,6 +103,7 @@ final class MigrationManager
             new ApiClientOrganizationScopeMigration(),
             new FileOrganizationBackfillMigration(),
             new UserAvatarMigration(),
+            new OrganizationScopeExtendedMigration(),
         ];
     }
 
