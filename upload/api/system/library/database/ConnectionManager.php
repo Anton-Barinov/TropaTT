@@ -172,13 +172,20 @@ final class ConnectionManager
 
         return match ($driver) {
             'mysql' => [
-                sprintf(
-                    'mysql:host=%s;port=%d;dbname=%s;charset=%s',
-                    (string)($db['host'] ?? '127.0.0.1'),
-                    (int)($db['port'] ?? 3306),
-                    (string)($db['database'] ?? ''),
-                    (string)($db['charset'] ?? 'utf8mb4')
-                ),
+                !empty($db['unix_socket'])
+                    ? sprintf(
+                        'mysql:unix_socket=%s;dbname=%s;charset=%s',
+                        (string)$db['unix_socket'],
+                        (string)($db['database'] ?? ''),
+                        (string)($db['charset'] ?? 'utf8mb4')
+                    )
+                    : sprintf(
+                        'mysql:host=%s;port=%d;dbname=%s;charset=%s',
+                        (string)($db['host'] ?? '127.0.0.1'),
+                        (int)($db['port'] ?? 3306),
+                        (string)($db['database'] ?? ''),
+                        (string)($db['charset'] ?? 'utf8mb4')
+                    ),
                 (string)($db['username'] ?? ''),
                 (string)($db['password'] ?? ''),
                 $options,

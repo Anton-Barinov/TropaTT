@@ -27,6 +27,7 @@ return [
             'driver' => 'mysql',
             'host' => (string)(getenv('DB_HOST') ?: getenv('MYSQL_HOST') ?: '127.0.0.1'),
             'port' => (int)(getenv('DB_PORT') ?: getenv('MYSQL_PORT') ?: 3306),
+            'unix_socket' => (string)(getenv('DB_SOCKET') ?: getenv('MYSQL_SOCKET') ?: ''),
             'database' => (string)(getenv('DB_DATABASE') ?: getenv('MYSQL_DATABASE') ?: 'crm'),
             'username' => (string)(getenv('DB_USERNAME') ?: getenv('MYSQL_USER') ?: 'root'),
             'password' => (string)(getenv('DB_PASSWORD') ?: getenv('MYSQL_PASSWORD') ?: ''),
