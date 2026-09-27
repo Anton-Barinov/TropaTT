@@ -5,8 +5,11 @@ namespace Api\System\Library\Security;
 
 final class PasswordHasher
 {
-    public function __construct(private readonly string|int|null $algo = PASSWORD_ARGON2ID)
+    private readonly string|int|null $algo;
+
+    public function __construct(string|int|null $algo = null)
     {
+        $this->algo = $algo ?? (defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_BCRYPT);
     }
 
     public function hash(string $password): string

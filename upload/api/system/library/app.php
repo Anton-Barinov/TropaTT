@@ -1036,7 +1036,8 @@ final class App
         $this->container->factory('repository.ai_prompt_templates', fn(Container $c) => new \Api\Model\Ai\AiPromptTemplateRepository($c->get('db.pdo')));
         $this->container->factory('repository.ai_json_schemas', fn(Container $c) => new \Api\Model\Ai\AiJsonSchemaRepository($c->get('db.pdo')));
 
-        $this->container->factory('security.hasher', fn() => new PasswordHasher((string)$this->config->get('security.auth.password_algo', PASSWORD_ARGON2ID)));
+        $defaultAlgo = defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_BCRYPT;
+        $this->container->factory('security.hasher', fn() => new PasswordHasher((string)$this->config->get('security.auth.password_algo', $defaultAlgo)));
         $this->container->factory('security.token', fn() => new TokenManager());
         $this->container->factory('security.login_rate_limiter', function (Container $c): DatabaseRateLimiter {
             $rateLimitConfig = (array)$this->config->get('security.rate_limit.auth_login', []);

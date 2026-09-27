@@ -54,7 +54,7 @@ return [
         'access_token_ttl' => max(3600, $accessTokenTtl),
         'refresh_token_ttl' => max(3600 * 24, $refreshTokenTtl),
         'max_session_lifetime' => max(3600 * 24, $maxSessionLifetime),
-        'password_algo' => PASSWORD_ARGON2ID,
+        'password_algo' => defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_BCRYPT,
         'lock_threshold' => 5,
         'lock_seconds' => 300,
         'cookie' => [
