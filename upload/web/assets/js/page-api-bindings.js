@@ -13979,7 +13979,15 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           }
 
           notify(tp('profile.updated', 'Profile updated'));
+          if (profilePageRoot) {
+            if (typeof profilePageRoot._crmSetDirty === 'function') profilePageRoot._crmSetDirty(false);
+            profilePageRoot.dispatchEvent(new CustomEvent('crm:mark-clean', { bubbles: true }));
+          }
           await renderProfilePage();
+          if (profilePageRoot) {
+            if (typeof profilePageRoot._crmSetDirty === 'function') profilePageRoot._crmSetDirty(false);
+            profilePageRoot.dispatchEvent(new CustomEvent('crm:mark-clean', { bubbles: true }));
+          }
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
           notify((envelopeError && envelopeError.message) || tp('profile.save_fail', 'Failed to save profile'), 'error');
@@ -14151,6 +14159,11 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         }
       });
       twoFactorForm.dataset.bound = '1';
+    }
+
+    if (profilePageRoot) {
+      if (typeof profilePageRoot._crmSetDirty === 'function') profilePageRoot._crmSetDirty(false);
+      profilePageRoot.dispatchEvent(new CustomEvent('crm:mark-clean', { bubbles: true }));
     }
   }
 

@@ -68,8 +68,14 @@ window.CRM.ui = (function () {
         root.addEventListener('submit', function () { setDirty(false); });
       }
       root.addEventListener('crm:mark-clean', function () { setDirty(false); });
+      document.addEventListener('crm:mark-clean', function (event) {
+        if (!event.detail || !event.detail.target || event.detail.target === root || (root.contains && root.contains(event.detail.target))) {
+          setDirty(false);
+        }
+      });
       root.dataset.crmDirty = '0';
       root._crmIsDirty = function () { return dirty; };
+      root._crmSetDirty = setDirty;
     });
     if (window.CRM._dirtyUnloadBound) return;
     window.CRM._dirtyUnloadBound = true;
@@ -81,6 +87,21 @@ window.CRM.ui = (function () {
       event.preventDefault();
       event.returnValue = '';
     });
+  }
+
+  function markClean(target) {
+    if (target) {
+      var el = typeof target === 'string' ? document.querySelector(target) : target;
+      if (el) {
+        if (typeof el._crmSetDirty === 'function') el._crmSetDirty(false);
+        el.dispatchEvent(new CustomEvent('crm:mark-clean', { bubbles: true }));
+      }
+    } else {
+      document.querySelectorAll('[data-dirty-guard]').forEach(function (root) {
+        if (typeof root._crmSetDirty === 'function') root._crmSetDirty(false);
+        root.dispatchEvent(new CustomEvent('crm:mark-clean', { bubbles: true }));
+      });
+    }
   }
 
   function initStateSwitchers() {
@@ -245,6 +266,7 @@ window.CRM.ui = (function () {
     showNotice: showNotice,
     setPending: setPending,
     initDirtyForms: initDirtyForms,
+    markClean: markClean,
     initStateSwitchers: initStateSwitchers,
     initStatusColorPickers: initStatusColorPickers,
     stateHtml: stateHtml,
@@ -253,3 +275,4 @@ window.CRM.ui = (function () {
     onRetry: onRetry
   };
 })();
+if (window.CRM) window.CRM.markClean = window.CRM.ui.markClean;
