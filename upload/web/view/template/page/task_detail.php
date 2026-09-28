@@ -34,6 +34,12 @@
         </form>
         <div id="taskDescriptionContent"><div class="text-muted" data-i18n="task_detail.desc_loading"><?= htmlspecialchars($t('task_detail.desc_loading', 'Детали задачи загружаются...'), ENT_QUOTES, 'UTF-8') ?></div></div>
       </section>
+      <section class="crm-task-custom-fields-summary mt-3 pt-3 border-top d-none" id="taskCustomFieldsSection" aria-labelledby="taskCustomFieldsTitle">
+        <div class="crm-task-custom-fields-head d-flex justify-content-between align-items-center mb-2">
+          <h2 class="h6 mb-0" id="taskCustomFieldsTitle" data-i18n="task_detail.custom_fields_title"><?= htmlspecialchars($t('task_detail.custom_fields_title', 'Дополнительные поля'), ENT_QUOTES, 'UTF-8') ?></h2>
+        </div>
+        <div id="taskCustomFieldsList" class="crm-task-custom-fields-list d-flex flex-column gap-3"></div>
+      </section>
       <section class="crm-task-source-chat d-none" id="taskSourceChatSection" aria-labelledby="taskSourceChatTitle">
         <h2 class="h6 mb-1" id="taskSourceChatTitle" data-i18n="task_detail.chat_source_title"><?= htmlspecialchars($t('task_detail.chat_source_title', 'Создано из обсуждения'), ENT_QUOTES, 'UTF-8') ?></h2>
         <p class="small text-muted mb-2" id="taskSourceChatText" data-i18n="task_detail.chat_source_text"><?= htmlspecialchars($t('task_detail.chat_source_text', 'Задача создана из сообщения в чате. Перейдите к диалогу, чтобы увидеть контекст.'), ENT_QUOTES, 'UTF-8') ?></p>

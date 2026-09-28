@@ -9052,6 +9052,7 @@ return array (
   ),
   'task_detail' => 
   array (
+    'custom_fields_title' => 'Zusatzfelder',
     'sidebar_edit' => 'Spalte anpassen',
     'sidebar_hint' => 'Ziehen Sie Blöcke, um die Reihenfolge zu ändern. Änderungen werden nach dem Speichern wirksam.',
     'sidebar_add_block' => 'Block hinzufügen',

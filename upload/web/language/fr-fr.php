@@ -9052,6 +9052,7 @@ return array (
   ),
   'task_detail' => 
   array (
+    'custom_fields_title' => 'Champs personnalisés',
     'sidebar_edit' => 'Personnaliser la colonne',
     'sidebar_hint' => 'Faites glisser les blocs pour changer l\'ordre. Les modifications s\'appliquent après enregistrement.',
     'sidebar_add_block' => 'Ajouter un bloc',

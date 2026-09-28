@@ -10615,17 +10615,19 @@ window.CRM.pageApiBindings = (function () {
       if (!isValidWebsite(payload.website)) push('website', tp('clients.validation_website_url', 'Website must be a valid URL (http/https)'));
 
       var type = normalizeType(payload.client_type);
-      function checkOptionalDigits(field, expectedLength, messageKey, fallback) {
+      function checkOptionalDigits(field, expectedLengths, messageKey, fallback) {
         var raw = String(payload[field] || '').trim();
         if (!raw) return;
-        if (normalizeDigits(raw).length !== expectedLength || raw.length !== expectedLength) push(field, tp(messageKey, fallback));
+        var digits = normalizeDigits(raw);
+        var lengths = Array.isArray(expectedLengths) ? expectedLengths : [expectedLengths];
+        if (lengths.indexOf(digits.length) === -1 || digits !== raw) push(field, tp(messageKey, fallback));
       }
       if (type === 'sole_proprietor') {
         checkOptionalDigits('tax_inn', 12, 'clients.validation_inn_sp', 'Sole proprietor TIN must contain 12 digits');
         checkOptionalDigits('tax_ogrnip', 15, 'clients.validation_ogrnip', 'OGRNIP must contain 15 digits');
       }
       if (type === 'legal_entity') {
-        checkOptionalDigits('tax_inn', 10, 'clients.validation_inn_legal', 'Legal entity TIN must contain 10 digits');
+        checkOptionalDigits('tax_inn', [10, 12], 'clients.validation_inn_legal', 'Legal entity TIN/BIN must contain 10 or 12 digits');
         checkOptionalDigits('tax_kpp', 9, 'clients.validation_kpp', 'KPP must contain 9 digits');
         checkOptionalDigits('tax_ogrn', 13, 'clients.validation_ogrn', 'OGRN must contain 13 digits');
       }
@@ -11493,27 +11495,46 @@ window.CRM.pageApiBindings = (function () {
       if (!isValidWebsite(payload.website)) push('website', tp('counterparties.validation_website_url', 'Website must be a valid URL (http/https)'));
 
       var type = normalizeType(payload.counterparty_type);
-      if (type === 'sole_proprietor' || type === 'organization' || type === 'legal_entity') {
-        if (isBlank(payload.legal_name)) push('legal_name', tp('counterparties.validation_legal_name_required', 'Enter legal name / sole proprietor full name'));
+      function checkOptionalDigits(field, expectedLengths, messageKey, fallback) {
+        var raw = String(payload[field] || '').trim();
+        if (!raw) return;
+        var digits = normalizeDigits(raw);
+        var lengths = Array.isArray(expectedLengths) ? expectedLengths : [expectedLengths];
+        if (lengths.indexOf(digits.length) === -1 || digits !== raw) {
+          push(field, tp(messageKey, fallback));
+        }
       }
+
       if (type === 'sole_proprietor') {
-        if (normalizeDigits(payload.tax_inn).length !== 12 || String(payload.tax_inn || '').trim().length !== 12) push('tax_inn', tp('counterparties.validation_inn_sp', 'Sole proprietor TIN must contain 12 digits'));
-        if (normalizeDigits(payload.tax_ogrnip).length !== 15 || String(payload.tax_ogrnip || '').trim().length !== 15) push('tax_ogrnip', tp('counterparties.validation_ogrnip', 'OGRNIP must contain 15 digits'));
+        checkOptionalDigits('tax_inn', 12, 'counterparties.validation_inn_sp', 'Sole proprietor TIN must contain 12 digits');
+        checkOptionalDigits('tax_ogrnip', 15, 'counterparties.validation_ogrnip', 'OGRNIP must contain 15 digits');
       }
-      if (type === 'organization' || type === 'legal_entity') {
-        if (normalizeDigits(payload.tax_inn).length !== 10 || String(payload.tax_inn || '').trim().length !== 10) push('tax_inn', tp('counterparties.validation_inn_legal', 'Legal entity TIN must contain 10 digits'));
-        if (normalizeDigits(payload.tax_kpp).length !== 9 || String(payload.tax_kpp || '').trim().length !== 9) push('tax_kpp', tp('counterparties.validation_kpp', 'KPP must contain 9 digits'));
-        if (normalizeDigits(payload.tax_ogrn).length !== 13 || String(payload.tax_ogrn || '').trim().length !== 13) push('tax_ogrn', tp('counterparties.validation_ogrn', 'OGRN must contain 13 digits'));
+      if (type === 'legal_entity') {
+        // Legal entities: Russian INN (10 digits) or Kazakhstan BIN (12 digits)
+        checkOptionalDigits('tax_inn', [10, 12], 'counterparties.validation_inn_legal', 'Legal entity TIN/BIN must contain 10 or 12 digits');
+        // KPP and OGRN are optional (Kazakhstan and international entities do not have KPP/OGRN)
+        checkOptionalDigits('tax_kpp', 9, 'counterparties.validation_kpp', 'KPP must contain 9 digits');
+        checkOptionalDigits('tax_ogrn', 13, 'counterparties.validation_ogrn', 'OGRN must contain 13 digits');
       }
 
       ['bank_account', 'bank_corr_account'].forEach(function (field) {
         var value = String(payload[field] || '').trim();
         if (!value) return;
-        if (normalizeDigits(value).length !== 20 || value.length !== 20) push(field, tp('counterparties.validation_20_digits', 'Field must contain 20 digits'));
+        var digits = normalizeDigits(value);
+        if (/^[0-9]+$/.test(value)) {
+          if (digits.length !== 20) push(field, tp('counterparties.validation_20_digits', 'Field must contain 20 digits'));
+        } else if (!/^[A-Za-z0-9]{15,34}$/.test(value.replace(/\s+/g, ''))) {
+          push(field, tp('counterparties.validation_20_digits', 'Field must contain 20 digits'));
+        }
       });
       if (!isBlank(payload.bank_bik)) {
         var bik = String(payload.bank_bik || '').trim();
-        if (normalizeDigits(bik).length !== 9 || bik.length !== 9) push('bank_bik', tp('counterparties.validation_bik', 'BIC must contain 9 digits'));
+        var bikDigits = normalizeDigits(bik);
+        if (/^[0-9]+$/.test(bik)) {
+          if (bikDigits.length !== 9) push('bank_bik', tp('counterparties.validation_bik', 'BIC must contain 9 digits'));
+        } else if (!/^[A-Za-z0-9]{8,11}$/.test(bik)) {
+          push('bank_bik', tp('counterparties.validation_bik', 'BIC must contain 9 digits'));
+        }
       }
 
       return errors;
@@ -13110,15 +13131,16 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         push('extra_attributes_text', tp('client_cabinet.extra_json_object', 'extra_attributes must be a JSON object or array'));
       }
 
-      function checkDigits(field, expectedLength, required, label) {
+      function checkDigits(field, expectedLengths, required, label) {
         var raw = String(payload[field] || '').trim();
         if (!raw) {
           if (required) push(field, tp('client_cabinet.required_prefix', 'Enter ') + label);
           return;
         }
         var digits = normalizeDigits(raw);
-        if (digits.length !== expectedLength || digits !== raw) {
-          push(field, label + tp('client_cabinet.digits_suffix', ' must contain ') + expectedLength + tp('client_cabinet.digits_word_suffix', ' digits'));
+        var lengths = Array.isArray(expectedLengths) ? expectedLengths : [expectedLengths];
+        if (lengths.indexOf(digits.length) === -1 || digits !== raw) {
+          push(field, label + tp('client_cabinet.digits_suffix', ' must contain ') + lengths.join('/') + tp('client_cabinet.digits_word_suffix', ' digits'));
         }
       }
 
@@ -13127,7 +13149,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         checkDigits('tax_ogrnip', 15, false, tp('client_detail.field_ogrnip', 'OGRNIP'));
       }
       if (type === 'legal_entity') {
-        checkDigits('tax_inn', 10, false, tp('client_detail.field_inn', 'TIN'));
+        checkDigits('tax_inn', [10, 12], false, tp('client_detail.field_inn', 'TIN'));
         checkDigits('tax_kpp', 9, false, tp('client_detail.field_kpp', 'KPP'));
         checkDigits('tax_ogrn', 13, false, tp('client_detail.field_ogrn', 'OGRN'));
       }

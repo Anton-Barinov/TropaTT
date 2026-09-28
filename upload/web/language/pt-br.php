@@ -9052,6 +9052,7 @@ return array (
   ),
   'task_detail' => 
   array (
+    'custom_fields_title' => 'Campos personalizados',
     'sidebar_edit' => 'Personalizar coluna',
     'sidebar_hint' => 'Arraste os blocos para alterar a ordem. As alterações são aplicadas após salvar.',
     'sidebar_add_block' => 'Adicionar bloco',

@@ -807,8 +807,8 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | GET | `/api/v1/custom-fields/{public_id}` 🔄 | Детали поля | Да | `settings.manage` | — |
 | PATCH, PUT | `/api/v1/custom-fields/{public_id}` 🔄 | Обновление поля | Да | `settings.manage` | — |
 | DELETE | `/api/v1/custom-fields/{public_id}` 🔄 | Удаление поля | Да | `settings.manage` | — |
-| GET | `/api/v1/custom-fields/values` 🔄 | Значения полей | Да | `settings.manage` | — |
-| POST, PUT, PATCH | `/api/v1/custom-fields/values` 🔄 | Установка значений | Да | `settings.manage` | — |
+| GET | `/api/v1/custom-fields/values` 🔄 | Значения полей | Да | `task.manage \| task.view \| project.manage \| project.view \| client.manage \| company.manage \| contact.manage \| user.view \| user.manage \| settings.manage` | Требуется доступ к сущности |
+| POST, PUT, PATCH | `/api/v1/custom-fields/values` 🔄 | Установка значений | Да | `task.manage \| project.manage \| client.manage \| company.manage \| contact.manage \| user.manage \| settings.manage` | Требуется доступ к сущности |
 
 ### Workflow Rules
 

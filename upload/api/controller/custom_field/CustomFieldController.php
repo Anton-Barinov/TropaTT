@@ -209,17 +209,27 @@ final class CustomFieldController extends BaseController
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $v->errors());
         }
 
+        $entityType = (string)$input['entity_type'];
         $actor = $this->organizationScopedActor((array)($authUser['user'] ?? []));
+
+        if (!$this->checkEntityPermission($entityType, false, $actor)) {
+            return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
+        }
 
         /** @var CustomFieldService $service */
         $service = $this->container->get('service.custom_field');
-        $items = $service->values((string)$input['entity_type'], (string)$input['entity_public_id'], $actor);
+        $withDefinitions = !empty($input['with_definitions']) || !empty($input['all']);
+        if ($withDefinitions) {
+            $items = $service->valuesForEntity($entityType, (string)$input['entity_public_id'], $actor);
+        } else {
+            $items = $service->values($entityType, (string)$input['entity_public_id'], $actor);
+        }
         if ($items === 'ENTITY_NOT_FOUND') {
             return $this->error('CUSTOM_FIELD_ENTITY_NOT_FOUND', $this->t('custom_field/messages.entity_not_found'), 404);
         }
 
         return $this->success('CUSTOM_FIELD_VALUES', $this->t('custom_field/messages.values'), [
-            'items' => $items,
+            'items' => is_array($items) ? $items : [],
         ]);
     }
 
@@ -249,12 +259,17 @@ final class CustomFieldController extends BaseController
             ]);
         }
 
+        $entityType = (string)$input['entity_type'];
         $actor = $this->organizationScopedActor((array)($authUser['user'] ?? []));
+
+        if (!$this->checkEntityPermission($entityType, true, $actor)) {
+            return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
+        }
 
         /** @var CustomFieldService $service */
         $service = $this->container->get('service.custom_field');
         $result = $service->setValues(
-            (string)$input['entity_type'],
+            $entityType,
             (string)$input['entity_public_id'],
             (array)$input['values'],
             $actor
@@ -267,6 +282,40 @@ final class CustomFieldController extends BaseController
         }
 
         return $this->success('CUSTOM_FIELD_VALUES_SAVED', $this->t('custom_field/messages.values_saved'), $result);
+    }
+
+    private function checkEntityPermission(string $entityType, bool $isWrite, array $user): bool
+    {
+        /** @var \Api\System\Library\Service\AuthzService $authz */
+        $authz = $this->container->get('service.authz');
+        if ($authz->hasPermission($user, 'settings.manage')) {
+            return true;
+        }
+
+        $readPermissions = [
+            'task' => ['task.manage', 'task.view'],
+            'project' => ['project.manage', 'project.view'],
+            'client' => ['client.manage'],
+            'company' => ['company.manage'],
+            'contact' => ['contact.manage'],
+            'user' => ['user.view', 'user.manage'],
+        ];
+
+        $writePermissions = [
+            'task' => ['task.manage'],
+            'project' => ['project.manage'],
+            'client' => ['client.manage'],
+            'company' => ['company.manage'],
+            'contact' => ['contact.manage'],
+            'user' => ['user.manage'],
+        ];
+
+        $perms = $isWrite ? ($writePermissions[$entityType] ?? []) : ($readPermissions[$entityType] ?? []);
+        if ($perms === []) {
+            return false;
+        }
+
+        return $authz->hasAnyPermissions($user, $perms);
     }
 
     public function listAlias(): \Api\System\Library\Http\JsonResponse { return $this->list(); }

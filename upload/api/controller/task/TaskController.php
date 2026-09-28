@@ -300,6 +300,7 @@ final class TaskController extends BaseController
         // Task rate overrides are financial fields (TZ 8.5, 6.2) — strip for
         // actors without the corresponding view permission.
         $item = (new FinancialFieldPolicy())->filterRow($item, $authUser['user'], 'task.detail');
+        $item = $this->attachCustomFields($item, $authUser['user']);
 
         return $this->success('TASK_DETAIL', $this->t('task/messages.detail'), [
             'task' => $item,
@@ -447,6 +448,7 @@ final class TaskController extends BaseController
         ]);
 
         $this->invalidateTaskCaches();
+        $item = $this->attachCustomFields($item, $authUser['user']);
 
         return $this->success('TASK_UPDATED', $this->t('task/messages.updated'), [
             'task' => $item,
@@ -476,6 +478,7 @@ final class TaskController extends BaseController
         }
 
         $item = (new FinancialFieldPolicy())->filterRow($item, $authUser['user'], 'task.detail');
+        $item = $this->attachCustomFields($item, $authUser['user']);
 
         return $this->success('TASK_DETAIL', $this->t('task/messages.detail'), [
             'task' => $item,
@@ -892,5 +895,19 @@ final class TaskController extends BaseController
     {
         $this->invalidateCache('task');
         $this->invalidateCache('page');
+    }
+
+    private function attachCustomFields(array $task, array $actor): array
+    {
+        if ($this->container->has('service.custom_field')) {
+            /** @var \Api\System\Library\Service\CustomFieldService $cfService */
+            $cfService = $this->container->get('service.custom_field');
+            $customFields = $cfService->valuesForEntity('task', (string)($task['public_id'] ?? ''), $actor);
+            $task['custom_fields'] = is_array($customFields) ? $customFields : [];
+        } else {
+            $task['custom_fields'] = [];
+        }
+
+        return $task;
     }
 }
