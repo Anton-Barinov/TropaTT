@@ -164,16 +164,32 @@ final class CustomFieldService
         $rows = $this->fields->valuesByEntity($entityType, $entityPublicId);
         $items = [];
         foreach ($rows as $row) {
+            $fPid = (string)($row['field_public_id'] ?? '');
+            $title = (string)($row['title'] ?? '');
+            $code = (string)($row['code'] ?? '');
+            $type = (string)($row['type'] ?? 'text');
             $items[] = [
                 'public_id' => (string)($row['public_id'] ?? ''),
                 'entity_type' => (string)($row['entity_type'] ?? ''),
                 'entity_public_id' => (string)($row['entity_public_id'] ?? ''),
+                'field_public_id' => $fPid,
+                'code' => $code,
+                'title' => $title,
+                'name' => $title,
+                'field_code' => $code,
+                'field_title' => $title,
+                'type' => $type,
+                'field_type' => $type,
                 'field' => [
-                    'public_id' => (string)($row['field_public_id'] ?? ''),
+                    'public_id' => $fPid,
                     'scope' => (string)($row['scope'] ?? ''),
-                    'code' => (string)($row['code'] ?? ''),
-                    'title' => (string)($row['title'] ?? ''),
-                    'type' => (string)($row['type'] ?? ''),
+                    'code' => $code,
+                    'title' => $title,
+                    'name' => $title,
+                    'field_code' => $code,
+                    'field_title' => $title,
+                    'type' => $type,
+                    'field_type' => $type,
                 ],
                 'value' => $this->decodeValue((string)($row['value'] ?? '')),
                 'created_at' => (string)($row['created_at'] ?? ''),
@@ -225,25 +241,38 @@ final class CustomFieldService
             }
 
             $decodedValue = $saved !== null ? $this->decodeValue((string)($saved['value'] ?? '')) : null;
+            $title = (string)($field['title'] ?? '');
+            $code = (string)($field['code'] ?? '');
+            $type = (string)($field['type'] ?? 'text');
 
             $result[] = [
                 'public_id' => $saved !== null ? (string)($saved['public_id'] ?? '') : null,
                 'entity_type' => $entityType,
                 'entity_public_id' => $entityPublicId,
                 'field_public_id' => $fPid,
-                'code' => (string)($field['code'] ?? ''),
-                'title' => (string)($field['title'] ?? ''),
-                'type' => (string)($field['type'] ?? 'text'),
+                'code' => $code,
+                'title' => $title,
+                'name' => $title,
+                'field_code' => $code,
+                'field_title' => $title,
+                'type' => $type,
+                'field_type' => $type,
                 'options' => $options,
+                'options_json' => $options,
                 'is_required' => (int)($field['is_required'] ?? 0) === 1,
                 'value' => $decodedValue,
                 'field' => [
                     'public_id' => $fPid,
                     'scope' => (string)($field['scope'] ?? $entityType),
-                    'code' => (string)($field['code'] ?? ''),
-                    'title' => (string)($field['title'] ?? ''),
-                    'type' => (string)($field['type'] ?? 'text'),
+                    'code' => $code,
+                    'title' => $title,
+                    'name' => $title,
+                    'field_code' => $code,
+                    'field_title' => $title,
+                    'type' => $type,
+                    'field_type' => $type,
                     'options' => $options,
+                    'options_json' => $options,
                     'is_required' => (int)($field['is_required'] ?? 0) === 1,
                 ],
                 'created_at' => $saved !== null ? (string)($saved['created_at'] ?? '') : null,
@@ -269,6 +298,12 @@ final class CustomFieldService
             $field = $this->fields->findByPublicId((string)$fieldKey);
             if (!$field) {
                 $field = $this->fields->findByScopeCode($entityType, (string)$fieldKey);
+            }
+            if (!$field && str_starts_with((string)$fieldKey, 'cfv_')) {
+                $valRow = $this->fields->valueByPublicId((string)$fieldKey);
+                if ($valRow && !empty($valRow['field_id'])) {
+                    $field = $this->fields->findById((int)$valRow['field_id']);
+                }
             }
             if (!$field) {
                 return 'FIELD_NOT_FOUND';

@@ -2741,17 +2741,49 @@ window.CRM.br1 = (function () {
     section.classList.remove('d-none');
     var canEdit = Boolean(currentTaskPermissions && (currentTaskPermissions.canWorkItems || currentTaskPermissions.canEditIdentity));
 
-    list.innerHTML = fields.map(function (field) {
-      var publicId = String(field.public_id || field.field_code || '');
-      var fieldName = String(field.name || field.field_code || publicId);
-      var fieldType = String(field.field_type || 'text');
+    list.innerHTML = fields.map(function (field, index) {
+      var defKey = String(
+        field.field_public_id ||
+        (field.field && field.field.public_id) ||
+        field.code ||
+        (field.field && field.field.code) ||
+        field.field_code ||
+        field.public_id ||
+        ''
+      ).trim();
+
+      var elementKey = defKey || ('cf_idx_' + index);
+      var safeDomId = elementKey.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+      var fieldName = String(
+        field.title ||
+        (field.field && field.field.title) ||
+        field.name ||
+        (field.field && field.field.name) ||
+        field.field_title ||
+        field.code ||
+        (field.field && field.field.code) ||
+        defKey ||
+        '—'
+      ).trim();
+
+      var fieldType = String(
+        field.type ||
+        field.field_type ||
+        (field.field && field.field.type) ||
+        'text'
+      ).toLowerCase();
+
+      var isRequired = Boolean(field.is_required || (field.field && field.field.is_required));
+      var description = String(field.description || (field.field && field.field.description) || '').trim();
+
       var val = field.value !== null && field.value !== undefined ? String(field.value) : '';
       var valTrim = val.trim();
 
       var displayHtml = '';
       if (valTrim === '') {
         displayHtml = '<span class="text-muted fst-italic">— ' + escapeHtml(window.CRM.i18n.t('js.br1.ne_ukazan', 'Не указано')) + ' —</span>';
-      } else if (fieldType === 'checkbox') {
+      } else if (fieldType === 'checkbox' || fieldType === 'boolean') {
         var isChecked = valTrim === '1' || valTrim === 'true' || valTrim === 'yes';
         displayHtml = isChecked
           ? '<span class="badge text-bg-success">' + escapeHtml(window.CRM.i18n.t('page.yes', 'Да')) + '</span>'
@@ -2765,36 +2797,37 @@ window.CRM.br1 = (function () {
       }
 
       var inputHtml = '';
-      if (fieldType === 'checkbox') {
+      if (fieldType === 'checkbox' || fieldType === 'boolean') {
         var checkedAttr = (valTrim === '1' || valTrim === 'true' || valTrim === 'yes') ? ' checked' : '';
         inputHtml = '<div class="form-check">'
-          + '<input class="form-check-input" type="checkbox" id="cf_input_' + escapeHtml(publicId) + '"' + checkedAttr + ' data-cf-input="1">'
-          + '<label class="form-check-label" for="cf_input_' + escapeHtml(publicId) + '">' + escapeHtml(fieldName) + '</label>'
+          + '<input class="form-check-input" type="checkbox" id="cf_input_' + escapeHtml(safeDomId) + '"' + checkedAttr + ' data-cf-input="1">'
+          + '<label class="form-check-label" for="cf_input_' + escapeHtml(safeDomId) + '">' + escapeHtml(fieldName) + '</label>'
           + '</div>';
       } else if (fieldType === 'number') {
         inputHtml = '<input type="number" class="form-control form-control-sm" value="' + escapeHtml(val) + '" data-cf-input="1">';
       } else if (fieldType === 'date') {
         inputHtml = '<input type="date" class="form-control form-control-sm" value="' + escapeHtml(val.substring(0, 10)) + '" data-cf-input="1">';
       } else if (fieldType === 'select') {
+        var rawOpts = field.options || (field.field && field.field.options) || field.options_json;
         var opts = [];
         try {
-          if (Array.isArray(field.options_json)) {
-            opts = field.options_json;
-          } else if (typeof field.options_json === 'string' && field.options_json.trim()) {
-            opts = JSON.parse(field.options_json);
+          if (Array.isArray(rawOpts)) {
+            opts = rawOpts;
+          } else if (typeof rawOpts === 'string' && rawOpts.trim()) {
+            opts = JSON.parse(rawOpts);
           }
         } catch (e) { opts = []; }
         inputHtml = '<select class="form-select form-select-sm" data-cf-input="1">'
           + '<option value="">— ' + escapeHtml(window.CRM.i18n.t('common.select', 'Выберите')) + ' —</option>'
           + opts.map(function (opt) {
-              var optVal = typeof opt === 'object' && opt !== null ? (opt.value || opt.id || opt.title) : opt;
+              var optVal = typeof opt === 'object' && opt !== null ? (opt.value !== undefined ? opt.value : (opt.id || opt.title)) : opt;
               var optLabel = typeof opt === 'object' && opt !== null ? (opt.label || opt.title || opt.value) : opt;
               var isSel = String(optVal) === val ? ' selected' : '';
               return '<option value="' + escapeHtml(String(optVal)) + '"' + isSel + '>' + escapeHtml(String(optLabel)) + '</option>';
             }).join('')
           + '</select>';
       } else {
-        var isMultiline = fieldType === 'textarea' || val.indexOf('\n') !== -1 || val.length > 60 || /solution|deploy|desc/i.test(field.field_code || '');
+        var isMultiline = fieldType === 'textarea' || val.indexOf('\n') !== -1 || val.length > 60 || /solution|deploy|desc/i.test(field.code || field.field_code || '');
         if (isMultiline) {
           inputHtml = '<textarea class="form-control form-control-sm" rows="5" data-cf-input="1">' + escapeHtml(val) + '</textarea>';
         } else {
@@ -2802,25 +2835,25 @@ window.CRM.br1 = (function () {
         }
       }
 
-      return '<div class="crm-task-cf-card p-3 rounded border bg-light bg-opacity-25" data-cf-id="' + escapeHtml(publicId) + '">'
+      return '<div class="crm-task-cf-card p-3 rounded border bg-light bg-opacity-25" data-cf-id="' + escapeHtml(safeDomId) + '">'
         + '<div class="d-flex justify-content-between align-items-center mb-2">'
         + '  <div class="fw-semibold small text-secondary d-flex align-items-center gap-1">'
         + '    <span>' + escapeHtml(fieldName) + '</span>'
-        + (field.is_required ? '    <span class="text-danger">*</span>' : '')
-        + (field.description ? '    <span class="text-muted ms-1 small" title="' + escapeHtml(field.description) + '"><i class="fa-regular fa-circle-question"></i></span>' : '')
+        + (isRequired ? '    <span class="text-danger">*</span>' : '')
+        + (description ? '    <span class="text-muted ms-1 small" title="' + escapeHtml(description) + '"><i class="fa-regular fa-circle-question"></i></span>' : '')
         + '  </div>'
-        + '  <button type="button" class="btn btn-sm crm-inline-icon-btn py-0 px-2' + (canEdit ? '' : ' d-none') + '" data-task-cf-edit="' + escapeHtml(publicId) + '" aria-label="Редактировать ' + escapeHtml(fieldName) + '" title="Редактировать">'
+        + '  <button type="button" class="btn btn-sm crm-inline-icon-btn py-0 px-2' + (canEdit ? '' : ' d-none') + '" data-task-cf-edit="' + escapeHtml(safeDomId) + '" aria-label="Редактировать ' + escapeHtml(fieldName) + '" title="Редактировать">'
         + '    <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen" aria-hidden="true"></i></span>'
         + '  </button>'
         + '</div>'
-        + '<div class="crm-task-cf-view" id="taskCfView_' + escapeHtml(publicId) + '">'
+        + '<div class="crm-task-cf-view" id="taskCfView_' + escapeHtml(safeDomId) + '">'
         +    displayHtml
         + '</div>'
-        + '<form class="crm-task-cf-form d-none mt-2" id="taskCfForm_' + escapeHtml(publicId) + '" data-cf-form-id="' + escapeHtml(publicId) + '">'
+        + '<form class="crm-task-cf-form d-none mt-2" id="taskCfForm_' + escapeHtml(safeDomId) + '" data-cf-form-id="' + escapeHtml(safeDomId) + '" data-cf-key="' + escapeHtml(defKey) + '">'
         + '  <div class="mb-2">' + inputHtml + '</div>'
         + '  <div class="d-flex gap-2">'
         + '    <button type="submit" class="btn btn-sm crm-btn-primary crm-btn-compact">' + escapeHtml(window.CRM.i18n.t('page.save', 'Сохранить')) + '</button>'
-        + '    <button type="button" class="btn btn-sm crm-btn-secondary crm-btn-compact" data-task-cf-cancel="' + escapeHtml(publicId) + '">' + escapeHtml(window.CRM.i18n.t('page.cancel', 'Отмена')) + '</button>'
+        + '    <button type="button" class="btn btn-sm crm-btn-secondary crm-btn-compact" data-task-cf-cancel="' + escapeHtml(safeDomId) + '">' + escapeHtml(window.CRM.i18n.t('page.cancel', 'Отмена')) + '</button>'
         + '  </div>'
         + '</form>'
         + '</div>';
@@ -2862,9 +2895,20 @@ window.CRM.br1 = (function () {
     list.querySelectorAll('.crm-task-cf-form').forEach(function (form) {
       form.addEventListener('submit', async function (e) {
         e.preventDefault();
-        var id = form.getAttribute('data-cf-form-id');
+        var safeId = form.getAttribute('data-cf-form-id');
+        var defKey = form.getAttribute('data-cf-key');
         var field = fields.find(function (f) {
-          return String(f.public_id || f.field_code) === id;
+          var k = String(
+            f.field_public_id ||
+            (f.field && f.field.public_id) ||
+            f.code ||
+            (f.field && f.field.code) ||
+            f.field_code ||
+            f.public_id ||
+            ''
+          ).trim();
+          var domId = (k || '').replace(/[^a-zA-Z0-9_-]/g, '_');
+          return k === defKey || domId === safeId || String(f.public_id) === defKey;
         });
         if (!field || !currentTask) return;
 
@@ -2882,8 +2926,17 @@ window.CRM.br1 = (function () {
         if (submitBtn) submitBtn.disabled = true;
 
         try {
+          var saveKey = String(
+            field.field_public_id ||
+            (field.field && field.field.public_id) ||
+            field.code ||
+            (field.field && field.field.code) ||
+            field.field_code ||
+            field.public_id ||
+            defKey
+          );
           var valObj = {};
-          valObj[field.public_id || field.field_code] = value;
+          valObj[saveKey] = value;
           await window.CRM.api.request('api/v1/custom-fields/values', {
             method: 'POST',
             body: {
@@ -2895,6 +2948,15 @@ window.CRM.br1 = (function () {
 
           field.value = value;
           field.has_value = true;
+          if (currentTask && Array.isArray(currentTask.custom_fields)) {
+            var ctField = currentTask.custom_fields.find(function (cf) {
+              return String(cf.field_public_id || (cf.field && cf.field.public_id) || cf.code || cf.public_id) === saveKey;
+            });
+            if (ctField) {
+              ctField.value = value;
+              ctField.has_value = true;
+            }
+          }
           notify(window.CRM.i18n.t('js.br1.opisanie_obnovleno', 'Поле сохранено'));
           renderTaskCustomFields(fields);
           if (typeof loadTaskActivity === 'function') {
