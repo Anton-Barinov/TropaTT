@@ -19,9 +19,8 @@ final class TemplateService
 
     public function list(string $kind, array $filters, array $actor): array
     {
-        // Workspace boundary first: the creator/hierarchy filter below only
-        // narrows further, so a root actor (no creator limit) can no longer
-        // see templates from every organization (TROPATTCRM-603).
+        // Workspace boundary (TROPATTCRM-603): every actor, root included, is
+        // confined to their own organization before any other filter applies.
         $organizationId = $this->organizationId($actor);
         if ($organizationId !== null) {
             $filters['organization_id'] = $organizationId;
@@ -199,10 +198,12 @@ final class TemplateService
     }
 
     /**
-     * Fail-closed object access: root may access anything; non-root may only
-     * access records created by themselves or by their own hierarchy subtree.
-     * Records without an owner (created_by_user_id IS NULL) belong to nobody
-     * and are therefore root-only (see AGENTS.md object-level authorization).
+     * Object access follows list(): the workspace check keeps rows inside the
+     * actor's organization, then an internal actor who already holds the
+     * endpoint permission may read the record (visibility = permission).
+     *
+     * Client-portal accounts stay fail-closed — they never resolve an internal
+     * CRM record, keeping the behaviour the route gate already enforces.
      */
     private function canAccess(array $item, array $actor): bool
     {
@@ -218,17 +219,11 @@ final class TemplateService
             return true;
         }
 
-        $actorId = (int)($actor['id'] ?? 0);
-        $creatorId = (int)($item['created_by_user_id'] ?? 0);
-        if ($actorId <= 0 || $creatorId <= 0) {
+        if ((bool)($actor['is_external'] ?? false) || (int)($actor['id'] ?? 0) <= 0) {
             return false;
         }
 
-        if ($actorId === $creatorId) {
-            return true;
-        }
-
-        return $this->hierarchy->isAncestor($actorId, $creatorId);
+        return true;
     }
 
     /**
@@ -243,23 +238,28 @@ final class TemplateService
         return $id > 0 ? $id : null;
     }
 
-    /** @return array{limit_to_creator_ids:int[]|null} */
+    /**
+     * Visibility = permission: the permission that gates the template endpoint
+     * already grants the view, and organizationId() confines rows to the
+     * workspace (TROPATTCRM-603 — root included). The legacy creator-subtree
+     * restriction is gone on purpose: it left non-root holders of the
+     * permission with an empty list.
+     *
+     * Fail-closed leftovers: no usable id and client-portal accounts match
+     * nothing (defence in depth behind the external_ok route gate).
+     *
+     * @return array{limit_to_creator_ids:int[]|null}
+     */
     private function accessScope(array $actor): array
     {
         if ((int)($actor['is_root'] ?? 0) === 1) {
             return ['limit_to_creator_ids' => null];
         }
 
-        $actorId = (int)($actor['id'] ?? 0);
-        if ($actorId <= 0) {
+        if ((bool)($actor['is_external'] ?? false) || (int)($actor['id'] ?? 0) <= 0) {
             return ['limit_to_creator_ids' => [-1]];
         }
 
-        $descendants = $this->users->descendantIds($actorId);
-        if ($descendants === []) {
-            $descendants = [$actorId];
-        }
-
-        return ['limit_to_creator_ids' => $descendants];
+        return ['limit_to_creator_ids' => null];
     }
 }
