@@ -195,12 +195,17 @@ final class SearchService
     }
 
     /**
-     * Fail-closed creator scope for search, mirroring CounterpartyService and
-     * ContactService: a true platform superadmin sees everything (empty list =
-     * no scope); every other actor — including an ordinary org owner/admin who
-     * also carries is_root=1 alongside a real organization_id — is limited to
-     * records created by themselves or their hierarchy subtree, and is always
-     * additionally confined to their own organization via organizationScope().
+     * Creator scope for search, aligned with the entity services
+     * (Counterparty/Client/Company/Contact/Template/Workflow): visibility =
+     * permission. The permission that already gates the entity endpoints is
+     * the visibility grant, and organizationScope() confines every row to the
+     * actor's workspace, so no creator restriction is added on top of it —
+     * the legacy "created by me or my subtree" filter silently emptied the
+     * global search for every non-root user who held the permission.
+     *
+     * Fail-closed leftovers: a caller with no usable actor id (including the
+     * documented "$actor defaults to []" call sites) and client-portal
+     * accounts get the -1 sentinel (matches nothing).
      *
      * @param array<string,mixed> $actor
      * @return int[]
@@ -211,17 +216,11 @@ final class SearchService
             return [];
         }
 
-        $actorId = (int)($actor['id'] ?? 0);
-        if ($actorId <= 0) {
+        if ((bool)($actor['is_external'] ?? false) || (int)($actor['id'] ?? 0) <= 0) {
             return [-1];
         }
 
-        $descendants = $this->users->descendantIds($actorId);
-        if ($descendants === []) {
-            $descendants = [$actorId];
-        }
-
-        return $descendants;
+        return [];
     }
 
     /**

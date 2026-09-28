@@ -144,24 +144,36 @@ final class CounterpartyService
         return $deleted;
     }
 
-    /** @return array{limit_to_creator_ids:int[]|null} */
+    /**
+     * Visibility = permission. The permission that already gates the endpoint
+     * (counterparty.manage on the route, in the menu and in the MCP tool gate)
+     * IS the visibility grant; organizationId() confines the rows to the
+     * actor's workspace on top of it.
+     *
+     * The legacy "created by me or my own hierarchy subtree" restriction is
+     * deliberately gone: it made lists silently empty for every non-root user
+     * who had been granted the permission (the permission said "manage", the
+     * list said "nothing here"), and it never matched how tasks/projects are
+     * scoped in this CRM.
+     *
+     * Fail-closed leftovers are kept: an actor without a usable id and a
+     * client-portal (external) account match nothing. External accounts are
+     * already rejected by the route gate (external_ok in routes.php) — the
+     * sentinel here is defence in depth for a future route that forgets it.
+     *
+     * @return array{limit_to_creator_ids:int[]|null}
+     */
     private function accessScope(array $actor): array
     {
         if ((int)($actor['is_root'] ?? 0) === 1) {
             return ['limit_to_creator_ids' => null];
         }
 
-        $actorId = (int)($actor['id'] ?? 0);
-        if ($actorId <= 0) {
+        if ((bool)($actor['is_external'] ?? false) || (int)($actor['id'] ?? 0) <= 0) {
             return ['limit_to_creator_ids' => [-1]];
         }
 
-        $descendants = $this->users->descendantIds($actorId);
-        if ($descendants === []) {
-            $descendants = [$actorId];
-        }
-
-        return ['limit_to_creator_ids' => $descendants];
+        return ['limit_to_creator_ids' => null];
     }
 
     private function organizationId(array $actor): ?int
@@ -171,10 +183,12 @@ final class CounterpartyService
     }
 
     /**
-     * Fail-closed object access: root may access anything; non-root may only
-     * access records created by themselves or by their own hierarchy subtree.
-     * Records without an owner (created_by_user_id IS NULL) are visible only
-     * to root (they belong to nobody), matching the rest of the CRM.
+     * Object access follows the same model as list(): an internal actor who
+     * reached this service already holds the endpoint permission, and the row
+     * itself was resolved through organizationId() (workspace boundary).
+     *
+     * Client-portal accounts stay fail-closed — they never resolve an internal
+     * CRM record, keeping the behaviour the route gate already enforces.
      */
     private function canAccess(array $item, array $actor): bool
     {
@@ -182,17 +196,11 @@ final class CounterpartyService
             return true;
         }
 
-        $actorId = (int)($actor['id'] ?? 0);
-        $creatorId = (int)($item['created_by_user_id'] ?? 0);
-        if ($actorId <= 0 || $creatorId <= 0) {
+        if ((bool)($actor['is_external'] ?? false) || (int)($actor['id'] ?? 0) <= 0) {
             return false;
         }
 
-        if ($creatorId === $actorId) {
-            return true;
-        }
-
-        return $this->hierarchy->isAncestor($actorId, $creatorId);
+        return true;
     }
 
     private function normalizeCounterparty(array $item): array

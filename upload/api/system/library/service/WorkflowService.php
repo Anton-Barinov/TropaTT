@@ -224,10 +224,8 @@ final class WorkflowService
     }
 
     /**
-     * Fail-closed object access: root may access anything; non-root may only
-     * access records created by themselves or by their own hierarchy subtree.
-     * Records without an owner (created_by_user_id IS NULL) belong to nobody
-     * and are therefore root-only (see AGENTS.md object-level authorization).
+     * The actor's active workspace, or null when the caller has no organization
+     * context (pre-organization installations and internal calls).
      */
     private function organizationId(array $actor): ?int
     {
@@ -235,43 +233,49 @@ final class WorkflowService
         return $id > 0 ? $id : null;
     }
 
+    /**
+     * Object access follows list(): an internal actor reaching this service
+     * already holds the endpoint permission, and the row was resolved inside
+     * the actor's organization filter (workspace boundary).
+     *
+     * Client-portal accounts stay fail-closed — they never resolve an internal
+     * CRM record, keeping the behaviour the route gate already enforces.
+     */
     private function canAccess(array $item, array $actor): bool
     {
         if ((int)($actor['is_root'] ?? 0) === 1) {
             return true;
         }
 
-        $actorId = (int)($actor['id'] ?? 0);
-        $creatorId = (int)($item['created_by_user_id'] ?? 0);
-        if ($actorId <= 0 || $creatorId <= 0) {
+        if ((bool)($actor['is_external'] ?? false) || (int)($actor['id'] ?? 0) <= 0) {
             return false;
         }
 
-        if ($actorId === $creatorId) {
-            return true;
-        }
-
-        return $this->hierarchy->isAncestor($actorId, $creatorId);
+        return true;
     }
 
-    /** @return array{limit_to_creator_ids:int[]|null} */
+    /**
+     * Visibility = permission: the permission that gates the workflow endpoint
+     * already grants the view, and the organization filter confines rows to
+     * the workspace. The legacy creator-subtree restriction is gone on purpose:
+     * it left non-root holders of the permission with an empty list.
+     *
+     * Fail-closed leftovers: no usable id and client-portal accounts match
+     * nothing (defence in depth behind the external_ok route gate).
+     *
+     * @return array{limit_to_creator_ids:int[]|null}
+     */
     private function accessScope(array $actor): array
     {
         if ((int)($actor['is_root'] ?? 0) === 1) {
             return ['limit_to_creator_ids' => null];
         }
 
-        $actorId = (int)($actor['id'] ?? 0);
-        if ($actorId <= 0) {
+        if ((bool)($actor['is_external'] ?? false) || (int)($actor['id'] ?? 0) <= 0) {
             return ['limit_to_creator_ids' => [-1]];
         }
 
-        $descendants = $this->users->descendantIds($actorId);
-        if ($descendants === []) {
-            $descendants = [$actorId];
-        }
-
-        return ['limit_to_creator_ids' => $descendants];
+        return ['limit_to_creator_ids' => null];
     }
 
     /**
