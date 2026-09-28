@@ -1049,6 +1049,28 @@ window.CRM.pageApiBindings = (function () {
     return window.CRM.api.items(envelope);
   }
 
+  /**
+   * Envelope-shaped wrapper around the shared client dictionary (br1.js:
+   * `window.CRM.loadClientDictionary`). The dictionary carries EVERY
+   * counterparty type — organisations included — so the "Client" filter on the
+   * Tasks/Projects pages and the client select in the project edit form offer
+   * the same values the create-task modal does. `/api/v1/clients` only returns
+   * individual/sole_proprietor/legal_entity rows, which hid counterparties of
+   * type `organization` from those filters even though a task/project can be
+   * bound to them (`client_public_id` references `counterparties.public_id`).
+   * Falls back to the client endpoint when br1.js is unavailable.
+   */
+  function clientDictionaryEnvelope() {
+    if (window.CRM && typeof window.CRM.loadClientDictionary === 'function') {
+      return Promise.resolve(window.CRM.loadClientDictionary()).then(function (items) {
+        return { success: true, code: 'CLIENT_LIST', data: { items: items || [] } };
+      }).catch(function () {
+        return { success: true, code: 'CLIENT_LIST', data: { items: [] } };
+      });
+    }
+    return tryRequest('api/v1/clients', { query: { limit: 500 }, silent: true });
+  }
+
   // Team-materials badge (project/task lists). Populated by loadTeamMaterialsCounts().
   var teamMaterialsCountMap = {};
 
@@ -1733,7 +1755,7 @@ window.CRM.pageApiBindings = (function () {
 
     var pageRequests = await Promise.all([
       tryRequest('api/v1/projects', { query: projectsQuery }),
-      tryRequest('api/v1/clients', { query: { limit: 500 }, silent: true }),
+      clientDictionaryEnvelope(),
       tryRequest('api/v1/teams', { query: { limit: 200 }, silent: true }),
       tryRequest('api/v1/statuses', { query: { scope: 'project', limit: 100 }, silent: true }),
       tryRequest('api/v1/views', { query: { entity_type: 'project', limit: 200 }, silent: true })
@@ -3353,7 +3375,7 @@ window.CRM.pageApiBindings = (function () {
       editAccessNote.textContent = window.CRM.i18n.t('js.pab.project_edit_access_note', 'Project editing is available to the owner, project manager, or assigned team manager.');
     }
 
-    var clientsEnvelope = await tryRequest('api/v1/clients', { query: { limit: 200 }, silent: true });
+    var clientsEnvelope = await clientDictionaryEnvelope();
     var clients = mapItems(clientsEnvelope);
     var usersEnvelope = await tryRequest('api/v1/users', { query: { limit: 200 }, silent: true });
     var users = mapItems(usersEnvelope);
@@ -4379,7 +4401,7 @@ window.CRM.pageApiBindings = (function () {
       : Promise.resolve(null);
     var tasksClientSelect = document.getElementById('tasksClientFilter');
     var clientsPromise = tasksClientSelect
-      ? tryRequest('api/v1/clients', { query: { limit: 500 }, silent: true })
+      ? clientDictionaryEnvelope()
       : Promise.resolve(null);
     var cycleOptionsPromise = tasksCycleSelect
       ? tryRequest('api/v1/cycles', { query: { limit: 100, archived: '1' }, silent: true })
@@ -33504,6 +33526,21 @@ tableBody.innerHTML = counterparties.map(function (cp) {
 
   function applySearchableSelects(root) {
     if (!root) root = document;
+
+    // Wrap EVERY match, not just the first one. One document holds several
+    // modals with the same field (create task, edit task, create project) and
+    // their DOM order differs per route: querySelector('[name="client_public_id"]')
+    // wrapped whichever modal happened to come first — on dashboard/projects
+    // that was createProjectModal, so the create-task modal kept a plain
+    // <select> while the tasks page showed the searchable widget.
+    function wrapAll(list) {
+      list.forEach(function (sel) {
+        try {
+          root.querySelectorAll(sel).forEach(function (el) { makeSelectSearchable(el); });
+        } catch (e) {}
+      });
+    }
+
     var selectors = [
       '[name="assignee_user_public_id"]',
       '[name="manager_user_public_id"]',
@@ -33541,8 +33578,8 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       // Actual-time widget gained the same optional narrowing to one project.
       '#dashboardInsightActualProjectSelect'
     ];
-    selectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
-    projectSelectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
+    wrapAll(selectors);
+    wrapAll(projectSelectors);
     // Dynamic project selects in modals (create/edit task)
     root.querySelectorAll('select[name="project_public_id"]').forEach(function (el) {
       if (!el.disabled && !el.dataset.searchable) makeSelectSearchable(el);
@@ -33568,16 +33605,16 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       '#projectsTeamFilter',
       '#projectsManagerFilter'
     ];
-    clientSelectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
-    taskFilterSelectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
-    projectFilterSelectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
+    wrapAll(clientSelectors);
+    wrapAll(taskFilterSelectors);
+    wrapAll(projectFilterSelectors);
     var knowledgeFilterSelectors = [
       '#kbFilterSpace',
       '#kbFilterType',
       '#kbFilterTag',
       '#kbFilterStatus'
     ];
-    knowledgeFilterSelectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
+    wrapAll(knowledgeFilterSelectors);
     // Knowledge page modal/sidebar selects
     var knowledgeExtraSelectors = [
       '#kbPageSpace',
@@ -33590,7 +33627,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       '#knowledgePermSubjectId',
       '#knowledgePermAccessLevel'
     ];
-    knowledgeExtraSelectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
+    wrapAll(knowledgeExtraSelectors);
     // Tag multi-selects
     root.querySelectorAll('select[name="tag_public_ids"]').forEach(function (el) {
       if (!el.dataset.searchable) makeSelectSearchable(el);

@@ -1618,49 +1618,10 @@ window.CRM.br1 = (function () {
   }
 
   /**
-   * Dictionary behind every "Client" select that writes `client_public_id`
-   * (create/edit task, create project).
-   *
-   * `client_public_id` references a row of `counterparties` of ANY
-   * `counterparty_type`, but `/api/v1/clients` only returns
-   * `individual`/`sole_proprietor`/`legal_entity`. A counterparty of type
-   * `organization` created on the Counterparties page therefore never appeared
-   * in the select (and could not be searched), and a prefill from the
-   * counterparty card silently did nothing. Read the counterparty list instead
-   * — it returns the very same rows plus organizations, exactly like the intake
-   * form already does — and fall back to `/api/v1/clients` for actors without
-   * the `counterparty.manage` permission.
-   *
-   * The repository clamps `limit` to 100 rows, so the pages are walked until
-   * the whole dictionary is loaded (search in the select is client-side).
+   * The shared "Client" dictionary now lives in api.js
+   * (`window.CRM.loadClientDictionary`) because api.js is loaded on every
+   * route while br1.js is enqueued only for a subset of them.
    */
-  async function loadAvailableClients() {
-    async function fetchAll(route) {
-      var items = [];
-      for (var page = 1; page <= 20; page++) {
-        var envelope = await window.CRM.api.request(route, { query: { limit: 100, page: page } });
-        var pageItems = window.CRM.api.items(envelope);
-        items = items.concat(pageItems);
-        var pagination = envelope && envelope.meta && envelope.meta.pagination ? envelope.meta.pagination : null;
-        var totalPages = Math.max(1, Number(pagination && pagination.pages) || 1);
-        if (page >= totalPages || pageItems.length === 0) break;
-      }
-      return items;
-    }
-
-    try {
-      var counterparties = await fetchAll('api/v1/counterparties');
-      if (counterparties.length > 0) return counterparties;
-    } catch (e) {
-      // No `counterparty.manage` permission — fall back to the client endpoint.
-    }
-
-    try {
-      return await fetchAll('api/v1/clients');
-    } catch (e) {
-      return [];
-    }
-  }
 
   async function initProjectCreateFlow() {
     var form = document.getElementById('createProjectForm');
@@ -1707,7 +1668,7 @@ window.CRM.br1 = (function () {
 
     async function ensureProjectCreateDictionaries() {
       if (availableClients.length === 0) {
-        availableClients = await loadAvailableClients();
+        availableClients = await window.CRM.loadClientDictionary();
       }
       if (availableTeams.length === 0) {
         try {
@@ -1965,7 +1926,7 @@ window.CRM.br1 = (function () {
     }
 
     if (availableClients.length === 0) {
-      availableClients = await loadAvailableClients();
+      availableClients = await window.CRM.loadClientDictionary();
     }
 
     renderCreateTaskProjectOptions();
@@ -8303,7 +8264,7 @@ window.CRM.br1 = (function () {
     }
 
     if (!availableClients || !availableClients.length) {
-      availableClients = await loadAvailableClients();
+      availableClients = await window.CRM.loadClientDictionary();
     }
 
     if (!currentTaskTags || !currentTaskTags.length) {

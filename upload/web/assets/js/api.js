@@ -1259,6 +1259,56 @@ window.CRM.api = (function () {
     return envelope && envelope.data && Array.isArray(envelope.data.items) ? envelope.data.items : [];
   }
 
+  /**
+   * Dictionary behind every "Client" select/filter that writes
+   * `client_public_id` (create/edit task, create project, project edit form,
+   * the Client filter on the Tasks and Projects pages).
+   *
+   * `client_public_id` references a row of `counterparties` of ANY
+   * `counterparty_type`, but `/api/v1/clients` only returns
+   * `individual`/`sole_proprietor`/`legal_entity`. A counterparty of type
+   * `organization` created on the Counterparties page therefore never appeared
+   * in those selects (and could not be searched), and a prefill from the
+   * counterparty card silently did nothing. Read the counterparty list instead
+   * — it returns the very same rows plus organizations, exactly like the intake
+   * form already does — and fall back to `/api/v1/clients` for actors without
+   * the `counterparty.manage` permission.
+   *
+   * Lives in api.js (loaded on every route) rather than in br1.js, which is
+   * enqueued only for a subset of routes — on the others the filters would
+   * silently fall back to the client-only endpoint.
+   *
+   * The repository clamps `limit` to 100 rows, so pages are walked until the
+   * whole dictionary is loaded (search in the selects is client-side).
+   */
+  async function loadClientDictionary() {
+    async function fetchAll(route) {
+      var rows = [];
+      for (var page = 1; page <= 20; page++) {
+        var envelope = await request(route, { query: { limit: 100, page: page } });
+        var pageRows = items(envelope);
+        rows = rows.concat(pageRows);
+        var pagination = envelope && envelope.meta && envelope.meta.pagination ? envelope.meta.pagination : null;
+        var totalPages = Math.max(1, Number(pagination && pagination.pages) || 1);
+        if (page >= totalPages || pageRows.length === 0) break;
+      }
+      return rows;
+    }
+
+    try {
+      var counterparties = await fetchAll('api/v1/counterparties');
+      if (counterparties.length > 0) return counterparties;
+    } catch (e) {
+      // No `counterparty.manage` permission — fall back to the client endpoint.
+    }
+
+    try {
+      return await fetchAll('api/v1/clients');
+    } catch (e) {
+      return [];
+    }
+  }
+
   // Password policy: the single rule shown to users — at least 6 characters
   // with an uppercase letter, a lowercase letter and a digit. Unicode-aware, so
   // a password written with Cyrillic (or any non-ASCII) letters is accepted, and
@@ -1306,6 +1356,7 @@ window.CRM.api = (function () {
     passwordFailures: passwordFailures,
     isStrongPassword: isStrongPassword,
     items: items,
+    loadClientDictionary: loadClientDictionary,
     createIdempotencyKey: createIdempotencyKey,
     setToken: setToken,
     getToken: getToken,
@@ -1335,3 +1386,8 @@ window.CRM.api = (function () {
     me: me
   };
 })();
+
+// Canonical location for the shared "Client" dictionary: consumed by br1.js
+// (create/edit task, create project) and by page-api-bindings.js (the Client
+// filters on the Tasks/Projects pages and the project edit form).
+window.CRM.loadClientDictionary = window.CRM.api.loadClientDictionary;
