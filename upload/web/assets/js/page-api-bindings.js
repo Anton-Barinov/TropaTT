@@ -33526,6 +33526,21 @@ tableBody.innerHTML = counterparties.map(function (cp) {
 
   function applySearchableSelects(root) {
     if (!root) root = document;
+
+    // Wrap EVERY match, not just the first one. One document holds several
+    // modals with the same field (create task, edit task, create project) and
+    // their DOM order differs per route: querySelector('[name="client_public_id"]')
+    // wrapped whichever modal happened to come first — on dashboard/projects
+    // that was createProjectModal, so the create-task modal kept a plain
+    // <select> while the tasks page showed the searchable widget.
+    function wrapAll(list) {
+      list.forEach(function (sel) {
+        try {
+          root.querySelectorAll(sel).forEach(function (el) { makeSelectSearchable(el); });
+        } catch (e) {}
+      });
+    }
+
     var selectors = [
       '[name="assignee_user_public_id"]',
       '[name="manager_user_public_id"]',
@@ -33563,8 +33578,8 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       // Actual-time widget gained the same optional narrowing to one project.
       '#dashboardInsightActualProjectSelect'
     ];
-    selectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
-    projectSelectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
+    wrapAll(selectors);
+    wrapAll(projectSelectors);
     // Dynamic project selects in modals (create/edit task)
     root.querySelectorAll('select[name="project_public_id"]').forEach(function (el) {
       if (!el.disabled && !el.dataset.searchable) makeSelectSearchable(el);
@@ -33590,16 +33605,16 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       '#projectsTeamFilter',
       '#projectsManagerFilter'
     ];
-    clientSelectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
-    taskFilterSelectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
-    projectFilterSelectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
+    wrapAll(clientSelectors);
+    wrapAll(taskFilterSelectors);
+    wrapAll(projectFilterSelectors);
     var knowledgeFilterSelectors = [
       '#kbFilterSpace',
       '#kbFilterType',
       '#kbFilterTag',
       '#kbFilterStatus'
     ];
-    knowledgeFilterSelectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
+    wrapAll(knowledgeFilterSelectors);
     // Knowledge page modal/sidebar selects
     var knowledgeExtraSelectors = [
       '#kbPageSpace',
@@ -33612,7 +33627,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       '#knowledgePermSubjectId',
       '#knowledgePermAccessLevel'
     ];
-    knowledgeExtraSelectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
+    wrapAll(knowledgeExtraSelectors);
     // Tag multi-selects
     root.querySelectorAll('select[name="tag_public_ids"]').forEach(function (el) {
       if (!el.dataset.searchable) makeSelectSearchable(el);
