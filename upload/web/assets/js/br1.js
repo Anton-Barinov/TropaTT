@@ -8144,6 +8144,19 @@ window.CRM.br1 = (function () {
       fillForm();
     });
 
+    /* Late-open guard (same race as the create-task modal): the delegated
+       [data-open-modal] handler opens this modal immediately, while the task
+       detail page binds this flow only after its async hydration — by which
+       point the button is already visible and the show event has fired. The
+       first open therefore rendered every select (project/client/assignee/…)
+       with just their empty placeholder option. Hydrate now if the modal is
+       already open. */
+    if (modal.classList.contains('show')) {
+      populateEditTaskFormSelects().then(function () {
+        fillForm();
+      });
+    }
+
     form.addEventListener('submit', async function (e) {
       e.preventDefault();
       if (!currentTask) return;
