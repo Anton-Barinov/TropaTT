@@ -1662,6 +1662,12 @@ window.CRM.br1 = (function () {
     }
   }
 
+  // Shared with page-api-bindings.js: the "Client" filters/selects on the
+  // Tasks and Projects pages must offer the same dictionary as the task modal
+  // (every counterparty type), so they read this loader instead of
+  // `/api/v1/clients` directly.
+  window.CRM.loadClientDictionary = loadAvailableClients;
+
   async function initProjectCreateFlow() {
     var form = document.getElementById('createProjectForm');
     if (!form) return;
