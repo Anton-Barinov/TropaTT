@@ -63,6 +63,17 @@ final class CustomFieldRepository
         return $row ?: null;
     }
 
+    public function findById(int $id): ?array
+    {
+        $row = (new QueryBuilder($this->pdo))
+            ->from('custom_fields')
+            ->select(['id', 'public_id', 'scope', 'code', 'title', 'type', 'options', 'is_required', 'created_at', 'updated_at'])
+            ->where('id', '=', $id)
+            ->first();
+
+        return $row ?: null;
+    }
+
     public function findByScopeCode(string $scope, string $code): ?array
     {
         $row = (new QueryBuilder($this->pdo))
@@ -152,6 +163,15 @@ final class CustomFieldRepository
             ->where('field_id', '=', $fieldId)
             ->where('entity_type', '=', $entityType)
             ->where('entity_public_id', '=', $entityPublicId)
+            ->first();
+    }
+
+    public function valueByPublicId(string $publicId): ?array
+    {
+        return (new QueryBuilder($this->pdo))
+            ->from('custom_field_values')
+            ->select(['id', 'public_id', 'field_id', 'entity_type', 'entity_public_id', 'value', 'created_at', 'updated_at'])
+            ->where('public_id', '=', $publicId)
             ->first();
     }
 
