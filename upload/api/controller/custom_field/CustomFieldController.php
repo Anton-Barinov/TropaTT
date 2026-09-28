@@ -280,6 +280,11 @@ final class CustomFieldController extends BaseController
         if ($result === 'FIELD_NOT_FOUND') {
             return $this->error('CUSTOM_FIELD_NOT_FOUND', $this->t('custom_field/messages.any_field_not_found'), 404);
         }
+        if (is_string($result)) {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
+                'value' => [$result],
+            ]);
+        }
 
         return $this->success('CUSTOM_FIELD_VALUES_SAVED', $this->t('custom_field/messages.values_saved'), $result);
     }
@@ -288,7 +293,7 @@ final class CustomFieldController extends BaseController
     {
         /** @var \Api\System\Library\Service\AuthzService $authz */
         $authz = $this->container->get('service.authz');
-        if ($authz->hasPermission($user, 'settings.manage')) {
+        if ($authz->hasPermissions($user, ['settings.manage'])) {
             return true;
         }
 

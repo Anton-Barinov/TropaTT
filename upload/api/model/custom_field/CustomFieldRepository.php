@@ -67,7 +67,7 @@ final class CustomFieldRepository
     {
         $row = (new QueryBuilder($this->pdo))
             ->from('custom_fields')
-            ->select(['id', 'public_id', 'scope', 'code'])
+            ->select(['id', 'public_id', 'scope', 'code', 'title', 'type', 'options', 'is_required', 'created_at', 'updated_at'])
             ->where('scope', '=', $scope)
             ->where('code', '=', $code)
             ->first();
