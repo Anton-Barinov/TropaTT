@@ -5131,6 +5131,7 @@ return array (
   ),
   'task_detail' => 
   array (
+    'custom_fields_title' => '自定义字段',
     'sidebar_edit' => '自定义列',
     'sidebar_hint' => '拖动区块以更改顺序。保存后生效。',
     'sidebar_add_block' => '添加区块',

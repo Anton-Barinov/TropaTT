@@ -791,8 +791,8 @@ Authorization: Bearer <token>
 | GET | `/api/v1/custom-fields/{public_id}` 🔄 | 字段详情 | 是 | `settings.manage` | — |
 | PATCH, PUT | `/api/v1/custom-fields/{public_id}` 🔄 | 更新字段 | 是 | `settings.manage` | — |
 | DELETE | `/api/v1/custom-fields/{public_id}` 🔄 | 删除字段 | 是 | `settings.manage` | — |
-| GET | `/api/v1/custom-fields/values` 🔄 | 字段值 | 是 | `settings.manage` | — |
-| POST, PUT, PATCH | `/api/v1/custom-fields/values` 🔄 | 设置值 | 是 | `settings.manage` | — |
+| GET | `/api/v1/custom-fields/values` 🔄 | 字段值 | 是 | `task.manage \| task.view \| project.manage \| project.view \| client.manage \| company.manage \| contact.manage \| user.view \| user.manage \| settings.manage` | 需要实体访问权限 |
+| POST, PUT, PATCH | `/api/v1/custom-fields/values` 🔄 | 设置值 | 是 | `task.manage \| project.manage \| client.manage \| company.manage \| contact.manage \| user.manage \| settings.manage` | 需要实体访问权限 |
 
 ### 工作流规则
 

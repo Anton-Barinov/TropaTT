@@ -811,8 +811,8 @@ Price lists (`rate_cards`) define three rate kinds — cost, bill, and payout �
 | GET | `/api/v1/custom-fields/{public_id}` 🔄 | field details | Yes | `settings.manage` | — |
 | PATCH, PUT | `/api/v1/custom-fields/{public_id}` 🔄 | Update field | Yes | `settings.manage` | — |
 | DELETE | `/api/v1/custom-fields/{public_id}` 🔄 | Delete field | Yes | `settings.manage` | — |
-| GET | `/api/v1/custom-fields/values` 🔄 | Field values | Yes | `settings.manage` | — |
-| POST, PUT, PATCH | `/api/v1/custom-fields/values` 🔄 | Set values | Yes | `settings.manage` | — |
+| GET | `/api/v1/custom-fields/values` 🔄 | Field values | Yes | `task.manage \| task.view \| project.manage \| project.view \| client.manage \| company.manage \| contact.manage \| user.view \| user.manage \| settings.manage` | Entity access required |
+| POST, PUT, PATCH | `/api/v1/custom-fields/values` 🔄 | Set values | Yes | `task.manage \| project.manage \| client.manage \| company.manage \| contact.manage \| user.manage \| settings.manage` | Entity access required |
 
 ### Workflow Rules
 

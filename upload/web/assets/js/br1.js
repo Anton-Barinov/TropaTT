@@ -2727,6 +2727,208 @@ window.CRM.br1 = (function () {
 
   }
 
+  function renderTaskCustomFields(fields) {
+    var section = document.getElementById('taskCustomFieldsSection');
+    var list = document.getElementById('taskCustomFieldsList');
+    if (!section || !list) return;
+
+    if (!Array.isArray(fields) || fields.length === 0) {
+      section.classList.add('d-none');
+      list.innerHTML = '';
+      return;
+    }
+
+    section.classList.remove('d-none');
+    var canEdit = Boolean(currentTaskPermissions && (currentTaskPermissions.canWorkItems || currentTaskPermissions.canEditIdentity));
+
+    list.innerHTML = fields.map(function (field) {
+      var publicId = String(field.public_id || field.field_code || '');
+      var fieldName = String(field.name || field.field_code || publicId);
+      var fieldType = String(field.field_type || 'text');
+      var val = field.value !== null && field.value !== undefined ? String(field.value) : '';
+      var valTrim = val.trim();
+
+      var displayHtml = '';
+      if (valTrim === '') {
+        displayHtml = '<span class="text-muted fst-italic">— ' + escapeHtml(window.CRM.i18n.t('js.br1.ne_ukazan', 'Не указано')) + ' —</span>';
+      } else if (fieldType === 'checkbox') {
+        var isChecked = valTrim === '1' || valTrim === 'true' || valTrim === 'yes';
+        displayHtml = isChecked
+          ? '<span class="badge text-bg-success">' + escapeHtml(window.CRM.i18n.t('page.yes', 'Да')) + '</span>'
+          : '<span class="badge text-bg-secondary">' + escapeHtml(window.CRM.i18n.t('page.no', 'Нет')) + '</span>';
+      } else {
+        if (/<[a-z][\s\S]*>/i.test(val)) {
+          displayHtml = window.CRM && window.CRM.sanitizeHtml ? window.CRM.sanitizeHtml(val) : val;
+        } else {
+          displayHtml = '<div class="crm-cf-value-text">' + escapeHtml(val).replace(/\n/g, '<br>') + '</div>';
+        }
+      }
+
+      var inputHtml = '';
+      if (fieldType === 'checkbox') {
+        var checkedAttr = (valTrim === '1' || valTrim === 'true' || valTrim === 'yes') ? ' checked' : '';
+        inputHtml = '<div class="form-check">'
+          + '<input class="form-check-input" type="checkbox" id="cf_input_' + escapeHtml(publicId) + '"' + checkedAttr + ' data-cf-input="1">'
+          + '<label class="form-check-label" for="cf_input_' + escapeHtml(publicId) + '">' + escapeHtml(fieldName) + '</label>'
+          + '</div>';
+      } else if (fieldType === 'number') {
+        inputHtml = '<input type="number" class="form-control form-control-sm" value="' + escapeHtml(val) + '" data-cf-input="1">';
+      } else if (fieldType === 'date') {
+        inputHtml = '<input type="date" class="form-control form-control-sm" value="' + escapeHtml(val.substring(0, 10)) + '" data-cf-input="1">';
+      } else if (fieldType === 'select') {
+        var opts = [];
+        try {
+          if (Array.isArray(field.options_json)) {
+            opts = field.options_json;
+          } else if (typeof field.options_json === 'string' && field.options_json.trim()) {
+            opts = JSON.parse(field.options_json);
+          }
+        } catch (e) { opts = []; }
+        inputHtml = '<select class="form-select form-select-sm" data-cf-input="1">'
+          + '<option value="">— ' + escapeHtml(window.CRM.i18n.t('common.select', 'Выберите')) + ' —</option>'
+          + opts.map(function (opt) {
+              var optVal = typeof opt === 'object' && opt !== null ? (opt.value || opt.id || opt.title) : opt;
+              var optLabel = typeof opt === 'object' && opt !== null ? (opt.label || opt.title || opt.value) : opt;
+              var isSel = String(optVal) === val ? ' selected' : '';
+              return '<option value="' + escapeHtml(String(optVal)) + '"' + isSel + '>' + escapeHtml(String(optLabel)) + '</option>';
+            }).join('')
+          + '</select>';
+      } else {
+        var isMultiline = fieldType === 'textarea' || val.indexOf('\n') !== -1 || val.length > 60 || /solution|deploy|desc/i.test(field.field_code || '');
+        if (isMultiline) {
+          inputHtml = '<textarea class="form-control form-control-sm" rows="5" data-cf-input="1">' + escapeHtml(val) + '</textarea>';
+        } else {
+          inputHtml = '<input type="text" class="form-control form-control-sm" value="' + escapeHtml(val) + '" data-cf-input="1">';
+        }
+      }
+
+      return '<div class="crm-task-cf-card p-3 rounded border bg-light bg-opacity-25" data-cf-id="' + escapeHtml(publicId) + '">'
+        + '<div class="d-flex justify-content-between align-items-center mb-2">'
+        + '  <div class="fw-semibold small text-secondary d-flex align-items-center gap-1">'
+        + '    <span>' + escapeHtml(fieldName) + '</span>'
+        + (field.is_required ? '    <span class="text-danger">*</span>' : '')
+        + (field.description ? '    <span class="text-muted ms-1 small" title="' + escapeHtml(field.description) + '"><i class="fa-regular fa-circle-question"></i></span>' : '')
+        + '  </div>'
+        + '  <button type="button" class="btn btn-sm crm-inline-icon-btn py-0 px-2' + (canEdit ? '' : ' d-none') + '" data-task-cf-edit="' + escapeHtml(publicId) + '" aria-label="Редактировать ' + escapeHtml(fieldName) + '" title="Редактировать">'
+        + '    <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen" aria-hidden="true"></i></span>'
+        + '  </button>'
+        + '</div>'
+        + '<div class="crm-task-cf-view" id="taskCfView_' + escapeHtml(publicId) + '">'
+        +    displayHtml
+        + '</div>'
+        + '<form class="crm-task-cf-form d-none mt-2" id="taskCfForm_' + escapeHtml(publicId) + '" data-cf-form-id="' + escapeHtml(publicId) + '">'
+        + '  <div class="mb-2">' + inputHtml + '</div>'
+        + '  <div class="d-flex gap-2">'
+        + '    <button type="submit" class="btn btn-sm crm-btn-primary crm-btn-compact">' + escapeHtml(window.CRM.i18n.t('page.save', 'Сохранить')) + '</button>'
+        + '    <button type="button" class="btn btn-sm crm-btn-secondary crm-btn-compact" data-task-cf-cancel="' + escapeHtml(publicId) + '">' + escapeHtml(window.CRM.i18n.t('page.cancel', 'Отмена')) + '</button>'
+        + '  </div>'
+        + '</form>'
+        + '</div>';
+    }).join('');
+
+    bindTaskCustomFieldsEvents(fields);
+  }
+
+  function bindTaskCustomFieldsEvents(fields) {
+    var list = document.getElementById('taskCustomFieldsList');
+    if (!list) return;
+
+    list.querySelectorAll('[data-task-cf-edit]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-task-cf-edit');
+        var viewEl = document.getElementById('taskCfView_' + id);
+        var formEl = document.getElementById('taskCfForm_' + id);
+        if (viewEl && formEl) {
+          viewEl.classList.add('d-none');
+          formEl.classList.remove('d-none');
+          var input = formEl.querySelector('[data-cf-input]');
+          if (input) input.focus();
+        }
+      });
+    });
+
+    list.querySelectorAll('[data-task-cf-cancel]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-task-cf-cancel');
+        var viewEl = document.getElementById('taskCfView_' + id);
+        var formEl = document.getElementById('taskCfForm_' + id);
+        if (viewEl && formEl) {
+          formEl.classList.add('d-none');
+          viewEl.classList.remove('d-none');
+        }
+      });
+    });
+
+    list.querySelectorAll('.crm-task-cf-form').forEach(function (form) {
+      form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var id = form.getAttribute('data-cf-form-id');
+        var field = fields.find(function (f) {
+          return String(f.public_id || f.field_code) === id;
+        });
+        if (!field || !currentTask) return;
+
+        var input = form.querySelector('[data-cf-input]');
+        var value = '';
+        if (input) {
+          if (input.type === 'checkbox') {
+            value = input.checked ? '1' : '0';
+          } else {
+            value = input.value;
+          }
+        }
+
+        var submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
+
+        try {
+          var valObj = {};
+          valObj[field.public_id || field.field_code] = value;
+          await window.CRM.api.request('api/v1/custom-fields/values', {
+            method: 'POST',
+            body: {
+              entity_type: 'task',
+              entity_public_id: currentTask.public_id,
+              values: valObj
+            }
+          });
+
+          field.value = value;
+          field.has_value = true;
+          notify(window.CRM.i18n.t('js.br1.opisanie_obnovleno', 'Поле сохранено'));
+          renderTaskCustomFields(fields);
+          if (typeof loadTaskActivity === 'function') {
+            loadTaskActivity(currentTask.public_id).catch(function () {});
+          }
+        } catch (err) {
+          var errEnv = err && err.envelope ? err.envelope : null;
+          var msg = (errEnv && errEnv.message) || (err && err.message) || window.CRM.i18n.t('js.br1.ne_udalos_obnovit_opisanie', 'Ошибка сохранения поля');
+          notify(msg, 'error');
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
+        }
+      });
+    });
+  }
+
+  async function loadAndRenderTaskCustomFields(taskId) {
+    if (currentTask && Array.isArray(currentTask.custom_fields) && currentTask.custom_fields.length > 0) {
+      renderTaskCustomFields(currentTask.custom_fields);
+      return;
+    }
+    try {
+      var env = await window.CRM.api.request('api/v1/custom-fields/values', {
+        query: { entity_type: 'task', entity_public_id: taskId, with_definitions: 1 }
+      });
+      var fields = (env && env.data && (env.data.values || env.data.items)) || [];
+      if (currentTask) currentTask.custom_fields = fields;
+      renderTaskCustomFields(fields);
+    } catch (e) {
+      var section = document.getElementById('taskCustomFieldsSection');
+      if (section) section.classList.add('d-none');
+    }
+  }
+
   function renderTaskProgressByStatus(statusCode) {
     var progressBar = document.getElementById('taskProgressBar');
     var progressHint = document.getElementById('taskProgressHint');
@@ -2838,6 +3040,11 @@ window.CRM.br1 = (function () {
     if (descToggle) {
       descToggle.classList.toggle('d-none', !permissions.canEditIdentity);
     }
+
+    var canEditCf = Boolean(permissions && (permissions.canWorkItems || permissions.canEditIdentity));
+    document.querySelectorAll('[data-task-cf-edit]').forEach(function (btn) {
+      btn.classList.toggle('d-none', !canEditCf);
+    });
   }
 
   function renderTaskSidebarSummary() {
@@ -3344,6 +3551,16 @@ window.CRM.br1 = (function () {
     });
   }
 
+  function buildTaskStatusMenuItems(currentStatusCode) {
+    var options = orderedTaskStatuses(currentStatusCode || (currentTask && currentTask.status_code ? currentTask.status_code : ''));
+    var currentCode = String(currentStatusCode || (currentTask && currentTask.status_code) || '');
+    return options.map(function (item) {
+      var code = String(item.code || '');
+      var selected = currentCode === code;
+      return '<li><button class="dropdown-item' + (selected ? ' active' : '') + '" type="button" data-task-status-option="' + escapeHtml(code) + '"' + (selected ? ' disabled aria-current="true"' : '') + '>' + escapeHtml(item.title || code) + '</button></li>';
+    }).join('');
+  }
+
   function renderTaskMetaChips() {
     var chips = document.getElementById('taskMetaChips');
     if (!chips || !currentTask) return;
@@ -3360,12 +3577,15 @@ window.CRM.br1 = (function () {
       var currentUserObj = window.CRM.api.getUser();
       isExternalGuest = Boolean(currentUserObj && currentUserObj.is_external);
     }
+    var canChangeStatus = Boolean(currentTaskPermissions && currentTaskPermissions.canWorkItems);
     chips.innerHTML = ''
       + (isExternalGuest
         ? '<span id="taskStatusBadge" class="crm-badge ' + statusBadgeClass(currentTask.status_code) + '">' + escapeHtml(statusLabel(currentTask.status_code)) + '</span>'
         : '<div class="dropdown crm-task-status-dropdown">'
-          + '<button id="taskStatusBadge" class="crm-badge dropdown-toggle ' + statusBadgeClass(currentTask.status_code) + '" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="' + escapeHtml(window.CRM.i18n.t('task_detail.status_select_label', 'Статус задачи')) + '">' + escapeHtml(statusLabel(currentTask.status_code)) + '</button>'
-          + '<ul class="dropdown-menu crm-task-status-menu" id="taskStatusMenu" aria-labelledby="taskStatusBadge"></ul>'
+          + '<button id="taskStatusBadge" class="crm-badge dropdown-toggle ' + statusBadgeClass(currentTask.status_code) + '" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="' + escapeHtml(window.CRM.i18n.t('task_detail.status_select_label', 'Статус задачи')) + '"' + (canChangeStatus ? '' : ' disabled aria-disabled="true"') + '>' + escapeHtml(statusLabel(currentTask.status_code)) + '</button>'
+          + '<ul class="dropdown-menu crm-task-status-menu" id="taskStatusMenu" aria-labelledby="taskStatusBadge">'
+          + buildTaskStatusMenuItems(currentTask.status_code)
+          + '</ul>'
           + '</div>')
       + '<span class="crm-chip" id="taskPriorityChip">' + escapeHtml(priorityLabel(currentTask.priority_code)) + '</span>'
       + tagsHtml;
@@ -4320,14 +4540,9 @@ window.CRM.br1 = (function () {
       var menu = document.getElementById('taskStatusMenu');
       var statusBadge = document.getElementById('taskStatusBadge');
       if (!menu || !statusBadge) return;
-      var options = orderedTaskStatuses(currentTask && currentTask.status_code ? currentTask.status_code : '');
       var currentCode = String(currentTask && currentTask.status_code || '');
-      menu.innerHTML = options.map(function (item) {
-        var code = String(item.code || '');
-        var selected = currentCode === code;
-        return '<li><button class="dropdown-item' + (selected ? ' active' : '') + '" type="button" data-task-status-option="' + escapeHtml(code) + '"' + (selected ? ' disabled aria-current="true"' : '') + '>' + escapeHtml(item.title || code) + '</button></li>';
-      }).join('');
-      var canChangeStatus = Boolean(currentTaskPermissions.canWorkItems);
+      menu.innerHTML = buildTaskStatusMenuItems(currentCode);
+      var canChangeStatus = Boolean(currentTaskPermissions && currentTaskPermissions.canWorkItems);
       statusBadge.disabled = !canChangeStatus;
       statusBadge.setAttribute('aria-disabled', canChangeStatus ? 'false' : 'true');
     }
@@ -4427,6 +4642,13 @@ window.CRM.br1 = (function () {
         closeReasonForm(true);
       });
       reasonCancelBtn.dataset.bound = '1';
+    }
+
+    var statusBadgeEl = document.getElementById('taskStatusBadge');
+    if (statusBadgeEl && statusBadgeEl.dataset.menuRefreshBound !== '1') {
+      statusBadgeEl.addEventListener('show.bs.dropdown', renderStatusMenu);
+      statusBadgeEl.addEventListener('click', renderStatusMenu);
+      statusBadgeEl.dataset.menuRefreshBound = '1';
     }
   }
 
@@ -8102,6 +8324,7 @@ window.CRM.br1 = (function () {
 
     renderTaskMetaChips();
     renderTaskDescription(currentTask.description);
+    renderTaskCustomFields(currentTask.custom_fields);
     renderTaskProgressByStatus(currentTask.status_code);
     renderTaskRiskBanner();
     window.CRM.currentTaskProjectId = currentTask.project_public_id || '';
@@ -8288,6 +8511,10 @@ window.CRM.br1 = (function () {
     await loadTaskReferenceData();
     await loadTaskTags(taskId);
     await loadProjectForTask();
+
+    if (currentTask && (!currentTask.custom_fields || !Array.isArray(currentTask.custom_fields))) {
+      await loadAndRenderTaskCustomFields(taskId);
+    }
 
     if (currentTask) {
       currentUserPublicId = getCurrentUserPublicId();

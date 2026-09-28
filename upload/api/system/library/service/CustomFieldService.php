@@ -185,6 +185,76 @@ final class CustomFieldService
     }
 
     /**
+     * Return all custom fields for an entity scope, populated with their saved
+     * value for this entity (or null if not yet set).
+     *
+     * @param string $entityType e.g. 'task'
+     * @param string $entityPublicId e.g. 'tsk_...'
+     * @param array<string,mixed> $actor
+     * @return array|string
+     */
+    public function valuesForEntity(string $entityType, string $entityPublicId, array $actor): array|string
+    {
+        if (!$this->actorCanAccessEntity($entityType, $entityPublicId, $actor)) {
+            return 'ENTITY_NOT_FOUND';
+        }
+
+        // Fetch all field definitions for this scope
+        [$fieldDefs] = $this->fields->list(['scope' => $entityType, 'limit' => 100]);
+        if ($fieldDefs === []) {
+            return [];
+        }
+
+        // Fetch existing saved values
+        $savedRows = $this->fields->valuesByEntity($entityType, $entityPublicId);
+        $savedByFieldPublicId = [];
+        foreach ($savedRows as $row) {
+            $fPid = (string)($row['field_public_id'] ?? '');
+            if ($fPid !== '') {
+                $savedByFieldPublicId[$fPid] = $row;
+            }
+        }
+
+        $result = [];
+        foreach ($fieldDefs as $field) {
+            $fPid = (string)($field['public_id'] ?? '');
+            $saved = $savedByFieldPublicId[$fPid] ?? null;
+            $options = [];
+            if (!empty($field['options'])) {
+                $options = is_string($field['options']) ? (json_decode($field['options'], true) ?: []) : (array)$field['options'];
+            }
+
+            $decodedValue = $saved !== null ? $this->decodeValue((string)($saved['value'] ?? '')) : null;
+
+            $result[] = [
+                'public_id' => $saved !== null ? (string)($saved['public_id'] ?? '') : null,
+                'entity_type' => $entityType,
+                'entity_public_id' => $entityPublicId,
+                'field_public_id' => $fPid,
+                'code' => (string)($field['code'] ?? ''),
+                'title' => (string)($field['title'] ?? ''),
+                'type' => (string)($field['type'] ?? 'text'),
+                'options' => $options,
+                'is_required' => (int)($field['is_required'] ?? 0) === 1,
+                'value' => $decodedValue,
+                'field' => [
+                    'public_id' => $fPid,
+                    'scope' => (string)($field['scope'] ?? $entityType),
+                    'code' => (string)($field['code'] ?? ''),
+                    'title' => (string)($field['title'] ?? ''),
+                    'type' => (string)($field['type'] ?? 'text'),
+                    'options' => $options,
+                    'is_required' => (int)($field['is_required'] ?? 0) === 1,
+                ],
+                'created_at' => $saved !== null ? (string)($saved['created_at'] ?? '') : null,
+                'updated_at' => $saved !== null ? (string)($saved['updated_at'] ?? '') : null,
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
      * @param array<string,mixed> $actor
      */
     public function setValues(string $entityType, string $entityPublicId, array $values, array $actor): array|string
@@ -195,8 +265,11 @@ final class CustomFieldService
 
         $upserted = [];
         $now = gmdate('Y-m-d H:i:s');
-        foreach ($values as $fieldPublicId => $value) {
-            $field = $this->fields->findByPublicId((string)$fieldPublicId);
+        foreach ($values as $fieldKey => $value) {
+            $field = $this->fields->findByPublicId((string)$fieldKey);
+            if (!$field) {
+                $field = $this->fields->findByScopeCode($entityType, (string)$fieldKey);
+            }
             if (!$field) {
                 return 'FIELD_NOT_FOUND';
             }
