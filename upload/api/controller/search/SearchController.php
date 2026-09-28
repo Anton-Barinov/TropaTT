@@ -14,6 +14,7 @@ final class SearchController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
         $contextError = $this->rejectInvalidOrganizationContext();
         if ($contextError !== null) return $contextError;
 
@@ -39,6 +40,7 @@ final class SearchController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
         $contextError = $this->rejectInvalidOrganizationContext();
         if ($contextError !== null) return $contextError;
 
@@ -68,6 +70,7 @@ final class SearchController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
         $contextError = $this->rejectInvalidOrganizationContext();
         if ($contextError !== null) return $contextError;
 
@@ -97,6 +100,7 @@ final class SearchController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
         $contextError = $this->rejectInvalidOrganizationContext();
         if ($contextError !== null) return $contextError;
 
@@ -135,6 +139,7 @@ final class SearchController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
         $contextError = $this->rejectInvalidOrganizationContext();
         if ($contextError !== null) return $contextError;
 
@@ -169,6 +174,7 @@ final class SearchController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
         $contextError = $this->rejectInvalidOrganizationContext();
         if ($contextError !== null) return $contextError;
 
