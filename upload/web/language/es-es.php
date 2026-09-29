@@ -202,6 +202,8 @@ return array (
     'webhook_update_fail' => 'Failed to update webhook',
     'webhook_updated' => 'Webhook updated',
     'webhooks_empty' => 'Webhooks not found.',
+    'card_languages_title' => 'Idiomas',
+    'card_languages_desc' => 'Gestionar idiomas disponibles y localización.',
   ),
   'admin_ai' => 
   array (
@@ -4667,7 +4669,6 @@ return array (
     'state_ai_thinking' => 'AI is thinking...',
     'state_all_answered' => 'All questions answered.',
     'state_all_done' => 'All blocks done',
-
     'state_queuing_analysis' => 'Poniendo análisis en cola...',
     'state_queue_error' => 'Error al poner análisis en cola',
     'state_queue_in_progress' => 'Los pasos ya estan en cola — rastreando el progreso...',
@@ -5064,7 +5065,7 @@ return array (
     ),
     'pab' => 
     array (
-      'rate_cards' =>
+      'rate_cards' => 
       array (
         'any_activity' => 'Cualquiera',
         'any_role' => 'Cualquiera',
@@ -5089,7 +5090,7 @@ return array (
         'unassigned' => 'Asignación eliminada',
         'yes' => 'Sí',
       ),
-      'my_earnings' =>
+      'my_earnings' => 
       array (
         'no_project' => '—',
       ),
@@ -8221,12 +8222,12 @@ return array (
     'title' => '404 No Encontrado',
     'page_title' => '404 — Página No Encontrada',
     'message' => 'Ruta no encontrada:',
-    'module_inactive' => 'Este módulo no está activado. Vaya a Administración \u2192 Módulos y haga clic en \u00abActivar\u00bb.',
+    'module_inactive' => 'Este módulo no está activado. Vaya a Administración \\u2192 Módulos y haga clic en \\u00abActivar\\u00bb.',
     'activate_module' => 'Activar módulo',
     'go_modules' => 'Ir a módulos',
-    'activating' => 'Activando {module}\u2026',
-    'module_activated' => '\u2713 Módulo activado.',
-    'open_module' => 'Abrir módulo \u2192',
+    'activating' => 'Activando {module}\\u2026',
+    'module_activated' => '\\u2713 Módulo activado.',
+    'open_module' => 'Abrir módulo \\u2192',
     'activation_error' => 'Error de activación',
     'network_error' => 'Error de red',
   ),
@@ -8440,7 +8441,6 @@ return array (
     'update_failed' => 'Failed to update organization',
     'select' => 'Use workspace',
     'selected' => 'Active workspace',
-
   ),
   'organizations' => 
   array (
@@ -9329,8 +9329,8 @@ return array (
     ),
     'tab_knowledge' => 'Knowledge Base',
     'knowledge_title' => 'Linked Pages',
-      'knowledge.loading' => 'Cargando...',
-  'task_detail.knowledge_loading' => 'Cargando...',
+    'knowledge.loading' => 'Cargando...',
+    'task_detail.knowledge_loading' => 'Cargando...',
     'knowledge_empty' => 'No linked pages',
     'team_knowledge_title' => 'Materiales del equipo',
     'team_knowledge_empty' => 'No hay materiales del equipo',
@@ -10513,7 +10513,7 @@ return array (
     'success' => 'Acceso activado. Ya puede iniciar sesión.',
     'accept_failed' => 'No se pudo activar el acceso. Compruebe el enlace e inténtelo de nuevo.',
   ),
-  'my_earnings' =>
+  'my_earnings' => 
   array (
     'title' => 'Mi remuneración',
     'page_title' => 'Mi remuneración',
@@ -10534,7 +10534,7 @@ return array (
     'rate_not_set_title' => 'Tarifa de remuneración no definida',
     'rate_not_set_hint' => 'Contacte con su gestor para definir la tarifa de su contrato.',
   ),
-  'rate_cards' =>
+  'rate_cards' => 
   array (
     'title' => 'Listas de precios',
     'page_title' => 'Listas de precios',
@@ -10597,14 +10597,13 @@ return array (
   'knowledge.search_placeholder' => 'Buscar en materiales...',
   'knowledge.empty' => 'No hay materiales del equipo',
   'knowledge.no_match' => 'No se encontró nada',
-    'knowledge.loading' => 'Cargando...',
+  'knowledge.loading' => 'Cargando...',
   'task_detail.knowledge_loading' => 'Cargando...',
   'js.pab.catalog_empty' => 'No se encontraron resultados',
   'sla.create_title' => 'Crear política SLA',
   'custom_field.create_title' => 'Crear campo personalizado',
   'organization.create_title' => 'Crear organización',
   'priority.create_title' => 'Crear prioridad',
-
   'topbar.workspace_label' => 'Espacio de trabajo',
   'organization.members_search' => 'Buscar miembro',
   'organization.members_save' => 'Guardar miembros',
@@ -10626,4 +10625,35 @@ return array (
   'organization.search_empty_suffix' => '»',
   'organization.added' => 'Agregado',
   'organization.add' => '+ Agregar',
+  'admin_languages' => 
+  array (
+    'title' => 'TropaTT — Idiomas y localización',
+    'link_admin' => 'Administración',
+    'breadcrumb' => 'Idiomas y localización',
+    'page_title' => 'Idiomas y localización',
+    'subtitle' => 'Gestión de idiomas de la interfaz, estado de activación e idioma predeterminado.',
+    'refresh_btn' => 'Actualizar',
+    'note' => 'Los idiomas deshabilitados no se eliminan, pero se ocultan del inicio de sesión y del perfil. El idioma predeterminado no se puede deshabilitar.',
+    'section_installed_title' => 'Idiomas instalados',
+    'section_installed_note' => 'Lista de paquetes de idiomas disponibles y gestión de disponibilidad.',
+    'th_language' => 'Idioma',
+    'th_native_name' => 'Nombre nativo',
+    'th_direction' => 'Dirección',
+    'th_type' => 'Tipo',
+    'th_default' => 'Predeterminado',
+    'th_status' => 'Estado',
+    'empty' => 'No se encontraron idiomas instalados',
+    'type_builtin' => 'Integrado',
+    'type_pack' => 'Paquete de idioma',
+    'badge_default' => 'Principal',
+    'btn_set_default' => 'Establecer como principal',
+    'cannot_disable_default' => 'No se puede deshabilitar el idioma principal del sistema',
+    'load_failed' => 'Error al cargar la lista de idiomas',
+    'enabled_success' => 'Idioma habilitado con éxito',
+    'disabled_success' => 'Idioma deshabilitado y oculto de la interfaz',
+    'toggle_failed' => 'Error al cambiar el estado del idioma',
+    'confirm_set_default' => '¿Establecer este idioma como principal del sistema?',
+    'default_changed_success' => 'Idioma principal del sistema actualizado con éxito',
+    'default_change_failed' => 'Error al cambiar el idioma principal',
+  ),
 );

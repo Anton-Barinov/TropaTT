@@ -342,7 +342,6 @@ return array (
     'state_ai_thinking' => 'AI думает...',
     'state_all_answered' => 'Все вопросы отвечены.',
     'state_all_done' => 'Все блоки выполнены',
-
     'state_queuing_analysis' => 'Постановка анализа в очередь...',
     'state_queue_error' => 'Ошибка постановки в очередь',
     'state_queue_in_progress' => 'Шаги уже в очереди — отслеживаю выполнение...',
@@ -1866,7 +1865,7 @@ return array (
     ),
     'pab' => 
     array (
-      'rate_cards' =>
+      'rate_cards' => 
       array (
         'any_activity' => 'Любой',
         'any_role' => 'Любая',
@@ -1891,7 +1890,7 @@ return array (
         'unassigned' => 'Привязка удалена',
         'yes' => 'Да',
       ),
-      'my_earnings' =>
+      'my_earnings' => 
       array (
         'no_project' => '—',
       ),
@@ -4560,12 +4559,12 @@ return array (
     'title' => '404 — Страница не найдена',
     'page_title' => '404 — Страница не найдена',
     'message' => 'Не найден маршрут:',
-    'module_inactive' => 'Этот модуль не активирован. Перейдите в Администрирование \u2192 Модули и нажмите \u00abАктивировать\u00bb.',
+    'module_inactive' => 'Этот модуль не активирован. Перейдите в Администрирование \\u2192 Модули и нажмите \\u00abАктивировать\\u00bb.',
     'activate_module' => 'Активировать модуль',
     'go_modules' => 'Перейти к модулям',
-    'activating' => 'Активация {module}\u2026',
-    'module_activated' => '\u2713 Модуль активирован.',
-    'open_module' => 'Открыть модуль \u2192',
+    'activating' => 'Активация {module}\\u2026',
+    'module_activated' => '\\u2713 Модуль активирован.',
+    'open_module' => 'Открыть модуль \\u2192',
     'activation_error' => 'Ошибка активации',
     'network_error' => 'Ошибка сети',
   ),
@@ -5393,8 +5392,8 @@ return array (
     ),
     'tab_knowledge' => 'База знаний',
     'knowledge_title' => 'Связанные страницы',
-      'knowledge.loading' => 'Загрузка...',
-  'task_detail.knowledge_loading' => 'Загрузка...',
+    'knowledge.loading' => 'Загрузка...',
+    'task_detail.knowledge_loading' => 'Загрузка...',
     'knowledge_empty' => 'Нет связанных страниц',
     'team_knowledge_title' => 'Материалы команды',
     'team_knowledge_empty' => 'Нет материалов команды',
@@ -7536,6 +7535,8 @@ return array (
     'webhook_update_fail' => 'Не удалось обновить вебхук',
     'webhook_updated' => 'Вебхук обновлён',
     'webhooks_empty' => 'Вебхуки не найдены.',
+    'card_languages_title' => 'Языки',
+    'card_languages_desc' => 'Управление доступными языками и локализацией.',
   ),
   'admin_roles' => 
   array (
@@ -9643,7 +9644,6 @@ return array (
     'update_failed' => 'Не удалось обновить рабочее пространство',
     'select' => 'Выбрать workspace',
     'selected' => 'Активный workspace',
-
   ),
   'template' => 
   array (
@@ -10467,7 +10467,7 @@ return array (
     'success' => 'Доступ активирован. Теперь вы можете войти в систему.',
     'accept_failed' => 'Не удалось активировать доступ. Проверьте ссылку и попробуйте снова.',
   ),
-  'my_earnings' =>
+  'my_earnings' => 
   array (
     'title' => 'Моё вознаграждение',
     'page_title' => 'Моё вознаграждение',
@@ -10488,7 +10488,7 @@ return array (
     'rate_not_set_title' => 'Ставка вознаграждения не задана',
     'rate_not_set_hint' => 'Обратитесь к менеджеру, чтобы задать ставку по вашему договору.',
   ),
-  'rate_cards' =>
+  'rate_cards' => 
   array (
     'title' => 'Прайс-листы',
     'page_title' => 'Прайс-листы',
@@ -10551,7 +10551,7 @@ return array (
   'knowledge.search_placeholder' => 'Поиск по материалам...',
   'knowledge.empty' => 'Нет материалов команды',
   'knowledge.no_match' => 'Ничего не найдено',
-    'knowledge.loading' => 'Загрузка...',
+  'knowledge.loading' => 'Загрузка...',
   'task_detail.knowledge_loading' => 'Загрузка...',
   'js.pab.catalog_empty' => 'Ничего не найдено',
   'sla.create_title' => 'Создать SLA-политику',
@@ -10582,4 +10582,35 @@ return array (
   'organization.added' => 'Добавлен',
   'organization.add' => '+ Добавить',
   'priority.create_title' => 'Создать приоритет',
+  'admin_languages' => 
+  array (
+    'title' => 'TropaTT — Языки и локализация',
+    'link_admin' => 'Админка',
+    'breadcrumb' => 'Языки и локализация',
+    'page_title' => 'Языки и локализация',
+    'subtitle' => 'Управление доступными языками интерфейса, статусом активности и языком по умолчанию.',
+    'refresh_btn' => 'Обновить',
+    'note' => 'Отключенные языки не удаляются из системы, но скрываются из формы входа и настроек пользователя. Язык по умолчанию отключить нельзя.',
+    'section_installed_title' => 'Установленные языки',
+    'section_installed_note' => 'Список доступных языковых пакетов и управление их доступностью.',
+    'th_language' => 'Язык',
+    'th_native_name' => 'Самоназвание',
+    'th_direction' => 'Письмо',
+    'th_type' => 'Тип',
+    'th_default' => 'По умолчанию',
+    'th_status' => 'Активность',
+    'empty' => 'Установленные языки не найдены',
+    'type_builtin' => 'Встроенный',
+    'type_pack' => 'Языковой пакет',
+    'badge_default' => 'Основной',
+    'btn_set_default' => 'Сделать основным',
+    'cannot_disable_default' => 'Нельзя отключить основной язык системы',
+    'load_failed' => 'Не удалось загрузить список языков',
+    'enabled_success' => 'Язык успешно включен',
+    'disabled_success' => 'Язык отключен и скрыт из интерфейса',
+    'toggle_failed' => 'Ошибка переключения языка',
+    'confirm_set_default' => 'Сделать этот язык основным языком системы?',
+    'default_changed_success' => 'Основной язык системы успешно изменен',
+    'default_change_failed' => 'Не удалось изменить основной язык',
+  ),
 );

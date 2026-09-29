@@ -202,6 +202,8 @@ return array (
     'webhook_update_fail' => 'Failed to update webhook',
     'webhook_updated' => 'Webhook updated',
     'webhooks_empty' => 'Webhooks not found.',
+    'card_languages_title' => 'Langues',
+    'card_languages_desc' => 'Gérer les langues disponibles et la localisation.',
   ),
   'admin_ai' => 
   array (
@@ -4667,7 +4669,6 @@ return array (
     'state_ai_thinking' => 'AI is thinking...',
     'state_all_answered' => 'All questions answered.',
     'state_all_done' => 'All blocks done',
-
     'state_queuing_analysis' => 'Mise en file d\'attente de l\'analyse...',
     'state_queue_error' => 'Erreur lors de la mise en file d\'attente',
     'state_queue_in_progress' => 'Les etapes sont deja en file d\'attente — suivi de la progression...',
@@ -4745,10 +4746,10 @@ return array (
     'state_untitled' => 'Untitled',
     'state_updated' => 'updated ',
     'state_waiting_answers' => 'Waiting for answers:',
-    'state_awaiting_human' => "Le pipeline attend vos réponses à l'entretien...",
-    'state_waiting_worker' => "Démarrage du worker de file d'attente en arrière-plan...",
-    'state_generating_slow' => "La génération prend plus de temps que d'habitude, en attente de la réponse de l'IA...",
-    'state_interview_timeout' => "Délai d'attente de la réponse IA dépassé. Cliquez sur « Poser des questions à l'IA » pour réessayer.",
+    'state_awaiting_human' => 'Le pipeline attend vos réponses à l\'entretien...',
+    'state_waiting_worker' => 'Démarrage du worker de file d\'attente en arrière-plan...',
+    'state_generating_slow' => 'La génération prend plus de temps que d\'habitude, en attente de la réponse de l\'IA...',
+    'state_interview_timeout' => 'Délai d\'attente de la réponse IA dépassé. Cliquez sur « Poser des questions à l\'IA » pour réessayer.',
     'status_approved' => 'Approved',
     'status_draft' => 'Draft',
     'status_in_progress' => 'In progress',
@@ -5064,7 +5065,7 @@ return array (
     ),
     'pab' => 
     array (
-      'rate_cards' =>
+      'rate_cards' => 
       array (
         'any_activity' => 'Tout',
         'any_role' => 'Tout',
@@ -5089,7 +5090,7 @@ return array (
         'unassigned' => 'Affectation supprimée',
         'yes' => 'Oui',
       ),
-      'my_earnings' =>
+      'my_earnings' => 
       array (
         'no_project' => '—',
       ),
@@ -8221,12 +8222,12 @@ return array (
     'title' => '404 Introuvable',
     'page_title' => '404 — Page introuvable',
     'message' => 'Route introuvable :',
-    'module_inactive' => 'Ce module n\'est pas activé. Allez dans Administration \u2192 Modules et cliquez sur \u00abActiver\u00bb.',
+    'module_inactive' => 'Ce module n\'est pas activé. Allez dans Administration \\u2192 Modules et cliquez sur \\u00abActiver\\u00bb.',
     'activate_module' => 'Activer le module',
     'go_modules' => 'Aller aux modules',
-    'activating' => 'Activation de {module}\u2026',
-    'module_activated' => '\u2713 Module activé.',
-    'open_module' => 'Ouvrir le module \u2192',
+    'activating' => 'Activation de {module}\\u2026',
+    'module_activated' => '\\u2713 Module activé.',
+    'open_module' => 'Ouvrir le module \\u2192',
     'activation_error' => 'Erreur d\'activation',
     'network_error' => 'Erreur réseau',
   ),
@@ -8440,7 +8441,6 @@ return array (
     'update_failed' => 'Failed to update organization',
     'select' => 'Use workspace',
     'selected' => 'Active workspace',
-
   ),
   'organizations' => 
   array (
@@ -9329,8 +9329,8 @@ return array (
     ),
     'tab_knowledge' => 'Knowledge Base',
     'knowledge_title' => 'Linked Pages',
-      'knowledge.loading' => 'Chargement...',
-  'task_detail.knowledge_loading' => 'Chargement...',
+    'knowledge.loading' => 'Chargement...',
+    'task_detail.knowledge_loading' => 'Chargement...',
     'knowledge_empty' => 'No linked pages',
     'team_knowledge_title' => 'Matériels de l\'équipe',
     'team_knowledge_empty' => 'Aucun matériel d\'équipe',
@@ -10513,7 +10513,7 @@ return array (
     'success' => 'Accès activé. Vous pouvez maintenant vous connecter.',
     'accept_failed' => 'Échec de l\'activation de l\'accès. Vérifiez le lien et réessayez.',
   ),
-  'my_earnings' =>
+  'my_earnings' => 
   array (
     'title' => 'Ma rémunération',
     'page_title' => 'Ma rémunération',
@@ -10534,7 +10534,7 @@ return array (
     'rate_not_set_title' => 'Taux de rémunération non défini',
     'rate_not_set_hint' => 'Contactez votre manager pour définir le taux de votre contrat.',
   ),
-  'rate_cards' =>
+  'rate_cards' => 
   array (
     'title' => 'Grilles tarifaires',
     'page_title' => 'Grilles tarifaires',
@@ -10588,7 +10588,7 @@ return array (
     'rates_th_role' => 'Rôle',
     'rates_th_source' => 'Source',
     'opt_server_errors' => 'Erreurs serveur',
-    'server_errors_unavailable' => "Le journal des erreurs serveur n'est pas disponible",
+    'server_errors_unavailable' => 'Le journal des erreurs serveur n\'est pas disponible',
   ),
   'todo_list' => 'Liste de tâches',
   'table' => 'Tableau',
@@ -10597,14 +10597,13 @@ return array (
   'knowledge.search_placeholder' => 'Rechercher dans les documents...',
   'knowledge.empty' => 'Aucun document d\'équipe',
   'knowledge.no_match' => 'Rien trouvé',
-    'knowledge.loading' => 'Chargement...',
+  'knowledge.loading' => 'Chargement...',
   'task_detail.knowledge_loading' => 'Chargement...',
   'js.pab.catalog_empty' => 'Aucun résultat',
   'sla.create_title' => 'Créer une politique SLA',
   'custom_field.create_title' => 'Créer un champ personnalisé',
   'organization.create_title' => 'Créer une organisation',
   'priority.create_title' => 'Créer une priorité',
-
   'topbar.workspace_label' => 'Espace de travail',
   'organization.members_search' => 'Rechercher un membre',
   'organization.members_save' => 'Enregistrer les membres',
@@ -10626,4 +10625,35 @@ return array (
   'organization.search_empty_suffix' => '»',
   'organization.added' => 'Ajouté',
   'organization.add' => '+ Ajouter',
+  'admin_languages' => 
+  array (
+    'title' => 'TropaTT — Langues et localisation',
+    'link_admin' => 'Administration',
+    'breadcrumb' => 'Langues et localisation',
+    'page_title' => 'Langues et localisation',
+    'subtitle' => 'Gestion des langues d’interface disponibles, du statut d’activation et de la langue par défaut.',
+    'refresh_btn' => 'Actualiser',
+    'note' => 'Les langues désactivées ne sont pas supprimées mais sont masquées de la page de connexion et du profil. La langue par défaut ne peut pas être désactivée.',
+    'section_installed_title' => 'Langues installées',
+    'section_installed_note' => 'Liste des packs de langues disponibles et gestion de leur disponibilité.',
+    'th_language' => 'Langue',
+    'th_native_name' => 'Nom d’origine',
+    'th_direction' => 'Sens de lecture',
+    'th_type' => 'Type',
+    'th_default' => 'Par défaut',
+    'th_status' => 'Statut',
+    'empty' => 'Aucune langue installée trouvée',
+    'type_builtin' => 'Intégré',
+    'type_pack' => 'Pack de langue',
+    'badge_default' => 'Par défaut',
+    'btn_set_default' => 'Définir par défaut',
+    'cannot_disable_default' => 'Impossible de désactiver la langue principale du système',
+    'load_failed' => 'Échec du chargement de la liste des langues',
+    'enabled_success' => 'Langue activée avec succès',
+    'disabled_success' => 'Langue désactivée et masquée de l’interface',
+    'toggle_failed' => 'Échec du basculement de la langue',
+    'confirm_set_default' => 'Définir cette langue comme langue par défaut du système ?',
+    'default_changed_success' => 'Langue par défaut du système modifiée avec succès',
+    'default_change_failed' => 'Échec de la modification de la langue par défaut',
+  ),
 );

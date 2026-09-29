@@ -202,6 +202,8 @@ return array (
     'webhook_update_fail' => 'Failed to update webhook',
     'webhook_updated' => 'Webhook updated',
     'webhooks_empty' => 'Webhooks not found.',
+    'card_languages_title' => 'Sprachen',
+    'card_languages_desc' => 'Verfügbare Sprachen und Lokalisierung verwalten.',
   ),
   'admin_ai' => 
   array (
@@ -4667,7 +4669,6 @@ return array (
     'state_ai_thinking' => 'AI is thinking...',
     'state_all_answered' => 'All questions answered.',
     'state_all_done' => 'All blocks done',
-
     'state_queuing_analysis' => 'Analyse wird in die Warteschlange gestellt...',
     'state_queue_error' => 'Fehler beim Einreihen der Analyse',
     'state_queue_in_progress' => 'Schritte sind bereits in der Warteschlange — Fortschritt wird verfolgt...',
@@ -5064,7 +5065,7 @@ return array (
     ),
     'pab' => 
     array (
-      'rate_cards' =>
+      'rate_cards' => 
       array (
         'any_activity' => 'Beliebig',
         'any_role' => 'Beliebig',
@@ -5089,7 +5090,7 @@ return array (
         'unassigned' => 'Zuordnung entfernt',
         'yes' => 'Ja',
       ),
-      'my_earnings' =>
+      'my_earnings' => 
       array (
         'no_project' => '—',
       ),
@@ -8221,12 +8222,12 @@ return array (
     'title' => '404 Nicht gefunden',
     'page_title' => '404 — Seite nicht gefunden',
     'message' => 'Route nicht gefunden:',
-    'module_inactive' => 'Dieses Modul ist nicht aktiviert. Gehen Sie zu Verwaltung \u2192 Module und klicken Sie auf \u00abAktivieren\u00bb.',
+    'module_inactive' => 'Dieses Modul ist nicht aktiviert. Gehen Sie zu Verwaltung \\u2192 Module und klicken Sie auf \\u00abAktivieren\\u00bb.',
     'activate_module' => 'Modul aktivieren',
     'go_modules' => 'Zu den Modulen',
-    'activating' => 'Aktivierung {module}\u2026',
-    'module_activated' => '\u2713 Modul aktiviert.',
-    'open_module' => 'Modul \u00f6ffnen \u2192',
+    'activating' => 'Aktivierung {module}\\u2026',
+    'module_activated' => '\\u2713 Modul aktiviert.',
+    'open_module' => 'Modul \\u00f6ffnen \\u2192',
     'activation_error' => 'Aktivierungsfehler',
     'network_error' => 'Netzwerkfehler',
   ),
@@ -8440,7 +8441,6 @@ return array (
     'update_failed' => 'Failed to update organization',
     'select' => 'Use workspace',
     'selected' => 'Active workspace',
-
   ),
   'organizations' => 
   array (
@@ -9329,8 +9329,8 @@ return array (
     ),
     'tab_knowledge' => 'Knowledge Base',
     'knowledge_title' => 'Linked Pages',
-      'knowledge.loading' => 'Laden...',
-  'task_detail.knowledge_loading' => 'Laden...',
+    'knowledge.loading' => 'Laden...',
+    'task_detail.knowledge_loading' => 'Laden...',
     'knowledge_empty' => 'No linked pages',
     'team_knowledge_title' => 'Team-Materialien',
     'team_knowledge_empty' => 'Keine Team-Materialien',
@@ -10513,7 +10513,7 @@ return array (
     'success' => 'Zugang aktiviert. Sie können sich jetzt anmelden.',
     'accept_failed' => 'Aktivierung fehlgeschlagen. Überprüfen Sie den Link und versuchen Sie es erneut.',
   ),
-  'my_earnings' =>
+  'my_earnings' => 
   array (
     'title' => 'Meine Vergütung',
     'page_title' => 'Meine Vergütung',
@@ -10534,7 +10534,7 @@ return array (
     'rate_not_set_title' => 'Vergütungssatz nicht festgelegt',
     'rate_not_set_hint' => 'Wenden Sie sich an Ihren Manager, um den Satz Ihres Vertrags festzulegen.',
   ),
-  'rate_cards' =>
+  'rate_cards' => 
   array (
     'title' => 'Preislisten',
     'page_title' => 'Preislisten',
@@ -10597,14 +10597,13 @@ return array (
   'knowledge.search_placeholder' => 'In Materialien suchen...',
   'knowledge.empty' => 'Keine Team-Materialien',
   'knowledge.no_match' => 'Nichts gefunden',
-    'knowledge.loading' => 'Laden...',
+  'knowledge.loading' => 'Laden...',
   'task_detail.knowledge_loading' => 'Laden...',
   'js.pab.catalog_empty' => 'Nichts gefunden',
   'sla.create_title' => 'SLA-Richtlinie erstellen',
   'custom_field.create_title' => 'Benutzerdefiniertes Feld erstellen',
   'organization.create_title' => 'Organisation erstellen',
   'priority.create_title' => 'Priorität erstellen',
-
   'topbar.workspace_label' => 'Arbeitsbereich',
   'organization.members_search' => 'Mitglied suchen',
   'organization.members_save' => 'Mitglieder speichern',
@@ -10626,4 +10625,35 @@ return array (
   'organization.search_empty_suffix' => '«',
   'organization.added' => 'Hinzugefügt',
   'organization.add' => '+ Hinzufügen',
+  'admin_languages' => 
+  array (
+    'title' => 'TropaTT — Sprachen & Lokalisierung',
+    'link_admin' => 'Administration',
+    'breadcrumb' => 'Sprachen & Lokalisierung',
+    'page_title' => 'Sprachen & Lokalisierung',
+    'subtitle' => 'Verwaltung verfügbarer Schnittstellensprachen, Aktivitätsstatus und Standardsprache.',
+    'refresh_btn' => 'Aktualisieren',
+    'note' => 'Deaktivierte Sprachen werden nicht gelöscht, aber auf der Anmeldeseite und im Profil ausgeblendet. Die Standardsprache kann nicht deaktiviert werden.',
+    'section_installed_title' => 'Installierte Sprachen',
+    'section_installed_note' => 'Liste der verfügbaren Sprachpakete und Verwaltung ihrer Verfügbarkeit.',
+    'th_language' => 'Sprache',
+    'th_native_name' => 'Einheimischer Name',
+    'th_direction' => 'Schreibrichtung',
+    'th_type' => 'Typ',
+    'th_default' => 'Standard',
+    'th_status' => 'Status',
+    'empty' => 'Keine installierten Sprachen gefunden',
+    'type_builtin' => 'Integriert',
+    'type_pack' => 'Sprachpaket',
+    'badge_default' => 'Standard',
+    'btn_set_default' => 'Als Standard festlegen',
+    'cannot_disable_default' => 'Die Systemsprache kann nicht deaktiviert werden',
+    'load_failed' => 'Fehler beim Laden der Sprachliste',
+    'enabled_success' => 'Sprache erfolgreich aktiviert',
+    'disabled_success' => 'Sprache deaktiviert und in der Oberfläche ausgeblendet',
+    'toggle_failed' => 'Fehler beim Umschalten der Sprache',
+    'confirm_set_default' => 'Diese Sprache als Standardsprache des Systems festlegen?',
+    'default_changed_success' => 'Standardsprache des Systems erfolgreich geändert',
+    'default_change_failed' => 'Fehler beim Ändern der Standardsprache',
+  ),
 );

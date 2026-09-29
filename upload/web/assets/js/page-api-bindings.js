@@ -27205,6 +27205,179 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     await loadSystemInfo();
   }
 
+  async function renderAdminLanguagesPage() {
+    var tableBody = document.getElementById('adminLanguagesTableBody');
+    var refreshBtn = document.getElementById('adminLanguagesRefreshBtn');
+    var countBadge = document.getElementById('adminLanguagesCountBadge');
+    if (!tableBody) return;
+
+    var flags = {
+      'ru-ru': '🇷🇺',
+      'en-gb': '🇬🇧',
+      'en-en': '🇬🇧',
+      'zh-cn': '🇨🇳',
+      'es-es': '🇪🇸',
+      'pt-br': '🇧🇷',
+      'de-de': '🇩🇪',
+      'fr-fr': '🇫🇷',
+      'it-it': '🇮🇹',
+      'ar-sa': '🇸🇦',
+      'he-il': '🇮🇱'
+    };
+
+    async function loadLanguages() {
+      tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4"><i class="fa-solid fa-spinner fa-spin me-2"></i>' + tp('page.loading', 'Загрузка...') + '</td></tr>';
+      try {
+        var envelope = await tryRequest('api/v1/admin/languages');
+        var languages = (envelope && envelope.data && envelope.data.languages) || [];
+
+        if (countBadge) {
+          countBadge.textContent = String(languages.length);
+        }
+
+        if (!languages.length) {
+          tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">' + tp('admin_languages.empty', 'Установленные языки не найдены') + '</td></tr>';
+          return;
+        }
+
+        tableBody.innerHTML = '';
+        languages.forEach(function (lang) {
+          var tr = document.createElement('tr');
+          if (!lang.is_enabled) {
+            tr.classList.add('table-light', 'text-muted');
+          }
+
+          var flag = flags[lang.code] || '🌐';
+          var isDefault = Boolean(lang.is_default);
+          var isEnabled = Boolean(lang.is_enabled);
+          var isRtl = lang.direction === 'rtl';
+
+          // Language col
+          var tdLang = document.createElement('td');
+          tdLang.innerHTML = '<span class="fs-5 me-2 align-middle">' + flag + '</span>' +
+            '<span class="fw-semibold align-middle">' + escapeHtml(lang.name || lang.code) + '</span> ' +
+            '<span class="badge bg-light text-secondary border font-monospace ms-1 align-middle">' + escapeHtml(lang.code) + '</span>';
+          tr.appendChild(tdLang);
+
+          // Native name col
+          var tdNative = document.createElement('td');
+          tdNative.className = 'text-muted';
+          tdNative.textContent = lang.native_name || '—';
+          tr.appendChild(tdNative);
+
+          // Direction col
+          var tdDir = document.createElement('td');
+          tdDir.innerHTML = isRtl
+            ? '<span class="badge bg-warning-subtle text-warning border border-warning-subtle">RTL</span>'
+            : '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">LTR</span>';
+          tr.appendChild(tdDir);
+
+          // Type col
+          var tdType = document.createElement('td');
+          tdType.innerHTML = lang.is_builtin
+            ? '<span class="badge bg-primary-subtle text-primary border border-primary-subtle">' + tp('admin_languages.type_builtin', 'Встроенный') + '</span>'
+            : '<span class="badge bg-info-subtle text-info border border-info-subtle">' + tp('admin_languages.type_pack', 'Языковой пакет') + '</span>';
+          tr.appendChild(tdType);
+
+          // Default col
+          var tdDefault = document.createElement('td');
+          if (isDefault) {
+            tdDefault.innerHTML = '<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="fa-solid fa-star text-warning me-1"></i>' + tp('admin_languages.badge_default', 'Основной') + '</span>';
+          } else if (isEnabled) {
+            var makeDefaultBtn = document.createElement('button');
+            makeDefaultBtn.type = 'button';
+            makeDefaultBtn.className = 'btn btn-sm crm-btn-secondary py-0 px-2 set-default-btn';
+            makeDefaultBtn.setAttribute('data-code', lang.code);
+            makeDefaultBtn.innerHTML = '<i class="fa-regular fa-star me-1"></i>' + tp('admin_languages.btn_set_default', 'Сделать основным');
+            makeDefaultBtn.addEventListener('click', function () {
+              changeDefaultLanguage(lang.code, lang.name || lang.code);
+            });
+            tdDefault.appendChild(makeDefaultBtn);
+          } else {
+            tdDefault.innerHTML = '<span class="text-muted small">—</span>';
+          }
+          tr.appendChild(tdDefault);
+
+          // Status toggle col
+          var tdStatus = document.createElement('td');
+          tdStatus.className = 'text-end';
+          var formCheck = document.createElement('div');
+          formCheck.className = 'form-check form-switch d-inline-block mb-0';
+
+          var toggleInput = document.createElement('input');
+          toggleInput.className = 'form-check-input lang-toggle-switch';
+          toggleInput.type = 'checkbox';
+          toggleInput.role = 'switch';
+          toggleInput.checked = isEnabled;
+          toggleInput.setAttribute('data-code', lang.code);
+
+          if (isDefault) {
+            toggleInput.disabled = true;
+            toggleInput.title = tp('admin_languages.cannot_disable_default', 'Нельзя отключить основной язык системы');
+          } else {
+            toggleInput.addEventListener('change', function () {
+              toggleLanguageStatus(lang.code, this.checked, this);
+            });
+          }
+
+          formCheck.appendChild(toggleInput);
+          tdStatus.appendChild(formCheck);
+          tr.appendChild(tdStatus);
+
+          tableBody.appendChild(tr);
+        });
+      } catch (e) {
+        tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">' + tp('admin_languages.load_failed', 'Не удалось загрузить список языков') + '</td></tr>';
+      }
+    }
+
+    async function toggleLanguageStatus(code, enabled, inputEl) {
+      inputEl.disabled = true;
+      try {
+        await request('api/v1/admin/languages/toggle', {
+          method: 'POST',
+          body: { code: code, enabled: enabled }
+        });
+        notify(enabled
+          ? tp('admin_languages.enabled_success', 'Язык успешно включен')
+          : tp('admin_languages.disabled_success', 'Язык отключен и скрыт из интерфейса'));
+        await loadLanguages();
+      } catch (err) {
+        inputEl.checked = !enabled;
+        var errorObj = window.CRM.api && window.CRM.api.normalizeError ? window.CRM.api.normalizeError(err, tp('admin_languages.toggle_failed', 'Ошибка переключения языка')) : tp('admin_languages.toggle_failed', 'Ошибка переключения языка');
+        notify(errorObj, 'error');
+      } finally {
+        inputEl.disabled = false;
+      }
+    }
+
+    async function changeDefaultLanguage(code, name) {
+      if (!window.confirm(tp('admin_languages.confirm_set_default', 'Сделать язык «' + name + '» основным языком системы?'))) {
+        return;
+      }
+      try {
+        await request('api/v1/admin/languages/default', {
+          method: 'POST',
+          body: { code: code }
+        });
+        notify(tp('admin_languages.default_changed_success', 'Основной язык системы успешно изменен'));
+        await loadLanguages();
+      } catch (err) {
+        var errorObj = window.CRM.api && window.CRM.api.normalizeError ? window.CRM.api.normalizeError(err, tp('admin_languages.default_change_failed', 'Не удалось изменить основной язык')) : tp('admin_languages.default_change_failed', 'Не удалось изменить основной язык');
+        notify(errorObj, 'error');
+      }
+    }
+
+    if (refreshBtn && refreshBtn.dataset.bound !== '1') {
+      refreshBtn.dataset.bound = '1';
+      refreshBtn.addEventListener('click', function () {
+        loadLanguages();
+      });
+    }
+
+    await loadLanguages();
+  }
+
   function setupCounterpartyDetailInteractions() {
     if (window.CRM._counterpartyDetailInteractionsBound) return;
     window.CRM._counterpartyDetailInteractionsBound = true;
@@ -33763,6 +33936,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       // (loaded only on that route in footer.php); the legacy monolith renderer
       // renderAdminApiClientsPage is intentionally not dispatched here anymore.
       if (route === 'admin-settings') return await renderAdminSettingsPage();
+      if (route === 'admin-languages') return await renderAdminLanguagesPage();
       if (route === 'admin-logs') return await renderAdminLogsPage();
       if (route === 'admin-jobs') return await renderAdminJobsPage();
       if (route === 'admin-ai') return await renderAdminAiPage();

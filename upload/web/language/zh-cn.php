@@ -341,7 +341,6 @@ return array (
     'state_ai_thinking' => 'AI is thinking...',
     'state_all_answered' => 'All questions answered.',
     'state_all_done' => 'All blocks done',
-
     'state_queuing_analysis' => '正在排队分析...',
     'state_queue_error' => '排队分析出错',
     'state_queue_in_progress' => '步骤已在队列中 — 正在跟踪进度...',
@@ -1865,7 +1864,7 @@ return array (
     ),
     'pab' => 
     array (
-      'rate_cards' =>
+      'rate_cards' => 
       array (
         'any_activity' => '任意',
         'any_role' => '任意',
@@ -1890,7 +1889,7 @@ return array (
         'unassigned' => '已移除关联',
         'yes' => '是',
       ),
-      'my_earnings' =>
+      'my_earnings' => 
       array (
         'no_project' => '—',
       ),
@@ -4559,12 +4558,12 @@ return array (
     'title' => '404 Not Found',
     'page_title' => '404 — 页面未找到',
     'message' => '未找到路由：',
-    'module_inactive' => '此模块未激活。请转到管理 \u2192 模块并点击 \u00ab激活\u00bb。',
+    'module_inactive' => '此模块未激活。请转到管理 \\u2192 模块并点击 \\u00ab激活\\u00bb。',
     'activate_module' => '激活模块',
     'go_modules' => '前往模块',
-    'activating' => '正在激活 {module}\u2026',
-    'module_activated' => '\u2713 模块已激活。',
-    'open_module' => '打开模块 \u2192',
+    'activating' => '正在激活 {module}\\u2026',
+    'module_activated' => '\\u2713 模块已激活。',
+    'open_module' => '打开模块 \\u2192',
     'activation_error' => '激活错误',
     'network_error' => '网络错误',
   ),
@@ -5175,8 +5174,8 @@ return array (
     'modal_ai_regenerate_updated_label' => 'Updated',
     'tab_knowledge' => '知识库',
     'knowledge_title' => '关联页面',
-      'knowledge.loading' => '加载中...',
-  'task_detail.knowledge_loading' => '加载中...',
+    'knowledge.loading' => '加载中...',
+    'task_detail.knowledge_loading' => '加载中...',
     'knowledge_empty' => '暂无关联页面',
     'team_knowledge_title' => '团队资料',
     'team_knowledge_empty' => '暂无团队资料',
@@ -7528,6 +7527,8 @@ return array (
     'webhook_update_fail' => 'Failed to update webhook',
     'webhook_updated' => 'Webhook updated',
     'webhooks_empty' => 'Webhooks not found.',
+    'card_languages_title' => '语言管理',
+    'card_languages_desc' => '管理系统可用语言与本地化配置。',
   ),
   'admin_roles' => 
   array (
@@ -9568,7 +9569,6 @@ return array (
     'update_failed' => 'Failed to update organization',
     'select' => 'Use workspace',
     'selected' => 'Active workspace',
-
   ),
   'template' => 
   array (
@@ -10513,7 +10513,7 @@ return array (
     'success' => '访问已激活。您现在可以登录了。',
     'accept_failed' => '激活访问失败。请检查链接后重试。',
   ),
-  'my_earnings' =>
+  'my_earnings' => 
   array (
     'title' => '我的报酬',
     'page_title' => '我的报酬',
@@ -10534,7 +10534,7 @@ return array (
     'rate_not_set_title' => '报酬费率未设置',
     'rate_not_set_hint' => '请联系经理设置您合同的费率。',
   ),
-  'rate_cards' =>
+  'rate_cards' => 
   array (
     'title' => '价目表',
     'page_title' => '价目表',
@@ -10597,14 +10597,13 @@ return array (
   'knowledge.search_placeholder' => '搜索材料...',
   'knowledge.empty' => '暂无团队材料',
   'knowledge.no_match' => '未找到结果',
-    'knowledge.loading' => '加载中...',
+  'knowledge.loading' => '加载中...',
   'task_detail.knowledge_loading' => '加载中...',
   'js.pab.catalog_empty' => '未找到结果',
   'sla.create_title' => '创建SLA策略',
   'custom_field.create_title' => '创建自定义字段',
   'organization.create_title' => '创建组织',
   'priority.create_title' => '创建优先级',
-
   'topbar.workspace_label' => '工作空间',
   'organization.members_search' => '查找成员',
   'organization.members_save' => '保存成员',
@@ -10626,4 +10625,35 @@ return array (
   'organization.search_empty_suffix' => '»',
   'organization.added' => '已添加',
   'organization.add' => '+ 添加',
+  'admin_languages' => 
+  array (
+    'title' => 'TropaTT — 语言与本地化',
+    'link_admin' => '管理后台',
+    'breadcrumb' => '语言与本地化',
+    'page_title' => '语言与本地化',
+    'subtitle' => '管理可用界面语言、启用状态以及系统默认语言。',
+    'refresh_btn' => '刷新',
+    'note' => '已禁用的语言不会从系统中删除，但在登录界面和个人设置中将隐藏。系统默认语言不可禁用。',
+    'section_installed_title' => '已安装语言',
+    'section_installed_note' => '可用语言包列表及启用状态管理。',
+    'th_language' => '语言',
+    'th_native_name' => '本土名称',
+    'th_direction' => '书写方向',
+    'th_type' => '类型',
+    'th_default' => '默认语言',
+    'th_status' => '状态',
+    'empty' => '未找到已安装的语言',
+    'type_builtin' => '内置',
+    'type_pack' => '语言包',
+    'badge_default' => '默认',
+    'btn_set_default' => '设为默认',
+    'cannot_disable_default' => '无法禁用系统默认语言',
+    'load_failed' => '加载语言列表失败',
+    'enabled_success' => '语言已成功启用',
+    'disabled_success' => '语言已禁用并从界面中隐藏',
+    'toggle_failed' => '切换语言状态失败',
+    'confirm_set_default' => '确定将此语言设为系统默认语言吗？',
+    'default_changed_success' => '系统默认语言已成功更改',
+    'default_change_failed' => '更改默认语言失败',
+  ),
 );
