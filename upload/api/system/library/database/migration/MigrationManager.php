@@ -104,6 +104,7 @@ final class MigrationManager
             new FileOrganizationBackfillMigration(),
             new UserAvatarMigration(),
             new OrganizationScopeExtendedMigration(),
+            new SubtaskOrganizationBackfillMigration(),
         ];
     }
 
