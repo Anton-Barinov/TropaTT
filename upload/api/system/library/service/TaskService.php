@@ -28,7 +28,8 @@ final class TaskService
         private readonly ?ProjectRepository $projectRepo = null,
         private readonly ?HtmlSanitizer $htmlSanitizer = null,
         private readonly ?ExternalUserService $externalUsers = null,
-        private readonly ?SubtaskRepository $subtasks = null
+        private readonly ?SubtaskRepository $subtasks = null,
+        private readonly ?SettingService $settings = null
     )
     {
     }
@@ -468,7 +469,9 @@ final class TaskService
         }
 
         $isAuthor = (int)($task['creator_user_id'] ?? 0) === $actorUserId;
-        if (!$isAuthor && (array_key_exists('title', $input) || array_key_exists('description', $input))
+        $isAssignee = (int)($task['assignee_user_id'] ?? 0) === $actorUserId;
+        $allowAssigneeEdit = $this->isAssigneeEditIdentityAllowed();
+        if (!$isAuthor && !($allowAssigneeEdit && $isAssignee) && (array_key_exists('title', $input) || array_key_exists('description', $input))
             && !ActorPermission::canManageTasks($actor)) {
             return 'FORBIDDEN_TASK_IDENTITY_EDIT';
         }
@@ -988,5 +991,18 @@ final class TaskService
         }
 
         return $result;
+    }
+
+    private function isAssigneeEditIdentityAllowed(): bool
+    {
+        if ($this->settings === null) {
+            return false;
+        }
+        $val = $this->settings->get('system', 'tasks.allow_assignee_edit_identity');
+        if ($val === null) {
+            return false;
+        }
+        $v = is_array($val) ? ($val['value'] ?? false) : $val;
+        return filter_var($v, FILTER_VALIDATE_BOOLEAN);
     }
 }

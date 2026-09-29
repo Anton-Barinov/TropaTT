@@ -124,4 +124,33 @@
   </div>
 </div>
 
+<div class="row g-3 mb-3" id="adminTaskSettingsSection">
+  <div class="col-12">
+    <div class="crm-card crm-section-card h-100">
+      <div class="crm-section-head"><div><h2 class="h6 mb-0" data-i18n="admin_settings.section_tasks_title"><?= htmlspecialchars($t('admin_settings.section_tasks_title', 'Политики задач и учёта времени'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="admin_settings.section_tasks_note"><?= htmlspecialchars($t('admin_settings.section_tasks_note', 'Управление правилами трекинга времени и редактирования названий и описаний задач.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
+      <div class="crm-section-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label" for="tasksWorklogPolicy" data-i18n="admin_settings.tasks_worklog_policy"><?= htmlspecialchars($t('admin_settings.tasks_worklog_policy', 'Политика трекинга времени в задачи'), ENT_QUOTES, 'UTF-8') ?></label>
+            <select class="form-select crm-field-w-200" id="tasksWorklogPolicy">
+              <option value="all_project_members" data-i18n="admin_settings.tasks_worklog_policy_all"><?= htmlspecialchars($t('admin_settings.tasks_worklog_policy_all', 'Все участники проекта (совместная работа)'), ENT_QUOTES, 'UTF-8') ?></option>
+              <option value="assignee_only" data-i18n="admin_settings.tasks_worklog_policy_assignee"><?= htmlspecialchars($t('admin_settings.tasks_worklog_policy_assignee', 'Только назначенный исполнитель (строгий режим)'), ENT_QUOTES, 'UTF-8') ?></option>
+            </select>
+            <div class="form-text" data-i18n="admin_settings.tasks_worklog_policy_hint"><?= htmlspecialchars($t('admin_settings.tasks_worklog_policy_hint', 'В строгом режиме списывать время могут только назначенные исполнители (или менеджеры). Если исполнитель не назначен (общие задачи), время могут списывать любые участники проекта.'), ENT_QUOTES, 'UTF-8') ?></div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label d-block" data-i18n="admin_settings.tasks_allow_assignee_edit_identity"><?= htmlspecialchars($t('admin_settings.tasks_allow_assignee_edit_identity', 'Разрешить исполнителю менять название и описание задачи'), ENT_QUOTES, 'UTF-8') ?></label>
+            <div class="form-check form-switch mt-2">
+              <input class="form-check-input" type="checkbox" role="switch" id="tasksAllowAssigneeEditIdentity">
+              <label class="form-check-label fw-semibold" for="tasksAllowAssigneeEditIdentity" data-i18n="admin_settings.tasks_allow_assignee_edit_identity"><?= htmlspecialchars($t('admin_settings.tasks_allow_assignee_edit_identity', 'Разрешить исполнителю менять название и описание задачи'), ENT_QUOTES, 'UTF-8') ?></label>
+            </div>
+            <div class="form-text" data-i18n="admin_settings.tasks_allow_assignee_edit_identity_hint"><?= htmlspecialchars($t('admin_settings.tasks_allow_assignee_edit_identity_hint', 'По умолчанию менять название и описание могут только создатель задачи и менеджеры. Включение опции позволяет назначенному исполнителю обновлять заголовок и формулировку задачи.'), ENT_QUOTES, 'UTF-8') ?></div>
+          </div>
+        </div>
+        <button class="btn crm-btn-primary mt-3" id="adminTaskSettingsSaveBtn" type="button" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </main></div></div>
