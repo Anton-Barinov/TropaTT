@@ -73,6 +73,21 @@ final class LanguageController extends BaseController
 
         try {
             $result = $this->registry()->toggle($code, $enabled);
+
+            try {
+                if ($this->container->has('module.config')) {
+                    $mc = $this->container->get('module.config');
+                    $moduleCode = 'crm.language-pack-' . $code;
+                    if ($mc->getRegistry($moduleCode) !== null) {
+                        if ($enabled) {
+                            $mc->setActive($moduleCode);
+                        } else {
+                            $mc->setInactive($moduleCode);
+                        }
+                    }
+                }
+            } catch (\Throwable) {}
+
             return $this->success('LANGUAGE_TOGGLED', $this->t('common/messages.success', 'Success'), $result);
         } catch (InvalidArgumentException $e) {
             return $this->error('VALIDATION_ERROR', $e->getMessage(), 422);
