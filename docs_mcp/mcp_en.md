@@ -14,7 +14,7 @@ TropaTT CRM ships an embedded MCP server — a JSON-RPC 2.0 interface that gives
 | Protocol version | `2025-06-18` |
 | Batch requests | Supported (JSON array) |
 | Notifications | Supported (messages without id) |
-| MCP tools | 620 in the full catalog (`toolset=all`); `tools/list` defaults to the 27-tool `core` profile (8 mega-tools + 3 AgentOS orchestration tools + 16 regular) |
+| MCP tools | 621 in the full catalog (`toolset=all`); `tools/list` defaults to the 27-tool `core` profile (8 mega-tools + 3 AgentOS orchestration tools + 16 regular) |
 | MCP resources | 6 |
 | MCP prompts | 0 |
 
@@ -129,7 +129,7 @@ AI actions are logged via AiJobService/AiAuditService; import/export and workflo
 
 ## Toolsets (profiles)
 
-The full MCP catalog is large (620 tools). To avoid loading it all into every agent session, `tools/list` returns a curated **`core`** profile by default (27 tools: profile, search, dashboard, notifications, activity, basic read/create, 8 mega-tools, plus 3 AgentOS orchestration tools). Domain profiles are available:
+The full MCP catalog is large (621 tools). To avoid loading it all into every agent session, `tools/list` returns a curated **`core`** profile by default (27 tools: profile, search, dashboard, notifications, activity, basic read/create, 8 mega-tools, plus 3 AgentOS orchestration tools). Domain profiles are available:
 
 | Profile | Scope |
 |---------|-------|
@@ -157,7 +157,7 @@ The catalog size affects every request: agent clients that register MCP tools in
 | `people` | 60 | ~5.7K tokens |
 | `time` | 32 | ~2.6K tokens |
 | `admin` | 149 | ~12.2K tokens |
-| `all` | 620 | ~53K tokens |
+| `all` | 621 | ~53K tokens |
 
 The full catalog is ~18× more expensive than the default `core` profile, so prefer a narrow toolset whenever the session is domain-focused.
 

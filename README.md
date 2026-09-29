@@ -21,7 +21,7 @@
 > - **Product:** TropaTT — Free Self-Hosted Open-Source CRM & Work Management Platform.
 > - **Architecture:** PHP 8.1+, MySQL 8.0+ / MariaDB 10.4+. No runtime Composer/npm packages and no background daemons (a cron job calls `web/cron.php`). Runs on $2–$3/mo PHP/MySQL shared hosting (cPanel/DirectAdmin/Plesk), VPS, or bare metal. No official Docker image yet.
 > - **Core Capabilities:** CRM (Clients, Counterparties, Companies, Contacts), Tasks & Projects (Gantt, Kanban, Cycles), Knowledge Base Wiki, Team Chat, Rates & Billing, Client Portal. Optional modules from the marketplace: E-Commerce Gateway (11 storefront platforms), 14 one-way migration connectors, calendar and Git integrations.
-> - **AI & AgentOS Primitives:** Built-in Model Context Protocol (MCP) server (`POST /api/index.php?route=api/v1/mcp`) exposing **620 tools** (a 27-tool `core` profile by default) and **6 resources** with RBAC and `density: "compact"` (up to 85% token savings). Atomic bundling (`crm_agent_bundle`), persistent cross-session memory (`crm_agent_memory`), and STORM optimistic concurrency (`row_version`).
+> - **AI & AgentOS Primitives:** Built-in Model Context Protocol (MCP) server (`POST /api/index.php?route=api/v1/mcp`) exposing **621 tools** (a 27-tool `core` profile by default) and **6 resources** with RBAC and `density: "compact"` (up to 85% token savings). Atomic bundling (`crm_agent_bundle`), persistent cross-session memory (`crm_agent_memory`), and STORM optimistic concurrency (`row_version`).
 > - **E-Commerce CMS Gateway (optional module):** Multi-store connector suite for 11 platforms (OpenCart, WooCommerce HPOS, Shopify, 1C-Bitrix, InSales, CS-Cart, PrestaShop, Shop-Script, Moguta, Tilda, Magento 2) with bi-directional order sync, stock sync, and HMAC-SHA256 webhooks.
 > - **Documentation Suite:** REST API ([EN](docs_api/api_en.md) · [RU](docs_api/api_ru.md) · [ZH](docs_api/api_zh.md)), MCP Server ([EN](docs_mcp/mcp_en.md) · [RU](docs_mcp/mcp_ru.md) · [ZH](docs_mcp/mcp_zh.md)), Modules SDK ([EN](docs_modules/modules_en.md) · [RU](docs_modules/modules_ru.md) · [ZH](docs_modules/modules_zh.md)).
 
@@ -145,7 +145,7 @@ Here's the problem. You have clients in one app. Tasks in another. Team chat in 
 
 - **CRM + task manager + project tracker in one place.** Client cards, task hierarchies, Kanban boards, Gantt timelines, team chat, knowledge base wiki, and client portal — all on the same data. No copying between apps. No "wait, where did we discuss that?"
 - **Actual AI that helps you work.** Not a chatbot sidebar. AI idea analysis turns a sentence like "client wants a booking integration" into a full task hierarchy with subtasks and priorities. AI daily and weekly plans tell you what to focus on — based on your real deadlines and workload. It generates summaries, checklists, risk assessments, meeting briefs. Tools that save time, not gimmicks.
-- **Built-in Model Context Protocol (MCP) server.** Connect Claude Code, Cursor, Codex, OpenDevin, ChatGPT, and other AI coding agents directly to your CRM with 620 tools and 6 resources under strict RBAC permissions.
+- **Built-in Model Context Protocol (MCP) server.** Connect Claude Code, Cursor, Codex, OpenDevin, ChatGPT, and other AI coding agents directly to your CRM with 621 tools and 6 resources under strict RBAC permissions.
 - **Built-in team chat.** No Slack, no Discord, no extra subscription. Discussions live next to the work.
 - **Universal E-Commerce Gateway.** Optional module (from the marketplace) with a canonical JSON contract and connectors for 11 e-commerce platforms (OpenCart 1.5–4.x, WooCommerce HPOS, Shopify, 1C-Bitrix, InSales, CS-Cart, PrestaShop, Shop-Script, Moguta, Tilda, Magento 2) with HMAC-SHA256 signatures, bi-directional sync, and idempotency.
 - **No artificial SaaS limits.** No plan-based user caps, task caps, or project caps. Your real limits are your server resources, not a vendor pricing page.
@@ -164,7 +164,7 @@ Here's the problem. You have clients in one app. Tasks in another. Team chat in 
 | **Hosting Support** | **Any $2–$3/mo shared hosting (cPanel/DirectAdmin), VPS, bare metal** | Requires dedicated VPS/VDS or bare metal server | Requires dedicated VPS/VDS or Atlassian Cloud | SaaS only | VPS / Dedicated server |
 | **External PHP/npm Deps** | **0 packages (Custom micro-kernel, no supply chain risk)** | Hundreds of proprietary libraries | Complex Java/JS stack | Proprietary SaaS | 100+ Composer/npm packages |
 | **Integrated Suite** | **CRM + Tasks + Kanban + Gantt + Chat + Wiki + Client Portal + Rates** | Comprehensive but fragmented / complex UI | Tasks only (needs Confluence, Slack, CRM plugins) | CRM only (needs Jira, Slack, etc.) | CRM-centric (limited task/chat/Gantt capabilities) |
-| **AI Workflows & MCP** | **Built-in MCP Server (620 tools) + 22 AI workflows (BYO keys, 0% markup)** | Proprietary CoPilot (expensive add-on) | Atlassian Intelligence (SaaS enterprise only) | HubSpot Breeze (expensive tier) | None or basic community OpenAI plugin |
+| **AI Workflows & MCP** | **Built-in MCP Server (621 tools) + 28 AI workflows (BYO keys, 0% markup)** | Proprietary CoPilot (expensive add-on) | Atlassian Intelligence (SaaS enterprise only) | HubSpot Breeze (expensive tier) | None or basic community OpenAI plugin |
 | **E-Commerce Gateway** | **Connector module for 11 platforms (OpenCart, WooCommerce, Shopify, etc.)** | Built-in 1C-Bitrix store, paid marketplace apps | None (requires external Zapier/middleware) | Paid integrations | Limited community modules |
 | **Data Sovereignty & Privacy**| **100% on your server (compliance under your control; telemetry stays in your database)** | Stored on vendor cloud or on-premise license | Stored on Atlassian Cloud (EU/US regions) | Stored on HubSpot Cloud | On-premise capable |
 
@@ -250,7 +250,7 @@ TropaTT works for anyone managing clients and executing work — regardless of t
 | **Analytics** | Dashboards, KPIs, workload, risks, team capacity | Decisions from real execution data |
 | **Automation** | Workflow rules, SLA, approvals, webhooks, jobs | Less manual coordination, fewer errors |
 | **AI (20+ tools)** | Idea analysis, plans, decomposition, summaries, checklists, risk review, meeting prep | AI that saves time in real workflows |
-| **MCP Server** | 620 tools + 6 resources for Claude Code, Cursor, Codex, OpenDevin, ChatGPT | Connect autonomous AI agents directly to your data |
+| **MCP Server** | 621 tools + 6 resources for Claude Code, Cursor, Codex, OpenDevin, ChatGPT | Connect autonomous AI agents directly to your data |
 | **Modular SDK** | Drop-in modules, event bus (`ModuleEvents`), UI slot injection, DB migrations | Infinite customization without modifying core files |
 | **Admin** | Users, roles, permissions, feature flags, modules, logs | Full control over your workspace |
 | **Intake** | Capture, triage, and accept incoming client requests before turning them into tasks | Separate raw requests from real work, accept into tasks in one click |
@@ -273,12 +273,12 @@ Here's how it works. You write a few sentences about an idea, client need, or pr
 
 Real example: _"Client wants a booking system integrated with their website."_ → AI proposes: research existing APIs (2 subtasks) → design integration architecture → implement booking endpoint → build frontend UI → integration tests → deployment checklist. What was a 30-minute manual planning session becomes a 30-second review-and-confirm.
 
-**All 22 AI workflows:**
+**All 28 AI workflows:**
 
-AI Idea Analysis · Task Decomposition · Daily Work Plan · Weekly Work Plan · Task Summary · Next Action Suggestions · Checklist Generation · Task Quality Review · Comment Draft Generation · Task Priority Ordering · Project Summary · Project Risk Summary · Project Client Report · Client Summary · Client Meeting Preparation · Client Data Quality Review · Analytics KPI Explanation · Analytics Risks Explanation · Team Workload Summary · Calendar Event Agenda · Dashboard Daily Digest · Semantic Search
+AI Idea Analysis · Task Decomposition · Daily Work Plan · Weekly Work Plan · Task Summary · Next Action Suggestions · Checklist Generation · Task Quality Review · Comment Draft Generation · Task Priority Ordering · Project Summary · Project Risk Summary · Project Client Report · Client Summary · Client Meeting Preparation · Client Data Quality Review · Analytics KPI Explanation · Analytics Risks Explanation · Team Workload Summary · Calendar Event Agenda · Dashboard Daily Digest · Semantic Search · Client Safe Report · Admin Log Review · Webhook Health Review · Workflow Rule Audit · Knowledge Summary · Knowledge Simplify
 
 **AgentOS 2026 Engine Primitives:**
-- **Model Context Protocol (MCP) Server:** Exposes **620 tools** and **6 resources** covering tasks, projects, clients, contacts, chats, calendar, analytics, and knowledge base.
+- **Model Context Protocol (MCP) Server:** Exposes **621 tools** and **6 resources** covering tasks, projects, clients, contacts, chats, calendar, analytics, and knowledge base.
 - **Context Density Optimization:** Supports `density: "compact"` on list queries, stripping decorative metadata and reducing prompt token overhead by up to 85%.
 - **Atomic Task Bundling (`crm_agent_bundle`):** Allows an AI agent to create a parent task, definition of done (DoD) checklist items, and subtasks in a single atomic database transaction.
 - **Persistent Agent Memory (`crm_agent_memory`):** Multi-session memory store for AI agents with semantic search, entity graph linking, and export capabilities.
@@ -288,7 +288,7 @@ AI Idea Analysis · Task Decomposition · Daily Work Plan · Weekly Work Plan ·
 - Preview-only by default. No automatic writes to your data.
 - All AI calls go through the backend API. Provider keys never reach the browser.
 - Role-based access per AI capability.
-- 43 feature flags for granular rollout.
+- 40 feature flags for granular rollout.
 - Rate and cost limits per workflow type.
 - Raw prompts and sensitive context are not stored by default. Only sanitized metadata.
 
@@ -352,10 +352,10 @@ TropaTT's automation and API are production-grade. Built for teams that need the
 - **API clients and keys** — programmatic access with scoped permissions.
 - **Background jobs** — scheduled and queued for imports, exports, AI workflows.
 - **Module system** — extend business logic without touching core. 19 CLI commands.
-- **Generated REST API endpoints** — every entity, task, project, chat, calendar, analytic, and admin function accessible via API (970 core route records; modules add their own).
+- **Generated REST API endpoints** — every entity, task, project, chat, calendar, analytic, and admin function accessible via API (984 core route records; modules add their own).
 - **Zero Documentation Drift** — release gate strictly enforces 100% parity between routes.php and API documentation.
 - **OpenAPI 3.1 spec** — generated from route config, never out of sync with reality.
-- **MCP server — 620 tools, 6 resources** — a Model Context Protocol endpoint that connects Claude Code, Cursor, Codex, OpenDevin, and ChatGPT to the CRM with safe, permission-scoped access to your data (reference: [`docs_mcp/mcp_en.md`](docs_mcp/mcp_en.md)).
+- **MCP server — 621 tools, 6 resources** — a Model Context Protocol endpoint that connects Claude Code, Cursor, Codex, OpenDevin, and ChatGPT to the CRM with safe, permission-scoped access to your data (reference: [`docs_mcp/mcp_en.md`](docs_mcp/mcp_en.md)).
 
 ---
 
@@ -363,7 +363,7 @@ TropaTT's automation and API are production-grade. Built for teams that need the
 
 TropaTT ships a **built-in MCP (Model Context Protocol) server** — the standard protocol understood by **Claude Code, Cursor, Codex, OpenDevin, ChatGPT, and other AI coding agents**. Point any MCP-compatible agent at your CRM and it can read, analyze, and manage your real data: tasks, projects, clients, contacts, chats, calendar, analytics, and the knowledge base — through a safe, permission-scoped layer.
 
-- **620 MCP tools + 6 resources** — every domain is covered: tasks, projects, clients, contacts, chats, calendar, worklogs, analytics, knowledge base, and more.
+- **621 MCP tools + 6 resources** — every domain is covered: tasks, projects, clients, contacts, chats, calendar, worklogs, analytics, knowledge base, and more.
 - **AgentOS 2026 Core Support** — includes `crm_agent_bundle` for atomic task/DoD/subtask orchestration, `crm_agent_memory` for persistent cross-session knowledge storage with semantic search and entity linking, `crm_chat` for structured agent messaging, and `density: "compact"` for token savings.
 - **Works with Claude Code, Cursor, Codex, OpenDevin, and ChatGPT.** Connect the agent to your installation the same way you connect it to any MCP server.
 - **Same data, same rules as the web UI.** Every agent action goes through the same REST API and RBAC permission checks — no direct database access, no bypassing roles.
@@ -477,13 +477,13 @@ Yes. Minimum team size: 1. Manage clients, track tasks, plan your day with AI, a
 Yes. Standard PHP 8.1+/MySQL shared hosting ($2–$3/month) is enough. The browser installer handles everything.
 
 **What can the AI do?**
-22 workflows: idea analysis (turns a paragraph into a task plan), daily/weekly plans, task decomposition, summaries, checklists, risk reviews, meeting prep, and more. You bring your AI provider keys. Processing is server-side. AI never modifies data without your review.
+28 workflows: idea analysis (turns a paragraph into a task plan), daily/weekly plans, task decomposition, summaries, checklists, risk reviews, meeting prep, and more. You bring your AI provider keys. Processing is server-side. AI never modifies data without your review.
 
 **How does AI idea analysis work?**
 You describe an idea → AI evaluates scope/risks/complexity → AI proposes a structured task hierarchy → you review → one click to convert to real tasks.
 
 **Can AI agents like Claude Code, Cursor, or ChatGPT manage my CRM?**
-Yes. TropaTT includes a built-in MCP (Model Context Protocol) server with 620 tools and 6 resources. Point your AI agent to `POST /api/index.php?route=api/v1/mcp` with a Bearer token. The agent can search, create, and update tasks, counterparties, knowledge articles, and chats under the exact same RBAC permissions as human users. Details: [`docs_mcp/mcp_en.md`](docs_mcp/mcp_en.md).
+Yes. TropaTT includes a built-in MCP (Model Context Protocol) server with 621 tools and 6 resources. Point your AI agent to `POST /api/index.php?route=api/v1/mcp` with a Bearer token. The agent can search, create, and update tasks, counterparties, knowledge articles, and chats under the exact same RBAC permissions as human users. Details: [`docs_mcp/mcp_en.md`](docs_mcp/mcp_en.md).
 
 **How do I build a custom module?**
 A stock installation ships **without** modules: `upload/modules/` holds only its `.htaccess`, and modules are installed on demand from the marketplace (`marketplace.tropatt.com`) via **Administration → Modules → Marketplace** or by copying a package into that directory. The example modules live in `docs_modules/examples/modules/`. Modules live in `upload/modules/<module-name>/`. Each module contains a `manifest.json`, a `ServiceProvider.php` (for DI container binding), event listeners (`ModuleEvents`), UI slot injections (`PositionRegistry`), and transactional database migrations (`up()`/`down()`). Complete step-by-step developer tutorial: [`docs_modules/modules_en.md`](docs_modules/modules_en.md).
@@ -501,7 +501,7 @@ No. TropaTT removes vendor-side limits, not physics. Performance depends on PHP 
 Yes. TropaTT is released under the AGPL-3.0 license. You are free to use it commercially for your business, agency, and clients with zero fees.
 
 **API access?**
-Generated REST API endpoints (970 core route records; modules add their own). OpenAPI 3.1 spec generated from code. Every feature is programmable.
+Generated REST API endpoints (984 core route records; modules add their own). OpenAPI 3.1 spec generated from code. Every feature is programmable.
 
 **Can I customize it?**
 Yes. PHP/MySQL stack, modules, REST API, webhooks, workflow rules, custom fields, roles, permissions.
@@ -518,19 +518,20 @@ Updates are installed from the admin panel (**Admin → System Updates**, no SSH
 
 | Metric | Value |
 |---|---|
-| API endpoints | 970 core route records (installed modules add their own routes) |
-| MCP tools | 620 tools + 6 resources — Model Context Protocol server for AI agents |
-| Web routes | ~69 pages |
-| Backend services | 130+ |
-| Repositories | 90 |
+| API endpoints | 984 core route records (installed modules add their own routes) |
+| MCP tools | 621 tools + 6 resources — Model Context Protocol server for AI agents |
+| Web routes | ~70 pages |
+| Backend services | 139 |
+| Repositories | 114 |
 | Domain modules | 35+ |
 | Optional modules (marketplace) | 24 — incl. 14 migrations from Jira, Trello, Asana, Bitrix24, ClickUp, Todoist, Shtab, Worksection, Confluence, Kaiten, Toggl, ActiveCollab, Notion, Linear; GitHub, GitLab, Slack; Google & Yandex Calendar; WIP limits; draw.io; Raycast; E-Commerce Gateway. The stock install ships no modules. |
 | E-Commerce Connectors | 11 storefront platforms (optional module) (OpenCart 1.5–4.x, WooCommerce HPOS, Shopify, 1C-Bitrix, InSales, CS-Cart, PrestaShop, Shop-Script, Moguta, Tilda, Magento 2) |
-| JS modules | 39 custom vanilla JS modules, no SPA framework, no build step |
+| JS modules | 44 custom vanilla JS modules, no SPA framework, no build step |
 | Public CI | PHP lint on 8.1 and 8.2, client-portal security contract, OpenAPI consistency, web frontend unit tests |
+| Release gate | Live API/MCP suite run by the maintainer against the demo stand; `main` is updated only by the auto-merge step and only when the report shows `failed_count == 0` |
 | AI endpoints | 65 |
-| AI workflows | 22 |
-| Feature flags | 43 |
+| AI workflows | 28 |
+| Feature flags | 40 |
 | Frontend API coverage | Tracked against the generated route inventory |
 | External PHP deps | 0 |
 | Frontend vendor libs | 3 (Bootstrap 5, FA6, SortableJS) |
@@ -641,7 +642,7 @@ The public repository currently includes a focused maintainer documentation set:
 | Maintainer docs | kept local (not published) | Release checklist, security review checklist, Codex for OSS notes, starter issues, GitHub labels |
 | API tooling | `upload/api/scripts/generate_openapi.php` | OpenAPI generation entry point for API documentation automation |
 | API reference | [English](docs_api/api_en.md) · [Русский](docs_api/api_ru.md) · [中文](docs_api/api_zh.md) | Complete REST API reference — endpoints, authentication, RBAC, and conventions (English / Русский / 中文) |
-| MCP reference | [English](docs_mcp/mcp_en.md) · [Русский](docs_mcp/mcp_ru.md) · [中文](docs_mcp/mcp_zh.md) | Complete MCP server reference — 620 tools, resources, authentication, and RBAC (English / Русский / 中文) |
+| MCP reference | [English](docs_mcp/mcp_en.md) · [Русский](docs_mcp/mcp_ru.md) · [中文](docs_mcp/mcp_zh.md) | Complete MCP server reference — 621 tools, resources, authentication, and RBAC (English / Русский / 中文) |
 | Module developer guide | [English](docs_modules/modules_en.md) · [Русский](docs_modules/modules_ru.md) · [中文](docs_modules/modules_zh.md) | Complete module development guide — manifests, service providers, event bus, UI slots, and migrations (English / Русский / 中文) |
 | Web docs | [`UPDATES.md`](UPDATES.md) | Self-update system reference: update server pipeline and the user update flow |
 | Project root | `README.md`, `SECURITY.md`, `CONTRIBUTING.md`, [`MODULE_DEVELOPMENT.md`](MODULE_DEVELOPMENT.md), [`INSTALL_TROUBLESHOOTING.md`](INSTALL_TROUBLESHOOTING.md), [`SHARED_HOSTING_GUIDE.md`](SHARED_HOSTING_GUIDE.md), [`WEBHOOK_SECURITY.md`](WEBHOOK_SECURITY.md) | Public usage, security, contribution, module development, installation troubleshooting, shared hosting, and webhook security guidance |
@@ -668,15 +669,18 @@ The public repository includes standard project files for maintainers, contribut
 TropaTT is maintained with automated checks and a disciplined workflow to keep the codebase stable:
 
 - **Public CI:** Every pull request runs PHP syntax checks (8.1 and 8.2), a client-portal security contract check, OpenAPI route-consistency verification, and web frontend unit tests.
-- **Local testing before pushing:**
+- **Gated releases:** every push to `develop` is verified against the live demo stand by the release gate (`tests/run_all.sh` on the maintainer machine — the suite is intentionally not published); `main` is updated only by the auto-merge step, and only when the report shows `failed_count == 0`.
+- **Checks available in a public clone:**
   ```bash
-  # Fast pre-flight check (PHP lint, security contracts, unit tests)
-  bash tests/run_local.sh --fast
+  # PHP syntax check across the tree
+  find . -name "*.php" -not -path "./upload/vendor/*" -not -path "./upload/modules/*" -print0 | xargs -0 -n1 php -l
 
-  # Full verification suite (includes web smoke tests and OpenAPI checks)
-  bash tests/run_local.sh
+  # Regenerate + verify the OpenAPI contract
+  php upload/api/scripts/generate_openapi.php
+  php upload/api/scripts/api_coverage_check.php
   ```
-- **Branch strategy:** `main` holds stable releases. Development happens in `develop` and feature branches. PRs merge to `develop` after CI passes.
+  The full test suite (`tests/`) lives only in the maintainer worktree and is intentionally not published — do not add it as a CI dependency; describe manual verification in the pull request instead.
+- **Branch strategy:** `main` holds stable releases and is updated only by the gated auto-merge after the live test suite passes. Development happens in `develop` and feature branches; pull requests target `develop`.
 - **Commit convention:** Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`).
 
 ---
@@ -702,7 +706,7 @@ TropaTT is designed to be easily maintained and extended by developers working a
 - **Self-contained micro-kernel:** An AI assistant can read the entire core framework without needing external library knowledge or guessing vendor behavior.
 - **Consistent API response format:** Every endpoint returns `{ success: bool, data?: ..., error?: ... }`, making client-side code and tests completely predictable.
 - **Machine-readable OpenAPI spec:** Tools like Claude Code, Cursor, Codex, and Copilot can ingest `openapi.json` to instantly understand all available endpoints and parameters.
-- **Built-in MCP Server:** Connect your AI directly to the application via Model Context Protocol (620 tools) to query data, inspect configurations, and assist in day-to-day operations.
+- **Built-in MCP Server:** Connect your AI directly to the application via Model Context Protocol (621 tools) to query data, inspect configurations, and assist in day-to-day operations.
 
 ---
 
@@ -715,6 +719,25 @@ TropaTT is created and actively maintained by **Anton Barinov** — PHP develope
 - **Live Demo:** [demo.tropatt.com](https://demo.tropatt.com)
 
 If you find TropaTT useful for your business or agency, consider starring the repository on GitHub!
+
+---
+
+### Copyright and attribution
+
+**Copyright © 2026 Anton Barinov.**
+
+TropaTT is free software released under the [GNU AGPL-3.0](LICENSE): you may use, study, modify and share it — including commercially — provided the source of derived deployments stays available and the license terms are kept.
+
+**Removing, hiding, altering or renaming the author's copyright notices and attribution in this project is prohibited.** That covers, without limitation:
+
+- the `LICENSE` (AGPL-3.0) text and any copyright line attached to it;
+- the author credit in this README («Who built this» / «Кто сделал» / «谁做的») and the `Copyright © Anton Barinov` notice in documentation, release notes and package manifests;
+- copyright and author headers inside source files, module manifests and installer output;
+- the author's name, project name and attribution strings rendered by the UI or printed by the CLI.
+
+Every fork, mirror, downstream packaging and derivative deployment must keep those notices intact and must not present the work as authored by someone else. Derivative works must not imply that the original author endorses or supports them. Nothing here restricts the rights the AGPL-3.0 grants you; it only asks that authorship stays visible wherever the code travels.
+
+Questions about attribution in a specific context: open an issue before publishing.
 
 ## Русский
 
@@ -738,7 +761,7 @@ TropaTT — это бесплатная self-hosted CRM и платформа у
 
 - **CRM + Таск-менеджер + Проектный трекер в одном инструменте.** Карточки клиентов, иерархии задач, Канбан-доски, диаграммы Ганта, встроенный командный чат, база знаний и клиентский портал работают на одних данных. Никакого копирования между приложениями. Никакой потери контекста.
 - **20+ ИИ-инструментов, которые реально помогают работать.** AI-проработка идей превращает сырую мысль в структурированный план задач. AI-план на день подсказывает приоритеты. AI генерирует сводки, декомпозиции, чеклисты, оценки рисков, подготовку к встречам — не покидая рабочее пространство.
-- **Встроенный сервер Model Context Protocol (MCP).** Подключайте Claude Code, Cursor, Codex, OpenDevin, ChatGPT и других ИИ-агентов напрямую к CRM (620 инструментов, 6 ресурсов) с разделением прав доступа (RBAC).
+- **Встроенный сервер Model Context Protocol (MCP).** Подключайте Claude Code, Cursor, Codex, OpenDevin, ChatGPT и других ИИ-агентов напрямую к CRM (621 инструментов, 6 ресурсов) с разделением прав доступа (RBAC).
 - **Встроенный командный чат.** Обсуждайте проекты и задачи там же, где идёт работа. Никакого Slack, Discord или отдельной подписки на мессенджер.
 - **Универсальный E-Commerce CMS Шлюз.** Канонический JSON-контракт и набор коннекторов для 11 платформ (OpenCart 1.5–4.x, 1С-Битрикс, WooCommerce HPOS, InSales, CS-Cart, PrestaShop, Shop-Script, Могута, Tilda, Shopify, Magento 2) с HMAC-SHA256 подписями, двусторонней синхронизацией заказов и остатков.
 - **Без искусственных SaaS-лимитов.** Пользователи, задачи, проекты и клиенты не ограничены тарифным планом. Реальные ограничения задаёт ваш сервер, база данных, хранилище и настройки.
@@ -757,7 +780,7 @@ TropaTT — это бесплатная self-hosted CRM и платформа у
 | **Поддержка хостинга** | **Любой шаред-хостинг от 150 ₽/мес (cPanel/ISPmanager), VPS, сервер** | Требуется мощный VPS/VDS или выделенный сервер | Требуется выделенный VPS или Atlassian Cloud | Только SaaS | VPS / Выделенный сервер |
 | **Внешние PHP/npm зависимости** | **0 пакетов (Собственное микроядро, защита от supply-chain)** | Сотни проприетарных библиотек | Сложный стек Java/JS | Закрытый SaaS | 100+ пакетов Composer/npm |
 | **Единый комбайн** | **CRM + Задачи + Канбан + Гант + Чат + База знаний + Портал + Прайсы** | Комплексный, но перегруженный интерфейс | Только задачи (нужны Confluence, Slack, CRM) | Только CRM (нужны Jira, Slack и др.) | Фокус на CRM (слабые задачи/чат/Гант) |
-| **ИИ и протокол MCP** | **Встроенный MCP-сервер (620 инструментов) + 22 ИИ-процесса (свои ключи, 0% наценки)** | Проприетарный CoPilot (платные пакеты) | Atlassian Intelligence (только enterprise) | HubSpot Breeze (дорогие тарифы) | Нет или базовый плагин сообщества |
+| **ИИ и протокол MCP** | **Встроенный MCP-сервер (621 инструментов) + 28 ИИ-процесса (свои ключи, 0% наценки)** | Проприетарный CoPilot (платные пакеты) | Atlassian Intelligence (только enterprise) | HubSpot Breeze (дорогие тарифы) | Нет или базовый плагин сообщества |
 | **E-Commerce интеграции** | **Модуль-коннектор для 11 CMS (OpenCart, 1С-Битрикс, InSales, WooCommerce и др.)** | Встроенный магазин 1С-Битрикс, платные модули | Нет (требуется Zapier/самописный шлюз) | Платные интеграции | Ограниченные сторонние модули |
 | **Суверенитет данных** | **100% на вашем сервере (соответствие законам — под вашим контролем; телеметрия остаётся в вашей базе)** | Хранение в облаке вендора или в коробке | Atlassian Cloud (серверы за пределами РФ) | Облако HubSpot | Доступен self-hosted |
 
@@ -843,7 +866,7 @@ TropaTT подходит всем, кто управляет клиентами 
 | **Аналитика** | Дашборды, KPI, загрузка команды, карта рисков | Управленческие решения на основе фактических данных |
 | **Автоматизация** | Workflow-правила, SLA-контроль, согласования, вебхуки | Меньше рутины, защита от человеческого фактора |
 | **ИИ (20+ сценариев)**| Проработка идей, декомпозиция, планы дня, чеклисты, риски | ИИ как реальный ассистент, экономящий часы времени |
-| **MCP Сервер** | 620 инструментов + 6 ресурсов для Claude Code, Cursor, Codex, ChatGPT | Прямое безопасное управление CRM для ИИ-агентов |
+| **MCP Сервер** | 621 инструментов + 6 ресурсов для Claude Code, Cursor, Codex, ChatGPT | Прямое безопасное управление CRM для ИИ-агентов |
 | **Модульный SDK** | Hot-pluggable модули, шина событий `ModuleEvents`, UI-слоты, миграции | Расширение функционала без правок ядра |
 | **Администрирование** | Пользователи, роли, RBAC-права, feature-флаги, логи аудита | Полный контроль над безопасностью и функционалом |
 | **Интейк заявок** | Сбор и первичная сортировка входящих обращений до создания задач | Отделение сырых лидов от утвержденного бэклога |
@@ -866,12 +889,12 @@ TropaTT подходит всем, кто управляет клиентами 
 
 Реальный пример: _«Клиент хочет интеграцию системы бронирования на сайт»_ → ИИ предлагает: исследование API (2 подзадачи) → проектирование архитектуры шлюза → разработка эндпоинта → верстка интерфейса → интеграционные тесты → чек-лист развертывания. То, что раньше требовало получаса ручного составления плана, решается за 30 секунд.
 
-**Все 22 ИИ-сценария:**
+**Все 28 ИИ-сценария:**
 
-AI-анализ идей · Декомпозиция задач · План на день · План на неделю · Сводка задачи · Предложения следующих действий · Генерация чеклистов · Контроль качества задач · Черновики комментариев · Приоритизация бэклога · Сводка проекта · Оценка рисков проекта · Отчёт для клиента · Сводка по клиенту · Подготовка к встрече · Аудит качества данных клиентов · Интерпретация KPI · Анализ рисков аналитики · Сводка загрузки команды · Повестка встречи в календаре · Дневной дайджест дашборда · Семантический поиск
+AI-анализ идей · Декомпозиция задач · План на день · План на неделю · Сводка задачи · Предложения следующих действий · Генерация чеклистов · Контроль качества задач · Черновики комментариев · Приоритизация бэклога · Сводка проекта · Оценка рисков проекта · Отчёт для клиента · Сводка по клиенту · Подготовка к встрече · Аудит качества данных клиентов · Интерпретация KPI · Анализ рисков аналитики · Сводка загрузки команды · Повестка встречи в календаре · Дневной дайджест дашборда · Семантический поиск · Безопасный отчёт для клиента · Журнал администратора · Проверка здоровья вебхуков · Аудит правил автоматизации · Сводка по базе знаний · Упрощение статей базы знаний
 
 **Архитектурные примитивы AgentOS 2026:**
-- **Сервер Model Context Protocol (MCP):** 620 инструментов и 6 ресурсов, охватывающих задачи, проекты, клиентов, контакты, чаты, календарь, трудозатраты, аналитику и базу знаний.
+- **Сервер Model Context Protocol (MCP):** 621 инструментов и 6 ресурсов, охватывающих задачи, проекты, клиентов, контакты, чаты, календарь, трудозатраты, аналитику и базу знаний.
 - **Оптимизация контекста `density: "compact"`:** Специальный компактный формат ответов на списочные запросы, экономящий до 85% промпт-токенов при работе с большими объемами данных.
 - **Атомарные пакеты задач (`crm_agent_bundle`):** Создание задачи, критериев приемки (DoD), чеклистов и подзадач в рамках одной транзакции базы данных.
 - **Долговременная память агента (`crm_agent_memory`):** Хранение структурированных фактов и графовых связей между сессиями работы ИИ-агентов с семантическим поиском и экспортом.
@@ -881,7 +904,7 @@ AI-анализ идей · Декомпозиция задач · План на
 - Режим предварительного просмотра по умолчанию. Никаких невидимых модификаций базы.
 - Все вызовы идут через бэкенд: API-ключи никогда не попадают в браузер.
 - Ролевой доступ к каждой ИИ-функции (RBAC).
-- 43 feature-флага для тонкой настройки включения возможностей.
+- 40 feature-флага для тонкой настройки включения возможностей.
 - Лимиты запросов и затрат по типам рабочих процессов.
 - Исходные промпты и конфиденциальные контексты не сохраняются по умолчанию.
 
@@ -945,10 +968,10 @@ AI-анализ идей · Декомпозиция задач · План на
 - **API-клиенты и ключи** — программный доступ с точечными правами (scopes).
 - **Фоновые задачи** — очереди импорта, экспорта, уведомлений и ИИ-обработки.
 - **Модульная система** — расширение логики без вмешательства в ядро, 19 консольных команд.
-- **Сгенерированные эндпоинты REST API** — 970 записей маршрутов ядра (модули добавляют свои).
+- **Сгенерированные эндпоинты REST API** — 984 записей маршрутов ядра (модули добавляют свои).
 - **Контроль документации (Zero Drift)** — строгий гейт CI, гарантирующий 100% соответствие кода и документации.
 - **Спецификация OpenAPI 3.1** — актуальная автогенерируемая схема API.
-- **Сервер MCP (620 инструментов, 6 ресурсов)** — подключение Claude Code, Cursor, Codex, OpenDevin и ChatGPT с контролем доступа (справочник: [`docs_mcp/mcp_ru.md`](docs_mcp/mcp_ru.md)).
+- **Сервер MCP (621 инструментов, 6 ресурсов)** — подключение Claude Code, Cursor, Codex, OpenDevin и ChatGPT с контролем доступа (справочник: [`docs_mcp/mcp_ru.md`](docs_mcp/mcp_ru.md)).
 
 ---
 
@@ -956,7 +979,7 @@ AI-анализ идей · Декомпозиция задач · План на
 
 В TropaTT встроен полноценный сервер **Model Context Protocol (MCP)** — открытого протокола, на котором работают **Claude Code, Cursor, Codex, OpenDevin, ChatGPT и современные ИИ-агенты**. Агент подключается к вашей CRM и безопасно работает с реальными данными: задачами, проектами, контрагентами, контактами, чатами, календарем, трудозатратами и базой знаний.
 
-- **620 MCP-инструментов + 6 ресурсов** — полный охват всех сущностей CRM и управления работой.
+- **621 MCP-инструментов + 6 ресурсов** — полный охват всех сущностей CRM и управления работой.
 - **Поддержка примитивов AgentOS 2026** — пакетное создание задач с чеклистами (`crm_agent_bundle`), долговременная память (`crm_agent_memory`), компактные ответы для экономии контекста.
 - **Работает с Claude Code, Cursor, Codex, OpenDevin, ChatGPT.** Подключение настраивается стандартным образом через JSON-RPC.
 - **Те же правила, что и в веб-интерфейсе.** Все действия агента проверяются через REST API и ролевую модель RBAC: агент не может обойти права доступа или напрямую вмешаться в базу.
@@ -1068,10 +1091,10 @@ TropaTT полностью открыта. Разворачивайте сист
 Да. Стандартного тарифа shared-хостинга с PHP 8.1+ и MySQL за 150–250 ₽/мес вполне достаточно для старта и комфортной работы команды.
 
 **Что умеет искусственный интеллект?**
-22 готовых сценария: анализ идей (превращает абзац текста в иерархию задач), планирование дня и недели, декомпозиция, генерация чеклистов, резюме переписки, оценка рисков проектов, подготовка к переговорам. Вы используете свои API-ключи, платите напрямую провайдеру без наценок, а ИИ работает строго на стороне сервера и только с вашего подтверждения.
+28 готовых сценария: анализ идей (превращает абзац текста в иерархию задач), планирование дня и недели, декомпозиция, генерация чеклистов, резюме переписки, оценка рисков проектов, подготовка к переговорам. Вы используете свои API-ключи, платите напрямую провайдеру без наценок, а ИИ работает строго на стороне сервера и только с вашего подтверждения.
 
 **Могут ли ИИ-агенты (Claude Code, Cursor, ChatGPT) управлять CRM?**
-Да. В TropaTT встроен MCP-сервер (620 инструментов, 6 ресурсов). Подключите агента к адресу `POST /api/index.php?route=api/v1/mcp` с Bearer-токеном. Агент сможет безопасно искать, создавать и обновлять задачи, проекты, базу знаний и записи клиентов с соблюдением ролевых прав (RBAC). Подробнее: [`docs_mcp/mcp_ru.md`](docs_mcp/mcp_ru.md).
+Да. В TropaTT встроен MCP-сервер (621 инструментов, 6 ресурсов). Подключите агента к адресу `POST /api/index.php?route=api/v1/mcp` с Bearer-токеном. Агент сможет безопасно искать, создавать и обновлять задачи, проекты, базу знаний и записи клиентов с соблюдением ролевых прав (RBAC). Подробнее: [`docs_mcp/mcp_ru.md`](docs_mcp/mcp_ru.md).
 
 **Как разработать собственный модуль?**
 Стандартная установка поставляется **без модулей**: в каталоге `upload/modules/` лежит только `.htaccess`, а модули ставятся по необходимости из маркетплейса (`marketplace.tropatt.com`) через **Администрирование → Модули → Маркетплейс** либо копированием пакета в этот каталог. Модули-примеры опубликованы в `docs_modules/examples/modules/`. Модули размещаются в папке `upload/modules/<имя_модуля>/`. Модуль содержит `manifest.json`, класс `ServiceProvider.php` (для регистрации в DI-контейнере), обработчики событий (`ModuleEvents`), слоты внедрения интерфейса (`PositionRegistry`) и транзакционные миграции базы (`up()`/`down()`). Подробное пошаговое руководство разработчика: [`docs_modules/modules_ru.md`](docs_modules/modules_ru.md).
@@ -1097,19 +1120,20 @@ TropaTT полностью открыта. Разворачивайте сист
 
 | Метрика | Значение |
 |---|---|
-| API эндпоинты | 970 записей маршрутов ядра (установленные модули добавляют свои) |
-| MCP инструменты | 620 tools + 6 ресурсов — сервер Model Context Protocol для ИИ-агентов |
-| Веб-маршруты | ~69 страниц |
-| Бэкенд-сервисы | 130+ |
-| Репозитории | 90 |
+| API эндпоинты | 984 записей маршрутов ядра (установленные модули добавляют свои) |
+| MCP инструменты | 621 tools + 6 ресурсов — сервер Model Context Protocol для ИИ-агентов |
+| Веб-маршруты | ~70 страниц |
+| Бэкенд-сервисы | 139 |
+| Репозитории | 114 |
 | Доменные модули | 35+ |
 | Модули (маркетплейс) | 24 — в т.ч. 14 миграций из Jira, Trello, Asana, Битрикс24, ClickUp, Todoist, Штаб, Worksection, Confluence, Kaiten, Toggl, ActiveCollab, Notion, Linear; GitHub, GitLab, Slack; календари Google и Яндекс; WIP-лимиты; draw.io; Raycast; E-Commerce шлюз. Стандартная установка поставляется без модулей. |
 | CMS-коннекторы | 11 платформ (модуль) (OpenCart 1.5–4.x, 1С-Битрикс, WooCommerce HPOS, InSales, CS-Cart, PrestaShop, Shop-Script, Могута, Tilda, Shopify, Magento 2) |
-| JS-модули | 39 собственных модулей на чистом JS, без SPA-фреймворков и сборщиков |
+| JS-модули | 44 собственных модулей на чистом JS, без SPA-фреймворков и сборщиков |
 | Публичный CI | PHP lint (8.1 и 8.2), контракт безопасности клиентского портала, покрытие маршрутов OpenAPI, unit-тесты фронтенда |
+| Гейт релизов | Живой набор API/MCP-тестов запускается мейнтейнером на демо-стенде; `main` обновляется только авто-мерджем и только при `failed_count == 0` |
 | AI-эндпоинты | 65 |
-| AI-сценарии | 22 |
-| Feature-флаги | 43 |
+| AI-сценарии | 28 |
+| Feature-флаги | 40 |
 | Покрытие фронтенд API | Контролируется по инвентарю маршрутов |
 | Внешние PHP-зависимости | 0 |
 | Внешние JS/CSS библиотеки | 3 (Bootstrap 5, FontAwesome 6, SortableJS) |
@@ -1220,7 +1244,7 @@ ADR-006 Web — серверная верификация сессии чере�
 | Maintainer docs | kept local (not published) | Release checklist, security review checklist, Codex for OSS notes, starter issues, GitHub labels |
 | API tooling | `upload/api/scripts/generate_openapi.php` | Точка входа для автоматизации генерации OpenAPI |
 | API-справочник | [Русский](docs_api/api_ru.md) · [English](docs_api/api_en.md) · [中文](docs_api/api_zh.md) | Полный справочник REST API — endpoint'ы, авторизация, RBAC и соглашения (Русский / English / 中文) |
-| MCP-справочник | [Русский](docs_mcp/mcp_ru.md) · [English](docs_mcp/mcp_en.md) · [中文](docs_mcp/mcp_zh.md) | Полный справочник MCP-сервера — 620 tools, ресурсы, авторизация и RBAC (Русский / English / 中文) |
+| MCP-справочник | [Русский](docs_mcp/mcp_ru.md) · [English](docs_mcp/mcp_en.md) · [中文](docs_mcp/mcp_zh.md) | Полный справочник MCP-сервера — 621 tools, ресурсы, авторизация и RBAC (Русский / English / 中文) |
 | Руководство по модулям | [Русский](docs_modules/modules_ru.md) · [English](docs_modules/modules_en.md) · [中文](docs_modules/modules_zh.md) | Полное руководство по разработке модулей — манифест, сервис-провайдеры, шина событий, UI-слоты и миграции (Русский / English / 中文) |
 | Web docs | [`UPDATES.md`](UPDATES.md) | Справочник по системе обновлений: конвейер сервера обновлений и поток обновления для пользователя |
 | Корень проекта | `README.md`, `SECURITY.md`, `CONTRIBUTING.md`, [`MODULE_DEVELOPMENT.md`](MODULE_DEVELOPMENT.md), [`INSTALL_TROUBLESHOOTING.md`](INSTALL_TROUBLESHOOTING.md), [`SHARED_HOSTING_GUIDE.md`](SHARED_HOSTING_GUIDE.md), [`WEBHOOK_SECURITY.md`](WEBHOOK_SECURITY.md) | Публичные правила использования, безопасности, вклада, разработки модулей, troubleshooting установки, shared hosting гайд, webhook security |
@@ -1247,15 +1271,18 @@ ADR-006 Web — серверная верификация сессии чере�
 Стабильность кодовой базы обеспечивается автоматическими проверками и регламентом разработки:
 
 - **Публичный CI:** На каждый Pull Request запускается проверка синтаксиса PHP (8.1 и 8.2), контракт безопасности клиентского портала, валидация схемы OpenAPI и unit-тесты фронтенда.
-- **Локальное тестирование перед коммитом:**
+- **Гейт релизов:** каждый push в `develop` проверяется на демо-стенде живым набором тестов (`tests/run_all.sh` выполняется в рабочей копии мейнтейнера и не публикуется); `main` обновляется только шагом авто-мерджа и только при `failed_count == 0`.
+- **Проверки, доступные в публичном клоне:**
   ```bash
-  # Быстрый pre-flight чек (линтер PHP, контракты безопасности, юнит-тесты)
-  bash tests/run_local.sh --fast
+  # Проверка синтаксиса PHP по всему дереву
+  find . -name "*.php" -not -path "./upload/vendor/*" -not -path "./upload/modules/*" -print0 | xargs -0 -n1 php -l
 
-  # Полный комплект тестов (включая веб-смоук и проверку OpenAPI)
-  bash tests/run_local.sh
+  # Генерация и проверка контракта OpenAPI
+  php upload/api/scripts/generate_openapi.php
+  php upload/api/scripts/api_coverage_check.php
   ```
-- **Ветвление:** `main` содержит стабильные публичные релизы. Активная разработка ведется в ветке `develop`.
+  Полный набор тестов (`tests/`) существует только в рабочей копии мейнтейнера и намеренно не публикуется — не делайте его зависимостью CI; вместо этого опишите ручную проверку в pull request.
+- **Ветвление:** `main` содержит стабильные публичные релизы и обновляется только авто-мерджем после зелёного гейта живых тестов. Активная разработка ведётся в ветке `develop`, pull request направляются в `develop`.
 - **Формат коммитов:** Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`).
 
 ---
@@ -1281,7 +1308,7 @@ ADR-006 Web — серверная верификация сессии чере�
 - **Автономное микроядро:** ИИ-ассистент способен прочитать всё ядро фреймворка без необходимости подгружать контекст сотен сторонних библиотек.
 - **Единый контракт ответов API:** Все эндпоинты возвращают структуру `{ success: bool, data?: ..., error?: ... }`, что упрощает генерацию тестов и клиентского кода.
 - **Машиночитаемый OpenAPI:** Ассистенты уровня Claude Code, Cursor, Codex и Copilot используют `openapi.json` для мгновенного понимания доступных методов и параметров.
-- **Встроенный сервер MCP:** Подключайте ИИ напрямую к CRM через Model Context Protocol (620 инструментов) для анализа данных, поиска задач и регламентных проверок.
+- **Встроенный сервер MCP:** Подключайте ИИ напрямую к CRM через Model Context Protocol (621 инструментов) для анализа данных, поиска задач и регламентных проверок.
 
 ---
 
@@ -1294,6 +1321,25 @@ ADR-006 Web — серверная верификация сессии чере�
 - **Демо-стенд:** [demo.tropatt.com](https://demo.tropatt.com)
 
 Если проект полезен вашему бизнесу или команде, поставьте звезду репозиторию на GitHub!
+
+---
+
+### Авторское право и указание авторства
+
+**Copyright © 2026 Anton Barinov.**
+
+TropaTT — свободный программный продукт под лицензией [GNU AGPL-3.0](LICENSE): использовать, изучать, модифицировать и распространять (в том числе коммерчески) разрешено при условии доступности исходного кода производных развёртываний и соблюдения условий лицензии.
+
+**Удалять, скрывать, изменять или переименовать уведомления об авторском праве и указания на автора этого проекта запрещено.** В частности, без ограничений:
+
+- текст лицензии `LICENSE` (AGPL-3.0) и любые строки об авторском праве при ней;
+- указание автора в этом README (разделы «Who built this» / «Кто сделал» / «谁做的») и уведомление `Copyright © Anton Barinov` в документации, заметках к релизам и манифестах пакетов;
+- заголовки об авторском праве и авторе в исходных файлах, манифестах модулей и выводе установщика;
+- имя автора, имя проекта и строки атрибуции, которые показывает интерфейс или печатает CLI.
+
+Каждый форк, зеркало, пакет дистрибутива и производное развёртывание обязаны сохранять эти уведомления нетронутыми и не должны выдавать работу за созданную другим автором. Производные работы не должны создавать впечатление, что первоначальный автор их одобряет или поддерживает. Ничто из этого не ограничивает прав, которые даёт AGPL-3.0, — требуется лишь, чтобы авторство оставалось видимым там, куда бы ни попал код.
+
+Вопросы по атрибуции в конкретной ситуации — откройте issue до публикации.
 
 ## 中文
 
@@ -1317,7 +1363,7 @@ TropaTT 是一款完全免费、自托管、开源的 PHP/MySQL 客户关系与�
 
 - **CRM + 任务管理 + 项目交付三位一体。** 客户档案、多层级任务树、看板泳道、甘特图排期、团队聊天室、知识库和客户门户共享底层统一数据模型。无需在软件间来回复制黏贴，杜绝“这句话当时是在哪聊的”的困扰。
 - **真正实用、大幅提效的 20+ AI 工作流。** 绝非简单的边栏聊天机器人。AI 创意分析能将一句简短需求（如“客户希望在官网上增加在线预约和支付”）自动拆解为包含优先级、工时评估和执行逻辑的完整子任务树。AI 每日/每周工作计划基于您的真实排期自动生成今日重点。
-- **原生内置 Model Context Protocol (MCP) 服务器。** 直接连接 Claude Code、Cursor、Codex、OpenDevin、ChatGPT 等主流 AI 代码与自主智能体，暴露 620 个工具与 6 个资源，支持严密的 RBAC 权限控制。
+- **原生内置 Model Context Protocol (MCP) 服务器。** 直接连接 Claude Code、Cursor、Codex、OpenDevin、ChatGPT 等主流 AI 代码与自主智能体，暴露 621 个工具与 6 个资源，支持严密的 RBAC 权限控制。
 - **全内置团队即时通讯。** 无需额外部署或付费订阅 Slack / Discord。项目群聊、私聊与任务上下文紧密绑定。
 - **通用电商 CMS 网关。** 原生提供 v1.0 标准规范 JSON 协议与 11 大电商系统连接器（OpenCart 1.5–4.x、WooCommerce HPOS、Shopify、1C-Bitrix、InSales、CS-Cart、PrestaShop、Shop-Script、Moguta、Tilda、Magento 2），支持 HMAC-SHA256 签名、双向订单同步、库存同步与幂等防重。
 - **没有任何人为的 SaaS 限制。** 用户数、项目数、任务数和客户数不受任何软件许可限制。唯一的天花板是您服务器的物理硬件资源。
@@ -1336,7 +1382,7 @@ TropaTT 是一款完全免费、自托管、开源的 PHP/MySQL 客户关系与�
 | **主机支持度** | **任何 $2–$3/月 共享主机 (cPanel/DirectAdmin)、VPS、裸机** | 必须专属高配置 VPS 或独立物理服务器 | 必须专属服务器或 Atlassian Cloud | 仅限厂商云端 | VPS 或独立服务器 |
 | **外部 PHP/npm 依赖** | **0 个依赖包（自研微内核，彻底杜绝供应链风险）** | 数百个闭源专有类库 | 极其复杂的 Java/JS 技术栈 | 专有闭源 SaaS | 100+ Composer/npm 外部依赖包 |
 | **一体化业务中台** | **CRM + 任务 + 看板 + 甘特图 + 聊天 + 知识库 + 客户门户 + 费率** | 功能全面但极其臃肿割裂，上手成本高 | 仅限项目协作（需额外采购 Confluence、Slack、CRM） | 仅限销售与营销（缺乏深度项目管理与甘特图） | 偏向传统客户管理，任务与即时沟通能力弱 |
-| **AI 工作流与 MCP** | **内置 620 个 MCP 工具 + 22 项 AI 工作流（支持自带 Key，零加价）** | 专有 CoPilot（按月高额额外收费） | Atlassian Intelligence（仅限高阶云端企业版） | HubSpot Breeze（高额高级套餐门槛） | 无或仅有极基础的社区第三方 OpenAI 插件 |
+| **AI 工作流与 MCP** | **内置 621 个 MCP 工具 + 28 项 AI 工作流（支持自带 Key，零加价）** | 专有 CoPilot（按月高额额外收费） | Atlassian Intelligence（仅限高阶云端企业版） | HubSpot Breeze（高额高级套餐门槛） | 无或仅有极基础的社区第三方 OpenAI 插件 |
 | **电商 CMS 网关** | **11 大主流独立站连接器模块（OpenCart、WooCommerce、Shopify 等）** | 仅深度整合 1C-Bitrix 商城，其余需采购插件 | 无（需通过 Zapier 或自研中间件桥接） | 依赖应用商店付费扩展 | 仅有部分社区第三方扩展 |
 | **数据主权与隐私** | **100% 留存在自有服务器（遥测数据仅写入您自己的数据库）** | 数据托管在服务商云端或受制于专有许可限制 | 数据托管在海外 Atlassian 节点 | 数据完全存储在 HubSpot 云端 | 支持本地私有化部署 |
 
@@ -1422,7 +1468,7 @@ TropaTT 专为管理客户资源并执行业务交付的各类组织量身打造
 | **统计分析** | 经营指标看板、团队负载分析、交付风险预警 | 告别拍脑袋决策，依据真实业务数据科学经营 |
 | **自动化流** | 触发式工作流规则、SLA 违约熔断、多级审批链、Webhooks | 大幅减少人工跟进成本，防范流程漏单跑偏 |
 | **AI (20+场景)** | 创意拆解、日报周报、任务分解、风险分析、谈判准备 | 真正落地并融入高频流程的 AI 生产力引擎 |
-| **MCP 智能体中枢**| 620 个工具 + 6 个资源，支持 Claude Code、Cursor、ChatGPT | 允许前沿自主 AI 智能体直接安全操作企业工作流 |
+| **MCP 智能体中枢**| 621 个工具 + 6 个资源，支持 Claude Code、Cursor、ChatGPT | 允许前沿自主 AI 智能体直接安全操作企业工作流 |
 | **模块化 SDK** | 热插拔扩展机制、事件总线 `ModuleEvents`、UI 插槽、DB 迁移 | 无需侵入核心框架即可无限扩充专属定制功能 |
 | **控制台管理** | 组织架构、细粒度 RBAC 权限、功能开关、操作审计流水 | 满足中大型团队对于系统安全性与合规性的苛刻要求 |
 | **需求预处理 (Intake)**| 统一捕获并初审来自官网、邮件等渠道的客户原始诉求 | 将未经评审的散碎诉求与标准执行任务清晰剥离 |
@@ -1445,12 +1491,12 @@ TropaTT 深度融入了生成式 AI 与大语言模型能力。不同于简单�
 
 真实场景示例：_“客户要求在官网上集成预约系统并对接现有会员系统”_ → AI 自动化推导：梳理接口协议（2个子任务） → 架构通信网关 → 开发核心预约端点 → 页面前端交互实现 → 模拟并发测试 → 上线前核验清单。原先需要资深工程师构思半小时的方案，现在只需 30 秒核验确认。
 
-**全部 22 项内置 AI 业务流：**
+**全部 28 项内置 AI 业务流：**
 
-AI 需求推演 · 任务层级分解 · 每日工作计划建议 · 每周工作重点规划 · 任务总结速览 · 下一步行动建议 · 检查清单自动生成 · 任务质量核验审查 · 讨论回复草稿生成 · 任务优先级智能排序 · 项目进度智能总结 · 项目交付风险评估 · 客户汇报纪要整理 · 客户全景画像摘要 · 商务会谈前瞻准备 · 客户资料完整度审查 · KPI 异动成因剖析 · 经营风险智能诊断 · 团队负载状态综述 · 日历日程议程草拟 · 管理看板每日摘要 · 全局知识库语义搜索
+AI 需求推演 · 任务层级分解 · 每日工作计划建议 · 每周工作重点规划 · 任务总结速览 · 下一步行动建议 · 检查清单自动生成 · 任务质量核验审查 · 讨论回复草稿生成 · 任务优先级智能排序 · 项目进度智能总结 · 项目交付风险评估 · 客户汇报纪要整理 · 客户全景画像摘要 · 商务会谈前瞻准备 · 客户资料完整度审查 · KPI 异动成因剖析 · 经营风险智能诊断 · 团队负载状态综述 · 日历日程议程草拟 · 管理看板每日摘要 · 全局知识库语义搜索 · 客户安全简报 · 管理员日志审查 · Webhook 健康巡检 · 自动化规则审计 · 知识库智能摘要 · 知识库内容精简
 
 **AgentOS 2026 核心底层引擎：**
-- **Model Context Protocol (MCP) 服务器：** 开放 **620 个原生工具** 和 **6 个资源**，覆盖任务、项目、客户、联系人、聊天室、日程、工时、分析和知识库全领域。
+- **Model Context Protocol (MCP) 服务器：** 开放 **621 个原生工具** 和 **6 个资源**，覆盖任务、项目、客户、联系人、聊天室、日程、工时、分析和知识库全领域。
 - **上下文密度优化技术（`density: "compact"`）：** 在执行列表批量检索时启用极致紧凑编码，剔除不必要的装饰字段，单次推理提示词 Token 开销最多骤降 85%。
 - **原子化任务编排（`crm_agent_bundle`）：** 允许 AI 智能体在单次数据库事务中一次性原子创建父任务、验收条件（DoD）、检查清单与关联子任务。
 - **跨会话持久化智能体记忆（`crm_agent_memory`）：** 允许智能体在不同对话轮次之间沉淀结构化事实记忆、实体图谱关联，并支持语义检索与结构化导出。
@@ -1460,7 +1506,7 @@ AI 需求推演 · 任务层级分解 · 每日工作计划建议 · 每周工�
 - 全流程“审核后应用”设计，杜绝幻觉产生的数据破坏。
 - 所有大模型交互均在后端受控执行，API 密钥绝不暴露给客户端浏览器。
 - 细粒度 RBAC 权限控制到每一个 AI 具体功能。
-- 43 个特性开关支持精细化灰度与按需开放。
+- 40 个特性开关支持精细化灰度与按需开放。
 - 内置针对每类工作流的调用频率与 Token 消耗限额防护。
 - 敏感业务上下文与原始 Prompt 默认不持久化存储，仅留存脱敏后的调用元数据。
 
@@ -1524,10 +1570,10 @@ TropaTT 具备企业级的自动化与系统集成能力，专为融入复杂的
 - **API 客户端与令牌** — 支持基于 Scope 细粒度权限的第三方系统接入凭证管理。
 - **后台异步调度中心** — 稳定处理大批量数据导入导出、消息队列与 AI 耗时计算。
 - **模块化插件架构** — 保持核心微内核纯净，通过 19 个命令行指令快捷扩展业务逻辑。
-- **标准化 REST API 矩阵** — 核心共 970 条路由定义（模块可追加），所有业务实体皆可通过 API 全功能操作。
+- **标准化 REST API 矩阵** — 核心共 984 条路由定义（模块可追加），所有业务实体皆可通过 API 全功能操作。
 - **文档零漂移保障机制（Zero Documentation Drift）** — CI 发布门禁严格校验路由代码与技术文档的 100% 同步。
 - **OpenAPI 3.1 规范** — 根据实际路由配置全自动生成机器可读的 OpenAPI 规范定义。
-- **Model Context Protocol (MCP) 服务器** — 提供包含 620 个工具与 6 个资源的开放端点，供 Claude Code、Cursor、ChatGPT 等前沿 AI 智能体安全接入（参考文档：[`docs_mcp/mcp_zh.md`](docs_mcp/mcp_zh.md)）。
+- **Model Context Protocol (MCP) 服务器** — 提供包含 621 个工具与 6 个资源的开放端点，供 Claude Code、Cursor、ChatGPT 等前沿 AI 智能体安全接入（参考文档：[`docs_mcp/mcp_zh.md`](docs_mcp/mcp_zh.md)）。
 
 ---
 
@@ -1535,14 +1581,14 @@ TropaTT 具备企业级的自动化与系统集成能力，专为融入复杂的
 
 TropaTT 完整内置了 **Model Context Protocol (MCP) 服务器** —— 该协议是 **Claude Code、Cursor、Codex、OpenDevin、ChatGPT 以及下一代 AI 编程智能体与自主代理** 的通用通信标准。将任何支持 MCP 的智能体对接到您的 TropaTT 实例，智能体即可在严格的角色权限约束下，安全地检索、分析并管理您的真实业务数据：
 
-- **620 个 MCP 原生工具 + 6 个资源** — 涵盖任务执行、项目甘特、客户画像、商务联系人、讨论记录、日程排期、工时报表、统计看板以及企业知识库全域数据。
+- **621 个 MCP 原生工具 + 6 个资源** — 涵盖任务执行、项目甘特、客户画像、商务联系人、讨论记录、日程排期、工时报表、统计看板以及企业知识库全域数据。
 - **AgentOS 2026 原生能力加持** — 支持通过 `crm_agent_bundle` 一次性完成任务树与检查清单的原子化构建；支持通过 `crm_agent_memory` 跨对话存储关键背景与逻辑事实；支持紧凑数据模式大幅节省 Token 开销。
 - **全面适配 Claude Code、Cursor、Codex、OpenDevin 和 ChatGPT。** 像连接任何标准 MCP 服务一样完成配置即可。
 - **与 Web 控制台完全同构的权限防线。** 智能体的一切操作均走内部 REST API 与 RBAC 权限系统 —— 绝无直接操作物理数据库的越权通道，无法逾越角色边界。
 - **开箱即用的安全保障机制。** 用户密码哈希、会话令牌、API 密钥等敏感凭证在工具输出中被自动屏蔽；所有写入操作均要求明确的操作权限。
 - **服务入口：** `POST /api/index.php?route=api/v1/mcp`，通过用户凭证或带权限范围的 API Client Bearer Token 进行认证。
 
-完整 MCP 开发与工具参考手册（包含鉴权、RBAC 与 620 个工具详解）：[`docs_mcp/mcp_zh.md`](docs_mcp/mcp_zh.md)。
+完整 MCP 开发与工具参考手册（包含鉴权、RBAC 与 621 个工具详解）：[`docs_mcp/mcp_zh.md`](docs_mcp/mcp_zh.md)。
 
 ---
 
@@ -1647,10 +1693,10 @@ TropaTT 彻底开源。将其部署在您所信任的服务器上，随意审查
 完全可以。只要主机支持标准的 PHP 8.1+ 和 MySQL 数据库，即使是低配的共享虚拟主机（每年仅需百元左右）也能轻松驱动团队的日常协作。
 
 **AI 能力到底能做什么？**
-内置 22 项开箱即用的工作流：将粗略需求自动推演为父子任务层级、制定每日/每周计划、梳理交付清单、生成会议摘要、研判项目风险。支持使用您自己的大模型 API Key（按量直付服务商，无额外溢价），所有运算受控运行，未经人工确认绝不会擅自覆写业务数据。
+内置 28 项开箱即用的工作流：将粗略需求自动推演为父子任务层级、制定每日/每周计划、梳理交付清单、生成会议摘要、研判项目风险。支持使用您自己的大模型 API Key（按量直付服务商，无额外溢价），所有运算受控运行，未经人工确认绝不会擅自覆写业务数据。
 
 **AI 代理（如 Claude Code、Cursor）如何管理我的 CRM？**
-TropaTT 原生内置了遵循标准 Model Context Protocol 的 MCP 服务器，提供 620 个全功能工具与 6 个数据资源。只需将智能体对接到 `POST /api/index.php?route=api/v1/mcp` 并配置 Bearer 令牌，智能体即可像真人一样安全高效地检索资料、派发任务、更新状态并编写知识库。详见：[`docs_mcp/mcp_zh.md`](docs_mcp/mcp_zh.md)。
+TropaTT 原生内置了遵循标准 Model Context Protocol 的 MCP 服务器，提供 621 个全功能工具与 6 个数据资源。只需将智能体对接到 `POST /api/index.php?route=api/v1/mcp` 并配置 Bearer 令牌，智能体即可像真人一样安全高效地检索资料、派发任务、更新状态并编写知识库。详见：[`docs_mcp/mcp_zh.md`](docs_mcp/mcp_zh.md)。
 
 **如何开发专属的扩展模块？**
 标准安装**不带任何模块**：`upload/modules/` 目录中只有 `.htaccess`，模块按需从官方市场（`marketplace.tropatt.com`）安装，可通过 **管理后台 → 模块 → 市场**，或直接将安装包复制到该目录。示例模块发布在 `docs_modules/examples/modules/`。所有插件模块存放于 `upload/modules/<模块名称>/` 目录下。模块包含规范的 `manifest.json`、服务容器注册类 `ServiceProvider.php`、事件监听器（`ModuleEvents`）、14 个界面插槽注入（`PositionRegistry`）以及数据库事务迁移（`up()` / `down()`）。详见详尽的开发者指南：[`docs_modules/modules_zh.md`](docs_modules/modules_zh.md)。
@@ -1676,19 +1722,20 @@ TropaTT 原生内置了遵循标准 Model Context Protocol 的 MCP 服务器，�
 
 | 核心指标 | 数据详情 |
 |---|---|
-| API 接口规模 | 核心 970 条路由定义（已安装模块可追加路由） |
-| MCP 智能体工具 | 620 个原生工具 + 6 个数据资源 —— 面向自主 AI 代理的标准通信底座 |
-| Web 前端路由 | 约 69 个页面 |
-| 后端业务服务 | 130+ 个核心业务服务类 |
-| 数据仓储类 | 90 个 Repository 类 |
+| API 接口规模 | 核心 984 条路由定义（已安装模块可追加路由） |
+| MCP 智能体工具 | 621 个原生工具 + 6 个数据资源 —— 面向自主 AI 代理的标准通信底座 |
+| Web 前端路由 | 约 70 个页面 |
+| 后端业务服务 | 139 个核心业务服务类 |
+| 数据仓储类 | 114 个 Repository 类 |
 | 业务领域模块 | 35+ 个领域划分 |
 | 可选模块（市场） | 24 个 —— 含 14 个迁移模块（Jira、Trello、Asana、Bitrix24、ClickUp、Todoist、Shtab、Worksection、Confluence、Kaiten、Toggl、ActiveCollab、Notion、Linear）；GitHub、GitLab、Slack；Google 与 Yandex 日历；WIP 看板流控；draw.io；Raycast；电商网关。标准安装不附带任何模块。 |
 | 电商 CMS 连接器 | 11 大主流独立站（可选模块）（OpenCart 1.5–4.x、1C-Bitrix、WooCommerce HPOS、InSales、CS-Cart、PrestaShop、Shop-Script、Moguta、Tilda、Shopify、Magento 2） |
-| 原生 JS 模块 | 39 个自研纯原生 ES5+ 模块，彻底摒弃 SPA 前端重型构建步骤 |
+| 原生 JS 模块 | 44 个自研纯原生 ES5+ 模块，彻底摒弃 SPA 前端重型构建步骤 |
 | 公开自动化 CI | PHP 8.1 / 8.2 语法全量扫描、MySQL 数据迁移完整性校验、OpenAPI 路由契约一致性核查 |
+| 发布门禁 | 由维护者在演示站上运行真实 API/MCP 测试套件；仅当报告 `failed_count == 0` 时才通过自动合并且更新 `main` |
 | AI 专用端点 | 65 个 |
-| 落地 AI 工作流 | 22 项 |
-| 功能开关控制 | 43 个特性 Flags |
+| 落地 AI 工作流 | 28 项 |
+| 功能开关控制 | 40 个特性 Flags |
 | 前端 API 覆盖率 | 严格追踪并核对全量路由资产 |
 | 外部 PHP 依赖 | 0 个依赖包 |
 | 前端第三方依赖 | 仅 3 个轻量库（Bootstrap 5、FontAwesome 6、SortableJS） |
@@ -1799,7 +1846,7 @@ ADR-006 Web — 服务端基于 HttpOnly Cookie 与 CSRF 令牌的双重会话�
 | 内部维护文档 | 本地归档（不公开发布） | Release checklist、安全审查规范、Codex 开发指南、Starter issues 与标签规范 |
 | API 自动化工具 | `upload/api/scripts/generate_openapi.php` | 实时根据真实路由定义导出 OpenAPI 规范的自动化脚本 |
 | API 参考手册 | [中文](docs_api/api_zh.md) · [English](docs_api/api_en.md) · [Русский](docs_api/api_ru.md) | 完整 REST API 技术指南 —— 端点详述、认证机制、RBAC 角色权限与约定规范（中文 / English / Русский） |
-| MCP 参考手册 | [中文](docs_mcp/mcp_zh.md) · [English](docs_mcp/mcp_en.md) · [Русский](docs_mcp/mcp_ru.md) | 完整 MCP 协议服务器参考 —— 620 个工具、6 个资源、智能体接入与鉴权（中文 / English / Русский） |
+| MCP 参考手册 | [中文](docs_mcp/mcp_zh.md) · [English](docs_mcp/mcp_en.md) · [Русский](docs_mcp/mcp_ru.md) | 完整 MCP 协议服务器参考 —— 621 个工具、6 个资源、智能体接入与鉴权（中文 / English / Русский） |
 | 模块开发指南 | [中文](docs_modules/modules_zh.md) · [English](docs_modules/modules_en.md) · [Русский](docs_modules/modules_ru.md) | 完整模块化扩展指南 —— 清单结构、服务提供者、事件总线、UI 插槽与数据库迁移（中文 / English / Русский） |
 | Web 体系文档 | [`UPDATES.md`](UPDATES.md) | 自动化一键更新机制指南：打包签名流水线与用户平滑升级回滚流程 |
 | 根目录指南 | `README.md`, `SECURITY.md`, `CONTRIBUTING.md`, [`MODULE_DEVELOPMENT.md`](MODULE_DEVELOPMENT.md), [`INSTALL_TROUBLESHOOTING.md`](INSTALL_TROUBLESHOOTING.md), [`SHARED_HOSTING_GUIDE.md`](SHARED_HOSTING_GUIDE.md), [`WEBHOOK_SECURITY.md`](WEBHOOK_SECURITY.md) | 开源许可、安全规范、社区贡献、模块开发规范、安装排障排错、共享主机部署与 Webhook 安全防线 |
@@ -1826,15 +1873,18 @@ ADR-006 Web — 服务端基于 HttpOnly Cookie 与 CSRF 令牌的双重会话�
 为确保系统工业级的稳定性与代码品质，所有合并遵循严格的规范化工作流：
 
 - **自动化 CI 门禁：** 每个 PR 必须通过 PHP 8.1 / 8.2 双版本语法核验、客户门户安全契约检查、OpenAPI 规范一致性审查与前端单元测试。
-- **推送前本地全量自测：**
+- **发布门禁：** 每次推送 `develop` 都会在演示站上由发布门禁（`tests/run_all.sh`，仅在维护者本机运行、不对外发布）验证；只有报告中 `failed_count == 0` 时才会自动合并进 `main`。
+- **公开克隆中可用的检查：**
   ```bash
-  # 极速预检（PHP 语法、安全契约与核心单元测试）
-  bash tests/run_local.sh --fast
+  # 全量 PHP 语法检查
+  find . -name "*.php" -not -path "./upload/vendor/*" -not -path "./upload/modules/*" -print0 | xargs -0 -n1 php -l
 
-  # 完整发布前验证套件（包含 Web 前端烟雾测试与 OpenAPI 审查）
-  bash tests/run_local.sh
+  # 生成并核对 OpenAPI 契约
+  php upload/api/scripts/generate_openapi.php
+  php upload/api/scripts/api_coverage_check.php
   ```
-- **严谨的分支策略：** `main` 分支仅用于发布经过充分生产验证的稳定版本。日常特性开发在 `develop` 分支及各特性分支上开展，通过 CI 后方可合入 `develop`。
+  完整测试套件（`tests/`）仅存在于维护者工作区，出于设计不对外发布——请勿将其作为 CI 依赖；改为在 pull request 中说明手工验证过程。
+- **严谨的分支策略：** `main` 分支仅用于发布经过充分生产验证的稳定版本，且只有在门禁测试全部通过后由自动合并更新。日常特性开发在 `develop` 分支及各特性分支上开展，pull request 均指向 `develop`。
 - **标准化提交日志：** 严格采用 Conventional Commits 语义化前缀（`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`）。
 
 ---
@@ -1860,7 +1910,7 @@ TropaTT 极其精妙的极简微内核架构，天然对 AI 辅助开发助手�
 - **自包含的轻量微内核：** AI 编码助手无需检索数万个第三方包的上下文，仅凭本地代码库即可完整理解系统运作逻辑与上下文关系。
 - **一致的数据响应契约：** 所有端点均输出标准的 `{ success: bool, data?: ..., error?: ... }` 格式，AI 生成前端调用逻辑与自动化单元测试时极其精准稳定。
 - **机器可读的 OpenAPI 规范：** Claude Code、Cursor、Codex 等 AI 智能体可直接加载 `openapi.json`，瞬间掌握全部可用端点与参数约束。
-- **原生内置的 MCP 服务器：** 将 AI 助手直接接入 CRM 的 Model Context Protocol（620 个工具），在日常运维中让智能体辅助排查数据、查询配置与协同管理。
+- **原生内置的 MCP 服务器：** 将 AI 助手直接接入 CRM 的 Model Context Protocol（621 个工具），在日常运维中让智能体辅助排查数据、查询配置与协同管理。
 
 ---
 
@@ -1873,3 +1923,22 @@ TropaTT 由资深 PHP 开发者与系统架构师 **Anton Barinov（巴里诺夫
 - **在线体验 Demo：** [demo.tropatt.com](https://demo.tropatt.com)
 
 如果您觉得 TropaTT 对您的企业、团队或个人事业有所助益，欢迎在 GitHub 上为本项目点亮一颗 Star ⭐️！
+
+---
+
+### 版权与署名
+
+**Copyright © 2026 Anton Barinov。**
+
+TropaTT 是基于 [GNU AGPL-3.0](LICENSE) 发布的自由软件：您可以使用、研究、修改与分发（包括商业用途），前提是衍生部署仍可获取源代码并遵守许可证条款。
+
+**禁止删除、隐藏、篡改或重命名本项目的著作权声明与作者署名。** 包括但不限于：
+
+- `LICENSE`（AGPL-3.0）全文及其附带的任何版权声明；
+- 本 README 中的作者署名（«Who built this» / «Кто сделал» / «谁做的»）以及文档、发布说明与包清单中的 `Copyright © Anton Barinov` 声明；
+- 源文件、模块清单与安装器输出中的著作权与作者文件头；
+- 界面展示或命令行输出中的作者姓名、项目名称与归属字符串。
+
+任何 fork、镜像、下游打包与衍生部署都必须完整保留上述声明，且不得将本作品表述为他人创作。衍生作品不得暗示原作者为其背书或提供支持。本条不限制 AGPL-3.0 赋予您的任何权利，仅要求代码流转到何处，作者署名都保持可见。
+
+如对具体场景的署名要求有疑问，请在发布前提交 issue。

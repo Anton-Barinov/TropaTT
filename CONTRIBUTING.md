@@ -83,6 +83,7 @@ The corresponding workflows are `.github/workflows/openapi-ci.yml` and `.github/
 
 ## Pull Request Checklist
 
+- [ ] Author copyright notices and attribution kept intact (nothing removed from `LICENSE`, `README.md`, source headers, manifests or release notes).
 - [ ] No secrets committed.
 - [ ] Input validation checked.
 - [ ] Authorization checked.
@@ -95,6 +96,23 @@ The corresponding workflows are `.github/workflows/openapi-ci.yml` and `.github/
 - [ ] No raw sensitive data in logs/errors.
 - [ ] AI provider keys are never exposed to the browser.
 - [ ] Screenshots added for meaningful UI changes.
+
+## Copyright And Attribution
+
+**Copyright © 2026 Anton Barinov.**
+
+TropaTT is licensed under the [GNU AGPL-3.0](LICENSE).
+
+Removing, hiding, altering or renaming the author's copyright notices and attribution is **prohibited**, in this repository and in every fork, package or deployment derived from it:
+
+- the `LICENSE` text and any copyright line attached to it;
+- the author credit in `README.md` («Who built this» / «Кто сделал» / «谁做的») and the `Copyright © Anton Barinov` notice in documentation, release notes and package manifests;
+- copyright and author headers inside source files, module manifests and installer output;
+- the author's name, project name and attribution strings rendered by the UI or printed by the CLI.
+
+Adding your own copyright line to files you authored is welcome; removing or rewriting someone else's attribution is not. Derivative works must not imply that the original author endorses or supports them. Pull requests that strip these notices are rejected.
+
+Questions about attribution in a specific context: open an issue before publishing.
 
 ## Changes That Require Extra Care
 
