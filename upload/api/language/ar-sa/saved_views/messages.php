@@ -1,0 +1,33 @@
+<?php
+declare(strict_types=1);
+
+return array (
+  'loading' => 'جاري التحميل...',
+  'load_error' => 'Loading error',
+  'empty' => 'No saved views',
+  'pinned' => 'Pinned',
+  'other' => 'Others',
+  'system' => 'System',
+  'public' => 'Public',
+  'private' => 'Private',
+  'pin' => 'Pin',
+  'unpin' => 'Unpin',
+  'duplicate' => 'Duplicate',
+  'edit' => 'تعديل',
+  'archive' => 'Archive',
+  'applied' => 'عرض applied:',
+  'apply_error' => 'Error applying view',
+  'save_as' => 'Save as new view',
+  'edit_title' => 'تعديل العرض',
+  'title_required' => 'Enter a view name',
+  'update_error' => 'Error updating view',
+  'create_error' => 'Error creating view',
+  'pinned_msg' => 'Pinned',
+  'unpinned_msg' => 'Unpinned',
+  'pin_error' => 'خطأ',
+  'duplicated' => 'عرض duplicated',
+  'duplicate_error' => 'Error duplicating',
+  'confirm_archive' => 'Archive this view?',
+  'archived' => 'عرض archived',
+  'archive_error' => 'Error archiving',
+);

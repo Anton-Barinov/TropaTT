@@ -1,0 +1,33 @@
+<?php
+declare(strict_types=1);
+
+return array (
+  'task_list' => 'قائمة Task template',
+  'task_created' => 'Task template created',
+  'task_detail' => 'Task template',
+  'task_updated' => 'Task template updated',
+  'task_deleted' => 'Task template deleted',
+  'project_list' => 'قائمة Project template',
+  'project_created' => 'Project template created',
+  'project_detail' => 'Project template',
+  'project_updated' => 'Project template updated',
+  'project_deleted' => 'Project template deleted',
+  'max_255' => 'Maximum 255 characters',
+  'payload_object' => 'payload field must be an object',
+  'not_found' => 'القالب غير موجود',
+  'empty_tasks' => 'No task templates',
+  'empty_projects' => 'No project templates',
+  'load_error_tasks' => 'Failed to load task templates',
+  'load_error_projects' => 'Failed to load project templates',
+  'btn_delete' => 'حذف',
+  'created_task_notify' => 'Task template created',
+  'created_project_notify' => 'Project template created',
+  'error_create' => 'إنشاء error',
+  'confirm_delete_task' => 'حذف task template?',
+  'confirm_delete_project' => 'حذف project template?',
+  'deleted_task_notify' => 'Task template deleted',
+  'deleted_project_notify' => 'Project template deleted',
+  'error_delete' => 'حذف error',
+  'task_applied' => 'Task created from template',
+  'project_applied' => 'Project created from template',
+);

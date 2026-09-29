@@ -1,0 +1,15 @@
+{
+  "type": "language_pack",
+  "name": "language-pack-ar-sa",
+  "full_code": "crm.language-pack-ar-sa",
+  "vendor": "crm",
+  "code": "ar-sa",
+  "title": "Arabic Language Pack (العربية)",
+  "native_name": "العربية",
+  "direction": "rtl",
+  "author": "Anton Barinov",
+  "version": "1.0.0",
+  "category": "localization",
+  "min_crm_version": "20260928.001",
+  "description": "الحزمة اللغوية العربية لنظام TropaTT CRM مع دعم الكتابة من اليمين إلى اليسار (RTL)"
+}

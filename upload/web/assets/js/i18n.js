@@ -29,7 +29,16 @@ window.CRM.i18n = (function () {
     base.querySelectorAll('[data-i18n]').forEach(function (node) {
       var key = node.getAttribute('data-i18n') || '';
       var fallback = node.getAttribute('data-i18n-fallback') || '';
-      var value = t(key, fallback);
+      var translated = getByPath(getMessages(), key);
+
+      // If translation is missing in client dictionary and no fallback is given,
+      // do not overwrite server-rendered HTML text with a raw string key
+      if (typeof translated !== 'string' && (!fallback || fallback === '')) {
+        if (node.textContent && node.textContent.trim() !== '') {
+          return;
+        }
+      }
+      var value = typeof translated === 'string' ? translated : (fallback || String(key || ''));
 
       if (/<[a-z][\s\S]*>/i.test(value)) {
         node.innerHTML = value;
@@ -67,19 +76,31 @@ window.CRM.i18n = (function () {
     base.querySelectorAll('[data-i18n-placeholder]').forEach(function (node) {
       var key = node.getAttribute('data-i18n-placeholder') || '';
       var fallback = node.getAttribute('placeholder') || '';
-      node.setAttribute('placeholder', t(key, fallback));
+      var translated = getByPath(getMessages(), key);
+      if (typeof translated !== 'string' && (!fallback || fallback === '')) {
+        return;
+      }
+      node.setAttribute('placeholder', typeof translated === 'string' ? translated : (fallback || String(key || '')));
     });
 
     base.querySelectorAll('[data-i18n-title]').forEach(function (node) {
       var key = node.getAttribute('data-i18n-title') || '';
       var fallback = node.getAttribute('title') || '';
-      node.setAttribute('title', t(key, fallback));
+      var translated = getByPath(getMessages(), key);
+      if (typeof translated !== 'string' && (!fallback || fallback === '')) {
+        return;
+      }
+      node.setAttribute('title', typeof translated === 'string' ? translated : (fallback || String(key || '')));
     });
 
     base.querySelectorAll('[data-i18n-aria-label]').forEach(function (node) {
       var key = node.getAttribute('data-i18n-aria-label') || '';
       var fallback = node.getAttribute('aria-label') || '';
-      node.setAttribute('aria-label', t(key, fallback));
+      var translated = getByPath(getMessages(), key);
+      if (typeof translated !== 'string' && (!fallback || fallback === '')) {
+        return;
+      }
+      node.setAttribute('aria-label', typeof translated === 'string' ? translated : (fallback || String(key || '')));
     });
   }
 
