@@ -15123,6 +15123,108 @@ body[data-page="admin-settings"] [data-settings-group] {
 
 .crm-admin-settings-page .form-select { min-width: 0; max-width: 100%; }
 
+.crm-pretty-select {
+    position: relative;
+    max-width: 360px;
+    width: 100%;
+}
+
+.crm-pretty-select-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-height: 46px;
+    padding: 10px 14px;
+    border: 1px solid var(--crm-border);
+    border-radius: var(--radius-md);
+    background: var(--crm-surface);
+    color: var(--crm-text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+
+.crm-pretty-select-trigger:hover,
+.crm-pretty-select.is-open .crm-pretty-select-trigger {
+    border-color: var(--crm-primary);
+    background: var(--crm-hover, rgba(0, 0, 0, .02));
+}
+
+.crm-pretty-select-trigger:focus-visible {
+    outline: 2px solid var(--crm-primary);
+    outline-offset: 2px;
+}
+
+.crm-pretty-select-value {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.crm-pretty-select-chevron { color: var(--crm-text-muted); transition: transform .15s ease; }
+.crm-pretty-select.is-open .crm-pretty-select-chevron { transform: rotate(180deg); }
+
+.crm-pretty-select-menu {
+    position: absolute;
+    z-index: 40;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    display: grid;
+    gap: 3px;
+    padding: 6px;
+    border: 1px solid var(--crm-border);
+    border-radius: var(--radius-md);
+    background: var(--crm-surface);
+    box-shadow: 0 12px 30px rgba(20, 35, 45, .16);
+}
+
+.crm-pretty-select-option {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 42px;
+    padding: 9px 10px;
+    border: 0;
+    border-radius: calc(var(--radius-md) - 2px);
+    background: transparent;
+    color: var(--crm-text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.crm-pretty-select-option:hover,
+.crm-pretty-select-option:focus-visible,
+.crm-pretty-select-option.is-selected {
+    background: color-mix(in srgb, var(--crm-primary) 12%, var(--crm-surface));
+    color: var(--crm-primary);
+}
+
+.crm-pretty-select-option.is-selected::before {
+    content: "\\f00c";
+    margin-right: 8px;
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    font-size: .75rem;
+}
+
+.crm-pretty-select-native {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
 .crm-admin-settings-key-badge {
     display: inline-block;
     font-family: var(--crm-font-mono, monospace);
@@ -15199,6 +15301,8 @@ body[data-page="admin-settings"] [data-settings-group] {
 
     .crm-admin-settings-nav-btn { min-height: 40px; padding: 7px 11px; }
     .crm-admin-settings-page .form-select { min-height: 44px; }
+    .crm-pretty-select { max-width: 100%; }
+    .crm-pretty-select-trigger { min-height: 48px; }
 
     .crm-admin-settings-sysinfo-grid {
         grid-template-columns: repeat(2, 1fr);
