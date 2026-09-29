@@ -27422,7 +27422,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       try {
         await request('api/v1/admin/languages/toggle', {
           method: 'POST',
-          body: { code: code, enabled: enabled }
+          body: { code: code, is_enabled: enabled, enabled: enabled }
         });
         notify(enabled
           ? tp('admin_languages.enabled_success', 'Язык успешно включен')
