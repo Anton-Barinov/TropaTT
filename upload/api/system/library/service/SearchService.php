@@ -6,6 +6,7 @@ namespace Api\System\Library\Service;
 use Api\Model\Knowledge\KnowledgeRepository;
 use Api\Model\Search\SearchRepository;
 use Api\Model\User\UserManagementRepository;
+use Api\System\Library\Security\ActorPermission;
 
 final class SearchService
 {
@@ -24,8 +25,10 @@ final class SearchService
         $actorIsRoot = $this->isTrueRoot($actor);
         $organizationId = $this->organizationScope($actor);
 
-        $tasks = $this->search->searchTasks($normalized, $limit, $actorUserId, $actorIsRoot, $organizationId);
-        $projects = $this->search->searchProjects($normalized, $limit, $actorUserId, $actorIsRoot, $organizationId);
+        $canManageTasks = ActorPermission::canManageTasks($actor);
+        $canManageProjects = ActorPermission::canReadProjects($actor);
+        $tasks = $this->search->searchTasks($normalized, $limit, $actorUserId, $actorIsRoot, $organizationId, $canManageTasks);
+        $projects = $this->search->searchProjects($normalized, $limit, $actorUserId, $actorIsRoot, $organizationId, $canManageProjects);
         $creatorIds = $this->creatorScope($actor);
         $counterparties = $this->rankCounterpartyRows($this->search->searchCounterparties($normalized, max($limit * 3, 30), null, $creatorIds, $organizationId), $normalized, $limit);
         $contacts = $this->search->searchContacts($normalized, $limit, $creatorIds, $organizationId);
@@ -59,7 +62,8 @@ final class SearchService
             $limit,
             (int)($actor['id'] ?? 0),
             $this->isTrueRoot($actor),
-            $this->organizationScope($actor)
+            $this->organizationScope($actor),
+            ActorPermission::canManageTasks($actor)
         );
     }
 
@@ -72,7 +76,8 @@ final class SearchService
             $limit,
             (int)($actor['id'] ?? 0),
             $this->isTrueRoot($actor),
-            $this->organizationScope($actor)
+            $this->organizationScope($actor),
+            ActorPermission::canReadProjects($actor)
         );
     }
 
@@ -110,8 +115,10 @@ final class SearchService
         $organizationId = $this->organizationScope($actor);
         $perTypeLimit = max(1, (int)ceil($limit / 6));
 
-        $taskRows = $this->search->searchTasks($normalized, $perTypeLimit, $actorUserId, $actorIsRoot, $organizationId);
-        $projectRows = $this->search->searchProjects($normalized, $perTypeLimit, $actorUserId, $actorIsRoot, $organizationId);
+        $canManageTasks = ActorPermission::canManageTasks($actor);
+        $canManageProjects = ActorPermission::canReadProjects($actor);
+        $taskRows = $this->search->searchTasks($normalized, $perTypeLimit, $actorUserId, $actorIsRoot, $organizationId, $canManageTasks);
+        $projectRows = $this->search->searchProjects($normalized, $perTypeLimit, $actorUserId, $actorIsRoot, $organizationId, $canManageProjects);
         $creatorIds = $this->creatorScope($actor);
         $counterpartyRows = $this->rankCounterpartyRows($this->search->searchCounterparties($normalized, max($perTypeLimit * 3, 15), null, $creatorIds, $organizationId), $normalized, $perTypeLimit);
         $contactRows = $this->search->searchContacts($normalized, $perTypeLimit, $creatorIds, $organizationId);

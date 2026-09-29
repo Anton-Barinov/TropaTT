@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Security\ActorPermission;
 use Api\System\Library\Support\AppLog;
 use Api\Model\Task\TaskRepository;
 use Api\Model\Team\TeamRepository;
@@ -151,7 +152,9 @@ final class WorklogService
 
         $taskId = null;
         if (!empty($input['task_public_id'])) {
-            $task = $this->tasks->findByPublicId((string)$input['task_public_id']);
+            // Org-scoped lookup: an actor bound to a workspace can only log
+            // against a task of that workspace (fail closed on a mismatch).
+            $task = $this->tasks->findByPublicId((string)$input['task_public_id'], $this->organizationId($actor));
             if (!$task) {
                 return 'TASK_NOT_FOUND';
             }
@@ -166,11 +169,12 @@ final class WorklogService
 
         $publicId = Ulid::generate('wlg');
         $userId = $this->resolveActorId($actor);
-        if (!empty($input['user_public_id']) && ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0)) {
-            $targetUser = $this->worklogs->findUserByPublicId((string)$input['user_public_id']);
-            if ($targetUser) {
-                $userId = (int)$targetUser['id'];
-            }
+        $impersonatedUserId = $this->resolveImpersonatedUserId($actor, $input);
+        if ($impersonatedUserId === false) {
+            return 'USER_NOT_FOUND';
+        }
+        if ($impersonatedUserId !== null && $impersonatedUserId > 0) {
+            $userId = $impersonatedUserId;
         }
 
         $dailyTotal = $this->worklogs->getDailyTotalMinutes($userId, $logDate);
@@ -305,7 +309,7 @@ final class WorklogService
             if ($input['task_public_id'] === null || $input['task_public_id'] === '') {
                 $set['task_id'] = null;
             } else {
-                $task = $this->tasks->findByPublicId((string)$input['task_public_id']);
+                $task = $this->tasks->findByPublicId((string)$input['task_public_id'], $this->organizationId($actor));
                 if (!$task) {
                     return 'TASK_NOT_FOUND';
                 }
@@ -434,6 +438,12 @@ final class WorklogService
             return true;
         }
 
+        // Permission = capability: task.manage covers editing anyone's entry of
+        // the workspace, the worklog rows themselves carry no organization id.
+        if (ActorPermission::canManageTasks($actor) && $this->userInActorOrganization($actor, (int)($worklog['user_id'] ?? 0))) {
+            return true;
+        }
+
         if ($this->getAuthz()->hasPermissions($actor, ['worklog.manage_all'])) {
             return true;
         }
@@ -444,6 +454,12 @@ final class WorklogService
     private function canAccessWorklog(array $worklog, array $actor): bool
     {
         if (((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0)) {
+            return true;
+        }
+
+        // Permission = capability: read access to any entry of the workspace
+        // for a task.manage holder (the task time panel must show them all).
+        if (ActorPermission::canManageTasks($actor) && $this->userInActorOrganization($actor, (int)($worklog['user_id'] ?? 0))) {
             return true;
         }
 
@@ -473,12 +489,71 @@ final class WorklogService
             return false;
         }
 
+        // Permission = capability (internal actors only): the client-portal
+        // branch above has already returned for every external guest, so only
+        // holders of task.manage reach this point. Lookups in this service are
+        // organization-scoped; sameOrganization() is the last word when they
+        // are not (task summary re-reads the task unscoped).
+        if (ActorPermission::canManageTasks($actor) && ActorPermission::sameOrganization($actor, $task)) {
+            return true;
+        }
+
         return (int)($task['creator_user_id'] ?? 0) === $actorId
             || (int)($task['assignee_user_id'] ?? 0) === $actorId
             || (int)($task['project_creator_user_id'] ?? 0) === $actorId
             || (int)($task['project_manager_user_id'] ?? 0) === $actorId
             || (int)($task['project_team_manager_user_id'] ?? 0) === $actorId
             || in_array($actorId, $this->decodeTeamMemberIds($task['project_team_member_user_ids'] ?? null), true);
+    }
+
+    /**
+     * Decide whether create() may record time for `user_public_id`.
+     *
+     * Returns null when nothing was requested (or the actor has no right to
+     * impersonate and the entry falls back to the actor, as before), the target
+     * user id when logging on someone else's behalf is allowed, or false when
+     * the target is unknown or lives outside the actor's workspace.
+     *
+     * @return int|false|null
+     */
+    private function resolveImpersonatedUserId(array $actor, array $input): int|false|null
+    {
+        $requested = trim((string)($input['user_public_id'] ?? ''));
+        if ($requested === '') {
+            return null;
+        }
+
+        // Root without an active workspace keeps the historical behaviour;
+        // task.manage is the same right expressed for a workspace-bound admin.
+        $isRootWithoutScope = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
+        if (!$isRootWithoutScope && !ActorPermission::canManageTasks($actor)) {
+            return null;
+        }
+
+        $targetUser = $this->worklogs->findUserByPublicId($requested);
+        if (!$targetUser) {
+            // Legacy root behaviour silently fell back to the actor's own id.
+            return $isRootWithoutScope ? null : false;
+        }
+        if (!$this->userInActorOrganization($actor, (int)$targetUser['id'])) {
+            return false;
+        }
+
+        return (int)$targetUser['id'];
+    }
+
+    /** Workspace boundary for a user: an actor without one reaches anyone. */
+    private function userInActorOrganization(array $actor, int $userId): bool
+    {
+        $organizationId = $this->organizationId($actor);
+        if ($organizationId === null) {
+            return true;
+        }
+        if ($userId <= 0 || $userId === $this->resolveActorId($actor)) {
+            return true;
+        }
+
+        return in_array($userId, $this->userManagement->organizationMemberIds($organizationId), true);
     }
 
     /** @return int[] */
@@ -1005,12 +1080,18 @@ final class WorklogService
 
     public function taskSummaryByUser(string $taskPublicId, array $actor): ?array
     {
-        $task = $this->tasks->findByPublicId($taskPublicId);
+        // Organization-scoped on purpose: the task time panel of an admin must
+        // show every entry of the task, not only the rows their own hierarchy
+        // happens to cover (the endpoint is per-task, not per-user).
+        $task = $this->tasks->findByPublicId($taskPublicId, $this->organizationId($actor));
         if (!$task) {
             return null;
         }
         if (!$this->canAccessTask($task, $actor)) {
             return null;
+        }
+        if (ActorPermission::canManageTasks($actor)) {
+            return $this->worklogs->taskSummary($taskPublicId, [], true);
         }
         $visibleUserIds = $this->getVisibleUserIds($actor);
         $actorIsRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);

@@ -1243,7 +1243,15 @@ final class TaskRepository
         // from user-supplied filter keys, as that would let an internal user
         // bypass the gate by injecting client_public_id or executor_project_ids.
 
-        if (!$actorIsRoot && !$rlsScoped && $actorUserId !== null && $actorUserId > 0) {
+        // An internal actor holding task.manage sees every task of their
+        // workspace (permission = capability). The flag is assigned by the
+        // service layer from the actor's own permission envelope — never taken
+        // from request input — for the same reason rlsScoped is a parameter:
+        // a client-supplied filter key must not be able to open this gate.
+        if (!$actorIsRoot
+            && !$rlsScoped
+            && empty($filters['can_manage_all_tasks'])
+            && $actorUserId !== null && $actorUserId > 0) {
             $accessibleTeamIds = array_values(array_filter(
                 array_map(static fn($value): string => trim((string)$value), (array)($filters['accessible_team_public_ids'] ?? [])),
                 static fn(string $value): bool => $value !== ''

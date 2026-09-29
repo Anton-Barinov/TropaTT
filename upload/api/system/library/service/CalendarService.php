@@ -9,6 +9,7 @@ use Api\Model\Project\ProjectRepository;
 use Api\Model\Reminder\ReminderRepository;
 use Api\Model\Task\TaskRepository;
 use Api\System\Library\Logger\JsonLogger;
+use Api\System\Library\Security\ActorPermission;
 use Api\System\Library\Support\Ulid;
 
 final class CalendarService
@@ -394,6 +395,12 @@ final class CalendarService
         $actorId = (int)($actor['id'] ?? 0);
         if ($actorId <= 0) {
             return false;
+        }
+
+        // Permission = capability: task.manage may attach events to any task of
+        // their workspace (calendar routes are gated by task.manage).
+        if (ActorPermission::canManageTasks($actor) && ActorPermission::sameOrganization($actor, $task)) {
+            return true;
         }
 
         return (int)($task['creator_user_id'] ?? 0) === $actorId

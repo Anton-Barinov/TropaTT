@@ -7,6 +7,7 @@ use Api\Model\Status\StatusRepository;
 use Api\Model\Task\TaskRepository;
 use Api\System\Library\Language\LanguageManager;
 use Api\System\Library\Language\TranslatableTrait;
+use Api\System\Library\Security\ActorPermission;
 use Api\System\Library\Security\HtmlSanitizer;
 
 final class TaskBoardService
@@ -27,6 +28,9 @@ final class TaskBoardService
     {
         $organizationId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
         $limit = min(1000, max(1, (int)($filters['limit'] ?? 500)));
+        // Permission = capability: task.manage holders see the whole board of
+        // their workspace (assigned from the actor, never from request input).
+        $filters['can_manage_all_tasks'] = ActorPermission::canManageTasks($actor);
         $items = $this->tasks->boardItems(
             $filters,
             (int)($actor['id'] ?? 0),

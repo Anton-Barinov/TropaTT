@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\System\Library\Security\ActorPermission;
 use Api\System\Library\Support\AppLog;
 use Api\Model\Common\UserRepository;
 use Api\Model\Project\ProjectRepository;
@@ -32,6 +33,10 @@ final class ProjectService
     {
         $organizationId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
         $filters['accessible_team_public_ids'] = $this->accessibleTeamPublicIds($actor);
+        // Permission = capability: assigned from the actor's envelope so the
+        // repository can drop the ownership gate for project managers and for
+        // task.manage holders (the task create screen needs the project list).
+        $filters['can_manage_all_projects'] = ActorPermission::canReadProjects($actor);
 
         // RLS: external users can only see projects for their counterparty.
         // Fail closed. An external actor whose counterparty cannot be resolved
@@ -442,6 +447,14 @@ final class ProjectService
             return (string)($project['client_public_id'] ?? '') === $cpPublicId;
         }
 
+        // Permission = capability (internal actors only): holders of
+        // project.manage or task.manage may read any project of their
+        // workspace — task create/move/list filters depend on it. Relations
+        // below stay the fallback for actors without either permission.
+        if (ActorPermission::canReadProjects($actor) && ActorPermission::sameOrganization($actor, $project)) {
+            return true;
+        }
+
         return (int)($project['created_by_user_id'] ?? 0) === $actorId
             || (int)($project['manager_user_id'] ?? 0) === $actorId
             || (int)($project['team_manager_user_id'] ?? 0) === $actorId
@@ -463,6 +476,13 @@ final class ProjectService
         $actorId = (int)($actor['id'] ?? 0);
         if ($actorId <= 0) {
             return false;
+        }
+
+        // Permission = capability: project writes are already gated by the
+        // project.manage route permission, so re-deriving them from ownership
+        // only locked administrators out of their own projects.
+        if (ActorPermission::canManageProjects($actor) && ActorPermission::sameOrganization($actor, $project)) {
+            return true;
         }
 
         return (int)($project['created_by_user_id'] ?? 0) === $actorId

@@ -369,7 +369,12 @@ final class ProjectRepository
         // from user-supplied filter keys, as that would let an internal user
         // bypass the gate by injecting client_public_id or executor_project_ids.
 
-        if (!$actorIsRoot && !$rlsScoped && $actorUserId !== null && $actorUserId > 0) {
+        // The same service-side flag the task list uses (TaskRepository) lets an
+        // internal actor holding project.manage / task.manage see every project
+        // of their workspace; it is assigned from the actor's permission envelope
+        // and never taken from user-supplied filter keys.
+
+        if (!$actorIsRoot && !$rlsScoped && empty($filters['can_manage_all_projects']) && $actorUserId !== null && $actorUserId > 0) {
             $accessibleTeamIds = array_values(array_filter(
                 array_map(static fn($value): string => trim((string)$value), (array)($filters['accessible_team_public_ids'] ?? [])),
                 static fn(string $value): bool => $value !== ''

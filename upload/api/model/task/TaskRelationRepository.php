@@ -8,6 +8,7 @@ use Api\System\Library\Database\Builder\QueryBuilder;
 use Api\System\Library\Support\Ulid;
 use PDO;
 use Api\System\Library\Support\LikeEscaper;
+use Api\System\Library\Security\ActorPermission;
 
 final class TaskRelationRepository
 {
@@ -288,11 +289,20 @@ final class TaskRelationRepository
         $actorUserId = (int)($actor['id'] ?? 0);
         $actorIsRoot = (bool)($actor['is_root'] ?? false);
 
-        if (!$actorIsRoot && $actorUserId > 0) {
+        // Permission = capability: task.manage holders pick any task of their
+        // workspace as a relation target (the flag comes from the actor only).
+        if (!$actorIsRoot && !ActorPermission::canManageTasks($actor) && $actorUserId > 0) {
             $qb->whereRaw(
                 '(t.creator_user_id = ? OR t.assignee_user_id = ? OR p.created_by_user_id = ? OR p.manager_user_id = ?)',
                 [$actorUserId, $actorUserId, $actorUserId, $actorUserId]
             );
+        }
+
+        // Workspace boundary: rows predating organization scoping stay visible,
+        // an actor bound to a workspace never sees a foreign one.
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        if ($organizationId > 0) {
+            $qb->whereRaw('(t.organization_id IS NULL OR t.organization_id = ?)', [$organizationId]);
         }
 
         return $qb->get();

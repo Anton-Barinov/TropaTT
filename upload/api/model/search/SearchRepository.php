@@ -13,9 +13,9 @@ final class SearchRepository
     {
     }
 
-    public function searchTasks(string $query, int $limit, int $actorUserId, bool $actorIsRoot, ?int $organizationId = null): array
+    public function searchTasks(string $query, int $limit, int $actorUserId, bool $actorIsRoot, ?int $organizationId = null, bool $canManageAll = false): array
     {
-        return $this->buildTasksQuery($query, $actorUserId, $actorIsRoot, $organizationId)
+        return $this->buildTasksQuery($query, $actorUserId, $actorIsRoot, $organizationId, $canManageAll)
             ->select([
                 't.public_id',
                 't.title',
@@ -30,9 +30,9 @@ final class SearchRepository
             ->get();
     }
 
-    public function searchProjects(string $query, int $limit, int $actorUserId, bool $actorIsRoot, ?int $organizationId = null): array
+    public function searchProjects(string $query, int $limit, int $actorUserId, bool $actorIsRoot, ?int $organizationId = null, bool $canManageAll = false): array
     {
-        return $this->buildProjectsQuery($query, $actorUserId, $actorIsRoot, $organizationId)
+        return $this->buildProjectsQuery($query, $actorUserId, $actorIsRoot, $organizationId, $canManageAll)
             ->select([
                 'p.public_id',
                 'p.title',
@@ -119,7 +119,7 @@ final class SearchRepository
             ->get();
     }
 
-    private function buildTasksQuery(string $query, int $actorUserId, bool $actorIsRoot, ?int $organizationId = null): QueryBuilder
+    private function buildTasksQuery(string $query, int $actorUserId, bool $actorIsRoot, ?int $organizationId = null, bool $canManageAll = false): QueryBuilder
     {
         $like = '%' . LikeEscaper::escape($query) . '%';
         $qb = (new QueryBuilder($this->pdo))
@@ -129,7 +129,9 @@ final class SearchRepository
             ->whereNull('t.archived_at')
             ->whereRaw('(t.title LIKE ? OR t.description LIKE ?)', [$like, $like]);
 
-        if (!$actorIsRoot) {
+        // Permission = capability: task.manage holders search every task of
+        // their workspace (the flag comes from the actor, never from input).
+        if (!$actorIsRoot && !$canManageAll) {
             $qb->whereRaw(
                 '(t.creator_user_id = ? OR t.assignee_user_id = ? OR p.created_by_user_id = ? OR p.manager_user_id = ?)',
                 [$actorUserId, $actorUserId, $actorUserId, $actorUserId]
@@ -141,7 +143,7 @@ final class SearchRepository
         return $qb;
     }
 
-    private function buildProjectsQuery(string $query, int $actorUserId, bool $actorIsRoot, ?int $organizationId = null): QueryBuilder
+    private function buildProjectsQuery(string $query, int $actorUserId, bool $actorIsRoot, ?int $organizationId = null, bool $canManageAll = false): QueryBuilder
     {
         $like = '%' . LikeEscaper::escape($query) . '%';
         $qb = (new QueryBuilder($this->pdo))
@@ -149,7 +151,9 @@ final class SearchRepository
             ->whereNull('p.archived_at')
             ->whereRaw('(p.title LIKE ? OR p.description LIKE ?)', [$like, $like]);
 
-        if (!$actorIsRoot) {
+        // Permission = capability: project.manage / task.manage search every
+        // project of their workspace.
+        if (!$actorIsRoot && !$canManageAll) {
             $qb->whereRaw(
                 '(p.created_by_user_id = ? OR p.manager_user_id = ?)',
                 [$actorUserId, $actorUserId]
