@@ -225,6 +225,8 @@ TropaTT works for anyone managing clients and executing work — regardless of t
 
 **Admin panel.** Users, roles, permissions, statuses, priorities, SLA policies, workflow rules, webhooks, API clients, modules, audit logs, feature flags, rate limits, AI provider settings.
 
+**Multilingual & Localization.** 7 built-in interface languages (English, Russian, Chinese, Spanish, Portuguese, German, French), native Right-to-Left (RTL) script support (Arabic, Hebrew, Persian, Urdu) with dynamic mirrored layouts, dedicated language management in admin panel (`web/admin-languages`), AST-validated Language Pack installation from ZIP or Marketplace, and one-click ZIP export.
+
 **Data migration & integrations.** Move your work out of other trackers without starting over. One-way migration connectors pull boards, lists, projects, tasks, statuses, and users into TropaTT from Jira, Trello, Asana, Bitrix24, ClickUp, Todoist, Shtab, Worksection, Confluence, Kaiten, Toggl, ActiveCollab, Notion, and Linear. Google Calendar and Yandex Calendar sync keeps events in step; GitHub and GitLab sync issues and merge requests to tasks; Slack sends notifications; draw.io adds diagrams; Raycast connects via MCP.
 
 **Ideas + AI analysis.** Capture a raw idea or client request. Let AI assess feasibility and risk. AI proposes a structured task hierarchy. Review and convert to real tasks with a click. "We should probably do something about client retention" → actionable plan in minutes.
@@ -840,6 +842,8 @@ TropaTT подходит всем, кто управляет клиентами 
 **Аналитика и дашборды.** Обзорный дашборд бизнеса. KPI, анализ загрузки, сигналы рисков, отчёты по ёмкости команды. Все данные из реального исполнения проектов и задач.
 
 **Администрирование.** Пользователи, роли, гранулярные права доступа, статусы, приоритеты, SLA-политики, workflow-правила, вебхуки, API-клиенты, модули, аудит-логи, feature-флаги, лимиты, настройки AI-провайдеров — всё из панели администратора.
+
+**Мультиязычность и локализация.** 7 встроенных языков интерфейса (русский, английский, китайский, испанский, португальский, немецкий, французский), нативная поддержка письма справа налево (RTL: арабский, иврит, персидский, урду) с зеркалированием структуры страниц, управление языками в панели администратора (`web/admin-languages`), безопасный установщик языковых пакетов из ZIP или каталога с AST-валидацией и экспорт в ZIP в один клик.
 
 **Перенос данных и интеграции.** Перенесите работу из других трекеров без потери накопленного. Коннекторы односторонней миграции переносят в TropaTT доски, списки, проекты, задачи, статусы и пользователей из Jira, Trello, Asana, Битрикс24, ClickUp, Todoist, Shtab, Worksection, Confluence, Kaiten, Toggl, ActiveCollab, Notion и Linear. Синхронизация с Google Календарём и Яндекс Календарём держит события в актуальном состоянии; GitHub и GitLab синхронизируют issues и merge requests с задачами; Slack отправляет уведомления; draw.io добавляет диаграммы; Raycast подключается через MCP.
 
