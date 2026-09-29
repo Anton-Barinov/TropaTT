@@ -1159,7 +1159,8 @@ final class App
             $c->get('repository.project'),
             new HtmlSanitizer(),
             $c->get('service.external_user'),
-            $c->get('repository.subtask')
+            $c->get('repository.subtask'),
+            $c->has('service.setting') ? $c->get('service.setting') : null
         ));
         $this->container->factory('service.task_bulk', fn(Container $c) => new TaskBulkService(
             $c->get('service.task'),
@@ -1533,7 +1534,10 @@ final class App
             $c->get('repository.user_management'),
             $c->get('repository.team'),
             $c->get('logger'),
-            $c->has('service.external_user') ? $c->get('service.external_user') : null
+            $c->has('service.external_user') ? $c->get('service.external_user') : null,
+            null,
+            null,
+            $c->has('service.setting') ? $c->get('service.setting') : null
         ));
         $this->container->factory('service.dashboard', fn(Container $c) => new DashboardService(
             $c->get('repository.dashboard'),

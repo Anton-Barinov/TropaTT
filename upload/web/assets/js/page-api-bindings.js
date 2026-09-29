@@ -26660,7 +26660,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     var refreshBtn = document.getElementById('adminSettingsRefreshBtn');
     if (!userPrefsState && !systemBody && !retentionBody) return;
 
-    var editableSettingNames = ['max_requests_per_minute', 'api_file_cache_enabled', 'api_file_cache_ttl', 'kanban_max_cards', 'gantt_max_tasks', 'time_rounding_minutes', 'insights.weekly_capacity_minutes'];
+    var editableSettingNames = ['max_requests_per_minute', 'api_file_cache_enabled', 'api_file_cache_ttl', 'kanban_max_cards', 'gantt_max_tasks', 'time_rounding_minutes', 'insights.weekly_capacity_minutes', 'tasks.worklog_policy', 'tasks.allow_assignee_edit_identity'];
     var settingLabels = {
       max_requests_per_minute: tp('admin_settings.setting_max_requests', 'Requests per minute limit'),
       api_file_cache_enabled: tp('admin_settings.setting_api_cache_enabled', 'API cache (enabled/disabled)'),
@@ -26668,7 +26668,9 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       kanban_max_cards: tp('admin_settings.setting_kanban_max_cards', 'Kanban: cards loaded per batch (0 = default 100)'),
       gantt_max_tasks: tp('admin_settings.setting_gantt_max_tasks', 'Gantt max tasks (0 = show all)'),
       time_rounding_minutes: tp('admin_settings.setting_time_rounding', 'Time rounding (minutes, 0 = off)'),
-      'insights.weekly_capacity_minutes': tp('admin_settings.setting_weekly_capacity', 'Dashboard: weekly capacity per person (minutes, 300–6000)')
+      'insights.weekly_capacity_minutes': tp('admin_settings.setting_weekly_capacity', 'Dashboard: weekly capacity per person (minutes, 300–6000)'),
+      'tasks.worklog_policy': tp('admin_settings.setting_worklog_policy', 'Task time tracking policy'),
+      'tasks.allow_assignee_edit_identity': tp('admin_settings.setting_allow_assignee_edit_identity', 'Allow assignee to edit task title/description')
     };
     var retentionLabels = {
       request_logs_days: tp('admin_settings.retention_request_logs', 'Request logs'),
@@ -26788,6 +26790,12 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         // ever touches it - and saving it makes the choice explicit in the payload.
         if (!settingsItems.some(function (item) { return String(item.name || '') === 'insights.weekly_capacity_minutes'; })) {
           settingsItems.push({ scope: 'system', name: 'insights.weekly_capacity_minutes', value: 2400 });
+        }
+        if (!settingsItems.some(function (item) { return String(item.name || '') === 'tasks.worklog_policy'; })) {
+          settingsItems.push({ scope: 'system', name: 'tasks.worklog_policy', value: 'all_project_members' });
+        }
+        if (!settingsItems.some(function (item) { return String(item.name || '') === 'tasks.allow_assignee_edit_identity'; })) {
+          settingsItems.push({ scope: 'system', name: 'tasks.allow_assignee_edit_identity', value: false });
         }
         if (!settingsItems.length) {
           var emptyRow = document.createElement('tr');
@@ -27199,6 +27207,46 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       }
 
       await loadFinanceSettings();
+    }
+
+    // Task policies block
+    var taskSection = document.getElementById('adminTaskSettingsSection');
+    if (taskSection) {
+      taskSection.style.display = 'block';
+      var taskSaveBtn = document.getElementById('adminTaskSettingsSaveBtn');
+      var worklogPolicySelect = document.getElementById('tasksWorklogPolicy');
+      var allowAssigneeEditToggle = document.getElementById('tasksAllowAssigneeEditIdentity');
+
+      async function loadTaskSettings() {
+        var wpEnv = await tryRequest('api/v1/settings/tasks.worklog_policy', { query: { scope: 'system' }, silent: true });
+        if (wpEnv && wpEnv.success && wpEnv.data && wpEnv.data.setting && worklogPolicySelect) {
+          worklogPolicySelect.value = wpEnv.data.setting.value || 'all_project_members';
+        }
+        var aeEnv = await tryRequest('api/v1/settings/tasks.allow_assignee_edit_identity', { query: { scope: 'system' }, silent: true });
+        if (aeEnv && aeEnv.success && aeEnv.data && aeEnv.data.setting && allowAssigneeEditToggle) {
+          allowAssigneeEditToggle.checked = Boolean(aeEnv.data.setting.value);
+        }
+      }
+
+      if (taskSaveBtn && taskSaveBtn.dataset.bound !== '1') {
+        taskSaveBtn.dataset.bound = '1';
+        taskSaveBtn.addEventListener('click', async function () {
+          try {
+            var policy = String(worklogPolicySelect ? worklogPolicySelect.value : 'all_project_members');
+            var allowEdit = Boolean(allowAssigneeEditToggle && allowAssigneeEditToggle.checked);
+            var idemKey = window.CRM.api.createIdempotencyKey('task-settings');
+            await request('api/v1/settings/tasks.worklog_policy', { method: 'PATCH', headers: { 'X-Idempotency-Key': idemKey }, body: { scope: 'system', value: policy } });
+            await request('api/v1/settings/tasks.allow_assignee_edit_identity', { method: 'PATCH', headers: { 'X-Idempotency-Key': idemKey }, body: { scope: 'system', value: allowEdit } });
+            notify(tp('admin_settings.tasks_saved', 'Task policies saved'));
+            await loadPage();
+          } catch (error) {
+            var normalized = window.CRM.api.normalizeError(error, tp('admin_settings.tasks_save_fail', 'Failed to save task policies'));
+            notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
+          }
+        });
+      }
+
+      await loadTaskSettings();
     }
 
     await loadPage();

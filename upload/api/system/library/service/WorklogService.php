@@ -28,6 +28,7 @@ final class WorklogService
         private readonly ?ExternalUserService $externalUsers = null,
         private ?RateResolutionService $rateResolver = null,
         private ?AuthzService $authz = null,
+        private readonly ?SettingService $settings = null,
     ) {
     }
 
@@ -150,23 +151,6 @@ final class WorklogService
             }
         }
 
-        $taskId = null;
-        if (!empty($input['task_public_id'])) {
-            // Org-scoped lookup: an actor bound to a workspace can only log
-            // against a task of that workspace (fail closed on a mismatch).
-            $task = $this->tasks->findByPublicId((string)$input['task_public_id'], $this->organizationId($actor));
-            if (!$task) {
-                return 'TASK_NOT_FOUND';
-            }
-            if (!$this->canAccessTask($task, $actor)) {
-                return 'FORBIDDEN';
-            }
-            if (!empty($task['deleted_at']) || !empty((int)($task['is_closed'] ?? 0)) || \Api\System\Library\Support\TaskStatusSemantics::isTerminal($this->worklogs->getPdo(), (string)($task['status_code'] ?? ''))) {
-                return 'TASK_CLOSED';
-            }
-            $taskId = (int)$task['id'];
-        }
-
         $publicId = Ulid::generate('wlg');
         $userId = $this->resolveActorId($actor);
         $impersonatedUserId = $this->resolveImpersonatedUserId($actor, $input);
@@ -175,6 +159,23 @@ final class WorklogService
         }
         if ($impersonatedUserId !== null && $impersonatedUserId > 0) {
             $userId = $impersonatedUserId;
+        }
+
+        $taskId = null;
+        if (!empty($input['task_public_id'])) {
+            // Org-scoped lookup: an actor bound to a workspace can only log
+            // against a task of that workspace (fail closed on a mismatch).
+            $task = $this->tasks->findByPublicId((string)$input['task_public_id'], $this->organizationId($actor));
+            if (!$task) {
+                return 'TASK_NOT_FOUND';
+            }
+            if (!$this->canLogTimeToTask($task, $actor, $userId)) {
+                return 'FORBIDDEN';
+            }
+            if (!empty($task['deleted_at']) || !empty((int)($task['is_closed'] ?? 0)) || \Api\System\Library\Support\TaskStatusSemantics::isTerminal($this->worklogs->getPdo(), (string)($task['status_code'] ?? ''))) {
+                return 'TASK_CLOSED';
+            }
+            $taskId = (int)$task['id'];
         }
 
         $dailyTotal = $this->worklogs->getDailyTotalMinutes($userId, $logDate);
@@ -313,7 +314,7 @@ final class WorklogService
                 if (!$task) {
                     return 'TASK_NOT_FOUND';
                 }
-                if (!$this->canAccessTask($task, $actor)) {
+                if (!$this->canLogTimeToTask($task, $actor, (int)($existing['user_id'] ?? 0))) {
                     return 'FORBIDDEN';
                 }
                 if (!empty($task['deleted_at']) || !empty((int)($task['is_closed'] ?? 0)) || \Api\System\Library\Support\TaskStatusSemantics::isTerminal($this->worklogs->getPdo(), (string)($task['status_code'] ?? ''))) {
@@ -504,6 +505,47 @@ final class WorklogService
             || (int)($task['project_manager_user_id'] ?? 0) === $actorId
             || (int)($task['project_team_manager_user_id'] ?? 0) === $actorId
             || in_array($actorId, $this->decodeTeamMemberIds($task['project_team_member_user_ids'] ?? null), true);
+    }
+
+    private function canLogTimeToTask(array $task, array $actor, ?int $targetUserId = null): bool
+    {
+        if (!$this->canAccessTask($task, $actor)) {
+            return false;
+        }
+
+        if (((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0)) {
+            return true;
+        }
+
+        if (ActorPermission::canManageTasks($actor) && ActorPermission::sameOrganization($actor, $task)) {
+            return true;
+        }
+
+        $policy = $this->getWorklogPolicy();
+        if ($policy === 'assignee_only') {
+            $taskAssigneeId = (int)($task['assignee_user_id'] ?? 0);
+            if ($taskAssigneeId > 0) {
+                $effectiveUserId = $targetUserId ?: $this->resolveActorId($actor);
+                return $effectiveUserId === $taskAssigneeId;
+            }
+            // General unassigned tasks: any project member with task access can log time
+            return true;
+        }
+
+        return true;
+    }
+
+    private function getWorklogPolicy(): string
+    {
+        if ($this->settings === null) {
+            return 'all_project_members';
+        }
+        $val = $this->settings->get('system', 'tasks.worklog_policy');
+        if ($val === null) {
+            return 'all_project_members';
+        }
+        $v = is_array($val) ? ($val['value'] ?? 'all_project_members') : $val;
+        return in_array($v, ['assignee_only', 'all_project_members'], true) ? (string)$v : 'all_project_members';
     }
 
     /**

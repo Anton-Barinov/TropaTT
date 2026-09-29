@@ -10,4 +10,6 @@ return array (
   'name_invalid' => 'Invalid setting name',
   'value_required' => 'Setting value is required',
   'invalid_weekly_capacity' => 'Weekly capacity must be between 300 and 6000 minutes (5–100 h)',
+  'invalid_worklog_policy' => 'يجب أن تكون سياسة تسجيل الوقت all_project_members أو assignee_only',
+  'invalid_boolean' => 'يجب أن تكون القيمة منطقية (true أو false)',
 );

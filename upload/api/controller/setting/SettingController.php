@@ -72,6 +72,8 @@ final class SettingController extends BaseController
 
         $allowedNames = [
             'time_rounding_minutes',
+            'tasks.worklog_policy',
+            'tasks.allow_assignee_edit_identity',
         ];
         // L-3: scope must not come from the request. User settings live in
         // 'user:<public_id>' scopes; accepting a caller-supplied scope would
@@ -83,6 +85,9 @@ final class SettingController extends BaseController
         $items = [];
         foreach ($allowedNames as $name) {
             $item = $service->get($scope, $name);
+            if ($item === null) {
+                $item = $this->systemSettingDefault($scope, $name);
+            }
             if ($item !== null) {
                 $items[] = $item;
             }
@@ -192,9 +197,23 @@ final class SettingController extends BaseController
             }
         }
 
+        if ($scope === 'system' && str_starts_with($name, 'tasks.')) {
+            $tasksError = $this->validateTasksSetting($name, $input['value']);
+            if ($tasksError !== null) {
+                return $this->error('VALIDATION_ERROR', $tasksError, 422, [
+                    'value' => [$tasksError],
+                ]);
+            }
+        }
+
+        $value = $input['value'];
+        if ($scope === 'system' && $name === 'tasks.allow_assignee_edit_identity') {
+            $value = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+        }
+
         /** @var SettingService $service */
         $service = $this->container->get('service.setting');
-        $item = $service->set($scope, $name, $input['value']);
+        $item = $service->set($scope, $name, $value);
         $this->clearSettingCaches($scope, $name);
 
         return $this->success('SETTING_SET', $this->t('setting/messages.set'), [
@@ -217,6 +236,8 @@ final class SettingController extends BaseController
             'finance.cost_from_payout_markup_percent' => null,
             'finance.auto_close.mode' => 'off',
             'finance.auto_close.lag_days' => 5,
+            'tasks.worklog_policy' => 'all_project_members',
+            'tasks.allow_assignee_edit_identity' => false,
         ];
         if (!array_key_exists($name, $defaults)) {
             return null;
@@ -272,6 +293,26 @@ final class SettingController extends BaseController
         return null;
     }
 
+    private function validateTasksSetting(string $name, mixed $value): ?string
+    {
+        if ($name === 'tasks.worklog_policy') {
+            $allowed = ['all_project_members', 'assignee_only'];
+            if (!is_string($value) || !in_array($value, $allowed, true)) {
+                return $this->t('setting/messages.invalid_worklog_policy');
+            }
+            return null;
+        }
+
+        if ($name === 'tasks.allow_assignee_edit_identity') {
+            if (!is_bool($value) && $value !== 0 && $value !== 1 && $value !== '0' && $value !== '1' && $value !== 'true' && $value !== 'false') {
+                return $this->t('setting/messages.invalid_boolean');
+            }
+            return null;
+        }
+
+        return null;
+    }
+
     private function clearSettingCaches(string $scope, string $name): void
     {
         if ($this->container->has('cache.api')) {
@@ -290,6 +331,10 @@ final class SettingController extends BaseController
                 // snapshots: changing any finance.* key must invalidate 'worklog'
                 // so money reports never serve stale figures for up to a minute.
                 if ($scope === 'system' && str_starts_with($name, 'finance.')) {
+                    $cache->invalidateNamespace('worklog');
+                }
+                if ($scope === 'system' && str_starts_with($name, 'tasks.')) {
+                    $cache->invalidateNamespace('task');
                     $cache->invalidateNamespace('worklog');
                 }
             }
