@@ -2,6 +2,8 @@
 declare(strict_types=1);
 $currentLocale = strtolower((string)($locale ?? 'ru-ru'));
 $htmlLang = str_contains($currentLocale, '-') ? explode('-', $currentLocale, 2)[0] : $currentLocale;
+$direction = strtolower((string)($direction ?? (\Web\System\I18n\I18n::resolveDirection($currentLocale))));
+$isRtl = $direction === 'rtl';
 $assetsVersion = trim((string)getenv('CRM_WEB_ASSETS_VERSION'));
 $vapidPublicKey = trim((string)getenv('NOTIFICATIONS_PUSH_VAPID_PUBLIC_KEY'));
 $realtimeTransport = strtolower(trim((string)getenv('CRM_REALTIME_TRANSPORT')));
@@ -96,7 +98,7 @@ if (is_file($jsOverridesPath)) {
   }
 }
 ?><!doctype html>
-<html lang="<?= htmlspecialchars($htmlLang, ENT_QUOTES, 'UTF-8') ?>">
+<html lang="<?= htmlspecialchars($htmlLang, ENT_QUOTES, 'UTF-8') ?>" dir="<?= htmlspecialchars($direction, ENT_QUOTES, 'UTF-8') ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -147,7 +149,11 @@ if (is_file($jsOverridesPath)) {
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<?php if ($isRtl): ?>
+  <link rel="stylesheet" href="assets/css/bootstrap.rtl.min.css?v=<?= urlencode($assetsVersion) ?>">
+<?php else: ?>
   <link rel="stylesheet" href="assets/css/bootstrap.min.css?v=<?= urlencode($assetsVersion) ?>">
+<?php endif; ?>
   <link rel="stylesheet" href="assets/vendor/fontawesome/css/all.min.css?v=<?= urlencode($assetsVersion) ?>">
   <link rel="stylesheet" href="assets/css/tokens.css?v=<?= urlencode($assetsVersion) ?>">
   <link rel="stylesheet" href="assets/css/layout.css?v=<?= urlencode($assetsVersion) ?>">
@@ -158,6 +164,9 @@ if (is_file($jsOverridesPath)) {
   <link rel="stylesheet" href="assets/css/ui.css?v=<?= urlencode($assetsVersion) ?>">
   <link rel="stylesheet" href="assets/css/visual-editor.css?v=<?= urlencode($assetsVersion) ?>">
   <link rel="stylesheet" href="assets/css/themes.css?v=<?= urlencode($assetsVersion) ?>">
+<?php if ($isRtl): ?>
+  <link rel="stylesheet" href="assets/css/rtl.css?v=<?= urlencode($assetsVersion) ?>">
+<?php endif; ?>
   <?php foreach (($module_css_files ?? []) as $cssFile): ?>
   <link rel="stylesheet" href="<?= htmlspecialchars($modulesBase, ENT_QUOTES, 'UTF-8') ?><?= htmlspecialchars($cssFile, ENT_QUOTES, 'UTF-8') ?>?v=<?= urlencode($assetsVersion) ?>">
   <?php endforeach; ?>
@@ -173,6 +182,8 @@ if (is_file($jsOverridesPath)) {
   <script nonce="<?= $csp_nonce ?>">
     window.CRM = window.CRM || {};
     window.CRM.locale = <?= json_encode($currentLocale, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+    window.CRM.direction = <?= json_encode($direction, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+    window.CRM.isRtl = <?= $isRtl ? 'true' : 'false' ?>;
     window.CRM.messages = <?= json_encode($lang_messages ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
     window.CRM.i18n = window.CRM.i18n || (function () {
       function getByPath(obj, key) {
