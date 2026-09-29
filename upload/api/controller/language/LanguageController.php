@@ -60,10 +60,16 @@ final class LanguageController extends BaseController
             return $this->error('VALIDATION_ERROR', 'Field "code" is required.', 422);
         }
 
-        if (!isset($input['is_enabled'])) {
+        $isEnabled = null;
+        if (isset($input['is_enabled'])) {
+            $isEnabled = (bool)$input['is_enabled'];
+        } elseif (isset($input['enabled'])) {
+            $isEnabled = (bool)$input['enabled'];
+        }
+        if ($isEnabled === null) {
             return $this->error('VALIDATION_ERROR', 'Field "is_enabled" is required.', 422);
         }
-        $enabled = (bool)$input['is_enabled'];
+        $enabled = $isEnabled;
 
         try {
             $result = $this->registry()->toggle($code, $enabled);
