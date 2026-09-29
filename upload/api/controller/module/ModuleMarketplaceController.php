@@ -212,28 +212,80 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
             ]);
         }
 
+        $isLanguagePack = false;
+        $detail = null;
+        try {
+            $detail = $client->module($fullCode);
+            if (($detail['category_slug'] ?? '') === 'localization' || ($detail['product_type'] ?? '') === 'language_pack') {
+                $isLanguagePack = true;
+            }
+        } catch (\Throwable) {}
+        if (!$isLanguagePack && str_starts_with($fullCode, 'crm.language-pack-')) {
+            $isLanguagePack = true;
+        }
+
         try {
             $release = $client->requestInstall($fullCode, $this->coreVersion(), $client->currentDomain());
-            $installer = new ModuleRemoteInstaller(
-                $pm,
-                $mc,
-                $this->container->get('module.migrations'),
-                dirname(__DIR__, 3),
-            );
-            // The catalog code is authoritative: the downloaded package must
-            // declare exactly this name, otherwise the release was published
-            // inconsistently and installing it would register the wrong module.
-            // The install-request sha256 pins the archive: the download and the
-            // hash both come from the configured marketplace over TLS, so a
-            // matching hash is the channel proof that replaces the shared
-            // MODULE_SIGNING_KEY (which a fresh installation never has).
             $expectedSha256 = (string)($release['sha256'] ?? '');
-            $name = $installer->installFromUrl(
-                $release['download_url'],
-                true,
-                $fullCode,
-                $expectedSha256 !== '' ? $expectedSha256 : null,
-            );
+
+            if ($isLanguagePack) {
+                /** @var \Api\System\Library\Service\LanguagePackInstaller $langInstaller */
+                $langInstaller = $this->container->get('service.language_pack_installer');
+                $langResult = $langInstaller->installFromUrl(
+                    $release['download_url'],
+                    $expectedSha256 !== '' ? $expectedSha256 : null
+                );
+
+                // Register proxy manifest in modules directory so admin-modules sees it
+                $moduleDir = $pm->getModulesDir() . '/' . $fullCode;
+                if (!is_dir($moduleDir)) {
+                    @mkdir($moduleDir, 0755, true);
+                }
+                $moduleManifest = [
+                    'name' => $fullCode,
+                    'version' => (string)($release['version'] ?? '1.0.0'),
+                    'vendor' => 'crm',
+                    'author' => (string)($detail['author'] ?? 'Anton Barinov'),
+                    'author_url' => (string)($detail['author_url'] ?? 'https://tropatt.com'),
+                    'title' => (string)($detail['title'] ?? $langResult['name'] ?? $fullCode),
+                    'description' => (string)($detail['summary'] ?? 'Language pack'),
+                    'core_version' => '>=' . $this->coreVersion(),
+                    'license' => 'MIT',
+                    'category' => 'localization',
+                    'dependencies' => [],
+                    'require_permissions' => [],
+                    'type' => 'language_pack',
+                    'code' => (string)($langResult['code'] ?? 'ar-sa'),
+                ];
+                file_put_contents($moduleDir . '/manifest.json', (string)json_encode($moduleManifest, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+                $pm->discover();
+                $mc->register($fullCode, 'crm', (string)($release['version'] ?? '1.0.0'));
+                if ($activate) {
+                    $mc->setActive($fullCode);
+                }
+
+                $name = $fullCode;
+            } else {
+                $installer = new ModuleRemoteInstaller(
+                    $pm,
+                    $mc,
+                    $this->container->get('module.migrations'),
+                    dirname(__DIR__, 3),
+                );
+                // The catalog code is authoritative: the downloaded package must
+                // declare exactly this name, otherwise the release was published
+                // inconsistently and installing it would register the wrong module.
+                // The install-request sha256 pins the archive: the download and the
+                // hash both come from the configured marketplace over TLS, so a
+                // matching hash is the channel proof that replaces the shared
+                // MODULE_SIGNING_KEY (which a fresh installation never has).
+                $name = $installer->installFromUrl(
+                    $release['download_url'],
+                    true,
+                    $fullCode,
+                    $expectedSha256 !== '' ? $expectedSha256 : null,
+                );
+            }
         } catch (ModulePackageHashMismatchException $e) {
             AppLog::error('[ModuleMarketplaceController::install] ' . $fullCode . ': ' . $e->getMessage());
             return $this->error('MARKETPLACE_SHA256_MISMATCH', $this->t('module/messages.marketplace_sha256_mismatch'), 502, [
@@ -256,17 +308,21 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
         $activated = false;
         $activationError = '';
         if ($activate) {
-            try {
-                $manifest = $pm->getManifest($name);
-                if ($manifest !== null && $pm->checkCoreCompatibility($manifest, $this->coreVersion()) && $pm->load($name)) {
-                    $mc->setActive($name);
-                    $activated = true;
-                } else {
+            if ($isLanguagePack) {
+                $activated = true;
+            } else {
+                try {
+                    $manifest = $pm->getManifest($name);
+                    if ($manifest !== null && $pm->checkCoreCompatibility($manifest, $this->coreVersion()) && $pm->load($name)) {
+                        $mc->setActive($name);
+                        $activated = true;
+                    } else {
+                        $activationError = $this->t('module/messages.marketplace_activation_failed');
+                    }
+                } catch (\Throwable $e) {
                     $activationError = $this->t('module/messages.marketplace_activation_failed');
+                    AppLog::error('[ModuleMarketplaceController::install] activation failed for ' . $name . ': ' . $e->getMessage());
                 }
-            } catch (\Throwable $e) {
-                $activationError = $this->t('module/messages.marketplace_activation_failed');
-                AppLog::error('[ModuleMarketplaceController::install] activation failed for ' . $name . ': ' . $e->getMessage());
             }
         }
 

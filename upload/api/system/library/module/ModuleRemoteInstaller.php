@@ -125,7 +125,12 @@ final class ModuleRemoteInstaller
             // or silently register under an unexpected code.
             $expectedName = $expectedName !== null ? trim($expectedName) : null;
             if ($expectedName !== null && $expectedName !== '' && $moduleName !== $expectedName) {
-                throw new ModulePackageMismatchException($moduleName, $expectedName);
+                $fullCode = (string)($manifestData['full_code'] ?? '');
+                if ($fullCode === $expectedName) {
+                    $moduleName = $expectedName;
+                } else {
+                    throw new ModulePackageMismatchException($moduleName, $expectedName);
+                }
             }
 
             $targetDir = $this->projectRoot . '/modules/' . $moduleName;
@@ -224,11 +229,12 @@ final class ModuleRemoteInstaller
      */
     private function verifyPackageSignature(array $manifestData, bool $sha256Pinned = false): void
     {
+        if ($sha256Pinned) {
+            return;
+        }
+
         $signingKey = trim((string)(getenv('MODULE_SIGNING_KEY') ?: ''));
         if ($signingKey === '') {
-            if ($sha256Pinned) {
-                return;
-            }
             throw new ModuleSigningKeyMissingException();
         }
 

@@ -220,6 +220,13 @@ final class ModuleController
 
             $mc->setActive($name);
 
+            try {
+                if (str_starts_with($name, 'crm.language-pack-') && $this->container->has('service.language_registry')) {
+                    $code = substr($name, strlen('crm.language-pack-'));
+                    $this->container->get('service.language_registry')->toggle($code, true);
+                }
+            } catch (\Throwable) {}
+
             return JsonResponse::success('MODULE_ACTIVATED', $this->t('module/messages.activated'), ['name' => $name]);
         } catch (\Throwable $e) {
             AppLog::error('[ModuleController::activate] ' . $name . ': ' . $e->getMessage());
@@ -240,6 +247,13 @@ final class ModuleController
             }
 
             $mc->setInactive($name);
+
+            try {
+                if (str_starts_with($name, 'crm.language-pack-') && $this->container->has('service.language_registry')) {
+                    $code = substr($name, strlen('crm.language-pack-'));
+                    $this->container->get('service.language_registry')->toggle($code, false);
+                }
+            } catch (\Throwable) {}
 
             return JsonResponse::success('MODULE_DEACTIVATED', $this->t('module/messages.deactivated'), ['name' => $name]);
         } catch (\Throwable $e) {
