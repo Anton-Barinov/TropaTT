@@ -70,6 +70,26 @@ final class I18n
         return $this->locale;
     }
 
+    public function direction(): string
+    {
+        return self::resolveDirection($this->locale, $this->baseDir);
+    }
+
+    public static function resolveDirection(string $locale, string $baseDir = ''): string
+    {
+        $enabled = self::getEnabledLocales($baseDir);
+        foreach ($enabled as $item) {
+            if ($item['code'] === $locale) {
+                return (string)($item['direction'] ?? 'ltr');
+            }
+        }
+        $prefix = explode('-', $locale)[0];
+        if (in_array($prefix, ['ar', 'he', 'fa', 'ur', 'yi', 'ps', 'sd'], true)) {
+            return 'rtl';
+        }
+        return 'ltr';
+    }
+
     /** @return array<string, mixed> */
     public function all(): array
     {

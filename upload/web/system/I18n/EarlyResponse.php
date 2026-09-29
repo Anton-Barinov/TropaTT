@@ -24,7 +24,8 @@ final class EarlyResponse
                 'updates_url' => '<code>/web/index.php?route=admin-updates</code>',
             ]) . ' ' . self::translate($messages, 'early_response.recovery_body', 'Emergency recovery is available at {rescue_url} using the recovery key shown once at installation or re-issued from the updates page.', [
                 'rescue_url' => '<code>/updater/rescue.php</code>',
-            ])
+            ]),
+            $baseDir
         );
     }
 
@@ -40,7 +41,8 @@ final class EarlyResponse
             $locale,
             self::translate($messages, 'early_response.forbidden_title', '403 Forbidden'),
             self::translate($messages, 'early_response.forbidden_heading', '403 Forbidden'),
-            self::translate($messages, 'early_response.forbidden_body', 'You do not have permission to access this page.')
+            self::translate($messages, 'early_response.forbidden_body', 'You do not have permission to access this page.'),
+            $baseDir
         );
     }
 
@@ -105,7 +107,9 @@ JS;
         // the HTML context instead (single escape, no double-escaping).
         $script = str_replace('RETRY_MSG', json_encode($retryingRaw), $script);
 
-        return '<!doctype html><html lang="' . self::escape($htmlLang) . '"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>'
+        $dir = I18n::resolveDirection($locale, $baseDir);
+
+        return '<!doctype html><html lang="' . self::escape($htmlLang) . '" dir="' . self::escape($dir) . '"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>'
             . self::escape($title) . '</title><style>'
             . 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f5f6f8;color:#1f2937;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:24px;box-sizing:border-box}'
             . '.crm-card{max-width:460px;width:100%;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:32px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.06)}'
@@ -122,10 +126,11 @@ JS;
             . '<script>' . $script . '</script></div></body></html>';
     }
 
-    private static function page(string $locale, string $title, string $heading, string $body): string
+    private static function page(string $locale, string $title, string $heading, string $body, string $baseDir = ''): string
     {
         $htmlLang = explode('-', $locale, 2)[0];
-        return '<!doctype html><html lang="' . self::escape($htmlLang) . '"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>'
+        $dir = I18n::resolveDirection($locale, $baseDir);
+        return '<!doctype html><html lang="' . self::escape($htmlLang) . '" dir="' . self::escape($dir) . '"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>'
             . self::escape($title) . '</title></head><body style="font-family:sans-serif;padding:40px"><h1>'
             . self::escape($heading) . '</h1><p>' . $body . '</p></body></html>';
     }

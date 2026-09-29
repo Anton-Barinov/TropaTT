@@ -186,6 +186,7 @@ abstract class Controller
         $routeKey = str_replace('-', '_', (string)$data['route']);
         $data['base_path'] = $data['base_path'] ?? rtrim(str_replace('index.php', '', $_SERVER['SCRIPT_NAME'] ?? '/index.php'), '/');
         $data['locale'] = $data['locale'] ?? $i18n->locale();
+        $data['direction'] = $data['direction'] ?? $i18n->direction();
         $data['i18n'] = $i18n;
         $data['module_css_files'] = self::$moduleCssFiles ?? [];
         $data['module_js_files'] = self::$moduleJsFiles ?? [];
