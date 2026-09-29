@@ -26670,7 +26670,87 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     var refreshBtn = document.getElementById('adminSettingsRefreshBtn');
     if (!userPrefsState && !systemBody && !retentionBody) return;
 
-    var editableSettingNames = ['max_requests_per_minute', 'api_file_cache_enabled', 'api_file_cache_ttl', 'kanban_max_cards', 'gantt_max_tasks', 'time_rounding_minutes', 'insights.weekly_capacity_minutes', 'tasks.worklog_policy', 'tasks.allow_assignee_edit_identity'];
+    var currentSettingsMap = {};
+    var currentCategory = 'all';
+    var currentSearch = '';
+    var loadFinanceSettings = null;
+    var loadTaskSettings = null;
+
+    var settingMeta = {
+      max_requests_per_minute: {
+        type: 'integer',
+        min: 10,
+        max: 10000,
+        label: tp('admin_settings.setting_max_requests', 'Requests per minute limit'),
+        hint: tp('admin_settings.setting_max_requests_hint', 'Максимальное число API-запросов в минуту с одного IP-адреса.'),
+        default: 120
+      },
+      api_file_cache_enabled: {
+        type: 'boolean',
+        label: tp('admin_settings.setting_api_cache_enabled', 'API cache (enabled/disabled)'),
+        hint: tp('admin_settings.setting_api_cache_enabled_hint', 'Файловое кэширование справочных GET-ответов API.'),
+        default: false
+      },
+      api_file_cache_ttl: {
+        type: 'integer',
+        min: 1,
+        max: 86400,
+        label: tp('admin_settings.setting_api_cache_ttl', 'Cache TTL (sec)'),
+        hint: tp('admin_settings.setting_api_cache_ttl_hint', 'Время жизни кэшированных справочных ответов API (1–86400 сек).'),
+        default: 60
+      },
+      kanban_max_cards: {
+        type: 'integer',
+        min: 0,
+        max: 1000,
+        label: tp('admin_settings.setting_kanban_max_cards', 'Kanban: cards loaded per batch (0 = default 100)'),
+        hint: tp('admin_settings.setting_kanban_max_cards_hint', '0 — использовать системное значение по умолчанию (100).'),
+        default: 0
+      },
+      gantt_max_tasks: {
+        type: 'integer',
+        min: 0,
+        max: 2000,
+        label: tp('admin_settings.setting_gantt_max_tasks', 'Gantt max tasks (0 = show all)'),
+        hint: tp('admin_settings.setting_gantt_max_tasks_hint', '0 — отображать все задачи проекта без лимита.'),
+        default: 0
+      },
+      time_rounding_minutes: {
+        type: 'integer',
+        min: 0,
+        max: 60,
+        step: 5,
+        label: tp('admin_settings.setting_time_rounding', 'Time rounding (minutes, 0 = off)'),
+        hint: tp('admin_settings.setting_time_rounding_hint', 'Шаг округления при логировании трудозатрат: 0 — выключено, 5, 10, 15 минут.'),
+        default: 0
+      },
+      'insights.weekly_capacity_minutes': {
+        type: 'integer',
+        min: 300,
+        max: 6000,
+        label: tp('admin_settings.setting_weekly_capacity', 'Dashboard: weekly capacity per person (minutes, 300–6000)'),
+        hint: tp('admin_settings.setting_weekly_capacity_hint', 'Базовый объём рабочего времени в неделю для расчёта загрузки (300–6000 мин, по умолчанию 2400).'),
+        default: 2400
+      },
+      'tasks.worklog_policy': {
+        type: 'select',
+        options: [
+          { value: 'all_project_members', label: tp('admin_settings.tasks_worklog_policy_all', 'Все участники проекта (совместная работа)') },
+          { value: 'assignee_only', label: tp('admin_settings.tasks_worklog_policy_assignee', 'Только назначенный исполнитель (строгий режим)') }
+        ],
+        label: tp('admin_settings.setting_worklog_policy', 'Task time tracking policy'),
+        hint: tp('admin_settings.tasks_worklog_policy_hint', 'В строгом режиме списывать время могут только назначенные исполнители (или менеджеры). Если исполнитель не назначен, время могут списывать любые участники проекта.'),
+        default: 'all_project_members'
+      },
+      'tasks.allow_assignee_edit_identity': {
+        type: 'boolean',
+        label: tp('admin_settings.setting_allow_assignee_edit_identity', 'Allow assignee to edit task title/description'),
+        hint: tp('admin_settings.tasks_allow_assignee_edit_identity_hint', 'Позволяет назначенному исполнителю обновлять заголовок и формулировку задачи.'),
+        default: false
+      }
+    };
+
+    var editableSettingNames = Object.keys(settingMeta);
     var settingLabels = {
       max_requests_per_minute: tp('admin_settings.setting_max_requests', 'Requests per minute limit'),
       api_file_cache_enabled: tp('admin_settings.setting_api_cache_enabled', 'API cache (enabled/disabled)'),
@@ -26712,6 +26792,287 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     function settingLabel(name) {
       var key = String(name || '').trim();
       return settingLabels[key] || key || tp('admin_settings.setting_fallback', 'Setting');
+    }
+
+    function confirmAdminSettingsAction(message) {
+      var modalEl = document.getElementById('adminSettingsConfirmModal');
+      var messageEl = document.getElementById('adminSettingsConfirmModalMessage');
+      var submitBtn = document.getElementById('adminSettingsConfirmSubmitBtn');
+      if (!modalEl || !submitBtn || !(window.bootstrap && window.bootstrap.Modal)) {
+        return Promise.resolve(false);
+      }
+      if (messageEl) messageEl.textContent = String(message || '');
+      var modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+      return new Promise(function (resolve) {
+        var settled = false;
+        var finish = function (result) {
+          if (settled) return;
+          settled = true;
+          modalEl.removeEventListener('hidden.bs.modal', onHidden);
+          submitBtn.removeEventListener('click', onSubmit);
+          resolve(Boolean(result));
+        };
+        var onHidden = function () { finish(false); };
+        var onSubmit = function () {
+          finish(true);
+          modal.hide();
+        };
+        modalEl.addEventListener('hidden.bs.modal', onHidden, { once: true });
+        submitBtn.addEventListener('click', onSubmit, { once: true });
+        modal.show();
+      });
+    }
+
+    function openEditModal(name, currentValue) {
+      var modalEl = document.getElementById('adminSettingEditModal');
+      if (!modalEl) return;
+      var meta = settingMeta[name] || {
+        type: 'string',
+        label: settingLabel(name),
+        hint: '',
+        default: ''
+      };
+
+      var keyBadge = document.getElementById('adminSettingModalKeyBadge');
+      var typeBadge = document.getElementById('adminSettingModalTypeBadge');
+      var hintEl = document.getElementById('adminSettingModalHint');
+      var errorEl = document.getElementById('adminSettingModalError');
+      var inputWrap = document.getElementById('adminSettingModalInputWrap');
+      var saveBtn = document.getElementById('adminSettingModalSaveBtn');
+
+      if (keyBadge) keyBadge.textContent = name;
+      if (typeBadge) typeBadge.textContent = tp('admin_settings.type_' + meta.type, meta.type);
+      if (hintEl) hintEl.textContent = meta.hint || '';
+      if (errorEl) {
+        errorEl.style.display = 'none';
+        errorEl.textContent = '';
+      }
+
+      inputWrap.innerHTML = '';
+      var inputControl = null;
+
+      if (meta.type === 'boolean') {
+        var checkDiv = document.createElement('div');
+        checkDiv.className = 'form-check form-switch';
+        var chk = document.createElement('input');
+        chk.className = 'form-check-input';
+        chk.type = 'checkbox';
+        chk.role = 'switch';
+        chk.id = 'adminSettingModalInput';
+        chk.checked = Boolean(currentValue);
+        var chkLabel = document.createElement('label');
+        chkLabel.className = 'form-check-label fw-semibold';
+        chkLabel.htmlFor = 'adminSettingModalInput';
+        chkLabel.textContent = meta.label || settingLabel(name);
+        checkDiv.appendChild(chk);
+        checkDiv.appendChild(chkLabel);
+        inputWrap.appendChild(checkDiv);
+        inputControl = chk;
+      } else if (meta.type === 'select' && Array.isArray(meta.options)) {
+        var sel = document.createElement('select');
+        sel.className = 'form-select';
+        sel.id = 'adminSettingModalInput';
+        meta.options.forEach(function (opt) {
+          var optEl = document.createElement('option');
+          optEl.value = opt.value;
+          optEl.textContent = opt.label;
+          if (String(opt.value) === String(currentValue)) optEl.selected = true;
+          sel.appendChild(optEl);
+        });
+        inputWrap.appendChild(sel);
+        inputControl = sel;
+      } else if (meta.type === 'integer') {
+        var numInp = document.createElement('input');
+        numInp.className = 'form-control';
+        numInp.type = 'number';
+        numInp.id = 'adminSettingModalInput';
+        if (meta.min !== undefined) numInp.min = String(meta.min);
+        if (meta.max !== undefined) numInp.max = String(meta.max);
+        if (meta.step !== undefined) numInp.step = String(meta.step);
+        numInp.value = currentValue !== null && currentValue !== undefined ? String(currentValue) : String(meta.default || 0);
+        inputWrap.appendChild(numInp);
+        inputControl = numInp;
+      } else if (meta.type === 'json' || (currentValue !== null && typeof currentValue === 'object')) {
+        var ta = document.createElement('textarea');
+        ta.className = 'form-control font-monospace';
+        ta.rows = 8;
+        ta.id = 'adminSettingModalInput';
+        ta.value = typeof currentValue === 'object' ? JSON.stringify(currentValue, null, 2) : String(currentValue || '');
+        inputWrap.appendChild(ta);
+        inputControl = ta;
+      } else {
+        var txtInp = document.createElement('input');
+        txtInp.className = 'form-control';
+        txtInp.type = 'text';
+        txtInp.id = 'adminSettingModalInput';
+        txtInp.value = currentValue !== null && currentValue !== undefined ? String(currentValue) : '';
+        inputWrap.appendChild(txtInp);
+        inputControl = txtInp;
+      }
+
+      var modalInstance = window.bootstrap && window.bootstrap.Modal
+        ? window.bootstrap.Modal.getOrCreateInstance(modalEl)
+        : null;
+
+      function showModalError(msg) {
+        if (errorEl) {
+          errorEl.textContent = msg;
+          errorEl.style.display = 'block';
+        }
+      }
+
+      function setModalSaving(saving) {
+        if (!saveBtn) return;
+        saveBtn.disabled = saving;
+        var spinner = saveBtn.querySelector('.spinner-border');
+        var textEl = saveBtn.querySelector('.btn-text');
+        if (spinner) spinner.style.display = saving ? 'inline-block' : 'none';
+        if (textEl) textEl.textContent = saving ? tp('admin_settings.modal_edit_saving', 'Сохранение...') : tp('admin_settings.modal_edit_save', 'Сохранить изменения');
+      }
+
+      if (saveBtn) {
+        saveBtn.onclick = async function () {
+          var parsedValue;
+          if (meta.type === 'boolean') {
+            parsedValue = Boolean(inputControl.checked);
+          } else if (meta.type === 'integer') {
+            var num = Number(inputControl.value);
+            if (!Number.isFinite(num)) {
+              showModalError(tp('admin_settings.modal_edit_number_invalid', 'Укажите корректное числовое значение'));
+              return;
+            }
+            if (meta.min !== undefined && num < meta.min) {
+              showModalError((tp('admin_settings.modal_min_error', 'Значение не может быть меньше ') + meta.min));
+              return;
+            }
+            if (meta.max !== undefined && num > meta.max) {
+              showModalError((tp('admin_settings.modal_max_error', 'Значение не может быть больше ') + meta.max));
+              return;
+            }
+            parsedValue = Math.round(num);
+          } else if (meta.type === 'select') {
+            parsedValue = String(inputControl.value);
+          } else if (meta.type === 'json') {
+            try {
+              parsedValue = JSON.parse(inputControl.value);
+            } catch (e) {
+              showModalError(tp('admin_settings.modal_edit_json_invalid', 'Некорректный формат JSON: ') + e.message);
+              return;
+            }
+          } else {
+            parsedValue = String(inputControl.value || '').trim();
+          }
+
+          setModalSaving(true);
+          try {
+            await request('api/v1/settings/' + encodeURIComponent(name), {
+              method: 'PATCH',
+              headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('admin-setting-update-' + name) },
+              body: { scope: 'system', value: parsedValue }
+            });
+            setModalSaving(false);
+            if (modalInstance) modalInstance.hide();
+            notify(tp('admin_settings.modal_edit_success', 'Настройка успешно сохранена'));
+            await loadPage();
+          } catch (err) {
+            setModalSaving(false);
+            var norm = window.CRM.api.normalizeError(err, tp('admin_settings.setting_update_fail', 'Не удалось обновить настройку'));
+            showModalError(window.CRM.api.formatErrorMessage(norm));
+          }
+        };
+      }
+
+      if (modalInstance) modalInstance.show();
+    }
+
+    function openJsonModal(name, value) {
+      var modalEl = document.getElementById('adminSettingJsonModal');
+      if (!modalEl) return;
+      var keyBadge = document.getElementById('adminSettingJsonKeyBadge');
+      var content = document.getElementById('adminSettingJsonContent');
+      var copyBtn = document.getElementById('adminSettingJsonCopyBtn');
+      var copyText = document.getElementById('adminSettingJsonCopyText');
+
+      if (keyBadge) keyBadge.textContent = name;
+      var jsonStr = '';
+      try {
+        jsonStr = typeof value === 'object' ? JSON.stringify(value, null, 2) : JSON.stringify(JSON.parse(value), null, 2);
+      } catch (e) {
+        jsonStr = String(value);
+      }
+      if (content) content.textContent = jsonStr;
+
+      if (copyBtn) {
+        copyBtn.onclick = function () {
+          var copyAction = navigator.clipboard && navigator.clipboard.writeText
+            ? navigator.clipboard.writeText(jsonStr)
+            : Promise.resolve();
+          copyAction.then(function () {
+            if (copyText) copyText.textContent = tp('admin_settings.modal_copied', 'Скопировано!');
+            setTimeout(function () {
+              if (copyText) copyText.textContent = tp('admin_settings.modal_copy_json', 'Копировать');
+            }, 2000);
+          });
+        };
+      }
+
+      var instance = window.bootstrap && window.bootstrap.Modal
+        ? window.bootstrap.Modal.getOrCreateInstance(modalEl)
+        : null;
+      if (instance) instance.show();
+    }
+
+    function applyFilters() {
+      var groups = document.querySelectorAll('[data-settings-group]');
+      groups.forEach(function (groupEl) {
+        var grpName = groupEl.getAttribute('data-settings-group');
+        var catMatch = currentCategory === 'all' || currentCategory === grpName;
+
+        if (!catMatch) {
+          groupEl.style.display = 'none';
+          return;
+        }
+        groupEl.style.display = '';
+
+        if (currentSearch) {
+          var text = (groupEl.textContent || '').toLowerCase();
+          groupEl.style.display = text.indexOf(currentSearch) >= 0 ? '' : 'none';
+        }
+      });
+
+      var rows = document.querySelectorAll('#adminSettingsSystemBody tr[data-setting-name]');
+      rows.forEach(function (tr) {
+        if (!currentSearch) {
+          tr.style.display = '';
+          return;
+        }
+        var rowText = (tr.textContent || '').toLowerCase();
+        tr.style.display = rowText.indexOf(currentSearch) >= 0 ? '' : 'none';
+      });
+    }
+
+    function setupCategoryFilterAndSearch() {
+      var navBtns = document.querySelectorAll('.crm-admin-settings-nav-btn[data-settings-category]');
+      var searchInput = document.getElementById('adminSettingsSearchInput');
+
+      navBtns.forEach(function (btn) {
+        btn.onclick = function () {
+          navBtns.forEach(function (b) { b.classList.remove('active'); });
+          btn.classList.add('active');
+          currentCategory = btn.getAttribute('data-settings-category') || 'all';
+          applyFilters();
+        };
+      });
+
+      if (searchInput && searchInput.dataset.bound !== '1') {
+        searchInput.dataset.bound = '1';
+        searchInput.addEventListener('input', function () {
+          currentSearch = (this.value || '').trim().toLowerCase();
+          applyFilters();
+        });
+      }
+
+      applyFilters();
     }
 
     async function loadPage() {
@@ -26807,6 +27168,11 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         if (!settingsItems.some(function (item) { return String(item.name || '') === 'tasks.allow_assignee_edit_identity'; })) {
           settingsItems.push({ scope: 'system', name: 'tasks.allow_assignee_edit_identity', value: false });
         }
+        currentSettingsMap = {};
+        settingsItems.forEach(function (item) {
+          if (item && item.name) currentSettingsMap[String(item.name)] = item;
+        });
+
         if (!settingsItems.length) {
           var emptyRow = document.createElement('tr');
           var emptyCol = document.createElement('td');
@@ -26816,34 +27182,61 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           emptyRow.appendChild(emptyCol);
           systemBody.appendChild(emptyRow);
         } else {
-          settingsItems.slice(0, 20).forEach(function (item) {
+          settingsItems.slice(0, 30).forEach(function (item) {
             var name = String(item.name || '');
             var tr = document.createElement('tr');
             tr.setAttribute('data-setting-name', name);
 
             var nameTd = document.createElement('td');
+            nameTd.setAttribute('data-label', tp('admin_settings.th_key', 'Ключ'));
             nameTd.textContent = settingLabel(name);
-            if (settingLabel(name) !== name && name) {
+            if (name) {
               nameTd.title = tp('admin_settings.api_key_title', 'API key: ') + name;
+              var badge = document.createElement('span');
+              badge.className = 'crm-admin-settings-key-badge ms-2 d-none d-md-inline-block';
+              badge.textContent = name;
+              nameTd.appendChild(badge);
             }
             tr.appendChild(nameTd);
 
             var valueTd = document.createElement('td');
-            valueTd.textContent = formatSettingValue(item.value);
+            valueTd.setAttribute('data-label', tp('admin_settings.th_value', 'Значение'));
+            var isObj = item.value !== null && typeof item.value === 'object';
+            var valSpan = document.createElement('span');
+            valSpan.className = 'crm-admin-settings-val';
+            valSpan.textContent = formatSettingValue(item.value);
+            valueTd.appendChild(valSpan);
             tr.appendChild(valueTd);
 
             var actionTd = document.createElement('td');
             actionTd.className = 'text-end';
+            actionTd.setAttribute('data-label', tp('admin_settings.th_action', 'Действие'));
+            var actionsGroup = document.createElement('div');
+            actionsGroup.className = 'crm-admin-settings-actions-group';
+
+            if (isObj) {
+              var viewJsonBtn = document.createElement('button');
+              viewJsonBtn.className = 'btn btn-sm crm-btn-secondary';
+              viewJsonBtn.type = 'button';
+              viewJsonBtn.setAttribute('data-setting-view-json', name);
+              viewJsonBtn.innerHTML = '<i class="fa-solid fa-code me-1" aria-hidden="true"></i>' + safeText(tp('admin_settings.modal_view_json', 'JSON'));
+              actionsGroup.appendChild(viewJsonBtn);
+            }
+
             if (editableSettingNames.indexOf(name) >= 0) {
               var editBtn = document.createElement('button');
               editBtn.className = 'btn btn-sm crm-btn-secondary';
               editBtn.type = 'button';
               editBtn.setAttribute('data-setting-edit', name);
-              editBtn.textContent = tp('admin_settings.btn_edit', 'Edit');
-              actionTd.appendChild(editBtn);
+              editBtn.innerHTML = '<i class="fa-solid fa-pen-to-square me-1" aria-hidden="true"></i>' + safeText(tp('admin_settings.btn_edit', 'Изменить'));
+              actionsGroup.appendChild(editBtn);
             } else {
-              actionTd.textContent = tp('admin_settings.read_only', 'Read only');
+              var roSpan = document.createElement('span');
+              roSpan.className = 'small text-muted';
+              roSpan.textContent = tp('admin_settings.read_only', 'Только чтение');
+              actionsGroup.appendChild(roSpan);
             }
+            actionTd.appendChild(actionsGroup);
             tr.appendChild(actionTd);
             systemBody.appendChild(tr);
           });
@@ -26865,11 +27258,13 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           var tr = document.createElement('tr');
           tr.setAttribute('data-retention-field', field);
           var nameTd = document.createElement('td');
+          nameTd.setAttribute('data-label', tp('admin_settings.th_field', 'Поле'));
           nameTd.textContent = retentionLabel(field);
           nameTd.title = tp('admin_settings.api_field_title', 'API field: ') + field;
           tr.appendChild(nameTd);
 
           var valueTd = document.createElement('td');
+          valueTd.setAttribute('data-label', tp('admin_settings.th_days', 'Дней'));
           var input = document.createElement('input');
           input.className = 'form-control form-control-sm';
           input.type = 'number';
@@ -26877,24 +27272,31 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           input.step = '1';
           input.value = String(Number(retention[field] || 0) > 0 ? Number(retention[field]) : 30);
           input.setAttribute('data-retention-input', field);
+          input.setAttribute('aria-label', retentionLabel(field));
           valueTd.appendChild(input);
           tr.appendChild(valueTd);
 
           var actionTd = document.createElement('td');
+          actionTd.className = 'text-end';
+          actionTd.setAttribute('data-label', tp('admin_settings.th_action', 'Действие'));
+          var actionsGroup = document.createElement('div');
+          actionsGroup.className = 'crm-admin-settings-actions-group';
+
           var dryRunBtn = document.createElement('button');
           dryRunBtn.className = 'btn btn-sm crm-btn-secondary';
           dryRunBtn.type = 'button';
           dryRunBtn.setAttribute('data-retention-dry-run', field);
           dryRunBtn.textContent = tp('admin_settings.btn_check', 'Check');
-          actionTd.appendChild(dryRunBtn);
-          actionTd.appendChild(document.createTextNode(' '));
+          actionsGroup.appendChild(dryRunBtn);
 
           var saveBtn = document.createElement('button');
           saveBtn.className = 'btn btn-sm crm-btn-primary';
           saveBtn.type = 'button';
           saveBtn.setAttribute('data-retention-save', field);
           saveBtn.textContent = tp('common.save', 'Save');
-          actionTd.appendChild(saveBtn);
+          actionsGroup.appendChild(saveBtn);
+
+          actionTd.appendChild(actionsGroup);
           tr.appendChild(actionTd);
 
           retentionBody.appendChild(tr);
@@ -26929,6 +27331,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       }
 
       renderCacheSection(cacheEnvelope);
+      applyFilters();
     }
 
     function renderCacheSection(cacheEnvelope) {
@@ -26962,7 +27365,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         toggle.dataset.bound = '1';
         toggle.addEventListener('change', async function () {
           var newValue = this.checked;
-          if (!window.confirm((newValue ? tp('admin_settings.enable_action', 'Enable') : tp('admin_settings.disable_action', 'Disable')) + ' ' + tp('admin_settings.api_cache_confirm_suffix', 'API caching?'))) {
+          if (!await confirmAdminSettingsAction((newValue ? tp('admin_settings.enable_action', 'Enable') : tp('admin_settings.disable_action', 'Disable')) + ' ' + tp('admin_settings.api_cache_confirm_suffix', 'API caching?'))) {
             this.checked = !newValue;
             return;
           }
@@ -26992,7 +27395,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
             notify(tp('admin_settings.ttl_range_error', 'TTL must be between 1 and 86400 seconds'), 'warning');
             return;
           }
-          if (!window.confirm(tp('admin_settings.ttl_confirm_prefix', 'Change cache storage time to ') + newTtl + tp('admin_settings.ttl_confirm_suffix', ' seconds?'))) return;
+          if (!await confirmAdminSettingsAction(tp('admin_settings.ttl_confirm_prefix', 'Change cache storage time to ') + newTtl + tp('admin_settings.ttl_confirm_suffix', ' seconds?'))) return;
           try {
             await request('api/v1/settings/api_file_cache_ttl', {
               method: 'PATCH',
@@ -27012,7 +27415,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       if (clearBtn && clearBtn.dataset.bound !== '1') {
         clearBtn.dataset.bound = '1';
         clearBtn.addEventListener('click', async function () {
-          if (!window.confirm(tp('admin_settings.clear_cache_confirm', 'Clear the entire API file cache?'))) return;
+          if (!await confirmAdminSettingsAction(tp('admin_settings.clear_cache_confirm', 'Clear the entire API file cache?'))) return;
           try {
             await request('api/v1/admin/cache/clear', { method: 'POST' });
             notify(tp('admin_settings.cache_cleared', 'API cache cleared'));
@@ -27027,25 +27430,25 @@ tableBody.innerHTML = counterparties.map(function (cp) {
 
     if (systemBody && systemBody.dataset.bound !== '1') {
       systemBody.dataset.bound = '1';
-      systemBody.addEventListener('click', async function (event) {
+      systemBody.addEventListener('click', function (event) {
         var editBtn = event.target.closest('[data-setting-edit]');
-        if (!editBtn) return;
-        var settingName = String(editBtn.getAttribute('data-setting-edit') || '').trim();
-        if (!settingName) return;
-        var nextValue = window.prompt(tp('admin_settings.new_value_prefix', 'New value for ') + settingName, '');
-        if (nextValue === null) return;
-        if (!window.confirm(tp('admin_settings.confirm_setting_change_prefix', 'Confirm system setting change for ') + settingName + '.')) return;
-        try {
-          await request('api/v1/settings/' + encodeURIComponent(settingName), {
-            method: 'PATCH',
-            headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('admin-settings-update') },
-            body: { scope: 'system', value: String(nextValue).trim() }
-          });
-          notify(tp('admin_settings.setting_updated', 'System setting updated'));
-          await loadPage();
-        } catch (error) {
-          var normalized = window.CRM.api.normalizeError(error, tp('admin_settings.setting_update_fail', 'Failed to update system setting'));
-          notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
+        if (editBtn) {
+          var settingName = String(editBtn.getAttribute('data-setting-edit') || '').trim();
+          if (!settingName) return;
+          var curItem = currentSettingsMap[settingName];
+          var curVal = curItem ? curItem.value : undefined;
+          openEditModal(settingName, curVal);
+          return;
+        }
+
+        var jsonBtn = event.target.closest('[data-setting-view-json]');
+        if (jsonBtn) {
+          var jsonSettingName = String(jsonBtn.getAttribute('data-setting-view-json') || '').trim();
+          if (!jsonSettingName) return;
+          var curJsonItem = currentSettingsMap[jsonSettingName];
+          var curJsonVal = curJsonItem ? curJsonItem.value : '';
+          openJsonModal(jsonSettingName, curJsonVal);
+          return;
         }
       });
     }
@@ -27073,7 +27476,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           return;
         }
 
-        if (!window.confirm(tp('admin_settings.apply_retention_confirm_prefix', 'Apply retention policy change for “') + retentionLabel(field) + '”?')) return;
+        if (!await confirmAdminSettingsAction(tp('admin_settings.apply_retention_confirm_prefix', 'Apply retention policy change for “') + retentionLabel(field) + '”?')) return;
         try {
           var body = {};
           body[field] = value;
@@ -27174,7 +27577,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
 
       var financeSettingNames = ['finance.default_currency', 'finance.cost_from_payout_markup_percent', 'finance.auto_close.mode', 'finance.auto_close.lag_days'];
 
-      async function loadFinanceSettings() {
+      loadFinanceSettings = async function () {
         var values = {};
         for (var i = 0; i < financeSettingNames.length; i++) {
           var env = await tryRequest('api/v1/settings/' + financeSettingNames[i], { query: { scope: 'system' }, silent: true });
@@ -27182,13 +27585,17 @@ tableBody.innerHTML = counterparties.map(function (cp) {
             values[financeSettingNames[i]] = env.data.setting.value;
           }
         }
-        document.getElementById('financeDefaultCurrency').value = values['finance.default_currency'] || '';
+        var currEl = document.getElementById('financeDefaultCurrency');
+        if (currEl) currEl.value = values['finance.default_currency'] || '';
         var markup = values['finance.cost_from_payout_markup_percent'];
-        document.getElementById('financeCostFromPayoutMarkup').value = (markup === null || markup === undefined || markup === '') ? '' : markup;
-        document.getElementById('financeAutoCloseMode').value = values['finance.auto_close.mode'] || 'off';
+        var markupEl = document.getElementById('financeCostFromPayoutMarkup');
+        if (markupEl) markupEl.value = (markup === null || markup === undefined || markup === '') ? '' : markup;
+        var modeEl = document.getElementById('financeAutoCloseMode');
+        if (modeEl) modeEl.value = values['finance.auto_close.mode'] || 'off';
         var lag = values['finance.auto_close.lag_days'];
-        document.getElementById('financeAutoCloseLagDays').value = (lag === null || lag === undefined || lag === '') ? 5 : lag;
-      }
+        var lagEl = document.getElementById('financeAutoCloseLagDays');
+        if (lagEl) lagEl.value = (lag === null || lag === undefined || lag === '') ? 5 : lag;
+      };
 
       if (financeSaveBtn && financeSaveBtn.dataset.bound !== '1') {
         financeSaveBtn.dataset.bound = '1';
@@ -27227,7 +27634,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       var worklogPolicySelect = document.getElementById('tasksWorklogPolicy');
       var allowAssigneeEditToggle = document.getElementById('tasksAllowAssigneeEditIdentity');
 
-      async function loadTaskSettings() {
+      loadTaskSettings = async function () {
         var wpEnv = await tryRequest('api/v1/settings/tasks.worklog_policy', { query: { scope: 'system' }, silent: true });
         if (wpEnv && wpEnv.success && wpEnv.data && wpEnv.data.setting && worklogPolicySelect) {
           worklogPolicySelect.value = wpEnv.data.setting.value || 'all_project_members';
@@ -27236,7 +27643,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         if (aeEnv && aeEnv.success && aeEnv.data && aeEnv.data.setting && allowAssigneeEditToggle) {
           allowAssigneeEditToggle.checked = Boolean(aeEnv.data.setting.value);
         }
-      }
+      };
 
       if (taskSaveBtn && taskSaveBtn.dataset.bound !== '1') {
         taskSaveBtn.dataset.bound = '1';
@@ -27261,6 +27668,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
 
     await loadPage();
     await loadSystemInfo();
+    setupCategoryFilterAndSearch();
   }
 
   async function renderAdminLanguagesPage() {
