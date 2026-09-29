@@ -15206,10 +15206,10 @@ body[data-page="admin-settings"] [data-settings-group] {
 }
 
 .crm-pretty-select-option.is-selected::before {
-    content: "\f00c";
+    content: "✓";
     margin-right: 8px;
-    font-family: "Font Awesome 6 Free";
-    font-weight: 900;
+    font-family: inherit;
+    font-weight: 700;
     font-size: .75rem;
 }
 
