@@ -3677,7 +3677,8 @@ INSERT IGNORE INTO `migrations` (`migration_key`, `description`, `applied_at`) V
 ('20260921_000001_api_client_organization_scope', 'Scope API clients and keys by workspace (TROPATTCRM-606)', NOW()),
 ('20260926_000001_file_organization_backfill', 'Backfill files.organization_id from the linked task, project or knowledge page', NOW()),
 ('20260926_000002_user_avatar', 'Add avatar_path, avatar_mime and avatar_updated_at columns to users', NOW()),
-('20260927_000001_organization_scope_extended', 'Re-ensure organization_id on every workspace-scoped table (repairs installs that ran an earlier scope migration body)', NOW());
+('20260927_000001_organization_scope_extended', 'Re-ensure organization_id on every workspace-scoped table (repairs installs that ran an earlier scope migration body)', NOW()),
+('20260929_000001_subtask_organization_backfill', 'Backfill tasks.organization_id for subtasks from their parent tasks', NOW());
 
 
 -- Baseline core permissions

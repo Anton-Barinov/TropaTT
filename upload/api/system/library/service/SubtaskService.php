@@ -73,8 +73,13 @@ final class SubtaskService
             return 'DESCRIPTION_TOO_LONG';
         }
 
+        $organizationId = isset($actor['organization_id']) && (int)$actor['organization_id'] > 0
+            ? (int)$actor['organization_id']
+            : (isset($parentTask['organization_id']) && (int)$parentTask['organization_id'] > 0 ? (int)$parentTask['organization_id'] : null);
+
         $this->subtasks->createTask([
             'public_id' => $childPublicId,
+            'organization_id' => $organizationId,
             'project_id' => $childProjectId,
             'task_key' => $taskKeyData['task_key'] ?? null,
             'task_key_prefix' => $taskKeyData['task_key_prefix'] ?? null,
