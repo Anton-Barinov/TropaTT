@@ -10655,5 +10655,16 @@ return array (
     'confirm_set_default' => 'Définir cette langue comme langue par défaut du système ?',
     'default_changed_success' => 'Langue par défaut du système modifiée avec succès',
     'default_change_failed' => 'Échec de la modification de la langue par défaut',
+    'upload_btn' => 'Téléverser un pack',
+    'th_actions' => 'Actions',
+    'export_btn' => 'Exporter ZIP',
+    'delete_btn' => 'Supprimer le pack',
+    'confirm_delete' => 'Êtes-vous sûr de vouloir supprimer le pack de langue «%s» ?',
+    'uploading' => 'Téléversement et vérification du pack...',
+    'install_success' => 'Pack de langue installé avec succès',
+    'install_failed' => 'Échec de l’installation du pack de langue',
+    'delete_success' => 'Pack de langue supprimé avec succès',
+    'delete_failed' => 'Échec de la suppression du pack de langue',
   ),
 );
+

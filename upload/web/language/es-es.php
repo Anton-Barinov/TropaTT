@@ -10655,5 +10655,16 @@ return array (
     'confirm_set_default' => '¿Establecer este idioma como principal del sistema?',
     'default_changed_success' => 'Idioma principal del sistema actualizado con éxito',
     'default_change_failed' => 'Error al cambiar el idioma principal',
+    'upload_btn' => 'Subir paquete',
+    'th_actions' => 'Acciones',
+    'export_btn' => 'Exportar ZIP',
+    'delete_btn' => 'Eliminar paquete',
+    'confirm_delete' => '¿Está seguro de que desea eliminar el paquete de idioma «%s»?',
+    'uploading' => 'Subiendo y validando paquete...',
+    'install_success' => 'Paquete de idioma instalado con éxito',
+    'install_failed' => 'Error al instalar el paquete de idioma',
+    'delete_success' => 'Paquete de idioma eliminado con éxito',
+    'delete_failed' => 'Error al eliminar el paquete de idioma',
   ),
 );
+

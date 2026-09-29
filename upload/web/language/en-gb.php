@@ -10612,5 +10612,16 @@ return array (
     'confirm_set_default' => 'Set this language as the system default?',
     'default_changed_success' => 'Default system language updated successfully',
     'default_change_failed' => 'Failed to change default language',
+    'upload_btn' => 'Upload Package',
+    'th_actions' => 'Actions',
+    'export_btn' => 'Export ZIP',
+    'delete_btn' => 'Delete Package',
+    'confirm_delete' => 'Are you sure you want to delete language pack "%s"?',
+    'uploading' => 'Uploading and validating package...',
+    'install_success' => 'Language pack installed successfully',
+    'install_failed' => 'Failed to install language pack',
+    'delete_success' => 'Language pack deleted successfully',
+    'delete_failed' => 'Failed to delete language pack',
   ),
 );
+

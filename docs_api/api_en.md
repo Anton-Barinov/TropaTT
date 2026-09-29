@@ -1140,6 +1140,9 @@ TropaTT implements a unified webhook protocol for outbound CRM events and extern
 | GET | `/api/v1/admin/languages` | Admin languages list | Yes | `settings.manage` | List all installed languages with enabled status |
 | POST | `/api/v1/admin/languages/toggle` | Toggle language enabled status | Yes | `settings.manage` | Enable or disable locale |
 | POST | `/api/v1/admin/languages/default` | Set default system language | Yes | `settings.manage` | Change system default locale |
+| POST | `/api/v1/admin/languages/install` | Install language pack | Yes | `settings.manage` | Install from ZIP upload or marketplace URL |
+| GET | `/api/v1/admin/languages/{code}/export` | Export language pack | Yes | `settings.manage` | Download language pack as ZIP archive |
+| DELETE | `/api/v1/admin/languages/{code}` | Delete language pack | Yes | `settings.manage` | Delete custom language pack |
 
 ### Docs & Events
 

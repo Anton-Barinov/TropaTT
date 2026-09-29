@@ -13,6 +13,10 @@
       <p class="crm-subtitle" data-i18n="admin_languages.subtitle"><?= htmlspecialchars($t('admin_languages.subtitle', 'Управление доступными языками интерфейса, статусом активности и языком по умолчанию.'), ENT_QUOTES, 'UTF-8') ?></p>
     </div>
     <div class="d-flex gap-2">
+      <input type="file" id="adminLanguagesFileInput" accept=".zip" class="d-none">
+      <button id="adminLanguagesUploadBtn" class="btn btn-primary" type="button" data-i18n="admin_languages.upload_btn">
+        <i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i> <?= htmlspecialchars($t('admin_languages.upload_btn', 'Загрузить пакет'), ENT_QUOTES, 'UTF-8') ?>
+      </button>
       <button id="adminLanguagesRefreshBtn" class="btn crm-btn-secondary" type="button" data-i18n="admin_languages.refresh_btn">
         <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i> <?= htmlspecialchars($t('admin_languages.refresh_btn', 'Обновить'), ENT_QUOTES, 'UTF-8') ?>
       </button>
@@ -40,12 +44,13 @@
           <table class="table table-hover crm-table align-middle mb-0">
             <thead>
               <tr>
-                <th scope="col" style="width: 25%;" data-i18n="admin_languages.th_language"><?= htmlspecialchars($t('admin_languages.th_language', 'Язык'), ENT_QUOTES, 'UTF-8') ?></th>
-                <th scope="col" style="width: 20%;" data-i18n="admin_languages.th_native_name"><?= htmlspecialchars($t('admin_languages.th_native_name', 'Самоназвание'), ENT_QUOTES, 'UTF-8') ?></th>
-                <th scope="col" style="width: 15%;" data-i18n="admin_languages.th_direction"><?= htmlspecialchars($t('admin_languages.th_direction', 'Письмо'), ENT_QUOTES, 'UTF-8') ?></th>
-                <th scope="col" style="width: 15%;" data-i18n="admin_languages.th_type"><?= htmlspecialchars($t('admin_languages.th_type', 'Тип'), ENT_QUOTES, 'UTF-8') ?></th>
-                <th scope="col" style="width: 15%;" data-i18n="admin_languages.th_default"><?= htmlspecialchars($t('admin_languages.th_default', 'По умолчанию'), ENT_QUOTES, 'UTF-8') ?></th>
-                <th scope="col" style="width: 10%;" class="text-end" data-i18n="admin_languages.th_status"><?= htmlspecialchars($t('admin_languages.th_status', 'Активность'), ENT_QUOTES, 'UTF-8') ?></th>
+                <th scope="col" style="width: 22%;" data-i18n="admin_languages.th_language"><?= htmlspecialchars($t('admin_languages.th_language', 'Язык'), ENT_QUOTES, 'UTF-8') ?></th>
+                <th scope="col" style="width: 18%;" data-i18n="admin_languages.th_native_name"><?= htmlspecialchars($t('admin_languages.th_native_name', 'Самоназвание'), ENT_QUOTES, 'UTF-8') ?></th>
+                <th scope="col" style="width: 12%;" data-i18n="admin_languages.th_direction"><?= htmlspecialchars($t('admin_languages.th_direction', 'Письмо'), ENT_QUOTES, 'UTF-8') ?></th>
+                <th scope="col" style="width: 12%;" data-i18n="admin_languages.th_type"><?= htmlspecialchars($t('admin_languages.th_type', 'Тип'), ENT_QUOTES, 'UTF-8') ?></th>
+                <th scope="col" style="width: 12%;" data-i18n="admin_languages.th_default"><?= htmlspecialchars($t('admin_languages.th_default', 'По умолчанию'), ENT_QUOTES, 'UTF-8') ?></th>
+                <th scope="col" style="width: 10%;" class="text-center" data-i18n="admin_languages.th_status"><?= htmlspecialchars($t('admin_languages.th_status', 'Активность'), ENT_QUOTES, 'UTF-8') ?></th>
+                <th scope="col" style="width: 14%;" class="text-end" data-i18n="admin_languages.th_actions"><?= htmlspecialchars($t('admin_languages.th_actions', 'Действия'), ENT_QUOTES, 'UTF-8') ?></th>
               </tr>
             </thead>
             <tbody id="adminLanguagesTableBody">

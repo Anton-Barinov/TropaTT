@@ -10655,5 +10655,16 @@ return array (
     'confirm_set_default' => '确定将此语言设为系统默认语言吗？',
     'default_changed_success' => '系统默认语言已成功更改',
     'default_change_failed' => '更改默认语言失败',
+    'upload_btn' => '上传语言包',
+    'th_actions' => '操作',
+    'export_btn' => '导出 ZIP',
+    'delete_btn' => '删除语言包',
+    'confirm_delete' => '您确定要删除语言包“%s”吗？',
+    'uploading' => '正在上传并验证语言包...',
+    'install_success' => '语言包安装成功',
+    'install_failed' => '语言包安装失败',
+    'delete_success' => '语言包删除成功',
+    'delete_failed' => '语言包删除失败',
   ),
 );
+

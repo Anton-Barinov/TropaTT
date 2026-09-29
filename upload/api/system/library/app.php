@@ -1646,6 +1646,12 @@ final class App
             $c->get('service.setting'),
             $this->basePath
         ));
+        $this->container->factory('service.language_pack_installer', fn(Container $c) => new \Api\System\Library\Service\LanguagePackInstaller(
+            $c->get('service.language_registry'),
+            new \Api\System\Library\Service\LanguageFileAstValidator(),
+            $this->basePath,
+            new \Api\System\Library\Security\UrlSafetyValidator()
+        ));
         $this->container->factory('service.earnings', fn(Container $c) => new \Api\System\Library\Service\EarningsService(
             $c->get('repository.worklog'),
             $c->get('db.pdo')
