@@ -9,6 +9,7 @@ use Api\Model\Project\ProjectRepository;
 use Api\Model\Recycle_bin\RecycleBinRepository;
 use Api\Model\Task\TaskRepository;
 use Api\System\Library\Logger\JsonLogger;
+use Api\System\Library\Security\ActorPermission;
 use Api\System\Library\Service\ExternalUserService;
 use Api\System\Library\Support\Ulid;
 
@@ -377,6 +378,12 @@ final class FileService
             return false;
         }
 
+        // Permission = capability: task.manage may remove attachments of their
+        // workspace (the upload/download routes are gated by task.manage too).
+        if (ActorPermission::canManageTasks($actor)) {
+            return true;
+        }
+
         $roleCode = (string)($actor['role_code'] ?? '');
         if (in_array($roleCode, ['admin', 'super_admin'], true)) {
             return true;
@@ -503,6 +510,23 @@ final class FileService
             }
 
             return false;
+        }
+
+        // Permission = capability: task.manage may reach every task attachment
+        // of their workspace, project.manage every project one; ownership
+        // below stays the fallback for everyone else.
+        $canManageEntity = match ($entityType) {
+            'task' => ActorPermission::canManageTasks($actor),
+            'project' => ActorPermission::canManageProjects($actor),
+            default => false,
+        };
+        if ($canManageEntity) {
+            $ownerRow = $entityType === 'task'
+                ? $this->tasks->findByPublicId($entityPublicId, $organizationId)
+                : $this->projects->findByPublicId($entityPublicId, $organizationId);
+            if ($ownerRow && ActorPermission::sameOrganization($actor, $ownerRow)) {
+                return true;
+            }
         }
 
         if ($entityType === 'task') {

@@ -6,6 +6,7 @@ namespace Api\System\Library\Service;
 use Api\Model\Milestone\MilestoneRepository;
 use Api\Model\Dependency\DependencyRepository;
 use Api\Model\Task\TaskRepository;
+use Api\System\Library\Security\ActorPermission;
 
 final class GanttService
 {
@@ -33,6 +34,8 @@ final class GanttService
                 'priority' => (string)($filters['priority'] ?? ''),
                 'sort' => (string)($filters['sort'] ?? 'due_at'),
                 'order' => (string)($filters['order'] ?? 'ASC'),
+                // Permission = capability (assigned from the actor, see TaskService::list).
+                'can_manage_all_tasks' => ActorPermission::canManageTasks($actor),
             ],
             (int)($actor['id'] ?? 0),
             (bool)($actor['is_root'] ?? false),

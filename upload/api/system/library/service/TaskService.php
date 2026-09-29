@@ -8,6 +8,7 @@ use Api\Model\Subtask\SubtaskRepository;
 use Api\Model\Task\TaskRepository;
 use Api\Model\Task\TaskKeyCounterRepository;
 use Api\Model\Project\ProjectRepository;
+use Api\System\Library\Security\ActorPermission;
 use Api\System\Library\Security\HtmlSanitizer;
 use Api\System\Library\Support\AppLog;
 use Api\System\Library\Support\Ulid;
@@ -140,6 +141,11 @@ final class TaskService
         }
 
         $filters['accessible_team_public_ids'] = $this->accessibleTeamPublicIds($actor);
+        // Permission = capability: an internal actor holding task.manage sees
+        // every task of their workspace, not only the ones they own. Assigned
+        // here (never merged from request input) so the repository gate can
+        // drop the ownership predicate without trusting client-supplied keys.
+        $filters['can_manage_all_tasks'] = ActorPermission::canManageTasks($actor);
 
         // RLS: external users can only see tasks for their counterparty.
         // Fail closed. An external actor whose counterparty cannot be resolved
@@ -462,7 +468,8 @@ final class TaskService
         }
 
         $isAuthor = (int)($task['creator_user_id'] ?? 0) === $actorUserId;
-        if (!$isAuthor && (array_key_exists('title', $input) || array_key_exists('description', $input))) {
+        if (!$isAuthor && (array_key_exists('title', $input) || array_key_exists('description', $input))
+            && !ActorPermission::canManageTasks($actor)) {
             return 'FORBIDDEN_TASK_IDENTITY_EDIT';
         }
 
@@ -755,6 +762,16 @@ final class TaskService
                 return true;
             }
             return false;
+        }
+
+        // Permission = capability (internal actors only): the client-portal
+        // branch above has already returned for every external guest, so only
+        // internal holders of task.manage reach this point. The workspace stays
+        // the boundary — TaskController/MCP resolve the active organization
+        // before calling in, and relations remain the fallback for actors
+        // without the permission.
+        if (ActorPermission::canManageTasks($actor) && ActorPermission::sameOrganization($actor, $task)) {
+            return true;
         }
 
         return (int)($task['creator_user_id'] ?? 0) === $actorId

@@ -5,6 +5,7 @@ namespace Api\System\Library\Service;
 
 use Api\Model\Comment\CommentRepository;
 use Api\Model\Task\TaskRepository;
+use Api\System\Library\Security\ActorPermission;
 use Api\System\Library\Security\HtmlSanitizer;
 use Api\System\Library\Support\Ulid;
 
@@ -234,6 +235,12 @@ final class CommentService
         $task = $this->tasks->findByPublicId($taskPublicId, $orgId ?: null);
         if (!$task) {
             return false;
+        }
+
+        // Permission = capability: task.manage may moderate comments on any
+        // task of their workspace (comment routes are gated by task.manage).
+        if (ActorPermission::canManageTasks($actor) && ActorPermission::sameOrganization($actor, $task)) {
+            return true;
         }
 
         return (int)($task['creator_user_id'] ?? 0) === $actorId

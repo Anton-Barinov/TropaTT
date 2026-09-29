@@ -11,11 +11,37 @@ use Api\System\Library\Validation\Validator;
 
 final class WorklogController extends BaseController
 {
-    public function list(): \Api\System\Library\Http\JsonResponse
+    /**
+     * Authenticate, honour the workspace context and attach it to the actor
+     * envelope that WorklogService consumes. The organization id is what keeps
+     * a task.manage holder inside their own workspace — without it the service
+     * would look tasks and users up unscoped. Order matters: a foreign context
+     * is rejected before it can be attached.
+     *
+     * @return array<string,mixed>|\Api\System\Library\Http\JsonResponse
+     */
+    private function scopedAuthUser(): array|\Api\System\Library\Http\JsonResponse
     {
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
+
+        return $authUser;
+    }
+
+    public function list(): \Api\System\Library\Http\JsonResponse
+    {
+        $authUser = $this->scopedAuthUser();
+        if ($authUser instanceof \Api\System\Library\Http\JsonResponse) {
+            return $authUser;
         }
 
         $cache = $this->cacheApi();
@@ -42,9 +68,9 @@ final class WorklogController extends BaseController
 
     public function create(): \Api\System\Library\Http\JsonResponse
     {
-        $authUser = $this->user();
-        if (!$authUser) {
-            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        $authUser = $this->scopedAuthUser();
+        if ($authUser instanceof \Api\System\Library\Http\JsonResponse) {
+            return $authUser;
         }
 
         $rl = $this->checkIpRateLimit('wl_create', 30, 60, 300);
@@ -104,6 +130,11 @@ final class WorklogController extends BaseController
         if ($item === 'TASK_NOT_FOUND') {
             return $this->error('TASK_NOT_FOUND', $this->t('common/messages.task_not_found'), 404, [
                 'task_public_id' => [$this->t('common/messages.task_not_found')],
+            ]);
+        }
+        if ($item === 'USER_NOT_FOUND') {
+            return $this->error('USER_NOT_FOUND', $this->t('common/messages.not_found', 'Resource not found'), 404, [
+                'user_public_id' => [$this->t('common/messages.not_found', 'Resource not found')],
             ]);
         }
         if ($item === 'TASK_CLOSED') {
@@ -206,9 +237,9 @@ final class WorklogController extends BaseController
 
     public function get(array $params): \Api\System\Library\Http\JsonResponse
     {
-        $authUser = $this->user();
-        if (!$authUser) {
-            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        $authUser = $this->scopedAuthUser();
+        if ($authUser instanceof \Api\System\Library\Http\JsonResponse) {
+            return $authUser;
         }
 
         /** @var WorklogService $service */
@@ -227,9 +258,9 @@ final class WorklogController extends BaseController
 
     public function update(array $params): \Api\System\Library\Http\JsonResponse
     {
-        $authUser = $this->user();
-        if (!$authUser) {
-            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        $authUser = $this->scopedAuthUser();
+        if ($authUser instanceof \Api\System\Library\Http\JsonResponse) {
+            return $authUser;
         }
 
         $input = $this->request()->allInput();
@@ -330,9 +361,9 @@ final class WorklogController extends BaseController
 
     public function delete(array $params): \Api\System\Library\Http\JsonResponse
     {
-        $authUser = $this->user();
-        if (!$authUser) {
-            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        $authUser = $this->scopedAuthUser();
+        if ($authUser instanceof \Api\System\Library\Http\JsonResponse) {
+            return $authUser;
         }
 
         /** @var WorklogService $service */
@@ -356,9 +387,9 @@ final class WorklogController extends BaseController
 
     public function summary(): \Api\System\Library\Http\JsonResponse
     {
-        $authUser = $this->user();
-        if (!$authUser) {
-            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        $authUser = $this->scopedAuthUser();
+        if ($authUser instanceof \Api\System\Library\Http\JsonResponse) {
+            return $authUser;
         }
 
         $cache = $this->cacheApi();
@@ -382,9 +413,9 @@ final class WorklogController extends BaseController
 
     public function earnings(): \Api\System\Library\Http\JsonResponse
     {
-        $authUser = $this->user();
-        if (!$authUser) {
-            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        $authUser = $this->scopedAuthUser();
+        if ($authUser instanceof \Api\System\Library\Http\JsonResponse) {
+            return $authUser;
         }
 
         $cache = $this->cacheApi();
@@ -412,9 +443,9 @@ final class WorklogController extends BaseController
 
     public function taskSummary(array $params): \Api\System\Library\Http\JsonResponse
     {
-        $authUser = $this->user();
-        if (!$authUser) {
-            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        $authUser = $this->scopedAuthUser();
+        if ($authUser instanceof \Api\System\Library\Http\JsonResponse) {
+            return $authUser;
         }
 
         /** @var WorklogService $service */
@@ -433,9 +464,9 @@ final class WorklogController extends BaseController
 
     public function matrix(): \Api\System\Library\Http\JsonResponse
     {
-        $authUser = $this->user();
-        if (!$authUser) {
-            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        $authUser = $this->scopedAuthUser();
+        if ($authUser instanceof \Api\System\Library\Http\JsonResponse) {
+            return $authUser;
         }
 
         $cache = $this->cacheApi();
@@ -459,9 +490,9 @@ final class WorklogController extends BaseController
 
     public function detail(): \Api\System\Library\Http\JsonResponse
     {
-        $authUser = $this->user();
-        if (!$authUser) {
-            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        $authUser = $this->scopedAuthUser();
+        if ($authUser instanceof \Api\System\Library\Http\JsonResponse) {
+            return $authUser;
         }
 
         $input = $this->request()->allInput();

@@ -5,6 +5,7 @@ namespace Api\System\Library\Service;
 
 use Api\System\Library\Support\AppLog;
 use Api\Model\Subtask\SubtaskRepository;
+use Api\System\Library\Security\ActorPermission;
 use Api\System\Library\Security\HtmlSanitizer;
 use Api\System\Library\Support\Ulid;
 
@@ -215,6 +216,12 @@ final class SubtaskService
     private function canDeleteOrphanSubtask(array $subtask, array $actor): bool
     {
         if ((bool)($actor['is_root'] ?? false)) {
+            return true;
+        }
+
+        // Permission = capability: an orphan has no parent task left to reason
+        // about, so task.manage is the only sensible grant left.
+        if (ActorPermission::canManageTasks($actor)) {
             return true;
         }
 
