@@ -41,16 +41,21 @@
     </div>
   </div>
 </nav>
+<div id="adminSettingsFilterEmptyState" class="crm-admin-settings-filter-empty" role="status" aria-live="polite" hidden>
+  <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+  <strong data-i18n="admin_settings.filter_empty_title"><?= htmlspecialchars($t('admin_settings.filter_empty_title', 'Ничего не найдено'), ENT_QUOTES, 'UTF-8') ?></strong>
+  <span data-i18n="admin_settings.filter_empty_body"><?= htmlspecialchars($t('admin_settings.filter_empty_body', 'Измените запрос или выберите другую категорию.'), ENT_QUOTES, 'UTF-8') ?></span>
+</div>
 
 <div class="row g-3 mb-3" data-settings-group="system">
   <div class="col-lg-8">
-    <div class="crm-card crm-section-card h-100" id="adminSystemSettingsSectionCard">
+    <div class="crm-card crm-section-card h-100" id="adminSystemSettingsSectionCard" data-settings-scope="system-table">
       <div class="crm-section-head"><div><h2 class="h6 mb-0" data-i18n="admin_settings.section_system_title"><?= htmlspecialchars($t('admin_settings.section_system_title', 'Системные настройки'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="admin_settings.section_system_note"><?= htmlspecialchars($t('admin_settings.section_system_note', 'Только разрешенные настройки с безопасным редактированием.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
       <div class="table-responsive"><table class="table table-sm crm-table crm-admin-settings-table-stacked mb-0"><thead><tr><th data-i18n="admin_settings.th_key"><?= htmlspecialchars($t('admin_settings.th_key', 'Ключ'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="admin_settings.th_value"><?= htmlspecialchars($t('admin_settings.th_value', 'Значение'), ENT_QUOTES, 'UTF-8') ?></th><th class="text-end"></th></tr></thead><tbody id="adminSettingsSystemBody"><tr><td colspan="3" class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></td></tr></tbody></table></div>
     </div>
   </div>
   <div class="col-lg-4">
-    <div class="crm-card crm-section-card h-100" id="adminUserPrefsSectionCard">
+    <div class="crm-card crm-section-card h-100" id="adminUserPrefsSectionCard" data-settings-scope="user-preferences">
       <div class="crm-section-head"><div><h2 class="h6 mb-0" data-i18n="admin_settings.section_user_prefs_title"><?= htmlspecialchars($t('admin_settings.section_user_prefs_title', 'Пользовательские настройки'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="admin_settings.section_user_prefs_note"><?= htmlspecialchars($t('admin_settings.section_user_prefs_note', 'Персональные настройки профиля и уведомлений, без системных флагов.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
       <div id="adminSettingsUserPrefsState" class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>
       <div id="adminSettingsUserPrefsForm" style="display:none;">
@@ -84,14 +89,14 @@
 
 <div class="row g-3 mb-3" data-settings-group="retention">
   <div class="col-lg-7">
-    <div class="crm-card crm-section-card h-100" id="adminRetentionSectionCard">
+    <div class="crm-card crm-section-card h-100" id="adminRetentionSectionCard" data-settings-scope="retention-table">
       <div class="crm-section-head"><div><h2 class="h6 mb-0" data-i18n="admin_settings.section_retention_title"><?= htmlspecialchars($t('admin_settings.section_retention_title', 'Политики хранения данных'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="admin_settings.section_retention_note"><?= htmlspecialchars($t('admin_settings.section_retention_note', 'Настройки жизненного цикла данных. Сначала предварительный расчет, затем применение.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
       <div class="table-responsive"><table class="table table-sm crm-table crm-admin-settings-table-stacked mb-2"><thead><tr><th data-i18n="admin_settings.th_field"><?= htmlspecialchars($t('admin_settings.th_field', 'Поле'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="admin_settings.th_days"><?= htmlspecialchars($t('admin_settings.th_days', 'Дней'), ENT_QUOTES, 'UTF-8') ?></th><th class="text-end" data-i18n="admin_settings.th_action"><?= htmlspecialchars($t('admin_settings.th_action', 'Действие'), ENT_QUOTES, 'UTF-8') ?></th></tr></thead><tbody id="adminSettingsRetentionBody"><tr><td colspan="3" class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></td></tr></tbody></table></div>
       <div id="adminSettingsRetentionState" class="text-muted small" data-i18n="admin_settings.retention_state_loading"><?= htmlspecialchars($t('admin_settings.retention_state_loading', 'Ожидание данных...'), ENT_QUOTES, 'UTF-8') ?></div>
     </div>
   </div>
   <div class="col-lg-5">
-    <div class="crm-card crm-section-card h-100" id="adminAuditSectionCard">
+    <div class="crm-card crm-section-card h-100" id="adminAuditSectionCard" data-settings-scope="audit">
       <div class="crm-section-head"><div><h2 class="h6 mb-0" data-i18n="admin_settings.section_audit_title"><?= htmlspecialchars($t('admin_settings.section_audit_title', 'Последний аудит'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="admin_settings.section_audit_note"><?= htmlspecialchars($t('admin_settings.section_audit_note', 'Последние изменения настроек.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
       <div id="adminSettingsAuditState" class="text-muted small mb-2" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>
       <ul id="adminSettingsAuditList" class="list-group list-group-flush"></ul>
@@ -101,7 +106,7 @@
 
 <div class="row g-3 mb-3" data-settings-group="cache">
   <div class="col-lg-6">
-    <div class="crm-card crm-section-card h-100" id="adminCacheSectionCard">
+    <div class="crm-card crm-section-card h-100" id="adminCacheSectionCard" data-settings-scope="cache">
       <div class="crm-section-head"><div><h2 class="h6 mb-0" data-i18n="admin_settings.section_cache_title"><?= htmlspecialchars($t('admin_settings.section_cache_title', 'Кэш API'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="admin_settings.section_cache_note"><?= htmlspecialchars($t('admin_settings.section_cache_note', 'Файловое кэширование ответов справочных эндпоинтов. После включения изменения вступают в силу немедленно.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
       <div class="crm-section-body" id="adminCacheSection">
         <div class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>
@@ -109,7 +114,7 @@
     </div>
   </div>
   <div class="col-lg-6" id="adminSystemInfoSection" style="display:none;" data-settings-group="sysinfo">
-    <div class="crm-card crm-section-card h-100" id="adminSystemInfoSectionCard">
+    <div class="crm-card crm-section-card h-100" id="adminSystemInfoSectionCard" data-settings-scope="system-info">
       <div class="crm-section-head"><div><h2 class="h6 mb-0" data-i18n="admin_settings.section_system_info_title"><?= htmlspecialchars($t('admin_settings.section_system_info_title', 'Информация о системе'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="admin_settings.section_system_note_env"><?= htmlspecialchars($t('admin_settings.section_system_info_note', 'Технические параметры окружения (только для root).'), ENT_QUOTES, 'UTF-8') ?></div></div><div class="d-flex gap-2"><button id="adminSystemInfoRefreshBtn" class="btn btn-sm crm-btn-secondary" type="button" data-i18n="admin_settings.system_info_refresh_btn"><?= htmlspecialchars($t('admin_settings.system_info_refresh_btn', 'Обновить'), ENT_QUOTES, 'UTF-8') ?></button></div></div>
       <div class="crm-admin-settings-sysinfo-grid">
         <div class="crm-admin-settings-sysinfo-item"><small class="text-muted" data-i18n="admin_settings.sysinfo_api_version"><?= htmlspecialchars($t('admin_settings.sysinfo_api_version', 'Версия API'), ENT_QUOTES, 'UTF-8') ?></small><div class="fw-semibold" id="systemInfoPhpVersion">—</div></div>
@@ -126,8 +131,8 @@
 
 <div class="row g-3 mb-3" id="adminFinanceSettingsSection" style="display:none;" data-settings-group="finance">
   <div class="col-12">
-    <div class="crm-card crm-section-card h-100" id="adminFinanceSectionCard">
-      <div class="crm-section-head"><div><h2 class="h6 mb-0" data-i18n="admin_settings.section_finance_title"><?= htmlspecialchars($t('admin_settings.section_finance_title', 'Финансы'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="admin_settings.section_finance_note"><?= htmlspecialchars($t('admin_settings.section_finance_note', 'Валюта организации, вывод себестоимости из вознаграждения и автозакрытие периодов.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
+    <div class="crm-card crm-section-card h-100" id="adminFinanceSectionCard" data-settings-scope="finance">
+      <div class="crm-section-head"><div><h2 class="h6 mb-0" data-i18n="admin_settings.section_finance_title"><?= htmlspecialchars($t('admin_settings.section_finance_title', 'Финансы'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="admin_settings.section_finance_note"><?= htmlspecialchars($t('admin_settings.section_finance_note', 'Валюта рабочего пространства, вывод себестоимости из вознаграждения и автозакрытие периодов.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
       <div class="crm-section-body">
         <div class="row g-3">
           <div class="col-md-6">
@@ -159,7 +164,7 @@
 
 <div class="row g-3 mb-3" id="adminTaskSettingsSection" data-settings-group="tasks">
   <div class="col-12">
-    <div class="crm-card crm-section-card h-100" id="adminTaskSectionCard">
+    <div class="crm-card crm-section-card h-100" id="adminTaskSectionCard" data-settings-scope="tasks">
       <div class="crm-section-head"><div><h2 class="h6 mb-0" data-i18n="admin_settings.section_tasks_title"><?= htmlspecialchars($t('admin_settings.section_tasks_title', 'Политики задач и учёта времени'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="admin_settings.section_tasks_note"><?= htmlspecialchars($t('admin_settings.section_tasks_note', 'Управление правилами трекинга времени и редактирования названий и описаний задач.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
       <div class="crm-section-body">
         <div class="row g-3">

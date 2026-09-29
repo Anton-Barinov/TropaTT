@@ -15003,6 +15003,14 @@ a.task-tag:hover {
     scroll-padding-top: calc(var(--crm-topbar-height, 56px) + 20px);
 }
 
+body[data-page="admin-settings"] {
+    scroll-padding-top: calc(var(--crm-topbar-height, 56px) + 76px);
+}
+
+body[data-page="admin-settings"] [data-settings-group] {
+    scroll-margin-top: calc(var(--crm-topbar-height, 56px) + 76px);
+}
+
 .crm-admin-settings-page .crm-section-card,
 .crm-admin-settings-page .crm-info-panel {
     box-shadow: none;
@@ -15034,7 +15042,31 @@ a.task-tag:hover {
     margin-bottom: var(--space-3, 16px);
     padding-bottom: var(--space-2, 8px);
     border-bottom: 1px solid var(--crm-border);
+    position: sticky;
+    top: var(--crm-topbar-height, 56px);
+    z-index: 20;
+    background: var(--crm-bg, #f5f7f9);
+    padding-top: var(--space-2, 8px);
 }
+
+.crm-admin-settings-filter-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 132px;
+    margin-bottom: var(--space-3, 16px);
+    padding: var(--space-4, 24px);
+    border: 1px dashed var(--crm-border);
+    border-radius: var(--radius-md);
+    background: var(--crm-surface);
+    color: var(--crm-text-muted);
+    text-align: center;
+}
+
+.crm-admin-settings-filter-empty i { color: var(--crm-primary); font-size: 1.25rem; }
+.crm-admin-settings-filter-empty strong { color: var(--crm-text); }
 
 .crm-admin-settings-nav-btn {
     border: 1px solid var(--crm-border);
@@ -15088,6 +15120,8 @@ a.task-tag:hover {
     max-width: 360px;
     width: 100%;
 }
+
+.crm-admin-settings-page .form-select { min-width: 0; max-width: 100%; }
 
 .crm-admin-settings-key-badge {
     display: inline-block;
@@ -15157,6 +15191,15 @@ a.task-tag:hover {
 
 /* Mobile Stacked Table Representation (360px - 767px) */
 @media (max-width: 767.98px) {
+    .crm-admin-settings-nav {
+        top: var(--crm-topbar-height, 56px);
+        gap: 6px;
+        padding: 8px 0;
+    }
+
+    .crm-admin-settings-nav-btn { min-height: 40px; padding: 7px 11px; }
+    .crm-admin-settings-page .form-select { min-height: 44px; }
+
     .crm-admin-settings-sysinfo-grid {
         grid-template-columns: repeat(2, 1fr);
     }

@@ -27024,31 +27024,56 @@ tableBody.innerHTML = counterparties.map(function (cp) {
 
     function applyFilters() {
       var groups = document.querySelectorAll('[data-settings-group]');
+      var hasVisibleContent = false;
+      var normalizedSearch = String(currentSearch || '').trim().toLowerCase();
       groups.forEach(function (groupEl) {
         var grpName = groupEl.getAttribute('data-settings-group');
         var catMatch = currentCategory === 'all' || currentCategory === grpName;
-
         if (!catMatch) {
           groupEl.style.display = 'none';
           return;
         }
-        groupEl.style.display = '';
-
-        if (currentSearch) {
-          var text = (groupEl.textContent || '').toLowerCase();
-          groupEl.style.display = text.indexOf(currentSearch) >= 0 ? '' : 'none';
+        var cards = groupEl.querySelectorAll('[data-settings-scope]');
+        var groupHasVisibleCard = false;
+        cards.forEach(function (card) {
+          var cardVisible = !normalizedSearch;
+          var scope = card.getAttribute('data-settings-scope') || '';
+          if (normalizedSearch && scope === 'system-table') {
+            var matchingRows = 0;
+            card.querySelectorAll('#adminSettingsSystemBody tr[data-setting-name]').forEach(function (tr) {
+              var rowMatch = (tr.textContent || '').toLowerCase().indexOf(normalizedSearch) >= 0;
+              tr.style.display = rowMatch ? '' : 'none';
+              if (rowMatch) matchingRows += 1;
+            });
+            cardVisible = matchingRows > 0;
+          } else if (normalizedSearch) {
+            cardVisible = (card.textContent || '').toLowerCase().indexOf(normalizedSearch) >= 0;
+          }
+          card.style.display = cardVisible ? '' : 'none';
+          var parent = card.parentElement;
+          if (parent && parent.className && /\bcol-(?:sm|md|lg|xl|xxl)-\d+\b/.test(parent.className)) {
+            parent.style.display = cardVisible ? '' : 'none';
+          }
+          if (cardVisible) groupHasVisibleCard = true;
+        });
+        if (!cards.length && normalizedSearch) {
+          groupHasVisibleCard = (groupEl.textContent || '').toLowerCase().indexOf(normalizedSearch) >= 0;
         }
+        groupEl.style.display = groupHasVisibleCard ? '' : 'none';
+        if (groupHasVisibleCard) hasVisibleContent = true;
       });
 
       var rows = document.querySelectorAll('#adminSettingsSystemBody tr[data-setting-name]');
       rows.forEach(function (tr) {
-        if (!currentSearch) {
+        if (!normalizedSearch) {
           tr.style.display = '';
           return;
         }
         var rowText = (tr.textContent || '').toLowerCase();
-        tr.style.display = rowText.indexOf(currentSearch) >= 0 ? '' : 'none';
+        tr.style.display = rowText.indexOf(normalizedSearch) >= 0 ? '' : 'none';
       });
+      var emptyState = document.getElementById('adminSettingsFilterEmptyState');
+      if (emptyState) emptyState.hidden = !normalizedSearch || hasVisibleContent;
     }
 
     function setupCategoryFilterAndSearch() {
@@ -27056,11 +27081,24 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       var searchInput = document.getElementById('adminSettingsSearchInput');
 
       navBtns.forEach(function (btn) {
+        btn.setAttribute('aria-pressed', btn.classList.contains('active') ? 'true' : 'false');
         btn.onclick = function () {
-          navBtns.forEach(function (b) { b.classList.remove('active'); });
+          navBtns.forEach(function (b) {
+            b.classList.remove('active');
+            b.setAttribute('aria-pressed', 'false');
+          });
           btn.classList.add('active');
+          btn.setAttribute('aria-pressed', 'true');
           currentCategory = btn.getAttribute('data-settings-category') || 'all';
           applyFilters();
+          if (currentCategory !== 'all') {
+            var target = document.querySelector('[data-settings-group="' + currentCategory + '"]');
+            if (target && target.style.display !== 'none') {
+              window.requestAnimationFrame(function () {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              });
+            }
+          }
         };
       });
 
@@ -27071,6 +27109,17 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           applyFilters();
         });
       }
+
+      document.querySelectorAll('.crm-admin-settings-page select').forEach(function (select) {
+        if (select.dataset.settingsFocusBound === '1') return;
+        select.dataset.settingsFocusBound = '1';
+        select.addEventListener('focus', function () {
+          var field = this;
+          window.requestAnimationFrame(function () {
+            field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          });
+        });
+      });
 
       applyFilters();
     }

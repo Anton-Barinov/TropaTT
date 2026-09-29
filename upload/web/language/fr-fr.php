@@ -1535,8 +1535,8 @@ return array (
   array (
     'title' => 'TropaTT — Paramètres système',
     'section_finance_title' => 'Finances',
-    'section_finance_note' => 'Devise de l\'organisation, dérivation du coût depuis la rémunération et clôture automatique des périodes.',
-    'finance_default_currency' => 'Devise de l\'organisation',
+    'section_finance_note' => 'Devise de l’espace de travail, dérivation du coût depuis la rémunération et clôture automatique des périodes.',
+    'finance_default_currency' => 'Devise de l’espace de travail',
     'finance_default_currency_hint' => 'Utilisée quand une grille tarifaire ou un enregistrement n\'a pas sa propre devise.',
     'finance_markup_percent' => 'Dérivation du coût depuis la rémunération, %',
     'finance_markup_empty' => 'désactivé',
@@ -1685,6 +1685,8 @@ return array (
     'tab_retention' => 'Retention & audit',
     'tab_sysinfo' => 'Environment',
     'search_placeholder' => 'Search by key or title...',
+    'filter_empty_title' => 'Aucun réglage trouvé',
+    'filter_empty_body' => 'Modifiez la recherche ou choisissez une autre catégorie.',
     'modal_edit_title' => 'Edit setting',
     'modal_edit_cancel' => 'Cancel',
     'modal_edit_save' => 'Save changes',
@@ -10711,4 +10713,3 @@ return array (
     'delete_failed' => 'Échec de la suppression du pack de langue',
   ),
 );
-
