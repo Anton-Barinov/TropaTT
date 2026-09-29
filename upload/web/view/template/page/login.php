@@ -32,14 +32,12 @@
         </div>
         <div class="crm-login-field">
           <label class="form-label" for="loginLocaleSelect" data-i18n="login.label_locale"><?= htmlspecialchars($t('login.label_locale', 'Язык авторизации'), ENT_QUOTES, 'UTF-8') ?></label>
+          <?php $localesList = is_array($available_locales ?? null) && !empty($available_locales) ? $available_locales : \Web\System\I18n\I18n::getEnabledLocales(); ?>
           <select class="form-select" name="locale" id="loginLocaleSelect">
-            <option value="ru-ru"<?= $loginLocale === 'ru-ru' ? ' selected' : '' ?> data-i18n="login.option_ru"><?= htmlspecialchars($t('login.option_ru', 'Русский'), ENT_QUOTES, 'UTF-8') ?></option>
-            <option value="en-gb"<?= $loginLocale === 'en-gb' ? ' selected' : '' ?> data-i18n="login.option_en"><?= htmlspecialchars($t('login.option_en', 'English'), ENT_QUOTES, 'UTF-8') ?></option>
-            <option value="zh-cn"<?= $loginLocale === 'zh-cn' ? ' selected' : '' ?> data-i18n="login.option_zh"><?= htmlspecialchars($t('login.option_zh', '中文'), ENT_QUOTES, 'UTF-8') ?></option>
-            <option value="es-es"<?= $loginLocale === 'es-es' ? ' selected' : '' ?> data-i18n="login.option_es"><?= htmlspecialchars($t('login.option_es', 'Español'), ENT_QUOTES, 'UTF-8') ?></option>
-            <option value="fr-fr"<?= $loginLocale === 'fr-fr' ? ' selected' : '' ?> data-i18n="login.option_fr"><?= htmlspecialchars($t('login.option_fr', 'Français'), ENT_QUOTES, 'UTF-8') ?></option>
-            <option value="pt-br"<?= $loginLocale === 'pt-br' ? ' selected' : '' ?> data-i18n="login.option_pt"><?= htmlspecialchars($t('login.option_pt', 'Português (Brasil)'), ENT_QUOTES, 'UTF-8') ?></option>
-            <option value="de-de"<?= $loginLocale === 'de-de' ? ' selected' : '' ?> data-i18n="login.option_de"><?= htmlspecialchars($t('login.option_de', 'Deutsch'), ENT_QUOTES, 'UTF-8') ?></option>
+            <?php foreach ($localesList as $locItem): ?>
+              <?php $locCode = (string)($locItem['code'] ?? ''); ?>
+              <option value="<?= htmlspecialchars($locCode, ENT_QUOTES, 'UTF-8') ?>"<?= $loginLocale === $locCode ? ' selected' : '' ?>><?= htmlspecialchars((string)($locItem['native_name'] ?? $locItem['name'] ?? $locCode), ENT_QUOTES, 'UTF-8') ?></option>
+            <?php endforeach; ?>
           </select>
         </div>
         <div id="loginError" class="alert alert-danger d-none py-2"></div>

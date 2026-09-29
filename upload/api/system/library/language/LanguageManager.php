@@ -24,6 +24,24 @@ final class LanguageManager
             return;
         }
 
+        $cacheFile = dirname($this->basePath) . '/storage_api/cache/languages.json';
+        if (!is_file($cacheFile)) {
+            $cacheFile = dirname($this->basePath) . '/storage/cache/languages.json';
+        }
+        if (is_file($cacheFile)) {
+            $raw = @file_get_contents($cacheFile);
+            if (is_string($raw) && $raw !== '') {
+                $data = json_decode($raw, true);
+                if (is_array($data) && isset($data['enabled']) && is_array($data['enabled'])) {
+                    if (!in_array($normalized, $data['enabled'], true)) {
+                        $default = (string)($data['default'] ?? $this->fallbackLocale);
+                        $this->locale = is_dir($this->basePath . '/' . $default) ? $default : $this->fallbackLocale;
+                        return;
+                    }
+                }
+            }
+        }
+
         $this->locale = $normalized;
     }
 

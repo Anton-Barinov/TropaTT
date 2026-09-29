@@ -25,6 +25,9 @@ return [
     // public version check (no auth required)
     ['methods' => ['GET'], 'pattern' => '/api/v1/version', 'controller' => Api\Controller\System\CoreVersionController::class, 'action' => 'show', 'auth' => false],
 
+    // languages (public list of enabled locales)
+    ['methods' => ['GET'], 'pattern' => '/api/v1/languages', 'controller' => Api\Controller\Language\LanguageController::class, 'action' => 'list', 'auth' => false],
+
     // A2A Protocol Agent Card manifest (RFC 8615, Google/LF A2A v0.3, public, no auth required)
     ['methods' => ['GET'], 'pattern' => '/.well-known/agent-card.json', 'controller' => Api\Controller\System\AgentCardController::class, 'action' => 'show', 'auth' => false],
     ['methods' => ['GET'], 'pattern' => '/api/v1/agent-card', 'controller' => Api\Controller\System\AgentCardController::class, 'action' => 'show', 'auth' => false],
@@ -85,6 +88,11 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/admin/widgets/system', 'controller' => Api\Controller\Admin\WidgetController::class, 'action' => 'system', 'auth' => true, 'required_permissions' => ['logs.view']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/admin/cache', 'controller' => Api\Controller\Admin\CacheController::class, 'action' => 'stats', 'auth' => true, 'required_permissions' => ['settings.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/admin/cache/clear', 'controller' => Api\Controller\Admin\CacheController::class, 'action' => 'clear', 'auth' => true, 'required_permissions' => ['settings.manage']],
+
+    // language management
+    ['methods' => ['GET'], 'pattern' => '/api/v1/admin/languages', 'controller' => Api\Controller\Language\LanguageController::class, 'action' => 'adminList', 'auth' => true, 'required_permissions' => ['settings.manage', 'settings.view']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/admin/languages/toggle', 'controller' => Api\Controller\Language\LanguageController::class, 'action' => 'adminToggle', 'auth' => true, 'required_permissions' => ['settings.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/admin/languages/default', 'controller' => Api\Controller\Language\LanguageController::class, 'action' => 'adminSetDefault', 'auth' => true, 'required_permissions' => ['settings.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/api-clients', 'controller' => Api\Controller\ApiClient\ApiClientController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['api_client.view']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/api-clients/options', 'controller' => Api\Controller\ApiClient\ApiClientController::class, 'action' => 'options', 'auth' => true, 'required_permissions' => ['api_client.view']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/api-clients', 'controller' => Api\Controller\ApiClient\ApiClientController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['api_client.manage']],
