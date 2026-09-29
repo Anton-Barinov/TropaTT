@@ -2103,6 +2103,30 @@ window.CRM.br1 = (function () {
     }
   }
 
+  function syncQuickClientTypeOptions(quickForm) {
+    var typeSelect = quickForm ? quickForm.querySelector('select[name="client_type"]') : null;
+    if (!typeSelect) return;
+
+    // The counterparties module owns the "organization" type; the client endpoint
+    // only knows the three person/company types. Offer the option here too, but
+    // only for actors that may actually create one — without counterparty.manage
+    // the client dictionary holds no organizations either, so the option would
+    // only lead to a 403.
+    var allowOrganization = hasPermission('counterparty.manage');
+    var option = typeSelect.querySelector('option[value="organization"]');
+    if (allowOrganization && !option) {
+      option = document.createElement('option');
+      option.value = 'organization';
+      option.textContent = window.CRM.i18n.t('counterparties.type_organization', 'Organization');
+      typeSelect.appendChild(option);
+    } else if (!allowOrganization && option) {
+      option.parentNode.removeChild(option);
+    }
+    if (typeSelect.value === 'organization' && !allowOrganization) {
+      typeSelect.value = 'individual';
+    }
+  }
+
   function initQuickClientCreate() {
     if (window._quickClientBound === '1') return;
     window._quickClientBound = '1';
@@ -2122,6 +2146,7 @@ window.CRM.br1 = (function () {
 
       var quickForm = document.getElementById('quickClientCreateForm');
       if (quickForm) quickForm.reset();
+      syncQuickClientTypeOptions(quickForm);
       var modalEl = document.getElementById('quickClientCreateModal');
       if (modalEl) {
         var clearTarget = function () { window._quickClientTargetSelect = null; };
@@ -2147,21 +2172,36 @@ window.CRM.br1 = (function () {
         var emailInput = quickForm.querySelector('[name="email"]');
         var phoneInput = quickForm.querySelector('[name="phone"]');
         var submitBtn = quickForm.querySelector('[type="submit"]');
+        var clientType = typeInput ? String(typeInput.value || 'individual') : 'individual';
+        // "organization" lives in the counterparties module: create it through the
+        // same endpoint the counterparties page uses, so the row gets a cp_ id and
+        // opens on the counterparty detail page (the client detail form only knows
+        // the three person/company types).
+        var isOrganization = clientType === 'organization';
+        if (isOrganization && !hasPermission('counterparty.manage')) {
+          notify(window.CRM.i18n.t('js.br1.quick_client_no_perm', 'Недостаточно прав для создания клиента'), 'warning');
+          return;
+        }
         if (submitBtn) submitBtn.disabled = true;
         try {
-          var envelope = await window.CRM.api.request('api/v1/clients', {
+          var payload = {
+            title: title,
+            email: emailInput ? String(emailInput.value || '').trim() : '',
+            phone: phoneInput ? String(phoneInput.value || '').trim() : ''
+          };
+          if (isOrganization) {
+            payload.counterparty_type = 'organization';
+          } else {
+            payload.client_type = clientType;
+          }
+          var envelope = await window.CRM.api.request(isOrganization ? 'api/v1/counterparties' : 'api/v1/clients', {
             method: 'POST',
             headers: {
               'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('web-client')
             },
-            body: {
-              title: title,
-              client_type: typeInput ? String(typeInput.value || 'individual') : 'individual',
-              email: emailInput ? String(emailInput.value || '').trim() : '',
-              phone: phoneInput ? String(phoneInput.value || '').trim() : ''
-            }
+            body: payload
           });
-          var client = (envelope && envelope.data && envelope.data.client) || {};
+          var client = (envelope && envelope.data && (envelope.data.client || envelope.data.counterparty)) || {};
           var clientPublicId = String(client.public_id || '');
           var targetSelect = window._quickClientTargetSelect;
           window._quickClientTargetSelect = null;
