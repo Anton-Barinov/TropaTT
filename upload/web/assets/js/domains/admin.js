@@ -24,6 +24,7 @@ window.CRM.domains = window.CRM.domains || {};
     'admin-logs',
     'admin-api-clients',
     'admin-settings',
+    'admin-languages',
     'admin-jobs',
     'admin-ai',
     'admin-statuses',

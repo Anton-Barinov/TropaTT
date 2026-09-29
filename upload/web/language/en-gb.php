@@ -342,7 +342,6 @@ return array (
     'state_ai_thinking' => 'AI is thinking...',
     'state_all_answered' => 'All questions answered.',
     'state_all_done' => 'All blocks done',
-
     'state_queuing_analysis' => 'Queuing analysis...',
     'state_queue_error' => 'Error queueing analysis',
     'state_queue_in_progress' => 'Steps are already queued — tracking progress...',
@@ -1866,7 +1865,7 @@ return array (
     ),
     'pab' => 
     array (
-      'rate_cards' =>
+      'rate_cards' => 
       array (
         'any_activity' => 'Any',
         'any_role' => 'Any',
@@ -1891,7 +1890,7 @@ return array (
         'unassigned' => 'Assignment removed',
         'yes' => 'Yes',
       ),
-      'my_earnings' =>
+      'my_earnings' => 
       array (
         'no_project' => '—',
       ),
@@ -4539,12 +4538,12 @@ return array (
     'title' => '404 Not Found',
     'page_title' => '404 — Page Not Found',
     'message' => 'Route not found:',
-    'module_inactive' => 'This module is not activated. Go to Administration \u2192 Modules and click \u00abActivate\u00bb.',
+    'module_inactive' => 'This module is not activated. Go to Administration \\u2192 Modules and click \\u00abActivate\\u00bb.',
     'activate_module' => 'Activate module',
     'go_modules' => 'Go to modules',
-    'activating' => 'Activating {module}\u2026',
-    'module_activated' => '\u2713 Module activated.',
-    'open_module' => 'Open module \u2192',
+    'activating' => 'Activating {module}\\u2026',
+    'module_activated' => '\\u2713 Module activated.',
+    'open_module' => 'Open module \\u2192',
     'activation_error' => 'Activation error',
     'network_error' => 'Network error',
   ),
@@ -5372,8 +5371,8 @@ return array (
     ),
     'tab_knowledge' => 'Knowledge Base',
     'knowledge_title' => 'Linked Pages',
-      'knowledge.loading' => 'Loading...',
-  'task_detail.knowledge_loading' => 'Loading...',
+    'knowledge.loading' => 'Loading...',
+    'task_detail.knowledge_loading' => 'Loading...',
     'knowledge_empty' => 'No linked pages',
     'team_knowledge_title' => 'Team materials',
     'team_knowledge_empty' => 'No team materials',
@@ -7435,6 +7434,8 @@ return array (
     'webhook_update_fail' => 'Failed to update webhook',
     'webhook_updated' => 'Webhook updated',
     'webhooks_empty' => 'Webhooks not found.',
+    'card_languages_title' => 'Languages',
+    'card_languages_desc' => 'Manage available languages and localization.',
   ),
   'admin_roles' => 
   array (
@@ -9542,7 +9543,6 @@ return array (
     'update_failed' => 'Failed to update workspace',
     'select' => 'Select workspace',
     'selected' => 'Active workspace',
-
   ),
   'priority' => 
   array (
@@ -10467,7 +10467,7 @@ return array (
     'success' => 'Access activated. You can now sign in.',
     'accept_failed' => 'Failed to activate access. Check the link and try again.',
   ),
-  'my_earnings' =>
+  'my_earnings' => 
   array (
     'title' => 'My earnings',
     'page_title' => 'My earnings',
@@ -10488,7 +10488,7 @@ return array (
     'rate_not_set_title' => 'Reward rate is not set',
     'rate_not_set_hint' => 'Contact your manager to set the rate under your contract.',
   ),
-  'rate_cards' =>
+  'rate_cards' => 
   array (
     'title' => 'Rate cards',
     'page_title' => 'Rate cards',
@@ -10551,7 +10551,7 @@ return array (
   'knowledge.search_placeholder' => 'Search materials...',
   'knowledge.empty' => 'No team materials',
   'knowledge.no_match' => 'Nothing found',
-    'knowledge.loading' => 'Loading...',
+  'knowledge.loading' => 'Loading...',
   'task_detail.knowledge_loading' => 'Loading...',
   'js.pab.catalog_empty' => 'Nothing found',
   'sla.create_title' => 'Create SLA policy',
@@ -10582,4 +10582,35 @@ return array (
   'organization.added' => 'Added',
   'organization.add' => '+ Add',
   'priority.create_title' => 'Create priority',
+  'admin_languages' => 
+  array (
+    'title' => 'TropaTT — Languages & Localization',
+    'link_admin' => 'Admin',
+    'breadcrumb' => 'Languages & Localization',
+    'page_title' => 'Languages & Localization',
+    'subtitle' => 'Manage available interface languages, active status, and default system language.',
+    'refresh_btn' => 'Refresh',
+    'note' => 'Disabled languages remain installed but are hidden from the login screen and user profile. The default language cannot be disabled.',
+    'section_installed_title' => 'Installed Languages',
+    'section_installed_note' => 'List of available language packages and status management.',
+    'th_language' => 'Language',
+    'th_native_name' => 'Native Name',
+    'th_direction' => 'Direction',
+    'th_type' => 'Type',
+    'th_default' => 'Default',
+    'th_status' => 'Status',
+    'empty' => 'No installed languages found',
+    'type_builtin' => 'Built-in',
+    'type_pack' => 'Language Pack',
+    'badge_default' => 'Default',
+    'btn_set_default' => 'Set as Default',
+    'cannot_disable_default' => 'Cannot disable the default system language',
+    'load_failed' => 'Failed to load language list',
+    'enabled_success' => 'Language enabled successfully',
+    'disabled_success' => 'Language disabled and hidden from interface',
+    'toggle_failed' => 'Failed to toggle language',
+    'confirm_set_default' => 'Set this language as the system default?',
+    'default_changed_success' => 'Default system language updated successfully',
+    'default_change_failed' => 'Failed to change default language',
+  ),
 );

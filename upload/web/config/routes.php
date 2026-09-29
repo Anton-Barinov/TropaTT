@@ -53,6 +53,7 @@ return [
     'admin-logs' => [Web\Controller\Page\AdminLogsController::class, 'index'],
     'admin-api-clients' => [Web\Controller\Page\AdminApiClientsController::class, 'index'],
     'admin-settings' => [Web\Controller\Page\AdminSettingsController::class, 'index'],
+    'admin-languages' => [Web\Controller\Page\AdminLanguagesController::class, 'index'],
     'admin-jobs' => [Web\Controller\Page\AdminJobsController::class, 'index'],
     'admin-ai' => [Web\Controller\Page\AdminAiController::class, 'index'],
     'admin-workflow' => [Web\Controller\Page\AdminWorkflowController::class, 'index'],
