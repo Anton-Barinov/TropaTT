@@ -72,6 +72,16 @@ window.CRM.pageApiBindings = (function () {
     return window.CRM.br1 ? window.CRM.br1.safeText(value) : String(value || '');
   }
 
+  function escapeHtml(value) {
+    if (value == null) return '';
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   function renderExtraChips(extra) {
     // ТЗ 6.5: кастомные поля (extra_attributes) в табличном списке контрагентов/клиентов.
     if (!extra) return '<span class="text-muted">—</span>';
@@ -27402,6 +27412,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           tableBody.appendChild(tr);
         });
       } catch (e) {
+        console.error('Failed to render admin languages table:', e);
         tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">' + tp('admin_languages.load_failed', 'Не удалось загрузить список языков') + '</td></tr>';
       }
     }
