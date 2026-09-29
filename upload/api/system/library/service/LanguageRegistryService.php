@@ -210,6 +210,21 @@ final class LanguageRegistryService
         return in_array($normalized, $this->getEnabledCodes(), true);
     }
 
+    public function isBuiltin(string $code): bool
+    {
+        $normalized = $this->normalizeLocaleCode($code);
+        return isset(self::BUILTIN_LOCALES[$normalized]);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function getBuiltinLocale(string $code): ?array
+    {
+        $normalized = $this->normalizeLocaleCode($code);
+        return self::BUILTIN_LOCALES[$normalized] ?? null;
+    }
+
     /**
      * Return array of enabled locale codes.
      * @return array<int, string>

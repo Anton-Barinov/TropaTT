@@ -1136,6 +1136,9 @@ TropaTT реализует унифицированный протокол ве�
 | GET | `/api/v1/admin/languages` | Список языков в панели | Да | `settings.manage` | Список всех установленных языков и их статус |
 | POST | `/api/v1/admin/languages/toggle` | Переключение активности языка | Да | `settings.manage` | Включение или отключение локали |
 | POST | `/api/v1/admin/languages/default` | Установка языка по умолчанию | Да | `settings.manage` | Смена дефолтной локали CRM |
+| POST | `/api/v1/admin/languages/install` | Установка языкового пакета | Да | `settings.manage` | Установка из ZIP-файла или по URL маркетплейса |
+| GET | `/api/v1/admin/languages/{code}/export` | Экспорт языкового пакета | Да | `settings.manage` | Выгрузка пакета локализации в ZIP-архив |
+| DELETE | `/api/v1/admin/languages/{code}` | Удаление языкового пакета | Да | `settings.manage` | Удаление пользовательского языкового пакета |
 
 ### Docs & Events
 

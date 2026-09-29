@@ -27208,6 +27208,8 @@ tableBody.innerHTML = counterparties.map(function (cp) {
   async function renderAdminLanguagesPage() {
     var tableBody = document.getElementById('adminLanguagesTableBody');
     var refreshBtn = document.getElementById('adminLanguagesRefreshBtn');
+    var uploadBtn = document.getElementById('adminLanguagesUploadBtn');
+    var fileInput = document.getElementById('adminLanguagesFileInput');
     var countBadge = document.getElementById('adminLanguagesCountBadge');
     if (!tableBody) return;
 
@@ -27226,7 +27228,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     };
 
     async function loadLanguages() {
-      tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4"><i class="fa-solid fa-spinner fa-spin me-2"></i>' + tp('page.loading', 'Загрузка...') + '</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><i class="fa-solid fa-spinner fa-spin me-2"></i>' + tp('page.loading', 'Загрузка...') + '</td></tr>';
       try {
         var envelope = await tryRequest('api/v1/admin/languages');
         var languages = (envelope && envelope.data && envelope.data.languages) || [];
@@ -27236,7 +27238,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         }
 
         if (!languages.length) {
-          tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">' + tp('admin_languages.empty', 'Установленные языки не найдены') + '</td></tr>';
+          tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">' + tp('admin_languages.empty', 'Установленные языки не найдены') + '</td></tr>';
           return;
         }
 
@@ -27300,7 +27302,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
 
           // Status toggle col
           var tdStatus = document.createElement('td');
-          tdStatus.className = 'text-end';
+          tdStatus.className = 'text-center';
           var formCheck = document.createElement('div');
           formCheck.className = 'form-check form-switch d-inline-block mb-0';
 
@@ -27324,10 +27326,35 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           tdStatus.appendChild(formCheck);
           tr.appendChild(tdStatus);
 
+          // Actions col
+          var tdActions = document.createElement('td');
+          tdActions.className = 'text-end text-nowrap';
+
+          var exportLink = document.createElement('a');
+          exportLink.href = 'api/v1/admin/languages/' + encodeURIComponent(lang.code) + '/export';
+          exportLink.className = 'btn btn-sm crm-btn-secondary py-0 px-2';
+          exportLink.title = tp('admin_languages.export_btn', 'Экспорт в ZIP');
+          exportLink.innerHTML = '<i class="fa-solid fa-file-zipper" aria-hidden="true"></i>';
+          tdActions.appendChild(exportLink);
+
+          if (!lang.is_builtin && !isDefault) {
+            var deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
+            deleteBtn.className = 'btn btn-sm btn-outline-danger py-0 px-2 ms-1';
+            deleteBtn.title = tp('admin_languages.delete_btn', 'Удалить пакет');
+            deleteBtn.innerHTML = '<i class="fa-regular fa-trash-can" aria-hidden="true"></i>';
+            deleteBtn.addEventListener('click', function () {
+              deleteLanguage(lang.code, lang.name || lang.code);
+            });
+            tdActions.appendChild(deleteBtn);
+          }
+
+          tr.appendChild(tdActions);
+
           tableBody.appendChild(tr);
         });
       } catch (e) {
-        tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">' + tp('admin_languages.load_failed', 'Не удалось загрузить список языков') + '</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">' + tp('admin_languages.load_failed', 'Не удалось загрузить список языков') + '</td></tr>';
       }
     }
 
@@ -27366,6 +27393,63 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         var errorObj = window.CRM.api && window.CRM.api.normalizeError ? window.CRM.api.normalizeError(err, tp('admin_languages.default_change_failed', 'Не удалось изменить основной язык')) : tp('admin_languages.default_change_failed', 'Не удалось изменить основной язык');
         notify(errorObj, 'error');
       }
+    }
+
+    async function installLanguagePack(file) {
+      var formData = new FormData();
+      formData.append('package', file);
+      notify(tp('admin_languages.uploading', 'Загрузка и проверка пакета...'));
+      try {
+        await request('api/v1/admin/languages/install', {
+          method: 'POST',
+          body: formData
+        });
+        notify(tp('admin_languages.install_success', 'Языковой пакет успешно установлен'));
+        await loadLanguages();
+      } catch (err) {
+        var errorObj = window.CRM.api && window.CRM.api.normalizeError
+          ? window.CRM.api.normalizeError(err, tp('admin_languages.install_failed', 'Ошибка установки языкового пакета'))
+          : tp('admin_languages.install_failed', 'Ошибка установки языкового пакета');
+        notify(errorObj, 'error');
+      }
+    }
+
+    async function deleteLanguage(code, name) {
+      var msg = tp('admin_languages.confirm_delete', 'Вы действительно хотите удалить языковой пакет «%s»?').replace('%s', name);
+      if (!window.confirm(msg)) {
+        return;
+      }
+      try {
+        await request('api/v1/admin/languages/' + encodeURIComponent(code), {
+          method: 'DELETE'
+        });
+        notify(tp('admin_languages.delete_success', 'Языковой пакет успешно удален'));
+        await loadLanguages();
+      } catch (err) {
+        var errorObj = window.CRM.api && window.CRM.api.normalizeError
+          ? window.CRM.api.normalizeError(err, tp('admin_languages.delete_failed', 'Ошибка удаления языкового пакета'))
+          : tp('admin_languages.delete_failed', 'Ошибка удаления языкового пакета');
+        notify(errorObj, 'error');
+      }
+    }
+
+    if (uploadBtn && uploadBtn.dataset.bound !== '1') {
+      uploadBtn.dataset.bound = '1';
+      uploadBtn.addEventListener('click', function () {
+        if (fileInput) {
+          fileInput.value = '';
+          fileInput.click();
+        }
+      });
+    }
+
+    if (fileInput && fileInput.dataset.bound !== '1') {
+      fileInput.dataset.bound = '1';
+      fileInput.addEventListener('change', async function () {
+        var file = this.files && this.files[0];
+        if (!file) return;
+        await installLanguagePack(file);
+      });
     }
 
     if (refreshBtn && refreshBtn.dataset.bound !== '1') {

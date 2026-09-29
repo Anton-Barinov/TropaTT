@@ -10655,5 +10655,16 @@ return array (
     'confirm_set_default' => 'Diese Sprache als Standardsprache des Systems festlegen?',
     'default_changed_success' => 'Standardsprache des Systems erfolgreich geändert',
     'default_change_failed' => 'Fehler beim Ändern der Standardsprache',
+    'upload_btn' => 'Paket hochladen',
+    'th_actions' => 'Aktionen',
+    'export_btn' => 'ZIP exportieren',
+    'delete_btn' => 'Paket löschen',
+    'confirm_delete' => 'Möchten Sie das Sprachpaket «%s» wirklich löschen?',
+    'uploading' => 'Paket wird hochgeladen und überprüft...',
+    'install_success' => 'Sprachpaket erfolgreich installiert',
+    'install_failed' => 'Fehler bei der Installation des Sprachpakets',
+    'delete_success' => 'Sprachpaket erfolgreich gelöscht',
+    'delete_failed' => 'Fehler beim Löschen des Sprachpakets',
   ),
 );
+
