@@ -18,7 +18,7 @@ final class I18n
 
     public static function fromRequest(string $baseDir): self
     {
-        $locale = self::resolveLocale();
+        $locale = self::resolveLocale($baseDir);
 
         $fallback = self::loadLocaleFile($baseDir, 'ru-ru');
         $current = self::loadLocaleFile($baseDir, $locale);
@@ -129,7 +129,7 @@ final class I18n
         }
     }
 
-    private static function resolveLocale(): string
+    private static function resolveLocale(string $baseDir = ''): string
     {
         $candidate = '';
         if (isset($_GET['lang'])) {
@@ -142,11 +142,94 @@ final class I18n
 
         $candidate = self::normalizeLocaleCode($candidate);
 
-        if (!in_array($candidate, ['ru-ru', 'en-gb', 'zh-cn', 'es-es', 'pt-br', 'de-de', 'fr-fr'], true)) {
-            $candidate = 'ru-ru';
+        $enabled = self::getEnabledLocaleCodes($baseDir);
+        $default = self::getDefaultLocaleCode($baseDir);
+
+        if (!in_array($candidate, $enabled, true)) {
+            $candidate = in_array($default, $enabled, true) ? $default : 'ru-ru';
         }
 
         return $candidate;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function getEnabledLocaleCodes(string $baseDir = ''): array
+    {
+        $data = self::readLanguageCache($baseDir);
+        if (isset($data['enabled']) && is_array($data['enabled']) && !empty($data['enabled'])) {
+            return $data['enabled'];
+        }
+
+        return ['ru-ru', 'en-gb', 'zh-cn', 'es-es', 'pt-br', 'de-de', 'fr-fr'];
+    }
+
+    public static function getDefaultLocaleCode(string $baseDir = ''): string
+    {
+        $data = self::readLanguageCache($baseDir);
+        if (isset($data['default']) && is_string($data['default']) && $data['default'] !== '') {
+            return $data['default'];
+        }
+
+        return 'ru-ru';
+    }
+
+    /**
+     * @return array<int, array{code: string, name: string, native_name: string, direction: string}>
+     */
+    public static function getEnabledLocales(string $baseDir = ''): array
+    {
+        $data = self::readLanguageCache($baseDir);
+        if (isset($data['all']) && is_array($data['all']) && !empty($data['all'])) {
+            $filtered = [];
+            foreach ($data['all'] as $item) {
+                if (!empty($item['is_enabled'])) {
+                    $filtered[] = [
+                        'code' => (string)($item['code'] ?? ''),
+                        'name' => (string)($item['name'] ?? ''),
+                        'native_name' => (string)($item['native_name'] ?? $item['name'] ?? ''),
+                        'direction' => (string)($item['direction'] ?? 'ltr'),
+                    ];
+                }
+            }
+            if (!empty($filtered)) {
+                return $filtered;
+            }
+        }
+
+        return [
+            ['code' => 'ru-ru', 'name' => 'Russian', 'native_name' => 'Русский', 'direction' => 'ltr'],
+            ['code' => 'en-gb', 'name' => 'English', 'native_name' => 'English', 'direction' => 'ltr'],
+            ['code' => 'zh-cn', 'name' => 'Chinese (Simplified)', 'native_name' => '中文', 'direction' => 'ltr'],
+            ['code' => 'es-es', 'name' => 'Spanish', 'native_name' => 'Español', 'direction' => 'ltr'],
+            ['code' => 'fr-fr', 'name' => 'French', 'native_name' => 'Français', 'direction' => 'ltr'],
+            ['code' => 'pt-br', 'name' => 'Portuguese (Brazil)', 'native_name' => 'Português (Brasil)', 'direction' => 'ltr'],
+            ['code' => 'de-de', 'name' => 'German', 'native_name' => 'Deutsch', 'direction' => 'ltr'],
+        ];
+    }
+
+    private static function readLanguageCache(string $baseDir = ''): ?array
+    {
+        if ($baseDir === '') {
+            $baseDir = dirname(__DIR__, 2);
+        }
+        $candidates = [
+            dirname($baseDir) . '/storage/cache/languages.json',
+            dirname($baseDir) . '/storage_api/cache/languages.json',
+        ];
+        foreach ($candidates as $file) {
+            if (is_file($file)) {
+                $raw = @file_get_contents($file);
+                if (is_string($raw) && $raw !== '') {
+                    $decoded = json_decode($raw, true);
+                    if (is_array($decoded)) {
+                        return $decoded;
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     private static function normalizeLocaleCode(string $locale): string

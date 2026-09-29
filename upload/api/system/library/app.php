@@ -1642,6 +1642,10 @@ final class App
         $this->container->factory('service.setting', fn(Container $c) => new SettingService(
             $c->get('repository.setting')
         ));
+        $this->container->factory('service.language_registry', fn(Container $c) => new \Api\System\Library\Service\LanguageRegistryService(
+            $c->get('service.setting'),
+            $this->basePath
+        ));
         $this->container->factory('service.earnings', fn(Container $c) => new \Api\System\Library\Service\EarningsService(
             $c->get('repository.worklog'),
             $c->get('db.pdo')

@@ -211,6 +211,7 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | GET | `/api/v1/health/status` | Базовая проверка здоровья | Да | — | Статус сервиса |
 | GET | `/api/v1/health/deep` | Глубокая проверка здоровья | Да (только root) | — | Проверка БД, кэша, AI |
 | GET | `/api/v1/version` | Версия CRM (публичный) | Нет | — | Текущая версия без авторизации; содержит объект `documentation` со ссылками на доки API/MCP/Modules |
+| GET | `/api/v1/languages` | Список доступных языков | Нет | — | Публичный список активных локалей с названиями |
 | GET | `/api/v1/agent-card` | Манифест A2A Agent Card | Нет | — | RFC 8615 карточка агента и открытий протоколов |
 | POST | `/api/v1/mcp` | Model Context Protocol | Да (делегированный RBAC по инструментам) | — | JSON-RPC для AI-агентов |
 
@@ -1132,6 +1133,9 @@ TropaTT реализует унифицированный протокол ве�
 | GET | `/api/v1/admin/widgets/system` 🔄 | Виджет системы | Да | `logs.view` | — |
 | GET | `/api/v1/admin/cache` | Статистика кэша | Да | `settings.manage` | — |
 | POST | `/api/v1/admin/cache/clear` | Очистка кэша | Да | `settings.manage` | — |
+| GET | `/api/v1/admin/languages` | Список языков в панели | Да | `settings.manage` | Список всех установленных языков и их статус |
+| POST | `/api/v1/admin/languages/toggle` | Переключение активности языка | Да | `settings.manage` | Включение или отключение локали |
+| POST | `/api/v1/admin/languages/default` | Установка языка по умолчанию | Да | `settings.manage` | Смена дефолтной локали CRM |
 
 ### Docs & Events
 
