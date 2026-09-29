@@ -15203,14 +15203,7 @@ body[data-page="admin-settings"] [data-settings-group] {
 .crm-pretty-select-option.is-selected {
     background: color-mix(in srgb, var(--crm-primary) 12%, var(--crm-surface));
     color: var(--crm-primary);
-}
-
-.crm-pretty-select-option.is-selected::before {
-    content: "✓";
-    margin-right: 8px;
-    font-family: inherit;
-    font-weight: 700;
-    font-size: .75rem;
+    font-weight: 600;
 }
 
 .crm-pretty-select-native {
