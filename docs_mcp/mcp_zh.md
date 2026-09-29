@@ -14,7 +14,7 @@ TropaTT CRM 内置一个 MCP 服务器——一个 JSON-RPC 2.0 接口，通过�
 | 协议版本 | `2025-06-18` |
 | 批量请求 | 支持（JSON 数组） |
 | 通知 | 支持（不带 id 的消息） |
-| MCP 工具 | 完整目录 620 个（`toolset=all`）；`tools/list` 默认返回 core 配置文件（27 个工具：8 个 mega-tools + 3 个 AgentOS 编排工具 + 16 个常规工具） |
+| MCP 工具 | 完整目录 621 个（`toolset=all`）；`tools/list` 默认返回 core 配置文件（27 个工具：8 个 mega-tools + 3 个 AgentOS 编排工具 + 16 个常规工具） |
 | MCP 资源 | 6 |
 | MCP Prompts | 0 |
 
@@ -129,7 +129,7 @@ AI 操作通过 AiJobService/AiAuditService 记录；导入/导出和工作流�
 
 ## 工具集（配置文件）
 
-完整的 MCP 目录很大（620 个工具）。为避免在每个代理会话中都加载全部工具，`tools/list` 默认返回精选的 **`core`** 配置文件（27 个工具：个人资料、搜索、仪表盘、通知、活动、8 个 mega-tools，以及 3 个 AgentOS 核心编排工具）。按领域提供配置文件：
+完整的 MCP 目录很大（621 个工具）。为避免在每个代理会话中都加载全部工具，`tools/list` 默认返回精选的 **`core`** 配置文件（27 个工具：个人资料、搜索、仪表盘、通知、活动、8 个 mega-tools，以及 3 个 AgentOS 核心编排工具）。按领域提供配置文件：
 
 | 配置文件 | 范围 |
 |---------|-------|
@@ -157,7 +157,7 @@ AI 操作通过 AiJobService/AiAuditService 记录；导入/导出和工作流�
 | `people` | 60 | 约 5.7K tokens |
 | `time` | 32 | 约 2.6K tokens |
 | `admin` | 149 | 约 12.2K tokens |
-| `all` | 620 | 约 53K tokens |
+| `all` | 621 | 约 53K tokens |
 
 完整目录比默认 `core` 配置文件贵约 18 倍，因此当会话聚焦于单一领域时，应优先使用窄配置文件。
 
