@@ -28,6 +28,7 @@ final class LanguageController extends BaseController
 
         return $this->success('LANGUAGE_LIST', $this->t('common/messages.success', 'Success'), [
             'items' => $items,
+            'languages' => $items,
             'default_locale' => $default,
         ]);
     }
@@ -43,6 +44,7 @@ final class LanguageController extends BaseController
 
         return $this->success('ADMIN_LANGUAGE_LIST', $this->t('common/messages.success', 'Success'), [
             'items' => $items,
+            'languages' => $items,
             'default_locale' => $default,
         ]);
     }

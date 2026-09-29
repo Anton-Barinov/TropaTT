@@ -101,6 +101,7 @@ abstract class Controller
         'admin_templates',
         'admin_webhooks',
         'admin_workflow',
+        'admin_languages',
         'analytics',
         'my_earnings',
         'ideas',

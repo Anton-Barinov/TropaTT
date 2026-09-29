@@ -27231,7 +27231,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><i class="fa-solid fa-spinner fa-spin me-2"></i>' + tp('page.loading', 'Загрузка...') + '</td></tr>';
       try {
         var envelope = await tryRequest('api/v1/admin/languages');
-        var languages = (envelope && envelope.data && envelope.data.languages) || [];
+        var languages = (envelope && envelope.data && (envelope.data.languages || envelope.data.items)) || [];
 
         if (countBadge) {
           countBadge.textContent = String(languages.length);
