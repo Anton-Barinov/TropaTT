@@ -868,7 +868,7 @@
       return;
     }
     els.versions.innerHTML = items.map(function (item) {
-      return '<div class="crm-knowledge-version"><div><strong>v' + esc(item.version_number) + '</strong><span>' + esc(item.created_at || '') + '</span>' + (item.change_summary ? '<br><span class="text-muted">' + esc(item.change_summary) + '</span>' : '') + '</div><div class="d-flex gap-1 mt-1"><button class="btn btn-sm crm-btn-secondary" data-restore-version="' + esc(item.version_number) + '" style="font-size:0.78rem;padding:0.12rem 0.45rem">' + esc(t('knowledge_page.restore', 'Восстановить')) + '</button><button class="btn btn-sm crm-btn-secondary" data-diff-version="' + esc(item.version_number) + '" style="font-size:0.78rem;padding:0.12rem 0.45rem">' + esc(t('knowledge_page.btn_diff', 'Сравнить')) + '</button></div></div>';
+      return '<div class="crm-knowledge-version"><div><strong>v' + esc(item.version_number) + '</strong><span>' + esc(item.created_at || '') + '</span>' + (item.change_summary ? '<br><span class="text-muted">' + esc(item.change_summary) + '</span>' : '') + '</div><div class="d-flex gap-1 mt-1"><button class="btn btn-sm crm-btn-secondary" data-restore-version="' + esc(item.public_id) + '" style="font-size:0.78rem;padding:0.12rem 0.45rem">' + esc(t('knowledge_page.restore', 'Восстановить')) + '</button><button class="btn btn-sm crm-btn-secondary" data-diff-version="' + esc(item.public_id) + '" data-version-number="' + esc(item.version_number) + '" style="font-size:0.78rem;padding:0.12rem 0.45rem">' + esc(t('knowledge_page.btn_diff', 'Сравнить')) + '</button></div></div>';
     }).join('');
   }
   function setKnowledgeBottomTab(targetPanelId) {
@@ -1263,18 +1263,27 @@
     if (restoreBtn) {
       var v = restoreBtn.getAttribute('data-restore-version');
       if (v && confirm(t('knowledge_page.restore_confirm', 'Восстановить эту версию? Текущее содержимое будет заменено.'))) {
-        request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/versions/' + encodeURIComponent(v) + '/restore', { method: 'POST', idempotent: true }).then(function () { load(); });
+        request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/versions/' + encodeURIComponent(v) + '/restore', { method: 'POST', idempotent: true }).then(function () { load(); }).catch(function () {
+          window.alert(t('knowledge_page.restore_error', 'Не удалось восстановить версию'));
+        });
       }
       return;
     }
     var diffBtn = e.target.closest('[data-diff-version]');
     if (diffBtn) {
-      var vNum = parseInt(diffBtn.getAttribute('data-diff-version'), 10);
+      var versionPublicId = diffBtn.getAttribute('data-diff-version');
+      var vNum = parseInt(diffBtn.getAttribute('data-version-number'), 10);
       if (current) {
-        request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/versions/diff', { method: 'GET', query: { from: vNum - 1, to: vNum } }).then(function (envelope) {
+        request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/versions/' + encodeURIComponent(versionPublicId) + '/diff', { method: 'GET' }).then(function (envelope) {
           var diff = envelope.data || {};
           els.diffContainer.classList.remove('d-none');
-          els.diffContent.innerHTML = '<div class="text-muted small">' + esc(t('knowledge_page.diff_version', 'Версия')) + ' ' + vNum + ': ' + esc(diff.text_changed ? t('knowledge_page.diff_changed', 'Есть изменения') : t('knowledge_page.diff_unchanged', 'Без изменений')) + '</div>';
+          var changed = diff.title_changed || diff.content_changed || diff.summary_changed;
+          var currentDiff = diff.current || {};
+          var versionDiff = diff.version || {};
+          els.diffContent.innerHTML = '<div class="text-muted small mb-2">' + esc(t('knowledge_page.diff_version', 'Версия')) + ' ' + esc(vNum) + ': ' + esc(changed ? t('knowledge_page.diff_changed', 'Есть изменения') : t('knowledge_page.diff_unchanged', 'Без изменений')) + '</div>'
+            + (diff.title_changed ? '<div class="mb-2"><strong>' + esc(t('knowledge_page.diff_title_field', 'Заголовок')) + '</strong><div>' + esc(versionDiff.title || '') + ' → ' + esc(currentDiff.title || '') + '</div></div>' : '')
+            + (diff.content_changed ? '<div class="mb-2"><strong>' + esc(t('knowledge_page.diff_content_field', 'Содержимое')) + '</strong><div class="mt-1"><small>' + esc(t('knowledge_page.diff_archived', 'В версии')) + ':</small><pre class="small text-wrap mb-1">' + esc(versionDiff.content_text || '') + '</pre><small>' + esc(t('knowledge_page.diff_current', 'Сейчас')) + ':</small><pre class="small text-wrap mb-0">' + esc(currentDiff.content_text || '') + '</pre></div></div>' : '')
+            + (diff.summary_changed ? '<div><strong>' + esc(t('knowledge_page.diff_summary_field', 'Краткое описание')) + '</strong><div>' + esc(versionDiff.summary || '') + ' → ' + esc(currentDiff.summary || '') + '</div></div>' : '');
         }).catch(function () {
           els.diffContainer.classList.remove('d-none');
           els.diffContent.innerHTML = '<div class="text-danger small">' + esc(t('knowledge_page.diff_error', 'Ошибка загрузки сравнения')) + '</div>';
