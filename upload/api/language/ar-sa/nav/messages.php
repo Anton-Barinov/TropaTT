@@ -1,0 +1,31 @@
+<?php
+declare(strict_types=1);
+
+return array (
+  'dashboard' => 'لوحة التحكم',
+  'ideas' => 'الأفكار',
+  'tasks' => 'المهام',
+  'day' => 'My day',
+  'week' => 'My week',
+  'kanban' => 'كانبان',
+  'gantt' => 'مخطط غانت',
+  'projects' => 'المشاريع',
+  'calendar' => 'التقويم',
+  'counterparties' => 'الجهات والعملاء',
+  'teams' => 'فرق العمل',
+  'knowledge' => 'Knowledge base',
+  'analytics' => 'التحليلات',
+  'notifications' => 'الإشعارات',
+  'admin' => 'الإدارة',
+  'intake' => 'الطلبات الواردة',
+  'cycles' => 'الدورات (سبرنت)',
+  'project_modules' => 'وحدات المشاريع',
+  'admin_estimates' => 'تقديرات المهام',
+  'admin_modules' => 'Modules',
+  'chat' => 'المحادثات',
+  'docs' => 'التوثيق',
+  'api' => 'التوثيق',
+  'my_earnings' => 'My earnings',
+  'rate_cards' => 'Rate cards',
+  'menu_loaded' => 'Menu loaded',
+);
