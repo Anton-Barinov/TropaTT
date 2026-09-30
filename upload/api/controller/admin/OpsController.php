@@ -6,6 +6,7 @@ namespace Api\Controller\Admin;
 use Api\System\Library\Support\AppLog;
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Module\ModuleCronScheduler;
+use Api\System\Library\Module\ModuleJobDispatcher;
 use Api\System\Library\Service\ExportService;
 use Api\System\Library\Service\ImportService;
 use Api\System\Library\Service\NotificationPushService;
@@ -51,12 +52,16 @@ final class OpsController extends BaseController
         $exportResult = $exports->runQueued($limit);
         $pushResult = $push->runQueued($limit);
         $webhookResult = $webhooks->runQueued($limit);
+        $moduleJobs = new ModuleJobDispatcher($this->container->get('db.pdo'));
+        $moduleJobs->ensureTable((string)$this->container->get('db.pdo')->getAttribute(\PDO::ATTR_DRIVER_NAME));
+        $moduleJobResult = $moduleJobs->runBatch(min(5, $limit), 8.0);
 
         return $this->success('OPS_JOBS_RUN', $this->t('admin/messages.ops_system'), [
             'import' => $importResult,
             'export' => $exportResult,
             'push' => $pushResult,
             'webhook' => $webhookResult,
+            'module_jobs' => $moduleJobResult,
             'limit' => $limit,
             'generated_at' => gmdate('c'),
         ]);
@@ -81,6 +86,9 @@ final class OpsController extends BaseController
             $scheduler = new ModuleCronScheduler($pdo);
 
             $dbTasks = $scheduler->getTasks();
+            $moduleJobs = new ModuleJobDispatcher($pdo);
+            $moduleJobs->ensureTable((string)$pdo->getAttribute(\PDO::ATTR_DRIVER_NAME));
+            $moduleJobHealth = $moduleJobs->getHealth();
 
             // Drop internal-only columns before returning.
             $tasks = array_map(static function (array $row): array {
@@ -130,6 +138,7 @@ final class OpsController extends BaseController
 
             return $this->success('OPS_CRON_TASKS', $this->t('admin/messages.ops_system'), [
                 'tasks' => $tasks,
+                'module_jobs' => $moduleJobHealth,
                 'cron_heartbeat' => $heartbeat,
                 'stale' => $stale,
                 'stale_threshold_minutes' => $thresholdMinutes,
@@ -139,6 +148,7 @@ final class OpsController extends BaseController
             // Tables may be missing on a fresh install — return empty, not 500.
             return $this->success('OPS_CRON_TASKS', $this->t('admin/messages.ops_system'), [
                 'tasks' => [],
+                'module_jobs' => ['pending' => 0, 'running' => 0, 'completed' => 0, 'failed' => 0, 'paused_legacy' => 0, 'paused_module' => 0],
                 'cron_heartbeat' => null,
                 'stale' => true,
                 'stale_threshold_minutes' => self::CRON_STALE_THRESHOLD_MINUTES_DEFAULT,
@@ -216,11 +226,15 @@ final class OpsController extends BaseController
             $scheduler->ensureTables($driver);
 
             $result = $scheduler->run();
+            $moduleJobs = new ModuleJobDispatcher($pdo);
+            $moduleJobs->ensureTable($driver);
+            $moduleJobResult = $moduleJobs->runBatch(5, 8.0);
 
             return $this->success('OPS_CRON_RUN_DUE', $this->t('admin/messages.ops_system'), [
                 'executed' => (int)($result['executed'] ?? 0),
                 'failed' => (int)($result['failed'] ?? 0),
                 'results' => $result['results'] ?? [],
+                'module_jobs' => $moduleJobResult,
                 'generated_at' => gmdate('c'),
             ]);
         } catch (\Throwable $e) {

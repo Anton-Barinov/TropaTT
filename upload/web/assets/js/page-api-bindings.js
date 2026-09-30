@@ -175,11 +175,36 @@ window.CRM.pageApiBindings = (function () {
   }
 
   function tpLocale(defaultLocale) {
+    var fallback = defaultLocale || 'ru-RU';
     var raw = (window.CRM && (window.CRM.locale || window.CRM.currentLocale))
       || document.documentElement.getAttribute('lang')
-      || defaultLocale
-      || 'ru-RU';
-    return String(raw || 'ru-RU').replace('_', '-');
+      || fallback;
+    if (window.CRM && window.CRM.i18n && typeof window.CRM.i18n.safeIntlLocale === 'function') {
+      return window.CRM.i18n.safeIntlLocale(raw, fallback);
+    }
+    if (window.CRM && typeof window.CRM.safeIntlLocale === 'function') {
+      return window.CRM.safeIntlLocale(raw, fallback);
+    }
+    var candidate = String(raw || fallback).replace('_', '-').trim().toLowerCase();
+    if (candidate === 'ru-old' || candidate === 'ru-su' || candidate.indexOf('ru-') === 0 || candidate === 'ru') {
+      return 'ru-RU';
+    }
+    if (candidate.indexOf('en-') === 0 || candidate === 'en') {
+      return 'en-GB';
+    }
+    if (candidate.indexOf('zh-') === 0 || candidate === 'zh') {
+      return 'zh-CN';
+    }
+    if (candidate.indexOf('he-') === 0 || candidate === 'he') {
+      return 'he-IL';
+    }
+    try {
+      if (typeof Intl !== 'undefined' && Intl.DateTimeFormat && typeof Intl.DateTimeFormat.supportedLocalesOf === 'function') {
+        var supported = Intl.DateTimeFormat.supportedLocalesOf([candidate]);
+        if (supported && supported.length > 0) return supported[0];
+      }
+    } catch (e) {}
+    return fallback;
   }
 
   function rememberUser(user) {
@@ -5985,9 +6010,9 @@ window.CRM.pageApiBindings = (function () {
     initDashboardAutoRefresh();
 
     var results = await Promise.all([
-      canManageTasks ? tryRequest('api/v1/dashboard/summary') : Promise.resolve(null),
-      canManageTasks ? tryRequest('api/v1/tasks', { query: { limit: 20 } }) : Promise.resolve(null),
-      tryRequest('api/v1/notifications/counters'),
+      canManageTasks ? tryRequest('api/v1/dashboard/summary', { silent: true }) : Promise.resolve(null),
+      canManageTasks ? tryRequest('api/v1/tasks', { query: { limit: 20 }, silent: true }) : Promise.resolve(null),
+      tryRequest('api/v1/notifications/counters', { silent: true }),
       canViewActivity && dashboardWidgetConfig.activity !== false ? softDashboardRequest(tryRequest('api/v1/activity/feed', { query: { limit: 8, include_total: 0 }, silent: true }), 900) : Promise.resolve(null),
       softDashboardRequest(tryRequest('api/v1/reminders', { query: { limit: 8 }, silent: true }), 900),
       canManageProjects ? tryRequest('api/v1/projects', { query: { limit: 8 }, silent: true }) : Promise.resolve(null),
@@ -6201,8 +6226,18 @@ window.CRM.pageApiBindings = (function () {
 
     var subtitle = document.querySelector('[data-dashboard-subtitle]');
     if (subtitle) {
+      var dateFormatted = '';
+      try {
+        dateFormatted = new Date().toLocaleDateString(tpLocale('ru-RU'), { day: '2-digit', month: 'long', year: 'numeric' });
+      } catch (e) {
+        try {
+          dateFormatted = new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' });
+        } catch (e2) {
+          dateFormatted = formatDate(new Date());
+        }
+      }
       subtitle.textContent = window.CRM.i18n.t('js.pab.dashboard_subtitle', 'Overview of tasks, risks and team load for')
-        + ' ' + new Date().toLocaleDateString(tpLocale('ru-RU'), { day: '2-digit', month: 'long', year: 'numeric' });
+        + ' ' + dateFormatted;
     }
 
     {
@@ -6211,7 +6246,7 @@ window.CRM.pageApiBindings = (function () {
       if (kpis[0]) kpis[0].textContent = String(summary.active_tasks || 0);
       if (kpis[1]) kpis[1].textContent = String(summary.overdue_tasks || 0);
       if (kpis[2]) kpis[2].textContent = String(summary.active_projects || 0);
-      if (kpis[3]) kpis[3].textContent = String(summary.worklog_minutes_week || 0) + ' ' + tp('min', 'min');
+      if (kpis[3]) kpis[3].textContent = String(summary.worklog_minutes_week || 0) + ' ' + window.CRM.i18n.t('js.pab.min', 'min');
       if (kpiNotes[0]) kpiNotes[0].textContent = window.CRM.i18n.t('js.pab.kpi_tasks_today', 'Tasks to do today:') + ' ' + String(summary.tasks_today || 0) + '.';
       if (kpiNotes[1]) kpiNotes[1].textContent = window.CRM.i18n.t('js.pab.kpi_overdue', 'Overdue tasks in system:') + ' ' + String(summary.overdue_tasks || 0) + '.';
       if (kpiNotes[2]) kpiNotes[2].textContent = window.CRM.i18n.t('js.pab.kpi_active_projects', 'Active projects in progress:') + ' ' + String(summary.active_projects || 0) + '.';
@@ -6645,7 +6680,13 @@ window.CRM.pageApiBindings = (function () {
           var d = new Date();
           d.setDate(now.getDate() - i);
           var mins = Number(dayTotals[dateKey(d)] || 0);
-          bars.push({ mins: mins, isToday: i === 0, label: d.toLocaleDateString(tpLocale('ru-RU'), { weekday: 'short' }).replace('.', '') });
+          var weekdayLabel = '';
+          try {
+            weekdayLabel = d.toLocaleDateString(tpLocale('ru-RU'), { weekday: 'short' }).replace('.', '');
+          } catch (e) {
+            weekdayLabel = d.toLocaleDateString('ru-RU', { weekday: 'short' }).replace('.', '');
+          }
+          bars.push({ mins: mins, isToday: i === 0, label: weekdayLabel });
         }
         var maxMins = 1;
         bars.forEach(function (b) { if (b.mins > maxMins) maxMins = b.mins; });
@@ -26512,6 +26553,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         var tasksEnv = await request('api/v1/ops/cron/tasks');
         var payload = (tasksEnv && tasksEnv.data) || {};
         var tasks = payload.tasks || [];
+        var moduleJobs = payload.module_jobs || {};
         var heartbeat = payload.cron_heartbeat || null;
         var stale = !!payload.stale;
         var threshold = parseInt(payload.stale_threshold_minutes || 60, 10);
@@ -26613,7 +26655,10 @@ tableBody.innerHTML = counterparties.map(function (cp) {
 
         if (cronState) {
           cronState.textContent = tp('admin_jobs.cron_summary', 'Scheduled tasks: ') + String(tasks.length)
-            + (heartbeat && heartbeat.ts ? ', ' + tp('admin_jobs.cron_heartbeat', 'web cron: ') + formatDate(heartbeat.ts) : '');
+            + (heartbeat && heartbeat.ts ? ', ' + tp('admin_jobs.cron_heartbeat', 'web cron: ') + formatDate(heartbeat.ts) : '')
+            + ' · ' + tp('admin_jobs.module_queue', 'Module queue: ') + String(parseInt(moduleJobs.pending || 0, 10))
+            + ' · ' + tp('admin_jobs.module_paused', 'Paused: ') + String(parseInt(moduleJobs.paused_legacy || 0, 10) + parseInt(moduleJobs.paused_module || 0, 10))
+            + ' · ' + tp('admin_jobs.module_failed', 'Failed: ') + String(parseInt(moduleJobs.failed || 0, 10));
         }
       } catch (error) {
         if (cronTbody) {
@@ -35250,7 +35295,13 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     return refreshCurrentPage().catch(function (error) {
     var normalized = window.CRM.api && typeof window.CRM.api.normalizeError === 'function'
       ? window.CRM.api.normalizeError(error, _t('page.api_load_error', 'Ошибка загрузки данных API'))
-      : { message: error && error.message ? String(error.message) : _t('page.api_load_error', 'Ошибка загрузки данных API') };
+      : { message: error && error.message ? String(error.message) : _t('page.api_load_error', 'Ошибка загрузки данных API'), isAuthError: false };
+
+    if (normalized.isAuthError && isProtectedPage()) {
+      var currentRoute = (typeof routeName === 'function' ? routeName() : '') || 'dashboard';
+      window.location.href = 'index.php?route=login&redirect=' + encodeURIComponent(currentRoute);
+      return;
+    }
 
     var message = window.CRM.api && typeof window.CRM.api.formatErrorMessage === 'function'
       ? window.CRM.api.formatErrorMessage(normalized, { withRequestId: true })

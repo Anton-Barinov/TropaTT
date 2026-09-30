@@ -12,6 +12,7 @@ use Api\System\Library\Container;
 use Api\System\Library\Database\ConnectionManager;
 use Api\System\Library\Module\ModuleAutoloader;
 use Api\System\Library\Module\ModuleCronScheduler;
+use Api\System\Library\Module\ModuleJobDispatcher;
 use Api\System\Library\Module\PluginManager;
 
 require_once __DIR__ . '/../system/library/support/Autoloader.php';
@@ -79,6 +80,15 @@ switch ($command) {
     case 'run':
         $result = $scheduler->run();
         out("Scheduler run complete: {$result['executed']} executed, {$result['failed']} failed");
+
+        try {
+            $moduleJobs = new ModuleJobDispatcher($pdo);
+            $moduleJobs->ensureTable($driver);
+            $jobsResult = $moduleJobs->runBatch(5, 8.0);
+            out("Module jobs: {$jobsResult['completed']} completed, {$jobsResult['retrying']} retrying, {$jobsResult['failed']} failed, {$jobsResult['paused']} paused");
+        } catch (\Throwable $e) {
+            AppLog::error('[scheduler] Module jobs failed: ' . $e->getMessage());
+        }
 
         // Process pending idea analysis queue steps if any exist
         try {

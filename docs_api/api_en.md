@@ -1879,9 +1879,9 @@ Store-to-CRM ingestion is authenticated with an HMAC-SHA256 signature over the s
 
 | Method | Endpoint | Description | Auth | Permissions | Notes |
 |-------|----------|------------|:---:|-------------|----------|
-| GET | `/api/v1/ops/cron/tasks` | List scheduled tasks + heartbeat | Yes | `logs.view` | root-only; returns `tasks`, `cron_heartbeat`, `stale`, `stale_threshold_minutes` |
+| GET | `/api/v1/ops/cron/tasks` | List scheduled tasks + heartbeat | Yes | `logs.view` | Root only; returns `tasks`, `module_jobs` aggregate status counts, `cron_heartbeat`, `stale`, `stale_threshold_minutes`. No module payload or error text. |
 | GET | `/api/v1/ops/cron/executions` | Task execution history | Yes | `logs.view` | root-only; filters `module`, `task`, `status`; `limit` 1–200 |
-| POST | `/api/v1/ops/cron/run-due` | Run all due tasks now | Yes | `logs.view` | root-only; returns `executed`, `failed`, `results` |
+| POST | `/api/v1/ops/cron/run-due` | Run all due tasks now | Yes | `logs.view` | Root only; returns `executed`, `failed`, `results` and bounded `module_jobs` counts. |
 
 The web cron endpoint (`web/cron.php?key=<CRON_SECRET_KEY>`) is called once a minute by the hosting panel or an external scheduler. It dispatches push notifications, runs due scheduled tasks, and creates upcoming calendar reminders. A heartbeat timestamp is recorded on every successful call and reported by `GET /ops/cron/tasks` as `cron_heartbeat`. If the cron has not been seen within the stale threshold (default 60 minutes, configurable via the `cron.stale_threshold_minutes` setting), `stale` is `true` and the admin UI shows a warning.
 
@@ -2245,7 +2245,7 @@ Deprecated aliases (`/api/v1/notification/push-*`) are excluded from OpenAPI and
 |--------|----------|---------|:---:|-------------|-------------|
 | GET | `/api/v1/ops/system/get` 🔄 | — | Yes | logs.view | — |
 | GET | `/api/v1/ops/metrics/get` 🔄 | — | Yes | logs.view | — |
-| POST | `/api/v1/ops/jobs/run-now` 🔄 | — | Yes | logs.view | — |
+| POST | `/api/v1/ops/jobs/run-now` 🔄 | Run queued jobs | Yes | logs.view | Root only. Also runs up to five workspace-scoped module jobs within an eight-second batch budget; response includes `module_jobs` counts (`processed`, `completed`, `retrying`, `failed`, `paused`). |
 
 ### Telemetry — RPC Aliases
 

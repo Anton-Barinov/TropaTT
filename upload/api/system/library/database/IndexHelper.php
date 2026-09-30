@@ -99,11 +99,22 @@ final class IndexHelper
     private static function isDuplicateCode(Throwable $e): bool
     {
         $code = (string)($e->getCode() ?? '');
-        // MySQL returns 1061/1060; SQLSTATE 42S21 (column) / 42S11 (index) for some drivers.
+        $message = $e->getMessage();
+        if ($e instanceof \PDOException && isset($e->errorInfo[1])) {
+            $driverCode = (string)$e->errorInfo[1];
+            if ($driverCode === self::DUPLICATE_INDEX_CODE || $driverCode === self::DUPLICATE_COLUMN_CODE) {
+                return true;
+            }
+        }
+        // MySQL returns 1061/1060; SQLSTATE 42S21 (column) / 42S11 (index) / 42000 for some drivers.
         return $code === self::DUPLICATE_INDEX_CODE
             || $code === self::DUPLICATE_COLUMN_CODE
             || str_contains($code, '42S21')
-            || str_contains($code, '42S11');
+            || str_contains($code, '42S11')
+            || str_contains($message, '1061')
+            || str_contains($message, '1060')
+            || str_contains($message, 'Duplicate key name')
+            || str_contains($message, 'Duplicate column name');
     }
 
     public static function columnExists(PDO $pdo, string $driver, string $table, string $column): bool

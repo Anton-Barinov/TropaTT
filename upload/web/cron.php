@@ -150,6 +150,18 @@ try {
     $schedulerSummary['failed']++;
 }
 
+// Run only a few module jobs per request. The companion context table makes
+// legacy unscoped jobs pause safely instead of silently changing workspaces.
+$moduleJobsSummary = ['processed' => 0, 'completed' => 0, 'retrying' => 0, 'failed' => 0, 'paused' => 0];
+try {
+    $moduleJobs = new Api\System\Library\Module\ModuleJobDispatcher($pdo);
+    $moduleJobs->ensureTable($driver);
+    $moduleJobsSummary = $moduleJobs->runBatch(5, 8.0);
+} catch (\Throwable $e) {
+    \Api\System\Library\Support\AppLog::error('[Cron] Module jobs failed: ' . $e->getMessage());
+    $moduleJobsSummary['failed']++;
+}
+
 $userRepo = new Api\Model\Common\UserRepository($pdo);
 $calendarRepo = new Api\Model\Calendar\CalendarEventRepository($pdo);
 $notificationRepo = new Api\Model\Notification\NotificationRepository($pdo);
@@ -199,6 +211,7 @@ $response = [
     'failed' => $result['failed'],
     'errors' => $result['errors'],
     'scheduler' => $schedulerSummary,
+    'module_jobs' => $moduleJobsSummary,
     'upcoming_calendar_reminders' => $upcomingCreated,
     'generated_at' => gmdate('c'),
 ];

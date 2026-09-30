@@ -138,7 +138,7 @@ JS;
     /** @return array<string, mixed> */
     private static function messages(string $baseDir, string $locale): array
     {
-        $fallbackLocale = $locale === 'ru-ru' ? 'ru-ru' : 'en-gb';
+        $fallbackLocale = str_starts_with($locale, 'ru-') ? 'ru-ru' : 'en-gb';
         $fallback = self::load($baseDir, $fallbackLocale);
         $current = self::load($baseDir, $locale);
         $messages = array_replace_recursive($fallback, $current);

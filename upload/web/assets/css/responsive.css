@@ -801,6 +801,18 @@
  * pages. Keep the desktop table markup intact, but turn each record into a
  * labelled card at the point where a desktop table becomes unreadable. */
 @media (max-width: 767.98px) {
+  body[data-page="admin-jobs"] .crm-admin-jobs-cron-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  body[data-page="admin-jobs"] .crm-admin-jobs-cron-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  body[data-page="admin-jobs"] .crm-admin-jobs-cron-actions .btn {
+    min-width: 0;
+    white-space: normal;
+  }
   html, body { max-width: 100%; overflow-x: clip; }
   .crm-app, .crm-main-wrap, .crm-content { min-width: 0; max-width: 100%; }
   .crm-content { padding-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right)); }

@@ -22,7 +22,7 @@ final class TagController extends BaseController
             $input = $this->request()->allInput();
             ksort($input);
             $cacheKey = 'list:' . $this->cacheUserId() . ':' . $this->organizationContextCacheKey() . ':' . hash('sha256', json_encode($input));
-            $result = $cache->remember('tag', $cacheKey, 60, function () use ($input) {
+            $result = $cache->remember('tag', $cacheKey, 60, function () use ($input, $auth) {
                 /** @var TagService $service */
                 $service = $this->container->get('service.tag');
                 return $service->list($input, (array)$auth['user']);

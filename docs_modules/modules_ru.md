@@ -725,24 +725,33 @@ new ScheduledTask(
 
 ### 2. Транзакционная очередь задач (`ModuleJobDispatcher`)
 
-Для отложенного выполнения длительных операций без создания кастомных таблиц используется системная очередь `module_jobs` через `ModuleJobDispatcher`.
+Для отложенного выполнения операций используется `ModuleJobDispatcher`. Очередь обрабатывается небольшими порциями штатным web/CLI cron или кнопкой администратора «Запустить задания»; отдельный демон, Redis и SSH не нужны. Без cron обычные страницы CRM работают, но фоновые задания ожидают ручного запуска. Новые задания хранят payload и обязательный контекст пространства в `module_job_contexts`; старые записи без достоверного контекста переводятся в `paused_legacy`, а не назначаются произвольному пространству.
 
 ```php
 use Api\System\Library\Module\ModuleJobDispatcher;
+use Api\System\Library\Module\ModuleExecutionContext;
 
-$dispatcher = $container->get(ModuleJobDispatcher::class);
+$dispatcher = $container->get('module.job_dispatcher');
+// organizationId/publicId должны быть получены из авторизованного
+// OrganizationContextService, а не из непроверенного поля запроса.
+$context = ModuleExecutionContext::forWorkspace(
+    'acme.telegram-notifier', $organizationId, $organizationPublicId,
+    $actorPublicId, 'api'
+);
 $jobId = $dispatcher->dispatch(
     moduleName: 'acme.telegram-notifier',
-    jobName: 'send_telegram_http_message',
+    jobName: \Module\Acme\TelegramNotifier\Job\SendMessage::class,
     payload: [
         'chat_id' => '-100123456789',
         'text' => 'Привет из транзакционной очереди!',
     ],
-    delay: 10 // Задержка 10 секунд
+    delay: 10,
+    context: $context,
+    idempotencyKey: $providerEventId
 );
 ```
 
-Задачи из очереди обрабатываются системным тиком cron малыми порциями (`SELECT ... FOR UPDATE`), укладываясь в лимиты памяти < 32 MB и времени выполнения < 25 секунд.
+Обработчик должен находиться в namespace собственного модуля, иметь конструктор без аргументов и реализовать `WorkspaceModuleJobInterface::handle(array $payload, ModuleExecutionContext $context): void`. Он обязан использовать переданный workspace при каждом чтении и записи. Неизвестный или чужой обработчик не считается успешным. Повторы ограничены и видны по статусу; зависшее задание после 10 минут восстанавливается по lease и требует идемпотентного обработчика. Payload ограничен 1 МиБ, завершённые задания по умолчанию хранятся 7 дней. Для системного задания без пространства допустим только явно созданный `ModuleExecutionContext::global()` из cron/модуля; нельзя подменять им отсутствие выбранного пространства у пользователя. Один тик выполняет максимум 5 заданий или до 8 секунд между заданиями; отдельный обработчик также должен сам ограничивать время сетевых операций.
 
 ---
 

@@ -221,6 +221,15 @@ final class ModuleController
             $mc->setActive($name);
 
             try {
+                $jobs = $this->container->get('module.job_dispatcher');
+                if ($jobs instanceof \Api\System\Library\Module\ModuleJobDispatcher) {
+                    $jobs->resumeModule($name);
+                }
+            } catch (\Throwable $e) {
+                AppLog::error('[ModuleController::activate] Could not resume module jobs: ' . $e->getMessage());
+            }
+
+            try {
                 if (str_starts_with($name, 'crm.language-pack-') && $this->container->has('service.language_registry')) {
                     $code = substr($name, strlen('crm.language-pack-'));
                     $this->container->get('service.language_registry')->toggle($code, true);

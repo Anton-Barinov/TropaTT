@@ -20,12 +20,11 @@ final class I18n
     {
         $locale = self::resolveLocale($baseDir);
 
-        // Use one deterministic fallback language for each locale family. The
-        // previous implementation always merged Russian first, so an
-        // incomplete translation silently produced mixed Russian/English/
-        // target-language screens. Russian remains the native fallback for
-        // Russian; every other locale falls back consistently to English.
-        $fallbackLocale = $locale === 'ru-ru' ? 'ru-ru' : 'en-gb';
+        // Use one deterministic fallback language for each locale family. For
+        // Russian variants (ru-su, ru-old), fall back to Russian so Russian
+        // vocabulary, grammar and overrides apply consistently instead of
+        // leaking English strings. Other locales fall back to en-gb.
+        $fallbackLocale = str_starts_with($locale, 'ru-') ? 'ru-ru' : 'en-gb';
         $fallback = self::loadLocaleFile($baseDir, $fallbackLocale);
         $current = self::loadLocaleFile($baseDir, $locale);
         $messages = self::mergeRecursive($fallback, $current);

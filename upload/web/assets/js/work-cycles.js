@@ -87,7 +87,11 @@
     try {
       var dt = new Date(d.replace(' ', 'T') + 'Z');
       if (isNaN(dt.getTime())) return d;
-      return dt.toLocaleDateString(t('cycles.locale', 'ru-RU'), { day: 'numeric', month: 'short', year: 'numeric' });
+      var rawLoc = t('cycles.locale', 'ru-RU');
+      var loc = (window.CRM && typeof window.CRM.safeIntlLocale === 'function')
+        ? window.CRM.safeIntlLocale(rawLoc, 'ru-RU')
+        : rawLoc;
+      return dt.toLocaleDateString(loc, { day: 'numeric', month: 'short', year: 'numeric' });
     } catch (e) { return d; }
   }
 
