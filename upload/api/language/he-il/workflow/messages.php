@@ -1,0 +1,33 @@
+<?php
+declare(strict_types=1);
+
+return array (
+  'list' => 'רשימת חוקי זרימת עבודה',
+  'created' => 'כלל זרימת עבודה נוצר',
+  'detail' => 'פרטי כלל זרימת עבודה',
+  'updated' => 'כלל זרימת העבודה עודכן',
+  'deleted' => 'כלל זרימת העבודה נמחק',
+  'test_run' => 'ריצת המבחן הושלמה',
+  'runs' => 'רשימת ריצות זרימת עבודה',
+  'not_found' => 'כלל זרימת העבודה לא נמצא',
+  'invalid_trigger_code' => 'Trigger_code לא חוקי',
+  'invalid_action_code' => 'קוד action_code לא חוקי',
+  'payload_object' => 'מטען חייב להיות אובייקט',
+  'max_255' => 'מקסימום 255 תווים',
+  'action_no_task_or_assignee' => 'לא נבחר משימה או מוקצה',
+  'action_no_task_or_status' => 'לא נבחר משימה או סטטוס חדש',
+  'default_notification_title' => 'הודעת אוטומציה',
+  'action_no_notification_recipient' => 'לא נבחר נמען התראה',
+  'action_no_task_or_comment' => 'לא נבחר טקסט של משימה או הערה',
+  'action_no_user_for_reminder' => 'לא נבחר משתמש לתזכורת',
+  'action_no_follow_up_title' => 'כותרת משימת ההמשך לא צוינה',
+  'action_invalid_webhook_url' => 'ספק כתובת URL חוקית של http/https webhook',
+  'action_no_task_for_sla' => 'לא נבחרה משימה עבור SLA',
+  'action_no_manager' => 'לא נמצא מנהל עבור המוציא לפועל',
+  'manager_notification_title' => 'עבודה ארוכה ללא הפסקה',
+  'manager_notification_body' => '{user}: {total} דקות מחובר למשימה «{task}» ב{day} (סף {threshold} דקות).',
+  'test_task_title' => 'משימת בדיקה',
+  'follow_up_description' => 'נוצר על ידי כלל אוטומציה ממשימה',
+  'follow_up_prefix' => 'מעקב: ',
+  'unknown_action' => 'פעולה לא ידועה: ',
+);
