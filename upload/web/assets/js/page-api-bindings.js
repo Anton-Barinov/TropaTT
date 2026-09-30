@@ -5985,9 +5985,9 @@ window.CRM.pageApiBindings = (function () {
     initDashboardAutoRefresh();
 
     var results = await Promise.all([
-      canManageTasks ? tryRequest('api/v1/dashboard/summary') : Promise.resolve(null),
-      canManageTasks ? tryRequest('api/v1/tasks', { query: { limit: 20 } }) : Promise.resolve(null),
-      tryRequest('api/v1/notifications/counters'),
+      canManageTasks ? tryRequest('api/v1/dashboard/summary', { silent: true }) : Promise.resolve(null),
+      canManageTasks ? tryRequest('api/v1/tasks', { query: { limit: 20 }, silent: true }) : Promise.resolve(null),
+      tryRequest('api/v1/notifications/counters', { silent: true }),
       canViewActivity && dashboardWidgetConfig.activity !== false ? softDashboardRequest(tryRequest('api/v1/activity/feed', { query: { limit: 8, include_total: 0 }, silent: true }), 900) : Promise.resolve(null),
       softDashboardRequest(tryRequest('api/v1/reminders', { query: { limit: 8 }, silent: true }), 900),
       canManageProjects ? tryRequest('api/v1/projects', { query: { limit: 8 }, silent: true }) : Promise.resolve(null),
@@ -6211,7 +6211,7 @@ window.CRM.pageApiBindings = (function () {
       if (kpis[0]) kpis[0].textContent = String(summary.active_tasks || 0);
       if (kpis[1]) kpis[1].textContent = String(summary.overdue_tasks || 0);
       if (kpis[2]) kpis[2].textContent = String(summary.active_projects || 0);
-      if (kpis[3]) kpis[3].textContent = String(summary.worklog_minutes_week || 0) + ' ' + tp('min', 'min');
+      if (kpis[3]) kpis[3].textContent = String(summary.worklog_minutes_week || 0) + ' ' + window.CRM.i18n.t('js.pab.min', 'min');
       if (kpiNotes[0]) kpiNotes[0].textContent = window.CRM.i18n.t('js.pab.kpi_tasks_today', 'Tasks to do today:') + ' ' + String(summary.tasks_today || 0) + '.';
       if (kpiNotes[1]) kpiNotes[1].textContent = window.CRM.i18n.t('js.pab.kpi_overdue', 'Overdue tasks in system:') + ' ' + String(summary.overdue_tasks || 0) + '.';
       if (kpiNotes[2]) kpiNotes[2].textContent = window.CRM.i18n.t('js.pab.kpi_active_projects', 'Active projects in progress:') + ' ' + String(summary.active_projects || 0) + '.';
@@ -35254,7 +35254,13 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     return refreshCurrentPage().catch(function (error) {
     var normalized = window.CRM.api && typeof window.CRM.api.normalizeError === 'function'
       ? window.CRM.api.normalizeError(error, _t('page.api_load_error', 'Ошибка загрузки данных API'))
-      : { message: error && error.message ? String(error.message) : _t('page.api_load_error', 'Ошибка загрузки данных API') };
+      : { message: error && error.message ? String(error.message) : _t('page.api_load_error', 'Ошибка загрузки данных API'), isAuthError: false };
+
+    if (normalized.isAuthError && isProtectedPage()) {
+      var currentRoute = (typeof routeName === 'function' ? routeName() : '') || 'dashboard';
+      window.location.href = 'index.php?route=login&redirect=' + encodeURIComponent(currentRoute);
+      return;
+    }
 
     var message = window.CRM.api && typeof window.CRM.api.formatErrorMessage === 'function'
       ? window.CRM.api.formatErrorMessage(normalized, { withRequestId: true })

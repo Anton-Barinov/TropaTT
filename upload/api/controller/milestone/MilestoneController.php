@@ -49,9 +49,23 @@ final class MilestoneController extends BaseController
 
         $projectPublicId = trim((string)($input['project_public_id'] ?? ''));
         if ($projectPublicId === '') {
-            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
-                'project_public_id' => [$this->t('milestone/messages.project_public_id_required')],
-            ]);
+            /** @var \Api\System\Library\Service\ProjectService $projectService */
+            $projectService = $this->container->get('service.project');
+            $projectsResult = $projectService->list(['status' => 'active', 'limit' => 50], $auth['user']);
+            $activeIds = array_column($projectsResult['items'] ?? [], 'public_id');
+            if (empty($activeIds)) {
+                return $this->success('MILESTONE_LIST', $this->t('milestone/messages.list'), ['items' => [], 'by_project' => []]);
+            }
+            /** @var MilestoneService $service */
+            $service = $this->container->get('service.milestone');
+            $byProject = $service->listByProjectIds($activeIds, $auth['user']);
+            $allItems = [];
+            foreach ($byProject as $pItems) {
+                foreach ($pItems as $m) {
+                    $allItems[] = $m;
+                }
+            }
+            return $this->success('MILESTONE_LIST', $this->t('milestone/messages.list'), ['items' => $allItems, 'by_project' => $byProject]);
         }
 
         $cache = $this->cacheApi();

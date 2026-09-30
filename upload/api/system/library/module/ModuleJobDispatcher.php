@@ -300,8 +300,17 @@ final class ModuleJobDispatcher
         }
     }
 
+    /** @var array<string, true> */
+    private static array $schemaEnsured = [];
+
     public function ensureTable(string $driver): void
     {
+        $cacheKey = spl_object_id($this->pdo) . '|' . $driver . '|' . $this->tableName . '|' . $this->contextTable;
+        if (isset(self::$schemaEnsured[$cacheKey])) {
+            return;
+        }
+        self::$schemaEnsured[$cacheKey] = true;
+
         $id = match ($driver) {
             'mysql' => 'INT AUTO_INCREMENT PRIMARY KEY',
             'pgsql' => 'SERIAL PRIMARY KEY',
