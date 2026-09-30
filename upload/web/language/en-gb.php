@@ -9024,6 +9024,7 @@ return array (
     'cat_calendar' => 'Calendars',
     'cat_diagram' => 'Diagrams',
     'cat_integration' => 'Integrations',
+    'cat_localization' => 'Localization',
     'cat_migration' => 'Migrations',
     'cat_productivity' => 'Productivity',
     'empty_filter' => 'No modules in the selected category.',
