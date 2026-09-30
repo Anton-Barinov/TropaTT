@@ -213,9 +213,19 @@ final class LanguagePackInstaller
             // Optional per-pack supplemental dictionary. This keeps locale-
             // specific late fixes out of the core overrides files while still
             // allowing the web runtime and early responses to load them.
+            // The package layout uses web/supplemental/packs/<code>.php, but
+            // I18n/EarlyResponse read web/language/supplemental/packs/<code>.php
+            // (the same path exportPackage/deletePackage use), so the entry
+            // must be remapped to the runtime directory on install.
+            $supplementalPrefix = null;
             if (str_starts_with($norm, 'web/supplemental/packs/')) {
-                $relative = substr($norm, strlen('web/'));
-                $targetFile = dirname($this->basePath) . '/web/' . $relative;
+                $supplementalPrefix = 'web/supplemental/packs/';
+            } elseif (str_starts_with($norm, 'web/language/supplemental/packs/')) {
+                $supplementalPrefix = 'web/language/supplemental/packs/';
+            }
+            if ($supplementalPrefix !== null) {
+                $relative = substr($norm, strlen($supplementalPrefix));
+                $targetFile = dirname($this->basePath) . '/web/language/supplemental/packs/' . $relative;
                 $targetDir = dirname($targetFile);
                 if (!is_dir($targetDir)) {
                     @mkdir($targetDir, 0775, true);
@@ -445,6 +455,16 @@ final class LanguagePackInstaller
         $packSupplemental = dirname($this->basePath) . '/web/language/supplemental/packs/' . $code . '.php';
         if (is_file($packSupplemental)) {
             @unlink($packSupplemental);
+        }
+
+        // Clean up the legacy install location (older builds wrote the pack
+        // supplemental file to web/supplemental/packs/ instead of the runtime
+        // directory) plus the directories when they became empty.
+        $legacySupplemental = dirname($this->basePath) . '/web/supplemental/packs/' . $code . '.php';
+        if (is_file($legacySupplemental)) {
+            @unlink($legacySupplemental);
+            @rmdir(dirname($legacySupplemental));
+            @rmdir(dirname(dirname($legacySupplemental)));
         }
 
         // 3. Remove API language folder recursively
