@@ -1,0 +1,33 @@
+<?php
+declare(strict_types=1);
+
+return array (
+  'loading' => 'טְעִינָה...',
+  'load_error' => 'שגיאת טעינה',
+  'empty' => 'אין תצוגות שמורות',
+  'pinned' => 'מוצמד',
+  'other' => 'אחרים',
+  'system' => 'מַעֲרֶכֶת',
+  'public' => 'פּוּמְבֵּי',
+  'private' => 'פְּרָטִי',
+  'pin' => 'פִּין',
+  'unpin' => 'לְהוֹצִיא סִיכָּה',
+  'duplicate' => 'שכפול',
+  'edit' => 'עריכה',
+  'archive' => 'ארכיון',
+  'applied' => 'תצוגה שהוחלה: ',
+  'apply_error' => 'שגיאה בהחלת התצוגה',
+  'save_as' => 'שמור כתצוגה חדשה',
+  'edit_title' => 'ערוך תצוגה',
+  'title_required' => 'הזן שם תצוגה',
+  'update_error' => 'שגיאה בעדכון התצוגה',
+  'create_error' => 'שגיאה ביצירת תצוגה',
+  'pinned_msg' => 'מוצמד',
+  'unpinned_msg' => 'בוטלה',
+  'pin_error' => 'שגיאה',
+  'duplicated' => 'הצג משוכפל',
+  'duplicate_error' => 'שגיאה בשכפול',
+  'confirm_archive' => 'להעביר תצוגה זו לארכיון?',
+  'archived' => 'הצג בארכיון',
+  'archive_error' => 'שגיאה בארכיון',
+);

@@ -135,6 +135,7 @@ window.CRM.br1 = (function () {
     if (value === 'pt') return 'pt-br';
     if (value === 'de') return 'de-de';
     if (value === 'fr') return 'fr-fr';
+    if (value === 'he' || value === 'iw') return 'he-il';
     return value;
   }
 

@@ -1,0 +1,33 @@
+<?php
+declare(strict_types=1);
+
+return array (
+  'task_list' => 'רשימת תבניות משימות',
+  'task_created' => 'נוצרה תבנית משימה',
+  'task_detail' => 'תבנית משימה',
+  'task_updated' => 'תבנית המשימה עודכנה',
+  'task_deleted' => 'תבנית המשימה נמחקה',
+  'project_list' => 'רשימת תבניות פרויקט',
+  'project_created' => 'נוצרה תבנית פרויקט',
+  'project_detail' => 'תבנית פרויקט',
+  'project_updated' => 'תבנית הפרויקט עודכנה',
+  'project_deleted' => 'תבנית הפרויקט נמחקה',
+  'max_255' => 'מקסימום 255 תווים',
+  'payload_object' => 'שדה מטען חייב להיות אובייקט',
+  'not_found' => 'התבנית לא נמצאה',
+  'empty_tasks' => 'אין תבניות משימות',
+  'empty_projects' => 'אין תבניות פרויקט',
+  'load_error_tasks' => 'טעינת תבניות משימות נכשלה',
+  'load_error_projects' => 'טעינת תבניות הפרויקט נכשלה',
+  'btn_delete' => 'מחיקה',
+  'created_task_notify' => 'נוצרה תבנית משימה',
+  'created_project_notify' => 'נוצרה תבנית פרויקט',
+  'error_create' => 'יצירת שגיאה',
+  'confirm_delete_task' => 'למחוק תבנית משימה?',
+  'confirm_delete_project' => 'למחוק תבנית פרויקט?',
+  'deleted_task_notify' => 'תבנית המשימה נמחקה',
+  'deleted_project_notify' => 'תבנית הפרויקט נמחקה',
+  'error_delete' => 'מחק שגיאה',
+  'task_applied' => 'משימה נוצרה מתבנית',
+  'project_applied' => 'פרויקט נוצר מתבנית',
+);

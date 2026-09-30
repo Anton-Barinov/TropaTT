@@ -35,7 +35,7 @@ $apiRoot = $projectRoot . '/api';
 $controllerRoot = $apiRoot . '/controller';
 $languageRoot = $apiRoot . '/language';
 
-$locales = ['ru-ru', 'en-gb', 'de-de', 'es-es', 'fr-fr', 'pt-br', 'zh-cn', 'ar-sa'];
+$locales = ['ru-ru', 'en-gb', 'de-de', 'es-es', 'fr-fr', 'pt-br', 'zh-cn', 'ar-sa', 'he-il'];
 
 /** Directories whose PHP files are not part of the shipped runtime. */
 $skipPath = static function (string $path): bool {
