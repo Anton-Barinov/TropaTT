@@ -34,6 +34,7 @@ $overrides = [
                 'hint' => 'سيُنشأ المشروع مباشرة عبر واجهة API مع العميل والفريق والمدير.',
             ],
         ],
+        'js' => ['pab' => ['loading_data' => 'جارٍ تحميل البيانات...']],
     ],
     'ru-ru' => [
         'admin' => ['statuses_empty_projects' => 'Статусы проектов не найдены.', 'statuses_empty_tasks' => 'Статусы задач не найдены.', 'status_closed_yes' => 'Да', 'status_closed_no' => 'Нет'],
