@@ -6,7 +6,7 @@ namespace Web\System\I18n;
 final class EarlyResponse
 {
     /** @var list<string> */
-    private const SUPPORTED_LOCALES = ['ru-ru', 'en-gb', 'zh-cn', 'es-es', 'pt-br', 'de-de', 'fr-fr', 'ar-sa', 'he-il'];
+    private const SUPPORTED_LOCALES = ['ru-ru', 'en-gb', 'zh-cn'];
 
     /**
      * Render the maintenance page without bootstrapping the full web application.

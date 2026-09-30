@@ -37,41 +37,6 @@ final class LanguageRegistryService
             'direction' => 'ltr',
             'is_builtin' => true,
         ],
-        'es-es' => [
-            'code' => 'es-es',
-            'name' => 'Spanish',
-            'native_name' => 'Español',
-            'direction' => 'ltr',
-            'is_builtin' => true,
-        ],
-        'fr-fr' => [
-            'code' => 'fr-fr',
-            'name' => 'French',
-            'native_name' => 'Français',
-            'direction' => 'ltr',
-            'is_builtin' => true,
-        ],
-        'pt-br' => [
-            'code' => 'pt-br',
-            'name' => 'Portuguese (Brazil)',
-            'native_name' => 'Português (Brasil)',
-            'direction' => 'ltr',
-            'is_builtin' => true,
-        ],
-        'de-de' => [
-            'code' => 'de-de',
-            'name' => 'German',
-            'native_name' => 'Deutsch',
-            'direction' => 'ltr',
-            'is_builtin' => true,
-        ],
-        'he-il' => [
-            'code' => 'he-il',
-            'name' => 'Hebrew',
-            'native_name' => 'עברית',
-            'direction' => 'rtl',
-            'is_builtin' => true,
-        ],
     ];
 
     public function __construct(

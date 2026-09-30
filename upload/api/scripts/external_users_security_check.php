@@ -1008,7 +1008,7 @@ if (preg_match('/CLIENT_MESSAGE_NAMESPACES\\s*=\\s*\\[(.*?)\\];/s', $webControll
     );
 }
 
-$webLocales = ['ru-ru', 'en-gb', 'zh-cn', 'es-es', 'pt-br', 'de-de', 'fr-fr', 'he-il'];
+$webLocales = ['ru-ru', 'en-gb', 'zh-cn'];
 $referencePortalKeys = null;
 foreach ($webLocales as $webLocale) {
     $localePath = $webLanguageRoot . '/' . $webLocale . '.php';

@@ -17,7 +17,7 @@ $earlyLocale = match ($earlyLocale) {
     'he', 'iw' => 'he-il',
     default => $earlyLocale,
 };
-if (!in_array($earlyLocale, ['ru-ru', 'en-gb', 'zh-cn', 'es-es', 'pt-br', 'de-de', 'fr-fr', 'he-il'], true)) {
+if (!in_array($earlyLocale, ['ru-ru', 'en-gb', 'zh-cn'], true)) {
     $earlyLocale = 'en-gb';
 }
 $earlyLanguage->setLocale($earlyLocale);

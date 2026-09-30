@@ -203,7 +203,7 @@ final class I18n
             // Bundled locale packs shipped with the web application must remain
             // selectable immediately after deployment, even when an older
             // languages.json cache predates the pack (for example he-il).
-            foreach (['he-il'] as $bundledLocale) {
+            foreach ([] as $bundledLocale) {
                 if (!in_array($bundledLocale, $enabled, true)
                     && is_file($baseDir . '/language/' . $bundledLocale . '.php')) {
                     $enabled[] = $bundledLocale;
@@ -212,7 +212,7 @@ final class I18n
             return $enabled;
         }
 
-        return ['ru-ru', 'en-gb', 'zh-cn', 'es-es', 'pt-br', 'de-de', 'fr-fr', 'he-il'];
+        return ['ru-ru', 'en-gb', 'zh-cn'];
     }
 
     public static function getDefaultLocaleCode(string $baseDir = ''): string
@@ -245,15 +245,6 @@ final class I18n
             }
             if (!empty($filtered)) {
                 $known = array_column($filtered, 'code');
-                if (!in_array('he-il', $known, true)
-                    && is_file($baseDir . '/language/he-il.php')) {
-                    $filtered[] = [
-                        'code' => 'he-il',
-                        'name' => 'Hebrew',
-                        'native_name' => 'עברית',
-                        'direction' => 'rtl',
-                    ];
-                }
                 return $filtered;
             }
         }
@@ -262,11 +253,6 @@ final class I18n
             ['code' => 'ru-ru', 'name' => 'Russian', 'native_name' => 'Русский', 'direction' => 'ltr'],
             ['code' => 'en-gb', 'name' => 'English', 'native_name' => 'English', 'direction' => 'ltr'],
             ['code' => 'zh-cn', 'name' => 'Chinese (Simplified)', 'native_name' => '中文', 'direction' => 'ltr'],
-            ['code' => 'es-es', 'name' => 'Spanish', 'native_name' => 'Español', 'direction' => 'ltr'],
-            ['code' => 'fr-fr', 'name' => 'French', 'native_name' => 'Français', 'direction' => 'ltr'],
-            ['code' => 'pt-br', 'name' => 'Portuguese (Brazil)', 'native_name' => 'Português (Brasil)', 'direction' => 'ltr'],
-            ['code' => 'de-de', 'name' => 'German', 'native_name' => 'Deutsch', 'direction' => 'ltr'],
-            ['code' => 'he-il', 'name' => 'Hebrew', 'native_name' => 'עברית', 'direction' => 'rtl'],
         ];
     }
 
