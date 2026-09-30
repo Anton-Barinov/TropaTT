@@ -236,7 +236,8 @@ final class I18n
         if (isset($data['all']) && is_array($data['all']) && !empty($data['all'])) {
             $filtered = [];
             foreach ($data['all'] as $item) {
-                if (!empty($item['is_enabled'])) {
+                $itemCode = (string)($item['code'] ?? '');
+                if (!empty($item['is_enabled']) && (in_array($itemCode, ['ru-ru', 'en-gb', 'zh-cn'], true) || is_file($baseDir . '/language/' . $itemCode . '.php'))) {
                     $filtered[] = [
                         'code' => (string)($item['code'] ?? ''),
                         'name' => (string)($item['name'] ?? ''),
