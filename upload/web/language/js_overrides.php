@@ -34,7 +34,8 @@ $overrides = [
                 'hint' => 'سيُنشأ المشروع مباشرة عبر واجهة API مع العميل والفريق والمدير.',
             ],
         ],
-        'js' => ['pab' => ['loading_data' => 'جارٍ تحميل البيانات...']],
+        'js' => ['br1' => ['quick_client_btn' => '+ إنشاء', 'quick_client_btn_aria' => 'إنشاء عميل', 'quick_project_btn' => '+ إنشاء', 'quick_project_btn_aria' => 'إنشاء مشروع'], 'modal' => ['create_project' => 'إنشاء مشروع', 'quick_client_create' => 'إنشاء عميل', 'cancel' => 'إلغاء', 'create' => 'إنشاء', 'label_title' => 'العنوان', 'placeholder_task' => 'مثال: إعداد عرض الربع الثاني', 'label_project' => 'المشروع', 'no_project' => 'بدون مشروع', 'label_client' => 'العميل', 'no_client' => 'بدون عميل', 'label_team' => 'الفريق', 'no_team' => 'بدون فريق', 'label_manager' => 'المدير', 'no_manager' => 'بدون مدير', 'label_description' => 'الوصف', 'label_status' => 'الحالة', 'status_new' => 'جديد', 'label_priority' => 'الأولوية', 'priority_normal' => 'عادي', 'priority_low' => 'منخفض', 'priority_high' => 'مرتفع', 'priority_urgent' => 'عاجل', 'label_assignee' => 'المسند إليه', 'no_assignee' => 'غير مسند', 'label_start' => 'تاريخ البدء', 'label_due' => 'الموعد النهائي', 'label_end' => 'الإكمال المخطط', 'label_tags' => 'الوسوم', 'tags_hint' => 'اختر وسوماً متعددة.', 'placeholder_desc' => 'السياق والخطوات والمخاطر ومعايير القبول'], 'pab' => ['loading_data' => 'جارٍ تحميل البيانات...'], 'visual_editor' => ['paste_hint' => 'انسخ لقطة الشاشة ثم اضغط Ctrl+V في المحرر', 'quick_paste' => 'لقطة Ctrl+V', 'quick_image' => '+ صورة', 'quick_heading' => '# عنوان', 'quick_list' => '• قائمة', 'bold' => 'عريض', 'italic' => 'مائل', 'strike' => 'يتوسطه خط', 'code' => 'رمز مضمن', 'spoiler' => 'محتوى مخفي', 'link' => 'رابط', 'heading2' => 'عنوان H2', 'heading3' => 'عنوان H3', 'bullet_list' => 'قائمة نقطية', 'ordered_list' => 'قائمة مرقمة', 'todo_list' => 'قائمة مهام', 'table' => 'جدول', 'quote' => 'اقتباس', 'code_block' => 'كتلة رمز', 'image' => 'صورة', 'undo' => 'تراجع', 'redo' => 'إعادة', 'align_left' => 'محاذاة لليسار', 'align_center' => 'توسيط', 'align_right' => 'محاذاة لليمين', 'width_25' => 'عرض 25%', 'width_50' => 'عرض 50%', 'width_75' => 'عرض 75%', 'width_100' => 'عرض 100%', 'edit_alt' => 'تعديل النص البديل', 'toggle_caption' => 'إظهار أو إخفاء التسمية', 'caption' => 'تسمية توضيحية', 'edit_link' => 'تعديل الرابط', 'replace_image' => 'استبدال الصورة', 'replace' => 'استبدال', 'delete_image' => 'حذف الصورة', 'delete' => 'حذف']],
+        'visual_editor' => ['paste_hint' => 'انسخ لقطة الشاشة ثم اضغط Ctrl+V في المحرر', 'quick_paste' => 'لقطة Ctrl+V', 'quick_image' => '+ صورة', 'quick_heading' => '# عنوان', 'quick_list' => '• قائمة', 'bold' => 'عريض', 'italic' => 'مائل', 'strike' => 'يتوسطه خط', 'code' => 'رمز مضمن', 'spoiler' => 'محتوى مخفي', 'link' => 'رابط', 'heading2' => 'عنوان H2', 'heading3' => 'عنوان H3', 'bullet_list' => 'قائمة نقطية', 'ordered_list' => 'قائمة مرقمة', 'todo_list' => 'قائمة مهام', 'table' => 'جدول', 'quote' => 'اقتباس', 'code_block' => 'كتلة رمز', 'image' => 'صورة', 'undo' => 'تراجع', 'redo' => 'إعادة', 'align_left' => 'محاذاة لليسار', 'align_center' => 'توسيط', 'align_right' => 'محاذاة لليمين', 'width_25' => 'عرض 25%', 'width_50' => 'عرض 50%', 'width_75' => 'عرض 75%', 'width_100' => 'عرض 100%', 'edit_alt' => 'تعديل النص البديل', 'toggle_caption' => 'إظهار أو إخفاء التسمية', 'edit_link' => 'تعديل الرابط', 'replace_image' => 'استبدال الصورة', 'delete_image' => 'حذف الصورة', 'delete' => 'حذف'],
     ],
     'ru-ru' => [
         'admin' => ['statuses_empty_projects' => 'Статусы проектов не найдены.', 'statuses_empty_tasks' => 'Статусы задач не найдены.', 'status_closed_yes' => 'Да', 'status_closed_no' => 'Нет'],
@@ -364,7 +365,7 @@ $clientLocaleParityTranslations = [
         'page' => ['retry' => 'Erneut versuchen'],
         'js' => [
             'pab' => [
-                'projects_load_error_title' => 'Projekte konnten nicht geladen werden',
+                'loading_data' => 'Daten werden geladen...', 'loading' => 'Wird geladen...', 'no_data' => 'Keine Daten', 'in_progress' => 'Wird verarbeitet...', 'projects_load_error_title' => 'Projekte konnten nicht geladen werden',
                 'no_projects_for_filters_title' => 'Keine Projekte zu den ausgewählten Filtern gefunden',
             ],
         ],
@@ -374,7 +375,7 @@ $clientLocaleParityTranslations = [
         'page' => ['retry' => 'Reintentar'],
         'js' => [
             'pab' => [
-                'projects_load_error_title' => 'No se pudieron cargar los proyectos',
+                'loading_data' => 'Cargando datos...', 'loading' => 'Cargando...', 'no_data' => 'Sin datos', 'in_progress' => 'Procesando...', 'projects_load_error_title' => 'No se pudieron cargar los proyectos',
                 'no_projects_for_filters_title' => 'No hay proyectos que coincidan con los filtros seleccionados',
             ],
         ],
@@ -384,7 +385,7 @@ $clientLocaleParityTranslations = [
         'page' => ['retry' => 'Réessayer'],
         'js' => [
             'pab' => [
-                'projects_load_error_title' => 'Impossible de charger les projets',
+                'loading_data' => 'Chargement des données...', 'loading' => 'Chargement...', 'no_data' => 'Aucune donnée', 'in_progress' => 'En cours...', 'projects_load_error_title' => 'Impossible de charger les projets',
                 'no_projects_for_filters_title' => 'Aucun projet ne correspond aux filtres sélectionnés',
             ],
         ],
@@ -394,7 +395,7 @@ $clientLocaleParityTranslations = [
         'page' => ['retry' => 'Tentar novamente'],
         'js' => [
             'pab' => [
-                'projects_load_error_title' => 'Não foi possível carregar os projetos',
+                'loading_data' => 'Carregando dados...', 'loading' => 'Carregando...', 'no_data' => 'Sem dados', 'in_progress' => 'Em andamento...', 'projects_load_error_title' => 'Não foi possível carregar os projetos',
                 'no_projects_for_filters_title' => 'Nenhum projeto corresponde aos filtros selecionados',
             ],
         ],
@@ -455,7 +456,7 @@ $clientLocaleParityTranslations = [
                 'widgets_cancel' => '更改已放弃',
                 'worklog_load_error' => '无法加载工时数据。',
                 'manager' => '负责人',
-                'projects_load_error_title' => '无法加载项目',
+                'loading_data' => '正在加载数据...', 'loading' => '正在加载...', 'no_data' => '暂无数据', 'in_progress' => '处理中...', 'projects_load_error_title' => '无法加载项目',
                 'no_projects_for_filters_title' => '没有符合所选筛选条件的项目',
             ],
         ],

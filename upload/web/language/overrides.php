@@ -29,7 +29,8 @@ return [
             'timer_running' => 'المؤقت يعمل', 'timers_running' => 'المؤقتات تعمل', 'my_earnings' => 'مستحقاتي',
         ],
         'footer' => [
-            'updates_link' => 'التحديثات', 'github_link' => 'GitHub', 'developer_link' => 'المطور',
+            'aria' => 'معلومات النظام', 'version' => 'الإصدار', 'links_aria' => 'روابط التذييل',
+            'updates_link' => 'التحديثات', 'github_link' => 'GitHub', 'author_link' => 'المطور', 'developer_link' => 'المطور',
         ],
         'common' => [
             'confirm_title' => 'تأكيد الإجراء', 'confirm_body' => 'هل أنت متأكد؟', 'cancel_btn' => 'إلغاء',
@@ -70,7 +71,7 @@ return [
             'widget_worklog' => 'وقتي', 'widget_worklog_desc' => 'الوقت المسجل اليوم وهذا الأسبوع مع توزيع الأيام السبعة.', 'widget_my_tasks' => 'مهامي',
             'widget_approvals' => 'الموافقات المعلقة', 'widget_milestones' => 'المراحل القادمة', 'widget_favorites' => 'المفضلة',
             'widget_intake' => 'الطلبات الواردة', 'widget_my_week' => 'أسبوعي', 'widget_mentions' => 'الإشارات إليّ',
-            'widget_unassigned' => 'مهام بلا منفذ', 'ai_digest_meta' => 'ملخص المخاطر والتركيز استنادًا إلى بيانات لوحة التحكم الحالية.',
+            'widget_unassigned' => 'مهام بلا منفذ', 'loading_widget' => 'جارٍ التحميل...', 'sticky_notes_loading' => 'جارٍ تحميل الملاحظات...', 'ai_digest_meta' => 'ملخص المخاطر والتركيز استنادًا إلى بيانات لوحة التحكم الحالية.',
             'ai_digest_not_ready' => 'لم يتم إنشاء ملخص الذكاء الاصطناعي', 'ai_digest_empty' => 'لم يتم إنشاء ملخص الذكاء الاصطناعي',
             'ai_digest_hint' => 'اضغط «تحديث ملخص الذكاء الاصطناعي» للحصول على توصية.', 'ai_digest_refresh' => 'تحديث ملخص الذكاء الاصطناعي',
             'ai_risks' => 'المخاطر', 'ai_highlights' => 'أهم النقاط', 'ai_actions' => 'الإجراءات المقترحة',
@@ -211,6 +212,8 @@ return [
             'import_error' => 'Ошибка импорта',
             'import_invalid_json' => 'Некорректный JSON-файл',
         ],
+        'dashboard' => ['knowledge_title' => 'База знаний', 'knowledge_more' => 'Открыть', 'cycles_title' => 'Активные циклы', 'cycles_more' => 'Все циклы', 'sticky_notes_loading' => 'Загрузка заметок...', 'loading_widget' => 'Загрузка...', 'kpi_sla_note' => 'Суммарный учёт времени за неделю: 0 мин.', 'ai_digest_meta' => 'Сводка по рискам и фокусу. Источник: рекомендация ИИ.', 'extra_workflow_automation' => 'Автоматизация процессов', 'extra_workflow_automation_desc' => 'Активные правила процессов и состояние автоматизации.'],
+        'footer' => ['aria' => 'Информация о системе', 'version' => 'Версия', 'links_aria' => 'Ссылки в подвале', 'updates_link' => 'Обновления', 'github_link' => 'GitHub', 'author_link' => 'Разработчик'],
         'login' => [
             'proof_shared_title' => 'Виртуальный хостинг',
         ],
@@ -289,6 +292,8 @@ return [
             'import_error' => 'Import error',
             'import_invalid_json' => 'Invalid JSON file',
         ],
+        'dashboard' => ['knowledge_title' => 'Knowledge base', 'knowledge_more' => 'Open', 'cycles_title' => 'Active cycles', 'cycles_more' => 'All cycles', 'sticky_notes_loading' => 'Loading notes...', 'loading_widget' => 'Loading...', 'kpi_sla_note' => 'Total worklog for the week: 0 min.', 'ai_digest_meta' => 'Risk and focus summary. Source: AI suggestion.', 'extra_workflow_automation' => 'Workflow automation', 'extra_workflow_automation_desc' => 'Active workflow rules and automation status.'],
+        'footer' => ['aria' => 'System information', 'version' => 'Version', 'links_aria' => 'Footer links', 'updates_link' => 'Updates', 'github_link' => 'GitHub', 'author_link' => 'Developer'],
         'login' => [
             'proof_shared_title' => 'Shared hosting',
         ],
@@ -366,6 +371,8 @@ return [
             'field_extra_attributes' => 'Zusätzliche Felder (JSON)',
             'th_extra' => 'Zusatzfelder',
         ],
+        'dashboard' => ['knowledge_title' => 'Wissensdatenbank', 'knowledge_more' => 'Öffnen', 'cycles_title' => 'Aktive Zyklen', 'cycles_more' => 'Alle Zyklen', 'sticky_notes_loading' => 'Notizen werden geladen...', 'loading_widget' => 'Wird geladen...', 'kpi_sla_note' => 'Gesamte Arbeitszeit für die Woche: 0 Min.', 'ai_digest_meta' => 'Zusammenfassung von Risiken und Fokus. Quelle: KI-Empfehlung.', 'extra_workflow_automation' => 'Workflow-Automatisierung', 'extra_workflow_automation_desc' => 'Aktive Workflow-Regeln und Automatisierungsstatus.'],
+        'footer' => ['aria' => 'Systeminformationen', 'version' => 'Version', 'links_aria' => 'Footer-Links', 'updates_link' => 'Updates', 'github_link' => 'GitHub', 'author_link' => 'Entwickler'],
         'login' => [
             'proof_shared_title' => 'Gemeinsames Hosting',
         ],
@@ -446,6 +453,8 @@ return [
             'field_extra_attributes' => 'Campos adicionales (JSON)',
             'th_extra' => 'Campos extra',
         ],
+        'dashboard' => ['knowledge_title' => 'Base de conocimiento', 'knowledge_more' => 'Abrir', 'cycles_title' => 'Ciclos activos', 'cycles_more' => 'Todos los ciclos', 'sticky_notes_loading' => 'Cargando notas...', 'loading_widget' => 'Cargando...', 'kpi_sla_note' => 'Registro de tiempo total de la semana: 0 min.', 'ai_digest_meta' => 'Resumen de riesgos y enfoque. Fuente: recomendación de IA.', 'extra_workflow_automation' => 'Automatización de flujos', 'extra_workflow_automation_desc' => 'Reglas de flujo activas y estado de automatización.'],
+        'footer' => ['aria' => 'Información del sistema', 'version' => 'Versión', 'links_aria' => 'Enlaces del pie', 'updates_link' => 'Actualizaciones', 'github_link' => 'GitHub', 'author_link' => 'Desarrollador'],
         'login' => [
             'proof_shared_title' => 'Alojamiento compartido',
         ],
@@ -526,6 +535,8 @@ return [
             'field_extra_attributes' => 'Champs supplémentaires (JSON)',
             'th_extra' => 'Champs supplémentaires',
         ],
+        'dashboard' => ['knowledge_title' => 'Base de connaissances', 'knowledge_more' => 'Ouvrir', 'cycles_title' => 'Cycles actifs', 'cycles_more' => 'Tous les cycles', 'sticky_notes_loading' => 'Chargement des notes...', 'loading_widget' => 'Chargement...', 'kpi_sla_note' => 'Total du journal de temps pour la semaine : 0 min.', 'ai_digest_meta' => 'Résumé des risques et du focus. Source : recommandation IA.', 'extra_workflow_automation' => 'Automatisation des flux', 'extra_workflow_automation_desc' => 'Règles de flux actives et état de l’automatisation.'],
+        'footer' => ['aria' => 'Informations système', 'version' => 'Version', 'links_aria' => 'Liens du pied de page', 'updates_link' => 'Mises à jour', 'github_link' => 'GitHub', 'author_link' => 'Développeur'],
         'login' => [
             'proof_shared_title' => 'Hébergement mutualisé',
         ],
@@ -606,6 +617,8 @@ return [
             'field_extra_attributes' => 'Campos adicionais (JSON)',
             'th_extra' => 'Campos extras',
         ],
+        'dashboard' => ['knowledge_title' => 'Base de conhecimento', 'knowledge_more' => 'Abrir', 'cycles_title' => 'Ciclos ativos', 'cycles_more' => 'Todos os ciclos', 'sticky_notes_loading' => 'Carregando notas...', 'loading_widget' => 'Carregando...', 'kpi_sla_note' => 'Total de tempo registrado na semana: 0 min.', 'ai_digest_meta' => 'Resumo de riscos e foco. Fonte: sugestão da IA.', 'extra_workflow_automation' => 'Automação de fluxos', 'extra_workflow_automation_desc' => 'Regras de fluxo ativas e status da automação.'],
+        'footer' => ['aria' => 'Informações do sistema', 'version' => 'Versão', 'links_aria' => 'Links do rodapé', 'updates_link' => 'Atualizações', 'github_link' => 'GitHub', 'author_link' => 'Desenvolvedor'],
         'login' => [
             'proof_shared_title' => 'Hospedagem compartilhada',
         ],
@@ -687,6 +700,8 @@ return [
             'field_extra_attributes' => '额外字段（JSON）',
             'th_extra' => '额外字段',
         ],
+        'dashboard' => ['knowledge_title' => '知识库', 'knowledge_more' => '打开', 'cycles_title' => '活动周期', 'cycles_more' => '所有周期', 'sticky_notes_loading' => '正在加载便签...', 'loading_widget' => '正在加载...', 'kpi_sla_note' => '本周记录时间总计：0 分钟。', 'ai_digest_meta' => '风险与重点摘要。来源：AI 建议。', 'extra_workflow_automation' => '工作流自动化', 'extra_workflow_automation_desc' => '活动工作流规则和自动化状态。'],
+        'footer' => ['aria' => '系统信息', 'version' => '版本', 'links_aria' => '页脚链接', 'updates_link' => '更新', 'github_link' => 'GitHub', 'author_link' => '开发者'],
         'login' => [
             'proof_shared_title' => '共享主机',
         ],

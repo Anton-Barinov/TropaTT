@@ -51,6 +51,19 @@ final class I18n
             }
         }
 
+        $parityPath = $baseDir . '/language/supplemental/locale_parity.php';
+        if (is_file($parityPath)) {
+            $parity = require $parityPath;
+            if (is_array($parity)) {
+                if (is_array($parity[$fallbackLocale] ?? null)) {
+                    $messages = self::mergeRecursive($messages, $parity[$fallbackLocale]);
+                }
+                if ($locale !== 'ru-ru' && is_array($parity[$locale] ?? null)) {
+                    $messages = self::mergeRecursive($messages, $parity[$locale]);
+                }
+            }
+        }
+
         $jsSupplementalPath = $baseDir . '/language/js_overrides.php';
         if (is_file($jsSupplementalPath)) {
             $jsSupplemental = require $jsSupplementalPath;
