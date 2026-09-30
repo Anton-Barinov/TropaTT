@@ -200,6 +200,8 @@ final class I18n
         $data = self::readLanguageCache($baseDir);
         if (isset($data['enabled']) && is_array($data['enabled']) && !empty($data['enabled'])) {
             $enabled = array_values(array_unique(array_map('strval', $data['enabled'])));
+            $coreLocales = ['ru-ru', 'en-gb', 'zh-cn'];
+            $enabled = array_values(array_filter($enabled, static fn (string $code): bool => in_array($code, $coreLocales, true) || is_file($baseDir . '/language/' . $code . '.php')));
             // Bundled locale packs shipped with the web application must remain
             // selectable immediately after deployment, even when an older
             // languages.json cache predates the pack (for example he-il).

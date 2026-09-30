@@ -217,6 +217,8 @@ final class LanguageRegistryService
                     }
                 }
                 if (!empty($codes)) {
+                    $installed = $this->discoverInstalledLocales();
+                    $codes = array_values(array_filter($codes, static fn (string $code): bool => isset($installed[$code])));
                     $default = $this->getDefaultLocale();
                     if (!in_array($default, $codes, true)) {
                         $codes[] = $default;
