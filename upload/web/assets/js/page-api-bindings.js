@@ -26512,6 +26512,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         var tasksEnv = await request('api/v1/ops/cron/tasks');
         var payload = (tasksEnv && tasksEnv.data) || {};
         var tasks = payload.tasks || [];
+        var moduleJobs = payload.module_jobs || {};
         var heartbeat = payload.cron_heartbeat || null;
         var stale = !!payload.stale;
         var threshold = parseInt(payload.stale_threshold_minutes || 60, 10);
@@ -26613,7 +26614,10 @@ tableBody.innerHTML = counterparties.map(function (cp) {
 
         if (cronState) {
           cronState.textContent = tp('admin_jobs.cron_summary', 'Scheduled tasks: ') + String(tasks.length)
-            + (heartbeat && heartbeat.ts ? ', ' + tp('admin_jobs.cron_heartbeat', 'web cron: ') + formatDate(heartbeat.ts) : '');
+            + (heartbeat && heartbeat.ts ? ', ' + tp('admin_jobs.cron_heartbeat', 'web cron: ') + formatDate(heartbeat.ts) : '')
+            + ' · ' + tp('admin_jobs.module_queue', 'Module queue: ') + String(parseInt(moduleJobs.pending || 0, 10))
+            + ' · ' + tp('admin_jobs.module_paused', 'Paused: ') + String(parseInt(moduleJobs.paused_legacy || 0, 10) + parseInt(moduleJobs.paused_module || 0, 10))
+            + ' · ' + tp('admin_jobs.module_failed', 'Failed: ') + String(parseInt(moduleJobs.failed || 0, 10));
         }
       } catch (error) {
         if (cronTbody) {

@@ -2138,6 +2138,23 @@ CREATE TABLE IF NOT EXISTS `module_jobs` (
   KEY `idx_module_jobs_status` (`status`,`created_at`),
   KEY `idx_module_jobs_module` (`module_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+CREATE TABLE IF NOT EXISTS `module_job_contexts` (
+  `job_id` int(11) NOT NULL,
+  `module_name` varchar(190) NOT NULL,
+  `organization_id` int(11) NOT NULL,
+  `organization_public_id` varchar(64) DEFAULT NULL,
+  `actor_public_id` varchar(64) DEFAULT NULL,
+  `source` varchar(32) NOT NULL,
+  `correlation_id` varchar(64) NOT NULL,
+  `idempotency_key` varchar(190) DEFAULT NULL,
+  `payload_json` longtext NOT NULL,
+  `last_error` longtext DEFAULT NULL,
+  `claimed_at` datetime DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`job_id`),
+  UNIQUE KEY `idx_module_job_scope_key` (`module_name`,`organization_id`,`idempotency_key`),
+  KEY `idx_module_job_scope` (`organization_id`,`job_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;

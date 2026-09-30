@@ -262,6 +262,8 @@ Handlers are stateless public static methods resolved by `Web\System\Module\Modu
 
 **Modules are trusted.** Module code executes in the same PHP process as the core, with the same filesystem permissions, database access, and network capabilities. There is **no sandbox, no isolation, no resource limits** enforced on module code at runtime.
 
+For deferred work, module authors must pass an explicit `ModuleExecutionContext` to `ModuleJobDispatcher::dispatch()`. Build the context from an authorized workspace resolver, never from an unchecked request field. A handler must live under its own `Module\\Vendor\\Name\\...` namespace, have a no-argument constructor, and implement `WorkspaceModuleJobInterface`. The worker rechecks the module's active state and the stored workspace identity. Existing rows with no authoritative context pause as `paused_legacy`. The web/CLI cron and root-only admin job runner execute short batches; no daemon, Redis or shell access is needed on shared hosting. Without cron, interactive work remains available and an administrator can run the pending jobs manually.
+
 This is an **explicitly accepted design trade-off** (2026-08-25, C-1). The barriers that do exist are:
 
 1. **Installation gate:** Only the root (admin) user can install modules. Direct URL installs and uploaded ZIP packages require the `MODULE_SIGNING_KEY` environment variable, which must match the server-side signing key — unset or mismatched key → install fails closed. Installs from the official marketplace do not need the key: the archive is verified against the sha256 returned by the marketplace install-request (fetched over TLS from the configured `base_url`), so one-click installs work on a fresh installation.
