@@ -21,12 +21,15 @@ Every other locale is distributed as a standalone `crm.language-pack-<locale>` M
 | Western / Southern Europe | `fr-fr` French, `de-de` German, `it-it` Italian, `el-gr` Greek |
 | Africa | `sw-ke` Swahili, `am-et` Amharic, `ha-ng` Hausa, `so-so` Somali, `af-za` Afrikaans, `zu-za` Zulu |
 | South Asia | `ur-pk` Urdu, `bn-bd` Bengali, `hi-in` Hindi |
+| Southeast Asia | `id-id` Indonesian, `vi-vn` Vietnamese, `th-th` Thai, `ms-my` Malay, `fil-ph` Filipino |
+| Europe / Balkans | `nl-nl` Dutch, `pl-pl` Polish, `ro-ro` Romanian, `cs-cz` Czech, `hu-hu` Hungarian, `sr-rs` Serbian, `hr-hr` Croatian |
+| Eastern Europe | `be-by` Belarusian |
 
 Ukrainian is intentionally excluded from this catalogue.
 
 ## Release state
 
-All 35 modules in the table have a standalone ZIP package with a manifest, web dictionary and API dictionary, and pass `scripts/validate_language_pack.php`. Every module is now approved in Marketplace and has a published release. The latest public versions include Arabic `1.0.2`, Hebrew `1.0.5`, Kazakh `1.0.3`, German/Spanish/French `1.0.1`, and Brazilian Portuguese `1.0.2`; the other modules are published at `1.0.0`. Public `install-request` verification succeeded for all 35 modules, including checksum-bearing signed download URLs.
+All **48 external modules** in the table have standalone ZIP packages with manifests, web dictionaries and API dictionaries. The original 35 modules and the 13-module expansion wave (`id-id`, `vi-vn`, `th-th`, `ms-my`, `fil-ph`, `be-by`, `nl-nl`, `pl-pl`, `ro-ro`, `cs-cz`, `hu-hu`, `sr-rs`, `hr-hr`) are approved and published in Marketplace. Each new release passed the local archive validator, the Marketplace AST/security pipeline, public module-page checks, and signed `install-request` download verification with a matching Marketplace SHA-256.
 
 When adding a locale:
 
