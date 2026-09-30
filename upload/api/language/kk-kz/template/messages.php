@@ -1,0 +1,33 @@
+<?php
+declare(strict_types=1);
+
+return array (
+  'task_list' => 'тапсырма үлгі тізім',
+  'task_created' => 'тапсырма үлгі жасалды',
+  'task_detail' => 'тапсырма үлгі',
+  'task_updated' => 'тапсырма үлгі жаңартылды',
+  'task_deleted' => 'тапсырма үлгі жойылды',
+  'project_list' => 'жоба үлгі тізім',
+  'project_created' => 'жоба үлгі жасалды',
+  'project_detail' => 'жоба үлгі',
+  'project_updated' => 'жоба үлгі жаңартылды',
+  'project_deleted' => 'жоба үлгі жойылды',
+  'max_255' => 'ең жоғары 255 таңбалар',
+  'payload_object' => 'payload өріс қажет болу an object',
+  'not_found' => 'үлгі емес табылды',
+  'empty_tasks' => 'жоқ тапсырма үлгілер',
+  'empty_projects' => 'жоқ жоба үлгілер',
+  'load_error_tasks' => 'сәтсіз дейін load тапсырма үлгілер',
+  'load_error_projects' => 'сәтсіз дейін load жоба үлгілер',
+  'btn_delete' => 'Жою',
+  'created_task_notify' => 'тапсырма үлгі жасалды',
+  'created_project_notify' => 'жоба үлгі жасалды',
+  'error_create' => 'жасау қате',
+  'confirm_delete_task' => 'жою тапсырма үлгі?',
+  'confirm_delete_project' => 'жою жоба үлгі?',
+  'deleted_task_notify' => 'тапсырма үлгі жойылды',
+  'deleted_project_notify' => 'жоба үлгі жойылды',
+  'error_delete' => 'жою қате',
+  'task_applied' => 'тапсырма жасалды бастап үлгі',
+  'project_applied' => 'жоба жасалды бастап үлгі',
+);

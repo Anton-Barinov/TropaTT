@@ -72,6 +72,13 @@ final class LanguageRegistryService
             'direction' => 'rtl',
             'is_builtin' => true,
         ],
+        'kk-kz' => [
+            'code' => 'kk-kz',
+            'name' => 'Kazakh',
+            'native_name' => 'Қазақша',
+            'direction' => 'ltr',
+            'is_builtin' => true,
+        ],
     ];
 
     public function __construct(
@@ -339,6 +346,7 @@ final class LanguageRegistryService
             'pt' => 'pt-br',
             'de' => 'de-de',
             'fr' => 'fr-fr',
+            'kk', 'kaz' => 'kk-kz',
             default => $value,
         };
     }
