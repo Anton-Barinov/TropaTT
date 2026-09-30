@@ -9125,6 +9125,7 @@ return array (
     'cat_calendar' => 'Календари',
     'cat_diagram' => 'Диаграммы',
     'cat_integration' => 'Интеграции',
+    'cat_localization' => 'Локализация',
     'cat_migration' => 'Миграции',
     'cat_productivity' => 'Продуктивность',
     'empty_filter' => 'Нет модулей в выбранной категории.',

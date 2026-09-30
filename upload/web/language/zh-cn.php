@@ -9032,6 +9032,7 @@ return array (
     'cat_calendar' => 'Calendars',
     'cat_diagram' => 'Diagrams',
     'cat_integration' => 'Integrations',
+    'cat_localization' => '本地化',
     'cat_migration' => 'Migrations',
     'cat_productivity' => 'Productivity',
     'empty_filter' => 'No modules in the selected category.',
@@ -10713,4 +10714,3 @@ return array (
     'delete_failed' => '语言包删除失败',
   ),
 );
-

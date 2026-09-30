@@ -84,7 +84,7 @@
     // click could then only answer 409 ALREADY_INSTALLED / MODULE_DISCOVERED_LOCALLY.
     var state = { selected: {}, modules: [], filter: 'all', modulesLoaded: false, modulesError: false };
     var COLSPAN = 6;
-    var CATEGORY_ORDER = ['migration', 'calendar', 'integration', 'productivity', 'diagram'];
+    var CATEGORY_ORDER = ['migration', 'calendar', 'integration', 'localization', 'productivity', 'diagram'];
 
     function esc(value) {
         if (window.CRM && window.CRM.text && typeof window.CRM.text.escapeHtml === 'function') {
@@ -108,6 +108,7 @@
             migration: window.CRM.i18n.t('admin_modules.cat_migration', 'Миграции'),
             calendar: window.CRM.i18n.t('admin_modules.cat_calendar', 'Календари'),
             integration: window.CRM.i18n.t('admin_modules.cat_integration', 'Интеграции'),
+            localization: window.CRM.i18n.t('admin_modules.cat_localization', 'Локализация'),
             productivity: window.CRM.i18n.t('admin_modules.cat_productivity', 'Продуктивность'),
             diagram: window.CRM.i18n.t('admin_modules.cat_diagram', 'Диаграммы')
         };
