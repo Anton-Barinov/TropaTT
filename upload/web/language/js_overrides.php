@@ -923,4 +923,14 @@ foreach ($clientLocaleParityTranslations as $lc => $translations) {
     $overrides[$lc] = array_replace_recursive($overrides[$lc] ?? [], $translations);
 }
 
+// Explicit analytics/project runtime parity for locales whose generated catalog has a
+// later duplicate `pab` map. Keep these assignments after all recursive merges.
+$overrides['zh-cn']['js']['pab'] = array_replace_recursive($overrides['zh-cn']['js']['pab'] ?? [], [
+    'active_prefix' => '活跃',
+    'overdue_prefix' => '逾期',
+    'time_logged_prefix' => '已记录时间',
+    'project_without_client' => '无客户项目',
+    'total' => '总计',
+    'min' => '分钟',
+]);
 return $overrides;
