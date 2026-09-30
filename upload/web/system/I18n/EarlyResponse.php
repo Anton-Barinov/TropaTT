@@ -6,7 +6,7 @@ namespace Web\System\I18n;
 final class EarlyResponse
 {
     /** @var list<string> */
-    private const SUPPORTED_LOCALES = ['ru-ru', 'en-gb', 'zh-cn', 'es-es', 'pt-br', 'de-de', 'fr-fr'];
+    private const SUPPORTED_LOCALES = ['ru-ru', 'en-gb', 'zh-cn', 'es-es', 'pt-br', 'de-de', 'fr-fr', 'ar-sa'];
 
     /**
      * Render the maintenance page without bootstrapping the full web application.
@@ -138,15 +138,16 @@ JS;
     /** @return array<string, mixed> */
     private static function messages(string $baseDir, string $locale): array
     {
-        $fallback = self::load($baseDir, 'ru-ru');
+        $fallbackLocale = $locale === 'ru-ru' ? 'ru-ru' : 'en-gb';
+        $fallback = self::load($baseDir, $fallbackLocale);
         $current = self::load($baseDir, $locale);
         $messages = array_replace_recursive($fallback, $current);
         $overridesPath = $baseDir . '/language/overrides.php';
         if (is_file($overridesPath)) {
             $overrides = require $overridesPath;
             if (is_array($overrides)) {
-                if (is_array($overrides['ru-ru'] ?? null)) {
-                    $messages = array_replace_recursive($messages, $overrides['ru-ru']);
+                if (is_array($overrides[$fallbackLocale] ?? null)) {
+                    $messages = array_replace_recursive($messages, $overrides[$fallbackLocale]);
                 }
                 if ($locale !== 'ru-ru' && is_array($overrides[$locale] ?? null)) {
                     $messages = array_replace_recursive($messages, $overrides[$locale]);
@@ -231,6 +232,7 @@ JS;
             'pt' => 'pt-br',
             'de' => 'de-de',
             'fr' => 'fr-fr',
+            'ar' => 'ar-sa',
             default => $value,
         };
     }

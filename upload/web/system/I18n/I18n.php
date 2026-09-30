@@ -20,7 +20,13 @@ final class I18n
     {
         $locale = self::resolveLocale($baseDir);
 
-        $fallback = self::loadLocaleFile($baseDir, 'ru-ru');
+        // Use one deterministic fallback language for each locale family. The
+        // previous implementation always merged Russian first, so an
+        // incomplete translation silently produced mixed Russian/English/
+        // target-language screens. Russian remains the native fallback for
+        // Russian; every other locale falls back consistently to English.
+        $fallbackLocale = $locale === 'ru-ru' ? 'ru-ru' : 'en-gb';
+        $fallback = self::loadLocaleFile($baseDir, $fallbackLocale);
         $current = self::loadLocaleFile($baseDir, $locale);
         $messages = self::mergeRecursive($fallback, $current);
 
@@ -32,9 +38,9 @@ final class I18n
         if (is_file($supplementalPath)) {
             $supplemental = require $supplementalPath;
             if (is_array($supplemental)) {
-                if (is_array($supplemental['ru-ru'] ?? null)) {
+                if (is_array($supplemental[$fallbackLocale] ?? null)) {
                     /** @var array<string, mixed> $fallbackOverrides */
-                    $fallbackOverrides = $supplemental['ru-ru'];
+                    $fallbackOverrides = $supplemental[$fallbackLocale];
                     $messages = self::mergeRecursive($messages, $fallbackOverrides);
                 }
                 if ($locale !== 'ru-ru' && is_array($supplemental[$locale] ?? null)) {
@@ -49,9 +55,9 @@ final class I18n
         if (is_file($jsSupplementalPath)) {
             $jsSupplemental = require $jsSupplementalPath;
             if (is_array($jsSupplemental)) {
-                if (is_array($jsSupplemental['ru-ru'] ?? null)) {
+                if (is_array($jsSupplemental[$fallbackLocale] ?? null)) {
                     /** @var array<string, mixed> $fallbackJsOverrides */
-                    $fallbackJsOverrides = $jsSupplemental['ru-ru'];
+                    $fallbackJsOverrides = $jsSupplemental[$fallbackLocale];
                     $messages = self::mergeRecursive($messages, $fallbackJsOverrides);
                 }
                 if ($locale !== 'ru-ru' && is_array($jsSupplemental[$locale] ?? null)) {
@@ -130,8 +136,9 @@ final class I18n
         $modulesDir = dirname($this->baseDir) . '/modules';
         $current = $this->locale();
         $locales = [$current];
-        if ($current !== 'ru-ru') {
-            $locales[] = 'ru-ru';
+        $fallbackLocale = $current === 'ru-ru' ? 'ru-ru' : 'en-gb';
+        if ($current !== $fallbackLocale) {
+            $locales[] = $fallbackLocale;
         }
 
         foreach ($locales as $locale) {

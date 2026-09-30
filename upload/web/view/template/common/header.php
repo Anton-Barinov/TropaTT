@@ -89,8 +89,9 @@ if (is_file($jsOverridesPath)) {
       return require $overridesFile;
   })($jsOverridesPath);
   if (is_array($jsOverrides)) {
-    if (is_array($jsOverrides['ru-ru'] ?? null)) {
-      $lang_messages = array_replace_recursive(is_array($lang_messages ?? null) ? $lang_messages : [], $jsOverrides['ru-ru']);
+    $fallbackLocale = $currentLocale === 'ru-ru' ? 'ru-ru' : 'en-gb';
+    if (is_array($jsOverrides[$fallbackLocale] ?? null)) {
+      $lang_messages = array_replace_recursive(is_array($lang_messages ?? null) ? $lang_messages : [], $jsOverrides[$fallbackLocale]);
     }
     if ($currentLocale !== 'ru-ru' && is_array($jsOverrides[$currentLocale] ?? null)) {
       $lang_messages = array_replace_recursive($lang_messages, $jsOverrides[$currentLocale]);
