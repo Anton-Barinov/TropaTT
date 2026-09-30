@@ -1,0 +1,33 @@
+<?php
+declare(strict_types=1);
+
+return array (
+  'loading' => 'Жүктөлүүдө...',
+  'load_error' => 'жүктелуде қате',
+  'empty' => 'жоқ сақталды views',
+  'pinned' => 'Pinned',
+  'other' => 'Others',
+  'system' => 'жүйе',
+  'public' => 'Public',
+  'private' => 'Private',
+  'pin' => 'Pin',
+  'unpin' => 'Unpin',
+  'duplicate' => 'телнұсқа',
+  'edit' => 'Түзөтүү',
+  'archive' => 'мұрағат',
+  'applied' => 'көру applied:',
+  'apply_error' => 'қате applying көру',
+  'save_as' => 'сақтау as жаңа көру',
+  'edit_title' => 'өңдеу көру',
+  'title_required' => 'енгізіңіз a көру атау',
+  'update_error' => 'қате updating көру',
+  'create_error' => 'қате creating көру',
+  'pinned_msg' => 'Pinned',
+  'unpinned_msg' => 'Unpinned',
+  'pin_error' => 'Ката',
+  'duplicated' => 'көру duplicated',
+  'duplicate_error' => 'қате duplicating',
+  'confirm_archive' => 'мұрағат бұл көру?',
+  'archived' => 'көру мұрағатталған',
+  'archive_error' => 'қате archiving',
+);

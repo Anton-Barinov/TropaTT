@@ -72,6 +72,13 @@ final class LanguageRegistryService
             'direction' => 'rtl',
             'is_builtin' => true,
         ],
+        'ky-kg' => [
+            'code' => 'ky-kg',
+            'name' => 'Kyrgyz',
+            'native_name' => 'Кыргызча',
+            'direction' => 'ltr',
+            'is_builtin' => true,
+        ],
         'kk-kz' => [
             'code' => 'kk-kz',
             'name' => 'Kazakh',
@@ -347,6 +354,7 @@ final class LanguageRegistryService
             'de' => 'de-de',
             'fr' => 'fr-fr',
             'kk', 'kaz' => 'kk-kz',
+            'ky', 'kir' => 'ky-kg',
             default => $value,
         };
     }

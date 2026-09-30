@@ -1,0 +1,31 @@
+<?php
+declare(strict_types=1);
+
+return array (
+  'list' => 'тәуелділік тізім',
+  'created' => 'тәуелділік жасалды',
+  'deleted' => 'тәуелділік жойылды',
+  'not_found' => 'тәуелділік емес табылды',
+  'task_not_found' => 'One бойынша тапсырмалар was емес табылды',
+  'invalid_type' => 'жарамсыз тәуелділік түр',
+  'supported_types' => 'Supported: FS, SS, FF, SF, BLOCKS',
+  'self_forbidden' => 'тапсырма мүмкін емес depend үстінде itself',
+  'different_projects' => 'Dependencies can тек болу жасалды between тапсырмалар ішінде same жоба',
+  'empty' => 'жоқ dependencies',
+  'th_type' => 'Түрі',
+  'th_task' => 'тапсырма',
+  'btn_delete' => 'Өчүрүү',
+  'load_error' => 'сәтсіз дейін load dependencies',
+  'prompt_task_id' => 'тапсырма ID (public_id)',
+  'task_id_empty' => 'тапсырма ID мүмкін емес болу бос',
+  'prompt_dep_type' => 'тәуелділік түр (FS, SS, FF, SF)',
+  'created_notify' => 'тәуелділік қосылды',
+  'confirm_delete' => 'жою тәуелділік?',
+  'deleted_notify' => 'тәуелділік жойылды',
+  'type_fs' => 'Finish-бастау',
+  'type_ss' => 'бастау-бастау',
+  'type_ff' => 'Finish-Finish',
+  'type_sf' => 'бастау-Finish',
+  'type_blocks' => 'Blocks',
+  'cyclic_dependency' => 'тәуелділік would жасау a цикл between тапсырмалар',
+);
