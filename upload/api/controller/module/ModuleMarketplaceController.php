@@ -179,6 +179,26 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
             }
         };
 
+        // A language pack whose locale is gone (deleted under Administration →
+        // Languages) leaves only its proxy module behind: the directory check
+        // below would then answer ALREADY_INSTALLED forever and the pack could
+        // never be installed again. Repair that state instead of refusing —
+        // the same philosophy as the registry-only leftover handled below.
+        if (str_starts_with($fullCode, 'crm.language-pack-') && is_dir($pm->getModulesDir() . '/' . $fullCode)) {
+            $localeCode = substr($fullCode, strlen('crm.language-pack-'));
+            /** @var \Api\System\Library\Service\LanguagePackInstaller $langInstaller */
+            $langInstaller = $this->container->get('service.language_pack_installer');
+            if (!$langInstaller->isLocaleInstalled($localeCode)) {
+                if ($registry !== null) {
+                    $mc->unregister($fullCode);
+                }
+                if ($langInstaller->removeModuleProxy($localeCode)) {
+                    AppLog::warning('[ModuleMarketplaceController::install] removed orphaned language pack proxy for ' . $fullCode);
+                }
+                $registry = $mc->getRegistry($fullCode);
+            }
+        }
+
         // Installing over an existing directory would fail deep inside the
         // installer with a filesystem error; report it as a normal conflict. The
         // directory is the only thing that can block the install: a registry row

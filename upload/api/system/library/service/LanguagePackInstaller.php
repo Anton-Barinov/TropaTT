@@ -462,6 +462,47 @@ final class LanguagePackInstaller
         ];
     }
 
+    /**
+     * Whether a locale's language files are present on disk.
+     */
+    public function isLocaleInstalled(string $code): bool
+    {
+        $code = $this->registry->normalizeLocaleCode($code);
+
+        return isset($this->registry->discoverInstalledLocales()[$code]);
+    }
+
+    /**
+     * Remove the marketplace proxy module of a language pack (the manifest.json
+     * + directory a marketplace install creates next to the language files).
+     *
+     * The directory is deleted only when its manifest declares a language_pack
+     * for exactly this locale, so an unrelated module directory can never be
+     * touched. Returns true when files were actually removed.
+     */
+    public function removeModuleProxy(string $code): bool
+    {
+        $code = $this->registry->normalizeLocaleCode($code);
+        $moduleCode = 'crm.language-pack-' . $code;
+        $dir = dirname($this->basePath) . '/modules/' . $moduleCode;
+        $manifestPath = $dir . '/manifest.json';
+
+        if (!is_file($manifestPath)) {
+            return false;
+        }
+
+        $manifest = json_decode((string)file_get_contents($manifestPath), true);
+        if (!is_array($manifest)
+            || (string)($manifest['type'] ?? '') !== 'language_pack'
+            || (string)($manifest['code'] ?? '') !== $code) {
+            return false;
+        }
+
+        $this->removeDirectoryRecursively($dir);
+
+        return !is_dir($dir);
+    }
+
     private function removeDirectoryRecursively(string $dir): void
     {
         $entries = scandir($dir) ?: [];
