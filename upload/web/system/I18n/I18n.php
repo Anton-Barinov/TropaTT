@@ -199,7 +199,17 @@ final class I18n
     {
         $data = self::readLanguageCache($baseDir);
         if (isset($data['enabled']) && is_array($data['enabled']) && !empty($data['enabled'])) {
-            return $data['enabled'];
+            $enabled = array_values(array_unique(array_map('strval', $data['enabled'])));
+            // Bundled locale packs shipped with the web application must remain
+            // selectable immediately after deployment, even when an older
+            // languages.json cache predates the pack (for example he-il).
+            foreach (['he-il'] as $bundledLocale) {
+                if (!in_array($bundledLocale, $enabled, true)
+                    && is_file($baseDir . '/language/' . $bundledLocale . '.php')) {
+                    $enabled[] = $bundledLocale;
+                }
+            }
+            return $enabled;
         }
 
         return ['ru-ru', 'en-gb', 'zh-cn', 'es-es', 'pt-br', 'de-de', 'fr-fr', 'he-il'];
@@ -234,6 +244,16 @@ final class I18n
                 }
             }
             if (!empty($filtered)) {
+                $known = array_column($filtered, 'code');
+                if (!in_array('he-il', $known, true)
+                    && is_file($baseDir . '/language/he-il.php')) {
+                    $filtered[] = [
+                        'code' => 'he-il',
+                        'name' => 'Hebrew',
+                        'native_name' => 'עברית',
+                        'direction' => 'rtl',
+                    ];
+                }
                 return $filtered;
             }
         }
