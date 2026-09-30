@@ -942,5 +942,6 @@ $overrides['ar-sa']['js']['pab'] = array_replace_recursive($overrides['ar-sa']['
     'empty' => 'لا توجد بيانات',
     'no_match' => 'لا توجد نتائج مطابقة',
     'length' => 'العناصر',
+    'no_data' => 'لا توجد بيانات',
 ]);
 return $overrides;
