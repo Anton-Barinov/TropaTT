@@ -2429,3 +2429,14 @@ Deprecated aliases (`/api/v1/notification/push-*`) are excluded from OpenAPI and
 | GET | `/api/v1/profile/preferences/get` 🔄 | — | Yes |  | — |
 | PATCH, PUT, POST | `/api/v1/profile/preferences/set` 🔄 | — | Yes |  | — |
 | POST | `/api/v1/profile/password/change` 🔄 | — | Yes |  | — |
+
+### Additional health, ideas and MCP endpoints
+
+| Method | Endpoint | Purpose | Auth | Permissions | Description |
+|--------|----------|---------|:---:|-------------|-------------|
+| GET | `/api/v1/health/deep` | — | Yes | — | Deep health check |
+| GET | `/api/v1/ideas/{public_id}/analysis/status` | — | Yes | idea.read | Analysis job status |
+| POST | `/api/v1/ideas/queue/run-worker` | — | Yes | idea.manage | Run queued idea analysis worker |
+| POST | `/api/v1/ideas/{public_id}/analysis/run-async` | — | Yes | idea.manage | Start asynchronous idea analysis |
+| POST | `/api/v1/ideas/{public_id}/analysis/run-worker` | — | Yes | idea.manage | Run idea analysis worker |
+| POST | `/api/v1/mcp` | — | Yes | — | JSON-RPC MCP endpoint |
