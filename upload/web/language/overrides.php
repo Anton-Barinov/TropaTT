@@ -28,6 +28,13 @@ return [
             'open_menu' => 'فتح القائمة', 'open_search' => 'فتح البحث', 'quick_create' => '+ إنشاء',
             'timer_running' => 'المؤقت يعمل', 'timers_running' => 'المؤقتات تعمل', 'my_earnings' => 'مستحقاتي',
         ],
+        'footer' => [
+            'updates_link' => 'التحديثات', 'github_link' => 'GitHub', 'developer_link' => 'المطور',
+        ],
+        'common' => [
+            'confirm_title' => 'تأكيد الإجراء', 'confirm_body' => 'هل أنت متأكد؟', 'cancel_btn' => 'إلغاء',
+            'confirm_btn' => 'تأكيد', 'close' => 'إغلاق', 'loading' => 'جارٍ التحميل...',
+        ],
         'login' => [
             'title' => 'TropaTT — تسجيل الدخول', 'subtitle' => 'سجّل الدخول إلى مساحة عمل الفريق للوصول بسرعة إلى المهام الحالية.',
             'kicker' => 'نظام عمل مستضاف ذاتيًا', 'placeholder_login' => 'مثال: root',

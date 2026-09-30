@@ -2,6 +2,39 @@
 declare(strict_types=1);
 
 $overrides = [
+    'ar-sa' => [
+        'dashboard' => [
+            'subtitle' => 'نظرة عامة على المهام والمخاطر وحِمل الفريق في ٣٠ سبتمبر ٢٠٢٦.',
+            'kpi_active_note' => 'المهام المطلوب إنجازها اليوم: ',
+            'kpi_overdue_note' => 'المهام المتأخرة في النظام: ',
+            'kpi_projects_note' => 'المشاريع النشطة قيد التنفيذ: ',
+            'kpi_sla_note' => 'الوقت المسجل هذا الأسبوع: ',
+            'ai_digest_title' => 'الملخص اليومي للذكاء الاصطناعي',
+            'ai_digest_meta' => 'ملخص المخاطر والتركيز استنادًا إلى بيانات لوحة التحكم الحالية.',
+            'th_due' => 'الموعد النهائي', 'intake_more' => 'كل الطلبات', 'recurring_more' => 'كل القواعد',
+            'mentions_more' => 'كل الإشارات', 'my_week_more' => 'فتح الأسبوع', 'unassigned_more' => 'عرض الكل',
+            'extra_analytics_summary' => 'نبض التحليلات', 'extra_project_health' => 'صحة المشروع',
+            'extra_team_workload' => 'حِمل الفريق', 'extra_time_team' => 'وقت الفريق',
+            'extra_notification_inbox' => 'صندوق الإشعارات', 'extra_chat_unread' => 'المحادثات غير المقروءة',
+            'extra_client_pipeline' => 'دليل العملاء', 'extra_company_directory' => 'دليل الشركات',
+            'extra_contact_followups' => 'متابعة جهات الاتصال', 'extra_tag_usage' => 'استخدام الوسوم',
+            'extra_saved_views' => 'العروض المحفوظة', 'extra_subscriptions' => 'اشتراكاتي',
+            'extra_dependency_watch' => 'مراقبة التبعيات', 'extra_milestone_watch' => 'مراقبة المراحل',
+            'extra_recurring_health' => 'الأتمتة المتكررة', 'extra_approval_queue' => 'قائمة الموافقات',
+            'extra_intake_sla' => 'SLA الطلبات الواردة', 'extra_webhook_health' => 'حالة Webhook',
+            'extra_workflow_automation' => 'أتمتة سير العمل', 'extra_system_health' => 'حالة النظام',
+            'extra_active_sessions' => 'الجلسات النشطة', 'extra_my_workload_efficiency' => 'حِملي وكفاءتي',
+            'extra_tasks_actual_time' => 'الوقت الفعلي للمهام', 'extra_my_kpi_scorecard' => 'بطاقة مؤشرات الأداء الخاصة بي',
+            'extra_assignee_department_load' => 'حِمل المنفذين والأقسام', 'extra_tasks_completion_velocity' => 'سرعة إنجاز المهام',
+            'extra_workload_efficiency_management' => 'إدارة الحِمل والكفاءة', 'extra_streams_load_efficiency' => 'حِمل التدفقات وكفاءتها',
+            'extra_stream_detail_load_efficiency' => 'تفاصيل التدفق',
+            'modal_create_project' => [
+                'label_title' => 'اسم المشروع', 'option_no_client' => 'بدون عميل', 'option_no_team' => 'لم يتم تعيين فريق',
+                'label_manager' => 'مدير المشروع', 'option_no_manager' => 'بدون مدير',
+                'hint' => 'سيُنشأ المشروع مباشرة عبر واجهة API مع العميل والفريق والمدير.',
+            ],
+        ],
+    ],
     'ru-ru' => [
         'admin' => ['statuses_empty_projects' => 'Статусы проектов не найдены.', 'statuses_empty_tasks' => 'Статусы задач не найдены.', 'status_closed_yes' => 'Да', 'status_closed_no' => 'Нет'],
         'admin_settings' => ['setting_max_requests' => 'Лимит запросов в минуту', 'setting_api_cache_enabled' => 'Кэш API (включён/выключен)', 'setting_api_cache_ttl' => 'Время хранения кэша (сек)', 'setting_kanban_max_cards' => 'Канбан: порция карточек за загрузку (0 = по умолчанию 100)', 'setting_gantt_max_tasks' => 'Гант: макс. задач (0 = показывать все)', 'setting_time_rounding' => 'Округление времени (минуты, 0 = выкл)', 'retention_request_logs' => 'Журнал запросов', 'retention_security_logs' => 'Журнал безопасности', 'retention_audit_logs' => 'Журнал аудита', 'retention_recycle_bin' => 'Корзина', 'retention_orphan_files' => 'Файлы без привязки', 'retention_backup_metadata' => 'Метаданные резервных копий', 'field_fallback' => 'Поле', 'setting_fallback' => 'Настройка', 'loading' => 'Загрузка...', 'loading_retention' => 'Загрузка политики хранения...', 'loading_audit' => 'Загрузка журнала аудита...', 'sound_prefix' => 'Звук: ', 'push_prefix' => 'push-уведомления: ', 'quiet_hours_prefix' => 'тихие часы: ', 'enabled_lower' => 'включен', 'disabled_lower' => 'выключен', 'enabled_plural' => 'включены', 'disabled_plural' => 'выключены', 'enabled_f' => 'включена', 'disabled_f' => 'выключена', 'enabled_cap' => 'Включён', 'disabled_cap' => 'Выключен', 'system_empty' => 'Системные настройки не найдены.', 'btn_edit' => 'Изменить', 'read_only' => 'Только чтение', 'btn_check' => 'Проверить', 'retention_policy_prefix' => 'Политика хранения: ', 'audit_empty' => 'События настроек не найдены.', 'audit_forbidden' => 'Недостаточно прав для просмотра журнала аудита (нужно logs.view + root).', 'audit_count_prefix' => 'Событий аудита: ', 'actor_unknown' => 'неизвестно', 'actor_prefix' => 'автор: ', 'api_cache_label' => 'Кэширование API', 'cache_ttl_label' => 'Время хранения (сек)', 'btn_apply' => 'Применить', 'api_key_title' => 'API ключ: ', 'api_field_title' => 'Поле API: ', 'api_cache_confirm_suffix' => 'кэширование API?', 'api_cache_prefix' => 'Кэш API ', 'apply_retention_confirm_prefix' => 'Применить изменение политики хранения для «', 'available' => 'Доступно', 'btn_clear_cache' => 'Очистить кэш', 'bytes_b' => 'Б', 'bytes_gb' => 'ГБ', 'bytes_kb' => 'КБ', 'bytes_mb' => 'МБ', 'cache_clear_fail' => 'Не удалось очистить кэш', 'cache_cleared' => 'Кэш API очищен', 'cache_files_label' => 'Файлов в кэше', 'cache_setting_update_fail' => 'Не удалось изменить настройку кэша', 'cache_size_label' => 'Размер на диске', 'clear_cache_confirm' => 'Очистить весь файловый кэш API?', 'confirm_setting_change_prefix' => 'Подтверждение изменения системной настройки ', 'days_positive_required' => 'Введите значение дней больше 0', 'db_connected' => 'Подключено', 'db_disconnected' => 'Нет подключения', 'disable_action' => 'Выключить', 'dry_run_middle' => '» будет установлена в ', 'dry_run_prefix' => 'Проверка: «', 'dry_run_suffix' => ' дней (без сохранения).', 'enable_action' => 'Включить', 'new_value_prefix' => 'Новое значение для ', 'not_configured' => 'Не настроено', 'retention_update_fail' => 'Не удалось обновить политику хранения', 'retention_updated' => 'Политика хранения обновлена', 'setting_update_fail' => 'Не удалось обновить системную настройку', 'setting_updated' => 'Системная настройка обновлена', 'ttl_confirm_prefix' => 'Изменить время хранения кэша на ', 'ttl_confirm_suffix' => ' секунд?', 'ttl_range_error' => 'TTL должен быть от 1 до 86400 секунд', 'ttl_update_fail' => 'Не удалось изменить TTL', 'ttl_updated' => 'Время хранения кэша изменено', 'unavailable' => 'Недоступно', 'pref_sound_label' => 'Звук уведомлений', 'pref_sound_hint' => 'Воспроизводить звук при новом уведомлении', 'pref_quiet_hours_label' => 'Тихие часы', 'pref_quiet_hours_hint' => 'Отключить звук уведомлений в указанное время', 'pref_quiet_start' => 'Начало', 'pref_quiet_end' => 'Окончание', 'prefs_saved' => 'Настройки уведомлений сохранены', 'prefs_save_fail' => 'Не удалось сохранить настройки'],
