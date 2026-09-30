@@ -27076,6 +27076,74 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       if (emptyState) emptyState.hidden = !normalizedSearch || hasVisibleContent;
     }
 
+    function setupPrettySelect(select) {
+      if (!select || select.dataset.prettyBound === '1') return;
+      var root = select.closest('[data-pretty-select]');
+      var trigger = root && root.querySelector('.crm-pretty-select-trigger');
+      var valueEl = root && root.querySelector('.crm-pretty-select-value');
+      var menu = root && root.querySelector('.crm-pretty-select-menu');
+      if (!root || !trigger || !valueEl || !menu) return;
+      select.dataset.prettyBound = '1';
+      var options = Array.prototype.slice.call(menu.querySelectorAll('.crm-pretty-select-option'));
+      var label = document.querySelector('label[for="' + select.id + '"]');
+      if (label) trigger.setAttribute('aria-label', label.textContent.trim());
+
+      function closeMenu() {
+        menu.hidden = true;
+        root.classList.remove('is-open');
+        trigger.setAttribute('aria-expanded', 'false');
+      }
+      function syncValue() {
+        var selected = options.find(function (option) { return option.dataset.value === String(select.value); }) || options[0];
+        if (!selected) return;
+        valueEl.textContent = selected.textContent.trim();
+        options.forEach(function (option) {
+          var active = option === selected;
+          option.classList.toggle('is-selected', active);
+          option.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+      }
+      function openMenu() {
+        menu.hidden = false;
+        root.classList.add('is-open');
+        trigger.setAttribute('aria-expanded', 'true');
+        var selected = options.find(function (option) { return option.dataset.value === String(select.value); });
+        if (selected) selected.focus();
+      }
+      trigger.addEventListener('click', function () {
+        if (menu.hidden) openMenu(); else closeMenu();
+      });
+      trigger.addEventListener('keydown', function (event) {
+        if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          openMenu();
+        }
+      });
+      options.forEach(function (option, index) {
+        option.addEventListener('click', function () {
+          select.value = option.dataset.value || '';
+          select.dispatchEvent(new Event('change', { bubbles: true }));
+          syncValue();
+          closeMenu();
+          trigger.focus();
+        });
+        option.addEventListener('keydown', function (event) {
+          if (event.key === 'Escape') { event.preventDefault(); closeMenu(); trigger.focus(); return; }
+          if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            var next = options[(index + (event.key === 'ArrowDown' ? 1 : options.length - 1)) % options.length];
+            next.focus();
+          }
+          if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); option.click(); }
+        });
+      });
+      document.addEventListener('click', function (event) {
+        if (!root.contains(event.target)) closeMenu();
+      });
+      select.addEventListener('change', syncValue);
+      syncValue();
+    }
+
     function setupCategoryFilterAndSearch() {
       var navBtns = document.querySelectorAll('.crm-admin-settings-nav-btn[data-settings-category]');
       var searchInput = document.getElementById('adminSettingsSearchInput');
@@ -27111,6 +27179,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       }
 
       document.querySelectorAll('.crm-admin-settings-page select').forEach(function (select) {
+        setupPrettySelect(select);
         if (select.dataset.settingsFocusBound === '1') return;
         select.dataset.settingsFocusBound = '1';
         select.addEventListener('focus', function () {

@@ -170,10 +170,20 @@
         <div class="row g-3">
           <div class="col-md-6">
             <label class="form-label" for="tasksWorklogPolicy" data-i18n="admin_settings.tasks_worklog_policy"><?= htmlspecialchars($t('admin_settings.tasks_worklog_policy', 'Политика трекинга времени в задачи'), ENT_QUOTES, 'UTF-8') ?></label>
-            <select class="form-select crm-field-responsive" id="tasksWorklogPolicy">
-              <option value="all_project_members" data-i18n="admin_settings.tasks_worklog_policy_all"><?= htmlspecialchars($t('admin_settings.tasks_worklog_policy_all', 'Все участники проекта (совместная работа)'), ENT_QUOTES, 'UTF-8') ?></option>
-              <option value="assignee_only" data-i18n="admin_settings.tasks_worklog_policy_assignee"><?= htmlspecialchars($t('admin_settings.tasks_worklog_policy_assignee', 'Только назначенный исполнитель (строгий режим)'), ENT_QUOTES, 'UTF-8') ?></option>
-            </select>
+            <div class="crm-pretty-select" data-pretty-select="tasksWorklogPolicy">
+              <button type="button" class="crm-pretty-select-trigger" id="tasksWorklogPolicyTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="tasksWorklogPolicy" aria-controls="tasksWorklogPolicyMenu">
+                <span class="crm-pretty-select-value" id="tasksWorklogPolicyValue"><?= htmlspecialchars($t('admin_settings.tasks_worklog_policy_all', 'Все участники проекта (совместная работа)'), ENT_QUOTES, 'UTF-8') ?></span>
+                <i class="fa-solid fa-chevron-down crm-pretty-select-chevron" aria-hidden="true"></i>
+              </button>
+              <div class="crm-pretty-select-menu" id="tasksWorklogPolicyMenu" role="listbox" aria-labelledby="tasksWorklogPolicy" hidden>
+                <button type="button" class="crm-pretty-select-option is-selected" role="option" aria-selected="true" data-value="all_project_members"><?= htmlspecialchars($t('admin_settings.tasks_worklog_policy_all', 'Все участники проекта (совместная работа)'), ENT_QUOTES, 'UTF-8') ?></button>
+                <button type="button" class="crm-pretty-select-option" role="option" aria-selected="false" data-value="assignee_only"><?= htmlspecialchars($t('admin_settings.tasks_worklog_policy_assignee', 'Только назначенный исполнитель (строгий режим)'), ENT_QUOTES, 'UTF-8') ?></button>
+              </div>
+              <select class="form-select crm-field-responsive crm-pretty-select-native" id="tasksWorklogPolicy" tabindex="-1" aria-hidden="true">
+                <option value="all_project_members" data-i18n="admin_settings.tasks_worklog_policy_all"><?= htmlspecialchars($t('admin_settings.tasks_worklog_policy_all', 'Все участники проекта (совместная работа)'), ENT_QUOTES, 'UTF-8') ?></option>
+                <option value="assignee_only" data-i18n="admin_settings.tasks_worklog_policy_assignee"><?= htmlspecialchars($t('admin_settings.tasks_worklog_policy_assignee', 'Только назначенный исполнитель (строгий режим)'), ENT_QUOTES, 'UTF-8') ?></option>
+              </select>
+            </div>
             <div class="form-text" data-i18n="admin_settings.tasks_worklog_policy_hint"><?= htmlspecialchars($t('admin_settings.tasks_worklog_policy_hint', 'В строгом режиме списывать время могут только назначенные исполнители (или менеджеры). Если исполнитель не назначен (общие задачи), время могут списывать любые участники проекта.'), ENT_QUOTES, 'UTF-8') ?></div>
           </div>
           <div class="col-md-6">
