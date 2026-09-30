@@ -364,7 +364,7 @@ $clientLocaleParityTranslations = [
         'page' => ['retry' => 'Erneut versuchen'],
         'js' => [
             'pab' => [
-                'projects_load_error_title' => 'Projekte konnten nicht geladen werden',
+                'loading_data' => 'Daten werden geladen...', 'loading' => 'Wird geladen...', 'no_data' => 'Keine Daten', 'in_progress' => 'Wird verarbeitet...', 'projects_load_error_title' => 'Projekte konnten nicht geladen werden',
                 'no_projects_for_filters_title' => 'Keine Projekte zu den ausgewählten Filtern gefunden',
             ],
         ],
@@ -374,7 +374,7 @@ $clientLocaleParityTranslations = [
         'page' => ['retry' => 'Reintentar'],
         'js' => [
             'pab' => [
-                'projects_load_error_title' => 'No se pudieron cargar los proyectos',
+                'loading_data' => 'Cargando datos...', 'loading' => 'Cargando...', 'no_data' => 'Sin datos', 'in_progress' => 'Procesando...', 'projects_load_error_title' => 'No se pudieron cargar los proyectos',
                 'no_projects_for_filters_title' => 'No hay proyectos que coincidan con los filtros seleccionados',
             ],
         ],
@@ -384,7 +384,7 @@ $clientLocaleParityTranslations = [
         'page' => ['retry' => 'Réessayer'],
         'js' => [
             'pab' => [
-                'projects_load_error_title' => 'Impossible de charger les projets',
+                'loading_data' => 'Chargement des données...', 'loading' => 'Chargement...', 'no_data' => 'Aucune donnée', 'in_progress' => 'En cours...', 'projects_load_error_title' => 'Impossible de charger les projets',
                 'no_projects_for_filters_title' => 'Aucun projet ne correspond aux filtres sélectionnés',
             ],
         ],
@@ -394,7 +394,7 @@ $clientLocaleParityTranslations = [
         'page' => ['retry' => 'Tentar novamente'],
         'js' => [
             'pab' => [
-                'projects_load_error_title' => 'Não foi possível carregar os projetos',
+                'loading_data' => 'Carregando dados...', 'loading' => 'Carregando...', 'no_data' => 'Sem dados', 'in_progress' => 'Em andamento...', 'projects_load_error_title' => 'Não foi possível carregar os projetos',
                 'no_projects_for_filters_title' => 'Nenhum projeto corresponde aos filtros selecionados',
             ],
         ],
@@ -455,7 +455,7 @@ $clientLocaleParityTranslations = [
                 'widgets_cancel' => '更改已放弃',
                 'worklog_load_error' => '无法加载工时数据。',
                 'manager' => '负责人',
-                'projects_load_error_title' => '无法加载项目',
+                'loading_data' => '正在加载数据...', 'loading' => '正在加载...', 'no_data' => '暂无数据', 'in_progress' => '处理中...', 'projects_load_error_title' => '无法加载项目',
                 'no_projects_for_filters_title' => '没有符合所选筛选条件的项目',
             ],
         ],
