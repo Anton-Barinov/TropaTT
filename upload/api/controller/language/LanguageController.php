@@ -163,8 +163,25 @@ final class LanguageController extends BaseController
     /**
      * Export an installed language pack as a ZIP archive.
      */
-    public function adminExport(string $code): void
+    public function adminExport(array $params = []): void
     {
+        // Route placeholders arrive as the params array (see App::run), never
+        // as positional scalar arguments — the previous `string $code`
+        // signature made every export answer a TypeError 500.
+        $code = trim((string)($params['code'] ?? ''));
+        if ($code === '') {
+            http_response_code(400);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'ok' => false,
+                'error' => [
+                    'code' => 'INVALID_PARAM',
+                    'message' => 'Language code is required.',
+                ],
+            ], JSON_UNESCAPED_UNICODE);
+            exit(0);
+        }
+
         $installer = $this->installer();
         try {
             $zipPath = $installer->exportPackage($code);
@@ -197,8 +214,14 @@ final class LanguageController extends BaseController
     /**
      * Delete a custom language pack.
      */
-    public function adminDelete(string $code): JsonResponse
+    public function adminDelete(array $params = []): JsonResponse
     {
+        // Same contract as adminExport: the router hands over the params array.
+        $code = trim((string)($params['code'] ?? ''));
+        if ($code === '') {
+            return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter', 'Invalid parameter'), 400);
+        }
+
         $installer = $this->installer();
         try {
             $result = $installer->deletePackage($code);
