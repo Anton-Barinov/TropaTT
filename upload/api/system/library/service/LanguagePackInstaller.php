@@ -210,6 +210,20 @@ final class LanguagePackInstaller
                 continue;
             }
 
+            // Optional per-pack supplemental dictionary. This keeps locale-
+            // specific late fixes out of the core overrides files while still
+            // allowing the web runtime and early responses to load them.
+            if (str_starts_with($norm, 'web/supplemental/packs/')) {
+                $relative = substr($norm, strlen('web/'));
+                $targetFile = dirname($this->basePath) . '/web/' . $relative;
+                $targetDir = dirname($targetFile);
+                if (!is_dir($targetDir)) {
+                    @mkdir($targetDir, 0775, true);
+                }
+                file_put_contents($targetFile, $content, LOCK_EX);
+                continue;
+            }
+
             // API language files
             if (str_starts_with($norm, 'api/' . $code . '/')) {
                 $subPath = substr($norm, strlen('api/' . $code . '/'));
@@ -366,6 +380,11 @@ final class LanguagePackInstaller
             $zip->addFile($webFile, 'web/' . $code . '.php');
         }
 
+        $packSupplemental = dirname($this->basePath) . '/web/language/supplemental/packs/' . $code . '.php';
+        if (is_file($packSupplemental)) {
+            $zip->addFile($packSupplemental, 'web/supplemental/packs/' . $code . '.php');
+        }
+
         // Add API translation files if present
         $apiDir = $this->basePath . '/language/' . $code;
         if (is_dir($apiDir)) {
@@ -423,6 +442,11 @@ final class LanguagePackInstaller
             @unlink($webFile);
         }
 
+        $packSupplemental = dirname($this->basePath) . '/web/language/supplemental/packs/' . $code . '.php';
+        if (is_file($packSupplemental)) {
+            @unlink($packSupplemental);
+        }
+
         // 3. Remove API language folder recursively
         $apiDir = $this->basePath . '/language/' . $code;
         if (is_dir($apiDir)) {
@@ -436,6 +460,47 @@ final class LanguagePackInstaller
             'code' => $code,
             'message' => sprintf('Language pack "%s" successfully deleted.', $code),
         ];
+    }
+
+    /**
+     * Whether a locale's language files are present on disk.
+     */
+    public function isLocaleInstalled(string $code): bool
+    {
+        $code = $this->registry->normalizeLocaleCode($code);
+
+        return isset($this->registry->discoverInstalledLocales()[$code]);
+    }
+
+    /**
+     * Remove the marketplace proxy module of a language pack (the manifest.json
+     * + directory a marketplace install creates next to the language files).
+     *
+     * The directory is deleted only when its manifest declares a language_pack
+     * for exactly this locale, so an unrelated module directory can never be
+     * touched. Returns true when files were actually removed.
+     */
+    public function removeModuleProxy(string $code): bool
+    {
+        $code = $this->registry->normalizeLocaleCode($code);
+        $moduleCode = 'crm.language-pack-' . $code;
+        $dir = dirname($this->basePath) . '/modules/' . $moduleCode;
+        $manifestPath = $dir . '/manifest.json';
+
+        if (!is_file($manifestPath)) {
+            return false;
+        }
+
+        $manifest = json_decode((string)file_get_contents($manifestPath), true);
+        if (!is_array($manifest)
+            || (string)($manifest['type'] ?? '') !== 'language_pack'
+            || (string)($manifest['code'] ?? '') !== $code) {
+            return false;
+        }
+
+        $this->removeDirectoryRecursively($dir);
+
+        return !is_dir($dir);
     }
 
     private function removeDirectoryRecursively(string $dir): void
@@ -479,4 +544,3 @@ final class LanguagePackInstaller
         return $this->deletePackage($code);
     }
 }
-

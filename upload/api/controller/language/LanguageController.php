@@ -225,9 +225,29 @@ final class LanguageController extends BaseController
         $installer = $this->installer();
         try {
             $result = $installer->deletePackage($code);
-            return $this->success('LANGUAGE_DELETED', $this->t('common/messages.success', 'Success'), $result);
         } catch (\Throwable $e) {
             return $this->error('DELETE_FAILED', $e->getMessage(), 422);
         }
+
+        // A marketplace install registers a proxy module (manifest.json +
+        // registry row) next to the language files. Deleting only the language
+        // would leave that phantom module on the Modules screen and make every
+        // later marketplace install answer ALREADY_INSTALLED — so the proxy is
+        // removed together with the pack it belongs to.
+        try {
+            if ($this->container->has('module.config')) {
+                $mc = $this->container->get('module.config');
+                if ($mc->getRegistry('crm.language-pack-' . $code) !== null) {
+                    $mc->unregister('crm.language-pack-' . $code);
+                }
+            }
+            $installer->removeModuleProxy($code);
+        } catch (\Throwable $e) {
+            // The language files are already gone; a leftover proxy must not
+            // turn a successful deletion into an error response.
+        }
+
+        return $this->success('LANGUAGE_DELETED', $this->t('common/messages.success', 'Success'), $result);
     }
+
 }

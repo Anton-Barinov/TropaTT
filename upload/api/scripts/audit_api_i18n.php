@@ -52,7 +52,7 @@ $lineAt = static function (string $source, int $offset): int {
 };
 
 // ---------------------------------------------------------------------------
-// Check 1 — referenced translation keys must exist in all seven locales
+// Check 1 — referenced translation keys must exist in all core locales.
 // ---------------------------------------------------------------------------
 
 /** @var array<string, array<int, array{file: string, line: int}>> $references */

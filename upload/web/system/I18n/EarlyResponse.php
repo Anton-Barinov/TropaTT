@@ -154,6 +154,13 @@ JS;
                 }
             }
         }
+        $packSupplementalPath = $baseDir . '/language/supplemental/packs/' . $locale . '.php';
+        if (is_file($packSupplementalPath)) {
+            $packSupplemental = require $packSupplementalPath;
+            if (is_array($packSupplemental)) {
+                $messages = array_replace_recursive($messages, $packSupplemental);
+            }
+        }
         return $messages;
     }
 
