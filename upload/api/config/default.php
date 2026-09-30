@@ -22,7 +22,7 @@ return [
     'locale' => [
         'default' => 'en-gb',
         'fallback' => 'en-gb',
-        'supported' => ['ru-ru', 'en-gb', 'zh-cn', 'es-es', 'pt-br', 'de-de', 'fr-fr', 'he-il', 'kk-kz', 'ky-kg'],
+        'supported' => ['ru-ru', 'en-gb', 'zh-cn', 'es-es', 'pt-br', 'de-de', 'fr-fr', 'he-il'],
     ],
     'storage' => [
         'base' => $storageBase,

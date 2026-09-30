@@ -15,11 +15,9 @@ $earlyLocale = match ($earlyLocale) {
     'de' => 'de-de',
     'fr' => 'fr-fr',
     'he', 'iw' => 'he-il',
-    'kk', 'kaz' => 'kk-kz',
-    'ky', 'kir' => 'ky-kg',
     default => $earlyLocale,
 };
-if (!in_array($earlyLocale, ['ru-ru', 'en-gb', 'zh-cn', 'es-es', 'pt-br', 'de-de', 'fr-fr', 'he-il', 'kk-kz', 'ky-kg'], true)) {
+if (!in_array($earlyLocale, ['ru-ru', 'en-gb', 'zh-cn', 'es-es', 'pt-br', 'de-de', 'fr-fr', 'he-il'], true)) {
     $earlyLocale = 'en-gb';
 }
 $earlyLanguage->setLocale($earlyLocale);

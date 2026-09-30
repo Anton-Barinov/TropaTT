@@ -65,8 +65,6 @@ final class LanguageManager
             'de' => 'de-de',
             'fr' => 'fr-fr',
             'he', 'iw' => 'he-il',
-            'kk', 'kaz' => 'kk-kz',
-            'ky', 'kir' => 'ky-kg',
             default => $value,
         };
     }
