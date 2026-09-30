@@ -71,7 +71,7 @@ return [
             'widget_worklog' => 'وقتي', 'widget_worklog_desc' => 'الوقت المسجل اليوم وهذا الأسبوع مع توزيع الأيام السبعة.', 'widget_my_tasks' => 'مهامي',
             'widget_approvals' => 'الموافقات المعلقة', 'widget_milestones' => 'المراحل القادمة', 'widget_favorites' => 'المفضلة',
             'widget_intake' => 'الطلبات الواردة', 'widget_my_week' => 'أسبوعي', 'widget_mentions' => 'الإشارات إليّ',
-            'widget_unassigned' => 'مهام بلا منفذ', 'ai_digest_meta' => 'ملخص المخاطر والتركيز استنادًا إلى بيانات لوحة التحكم الحالية.',
+            'widget_unassigned' => 'مهام بلا منفذ', 'loading_widget' => 'جارٍ التحميل...', 'sticky_notes_loading' => 'جارٍ تحميل الملاحظات...', 'ai_digest_meta' => 'ملخص المخاطر والتركيز استنادًا إلى بيانات لوحة التحكم الحالية.',
             'ai_digest_not_ready' => 'لم يتم إنشاء ملخص الذكاء الاصطناعي', 'ai_digest_empty' => 'لم يتم إنشاء ملخص الذكاء الاصطناعي',
             'ai_digest_hint' => 'اضغط «تحديث ملخص الذكاء الاصطناعي» للحصول على توصية.', 'ai_digest_refresh' => 'تحديث ملخص الذكاء الاصطناعي',
             'ai_risks' => 'المخاطر', 'ai_highlights' => 'أهم النقاط', 'ai_actions' => 'الإجراءات المقترحة',
