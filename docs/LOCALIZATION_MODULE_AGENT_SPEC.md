@@ -51,9 +51,9 @@ API, всех внутренних маршрутов, мобильного ин
 7. `upload/api/system/library/language/LanguageRegistryService.php` и
    `upload/api/system/library/language/LanguageManager.php` — реестр, направление,
    включение, fallback API.
-8. Эталонные файлы `upload/web/language/ar-sa.php`,
-   `upload/api/language/ar-sa/`, `upload/web/language/overrides.php` и
-   `upload/web/language/js_overrides.php`.
+8. Эталонные файлы установленного Marketplace-пакета и
+   `upload/web/language/supplemental/packs/<locale>.php` для поздних
+   исправлений; в core-репозитории встроены только `ru-ru`, `en-gb` и `zh-cn`.
 9. `tests/run_local.sh`, `tests/run_all.sh`,
    `upload/api/scripts/audit_web_i18n.php` и
    `upload/api/scripts/audit_api_i18n.php`.
@@ -161,9 +161,13 @@ Fallback обязан быть детерминированным:
 * темы, настройки, команды, циклы, знания, чаты, уведомления, аналитика,
   тарифы, контрагенты и все остальные страницы.
 
-Если в базе есть `overrides.php`, добавь секцию нового языка с теми же ключами,
-что и у основной локали. Если есть `js_overrides.php`, добавь отдельную секцию
-для строк, приходящих в браузер после загрузки страницы.
+Новые языки не добавляй секциями в core-файлы `overrides.php`,
+`js_overrides.php` или `supplemental/locale_parity.php`: эти файлы содержат
+только три базовые локали. Поздние исправления конкретного внешнего языка
+помещай в `web/supplemental/packs/<locale>.php` внутри его Marketplace-пакета.
+Установщик копирует этот файл в `web/language/supplemental/packs/`, а web и
+ранний response-слои подхватывают его после основного каталога. При удалении
+пакета supplemental-файл должен удаляться вместе с web/API словарями.
 
 Не копируй русские значения как временную заглушку. Если переводчик пока не
 готов, оставь английский нейтральный fallback и зарегистрируй ключ в списке
@@ -313,6 +317,9 @@ language-pack-<locale>-<version>.zip
 ├── manifest.json
 ├── web/
 │   └── <locale>.php
+│   └── supplemental/
+│       └── packs/
+│           └── <locale>.php       # optional late fixes for this pack
 └── api/
     └── <locale>/
         └── module/

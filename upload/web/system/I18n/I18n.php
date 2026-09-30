@@ -81,6 +81,18 @@ final class I18n
             }
         }
 
+        // A non-core language pack may ship late translation fixes that used
+        // to live in the core overrides files. Keep those dictionaries beside
+        // the installed locale so removing a pack removes every trace of it
+        // from the base build as well.
+        $packSupplementalPath = $baseDir . '/language/supplemental/packs/' . $locale . '.php';
+        if (is_file($packSupplementalPath)) {
+            $packSupplemental = require $packSupplementalPath;
+            if (is_array($packSupplemental)) {
+                $messages = self::mergeRecursive($messages, $packSupplemental);
+            }
+        }
+
         return new self($baseDir, $locale, $messages);
     }
 

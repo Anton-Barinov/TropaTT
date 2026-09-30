@@ -210,6 +210,20 @@ final class LanguagePackInstaller
                 continue;
             }
 
+            // Optional per-pack supplemental dictionary. This keeps locale-
+            // specific late fixes out of the core overrides files while still
+            // allowing the web runtime and early responses to load them.
+            if (str_starts_with($norm, 'web/supplemental/packs/')) {
+                $relative = substr($norm, strlen('web/'));
+                $targetFile = dirname($this->basePath) . '/web/' . $relative;
+                $targetDir = dirname($targetFile);
+                if (!is_dir($targetDir)) {
+                    @mkdir($targetDir, 0775, true);
+                }
+                file_put_contents($targetFile, $content, LOCK_EX);
+                continue;
+            }
+
             // API language files
             if (str_starts_with($norm, 'api/' . $code . '/')) {
                 $subPath = substr($norm, strlen('api/' . $code . '/'));
@@ -366,6 +380,11 @@ final class LanguagePackInstaller
             $zip->addFile($webFile, 'web/' . $code . '.php');
         }
 
+        $packSupplemental = dirname($this->basePath) . '/web/language/supplemental/packs/' . $code . '.php';
+        if (is_file($packSupplemental)) {
+            $zip->addFile($packSupplemental, 'web/supplemental/packs/' . $code . '.php');
+        }
+
         // Add API translation files if present
         $apiDir = $this->basePath . '/language/' . $code;
         if (is_dir($apiDir)) {
@@ -421,6 +440,11 @@ final class LanguagePackInstaller
         $webFile = dirname($this->basePath) . '/web/language/' . $code . '.php';
         if (is_file($webFile)) {
             @unlink($webFile);
+        }
+
+        $packSupplemental = dirname($this->basePath) . '/web/language/supplemental/packs/' . $code . '.php';
+        if (is_file($packSupplemental)) {
+            @unlink($packSupplemental);
         }
 
         // 3. Remove API language folder recursively
@@ -479,4 +503,3 @@ final class LanguagePackInstaller
         return $this->deletePackage($code);
     }
 }
-
