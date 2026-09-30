@@ -935,4 +935,13 @@ $overrides['zh-cn']['js']['pab'] = array_replace_recursive($overrides['zh-cn']['
     'total' => '总计',
     'min' => '分钟',
 ]);
+$overrides['ar-sa']['js']['pab'] = array_replace_recursive($overrides['ar-sa']['js']['pab'] ?? [], [
+    'kb_recent' => 'آخر التحديثات',
+    'loading' => 'جارٍ التحميل...',
+    'view' => 'فتح',
+    'empty' => 'لا توجد بيانات',
+    'no_match' => 'لا توجد نتائج مطابقة',
+    'length' => 'العناصر',
+    'no_data' => 'لا توجد بيانات',
+]);
 return $overrides;
