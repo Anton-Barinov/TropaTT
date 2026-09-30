@@ -6,7 +6,7 @@ namespace Web\System\I18n;
 final class EarlyResponse
 {
     /** @var list<string> */
-    private const SUPPORTED_LOCALES = ['ru-ru', 'en-gb', 'zh-cn', 'es-es', 'pt-br', 'de-de', 'fr-fr', 'ar-sa'];
+    private const SUPPORTED_LOCALES = ['ru-ru', 'en-gb', 'zh-cn', 'es-es', 'pt-br', 'de-de', 'fr-fr', 'ar-sa', 'he-il'];
 
     /**
      * Render the maintenance page without bootstrapping the full web application.
@@ -233,6 +233,7 @@ JS;
             'de' => 'de-de',
             'fr' => 'fr-fr',
             'ar' => 'ar-sa',
+            'he', 'iw' => 'he-il',
             default => $value,
         };
     }

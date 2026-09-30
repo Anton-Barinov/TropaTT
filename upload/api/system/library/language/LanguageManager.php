@@ -64,6 +64,7 @@ final class LanguageManager
             'pt' => 'pt-br',
             'de' => 'de-de',
             'fr' => 'fr-fr',
+            'he', 'iw' => 'he-il',
             default => $value,
         };
     }

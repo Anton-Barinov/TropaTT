@@ -65,6 +65,13 @@ final class LanguageRegistryService
             'direction' => 'ltr',
             'is_builtin' => true,
         ],
+        'he-il' => [
+            'code' => 'he-il',
+            'name' => 'Hebrew',
+            'native_name' => 'עברית',
+            'direction' => 'rtl',
+            'is_builtin' => true,
+        ],
     ];
 
     public function __construct(

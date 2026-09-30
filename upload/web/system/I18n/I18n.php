@@ -202,7 +202,7 @@ final class I18n
             return $data['enabled'];
         }
 
-        return ['ru-ru', 'en-gb', 'zh-cn', 'es-es', 'pt-br', 'de-de', 'fr-fr'];
+        return ['ru-ru', 'en-gb', 'zh-cn', 'es-es', 'pt-br', 'de-de', 'fr-fr', 'he-il'];
     }
 
     public static function getDefaultLocaleCode(string $baseDir = ''): string
@@ -246,6 +246,7 @@ final class I18n
             ['code' => 'fr-fr', 'name' => 'French', 'native_name' => 'Français', 'direction' => 'ltr'],
             ['code' => 'pt-br', 'name' => 'Portuguese (Brazil)', 'native_name' => 'Português (Brasil)', 'direction' => 'ltr'],
             ['code' => 'de-de', 'name' => 'German', 'native_name' => 'Deutsch', 'direction' => 'ltr'],
+            ['code' => 'he-il', 'name' => 'Hebrew', 'native_name' => 'עברית', 'direction' => 'rtl'],
         ];
     }
 
@@ -283,6 +284,7 @@ final class I18n
             'pt' => 'pt-br',
             'de' => 'de-de',
             'fr' => 'fr-fr',
+            'he', 'iw' => 'he-il',
             default => $value,
         };
     }
