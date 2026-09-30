@@ -1873,7 +1873,7 @@ TropaTT реализует унифицированный протокол ве�
 |-------|----------|--------|:---:|-------------|----------|
 | GET | `/api/v1/ops/cron/tasks` | Список плановых задач + heartbeat | Да | `logs.view` | Только главный администратор; возвращает `tasks`, агрегированные статусы `module_jobs`, `cron_heartbeat`, `stale`, `stale_threshold_minutes`. Payload и текст ошибок не раскрываются. |
 | GET | `/api/v1/ops/cron/executions` | История выполнений | Да | `logs.view` | root-only; фильтры `module`, `task`, `status`; `limit` 1–200 |
-| POST | `/api/v1/ops/cron/run-due` | Запустить все задачи | Да | `logs.view` | root-only; возвращает `executed`, `failed`, `results` |
+| POST | `/api/v1/ops/cron/run-due` | Запустить все задачи | Да | `logs.view` | Только главный администратор; возвращает `executed`, `failed`, `results` и счётчики ограниченного запуска `module_jobs`. |
 
 Веб-крон (`web/cron.php?key=<CRON_SECRET_KEY>`) вызывается раз в минуту панелью хостинга или внешним планировщиком. Он отправляет push-уведомления, запускает плановые задачи и создаёт напоминания календаря. Отметка времени записывается при каждом успешном вызове и отдаётся в `cron_heartbeat`. Если крон не замечен дольше порога (по умолчанию 60 минут, настраивается через `cron.stale_threshold_minutes`), `stale` = `true`.
 

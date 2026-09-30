@@ -15385,6 +15385,20 @@ body[data-page="admin-settings"] [data-settings-group] {
     box-shadow: none;
 }
 
+.crm-admin-jobs-cron-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    min-width: 0;
+}
+
+.crm-admin-jobs-cron-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
 .crm-admin-jobs-actions {
     white-space: nowrap;
 }

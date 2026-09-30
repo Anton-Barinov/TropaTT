@@ -226,11 +226,15 @@ final class OpsController extends BaseController
             $scheduler->ensureTables($driver);
 
             $result = $scheduler->run();
+            $moduleJobs = new ModuleJobDispatcher($pdo);
+            $moduleJobs->ensureTable($driver);
+            $moduleJobResult = $moduleJobs->runBatch(5, 8.0);
 
             return $this->success('OPS_CRON_RUN_DUE', $this->t('admin/messages.ops_system'), [
                 'executed' => (int)($result['executed'] ?? 0),
                 'failed' => (int)($result['failed'] ?? 0),
                 'results' => $result['results'] ?? [],
+                'module_jobs' => $moduleJobResult,
                 'generated_at' => gmdate('c'),
             ]);
         } catch (\Throwable $e) {
