@@ -29,7 +29,7 @@ Ukrainian is intentionally excluded from this catalogue.
 
 ## Release state
 
-The original 35 modules in the table have a standalone ZIP package with a manifest, web dictionary and API dictionary, and pass `scripts/validate_language_pack.php`. Every one of those 35 modules is approved in Marketplace and has a published release. The next expansion wave adds 13 standalone packages (`id-id`, `vi-vn`, `th-th`, `ms-my`, `fil-ph`, `be-by`, `nl-nl`, `pl-pl`, `ro-ro`, `cs-cz`, `hu-hu`, `sr-rs`, `hr-hr`); they must pass the same archive, completeness, install-request and checksum gates before their Marketplace status is reported as published.
+All **48 external modules** in the table have standalone ZIP packages with manifests, web dictionaries and API dictionaries. The original 35 modules and the 13-module expansion wave (`id-id`, `vi-vn`, `th-th`, `ms-my`, `fil-ph`, `be-by`, `nl-nl`, `pl-pl`, `ro-ro`, `cs-cz`, `hu-hu`, `sr-rs`, `hr-hr`) are approved and published in Marketplace. Each new release passed the local archive validator, the Marketplace AST/security pipeline, public module-page checks, and signed `install-request` download verification with a matching Marketplace SHA-256.
 
 When adding a locale:
 
