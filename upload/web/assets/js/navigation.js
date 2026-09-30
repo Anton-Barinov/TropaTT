@@ -683,9 +683,9 @@ window.CRM.navigation = (function () {
       var wrapper = document.createElement('div');
       wrapper.className = 'crm-workspace-switcher dropdown';
       wrapper.setAttribute('data-workspace-switcher', '1');
-      wrapper.innerHTML = '<button type="button" class="crm-workspace-trigger dropdown-toggle" id="crmWorkspaceSwitcher" aria-haspopup="true" aria-expanded="false" aria-label="'
+      wrapper.innerHTML = '<button type="button" class="crm-workspace-trigger dropdown-toggle" id="crmWorkspaceSwitcher" aria-haspopup="true" aria-expanded="false" title="' + escapeHtml(workspaceTitle) + '" aria-label="'
         + escapeHtml(workspaceLabel) + '"><span class="crm-workspace-trigger-icon" aria-hidden="true"><i class="fa-solid fa-building-columns"></i></span><span class="crm-workspace-trigger-copy"><span class="crm-workspace-trigger-caption">'
-        + escapeHtml(workspaceLabel) + '</span><strong class="crm-workspace-trigger-title">' + escapeHtml(workspaceTitle) + '</strong></span><span class="crm-workspace-trigger-chevron" aria-hidden="true"><i class="fa-solid fa-chevron-down"></i></span></button>'
+        + escapeHtml(workspaceLabel) + '</span><strong class="crm-workspace-trigger-title" title="' + escapeHtml(workspaceTitle) + '">' + escapeHtml(workspaceTitle) + '</strong></span><span class="crm-workspace-trigger-chevron" aria-hidden="true"><i class="fa-solid fa-chevron-down"></i></span></button>'
         + '<div class="crm-workspace-menu dropdown-menu dropdown-menu-end" role="menu" aria-labelledby="crmWorkspaceSwitcher"><div class="crm-workspace-menu-heading">'
         + escapeHtml(workspaceLabel) + '</div>'
         + items.map(function (item) {

@@ -20955,7 +20955,7 @@ body[data-page="admin-settings"] [data-settings-group] {
 }
 /* Workspace context switcher: a quiet, readable control that keeps the
  * current data scope visible without competing with the topbar actions. */
-.crm-workspace-switcher { position: relative; min-width: 208px; max-width: 270px; }
+.crm-workspace-switcher { position: relative; min-width: 208px; max-width: 360px; }
 .crm-workspace-trigger { display: flex; align-items: center; gap: .6rem; width: 100%; min-height: 42px; padding: .35rem .65rem; border: 1px solid var(--crm-border); border-radius: 12px; background: var(--crm-surface, #fff); color: var(--crm-text, #172033); text-align: left; box-shadow: 0 2px 8px rgba(22, 32, 51, .06); transition: border-color .18s ease, box-shadow .18s ease, background .18s ease; }
 .crm-workspace-trigger:hover, .crm-workspace-switcher.show .crm-workspace-trigger { border-color: var(--crm-primary, #4967e8); background: var(--crm-surface-muted, #f8faff); box-shadow: 0 5px 16px rgba(22, 32, 51, .1); }
 .crm-workspace-trigger::after { display: none; }

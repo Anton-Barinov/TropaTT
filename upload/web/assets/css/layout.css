@@ -167,6 +167,8 @@ a:focus-visible {
 .crm-nav .crm-nav-label {
   min-width: 0;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   transition: opacity var(--motion-fast) ease;
 }
 

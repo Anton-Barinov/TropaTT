@@ -89,7 +89,7 @@ if (is_file($jsOverridesPath)) {
       return require $overridesFile;
   })($jsOverridesPath);
   if (is_array($jsOverrides)) {
-    $fallbackLocale = $currentLocale === 'ru-ru' ? 'ru-ru' : 'en-gb';
+    $fallbackLocale = str_starts_with($currentLocale, 'ru-') ? 'ru-ru' : 'en-gb';
     if (is_array($jsOverrides[$fallbackLocale] ?? null)) {
       $lang_messages = array_replace_recursive(is_array($lang_messages ?? null) ? $lang_messages : [], $jsOverrides[$fallbackLocale]);
     }
@@ -107,7 +107,7 @@ if (is_file($jsOverridesPath)) {
 // data-i18n labels. This mirrors the web I18n loader order: js overrides
 // first, pack supplemental last.
 if (preg_match('/^[a-z]{2,3}(-[a-z0-9]{2,4})?$/', $currentLocale)) {
-  $packSupplementalPath = dirname(__DIR__, 3) . '/supplemental/packs/' . $currentLocale . '.php';
+  $packSupplementalPath = dirname(__DIR__, 3) . '/language/supplemental/packs/' . $currentLocale . '.php';
   if (is_file($packSupplementalPath)) {
     $packSupplemental = (static function (string $packFile) {
         return require $packFile;
