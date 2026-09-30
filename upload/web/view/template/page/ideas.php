@@ -67,7 +67,11 @@
 <script nonce="<?= $csp_nonce ?>">
 window.CRM = window.CRM || {};
 window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
-  return String((window.CRM && (window.CRM.locale || window.CRM.currentLocale)) || document.documentElement.lang || 'en-GB').replace('_', '-');
+  var raw = String((window.CRM && (window.CRM.locale || window.CRM.currentLocale)) || document.documentElement.lang || 'en-GB').replace('_', '-');
+  if (window.CRM && typeof window.CRM.safeIntlLocale === 'function') {
+    return window.CRM.safeIntlLocale(raw, 'en-GB');
+  }
+  return raw;
 };
 // === AI Pipeline: sequential block execution with proper save detection ===
 (function(){
@@ -1929,7 +1933,11 @@ load();
   }
   function ideaLocale(){
     if(window.CRM&&typeof window.CRM.ideaLocale==='function')return window.CRM.ideaLocale();
-    return String((window.CRM&&(window.CRM.locale||window.CRM.currentLocale))||document.documentElement.lang||'en-GB').replace('_','-');
+    var raw = String((window.CRM&&(window.CRM.locale||window.CRM.currentLocale))||document.documentElement.lang||'en-GB').replace('_','-');
+    if(window.CRM&&typeof window.CRM.safeIntlLocale==='function'){
+      return window.CRM.safeIntlLocale(raw, 'en-GB');
+    }
+    return raw;
   }
   function refreshVisualEditorScope(root){if(window.CRM.VisualEditor&&typeof window.CRM.VisualEditor.refreshEditors==='function')window.CRM.VisualEditor.refreshEditors(root||document,true);}
   function getVisualEditorValue(textarea){var value=textarea?textarea.value:'';if(textarea&&window.CRM.VisualEditor&&typeof window.CRM.VisualEditor.getInstances==='function'){window.CRM.VisualEditor.getInstances().forEach(function(editor){if(editor&&editor._textarea===textarea&&typeof editor.getValue==='function')value=editor.getValue();});}return value;}

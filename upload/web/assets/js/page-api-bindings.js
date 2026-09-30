@@ -175,11 +175,36 @@ window.CRM.pageApiBindings = (function () {
   }
 
   function tpLocale(defaultLocale) {
+    var fallback = defaultLocale || 'ru-RU';
     var raw = (window.CRM && (window.CRM.locale || window.CRM.currentLocale))
       || document.documentElement.getAttribute('lang')
-      || defaultLocale
-      || 'ru-RU';
-    return String(raw || 'ru-RU').replace('_', '-');
+      || fallback;
+    if (window.CRM && window.CRM.i18n && typeof window.CRM.i18n.safeIntlLocale === 'function') {
+      return window.CRM.i18n.safeIntlLocale(raw, fallback);
+    }
+    if (window.CRM && typeof window.CRM.safeIntlLocale === 'function') {
+      return window.CRM.safeIntlLocale(raw, fallback);
+    }
+    var candidate = String(raw || fallback).replace('_', '-').trim().toLowerCase();
+    if (candidate === 'ru-old' || candidate === 'ru-su' || candidate.indexOf('ru-') === 0 || candidate === 'ru') {
+      return 'ru-RU';
+    }
+    if (candidate.indexOf('en-') === 0 || candidate === 'en') {
+      return 'en-GB';
+    }
+    if (candidate.indexOf('zh-') === 0 || candidate === 'zh') {
+      return 'zh-CN';
+    }
+    if (candidate.indexOf('he-') === 0 || candidate === 'he') {
+      return 'he-IL';
+    }
+    try {
+      if (typeof Intl !== 'undefined' && Intl.DateTimeFormat && typeof Intl.DateTimeFormat.supportedLocalesOf === 'function') {
+        var supported = Intl.DateTimeFormat.supportedLocalesOf([candidate]);
+        if (supported && supported.length > 0) return supported[0];
+      }
+    } catch (e) {}
+    return fallback;
   }
 
   function rememberUser(user) {
@@ -6201,8 +6226,18 @@ window.CRM.pageApiBindings = (function () {
 
     var subtitle = document.querySelector('[data-dashboard-subtitle]');
     if (subtitle) {
+      var dateFormatted = '';
+      try {
+        dateFormatted = new Date().toLocaleDateString(tpLocale('ru-RU'), { day: '2-digit', month: 'long', year: 'numeric' });
+      } catch (e) {
+        try {
+          dateFormatted = new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' });
+        } catch (e2) {
+          dateFormatted = formatDate(new Date());
+        }
+      }
       subtitle.textContent = window.CRM.i18n.t('js.pab.dashboard_subtitle', 'Overview of tasks, risks and team load for')
-        + ' ' + new Date().toLocaleDateString(tpLocale('ru-RU'), { day: '2-digit', month: 'long', year: 'numeric' });
+        + ' ' + dateFormatted;
     }
 
     {
@@ -6645,7 +6680,13 @@ window.CRM.pageApiBindings = (function () {
           var d = new Date();
           d.setDate(now.getDate() - i);
           var mins = Number(dayTotals[dateKey(d)] || 0);
-          bars.push({ mins: mins, isToday: i === 0, label: d.toLocaleDateString(tpLocale('ru-RU'), { weekday: 'short' }).replace('.', '') });
+          var weekdayLabel = '';
+          try {
+            weekdayLabel = d.toLocaleDateString(tpLocale('ru-RU'), { weekday: 'short' }).replace('.', '');
+          } catch (e) {
+            weekdayLabel = d.toLocaleDateString('ru-RU', { weekday: 'short' }).replace('.', '');
+          }
+          bars.push({ mins: mins, isToday: i === 0, label: weekdayLabel });
         }
         var maxMins = 1;
         bars.forEach(function (b) { if (b.mins > maxMins) maxMins = b.mins; });

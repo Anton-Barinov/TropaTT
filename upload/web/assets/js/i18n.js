@@ -104,6 +104,81 @@ window.CRM.i18n = (function () {
     });
   }
 
+  function safeIntlLocale(locale, fallback) {
+    var def = fallback || 'ru-RU';
+    var raw = String(locale || (window.CRM && (window.CRM.locale || window.CRM.currentLocale)) || document.documentElement.lang || def).replace('_', '-').trim();
+    if (!raw) return def;
+    var lower = raw.toLowerCase();
+    if (lower === 'ru-old' || lower === 'ru-su' || lower.indexOf('ru-') === 0 || lower === 'ru') {
+      return 'ru-RU';
+    }
+    if (lower.indexOf('en-') === 0 || lower === 'en') {
+      return 'en-GB';
+    }
+    if (lower.indexOf('zh-') === 0 || lower === 'zh' || lower === 'cn') {
+      return 'zh-CN';
+    }
+    if (lower.indexOf('he-') === 0 || lower === 'he' || lower === 'iw') {
+      return 'he-IL';
+    }
+    try {
+      if (typeof Intl !== 'undefined' && Intl.DateTimeFormat && typeof Intl.DateTimeFormat.supportedLocalesOf === 'function') {
+        var supported = Intl.DateTimeFormat.supportedLocalesOf([raw]);
+        if (supported && supported.length > 0) {
+          return supported[0];
+        }
+      }
+    } catch (e) {
+      // Structurally invalid tag rejected by Intl
+    }
+    return def;
+  }
+
+  function formatDate(date, options, locale) {
+    var safeLoc = safeIntlLocale(locale, 'ru-RU');
+    var d = (date instanceof Date) ? date : new Date(date);
+    if (!Number.isFinite(d.getTime())) return '—';
+    try {
+      return d.toLocaleDateString(safeLoc, options);
+    } catch (e) {
+      try {
+        return d.toLocaleDateString('ru-RU', options);
+      } catch (e2) {
+        return d.toISOString().slice(0, 10);
+      }
+    }
+  }
+
+  function formatTime(date, options, locale) {
+    var safeLoc = safeIntlLocale(locale, 'ru-RU');
+    var d = (date instanceof Date) ? date : new Date(date);
+    if (!Number.isFinite(d.getTime())) return '—';
+    try {
+      return d.toLocaleTimeString(safeLoc, options);
+    } catch (e) {
+      try {
+        return d.toLocaleTimeString('ru-RU', options);
+      } catch (e2) {
+        return d.toTimeString().slice(0, 5);
+      }
+    }
+  }
+
+  function formatDateTime(date, options, locale) {
+    var safeLoc = safeIntlLocale(locale, 'ru-RU');
+    var d = (date instanceof Date) ? date : new Date(date);
+    if (!Number.isFinite(d.getTime())) return '—';
+    try {
+      return d.toLocaleString(safeLoc, options);
+    } catch (e) {
+      try {
+        return d.toLocaleString('ru-RU', options);
+      } catch (e2) {
+        return d.toISOString().replace('T', ' ').slice(0, 16);
+      }
+    }
+  }
+
   function init() {
     if (window.CRM && window.CRM.locale) {
       var normalized = String(window.CRM.locale || '').toLowerCase();
@@ -112,9 +187,20 @@ window.CRM.i18n = (function () {
     applyToDom(document);
   }
 
-  return {
+  var api = {
     t: t,
     applyToDom: applyToDom,
-    init: init
+    init: init,
+    safeIntlLocale: safeIntlLocale,
+    formatDate: formatDate,
+    formatTime: formatTime,
+    formatDateTime: formatDateTime
   };
+
+  if (window.CRM) {
+    window.CRM.safeIntlLocale = safeIntlLocale;
+  }
+
+  return api;
 })();
+

@@ -113,10 +113,23 @@
     if (!value) return '';
     var date = new Date(String(value).replace(' ', 'T'));
     if (Number.isNaN(date.getTime())) return '';
-    var locale = String((window.CRM && (window.CRM.locale || window.CRM.currentLocale)) || document.documentElement.lang || 'en-GB').replace('_', '-');
-    return date.toDateString() === new Date().toDateString()
-      ? date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
-      : date.toLocaleDateString(locale, { day: '2-digit', month: '2-digit' });
+    var rawLocale = String((window.CRM && (window.CRM.locale || window.CRM.currentLocale)) || document.documentElement.lang || 'en-GB').replace('_', '-');
+    var locale = (window.CRM && typeof window.CRM.safeIntlLocale === 'function')
+      ? window.CRM.safeIntlLocale(rawLocale, 'ru-RU')
+      : (/^ru(-.*)?$/i.test(rawLocale) ? 'ru-RU' : rawLocale);
+    try {
+      return date.toDateString() === new Date().toDateString()
+        ? date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+        : date.toLocaleDateString(locale, { day: '2-digit', month: '2-digit' });
+    } catch (e) {
+      try {
+        return date.toDateString() === new Date().toDateString()
+          ? date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+          : date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+      } catch (e2) {
+        return date.toTimeString().slice(0, 5);
+      }
+    }
   };
 
   function plural(count, one, few, many) {
