@@ -929,7 +929,9 @@ $overrides['zh-cn']['js']['pab'] = array_replace_recursive($overrides['zh-cn']['
     'active_prefix' => '活跃',
     'overdue_prefix' => '逾期',
     'time_logged_prefix' => '已记录时间',
+    'project_no_client' => '无客户项目',
     'project_without_client' => '无客户项目',
+    'total_prefix' => '总计',
     'total' => '总计',
     'min' => '分钟',
 ]);
