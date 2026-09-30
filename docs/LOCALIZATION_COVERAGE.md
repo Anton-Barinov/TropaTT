@@ -26,7 +26,7 @@ Ukrainian is intentionally excluded from this catalogue.
 
 ## Release state
 
-All modules in the table have a standalone ZIP package with a manifest, web dictionary and API dictionary, and pass `scripts/validate_language_pack.php`. Arabic and Hebrew have approved public releases. The remaining modules have been submitted to Marketplace and may remain `under_review` until manual moderation completes; a pending release must not be treated as publicly installable.
+All 35 modules in the table have a standalone ZIP package with a manifest, web dictionary and API dictionary, and pass `scripts/validate_language_pack.php`. Every module is now approved in Marketplace and has a published release. The latest public versions include Arabic `1.0.2`, Hebrew `1.0.5`, Kazakh `1.0.3`, German/Spanish/French `1.0.1`, and Brazilian Portuguese `1.0.2`; the other modules are published at `1.0.0`. Public `install-request` verification succeeded for all 35 modules, including checksum-bearing signed download URLs.
 
 When adding a locale:
 
