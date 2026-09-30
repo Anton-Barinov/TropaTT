@@ -27,6 +27,19 @@ Every other locale is distributed as a standalone `crm.language-pack-<locale>` M
 
 Ukrainian is intentionally excluded from this catalogue.
 
+## Marketplace naming convention
+
+All language-pack listings use the same title template:
+
+```text
+TropaTT CRM Language Pack — <native language name>
+```
+
+The `title_en` field follows the same structure with the English language name,
+and `title_zh` uses `TropaTT CRM 语言包 — <native language name>`. On 30 September
+2026 this template was applied to all 48 published external language modules;
+the module codes, release versions and package manifests were not changed.
+
 ## Release state
 
 All **48 external modules** in the table have standalone ZIP packages with manifests, web dictionaries and API dictionaries. The original 35 modules and the 13-module expansion wave (`id-id`, `vi-vn`, `th-th`, `ms-my`, `fil-ph`, `be-by`, `nl-nl`, `pl-pl`, `ro-ro`, `cs-cz`, `hu-hu`, `sr-rs`, `hr-hr`) are approved and published in Marketplace. Each new release passed the local archive validator, the Marketplace AST/security pipeline, public module-page checks, and signed `install-request` download verification with a matching Marketplace SHA-256.
