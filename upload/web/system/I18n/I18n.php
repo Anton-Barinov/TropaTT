@@ -51,7 +51,7 @@ final class I18n
             }
         }
 
-        $parityPath = $baseDir . '/language/locale_parity.php';
+        $parityPath = $baseDir . '/language/supplemental/locale_parity.php';
         if (is_file($parityPath)) {
             $parity = require $parityPath;
             if (is_array($parity)) {
