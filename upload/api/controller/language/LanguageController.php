@@ -225,9 +225,87 @@ final class LanguageController extends BaseController
         $installer = $this->installer();
         try {
             $result = $installer->deletePackage($code);
-            return $this->success('LANGUAGE_DELETED', $this->t('common/messages.success', 'Success'), $result);
         } catch (\Throwable $e) {
             return $this->error('DELETE_FAILED', $e->getMessage(), 422);
         }
+
+        // A marketplace install registers a proxy module (manifest.json plus a
+        // registry row) next to the language files. Deleting only the language
+        // would leave that phantom module on the Modules screen and make every
+        // later marketplace install answer ALREADY_INSTALLED — so the proxy is
+        // removed together with the pack it belongs to.
+        $this->removeLanguagePackModuleProxy($code);
+
+        return $this->success('LANGUAGE_DELETED', $this->t('common/messages.success', 'Success'), $result);
+    }
+
+    /**
+     * Remove the marketplace proxy module of a language pack, if present.
+     *
+     * The directory is deleted only when its manifest declares a language_pack
+     * for exactly this locale, so an unrelated module directory can never be
+     * touched by a language deletion.
+     */
+    private function removeLanguagePackModuleProxy(string $code): void
+    {
+        try {
+            if (!$this->container->has('module.config') || !$this->container->has('plugin.manager')) {
+                return;
+            }
+
+            $moduleCode = 'crm.language-pack-' . $code;
+            /** @var \Api\System\Library\Module\ModuleConfig $mc */
+            $mc = $this->container->get('module.config');
+            /** @var object $pm */
+            $pm = $this->container->get('plugin.manager');
+
+            if ($mc->getRegistry($moduleCode) !== null) {
+                $mc->unregister($moduleCode);
+            }
+
+            $dir = rtrim((string)$pm->getModulesDir(), '/') . '/' . $moduleCode;
+            $manifestPath = $dir . '/manifest.json';
+            if (!is_file($manifestPath)) {
+                return;
+            }
+
+            $manifest = json_decode((string)file_get_contents($manifestPath), true);
+            if (!is_array($manifest)
+                || (string)($manifest['type'] ?? '') !== 'language_pack'
+                || (string)($manifest['code'] ?? '') !== $code) {
+                return;
+            }
+
+            $this->removeDirectoryRecursively($dir);
+        } catch (\Throwable $e) {
+            // The language files are already gone; a leftover proxy must not
+            // turn a successful deletion into an error response.
+        }
+    }
+
+    private function removeDirectoryRecursively(string $dir): bool
+    {
+        if (!is_dir($dir)) {
+            return false;
+        }
+
+        $items = scandir($dir);
+        if ($items === false) {
+            return false;
+        }
+
+        foreach ($items as $item) {
+            if ($item === '.' || $item === '..') {
+                continue;
+            }
+            $path = $dir . '/' . $item;
+            if (is_dir($path) && !is_link($path)) {
+                $this->removeDirectoryRecursively($path);
+            } else {
+                @unlink($path);
+            }
+        }
+
+        return @rmdir($dir);
     }
 }
