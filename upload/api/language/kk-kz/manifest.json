@@ -8,7 +8,7 @@
   "native_name": "Қазақша",
   "direction": "ltr",
   "author": "Anton Barinov",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "category": "localization",
   "min_crm_version": "20260928.001",
   "description": "TropaTT CRM жүйесіне арналған қазақ тіліндегі толық LTR локализация пакеті."
