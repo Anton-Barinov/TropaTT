@@ -579,7 +579,7 @@
 <tr><td data-i18n="docs.tech_num_ai"><?= htmlspecialchars($t('docs.tech_num_ai', 'AI-workflows'), ENT_QUOTES, 'UTF-8') ?></td><td>22</td></tr>
 <tr><td data-i18n="docs.tech_num_flags"><?= htmlspecialchars($t('docs.tech_num_flags', 'Feature-флаги'), ENT_QUOTES, 'UTF-8') ?></td><td>43</td></tr>
 <tr><td data-i18n="docs.tech_num_deps"><?= htmlspecialchars($t('docs.tech_num_deps', 'Внешние PHP-зависимости'), ENT_QUOTES, 'UTF-8') ?></td><td>0</td></tr>
-<tr><td data-i18n="docs.tech_num_langs"><?= htmlspecialchars($t('docs.tech_num_langs', 'Языки интерфейса'), ENT_QUOTES, 'UTF-8') ?></td><td>7 — English, Русский, Deutsch, Español, Français, Português, 中文</td></tr>
+<tr><td data-i18n="docs.tech_num_langs"><?= htmlspecialchars($t('docs.tech_num_langs', 'Языки интерфейса'), ENT_QUOTES, 'UTF-8') ?></td><td>3 — English, Русский, 中文 (additional languages are installed from Marketplace)</td></tr>
 </tbody>
 </table>
 </div>
