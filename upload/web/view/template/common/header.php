@@ -98,6 +98,25 @@ if (is_file($jsOverridesPath)) {
     }
   }
 }
+// Marketplace language packs ship their late fixes in a supplemental
+// dictionary. The js_overrides merge above is a legacy layer applied at the
+// template stage (it also delivers integration/migration namespaces the
+// client payload filter drops), so without re-applying the pack layer here
+// the en-gb fallback values from js_overrides would overwrite pack
+// translations - e.g. common.cancel_btn - as soon as i18n.js applies
+// data-i18n labels. This mirrors the web I18n loader order: js overrides
+// first, pack supplemental last.
+if (preg_match('/^[a-z]{2,3}(-[a-z0-9]{2,4})?$/', $currentLocale)) {
+  $packSupplementalPath = dirname(__DIR__, 3) . '/supplemental/packs/' . $currentLocale . '.php';
+  if (is_file($packSupplementalPath)) {
+    $packSupplemental = (static function (string $packFile) {
+        return require $packFile;
+    })($packSupplementalPath);
+    if (is_array($packSupplemental)) {
+      $lang_messages = array_replace_recursive(is_array($lang_messages ?? null) ? $lang_messages : [], $packSupplemental);
+    }
+  }
+}
 ?><!doctype html>
 <html lang="<?= htmlspecialchars($htmlLang, ENT_QUOTES, 'UTF-8') ?>" dir="<?= htmlspecialchars($direction, ENT_QUOTES, 'UTF-8') ?>">
 <head>
