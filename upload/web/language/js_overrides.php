@@ -34,7 +34,7 @@ $overrides = [
                 'hint' => 'سيُنشأ المشروع مباشرة عبر واجهة API مع العميل والفريق والمدير.',
             ],
         ],
-        'js' => ['pab' => ['loading_data' => 'جارٍ تحميل البيانات...']],
+        'js' => ['br1' => ['quick_client_btn' => '+ إنشاء', 'quick_client_btn_aria' => 'إنشاء عميل', 'quick_project_btn' => '+ إنشاء', 'quick_project_btn_aria' => 'إنشاء مشروع'], 'modal' => ['create_project' => 'إنشاء مشروع', 'quick_client_create' => 'إنشاء عميل', 'cancel' => 'إلغاء', 'create' => 'إنشاء', 'label_title' => 'العنوان', 'label_description' => 'الوصف', 'label_status' => 'الحالة', 'status_new' => 'جديد', 'label_priority' => 'الأولوية', 'priority_normal' => 'عادي', 'priority_low' => 'منخفض', 'priority_high' => 'مرتفع', 'priority_urgent' => 'عاجل', 'label_assignee' => 'المسند إليه', 'no_assignee' => 'غير مسند', 'label_start' => 'تاريخ البدء', 'label_due' => 'الموعد النهائي', 'label_end' => 'الإكمال المخطط', 'label_tags' => 'الوسوم', 'tags_hint' => 'اختر وسوماً متعددة.', 'placeholder_desc' => 'السياق والخطوات والمخاطر ومعايير القبول'], 'pab' => ['loading_data' => 'جارٍ تحميل البيانات...']],
     ],
     'ru-ru' => [
         'admin' => ['statuses_empty_projects' => 'Статусы проектов не найдены.', 'statuses_empty_tasks' => 'Статусы задач не найдены.', 'status_closed_yes' => 'Да', 'status_closed_no' => 'Нет'],
