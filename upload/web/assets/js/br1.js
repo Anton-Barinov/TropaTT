@@ -3964,42 +3964,48 @@ window.CRM.br1 = (function () {
     var collapseLabel = window.CRM.i18n.t('js.br1.svernut_kommentariy', 'Свернуть');
     var comments = list.querySelectorAll('.crm-comment');
     for (var ci = 0; ci < comments.length; ci += 1) {
-      var card = comments[ci];
-      var body = card.querySelector('[data-comment-body]');
-      if (!body) continue;
-      if (body.scrollHeight <= COMMENT_COLLAPSE_MAX_HEIGHT) continue;
-
-      var publicId = String(card.getAttribute('data-comment-id') || '');
-      var wrap = document.createElement('div');
-      wrap.className = 'crm-comment-body-wrap';
-      body.parentNode.insertBefore(wrap, body);
-      wrap.appendChild(body);
-
-      // Fade sits inside the clipped body so it is hidden while editing too.
-      var fade = document.createElement('div');
-      fade.className = 'crm-comment-collapse-fade';
-      body.appendChild(fade);
-
-      var toggle = document.createElement('button');
-      toggle.type = 'button';
-      toggle.className = 'crm-comment-collapse-toggle';
-      wrap.appendChild(toggle);
-
-      function setExpanded(expanded) {
-        wrap.classList.toggle('crm-comment-expanded', expanded);
-        toggle.textContent = expanded ? collapseLabel : expandLabel;
-        toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-        if (expanded) {
-          expandedCommentIds[publicId] = true;
-        } else {
-          delete expandedCommentIds[publicId];
-        }
-      }
-      setExpanded(Boolean(expandedCommentIds[publicId]));
-      toggle.addEventListener('click', function () {
-        setExpanded(!wrap.classList.contains('crm-comment-expanded'));
-      });
+      bindCommentCollapse(comments[ci], expandLabel, collapseLabel);
     }
+  }
+
+  // One closure per comment card. The toggle has to remember ITS OWN wrap,
+  // button and public id — keeping that state in `var`s declared inside the
+  // render loop made every handler act on the last long comment of the feed.
+  function bindCommentCollapse(card, expandLabel, collapseLabel) {
+    var body = card.querySelector('[data-comment-body]');
+    if (!body) return;
+    if (body.scrollHeight <= COMMENT_COLLAPSE_MAX_HEIGHT) return;
+
+    var publicId = String(card.getAttribute('data-comment-id') || '');
+    var wrap = document.createElement('div');
+    wrap.className = 'crm-comment-body-wrap';
+    body.parentNode.insertBefore(wrap, body);
+    wrap.appendChild(body);
+
+    // Fade sits inside the clipped body so it is hidden while editing too.
+    var fade = document.createElement('div');
+    fade.className = 'crm-comment-collapse-fade';
+    body.appendChild(fade);
+
+    var toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'crm-comment-collapse-toggle';
+    wrap.appendChild(toggle);
+
+    function setExpanded(expanded) {
+      wrap.classList.toggle('crm-comment-expanded', expanded);
+      toggle.textContent = expanded ? collapseLabel : expandLabel;
+      toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      if (expanded) {
+        expandedCommentIds[publicId] = true;
+      } else {
+        delete expandedCommentIds[publicId];
+      }
+    }
+    setExpanded(Boolean(expandedCommentIds[publicId]));
+    toggle.addEventListener('click', function () {
+      setExpanded(!wrap.classList.contains('crm-comment-expanded'));
+    });
   }
 
   function matchMentionedUsersFromText(text) {
@@ -8678,6 +8684,7 @@ window.CRM.br1 = (function () {
     bindTaskCommentFlow(taskId);
     bindTaskFileUpload(taskId);
     bindTaskEditFlow(taskId);
+    bindTaskDetailDelete(taskId);
     bindSubtaskFlow(taskId, canWorkTask, canEditTask);
     bindChecklistFlow(taskId, canWorkTask);
     populateWorklogActivitySelects(currentTask && currentTask.activity_code);
@@ -8685,6 +8692,76 @@ window.CRM.br1 = (function () {
     bindTaskTimerFlow(taskId);
     bindTaskAiSummaryFlow(taskId);
     bindTaskDetailDeferredLoads(taskId, canWorkTask, canEditTask);
+  }
+
+  // The "Delete" item of the card actions menu opens the shared confirmation
+  // modal, but the handler that submits it lives in bindTaskBulkDelete() and is
+  // only bound on the tasks list route (there it hangs off #bulkActionsBar,
+  // which this page does not render). Without this binding confirming used to
+  // do nothing, so the task silently survived its own delete dialog.
+  function bindTaskDetailDelete(taskId) {
+    var menu = document.querySelector('[data-task-actions-menu]');
+    var modal = document.getElementById('deleteConfirmModal');
+    var confirmBtn = document.getElementById('deleteConfirmSubmitBtn');
+    if (!menu || !modal || !confirmBtn) return;
+    var trigger = menu.querySelector('[data-confirm-delete]');
+    if (!trigger) return;
+
+    var titleNode = document.getElementById('deleteConfirmTitle');
+    var bodyNode = document.getElementById('deleteConfirmBody');
+
+    if (trigger.dataset.boundTaskDetailDelete !== '1') {
+      trigger.addEventListener('click', function () {
+        if (titleNode) {
+          titleNode.textContent = window.CRM.i18n.t('js.pab.delete_task_q', 'Удалить задачу?');
+        }
+        if (bodyNode) {
+          var taskTitle = String((currentTask && currentTask.title) || window.CRM.i18n.t('js.pab.task', 'Task'));
+          bodyNode.textContent = window.CRM.i18n.t('js.pab.action_irreversible', 'Это действие необратимо.') + ' ' + taskTitle + '.';
+        }
+        confirmBtn.dataset.taskDetailId = taskId;
+        confirmBtn.dataset.deleteMode = 'task-detail';
+      });
+      trigger.dataset.boundTaskDetailDelete = '1';
+    }
+
+    if (confirmBtn.dataset.boundTaskDetailDelete !== '1') {
+      confirmBtn.addEventListener('click', async function () {
+        // The modal is shared: only act when this page's trigger opened it,
+        // otherwise a future consumer of the modal would delete a task by
+        // pressing its own confirm button.
+        if (confirmBtn.dataset.deleteMode !== 'task-detail') return;
+        var id = String(confirmBtn.dataset.taskDetailId || '').trim() || String(taskId || '').trim();
+        if (!id) return;
+
+        confirmBtn.disabled = true;
+        try {
+          await window.CRM.api.request('api/v1/tasks/' + encodeURIComponent(id), { method: 'DELETE' });
+          if (window.bootstrap && window.bootstrap.Modal) {
+            window.bootstrap.Modal.getOrCreateInstance(modal).hide();
+          }
+          notify(window.CRM.i18n.t('js.pab.task_deleted', 'Задача удалена'), 'success');
+          window.location.href = 'index.php?route=tasks';
+        } catch (error) {
+          var deleteError = window.CRM.api.normalizeError(error, window.CRM.i18n.t('js.pab.error', 'Ошибка'));
+          notify(window.CRM.api.formatErrorMessage(deleteError, { withRequestId: true }), 'error');
+        } finally {
+          confirmBtn.disabled = false;
+          confirmBtn.dataset.deleteMode = '';
+          confirmBtn.dataset.taskDetailId = '';
+        }
+      });
+      confirmBtn.dataset.boundTaskDetailDelete = '1';
+    }
+
+    if (modal.dataset.taskDetailCleanupBound !== '1') {
+      modal.addEventListener('hidden.bs.modal', function () {
+        confirmBtn.disabled = false;
+        confirmBtn.dataset.deleteMode = '';
+        confirmBtn.dataset.taskDetailId = '';
+      });
+      modal.dataset.taskDetailCleanupBound = '1';
+    }
   }
 
   function bindTaskTabOverflowNavigation() {

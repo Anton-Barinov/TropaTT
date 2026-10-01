@@ -125,7 +125,7 @@ final class SubtaskRepository
     {
         return (new QueryBuilder($this->pdo))
             ->from('tasks')
-            ->select(['id', 'public_id', 'project_id', 'priority_code', 'creator_user_id', 'task_key_prefix', 'organization_id'])
+            ->select(['id', 'public_id', 'project_id', 'client_public_id', 'priority_code', 'creator_user_id', 'task_key_prefix', 'organization_id'])
             ->where('public_id', '=', $taskPublicId)
             ->whereNull('deleted_at')
             ->first();

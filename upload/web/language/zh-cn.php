@@ -7717,7 +7717,7 @@ return array (
     'tab_tasks' => 'Task policies',
     'tab_finance' => 'Finance',
     'tab_retention' => 'Retention & audit',
-    'tab_sysinfo' => 'Environment',
+    'tab_sysinfo' => '系统环境',
     'search_placeholder' => 'Search by key or title...',
     'filter_empty_title' => '未找到设置',
     'filter_empty_body' => '修改搜索条件或选择其他类别。',

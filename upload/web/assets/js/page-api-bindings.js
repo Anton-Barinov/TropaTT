@@ -27073,7 +27073,9 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       var normalizedSearch = String(currentSearch || '').trim().toLowerCase();
       groups.forEach(function (groupEl) {
         var grpName = groupEl.getAttribute('data-settings-group');
-        var catMatch = currentCategory === 'all' || currentCategory === grpName;
+        // The user-facing "System and cache" tab intentionally combines the
+        // general system settings and the separate API cache card.
+        var catMatch = currentCategory === 'all' || currentCategory === grpName || (currentCategory === 'system' && grpName === 'cache');
         if (!catMatch) {
           groupEl.style.display = 'none';
           return;
@@ -27685,7 +27687,10 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         var storage = system.storage || {};
         var directories = storage.directories || {};
         var webhooks = data.webhooks || {};
-        section.style.display = 'block';
+        // This element is the Bootstrap row for its own filter group. Restore
+        // its stylesheet display mode instead of forcing `block`, so the
+        // responsive grid remains a flex row after the environment data loads.
+        section.style.display = '';
         document.getElementById('systemInfoPhpVersion').textContent = safeText(app.version ? ('API ' + app.version) : (data.php_version || '—'));
         document.getElementById('systemInfoEnv').textContent = safeText(app.timezone || data.environment || data.app_env || '—');
         document.getElementById('systemInfoDb').textContent = Boolean(database.connected) ? tp('admin_settings.db_connected', 'Connected') : tp('admin_settings.db_disconnected', 'No connection');
