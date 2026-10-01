@@ -113,7 +113,10 @@
       </div>
     </div>
   </div>
-  <div class="col-lg-6" id="adminSystemInfoSection" style="display:none;" data-settings-group="sysinfo">
+</div>
+
+<div class="row g-3 mb-3" id="adminSystemInfoSection" style="display:none;" data-settings-group="sysinfo">
+  <div class="col-lg-6">
     <div class="crm-card crm-section-card h-100" id="adminSystemInfoSectionCard" data-settings-scope="system-info">
       <div class="crm-section-head"><div><h2 class="h6 mb-0" data-i18n="admin_settings.section_system_info_title"><?= htmlspecialchars($t('admin_settings.section_system_info_title', 'Информация о системе'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="admin_settings.section_system_note_env"><?= htmlspecialchars($t('admin_settings.section_system_info_note', 'Технические параметры окружения (только для root).'), ENT_QUOTES, 'UTF-8') ?></div></div><div class="d-flex gap-2"><button id="adminSystemInfoRefreshBtn" class="btn btn-sm crm-btn-secondary" type="button" data-i18n="admin_settings.system_info_refresh_btn"><?= htmlspecialchars($t('admin_settings.system_info_refresh_btn', 'Обновить'), ENT_QUOTES, 'UTF-8') ?></button></div></div>
       <div class="crm-admin-settings-sysinfo-grid">
