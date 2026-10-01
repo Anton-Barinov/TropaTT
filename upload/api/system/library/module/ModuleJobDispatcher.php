@@ -321,16 +321,11 @@ final class ModuleJobDispatcher
         $dt = $driver === 'sqlsrv' ? 'DATETIME2' : 'DATETIME';
         $nowDefault = $driver === 'sqlite' ? "DEFAULT (datetime('now'))" : 'DEFAULT CURRENT_TIMESTAMP';
         $keyType = $driver === 'mysql' ? 'VARCHAR(190)' : 'TEXT';
-        $jsonType = $driver === 'mysql' ? 'LONGTEXT' : 'TEXT';
-
         $this->pdo->exec("CREATE TABLE IF NOT EXISTS {$this->tableName} (id {$id}, module_name {$keyType} NOT NULL, job_name {$keyType} NOT NULL, payload {$keyType} NOT NULL, status {$keyType} NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0, max_attempts INTEGER NOT NULL DEFAULT 3, delay_until {$dt}, created_at {$dt} NOT NULL {$nowDefault}, completed_at {$dt})");
-        $this->pdo->exec("CREATE TABLE IF NOT EXISTS {$this->contextTable} (job_id INTEGER PRIMARY KEY, module_name {$keyType} NOT NULL, organization_id INTEGER NOT NULL, organization_public_id VARCHAR(64), actor_public_id VARCHAR(64), source VARCHAR(32) NOT NULL, correlation_id VARCHAR(64) NOT NULL, idempotency_key {$keyType}, payload_json {$jsonType} NOT NULL, last_error {$jsonType}, claimed_at {$dt}, created_at {$dt} NOT NULL {$nowDefault})");
 
         try {
             IndexHelper::createIndexIfNotExists($this->pdo, $this->tableName, 'idx_module_jobs_status', 'status, created_at');
             IndexHelper::createIndexIfNotExists($this->pdo, $this->tableName, 'idx_module_jobs_module', 'module_name');
-            IndexHelper::createIndexIfNotExists($this->pdo, $this->contextTable, 'idx_module_job_scope_key', 'module_name, organization_id, idempotency_key', true);
-            IndexHelper::createIndexIfNotExists($this->pdo, $this->contextTable, 'idx_module_job_scope', 'organization_id, job_id');
         } catch (\Throwable $e) {
             AppLog::error('[ModuleJobDispatcher::ensureTable] Index creation failed: ' . $e->getMessage());
         }
