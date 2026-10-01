@@ -99,8 +99,21 @@
         }
     }
 
-    function getSelectedNames() {
-        return Object.keys(state.selected).filter(function (name) { return state.selected[name]; });
+    function selectedModules(action) {
+        var selected = Object.keys(state.selected).filter(function (name) { return state.selected[name]; });
+        return state.modules.filter(function (module) {
+            if (selected.indexOf(module.name) === -1) return false;
+            if (!action || action === 'purge') return true;
+            if (action === 'install') return module.status === 'not_installed';
+            if (action === 'activate') return module.status === 'installed' && !module.is_active;
+            if (action === 'deactivate') return !!module.is_active;
+            if (action === 'uninstall') return module.status === 'installed' || module.status === 'active';
+            return false;
+        });
+    }
+
+    function getSelectedNames(action) {
+        return selectedModules(action).map(function (module) { return module.name; });
     }
 
     function categoryLabel(key) {
@@ -156,6 +169,16 @@
         var countEl = document.getElementById('bulkCount');
         if (toolbar) toolbar.classList.toggle('d-none', count === 0);
         if (countEl) countEl.textContent = String(count);
+        [
+            ['bulkInstallBtn', 'install'],
+            ['bulkActivateBtn', 'activate'],
+            ['bulkDeactivateBtn', 'deactivate'],
+            ['bulkUninstallBtn', 'uninstall'],
+            ['bulkPurgeBtn', 'purge']
+        ].forEach(function (entry) {
+            var button = document.getElementById(entry[0]);
+            if (button) button.hidden = count === 0 || getSelectedNames(entry[1]).length === 0;
+        });
         updateSelectAllState();
     }
 
@@ -315,7 +338,10 @@
             }
 
             rows += '<tr>';
-            if (m.status === 'not_installed') { rows += '<td class="text-center"></td>'; } else { rows += '<td class="text-center"><input type="checkbox" class="module-select" data-name="' + esc(m.name) + '" aria-label="' + window.CRM.i18n.t('admin_modules.select_module', 'Выбрать модуль') + ' ' + esc(m.name) + '"></td>'; }
+            // Discovered packages are manageable even before installation. Keep
+            // them selectable so the bulk purge action can remove an unwanted
+            // package without first installing it.
+            rows += '<td class="text-center"><input type="checkbox" class="module-select" data-name="' + esc(m.name) + '" aria-label="' + esc(window.CRM.i18n.t('admin_modules.select_module', 'Выбрать модуль')) + ' ' + esc(m.name) + '"></td>';
             rows += '<td><a href="index.php?route=admin-module-detail&module=' + encodeURIComponent(m.name) + '" class="text-decoration-none"><strong>' + esc(m.title || m.name) + '</strong></a>';
             if (m.category) rows += ' <span class="badge bg-light text-muted border crm-module-cat">' + esc(categoryLabel(m.category)) + '</span>';
             rows += '<br><small class="text-muted">' + esc(m.name) + '</small>';
@@ -359,9 +385,9 @@
     }
 
     function bulkAction(action, options) {
-        var names = getSelectedNames();
+        var names = getSelectedNames(action);
         if (names.length === 0) {
-            notify(window.CRM.i18n.t('admin_modules.bulk_none', 'Выберите хотя бы один модуль'), 'warning');
+            notify(window.CRM.i18n.t('admin_modules.bulk_none', 'Выберите хотя бы один модуль, для которого доступно это действие'), 'warning');
             return;
         }
 
