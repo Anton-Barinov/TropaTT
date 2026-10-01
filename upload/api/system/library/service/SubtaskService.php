@@ -81,6 +81,13 @@ final class SubtaskService
             'public_id' => $childPublicId,
             'organization_id' => $organizationId,
             'project_id' => $childProjectId,
+            // A subtask belongs to the same work context as its parent: the
+            // project was already inherited above, and the parent's own client
+            // must travel with it — otherwise the child shows up in the task
+            // lists as a loose task with no client even though its parent has
+            // one (the project's client is a read-time join and does not count
+            // as the task's own client).
+            'client_public_id' => $parentTask['client_public_id'] ?? null,
             'task_key' => $taskKeyData['task_key'] ?? null,
             'task_key_prefix' => $taskKeyData['task_key_prefix'] ?? null,
             'task_sequence_number' => $taskKeyData['task_sequence_number'] ?? null,
