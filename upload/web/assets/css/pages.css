@@ -15109,6 +15109,12 @@ body[data-page="admin-settings"] [data-settings-group] {
 }
 
 @media (max-width: 767.98px) {
+    /* The compact mobile app bar wraps to two rows (96px total). Keep the
+       sticky category/search controls below it instead of under the header. */
+    .crm-admin-settings-nav {
+        top: calc(var(--crm-topbar-height, 56px) + 40px);
+    }
+
     .crm-admin-settings-search-wrap {
         margin-left: 0;
         max-width: 100%;
