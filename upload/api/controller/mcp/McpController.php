@@ -781,6 +781,7 @@ MD;
                 'priority' => ['type' => 'string', 'enum' => ['low', 'normal', 'high', 'urgent']],
                 'status' => ['type' => 'string'],
                 'due_at' => ['type' => 'string'],
+                'project_public_id' => ['type' => 'string', 'description' => 'Optional project (prj_...) for the subtask. Defaults to the parent task\'s project.'],
             ], ['task_public_id', 'title']);
             $tools[] = $this->tool('crm_update_subtask', 'Update a subtask.', [
                 'public_id' => ['type' => 'string'],
@@ -790,6 +791,7 @@ MD;
                 'assignee_user_id' => ['type' => 'integer', 'description' => 'Legacy internal numeric user id. Prefer assignee_user_public_id.'],
                 'assignee_user_public_id' => ['type' => 'string', 'description' => 'Assignee as public usr_... id (recommended).'],
                 'priority' => ['type' => 'string', 'enum' => ['low', 'normal', 'high', 'urgent']],
+                'project_public_id' => ['type' => 'string', 'description' => 'Move the subtask to another project (prj_...). Empty string puts it back into the parent\'s project.'],
             ], ['public_id']);
             $tools[] = $this->tool('crm_delete_subtask', 'Delete a subtask.', [
                 'public_id' => ['type' => 'string'],
@@ -7605,6 +7607,9 @@ $tools[] = $this->tool(
                 $input[$field] = $arguments[$field];
             }
         }
+        if (!empty($arguments['project_public_id'])) {
+            $input['project_public_id'] = (string)$arguments['project_public_id'];
+        }
         if (!empty($arguments['assignee_user_public_id'])) {
             $input['assignee_user_public_id'] = (string)$arguments['assignee_user_public_id'];
         } elseif (!empty($arguments['assignee_user_id'])) {
@@ -7616,6 +7621,9 @@ $tools[] = $this->tool(
         $item = $service->create($taskPublicId, $input, $this->actor());
         if ($item === 'DESCRIPTION_TOO_LONG') {
             return ['error' => 'Description is too long.'];
+        }
+        if ($item === 'PROJECT_NOT_FOUND') {
+            return ['error' => 'Project not found or not accessible.'];
         }
 
         return is_array($item) ? ['subtask' => $this->publicData($item)] : ['error' => 'Task not found or creation failed.'];
@@ -7634,6 +7642,9 @@ $tools[] = $this->tool(
                 $input[$field] = $arguments[$field];
             }
         }
+        if (array_key_exists('project_public_id', $arguments) && $arguments['project_public_id'] !== null) {
+            $input['project_public_id'] = (string)$arguments['project_public_id'];
+        }
         if (array_key_exists('assignee_user_id', $arguments) && $arguments['assignee_user_id'] !== null) {
             $input['assignee_user_id'] = (int)$arguments['assignee_user_id'];
         }
@@ -7649,6 +7660,9 @@ $tools[] = $this->tool(
         $item = $service->update($publicId, $input, $this->actor());
         if ($item === 'DESCRIPTION_TOO_LONG') {
             return ['error' => 'Description is too long.'];
+        }
+        if ($item === 'PROJECT_NOT_FOUND') {
+            return ['error' => 'Project not found or not accessible.'];
         }
 
         return is_array($item) ? ['subtask' => $this->publicData($item)] : ['error' => 'Subtask not found.'];

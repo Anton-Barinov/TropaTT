@@ -6305,6 +6305,9 @@ body.modal-open {
 .crm-task-detail-page .crm-task-description-summary #taskDescriptionContent {
   color: var(--crm-text);
   line-height: 1.55;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .crm-task-detail-page .crm-task-source-chat {

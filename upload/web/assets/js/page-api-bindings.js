@@ -34338,6 +34338,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
 
     // Clear button for single selects
     var clearBtn = null;
+    var syncSingleSearchableInput = null;
     if (!isMultiple) {
       var wrapperParent = wrapper.parentNode;
       // Check if there's already a clear btn
@@ -34353,15 +34354,20 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         return Boolean(select.value) && select.selectedIndex > 0;
       }
 
-      function syncSingleSearchableInput() {
+      // The selected option may legitimately be the only (index 0) option — the
+      // subtask "project" select renders just the parent's project — so the
+      // visible text is driven by the value alone, not by its position. The
+      // clear button still stays hidden for index 0: there is nothing to clear
+      // back to, as that option already carries the value.
+      syncSingleSearchableInput = function () {
         var selectedOpt = select.options[select.selectedIndex];
-        if (selectedOpt && select.value && select.selectedIndex > 0) {
+        if (selectedOpt && select.value) {
           input.value = selectedOpt.textContent || selectedOpt.text || '';
         } else {
           input.value = '';
         }
         if (clearBtn) clearBtn.style.display = searchableHasClearableValue() ? 'flex' : 'none';
-      }
+      };
 
       clearBtn.addEventListener('click', function (e) {
         e.preventDefault();
@@ -34391,7 +34397,15 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     // Observe the select for option changes (e.g. innerHTML replacement)
     var tagObserver = new MutationObserver(function () {
       renderOptions(input.value || '');
-      if (isMultiple) renderChips();
+      if (isMultiple) {
+        renderChips();
+      } else if (syncSingleSearchableInput) {
+        // The options were replaced programmatically (fillSubtaskForm() and
+        // friends rewrite innerHTML), which fires no `change` event — without
+        // this sync the visible input keeps its old text and the select looks
+        // empty even though the hidden select holds the right value.
+        syncSingleSearchableInput();
+      }
     });
     tagObserver.observe(select, { childList: true, subtree: true });
   }

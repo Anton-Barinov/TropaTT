@@ -15,7 +15,8 @@ final class SubtaskService
         private readonly SubtaskRepository $subtasks,
         private readonly TaskService $tasks,
         private readonly ?TaskKeyService $taskKeys = null,
-        private readonly ?HtmlSanitizer $htmlSanitizer = null
+        private readonly ?HtmlSanitizer $htmlSanitizer = null,
+        private readonly ?ProjectService $projects = null
     ) {
     }
 
@@ -29,7 +30,7 @@ final class SubtaskService
         return array_map(fn(array $item): array => $this->sanitizeSubtask($item), $this->subtasks->listByTaskPublicId($taskPublicId));
     }
 
-    /** @return array<string,mixed>|'DESCRIPTION_TOO_LONG'|null */
+    /** @return array<string,mixed>|'DESCRIPTION_TOO_LONG'|'PROJECT_NOT_FOUND'|null */
     public function create(string $taskPublicId, array $input, array $actor): array|string|null
     {
         $task = $this->tasks->get($taskPublicId, $actor);
@@ -59,13 +60,29 @@ final class SubtaskService
         // the parent task (TASK-1 -> TASK-2, PRJ-1 -> PRJ-2), falling back to
         // the project prefix and then to the global TASK prefix. Without this a
         // subtask would be created with an empty task_key.
-        $childProjectId = (int)($parentTask['project_id'] ?? 0) ?: null;
+        $parentProjectId = (int)($parentTask['project_id'] ?? 0) ?: null;
+        $childProjectId = $parentProjectId;
+        // The create form offers the full project list, so the author may point
+        // the subtask at another project. An explicit, accessible project wins;
+        // an empty or absent field keeps the historical inheritance from the
+        // parent task (the field is pre-filled with the parent's project).
+        if ($this->hasExplicitProject($input)) {
+            $explicitProjectId = $this->resolveProjectId((string)$input['project_public_id'], $actor);
+            if ($explicitProjectId === null) {
+                return 'PROJECT_NOT_FOUND';
+            }
+            $childProjectId = $explicitProjectId;
+        }
+
         $taskKeyData = null;
         if ($this->taskKeys !== null) {
             // parentTaskByPublicId() selects a minimal column set, so read the
             // prefix from the fully-loaded task row (same task) instead.
             $inheritedPrefix = trim((string)($task['task_key_prefix'] ?? $parentTask['task_key_prefix'] ?? ''));
-            $taskKeyData = $this->taskKeys->assignNextTaskKey($childProjectId, $inheritedPrefix !== '' ? $inheritedPrefix : null);
+            // The parent's prefix only describes the parent's project: a subtask
+            // deliberately moved elsewhere is keyed by the project it lands in.
+            $keyPrefix = $childProjectId === $parentProjectId && $inheritedPrefix !== '' ? $inheritedPrefix : null;
+            $taskKeyData = $this->taskKeys->assignNextTaskKey($childProjectId, $keyPrefix);
         }
 
         $description = $this->sanitizeDescription((string)($input['description'] ?? ''));
@@ -142,7 +159,7 @@ final class SubtaskService
         return $this->sanitizeSubtask($item);
     }
 
-    /** @return array<string,mixed>|'DESCRIPTION_TOO_LONG'|null */
+    /** @return array<string,mixed>|'DESCRIPTION_TOO_LONG'|'PROJECT_NOT_FOUND'|null */
     public function update(string $publicId, array $input, array $actor): array|string|null
     {
         $current = $this->subtasks->findByPublicId($publicId);
@@ -182,6 +199,24 @@ final class SubtaskService
             $taskSet['assignee_user_id'] = $input['assignee_user_public_id'] !== ''
                 ? $this->subtasks->userIdByPublicId((string)$input['assignee_user_public_id'])
                 : null;
+        }
+        if (array_key_exists('project_public_id', $input)) {
+            $projectPublicId = trim((string)$input['project_public_id']);
+            if ($projectPublicId === '') {
+                // Empty puts the subtask back where it started: the parent's
+                // project. A subtask is never left dangling while its parent
+                // still sits in a project.
+                $parentProjectId = (int)($parentTask['project_id'] ?? 0) ?: null;
+                if ($parentProjectId !== null) {
+                    $taskSet['project_id'] = $parentProjectId;
+                }
+            } else {
+                $projectId = $this->resolveProjectId($projectPublicId, $actor);
+                if ($projectId === null) {
+                    return 'PROJECT_NOT_FOUND';
+                }
+                $taskSet['project_id'] = $projectId;
+            }
         }
         if ($taskSet !== []) {
             $taskSet['updated_at'] = gmdate('Y-m-d H:i:s');
@@ -249,6 +284,30 @@ final class SubtaskService
     private function sanitizeDescription(string $description): string
     {
         return ($this->htmlSanitizer ?? new HtmlSanitizer())->sanitize($description);
+    }
+
+    private function hasExplicitProject(array $input): bool
+    {
+        return array_key_exists('project_public_id', $input)
+            && trim((string)$input['project_public_id']) !== '';
+    }
+
+    /**
+     * Numeric id of an explicitly chosen project, or null when it cannot be used.
+     *
+     * Validation mirrors TaskService::create()/update(): the project must exist,
+     * belong to the actor's organization and pass ProjectService::canAccess().
+     * External guests stay pinned to the parent's work context, so for them any
+     * attempt to name a project fails closed instead of silently landing
+     * somewhere the parent task does not belong to.
+     */
+    private function resolveProjectId(string $projectPublicId, array $actor): ?int
+    {
+        if ($this->projects === null || !empty($actor['is_external'])) {
+            return null;
+        }
+
+        return $this->projects->resolveProjectIdForActor($projectPublicId, $actor);
     }
 
     /** @param array<string,mixed> $item */

@@ -65,6 +65,11 @@ final class SubtaskController extends BaseController
                     'description' => [$this->t('subtask/messages.max_8000')],
                 ]);
             }
+            if ($item === 'PROJECT_NOT_FOUND') {
+                return $this->error('PROJECT_NOT_FOUND', $this->t('common/messages.project_not_found'), 404, [
+                    'project' => [$this->t('common/messages.project_not_found')],
+                ]);
+            }
             if (!$item) {
                 return $this->error('TASK_NOT_FOUND', $this->t('subtask/messages.task_not_found'), 404);
             }
@@ -123,6 +128,11 @@ final class SubtaskController extends BaseController
         if ($item === 'DESCRIPTION_TOO_LONG') {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
                 'description' => [$this->t('subtask/messages.max_8000')],
+            ]);
+        }
+        if ($item === 'PROJECT_NOT_FOUND') {
+            return $this->error('PROJECT_NOT_FOUND', $this->t('common/messages.project_not_found'), 404, [
+                'project' => [$this->t('common/messages.project_not_found')],
             ]);
         }
         if (!$item) {

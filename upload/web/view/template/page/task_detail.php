@@ -496,7 +496,7 @@
               <select class="form-select" name="project_public_id" disabled>
                 <option value="" data-i18n="task_detail.modal_create_subtask_option_no_project"><?= htmlspecialchars($t('task_detail.modal_create_subtask_option_no_project', 'Без проекта'), ENT_QUOTES, 'UTF-8') ?></option>
               </select>
-              <div class="form-text" data-i18n="task_detail.modal_create_subtask_project_hint"><?= htmlspecialchars($t('task_detail.modal_create_subtask_project_hint', 'Подзадача создается в проекте родительской задачи.'), ENT_QUOTES, 'UTF-8') ?></div>
+              <div class="form-text" data-i18n="task_detail.modal_create_subtask_project_hint"><?= htmlspecialchars($t('task_detail.modal_create_subtask_project_hint', 'По умолчанию — проект родительской задачи. Можно выбрать другой.'), ENT_QUOTES, 'UTF-8') ?></div>
             </div>
             <div class="col-md-4">
               <label class="form-label" data-i18n="task_detail.modal_create_subtask_label_status"><?= htmlspecialchars($t('task_detail.modal_create_subtask_label_status', 'Статус'), ENT_QUOTES, 'UTF-8') ?></label>

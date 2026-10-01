@@ -5181,7 +5181,7 @@ return array (
     'modal_create_subtask_option_no_project' => 'Без проекта',
     'modal_create_subtask_placeholder_description' => 'Контекст, шаги, критерии готовности',
     'modal_create_subtask_placeholder_title' => 'Например: Подготовить макет',
-    'modal_create_subtask_project_hint' => 'Подзадача создается в проекте родительской задачи.',
+    'modal_create_subtask_project_hint' => 'По умолчанию — проект родительской задачи. Можно выбрать другой.',
     'modal_create_subtask_tags_hint' => 'Можно выбрать несколько тегов.',
     'modal_create_subtask_title' => 'Создать подзадачу',
     'modal_edit_subtask_label_assignee' => 'Исполнитель',
