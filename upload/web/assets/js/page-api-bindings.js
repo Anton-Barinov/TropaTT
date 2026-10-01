@@ -27073,7 +27073,9 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       var normalizedSearch = String(currentSearch || '').trim().toLowerCase();
       groups.forEach(function (groupEl) {
         var grpName = groupEl.getAttribute('data-settings-group');
-        var catMatch = currentCategory === 'all' || currentCategory === grpName;
+        // The user-facing "System and cache" tab intentionally combines the
+        // general system settings and the separate API cache card.
+        var catMatch = currentCategory === 'all' || currentCategory === grpName || (currentCategory === 'system' && grpName === 'cache');
         if (!catMatch) {
           groupEl.style.display = 'none';
           return;
