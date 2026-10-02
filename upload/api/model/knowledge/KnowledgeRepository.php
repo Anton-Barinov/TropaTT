@@ -5,6 +5,7 @@ namespace Api\Model\Knowledge;
 
 use Api\System\Library\Support\AppLog;
 use PDO;
+use Api\System\Library\Module\ModuleEvents;
 use Api\System\Library\Support\LikeEscaper;
 
 final class KnowledgeRepository
@@ -41,6 +42,68 @@ final class KnowledgeRepository
         private readonly PDO $pdo,
         private readonly ?\Api\System\Library\Module\DomainEventPublisher $events = null
     ) {
+    }
+
+    /**
+     * Emit a canonical domain event for a page mutation that has already
+     * committed.
+     *
+     * The publisher lives in the repository layer because page mutations are
+     * reached from the web UI, REST and MCP through this single class, so all
+     * three entry points produce exactly one event per successful mutation.
+     * Delivery failures are swallowed: a broken subscriber must never fail the
+     * write that produced the event.
+     *
+     * @param array<string, mixed>|null $page Row as returned by pageRaw()/page().
+     * @param array<string, mixed>|null $actor Authenticated actor when the caller has one.
+     * @param array<string, mixed> $extra
+     */
+    private function publishPageEvent(string $event, ?array $page, ?int $actorId = null, ?array $actor = null, array $extra = []): void
+    {
+        if ($this->events === null || !is_array($page) || $page === []) {
+            return;
+        }
+
+        $organizationId = (int)($page['organization_id'] ?? 0) > 0 ? (int)$page['organization_id'] : null;
+        $actorContext = (is_array($actor) && $actor !== []) ? $actor : [
+            'public_id' => $this->userPublicId($actorId),
+            'organization_id' => $organizationId,
+        ];
+
+        $payload = [
+            'page_public_id' => (string)($page['public_id'] ?? ''),
+            'space_public_id' => $page['space_public_id'] ?? null,
+            'title' => (string)($page['title'] ?? ''),
+            'slug' => $page['slug'] ?? null,
+            'page_type' => $page['page_type'] ?? null,
+            'status' => $page['status'] ?? null,
+            'owner_user_id' => isset($page['owner_user_id']) ? (int)$page['owner_user_id'] : null,
+            'last_editor_user_id' => isset($page['last_editor_user_id']) ? (int)$page['last_editor_user_id'] : null,
+            'published_at' => $page['published_at'] ?? null,
+            'updated_at' => $page['updated_at'] ?? null,
+        ] + $extra;
+
+        try {
+            $this->events->publish($event, $payload, $actorContext, $organizationId);
+        } catch (\Throwable) {
+            // Observability only — never break the mutation that just landed.
+        }
+    }
+
+    /** Minimal user lookup for the envelope when only a numeric id is known. */
+    private function userPublicId(?int $userId): ?string
+    {
+        if ($userId === null || $userId <= 0) {
+            return null;
+        }
+        try {
+            $stmt = $this->pdo->prepare('SELECT public_id FROM users WHERE id = :id LIMIT 1');
+            $stmt->execute(['id' => $userId]);
+            $value = $stmt->fetchColumn();
+            return $value === false || $value === null ? null : (string)$value;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**
@@ -1056,7 +1119,9 @@ final class KnowledgeRepository
         if (($page['status'] ?? '') === 'published') {
             $this->legacyAddVersion($publicId, $actorId, 'Initial publish');
         }
-        return $this->pageRaw($publicId) ?? $page;
+        $finalPage = $this->pageRaw($publicId) ?? $page;
+        $this->publishPageEvent(ModuleEvents::KNOWLEDGE_PAGE_CREATED, $finalPage, $actorId, $actor);
+        return $finalPage;
     }
 
     /**
@@ -1142,7 +1207,17 @@ final class KnowledgeRepository
             $this->refreshChildrenCount(isset($current['parent_id']) ? (int)$current['parent_id'] : null);
             $this->refreshChildrenCount($page['parent_id'] !== null ? (int)$page['parent_id'] : null);
         }
-        return $this->page($publicId, $actor);
+        $updated = $this->page($publicId, $actor);
+        if ($updated) {
+            $this->publishPageEvent(
+                ModuleEvents::KNOWLEDGE_PAGE_UPDATED,
+                $updated,
+                $actorId,
+                $actor,
+                ['changed_fields' => array_keys($params)]
+            );
+        }
+        return $updated;
     }
 
 
@@ -1164,7 +1239,9 @@ final class KnowledgeRepository
             'public_id' => $publicId,
         ]);
         $this->legacyAddVersion($publicId, $actorId, $summary !== '' ? $summary : 'Published');
-        return $this->pageRaw($publicId);
+        $published = $this->pageRaw($publicId);
+        $this->publishPageEvent(ModuleEvents::KNOWLEDGE_PAGE_PUBLISHED, $published, $actorId);
+        return $published;
     }
 
     public function setStatus(string $publicId, string $status, ?int $actorId = null): ?array
@@ -1181,11 +1258,21 @@ final class KnowledgeRepository
             'updated_at' => gmdate('Y-m-d H:i:s'),
             'public_id' => $publicId,
         ]);
-        return $this->pageRaw($publicId);
+        $updated = $this->pageRaw($publicId);
+        if ($updated) {
+            // Lifecycle events keep their own names; every other status change
+            // is a plain update carrying the resulting status.
+            $event = $status === 'archived'
+                ? ModuleEvents::KNOWLEDGE_PAGE_ARCHIVED
+                : ($status === 'published' ? ModuleEvents::KNOWLEDGE_PAGE_PUBLISHED : ModuleEvents::KNOWLEDGE_PAGE_UPDATED);
+            $this->publishPageEvent($event, $updated, $actorId);
+        }
+        return $updated;
     }
 
-    public function deletePage(string $publicId): bool
+    public function deletePage(string $publicId, ?array $actor = null): bool
     {
+        $page = $this->pageRaw($publicId);
         $now = gmdate('Y-m-d H:i:s');
         $stmt = $this->pdo->prepare('UPDATE knowledge_pages SET deleted_at = :deleted_at, row_version = row_version + 1, updated_at = :updated_at WHERE public_id = :public_id');
         $stmt->execute([
@@ -1193,7 +1280,12 @@ final class KnowledgeRepository
             'updated_at' => $now,
             'public_id' => $publicId,
         ]);
-        return $stmt->rowCount() > 0;
+        $ok = $stmt->rowCount() > 0;
+        if ($ok) {
+            $actorId = isset($actor['id']) ? (int)$actor['id'] : null;
+            $this->publishPageEvent(ModuleEvents::KNOWLEDGE_PAGE_DELETED, $page, $actorId, $actor);
+        }
+        return $ok;
     }
 
     public function duplicate(string $publicId, ?int $actorId, ?array $actor = null): ?array

@@ -11079,7 +11079,7 @@ $tools[] = $this->tool(
         if (!$this->knowledge()->page($publicId, $this->actor(), 'manage')) {
             return ['error' => 'Knowledge page not found.'];
         }
-        return $this->knowledge()->deletePage($publicId)
+        return $this->knowledge()->deletePage($publicId, $this->actor())
             ? ['deleted' => true]
             : ['error' => 'Knowledge page not found.'];
     }

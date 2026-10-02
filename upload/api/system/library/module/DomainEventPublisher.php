@@ -39,6 +39,7 @@ final class DomainEventPublisher
      */
     private const REDACT_KEYS = [
         'cost_rate', 'bill_rate', 'cost_amount', 'bill_amount',
+        'cost_rate_snapshot', 'bill_rate_snapshot', 'payout_rate_snapshot',
         'password', 'password_hash', 'token', 'token_hash', 'secret',
         'backup_codes', 'api_key', 'authorization',
         'content_html', 'content_text', 'content_json', 'content',

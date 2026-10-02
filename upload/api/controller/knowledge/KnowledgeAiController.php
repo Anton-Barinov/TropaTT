@@ -14,6 +14,15 @@ final class KnowledgeAiController extends BaseController
 {
     private function repo(): KnowledgeRepository
     {
+        // Prefer the container registration: it carries the domain-event
+        // publisher, so this controller behaves like the other knowledge paths.
+        if ($this->container->has('repository.knowledge')) {
+            $repo = $this->container->get('repository.knowledge');
+            if ($repo instanceof KnowledgeRepository) {
+                return $repo;
+            }
+        }
+
         return new KnowledgeRepository($this->container->get('db.pdo'));
     }
 

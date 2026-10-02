@@ -9,6 +9,7 @@ use Api\Model\Project\ProjectRepository;
 use Api\Model\Reminder\ReminderRepository;
 use Api\Model\Task\TaskRepository;
 use Api\System\Library\Logger\JsonLogger;
+use Api\System\Library\Module\ModuleEvents;
 use Api\System\Library\Security\ActorPermission;
 use Api\System\Library\Support\Ulid;
 
@@ -171,6 +172,7 @@ final class CalendarService
 
         $createdEvent = $this->events->findByPublicId($publicId, (int)$actor['id'], (bool)($actor['is_root'] ?? false), $this->organizationId($actor));
         if (is_array($createdEvent)) {
+            $this->publishEvent(ModuleEvents::CALENDAR_EVENT_CREATED, $this->calendarEventPayload($createdEvent, $publicId), $actor);
             $targetUserIds = $this->calendarEventStakeholderIds($createdEvent, (int)($actor['id'] ?? 0));
             if ($targetUserIds !== []) {
                 $this->notifications?->notifyCalendarEventAssigned($createdEvent, $targetUserIds, $actor);
@@ -234,7 +236,10 @@ final class CalendarService
             $this->events->updateByPublicId($publicId, (int)$actor['id'], (bool)($actor['is_root'] ?? false), $set, $this->organizationId($actor));
         }
 
-        if (array_key_exists('attendees', $input) || array_key_exists('attendee_user_ids', $input) || array_key_exists('attendee_public_ids', $input)) {
+        $attendeesTouched = array_key_exists('attendees', $input)
+            || array_key_exists('attendee_user_ids', $input)
+            || array_key_exists('attendee_public_ids', $input);
+        if ($attendeesTouched) {
             $attendeeUserIds = $this->resolveAttendeeUserIds($input, $actor);
             $this->events->syncAttendees((int)($existing['id'] ?? 0), $attendeeUserIds);
         }
@@ -248,7 +253,12 @@ final class CalendarService
         ]);
 
         $updatedEvent = $this->events->findByPublicId($publicId, (int)$actor['id'], (bool)($actor['is_root'] ?? false), $this->organizationId($actor));
-        if (is_array($updatedEvent)) {
+        if (is_array($updatedEvent) && ($set !== [] || $attendeesTouched)) {
+            $this->publishEvent(
+                ModuleEvents::CALENDAR_EVENT_UPDATED,
+                $this->calendarEventPayload($updatedEvent, $publicId, ['changed_fields' => array_keys($set)]),
+                $actor
+            );
             $targetUserIds = $this->calendarEventStakeholderIds($updatedEvent, (int)($actor['id'] ?? 0));
             if ($targetUserIds !== []) {
                 $this->notifications?->notifyCalendarEventUpdated($updatedEvent, $targetUserIds, $actor);
@@ -269,6 +279,8 @@ final class CalendarService
                 'entity_type' => 'calendar_event',
                 'entity_public_id' => $publicId,
             ]);
+
+            $this->publishEvent(ModuleEvents::CALENDAR_EVENT_DELETED, $this->calendarEventPayload($existing, $publicId), $actor);
 
             if (is_array($existing)) {
                 $targetUserIds = $this->calendarEventStakeholderIds($existing, (int)($actor['id'] ?? 0));
@@ -343,6 +355,53 @@ final class CalendarService
                 'reminders_count' => count($reminders),
             ],
         ];
+    }
+
+    /**
+     * Emit a canonical domain event for a mutation that has already committed.
+     *
+     * Publishing lives in the service layer so the web UI, REST and MCP entry
+     * points all produce exactly one event per successful mutation. Delivery
+     * failures are swallowed: a broken subscriber must not fail the request.
+     *
+     * @param array<string, mixed> $payload
+     * @param array<string, mixed> $actor
+     */
+    private function publishEvent(string $event, array $payload, array $actor): void
+    {
+        if ($this->domainEvents === null) {
+            return;
+        }
+        try {
+            $this->domainEvents->publish($event, $payload, $actor, $this->organizationId($actor));
+        } catch (\Throwable) {
+            // Observability only — never break the mutation that just landed.
+        }
+    }
+
+    /**
+     * Subscriber-safe projection of a calendar row: public ids and schedule
+     * only. Free-text description and attendee lists stay in the CRM, and the
+     * event's public id is the stable identity a recurring series relies on.
+     *
+     * @param array<string, mixed> $extra
+     * @return array<string, mixed>
+     */
+    private function calendarEventPayload(?array $event, string $publicId, array $extra = []): array
+    {
+        $event = is_array($event) ? $event : [];
+
+        return [
+            'calendar_event_public_id' => (string)($event['public_id'] ?? $publicId),
+            'title' => (string)($event['title'] ?? ''),
+            'starts_at' => (string)($event['starts_at'] ?? ''),
+            'ends_at' => (string)($event['ends_at'] ?? ''),
+            'project_public_id' => $event['project_public_id'] ?? null,
+            'task_public_id' => $event['task_public_id'] ?? null,
+            'owner_user_id' => isset($event['owner_user_id']) ? (int)$event['owner_user_id'] : null,
+            'created_at' => $event['created_at'] ?? null,
+            'updated_at' => $event['updated_at'] ?? null,
+        ] + $extra;
     }
 
     private function organizationId(array $actor): ?int
