@@ -2155,6 +2155,37 @@ CREATE TABLE IF NOT EXISTS `module_job_contexts` (
   UNIQUE KEY `idx_module_job_scope_key` (`module_name`,`organization_id`,`idempotency_key`),
   KEY `idx_module_job_scope` (`organization_id`,`job_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+CREATE TABLE IF NOT EXISTS `connector_credentials` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `module_name` varchar(190) NOT NULL,
+  `organization_id` int(11) NOT NULL,
+  `key_name` varchar(64) NOT NULL,
+  `encrypted_value` longtext NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_connector_cred_unique` (`module_name`,`organization_id`,`key_name`),
+  KEY `idx_connector_cred_org` (`organization_id`,`module_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+CREATE TABLE IF NOT EXISTS `connector_idempotency` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `module_name` varchar(190) NOT NULL,
+  `organization_id` int(11) NOT NULL,
+  `source` varchar(64) NOT NULL,
+  `idempotency_key` varchar(190) NOT NULL,
+  `status` varchar(32) NOT NULL DEFAULT 'processing',
+  `request_hash` varchar(64) DEFAULT NULL,
+  `response_code` int(11) NOT NULL DEFAULT 200,
+  `response_payload` longtext DEFAULT NULL,
+  `resource_type` varchar(64) DEFAULT NULL,
+  `resource_public_id` varchar(64) DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `expires_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_connector_idemp_unique` (`module_name`,`organization_id`,`source`,`idempotency_key`),
+  KEY `idx_connector_idemp_org` (`organization_id`,`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -3696,7 +3727,8 @@ INSERT IGNORE INTO `migrations` (`migration_key`, `description`, `applied_at`) V
 ('20260926_000002_user_avatar', 'Add avatar_path, avatar_mime and avatar_updated_at columns to users', NOW()),
 ('20260927_000001_organization_scope_extended', 'Re-ensure organization_id on every workspace-scoped table (repairs installs that ran an earlier scope migration body)', NOW()),
 ('20260929_000001_subtask_organization_backfill', 'Backfill tasks.organization_id for subtasks from their parent tasks', NOW()),
-('20261001_000001_module_job_contexts', 'Create workspace context and idempotency storage for module jobs', NOW());
+('20261001_000001_module_job_contexts', 'Create workspace context and idempotency storage for module jobs', NOW()),
+('20261002_000001_connector_primitives', 'Create connector credentials and idempotency tables', NOW());
 
 
 -- Baseline core permissions
