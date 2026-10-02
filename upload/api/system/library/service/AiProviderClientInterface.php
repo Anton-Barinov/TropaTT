@@ -25,6 +25,7 @@ interface AiProviderClientInterface
      *   code?:string,
      *   message?:string,
      *   text?:string,
+     *   tool_calls?:list<array{id:string,type:string,function:array{name:string,arguments:string}}>,
      *   request_tokens?:int,
      *   response_tokens?:int,
      *   total_tokens?:int,
