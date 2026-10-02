@@ -27,10 +27,17 @@ final class ModuleCronScheduler
 
     /**
      * Allowed method names for cron handlers.
+     *
+     * Kept in sync with the core registrations in App::initModuleSystem() —
+     * tests/unit/cron_handler_allowlist_contract_unit.php pins every
+     * `handler: [Class, 'method']` pair declared there against this list, so a
+     * newly registered entry point cannot ship while still failing at run time
+     * with "Handler method ... is not allowed for cron tasks".
      */
     private const HANDLER_METHOD_ALLOWLIST = [
         'run', 'execute', 'handle', 'process',
         'freshnessScan', 'draftsCleanup', 'versionsCleanup', 'reindexSearch',
+        'purgeTrash',
         'captureDaily', 'autoClosePeriods', 'dispatchQueue',
     ];
 

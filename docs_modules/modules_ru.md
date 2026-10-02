@@ -720,7 +720,8 @@ new ScheduledTask(
 **Ограничения безопасности Cron:**
 - **Handler Allowlist:** Классы обработчиков cron обязаны находиться строго в пространствах имен `Api\...` или `Module\...`.
 - **Method Allowlist:** Разрешены только следующие методы:
-  `run`, `execute`, `handle`, `process`, `freshnessScan`, `draftsCleanup`, `versionsCleanup`, `reindexSearch`, `captureDaily`, `autoClosePeriods`, `dispatchQueue`.
+  `run`, `execute`, `handle`, `process`, `freshnessScan`, `draftsCleanup`, `versionsCleanup`, `reindexSearch`, `purgeTrash`, `captureDaily`, `autoClosePeriods`, `dispatchQueue`.
+  Список синхронизирован с регистрациями в `App::initModuleSystem()` — это закреплено unit-тестом `cron_handler_allowlist_contract_unit.php`.
 - Если модуль деактивирован, планировщик автоматически пропускает выполнение его задач (`skipped`), предотвращая ошибки.
 
 ### 2. Транзакционная очередь задач (`ModuleJobDispatcher`)
