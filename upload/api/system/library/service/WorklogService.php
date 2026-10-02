@@ -11,6 +11,7 @@ use Api\Model\User\UserManagementRepository;
 use Api\Model\Worklog\WorklogRepository;
 use Api\System\Library\Database\Builder\QueryBuilder;
 use Api\System\Library\Logger\JsonLogger;
+use Api\System\Library\Module\ModuleEvents;
 use Api\System\Library\Support\TimeOverlapMath;
 use Api\System\Library\Support\Ulid;
 use Api\System\Library\Service\ExternalUserService;
@@ -246,7 +247,12 @@ final class WorklogService
             'entity_public_id' => $publicId,
         ]);
 
-        return $this->worklogs->findByPublicId($publicId);
+        $created = $this->worklogs->findByPublicId($publicId);
+        if (is_array($created)) {
+            $this->publishEvent(ModuleEvents::WORKLOG_CREATED, $this->worklogPayload($created), $actor);
+        }
+
+        return $created;
     }
 
     public function get(string $publicId, array $actor): ?array
@@ -403,7 +409,16 @@ final class WorklogService
             'changes' => $set,
         ]);
 
-        return $this->worklogs->findByPublicId($publicId);
+        $updated = $this->worklogs->findByPublicId($publicId);
+        if (is_array($updated) && $set !== []) {
+            $this->publishEvent(
+                ModuleEvents::WORKLOG_UPDATED,
+                $this->worklogPayload($updated, ['changed_fields' => array_keys($set)]),
+                $actor
+            );
+        }
+
+        return $updated;
     }
 
     public function delete(string $publicId, array $actor): bool|string
@@ -424,9 +439,59 @@ final class WorklogService
                 'entity_type' => 'worklog',
                 'entity_public_id' => $publicId,
             ]);
+
+            $this->publishEvent(ModuleEvents::WORKLOG_DELETED, $this->worklogPayload($existing), $actor);
         }
 
         return $ok;
+    }
+
+    /**
+     * Emit a canonical domain event for a mutation that has already committed.
+     *
+     * The publisher lives in the service layer so REST, MCP and the timer UI
+     * all go through the same dispatch. Delivery failures are swallowed: a
+     * broken subscriber must not fail the request that produced the event.
+     *
+     * @param array<string, mixed> $payload
+     * @param array<string, mixed> $actor
+     */
+    private function publishEvent(string $event, array $payload, array $actor): void
+    {
+        if ($this->events === null) {
+            return;
+        }
+        try {
+            $this->events->publish($event, $payload, $actor, $this->organizationId($actor));
+        } catch (\Throwable) {
+            // Observability only — never break the mutation that just landed.
+        }
+    }
+
+    /**
+     * Subscriber-safe projection of a worklog row: time accounting and public
+     * ids only. Financial fields (cost/bill/payout rates and their snapshots,
+     * currency and rate sources) never leave the CRM.
+     *
+     * @param array<string, mixed> $item
+     * @param array<string, mixed> $extra
+     * @return array<string, mixed>
+     */
+    private function worklogPayload(array $item, array $extra = []): array
+    {
+        return [
+            'worklog_public_id' => (string)($item['public_id'] ?? ''),
+            'user_public_id' => $item['user_public_id'] ?? null,
+            'task_public_id' => $item['task_public_id'] ?? null,
+            'project_public_id' => $item['project_public_id'] ?? null,
+            'client_public_id' => $item['client_public_id'] ?? null,
+            'minutes_spent' => (int)($item['minutes_spent'] ?? 0),
+            'logged_at' => $item['logged_at'] ?? null,
+            'started_at' => $item['started_at'] ?? null,
+            'ended_at' => $item['ended_at'] ?? null,
+            'activity_code' => $item['activity_code'] ?? null,
+            'created_at' => $item['created_at'] ?? null,
+        ] + $extra;
     }
 
     private function canModifyWorklog(array $worklog, array $actor): bool

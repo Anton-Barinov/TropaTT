@@ -16,14 +16,30 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
         ];
 
         $model = trim((string)($payload['model'] ?? $provider['default_model'] ?? ''));
+        if (isset($payload['messages']) && is_array($payload['messages']) && $payload['messages'] !== []) {
+            $messages = $payload['messages'];
+        } else {
+            $userContent = (string)($payload['user_prompt'] ?? '');
+            if (!empty($payload['context'])) {
+                $userContent .= "\n\nContext:\n" . json_encode((array)$payload['context'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            }
+            $messages = [
+                ['role' => 'system', 'content' => (string)($payload['system_prompt'] ?? '')],
+                ['role' => 'user', 'content' => $userContent],
+            ];
+        }
+
         $request = [
             'model' => $model,
-            'messages' => [
-                ['role' => 'system', 'content' => (string)($payload['system_prompt'] ?? '')],
-                ['role' => 'user', 'content' => (string)($payload['user_prompt'] ?? '') . "\n\nContext:\n" . json_encode((array)($payload['context'] ?? []), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)],
-            ],
+            'messages' => $messages,
             'temperature' => (float)($payload['temperature'] ?? $provider['temperature'] ?? 0.2),
         ];
+        if (isset($payload['tools']) && is_array($payload['tools']) && $payload['tools'] !== []) {
+            $request['tools'] = $payload['tools'];
+            if (isset($payload['tool_choice'])) {
+                $request['tool_choice'] = $payload['tool_choice'];
+            }
+        }
         if (isset($payload['response_format']) && is_array($payload['response_format'])) {
             $request['response_format'] = $payload['response_format'];
         }
@@ -49,7 +65,9 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
 
         $json = is_array($response['json'] ?? null) ? (array)$response['json'] : [];
         $text = $this->extractCompletionText($json);
-        if ($text === '') {
+        $toolCalls = $this->extractToolCalls($json);
+
+        if ($text === '' && $toolCalls === []) {
             return [
                 'ok' => false,
                 'code' => 'AI_PROVIDER_INVALID_RESPONSE',
@@ -63,6 +81,7 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
         return [
             'ok' => true,
             'text' => $text,
+            'tool_calls' => $toolCalls,
             'request_tokens' => (int)($usage['prompt_tokens'] ?? 0),
             'response_tokens' => (int)($usage['completion_tokens'] ?? 0),
             'total_tokens' => (int)($usage['total_tokens'] ?? 0),

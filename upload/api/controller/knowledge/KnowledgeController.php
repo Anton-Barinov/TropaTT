@@ -19,6 +19,15 @@ final class KnowledgeController extends BaseController
 {
     private function repo(): KnowledgeRepository
     {
+        // Prefer the container registration: it carries the domain-event
+        // publisher, so REST/web mutations emit the same events as MCP.
+        if ($this->container->has('repository.knowledge')) {
+            $repo = $this->container->get('repository.knowledge');
+            if ($repo instanceof KnowledgeRepository) {
+                return $repo;
+            }
+        }
+
         return new KnowledgeRepository($this->container->get('db.pdo'));
     }
 
@@ -517,7 +526,7 @@ final class KnowledgeController extends BaseController
         if ($page) {
             $this->notifyPageEvent($page, 'deleted', $this->user() ?: []);
         }
-        if (!$this->repo()->deletePage((string)$params['public_id'])) {
+        if (!$this->repo()->deletePage((string)$params['public_id'], $this->actor())) {
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
         $this->invalidateCache('knowledge');
