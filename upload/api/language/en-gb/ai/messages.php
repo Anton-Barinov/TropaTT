@@ -14,6 +14,7 @@ return [
     'provider_code_too_long' => 'Provider code is too long',
     'provider_title_too_long' => 'Provider title is too long',
     'provider_base_url_too_long' => 'Provider endpoint is too long',
+    'provider_proxy_url_invalid' => 'Invalid proxy URL: allowed schemes are http, https, socks5 and socks5h, with no path, query or fragment',
     'provider_secret_required' => 'Provider secret is required',
     'provider_secret_updated' => 'AI provider secret has been updated',
     'provider_secret_set_failed' => 'Failed to update AI provider secret',

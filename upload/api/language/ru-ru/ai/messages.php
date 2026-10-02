@@ -14,6 +14,7 @@ return [
     'provider_code_too_long' => 'Слишком длинный код провайдера',
     'provider_title_too_long' => 'Слишком длинное название провайдера',
     'provider_base_url_too_long' => 'Слишком длинный endpoint провайдера',
+    'provider_proxy_url_invalid' => 'Некорректный адрес прокси: разрешены схемы http, https, socks5 и socks5h, без пути, параметров и якоря',
     'provider_secret_required' => 'Секрет провайдера обязателен',
     'provider_secret_updated' => 'Секрет AI-провайдера обновлен',
     'provider_secret_set_failed' => 'Не удалось сохранить секрет AI-провайдера',

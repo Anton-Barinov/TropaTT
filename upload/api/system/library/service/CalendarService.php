@@ -21,7 +21,8 @@ final class CalendarService
         private readonly ReminderRepository $reminders,
         private readonly JsonLogger $logger,
         private readonly ?NotificationService $notifications = null,
-        private readonly ?UserRepository $users = null
+        private readonly ?UserRepository $users = null,
+        private readonly ?\Api\System\Library\Module\DomainEventPublisher $domainEvents = null
     ) {
     }
 

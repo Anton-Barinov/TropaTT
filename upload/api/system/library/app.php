@@ -20,6 +20,7 @@ use Api\System\Library\Module\ModuleAuditLogger;
 use Api\System\Library\Module\ModuleDeprecation;
 use Api\System\Library\Module\ModuleCodeValidator;
 use Api\System\Library\Module\ModuleCronScheduler;
+use Api\System\Library\Module\DomainEventPublisher;
 use Api\System\Library\Module\ModuleJobDispatcher;
 use Api\System\Library\Module\ModuleWebhookDispatcher;
 use Api\System\Library\Module\ModuleNotificationDispatcher;
@@ -936,6 +937,9 @@ final class App
         $this->container->set('db.schema', $schema);
         $this->container->set('db.migrations', $migrations);
         $this->container->set('hook.manager', new HookManager());
+        // Domain-event publisher is resolved lazily; it may run before
+        // initModuleSystem (e.g. repository.knowledge), so register it early.
+        $this->container->factory('module.domain_event', fn(Container $c) => new DomainEventPublisher($c));
 
         $pluginManager = new PluginManager(dirname($this->basePath));
         $moduleAutoloader = new ModuleAutoloader(dirname($this->basePath));
@@ -979,7 +983,7 @@ final class App
         $this->container->factory('repository.priority', fn(Container $c) => new \Api\Model\Priority\PriorityRepository($c->get('db.pdo')));
         $this->container->factory('repository.tag', fn(Container $c) => new \Api\Model\Tag\TagRepository($c->get('db.pdo')));
         $this->container->factory('repository.file', fn(Container $c) => new \Api\Model\File\FileRepository($c->get('db.pdo')));
-        $this->container->factory('repository.knowledge', fn(Container $c) => new \Api\Model\Knowledge\KnowledgeRepository($c->get('db.pdo')));
+        $this->container->factory('repository.knowledge', fn(Container $c) => new \Api\Model\Knowledge\KnowledgeRepository($c->get('db.pdo'), $c->get('module.domain_event')));
         $this->container->factory('repository.user_management', fn(Container $c) => new \Api\Model\User\UserManagementRepository($c->get('db.pdo')));
         $this->container->factory('repository.role', fn(Container $c) => new \Api\Model\Role\RoleRepository($c->get('db.pdo')));
         $this->container->factory('repository.permission', fn(Container $c) => new \Api\Model\Permission\PermissionRepository($c->get('db.pdo')));
@@ -1515,7 +1519,8 @@ final class App
             $c->get('repository.reminder'),
             $c->get('logger'),
             $c->get('service.notification'),
-            $c->get('repository.user')
+            $c->get('repository.user'),
+            $c->get('module.domain_event')
         ));
         $this->container->factory('service.business_calendar', fn(Container $c) => new BusinessCalendarService(
             $c->get('repository.business_calendar'),
@@ -1538,7 +1543,8 @@ final class App
             $c->has('service.external_user') ? $c->get('service.external_user') : null,
             null,
             null,
-            $c->has('service.setting') ? $c->get('service.setting') : null
+            $c->has('service.setting') ? $c->get('service.setting') : null,
+            $c->get('module.domain_event')
         ));
         $this->container->factory('service.dashboard', fn(Container $c) => new DashboardService(
             $c->get('repository.dashboard'),
@@ -1877,7 +1883,8 @@ final class App
             $c->get('service.task'),
             $c->get('service.project'),
             $c->get('service.notification'),
-            $c->get('lang')
+            $c->get('lang'),
+            $c->get('module.domain_event')
         ));
 
         $this->container->factory('service.external_user', fn(Container $c) => new \Api\System\Library\Service\ExternalUserService(

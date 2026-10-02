@@ -138,7 +138,7 @@ final class CustomHttpProviderClient implements AiProviderClientInterface
 
         while ($attempt < $runtime['max_attempts']) {
             $attempt++;
-            $lastResponse = $this->sendGetJson($url, $headers, $runtime['timeout_ms']);
+            $lastResponse = $this->sendGetJson($url, $headers, $runtime['timeout_ms'], $provider);
             if ((bool)($lastResponse['ok'] ?? false)) {
                 return $lastResponse;
             }
@@ -157,7 +157,7 @@ final class CustomHttpProviderClient implements AiProviderClientInterface
      * @param list<string> $headers
      * @return array{ok:bool,http_status?:int,json?:array<string,mixed>,error_code?:string,error_message?:string}
      */
-    private function sendGetJson(string $url, array $headers, int $timeoutMs): array
+    private function sendGetJson(string $url, array $headers, int $timeoutMs, array $provider = []): array
     {
         if (!function_exists('curl_init')) {
             return [
@@ -186,6 +186,7 @@ final class CustomHttpProviderClient implements AiProviderClientInterface
         curl_setopt($ch, CURLOPT_MAXREDIRS, 0);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+        AiProxyUrl::applyToCurl($ch, $this->providerPayload($provider));
 
         $raw = curl_exec($ch);
         $curlErrno = curl_errno($ch);

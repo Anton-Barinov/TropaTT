@@ -29,6 +29,7 @@ final class WorklogService
         private ?RateResolutionService $rateResolver = null,
         private ?AuthzService $authz = null,
         private readonly ?SettingService $settings = null,
+        private readonly ?\Api\System\Library\Module\DomainEventPublisher $events = null,
     ) {
     }
 
