@@ -264,6 +264,27 @@ final class ProjectService
         return $this->sanitizeProject($project, $actor);
     }
 
+    /**
+     * Numeric id of a project the actor is allowed to work with, or null when the
+     * project does not exist, is out of the actor's organization, or is otherwise
+     * invisible to them.
+     *
+     * sanitizeProject() deliberately strips the internal id, so a caller that has
+     * to write `tasks.project_id` cannot use get() — this resolver keeps the very
+     * same findByPublicId() + canAccess() pair instead of re-implementing the
+     * permission model (used by SubtaskService for an explicitly chosen project).
+     */
+    public function resolveProjectIdForActor(string $publicId, array $actor): ?int
+    {
+        $organizationId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
+        $project = $this->projects->findByPublicId($publicId, $organizationId);
+        if (!$project || !$this->canAccess($project, $actor)) {
+            return null;
+        }
+
+        return isset($project['id']) ? (int)$project['id'] : null;
+    }
+
     /** @return array<string,mixed>|null|'ROW_VERSION_CONFLICT' */
     public function update(string $publicId, array $input, array $actor): array|string|null
     {

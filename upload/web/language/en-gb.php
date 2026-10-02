@@ -5162,7 +5162,7 @@ return array (
     'modal_create_subtask_option_no_project' => 'No project',
     'modal_create_subtask_placeholder_description' => 'Context, steps, acceptance criteria',
     'modal_create_subtask_placeholder_title' => 'For example: Prepare the layout',
-    'modal_create_subtask_project_hint' => 'The subtask is created in the parent task\'s project.',
+    'modal_create_subtask_project_hint' => 'Defaults to the parent task\'s project — you can pick another one.',
     'modal_create_subtask_tags_hint' => 'You can select multiple tags.',
     'modal_create_subtask_title' => 'Create subtask',
     'modal_edit_subtask_label_assignee' => 'Assignee',

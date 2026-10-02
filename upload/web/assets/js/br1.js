@@ -4216,15 +4216,36 @@ window.CRM.br1 = (function () {
     }
   }
 
-  function renderSubtaskFormProjectOption(formNode) {
+  function renderSubtaskFormProjectOption(formNode, selectedProjectId, selectedProjectTitle) {
     if (!formNode) return;
     var projectSelect = formNode.querySelector('[name="project_public_id"]');
     if (!projectSelect) return;
 
-    var currentProjectId = String((currentTask && currentTask.project_public_id) || '').trim();
-    var currentProjectTitle = String((currentTask && currentTask.project_title) || '').trim();
-    var optionTitle = currentProjectTitle || (currentProjectId ? currentProjectId : window.CRM.i18n.t('js.br1.bez_proekta_5', 'Без проекта'));
-    projectSelect.innerHTML = '<option value="' + escapeHtml(currentProjectId) + '" selected>' + escapeHtml(optionTitle) + '</option>';
+    var currentProjectId = String(selectedProjectId || '').trim();
+    var currentProjectTitle = String(selectedProjectTitle || '').trim();
+    var projects = availableProjects || [];
+    var inDictionary = projects.some(function (project) {
+      return String(project.public_id || '') === currentProjectId;
+    });
+
+    var options = [];
+    // The field always shows the value the server will store: an explicit empty
+    // value means "inherit the parent's project", so "Без проекта" is only
+    // offered when there is no project to inherit in the first place.
+    if (!currentProjectId) {
+      options.push(window.CRM.i18n.t('js.br1.option_value_bez_proekta_option', '<option value="">Без проекта</option>'));
+    } else if (!inDictionary) {
+      // The dictionary is capped (limit=100/200), so the parent's project may be
+      // outside it — keep it selectable rather than losing the pre-selection.
+      options.push('<option value="' + escapeHtml(currentProjectId) + '">' + escapeHtml(currentProjectTitle || currentProjectId) + '</option>');
+    }
+    options = options.concat(projects.map(function (project) {
+      var selected = currentProjectId && String(project.public_id || '') === currentProjectId ? ' selected' : '';
+      return '<option value="' + escapeHtml(project.public_id || '') + '"' + selected + '>' + escapeHtml(project.title || project.public_id || '') + '</option>';
+    }));
+
+    projectSelect.innerHTML = options.join('');
+    if (currentProjectId) projectSelect.value = currentProjectId;
   }
 
   function renderSubtaskFormStatusOptions(formNode, selectedStatus) {
@@ -4283,7 +4304,21 @@ window.CRM.br1 = (function () {
     var dueInput = formNode.querySelector('[name="due_at"]');
     var endInput = formNode.querySelector('[name="end_at"]');
 
-    renderSubtaskFormProjectOption(formNode);
+    // Both subtask modals carry a project field. The create modal starts from
+    // the parent task's project (that is what the server inherits anyway); the
+    // edit modal starts from the subtask's own project, which may differ when
+    // the author moved it at creation time.
+    var isEditForm = formNode.id === 'subtaskEditForm';
+    var hasOwnProject = isEditForm && Object.prototype.hasOwnProperty.call(subtask, 'project_public_id');
+    var selectedProjectId = hasOwnProject
+      ? String(subtask.project_public_id || '')
+      : String((currentTask && currentTask.project_public_id) || '');
+    var selectedProjectTitle = hasOwnProject
+      ? String(subtask.project_title || '')
+      : String((currentTask && currentTask.project_title) || '');
+
+    renderSubtaskFormProjectOption(formNode, selectedProjectId, selectedProjectTitle);
+    if (isEditForm) formNode.dataset.initialProject = selectedProjectId;
     renderSubtaskFormStatusOptions(formNode, String(subtask.status_code || 'new'));
     renderSubtaskFormPriorityOptions(formNode, String(subtask.priority_code || 'normal'));
     renderSubtaskFormAssigneeOptions(formNode, String(subtask.assignee_user_public_id || ''));
@@ -5314,6 +5349,7 @@ window.CRM.br1 = (function () {
             },
             body: {
               title: title,
+              project_public_id: String((createForm.querySelector('[name="project_public_id"]') || {}).value || '').trim(),
               status: String((createForm.querySelector('[name="status"]') || {}).value || 'new'),
               priority: String((createForm.querySelector('[name="priority"]') || {}).value || 'normal'),
               description: getVisualEditorTextareaValue(createForm.querySelector('[name="description"]')).trim(),
@@ -5371,19 +5407,28 @@ window.CRM.br1 = (function () {
           .map(function (item) { return String(item || '').trim(); })
           .filter(Boolean);
 
+        var patchBody = {
+          title: String((editForm.querySelector('[name="title"]') || {}).value || '').trim(),
+          status: String((editForm.querySelector('[name="status"]') || {}).value || 'new'),
+          priority: String((editForm.querySelector('[name="priority"]') || {}).value || 'normal'),
+          description: getVisualEditorTextareaValue(editForm.querySelector('[name="description"]')).trim(),
+          assignee_user_public_id: String((editForm.querySelector('[name="assignee_user_public_id"]') || {}).value || '').trim(),
+          due_at: String((editForm.querySelector('[name="due_at"]') || {}).value || '').trim(),
+          start_at: String((editForm.querySelector('[name="start_at"]') || {}).value || '').trim(),
+          end_at: String((editForm.querySelector('[name="end_at"]') || {}).value || '').trim()
+        };
+        var selectedProjectValue = String((editForm.querySelector('[name="project_public_id"]') || {}).value || '').trim();
+        // Only send the project when it actually changed: on an untouched form
+        // the field mirrors the stored value, and an empty one would otherwise
+        // drag the subtask back into the parent's project on every save.
+        if (selectedProjectValue !== String(editForm.dataset.initialProject || '').trim()) {
+          patchBody.project_public_id = selectedProjectValue;
+        }
+
         try {
           await window.CRM.api.request('api/v1/subtasks/' + subtaskPublicId, {
             method: 'PATCH',
-            body: {
-              title: String((editForm.querySelector('[name="title"]') || {}).value || '').trim(),
-              status: String((editForm.querySelector('[name="status"]') || {}).value || 'new'),
-              priority: String((editForm.querySelector('[name="priority"]') || {}).value || 'normal'),
-              description: getVisualEditorTextareaValue(editForm.querySelector('[name="description"]')).trim(),
-              assignee_user_public_id: String((editForm.querySelector('[name="assignee_user_public_id"]') || {}).value || '').trim(),
-              due_at: String((editForm.querySelector('[name="due_at"]') || {}).value || '').trim(),
-              start_at: String((editForm.querySelector('[name="start_at"]') || {}).value || '').trim(),
-              end_at: String((editForm.querySelector('[name="end_at"]') || {}).value || '').trim()
-            }
+            body: patchBody
           });
 
           var tagsToDelete = initialTagIds.filter(function (tagId) { return selectedTagIds.indexOf(tagId) === -1; });

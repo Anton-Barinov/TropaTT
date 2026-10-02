@@ -1216,7 +1216,8 @@ final class App
             $c->get('repository.subtask'),
             $c->get('service.task'),
             $c->get('service.task_key'),
-            new HtmlSanitizer()
+            new HtmlSanitizer(),
+            $c->get('service.project')
         ));
         $this->container->factory('service.checklist', fn(Container $c) => new ChecklistService(
             $c->get('repository.checklist'),
