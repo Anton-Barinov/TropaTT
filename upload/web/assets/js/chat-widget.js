@@ -164,12 +164,13 @@
   chat.renderMessage = function (message, ctx) {
     var findMessage = ctx && ctx.findMessage ? ctx.findMessage : function () { return null; };
     var sender = message.sender_name || message.sender_login || window.CRM.i18n.t('chat.default_sender', 'Пользователь');
+    var isAi = !!(message.is_ai || message.role === 'assistant' || message.sender_name === 'AI Copilot' || message.sender_login === 'ai_agent' || message.sender_login === 'agent');
     var own = Number(message.is_own || 0) === 1;
     var deleted = !!message.deleted_at;
     var canEdit = own && !deleted && chat.canEditMessage(message);
     var canDelete = own && !deleted && chat.canDeleteMessage(message);
-    return '<article class="crm-chat-message' + (own ? ' is-own' : '') + (deleted ? ' is-deleted' : '') + '" data-message-id="' + chat.esc(message.public_id || '') + '">'
-      + '<div class="crm-chat-message-meta"><strong>' + chat.esc(sender) + '</strong><time>' + chat.esc(chat.formatTime(message.created_at)) + '</time></div>'
+    return '<article class="crm-chat-message' + (own ? ' is-own' : '') + (deleted ? ' is-deleted' : '') + (isAi ? ' is-ai-agent' : '') + '" data-message-id="' + chat.esc(message.public_id || '') + '">'
+      + '<div class="crm-chat-message-meta"><strong>' + chat.esc(sender) + (isAi ? ' <span class="badge bg-secondary ms-1"><i class="fa-solid fa-robot me-1" aria-hidden="true"></i>AI</span>' : '') + '</strong><time>' + chat.esc(chat.formatTime(message.created_at)) + '</time></div>'
       + (message.reply_public_id ? '<button type="button" class="crm-chat-quote" data-scroll-message="' + chat.esc(message.reply_public_id) + '" title="' + window.CRM.i18n.t('chat.btn_scroll_title', 'Перейти к исходному сообщению') + '" aria-label="' + window.CRM.i18n.t('chat.btn_scroll_aria', 'Перейти к исходному сообщению') + '">' + chat.renderReplyQuote(message, findMessage) + '</button>' : '')
       + (deleted ? '<p class="crm-chat-deleted-text">' + window.CRM.i18n.t('chat.msg_deleted', 'Сообщение удалено') + '</p>' : '<p>' + chat.renderMessageText(message.text || '') + '</p>')
       + chat.renderAttachments(Array.isArray(message.attachments) ? message.attachments : [])

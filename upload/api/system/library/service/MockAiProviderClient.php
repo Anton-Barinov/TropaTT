@@ -12,6 +12,19 @@ final class MockAiProviderClient implements AiProviderClientInterface
             return $simulatedError;
         }
 
+        if (!empty($payload['mock_tool_calls']) && is_array($payload['mock_tool_calls'])) {
+            return [
+                'ok' => true,
+                'text' => (string)($payload['mock_text'] ?? ''),
+                'tool_calls' => $payload['mock_tool_calls'],
+                'request_tokens' => 0,
+                'response_tokens' => 0,
+                'total_tokens' => 0,
+                'latency_ms' => 1,
+                'http_status' => 200,
+            ];
+        }
+
         $intent = trim((string)($payload['intent_code'] ?? 'ai_intent'));
         $responseFormat = is_array($payload['response_format'] ?? null) ? (array)$payload['response_format'] : [];
         $isStructured = strtolower(trim((string)($responseFormat['type'] ?? ''))) === 'json_object';
@@ -22,6 +35,7 @@ final class MockAiProviderClient implements AiProviderClientInterface
         return [
             'ok' => true,
             'text' => $text,
+            'tool_calls' => [],
             'request_tokens' => 0,
             'response_tokens' => 0,
             'total_tokens' => 0,
