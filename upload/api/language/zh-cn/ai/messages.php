@@ -14,6 +14,7 @@ return [
     'provider_code_too_long' => '提供商代码过长',
     'provider_title_too_long' => '提供商名称过长',
     'provider_base_url_too_long' => '提供商 endpoint 过长',
+    'provider_proxy_url_invalid' => '代理地址无效：仅支持 http、https、socks5 和 socks5h，且不能包含路径、参数或片段',
     'provider_secret_required' => '提供商密钥为必填项',
     'provider_secret_updated' => 'AI 提供商密钥已更新',
     'provider_secret_set_failed' => '无法保存 AI 提供商密钥',

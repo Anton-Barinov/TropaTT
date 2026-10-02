@@ -37,8 +37,10 @@ final class KnowledgeRepository
     /** null = not probed yet; guards installs that predate the hierarchy migration. */
     private ?bool $spaceParentSupported = null;
 
-    public function __construct(private readonly PDO $pdo)
-    {
+    public function __construct(
+        private readonly PDO $pdo,
+        private readonly ?\Api\System\Library\Module\DomainEventPublisher $events = null
+    ) {
     }
 
     /**

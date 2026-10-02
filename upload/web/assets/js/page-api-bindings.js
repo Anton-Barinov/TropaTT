@@ -23111,6 +23111,22 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       if (!apiPath) return tp('admin_ai.validation_api_path_required', 'Enter API path.');
       if (apiPath.charAt(0) !== '/') return tp('admin_ai.validation_api_path_slash', 'API path must start with /.');
       if (embeddingsPath && embeddingsPath.charAt(0) !== '/') return tp('admin_ai.validation_embeddings_path_slash', 'Embeddings endpoint must start with /.');
+      var proxyUrl = String((form.querySelector('[name="proxy_url"]') || {}).value || '').trim();
+      if (proxyUrl) {
+        if (/\s/.test(proxyUrl)) return tp('admin_ai.validation_proxy_url_invalid', 'Proxy address must not contain spaces.');
+        try {
+          var parsedProxy = new URL(proxyUrl);
+          if (['http:', 'https:', 'socks5:', 'socks5h:'].indexOf(parsedProxy.protocol) === -1) {
+            return tp('admin_ai.validation_proxy_url_scheme', 'Proxy must start with http://, https://, socks5:// or socks5h://.');
+          }
+          if (!parsedProxy.hostname) return tp('admin_ai.validation_proxy_url_invalid', 'Proxy address format is invalid.');
+          if ((parsedProxy.pathname && parsedProxy.pathname !== '/') || parsedProxy.search || parsedProxy.hash) {
+            return tp('admin_ai.validation_proxy_url_path', 'Proxy address must not contain a path, query or fragment.');
+          }
+        } catch (e) {
+          return tp('admin_ai.validation_proxy_url_invalid', 'Proxy address format is invalid.');
+        }
+      }
       if (requireSecret) {
         var secret = String((form.querySelector('[name="create_secret"]') || {}).value || '').trim();
         if (!secret) return tp('admin_ai.validation_secret_required', 'Access key is required when creating a connection.');
@@ -23141,7 +23157,49 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       if (code === 'HTTP_429' || code === 'AI_RATE_LIMITED') {
         return tp('admin_ai.test_rate_limited', 'Request limit exceeded. Lower Rate / min or choose fallback model.');
       }
+      if (code === 'AI_PROVIDER_SECRET_NOT_CONFIGURED') {
+        return tp('admin_ai.test_secret_not_configured', 'Access key is not set. Add the key and check again.');
+      }
+      if (code === 'AI_PROVIDER_CONNECTION_FAILED' || code === 'AI_PROVIDER_UNREACHABLE' || code === 'AI_PROVIDER_URL_UNRESOLVABLE' || code === 'AI_PROVIDER_URL_DNS_UNAVAILABLE') {
+        return tp('admin_ai.test_connection_failed', 'Provider address is unreachable from the server. Check the address, network or proxy settings.');
+      }
+      if (code === 'AI_PROVIDER_HTTP_ERROR') {
+        return tp('admin_ai.test_http_error', 'Provider answered with an error status. See the HTTP status in the technical details.');
+      }
+      if (code === 'AI_PROVIDER_INVALID_RESPONSE') {
+        return tp('admin_ai.test_invalid_response', 'Provider response is not valid JSON. Check the API path and proxy.');
+      }
+      if (code.indexOf('AI_PROVIDER_PROXY_URL_') === 0) {
+        return tp('admin_ai.test_proxy_invalid', 'Proxy address is not allowed. Allowed schemes: http, https, socks5, socks5h.');
+      }
+      if (code.indexOf('AI_PROVIDER_URL_') === 0 || code === 'AI_PROVIDER_URL_INVALID' || code === 'AI_PROVIDER_URL_REQUIRED') {
+        return tp('admin_ai.test_url_invalid', 'API address is not allowed. Check the address format.');
+      }
       return tp('admin_ai.test_generic_fail', 'Check connection settings and test again.');
+    }
+
+    function providerRequestDiagnostics(source) {
+      var root = source && typeof source === 'object' ? source : {};
+      var uiError = root.ui_error && typeof root.ui_error === 'object' ? root.ui_error : {};
+      var envelope = null;
+      if (uiError.envelope && typeof uiError.envelope === 'object') {
+        envelope = uiError.envelope;
+      } else if (root.envelope && typeof root.envelope === 'object') {
+        envelope = root.envelope;
+      } else if (root.code && root.message) {
+        envelope = root;
+      }
+      if (!envelope) return '';
+      var meta = envelope.meta && typeof envelope.meta === 'object' ? envelope.meta : {};
+      var providerError = meta.provider_error && typeof meta.provider_error === 'object' ? meta.provider_error : {};
+      var parts = [];
+      var code = String(root.code || uiError.code || envelope.code || '').trim();
+      if (code && code !== 'REQUEST_FAILED') parts.push(code);
+      var status = Number(uiError.status || root.status || meta.status || providerError.http_status || 0) || 0;
+      if (status > 0) parts.push('HTTP ' + status);
+      var providerMessage = String(meta.message || '').trim();
+      if (providerMessage) parts.push(providerMessage);
+      return parts.join(' • ');
     }
 
     function parseDateMs(value) {
@@ -23181,6 +23239,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         rate_limit_per_min: num('rate_limit_per_min'),
         token_budget_daily: num('token_budget_daily'),
         cost_budget_daily: num('cost_budget_daily'),
+        proxy_url: val('proxy_url'),
         capabilities: {
           json_mode: bool('cap_json_mode'),
           tools: bool('cap_tools'),
@@ -23221,6 +23280,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       setNum('rate_limit_per_min', payload.rate_limit_per_min || 0);
       setNum('token_budget_daily', payload.token_budget_daily || 0);
       setNum('cost_budget_daily', payload.cost_budget_daily || 0);
+      setVal('proxy_url', payload.proxy_url || '');
       setBool('cap_json_mode', caps.json_mode);
       setBool('cap_tools', caps.tools);
       setBool('cap_streaming', caps.streaming);
@@ -23687,7 +23747,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           isProblem: false
         };
       }
-      if (lastFailed || (health.status && health.status !== 'ok')) {
+      if (lastFailed || (health.status && health.status !== 'ok' && health.status !== 'unchecked')) {
         return {
           code: 'error',
           label: tp('admin_ai.health_problem', 'Has problem'),
@@ -23703,7 +23763,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         badgeClass: 'warning',
         title: tp('admin_ai.health_unchecked_title', 'AI is connected but not checked yet'),
         description: tp('admin_ai.health_unchecked_desc', 'Run a check to make sure the service is ready.'),
-        isProblem: true
+        isProblem: false
       };
     }
 
@@ -24526,6 +24586,10 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         modelsList.innerHTML = '<span class="text-muted">' + safeText(tp('admin_ai.select_connection_first', 'Select a connection first.')) + '</span>';
       } else if (!modelsEnvelope || modelsEnvelope.success === false) {
         var modelError = modelsEnvelope && modelsEnvelope.message ? String(modelsEnvelope.message) : tp('admin_ai.models_unavailable', 'Model list is unavailable.');
+        var modelErrorDiagnostics = providerRequestDiagnostics(modelsEnvelope);
+        if (modelErrorDiagnostics) {
+          modelError += ' • ' + modelErrorDiagnostics;
+        }
         modelsList.innerHTML = '<span class="text-muted">' + safeText(modelError) + '</span>';
       } else if (!modelItems.length) {
         modelsList.innerHTML = '<span class="text-muted">' + safeText(tp('admin_ai.models_not_received', 'No models received.')) + '</span>';
@@ -24561,7 +24625,9 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       if (!selectedProviderId) {
         selectedModelsSummaryNode.textContent = tp('admin_ai.select_connection_to_view_models', 'Select a connection to view models.');
       } else if (!modelsEnvelope || modelsEnvelope.success === false) {
-        selectedModelsSummaryNode.textContent = tp('admin_ai.models_not_loaded_hint', 'Models are not loaded: check the connection address or sync the model list.');
+        var summaryDiagnostics = providerRequestDiagnostics(modelsEnvelope);
+        selectedModelsSummaryNode.textContent = tp('admin_ai.models_not_loaded_hint', 'Models are not loaded: check the connection address or sync the model list.')
+          + (summaryDiagnostics ? ' • ' + summaryDiagnostics : '');
       } else if (knownModelIdsForSummary.length) {
         var selectedDefaultModel = selectedProvider ? String(selectedProvider.default_model || '').trim() : '';
         var defaultModelFound = selectedDefaultModel !== '' && knownModelIdsForSummary.indexOf(selectedDefaultModel) >= 0;
@@ -24634,6 +24700,18 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       }
     }
 
+    function proxyDisplayValue(proxyUrl) {
+      var raw = String(proxyUrl || '').trim();
+      if (!raw) return '';
+      try {
+        var parsed = new URL(raw);
+        var auth = (parsed.username || parsed.password) ? '***@' : '';
+        return parsed.protocol + '//' + auth + parsed.host;
+      } catch (e) {
+        return '***';
+      }
+    }
+
     function renderTechnicalDetails(provider) {
       var node = document.getElementById('adminAiTechnicalDetails');
       if (!node) return;
@@ -24641,6 +24719,12 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         node.textContent = tp('admin_ai.connection_not_selected', 'Connection is not selected.');
         return;
       }
+      var techHealth = provider.provider_health && typeof provider.provider_health === 'object'
+        ? provider.provider_health
+        : {};
+      var techPayload = provider.provider_payload && typeof provider.provider_payload === 'object'
+        ? provider.provider_payload
+        : {};
       var rows = [
         [tp('admin_ai.label_title', 'Title'), provider.title || '—'],
         [tp('admin_ai.label_code', 'Internal code'), provider.provider_code || '—'],
@@ -24649,7 +24733,9 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         [tp('admin_ai.label_api_path', 'API path'), provider.api_path || '—'],
         [tp('admin_ai.label_answer_model', 'Answer model'), provider.default_model || '—'],
         [tp('admin_ai.label_search_model', 'Search model'), providerEmbeddingModel(provider)],
+        [tp('admin_ai.label_proxy_url', 'Provider proxy'), proxyDisplayValue(techPayload.proxy_url) || '—'],
         [tp('admin_ai.hero_label_last_check', 'Last check'), providerLastCheckLabel(provider)],
+        [tp('admin_ai.label_last_error_code', 'Last error code'), String(techHealth.last_error_code || '') || '—'],
         [tp('admin_ai.label_secret', 'API key'), provider.credential_is_configured ? tp('admin_ai.added_lower', 'added') : tp('admin_ai.not_added_lower', 'not added')]
       ];
       node.innerHTML = rows.map(function (row) {
@@ -24682,7 +24768,10 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         await renderAdminAiPage();
       } catch (error) {
         var envelope = error && error.envelope ? error.envelope : null;
-        notify((envelope && envelope.message) || tp('admin_ai.connection_test_fail_full', 'Failed to test the connection. Check the access key or selected model.'), 'error');
+        var testDiagnostics = providerRequestDiagnostics(error);
+        var testFailMessage = (envelope && envelope.message) || tp('admin_ai.connection_test_fail_full', 'Failed to test the connection. Check the access key or selected model.');
+        if (testDiagnostics) testFailMessage += ' • ' + testDiagnostics;
+        notify(testFailMessage, 'error');
         if (button) {
           button.disabled = false;
           button.innerHTML = originalHtml;
@@ -25059,7 +25148,10 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           await renderAdminAiPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || tp('admin_ai.connection_create_fail', 'Failed to create connection'), 'error');
+          var createDiagnostics = providerRequestDiagnostics(error);
+          var createMessage = (envelopeError && envelopeError.message) || tp('admin_ai.connection_create_fail', 'Failed to create connection');
+          if (createDiagnostics) createMessage += ' • ' + createDiagnostics;
+          notify(createMessage, 'error');
         }
       });
       createForm.dataset.bound = '1';
@@ -25136,7 +25228,10 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           await renderAdminAiPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || tp('admin_ai.connection_update_fail', 'Failed to update connection'), 'error');
+          var updateDiagnostics = providerRequestDiagnostics(error);
+          var updateMessage = (envelopeError && envelopeError.message) || tp('admin_ai.connection_update_fail', 'Failed to update connection');
+          if (updateDiagnostics) updateMessage += ' • ' + updateDiagnostics;
+          notify(updateMessage, 'error');
         }
       });
       editForm.dataset.bound = '1';

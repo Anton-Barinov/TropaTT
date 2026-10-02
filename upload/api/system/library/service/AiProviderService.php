@@ -65,6 +65,12 @@ final class AiProviderService
             return $headersValidation;
         }
 
+        $proxyValidation = $this->validateProxyUrl($input['provider_payload'] ?? []);
+        if (!$proxyValidation['ok']) {
+            $this->logInvalidProxyAttempt($actor, $input['provider_payload'] ?? []);
+            return $proxyValidation;
+        }
+
         $isDefault = $this->toBool($input['is_default'] ?? false);
         $now = gmdate('Y-m-d H:i:s');
         $actorId = (int)($actor['id'] ?? 0);
@@ -125,6 +131,13 @@ final class AiProviderService
                 return $headersValidation;
             }
         }
+        if (array_key_exists('provider_payload', $input)) {
+            $proxyValidation = $this->validateProxyUrl($input['provider_payload'] ?? []);
+            if (!$proxyValidation['ok']) {
+                $this->logInvalidProxyAttempt($actor, $input['provider_payload'] ?? []);
+                return $proxyValidation;
+            }
+        }
 
         $set = [];
         foreach (['provider_code', 'title', 'base_url', 'api_path', 'default_model', 'temperature'] as $field) {
@@ -158,20 +171,16 @@ final class AiProviderService
         $actorId = (int)($actor['id'] ?? 0);
         $set['updated_by_user_id'] = $actorId > 0 ? $actorId : null;
 
-        $this->providers->updateByPublicId($publicId, $set);
-        if (array_key_exists('base_url', $set) || array_key_exists('api_path', $set) || array_key_exists('default_model', $set) || array_key_exists('provider_code', $set)) {
-            $payloadRaw = $provider['provider_payload'] ?? '{}';
-            $payload = is_array($payloadRaw) ? (array)$payloadRaw : $this->decodeJson((string)$payloadRaw);
-            $health = is_array($payload['health'] ?? null) ? (array)$payload['health'] : [];
-            $health['needs_recheck'] = true;
-            $health['config_changed_at'] = gmdate('c');
-            $payload['health'] = $health;
-            $this->providers->updateByPublicId($publicId, [
-                'provider_payload' => $this->encodeJson($payload),
-                'updated_at' => gmdate('Y-m-d H:i:s'),
-                'updated_by_user_id' => $actorId > 0 ? $actorId : null,
-            ]);
+        $configChanged = array_key_exists('base_url', $set)
+            || array_key_exists('api_path', $set)
+            || array_key_exists('default_model', $set)
+            || array_key_exists('provider_code', $set)
+            || $this->proxyUrlChanged($provider, $set['provider_payload'] ?? null);
+        if ($configChanged || array_key_exists('provider_payload', $set)) {
+            $set['provider_payload'] = $this->encodeJson($this->providerPayloadForUpdate($provider, $set['provider_payload'] ?? null, $configChanged));
         }
+
+        $this->providers->updateByPublicId($publicId, $set);
 
         if (($set['is_default'] ?? 0) === 1) {
             $this->providers->unsetDefaultForOthers($publicId);
@@ -652,6 +661,92 @@ final class AiProviderService
         }
 
         return ['ok' => true];
+    }
+
+    /** @param mixed $payload @return array{ok:bool,code?:string,field_errors?:list<array{field:string,message:string}>} */
+    private function validateProxyUrl(mixed $payload): array
+    {
+        if (!is_array($payload)) {
+            return ['ok' => true];
+        }
+        $value = $payload['proxy_url'] ?? null;
+        if ($value === null || trim((string)$value) === '') {
+            return ['ok' => true];
+        }
+        if (!is_string($value)) {
+            return ['ok' => false, 'code' => AiProxyUrl::CODE_INVALID];
+        }
+
+        $parsed = AiProxyUrl::parse($value);
+        if (!(bool)($parsed['ok'] ?? false)) {
+            return [
+                'ok' => false,
+                'code' => (string)($parsed['code'] ?? AiProxyUrl::CODE_INVALID),
+                'field_errors' => [
+                    ['field' => 'provider_payload.proxy_url', 'message' => 'Invalid proxy URL'],
+                ],
+            ];
+        }
+
+        return ['ok' => true];
+    }
+
+    /** @param mixed $payload */
+    private function logInvalidProxyAttempt(array $actor, mixed $payload): void
+    {
+        $raw = is_array($payload) ? trim((string)($payload['proxy_url'] ?? '')) : '';
+        $parts = $raw !== '' ? (parse_url($raw) ?: []) : [];
+        $this->logger->security([
+            'actor_public_id' => $actor['public_id'] ?? null,
+            'event_type' => 'ai_provider_invalid_proxy_url_rejected',
+            'details' => [
+                'proxy_scheme' => strtolower(trim((string)($parts['scheme'] ?? ''))),
+                'proxy_host' => (string)($parts['host'] ?? ''),
+                'request_id' => (string)$this->request->requestId,
+                'correlation_id' => (string)$this->request->correlationId,
+            ],
+        ]);
+    }
+
+    /** @param array<string,mixed> $provider */
+    private function proxyUrlChanged(array $provider, ?string $newPayloadJson): bool
+    {
+        if ($newPayloadJson === null) {
+            return false;
+        }
+        $raw = $provider['provider_payload'] ?? '[]';
+        $old = is_array($raw) ? (array)$raw : $this->decodeJson((string)$raw);
+        $new = $this->decodeJson($newPayloadJson);
+
+        return trim((string)($old['proxy_url'] ?? '')) !== trim((string)($new['proxy_url'] ?? ''));
+    }
+
+    /**
+     * Payload to persist on update. Keeps the health block of the payload being
+     * written (previously the health-only rewrite rebuilt the payload from the
+     * OLD row and silently dropped payload changes made in the same request).
+     *
+     * @param array<string,mixed> $provider
+     * @return array<string,mixed>
+     */
+    private function providerPayloadForUpdate(array $provider, ?string $newPayloadJson, bool $configChanged): array
+    {
+        if ($newPayloadJson !== null) {
+            $payload = $this->decodeJson($newPayloadJson);
+        } else {
+            $raw = $provider['provider_payload'] ?? '[]';
+            $payload = is_array($raw) ? (array)$raw : $this->decodeJson((string)$raw);
+        }
+        if (!$configChanged) {
+            return $payload;
+        }
+
+        $health = is_array($payload['health'] ?? null) ? (array)$payload['health'] : [];
+        $health['needs_recheck'] = true;
+        $health['config_changed_at'] = gmdate('c');
+        $payload['health'] = $health;
+
+        return $payload;
     }
 
     private function logForbiddenHeaderAttempt(array $actor, mixed $headers): void

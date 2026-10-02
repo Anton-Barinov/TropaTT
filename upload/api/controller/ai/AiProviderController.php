@@ -59,7 +59,10 @@ final class AiProviderController extends BaseController
             if (!(bool)($result['ok'] ?? false)) {
                 $code = (string)($result['code'] ?? '');
                 $status = (str_contains($code, 'URL_') || str_contains($code, 'HEADERS_')) ? 422 : 400;
-                return $this->error((string)$result['code'], $this->t('ai/messages.provider_create_failed'), $status, [
+                $message = str_starts_with($code, 'AI_PROVIDER_PROXY_URL_')
+                    ? $this->t('ai/messages.provider_proxy_url_invalid')
+                    : $this->t('ai/messages.provider_create_failed');
+                return $this->error((string)$result['code'], $message, $status, [
                     'provider' => [(string)$result['code']],
                 ]);
             }
@@ -85,7 +88,10 @@ final class AiProviderController extends BaseController
                 'AI_PROVIDER_NO_CHANGES' => 422,
                 default => ((str_contains($code, 'URL_') || str_contains($code, 'HEADERS_')) ? 422 : 400),
             };
-            return $this->error($code, $this->t('ai/messages.provider_update_failed'), $status, [
+            $message = str_starts_with($code, 'AI_PROVIDER_PROXY_URL_')
+                ? $this->t('ai/messages.provider_proxy_url_invalid')
+                : $this->t('ai/messages.provider_update_failed');
+            return $this->error($code, $message, $status, [
                 'provider' => [$code],
             ]);
         }

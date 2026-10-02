@@ -7,6 +7,7 @@ use Api\Model\Intake\IntakeItemActivityRepository;
 use Api\Model\Intake\IntakeItemRepository;
 use Api\System\Library\Language\LanguageManager;
 use Api\System\Library\Language\TranslatableTrait;
+use Api\System\Library\Module\ModuleEvents;
 use Api\System\Library\Support\Ulid;
 
 final class IntakeItemService
@@ -58,7 +59,8 @@ final class IntakeItemService
         private readonly TaskService $taskService,
         private readonly ProjectService $projectService,
         private readonly ?NotificationService $notificationService = null,
-        ?LanguageManager $lang = null
+        ?LanguageManager $lang = null,
+        private readonly ?\Api\System\Library\Module\DomainEventPublisher $events = null
     ) {
         $this->lang = $lang ?? new LanguageManager(__DIR__ . '/../../language');
     }
@@ -275,6 +277,16 @@ final class IntakeItemService
 
         $this->logActivity($item['id'], $actor, 'created');
 
+        $this->publishEvent(ModuleEvents::INTAKE_CREATED, [
+            'intake_item_public_id' => $publicId,
+            'status' => 'pending',
+            'title' => $title,
+            'priority_code' => $item['priority_code'] ?? null,
+            'source_type' => $sourceType,
+            'project_public_id' => $item['project_public_id'] ?? null,
+            'assignee_user_id' => $assigneeUserId,
+        ], $actor);
+
         if ($this->notificationService !== null) {
             $actorUserId = (int)($actor['id'] ?? 0);
             $actorName = trim((string)($actor['full_name'] ?? $actor['login'] ?? ''));
@@ -468,6 +480,14 @@ final class IntakeItemService
         }
 
         $updated = $this->repository->findByPublicId($publicId, $this->organizationId($actor));
+
+        $this->publishEvent(ModuleEvents::INTAKE_UPDATED, [
+            'intake_item_public_id' => $publicId,
+            'status' => $updated['status'] ?? ($item['status'] ?? null),
+            'changed_fields' => $changedFields,
+            'row_version' => (int)($updated['row_version'] ?? ($set['row_version'] ?? 0)),
+        ], $actor);
+
         return $updated;
     }
 
@@ -486,6 +506,10 @@ final class IntakeItemService
         $deleted = $this->repository->softDeleteByPublicId($publicId, $now, $this->organizationId($actor));
         if ($deleted) {
             $this->logActivity((int)$item['id'], $actor, 'deleted');
+            $this->publishEvent(ModuleEvents::INTAKE_DELETED, [
+                'intake_item_public_id' => $publicId,
+                'title' => (string)($item['title'] ?? ''),
+            ], $actor);
         }
 
         return $deleted;
@@ -594,6 +618,13 @@ final class IntakeItemService
         }
 
         $updated = $this->repository->findByPublicId($publicId, $this->organizationId($actor));
+
+        $this->publishEvent(ModuleEvents::INTAKE_ACCEPTED, [
+            'intake_item_public_id' => $publicId,
+            'status' => 'accepted',
+            'task_public_id' => $task['public_id'] ?? null,
+        ], $actor);
+
         return [
             'item' => $updated,
             'task' => $task,
@@ -641,6 +672,12 @@ final class IntakeItemService
         ], $this->organizationId($actor));
 
         $this->logActivity((int)$item['id'], $actor, 'rejected', null, null, null, $reason);
+
+        $this->publishEvent(ModuleEvents::INTAKE_REJECTED, [
+            'intake_item_public_id' => $publicId,
+            'status' => 'rejected',
+            'reason' => $reason,
+        ], $actor);
 
         if ($this->notificationService !== null) {
             $actorUserId = (int)($actor['id'] ?? 0);
@@ -864,7 +901,14 @@ final class IntakeItemService
 
         $this->logActivity((int)$item['id'], $actor, 'reopened');
 
-        return $this->repository->findByPublicId($publicId, $this->organizationId($actor));
+        $reopened = $this->repository->findByPublicId($publicId, $this->organizationId($actor));
+        $this->publishEvent(ModuleEvents::INTAKE_REOPENED, [
+            'intake_item_public_id' => $publicId,
+            'status' => 'pending',
+            'previous_status' => $currentStatus,
+        ], $actor);
+
+        return $reopened;
     }
 
     /**
@@ -931,6 +975,29 @@ final class IntakeItemService
     {
         $id = (int)($actor['organization_id'] ?? 0);
         return $id > 0 ? $id : null;
+    }
+
+    /**
+     * Publish a domain event for a mutation that has already committed.
+     *
+     * Called at the end of every successful mutator, so REST, MCP and the web
+     * UI all emit the same event with the same envelope. Delivery failures are
+     * swallowed: a broken subscriber must not fail the request that produced
+     * the event.
+     *
+     * @param array<string, mixed> $payload
+     * @param array<string, mixed> $actor
+     */
+    private function publishEvent(string $event, array $payload, array $actor): void
+    {
+        if ($this->events === null) {
+            return;
+        }
+        try {
+            $this->events->publish($event, $payload, $actor, $this->organizationId($actor));
+        } catch (\Throwable) {
+            // Observability only — never break the mutation that just landed.
+        }
     }
 
     private function error(string $code, string $message): string

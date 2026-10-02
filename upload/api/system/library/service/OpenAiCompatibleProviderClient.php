@@ -221,7 +221,7 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
 
         while ($attempt < $runtime['max_attempts']) {
             $attempt++;
-            $lastResponse = $this->sendGetJson($url, $headers, $runtime['timeout_ms']);
+            $lastResponse = $this->sendGetJson($url, $headers, $runtime['timeout_ms'], $provider);
             if ((bool)($lastResponse['ok'] ?? false)) {
                 return $lastResponse;
             }
@@ -238,9 +238,10 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
 
     /**
      * @param list<string> $headers
+     * @param array<string,mixed> $provider
      * @return array{ok:bool,http_status?:int,json?:array<string,mixed>,error_code?:string,error_message?:string,error_type?:string}
      */
-    private function sendGetJson(string $url, array $headers, int $timeoutMs): array
+    private function sendGetJson(string $url, array $headers, int $timeoutMs, array $provider = []): array
     {
         if (function_exists('curl_init')) {
             $ch = curl_init($url);
@@ -253,6 +254,7 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
                 curl_setopt($ch, CURLOPT_MAXREDIRS, 0);
                 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
                 curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+                $this->applyProxy($ch, $provider);
                 $raw = curl_exec($ch);
                 $curlErrno = curl_errno($ch);
                 $curlError = curl_error($ch);
@@ -322,7 +324,7 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
 
         while ($attempt < $runtime['max_attempts']) {
             $attempt++;
-            $lastResponse = $this->sendPostJson($url, $headers, $body, $runtime['timeout_ms']);
+            $lastResponse = $this->sendPostJson($url, $headers, $body, $runtime['timeout_ms'], $provider);
             if ((bool)($lastResponse['ok'] ?? false)) {
                 return $lastResponse;
             }
@@ -342,7 +344,7 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
      * @param array<string,mixed> $body
      * @return array{ok:bool,http_status?:int,json?:array<string,mixed>,error_code?:string,error_message?:string,error_type?:string}
      */
-    private function sendPostJson(string $url, array $headers, array $body, int $timeoutMs): array
+    private function sendPostJson(string $url, array $headers, array $body, int $timeoutMs, array $provider = []): array
     {
         if (!function_exists('curl_init')) {
             return [
@@ -376,6 +378,7 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
         curl_setopt($ch, CURLOPT_MAXREDIRS, 0);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+        $this->applyProxy($ch, $provider);
 
         $raw = curl_exec($ch);
         $curlErrno = curl_errno($ch);
@@ -498,6 +501,12 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
         }
 
         return [];
+    }
+
+    /** @param mixed $ch @param array<string,mixed> $provider */
+    private function applyProxy(mixed $ch, array $provider): void
+    {
+        AiProxyUrl::applyToCurl($ch, $this->providerPayload($provider));
     }
 
     /** @param array{error_code?:string,http_status?:int} $response */

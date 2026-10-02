@@ -76,6 +76,35 @@ final class ModuleEvents
     public const CHAT_MESSAGE_UPDATED = 'chat.message_updated';
     public const CHAT_MESSAGE_DELETED = 'chat.message_deleted';
 
+    // Intake (lead/idea queue). Dispatched by IntakeItemService so the web UI,
+    // REST and MCP all produce exactly one event per successful mutation.
+    public const INTAKE_CREATED = 'intake.created';
+    public const INTAKE_UPDATED = 'intake.updated';
+    public const INTAKE_ACCEPTED = 'intake.accepted';
+    public const INTAKE_REJECTED = 'intake.rejected';
+    public const INTAKE_REOPENED = 'intake.reopened';
+    public const INTAKE_DELETED = 'intake.deleted';
+
+    // Calendar events. Recurrence identity is carried by the payload.
+    public const CALENDAR_EVENT_CREATED = 'calendar_event.created';
+    public const CALENDAR_EVENT_UPDATED = 'calendar_event.updated';
+    public const CALENDAR_EVENT_DELETED = 'calendar_event.deleted';
+
+    // Worklogs. Financial fields (cost/bill rates and amounts) are stripped
+    // from the generic payload by DomainEventPublisher — subscribers get the
+    // time accounting, never the money.
+    public const WORKLOG_CREATED = 'worklog.created';
+    public const WORKLOG_UPDATED = 'worklog.updated';
+    public const WORKLOG_DELETED = 'worklog.deleted';
+
+    // Knowledge pages. The page body never travels in the payload; only the
+    // space/page public ids and the lifecycle state do.
+    public const KNOWLEDGE_PAGE_CREATED = 'knowledge_page.created';
+    public const KNOWLEDGE_PAGE_UPDATED = 'knowledge_page.updated';
+    public const KNOWLEDGE_PAGE_PUBLISHED = 'knowledge_page.published';
+    public const KNOWLEDGE_PAGE_ARCHIVED = 'knowledge_page.archived';
+    public const KNOWLEDGE_PAGE_DELETED = 'knowledge_page.deleted';
+
     // Web rendering (dispatched from Web\Controller::render()).
     public const RENDER_BEFORE = 'render.before';
     public const RENDER_AFTER = 'render.after';
