@@ -197,6 +197,52 @@ final class McpController extends BaseController
         return $this->response($isBatch ? $responses : $responses[0]);
     }
 
+    /**
+     * Return available tools formatted for OpenAI function calling, filtered by the current actor permissions.
+     *
+     * @param string $toolset Profile name (default 'core')
+     * @return list<array{type:string,function:array{name:string,description:string,parameters:array<string,mixed>}}>
+     */
+    public function getAvailableToolsForAgent(string $toolset = 'core'): array
+    {
+        $tools = $this->toolsForToolset($toolset);
+        $agentTools = [];
+        foreach ($tools as $t) {
+            $name = (string)($t['name'] ?? '');
+            if ($name === '') {
+                continue;
+            }
+            $agentTools[] = [
+                'type' => 'function',
+                'function' => [
+                    'name' => $name,
+                    'description' => (string)($t['description'] ?? ''),
+                    'parameters' => (array)($t['inputSchema'] ?? [
+                        'type' => 'object',
+                        'properties' => (object)[],
+                    ]),
+                ],
+            ];
+        }
+
+        return $agentTools;
+    }
+
+    /**
+     * Execute an MCP tool in-process with the current container actor and active arguments.
+     *
+     * @param string $name Tool name
+     * @param array<string,mixed> $arguments Tool arguments
+     * @return array<string,mixed>
+     */
+    public function executeToolInProcess(string $name, array $arguments): array
+    {
+        return $this->callTool([
+            'name' => $name,
+            'arguments' => $arguments,
+        ]);
+    }
+
     private function handleMessage(array $message): ?array
     {
         $id = $message['id'] ?? null;
@@ -14621,9 +14667,16 @@ $tools[] = $this->tool(
 
     private function can(string $permission): bool
     {
+        $actor = $this->actor();
+        if ((bool)($actor['is_root'] ?? false)) {
+            return true;
+        }
+        if (!$this->container->has('service.authz')) {
+            return false;
+        }
         /** @var AuthzService $authz */
         $authz = $this->container->get('service.authz');
-        return $authz->hasPermissions($this->actor(), [$permission]);
+        return $authz->hasPermissions($actor, [$permission]);
     }
 
     private function canAny(array $permissions): bool

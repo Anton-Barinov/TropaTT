@@ -34,6 +34,21 @@ final class ChatController extends BaseController
             $service = $this->container->get('service.chat');
             if (!$isExternal) $service->repairSystemChats();
 
+            $isAiAvailable = false;
+            if (!$isExternal) {
+                try {
+                    /** @var \Api\System\Library\Service\AiAvailabilityService $aiAvailability */
+                    $aiAvailability = $this->container->get('service.ai_availability');
+                    $avail = $aiAvailability->getAvailability($user);
+                    $isAiAvailable = !empty($avail['available']);
+                } catch (\Throwable) {
+                    $isAiAvailable = false;
+                }
+                if ($isAiAvailable && !$archived) {
+                    $service->ensureAiAgentChat($userId, $organizationId > 0 ? $organizationId : null);
+                }
+            }
+
             $hasArchivedColumn = $this->tableHasColumn($pdo, 'chats', 'archived_at');
 
             if ($archived) {
@@ -122,6 +137,18 @@ final class ChatController extends BaseController
             // participant-only view enforced by the main query above.
             if (!$isExternal) {
                 $items = $this->mergeStaffProjectClientChats($items, $user);
+            }
+
+            if (!$isAiAvailable) {
+                $items = array_values(array_filter($items, static fn(array $item): bool => ($item['type'] ?? '') !== 'ai_agent'));
+            } else {
+                foreach ($items as &$item) {
+                    if (($item['type'] ?? '') === 'ai_agent') {
+                        $item['title'] = !empty($item['title']) ? $item['title'] : 'AI Copilot';
+                        $item['is_ai_agent'] = true;
+                    }
+                }
+                unset($item);
             }
         } catch (\Throwable $e) {
             AppLog::error('[ChatController::list] ' . $e->getMessage());
@@ -471,7 +498,7 @@ final class ChatController extends BaseController
         $pdo = $this->container->get('db.pdo');
         $msgPublicId = 'msg_' . bin2hex(random_bytes(8));
         $reply = $this->resolveReplyMessage((int)$chat['id'], (string)($input['reply_to_message_public_id'] ?? ''));
-        $chatOrgId = (int)($chat['organization_id'] ?? $this->organizationId());
+        $chatOrgId = (int)($chat['organization_id'] ?? ($actor['organization_id'] ?? 0));
         $hasMsgOrg = $this->tableHasColumn($pdo, 'chat_messages', 'organization_id');
         if ($hasMsgOrg && $chatOrgId > 0) {
             $pdo->prepare("
@@ -525,7 +552,28 @@ final class ChatController extends BaseController
             'created_at' => gmdate('Y-m-d H:i:s'),
         ]);
 
-        return $this->success('MESSAGE_SENT', $this->t('chat/messages.message_sent'), ['public_id' => $msgPublicId], status: 201);
+        $aiMessage = null;
+        if (($chat['type'] ?? '') === 'ai_agent') {
+            try {
+                /** @var \Api\System\Library\Service\AiChatAgentService $aiChatService */
+                $aiChatService = $this->container->get('service.ai_chat_agent');
+                $userMsg = [
+                    'id' => $msgId,
+                    'public_id' => $msgPublicId,
+                    'text' => $text,
+                ];
+                $aiMessage = $aiChatService->handleUserMessage($chat, $userMsg, $actor);
+            } catch (\Throwable $e) {
+                AppLog::error('[ChatController::sendMessage] AI Agent error: ' . $e->getMessage());
+            }
+        }
+
+        $resData = ['public_id' => $msgPublicId];
+        if ($aiMessage !== null) {
+            $resData['ai_message'] = $aiMessage;
+        }
+
+        return $this->success('MESSAGE_SENT', $this->t('chat/messages.message_sent'), $resData, status: 201);
     }
 
     public function editMessage(array $params = []): JsonResponse
@@ -1039,7 +1087,24 @@ final class ChatController extends BaseController
         if ($organizationId > 0) $params['organization_id'] = $organizationId;
         $stmt->execute($params);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return is_array($row) ? $row : null;
+        if (!is_array($row)) {
+            return null;
+        }
+
+        if (($row['type'] ?? '') === 'ai_agent') {
+            try {
+                /** @var \Api\System\Library\Service\AiAvailabilityService $aiAvailability */
+                $aiAvailability = $this->container->get('service.ai_availability');
+                $avail = $aiAvailability->getAvailability($actor);
+                if (empty($avail['available'])) {
+                    return null;
+                }
+            } catch (\Throwable) {
+                return null;
+            }
+        }
+
+        return $row;
     }
 
     private function archivedChatForCurrentUser(string $publicId): ?array

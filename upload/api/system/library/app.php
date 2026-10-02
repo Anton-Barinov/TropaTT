@@ -1858,6 +1858,16 @@ final class App
             $c->get('config'),
             $c->get('logger')
         ));
+        $this->container->factory('service.ai_chat_agent', fn(Container $c) => new \Api\System\Library\Service\AiChatAgentService(
+            $c,
+            $c->get('db.pdo'),
+            $c->get('service.ai_provider'),
+            $c->get('service.ai_availability'),
+            $c->get('service.ai_provider_client_factory'),
+            $c->get('service.ai_token_budget'),
+            $c->get('service.ai_usage'),
+            $c->get('service.ai_cost_limit')
+        ));
         $this->container->factory('service.rate_limiter', fn() => new RateLimitService());
 
         $this->container->factory('service.idempotency', fn(Container $c) => new \Api\System\Library\Service\IdempotencyService(

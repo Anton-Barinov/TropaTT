@@ -157,6 +157,113 @@ final class ChatService
         return $chat;
     }
 
+    public function ensureAiAgentUser(): array
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT * FROM users
+            WHERE public_id = 'usr_D6A6FADCE249FCC1'
+               OR login IN ('ai_agent', 'agent')
+            ORDER BY id ASC
+            LIMIT 1
+        ");
+        $stmt->execute();
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (is_array($user)) {
+            return $user;
+        }
+
+        // Virtual AI agent user fallback
+        $publicId = 'usr_ai_agent';
+        $login = 'ai_agent';
+        $fullName = 'AI Copilot';
+        $email = 'ai-agent@tropatt.local';
+        $hash = '$2y$10$virtualaiagentplaceholderpass';
+
+        $hasNameCol = $this->tableHasColumn('users', 'name');
+        $nameCol = $hasNameCol ? ', name' : '';
+        $nameVal = $hasNameCol ? ', :name' : '';
+
+        $sql = "INSERT INTO users (public_id, login, full_name, email, password_hash, is_active, is_root, created_at, updated_at{$nameCol})
+                VALUES (:pid, :login, :full_name, :email, :hash, 1, 0, NOW(), NOW(){$nameVal})";
+        $params = [
+            'pid' => $publicId,
+            'login' => $login,
+            'full_name' => $fullName,
+            'email' => $email,
+            'hash' => $hash,
+        ];
+        if ($hasNameCol) {
+            $params['name'] = $fullName;
+        }
+
+        try {
+            $this->pdo->prepare($sql)->execute($params);
+            $newId = (int)$this->pdo->lastInsertId();
+            $getStmt = $this->pdo->prepare("SELECT * FROM users WHERE id = :id");
+            $getStmt->execute(['id' => $newId]);
+            $created = $getStmt->fetch(PDO::FETCH_ASSOC);
+            if (is_array($created)) {
+                return $created;
+            }
+        } catch (\Throwable) {
+            $stmt->execute();
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (is_array($user)) {
+                return $user;
+            }
+        }
+
+        return [
+            'id' => 0,
+            'public_id' => $publicId,
+            'login' => $login,
+            'full_name' => $fullName,
+        ];
+    }
+
+    public function ensureAiAgentChat(int $actorUserId, ?int $organizationId = null): array
+    {
+        $actorUserId = max(0, $actorUserId);
+        if ($actorUserId <= 0) {
+            return [];
+        }
+
+        $agentUser = $this->ensureAiAgentUser();
+        $agentUserId = (int)($agentUser['id'] ?? 0);
+        if ($agentUserId <= 0) {
+            return [];
+        }
+
+        $orgFilter = '';
+        $params = ['uid' => $actorUserId];
+        if ($organizationId !== null && $organizationId > 0 && $this->tableHasColumn('chats', 'organization_id')) {
+            $orgFilter = ' AND c.organization_id = :org_id';
+            $params['org_id'] = $organizationId;
+        }
+
+        $stmt = $this->pdo->prepare("
+            SELECT c.*
+            FROM chats c
+            JOIN chat_participants cp ON cp.chat_id = c.id AND cp.user_id = :uid
+            WHERE c.type = 'ai_agent'
+              {$orgFilter}
+            LIMIT 1
+        ");
+        $stmt->execute($params);
+        $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (is_array($existing)) {
+            $this->syncParticipants((int)$existing['id'], [$actorUserId, $agentUserId], [$actorUserId], $organizationId);
+            return $existing;
+        }
+
+        $title = 'AI Copilot';
+        $chat = $this->createChat($title, 'ai_agent', null, null, $actorUserId, $organizationId);
+        if (!empty($chat['id'])) {
+            $this->syncParticipants((int)$chat['id'], [$actorUserId, $agentUserId], [$actorUserId], $organizationId);
+        }
+        return $chat;
+    }
+
     /**
      * Ensure a project_client chat exists for the given project. This chat type
      * is separate from the internal 'project' chat and is used for communication
@@ -523,16 +630,30 @@ final class ChatService
             return;
         }
 
-        $this->pdo->prepare("
-            INSERT INTO chat_read_markers (chat_id, user_id, last_read_message_id, updated_at)
-            VALUES (:cid, :uid, :mid, NOW())
-            ON DUPLICATE KEY UPDATE last_read_message_id = :mid2, updated_at = NOW()
-        ")->execute([
-            'cid' => $chatId,
-            'uid' => $userId,
-            'mid' => $lastMessageId,
-            'mid2' => $lastMessageId,
-        ]);
+        $driver = $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+        if ($driver === 'sqlite') {
+            $this->pdo->prepare("
+                INSERT INTO chat_read_markers (chat_id, user_id, last_read_message_id, updated_at)
+                VALUES (:cid, :uid, :mid, NOW())
+                ON CONFLICT(chat_id, user_id) DO UPDATE SET last_read_message_id = :mid2, updated_at = NOW()
+            ")->execute([
+                'cid' => $chatId,
+                'uid' => $userId,
+                'mid' => $lastMessageId,
+                'mid2' => $lastMessageId,
+            ]);
+        } else {
+            $this->pdo->prepare("
+                INSERT INTO chat_read_markers (chat_id, user_id, last_read_message_id, updated_at)
+                VALUES (:cid, :uid, :mid, NOW())
+                ON DUPLICATE KEY UPDATE last_read_message_id = :mid2, updated_at = NOW()
+            ")->execute([
+                'cid' => $chatId,
+                'uid' => $userId,
+                'mid' => $lastMessageId,
+                'mid2' => $lastMessageId,
+            ]);
+        }
     }
 
     /**

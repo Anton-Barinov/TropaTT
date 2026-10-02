@@ -471,6 +471,53 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
     }
 
     /**
+     * @param array<string,mixed> $json
+     * @return list<array{id:string,type:string,function:array{name:string,arguments:string}}>
+     */
+    private function extractToolCalls(array $json): array
+    {
+        $choices = is_array($json['choices'] ?? null) ? (array)$json['choices'] : [];
+        foreach ($choices as $choice) {
+            if (!is_array($choice)) {
+                continue;
+            }
+            $message = $choice['message'] ?? null;
+            if (!is_array($message)) {
+                continue;
+            }
+            $rawToolCalls = $message['tool_calls'] ?? null;
+            if (!is_array($rawToolCalls) || $rawToolCalls === []) {
+                continue;
+            }
+            $toolCalls = [];
+            foreach ($rawToolCalls as $tc) {
+                if (!is_array($tc)) {
+                    continue;
+                }
+                $func = $tc['function'] ?? [];
+                if (!is_array($func) || empty($func['name'])) {
+                    continue;
+                }
+                $toolCalls[] = [
+                    'id' => (string)($tc['id'] ?? ('call_' . bin2hex(random_bytes(6)))),
+                    'type' => (string)($tc['type'] ?? 'function'),
+                    'function' => [
+                        'name' => (string)$func['name'],
+                        'arguments' => is_string($func['arguments'] ?? null)
+                            ? $func['arguments']
+                            : (string)json_encode($func['arguments'] ?? [], JSON_UNESCAPED_UNICODE),
+                    ],
+                ];
+            }
+            if ($toolCalls !== []) {
+                return $toolCalls;
+            }
+        }
+
+        return [];
+    }
+
+    /**
      * @return array{timeout_ms:int,max_attempts:int,backoff_ms:int}
      */
     private function runtimeConfig(array $provider, int $fallbackTimeoutMs, ?int $requestedTimeoutMs = null): array
