@@ -105,7 +105,9 @@ final class AiChatAgentService
 
         // 1. Verify AI feature availability for this actor
         $availability = $this->aiAvailability->getAvailability($actor);
-        if (empty($availability['available'])) {
+        $isAvailable = !empty($availability['available'])
+            || (!empty($availability['ai']['enabled']) && !empty($availability['ai']['provider_configured']) && !empty($availability['actor']['can_use_ai']));
+        if (!$isAvailable) {
             return null;
         }
 

@@ -106,6 +106,7 @@ final class MigrationManager
             new OrganizationScopeExtendedMigration(),
             new SubtaskOrganizationBackfillMigration(),
             new ModuleJobContextMigration(),
+            new ConnectorPrimitivesMigration(),
         ];
     }
 

@@ -36,14 +36,7 @@ final class ChatController extends BaseController
 
             $isAiAvailable = false;
             if (!$isExternal) {
-                try {
-                    /** @var \Api\System\Library\Service\AiAvailabilityService $aiAvailability */
-                    $aiAvailability = $this->container->get('service.ai_availability');
-                    $avail = $aiAvailability->getAvailability($user);
-                    $isAiAvailable = !empty($avail['available']);
-                } catch (\Throwable) {
-                    $isAiAvailable = false;
-                }
+                $isAiAvailable = $this->isAiAvailableForActor($user);
                 if ($isAiAvailable && !$archived) {
                     $service->ensureAiAgentChat($userId, $organizationId > 0 ? $organizationId : null);
                 }
@@ -1092,19 +1085,28 @@ final class ChatController extends BaseController
         }
 
         if (($row['type'] ?? '') === 'ai_agent') {
-            try {
-                /** @var \Api\System\Library\Service\AiAvailabilityService $aiAvailability */
-                $aiAvailability = $this->container->get('service.ai_availability');
-                $avail = $aiAvailability->getAvailability($actor);
-                if (empty($avail['available'])) {
-                    return null;
-                }
-            } catch (\Throwable) {
+            if (!$this->isAiAvailableForActor($actor)) {
                 return null;
             }
         }
 
         return $row;
+    }
+
+    private function isAiAvailableForActor(array $actor): bool
+    {
+        try {
+            if (!$this->container->has('service.ai_availability')) {
+                return false;
+            }
+            /** @var \Api\System\Library\Service\AiAvailabilityService $aiAvailability */
+            $aiAvailability = $this->container->get('service.ai_availability');
+            $avail = $aiAvailability->getAvailability($actor);
+            return !empty($avail['available'])
+                || (!empty($avail['ai']['enabled']) && !empty($avail['ai']['provider_configured']) && !empty($avail['actor']['can_use_ai']));
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     private function archivedChatForCurrentUser(string $publicId): ?array
