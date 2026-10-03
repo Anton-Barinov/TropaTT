@@ -58,6 +58,18 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
         $timeout = max(3000, (int)($provider['timeout_ms'] ?? 240000), (int)($payload['timeout_ms'] ?? 0));
         $timeout = min($timeout, 300000);
         $response = $this->postJson($url, $headers, $request, $timeout, $provider);
+        // Some thinking-mode providers require this protocol field on every replayed
+        // assistant turn. Legacy sessions did not retain it; recover those once.
+        if ((int)($response['http_status'] ?? 0) === 400
+            && str_contains((string)($response['error_message'] ?? ''), 'reasoning_content')) {
+            foreach ($request['messages'] as &$message) {
+                if (($message['role'] ?? '') === 'assistant' && !isset($message['reasoning_content'])) {
+                    $message['reasoning_content'] = '';
+                }
+            }
+            unset($message);
+            $response = $this->postJson($url, $headers, $request, $timeout, $provider);
+        }
         $latencyMs = (int)round((microtime(true) - $startedAt) * 1000);
         if (!(bool)($response['ok'] ?? false)) {
             return $this->mapProviderError($response, $latencyMs);
@@ -90,6 +102,7 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
             'ok' => true,
             'text' => $text,
             'tool_calls' => $toolCalls,
+            'reasoning_content' => (string)($json['choices'][0]['message']['reasoning_content'] ?? ''),
             'request_tokens' => (int)($usage['prompt_tokens'] ?? 0),
             'response_tokens' => (int)($usage['completion_tokens'] ?? 0),
             'total_tokens' => (int)($usage['total_tokens'] ?? 0),

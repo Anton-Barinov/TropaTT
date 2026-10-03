@@ -598,6 +598,7 @@ final class AiProviderService
             'runtime_mode' => $runtimeMode,
             'text' => trim((string)($result['text'] ?? '')),
             'tool_calls' => (array)($result['tool_calls'] ?? []),
+            ...(!empty($payload['_retain_reasoning']) ? ['reasoning_content' => (string)($result['reasoning_content'] ?? '')] : []),
             'request_tokens' => (int)($result['request_tokens'] ?? 0),
             'response_tokens' => (int)($result['response_tokens'] ?? 0),
             'total_tokens' => (int)($result['total_tokens'] ?? 0),
