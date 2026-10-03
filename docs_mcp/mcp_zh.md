@@ -140,9 +140,21 @@ AI 操作通过 AiJobService/AiAuditService 记录；导入/导出和工作流�
 | `people` | 用户、团队、部门、角色、客户、对方单位、公司、联系人、组织、邀请 |
 | `time` | 工时、日历事件、工作日历、节假日、工作时间 |
 | `admin` | 设置、缓存、模块、核心更新、运维、API 客户端、Webhook、日志、自定义字段、Intake、导入/导出、回收站、AI 配置与任务 |
-| `all` | 完整的权限可见目录（可选） |
+| `modules` | 所有当前已启用的扩展模块所提供的工具 |
+| `module:<vendor.name>` | 指定已启用模块的工具（例如 `module:crm.fixture-connector`） |
+| `all` | 完整的权限可见目录：621 个核心工具 + 所有已启用模块工具（可选） |
 
-通过向 MCP 端点 URL 追加 `?toolset=tasks` 或向 `tools/list` 传递 `"params": {"toolset": "tasks"}` 来请求配置文件；逗号分隔的值构成并集（`?toolset=tasks,projects`）。调用 `tools/listToolsets`（或读取 `tropatt://server/toolsets`）可获取机器可读的目录及各配置文件计数。未分配到任何配置文件的工具仍可按名称调用，并在 `all` 下列出。
+通过向 MCP 端点 URL 追加 `?toolset=tasks` 或向 `tools/list` 传递 `"params": {"toolset": "tasks"}` 来请求配置文件；逗号分隔的值构成并集（`?toolset=tasks,projects` 或 `?toolset=core,modules`）。调用 `tools/listToolsets`（或读取 `tropatt://server/toolsets`）可获取机器可读的目录及各配置文件计数，包括动态模块工具集（`module:<name>`）。未分配到任何配置文件的工具仍可按名称调用，并在 `all` 下列出。
+
+### 模块自建 MCP 工具 (Module MCP Tools)
+
+活跃模块可通过 `manifest.json` 中的 `mcp_tools` 声明面向 AI Agent 的专属 MCP 工具：
+- **`core` 配置文件隔离**: 模块工具默认排除在 27 个工具的 `core` 配置文件之外，防止提示词臃肿及意外命名冲突。
+- **发现与调用**: 可通过请求 `all`、`modules` 或明确指定 `module:<模块名>` 配置文件进行发现与调用。
+- **严格架构校验**: 参数架构严格执行 `additionalProperties: false` 校验。
+- **工作区上下文安全**: 声明 `workspace_required: true` 的工具在执行时强制绑定当前组织的合法 `ModuleExecutionContext`。
+- **敏感数据脱敏**: 工具返回值由核心层自动执行 `redactSensitiveOutput` 脱敏过滤，防止凭据、Token、密钥泄露。
+- **安全熔断 (`fail-closed`)**: 当模块被停用或卸载时，其所有 MCP 工具立即在目录中下线并禁止调用。
 
 ## 客户端配置与 Token 预算
 
