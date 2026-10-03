@@ -35,6 +35,7 @@ return [
     'attachment_uploaded' => '附件已上传',
     'marked_read' => '已标记为已读',
     'only_creator_archive' => '只有创建者可以归档',
+    'ai_chat_cannot_archive' => 'AI助手聊天无法归档',
     'archive_unavailable' => '归档不可用',
     'archive_failed' => '归档失败',
     'chat_id_required' => '需要聊天ID',

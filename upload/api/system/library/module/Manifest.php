@@ -27,6 +27,7 @@ final class Manifest
         public readonly array $positions = [],
         public readonly array $webHooks = [],
         public readonly string $category = '',
+        public readonly array $mcpTools = [],
     ) {}
 
     /**
@@ -56,6 +57,7 @@ final class Manifest
             positions: (array)($data['positions'] ?? []),
             webHooks: (array)($data['web_hooks'] ?? []),
             category: (string)($data['category'] ?? ''),
+            mcpTools: (array)($data['mcp_tools'] ?? []),
         );
     }
 }
