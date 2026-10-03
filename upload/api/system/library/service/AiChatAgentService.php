@@ -45,7 +45,7 @@ final class AiChatAgentService
 
         $publicId = 'usr_ai_agent';
         $login = 'ai_agent';
-        $fullName = 'AI Copilot';
+        $fullName = 'AI Ассистент';
         $email = 'ai-agent@tropatt.local';
         $hash = '$2y$10$virtualaiagentplaceholderpass';
 
@@ -129,13 +129,13 @@ final class AiChatAgentService
             return $this->saveAssistantMessage(
                 $chat,
                 $agentUserId,
-                (string)($agentUser['full_name'] ?? 'AI Copilot'),
+                (string)($agentUser['full_name'] ?? 'AI Ассистент'),
                 "🧹 История диалога очищена. Контекст сброшен. Чем я могу помочь?"
             );
         }
 
         if ($lowerText === '/help' || $lowerText === 'помощь' || $lowerText === '?') {
-            $helpText = "Я ваш персональный AI Copilot в TropaTT CRM. Я работаю с локальными инструментами системы под вашими правами доступа.\n\n"
+            $helpText = "Я ваш персональный AI-ассистент в TropaTT CRM. Я работаю с локальными инструментами системы под вашими правами доступа.\n\n"
                 . "### 🛠 Что я умею:\n"
                 . "- **Задачи**: показать список, найти задачу по номеру или названию, проверить подзадачи, чек-листы и комментарии.\n"
                 . "- **Проекты**: сводка по проекту, вехи, спринты и участники команды.\n"
@@ -150,7 +150,7 @@ final class AiChatAgentService
             return $this->saveAssistantMessage(
                 $chat,
                 $agentUserId,
-                (string)($agentUser['full_name'] ?? 'AI Copilot'),
+                (string)($agentUser['full_name'] ?? 'AI Ассистент'),
                 $helpText
             );
         }
@@ -162,7 +162,7 @@ final class AiChatAgentService
                 return $this->saveAssistantMessage(
                     $chat,
                     $agentUserId,
-                    (string)($agentUser['full_name'] ?? 'AI Copilot'),
+                    (string)($agentUser['full_name'] ?? 'AI Ассистент'),
                     'Превышен суточный лимит использования искусственного интеллекта. Пожалуйста, обратитесь к администратору системы или повторите запрос позже.'
                 );
             }
@@ -276,7 +276,7 @@ final class AiChatAgentService
             $result = $this->saveAssistantMessage(
                 $chat,
                 $agentUserId,
-                (string)($agentUser['full_name'] ?? 'AI Copilot'),
+                (string)($agentUser['full_name'] ?? 'AI Ассистент'),
                 $finalAnswer
             );
 
@@ -365,7 +365,7 @@ final class AiChatAgentService
         $actorPublicId = (string)($user['public_id'] ?? '');
 
         $systemPrompt = <<<PROMPT
-Вы — персональный AI Copilot в CRM-системе TropaTT, помогающий пользователю {$actorName} (логин: {$actorLogin}, public_id: {$actorPublicId}).
+Вы — персональный AI-ассистент в CRM-системе TropaTT, помогающий пользователю {$actorName} (логин: {$actorLogin}, public_id: {$actorPublicId}).
 Вы работаете строго под правами и доступами этого пользователя через локальный CRM MCP.
 Вы можете искать задачи, проекты, контакты, просматривать базу знаний, проверять календарь и статусы задач.
 
