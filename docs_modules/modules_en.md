@@ -19,6 +19,7 @@
 11. [Security, Static Code Validation, and Fault Isolation (Circuit Breaker)](#11-security-static-code-validation-and-fault-isolation-circuit-breaker)
 12. [Packaging, Versioning, and Remote Installation](#12-packaging-versioning-and-remote-installation)
 13. [Complete Reference Module: Acme Telegram Notifier](#13-complete-reference-module-acme-telegram-notifier)
+14. [Model Context Protocol (MCP) Tools for AI Agents](#14-model-context-protocol-mcp-tools-for-ai-agents)
 
 ---
 
@@ -161,9 +162,11 @@ The `manifest.json` file is parsed and validated by `Api\System\Library\Module\P
 | `core_version` | `string` | No | Required core version constraint (default: `>=1.0.0`) | `">=1.0.0"` |
 | `dependencies` | `array` | No | Dependent module objects `[{"name": "..."}]` | `[]` |
 | `require_permissions` | `array` | No | Required core RBAC permissions | `["tasks.read"]` |
+| `events` | `array` | No | Subscribed core domain events | `["task.created", "intake.created"]` |
 | `service_provider` | `string` | No | FQCN of the service provider | `"Module\\Acme\\TelegramNotifier\\TelegramNotifierServiceProvider"` |
 | `api_routes` | `string` | No | Relative path to REST API routes file | `"api/config/routes.php"` |
 | `web_routes` | `string` | No | Relative path to Web routes file | `"web/config/routes.php"` |
+| `mcp_tools` | `array` | No | Module MCP tools declared for AI agents | See Section 14 |
 | `migrations` | `string` | No | Relative path to SQL migrations directory | `"api/migrations/"` |
 | `positions` | `object` | No | UI slot renderers map | See Section 6 |
 | `assets` | `object` | No | CSS and JS assets map | See Section 8 |
@@ -196,6 +199,10 @@ All 35+ core events are defined as constants in `Api\System\Library\Module\Modul
 - **User Lifecycle:** `USER_CREATED`, `USER_UPDATED`, `USER_DELETED`
 - **Cycle / Sprint:** `CYCLE_CREATED`, `CYCLE_STARTED`, `CYCLE_COMPLETED`, `CYCLE_REOPENED`, `CYCLE_ARCHIVED`, `CYCLE_DELETED`
 - **CRM Entities:** `CLIENT_*`, `COUNTERPARTY_*`, `CONTACT_*`, `COMPANY_*`, `ORGANIZATION_*`
+- **Intake Pipeline:** `INTAKE_CREATED`, `INTAKE_UPDATED`, `INTAKE_ACCEPTED`, `INTAKE_REJECTED`, `INTAKE_REOPENED`, `INTAKE_DELETED`
+- **Calendar:** `CALENDAR_EVENT_CREATED`, `CALENDAR_EVENT_UPDATED`, `CALENDAR_EVENT_DELETED`
+- **Time Tracking:** `WORKLOG_CREATED`, `WORKLOG_UPDATED`, `WORKLOG_DELETED`
+- **Knowledge Base:** `KNOWLEDGE_PAGE_CREATED`, `KNOWLEDGE_PAGE_UPDATED`, `KNOWLEDGE_PAGE_PUBLISHED`, `KNOWLEDGE_PAGE_ARCHIVED`, `KNOWLEDGE_PAGE_DELETED`
 - **Collaboration & Chat:** `COMMENT_ADDED`, `FILE_UPLOADED`, `CHAT_MESSAGE_CREATED`, `CHAT_MESSAGE_UPDATED`, `CHAT_MESSAGE_DELETED`
 - **Web Rendering:** `RENDER_BEFORE`, `RENDER_AFTER`
 
@@ -261,6 +268,23 @@ return [
 
 Controllers return `Api\System\Library\Http\JsonResponse::success(...)` or `JsonResponse::error(...)`.
 
+### Route Validation (`ModuleRouteValidator`) and Connector Primitives
+To guarantee core stability and strict tenant isolation, all module routes are inspected via `ModuleRouteValidator`:
+- **Allowed HTTP methods:** `GET`, `POST`, `PUT`, `PATCH`, `DELETE`.
+- **Path Traversal Guard:** Segments containing `..` or unsafe path characters are rejected.
+- **Namespace Confinement:** Controller classes must reside under the `Module\<VendorName>\<ModuleName>\...` namespace.
+- **No Wildcard Permissions:** Permissions such as `all`, `*`, or `superadmin` fail closed.
+- **Workspace Scoping (`workspace_required: true`):**
+  - Requires an active authenticated session and valid organization context.
+  - Automatically initializes and binds an immutable `ModuleExecutionContext` to the execution pipeline.
+- **Idempotency (`idempotency: true`):**
+  - Prevents duplicate webhook processing via `ConnectorIdempotencyStore`.
+  - Claims transactions using the `Idempotency-Key` HTTP header or payload hash.
+
+#### Shared Connector Primitives:
+- **`ConnectorCredentialStore`:** Secure per-module, per-organization AES-256-GCM encrypted credential storage (`setSecret`, `getSecret`, `hasSecret`, `deleteSecret`).
+- **`SignatureService`:** Cryptographic HMAC signature verification over the raw incoming request body (`php://input`) with replay attack protection.
+
 ### Web Interface Routing (`web/config/routes.php`)
 ```php
 <?php
@@ -298,6 +322,9 @@ All executions are recorded transactionally in `module_migrations`.
 
 - **`ModuleCronScheduler`**: Handler classes must be under `Api\...` or `Module\...` namespaces. Allowed method names: `run`, `execute`, `handle`, `process`, `freshnessScan`, `draftsCleanup`, `versionsCleanup`, `reindexSearch`, `purgeTrash`, `captureDaily`, `autoClosePeriods`, `dispatchQueue`. The list mirrors the registrations in `App::initModuleSystem()` and is pinned by the `cron_handler_allowlist_contract_unit.php` unit test.
 - **`ModuleJobDispatcher`**: Enqueue workspace-scoped jobs with an explicit `ModuleExecutionContext`. Full payload, workspace, correlation and idempotency key are stored in the additive `module_job_contexts` table, so old `module_jobs` tables need no blocking rewrite. The handler must be under its module namespace and implement `WorkspaceModuleJobInterface::handle(array $payload, ModuleExecutionContext $context): void` with a no-argument constructor. Jobs without authoritative legacy context pause for review; inactive modules cannot run jobs. Payloads are capped at 1 MiB, a stale running lease is reclaimed after ten minutes, and handlers must be idempotent. The existing web/CLI cron and the authorized admin job runner process bounded batches (up to five jobs or eight seconds between jobs), without a daemon or Redis. Without cron, interactive CRM remains available and an admin can run jobs manually.
+- **Queue Execution & Observability**:
+  - `POST /api/v1/modules/queue/tick`: Admin-authorized endpoint to trigger processing of the next bounded job batch (`ModuleJobDispatcher::runBatch()`).
+  - `GET /api/v1/modules/diagnostics`: Aggregates module health status, queue volumes (`pending`, `failed`, `paused_legacy`), and diagnostic error logs.
 
 ---
 
@@ -352,27 +379,76 @@ Package as a flat ZIP archive containing `manifest.json` at root. Installable vi
 }
 ```
 
-### api/TelegramNotifierServiceProvider.php
-```php
-<?php
-declare(strict_types=1);
+---
 
-namespace Module\Acme\TelegramNotifier;
+## 14. Model Context Protocol (MCP) Tools for AI Agents
+
+TropaTT CRM provides native integration with autonomous AI agents via the Model Context Protocol (MCP). Extension modules can declare their own tools, automatically discoverable and callable by AI agents.
+
+### 1. Declaration in `manifest.json`
+
+Modules declare their tools in the `mcp_tools` array:
+
+```json
+"mcp_tools": [
+  {
+    "name": "fixture_connector_ping",
+    "description": "Ping the fixture connector and return workspace diagnostic status",
+    "handler": "Module\\Crm\\FixtureConnector\\Mcp\\PingTool",
+    "permissions": ["settings.view"],
+    "mode": "all",
+    "workspace_required": true,
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "echo": {
+          "type": "string",
+          "description": "Optional echo text"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+]
+```
+
+### 2. The `ModuleMcpToolInterface`
+
+Tool handlers must implement `Api\System\Library\Module\Mcp\ModuleMcpToolInterface`:
+
+```php
+namespace Module\Crm\FixtureConnector\Mcp;
 
 use Api\System\Library\Container;
-use Api\System\Library\Module\AbstractModuleServiceProvider;
+use Api\System\Library\Module\Mcp\ModuleMcpToolInterface;
+use Api\System\Library\Module\ModuleExecutionContext;
 
-final class TelegramNotifierServiceProvider extends AbstractModuleServiceProvider
+final class PingTool implements ModuleMcpToolInterface
 {
-    public function register(Container $container): void
+    public function execute(array $arguments, ModuleExecutionContext $context, Container $container): array
     {
-    }
-
-    public function boot(Container $container): void
-    {
+        return [
+            'status' => 'ok',
+            'organization_id' => $context->organizationId,
+            'echo' => (string)($arguments['echo'] ?? 'pong'),
+        ];
     }
 }
 ```
+
+### 3. Profiles and Discovery (Toolsets)
+
+- **`core` (default)**: Restricted strictly to the 27 core mega-tools. Module tools are excluded to prevent context inflation.
+- **`all`**: Full core catalog + tools of all active modules.
+- **`modules`**: Tools of all active modules without repeating core tools.
+- **`module:<vendor.name>`**: Tools of a specific module (e.g. `module:crm.fixture-connector`).
+
+### 4. Security and Redaction
+
+- **Strict schema**: JSON schemas must declare `additionalProperties: false`.
+- **Tenant scoping**: When `workspace_required: true`, calls fail closed without an authorized workspace context.
+- **Secret redaction**: Sensitive keys (tokens, passwords, API keys) in results are sanitized before returning to AI agents.
+- **Fail-Closed**: Disabling or uninstalling a module immediately removes its tools from discovery and blocks execution.
 
 ---
 
