@@ -102,7 +102,8 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
             'ok' => true,
             'text' => $text,
             'tool_calls' => $toolCalls,
-            'reasoning_content' => (string)($json['choices'][0]['message']['reasoning_content'] ?? ''),
+            ...(array_key_exists('reasoning_content', (array)($json['choices'][0]['message'] ?? []))
+                ? ['reasoning_content' => (string)$json['choices'][0]['message']['reasoning_content']] : []),
             'request_tokens' => (int)($usage['prompt_tokens'] ?? 0),
             'response_tokens' => (int)($usage['completion_tokens'] ?? 0),
             'total_tokens' => (int)($usage['total_tokens'] ?? 0),

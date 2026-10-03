@@ -363,7 +363,7 @@ final class AiChatAgentService
                 }
                 unset($call);
                 $state['messages'][] = ['role' => 'assistant', 'content' => $text ?: null, 'tool_calls' => $calls,
-                    'reasoning_content' => (string)($completion['reasoning_content'] ?? '')];
+                    ...(array_key_exists('reasoning_content', $completion) ? ['reasoning_content' => (string)$completion['reasoning_content']] : [])];
                 $signature = $this->encodeState(array_map(static fn(array $call): array => (array)$call['function'], $calls));
                 $state['repeat_count'] = $signature === $state['last_calls'] ? $state['repeat_count'] + 1 : 0;
                 $state['last_calls'] = $signature;
@@ -409,7 +409,7 @@ final class AiChatAgentService
                 if ($next === 'paused') $state['error'] = 'Ассистент повторяет одинаковые действия. Прогресс сохранён.';
             } else {
                 $state['messages'][] = ['role' => 'assistant', 'content' => $text,
-                    'reasoning_content' => (string)($completion['reasoning_content'] ?? '')];
+                    ...(array_key_exists('reasoning_content', $completion) ? ['reasoning_content' => (string)$completion['reasoning_content']] : [])];
                 $unfinished = array_filter($state['plan'], static fn(array $item): bool => $item['status'] !== 'done');
                 $isQuestion = (bool)preg_match('/(уточните|уточни(?:[\s,.!?]|$)|укажите|подтвердите|подтверди(?:[\s,.!?]|$)|недостаточно прав|не хватает|не могу|please (provide|confirm)|clarif)/iu', $text);
                 if ($text !== '' && !$isQuestion && ($unfinished !== [] || ($this->isCompoundRequest($state['request']) && empty($state['plan'])) || $this->isMonologuePlanningWithoutTools($state['request'], $text))) {
