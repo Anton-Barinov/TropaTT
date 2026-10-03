@@ -223,7 +223,7 @@
 
   function chatTypeLabel(chat) {
     var type = String(chat && chat.type || 'direct');
-    if (type === 'ai_agent') return window.CRM.i18n.t('chat.ai_agent_title', 'AI Ассистент');
+    if (type === 'ai_agent') return window.CRM.i18n.t('chat.type_ai_agent', 'AI Чат');
     if (type === 'project') return window.CRM.i18n.t('chat.type_project', 'Проект');
     if (type === 'team') return window.CRM.i18n.t('chat.type_team', 'Команда');
     if (type === 'group') return window.CRM.i18n.t('chat.type_group', 'Группа');
