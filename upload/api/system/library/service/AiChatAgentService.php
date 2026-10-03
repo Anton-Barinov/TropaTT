@@ -638,11 +638,12 @@ final class AiChatAgentService
 
     private function executionInstructions(string $mode = 'auto'): string
     {
-        $date = gmdate('Y-m-d');
+        $date = date('Y-m-d');
+        $timezone = date_default_timezone_get();
         $routing = $mode === 'simple'
             ? 'This request is simple: answer directly or perform the single requested operation with tools. Do NOT create a plan or decompose greetings, explanations, one lookup, or one record with attributes. Do not add subtasks, checklists, projects or QA unless requested. '
             : 'Use a plan ONLY for genuinely compound work with multiple independent requested results. For a greeting, explanation, single lookup or single record, respond directly without decomposition. ';
-        return "Today is {$date}. " . $routing . "The original request is persisted throughout this run. Execute autonomously until EVERY requirement is fulfilled and verified. "
+        return "Today is {$date} in the installation timezone {$timezone}. " . $routing . "The original request is persisted throughout this run. Execute autonomously until EVERY requirement is fulfilled and verified. "
             . 'For a compound request, FIRST call update_execution_plan with one step per requirement, including final verification. '
             . 'Update it after actual results. Use evidence (real IDs, counts, verified fields) for done steps. '
             . 'Provide concise factual progress, never private reasoning or internal monologues. '
