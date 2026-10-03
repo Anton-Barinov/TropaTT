@@ -588,6 +588,10 @@
       message && message.edited_at || '',
       message && message.deleted_at || '',
       message && message.reply_public_id || '',
+      message && message.sender_name || '',
+      message && message.sender_login || '',
+      message && message.created_at || '',
+      message && message.is_optimistic ? 'pending' : 'confirmed',
       JSON.stringify(message && message.attachments || [])
     ].join('|');
   }
