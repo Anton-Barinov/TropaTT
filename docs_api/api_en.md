@@ -2448,3 +2448,7 @@ Deprecated aliases (`/api/v1/notification/push-*`) are excluded from OpenAPI and
 ### Resumable AI chat
 
 Sending a message to an `ai_agent` chat returns `ai_run` immediately together with `public_id` and `message_seq`. The client calls `POST /api/v1/chats/{public_id}/ai-run/step` repeatedly while the run is queued, and polls status while another client owns the step. Reloading the page resumes the saved execution. Status includes a factual plan, progress, step count, recoverable errors, and `retry_at` (Unix seconds, 0 when ready). During a provider circuit cooldown, keep polling and resume automatically after `retry_at`; tool context is private. Unknown tool outcomes are reconciled through reads before proceeding, never automatically replayed. `waiting_input` requires a user answer; `failed`, `paused` and `interrupted` retain context for Resume. Closing every browser pauses execution until a participant reopens the chat.
+
+### AI chat message retries
+
+For staff messages to `ai_agent` chats, optional `client_request_id` (16–80 ASCII letters, digits, hyphens or underscores) identifies one send attempt. Reuse it with exactly the same text and reply ID after an uncertain network result. The server returns the same message and run without another execution. Keys are scoped to chat and sender. Reusing a key with different content returns HTTP 409 `MESSAGE_REPLAY_CONFLICT`. Other chat types keep their existing contract. A new intended message must use a new key.

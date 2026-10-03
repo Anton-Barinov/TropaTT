@@ -317,6 +317,8 @@
   var aiDrivers = {};
   var aiRuns = {};
   var aiRunExpanded = {};
+  var chatDrafts = {};
+  var pendingAiSends = {};
   function aiLabel(key, fallback) { return window.CRM.i18n.t('chat.ai_run_' + key, fallback); }
 
   function renderAiRun(chatId, run) {
@@ -324,6 +326,10 @@
     var panel = document.getElementById('aiRunPanel');
     if (!panel) return;
     if (!run) { panel.hidden = true; return; }
+    if (run.status === 'completed' && !(run.plan && run.plan.length) && !run.error) {
+      panel.hidden = true;
+      return;
+    }
     panel.hidden = false;
     var labels = {
       queued: aiLabel('working', 'Выполняю задачу'), running: aiLabel('working', 'Выполняю задачу'), cancelling: aiLabel('stopping', 'Останавливаю после текущего действия'),
@@ -910,13 +916,22 @@
     var input = document.getElementById('msgInput');
     var button = document.getElementById('sendChatMessageBtn');
     if (!input || !button) return;
+    var draftChatId = selectedChatId;
+    if (chatDrafts[draftChatId]) {
+      input.value = chatDrafts[draftChatId].text;
+      replyToMessage = chatDrafts[draftChatId].reply || null;
+      renderReplyPreview();
+    }
     function sync() {
       button.disabled = !input.value.trim();
       input.style.height = input.value ? 'auto' : '44px';
       if (input.value) input.style.height = Math.min(Math.max(44, input.scrollHeight), 120) + 'px';
       if (input.value.trim()) setSendError('');
     }
-    input.addEventListener('input', sync);
+    input.addEventListener('input', function () {
+      chatDrafts[draftChatId] = { text: input.value, reply: replyToMessage };
+      sync();
+    });
     input.addEventListener('keydown', function (event) {
       if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault();
@@ -984,6 +999,19 @@
 
     var chatIdAtSend = selectedChatId;
     var currentReply = replyToMessage;
+    var pendingSendKey = chatIdAtSend + ':' + JSON.stringify([text, currentReply ? currentReply.public_id : '']);
+    var pendingSend = pendingAiSends[pendingSendKey];
+    if (isAi && (!pendingSend || pendingSend.text !== text || pendingSend.replyId !== (currentReply ? currentReply.public_id : ''))) {
+      pendingSend = { text: text, replyId: currentReply ? currentReply.public_id : '',
+        requestId: window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : window.CRM.api.createIdempotencyKey('ai-chat') };
+      pendingAiSends[pendingSendKey] = pendingSend;
+    }
+    if (pendingSend && pendingSend.tempId) {
+      currentMessages = currentMessages.filter(function (m) { return m.public_id !== pendingSend.tempId; });
+      var oldPending = box && box.querySelector('[data-message-id="' + CSS.escape(pendingSend.tempId) + '"]');
+      if (oldPending) oldPending.remove();
+    }
+    delete chatDrafts[chatIdAtSend];
     replyToMessage = null;
     renderReplyPreview();
 
@@ -1003,8 +1031,10 @@
 
     // 2. Build optimistic user message
     var tempId = 'temp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+    if (isAi) pendingSend.tempId = tempId;
     var nowIso = new Date().toISOString();
-    var curUser = (window.CRM && window.CRM.user) || {};
+    var curUser = (window.CRM && window.CRM.api && typeof window.CRM.api.getUser === 'function'
+      ? window.CRM.api.getUser() : null) || {};
     var optimisticMsg = {
       public_id: tempId,
       id: 0,
@@ -1038,6 +1068,7 @@
       box.scrollTop = box.scrollHeight;
     }
 
+    var acknowledged = false;
     try {
       var postOpts = {
         method: 'POST',
@@ -1045,9 +1076,12 @@
       };
       if (isAi) {
         postOpts.timeoutMs = 180000;
+        postOpts.body.client_request_id = pendingSend.requestId;
       }
       var res = await request('api/v1/chats/' + encodeURIComponent(chatIdAtSend) + '/messages', postOpts);
       var serverData = (res && res.data) || {};
+      acknowledged = true;
+      if (isAi) delete pendingAiSends[pendingSendKey];
       var realPublicId = serverData.public_id;
       var realId = Number(serverData.message_seq || serverData.id || 0);
 
@@ -1097,6 +1131,15 @@
       await loadChats({ silent: true });
     } catch (error) {
       console.error('Failed to send message:', error);
+      if (acknowledged) {
+        if (selectedChatId === chatIdAtSend) setSendError(aiLabel('connection', 'Нет связи. Прогресс сохранён; переподключаюсь.'));
+        return;
+      }
+      if (!chatDrafts[chatIdAtSend] || !chatDrafts[chatIdAtSend].text) chatDrafts[chatIdAtSend] = { text: text, reply: currentReply };
+      if (isAi && error && error.status >= 400 && error.status < 500 && error.status !== 429) delete pendingAiSends[pendingSendKey];
+      if (selectedChatId !== chatIdAtSend) return;
+      replyToMessage = currentReply;
+      renderReplyPreview();
       if (typingEl && typingEl.parentNode) {
         typingEl.parentNode.removeChild(typingEl);
         typingEl = null;
