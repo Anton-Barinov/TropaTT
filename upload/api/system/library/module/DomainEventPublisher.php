@@ -66,18 +66,19 @@ final class DomainEventPublisher
         ?string $source = null
     ): void {
         $actor = is_array($actor) ? $actor : [];
+        $user = is_array($actor['user'] ?? null) ? $actor['user'] : $actor;
 
         if ($organizationId === null) {
-            $fromActor = (int)($actor['organization_id'] ?? 0);
+            $fromActor = (int)($user['organization_id'] ?? 0);
             $organizationId = $fromActor > 0 ? $fromActor : null;
         }
 
-        $organizationPublicId = trim((string)($actor['organization_public_id'] ?? ''));
+        $organizationPublicId = trim((string)($user['organization_public_id'] ?? ''));
         if ($organizationPublicId === '' && $organizationId !== null) {
             $organizationPublicId = $this->organizationPublicId($organizationId);
         }
 
-        $actorPublicId = trim((string)($actor['public_id'] ?? ''));
+        $actorPublicId = trim((string)($user['public_id'] ?? ''));
         $correlationId = $this->correlationId();
 
         $envelope = [

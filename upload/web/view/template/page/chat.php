@@ -66,6 +66,28 @@
 
 <style nonce="<?= $csp_nonce ?>">
 .crm-knowledge-picker-item:hover { background: var(--color-neutral-100); }
+.crm-chat-quick-chips button {
+  font-size: 0.8rem;
+  border-radius: 12px;
+  background: var(--color-neutral-100);
+  border: 1px solid var(--color-neutral-200);
+  color: var(--color-neutral-750, #333);
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+.crm-chat-quick-chips button:hover {
+  background: var(--color-primary-50, rgba(13, 110, 253, 0.08));
+  border-color: var(--color-primary-300, #9ec5fe);
+  color: var(--color-primary-700, #0a58ca);
+}
+.is-ai-typing {
+  opacity: 0.9;
+  background: var(--color-neutral-50, #f8f9fa);
+  border-left: 3px solid var(--color-primary, #0d6efd);
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin: 6px 0;
+}
 </style>
 <script nonce="<?= $csp_nonce ?>">
 (function () {
@@ -140,7 +162,7 @@
   }
 
   function chatTitle(chat) {
-    if (chat && chat.type === 'ai_agent') return String(chat.title || '').trim() || 'AI Copilot';
+    if (chat && chat.type === 'ai_agent') return window.CRM.i18n.t('chat.ai_agent_title', 'AI Ассистент');
     var title = String(chat.title || '').trim();
     var participants = String(chat.participant_names || '').split(',').map(function (item) { return item.trim(); }).filter(Boolean);
     if ((chat.type === 'project' || chat.type === 'team') && title) return title;
@@ -151,7 +173,7 @@
 
   function chatTypeLabel(chat) {
     var type = String(chat && chat.type || 'direct');
-    if (type === 'ai_agent') return 'AI Copilot';
+    if (type === 'ai_agent') return window.CRM.i18n.t('chat.ai_agent_title', 'AI Ассистент');
     if (type === 'project') return window.CRM.i18n.t('chat.type_project', 'Проект');
     if (type === 'team') return window.CRM.i18n.t('chat.type_team', 'Команда');
     if (type === 'group') return window.CRM.i18n.t('chat.type_group', 'Группа');
@@ -253,6 +275,16 @@
     var isArchived = (chat.is_archived || !!chat.archived_at);
     var placeholder = isAi ? window.CRM.i18n.t('chat.placeholder_ai_message', 'Спросите AI-ассистента о задачах, проектах или базе знаний...') : window.CRM.i18n.t('chat.placeholder_message', 'Сообщение...');
     var hint = isAi ? window.CRM.i18n.t('chat.ai_compose_hint', 'Enter — отправить запрос AI-ассистенту, Shift+Enter — новая строка.') : window.CRM.i18n.t('chat.compose_hint', 'Enter — отправить, Shift+Enter — новая строка. @логин — упоминание.');
+    var chipsHtml = '';
+    if (isAi && !isArchived) {
+      chipsHtml = '<div class="crm-chat-quick-chips d-flex flex-wrap gap-1 mb-2" id="aiQuickChips">'
+        + '<button type="button" class="btn btn-sm py-0 px-2" data-ai-chip="Мои задачи"><i class="fa-solid fa-list-check me-1" aria-hidden="true"></i>' + esc(window.CRM.i18n.t('chat.chip_my_tasks', 'Мои задачи')) + '</button>'
+        + '<button type="button" class="btn btn-sm py-0 px-2" data-ai-chip="Проекты"><i class="fa-solid fa-folder-tree me-1" aria-hidden="true"></i>' + esc(window.CRM.i18n.t('chat.chip_projects', 'Проекты')) + '</button>'
+        + '<button type="button" class="btn btn-sm py-0 px-2" data-ai-chip="Что запланировано на сегодня?"><i class="fa-regular fa-calendar-check me-1" aria-hidden="true"></i>' + esc(window.CRM.i18n.t('chat.chip_my_day', 'Мой день')) + '</button>'
+        + '<button type="button" class="btn btn-sm py-0 px-2" data-ai-chip="/help"><i class="fa-solid fa-circle-question me-1" aria-hidden="true"></i>' + esc(window.CRM.i18n.t('chat.chip_help', 'Справка')) + '</button>'
+        + '<button type="button" class="btn btn-sm py-0 px-2 text-danger" data-ai-chip="/clear"><i class="fa-solid fa-eraser me-1" aria-hidden="true"></i>' + esc(window.CRM.i18n.t('chat.chip_clear', 'Очистить')) + '</button>'
+        + '</div>';
+    }
     area.innerHTML = '<div class="crm-chat-conversation-head">'
       + '<div class="crm-chat-head-main"><div class="crm-chat-conversation-type">' + esc(chatTypeLabel(chat)) + (isArchived ? ' · ' + window.CRM.i18n.t('chat.state_archived', 'Архив') : '') + '</div><h2>' + esc(chatTitle(chat)) + '</h2><button type="button" class="crm-chat-participants-link" id="chatParticipantsBtn" title="' + esc(window.CRM.i18n.t('chat.btn_participants_title', 'Показать участников чата')) + '" aria-label="' + esc(window.CRM.i18n.t('chat.btn_participants_aria', 'Показать участников чата')) + '">' + esc(participantText) + '</button></div>'
       + '<div class="crm-chat-head-actions">'
@@ -262,7 +294,9 @@
       + '<button class="btn crm-btn-muted d-md-none" type="button" id="backToChatsBtn" aria-label="' + esc(window.CRM.i18n.t('chat.btn_back_aria', 'Вернуться к списку чатов')) + '">' + esc(window.CRM.i18n.t('chat.btn_back', 'К списку')) + '</button></div>'
       + '</div>'
       + '<div class="crm-chat-messages" id="msgArea" aria-live="polite"><div class="crm-chat-list-state">' + window.CRM.i18n.t('chat.loading_messages', 'Загрузка сообщений...') + '</div></div>'
-      + (isArchived ? '' : '<div class="crm-chat-compose"><div class="text-danger small d-none" id="chatSendError" aria-live="polite"></div><div class="crm-chat-reply-preview d-none" id="replyPreview"></div><div id="mentionPopup" class="crm-chat-mention-popup d-none" role="listbox" aria-label="' + window.CRM.i18n.t('chat.mention_popup_aria', 'Упомянуть участника') + '"></div><div class="crm-chat-picker d-none" id="emojiPicker"></div>'
+      + (isArchived ? '' : '<div class="crm-chat-compose"><div class="text-danger small d-none" id="chatSendError" aria-live="polite"></div><div class="crm-chat-reply-preview d-none" id="replyPreview"></div>'
+      + chipsHtml
+      + '<div id="mentionPopup" class="crm-chat-mention-popup d-none" role="listbox" aria-label="' + window.CRM.i18n.t('chat.mention_popup_aria', 'Упомянуть участника') + '"></div><div class="crm-chat-picker d-none" id="emojiPicker"></div>'
       + '<div class="crm-chat-compose-row"><button class="btn crm-icon-btn" type="button" id="attachChatFileBtn" aria-label="' + window.CRM.i18n.t('chat.btn_attach_aria', 'Прикрепить файл') + '" title="' + window.CRM.i18n.t('chat.btn_attach_title', 'Прикрепить файл') + '"><i class="fa-solid fa-paperclip" aria-hidden="true"></i></button><button class="btn crm-icon-btn" type="button" id="knowledgeChatBtn" aria-label="' + window.CRM.i18n.t('chat.btn_knowledge_aria', 'Вставить страницу базы знаний') + '" title="' + window.CRM.i18n.t('chat.btn_knowledge_title', 'База знаний') + '"><i class="fa-solid fa-book-open" aria-hidden="true"></i></button><button class="btn crm-icon-btn" type="button" id="emojiChatBtn" aria-label="' + window.CRM.i18n.t('chat.btn_emoji_aria', 'Эмоджи и стикеры') + '" title="' + window.CRM.i18n.t('chat.btn_emoji_title', 'Эмоджи и стикеры') + '" aria-expanded="false" aria-controls="emojiPicker"><i class="fa-regular fa-face-smile" aria-hidden="true"></i></button><input class="d-none" type="file" id="chatFileInput" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.txt,.csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,text/csv,application/zip"><label class="visually-hidden" for="msgInput">' + window.CRM.i18n.t('chat.msg_input_label', 'Сообщение') + '</label><textarea class="form-control crm-chat-message-input" id="msgInput" rows="1" maxlength="4000" placeholder="' + esc(placeholder) + '"></textarea><button class="btn crm-btn-primary crm-chat-send-btn" type="button" id="sendChatMessageBtn" disabled aria-label="' + window.CRM.i18n.t('chat.btn_send_aria', 'Отправить сообщение') + '" title="' + window.CRM.i18n.t('chat.btn_send_title', 'Отправить сообщение') + '"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i></button></div><div class="crm-chat-compose-hint">' + esc(hint) + '</div></div>')
       + '</div>';
     renderedChatId = selectedChatId;
@@ -707,6 +741,20 @@
     var knowledgeBtn = document.getElementById('knowledgeChatBtn');
     if (knowledgeBtn) knowledgeBtn.addEventListener('click', openKnowledgePicker);
     document.getElementById('emojiChatBtn').addEventListener('click', toggleEmojiPicker);
+    var chips = document.getElementById('aiQuickChips');
+    if (chips) {
+      chips.querySelectorAll('[data-ai-chip]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var prompt = btn.getAttribute('data-ai-chip');
+          if (!prompt) return;
+          var inp = document.getElementById('msgInput');
+          if (inp) {
+            inp.value = prompt;
+            sendMsg();
+          }
+        });
+      });
+    }
     renderReplyPreview();
     renderEmojiPicker();
     bindMentionAutocomplete(input);
@@ -720,16 +768,36 @@
     var text = input.value.trim();
     if (!text) { setSendError(window.CRM.i18n.t('chat.error_write_message', 'Напишите сообщение.')); button.disabled = true; return; }
     if (!selectedChatId) { setSendError(window.CRM.i18n.t('chat.error_select_chat', 'Выберите чат.')); return; }
+    var isAi = currentChat && currentChat.type === 'ai_agent';
     input.disabled = true;
     button.disabled = true;
     setSendError('');
+
+    var typingEl = null;
+    var box = document.getElementById('msgArea');
+    if (isAi && box) {
+      typingEl = document.createElement('div');
+      typingEl.className = 'crm-chat-message is-ai-typing';
+      typingEl.id = 'aiTypingIndicator';
+      typingEl.innerHTML = '<div class="crm-chat-message-meta"><strong>' + esc(window.CRM.i18n.t('chat.ai_agent_title', 'AI Ассистент')) + '</strong></div><div class="crm-chat-typing-dots text-muted small"><i class="fa-solid fa-robot fa-fade text-primary me-2"></i><span>' + esc(window.CRM.i18n.t('chat.ai_typing', 'AI Ассистент думает...')) + '</span></div>';
+      box.appendChild(typingEl);
+      box.scrollTop = box.scrollHeight;
+    }
+
     try {
       if (editingMessage) {
         await request('api/v1/chats/' + encodeURIComponent(selectedChatId) + '/messages/' + encodeURIComponent(editingMessage.public_id), { method: 'PATCH', body: { text: text } });
         editingMessage = null;
         await syncMessagesAfterLocalChange('sync');
       } else {
-        await request('api/v1/chats/' + encodeURIComponent(selectedChatId) + '/messages', { method: 'POST', body: { text: text, reply_to_message_public_id: replyToMessage ? replyToMessage.public_id : '' } });
+        var postOpts = {
+          method: 'POST',
+          body: { text: text, reply_to_message_public_id: replyToMessage ? replyToMessage.public_id : '' }
+        };
+        if (isAi) {
+          postOpts.timeoutMs = 180000;
+        }
+        await request('api/v1/chats/' + encodeURIComponent(selectedChatId) + '/messages', postOpts);
         replyToMessage = null;
         await syncMessagesAfterLocalChange('append');
       }
@@ -740,6 +808,9 @@
     } catch (error) {
       setSendError(window.CRM.i18n.t('chat.error_send_failed', 'Не удалось отправить сообщение. Попробуйте еще раз.'));
     } finally {
+      if (typingEl && typingEl.parentNode) {
+        typingEl.parentNode.removeChild(typingEl);
+      }
       input.disabled = false;
       input.focus();
       button.disabled = !input.value.trim();

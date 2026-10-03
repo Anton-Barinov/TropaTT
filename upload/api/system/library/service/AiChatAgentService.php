@@ -170,7 +170,8 @@ final class AiChatAgentService
 
         // 3. Set auth context on container for the duration of this call
         $prevAuth = $this->container->has('auth_user') ? $this->container->get('auth_user') : null;
-        $this->container->set('auth_user', ['user' => $actor]);
+        $actorUser = is_array($actor['user'] ?? null) ? $actor['user'] : $actor;
+        $this->container->set('auth_user', ['user' => $actorUser]);
 
         try {
             // 4. Instantiate MCP Controller and discover tools available to actor
@@ -198,9 +199,12 @@ final class AiChatAgentService
 
                 $completion = $this->aiProvider->completeText(null, $payload);
                 if (empty($completion['ok'])) {
-                    AppLog::error('[AiChatAgentService] completeText failed: ' . ($completion['code'] ?? 'UNKNOWN'));
+                    $errorCode = (string)($completion['code'] ?? 'UNKNOWN');
+                    AppLog::error('[AiChatAgentService] completeText failed: ' . $errorCode);
                     if ($step === 0) {
-                        $finalAnswer = 'Извините, сервис искусственного интеллекта временно недоступен. Попробуйте позже.';
+                        $finalAnswer = 'Извините, сервис искусственного интеллекта временно недоступен (' . $errorCode . '). Попробуйте позже.';
+                    } else {
+                        $finalAnswer = 'Не удалось завершить обработку запроса (код ошибки: ' . $errorCode . '). Пожалуйста, повторите запрос или упростите формулировку.';
                     }
                     break;
                 }
@@ -279,7 +283,7 @@ final class AiChatAgentService
             // 8. Record AI usage
             try {
                 $this->aiUsage->recordUsage(
-                    (int)($actor['id'] ?? 0),
+                    (int)($actorUser['id'] ?? $actor['id'] ?? 0),
                     'chat_copilot',
                     (string)($completion['provider_public_id'] ?? ''),
                     (string)($completion['model'] ?? 'default'),
@@ -294,6 +298,8 @@ final class AiChatAgentService
         } finally {
             if ($prevAuth !== null) {
                 $this->container->set('auth_user', $prevAuth);
+            } else {
+                $this->container->forget('auth_user');
             }
         }
     }
@@ -352,10 +358,11 @@ final class AiChatAgentService
      */
     private function buildMessageHistory(int $chatId, array $actor, int $agentUserId, string $currentUserText): array
     {
-        $actorName = trim((string)($actor['full_name'] ?? ($actor['login'] ?? 'User')));
-        $actorLogin = (string)($actor['login'] ?? 'user');
-        $actorId = (int)($actor['id'] ?? 0);
-        $actorPublicId = (string)($actor['public_id'] ?? '');
+        $user = is_array($actor['user'] ?? null) ? $actor['user'] : $actor;
+        $actorName = trim((string)($user['full_name'] ?? ($user['login'] ?? 'User')));
+        $actorLogin = (string)($user['login'] ?? 'user');
+        $actorId = (int)($user['id'] ?? 0);
+        $actorPublicId = (string)($user['public_id'] ?? '');
 
         $systemPrompt = <<<PROMPT
 Вы — персональный AI Copilot в CRM-системе TropaTT, помогающий пользователю {$actorName} (логин: {$actorLogin}, public_id: {$actorPublicId}).
