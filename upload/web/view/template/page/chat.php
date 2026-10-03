@@ -316,6 +316,7 @@
 
   var aiDrivers = {};
   var aiRuns = {};
+  var aiRunExpanded = {};
   function aiLabel(key, fallback) { return window.CRM.i18n.t('chat.ai_run_' + key, fallback); }
 
   function renderAiRun(chatId, run) {
@@ -334,10 +335,11 @@
     var active = ['queued', 'running', 'cancelling'].indexOf(run.status) >= 0;
     var plan = Array.isArray(run.plan) ? run.plan : [];
     var done = plan.filter(function (step) { return step.status === 'done'; }).length;
-    panel.innerHTML = '<div class="d-flex align-items-center justify-content-between gap-2">'
+    panel.innerHTML = '<details data-ai-run-details' + (aiRunExpanded[run.public_id] ? ' open' : '') + '>'
+      + '<summary class="small" style="cursor:pointer">'
       + '<strong>' + (active ? '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>' : '')
       + esc(labels[run.status] || run.status) + '</strong>'
-      + '<span class="small text-muted">' + (plan.length ? done + ' / ' + plan.length : '') + '</span></div>'
+      + '<span class="text-muted float-end">' + (plan.length ? done + ' / ' + plan.length : '') + '</span></summary>'
       + (plan.length ? '<progress class="w-100 mt-2" max="' + plan.length + '" value="' + done + '" aria-label="' + esc(aiLabel('plan', 'План выполнения')) + '"></progress>' : '')
       + '<ol class="small mb-1 mt-2">' + plan.map(function (step) {
         return '<li class="mb-1">' + (step.status === 'done' ? '✓ ' : step.status === 'in_progress' ? '→ ' : '')
@@ -347,7 +349,10 @@
       + (run.error ? '<div class="small text-danger mt-1">' + esc(run.error) + '</div>' : '')
       + (active ? '<button type="button" class="btn crm-btn-secondary crm-btn-compact mt-2" data-ai-run-action="cancel">' + esc(aiLabel('stop', 'Остановить')) + '</button>' : '')
       + (['paused', 'failed', 'interrupted'].indexOf(run.status) >= 0
-        ? '<button type="button" class="btn crm-btn-primary crm-btn-compact mt-2" data-ai-run-action="resume">' + esc(aiLabel('resume', 'Продолжить')) + '</button>' : '');
+        ? '<button type="button" class="btn crm-btn-primary crm-btn-compact mt-2" data-ai-run-action="resume">' + esc(aiLabel('resume', 'Продолжить')) + '</button>' : '') + '</details>';
+    panel.querySelector('[data-ai-run-details]').addEventListener('toggle', function (event) {
+      aiRunExpanded[run.public_id] = event.currentTarget.open;
+    });
     panel.querySelectorAll('[data-ai-run-action]').forEach(function (button) {
       button.addEventListener('click', async function () {
         button.disabled = true;
