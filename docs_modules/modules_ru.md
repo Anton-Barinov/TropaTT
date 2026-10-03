@@ -166,9 +166,11 @@ modules/acme.telegram-notifier/
 | `core_version` | `string` | Нет | Требуемая версия ядра CRM (по умолчанию `>=1.0.0`) | `">=1.0.0"` |
 | `dependencies` | `array` | Нет | Зависимости от других модулей `[{"name": "..."}]` | `[]` |
 | `require_permissions` | `array` | Нет | Системные RBAC-права ядра, необходимые модулю | `["tasks.read", "settings.manage"]` |
+| `events` | `array` | Нет | Подписки на доменные события ядра | `["task.created", "intake.created"]` |
 | `service_provider` | `string` | Нет | FQCN сервис-провайдера | `"Module\\Acme\\TelegramNotifier\\TelegramNotifierServiceProvider"` |
 | `api_routes` | `string` | Нет | Путь к файлу маршрутов API относительно папки модуля | `"api/config/routes.php"` |
 | `web_routes` | `string` | Нет | Путь к файлу веб-маршрутов относительно папки модуля | `"web/config/routes.php"` |
+| `mcp_tools` | `array` | Нет | Декларативные MCP-инструменты модуля для AI-агентов | См. раздел 14 |
 | `migrations` | `string` | Нет | Относительный путь к каталогу SQL-миграций | `"api/migrations/"` |
 | `hooks` | `object` | Нет | Декларативные хуки вида `{"event": [{"handler": "...", "priority": 10}]}` | `{}` |
 | `positions` | `object` | Нет | Регистрация рендереров в слоты UI (с ключом блока) | См. раздел 6 |
@@ -425,6 +427,31 @@ final class ModuleEvents
     public const CHAT_MESSAGE_UPDATED  = 'chat.message_updated';
     public const CHAT_MESSAGE_DELETED  = 'chat.message_deleted';
 
+    // Входящие обращения (IntakeController / IntakeService)
+    public const INTAKE_CREATED        = 'intake.created';
+    public const INTAKE_UPDATED        = 'intake.updated';
+    public const INTAKE_ACCEPTED       = 'intake.accepted';
+    public const INTAKE_REJECTED       = 'intake.rejected';
+    public const INTAKE_REOPENED       = 'intake.reopened';
+    public const INTAKE_DELETED        = 'intake.deleted';
+
+    // Календарные события (CalendarController)
+    public const CALENDAR_EVENT_CREATED = 'calendar_event.created';
+    public const CALENDAR_EVENT_UPDATED = 'calendar_event.updated';
+    public const CALENDAR_EVENT_DELETED = 'calendar_event.deleted';
+
+    // Ворклог (WorklogController / WorklogService)
+    public const WORKLOG_CREATED       = 'worklog.created';
+    public const WORKLOG_UPDATED       = 'worklog.updated';
+    public const WORKLOG_DELETED       = 'worklog.deleted';
+
+    // База Знаний (KnowledgeController / KnowledgeService)
+    public const KNOWLEDGE_PAGE_CREATED   = 'knowledge_page.created';
+    public const KNOWLEDGE_PAGE_UPDATED   = 'knowledge_page.updated';
+    public const KNOWLEDGE_PAGE_PUBLISHED = 'knowledge_page.published';
+    public const KNOWLEDGE_PAGE_ARCHIVED  = 'knowledge_page.archived';
+    public const KNOWLEDGE_PAGE_DELETED   = 'knowledge_page.deleted';
+
     // Рендеринг интерфейса ядра (Web\Core\Controller)
     public const RENDER_BEFORE         = 'render.before';
     public const RENDER_AFTER          = 'render.after';
@@ -588,6 +615,24 @@ final class ApiTelegramController
     }
 }
 ```
+
+### Валидация маршрутов (`ModuleRouteValidator`) и примитивы коннекторов
+
+Для защиты ядра и изоляции арендаторов все маршруты модулей проверяются через `ModuleRouteValidator`:
+- **Контроль методов**: разрешены только `GET`, `POST`, `PUT`, `PATCH`, `DELETE`.
+- **Защита от Path Traversal**: любые попытки использования `..` или небезопасных символов блокируются.
+- **Ограничение пространства имен**: класс контроллера обязан находиться подпространством `Module\<VendorName>\<ModuleName>\...`.
+- **Запрет wildcard-прав**: права `all`, `*`, `superadmin` отклоняются (принцип fail-closed).
+- **Изоляция рабочего пространства (`workspace_required: true`)**:
+  - Гарантирует, что вызов выполняется под авторизованным пользователем с валидной организацией.
+  - Автоматически создает и привязывает неизменяемый `ModuleExecutionContext` к текущему запросу.
+- **Идемпотентность (`idempotency: true`)**:
+  - Предотвращает дублирование обработки внешних webhook-запросов через `ConnectorIdempotencyStore`.
+  - Регистрирует ключ идемпотентности из заголовка `Idempotency-Key` или отпечатка тела запроса.
+
+#### Общие примитивы интеграций ядра:
+- **`ConnectorCredentialStore`**: Безопасное хранение секретов и ключей интеграций с шифрованием AES-256-GCM, изолированное по `module_name` и `organization_id`.
+- **`SignatureService`**: Проверка криптографической подписи HMAC входящих webhook-запросов по сырому телу (`php://input`) с окном защиты от повторов.
 
 ### Маршрутизация Web-страниц (`web/config/routes.php`)
 Файл веб-маршрутов возвращает ассоциативную карту:
@@ -753,6 +798,16 @@ $jobId = $dispatcher->dispatch(
 ```
 
 Обработчик должен находиться в namespace собственного модуля, иметь конструктор без аргументов и реализовать `WorkspaceModuleJobInterface::handle(array $payload, ModuleExecutionContext $context): void`. Он обязан использовать переданный workspace при каждом чтении и записи. Неизвестный или чужой обработчик не считается успешным. Повторы ограничены и видны по статусу; зависшее задание после 10 минут восстанавливается по lease и требует идемпотентного обработчика. Payload ограничен 1 МиБ, завершённые задания по умолчанию хранятся 7 дней. Для системного задания без пространства допустим только явно созданный `ModuleExecutionContext::global()` из cron/модуля; нельзя подменять им отсутствие выбранного пространства у пользователя. Один тик выполняет максимум 5 заданий или до 8 секунд между заданиями; отдельный обработчик также должен сам ограничивать время сетевых операций.
+
+### 3. Shared-хостинг, ручной запуск и мониторинг очереди
+
+- **Ручной вызов обработки очереди (Queue Tick):**
+  - Эндпоинт `POST /api/v1/modules/queue/tick` запускает обработку следующего пакета задач очереди (`ModuleJobDispatcher::runBatch()`).
+  - Доступен администратору (`settings.manage`) либо внешнему вебхук-триггеру, гарантируя своевременное выполнение очередей даже при отсутствии системного cron на сервере.
+- **Диагностика и наблюдаемость модулей:**
+  - Эндпоинт `GET /api/v1/modules/diagnostics` возвращает детальное состояние очереди (`pending`, `failed`, `paused_legacy`), статус здоровья модулей и последние зафиксированные ошибки.
+- **Изоляция устаревших задач (`paused_legacy`):**
+  - Задачи очереди, созданные старыми версиями модулей без информации о воркспейсе, автоматически помечаются статусом `paused_legacy`, исключая случайную доставку данных чужой организации.
 
 ---
 
