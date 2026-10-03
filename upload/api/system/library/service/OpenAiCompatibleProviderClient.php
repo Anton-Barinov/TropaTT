@@ -67,6 +67,14 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
         $text = $this->extractCompletionText($json);
         $toolCalls = $this->extractToolCalls($json);
 
+        if ($toolCalls === [] && $text !== '') {
+            $extractedFromText = $this->extractToolCallsFromText($text);
+            if ($extractedFromText['tool_calls'] !== []) {
+                $toolCalls = $extractedFromText['tool_calls'];
+                $text = $extractedFromText['cleaned_text'];
+            }
+        }
+
         if ($text === '' && $toolCalls === []) {
             return [
                 'ok' => false,
@@ -515,6 +523,97 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
         }
 
         return [];
+    }
+
+    /**
+     * Fallback for models (like DeepSeek, Qwen, etc.) that emit tool calls in DSML or XML tags within content.
+     *
+     * @return array{tool_calls:list<array{id:string,type:string,function:array{name:string,arguments:string}}>,cleaned_text:string}
+     */
+    private function extractToolCallsFromText(string $text): array
+    {
+        $toolCalls = [];
+        $cleaned = $text;
+
+        // 1. DeepSeek DSML format: <｜｜DSML｜｜ invoke name="...">...
+        if (preg_match_all('/<[|｜]{1,2}DSML[|｜]{1,2}\s*invoke\s+name=[\'"]([^\'"]+)[\'"]>([\s\S]*?)<\/[|｜]{1,2}DSML[|｜]{1,2}\s*invoke>/u', $text, $matches, PREG_SET_ORDER)) {
+            foreach ($matches as $m) {
+                $toolName = trim((string)$m[1]);
+                $body = (string)$m[2];
+                $args = [];
+                if (preg_match_all('/<[|｜]{1,2}DSML[|｜]{1,2}\s*parameter\s+name=[\'"]([^\'"]+)[\'"](?:\s+[^>]*)?>([\s\S]*?)<\/[|｜]{1,2}DSML[|｜]{1,2}\s*parameter>/u', $body, $paramMatches, PREG_SET_ORDER)) {
+                    foreach ($paramMatches as $pm) {
+                        $pName = trim((string)$pm[1]);
+                        $pVal = trim((string)$pm[2]);
+                        $decoded = json_decode($pVal, true);
+                        $args[$pName] = (json_last_error() === JSON_ERROR_NONE && !is_numeric($pVal)) ? $decoded : $pVal;
+                    }
+                }
+                $toolCalls[] = [
+                    'id' => 'call_' . bin2hex(random_bytes(6)),
+                    'type' => 'function',
+                    'function' => [
+                        'name' => $toolName,
+                        'arguments' => (string)json_encode($args, JSON_UNESCAPED_UNICODE),
+                    ],
+                ];
+            }
+            $cleaned = (string)preg_replace('/<[|｜]{1,2}DSML[|｜]{1,2}\s*calls>[\s\S]*?<\/[|｜]{1,2}DSML[|｜]{1,2}\s*calls>/u', '', $cleaned);
+            $cleaned = (string)preg_replace('/<[|｜]{1,2}DSML[|｜]{1,2}\s*invoke[\s\S]*?<\/[|｜]{1,2}DSML[|｜]{1,2}\s*invoke>/u', '', $cleaned);
+            return ['tool_calls' => $toolCalls, 'cleaned_text' => trim($cleaned)];
+        }
+
+        // 2. Standard <tool_call> JSON format
+        if (preg_match_all('/<tool_call>\s*(\{[\s\S]*?\})\s*<\/tool_call>/i', $text, $matches, PREG_SET_ORDER)) {
+            foreach ($matches as $m) {
+                $rawJson = trim((string)$m[1]);
+                $decoded = json_decode($rawJson, true);
+                if (is_array($decoded) && !empty($decoded['name'])) {
+                    $args = $decoded['arguments'] ?? [];
+                    $toolCalls[] = [
+                        'id' => 'call_' . bin2hex(random_bytes(6)),
+                        'type' => 'function',
+                        'function' => [
+                            'name' => (string)$decoded['name'],
+                            'arguments' => is_string($args) ? $args : (string)json_encode($args, JSON_UNESCAPED_UNICODE),
+                        ],
+                    ];
+                }
+            }
+            if ($toolCalls !== []) {
+                $cleaned = (string)preg_replace('/<tool_call>[\s\S]*?<\/tool_call>/i', '', $cleaned);
+                return ['tool_calls' => $toolCalls, 'cleaned_text' => trim($cleaned)];
+            }
+        }
+
+        // 3. XML <invoke name="..."> format
+        if (preg_match_all('/<invoke\s+name=[\'"]([^\'"]+)[\'"]>([\s\S]*?)<\/invoke>/i', $text, $matches, PREG_SET_ORDER)) {
+            foreach ($matches as $m) {
+                $toolName = trim((string)$m[1]);
+                $body = (string)$m[2];
+                $args = [];
+                if (preg_match_all('/<parameter\s+name=[\'"]([^\'"]+)[\'"](?:\s+[^>]*)?>([\s\S]*?)<\/parameter>/i', $body, $paramMatches, PREG_SET_ORDER)) {
+                    foreach ($paramMatches as $pm) {
+                        $pName = trim((string)$pm[1]);
+                        $pVal = trim((string)$pm[2]);
+                        $decoded = json_decode($pVal, true);
+                        $args[$pName] = (json_last_error() === JSON_ERROR_NONE && !is_numeric($pVal)) ? $decoded : $pVal;
+                    }
+                }
+                $toolCalls[] = [
+                    'id' => 'call_' . bin2hex(random_bytes(6)),
+                    'type' => 'function',
+                    'function' => [
+                        'name' => $toolName,
+                        'arguments' => (string)json_encode($args, JSON_UNESCAPED_UNICODE),
+                    ],
+                ];
+            }
+            $cleaned = (string)preg_replace('/<invoke[\s\S]*?<\/invoke>/i', '', $cleaned);
+            return ['tool_calls' => $toolCalls, 'cleaned_text' => trim($cleaned)];
+        }
+
+        return ['tool_calls' => [], 'cleaned_text' => $text];
     }
 
     /**

@@ -34,10 +34,21 @@ final class Router
     public function addManyFromModule(array $routes, string $modulePrefix): void
     {
         $prefix = '/_module/' . $modulePrefix . '/';
+        $validator = new \Api\System\Library\Module\ModuleRouteValidator();
 
         foreach ($routes as $route) {
-            $route = $this->normalizeModuleRoute($route, $prefix);
-            $this->add($route);
+            if (!is_array($route)) {
+                \Api\System\Library\Support\AppLog::warning("Skipping non-array route from module {$modulePrefix}");
+                continue;
+            }
+
+            try {
+                $validated = $validator->validate($route, $modulePrefix);
+                $normalized = $this->normalizeModuleRoute($validated, $prefix);
+                $this->add($normalized);
+            } catch (\Throwable $e) {
+                \Api\System\Library\Support\AppLog::warning("Skipping invalid route from module {$modulePrefix}: " . $e->getMessage());
+            }
         }
     }
 
@@ -47,7 +58,7 @@ final class Router
      */
     private function normalizeModuleRoute(array $route, string $prefix): array
     {
-        $pattern = $route['route'] ?? '';
+        $pattern = $route['route'] ?? $route['pattern'] ?? '';
         if ($pattern !== '' && !str_starts_with($pattern, '/')) {
             $pattern = '/' . $pattern;
         }
@@ -74,8 +85,6 @@ final class Router
             if (!in_array($request->method, $methods, true)) {
                 continue;
             }
-
-            $pattern = $route['pattern'];
 
             $pattern = $route['pattern'];
             $regex = preg_replace('#\{([a-zA-Z0-9_]+)\}#', '(?P<$1>[^/]+)', $pattern);
@@ -105,6 +114,9 @@ final class Router
                 'route_name' => $route['name'] ?? $pattern,
                 'sse' => (bool)($route['sse'] ?? false),
                 'binary' => (bool)($route['binary'] ?? false),
+                'module_name' => $route['module_name'] ?? null,
+                'workspace_required' => (bool)($route['workspace_required'] ?? false),
+                'idempotency' => $route['idempotency'] ?? false,
             ];
         }
 

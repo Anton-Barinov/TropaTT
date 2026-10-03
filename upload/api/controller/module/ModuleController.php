@@ -686,6 +686,76 @@ final class ModuleController
         }
     }
 
+    public function queueTick(): JsonResponse
+    {
+        $input = $this->request()->allInput();
+        $limit = isset($input['limit']) ? max(1, min(20, (int)$input['limit'])) : 5;
+        $maxSeconds = isset($input['max_seconds']) ? max(0.5, min(20.0, (float)$input['max_seconds'])) : 8.0;
+
+        try {
+            $dispatcher = $this->container->has('module.job_dispatcher')
+                ? $this->container->get('module.job_dispatcher')
+                : new \Api\System\Library\Module\ModuleJobDispatcher(
+                    $this->container->get('db.pdo'),
+                    $this->container->get('plugin.manager'),
+                    $this->container->get('module.config')
+                );
+
+            $batch = $dispatcher->runBatch($limit, $maxSeconds);
+
+            return JsonResponse::success('MODULE_QUEUE_TICK', $this->t('common/messages.ok', 'OK'), $batch);
+        } catch (\Throwable $e) {
+            AppLog::error('[ModuleController::queueTick] ' . $e->getMessage());
+            return JsonResponse::error('QUEUE_TICK_FAILED', $e->getMessage(), 500);
+        }
+    }
+
+    public function diagnostics(): JsonResponse
+    {
+        $pm = $this->container->get('plugin.manager');
+        $mc = $this->container->get('module.config');
+        $pdo = $this->container->get('db.pdo');
+
+        $activeModules = $pm->getActive();
+        $diagnostics = [];
+
+        foreach ($activeModules as $name => $manifest) {
+            $reg = $mc->getRegistry($name);
+            $diag = [
+                'name' => $name,
+                'title' => $manifest->title,
+                'version' => $manifest->version,
+                'is_active' => (bool)($reg['is_active'] ?? false),
+                'installed_at' => $reg['installed_at'] ?? null,
+                'has_api_routes' => $manifest->apiRoutes !== null,
+                'has_mcp_tools' => count($manifest->mcpTools) > 0,
+            ];
+
+            // Get job queue metrics for this module
+            try {
+                $stmt = $pdo->prepare("SELECT status, count(*) as cnt FROM module_jobs WHERE module_name = :mod GROUP BY status");
+                $stmt->execute(['mod' => $name]);
+                $counts = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
+                $diag['jobs'] = [
+                    'pending' => (int)($counts['pending'] ?? 0),
+                    'running' => (int)($counts['running'] ?? 0),
+                    'retrying' => (int)($counts['retrying'] ?? 0),
+                    'failed' => (int)($counts['failed'] ?? 0),
+                    'completed' => (int)($counts['completed'] ?? 0),
+                ];
+            } catch (\Throwable) {
+                $diag['jobs'] = null;
+            }
+
+            $diagnostics[] = $diag;
+        }
+
+        return JsonResponse::success('MODULE_DIAGNOSTICS', $this->t('common/messages.ok', 'OK'), [
+            'modules' => $diagnostics,
+            'timestamp' => time(),
+        ]);
+    }
+
     private function user(): ?array
     {
         $auth = $this->container->has('auth_user') ? $this->container->get('auth_user') : null;

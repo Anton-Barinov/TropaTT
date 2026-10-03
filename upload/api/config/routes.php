@@ -1043,6 +1043,8 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/modules/{name}/migrations', 'controller' => Api\Controller\Module\ModuleController::class, 'action' => 'migrations', 'auth' => true, 'required_permissions' => ['settings.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/modules/{name}/errors', 'controller' => Api\Controller\Module\ModuleController::class, 'action' => 'errors', 'auth' => true, 'required_permissions' => ['settings.manage']],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/modules/{name}/errors', 'controller' => Api\Controller\Module\ModuleController::class, 'action' => 'clearErrors', 'auth' => true, 'required_permissions' => ['settings.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/modules/queue/tick', 'controller' => Api\Controller\Module\ModuleController::class, 'action' => 'queueTick', 'auth' => true, 'required_permissions' => ['settings.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/modules/diagnostics', 'controller' => Api\Controller\Module\ModuleController::class, 'action' => 'diagnostics', 'auth' => true, 'required_permissions' => ['settings.manage']],
 
     ['methods' => ['GET'], 'pattern' => '/api/v1/marketplace/catalog', 'controller' => Api\Controller\Module\ModuleMarketplaceController::class, 'action' => 'catalog', 'auth' => true, 'required_permissions' => ['settings.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/marketplace/categories', 'controller' => Api\Controller\Module\ModuleMarketplaceController::class, 'action' => 'categories', 'auth' => true, 'required_permissions' => ['settings.manage']],
