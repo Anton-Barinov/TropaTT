@@ -10104,8 +10104,8 @@ body.modal-open {
 
 .crm-topbar-badge {
   position: absolute;
-  right: -0.15rem;
-  top: -0.15rem;
+  right: -0.01rem;
+  top: -0.01rem;
 }
 
 /* 8. Enhanced progress bar on task bars */

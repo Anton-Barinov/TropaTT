@@ -6774,6 +6774,17 @@ return array (
     'btn_copy_title' => 'Копировать сообщение',
     'btn_copy_aria' => 'Копировать сообщение',
     'msg_copied' => 'Скопировано',
+    'status_sending' => 'Отправляется...',
+    'ai_agent_title' => 'AI Ассистент',
+    'ai_typing' => 'AI Ассистент думает...',
+    'ai_copilot_assistant' => 'Персональный AI-ассистент',
+    'placeholder_ai_message' => 'Спросите AI-ассистента о задачах, проектах или базе знаний...',
+    'ai_compose_hint' => 'Enter — отправить запрос AI-ассистенту, Shift+Enter — новая строка.',
+    'chip_my_tasks' => 'Мои задачи',
+    'chip_projects' => 'Проекты',
+    'chip_my_day' => 'Мой день',
+    'chip_help' => 'Справка',
+    'chip_clear' => 'Очистить',
   ),
   'notifications' => 
   array (

@@ -6760,6 +6760,17 @@ return array (
     'btn_copy_title' => '复制消息',
     'btn_copy_aria' => '复制消息',
     'msg_copied' => '已复制',
+    'status_sending' => '发送中...',
+    'ai_agent_title' => 'AI 助手',
+    'ai_typing' => 'AI 助手正在思考...',
+    'ai_copilot_assistant' => '个人 AI 助手',
+    'placeholder_ai_message' => '向 AI 助手提问关于任务、项目或知识库的信息...',
+    'ai_compose_hint' => '按 Enter 发送请求给 AI 助手，Shift+Enter 换行。',
+    'chip_my_tasks' => '我的任务',
+    'chip_projects' => '项目',
+    'chip_my_day' => '我的一天',
+    'chip_help' => '帮助',
+    'chip_clear' => '清除',
   ),
   'notifications' => 
   array (

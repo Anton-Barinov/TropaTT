@@ -80,13 +80,63 @@
   border-color: var(--color-primary-300, #9ec5fe);
   color: var(--color-primary-700, #0a58ca);
 }
-.is-ai-typing {
-  opacity: 0.9;
+.crm-chat-message.is-optimistic {
+  opacity: 0.72;
+  transition: opacity 0.25s ease-out;
+}
+.crm-chat-message.is-send-failed {
+  opacity: 1 !important;
+  border-left: 3px solid var(--color-danger, #dc3545) !important;
+  background: rgba(220, 53, 69, 0.05) !important;
+}
+.crm-chat-message.is-ai-typing {
+  opacity: 1;
   background: var(--color-neutral-50, #f8f9fa);
   border-left: 3px solid var(--color-primary, #0d6efd);
-  padding: 8px 12px;
-  border-radius: 6px;
-  margin: 6px 0;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin: 8px 0;
+  max-width: 85%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  animation: crmFadeInTyping 0.2s ease-out;
+}
+@keyframes crmFadeInTyping {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.crm-chat-typing-dots {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--color-neutral-600, #6c757d);
+  margin-top: 4px;
+}
+.crm-chat-typing-bubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  background: var(--color-primary-50, rgba(13, 110, 253, 0.08));
+  border-radius: 10px;
+}
+.crm-chat-typing-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-primary, #0d6efd);
+  animation: crmTypingBounce 1.4s infinite ease-in-out both;
+}
+.crm-chat-typing-dot:nth-child(1) { animation-delay: -0.32s; }
+.crm-chat-typing-dot:nth-child(2) { animation-delay: -0.16s; }
+.crm-chat-typing-dot:nth-child(3) { animation-delay: 0s; }
+@keyframes crmTypingBounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.35; }
+  40% { transform: scale(1.2); opacity: 1; }
+}
+.crm-chat-msg-status {
+  font-size: 0.75rem;
+  color: var(--color-neutral-500, #6c757d);
 }
 </style>
 <script nonce="<?= $csp_nonce ?>">
@@ -459,19 +509,20 @@
       var sender = message.sender_name || message.sender_login || window.CRM.i18n.t('chat.default_sender', 'Пользователь');
       var own = Number(message.is_own || 0) === 1;
       var deleted = !!message.deleted_at;
-      var canEdit = own && !deleted && canEditMessage(message);
-      var canDelete = own && !deleted && canDeleteMessage(message);
-      return '<article class="crm-chat-message' + (own ? ' is-own' : '') + (deleted ? ' is-deleted' : '') + '" data-message-id="' + esc(message.public_id || '') + '">'
-        + '<div class="crm-chat-message-meta"><strong>' + esc(sender) + '</strong><time>' + esc(formatTime(message.created_at)) + '</time></div>'
+      var isOptimistic = !!message.is_optimistic;
+      var canEdit = own && !deleted && !isOptimistic && canEditMessage(message);
+      var canDelete = own && !deleted && !isOptimistic && canDeleteMessage(message);
+      return '<article class="crm-chat-message' + (own ? ' is-own' : '') + (deleted ? ' is-deleted' : '') + (isOptimistic ? ' is-optimistic' : '') + '" data-message-id="' + esc(message.public_id || '') + '">'
+        + '<div class="crm-chat-message-meta"><strong>' + esc(sender) + '</strong><time>' + esc(formatTime(message.created_at)) + (isOptimistic ? ' <span class="crm-chat-msg-status" title="' + window.CRM.i18n.t('chat.status_sending', 'Отправляется...') + '"><i class="fa-regular fa-clock ms-1"></i></span>' : '') + '</time></div>'
          + (message.reply_public_id ? '<button type="button" class="crm-chat-quote" data-scroll-message="' + esc(message.reply_public_id) + '" title="' + window.CRM.i18n.t('chat.btn_scroll_title', 'Перейти к исходному сообщению') + '" aria-label="' + window.CRM.i18n.t('chat.btn_scroll_aria', 'Перейти к исходному сообщению') + '">' + renderReplyQuote(message) + '</button>' : '')
         + (deleted ? '<p class="crm-chat-deleted-text">' + window.CRM.i18n.t('chat.msg_deleted', 'Сообщение удалено') + '</p>' : '<p>' + renderMessageText(message.text || '') + '</p>')
         + renderAttachments(Array.isArray(message.attachments) ? message.attachments : [])
         + '<div class="crm-chat-message-foot">'
         + (message.edited_at && !deleted ? '<button type="button" class="crm-chat-edited-marker" data-history-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_history_title', 'История изменений') + '" aria-label="' + window.CRM.i18n.t('chat.btn_history_aria', 'История изменений сообщения') + '">' + window.CRM.i18n.t('chat.msg_edited', 'изменено') + '</button>' : '')
-        + '<button type="button" class="crm-chat-action crm-chat-quick-action" data-reply-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_reply_title', 'Ответить на сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_reply_aria', 'Ответить на сообщение') + '"><i class="fa-solid fa-reply" aria-hidden="true"></i><span>' + window.CRM.i18n.t('chat.btn_reply', 'Ответить') + '</span></button>'
-        + '<button type="button" class="crm-chat-action crm-chat-quick-action" data-create-task="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_create_task_title', 'Создать задачу из сообщения') + '" aria-label="' + window.CRM.i18n.t('chat.btn_create_task_aria', 'Создать задачу из сообщения') + '"><i class="fa-solid fa-list-check" aria-hidden="true"></i><span>' + window.CRM.i18n.t('chat.btn_create_task', 'Создать задачу') + '</span></button>'
+        + (!isOptimistic ? '<button type="button" class="crm-chat-action crm-chat-quick-action" data-reply-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_reply_title', 'Ответить на сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_reply_aria', 'Ответить на сообщение') + '"><i class="fa-solid fa-reply" aria-hidden="true"></i><span>' + window.CRM.i18n.t('chat.btn_reply', 'Ответить') + '</span></button>' : '')
+        + (!isOptimistic ? '<button type="button" class="crm-chat-action crm-chat-quick-action" data-create-task="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_create_task_title', 'Создать задачу из сообщения') + '" aria-label="' + window.CRM.i18n.t('chat.btn_create_task_aria', 'Создать задачу из сообщения') + '"><i class="fa-solid fa-list-check" aria-hidden="true"></i><span>' + window.CRM.i18n.t('chat.btn_create_task', 'Создать задачу') + '</span></button>' : '')
         + '</div>'
-        + renderMessageMoreMenu(message, canEdit, canDelete)
+        + (!isOptimistic ? renderMessageMoreMenu(message, canEdit, canDelete) : '')
         + '</article>';
   }
 
@@ -524,7 +575,13 @@
     var shouldStick = isNearBottom(box);
     currentMessages = currentMessages.concat(fresh);
     updateLastMessageId(fresh);
-    box.insertAdjacentHTML('beforeend', fresh.map(renderMessage).join(''));
+    var typingEl = box.querySelector('#aiTypingIndicator');
+    var html = fresh.map(renderMessage).join('');
+    if (typingEl) {
+      typingEl.insertAdjacentHTML('beforebegin', html);
+    } else {
+      box.insertAdjacentHTML('beforeend', html);
+    }
     bindMessageActions(box);
     if (shouldStick) box.scrollTop = box.scrollHeight;
   }
@@ -769,49 +826,157 @@
     if (!text) { setSendError(window.CRM.i18n.t('chat.error_write_message', 'Напишите сообщение.')); button.disabled = true; return; }
     if (!selectedChatId) { setSendError(window.CRM.i18n.t('chat.error_select_chat', 'Выберите чат.')); return; }
     var isAi = currentChat && currentChat.type === 'ai_agent';
-    input.disabled = true;
-    button.disabled = true;
     setSendError('');
 
-    var typingEl = null;
     var box = document.getElementById('msgArea');
+
+    if (editingMessage) {
+      input.disabled = true;
+      button.disabled = true;
+      try {
+        await request('api/v1/chats/' + encodeURIComponent(selectedChatId) + '/messages/' + encodeURIComponent(editingMessage.public_id), { method: 'PATCH', body: { text: text } });
+        editingMessage = null;
+        input.value = '';
+        input.style.height = 'auto';
+        renderReplyPreview();
+        await syncMessagesAfterLocalChange('sync');
+        await loadChats({ silent: true });
+      } catch (error) {
+        setSendError(window.CRM.i18n.t('chat.error_send_failed', 'Не удалось отправить сообщение. Попробуйте еще раз.'));
+      } finally {
+        input.disabled = false;
+        input.focus();
+        button.disabled = !input.value.trim();
+      }
+      return;
+    }
+
+    var currentReply = replyToMessage;
+    replyToMessage = null;
+    renderReplyPreview();
+
+    // 1. Immediately clear input field and reset size
+    input.value = '';
+    input.style.height = '44px';
+    button.disabled = true;
+    if (isAi) {
+      input.disabled = true;
+      input.placeholder = window.CRM.i18n.t('chat.ai_typing', 'AI Ассистент думает...');
+    }
+
+    var chips = document.getElementById('aiQuickChips');
+    if (chips) {
+      chips.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
+    }
+
+    // 2. Build optimistic user message
+    var tempId = 'temp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+    var nowIso = new Date().toISOString();
+    var curUser = (window.CRM && window.CRM.user) || {};
+    var optimisticMsg = {
+      public_id: tempId,
+      id: 0,
+      text: text,
+      created_at: nowIso,
+      sender_name: curUser.full_name || curUser.login || window.CRM.i18n.t('chat.default_sender', 'Пользователь'),
+      sender_login: curUser.login || '',
+      is_own: 1,
+      reply_public_id: currentReply ? currentReply.public_id : null,
+      reply_text: currentReply ? (currentReply.text || '') : null,
+      reply_sender_name: currentReply ? (currentReply.sender_name || currentReply.sender_login || '') : null,
+      attachments: [],
+      is_optimistic: true
+    };
+
+    appendMessages([optimisticMsg]);
+    if (box) box.scrollTop = box.scrollHeight;
+
+    // 3. If AI chat, append live animated typing/thinking indicator
+    var typingEl = null;
     if (isAi && box) {
       typingEl = document.createElement('div');
       typingEl.className = 'crm-chat-message is-ai-typing';
       typingEl.id = 'aiTypingIndicator';
-      typingEl.innerHTML = '<div class="crm-chat-message-meta"><strong>' + esc(window.CRM.i18n.t('chat.ai_agent_title', 'AI Ассистент')) + '</strong></div><div class="crm-chat-typing-dots text-muted small"><i class="fa-solid fa-robot fa-fade text-primary me-2"></i><span>' + esc(window.CRM.i18n.t('chat.ai_typing', 'AI Ассистент думает...')) + '</span></div>';
+      typingEl.innerHTML = '<div class="crm-chat-message-meta"><strong>' + esc(window.CRM.i18n.t('chat.ai_agent_title', 'AI Ассистент'))
+        + ' <span class="badge bg-secondary ms-1"><i class="fa-solid fa-robot me-1" aria-hidden="true"></i>AI</span></strong></div>'
+        + '<div class="crm-chat-typing-dots">'
+        + '<div class="crm-chat-typing-bubble"><span class="crm-chat-typing-dot"></span><span class="crm-chat-typing-dot"></span><span class="crm-chat-typing-dot"></span></div>'
+        + '<span><i class="fa-solid fa-robot fa-fade text-primary me-1"></i>' + esc(window.CRM.i18n.t('chat.ai_typing', 'AI Ассистент думает...')) + '</span></div>';
       box.appendChild(typingEl);
       box.scrollTop = box.scrollHeight;
     }
 
     try {
-      if (editingMessage) {
-        await request('api/v1/chats/' + encodeURIComponent(selectedChatId) + '/messages/' + encodeURIComponent(editingMessage.public_id), { method: 'PATCH', body: { text: text } });
-        editingMessage = null;
-        await syncMessagesAfterLocalChange('sync');
-      } else {
-        var postOpts = {
-          method: 'POST',
-          body: { text: text, reply_to_message_public_id: replyToMessage ? replyToMessage.public_id : '' }
-        };
-        if (isAi) {
-          postOpts.timeoutMs = 180000;
-        }
-        await request('api/v1/chats/' + encodeURIComponent(selectedChatId) + '/messages', postOpts);
-        replyToMessage = null;
-        await syncMessagesAfterLocalChange('append');
+      var postOpts = {
+        method: 'POST',
+        body: { text: text, reply_to_message_public_id: currentReply ? currentReply.public_id : '' }
+      };
+      if (isAi) {
+        postOpts.timeoutMs = 180000;
       }
-      input.value = '';
-      input.style.height = 'auto';
-      renderReplyPreview();
+      var res = await request('api/v1/chats/' + encodeURIComponent(selectedChatId) + '/messages', postOpts);
+      var serverData = (res && res.data) || {};
+      var realPublicId = serverData.public_id;
+      var realId = Number(serverData.id || 0);
+
+      // Reconcile optimistic user message in currentMessages array and DOM
+      if (realPublicId) {
+        var optIdx = currentMessages.findIndex(function (m) { return m.public_id === tempId; });
+        if (optIdx !== -1) {
+          currentMessages[optIdx].public_id = realPublicId;
+          currentMessages[optIdx].is_optimistic = false;
+          if (realId > 0) currentMessages[optIdx].id = realId;
+        }
+        var optEl = box ? box.querySelector('[data-message-id="' + CSS.escape(tempId) + '"]') : null;
+        if (optEl) {
+          optEl.setAttribute('data-message-id', realPublicId);
+          optEl.classList.remove('is-optimistic');
+          var statusIcon = optEl.querySelector('.crm-chat-msg-status');
+          if (statusIcon) statusIcon.remove();
+        }
+      }
+
+      // If AI response was returned, remove indicator and append AI response
+      if (typingEl && typingEl.parentNode) {
+        typingEl.parentNode.removeChild(typingEl);
+        typingEl = null;
+      }
+
+      if (serverData.ai_message) {
+        appendMessages([serverData.ai_message]);
+        if (box) box.scrollTop = box.scrollHeight;
+      }
+
+      await syncMessagesAfterLocalChange('append');
       await loadChats({ silent: true });
     } catch (error) {
+      console.error('Failed to send message:', error);
+      if (typingEl && typingEl.parentNode) {
+        typingEl.parentNode.removeChild(typingEl);
+        typingEl = null;
+      }
+      var failedEl = box ? box.querySelector('[data-message-id="' + CSS.escape(tempId) + '"]') : null;
+      if (failedEl) {
+        failedEl.classList.add('is-send-failed');
+        var statusIcon = failedEl.querySelector('.crm-chat-msg-status');
+        if (statusIcon) statusIcon.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-danger ms-1" title="' + esc(window.CRM.i18n.t('chat.error_send_failed', 'Не удалось отправить сообщение.')) + '"></i>';
+      }
       setSendError(window.CRM.i18n.t('chat.error_send_failed', 'Не удалось отправить сообщение. Попробуйте еще раз.'));
+      if (!input.value) {
+        input.value = text;
+        input.style.height = 'auto';
+      }
     } finally {
       if (typingEl && typingEl.parentNode) {
         typingEl.parentNode.removeChild(typingEl);
       }
+      if (chips) {
+        chips.querySelectorAll('button').forEach(function (b) { b.disabled = false; });
+      }
       input.disabled = false;
+      input.placeholder = isAi
+        ? window.CRM.i18n.t('chat.placeholder_ai_message', 'Спросите AI-ассистента о задачах, проектах или базе знаний...')
+        : window.CRM.i18n.t('chat.placeholder_message', 'Сообщение...');
       input.focus();
       button.disabled = !input.value.trim();
     }

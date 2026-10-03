@@ -6753,6 +6753,17 @@ return array (
     'btn_copy_title' => 'Copy message',
     'btn_copy_aria' => 'Copy message',
     'msg_copied' => 'Copied',
+    'status_sending' => 'Sending...',
+    'ai_agent_title' => 'AI Assistant',
+    'ai_typing' => 'AI Assistant is thinking...',
+    'ai_copilot_assistant' => 'Personal AI Assistant',
+    'placeholder_ai_message' => 'Ask AI Assistant about tasks, projects or knowledge base...',
+    'ai_compose_hint' => 'Enter to send query to AI Assistant, Shift+Enter for new line.',
+    'chip_my_tasks' => 'My Tasks',
+    'chip_projects' => 'Projects',
+    'chip_my_day' => 'My Day',
+    'chip_help' => 'Help',
+    'chip_clear' => 'Clear',
   ),
   'notifications' => 
   array (

@@ -561,7 +561,10 @@ final class ChatController extends BaseController
             }
         }
 
-        $resData = ['public_id' => $msgPublicId];
+        $resData = [
+            'public_id' => $msgPublicId,
+            'id' => $msgId,
+        ];
         if ($aiMessage !== null) {
             $resData['ai_message'] = $aiMessage;
         }

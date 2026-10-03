@@ -343,12 +343,15 @@ final class AiChatAgentService
         $this->pdo->prepare("UPDATE chats SET last_message_at = NOW() WHERE id = :cid")
             ->execute(['cid' => $chatId]);
 
+        $insertedMsgId = (int)$this->pdo->lastInsertId();
         return [
+            'id' => $insertedMsgId,
             'public_id' => $msgPublicId,
             'chat_public_id' => $chatPublicId,
             'text' => $text,
             'sender_name' => $agentFullName,
             'role' => 'assistant',
+            'is_ai' => true,
             'created_at' => gmdate('Y-m-d H:i:s'),
         ];
     }
