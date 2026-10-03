@@ -953,6 +953,88 @@ final class TelegramNotifierServiceProvider extends AbstractModuleServiceProvide
 }
 ```
 
+> 💡 **Эталонный интеграционный коннектор (`crm.fixture-connector`):**  
+> Полная реализация сквозного коннектора, демонстрирующая связку:  
+> `Событие ядра (Event) → Фоновая задача (Job) → Рабочее пространство (ModuleExecutionContext) → Защищенный REST API → MCP-инструмент (ModuleMcpToolInterface) → Диагностика очереди`  
+> опубликована в репозитории по пути [`docs_modules/examples/modules/crm.fixture-connector/`](examples/modules/crm.fixture-connector).
+
+---
+
+## 14. Инструменты Model Context Protocol (MCP) для AI-агентов
+
+TropaTT CRM предоставляет встроенную платформу взаимодействия с автономными AI-агентами по протоколу Model Context Protocol (MCP). Модули расширения могут декларировать собственные инструменты, автоматически доступные AI-агентам.
+
+### 1. Декларация в `manifest.json`
+
+В манифесте модуля объявляется массив `mcp_tools`:
+
+```json
+"mcp_tools": [
+  {
+    "name": "fixture_connector_ping",
+    "description": "Ping the fixture connector and return workspace diagnostic status",
+    "handler": "Module\\Crm\\FixtureConnector\\Mcp\\PingTool",
+    "permissions": ["settings.view"],
+    "mode": "all",
+    "workspace_required": true,
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "echo": {
+          "type": "string",
+          "description": "Optional echo text"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+]
+```
+
+### 2. Интерфейс `ModuleMcpToolInterface`
+
+Класс обработчика инструмента обязан реализовать интерфейс `Api\System\Library\Module\Mcp\ModuleMcpToolInterface`:
+
+```php
+namespace Module\Crm\FixtureConnector\Mcp;
+
+use Api\System\Library\Container;
+use Api\System\Library\Module\Mcp\ModuleMcpToolInterface;
+use Api\System\Library\Module\ModuleExecutionContext;
+
+final class PingTool implements ModuleMcpToolInterface
+{
+    /**
+     * @param array<string, mixed> $arguments
+     * @param ModuleExecutionContext $context
+     * @param Container $container
+     * @return array<string, mixed>
+     */
+    public function execute(array $arguments, ModuleExecutionContext $context, Container $container): array
+    {
+        return [
+            'status' => 'ok',
+            'organization_id' => $context->organizationId,
+            'echo' => (string)($arguments['echo'] ?? 'pong'),
+        ];
+    }
+}
+```
+
+### 3. Профили видимости (Toolsets)
+
+- **`core` (по умолчанию)**: Содержит исключительно 27 инструментов ядра CRM. Инструменты модулей исключены во избежание раздувания контекста модели.
+- **`all`**: Полный каталог ядра + инструменты всех активных модулей.
+- **`modules`**: Инструменты всех активных модулей без дублирования каталога ядра.
+- **`module:<vendor.name>`**: Инструменты конкретного модуля (например, `module:crm.fixture-connector`).
+
+### 4. Безопасность и маскирование секретов
+
+- **Строгая схема**: JSON Schema обязана объявлять `additionalProperties: false`.
+- **Изоляция арендаторов**: Если `workspace_required: true`, инструмент отклоняет вызов при отсутствии авторизованного контекста организации.
+- **Очистка вывода (`redactSensitiveOutput`)**: Токены, пароли, ключи API и заголовки авторизации автоматически заменяются на `[REDACTED]` перед возвратом AI-агенту.
+- **Fail-Closed**: При отключении или удалении модуля его инструменты немедленно перестают отображаться в каталоге и отклоняют любые вызовы.
+
 ---
 
 *Документация актуальна для ядра TropaTT CRM релизной серии 2026 года.*
