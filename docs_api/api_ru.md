@@ -1352,6 +1352,8 @@ TropaTT реализует унифицированный протокол ве�
 | GET | `/api/v1/chats/{public_id}` | Детали чата | Да | `chat.use` | — |
 | PATCH | `/api/v1/chats/{public_id}/settings` | Настройки чата | Да | `chat.use` | — |
 | GET | `/api/v1/chats/{public_id}/participants` | Участники чата | Да | `chat.use` | — |
+| GET | `/api/v1/chats/{public_id}/ai-run` | AI execution status and plan | Yes | `chat.use` | Participant and originating actor only; internal context never returned |
+| POST | `/api/v1/chats/{public_id}/ai-run/step` | Advance, resume or cancel AI execution | Yes | `chat.use` | Body: `run_public_id`, `action` (`step`, `resume`, `cancel`); one provider turn; persisted checkpoints and atomic lease |
 | GET | `/api/v1/chats/{public_id}/messages` | Сообщения чата | Да | `chat.use` | Cursor-based |
 | POST | `/api/v1/chats/{public_id}/messages` | Отправка сообщения | Да | `chat.use` | — |
 | PATCH | `/api/v1/chats/{public_id}/messages/{message_public_id}` | Редактирование сообщения | Да | `chat.use` | Автор, в пределах 60 мин. История сохраняется; внешние пользователи (клиентский портал) могут редактировать только своё сообщение в чате `project_client`, в котором участвуют |
@@ -2507,3 +2509,7 @@ TropaTT реализует унифицированный протокол ве�
 - Feature Flags — RPC Aliases: 2
 - Logs — Audit: 1
 - Companies — RPC Aliases: 5
+
+### Resumable AI chat
+
+Sending a message to an `ai_agent` chat returns `ai_run` immediately together with `public_id` and `message_seq`. The client calls `POST /api/v1/chats/{public_id}/ai-run/step` repeatedly while the run is queued, and polls status while another client owns the step. Reloading the page resumes the saved execution. Status includes a factual plan, progress, step count, and recoverable errors; tool context is private. Unknown tool outcomes are reconciled through reads before proceeding, never automatically replayed. `waiting_input` requires a user answer; `failed`, `paused` and `interrupted` retain context for Resume. Closing every browser pauses execution until a participant reopens the chat.

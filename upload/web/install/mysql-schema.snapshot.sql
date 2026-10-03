@@ -3637,6 +3637,7 @@ CREATE TABLE IF NOT EXISTS `yandex_calendar_sources` (
 
 -- Baseline migrations state
 INSERT IGNORE INTO `migrations` (`migration_key`, `description`, `applied_at`) VALUES
+('20261004_000001_ai_chat_runs', 'Persist resumable AI chat execution and checkpoints', NOW()),
 ('20260417_000001_initial_schema', 'Initial CRM schema and dictionaries', NOW()),
 ('20260418_000002_comment_drafts', 'Add comment drafts table for task-level draft save/restore', NOW()),
 ('20260418_000003_organization_memberships', 'Add organization memberships for workspace isolation baseline', NOW()),
@@ -3792,3 +3793,20 @@ INSERT IGNORE INTO `permissions` (`public_id`, `code`, `title`, `created_at`) VA
 ('prm_user_manage', 'user.manage', 'Управление пользователями', NOW()),
 ('prm_user_view', 'user.view', 'Просмотр пользователей', NOW()),
 ('prm_webhook_manage', 'webhook.manage', 'Управление webhooks и доставками', NOW());
+
+CREATE TABLE IF NOT EXISTS `ai_chat_runs` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `public_id` VARCHAR(64) NOT NULL UNIQUE,
+  `chat_id` BIGINT NOT NULL,
+  `actor_user_id` BIGINT NOT NULL,
+  `message_public_id` VARCHAR(64) NOT NULL UNIQUE,
+  `status` VARCHAR(24) NOT NULL DEFAULT 'queued',
+  `state_json` LONGTEXT NOT NULL,
+  `step_count` INTEGER NOT NULL DEFAULT 0,
+  `lock_token` VARCHAR(64) NULL,
+  `locked_at` DATETIME NULL,
+  `created_at` DATETIME NOT NULL,
+  `updated_at` DATETIME NOT NULL,
+  UNIQUE KEY `uq_ai_chat_message` (`chat_id`, `message_public_id`),
+  KEY `idx_ai_chat_actor` (`chat_id`, `actor_user_id`, `id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

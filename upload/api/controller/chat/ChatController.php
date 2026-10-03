@@ -493,35 +493,50 @@ final class ChatController extends BaseController
         $reply = $this->resolveReplyMessage((int)$chat['id'], (string)($input['reply_to_message_public_id'] ?? ''));
         $chatOrgId = (int)($chat['organization_id'] ?? ($actor['organization_id'] ?? 0));
         $hasMsgOrg = $this->tableHasColumn($pdo, 'chat_messages', 'organization_id');
-        if ($hasMsgOrg && $chatOrgId > 0) {
-            $pdo->prepare("
-                INSERT INTO chat_messages (public_id, organization_id, chat_id, sender_user_id, reply_to_message_id, message_type, text, created_at)
-                VALUES (:pid, :org_id, :cid, :uid, :reply_id, :type, :text, NOW())
-            ")->execute([
-                'pid' => $msgPublicId,
-                'org_id' => $chatOrgId,
-                'cid' => (int)$chat['id'],
-                'uid' => $this->currentUserId(),
-                'reply_id' => $reply ? (int)$reply['id'] : null,
-                'type' => $messageType,
-                'text' => $text,
-            ]);
-        } else {
-            $pdo->prepare("
-                INSERT INTO chat_messages (public_id, chat_id, sender_user_id, reply_to_message_id, message_type, text, created_at)
-                VALUES (:pid, :cid, :uid, :reply_id, :type, :text, NOW())
-            ")->execute([
-                'pid' => $msgPublicId,
-                'cid' => (int)$chat['id'],
-                'uid' => $this->currentUserId(),
-                'reply_id' => $reply ? (int)$reply['id'] : null,
-                'type' => $messageType,
-                'text' => $text,
-            ]);
-        }
+        $pdo->beginTransaction();
+        try {
+            if ($hasMsgOrg && $chatOrgId > 0) {
+                $pdo->prepare("
+                    INSERT INTO chat_messages (public_id, organization_id, chat_id, sender_user_id, reply_to_message_id, message_type, text, created_at)
+                    VALUES (:pid, :org_id, :cid, :uid, :reply_id, :type, :text, NOW())
+                ")->execute([
+                    'pid' => $msgPublicId,
+                    'org_id' => $chatOrgId,
+                    'cid' => (int)$chat['id'],
+                    'uid' => $this->currentUserId(),
+                    'reply_id' => $reply ? (int)$reply['id'] : null,
+                    'type' => $messageType,
+                    'text' => $text,
+                ]);
+            } else {
+                $pdo->prepare("
+                    INSERT INTO chat_messages (public_id, chat_id, sender_user_id, reply_to_message_id, message_type, text, created_at)
+                    VALUES (:pid, :cid, :uid, :reply_id, :type, :text, NOW())
+                ")->execute([
+                    'pid' => $msgPublicId,
+                    'cid' => (int)$chat['id'],
+                    'uid' => $this->currentUserId(),
+                    'reply_id' => $reply ? (int)$reply['id'] : null,
+                    'type' => $messageType,
+                    'text' => $text,
+                ]);
+            }
 
-        $msgId = (int)$pdo->lastInsertId();
-        $pdo->prepare("UPDATE chats SET last_message_at = NOW() WHERE id = :cid")->execute(['cid' => (int)$chat['id']]);
+            $msgId = (int)$pdo->lastInsertId();
+            $pdo->prepare("UPDATE chats SET last_message_at = NOW() WHERE id = :cid")->execute(['cid' => (int)$chat['id']]);
+
+            $resData = ['public_id' => $msgPublicId, 'message_seq' => $msgId];
+            if (($chat['type'] ?? '') === 'ai_agent') {
+                /** @var \Api\System\Library\Service\AiChatAgentService $aiChatService */
+                $aiChatService = $this->container->get('service.ai_chat_agent');
+                $resData['ai_run'] = $aiChatService->enqueue($chat,
+                    ['id' => $msgId, 'public_id' => $msgPublicId, 'text' => $text], $actor);
+            }
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
 
         $service->markRead((int)$chat['id'], $this->currentUserId());
         $priorityIds = $service->mentionedParticipantIds((int)$chat['id'], $text);
@@ -545,31 +560,42 @@ final class ChatController extends BaseController
             'created_at' => gmdate('Y-m-d H:i:s'),
         ]);
 
-        $aiMessage = null;
-        if (($chat['type'] ?? '') === 'ai_agent') {
-            try {
-                /** @var \Api\System\Library\Service\AiChatAgentService $aiChatService */
-                $aiChatService = $this->container->get('service.ai_chat_agent');
-                $userMsg = [
-                    'id' => $msgId,
-                    'public_id' => $msgPublicId,
-                    'text' => $text,
-                ];
-                $aiMessage = $aiChatService->handleUserMessage($chat, $userMsg, $actor);
-            } catch (\Throwable $e) {
-                AppLog::error('[ChatController::sendMessage] AI Agent error: ' . $e->getMessage());
-            }
-        }
-
-        $resData = [
-            'public_id' => $msgPublicId,
-            'id' => $msgId,
-        ];
-        if ($aiMessage !== null) {
-            $resData['ai_message'] = $aiMessage;
-        }
-
         return $this->success('MESSAGE_SENT', $this->t('chat/messages.message_sent'), $resData, status: 201);
+    }
+
+    public function aiRunStatus(array $params = []): JsonResponse
+    {
+        return $this->aiRunResponse($params, false);
+    }
+
+    public function aiRunStep(array $params = []): JsonResponse
+    {
+        return $this->aiRunResponse($params, true);
+    }
+
+    private function aiRunResponse(array $params, bool $advance): JsonResponse
+    {
+        $actor = $this->user()['user'] ?? [];
+        $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
+        if (!$chat || ($chat['type'] ?? '') !== 'ai_agent' || !empty($actor['is_external'])) {
+            return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+        }
+        /** @var ChatService $chats */
+        $chats = $this->container->get('service.chat');
+        if (!$chats->assertParticipant((int)$chat['id'], $this->currentUserId())) {
+            return $this->error('FORBIDDEN', $this->t('chat/messages.not_participant'), 403);
+        }
+        $input = $advance ? $this->request()->allInput() : [];
+        $runId = trim((string)($input['run_public_id'] ?? ''));
+        $action = (string)($input['action'] ?? 'step');
+        if ($advance && ($runId === '' || !in_array($action, ['step', 'resume', 'cancel'], true))) {
+            return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
+        }
+        /** @var \Api\System\Library\Service\AiChatAgentService $ai */
+        $ai = $this->container->get('service.ai_chat_agent');
+        $run = $advance ? $ai->advanceRun($chat, $actor, $runId, $action) : $ai->runStatus($chat, $actor);
+        if ($advance && !$run) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+        return $this->success('AI_CHAT_RUN', $this->t('common/messages.ok'), ['run' => $run]);
     }
 
     public function editMessage(array $params = []): JsonResponse
