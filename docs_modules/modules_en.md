@@ -379,6 +379,11 @@ Package as a flat ZIP archive containing `manifest.json` at root. Installable vi
 }
 ```
 
+> 💡 **Reference Integration Connector (`crm.fixture-connector`):**  
+> A complete reference connector demonstrating the full integration pipeline:  
+> `Core Event → Background Job → Workspace Context (ModuleExecutionContext) → Secured REST API → MCP Tool (ModuleMcpToolInterface) → Diagnostics & Observability`  
+> is published at [`docs_modules/examples/modules/crm.fixture-connector/`](examples/modules/crm.fixture-connector).
+
 ---
 
 ## 14. Model Context Protocol (MCP) Tools for AI Agents
