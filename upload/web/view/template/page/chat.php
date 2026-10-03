@@ -1256,6 +1256,7 @@
       btn.addEventListener('click', function () {
         replyToMessage = findMessage(btn.getAttribute('data-reply-message'));
         editingMessage = null;
+        chatDrafts[selectedChatId] = { text: document.getElementById('msgInput').value, reply: replyToMessage };
         renderReplyPreview();
         document.getElementById('msgInput').focus();
       });
@@ -1381,9 +1382,13 @@
     if (!source) { node.innerHTML = ''; return; }
     node.innerHTML = '<div><strong>' + (editingMessage ? window.CRM.i18n.t('chat.reply_editing', 'Редактирование') : window.CRM.i18n.t('chat.reply_reply', 'Ответ')) + '</strong><span>' + esc(source.text || window.CRM.i18n.t('chat.reply_default_sender', 'Сообщение')) + '</span></div><button type="button" aria-label="' + window.CRM.i18n.t('chat.btn_cancel_reply_aria', 'Отменить') + '"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>';
     node.querySelector('button').addEventListener('click', function () {
+      var wasEditing = !!editingMessage;
       replyToMessage = null;
       editingMessage = null;
-      document.getElementById('msgInput').value = '';
+      var input = document.getElementById('msgInput');
+      if (wasEditing) input.value = '';
+      chatDrafts[selectedChatId] = { text: input.value, reply: null };
+      input.dispatchEvent(new Event('input', { bubbles: true }));
       renderReplyPreview();
     });
   }

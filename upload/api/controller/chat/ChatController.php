@@ -491,7 +491,10 @@ final class ChatController extends BaseController
         $pdo = $this->container->get('db.pdo');
         $msgPublicId = 'msg_' . bin2hex(random_bytes(8));
         $reply = $this->resolveReplyMessage((int)$chat['id'], (string)($input['reply_to_message_public_id'] ?? ''));
-        $clientRequestId = ($chat['type'] ?? '') === 'ai_agent' ? (string)($input['client_request_id'] ?? '') : '';
+        $clientRequestId = ($chat['type'] ?? '') === 'ai_agent' ? ($input['client_request_id'] ?? '') : '';
+        if (!is_string($clientRequestId)) {
+            return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
+        }
         if ($clientRequestId !== '') {
             if (!preg_match('/^[A-Za-z0-9_-]{16,80}$/D', $clientRequestId)) {
                 return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
