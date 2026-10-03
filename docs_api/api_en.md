@@ -1356,6 +1356,8 @@ Install answers are explicit about the state of the installation: `ALREADY_INSTA
 | GET | `/api/v1/chats/{public_id}` | chat details | Yes | `chat.use` | — |
 | PATCH | `/api/v1/chats/{public_id}/settings` | Chat settings | Yes | `chat.use` | — |
 | GET | `/api/v1/chats/{public_id}/participants` | Chat participants | Yes | `chat.use` | — |
+| GET | `/api/v1/chats/{public_id}/ai-run` | AI execution status and plan | Yes | `chat.use` | Participant and originating actor only; internal context never returned |
+| POST | `/api/v1/chats/{public_id}/ai-run/step` | Advance, resume or cancel AI execution | Yes | `chat.use` | Body: `run_public_id`, `action` (`step`, `resume`, `cancel`); one provider turn; persisted checkpoints and atomic lease |
 | GET | `/api/v1/chats/{public_id}/messages` | Chat messages | Yes | `chat.use` | Cursor-based |
 | POST | `/api/v1/chats/{public_id}/messages` | Send message | Yes | `chat.use` | — |
 | GET | `/api/v1/chats/{public_id}/messages/{message_public_id}/history` | Message edit history | Yes | `chat.use` | Audit trail |
@@ -2442,3 +2444,7 @@ Deprecated aliases (`/api/v1/notification/push-*`) are excluded from OpenAPI and
 | POST | `/api/v1/ideas/{public_id}/analysis/run-async` | — | Yes | idea.manage | Start asynchronous idea analysis |
 | POST | `/api/v1/ideas/{public_id}/analysis/run-worker` | — | Yes | idea.manage | Run idea analysis worker |
 | POST | `/api/v1/mcp` | — | Yes | — | JSON-RPC MCP endpoint |
+
+### Resumable AI chat
+
+Sending a message to an `ai_agent` chat returns `ai_run` immediately together with `public_id` and `message_seq`. The client calls `POST /api/v1/chats/{public_id}/ai-run/step` repeatedly while the run is queued, and polls status while another client owns the step. Reloading the page resumes the saved execution. Status includes a factual plan, progress, step count, recoverable errors, and `retry_at` (Unix seconds, 0 when ready). During a provider circuit cooldown, keep polling and resume automatically after `retry_at`; tool context is private. Unknown tool outcomes are reconciled through reads before proceeding, never automatically replayed. `waiting_input` requires a user answer; `failed`, `paused` and `interrupted` retain context for Resume. Closing every browser pauses execution until a participant reopens the chat.

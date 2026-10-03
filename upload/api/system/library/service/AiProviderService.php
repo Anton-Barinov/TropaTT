@@ -559,9 +559,10 @@ final class AiProviderService
                 'last_error_code' => (string)($result['code'] ?? 'AI_PROVIDER_UNAVAILABLE'),
                 'needs_recheck' => true,
             ];
-            if (!$mockUsed) {
+            if (!$mockUsed && !$circuitOpen) {
                 // TROPATTCRM-622: count the failure towards the breaker so a
                 // provider failing repeatedly is skipped during the cooldown.
+                // Skipped requests must not renew the cooldown indefinitely.
                 $failureUpdates = array_merge($failureUpdates, $this->circuitBreakerFailureUpdates($provider));
             }
             $this->persistProviderHealthSnapshot($provider, $failureUpdates, []);
@@ -597,6 +598,8 @@ final class AiProviderService
             'runtime_mode' => $runtimeMode,
             'text' => trim((string)($result['text'] ?? '')),
             'tool_calls' => (array)($result['tool_calls'] ?? []),
+            ...(!empty($payload['_retain_reasoning']) && array_key_exists('reasoning_content', $result)
+                ? ['reasoning_content' => (string)$result['reasoning_content']] : []),
             'request_tokens' => (int)($result['request_tokens'] ?? 0),
             'response_tokens' => (int)($result['response_tokens'] ?? 0),
             'total_tokens' => (int)($result['total_tokens'] ?? 0),
@@ -889,6 +892,9 @@ final class AiProviderService
      */
     private function circuitBreakerFailureUpdates(array $provider): array
     {
+        if ($this->circuitBreakerOpen($provider)) {
+            return [];
+        }
         $failures = (int)($this->circuitHealth($provider)['consecutive_failures'] ?? 0) + 1;
         $updates = ['consecutive_failures' => $failures];
         if ($failures >= self::CIRCUIT_BREAKER_FAILURE_THRESHOLD) {

@@ -223,7 +223,7 @@
 
   function chatTypeLabel(chat) {
     var type = String(chat && chat.type || 'direct');
-    if (type === 'ai_agent') return window.CRM.i18n.t('chat.ai_agent_title', 'AI Ассистент');
+    if (type === 'ai_agent') return window.CRM.i18n.t('chat.type_ai_agent', 'AI Чат');
     if (type === 'project') return window.CRM.i18n.t('chat.type_project', 'Проект');
     if (type === 'team') return window.CRM.i18n.t('chat.type_team', 'Команда');
     if (type === 'group') return window.CRM.i18n.t('chat.type_group', 'Группа');
@@ -314,6 +314,126 @@
     }
   }
 
+  var aiDrivers = {};
+  var aiRuns = {};
+  function aiLabel(key, fallback) { return window.CRM.i18n.t('chat.ai_run_' + key, fallback); }
+
+  function renderAiRun(chatId, run) {
+    if (selectedChatId !== chatId) return;
+    var panel = document.getElementById('aiRunPanel');
+    if (!panel) return;
+    if (!run) { panel.hidden = true; return; }
+    panel.hidden = false;
+    var labels = {
+      queued: aiLabel('working', 'Выполняю задачу'), running: aiLabel('working', 'Выполняю задачу'), cancelling: aiLabel('stopping', 'Останавливаю после текущего действия'),
+      completed: aiLabel('completed', 'Задача выполнена'), waiting_input: aiLabel('waiting', 'Нужно уточнение'),
+      cancelled: aiLabel('cancelled', 'Выполнение остановлено'),
+      failed: aiLabel('saved', 'Прогресс сохранён'), paused: aiLabel('saved', 'Прогресс сохранён'),
+      interrupted: aiLabel('interrupted', 'Выполнение прервалось — прогресс сохранён')
+    };
+    var active = ['queued', 'running', 'cancelling'].indexOf(run.status) >= 0;
+    var plan = Array.isArray(run.plan) ? run.plan : [];
+    var done = plan.filter(function (step) { return step.status === 'done'; }).length;
+    panel.innerHTML = '<div class="d-flex align-items-center justify-content-between gap-2">'
+      + '<strong>' + (active ? '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>' : '')
+      + esc(labels[run.status] || run.status) + '</strong>'
+      + '<span class="small text-muted">' + (plan.length ? done + ' / ' + plan.length : '') + '</span></div>'
+      + (plan.length ? '<progress class="w-100 mt-2" max="' + plan.length + '" value="' + done + '" aria-label="' + esc(aiLabel('plan', 'План выполнения')) + '"></progress>' : '')
+      + '<ol class="small mb-1 mt-2">' + plan.map(function (step) {
+        return '<li class="mb-1">' + (step.status === 'done' ? '✓ ' : step.status === 'in_progress' ? '→ ' : '')
+          + esc(step.title) + (step.evidence ? '<div class="text-muted">' + esc(step.evidence) + '</div>' : '') + '</li>';
+      }).join('') + '</ol>'
+      + (run.progress ? '<div class="small">' + esc(run.progress) + '</div>' : '')
+      + (run.error ? '<div class="small text-danger mt-1">' + esc(run.error) + '</div>' : '')
+      + (active ? '<button type="button" class="btn crm-btn-secondary crm-btn-compact mt-2" data-ai-run-action="cancel">' + esc(aiLabel('stop', 'Остановить')) + '</button>' : '')
+      + (['paused', 'failed', 'interrupted'].indexOf(run.status) >= 0
+        ? '<button type="button" class="btn crm-btn-primary crm-btn-compact mt-2" data-ai-run-action="resume">' + esc(aiLabel('resume', 'Продолжить')) + '</button>' : '');
+    panel.querySelectorAll('[data-ai-run-action]').forEach(function (button) {
+      button.addEventListener('click', async function () {
+        button.disabled = true;
+        try {
+          var env = await request('api/v1/chats/' + encodeURIComponent(chatId) + '/ai-run/step', {
+            method: 'POST', body: { run_public_id: run.public_id, action: button.dataset.aiRunAction }, timeoutMs: 120000
+          });
+          aiRuns[chatId] = env.data.run;
+          renderAiRun(chatId, aiRuns[chatId]);
+          driveAiRun(chatId);
+        } catch (error) {
+          button.disabled = false;
+          setSendError(aiLabel('connection', 'Нет связи. Прогресс сохранён; переподключаюсь.'));
+        }
+      });
+    });
+  }
+
+  async function recoverAiRun(chatId) {
+    try {
+      var env = await request('api/v1/chats/' + encodeURIComponent(chatId) + '/ai-run', { method: 'GET' });
+      aiRuns[chatId] = env.data.run;
+      renderAiRun(chatId, aiRuns[chatId]);
+      driveAiRun(chatId);
+    } catch (error) { /* A later refresh retries status discovery. */ }
+  }
+
+  async function driveAiRun(chatId) {
+    if (aiDrivers[chatId]) return;
+    aiDrivers[chatId] = true;
+    try {
+      var connectionFailures = 0;
+      while (aiRuns[chatId] && ['queued', 'running', 'cancelling', 'interrupted'].indexOf(aiRuns[chatId].status) >= 0) {
+        var run = aiRuns[chatId];
+        try {
+          var env;
+          if (run.retry_at && run.retry_at * 1000 > Date.now()) {
+            await new Promise(function (resolve) { window.setTimeout(resolve, Math.min(15000, run.retry_at * 1000 - Date.now())); });
+            var retryEnv = await request('api/v1/chats/' + encodeURIComponent(chatId) + '/ai-run', { method: 'GET' });
+            aiRuns[chatId] = retryEnv.data.run;
+            renderAiRun(chatId, aiRuns[chatId]);
+            continue;
+          }
+          if (run.status === 'running' || run.status === 'cancelling') {
+            await new Promise(function (resolve) { window.setTimeout(resolve, 1500); });
+            env = await request('api/v1/chats/' + encodeURIComponent(chatId) + '/ai-run', { method: 'GET' });
+          } else {
+            env = await request('api/v1/chats/' + encodeURIComponent(chatId) + '/ai-run/step', {
+              method: 'POST', body: { run_public_id: run.public_id, action: 'step' }, timeoutMs: 120000
+            });
+          }
+          aiRuns[chatId] = env.data.run;
+          if (aiRuns[chatId] && aiRuns[chatId].status === 'queued' && aiRuns[chatId].step_count === run.step_count) {
+            await new Promise(function (resolve) { window.setTimeout(resolve, 1000); });
+            var headEnv = await request('api/v1/chats/' + encodeURIComponent(chatId) + '/ai-run', { method: 'GET' });
+            aiRuns[chatId] = headEnv.data.run;
+          }
+          if (aiRuns[chatId] && ['completed', 'cancelled', 'waiting_input'].indexOf(aiRuns[chatId].status) >= 0) {
+            var nextEnv = await request('api/v1/chats/' + encodeURIComponent(chatId) + '/ai-run', { method: 'GET' });
+            aiRuns[chatId] = nextEnv.data.run;
+          }
+          connectionFailures = 0;
+          renderAiRun(chatId, aiRuns[chatId]);
+          if (selectedChatId === chatId) await syncMessagesAfterLocalChange('append');
+          // Delay failed provider retries to avoid exhausting rate/cost limits.
+          if (aiRuns[chatId] && aiRuns[chatId].error) await new Promise(function (resolve) { window.setTimeout(resolve, 3000); });
+        } catch (error) {
+          connectionFailures++;
+          if (selectedChatId === chatId) setSendError(aiLabel('connection', 'Нет связи. Прогресс сохранён; переподключаюсь.'));
+          await new Promise(function (resolve) { window.setTimeout(resolve, Math.min(15000, connectionFailures * 3000)); });
+          try {
+            var statusEnv = await request('api/v1/chats/' + encodeURIComponent(chatId) + '/ai-run', { method: 'GET' });
+            aiRuns[chatId] = statusEnv.data.run;
+          } catch (ignored) { /* Retry while the page remains open. */ }
+        }
+      }
+      if (selectedChatId === chatId) {
+        renderAiRun(chatId, aiRuns[chatId]);
+        await syncMessagesAfterLocalChange('append');
+        await loadChats({ silent: true });
+      }
+    } finally {
+      aiDrivers[chatId] = false;
+    }
+  }
+
   function renderConversationShell(chat) {
     var area = document.getElementById('chatArea');
     if (!area) return;
@@ -344,6 +464,7 @@
       + '<button class="btn crm-btn-muted d-md-none" type="button" id="backToChatsBtn" aria-label="' + esc(window.CRM.i18n.t('chat.btn_back_aria', 'Вернуться к списку чатов')) + '">' + esc(window.CRM.i18n.t('chat.btn_back', 'К списку')) + '</button></div>'
       + '</div>'
       + '<div class="crm-chat-messages" id="msgArea" aria-live="polite"><div class="crm-chat-list-state">' + window.CRM.i18n.t('chat.loading_messages', 'Загрузка сообщений...') + '</div></div>'
+      + (isAi && !isArchived ? '<section id="aiRunPanel" class="px-3 py-2 border-top" style="max-height:240px;overflow:auto" aria-live="polite" hidden></section>' : '')
       + (isArchived ? '' : '<div class="crm-chat-compose"><div class="text-danger small d-none" id="chatSendError" aria-live="polite"></div><div class="crm-chat-reply-preview d-none" id="replyPreview"></div>'
       + chipsHtml
       + '<div id="mentionPopup" class="crm-chat-mention-popup d-none" role="listbox" aria-label="' + window.CRM.i18n.t('chat.mention_popup_aria', 'Упомянуть участника') + '"></div><div class="crm-chat-picker d-none" id="emojiPicker"></div>'
@@ -474,6 +595,10 @@
       message && message.edited_at || '',
       message && message.deleted_at || '',
       message && message.reply_public_id || '',
+      message && message.sender_name || '',
+      message && message.sender_login || '',
+      message && message.created_at || '',
+      message && message.is_optimistic ? 'pending' : 'confirmed',
       JSON.stringify(message && message.attachments || [])
     ].join('|');
   }
@@ -725,6 +850,7 @@
       var loadedItems = (messagesEnv.data && messagesEnv.data.items) || [];
       allOlderLoaded = loadedItems.length < 80;
       renderMessages(loadedItems);
+      if (chat.type === 'ai_agent') recoverAiRun(id);
       markRead();
       loadChats({ silent: true });
     } catch (error) {
@@ -851,6 +977,7 @@
       return;
     }
 
+    var chatIdAtSend = selectedChatId;
     var currentReply = replyToMessage;
     replyToMessage = null;
     renderReplyPreview();
@@ -914,18 +1041,32 @@
       if (isAi) {
         postOpts.timeoutMs = 180000;
       }
-      var res = await request('api/v1/chats/' + encodeURIComponent(selectedChatId) + '/messages', postOpts);
+      var res = await request('api/v1/chats/' + encodeURIComponent(chatIdAtSend) + '/messages', postOpts);
       var serverData = (res && res.data) || {};
       var realPublicId = serverData.public_id;
-      var realId = Number(serverData.id || 0);
+      var realId = Number(serverData.message_seq || serverData.id || 0);
+
+      if (serverData.ai_run) {
+        aiRuns[chatIdAtSend] = serverData.ai_run;
+        renderAiRun(chatIdAtSend, serverData.ai_run);
+        driveAiRun(chatIdAtSend);
+      }
+      if (selectedChatId !== chatIdAtSend) return;
 
       // Reconcile optimistic user message in currentMessages array and DOM
       if (realPublicId) {
         var optIdx = currentMessages.findIndex(function (m) { return m.public_id === tempId; });
+        var duplicateIdx = currentMessages.findIndex(function (m) { return m.public_id === realPublicId; });
+        if (duplicateIdx !== -1 && optIdx !== -1) {
+          currentMessages.splice(optIdx, 1);
+          var duplicateTempEl = box ? box.querySelector('[data-message-id="' + CSS.escape(tempId) + '"]') : null;
+          if (duplicateTempEl) duplicateTempEl.remove();
+          optIdx = -1;
+        }
         if (optIdx !== -1) {
           currentMessages[optIdx].public_id = realPublicId;
           currentMessages[optIdx].is_optimistic = false;
-          if (realId > 0) currentMessages[optIdx].id = realId;
+          if (realId > 0) { currentMessages[optIdx].id = realId; currentMessages[optIdx].message_seq = realId; }
         }
         var optEl = box ? box.querySelector('[data-message-id="' + CSS.escape(tempId) + '"]') : null;
         if (optEl) {
