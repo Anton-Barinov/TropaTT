@@ -384,6 +384,13 @@
         var run = aiRuns[chatId];
         try {
           var env;
+          if (run.retry_at && run.retry_at * 1000 > Date.now()) {
+            await new Promise(function (resolve) { window.setTimeout(resolve, Math.min(15000, run.retry_at * 1000 - Date.now())); });
+            var retryEnv = await request('api/v1/chats/' + encodeURIComponent(chatId) + '/ai-run', { method: 'GET' });
+            aiRuns[chatId] = retryEnv.data.run;
+            renderAiRun(chatId, aiRuns[chatId]);
+            continue;
+          }
           if (run.status === 'running' || run.status === 'cancelling') {
             await new Promise(function (resolve) { window.setTimeout(resolve, 1500); });
             env = await request('api/v1/chats/' + encodeURIComponent(chatId) + '/ai-run', { method: 'GET' });

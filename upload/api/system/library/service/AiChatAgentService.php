@@ -222,7 +222,7 @@ final class AiChatAgentService
         return ['public_id' => $run['public_id'], 'message_public_id' => $run['message_public_id'],
             'status' => $status, 'step_count' => (int)$run['step_count'],
             'plan' => $state['plan'] ?? [], 'progress' => $state['progress'] ?? '',
-            'error' => $state['error'] ?? '', 'updated_at' => $run['updated_at']];
+            'error' => $state['error'] ?? '', 'retry_at' => (int)($state['retry_at'] ?? 0), 'updated_at' => $run['updated_at']];
     }
 
     private function findRun(array $chat, array $actor, string $publicId): ?array
@@ -277,6 +277,7 @@ final class AiChatAgentService
             $this->pdo->prepare("UPDATE ai_chat_runs SET status = 'queued', state_json = :state WHERE id = :id AND status IN ('paused','failed')")
                 ->execute(['state' => $this->encodeState($state), 'id' => $run['id']]);
         }
+        if ((int)($state['retry_at'] ?? 0) > time()) return $this->runStatus($chat, $actor, $publicId);
         $token = bin2hex(random_bytes(16));
         $lock = $this->pdo->prepare("UPDATE ai_chat_runs SET status = 'running', lock_token = :token,
             locked_at = :locked, updated_at = NOW() WHERE id = :id AND status = 'queued'
@@ -336,8 +337,15 @@ final class AiChatAgentService
             $completion = $this->aiProvider->completeText(null, ['messages' => $this->providerMessages($state),
                 'tools' => $tools, 'tool_choice' => 'auto', 'temperature' => 0.2, 'max_tokens' => 6000]);
             if (empty($completion['ok'])) {
-                $state['provider_errors']++;
                 $code = preg_replace('/[^A-Z0-9_]/', '', (string)($completion['code'] ?? 'AI_PROVIDER_ERROR'));
+                if ($code === 'AI_PROVIDER_CIRCUIT_OPEN') {
+                    $state['retry_at'] = time() + 300;
+                    $state['progress'] = 'Провайдер временно недоступен. Продолжу автоматически после паузы.';
+                    $state['error'] = '';
+                    $this->checkpointRun($run, $state, $token, 'queued');
+                    return $this->runStatus($chat, $actor, $publicId);
+                }
+                $state['provider_errors']++;
                 AppLog::warning('[AiChatAgentService] provider failed: ' . $code);
                 $state['error_code'] = $code;
                 $state['error'] = 'Провайдер AI временно не ответил. Прогресс сохранён.';
@@ -345,6 +353,7 @@ final class AiChatAgentService
                 return $this->runStatus($chat, $actor, $publicId);
             }
             $state['provider_errors'] = 0;
+            $state['retry_at'] = 0;
             $state['error'] = '';
             $text = trim((string)($completion['text'] ?? ''));
             $calls = (array)($completion['tool_calls'] ?? []);

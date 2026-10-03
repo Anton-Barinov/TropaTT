@@ -2510,6 +2510,6 @@ TropaTT реализует унифицированный протокол ве�
 - Logs — Audit: 1
 - Companies — RPC Aliases: 5
 
-### Resumable AI chat
+### Возобновляемое выполнение в AI-чате
 
-Sending a message to an `ai_agent` chat returns `ai_run` immediately together with `public_id` and `message_seq`. The client calls `POST /api/v1/chats/{public_id}/ai-run/step` repeatedly while the run is queued, and polls status while another client owns the step. Reloading the page resumes the saved execution. Status includes a factual plan, progress, step count, and recoverable errors; tool context is private. Unknown tool outcomes are reconciled through reads before proceeding, never automatically replayed. `waiting_input` requires a user answer; `failed`, `paused` and `interrupted` retain context for Resume. Closing every browser pauses execution until a participant reopens the chat.
+Отправка сообщения в чат `ai_agent` немедленно возвращает `ai_run`, `public_id` и `message_seq`. Клиент вызывает `POST /api/v1/chats/{public_id}/ai-run/step` для очередного шага и опрашивает статус, пока шаг выполняет другой клиент. После перезагрузки страницы выполнение восстанавливается. Статус содержит план с подтверждёнными результатами, прогресс, число шагов, ошибки и `retry_at` (Unix-секунды, 0 — можно продолжать). При паузе circuit breaker клиент опрашивает статус и автоматически продолжает после `retry_at`. Контекст инструментов остаётся приватным. Неизвестные результаты действий проверяются чтением записей, без автоматического повтора изменений. `waiting_input` требует ответа пользователя; `failed`, `paused` и `interrupted` сохраняют контекст для продолжения. Закрытие всех вкладок приостанавливает выполнение до повторного открытия чата.
