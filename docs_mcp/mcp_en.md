@@ -140,9 +140,21 @@ The full MCP catalog is large (621 tools). To avoid loading it all into every ag
 | `people` | Users, teams, departments, roles, clients, counterparties, companies, contacts, organizations, invitations |
 | `time` | Worklogs, calendar events, business calendars, holidays, working hours |
 | `admin` | Settings, cache, modules, core updates, ops, API clients, webhooks, logs, custom fields, intake, import/export, recycle bin, AI configuration and jobs |
-| `all` | The full permission-visible catalog (opt-in) |
+| `modules` | Tools from all currently active extension modules |
+| `module:<vendor.name>` | Tools from a specific active module (e.g. `module:crm.fixture-connector`) |
+| `all` | The full permission-visible catalog: 621 core tools + active module tools (opt-in) |
 
-Request a profile by appending `?toolset=tasks` to the MCP endpoint URL or by passing `"params": {"toolset": "tasks"}` to `tools/list`; comma-separated values build a union (`?toolset=tasks,projects`). Call `tools/listToolsets` (or read `tropatt://server/toolsets`) for the machine-readable catalog with per-profile counts. Tools not assigned to any profile remain callable by name and are listed under `all`.
+Request a profile by appending `?toolset=tasks` to the MCP endpoint URL or by passing `"params": {"toolset": "tasks"}` to `tools/list`; comma-separated values build a union (`?toolset=tasks,projects` or `?toolset=core,modules`). Call `tools/listToolsets` (or read `tropatt://server/toolsets`) for the machine-readable catalog with per-profile counts, including dynamic module profiles (`module:<name>`). Tools not assigned to any profile remain callable by name and are listed under `all`.
+
+### Module-owned MCP tools (Module MCP Tools)
+
+Active modules can register their own MCP tools for AI agents via the `mcp_tools` section in `manifest.json`:
+- **`core` profile isolation**: Module tools are excluded from the default 27-tool `core` profile to prevent context bloat and prompt interference.
+- **Discovery and invocation**: Available when requesting `all`, `modules`, or targeted `module:<module-name>` profiles.
+- **Strict schema**: Argument schemas are strictly validated with `additionalProperties: false`.
+- **Workspace scoping**: Tools declaring `workspace_required: true` are guaranteed to run with an authorized `ModuleExecutionContext` for the active organization.
+- **Sensitive data redaction**: Return values are automatically sanitized to strip credentials, API keys, passwords, and tokens via `redactSensitiveOutput`.
+- **Fail-closed security**: Deactivating or removing a module immediately revokes discovery and execution of its MCP tools.
 
 ## Client configuration and token budget
 
