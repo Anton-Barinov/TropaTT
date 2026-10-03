@@ -36,6 +36,7 @@ return [
     'marked_read' => 'Marked as read',
     'only_creator_archive' => 'Only the chat creator can archive this chat',
     'ai_agent_title' => 'AI Assistant',
+    'ai_typing' => 'AI Assistant is thinking...',
     'ai_chat_cannot_archive' => 'AI Assistant chat cannot be archived',
     'archive_unavailable' => 'Archive feature unavailable — please contact administrator',
     'archive_failed' => 'Failed to archive chat',

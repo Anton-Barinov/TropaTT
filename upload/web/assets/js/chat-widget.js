@@ -248,19 +248,20 @@
     var isAi = !!(message.is_ai || message.role === 'assistant' || message.sender_name === 'AI Ассистент' || message.sender_name === 'AI Assistant' || message.sender_name === 'AI Copilot' || message.sender_login === 'ai_agent' || message.sender_login === 'agent');
     var own = Number(message.is_own || 0) === 1;
     var deleted = !!message.deleted_at;
-    var canEdit = own && !deleted && chat.canEditMessage(message);
-    var canDelete = own && !deleted && chat.canDeleteMessage(message);
-    return '<article class="crm-chat-message' + (own ? ' is-own' : '') + (deleted ? ' is-deleted' : '') + (isAi ? ' is-ai-agent' : '') + '" data-message-id="' + chat.esc(message.public_id || '') + '">'
-      + '<div class="crm-chat-message-meta"><strong>' + chat.esc(sender) + (isAi ? ' <span class="badge bg-secondary ms-1"><i class="fa-solid fa-robot me-1" aria-hidden="true"></i>AI</span>' : '') + '</strong><time>' + chat.esc(chat.formatTime(message.created_at)) + '</time></div>'
+    var isOptimistic = !!message.is_optimistic;
+    var canEdit = own && !deleted && !isOptimistic && chat.canEditMessage(message);
+    var canDelete = own && !deleted && !isOptimistic && chat.canDeleteMessage(message);
+    return '<article class="crm-chat-message' + (own ? ' is-own' : '') + (deleted ? ' is-deleted' : '') + (isAi ? ' is-ai-agent' : '') + (isOptimistic ? ' is-optimistic' : '') + '" data-message-id="' + chat.esc(message.public_id || '') + '">'
+      + '<div class="crm-chat-message-meta"><strong>' + chat.esc(sender) + (isAi ? ' <span class="badge bg-secondary ms-1"><i class="fa-solid fa-robot me-1" aria-hidden="true"></i>AI</span>' : '') + '</strong><time>' + chat.esc(chat.formatTime(message.created_at)) + (isOptimistic ? ' <span class="crm-chat-msg-status" title="' + window.CRM.i18n.t('chat.status_sending', 'Отправляется...') + '"><i class="fa-regular fa-clock ms-1"></i></span>' : '') + '</time></div>'
       + (message.reply_public_id ? '<button type="button" class="crm-chat-quote" data-scroll-message="' + chat.esc(message.reply_public_id) + '" title="' + window.CRM.i18n.t('chat.btn_scroll_title', 'Перейти к исходному сообщению') + '" aria-label="' + window.CRM.i18n.t('chat.btn_scroll_aria', 'Перейти к исходному сообщению') + '">' + chat.renderReplyQuote(message, findMessage) + '</button>' : '')
       + (deleted ? '<p class="crm-chat-deleted-text">' + window.CRM.i18n.t('chat.msg_deleted', 'Сообщение удалено') + '</p>' : '<p>' + chat.renderMessageText(message.text || '') + '</p>')
       + chat.renderAttachments(Array.isArray(message.attachments) ? message.attachments : [])
       + '<div class="crm-chat-message-foot">'
       + (message.edited_at && !deleted ? '<button type="button" class="crm-chat-edited-marker" data-history-message="' + chat.esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_history_title', 'История изменений') + '" aria-label="' + window.CRM.i18n.t('chat.btn_history_aria', 'История изменений сообщения') + '">' + window.CRM.i18n.t('chat.msg_edited', 'изменено') + '</button>' : '')
-      + '<button type="button" class="crm-chat-action crm-chat-quick-action" data-reply-message="' + chat.esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_reply_title', 'Ответить на сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_reply_aria', 'Ответить на сообщение') + '"><i class="fa-solid fa-reply" aria-hidden="true"></i><span>' + window.CRM.i18n.t('chat.btn_reply', 'Ответить') + '</span></button>'
-      + '<button type="button" class="crm-chat-action crm-chat-quick-action" data-create-task="' + chat.esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_create_task_title', 'Создать задачу из сообщения') + '" aria-label="' + window.CRM.i18n.t('chat.btn_create_task_aria', 'Создать задачу из сообщения') + '"><i class="fa-solid fa-list-check" aria-hidden="true"></i><span>' + window.CRM.i18n.t('chat.btn_create_task', 'Создать задачу') + '</span></button>'
+      + (!isOptimistic ? '<button type="button" class="crm-chat-action crm-chat-quick-action" data-reply-message="' + chat.esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_reply_title', 'Ответить на сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_reply_aria', 'Ответить на сообщение') + '"><i class="fa-solid fa-reply" aria-hidden="true"></i><span>' + window.CRM.i18n.t('chat.btn_reply', 'Ответить') + '</span></button>' : '')
+      + (!isOptimistic ? '<button type="button" class="crm-chat-action crm-chat-quick-action" data-create-task="' + chat.esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_create_task_title', 'Создать задачу из сообщения') + '" aria-label="' + window.CRM.i18n.t('chat.btn_create_task_aria', 'Создать задачу из сообщения') + '"><i class="fa-solid fa-list-check" aria-hidden="true"></i><span>' + window.CRM.i18n.t('chat.btn_create_task', 'Создать задачу') + '</span></button>' : '')
       + '</div>'
-      + chat.renderMessageMoreMenu(message, canEdit, canDelete)
+      + (!isOptimistic ? chat.renderMessageMoreMenu(message, canEdit, canDelete) : '')
       + '</article>';
   };
 
