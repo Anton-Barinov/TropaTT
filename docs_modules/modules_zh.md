@@ -310,4 +310,3 @@ final class PingTool implements ModuleMcpToolInterface
 
 *文档版本适用于 TropaTT CRM 2026 核心发布系列。*
 
-模块后台任务必须通过 `ModuleJobDispatcher::dispatch()` 显式传入已授权的 `ModuleExecutionContext`。处理类须位于自身模块的命名空间内，实现 `WorkspaceModuleJobInterface`，并依据传入的工作空间读取和写入数据。旧任务缺少可靠工作空间时会暂停为 `paused_legacy`，不会猜测默认空间。Web/CLI cron 和仅限主管理员的手动运行以小批量处理任务；共享主机无需常驻进程、Redis 或 SSH。
