@@ -175,7 +175,7 @@ final class ChatService
         // Virtual AI agent user fallback
         $publicId = 'usr_ai_agent';
         $login = 'ai_agent';
-        $fullName = 'AI Copilot';
+        $fullName = 'AI Ассистент';
         $email = 'ai-agent@tropatt.local';
         $hash = '$2y$10$virtualaiagentplaceholderpass';
 
@@ -256,7 +256,7 @@ final class ChatService
             return $existing;
         }
 
-        $title = 'AI Copilot';
+        $title = 'AI Ассистент';
         $chat = $this->createChat($title, 'ai_agent', null, null, $actorUserId, $organizationId);
         if (!empty($chat['id'])) {
             $this->syncParticipants((int)$chat['id'], [$actorUserId, $agentUserId], [$actorUserId], $organizationId);

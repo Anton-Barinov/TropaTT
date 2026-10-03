@@ -126,7 +126,15 @@
       return '\n<div class="table-responsive my-1"><table class="table table-sm table-bordered crm-chat-table mb-0"><thead><tr>' + headers + '</tr></thead><tbody>' + body + '</tbody></table></div>\n';
     });
 
-    // 5. Unordered lists: consecutive lines starting with - or *
+    // 5. Ordered lists: consecutive lines starting with \d+\.
+    safe = safe.replace(/((?:^|\n)[ \t]*\d+\.\s+[^\n]+(?:\r?\n[ \t]*\d+\.\s+[^\n]+)*)/g, function (listBlock) {
+      var items = listBlock.trim().split(/\r?\n/).map(function (item) {
+        return '<li>' + item.replace(/^[ \t]*\d+\.\s+/, '') + '</li>';
+      }).join('');
+      return '\n<ol class="crm-chat-ol ps-3 mb-1">' + items + '</ol>\n';
+    });
+
+    // 5b. Unordered lists: consecutive lines starting with - or *
     safe = safe.replace(/((?:^|\n)[ \t]*[-*]\s+[^\n]+(?:\r?\n[ \t]*[-*]\s+[^\n]+)*)/g, function (listBlock) {
       var items = listBlock.trim().split(/\r?\n/).map(function (item) {
         return '<li>' + item.replace(/^[ \t]*[-*]\s+/, '') + '</li>';
@@ -134,9 +142,11 @@
       return '\n<ul class="crm-chat-ul ps-3 mb-1">' + items + '</ul>\n';
     });
 
-    // 6. Section headers (### and ##)
-    safe = safe.replace(/(?:^|\n)###\s+([^\n]+)/g, '<div class="crm-chat-h mt-1 mb-1"><strong>$1</strong></div>');
-    safe = safe.replace(/(?:^|\n)##\s+([^\n]+)/g, '<div class="crm-chat-h mt-2 mb-1"><strong>$1</strong></div>');
+    // 6. Section headers (####, ###, ##, #)
+    safe = safe.replace(/(?:^|\n)####\s+([^\n]+)/g, '<div class="crm-chat-h mt-1 mb-1 fw-bold">$1</div>');
+    safe = safe.replace(/(?:^|\n)###\s+([^\n]+)/g, '<div class="crm-chat-h mt-1 mb-1 fw-bold">$1</div>');
+    safe = safe.replace(/(?:^|\n)##\s+([^\n]+)/g, '<div class="crm-chat-h mt-2 mb-1 fw-bold">$1</div>');
+    safe = safe.replace(/(?:^|\n)#\s+([^\n]+)/g, '<div class="crm-chat-h mt-2 mb-1 fs-6 fw-bold">$1</div>');
 
     // 7. Bold and italic
     safe = safe.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
@@ -161,8 +171,8 @@
 
     // 11. Line breaks
     safe = safe.replace(/\n/g, '<br>');
-    safe = safe.replace(/<br>(<(?:div|table|thead|tbody|tr|th|td|pre|ul|li)[^>]*>)/g, '$1');
-    safe = safe.replace(/(<\/(?:div|table|thead|tbody|tr|th|td|pre|ul|li)>)<br>/g, '$1');
+    safe = safe.replace(/<br>(<(?:div|table|thead|tbody|tr|th|td|pre|ul|ol|li)[^>]*>)/g, '$1');
+    safe = safe.replace(/(<\/(?:div|table|thead|tbody|tr|th|td|pre|ul|ol|li)>)<br>/g, '$1');
 
     // 12. Restore code blocks and inline code
     safe = safe.replace(/@@@CODEBLOCK_(\d+)@@@/g, function (_, i) {
@@ -235,7 +245,7 @@
   chat.renderMessage = function (message, ctx) {
     var findMessage = ctx && ctx.findMessage ? ctx.findMessage : function () { return null; };
     var sender = message.sender_name || message.sender_login || window.CRM.i18n.t('chat.default_sender', 'Пользователь');
-    var isAi = !!(message.is_ai || message.role === 'assistant' || message.sender_name === 'AI Copilot' || message.sender_login === 'ai_agent' || message.sender_login === 'agent');
+    var isAi = !!(message.is_ai || message.role === 'assistant' || message.sender_name === 'AI Ассистент' || message.sender_name === 'AI Assistant' || message.sender_name === 'AI Copilot' || message.sender_login === 'ai_agent' || message.sender_login === 'agent');
     var own = Number(message.is_own || 0) === 1;
     var deleted = !!message.deleted_at;
     var canEdit = own && !deleted && chat.canEditMessage(message);

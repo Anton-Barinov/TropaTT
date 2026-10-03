@@ -137,7 +137,7 @@ final class ChatController extends BaseController
             } else {
                 foreach ($items as &$item) {
                     if (($item['type'] ?? '') === 'ai_agent') {
-                        $item['title'] = !empty($item['title']) ? $item['title'] : 'AI Copilot';
+                        $item['title'] = !empty($item['title']) ? $item['title'] : 'AI Ассистент';
                         $item['is_ai_agent'] = true;
                     }
                 }

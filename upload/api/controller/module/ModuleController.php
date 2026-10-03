@@ -719,6 +719,12 @@ final class ModuleController
         $activeModules = $pm->getActive();
         $diagnostics = [];
 
+        $user = $this->user();
+        $isRoot = !empty($user['is_root']);
+        $userOrgId = (int)($user['organization_id'] ?? 0);
+        $input = $this->request()->allInput();
+        $targetOrgId = $isRoot && isset($input['organization_id']) ? (int)$input['organization_id'] : ($isRoot ? 0 : $userOrgId);
+
         foreach ($activeModules as $name => $manifest) {
             $reg = $mc->getRegistry($name);
             $diag = [
@@ -733,8 +739,19 @@ final class ModuleController
 
             // Get job queue metrics for this module
             try {
-                $stmt = $pdo->prepare("SELECT status, count(*) as cnt FROM module_jobs WHERE module_name = :mod GROUP BY status");
-                $stmt->execute(['mod' => $name]);
+                if ($targetOrgId > 0) {
+                    $stmt = $pdo->prepare("
+                        SELECT j.status, count(*) as cnt
+                        FROM module_jobs j
+                        JOIN module_job_contexts c ON c.job_id = j.id
+                        WHERE j.module_name = :mod AND c.organization_id = :org_id
+                        GROUP BY j.status
+                    ");
+                    $stmt->execute(['mod' => $name, 'org_id' => $targetOrgId]);
+                } else {
+                    $stmt = $pdo->prepare("SELECT status, count(*) as cnt FROM module_jobs WHERE module_name = :mod GROUP BY status");
+                    $stmt->execute(['mod' => $name]);
+                }
                 $counts = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
                 $diag['jobs'] = [
                     'pending' => (int)($counts['pending'] ?? 0),

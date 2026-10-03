@@ -307,6 +307,11 @@ final class ModuleMcpRegistry
                 continue;
             }
 
+            // Skip directories that don't match the vendor.name naming convention
+            if (!preg_match('/^[a-z0-9]+\.[a-z0-9\-]+$/', $item)) {
+                continue;
+            }
+
             $manifestFile = $this->modulesDir . '/' . $item . '/manifest.json';
             if (!is_file($manifestFile)) {
                 continue;

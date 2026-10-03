@@ -35,6 +35,7 @@ return [
     'attachment_uploaded' => 'Файл прикреплён',
     'marked_read' => 'Отмечено как прочитанное',
     'only_creator_archive' => 'Только создатель чата может архивировать этот чат',
+    'ai_agent_title' => 'AI Ассистент',
     'ai_chat_cannot_archive' => 'Чат с AI-ассистентом нельзя архивировать',
     'archive_unavailable' => 'Архивация недоступна — обратитесь к администратору',
     'archive_failed' => 'Не удалось архивировать чат',
