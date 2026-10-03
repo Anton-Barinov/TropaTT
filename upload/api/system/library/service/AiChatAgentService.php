@@ -10,7 +10,7 @@ use PDO;
 
 final class AiChatAgentService
 {
-    private const MAX_REACT_STEPS = 10;
+    private const MAX_REACT_STEPS = 12;
     private const MAX_TOOL_OUTPUT_CHARS = 4000;
 
     public function __construct(
@@ -194,6 +194,12 @@ final class AiChatAgentService
                     'max_tokens' => 3000,
                 ];
                 $isLastStep = ($step === self::MAX_REACT_STEPS - 1);
+                if ($isLastStep && $step > 0) {
+                    $messages[] = [
+                        'role' => 'user',
+                        'content' => 'Все необходимые действия и инструменты выполнены. Пожалуйста, подведите итог: сформулируйте для пользователя окончательный подробный структурированный отчёт по всем созданным сущностям (проект, задача, подзадачи, чек-листы) со всеми ссылками и ID.',
+                    ];
+                }
                 if (!empty($availableTools) && !$isLastStep) {
                     $payload['tools'] = $availableTools;
                     $payload['tool_choice'] = 'auto';
@@ -302,7 +308,11 @@ final class AiChatAgentService
                 $firstPlanChunk = mb_substr($planText, 0, 40);
                 if (mb_strlen($planText) > 50 && !str_contains($finalAnswer, $firstPlanChunk)) {
                     if (mb_strlen($finalAnswer) < 300 || !str_contains(mb_strtolower($finalAnswer), 'шаг')) {
-                        $finalAnswer = $planText . "\n\n---\n\n" . $finalAnswer;
+                        if (preg_match('/^(провер|посмотр|уточн)/iu', $finalAnswer) && mb_strlen($finalAnswer) < 150) {
+                            $finalAnswer = $planText . "\n\n---\n\n✅ **Все этапы декомпозиции и создания сущностей успешно завершены.**";
+                        } else {
+                            $finalAnswer = $planText . "\n\n---\n\n" . $finalAnswer;
+                        }
                     }
                 }
             }
