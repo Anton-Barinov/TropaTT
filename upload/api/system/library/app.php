@@ -252,6 +252,30 @@ final class App
                 return $response;
             }
 
+            // Module route verification
+            $moduleName = $matched['module_name'] ?? null;
+            if ($moduleName !== null && $moduleName !== '') {
+                /** @var ModuleConfig|null $mc */
+                $mc = $this->container->has('module.config') ? $this->container->get('module.config') : null;
+                if ($mc !== null) {
+                    $reg = $mc->getRegistry($moduleName);
+                    if (!$reg || empty($reg['is_active'])) {
+                        /** @var LanguageManager $lang */
+                        $lang = $this->container->get('lang');
+                        $response = JsonResponse::error(
+                            code: 'MODULE_DISABLED',
+                            message: 'Module is inactive or disabled',
+                            status: 404,
+                            requestId: $request->requestId,
+                            correlationId: $request->correlationId
+                        );
+                        $statusCode = 404;
+                        $resultCode = 'MODULE_DISABLED';
+                        return $response;
+                    }
+                }
+            }
+
             if (($matched['auth'] ?? true) === true) {
                 $auth = $this->authenticate();
                 if (!$auth) {
@@ -321,6 +345,110 @@ final class App
                 if ($requestLocale !== '' || $authLocale !== '') {
                     $lang->setLocale($requestLocale !== '' ? $requestLocale : $authLocale);
                     header('X-Response-Locale: ' . $lang->locale());
+                }
+            }
+
+            if ($moduleName !== null && $moduleName !== '') {
+                if (!empty($matched['workspace_required']) && ($matched['auth'] ?? true)) {
+                    $authForModule = $this->container->has('auth_user') ? $this->container->get('auth_user') : null;
+                    $orgId = (int)($authForModule['user']['organization_id'] ?? 0);
+                    $isRoot = !empty($authForModule['user']['is_root']);
+                    if ($orgId <= 0 && !$isRoot) {
+                        /** @var LanguageManager $lang */
+                        $lang = $this->container->get('lang');
+                        $response = JsonResponse::error(
+                            code: 'ORGANIZATION_REQUIRED',
+                            message: $lang->get('common/messages.forbidden', 'Forbidden') . ': Active organization context required',
+                            status: 403,
+                            errors: ['organization' => ['Active workspace required for module endpoint']],
+                            requestId: $request->requestId,
+                            correlationId: $request->correlationId
+                        );
+                        $statusCode = 403;
+                        $resultCode = 'ORGANIZATION_REQUIRED';
+                        return $response;
+                    }
+
+                    // Set ModuleExecutionContext on container
+                    $orgPublicId = (string)($authForModule['user']['organization_public_id'] ?? ($orgId > 0 ? 'org_' . $orgId : ''));
+                    $actorPublicId = (string)($authForModule['user']['public_id'] ?? 'usr_system');
+                    $execContext = $orgId > 0
+                        ? \Api\System\Library\Module\ModuleExecutionContext::forWorkspace(
+                            $moduleName,
+                            $orgId,
+                            $orgPublicId,
+                            $actorPublicId,
+                            'api',
+                            $request->correlationId
+                        )
+                        : \Api\System\Library\Module\ModuleExecutionContext::global(
+                            $moduleName,
+                            'api',
+                            $request->correlationId
+                        );
+                    $this->container->set('module.execution_context', $execContext);
+                }
+
+                // Idempotency check for mutating module requests
+                $idempotencyRequired = ($matched['idempotency'] ?? false) === 'required';
+                $idempotencySupported = !empty($matched['idempotency']);
+                $isMutatingMethod = in_array($request->method, ['POST', 'PUT', 'PATCH'], true);
+                $idempotencyKey = (string)($request->headers['Idempotency-Key'] ?? $request->headers['idempotency-key'] ?? $request->headers['X-Idempotency-Key'] ?? $request->headers['x-idempotency-key'] ?? '');
+
+                if ($isMutatingMethod) {
+                    if ($idempotencyRequired && $idempotencyKey === '') {
+                        $response = JsonResponse::error(
+                            code: 'IDEMPOTENCY_KEY_REQUIRED',
+                            message: 'Idempotency-Key header is required for this endpoint',
+                            status: 400,
+                            requestId: $request->requestId,
+                            correlationId: $request->correlationId
+                        );
+                        $statusCode = 400;
+                        $resultCode = 'IDEMPOTENCY_KEY_REQUIRED';
+                        return $response;
+                    }
+
+                    if ($idempotencySupported && $idempotencyKey !== '' && $this->container->has('db.pdo')) {
+                        $pdo = $this->container->get('db.pdo');
+                        $idemStore = new \Api\System\Library\Connector\ConnectorIdempotencyStore($pdo);
+                        $authForIdem = $this->container->has('auth_user') ? $this->container->get('auth_user') : null;
+                        $idemOrgId = (int)($authForIdem['user']['organization_id'] ?? 0);
+                        $claimed = $idemStore->claim($moduleName, $idemOrgId, $routePath, $idempotencyKey);
+                        if (!$claimed) {
+                            $existing = $idemStore->get($moduleName, $idemOrgId, $routePath, $idempotencyKey);
+                            if ($existing && $existing['status'] === 'completed' && is_array($existing['response_payload'])) {
+                                $replayPayload = $existing['response_payload'];
+                                $replayCode = $existing['response_code'] ?: 200;
+                                $response = new JsonResponse(
+                                    $replayPayload,
+                                    $replayCode,
+                                    ['X-Idempotent-Replay' => 'true']
+                                );
+                                $statusCode = $replayCode;
+                                $resultCode = (string)($replayPayload['code'] ?? 'IDEMPOTENT_REPLAY');
+                                return $response;
+                            }
+                            $response = JsonResponse::error(
+                                code: 'IDEMPOTENCY_CONFLICT',
+                                message: 'Concurrent or duplicate request with identical Idempotency-Key in flight',
+                                status: 409,
+                                requestId: $request->requestId,
+                                correlationId: $request->correlationId
+                            );
+                            $statusCode = 409;
+                            $resultCode = 'IDEMPOTENCY_CONFLICT';
+                            return $response;
+                        }
+
+                        $claimedIdempotency = [
+                            'store' => $idemStore,
+                            'module' => $moduleName,
+                            'org_id' => $idemOrgId,
+                            'path' => $routePath,
+                            'key' => $idempotencyKey,
+                        ];
+                    }
                 }
             }
 
@@ -516,6 +644,21 @@ final class App
                     requestId: $request->requestId,
                     correlationId: $request->correlationId
                 );
+            }
+
+            if (isset($claimedIdempotency) && is_array($claimedIdempotency) && $result instanceof JsonResponse) {
+                try {
+                    $claimedIdempotency['store']->complete(
+                        $claimedIdempotency['module'],
+                        $claimedIdempotency['org_id'],
+                        $claimedIdempotency['path'],
+                        $claimedIdempotency['key'],
+                        $result->status(),
+                        $result->payload()
+                    );
+                } catch (\Throwable $e) {
+                    AppLog::warning('[App::idempotency] complete failed: ' . $e->getMessage());
+                }
             }
 
             $statusCode = $result->status();

@@ -14758,6 +14758,15 @@ $tools[] = $this->tool(
             'page', 'project_public_id', 'status', 'priority', 'assigned_user_id', 'updated_since',
             'space_public_id', 'sort', 'order', 'include_archived_projects', 'include_ancestors',
         ]);
+        if (!isset($filters['assigned_user_id'])) {
+            $assigneePid = trim((string)($arguments['assignee_user_public_id'] ?? $arguments['assignee_public_id'] ?? ''));
+            if ($assigneePid !== '') {
+                $resolvedUid = $this->resolveUserIdByPublicId($assigneePid);
+                if ($resolvedUid !== null) {
+                    $filters['assigned_user_id'] = $resolvedUid;
+                }
+            }
+        }
         $filters['limit'] = $this->limit($arguments, $defaultLimit, $maxLimit);
 
         return $filters;

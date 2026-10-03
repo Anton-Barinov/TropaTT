@@ -7,7 +7,10 @@ namespace Api\System\Library\Service;
 use Api\System\Library\Support\AppLog;
 final class RateLimitService
 {
-    private ?string $storageDir = null;
+    public function __construct(
+        private ?string $storageDir = null
+    ) {
+    }
 
     public function check(string $prefix, string $key, int $maxAttempts, int $windowSeconds, int $lockSeconds, bool $increment = true): array
     {

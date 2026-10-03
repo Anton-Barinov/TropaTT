@@ -1297,6 +1297,8 @@ Module objects returned by `GET /api/v1/modules` and `GET /api/v1/modules/{name}
 | GET | `/api/v1/modules/{name}/migrations` | Module migrations | Yes | `settings.manage` | — |
 | GET | `/api/v1/modules/{name}/errors` | Module errors | Yes | `settings.manage` | — |
 | DELETE | `/api/v1/modules/{name}/errors` | Clear errors | Yes | `settings.manage` | — |
+| POST | `/api/v1/modules/queue/tick` | Process module jobs queue batch | Yes | `settings.manage` | Body: `limit`, `max_seconds` |
+| GET | `/api/v1/modules/diagnostics` | System diagnostics for all modules | Yes | `settings.manage` | — |
 | POST | `/api/v1/modules/install-from-url` | Set from URL | Yes | `settings.manage` | — |
 | POST | `/api/v1/modules/install-from-file` | Set from file | Yes | `settings.manage` | `multipart/form-data` |
 

@@ -1293,6 +1293,8 @@ TropaTT реализует унифицированный протокол ве�
 | GET | `/api/v1/modules/{name}/migrations` | Миграции модуля | Да | `settings.manage` | — |
 | GET | `/api/v1/modules/{name}/errors` | Ошибки модуля | Да | `settings.manage` | — |
 | DELETE | `/api/v1/modules/{name}/errors` | Очистка ошибок | Да | `settings.manage` | — |
+| POST | `/api/v1/modules/queue/tick` | Запуск пакета фоновой очереди задач модулей | Да | `settings.manage` | Body: `limit`, `max_seconds` |
+| GET | `/api/v1/modules/diagnostics` | Системная диагностика всех установленных модулей | Да | `settings.manage` | — |
 | POST | `/api/v1/modules/install-from-url` | Установка из URL | Да | `settings.manage` | — |
 | POST | `/api/v1/modules/install-from-file` | Установка из файла | Да | `settings.manage` | `multipart/form-data` |
 
