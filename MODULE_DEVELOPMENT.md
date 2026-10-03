@@ -11,9 +11,10 @@ A module is a directory under `modules/` named `vendor.name` (for example `crm.w
 
 > **A stock installation ships no modules.** `upload/modules/` contains nothing but its own `.htaccess`: modules are installed on demand from the official marketplace (`marketplace.tropatt.com`) — from **Administration → Modules → Marketplace** in the UI, or by dropping a package into `modules/` yourself. The examples below are published with this documentation instead of being installed with the core, so the guide stays runnable while a fresh install stays lean.
 
-> **Reference implementations** (published with this guide, not installed with the core):
+> Reference implementations (published with this guide, not installed with the core):
 > - [`crm.position-example`](docs_modules/examples/modules/crm.position-example) — the smallest possible module: one position renderer + route-scoped assets.
-> - [`crm.wip-limit`](docs_modules/examples/modules/crm.wip-limit) — full example: service provider, event hooks, scoped assets, position renderer, migrations, API + web routes.
+> - [`crm.wip-limit`](docs_modules/examples/modules/crm.wip-limit) — full UI example: service provider, event hooks, scoped assets, position renderer, migrations, API + web routes.
+> - [`crm.fixture-connector`](docs_modules/examples/modules/crm.fixture-connector) — reference integration connector: domain event subscription, queue job dispatch with `ModuleExecutionContext`, protected & idempotent REST routes, and module MCP tools.
 > - `crm.slack-integration` — subscribes to the whole event catalog and fans events out to user-defined rules; install it from the marketplace.
 
 ---
@@ -57,8 +58,10 @@ Required fields: `name`, `version`, `vendor`, `title`. The name must match `^[a-
 | `core_version` | string | Required core, e.g. `>=1.0.0` |
 | `dependencies` | array | Module names this module depends on |
 | `require_permissions` | array | Permission codes granted/required by the module |
+| `events` | array | Subscribed domain events (optional) |
 | `api_routes` | string | Path to the API routes file (optional) |
 | `web_routes` | string | Path to the web routes file (optional) |
+| `mcp_tools` | array | Declared module MCP tools (optional, see §8) |
 | `migrations` | string | Directory with SQL migrations (optional) |
 | `service_provider` | string | FQCN of the service provider (optional) |
 | `assets` | object | Scoped/global assets, see §4 |
@@ -114,6 +117,10 @@ Event names live in one place — `Api\System\Library\Module\ModuleEvents` — s
 | `contact.created` / `contact.updated` / `contact.deleted` | `ContactController` | `contact_public_id`, `full_name`, `actor_id` |
 | `company.created` / `company.updated` / `company.deleted` | `CompanyController` | `company_public_id`, `title`, `actor_id` |
 | `organization.created` / `organization.updated` / `organization.deleted` | `OrganizationController` | `organization_public_id`, `title`, `actor_id` |
+| `intake.created` / `intake.updated` / `intake.accepted` / `intake.rejected` / `intake.reopened` / `intake.deleted` | `IntakeController` / `IntakeService` | `intake_public_id`, `organization_id`, `title`, `status`, `actor_id`, `task_public_id` (when accepted) |
+| `calendar_event.created` / `calendar_event.updated` / `calendar_event.deleted` | `CalendarController` | `calendar_event_public_id`, `organization_id`, `title`, `start_at`, `end_at`, `actor_id` |
+| `worklog.created` / `worklog.updated` / `worklog.deleted` | `WorklogController` / `WorklogService` | `worklog_public_id`, `task_public_id`, `user_public_id`, `minutes`, `date`, `actor_id` (financial fields excluded) |
+| `knowledge_page.created` / `knowledge_page.updated` / `knowledge_page.published` / `knowledge_page.archived` / `knowledge_page.deleted` | `KnowledgeController` / `KnowledgeService` | `page_public_id`, `space_public_id`, `title`, `status`, `actor_id` (body content excluded) |
 | `render.before` / `render.after` | web `Controller::render()` | see §5 |
 
 The payload is passed **by reference** to every handler, so a module can both observe it and (when the event semantics allow) enrich it. Handlers that throw are isolated — a broken module never breaks the core request.
@@ -243,22 +250,158 @@ The web `Controller::render()` dispatches two hooks around page rendering. Decla
 
 Handlers are stateless public static methods resolved by `Web\System\Module\ModuleExtensionResolver`.
 
-## 7. Routes, service provider and permissions
+## 7. REST routes, validation and connector primitives
 
 - **API routes** — `api/config/routes.php` returns an array of route definitions. They are auto-prefixed with `/_module/vendor.name/`.
-- **Web routes** — `web/config/routes.php` adds page routes to the web router.
+- **Validation (`ModuleRouteValidator`)** — All module routes pass strict fail-closed validation:
+  - Allowed HTTP methods: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`.
+  - Path traversal (e.g. `..`) is strictly prohibited.
+  - Controllers must be located under the `Module\` namespace.
+  - Wildcard permissions (e.g. `all`, `*`, `superadmin`) are rejected.
+  - Optional `workspace_required: true` ensures the route cannot be invoked without an authorized organization context.
+  - Optional `idempotency: true` enforces duplicate protection via `ConnectorIdempotencyStore`.
+- **Shared Connector Primitives**:
+  - `ConnectorCredentialStore` — provides AES-256-GCM encrypted credential storage per module and organization (`setSecret`, `getSecret`, `hasSecret`, `deleteSecret`).
+  - `ConnectorIdempotencyStore` — tracks incoming webhooks and requests (`claim`, `complete`, `fail`) scoped to `(module, org_id, source, key)`.
+  - `SignatureService` — raw body HMAC signature verification with replay protection window.
 - **Service provider** — extend `Api\System\Library\Module\AbstractModuleServiceProvider` and implement `register()`/`boot()`, plus optional `getPermissions()`, `getMenuItems()`, `getScheduledTasks()`, `getConfig()`.
-- **Migrations** — SQL files in the directory named by `migrations`; applied/rolled back by the module manager. Uninstall keeps your tables (the owner's data must survive), so a re-install runs the migrations again against the schema your module left behind: write them so that re-running is harmless — `CREATE TABLE IF NOT EXISTS`, `DROP ... IF EXISTS`, and guarded `ALTER`s. The runner tolerates DDL that is already applied (duplicate table/column/key/constraint, "nothing to drop") and applies a multi-clause `ALTER TABLE` clause by clause, so the parts still missing are added; a statement that fails for any other reason — invalid SQL, or an `ALTER` against a table that does not exist — still fails the migration and is not recorded as applied.
+- **Web routes** — `web/config/routes.php` adds page routes to the web router.
 
-## 8. Checklist for a self-contained module
+## 8. Module-owned MCP tools
 
-1. `manifest.json` declares `positions`, `web_hooks`, and scoped `assets` (not global css/js unless required).
+Modules can expose Model Context Protocol (MCP) tools for AI agents by declaring them in `manifest.json`:
+
+```json
+"mcp_tools": [
+  {
+    "name": "fixture_connector_ping",
+    "description": "Ping the connector and return workspace diagnostics",
+    "handler": "Module\\Crm\\FixtureConnector\\Mcp\\PingTool",
+    "permissions": ["settings.view"],
+    "mode": "all",
+    "workspace_required": true,
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "echo": { "type": "string", "description": "Optional echo text" }
+      },
+      "additionalProperties": false
+    }
+  }
+]
+```
+
+### 8.1 Tool implementation contract
+
+The handler class must implement `Api\System\Library\Module\Mcp\ModuleMcpToolInterface`:
+
+```php
+namespace Module\Crm\FixtureConnector\Mcp;
+
+use Api\System\Library\Container;
+use Api\System\Library\Module\Mcp\ModuleMcpToolInterface;
+use Api\System\Library\Module\ModuleExecutionContext;
+
+final class PingTool implements ModuleMcpToolInterface
+{
+    public function execute(array $arguments, ModuleExecutionContext $context, Container $container): array
+    {
+        return [
+            'status' => 'ok',
+            'organization_id' => $context->organizationId,
+            'echo' => $arguments['echo'] ?? 'pong',
+        ];
+    }
+}
+```
+
+### 8.2 Profiles and discovery
+
+- **Default profile (`core`)**: Contains only the core 27 mega-tools. Module tools are excluded to prevent token bloat and inadvertent prompt contamination.
+- **Discovery profiles**:
+  - `all`: Core tools + all tools of all active modules.
+  - `modules`: Tools of all active modules only.
+  - `module:<vendor.name>`: Tools belonging to a specific module (e.g. `module:crm.fixture-connector`).
+- **Safety guarantees**:
+  - Strict JSON Schema with `additionalProperties: false`.
+  - Module MCP tools fail closed if the module is disabled or uninstalled.
+  - Automatic sensitive data redaction: passwords, API keys, tokens, and authorization headers are sanitized in results before transmission.
+
+## 9. Background jobs and queue execution (Zero-Daemon)
+
+TropaTT operates on standard PHP shared hosting without long-running daemons, Redis, or root/CLI access.
+
+### 9.1 Workspace-aware job handler
+
+Background jobs must implement `Api\System\Library\Module\WorkspaceModuleJobInterface`:
+
+```php
+namespace Module\Crm\FixtureConnector\Job;
+
+use Api\System\Library\Container;
+use Api\System\Library\Module\ModuleExecutionContext;
+use Api\System\Library\Module\WorkspaceModuleJobInterface;
+
+final class SyncIntakeJob implements WorkspaceModuleJobInterface
+{
+    public function handle(array $payload, ModuleExecutionContext $context, Container $container): void
+    {
+        $orgId = $context->organizationId;
+        // All database mutations must be scoped to $orgId
+    }
+}
+```
+
+### 9.2 Dispatching jobs
+
+Dispatch jobs using `ModuleJobDispatcher::dispatch()` with an immutable `ModuleExecutionContext`:
+
+```php
+$context = new ModuleExecutionContext(
+    moduleName: 'crm.fixture-connector',
+    organizationId: $orgId,
+    organizationPublicId: $orgPublicId,
+    actorPublicId: $actorId,
+    source: 'event',
+    correlationId: $correlationId
+);
+
+ModuleJobDispatcher::dispatch(
+    container: $container,
+    moduleName: 'crm.fixture-connector',
+    handlerClass: SyncIntakeJob::class,
+    payload: ['intake_public_id' => $id],
+    context: $context
+);
+```
+
+### 9.3 Shared-hosting execution and observability
+
+- **Batch processing**: Jobs are executed in bounded batches (default: 25 jobs or 15 seconds) during scheduled cron or manual ticks.
+- **Manual tick API**: `POST /api/v1/modules/queue/tick` allows processing pending jobs on systems where system cron is unavailable or delayed.
+- **Diagnostics API**: `GET /api/v1/modules/diagnostics` provides health status, pending/failed/paused counts, and error summaries per module.
+- **Paused legacy jobs**: Older jobs created without an authorized workspace context are marked as `paused_legacy` for manual review, preventing cross-tenant leakage.
+
+## 10. Database migrations and lifecycle
+
+- SQL files in the directory named by `migrations` (e.g. `api/migrations/`); applied/rolled back by the module manager.
+- Uninstall keeps your tables (the owner's data must survive), so a re-install runs the migrations again against the schema your module left behind: write them so that re-running is harmless — `CREATE TABLE IF NOT EXISTS`, `DROP ... IF EXISTS`, and guarded `ALTER`s.
+- The runner tolerates DDL that is already applied (duplicate table/column/key/constraint, "nothing to drop") and applies a multi-clause `ALTER TABLE` clause by clause, so the parts still missing are added; a statement that fails for any other reason — invalid SQL, or an `ALTER` against a table that does not exist — still fails the migration and is not recorded as applied.
+- All module tables must use the prefix `mod_<vendor>_<name>_` and include `organization_id` for multi-tenant data isolation.
+
+## 11. Checklist for a self-contained module
+
+1. `manifest.json` declares `positions`, `web_hooks`, `mcp_tools`, `events`, and scoped `assets` (not global css/js unless required).
 2. Event handlers subscribe in `boot()` through `HookManager`, using `ModuleEvents::*` constants, and wrap their logic in `try/catch`.
-3. Position renderers and web hooks are public static methods returning strings; user-controlled data is escaped with `htmlspecialchars`.
-4. CSS/JS are loaded via `css_routes`/`js_routes` keyed by the exact `?route=` value, so they never leak onto unrelated pages.
-5. No core files are modified — everything a module needs is reachable through the manifest, the service provider, and the extension points above.
+3. Background jobs implement `WorkspaceModuleJobInterface` and receive `ModuleExecutionContext`.
+4. REST routes define explicit HTTP methods, `workspace_required`, and `idempotency` where applicable.
+5. MCP tools implement `ModuleMcpToolInterface` with strict JSON schemas (`additionalProperties: false`).
+6. Position renderers and web hooks are public static methods returning strings; user-controlled data is escaped with `htmlspecialchars`.
+7. CSS/JS are loaded via `css_routes`/`js_routes` keyed by the exact `?route=` value, so they never leak onto unrelated pages.
+8. Migrations use `CREATE TABLE IF NOT EXISTS` with `mod_<vendor>_<name>_` prefix and `organization_id`.
+9. No core files are modified — everything a module needs is reachable through the manifest, the service provider, and the extension points above.
 
-## 9. Trust model and module security
+## 12. Trust model and module security
 
 **Modules are trusted.** Module code executes in the same PHP process as the core, with the same filesystem permissions, database access, and network capabilities. There is **no sandbox, no isolation, no resource limits** enforced on module code at runtime.
 
@@ -282,3 +425,4 @@ This is an **explicitly accepted design trade-off** (2026-08-25, C-1). The barri
 - You are responsible for the modules you install. Review the source code.
 - Prefer modules from trusted authors. Check that the module does not exfiltrate data, log secrets, or weaken access controls.
 - Module permissions (`manifest.json::require_permissions`) are granted at activation time — review them before activating.
+
