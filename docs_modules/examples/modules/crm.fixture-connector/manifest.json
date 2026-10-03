@@ -1,0 +1,62 @@
+{
+    "name": "crm.fixture-connector",
+    "version": "1.0.0",
+    "vendor": "crm",
+    "author": "Anton Barinov",
+    "author_url": "https://github.com/Anton-Barinov",
+    "title": "Fixture Connector Module",
+    "description": "Fixture module for connector primitives and MCP tool execution tests",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "category": "integrations",
+    "dependencies": [],
+    "require_permissions": [
+        "settings.view",
+        "settings.edit"
+    ],
+    "service_provider": "Module\\Crm\\FixtureConnector\\FixtureConnectorServiceProvider",
+    "migrations": "api/migrations",
+    "events": [
+        "intake.created",
+        "task.created"
+    ],
+    "api_routes": "api/config/routes.php",
+    "mcp_tools": [
+        {
+            "name": "fixture_connector_ping",
+            "description": "Ping the fixture connector and return workspace diagnostic status",
+            "handler": "Module\\Crm\\FixtureConnector\\Mcp\\PingTool",
+            "permissions": ["settings.view"],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "echo": {
+                        "type": "string",
+                        "description": "Optional echo text"
+                    }
+                },
+                "additionalProperties": false
+            }
+        },
+        {
+            "name": "fixture_connector_secure_action",
+            "description": "Test tool with sensitive token output for redaction testing",
+            "handler": "Module\\Crm\\FixtureConnector\\Mcp\\SecureActionTool",
+            "permissions": ["settings.view", "settings.edit"],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "action_name": {
+                        "type": "string",
+                        "description": "Action name to execute"
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
+    ]
+}
