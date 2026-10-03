@@ -35,6 +35,7 @@ return [
     'attachment_uploaded' => 'Attachment uploaded',
     'marked_read' => 'Marked as read',
     'only_creator_archive' => 'Only the chat creator can archive this chat',
+    'ai_chat_cannot_archive' => 'AI Copilot chat cannot be archived',
     'archive_unavailable' => 'Archive feature unavailable — please contact administrator',
     'archive_failed' => 'Failed to archive chat',
     'chat_id_required' => 'Chat ID required',

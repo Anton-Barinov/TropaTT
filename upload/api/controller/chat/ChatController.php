@@ -896,6 +896,10 @@ final class ChatController extends BaseController
             return $this->error('FORBIDDEN', $this->t('chat/messages.not_participant'), 403);
         }
 
+        if (($chat['type'] ?? '') === 'ai_agent') {
+            return $this->error('NOT_ALLOWED', $this->t('chat/messages.ai_chat_cannot_archive'), 422);
+        }
+
         if ((int)($chat['created_by_user_id'] ?? 0) !== $userId) return $this->error('NOT_ALLOWED', $this->t('chat/messages.only_creator_archive'), 422);
 
         $pdo = $this->container->get('db.pdo');

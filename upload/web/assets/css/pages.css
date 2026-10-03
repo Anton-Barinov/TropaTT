@@ -9835,6 +9835,61 @@ body.modal-open {
   font-weight: 700;
 }
 
+.crm-chat-code {
+  font-family: var(--crm-font-mono, monospace);
+  font-size: 0.85em;
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+  background: var(--crm-surface-2, rgba(0, 0, 0, 0.05));
+  color: var(--crm-accent-strong, #0d6efd);
+}
+
+.crm-chat-pre {
+  margin: 0.5rem 0;
+  padding: 0.6rem 0.8rem;
+  border-radius: 6px;
+  background: var(--crm-surface-2, #f8f9fa);
+  border: 1px solid var(--crm-border, #dee2e6);
+  overflow-x: auto;
+  font-size: 0.85rem;
+}
+
+.crm-chat-pre code {
+  font-family: var(--crm-font-mono, monospace);
+  background: none;
+  padding: 0;
+  color: inherit;
+}
+
+.crm-chat-table {
+  font-size: 0.85rem;
+  margin: 0.4rem 0;
+}
+
+.crm-chat-table th {
+  background: var(--crm-surface-2, #f8f9fa);
+  font-weight: 600;
+  padding: 0.35rem 0.5rem;
+}
+
+.crm-chat-table td {
+  padding: 0.35rem 0.5rem;
+}
+
+.crm-chat-ul {
+  padding-left: 1.25rem;
+  margin: 0.35rem 0;
+}
+
+.crm-chat-ul li {
+  margin-bottom: 0.2rem;
+}
+
+.crm-chat-h {
+  font-size: 0.95rem;
+  color: var(--crm-text-strong);
+}
+
 .crm-chat-attachments {
   margin-top: 0.55rem;
   display: grid;

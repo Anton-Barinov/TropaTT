@@ -151,6 +151,8 @@ final class McpController extends BaseController
     /** Workspace context carried inside the current JSON-RPC tool call. */
     private array $activeMcpArguments = [];
 
+    private ?\Api\System\Library\Module\Mcp\ModuleMcpRegistry $moduleMcpRegistry = null;
+
     public function handle(): RawJsonResponse
     {
         $originError = $this->validateOrigin();
@@ -3696,7 +3698,7 @@ $tools[] = $this->tool(
 
         $config = $this->toolsetConfig();
         foreach ($parts as $part) {
-            if ($part !== 'all' && !isset($config[$part])) {
+            if ($part !== 'all' && $part !== 'modules' && !str_starts_with($part, 'module:') && !isset($config[$part])) {
                 return '';
             }
         }
@@ -3715,6 +3717,7 @@ $tools[] = $this->tool(
         if ($toolset === '') {
             $available = array_keys($this->toolsetConfig());
             $available[] = 'all';
+            $available[] = 'modules';
             return [
                 'jsonrpc_error' => true,
                 'code' => -32602,
@@ -3732,8 +3735,17 @@ $tools[] = $this->tool(
     private function toolsForToolset(string $toolset): array
     {
         $all = $this->tools();
+        $moduleRegistry = $this->getModuleMcpRegistry();
+        $actor = $this->actor();
+        $canCheck = fn(string $p): bool => $this->can($p);
+
         if ($toolset === 'all') {
-            return $all;
+            $moduleTools = $moduleRegistry->getToolsForProfile('all', $actor, $canCheck);
+            return array_merge($all, $moduleTools);
+        }
+
+        if (str_starts_with($toolset, 'module:') || $toolset === 'modules') {
+            return $moduleRegistry->getToolsForProfile($toolset, $actor, $canCheck);
         }
 
         $config = $this->toolsetConfig();
@@ -3778,6 +3790,18 @@ $tools[] = $this->tool(
             ];
         }
 
+        $canCheck = fn(string $p): bool => $this->can($p);
+        $moduleToolsets = $this->getModuleMcpRegistry()->getModuleToolsets($canCheck);
+        foreach ($moduleToolsets as $modKey => $modProfile) {
+            $toolsets[] = [
+                'name' => $modKey,
+                'title' => (string)($modProfile['title'] ?? $modKey),
+                'description' => (string)($modProfile['description'] ?? ''),
+                'count' => count((array)($modProfile['tools'] ?? [])),
+                'tools' => (array)($modProfile['tools'] ?? []),
+            ];
+        }
+
         return [
             'default' => 'core',
             'toolsets' => $toolsets,
@@ -3818,6 +3842,12 @@ $tools[] = $this->tool(
         // SEC-003: Fail-closed MCP permission registry
         $mcpPermissions = require __DIR__ . '/../../config/mcp_permissions.php';
         if (!isset($mcpPermissions[$name])) {
+            $moduleRegistry = $this->getModuleMcpRegistry();
+            if ($moduleRegistry->hasTool($name)) {
+                $actor = $this->actor();
+                $canCheck = fn(string $p): bool => $this->can($p);
+                return $moduleRegistry->executeTool($name, $arguments, $actor, $this->container, $canCheck);
+            }
             return $this->toolError('Unknown tool: ' . $name . '. Not in permission registry.');
         }
         $mcpEntry = $mcpPermissions[$name];
@@ -16179,6 +16209,21 @@ $tools[] = $this->tool(
     private function pdo(): PDO
     {
         return $this->container->get('db.pdo');
+    }
+
+    public function getModuleMcpRegistry(): \Api\System\Library\Module\Mcp\ModuleMcpRegistry
+    {
+        if ($this->moduleMcpRegistry === null) {
+            $pdo = $this->pdo();
+            $modulesDir = dirname(__DIR__, 3) . '/modules';
+            $this->moduleMcpRegistry = new \Api\System\Library\Module\Mcp\ModuleMcpRegistry($pdo, $modulesDir);
+        }
+        return $this->moduleMcpRegistry;
+    }
+
+    public function setModuleMcpRegistry(\Api\System\Library\Module\Mcp\ModuleMcpRegistry $registry): void
+    {
+        $this->moduleMcpRegistry = $registry;
     }
 
         private function checkMcpToolRateLimit(string $toolName): array

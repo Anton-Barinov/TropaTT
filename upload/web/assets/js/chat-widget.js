@@ -90,10 +90,67 @@
   /* ── text rendering (mentions, stickers, knowledge cards) ── */
 
   chat.renderMessageText = function (text) {
-    var safe = chat.esc(text).replace(/\n/g, '<br>');
+    var codeBlocks = [];
+    var inlineCodes = [];
+
+    // 1. Preserve fenced code blocks
+    var safe = String(text || '').replace(/```([a-z0-9_-]*)\n([\s\S]*?)```/gi, function (_, lang, code) {
+      var idx = codeBlocks.length;
+      codeBlocks.push('<pre class="crm-chat-pre"><code>' + chat.esc(code) + '</code></pre>');
+      return '@@@CODEBLOCK_' + idx + '@@@';
+    });
+
+    // 2. Preserve inline code
+    safe = safe.replace(/`([^`\n]+)`/g, function (_, code) {
+      var idx = inlineCodes.length;
+      inlineCodes.push('<code class="crm-chat-code">' + chat.esc(code) + '</code>');
+      return '@@@INLINE_' + idx + '@@@';
+    });
+
+    // 3. Escape all remaining HTML entities to prevent XSS
+    safe = chat.esc(safe);
+
+    // 4. Markdown tables: contiguous table rows starting and ending with |
+    safe = safe.replace(/((?:^|\n)\|[^\n]+\|\r?\n\|[-:\s|]+\|\r?\n(?:\|[^\n]+\|\r?\n?)+)/g, function (tbl) {
+      var lines = tbl.trim().split(/\r?\n/);
+      if (lines.length < 3) return tbl;
+      var headers = lines[0].split('|').slice(1, -1).map(function (c) {
+        return '<th>' + c.trim() + '</th>';
+      }).join('');
+      var body = lines.slice(2).map(function (row) {
+        var cells = row.split('|').slice(1, -1).map(function (c) {
+          return '<td>' + c.trim() + '</td>';
+        }).join('');
+        return '<tr>' + cells + '</tr>';
+      }).join('');
+      return '\n<div class="table-responsive my-1"><table class="table table-sm table-bordered crm-chat-table mb-0"><thead><tr>' + headers + '</tr></thead><tbody>' + body + '</tbody></table></div>\n';
+    });
+
+    // 5. Unordered lists: consecutive lines starting with - or *
+    safe = safe.replace(/((?:^|\n)[ \t]*[-*]\s+[^\n]+(?:\r?\n[ \t]*[-*]\s+[^\n]+)*)/g, function (listBlock) {
+      var items = listBlock.trim().split(/\r?\n/).map(function (item) {
+        return '<li>' + item.replace(/^[ \t]*[-*]\s+/, '') + '</li>';
+      }).join('');
+      return '\n<ul class="crm-chat-ul ps-3 mb-1">' + items + '</ul>\n';
+    });
+
+    // 6. Section headers (### and ##)
+    safe = safe.replace(/(?:^|\n)###\s+([^\n]+)/g, '<div class="crm-chat-h mt-1 mb-1"><strong>$1</strong></div>');
+    safe = safe.replace(/(?:^|\n)##\s+([^\n]+)/g, '<div class="crm-chat-h mt-2 mb-1"><strong>$1</strong></div>');
+
+    // 7. Bold and italic
+    safe = safe.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+    safe = safe.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+
+    // 8. Markdown links: [Title](http(s)://... or index.php?...)
+    safe = safe.replace(/\[([^\]]+)\]\(((?:https?:\/\/|index\.php\?)[^\s\)"']+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+
+    // 9. Mentions and stickers
     safe = safe.replace(/(^|\s)@([\p{L}\p{N}._-]{2,80})/gu, '$1<span class="crm-chat-mention">@$2</span>');
     safe = safe.replace(/\[стикер: ([^\]]+)\]/g, '<span class="crm-chat-sticker">$1</span>');
     safe = safe.replace(/\[gif: ([^\]]+)\]/g, '<span class="crm-chat-sticker">$1</span>');
+
+    // 10. Knowledge cards
     safe = safe.replace(/kb:([a-zA-Z0-9_]+):([^<]*)/g, function (match, publicId, title) {
       title = (title || '').trim() || window.CRM.i18n.t('chat.knowledge_page', 'Knowledge page');
       return '<a href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(publicId) + '" class="crm-knowledge-chat-card" target="_blank" rel="noopener" title="' + window.CRM.i18n.t('chat.open_knowledge_title', 'Open in Knowledge Base') + ': ' + chat.esc(title) + '">'
@@ -101,6 +158,20 @@
         + '<span class="crm-knowledge-chat-info"><strong>' + chat.esc(title) + '</strong><span>' + window.CRM.i18n.t('chat.knowledge_page_subtitle', 'Knowledge base page') + '</span></span>'
         + '<span class="crm-knowledge-chat-arrow"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></span></a>';
     });
+
+    // 11. Line breaks
+    safe = safe.replace(/\n/g, '<br>');
+    safe = safe.replace(/<br>(<(?:div|table|thead|tbody|tr|th|td|pre|ul|li)[^>]*>)/g, '$1');
+    safe = safe.replace(/(<\/(?:div|table|thead|tbody|tr|th|td|pre|ul|li)>)<br>/g, '$1');
+
+    // 12. Restore code blocks and inline code
+    safe = safe.replace(/@@@CODEBLOCK_(\d+)@@@/g, function (_, i) {
+      return codeBlocks[Number(i)] || '';
+    });
+    safe = safe.replace(/@@@INLINE_(\d+)@@@/g, function (_, i) {
+      return inlineCodes[Number(i)] || '';
+    });
+
     return safe;
   };
 

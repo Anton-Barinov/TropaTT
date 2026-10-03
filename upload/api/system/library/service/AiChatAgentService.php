@@ -118,6 +118,56 @@ final class AiChatAgentService
             return null;
         }
 
+        $lowerText = mb_strtolower($userText);
+        if ($lowerText === '/clear' || $lowerText === '/reset' || $lowerText === 'очистить' || $lowerText === 'сброс') {
+            $this->pdo->prepare("
+                UPDATE chat_messages
+                SET deleted_at = NOW()
+                WHERE chat_id = :cid AND deleted_at IS NULL
+            ")->execute(['cid' => $chatId]);
+
+            return $this->saveAssistantMessage(
+                $chat,
+                $agentUserId,
+                (string)($agentUser['full_name'] ?? 'AI Copilot'),
+                "🧹 История диалога очищена. Контекст сброшен. Чем я могу помочь?"
+            );
+        }
+
+        if ($lowerText === '/help' || $lowerText === 'помощь' || $lowerText === '?') {
+            $helpText = "Я ваш персональный AI Copilot в TropaTT CRM. Я работаю с локальными инструментами системы под вашими правами доступа.\n\n"
+                . "### 🛠 Что я умею:\n"
+                . "- **Задачи**: показать список, найти задачу по номеру или названию, проверить подзадачи, чек-листы и комментарии.\n"
+                . "- **Проекты**: сводка по проекту, вехи, спринты и участники команды.\n"
+                . "- **Дашборд и аналитика**: сводка показателей, список непрочитанных уведомлений, напоминания.\n"
+                . "- **CRM-сущности**: контакты, компании, клиенты и контрагенты.\n"
+                . "- **База знаний**: поиск статей, регламентов и документации.\n"
+                . "- **Учёт времени**: просмотр списанного времени и ворклогов.\n\n"
+                . "### 💡 Полезные команды:\n"
+                . "- `/clear` или `/reset` — очистить историю сообщений и начать диалог заново.\n"
+                . "- `/help` — показать эту справку.";
+
+            return $this->saveAssistantMessage(
+                $chat,
+                $agentUserId,
+                (string)($agentUser['full_name'] ?? 'AI Copilot'),
+                $helpText
+            );
+        }
+
+        // Check daily cost limits for non-admin actors
+        if (method_exists($this->costLimit, 'assertWithinLimits')) {
+            $costCheck = $this->costLimit->assertWithinLimits('chat_copilot', $actor);
+            if (!empty($costCheck) && empty($costCheck['ok'])) {
+                return $this->saveAssistantMessage(
+                    $chat,
+                    $agentUserId,
+                    (string)($agentUser['full_name'] ?? 'AI Copilot'),
+                    'Превышен суточный лимит использования искусственного интеллекта. Пожалуйста, обратитесь к администратору системы или повторите запрос позже.'
+                );
+            }
+        }
+
         // 3. Set auth context on container for the duration of this call
         $prevAuth = $this->container->has('auth_user') ? $this->container->get('auth_user') : null;
         $this->container->set('auth_user', ['user' => $actor]);
@@ -140,7 +190,8 @@ final class AiChatAgentService
                     'messages' => $messages,
                     'temperature' => 0.2,
                 ];
-                if (!empty($availableTools)) {
+                $isLastStep = ($step === self::MAX_REACT_STEPS - 1);
+                if (!empty($availableTools) && !$isLastStep) {
                     $payload['tools'] = $availableTools;
                     $payload['tool_choice'] = 'auto';
                 }
@@ -160,7 +211,7 @@ final class AiChatAgentService
                 $toolCalls = (array)($completion['tool_calls'] ?? []);
                 $assistantText = trim((string)($completion['text'] ?? ''));
 
-                if (!empty($toolCalls)) {
+                if (!empty($toolCalls) && !$isLastStep) {
                     // Assistant requested tool execution
                     $messages[] = [
                         'role' => 'assistant',
@@ -180,8 +231,21 @@ final class AiChatAgentService
                             $toolArgs = is_array($rawArgs) ? $rawArgs : [];
                         }
 
-                        // Execute tool in-process under actor permissions
-                        $toolResult = $mcpController->executeToolInProcess($toolName, $toolArgs);
+                        // Execute tool in-process under actor permissions with exception isolation
+                        try {
+                            $toolResult = $mcpController->executeToolInProcess($toolName, $toolArgs);
+                        } catch (\Throwable $toolEx) {
+                            AppLog::warning('[AiChatAgentService] tool error (' . $toolName . '): ' . $toolEx->getMessage());
+                            $toolResult = [
+                                'isError' => true,
+                                'content' => [
+                                    [
+                                        'type' => 'text',
+                                        'text' => 'Ошибка выполнения инструмента ' . $toolName . ': ' . $toolEx->getMessage(),
+                                    ],
+                                ],
+                            ];
+                        }
 
                         // Extract content text and sanitize against prompt injection
                         $rawOutput = $this->formatToolResultText($toolResult);
@@ -205,37 +269,12 @@ final class AiChatAgentService
             }
 
             // 7. Persist assistant message into database
-            $msgPublicId = 'msg_' . bin2hex(random_bytes(12));
-            $hasOrg = $this->tableHasColumn('chat_messages', 'organization_id');
-            $chatOrgId = (int)($chat['organization_id'] ?? 0);
-
-            if ($hasOrg && $chatOrgId > 0) {
-                $stmt = $this->pdo->prepare("
-                    INSERT INTO chat_messages (public_id, organization_id, chat_id, sender_user_id, message_type, text, created_at)
-                    VALUES (:pid, :org_id, :cid, :sid, 'text', :text, NOW())
-                ");
-                $stmt->execute([
-                    'pid' => $msgPublicId,
-                    'org_id' => $chatOrgId,
-                    'cid' => $chatId,
-                    'sid' => $agentUserId,
-                    'text' => $finalAnswer,
-                ]);
-            } else {
-                $stmt = $this->pdo->prepare("
-                    INSERT INTO chat_messages (public_id, chat_id, sender_user_id, message_type, text, created_at)
-                    VALUES (:pid, :cid, :sid, 'text', :text, NOW())
-                ");
-                $stmt->execute([
-                    'pid' => $msgPublicId,
-                    'cid' => $chatId,
-                    'sid' => $agentUserId,
-                    'text' => $finalAnswer,
-                ]);
-            }
-
-            $this->pdo->prepare("UPDATE chats SET last_message_at = NOW() WHERE id = :cid")
-                ->execute(['cid' => $chatId]);
+            $result = $this->saveAssistantMessage(
+                $chat,
+                $agentUserId,
+                (string)($agentUser['full_name'] ?? 'AI Copilot'),
+                $finalAnswer
+            );
 
             // 8. Record AI usage
             try {
@@ -251,19 +290,61 @@ final class AiChatAgentService
                 // Non-fatal
             }
 
-            return [
-                'public_id' => $msgPublicId,
-                'chat_public_id' => (string)($chat['public_id'] ?? ''),
-                'text' => $finalAnswer,
-                'sender_name' => (string)($agentUser['full_name'] ?? 'AI Copilot'),
-                'role' => 'assistant',
-                'created_at' => gmdate('Y-m-d H:i:s'),
-            ];
+            return $result;
         } finally {
             if ($prevAuth !== null) {
                 $this->container->set('auth_user', $prevAuth);
             }
         }
+    }
+
+    /**
+     * Persist an assistant text message into database and update chat activity timestamp.
+     */
+    private function saveAssistantMessage(array $chat, int $agentUserId, string $agentFullName, string $text): array
+    {
+        $chatId = (int)($chat['id'] ?? 0);
+        $chatPublicId = (string)($chat['public_id'] ?? '');
+        $chatOrgId = (int)($chat['organization_id'] ?? 0);
+        $msgPublicId = 'msg_' . bin2hex(random_bytes(12));
+        $hasOrg = $this->tableHasColumn('chat_messages', 'organization_id');
+
+        if ($hasOrg && $chatOrgId > 0) {
+            $stmt = $this->pdo->prepare("
+                INSERT INTO chat_messages (public_id, organization_id, chat_id, sender_user_id, message_type, text, created_at)
+                VALUES (:pid, :org_id, :cid, :sid, 'text', :text, NOW())
+            ");
+            $stmt->execute([
+                'pid' => $msgPublicId,
+                'org_id' => $chatOrgId,
+                'cid' => $chatId,
+                'sid' => $agentUserId,
+                'text' => $text,
+            ]);
+        } else {
+            $stmt = $this->pdo->prepare("
+                INSERT INTO chat_messages (public_id, chat_id, sender_user_id, message_type, text, created_at)
+                VALUES (:pid, :cid, :sid, 'text', :text, NOW())
+            ");
+            $stmt->execute([
+                'pid' => $msgPublicId,
+                'cid' => $chatId,
+                'sid' => $agentUserId,
+                'text' => $text,
+            ]);
+        }
+
+        $this->pdo->prepare("UPDATE chats SET last_message_at = NOW() WHERE id = :cid")
+            ->execute(['cid' => $chatId]);
+
+        return [
+            'public_id' => $msgPublicId,
+            'chat_public_id' => $chatPublicId,
+            'text' => $text,
+            'sender_name' => $agentFullName,
+            'role' => 'assistant',
+            'created_at' => gmdate('Y-m-d H:i:s'),
+        ];
     }
 
     /**
