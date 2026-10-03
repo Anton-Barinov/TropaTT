@@ -430,7 +430,8 @@ final class AiChatAgentService
                 $state['messages'][] = ['role' => 'assistant', 'content' => $text,
                     ...(array_key_exists('reasoning_content', $completion) ? ['reasoning_content' => (string)$completion['reasoning_content']] : [])];
                 $unfinished = array_filter($state['plan'], static fn(array $item): bool => $item['status'] !== 'done');
-                $isQuestion = (bool)preg_match('/(уточните|уточни(?:[\s,.!?]|$)|укажите|подтвердите|подтверди(?:[\s,.!?]|$)|недостаточно прав|не хватает|не могу|please (provide|confirm)|clarif)/iu', $text);
+                $isQuestion = ($state['plan'] === [] || $unfinished !== [])
+                    && (bool)preg_match('/(уточните|уточни(?:[\s,.!?]|$)|укажите|подтвердите|подтверди(?:[\s,.!?]|$)|недостаточно прав|не хватает|не могу|please (provide|confirm|clarify))/iu', $text);
                 if ($text !== '' && !$isQuestion && ($unfinished !== [] || ($this->isCompoundRequest($state['request']) && empty($state['plan'])) || $this->isMonologuePlanningWithoutTools($state['request'], $text))) {
                     $state['no_progress']++;
                     $state['messages'][] = ['role' => 'system', 'content' => 'Original request remains unfinished. Continue the pending plan with CRM tools now. Verify all results, update the plan, then give the final answer. Do not claim success without tool evidence.'];
@@ -442,9 +443,6 @@ final class AiChatAgentService
                     $state['error'] = 'AI вернул пустой ответ. Контекст сохранён.';
                 } else {
                     $next = $isQuestion ? 'waiting_input' : 'completed';
-                    if ($isQuestion && $state['plan'] !== [] && $unfinished === []) {
-                        $state['plan'][] = ['title' => 'Уточнение, необходимое для завершения исходного запроса', 'status' => 'pending', 'evidence' => ''];
-                    }
                     // Final message and run completion commit together; a crash cannot duplicate the reply.
                     $this->pdo->beginTransaction();
                     try {
@@ -734,7 +732,7 @@ final class AiChatAgentService
 - Сводки и уведомления: crm_get_dashboard_summary, crm_list_notifications.
 
 Правила выполнения задач и декомпозиции:
-1. Многосоставные и комплексные задачи (создание проектов, распределение задач, анализ загрузки разработчиков, чек-листы):
+1. Простые обращения (приветствие, объяснение, одна выборка или создание одной записи с её атрибутами) выполняйте без плана и декомпозиции. План нужен только для нескольких независимых результатов, которые пользователь запросил явно:
    - Обязательно выполните ДЕКОМПОЗИЦИЮ: разбейте задачу на логические шаги (1. ..., 2. ..., 3. ...).
    - Показывайте краткий фактический прогресс и результаты действий (например: «Шаг 1: проверяю сотрудников и их задачи...», «Шаг 2: наименее загружен сотрудник X с 0 активных задач...», «Шаг 3: создаю проект...»).
    - Результаты каждого шага сохраняются в контексте и используются на последующих шагах (например, public_id созданного проекта prj_... передаётся при создании задачи, а public_id выбранного разработчика usr_... — в качестве исполнителя).
@@ -748,7 +746,7 @@ final class AiChatAgentService
    - Сначала создайте проект через crm_project (action: "create", title: "..."). Сохраните полученный public_id проекта.
    - Затем создайте задачу, привязав её к проекту (project_public_id). Для комплексных задач с чек-листами и подзадачами используйте crm_agent_bundle или crm_task (action: "create", затем create_checklist, create_subtask).
 5. Итоговый структурированный ответ:
-   - В конце выдайте подробный, понятный и наглядный отчёт в Markdown:
+   - В конце дайте соразмерный запросу ответ: для простого обращения — краткий результат; для составного — выполненные требования, проверенные факты и ссылки на созданные записи. Не перечисляйте ненужные разделы и не добавляйте новые задачи в рекомендациях. При необходимости используйте Markdown:
      * 📋 **Декомпозиция и план**: кратко, какие цели были поставлены.
      * 🔍 **Ход работы и анализ**: аргументация решений (например, сравнение загрузки разработчиков с точными цифрами).
      * 🚀 **Созданные сущности**: проект (название и ссылка/ID), задача (название, ID, исполнитель), чек-лист с пунктами, список созданных подзадач.
