@@ -19,6 +19,7 @@
 11. [安全性、静态代码审查与故障隔离 (熔断器 Circuit Breaker)](#11-安全性静态代码审查与故障隔离-熔断器-circuit-breaker)
 12. [打包、版本控制与远程安全安装](#12-打包版本控制与远程安全安装)
 13. [完整参考模块：Acme Telegram Notifier](#13-完整参考模块acme-telegram-notifier)
+14. [面向 AI Agent 的 Model Context Protocol (MCP) 工具集成](#14-面向-ai-agent-的-model-context-protocol-mcp-工具集成)
 
 ---
 
@@ -115,9 +116,11 @@ modules/acme.telegram-notifier/
 | `core_version` | `string` | 否 | 核心版本依赖限制 (默认 `>=1.0.0`) | `">=1.0.0"` |
 | `dependencies` | `array` | 否 | 依赖模块列表 | `[]` |
 | `require_permissions` | `array` | 否 | 模块所需的系统 RBAC 权限代码 | `["tasks.read"]` |
+| `events` | `array` | 否 | 订阅的核心领域事件列表 | `["task.created", "intake.created"]` |
 | `service_provider` | `string` | 否 | 服务提供者类完整命名空间 (FQCN) | `"Module\\Acme\\TelegramNotifier\\TelegramNotifierServiceProvider"` |
 | `api_routes` | `string` | 否 | API 路由配置文件路径 | `"api/config/routes.php"` |
 | `web_routes` | `string` | 否 | Web 路由配置文件路径 | `"web/config/routes.php"` |
+| `mcp_tools` | `array` | 否 | 声明的 AI Agent MCP 工具列表 | 见第 14 节 |
 | `migrations` | `string` | 否 | 数据库迁移目录路径 | `"api/migrations/"` |
 | `positions` | `object` | 否 | UI 插槽渲染器映射表 | 见第 6 节 |
 | `assets` | `object` | 否 | 静态 CSS/JS 资源映射配置 | 见第 8 节 |
@@ -142,6 +145,10 @@ Hook 处理器的上下文通过引用传递：`function (array &$context): void
 - **用户:** `USER_CREATED`, `USER_UPDATED`, `USER_DELETED`
 - **工作周期:** `CYCLE_CREATED`, `CYCLE_STARTED`, `CYCLE_COMPLETED`, `CYCLE_REOPENED`, `CYCLE_ARCHIVED`, `CYCLE_DELETED`
 - **CRM 记录:** `CLIENT_*`, `COUNTERPARTY_*`, `CONTACT_*`, `COMPANY_*`, `ORGANIZATION_*`
+- **进件处理 (Intake):** `INTAKE_CREATED`, `INTAKE_UPDATED`, `INTAKE_ACCEPTED`, `INTAKE_REJECTED`, `INTAKE_REOPENED`, `INTAKE_DELETED`
+- **日历事件:** `CALENDAR_EVENT_CREATED`, `CALENDAR_EVENT_UPDATED`, `CALENDAR_EVENT_DELETED`
+- **工时日志:** `WORKLOG_CREATED`, `WORKLOG_UPDATED`, `WORKLOG_DELETED`
+- **知识库:** `KNOWLEDGE_PAGE_CREATED`, `KNOWLEDGE_PAGE_UPDATED`, `KNOWLEDGE_PAGE_PUBLISHED`, `KNOWLEDGE_PAGE_ARCHIVED`, `KNOWLEDGE_PAGE_DELETED`
 - **协同交流:** `COMMENT_ADDED`, `FILE_UPLOADED`, `CHAT_MESSAGE_CREATED`, `CHAT_MESSAGE_UPDATED`, `CHAT_MESSAGE_DELETED`
 - **视图渲染:** `RENDER_BEFORE`, `RENDER_AFTER`
 
@@ -207,6 +214,23 @@ return [
 
 控制器返回标准的 `Api\System\Library\Http\JsonResponse`。
 
+### 路由校验 (`ModuleRouteValidator`) 与连接器原语
+为保障核心稳定性及多租户数据隔离，所有模块路由均通过 `ModuleRouteValidator` 审查：
+- **HTTP 方法白名单:** 仅允许 `GET`, `POST`, `PUT`, `PATCH`, `DELETE`。
+- **路径遍历防御:** 包含 `..` 或非法字符的路由直接拒绝。
+- **命名空间限制:** 控制器类必须严格位于 `Module\<VendorName>\<ModuleName>\...` 命名空间下。
+- **禁止泛通配权限:** 拒绝如 `all`, `*`, `superadmin` 等宽松权限声明。
+- **工作区上下文强制 (`workspace_required: true`):**
+  - 要求合法已认证会话及有效组织上下文。
+  - 自动创建不可变的 `ModuleExecutionContext` 并绑定到当前执行流程。
+- **幂等性保障 (`idempotency: true`):**
+  - 通过 `ConnectorIdempotencyStore` 防止 Webhook 请求被重复消费。
+  - 基于请求头 `Idempotency-Key` 或负载哈希锁定事务。
+
+#### 共享连接器核心原语：
+- **`ConnectorCredentialStore`:** 提供基于 AES-256-GCM 的模块与工作区分离凭证安全加密存储。
+- **`SignatureService`:** 对 Webhook 请求的原始负载 (`php://input`) 进行 HMAC 签名校验与防重放保护。
+
 ---
 
 ## 8. 静态资源与安全规范
@@ -214,6 +238,73 @@ return [
 - **静态资源:** 支持全局加载 (`assets.css`, `assets.js`) 以及按路由按需加载 (`assets.css_routes`, `assets.js_routes`)。
 - **静态代码审查 (`ModuleCodeValidator`):** 严禁执行系统命令 (`exec`, `passthru`, `system`) 及危险文件写入函数 (`file_put_contents`, `unlink`)。
 - **熔断保护 (`ModuleCircuitBreaker`):** 连续 5 次故障自动开启熔断 (`OPEN`)，60 秒后自动半开 (`HALF_OPEN`) 试探恢复。
+
+---
+
+## 10. 后台任务：Cron 调度器与事务任务队列
+
+模块后台任务必须通过 `ModuleJobDispatcher::dispatch()` 显式传入已授权的 `ModuleExecutionContext`。处理类须位于自身模块的命名空间内，实现 `WorkspaceModuleJobInterface`，并依据传入的工作空间读取和写入数据。旧任务缺少可靠工作空间时会暂停为 `paused_legacy`，不会猜测默认空间。Web/CLI cron 和仅限主管理员的手动运行以小批量处理任务；共享主机无需常驻进程、Redis 或 SSH。
+
+- **手动触发队列处理:** `POST /api/v1/modules/queue/tick` 可由管理员触发批次处理。
+- **状态监控与诊断:** `GET /api/v1/modules/diagnostics` 提供队列任务量 (`pending`, `failed`, `paused_legacy`) 与健康日志汇总。
+
+---
+
+## 14. 面向 AI Agent 的 Model Context Protocol (MCP) 工具集成
+
+TropaTT CRM 原生支持基于 Model Context Protocol (MCP) 与 AI Agent 协同。活跃模块可在 `manifest.json` 中声明自建工具：
+
+### 1. 清单声明
+```json
+"mcp_tools": [
+  {
+    "name": "fixture_connector_ping",
+    "description": "Ping the connector and return workspace diagnostics",
+    "handler": "Module\\Crm\\FixtureConnector\\Mcp\\PingTool",
+    "permissions": ["settings.view"],
+    "mode": "all",
+    "workspace_required": true,
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "echo": { "type": "string", "description": "Optional echo text" }
+      },
+      "additionalProperties": false
+    }
+  }
+]
+```
+
+### 2. 工具处理类实现
+实现 `Api\System\Library\Module\Mcp\ModuleMcpToolInterface`：
+```php
+namespace Module\Crm\FixtureConnector\Mcp;
+
+use Api\System\Library\Container;
+use Api\System\Library\Module\Mcp\ModuleMcpToolInterface;
+use Api\System\Library\Module\ModuleExecutionContext;
+
+final class PingTool implements ModuleMcpToolInterface
+{
+    public function execute(array $arguments, ModuleExecutionContext $context, Container $container): array
+    {
+        return [
+            'status' => 'ok',
+            'organization_id' => $context->organizationId,
+            'echo' => (string)($arguments['echo'] ?? 'pong'),
+        ];
+    }
+}
+```
+
+### 3. 工具集配置文件 (Toolsets)
+- **`core` (默认)**: 仅包含核心 27 个 mega-tools，隔离模块工具以避免提示词膨胀。
+- **`all` / `modules` / `module:<模块名>`**: 支持按需发现和调用已启用的模块工具。
+- **敏感数据脱敏**: 返回内容经由 `redactSensitiveOutput` 自动过滤 Token、密钥与密码。
+- **安全熔断 (`fail-closed`)**: 停用模块时其工具立即从目录移除并拒绝执行。
+
+> 💡 **参考集成连接器 (`crm.fixture-connector`):**  
+> 包含完整事件订阅、队列、工作区隔离、REST 路由和 MCP 工具的参考实现位于 [`docs_modules/examples/modules/crm.fixture-connector/`](examples/modules/crm.fixture-connector)。
 
 ---
 
