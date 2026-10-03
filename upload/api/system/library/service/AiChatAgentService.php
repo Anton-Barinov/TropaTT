@@ -547,7 +547,7 @@ final class AiChatAgentService
     private function isCompoundRequest(string $text): bool
     {
         if (preg_match('/^\s*(?:что|как|почему|зачем|what|how|why)\b/iu', $text)) return false;
-        if (preg_match('/(?:затем|потом|после этого|then|afterwards|и|and)\s+(?:создай|добавь|удали|обнови|подготовь|сравни|отправь|проверь|найди|посчитай|create|add|delete|update|prepare|compare|send|check|find|count)\b/iu', $text)) return true;
+        if (preg_match('/(?:затем|потом|после этого|then|afterwards|и|and)\s+(?:создай|добавь|удали|обнови|подготовь|сравни|отправь|проверь|найди|посчитай|получи|запроси|покажи|выведи|рассчитай|назначь|перенеси|создайте|добавьте|проверьте|получите|покажите|create|add|delete|update|prepare|compare|send|check|find|count|get|fetch|show|display|calculate|assign|move)\b/iu', $text)) return true;
         if (preg_match_all('/(?:^|\n)\s*(?:\d+[.)]|[-*])\s*(?:созда|добав|проверь|найди|обнов|удали|create|add|check|find|update|delete)/imu', $text) >= 2) return true;
         if (!preg_match('/(?:созда|добав|сдела|create|add)/iu', $text)) return false;
         if (preg_match('/(?:две|два|три|четыре|несколько|[2-9]|two|three|multiple)\s+(?:задач|проект|task|project)/iu', $text)) return true;
