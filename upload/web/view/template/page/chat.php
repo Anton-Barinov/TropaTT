@@ -212,7 +212,7 @@
   }
 
   function chatTitle(chat) {
-    if (chat && chat.type === 'ai_agent') return window.CRM.i18n.t('chat.ai_agent_title', 'AI Ассистент');
+    if (chat && chat.type === 'ai_agent') return String(chat.title || '').trim() || window.CRM.i18n.t('chat.ai_agent_title', 'AI Ассистент');
     var title = String(chat.title || '').trim();
     var participants = String(chat.participant_names || '').split(',').map(function (item) { return item.trim(); }).filter(Boolean);
     if ((chat.type === 'project' || chat.type === 'team') && title) return title;
@@ -323,10 +323,25 @@
 
   function renderAiRun(chatId, run) {
     if (selectedChatId !== chatId) return;
+    var box = document.getElementById('msgArea');
+    var live = box && box.querySelector('[data-ai-live-progress]');
+    var working = run && ['queued', 'running', 'cancelling'].indexOf(run.status) >= 0;
+    if (!working && live) live.remove();
+    if (working && box) {
+      if (!live) {
+        live = document.createElement('article');
+        live.className = 'crm-chat-message is-ai-progress';
+        live.setAttribute('data-ai-live-progress', '');
+        live.setAttribute('aria-live', 'polite');
+        box.appendChild(live);
+      }
+      live.innerHTML = '<div class="crm-chat-message-meta"><strong>' + esc(aiLabel('assistant', 'AI Ассистент'))
+        + '</strong></div><p>' + esc(run.progress || aiLabel('working', 'Выполняю задачу')) + '</p>';
+    }
     var panel = document.getElementById('aiRunPanel');
     if (!panel) return;
     if (!run) { panel.hidden = true; return; }
-    if (run.status === 'completed' && !(run.plan && run.plan.length) && !run.error) {
+    if (run.status === 'completed') {
       panel.hidden = true;
       return;
     }
@@ -703,6 +718,25 @@
     scrollToMessageOnLoad();
   }
 
+  function reorderAiMessages() {
+    if (!currentChat || currentChat.type !== 'ai_agent') return;
+    var box = document.getElementById('msgArea');
+    if (!box) return;
+    currentMessages.sort(function (a, b) {
+      var aId = messageNumericId(a) || Number.MAX_SAFE_INTEGER;
+      var bId = messageNumericId(b) || Number.MAX_SAFE_INTEGER;
+      return aId - bId;
+    });
+    currentMessages.forEach(function (message) {
+      var node = box.querySelector('[data-message-id="' + CSS.escape(message.public_id) + '"]');
+      if (node) box.appendChild(node);
+    });
+    var typing = box.querySelector('#aiTypingIndicator');
+    if (typing) box.appendChild(typing);
+    var live = box.querySelector('[data-ai-live-progress]');
+    if (live) box.appendChild(live);
+  }
+
   function appendMessages(messages) {
     var box = document.getElementById('msgArea');
     if (!box || !messages.length) return;
@@ -727,6 +761,7 @@
       box.insertAdjacentHTML('beforeend', html);
     }
     bindMessageActions(box);
+    reorderAiMessages();
     if (shouldStick) box.scrollTop = box.scrollHeight;
   }
 
@@ -767,6 +802,7 @@
       return byId.get(String(message.public_id || '')) || message;
     });
     if (fresh.length) appendMessages(fresh);
+    reorderAiMessages();
     updateLastMessageId(messages);
     if (shouldStick) box.scrollTop = box.scrollHeight;
   }
@@ -855,7 +891,8 @@
     try {
       var detailPromise = request('api/v1/chats/' + encodeURIComponent(id), { method: 'GET' });
       var messagesPromise = request('api/v1/chats/' + encodeURIComponent(id) + '/messages', { method: 'GET', query: { limit: 80 } });
-      var detailEnv = await detailPromise;
+      var loaded = await Promise.all([detailPromise, messagesPromise]);
+      var detailEnv = loaded[0];
       var chat = detailEnv.data.chat || {};
       renderConversationShell(chat);
       if (chat.is_archived || chat.archived_at) {
@@ -865,7 +902,7 @@
         lastMessageId = 0;
         return;
       }
-      var messagesEnv = await messagesPromise;
+      var messagesEnv = loaded[1];
       var loadedItems = (messagesEnv.data && messagesEnv.data.items) || [];
       allOlderLoaded = loadedItems.length < 80;
       renderMessages(loadedItems);
@@ -873,6 +910,13 @@
       markRead();
       loadChats({ silent: true });
     } catch (error) {
+      if (id !== selectedChatId) return;
+      if (error && (error.message === 'NOT_FOUND' || error.status === 404)) {
+        setSelectedChatId('', true);
+        currentChat = null;
+        currentMessages = [];
+        lastMessageId = 0;
+      }
       var area = document.getElementById('chatArea');
       if (area) area.innerHTML = '<div class="crm-chat-empty"><strong>' + window.CRM.i18n.t('chat.open_error_title', 'Не удалось открыть чат') + '</strong><span>' + window.CRM.i18n.t('chat.open_error_text', 'Проверьте доступ или попробуйте позже.') + '</span></div>';
     } finally {
@@ -1126,6 +1170,7 @@
         }
       }
 
+      reorderAiMessages();
       // If AI response was returned, remove indicator and append AI response
       if (typingEl && typingEl.parentNode) {
         typingEl.parentNode.removeChild(typingEl);

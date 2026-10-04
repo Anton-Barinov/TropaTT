@@ -417,7 +417,8 @@ final class AiChatAgentService
                         }
                         $state['tool_count']++;
                         if ($this->isReadTool($name, $args) && empty($result['isError'])) $state['reconcile_required'] = false;
-                        $state['progress'] = !empty($result['isError']) ? 'Не удалось выполнить действие. Проверяю причину.' : 'Результат действия получен. Продолжаю выполнение плана.';
+                        $state['progress'] = !empty($result['isError']) ? 'Проверяю, что помешало выполнить запрос.'
+                            : ($state['plan'] === [] ? 'Данные получены. Готовлю ответ.' : 'Этот шаг готов. Перехожу к следующему.');
                     }
                     $state['messages'][] = ['role' => 'tool', 'tool_call_id' => $call['id'],
                         'content' => $this->sandboxToolOutput($this->formatToolResultText($result))];

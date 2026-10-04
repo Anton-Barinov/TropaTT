@@ -1153,6 +1153,7 @@ window.CRM.api = (function () {
       }
 
       var error = new Error(envelope.code || 'API_ERROR');
+      error.status = response.status;
       error.envelope = envelope;
       if (String(route || '').indexOf('api/v1/telemetry/frontend-event') === -1) {
         sendFrontendTelemetry('api_error', {
