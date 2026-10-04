@@ -2456,3 +2456,5 @@ For staff messages in any chat, optional `client_request_id` (16–80 ASCII lett
 ### Assistant addressing in chats
 
 Chat list and details include `ai_assistant` (availability and bot identity). Invoke with `@ai_agent`, `@agent`, or the bot login, or reply to its message. A quote of yourself/another person alone does not invoke AI. An unquoted message invokes AI implicitly only when no other humans are present and the assistant participates or the chat is `ai_agent`. Explicit mention overrides a human quote. Calls use the invoking actor’s permissions and only this chat’s bounded history; historical messages are untrusted context. External callers cannot invoke AI. A staff project-client fallback with project access can drive its own run. Unavailable addressed sends are stored with `ai_unavailable: true`, without a run. Gateway health must be `ok`, with no open incident or pending recheck. Shared `/clear` cannot erase conversation.
+
+AI requests are queued sequentially per invoking actor. Another participant’s unfinished run does not block that actor; other actors cannot access its private status or tool context.

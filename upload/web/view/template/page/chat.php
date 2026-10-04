@@ -1232,7 +1232,7 @@
         chips.querySelectorAll('button').forEach(function (b) { b.disabled = false; });
       }
       input.disabled = false;
-      input.placeholder = isAi
+      input.placeholder = currentChat && currentChat.type === 'ai_agent'
         ? window.CRM.i18n.t('chat.placeholder_ai_message', 'Спросите AI-ассистента о задачах, проектах или базе знаний...')
         : window.CRM.i18n.t('chat.placeholder_message', 'Сообщение...');
       input.focus();
