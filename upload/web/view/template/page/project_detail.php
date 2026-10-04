@@ -621,7 +621,14 @@
         } else {
           var body = { text: text };
           if (clientReplyTo && clientReplyTo.public_id) body.reply_to_message_public_id = clientReplyTo.public_id;
-          await api.request('api/v1/chats/' + encodeURIComponent(clientChatPublicId) + '/messages', { method: 'POST', body: body });
+          body.client_request_id = window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : api.createIdempotencyKey('chat');
+          var sent = await api.request('api/v1/chats/' + encodeURIComponent(clientChatPublicId) + '/messages', { method: 'POST', body: body });
+          if (sent.data && sent.data.ai_run && window.CRM.chat.driveAssistant) {
+            window.CRM.chat.driveAssistant(clientChatPublicId, sent.data.ai_run, function () {
+              return loadClientChatMessages(api, clientChatPublicId, chatMsgsEl);
+            }).catch(function () { setClientChatError('AI: ' + window.CRM.i18n.t('chat.open_error_text', 'Проверьте доступ или попробуйте позже.')); });
+          }
+          if (sent.data && sent.data.ai_unavailable) setClientChatError('AI: ' + window.CRM.i18n.t('chat.open_error_text', 'Проверьте доступ или попробуйте позже.'));
           clientReplyTo = null;
         }
         chatInputEl.value = '';
@@ -729,6 +736,13 @@
           clientChatPublicId = matchingChats[0].public_id;
           await loadClientChatMessages(api, clientChatPublicId, chatMsgsEl);
           if (chatComposeEl) chatComposeEl.style.display = '';
+          var detail = await api.request('api/v1/chats/' + encodeURIComponent(clientChatPublicId));
+          if (detail.data && detail.data.chat && detail.data.chat.ai_assistant && detail.data.chat.ai_assistant.available && window.CRM.chat.driveAssistant) {
+            var pending = await api.request('api/v1/chats/' + encodeURIComponent(clientChatPublicId) + '/ai-run');
+            window.CRM.chat.driveAssistant(clientChatPublicId, pending.data.run, function () {
+              return loadClientChatMessages(api, clientChatPublicId, chatMsgsEl);
+            }).catch(function () { setClientChatError('AI: ' + window.CRM.i18n.t('chat.open_error_text', 'Проверьте доступ или попробуйте позже.')); });
+          }
           /* bind composer events */
           if (chatInputEl) {
             chatInputEl.addEventListener('input', syncClientSendBtn);

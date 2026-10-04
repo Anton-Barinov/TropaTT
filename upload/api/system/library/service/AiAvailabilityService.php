@@ -152,7 +152,19 @@ final class AiAvailabilityService
             'incident_code' => (string)($incident['code'] ?? ''),
             'incident_opened_at' => (string)($incident['opened_at'] ?? ''),
             'unhealthy' => $incidentState === 'open' || $status === 'error',
+            'needs_recheck' => !empty($health['needs_recheck']),
         ];
+    }
+
+    public static function chatAvailable(array $availability): bool
+    {
+        // Compatibility with the earlier flat availability contract.
+        if (!isset($availability['ai'])) return !empty($availability['available']);
+        $ai = $availability['ai'];
+        return !empty($ai['enabled']) && !empty($ai['provider_configured'])
+            && !empty($availability['actor']['can_use_ai'])
+            && ($ai['health']['status'] ?? '') === 'ok'
+            && empty($ai['health']['unhealthy']) && empty($ai['health']['needs_recheck']);
     }
 
     /** @param array<string,mixed> $actor */

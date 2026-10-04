@@ -148,7 +148,7 @@ final class ChatController extends BaseController
             $items = [];
         }
 
-        return $this->success('CHATS_LIST', $this->t('common/messages.ok'), ['items' => $items]);
+        return $this->success('CHATS_LIST', $this->t('common/messages.ok'), ['items' => $items, 'ai_assistant' => $this->assistantForActor($user)]);
     }
 
     private function tableHasColumn(PDO $pdo, string $table, string $column): bool
@@ -221,6 +221,7 @@ final class ChatController extends BaseController
         $chat['participants'] = !empty($chat['archived_at'])
             ? $this->participantsForChatArchived($chat)
             : $this->participantsForChat((int)$chat['id']);
+        $chat['ai_assistant'] = $this->assistantForActor($actor);
 
         return $this->success('CHAT_DETAIL', $this->t('common/messages.ok'), ['chat' => $chat]);
     }
@@ -491,7 +492,17 @@ final class ChatController extends BaseController
         $pdo = $this->container->get('db.pdo');
         $msgPublicId = 'msg_' . bin2hex(random_bytes(8));
         $reply = $this->resolveReplyMessage((int)$chat['id'], (string)($input['reply_to_message_public_id'] ?? ''));
-        $clientRequestId = ($chat['type'] ?? '') === 'ai_agent' ? ($input['client_request_id'] ?? '') : '';
+        $assistant = $this->assistantForActor($actor);
+        $botId = (int)($assistant['id'] ?? 0);
+        $members = $pdo->prepare('SELECT user_id FROM chat_participants WHERE chat_id = :cid');
+        $members->execute(['cid' => $chat['id']]);
+        $memberIds = array_map('intval', $members->fetchAll(PDO::FETCH_COLUMN));
+        $hasOtherHumans = array_diff($memberIds, [$this->currentUserId(), $botId]) !== [];
+        $addressed = \Api\System\Library\Service\AiChatAgentService::isAddressed($chat, $text, $reply,
+            $this->currentUserId(), $botId, (string)($assistant['login'] ?? 'ai_agent'), $hasOtherHumans,
+            $botId > 0 && in_array($botId, $memberIds, true), !empty($input['reply_to_message_public_id']));
+        $invokeAi = !empty($assistant['available']) && $addressed;
+        $clientRequestId = $input['client_request_id'] ?? '';
         if (!is_string($clientRequestId)) {
             return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         }
@@ -538,7 +549,8 @@ final class ChatController extends BaseController
             $pdo->prepare("UPDATE chats SET last_message_at = NOW() WHERE id = :cid")->execute(['cid' => (int)$chat['id']]);
 
             $resData = ['public_id' => $msgPublicId, 'message_seq' => $msgId];
-            if (($chat['type'] ?? '') === 'ai_agent') {
+            if ($addressed && !$invokeAi) $resData['ai_unavailable'] = true;
+            if ($invokeAi) {
                 /** @var \Api\System\Library\Service\AiChatAgentService $aiChatService */
                 $aiChatService = $this->container->get('service.ai_chat_agent');
                 $resData['ai_run'] = $aiChatService->enqueue($chat,
@@ -614,12 +626,17 @@ final class ChatController extends BaseController
     {
         $actor = $this->user()['user'] ?? [];
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
-        if (!$chat || ($chat['type'] ?? '') !== 'ai_agent' || !empty($actor['is_external'])) {
+        $staffFallback = false;
+        if (!$chat && empty($actor['is_external'])) {
+            $chat = $this->clientChatForStaff((string)($params['public_id'] ?? ''), $actor);
+            $staffFallback = $chat !== null;
+        }
+        if (!$chat || !empty($actor['is_external'])) {
             return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
         }
         /** @var ChatService $chats */
         $chats = $this->container->get('service.chat');
-        if (!$chats->assertParticipant((int)$chat['id'], $this->currentUserId())) {
+        if (!$staffFallback && !$chats->assertParticipant((int)$chat['id'], $this->currentUserId())) {
             return $this->error('FORBIDDEN', $this->t('chat/messages.not_participant'), 403);
         }
         $input = $advance ? $this->request()->allInput() : [];
@@ -1172,11 +1189,19 @@ final class ChatController extends BaseController
             /** @var \Api\System\Library\Service\AiAvailabilityService $aiAvailability */
             $aiAvailability = $this->container->get('service.ai_availability');
             $avail = $aiAvailability->getAvailability($actor);
-            return !empty($avail['available'])
-                || (!empty($avail['ai']['enabled']) && !empty($avail['ai']['provider_configured']) && !empty($avail['actor']['can_use_ai']));
+            return \Api\System\Library\Service\AiAvailabilityService::chatAvailable($avail);
         } catch (\Throwable) {
             return false;
         }
+    }
+
+    private function assistantForActor(array $actor): array
+    {
+        $available = empty($actor['is_external']) && $this->isAiAvailableForActor($actor);
+        if (!empty($actor['is_external'])) return ['available' => false];
+        $stmt = $this->container->get('db.pdo')->query("SELECT id, public_id, login, full_name FROM users
+            WHERE public_id = 'usr_D6A6FADCE249FCC1' OR login IN ('ai_agent','agent') ORDER BY id ASC LIMIT 1");
+        return array_merge($stmt->fetch(PDO::FETCH_ASSOC) ?: ['login' => 'ai_agent', 'full_name' => 'AI Ассистент'], ['available' => $available]);
     }
 
     private function archivedChatForCurrentUser(string $publicId): ?array

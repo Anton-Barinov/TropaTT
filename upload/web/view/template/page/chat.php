@@ -302,6 +302,7 @@
     try {
       var env = await request('api/v1/chats', { method: 'GET' });
       chats = (env.data && env.data.items) || [];
+      if (currentChat && env.data && env.data.ai_assistant) currentChat.ai_assistant = env.data.ai_assistant;
       if (selectedChatId && selectedChatId !== urlChatId && !chats.some(function (chat) { return String(chat.public_id) === selectedChatId; })) setSelectedChatId('', true);
       if (!selectedChatId && chats.length && !chatSearch) {
         setSelectedChatId(String(chats[0].public_id || ''), true);
@@ -479,7 +480,7 @@
     var placeholder = isAi ? window.CRM.i18n.t('chat.placeholder_ai_message', 'Спросите AI-ассистента о задачах, проектах или базе знаний...') : window.CRM.i18n.t('chat.placeholder_message', 'Сообщение...');
     var hint = isAi ? window.CRM.i18n.t('chat.ai_compose_hint', 'Enter — отправить запрос AI-ассистенту, Shift+Enter — новая строка.') : window.CRM.i18n.t('chat.compose_hint', 'Enter — отправить, Shift+Enter — новая строка. @логин — упоминание.');
     var chipsHtml = '';
-    if (isAi && !isArchived) {
+    if (isAi && !isArchived && chat.ai_assistant && chat.ai_assistant.available) {
       chipsHtml = '<div class="crm-chat-quick-chips d-flex flex-wrap gap-1 mb-2" id="aiQuickChips">'
         + '<button type="button" class="btn btn-sm py-0 px-2" data-ai-chip="Мои задачи"><i class="fa-solid fa-list-check me-1" aria-hidden="true"></i>' + esc(window.CRM.i18n.t('chat.chip_my_tasks', 'Мои задачи')) + '</button>'
         + '<button type="button" class="btn btn-sm py-0 px-2" data-ai-chip="Проекты"><i class="fa-solid fa-folder-tree me-1" aria-hidden="true"></i>' + esc(window.CRM.i18n.t('chat.chip_projects', 'Проекты')) + '</button>'
@@ -497,7 +498,7 @@
       + '<button class="btn crm-btn-muted d-md-none" type="button" id="backToChatsBtn" aria-label="' + esc(window.CRM.i18n.t('chat.btn_back_aria', 'Вернуться к списку чатов')) + '">' + esc(window.CRM.i18n.t('chat.btn_back', 'К списку')) + '</button></div>'
       + '</div>'
       + '<div class="crm-chat-messages" id="msgArea" aria-live="polite"><div class="crm-chat-list-state">' + window.CRM.i18n.t('chat.loading_messages', 'Загрузка сообщений...') + '</div></div>'
-      + (isAi && !isArchived ? '<section id="aiRunPanel" class="px-3 py-2 border-top" style="max-height:240px;overflow:auto" aria-live="polite" hidden></section>' : '')
+      + (!isArchived ? '<section id="aiRunPanel" class="px-3 py-2 border-top" style="max-height:240px;overflow:auto" aria-live="polite" hidden></section>' : '')
       + (isArchived ? '' : '<div class="crm-chat-compose"><div class="text-danger small d-none" id="chatSendError" aria-live="polite"></div><div class="crm-chat-reply-preview d-none" id="replyPreview"></div>'
       + chipsHtml
       + '<div id="mentionPopup" class="crm-chat-mention-popup d-none" role="listbox" aria-label="' + window.CRM.i18n.t('chat.mention_popup_aria', 'Упомянуть участника') + '"></div><div class="crm-chat-picker d-none" id="emojiPicker"></div>'
@@ -906,7 +907,7 @@
       var loadedItems = (messagesEnv.data && messagesEnv.data.items) || [];
       allOlderLoaded = loadedItems.length < 80;
       renderMessages(loadedItems);
-      if (chat.type === 'ai_agent') recoverAiRun(id);
+      if (chat.ai_assistant && chat.ai_assistant.available) recoverAiRun(id);
       markRead();
       loadChats({ silent: true });
     } catch (error) {
@@ -1016,6 +1017,18 @@
     sync();
   }
 
+  function isAssistantRequest(text, reply) {
+    var bot = currentChat && currentChat.ai_assistant;
+    if (!bot || !bot.available) return false;
+    var aliases = ['ai_agent', 'agent', bot.login].filter(Boolean).map(function (value) { return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); });
+    if (new RegExp('(^|[^\\p{L}\\p{N}._@-])@(' + aliases.join('|') + ')(?![\\p{L}\\p{N}._-])', 'iu').test(text)) return true;
+    if (reply) return reply.sender_public_id === bot.public_id;
+    var me = window.CRM.api.getUser() || {};
+    var participants = currentChat.participants || [];
+    var onlyMeAndBot = participants.every(function (user) { return user.public_id === me.public_id || user.public_id === bot.public_id; });
+    return onlyMeAndBot && (currentChat.type === 'ai_agent' || participants.some(function (user) { return user.public_id === bot.public_id; }));
+  }
+
   window.sendMsg = async function () {
     var input = document.getElementById('msgInput');
     var button = document.getElementById('sendChatMessageBtn');
@@ -1023,7 +1036,7 @@
     var text = input.value.trim();
     if (!text) { setSendError(window.CRM.i18n.t('chat.error_write_message', 'Напишите сообщение.')); button.disabled = true; return; }
     if (!selectedChatId) { setSendError(window.CRM.i18n.t('chat.error_select_chat', 'Выберите чат.')); return; }
-    var isAi = currentChat && currentChat.type === 'ai_agent';
+    var isAi = isAssistantRequest(text, replyToMessage);
     setSendError('');
 
     var box = document.getElementById('msgArea');
@@ -1139,6 +1152,7 @@
       var realPublicId = serverData.public_id;
       var realId = Number(serverData.message_seq || serverData.id || 0);
 
+      if (serverData.ai_unavailable) setSendError(aiLabel('unavailable', 'AI сейчас недоступен. Проверьте подключение к нейросети.'));
       if (serverData.ai_run) {
         aiRuns[chatIdAtSend] = serverData.ai_run;
         renderAiRun(chatIdAtSend, serverData.ai_run);
@@ -1730,6 +1744,11 @@
       var ownLogin = '';
       if (window.CRM && window.CRM.user) {
         ownLogin = String(window.CRM.user.login || '');
+      }
+      if (currentChat && currentChat.ai_assistant) {
+        var bot = currentChat.ai_assistant;
+        p = p.filter(function (user) { return user.public_id !== bot.public_id; });
+        if (bot.available && !p.some(function (u) { return u.login === bot.login; })) p = p.concat([bot]);
       }
       if (!ownLogin) return p;
       return p.filter(function(u) { return String(u.login || '') !== ownLogin; });

@@ -410,6 +410,42 @@
     }
   });
 
+  // Embedded project chats share the durable assistant runner with the full chat UI.
+  var assistantDrivers = {};
+  chat.driveAssistant = function (chatId, initialRun, onUpdate) {
+    if (!initialRun || assistantDrivers[chatId]) return assistantDrivers[chatId] || Promise.resolve();
+    assistantDrivers[chatId] = (async function () {
+      var run = initialRun;
+      var request = window.CRM.api.request;
+      var path = 'api/v1/chats/' + encodeURIComponent(chatId) + '/ai-run';
+      while (run) {
+        if (['queued', 'running', 'cancelling', 'interrupted'].indexOf(run.status) < 0) break;
+        try {
+          var wait = run.retry_at && run.retry_at * 1000 > Date.now()
+            ? Math.min(15000, run.retry_at * 1000 - Date.now()) : (run.status === 'running' || run.status === 'cancelling' ? 1500 : 0);
+          var env;
+          if (wait) {
+            await new Promise(function (resolve) { window.setTimeout(resolve, wait); });
+            env = await request(path, { method: 'GET' });
+          } else {
+            env = await request(path + '/step', { method: 'POST', body: { run_public_id: run.public_id, action: 'step' }, timeoutMs: 120000 });
+          }
+          run = env.data.run;
+          if (onUpdate) await onUpdate(run);
+          if (run && ['completed', 'cancelled', 'waiting_input'].indexOf(run.status) >= 0) {
+            run = (await request(path, { method: 'GET' })).data.run;
+          }
+          if (run && run.status === 'queued') await new Promise(function (resolve) { window.setTimeout(resolve, 500); });
+        } catch (error) {
+          if (error && (error.status === 403 || error.status === 404)) throw error;
+          await new Promise(function (resolve) { window.setTimeout(resolve, 3000); });
+          run = (await request(path, { method: 'GET' })).data.run;
+        }
+      }
+    })().finally(function () { delete assistantDrivers[chatId]; });
+    return assistantDrivers[chatId];
+  };
+
   /* ── public API ──────────────────────────────────────────── */
 
   window.CRM = window.CRM || {};
