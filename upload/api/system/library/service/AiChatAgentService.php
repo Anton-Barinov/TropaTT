@@ -227,11 +227,11 @@ final class AiChatAgentService
                 $state['tool_count'] = (int)($saved['tool_count'] ?? 0);
             }
         }
-        if ($previous && in_array($previous['status'], ['paused', 'failed'], true) && $this->isIndependentRequest($request)) {
-            // A new explicit request supersedes blocked work; running actions keep their lease.
-            $this->pdo->prepare("UPDATE ai_chat_runs SET status = 'cancelled', updated_at = NOW()
-                WHERE id = :id AND actor_user_id = :uid AND status IN ('paused','failed')")
-                ->execute(['id' => $previous['id'], 'uid' => $user['id']]);
+        if ($this->isIndependentRequest($request)) {
+            // A new explicit request supersedes any unfinished work in this chat for this user.
+            $this->pdo->prepare("UPDATE ai_chat_runs SET status = 'cancelled', lock_token = NULL, updated_at = NOW()
+                WHERE chat_id = :cid AND actor_user_id = :uid AND status IN ('queued', 'paused', 'failed')")
+                ->execute(['cid' => (int)$chat['id'], 'uid' => (int)$user['id']]);
         }
         $pid = 'air_' . bin2hex(random_bytes(12));
         if (in_array(mb_strtolower(trim($state['request'])), ['/clear', '/reset', 'очистить', 'сброс'], true)) {
@@ -316,12 +316,21 @@ final class AiChatAgentService
                 ->execute(['state' => $this->encodeState($state), 'id' => $run['id']]);
         }
         if ((int)($state['retry_at'] ?? 0) > time()) return $this->runStatus($chat, $actor, $publicId);
+        $user = is_array($actor['user'] ?? null) ? $actor['user'] : $actor;
+        $this->pdo->prepare("UPDATE ai_chat_runs SET status = 'cancelled', lock_token = NULL, updated_at = NOW()
+            WHERE chat_id = :cid AND actor_user_id = :uid AND id < :rid AND status IN ('paused', 'failed')")
+            ->execute(['cid' => (int)$chat['id'], 'uid' => (int)$user['id'], 'rid' => (int)$run['id']]);
+
+        $staleThreshold = gmdate('Y-m-d H:i:s', time() - 300);
         $token = bin2hex(random_bytes(16));
         $lock = $this->pdo->prepare("UPDATE ai_chat_runs SET status = 'running', lock_token = :token,
             locked_at = :locked, updated_at = NOW() WHERE id = :id AND status = 'queued'
-            AND NOT EXISTS (SELECT 1 FROM (SELECT id, chat_id, actor_user_id, status FROM ai_chat_runs) other_runs
-                WHERE other_runs.chat_id = :cid AND other_runs.actor_user_id = :actor_id AND other_runs.id < :rid AND other_runs.status IN ('queued','running','cancelling','paused','failed'))");
-        $lock->execute(['token' => $token, 'locked' => gmdate('Y-m-d H:i:s'), 'id' => $run['id'], 'cid' => $chat['id'], 'actor_id' => (int)$run['actor_user_id'], 'rid' => $run['id']]);
+            AND NOT EXISTS (SELECT 1 FROM (SELECT id, chat_id, actor_user_id, status, locked_at FROM ai_chat_runs) other_runs
+                WHERE other_runs.chat_id = :cid AND other_runs.actor_user_id = :actor_id AND other_runs.id < :rid
+                  AND other_runs.status IN ('queued','running','cancelling')
+                  AND (other_runs.locked_at IS NULL OR other_runs.locked_at >= :stale))");
+        $lock->execute(['token' => $token, 'locked' => gmdate('Y-m-d H:i:s'), 'id' => $run['id'],
+            'cid' => $chat['id'], 'actor_id' => (int)$run['actor_user_id'], 'rid' => $run['id'], 'stale' => $staleThreshold]);
         if ($lock->rowCount() !== 1) return $this->runStatus($chat, $actor, $publicId);
 
         $previous = $this->container->has('auth_user') ? $this->container->get('auth_user') : null;
@@ -832,8 +841,10 @@ final class AiChatAgentService
    - КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО отвечать только фразами вроде «сейчас я посмотрю», «проверю», «создам» без вызова инструментов. Если для шага нужен инструмент — вызывайте его в этом же ходе!
    - Не останавливайтесь на полпути: выполняйте всю цепочку до конца, пока все части запроса пользователя не будут полностью выполнены.
 3. Анализ загрузки сотрудников:
-   - Сначала вызовите crm_people (action: "list_users"), чтобы узнать сотрудников и их public_id.
-   - Затем проверьте задачи через crm_task (action: "list", status: "in_progress"; затем отдельно status: "todo" или "new" согласно схеме), подсчитайте количество активных задач на каждого сотрудника и выберите того, у кого их меньше всего.
+   - Не опрашивайте каждого сотрудника отдельным запросом в цикле (избегайте N+1 запросов)!
+   - Вызовите crm_people (action: "list_users", limit: 20) для получения списка сотрудников.
+   - Вызовите crm_task (action: "list", status: "in_progress", limit: 20) ОДИН РАЗ без указания assignee_user_public_id, чтобы увидеть все текущие активные задачи в системе.
+   - Любой активный сотрудник, у которого 0 активных задач в этом списке (или минимальное количество), считается наименее загруженным. СРАЗУ выбирайте его и переходите к следующему шагу! Не делайте дополнительных запросов по остальным сотрудникам.
 4. Создание проекта и задачи:
    - Сначала создайте проект через crm_project (action: "create", title: "..."). Сохраните полученный public_id проекта.
    - Затем создайте задачу, привязав её к проекту (project_public_id). Для комплексных задач с чек-листами и подзадачами используйте crm_agent_bundle или crm_task (action: "create", затем create_checklist, create_subtask).
