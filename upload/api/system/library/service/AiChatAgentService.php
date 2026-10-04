@@ -303,9 +303,9 @@ final class AiChatAgentService
         $token = bin2hex(random_bytes(16));
         $lock = $this->pdo->prepare("UPDATE ai_chat_runs SET status = 'running', lock_token = :token,
             locked_at = :locked, updated_at = NOW() WHERE id = :id AND status = 'queued'
-            AND NOT EXISTS (SELECT 1 FROM (SELECT id, chat_id, status FROM ai_chat_runs) other_runs
-                WHERE other_runs.chat_id = :cid AND other_runs.id < :rid AND other_runs.status IN ('queued','running','cancelling','paused','failed'))");
-        $lock->execute(['token' => $token, 'locked' => gmdate('Y-m-d H:i:s'), 'id' => $run['id'], 'cid' => $chat['id'], 'rid' => $run['id']]);
+            AND NOT EXISTS (SELECT 1 FROM (SELECT id, chat_id, actor_user_id, status FROM ai_chat_runs) other_runs
+                WHERE other_runs.chat_id = :cid AND other_runs.actor_user_id = :actor_id AND other_runs.id < :rid AND other_runs.status IN ('queued','running','cancelling','paused','failed'))");
+        $lock->execute(['token' => $token, 'locked' => gmdate('Y-m-d H:i:s'), 'id' => $run['id'], 'cid' => $chat['id'], 'actor_id' => (int)$run['actor_user_id'], 'rid' => $run['id']]);
         if ($lock->rowCount() !== 1) return $this->runStatus($chat, $actor, $publicId);
 
         $previous = $this->container->has('auth_user') ? $this->container->get('auth_user') : null;
