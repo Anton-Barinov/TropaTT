@@ -431,7 +431,7 @@ final class AiChatAgentService
                     ...(array_key_exists('reasoning_content', $completion) ? ['reasoning_content' => (string)$completion['reasoning_content']] : [])];
                 $unfinished = array_filter($state['plan'], static fn(array $item): bool => $item['status'] !== 'done');
                 $isQuestion = ($state['plan'] === [] || $unfinished !== [])
-                    && (bool)preg_match('/(уточните|уточни(?:[\s,.!?]|$)|укажите|подтвердите|подтверди(?:[\s,.!?]|$)|недостаточно прав|не хватает|не могу|please (provide|confirm|clarify))/iu', $text);
+                    && $this->requiresUserInput($text);
                 if ($text !== '' && !$isQuestion && ($unfinished !== [] || ($this->isCompoundRequest($state['request']) && empty($state['plan'])) || $this->isMonologuePlanningWithoutTools($state['request'], $text))) {
                     $state['no_progress']++;
                     $state['messages'][] = ['role' => 'system', 'content' => 'Original request remains unfinished. Continue the pending plan with CRM tools now. Verify all results, update the plan, then give the final answer. Do not claim success without tool evidence.'];
@@ -632,6 +632,19 @@ final class AiChatAgentService
                 . implode(', ', array_unique($ids[0])) . ']';
         }
         return '<crm_tool_output untrusted_data="true">' . $text . '</crm_tool_output>';
+    }
+
+    private function requiresUserInput(string $text): bool
+    {
+        $text = preg_replace('/```[\s\S]*?```/u', '', $text) ?? $text;
+        foreach (preg_split('/\n|(?<=[.!?])\s+/u', $text) ?: [] as $sentence) {
+            $sentence = trim(preg_replace('/^[\s\p{So}*#>\-]+/u', '', $sentence) ?? $sentence);
+            if (preg_match('/^(?:если|if|рекомендаци|при желании|хотите|would you|можно также)/iu', $sentence)) continue;
+            if (preg_match('/^(?:(?:пожалуйста|please)[,\s]+)?(?:уточните|уточни|укажите|подтвердите|подтверди|недостаточно прав|не хватает|не могу|нужно уточнить|provide|confirm|clarify)\b/iu', $sentence)) return true;
+            if (preg_match('/^(?:чтобы|для того чтобы|to)\b.*(?:продолж|созда|выполн|continue|create|complete).*(?:уточни|укажи|подтверди|provide|confirm|clarify)/iu', $sentence)) return true;
+            if (mb_strlen($text) < 500 && preg_match('/^(?:как назвать|какое название|кто будет|какого исполнителя|какую дату|в каком проекте|which project|what name)\b.*\?\s*$/iu', $sentence)) return true;
+        }
+        return false;
     }
 
     private function executionInstructions(string $mode = 'auto'): string
