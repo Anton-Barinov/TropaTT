@@ -537,6 +537,9 @@ final class AiProviderService
                     'ok' => true,
                     'provider_public_id' => (string)($fallbackResult['provider']['public_id'] ?? ''),
                     'runtime_mode' => $runtimeMode,
+                    'model' => (string)($fallbackResult['result']['model'] ?? $fallbackResult['provider']['default_model'] ?? ''),
+                    ...(!empty($payload['_retain_reasoning']) && array_key_exists('reasoning_content', $fallbackResult['result'])
+                        ? ['reasoning_content' => (string)$fallbackResult['result']['reasoning_content']] : []),
                     'text' => trim((string)($fallbackResult['result']['text'] ?? '')),
                     'tool_calls' => (array)($fallbackResult['result']['tool_calls'] ?? []),
                     'request_tokens' => (int)($fallbackResult['result']['request_tokens'] ?? 0),
@@ -576,7 +579,12 @@ final class AiProviderService
             if (($result['code'] ?? '') !== 'AI_PROVIDER_OUTPUT_TRUNCATED') {
                 $this->persistProviderHealthSnapshot($provider, $failureUpdates, []);
             }
-            return $this->sanitizeProviderError($result);
+            return array_merge($this->sanitizeProviderError($result), [
+                'provider_public_id' => (string)($provider['public_id'] ?? ''),
+                'model' => (string)($payload['model'] ?? $provider['default_model'] ?? ''),
+                'request_tokens' => (int)($result['request_tokens'] ?? 0), 'response_tokens' => (int)($result['response_tokens'] ?? 0),
+                'latency_ms' => (int)($result['latency_ms'] ?? 0),
+            ]);
         }
 
         $this->logCompletionDiag(
@@ -606,6 +614,7 @@ final class AiProviderService
             'ok' => true,
             'provider_public_id' => (string)($provider['public_id'] ?? ''),
             'runtime_mode' => $runtimeMode,
+            'model' => (string)($result['model'] ?? $payload['model'] ?? $provider['default_model'] ?? ''),
             'text' => trim((string)($result['text'] ?? '')),
             'tool_calls' => (array)($result['tool_calls'] ?? []),
             ...(!empty($payload['_retain_reasoning']) && array_key_exists('reasoning_content', $result)
@@ -1041,7 +1050,9 @@ final class AiProviderService
             return null;
         }
 
-        return ((bool)($result['ok'] ?? false)) && trim((string)($result['text'] ?? '')) !== '' ? $result : null;
+        if (empty($result['ok']) || (trim((string)($result['text'] ?? '')) === '' && empty($result['tool_calls']))) return null;
+        $result['model'] = (string)($attemptPayload['model'] ?? $provider['default_model'] ?? '');
+        return $result;
     }
 
     private function persistProviderHealthSnapshot(array $provider, array $updates, array $actor): void
@@ -1193,7 +1204,7 @@ final class AiProviderService
             'intent_code' => (string)($payload['intent_code'] ?? ''),
             'provider_public_id' => (string)($provider['public_id'] ?? ''),
             'provider_code' => (string)($provider['provider_code'] ?? ''),
-            'model' => trim((string)($payload['model'] ?? '')),
+            'model' => trim((string)($payload['model'] ?? $provider['default_model'] ?? '')),
             'endpoint_host' => $host,
             'status' => $status,
             'error_code' => (string)($resultMeta['code'] ?? ''),

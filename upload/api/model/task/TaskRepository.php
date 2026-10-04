@@ -1181,6 +1181,16 @@ final class TaskRepository
             $qb->where('t.updated_at', '>=', (string)$filters['updated_since']);
         }
 
+        if (!empty($filters['start_at_from'])) {
+            $startFrom = trim((string)$filters['start_at_from']);
+            $qb->where('t.start_at', '>=', strpos($startFrom, ':') !== false ? $startFrom : $startFrom . ' 00:00:00');
+        }
+
+        if (!empty($filters['start_at_to'])) {
+            $startTo = trim((string)$filters['start_at_to']);
+            $qb->where('t.start_at', '<=', strpos($startTo, ':') !== false ? $startTo : $startTo . ' 23:59:59');
+        }
+
         if (!empty($filters['due_at'])) {
             $day = (string)$filters['due_at'];
             $qb->where('t.due_at', '>=', $day . ' 00:00:00')

@@ -169,6 +169,16 @@ final class ChatService
         $stmt->execute();
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         if (is_array($user)) {
+            if (stripos((string)($user['full_name'] ?? ''), 'copilot') !== false) {
+                $hasNameCol = $this->tableHasColumn('users', 'name');
+                $nameVal = $hasNameCol ? ", name = 'AI Ассистент'" : '';
+                $this->pdo->prepare("UPDATE users SET full_name = 'AI Ассистент'{$nameVal} WHERE id = :id")
+                    ->execute(['id' => (int)$user['id']]);
+                $user['full_name'] = 'AI Ассистент';
+                if ($hasNameCol) {
+                    $user['name'] = 'AI Ассистент';
+                }
+            }
             return $user;
         }
 
@@ -252,6 +262,11 @@ final class ChatService
         $stmt->execute($params);
         $existing = $stmt->fetch(PDO::FETCH_ASSOC);
         if (is_array($existing)) {
+            if (empty($existing['title']) || stripos((string)$existing['title'], 'copilot') !== false) {
+                $this->pdo->prepare("UPDATE chats SET title = 'AI Ассистент' WHERE id = :id")
+                    ->execute(['id' => (int)$existing['id']]);
+                $existing['title'] = 'AI Ассистент';
+            }
             $this->syncParticipants((int)$existing['id'], [$actorUserId, $agentUserId], [$actorUserId], $organizationId);
             return $existing;
         }

@@ -79,7 +79,8 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
         $json = is_array($response['json'] ?? null) ? (array)$response['json'] : [];
         if (($json['choices'][0]['finish_reason'] ?? '') === 'length') {
             return ['ok' => false, 'code' => 'AI_PROVIDER_OUTPUT_TRUNCATED', 'message' => 'Provider output exceeded its token budget',
-                'latency_ms' => $latencyMs, 'http_status' => (int)($response['http_status'] ?? 0)];
+                'latency_ms' => $latencyMs, 'http_status' => (int)($response['http_status'] ?? 0),
+                'request_tokens' => (int)($json['usage']['prompt_tokens'] ?? 0), 'response_tokens' => (int)($json['usage']['completion_tokens'] ?? 0)];
         }
         $text = $this->extractCompletionText($json);
         $toolCalls = $this->extractToolCalls($json);

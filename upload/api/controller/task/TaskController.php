@@ -69,6 +69,30 @@ final class TaskController extends BaseController
         if (!empty($input['updated_since']) && strtotime((string)$input['updated_since']) === false) {
             $errors['updated_since'][] = $this->t('common/messages.invalid_date');
         }
+        $startBounds = [];
+        foreach (['start_at_from', 'start_at_to'] as $field) {
+            if (!isset($input[$field]) || trim((string)$input[$field]) === '') {
+                continue;
+            }
+            $value = trim((string)$input[$field]);
+            $validBound = preg_match('/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/', $value, $parts) === 1
+                && checkdate((int)$parts[2], (int)$parts[3], (int)$parts[1]);
+            if ($validBound && isset($parts[4]) && $parts[4] !== '') {
+                $validBound = (int)$parts[4] <= 23 && (int)$parts[5] <= 59 && (int)($parts[6] ?? 0) <= 59;
+            }
+            if (!$validBound) {
+                $errors[$field][] = $this->t('common/messages.invalid_date');
+                continue;
+            }
+            $startBounds[$field] = strtotime($value);
+        }
+        if (isset($startBounds['start_at_from'], $startBounds['start_at_to'])) {
+            if ($startBounds['start_at_from'] > $startBounds['start_at_to']) {
+                $errors['start_at_to'][] = $this->t('common/messages.invalid_date');
+            } elseif ($startBounds['start_at_to'] - $startBounds['start_at_from'] > 62 * 86400) {
+                $errors['start_at_to'][] = $this->t('common/messages.invalid_date');
+            }
+        }
         if (!empty($input['cursor']) && strlen((string)$input['cursor']) > 1024) {
             $errors['cursor'][] = $this->t('task/messages.invalid_cursor');
         }

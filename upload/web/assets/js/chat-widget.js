@@ -245,7 +245,8 @@
   chat.renderMessage = function (message, ctx) {
     var findMessage = ctx && ctx.findMessage ? ctx.findMessage : function () { return null; };
     var sender = message.sender_name || message.sender_login || window.CRM.i18n.t('chat.default_sender', 'Пользователь');
-    var isAi = !!(message.is_ai || message.role === 'assistant' || message.sender_name === 'AI Ассистент' || message.sender_name === 'AI Assistant' || message.sender_name === 'AI Copilot' || message.sender_login === 'ai_agent' || message.sender_login === 'agent');
+    if (sender && sender.toLowerCase().indexOf('copilot') !== -1) sender = window.CRM.i18n.t('chat.ai_agent_title', 'AI Ассистент');
+    var isAi = !!(message.is_ai || message.role === 'assistant' || message.sender_name === 'AI Ассистент' || message.sender_name === 'AI Assistant' || (message.sender_name && message.sender_name.indexOf('Copilot') !== -1) || message.sender_login === 'ai_agent' || message.sender_login === 'agent');
     var own = Number(message.is_own || 0) === 1;
     var deleted = !!message.deleted_at;
     var isOptimistic = !!message.is_optimistic;

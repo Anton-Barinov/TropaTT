@@ -21,6 +21,9 @@
         </div>
         <div class="crm-calendar-summary" data-calendar-summary><span class="crm-chip" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></span></div>
       </div>
+      <div class="crm-calendar-content-toggles" role="group" aria-label="<?= htmlspecialchars($t('calendar.content_options_aria', 'Содержимое календаря'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="calendar.content_options_aria">
+        <label class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" role="switch" data-calendar-show-tasks checked><span class="form-check-label" data-i18n="calendar.show_tasks"><?= htmlspecialchars($t('calendar.show_tasks', 'Показывать задачи'), ENT_QUOTES, 'UTF-8') ?></span></label>
+      </div>
       <div data-calendar-surface><div class="crm-calendar-loading" data-i18n="calendar.loading_calendar"><?= htmlspecialchars($t('calendar.loading_calendar', 'Загрузка календаря...'), ENT_QUOTES, 'UTF-8') ?></div></div>
     </div>
   </div>

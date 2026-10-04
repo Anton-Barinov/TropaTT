@@ -212,7 +212,13 @@
   }
 
   function chatTitle(chat) {
-    if (chat && chat.type === 'ai_agent') return String(chat.title || '').trim() || window.CRM.i18n.t('chat.ai_agent_title', 'AI Ассистент');
+    if (chat && chat.type === 'ai_agent') {
+      var t = String(chat.title || '').trim();
+      if (!t || t.toLowerCase().indexOf('copilot') !== -1) {
+        return window.CRM.i18n.t('chat.ai_agent_title', 'AI Ассистент');
+      }
+      return t;
+    }
     var title = String(chat.title || '').trim();
     var participants = String(chat.participant_names || '').split(',').map(function (item) { return item.trim(); }).filter(Boolean);
     if ((chat.type === 'project' || chat.type === 'team') && title) return title;
@@ -474,7 +480,7 @@
     currentChat = chat;
     var isAi = (chat && chat.type === 'ai_agent');
     var participants = Array.isArray(chat.participants) ? chat.participants : [];
-    var participantText = isAi ? window.CRM.i18n.t('chat.ai_copilot_assistant', 'Персональный AI-ассистент') : (participants.length + ' ' + plural(participants.length, window.CRM.i18n.t('chat.participant_one', 'участник'), window.CRM.i18n.t('chat.participant_few', 'участника'), window.CRM.i18n.t('chat.participant_many', 'участников')));
+    var participantText = isAi ? window.CRM.i18n.t('chat.ai_copilot_assistant', 'Персональный ассистент') : (participants.length + ' ' + plural(participants.length, window.CRM.i18n.t('chat.participant_one', 'участник'), window.CRM.i18n.t('chat.participant_few', 'участника'), window.CRM.i18n.t('chat.participant_many', 'участников')));
     var isStandalone = (String(chat.created_by_user_id || '') !== '');
     var isArchived = (chat.is_archived || !!chat.archived_at);
     var placeholder = isAi ? window.CRM.i18n.t('chat.placeholder_ai_message', 'Спросите AI-ассистента о задачах, проектах или базе знаний...') : window.CRM.i18n.t('chat.placeholder_message', 'Сообщение...');

@@ -13,6 +13,25 @@ final class AiUsageService
     ) {
     }
 
+    /** Record chat transport usage without retaining prompts, reasoning or secrets. */
+    public function recordUsage(int $userId, string $actionType, string $providerId, string $model, int $inputTokens, int $outputTokens, array $meta = []): void
+    {
+        $this->runtime->createUsageLog([
+            'organization_id' => (int)($meta['organization_id'] ?? 0) ?: null,
+            'user_id' => $userId > 0 ? $userId : null,
+            'provider_public_id' => $providerId,
+            'action_type' => $actionType, 'intent_code' => $actionType,
+            'status' => !empty($meta['error_code']) ? 'failed' : 'completed',
+            'error_code' => (string)($meta['error_code'] ?? ''),
+            'request_tokens' => max(0, $inputTokens), 'response_tokens' => max(0, $outputTokens),
+            'total_tokens' => max(0, $inputTokens) + max(0, $outputTokens),
+            'latency_ms' => max(0, (int)($meta['latency_ms'] ?? 0)), 'is_sensitive_context' => 0,
+            'request_meta' => json_encode(['resolved_model' => $model, 'run_public_id' => (string)($meta['run_public_id'] ?? ''),
+                'chat_public_id' => (string)($meta['chat_public_id'] ?? '')], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+            'created_at' => gmdate('Y-m-d H:i:s'),
+        ]);
+    }
+
     /**
      * @param array<string,mixed> $filters
      * @param array<string,mixed> $actor

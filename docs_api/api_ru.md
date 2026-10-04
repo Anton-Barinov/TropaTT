@@ -442,7 +442,7 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 
 | Метод | Endpoint | Назначение | Auth | Permissions | Описание |
 |-------|----------|------------|:---:|-------------|----------|
-| GET | `/api/v1/tasks` 🔄 | Список задач | Да | `task.manage \| task.view` | Cursor-based, фильтры |
+| GET | `/api/v1/tasks` 🔄 | Список задач | Да | `task.manage \| task.view` | Cursor-based, фильтры; `start_at_from` и `start_at_to` ограничивают включительный диапазон плановой даты начала (до 62 дней) |
 | POST | `/api/v1/tasks` 🔄 | Создание задачи | Да | `task.manage` | — |
 | GET | `/api/v1/tasks/board` 🔄 | Канбан-доска | Да | `task.manage` | Группировка по статусам |
 | POST | `/api/v1/tasks/bulk` 🔄 | Массовое обновление | Да | `task.manage` | — |

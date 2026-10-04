@@ -132,17 +132,17 @@ final class ChatController extends BaseController
                 $items = $this->mergeStaffProjectClientChats($items, $user);
             }
 
-            if (!$isAiAvailable) {
-                $items = array_values(array_filter($items, static fn(array $item): bool => ($item['type'] ?? '') !== 'ai_agent'));
-            } else {
-                foreach ($items as &$item) {
-                    if (($item['type'] ?? '') === 'ai_agent') {
-                        $item['title'] = !empty($item['title']) ? $item['title'] : 'AI Ассистент';
-                        $item['is_ai_agent'] = true;
+            // Provider outages must not hide an authorized user's existing history.
+            foreach ($items as &$item) {
+                if (($item['type'] ?? '') === 'ai_agent') {
+                    if (empty($item['title']) || stripos((string)$item['title'], 'copilot') !== false) {
+                        $item['title'] = 'AI Ассистент';
                     }
+                    $item['is_ai_agent'] = true;
+                    $item['ai_available'] = $isAiAvailable;
                 }
-                unset($item);
             }
+            unset($item);
         } catch (\Throwable $e) {
             AppLog::error('[ChatController::list] ' . $e->getMessage());
             $items = [];
@@ -218,9 +218,20 @@ final class ChatController extends BaseController
             }
         }
         if (!$chat) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+        if (($chat['type'] ?? '') === 'ai_agent') {
+            if (empty($chat['title']) || stripos((string)$chat['title'], 'copilot') !== false) {
+                $chat['title'] = 'AI Ассистент';
+            }
+        }
         $chat['participants'] = !empty($chat['archived_at'])
             ? $this->participantsForChatArchived($chat)
             : $this->participantsForChat((int)$chat['id']);
+        foreach ($chat['participants'] as &$p) {
+            if (($p['login'] ?? '') === 'ai_agent' || stripos((string)($p['full_name'] ?? ''), 'copilot') !== false) {
+                $p['full_name'] = 'AI Ассистент';
+            }
+        }
+        unset($p);
         $chat['ai_assistant'] = $this->assistantForActor($actor);
 
         return $this->success('CHAT_DETAIL', $this->t('common/messages.ok'), ['chat' => $chat]);
@@ -1171,12 +1182,6 @@ final class ChatController extends BaseController
             return null;
         }
 
-        if (($row['type'] ?? '') === 'ai_agent') {
-            if (!$this->isAiAvailableForActor($actor)) {
-                return null;
-            }
-        }
-
         return $row;
     }
 
@@ -1201,7 +1206,11 @@ final class ChatController extends BaseController
         if (!empty($actor['is_external'])) return ['available' => false];
         $stmt = $this->container->get('db.pdo')->query("SELECT id, public_id, login, full_name FROM users
             WHERE public_id = 'usr_D6A6FADCE249FCC1' OR login IN ('ai_agent','agent') ORDER BY id ASC LIMIT 1");
-        return array_merge($stmt->fetch(PDO::FETCH_ASSOC) ?: ['login' => 'ai_agent', 'full_name' => 'AI Ассистент'], ['available' => $available]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC) ?: ['login' => 'ai_agent', 'full_name' => 'AI Ассистент'];
+        if (stripos((string)($user['full_name'] ?? ''), 'copilot') !== false) {
+            $user['full_name'] = 'AI Ассистент';
+        }
+        return array_merge($user, ['available' => $available]);
     }
 
     private function archivedChatForCurrentUser(string $publicId): ?array

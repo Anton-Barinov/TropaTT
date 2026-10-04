@@ -446,7 +446,7 @@ Beyond permission checks, a hard route allowlist (`external_ok` in `routes.php`,
 
 | Method | Endpoint | Description | Auth | Permissions | Notes |
 |-------|----------|------------|:---:|-------------|----------|
-| GET | `/api/v1/tasks` 🔄 | List tasks | Yes | `task.manage | task.view` | Cursor-based, filters |
+| GET | `/api/v1/tasks` 🔄 | List tasks | Yes | `task.manage | task.view` | Cursor-based, filters; `start_at_from` and `start_at_to` filter the inclusive scheduled-start range (up to 62 days) |
 | POST | `/api/v1/tasks` 🔄 | Create task | Yes | `task.manage` | — |
 | GET | `/api/v1/tasks/board` 🔄 | Kanban board | Yes | `task.manage` | Grouped by statuses |
 | POST | `/api/v1/tasks/bulk` 🔄 | Bulk update | Yes | `task.manage` | — |
