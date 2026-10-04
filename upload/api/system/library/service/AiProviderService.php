@@ -427,6 +427,9 @@ final class AiProviderService
     public function completeText(?string $providerPublicId, array $payload): array
     {
         $runtimeMode = $this->runtimeMode();
+        $phpLimit = (int)ini_get('max_execution_time');
+        $budget = $phpLimit > 0 ? max(1, min(110, $phpLimit - 3)) : 110;
+        $payload['_deadline_at'] = min((float)($payload['_deadline_at'] ?? INF), microtime(true) + $budget);
         $provider = null;
         if ($providerPublicId !== null && trim($providerPublicId) !== '') {
             $provider = $this->providers->findByPublicId($providerPublicId);
@@ -486,6 +489,10 @@ final class AiProviderService
             $this->logCompletionDiag($provider, $payload, 'failed', ['code' => 'AI_PROVIDER_CIRCUIT_OPEN', 'http_status' => 0, 'latency_ms' => 0, 'attempts' => 0], false, false);
         }
         for ($attempt = 0; !$circuitOpen && $attempt < $maxRetries; $attempt++) {
+            if (microtime(true) >= $payload['_deadline_at']) {
+                $result = ['ok' => false, 'code' => 'AI_PROVIDER_TIMEOUT', 'http_status' => 0];
+                break;
+            }
             $result = $client->completeText($provider, $secret, $payload);
             if ((bool)($result['ok'] ?? false)) {
                 break;
@@ -496,7 +503,7 @@ final class AiProviderService
                 break;
             }
             $backoffMs = (int)(1000 * pow(3, $attempt));
-            usleep($backoffMs * 1000);
+            usleep((int)min($backoffMs * 1000, max(0, ($payload['_deadline_at'] - microtime(true)) * 1000000)));
         }
         if (!(bool)($result['ok'] ?? false)) {
             // TROPATTCRM-622: retry once through the fallback model (and then a
@@ -530,6 +537,9 @@ final class AiProviderService
                     'ok' => true,
                     'provider_public_id' => (string)($fallbackResult['provider']['public_id'] ?? ''),
                     'runtime_mode' => $runtimeMode,
+                    'model' => (string)($fallbackResult['result']['model'] ?? $fallbackResult['provider']['default_model'] ?? ''),
+                    ...(!empty($payload['_retain_reasoning']) && array_key_exists('reasoning_content', $fallbackResult['result'])
+                        ? ['reasoning_content' => (string)$fallbackResult['result']['reasoning_content']] : []),
                     'text' => trim((string)($fallbackResult['result']['text'] ?? '')),
                     'tool_calls' => (array)($fallbackResult['result']['tool_calls'] ?? []),
                     'request_tokens' => (int)($fallbackResult['result']['request_tokens'] ?? 0),
@@ -565,8 +575,16 @@ final class AiProviderService
                 // Skipped requests must not renew the cooldown indefinitely.
                 $failureUpdates = array_merge($failureUpdates, $this->circuitBreakerFailureUpdates($provider));
             }
-            $this->persistProviderHealthSnapshot($provider, $failureUpdates, []);
-            return $this->sanitizeProviderError($result);
+            // A bounded output is a request limitation, not a broken gateway.
+            if (($result['code'] ?? '') !== 'AI_PROVIDER_OUTPUT_TRUNCATED') {
+                $this->persistProviderHealthSnapshot($provider, $failureUpdates, []);
+            }
+            return array_merge($this->sanitizeProviderError($result), [
+                'provider_public_id' => (string)($provider['public_id'] ?? ''),
+                'model' => (string)($payload['model'] ?? $provider['default_model'] ?? ''),
+                'request_tokens' => (int)($result['request_tokens'] ?? 0), 'response_tokens' => (int)($result['response_tokens'] ?? 0),
+                'latency_ms' => (int)($result['latency_ms'] ?? 0),
+            ]);
         }
 
         $this->logCompletionDiag(
@@ -596,6 +614,7 @@ final class AiProviderService
             'ok' => true,
             'provider_public_id' => (string)($provider['public_id'] ?? ''),
             'runtime_mode' => $runtimeMode,
+            'model' => (string)($result['model'] ?? $payload['model'] ?? $provider['default_model'] ?? ''),
             'text' => trim((string)($result['text'] ?? '')),
             'tool_calls' => (array)($result['tool_calls'] ?? []),
             ...(!empty($payload['_retain_reasoning']) && array_key_exists('reasoning_content', $result)
@@ -941,6 +960,7 @@ final class AiProviderService
      */
     private function completeViaFallback(array $provider, array $payload, array $primaryResult): ?array
     {
+        if (isset($payload['_deadline_at']) && microtime(true) >= $payload['_deadline_at']) return null;
         $primaryCode = strtoupper(trim((string)($primaryResult['code'] ?? '')));
         // Configuration errors (no secret, provider disabled) will not be fixed
         // by another attempt against the same infrastructure; auth and billing
@@ -1030,7 +1050,9 @@ final class AiProviderService
             return null;
         }
 
-        return ((bool)($result['ok'] ?? false)) && trim((string)($result['text'] ?? '')) !== '' ? $result : null;
+        if (empty($result['ok']) || (trim((string)($result['text'] ?? '')) === '' && empty($result['tool_calls']))) return null;
+        $result['model'] = (string)($attemptPayload['model'] ?? $provider['default_model'] ?? '');
+        return $result;
     }
 
     private function persistProviderHealthSnapshot(array $provider, array $updates, array $actor): void
@@ -1182,7 +1204,7 @@ final class AiProviderService
             'intent_code' => (string)($payload['intent_code'] ?? ''),
             'provider_public_id' => (string)($provider['public_id'] ?? ''),
             'provider_code' => (string)($provider['provider_code'] ?? ''),
-            'model' => trim((string)($payload['model'] ?? '')),
+            'model' => trim((string)($payload['model'] ?? $provider['default_model'] ?? '')),
             'endpoint_host' => $host,
             'status' => $status,
             'error_code' => (string)($resultMeta['code'] ?? ''),

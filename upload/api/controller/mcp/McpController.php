@@ -3111,7 +3111,10 @@ $tools[] = $this->tool(
                 'include_archived_projects' => ['type' => 'boolean', 'description' => 'Task list/board: include tasks that belong to archived projects. Off by default so the list matches the dashboard KPIs.'],
                 'include_ancestors' => ['type' => 'boolean', 'description' => 'Task list/tree: with a status filter, also return parent tasks of matching children even if the parents have a different status. For hierarchy view.'],
                 'assignee_user_public_id' => ['type' => 'string', 'description' => 'Assignee as usr_... id (recommended).'],
+                'assignee_public_id' => ['type' => 'string', 'description' => 'Legacy alias of assignee_user_public_id for task list filters.'],
                 'due_at' => ['type' => 'string', 'description' => 'Due date ISO 8601.'],
+                'start_at_from' => ['type' => 'string', 'description' => 'Filter tasks by scheduled start, inclusive; YYYY-MM-DD or full timestamp. Maximum range is 62 days.'],
+                'start_at_to' => ['type' => 'string', 'description' => 'Filter tasks by scheduled start, inclusive; YYYY-MM-DD or full timestamp. Maximum range is 62 days.'],
                 'start_at' => ['type' => 'string'],
                 'end_at' => ['type' => 'string'],
                 'body' => ['type' => 'string', 'description' => 'Comment body (for add_comment/update_comment).'],
@@ -7438,7 +7441,21 @@ $tools[] = $this->tool(
         }
         /** @var TaskService $service */
         $service = $this->container->get('service.task');
-        return $this->publicData($service->list($this->filters($arguments, 20, 50), $this->organizationScopedActorForArguments($this->actor(), $arguments)));
+        $filters = $this->filters($arguments, 20, 50);
+        // TaskRepository filters by public ID, not the legacy assigned_user_id field.
+        $assignee = trim((string)($arguments['assignee_user_public_id'] ?? ''));
+        if ($assignee === '' && isset($arguments['assigned_user_id'])) {
+            $value = (string)$arguments['assigned_user_id'];
+            if (str_starts_with($value, 'usr_')) {
+                $assignee = $value;
+            } else {
+                $stmt = $this->pdo()->prepare('SELECT public_id FROM users WHERE id = :id LIMIT 1');
+                $stmt->execute(['id' => (int)$value]);
+                $assignee = (string)($stmt->fetchColumn() ?: 'usr_not_found');
+            }
+        }
+        if ($assignee !== '') $filters['assignee_user_public_id'] = $assignee;
+        return $this->publicData($service->list($filters, $this->organizationScopedActorForArguments($this->actor(), $arguments)));
     }
 
     private function crmGetTask(array $arguments): array
@@ -14756,7 +14773,7 @@ $tools[] = $this->tool(
     {
         $filters = $this->pick($arguments, [
             'page', 'project_public_id', 'status', 'priority', 'assigned_user_id', 'updated_since',
-            'space_public_id', 'sort', 'order', 'include_archived_projects', 'include_ancestors',
+            'space_public_id', 'sort', 'order', 'include_archived_projects', 'include_ancestors', 'start_at_from', 'start_at_to',
         ]);
         if (!isset($filters['assigned_user_id'])) {
             $assigneePid = trim((string)($arguments['assignee_user_public_id'] ?? $arguments['assignee_public_id'] ?? ''));

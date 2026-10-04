@@ -446,7 +446,7 @@ Beyond permission checks, a hard route allowlist (`external_ok` in `routes.php`,
 
 | Method | Endpoint | Description | Auth | Permissions | Notes |
 |-------|----------|------------|:---:|-------------|----------|
-| GET | `/api/v1/tasks` 🔄 | List tasks | Yes | `task.manage | task.view` | Cursor-based, filters |
+| GET | `/api/v1/tasks` 🔄 | List tasks | Yes | `task.manage | task.view` | Cursor-based, filters; `start_at_from` and `start_at_to` filter the inclusive scheduled-start range (up to 62 days) |
 | POST | `/api/v1/tasks` 🔄 | Create task | Yes | `task.manage` | — |
 | GET | `/api/v1/tasks/board` 🔄 | Kanban board | Yes | `task.manage` | Grouped by statuses |
 | POST | `/api/v1/tasks/bulk` 🔄 | Bulk update | Yes | `task.manage` | — |
@@ -2458,3 +2458,5 @@ For staff messages in any chat, optional `client_request_id` (16–80 ASCII lett
 Chat list and details include `ai_assistant` (availability and bot identity). Invoke with `@ai_agent`, `@agent`, or the bot login, or reply to its message. A quote of yourself/another person alone does not invoke AI. An unquoted message invokes AI implicitly only when no other humans are present and the assistant participates or the chat is `ai_agent`. Explicit mention overrides a human quote. Calls use the invoking actor’s permissions and only this chat’s bounded history; historical messages are untrusted context. External callers cannot invoke AI. A staff project-client fallback with project access can drive its own run. Unavailable addressed sends are stored with `ai_unavailable: true`, without a run. Gateway health must be `ok`, with no open incident or pending recheck. Shared `/clear` cannot erase conversation.
 
 AI requests are queued sequentially per invoking actor. Another participant’s unfinished run does not block that actor; other actors cannot access its private status or tool context.
+
+AI transport shares a wall-clock budget across retries and fallback attempts (at most 110 seconds, reduced for a configured PHP execution limit). `AI_PROVIDER_OUTPUT_TRUNCATED` denotes an incomplete generation: partial text and tools are not accepted as a completed action; chat retries with a bounded larger output budget. Health probes budget for reasoning tokens. Base URLs ending in `/v1` are accepted without duplicating the version path.

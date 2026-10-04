@@ -8098,7 +8098,8 @@ window.CRM.pageApiBindings = (function () {
   async function renderCalendarPage() {
     var state = window.CRM.__calendarPageState || {
       view: 'month',
-      anchor: new Date()
+      anchor: new Date(),
+      showTasks: true
     };
     var aiCanUse = window.CRM.ai && typeof window.CRM.ai.hasAiPermission === 'function'
       ? window.CRM.ai.hasAiPermission('calendar_event_agenda')
@@ -8108,6 +8109,19 @@ window.CRM.pageApiBindings = (function () {
       state.anchor = new Date();
     }
     window.CRM.__calendarPageState = state;
+
+    var currentUser = window.CRM.api && typeof window.CRM.api.getUser === 'function' ? window.CRM.api.getUser() : null;
+    var userKey = String(currentUser && currentUser.public_id || 'user');
+    var organizationKey = window.CRM.api && typeof window.CRM.api.getOrganizationContext === 'function'
+      ? String(window.CRM.api.getOrganizationContext() || 'all') : 'all';
+    var taskPreferenceKey = 'crm_calendar_show_tasks:' + userKey + ':' + organizationKey;
+    if (state.taskPreferenceKey !== taskPreferenceKey) {
+      try {
+        var taskPreference = localStorage.getItem(taskPreferenceKey);
+        if (taskPreference !== null) state.showTasks = taskPreference === '1';
+      } catch (ignoreTaskPreference) {}
+      state.taskPreferenceKey = taskPreferenceKey;
+    }
 
     function pad(value) {
       return String(value).padStart(2, '0');
@@ -8173,6 +8187,10 @@ window.CRM.pageApiBindings = (function () {
       return Number.isNaN(parsed.getTime()) ? null : parsed;
     }
 
+    function isDateOnlyItem(item) {
+      return /^\d{4}-\d{2}-\d{2}$/.test(String(item && (item.starts_at || item.start_at || item.date) || '').trim());
+    }
+
     function timeLabel(date) {
       if (!date) return window.CRM.i18n.t('js.pab.all_day', 'All day');
       return date.toLocaleTimeString(tpLocale('en-GB'), { hour: '2-digit', minute: '2-digit' });
@@ -8187,6 +8205,9 @@ window.CRM.pageApiBindings = (function () {
     function eventTimeRange(item) {
       var start = parseEventDate(item);
       var end = eventEndDate(item);
+      if (item && item.__calendar_kind === 'task' && /^\d{4}-\d{2}-\d{2}$/.test(String(item.start_at || '').trim())) {
+        return window.CRM.i18n.t('js.pab.all_day', 'All day');
+      }
       if (!start) return window.CRM.i18n.t('js.pab.all_day', 'All day');
       return timeLabel(start) + (end ? ' - ' + timeLabel(end) : '');
     }
@@ -8301,11 +8322,18 @@ window.CRM.pageApiBindings = (function () {
     function eventPill(item, index, compact) {
       var meta = eventMeta(item);
       var title = eventTitle(item);
-      return '<button class="crm-calendar-event is-' + eventTone(item, index) + (compact ? ' is-compact' : '') + '" type="button" data-calendar-event-id="' + safeText(eventUid(item, index)) + '" title="' + title + '" aria-label="' + window.CRM.i18n.t('js.pab.open_event', 'Open event:') + ' ' + title + '">'
-        + '<span class="crm-calendar-event-time">' + safeText(eventTimeRange(item)) + '</span>'
+      var isTask = item && item.__calendar_kind === 'task';
+      var conflict = item && item.__calendar_conflict ? '<span class="crm-calendar-conflict-label" title="' + safeText(item.__calendar_conflict) + '">⚠ ' + safeText(item.__calendar_conflict) + '</span>' : '';
+      var content = '<span class="crm-calendar-event-time">' + safeText(eventTimeRange(item)) + '</span>'
         + '<span class="crm-calendar-event-title">' + title + '</span>'
         + (meta && !compact ? '<span class="crm-calendar-event-meta">' + meta + '</span>' : '')
-        + '</button>';
+        + (isTask && item.due_at && !compact ? '<span class="crm-calendar-event-meta">' + tp('calendar.due_prefix', 'Due: ') + safeText(formatDate(item.due_at)) + '</span>' : '')
+        + (isTask ? '<span class="crm-calendar-task-kind">' + tp('calendar.task_type', 'Task') + '</span>' : '') + conflict;
+      if (isTask) {
+        return '<a class="crm-calendar-event is-task is-' + eventTone(item, index) + (compact ? ' is-compact' : '') + '" href="index.php?route=task-detail&task_public_id=' + encodeURIComponent(String(item.public_id || '')) + '" title="' + title + '" aria-label="' + safeText(tp('calendar.task_type', 'Task')) + ': ' + title + '">' + content + '</a>';
+      }
+      return '<button class="crm-calendar-event is-' + eventTone(item, index) + (compact ? ' is-compact' : '') + '" type="button" data-calendar-event-id="' + safeText(eventUid(item, index)) + '" title="' + title + '" aria-label="' + window.CRM.i18n.t('js.pab.open_event', 'Open event:') + ' ' + title + '">'
+        + content + '</button>';
     }
 
     function ensureCalendarEventDetailsModal() {
@@ -8766,19 +8794,27 @@ window.CRM.pageApiBindings = (function () {
       if (!list.length) {
         return '<div class="crm-calendar-agenda-empty">'
           + '<strong>' + window.CRM.i18n.t('js.pab.period_free', 'Period is free') + '</strong>'
-          + '<span>' + window.CRM.i18n.t('js.pab.period_free_desc', 'No meetings, deadlines or events in the selected window. You can quickly add an event with the button below.') + '</span>'
+          + '<span>' + window.CRM.i18n.t('js.pab.period_free_desc', 'No meetings, tasks or events in the selected window. You can quickly add an event with the button below.') + '</span>'
           + '</div>';
       }
-      return list.slice(0, 14).map(function (item, index) {
+      var visible = list.slice(0, 14).map(function (item, index) {
         var start = parseEventDate(item);
         var dateText = start
           ? start.toLocaleDateString(tpLocale('en-GB'), { weekday: 'short', day: '2-digit', month: 'short' })
           : window.CRM.i18n.t('js.pab.no_date', 'No date');
+        var isTask = item && item.__calendar_kind === 'task';
+        var conflict = item && item.__calendar_conflict ? '<small class="crm-calendar-conflict-label">⚠ ' + safeText(item.__calendar_conflict) + '</small>' : '';
+        var due = isTask && item.due_at ? '<span>' + tp('calendar.due_prefix', 'Due: ') + safeText(formatDate(item.due_at)) + '</span>' : '';
+        var content = '<div class="crm-calendar-agenda-date">' + safeText(dateText) + '</div>'
+          + '<div><strong>' + (isTask ? '<span class="crm-calendar-task-kind">' + tp('calendar.task_type', 'Task') + ' · </span>' : '') + eventTitle(item) + '</strong><span>' + safeText(eventTimeRange(item)) + '</span>' + due + conflict + '</div>';
+        if (isTask) return '<a class="crm-calendar-agenda-item is-task is-' + eventTone(item, index) + '" href="index.php?route=task-detail&task_public_id=' + encodeURIComponent(String(item.public_id || '')) + '">' + content + '</a>';
         return '<button class="crm-calendar-agenda-item is-' + eventTone(item, index) + '" type="button" data-calendar-event-id="' + safeText(eventUid(item, index)) + '">'
-          + '<div class="crm-calendar-agenda-date">' + safeText(dateText) + '</div>'
-          + '<div><strong>' + eventTitle(item) + '</strong><span>' + safeText(eventTimeRange(item)) + '</span></div>'
-          + '</button>';
+          + content + '</button>';
       }).join('');
+      if (list.length > 14) {
+        visible += '<div class="crm-calendar-agenda-overflow">' + safeText(tp('calendar.agenda_overflow', 'Showing 14 of {count} items. Use the day or week view to see the rest.').replace('{count}', String(list.length))) + '</div>';
+      }
+      return visible;
     }
 
     function renderMonth(cells, eventsByDate, todayKey, anchorMonth) {
@@ -8825,19 +8861,35 @@ window.CRM.pageApiBindings = (function () {
           var key = dateKey(cellDate);
           var hourEvents = sortEvents(eventsByDate[key] || []).filter(function (item) {
             var start = parseEventDate(item);
-            return !start ? hour === 8 : start.getHours() === hour;
+            return !!start && !isDateOnlyItem(item) && start.getHours() === hour;
           });
+          var slotKey = key + ':' + String(hour);
+          var visibleEvents = state.expandedSlots && state.expandedSlots[slotKey] ? hourEvents : hourEvents.slice(0, 2);
           return '<div class="crm-calendar-time-cell">'
-            + hourEvents.map(function (item, index) { return eventPill(item, index, false); }).join('')
+            + visibleEvents.map(function (item, index) { return eventPill(item, index, false); }).join('')
+            + (hourEvents.length > visibleEvents.length ? '<button type="button" class="crm-calendar-more" data-calendar-expand-slot="' + safeText(slotKey) + '">+' + safeText(String(hourEvents.length - visibleEvents.length)) + ' ' + tp('calendar.more_items', 'more') + '</button>' : '')
             + '</div>';
         }).join('');
         return '<div class="crm-calendar-time-label">' + safeText(String(hour).padStart(2, '0')) + ':00</div>' + cellsHtml;
       }).join('');
+      var allDayCells = cells.map(function (cellDate) {
+        var key = dateKey(cellDate);
+        var items = sortEvents(eventsByDate[key] || []).filter(function (item) {
+          var start = parseEventDate(item);
+          return !start || isDateOnlyItem(item) || start.getHours() < 8 || start.getHours() > 19;
+        });
+        var slotKey = key + ':all-day';
+        var visible = state.expandedSlots && state.expandedSlots[slotKey] ? items : items.slice(0, 2);
+        return '<div class="crm-calendar-time-cell crm-calendar-all-day-cell">' + visible.map(function (item, index) { return eventPill(item, index, false); }).join('')
+          + (items.length > visible.length ? '<button type="button" class="crm-calendar-more" data-calendar-expand-slot="' + safeText(slotKey) + '">+' + safeText(String(items.length - visible.length)) + ' ' + tp('calendar.more_items', 'more') + '</button>' : '') + '</div>';
+      }).join('');
       return '<div class="crm-calendar-schedule" style="--calendar-days:' + String(cells.length) + '">'
         + '<div class="crm-calendar-time-head-row">' + head + '</div>'
-        + '<div class="crm-calendar-time-grid">' + rows + '</div>'
+        + '<div class="crm-calendar-time-grid"><div class="crm-calendar-time-label">' + tp('calendar.all_day', 'All day / outside hours') + '</div>' + allDayCells + rows + '</div>'
         + '</div>';
     }
+
+    if (!state.expandedSlots) state.expandedSlots = {};
 
     function normalizeSlotDateTime(raw, fallbackDate) {
       var value = String(raw || '').trim();
@@ -8905,6 +8957,19 @@ window.CRM.pageApiBindings = (function () {
     var cellCount = state.view === 'day' ? 1 : (state.view === 'week' ? 7 : 42);
     var rangeEnd = endOfRange(cellCount);
 
+    var showTasksToggle = document.querySelector('[data-calendar-show-tasks]');
+    if (showTasksToggle) {
+      showTasksToggle.checked = !!state.showTasks;
+      if (showTasksToggle.dataset.boundCalendarTasks !== '1') {
+        showTasksToggle.addEventListener('change', function () {
+          state.showTasks = !!showTasksToggle.checked;
+          try { localStorage.setItem(taskPreferenceKey, state.showTasks ? '1' : '0'); } catch (ignoreTaskPreferenceWrite) {}
+          renderCalendarPage();
+        });
+        showTasksToggle.dataset.boundCalendarTasks = '1';
+      }
+    }
+
     var envelope = await tryRequest('api/v1/calendar/events', {
       query: {
         limit: 200,
@@ -8933,15 +8998,56 @@ window.CRM.pageApiBindings = (function () {
     }
 
     var events = mapItems(envelope);
+    var tasks = [];
+    var tasksTruncated = false;
+    var tasksLoadFailed = false;
+    if (state.showTasks) {
+      var taskEnvelope = await tryRequest('api/v1/tasks', {
+        query: { start_at_from: dateKey(rangeStart), start_at_to: dateKey(rangeEnd), page: 1, limit: 500 },
+        silent: true
+      });
+      if (!taskEnvelope || taskEnvelope.success === false) {
+        tasksLoadFailed = true;
+      } else {
+        tasks = mapItems(taskEnvelope);
+        var taskMeta = taskEnvelope.meta || (taskEnvelope.data && taskEnvelope.data.meta) || {};
+        var taskPagination = taskMeta.pagination || {};
+        tasksTruncated = Number(taskPagination.total || 0) > tasks.length || tasks.length >= 500;
+        tasks.forEach(function (task, taskIndex) {
+          task.__calendar_kind = 'task';
+          task.__calendar_uid = 'task:' + String(task.public_id || taskIndex);
+        });
+      }
+    }
+    var calendarItems = events.concat(tasks);
+    // Only assert a definite collision when both records have an end time.
+    // If one end is unknown, the same start minute is a possible conflict.
+    tasks.forEach(function (task) {
+      var taskStart = parseEventDate(task);
+      var taskEnd = eventEndDate(task);
+      if (!taskStart) return;
+      events.forEach(function (eventItem) {
+        var eventStart = parseEventDate(eventItem);
+        var eventEnd = eventEndDate(eventItem);
+        if (!eventStart || isDateOnlyItem(task) || isDateOnlyItem(eventItem)) return;
+        var confirmed = !!taskEnd && !!eventEnd && taskStart < eventEnd && eventStart < taskEnd;
+        var sameStart = Math.floor(taskStart.getTime() / 60000) === Math.floor(eventStart.getTime() / 60000);
+        if (confirmed || ((!taskEnd || !eventEnd) && sameStart)) {
+          var conflictLabel = confirmed ? tp('calendar.task_conflict', 'Time overlap') : tp('calendar.task_possible_conflict', 'Same start time');
+          task.__calendar_conflict = conflictLabel;
+          eventItem.__calendar_conflict = conflictLabel;
+        }
+      });
+    });
     var eventsByDate = {};
     state.eventsById = {};
-    events.forEach(function (item, eventIndex) {
+    calendarItems.forEach(function (item, eventIndex) {
       var parsed = parseEventDate(item);
       var key = parsed && !Number.isNaN(parsed.getTime()) ? dateKey(parsed) : dateKey(state.anchor);
       eventsByDate[key] = eventsByDate[key] || [];
-      item.__calendar_uid = eventUid(item, eventIndex);
+      if (!item.__calendar_uid) item.__calendar_uid = eventUid(item, eventIndex);
       eventsByDate[key].push(item);
-      state.eventsById[item.__calendar_uid] = item;
+      if (item.__calendar_kind !== 'task') state.eventsById[item.__calendar_uid] = item;
     });
 
     var title = document.querySelector('[data-calendar-title]');
@@ -8962,7 +9068,7 @@ window.CRM.pageApiBindings = (function () {
 
     var timeline = document.querySelector('[data-calendar-feed]');
     if (timeline) {
-      timeline.innerHTML = renderAgenda(sortEvents(events));
+      timeline.innerHTML = renderAgenda(sortEvents(calendarItems));
       timeline.querySelectorAll('[data-calendar-event-id]').forEach(function (btn) {
         btn.addEventListener('click', function () {
           openEventDetails(btn.getAttribute('data-calendar-event-id'));
@@ -8973,8 +9079,13 @@ window.CRM.pageApiBindings = (function () {
     var summary = document.querySelector('[data-calendar-summary]');
     if (summary) {
       var todayEvents = eventsByDate[dateKey(new Date())] || [];
+      var conflictCount = tasks.filter(function (task) { return !!task.__calendar_conflict; }).length;
       summary.innerHTML = '<span class="crm-chip">' + safeText(dayLabel(rangeStart)) + ' - ' + safeText(dayLabel(rangeEnd)) + '</span>'
         + '<span class="crm-chip">' + safeText(String(events.length)) + ' ' + tpPlural('calendar.event', events.length, { one: 'event', few: 'events', many: 'events' }) + '</span>'
+        + (state.showTasks ? '<span class="crm-chip">' + safeText(String(tasks.length)) + ' ' + tpPlural('calendar.tasks', tasks.length, { one: 'tasks', few: 'tasks', many: 'tasks' }) + '</span>' : '')
+        + (conflictCount ? '<span class="crm-chip is-warning">⚠ ' + safeText(String(conflictCount)) + ' ' + safeText(tp('calendar.conflicts', 'potential conflicts')) + '</span>' : '')
+        + (tasksLoadFailed ? '<span class="crm-chip is-warning" title="' + safeText(tp('calendar.task_load_error', 'Tasks could not be loaded. Refresh to try again.')) + '">⚠ ' + safeText(tp('calendar.task_load_error_short', 'Tasks unavailable')) + '</span>' : '')
+        + (tasksTruncated ? '<span class="crm-chip is-warning" title="' + safeText(tp('calendar.task_limit_warning', 'Some tasks are not shown. Narrow the date range.')) + '">⚠ ' + safeText(tp('calendar.task_limit_warning_short', 'Task limit reached')) + '</span>' : '')
         + '<span class="crm-chip">' + safeText(String(todayEvents.length)) + ' ' + tp('calendar.today_short', 'today') + '</span>'
         + '<span class="crm-chip">' + safeText(state.view === 'month' ? tp('calendar.view_month', 'Month') : (state.view === 'week' ? tp('calendar.view_week', 'Week') : tp('calendar.view_day', 'Day'))) + '</span>';
     }
@@ -9038,7 +9149,12 @@ window.CRM.pageApiBindings = (function () {
         var isPast = Number.isFinite(startMs) && startMs < now;
         var hasInvalidRange = Number.isFinite(startMs) && Number.isFinite(endMs) && endMs <= startMs;
         var conflicts = todayEvents.filter(function (eventItem) {
-          return overlapsRange(slot.start_at, slot.end_at, eventItem.starts_at, eventItem.ends_at || eventItem.starts_at);
+          var occupiedStart = parseEventDate(eventItem);
+          var occupiedEnd = eventEndDate(eventItem);
+          if (!occupiedStart || !Number.isFinite(startMs) || isDateOnlyItem(eventItem)) return false;
+          if (occupiedEnd && Number.isFinite(endMs)) return startMs < occupiedEnd.getTime() && occupiedStart.getTime() < endMs;
+          if (Number.isFinite(endMs) && occupiedStart.getTime() >= startMs && occupiedStart.getTime() < endMs) return true;
+          return Math.floor(startMs / 60000) === Math.floor(occupiedStart.getTime() / 60000);
         });
         var conflictHtml = conflicts.length
           ? '<div class="small text-warning mt-1">' + tp('calendar.conflict_prefix', 'Conflict: ') + safeText(String(conflicts[0].title || conflicts[0].public_id || tp('calendar.event_fallback', 'event'))) + '</div>'
@@ -9232,6 +9348,15 @@ window.CRM.pageApiBindings = (function () {
       surface.innerHTML = state.view === 'month'
         ? renderMonth(cells, eventsByDate, todayKey, anchorMonth)
         : renderSchedule(cells, eventsByDate, todayKey);
+
+      surface.querySelectorAll('[data-calendar-expand-slot]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var slotKey = String(btn.getAttribute('data-calendar-expand-slot') || '');
+          if (!slotKey) return;
+          state.expandedSlots[slotKey] = true;
+          renderCalendarPage();
+        });
+      });
 
       surface.querySelectorAll('[data-calendar-jump-date]').forEach(function (btn) {
         btn.addEventListener('click', function () {

@@ -55,6 +55,7 @@ final class MigrationManager
             new RecurringProcessorMigration(),
             new RecurringRuleTitleMigration(),
             new GanttPerformanceIndexesMigration(),
+            new TaskStartAtRangeIndexMigration(),
             new KnowledgeBaseMigration(),
             new KnowledgeEntityLinkUniquenessMigration(),
             new KnowledgeCommentsRepairMigration(),
@@ -108,6 +109,7 @@ final class MigrationManager
             new SubtaskOrganizationBackfillMigration(),
             new ModuleJobContextMigration(),
             new ConnectorPrimitivesMigration(),
+            new AiAgentNameCleanupMigration(),
         ];
     }
 

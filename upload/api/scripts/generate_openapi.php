@@ -316,6 +316,8 @@ foreach ($routes as $route) {
                 'due_at' => 'Single due date (YYYY-MM-DD).',
                 'due_at_from' => 'Due date range start: YYYY-MM-DD or full timestamp YYYY-MM-DD HH:MM:SS.',
                 'due_at_to' => 'Due date range end: YYYY-MM-DD or full timestamp YYYY-MM-DD HH:MM:SS.',
+                'start_at_from' => 'Scheduled start range start (inclusive): YYYY-MM-DD or full timestamp. Maximum range: 62 days.',
+                'start_at_to' => 'Scheduled start range end (inclusive): YYYY-MM-DD or full timestamp. Maximum range: 62 days.',
                 'archived' => 'Set to "1" to include archived tasks (also disables the archived-project filter).',
                 'hide_done' => 'Set to "1" to exclude finished, canceled and archived tasks (same as active_only).',
                 'active_only' => 'Alias of hide_done=1.',
