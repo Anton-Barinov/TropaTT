@@ -1486,6 +1486,7 @@
     overflow-wrap: anywhere;
   }
   body[data-page="chat"] .crm-chat-message p,
+  body[data-page="chat"] .crm-chat-message-text,
   body[data-page="chat"] .crm-chat-quote span {
     overflow-wrap: anywhere;
     white-space: normal;
