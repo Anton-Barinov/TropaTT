@@ -126,7 +126,18 @@
       return '\n<div class="table-responsive my-1"><table class="table table-sm table-bordered crm-chat-table mb-0"><thead><tr>' + headers + '</tr></thead><tbody>' + body + '</tbody></table></div>\n';
     });
 
-    // 5. Ordered lists: consecutive lines starting with \d+\.
+    // 5. Blockquotes (&gt;)
+    safe = safe.replace(/((?:^|\n)&gt;[^\n]*(?:\r?\n&gt;[^\n]*)*)/g, function (bqBlock) {
+      var lines = bqBlock.trim().split(/\r?\n/).map(function (line) {
+        return line.replace(/^&gt;[ \t]?/, '');
+      });
+      return '\n<blockquote class="crm-chat-blockquote">' + lines.join('<br>') + '</blockquote>\n';
+    });
+
+    // 6. Horizontal rules (---, ***, ___)
+    safe = safe.replace(/(?:^|\n)[ \t]*(?:---|\*\*\*|___)[ \t]*(?=\r?\n|$)/g, '\n<hr class="crm-chat-hr">\n');
+
+    // 7. Ordered lists: consecutive lines starting with \d+\.
     safe = safe.replace(/((?:^|\n)[ \t]*\d+\.\s+[^\n]+(?:\r?\n[ \t]*\d+\.\s+[^\n]+)*)/g, function (listBlock) {
       var items = listBlock.trim().split(/\r?\n/).map(function (item) {
         return '<li>' + item.replace(/^[ \t]*\d+\.\s+/, '') + '</li>';
@@ -134,7 +145,7 @@
       return '\n<ol class="crm-chat-ol ps-3 mb-1">' + items + '</ol>\n';
     });
 
-    // 5b. Unordered lists: consecutive lines starting with - or *
+    // 7b. Unordered lists: consecutive lines starting with - or *
     safe = safe.replace(/((?:^|\n)[ \t]*[-*]\s+[^\n]+(?:\r?\n[ \t]*[-*]\s+[^\n]+)*)/g, function (listBlock) {
       var items = listBlock.trim().split(/\r?\n/).map(function (item) {
         return '<li>' + item.replace(/^[ \t]*[-*]\s+/, '') + '</li>';
@@ -142,25 +153,63 @@
       return '\n<ul class="crm-chat-ul ps-3 mb-1">' + items + '</ul>\n';
     });
 
-    // 6. Section headers (####, ###, ##, #)
+    // 8. Section headers (####, ###, ##, #)
     safe = safe.replace(/(?:^|\n)####\s+([^\n]+)/g, '<div class="crm-chat-h mt-1 mb-1 fw-bold">$1</div>');
     safe = safe.replace(/(?:^|\n)###\s+([^\n]+)/g, '<div class="crm-chat-h mt-1 mb-1 fw-bold">$1</div>');
     safe = safe.replace(/(?:^|\n)##\s+([^\n]+)/g, '<div class="crm-chat-h mt-2 mb-1 fw-bold">$1</div>');
     safe = safe.replace(/(?:^|\n)#\s+([^\n]+)/g, '<div class="crm-chat-h mt-2 mb-1 fs-6 fw-bold">$1</div>');
 
-    // 7. Bold and italic
+    // 9. Bold and italic
     safe = safe.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
     safe = safe.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
 
-    // 8. Markdown links: [Title](http(s)://... or index.php?...)
-    safe = safe.replace(/\[([^\]]+)\]\(((?:https?:\/\/|index\.php\?)[^\s\)"']+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    // Helper for rendering styled links
+    function buildChatLink(title, rawUrl) {
+      var url = String(rawUrl || '').trim();
+      // Ensure only safe schemes or relative paths (never javascript:, data:, or protocol-relative //)
+      if (!/^(?:https?:\/\/|\/(?!\/)|(?:web\/)?index\.php\?)/i.test(url)) {
+        return title;
+      }
+      var cleanUrl = url.replace(/"/g, '&quot;');
+      var linkClass = 'crm-chat-link';
+      var icon = '';
+      if (/task-detail|task_public_id|tsk_/i.test(url)) {
+        linkClass += ' crm-chat-link--entity crm-chat-link--task';
+        icon = '<i class="fa-solid fa-list-check" aria-hidden="true"></i> ';
+      } else if (/project-detail|project_public_id|prj_/i.test(url)) {
+        linkClass += ' crm-chat-link--entity crm-chat-link--project';
+        icon = '<i class="fa-solid fa-folder-open" aria-hidden="true"></i> ';
+      } else if (/knowledge-page|kbp_/i.test(url)) {
+        linkClass += ' crm-chat-link--entity crm-chat-link--knowledge';
+        icon = '<i class="fa-solid fa-book-open" aria-hidden="true"></i> ';
+      } else if (/contact-detail|client-detail|company-detail|usr_/i.test(url)) {
+        linkClass += ' crm-chat-link--entity crm-chat-link--contact';
+        icon = '<i class="fa-solid fa-user" aria-hidden="true"></i> ';
+      } else if (/^https?:\/\//i.test(url)) {
+        linkClass += ' crm-chat-link--external';
+        icon = '<i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i> ';
+      }
+      return '<a href="' + cleanUrl + '" class="' + linkClass + '" target="_blank" rel="noopener">'
+        + (icon ? icon + '<span>' + title + '</span>' : title)
+        + '</a>';
+    }
 
-    // 9. Mentions and stickers
+    // 10. Markdown links: [Title](url) — supports relative paths, web/index.php, and external urls
+    safe = safe.replace(/\[([^\]]+)\]\(((?:https?:\/\/|\/(?!\/)|(?:web\/)?index\.php\?)[^\s\)"'<>]+)\)/g, function (_, title, url) {
+      return buildChatLink(title, url);
+    });
+
+    // 10b. Plain autolinks: https://...
+    safe = safe.replace(/(^|[\s(])(https?:\/\/[^\s<>"'()]+(?:\([^\s<>"'()]+\)|[^\s<>"'(),.!?:;]))/g, function (_, prefix, url) {
+      return prefix + buildChatLink(url, url);
+    });
+
+    // 11. Mentions and stickers
     safe = safe.replace(/(^|\s)@([\p{L}\p{N}._-]{2,80})/gu, '$1<span class="crm-chat-mention">@$2</span>');
     safe = safe.replace(/\[стикер: ([^\]]+)\]/g, '<span class="crm-chat-sticker">$1</span>');
     safe = safe.replace(/\[gif: ([^\]]+)\]/g, '<span class="crm-chat-sticker">$1</span>');
 
-    // 10. Knowledge cards
+    // 12. Knowledge cards
     safe = safe.replace(/kb:([a-zA-Z0-9_]+):([^<]*)/g, function (match, publicId, title) {
       title = (title || '').trim() || window.CRM.i18n.t('chat.knowledge_page', 'Knowledge page');
       return '<a href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(publicId) + '" class="crm-knowledge-chat-card" target="_blank" rel="noopener" title="' + window.CRM.i18n.t('chat.open_knowledge_title', 'Open in Knowledge Base') + ': ' + chat.esc(title) + '">'
@@ -169,12 +218,12 @@
         + '<span class="crm-knowledge-chat-arrow"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></span></a>';
     });
 
-    // 11. Line breaks
+    // 13. Line breaks and block cleanup
     safe = safe.replace(/\n/g, '<br>');
-    safe = safe.replace(/<br>(<(?:div|table|thead|tbody|tr|th|td|pre|ul|ol|li)[^>]*>)/g, '$1');
-    safe = safe.replace(/(<\/(?:div|table|thead|tbody|tr|th|td|pre|ul|ol|li)>)<br>/g, '$1');
+    safe = safe.replace(/(?:<br>\s*)+(<(?:div|table|thead|tbody|tr|th|td|pre|ul|ol|li|blockquote|hr)[^>]*>)/g, '$1');
+    safe = safe.replace(/(<\/(?:div|table|thead|tbody|tr|th|td|pre|ul|ol|li|blockquote|hr)>)(?:\s*<br>)+/g, '$1');
 
-    // 12. Restore code blocks and inline code
+    // 14. Restore code blocks and inline code
     safe = safe.replace(/@@@CODEBLOCK_(\d+)@@@/g, function (_, i) {
       return codeBlocks[Number(i)] || '';
     });
@@ -255,7 +304,7 @@
     return '<article class="crm-chat-message' + (own ? ' is-own' : '') + (deleted ? ' is-deleted' : '') + (isAi ? ' is-ai-agent' : '') + (isOptimistic ? ' is-optimistic' : '') + '" data-message-id="' + chat.esc(message.public_id || '') + '">'
       + '<div class="crm-chat-message-meta"><strong>' + chat.esc(sender) + (isAi ? ' <span class="badge bg-secondary ms-1"><i class="fa-solid fa-robot me-1" aria-hidden="true"></i>AI</span>' : '') + '</strong><time>' + chat.esc(chat.formatTime(message.created_at)) + (isOptimistic ? ' <span class="crm-chat-msg-status" title="' + window.CRM.i18n.t('chat.status_sending', 'Отправляется...') + '"><i class="fa-regular fa-clock ms-1"></i></span>' : '') + '</time></div>'
       + (message.reply_public_id ? '<button type="button" class="crm-chat-quote" data-scroll-message="' + chat.esc(message.reply_public_id) + '" title="' + window.CRM.i18n.t('chat.btn_scroll_title', 'Перейти к исходному сообщению') + '" aria-label="' + window.CRM.i18n.t('chat.btn_scroll_aria', 'Перейти к исходному сообщению') + '">' + chat.renderReplyQuote(message, findMessage) + '</button>' : '')
-      + (deleted ? '<p class="crm-chat-deleted-text">' + window.CRM.i18n.t('chat.msg_deleted', 'Сообщение удалено') + '</p>' : '<p>' + chat.renderMessageText(message.text || '') + '</p>')
+      + (deleted ? '<div class="crm-chat-message-text crm-chat-deleted-text">' + window.CRM.i18n.t('chat.msg_deleted', 'Сообщение удалено') + '</div>' : '<div class="crm-chat-message-text">' + chat.renderMessageText(message.text || '') + '</div>')
       + chat.renderAttachments(Array.isArray(message.attachments) ? message.attachments : [])
       + '<div class="crm-chat-message-foot">'
       + (message.edited_at && !deleted ? '<button type="button" class="crm-chat-edited-marker" data-history-message="' + chat.esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_history_title', 'История изменений') + '" aria-label="' + window.CRM.i18n.t('chat.btn_history_aria', 'История изменений сообщения') + '">' + window.CRM.i18n.t('chat.msg_edited', 'изменено') + '</button>' : '')

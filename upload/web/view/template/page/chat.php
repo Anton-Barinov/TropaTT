@@ -681,7 +681,7 @@
       return '<article class="crm-chat-message' + (own ? ' is-own' : '') + (deleted ? ' is-deleted' : '') + (isOptimistic ? ' is-optimistic' : '') + '" data-message-id="' + esc(message.public_id || '') + '">'
         + '<div class="crm-chat-message-meta"><strong>' + esc(sender) + '</strong><time>' + esc(formatTime(message.created_at)) + (isOptimistic ? ' <span class="crm-chat-msg-status" title="' + window.CRM.i18n.t('chat.status_sending', 'Отправляется...') + '"><i class="fa-regular fa-clock ms-1"></i></span>' : '') + '</time></div>'
          + (message.reply_public_id ? '<button type="button" class="crm-chat-quote" data-scroll-message="' + esc(message.reply_public_id) + '" title="' + window.CRM.i18n.t('chat.btn_scroll_title', 'Перейти к исходному сообщению') + '" aria-label="' + window.CRM.i18n.t('chat.btn_scroll_aria', 'Перейти к исходному сообщению') + '">' + renderReplyQuote(message) + '</button>' : '')
-        + (deleted ? '<p class="crm-chat-deleted-text">' + window.CRM.i18n.t('chat.msg_deleted', 'Сообщение удалено') + '</p>' : '<p>' + renderMessageText(message.text || '') + '</p>')
+        + (deleted ? '<div class="crm-chat-message-text crm-chat-deleted-text">' + window.CRM.i18n.t('chat.msg_deleted', 'Сообщение удалено') + '</div>' : '<div class="crm-chat-message-text">' + renderMessageText(message.text || '') + '</div>')
         + renderAttachments(Array.isArray(message.attachments) ? message.attachments : [])
         + '<div class="crm-chat-message-foot">'
         + (message.edited_at && !deleted ? '<button type="button" class="crm-chat-edited-marker" data-history-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_history_title', 'История изменений') + '" aria-label="' + window.CRM.i18n.t('chat.btn_history_aria', 'История изменений сообщения') + '">' + window.CRM.i18n.t('chat.msg_edited', 'изменено') + '</button>' : '')
@@ -828,11 +828,16 @@
   }
 
   function renderMessageText(text) {
-    if (window.CRM && window.CRM.chat) return window.CRM.chat.renderMessageText(text);
+    if (window.CRM && window.CRM.chat && typeof window.CRM.chat.renderMessageText === 'function') {
+      return window.CRM.chat.renderMessageText(text);
+    }
     var safe = esc(text).replace(/\n/g, '<br>');
     safe = safe.replace(/(^|\s)@([\p{L}\p{N}._-]{2,80})/gu, '$1<span class="crm-chat-mention">@$2</span>');
     safe = safe.replace(/\[стикер: ([^\]]+)\]/g, '<span class="crm-chat-sticker">$1</span>');
     safe = safe.replace(/\[gif: ([^\]]+)\]/g, '<span class="crm-chat-sticker">$1</span>');
+    safe = safe.replace(/\[([^\]]+)\]\(((?:https?:\/\/|\/(?!\/)|(?:web\/)?index\.php\?)[^\s\)"'<>]+)\)/g, function (_, title, url) {
+      return '<a href="' + url.replace(/"/g, '&quot;') + '" class="crm-chat-link" target="_blank" rel="noopener">' + title + '</a>';
+    });
     safe = safe.replace(/kb:([a-zA-Z0-9_]+):([^<]*)/g, function(match, publicId, title) {
       title = (title || '').trim() || window.CRM.i18n.t('chat.knowledge_page', 'Knowledge page');
       return '<a href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(publicId) + '" class="crm-knowledge-chat-card" target="_blank" rel="noopener" title="' + window.CRM.i18n.t('chat.open_knowledge_title', 'Open in Knowledge Base') + ': ' + esc(title) + '">'
@@ -1516,8 +1521,8 @@
         var actor = entry.actor_name || entry.actor_login || window.CRM.i18n.t('chat.default_sender', 'Пользователь');
         return '<div class="crm-chat-history-item">'
           + '<div class="crm-chat-history-meta"><strong>' + esc(actor) + '</strong><time>' + esc(formatTime(entry.created_at)) + '</time></div>'
-          + (entry.before_text !== null && entry.before_text !== undefined ? '<div class="crm-chat-history-version"><span>' + window.CRM.i18n.t('chat.history_before', 'Было') + '</span><p>' + renderMessageText(String(entry.before_text)) + '</p></div>' : '')
-          + (entry.after_text !== null && entry.after_text !== undefined ? '<div class="crm-chat-history-version"><span>' + window.CRM.i18n.t('chat.history_after', 'Стало') + '</span><p>' + renderMessageText(String(entry.after_text)) + '</p></div>' : '')
+          + (entry.before_text !== null && entry.before_text !== undefined ? '<div class="crm-chat-history-version"><span>' + window.CRM.i18n.t('chat.history_before', 'Было') + '</span><div class="crm-chat-message-text">' + renderMessageText(String(entry.before_text)) + '</div></div>' : '')
+          + (entry.after_text !== null && entry.after_text !== undefined ? '<div class="crm-chat-history-version"><span>' + window.CRM.i18n.t('chat.history_after', 'Стало') + '</span><div class="crm-chat-message-text">' + renderMessageText(String(entry.after_text)) + '</div></div>' : '')
           + '</div>';
       }).join('') + '</div>';
     }

@@ -9356,6 +9356,10 @@ body.modal-open {
   border-color: var(--crm-primary-border);
 }
 
+.crm-chat-message.is-ai-agent {
+  border-left: 3px solid var(--crm-accent);
+}
+
 .crm-chat-message.is-highlighted {
   animation: crm-chat-message-highlight 4s ease;
 }
@@ -9385,11 +9389,22 @@ body.modal-open {
   color: var(--crm-text);
 }
 
-.crm-chat-message p {
+.crm-chat-message p,
+.crm-chat-message-text {
   margin: 0;
   color: var(--crm-text);
   white-space: normal;
   overflow-wrap: anywhere;
+  line-height: 1.55;
+  font-size: 0.88rem;
+}
+
+.crm-chat-message-text p {
+  margin: 0 0 0.4rem;
+}
+
+.crm-chat-message-text p:last-child {
+  margin-bottom: 0;
 }
 
 .crm-chat-compose {
@@ -9941,18 +9956,135 @@ body.modal-open {
   padding: 0.35rem 0.5rem;
 }
 
-.crm-chat-ul {
-  padding-left: 1.25rem;
-  margin: 0.35rem 0;
+.crm-chat-ul,
+.crm-chat-ol {
+  padding-left: 1.35rem;
+  margin: 0.45rem 0;
 }
 
-.crm-chat-ul li {
-  margin-bottom: 0.2rem;
+.crm-chat-ul li,
+.crm-chat-ol li {
+  margin-bottom: 0.25rem;
+  line-height: 1.45;
+}
+
+.crm-chat-ul li:last-child,
+.crm-chat-ol li:last-child {
+  margin-bottom: 0;
 }
 
 .crm-chat-h {
-  font-size: 0.95rem;
-  color: var(--crm-text-strong);
+  margin: 0.6rem 0 0.25rem;
+  font-size: 0.94rem;
+  font-weight: 700;
+  color: var(--crm-text);
+  line-height: 1.35;
+}
+
+.crm-chat-h:first-child {
+  margin-top: 0;
+}
+
+.crm-chat-blockquote {
+  margin: 0.5rem 0;
+  padding: 0.4rem 0.75rem;
+  border-left: 3px solid var(--crm-accent);
+  background: color-mix(in srgb, var(--crm-accent) 6%, var(--crm-surface));
+  border-radius: 0 5px 5px 0;
+  color: var(--crm-text-muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.crm-chat-hr {
+  margin: 0.65rem 0;
+  border: 0;
+  border-top: 1px solid var(--crm-border);
+  opacity: 0.8;
+}
+
+/* Styled chat links & entity badges */
+.crm-chat-link {
+  color: var(--crm-accent-strong);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-weight: 500;
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+  word-break: break-word;
+}
+
+.crm-chat-link:hover {
+  color: var(--crm-accent);
+}
+
+.crm-chat-link--entity {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 5px;
+  font-size: 0.86em;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid var(--crm-border);
+  vertical-align: baseline;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+.crm-chat-link--task {
+  background: color-mix(in srgb, var(--crm-info) 10%, var(--crm-surface));
+  color: var(--crm-info);
+  border-color: color-mix(in srgb, var(--crm-info) 30%, transparent);
+}
+
+.crm-chat-link--task:hover {
+  background: color-mix(in srgb, var(--crm-info) 18%, var(--crm-surface));
+  color: var(--crm-info);
+}
+
+.crm-chat-link--project {
+  background: color-mix(in srgb, var(--crm-accent) 10%, var(--crm-surface));
+  color: var(--crm-accent-strong);
+  border-color: color-mix(in srgb, var(--crm-accent) 30%, transparent);
+}
+
+.crm-chat-link--project:hover {
+  background: color-mix(in srgb, var(--crm-accent) 18%, var(--crm-surface));
+  color: var(--crm-accent-strong);
+}
+
+.crm-chat-link--knowledge {
+  background: color-mix(in srgb, var(--crm-success) 10%, var(--crm-surface));
+  color: var(--crm-success);
+  border-color: color-mix(in srgb, var(--crm-success) 30%, transparent);
+}
+
+.crm-chat-link--knowledge:hover {
+  background: color-mix(in srgb, var(--crm-success) 18%, var(--crm-surface));
+  color: var(--crm-success);
+}
+
+.crm-chat-link--contact {
+  background: color-mix(in srgb, var(--crm-warning) 10%, var(--crm-surface));
+  color: var(--crm-warning);
+  border-color: color-mix(in srgb, var(--crm-warning) 30%, transparent);
+}
+
+.crm-chat-link--contact:hover {
+  background: color-mix(in srgb, var(--crm-warning) 18%, var(--crm-surface));
+  color: var(--crm-warning);
+}
+
+.crm-chat-link--external {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.crm-chat-link--external i {
+  font-size: 0.78em;
+  opacity: 0.8;
 }
 
 .crm-chat-attachments {
