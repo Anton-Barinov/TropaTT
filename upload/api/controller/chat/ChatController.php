@@ -491,6 +491,18 @@ final class ChatController extends BaseController
         $pdo = $this->container->get('db.pdo');
         $msgPublicId = 'msg_' . bin2hex(random_bytes(8));
         $reply = $this->resolveReplyMessage((int)$chat['id'], (string)($input['reply_to_message_public_id'] ?? ''));
+        $clientRequestId = ($chat['type'] ?? '') === 'ai_agent' ? ($input['client_request_id'] ?? '') : '';
+        if (!is_string($clientRequestId)) {
+            return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
+        }
+        if ($clientRequestId !== '') {
+            if (!preg_match('/^[A-Za-z0-9_-]{16,80}$/D', $clientRequestId)) {
+                return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
+            }
+            $msgPublicId = 'msg_' . substr(hash('sha256', $chat['id'] . ':' . $this->currentUserId() . ':' . $clientRequestId), 0, 24);
+            $replay = $this->replayAiMessage($chat, $actor, $msgPublicId, $text, $reply);
+            if ($replay) return $replay;
+        }
         $chatOrgId = (int)($chat['organization_id'] ?? ($actor['organization_id'] ?? 0));
         $hasMsgOrg = $this->tableHasColumn($pdo, 'chat_messages', 'organization_id');
         $pdo->beginTransaction();
@@ -535,6 +547,10 @@ final class ChatController extends BaseController
             $pdo->commit();
         } catch (\Throwable $e) {
             $pdo->rollBack();
+            if ($clientRequestId !== '') {
+                $replay = $this->replayAiMessage($chat, $actor, $msgPublicId, $text, $reply);
+                if ($replay) return $replay;
+            }
             throw $e;
         }
 
@@ -561,6 +577,27 @@ final class ChatController extends BaseController
         ]);
 
         return $this->success('MESSAGE_SENT', $this->t('chat/messages.message_sent'), $resData, status: 201);
+    }
+
+    /** Retry acknowledgements remain scoped to the original chat and sender. */
+    private function replayAiMessage(array $chat, array $actor, string $messageId, string $text, ?array $reply): ?JsonResponse
+    {
+        $pdo = $this->container->get('db.pdo');
+        $stmt = $pdo->prepare('SELECT id, text, reply_to_message_id, deleted_at FROM chat_messages
+            WHERE public_id = :mid AND chat_id = :cid AND sender_user_id = :uid LIMIT 1');
+        $stmt->execute(['mid' => $messageId, 'cid' => $chat['id'], 'uid' => $this->currentUserId()]);
+        $message = $stmt->fetch(\PDO::FETCH_ASSOC);
+        if (!$message) return null;
+        if ($message['deleted_at'] !== null || $message['text'] !== $text
+            || (int)$message['reply_to_message_id'] !== (int)($reply['id'] ?? 0)) {
+            return $this->error('MESSAGE_REPLAY_CONFLICT', $this->t('common/messages.invalid_parameter'), 409);
+        }
+        $data = ['public_id' => $messageId, 'message_seq' => (int)$message['id']];
+        $stmt = $pdo->prepare('SELECT public_id FROM ai_chat_runs WHERE message_public_id = :mid AND chat_id = :cid AND actor_user_id = :uid');
+        $stmt->execute(['mid' => $messageId, 'cid' => $chat['id'], 'uid' => $this->currentUserId()]);
+        $runId = $stmt->fetchColumn();
+        if ($runId) $data['ai_run'] = $this->container->get('service.ai_chat_agent')->runStatus($chat, $actor, (string)$runId);
+        return $this->success('MESSAGE_SENT', $this->t('chat/messages.message_sent'), $data, status: 201);
     }
 
     public function aiRunStatus(array $params = []): JsonResponse

@@ -212,7 +212,7 @@
   }
 
   function chatTitle(chat) {
-    if (chat && chat.type === 'ai_agent') return window.CRM.i18n.t('chat.ai_agent_title', 'AI Ассистент');
+    if (chat && chat.type === 'ai_agent') return String(chat.title || '').trim() || window.CRM.i18n.t('chat.ai_agent_title', 'AI Ассистент');
     var title = String(chat.title || '').trim();
     var participants = String(chat.participant_names || '').split(',').map(function (item) { return item.trim(); }).filter(Boolean);
     if ((chat.type === 'project' || chat.type === 'team') && title) return title;
@@ -317,13 +317,34 @@
   var aiDrivers = {};
   var aiRuns = {};
   var aiRunExpanded = {};
+  var chatDrafts = {};
+  var pendingAiSends = {};
   function aiLabel(key, fallback) { return window.CRM.i18n.t('chat.ai_run_' + key, fallback); }
 
   function renderAiRun(chatId, run) {
     if (selectedChatId !== chatId) return;
+    var box = document.getElementById('msgArea');
+    var live = box && box.querySelector('[data-ai-live-progress]');
+    var working = run && ['queued', 'running', 'cancelling'].indexOf(run.status) >= 0;
+    if (!working && live) live.remove();
+    if (working && box) {
+      if (!live) {
+        live = document.createElement('article');
+        live.className = 'crm-chat-message is-ai-progress';
+        live.setAttribute('data-ai-live-progress', '');
+        live.setAttribute('aria-live', 'polite');
+        box.appendChild(live);
+      }
+      live.innerHTML = '<div class="crm-chat-message-meta"><strong>' + esc(aiLabel('assistant', 'AI Ассистент'))
+        + '</strong></div><p>' + esc(run.progress || aiLabel('working', 'Выполняю задачу')) + '</p>';
+    }
     var panel = document.getElementById('aiRunPanel');
     if (!panel) return;
     if (!run) { panel.hidden = true; return; }
+    if (run.status === 'completed') {
+      panel.hidden = true;
+      return;
+    }
     panel.hidden = false;
     var labels = {
       queued: aiLabel('working', 'Выполняю задачу'), running: aiLabel('working', 'Выполняю задачу'), cancelling: aiLabel('stopping', 'Останавливаю после текущего действия'),
@@ -405,6 +426,13 @@
             });
           }
           aiRuns[chatId] = env.data.run;
+          var completedSource = aiRuns[chatId] && aiRuns[chatId].status === 'completed'
+            ? findMessage(aiRuns[chatId].message_public_id) : null;
+          if (selectedChatId === chatId && completedSource
+            && /^(?:\/clear|\/reset|очистить|сброс)$/iu.test(String(completedSource.text || '').trim())) {
+            allOlderLoaded = true;
+            renderMessages([]);
+          }
           if (aiRuns[chatId] && aiRuns[chatId].status === 'queued' && aiRuns[chatId].step_count === run.step_count) {
             await new Promise(function (resolve) { window.setTimeout(resolve, 1000); });
             var headEnv = await request('api/v1/chats/' + encodeURIComponent(chatId) + '/ai-run', { method: 'GET' });
@@ -635,6 +663,7 @@
   }
 
   function renderMessage(message) {
+    if (currentChat && currentChat.type === 'ai_agent' && message.deleted_at) return '';
     if (window.CRM && window.CRM.chat) return window.CRM.chat.renderMessage(message, { findMessage: findMessage });
       var sender = message.sender_name || message.sender_login || window.CRM.i18n.t('chat.default_sender', 'Пользователь');
       var own = Number(message.is_own || 0) === 1;
@@ -689,6 +718,25 @@
     scrollToMessageOnLoad();
   }
 
+  function reorderAiMessages() {
+    if (!currentChat || currentChat.type !== 'ai_agent') return;
+    var box = document.getElementById('msgArea');
+    if (!box) return;
+    currentMessages.sort(function (a, b) {
+      var aId = messageNumericId(a) || Number.MAX_SAFE_INTEGER;
+      var bId = messageNumericId(b) || Number.MAX_SAFE_INTEGER;
+      return aId - bId;
+    });
+    currentMessages.forEach(function (message) {
+      var node = box.querySelector('[data-message-id="' + CSS.escape(message.public_id) + '"]');
+      if (node) box.appendChild(node);
+    });
+    var typing = box.querySelector('#aiTypingIndicator');
+    if (typing) box.appendChild(typing);
+    var live = box.querySelector('[data-ai-live-progress]');
+    if (live) box.appendChild(live);
+  }
+
   function appendMessages(messages) {
     var box = document.getElementById('msgArea');
     if (!box || !messages.length) return;
@@ -713,6 +761,7 @@
       box.insertAdjacentHTML('beforeend', html);
     }
     bindMessageActions(box);
+    reorderAiMessages();
     if (shouldStick) box.scrollTop = box.scrollHeight;
   }
 
@@ -753,6 +802,7 @@
       return byId.get(String(message.public_id || '')) || message;
     });
     if (fresh.length) appendMessages(fresh);
+    reorderAiMessages();
     updateLastMessageId(messages);
     if (shouldStick) box.scrollTop = box.scrollHeight;
   }
@@ -841,7 +891,8 @@
     try {
       var detailPromise = request('api/v1/chats/' + encodeURIComponent(id), { method: 'GET' });
       var messagesPromise = request('api/v1/chats/' + encodeURIComponent(id) + '/messages', { method: 'GET', query: { limit: 80 } });
-      var detailEnv = await detailPromise;
+      var loaded = await Promise.all([detailPromise, messagesPromise]);
+      var detailEnv = loaded[0];
       var chat = detailEnv.data.chat || {};
       renderConversationShell(chat);
       if (chat.is_archived || chat.archived_at) {
@@ -851,7 +902,7 @@
         lastMessageId = 0;
         return;
       }
-      var messagesEnv = await messagesPromise;
+      var messagesEnv = loaded[1];
       var loadedItems = (messagesEnv.data && messagesEnv.data.items) || [];
       allOlderLoaded = loadedItems.length < 80;
       renderMessages(loadedItems);
@@ -859,6 +910,13 @@
       markRead();
       loadChats({ silent: true });
     } catch (error) {
+      if (id !== selectedChatId) return;
+      if (error && (error.message === 'NOT_FOUND' || error.status === 404)) {
+        setSelectedChatId('', true);
+        currentChat = null;
+        currentMessages = [];
+        lastMessageId = 0;
+      }
       var area = document.getElementById('chatArea');
       if (area) area.innerHTML = '<div class="crm-chat-empty"><strong>' + window.CRM.i18n.t('chat.open_error_title', 'Не удалось открыть чат') + '</strong><span>' + window.CRM.i18n.t('chat.open_error_text', 'Проверьте доступ или попробуйте позже.') + '</span></div>';
     } finally {
@@ -910,13 +968,22 @@
     var input = document.getElementById('msgInput');
     var button = document.getElementById('sendChatMessageBtn');
     if (!input || !button) return;
+    var draftChatId = selectedChatId;
+    if (chatDrafts[draftChatId]) {
+      input.value = chatDrafts[draftChatId].text;
+      replyToMessage = chatDrafts[draftChatId].reply || null;
+      renderReplyPreview();
+    }
     function sync() {
       button.disabled = !input.value.trim();
       input.style.height = input.value ? 'auto' : '44px';
       if (input.value) input.style.height = Math.min(Math.max(44, input.scrollHeight), 120) + 'px';
       if (input.value.trim()) setSendError('');
     }
-    input.addEventListener('input', sync);
+    input.addEventListener('input', function () {
+      chatDrafts[draftChatId] = { text: input.value, reply: replyToMessage };
+      sync();
+    });
     input.addEventListener('keydown', function (event) {
       if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault();
@@ -962,10 +1029,12 @@
     var box = document.getElementById('msgArea');
 
     if (editingMessage) {
+      var chatIdAtEdit = selectedChatId;
       input.disabled = true;
       button.disabled = true;
       try {
-        await request('api/v1/chats/' + encodeURIComponent(selectedChatId) + '/messages/' + encodeURIComponent(editingMessage.public_id), { method: 'PATCH', body: { text: text } });
+        await request('api/v1/chats/' + encodeURIComponent(chatIdAtEdit) + '/messages/' + encodeURIComponent(editingMessage.public_id), { method: 'PATCH', body: { text: text } });
+        if (selectedChatId !== chatIdAtEdit) return;
         editingMessage = null;
         input.value = '';
         input.style.height = 'auto';
@@ -973,7 +1042,7 @@
         await syncMessagesAfterLocalChange('sync');
         await loadChats({ silent: true });
       } catch (error) {
-        setSendError(window.CRM.i18n.t('chat.error_send_failed', 'Не удалось отправить сообщение. Попробуйте еще раз.'));
+        if (selectedChatId === chatIdAtEdit) setSendError(window.CRM.i18n.t('chat.error_send_failed', 'Не удалось отправить сообщение. Попробуйте еще раз.'));
       } finally {
         input.disabled = false;
         input.focus();
@@ -984,6 +1053,19 @@
 
     var chatIdAtSend = selectedChatId;
     var currentReply = replyToMessage;
+    var pendingSendKey = chatIdAtSend + ':' + JSON.stringify([text, currentReply ? currentReply.public_id : '']);
+    var pendingSend = pendingAiSends[pendingSendKey];
+    if (isAi && (!pendingSend || pendingSend.text !== text || pendingSend.replyId !== (currentReply ? currentReply.public_id : ''))) {
+      pendingSend = { text: text, replyId: currentReply ? currentReply.public_id : '',
+        requestId: window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : window.CRM.api.createIdempotencyKey('ai-chat') };
+      pendingAiSends[pendingSendKey] = pendingSend;
+    }
+    if (pendingSend && pendingSend.tempId) {
+      currentMessages = currentMessages.filter(function (m) { return m.public_id !== pendingSend.tempId; });
+      var oldPending = box && box.querySelector('[data-message-id="' + CSS.escape(pendingSend.tempId) + '"]');
+      if (oldPending) oldPending.remove();
+    }
+    delete chatDrafts[chatIdAtSend];
     replyToMessage = null;
     renderReplyPreview();
 
@@ -1003,8 +1085,10 @@
 
     // 2. Build optimistic user message
     var tempId = 'temp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+    if (isAi) pendingSend.tempId = tempId;
     var nowIso = new Date().toISOString();
-    var curUser = (window.CRM && window.CRM.user) || {};
+    var curUser = (window.CRM && window.CRM.api && typeof window.CRM.api.getUser === 'function'
+      ? window.CRM.api.getUser() : null) || {};
     var optimisticMsg = {
       public_id: tempId,
       id: 0,
@@ -1038,6 +1122,7 @@
       box.scrollTop = box.scrollHeight;
     }
 
+    var acknowledged = false;
     try {
       var postOpts = {
         method: 'POST',
@@ -1045,9 +1130,12 @@
       };
       if (isAi) {
         postOpts.timeoutMs = 180000;
+        postOpts.body.client_request_id = pendingSend.requestId;
       }
       var res = await request('api/v1/chats/' + encodeURIComponent(chatIdAtSend) + '/messages', postOpts);
       var serverData = (res && res.data) || {};
+      acknowledged = true;
+      if (isAi) delete pendingAiSends[pendingSendKey];
       var realPublicId = serverData.public_id;
       var realId = Number(serverData.message_seq || serverData.id || 0);
 
@@ -1082,6 +1170,7 @@
         }
       }
 
+      reorderAiMessages();
       // If AI response was returned, remove indicator and append AI response
       if (typingEl && typingEl.parentNode) {
         typingEl.parentNode.removeChild(typingEl);
@@ -1097,6 +1186,15 @@
       await loadChats({ silent: true });
     } catch (error) {
       console.error('Failed to send message:', error);
+      if (acknowledged) {
+        if (selectedChatId === chatIdAtSend) setSendError(aiLabel('connection', 'Нет связи. Прогресс сохранён; переподключаюсь.'));
+        return;
+      }
+      if (!chatDrafts[chatIdAtSend] || !chatDrafts[chatIdAtSend].text) chatDrafts[chatIdAtSend] = { text: text, reply: currentReply };
+      if (isAi && error && error.status >= 400 && error.status < 500 && error.status !== 429) delete pendingAiSends[pendingSendKey];
+      if (selectedChatId !== chatIdAtSend) return;
+      replyToMessage = currentReply;
+      renderReplyPreview();
       if (typingEl && typingEl.parentNode) {
         typingEl.parentNode.removeChild(typingEl);
         typingEl = null;
@@ -1213,6 +1311,7 @@
       btn.addEventListener('click', function () {
         replyToMessage = findMessage(btn.getAttribute('data-reply-message'));
         editingMessage = null;
+        chatDrafts[selectedChatId] = { text: document.getElementById('msgInput').value, reply: replyToMessage };
         renderReplyPreview();
         document.getElementById('msgInput').focus();
       });
@@ -1338,9 +1437,13 @@
     if (!source) { node.innerHTML = ''; return; }
     node.innerHTML = '<div><strong>' + (editingMessage ? window.CRM.i18n.t('chat.reply_editing', 'Редактирование') : window.CRM.i18n.t('chat.reply_reply', 'Ответ')) + '</strong><span>' + esc(source.text || window.CRM.i18n.t('chat.reply_default_sender', 'Сообщение')) + '</span></div><button type="button" aria-label="' + window.CRM.i18n.t('chat.btn_cancel_reply_aria', 'Отменить') + '"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>';
     node.querySelector('button').addEventListener('click', function () {
+      var wasEditing = !!editingMessage;
       replyToMessage = null;
       editingMessage = null;
-      document.getElementById('msgInput').value = '';
+      var input = document.getElementById('msgInput');
+      if (wasEditing) input.value = '';
+      chatDrafts[selectedChatId] = { text: input.value, reply: null };
+      input.dispatchEvent(new Event('input', { bubbles: true }));
       renderReplyPreview();
     });
   }
