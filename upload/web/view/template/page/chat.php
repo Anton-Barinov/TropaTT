@@ -411,6 +411,13 @@
             });
           }
           aiRuns[chatId] = env.data.run;
+          var completedSource = aiRuns[chatId] && aiRuns[chatId].status === 'completed'
+            ? findMessage(aiRuns[chatId].message_public_id) : null;
+          if (selectedChatId === chatId && completedSource
+            && /^(?:\/clear|\/reset|очистить|сброс)$/iu.test(String(completedSource.text || '').trim())) {
+            allOlderLoaded = true;
+            renderMessages([]);
+          }
           if (aiRuns[chatId] && aiRuns[chatId].status === 'queued' && aiRuns[chatId].step_count === run.step_count) {
             await new Promise(function (resolve) { window.setTimeout(resolve, 1000); });
             var headEnv = await request('api/v1/chats/' + encodeURIComponent(chatId) + '/ai-run', { method: 'GET' });
@@ -641,6 +648,7 @@
   }
 
   function renderMessage(message) {
+    if (currentChat && currentChat.type === 'ai_agent' && message.deleted_at) return '';
     if (window.CRM && window.CRM.chat) return window.CRM.chat.renderMessage(message, { findMessage: findMessage });
       var sender = message.sender_name || message.sender_login || window.CRM.i18n.t('chat.default_sender', 'Пользователь');
       var own = Number(message.is_own || 0) === 1;
