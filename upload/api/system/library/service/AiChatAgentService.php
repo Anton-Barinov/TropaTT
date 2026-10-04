@@ -365,7 +365,7 @@ final class AiChatAgentService
             $tools = $mcp->getAvailableToolsForAgent('core');
             if ($this->requestMode($state['request']) !== 'simple' || $state['plan'] !== []) $tools[] = $this->planTool();
             $completion = $this->aiProvider->completeText(null, ['messages' => $this->providerMessages($state),
-                'tools' => $tools, 'tool_choice' => 'auto', 'temperature' => 0.2, 'max_tokens' => 6000, '_retain_reasoning' => true]);
+                'tools' => $tools, 'tool_choice' => 'auto', 'temperature' => 0.2, 'max_tokens' => (int)($state['max_output_tokens'] ?? 6000), '_retain_reasoning' => true]);
             if (empty($completion['ok'])) {
                 $code = preg_replace('/[^A-Z0-9_]/', '', (string)($completion['code'] ?? 'AI_PROVIDER_ERROR'));
                 if ($code === 'AI_PROVIDER_CIRCUIT_OPEN') {
@@ -374,6 +374,9 @@ final class AiChatAgentService
                     $state['error'] = '';
                     $this->checkpointRun($run, $state, $token, 'queued');
                     return $this->runStatus($chat, $actor, $publicId);
+                }
+                if ($code === 'AI_PROVIDER_OUTPUT_TRUNCATED') {
+                    $state['max_output_tokens'] = min(24000, (int)($state['max_output_tokens'] ?? 6000) * 2);
                 }
                 $state['provider_errors']++;
                 AppLog::warning('[AiChatAgentService] provider failed: ' . $code);

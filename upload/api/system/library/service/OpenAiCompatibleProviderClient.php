@@ -8,6 +8,7 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
     public function completeText(array $provider, string $secret, array $payload): array
     {
         $startedAt = microtime(true);
+        if (isset($payload['_deadline_at'])) $provider['_deadline_at'] = (float)$payload['_deadline_at'];
         $url = $this->completionUrl($provider);
         $headers = [
             'Accept: application/json',
@@ -76,6 +77,10 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
         }
 
         $json = is_array($response['json'] ?? null) ? (array)$response['json'] : [];
+        if (($json['choices'][0]['finish_reason'] ?? '') === 'length') {
+            return ['ok' => false, 'code' => 'AI_PROVIDER_OUTPUT_TRUNCATED', 'message' => 'Provider output exceeded its token budget',
+                'latency_ms' => $latencyMs, 'http_status' => (int)($response['http_status'] ?? 0)];
+        }
         $text = $this->extractCompletionText($json);
         $toolCalls = $this->extractToolCalls($json);
 
@@ -217,7 +222,7 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
         $baseUrl = rtrim((string)($provider['base_url'] ?? ''), '/');
         $apiPath = trim((string)($provider['api_path'] ?? ''));
         if ($apiPath === '') {
-            return $baseUrl . '/v1/models';
+            return $this->joinApiUrl($baseUrl, '/v1/models');
         }
 
         $normalized = '/' . ltrim($apiPath, '/');
@@ -227,7 +232,7 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
             $normalized = '/v1/models';
         }
 
-        return $baseUrl . $normalized;
+        return $this->joinApiUrl($baseUrl, $normalized);
     }
 
     /** @param array<string,mixed> $provider */
@@ -236,13 +241,23 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
         $baseUrl = rtrim((string)($provider['base_url'] ?? ''), '/');
         $apiPath = trim((string)($provider['api_path'] ?? ''));
         if ($apiPath === '') {
-            return $baseUrl . '/v1/chat/completions';
+            return $this->joinApiUrl($baseUrl, '/v1/chat/completions');
         }
         if ($apiPath[0] !== '/') {
             $apiPath = '/' . $apiPath;
         }
 
-        return $baseUrl . $apiPath;
+        return $this->joinApiUrl($baseUrl, $apiPath);
+    }
+
+    private function joinApiUrl(string $baseUrl, string $path): string
+    {
+        // A base URL may already end in /v1 (the common SDK configuration).
+        if (preg_match('~/(v[0-9]+)$~', (string)parse_url($baseUrl, PHP_URL_PATH), $match)
+            && str_starts_with($path, '/' . $match[1] . '/')) {
+            $path = substr($path, strlen($match[1]) + 1);
+        }
+        return $baseUrl . $path;
     }
 
     /**
@@ -262,7 +277,9 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
 
         while ($attempt < $runtime['max_attempts']) {
             $attempt++;
-            $lastResponse = $this->sendGetJson($url, $headers, $runtime['timeout_ms'], $provider);
+            $remainingMs = isset($provider['_deadline_at']) ? (int)(($provider['_deadline_at'] - microtime(true)) * 1000) : $runtime['timeout_ms'];
+            if ($remainingMs <= 0) return ['ok' => false, 'http_status' => 0, 'error_code' => 'AI_PROVIDER_TIMEOUT', 'error_message' => 'Request time budget exhausted'];
+            $lastResponse = $this->sendGetJson($url, $headers, min($runtime['timeout_ms'], max(1, $remainingMs)), $provider);
             if ((bool)($lastResponse['ok'] ?? false)) {
                 return $lastResponse;
             }
@@ -365,7 +382,9 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
 
         while ($attempt < $runtime['max_attempts']) {
             $attempt++;
-            $lastResponse = $this->sendPostJson($url, $headers, $body, $runtime['timeout_ms'], $provider);
+            $remainingMs = isset($provider['_deadline_at']) ? (int)(($provider['_deadline_at'] - microtime(true)) * 1000) : $runtime['timeout_ms'];
+            if ($remainingMs <= 0) return ['ok' => false, 'http_status' => 0, 'error_code' => 'AI_PROVIDER_TIMEOUT', 'error_message' => 'Request time budget exhausted'];
+            $lastResponse = $this->sendPostJson($url, $headers, $body, min($runtime['timeout_ms'], max(1, $remainingMs)), $provider);
             if ((bool)($lastResponse['ok'] ?? false)) {
                 return $lastResponse;
             }
@@ -648,7 +667,7 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
 
         $phpMaxExecutionSeconds = (int)ini_get('max_execution_time');
         if ($phpMaxExecutionSeconds > 0) {
-            $safeLimitMs = max(150000, ($phpMaxExecutionSeconds * 1000) - 3000);
+            $safeLimitMs = max(1000, ($phpMaxExecutionSeconds * 1000) - 3000);
             if ($safeLimitMs > 1000) {
                 $timeoutMs = min($timeoutMs, $safeLimitMs);
             }
@@ -745,11 +764,15 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
             'user_prompt' => 'ping',
             'context' => [],
             'model' => trim((string)($provider['default_model'] ?? '')),
-            'max_tokens' => 16,
+            'max_tokens' => 512,
             'temperature' => 0.0,
         ];
         $startedAt = microtime(true);
         $result = $this->completeText($provider, $secret, $payload);
+        if (($result['code'] ?? '') === 'AI_PROVIDER_OUTPUT_TRUNCATED') {
+            $payload['max_tokens'] = 2048;
+            $result = $this->completeText($provider, $secret, $payload);
+        }
         if (!(bool)($result['ok'] ?? false)) {
             return [
                 'ok' => false,
