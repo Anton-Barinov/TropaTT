@@ -1022,7 +1022,7 @@
     if (!bot || !bot.available) return false;
     var aliases = ['ai_agent', 'agent', bot.login].filter(Boolean).map(function (value) { return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); });
     if (new RegExp('(^|[^\\p{L}\\p{N}._@-])@(' + aliases.join('|') + ')(?![\\p{L}\\p{N}._-])', 'iu').test(text)) return true;
-    if (reply) return reply.sender_public_id === bot.public_id;
+    if (reply) return !!((bot.public_id && reply.sender_public_id === bot.public_id) || (reply.sender_login && reply.sender_login === bot.login));
     var me = window.CRM.api.getUser() || {};
     var participants = currentChat.participants || [];
     var onlyMeAndBot = participants.every(function (user) { return user.public_id === me.public_id || user.public_id === bot.public_id; });
