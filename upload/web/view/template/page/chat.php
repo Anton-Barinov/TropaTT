@@ -985,10 +985,12 @@
     var box = document.getElementById('msgArea');
 
     if (editingMessage) {
+      var chatIdAtEdit = selectedChatId;
       input.disabled = true;
       button.disabled = true;
       try {
-        await request('api/v1/chats/' + encodeURIComponent(selectedChatId) + '/messages/' + encodeURIComponent(editingMessage.public_id), { method: 'PATCH', body: { text: text } });
+        await request('api/v1/chats/' + encodeURIComponent(chatIdAtEdit) + '/messages/' + encodeURIComponent(editingMessage.public_id), { method: 'PATCH', body: { text: text } });
+        if (selectedChatId !== chatIdAtEdit) return;
         editingMessage = null;
         input.value = '';
         input.style.height = 'auto';
@@ -996,7 +998,7 @@
         await syncMessagesAfterLocalChange('sync');
         await loadChats({ silent: true });
       } catch (error) {
-        setSendError(window.CRM.i18n.t('chat.error_send_failed', 'Не удалось отправить сообщение. Попробуйте еще раз.'));
+        if (selectedChatId === chatIdAtEdit) setSendError(window.CRM.i18n.t('chat.error_send_failed', 'Не удалось отправить сообщение. Попробуйте еще раз.'));
       } finally {
         input.disabled = false;
         input.focus();
