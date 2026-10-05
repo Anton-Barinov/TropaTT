@@ -21325,3 +21325,10 @@ body[data-page="admin-settings"] [data-settings-group] {
     padding-inline: .75rem;
   }
 }
+
+@media (min-width: 768px) and (max-width: 1399.98px) {
+  .crm-calendar-time-head-row,
+  .crm-calendar-time-grid {
+    grid-template-columns: 58px repeat(var(--calendar-days), minmax(0, 1fr));
+  }
+}
