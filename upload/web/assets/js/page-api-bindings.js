@@ -9053,7 +9053,7 @@ window.CRM.pageApiBindings = (function () {
     var title = document.querySelector('[data-calendar-title]');
     if (title) {
       if (state.view === 'day') title.textContent = tp('calendar.day_prefix', 'Day: ') + dayLabel(state.anchor);
-      if (state.view === 'week') title.textContent = tp('calendar.week_prefix', 'Week: ') + dayLabel(rangeStart) + ' - ' + dayLabel(rangeEnd);
+      if (state.view === 'week') title.textContent = tp('calendar.view_week', 'Week');
       if (state.view === 'month') title.textContent = tp('calendar.month_prefix', 'Month: ') + monthLabel(state.anchor);
       if (title.matches('[data-calendar-nav="today"]')) {
         title.setAttribute('aria-label', tp('calendar.jump_current_period', 'Go to current period'));
