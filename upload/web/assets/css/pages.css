@@ -21239,6 +21239,61 @@ body[data-page="admin-settings"] [data-settings-group] {
   border-radius: 6px;
   flex-shrink: 0;
 }
+
+/* Keep the calendar grid inside its assigned shell column. The timed week
+ * grid is intentionally wider than the panel and scrolls inside its surface;
+ * it must not enlarge the panel or push the agenda off-screen. */
+.crm-calendar-main,
+.crm-calendar-panel {
+  min-width: 0;
+}
+
+.crm-calendar-schedule {
+  max-width: 100%;
+}
+
+/* The period, summary chips, and content toggle share one visual axis. Using
+ * separate centered rows also prevents the final summary chip from becoming
+ * an awkward orphan when the selected period has a long label (week view). */
+.crm-calendar-panel-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: .7rem;
+}
+
+.crm-calendar-period-head,
+.crm-calendar-period-title {
+  width: 100%;
+  min-width: 0;
+  justify-content: center;
+}
+
+.crm-calendar-local-nav {
+  width: min(100%, 660px);
+  max-width: 100%;
+  margin-top: 0;
+}
+
+.crm-calendar-current-period {
+  min-width: 0;
+  max-width: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crm-calendar-summary {
+  width: 100%;
+  min-width: 0;
+  justify-content: center;
+  align-items: center;
+}
+
+.crm-calendar-content-toggles {
+  justify-content: center;
+}
+
 @media (max-width: 575.98px) {
   .crm-workspace-switcher { min-width: 0; max-width: none; width: auto; }
   .crm-workspace-trigger { min-height: 40px; padding: .35rem; justify-content: center; width: auto; }
@@ -21246,4 +21301,27 @@ body[data-page="admin-settings"] [data-settings-group] {
   .crm-workspace-trigger-chevron { display: none; }
   .crm-workspace-trigger-icon { flex: 0 0 32px; width: 32px; height: 32px; }
   .crm-workspace-menu { position: fixed; top: 4.2rem; right: .75rem; width: min(310px, calc(100vw - 1.5rem)); }
+}
+
+@media (max-width: 767.98px) {
+  .crm-calendar-panel-head {
+    padding: .75rem;
+  }
+
+  .crm-calendar-local-nav {
+    width: 100%;
+  }
+
+  .crm-calendar-local-nav .crm-calendar-current-period {
+    flex: 1 1 auto;
+    width: 1%;
+  }
+
+  .crm-calendar-summary {
+    gap: .4rem;
+  }
+
+  .crm-calendar-content-toggles {
+    padding-inline: .75rem;
+  }
 }
