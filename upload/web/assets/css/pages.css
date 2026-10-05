@@ -21239,6 +21239,121 @@ body[data-page="admin-settings"] [data-settings-group] {
   border-radius: 6px;
   flex-shrink: 0;
 }
+
+/* Keep the calendar grid inside its assigned shell column. The timed week
+ * grid scrolls inside its surface and must not widen the page layout. */
+.crm-calendar-main,
+.crm-calendar-panel {
+  min-width: 0;
+}
+
+.crm-calendar-schedule {
+  max-width: 100%;
+}
+
+/* Preserve the familiar horizontal toolbar while aligning the navigation,
+ * summary, and task switch vertically. Bound the long week label so summary
+ * chips do not wrap into an isolated final badge. */
+.crm-calendar-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .75rem 1rem;
+}
+
+.crm-calendar-period-head,
+.crm-calendar-period-title {
+  width: auto;
+  min-width: 0;
+  align-items: center;
+}
+
+.crm-calendar-local-nav {
+  width: auto;
+  max-width: min(100%, 660px);
+  margin-top: 0;
+}
+
+.crm-calendar-current-period {
+  min-width: 0;
+  max-width: clamp(13rem, 19vw, 21rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crm-calendar-summary {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+  justify-content: flex-end;
+  align-content: center;
+  align-items: center;
+}
+
+.crm-calendar-summary .crm-chip {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.crm-calendar-content-toggles .form-check-input {
+  flex: 0 0 auto;
+  align-self: center;
+  margin-top: 0;
+}
+
+.crm-calendar-content-toggles .form-check-label {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.25;
+}
+
+@media (max-width: 767.98px) {
+  .crm-calendar-panel-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .crm-calendar-period-head,
+  .crm-calendar-period-title,
+  .crm-calendar-local-nav {
+    width: 100%;
+  }
+
+  .crm-calendar-local-nav .btn {
+    flex: 1 1 0;
+  }
+
+  .crm-calendar-local-nav .crm-calendar-nav-icon {
+    flex: 0 0 42px;
+  }
+
+  .crm-calendar-local-nav .crm-calendar-current-period {
+    flex: 1 1 0;
+    width: 0;
+    min-width: 0;
+    padding-inline: .5rem;
+  }
+
+  .crm-calendar-current-period {
+    max-width: none;
+  }
+
+  .crm-calendar-summary {
+    justify-content: center;
+  }
+
+  .crm-calendar-content-toggles {
+    justify-content: center;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1399.98px) {
+  .crm-calendar-time-head-row,
+  .crm-calendar-time-grid {
+    grid-template-columns: 58px repeat(var(--calendar-days), minmax(0, 1fr));
+  }
+}
 @media (max-width: 575.98px) {
   .crm-workspace-switcher { min-width: 0; max-width: none; width: auto; }
   .crm-workspace-trigger { min-height: 40px; padding: .35rem; justify-content: center; width: auto; }

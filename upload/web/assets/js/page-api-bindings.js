@@ -9053,7 +9053,7 @@ window.CRM.pageApiBindings = (function () {
     var title = document.querySelector('[data-calendar-title]');
     if (title) {
       if (state.view === 'day') title.textContent = tp('calendar.day_prefix', 'Day: ') + dayLabel(state.anchor);
-      if (state.view === 'week') title.textContent = tp('calendar.week_prefix', 'Week: ') + dayLabel(rangeStart) + ' - ' + dayLabel(rangeEnd);
+      if (state.view === 'week') title.textContent = tp('calendar.view_week', 'Week');
       if (state.view === 'month') title.textContent = tp('calendar.month_prefix', 'Month: ') + monthLabel(state.anchor);
       if (title.matches('[data-calendar-nav="today"]')) {
         title.setAttribute('aria-label', tp('calendar.jump_current_period', 'Go to current period'));
@@ -9086,8 +9086,7 @@ window.CRM.pageApiBindings = (function () {
         + (conflictCount ? '<span class="crm-chip is-warning">⚠ ' + safeText(String(conflictCount)) + ' ' + safeText(tp('calendar.conflicts', 'potential conflicts')) + '</span>' : '')
         + (tasksLoadFailed ? '<span class="crm-chip is-warning" title="' + safeText(tp('calendar.task_load_error', 'Tasks could not be loaded. Refresh to try again.')) + '">⚠ ' + safeText(tp('calendar.task_load_error_short', 'Tasks unavailable')) + '</span>' : '')
         + (tasksTruncated ? '<span class="crm-chip is-warning" title="' + safeText(tp('calendar.task_limit_warning', 'Some tasks are not shown. Narrow the date range.')) + '">⚠ ' + safeText(tp('calendar.task_limit_warning_short', 'Task limit reached')) + '</span>' : '')
-        + '<span class="crm-chip">' + safeText(String(todayEvents.length)) + ' ' + tp('calendar.today_short', 'today') + '</span>'
-        + '<span class="crm-chip">' + safeText(state.view === 'month' ? tp('calendar.view_month', 'Month') : (state.view === 'week' ? tp('calendar.view_week', 'Week') : tp('calendar.view_day', 'Day'))) + '</span>';
+        + '<span class="crm-chip">' + safeText(String(todayEvents.length)) + ' ' + tp('calendar.today_short', 'today') + '</span>';
     }
 
     var aiDayPlanWrap = document.querySelector('[data-calendar-ai-day-plan]');
