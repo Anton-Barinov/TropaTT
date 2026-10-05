@@ -452,7 +452,7 @@ final class ChatController extends BaseController
     public function sendMessage(array $params = []): JsonResponse
     {
         // External users: defence-in-depth type check
-        $actor = $this->user()['user'] ?? [];
+        $actor = $this->organizationScopedActor($this->user()['user'] ?? []);
         if (!empty((int)($actor['is_external'] ?? 0))) {
             $publicId = trim((string)($params['public_id'] ?? ''));
             if ($publicId === '') return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
@@ -635,7 +635,7 @@ final class ChatController extends BaseController
 
     private function aiRunResponse(array $params, bool $advance): JsonResponse
     {
-        $actor = $this->user()['user'] ?? [];
+        $actor = $this->organizationScopedActor($this->user()['user'] ?? []);
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
         $staffFallback = false;
         if (!$chat && empty($actor['is_external'])) {
@@ -653,12 +653,12 @@ final class ChatController extends BaseController
         $input = $advance ? $this->request()->allInput() : [];
         $runId = trim((string)($input['run_public_id'] ?? ''));
         $action = (string)($input['action'] ?? 'step');
-        if ($advance && ($runId === '' || !in_array($action, ['step', 'resume', 'cancel'], true))) {
+        if ($advance && ($runId === '' || !in_array($action, ['step', 'resume', 'cancel', 'confirm'], true))) {
             return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         }
         /** @var \Api\System\Library\Service\AiChatAgentService $ai */
         $ai = $this->container->get('service.ai_chat_agent');
-        $run = $advance ? $ai->advanceRun($chat, $actor, $runId, $action) : $ai->runStatus($chat, $actor);
+        $run = $advance ? $ai->advanceRun($chat, $actor, $runId, $action, is_string($input['confirmation_token'] ?? null) ? $input['confirmation_token'] : '') : $ai->runStatus($chat, $actor);
         if ($advance && !$run) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
         return $this->success('AI_CHAT_RUN', $this->t('common/messages.ok'), ['run' => $run]);
     }

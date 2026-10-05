@@ -348,7 +348,7 @@
     var panel = document.getElementById('aiRunPanel');
     if (!panel) return;
     if (!run) { panel.hidden = true; return; }
-    if (run.status === 'completed') {
+    if (run.status === 'completed' && (!run.reply_chat_public_id || run.reply_chat_public_id === chatId)) {
       panel.hidden = true;
       return;
     }
@@ -357,9 +357,12 @@
       queued: aiLabel('working', 'Выполняю задачу'), running: aiLabel('working', 'Выполняю задачу'), cancelling: aiLabel('stopping', 'Останавливаю после текущего действия'),
       completed: aiLabel('completed', 'Задача выполнена'), waiting_input: aiLabel('waiting', 'Нужно уточнение'),
       cancelled: aiLabel('cancelled', 'Выполнение остановлено'),
+      waiting_confirmation: aiLabel('confirmation', 'Нужно подтвердить изменения'),
       failed: aiLabel('saved', 'Прогресс сохранён'), paused: aiLabel('saved', 'Прогресс сохранён'),
       interrupted: aiLabel('interrupted', 'Выполнение прервалось — прогресс сохранён')
     };
+    if (run.status === 'waiting_confirmation') aiRunExpanded[run.public_id] = true;
+    var confirmation = run.confirmation;
     var active = ['queued', 'running', 'cancelling'].indexOf(run.status) >= 0;
     var plan = Array.isArray(run.plan) ? run.plan : [];
     var done = plan.filter(function (step) { return step.status === 'done'; }).length;
@@ -373,6 +376,19 @@
         return '<li class="mb-1">' + (step.status === 'done' ? '✓ ' : step.status === 'in_progress' ? '→ ' : '')
           + esc(step.title) + (step.evidence ? '<div class="text-muted">' + esc(step.evidence) + '</div>' : '') + '</li>';
       }).join('') + '</ol>'
+      + (run.reply_chat_public_id && run.reply_chat_public_id !== chatId ? '<p class="small mt-2"><a href="index.php?route=chat&amp;id=' + encodeURIComponent(run.reply_chat_public_id) + '">' + esc(aiLabel('private_reply', 'Открыть личный ответ ассистента')) + '</a></p>' : '')
+      + (confirmation ? '<div class="my-2"><p class="small">' + esc(aiLabel('confirmation_hint', 'Изменения будут выполнены только после вашего подтверждения. Проверьте каждое действие.')) + '</p>' + (confirmation.operations || []).map(function (operation) {
+        var args = operation.arguments || {};
+        var verb = args.action && args.action.indexOf('delete') === 0 ? 'delete' : args.action && args.action.indexOf('update') === 0 ? 'update' : 'create';
+        var title = aiLabel('change_' + verb, verb === 'delete' ? 'Удалить' : verb === 'update' ? 'Изменить' : 'Создать');
+        var target = args.title || args.name || args.public_id || args.task_public_id || args.project_public_id || '';
+        var labels = { title: 'task_form.title', description: 'task_form.description', status: 'tasks.col_status', priority: 'tasks.col_priority', assignee_user_public_id: 'tasks.col_assignee', project_public_id: 'tasks.col_project' };
+        return '<details class="mb-2" open><summary>' + esc(title + (target ? ': ' + target : '')) + '</summary><dl class="small mt-2 mb-2">' + Object.keys(args).filter(function (key) { return key !== 'action'; }).map(function (key) {
+          var value = typeof args[key] === 'object' ? JSON.stringify(args[key]) : String(args[key]);
+          var field = labels[key] ? window.CRM.i18n.t(labels[key], key.replace(/_/g, ' ')) : key.replace(/_/g, ' ');
+          return '<dt>' + esc(field) + '</dt><dd style="overflow-wrap:anywhere;white-space:pre-wrap">' + esc(value) + '</dd>';
+        }).join('') + '</dl></details>';
+      }).join('') + (confirmation.expires_at * 1000 < Date.now() ? '<p class="small text-danger">' + esc(aiLabel('confirmation_expired', 'Срок подтверждения истёк. Отклоните предложение и отправьте запрос заново.')) + '</p>' : '') + '<div class="d-flex flex-wrap gap-2"><button type="button" class="btn crm-btn-primary crm-btn-compact" data-ai-run-action="confirm"' + (confirmation.expires_at * 1000 < Date.now() ? ' disabled' : '') + '>' + esc(aiLabel('confirm', 'Подтвердить изменения')) + '</button><button type="button" class="btn crm-btn-secondary crm-btn-compact" data-ai-run-action="cancel">' + esc(aiLabel('reject', 'Отклонить')) + '</button></div></div>' : '')
       + (run.progress ? '<div class="small">' + esc(run.progress) + '</div>' : '')
       + (run.error ? '<div class="small text-danger mt-1">' + esc(run.error) + '</div>' : '')
       + (active ? '<button type="button" class="btn crm-btn-secondary crm-btn-compact mt-2" data-ai-run-action="cancel">' + esc(aiLabel('stop', 'Остановить')) + '</button>' : '')
@@ -386,7 +402,7 @@
         button.disabled = true;
         try {
           var env = await request('api/v1/chats/' + encodeURIComponent(chatId) + '/ai-run/step', {
-            method: 'POST', body: { run_public_id: run.public_id, action: button.dataset.aiRunAction }, timeoutMs: 120000
+            method: 'POST', body: { run_public_id: run.public_id, action: button.dataset.aiRunAction, confirmation_token: button.dataset.aiRunAction === 'confirm' && confirmation ? confirmation.token : '' }, timeoutMs: 120000
           });
           aiRuns[chatId] = env.data.run;
           renderAiRun(chatId, aiRuns[chatId]);

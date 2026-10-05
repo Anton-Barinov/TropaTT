@@ -1357,7 +1357,7 @@ Install answers are explicit about the state of the installation: `ALREADY_INSTA
 | PATCH | `/api/v1/chats/{public_id}/settings` | Chat settings | Yes | `chat.use` | — |
 | GET | `/api/v1/chats/{public_id}/participants` | Chat participants | Yes | `chat.use` | — |
 | GET | `/api/v1/chats/{public_id}/ai-run` | AI execution status and plan | Yes | `chat.use` | Participant and originating actor only; internal context never returned |
-| POST | `/api/v1/chats/{public_id}/ai-run/step` | Advance, resume or cancel AI execution | Yes | `chat.use` | Body: `run_public_id`, `action` (`step`, `resume`, `cancel`); one provider turn; persisted checkpoints and atomic lease |
+| POST | `/api/v1/chats/{public_id}/ai-run/step` | Advance, resume, confirm or cancel AI execution | Yes | `chat.use` | Body: `run_public_id`, `action` (`step`, `resume`, `confirm`, `cancel`), `confirmation_token` for confirm; one provider turn; persisted checkpoints and atomic lease |
 | GET | `/api/v1/chats/{public_id}/messages` | Chat messages | Yes | `chat.use` | Cursor-based |
 | POST | `/api/v1/chats/{public_id}/messages` | Send message | Yes | `chat.use` | — |
 | GET | `/api/v1/chats/{public_id}/messages/{message_public_id}/history` | Message edit history | Yes | `chat.use` | Audit trail |
@@ -2448,6 +2448,9 @@ Deprecated aliases (`/api/v1/notification/push-*`) are excluded from OpenAPI and
 ### Resumable AI chat
 
 An addressed message in any staff-accessible chat returns `ai_run` immediately when the AI gateway has a successful health check together with `public_id` and `message_seq`. The client calls `POST /api/v1/chats/{public_id}/ai-run/step` repeatedly while the run is queued, and polls status while another client owns the step. Reloading the page resumes the saved execution. Status includes a factual plan, progress, step count, recoverable errors, and `retry_at` (Unix seconds, 0 when ready). During a provider circuit cooldown, keep polling and resume automatically after `retry_at`; tool context is private. Unknown tool outcomes are reconciled through reads before proceeding, never automatically replayed. `waiting_input` requires a user answer; `failed`, `paused` and `interrupted` retain context for Resume. Closing every browser pauses execution until a participant reopens the chat.
+
+AI chat security: every allowed CRM mutation enters `waiting_confirmation`. Only the originating authenticated actor can confirm the exact stored operations with the single-use `confirmation_token`, valid for ten minutes. Conversation text cannot approve changes. Confirmations are rechecked against current RBAC and the active workspace; cancel clears the stored context. `confirmation` (token, expiry, operations) is returned only to this actor. Answers requested in shared or client chats are delivered to the actor’s private AI chat; use `reply_chat_public_id` to open that answer. Uploaded attachments do not initiate AI processing. Each actual provider attempt reserves a global/user request, concurrency and token budget, including root; budget denial pauses the run with `retry_at`. AI context expires under `chat_runs_ttl_days` (default 30 days); existing AI cleanup cron and the bounded CLI `api/scripts/ai_chat_budget_cleanup.php` purge expired and orphaned contexts. `/clear` clears hidden run context as well as visible history. Sources marked `[no-ai]` or `[confidential]` in their title (or `content_json.ai_excluded=true`) are excluded from external AI output. Recognizable secret fields/text are minimized before every provider attempt; do not rely on pattern matching to recognize arbitrary secrets.
+
 
 ### AI chat message retries
 

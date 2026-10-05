@@ -72,6 +72,7 @@ final class AiRetentionPolicyService
             'suggestions_ttl_days' => max(1, (int)($raw['suggestions_ttl_days'] ?? 30)),
             'jobs_ttl_days' => max(1, (int)($raw['jobs_ttl_days'] ?? 30)),
             'usage_logs_ttl_days' => max(1, (int)($raw['usage_logs_ttl_days'] ?? 90)),
+            'chat_runs_ttl_days' => max(1, (int)($raw['chat_runs_ttl_days'] ?? 30)),
             'prompts_ttl_days' => max(1, (int)($raw['prompts_ttl_days'] ?? 30)),
         ];
 

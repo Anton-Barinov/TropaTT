@@ -8,6 +8,7 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
     public function completeText(array $provider, string $secret, array $payload): array
     {
         $startedAt = microtime(true);
+        $provider['_chat_budget_single_attempt'] = !empty($payload['_chat_budget_single_attempt']);
         if (isset($payload['_deadline_at'])) $provider['_deadline_at'] = (float)$payload['_deadline_at'];
         $url = $this->completionUrl($provider);
         $headers = [
@@ -61,7 +62,7 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
         $response = $this->postJson($url, $headers, $request, $timeout, $provider);
         // Some thinking-mode providers require this protocol field on every replayed
         // assistant turn. Legacy sessions did not retain it; recover those once.
-        if ((int)($response['http_status'] ?? 0) === 400
+        if (empty($provider['_chat_budget_single_attempt']) && (int)($response['http_status'] ?? 0) === 400
             && str_contains((string)($response['error_message'] ?? ''), 'reasoning_content')) {
             foreach ($request['messages'] as &$message) {
                 if (($message['role'] ?? '') === 'assistant' && !isset($message['reasoning_content'])) {
@@ -85,7 +86,7 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
         $text = $this->extractCompletionText($json);
         $toolCalls = $this->extractToolCalls($json);
 
-        if ($toolCalls === [] && $text !== '') {
+        if (empty($payload['_native_tools_only']) && $toolCalls === [] && $text !== '') {
             $extractedFromText = $this->extractToolCallsFromText($text);
             if ($extractedFromText['tool_calls'] !== []) {
                 $toolCalls = $extractedFromText['tool_calls'];
@@ -302,6 +303,8 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
      */
     private function sendGetJson(string $url, array $headers, int $timeoutMs, array $provider = []): array
     {
+        $prepared = (new AiHttpTransportSecurity())->prepare($url, $provider);
+        if (!$prepared['ok']) return $prepared;
         if (function_exists('curl_init')) {
             $ch = curl_init($url);
             if ($ch !== false) {
@@ -309,16 +312,22 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
                 curl_setopt($ch, CURLOPT_HTTPGET, true);
                 curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
                 curl_setopt($ch, CURLOPT_TIMEOUT_MS, $timeoutMs);
+                curl_setopt($ch, CURLOPT_CONNECTTIMEOUT_MS, min($timeoutMs, 3000));
                 curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
                 curl_setopt($ch, CURLOPT_MAXREDIRS, 0);
                 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
                 curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
-                $this->applyProxy($ch, $provider);
-                $raw = curl_exec($ch);
+                if (!AiHttpTransportSecurity::apply($ch, $prepared, $raw, $tooLarge)) {
+                    return ['ok' => false, 'error_code' => 'AI_PROVIDER_CLIENT_UNAVAILABLE', 'error_message' => 'Secure transport unavailable', 'http_status' => 0];
+                }
+                curl_exec($ch);
                 $curlErrno = curl_errno($ch);
                 $curlError = curl_error($ch);
                 $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
+                if ($tooLarge) {
+                    return ['ok' => false, 'error_code' => 'AI_PROVIDER_RESPONSE_TOO_LARGE', 'error_message' => 'Provider response exceeds the safe size limit', 'http_status' => $status];
+                }
                 if ($curlErrno !== 0) {
                     return [
                         'ok' => false,
@@ -407,6 +416,8 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
      */
     private function sendPostJson(string $url, array $headers, array $body, int $timeoutMs, array $provider = []): array
     {
+        $prepared = (new AiHttpTransportSecurity())->prepare($url, $provider);
+        if (!$prepared['ok']) return $prepared;
         if (!function_exists('curl_init')) {
             return [
                 'ok' => false,
@@ -439,12 +450,17 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
         curl_setopt($ch, CURLOPT_MAXREDIRS, 0);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
-        $this->applyProxy($ch, $provider);
+        if (!AiHttpTransportSecurity::apply($ch, $prepared, $raw, $tooLarge)) {
+            return ['ok' => false, 'error_code' => 'AI_PROVIDER_CLIENT_UNAVAILABLE', 'error_message' => 'Secure transport unavailable', 'http_status' => 0];
+        }
 
-        $raw = curl_exec($ch);
+        curl_exec($ch);
         $curlErrno = curl_errno($ch);
         $curlError = curl_error($ch);
         $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        if ($tooLarge) {
+            return ['ok' => false, 'error_code' => 'AI_PROVIDER_RESPONSE_TOO_LARGE', 'error_message' => 'Provider response exceeds the safe size limit', 'http_status' => $status];
+        }
         if ($curlErrno !== 0) {
             return [
                 'ok' => false,
@@ -675,7 +691,7 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
         }
 
         $attempts = (int)($provider['retry_attempts'] ?? ($payload['retry_attempts'] ?? 2));
-        $attempts = max(1, min(5, $attempts));
+        $attempts = !empty($provider['_chat_budget_single_attempt']) ? 1 : max(1, min(5, $attempts));
 
         $backoffMs = (int)($provider['retry_backoff_ms'] ?? ($payload['retry_backoff_ms'] ?? 500));
         $backoffMs = max(0, min(3000, $backoffMs));
@@ -700,12 +716,6 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
         }
 
         return [];
-    }
-
-    /** @param mixed $ch @param array<string,mixed> $provider */
-    private function applyProxy(mixed $ch, array $provider): void
-    {
-        AiProxyUrl::applyToCurl($ch, $this->providerPayload($provider));
     }
 
     /** @param array{error_code?:string,http_status?:int} $response */

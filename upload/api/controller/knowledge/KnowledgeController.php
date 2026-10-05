@@ -789,7 +789,7 @@ final class KnowledgeController extends BaseController
     private function visibleLinks(string $pagePublicId): array
     {
         return array_values(array_filter(
-            $this->repo()->links($pagePublicId),
+            $this->repo()->links($pagePublicId, $this->actor()),
             function (array $link): bool {
                 return $this->canLinkEntity(
                     strtolower(trim((string)($link['entity_type'] ?? ''))),
@@ -826,7 +826,8 @@ final class KnowledgeController extends BaseController
                     $entityType,
                     $entityPublicId,
                     $relationType,
-                    $this->actorUserId() ?: null
+                    $this->actorUserId() ?: null,
+                    $this->actor()
                 );
             } catch (\RuntimeException $e) {
                 AppLog::error('[KnowledgeController::createLink] ' . $e->getMessage());
@@ -867,7 +868,8 @@ final class KnowledgeController extends BaseController
                     'task',
                     $taskPublicId,
                     $relationType,
-                    $this->actorUserId() ?: null
+                    $this->actorUserId() ?: null,
+                    $this->actor()
                 );
             } catch (\RuntimeException $e) {
                 AppLog::error('[KnowledgeController::attachPageToTask] ' . $e->getMessage());
@@ -1314,7 +1316,7 @@ final class KnowledgeController extends BaseController
             'updated_at' => $page['updated_at'],
             'published_at' => $page['published_at'],
             'tags' => $this->tagRepo()->listByEntity('knowledge_page', (string)$page['public_id']),
-            'links' => $this->repo()->links((string)$page['public_id']),
+            'links' => $this->visibleLinks((string)$page['public_id']),
         ];
         if ($format === 'markdown') {
             $markdown = '# ' . $page['title'] . "\n\n";

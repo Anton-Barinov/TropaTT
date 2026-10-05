@@ -72,6 +72,7 @@ return [
         'jobs_ttl_days' => 30,
         'usage_logs_ttl_days' => 90,
         'prompts_ttl_days' => 30,
+        'chat_runs_ttl_days' => 30,
     ],
     'storage' => [
         'base' => $storageBase . '/ai',

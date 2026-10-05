@@ -1819,7 +1819,8 @@ final class App
             $c->get('logger'),
             $c->get('config'),
             $c->get('service.ai_provider_client_factory'),
-            $c->get('request')
+            $c->get('request'),
+            $c->get('service.ai_chat_budget')
         ));
         $this->container->factory('service.ai_provider_client.openai_compatible', fn(Container $c) => new OpenAiCompatibleProviderClient());
         $this->container->factory('service.ai_provider_client.mock', fn(Container $c) => new MockAiProviderClient());
@@ -1851,6 +1852,8 @@ final class App
             $c->get('logger'),
             $c->get('lang')
         ));
+        $this->container->factory('service.ai_chat_run_cleanup', fn(Container $c) => new \Api\System\Library\Service\AiChatRunCleanupService($c->get('db.pdo'), $c->get('service.setting')));
+        $this->container->factory('service.ai_chat_budget', fn(Container $c) => new \Api\System\Library\Service\AiChatBudgetService($c->get('db.pdo'), $c->get('service.setting')));
         $this->container->factory('service.ai_rate_limit', fn(Container $c) => new AiRateLimitService(
             $c->get('repository.ai_runtime'),
             $c->get('service.setting')
