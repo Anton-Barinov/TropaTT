@@ -33,6 +33,7 @@ return [
     'file_required' => 'Необходим файл',
     'file_too_large' => 'Файл слишком большой',
     'attachment_uploaded' => 'Файл прикреплён',
+    'upload_failed' => 'Не удалось сохранить прикреплённый файл',
     'marked_read' => 'Отмечено как прочитанное',
     'only_creator_archive' => 'Только создатель чата может архивировать этот чат',
     'ai_agent_title' => 'AI Ассистент',

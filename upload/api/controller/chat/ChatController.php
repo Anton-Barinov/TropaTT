@@ -863,7 +863,19 @@ final class ChatController extends BaseController
         }
         $msgId = (int)$pdo->lastInsertId();
 
-        $fileRow = $this->storeAttachment($msgPublicId, $file);
+        try {
+            $fileRow = $this->storeAttachment($msgPublicId, $file);
+        } catch (\Throwable $storeFailure) {
+            // No half-written attachment: a failed move/record leaves neither a
+            // dangling message row nor a file the chat history cannot reference.
+            $pdo->prepare('DELETE FROM chat_messages WHERE id = :id')->execute(['id' => $msgId]);
+            AppLog::error('chat_attachment_store_failed', [
+                'exception' => get_class($storeFailure),
+                'chat_public_id' => (string)($chat['public_id'] ?? ''),
+                'message_public_id' => $msgPublicId,
+            ]);
+            return $this->error('UPLOAD_FAILED', $this->t('chat/messages.upload_failed', 'Failed to store the attachment'), 500);
+        }
         $pdo->prepare("UPDATE chats SET last_message_at = NOW() WHERE id = :cid")->execute(['cid' => (int)$chat['id']]);
 
         $service->markRead((int)$chat['id'], $this->currentUserId());
@@ -1369,18 +1381,24 @@ final class ChatController extends BaseController
             $this->stripExifMetadata($path, $mime);
         }
 
-        $this->container->get('db.pdo')->prepare("
-            INSERT INTO files (public_id, entity_type, entity_public_id, uploader_user_id, original_name, storage_path, mime_type, size_bytes, is_deleted, created_at)
-            VALUES (:pid, 'chat_message', :entity_pid, :uid, :name, :path, :mime, :size, 0, NOW())
-        ")->execute([
-            'pid' => $publicId,
-            'entity_pid' => $messagePublicId,
-            'uid' => $this->currentUserId(),
-            'name' => $name,
-            'path' => $path,
-            'mime' => $mime,
-            'size' => $size,
-        ]);
+        try {
+            $this->container->get('db.pdo')->prepare("
+                INSERT INTO files (public_id, entity_type, entity_public_id, uploader_user_id, original_name, storage_path, mime_type, size_bytes, is_deleted, created_at)
+                VALUES (:pid, 'chat_message', :entity_pid, :uid, :name, :path, :mime, :size, 0, NOW())
+            ")->execute([
+                'pid' => $publicId,
+                'entity_pid' => $messagePublicId,
+                'uid' => $this->currentUserId(),
+                'name' => $name,
+                'path' => $path,
+                'mime' => $mime,
+                'size' => $size,
+            ]);
+        } catch (\Throwable $recordFailure) {
+            // The bytes were already moved: never leave an unreferenced file on disk.
+            if (is_file($path)) @unlink($path);
+            throw $recordFailure;
+        }
 
         return [
             'public_id' => $publicId,

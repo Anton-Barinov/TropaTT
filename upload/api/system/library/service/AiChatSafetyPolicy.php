@@ -87,8 +87,8 @@ final class AiChatSafetyPolicy
     /** Defense in depth. Explicitly excluded knowledge is never included in provider data. */
     public static function minimize(mixed $value, string $key = ''): mixed
     {
-        if (preg_match('/password|secret|token|credential|authorization|cookie|backup_codes|private_key|api_key|access_key/i', $key)) return '[redacted]';
-        if (in_array(strtolower($key), ['email','phone','address_legal','address_postal','bank_account','tax_inn'], true)) return '[personal data omitted]';
+        if (preg_match('/password|passwd|secret|token|credential|authorization|cookie|backup_codes|private_key|api_key|access_key/i', $key)) return '[redacted]';
+        if (in_array(strtolower($key), ['email', 'phone', 'address_legal', 'address_postal', 'bank_account', 'tax_inn'], true)) return '[personal data omitted]';
         if (is_array($value)) {
             $metadata = $value['content_json'] ?? [];
             if (is_string($metadata)) $metadata = json_decode($metadata, true) ?: [];
@@ -110,7 +110,25 @@ final class AiChatSafetyPolicy
         }
         $value = preg_replace('/-----BEGIN [^-]*(?:PRIVATE KEY|CERTIFICATE)-----[\s\S]*?-----END [^-]+-----/u', '[redacted]', $value) ?? $value;
         $value = preg_replace('/\b(?:apk_|sk-proj-|sk-)[A-Za-z0-9_-]{16,}|\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/', '[redacted]', $value) ?? $value;
-        $value = preg_replace('/(\b(?:password|passwd|secret|credential|token|api[_ -]?key|api[_ -]?secret|access[_ -]?token|refresh[_ -]?token|authorization|пароль|токен|секрет)\b["\'*`\s]*[:=]["\'*`\s]*)([^\r\n<]+)/iu', '$1[redacted]', $value) ?? $value;
+        // HTTP authorization credentials pasted verbatim into a message.
+        $value = preg_replace('/(?<![\p{L}\p{N}])Bearer\s+[\p{L}\p{N}._~+\/=-]{12,}/iu', 'Bearer [redacted]', $value) ?? $value;
+        // Labelled secrets. \b treats "_" as a word character, so compound names such as
+        // client_secret, password_hash or my-token never matched it; letter/number
+        // boundaries do, while "secretary"/"tokenizer" stay intact.
+        $value = preg_replace('/((?<![\p{L}\p{N}])(?:password|passwd|secret|credential|token|api[_ -]?key|api[_ -]?secret|access[_ -]?token|refresh[_ -]?token|authorization|пароль|токен|секрет)(?![\p{L}\p{N}])["\'*`\s]*[:=]["\'*`\s]*)([^\r\n<"]+)/iu', '$1[redacted]', $value) ?? $value;
+        // "key:"/"ключ:" alone is a weak label, so it is only redacted when the value is an
+        // opaque token; prose such as "the key: we must ship tomorrow" is preserved.
+        $value = (string)preg_replace_callback(
+            '/(?<![\p{L}\p{N}_\-])(?:key|ключ)(?![\p{L}\p{N}_\-])["\'*`\s]*[:=]["\'*`\s]*([^\s\r\n<"]{8,})/iu',
+            static function (array $match): string {
+                $token = $match[1];
+                if (!preg_match('/[0-9_\-.\/+=]/', $token)) {
+                    return $match[0];
+                }
+                return substr($match[0], 0, strlen($match[0]) - strlen($token)) . '[redacted]';
+            },
+            $value
+        );
         $value = preg_replace('~(https?://)[^/\s:@]+:[^/\s@]+@~i', '$1[redacted]@', $value) ?? $value;
         return $value;
     }
