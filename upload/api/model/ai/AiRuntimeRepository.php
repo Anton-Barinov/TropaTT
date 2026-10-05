@@ -514,7 +514,7 @@ final class AiRuntimeRepository
 
     /**
      * @param array<string,int|string|bool|null> $policies
-     * @return array{suggestions_deleted:int,jobs_deleted:int,usage_logs_deleted:int}
+     * @return array{suggestions_deleted:int,jobs_deleted:int,usage_logs_deleted:int,chat_runs_deleted:int}
      */
     public function cleanupByRetention(array $policies): array
     {
@@ -522,6 +522,7 @@ final class AiRuntimeRepository
             'suggestions_deleted' => 0,
             'jobs_deleted' => 0,
             'usage_logs_deleted' => 0,
+            'chat_runs_deleted' => 0,
         ];
 
         try {
@@ -548,6 +549,7 @@ final class AiRuntimeRepository
                 ->from('ai_usage_logs')
                 ->where('created_at', '<', $usageCutoff)
                 ->delete();
+            $deleted['chat_runs_deleted'] = (new \Api\System\Library\Service\AiChatRunCleanupService($this->pdo))->cleanupExpired(100, $policies);
         } catch (\Throwable $e) {
             AppLog::error('[AiRuntimeRepository::cleanupByRetention] DELETE: ' . $e->getMessage());
             return $deleted;

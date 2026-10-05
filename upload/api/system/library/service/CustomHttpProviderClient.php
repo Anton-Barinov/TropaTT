@@ -159,6 +159,8 @@ final class CustomHttpProviderClient implements AiProviderClientInterface
      */
     private function sendGetJson(string $url, array $headers, int $timeoutMs, array $provider = []): array
     {
+        $prepared = (new AiHttpTransportSecurity())->prepare($url, $provider);
+        if (!$prepared['ok']) return $prepared;
         if (!function_exists('curl_init')) {
             return [
                 'ok' => false,
@@ -182,18 +184,23 @@ final class CustomHttpProviderClient implements AiProviderClientInterface
         curl_setopt($ch, CURLOPT_HTTPGET, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_TIMEOUT_MS, $timeoutMs);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT_MS, min($timeoutMs, 3000));
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
         curl_setopt($ch, CURLOPT_MAXREDIRS, 0);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
-        AiProxyUrl::applyToCurl($ch, $this->providerPayload($provider));
+        if (!AiHttpTransportSecurity::apply($ch, $prepared, $raw, $tooLarge)) {
+            return ['ok' => false, 'error_code' => 'AI_PROVIDER_CLIENT_UNAVAILABLE', 'error_message' => 'Secure transport unavailable', 'http_status' => 0];
+        }
 
-        $raw = curl_exec($ch);
+        curl_exec($ch);
         $curlErrno = curl_errno($ch);
         $curlError = curl_error($ch);
         $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
 
+        if ($tooLarge) {
+            return ['ok' => false, 'error_code' => 'AI_PROVIDER_RESPONSE_TOO_LARGE', 'error_message' => 'Provider response exceeds the safe size limit', 'http_status' => $status];
+        }
         if ($curlErrno !== 0) {
             return [
                 'ok' => false,
@@ -296,8 +303,8 @@ final class CustomHttpProviderClient implements AiProviderClientInterface
         $code = (string)($response['error_code'] ?? 'AI_PROVIDER_ERROR');
         if ($status === 401 || $status === 403) {
             $code = 'AI_PROVIDER_AUTH_FAILED';
-        } elseif ($code === 'AI_PROVIDER_TIMEOUT') {
-            $code = 'AI_PROVIDER_TIMEOUT';
+        } elseif (in_array($code, ['AI_PROVIDER_TIMEOUT', 'AI_PROVIDER_RESPONSE_TOO_LARGE'], true)) {
+            // Preserve actionable transport failures.
         } else {
             $code = 'AI_PROVIDER_TEST_FAILED';
         }

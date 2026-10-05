@@ -33,6 +33,8 @@ final class MigrationManager
             new CalendarEventSourcePrivacyMigration(),
             new AiFoundationMigration(),
             new AiChatRunsMigration(),
+            new AiChatBudgetMigration(),
+            new AiChatRunRetentionIndexMigration(),
             new AiJobsRuntimeCompatibilityMigration(),
             new AiIndexCoverageMigration(),
             new AiAuthorTimestampCoverageMigration(),

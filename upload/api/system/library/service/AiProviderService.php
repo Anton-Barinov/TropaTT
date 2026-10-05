@@ -21,7 +21,8 @@ final class AiProviderService
         private readonly JsonLogger $logger,
         private readonly Config $config,
         private readonly AiProviderClientFactory $providerClientFactory,
-        private readonly Request $request
+        private readonly Request $request,
+        private readonly ?AiChatBudgetService $chatBudget = null
     ) {
         $this->urlSafety = new UrlSafetyValidator();
     }
@@ -328,6 +329,7 @@ final class AiProviderService
             return ['ok' => false, 'code' => 'AI_PROVIDER_SECRET_NOT_CONFIGURED'];
         }
 
+        $provider = $this->withTransportPolicy($provider);
         $client = $this->providerClientFactory->forProvider($provider);
         $result = $client->testConnection($provider, $secret);
         if (!(bool)($result['ok'] ?? false)) {
@@ -408,6 +410,7 @@ final class AiProviderService
             return ['ok' => false, 'code' => 'AI_PROVIDER_SECRET_NOT_CONFIGURED'];
         }
 
+        $provider = $this->withTransportPolicy($provider);
         $client = $this->providerClientFactory->forProvider($provider);
         $result = $client->listModels($provider, $secret);
         if (!(bool)($result['ok'] ?? false)) {
@@ -473,6 +476,7 @@ final class AiProviderService
             return ['ok' => false, 'code' => 'AI_PROVIDER_SECRET_NOT_CONFIGURED'];
         }
 
+        $provider = $this->withTransportPolicy($provider);
         $client = $this->providerClientFactory->forProvider($provider);
         $mockUsed = $isMockProvider;
 
@@ -493,7 +497,7 @@ final class AiProviderService
                 $result = ['ok' => false, 'code' => 'AI_PROVIDER_TIMEOUT', 'http_status' => 0];
                 break;
             }
-            $result = $client->completeText($provider, $secret, $payload);
+            $result = $this->budgetedProviderCompletion($client, $provider, $secret, $payload);
             if ((bool)($result['ok'] ?? false)) {
                 break;
             }
@@ -505,6 +509,8 @@ final class AiProviderService
             $backoffMs = (int)(1000 * pow(3, $attempt));
             usleep((int)min($backoffMs * 1000, max(0, ($payload['_deadline_at'] - microtime(true)) * 1000000)));
         }
+        if ($this->isBudgetFailure((array)$result)) return $result;
+
         if (!(bool)($result['ok'] ?? false)) {
             // TROPATTCRM-622: retry once through the fallback model (and then a
             // fallback provider) when the primary attempt failed with a provider-
@@ -513,6 +519,7 @@ final class AiProviderService
             // intervened, even though admin settings define fallback targets.
             $fallbackResult = $this->completeViaFallback($provider, $payload, $result);
             if ($fallbackResult !== null) {
+                if ($this->isBudgetFailure($fallbackResult['result'])) return $fallbackResult['result'];
                 $this->logCompletionDiag(
                     $fallbackResult['provider'],
                     $payload,
@@ -627,26 +634,40 @@ final class AiProviderService
         ];
     }
 
+    /** Build policy only from server settings and an administrator-saved connection. */
+    private function withTransportPolicy(array $provider): array
+    {
+        $production = in_array(strtolower((string)$this->config->get('default.app.env', 'prod')), ['prod', 'production'], true);
+        $trustedProxies = (array)$this->config->get('ai.provider.trusted_proxy_endpoints', []);
+        $savedPayload = $provider['provider_payload'] ?? [];
+        if (is_string($savedPayload)) $savedPayload = $this->decodeJson($savedPayload);
+        // Only ai.admin can persist this field. Treat that explicit endpoint as
+        // trusted for existing installations; environment proxies remain disabled.
+        $proxy = AiProxyUrl::parse((string)($savedPayload['proxy_url'] ?? ''));
+        if (!empty($proxy['ok']) && !empty($proxy['proxy'])) {
+            $trustedProxies[] = $proxy['proxy'];
+        }
+        $provider['_transport_policy'] = [
+            'allow_local' => !$production || !(bool)$this->config->get('ai.provider.block_private_networks_in_production', true),
+            'trusted_proxies' => array_values(array_unique($trustedProxies)),
+            'allowed_schemes' => (array)$this->config->get('ai.provider.allowed_schemes', ['https', 'http']),
+        ];
+        return $provider;
+    }
+
     private function validateBaseUrl(string $baseUrl): array
     {
-        $strict = in_array(strtolower((string)$this->config->get('default.app.env', 'prod')), ['prod', 'production'], true)
-            && (bool)$this->config->get('ai.provider.block_private_networks_in_production', true);
-
-        $validated = $this->urlSafety->validateProviderUrl(
-            $baseUrl,
-            $strict,
-            (array)$this->config->get('ai.provider.allowed_schemes', ['https', 'http'])
-        );
-        if (!(bool)($validated['ok'] ?? false)) {
-            return $validated;
-        }
-
-        $scheme = strtolower((string)(parse_url(trim($baseUrl), PHP_URL_SCHEME) ?? ''));
-        if ($scheme === 'http' && !$this->allowInsecureLocalDevUrl($baseUrl, $strict)) {
+        $baseUrl = trim($baseUrl);
+        if ($baseUrl === '') return ['ok' => false, 'code' => 'AI_PROVIDER_URL_REQUIRED', 'resolved_ips' => []];
+        $scheme = strtolower((string)(parse_url($baseUrl, PHP_URL_SCHEME) ?? ''));
+        if (!in_array($scheme, (array)$this->config->get('ai.provider.allowed_schemes', ['https', 'http']), true)) {
             return ['ok' => false, 'code' => 'AI_PROVIDER_URL_SCHEME_NOT_ALLOWED', 'resolved_ips' => []];
         }
-
-        return ['ok' => true, 'code' => 'OK', 'resolved_ips' => (array)($validated['resolved_ips'] ?? [])];
+        $validated = (new AiHttpTransportSecurity())->prepare($baseUrl, $this->withTransportPolicy([]));
+        if (!$validated['ok']) {
+            return ['ok' => false, 'code' => (string)$validated['error_code'], 'resolved_ips' => []];
+        }
+        return ['ok' => true, 'code' => 'OK', 'resolved_ips' => $validated['target_ips']];
     }
 
     private function validateCustomHeaders(mixed $headers): array
@@ -1039,8 +1060,9 @@ final class AiProviderService
         }
 
         try {
+            $provider = $this->withTransportPolicy($provider);
             $client = $this->providerClientFactory->forProvider($provider);
-            $result = $client->completeText($provider, $secret, $attemptPayload);
+            $result = $this->budgetedProviderCompletion($client, $provider, $secret, $attemptPayload);
         } catch (\Throwable $e) {
             AppLog::warning('ai_fallback_attempt_failed', [
                 'provider_public_id' => (string)($provider['public_id'] ?? ''),
@@ -1050,9 +1072,40 @@ final class AiProviderService
             return null;
         }
 
+        if ($this->isBudgetFailure((array)$result)) return $result;
         if (empty($result['ok']) || (trim((string)($result['text'] ?? '')) === '' && empty($result['tool_calls']))) return null;
         $result['model'] = (string)($attemptPayload['model'] ?? $provider['default_model'] ?? '');
         return $result;
+    }
+
+    private function isBudgetFailure(array $result): bool
+    {
+        return in_array($result['code'] ?? '', ['AI_RATE_LIMITED', 'AI_COST_LIMIT_EXCEEDED', 'AI_BUSY', 'AI_BUDGET_UNAVAILABLE', 'AI_BUDGET_INVALID_REQUEST'], true);
+    }
+
+    /** One reservation per real provider attempt, including retries and fallback. */
+    private function budgetedProviderCompletion(object $client, array $provider, string $secret, array $payload): array
+    {
+        if (!isset($payload['_chat_budget_run_id'])) return $client->completeText($provider, $secret, $payload);
+        if ($this->chatBudget === null) return ['ok' => false, 'code' => 'AI_BUDGET_UNAVAILABLE', 'retry_after' => 5];
+        $actor = (array)($payload['_chat_budget_actor'] ?? []);
+        $runId = (string)$payload['_chat_budget_run_id'];
+        unset($payload['_chat_budget_actor'], $payload['_chat_budget_run_id']);
+        $payload['_chat_budget_single_attempt'] = true;
+        // One token can encode just one byte. Reserve bytes plus envelope overhead,
+        // rather than average chars-per-token, which adversarial input can defeat.
+        $serialized = json_encode(['messages' => $payload['messages'] ?? [], 'tools' => $payload['tools'] ?? [], 'prompt' => $payload['prompt'] ?? '']);
+        $inputTokens = $serialized === false ? 131073 : strlen($serialized) + 1024;
+        $outputTokens = max(64, (int)($payload['max_tokens'] ?? $provider['max_tokens'] ?? 2000));
+        $reservation = $this->chatBudget->acquire($actor, $runId, $outputTokens, $inputTokens);
+        if (empty($reservation['ok'])) return $reservation;
+        $result = null;
+        try {
+            $result = $client->completeText($provider, $secret, $payload);
+            return $result;
+        } finally {
+            $this->chatBudget->finish($reservation['reservation_id'], $result);
+        }
     }
 
     private function persistProviderHealthSnapshot(array $provider, array $updates, array $actor): void

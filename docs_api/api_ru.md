@@ -1353,7 +1353,7 @@ TropaTT реализует унифицированный протокол ве�
 | PATCH | `/api/v1/chats/{public_id}/settings` | Настройки чата | Да | `chat.use` | — |
 | GET | `/api/v1/chats/{public_id}/participants` | Участники чата | Да | `chat.use` | — |
 | GET | `/api/v1/chats/{public_id}/ai-run` | AI execution status and plan | Yes | `chat.use` | Participant and originating actor only; internal context never returned |
-| POST | `/api/v1/chats/{public_id}/ai-run/step` | Advance, resume or cancel AI execution | Yes | `chat.use` | Body: `run_public_id`, `action` (`step`, `resume`, `cancel`); one provider turn; persisted checkpoints and atomic lease |
+| POST | `/api/v1/chats/{public_id}/ai-run/step` | Advance, resume, confirm or cancel AI execution | Yes | `chat.use` | Body: `run_public_id`, `action` (`step`, `resume`, `confirm`, `cancel`), `confirmation_token` for confirm; one provider turn; persisted checkpoints and atomic lease |
 | GET | `/api/v1/chats/{public_id}/messages` | Сообщения чата | Да | `chat.use` | Cursor-based |
 | POST | `/api/v1/chats/{public_id}/messages` | Отправка сообщения | Да | `chat.use` | — |
 | PATCH | `/api/v1/chats/{public_id}/messages/{message_public_id}` | Редактирование сообщения | Да | `chat.use` | Автор, в пределах 60 мин. История сохраняется; внешние пользователи (клиентский портал) могут редактировать только своё сообщение в чате `project_client`, в котором участвуют |
@@ -2513,6 +2513,9 @@ TropaTT реализует унифицированный протокол ве�
 ### Возобновляемое выполнение в AI-чате
 
 Отправка сообщения в чат `ai_agent` немедленно возвращает `ai_run`, `public_id` и `message_seq`. Клиент вызывает `POST /api/v1/chats/{public_id}/ai-run/step` для очередного шага и опрашивает статус, пока шаг выполняет другой клиент. После перезагрузки страницы выполнение восстанавливается. Статус содержит план с подтверждёнными результатами, прогресс, число шагов, ошибки и `retry_at` (Unix-секунды, 0 — можно продолжать). При паузе circuit breaker клиент опрашивает статус и автоматически продолжает после `retry_at`. Контекст инструментов остаётся приватным. Неизвестные результаты действий проверяются чтением записей, без автоматического повтора изменений. `waiting_input` требует ответа пользователя; `failed`, `paused` и `interrupted` сохраняют контекст для продолжения. Закрытие всех вкладок приостанавливает выполнение до повторного открытия чата.
+
+Безопасность AI-чата: любое разрешённое изменение CRM требует `waiting_confirmation`. Только автор запроса может подтвердить конкретные сохранённые действия одноразовым `confirmation_token` (10 минут). Текст переписки не подтверждает операции. Перед исполнением повторно проверяются текущие RBAC и рабочее пространство; отмена очищает контекст. `confirmation` (токен, срок, действия) виден только автору. Ответы из общих и клиентских чатов доставляются в личный AI-чат автора: переход через `reply_chat_public_id`. Загрузка вложения не запускает AI. Каждая фактическая попытка провайдера резервирует глобальный и пользовательский бюджет запросов, токенов и параллельности, включая root; при превышении запуск приостанавливается с `retry_at`. TTL контекста задаётся `chat_runs_ttl_days` (по умолчанию 30 дней). Существующий AI cron и ограниченный CLI `api/scripts/ai_chat_budget_cleanup.php` очищают просроченные контексты и сирот. `/clear` очищает также скрытый контекст запусков. Источники с `[no-ai]` или `[confidential]` в заголовке либо `content_json.ai_excluded=true` исключаются из данных внешнего AI. Перед каждой попыткой удаляются распознаваемые секретные поля и фрагменты текста; шаблоны не распознают все произвольные секреты.
+
 
 ### Повтор отправки в AI-чат
 

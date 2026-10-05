@@ -245,17 +245,20 @@ final class ChatService
         }
 
         $orgFilter = '';
-        $params = ['uid' => $actorUserId];
+        $params = ['uid' => $actorUserId, 'owner_uid' => $actorUserId, 'only_actor' => $actorUserId, 'only_bot' => $agentUserId];
         if ($organizationId !== null && $organizationId > 0 && $this->tableHasColumn('chats', 'organization_id')) {
             $orgFilter = ' AND c.organization_id = :org_id';
             $params['org_id'] = $organizationId;
+        } elseif ($this->tableHasColumn('chats', 'organization_id')) {
+            $orgFilter = ' AND (c.organization_id IS NULL OR c.organization_id = 0)';
         }
 
         $stmt = $this->pdo->prepare("
             SELECT c.*
             FROM chats c
             JOIN chat_participants cp ON cp.chat_id = c.id AND cp.user_id = :uid
-            WHERE c.type = 'ai_agent'
+            WHERE c.type = 'ai_agent' AND c.created_by_user_id = :owner_uid
+              AND NOT EXISTS (SELECT 1 FROM chat_participants others WHERE others.chat_id = c.id AND others.user_id NOT IN (:only_actor, :only_bot))
               {$orgFilter}
             LIMIT 1
         ");

@@ -588,6 +588,26 @@
       chatSendError.classList.toggle('d-none', !text);
     }
 
+    function renderClientAssistantStatus(run) {
+      var parent = chatSendError && chatSendError.parentElement;
+      if (!parent) return;
+      var banner = parent.querySelector('[data-project-ai-status]');
+      if (!banner) { banner = document.createElement('div'); banner.className = 'small my-2'; banner.setAttribute('data-project-ai-status', ''); parent.appendChild(banner); }
+      banner.replaceChildren();
+      if (!run) return;
+      if (run.status === 'waiting_confirmation' || (run.reply_chat_public_id && run.reply_chat_public_id !== clientChatPublicId)) {
+        var link = document.createElement('a');
+        link.href = 'index.php?route=chat&id=' + encodeURIComponent(run.status === 'waiting_confirmation' ? clientChatPublicId : run.reply_chat_public_id);
+        link.textContent = window.CRM.i18n.t(run.status === 'waiting_confirmation' ? 'chat.ai_run_review' : 'chat.ai_run_private_reply', run.status === 'waiting_confirmation' ? 'Проверить изменения в чате' : 'Открыть личный ответ ассистента');
+        banner.appendChild(link);
+      } else if (['failed', 'paused', 'interrupted'].indexOf(run.status) >= 0) {
+        banner.textContent = run.error || run.progress || '';
+        var resume = document.createElement('a');
+        resume.className = 'ms-2'; resume.href = 'index.php?route=chat&id=' + encodeURIComponent(clientChatPublicId);
+        resume.textContent = window.CRM.i18n.t('chat.ai_run_resume', 'Продолжить'); banner.appendChild(resume);
+      }
+    }
+
     function renderClientReplyPreview() {
       var node = document.getElementById('projectClientChatReplyPreview');
       if (!node) return;
@@ -624,7 +644,8 @@
           body.client_request_id = window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : api.createIdempotencyKey('chat');
           var sent = await api.request('api/v1/chats/' + encodeURIComponent(clientChatPublicId) + '/messages', { method: 'POST', body: body });
           if (sent.data && sent.data.ai_run && window.CRM.chat.driveAssistant) {
-            window.CRM.chat.driveAssistant(clientChatPublicId, sent.data.ai_run, function () {
+            window.CRM.chat.driveAssistant(clientChatPublicId, sent.data.ai_run, function (run) {
+              renderClientAssistantStatus(run);
               return loadClientChatMessages(api, clientChatPublicId, chatMsgsEl);
             }).catch(function () { setClientChatError('AI: ' + window.CRM.i18n.t('chat.open_error_text', 'Проверьте доступ или попробуйте позже.')); });
           }
@@ -739,7 +760,8 @@
           var detail = await api.request('api/v1/chats/' + encodeURIComponent(clientChatPublicId));
           if (detail.data && detail.data.chat && detail.data.chat.ai_assistant && detail.data.chat.ai_assistant.available && window.CRM.chat.driveAssistant) {
             var pending = await api.request('api/v1/chats/' + encodeURIComponent(clientChatPublicId) + '/ai-run');
-            window.CRM.chat.driveAssistant(clientChatPublicId, pending.data.run, function () {
+            window.CRM.chat.driveAssistant(clientChatPublicId, pending.data.run, function (run) {
+              renderClientAssistantStatus(run);
               return loadClientChatMessages(api, clientChatPublicId, chatMsgsEl);
             }).catch(function () { setClientChatError('AI: ' + window.CRM.i18n.t('chat.open_error_text', 'Проверьте доступ или попробуйте позже.')); });
           }

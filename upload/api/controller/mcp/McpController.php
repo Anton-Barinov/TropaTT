@@ -10813,7 +10813,18 @@ $tools[] = $this->tool(
         if (!$this->knowledge()->page($publicId, $this->actor())) {
             return ['error' => 'Knowledge page not found.'];
         }
-        return ['items' => $this->publicData($this->knowledge()->links($publicId))];
+        return ['items' => $this->publicData($this->visibleKnowledgePageLinks($publicId))];
+    }
+
+    private function visibleKnowledgePageLinks(string $publicId): array
+    {
+        return array_values(array_filter(
+            $this->knowledge()->links($publicId, $this->actor()),
+            fn(array $link): bool => $this->canAccessKnowledgeEntity(
+                strtolower(trim((string)($link['entity_type'] ?? ''))),
+                trim((string)($link['entity_public_id'] ?? ''))
+            )
+        ));
     }
 
     private function crmDeleteKnowledgePageLink(array $arguments): array
@@ -10892,7 +10903,7 @@ $tools[] = $this->tool(
     private function crmLinkKnowledgePageEntity(array $arguments): array
     {
         $publicId = $this->argumentPublicId($arguments, ['public_id']);
-        $entityType = trim((string)($arguments['entity_type'] ?? ''));
+        $entityType = strtolower(trim((string)($arguments['entity_type'] ?? '')));
         $entityPublicId = trim((string)($arguments['entity_public_id'] ?? ''));
         if ($publicId === '' || $entityType === '' || $entityPublicId === '') {
             return ['error' => 'public_id, entity_type and entity_public_id are required.'];
@@ -10900,13 +10911,17 @@ $tools[] = $this->tool(
         if (!$this->knowledge()->page($publicId, $this->actor(), 'edit')) {
             return ['error' => 'Knowledge page not found.'];
         }
+        if (!$this->canAccessKnowledgeEntity($entityType, $entityPublicId)) {
+            return ['error' => 'Entity not found or not authorized.'];
+        }
         try {
             $link = $this->knowledge()->linkEntity(
                 $publicId,
                 $entityType,
                 $entityPublicId,
                 trim((string)($arguments['relation_type'] ?? 'related')),
-                (int)($this->actor()['id'] ?? 0)
+                (int)($this->actor()['id'] ?? 0),
+                $this->actor()
             );
         } catch (Throwable $e) {
             AppLog::error('[McpController::crmLinkKnowledgePageEntity] ' . $e->getMessage());
@@ -10985,7 +11000,7 @@ $tools[] = $this->tool(
                 'content' => '# ' . ($page['title'] ?? '') . "\n\n" . (string)($page['content_html'] ?? ''),
             ];
         }
-        return ['format' => 'json', 'page' => $this->publicData($page), 'links' => $this->publicData($this->knowledge()->links($publicId)), 'tags' => $this->publicData($this->tagRepo()->listByEntity('knowledge_page', $publicId))];
+        return ['format' => 'json', 'page' => $this->publicData($page), 'links' => $this->publicData($this->visibleKnowledgePageLinks($publicId)), 'tags' => $this->publicData($this->tagRepo()->listByEntity('knowledge_page', $publicId))];
     }
 
     private function crmExportKnowledgeSpace(array $arguments): array

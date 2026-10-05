@@ -1493,9 +1493,10 @@ final class KnowledgeRepository
         return is_array($row) ? $row : null;
     }
 
-    public function linkEntity(string $pagePublicId, string $entityType, string $entityPublicId, string $relationType, ?int $actorId): array
+    public function linkEntity(string $pagePublicId, string $entityType, string $entityPublicId, string $relationType, ?int $actorId, ?array $actor = null): array
     {
-        $page = $this->page($pagePublicId);
+        // Retain the authenticated ACL/workspace context during internal reads.
+        $page = $this->page($pagePublicId, $actor);
         if (!$page) {
             throw new \RuntimeException('Knowledge page not found');
         }
@@ -1541,9 +1542,9 @@ final class KnowledgeRepository
         return $created->fetch(PDO::FETCH_ASSOC) ?: [];
     }
 
-    public function links(string $pagePublicId): array
+    public function links(string $pagePublicId, ?array $actor = null): array
     {
-        $page = $this->page($pagePublicId);
+        $page = $this->page($pagePublicId, $actor);
         if (!$page) {
             return [];
         }

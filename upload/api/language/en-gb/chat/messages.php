@@ -33,6 +33,7 @@ return [
     'file_required' => 'File required',
     'file_too_large' => 'File is too large',
     'attachment_uploaded' => 'Attachment uploaded',
+    'upload_failed' => 'Failed to store the attachment',
     'marked_read' => 'Marked as read',
     'only_creator_archive' => 'Only the chat creator can archive this chat',
     'ai_agent_title' => 'AI Assistant',

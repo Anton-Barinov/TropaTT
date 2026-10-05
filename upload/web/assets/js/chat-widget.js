@@ -468,6 +468,7 @@
       var run = initialRun;
       var request = window.CRM.api.request;
       var path = 'api/v1/chats/' + encodeURIComponent(chatId) + '/ai-run';
+      if (onUpdate) await onUpdate(run);
       while (run) {
         if (['queued', 'running', 'cancelling', 'interrupted'].indexOf(run.status) < 0) break;
         try {

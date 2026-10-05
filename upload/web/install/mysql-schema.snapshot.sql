@@ -3638,6 +3638,9 @@ CREATE TABLE IF NOT EXISTS `yandex_calendar_sources` (
 
 -- Baseline migrations state
 INSERT IGNORE INTO `migrations` (`migration_key`, `description`, `applied_at`) VALUES
+('20261005_000005_ai_chat_retention_index', 'Index AI chat run retention and lease cleanup', NOW()),
+('20261005_000004_ai_chat_budgets', 'Atomic per-user AI chat request and token reservations', NOW()),
+('20261004_000001_ai_agent_name_cleanup', 'Replace legacy AI Copilot titles and user names with AI Assistant', NOW()),
 ('20261004_000001_ai_chat_runs', 'Persist resumable AI chat execution and checkpoints', NOW()),
 ('20260417_000001_initial_schema', 'Initial CRM schema and dictionaries', NOW()),
 ('20260418_000002_comment_drafts', 'Add comment drafts table for task-level draft save/restore', NOW()),
@@ -3810,5 +3813,24 @@ CREATE TABLE IF NOT EXISTS `ai_chat_runs` (
   `created_at` DATETIME NOT NULL,
   `updated_at` DATETIME NOT NULL,
   UNIQUE KEY `uq_ai_chat_message` (`chat_id`, `message_public_id`),
-  KEY `idx_ai_chat_actor` (`chat_id`, `actor_user_id`, `id`)
+  KEY `idx_ai_chat_actor` (`chat_id`, `actor_user_id`, `id`),
+  KEY `idx_ai_chat_retention` (`updated_at`, `status`, `locked_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `ai_chat_budget_locks` (
+  `user_id` BIGINT NOT NULL PRIMARY KEY
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE IF NOT EXISTS `ai_chat_budget_reservations` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `public_id` VARCHAR(64) NOT NULL UNIQUE,
+  `user_id` BIGINT NOT NULL,
+  `run_public_id` VARCHAR(64) NOT NULL,
+  `reserved_tokens` BIGINT NOT NULL,
+  `charged_tokens` BIGINT NOT NULL,
+  `status` VARCHAR(16) NOT NULL DEFAULT 'active',
+  `created_at` DATETIME NOT NULL,
+  `expires_at` DATETIME NOT NULL,
+  `finished_at` DATETIME NULL,
+  KEY `idx_ai_chat_budget_user` (`user_id`,`created_at`),
+  KEY `idx_ai_chat_budget_active` (`status`,`expires_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

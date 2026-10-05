@@ -33,6 +33,7 @@ return [
     'file_required' => '文件为必填项',
     'file_too_large' => '文件太大',
     'attachment_uploaded' => '附件已上传',
+    'upload_failed' => '附件保存失败',
     'marked_read' => '已标记为已读',
     'only_creator_archive' => '只有创建者可以归档',
     'ai_agent_title' => 'AI 助手',
