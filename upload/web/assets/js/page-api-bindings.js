@@ -9086,8 +9086,7 @@ window.CRM.pageApiBindings = (function () {
         + (conflictCount ? '<span class="crm-chip is-warning">⚠ ' + safeText(String(conflictCount)) + ' ' + safeText(tp('calendar.conflicts', 'potential conflicts')) + '</span>' : '')
         + (tasksLoadFailed ? '<span class="crm-chip is-warning" title="' + safeText(tp('calendar.task_load_error', 'Tasks could not be loaded. Refresh to try again.')) + '">⚠ ' + safeText(tp('calendar.task_load_error_short', 'Tasks unavailable')) + '</span>' : '')
         + (tasksTruncated ? '<span class="crm-chip is-warning" title="' + safeText(tp('calendar.task_limit_warning', 'Some tasks are not shown. Narrow the date range.')) + '">⚠ ' + safeText(tp('calendar.task_limit_warning_short', 'Task limit reached')) + '</span>' : '')
-        + '<span class="crm-chip">' + safeText(String(todayEvents.length)) + ' ' + tp('calendar.today_short', 'today') + '</span>'
-        + '<span class="crm-chip">' + safeText(state.view === 'month' ? tp('calendar.view_month', 'Month') : (state.view === 'week' ? tp('calendar.view_week', 'Week') : tp('calendar.view_day', 'Day'))) + '</span>';
+        + '<span class="crm-chip">' + safeText(String(todayEvents.length)) + ' ' + tp('calendar.today_short', 'today') + '</span>';
     }
 
     var aiDayPlanWrap = document.querySelector('[data-calendar-ai-day-plan]');
