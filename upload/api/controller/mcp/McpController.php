@@ -2838,6 +2838,7 @@ MD;
                 'note' => ['type' => 'string'],
                 'logged_at' => ['type' => 'string'],
                 'user_public_id' => ['type' => 'string'],
+                'activity_code' => ['type' => 'string', 'description' => 'Work type code (dictionary `worklog_activity`, e.g. dev, design, analysis, consulting, support).'],
             ], ['minutes_spent']);
             $tools[] = $this->tool('crm_update_worklog', 'Update a worklog entry.', [
                 'public_id' => ['type' => 'string'],
@@ -2845,6 +2846,7 @@ MD;
                 'task_public_id' => ['type' => 'string'],
                 'note' => ['type' => 'string'],
                 'logged_at' => ['type' => 'string'],
+                'activity_code' => ['type' => 'string', 'description' => 'Work type code (dictionary `worklog_activity`, e.g. dev, design, analysis, consulting, support).'],
             ], ['public_id']);
             $tools[] = $this->tool('crm_get_worklog_summary', 'Get worklog summary grouped by day.', [
                 'date_from' => ['type' => 'string'],
@@ -3297,6 +3299,7 @@ $tools[] = $this->tool(
                     'list_holidays', 'get_holiday', 'create_holiday', 'update_holiday', 'delete_holiday',
                     'list_working_hours', 'get_working_hours', 'create_working_hours', 'update_working_hours', 'delete_working_hours',
                 ]],
+                'activity_code' => ['type' => 'string', 'description' => 'Work type code for worklogs (dictionary `worklog_activity`, e.g. dev, design, analysis, consulting, support).'],
                 'public_id' => ['type' => 'string', 'description' => 'Worklog/event/calendar public_id.'],
                 'task_public_id' => ['type' => 'string', 'description' => 'Task for worklog operations.'],
                 'project_public_id' => ['type' => 'string'],
@@ -15115,6 +15118,7 @@ $tools[] = $this->tool(
     {
         return $this->pick($arguments, [
             'minutes_spent', 'task_public_id', 'note', 'logged_at', 'user_public_id',
+            'activity_code',
         ]);
     }
 
