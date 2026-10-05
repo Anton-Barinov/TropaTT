@@ -21324,6 +21324,17 @@ body[data-page="admin-settings"] [data-settings-group] {
     flex: 1 1 0;
   }
 
+  .crm-calendar-local-nav .crm-calendar-nav-icon {
+    flex: 0 0 42px;
+  }
+
+  .crm-calendar-local-nav .crm-calendar-current-period {
+    flex: 1 1 0;
+    width: 0;
+    min-width: 0;
+    padding-inline: .5rem;
+  }
+
   .crm-calendar-current-period {
     max-width: none;
   }
