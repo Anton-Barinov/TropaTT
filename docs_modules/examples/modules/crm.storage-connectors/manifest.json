@@ -1,0 +1,86 @@
+{
+    "name": "crm.storage-connectors",
+    "version": "1.0.0",
+    "vendor": "crm",
+    "author": "Anton Barinov",
+    "author_url": "https://github.com/Anton-Barinov",
+    "title": "Storage Connectors (Nextcloud, WebDAV & S3)",
+    "description": "Внешние хранилища файлов задач и базы знаний: Nextcloud/WebDAV и S3-compatible backend с проверкой RBAC и fallback на локальное хранилище",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "category": "storage",
+    "dependencies": [],
+    "require_permissions": [
+        "settings.view",
+        "settings.edit"
+    ],
+    "service_provider": "Module\\Crm\\StorageConnectors\\StorageConnectorsServiceProvider",
+    "migrations": "api/migrations",
+    "api_routes": "api/config/routes.php",
+    "web_routes": "web/config/routes.php",
+    "menu_items": [
+        {
+            "id": "storage-connectors",
+            "title": "Внешние хранилища",
+            "route": "storage-connectors",
+            "icon": "cloud",
+            "permission": "settings.edit"
+        }
+    ],
+    "assets": {
+        "css": [
+            "web/assets/css/storage-connectors.css"
+        ],
+        "js": [
+            "web/assets/js/storage-connectors.js"
+        ]
+    },
+    "mcp_tools": [
+        {
+            "name": "storage_preflight_check",
+            "description": "Perform environment and network preflight check for external storage capabilities",
+            "handler": "Module\\Crm\\StorageConnectors\\Mcp\\PreflightTool",
+            "permissions": ["settings.view"],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+            }
+        },
+        {
+            "name": "storage_config_status",
+            "description": "Get current external storage provider configuration and health status for workspace",
+            "handler": "Module\\Crm\\StorageConnectors\\Mcp\\ConfigStatusTool",
+            "permissions": ["settings.view"],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+            }
+        },
+        {
+            "name": "storage_test_connection",
+            "description": "Test connection and write/read verification against remote S3 or WebDAV backend",
+            "handler": "Module\\Crm\\StorageConnectors\\Mcp\\TestConnectionTool",
+            "permissions": ["settings.edit"],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "provider_type": {
+                        "type": "string",
+                        "enum": ["s3", "nextcloud_webdav"],
+                        "description": "Provider type to test"
+                    }
+                },
+                "required": ["provider_type"],
+                "additionalProperties": false
+            }
+        }
+    ]
+}
