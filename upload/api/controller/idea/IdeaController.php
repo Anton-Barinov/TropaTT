@@ -4703,6 +4703,7 @@ PROMPT;
         // atomic compare-and-set, so two parallel worker ticks can never run the
         // same step twice (status guard in the WHERE clause).
         $stepKey = null;
+        $claimedAttempt = null;
         for ($attempt = 0; $attempt < 3 && $stepKey === null; $attempt++) {
             $sel = $this->selectNextRunnableLiveStep($pdo, $ideaId);
             if ($sel['state'] === 'none') {
@@ -4725,7 +4726,8 @@ PROMPT;
                     'awaiting_human_input' => true,
                 ]);
             }
-            if ($this->claimLiveStep($pdo, $ideaId, (string)$sel['step_key'])) {
+            $claimedAttempt = $this->claimLiveStep($pdo, $ideaId, (string)$sel['step_key']);
+            if ($claimedAttempt !== null) {
                 $stepKey = (string)$sel['step_key'];
             }
             // else: another tick claimed it first — re-select on the next attempt.
@@ -4736,15 +4738,22 @@ PROMPT;
 
         try {
             $this->runLivePipelineStep($idea, $stepKey);
-            // Persist the terminal state: question steps wait for the human
-            // while active questions remain unanswered; analysis steps complete.
+            // Persist the terminal state only if this worker still owns the
+            // claimed attempt. A reclaimed stale worker must never overwrite a
+            // newer worker's result.
             $isQuestionStep = in_array($stepKey, ['interview', 'clarifications', 'gapQuestions'], true);
             if ($isQuestionStep && $this->hasUnansweredQuestions($pdo, $ideaId)) {
-                $pdo->prepare("UPDATE idea_analysis_steps SET status = 'awaiting_human_input', updated_at = CURRENT_TIMESTAMP WHERE idea_id = :iid AND step_key = :k AND pipeline = 'live'")
-                    ->execute(['iid' => $ideaId, 'k' => $stepKey]);
+                $terminal = $pdo->prepare("UPDATE idea_analysis_steps SET status = 'awaiting_human_input', updated_at = CURRENT_TIMESTAMP WHERE idea_id = :iid AND step_key = :k AND pipeline = 'live' AND status = 'running' AND attempts = :attempt");
+                $terminal->execute(['iid' => $ideaId, 'k' => $stepKey, 'attempt' => $claimedAttempt]);
             } else {
-                $pdo->prepare("UPDATE idea_analysis_steps SET status = 'completed', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE idea_id = :iid AND step_key = :k AND pipeline = 'live'")
-                    ->execute(['iid' => $ideaId, 'k' => $stepKey]);
+                $terminal = $pdo->prepare("UPDATE idea_analysis_steps SET status = 'completed', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE idea_id = :iid AND step_key = :k AND pipeline = 'live' AND status = 'running' AND attempts = :attempt");
+                $terminal->execute(['iid' => $ideaId, 'k' => $stepKey, 'attempt' => $claimedAttempt]);
+            }
+            if ($terminal->rowCount() !== 1) {
+                return $this->success('STEP_SUPERSEDED', 'A newer worker updated this step.', [
+                    'step' => $stepKey,
+                    'superseded' => true,
+                ]);
             }
             $completedCount = $pdo->prepare("SELECT COUNT(*) FROM idea_analysis_steps WHERE idea_id = :iid AND pipeline = 'live' AND status = 'completed'");
             $completedCount->execute(['iid' => $ideaId]);
@@ -4757,8 +4766,14 @@ PROMPT;
                 'all_done' => $done >= $total,
             ]);
         } catch (\Throwable $e) {
-            $pdo->prepare("UPDATE idea_analysis_steps SET status = 'failed', error_message = :err, updated_at = NOW() WHERE idea_id = :iid AND step_key = :k AND pipeline = 'live'")
-                ->execute(['iid' => $ideaId, 'k' => $stepKey, 'err' => $e->getMessage()]);
+            $failure = $pdo->prepare("UPDATE idea_analysis_steps SET status = 'failed', error_message = :err, updated_at = NOW() WHERE idea_id = :iid AND step_key = :k AND pipeline = 'live' AND status = 'running' AND attempts = :attempt");
+            $failure->execute(['iid' => $ideaId, 'k' => $stepKey, 'err' => $e->getMessage(), 'attempt' => $claimedAttempt]);
+            if ($failure->rowCount() !== 1) {
+                return $this->success('STEP_SUPERSEDED', 'A newer worker updated this step.', [
+                    'step' => $stepKey,
+                    'superseded' => true,
+                ]);
+            }
             return $this->error('STEP_FAILED', $e->getMessage(), 500);
         }
     }
@@ -4942,11 +4957,17 @@ PROMPT;
      * of two parallel worker ticks exactly one gets rowCount() > 0, so a step can
      * never be executed twice (no transaction or FOR UPDATE needed — portable).
      */
-    private function claimLiveStep(\PDO $pdo, int $ideaId, string $stepKey): bool
+    private function claimLiveStep(\PDO $pdo, int $ideaId, string $stepKey): ?int
     {
         $stmt = $pdo->prepare("UPDATE idea_analysis_steps SET status = 'running', attempts = attempts + 1, started_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE idea_id = :iid AND step_key = :k AND pipeline = 'live' AND status = 'pending'");
         $stmt->execute(['iid' => $ideaId, 'k' => $stepKey]);
-        return $stmt->rowCount() > 0;
+        if ($stmt->rowCount() !== 1) {
+            return null;
+        }
+        $claimed = $pdo->prepare("SELECT attempts FROM idea_analysis_steps WHERE idea_id = :iid AND step_key = :k AND pipeline = 'live' AND status = 'running'");
+        $claimed->execute(['iid' => $ideaId, 'k' => $stepKey]);
+        $attempt = $claimed->fetchColumn();
+        return $attempt === false ? null : (int)$attempt;
     }
 
     /**
