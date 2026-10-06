@@ -1,0 +1,53 @@
+{
+    "name": "crm.corporate-mail",
+    "version": "1.0.0",
+    "vendor": "crm",
+    "author": "Anton Barinov",
+    "author_url": "https://github.com/Anton-Barinov",
+    "title": "Corporate Mail Integration",
+    "description": "Общие почтовые ящики команды и преобразование писем в историю обращений CRM",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "category": "integration",
+    "dependencies": [],
+    "require_permissions": [
+        "settings.view",
+        "settings.edit"
+    ],
+    "service_provider": "Module\\Crm\\CorporateMail\\CorporateMailServiceProvider",
+    "migrations": "api/migrations",
+    "api_routes": "api/config/routes.php",
+    "web_routes": "web/config/routes.php",
+    "menu_items": [
+        {
+            "id": "corporate-mail",
+            "title": "Корпоративная почта",
+            "route": "corporate-mail",
+            "icon": "envelope",
+            "permission": "settings.edit"
+        }
+    ],
+    "assets": {
+        "css": [
+            "web/assets/css/corporate-mail.css"
+        ],
+        "js": [
+            "web/assets/js/corporate-mail.js"
+        ]
+    },
+    "mcp_tools": [
+        {
+            "name": "mail_list_mailboxes",
+            "description": "List configured corporate mailboxes and their sync statuses",
+            "handler": "Module\\Crm\\CorporateMail\\Mcp\\ListMailboxesTool",
+            "permissions": ["settings.view"],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+            }
+        }
+    ]
+}
