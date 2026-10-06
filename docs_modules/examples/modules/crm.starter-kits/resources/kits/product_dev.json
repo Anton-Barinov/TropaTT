@@ -1,0 +1,153 @@
+{
+    "id": "kit_product_dev",
+    "version": "1.0.0",
+    "titles": {
+        "ru-ru": "IT-команда и Продуктовая разработка",
+        "en-gb": "Product & Software Engineering",
+        "zh-cn": "产品研发与软件工程"
+    },
+    "descriptions": {
+        "ru-ru": "Спринты, тикеты задач и дефектов, Kanban/Scrum, критерии готовности (DoD) и инженерная база знаний.",
+        "en-gb": "Workspace tailored for software engineering teams: sprints, bugs, features, DoD checklists, and tech documentation.",
+        "zh-cn": "专为软件工程团队定制的工作区：迭代冲刺、缺陷与特性、DoD 清单和技术规范。"
+    },
+    "statuses": [
+        {
+            "code": "todo",
+            "scope": "task",
+            "titles": {
+                "ru-ru": "К выполнению",
+                "en-gb": "To Do",
+                "zh-cn": "待处理"
+            },
+            "color": "#64748b",
+            "sort_order": 10
+        },
+        {
+            "code": "in_progress",
+            "scope": "task",
+            "titles": {
+                "ru-ru": "В работе",
+                "en-gb": "In Progress",
+                "zh-cn": "进行中"
+            },
+            "color": "#0284c7",
+            "sort_order": 20
+        },
+        {
+            "code": "code_review_qa",
+            "scope": "task",
+            "titles": {
+                "ru-ru": "Review / Тестирование",
+                "en-gb": "Review & QA",
+                "zh-cn": "代码审查与测试"
+            },
+            "color": "#8b5cf6",
+            "sort_order": 30
+        },
+        {
+            "code": "done",
+            "scope": "task",
+            "titles": {
+                "ru-ru": "Выполнено",
+                "en-gb": "Done",
+                "zh-cn": "已完成"
+            },
+            "color": "#10b981",
+            "sort_order": 40,
+            "is_closed": 1
+        }
+    ],
+    "roles": [
+        {
+            "name": "tech_lead",
+            "titles": {
+                "ru-ru": "Техлид / Тимлид",
+                "en-gb": "Technical Lead",
+                "zh-cn": "技术主管"
+            },
+            "permissions": [
+                "project.view",
+                "project.manage",
+                "task.view",
+                "task.manage",
+                "time.view",
+                "time.log",
+                "knowledge.view",
+                "knowledge.manage"
+            ]
+        },
+        {
+            "name": "software_engineer",
+            "titles": {
+                "ru-ru": "Инженер-разработчик",
+                "en-gb": "Software Engineer",
+                "zh-cn": "研发工程师"
+            },
+            "permissions": [
+                "project.view",
+                "task.view",
+                "task.manage",
+                "time.log",
+                "time.view",
+                "knowledge.view"
+            ]
+        }
+    ],
+    "project_templates": [
+        {
+            "code": "product_sprint_cycle",
+            "titles": {
+                "ru-ru": "Двухнедельный спринт разработки",
+                "en-gb": "Two-Week Development Sprint",
+                "zh-cn": "双周开发迭代"
+            },
+            "description": "Спринт с планированием целей, декомпозицией задач, ретроспективой и релизом",
+            "tasks": [
+                {"title": "Планирование спринта и оценка задач", "status_code": "todo"},
+                {"title": "Реализация запланированных фич и багфиксов", "status_code": "todo"},
+                {"title": "Релизный прогон тестов и деплой на staging", "status_code": "todo"},
+                {"title": "Ретроспектива и подведение итогов спринта", "status_code": "todo"}
+            ]
+        }
+    ],
+    "task_templates": [
+        {
+            "code": "feature_dod_template",
+            "titles": {
+                "ru-ru": "Разработка фичи (DoD)",
+                "en-gb": "Feature Implementation (DoD)",
+                "zh-cn": "特性交付清单 (DoD)"
+            },
+            "checklist": [
+                "Согласована техническая спецификация / API контракт",
+                "Написаны и успешно пройдены unit/интеграционные тесты",
+                "Пройден Code Review в ветке",
+                "Обновлена документация и REST OpenAPI схемы",
+                "Проведено тестирование на тестовом контуре"
+            ]
+        }
+    ],
+    "knowledge_spaces": [
+        {
+            "slug": "engineering-handbook",
+            "titles": {
+                "ru-ru": "Инженерная книга и стандарты",
+                "en-gb": "Engineering Handbook",
+                "zh-cn": "技术手册与规范"
+            },
+            "description": "Архитектурные соглашения, правила ветвления Git и чек-листы безопасности",
+            "pages": [
+                {
+                    "slug": "definition-of-done",
+                    "titles": {
+                        "ru-ru": "Критерии готовности (Definition of Done)",
+                        "en-gb": "Definition of Done (DoD)",
+                        "zh-cn": "交付标准 (Definition of Done)"
+                    },
+                    "content": "# Критерии готовности (Definition of Done)\n\nЗадача считается завершённой только при выполнении:\n1. 100% зелёные тесты.\n2. Отсутствие секретов и PII в коде и логах.\n3. Совместимость с shared-хостингом и актуальная документация."
+                }
+            ]
+        }
+    ]
+}

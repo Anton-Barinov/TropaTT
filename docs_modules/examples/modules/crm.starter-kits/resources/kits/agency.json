@@ -1,0 +1,153 @@
+{
+    "id": "kit_agency",
+    "version": "1.0.0",
+    "titles": {
+        "ru-ru": "Digital и Маркетинговое агентство",
+        "en-gb": "Digital & Marketing Agency",
+        "zh-cn": "数字营销代理机构"
+    },
+    "descriptions": {
+        "ru-ru": "Готовый рабочий процесс для управления клиентскими проектами, медиапланами, креативами и согласованиями с клиентами.",
+        "en-gb": "Ready-to-use workspace for managing client accounts, creative reviews, campaigns, and approvals.",
+        "zh-cn": "用于管理客户项目、创意审查、广告投放和审批的工作区。"
+    },
+    "statuses": [
+        {
+            "code": "backlog",
+            "scope": "task",
+            "titles": {
+                "ru-ru": "Бэклог",
+                "en-gb": "Backlog",
+                "zh-cn": "待定事项"
+            },
+            "color": "#64748b",
+            "sort_order": 10
+        },
+        {
+            "code": "in_progress",
+            "scope": "task",
+            "titles": {
+                "ru-ru": "В работе",
+                "en-gb": "In Progress",
+                "zh-cn": "进行中"
+            },
+            "color": "#0ea5e9",
+            "sort_order": 20
+        },
+        {
+            "code": "client_review",
+            "scope": "task",
+            "titles": {
+                "ru-ru": "На согласовании у клиента",
+                "en-gb": "Client Review",
+                "zh-cn": "客户审核"
+            },
+            "color": "#f59e0b",
+            "sort_order": 30
+        },
+        {
+            "code": "approved",
+            "scope": "task",
+            "titles": {
+                "ru-ru": "Согласовано / Завершено",
+                "en-gb": "Approved / Completed",
+                "zh-cn": "已核准/已完成"
+            },
+            "color": "#10b981",
+            "sort_order": 40,
+            "is_closed": 1
+        }
+    ],
+    "roles": [
+        {
+            "name": "agency_account_manager",
+            "titles": {
+                "ru-ru": "Аккаунт-менеджер",
+                "en-gb": "Account Manager",
+                "zh-cn": "客户经理"
+            },
+            "permissions": [
+                "project.view",
+                "project.manage",
+                "task.view",
+                "task.manage",
+                "crm.view",
+                "crm.manage",
+                "time.view",
+                "knowledge.view"
+            ]
+        },
+        {
+            "name": "agency_creative_designer",
+            "titles": {
+                "ru-ru": "Дизайнер / Креатор",
+                "en-gb": "Creative Designer",
+                "zh-cn": "创意设计师"
+            },
+            "permissions": [
+                "project.view",
+                "task.view",
+                "task.manage",
+                "time.log",
+                "time.view",
+                "knowledge.view"
+            ]
+        }
+    ],
+    "project_templates": [
+        {
+            "code": "ad_campaign_launch",
+            "titles": {
+                "ru-ru": "Запуск рекламной кампании",
+                "en-gb": "Ad Campaign Launch",
+                "zh-cn": "广告活动发布"
+            },
+            "description": "Типовой проект запуска таргетированной или контекстной рекламы с согласованием этапов",
+            "tasks": [
+                {"title": "Сбор брифа и анализ целевой аудитории", "status_code": "backlog"},
+                {"title": "Разработка креативов и рекламных текстов", "status_code": "backlog"},
+                {"title": "Согласование макетов с заказчиком", "status_code": "backlog"},
+                {"title": "Настройка кабинетов и пикселей аналитики", "status_code": "backlog"},
+                {"title": "Запуск кампании и первичная оптимизация", "status_code": "backlog"}
+            ]
+        }
+    ],
+    "task_templates": [
+        {
+            "code": "creative_asset_review",
+            "titles": {
+                "ru-ru": "Согласование дизайн-макета",
+                "en-gb": "Creative Asset Review",
+                "zh-cn": "设计物料审核"
+            },
+            "checklist": [
+                "Проверка соответствия гайдлайнам бренда",
+                "Проверка разрешений и форматов под рекламные площадки",
+                "Выгрузка превью и отправка клиенту",
+                "Получение письменного аппрува"
+            ]
+        }
+    ],
+    "knowledge_spaces": [
+        {
+            "slug": "agency-standards",
+            "titles": {
+                "ru-ru": "Стандарты агентства",
+                "en-gb": "Agency Standards",
+                "zh-cn": "代理机构规范"
+            },
+            "description": "Внутренние регламенты, шаблоны брифов и чек-листы сдачи креативов",
+            "pages": [
+                {
+                    "slug": "client-onboarding-brief",
+                    "titles": {
+                        "ru-ru": "Бриф и первый созвон с клиентом",
+                        "en-gb": "Client Briefing and Discovery",
+                        "zh-cn": "客户简报与初步对接"
+                    },
+                    "content": "# Бриф и первый созвон с клиентом\n\n1. Цели кампании и KPI.\n2. Бюджет и дедлайны.\n3. Брендбук и референсы."
+                }
+            ]
+        }
+    ]
+}

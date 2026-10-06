@@ -1,0 +1,109 @@
+{
+    "name": "crm.starter-kits",
+    "version": "1.0.0",
+    "vendor": "crm",
+    "author": "Anton Barinov",
+    "author_url": "https://github.com/Anton-Barinov",
+    "title": "Starter Kits",
+    "description": "Готовые рабочие пространства (Agency, Service Desk, Product Dev) для быстрого старта команд",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "category": "productivity",
+    "dependencies": [],
+    "require_permissions": [
+        "settings.view",
+        "settings.edit"
+    ],
+    "service_provider": "Module\\Crm\\StarterKits\\StarterKitsServiceProvider",
+    "migrations": "api/migrations",
+    "api_routes": "api/config/routes.php",
+    "web_routes": "web/config/routes.php",
+    "menu_items": [
+        {
+            "id": "starter-kits",
+            "title": "Стартовые комплекты",
+            "route": "starter-kits",
+            "icon": "sparkles",
+            "permission": "settings.edit"
+        }
+    ],
+    "assets": {
+        "css": [
+            "web/assets/css/starter-kits.css"
+        ],
+        "js": [
+            "web/assets/js/starter-kits.js"
+        ]
+    },
+    "mcp_tools": [
+        {
+            "name": "starter_kits_list",
+            "description": "List available workspace starter kits and their component summaries",
+            "handler": "Module\\Crm\\StarterKits\\Mcp\\ListKitsTool",
+            "permissions": ["settings.view"],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "locale": {
+                        "type": "string",
+                        "description": "Target locale code (e.g. ru-ru, en-gb)"
+                    }
+                },
+                "additionalProperties": false
+            }
+        },
+        {
+            "name": "starter_kits_preview",
+            "description": "Preview diff and potential conflicts before applying a starter kit to workspace",
+            "handler": "Module\\Crm\\StarterKits\\Mcp\\PreviewKitTool",
+            "permissions": ["settings.view"],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "kit_id": {
+                        "type": "string",
+                        "description": "Kit identifier (kit_agency, kit_service_desk, kit_product_dev)"
+                    },
+                    "locale": {
+                        "type": "string",
+                        "description": "Target locale code"
+                    }
+                },
+                "required": ["kit_id"],
+                "additionalProperties": false
+            }
+        },
+        {
+            "name": "starter_kits_apply",
+            "description": "Apply selected starter kit components idempotently to current workspace",
+            "handler": "Module\\Crm\\StarterKits\\Mcp\\ApplyKitTool",
+            "permissions": ["settings.edit"],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "kit_id": {
+                        "type": "string",
+                        "description": "Kit identifier"
+                    },
+                    "selected_components": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Components to apply (statuses, roles, project_templates, task_templates, knowledge_spaces)"
+                    },
+                    "locale": {
+                        "type": "string",
+                        "description": "Target locale code"
+                    }
+                },
+                "required": ["kit_id"],
+                "additionalProperties": false
+            }
+        }
+    ]
+}
