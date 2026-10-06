@@ -1,0 +1,74 @@
+{
+    "name": "crm.outlook-calendar",
+    "version": "1.0.0",
+    "vendor": "crm",
+    "author": "Anton Barinov",
+    "author_url": "https://github.com/Anton-Barinov",
+    "title": "Microsoft Outlook Calendar Integration",
+    "description": "Синхронизация встреч и событий с Microsoft Outlook Calendar через Microsoft Graph API с поддержкой delta sync, таймзон и участников",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "category": "integrations",
+    "dependencies": [],
+    "require_permissions": [
+        "settings.view",
+        "settings.edit",
+        "calendar.view",
+        "calendar.edit"
+    ],
+    "service_provider": "Module\\Crm\\OutlookCalendar\\OutlookCalendarServiceProvider",
+    "migrations": "api/migrations",
+    "api_routes": "api/config/routes.php",
+    "web_routes": "web/config/routes.php",
+    "menu_items": [
+        {
+            "id": "outlook-calendar",
+            "title": "Outlook Календарь",
+            "route": "outlook-calendar",
+            "icon": "calendar",
+            "permission": "calendar.view"
+        }
+    ],
+    "assets": {
+        "css": [
+            "web/assets/css/outlook-calendar.css"
+        ],
+        "js": [
+            "web/assets/js/outlook-calendar.js"
+        ]
+    },
+    "mcp_tools": [
+        {
+            "name": "outlook_calendar_status",
+            "description": "Get Microsoft Outlook Calendar connection and sync status",
+            "handler": "Module\\Crm\\OutlookCalendar\\Mcp\\CalendarStatusTool",
+            "permissions": ["calendar.view"],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+            }
+        },
+        {
+            "name": "outlook_calendar_sync",
+            "description": "Trigger manual or cron delta sync for Outlook Calendar",
+            "handler": "Module\\Crm\\OutlookCalendar\\Mcp\\CalendarSyncTool",
+            "permissions": ["calendar.edit"],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "direction": {
+                        "type": "string",
+                        "enum": ["both", "pull", "push"],
+                        "description": "Sync direction"
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
+    ]
+}
