@@ -3014,28 +3014,63 @@ PROMPT;
 
         $payload = ['idea' => ['title' => $idea['title'] ?? '', 'short_description' => mb_substr($plainDesc, 0, 200), 'category' => $idea['category'] ?? '', 'current_date' => date('Y-m-d'), 'target_date' => $idea['target_date'] ?? null], 'final_recommendation' => $final, 'implementation_plan' => $plan];
 
-         $sp = $this->t('idea/messages.system_prompt_project');
+        $sp = $this->t('idea/messages.system_prompt_project');
 
         try {
-            $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 2; $rawText = ''; $parsed = ['ok' => false];
+            $aiSvc = $this->container->get('service.ai_action');
+            $maxRetries = 2;
+            $baseUserPrompt = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            $rawText = '';
+            $parsed = ['ok' => false, 'error' => 'not_started'];
+            $providerErrorCode = '';
+            $responseMode = '';
+            $lastFailureKind = 'invalid_ai_json';
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_tasks', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
+                $userPrompt = $baseUserPrompt;
+                if ($retry > 0 && $rawText !== '') {
+                    $userPrompt .= "\n\nFORMAT_REPAIR_REQUIRED:\n"
+                        . "The previous answer did not contain a usable project/task plan. Rebuild it from the same input. Return one complete JSON object with a non-empty projects array or tasks array, each task with a clear title and actionable description. Do not use Markdown or commentary.\n"
+                        . "Previous answer to repair:\n" . mb_substr($rawText, 0, 12000);
+                }
+                $result = $aiSvc->execute('idea_tasks', [
+                    '__sys' => $sp . $this->localeInstruction(),
+                    '__usr' => $userPrompt,
+                    'response_format' => ['type' => 'json_object'],
+                ], $this->user()['user'] ?? []);
+                $responseMeta = is_array($result['result'] ?? null) ? $result['result'] : [];
+                $responseMode = (string)($responseMeta['mode'] ?? '');
 
                 if (!$this->isAiModelCompletion($result)) {
                     $errorCode = $this->aiResponseErrorCode($result);
-                    if ($errorCode === 'AI_BUSY') {
-                        $backoffUs = max(5000000, ($retry + 1) * 2000000);
-                        ai_diag_log("[TASKS_BUSY] idea_id={$ideaId} attempt=" . ($retry+1) . " backoff=" . ($backoffUs / 1000000) . "s");
-                        if ($retry < $maxRetries) { usleep($backoffUs); continue; }
+                    $providerErrorCode = $errorCode;
+                    $lastFailureKind = 'provider_error';
+                    ai_diag_log("[TASKS_AI_PROVIDER_FAILURE] idea_id={$ideaId} attempt=" . ($retry + 1) . " mode=" . ($responseMode !== '' ? $responseMode : 'none') . " code={$errorCode}");
+                    $retryable = [
+                        'AI_BUSY', 'AI_PROVIDER_TIMEOUT', 'AI_PROVIDER_CONNECTION_FAILED',
+                        'AI_PROVIDER_SERVER_ERROR', 'AI_PROVIDER_RATE_LIMITED',
+                        'AI_PROVIDER_CIRCUIT_OPEN', 'AI_PROVIDER_HTTP_ERROR',
+                        'AI_PROVIDER_INVALID_RESPONSE', 'AI_PROVIDER_UNAVAILABLE',
+                    ];
+                    if ($retry < $maxRetries && in_array($errorCode, $retryable, true)) {
+                        usleep($errorCode === 'AI_BUSY' ? max(5000000, ($retry + 1) * 2000000) : ($retry + 1) * 1000000);
+                        continue;
                     }
-                    ai_diag_log("[TASKS_AI_ERROR] idea_id={$ideaId} code={$errorCode} reason=" . ($result['reason'] ?? ''));
                     break;
                 }
 
-                $rawText = $result['result']['preview']['summary'] ?? '';
-                $parsed = $this->extractAiJson($rawText);
+                $rawText = (string)($responseMeta['preview']['summary'] ?? $responseMeta['text'] ?? '');
+                $structured = $this->extractStructuredResult($result);
+                if ($structured !== null && (!empty($structured['projects']) || !empty($structured['tasks']))) {
+                    $parsed = ['ok' => true, 'data' => $structured];
+                } else {
+                    if ($rawText === '' && $structured !== null) {
+                        $rawText = json_encode($structured, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) ?: '';
+                    }
+                    $parsed = $this->extractAiJson($rawText);
+                }
                 if ($parsed['ok'] && (!empty($parsed['data']['projects']) || !empty($parsed['data']['tasks']))) break;
-                ai_diag_log("[TASKS_RETRY] idea_id={$ideaId} attempt=" . ($retry+1) . " error=" . ($parsed['error'] ?? 'invalid_resp'));
+                $lastFailureKind = !empty($parsed['ok']) ? 'invalid_ai_schema' : 'invalid_ai_json';
+                ai_diag_log("[TASKS_FORMAT_RETRY] idea_id={$ideaId} attempt=" . ($retry + 1) . " error=" . ($parsed['error'] ?? 'missing_projects_or_tasks'));
                 if ($retry < $maxRetries) usleep(1000000);
             }
 
@@ -3043,15 +3078,26 @@ PROMPT;
             $iterStmt = $pdo->prepare("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id = :iid");
             $iterStmt->execute(['iid' => $ideaId]);
             $iter = (int)$iterStmt->fetchColumn();
-            $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'suggested_tasks', :req, :res, NOW())")->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
+            $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'suggested_tasks', :req, :res, NOW())")->execute([
+                'pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter,
+                'req' => json_encode(['system_prompt' => $sp, 'payload' => $payload, 'attempts' => $retry + 1], JSON_UNESCAPED_UNICODE),
+                'res' => json_encode([
+                    'raw_text' => $rawText,
+                    'mode' => $responseMode !== '' ? $responseMode : null,
+                    'provider_error_code' => $providerErrorCode !== '' ? $providerErrorCode : null,
+                    'failure_kind' => $parsed['ok'] ? null : $lastFailureKind,
+                    'parse_error' => $parsed['error'] ?? null,
+                    'attempts' => $retry + 1,
+                ], JSON_UNESCAPED_UNICODE),
+            ]);
 
             if (!$parsed['ok'] || (empty($parsed['data']['projects']) && empty($parsed['data']['tasks']))) {
-                ai_diag_log("[TASKS_PARSE_FAIL] parse_error=".($parsed['error']??'unknown')." text_len=".strlen($rawText));
-                $row = ['tasks_json' => json_encode(['_is_fallback' => true], JSON_UNESCAPED_UNICODE), 'summary' => $this->t('idea/messages.ai_tasks_fallback_summary'), 'ai_request_json' => json_encode(['note' => 'AI analysis failed — fallback stub'], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
-                $existsTasks = $pdo->prepare("SELECT id FROM idea_suggested_tasks WHERE idea_id = :iid"); $existsTasks->execute(['iid' => $ideaId]);
-                if ($existsTasks->fetch()) { $pdo->prepare("UPDATE idea_suggested_tasks SET tasks_json=:tasks_json,summary=:summary,ai_request_json=:ai_request_json,ai_response_json=:ai_response_json,updated_at=NOW() WHERE idea_id=:idea_id")->execute($row); }
-                else { $pdo->prepare("INSERT INTO idea_suggested_tasks (idea_id,tasks_json,summary,ai_request_json,ai_response_json) VALUES (:idea_id,:tasks_json,:summary,:ai_request_json,:ai_response_json)")->execute($row); }
-                return $this->success('TASKS_FALLBACK', 'OK', $row);
+                if ($lastFailureKind === 'provider_error') {
+                    ai_diag_log("[TASKS_PROVIDER_EXHAUSTED] idea_id={$ideaId} code=" . ($providerErrorCode !== '' ? $providerErrorCode : 'AI_ACTION_FAILED'));
+                    return $this->error('AI_PROVIDER_UNAVAILABLE', $this->t('idea/messages.ai_provider_not_responding'), 503);
+                }
+                ai_diag_log("[TASKS_PARSE_FAIL] idea_id={$ideaId} parse_error=" . ($parsed['error'] ?? 'missing_projects_or_tasks') . " text_len=" . strlen($rawText));
+                return $this->error('AI_RESPONSE_INVALID', $this->t('idea/messages.ai_operation_failed'), 502);
             }
             $data = $parsed['data'];
 
