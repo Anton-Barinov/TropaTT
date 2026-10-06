@@ -665,6 +665,30 @@ window.CRM.ideaFallbackNotice = function (payload) {
         if(!awaitingHuman&&status.data.awaiting_human_input===true){
           awaitingHuman=true;
           allDone=false;
+          // The aggregate flag can be true while no step row is explicitly
+          // awaiting human input (for example after a reload/interrupted run).
+          // Restore the first unfinished question card so saved questions remain
+          // visible and answerable.
+          var questionStepIndex=-1;
+          for(var qsi=0;qsi<steps.length;qsi++){
+            if(steps[qsi].type!=='questions')continue;
+            var serverQuestionStep=serverSteps.find(function(candidate){return candidate.key===steps[qsi].id;});
+            if(!serverQuestionStep||serverQuestionStep.status!=='completed'){
+              questionStepIndex=qsi;
+              break;
+            }
+          }
+          if(questionStepIndex<0)questionStepIndex=steps.findIndex(function(step){return step.id==='interview';});
+          if(questionStepIndex>=0){
+            var questionStep=steps[questionStepIndex];
+            awaitingStepDesc=questionStep.desc;
+            showBlock(questionStep.cardId);
+            if(!loadedAwaitingSteps[questionStep.id]){
+              loadedAwaitingSteps[questionStep.id]=true;
+              rememberQuestionWait(questionStepIndex,questionStep);
+              if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.reloadStep(questionStep.id);
+            }
+          }
         }
         if(awaitingHuman){
           document.getElementById('pipelineStatus').textContent=awaitingStepDesc ? ('<?= htmlspecialchars($t('ideas.state_waiting_answers', 'Ожидает ответов:'), ENT_QUOTES, 'UTF-8') ?> '+awaitingStepDesc) : '<?= htmlspecialchars($t('ideas.state_awaiting_human', 'Пайплайн ждёт ваших ответов на вопросы...'), ENT_QUOTES, 'UTF-8') ?>';
