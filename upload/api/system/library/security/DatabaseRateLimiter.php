@@ -28,7 +28,12 @@ final class DatabaseRateLimiter implements RateLimiterInterface
             return ['blocked' => true, 'retry_after' => 5];
         }
 
-        $row = $this->fetch($key);
+        try {
+            $row = $this->fetch($key);
+        } catch (\Throwable $e) {
+            AppLog::error('[DatabaseRateLimiter::check] ' . $e->getMessage());
+            return ['blocked' => true, 'retry_after' => 5];
+        }
         $now = time();
 
         if ($row === null) {
@@ -72,7 +77,11 @@ final class DatabaseRateLimiter implements RateLimiterInterface
             return $this->hitGeneric($key, $now, $windowStart);
         } catch (\Throwable $e) {
             AppLog::error('[DatabaseRateLimiter::hit] ' . $e->getMessage());
-            return ['blocked' => false, 'retry_after' => 0];
+            // A storage failure must never disable brute-force protection.
+            // This limiter guards authentication and other sensitive routes;
+            // fail closed with a short retry so shared-hosted installations do
+            // not need an external cache/limiter service.
+            return ['blocked' => true, 'retry_after' => 5];
         }
     }
 
@@ -249,15 +258,10 @@ final class DatabaseRateLimiter implements RateLimiterInterface
 
     private function fetch(string $key): ?array
     {
-        try {
-            $stmt = $this->pdo->prepare('SELECT `key`, attempts_count, window_start, blocked_until FROM rate_limits WHERE `key` = ?');
-            $stmt->execute([$key]);
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $row !== false ? $row : null;
-        } catch (\Throwable $e) {
-            AppLog::error('[DatabaseRateLimiter::fetch] SELECT failed: ' . $e->getMessage());
-            return null;
-        }
+        $stmt = $this->pdo->prepare('SELECT `key`, attempts_count, window_start, blocked_until FROM rate_limits WHERE `key` = ?');
+        $stmt->execute([$key]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row !== false ? $row : null;
     }
 
     private function fetchForUpdate(string $key): ?array
