@@ -94,9 +94,13 @@ switch ($command) {
         // abandoned running rows are also candidates: the API worker applies
         // the per-step attempt budget and safely reclaims stale leases.
         try {
-            $staleBefore = date('Y-m-d H:i:s', time() - 900);
-            $checkStmt = $pdo->prepare("SELECT 1 FROM idea_analysis_steps WHERE pipeline = 'live' AND (status = 'pending' OR (status = 'failed' AND attempts < 3) OR (status = 'running' AND (started_at IS NULL OR started_at < :stale_before))) LIMIT 1");
-            $checkStmt->execute(['stale_before' => $staleBefore]);
+            // Compare against the database clock, not PHP's configured timezone.
+            // Shared hosts may run PHP in Europe/Moscow while MySQL SYSTEM uses
+            // another offset, which would make every active lease look stale.
+            $staleCutoffSql = $driver === 'sqlite'
+                ? "datetime(CURRENT_TIMESTAMP, '-900 seconds')"
+                : 'DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 900 SECOND)';
+            $checkStmt = $pdo->query("SELECT 1 FROM idea_analysis_steps WHERE pipeline = 'live' AND (status = 'pending' OR (status = 'failed' AND attempts < 3) OR (status = 'running' AND (started_at IS NULL OR started_at < {$staleCutoffSql}))) LIMIT 1");
             if ($checkStmt->fetchColumn()) {
                 $workerScript = __DIR__ . '/idea_analysis_worker.php';
                 if (file_exists($workerScript)) {

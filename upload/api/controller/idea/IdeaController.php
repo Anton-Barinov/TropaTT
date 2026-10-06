@@ -4635,7 +4635,10 @@ PROMPT;
         $pdo = $this->container->get('db.pdo');
         $this->ensureIdeaWorkflowTables($pdo);
 
-        $stmt = $pdo->prepare("SELECT step_key, step_order, status, error_message, started_at, completed_at FROM idea_analysis_steps WHERE idea_id = :iid AND pipeline = 'live' ORDER BY step_order ASC");
+        $staleCutoffSql = $this->liveStepStaleCutoffSql($pdo);
+        $stmt = $pdo->prepare("SELECT step_key, step_order, status, error_message, started_at, completed_at,
+            CASE WHEN status = 'running' AND (started_at IS NULL OR started_at < {$staleCutoffSql}) THEN 1 ELSE 0 END AS is_stale
+            FROM idea_analysis_steps WHERE idea_id = :iid AND pipeline = 'live' ORDER BY step_order ASC");
         $stmt->execute(['iid' => $ideaId]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
@@ -4650,8 +4653,7 @@ PROMPT;
                 'error' => $r['error_message'] ?: null,
                 'started_at' => $r['started_at'] ?: null,
                 'completed_at' => $r['completed_at'] ?: null,
-                'is_stale' => $r['status'] === 'running'
-                    && (empty($r['started_at']) || strtotime((string)$r['started_at']) < time() - self::LIVE_STEP_STALE_SECONDS),
+                'is_stale' => (bool)($r['is_stale'] ?? false),
             ];
         }
 
@@ -4802,7 +4804,7 @@ PROMPT;
         // Walk candidate ideas (ordered by their earliest pending step) and run
         // the first one that is not held for human input, so one blocked idea can
         // never starve the rest of the queue.
-        $staleBefore = date('Y-m-d H:i:s', time() - self::LIVE_STEP_STALE_SECONDS);
+        $staleCutoffSql = $this->liveStepStaleCutoffSql($pdo);
         $next = $pdo->prepare("
             SELECT s.idea_id, i.public_id AS idea_public_id
             FROM idea_analysis_steps s
@@ -4810,13 +4812,13 @@ PROMPT;
             WHERE s.pipeline = 'live' AND (
                 s.status = 'pending'
                 OR (s.status = 'failed' AND s.attempts < :max_attempts)
-                OR (s.status = 'running' AND (s.started_at IS NULL OR s.started_at < :stale_before))
+                OR (s.status = 'running' AND (s.started_at IS NULL OR s.started_at < {$staleCutoffSql}))
             )
             GROUP BY s.idea_id, i.public_id
             ORDER BY MIN(s.step_order) ASC
             LIMIT 20
         ");
-        $next->execute(['max_attempts' => self::LIVE_STEP_MAX_ATTEMPTS, 'stale_before' => $staleBefore]);
+        $next->execute(['max_attempts' => self::LIVE_STEP_MAX_ATTEMPTS]);
         $candidates = $next->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
         $blocked = 0;
@@ -4904,9 +4906,9 @@ PROMPT;
         // executes it (or an earlier step): never hand out a follow-up step in
         // parallel — later steps consume earlier results (race would corrupt
         // the chain). Caller treats this as STEP_BUSY, not as an error.
-        $freshSince = date('Y-m-d H:i:s', time() - self::LIVE_STEP_STALE_SECONDS);
-        $busy = $pdo->prepare("SELECT COUNT(*) FROM idea_analysis_steps WHERE idea_id = :iid AND pipeline = 'live' AND status = 'running' AND (started_at IS NULL OR started_at >= :fresh)");
-        $busy->execute(['iid' => $ideaId, 'fresh' => $freshSince]);
+        $freshCutoffSql = $this->liveStepStaleCutoffSql($pdo);
+        $busy = $pdo->prepare("SELECT COUNT(*) FROM idea_analysis_steps WHERE idea_id = :iid AND pipeline = 'live' AND status = 'running' AND (started_at IS NULL OR started_at >= {$freshCutoffSql})");
+        $busy->execute(['iid' => $ideaId]);
         if ((int)$busy->fetchColumn() > 0) {
             return ['state' => 'busy', 'step_key' => null, 'step_order' => 0, 'reason' => 'step_already_running'];
         }
@@ -4942,13 +4944,28 @@ PROMPT;
      */
     private function recoverLiveStepQueue(PDO $pdo, int $ideaId): void
     {
-        $staleBefore = date('Y-m-d H:i:s', time() - self::LIVE_STEP_STALE_SECONDS);
-        $pdo->prepare("UPDATE idea_analysis_steps SET status = 'pending', error_message = NULL, started_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE idea_id = :iid AND pipeline = 'live' AND status = 'running' AND (started_at IS NULL OR started_at < :stale) AND attempts < :max")
-            ->execute(['iid' => $ideaId, 'stale' => $staleBefore, 'max' => self::LIVE_STEP_MAX_ATTEMPTS]);
-        $pdo->prepare("UPDATE idea_analysis_steps SET status = 'failed', error_message = CASE WHEN error_message IS NULL OR error_message = '' THEN 'Worker stopped after maximum attempts' ELSE error_message END, updated_at = CURRENT_TIMESTAMP WHERE idea_id = :iid AND pipeline = 'live' AND status = 'running' AND (started_at IS NULL OR started_at < :stale) AND attempts >= :max")
-            ->execute(['iid' => $ideaId, 'stale' => $staleBefore, 'max' => self::LIVE_STEP_MAX_ATTEMPTS]);
+        $staleCutoffSql = $this->liveStepStaleCutoffSql($pdo);
+        $pdo->prepare("UPDATE idea_analysis_steps SET status = 'pending', error_message = NULL, started_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE idea_id = :iid AND pipeline = 'live' AND status = 'running' AND (started_at IS NULL OR started_at < {$staleCutoffSql}) AND attempts < :max")
+            ->execute(['iid' => $ideaId, 'max' => self::LIVE_STEP_MAX_ATTEMPTS]);
+        $pdo->prepare("UPDATE idea_analysis_steps SET status = 'failed', error_message = CASE WHEN error_message IS NULL OR error_message = '' THEN 'Worker stopped after maximum attempts' ELSE error_message END, updated_at = CURRENT_TIMESTAMP WHERE idea_id = :iid AND pipeline = 'live' AND status = 'running' AND (started_at IS NULL OR started_at < {$staleCutoffSql}) AND attempts >= :max")
+            ->execute(['iid' => $ideaId, 'max' => self::LIVE_STEP_MAX_ATTEMPTS]);
         $pdo->prepare("UPDATE idea_analysis_steps SET status = 'pending', error_message = NULL, started_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE idea_id = :iid AND pipeline = 'live' AND status = 'failed' AND attempts < :max")
             ->execute(['iid' => $ideaId, 'max' => self::LIVE_STEP_MAX_ATTEMPTS]);
+    }
+
+    /**
+     * Build a stale-time expression in the database's own clock domain.
+     * Application PHP runs in Europe/Moscow while some MySQL hosts use SYSTEM
+     * time (for example UTC+2); comparing PHP-formatted timestamps with
+     * CURRENT_TIMESTAMP can otherwise reclaim a live step immediately.
+     */
+    private function liveStepStaleCutoffSql(PDO $pdo): string
+    {
+        $seconds = self::LIVE_STEP_STALE_SECONDS;
+        if ((string)$pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+            return "datetime(CURRENT_TIMESTAMP, '-{$seconds} seconds')";
+        }
+        return "DATE_SUB(CURRENT_TIMESTAMP, INTERVAL {$seconds} SECOND)";
     }
 
     /**
