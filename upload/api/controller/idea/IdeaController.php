@@ -4752,7 +4752,7 @@ PROMPT;
                 $terminal->execute(['iid' => $ideaId, 'k' => $stepKey, 'attempt' => $claimedAttempt]);
             }
             if ($terminal->rowCount() !== 1) {
-                return $this->success('STEP_SUPERSEDED', 'A newer worker updated this step.', [
+                return $this->success('STEP_SUPERSEDED', $this->t('idea/messages.step_superseded'), [
                     'step' => $stepKey,
                     'superseded' => true,
                 ]);
@@ -4771,7 +4771,7 @@ PROMPT;
             $failure = $pdo->prepare("UPDATE idea_analysis_steps SET status = 'failed', error_message = :err, updated_at = NOW() WHERE idea_id = :iid AND step_key = :k AND pipeline = 'live' AND status = 'running' AND attempts = :attempt");
             $failure->execute(['iid' => $ideaId, 'k' => $stepKey, 'err' => $e->getMessage(), 'attempt' => $claimedAttempt]);
             if ($failure->rowCount() !== 1) {
-                return $this->success('STEP_SUPERSEDED', 'A newer worker updated this step.', [
+                return $this->success('STEP_SUPERSEDED', $this->t('idea/messages.step_superseded'), [
                     'step' => $stepKey,
                     'superseded' => true,
                 ]);

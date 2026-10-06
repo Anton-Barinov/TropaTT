@@ -325,4 +325,5 @@ JSON:
     'create_failed' => 'Create operation failed. Check server logs for details.',
     'ai_operation_failed' => 'AI operation failed. Check server logs for details.',
     'max_cycles_reached' => 'Maximum question cycles reached',
+    'step_superseded' => 'This step was already updated by another worker.',
 ];

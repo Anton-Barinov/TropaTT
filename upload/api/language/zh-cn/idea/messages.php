@@ -243,4 +243,5 @@ return [
     'create_failed' => '创建操作失败。请查看服务器日志了解详情。',
     'ai_operation_failed' => 'AI操作失败。请查看服务器日志了解详情。',
     'max_cycles_reached' => '已达到最大问题循环次数',
+    'step_superseded' => '此步骤已由另一个工作进程更新。',
 ];
