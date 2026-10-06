@@ -1,0 +1,89 @@
+{
+    "name": "crm.client-portal",
+    "version": "1.0.0",
+    "vendor": "crm",
+    "author": "Anton Barinov",
+    "author_url": "https://github.com/Anton-Barinov",
+    "title": "Client Service Portal",
+    "description": "Сервисный процесс для заявок, согласований смет и безопасной выдачи документов клиентам",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "category": "crm",
+    "dependencies": [],
+    "require_permissions": [
+        "client.view"
+    ],
+    "service_provider": "Module\\Crm\\ClientPortal\\ClientPortalServiceProvider",
+    "migrations": "api/migrations",
+    "api_routes": "api/config/routes.php",
+    "web_routes": "web/config/routes.php",
+    "menu_items": [
+        {
+            "id": "client-portal",
+            "title": "Сервисный портал",
+            "route": "client-portal",
+            "icon": "life-buoy",
+            "permission": "client.view"
+        }
+    ],
+    "assets": {
+        "css": [
+            "web/assets/css/client-portal.css"
+        ],
+        "js": [
+            "web/assets/js/client-portal.js"
+        ]
+    },
+    "mcp_tools": [
+        {
+            "name": "portal_list_requests",
+            "description": "List client service requests with status and SLA metrics",
+            "handler": "Module\\Crm\\ClientPortal\\Mcp\\ListRequestsTool",
+            "permissions": ["client.view"],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "client_public_id": {
+                        "type": "string",
+                        "description": "Filter by client public ID"
+                    }
+                },
+                "additionalProperties": false
+            }
+        },
+        {
+            "name": "portal_resolve_approval",
+            "description": "Resolve service estimate or deliverable approval (approve or reject)",
+            "handler": "Module\\Crm\\ClientPortal\\Mcp\\ResolveApprovalTool",
+            "permissions": ["client.view"],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "approval_public_id": {
+                        "type": "string",
+                        "description": "Approval public ID"
+                    },
+                    "client_public_id": {
+                        "type": "string",
+                        "description": "Client public ID verifying ownership"
+                    },
+                    "decision": {
+                        "type": "string",
+                        "enum": ["approved", "rejected"],
+                        "description": "Decision"
+                    },
+                    "note": {
+                        "type": "string",
+                        "description": "Optional resolution note"
+                    }
+                },
+                "required": ["approval_public_id", "client_public_id", "decision"],
+                "additionalProperties": false
+            }
+        }
+    ]
+}
