@@ -2790,6 +2790,12 @@ PROMPT;
                 ai_diag_log("[FINAL_RECOMMENDATION_PARSE_FAIL] text_len=".strlen($rawText)." parse_error=".($parsed['error'] ?? 'unknown')." preview=".substr($rawText, 0, 300));
                 $data = $this->buildFallbackFinalRecommendationData($blocks, (string)($parsed['error'] ?? 'invalid_ai_json'));
             }
+            if (empty($data['_fallback']) && !empty($dataGaps)) {
+                // Keep source quality alongside the saved recommendation so the
+                // UI can disclose when a valid AI answer relied on fallback
+                // summaries from earlier analysis blocks.
+                $data['_source_data_gaps'] = array_values($dataGaps);
+            }
 
             $fr = $data['final_recommendation'] ?? [];
             $scores = fn($k) => max(0, min(100, (float)($fr[$k] ?? 0)));
