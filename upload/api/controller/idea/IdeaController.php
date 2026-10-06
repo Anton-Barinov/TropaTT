@@ -752,11 +752,20 @@ final class IdeaController extends BaseController
      */
     private function parseAiQuestions(mixed $result, array $idea): array
     {
-        $questions = $result['questions'] ?? $result['result']['questions'] ?? [];
+        $structured = $this->extractStructuredResult($result);
+        $questions = $structured['questions'] ?? $result['questions'] ?? $result['result']['questions'] ?? [];
         if (is_array($questions) && $questions !== []) return $questions;
 
         $text = is_array($result) ? (($result['result']['preview']['summary'] ?? $result['preview']['summary'] ?? '')) : (string)$result;
         if ($text === '') return [];
+
+        $parsedJson = $this->extractAiJson((string)$text);
+        if (!empty($parsedJson['ok']) && is_array($parsedJson['data'])) {
+            $jsonQuestions = $parsedJson['data']['questions'] ?? [];
+            if (is_array($jsonQuestions) && $jsonQuestions !== []) {
+                return $jsonQuestions;
+            }
+        }
 
         $qs = [];
         $numbered = '/[\(]?(\d+)[\)\.]\s*\*\*(.*?)\*\*/s';
@@ -1019,9 +1028,27 @@ final class IdeaController extends BaseController
                 'total_cycles' => $currentCycle,
                 'total_questions_asked' => count($previousQuestions),
             ], $user);
+            if (!$this->isAiModelCompletion($processResult)) {
+                $errorCode = $this->aiResponseErrorCode($processResult);
+                ai_diag_log("[AI_PROCESS_ANSWERS_PROVIDER_FAILURE] idea_id=" . (int)$idea['id'] . " code={$errorCode}");
+                return $this->error('AI_PROVIDER_UNAVAILABLE', $this->t('idea/messages.ai_provider_not_responding'), 503);
+            }
+
+            $pr = $this->extractStructuredResult($processResult);
+            if ($pr === null) {
+                $rawDecision = (string)($processResult['result']['preview']['summary'] ?? $processResult['result']['text'] ?? '');
+                $parsedDecision = $this->extractAiJson($rawDecision);
+                $pr = !empty($parsedDecision['ok']) && is_array($parsedDecision['data']) ? $parsedDecision['data'] : null;
+            }
+            if (!is_array($pr)
+                || !array_key_exists('ready_for_analysis', $pr)
+                || !array_key_exists('need_more_questions', $pr)
+                || (bool)$pr['ready_for_analysis'] === (bool)$pr['need_more_questions']) {
+                ai_diag_log("[AI_PROCESS_ANSWERS_INVALID] idea_id=" . (int)$idea['id'] . " response did not contain one unambiguous next-step decision");
+                return $this->error('AI_RESPONSE_INVALID', $this->t('idea/messages.ai_operation_failed'), 502);
+            }
             $this->saveAnalysis($pdo, (int)$idea['id'], 'answers_processing', $processResult);
 
-            $pr = $this->extractStructuredResult($processResult) ?? $processResult;
             $readyForAnalysis = (bool)($pr['ready_for_analysis'] ?? false);
             $needMoreQuestions = (bool)($pr['need_more_questions'] ?? false);
 
@@ -1060,8 +1087,12 @@ final class IdeaController extends BaseController
                     'cycle' => $nextCycle,
                     'iteration' => $iteration,
                 ], $user);
-                $qData = $this->extractStructuredResult($qResult);
-                $nextQuestions = $qData['questions'] ?? [];
+                if (!$this->isAiModelCompletion($qResult)) {
+                    $errorCode = $this->aiResponseErrorCode($qResult);
+                    ai_diag_log("[AI_PROCESS_ANSWERS_QUESTIONS_PROVIDER_FAILURE] idea_id=" . (int)$idea['id'] . " code={$errorCode}");
+                    return $this->error('AI_PROVIDER_UNAVAILABLE', $this->t('idea/messages.ai_provider_not_responding'), 503);
+                }
+                $nextQuestions = $this->parseAiQuestions($qResult, $idea);
                 if (is_array($nextQuestions) && $nextQuestions !== []) {
                     $existingQuestionTexts = [];
                     foreach ($previousQuestions as $pq) {
@@ -3319,10 +3350,14 @@ PROMPT;
                 'response_format' => ['type' => 'json_object'],
             ], $this->user()['user'] ?? []);
             
+            $structuredInterview = $this->extractStructuredResult($result);
             $rawText = $result['result']['preview']['summary'] ?? ($result['result']['text'] ?? '');
+            if ($rawText === '' && $structuredInterview !== null) {
+                $rawText = json_encode($structuredInterview, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) ?: '';
+            }
             $aiMode = $result['result']['mode'] ?? 'unknown';
             $topErrorCode = (string)($result['code'] ?? '');
-            $aiFailed = $aiMode === 'safe_mock' || trim($rawText) === '' || str_contains($rawText, 'AI не смог сформировать ответ');
+            $aiFailed = !$this->isAiModelCompletion($result) || trim($rawText) === '' || str_contains($rawText, 'AI не смог сформировать ответ');
             if (!$aiFailed && $topErrorCode !== '' && $topErrorCode !== 'OK') {
                 $aiFailed = true;
             }
@@ -4028,14 +4063,29 @@ PROMPT;
                 'implementation_plan' => $implPlan,
             ], $user);
 
-            $tasks = $result['result']['structured']['tasks'] ?? $result['tasks'] ?? [];
+            if (!$this->isAiModelCompletion($result)) {
+                $errorCode = $this->aiResponseErrorCode($result);
+                ai_diag_log("[IDEA_TASK_DECOMPOSITION_PROVIDER_FAILURE] idea_id=" . (int)$idea['id'] . " code={$errorCode}");
+                return $this->error('AI_PROVIDER_UNAVAILABLE', $this->t('idea/messages.ai_provider_not_responding'), 503);
+            }
+
+            $structuredTasks = $this->extractStructuredResult($result);
+            if ($structuredTasks === null) {
+                $rawTasks = (string)($result['result']['preview']['summary'] ?? $result['result']['text'] ?? '');
+                $parsedTasks = $this->extractAiJson($rawTasks);
+                $structuredTasks = !empty($parsedTasks['ok']) && is_array($parsedTasks['data']) ? $parsedTasks['data'] : null;
+            }
+            $tasks = $structuredTasks['tasks'] ?? $result['tasks'] ?? [];
+            if (!is_array($tasks) || $tasks === []) {
+                ai_diag_log("[IDEA_TASK_DECOMPOSITION_INVALID] idea_id=" . (int)$idea['id'] . " response contained no task list");
+                return $this->error('AI_RESPONSE_INVALID', $this->t('idea/messages.ai_operation_failed'), 502);
+            }
             if (is_array($tasks) && $tasks !== []) {
                 $service->saveTaskDrafts((int)$idea['id'], $tasks);
                 $service->updateStatus((int)$idea['id'], 'task_decomposition_ready');
             }
 
-            $structured = $this->extractStructuredResult($result);
-            $saveData = $structured ?? $result;
+            $saveData = $structuredTasks ?? ['tasks' => $tasks];
             $this->saveAnalysis($this->container->get('db.pdo'), (int)$idea['id'], 'task_decomposition', $saveData);
 
             return $this->success('TASKS_DECOMPOSED', $this->t('idea/messages.decomposed'), ['tasks' => $tasks]);
@@ -4087,22 +4137,26 @@ PROMPT;
                 'include_options' => true,
             ], $user);
 
-            $questions = $result['questions'] ?? $result['result']['questions'] ?? [];
-            if ((!is_array($questions) || $questions === []) && is_array($result)) {
-                $questions = $this->parseAiQuestions($result, $idea);
+            if (!$this->isAiModelCompletion($result)) {
+                $errorCode = $this->aiResponseErrorCode($result);
+                ai_diag_log("[IDEA_QUESTIONS_NEXT_PROVIDER_FAILURE] idea_id=" . (int)$idea['id'] . " code={$errorCode}");
+                return $this->error('AI_PROVIDER_UNAVAILABLE', $this->t('idea/messages.ai_provider_not_responding'), 503);
+            }
+            $questions = $this->parseAiQuestions($result, $idea);
+            if ($questions === []) {
+                ai_diag_log("[IDEA_QUESTIONS_NEXT_INVALID] idea_id=" . (int)$idea['id'] . " response contained no parseable questions");
+                return $this->error('AI_RESPONSE_INVALID', $this->t('idea/messages.ai_operation_failed'), 502);
             }
             if (is_array($questions) && $questions !== []) {
                 $service->saveQuestions((int)$idea['id'], $nextCycle, $questions);
                 $service->updateStatus((int)$idea['id'], 'questioning');
-            } else {
-                $service->updateStatus((int)$idea['id'], 'ready_for_analysis');
             }
 
-            $this->saveAnalysis($pdo, (int)$idea['id'], 'questions_cycle_' . $nextCycle, $result);
+            $this->saveAnalysis($pdo, (int)$idea['id'], 'questions_cycle_' . $nextCycle, ['questions' => $questions]);
 
             return $this->success('QUESTIONS_NEXT', $this->t('idea/messages.questions_generated'), [
                 'questions' => $questions, 'cycle' => $nextCycle,
-                'ready_for_analysis' => !$questions || $questions === [],
+                'ready_for_analysis' => false,
             ]);
         } catch (\Throwable $e) {
             AppLog::error('[IdeaController::unknown] ' . $e->getMessage());
