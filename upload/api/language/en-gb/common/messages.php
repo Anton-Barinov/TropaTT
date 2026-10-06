@@ -23,6 +23,7 @@ return [
     'conflict' => 'This data was changed by another user. Refresh the page and try again.',
     'row_version_conflict' => 'This data was changed by another user. Refresh the page and try again.',
     'rate_limited' => 'Too many requests. Please try again later.',
+    'payload_too_large' => 'The request body exceeds the allowed size.',
     'project_not_found' => 'Project not found',
     'ok' => 'OK',
     'invalid_event_type' => 'event_type must be api_error, js_error, or csp_violation',

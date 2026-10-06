@@ -16,6 +16,9 @@ if (PHP_SAPI !== "cli") { http_response_code(404); exit; }
  */
 
 require_once __DIR__ . '/../system/library/support/Autoloader.php';
+// CLI worker requests run App in-process and bypass api/index.php, which normally
+// loads the diagnostic helper used by IdeaController and AI services.
+require_once __DIR__ . '/../system/library/ai_diag.php';
 
 $basePath = dirname(__DIR__);
 $projectRoot = dirname($basePath);

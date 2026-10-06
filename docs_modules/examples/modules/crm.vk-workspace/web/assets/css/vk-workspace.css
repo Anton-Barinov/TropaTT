@@ -1,0 +1,6 @@
+.crm-vk-workspace-wrap {
+    padding: 1.5rem;
+    background: var(--surface-bg, #fff);
+    border-radius: 8px;
+    border: 1px solid var(--border-color, #e2e8f0);
+}

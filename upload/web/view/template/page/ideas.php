@@ -73,6 +73,25 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
   }
   return raw;
 };
+window.CRM.ideaFallbackNotice = function (payload) {
+  var hasSourceGaps = false;
+  function containsFallback(value, depth) {
+    if (!value || depth > 5 || typeof value !== 'object') return false;
+    if (Array.isArray(value._source_data_gaps) && value._source_data_gaps.length > 0) hasSourceGaps = true;
+    if (value._is_fallback === true || value._fallback === true) return true;
+    return Object.keys(value).some(function (key) {
+      return containsFallback(value[key], depth + 1);
+    });
+  }
+  if (typeof payload === 'string') {
+    try { payload = JSON.parse(payload); } catch (e) { return ''; }
+  }
+  if (!containsFallback(payload, 0) && !hasSourceGaps) return '';
+  if (hasSourceGaps) {
+    return '<div class="alert alert-warning py-2 small mb-2" role="note" data-ai-fallback-notice><?= htmlspecialchars($t('ideas.analysis_source_gaps_notice', 'Часть исходных блоков была сформирована без успешного ответа AI. Итоговая рекомендация использует эти данные, поэтому её оценка может быть неточной. Пересчитайте помеченные блоки и сформируйте итог заново.'), ENT_QUOTES, 'UTF-8') ?></div>';
+  }
+  return '<div class="alert alert-warning py-2 small mb-2" role="note" data-ai-fallback-notice><?= htmlspecialchars($t('ideas.analysis_fallback_notice', 'AI не смог сформировать этот результат. Показана предварительная справка по имеющимся данным; её оценки не являются AI-оценкой. Попробуйте пересчитать позже.'), ENT_QUOTES, 'UTF-8') ?></div>';
+};
 // === AI Pipeline: sequential block execution with proper save detection ===
 (function(){
   var steps = [
@@ -579,6 +598,8 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
         var allDone=true;
         var hasPending=false;
         var hasRunning=false;
+        var hasFreshRunning=false;
+        var hasStaleRunning=false;
         var serverSteps=status.data.steps;
         for(var si=0;si<serverSteps.length;si++){
           var ss=serverSteps[si];
@@ -605,6 +626,7 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
             delete loadedAwaitingSteps[ss.key];
             allDone=false;
             hasRunning=true;
+            if(ss.is_stale===true)hasStaleRunning=true;else hasFreshRunning=true;
             if(browserStep.status!=='running'&&browserStep.status!=='success'){
               browserStep.status='running';
               saveState();renderSteps();
@@ -643,16 +665,43 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
         if(!awaitingHuman&&status.data.awaiting_human_input===true){
           awaitingHuman=true;
           allDone=false;
+          // The aggregate flag can be true while no step row is explicitly
+          // awaiting human input (for example after a reload/interrupted run).
+          // Restore the first unfinished question card so saved questions remain
+          // visible and answerable.
+          var questionStepIndex=-1;
+          for(var qsi=0;qsi<steps.length;qsi++){
+            if(steps[qsi].type!=='questions')continue;
+            var serverQuestionStep=serverSteps.find(function(candidate){return candidate.key===steps[qsi].id;});
+            if(!serverQuestionStep||serverQuestionStep.status!=='completed'){
+              questionStepIndex=qsi;
+              break;
+            }
+          }
+          if(questionStepIndex<0)questionStepIndex=steps.findIndex(function(step){return step.id==='interview';});
+          if(questionStepIndex>=0){
+            var questionStep=steps[questionStepIndex];
+            awaitingStepDesc=questionStep.desc;
+            showBlock(questionStep.cardId);
+            if(!loadedAwaitingSteps[questionStep.id]){
+              loadedAwaitingSteps[questionStep.id]=true;
+              rememberQuestionWait(questionStepIndex,questionStep);
+              if(window.CRM_IDEA_AI_PIPELINE)window.CRM_IDEA_AI_PIPELINE.reloadStep(questionStep.id);
+            }
+          }
         }
         if(awaitingHuman){
           document.getElementById('pipelineStatus').textContent=awaitingStepDesc ? ('<?= htmlspecialchars($t('ideas.state_waiting_answers', 'Ожидает ответов:'), ENT_QUOTES, 'UTF-8') ?> '+awaitingStepDesc) : '<?= htmlspecialchars($t('ideas.state_awaiting_human', 'Пайплайн ждёт ваших ответов на вопросы...'), ENT_QUOTES, 'UTF-8') ?>';
           setStartButtonIdle();
           // Answering takes human time — don't count these ticks against the poll budget
           maxPolls=p+200;
-        } else if(hasPending && !hasRunning && (totalTicks - workerTriggeredAtTick >= 3)) {
-          // TROPATTCRM-636: Trigger worker if steps are pending and not yet picked up
+        } else if(((hasPending && !hasRunning) || (hasStaleRunning && !hasFreshRunning)) && (totalTicks - workerTriggeredAtTick >= 3)) {
+          // Trigger a worker for undispatched rows and reclaimable stale runs.
+          // A live request from another tab is never interrupted.
           workerTriggeredAtTick = totalTicks;
-          document.getElementById('pipelineStatus').textContent='<?= htmlspecialchars($t('ideas.state_waiting_worker', 'Запуск фонового обработчика очереди...'), ENT_QUOTES, 'UTF-8') ?>';
+          document.getElementById('pipelineStatus').textContent=hasStaleRunning
+            ? '<?= htmlspecialchars($t('ideas.state_recovering_worker', 'Восстанавливаю прерванный этап анализа...'), ENT_QUOTES, 'UTF-8') ?>'
+            : '<?= htmlspecialchars($t('ideas.state_waiting_worker', 'Запуск фонового обработчика очереди...'), ENT_QUOTES, 'UTF-8') ?>';
           window.CRM.api.request('api/v1/ideas/'+ideaId+'/analysis/run-worker',{method:'POST',timeoutMs:120000}).then(function(){
             // Immediate check on next loop
           }).catch(function(){});
@@ -1261,6 +1310,7 @@ window._renderClarifications=function(data){
     var c=profile.completeness||{};
     var pct=function(v){return Math.round((+v||0)*100)+'%';};
     var h='';
+    h+=window.CRM.ideaFallbackNotice(profile);
     if(data.summary)h+='<div class="mb-2"><strong data-i18n="ideas.analysis_short_summary"><?= htmlspecialchars($t('ideas.analysis_short_summary', 'Краткое резюме:'), ENT_QUOTES, 'UTF-8') ?></strong><br>'+escapeHtml(data.summary)+'</div>';
     if(data.idea_type)h+='<div class="mb-1"><strong data-i18n="ideas.analysis_idea_type"><?= htmlspecialchars($t('ideas.analysis_idea_type', 'Тип идеи:'), ENT_QUOTES, 'UTF-8') ?></strong> '+escapeHtml(data.idea_type)+'</div>';
     if(data.specificity_level)h+='<div class="mb-1"><strong data-i18n="ideas.analysis_specificity"><?= htmlspecialchars($t('ideas.analysis_specificity', 'Уровень конкретики:'), ENT_QUOTES, 'UTF-8') ?></strong> '+escapeHtml(data.specificity_level)+'</div>';
@@ -1464,6 +1514,7 @@ window._renderGaps=function(data){
     var pct=function(v){return Math.round((+v||0)*100)+'%';};
     var esc=function(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
     var h='';
+    h+=window.CRM.ideaFallbackNotice(profile);
     if(data.summary)h+='<div class="mb-2"><strong data-i18n="ideas.analysis_short_summary"><?= htmlspecialchars($t('ideas.analysis_short_summary', 'Краткое резюме:'), ENT_QUOTES, 'UTF-8') ?></strong><br>'+esc(data.summary)+'</div>';
     if(data.idea_type)h+='<div class="mb-1"><strong data-i18n="ideas.analysis_idea_type"><?= htmlspecialchars($t('ideas.analysis_idea_type', 'Тип идеи:'), ENT_QUOTES, 'UTF-8') ?></strong> '+esc(data.idea_type)+'</div>';
     if(data.specificity_level)h+='<div class="mb-1"><strong data-i18n="ideas.analysis_specificity"><?= htmlspecialchars($t('ideas.analysis_specificity', 'Уровень конкретики:'), ENT_QUOTES, 'UTF-8') ?></strong> '+esc(data.specificity_level)+'</div>';
@@ -1537,6 +1588,7 @@ window._renderGaps=function(data){
     var criteria=p.criteria||[];
     if(upd&&data.updated_at)upd.textContent='<?= htmlspecialchars($t('ideas.state_calculation_from', 'расчет от '), ENT_QUOTES, 'UTF-8') ?>'+data.updated_at.replace('T',' ').substring(0,16);
     var h='';
+    h+=window.CRM.ideaFallbackNotice(p);
     h+='<div class="row mb-3 text-center"><div class="col"><h2 class="mb-0 text-'+levelColor(data.potential_level)+'">'+data.potential_score+'</h2><small data-i18n="ideas.analysis_out_of"><?= htmlspecialchars($t('ideas.analysis_out_of', 'из 100'), ENT_QUOTES, 'UTF-8') ?></small></div><div class="col"><span class="badge bg-'+levelColor(data.potential_level)+' fs-6">'+esc(data.potential_level)+'</span></div><div class="col"><small data-i18n="ideas.analysis_completeness_short"><?= htmlspecialchars($t('ideas.analysis_completeness_short', 'Полнота:'), ENT_QUOTES, 'UTF-8') ?></small> '+pct(data.completeness_score)+'<br><small data-i18n="ideas.analysis_confidence_short"><?= htmlspecialchars($t('ideas.analysis_confidence_short', 'Уверенность:'), ENT_QUOTES, 'UTF-8') ?></small> '+pct(data.confidence_score)+'</div></div>';
     if(data.calculation_type)h+='<div class="mb-1"><strong data-i18n="ideas.analysis_calc_type"><?= htmlspecialchars($t('ideas.analysis_calc_type', 'Тип расчета:'), ENT_QUOTES, 'UTF-8') ?></strong> '+esc(data.calculation_type)+'</div>';
     if(data.verdict)h+='<div class="mb-2"><strong data-i18n="ideas.analysis_verdict"><?= htmlspecialchars($t('ideas.analysis_verdict', 'Вывод:'), ENT_QUOTES, 'UTF-8') ?></strong> '+esc(data.verdict)+'</div>';
@@ -1591,6 +1643,7 @@ window._renderGaps=function(data){
     var risks=r.risks||[];
     if(upd&&data.updated_at)upd.textContent='<?= htmlspecialchars($t('ideas.state_from', 'от '), ENT_QUOTES, 'UTF-8') ?>'+data.updated_at.replace('T',' ').substring(0,16);
     var h='';
+    h+=window.CRM.ideaFallbackNotice(rr);
     h+='<div class="row mb-2 text-center"><div class="col"><strong data-i18n="ideas.analysis_risk_level"><?= htmlspecialchars($t('ideas.analysis_risk_level', 'Уровень риска'), ENT_QUOTES, 'UTF-8') ?></strong><br><span class="badge bg-'+rlColor(data.overall_risk_level)+' fs-6">'+esc(data.overall_risk_level)+'</span></div><div class="col"><strong data-i18n="ideas.analysis_assessment"><?= htmlspecialchars($t('ideas.analysis_assessment', 'Оценка'), ENT_QUOTES, 'UTF-8') ?></strong><br>'+data.overall_risk_score+' / 25</div><div class="col"><strong data-i18n="ideas.analysis_confidence"><?= htmlspecialchars($t('ideas.analysis_confidence', 'Уверенность'), ENT_QUOTES, 'UTF-8') ?></strong><br>'+pct(data.confidence_score)+'</div></div>';
     if(r.summary)h+='<div class="mb-2"><strong data-i18n="ideas.analysis_summary"><?= htmlspecialchars($t('ideas.analysis_summary', 'Резюме:'), ENT_QUOTES, 'UTF-8') ?></strong> '+esc(r.summary)+'</div>';
     var rd=r.risk_distribution||{};
@@ -1650,6 +1703,7 @@ window._renderGaps=function(data){
     var pits=pj.pitfalls||[];
     if(upd&&data.updated_at)upd.textContent='<?= htmlspecialchars($t('ideas.state_from', 'от '), ENT_QUOTES, 'UTF-8') ?>'+data.updated_at.replace('T',' ').substring(0,16);
     var h='';
+    h+=window.CRM.ideaFallbackNotice(pj);
     h+='<div class="row mb-2 text-center"><div class="col"><strong data-i18n="ideas.analysis_complexity"><?= htmlspecialchars($t('ideas.analysis_complexity', 'Сложность'), ENT_QUOTES, 'UTF-8') ?></strong><br><span class="badge bg-'+plColor(data.overall_hidden_complexity)+' fs-6">'+esc(data.overall_hidden_complexity)+'</span></div><div class="col"><strong data-i18n="ideas.analysis_found"><?= htmlspecialchars($t('ideas.analysis_found', 'Найдено'), ENT_QUOTES, 'UTF-8') ?></strong><br>'+pits.length+'</div><div class="col"><strong data-i18n="ideas.analysis_confidence"><?= htmlspecialchars($t('ideas.analysis_confidence', 'Уверенность'), ENT_QUOTES, 'UTF-8') ?></strong><br>'+pct(data.data_confidence)+'</div></div>';
     if(data.overall_summary)h+='<div class="mb-2"><strong data-i18n="ideas.analysis_summary"><?= htmlspecialchars($t('ideas.analysis_summary', 'Резюме:'), ENT_QUOTES, 'UTF-8') ?></strong> '+esc(data.overall_summary)+'</div>';
     if(data.data_confidence<0.5)h+='<div class="alert alert-warning py-1 small mb-2"><?= htmlspecialchars($t('ideas.alert_preliminary_estimate', 'Оценка приблизительная из-за нехватки данных.'), ENT_QUOTES, 'UTF-8') ?></div>';
@@ -1701,6 +1755,7 @@ window._renderGaps=function(data){
     var dTasks=days.tasks||[];
     if(upd&&data.updated_at)upd.textContent='<?= htmlspecialchars($t('ideas.state_from', 'от '), ENT_QUOTES, 'UTF-8') ?>'+data.updated_at.replace('T',' ').substring(0,16);
     var h='';
+    h+=window.CRM.ideaFallbackNotice(pj);
     if(data.summary)h+='<div class="mb-2"><strong data-i18n="ideas.analysis_summary"><?= htmlspecialchars($t('ideas.analysis_summary', 'Резюме:'), ENT_QUOTES, 'UTF-8') ?></strong> '+esc(data.summary)+'</div>';
     h+='<div class="row mb-2 small"><div class="col"><strong data-i18n="ideas.analysis_plan_type"><?= htmlspecialchars($t('ideas.analysis_plan_type', 'Тип:'), ENT_QUOTES, 'UTF-8') ?></strong> '+esc(data.plan_type)+'</div><div class="col"><strong data-i18n="ideas.analysis_horizon"><?= htmlspecialchars($t('ideas.analysis_horizon', 'Горизонт:'), ENT_QUOTES, 'UTF-8') ?></strong> '+esc(data.planning_horizon)+'</div><div class="col"><strong data-i18n="ideas.analysis_confidence"><?= htmlspecialchars($t('ideas.analysis_confidence', 'Уверенность:'), ENT_QUOTES, 'UTF-8') ?></strong> '+pct(data.confidence_score)+'</div></div>';
     if(ip.data_limitations&&ip.data_limitations.length){h+='<div class="mb-1"><strong data-i18n="ideas.analysis_limitations"><?= htmlspecialchars($t('ideas.analysis_limitations', 'Ограничения:'), ENT_QUOTES, 'UTF-8') ?></strong><ul class="mb-1 small">';ip.data_limitations.forEach(function(v){h+='<li>'+esc(v)+'</li>';});h+='</ul></div>';}
@@ -1753,6 +1808,7 @@ window._renderGaps=function(data){
     var fr=fj.final_recommendation||{};
     if(upd&&data.updated_at)upd.textContent='<?= htmlspecialchars($t('ideas.state_from', 'от '), ENT_QUOTES, 'UTF-8') ?>'+data.updated_at.replace('T',' ').substring(0,16);
     var h='';
+    h+=window.CRM.ideaFallbackNotice(fj);
     h+='<div class="crm-final-summary">';
     h+='<div><div class="crm-final-label" data-i18n="ideas.analysis_recommendation"><?= htmlspecialchars($t('ideas.analysis_recommendation', 'Рекомендация'), ENT_QUOTES, 'UTF-8') ?></div><div class="crm-final-status crm-final-status-'+esc(data.status||'default')+'">'+esc(data.status_label||data.status)+'</div></div>';
     h+='<div><div class="crm-final-label" data-i18n="ideas.analysis_assessment"><?= htmlspecialchars($t('ideas.analysis_assessment', 'Оценка'), ENT_QUOTES, 'UTF-8') ?></div><div class="crm-final-score">'+esc(data.calculated_recommendation_score)+'</div><div class="crm-final-note" data-i18n="ideas.analysis_out_of"><?= htmlspecialchars($t('ideas.analysis_out_of', 'из 100'), ENT_QUOTES, 'UTF-8') ?></div></div>';
@@ -1825,6 +1881,7 @@ window._renderGaps=function(data){
     var flatTasks=tj.tasks||[];
     if(upd&&data.updated_at)upd.textContent='<?= htmlspecialchars($t('ideas.state_from', 'от '), ENT_QUOTES, 'UTF-8') ?>'+data.updated_at.replace('T',' ').substring(0,16);
     var h='';
+    h+=window.CRM.ideaFallbackNotice(tj);
     if(data.summary)h+='<div class="mb-2"><strong data-i18n="ideas.analysis_summary"><?= htmlspecialchars($t('ideas.analysis_summary', 'Резюме:'), ENT_QUOTES, 'UTF-8') ?></strong> '+esc(data.summary)+'</div>';
     if(projects.length){
       projects.forEach(function(proj){

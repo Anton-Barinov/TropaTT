@@ -1323,6 +1323,10 @@ TropaTT реализует унифицированный протокол ве�
 | POST | `/api/v1/ideas/{public_id}/vote` | Голосование | Да | `idea.manage` | — |
 | PATCH | `/api/v1/ideas/{public_id}/status` | Смена статуса | Да | `idea.manage` | — |
 | POST | `/api/v1/ideas/{public_id}/reset-analysis` | Сброс AI-анализа | Да | `idea.manage` | — |
+| GET | `/api/v1/ideas/{public_id}/analysis/status` | — | Да | `idea.view` | Статус шагов; у `running`-шага поле `is_stale` отмечает истёкший lease обработчика |
+| POST | `/api/v1/ideas/queue/run-worker` | — | Да | `idea.manage` | Обработка очереди AI-анализа идей |
+| POST | `/api/v1/ideas/{public_id}/analysis/run-async` | — | Да | `idea.manage` | Постановка AI-анализа в фоновую очередь |
+| POST | `/api/v1/ideas/{public_id}/analysis/run-worker` | — | Да | `idea.manage` | Обработка шага AI-анализа |
 | GET, DELETE | `/api/v1/ideas/{public_id}/debug-log` | Debug-лог | Да | `ai.admin` | — |
 | GET | `/api/v1/ideas/{public_id}/questions` | Вопросы интервью | Да | `idea.view` | — |
 | GET, POST, DELETE | `/api/v1/ideas/{public_id}/additional-questions` | Доп. вопросы | Да | `idea.manage` | — |

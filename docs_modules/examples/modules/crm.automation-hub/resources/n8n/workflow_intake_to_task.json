@@ -1,0 +1,42 @@
+{
+  "name": "TropaTT CRM - Intake & Task Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tropatt-intake-webhook",
+        "options": {}
+      },
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "requestMethod": "POST",
+        "url": "https://work.tropatt.com/api/index.php?route=api/v1/tasks",
+        "jsonParameters": true,
+        "options": {}
+      },
+      "name": "Create Followup Task",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [500, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Create Followup Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

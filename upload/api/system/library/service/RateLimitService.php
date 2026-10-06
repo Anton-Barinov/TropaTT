@@ -56,9 +56,18 @@ final class RateLimitService
                     $data['blocked_until'] = $now + $lockSeconds;
                 }
             }
-            ftruncate($fp, 0);
-            rewind($fp);
-            fwrite($fp, json_encode($data, JSON_UNESCAPED_SLASHES));
+            $encoded = json_encode($data, JSON_UNESCAPED_SLASHES);
+            $written = false;
+            if (is_string($encoded) && ftruncate($fp, 0) && rewind($fp)) {
+                $length = strlen($encoded);
+                $written = fwrite($fp, $encoded) === $length && fflush($fp);
+            }
+            if (!$written) {
+                flock($fp, LOCK_UN);
+                fclose($fp);
+                AppLog::error('[RateLimitService] Failed to persist counter: ' . $file);
+                return ['blocked' => true, 'retry_after' => 30];
+            }
         }
 
         flock($fp, LOCK_UN);

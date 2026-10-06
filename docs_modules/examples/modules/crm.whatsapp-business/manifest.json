@@ -1,0 +1,53 @@
+{
+    "name": "crm.whatsapp-business",
+    "version": "1.0.0",
+    "vendor": "crm",
+    "author": "Anton Barinov",
+    "author_url": "https://github.com/Anton-Barinov",
+    "title": "WhatsApp Business Platform",
+    "description": "Единая очередь клиентских диалогов WhatsApp Business Cloud API и интеграция с Intake",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "category": "integration",
+    "dependencies": [],
+    "require_permissions": [
+        "settings.view",
+        "settings.edit"
+    ],
+    "service_provider": "Module\\Crm\\WhatsAppBusiness\\WhatsAppBusinessServiceProvider",
+    "migrations": "api/migrations",
+    "api_routes": "api/config/routes.php",
+    "web_routes": "web/config/routes.php",
+    "menu_items": [
+        {
+            "id": "whatsapp-inbox",
+            "title": "WhatsApp Inbox",
+            "route": "whatsapp-inbox",
+            "icon": "chat-dots",
+            "permission": "settings.edit"
+        }
+    ],
+    "assets": {
+        "css": [
+            "web/assets/css/whatsapp.css"
+        ],
+        "js": [
+            "web/assets/js/whatsapp.js"
+        ]
+    },
+    "mcp_tools": [
+        {
+            "name": "whatsapp_list_inbox",
+            "description": "List WhatsApp customer conversations in team inbox",
+            "handler": "Module\\Crm\\WhatsAppBusiness\\Mcp\\ListInboxTool",
+            "permissions": ["settings.view"],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+            }
+        }
+    ]
+}

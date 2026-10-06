@@ -147,13 +147,23 @@ return [
     'fallback_reduce_score' => 'Critical risks, unclear budget or missing responsible persons.',
     'fallback_next_action_reason' => 'Do not block the analysis pipeline, but consider the assessment preliminary.',
     'fallback_status_refine_first' => 'Refine the idea first',
-    'fallback_final_short_verdict' => 'Preliminary: the idea should be refined and the analysis re-verified.',
-    'fallback_final_detailed_verdict' => 'AI provider returned incorrect JSON at the final recommendation stage. CRM saved a safe preliminary recommendation based on already calculated blocks to not block the user.',
-    'fallback_final_reason1' => 'Result formed from available analysis blocks.',
-    'fallback_final_reason2' => 'Re-generation is needed for a full AI recommendation.',
-    'fallback_final_negative' => 'Part of the AI response could not be parsed as valid JSON.',
-    'fallback_final_condition1' => 'Verify missing data',
-    'fallback_final_condition2' => 'Re-run AI analysis when the provider responds stably',
+    'fallback_final_short_verdict' => 'The final recommendation is preliminary.',
+    'fallback_final_detailed_verdict' => 'The final recommendation has not been confirmed by an AI model response. Earlier analysis blocks are saved; treat the scores below as preliminary.',
+    'fallback_final_reason1' => 'Saved analysis blocks:',
+    'fallback_final_reason2' => 'The final recommendation has not been confirmed by an AI model response.',
+    'fallback_final_negative' => 'The final block could not be generated; this reflects an AI service response issue, not the quality of the idea.',
+    'fallback_final_condition1' => 'Review unknown items in the understanding card',
+    'fallback_final_condition2' => 'Retry only the final recommendation after checking the AI service',
+    'fallback_final_provider_detail' => 'The AI provider did not return a model response. Earlier blocks are saved, and this preliminary summary does not assess the quality of the idea.',
+    'fallback_final_parse_detail' => 'The AI model responded, but the final answer did not pass structure validation after retries. Earlier blocks are saved; treat this assessment as preliminary.',
+    'fallback_final_provider_action' => 'Check AI provider availability and configuration, then retry only the final recommendation.',
+    'fallback_final_parse_action' => 'Check that the provider returns stable JSON, then retry only the final recommendation.',
+    'fallback_final_provider_summary' => 'The AI provider did not return a model response. Earlier results remain available; retry the final recommendation after service is restored.',
+    'fallback_final_parse_summary' => 'The model response failed structure validation after several attempts. Earlier blocks remain available; retry only the final recommendation after fixing the format.',
+    'fallback_final_block_understanding' => 'understanding card',
+    'fallback_final_block_potential' => 'potential assessment',
+    'fallback_final_block_risks' => 'risk assessment',
+    'fallback_final_block_plan' => 'implementation plan',
     'fallback_validate_goal' => 'Goal',
     'fallback_validate_budget' => 'Budget',
     'fallback_validate_timeline' => 'Timeline',
@@ -303,6 +313,11 @@ Rate on a 0-100 scale: potential_score, feasibility_score, risk_score, data_comp
 
 Status: proceed / proceed_with_validation / refine_first / collect_more_data / postpone / reject_current_form.
 
+Return an object in exactly this structure (the values are illustrative):
+{"final_recommendation":{"status":"proceed_with_validation","potential_score":65,"feasibility_score":60,"risk_score":35,"data_completeness_score":55,"plan_quality_score":60,"blocker_score":20,"confidence_score":55,"short_verdict":"Brief verdict","detailed_verdict":"Detailed reasoning","main_reasons":["Reason"],"positive_arguments":["Advantage"],"negative_arguments":["Limitation"],"critical_blockers":[],"conditions_to_proceed":["Condition"],"what_to_validate_first":["What to validate"],"next_best_actions":["Next action"],"what_can_go_wrong":["Possible scenario"],"missing_data_that_affects_recommendation":["Missing data"],"assumptions_used":["Assumption"],"user_friendly_summary":"Plain-language conclusion"}}
+
+Do not omit the final_recommendation object or put its fields at the top level. Use only information from the input; do not invent facts. Lists must be arrays of strings and scores must be numbers from 0 to 100.
+
 Rules:
 1. FORBIDDEN to use { and } symbols inside text values.
 2. If brackets are needed in text — use only ( ) or [ ].
@@ -320,4 +335,5 @@ JSON:
     'create_failed' => 'Create operation failed. Check server logs for details.',
     'ai_operation_failed' => 'AI operation failed. Check server logs for details.',
     'max_cycles_reached' => 'Maximum question cycles reached',
+    'step_superseded' => 'This step was already updated by another worker.',
 ];

@@ -1,0 +1,162 @@
+{
+    "id": "kit_service_desk",
+    "version": "1.0.0",
+    "titles": {
+        "ru-ru": "Сервисная компания и Поддержка",
+        "en-gb": "Service Desk & Customer Support",
+        "zh-cn": "服务台与客户支持"
+    },
+    "descriptions": {
+        "ru-ru": "Рабочее пространство для сервисных компаний: тикеты, диагностика обращений, согласование решений и SLA-контроль.",
+        "en-gb": "Ready-to-use workspace for handling service requests, incidents, diagnostic flows, and SLA management.",
+        "zh-cn": "用于处理服务请求、突发事件、诊断流程和 SLA 管理的工作区。"
+    },
+    "statuses": [
+        {
+            "code": "new_ticket",
+            "scope": "task",
+            "titles": {
+                "ru-ru": "Новое обращение",
+                "en-gb": "New Ticket",
+                "zh-cn": "新建工单"
+            },
+            "color": "#6366f1",
+            "sort_order": 10
+        },
+        {
+            "code": "investigation",
+            "scope": "task",
+            "titles": {
+                "ru-ru": "Диагностика",
+                "en-gb": "Investigation",
+                "zh-cn": "调查诊断"
+            },
+            "color": "#3b82f6",
+            "sort_order": 20
+        },
+        {
+            "code": "waiting_client",
+            "scope": "task",
+            "titles": {
+                "ru-ru": "Ожидание ответа клиента",
+                "en-gb": "Waiting on Client",
+                "zh-cn": "等待客户回复"
+            },
+            "color": "#f97316",
+            "sort_order": 30
+        },
+        {
+            "code": "resolved",
+            "scope": "task",
+            "titles": {
+                "ru-ru": "Решено",
+                "en-gb": "Resolved",
+                "zh-cn": "已解决"
+            },
+            "color": "#10b981",
+            "sort_order": 40
+        },
+        {
+            "code": "closed_ticket",
+            "scope": "task",
+            "titles": {
+                "ru-ru": "Закрыто",
+                "en-gb": "Closed",
+                "zh-cn": "已关闭"
+            },
+            "color": "#94a3b8",
+            "sort_order": 50,
+            "is_closed": 1
+        }
+    ],
+    "roles": [
+        {
+            "name": "support_lead",
+            "titles": {
+                "ru-ru": "Руководитель службы поддержки",
+                "en-gb": "Support Lead",
+                "zh-cn": "支持主管"
+            },
+            "permissions": [
+                "task.view",
+                "task.manage",
+                "crm.view",
+                "crm.manage",
+                "time.view",
+                "knowledge.view",
+                "knowledge.manage"
+            ]
+        },
+        {
+            "name": "support_engineer",
+            "titles": {
+                "ru-ru": "Инженер поддержки",
+                "en-gb": "Support Engineer",
+                "zh-cn": "支持工程师"
+            },
+            "permissions": [
+                "task.view",
+                "task.manage",
+                "crm.view",
+                "time.log",
+                "time.view",
+                "knowledge.view"
+            ]
+        }
+    ],
+    "project_templates": [
+        {
+            "code": "service_maintenance_sprint",
+            "titles": {
+                "ru-ru": "Сервисный период поддержки",
+                "en-gb": "Service Maintenance Period",
+                "zh-cn": "定期维护周期"
+            },
+            "description": "Ежемесячный проект регламентного обслуживания и дежурства команды",
+            "tasks": [
+                {"title": "Проверка доступности ключевых сервисов", "status_code": "new_ticket"},
+                {"title": "Аудит открытых инцидентов и закрытие хвостов", "status_code": "new_ticket"},
+                {"title": "Формирование ежемесячного отчёта для заказчика", "status_code": "new_ticket"}
+            ]
+        }
+    ],
+    "task_templates": [
+        {
+            "code": "incident_resolution_checklist",
+            "titles": {
+                "ru-ru": "Регламент решения инцидента",
+                "en-gb": "Incident Resolution Checklist",
+                "zh-cn": "事件处置清单"
+            },
+            "checklist": [
+                "Первичная классификация критичности (P1-P4)",
+                "Воспроизведение проблемы в тестовом контуре",
+                "Применение временного обходного пути (workaround)",
+                "Устранение первопричины и уведомление клиента",
+                "Заполнение post-mortem в базе знаний при P1/P2"
+            ]
+        }
+    ],
+    "knowledge_spaces": [
+        {
+            "slug": "support-knowledge-base",
+            "titles": {
+                "ru-ru": "База знаний поддержки",
+                "en-gb": "Support Knowledge Base",
+                "zh-cn": "支持知识库"
+            },
+            "description": "Типовые решения, инструкции по эскалации и шаблоны ответов",
+            "pages": [
+                {
+                    "slug": "escalation-matrix",
+                    "titles": {
+                        "ru-ru": "Матрица эскалации инцидентов",
+                        "en-gb": "Incident Escalation Matrix",
+                        "zh-cn": "事件升级响应矩阵"
+                    },
+                    "content": "# Матрица эскалации инцидентов\n\n- P1 (Блокирующий): время реакции 15 минут.\n- P2 (Высокий): реакция 1 час.\n- P3 (Обычный): реакция 4 часа."
+                }
+            ]
+        }
+    ]
+}

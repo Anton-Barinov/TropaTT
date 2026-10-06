@@ -1,0 +1,88 @@
+{
+    "name": "crm.google-drive",
+    "version": "1.0.0",
+    "vendor": "crm",
+    "author": "Anton Barinov",
+    "author_url": "https://github.com/Anton-Barinov",
+    "title": "Интеграция с Google Диском",
+    "description": "Синхронизация файлов задач и сделок с Google Drive, создание структуры папок по проектам и клиентам, генерация webViewLink и экспорт Google Docs/Sheets в CRM",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "category": "integration",
+    "dependencies": [],
+    "require_permissions": [
+        "settings.view",
+        "settings.edit",
+        "files.view",
+        "files.create"
+    ],
+    "service_provider": "Module\\Crm\\GoogleDrive\\GoogleDriveServiceProvider",
+    "migrations": "api/migrations",
+    "api_routes": "api/config/routes.php",
+    "web_routes": "web/config/routes.php",
+    "menu_items": [
+        {
+            "id": "google-drive-storage",
+            "title": "Google Диск",
+            "route": "google-drive",
+            "icon": "google",
+            "permission": "settings.edit"
+        }
+    ],
+    "assets": {
+        "css": [
+            "web/assets/css/google-drive.css"
+        ],
+        "js": [
+            "web/assets/js/google-drive.js"
+        ]
+    },
+    "mcp_tools": [
+        {
+            "name": "google_drive_status",
+            "description": "Get current connection status and quota usage for Google Drive",
+            "handler": "Module\\Crm\\GoogleDrive\\Mcp\\DriveStatusTool",
+            "permissions": ["settings.view"],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+            }
+        },
+        {
+            "name": "google_drive_attach_file",
+            "description": "Upload a CRM file to project Google Drive folder or link an existing Google Doc/Sheet and get webViewLink",
+            "handler": "Module\\Crm\\GoogleDrive\\Mcp\\AttachFileTool",
+            "permissions": ["files.create"],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "file_public_id": {
+                        "type": "string",
+                        "description": "Public ID of the CRM file"
+                    },
+                    "project_public_id": {
+                        "type": "string",
+                        "description": "Public ID of the CRM project"
+                    },
+                    "client_public_id": {
+                        "type": "string",
+                        "description": "Public ID of the client"
+                    },
+                    "share_role": {
+                        "type": "string",
+                        "enum": ["reader", "commenter", "writer"],
+                        "default": "reader",
+                        "description": "Permission role for shared link"
+                    }
+                },
+                "required": ["file_public_id"],
+                "additionalProperties": false
+            }
+        }
+    ]
+}

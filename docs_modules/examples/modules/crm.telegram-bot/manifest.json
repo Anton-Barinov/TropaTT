@@ -1,0 +1,53 @@
+{
+    "name": "crm.telegram-bot",
+    "version": "1.0.0",
+    "vendor": "crm",
+    "author": "Anton Barinov",
+    "author_url": "https://github.com/Anton-Barinov",
+    "title": "Telegram Bot Integration",
+    "description": "Telegram бот для входящих заявок клиентов и персональных уведомлений сотрудников команды",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "category": "integration",
+    "dependencies": [],
+    "require_permissions": [
+        "settings.view",
+        "settings.edit"
+    ],
+    "service_provider": "Module\\Crm\\TelegramBot\\TelegramBotServiceProvider",
+    "migrations": "api/migrations",
+    "api_routes": "api/config/routes.php",
+    "web_routes": "web/config/routes.php",
+    "menu_items": [
+        {
+            "id": "telegram-bot",
+            "title": "Telegram Бот",
+            "route": "telegram-bot",
+            "icon": "send",
+            "permission": "settings.edit"
+        }
+    ],
+    "assets": {
+        "css": [
+            "web/assets/css/telegram-bot.css"
+        ],
+        "js": [
+            "web/assets/js/telegram-bot.js"
+        ]
+    },
+    "mcp_tools": [
+        {
+            "name": "telegram_status",
+            "description": "Get Telegram bot operational status and configuration check",
+            "handler": "Module\\Crm\\TelegramBot\\Mcp\\BotStatusTool",
+            "permissions": ["settings.view"],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+            }
+        }
+    ]
+}
