@@ -4549,10 +4549,28 @@ PROMPT;
         // both the cron candidate query and the browser's pending-step poll.
         $this->recoverLiveStepQueue($pdo, $ideaId);
 
-        // Check for existing active pipeline — return success with info instead of 409 to prevent red console errors
-        $active = $pdo->prepare("SELECT step_key FROM idea_analysis_steps WHERE idea_id = :iid AND pipeline = 'live' AND status IN ('pending','running')");
-        $active->execute(['iid' => $ideaId]);
-        if ($active->fetchColumn()) {
+        // A terminal failure can sit before later pending steps. Do not treat
+        // those blocked successors as proof that the pipeline is healthy: an
+        // explicit user retry must reopen the failed step before the pending
+        // check, or the interview gate will remain blocked forever.
+        $running = $pdo->prepare("SELECT step_key FROM idea_analysis_steps WHERE idea_id = :iid AND pipeline = 'live' AND status = 'running' LIMIT 1");
+        $running->execute(['iid' => $ideaId]);
+        if ($running->fetchColumn()) {
+            return $this->success('ANALYSIS_IN_PROGRESS', $this->t('idea/messages.analysis_already_running'), [
+                'idea_public_id' => $publicId,
+                'steps_total' => count($this->livePipelineSteps()),
+                'already_in_progress' => true,
+            ]);
+        }
+
+        $pdo->prepare("UPDATE idea_analysis_steps SET status = 'pending', attempts = 0, error_message = NULL, started_at = NULL, completed_at = NULL, updated_at = NOW() WHERE idea_id = :iid AND pipeline = 'live' AND status = 'failed'")
+            ->execute(['iid' => $ideaId]);
+
+        // Queued steps without a running worker are still in progress. This
+        // check now happens after terminal failures have been made retryable.
+        $pending = $pdo->prepare("SELECT step_key FROM idea_analysis_steps WHERE idea_id = :iid AND pipeline = 'live' AND status = 'pending' LIMIT 1");
+        $pending->execute(['iid' => $ideaId]);
+        if ($pending->fetchColumn()) {
             return $this->success('ANALYSIS_IN_PROGRESS', $this->t('idea/messages.analysis_already_running'), [
                 'idea_public_id' => $publicId,
                 'steps_total' => count($this->livePipelineSteps()),
@@ -4593,13 +4611,6 @@ PROMPT;
                 }
                 $pdo->prepare("INSERT INTO idea_analysis_steps (idea_id, step_key, step_order, status, pipeline, attempts, created_at, updated_at) VALUES (:iid, :k, :o, :st, 'live', 0, NOW(), NOW())")
                     ->execute(['iid' => $ideaId, 'k' => $step['key'], 'o' => $step['order'], 'st' => $initialStatus]);
-            } elseif ($row['status'] === 'failed') {
-                // Reaching this branch means the user explicitly started or
-                // continued analysis after the automatic retry budget ended.
-                // Give that deliberate retry a fresh bounded attempt budget,
-                // while preserving already completed blocks.
-                $pdo->prepare("UPDATE idea_analysis_steps SET status = 'pending', attempts = 0, error_message = NULL, started_at = NULL, completed_at = NULL, updated_at = NOW() WHERE idea_id = :iid AND step_key = :k AND pipeline = 'live' AND status = 'failed'")
-                    ->execute(['iid' => $ideaId, 'k' => $step['key']]);
             }
         }
 
