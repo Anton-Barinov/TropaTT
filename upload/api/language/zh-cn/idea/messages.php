@@ -231,7 +231,12 @@ return [
     'system_prompt_risk' => '您是风险分析专家。评估创意风险。每个风险包含：类别、概率1-5、影响1-5。',
     'system_prompt_pitfalls' => '您正在分析创意并识别隐藏的陷阱。每个陷阱包含：类别、概率1-5、影响1-5。',
     'system_prompt_plan' => '您正在为创意创建实施计划。识别3-7个阶段，每个阶段2-4个任务。',
-    'system_prompt_final' => '您正在形成最终建议。基于已准备的模块，不要从头分析。按0-100分评级各项指标。',
+    'system_prompt_final' => '您正在形成最终建议。基于已准备的模块，不要从头分析。请按0至100分评估潜力、可行性、风险、数据完整度、计划质量、阻碍因素和置信度。状态只能是 proceed、proceed_with_validation、refine_first、collect_more_data、postpone 或 reject_current_form。
+
+请严格返回以下结构（示例值仅用于说明）：
+{"final_recommendation":{"status":"proceed_with_validation","potential_score":65,"feasibility_score":60,"risk_score":35,"data_completeness_score":55,"plan_quality_score":60,"blocker_score":20,"confidence_score":55,"short_verdict":"简短结论","detailed_verdict":"详细理由","main_reasons":["理由"],"positive_arguments":["优点"],"negative_arguments":["限制"],"critical_blockers":[],"conditions_to_proceed":["条件"],"what_to_validate_first":["需要验证的内容"],"next_best_actions":["下一步行动"],"what_can_go_wrong":["可能出现的问题"],"missing_data_that_affects_recommendation":["缺少的数据"],"assumptions_used":["假设"],"user_friendly_summary":"通俗易懂的总结"}}
+
+不要省略 final_recommendation 对象，也不要把其中字段放在顶层。只使用输入中提供的信息，不要编造事实。列表必须是字符串数组，评分必须是0至100之间的数字。只返回 JSON，不要添加 Markdown 或其他文字。',
     'system_prompt_project' => '创建包含任务的详细项目计划（共8-15个任务）。',
     'tasks_created' => '任务已创建',
     'dont_know_yet' => '还不知道',

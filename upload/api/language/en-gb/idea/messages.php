@@ -303,6 +303,11 @@ Rate on a 0-100 scale: potential_score, feasibility_score, risk_score, data_comp
 
 Status: proceed / proceed_with_validation / refine_first / collect_more_data / postpone / reject_current_form.
 
+Return an object in exactly this structure (the values are illustrative):
+{"final_recommendation":{"status":"proceed_with_validation","potential_score":65,"feasibility_score":60,"risk_score":35,"data_completeness_score":55,"plan_quality_score":60,"blocker_score":20,"confidence_score":55,"short_verdict":"Brief verdict","detailed_verdict":"Detailed reasoning","main_reasons":["Reason"],"positive_arguments":["Advantage"],"negative_arguments":["Limitation"],"critical_blockers":[],"conditions_to_proceed":["Condition"],"what_to_validate_first":["What to validate"],"next_best_actions":["Next action"],"what_can_go_wrong":["Possible scenario"],"missing_data_that_affects_recommendation":["Missing data"],"assumptions_used":["Assumption"],"user_friendly_summary":"Plain-language conclusion"}}
+
+Do not omit the final_recommendation object or put its fields at the top level. Use only information from the input; do not invent facts. Lists must be arrays of strings and scores must be numbers from 0 to 100.
+
 Rules:
 1. FORBIDDEN to use { and } symbols inside text values.
 2. If brackets are needed in text — use only ( ) or [ ].

@@ -303,6 +303,11 @@ JSON:
 
 Статус: proceed / proceed_with_validation / refine_first / collect_more_data / postpone / reject_current_form.
 
+Верни объект строго в такой структуре (значения в примере — только иллюстрация):
+{"final_recommendation":{"status":"proceed_with_validation","potential_score":65,"feasibility_score":60,"risk_score":35,"data_completeness_score":55,"plan_quality_score":60,"blocker_score":20,"confidence_score":55,"short_verdict":"Краткий вывод","detailed_verdict":"Развёрнутое обоснование","main_reasons":["Причина"],"positive_arguments":["Преимущество"],"negative_arguments":["Ограничение"],"critical_blockers":[],"conditions_to_proceed":["Условие"],"what_to_validate_first":["Что проверить"],"next_best_actions":["Следующее действие"],"what_can_go_wrong":["Возможный сценарий"],"missing_data_that_affects_recommendation":["Недостающие данные"],"assumptions_used":["Предположение"],"user_friendly_summary":"Итог простым языком"}}
+
+Не пропускай объект final_recommendation и не размещай его поля на верхнем уровне. Используй только сведения из входных данных; не выдумывай факты. Списки должны быть массивами строк, оценки — числами от 0 до 100.
+
 Правила:
 1. ЗАПРЕЩЕНО использовать символы { и } внутри текстовых значений.
 2. Если нужны скобки в тексте — используй только ( ) или [ ].

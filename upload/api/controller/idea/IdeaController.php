@@ -2774,6 +2774,9 @@ PROMPT;
 
                 $rawText = $result['result']['preview']['summary'] ?? '';
                 $parsed = $this->extractAiJson($rawText);
+                if ($parsed['ok'] && is_array($parsed['data'])) {
+                    $parsed['data'] = $this->normalizeFinalRecommendationData($parsed['data']);
+                }
                 if ($parsed['ok'] && !empty($parsed['data']['final_recommendation'])) break;
                 ai_diag_log("[FINAL_RECOMMENDATION_RETRY] idea_id={$ideaId} attempt=" . ($retry + 1) . " error=" . ($parsed['error'] ?? 'invalid_resp') . " text_len=" . strlen($rawText));
                 if ($retry < $maxRetries) usleep(1000000);
@@ -5375,6 +5378,52 @@ PROMPT;
                 '_fallback_reason' => $reason,
             ],
         ];
+    }
+
+    /**
+     * Accept the documented response shape and the flat shape returned by
+     * providers that follow the requested fields but omit the wrapper object.
+     */
+    private function normalizeFinalRecommendationData(array $data): array
+    {
+        if (isset($data['final_recommendation']) && is_array($data['final_recommendation'])) {
+            return $data;
+        }
+
+        $aliases = [
+            'verdict' => 'short_verdict',
+            'summary' => 'user_friendly_summary',
+            'key_conditions' => 'conditions_to_proceed',
+            'next_steps' => 'next_best_actions',
+        ];
+        $recognized = [
+            'status', 'potential_score', 'feasibility_score', 'risk_score',
+            'data_completeness_score', 'plan_quality_score', 'blocker_score',
+            'confidence_score', 'verdict', 'summary', 'score_explanations',
+            'key_conditions', 'next_steps', 'fallbacks', 'short_verdict',
+            'user_friendly_summary', 'main_reasons', 'conditions_to_proceed',
+            'next_best_actions',
+        ];
+        if (array_intersect($recognized, array_keys($data)) === []) {
+            return [];
+        }
+
+        foreach ($aliases as $source => $target) {
+            if (!array_key_exists($target, $data) && array_key_exists($source, $data)) {
+                $data[$target] = $data[$source];
+            }
+        }
+        if (!isset($data['detailed_verdict']) && isset($data['summary'])) {
+            $data['detailed_verdict'] = $data['summary'];
+        }
+        if (!isset($data['main_reasons']) && isset($data['score_explanations'])) {
+            $explanations = $data['score_explanations'];
+            $data['main_reasons'] = is_array($explanations)
+                ? array_values(array_filter($explanations, 'is_string'))
+                : (is_string($explanations) ? [$explanations] : []);
+        }
+
+        return ['final_recommendation' => $data];
     }
 
     /**
