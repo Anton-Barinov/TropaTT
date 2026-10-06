@@ -1,0 +1,83 @@
+{
+    "name": "crm.yandex-disk",
+    "version": "1.0.0",
+    "vendor": "crm",
+    "author": "Anton Barinov",
+    "author_url": "https://github.com/Anton-Barinov",
+    "title": "Интеграция с Яндекс Диском",
+    "description": "Облачное хранилище для задач, проектов и бэкапов CRM на Яндекс Диске с генерацией публичных ссылок и обходом ограничений API (txt-proxy upload лайфхак)",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "category": "integration",
+    "dependencies": [],
+    "require_permissions": [
+        "settings.view",
+        "settings.edit",
+        "files.view",
+        "files.create"
+    ],
+    "service_provider": "Module\\Crm\\YandexDisk\\YandexDiskServiceProvider",
+    "migrations": "api/migrations",
+    "api_routes": "api/config/routes.php",
+    "web_routes": "web/config/routes.php",
+    "menu_items": [
+        {
+            "id": "yandex-disk",
+            "title": "Яндекс Диск",
+            "route": "yandex-disk",
+            "icon": "cloud-arrow-up",
+            "permission": "settings.edit"
+        }
+    ],
+    "assets": {
+        "css": [
+            "web/assets/css/yandex-disk.css"
+        ],
+        "js": [
+            "web/assets/js/yandex-disk.js"
+        ]
+    },
+    "mcp_tools": [
+        {
+            "name": "yandex_disk_status",
+            "description": "Get current connection status and available space on Yandex Disk",
+            "handler": "Module\\Crm\\YandexDisk\\Mcp\\DiskStatusTool",
+            "permissions": ["settings.view"],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+            }
+        },
+        {
+            "name": "yandex_disk_upload_file",
+            "description": "Upload a local CRM file or backup archive to Yandex Disk using smart extension bypass (txt-proxy лайфхак) and publish shareable link",
+            "handler": "Module\\Crm\\YandexDisk\\Mcp\\UploadFileTool",
+            "permissions": ["files.create"],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "file_public_id": {
+                        "type": "string",
+                        "description": "Public ID of local CRM file (fil_...)"
+                    },
+                    "target_path": {
+                        "type": "string",
+                        "description": "Target folder on Yandex Disk (e.g. /TropaTT_CRM/Tasks)"
+                    },
+                    "make_public": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Generate public direct link"
+                    }
+                },
+                "required": ["file_public_id"],
+                "additionalProperties": false
+            }
+        }
+    ]
+}
