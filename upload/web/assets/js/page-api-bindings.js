@@ -456,14 +456,20 @@ window.CRM.pageApiBindings = (function () {
     var loadingText = opts.loadingText || window.CRM.i18n.t('js.pab.loading', 'Loading...');
     var emptyText = opts.emptyText || window.CRM.i18n.t('js.pab.no_data', 'No data');
     var errorText = opts.errorText || window.CRM.i18n.t('js.pab.load_error', 'Load error');
-    var colSpan = opts.colSpan || 4;
+    var colSpanValue = Number(opts.colSpan);
+    var colSpan = Number.isFinite(colSpanValue)
+      ? Math.max(1, Math.min(24, Math.floor(colSpanValue)))
+      : 4;
+    var safeLoadingText = escapeHtml(loadingText);
+    var safeEmptyText = escapeHtml(emptyText);
+    var safeErrorText = escapeHtml(errorText);
 
     if (state === 'loading') {
-      container.innerHTML = '<tr><td colspan="' + colSpan + '" class="text-muted">' + loadingText + '</td></tr>';
+      container.innerHTML = '<tr><td colspan="' + colSpan + '" class="text-muted">' + safeLoadingText + '</td></tr>';
     } else if (state === 'empty') {
-      container.innerHTML = '<tr><td colspan="' + colSpan + '" class="text-muted">' + emptyText + '</td></tr>';
+      container.innerHTML = '<tr><td colspan="' + colSpan + '" class="text-muted">' + safeEmptyText + '</td></tr>';
     } else if (state === 'error') {
-      container.innerHTML = '<tr><td colspan="' + colSpan + '" class="text-danger">' + errorText + '</td></tr>';
+      container.innerHTML = '<tr><td colspan="' + colSpan + '" class="text-danger">' + safeErrorText + '</td></tr>';
     }
   }
 
@@ -473,13 +479,16 @@ window.CRM.pageApiBindings = (function () {
     var loadingText = opts.loadingText || window.CRM.i18n.t('js.pab.loading', 'Loading...');
     var emptyText = opts.emptyText || window.CRM.i18n.t('js.pab.no_data', 'No data');
     var errorText = opts.errorText || window.CRM.i18n.t('js.pab.load_error', 'Load error');
+    var safeLoadingText = escapeHtml(loadingText);
+    var safeEmptyText = escapeHtml(emptyText);
+    var safeErrorText = escapeHtml(errorText);
 
     if (state === 'loading') {
-      container.innerHTML = '<div class="text-muted">' + loadingText + '</div>';
+      container.innerHTML = '<div class="text-muted">' + safeLoadingText + '</div>';
     } else if (state === 'empty') {
-      container.innerHTML = '<div class="text-muted">' + emptyText + '</div>';
+      container.innerHTML = '<div class="text-muted">' + safeEmptyText + '</div>';
     } else if (state === 'error') {
-      container.innerHTML = '<div class="text-danger">' + errorText + '</div>';
+      container.innerHTML = '<div class="text-danger">' + safeErrorText + '</div>';
     }
   }
 
