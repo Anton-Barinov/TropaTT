@@ -1,0 +1,93 @@
+{
+    "name": "crm.paystack-africa",
+    "version": "1.0.0",
+    "vendor": "crm",
+    "author": "Anton Barinov",
+    "author_url": "https://github.com/Anton-Barinov",
+    "title": "Paystack African Payments Gateway",
+    "description": "Приём оплат и генерация платёжных ссылок для африканского рынка (Нигерия, Гана, ЮАР, Кения) через официальный API Paystack",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "category": "payments",
+    "dependencies": [],
+    "require_permissions": [
+        "settings.view",
+        "settings.edit",
+        "finance.view",
+        "finance.edit"
+    ],
+    "service_provider": "Module\\Crm\\PaystackAfrica\\PaystackAfricaServiceProvider",
+    "migrations": "api/migrations",
+    "api_routes": "api/config/routes.php",
+    "web_routes": "web/config/routes.php",
+    "menu_items": [
+        {
+            "id": "paystack-payments",
+            "title": "Платежи Paystack",
+            "route": "paystack",
+            "icon": "credit-card",
+            "permission": "finance.view"
+        }
+    ],
+    "assets": {
+        "css": [
+            "web/assets/css/paystack.css"
+        ],
+        "js": [
+            "web/assets/js/paystack.js"
+        ]
+    },
+    "mcp_tools": [
+        {
+            "name": "paystack_initialize_transaction",
+            "description": "Initialize a payment checkout transaction and generate an authorization URL via Paystack API",
+            "handler": "Module\\Crm\\PaystackAfrica\\Mcp\\InitializeTransactionTool",
+            "permissions": ["finance.edit"],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "description": "Customer email"
+                    },
+                    "amount": {
+                        "type": "number",
+                        "description": "Amount in major units (e.g. NGN, ZAR, KES, GHS)"
+                    },
+                    "currency": {
+                        "type": "string",
+                        "default": "NGN",
+                        "description": "Supported currency code (NGN, GHS, ZAR, KES, USD)"
+                    },
+                    "reference": {
+                        "type": "string",
+                        "description": "Unique transaction reference"
+                    }
+                },
+                "required": ["email", "amount"],
+                "additionalProperties": false
+            }
+        },
+        {
+            "name": "paystack_verify_transaction",
+            "description": "Verify transaction status by reference via Paystack Verification API",
+            "handler": "Module\\Crm\\PaystackAfrica\\Mcp\\VerifyTransactionTool",
+            "permissions": ["finance.view"],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "reference": {
+                        "type": "string",
+                        "description": "Transaction reference"
+                    }
+                },
+                "required": ["reference"],
+                "additionalProperties": false
+            }
+        }
+    ]
+}
