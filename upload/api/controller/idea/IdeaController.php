@@ -4964,6 +4964,7 @@ PROMPT;
 
         $publicId = (string)($idea['public_id'] ?? '');
         $uri = str_replace('{id}', $publicId, $route);
+        $authorization = $this->liveWorkerAuthorizationHeader();
 
         // Simulate an internal POST request to the existing endpoint
         $savedGet = $_GET;
@@ -4977,7 +4978,7 @@ PROMPT;
                 'REQUEST_URI' => $uri,
                 'REMOTE_ADDR' => '127.0.0.1',
                 'HTTP_USER_AGENT' => 'crm-idea-worker/1.0',
-                'HTTP_AUTHORIZATION' => 'Bearer ' . ($this->user()['token'] ?? ''),
+                'HTTP_AUTHORIZATION' => $authorization,
             ];
 
             // App's basePath must be the API root (same as index.php passes):
@@ -4997,6 +4998,22 @@ PROMPT;
             $_POST = $savedPost;
             $_SERVER = $savedServer;
         }
+    }
+
+    /**
+     * Reuse the authenticated request credential for an internal live-pipeline
+     * dispatch. App::authenticate() stores the bearer token on the auth envelope
+     * as auth_token; it is deliberately not part of the nested user profile.
+     */
+    private function liveWorkerAuthorizationHeader(): string
+    {
+        $auth = $this->user();
+        $token = trim((string)($auth['auth_token'] ?? ''));
+        if ($token === '') {
+            throw new \RuntimeException('Authenticated credential is unavailable for the live pipeline worker.');
+        }
+
+        return 'Bearer ' . $token;
     }
 
     /**
