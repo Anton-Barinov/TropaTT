@@ -7,11 +7,18 @@ use Api\System\Library\Logger\JsonLogger;
 
 final class TelemetryController extends BaseController
 {
+    private const MAX_REPORT_BODY_BYTES = 16 * 1024;
+    private const MAX_LOG_FIELD_LENGTH = 512;
+
     public function frontendEvent(): \Api\System\Library\Http\JsonResponse
     {
         $auth = $this->user();
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
+        if (strlen($this->request()->rawBody) > self::MAX_REPORT_BODY_BYTES) {
+            return $this->error('PAYLOAD_TOO_LARGE', $this->t('common/messages.payload_too_large', 'Payload too large'), 413);
         }
 
         $input = $this->request()->allInput();
@@ -38,8 +45,8 @@ final class TelemetryController extends BaseController
             'ip' => (string)($this->request()->server['REMOTE_ADDR'] ?? ''),
             'user_agent' => (string)($this->request()->server['HTTP_USER_AGENT'] ?? ''),
             'details' => [
-                'route' => (string)($input['route'] ?? ''),
-                'page_url' => (string)($input['page_url'] ?? ''),
+                'route' => $this->sanitizeLogValue($input['route'] ?? '', 256, true),
+                'page_url' => $this->sanitizeLogValue($input['page_url'] ?? '', 512, true),
                 'payload' => $sanitized,
                 'request_id' => (string)$this->request()->requestId,
                 'correlation_id' => (string)$this->request()->correlationId,
@@ -55,19 +62,36 @@ final class TelemetryController extends BaseController
 
     public function cspReport(): \Api\System\Library\Http\JsonResponse
     {
+        if (strlen($this->request()->rawBody) > self::MAX_REPORT_BODY_BYTES) {
+            return $this->error('PAYLOAD_TOO_LARGE', $this->t('common/messages.payload_too_large', 'Payload too large'), 413);
+        }
+
+        $rateLimit = $this->checkIpRateLimit('csp_report', 30, 60, 300);
+        if (($rateLimit['blocked'] ?? false) === true) {
+            $retryAfter = max(1, (int)($rateLimit['retry_after'] ?? 1));
+            if (!headers_sent()) {
+                header('Retry-After: ' . (string)$retryAfter);
+            }
+            return $this->error('RATE_LIMITED', $this->t('common/messages.rate_limited', 'Too many requests'), 429, [], [
+                'retry_after' => $retryAfter,
+            ]);
+        }
+
         $input = $this->request()->allInput();
         $cspReport = is_array($input['csp-report'] ?? null) ? (array)$input['csp-report'] : $input;
 
         $sanitized = [
-            'document_uri' => (string)($cspReport['document-uri'] ?? ''),
-            'referrer' => (string)($cspReport['referrer'] ?? ''),
-            'blocked_uri' => (string)($cspReport['blocked-uri'] ?? ''),
-            'violated_directive' => (string)($cspReport['violated-directive'] ?? ''),
-            'effective_directive' => (string)($cspReport['effective-directive'] ?? ''),
-            'original_policy' => (string)($cspReport['original-policy'] ?? ''),
-            'disposition' => (string)($cspReport['disposition'] ?? ''),
-            'status_code' => (int)($cspReport['status-code'] ?? 0),
-            'script_sample' => mb_substr((string)($cspReport['script-sample'] ?? ''), 0, 200),
+            'document_uri' => $this->sanitizeLogValue($cspReport['document-uri'] ?? '', self::MAX_LOG_FIELD_LENGTH, true),
+            'referrer' => $this->sanitizeLogValue($cspReport['referrer'] ?? '', self::MAX_LOG_FIELD_LENGTH, true),
+            'blocked_uri' => $this->sanitizeLogValue($cspReport['blocked-uri'] ?? '', self::MAX_LOG_FIELD_LENGTH, true),
+            'violated_directive' => $this->sanitizeLogValue($cspReport['violated-directive'] ?? '', self::MAX_LOG_FIELD_LENGTH),
+            'effective_directive' => $this->sanitizeLogValue($cspReport['effective-directive'] ?? '', self::MAX_LOG_FIELD_LENGTH),
+            'original_policy' => $this->sanitizeLogValue($cspReport['original-policy'] ?? '', self::MAX_LOG_FIELD_LENGTH),
+            'disposition' => $this->sanitizeLogValue($cspReport['disposition'] ?? '', 64),
+            'status_code' => is_scalar($cspReport['status-code'] ?? null)
+                ? max(0, min(999, (int)$cspReport['status-code']))
+                : 0,
+            'script_sample' => $this->sanitizeLogValue($cspReport['script-sample'] ?? '', 200),
         ];
 
         /** @var JsonLogger $logger */
@@ -84,6 +108,30 @@ final class TelemetryController extends BaseController
             'accepted' => true,
             'captured_at' => gmdate('c'),
         ]);
+    }
+
+    private function sanitizeLogValue(mixed $value, int $maxLength, bool $stripUrlQuery = false): string
+    {
+        if (!is_scalar($value) && $value !== null) {
+            return '';
+        }
+
+        $text = trim((string)$value);
+        if ($stripUrlQuery && $text !== '') {
+            $parts = parse_url($text);
+            if (is_array($parts) && isset($parts['host'])) {
+                $scheme = isset($parts['scheme']) ? strtolower((string)$parts['scheme']) . '://' : '';
+                $host = (string)$parts['host'];
+                $port = isset($parts['port']) ? ':' . (int)$parts['port'] : '';
+                $path = (string)($parts['path'] ?? '');
+                $text = $scheme . $host . $port . $path;
+            } elseif (is_array($parts) && isset($parts['path'])) {
+                $text = (string)$parts['path'];
+            }
+        }
+
+        $text = preg_replace('/[\x00-\x1F\x7F]/u', '', $text) ?? '';
+        return mb_substr($text, 0, max(0, $maxLength));
     }
 
     /**

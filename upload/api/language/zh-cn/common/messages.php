@@ -23,6 +23,7 @@ return [
     'conflict' => '数据已被其他用户修改。请刷新页面后重试。',
     'row_version_conflict' => '数据已被其他用户修改。请刷新页面后重试。',
     'rate_limited' => '请求过多，请稍后重试。',
+    'payload_too_large' => '请求内容超过允许的大小。',
     'project_not_found' => '未找到项目',
     'ok' => 'OK',
     'invalid_event_type' => '无效的事件类型',
