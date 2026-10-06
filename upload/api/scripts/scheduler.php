@@ -90,10 +90,13 @@ switch ($command) {
             AppLog::error('[scheduler] Module jobs failed: ' . $e->getMessage());
         }
 
-        // Process pending idea analysis queue steps if any exist
+        // Process pending/retryable idea analysis queue steps. Failed rows and
+        // abandoned running rows are also candidates: the API worker applies
+        // the per-step attempt budget and safely reclaims stale leases.
         try {
-            $checkStmt = $pdo->prepare("SELECT 1 FROM idea_analysis_steps WHERE pipeline = 'live' AND status = 'pending' LIMIT 1");
-            $checkStmt->execute();
+            $staleBefore = date('Y-m-d H:i:s', time() - 900);
+            $checkStmt = $pdo->prepare("SELECT 1 FROM idea_analysis_steps WHERE pipeline = 'live' AND (status = 'pending' OR (status = 'failed' AND attempts < 3) OR (status = 'running' AND (started_at IS NULL OR started_at < :stale_before))) LIMIT 1");
+            $checkStmt->execute(['stale_before' => $staleBefore]);
             if ($checkStmt->fetchColumn()) {
                 $workerScript = __DIR__ . '/idea_analysis_worker.php';
                 if (file_exists($workerScript)) {

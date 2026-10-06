@@ -4452,6 +4452,12 @@ PROMPT;
         $pdo = $this->container->get('db.pdo');
         $this->ensureIdeaWorkflowTables($pdo);
 
+        // Repair abandoned/retryable rows before checking for active work. A
+        // worker that died on its last permitted attempt otherwise leaves a
+        // permanent `running` row, and a transient `failed` row is invisible to
+        // both the cron candidate query and the browser's pending-step poll.
+        $this->recoverLiveStepQueue($pdo, $ideaId);
+
         // Check for existing active pipeline — return success with info instead of 409 to prevent red console errors
         $active = $pdo->prepare("SELECT step_key FROM idea_analysis_steps WHERE idea_id = :iid AND pipeline = 'live' AND status IN ('pending','running')");
         $active->execute(['iid' => $ideaId]);
@@ -4496,8 +4502,13 @@ PROMPT;
                 }
                 $pdo->prepare("INSERT INTO idea_analysis_steps (idea_id, step_key, step_order, status, pipeline, attempts, created_at, updated_at) VALUES (:iid, :k, :o, :st, 'live', 0, NOW(), NOW())")
                     ->execute(['iid' => $ideaId, 'k' => $step['key'], 'o' => $step['order'], 'st' => $initialStatus]);
-            } elseif (in_array($row['status'], ['failed', 'completed'], true)) {
-                // Reset completed steps only if re-running from scratch (partial re-run not supported)
+            } elseif ($row['status'] === 'failed') {
+                // Reaching this branch means the user explicitly started or
+                // continued analysis after the automatic retry budget ended.
+                // Give that deliberate retry a fresh bounded attempt budget,
+                // while preserving already completed blocks.
+                $pdo->prepare("UPDATE idea_analysis_steps SET status = 'pending', attempts = 0, error_message = NULL, started_at = NULL, completed_at = NULL, updated_at = NOW() WHERE idea_id = :iid AND step_key = :k AND pipeline = 'live' AND status = 'failed'")
+                    ->execute(['iid' => $ideaId, 'k' => $step['key']]);
             }
         }
 
@@ -4537,6 +4548,8 @@ PROMPT;
                 'error' => $r['error_message'] ?: null,
                 'started_at' => $r['started_at'] ?: null,
                 'completed_at' => $r['completed_at'] ?: null,
+                'is_stale' => $r['status'] === 'running'
+                    && (empty($r['started_at']) || strtotime((string)$r['started_at']) < time() - self::LIVE_STEP_STALE_SECONDS),
             ];
         }
 
@@ -4672,16 +4685,21 @@ PROMPT;
         // Walk candidate ideas (ordered by their earliest pending step) and run
         // the first one that is not held for human input, so one blocked idea can
         // never starve the rest of the queue.
+        $staleBefore = date('Y-m-d H:i:s', time() - self::LIVE_STEP_STALE_SECONDS);
         $next = $pdo->prepare("
             SELECT s.idea_id, i.public_id AS idea_public_id
             FROM idea_analysis_steps s
             JOIN ideas i ON i.id = s.idea_id
-            WHERE s.pipeline = 'live' AND s.status = 'pending'
+            WHERE s.pipeline = 'live' AND (
+                s.status = 'pending'
+                OR (s.status = 'failed' AND s.attempts < :max_attempts)
+                OR (s.status = 'running' AND (s.started_at IS NULL OR s.started_at < :stale_before))
+            )
             GROUP BY s.idea_id, i.public_id
             ORDER BY MIN(s.step_order) ASC
             LIMIT 20
         ");
-        $next->execute();
+        $next->execute(['max_attempts' => self::LIVE_STEP_MAX_ATTEMPTS, 'stale_before' => $staleBefore]);
         $candidates = $next->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
         $blocked = 0;
@@ -4763,19 +4781,7 @@ PROMPT;
      */
     private function selectNextRunnableLiveStep(\PDO $pdo, int $ideaId): array
     {
-        // 1) Re-queue steps abandoned mid-run (worker crashed / PHP fatal after
-        // claim). Without this a dead 'running' row would wedge the idea forever.
-        $staleBefore = date('Y-m-d H:i:s', time() - self::LIVE_STEP_STALE_SECONDS);
-        $pdo->prepare("UPDATE idea_analysis_steps SET status = 'pending', updated_at = CURRENT_TIMESTAMP WHERE idea_id = :iid AND pipeline = 'live' AND status = 'running' AND (started_at IS NULL OR started_at < :stale) AND attempts < 3")
-            ->execute(['iid' => $ideaId, 'stale' => $staleBefore]);
-
-        // 1b) Re-queue failed steps while they still have attempt budget left.
-        // A transient failure (AI_BUSY, network, provider hiccup) must not wedge
-        // the pipeline forever: claimLiveStep() already bumps attempts per
-        // claim, so after LIVE_STEP_MAX_ATTEMPTS tries the row stays 'failed'
-        // and only a manual reset can revive it (TROPATTCRM-628 live QA).
-        $pdo->prepare("UPDATE idea_analysis_steps SET status = 'pending', updated_at = CURRENT_TIMESTAMP WHERE idea_id = :iid AND pipeline = 'live' AND status = 'failed' AND attempts < :max")
-            ->execute(['iid' => $ideaId, 'max' => self::LIVE_STEP_MAX_ATTEMPTS]);
+        $this->recoverLiveStepQueue($pdo, $ideaId);
 
         // 2) A fresh 'running' step of this idea means another worker already
         // executes it (or an earlier step): never hand out a follow-up step in
@@ -4809,6 +4815,23 @@ PROMPT;
         }
 
         return ['state' => 'runnable', 'step_key' => $stepKey, 'step_order' => (int)$stepRow['step_order'], 'reason' => null];
+    }
+
+    /**
+     * Reconcile abandoned live-pipeline rows and release transient failures.
+     * Rows abandoned on the final attempt must become terminal failures instead
+     * of remaining `running` forever; retryable failures return to `pending` so
+     * both browser polling and shared-hosting cron can discover them.
+     */
+    private function recoverLiveStepQueue(PDO $pdo, int $ideaId): void
+    {
+        $staleBefore = date('Y-m-d H:i:s', time() - self::LIVE_STEP_STALE_SECONDS);
+        $pdo->prepare("UPDATE idea_analysis_steps SET status = 'pending', error_message = NULL, started_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE idea_id = :iid AND pipeline = 'live' AND status = 'running' AND (started_at IS NULL OR started_at < :stale) AND attempts < :max")
+            ->execute(['iid' => $ideaId, 'stale' => $staleBefore, 'max' => self::LIVE_STEP_MAX_ATTEMPTS]);
+        $pdo->prepare("UPDATE idea_analysis_steps SET status = 'failed', error_message = CASE WHEN error_message IS NULL OR error_message = '' THEN 'Worker stopped after maximum attempts' ELSE error_message END, updated_at = CURRENT_TIMESTAMP WHERE idea_id = :iid AND pipeline = 'live' AND status = 'running' AND (started_at IS NULL OR started_at < :stale) AND attempts >= :max")
+            ->execute(['iid' => $ideaId, 'stale' => $staleBefore, 'max' => self::LIVE_STEP_MAX_ATTEMPTS]);
+        $pdo->prepare("UPDATE idea_analysis_steps SET status = 'pending', error_message = NULL, started_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE idea_id = :iid AND pipeline = 'live' AND status = 'failed' AND attempts < :max")
+            ->execute(['iid' => $ideaId, 'max' => self::LIVE_STEP_MAX_ATTEMPTS]);
     }
 
     /**

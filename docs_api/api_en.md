@@ -2439,7 +2439,7 @@ Deprecated aliases (`/api/v1/notification/push-*`) are excluded from OpenAPI and
 | Method | Endpoint | Purpose | Auth | Permissions | Description |
 |--------|----------|---------|:---:|-------------|-------------|
 | GET | `/api/v1/health/deep` | — | Yes | — | Deep health check |
-| GET | `/api/v1/ideas/{public_id}/analysis/status` | — | Yes | idea.read | Analysis job status |
+| GET | `/api/v1/ideas/{public_id}/analysis/status` | — | Yes | idea.read | Analysis job status; each running step includes `is_stale` when its worker lease has expired |
 | POST | `/api/v1/ideas/queue/run-worker` | — | Yes | idea.manage | Run queued idea analysis worker |
 | POST | `/api/v1/ideas/{public_id}/analysis/run-async` | — | Yes | idea.manage | Start asynchronous idea analysis |
 | POST | `/api/v1/ideas/{public_id}/analysis/run-worker` | — | Yes | idea.manage | Run idea analysis worker |

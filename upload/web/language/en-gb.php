@@ -421,6 +421,7 @@ return array (
     'state_waiting_answers' => 'Waiting for answers:',
     'state_awaiting_human' => 'The pipeline is waiting for your interview answers...',
     'state_waiting_worker' => 'Starting background queue worker...',
+    'state_recovering_worker' => 'Recovering an interrupted analysis step...',
     'state_generating_slow' => 'Generation is taking longer than usual, still waiting for AI response...',
     'state_interview_timeout' => 'AI response timed out. Click "Ask AI questions" to try again.',
     'status_approved' => 'Approved',

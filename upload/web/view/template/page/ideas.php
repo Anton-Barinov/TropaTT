@@ -579,6 +579,8 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
         var allDone=true;
         var hasPending=false;
         var hasRunning=false;
+        var hasFreshRunning=false;
+        var hasStaleRunning=false;
         var serverSteps=status.data.steps;
         for(var si=0;si<serverSteps.length;si++){
           var ss=serverSteps[si];
@@ -605,6 +607,7 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
             delete loadedAwaitingSteps[ss.key];
             allDone=false;
             hasRunning=true;
+            if(ss.is_stale===true)hasStaleRunning=true;else hasFreshRunning=true;
             if(browserStep.status!=='running'&&browserStep.status!=='success'){
               browserStep.status='running';
               saveState();renderSteps();
@@ -649,10 +652,13 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
           setStartButtonIdle();
           // Answering takes human time — don't count these ticks against the poll budget
           maxPolls=p+200;
-        } else if(hasPending && !hasRunning && (totalTicks - workerTriggeredAtTick >= 3)) {
-          // TROPATTCRM-636: Trigger worker if steps are pending and not yet picked up
+        } else if(((hasPending && !hasRunning) || (hasStaleRunning && !hasFreshRunning)) && (totalTicks - workerTriggeredAtTick >= 3)) {
+          // Trigger a worker for undispatched rows and reclaimable stale runs.
+          // A live request from another tab is never interrupted.
           workerTriggeredAtTick = totalTicks;
-          document.getElementById('pipelineStatus').textContent='<?= htmlspecialchars($t('ideas.state_waiting_worker', 'Запуск фонового обработчика очереди...'), ENT_QUOTES, 'UTF-8') ?>';
+          document.getElementById('pipelineStatus').textContent=hasStaleRunning
+            ? '<?= htmlspecialchars($t('ideas.state_recovering_worker', 'Восстанавливаю прерванный этап анализа...'), ENT_QUOTES, 'UTF-8') ?>'
+            : '<?= htmlspecialchars($t('ideas.state_waiting_worker', 'Запуск фонового обработчика очереди...'), ENT_QUOTES, 'UTF-8') ?>';
           window.CRM.api.request('api/v1/ideas/'+ideaId+'/analysis/run-worker',{method:'POST',timeoutMs:120000}).then(function(){
             // Immediate check on next loop
           }).catch(function(){});

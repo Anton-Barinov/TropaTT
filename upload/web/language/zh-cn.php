@@ -420,6 +420,7 @@ return array (
     'state_waiting_answers' => 'Waiting for answers:',
     'state_awaiting_human' => '流水线正在等待您回答访谈问题...',
     'state_waiting_worker' => '正在启动后台队列工作程序...',
+    'state_recovering_worker' => '正在恢复中断的分析步骤...',
     'state_generating_slow' => '生成耗时比平时长，仍在等待 AI 响应...',
     'state_interview_timeout' => 'AI 响应超时。点击“向 AI 提问”重试。',
     'status_approved' => 'Approved',
