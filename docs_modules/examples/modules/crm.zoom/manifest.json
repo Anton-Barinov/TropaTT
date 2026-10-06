@@ -1,0 +1,102 @@
+{
+    "name": "crm.zoom",
+    "version": "1.0.0",
+    "vendor": "crm",
+    "author": "Anton Barinov",
+    "author_url": "https://github.com/Anton-Barinov",
+    "title": "Интеграция с Zoom (Встречи, Звонки, Записи, Транскрипция)",
+    "description": "Комплексная интеграция TropaTT CRM с платформой Zoom: планирование встреч из задач, сделок и календаря CRM с автогенерацией защищенных Zoom Meetings (join_url / start_url), синхронизация облачных записей (Cloud Recordings), AI-транскриптов и учет присутствия участников прямо в карточке клиента и проекта.",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "category": "integration",
+    "dependencies": [],
+    "require_permissions": [
+        "settings.view",
+        "settings.edit",
+        "calendar.view",
+        "calendar.edit"
+    ],
+    "service_provider": "Module\\Crm\\Zoom\\ZoomServiceProvider",
+    "migrations": "api/migrations",
+    "api_routes": "api/config/routes.php",
+    "web_routes": "web/config/routes.php",
+    "menu_items": [
+        {
+            "id": "zoom",
+            "title": "Zoom Встречи",
+            "route": "zoom",
+            "icon": "video",
+            "permission": "calendar.view"
+        }
+    ],
+    "assets": {
+        "css": [
+            "web/assets/css/zoom.css"
+        ],
+        "js": [
+            "web/assets/js/zoom.js"
+        ]
+    },
+    "mcp_tools": [
+        {
+            "name": "zoom_status",
+            "description": "Проверить статус интеграции с Zoom API (OAuth Server-to-Server, квоты и вебхуки)",
+            "handler": "Module\\Crm\\Zoom\\Mcp\\ZoomStatusTool",
+            "permissions": ["calendar.view"],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+            }
+        },
+        {
+            "name": "zoom_create_meeting",
+            "description": "Создать встречу в Zoom с автоматической привязкой к календарю, задаче или сделке CRM",
+            "handler": "Module\\Crm\\Zoom\\Mcp\\ZoomCreateMeetingTool",
+            "permissions": ["calendar.edit"],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "topic": {
+                        "type": "string",
+                        "description": "Тема онлайн-встречи Zoom"
+                    },
+                    "start_time": {
+                        "type": "string",
+                        "description": "Время начала встречи (ISO 8601 или Y-m-d H:i:s)"
+                    },
+                    "duration": {
+                        "type": "integer",
+                        "description": "Длительность встречи в минутах (по умолчанию 40)"
+                    },
+                    "agenda": {
+                        "type": "string",
+                        "description": "Повестка или описание встречи"
+                    },
+                    "crm_project_public_id": {
+                        "type": "string",
+                        "description": "ID связанного проекта CRM"
+                    },
+                    "crm_task_public_id": {
+                        "type": "string",
+                        "description": "ID связанной задачи CRM"
+                    },
+                    "crm_client_public_id": {
+                        "type": "string",
+                        "description": "ID связанного клиента/лида"
+                    },
+                    "password": {
+                        "type": "string",
+                        "description": "Пароль для подключения (опционально, генерируется автоматически)"
+                    }
+                },
+                "required": ["topic", "start_time"],
+                "additionalProperties": false
+            }
+        }
+    ]
+}
