@@ -1,0 +1,103 @@
+{
+    "name": "crm.vk-workspace",
+    "version": "1.0.0",
+    "vendor": "crm",
+    "author": "Anton Barinov",
+    "author_url": "https://github.com/Anton-Barinov",
+    "title": "Интеграция с VK WorkSpace (Звонки, Календарь, Почта, Диск)",
+    "description": "Комплексная экосистемная интеграция TropaTT CRM с VK WorkSpace: планирование встреч в календаре с автогенерацией VK Звонков (видеоконференций), рассылка приглашений участникам через VK Почту, прикрепление файлов через VK Cloud/Диск и отправка уведомлений в корпоративный мессенджер VK Teams.",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "category": "integration",
+    "dependencies": [],
+    "require_permissions": [
+        "settings.view",
+        "settings.edit",
+        "calendar.view",
+        "calendar.edit"
+    ],
+    "service_provider": "Module\\Crm\\VkWorkspace\\VkWorkspaceServiceProvider",
+    "migrations": "api/migrations",
+    "api_routes": "api/config/routes.php",
+    "web_routes": "web/config/routes.php",
+    "menu_items": [
+        {
+            "id": "vk-workspace",
+            "title": "VK WorkSpace",
+            "route": "vk-workspace",
+            "icon": "video",
+            "permission": "calendar.view"
+        }
+    ],
+    "assets": {
+        "css": [
+            "web/assets/css/vk-workspace.css"
+        ],
+        "js": [
+            "web/assets/js/vk-workspace.js"
+        ]
+    },
+    "mcp_tools": [
+        {
+            "name": "vk_workspace_status",
+            "description": "Проверить статус интеграции с VK WorkSpace (VK Звонки, Календарь, Teams)",
+            "handler": "Module\\Crm\\VkWorkspace\\Mcp\\VkStatusTool",
+            "permissions": ["calendar.view"],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+            }
+        },
+        {
+            "name": "vk_workspace_schedule_meeting",
+            "description": "Запланировать встречу в календаре CRM с автоматическим созданием онлайн-комнаты VK Звонков и оповещением в VK Teams",
+            "handler": "Module\\Crm\\VkWorkspace\\Mcp\\VkScheduleMeetingTool",
+            "permissions": ["calendar.edit"],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "description": "Название встречи/созвона"
+                    },
+                    "starts_at": {
+                        "type": "string",
+                        "description": "Дата и время начала (Y-m-d H:i:s или ISO 8601)"
+                    },
+                    "duration_minutes": {
+                        "type": "integer",
+                        "description": "Длительность встречи в минутах (по умолчанию 30)"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Повестка или описание встречи"
+                    },
+                    "crm_project_public_id": {
+                        "type": "string",
+                        "description": "ID связанного проекта CRM"
+                    },
+                    "crm_task_public_id": {
+                        "type": "string",
+                        "description": "ID связанной задачи CRM"
+                    },
+                    "crm_client_public_id": {
+                        "type": "string",
+                        "description": "ID связанного клиента/контрагента"
+                    },
+                    "participants": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Список email адресов или логинов участников"
+                    }
+                },
+                "required": ["title", "starts_at"],
+                "additionalProperties": false
+            }
+        }
+    ]
+}
