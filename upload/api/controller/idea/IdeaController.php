@@ -608,6 +608,11 @@ final class IdeaController extends BaseController
                 'title' => $title, 'description' => $description,
                 'created_at' => $createdAt, 'current_date' => $currentDate,
             ], $user);
+            if (!$this->isAiModelCompletion($result)) {
+                $errorCode = $this->aiResponseErrorCode($result);
+                ai_diag_log("[AI_ANALYZE_PROVIDER_FAILURE] idea_id={$ideaId} code={$errorCode}");
+                return $this->error('AI_PROVIDER_UNAVAILABLE', $this->t('idea/messages.ai_provider_not_responding'), 503);
+            }
             $data = $this->extractStructuredResult($result);
             ai_diag_log("[AI_ANALYZE_DEBUG] result_ok=".($result['ok']?'1':'0')." code=".($result['code']??'null')." data_keys=".(is_array($data)?implode(',',array_keys($data)):'NULL'));
 
@@ -1510,8 +1515,8 @@ PROMPT;
                 ], $this->user()['user'] ?? []);
 
                 // Handle AI_BUSY and provider errors before trying to parse result
-                if (!($result['ok'] ?? false)) {
-                    $errorCode = $result['code'] ?? '';
+                if (!$this->isAiModelCompletion($result)) {
+                    $errorCode = $this->aiResponseErrorCode($result);
                     if ($errorCode === 'AI_BUSY') {
                         $backoffUs = max(5000000, ($retry + 1) * 2000000);
                         ai_diag_log("[ADDITIONAL_QUESTIONS_BUSY] attempt=" . ($retry + 1) . " backoff=" . ($backoffUs / 1000000) . "s");
@@ -1702,8 +1707,8 @@ PROMPT;
                     'response_format' => ['type' => 'json_object'],
                 ], $this->user()['user'] ?? []);
 
-                if (!($result['ok'] ?? false)) {
-                    $errorCode = $result['code'] ?? '';
+                if (!$this->isAiModelCompletion($result)) {
+                    $errorCode = $this->aiResponseErrorCode($result);
                     if ($errorCode === 'AI_BUSY') {
                         $backoffUs = max(5000000, ($retry + 1) * 2000000);
                         ai_diag_log("[UNDERSTANDING_CARD_BUSY] idea_id={$ideaId} attempt=" . ($retry + 1) . " backoff=" . ($backoffUs / 1000000) . "s");
@@ -1915,8 +1920,8 @@ PROMPT;
                 ], $this->user()['user'] ?? []);
 
                 // Handle AI_BUSY and provider errors before trying to parse result
-                if (!($result['ok'] ?? false)) {
-                    $errorCode = $result['code'] ?? '';
+                if (!$this->isAiModelCompletion($result)) {
+                    $errorCode = $this->aiResponseErrorCode($result);
                     if ($errorCode === 'AI_BUSY') {
                         $backoffUs = max(5000000, ($retry + 1) * 2000000);
                         ai_diag_log("[GAP_QUESTIONS_BUSY] attempt=" . ($retry + 1) . " backoff=" . ($backoffUs / 1000000) . "s");
@@ -2085,8 +2090,8 @@ PROMPT;
                     'response_format' => ['type' => 'json_object'],
                 ], $this->user()['user'] ?? []);
 
-                if (!($result['ok'] ?? false)) {
-                    $errorCode = $result['code'] ?? '';
+                if (!$this->isAiModelCompletion($result)) {
+                    $errorCode = $this->aiResponseErrorCode($result);
                     if ($errorCode === 'AI_BUSY') {
                         $backoffUs = max(5000000, ($retry + 1) * 2000000);
                         ai_diag_log("[REFINED_CARD_BUSY] idea_id={$ideaId} attempt=" . ($retry + 1) . " backoff=" . ($backoffUs / 1000000) . "s");
@@ -2254,8 +2259,8 @@ PROMPT;
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
                 $result = $aiSvc->execute('idea_potential', ['prefer_fast_model' => true, '__sys' => $systemPrompt . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
 
-                if (!($result['ok'] ?? false)) {
-                    $errorCode = $result['code'] ?? '';
+                if (!$this->isAiModelCompletion($result)) {
+                    $errorCode = $this->aiResponseErrorCode($result);
                     if ($errorCode === 'AI_BUSY') {
                         $backoffUs = max(5000000, ($retry + 1) * 2000000);
                         ai_diag_log("[POTENTIAL_BUSY] idea_id={$ideaId} attempt=" . ($retry + 1) . " backoff=" . ($backoffUs / 1000000) . "s");
@@ -2378,8 +2383,8 @@ PROMPT;
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
                 $result = $aiSvc->execute('idea_risks', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
 
-                if (!($result['ok'] ?? false)) {
-                    $errorCode = $result['code'] ?? '';
+                if (!$this->isAiModelCompletion($result)) {
+                    $errorCode = $this->aiResponseErrorCode($result);
                     if ($errorCode === 'AI_BUSY') {
                         $backoffUs = max(5000000, ($retry + 1) * 2000000);
                         ai_diag_log("[RISK_BUSY] idea_id={$ideaId} attempt=" . ($retry+1) . " backoff=" . ($backoffUs / 1000000) . "s");
@@ -2487,8 +2492,8 @@ PROMPT;
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
                 $result = $aiSvc->execute('idea_pitfalls', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
 
-                if (!($result['ok'] ?? false)) {
-                    $errorCode = $result['code'] ?? '';
+                if (!$this->isAiModelCompletion($result)) {
+                    $errorCode = $this->aiResponseErrorCode($result);
                     if ($errorCode === 'AI_BUSY') {
                         $backoffUs = max(5000000, ($retry + 1) * 2000000);
                         ai_diag_log("[PITFALLS_BUSY] idea_id={$ideaId} attempt=" . ($retry+1) . " backoff=" . ($backoffUs / 1000000) . "s");
@@ -2597,8 +2602,8 @@ PROMPT;
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
                 $result = $aiSvc->execute('idea_plan', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
 
-                if (!($result['ok'] ?? false)) {
-                    $errorCode = $result['code'] ?? '';
+                if (!$this->isAiModelCompletion($result)) {
+                    $errorCode = $this->aiResponseErrorCode($result);
                     if ($errorCode === 'AI_BUSY') {
                         $backoffUs = max(5000000, ($retry + 1) * 2000000);
                         ai_diag_log("[PLAN_BUSY] idea_id={$ideaId} attempt=" . ($retry+1) . " backoff=" . ($backoffUs / 1000000) . "s");
@@ -2693,6 +2698,15 @@ PROMPT;
             $stmt->execute(['iid' => $ideaId]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
             if (!$row) return ['exists' => false];
+            if ($table === 'idea_understanding_cards') {
+                $profile = json_decode((string)($row['profile_json'] ?? '{}'), true);
+                if (is_array($profile)) {
+                    $row['known_facts'] = is_array($profile['known_facts'] ?? null) ? $profile['known_facts'] : [];
+                    $row['missing_facts'] = is_array($profile['missing_facts'] ?? null)
+                        ? $profile['missing_facts']
+                        : (is_array($profile['user_unknowns'] ?? null) ? $profile['user_unknowns'] : []);
+                }
+            }
             unset($row['id'], $row['idea_id'], $row['ai_request_json'], $row['ai_response_json'], $row['profile_json'], $row['potential_json'], $row['risk_report_json'], $row['pitfalls_json'], $row['plan_json']);
             $row['exists'] = true;
             return $row;
@@ -2700,13 +2714,21 @@ PROMPT;
 
         // Extract compact summaries from each block — refined takes priority over original
         $sum = fn($t,$k,$d='') => ($t['exists'] ?? false) ? ($t[$k] ?? $d) : null;
-        $score = fn($t,$k,$d=0) => max(0,min(100,(float)($t[$k]??$d)));
+        $score = fn($t,$k,$d=0) => $this->normalizePercentScore($t[$k] ?? $d);
 
         $uc = $loadBlock('idea_understanding_cards');
         $rc = $loadBlock('idea_refined_cards');
         // Use refined card if available, otherwise fall back to original
         $card = ($rc['exists'] ?? false) ? $rc : $uc;
-        $cardSummary = $card['exists'] ? ['summary' => $sum($card,'summary',''), 'idea_type' => $sum($card,'idea_type',''), 'completeness' => $score($card,'completeness_score'), 'confidence' => $score($card,'confidence_score'), 'next_action' => $sum($card,'next_action','')] : ['exists' => false];
+        $cardSummary = $card['exists'] ? [
+            'summary' => $sum($card,'summary',''),
+            'idea_type' => $sum($card,'idea_type',''),
+            'completeness' => $score($card,'completeness_score'),
+            'confidence' => $score($card,'confidence_score'),
+            'next_action' => $sum($card,'next_action',''),
+            'known_facts' => is_array($uc['known_facts'] ?? null) ? $uc['known_facts'] : [],
+            'missing_facts' => is_array($uc['missing_facts'] ?? null) ? $uc['missing_facts'] : [],
+        ] : ['exists' => false];
 
         $pot = $loadBlock('idea_potential_scores');
         $potentialSummary = $pot['exists'] ? ['score' => $score($pot,'potential_score'), 'level' => $sum($pot,'potential_level',''), 'verdict' => $sum($pot,'verdict','')] : ['exists' => false];
@@ -2757,28 +2779,80 @@ PROMPT;
         $sp = $this->t('idea/messages.system_prompt_final');
 
         try {
-            $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 2; $rawText = ''; $parsed = ['ok' => false, 'data' => null, 'error' => 'not_started'];
-            for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_final', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
+            $aiSvc = $this->container->get('service.ai_action');
+            $maxRetries = 2;
+            $baseUserPrompt = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            $rawText = '';
+            $parsed = ['ok' => false, 'data' => null, 'error' => 'not_started'];
+            $providerErrorCode = '';
+            $responseMode = '';
+            $attemptsMade = 0;
+            $lastFailureKind = 'invalid_ai_json';
 
-                if (!($result['ok'] ?? false)) {
-                    $errorCode = $result['code'] ?? '';
-                    if ($errorCode === 'AI_BUSY') {
-                        $backoffUs = max(5000000, ($retry + 1) * 2000000);
-                        ai_diag_log("[FINAL_RECOMMENDATION_BUSY] idea_id={$ideaId} attempt=" . ($retry + 1) . " backoff=" . ($backoffUs / 1000000) . "s");
-                        if ($retry < $maxRetries) { usleep($backoffUs); continue; }
+            for ($retry = 0; $retry <= $maxRetries; $retry++) {
+                $attemptsMade = $retry + 1;
+                $userPrompt = $baseUserPrompt;
+                if ($retry > 0 && $rawText !== '') {
+                    $userPrompt .= "\n\nFORMAT_REPAIR_REQUIRED:\n"
+                        . "The previous answer did not satisfy the required JSON contract. Re-do the recommendation using the same input above. Return one complete JSON object only, with every required score from 0 to 100 and all required string/list fields. Do not use Markdown or commentary.\n"
+                        . "Previous answer to repair:\n"
+                        . mb_substr($rawText, 0, 12000);
+                }
+
+                $result = $aiSvc->execute('idea_final', [
+                    '__sys' => $sp . $this->localeInstruction(),
+                    '__usr' => $userPrompt,
+                    'response_format' => ['type' => 'json_object'],
+                ], $this->user()['user'] ?? []);
+                $resultMeta = is_array($result['result'] ?? null) ? $result['result'] : [];
+                $responseMode = (string)($resultMeta['mode'] ?? '');
+                $providerErrorCode = (string)($resultMeta['error_code'] ?? $result['code'] ?? '');
+
+                // AiActionService returns ok=true for its safe_mock envelope.
+                // That envelope is a provider failure, not malformed model JSON.
+                if (!($result['ok'] ?? false) || $responseMode !== 'llm' || $providerErrorCode !== '') {
+                    $lastFailureKind = 'provider_error';
+                    ai_diag_log("[FINAL_RECOMMENDATION_PROVIDER_FAILURE] idea_id={$ideaId} attempt=" . ($retry + 1)
+                        . " mode=" . ($responseMode !== '' ? $responseMode : 'none')
+                        . " code=" . ($providerErrorCode !== '' ? $providerErrorCode : 'AI_ACTION_FAILED'));
+                    $retryableProviderErrors = [
+                        'AI_BUSY', 'AI_PROVIDER_TIMEOUT', 'AI_PROVIDER_CONNECTION_FAILED',
+                        'AI_PROVIDER_SERVER_ERROR', 'AI_PROVIDER_RATE_LIMITED',
+                        'AI_PROVIDER_CIRCUIT_OPEN', 'AI_PROVIDER_HTTP_ERROR',
+                        'AI_PROVIDER_INVALID_RESPONSE', 'AI_PROVIDER_UNAVAILABLE',
+                    ];
+                    if ($retry < $maxRetries && in_array($providerErrorCode, $retryableProviderErrors, true)) {
+                        usleep(($retry + 1) * 1000000);
+                        continue;
                     }
-                    ai_diag_log("[FINAL_RECOMMENDATION_AI_ERROR] idea_id={$ideaId} code={$errorCode} reason=" . ($result['reason'] ?? ''));
                     break;
                 }
 
-                $rawText = $result['result']['preview']['summary'] ?? '';
-                $parsed = $this->extractAiJson($rawText);
-                if ($parsed['ok'] && is_array($parsed['data'])) {
-                    $parsed['data'] = $this->normalizeFinalRecommendationData($parsed['data']);
+                $rawText = (string)($resultMeta['preview']['summary'] ?? '');
+                $structured = $this->extractStructuredResult($result);
+                if ($structured !== null) {
+                    $parsed = ['ok' => true, 'data' => $structured];
+                    if ($rawText === '') {
+                        $rawText = json_encode($structured, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) ?: '';
+                    }
+                } else {
+                    $parsed = $this->extractAiJson($rawText);
                 }
-                if ($parsed['ok'] && !empty($parsed['data']['final_recommendation'])) break;
-                ai_diag_log("[FINAL_RECOMMENDATION_RETRY] idea_id={$ideaId} attempt=" . ($retry + 1) . " error=" . ($parsed['error'] ?? 'invalid_resp') . " text_len=" . strlen($rawText));
+                if ($parsed['ok'] && is_array($parsed['data'])) {
+                    $normalized = $this->normalizeFinalRecommendationData($parsed['data']);
+                    $validation = $this->validateFinalRecommendationData($normalized);
+                    if ($validation['ok']) {
+                        $parsed = ['ok' => true, 'data' => $validation['data']];
+                        $providerErrorCode = '';
+                        break;
+                    }
+                    $parsed = ['ok' => false, 'data' => null, 'error' => $validation['error']];
+                    $lastFailureKind = 'invalid_ai_schema';
+                } else {
+                    $lastFailureKind = 'invalid_ai_json';
+                }
+                ai_diag_log("[FINAL_RECOMMENDATION_RETRY] idea_id={$ideaId} attempt=" . ($retry + 1)
+                    . " error=" . ($parsed['error'] ?? 'invalid_resp') . " text_len=" . strlen($rawText));
                 if ($retry < $maxRetries) usleep(1000000);
             }
 
@@ -2786,12 +2860,30 @@ PROMPT;
             $iterStmt = $pdo->prepare("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id = :iid");
             $iterStmt->execute(['iid' => $ideaId]);
             $iter = (int)$iterStmt->fetchColumn();
-            $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'final_recommendation', :req, :res, NOW())")->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
+            $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'final_recommendation', :req, :res, NOW())")->execute([
+                'pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter,
+                'req' => json_encode(['system_prompt' => $sp, 'payload' => $payload, 'attempts' => $attemptsMade], JSON_UNESCAPED_UNICODE),
+                'res' => json_encode([
+                    'raw_text' => $rawText,
+                    'mode' => $responseMode !== '' ? $responseMode : null,
+                    'provider_error_code' => $providerErrorCode !== '' ? $providerErrorCode : null,
+                    'failure_kind' => $parsed['ok'] ? null : $lastFailureKind,
+                    'parse_error' => $parsed['error'] ?? null,
+                    'attempts' => $attemptsMade,
+                ], JSON_UNESCAPED_UNICODE),
+            ]);
 
             $data = $parsed['ok'] && is_array($parsed['data']) ? $parsed['data'] : null;
             if (!is_array($data) || empty($data['final_recommendation'])) {
-                ai_diag_log("[FINAL_RECOMMENDATION_PARSE_FAIL] text_len=".strlen($rawText)." parse_error=".($parsed['error'] ?? 'unknown')." preview=".substr($rawText, 0, 300));
-                $data = $this->buildFallbackFinalRecommendationData($blocks, (string)($parsed['error'] ?? 'invalid_ai_json'));
+                if ($lastFailureKind === 'provider_error') {
+                    ai_diag_log("[FINAL_RECOMMENDATION_PROVIDER_EXHAUSTED] idea_id={$ideaId} code=" . ($providerErrorCode !== '' ? $providerErrorCode : 'AI_ACTION_FAILED'));
+                } else {
+                    ai_diag_log("[FINAL_RECOMMENDATION_PARSE_FAIL] text_len=".strlen($rawText)." parse_error=".($parsed['error'] ?? 'unknown')." preview=".substr($rawText, 0, 300));
+                }
+                $reason = $lastFailureKind === 'provider_error'
+                    ? 'provider_error:' . ($providerErrorCode !== '' ? $providerErrorCode : 'AI_ACTION_FAILED')
+                    : (string)($parsed['error'] ?? $lastFailureKind);
+                $data = $this->buildFallbackFinalRecommendationData($blocks, $reason);
             }
             if (empty($data['_fallback']) && !empty($dataGaps)) {
                 // Keep source quality alongside the saved recommendation so the
@@ -2813,6 +2905,11 @@ PROMPT;
             // Backend status override
             $status = $dcs < 35 ? 'collect_more_data' : ($blk >= 85 ? 'reject_current_form' : ($blk >= 75 ? 'postpone' : ($risk >= 75 && $pot < 70 ? 'reject_current_form' : ($calcScore >= 75 && $risk <= 55 && $dcs >= 60 ? 'proceed' : ($calcScore >= 60 && $pot >= 65 ? 'proceed_with_validation' : ($calcScore >= 45 ? 'refine_first' : ($calcScore < 45 && $blk < 75 ? 'postpone' : 'reject_current_form')))))));
             if ($calcScore < 35) $status = 'reject_current_form';
+            if (!empty($data['_fallback'])) {
+                // A provider outage or malformed completion says nothing about
+                // the idea itself. Keep the displayed recommendation neutral.
+                $status = 'refine_first';
+            }
 
             $labels = ['proceed' => $this->t('idea/messages.status_proceed'), 'proceed_with_validation' => $this->t('idea/messages.status_proceed_with_validation'), 'refine_first' => $this->t('idea/messages.status_refine_first'), 'collect_more_data' => $this->t('idea/messages.status_collect_more_data'), 'postpone' => $this->t('idea/messages.status_postpone'), 'reject_current_form' => $this->t('idea/messages.status_reject')];
 
@@ -2893,8 +2990,8 @@ PROMPT;
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
                 $result = $aiSvc->execute('idea_tasks', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'response_format' => ['type' => 'json_object']], $this->user()['user'] ?? []);
 
-                if (!($result['ok'] ?? false)) {
-                    $errorCode = $result['code'] ?? '';
+                if (!$this->isAiModelCompletion($result)) {
+                    $errorCode = $this->aiResponseErrorCode($result);
                     if ($errorCode === 'AI_BUSY') {
                         $backoffUs = max(5000000, ($retry + 1) * 2000000);
                         ai_diag_log("[TASKS_BUSY] idea_id={$ideaId} attempt=" . ($retry+1) . " backoff=" . ($backoffUs / 1000000) . "s");
@@ -4455,6 +4552,30 @@ PROMPT;
         return [$system, $user];
     }
 
+    /** True only for a successful completion produced by an AI model. */
+    private function isAiModelCompletion(mixed $response): bool
+    {
+        if (!is_array($response) || empty($response['ok'])) {
+            return false;
+        }
+        $result = is_array($response['result'] ?? null) ? $response['result'] : [];
+        return ($result['mode'] ?? 'llm') === 'llm' && empty($result['error_code']);
+    }
+
+    /** Extract the actionable provider failure from either service envelope shape. */
+    private function aiResponseErrorCode(mixed $response): string
+    {
+        if (!is_array($response)) {
+            return 'AI_ACTION_FAILED';
+        }
+        $result = is_array($response['result'] ?? null) ? $response['result'] : [];
+        $code = trim((string)($response['code'] ?? $result['error_code'] ?? ''));
+        if ($code !== '') {
+            return $code;
+        }
+        return ($result['mode'] ?? '') === 'safe_mock' ? 'AI_SAFE_MOCK' : 'AI_ACTION_FAILED';
+    }
+
     /**
      * Refuse provider errors, safe mocks, and unstructured responses instead
      * of storing their wrapper as a completed idea analysis.
@@ -4462,15 +4583,11 @@ PROMPT;
      */
     private function requireStructuredAiResult(mixed $response, string $stepKey): array
     {
-        if (!is_array($response) || empty($response['ok'])) {
-            $code = is_array($response) ? (string)($response['code'] ?? 'AI_ACTION_FAILED') : 'AI_ACTION_FAILED';
-            throw new \RuntimeException("AI analysis failed ({$code}) for {$stepKey}.");
-        }
-        $result = is_array($response['result'] ?? null) ? $response['result'] : [];
-        if (($result['mode'] ?? 'llm') !== 'llm' || !empty($result['error_code'])) {
-            $code = (string)($result['error_code'] ?? 'AI_SAFE_MOCK');
+        if (!$this->isAiModelCompletion($response)) {
+            $code = $this->aiResponseErrorCode($response);
             throw new \RuntimeException("AI did not return a model result ({$code}) for {$stepKey}.");
         }
+        $result = is_array($response['result'] ?? null) ? $response['result'] : [];
 
         $structured = $this->extractStructuredResult($response);
         if ($structured === null || $structured === []) {
@@ -5502,19 +5619,44 @@ PROMPT;
         $plan = is_array($blocks['implementation_plan'] ?? null) ? (array)$blocks['implementation_plan'] : [];
         $card = is_array($blocks['understanding_card'] ?? null) ? (array)$blocks['understanding_card'] : [];
 
-        $potentialScore = (float)($potential['score'] ?? 45);
-        $riskScore = (float)($risks['overall_score'] ?? 45);
-        $dataScore = (float)($card['completeness'] ?? 35);
-        $planScore = !empty($plan['exists']) ? 50 : 30;
-        $feasibility = max(20, min(75, 55 - ($riskScore * 0.2) + ($planScore * 0.25)));
-        $blocker = $riskScore >= 75 ? 70 : 35;
-        $confidence = 35;
+        $providerFailure = str_starts_with($reason, 'provider_error:');
+        $potentialScore = $this->normalizePercentScore($potential['score'] ?? 0);
+        $riskScore = $this->normalizePercentScore($risks['overall_score'] ?? 0);
+        $dataScore = $this->normalizePercentScore($card['completeness'] ?? 0);
+        $planScore = $this->normalizePercentScore($plan['confidence'] ?? 0);
+        $hasRiskEvidence = !empty($risks['exists']);
+        $hasPotentialEvidence = !empty($potential['exists']);
+        $hasPlanEvidence = !empty($plan['exists']);
+        $feasibility = ($hasRiskEvidence || $hasPlanEvidence)
+            ? max(0, min(100, 60 - ($riskScore * 0.2) + ($planScore * 0.25)))
+            : 0;
+        $blocker = $hasRiskEvidence ? max(0, min(100, $riskScore * 0.7)) : 0;
+        $confidence = 0;
+        $missingFacts = array_values(array_filter(array_map(
+            static fn($item): string => trim(is_array($item) ? (string)($item['label'] ?? $item['text'] ?? $item['title'] ?? '') : (string)$item),
+            is_array($card['missing_facts'] ?? null) ? $card['missing_facts'] : []
+        )));
+        $availableBlocks = array_values(array_filter([
+            !empty($card['exists']) ? $this->t('idea/messages.fallback_final_block_understanding') : null,
+            $hasPotentialEvidence ? $this->t('idea/messages.fallback_final_block_potential') : null,
+            $hasRiskEvidence ? $this->t('idea/messages.fallback_final_block_risks') : null,
+            !empty($plan['exists']) ? $this->t('idea/messages.fallback_final_block_plan') : null,
+        ]));
+        $detailedVerdict = $providerFailure
+            ? $this->t('idea/messages.fallback_final_provider_detail')
+            : $this->t('idea/messages.fallback_final_parse_detail');
+        $condition = $providerFailure
+            ? $this->t('idea/messages.fallback_final_provider_action')
+            : $this->t('idea/messages.fallback_final_parse_action');
+        $summary = $providerFailure
+            ? $this->t('idea/messages.fallback_final_provider_summary')
+            : $this->t('idea/messages.fallback_final_parse_summary');
 
         return [
             'final_recommendation' => [
                 'status' => 'refine_first',
                 'status_label' => $this->t('idea/messages.fallback_status_refine_first'),
-                'recommendation_score' => 45,
+                'recommendation_score' => 0,
                 'potential_score' => max(0, min(100, $potentialScore)),
                 'feasibility_score' => round($feasibility),
                 'risk_score' => max(0, min(100, $riskScore)),
@@ -5523,22 +5665,47 @@ PROMPT;
                 'blocker_score' => $blocker,
                 'confidence_score' => $confidence,
                 'short_verdict' => $this->t('idea/messages.fallback_final_short_verdict'),
-                'detailed_verdict' => $this->t('idea/messages.fallback_final_detailed_verdict'),
-                'main_reasons' => [$this->t('idea/messages.fallback_final_reason1'), $this->t('idea/messages.fallback_final_reason2')],
+                'detailed_verdict' => $detailedVerdict,
+                'main_reasons' => array_values(array_filter([
+                    $availableBlocks !== [] ? $this->t('idea/messages.fallback_final_reason1') . ' ' . implode(', ', $availableBlocks) : null,
+                    $this->t('idea/messages.fallback_final_reason2'),
+                ])),
                 'positive_arguments' => [],
-                'negative_arguments' => [$this->t('idea/messages.fallback_final_negative')],
+                'negative_arguments' => [],
                 'critical_blockers' => [],
-                'conditions_to_proceed' => [$this->t('idea/messages.fallback_final_condition1'), $this->t('idea/messages.fallback_final_condition2')],
-                'what_to_validate_first' => [$this->t('idea/messages.fallback_validate_goal'), $this->t('idea/messages.fallback_validate_budget'), $this->t('idea/messages.fallback_validate_timeline'), $this->t('idea/messages.fallback_validate_risks'), $this->t('idea/messages.fallback_validate_responsible')],
-                'next_best_actions' => [$this->t('idea/messages.fallback_action_check_card'), $this->t('idea/messages.fallback_action_clarify_data'), $this->t('idea/messages.fallback_action_regenerate')],
+                'conditions_to_proceed' => array_values(array_filter([
+                    $missingFacts !== [] ? $this->t('idea/messages.fallback_final_condition1') : null,
+                    $condition,
+                ])),
+                'what_to_validate_first' => $missingFacts,
+                'next_best_actions' => array_values(array_filter([
+                    $missingFacts !== [] ? $this->t('idea/messages.fallback_action_clarify_data') : null,
+                    $this->t('idea/messages.fallback_action_regenerate'),
+                ])),
                 'what_can_go_wrong' => [$this->t('idea/messages.fallback_wrong_decision')],
-                'missing_data_that_affects_recommendation' => [$this->t('idea/messages.fallback_missing_ai_response')],
+                'missing_data_that_affects_recommendation' => $missingFacts,
                 'assumptions_used' => [],
-                'user_friendly_summary' => $this->t('idea/messages.fallback_final_summary'),
+                'user_friendly_summary' => $summary,
                 '_fallback' => true,
                 '_fallback_reason' => $reason,
             ],
         ];
+    }
+
+    /** Convert fractional confidence/completeness values to the shared 0–100 scale. */
+    private function normalizePercentScore(mixed $value): float
+    {
+        if (!is_numeric($value)) {
+            return 0.0;
+        }
+        $score = (float)$value;
+        if (!is_finite($score)) {
+            return 0.0;
+        }
+        if ($score > 0 && $score < 1) {
+            $score *= 100;
+        }
+        return round(max(0.0, min(100.0, $score)), 2);
     }
 
     /**
@@ -5548,6 +5715,14 @@ PROMPT;
     private function normalizeFinalRecommendationData(array $data): array
     {
         if (isset($data['final_recommendation']) && is_array($data['final_recommendation'])) {
+            foreach ([
+                'recommendation_score', 'potential_score', 'feasibility_score', 'risk_score',
+                'data_completeness_score', 'plan_quality_score', 'blocker_score', 'confidence_score',
+            ] as $scoreField) {
+                if (array_key_exists($scoreField, $data['final_recommendation'])) {
+                    $data['final_recommendation'][$scoreField] = $this->normalizePercentScore($data['final_recommendation'][$scoreField]);
+                }
+            }
             return $data;
         }
 
@@ -5584,7 +5759,72 @@ PROMPT;
                 : (is_string($explanations) ? [$explanations] : []);
         }
 
+        foreach ([
+            'recommendation_score', 'potential_score', 'feasibility_score', 'risk_score',
+            'data_completeness_score', 'plan_quality_score', 'blocker_score', 'confidence_score',
+        ] as $scoreField) {
+            if (array_key_exists($scoreField, $data)) {
+                $data[$scoreField] = $this->normalizePercentScore($data[$scoreField]);
+            }
+        }
+
         return ['final_recommendation' => $data];
+    }
+
+    /**
+     * Validate the minimum contract needed for a usable final recommendation.
+     * @param array<string,mixed> $data normalized response
+     * @return array{ok:bool,data:array<string,mixed>,error?:string}
+     */
+    private function validateFinalRecommendationData(array $data): array
+    {
+        $recommendation = $data['final_recommendation'] ?? null;
+        if (!is_array($recommendation) || $recommendation === []) {
+            return ['ok' => false, 'data' => [], 'error' => 'missing_final_recommendation'];
+        }
+
+        $statuses = ['proceed', 'proceed_with_validation', 'refine_first', 'collect_more_data', 'postpone', 'reject_current_form'];
+        if (!in_array((string)($recommendation['status'] ?? ''), $statuses, true)) {
+            return ['ok' => false, 'data' => [], 'error' => 'invalid_status'];
+        }
+
+        $scoreFields = [
+            'potential_score', 'feasibility_score', 'risk_score', 'data_completeness_score',
+            'plan_quality_score', 'blocker_score', 'confidence_score',
+        ];
+        foreach ($scoreFields as $field) {
+            if (!isset($recommendation[$field]) || !is_numeric($recommendation[$field])) {
+                return ['ok' => false, 'data' => [], 'error' => 'invalid_score:' . $field];
+            }
+            $score = (float)$recommendation[$field];
+            if (!is_finite($score) || $score < 0 || $score > 100) {
+                return ['ok' => false, 'data' => [], 'error' => 'score_out_of_range:' . $field];
+            }
+        }
+
+        foreach (['short_verdict', 'detailed_verdict', 'user_friendly_summary'] as $field) {
+            if (!isset($recommendation[$field]) || !is_string($recommendation[$field]) || trim($recommendation[$field]) === '') {
+                return ['ok' => false, 'data' => [], 'error' => 'missing_text:' . $field];
+            }
+        }
+
+        $listFields = [
+            'main_reasons', 'positive_arguments', 'negative_arguments', 'critical_blockers',
+            'conditions_to_proceed', 'what_to_validate_first', 'next_best_actions',
+            'what_can_go_wrong', 'missing_data_that_affects_recommendation', 'assumptions_used',
+        ];
+        foreach ($listFields as $field) {
+            if (!array_key_exists($field, $recommendation)) {
+                $recommendation[$field] = [];
+            } elseif (is_string($recommendation[$field])) {
+                $recommendation[$field] = trim($recommendation[$field]) === '' ? [] : [trim($recommendation[$field])];
+            } elseif (!is_array($recommendation[$field])) {
+                return ['ok' => false, 'data' => [], 'error' => 'invalid_list:' . $field];
+            }
+            $recommendation[$field] = array_values(array_filter($recommendation[$field], 'is_string'));
+        }
+        $data['final_recommendation'] = $recommendation;
+        return ['ok' => true, 'data' => $data];
     }
 
     /**
