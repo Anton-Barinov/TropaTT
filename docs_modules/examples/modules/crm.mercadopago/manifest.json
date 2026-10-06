@@ -1,0 +1,93 @@
+{
+    "name": "crm.mercadopago",
+    "version": "1.0.0",
+    "vendor": "crm",
+    "author": "Anton Barinov",
+    "author_url": "https://github.com/Anton-Barinov",
+    "title": "Mercado Pago Payments (Brazil)",
+    "description": "Создание платёжных ссылок (Checkout Pro / Pix) и сверка статусов платежей через официальный API Mercado Pago",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "category": "payments",
+    "dependencies": [],
+    "require_permissions": [
+        "settings.view",
+        "settings.edit",
+        "finance.view",
+        "finance.edit"
+    ],
+    "service_provider": "Module\\Crm\\MercadoPago\\MercadoPagoServiceProvider",
+    "migrations": "api/migrations",
+    "api_routes": "api/config/routes.php",
+    "web_routes": "web/config/routes.php",
+    "menu_items": [
+        {
+            "id": "mercadopago-payments",
+            "title": "Платежи Mercado Pago",
+            "route": "mercadopago",
+            "icon": "credit-card",
+            "permission": "finance.view"
+        }
+    ],
+    "assets": {
+        "css": [
+            "web/assets/css/mercadopago.css"
+        ],
+        "js": [
+            "web/assets/js/mercadopago.js"
+        ]
+    },
+    "mcp_tools": [
+        {
+            "name": "mercadopago_create_payment_link",
+            "description": "Create a checkout payment link via Mercado Pago Preference API",
+            "handler": "Module\\Crm\\MercadoPago\\Mcp\\CreatePaymentLinkTool",
+            "permissions": ["finance.edit"],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "description": "Item or service title"
+                    },
+                    "amount": {
+                        "type": "number",
+                        "description": "Payment amount in BRL"
+                    },
+                    "currency_id": {
+                        "type": "string",
+                        "default": "BRL",
+                        "description": "Currency code"
+                    },
+                    "external_reference": {
+                        "type": "string",
+                        "description": "Internal reference (e.g. order or project public ID)"
+                    }
+                },
+                "required": ["title", "amount"],
+                "additionalProperties": false
+            }
+        },
+        {
+            "name": "mercadopago_check_payment_status",
+            "description": "Check and reconcile payment status by external reference or payment ID",
+            "handler": "Module\\Crm\\MercadoPago\\Mcp\\CheckPaymentStatusTool",
+            "permissions": ["finance.view"],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "payment_public_id": {
+                        "type": "string",
+                        "description": "Internal payment transaction ID"
+                    }
+                },
+                "required": ["payment_public_id"],
+                "additionalProperties": false
+            }
+        }
+    ]
+}
