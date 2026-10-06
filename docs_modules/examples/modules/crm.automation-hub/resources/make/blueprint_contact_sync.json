@@ -1,0 +1,19 @@
+{
+  "name": "TropaTT CRM - Contact and Intake Sync",
+  "version": 1,
+  "flow": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "version": 1,
+      "parameters": {
+        "hook": 12345
+      }
+    },
+    {
+      "id": 2,
+      "module": "json:ParseJSON",
+      "version": 1
+    }
+  ]
+}

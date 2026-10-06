@@ -1,0 +1,72 @@
+{
+    "name": "crm.automation-hub",
+    "version": "1.0.0",
+    "vendor": "crm",
+    "author": "Anton Barinov",
+    "author_url": "https://github.com/Anton-Barinov",
+    "title": "n8n and Make Automation Hub",
+    "description": "Двусторонняя автоматизация процессов с n8n и Make: готовые шаблоны, сопоставление полей, HMAC-подписи и журнал доставки",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "category": "integrations",
+    "dependencies": [],
+    "require_permissions": [
+        "settings.view",
+        "settings.edit"
+    ],
+    "service_provider": "Module\\Crm\\AutomationHub\\AutomationHubServiceProvider",
+    "migrations": "api/migrations",
+    "api_routes": "api/config/routes.php",
+    "web_routes": "web/config/routes.php",
+    "menu_items": [
+        {
+            "id": "automation-hub",
+            "title": "Автоматизация (n8n/Make)",
+            "route": "automation-hub",
+            "icon": "zap",
+            "permission": "settings.edit"
+        }
+    ],
+    "assets": {
+        "css": [
+            "web/assets/css/automation-hub.css"
+        ],
+        "js": [
+            "web/assets/js/automation-hub.js"
+        ]
+    },
+    "mcp_tools": [
+        {
+            "name": "automation_list_recipes",
+            "description": "List configured automation recipes for n8n and Make",
+            "handler": "Module\\Crm\\AutomationHub\\Mcp\\ListRecipesTool",
+            "permissions": ["settings.view"],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+            }
+        },
+        {
+            "name": "automation_test_webhook",
+            "description": "Send test webhook payload with HMAC-SHA256 signature to n8n or Make endpoint",
+            "handler": "Module\\Crm\\AutomationHub\\Mcp\\TestWebhookTool",
+            "permissions": ["settings.edit"],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "recipe_public_id": {
+                        "type": "string",
+                        "description": "Public ID of the automation recipe"
+                    }
+                },
+                "required": ["recipe_public_id"],
+                "additionalProperties": false
+            }
+        }
+    ]
+}
