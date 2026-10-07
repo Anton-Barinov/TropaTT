@@ -309,9 +309,16 @@ The updater uses a nonblocking PHP `flock` on
 `storage_api/release-coordinator/installation-release.lock` while executing
 `apply`, `resume`, `rollback`, or `force-unlock`. Authenticated rescue actions
 that remove maintenance mode or the updater job lock use the same guard.
-When another process holds it, updater mutations return HTTP 409 with
-`DEPLOYMENT_BUSY`; recovery actions show a retry message and preserve their
-files. Read-only status requests remain available.
+Installed API and web front-controller requests hold a shared lock on this
+same inode until request shutdown. An updater or release supervisor takes the
+exclusive lock; it waits for existing PHP requests and guarded workers to
+finish, then rejects new requests before application code runs. A busy API
+request receives HTTP 503 with `DEPLOYMENT_BUSY` and `Retry-After`; web requests
+receive a short retry page. If lock storage or permissions are unavailable,
+requests fail closed with `DEPLOYMENT_GUARD_UNAVAILABLE`; they do not continue
+without the fence. An unconfigured fresh install does not require the release
+lock. Recovery actions preserve their files when ownership is busy, while
+read-only updater status remains available outside an exclusive transition.
 
 The directory is private (0700), and the lock file is private (0600). The
 deployment supervisor must run as the installation's PHP/hosting user and hold
@@ -331,13 +338,26 @@ ownership or resumable update checks.
 
 CLI background writers (`scheduler.php`, `idea_analysis_worker.php`,
 `ai_cron.php`, `cron_push.php`, and `jobs_worker_run.php`) hold a shared lock
-on that inode for their complete pass. Shared workers can run concurrently;
-an exclusive deployment/update cannot overlap them. New workers skip before
-authentication, database access, or provider calls when maintenance is active
-or the exclusive lock is held. Invalid lock permissions cause a failure rather
-than an unguarded run. Run cron as the installation's hosting/PHP user.
+on that inode for their complete pass. Shared requests and workers can run
+concurrently; an exclusive deployment/update waits for them to drain and
+cannot overlap them. New workers skip before authentication, database access,
+or provider calls when maintenance is active or the exclusive lock is held.
+Invalid lock permissions cause a failure rather than an unguarded run. Run
+cron and the deployment supervisor as the installation's hosting/PHP user.
 The guard must be deployed before relying on it to drain old workers: an
 already-running older process does not retroactively acquire it.
+
+The release supervisor marks its owned maintenance flag with reason
+`deployment_pipeline`. While that reason is active, the API permits only
+read-only authentication/version/update-status routes needed for status and
+recovery pages; it blocks login, telemetry, notifications and every other
+application route, including writes between bounded backup or migration
+steps. The web front controller permits only GET requests for the login and
+admin-updates pages. If the supervisor stops mid-release, leave maintenance
+enabled and resume/reconcile from its durable run state; never clear this flag
+or restore the snapshot merely because a process or lease expired. Emergency
+recovery uses the existing protected updater rescue flow and its installation
+recovery key.
 
 The jobs CLI is standalone and uses the normal authenticated REST dispatcher
 in-process, without a loopback HTTP request or a private test bootstrap. Set

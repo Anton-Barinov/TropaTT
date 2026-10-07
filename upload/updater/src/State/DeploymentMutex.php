@@ -3,7 +3,14 @@ declare(strict_types=1);
 
 namespace Updater\State;
 
-/** Excludes updater writes while a deployment supervisor holds the same inode. */
+/**
+ * Installation-scoped request/update mutex on shared hosting.
+ *
+ * Normal API/web requests and cooperating background readers use a shared
+ * lock; updater and release mutations use the exclusive lock on the same
+ * permanent inode. The exclusive side therefore drains in-flight PHP work
+ * before changing files or the database. Never unlink the lock file.
+ */
 final class DeploymentMutex
 {
     /** @var resource|null */
