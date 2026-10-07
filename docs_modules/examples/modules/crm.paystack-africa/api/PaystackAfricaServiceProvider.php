@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace Module\Crm\PaystackAfrica;
 
-class PaystackAfricaServiceProvider
+use Api\System\Library\Container;
+use Api\System\Library\Module\AbstractModuleServiceProvider;
+
+class PaystackAfricaServiceProvider extends AbstractModuleServiceProvider
 {
-    public function register(): void
+    public function register(Container $container): void
     {
     }
 
-    public function boot(): void
+    public function boot(Container $container): void
     {
     }
 }

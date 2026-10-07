@@ -3,15 +3,15 @@ declare(strict_types=1);
 
 namespace Module\Crm\StarterKits\Web\Controller;
 
-use Web\Controller\BaseController;
+use Web\System\Core\Controller;
 
-final class StarterKitsWebController extends BaseController
+final class StarterKitsWebController extends Controller
 {
-    public function index(): string
+    public function index(): void
     {
-        $this->requirePermission('settings.view');
-        return $this->render(__DIR__ . '/../template/page/starter_kits.php', [
-            'page_title' => 'Стартовые комплекты',
+        $this->render(__DIR__ . '/../template/page/crm_starter_kits.php', [
+            'title' => 'Стартовые наборы отраслей',
+            'route' => 'module-starter-kits',
         ]);
     }
 }

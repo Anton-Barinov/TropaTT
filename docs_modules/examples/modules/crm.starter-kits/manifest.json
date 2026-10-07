@@ -1,6 +1,6 @@
 {
     "name": "crm.starter-kits",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
@@ -40,7 +40,9 @@
             "name": "starter_kits_list",
             "description": "List available workspace starter kits and their component summaries",
             "handler": "Module\\Crm\\StarterKits\\Mcp\\ListKitsTool",
-            "permissions": ["settings.view"],
+            "permissions": [
+                "settings.view"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {
@@ -58,7 +60,9 @@
             "name": "starter_kits_preview",
             "description": "Preview diff and potential conflicts before applying a starter kit to workspace",
             "handler": "Module\\Crm\\StarterKits\\Mcp\\PreviewKitTool",
-            "permissions": ["settings.view"],
+            "permissions": [
+                "settings.view"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {
@@ -73,7 +77,9 @@
                         "description": "Target locale code"
                     }
                 },
-                "required": ["kit_id"],
+                "required": [
+                    "kit_id"
+                ],
                 "additionalProperties": false
             }
         },
@@ -81,7 +87,9 @@
             "name": "starter_kits_apply",
             "description": "Apply selected starter kit components idempotently to current workspace",
             "handler": "Module\\Crm\\StarterKits\\Mcp\\ApplyKitTool",
-            "permissions": ["settings.edit"],
+            "permissions": [
+                "settings.edit"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {
@@ -93,7 +101,9 @@
                     },
                     "selected_components": {
                         "type": "array",
-                        "items": {"type": "string"},
+                        "items": {
+                            "type": "string"
+                        },
                         "description": "Components to apply (statuses, roles, project_templates, task_templates, knowledge_spaces)"
                     },
                     "locale": {
@@ -101,7 +111,9 @@
                         "description": "Target locale code"
                     }
                 },
-                "required": ["kit_id"],
+                "required": [
+                    "kit_id"
+                ],
                 "additionalProperties": false
             }
         }

@@ -1,6 +1,6 @@
 {
     "name": "crm.outlook-calendar",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
@@ -42,7 +42,9 @@
             "name": "outlook_calendar_status",
             "description": "Get Microsoft Outlook Calendar connection and sync status",
             "handler": "Module\\Crm\\OutlookCalendar\\Mcp\\CalendarStatusTool",
-            "permissions": ["calendar.view"],
+            "permissions": [
+                "calendar.view"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {
@@ -55,7 +57,9 @@
             "name": "outlook_calendar_sync",
             "description": "Trigger manual or cron delta sync for Outlook Calendar",
             "handler": "Module\\Crm\\OutlookCalendar\\Mcp\\CalendarSyncTool",
-            "permissions": ["calendar.edit"],
+            "permissions": [
+                "calendar.edit"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {
@@ -63,7 +67,11 @@
                 "properties": {
                     "direction": {
                         "type": "string",
-                        "enum": ["both", "pull", "push"],
+                        "enum": [
+                            "both",
+                            "pull",
+                            "push"
+                        ],
                         "description": "Sync direction"
                     }
                 },

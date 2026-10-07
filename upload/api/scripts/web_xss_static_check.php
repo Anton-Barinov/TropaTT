@@ -23,7 +23,16 @@ function normalizeSinkLine(string $line): string
         return '';
     }
     if (preg_match('/^(.+?):\\d+:(.*)$/', $trim, $m) === 1) {
-        return $m[1] . '::' . $m[2];
+        $path = str_replace('\\', '/', $m[1]);
+        // The historical baseline predates the upload/ deployment directory.
+        // Anchor on the stable asset path so checkout and install-root prefixes
+        // do not make every unchanged sink look new.
+        $assetMarker = '/web/assets/js/';
+        $markerAt = strrpos($path, $assetMarker);
+        if ($markerAt !== false) {
+            $path = substr($path, $markerAt + 1);
+        }
+        return $path . '::' . $m[2];
     }
     return $trim;
 }

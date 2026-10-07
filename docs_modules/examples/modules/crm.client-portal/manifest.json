@@ -1,6 +1,6 @@
 {
     "name": "crm.client-portal",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
@@ -39,7 +39,9 @@
             "name": "portal_list_requests",
             "description": "List client service requests with status and SLA metrics",
             "handler": "Module\\Crm\\ClientPortal\\Mcp\\ListRequestsTool",
-            "permissions": ["client.view"],
+            "permissions": [
+                "client.view"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {
@@ -57,7 +59,9 @@
             "name": "portal_resolve_approval",
             "description": "Resolve service estimate or deliverable approval (approve or reject)",
             "handler": "Module\\Crm\\ClientPortal\\Mcp\\ResolveApprovalTool",
-            "permissions": ["client.view"],
+            "permissions": [
+                "client.view"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {
@@ -73,7 +77,10 @@
                     },
                     "decision": {
                         "type": "string",
-                        "enum": ["approved", "rejected"],
+                        "enum": [
+                            "approved",
+                            "rejected"
+                        ],
                         "description": "Decision"
                     },
                     "note": {
@@ -81,7 +88,11 @@
                         "description": "Optional resolution note"
                     }
                 },
-                "required": ["approval_public_id", "client_public_id", "decision"],
+                "required": [
+                    "approval_public_id",
+                    "client_public_id",
+                    "decision"
+                ],
                 "additionalProperties": false
             }
         }

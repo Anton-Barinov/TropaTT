@@ -1,8 +1,8 @@
 <?php
+declare(strict_types=1);
+
+use Module\Crm\Dropbox\Web\Controller\DropboxWebController;
 
 return [
-    'GET /dropbox' => [
-        'handler' => 'Module\\Crm\\Dropbox\\Web\\DropboxWebController@index',
-        'permission' => 'settings.edit'
-    ]
+    'module-dropbox' => [DropboxWebController::class, 'index'],
 ];

@@ -1,6 +1,6 @@
 {
     "name": "crm.zoom",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
@@ -42,7 +42,9 @@
             "name": "zoom_status",
             "description": "Проверить статус интеграции с Zoom API (OAuth Server-to-Server, квоты и вебхуки)",
             "handler": "Module\\Crm\\Zoom\\Mcp\\ZoomStatusTool",
-            "permissions": ["calendar.view"],
+            "permissions": [
+                "calendar.view"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {
@@ -55,7 +57,9 @@
             "name": "zoom_create_meeting",
             "description": "Создать встречу в Zoom с автоматической привязкой к календарю, задаче или сделке CRM",
             "handler": "Module\\Crm\\Zoom\\Mcp\\ZoomCreateMeetingTool",
-            "permissions": ["calendar.edit"],
+            "permissions": [
+                "calendar.edit"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {
@@ -94,7 +98,10 @@
                         "description": "Пароль для подключения (опционально, генерируется автоматически)"
                     }
                 },
-                "required": ["topic", "start_time"],
+                "required": [
+                    "topic",
+                    "start_time"
+                ],
                 "additionalProperties": false
             }
         }

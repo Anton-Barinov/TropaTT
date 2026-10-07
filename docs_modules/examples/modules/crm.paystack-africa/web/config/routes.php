@@ -1,8 +1,8 @@
 <?php
+declare(strict_types=1);
+
+use Module\Crm\PaystackAfrica\Web\Controller\PaystackAfricaWebController;
 
 return [
-    'GET /paystack-africa' => [
-        'handler' => 'Module\\Crm\\PaystackAfrica\\Web\\PaystackAfricaWebController@index',
-        'permission' => 'finance.view'
-    ]
+    'module-paystack-africa' => [PaystackAfricaWebController::class, 'index'],
 ];

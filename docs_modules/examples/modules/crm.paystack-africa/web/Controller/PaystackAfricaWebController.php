@@ -1,13 +1,17 @@
 <?php
-
 declare(strict_types=1);
 
-namespace Module\Crm\PaystackAfrica\Web;
+namespace Module\Crm\PaystackAfrica\Web\Controller;
 
-class PaystackAfricaWebController
+use Web\System\Core\Controller;
+
+final class PaystackAfricaWebController extends Controller
 {
-    public function index(): string
+    public function index(): void
     {
-        return '<div class="crm-paystack-wrap"><h2>Paystack Africa Payments</h2><p>Payment links & settlements console</p></div>';
+        $this->render(__DIR__ . '/../template/page/crm_paystack_africa.php', [
+            'title' => 'Paystack Платежи',
+            'route' => 'module-paystack-africa',
+        ]);
     }
 }

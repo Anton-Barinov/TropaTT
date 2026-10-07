@@ -1,8 +1,8 @@
 <?php
+declare(strict_types=1);
+
+use Module\Crm\HubspotMigration\Web\Controller\HubSpotMigrationWebController;
 
 return [
-    'GET /hubspot-migration' => [
-        'handler' => 'Module\\Crm\\HubSpotMigration\\Web\\HubSpotMigrationWebController@index',
-        'permission' => 'settings.edit'
-    ]
+    'module-hubspot-migration' => [HubSpotMigrationWebController::class, 'index'],
 ];

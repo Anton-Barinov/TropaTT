@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Module\Crm\VkWorkspace;
 
+use Api\System\Library\Container;
+use Api\System\Library\Module\AbstractModuleServiceProvider;
+
 use Module\Crm\VkWorkspace\Service\VkWorkspaceService;
 
-class VkWorkspaceServiceProvider
+class VkWorkspaceServiceProvider extends AbstractModuleServiceProvider
 {
     private \PDO $db;
     private array $config;
@@ -17,12 +20,12 @@ class VkWorkspaceServiceProvider
         $this->config = $config;
     }
 
-    public function register(): void
+    public function register(Container $container): void
     {
         // Service registration in CRM container
     }
 
-    public function boot(): void
+    public function boot(Container $container): void
     {
         // Hooks & background worker registration
     }

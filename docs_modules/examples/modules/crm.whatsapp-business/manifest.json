@@ -1,6 +1,6 @@
 {
     "name": "crm.whatsapp-business",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
@@ -40,7 +40,9 @@
             "name": "whatsapp_list_inbox",
             "description": "List WhatsApp customer conversations in team inbox",
             "handler": "Module\\Crm\\WhatsAppBusiness\\Mcp\\ListInboxTool",
-            "permissions": ["settings.view"],
+            "permissions": [
+                "settings.view"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {

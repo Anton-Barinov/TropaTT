@@ -1,6 +1,6 @@
 {
     "name": "crm.vk-workspace",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
@@ -42,7 +42,9 @@
             "name": "vk_workspace_status",
             "description": "Проверить статус интеграции с VK WorkSpace (VK Звонки, Календарь, Teams)",
             "handler": "Module\\Crm\\VkWorkspace\\Mcp\\VkStatusTool",
-            "permissions": ["calendar.view"],
+            "permissions": [
+                "calendar.view"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {
@@ -55,7 +57,9 @@
             "name": "vk_workspace_schedule_meeting",
             "description": "Запланировать встречу в календаре CRM с автоматическим созданием онлайн-комнаты VK Звонков и оповещением в VK Teams",
             "handler": "Module\\Crm\\VkWorkspace\\Mcp\\VkScheduleMeetingTool",
-            "permissions": ["calendar.edit"],
+            "permissions": [
+                "calendar.edit"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {
@@ -91,11 +95,16 @@
                     },
                     "participants": {
                         "type": "array",
-                        "items": { "type": "string" },
+                        "items": {
+                            "type": "string"
+                        },
                         "description": "Список email адресов или логинов участников"
                     }
                 },
-                "required": ["title", "starts_at"],
+                "required": [
+                    "title",
+                    "starts_at"
+                ],
                 "additionalProperties": false
             }
         }

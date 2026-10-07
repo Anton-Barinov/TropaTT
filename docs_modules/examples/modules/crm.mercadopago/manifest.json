@@ -1,6 +1,6 @@
 {
     "name": "crm.mercadopago",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
@@ -42,7 +42,9 @@
             "name": "mercadopago_create_payment_link",
             "description": "Create a checkout payment link via Mercado Pago Preference API",
             "handler": "Module\\Crm\\MercadoPago\\Mcp\\CreatePaymentLinkTool",
-            "permissions": ["finance.edit"],
+            "permissions": [
+                "finance.edit"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {
@@ -66,7 +68,10 @@
                         "description": "Internal reference (e.g. order or project public ID)"
                     }
                 },
-                "required": ["title", "amount"],
+                "required": [
+                    "title",
+                    "amount"
+                ],
                 "additionalProperties": false
             }
         },
@@ -74,7 +79,9 @@
             "name": "mercadopago_check_payment_status",
             "description": "Check and reconcile payment status by external reference or payment ID",
             "handler": "Module\\Crm\\MercadoPago\\Mcp\\CheckPaymentStatusTool",
-            "permissions": ["finance.view"],
+            "permissions": [
+                "finance.view"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {
@@ -85,7 +92,9 @@
                         "description": "Internal payment transaction ID"
                     }
                 },
-                "required": ["payment_public_id"],
+                "required": [
+                    "payment_public_id"
+                ],
                 "additionalProperties": false
             }
         }

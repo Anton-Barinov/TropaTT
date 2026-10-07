@@ -1,6 +1,6 @@
 {
     "name": "crm.storage-connectors",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
@@ -40,7 +40,9 @@
             "name": "storage_preflight_check",
             "description": "Perform environment and network preflight check for external storage capabilities",
             "handler": "Module\\Crm\\StorageConnectors\\Mcp\\PreflightTool",
-            "permissions": ["settings.view"],
+            "permissions": [
+                "settings.view"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {
@@ -53,7 +55,9 @@
             "name": "storage_config_status",
             "description": "Get current external storage provider configuration and health status for workspace",
             "handler": "Module\\Crm\\StorageConnectors\\Mcp\\ConfigStatusTool",
-            "permissions": ["settings.view"],
+            "permissions": [
+                "settings.view"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {
@@ -66,7 +70,9 @@
             "name": "storage_test_connection",
             "description": "Test connection and write/read verification against remote S3 or WebDAV backend",
             "handler": "Module\\Crm\\StorageConnectors\\Mcp\\TestConnectionTool",
-            "permissions": ["settings.edit"],
+            "permissions": [
+                "settings.edit"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {
@@ -74,11 +80,16 @@
                 "properties": {
                     "provider_type": {
                         "type": "string",
-                        "enum": ["s3", "nextcloud_webdav"],
+                        "enum": [
+                            "s3",
+                            "nextcloud_webdav"
+                        ],
                         "description": "Provider type to test"
                     }
                 },
-                "required": ["provider_type"],
+                "required": [
+                    "provider_type"
+                ],
                 "additionalProperties": false
             }
         }

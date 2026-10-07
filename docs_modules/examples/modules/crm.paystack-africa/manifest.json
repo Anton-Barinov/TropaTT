@@ -1,6 +1,6 @@
 {
     "name": "crm.paystack-africa",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
@@ -42,7 +42,9 @@
             "name": "paystack_initialize_transaction",
             "description": "Initialize a payment checkout transaction and generate an authorization URL via Paystack API",
             "handler": "Module\\Crm\\PaystackAfrica\\Mcp\\InitializeTransactionTool",
-            "permissions": ["finance.edit"],
+            "permissions": [
+                "finance.edit"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {
@@ -66,7 +68,10 @@
                         "description": "Unique transaction reference"
                     }
                 },
-                "required": ["email", "amount"],
+                "required": [
+                    "email",
+                    "amount"
+                ],
                 "additionalProperties": false
             }
         },
@@ -74,7 +79,9 @@
             "name": "paystack_verify_transaction",
             "description": "Verify transaction status by reference via Paystack Verification API",
             "handler": "Module\\Crm\\PaystackAfrica\\Mcp\\VerifyTransactionTool",
-            "permissions": ["finance.view"],
+            "permissions": [
+                "finance.view"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {
@@ -85,7 +92,9 @@
                         "description": "Transaction reference"
                     }
                 },
-                "required": ["reference"],
+                "required": [
+                    "reference"
+                ],
                 "additionalProperties": false
             }
         }

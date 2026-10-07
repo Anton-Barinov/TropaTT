@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace Module\Crm\GoogleDrive;
 
-class GoogleDriveServiceProvider
+use Api\System\Library\Container;
+use Api\System\Library\Module\AbstractModuleServiceProvider;
+
+class GoogleDriveServiceProvider extends AbstractModuleServiceProvider
 {
-    public function register(): void
+    public function register(Container $container): void
     {
     }
 
-    public function boot(): void
+    public function boot(Container $container): void
     {
     }
 }

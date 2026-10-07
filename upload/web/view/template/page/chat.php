@@ -245,7 +245,12 @@
 
   function lastMessageText(chat) {
     if (String(chat.last_message_type || '') === 'attachment') return window.CRM.i18n.t('chat.last_msg_attachment', 'Файл или изображение');
-    return chat.last_message || window.CRM.i18n.t('chat.last_msg_empty', 'Сообщений пока нет');
+    var raw = chat.last_message;
+    if (!raw) return window.CRM.i18n.t('chat.last_msg_empty', 'Сообщений пока нет');
+    if (window.CRM && window.CRM.chat && typeof window.CRM.chat.stripMarkdown === 'function') {
+      return window.CRM.chat.stripMarkdown(raw);
+    }
+    return raw;
   }
 
   function updateListSummary() {
