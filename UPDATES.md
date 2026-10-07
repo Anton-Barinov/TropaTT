@@ -348,6 +348,13 @@ access. The CLI preserves the API's authentication, RBAC and workspace checks;
 it does not automatically apply migrations or provision an administrator.
 Do not put tokens in command-line arguments or logs.
 
+Updater maintenance is owned by its `job_id` and `core_update_apply` reason.
+Apply/rollback retries preserve the same flag; a different updater job cannot
+overwrite or remove it. A malformed or externally owned flag stops the operation
+and stays in place for authenticated recovery. Normal finalization and clean
+failure cleanup remove only the current job's flag under the installation mutex.
+The rescue path remains an explicit authenticated override, not normal cleanup.
+
 Background exclusion is one part of a consistent rollback checkpoint. The
 release supervisor must also account for browser/API requests already running
 before maintenance and use a verified database snapshot. Do not automatically
