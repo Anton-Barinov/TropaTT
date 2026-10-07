@@ -3,24 +3,46 @@ declare(strict_types=1);
 
 namespace Module\Crm\AutomationHub\Api\Controller;
 
-use Api\Controller\BaseController;
+use Api\Controller\Common\BaseController;
+use Api\System\Library\Http\JsonResponse;
 use Module\Crm\AutomationHub\Service\AutomationHubService;
-use Api\System\Library\Database\DatabaseConnectionPool;
 
 final class AutomationApiController extends BaseController
 {
-    public function listRecipes(): \Api\System\Library\Http\JsonResponse
+    private function service(): AutomationHubService
     {
-        $this->requirePermission('settings.view');
-        $orgId = (int)$this->currentOrganizationId();
-        $db = DatabaseConnectionPool::getConnection();
-        $service = new AutomationHubService($db);
-        return $this->success(['recipes' => $service->listRecipes($orgId)]);
+        return new AutomationHubService($this->container->get('db.pdo'));
     }
 
-    public function saveRecipe(): \Api\System\Library\Http\JsonResponse
+    private function organizationId(): ?int
     {
-        $this->requirePermission('settings.edit');
+        $auth = $this->user();
+        $organizationId = (int)($auth['user']['organization_id'] ?? 0);
+        return $organizationId > 0 ? $organizationId : null;
+    }
+
+    private function organizationRequired(): ?JsonResponse
+    {
+        if ($this->organizationId() !== null) {
+            return null;
+        }
+        return $this->error('ORGANIZATION_CONTEXT_REQUIRED', 'Active workspace is required', 409);
+    }
+
+    public function listRecipes(): JsonResponse
+    {
+        if (($denied = $this->organizationRequired()) !== null) {
+            return $denied;
+        }
+        $recipes = $this->service()->listRecipes((int)$this->organizationId());
+        return $this->success('AUTOMATION_RECIPES_LIST', 'OK', ['recipes' => $recipes]);
+    }
+
+    public function saveRecipe(): JsonResponse
+    {
+        if (($denied = $this->organizationRequired()) !== null) {
+            return $denied;
+        }
         $input = $this->request()->allInput();
         $platform = (string)($input['platform'] ?? 'n8n');
         $recipeKey = (string)($input['recipe_key'] ?? '');
@@ -33,34 +55,40 @@ final class AutomationApiController extends BaseController
             return $this->error('VALIDATION_ERROR', 'recipe_key, title, and webhook_endpoint_url are required', 422);
         }
 
-        $orgId = (int)$this->currentOrganizationId();
-        $db = DatabaseConnectionPool::getConnection();
-        $service = new AutomationHubService($db);
-        $pubId = $service->saveRecipe($orgId, $platform, $recipeKey, $title, $url, $secret, $mappings);
+        $publicId = $this->service()->saveRecipe(
+            (int)$this->organizationId(),
+            $platform,
+            $recipeKey,
+            $title,
+            $url,
+            $secret,
+            $mappings
+        );
 
-        return $this->success(['public_id' => $pubId]);
+        return $this->success('AUTOMATION_RECIPE_SAVED', 'OK', ['public_id' => $publicId]);
     }
 
-    public function testWebhook(): \Api\System\Library\Http\JsonResponse
+    public function testWebhook(): JsonResponse
     {
-        $this->requirePermission('settings.edit');
+        if (($denied = $this->organizationRequired()) !== null) {
+            return $denied;
+        }
         $input = $this->request()->allInput();
-        $recipePubId = (string)($input['recipe_public_id'] ?? '');
-        if ($recipePubId === '') {
+        $recipePublicId = (string)($input['recipe_public_id'] ?? '');
+        if ($recipePublicId === '') {
             return $this->error('VALIDATION_ERROR', 'recipe_public_id is required', 422);
         }
 
-        $db = DatabaseConnectionPool::getConnection();
-        $service = new AutomationHubService($db);
         try {
-            $res = $service->dispatch($recipePubId, 'test.ping', [
+            $result = $this->service()->dispatch($recipePublicId, 'test.ping', [
                 'ping' => 'pong',
                 'timestamp' => time(),
                 'sender' => 'TropaTT Automation Hub',
             ]);
-            return $this->success($res);
         } catch (\Throwable $e) {
             return $this->error('DISPATCH_ERROR', $e->getMessage(), 400);
         }
+
+        return $this->success('AUTOMATION_WEBHOOK_DISPATCHED', 'OK', $result);
     }
 }

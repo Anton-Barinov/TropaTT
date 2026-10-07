@@ -20,7 +20,7 @@
   const loadStatus = () => {
     const statusMeta = $('athubStatusMeta');
     if (statusMeta) statusMeta.textContent = 'Проверка соединения…';
-    const statusApiUrl = '/api/v1/modules/crm.automation-hub/recipes';
+    const statusApiUrl = '_module/crm.automation-hub/recipes';
     if (!statusApiUrl) {
       if (statusMeta) statusMeta.textContent = 'Сервис активен и готов к работе';
       return;
