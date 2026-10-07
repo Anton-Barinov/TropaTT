@@ -1,6 +1,6 @@
 {
     "name": "crm.dropbox",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
@@ -42,7 +42,9 @@
             "name": "dropbox_status",
             "description": "Get current connection status, account email and space usage on Dropbox",
             "handler": "Module\\Crm\\Dropbox\\Mcp\\DropboxStatusTool",
-            "permissions": ["settings.view"],
+            "permissions": [
+                "settings.view"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {
@@ -55,7 +57,9 @@
             "name": "dropbox_sync_project_files",
             "description": "Sync files of a project or task to a structured Dropbox folder and generate shared links",
             "handler": "Module\\Crm\\Dropbox\\Mcp\\SyncProjectFilesTool",
-            "permissions": ["files.create"],
+            "permissions": [
+                "files.create"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {
@@ -71,12 +75,17 @@
                     },
                     "visibility": {
                         "type": "string",
-                        "enum": ["public", "team_only"],
+                        "enum": [
+                            "public",
+                            "team_only"
+                        ],
                         "default": "public",
                         "description": "Shared link access level"
                     }
                 },
-                "required": ["file_public_id"],
+                "required": [
+                    "file_public_id"
+                ],
                 "additionalProperties": false
             }
         }

@@ -1,6 +1,6 @@
 {
     "name": "crm.automation-hub",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
@@ -40,7 +40,9 @@
             "name": "automation_list_recipes",
             "description": "List configured automation recipes for n8n and Make",
             "handler": "Module\\Crm\\AutomationHub\\Mcp\\ListRecipesTool",
-            "permissions": ["settings.view"],
+            "permissions": [
+                "settings.view"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {
@@ -53,7 +55,9 @@
             "name": "automation_test_webhook",
             "description": "Send test webhook payload with HMAC-SHA256 signature to n8n or Make endpoint",
             "handler": "Module\\Crm\\AutomationHub\\Mcp\\TestWebhookTool",
-            "permissions": ["settings.edit"],
+            "permissions": [
+                "settings.edit"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {
@@ -64,7 +68,9 @@
                         "description": "Public ID of the automation recipe"
                     }
                 },
-                "required": ["recipe_public_id"],
+                "required": [
+                    "recipe_public_id"
+                ],
                 "additionalProperties": false
             }
         }

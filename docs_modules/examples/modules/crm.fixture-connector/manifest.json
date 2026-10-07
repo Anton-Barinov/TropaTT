@@ -1,6 +1,6 @@
 {
     "name": "crm.fixture-connector",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
@@ -26,7 +26,9 @@
             "name": "fixture_connector_ping",
             "description": "Ping the fixture connector and return workspace diagnostic status",
             "handler": "Module\\Crm\\FixtureConnector\\Mcp\\PingTool",
-            "permissions": ["settings.view"],
+            "permissions": [
+                "settings.view"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {
@@ -44,7 +46,10 @@
             "name": "fixture_connector_secure_action",
             "description": "Test tool with sensitive token output for redaction testing",
             "handler": "Module\\Crm\\FixtureConnector\\Mcp\\SecureActionTool",
-            "permissions": ["settings.view", "settings.edit"],
+            "permissions": [
+                "settings.view",
+                "settings.edit"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {

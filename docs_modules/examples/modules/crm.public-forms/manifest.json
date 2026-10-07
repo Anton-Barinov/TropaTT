@@ -1,6 +1,6 @@
 {
     "name": "crm.public-forms",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
@@ -40,7 +40,9 @@
             "name": "forms_list",
             "description": "List configured public intake and booking forms",
             "handler": "Module\\Crm\\PublicForms\\Mcp\\ListFormsTool",
-            "permissions": ["settings.view"],
+            "permissions": [
+                "settings.view"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {

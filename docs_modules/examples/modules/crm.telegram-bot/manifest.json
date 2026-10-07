@@ -1,6 +1,6 @@
 {
     "name": "crm.telegram-bot",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
@@ -40,7 +40,9 @@
             "name": "telegram_status",
             "description": "Get Telegram bot operational status and configuration check",
             "handler": "Module\\Crm\\TelegramBot\\Mcp\\BotStatusTool",
-            "permissions": ["settings.view"],
+            "permissions": [
+                "settings.view"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {

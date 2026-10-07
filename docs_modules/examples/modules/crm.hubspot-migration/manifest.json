@@ -1,6 +1,6 @@
 {
     "name": "crm.hubspot-migration",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
@@ -42,7 +42,9 @@
             "name": "hubspot_migration_status",
             "description": "Get HubSpot migration status, summary and staging statistics",
             "handler": "Module\\Crm\\HubSpotMigration\\Mcp\\MigrationStatusTool",
-            "permissions": ["settings.view"],
+            "permissions": [
+                "settings.view"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {
@@ -55,7 +57,9 @@
             "name": "hubspot_migration_run",
             "description": "Trigger preflight dry-run or live batch import from HubSpot payload",
             "handler": "Module\\Crm\\HubSpotMigration\\Mcp\\MigrationRunTool",
-            "permissions": ["settings.edit"],
+            "permissions": [
+                "settings.edit"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {
@@ -63,7 +67,11 @@
                 "properties": {
                     "mode": {
                         "type": "string",
-                        "enum": ["dry_run", "live_batch", "rollback"],
+                        "enum": [
+                            "dry_run",
+                            "live_batch",
+                            "rollback"
+                        ],
                         "description": "Execution mode"
                     },
                     "batch_size": {
@@ -71,7 +79,9 @@
                         "description": "Batch size for chunked execution (default 50)"
                     }
                 },
-                "required": ["mode"],
+                "required": [
+                    "mode"
+                ],
                 "additionalProperties": false
             }
         }

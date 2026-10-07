@@ -1,6 +1,6 @@
 {
     "name": "crm.corporate-mail",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
@@ -40,7 +40,9 @@
             "name": "mail_list_mailboxes",
             "description": "List configured corporate mailboxes and their sync statuses",
             "handler": "Module\\Crm\\CorporateMail\\Mcp\\ListMailboxesTool",
-            "permissions": ["settings.view"],
+            "permissions": [
+                "settings.view"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {

@@ -1,6 +1,6 @@
 {
     "name": "crm.yandex-disk",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
@@ -42,7 +42,9 @@
             "name": "yandex_disk_status",
             "description": "Get current connection status and available space on Yandex Disk",
             "handler": "Module\\Crm\\YandexDisk\\Mcp\\DiskStatusTool",
-            "permissions": ["settings.view"],
+            "permissions": [
+                "settings.view"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {
@@ -55,7 +57,9 @@
             "name": "yandex_disk_upload_file",
             "description": "Upload a local CRM file or backup archive to Yandex Disk using smart extension bypass (txt-proxy лайфхак) and publish shareable link",
             "handler": "Module\\Crm\\YandexDisk\\Mcp\\UploadFileTool",
-            "permissions": ["files.create"],
+            "permissions": [
+                "files.create"
+            ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {
@@ -75,7 +79,9 @@
                         "description": "Generate public direct link"
                     }
                 },
-                "required": ["file_public_id"],
+                "required": [
+                    "file_public_id"
+                ],
                 "additionalProperties": false
             }
         }
