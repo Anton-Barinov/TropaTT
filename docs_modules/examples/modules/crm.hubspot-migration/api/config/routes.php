@@ -1,12 +1,9 @@
 <?php
+declare(strict_types=1);
+
+use Module\Crm\HubSpotMigration\Controller\HubSpotMigrationApiController;
 
 return [
-    'GET /api/v1/modules/hubspot-migration/status' => [
-        'handler' => 'Module\\Crm\\HubSpotMigration\\Controller\\HubSpotMigrationApiController@getStatus',
-        'permission' => 'settings.view'
-    ],
-    'POST /api/v1/modules/hubspot-migration/stage' => [
-        'handler' => 'Module\\Crm\\HubSpotMigration\\Controller\\HubSpotMigrationApiController@stageBatch',
-        'permission' => 'settings.edit'
-    ]
+    ['methods' => ['GET'], 'route' => '/status', 'controller' => HubSpotMigrationApiController::class, 'action' => 'getStatus', 'auth' => true],
+    ['methods' => ['POST'], 'route' => '/stage', 'controller' => HubSpotMigrationApiController::class, 'action' => 'stageBatch', 'auth' => true],
 ];

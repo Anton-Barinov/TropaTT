@@ -1,8 +1,8 @@
 <?php
+declare(strict_types=1);
+
+use Module\Crm\YandexDisk\Controller\YandexDiskApiController;
 
 return [
-    'GET /api/v1/modules/yandex-disk/status' => [
-        'handler' => 'Module\\Crm\\YandexDisk\\Controller\\YandexDiskApiController@getStatus',
-        'permission' => 'settings.view'
-    ]
+    ['methods' => ['GET'], 'route' => '/status', 'controller' => YandexDiskApiController::class, 'action' => 'getStatus', 'auth' => true],
 ];

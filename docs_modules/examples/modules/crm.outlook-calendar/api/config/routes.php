@@ -1,8 +1,8 @@
 <?php
+declare(strict_types=1);
+
+use Module\Crm\OutlookCalendar\Controller\OutlookCalendarApiController;
 
 return [
-    'GET /api/v1/modules/outlook-calendar/status' => [
-        'handler' => 'Module\\Crm\\OutlookCalendar\\Controller\\OutlookCalendarApiController@getStatus',
-        'permission' => 'calendar.view'
-    ]
+    ['methods' => ['GET'], 'route' => '/status', 'controller' => OutlookCalendarApiController::class, 'action' => 'getStatus', 'auth' => true],
 ];

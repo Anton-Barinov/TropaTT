@@ -1,7 +1,10 @@
 <?php
 declare(strict_types=1);
 
-/** @var \Api\System\Library\Router $router */
-$router->get('/api/v1/modules/crm.starter-kits/kits', 'Module\Crm\StarterKits\Api\Controller\StarterKitsApiController@listKits');
-$router->get('/api/v1/modules/crm.starter-kits/preview', 'Module\Crm\StarterKits\Api\Controller\StarterKitsApiController@preview');
-$router->post('/api/v1/modules/crm.starter-kits/apply', 'Module\Crm\StarterKits\Api\Controller\StarterKitsApiController@apply');
+use Module\Crm\StarterKits\Api\Controller\StarterKitsApiController;
+
+return [
+    ['methods' => ['GET'], 'route' => '/kits', 'controller' => StarterKitsApiController::class, 'action' => 'listKits', 'auth' => true],
+    ['methods' => ['GET'], 'route' => '/preview', 'controller' => StarterKitsApiController::class, 'action' => 'preview', 'auth' => true],
+    ['methods' => ['POST'], 'route' => '/apply', 'controller' => StarterKitsApiController::class, 'action' => 'apply', 'auth' => true],
+];

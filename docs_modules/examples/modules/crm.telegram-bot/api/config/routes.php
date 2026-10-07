@@ -4,8 +4,7 @@ declare(strict_types=1);
 use Module\Crm\TelegramBot\Api\Controller\TelegramBotApiController;
 
 return [
-    'POST' => [
-        'api/v1/telegram/webhook/{org_id}' => [TelegramBotApiController::class, 'handleWebhook'],
-        'api/v1/telegram/bind-request' => [TelegramBotApiController::class, 'requestBinding'],
-    ],
+    ['methods' => ['POST'], 'route' => '/webhook/{org_id}', 'controller' => TelegramBotApiController::class, 'action' => 'handleWebhook', 'auth' => false],
+    ['methods' => ['POST'], 'route' => '/bind-request', 'controller' => TelegramBotApiController::class, 'action' => 'requestBinding', 'auth' => true],
+    ['methods' => ['POST'], 'route' => '/bind-confirm', 'controller' => TelegramBotApiController::class, 'action' => 'confirmBinding', 'auth' => true],
 ];
