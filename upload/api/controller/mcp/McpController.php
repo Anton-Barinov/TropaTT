@@ -3550,7 +3550,7 @@ $tools[] = $this->tool(
         // --- AgentOS tools: bundle and memory ---
         $tools[] = $this->tool(
             'crm_agent_bundle',
-            'Atomic multi-operation task initialization for AI agents. In a single call creates a task, attaches knowledge links, creates checklists and items, creates subtasks, optionally spawns a blocking QA task, and claims the task with an agent lock comment. Supports density: "rich" | "compact".',
+            'Sequential task setup for AI agents. Creates a task, knowledge links, checklists/items, subtasks, and an optional QA task. This is not a database transaction: it stops on the first failure and returns completed step IDs for reconciliation before retry. Claim ownership separately with crm_agent_lease. Supports density: "rich" | "compact".',
             [
                 'task' => [
                     'type' => 'object',
@@ -3603,7 +3603,7 @@ $tools[] = $this->tool(
                 ],
                 'lock_agent' => [
                     'type' => 'string',
-                    'description' => 'Legacy audit comment and status change only; NOT an exclusive lock. Use crm_agent_lease for atomic ownership.',
+                    'description' => 'Deprecated and rejected. This option is not a lock; use crm_agent_lease after task creation.',
                 ],
                 'density' => [
                     'type' => 'string',
@@ -7129,203 +7129,184 @@ $tools[] = $this->tool(
     private function crmAgentBundle(array $arguments): array
     {
         $taskData = $arguments['task'] ?? [];
-        if (!is_array($taskData) || empty($taskData['title'])) {
+        if (!is_array($taskData) || trim((string)($taskData['title'] ?? '')) === '') {
             return ['error' => 'task.title is required in bundle.'];
         }
-
-        // 1. Create main task via crmCreateTask to ensure all automation/hooks trigger
-        $taskRes = $this->crmCreateTask($taskData);
-        if (isset($taskRes['error'])) {
-            return ['error' => 'Failed to create bundle task: ' . $taskRes['error']];
+        if (array_key_exists('lock_agent', $arguments)) {
+            return ['error' => 'lock_agent does not provide an exclusive lease and is no longer accepted. Create the task, then claim it with crm_agent_lease.'];
+        }
+        if (!empty($arguments['auto_qa_task']) && trim((string)($taskData['assignee_user_public_id'] ?? '')) === '') {
+            return ['error' => 'Assign the parent task before requesting an automatically assigned QA task.'];
+        }
+        foreach (['checklists', 'subtasks', 'knowledge_links'] as $field) {
+            if (isset($arguments[$field]) && !is_array($arguments[$field])) {
+                return ['error' => $field . ' must be an array.'];
+            }
+        }
+        foreach (($arguments['checklists'] ?? []) as $checklist) {
+            if (!is_array($checklist) || trim((string)($checklist['title'] ?? '')) === ''
+                || isset($checklist['items']) && !is_array($checklist['items'])) {
+                return ['error' => 'Every checklist needs a title and an optional items array.'];
+            }
+            foreach (($checklist['items'] ?? []) as $item) {
+                if (trim((string)(is_array($item) ? ($item['title'] ?? '') : $item)) === '') {
+                    return ['error' => 'Checklist item titles cannot be empty.'];
+                }
+            }
+        }
+        foreach (($arguments['subtasks'] ?? []) as $subtask) {
+            if (!is_array($subtask) || trim((string)($subtask['title'] ?? '')) === '') {
+                return ['error' => 'Every subtask needs a title.'];
+            }
+        }
+        foreach (($arguments['knowledge_links'] ?? []) as $page) {
+            $pageId = is_array($page) ? (string)($page['page_id'] ?? $page['public_id'] ?? '') : (string)$page;
+            if (trim($pageId) === '') {
+                return ['error' => 'Knowledge page identifiers cannot be empty.'];
+            }
         }
 
-        $createdTask = $taskRes['task'] ?? $taskRes;
-        $taskPublicId = (string)($createdTask['public_id'] ?? '');
-        if ($taskPublicId === '') {
-            return ['error' => 'Created task public_id could not be resolved.', 'raw_response' => $taskRes];
+        if (($arguments['knowledge_links'] ?? []) !== [] && !$this->can('knowledge.edit')) {
+            return ['error' => 'knowledge.edit permission is required before creating tasks with knowledge links.'];
         }
 
+        // This is a sequential workflow, not a database transaction: controller
+        // hooks may already have emitted external effects. Every committed step
+        // is returned as a receipt; stop at the first failure and reconcile it
+        // before retrying. Never describe a comment as an exclusive lock.
         $summary = [
-            'task' => $createdTask,
-            'subtasks' => [],
-            'checklists' => [],
-            'knowledge_links' => [],
-            'qa_task' => null,
-            'claim_comment' => null,
+            'task' => null, 'subtasks' => [], 'checklists' => [],
+            'knowledge_links' => [], 'qa_task' => null, 'completed_steps' => [],
         ];
-
-        // 2. Attach knowledge links if provided
-        $kLinks = $arguments['knowledge_links'] ?? [];
-        if (is_array($kLinks)) {
-            foreach ($kLinks as $kEntry) {
-                $kPagePublicId = is_array($kEntry) ? trim((string)($kEntry['page_id'] ?? $kEntry['public_id'] ?? '')) : trim((string)$kEntry);
-                $kRelType = is_array($kEntry) ? trim((string)($kEntry['relation_type'] ?? 'instruction')) : 'instruction';
-                if ($kRelType === '') {
-                    $kRelType = 'instruction';
-                }
-                if ($kPagePublicId !== '') {
-                    $linkRes = $this->crmLinkKnowledgePageEntity([
-                        'public_id' => $kPagePublicId,
-                        'entity_type' => 'task',
-                        'entity_public_id' => $taskPublicId,
-                        'relation_type' => $kRelType,
-                    ]);
-                    if (!isset($linkRes['error'])) {
-                        $summary['knowledge_links'][] = $linkRes['link'] ?? ['page_public_id' => $kPagePublicId, 'relation_type' => $kRelType];
-                    }
-                }
+        $run = function (string $name, callable $operation, string $resultKey) use (&$summary): array {
+            try {
+                $result = $operation();
+            } catch (\Throwable $e) {
+                return ['failure' => ['failed_step' => $name, 'outcome_unknown' => true]];
             }
-        }
-
-        // 3. Create checklists and items if provided
-        $checklists = $arguments['checklists'] ?? [];
-        if (is_array($checklists)) {
-            foreach ($checklists as $ch) {
-                if (!is_array($ch) || empty($ch['title'])) {
-                    continue;
-                }
-                $chRes = $this->crmCreateTaskChecklist([
-                    'task_public_id' => $taskPublicId,
-                    'title' => (string)$ch['title'],
-                ]);
-                if (isset($chRes['checklist'])) {
-                    $chItem = $chRes['checklist'];
-                    $chPublicId = (string)$chItem['public_id'];
-                    $chItem['items'] = [];
-                    if (!empty($ch['items']) && is_array($ch['items'])) {
-                        foreach ($ch['items'] as $it) {
-                            $itTitle = is_array($it) ? (string)($it['title'] ?? '') : (string)$it;
-                            $itTitle = trim($itTitle);
-                            if ($itTitle !== '') {
-                                $itRes = $this->crmCreateChecklistItem([
-                                    'checklist_public_id' => $chPublicId,
-                                    'title' => $itTitle,
-                                    'is_done' => is_array($it) ? (bool)($it['is_done'] ?? false) : false,
-                                ]);
-                                if (isset($itRes['item'])) {
-                                    $chItem['items'][] = $itRes['item'];
-                                }
-                            }
-                        }
-                    }
-                    $summary['checklists'][] = $chItem;
-                }
+            if (!is_array($result) || isset($result['error']) || !isset($result[$resultKey]) || !is_array($result[$resultKey])) {
+                return ['failure' => ['failed_step' => $name, 'outcome_unknown' => false]];
             }
-        }
-
-        // 4. Create subtasks if provided
-        $subtasks = $arguments['subtasks'] ?? [];
-        if (is_array($subtasks)) {
-            foreach ($subtasks as $st) {
-                if (!is_array($st) || empty($st['title'])) {
-                    continue;
-                }
-                $stArgs = $st;
-                $stArgs['task_public_id'] = $taskPublicId;
-                $stRes = $this->crmCreateSubtask($stArgs);
-                if (isset($stRes['subtask'])) {
-                    $stItem = $stRes['subtask'];
-                    $stPublicId = (string)($stItem['public_id'] ?? '');
-                    // Propagate knowledge links to each subtask
-                    if ($stPublicId !== '' && is_array($kLinks)) {
-                        foreach ($kLinks as $kEntry) {
-                            $kPagePublicId = is_array($kEntry) ? trim((string)($kEntry['page_id'] ?? $kEntry['public_id'] ?? '')) : trim((string)$kEntry);
-                            $kRelType = is_array($kEntry) ? trim((string)($kEntry['relation_type'] ?? 'instruction')) : 'instruction';
-                            if ($kRelType === '') {
-                                $kRelType = 'instruction';
-                            }
-                            if ($kPagePublicId !== '') {
-                                $this->crmLinkKnowledgePageEntity([
-                                    'public_id' => $kPagePublicId,
-                                    'entity_type' => 'task',
-                                    'entity_public_id' => $stPublicId,
-                                    'relation_type' => $kRelType,
-                                ]);
-                            }
-                        }
-                    }
-                    $summary['subtasks'][] = $stItem;
-                }
+            $entity = $result[$resultKey];
+            $publicId = trim((string)($entity['public_id'] ?? ''));
+            if ($publicId === '') {
+                return ['failure' => ['failed_step' => $name, 'outcome_unknown' => true]];
             }
-        }
-
-        // 5. Optional auto QA task creation
-        if (!empty($arguments['auto_qa_task'])) {
-            $qaTitle = '[QA/Тестирование] Верификация: ' . ($createdTask['title'] ?? $taskData['title']);
-            $qaProject = $taskData['project_public_id'] ?? null;
-            $qaRes = $this->crmCreateTask([
-                'title' => $qaTitle,
-                'description' => 'Автоматически созданная задача верификации для ' . ($createdTask['key'] ?? $taskPublicId),
-                'project_public_id' => $qaProject,
-                'priority' => 'high',
-                'status' => 'new',
-            ]);
-            if (isset($qaRes['error'])) {
-                return ['error' => 'Failed to create QA task: ' . $qaRes['error']];
-            }
-            if (isset($qaRes['task'])) {
-                $qaTask = $qaRes['task'];
-                $qaPublicId = (string)$qaTask['public_id'];
-                // Link with BLOCKS relation
-                $this->crmCreateTaskRelation([
-                    'task_public_id' => $taskPublicId,
-                    'related_task_public_id' => $qaPublicId,
-                    'relation_type' => 'BLOCKS',
-                ]);
-                // Propagate knowledge links to QA task
-                if (is_array($kLinks)) {
-                    foreach ($kLinks as $kEntry) {
-                        $kPagePublicId = is_array($kEntry) ? trim((string)($kEntry['page_id'] ?? $kEntry['public_id'] ?? '')) : trim((string)$kEntry);
-                        $kRelType = is_array($kEntry) ? trim((string)($kEntry['relation_type'] ?? 'instruction')) : 'instruction';
-                        if ($kRelType === '') {
-                            $kRelType = 'instruction';
-                        }
-                        if ($kPagePublicId !== '') {
-                            $this->crmLinkKnowledgePageEntity([
-                                'public_id' => $kPagePublicId,
-                                'entity_type' => 'task',
-                                'entity_public_id' => $qaPublicId,
-                                'relation_type' => $kRelType,
-                            ]);
-                        }
-                    }
-                }
-                $summary['qa_task'] = $qaTask;
-            }
-        }
-
-        // 6. Claim lock comment if agent identifier given
-        $lockAgent = trim((string)($arguments['lock_agent'] ?? ''));
-        if ($lockAgent !== '') {
-            $claimText = '[Auto-Claim] Задача инициализирована и заблокирована агентом [' . $lockAgent . ']. Взята в работу.';
-            $claimRes = $this->crmAddTaskComment([
-                'task_public_id' => $taskPublicId,
-                'body' => $claimText,
-            ]);
-            $this->crmUpdateTask([
-                'public_id' => $taskPublicId,
-                'status' => 'in_progress',
-            ]);
-            $summary['claim_comment'] = $claimRes['comment'] ?? $claimText;
-            $summary['task']['status_code'] = 'in_progress';
-        }
-
-        // Density check
-        $density = trim((string)($arguments['density'] ?? ''));
-        if ($density === 'compact') {
+            $summary['completed_steps'][] = ['step' => $name, 'public_id' => $publicId];
+            return ['result' => $result, 'entity' => $entity];
+        };
+        $failure = static function (array $problem, array $partial): array {
             return [
-                'bundle' => [
-                    'task_public_id' => $taskPublicId,
-                    'key' => $createdTask['key'] ?? null,
-                    'title' => $createdTask['title'] ?? '',
-                    'status' => $summary['task']['status_code'] ?? ($createdTask['status_code'] ?? 'new'),
-                    'subtasks_count' => count($summary['subtasks']),
-                    'checklists_count' => count($summary['checklists']),
-                    'qa_task_public_id' => $summary['qa_task']['public_id'] ?? null,
-                ]
+                'error' => 'Bundle stopped at the first incomplete step. Reconcile completed_steps and inspect the task before retrying.',
+                'failed_step' => $problem['failed_step'],
+                'outcome_unknown' => $problem['outcome_unknown'],
+                'partial_bundle' => $partial,
             ];
+        };
+
+        $taskRun = $run('create_task', fn() => $this->crmCreateTask($taskData), 'task');
+        if (isset($taskRun['failure'])) return $failure($taskRun['failure'], $summary);
+        $createdTask = $taskRun['entity'];
+        $taskPublicId = (string)$createdTask['public_id'];
+        $summary['task'] = $createdTask;
+        $kLinks = $arguments['knowledge_links'] ?? [];
+
+        foreach ($kLinks as $index => $entry) {
+            $pageId = is_array($entry) ? trim((string)($entry['page_id'] ?? $entry['public_id'] ?? '')) : trim((string)$entry);
+            $relationType = is_array($entry) ? trim((string)($entry['relation_type'] ?? 'instruction')) : 'instruction';
+            if ($relationType === '') $relationType = 'instruction';
+            $res = $run('link_knowledge_' . ($index + 1), fn() => $this->crmLinkKnowledgePageEntity([
+                'public_id' => $pageId, 'entity_type' => 'task', 'entity_public_id' => $taskPublicId, 'relation_type' => $relationType,
+            ]), 'link');
+            if (isset($res['failure'])) return $failure($res['failure'], $summary);
+            $summary['knowledge_links'][] = $res['entity'];
         }
 
+        foreach (($arguments['checklists'] ?? []) as $checklistIndex => $checklist) {
+            $res = $run('create_checklist_' . ($checklistIndex + 1), fn() => $this->crmCreateTaskChecklist([
+                'task_public_id' => $taskPublicId, 'title' => (string)$checklist['title'],
+            ]), 'checklist');
+            if (isset($res['failure'])) return $failure($res['failure'], $summary);
+            $checklistEntity = $res['entity'];
+            $checklistPublicId = (string)$checklistEntity['public_id'];
+            $checklistEntity['items'] = [];
+            $summary['checklists'][] = $checklistEntity;
+            foreach (($checklist['items'] ?? []) as $itemIndex => $item) {
+                $title = trim((string)(is_array($item) ? ($item['title'] ?? '') : $item));
+                $itemRes = $run('create_checklist_' . ($checklistIndex + 1) . '_item_' . ($itemIndex + 1), fn() => $this->crmCreateChecklistItem([
+                    'checklist_public_id' => $checklistPublicId, 'title' => $title,
+                    'is_done' => is_array($item) ? (bool)($item['is_done'] ?? false) : false,
+                ]), 'item');
+                if (isset($itemRes['failure'])) return $failure($itemRes['failure'], $summary);
+                $lastChecklist = count($summary['checklists']) - 1;
+                $summary['checklists'][$lastChecklist]['items'][] = $itemRes['entity'];
+            }
+        }
+
+        foreach (($arguments['subtasks'] ?? []) as $index => $subtask) {
+            $subtaskArgs = $subtask;
+            $subtaskArgs['task_public_id'] = $taskPublicId;
+            if (empty($subtaskArgs['assignee_user_public_id']) && !empty($taskData['assignee_user_public_id'])) {
+                $subtaskArgs['assignee_user_public_id'] = $taskData['assignee_user_public_id'];
+            }
+            $res = $run('create_subtask_' . ($index + 1), fn() => $this->crmCreateSubtask($subtaskArgs), 'subtask');
+            if (isset($res['failure'])) return $failure($res['failure'], $summary);
+            $subtaskEntity = $res['entity'];
+            $summary['subtasks'][] = $subtaskEntity;
+            foreach ($kLinks as $linkIndex => $entry) {
+                $pageId = is_array($entry) ? trim((string)($entry['page_id'] ?? $entry['public_id'] ?? '')) : trim((string)$entry);
+                $relationType = is_array($entry) ? trim((string)($entry['relation_type'] ?? 'instruction')) : 'instruction';
+                if ($relationType === '') $relationType = 'instruction';
+                $link = $run('link_subtask_' . ($index + 1) . '_knowledge_' . ($linkIndex + 1), fn() => $this->crmLinkKnowledgePageEntity([
+                    'public_id' => $pageId, 'entity_type' => 'task', 'entity_public_id' => (string)$subtaskEntity['public_id'], 'relation_type' => $relationType,
+                ]), 'link');
+                if (isset($link['failure'])) return $failure($link['failure'], $summary);
+            }
+        }
+
+        if (!empty($arguments['auto_qa_task'])) {
+            $qaArgs = [
+                'title' => '[QA/Тестирование] Верификация: ' . ($createdTask['title'] ?? $taskData['title']),
+                'description' => 'Автоматически созданная задача верификации для ' . ($createdTask['key'] ?? $taskPublicId),
+                'project_public_id' => $taskData['project_public_id'] ?? null,
+                'assignee_user_public_id' => $taskData['assignee_user_public_id'],
+                'priority' => 'high', 'status' => 'new',
+            ];
+            $qaRun = $run('create_qa_task', fn() => $this->crmCreateTask($qaArgs), 'task');
+            if (isset($qaRun['failure'])) return $failure($qaRun['failure'], $summary);
+            $summary['qa_task'] = $qaRun['entity'];
+            // QA depends on the implementation task; BLOCKS therefore points
+            // from the implementation task to the QA work in the dependency API.
+            $dependency = $run('link_qa_dependency', fn() => $this->crmCreateTaskRelation([
+                'task_public_id' => $taskPublicId,
+                'related_task_public_id' => (string)$summary['qa_task']['public_id'],
+                'relation_type' => 'BLOCKS',
+            ]), 'relation');
+            if (isset($dependency['failure'])) return $failure($dependency['failure'], $summary);
+            foreach ($kLinks as $index => $entry) {
+                $pageId = is_array($entry) ? trim((string)($entry['page_id'] ?? $entry['public_id'] ?? '')) : trim((string)$entry);
+                $relationType = is_array($entry) ? trim((string)($entry['relation_type'] ?? 'instruction')) : 'instruction';
+                if ($relationType === '') $relationType = 'instruction';
+                $link = $run('link_qa_knowledge_' . ($index + 1), fn() => $this->crmLinkKnowledgePageEntity([
+                    'public_id' => $pageId, 'entity_type' => 'task',
+                    'entity_public_id' => (string)$summary['qa_task']['public_id'], 'relation_type' => $relationType,
+                ]), 'link');
+                if (isset($link['failure'])) return $failure($link['failure'], $summary);
+            }
+        }
+
+        if (($arguments['density'] ?? '') === 'compact') {
+            return ['bundle' => [
+                'task_public_id' => $taskPublicId,
+                'key' => $createdTask['key'] ?? null,
+                'title' => $createdTask['title'] ?? '',
+                'status' => $createdTask['status_code'] ?? 'new',
+                'subtasks_count' => count($summary['subtasks']),
+                'checklists_count' => count($summary['checklists']),
+                'qa_task_public_id' => $summary['qa_task']['public_id'] ?? null,
+                'completed_steps' => $summary['completed_steps'],
+            ]];
+        }
         return ['bundle' => $summary];
     }
 
