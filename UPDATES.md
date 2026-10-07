@@ -320,14 +320,19 @@ without the fence. An unconfigured fresh install does not require the release
 lock. Recovery actions preserve their files when ownership is busy, while
 read-only updater status remains available outside an exclusive transition.
 
-The directory is private (0700), and the lock file is private (0600). The
+The directory is private (0700), and each lock file is private (0600). The
 deployment supervisor must run as the installation's PHP/hosting user and hold
-the same lock for its complete deployment and verification cycle. This needs
-no daemon or external lock service on shared hosting. An unsupported or
-unsafe filesystem/permission setup fails closed; correct ownership rather
-than widening access. The lock inode must never be removed, replaced, or
-cleared based on its age: the operating system releases ownership when the
-holding process terminates.
+the installation mutex only for bounded mutation windows. It separately holds
+a host-wide release lock for the complete deploy and live-QA transaction using
+the persistent CLI helper `upload/updater/bin/release_host_guard.php` and
+`storage_api/release-coordinator/host-release.lock`. The helper has a bounded
+JSON-lines protocol (`ping`/`release`), is not an HTTP endpoint, and requires
+the supervisor to verify the handshake, monitor process liveness, and treat
+EOF or a lost pipe as lease loss. This needs no daemon or external lock service
+on shared hosting. An unsupported or unsafe filesystem/permission setup fails
+closed; correct ownership rather than widening access. Neither lock inode may
+be removed, replaced, or cleared based on its age: the operating system
+releases ownership when the holding process terminates.
 
 This guard only excludes writers that use it. A standalone file copy, manual
 FTP upload, or older deployment script can bypass it. Operational release
