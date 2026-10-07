@@ -1303,3 +1303,16 @@ Requires `task.manage`. Actions: `claim`, `renew`, `release`, `status`.
 The lease is a coordination primitive, not a complete deployment coordinator. The caller must retain/renew it across the entire operation, stop after lost ownership and verify deployment provenance before promotion. Ordinary CRUD permissions and optimistic row versions remain applicable. A comment or `in_progress` status is never a substitute for this lease.
 
 `crm_agent_bundle` currently performs sequential operations in one request; it is not a multi-entity database transaction and can leave partial results. Its legacy `lock_agent` option records a comment/status and does **not** provide mutual exclusion. Inspect returned entities and reconcile partial outcomes before retrying.
+
+
+### `crm_agent_journal` — durable task work journal
+
+Requires `task.manage`; staff only. `get` requires access to the task in the selected workspace. `append` additionally requires current assignment and a confirmed active `crm_agent_lease` capability, verified inside the same transaction as the comment/event write.
+
+Generate a private durable `event_id` (32 lowercase hexadecimal characters) **before** sending an append. Send `task_public_id`, `operation_id` (ASCII identifier, maximum 96 characters), `event_kind` (`intent`, `result`, `checkpoint`, `blocker`), `stage` (lowercase ASCII identifier, maximum 32 characters), and `body` (1–6000 characters), with `agent_id`, `run_id`, `token`, `generation` from the task lease. An optional `organization_public_id` selects a workspace explicitly.
+
+Append returns `event` metadata including native `comment_public_id`, `payload_hash` and server UTC `created_at`, plus `replayed`. Retrying the identical event with the same id creates no duplicate comment. Changed content/identity for an existing event returns `JOURNAL_EVENT_CONFLICT`. A lost response can be reconciled with `action=get`, `task_public_id`, `event_id`; this read returns the stored receipt or `event: null` and needs no old lease token. Do not infer that a different operation or event id represents the same write.
+
+The native comment and receipt commit or roll back together. Stale owners and reassigned tasks cannot append. Text is sanitized through the ordinary comment service; tokens and Bearer/API credentials must never appear in bodies. These routine internal journal entries intentionally do not send subscriber notifications or trigger comment-added automations. They remain visible and pageable in the task's normal internal discussion. External users cannot use this tool and cannot see its internal comments or pagination totals.
+
+MCP `crm_task action=list_comments` honors `page` and `limit` (1–50, default 20), returns pagination metadata, and preserves external-user/workspace filtering. Read all pages to locate previous checkpoints. Equal comment timestamps are ordered by row id as a stable tie-breaker.

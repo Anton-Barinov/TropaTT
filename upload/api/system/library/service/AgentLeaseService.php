@@ -27,6 +27,8 @@ final class AgentLeaseService
         if ($action !== 'status' && (!preg_match('/\A[A-Za-z0-9._-]{1,96}\z/D', $agentId)
             || !preg_match('/\A[A-Za-z0-9._-]{1,96}\z/D', $runId)
             || !preg_match('/\A[a-f0-9]{64}\z/D', $token)
+            || str_contains($agentId, $token) || str_contains($runId, $token)
+            || preg_match('/\bapk_/i', $agentId . ' ' . $runId)
             || $ttl < 30 || $ttl > 900
             || (in_array($action, ['renew', 'release'], true) && $generation < 1))) {
             throw new RuntimeException('LEASE_INVALID_ARGUMENT');

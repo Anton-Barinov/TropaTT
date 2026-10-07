@@ -97,6 +97,7 @@ final class MigrationManager
             new ApiKeyPreviewMigration(),
             new AgentMemoryMigration(),
             new AgentLeasesMigration(),
+            new AgentJournalMigration(),
             new KnowledgeSpacesTrashMigration(),
             new TaskStatusClosureMigration(),
             new KnowledgePageVersionCounterBackfillMigration(),

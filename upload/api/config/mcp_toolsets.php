@@ -65,6 +65,7 @@ return [
             'crm_agent_bundle',
             'crm_agent_memory',
             'crm_agent_lease',
+            'crm_agent_journal',
             'crm_chat',
         ],
     ],

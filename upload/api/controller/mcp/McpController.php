@@ -3615,6 +3615,26 @@ $tools[] = $this->tool(
         );
 
         $tools[] = $this->tool(
+            'crm_agent_journal',
+            'Fenced idempotent internal work journal in native task comments. Persist event_id before append. Get reconciles lost responses. Pipeline log entries do not send subscriber notifications or trigger comment automations.',
+            [
+                'action' => ['type' => 'string', 'enum' => ['append', 'get']],
+                'task_public_id' => ['type' => 'string'],
+                'event_id' => ['type' => 'string', 'pattern' => '^[a-f0-9]{32}$'],
+                'operation_id' => ['type' => 'string', 'maxLength' => 96],
+                'event_kind' => ['type' => 'string', 'enum' => ['intent', 'result', 'checkpoint', 'blocker']],
+                'stage' => ['type' => 'string', 'maxLength' => 32],
+                'body' => ['type' => 'string', 'maxLength' => 6000],
+                'agent_id' => ['type' => 'string', 'maxLength' => 96],
+                'run_id' => ['type' => 'string', 'maxLength' => 96],
+                'token' => ['type' => 'string', 'pattern' => '^[a-f0-9]{64}$'],
+                'generation' => ['type' => 'integer', 'minimum' => 1],
+                'organization_public_id' => ['type' => 'string'],
+            ],
+            ['action', 'task_public_id', 'event_id']
+        );
+
+        $tools[] = $this->tool(
             'crm_agent_lease',
             'Atomic agent task leases and root-only global release resource leases. Generate a private 64-hex token before claim; retain it for lost-response reconciliation. Tokens are never returned. An expired run must use a new run id and token.',
             [
@@ -4475,6 +4495,7 @@ $tools[] = $this->tool(
             'crm_admin' => $this->handleMegaTool('crm_admin', $arguments),
             'crm_agent_bundle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmAgentBundle($arguments))),
             'crm_agent_lease' => $this->toolResult($this->crmAgentLease($arguments)),
+            'crm_agent_journal' => $this->toolResult($this->crmAgentJournal($arguments)),
             'crm_agent_memory' => $this->toolResult($this->crmAgentMemory($arguments)),
             'crm_chat' => $this->withPermissionAny(['chat.use', 'task.manage', 'project.manage'], fn() => $this->handleMegaTool('crm_chat', $arguments)),
             default => isset($this->ideaWorkflowTools()[$name])
@@ -6937,6 +6958,45 @@ $tools[] = $this->tool(
         return true;
     }
 
+    private function crmAgentJournal(array $arguments): array
+    {
+        $contextError = $this->organizationContextError($arguments);
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActorForArguments($this->actor(), $arguments);
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        $taskId = (string)($arguments['task_public_id'] ?? '');
+        $action = (string)($arguments['action'] ?? '');
+        /** @var TaskService $tasks */
+        $tasks = $this->container->get('service.task');
+        if (!empty($actor['is_external']) || $organizationId < 1 || !$tasks->get($taskId, $actor)) {
+            return ['error' => 'JOURNAL_ACCESS_DENIED'];
+        }
+        try {
+            $journal = new \Api\System\Library\Service\AgentJournalService($this->pdo());
+            if ($action === 'get') {
+                return ['event' => $journal->get($organizationId, $taskId, (string)($arguments['event_id'] ?? ''))];
+            }
+            if ($action !== 'append') {
+                return ['error' => 'JOURNAL_INVALID_ARGUMENT'];
+            }
+            // Routine pipeline journal entries are native sanitized internal
+            // comments, without repeated notification/automation side effects.
+            $comments = new CommentService(
+                new \Api\Model\Comment\CommentRepository($this->pdo()),
+                new \Api\Model\Task\TaskRepository($this->pdo()),
+                htmlSanitizer: new HtmlSanitizer()
+            );
+            return $journal->append($organizationId, (int)($actor['id'] ?? 0), $taskId, $arguments,
+                fn(string $body): ?array => $comments->createByTask($taskId, ['body' => $body, 'visibility' => 'internal'], (int)$actor['id'], $actor)
+            );
+        } catch (\RuntimeException $error) {
+            $code = $error->getMessage();
+            return ['error' => preg_match('/\A(?:JOURNAL|LEASE)_[A-Z_]+\z/D', $code) ? $code : 'JOURNAL_STORAGE_UNAVAILABLE'];
+        }
+    }
+
     private function crmAgentLease(array $arguments): array
     {
         $contextError = $this->organizationContextError($arguments);
@@ -6944,6 +7004,9 @@ $tools[] = $this->tool(
             return $contextError;
         }
         $actor = $this->organizationScopedActorForArguments($this->actor(), $arguments);
+        if (!empty($actor['is_external'])) {
+            return ['error' => 'LEASE_ACCESS_DENIED'];
+        }
         $actorId = (int)($actor['id'] ?? 0);
         $organizationId = (int)($actor['organization_id'] ?? 0);
         $resource = (string)($arguments['resource'] ?? '');
@@ -7678,21 +7741,26 @@ $tools[] = $this->tool(
 
     private function crmListTaskComments(array $arguments): array
     {
+        $contextError = $this->organizationContextError($arguments);
+        if ($contextError !== null) {
+            return $contextError;
+        }
         $taskPublicId = trim((string)($arguments['task_public_id'] ?? ''));
         if ($taskPublicId === '') {
             return ['error' => 'task_public_id is required.'];
         }
-
+        $actor = $this->organizationScopedActorForArguments($this->actor(), $arguments);
         /** @var TaskService $taskService */
         $taskService = $this->container->get('service.task');
-        if (!$taskService->get($taskPublicId, $this->actor())) {
+        if (!$taskService->get($taskPublicId, $actor)) {
             return ['error' => 'Task not found.'];
         }
-
         /** @var CommentService $service */
         $service = $this->container->get('service.comment');
-        $result = $service->listByTask($taskPublicId, []);
-
+        $result = $service->listByTask($taskPublicId, [
+            'page' => max(1, (int)($arguments['page'] ?? 1)),
+            'limit' => min(50, max(1, (int)($arguments['limit'] ?? 20))),
+        ], $actor);
         return ['items' => $result['items'] ?? [], 'meta' => $result['meta'] ?? []];
     }
 

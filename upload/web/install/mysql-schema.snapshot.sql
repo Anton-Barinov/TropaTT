@@ -3638,6 +3638,7 @@ CREATE TABLE IF NOT EXISTS `yandex_calendar_sources` (
 
 -- Baseline migrations state
 INSERT IGNORE INTO `migrations` (`migration_key`, `description`, `applied_at`) VALUES
+('20261007_000002_agent_journal', 'Idempotent task journal events linked to native comments', NOW()),
 ('20261007_000001_agent_leases', 'Central agent leases with fencing generations', NOW()),
 ('20261005_000005_ai_chat_retention_index', 'Index AI chat run retention and lease cleanup', NOW()),
 ('20261005_000004_ai_chat_budgets', 'Atomic per-user AI chat request and token reservations', NOW()),
@@ -3861,4 +3862,23 @@ CREATE TABLE IF NOT EXISTS `agent_lease_runs` (
   `generation` BIGINT UNSIGNED NOT NULL,
   `claimed_at` BIGINT UNSIGNED NOT NULL,
   UNIQUE KEY `uq_agent_lease_run` (`organization_id`, `resource_key`, `owner_user_id`, `agent_id`, `run_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `agent_journal` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `organization_id` BIGINT UNSIGNED NOT NULL,
+  `task_public_id` VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `event_id` VARCHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `operation_id` VARCHAR(96) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `event_kind` VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `stage` VARCHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `owner_user_id` BIGINT UNSIGNED NOT NULL,
+  `agent_id` VARCHAR(96) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `run_id` VARCHAR(96) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `generation` BIGINT UNSIGNED NOT NULL,
+  `comment_public_id` VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `payload_hash` VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `created_at` DATETIME NOT NULL,
+  UNIQUE KEY `uq_agent_journal_event` (`organization_id`, `task_public_id`, `event_id`),
+  KEY `idx_agent_journal_task` (`organization_id`, `task_public_id`, `id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
