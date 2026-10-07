@@ -63,6 +63,7 @@ function main(array $argv): void
         exit(2);
     }
 
+    $backgroundWriteGuard = \Api\System\Library\Support\BackgroundWriteGuard::enterOrExit(dirname(__DIR__, 2), $argv);
     $endpointAction = ($options['run_once'] ?? false) ? 'run-once' : 'dry-run';
 
     $authToken = resolveAuthToken($options);
@@ -269,7 +270,6 @@ function resolveAuthToken(array $options): string
         $tokenCandidates[] = $tokenFromTestEnv;
     }
     $tokenCandidates[] = '';
-    $tokenCandidates[] = 'RootToken#2026!';
     $tokenCandidates = array_values(array_unique($tokenCandidates));
 
     foreach ($passwordCandidates as $password) {

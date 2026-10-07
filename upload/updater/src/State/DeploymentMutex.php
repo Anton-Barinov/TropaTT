@@ -13,7 +13,7 @@ final class DeploymentMutex
     {
     }
 
-    public function acquire(): bool
+    public function acquire(bool $exclusive = true): bool
     {
         if ($this->handle !== null) {
             throw new \LogicException('Deployment mutex already acquired.');
@@ -55,7 +55,7 @@ final class DeploymentMutex
             fclose($handle);
             throw new \RuntimeException('Unsafe deployment mutex file.');
         }
-        if (!flock($handle, LOCK_EX | LOCK_NB)) {
+        if (!flock($handle, ($exclusive ? LOCK_EX : LOCK_SH) | LOCK_NB)) {
             fclose($handle);
             return false;
         }

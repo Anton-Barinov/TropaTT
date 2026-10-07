@@ -16,7 +16,7 @@ $argv ??= $_SERVER['argv'] ?? [];
  *   * * * * * cd /path/to/project && php api/scripts/cron_push.php >> storage/logs/cron.log 2>&1
  */
 
-$basePath = __DIR__ . '/../';
+$basePath = dirname(__DIR__);
 $projectRoot = dirname($basePath);
 
 require_once $basePath . '/system/library/support/Autoloader.php';
@@ -33,6 +33,8 @@ if (class_exists(Api\System\Library\Support\EnvLoader::class)) {
 
 $autoloader = new Api\System\Library\Support\Autoloader($basePath);
 $autoloader->register();
+
+$backgroundWriteGuard = \Api\System\Library\Support\BackgroundWriteGuard::enterOrExit($projectRoot, $argv);
 
 $config = new Api\System\Library\Config();
 $config->load($basePath . '/config/database.php', 'database');

@@ -329,6 +329,30 @@ verify the deployed commit and file checksums before and after QA. This is
 separate from the updater's persistent job lock and does not replace job
 ownership or resumable update checks.
 
+CLI background writers (`scheduler.php`, `idea_analysis_worker.php`,
+`ai_cron.php`, `cron_push.php`, and `jobs_worker_run.php`) hold a shared lock
+on that inode for their complete pass. Shared workers can run concurrently;
+an exclusive deployment/update cannot overlap them. New workers skip before
+authentication, database access, or provider calls when maintenance is active
+or the exclusive lock is held. Invalid lock permissions cause a failure rather
+than an unguarded run. Run cron as the installation's hosting/PHP user.
+The guard must be deployed before relying on it to drain old workers: an
+already-running older process does not retroactively acquire it.
+
+The jobs CLI is standalone and uses the normal authenticated REST dispatcher
+in-process, without a loopback HTTP request or a private test bootstrap. Set
+`CRM_JOBS_CRON_BEARER_TOKEN` in the hosting user's private environment, then
+run `php api/scripts/jobs_worker_run.php --limit=20`. Optionally set
+`CRM_JOBS_CRON_ORGANIZATION_PUBLIC_ID` to select a workspace the token can
+access. The CLI preserves the API's authentication, RBAC and workspace checks;
+it does not automatically apply migrations or provision an administrator.
+Do not put tokens in command-line arguments or logs.
+
+Background exclusion is one part of a consistent rollback checkpoint. The
+release supervisor must also account for browser/API requests already running
+before maintenance and use a verified database snapshot. Do not automatically
+restore that snapshot after reopening the installation to new user writes.
+
 ### Disaster recovery (recovery key + rescue.php)
 
 If an update is interrupted and the CRM is left in **maintenance mode**, the
