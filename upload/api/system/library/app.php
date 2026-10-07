@@ -604,7 +604,28 @@ final class App
             $action = (string)$matched['action'];
             $params = (array)($matched['params'] ?? []);
 
-            $controller = new $controllerClass($this->container);
+            try {
+                $refClass = new \ReflectionClass($controllerClass);
+                $constructor = $refClass->getConstructor();
+                if ($constructor === null || $constructor->getNumberOfParameters() === 0) {
+                    $controller = new $controllerClass();
+                } else {
+                    $firstParam = $constructor->getParameters()[0] ?? null;
+                    $firstType = $firstParam?->getType();
+                    $typeName = $firstType instanceof \ReflectionNamedType ? $firstType->getName() : '';
+                    if ($typeName === 'PDO' || $typeName === '\PDO') {
+                        $pdo = $this->container->has('db.pdo') ? $this->container->get('db.pdo') : null;
+                        $controller = new $controllerClass($pdo);
+                    } else {
+                        $controller = new $controllerClass($this->container);
+                    }
+                }
+            } catch (\ArgumentCountError|\TypeError $e) {
+                // Fallback attempt with PDO if Container was rejected
+                $pdo = $this->container->has('db.pdo') ? $this->container->get('db.pdo') : null;
+                $controller = new $controllerClass($pdo);
+            }
+
             if (!method_exists($controller, $action)) {
                 /** @var LanguageManager $lang */
                 $lang = $this->container->get('lang');
