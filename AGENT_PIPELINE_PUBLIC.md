@@ -20,7 +20,7 @@ A stage that fails or has an unknown result enters `reconcile`; it does not retr
 
 1. Read repository instructions and the relevant CRM regulations, infrastructure notes and task-linked knowledge pages. Verify the current CRM actor and tool schemas before mutations.
 2. Work only on a task assigned to the current agent/run or explicitly assigned by the owner. Read all task pages, comments, attachments, checklists, subtasks, relations and recent worklogs before editing.
-3. Claim an exclusive CRM task lease using the supported lease operation. A status such as `in_progress`, a recent comment, a shared agent account, memory entry, or lock comment is not a lease. Record a human-readable start comment and journal intent after ownership is confirmed.
+3. Run a capability check for the CRM lease and journal operations before any parallel task work. Claim an exclusive CRM task lease using the supported lease operation. A status such as `in_progress`, a recent comment, a shared agent account, memory entry, or lock comment is not a lease. Record a human-readable start comment and journal intent after ownership is confirmed. If the live CRM does not expose and successfully enforce the lease, stop before task mutation and do not run parallel writers; report the missing capability for rollout. A source commit or API schema in `develop` does not prove the connected CRM has it.
 4. Use a unique stable agent identity and run ID. Keep lease capability state in a private file outside the repository with owner-only permissions. Renew before expiry. On lost ownership, stop task mutations and publication; reconcile first.
 5. Use CRM-native checklists, subtasks, relations and knowledge links. A helper that creates several entities sequentially is not atomic: inspect its receipts and partial state before retry. Do not assume a QA task is assigned or linked unless returned and verified. QA relation direction must mean implementation is blocked by QA.
 
@@ -30,7 +30,7 @@ A stage that fails or has an unknown result enters `reconcile`; it does not retr
 - Agree on file ownership for overlapping work. Serialize edits to shared files or integrate them through a reviewed Git merge. If a conflict occurs, preserve both histories and ask the designated integrator to resolve it.
 - Before editing, record the task/run, branch, base SHA and owned paths. Before committing, inspect the exact staged paths and diff. Reject credentials, runtime state, test artefacts or unrelated files.
 - Every commit and push must follow the repository's required attribution policy. Push only normal fast-forward updates; never force-push. A rejected push means fetch and reconcile the newer history.
-- Task leases prevent two agents from owning the same CRM task. They do not serialize shared Git integration, a demo server, update jobs or production releases; those resources require their own locks.
+- Task leases prevent two agents from owning the same CRM task only after the live capability has been verified. If unavailable, serialize all task mutations under a single owner. Task leases do not serialize shared Git integration, a demo server, update jobs or production releases; those resources require their own locks.
 
 ## 3. Journal, comments and recovery
 
