@@ -1,13 +1,17 @@
 <?php
-
 declare(strict_types=1);
 
-namespace Module\Crm\OutlookCalendar\Web;
+namespace Module\Crm\OutlookCalendar\Web\Controller;
 
-class OutlookCalendarWebController
+use Web\System\Core\Controller;
+
+final class OutlookCalendarWebController extends Controller
 {
-    public function index(): string
+    public function index(): void
     {
-        return '<div class="crm-outlook-calendar-wrap"><h2>Microsoft Outlook Calendar</h2><p>Two-way sync console</p></div>';
+        $this->render(__DIR__ . '/../template/page/crm_outlook_calendar.php', [
+            'title' => 'Outlook Календарь',
+            'route' => 'module-outlook-calendar',
+        ]);
     }
 }

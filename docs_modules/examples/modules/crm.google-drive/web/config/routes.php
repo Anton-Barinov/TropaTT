@@ -1,8 +1,8 @@
 <?php
+declare(strict_types=1);
+
+use Module\Crm\GoogleDrive\Web\Controller\GoogleDriveWebController;
 
 return [
-    'GET /google-drive' => [
-        'handler' => 'Module\\Crm\\GoogleDrive\\Web\\GoogleDriveWebController@index',
-        'permission' => 'settings.edit'
-    ]
+    'module-google-drive' => [GoogleDriveWebController::class, 'index'],
 ];

@@ -1,8 +1,8 @@
 <?php
+declare(strict_types=1);
+
+use Module\Crm\OutlookCalendar\Web\Controller\OutlookCalendarWebController;
 
 return [
-    'GET /outlook-calendar' => [
-        'handler' => 'Module\\Crm\\OutlookCalendar\\Web\\OutlookCalendarWebController@index',
-        'permission' => 'calendar.view'
-    ]
+    'module-outlook-calendar' => [OutlookCalendarWebController::class, 'index'],
 ];

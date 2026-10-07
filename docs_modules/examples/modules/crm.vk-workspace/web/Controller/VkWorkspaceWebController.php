@@ -1,13 +1,17 @@
 <?php
-
 declare(strict_types=1);
 
-namespace Module\Crm\VkWorkspace\Web;
+namespace Module\Crm\VkWorkspace\Web\Controller;
 
-class VkWorkspaceWebController
+use Web\System\Core\Controller;
+
+final class VkWorkspaceWebController extends Controller
 {
-    public function index(): string
+    public function index(): void
     {
-        return '<div class="crm-vk-workspace-wrap"><h2>VK WorkSpace Встречи и Звонки</h2><p>Планирование видеоконференций VK Звонки, синхронизация с корпоративным календарем и мессенджером VK Teams</p></div>';
+        $this->render(__DIR__ . '/../template/page/crm_vk_workspace.php', [
+            'title' => 'VK WorkSpace',
+            'route' => 'module-vk-workspace',
+        ]);
     }
 }

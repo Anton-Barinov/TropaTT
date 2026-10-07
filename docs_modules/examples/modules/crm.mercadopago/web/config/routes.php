@@ -1,8 +1,8 @@
 <?php
+declare(strict_types=1);
+
+use Module\Crm\Mercadopago\Web\Controller\MercadoPagoWebController;
 
 return [
-    'GET /mercadopago' => [
-        'handler' => 'Module\\Crm\\MercadoPago\\Web\\MercadoPagoWebController@index',
-        'permission' => 'finance.view'
-    ]
+    'module-mercadopago' => [MercadoPagoWebController::class, 'index'],
 ];

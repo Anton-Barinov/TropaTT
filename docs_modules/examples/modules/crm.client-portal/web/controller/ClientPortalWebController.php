@@ -3,18 +3,15 @@ declare(strict_types=1);
 
 namespace Module\Crm\ClientPortal\Web\Controller;
 
-use Api\System\Library\Database\DatabaseConnectionPool;
-use Module\Crm\ClientPortal\Service\ClientPortalService;
+use Web\System\Core\Controller;
 
-final class ClientPortalWebController
+final class ClientPortalWebController extends Controller
 {
     public function index(): void
     {
-        $orgId = (int)($_SESSION['user']['organization_id'] ?? 1);
-        $db = DatabaseConnectionPool::getConnection();
-        $service = new ClientPortalService($db);
-        $requests = $service->listRequests($orgId);
-
-        include __DIR__ . '/../template/page/client_portal.php';
+        $this->render(__DIR__ . '/../template/page/crm_client_portal.php', [
+            'title' => 'Клиентский портал',
+            'route' => 'module-client-portal',
+        ]);
     }
 }

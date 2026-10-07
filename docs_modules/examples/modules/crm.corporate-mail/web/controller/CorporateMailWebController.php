@@ -3,18 +3,15 @@ declare(strict_types=1);
 
 namespace Module\Crm\CorporateMail\Web\Controller;
 
-use Api\System\Library\Database\DatabaseConnectionPool;
-use Module\Crm\CorporateMail\Service\CorporateMailService;
+use Web\System\Core\Controller;
 
-final class CorporateMailWebController
+final class CorporateMailWebController extends Controller
 {
     public function index(): void
     {
-        $orgId = (int)($_SESSION['user']['organization_id'] ?? 1);
-        $db = DatabaseConnectionPool::getConnection();
-        $service = new CorporateMailService($db);
-        $mailboxes = $service->listMailboxes($orgId);
-
-        include __DIR__ . '/../template/page/mailboxes_settings.php';
+        $this->render(__DIR__ . '/../template/page/crm_corporate_mail.php', [
+            'title' => 'Корпоративная почта',
+            'route' => 'module-corporate-mail',
+        ]);
     }
 }

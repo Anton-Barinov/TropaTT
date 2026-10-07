@@ -1,10 +1,8 @@
 <?php
 declare(strict_types=1);
 
-use Module\Crm\WhatsAppBusiness\Web\Controller\WhatsAppBusinessWebController;
+use Module\Crm\WhatsappBusiness\Web\Controller\WhatsAppBusinessWebController;
 
 return [
-    'GET' => [
-        'whatsapp-inbox' => [WhatsAppBusinessWebController::class, 'index'],
-    ],
+    'module-whatsapp-business' => [WhatsAppBusinessWebController::class, 'index'],
 ];

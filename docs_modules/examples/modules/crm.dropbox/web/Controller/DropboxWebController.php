@@ -1,13 +1,17 @@
 <?php
-
 declare(strict_types=1);
 
-namespace Module\Crm\Dropbox\Web;
+namespace Module\Crm\Dropbox\Web\Controller;
 
-class DropboxWebController
+use Web\System\Core\Controller;
+
+final class DropboxWebController extends Controller
 {
-    public function index(): string
+    public function index(): void
     {
-        return '<div class="crm-dropbox-wrap"><h2>Dropbox Хранилище</h2><p>Интеграция корпоративного диска и проектов</p></div>';
+        $this->render(__DIR__ . '/../template/page/crm_dropbox.php', [
+            'title' => 'Dropbox Хранилище',
+            'route' => 'module-dropbox',
+        ]);
     }
 }

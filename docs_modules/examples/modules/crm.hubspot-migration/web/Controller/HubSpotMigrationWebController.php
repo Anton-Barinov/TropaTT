@@ -1,13 +1,17 @@
 <?php
-
 declare(strict_types=1);
 
-namespace Module\Crm\HubSpotMigration\Web;
+namespace Module\Crm\HubspotMigration\Web\Controller;
 
-class HubSpotMigrationWebController
+use Web\System\Core\Controller;
+
+final class HubSpotMigrationWebController extends Controller
 {
-    public function index(): string
+    public function index(): void
     {
-        return '<div class="crm-hubspot-migration-wrap"><h2>HubSpot Migration Console</h2><p>Safe data transition pipeline</p></div>';
+        $this->render(__DIR__ . '/../template/page/crm_hubspot_migration.php', [
+            'title' => 'Миграция из HubSpot',
+            'route' => 'module-hubspot-migration',
+        ]);
     }
 }

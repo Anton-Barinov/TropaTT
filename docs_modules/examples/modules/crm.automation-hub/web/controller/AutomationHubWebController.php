@@ -3,18 +3,15 @@ declare(strict_types=1);
 
 namespace Module\Crm\AutomationHub\Web\Controller;
 
-use Api\System\Library\Database\DatabaseConnectionPool;
-use Module\Crm\AutomationHub\Service\AutomationHubService;
+use Web\System\Core\Controller;
 
-final class AutomationHubWebController
+final class AutomationHubWebController extends Controller
 {
     public function index(): void
     {
-        $orgId = (int)($_SESSION['user']['organization_id'] ?? 1);
-        $db = DatabaseConnectionPool::getConnection();
-        $service = new AutomationHubService($db);
-        $recipes = $service->listRecipes($orgId);
-
-        include __DIR__ . '/../template/page/automation_hub.php';
+        $this->render(__DIR__ . '/../template/page/crm_automation_hub.php', [
+            'title' => 'Автоматизация и интеграции',
+            'route' => 'module-automation-hub',
+        ]);
     }
 }

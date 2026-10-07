@@ -1,13 +1,17 @@
 <?php
-
 declare(strict_types=1);
 
-namespace Module\Crm\YandexDisk\Web;
+namespace Module\Crm\YandexDisk\Web\Controller;
 
-class YandexDiskWebController
+use Web\System\Core\Controller;
+
+final class YandexDiskWebController extends Controller
 {
-    public function index(): string
+    public function index(): void
     {
-        return '<div class="crm-yandex-disk-wrap"><h2>Яндекс Диск Хранилище</h2><p>Облачная синхронизация файлов и резервных копий</p></div>';
+        $this->render(__DIR__ . '/../template/page/crm_yandex_disk.php', [
+            'title' => 'Яндекс.Диск',
+            'route' => 'module-yandex-disk',
+        ]);
     }
 }

@@ -1,20 +1,17 @@
 <?php
 declare(strict_types=1);
 
-namespace Module\Crm\WhatsAppBusiness\Web\Controller;
+namespace Module\Crm\WhatsappBusiness\Web\Controller;
 
-use Api\System\Library\Database\DatabaseConnectionPool;
-use Module\Crm\WhatsAppBusiness\Service\WhatsAppBusinessService;
+use Web\System\Core\Controller;
 
-final class WhatsAppBusinessWebController
+final class WhatsAppBusinessWebController extends Controller
 {
     public function index(): void
     {
-        $orgId = (int)($_SESSION['user']['organization_id'] ?? 1);
-        $db = DatabaseConnectionPool::getConnection();
-        $service = new WhatsAppBusinessService($db);
-        $conversations = $service->listConversations($orgId);
-
-        include __DIR__ . '/../template/page/whatsapp_inbox.php';
+        $this->render(__DIR__ . '/../template/page/crm_whatsapp_business.php', [
+            'title' => 'WhatsApp Business',
+            'route' => 'module-whatsapp-business',
+        ]);
     }
 }

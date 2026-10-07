@@ -1,13 +1,17 @@
 <?php
-
 declare(strict_types=1);
 
-namespace Module\Crm\Zoom\Web;
+namespace Module\Crm\Zoom\Web\Controller;
 
-class ZoomWebController
+use Web\System\Core\Controller;
+
+final class ZoomWebController extends Controller
 {
-    public function index(): string
+    public function index(): void
     {
-        return '<div class="crm-zoom-wrap"><h2>Zoom Видеоконференции</h2><p>Планирование онлайн-встреч, интеграция с календарем CRM и архивирование записей созвонов</p></div>';
+        $this->render(__DIR__ . '/../template/page/crm_zoom.php', [
+            'title' => 'Zoom Видеоконференции',
+            'route' => 'module-zoom',
+        ]);
     }
 }

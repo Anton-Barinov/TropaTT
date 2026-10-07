@@ -1,8 +1,8 @@
 <?php
+declare(strict_types=1);
+
+use Module\Crm\YandexDisk\Web\Controller\YandexDiskWebController;
 
 return [
-    'GET /yandex-disk' => [
-        'handler' => 'Module\\Crm\\YandexDisk\\Web\\YandexDiskWebController@index',
-        'permission' => 'settings.edit'
-    ]
+    'module-yandex-disk' => [YandexDiskWebController::class, 'index'],
 ];
