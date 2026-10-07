@@ -3603,7 +3603,7 @@ $tools[] = $this->tool(
                 ],
                 'lock_agent' => [
                     'type' => 'string',
-                    'description' => 'Agent identifier to claim and set status to in_progress with a lock comment.',
+                    'description' => 'Legacy audit comment and status change only; NOT an exclusive lock. Use crm_agent_lease for atomic ownership.',
                 ],
                 'density' => [
                     'type' => 'string',
@@ -3612,6 +3612,22 @@ $tools[] = $this->tool(
                 ],
             ],
             ['task']
+        );
+
+        $tools[] = $this->tool(
+            'crm_agent_lease',
+            'Atomic agent task leases and root-only global release resource leases. Generate a private 64-hex token before claim; retain it for lost-response reconciliation. Tokens are never returned. An expired run must use a new run id and token.',
+            [
+                'action' => ['type' => 'string', 'enum' => ['claim', 'renew', 'release', 'status']],
+                'resource' => ['type' => 'string', 'description' => 'task:tsk_PUBLIC_ID or release:RESOURCE_NAME (root only).'],
+                'agent_id' => ['type' => 'string', 'maxLength' => 96],
+                'run_id' => ['type' => 'string', 'maxLength' => 96],
+                'token' => ['type' => 'string', 'pattern' => '^[a-f0-9]{64}$', 'description' => 'Private capability, never include in comments or logs.'],
+                'generation' => ['type' => 'integer', 'minimum' => 1],
+                'ttl' => ['type' => 'integer', 'minimum' => 30, 'maximum' => 900, 'default' => 300],
+                'organization_public_id' => ['type' => 'string'],
+            ],
+            ['action', 'resource']
         );
 
         $tools[] = $this->tool(
@@ -4458,6 +4474,7 @@ $tools[] = $this->tool(
             'crm_ai' => $this->handleMegaTool('crm_ai', $arguments),
             'crm_admin' => $this->handleMegaTool('crm_admin', $arguments),
             'crm_agent_bundle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmAgentBundle($arguments))),
+            'crm_agent_lease' => $this->toolResult($this->crmAgentLease($arguments)),
             'crm_agent_memory' => $this->toolResult($this->crmAgentMemory($arguments)),
             'crm_chat' => $this->withPermissionAny(['chat.use', 'task.manage', 'project.manage'], fn() => $this->handleMegaTool('crm_chat', $arguments)),
             default => isset($this->ideaWorkflowTools()[$name])
@@ -6918,6 +6935,49 @@ $tools[] = $this->tool(
         }
 
         return true;
+    }
+
+    private function crmAgentLease(array $arguments): array
+    {
+        $contextError = $this->organizationContextError($arguments);
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActorForArguments($this->actor(), $arguments);
+        $actorId = (int)($actor['id'] ?? 0);
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        $resource = (string)($arguments['resource'] ?? '');
+        $action = (string)($arguments['action'] ?? '');
+        if (str_starts_with($resource, 'release:')) {
+            if (empty($actor['is_root'])) {
+                return ['error' => 'LEASE_ACCESS_DENIED'];
+            }
+            // A demo server is global: root switching workspaces must not
+            // create independent locks for the same physical target.
+            $organizationId = 1;
+        } elseif (str_starts_with($resource, 'task:')) {
+            /** @var TaskService $service */
+            $service = $this->container->get('service.task');
+            $task = $service->get(substr($resource, 5), $actor);
+            if (!$task || $organizationId < 1 || ($action !== 'status'
+                && (int)($task['assignee_user_id'] ?? 0) !== $actorId)) {
+                return ['error' => 'LEASE_ACCESS_DENIED'];
+            }
+        } else {
+            return ['error' => 'LEASE_INVALID_ARGUMENT'];
+        }
+        try {
+            return (new \Api\System\Library\Service\AgentLeaseService($this->pdo()))->execute(
+                $action, $organizationId, $actorId, $resource,
+                (string)($arguments['agent_id'] ?? ''), (string)($arguments['run_id'] ?? ''),
+                (string)($arguments['token'] ?? ''), (int)($arguments['generation'] ?? 0),
+                (int)($arguments['ttl'] ?? 300)
+            );
+        } catch (\RuntimeException $error) {
+            $code = $error->getMessage();
+            // PDO/driver diagnostics may expose private infrastructure details.
+            return ['error' => preg_match('/\ALEASE_[A-Z_]+\z/D', $code) ? $code : 'LEASE_STORAGE_UNAVAILABLE'];
+        }
     }
 
     private function crmAgentMemory(array $arguments): array

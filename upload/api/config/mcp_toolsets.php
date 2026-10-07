@@ -64,6 +64,7 @@ return [
             // AgentOS tools: bundle, memory, and chat communication hub
             'crm_agent_bundle',
             'crm_agent_memory',
+            'crm_agent_lease',
             'crm_chat',
         ],
     ],

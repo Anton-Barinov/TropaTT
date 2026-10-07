@@ -9,6 +9,7 @@ declare(strict_types=1);
  */
 return [
     'crm_agent_bundle' => ['mode' => 'all', 'permissions' => ['task.manage']],
+    'crm_agent_lease' => ['mode' => 'all', 'permissions' => ['task.manage']],
     'crm_agent_memory' => ['mode' => 'self', 'permissions' => []],
     'crm_accept_intake_item' => ['mode' => 'any', 'permissions' => ['intake.accept', 'intake.manage']],
     'crm_accept_invitation' => ['mode' => 'self', 'permissions' => []],

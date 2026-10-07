@@ -34,7 +34,7 @@ Core-профиль использует **mega-tools и оркестратор�
 | `crm_knowledge` | База знаний: пространства, страницы, версии, комментарии, теги, файлы, AI | search, list_pages, create_page, ai_summary, + 40 поддействий |
 | `crm_ai` | AI-действия, предложения, провайдеры, задачи, семантический поиск | execute_action, task_summary, project_risks, day_plan, + 25 поддействий |
 | `crm_admin` | Настройки, кеш, модули, обновления, API-клиенты, вебхуки, логи | list_settings, clear_cache, list_modules, + 35 поддействий |
-| `crm_agent_bundle` | **AgentOS 2026 Core**: Атомарный запуск задач | Создание задачи, DoD чек-листов, подзадач, связей с БЗ, блокирующей QA-задачи и захват задачи агентом за один вызов с поддержкой `density: "compact"` |
+| `crm_agent_bundle` | **AgentOS 2026 Core**: Инициализация задач одним запросом | Создание задачи, DoD чек-листов, подзадач, связей с БЗ, блокирующей QA-задачи и захват задачи агентом за один вызов с поддержкой `density: "compact"` |
 | `crm_agent_memory` | **AgentOS 2026 Core**: Персистентная память агентов | `get`, `set`, `list`, `delete`, `search` (по всем scope/метаданным), `export_graph` со связыванием графа сущностей (`task`, `project`, `client`) |
 | `crm_chat` | **AgentOS 2026 Core**: Хаб агентских коммуникаций | `list_chats`, `get_chat`, `create_chat`, `send_message`, `list_messages`, `mark_read` со структурированным JSON (`message_type: json/datapart`) и компактным режимом |
 
@@ -326,7 +326,7 @@ AI-действия логируются через AiJobService/AiAuditService;
 
 | Tool | Назначение | Permission | Side effects |
 |------|-----------|------------|--------------|
-| `crm_agent_bundle` | Атомарный запуск задач: создание, чек-листы DoD, подзадачи, ссылки БЗ, QA-гейт | task.manage | создание и блокировка |
+| `crm_agent_bundle` | Инициализация задач одним запросом: создание, чек-листы DoD, подзадачи, ссылки БЗ, QA-гейт | task.manage | создание и блокировка |
 | `crm_agent_memory` | Персистентная память агентов, семантический поиск и экспорт графа связей | auth | изменение данных памяти |
 | `crm_chat` | Единый хаб агентских коммуникаций (direct, project, team, group) со структурированным JSON | chat.use / task.manage / project.manage | создание сообщений |
 
@@ -1148,7 +1148,7 @@ MCP дублирует функционал REST API поверх безопас
 | `crm_list_knowledge_pages` | tool | `GET /api/v1/knowledge/pages` | KnowledgeController::list | - |
 | `crm_create_knowledge_page` | tool | `POST /api/v1/knowledge/pages` | KnowledgeController::create | - |
 | `crm_list_api_endpoints` | tool | `нет прямого` | McpController::apiEndpointsIndex | MCP-only, читает routes.php |
-| `crm_agent_bundle` | tool | `составной пайплайн` | McpController::crmAgentBundle | MCP-only атомарный запуск задач с чек-листами и блокировками |
+| `crm_agent_bundle` | tool | `составной пайплайн` | McpController::crmAgentBundle | MCP-only последовательная инициализация задач и чек-листов |
 | `crm_agent_memory` | tool | `нет прямого` | McpController::crmAgentMemory | MCP-only персистентное хранилище памяти и связей графа |
 | `crm_chat` | mega-tool | `/api/v1/chats/*` | ChatController | Единый консолидированный хаб агентских коммуникаций |
 
@@ -1158,7 +1158,7 @@ MCP дублирует функционал REST API поверх безопас
 
 | Tool | Назначение | Комментарий |
 |------|-----------|-------------|
-| `crm_agent_bundle` | Атомарный запуск задач | Сквозная транзакционная инициализация задачи, чек-листов, подзадач, регламентов БЗ и QA-гейта |
+| `crm_agent_bundle` | Инициализация задач одним запросом | Последовательная инициализация задачи, чек-листов, подзадач, регламентов БЗ и QA-гейта |
 | `crm_agent_memory` | Персистентная память агентов | Изолированные scope, поиск по метаданным и выгрузка графа сущностей |
 | `crm_list_api_endpoints` | Инвентарь REST endpoints | Возвращает полный список маршрутов из routes.php |
 | `crm_get_knowledge_overview` | Обзор базы знаний | Агрегированная сводка |
@@ -1284,3 +1284,22 @@ MCP дублирует функционал REST API поверх безопас
 ---
 
 * Источник данных: контроллер McpController.php, реестр прав mcp_permissions.php и профили toolsets из mcp_toolsets.php. Документация синхронизирована с кодом.
+
+
+### `crm_agent_lease` — central coordination contract
+
+Requires `task.manage`. Actions: `claim`, `renew`, `release`, `status`.
+
+- `resource`: `task:tsk_PUBLIC_ID`, or `release:demo` for the root-only global release resource.
+- Task operations resolve the active workspace and verify object access; mutations require the task to be assigned to the authenticated actor. A release resource has a global namespace and cannot be bypassed by switching workspaces.
+- `agent_id`, `run_id`: distinct ASCII identifiers, 1–96 characters (`A-Z`, `a-z`, digits, `.`, `_`, `-`). A shared CRM login is not a run identifier.
+- Generate `token` privately before claim: exactly 64 lowercase hexadecimal characters with at least 256 bits of cryptographic randomness. Persist it in private run state **before** sending the mutation. Never put it in comments, logs, command-line arguments or public documents. Only a SHA-256 hash is stored on the server; responses never return the token/hash.
+- `ttl`: 30–900 seconds, default 300. Renew before expiry. Server time is authoritative.
+- Successful responses contain `lease` with safe owner/run identifiers, `generation`, epoch `expires_at`, `heartbeat_at`, `server_now`, and `active`. `claim` also reports `replayed`.
+- `renew`/`release` require the exact owner, run, token and positive `generation`. An expired or replaced owner receives `LEASE_OWNERSHIP_LOST`. A retired run cannot claim again; start a new run with a new token.
+- If a claim response is lost, explicitly reconcile using the same private token/run: a still-active matching claim returns its original generation with `replayed: true`; do not assume ownership from a public status record.
+- `LEASE_OCCUPIED`, `LEASE_ACCESS_DENIED`, `LEASE_RUN_EXPIRED`, `LEASE_INVALID_ARGUMENT`, `LEASE_STORAGE_UNAVAILABLE` are tool failures (`isError: true`). Do not blindly retry mutations or report them as successful.
+
+The lease is a coordination primitive, not a complete deployment coordinator. The caller must retain/renew it across the entire operation, stop after lost ownership and verify deployment provenance before promotion. Ordinary CRUD permissions and optimistic row versions remain applicable. A comment or `in_progress` status is never a substitute for this lease.
+
+`crm_agent_bundle` currently performs sequential operations in one request; it is not a multi-entity database transaction and can leave partial results. Its legacy `lock_agent` option records a comment/status and does **not** provide mutual exclusion. Inspect returned entities and reconcile partial outcomes before retrying.
