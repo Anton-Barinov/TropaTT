@@ -4,6 +4,12 @@ Thank you for considering a contribution to TropaTT.
 
 TropaTT is a self-hosted PHP/MySQL work platform that combines CRM, task management, project tracking, Kanban, Gantt, calendar, team chat, automation, REST API, installer flows, and AI-assisted workflows.
 
+## Contributor and agent workflow
+
+All human and AI contributors should read [`AGENT_PIPELINE_PUBLIC.md`](AGENT_PIPELINE_PUBLIC.md) before starting work. It defines the portable task lifecycle, safe parallel worktrees, ownership and resume rules, exact-SHA release evidence, QA, and shared-hosting constraints. It intentionally contains no credentials or machine-specific paths.
+
+Maintainers may have additional private environment instructions and CRM Knowledge Base regulations. Those may provide access details, but they do not override the public safety invariants. If a target CRM or release host does not expose the required lease/lock capability, serialize work and stop before shared mutations; never imitate a lock with a status or comment.
+
 ## Requirements
 
 - PHP 8.1+
