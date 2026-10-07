@@ -33,9 +33,9 @@
         "css": [
             "web/assets/css/vk-workspace.css"
         ],
-        "js": [
-            "web/assets/js/vk-workspace.js"
-        ]
+        "js_routes": {
+            "module-vk-workspace": "web/assets/js/vk-workspace.js"
+        }
     },
     "mcp_tools": [
         {

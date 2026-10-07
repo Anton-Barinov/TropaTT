@@ -31,9 +31,9 @@
         "css": [
             "web/assets/css/telegram-bot.css"
         ],
-        "js": [
-            "web/assets/js/telegram-bot.js"
-        ]
+        "js_routes": {
+            "module-telegram-bot": "web/assets/js/telegram-bot.js"
+        }
     },
     "mcp_tools": [
         {

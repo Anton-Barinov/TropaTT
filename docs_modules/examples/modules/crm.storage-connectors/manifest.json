@@ -31,9 +31,9 @@
         "css": [
             "web/assets/css/storage-connectors.css"
         ],
-        "js": [
-            "web/assets/js/storage-connectors.js"
-        ]
+        "js_routes": {
+            "module-storage-connectors": "web/assets/js/storage-connectors.js"
+        }
     },
     "mcp_tools": [
         {

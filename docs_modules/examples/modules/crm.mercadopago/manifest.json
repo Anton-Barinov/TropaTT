@@ -33,9 +33,9 @@
         "css": [
             "web/assets/css/mercadopago.css"
         ],
-        "js": [
-            "web/assets/js/mercadopago.js"
-        ]
+        "js_routes": {
+            "module-mercadopago": "web/assets/js/mercadopago.js"
+        }
     },
     "mcp_tools": [
         {

@@ -31,9 +31,9 @@
         "css": [
             "web/assets/css/public-forms.css"
         ],
-        "js": [
-            "web/assets/js/public-forms.js"
-        ]
+        "js_routes": {
+            "module-public-forms": "web/assets/js/public-forms.js"
+        }
     },
     "mcp_tools": [
         {

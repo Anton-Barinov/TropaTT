@@ -1,32 +1,44 @@
-.crm-storage-container {
-    padding: 1.5rem 0;
-    max-width: 800px;
+.stcon-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 1fr);
+  gap: 1.25rem;
 }
-.crm-preflight-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem 0;
-    border-bottom: 1px solid var(--crm-border-color, #e2e8f0);
+.stcon-hero {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  background: var(--crm-surface, #ffffff);
+  border: 1px solid var(--crm-border, #e2e8f0);
+  border-radius: var(--crm-radius, 12px);
 }
-.crm-preflight-item:last-child {
-    border-bottom: none;
+.stcon-hero-icon {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--crm-primary, #3b82f6) 12%, transparent);
+  color: var(--crm-primary, #3b82f6);
+  font-size: 1.75rem;
+  flex-shrink: 0;
 }
-.crm-preflight-badge {
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.375rem;
-    font-size: 0.75rem;
-    font-weight: 600;
+.stcon-panel {
+  min-height: 200px;
+  background: var(--crm-surface, #ffffff);
+  border: 1px solid var(--crm-border, #e2e8f0);
+  border-radius: var(--crm-radius, 12px);
 }
-.crm-preflight-badge.pass {
-    background: #dcfce7;
-    color: #166534;
+.stcon-status-box {
+  background: var(--crm-surface-variant, #f8fafc);
+  border: 1px solid var(--crm-border, #e2e8f0);
 }
-.crm-preflight-badge.warn {
-    background: #fef9c3;
-    color: #854d0e;
-}
-.crm-preflight-badge.fail {
-    background: #fee2e2;
-    color: #991b1b;
+@media (max-width: 991px) {
+  .stcon-grid {
+    grid-template-columns: 1fr;
+  }
+  .stcon-hero {
+    flex-wrap: wrap;
+  }
 }
