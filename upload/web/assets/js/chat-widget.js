@@ -39,6 +39,31 @@
     });
   };
 
+  chat.stripMarkdown = function (text) {
+    if (!text) return '';
+    var s = String(text);
+    // Remove fenced code blocks
+    s = s.replace(/```[a-z0-9_-]*\n[\s\S]*?```/gi, ' ');
+    // Remove inline code
+    s = s.replace(/`([^`\n]+)`/g, '$1');
+    // Markdown links [title](url) -> title
+    s = s.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+    // Knowledge page links kb:id:title -> title
+    s = s.replace(/kb:[a-zA-Z0-9_]+:([^<\n]+)/g, '$1');
+    // Headers #, ##, ###, ####
+    s = s.replace(/(?:^|\n)#{1,6}\s+([^\n]+)/g, ' $1 ');
+    // Bold, italic, strikethrough
+    s = s.replace(/\*\*([^*\n]+)\*\*/g, '$1');
+    s = s.replace(/\*([^*\n]+)\*/g, '$1');
+    s = s.replace(/__([^_\n]+)__/g, '$1');
+    s = s.replace(/_([^_\n]+)_/g, '$1');
+    s = s.replace(/~~([^~\n]+)~~/g, '$1');
+    // Blockquotes and list markers
+    s = s.replace(/(?:^|\n)\s*(?:&gt;|>|[-*]|\d+\.)\s+/g, ' ');
+    // Collapse excess whitespace
+    return s.replace(/\s+/g, ' ').trim();
+  };
+
   chat.formatTime = function (value) {
     if (!value) return '';
     var date = new Date(String(value).replace(' ', 'T'));

@@ -224,7 +224,7 @@ final class AiChatAgentService
             'tool_count' => 0, 'progress' => '', 'error' => '', 'repeat_count' => 0, 'last_calls' => '',
         ];
         $previous = $this->findRun($chat, $actor, '');
-        if ($previous && $previous['status'] === 'waiting_input' && !$this->isIndependentRequest($state['request'])) {
+        if ($previous && in_array($previous['status'], ['waiting_input', 'paused', 'interrupted'], true) && !$this->isIndependentRequest($state['request'])) {
             $saved = json_decode((string)$previous['state_json'], true) ?: [];
             if (($saved['security_version'] ?? 0) === 1 && (int)($saved['workspace_id'] ?? -1) === (int)($chat['organization_id'] ?? 0) && !empty($saved['messages'])) {
                 $state['messages'] = $saved['messages'];
@@ -418,7 +418,7 @@ final class AiChatAgentService
                 $previousRun->execute(['cid' => $chat['id'], 'uid' => $user['id'], 'id' => $run['id']]);
                 $previousState = $previousRun->fetch(PDO::FETCH_ASSOC);
                 $saved = $previousState ? (json_decode($previousState['state_json'], true) ?: []) : [];
-                if (($saved['security_version'] ?? 0) === 1 && (int)($saved['workspace_id'] ?? -1) === (int)($chat['organization_id'] ?? 0) && ($previousState['status'] ?? '') === 'waiting_input' && !empty($saved['messages'])
+                if (($saved['security_version'] ?? 0) === 1 && (int)($saved['workspace_id'] ?? -1) === (int)($chat['organization_id'] ?? 0) && in_array($previousState['status'] ?? '', ['waiting_input', 'paused', 'interrupted'], true) && !empty($saved['messages'])
                     && !$this->isIndependentRequest($state['request'])) {
                     $state['messages'] = $saved['messages'];
                     $state['messages'][] = ['role' => 'user', 'content' => $state['request']];
@@ -752,6 +752,9 @@ final class AiChatAgentService
 
     private function isIndependentRequest(string $text): bool
     {
+        if (preg_match('/^\s*(?:продолж(?:ай|и|айте)?|давай(?: дальше)?|дальше|вперед|ну\b|ну и\b|ну так\b|ну так и\b|go on\b|continue\b|keep going\b|next\b)[.!?\s]*$/iu', $text)) {
+            return false;
+        }
         if (preg_match('/(?:^|[\s,;:])(?:найди|покажи|расскажи|посчитай|проверь|создай|добавь|обнови|удали|find|show|tell|count|check|create|add|update|delete)\b/iu', $text)) return true;
         return (bool)preg_match('/^\s*(?:\/help\b|\/clear\b|\/reset\b|\?|помощь\b|очистить\b|сброс\b|привет|здравствуй|hello\b|hi\b|новая задача|новый запрос|забудь|покажи|расскажи|найди|создай|добавь|обнови|удали|show\b|tell\b|find\b|create\b|add\b|update\b|delete\b)/iu', $text);
     }
