@@ -22,6 +22,7 @@ use Updater\Security\TokenVerifier;
 use Updater\State\JobState;
 use Updater\State\LocalState;
 use Updater\State\LockManager;
+use Updater\State\DeploymentMutex;
 use Updater\Util\WorkBudget;
 
 final class UpdaterKernel
@@ -61,7 +62,14 @@ final class UpdaterKernel
      */
     public function dispatch(string $action, array $input): JsonResponse
     {
+        $deploymentMutex = null;
         try {
+            if (in_array($action, ['apply', 'resume', 'rollback', 'force-unlock'], true)) {
+                $deploymentMutex = new DeploymentMutex($this->basePath);
+                if (!$deploymentMutex->acquire()) {
+                    return JsonResponse::error('DEPLOYMENT_BUSY', 'A deployment or verification is running. Retry later.', 409);
+                }
+            }
             return match ($action) {
                 'status' => $this->status(),
                 'preflight' => $this->preflight($input),
@@ -75,6 +83,8 @@ final class UpdaterKernel
             };
         } catch (\Throwable $e) {
             return JsonResponse::error('UPDATER_ERROR', $this->safeDiagnosticMessage($e->getMessage()), 500);
+        } finally {
+            $deploymentMutex?->release();
         }
     }
 

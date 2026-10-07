@@ -149,14 +149,31 @@ usort($backups, static fn (string $a, string $b): int => @filemtime($b) <=> @fil
 $latestJobDir = $jobs ? dirname($jobs[0]) : null;
 $log = $latestJobDir && is_file($latestJobDir . '/log.jsonl') ? (string)file_get_contents($latestJobDir . '/log.jsonl') : '';
 
+$deploymentMutex = null;
+if (in_array((string)($_POST['action'] ?? ''), ['disable_maintenance', 'delete_lock'], true)) {
+    require_once __DIR__ . '/src/State/DeploymentMutex.php';
+    try {
+        $deploymentMutex = new \Updater\State\DeploymentMutex($basePath);
+        if (!$deploymentMutex->acquire()) {
+            rescuePage('Deployment in progress', '<p>A deployment or verification is running. Retry recovery later.</p>', 409);
+            exit;
+        }
+    } catch (\Throwable $e) {
+        rescuePage('Recovery temporarily unavailable', '<p>The deployment guard could not be acquired. Check server permissions before retrying.</p>', 503);
+        exit;
+    }
+}
+
 if (($_POST['action'] ?? '') === 'disable_maintenance') {
     @unlink($basePath . '/storage_api/maintenance.flag');
+    $deploymentMutex?->release();
     header('Location: /updater/rescue.php?key=' . rawurlencode($provided));
     exit;
 }
 
 if (($_POST['action'] ?? '') === 'delete_lock') {
     @unlink($storage . '/locks/update.lock');
+    $deploymentMutex?->release();
     header('Location: /updater/rescue.php?key=' . rawurlencode($provided));
     exit;
 }

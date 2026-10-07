@@ -303,6 +303,32 @@ you can try the update again.
   never gets in the way.
 - Limit settings live in `api/config/update.php` (`rate_limits`).
 
+### Deployment and verification exclusion
+
+The updater uses a nonblocking PHP `flock` on
+`storage_api/release-coordinator/installation-release.lock` while executing
+`apply`, `resume`, `rollback`, or `force-unlock`. Authenticated rescue actions
+that remove maintenance mode or the updater job lock use the same guard.
+When another process holds it, updater mutations return HTTP 409 with
+`DEPLOYMENT_BUSY`; recovery actions show a retry message and preserve their
+files. Read-only status requests remain available.
+
+The directory is private (0700), and the lock file is private (0600). The
+deployment supervisor must run as the installation's PHP/hosting user and hold
+the same lock for its complete deployment and verification cycle. This needs
+no daemon or external lock service on shared hosting. An unsupported or
+unsafe filesystem/permission setup fails closed; correct ownership rather
+than widening access. The lock inode must never be removed, replaced, or
+cleared based on its age: the operating system releases ownership when the
+holding process terminates.
+
+This guard only excludes writers that use it. A standalone file copy, manual
+FTP upload, or older deployment script can bypass it. Operational release
+instructions must bring every deployment path under the same supervisor and
+verify the deployed commit and file checksums before and after QA. This is
+separate from the updater's persistent job lock and does not replace job
+ownership or resumable update checks.
+
 ### Disaster recovery (recovery key + rescue.php)
 
 If an update is interrupted and the CRM is left in **maintenance mode**, the
