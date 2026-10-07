@@ -11,10 +11,10 @@ use Module\Crm\Zoom\Service\ZoomService;
 
 class ZoomServiceProvider extends AbstractModuleServiceProvider
 {
-    private \PDO $db;
-    private array $config;
+    private ?\PDO $db = null;
+    private array $config = [];
 
-    public function __construct(\PDO $db, array $config = [])
+    public function __construct(?\PDO $db = null, array $config = [])
     {
         $this->db = $db;
         $this->config = $config;

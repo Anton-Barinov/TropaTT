@@ -44,6 +44,8 @@ function main(array $argv): void
     $options = parseCliArgs($argv);
     if ($options['help']) { printUsage(); exit(0); }
 
+    $backgroundWriteGuard = \Api\System\Library\Support\BackgroundWriteGuard::enterOrExit(dirname(__DIR__, 2), $argv);
+
     $authToken = resolveAuthToken($options);
     if ($authToken === '') {
         fwrite(STDERR, "Cannot authenticate. Provide --token or set CRM_AI_CRON_BEARER_TOKEN / CRM_TEST_ROOT_PASSWORD.\n");

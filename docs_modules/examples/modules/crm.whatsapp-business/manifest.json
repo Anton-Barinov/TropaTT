@@ -31,9 +31,9 @@
         "css": [
             "web/assets/css/whatsapp.css"
         ],
-        "js": [
-            "web/assets/js/whatsapp.js"
-        ]
+        "js_routes": {
+            "module-whatsapp-business": "web/assets/js/whatsapp.js"
+        }
     },
     "mcp_tools": [
         {

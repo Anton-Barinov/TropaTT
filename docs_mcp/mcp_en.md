@@ -34,7 +34,7 @@ The `core` profile uses **mega-tools and AgentOS orchestration hubs** — consol
 | `crm_knowledge` | Knowledge base: spaces, pages, versions, comments, tags, files, AI | search, list_pages, create_page, ai_summary, + 40 sub-actions |
 | `crm_ai` | AI actions, suggestions, providers, jobs, semantic search | execute_action, task_summary, project_risks, day_plan, + 25 sub-actions |
 | `crm_admin` | Settings, cache, modules, updates, API clients, webhooks, logs | list_settings, clear_cache, list_modules, + 35 sub-actions |
-| `crm_agent_bundle` | **AgentOS 2026 Core**: Atomic task initialization | Single-request creation of task, DoD checklists, subtasks, knowledge links, blocking QA task, agent concurrency claim, compact density |
+| `crm_agent_bundle` | **AgentOS 2026 Core**: Single-request task initialization | Single-request creation of task, DoD checklists, subtasks, knowledge links, blocking QA task, agent concurrency claim, compact density |
 | `crm_agent_memory` | **AgentOS 2026 Core**: Persistent governed memory store | `get`, `set`, `list`, `delete`, `search` (cross-scope/metadata), `export_graph` with entity graph linking (`task`, `project`, `client`) |
 | `crm_chat` | **AgentOS 2026 Core**: Unified agent communication hub | `list_chats`, `get_chat`, `create_chat`, `send_message`, `list_messages`, `mark_read` with structured JSON (`message_type: json/datapart`) and compact density |
 
@@ -326,7 +326,7 @@ Invalid input and unknown mega-tool `action` values are returned **inside the ca
 
 | Tool | Purpose | Permission | Side effects |
 |------|-----------|------------|--------------|
-| `crm_agent_bundle` | Atomic task, checklist, subtasks, knowledge links & QA gate setup | task.manage | entity creation & locking |
+| `crm_agent_bundle` | Task, checklist, subtasks, knowledge links & QA gate setup | task.manage | entity creation & locking |
 | `crm_agent_memory` | Governed persistent key-value store, semantic search & entity graph export | auth | memory data change |
 | `crm_chat` | Unified agent messaging hub (direct, project, team, group) with structured JSON payloads | chat.use / task.manage / project.manage | message creation & status change |
 
@@ -1146,7 +1146,7 @@ MCP mirrors the REST API through a safe layer. Below is the mapping of key tools
 | `crm_list_knowledge_pages` | tool | `GET /api/v1/knowledge/pages` | KnowledgeController::list | - |
 | `crm_create_knowledge_page` | tool | `POST /api/v1/knowledge/pages` | KnowledgeController::create | - |
 | `crm_list_api_endpoints` | tool | `none` | McpController::apiEndpointsIndex | MCP-only, reads routes.php |
-| `crm_agent_bundle` | tool | `composite` | McpController::crmAgentBundle | MCP-only atomic pipeline runner |
+| `crm_agent_bundle` | tool | `composite` | McpController::crmAgentBundle | MCP-only sequential pipeline runner |
 | `crm_agent_memory` | tool | `none` | McpController::crmAgentMemory | MCP-only persistent agent KV & graph store |
 | `crm_chat` | mega-tool | `/api/v1/chats/*` | ChatController | Intent-based unified communication hub |
 
@@ -1156,7 +1156,7 @@ MCP mirrors the REST API through a safe layer. Below is the mapping of key tools
 
 | Tool | Purpose | Note |
 |------|-----------|-------------|
-| `crm_agent_bundle` | Atomic multi-entity task initialization | Orchestrates tasks, checklists, subtasks, БЗ links and QA gate in a single JSON-RPC request |
+| `crm_agent_bundle` | Single-request multi-entity task initialization | Orchestrates tasks, checklists, subtasks, БЗ links and QA gate in a single JSON-RPC request |
 | `crm_agent_memory` | Governed persistent memory store | Scoped KV memory, semantic/keyword search and entity graph export for AI agents |
 | `crm_list_api_endpoints` | REST endpoints inventory | Returns the full route list from routes.php |
 | `crm_get_knowledge_overview` | Knowledge base overview | Aggregated summary |
@@ -1219,3 +1219,35 @@ MCP mirrors the REST API through a safe layer. Below is the mapping of key tools
 ---
 
 * Data source: McpController.php, the mcp_permissions.php permission registry and the mcp_toolsets.php toolset profiles. Documentation is kept in sync with the code.
+
+
+### `crm_agent_lease` — central coordination contract
+
+Requires `task.manage`. Actions: `claim`, `renew`, `release`, `status`.
+
+- `resource`: `task:tsk_PUBLIC_ID`, or `release:demo` for the root-only global release resource.
+- Task operations resolve the active workspace and verify object access; mutations require the task to be assigned to the authenticated actor. A release resource has a global namespace and cannot be bypassed by switching workspaces.
+- `agent_id`, `run_id`: distinct ASCII identifiers, 1–96 characters (`A-Z`, `a-z`, digits, `.`, `_`, `-`). A shared CRM login is not a run identifier.
+- Generate `token` privately before claim: exactly 64 lowercase hexadecimal characters with at least 256 bits of cryptographic randomness. Persist it in private run state **before** sending the mutation. Never put it in comments, logs, command-line arguments or public documents. Only a SHA-256 hash is stored on the server; responses never return the token/hash.
+- `ttl`: 30–900 seconds, default 300. Renew before expiry. Server time is authoritative.
+- Successful responses contain `lease` with safe owner/run identifiers, `generation`, epoch `expires_at`, `heartbeat_at`, `server_now`, and `active`. `claim` also reports `replayed`.
+- `renew`/`release` require the exact owner, run, token and positive `generation`. An expired or replaced owner receives `LEASE_OWNERSHIP_LOST`. A retired run cannot claim again; start a new run with a new token.
+- If a claim response is lost, explicitly reconcile using the same private token/run: a still-active matching claim returns its original generation with `replayed: true`; do not assume ownership from a public status record.
+- `LEASE_OCCUPIED`, `LEASE_ACCESS_DENIED`, `LEASE_RUN_EXPIRED`, `LEASE_INVALID_ARGUMENT`, `LEASE_STORAGE_UNAVAILABLE` are tool failures (`isError: true`). Do not blindly retry mutations or report them as successful.
+
+The lease is a coordination primitive, not a complete deployment coordinator. The caller must retain/renew it across the entire operation, stop after lost ownership and verify deployment provenance before promotion. Ordinary CRUD permissions and optimistic row versions remain applicable. A comment or `in_progress` status is never a substitute for this lease.
+
+`crm_agent_bundle` currently performs sequential operations in one request; it is not a multi-entity database transaction and can leave partial results. Its legacy `lock_agent` option records a comment/status and does **not** provide mutual exclusion. Inspect returned entities and reconcile partial outcomes before retrying.
+
+
+### `crm_agent_journal` — durable task work journal
+
+Requires `task.manage`; staff only. `get` requires access to the task in the selected workspace. `append` additionally requires current assignment and a confirmed active `crm_agent_lease` capability, verified inside the same transaction as the comment/event write.
+
+Generate a private durable `event_id` (32 lowercase hexadecimal characters) **before** sending an append. Send `task_public_id`, `operation_id` (ASCII identifier, maximum 96 characters), `event_kind` (`intent`, `result`, `checkpoint`, `blocker`), `stage` (lowercase ASCII identifier, maximum 32 characters), and `body` (1–6000 characters), with `agent_id`, `run_id`, `token`, `generation` from the task lease. An optional `organization_public_id` selects a workspace explicitly.
+
+Append returns `event` metadata including native `comment_public_id`, `payload_hash` and server UTC `created_at`, plus `replayed`. Retrying the identical event with the same id creates no duplicate comment. Changed content/identity for an existing event returns `JOURNAL_EVENT_CONFLICT`. A lost response can be reconciled with `action=get`, `task_public_id`, `event_id`; this read returns the stored receipt or `event: null` and needs no old lease token. Do not infer that a different operation or event id represents the same write.
+
+The native comment and receipt commit or roll back together. Stale owners and reassigned tasks cannot append. Text is sanitized through the ordinary comment service; tokens and Bearer/API credentials must never appear in bodies. These routine internal journal entries intentionally do not send subscriber notifications or trigger comment-added automations. They remain visible and pageable in the task's normal internal discussion. External users cannot use this tool and cannot see its internal comments or pagination totals.
+
+MCP `crm_task action=list_comments` honors `page` and `limit` (1–50, default 20), returns pagination metadata, and preserves external-user/workspace filtering. Read all pages to locate previous checkpoints. Equal comment timestamps are ordered by row id as a stable tie-breaker.

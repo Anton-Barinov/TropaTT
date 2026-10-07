@@ -1,8 +1,8 @@
 <?php
+declare(strict_types=1);
+
+use Module\Crm\PaystackAfrica\Controller\PaystackAfricaApiController;
 
 return [
-    'GET /api/v1/modules/paystack-africa/status' => [
-        'handler' => 'Module\\Crm\\PaystackAfrica\\Controller\\PaystackAfricaApiController@getStatus',
-        'permission' => 'finance.view'
-    ]
+    ['methods' => ['GET'], 'route' => '/status', 'controller' => PaystackAfricaApiController::class, 'action' => 'getStatus', 'auth' => true],
 ];

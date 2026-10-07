@@ -33,9 +33,9 @@
         "css": [
             "web/assets/css/google-drive.css"
         ],
-        "js": [
-            "web/assets/js/google-drive.js"
-        ]
+        "js_routes": {
+            "module-google-drive": "web/assets/js/google-drive.js"
+        }
     },
     "mcp_tools": [
         {

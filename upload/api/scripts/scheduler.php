@@ -22,6 +22,10 @@ $projectRoot = dirname($basePath);
 $autoloader = new Api\System\Library\Support\Autoloader($basePath);
 $autoloader->register();
 
+// Hold SH for this whole pass, including child workers. An EX deployment must
+// wait for active work to finish; new passes skip without connecting to MySQL.
+$backgroundWriteGuard = \Api\System\Library\Support\BackgroundWriteGuard::enterOrExit($projectRoot, $argv);
+
 // Module cron handlers live in Module\Vendor\Name\... and are resolved by the
 // module autoloader that the web application registers in app.php. This CLI
 // worker runs standalone, so without the same registration every module task

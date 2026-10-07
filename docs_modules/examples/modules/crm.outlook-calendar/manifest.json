@@ -33,9 +33,9 @@
         "css": [
             "web/assets/css/outlook-calendar.css"
         ],
-        "js": [
-            "web/assets/js/outlook-calendar.js"
-        ]
+        "js_routes": {
+            "module-outlook-calendar": "web/assets/js/outlook-calendar.js"
+        }
     },
     "mcp_tools": [
         {

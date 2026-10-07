@@ -30,9 +30,9 @@
         "css": [
             "web/assets/css/client-portal.css"
         ],
-        "js": [
-            "web/assets/js/client-portal.js"
-        ]
+        "js_routes": {
+            "module-client-portal": "web/assets/js/client-portal.js"
+        }
     },
     "mcp_tools": [
         {

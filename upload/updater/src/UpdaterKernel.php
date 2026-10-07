@@ -22,6 +22,7 @@ use Updater\Security\TokenVerifier;
 use Updater\State\JobState;
 use Updater\State\LocalState;
 use Updater\State\LockManager;
+use Updater\State\DeploymentMutex;
 use Updater\Util\WorkBudget;
 
 final class UpdaterKernel
@@ -61,7 +62,14 @@ final class UpdaterKernel
      */
     public function dispatch(string $action, array $input): JsonResponse
     {
+        $deploymentMutex = null;
         try {
+            if (in_array($action, ['apply', 'resume', 'rollback', 'force-unlock'], true)) {
+                $deploymentMutex = new DeploymentMutex($this->basePath);
+                if (!$deploymentMutex->acquire()) {
+                    return JsonResponse::error('DEPLOYMENT_BUSY', 'A deployment or verification is running. Retry later.', 409);
+                }
+            }
             return match ($action) {
                 'status' => $this->status(),
                 'preflight' => $this->preflight($input),
@@ -75,6 +83,8 @@ final class UpdaterKernel
             };
         } catch (\Throwable $e) {
             return JsonResponse::error('UPDATER_ERROR', $this->safeDiagnosticMessage($e->getMessage()), 500);
+        } finally {
+            $deploymentMutex?->release();
         }
     }
 
@@ -372,6 +382,7 @@ final class UpdaterKernel
                 if (!$this->renewLockForJob($jobId, $steps)) {
                     throw new \RuntimeException('Update lock was lost; another update may have started. Roll back or retry the update.');
                 }
+                (new MaintenanceMode($this->basePath))->enable($jobId);
                 // A failed attempt is being retried: clear the failure marker
                 // so the page stops showing the stale error while the same
                 // job resumes from its stored progress.
@@ -470,7 +481,7 @@ final class UpdaterKernel
             $systemMutated = $phase === '' || in_array($phase, ['apply_files', 'health', 'backup_db', 'migrate', 'finalize'], true);
             $maintenanceHeld = $maintenanceWasOn || $systemMutated;
             if (!$maintenanceHeld) {
-                (new MaintenanceMode($this->basePath))->disable();
+                (new MaintenanceMode($this->basePath))->disable($jobId);
             }
             (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->release($jobId);
             $safeMessage = $this->safeDiagnosticMessage($e->getMessage());
@@ -760,7 +771,7 @@ final class UpdaterKernel
             'short_sha' => $manifest['short_sha'] ?? null,
             'last_job_id' => $jobId,
         ]);
-        (new MaintenanceMode($this->basePath))->disable();
+        (new MaintenanceMode($this->basePath))->disable($jobId);
         (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->release($jobId);
         // Ensure recovery key files exist for rescue.php. If the hash file
         // exists but the plaintext sidecar is missing (old installation or
@@ -898,6 +909,7 @@ final class UpdaterKernel
                 if (!$this->renewLockForJob($jobId, $steps)) {
                     throw new \RuntimeException('Rollback lock was lost; another update may have started.');
                 }
+                (new MaintenanceMode($this->basePath))->enable($jobId);
                 // A failed rollback attempt being retried: drop the stale
                 // error marker while the job resumes from its progress.
                 if (($stored['state'] ?? '') === 'rollback_failed' && ($stored['error'] ?? null) !== null) {
@@ -964,7 +976,7 @@ final class UpdaterKernel
             $systemMutated = $phase === '' || in_array($phase, ['restore_db', 'restore_files', 'health'], true);
             $maintenanceHeld = $maintenanceWasOn || $systemMutated;
             if (!$maintenanceHeld) {
-                (new MaintenanceMode($this->basePath))->disable();
+                (new MaintenanceMode($this->basePath))->disable($jobId);
             }
             (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->release($jobId);
             $safeMessage = $this->safeDiagnosticMessage($e->getMessage());
@@ -1082,7 +1094,7 @@ final class UpdaterKernel
         $manifest = $state->readFile('manifest.json') ?: [];
         $plan = $state->readFile('plan.json') ?: [];
         $installedCore = $this->rollbackInstalledCoreState($jobId, $manifest, $plan);
-        (new MaintenanceMode($this->basePath))->disable();
+        (new MaintenanceMode($this->basePath))->disable($jobId);
         (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->release($jobId);
         // Clear any error recorded by an earlier failed attempt.
         $state->write(['state' => 'rolled_back', 'can_resume' => false, 'can_rollback' => false, 'finished_at' => gmdate('c'), 'error' => null, 'progress' => ['phase' => 'finalized', 'cursor' => [], 'done' => 1, 'total' => 1]]);

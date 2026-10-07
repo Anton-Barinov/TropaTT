@@ -34,6 +34,7 @@ final class CommentRepository
                 'u.full_name AS author_name',
             ])
             ->orderBy('c.created_at', 'DESC')
+            ->orderBy('c.id', 'DESC')
             ->limit($limit)
             ->offset($offset)
             ->get();

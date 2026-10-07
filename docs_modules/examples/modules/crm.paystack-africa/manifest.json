@@ -33,9 +33,9 @@
         "css": [
             "web/assets/css/paystack.css"
         ],
-        "js": [
-            "web/assets/js/paystack.js"
-        ]
+        "js_routes": {
+            "module-paystack-africa": "web/assets/js/paystack.js"
+        }
     },
     "mcp_tools": [
         {

@@ -31,9 +31,9 @@
         "css": [
             "web/assets/css/corporate-mail.css"
         ],
-        "js": [
-            "web/assets/js/corporate-mail.js"
-        ]
+        "js_routes": {
+            "module-corporate-mail": "web/assets/js/corporate-mail.js"
+        }
     },
     "mcp_tools": [
         {

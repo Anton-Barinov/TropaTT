@@ -303,6 +303,63 @@ you can try the update again.
   never gets in the way.
 - Limit settings live in `api/config/update.php` (`rate_limits`).
 
+### Deployment and verification exclusion
+
+The updater uses a nonblocking PHP `flock` on
+`storage_api/release-coordinator/installation-release.lock` while executing
+`apply`, `resume`, `rollback`, or `force-unlock`. Authenticated rescue actions
+that remove maintenance mode or the updater job lock use the same guard.
+When another process holds it, updater mutations return HTTP 409 with
+`DEPLOYMENT_BUSY`; recovery actions show a retry message and preserve their
+files. Read-only status requests remain available.
+
+The directory is private (0700), and the lock file is private (0600). The
+deployment supervisor must run as the installation's PHP/hosting user and hold
+the same lock for its complete deployment and verification cycle. This needs
+no daemon or external lock service on shared hosting. An unsupported or
+unsafe filesystem/permission setup fails closed; correct ownership rather
+than widening access. The lock inode must never be removed, replaced, or
+cleared based on its age: the operating system releases ownership when the
+holding process terminates.
+
+This guard only excludes writers that use it. A standalone file copy, manual
+FTP upload, or older deployment script can bypass it. Operational release
+instructions must bring every deployment path under the same supervisor and
+verify the deployed commit and file checksums before and after QA. This is
+separate from the updater's persistent job lock and does not replace job
+ownership or resumable update checks.
+
+CLI background writers (`scheduler.php`, `idea_analysis_worker.php`,
+`ai_cron.php`, `cron_push.php`, and `jobs_worker_run.php`) hold a shared lock
+on that inode for their complete pass. Shared workers can run concurrently;
+an exclusive deployment/update cannot overlap them. New workers skip before
+authentication, database access, or provider calls when maintenance is active
+or the exclusive lock is held. Invalid lock permissions cause a failure rather
+than an unguarded run. Run cron as the installation's hosting/PHP user.
+The guard must be deployed before relying on it to drain old workers: an
+already-running older process does not retroactively acquire it.
+
+The jobs CLI is standalone and uses the normal authenticated REST dispatcher
+in-process, without a loopback HTTP request or a private test bootstrap. Set
+`CRM_JOBS_CRON_BEARER_TOKEN` in the hosting user's private environment, then
+run `php api/scripts/jobs_worker_run.php --limit=20`. Optionally set
+`CRM_JOBS_CRON_ORGANIZATION_PUBLIC_ID` to select a workspace the token can
+access. The CLI preserves the API's authentication, RBAC and workspace checks;
+it does not automatically apply migrations or provision an administrator.
+Do not put tokens in command-line arguments or logs.
+
+Updater maintenance is owned by its `job_id` and `core_update_apply` reason.
+Apply/rollback retries preserve the same flag; a different updater job cannot
+overwrite or remove it. A malformed or externally owned flag stops the operation
+and stays in place for authenticated recovery. Normal finalization and clean
+failure cleanup remove only the current job's flag under the installation mutex.
+The rescue path remains an explicit authenticated override, not normal cleanup.
+
+Background exclusion is one part of a consistent rollback checkpoint. The
+release supervisor must also account for browser/API requests already running
+before maintenance and use a verified database snapshot. Do not automatically
+restore that snapshot after reopening the installation to new user writes.
+
 ### Disaster recovery (recovery key + rescue.php)
 
 If an update is interrupted and the CRM is left in **maintenance mode**, the

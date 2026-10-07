@@ -31,9 +31,9 @@
         "css": [
             "web/assets/css/starter-kits.css"
         ],
-        "js": [
-            "web/assets/js/starter-kits.js"
-        ]
+        "js_routes": {
+            "module-starter-kits": "web/assets/js/starter-kits.js"
+        }
     },
     "mcp_tools": [
         {

@@ -34,7 +34,7 @@ Core 配置文件使用 **mega-tools 与 AgentOS 核心编排工具** — 合并
 | `crm_knowledge` | 知识库：空间、页面、版本、评论、标签、文件、AI | search, list_pages, create_page, ai_summary + 40 个子操作 |
 | `crm_ai` | AI 操作、建议、提供者、任务、语义搜索 | execute_action, task_summary, project_risks, day_plan + 25 个子操作 |
 | `crm_admin` | 设置、缓存、模块、更新、API 客户端、Webhook、日志 | list_settings, clear_cache, list_modules + 35 个子操作 |
-| `crm_agent_bundle` | **AgentOS 2026 Core**: 原子化任务初始化 | 单次请求创建任务、DoD 检查清单、子任务、知识库关联、阻塞 QA 任务及代理锁定（支持 `density: "compact"`） |
+| `crm_agent_bundle` | **AgentOS 2026 Core**: 单次请求任务初始化 | 单次请求创建任务、DoD 检查清单、子任务、知识库关联、阻塞 QA 任务及代理锁定（支持 `density: "compact"`） |
 | `crm_agent_memory` | **AgentOS 2026 Core**: 持久化代理记忆库 | `get`, `set`, `list`, `delete`, `search`（跨 scope/元数据搜索）、`export_graph`（关联实体关系图谱） |
 | `crm_chat` | **AgentOS 2026 Core**: 统一代理通信中枢 | `list_chats`, `get_chat`, `create_chat`, `send_message`, `list_messages`, `mark_read`，支持结构化 JSON（`message_type: json/datapart`）与紧凑响应模式 |
 
@@ -326,7 +326,7 @@ AI 操作通过 AiJobService/AiAuditService 记录；导入/导出和工作流�
 
 | Tool | 用途 | Permission | 副作用 |
 |------|-----------|------------|--------------|
-| `crm_agent_bundle` | 原子化任务初始化：一次请求创建任务、DoD 清单、子任务、知识库关联及阻塞 QA 门禁 | task.manage | 实体创建与锁定 |
+| `crm_agent_bundle` | 单次请求任务初始化：一次请求创建任务、DoD 清单、子任务、知识库关联及阻塞 QA 门禁 | task.manage | 实体创建与锁定 |
 | `crm_agent_memory` | 受管控的持久化键值存储、元数据语义检索与实体图谱导出 | auth | 记忆数据写入 |
 | `crm_chat` | 统一代理通信中枢（单聊、项目、团队、群组），支持结构化 JSON 载荷 | chat.use / task.manage / project.manage | 消息发送与状态流转 |
 
@@ -1146,7 +1146,7 @@ MCP 通过安全层镜像 REST API。下面是关键工具与 REST 端点的映�
 | `crm_list_knowledge_pages` | 工具 | `GET /api/v1/knowledge/pages` | KnowledgeController::list | - |
 | `crm_create_knowledge_page` | 工具 | `POST /api/v1/knowledge/pages` | KnowledgeController::create | - |
 | `crm_list_api_endpoints` | 工具 | `无直接对应` | McpController::apiEndpointsIndex | 仅 MCP，读取 routes.php |
-| `crm_agent_bundle` | 工具 | `复合操作` | McpController::crmAgentBundle | 仅 MCP 复合原子编排器 |
+| `crm_agent_bundle` | 工具 | `复合操作` | McpController::crmAgentBundle | 仅 MCP 顺序复合编排器 |
 | `crm_agent_memory` | 工具 | `无直接对应` | McpController::crmAgentMemory | 仅 MCP 持久化代理键值与图谱存储 |
 | `crm_chat` | mega-tool | `/api/v1/chats/*` | ChatController | 基于意图的统一代理通信中枢 |
 
@@ -1156,7 +1156,7 @@ MCP 通过安全层镜像 REST API。下面是关键工具与 REST 端点的映�
 
 | 工具 | 用途 | 备注 |
 |------|-----------|-------------|
-| `crm_agent_bundle` | 原子化多实体任务初始化 | 一次 JSON-RPC 调用即可编排任务、清单、子任务、知识库关联及阻塞 QA 门禁 |
+| `crm_agent_bundle` | 单次请求多实体任务初始化 | 一次 JSON-RPC 调用即可编排任务、清单、子任务、知识库关联及阻塞 QA 门禁 |
 | `crm_agent_memory` | 受管控的持久化记忆库 | 代理作用域 KV 记忆存储、语义/关键词搜索与实体图谱导出 |
 | `crm_list_api_endpoints` | REST 端点清单 | 返回 routes.php 中的完整路由列表 |
 | `crm_get_knowledge_overview` | 知识库概览 | 聚合摘要 |
@@ -1219,3 +1219,35 @@ MCP 通过安全层镜像 REST API。下面是关键工具与 REST 端点的映�
 ---
 
 * 数据来源：McpController.php、mcp_permissions.php 权限注册表和 mcp_toolsets.php 工具集配置文件。文档与代码保持同步。
+
+
+### `crm_agent_lease` — central coordination contract
+
+Requires `task.manage`. Actions: `claim`, `renew`, `release`, `status`.
+
+- `resource`: `task:tsk_PUBLIC_ID`, or `release:demo` for the root-only global release resource.
+- Task operations resolve the active workspace and verify object access; mutations require the task to be assigned to the authenticated actor. A release resource has a global namespace and cannot be bypassed by switching workspaces.
+- `agent_id`, `run_id`: distinct ASCII identifiers, 1–96 characters (`A-Z`, `a-z`, digits, `.`, `_`, `-`). A shared CRM login is not a run identifier.
+- Generate `token` privately before claim: exactly 64 lowercase hexadecimal characters with at least 256 bits of cryptographic randomness. Persist it in private run state **before** sending the mutation. Never put it in comments, logs, command-line arguments or public documents. Only a SHA-256 hash is stored on the server; responses never return the token/hash.
+- `ttl`: 30–900 seconds, default 300. Renew before expiry. Server time is authoritative.
+- Successful responses contain `lease` with safe owner/run identifiers, `generation`, epoch `expires_at`, `heartbeat_at`, `server_now`, and `active`. `claim` also reports `replayed`.
+- `renew`/`release` require the exact owner, run, token and positive `generation`. An expired or replaced owner receives `LEASE_OWNERSHIP_LOST`. A retired run cannot claim again; start a new run with a new token.
+- If a claim response is lost, explicitly reconcile using the same private token/run: a still-active matching claim returns its original generation with `replayed: true`; do not assume ownership from a public status record.
+- `LEASE_OCCUPIED`, `LEASE_ACCESS_DENIED`, `LEASE_RUN_EXPIRED`, `LEASE_INVALID_ARGUMENT`, `LEASE_STORAGE_UNAVAILABLE` are tool failures (`isError: true`). Do not blindly retry mutations or report them as successful.
+
+The lease is a coordination primitive, not a complete deployment coordinator. The caller must retain/renew it across the entire operation, stop after lost ownership and verify deployment provenance before promotion. Ordinary CRUD permissions and optimistic row versions remain applicable. A comment or `in_progress` status is never a substitute for this lease.
+
+`crm_agent_bundle` currently performs sequential operations in one request; it is not a multi-entity database transaction and can leave partial results. Its legacy `lock_agent` option records a comment/status and does **not** provide mutual exclusion. Inspect returned entities and reconcile partial outcomes before retrying.
+
+
+### `crm_agent_journal` — durable task work journal
+
+Requires `task.manage`; staff only. `get` requires access to the task in the selected workspace. `append` additionally requires current assignment and a confirmed active `crm_agent_lease` capability, verified inside the same transaction as the comment/event write.
+
+Generate a private durable `event_id` (32 lowercase hexadecimal characters) **before** sending an append. Send `task_public_id`, `operation_id` (ASCII identifier, maximum 96 characters), `event_kind` (`intent`, `result`, `checkpoint`, `blocker`), `stage` (lowercase ASCII identifier, maximum 32 characters), and `body` (1–6000 characters), with `agent_id`, `run_id`, `token`, `generation` from the task lease. An optional `organization_public_id` selects a workspace explicitly.
+
+Append returns `event` metadata including native `comment_public_id`, `payload_hash` and server UTC `created_at`, plus `replayed`. Retrying the identical event with the same id creates no duplicate comment. Changed content/identity for an existing event returns `JOURNAL_EVENT_CONFLICT`. A lost response can be reconciled with `action=get`, `task_public_id`, `event_id`; this read returns the stored receipt or `event: null` and needs no old lease token. Do not infer that a different operation or event id represents the same write.
+
+The native comment and receipt commit or roll back together. Stale owners and reassigned tasks cannot append. Text is sanitized through the ordinary comment service; tokens and Bearer/API credentials must never appear in bodies. These routine internal journal entries intentionally do not send subscriber notifications or trigger comment-added automations. They remain visible and pageable in the task's normal internal discussion. External users cannot use this tool and cannot see its internal comments or pagination totals.
+
+MCP `crm_task action=list_comments` honors `page` and `limit` (1–50, default 20), returns pagination metadata, and preserves external-user/workspace filtering. Read all pages to locate previous checkpoints. Equal comment timestamps are ordered by row id as a stable tie-breaker.

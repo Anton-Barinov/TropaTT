@@ -351,6 +351,19 @@ final class App
             if ($moduleName !== null && $moduleName !== '') {
                 if (!empty($matched['workspace_required']) && ($matched['auth'] ?? true)) {
                     $authForModule = $this->container->has('auth_user') ? $this->container->get('auth_user') : null;
+                    if (is_array($authForModule) && isset($authForModule['user']) && is_array($authForModule['user'])) {
+                        if ($this->container->has('service.organization_context')) {
+                            /** @var \Api\System\Library\Service\OrganizationContextService $orgCtxSvc */
+                            $orgCtxSvc = $this->container->get('service.organization_context');
+                            $resolvedOrg = $orgCtxSvc->resolve($request, $authForModule['user']);
+                            if (($resolvedOrg['status'] ?? '') === 'active' && is_array($resolvedOrg['organization'] ?? null)) {
+                                $authForModule['user']['organization_id'] = (int)$resolvedOrg['organization']['id'];
+                                $authForModule['user']['organization_public_id'] = (string)($resolvedOrg['organization']['public_id'] ?? '');
+                                $this->container->set('auth_user', $authForModule);
+                            }
+                        }
+                    }
+
                     $orgId = (int)($authForModule['user']['organization_id'] ?? 0);
                     $isRoot = !empty($authForModule['user']['is_root']);
                     if ($orgId <= 0 && !$isRoot) {
@@ -369,24 +382,20 @@ final class App
                         return $response;
                     }
 
-                    // Set ModuleExecutionContext on container
+                    // Set ModuleExecutionContext on container if workspace is active
                     $orgPublicId = (string)($authForModule['user']['organization_public_id'] ?? ($orgId > 0 ? 'org_' . $orgId : ''));
                     $actorPublicId = (string)($authForModule['user']['public_id'] ?? 'usr_system');
-                    $execContext = $orgId > 0
-                        ? \Api\System\Library\Module\ModuleExecutionContext::forWorkspace(
+                    if ($orgId > 0) {
+                        $execContext = \Api\System\Library\Module\ModuleExecutionContext::forWorkspace(
                             $moduleName,
                             $orgId,
                             $orgPublicId,
                             $actorPublicId,
                             'api',
                             $request->correlationId
-                        )
-                        : \Api\System\Library\Module\ModuleExecutionContext::global(
-                            $moduleName,
-                            'api',
-                            $request->correlationId
                         );
-                    $this->container->set('module.execution_context', $execContext);
+                        $this->container->set('module.execution_context', $execContext);
+                    }
                 }
 
                 // Idempotency check for mutating module requests
@@ -595,7 +604,28 @@ final class App
             $action = (string)$matched['action'];
             $params = (array)($matched['params'] ?? []);
 
-            $controller = new $controllerClass($this->container);
+            try {
+                $refClass = new \ReflectionClass($controllerClass);
+                $constructor = $refClass->getConstructor();
+                if ($constructor === null || $constructor->getNumberOfParameters() === 0) {
+                    $controller = new $controllerClass();
+                } else {
+                    $firstParam = $constructor->getParameters()[0] ?? null;
+                    $firstType = $firstParam?->getType();
+                    $typeName = $firstType instanceof \ReflectionNamedType ? $firstType->getName() : '';
+                    if ($typeName === 'PDO' || $typeName === '\PDO') {
+                        $pdo = $this->container->has('db.pdo') ? $this->container->get('db.pdo') : null;
+                        $controller = new $controllerClass($pdo);
+                    } else {
+                        $controller = new $controllerClass($this->container);
+                    }
+                }
+            } catch (\ArgumentCountError|\TypeError $e) {
+                // Fallback attempt with PDO if Container was rejected
+                $pdo = $this->container->has('db.pdo') ? $this->container->get('db.pdo') : null;
+                $controller = new $controllerClass($pdo);
+            }
+
             if (!method_exists($controller, $action)) {
                 /** @var LanguageManager $lang */
                 $lang = $this->container->get('lang');
@@ -2233,42 +2263,51 @@ final class App
 
         $pluginManager->discover();
 
+        $loadedModules = [];
         try {
             $activeModules = $moduleConfig->getActiveModules();
             $loadedModuleNames = [];
             foreach ($activeModules as $reg) {
                 $moduleName = (string)$reg['module_name'];
-                $pluginManager->load($moduleName);
-                if ($pluginManager->isLoaded($moduleName)) {
-                    $loadedModuleNames[$moduleName] = true;
-                }
+                try {
+                    $pluginManager->load($moduleName);
+                    if ($pluginManager->isLoaded($moduleName)) {
+                        $loadedModuleNames[$moduleName] = true;
+                    }
 
-                $autoloader = $this->container->get('module.autoloader');
-                $manifest = $pluginManager->getManifest($moduleName);
-                if ($manifest !== null) {
-                    $autoloader->registerModule($manifest->name, $manifest->vendor);
+                    $autoloader = $this->container->get('module.autoloader');
+                    $manifest = $pluginManager->getManifest($moduleName);
+                    if ($manifest !== null) {
+                        $autoloader->registerModule($manifest->name, $manifest->vendor);
+                    }
+                } catch (\Throwable $e) {
+                    AppLog::error('[App::initModuleSystem] Module initialization/autoloader failed for "' . $moduleName . '": ' . $e->getMessage());
                 }
             }
         } catch (\Throwable $e) {
-            AppLog::error('[App::initModuleSystem] Module initialization/autoloader failed for "' . ($moduleName ?? 'unknown') . '": ' . $e->getMessage());
+            AppLog::error('[App::initModuleSystem] Module loading query failed: ' . $e->getMessage());
         }
 
         try {
             $loadedModules = $pluginManager->getActive();
             foreach ($loadedModules as $name => $manifest) {
                 if ($manifest->apiRoutes !== null) {
-                    $moduleDir = $pluginManager->getModulesDir() . '/' . $manifest->name;
-                    $routeFile = $moduleDir . '/' . $manifest->apiRoutes;
-                    if (is_file($routeFile)) {
-                        $moduleRoutes = require $routeFile;
-                        if (is_array($moduleRoutes) && $moduleRoutes !== []) {
-                            $router->addManyFromModule($moduleRoutes, $name);
+                    try {
+                        $moduleDir = $pluginManager->getModulesDir() . '/' . $manifest->name;
+                        $routeFile = $moduleDir . '/' . $manifest->apiRoutes;
+                        if (is_file($routeFile)) {
+                            $moduleRoutes = require $routeFile;
+                            if (is_array($moduleRoutes) && $moduleRoutes !== []) {
+                                $router->addManyFromModule($moduleRoutes, $name);
+                            }
                         }
+                    } catch (\Throwable $e) {
+                        AppLog::error('[App::initModuleSystem] Route loading failed for module "' . $name . '": ' . $e->getMessage());
                     }
                 }
             }
         } catch (\Throwable $e) {
-            AppLog::error('[App::initModuleSystem] Route loading failed for module "' . ($name ?? 'unknown') . '": ' . $e->getMessage());
+            AppLog::error('[App::initModuleSystem] Active modules iteration failed: ' . $e->getMessage());
         }
 
         /** @var HookManager $hookManager */
