@@ -34,7 +34,7 @@ Core-профиль использует **mega-tools и оркестратор�
 | `crm_knowledge` | База знаний: пространства, страницы, версии, комментарии, теги, файлы, AI | search, list_pages, create_page, ai_summary, + 40 поддействий |
 | `crm_ai` | AI-действия, предложения, провайдеры, задачи, семантический поиск | execute_action, task_summary, project_risks, day_plan, + 25 поддействий |
 | `crm_admin` | Настройки, кеш, модули, обновления, API-клиенты, вебхуки, логи | list_settings, clear_cache, list_modules, + 35 поддействий |
-| `crm_agent_bundle` | **AgentOS 2026 Core**: Инициализация задач одним запросом | Создание задачи, DoD чек-листов, подзадач, связей с БЗ, блокирующей QA-задачи и захват задачи агентом за один вызов с поддержкой `density: "compact"` |
+| `crm_agent_bundle` | **AgentOS 2026 Core**: Инициализация задач одним запросом | Последовательная настройка задачи, DoD, подзадач, БЗ и QA; при частичном сбое возвращает ID выполненных шагов с поддержкой `density: "compact"` |
 | `crm_agent_memory` | **AgentOS 2026 Core**: Персистентная память агентов | `get`, `set`, `list`, `delete`, `search` (по всем scope/метаданным), `export_graph` со связыванием графа сущностей (`task`, `project`, `client`) |
 | `crm_chat` | **AgentOS 2026 Core**: Хаб агентских коммуникаций | `list_chats`, `get_chat`, `create_chat`, `send_message`, `list_messages`, `mark_read` со структурированным JSON (`message_type: json/datapart`) и компактным режимом |
 
@@ -326,7 +326,7 @@ AI-действия логируются через AiJobService/AiAuditService;
 
 | Tool | Назначение | Permission | Side effects |
 |------|-----------|------------|--------------|
-| `crm_agent_bundle` | Инициализация задач одним запросом: создание, чек-листы DoD, подзадачи, ссылки БЗ, QA-гейт | task.manage | создание и блокировка |
+| `crm_agent_bundle` | Последовательная настройка: чек-листы DoD, подзадачи, ссылки БЗ и QA-гейт; при сбое возвращает уже созданные ID | task.manage (+ knowledge.edit при ссылках БЗ) | частичные изменения; эксклюзивной блокировки нет |
 | `crm_agent_memory` | Персистентная память агентов, семантический поиск и экспорт графа связей | auth | изменение данных памяти |
 | `crm_chat` | Единый хаб агентских коммуникаций (direct, project, team, group) со структурированным JSON | chat.use / task.manage / project.manage | создание сообщений |
 
@@ -1158,7 +1158,7 @@ MCP дублирует функционал REST API поверх безопас
 
 | Tool | Назначение | Комментарий |
 |------|-----------|-------------|
-| `crm_agent_bundle` | Инициализация задач одним запросом | Последовательная инициализация задачи, чек-листов, подзадач, регламентов БЗ и QA-гейта |
+| `crm_agent_bundle` | Последовательная настройка задачи | ID выполненных шагов при частичном сбое; это не транзакция и не блокировка |
 | `crm_agent_memory` | Персистентная память агентов | Изолированные scope, поиск по метаданным и выгрузка графа сущностей |
 | `crm_list_api_endpoints` | Инвентарь REST endpoints | Возвращает полный список маршрутов из routes.php |
 | `crm_get_knowledge_overview` | Обзор базы знаний | Агрегированная сводка |
@@ -1302,7 +1302,7 @@ Requires `task.manage`. Actions: `claim`, `renew`, `release`, `status`.
 
 The lease is a coordination primitive, not a complete deployment coordinator. The caller must retain/renew it across the entire operation, stop after lost ownership and verify deployment provenance before promotion. Ordinary CRUD permissions and optimistic row versions remain applicable. A comment or `in_progress` status is never a substitute for this lease.
 
-`crm_agent_bundle` currently performs sequential operations in one request; it is not a multi-entity database transaction and can leave partial results. Its legacy `lock_agent` option records a comment/status and does **not** provide mutual exclusion. Inspect returned entities and reconcile partial outcomes before retrying.
+`crm_agent_bundle` currently performs sequential operations in one request; it is not a multi-entity database transaction and can leave partial results. Its устаревший `lock_agent` отклоняется до записи; владение задачей оформляйте отдельно через `crm_agent_lease`. Inspect returned entities and reconcile partial outcomes before retrying.
 
 
 ### `crm_agent_journal` — durable task work journal

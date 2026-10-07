@@ -34,7 +34,7 @@ Core 配置文件使用 **mega-tools 与 AgentOS 核心编排工具** — 合并
 | `crm_knowledge` | 知识库：空间、页面、版本、评论、标签、文件、AI | search, list_pages, create_page, ai_summary + 40 个子操作 |
 | `crm_ai` | AI 操作、建议、提供者、任务、语义搜索 | execute_action, task_summary, project_risks, day_plan + 25 个子操作 |
 | `crm_admin` | 设置、缓存、模块、更新、API 客户端、Webhook、日志 | list_settings, clear_cache, list_modules + 35 个子操作 |
-| `crm_agent_bundle` | **AgentOS 2026 Core**: 单次请求任务初始化 | 单次请求创建任务、DoD 检查清单、子任务、知识库关联、阻塞 QA 任务及代理锁定（支持 `density: "compact"`） |
+| `crm_agent_bundle` | **AgentOS 2026 Core**: 单次请求任务初始化 | 顺序创建任务、DoD、子任务、知识库关联与 QA 关系；部分失败时返回已完成步骤 ID（支持 `density: "compact"`） |
 | `crm_agent_memory` | **AgentOS 2026 Core**: 持久化代理记忆库 | `get`, `set`, `list`, `delete`, `search`（跨 scope/元数据搜索）、`export_graph`（关联实体关系图谱） |
 | `crm_chat` | **AgentOS 2026 Core**: 统一代理通信中枢 | `list_chats`, `get_chat`, `create_chat`, `send_message`, `list_messages`, `mark_read`，支持结构化 JSON（`message_type: json/datapart`）与紧凑响应模式 |
 
@@ -326,7 +326,7 @@ AI 操作通过 AiJobService/AiAuditService 记录；导入/导出和工作流�
 
 | Tool | 用途 | Permission | 副作用 |
 |------|-----------|------------|--------------|
-| `crm_agent_bundle` | 单次请求任务初始化：一次请求创建任务、DoD 清单、子任务、知识库关联及阻塞 QA 门禁 | task.manage | 实体创建与锁定 |
+| `crm_agent_bundle` | 顺序初始化并返回部分结果凭据；QA 门禁 | task.manage | 顺序创建实体，不提供锁定 |
 | `crm_agent_memory` | 受管控的持久化键值存储、元数据语义检索与实体图谱导出 | auth | 记忆数据写入 |
 | `crm_chat` | 统一代理通信中枢（单聊、项目、团队、群组），支持结构化 JSON 载荷 | chat.use / task.manage / project.manage | 消息发送与状态流转 |
 
@@ -1156,7 +1156,7 @@ MCP 通过安全层镜像 REST API。下面是关键工具与 REST 端点的映�
 
 | 工具 | 用途 | 备注 |
 |------|-----------|-------------|
-| `crm_agent_bundle` | 单次请求多实体任务初始化 | 一次 JSON-RPC 调用即可编排任务、清单、子任务、知识库关联及阻塞 QA 门禁 |
+| `crm_agent_bundle` | 顺序任务设置 | 部分失败时返回已完成步骤 ID；不是事务或租约 |
 | `crm_agent_memory` | 受管控的持久化记忆库 | 代理作用域 KV 记忆存储、语义/关键词搜索与实体图谱导出 |
 | `crm_list_api_endpoints` | REST 端点清单 | 返回 routes.php 中的完整路由列表 |
 | `crm_get_knowledge_overview` | 知识库概览 | 聚合摘要 |
@@ -1237,7 +1237,7 @@ Requires `task.manage`. Actions: `claim`, `renew`, `release`, `status`.
 
 The lease is a coordination primitive, not a complete deployment coordinator. The caller must retain/renew it across the entire operation, stop after lost ownership and verify deployment provenance before promotion. Ordinary CRUD permissions and optimistic row versions remain applicable. A comment or `in_progress` status is never a substitute for this lease.
 
-`crm_agent_bundle` currently performs sequential operations in one request; it is not a multi-entity database transaction and can leave partial results. Its legacy `lock_agent` option records a comment/status and does **not** provide mutual exclusion. Inspect returned entities and reconcile partial outcomes before retrying.
+`crm_agent_bundle` currently performs sequential operations in one request; it is not a multi-entity database transaction and can leave partial results. Deprecated `lock_agent` is rejected before writes; claim ownership separately through `crm_agent_lease`. Inspect returned entities and reconcile partial outcomes before retrying.
 
 
 ### `crm_agent_journal` — durable task work journal

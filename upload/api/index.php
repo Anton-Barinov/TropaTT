@@ -65,30 +65,81 @@ foreach ($blockedPatterns as $pattern) {
     }
 }
 
+// Coordinate normal HTTP requests with updater/deployment mutations. The
+// updater obtains the same inode exclusively; ordinary API requests hold a
+// shared lock until this front controller finishes. An exclusive deployment
+// lock therefore drains already-running requests and prevents new requests
+// from entering while files or the database are being changed. The updater
+// has its own entry point and must not acquire this shared lock.
+$deploymentRoot = dirname(__DIR__);
+$deploymentRuntimeConfigured = (getenv('DB_CONNECTION') || getenv('CRM_DB_DRIVER') || getenv('CRM_STORAGE_BASE'))
+    || is_file($deploymentRoot . '/.env')
+    || is_file(__DIR__ . '/.env')
+    || is_file($deploymentRoot . '/.env.local')
+    || is_file(__DIR__ . '/.env.local');
+if ($deploymentRuntimeConfigured) {
+    require_once $deploymentRoot . '/updater/src/State/DeploymentMutex.php';
+    $requestDeploymentMutex = new \Updater\State\DeploymentMutex($deploymentRoot);
+    $requestLockError = false;
+    try {
+        $requestLockAcquired = $requestDeploymentMutex->acquire(false);
+    } catch (\Throwable) {
+        $requestLockAcquired = false;
+        $requestLockError = true;
+    }
+    if (!$requestLockAcquired) {
+        http_response_code(503);
+        header('Retry-After: 2');
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'success' => false,
+            'code' => $requestLockError ? 'DEPLOYMENT_GUARD_UNAVAILABLE' : 'DEPLOYMENT_BUSY',
+            'message' => $requestLockError
+                ? 'The release safety lock is unavailable. No CRM operation was started.'
+                : 'A deployment or verification is in progress. Retry shortly.',
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+}
+
 $maintenanceFlag = dirname(__DIR__) . '/storage_api/maintenance.flag';
 if (is_file($maintenanceFlag)) {
     // Guard 3 (maintenance hold): keep the update-center API reachable during
     // held maintenance so the admin-updates page can roll back or retry a
     // failed update. These routes are still auth + RBAC protected.
     $maintenanceRoute = trim((string)($_GET['route'] ?? ''), '/');
-    $maintenanceRecoveryAllowed = str_starts_with($maintenanceRoute, 'api/v1/core/updates')
-        || $maintenanceRoute === 'api/v1/auth/me'
-        // Allow login during held maintenance: without it an admin whose
-        // session expired after a failed update could never reach the
-        // admin-updates page to roll back / retry. Login stays rate-limited.
-        || $maintenanceRoute === 'api/v1/auth/login'
-        // The admin-updates page calls core/version in its loadStatus(); a 503
-        // MAINTENANCE_MODE here makes the page show an error instead of the
-        // update progress while an apply is legitimately holding maintenance.
-        || $maintenanceRoute === 'api/v1/core/version'
-        // Background polling endpoints: notifications, telemetry, and modules
-        // are called by the page JS on a timer. They are read-only and
-        // returning 503 floods the console with scary errors. Let them
-        // respond normally so the page stays clean during update.
-        || $maintenanceRoute === 'api/v1/notifications/counters'
-        || str_starts_with($maintenanceRoute, 'api/v1/notifications')
-        || str_starts_with($maintenanceRoute, 'api/v1/telemetry')
-        || $maintenanceRoute === 'api/v1/modules';
+    $maintenanceState = json_decode((string)@file_get_contents($maintenanceFlag), true);
+    $strictDeploymentMaintenance = is_array($maintenanceState)
+        && ($maintenanceState['reason'] ?? null) === 'deployment_pipeline';
+    $maintenanceMethod = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+    if ($strictDeploymentMaintenance) {
+        // A release snapshot spans multiple bounded steps. Permit only
+        // read-only recovery/status pages; login, telemetry, notifications,
+        // updater preparation and all ordinary API routes remain closed so
+        // they cannot write application data between snapshot chunks.
+        $maintenanceRecoveryAllowed = ($maintenanceMethod === 'GET'
+            && in_array($maintenanceRoute, [
+                'api/v1/auth/me',
+                'api/v1/core/version',
+                'api/v1/core/updates/status',
+                'api/v1/core/updates/changes',
+                'api/v1/core/updates/history',
+            ], true))
+            || ($maintenanceMethod === 'GET'
+                && preg_match('#\\Aapi/v1/core/updates/log/[A-Za-z0-9._-]+\\z#D', $maintenanceRoute) === 1);
+    } else {
+        $maintenanceRecoveryAllowed = str_starts_with($maintenanceRoute, 'api/v1/core/updates')
+            || $maintenanceRoute === 'api/v1/auth/me'
+            // Allow login during held updater maintenance, but never during a
+            // release snapshot where it could write application data.
+            || $maintenanceRoute === 'api/v1/auth/login'
+            || $maintenanceRoute === 'api/v1/core/version'
+            // Preserve existing updater maintenance polling behavior.
+            || $maintenanceRoute === 'api/v1/notifications/counters'
+            || str_starts_with($maintenanceRoute, 'api/v1/notifications')
+            || str_starts_with($maintenanceRoute, 'api/v1/telemetry')
+            || $maintenanceRoute === 'api/v1/modules';
+    }
     if (!$maintenanceRecoveryAllowed) {
         http_response_code(503);
         header('Content-Type: application/json; charset=utf-8');
@@ -96,7 +147,7 @@ if (is_file($maintenanceFlag)) {
             'success' => false,
             'code' => 'MAINTENANCE_MODE',
             'message' => $earlyLanguage->get('common/messages.maintenance_mode', 'Core update maintenance mode is active'),
-            'data' => json_decode((string) file_get_contents($maintenanceFlag), true) ?: ['enabled' => true],
+            'data' => is_array($maintenanceState) ? $maintenanceState : ['enabled' => true],
         ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         exit;
     }

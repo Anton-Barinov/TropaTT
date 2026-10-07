@@ -452,7 +452,7 @@ Because TropaTT stores 100% of its data in a standard MySQL database and files i
 3. Automated Pre-Update Snapshots: Before applying any system update, the built-in update engine automatically creates a timestamped database and file backup with one-click rollback if an issue occurs.
 
 **Can multiple users and AI agents work simultaneously without data conflicts?**
-Yes. TropaTT implements STORM optimistic concurrency locking using `row_version`. If two users or agents attempt to update the same record concurrently, the second modification is safely rejected with a conflict error rather than silently overwriting data.
+STORM uses `row_version` to reject a stale update to the same record, preventing silent overwrites. This is not a task reservation or a release lock. Parallel AI agents also need separate worktrees and a live CRM that exposes and enforces `crm_agent_lease` and `crm_agent_journal`; verify those capabilities through the actual MCP connection. If they are unavailable, serialize CRM task writes. Deployments need a separate accepted release coordinator.
 
 **What are the exact minimum hardware and server requirements?**
 - CPU: 1 vCPU (1.0 GHz+).
@@ -530,7 +530,7 @@ Updates are installed from the admin panel (**Admin → System Updates**, no SSH
 | E-Commerce Connectors | 11 storefront platforms (optional module) (OpenCart 1.5–4.x, WooCommerce HPOS, Shopify, 1C-Bitrix, InSales, CS-Cart, PrestaShop, Shop-Script, Moguta, Tilda, Magento 2) |
 | JS modules | 44 custom vanilla JS modules, no SPA framework, no build step |
 | Public CI | PHP lint on 8.1 and 8.2, client-portal security contract, OpenAPI consistency, web frontend unit tests |
-| Release gate | Live API/MCP suite run by the maintainer against the demo stand; `main` is updated only by the auto-merge step and only when the report shows `failed_count == 0` |
+| Release gate | Exact-SHA demo QA and immutable evidence are required before promotion; a push to `develop` is only a candidate, not proof of testing or automatic promotion |
 | AI endpoints | 65 |
 | AI workflows | 28 |
 | Feature flags | 40 |
@@ -671,7 +671,7 @@ The public repository includes standard project files for maintainers, contribut
 TropaTT is maintained with automated checks and a disciplined workflow to keep the codebase stable:
 
 - **Public CI:** Every pull request runs PHP syntax checks (8.1 and 8.2), a client-portal security contract check, OpenAPI route-consistency verification, and web frontend unit tests.
-- **Gated releases:** every push to `develop` is verified against the live demo stand by the release gate (`tests/run_all.sh` on the maintainer machine — the suite is intentionally not published); `main` is updated only by the auto-merge step, and only when the report shows `failed_count == 0`.
+- **Gated releases:** a push to `develop` creates a candidate only. Demo verification must identify the exact deployed SHA and retain an immutable report; `main` may be promoted only after the required gates pass through the accepted release process. The full release coordinator is still being completed, so do not infer a demo deployment or automatic promotion from a successful push.
 - **Checks available in a public clone:**
   ```bash
   # PHP syntax check across the tree
@@ -682,7 +682,7 @@ TropaTT is maintained with automated checks and a disciplined workflow to keep t
   php upload/api/scripts/api_coverage_check.php
   ```
   The full test suite (`tests/`) lives only in the maintainer worktree and is intentionally not published — do not add it as a CI dependency; describe manual verification in the pull request instead.
-- **Branch strategy:** `main` holds stable releases and is updated only by the gated auto-merge after the live test suite passes. Development happens in `develop` and feature branches; pull requests target `develop`.
+- **Branch strategy:** `main` holds stable releases and may be updated only through the authorized release process after exact-SHA demo QA passes. Development happens in `develop` and isolated feature branches; pull requests target `develop`.
 - **Commit convention:** Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`).
 
 ---
@@ -1070,7 +1070,7 @@ TropaTT полностью открыта. Разворачивайте сист
 3. Автоматические снапшоты при обновлениях: встроенная система обновлений автоматически создает резервную копию файлов и схемы БД перед накатом релиза с возможностью отката в один клик.
 
 **Могут ли несколько сотрудников и ИИ-агентов работать параллельно без конфликтов?**
-Да. В TropaTT внедрен механизм оптимистических блокировок STORM на основе версионирования строк (`row_version`). При попытке параллельной перезаписи одной записи вторым пользователем или агентом операция отклоняется с предупреждением о конфликте версий, защищая данные от затирания.
+Механизм STORM использует версии строк (`row_version`) и отклоняет устаревшее изменение одной записи, предотвращая тихую перезапись. Это не резервирование задачи и не блокировка релиза. Для параллельной работы ИИ-агентов также нужны отдельные worktree и подключённая CRM, которая реально предоставляет и применяет `crm_agent_lease` и `crm_agent_journal`; проверяйте это через фактическое MCP-подключение. Если возможностей нет, изменения задач в CRM выполняйте последовательно. Для деплоя нужен отдельный принятый координатор релиза.
 
 **Каковы точные минимальные системные требования к серверу?**
 - Процессор: 1 vCPU (от 1.0 ГГц).
@@ -1134,7 +1134,7 @@ TropaTT полностью открыта. Разворачивайте сист
 | CMS-коннекторы | 11 платформ (модуль) (OpenCart 1.5–4.x, 1С-Битрикс, WooCommerce HPOS, InSales, CS-Cart, PrestaShop, Shop-Script, Могута, Tilda, Shopify, Magento 2) |
 | JS-модули | 44 собственных модулей на чистом JS, без SPA-фреймворков и сборщиков |
 | Публичный CI | PHP lint (8.1 и 8.2), контракт безопасности клиентского портала, покрытие маршрутов OpenAPI, unit-тесты фронтенда |
-| Гейт релизов | Живой набор API/MCP-тестов запускается мейнтейнером на демо-стенде; `main` обновляется только авто-мерджем и только при `failed_count == 0` |
+| Гейт релизов | Перед продвижением обязательны QA точного SHA на демо и неизменяемый отчёт; push в `develop` сам по себе не означает тестирование или автоматическое продвижение |
 | AI-эндпоинты | 65 |
 | AI-сценарии | 28 |
 | Feature-флаги | 40 |
@@ -1275,7 +1275,7 @@ ADR-006 Web — серверная верификация сессии чере�
 Стабильность кодовой базы обеспечивается автоматическими проверками и регламентом разработки:
 
 - **Публичный CI:** На каждый Pull Request запускается проверка синтаксиса PHP (8.1 и 8.2), контракт безопасности клиентского портала, валидация схемы OpenAPI и unit-тесты фронтенда.
-- **Гейт релизов:** каждый push в `develop` проверяется на демо-стенде живым набором тестов (`tests/run_all.sh` выполняется в рабочей копии мейнтейнера и не публикуется); `main` обновляется только шагом авто-мерджа и только при `failed_count == 0`.
+- **Гейт релизов:** push в `develop` создаёт только кандидата. Проверка на демо должна подтверждать точный SHA и сохранять неизменяемый отчёт; продвигать `main` можно только после прохождения обязательных гейтов через принятый процесс релиза. Полный координатор релиза ещё дорабатывается, поэтому успешный push не доказывает деплой на демо и не запускает автоматическое продвижение.
 - **Проверки, доступные в публичном клоне:**
   ```bash
   # Проверка синтаксиса PHP по всему дереву
@@ -1504,7 +1504,7 @@ AI 需求推演 · 任务层级分解 · 每日工作计划建议 · 每周工�
 - **上下文密度优化技术（`density: "compact"`）：** 在执行列表批量检索时启用极致紧凑编码，剔除不必要的装饰字段，单次推理提示词 Token 开销最多骤降 85%。
 - **原子化任务编排（`crm_agent_bundle`）：** 允许 AI 智能体在单次数据库事务中一次性原子创建父任务、验收条件（DoD）、检查清单与关联子任务。
 - **跨会话持久化智能体记忆（`crm_agent_memory`）：** 允许智能体在不同对话轮次之间沉淀结构化事实记忆、实体图谱关联，并支持语义检索与结构化导出。
-- **STORM 乐观并发控制：** 基于 `row_version` 版本号机制，有效避免多个并行 AI 智能体与人类员工同时修改同一条业务记录时产生写覆盖冲突。
+- **STORM 乐观并发控制：** 基于 `row_version` 拒绝对同一业务记录的过期修改，避免静默覆盖；任务认领与发布协调需要单独的租约和锁。
 
 **企业级安全控制：**
 - 全流程“审核后应用”设计，杜绝幻觉产生的数据破坏。
@@ -1672,7 +1672,7 @@ TropaTT 彻底开源。将其部署在您所信任的服务器上，随意审查
 3. 升级前自动快照：内置的一键在线更新程序在执行文件与数据库迁移前，会自动创建带时间戳的完整快照，出现任何意外支持一键平滑回滚。
 
 **多个员工与 AI 智能体同时操作是否会发生数据覆盖冲突？**
-不会。TropaTT 底层实现了基于 `row_version` 行版本号的 STORM 乐观并发控制机制。当两个用户或智能体尝试同时修改同一条业务记录时，后提交的修改会被系统安全拦截并提示冲突，切实保障数据一致性。
+STORM 使用 `row_version` 拒绝对同一记录的过期更新，从而避免静默覆盖；它并不是任务认领或发布锁。多个 AI 智能体并行工作还需要独立 worktree，以及实际提供并执行 `crm_agent_lease` 和 `crm_agent_journal` 的 CRM；请通过当前 MCP 连接确认这些能力。若能力不可用，应串行写入 CRM 任务。部署还需要单独验收通过的发布协调器。
 
 **服务器物理硬件与运行环境的最低要求是什么？**
 - 处理器：1 vCPU（主频 1.0 GHz 以上）。
@@ -1736,7 +1736,7 @@ TropaTT 原生内置了遵循标准 Model Context Protocol 的 MCP 服务器，�
 | 电商 CMS 连接器 | 11 大主流独立站（可选模块）（OpenCart 1.5–4.x、1C-Bitrix、WooCommerce HPOS、InSales、CS-Cart、PrestaShop、Shop-Script、Moguta、Tilda、Shopify、Magento 2） |
 | 原生 JS 模块 | 44 个自研纯原生 ES5+ 模块，彻底摒弃 SPA 前端重型构建步骤 |
 | 公开自动化 CI | PHP 8.1 / 8.2 语法全量扫描、MySQL 数据迁移完整性校验、OpenAPI 路由契约一致性核查 |
-| 发布门禁 | 由维护者在演示站上运行真实 API/MCP 测试套件；仅当报告 `failed_count == 0` 时才通过自动合并且更新 `main` |
+| 发布门禁 | 推进前必须在演示站验证确切 SHA 并保存不可变报告；推送 `develop` 不等于已测试或自动推进 |
 | AI 专用端点 | 65 个 |
 | 落地 AI 工作流 | 28 项 |
 | 功能开关控制 | 40 个特性 Flags |
@@ -1877,7 +1877,7 @@ ADR-006 Web — 服务端基于 HttpOnly Cookie 与 CSRF 令牌的双重会话�
 为确保系统工业级的稳定性与代码品质，所有合并遵循严格的规范化工作流：
 
 - **自动化 CI 门禁：** 每个 PR 必须通过 PHP 8.1 / 8.2 双版本语法核验、客户门户安全契约检查、OpenAPI 规范一致性审查与前端单元测试。
-- **发布门禁：** 每次推送 `develop` 都会在演示站上由发布门禁（`tests/run_all.sh`，仅在维护者本机运行、不对外发布）验证；只有报告中 `failed_count == 0` 时才会自动合并进 `main`。
+- **发布门禁：** 推送 `develop` 只会创建候选版本。演示站验证必须确认确切 SHA 并保留不可变报告；只有通过已验收的发布流程和必需门禁后才可推进 `main`。完整发布协调器仍在完善中，因此不能根据成功推送推断已部署或会自动推进。
 - **公开克隆中可用的检查：**
   ```bash
   # 全量 PHP 语法检查
@@ -1888,7 +1888,7 @@ ADR-006 Web — 服务端基于 HttpOnly Cookie 与 CSRF 令牌的双重会话�
   php upload/api/scripts/api_coverage_check.php
   ```
   完整测试套件（`tests/`）仅存在于维护者工作区，出于设计不对外发布——请勿将其作为 CI 依赖；改为在 pull request 中说明手工验证过程。
-- **严谨的分支策略：** `main` 分支仅用于发布经过充分生产验证的稳定版本，且只有在门禁测试全部通过后由自动合并更新。日常特性开发在 `develop` 分支及各特性分支上开展，pull request 均指向 `develop`。
+- **严谨的分支策略：** `main` 分支仅用于稳定版本，并且只能在确切 SHA 通过演示站验证后，通过获准的发布流程更新。日常开发在 `develop` 与隔离的特性分支开展，pull request 指向 `develop`。
 - **标准化提交日志：** 严格采用 Conventional Commits 语义化前缀（`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`）。
 
 ---

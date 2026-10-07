@@ -34,7 +34,7 @@ The `core` profile uses **mega-tools and AgentOS orchestration hubs** — consol
 | `crm_knowledge` | Knowledge base: spaces, pages, versions, comments, tags, files, AI | search, list_pages, create_page, ai_summary, + 40 sub-actions |
 | `crm_ai` | AI actions, suggestions, providers, jobs, semantic search | execute_action, task_summary, project_risks, day_plan, + 25 sub-actions |
 | `crm_admin` | Settings, cache, modules, updates, API clients, webhooks, logs | list_settings, clear_cache, list_modules, + 35 sub-actions |
-| `crm_agent_bundle` | **AgentOS 2026 Core**: Single-request task initialization | Single-request creation of task, DoD checklists, subtasks, knowledge links, blocking QA task, agent concurrency claim, compact density |
+| `crm_agent_bundle` | **AgentOS 2026 Core**: Single-request task initialization | Sequential creation of task, DoD checklists, subtasks, knowledge links and optional QA relation; partial receipts; compact density |
 | `crm_agent_memory` | **AgentOS 2026 Core**: Persistent governed memory store | `get`, `set`, `list`, `delete`, `search` (cross-scope/metadata), `export_graph` with entity graph linking (`task`, `project`, `client`) |
 | `crm_chat` | **AgentOS 2026 Core**: Unified agent communication hub | `list_chats`, `get_chat`, `create_chat`, `send_message`, `list_messages`, `mark_read` with structured JSON (`message_type: json/datapart`) and compact density |
 
@@ -326,7 +326,7 @@ Invalid input and unknown mega-tool `action` values are returned **inside the ca
 
 | Tool | Purpose | Permission | Side effects |
 |------|-----------|------------|--------------|
-| `crm_agent_bundle` | Task, checklist, subtasks, knowledge links & QA gate setup | task.manage | entity creation & locking |
+| `crm_agent_bundle` | Sequential setup with partial receipts; stop on first failure and reconcile receipts before retry | task.manage | sequential entity creation; no locking |
 | `crm_agent_memory` | Governed persistent key-value store, semantic search & entity graph export | auth | memory data change |
 | `crm_chat` | Unified agent messaging hub (direct, project, team, group) with structured JSON payloads | chat.use / task.manage / project.manage | message creation & status change |
 
@@ -1156,7 +1156,7 @@ MCP mirrors the REST API through a safe layer. Below is the mapping of key tools
 
 | Tool | Purpose | Note |
 |------|-----------|-------------|
-| `crm_agent_bundle` | Single-request multi-entity task initialization | Orchestrates tasks, checklists, subtasks, БЗ links and QA gate in a single JSON-RPC request |
+| `crm_agent_bundle` | Sequential task setup | Returns completed step IDs on partial failure; not a transaction or lease |
 | `crm_agent_memory` | Governed persistent memory store | Scoped KV memory, semantic/keyword search and entity graph export for AI agents |
 | `crm_list_api_endpoints` | REST endpoints inventory | Returns the full route list from routes.php |
 | `crm_get_knowledge_overview` | Knowledge base overview | Aggregated summary |
@@ -1237,7 +1237,7 @@ Requires `task.manage`. Actions: `claim`, `renew`, `release`, `status`.
 
 The lease is a coordination primitive, not a complete deployment coordinator. The caller must retain/renew it across the entire operation, stop after lost ownership and verify deployment provenance before promotion. Ordinary CRUD permissions and optimistic row versions remain applicable. A comment or `in_progress` status is never a substitute for this lease.
 
-`crm_agent_bundle` currently performs sequential operations in one request; it is not a multi-entity database transaction and can leave partial results. Its legacy `lock_agent` option records a comment/status and does **not** provide mutual exclusion. Inspect returned entities and reconcile partial outcomes before retrying.
+`crm_agent_bundle` currently performs sequential operations in one request; it is not a multi-entity database transaction and can leave partial results. Its deprecated `lock_agent` option is rejected before writes; claim ownership separately with `crm_agent_lease`. Inspect returned entities and reconcile partial outcomes before retrying.
 
 
 ### `crm_agent_journal` — durable task work journal

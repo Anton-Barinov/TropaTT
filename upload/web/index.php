@@ -72,6 +72,38 @@ if (!headers_sent()) {
     header('Content-Security-Policy: ' . $csp);
 }
 
+// Keep in-flight web requests visible to the release mutex. The updater uses
+// the same inode exclusively from its own entry point; regular web requests
+// acquire it shared until request shutdown. This drains old PHP requests before
+// a release changes files and rejects new requests during the exclusive phase.
+$deploymentRoot = dirname(__DIR__);
+$deploymentRuntimeConfigured = (getenv('DB_CONNECTION') || getenv('CRM_DB_DRIVER') || getenv('CRM_STORAGE_BASE'))
+    || is_file($deploymentRoot . '/.env')
+    || is_file($deploymentRoot . '/api/.env')
+    || is_file($deploymentRoot . '/.env.local')
+    || is_file($deploymentRoot . '/api/.env.local');
+if ($deploymentRuntimeConfigured) {
+    require_once $deploymentRoot . '/updater/src/State/DeploymentMutex.php';
+    $requestDeploymentMutex = new \Updater\State\DeploymentMutex($deploymentRoot);
+    $requestLockError = false;
+    try {
+        $requestLockAcquired = $requestDeploymentMutex->acquire(false);
+    } catch (\Throwable) {
+        $requestLockAcquired = false;
+        $requestLockError = true;
+    }
+    if (!$requestLockAcquired) {
+        http_response_code(503);
+        header('Retry-After: 2');
+        header('Content-Type: text/html; charset=utf-8');
+        $message = $requestLockError
+            ? 'The release safety lock is unavailable. No CRM operation was started; contact the administrator if this persists.'
+            : 'A deployment or verification is in progress. Please retry shortly.';
+        echo '<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>TropaTT</title></head><body><main role="alert"><h1>Temporarily unavailable</h1><p>' . htmlspecialchars($message, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p></main></body></html>';
+        exit;
+    }
+}
+
 $maintenanceFlag = dirname(__DIR__) . '/storage_api/maintenance.flag';
 if (is_file($maintenanceFlag)) {
     // Guard 3 (maintenance hold): a failed update (e.g. partial DB migration)
@@ -79,20 +111,23 @@ if (is_file($maintenanceFlag)) {
     // admin-updates page and its core/updates API must stay reachable so the
     // admin can roll back or retry. Everything else stays behind maintenance.
     $maintenanceRoute = trim((string)($_GET['route'] ?? ''), '/');
-    // 'login' must stay reachable during held maintenance: an update that
-    // failed after mutating files/DB leaves maintenance ON, and if the admin's
-    // session has expired they could otherwise never log in again to roll
-    // back or retry from the admin-updates page (recovery would be locked to
-    // the one-time rescue key). Login is rate-limited like any other attempt.
-    $maintenanceRecoveryAllowed = $maintenanceRoute === 'admin-updates'
-        || $maintenanceRoute === 'login'
-        || str_starts_with($maintenanceRoute, 'api/v1/core/updates')
-        // Background polling: notifications, telemetry, modules. Read-only
-        // requests that fire on a timer — returning 503 floods the console.
-        || $maintenanceRoute === 'api/v1/notifications/counters'
-        || str_starts_with($maintenanceRoute, 'api/v1/notifications')
-        || str_starts_with($maintenanceRoute, 'api/v1/telemetry')
-        || $maintenanceRoute === 'api/v1/modules';
+    $maintenanceState = json_decode((string)@file_get_contents($maintenanceFlag), true);
+    $strictDeploymentMaintenance = is_array($maintenanceState)
+        && ($maintenanceState['reason'] ?? null) === 'deployment_pipeline';
+    if ($strictDeploymentMaintenance) {
+        $maintenanceRecoveryAllowed = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'GET'
+            && in_array($maintenanceRoute, ['admin-updates', 'login'], true);
+    } else {
+        // 'login' stays reachable during ordinary updater maintenance so an
+        // admin can recover after an interrupted update.
+        $maintenanceRecoveryAllowed = $maintenanceRoute === 'admin-updates'
+            || $maintenanceRoute === 'login'
+            || str_starts_with($maintenanceRoute, 'api/v1/core/updates')
+            || $maintenanceRoute === 'api/v1/notifications/counters'
+            || str_starts_with($maintenanceRoute, 'api/v1/notifications')
+            || str_starts_with($maintenanceRoute, 'api/v1/telemetry')
+            || $maintenanceRoute === 'api/v1/modules';
+    }
     if (!$maintenanceRecoveryAllowed) {
         http_response_code(503);
         header('Content-Type: text/html; charset=utf-8');
