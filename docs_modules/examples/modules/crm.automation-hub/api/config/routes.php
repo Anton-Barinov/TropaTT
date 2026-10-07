@@ -1,7 +1,10 @@
 <?php
 declare(strict_types=1);
 
-/** @var \Api\System\Library\Router $router */
-$router->get('/api/v1/modules/crm.automation-hub/recipes', 'Module\Crm\AutomationHub\Api\Controller\AutomationApiController@listRecipes');
-$router->post('/api/v1/modules/crm.automation-hub/recipes', 'Module\Crm\AutomationHub\Api\Controller\AutomationApiController@saveRecipe');
-$router->post('/api/v1/modules/crm.automation-hub/test-webhook', 'Module\Crm\AutomationHub\Api\Controller\AutomationApiController@testWebhook');
+use Module\Crm\AutomationHub\Api\Controller\AutomationApiController;
+
+return [
+    ['methods' => ['GET'], 'route' => '/recipes', 'controller' => AutomationApiController::class, 'action' => 'listRecipes', 'auth' => true],
+    ['methods' => ['POST'], 'route' => '/recipes', 'controller' => AutomationApiController::class, 'action' => 'saveRecipe', 'auth' => true],
+    ['methods' => ['POST'], 'route' => '/test-webhook', 'controller' => AutomationApiController::class, 'action' => 'testWebhook', 'auth' => true],
+];

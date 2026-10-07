@@ -31,9 +31,9 @@
         "css": [
             "web/assets/css/automation-hub.css"
         ],
-        "js": [
-            "web/assets/js/automation-hub.js"
-        ]
+        "js_routes": {
+            "module-automation-hub": "web/assets/js/automation-hub.js"
+        }
     },
     "mcp_tools": [
         {

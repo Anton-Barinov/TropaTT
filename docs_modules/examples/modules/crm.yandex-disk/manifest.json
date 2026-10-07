@@ -33,9 +33,9 @@
         "css": [
             "web/assets/css/yandex-disk.css"
         ],
-        "js": [
-            "web/assets/js/yandex-disk.js"
-        ]
+        "js_routes": {
+            "module-yandex-disk": "web/assets/js/yandex-disk.js"
+        }
     },
     "mcp_tools": [
         {

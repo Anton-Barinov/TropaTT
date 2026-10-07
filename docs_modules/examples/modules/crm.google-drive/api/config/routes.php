@@ -1,8 +1,8 @@
 <?php
+declare(strict_types=1);
+
+use Module\Crm\GoogleDrive\Controller\GoogleDriveApiController;
 
 return [
-    'GET /api/v1/modules/google-drive/status' => [
-        'handler' => 'Module\\Crm\\GoogleDrive\\Controller\\GoogleDriveApiController@getStatus',
-        'permission' => 'settings.view'
-    ]
+    ['methods' => ['GET'], 'route' => '/status', 'controller' => GoogleDriveApiController::class, 'action' => 'getStatus', 'auth' => true],
 ];

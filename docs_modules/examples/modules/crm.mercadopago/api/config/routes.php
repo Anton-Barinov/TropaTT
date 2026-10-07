@@ -1,8 +1,8 @@
 <?php
+declare(strict_types=1);
+
+use Module\Crm\MercadoPago\Controller\MercadoPagoApiController;
 
 return [
-    'GET /api/v1/modules/mercadopago/status' => [
-        'handler' => 'Module\\Crm\\MercadoPago\\Controller\\MercadoPagoApiController@getStatus',
-        'permission' => 'finance.view'
-    ]
+    ['methods' => ['GET'], 'route' => '/status', 'controller' => MercadoPagoApiController::class, 'action' => 'getStatus', 'auth' => true],
 ];

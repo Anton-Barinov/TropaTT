@@ -1,2 +1,44 @@
-/* whatsapp css */
-.wa-inbox-card { border-radius: 8px; }
+.wapp-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 1fr);
+  gap: 1.25rem;
+}
+.wapp-hero {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  background: var(--crm-surface, #ffffff);
+  border: 1px solid var(--crm-border, #e2e8f0);
+  border-radius: var(--crm-radius, 12px);
+}
+.wapp-hero-icon {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--crm-primary, #3b82f6) 12%, transparent);
+  color: var(--crm-primary, #3b82f6);
+  font-size: 1.75rem;
+  flex-shrink: 0;
+}
+.wapp-panel {
+  min-height: 200px;
+  background: var(--crm-surface, #ffffff);
+  border: 1px solid var(--crm-border, #e2e8f0);
+  border-radius: var(--crm-radius, 12px);
+}
+.wapp-status-box {
+  background: var(--crm-surface-variant, #f8fafc);
+  border: 1px solid var(--crm-border, #e2e8f0);
+}
+@media (max-width: 991px) {
+  .wapp-grid {
+    grid-template-columns: 1fr;
+  }
+  .wapp-hero {
+    flex-wrap: wrap;
+  }
+}

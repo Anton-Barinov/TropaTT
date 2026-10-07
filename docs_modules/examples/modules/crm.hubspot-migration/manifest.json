@@ -33,9 +33,9 @@
         "css": [
             "web/assets/css/hubspot-migration.css"
         ],
-        "js": [
-            "web/assets/js/hubspot-migration.js"
-        ]
+        "js_routes": {
+            "module-hubspot-migration": "web/assets/js/hubspot-migration.js"
+        }
     },
     "mcp_tools": [
         {

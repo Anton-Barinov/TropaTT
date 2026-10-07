@@ -33,9 +33,9 @@
         "css": [
             "web/assets/css/dropbox.css"
         ],
-        "js": [
-            "web/assets/js/dropbox.js"
-        ]
+        "js_routes": {
+            "module-dropbox": "web/assets/js/dropbox.js"
+        }
     },
     "mcp_tools": [
         {

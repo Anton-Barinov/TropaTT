@@ -4,10 +4,6 @@ declare(strict_types=1);
 use Module\Crm\PublicForms\Api\Controller\PublicFormsApiController;
 
 return [
-    'GET' => [
-        'api/v1/public-forms/{slug}' => [PublicFormsApiController::class, 'getForm'],
-    ],
-    'POST' => [
-        'api/v1/public-forms/{slug}/submit' => [PublicFormsApiController::class, 'submitForm'],
-    ],
+    ['methods' => ['GET'], 'route' => '/forms/{slug}', 'controller' => PublicFormsApiController::class, 'action' => 'getForm', 'auth' => false],
+    ['methods' => ['POST'], 'route' => '/forms/{slug}/submit', 'controller' => PublicFormsApiController::class, 'action' => 'submitForm', 'auth' => false],
 ];

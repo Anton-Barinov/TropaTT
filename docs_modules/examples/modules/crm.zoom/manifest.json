@@ -33,9 +33,9 @@
         "css": [
             "web/assets/css/zoom.css"
         ],
-        "js": [
-            "web/assets/js/zoom.js"
-        ]
+        "js_routes": {
+            "module-zoom": "web/assets/js/zoom.js"
+        }
     },
     "mcp_tools": [
         {
