@@ -2897,6 +2897,42 @@ function seedDictionaries(PDO $pdo): void
         }
     }
 
+    // Role grants that KnowledgeBase/ExternalUsers/FinancePermissions migrations
+    // apply on existing installations. Without them a fresh install leaves the
+    // admin role without knowledge access and external guests without cabinet
+    // permissions, so a reinstalled CRM differs from an upgraded one.
+    $roleGrants = [
+        'admin' => [
+            'knowledge.view', 'knowledge.create', 'knowledge.edit', 'knowledge.publish',
+            'knowledge.review', 'knowledge.delete', 'knowledge.comment', 'knowledge.manage',
+            'knowledge.admin', 'knowledge.template_manage', 'knowledge.permission_manage',
+            'knowledge.analytics_view', 'knowledge.export', 'knowledge.import',
+        ],
+        'external_guest' => ['task.manage', 'project.manage', 'chat.use', 'finance.rate.view_own_payout'],
+    ];
+    foreach ($roleGrants as $roleCode => $grantCodes) {
+        $roleRow = $pdo->prepare('SELECT id FROM roles WHERE code = :code LIMIT 1');
+        $roleRow->execute(['code' => $roleCode]);
+        $grantRoleId = (int)($roleRow->fetchColumn() ?: 0);
+        if ($grantRoleId <= 0) {
+            continue;
+        }
+        $linkStmt = $pdo->prepare('INSERT INTO role_permissions (role_id, permission_id, created_at) VALUES (:role_id, :perm_id, :created_at)');
+        $hasLink = $pdo->prepare('SELECT 1 FROM role_permissions WHERE role_id = :role_id AND permission_id = :perm_id');
+        $permStmt = $pdo->prepare('SELECT id FROM permissions WHERE code = :code LIMIT 1');
+        foreach ($grantCodes as $grantCode) {
+            $permStmt->execute(['code' => $grantCode]);
+            $grantPermId = (int)($permStmt->fetchColumn() ?: 0);
+            if ($grantPermId <= 0) {
+                continue;
+            }
+            $hasLink->execute(['role_id' => $grantRoleId, 'perm_id' => $grantPermId]);
+            if (!$hasLink->fetchColumn()) {
+                $linkStmt->execute(['role_id' => $grantRoleId, 'perm_id' => $grantPermId, 'created_at' => $now]);
+            }
+        }
+    }
+
     // Default workspace / organization
     $orgCheck = $pdo->query("SELECT id FROM organizations WHERE slug = 'main-workspace' LIMIT 1");
     $orgId = $orgCheck ? $orgCheck->fetchColumn() : false;
@@ -2931,38 +2967,173 @@ function seedDictionaries(PDO $pdo): void
         error_log('[Install::seedDictionaries] Knowledge space seed: ' . $e->getMessage());
     }
 
-    // Default Estimate Sets
+    // Default Estimate Sets (mirror of TaskEstimatesMigration: the application
+    // only reads scope_type 'global'/'project', so a 'system'-scoped seed is
+    // never selected by EstimateSetRepository/TaskEstimateRepository).
     try {
-        $estCount = (int)$pdo->query('SELECT COUNT(*) FROM estimate_sets')->fetchColumn();
-        if ($estCount === 0) {
-            $pdo->exec("INSERT INTO estimate_sets (public_id, scope_type, name, code, estimate_type, unit_label, is_default, is_active, active_key, sort_order, created_by_user_id, created_at, updated_at)
-                VALUES ('est_fibonacci', 'system', 'Фибоначчи', 'fibonacci', 'points', 'pts', 1, 1, 'system', 10, 1, '{$now}', '{$now}')");
-            $fibId = (int)$pdo->lastInsertId();
-            $fibOptions = [
-                ['1 pt', '1', 1, '#10b981', 10],
-                ['2 pts', '2', 2, '#3b82f6', 20],
-                ['3 pts', '3', 3, '#6366f1', 30],
-                ['5 pts', '5', 5, '#f59e0b', 40],
-                ['8 pts', '8', 8, '#ef4444', 50],
-                ['13 pts', '13', 13, '#dc2626', 60],
+        $globalSetCount = (int)$pdo->query("SELECT COUNT(*) FROM estimate_sets WHERE scope_type = 'global'")->fetchColumn();
+        if ($globalSetCount === 0) {
+            $estimateSets = [
+                ['est_default_tshirt', 'T-shirt Size', 'tshirt_size', 'tshirt', null, 1, 100],
+                ['est_default_complexity', 'Complexity', 'complexity', 'complexity', null, 1, 200],
+                ['est_default_risk', 'Risk', 'risk', 'risk', null, 1, 300],
+                ['est_default_story_points', 'Story Points', 'story_points', 'story_points', 'SP', 0, 400],
             ];
-            $optStmt = $pdo->prepare('INSERT INTO estimate_options (public_id, estimate_set_id, label, code, numeric_value, color, is_default, is_active, active_key, sort_order, created_by_user_id, created_at, updated_at) VALUES (:pid, :sid, :label, :code, :val, :color, 0, 1, \'system\', :sort, 1, :created_at, :updated_at)');
-            foreach ($fibOptions as $opt) {
-                $optStmt->execute([
-                    'pid' => 'opt_' . strtoupper(bin2hex(random_bytes(8))),
-                    'sid' => $fibId,
-                    'label' => $opt[0],
-                    'code' => $opt[1],
-                    'val' => $opt[2],
-                    'color' => $opt[3],
-                    'sort' => $opt[4],
+            $setStmt = $pdo->prepare(
+                'INSERT INTO estimate_sets (public_id, scope_type, name, code, estimate_type, unit_label, is_default, is_active, active_key, sort_order, created_by_user_id, created_at, updated_at)
+                 VALUES (:public_id, \'global\', :name, :code, :estimate_type, :unit_label, :is_default, 1, :active_key, :sort_order, 1, :created_at, :updated_at)'
+            );
+            foreach ($estimateSets as [$publicId, $name, $code, $type, $unit, $isDefault, $sortOrder]) {
+                $setStmt->execute([
+                    'public_id' => $publicId,
+                    'name' => $name,
+                    'code' => $code,
+                    'estimate_type' => $type,
+                    'unit_label' => $unit,
+                    'is_default' => $isDefault,
+                    'active_key' => 'global:' . $code,
+                    'sort_order' => $sortOrder,
                     'created_at' => $now,
                     'updated_at' => $now,
                 ]);
             }
         }
+
+        $optionCount = (int)$pdo->query('SELECT COUNT(*) FROM estimate_options')->fetchColumn();
+        if ($optionCount === 0) {
+            $estimateOptions = [
+                'tshirt_size' => [
+                    ['eopt_default_xs', 'XS', 'xs', 1, 'gray', 0, 100],
+                    ['eopt_default_s', 'S', 's', 2, 'green', 1, 200],
+                    ['eopt_default_m', 'M', 'm', 3, 'blue', 0, 300],
+                    ['eopt_default_l', 'L', 'l', 5, 'orange', 0, 400],
+                    ['eopt_default_xl', 'XL', 'xl', 8, 'red', 0, 500],
+                ],
+                'complexity' => [
+                    ['eopt_default_comp_low', 'Low', 'low', 1, 'green', 1, 100],
+                    ['eopt_default_comp_med', 'Medium', 'medium', 2, 'blue', 0, 200],
+                    ['eopt_default_comp_high', 'High', 'high', 3, 'orange', 0, 300],
+                    ['eopt_default_comp_vhigh', 'Very High', 'very_high', 5, 'red', 0, 400],
+                ],
+                'risk' => [
+                    ['eopt_default_risk_low', 'Low', 'low', 1, 'green', 1, 100],
+                    ['eopt_default_risk_med', 'Medium', 'medium', 2, 'blue', 0, 200],
+                    ['eopt_default_risk_high', 'High', 'high', 3, 'orange', 0, 300],
+                    ['eopt_default_risk_crit', 'Critical', 'critical', 5, 'red', 0, 400],
+                ],
+                'story_points' => [
+                    ['eopt_default_sp1', '1', '1', 1, 'green', 0, 100],
+                    ['eopt_default_sp2', '2', '2', 2, 'blue', 1, 200],
+                    ['eopt_default_sp3', '3', '3', 3, 'blue', 0, 300],
+                    ['eopt_default_sp5', '5', '5', 5, 'orange', 0, 400],
+                    ['eopt_default_sp8', '8', '8', 8, 'orange', 0, 500],
+                    ['eopt_default_sp13', '13', '13', 13, 'red', 0, 600],
+                    ['eopt_default_sp21', '21', '21', 21, 'red', 0, 700],
+                ],
+            ];
+            $setLookup = $pdo->query("SELECT id, code FROM estimate_sets WHERE scope_type = 'global'");
+            $setIds = [];
+            foreach ($setLookup->fetchAll(PDO::FETCH_ASSOC) as $setRow) {
+                $setIds[$setRow['code']] = (int)$setRow['id'];
+            }
+            $optStmt = $pdo->prepare(
+                'INSERT INTO estimate_options (public_id, estimate_set_id, label, code, numeric_value, color, is_default, is_active, active_key, sort_order, created_by_user_id, created_at, updated_at)
+                 VALUES (:public_id, :estimate_set_id, :label, :code, :numeric_value, :color, :is_default, 1, :active_key, :sort_order, 1, :created_at, :updated_at)'
+            );
+            foreach ($estimateOptions as $setCode => $rows) {
+                $setId = $setIds[$setCode] ?? null;
+                if ($setId === null) {
+                    continue;
+                }
+                foreach ($rows as [$publicId, $label, $code, $value, $color, $isDefault, $sortOrder]) {
+                    $optStmt->execute([
+                        'public_id' => $publicId,
+                        'estimate_set_id' => $setId,
+                        'label' => $label,
+                        'code' => $code,
+                        'numeric_value' => $value,
+                        'color' => $color,
+                        'is_default' => $isDefault,
+                        'active_key' => 'set:' . $setId . ':' . $code,
+                        'sort_order' => $sortOrder,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ]);
+                }
+            }
+        }
     } catch (\Throwable $e) {
         error_log('[Install::seedDictionaries] Estimates seed: ' . $e->getMessage());
+    }
+
+    // Knowledge Base system templates (mirror of KnowledgeBaseMigration::seedTemplates)
+    try {
+        $knowledgeTemplates = [
+            ['Регламент', 'regulation', '<h2>Цель</h2><p></p><h2>Правила</h2><ul><li></li></ul><h2>Ответственные</h2><p></p>'],
+            ['Инструкция', 'instruction', '<h2>Когда использовать</h2><p></p><h2>Порядок действий</h2><ol><li></li></ol><h2>Проверка результата</h2><p></p>'],
+            ['FAQ', 'faq', '<h2>Вопрос</h2><p></p><h2>Ответ</h2><p></p>'],
+            ['Чеклист', 'checklist', '<h2>Перед началом</h2><ul><li>[ ] </li></ul><h2>Готово, когда</h2><ul><li>[ ] </li></ul>'],
+            ['Runbook', 'runbook', '<h2>Симптомы</h2><p></p><h2>Диагностика</h2><ol><li></li></ol><h2>Восстановление</h2><ol><li></li></ol>'],
+            ['Протокол встречи', 'meeting_note', '<h2>Участники</h2><p></p><h2>Решения</h2><ul><li></li></ul><h2>Следующие шаги</h2><ul><li></li></ul>'],
+        ];
+        $tplStmt = $pdo->prepare('INSERT INTO knowledge_templates (public_id, title, page_type, description, content_html, content_json, is_system, is_active, created_at, updated_at) VALUES (:public_id, :title, :page_type, :description, :content_html, NULL, 1, 1, :created_at, :updated_at)');
+        foreach ($knowledgeTemplates as [$title, $type, $html]) {
+            $exists = $pdo->prepare('SELECT id FROM knowledge_templates WHERE title = :title AND page_type = :page_type');
+            $exists->execute(['title' => $title, 'page_type' => $type]);
+            if ($exists->fetchColumn() !== false) {
+                continue;
+            }
+            $tplStmt->execute([
+                'public_id' => 'kbt_' . strtoupper(bin2hex(random_bytes(8))),
+                'title' => $title,
+                'page_type' => $type,
+                'description' => 'Системный шаблон: ' . $title,
+                'content_html' => $html,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
+    } catch (\Throwable $e) {
+        error_log('[Install::seedDictionaries] Knowledge templates seed: ' . $e->getMessage());
+    }
+
+    // AI settings defaults (mirror of AiFoundationMigration: retention windows
+    // and the allowed AI action types).
+    try {
+        $settings = [
+            ['ai_retention', 'suggestions_ttl_days', 30],
+            ['ai_retention', 'jobs_ttl_days', 30],
+            ['ai_retention', 'usage_logs_ttl_days', 90],
+            ['ai_retention', 'prompts_ttl_days', 30],
+            ['ai_actions', 'allowlist', [
+                'task_summary', 'task_decomposition', 'task_checklist', 'task_quality',
+                'task_next_action', 'task_comment_draft', 'project_summary',
+                'project_risk_summary', 'project_client_report', 'client_summary',
+                'client_meeting_prep', 'client_data_quality', 'client_safe_report',
+                'calendar_event_agenda', 'dashboard_daily_digest', 'analytics_kpi_explanation',
+                'analytics_risks_explanation', 'analytics_team_workload_summary',
+                'admin_log_review', 'webhook_health_review', 'workflow_rule_audit',
+                'my_day_plan', 'my_week_plan', 'task_list_priority',
+            ]],
+        ];
+        $settingExists = $pdo->prepare('SELECT id FROM settings WHERE scope = :scope AND name = :name LIMIT 1');
+        $settingStmt = $pdo->prepare('INSERT INTO settings (public_id, scope, name, value, created_at, updated_at) VALUES (:public_id, :scope, :name, :value, :created_at, :updated_at)');
+        foreach ($settings as [$scope, $name, $value]) {
+            $settingExists->execute(['scope' => $scope, 'name' => $name]);
+            if ($settingExists->fetchColumn() !== false) {
+                continue;
+            }
+            $settingStmt->execute([
+                'public_id' => 'stg_' . strtoupper(bin2hex(random_bytes(8))),
+                'scope' => $scope,
+                'name' => $name,
+                'value' => json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
+    } catch (\Throwable $e) {
+        error_log('[Install::seedDictionaries] AI settings seed: ' . $e->getMessage());
     }
 }
 
