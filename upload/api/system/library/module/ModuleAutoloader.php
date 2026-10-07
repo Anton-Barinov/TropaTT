@@ -41,10 +41,7 @@ final class ModuleAutoloader
         $moduleKey = strtolower($vendor) . '.' . strtolower($name);
         $basePath = $this->modulePaths[$moduleKey] ?? ($this->projectRoot . '/modules/' . $vendor . '.' . $name);
         $relativePath = str_replace('\\', '/', $rest) . '.php';
-        $relativePaths = array_values(array_unique([
-            $relativePath,
-            $this->lowerFirstPathSegment($relativePath),
-        ]));
+        $relativePaths = array_values(array_unique($this->pathCandidates($relativePath)));
 
         foreach (['api', 'web'] as $area) {
             foreach ($relativePaths as $candidate) {
@@ -52,7 +49,14 @@ final class ModuleAutoloader
 
                 if (is_file($path) && !class_exists($class, false)) {
                     require_once $path;
-                    return true;
+                    if (
+                        class_exists($class, false)
+                        || interface_exists($class, false)
+                        || trait_exists($class, false)
+                        || enum_exists($class, false)
+                    ) {
+                        return true;
+                    }
                 }
             }
         }
@@ -68,6 +72,31 @@ final class ModuleAutoloader
     private function dashToCamel(string $name): string
     {
         return str_replace(' ', '', ucwords(str_replace('-', ' ', $name)));
+    }
+
+    /**
+     * Candidate relative paths for a namespace-derived path.
+     *
+     * Modules ship three layouts for the same namespace shape: the area
+     * segment may be duplicated by the area prefix (`Web\Controller\X` under
+     * `web/`), kept as a directory on its own (`web/Controller/X.php` or
+     * `web/controller/X.php`), or omitted entirely (`web/X.php`). Each
+     * candidate is additionally tried with its first segment lower-cased so
+     * directory casing never decides whether a class loads.
+     *
+     * @return array<int, string>
+     */
+    private function pathCandidates(string $relativePath): array
+    {
+        $candidates = [$relativePath, $this->lowerFirstPathSegment($relativePath)];
+
+        if (preg_match('#^(?:api|web)/(.+)$#i', $relativePath, $matches) === 1) {
+            $stripped = $matches[1];
+            $candidates[] = $stripped;
+            $candidates[] = $this->lowerFirstPathSegment($stripped);
+        }
+
+        return array_values(array_unique($candidates));
     }
 
     private function lowerFirstPathSegment(string $relativePath): string

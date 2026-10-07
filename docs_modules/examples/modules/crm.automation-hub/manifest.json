@@ -22,7 +22,7 @@
         {
             "id": "automation-hub",
             "title": "Автоматизация (n8n/Make)",
-            "route": "automation-hub",
+            "route": "module-automation-hub",
             "icon": "zap",
             "permission": "settings.edit"
         }

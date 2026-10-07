@@ -18,4 +18,17 @@ final class AutomationHubServiceProvider extends AbstractModuleServiceProvider
     {
         // Boot hooks
     }
+
+    public function getMenuItems(): array
+    {
+        return [
+            [
+                'route' => 'module-automation-hub',
+                'label' => 'Автоматизация (n8n/Make)',
+                'icon' => '<i class="fa-solid fa-bolt"></i>',
+                'permission' => 'settings.edit',
+                'parent' => null,
+            ],
+        ];
+    }
 }
