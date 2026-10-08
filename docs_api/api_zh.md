@@ -776,7 +776,7 @@ Authorization: Bearer <token>
 | GET | `/api/v1/settings` 🔄 | 设置列表 | 是 | `settings.manage | settings.view` | — |
 | GET | `/api/v1/settings/{name}` 🔄 | 设置值 | 是 | `settings.manage` | — |
 | POST, PUT, PATCH | `/api/v1/settings/{name}` 🔄 | 设置设置 | 是 | `settings.manage` | — |
-| POST | `/api/v1/settings/branding/logo` | 上传品牌 Logo（multipart `logo`） | 是 | `settings.manage` | 光栅图像 ≤2 MiB；替换之前的 Logo |
+| POST | `/api/v1/settings/branding/logo` | 上传品牌 Logo（multipart 字段 `file`） | 是 | `settings.manage` | 写入 `branding.logo`；光栅图像 ≤2 MiB；替换之前的 Logo |
 | DELETE | `/api/v1/settings/branding/logo` | 删除品牌 Logo | 是 | `settings.manage` | 清除 `branding.logo` 并删除已保存的文件 |
 | GET | `/api/v1/retention/metadata` 🔄 | 保留元数据 | 是 | `settings.manage` | — |
 | POST, PUT, PATCH | `/api/v1/retention/metadata` 🔄 | 设置保留 | 是 | `settings.manage` | — |
