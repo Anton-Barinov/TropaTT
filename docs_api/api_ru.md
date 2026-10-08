@@ -793,6 +793,8 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | GET | `/api/v1/settings` 🔄 | Список настроек | Да | `settings.manage \| settings.view` | — |
 | GET | `/api/v1/settings/{name}` 🔄 | Значение настройки | Да | `settings.manage` | — |
 | POST, PUT, PATCH | `/api/v1/settings/{name}` 🔄 | Установка настройки | Да | `settings.manage` | — |
+| POST | `/api/v1/settings/branding/logo` | Загрузка логотипа брендинга (multipart `logo`) | Да | `settings.manage` | Растровый ≤2 MiB; заменяет предыдущий логотип |
+| DELETE | `/api/v1/settings/branding/logo` | Удаление логотипа брендинга | Да | `settings.manage` | Очищает `branding.logo` и удаляет сохранённый файл |
 | GET | `/api/v1/retention/metadata` 🔄 | Метаданные retention | Да | `settings.manage` | — |
 | POST, PUT, PATCH | `/api/v1/retention/metadata` 🔄 | Установка retention | Да | `settings.manage` | — |
 | GET | `/api/v1/feature-flags` 🔄 | Список feature flags | Да | `feature_flag.manage` | — |

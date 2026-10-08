@@ -13,6 +13,10 @@ return [
     'invitation-accept' => [Web\Controller\Page\InvitationAcceptController::class, 'index'],
     'external-accept' => [Web\Controller\Page\ExternalAcceptController::class, 'index'],
 
+    // Public static-ish asset route: the owner-uploaded sidebar/login logo.
+    // Listed in $publicRoutes (web/index.php) so it renders before login.
+    'branding-logo' => [Web\Controller\Common\BrandingLogoController::class, 'show'],
+
     'projects' => [Web\Controller\Page\ProjectsController::class, 'index'],
     'project-detail' => [Web\Controller\Page\ProjectDetailController::class, 'index'],
     'tasks' => [Web\Controller\Page\TasksController::class, 'index'],

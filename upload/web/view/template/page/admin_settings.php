@@ -18,6 +18,10 @@
     <i class="fa-solid fa-sliders" aria-hidden="true"></i>
     <span data-i18n="admin_settings.tab_system"><?= htmlspecialchars($t('admin_settings.tab_system', 'Система и кэш'), ENT_QUOTES, 'UTF-8') ?></span>
   </button>
+  <button type="button" class="crm-admin-settings-nav-btn" data-settings-category="branding">
+    <i class="fa-solid fa-palette" aria-hidden="true"></i>
+    <span data-i18n="admin_settings.tab_branding"><?= htmlspecialchars($t('admin_settings.tab_branding', 'Брендинг'), ENT_QUOTES, 'UTF-8') ?></span>
+  </button>
   <button type="button" class="crm-admin-settings-nav-btn" data-settings-category="tasks">
     <i class="fa-solid fa-list-check" aria-hidden="true"></i>
     <span data-i18n="admin_settings.tab_tasks"><?= htmlspecialchars($t('admin_settings.tab_tasks', 'Политики задач'), ENT_QUOTES, 'UTF-8') ?></span>
@@ -45,6 +49,34 @@
   <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
   <strong data-i18n="admin_settings.filter_empty_title"><?= htmlspecialchars($t('admin_settings.filter_empty_title', 'Ничего не найдено'), ENT_QUOTES, 'UTF-8') ?></strong>
   <span data-i18n="admin_settings.filter_empty_body"><?= htmlspecialchars($t('admin_settings.filter_empty_body', 'Измените запрос или выберите другую категорию.'), ENT_QUOTES, 'UTF-8') ?></span>
+</div>
+
+<div class="row g-3 mb-3" data-settings-group="branding">
+  <div class="col-12">
+    <div class="crm-card crm-section-card" id="adminBrandingSectionCard" data-settings-scope="branding">
+      <div class="crm-section-head"><div><h2 class="h6 mb-0" data-i18n="admin_settings.section_branding_title"><?= htmlspecialchars($t('admin_settings.section_branding_title', 'Брендинг'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="admin_settings.section_branding_note"><?= htmlspecialchars($t('admin_settings.section_branding_note', 'Название продукта и логотип в левом меню и на странице входа.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
+      <div class="row g-3 align-items-end">
+        <div class="col-md-5">
+          <label class="form-label" for="adminBrandingNameInput" data-i18n="admin_settings.branding_name_label"><?= htmlspecialchars($t('admin_settings.branding_name_label', 'Название CRM'), ENT_QUOTES, 'UTF-8') ?></label>
+          <input type="text" class="form-control" id="adminBrandingNameInput" maxlength="64" autocomplete="off" placeholder="TropaTT">
+          <div class="form-text" data-i18n="admin_settings.branding_name_hint"><?= htmlspecialchars($t('admin_settings.branding_name_hint', 'Пусто — используется стандартное название из языковых файлов.'), ENT_QUOTES, 'UTF-8') ?></div>
+        </div>
+        <div class="col-md-7">
+          <label class="form-label" for="adminBrandingLogoInput" data-i18n="admin_settings.branding_logo_label"><?= htmlspecialchars($t('admin_settings.branding_logo_label', 'Логотип'), ENT_QUOTES, 'UTF-8') ?></label>
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            <button type="button" class="btn crm-btn-secondary btn-sm" id="adminBrandingLogoPickBtn"><i class="fa-solid fa-upload me-1" aria-hidden="true"></i><span data-i18n="admin_settings.branding_logo_pick"><?= htmlspecialchars($t('admin_settings.branding_logo_pick', 'Загрузить файл'), ENT_QUOTES, 'UTF-8') ?></span></button>
+            <button type="button" class="btn crm-btn-danger btn-sm" id="adminBrandingLogoResetBtn"><i class="fa-solid fa-trash me-1" aria-hidden="true"></i><span data-i18n="admin_settings.branding_logo_reset"><?= htmlspecialchars($t('admin_settings.branding_logo_reset', 'Удалить логотип'), ENT_QUOTES, 'UTF-8') ?></span></button>
+            <input type="file" id="adminBrandingLogoInput" class="d-none" accept="image/png,image/jpeg,image/gif,image/webp">
+            <span id="adminBrandingLogoState" class="text-muted small"></span>
+          </div>
+          <div class="form-text" data-i18n="admin_settings.branding_logo_hint"><?= htmlspecialchars($t('admin_settings.branding_logo_hint', 'PNG, JPEG, GIF или WebP, до 2 МБ, до 4096×4096.'), ENT_QUOTES, 'UTF-8') ?></div>
+        </div>
+      </div>
+      <div class="d-flex justify-content-end mt-3">
+        <button type="button" class="btn crm-btn-primary" id="adminBrandingSaveBtn"><i class="fa-solid fa-check me-1" aria-hidden="true"></i><span data-i18n="admin_settings.branding_save"><?= htmlspecialchars($t('admin_settings.branding_save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></span></button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="row g-3 mb-3" data-settings-group="system">

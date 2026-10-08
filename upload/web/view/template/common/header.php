@@ -184,6 +184,12 @@ if (preg_match('/^[a-z]{2,3}(-[a-z0-9]{2,4})?$/', $currentLocale)) {
   <link rel="stylesheet" href="assets/css/ui.css?v=<?= urlencode($assetsVersion) ?>">
   <link rel="stylesheet" href="assets/css/visual-editor.css?v=<?= urlencode($assetsVersion) ?>">
   <link rel="stylesheet" href="assets/css/themes.css?v=<?= urlencode($assetsVersion) ?>">
+<?php if (!empty($brand_logo_url)): ?>
+  <?php // Owner-uploaded logo: swap the default sidebar/login mark via the CSS
+        // custom property consumed by .crm-brand-mark. The nonce keeps it inside
+        // the style-src allowlist (style-src has no 'unsafe-inline'). ?>
+  <style nonce="<?= $csp_nonce ?>">:root{--crm-brand-image:url(<?= json_encode($brand_logo_url, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>)}</style>
+<?php endif; ?>
 <?php if ($isRtl): ?>
   <link rel="stylesheet" href="assets/css/rtl.css?v=<?= urlencode($assetsVersion) ?>">
 <?php endif; ?>

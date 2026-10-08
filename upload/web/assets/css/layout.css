@@ -91,7 +91,8 @@ a:focus-visible {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: url('../apple-touch-icon.png') center / cover no-repeat;
+  /* Owner-uploaded logo (header.php sets --crm-brand-image on :root). */
+  background: var(--crm-brand-image, url('../apple-touch-icon.png')) center / cover no-repeat;
   flex-shrink: 0;
 }
 

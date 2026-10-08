@@ -9,6 +9,14 @@ use Api\System\Library\Service\SettingService;
 
 final class SettingController extends BaseController
 {
+    private const BRANDING_LOGO_MAX_BYTES = 2_097_152;
+    private const BRANDING_LOGO_TYPES = [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/gif' => 'gif',
+        'image/webp' => 'webp',
+    ];
+
     public function list(): \Api\System\Library\Http\JsonResponse
     {
         $auth = $this->user();
@@ -206,6 +214,15 @@ final class SettingController extends BaseController
             }
         }
 
+        if ($scope === 'system' && str_starts_with($name, 'branding.')) {
+            $brandingError = $this->validateBrandingSetting($name, $input['value']);
+            if ($brandingError !== null) {
+                return $this->error('VALIDATION_ERROR', $brandingError, 422, [
+                    'value' => [$brandingError],
+                ]);
+            }
+        }
+
         $value = $input['value'];
         if ($scope === 'system' && $name === 'tasks.allow_assignee_edit_identity') {
             $value = filter_var($value, FILTER_VALIDATE_BOOLEAN);
@@ -238,6 +255,8 @@ final class SettingController extends BaseController
             'finance.auto_close.lag_days' => 5,
             'tasks.worklog_policy' => 'all_project_members',
             'tasks.allow_assignee_edit_identity' => false,
+            'branding.name' => '',
+            'branding.logo' => '',
         ];
         if (!array_key_exists($name, $defaults)) {
             return null;
@@ -311,6 +330,222 @@ final class SettingController extends BaseController
         }
 
         return null;
+    }
+
+    /**
+     * Validate the branding.* settings. Only the visible product name is
+     * writable here: the logo file is managed exclusively by uploadLogo()/
+     * resetLogo() so a settings PATCH can never point the sidebar at an
+     * arbitrary path. Returns a localized message or null when valid.
+     */
+    private function validateBrandingSetting(string $name, mixed $value): ?string
+    {
+        if ($name !== 'branding.name') {
+            return $name === 'branding.logo'
+                ? $this->t('setting/messages.branding_logo_readonly')
+                : $this->t('setting/messages.name_invalid');
+        }
+
+        if (!is_string($value)) {
+            return $this->t('setting/messages.branding_name_invalid');
+        }
+
+        // Control characters would break the inline CSS/HTML injection points.
+        if (preg_match('/[\x00-\x1F\x7F]/u', $value) === 1) {
+            return $this->t('setting/messages.branding_name_invalid');
+        }
+
+        if (mb_strlen($value) > 64) {
+            return $this->t('setting/messages.branding_name_too_long');
+        }
+
+        return null;
+    }
+
+    /**
+     * Upload a new sidebar/login logo. The file is stored outside the web root
+     * under an application-generated name and served by the public web route
+     * `branding-logo`; the absolute path never leaves the server.
+     */
+    public function uploadLogo(): \Api\System\Library\Http\JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
+        $dir = $this->brandingStorageDir();
+        if ($dir === null) {
+            return $this->error('BRANDING_STORAGE_UNAVAILABLE', $this->t('setting/messages.branding_storage_unavailable'), 503);
+        }
+
+        $file = $this->request()->files['file'] ?? null;
+        if (!is_array($file) || (int)($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            return $this->error('BRANDING_LOGO_REQUIRED', $this->t('setting/messages.branding_logo_required'), 422, [
+                'file' => [$this->t('setting/messages.branding_logo_required')],
+            ]);
+        }
+
+        $size = (int)($file['size'] ?? 0);
+        if ($size <= 0) {
+            return $this->error('BRANDING_LOGO_REQUIRED', $this->t('setting/messages.branding_logo_required'), 422, [
+                'file' => [$this->t('setting/messages.branding_logo_required')],
+            ]);
+        }
+        if ($size > self::BRANDING_LOGO_MAX_BYTES) {
+            return $this->error('BRANDING_LOGO_TOO_LARGE', $this->t('setting/messages.branding_logo_too_large'), 422, [
+                'file' => [$this->t('setting/messages.branding_logo_too_large')],
+            ]);
+        }
+
+        $tmp = (string)($file['tmp_name'] ?? '');
+        if ($tmp === '' || !is_uploaded_file($tmp)) {
+            return $this->error('BRANDING_LOGO_REQUIRED', $this->t('setting/messages.branding_logo_required'), 422, [
+                'file' => [$this->t('setting/messages.branding_logo_required')],
+            ]);
+        }
+
+        $info = @getimagesize($tmp);
+        $mime = is_array($info) ? (string)($info['mime'] ?? '') : '';
+        if (!isset(self::BRANDING_LOGO_TYPES[$mime])) {
+            return $this->error('BRANDING_LOGO_INVALID_TYPE', $this->t('setting/messages.branding_logo_invalid_type'), 422, [
+                'file' => [$this->t('setting/messages.branding_logo_invalid_type')],
+            ]);
+        }
+
+        $width = is_array($info) ? (int)($info[0] ?? 0) : 0;
+        $height = is_array($info) ? (int)($info[1] ?? 0) : 0;
+        if ($width < 1 || $height < 1 || $width > 4096 || $height > 4096) {
+            return $this->error('BRANDING_LOGO_DIMENSIONS', $this->t('setting/messages.branding_logo_dimensions'), 422, [
+                'file' => [$this->t('setting/messages.branding_logo_dimensions')],
+            ]);
+        }
+
+        $filename = bin2hex(random_bytes(16)) . '.' . self::BRANDING_LOGO_TYPES[$mime];
+        $target = $dir . '/' . $filename;
+        if (!move_uploaded_file($tmp, $target)) {
+            $this->logError('[branding] logo store failed', ['mime' => $mime]);
+            return $this->error('BRANDING_LOGO_STORE_FAILED', $this->t('setting/messages.branding_store_failed'), 500);
+        }
+        @chmod($target, 0640);
+
+        // A single logo at a time: drop every previous file so an unused upload
+        // can never linger on disk or be reached through a guessed URL.
+        $this->removeBrandingLogoFiles($dir, $filename);
+
+        /** @var SettingService $service */
+        $service = $this->container->get('service.setting');
+        $service->set('system', 'branding.logo', $filename);
+        $this->clearSettingCaches('system', 'branding.logo');
+
+        $this->auditBranding('branding_logo_uploaded', $auth, ['mime' => $mime, 'size_bytes' => $size]);
+
+        return $this->success('BRANDING_LOGO_SET', $this->t('setting/messages.branding_logo_uploaded'), [
+            'setting' => $service->get('system', 'branding.logo'),
+        ]);
+    }
+
+    /**
+     * Remove the stored logo and fall back to the default product mark.
+     */
+    public function resetLogo(): \Api\System\Library\Http\JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
+        $dir = $this->brandingStorageDir();
+        if ($dir !== null) {
+            $this->removeBrandingLogoFiles($dir, null);
+        }
+
+        /** @var SettingService $service */
+        $service = $this->container->get('service.setting');
+        $service->set('system', 'branding.logo', '');
+        $this->clearSettingCaches('system', 'branding.logo');
+
+        $this->auditBranding('branding_logo_removed', $auth, []);
+
+        return $this->success('BRANDING_LOGO_RESET', $this->t('setting/messages.branding_logo_reset'), [
+            'setting' => $service->get('system', 'branding.logo'),
+        ]);
+    }
+
+    /**
+     * Owner-managed storage directory for the branding logo (outside the web
+     * root, never part of a deployment manifest). Null when unusable.
+     */
+    private function brandingStorageDir(): ?string
+    {
+        $config = $this->container->get('config');
+        $dir = trim((string)$config->get('default.storage.branding', ''));
+        if ($dir === '') {
+            $dir = dirname(__DIR__, 3) . '/storage_api/branding';
+        }
+        $dir = rtrim($dir, '/');
+
+        if (!is_dir($dir) && !@mkdir($dir, 0750, true) && !is_dir($dir)) {
+            return null;
+        }
+        @chmod($dir, 0750);
+
+        $indexFile = $dir . '/index.html';
+        if (!is_file($indexFile)) {
+            @file_put_contents($indexFile, '');
+        }
+
+        return $dir;
+    }
+
+    /**
+     * Delete stored logo files. With $keep the other application-generated
+     * files are removed (single-logo invariant); without it the whole set goes.
+     */
+    private function removeBrandingLogoFiles(string $dir, ?string $keep): void
+    {
+        $entries = @scandir($dir);
+        if (!is_array($entries)) {
+            return;
+        }
+
+        foreach ($entries as $entry) {
+            if ($entry === '.' || $entry === '..' || $entry === 'index.html') {
+                continue;
+            }
+            if ($keep !== null && $entry === $keep) {
+                continue;
+            }
+            // Only our own generated names are removable: anything else in the
+            // directory was not created by this code path.
+            if (preg_match('/^[a-f0-9]{32}\.[a-z0-9]{3,4}$/', $entry) !== 1) {
+                continue;
+            }
+            @unlink($dir . '/' . $entry);
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $details
+     */
+    private function auditBranding(string $action, array $auth, array $details): void
+    {
+        if (!$this->container->has('logger')) {
+            return;
+        }
+
+        $logger = $this->container->get('logger');
+        if (!is_object($logger) || !method_exists($logger, 'audit')) {
+            return;
+        }
+
+        $logger->audit([
+            'action' => $action,
+            'actor_public_id' => (string)($auth['user']['public_id'] ?? ''),
+            'entity_type' => 'setting',
+            'entity_public_id' => 'branding.logo',
+            'details' => $details,
+        ]);
     }
 
     private function clearSettingCaches(string $scope, string $name): void

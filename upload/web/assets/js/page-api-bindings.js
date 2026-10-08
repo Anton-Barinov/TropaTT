@@ -27565,6 +27565,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         settingsItems.forEach(function (item) {
           if (item && item.name) currentSettingsMap[String(item.name)] = item;
         });
+        renderBrandingCard();
 
         if (!settingsItems.length) {
           var emptyRow = document.createElement('tr');
@@ -27577,6 +27578,8 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         } else {
           settingsItems.slice(0, 30).forEach(function (item) {
             var name = String(item.name || '');
+            // branding.* has its own card (name + logo upload), never the generic table.
+            if (name.indexOf('branding.') === 0) return;
             var tr = document.createElement('tr');
             tr.setAttribute('data-setting-name', name);
 
@@ -27887,6 +27890,99 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       });
     }
 
+    // Branding card (settings: branding.name / branding.logo): the product name
+    // shown in the sidebar and on the login page, plus a custom logo file.
+    function renderBrandingCard() {
+      var nameInput = document.getElementById('adminBrandingNameInput');
+      var logoState = document.getElementById('adminBrandingLogoState');
+      var resetBtn = document.getElementById('adminBrandingLogoResetBtn');
+      if (!nameInput) return;
+
+      var nameItem = currentSettingsMap['branding.name'];
+      nameInput.value = nameItem && typeof nameItem.value === 'string' ? nameItem.value : '';
+
+      var logoItem = currentSettingsMap['branding.logo'];
+      var logoFile = logoItem && typeof logoItem.value === 'string' ? logoItem.value : '';
+      if (logoState) {
+        logoState.textContent = logoFile !== ''
+          ? tp('admin_settings.branding_logo_set', 'Загружен собственный логотип')
+          : tp('admin_settings.branding_logo_default', 'Используется стандартный логотип');
+      }
+      if (resetBtn) resetBtn.disabled = logoFile === '';
+    }
+
+    function bindBrandingActions() {
+      var nameInput = document.getElementById('adminBrandingNameInput');
+      var saveBtn = document.getElementById('adminBrandingSaveBtn');
+      var pickBtn = document.getElementById('adminBrandingLogoPickBtn');
+      var fileInput = document.getElementById('adminBrandingLogoInput');
+      var resetBtn = document.getElementById('adminBrandingLogoResetBtn');
+
+      if (saveBtn && saveBtn.dataset.bound !== '1') {
+        saveBtn.dataset.bound = '1';
+        saveBtn.addEventListener('click', async function () {
+          var value = String((nameInput && nameInput.value) || '').trim();
+          if (value.length > 64) {
+            notify(tp('admin_settings.branding_name_too_long', 'Название не может быть длиннее 64 символов'), 'warning');
+            return;
+          }
+          try {
+            await request('api/v1/settings/branding.name', {
+              method: 'PATCH',
+              headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('branding-name') },
+              body: { scope: 'system', value: value }
+            });
+            notify(tp('admin_settings.branding_saved', 'Брендинг сохранён'));
+            await loadPage();
+          } catch (error) {
+            var normalized = window.CRM.api.normalizeError(error, tp('admin_settings.branding_save_fail', 'Не удалось сохранить название продукта'));
+            notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
+          }
+        });
+      }
+
+      if (pickBtn && fileInput && pickBtn.dataset.bound !== '1') {
+        pickBtn.dataset.bound = '1';
+        pickBtn.addEventListener('click', function () { fileInput.click(); });
+        fileInput.addEventListener('change', async function () {
+          var picked = fileInput.files && fileInput.files[0];
+          if (!picked) return;
+          if (picked.size > 2 * 1024 * 1024) {
+            notify(tp('admin_settings.branding_logo_too_large', 'Логотип не может быть больше 2 МБ'), 'warning');
+            fileInput.value = '';
+            return;
+          }
+          var formData = new FormData();
+          formData.append('file', picked);
+          try {
+            await request('api/v1/settings/branding/logo', { method: 'POST', body: formData, idempotent: true });
+            notify(tp('admin_settings.branding_logo_saved', 'Логотип обновлён'));
+            await loadPage();
+          } catch (error) {
+            var logoEnv = error && error.envelope ? error.envelope : null;
+            notify((logoEnv && logoEnv.message) || tp('admin_settings.branding_logo_fail', 'Не удалось загрузить логотип'), 'error');
+          } finally {
+            fileInput.value = '';
+          }
+        });
+      }
+
+      if (resetBtn && resetBtn.dataset.bound !== '1') {
+        resetBtn.dataset.bound = '1';
+        resetBtn.addEventListener('click', async function () {
+          if (!await confirmAdminSettingsAction(tp('admin_settings.branding_logo_reset_confirm', 'Удалить загруженный логотип и вернуть стандартный?'))) return;
+          try {
+            await request('api/v1/settings/branding/logo', { method: 'DELETE' });
+            notify(tp('admin_settings.branding_logo_reset_done', 'Логотип сброшен на стандартный'));
+            await loadPage();
+          } catch (error) {
+            var resetNormalized = window.CRM.api.normalizeError(error, tp('admin_settings.branding_logo_reset_fail', 'Не удалось удалить логотип'));
+            notify(window.CRM.api.formatErrorMessage(resetNormalized, { withRequestId: true }), 'error');
+          }
+        });
+      }
+    }
+
     if (refreshBtn && refreshBtn.dataset.bound !== '1') {
       refreshBtn.dataset.bound = '1';
       refreshBtn.addEventListener('click', function () {
@@ -27894,6 +27990,8 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         loadSystemInfo();
       });
     }
+
+    bindBrandingActions();
 
     var systemInfoRefreshBtn = document.getElementById('adminSystemInfoRefreshBtn');
     if (systemInfoRefreshBtn && systemInfoRefreshBtn.dataset.bound !== '1') {
