@@ -1086,10 +1086,32 @@ window.CRM.navigation = (function () {
   var _navInitDone = false;
   var _chatUnreadTimer = null;
   var _notifTimer = null;
+  var _liveBadgeRefreshBound = false;
+  var _badgeRefreshAt = 0;
+
+  function refreshBadgesNow() {
+    var now = Date.now();
+    if (now - _badgeRefreshAt < 5000) return;
+    _badgeRefreshAt = now;
+    updateChatUnreadBadges();
+    updateNotificationBadges();
+  }
+
+  function bindLiveBadgeRefresh() {
+    if (_liveBadgeRefreshBound) return;
+    _liveBadgeRefreshBound = true;
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) return;
+      refreshBadgesNow();
+    });
+    window.addEventListener('focus', refreshBadgesNow);
+  }
 
   function startNavPolling() {
     if (_chatUnreadTimer && _notifTimer) return;
     stopNavPolling();
+    updateChatUnreadBadges();
+    updateNotificationBadges();
     _chatUnreadTimer = window.setInterval(updateChatUnreadBadges, 120000);
     _notifTimer = window.setInterval(updateNotificationBadges, 120000);
   }
@@ -1598,6 +1620,7 @@ window.CRM.navigation = (function () {
     bindLogoutButtons();
     ensureCustomizeButton();
     bindCustomizeButton();
+    bindLiveBadgeRefresh();
     if (window.CRM && window.CRM.tabLeader) {
       window.CRM.tabLeader.onBecomeLeader(startNavPolling);
       window.CRM.tabLeader.onLoseLeader(stopNavPolling);
