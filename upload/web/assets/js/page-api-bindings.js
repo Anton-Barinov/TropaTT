@@ -27911,6 +27911,45 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       if (resetBtn) resetBtn.disabled = logoFile === '';
     }
 
+    // The settings content refreshes over AJAX (loadPage), but the shell around
+    // it — sidebar brand, footer product line and the client dictionary — is
+    // rendered server-side only on a full page load. Push branding changes into
+    // that live shell so a save/upload/reset is visible without reloading.
+    function applyBrandingShell(update) {
+      if (!update) return;
+
+      var cfg = window.CRM && window.CRM.config ? window.CRM.config : {};
+      var webBase = String(cfg.webBase || '/').trim();
+      if (webBase === '') webBase = '/';
+      if (webBase.charAt(webBase.length - 1) !== '/') webBase += '/';
+
+      if (typeof update.logo === 'boolean') {
+        // The stylesheet already carries the header's value, so an explicit
+        // inline value is required in both directions: a fresh URL with a new
+        // cache marker after an upload, and the default mark after a reset
+        // (removing the inline value would only uncover the stale header URL).
+        var logoUrl = update.logo
+          ? webBase + 'index.php?route=branding-logo&v=' + Date.now()
+          : webBase + 'assets/apple-touch-icon.png';
+        document.documentElement.style.setProperty('--crm-brand-image', 'url("' + logoUrl + '")');
+      }
+
+      if (typeof update.name !== 'string') return;
+      // The server falls back to the shipped default when branding.name is empty.
+      var visibleName = update.name || 'TropaTT';
+
+      Array.prototype.forEach.call(document.querySelectorAll('.crm-brand'), function (brand) {
+        Array.prototype.forEach.call(brand.childNodes, function (node) {
+          if (node.nodeType === 3) node.nodeValue = ' ' + visibleName + ' ';
+        });
+      });
+      var footerBrand = document.querySelector('.crm-footer-product > strong');
+      if (footerBrand) footerBrand.textContent = visibleName;
+      if (window.CRM && window.CRM.messages && window.CRM.messages.app) {
+        window.CRM.messages.app.name = visibleName;
+      }
+    }
+
     function bindBrandingActions() {
       var nameInput = document.getElementById('adminBrandingNameInput');
       var saveBtn = document.getElementById('adminBrandingSaveBtn');
@@ -27934,6 +27973,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
             });
             notify(tp('admin_settings.branding_saved', 'Брендинг сохранён'));
             await loadPage();
+            applyBrandingShell({ name: value });
           } catch (error) {
             var normalized = window.CRM.api.normalizeError(error, tp('admin_settings.branding_save_fail', 'Не удалось сохранить название продукта'));
             notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
@@ -27958,6 +27998,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
             await request('api/v1/settings/branding/logo', { method: 'POST', body: formData, idempotent: true });
             notify(tp('admin_settings.branding_logo_saved', 'Логотип обновлён'));
             await loadPage();
+            applyBrandingShell({ logo: true });
           } catch (error) {
             var logoEnv = error && error.envelope ? error.envelope : null;
             notify((logoEnv && logoEnv.message) || tp('admin_settings.branding_logo_fail', 'Не удалось загрузить логотип'), 'error');
@@ -27975,6 +28016,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
             await request('api/v1/settings/branding/logo', { method: 'DELETE' });
             notify(tp('admin_settings.branding_logo_reset_done', 'Логотип сброшен на стандартный'));
             await loadPage();
+            applyBrandingShell({ logo: false });
           } catch (error) {
             var resetNormalized = window.CRM.api.normalizeError(error, tp('admin_settings.branding_logo_reset_fail', 'Не удалось удалить логотип'));
             notify(window.CRM.api.formatErrorMessage(resetNormalized, { withRequestId: true }), 'error');
