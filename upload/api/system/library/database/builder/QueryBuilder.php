@@ -20,6 +20,7 @@ final class QueryBuilder
     private array $groups = [];
     private ?int $limit = null;
     private ?int $offset = null;
+    private bool $forUpdate = false;
     /** @var array<string,mixed> */
     private array $bindings = [];
     private int $paramCounter = 0;
@@ -157,6 +158,13 @@ final class QueryBuilder
     public function offset(int $offset): self
     {
         $this->offset = max(0, $offset);
+        return $this;
+    }
+
+    /** Add a MySQL locking read to a query used inside an active transaction. */
+    public function lockForUpdate(): self
+    {
+        $this->forUpdate = true;
         return $this;
     }
 
@@ -321,6 +329,10 @@ final class QueryBuilder
         }
         if ($this->offset !== null) {
             $sql .= ' OFFSET ' . (int)$this->offset;
+        }
+
+        if ($this->forUpdate) {
+            $sql .= ' FOR UPDATE';
         }
 
         return $sql;

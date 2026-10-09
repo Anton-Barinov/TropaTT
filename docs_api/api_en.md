@@ -170,6 +170,7 @@ Mutations on core entities (`tasks`, `projects`, `clients`, etc.) support optimi
 To eliminate enum friction across external systems, AI agents, and frontend clients:
 - **Bidirectional status aliasing**: `todo` $\leftrightarrow$ `new`, `done` $\leftrightarrow$ `completed`, `canceled` $\leftrightarrow$ `cancelled`. Querying `status=todo` matches both `todo` and `new` records transparently.
 - **Assignee field aliasing**: `assignee_user_public_id` — the name the responses and this document use — is accepted as a synonym of `assignee_user_id` on `POST /api/v1/tasks` and `PATCH /api/v1/tasks/{public_id}`. An explicit `assignee_user_id` wins; `assignee_user_id: null` still unassigns. A reference that names nobody is answered with `404 ASSIGNEE_NOT_FOUND` instead of being ignored, so a task can no longer be created unassigned by accident (see CHANGELOG, PRJ-434).
+- **Agent lease context on task updates**: `PATCH /api/v1/tasks/{public_id}` may accept `agent_lease_context: {agent_id, run_id, token, generation}`. Supply only the active lease context for that task, obtained through `crm_agent_lease`; actor and workspace are always derived from the authenticated request. Never persist or log `token`. An active lease owned by someone else or a stale generation returns `409 TASK_LEASED` / `409 TASK_LEASE_OWNERSHIP_LOST`; regular human edits remain allowed when no active lease exists.
 - **Fast activity filters**:
   - `hide_done=1`: Excludes finished, canceled, and archived tasks (`done`, `completed`, `canceled`, `cancelled`, `archived`).
   - `active_only=1`: Equivalent alias to `hide_done=1`.
@@ -452,7 +453,7 @@ Beyond permission checks, a hard route allowlist (`external_ok` in `routes.php`,
 | POST | `/api/v1/tasks/bulk` 🔄 | Bulk update | Yes | `task.manage` | — |
 | GET | `/api/v1/tasks/by-key/{task_key}` | Task by key | Yes | `task.manage` | Human-readable key |
 | GET | `/api/v1/tasks/{public_id}` 🔄 | task details | Yes | `task.manage | task.view` | With comments, files, etc. |
-| PATCH, PUT | `/api/v1/tasks/{public_id}` 🔄 | Update task | Yes | `task.manage` | Optimistic locking, `identity_edit_forbidden` |
+| PATCH, PUT | `/api/v1/tasks/{public_id}` 🔄 | Update task | Yes | `task.manage` | Optimistic locking; optional `agent_lease_context` for fenced update; lease conflicts return HTTP 409 |
 | DELETE | `/api/v1/tasks/{public_id}` 🔄 | Delete task (recycle bin) | Yes | `task.manage` | Soft-delete |
 | POST | `/api/v1/tasks/{public_id}/move` 🔄 | Move task on board | Yes | `task.manage` | Body: `to_status_public_id` (or `to_status`) |
 | GET | `/api/v1/tasks/{public_id}/activity` | Task activity | Yes | `task.manage` | External executors allowed |

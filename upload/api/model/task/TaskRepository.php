@@ -390,6 +390,21 @@ final class TaskRepository
 
     public function findByPublicId(string $publicId, ?int $organizationId = null): ?array
     {
+        return $this->buildTaskLookupByPublicId($publicId, $organizationId, false);
+    }
+
+    /** Current locking read; requires an active MySQL transaction. */
+    public function findByPublicIdForUpdate(string $publicId, ?int $organizationId = null): ?array
+    {
+        if ($this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'mysql' || !$this->pdo->inTransaction()) {
+            throw new \RuntimeException('TASK_LOCKING_READ_REQUIRES_TRANSACTION');
+        }
+
+        return $this->buildTaskLookupByPublicId($publicId, $organizationId, true);
+    }
+
+    private function buildTaskLookupByPublicId(string $publicId, ?int $organizationId, bool $forUpdate): ?array
+    {
         $qb = (new QueryBuilder($this->pdo))
             ->from('tasks t')
             ->leftJoin('projects p', 'p.id', '=', 't.project_id')
@@ -404,6 +419,7 @@ final class TaskRepository
                 't.task_key',
                 't.task_key_prefix',
                 't.task_sequence_number',
+                'p.organization_id AS project_organization_id',
                 'p.public_id AS project_public_id',
                 'p.title AS project_title',
                 'p.client_public_id AS client_public_id',
@@ -454,7 +470,74 @@ final class TaskRepository
             ])
             ->where('t.public_id', '=', $publicId);
         $this->applyOrganizationScope($qb, $organizationId, 't', 'p');
+        if ($forUpdate) {
+            $qb->lockForUpdate();
+        }
         return $qb->first();
+    }
+
+    /**
+     * Lock existing task rows in stable numeric order after lease rows have been
+     * locked. Returns the task IDs keyed by public ID for subsequent authorization.
+     *
+     * @param list<string> $publicIds
+     * @return array<string,int>
+     */
+    public function lockRowsForMutation(array $publicIds, ?int $organizationId = null): array
+    {
+        if ($this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'mysql' || !$this->pdo->inTransaction()) {
+            throw new \RuntimeException('TASK_LOCK_REQUIRES_TRANSACTION');
+        }
+        $publicIds = array_values(array_unique(array_filter(array_map('strval', $publicIds), static fn(string $id): bool => $id !== '')));
+        sort($publicIds, SORT_STRING);
+        if ($publicIds === [] || count($publicIds) > 50) {
+            throw new \RuntimeException('TASK_WRITE_SET_INVALID');
+        }
+
+        $found = [];
+        $lookup = $this->pdo->prepare('SELECT t.id, t.public_id FROM tasks t LEFT JOIN projects p ON p.id = t.project_id WHERE t.public_id = :public_id'
+            . ($organizationId !== null ? ' AND t.organization_id = :task_organization_id AND (t.project_id IS NULL OR p.organization_id = :project_organization_id)' : ''));
+        foreach ($publicIds as $publicId) {
+            $params = ['public_id' => $publicId];
+            if ($organizationId !== null) {
+                $params['task_organization_id'] = $organizationId;
+                $params['project_organization_id'] = $organizationId;
+            }
+            $lookup->execute($params);
+            $row = $lookup->fetch(PDO::FETCH_ASSOC);
+            if ($row) {
+                $found[(string)$row['public_id']] = (int)$row['id'];
+            }
+        }
+        $ids = array_values($found);
+        sort($ids, SORT_NUMERIC);
+        $lock = $this->pdo->prepare('SELECT id FROM tasks WHERE id = :id FOR UPDATE');
+        foreach ($ids as $id) {
+            $lock->execute(['id' => $id]);
+            $lock->fetchColumn();
+        }
+
+        return $found;
+    }
+
+    /**
+     * Serialize hierarchy changes within an organization so concurrent
+     * reparentings cannot each pass a cycle check against the old graph.
+     * The organization row is the stable mutex; it must be acquired before
+     * task lease and task-row locks by every parent-relation writer.
+     */
+    public function lockOrganizationTaskGraph(int $organizationId): bool
+    {
+        if ($this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'mysql' || !$this->pdo->inTransaction()) {
+            throw new \RuntimeException('TASK_GRAPH_LOCK_REQUIRES_TRANSACTION');
+        }
+        if ($organizationId < 1) {
+            throw new \RuntimeException('TASK_GRAPH_SCOPE_INVALID');
+        }
+
+        $lock = $this->pdo->prepare('SELECT id FROM organizations WHERE id = :organization_id FOR UPDATE');
+        $lock->execute(['organization_id' => $organizationId]);
+        return $lock->fetchColumn() !== false;
     }
 
     public function create(array $payload, ?int $organizationId = null): void

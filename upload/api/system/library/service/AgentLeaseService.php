@@ -17,6 +17,79 @@ final class AgentLeaseService
     {
     }
 
+    /**
+     * Lock every task lease in a caller-owned business transaction and verify
+     * that no active writer other than the authenticated actor may touch it.
+     * This method never starts or commits a transaction.
+     *
+     * @param list<string> $taskPublicIds
+     * @param array{agent_id:mixed,run_id:mixed,token:mixed,generation:mixed}|null $context
+     * @return string|null Stable conflict code, or null when the write may proceed.
+     */
+    public function lockTaskLeasesForWrite(int $organizationId, int $actorId, string $ownerTaskPublicId, array $taskPublicIds, ?array $context): ?string
+    {
+        if ($this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'mysql' || !$this->pdo->inTransaction()
+            || $organizationId < 1 || $actorId < 1) {
+            throw new RuntimeException('TASK_LEASE_LOCK_REQUIRES_TRANSACTION');
+        }
+        $taskPublicIds = array_values(array_unique(array_map('strval', $taskPublicIds)));
+        if ($taskPublicIds === [] || count($taskPublicIds) > 50
+            || !preg_match('/\Atsk_[A-Za-z0-9]+\z/D', $ownerTaskPublicId)) {
+            throw new RuntimeException('TASK_WRITE_SET_INVALID');
+        }
+        foreach ($taskPublicIds as $taskPublicId) {
+            if (!preg_match('/\Atsk_[A-Za-z0-9]+\z/D', $taskPublicId)) {
+                throw new RuntimeException('TASK_WRITE_SET_INVALID');
+            }
+        }
+        sort($taskPublicIds, SORT_STRING);
+        if ($context !== null) {
+            if (array_diff(array_keys($context), ['agent_id', 'run_id', 'token', 'generation']) !== []
+                || !preg_match('/\A[A-Za-z0-9._-]{1,96}\z/D', (string)($context['agent_id'] ?? ''))
+                || !preg_match('/\A[A-Za-z0-9._-]{1,96}\z/D', (string)($context['run_id'] ?? ''))
+                || !preg_match('/\A[a-f0-9]{64}\z/D', (string)($context['token'] ?? ''))
+                || (int)($context['generation'] ?? 0) < 1
+                || str_contains((string)$context['agent_id'], (string)$context['token'])
+                || str_contains((string)$context['run_id'], (string)$context['token'])
+                || preg_match('/\bapk_/i', (string)$context['agent_id'] . ' ' . (string)$context['run_id'])) {
+                return 'TASK_LEASE_OWNERSHIP_LOST';
+            }
+        }
+
+        $insert = $this->pdo->prepare("INSERT INTO agent_leases (organization_id, resource_key, owner_user_id, agent_id, run_id, token_hash, generation, expires_at, heartbeat_at) VALUES (:organization, :resource, 0, '', '', '', 0, 0, 0) ON DUPLICATE KEY UPDATE id = id");
+        foreach ($taskPublicIds as $taskPublicId) {
+            $insert->execute(['organization' => $organizationId, 'resource' => 'task:' . $taskPublicId]);
+        }
+        $lock = $this->pdo->prepare('SELECT owner_user_id, agent_id, run_id, token_hash, generation, expires_at, UNIX_TIMESTAMP() AS server_now FROM agent_leases WHERE organization_id = :organization AND resource_key = :resource FOR UPDATE');
+        $tokenHash = $context !== null ? hash('sha256', (string)$context['token']) : null;
+        foreach ($taskPublicIds as $taskPublicId) {
+            $lock->execute(['organization' => $organizationId, 'resource' => 'task:' . $taskPublicId]);
+            $lease = $lock->fetch(PDO::FETCH_ASSOC);
+            if (!$lease) {
+                throw new RuntimeException('TASK_LEASE_ROW_MISSING');
+            }
+            if ((int)$lease['expires_at'] <= (int)$lease['server_now']) {
+                if ($context !== null && $taskPublicId === $ownerTaskPublicId) {
+                    return 'TASK_LEASE_OWNERSHIP_LOST';
+                }
+                continue;
+            }
+            $matches = $context !== null && $taskPublicId === $ownerTaskPublicId
+                && (int)$lease['owner_user_id'] === $actorId
+                && (string)$lease['agent_id'] === (string)$context['agent_id']
+                && (string)$lease['run_id'] === (string)$context['run_id']
+                && hash_equals((string)$lease['token_hash'], (string)$tokenHash)
+                && (int)$lease['generation'] === (int)$context['generation'];
+            if (!$matches) {
+                return $context !== null && $taskPublicId === $ownerTaskPublicId
+                    ? 'TASK_LEASE_OWNERSHIP_LOST'
+                    : 'TASK_LEASED';
+            }
+        }
+
+        return null;
+    }
+
     public function execute(string $action, int $organizationId, int $actorId, string $resource, string $agentId, string $runId, string $token, int $generation = 0, int $ttl = 300): array
     {
         if (!in_array($action, ['claim', 'renew', 'release', 'status'], true)

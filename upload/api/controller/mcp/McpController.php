@@ -787,6 +787,17 @@ MD;
                 'assignee_user_id' => ['type' => 'integer', 'description' => 'Legacy internal numeric user id. Prefer assignee_user_public_id.'],
                 'assignee_user_public_id' => ['type' => 'string', 'description' => 'Assignee as public usr_... id (recommended).'],
                 'row_version' => ['type' => 'integer'],
+                'agent_lease_context' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'agent_id' => ['type' => 'string'],
+                        'run_id' => ['type' => 'string'],
+                        'token' => ['type' => 'string'],
+                        'generation' => ['type' => 'integer', 'minimum' => 1],
+                    ],
+                    'required' => ['agent_id', 'run_id', 'token', 'generation'],
+                    'additionalProperties' => false,
+                ],
             ], ['public_id']);
             $tools[] = $this->tool('crm_add_task_comment', 'Add a comment to a task visible to the current CRM user.', [
                 'task_public_id' => ['type' => 'string'],
@@ -3154,6 +3165,18 @@ $tools[] = $this->tool(
                 'trigger_code' => ['type' => 'string', 'description' => 'Workflow trigger code.'],
                 'row_version' => ['type' => 'integer', 'description' => 'Current optimistic lock version number for conflict prevention.'],
                 'expected_row_version' => ['type' => 'integer', 'description' => 'Expected optimistic lock version number (alias for row_version). Returns 409 Conflict if changed.'],
+                'agent_lease_context' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'agent_id' => ['type' => 'string'],
+                        'run_id' => ['type' => 'string'],
+                        'token' => ['type' => 'string'],
+                        'generation' => ['type' => 'integer', 'minimum' => 1],
+                    ],
+                    'required' => ['agent_id', 'run_id', 'token', 'generation'],
+                    'additionalProperties' => false,
+                    'description' => 'Optional authenticated agent lease context for a fenced task update. Actor and workspace are always taken from the authenticated session.',
+                ],
                 'density' => ['type' => 'string', 'enum' => ['rich', 'compact'], 'description' => 'Response density mode. "compact" returns minimal token-efficient envelope.'],
             ],
             ['action']

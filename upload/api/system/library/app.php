@@ -1337,7 +1337,9 @@ final class App
             new HtmlSanitizer(),
             $c->get('service.external_user'),
             $c->get('repository.subtask'),
-            $c->has('service.setting') ? $c->get('service.setting') : null
+            $c->has('service.setting') ? $c->get('service.setting') : null,
+            $c->get('db.pdo'),
+            new \Api\System\Library\Service\AgentLeaseService($c->get('db.pdo'))
         ));
         $this->container->factory('service.task_bulk', fn(Container $c) => new TaskBulkService(
             $c->get('service.task'),

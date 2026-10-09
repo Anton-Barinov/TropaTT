@@ -29,7 +29,9 @@ final class TaskService
         private readonly ?HtmlSanitizer $htmlSanitizer = null,
         private readonly ?ExternalUserService $externalUsers = null,
         private readonly ?SubtaskRepository $subtasks = null,
-        private readonly ?SettingService $settings = null
+        private readonly ?SettingService $settings = null,
+        private readonly ?\PDO $pdo = null,
+        private readonly ?AgentLeaseService $agentLeases = null
     )
     {
     }
@@ -441,11 +443,160 @@ final class TaskService
         return $this->sanitizeTask($task, $actor);
     }
 
-    /** @return array<string,mixed>|null|'ROW_VERSION_CONFLICT'|'PROJECT_NOT_FOUND'|'PARENT_TASK_NOT_FOUND'|'INVALID_PARENT_TASK'|'FORBIDDEN_TASK_IDENTITY_EDIT'|'CYCLIC_DEPENDENCY_DETECTED'|'DESCRIPTION_TOO_LONG' */
+    /** @return array<string,mixed>|null|'ROW_VERSION_CONFLICT'|'PROJECT_NOT_FOUND'|'PARENT_TASK_NOT_FOUND'|'INVALID_PARENT_TASK'|'FORBIDDEN_TASK_IDENTITY_EDIT'|'CYCLIC_DEPENDENCY_DETECTED'|'DESCRIPTION_TOO_LONG'|'TASK_LEASED'|'TASK_LEASE_OWNERSHIP_LOST'|'TASK_WRITE_CONFLICT'|'TASK_WRITE_FENCING_UNAVAILABLE' */
     public function update(string $publicId, array $input, int $actorUserId, array $actor): array|string|null
     {
+        $driver = $this->pdo?->getAttribute(\PDO::ATTR_DRIVER_NAME);
+        $context = $input['agent_lease_context'] ?? null;
+        unset($input['agent_lease_context']);
+        if ($driver !== 'mysql') {
+            if ($context !== null) {
+                return 'TASK_WRITE_FENCING_UNAVAILABLE';
+            }
+            $result = $this->updateWithinTransaction($publicId, $input, $actorUserId, $actor);
+            if (is_array($result)) {
+                $this->semanticIndex?->removeEntityDocument('task', $publicId);
+            }
+            return $result;
+        }
+        if ($this->agentLeases === null || $this->pdo === null || $this->pdo->inTransaction()) {
+            return 'TASK_WRITE_FENCING_UNAVAILABLE';
+        }
+
+        $actorOrganizationId = (int)($actor['organization_id'] ?? 0);
+        if ($actorOrganizationId < 1 && empty($actor['is_root'])) {
+            return 'TASK_WRITE_FENCING_UNAVAILABLE';
+        }
+        if ($context !== null && (!is_array($context)
+            || array_diff(array_keys($context), ['agent_id', 'run_id', 'token', 'generation']) !== [])) {
+            return 'TASK_LEASE_OWNERSHIP_LOST';
+        }
+
+        // Parent-chain reads must see the latest committed graph after the
+        // organization mutex is acquired. SET TRANSACTION applies only to this
+        // transaction and avoids a stale REPEATABLE READ snapshot after waiting.
+        $this->pdo->exec('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
+        $this->pdo->beginTransaction();
+        try {
+            // This first read only discovers the old relation endpoints. The task
+            // lease serializes updates; after all lease rows are locked, the task
+            // rows and relationship are re-read with current locking reads.
+            $discovered = $this->tasks->findByPublicId($publicId, $actorOrganizationId > 0 ? $actorOrganizationId : null);
+            if (!$discovered || (string)($discovered['deleted_at'] ?? '') !== '' || !$this->canAccess($discovered, $actor)) {
+                $this->pdo->rollBack();
+                return null;
+            }
+            $organizationId = $actorOrganizationId > 0
+                ? $actorOrganizationId
+                : (int)($discovered['organization_id'] ?? $discovered['project_organization_id'] ?? 0);
+            if ($organizationId < 1) {
+                $this->pdo->rollBack();
+                return 'TASK_WRITE_FENCING_UNAVAILABLE';
+            }
+            if (array_key_exists('parent_task_public_id', $input)
+                && !$this->tasks->lockOrganizationTaskGraph($organizationId)) {
+                $this->pdo->rollBack();
+                return 'TASK_WRITE_FENCING_UNAVAILABLE';
+            }
+            if (array_key_exists('parent_task_public_id', $input)) {
+                // A previous hierarchy update may have committed while this
+                // request waited for the mutex. Refresh the relation endpoints
+                // before acquiring their leases; READ COMMITTED makes this a
+                // fresh view, and the graph mutex keeps it stable afterwards.
+                $discovered = $this->tasks->findByPublicId($publicId, $organizationId);
+                if (!$discovered || (string)($discovered['deleted_at'] ?? '') !== '' || !$this->canAccess($discovered, $actor)) {
+                    $this->pdo->rollBack();
+                    return null;
+                }
+            }
+            $taskPublicIds = [$publicId];
+            $oldParentPublicId = trim((string)($discovered['parent_task_public_id'] ?? ''));
+            if ($oldParentPublicId !== '') {
+                $taskPublicIds[] = $oldParentPublicId;
+            }
+            $newParentPublicId = trim((string)($input['parent_task_public_id'] ?? ''));
+            if (array_key_exists('parent_task_public_id', $input) && $newParentPublicId !== '') {
+                if ($newParentPublicId === $publicId) {
+                    $this->pdo->rollBack();
+                    return 'INVALID_PARENT_TASK';
+                }
+                $newParent = $this->tasks->findByPublicId($newParentPublicId, $organizationId);
+                if ($newParent === null || !$this->canAccess($newParent, $actor)) {
+                    $this->pdo->rollBack();
+                    return 'PARENT_TASK_NOT_FOUND';
+                }
+                $taskPublicIds[] = $newParentPublicId;
+            }
+            $leaseConflict = $this->agentLeases->lockTaskLeasesForWrite(
+                $organizationId,
+                $actorUserId,
+                $publicId,
+                $taskPublicIds,
+                is_array($context) ? $context : null
+            );
+            if ($leaseConflict !== null) {
+                $this->pdo->rollBack();
+                return $leaseConflict;
+            }
+            $lockedIds = $this->tasks->lockRowsForMutation($taskPublicIds, $organizationId);
+            if (count($lockedIds) !== count(array_unique($taskPublicIds))) {
+                $this->pdo->rollBack();
+                return 'TASK_WRITE_CONFLICT';
+            }
+            $this->mutationLockedTasks = [];
+            foreach (array_keys($lockedIds) as $lockedPublicId) {
+                $locked = $this->tasks->findByPublicIdForUpdate($lockedPublicId, $organizationId);
+                if ($locked !== null) {
+                    $this->mutationLockedTasks[$lockedPublicId] = $locked;
+                }
+            }
+            $current = $this->mutationLockedTasks[$publicId] ?? null;
+            if ($current === null || (string)($current['deleted_at'] ?? '') !== '' || !$this->canAccess($current, $actor)) {
+                $this->mutationLockedTasks = null;
+                $this->pdo->rollBack();
+                return null;
+            }
+            if ((string)($current['parent_task_public_id'] ?? '') !== $oldParentPublicId) {
+                $this->mutationLockedTasks = null;
+                $this->pdo->rollBack();
+                return 'TASK_WRITE_CONFLICT';
+            }
+            if ($newParentPublicId !== '' && !isset($this->mutationLockedTasks[$newParentPublicId])) {
+                $this->mutationLockedTasks = null;
+                $this->pdo->rollBack();
+                return 'PARENT_TASK_NOT_FOUND';
+            }
+
+            $result = $this->updateWithinTransaction($publicId, $input, $actorUserId, $actor);
+            $this->mutationLockedTasks = null;
+            if (!is_array($result)) {
+                $this->pdo->rollBack();
+                return $result;
+            }
+            // The REST controller uses this transactionally captured snapshot
+            // for workflow change detection; it removes the private field before
+            // building the public response.
+            $result['_fenced_before'] = $current;
+            $this->pdo->commit();
+            $this->semanticIndex?->removeEntityDocument('task', $publicId);
+            return $result;
+        } catch (\Throwable $error) {
+            $this->mutationLockedTasks = null;
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $error;
+        }
+    }
+
+    /** @var array<string,array<string,mixed>>|null Rows locked by the update transaction. */
+    private ?array $mutationLockedTasks = null;
+
+    /** @return array<string,mixed>|null|string */
+    private function updateWithinTransaction(string $publicId, array $input, int $actorUserId, array $actor): array|string|null
+    {
         $organizationId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
-        $task = $this->tasks->findByPublicId($publicId, $organizationId);
+        $task = $this->mutationLockedTasks[$publicId] ?? $this->tasks->findByPublicId($publicId, $organizationId);
         if (!$task) {
             return null;
         }
@@ -567,8 +718,11 @@ final class TaskService
                 if ($parentTaskPublicId === $publicId) {
                     return 'INVALID_PARENT_TASK';
                 }
-                $parentTask = $this->get($parentTaskPublicId, $actor);
+                $parentTask = $this->mutationLockedTasks[$parentTaskPublicId] ?? $this->get($parentTaskPublicId, $actor);
                 if (!$parentTask) {
+                    return 'PARENT_TASK_NOT_FOUND';
+                }
+                if (!$this->canAccess($parentTask, $actor)) {
                     return 'PARENT_TASK_NOT_FOUND';
                 }
                 if ($this->tasks->hasCycleAncestor((int)($task['id'] ?? 0), (int)($parentTask['id'] ?? 0))) {
@@ -625,8 +779,6 @@ final class TaskService
                 }
             }
         }
-        $this->semanticIndex?->removeEntityDocument('task', $publicId);
-
         if (isset($set['status_code']) && $set['status_code'] !== $oldStatus) {
             $this->tasks->createStatusHistory([
                 'public_id' => Ulid::generate('tsh'),
@@ -638,7 +790,10 @@ final class TaskService
             ]);
         }
 
-        $updatedTask = $this->tasks->findByPublicId($publicId, $organizationId);
+        $updatedTask = $this->mutationLockedTasks !== null
+            ? ($this->tasks->findByPublicIdForUpdate($publicId, $organizationId)
+                ?? $this->tasks->findByPublicId($publicId, $organizationId))
+            : $this->tasks->findByPublicId($publicId, $organizationId);
         if (!$updatedTask || !$this->canAccess($updatedTask, $actor)) {
             return null;
         }

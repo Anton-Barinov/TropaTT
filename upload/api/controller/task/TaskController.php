@@ -339,8 +339,19 @@ final class TaskController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
+        if (array_key_exists('agent_lease_context', $input)
+            && (!is_array($input['agent_lease_context'])
+                || array_diff(array_keys($input['agent_lease_context']), ['agent_id', 'run_id', 'token', 'generation']) !== []
+                || !isset($input['agent_lease_context']['agent_id'], $input['agent_lease_context']['run_id'], $input['agent_lease_context']['token'], $input['agent_lease_context']['generation']))) {
+            return $this->error('TASK_LEASE_OWNERSHIP_LOST', $this->t('task/messages.lease_conflict', 'Task is locked or the agent lease is no longer valid.'), 409);
+        }
         $v = new Validator();
         $v->maxLen($input, 'title', 255, $this->t('task/messages.max_255'))
             ->enum($input, 'priority', ['low', 'normal', 'high', 'urgent'], $this->t('task/messages.invalid_priority'))
@@ -386,7 +397,14 @@ final class TaskController extends BaseController
         $service = $this->container->get('service.task');
         $before = $service->get((string)$params['public_id'], $authUser['user']);
         $item = $service->update((string)$params['public_id'], $input, (int)$authUser['user']['id'], $authUser['user']);
+        if (is_array($item) && isset($item['_fenced_before']) && is_array($item['_fenced_before'])) {
+            $before = $item['_fenced_before'];
+            unset($item['_fenced_before']);
+        }
 
+        if (in_array($item, ['TASK_LEASED', 'TASK_LEASE_OWNERSHIP_LOST', 'TASK_WRITE_CONFLICT', 'TASK_WRITE_FENCING_UNAVAILABLE'], true)) {
+            return $this->error((string)$item, $this->t('task/messages.lease_conflict'), 409);
+        }
         if ($item === 'ROW_VERSION_CONFLICT') {
             return $this->error('ROW_VERSION_CONFLICT', $this->t('task/messages.row_version_conflict'), 409);
         }
