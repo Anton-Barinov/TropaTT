@@ -841,6 +841,15 @@ final class TaskController extends BaseController
         if ($item === 'WIP_LIMIT_EXCEEDED') {
             return $this->error('WIP_LIMIT_EXCEEDED', $this->t('task/messages.wip_limit_exceeded', 'WIP limit exceeded for this column'), 422);
         }
+        if (in_array($item, ['TASK_LEASED', 'TASK_LEASE_OWNERSHIP_LOST', 'TASK_WRITE_CONFLICT', 'TASK_WRITE_FENCING_UNAVAILABLE'], true)) {
+            return $this->error((string)$item, $this->t('task/messages.lease_conflict'), 409);
+        }
+        if (is_string($item)) {
+            return $this->error('TASK_MOVE_FAILED', $this->t('task/messages.lease_conflict'), 409);
+        }
+        if (!is_array($item)) {
+            return $this->error('TASK_NOT_FOUND', $this->t('common/messages.task_not_found'), 404);
+        }
 
         $this->invalidateTaskCaches();
 

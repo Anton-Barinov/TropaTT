@@ -1538,7 +1538,8 @@ final class App
             $c->get('logger'),
             $c->get('service.ai_semantic_index'),
             $c->get('service.task_activity'),
-            $c->get('service.external_user')
+            $c->get('service.external_user'),
+            $c->get('repository.comment')
         ));
         $this->container->factory('service.user', fn(Container $c) => new UserService(
             $c->get('repository.user_management'),
@@ -2775,6 +2776,9 @@ final class App
             ? $this->contentDispositionInline($name)
             : $this->contentDispositionAttachment($name);
         header('Content-Disposition: ' . $disposition);
+        if (!empty($result['inline'])) {
+            header('Cache-Control: private, max-age=86400');
+        }
 
         $fp = fopen($path, 'rb');
         if ($fp === false) {

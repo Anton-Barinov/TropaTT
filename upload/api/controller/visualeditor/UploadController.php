@@ -159,6 +159,7 @@ final class UploadController extends BaseController
             'name' => $name,
             'mime' => $mime,
             'size' => (int)filesize($realPath),
+            'inline' => true,
         ];
     }
 

@@ -71,22 +71,49 @@ final class TaskBulkService
                 $updateInput['assignee_user_id'] = $assigneeUserId;
             }
 
-            if ($updateInput !== []) {
-                $result = $this->tasks->update($taskPublicId, $updateInput, (int)($actor['id'] ?? 0), $actor);
-                if (!$result) {
+            $hasTagChanges = $addTagIds !== [] || $removeTagIds !== [];
+            $leaseContext = $payload['agent_lease_context'] ?? null;
+            if ($leaseContext !== null) {
+                $updateInput['agent_lease_context'] = $leaseContext;
+            }
+
+            if ($updateInput !== [] || $hasTagChanges) {
+                if ($hasTagChanges) {
+                    // TaskService owns the transaction and keeps its task lease
+                    // row lock until both task fields and entity_tags are written.
+                    $result = $this->tasks->updateWithMutation(
+                        $taskPublicId,
+                        $updateInput,
+                        (int)($actor['id'] ?? 0),
+                        $actor,
+                        function (array $_task) use ($taskPublicId, $addTagIds, $removeTagIds): bool {
+                            foreach ($addTagIds as $tagId) {
+                                $this->tags->assignToEntity('task', $taskPublicId, $tagId);
+                            }
+                            foreach ($removeTagIds as $tagId) {
+                                $this->tags->detachFromEntity('task', $taskPublicId, $tagId);
+                            }
+                            return true;
+                        }
+                    );
+                } else {
+                    $result = $this->tasks->update($taskPublicId, $updateInput, (int)($actor['id'] ?? 0), $actor);
+                }
+
+                if (is_string($result)) {
+                    $skipped[] = [
+                        'task_public_id' => $taskPublicId,
+                        'reason' => $result,
+                    ];
+                    continue;
+                }
+                if (!is_array($result)) {
                     $skipped[] = [
                         'task_public_id' => $taskPublicId,
                         'reason' => 'TASK_UPDATE_FAILED',
                     ];
                     continue;
                 }
-            }
-
-            foreach ($addTagIds as $tagId) {
-                $this->tags->assignToEntity('task', $taskPublicId, $tagId);
-            }
-            foreach ($removeTagIds as $tagId) {
-                $this->tags->detachFromEntity('task', $taskPublicId, $tagId);
             }
 
             $updated[] = [

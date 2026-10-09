@@ -110,7 +110,10 @@ final class TaskBoardService
             $actor
         );
 
-        if (!$updated) {
+        if (is_string($updated)) {
+            return $updated;
+        }
+        if (!is_array($updated)) {
             return null;
         }
 

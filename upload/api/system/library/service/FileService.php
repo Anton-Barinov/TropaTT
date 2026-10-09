@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\Model\Comment\CommentRepository;
 use Api\Model\File\FileRepository;
 use Api\Model\Knowledge\KnowledgeRepository;
 use Api\Model\Project\ProjectRepository;
@@ -30,7 +31,8 @@ final class FileService
         private readonly JsonLogger $logger,
         private readonly ?AiSemanticIndexService $semanticIndex = null,
         private readonly ?TaskActivityService $activity = null,
-        private readonly ?ExternalUserService $externalUsers = null
+        private readonly ?ExternalUserService $externalUsers = null,
+        private readonly ?CommentRepository $comments = null
     ) {
     }
 
@@ -313,12 +315,16 @@ final class FileService
             ],
         ]);
 
+        $mime = $this->quarantineMimeOverride($path, (string)$file['mime_type']);
+        $isImage = str_starts_with($mime, 'image/');
+
         return [
             'ok' => true,
             'path' => $path,
             'name' => (string)$file['original_name'],
-            'mime' => $this->quarantineMimeOverride($path, (string)$file['mime_type']),
+            'mime' => $mime,
             'size' => (int)$file['size_bytes'],
+            'inline' => $isImage,
         ];
     }
 
@@ -341,6 +347,7 @@ final class FileService
                 'task' => $this->tasks->findByPublicId($entityPublicId, null),
                 'project' => $this->projects->findByPublicId($entityPublicId, null),
                 'knowledge_page' => $this->knowledge->page($entityPublicId),
+                'comment' => $this->resolveCommentParentRow($entityPublicId),
                 default => null,
             };
         } catch (\Throwable) {
@@ -348,6 +355,24 @@ final class FileService
         }
         $orgId = is_array($row) ? (int)($row['organization_id'] ?? 0) : 0;
         return $orgId > 0 ? $orgId : null;
+    }
+
+    private function resolveCommentParentRow(string $commentPublicId): ?array
+    {
+        if ($this->comments === null) {
+            return null;
+        }
+        $comment = $this->comments->findByPublicId($commentPublicId);
+        if (!$comment) {
+            return null;
+        }
+        if (!empty($comment['task_public_id'])) {
+            return $this->tasks->findByPublicId((string)$comment['task_public_id'], null);
+        }
+        if (!empty($comment['project_public_id'])) {
+            return $this->projects->findByPublicId((string)$comment['project_public_id'], null);
+        }
+        return null;
     }
 
     /** @param array<string,mixed> $file */
@@ -428,6 +453,11 @@ final class FileService
             return true;
         }
 
+        $roleCode = (string)($actor['role_code'] ?? '');
+        if (in_array($roleCode, ['admin', 'super_admin'], true)) {
+            return true;
+        }
+
         $actorId = (int)($actor['id'] ?? 0);
         if ($actorId <= 0) {
             return false;
@@ -450,6 +480,11 @@ final class FileService
     private function canAccessEntity(string $entityType, string $entityPublicId, array $actor): bool
     {
         if ((bool)($actor['is_root'] ?? false)) {
+            return true;
+        }
+
+        $roleCode = (string)($actor['role_code'] ?? '');
+        if (in_array($roleCode, ['admin', 'super_admin'], true)) {
             return true;
         }
 
@@ -557,6 +592,23 @@ final class FileService
 
         if ($entityType === 'knowledge_page') {
             return $this->knowledge->page($entityPublicId, $actor) !== null;
+        }
+
+        if ($entityType === 'comment') {
+            if ($this->comments === null) {
+                return false;
+            }
+            $comment = $this->comments->findByPublicId($entityPublicId);
+            if (!$comment) {
+                return false;
+            }
+            if (!empty($comment['task_public_id'])) {
+                return $this->canAccessEntity('task', (string)$comment['task_public_id'], $actor);
+            }
+            if (!empty($comment['project_public_id'])) {
+                return $this->canAccessEntity('project', (string)$comment['project_public_id'], $actor);
+            }
+            return false;
         }
 
         return false;

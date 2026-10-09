@@ -443,14 +443,32 @@ final class TaskService
         return $this->sanitizeTask($task, $actor);
     }
 
-    /** @return array<string,mixed>|null|'ROW_VERSION_CONFLICT'|'PROJECT_NOT_FOUND'|'PARENT_TASK_NOT_FOUND'|'INVALID_PARENT_TASK'|'FORBIDDEN_TASK_IDENTITY_EDIT'|'CYCLIC_DEPENDENCY_DETECTED'|'DESCRIPTION_TOO_LONG'|'TASK_LEASED'|'TASK_LEASE_OWNERSHIP_LOST'|'TASK_WRITE_CONFLICT'|'TASK_WRITE_FENCING_UNAVAILABLE' */
+    /** @return array<string,mixed>|null|string */
     public function update(string $publicId, array $input, int $actorUserId, array $actor): array|string|null
+    {
+        return $this->updateInternal($publicId, $input, $actorUserId, $actor, null);
+    }
+
+    /**
+     * Update task fields and a related repository mutation under the same task
+     * lease and database transaction. The callback must use the same PDO-backed
+     * repositories and return true only after all related writes succeed.
+     *
+     * @return array<string,mixed>|null|string
+     */
+    public function updateWithMutation(string $publicId, array $input, int $actorUserId, array $actor, callable $mutation): array|string|null
+    {
+        return $this->updateInternal($publicId, $input, $actorUserId, $actor, $mutation);
+    }
+
+    /** @return array<string,mixed>|null|string */
+    private function updateInternal(string $publicId, array $input, int $actorUserId, array $actor, ?callable $mutation): array|string|null
     {
         $driver = $this->pdo?->getAttribute(\PDO::ATTR_DRIVER_NAME);
         $context = $input['agent_lease_context'] ?? null;
         unset($input['agent_lease_context']);
         if ($driver !== 'mysql') {
-            if ($context !== null) {
+            if ($context !== null || $mutation !== null) {
                 return 'TASK_WRITE_FENCING_UNAVAILABLE';
             }
             $result = $this->updateWithinTransaction($publicId, $input, $actorUserId, $actor);
@@ -577,6 +595,13 @@ final class TaskService
             // for workflow change detection; it removes the private field before
             // building the public response.
             $result['_fenced_before'] = $current;
+            if ($mutation !== null) {
+                $mutationResult = $mutation($result);
+                if ($mutationResult !== true) {
+                    $this->pdo->rollBack();
+                    return is_string($mutationResult) ? $mutationResult : 'TASK_WRITE_CONFLICT';
+                }
+            }
             $this->pdo->commit();
             $this->semanticIndex?->removeEntityDocument('task', $publicId);
             return $result;
