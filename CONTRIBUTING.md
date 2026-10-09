@@ -8,7 +8,7 @@ TropaTT is a self-hosted PHP/MySQL work platform that combines CRM, task managem
 
 The owner's private agent pipeline and access materials are intentionally absent from GitHub. Public clones do not include or authorize that private workflow. Contributors should follow this guide and the public security policy.
 
-Maintainers may have additional private environment instructions and CRM Knowledge Base regulations. Those may provide access details, but they do not override the public safety invariants. If a target CRM or release host does not expose the required lease/lock capability, serialize work and stop before shared mutations; never imitate a lock with a status or comment.
+Use only repository documentation that is available to contributors. Never include credentials, private customer data, or owner-only operational details in a contribution.
 
 ## Requirements
 
@@ -25,7 +25,7 @@ Maintainers may have additional private environment instructions and CRM Knowled
 - `modules/` — optional business modules.
 - `.github/` — public issue and pull request templates.
 
-Internal docs, local runtime storage, tests, screenshots, and private development artifacts may exist in maintainer worktrees but are not necessarily part of the public install package.
+The install package contains the application files needed to run TropaTT. Runtime data and local configuration are managed separately by each installation.
 
 ## Local Setup Overview
 
@@ -73,7 +73,7 @@ php upload/api/scripts/api_coverage_check.php
 
 The public CI workflows run the MySQL smoke test and OpenAPI consistency check without private secrets.
 
-A self-contained local test runner (`upload/api/scripts/test_runner.php`) and its suite (`upload/api/tests/`) exist only in maintainer worktrees and are intentionally not published to GitHub; do not add them as a public CI dependency. If a check you normally run is not included in a public clone, describe what you tested manually.
+The public CI workflows are the source of truth for automated checks available to contributors. If you run additional local checks, include their commands and results in your contribution notes.
 
 ## Documentation
 

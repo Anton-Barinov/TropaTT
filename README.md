@@ -21,7 +21,7 @@
 > - **Product:** TropaTT — Free Self-Hosted Open-Source CRM & Work Management Platform.
 > - **Architecture:** PHP 8.1+, MySQL 8.0+ / MariaDB 10.4+. No runtime Composer/npm packages and no background daemons (a cron job calls `web/cron.php`). Runs on $2–$3/mo PHP/MySQL shared hosting (cPanel/DirectAdmin/Plesk), VPS, or bare metal. No official Docker image yet.
 > - **Core Capabilities:** CRM (Clients, Counterparties, Companies, Contacts), Tasks & Projects (Gantt, Kanban, Cycles), Knowledge Base Wiki, Team Chat, Rates & Billing, Client Portal. Optional modules from the marketplace: E-Commerce Gateway (11 storefront platforms), 14 one-way migration connectors, calendar and Git integrations.
-> - **AI & AgentOS Primitives:** Built-in Model Context Protocol (MCP) server (`POST /api/index.php?route=api/v1/mcp`) exposing **621 tools** (a 27-tool `core` profile by default) and **6 resources** with RBAC and `density: "compact"` (up to 85% token savings). Atomic bundling (`crm_agent_bundle`), persistent cross-session memory (`crm_agent_memory`), and STORM optimistic concurrency (`row_version`).
+> - **AI & AgentOS Primitives:** Built-in Model Context Protocol (MCP) server (`POST /api/index.php?route=api/v1/mcp`) exposing **621 tools** (a 27-tool `core` profile by default) and **6 resources** with RBAC and `density: "compact"` (up to 85% token savings). Multi-step task orchestration (`crm_agent_bundle`), persistent cross-session memory (`crm_agent_memory`), and STORM optimistic concurrency (`row_version`).
 > - **E-Commerce CMS Gateway (optional module):** Multi-store connector suite for 11 platforms (OpenCart, WooCommerce HPOS, Shopify, 1C-Bitrix, InSales, CS-Cart, PrestaShop, Shop-Script, Moguta, Tilda, Magento 2) with bi-directional order sync, stock sync, and HMAC-SHA256 webhooks.
 > - **Documentation Suite:** REST API ([EN](docs_api/api_en.md) · [RU](docs_api/api_ru.md) · [ZH](docs_api/api_zh.md)), MCP Server ([EN](docs_mcp/mcp_en.md) · [RU](docs_mcp/mcp_ru.md) · [ZH](docs_mcp/mcp_zh.md)), Modules SDK ([EN](docs_modules/modules_en.md) · [RU](docs_modules/modules_ru.md) · [ZH](docs_modules/modules_zh.md)).
 
@@ -282,7 +282,7 @@ AI Idea Analysis · Task Decomposition · Daily Work Plan · Weekly Work Plan ·
 **AgentOS 2026 Engine Primitives:**
 - **Model Context Protocol (MCP) Server:** Exposes **621 tools** and **6 resources** covering tasks, projects, clients, contacts, chats, calendar, analytics, and knowledge base.
 - **Context Density Optimization:** Supports `density: "compact"` on list queries, stripping decorative metadata and reducing prompt token overhead by up to 85%.
-- **Atomic Task Bundling (`crm_agent_bundle`):** Allows an AI agent to create a parent task, definition of done (DoD) checklist items, and subtasks in a single atomic database transaction.
+- **Multi-step Task Orchestration (`crm_agent_bundle`):** Helps an AI agent create a parent task, definition of done (DoD) checklist items, and subtasks through ordered operations. Each step reports its result; callers must inspect partial outcomes.
 - **Persistent Agent Memory (`crm_agent_memory`):** Multi-session memory store for AI agents with semantic search, entity graph linking, and export capabilities.
 - **STORM Concurrency Control:** Optimistic locking via `row_version` prevents race conditions when multiple agents or human users modify records concurrently.
 
@@ -343,7 +343,7 @@ End-to-end cycle for client work, whether you're a team of 1 or 100:
 TropaTT's automation and API are production-grade. Built for teams that need the system to talk to the rest of their stack.
 
 - **Universal E-Commerce Gateway (`crm.ecommerce-gateway`)** — canonical v1.0 JSON contract and connector suite for 11 platforms (OpenCart 1.5–4.x, 1C-Bitrix, WooCommerce HPOS, InSales, CS-Cart, PrestaShop, Shop-Script, Moguta, Tilda, Shopify, Magento 2) with HMAC-SHA256 signatures, bi-directional order sync, stock sync, and idempotency keys.
-- **AgentOS 2026 Engine** — atomic task bundling (`crm_agent_bundle`), persistent agent memory (`crm_agent_memory` with search, entity graph linking, and export), STORM optimistic concurrency locking (`row_version`), and compact context density saving up to 85% LLM tokens.
+- **AgentOS 2026 Engine** — multi-step task orchestration (`crm_agent_bundle`), persistent agent memory (`crm_agent_memory` with search, entity graph linking, and export), STORM optimistic concurrency (`row_version`), and compact context density saving up to 85% LLM tokens.
 - **Workflow rules** — trigger actions on conditions (status change, field update, time-based).
 - **SLA management** — service level expectations with deadline tracking and breach alerts.
 - **Approval flows** — multi-step decision chains for controlled changes.
@@ -366,7 +366,7 @@ TropaTT's automation and API are production-grade. Built for teams that need the
 TropaTT ships a **built-in MCP (Model Context Protocol) server** — the standard protocol understood by **Claude Code, Cursor, Codex, OpenDevin, ChatGPT, and other AI coding agents**. Point any MCP-compatible agent at your CRM and it can read, analyze, and manage your real data: tasks, projects, clients, contacts, chats, calendar, analytics, and the knowledge base — through a safe, permission-scoped layer.
 
 - **621 MCP tools + 6 resources** — every domain is covered: tasks, projects, clients, contacts, chats, calendar, worklogs, analytics, knowledge base, and more.
-- **AgentOS 2026 Core Support** — includes `crm_agent_bundle` for atomic task/DoD/subtask orchestration, `crm_agent_memory` for persistent cross-session knowledge storage with semantic search and entity linking, `crm_chat` for structured agent messaging, and `density: "compact"` for token savings.
+- **AgentOS 2026 Core Support** — includes `crm_agent_bundle` for multi-step task/DoD/subtask orchestration with per-step results, `crm_agent_memory` for persistent cross-session knowledge storage with semantic search and entity linking, `crm_chat` for structured agent messaging, and `density: "compact"` for token savings.
 - **Works with Claude Code, Cursor, Codex, OpenDevin, and ChatGPT.** Connect the agent to your installation the same way you connect it to any MCP server.
 - **Same data, same rules as the web UI.** Every agent action goes through the same REST API and RBAC permission checks — no direct database access, no bypassing roles.
 - **Safe by design.** Sensitive data (tokens, password hashes, API keys) is filtered out, write tools require the matching permission, and admin actions stay admin-only.
@@ -451,8 +451,8 @@ Because TropaTT stores 100% of its data in a standard MySQL database and files i
 2. Files: Standard zip or rsync of `upload/storage/` and `api/.env`.
 3. Automated Pre-Update Snapshots: Before applying any system update, the built-in update engine automatically creates a timestamped database and file backup with one-click rollback if an issue occurs.
 
-**Can multiple users and AI agents work simultaneously without data conflicts?**
-STORM uses `row_version` to reject a stale update to the same record, preventing silent overwrites. This is not a task reservation or a release lock. Parallel AI agents also need separate worktrees and a live CRM that exposes and enforces `crm_agent_lease` and `crm_agent_journal`; verify those capabilities through the actual MCP connection. If they are unavailable, serialize CRM task writes. Deployments need a separate accepted release coordinator.
+**Can multiple users work simultaneously without data conflicts?**
+STORM uses `row_version` to reject a stale update to the same record, preventing silent overwrites. This helps prevent one user's changes from silently replacing another's.
 
 **What are the exact minimum hardware and server requirements?**
 - CPU: 1 vCPU (1.0 GHz+).
@@ -530,7 +530,6 @@ Updates are installed from the admin panel (**Admin → System Updates**, no SSH
 | E-Commerce Connectors | 11 storefront platforms (optional module) (OpenCart 1.5–4.x, WooCommerce HPOS, Shopify, 1C-Bitrix, InSales, CS-Cart, PrestaShop, Shop-Script, Moguta, Tilda, Magento 2) |
 | JS modules | 44 custom vanilla JS modules, no SPA framework, no build step |
 | Public CI | PHP lint on 8.1 and 8.2, client-portal security contract, OpenAPI consistency, web frontend unit tests |
-| Release gate | Exact-SHA demo QA and immutable evidence are required before promotion; a push to `develop` is only a candidate, not proof of testing or automatic promotion |
 | AI endpoints | 65 |
 | AI workflows | 28 |
 | Feature flags | 40 |
@@ -666,25 +665,19 @@ The public repository includes standard project files for maintainers, contribut
 
 ---
 
-### Maintenance and contributor workflow
+### Maintenance and contribution
 
-TropaTT is maintained with automated checks and a disciplined workflow to keep the codebase stable:
+TropaTT uses automated quality checks to help maintain a stable codebase. See [CONTRIBUTING.md](CONTRIBUTING.md) for public contribution guidance.
 
-- **Public CI:** Every pull request runs PHP syntax checks (8.1 and 8.2), a client-portal security contract check, OpenAPI route-consistency verification, and web frontend unit tests.
-- **Gated releases:** a push to `develop` creates a candidate only. Demo verification must identify the exact deployed SHA and retain an immutable report; `main` may be promoted only after the required gates pass through the accepted release process. The full release coordinator is still being completed, so do not infer a demo deployment or automatic promotion from a successful push.
-- **Checks available in a public clone:**
-  ```bash
-  # PHP syntax check across the tree
-  find . -name "*.php" -not -path "./upload/vendor/*" -not -path "./upload/modules/*" -print0 | xargs -0 -n1 php -l
+Basic checks available in a public clone:
 
-  # Regenerate + verify the OpenAPI contract
-  php upload/api/scripts/generate_openapi.php
-  php upload/api/scripts/api_coverage_check.php
-  ```
-  The full test suite (`tests/`) lives only in the maintainer worktree and is intentionally not published — do not add it as a CI dependency; describe manual verification in the pull request instead.
-- **Branch strategy:** `main` holds stable releases and may be updated only through the authorized release process after exact-SHA demo QA passes. Development happens in `develop` and isolated feature branches; pull requests target `develop`.
-- **Commit convention:** Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`).
+```bash
+find . -name "*.php" -not -path "./upload/vendor/*" -not -path "./upload/modules/*" -print0 | xargs -0 -n1 php -l
+php upload/api/scripts/generate_openapi.php
+php upload/api/scripts/api_coverage_check.php
+```
 
+Commit messages follow Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`).
 ---
 
 ### Security-sensitive areas
@@ -900,7 +893,7 @@ AI-анализ идей · Декомпозиция задач · План на
 **Архитектурные примитивы AgentOS 2026:**
 - **Сервер Model Context Protocol (MCP):** 621 инструментов и 6 ресурсов, охватывающих задачи, проекты, клиентов, контакты, чаты, календарь, трудозатраты, аналитику и базу знаний.
 - **Оптимизация контекста `density: "compact"`:** Специальный компактный формат ответов на списочные запросы, экономящий до 85% промпт-токенов при работе с большими объемами данных.
-- **Атомарные пакеты задач (`crm_agent_bundle`):** Создание задачи, критериев приемки (DoD), чеклистов и подзадач в рамках одной транзакции базы данных.
+- **Многошаговая обработка задач (`crm_agent_bundle`):** Помогает создавать родительскую задачу, критерии приемки (DoD), чек-листы и подзадачи последовательными операциями. Результат возвращается отдельно для каждого шага; вызывающая сторона должна проверять частичные результаты.
 - **Долговременная память агента (`crm_agent_memory`):** Хранение структурированных фактов и графовых связей между сессиями работы ИИ-агентов с семантическим поиском и экспортом.
 - **Оптимистические блокировки STORM:** Контроль версий строк (`row_version`) предотвращает конфликты перезаписи данных при одновременной работе нескольких ИИ-агентов и живых пользователей.
 
@@ -1069,8 +1062,8 @@ TropaTT полностью открыта. Разворачивайте сист
 2. Файлы: архивация папки `upload/storage/` и конфигурации `api/.env`.
 3. Автоматические снапшоты при обновлениях: встроенная система обновлений автоматически создает резервную копию файлов и схемы БД перед накатом релиза с возможностью отката в один клик.
 
-**Могут ли несколько сотрудников и ИИ-агентов работать параллельно без конфликтов?**
-Механизм STORM использует версии строк (`row_version`) и отклоняет устаревшее изменение одной записи, предотвращая тихую перезапись. Это не резервирование задачи и не блокировка релиза. Для параллельной работы ИИ-агентов также нужны отдельные worktree и подключённая CRM, которая реально предоставляет и применяет `crm_agent_lease` и `crm_agent_journal`; проверяйте это через фактическое MCP-подключение. Если возможностей нет, изменения задач в CRM выполняйте последовательно. Для деплоя нужен отдельный принятый координатор релиза.
+**Могут ли несколько сотрудников работать одновременно без конфликтов?**
+Механизм STORM использует версии строк (`row_version`) и отклоняет устаревшее изменение одной записи, предотвращая тихую перезапись. Это помогает не потерять изменения другого пользователя.
 
 **Каковы точные минимальные системные требования к серверу?**
 - Процессор: 1 vCPU (от 1.0 ГГц).
@@ -1134,7 +1127,6 @@ TropaTT полностью открыта. Разворачивайте сист
 | CMS-коннекторы | 11 платформ (модуль) (OpenCart 1.5–4.x, 1С-Битрикс, WooCommerce HPOS, InSales, CS-Cart, PrestaShop, Shop-Script, Могута, Tilda, Shopify, Magento 2) |
 | JS-модули | 44 собственных модулей на чистом JS, без SPA-фреймворков и сборщиков |
 | Публичный CI | PHP lint (8.1 и 8.2), контракт безопасности клиентского портала, покрытие маршрутов OpenAPI, unit-тесты фронтенда |
-| Гейт релизов | Перед продвижением обязательны QA точного SHA на демо и неизменяемый отчёт; push в `develop` сам по себе не означает тестирование или автоматическое продвижение |
 | AI-эндпоинты | 65 |
 | AI-сценарии | 28 |
 | Feature-флаги | 40 |
@@ -1270,25 +1262,19 @@ ADR-006 Web — серверная верификация сессии чере�
 
 ---
 
-### Сопровождение проекта
+### Сопровождение и участие в разработке
 
-Стабильность кодовой базы обеспечивается автоматическими проверками и регламентом разработки:
+В TropaTT используются автоматические проверки качества кода. Правила для публичных участников разработки описаны в [CONTRIBUTING.md](CONTRIBUTING.md).
 
-- **Публичный CI:** На каждый Pull Request запускается проверка синтаксиса PHP (8.1 и 8.2), контракт безопасности клиентского портала, валидация схемы OpenAPI и unit-тесты фронтенда.
-- **Гейт релизов:** push в `develop` создаёт только кандидата. Проверка на демо должна подтверждать точный SHA и сохранять неизменяемый отчёт; продвигать `main` можно только после прохождения обязательных гейтов через принятый процесс релиза. Полный координатор релиза ещё дорабатывается, поэтому успешный push не доказывает деплой на демо и не запускает автоматическое продвижение.
-- **Проверки, доступные в публичном клоне:**
-  ```bash
-  # Проверка синтаксиса PHP по всему дереву
-  find . -name "*.php" -not -path "./upload/vendor/*" -not -path "./upload/modules/*" -print0 | xargs -0 -n1 php -l
+Базовые проверки, доступные в публичном клоне:
 
-  # Генерация и проверка контракта OpenAPI
-  php upload/api/scripts/generate_openapi.php
-  php upload/api/scripts/api_coverage_check.php
-  ```
-  Полный набор тестов (`tests/`) существует только в рабочей копии мейнтейнера и намеренно не публикуется — не делайте его зависимостью CI; вместо этого опишите ручную проверку в pull request.
-- **Ветвление:** `main` содержит стабильные публичные релизы и обновляется только авто-мерджем после зелёного гейта живых тестов. Активная разработка ведётся в ветке `develop`, pull request направляются в `develop`.
-- **Формат коммитов:** Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`).
+```bash
+find . -name "*.php" -not -path "./upload/vendor/*" -not -path "./upload/modules/*" -print0 | xargs -0 -n1 php -l
+php upload/api/scripts/generate_openapi.php
+php upload/api/scripts/api_coverage_check.php
+```
 
+Сообщения коммитов оформляются по Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`).
 ---
 
 ### Области, где важна безопасность
@@ -1502,7 +1488,7 @@ AI 需求推演 · 任务层级分解 · 每日工作计划建议 · 每周工�
 **AgentOS 2026 核心底层引擎：**
 - **Model Context Protocol (MCP) 服务器：** 开放 **621 个原生工具** 和 **6 个资源**，覆盖任务、项目、客户、联系人、聊天室、日程、工时、分析和知识库全领域。
 - **上下文密度优化技术（`density: "compact"`）：** 在执行列表批量检索时启用极致紧凑编码，剔除不必要的装饰字段，单次推理提示词 Token 开销最多骤降 85%。
-- **原子化任务编排（`crm_agent_bundle`）：** 允许 AI 智能体在单次数据库事务中一次性原子创建父任务、验收条件（DoD）、检查清单与关联子任务。
+- **多步骤任务编排（`crm_agent_bundle`）：** 通过有序操作创建父任务、验收条件（DoD）、检查清单与子任务，并分别返回各步骤结果；调用方应检查部分完成的结果。
 - **跨会话持久化智能体记忆（`crm_agent_memory`）：** 允许智能体在不同对话轮次之间沉淀结构化事实记忆、实体图谱关联，并支持语义检索与结构化导出。
 - **STORM 乐观并发控制：** 基于 `row_version` 拒绝对同一业务记录的过期修改，避免静默覆盖；任务认领与发布协调需要单独的租约和锁。
 
@@ -1563,7 +1549,7 @@ TropaTT 在系统内部实现了原生的高性能团队沟通工具。并非简
 TropaTT 具备企业级的自动化与系统集成能力，专为融入复杂的企业 IT 基础设施而生：
 
 - **通用电商 CMS 网关（`crm.ecommerce-gateway`）** — 提供标准 v1.0 JSON 规范，覆盖 11 大电商独立站与商城系统（OpenCart 1.5–4.x、1C-Bitrix、WooCommerce HPOS、InSales、CS-Cart、PrestaShop、Shop-Script、Moguta、Tilda、Shopify、Magento 2），内置 HMAC-SHA256 签名校验、双向订单同步、库存多仓扣减与幂等性防护。
-- **AgentOS 2026 核心机制** — 原子化任务批处理（`crm_agent_bundle`）、智能体持久记忆引擎（`crm_agent_memory`，具备图谱关联与语义检索）、STORM 乐观并发锁（`row_version`），以及利用 `density: "compact"` 缩减高达 85% 的 Token 消耗。
+- **AgentOS 2026 核心机制** — 多步骤任务编排（`crm_agent_bundle`）、智能体持久记忆引擎（`crm_agent_memory`，具备图谱关联与语义检索）、STORM 乐观并发控制（`row_version`），以及利用 `density: "compact"` 缩减高达 85% 的 Token 消耗。
 - **业务工作流规则** — 基于触发条件（状态变更、字段修改、超时触发）自动执行既定动作。
 - **SLA 履约保障引擎** — 定义响应与解决时间上限，自动化预警超时违约风险。
 - **多级审批流** — 关键决策、报价优惠与敏感变更支持严密的顺序/并行审批链路。
@@ -1586,7 +1572,7 @@ TropaTT 具备企业级的自动化与系统集成能力，专为融入复杂的
 TropaTT 完整内置了 **Model Context Protocol (MCP) 服务器** —— 该协议是 **Claude Code、Cursor、Codex、OpenDevin、ChatGPT 以及下一代 AI 编程智能体与自主代理** 的通用通信标准。将任何支持 MCP 的智能体对接到您的 TropaTT 实例，智能体即可在严格的角色权限约束下，安全地检索、分析并管理您的真实业务数据：
 
 - **621 个 MCP 原生工具 + 6 个资源** — 涵盖任务执行、项目甘特、客户画像、商务联系人、讨论记录、日程排期、工时报表、统计看板以及企业知识库全域数据。
-- **AgentOS 2026 原生能力加持** — 支持通过 `crm_agent_bundle` 一次性完成任务树与检查清单的原子化构建；支持通过 `crm_agent_memory` 跨对话存储关键背景与逻辑事实；支持紧凑数据模式大幅节省 Token 开销。
+- **AgentOS 2026 原生能力加持** — 支持通过 `crm_agent_bundle` 按步骤编排任务树与检查清单，并检查各步骤结果；支持通过 `crm_agent_memory` 跨对话存储关键背景与逻辑事实；支持紧凑数据模式大幅节省 Token 开销。
 - **全面适配 Claude Code、Cursor、Codex、OpenDevin 和 ChatGPT。** 像连接任何标准 MCP 服务一样完成配置即可。
 - **与 Web 控制台完全同构的权限防线。** 智能体的一切操作均走内部 REST API 与 RBAC 权限系统 —— 绝无直接操作物理数据库的越权通道，无法逾越角色边界。
 - **开箱即用的安全保障机制。** 用户密码哈希、会话令牌、API 密钥等敏感凭证在工具输出中被自动屏蔽；所有写入操作均要求明确的操作权限。
@@ -1671,8 +1657,8 @@ TropaTT 彻底开源。将其部署在您所信任的服务器上，随意审查
 2. 文件与配置：打包归档 `upload/storage/` 文件夹及 `api/.env` 配置文件。
 3. 升级前自动快照：内置的一键在线更新程序在执行文件与数据库迁移前，会自动创建带时间戳的完整快照，出现任何意外支持一键平滑回滚。
 
-**多个员工与 AI 智能体同时操作是否会发生数据覆盖冲突？**
-STORM 使用 `row_version` 拒绝对同一记录的过期更新，从而避免静默覆盖；它并不是任务认领或发布锁。多个 AI 智能体并行工作还需要独立 worktree，以及实际提供并执行 `crm_agent_lease` 和 `crm_agent_journal` 的 CRM；请通过当前 MCP 连接确认这些能力。若能力不可用，应串行写入 CRM 任务。部署还需要单独验收通过的发布协调器。
+**多个员工同时操作会发生数据覆盖冲突吗？**
+STORM 使用 `row_version` 拒绝对同一记录的过期更新，从而避免静默覆盖，帮助避免用户的更改被无声替换。
 
 **服务器物理硬件与运行环境的最低要求是什么？**
 - 处理器：1 vCPU（主频 1.0 GHz 以上）。
@@ -1736,7 +1722,6 @@ TropaTT 原生内置了遵循标准 Model Context Protocol 的 MCP 服务器，�
 | 电商 CMS 连接器 | 11 大主流独立站（可选模块）（OpenCart 1.5–4.x、1C-Bitrix、WooCommerce HPOS、InSales、CS-Cart、PrestaShop、Shop-Script、Moguta、Tilda、Shopify、Magento 2） |
 | 原生 JS 模块 | 44 个自研纯原生 ES5+ 模块，彻底摒弃 SPA 前端重型构建步骤 |
 | 公开自动化 CI | PHP 8.1 / 8.2 语法全量扫描、MySQL 数据迁移完整性校验、OpenAPI 路由契约一致性核查 |
-| 发布门禁 | 推进前必须在演示站验证确切 SHA 并保存不可变报告；推送 `develop` 不等于已测试或自动推进 |
 | AI 专用端点 | 65 个 |
 | 落地 AI 工作流 | 28 项 |
 | 功能开关控制 | 40 个特性 Flags |
@@ -1872,25 +1857,19 @@ ADR-006 Web — 服务端基于 HttpOnly Cookie 与 CSRF 令牌的双重会话�
 
 ---
 
-### 维护和贡献流程
+### 维护与贡献
 
-为确保系统工业级的稳定性与代码品质，所有合并遵循严格的规范化工作流：
+TropaTT 使用自动化检查来帮助维护代码质量。公开贡献指南见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
-- **自动化 CI 门禁：** 每个 PR 必须通过 PHP 8.1 / 8.2 双版本语法核验、客户门户安全契约检查、OpenAPI 规范一致性审查与前端单元测试。
-- **发布门禁：** 推送 `develop` 只会创建候选版本。演示站验证必须确认确切 SHA 并保留不可变报告；只有通过已验收的发布流程和必需门禁后才可推进 `main`。完整发布协调器仍在完善中，因此不能根据成功推送推断已部署或会自动推进。
-- **公开克隆中可用的检查：**
-  ```bash
-  # 全量 PHP 语法检查
-  find . -name "*.php" -not -path "./upload/vendor/*" -not -path "./upload/modules/*" -print0 | xargs -0 -n1 php -l
+公开克隆中可运行的基础检查：
 
-  # 生成并核对 OpenAPI 契约
-  php upload/api/scripts/generate_openapi.php
-  php upload/api/scripts/api_coverage_check.php
-  ```
-  完整测试套件（`tests/`）仅存在于维护者工作区，出于设计不对外发布——请勿将其作为 CI 依赖；改为在 pull request 中说明手工验证过程。
-- **严谨的分支策略：** `main` 分支仅用于稳定版本，并且只能在确切 SHA 通过演示站验证后，通过获准的发布流程更新。日常开发在 `develop` 与隔离的特性分支开展，pull request 指向 `develop`。
-- **标准化提交日志：** 严格采用 Conventional Commits 语义化前缀（`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`）。
+```bash
+find . -name "*.php" -not -path "./upload/vendor/*" -not -path "./upload/modules/*" -print0 | xargs -0 -n1 php -l
+php upload/api/scripts/generate_openapi.php
+php upload/api/scripts/api_coverage_check.php
+```
 
+提交说明遵循 Conventional Commits（`feat:`、`fix:`、`docs:`、`refactor:`、`test:`、`chore:`）。
 ---
 
 ### 安全敏感区域

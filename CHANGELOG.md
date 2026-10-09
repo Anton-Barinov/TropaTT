@@ -235,7 +235,7 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ### Added
 - **AgentOS 2026 Engine Core**:
-  - `crm_agent_bundle`: Atomic multi-entity task creation executing parent task creation, Knowledge Base linking, interactive DoD checklist setup, subtask decomposition, automated QA-gate task generation (`BLOCKS` dependency), and exclusive concurrency locks in a single request.
+  - `crm_agent_bundle`: Multi-step task setup for a parent task, Knowledge Base links, DoD checklists, subtasks, and optional QA task. Operations run sequentially and may leave partial results; this is not an atomic transaction or an ownership lock. Task ownership is a separate capability.
   - `crm_agent_memory`: Scoped persistent memory subsystem for AI agents supporting arbitrary key-value storage, semantic/text search, entity graph linking (`link_entity`, `unlink_entity`), and full memory graph export (`export_graph`).
   - `density: "compact"`: Context compression mode across `crm_task` and `crm_agent_bundle`, returning essential entity fields and reducing LLM context window consumption by up to 85%.
   - STORM optimistic concurrency locking (`row_version`): Protocol-level data race prevention returning `409 Conflict` on concurrent agent mutations.
