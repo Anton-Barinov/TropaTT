@@ -34,6 +34,51 @@ final class UpdateCenterClient
         ])));
     }
 
+    /** Resolve one exact published source commit, never the mutable channel head.
+     *
+     * @return array<string,mixed>
+     */
+    public function updatePlanForSha(string $currentBuild, string $targetSha, ?string $currentSha = null): array
+    {
+        $targetSha = strtolower(trim($targetSha));
+        if (preg_match('/^[a-f0-9]{40}$/', $targetSha) !== 1) {
+            throw new \InvalidArgumentException('PINNED_TARGET_SHA_INVALID');
+        }
+        $domain = $this->installationDomain();
+        $expectedProduct = self::expectedProductForDomain((string)$this->config['product'], $domain);
+        $productInfo = $this->product();
+        $stream = (string)($productInfo['stream'] ?? $productInfo['product'] ?? '');
+        if ($stream !== $expectedProduct) {
+            throw new \UnexpectedValueException('PINNED_TARGET_STREAM_UNCONFIRMED');
+        }
+        $index = $this->getJson($this->url('/api/v1/products/' . rawurlencode($stream) . '/builds' . $this->queryString()), 4194304);
+        if (!is_array($index['builds'] ?? null)) {
+            throw new \UnexpectedValueException('PINNED_BUILD_INDEX_INVALID');
+        }
+        $matches = [];
+        foreach ($index['builds'] as $build) {
+            if (is_array($build) && ($build['product'] ?? null) === $stream
+                && ($build['status'] ?? null) === 'published'
+                && is_string($build['source_to_sha'] ?? null)
+                && strtolower($build['source_to_sha']) === $targetSha) {
+                $matches[] = $build;
+            }
+        }
+        if (count($matches) !== 1) {
+            throw new \UnexpectedValueException(count($matches) === 0
+                ? 'PINNED_TARGET_BUILD_NOT_FOUND'
+                : 'PINNED_TARGET_BUILD_AMBIGUOUS');
+        }
+        $buildNumber = (string)($matches[0]['core_build'] ?? '');
+        if (preg_match('/^[A-Za-z0-9._+-]{1,64}$/', $buildNumber) !== 1) {
+            throw new \UnexpectedValueException('PINNED_TARGET_BUILD_NUMBER_INVALID');
+        }
+        $manifest = $this->getJson($this->url('/api/v1/manifests/' . rawurlencode($stream) . '/full/' . rawurlencode($buildNumber)));
+        return PinnedUpdatePlanResolver::resolve(
+            $index, $manifest, $stream, (string)$this->config['channel'], $currentBuild, $targetSha, $currentSha
+        );
+    }
+
     public function changes(?string $from, string $to): array
     {
         return $this->getJson($this->url('/api/v1/products/' . rawurlencode((string)$this->config['product']) . '/changes' . $this->queryString([
@@ -152,11 +197,13 @@ final class UpdateCenterClient
         return preg_match('/^[a-z0-9.-]+$/', $host) === 1 ? trim($host, '.') : '';
     }
 
-    public function getJson(string $url): array
+    public function getJson(string $url, int $maxBodyBytes = 0): array
     {
-        $result = HttpClient::request($url, [
-            'timeout' => (int)($this->config['timeouts']['check'] ?? 10),
-        ]);
+        $options = ['timeout' => (int)($this->config['timeouts']['check'] ?? 10)];
+        if ($maxBodyBytes > 0) {
+            $options['max_body_bytes'] = $maxBodyBytes;
+        }
+        $result = HttpClient::request($url, $options);
         if (($result['ok'] ?? false) !== true) {
             $error = (string)($result['error'] ?? '');
             throw new \RuntimeException('Unable to reach update center: ' . $url . ($error !== '' ? ' (' . $error . ')' : ''));

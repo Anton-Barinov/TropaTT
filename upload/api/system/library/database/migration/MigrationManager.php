@@ -98,6 +98,7 @@ final class MigrationManager
             new AgentMemoryMigration(),
             new AgentLeasesMigration(),
             new AgentJournalMigration(),
+            new AgentSwarmCoordinationMigration(),
             new KnowledgeSpacesTrashMigration(),
             new TaskStatusClosureMigration(),
             new KnowledgePageVersionCounterBackfillMigration(),

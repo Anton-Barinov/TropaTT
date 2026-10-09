@@ -117,9 +117,19 @@ final class UpdaterKernel
             $client = new UpdateCenterClient($this->config);
         $local = new LocalState($this->storageDir);
         $current = (string)($input['current_build'] ?? $local->currentBuild() ?? '0');
-        $plan = $client->updatePlan($current);
+        $targetSha = trim((string)($input['target_sha'] ?? ''));
+        $installedCore = $local->read();
+        $plan = $targetSha !== ''
+            ? $client->updatePlanForSha($current, $targetSha,
+                is_string($installedCore['source_sha'] ?? null) ? $installedCore['source_sha'] : null)
+            : $client->updatePlan($current);
+        $pinnedManifest = is_array($plan['manifest'] ?? null) ? $plan['manifest'] : null;
+        unset($plan['manifest']);
         $state->write(['state' => 'plan_loaded', 'plan' => $plan]);
-        $logger->info('plan_loaded', 'Update plan loaded', ['target_build' => $plan['target_build'] ?? null]);
+        $logger->info('plan_loaded', 'Update plan loaded', [
+            'target_build' => $plan['target_build'] ?? null,
+            'target_sha' => $plan['target_sha'] ?? null,
+        ]);
 
         // Hard stream guard: a production installation must never receive an
         // update resolved to a stream other than its configured product (e.g.
@@ -144,12 +154,19 @@ final class UpdaterKernel
 
         $package = $plan['recommended_package'] ?? null;
         if (!is_array($package)) {
-            $report = ['ok' => true, 'update_available' => false, 'checks' => ['no_update' => true]];
+            $report = ['ok' => true, 'update_available' => false, 'current_build' => $current,
+                'target_build' => (string)($plan['target_build'] ?? $current),
+                'target_sha' => (string)($plan['target_sha'] ?? ''),
+                'checks' => ['no_update' => true]];
+            $state->writeFile('plan.json', $plan);
             $state->writeFile('preflight.json', $report);
             return JsonResponse::success(['job_id' => $jobId, 'preflight' => $report]);
         }
 
-        $manifest = $client->getJson((string)$package['manifest_url']);
+        $manifest = $pinnedManifest ?? $client->getJson((string)($package['manifest_url'] ?? ''));
+        if ($manifest === []) {
+            throw new \UnexpectedValueException('PINNED_TARGET_MANIFEST_MISSING');
+        }
         $expectedProduct = UpdateCenterClient::expectedProductForDomain(
             (string)$this->config['product'],
             $client->installationDomain()
@@ -188,6 +205,7 @@ final class UpdaterKernel
             'dry_run' => (bool)($input['dry_run'] ?? true),
             'current_build' => $current,
             'target_build' => $plan['target_build'] ?? null,
+            'target_sha' => $plan['target_sha'] ?? ($manifest['to_sha'] ?? null),
             'package' => $package,
             'checks' => $checks,
             'package_head' => $packageHead,

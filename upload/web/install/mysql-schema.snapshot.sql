@@ -3636,9 +3636,90 @@ CREATE TABLE IF NOT EXISTS `yandex_calendar_sources` (
 
 
 
+-- Agent swarm coordination snapshot schema (same shape as AgentSwarmCoordinationMigration)
+CREATE TABLE IF NOT EXISTS `agent_swarm_runs` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `organization_id` bigint(20) unsigned NOT NULL,
+  `swarm_run_id` char(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `parent_task_public_id` varchar(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `project_public_id` varchar(64) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL,
+  `base_sha` varchar(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `created_by_user_id` bigint(20) unsigned NOT NULL,
+  `parent_agent_id` varchar(96) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `parent_lease_run_id` varchar(96) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `parent_generation` bigint(20) unsigned NOT NULL,
+  `payload_hash` char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `status` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `created_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_agent_swarm_run` (`organization_id`,`swarm_run_id`),
+  KEY `idx_agent_swarm_parent` (`organization_id`,`parent_task_public_id`,`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `agent_swarm_participants` (
+  `organization_id` bigint(20) unsigned NOT NULL,
+  `swarm_run_id` char(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `task_public_id` varchar(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `agent_id` varchar(96) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `registered_by_user_id` bigint(20) unsigned NOT NULL,
+  `created_at` datetime NOT NULL,
+  PRIMARY KEY (`organization_id`,`swarm_run_id`,`task_public_id`),
+  UNIQUE KEY `uq_agent_swarm_participant_agent` (`organization_id`,`swarm_run_id`,`agent_id`),
+  KEY `idx_agent_swarm_participant_task` (`organization_id`,`task_public_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Organization-scoped mutex row; it serializes only the short path-overlap transaction.
+CREATE TABLE IF NOT EXISTS `agent_source_claim_scopes` (
+  `organization_id` bigint(20) unsigned NOT NULL,
+  `created_at` datetime NOT NULL,
+  PRIMARY KEY (`organization_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `agent_source_path_claims` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `organization_id` bigint(20) unsigned NOT NULL,
+  `path_hash` char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `normalized_path` varchar(512) NOT NULL,
+  `swarm_run_id` char(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `base_sha` varchar(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `task_public_id` varchar(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `agent_id` varchar(96) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `lease_run_id` varchar(96) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `lease_generation` bigint(20) unsigned NOT NULL,
+  `owner_user_id` bigint(20) unsigned NOT NULL,
+  `created_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_agent_source_path` (`organization_id`,`path_hash`),
+  KEY `idx_agent_source_claim_run` (`organization_id`,`swarm_run_id`,`task_public_id`),
+  KEY `idx_agent_source_claim_lease` (`organization_id`,`task_public_id`,`lease_generation`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `agent_swarm_events` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `organization_id` bigint(20) unsigned NOT NULL,
+  `swarm_run_id` char(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `event_id` char(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `operation_id` varchar(96) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `event_kind` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `stage` varchar(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `owner_user_id` bigint(20) unsigned NOT NULL,
+  `agent_id` varchar(96) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `task_public_id` varchar(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `lease_run_id` varchar(96) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `lease_generation` bigint(20) unsigned NOT NULL,
+  `body` text NOT NULL,
+  `payload_hash` char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `created_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_agent_swarm_event` (`organization_id`,`swarm_run_id`,`event_id`),
+  KEY `idx_agent_swarm_event_cursor` (`organization_id`,`swarm_run_id`,`id`),
+  KEY `idx_agent_swarm_event_task` (`organization_id`,`swarm_run_id`,`task_public_id`,`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Baseline migrations state
 INSERT IGNORE INTO `migrations` (`migration_key`, `description`, `applied_at`) VALUES
 ('20261007_000002_agent_journal', 'Idempotent task journal events linked to native comments', NOW()),
+('20261009_000001_agent_swarm_coordination', 'Run-scoped agent coordination, source path claims and events', NOW()),
 ('20261007_000001_agent_leases', 'Central agent leases with fencing generations', NOW()),
 ('20261005_000005_ai_chat_retention_index', 'Index AI chat run retention and lease cleanup', NOW()),
 ('20261005_000004_ai_chat_budgets', 'Atomic per-user AI chat request and token reservations', NOW()),

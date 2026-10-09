@@ -18,7 +18,7 @@ final class HttpClient
     /**
      * Perform an HTTP request.
      *
-     * @param array{method?:string,body?:string,headers?:array<string,string>,timeout?:int,stream_to?:string,follow?:bool,no_body?:bool} $options
+     * @param array{method?:string,body?:string,headers?:array<string,string>,timeout?:int,stream_to?:string,follow?:bool,no_body?:bool,max_body_bytes?:int} $options
      * @return array{ok:bool,status:int,headers:array<int,string>,body:string|false,error:string,bytes:int|null}
      */
     public static function request(string $url, array $options = []): array
@@ -28,11 +28,15 @@ final class HttpClient
         $streamTo = (string)($options['stream_to'] ?? '');
         $noBody = (bool)($options['no_body'] ?? false);
         $headers = is_array($options['headers'] ?? null) ? $options['headers'] : [];
+        $maxBodyBytes = max(0, (int)($options['max_body_bytes'] ?? 0));
+        if ($maxBodyBytes > 0 && ($streamTo !== '' || $noBody)) {
+            return ['ok' => false, 'status' => 0, 'headers' => [], 'body' => false, 'error' => 'bounded response mode is incompatible with streaming', 'bytes' => null];
+        }
 
         if (function_exists('curl_init')) {
-            return self::requestViaCurl($url, $method, $headers, $options, $timeout, $streamTo, $noBody);
+            return self::requestViaCurl($url, $method, $headers, $options, $timeout, $streamTo, $noBody, $maxBodyBytes);
         }
-        return self::requestViaStreams($url, $method, $headers, $options, $timeout, $streamTo, $noBody);
+        return self::requestViaStreams($url, $method, $headers, $options, $timeout, $streamTo, $noBody, $maxBodyBytes);
     }
 
     /**
@@ -56,7 +60,7 @@ final class HttpClient
     /**
      * @return array<int,string>
      */
-    private static function requestViaCurl(string $url, string $method, array $headers, array $options, int $timeout, string $streamTo, bool $noBody): array
+    private static function requestViaCurl(string $url, string $method, array $headers, array $options, int $timeout, string $streamTo, bool $noBody, int $maxBodyBytes): array
     {
         $ch = curl_init($url);
         if ($ch === false) {
@@ -69,7 +73,7 @@ final class HttpClient
         }
 
         $curlOpts = [
-            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_RETURNTRANSFER => $maxBodyBytes === 0,
             // Never capture headers into the same buffer as the body: binary
             // bodies (package ZIPs) can contain the header terminator sequence
             // (\r\n\r\n), which would corrupt the split and truncate the body.
@@ -83,6 +87,18 @@ final class HttpClient
             CURLOPT_MAXREDIRS => 5,
         ];
 
+        $boundedBody = '';
+        $bodyTooLarge = false;
+        if ($maxBodyBytes > 0) {
+            $curlOpts[CURLOPT_WRITEFUNCTION] = static function ($handle, string $chunk) use (&$boundedBody, &$bodyTooLarge, $maxBodyBytes): int {
+                if (strlen($boundedBody) + strlen($chunk) > $maxBodyBytes) {
+                    $bodyTooLarge = true;
+                    return 0;
+                }
+                $boundedBody .= $chunk;
+                return strlen($chunk);
+            };
+        }
         $fileHandle = null;
         if ($streamTo !== '') {
             $fileHandle = @fopen($streamTo, 'wb');
@@ -124,6 +140,12 @@ final class HttpClient
             curl_close($ch);
         }
 
+        if ($bodyTooLarge) {
+            return ['ok' => false, 'status' => $status, 'headers' => [], 'body' => false, 'error' => 'response body exceeds configured limit', 'bytes' => $maxBodyBytes];
+        }
+        if ($maxBodyBytes > 0 && $output === true) {
+            $output = $boundedBody;
+        }
         if ($output === false) {
             if ($streamTo !== '') {
                 @unlink($streamTo);
@@ -156,7 +178,7 @@ final class HttpClient
     /**
      * @return array<int,string>
      */
-    private static function requestViaStreams(string $url, string $method, array $headers, array $options, int $timeout, string $streamTo, bool $noBody): array
+    private static function requestViaStreams(string $url, string $method, array $headers, array $options, int $timeout, string $streamTo, bool $noBody, int $maxBodyBytes): array
     {
         $headerLines = [];
         foreach ($headers as $name => $value) {
@@ -204,7 +226,16 @@ final class HttpClient
             ];
         }
 
-        $body = @file_get_contents($url, false, stream_context_create($contextOptions));
+        if ($maxBodyBytes > 0) {
+            $body = @file_get_contents($url, false, stream_context_create($contextOptions), 0, $maxBodyBytes + 1);
+            if (is_string($body) && strlen($body) > $maxBodyBytes) {
+                return ['ok' => false, 'status' => self::statusFromHeaders($http_response_header ?? []),
+                    'headers' => array_values(array_filter($http_response_header ?? [], static fn ($l): bool => is_string($l) && $l !== '')),
+                    'body' => false, 'error' => 'response body exceeds configured limit', 'bytes' => $maxBodyBytes];
+            }
+        } else {
+            $body = @file_get_contents($url, false, stream_context_create($contextOptions));
+        }
         if ($body === false) {
             $lastError = error_get_last();
             return [

@@ -3572,6 +3572,62 @@ $tools[] = $this->tool(
 
         // --- AgentOS tools: bundle and memory ---
         $tools[] = $this->tool(
+            'crm_agent_capabilities',
+            'Read-only status of server-accepted task, journal, parallel-write and release pipeline capabilities. Missing, invalid, or source-mismatched runtime evidence is reported as not verified.',
+            [
+                'action' => ['type' => 'string', 'enum' => ['status']],
+            ],
+            ['action']
+        );
+
+        $tools[] = $this->tool(
+            'crm_agent_swarm',
+            'Fenced coordination for a multi-agent source run: register assigned workers, claim disjoint paths, and exchange idempotent run events. Workspace and actor identity come only from authenticated request context. lease_context is required only for create_run, claim_paths, release_paths, and append_event.',
+            [
+                'action' => ['type' => 'string', 'enum' => ['create_run', 'get_run', 'claim_paths', 'release_paths', 'append_event', 'list_events']],
+                'run_id' => ['type' => 'string', 'pattern' => '^[a-f0-9]{32}$'],
+                'swarm_run_id' => ['type' => 'string', 'pattern' => '^[a-f0-9]{32}$'],
+                'parent_task_public_id' => ['type' => 'string', 'pattern' => '^tsk_[A-Za-z0-9]{1,60}$'],
+                'project_public_id' => ['type' => ['string', 'null']],
+                'base_sha' => ['type' => 'string', 'pattern' => '^(?:[a-f0-9]{40}|[a-f0-9]{64})$'],
+                'participants' => [
+                    'type' => 'array', 'maxItems' => 16,
+                    'items' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'task_public_id' => ['type' => 'string', 'pattern' => '^tsk_[A-Za-z0-9]{1,60}$'],
+                            'agent_id' => ['type' => 'string', 'maxLength' => 96],
+                        ],
+                        'required' => ['task_public_id', 'agent_id'],
+                        'additionalProperties' => false,
+                    ],
+                ],
+                'task_public_id' => ['type' => 'string', 'pattern' => '^tsk_[A-Za-z0-9]{1,60}$'],
+                'agent_id' => ['type' => 'string', 'maxLength' => 96],
+                'paths' => ['type' => 'array', 'minItems' => 1, 'maxItems' => 200, 'items' => ['type' => 'string', 'maxLength' => 512]],
+                'event_id' => ['type' => 'string', 'pattern' => '^[a-f0-9]{32}$'],
+                'operation_id' => ['type' => 'string', 'maxLength' => 96],
+                'event_kind' => ['type' => 'string', 'enum' => ['intent', 'result', 'checkpoint', 'blocker', 'message', 'decision', 'question', 'conflict', 'qa_result']],
+                'stage' => ['type' => 'string', 'pattern' => '^[a-z][a-z0-9_]{0,31}$'],
+                'body' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 16000],
+                'after_id' => ['type' => 'integer', 'minimum' => 0],
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100],
+                'lease_context' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'agent_id' => ['type' => 'string', 'maxLength' => 96],
+                        'run_id' => ['type' => 'string', 'maxLength' => 96],
+                        'token' => ['type' => 'string', 'pattern' => '^[a-f0-9]{64}$'],
+                        'generation' => ['type' => 'integer', 'minimum' => 1],
+                    ],
+                    'required' => ['agent_id', 'run_id', 'token', 'generation'],
+                    'additionalProperties' => false,
+                ],
+            ],
+            ['action']
+        );
+
+        $tools[] = $this->tool(
             'crm_agent_bundle',
             'Sequential task setup for AI agents. Creates a task, knowledge links, checklists/items, subtasks, and an optional QA task. This is not a database transaction: it stops on the first failure and returns completed step IDs for reconciliation before retry. Claim ownership separately with crm_agent_lease. Supports density: "rich" | "compact".',
             [
@@ -4516,6 +4572,8 @@ $tools[] = $this->tool(
             'crm_knowledge' => $this->handleMegaTool('crm_knowledge', $arguments),
             'crm_ai' => $this->handleMegaTool('crm_ai', $arguments),
             'crm_admin' => $this->handleMegaTool('crm_admin', $arguments),
+            'crm_agent_capabilities' => $this->toolResult($this->crmAgentCapabilities($arguments)),
+            'crm_agent_swarm' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmAgentSwarm($arguments))),
             'crm_agent_bundle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmAgentBundle($arguments))),
             'crm_agent_lease' => $this->toolResult($this->crmAgentLease($arguments)),
             'crm_agent_journal' => $this->toolResult($this->crmAgentJournal($arguments)),
@@ -6979,6 +7037,112 @@ $tools[] = $this->tool(
         }
 
         return true;
+    }
+
+    private function crmAgentCapabilities(array $arguments): array
+    {
+        $service = new \Api\System\Library\Service\AgentPipelineCapabilityService();
+        if (($arguments['action'] ?? null) !== 'status') {
+            return ['error' => 'CAPABILITY_INVALID_ARGUMENT'];
+        }
+
+        try {
+            $updateConfig = \Api\System\Library\Update\CoreUpdateConfig::load();
+            $runtime = (new \Api\System\Library\Update\CoreVersion(
+                (string)($updateConfig['storage_dir'] ?? ''), dirname(__DIR__, 3)
+            ))->current();
+            $runtimeSha = $runtime['source_sha'] ?? null;
+            if (!is_string($runtimeSha)) {
+                $runtimeSha = null;
+            }
+
+            $storageDir = trim((string)($updateConfig['storage_dir'] ?? ''));
+            if ($storageDir === '') {
+                return $service->status([], null);
+            }
+            $runtimeEvidencePath = rtrim(dirname($storageDir), DIRECTORY_SEPARATOR)
+                . DIRECTORY_SEPARATOR . 'agent_pipeline_capabilities.json';
+            $record = $service->readRuntimeRecord($runtimeEvidencePath);
+            return $service->status($record, $runtimeSha);
+        } catch (\Throwable) {
+            // Do not expose filesystem paths, parser errors, or runtime metadata.
+            return $service->status([], null);
+        }
+    }
+
+    private function crmAgentSwarm(array $arguments): array
+    {
+        $action = (string)($arguments['action'] ?? '');
+        $capabilityService = new \Api\System\Library\Service\AgentPipelineCapabilityService();
+        $gateError = $capabilityService->swarmActionGateError(
+            $action,
+            $this->crmAgentCapabilities(['action' => 'status'])
+        );
+        if ($gateError !== null) {
+            return ['error' => $gateError];
+        }
+
+        // Resolve the actor/workspace from the authenticated server request,
+        // never from MCP tool arguments such as organization_public_id.
+        $auth = $this->user();
+        $actor = $this->organizationScopedActor(is_array($auth['user'] ?? null) ? $auth['user'] : []);
+        $actorId = (int)($actor['id'] ?? 0);
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        if (!empty($actor['is_external']) || $actorId < 1 || $organizationId < 1) {
+            return ['error' => 'SWARM_ACCESS_DENIED'];
+        }
+
+        $inputKeys = match ($action) {
+            'create_run' => ['run_id', 'parent_task_public_id', 'project_public_id', 'base_sha', 'participants'],
+            'get_run' => ['swarm_run_id'],
+            'claim_paths' => ['swarm_run_id', 'task_public_id', 'agent_id', 'base_sha', 'paths'],
+            'release_paths' => ['swarm_run_id', 'task_public_id', 'agent_id', 'paths'],
+            'append_event' => ['swarm_run_id', 'event_id', 'task_public_id', 'agent_id', 'operation_id', 'event_kind', 'stage', 'body'],
+            'list_events' => ['swarm_run_id', 'after_id', 'limit'],
+        };
+        $input = $this->pick($arguments, $inputKeys);
+        try {
+            $service = new \Api\System\Library\Service\AgentSwarmCoordinationService($this->pdo());
+            if ($action === 'get_run') {
+                return $service->getRun($organizationId, $actorId, (string)($input['swarm_run_id'] ?? ''));
+            }
+            if ($action === 'list_events') {
+                return $service->listEvents(
+                    $organizationId, $actorId, (string)($input['swarm_run_id'] ?? ''),
+                    (int)($input['after_id'] ?? 0), (int)($input['limit'] ?? 50)
+                );
+            }
+
+            $lease = $arguments['lease_context'] ?? null;
+            if (!is_array($lease) || array_is_list($lease)
+                || array_diff(array_keys($lease), ['agent_id', 'run_id', 'token', 'generation']) !== []
+                || !is_string($lease['agent_id'] ?? null) || !is_string($lease['run_id'] ?? null)
+                || !is_string($lease['token'] ?? null) || !is_int($lease['generation'] ?? null)) {
+                return ['error' => 'SWARM_INVALID_LEASE_CONTEXT'];
+            }
+            return match ($action) {
+                'create_run' => $service->createRun($organizationId, $actorId, $input, $lease),
+                'claim_paths' => $service->claimPaths($organizationId, $actorId, $input, $lease),
+                'release_paths' => $service->releasePaths($organizationId, $actorId, $input, $lease),
+                'append_event' => $service->appendEvent($organizationId, $actorId, $input, $lease),
+            };
+        } catch (\RuntimeException $error) {
+            $code = $error->getMessage();
+            $safeCodes = [
+                'LEASE_INVALID_ARGUMENT', 'LEASE_OWNERSHIP_LOST',
+                'SWARM_BASE_SHA_MISMATCH', 'SWARM_CLAIM_SCOPE_MISSING',
+                'SWARM_DUPLICATE_PARTICIPANT', 'SWARM_DUPLICATE_PATH',
+                'SWARM_EVENT_CONFLICT', 'SWARM_INVALID_ARGUMENT', 'SWARM_INVALID_CURSOR',
+                'SWARM_INVALID_EVENT', 'SWARM_INVALID_PARTICIPANT', 'SWARM_INVALID_PATH',
+                'SWARM_MYSQL_TRANSACTION_REQUIRED', 'SWARM_PARTICIPANT_DENIED',
+                'SWARM_PARTICIPANT_SCOPE_MISMATCH', 'SWARM_PATH_OVERLAP',
+                'SWARM_PROJECT_SCOPE_MISMATCH', 'SWARM_RUN_CONFLICT', 'SWARM_RUN_NOT_FOUND',
+                'SWARM_TASK_ACCESS_DENIED',
+            ];
+            return ['error' => in_array($code, $safeCodes, true) ? $code : 'SWARM_STORAGE_UNAVAILABLE'];
+        } catch (\Throwable) {
+            return ['error' => 'SWARM_STORAGE_UNAVAILABLE'];
+        }
     }
 
     private function crmAgentJournal(array $arguments): array

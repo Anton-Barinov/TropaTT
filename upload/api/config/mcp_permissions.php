@@ -8,6 +8,8 @@ declare(strict_types=1);
  * mode: all = ALL permissions required, any = ANY permission required, self = ownership-based.
  */
 return [
+    'crm_agent_capabilities' => ['mode' => 'all', 'permissions' => ['task.manage']],
+    'crm_agent_swarm' => ['mode' => 'all', 'permissions' => ['task.manage']],
     'crm_agent_bundle' => ['mode' => 'all', 'permissions' => ['task.manage']],
     'crm_agent_journal' => ['mode' => 'all', 'permissions' => ['task.manage']],
     'crm_agent_lease' => ['mode' => 'all', 'permissions' => ['task.manage']],

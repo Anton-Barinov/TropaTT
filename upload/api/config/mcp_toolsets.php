@@ -61,7 +61,9 @@ return [
             'crm_knowledge',
             'crm_ai',
             'crm_admin',
-            // AgentOS tools: bundle, memory, and chat communication hub
+            // AgentOS tools: capability status, bundle, memory, and chat communication hub
+            'crm_agent_capabilities',
+            'crm_agent_swarm',
             'crm_agent_bundle',
             'crm_agent_memory',
             'crm_agent_lease',
