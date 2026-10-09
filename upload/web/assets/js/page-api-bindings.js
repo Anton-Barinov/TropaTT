@@ -27067,6 +27067,18 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       return settingLabels[key] || key || tp('admin_settings.setting_fallback', 'Setting');
     }
 
+    function auditActionLabel(action) {
+      var labels = {
+        'setting.update': tp('admin_settings.audit_setting_updated', 'Настройка изменена'),
+        'branding_logo_uploaded': tp('admin_settings.audit_logo_uploaded', 'Логотип загружен'),
+        'branding_logo_removed': tp('admin_settings.audit_logo_removed', 'Логотип удалён')
+      };
+      var key = String(action || '').trim();
+      if (labels[key]) return labels[key];
+      var readable = key.replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim();
+      return readable ? readable.charAt(0).toLocaleUpperCase() + readable.slice(1) : tp('admin_settings.audit_action_fallback', 'Изменение настроек');
+    }
+
     function confirmAdminSettingsAction(message) {
       var modalEl = document.getElementById('adminSettingsConfirmModal');
       var messageEl = document.getElementById('adminSettingsConfirmModalMessage');
@@ -27583,7 +27595,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
             var nameTd = document.createElement('td');
             nameTd.setAttribute('data-label', tp('admin_settings.th_key', 'Ключ'));
             nameTd.textContent = settingLabel(name);
-            if (name) {
+            if (name && settingLabel(name) !== name) {
               nameTd.title = tp('admin_settings.api_key_title', 'API key: ') + name;
               var badge = document.createElement('span');
               badge.className = 'crm-admin-settings-key-badge ms-2 d-none d-md-inline-block';
@@ -27598,6 +27610,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
             var valSpan = document.createElement('span');
             valSpan.className = 'crm-admin-settings-val';
             valSpan.textContent = formatSettingValue(item.value);
+            valSpan.title = valSpan.textContent;
             valueTd.appendChild(valSpan);
             tr.appendChild(valueTd);
 
@@ -27715,8 +27728,11 @@ tableBody.innerHTML = counterparties.map(function (cp) {
             var row = document.createElement('li');
             row.className = 'list-group-item';
             var action = String(item.action || 'setting.update');
-            var actor = String(item.actor_public_id || item.user_public_id || tp('admin_settings.actor_unknown', 'unknown'));
-            row.textContent = action + ' · ' + tp('admin_settings.actor_prefix', 'actor: ') + actor + ' · ' + formatDate(item.created_at);
+            var actorId = String(item.actor_public_id || item.user_public_id || '');
+            var actorName = String(item.actor_name || item.actor_full_name || item.user_full_name || item.actor_login || '').trim();
+            var actor = actorName || tp('admin_settings.audit_actor_user', 'Пользователь');
+            row.textContent = auditActionLabel(action) + ' · ' + tp('admin_settings.actor_prefix', 'Автор: ') + actor + ' · ' + formatDate(item.created_at);
+            if (actorId) row.title = tp('admin_settings.api_actor_title', 'ID автора: ') + actorId;
             auditList.appendChild(row);
           });
           if (auditState) auditState.textContent = tp('admin_settings.audit_count_prefix', 'Audit events: ') + String(auditItems.length);

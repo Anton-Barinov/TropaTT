@@ -81,7 +81,7 @@
             </div>
           </div>
         </div>
-        <button class="btn btn-sm crm-btn-primary" id="adminPrefsSaveBtn" type="button" data-i18n="common.save"><?= htmlspecialchars($t('common.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
+        <div class="crm-admin-settings-save-actions"><button class="btn btn-sm crm-btn-primary" id="adminPrefsSaveBtn" type="button" data-i18n="common.save"><?= htmlspecialchars($t('common.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button></div>
       </div>
     </div>
   </div>
@@ -159,7 +159,7 @@
             <div class="form-text" data-i18n="admin_settings.finance_lag_hint"><?= htmlspecialchars($t('admin_settings.finance_lag_hint', 'От 0 до 90 дней.'), ENT_QUOTES, 'UTF-8') ?></div>
           </div>
         </div>
-        <button class="btn crm-btn-primary mt-3" id="adminFinanceSaveBtn" type="button" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
+        <div class="crm-admin-settings-save-actions mt-3"><button class="btn crm-btn-primary" id="adminFinanceSaveBtn" type="button" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button></div>
       </div>
     </div>
   </div>
@@ -190,15 +190,14 @@
             <div class="form-text" data-i18n="admin_settings.tasks_worklog_policy_hint"><?= htmlspecialchars($t('admin_settings.tasks_worklog_policy_hint', 'В строгом режиме списывать время могут только назначенные исполнители (или менеджеры). Если исполнитель не назначен (общие задачи), время могут списывать любые участники проекта.'), ENT_QUOTES, 'UTF-8') ?></div>
           </div>
           <div class="col-md-6">
-            <label class="form-label d-block" data-i18n="admin_settings.tasks_allow_assignee_edit_identity"><?= htmlspecialchars($t('admin_settings.tasks_allow_assignee_edit_identity', 'Разрешить исполнителю менять название и описание задачи'), ENT_QUOTES, 'UTF-8') ?></label>
-            <div class="form-check form-switch mt-2">
+            <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" role="switch" id="tasksAllowAssigneeEditIdentity">
               <label class="form-check-label fw-semibold" for="tasksAllowAssigneeEditIdentity" data-i18n="admin_settings.tasks_allow_assignee_edit_identity"><?= htmlspecialchars($t('admin_settings.tasks_allow_assignee_edit_identity', 'Разрешить исполнителю менять название и описание задачи'), ENT_QUOTES, 'UTF-8') ?></label>
             </div>
             <div class="form-text" data-i18n="admin_settings.tasks_allow_assignee_edit_identity_hint"><?= htmlspecialchars($t('admin_settings.tasks_allow_assignee_edit_identity_hint', 'По умолчанию менять название и описание могут только создатель задачи и менеджеры. Включение опции позволяет назначенному исполнителю обновлять заголовок и формулировку задачи.'), ENT_QUOTES, 'UTF-8') ?></div>
           </div>
         </div>
-        <button class="btn crm-btn-primary mt-3" id="adminTaskSettingsSaveBtn" type="button" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
+        <div class="crm-admin-settings-save-actions mt-3"><button class="btn crm-btn-primary" id="adminTaskSettingsSaveBtn" type="button" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button></div>
       </div>
     </div>
   </div>

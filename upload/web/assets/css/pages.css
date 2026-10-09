@@ -15490,10 +15490,14 @@ body[data-page="admin-settings"] [data-settings-group] {
 }
 
 .crm-admin-settings-val {
+    display: inline-block;
     font-family: var(--crm-font-mono, monospace);
     font-size: 0.8125rem;
-    word-break: break-all;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     max-width: 320px;
+    vertical-align: bottom;
 }
 
 .crm-admin-settings-actions-group {
@@ -15503,10 +15507,15 @@ body[data-page="admin-settings"] [data-settings-group] {
     justify-content: flex-end;
 }
 
+.crm-admin-settings-save-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
 /* System info grid */
 .crm-admin-settings-sysinfo-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 1px;
     background: var(--crm-border);
     border: 1px solid var(--crm-border);
@@ -16798,6 +16807,12 @@ body[data-page="admin-settings"] [data-settings-group] {
   background: var(--crm-surface-2);
   color: var(--crm-text);
   font-weight: 750;
+  height: auto;
+  min-height: 0;
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 #adminCacheSection .input-group .btn:hover,
