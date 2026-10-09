@@ -111,6 +111,7 @@ final class AgentSwarmCoordinationService
             throw new RuntimeException('SWARM_INVALID_ARGUMENT');
         }
         $this->validateLeaseShape($lease);
+        $this->assertLeaseAgent($agent, $lease);
         $normalized = [];
         foreach ($paths as $path) { if (!is_string($path)) { throw new RuntimeException('SWARM_INVALID_PATH'); } $normalized[] = $this->normalizePath($path); }
         $normalized = array_values(array_unique($normalized));
@@ -162,7 +163,7 @@ final class AgentSwarmCoordinationService
         $runId=(string)($input['swarm_run_id']??''); $task=(string)($input['task_public_id']??''); $agent=(string)($input['agent_id']??'');
         $paths=$input['paths']??null;
         if (!preg_match('/\A[a-f0-9]{32}\z/D',$runId)||!preg_match('/\Atsk_[A-Za-z0-9]{1,60}\z/D',$task)||!$this->validAgentId($agent)||!is_array($paths)||!$paths||count($paths)>200) throw new RuntimeException('SWARM_INVALID_ARGUMENT');
-        $this->validateLeaseShape($lease); $normalized=[]; foreach($paths as $path){if(!is_string($path)) throw new RuntimeException('SWARM_INVALID_PATH');$normalized[]=$this->normalizePath($path);} $unique=array_values(array_unique($normalized)); if(count($unique)!==count($normalized))throw new RuntimeException('SWARM_DUPLICATE_PATH');$normalized=$unique;sort($normalized,SORT_STRING);
+        $this->validateLeaseShape($lease); $this->assertLeaseAgent($agent,$lease); $normalized=[]; foreach($paths as $path){if(!is_string($path)) throw new RuntimeException('SWARM_INVALID_PATH');$normalized[]=$this->normalizePath($path);} $unique=array_values(array_unique($normalized)); if(count($unique)!==count($normalized))throw new RuntimeException('SWARM_DUPLICATE_PATH');$normalized=$unique;sort($normalized,SORT_STRING);
         $this->requireMysql(); $this->pdo->beginTransaction();
         try {
             $run=$this->lockRun($organizationId,$actorId,$runId);
@@ -189,7 +190,7 @@ final class AgentSwarmCoordinationService
         if(!preg_match('/\A[a-f0-9]{32}\z/D',$runId)||!preg_match('/\A[a-f0-9]{32}\z/D',$eventId)||!preg_match('/\Atsk_[A-Za-z0-9]{1,60}\z/D',$task)||!$this->validAgentId($agent)
             ||!preg_match('/\A[A-Za-z0-9._-]{1,96}\z/D',$operation)||!in_array($kind,self::EVENT_KINDS,true)||!preg_match('/\A[a-z][a-z0-9_]{0,31}\z/D',$stage)
             ||trim($body)===''||strlen($body)>16000||mb_strlen($body,'UTF-8')>4000||!mb_check_encoding($body,'UTF-8')||str_contains($body,(string)($lease['token']??''))||preg_match('/(?:\bapk_[A-Za-z0-9]+|\bBearer\s+\S+|(?:api[_-]?key|access[_-]?token|refresh[_-]?token|password|secret|private[_-]?key|client[_-]?secret)\s*[:=]\s*\S+|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|\beyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})/i',$body)) throw new RuntimeException('SWARM_INVALID_EVENT');
-        $this->validateLeaseShape($lease);$hash=hash('sha256',json_encode([$operation,$kind,$stage,$body],JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
+        $this->validateLeaseShape($lease);$this->assertLeaseAgent($agent,$lease);$hash=hash('sha256',json_encode([$operation,$kind,$stage,$body],JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
         $this->requireMysql();$this->pdo->beginTransaction();
         try{
             $this->lockRun($organizationId,$actorId,$runId);$this->assertLease($organizationId,$actorId,$task,$lease);$this->assertParticipant($organizationId,$runId,$task,$agent,$actorId);
@@ -267,6 +268,10 @@ final class AgentSwarmCoordinationService
     private function validateLeaseShape(array $lease):void
     {
         if(array_diff(array_keys($lease),['agent_id','run_id','token','generation'])!==[]||!is_string($lease['agent_id']??null)||!is_string($lease['run_id']??null)||!is_string($lease['token']??null)||!is_int($lease['generation']??null)||!$this->validAgentId($lease['agent_id'])||!$this->validAgentId($lease['run_id'])||!preg_match('/\A[a-f0-9]{64}\z/D',$lease['token'])||$lease['generation']<1)throw new RuntimeException('LEASE_INVALID_ARGUMENT');
+    }
+    private function assertLeaseAgent(string $agentId,array $lease):void
+    {
+        if(!hash_equals((string)$lease['agent_id'],$agentId))throw new RuntimeException('LEASE_AGENT_MISMATCH');
     }
     private function validAgentId(string $id):bool{return (bool)preg_match('/\A[A-Za-z0-9._-]{1,96}\z/D',$id)&&!preg_match('/\bapk_/i',$id);}
     private function requireMysql():void{if(!in_array($this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME),['mysql','sqlite'],true)||$this->pdo->inTransaction())throw new RuntimeException('SWARM_MYSQL_TRANSACTION_REQUIRED');}

@@ -73,7 +73,8 @@ final class UpdateCenterClient
         if (preg_match('/^[A-Za-z0-9._+-]{1,64}$/', $buildNumber) !== 1) {
             throw new \UnexpectedValueException('PINNED_TARGET_BUILD_NUMBER_INVALID');
         }
-        $manifest = $this->getJson($this->url('/api/v1/manifests/' . rawurlencode($stream) . '/full/' . rawurlencode($buildNumber)));
+        $manifest = $this->getJson($this->url('/api/v1/manifests/' . rawurlencode($stream)
+            . '/full/' . rawurlencode($buildNumber) . $this->queryString()));
         return PinnedUpdatePlanResolver::resolve(
             $index, $manifest, $stream, (string)$this->config['channel'], $currentBuild, $targetSha, $currentSha
         );

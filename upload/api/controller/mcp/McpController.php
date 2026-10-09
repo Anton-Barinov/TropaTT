@@ -7129,7 +7129,7 @@ $tools[] = $this->tool(
         } catch (\RuntimeException $error) {
             $code = $error->getMessage();
             $safeCodes = [
-                'LEASE_INVALID_ARGUMENT', 'LEASE_OWNERSHIP_LOST',
+                'LEASE_AGENT_MISMATCH', 'LEASE_INVALID_ARGUMENT', 'LEASE_OWNERSHIP_LOST',
                 'SWARM_BASE_SHA_MISMATCH', 'SWARM_CLAIM_SCOPE_MISSING',
                 'SWARM_DUPLICATE_PARTICIPANT', 'SWARM_DUPLICATE_PATH',
                 'SWARM_EVENT_CONFLICT', 'SWARM_INVALID_ARGUMENT', 'SWARM_INVALID_CURSOR',
