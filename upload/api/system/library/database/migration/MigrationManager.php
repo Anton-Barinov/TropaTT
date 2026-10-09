@@ -134,6 +134,33 @@ final class MigrationManager
         ];
     }
 
+    /** Read migration state without creating/backfilling the migrations table. */
+    public function readStatus(PDO $pdo, string $driver): array
+    {
+        $all = array_map(static fn(MigrationInterface $migration): string => $migration->key(), $this->migrations);
+        if (!$this->migrationTableExistsReadOnly($pdo, $driver)) {
+            return ['table_exists' => false, 'applied' => [], 'pending' => $all, 'all' => $all];
+        }
+        $applied = $this->appliedKeys($pdo);
+        return ['table_exists' => true, 'applied' => $applied,
+            'pending' => array_values(array_diff($all, $applied)), 'all' => $all];
+    }
+
+    private function migrationTableExistsReadOnly(PDO $pdo, string $driver): bool
+    {
+        $sql = match ($driver) {
+            'mysql' => "SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'migrations' LIMIT 1",
+            'pgsql' => "SELECT 1 FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = 'migrations' LIMIT 1",
+            'sqlsrv' => "SELECT TOP 1 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'migrations'",
+            default => "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'migrations' LIMIT 1",
+        };
+        try {
+            return $pdo->query($sql)->fetchColumn() !== false;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
     /** @return array<int,string> */
     public function migrateUp(PDO $pdo, string $driver): array
     {

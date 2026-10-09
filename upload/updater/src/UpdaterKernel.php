@@ -6,6 +6,7 @@ namespace Updater;
 use Updater\Client\UpdateCenterClient;
 use Updater\Apply\FileApplier;
 use Updater\Apply\HealthChecker;
+use Updater\Apply\InstalledSnapshotReader;
 use Updater\Apply\MaintenanceMode;
 use Updater\Apply\MigrationRunner;
 use Updater\Apply\PreflightChecker;
@@ -64,7 +65,10 @@ final class UpdaterKernel
     {
         $deploymentMutex = null;
         try {
-            if (in_array($action, ['apply', 'resume', 'rollback', 'force-unlock'], true)) {
+            if ($action === 'snapshot') {
+                $this->verifyTokenIfPresent($input, 'snapshot');
+            }
+            if (in_array($action, ['apply', 'resume', 'rollback', 'force-unlock', 'snapshot'], true)) {
                 $deploymentMutex = new DeploymentMutex($this->basePath);
                 if (!$deploymentMutex->acquire()) {
                     return JsonResponse::error('DEPLOYMENT_BUSY', 'A deployment or verification is running. Retry later.', 409);
@@ -72,6 +76,7 @@ final class UpdaterKernel
             }
             return match ($action) {
                 'status' => $this->status(),
+                'snapshot' => $this->snapshot($input),
                 'preflight' => $this->preflight($input),
                 'download' => $this->download($input),
                 'apply' => $this->apply($input),
@@ -99,6 +104,51 @@ final class UpdaterKernel
             'latest_job' => (new JobState($this->storageDir))->latest(),
             'maintenance' => is_file($this->basePath . '/storage_api/maintenance.flag'),
         ]);
+    }
+
+    /** Return one bounded page of exact installed-file evidence for a completed job. */
+    private function snapshot(array $input): JsonResponse
+    {
+        $jobId = (string)($input['job_id'] ?? '');
+        if (preg_match('/\A[A-Za-z0-9_-][A-Za-z0-9._-]{0,79}\z/D', $jobId) !== 1) {
+            return JsonResponse::error('SNAPSHOT_JOB_ID_INVALID', 'A valid job_id is required.', 400);
+        }
+        $cursor = filter_var($input['cursor'] ?? 0, FILTER_VALIDATE_INT);
+        $limit = filter_var($input['limit'] ?? 100, FILTER_VALIDATE_INT);
+        if ($cursor === false || $limit === false || $cursor < 0 || $limit < 1 || $limit > 100) {
+            return JsonResponse::error('SNAPSHOT_ARGUMENT_INVALID', 'Invalid snapshot page bounds.', 400);
+        }
+        $updateLock = new LockManager($this->storageDir);
+        if (($updateLock->isLocked() && !$updateLock->isStale())
+            || is_file($this->basePath . '/storage_api/maintenance.flag')) {
+            return JsonResponse::error('UPDATE_IN_PROGRESS', 'Installed snapshot is unavailable during an update.', 409);
+        }
+        $snapshotId = strtolower((string)($input['snapshot_id'] ?? ''));
+        if (preg_match('/\A[a-f0-9]{32}\z/D', $snapshotId) !== 1) {
+            return JsonResponse::error('SNAPSHOT_ID_INVALID', 'A run-bound snapshot_id is required.', 400);
+        }
+        if (!hash_equals('upd_' . $snapshotId, $jobId)) {
+            return JsonResponse::error('SNAPSHOT_JOB_RUN_MISMATCH', 'The updater job does not belong to this release run.', 409);
+        }
+        $manifestPath = $this->storageDir . '/jobs/' . $jobId . '/manifest.json';
+        clearstatcache(true, $manifestPath);
+        $manifestStat = @lstat($manifestPath);
+        if (!is_array($manifestStat) || is_link($manifestPath)
+            || ($manifestStat['mode'] & 0170000) !== 0100000 || $manifestStat['size'] > 4194304) {
+            return JsonResponse::error('SNAPSHOT_MANIFEST_INVALID', 'The installed job manifest is unavailable.', 409);
+        }
+        $manifest = json_decode((string)@file_get_contents($manifestPath), true);
+        if (!is_array($manifest)) {
+            return JsonResponse::error('SNAPSHOT_MANIFEST_INVALID', 'The installed job manifest is invalid.', 409);
+        }
+        $reader = new InstalledSnapshotReader(
+            $this->basePath,
+            $this->storageDir,
+            $this->effectiveProtectedPaths($manifest)
+        );
+        $snapshot = $reader->read($jobId, $cursor, $limit);
+        $snapshot['snapshot_id'] = $snapshotId;
+        return JsonResponse::success(['snapshot' => $snapshot]);
     }
 
     private function preflight(array $input): JsonResponse

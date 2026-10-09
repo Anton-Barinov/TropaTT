@@ -23,7 +23,7 @@ final class TokenVerifier
         if (!is_array($session)) {
             return false;
         }
-        $isContinuation = in_array($action, ['apply_step', 'rollback_step'], true);
+        $isContinuation = in_array($action, ['apply_step', 'rollback_step', 'snapshot'], true);
         // Single-use gate: apply/rollback mark the token used on the first
         // call, so the same token can never START a second job. Continuation
         // steps (apply_step/rollback_step) of an already-started job may use
@@ -42,7 +42,8 @@ final class TokenVerifier
             // with them. A continuation can only resume a job the session was
             // allowed to start, so accept it whenever the corresponding base
             // action is allowed.
-            $base = $action === 'apply_step' ? 'apply' : ($action === 'rollback_step' ? 'rollback' : null);
+            $base = in_array($action, ['apply_step', 'snapshot'], true) ? 'apply'
+                : ($action === 'rollback_step' ? 'rollback' : null);
             if ($base === null || !in_array($base, $actions, true)) {
                 return false;
             }
@@ -51,10 +52,13 @@ final class TokenVerifier
             $session['used'] = true;
             $session['used_at'] = gmdate('c');
         }
-        if ($isContinuation) {
+        if (in_array($action, ['apply_step', 'rollback_step'], true)) {
             // Sliding window: a long multi-request job keeps the token fresh
             // on every step, so a huge update/rollback never expires mid-way.
             $session['expires_at'] = gmdate('c', time() + 600);
+        }
+        if ($action === 'snapshot') {
+            return true;
         }
         $contents = json_encode($session, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
         $tmp = $file . '.tmp.' . bin2hex(random_bytes(6));
