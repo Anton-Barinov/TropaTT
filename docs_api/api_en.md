@@ -798,6 +798,8 @@ Price lists (`rate_cards`) define three rate kinds — cost, bill, and payout �
 | GET | `/api/v1/settings` 🔄 | List settings | Yes | `settings.manage | settings.view` | — |
 | GET | `/api/v1/settings/{name}` 🔄 | Setting value | Yes | `settings.manage` | — |
 | POST, PUT, PATCH | `/api/v1/settings/{name}` 🔄 | Set setting | Yes | `settings.manage` | — |
+| POST | `/api/v1/settings/branding/logo` | Upload branding logo (multipart field `file`) | Yes | `settings.manage` | Sets `branding.logo`; raster ≤2 MiB; replaces the previous logo |
+| DELETE | `/api/v1/settings/branding/logo` | Remove branding logo | Yes | `settings.manage` | Clears `branding.logo` and deletes the stored file |
 | GET | `/api/v1/retention/metadata` 🔄 | Retention metadata | Yes | `settings.manage` | — |
 | POST, PUT, PATCH | `/api/v1/retention/metadata` 🔄 | Set retention | Yes | `settings.manage` | — |
 | GET | `/api/v1/feature-flags` 🔄 | List feature flags | Yes | `feature_flag.manage` | — |

@@ -963,21 +963,31 @@ final class ChatController extends BaseController
 
     public function unreadCount(): JsonResponse
     {
-        $user = $this->user()['user'] ?? [];
+        $auth = $this->user();
+        $user = $auth['user'] ?? [];
         $userId = (int)($user['id'] ?? 0);
         if ($userId <= 0) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+        $user = $this->organizationScopedActor($user);
+        $organizationId = (int)($user['organization_id'] ?? 0);
+        $isExternal = !empty((int)($user['is_external'] ?? 0));
 
         try {
             $pdo = $this->container->get('db.pdo');
             $hasArchived = $this->tableHasColumn($pdo, 'chats', 'archived_at');
             $archivedFilter = $hasArchived ? 'AND c.archived_at IS NULL' : '';
+            $orgFilter = $organizationId > 0 ? 'AND c.organization_id = :organization_id' : '';
+            $externalFilter = $isExternal ? "AND c.type = 'project_client'" : '';
             $stmt = $pdo->prepare("
                 SELECT COUNT(*) FROM chats c
                 JOIN chat_participants cp ON cp.chat_id = c.id AND cp.user_id = :uid
                 WHERE (SELECT COUNT(*) FROM chat_messages cm WHERE cm.chat_id = c.id AND cm.id > COALESCE((SELECT last_read_message_id FROM chat_read_markers WHERE chat_id = c.id AND user_id = :uid2), 0) AND cm.deleted_at IS NULL) > 0
-                {$archivedFilter}
+                {$archivedFilter} {$orgFilter} {$externalFilter}
             ");
-            $stmt->execute(['uid' => $userId, 'uid2' => $userId]);
+            $params = ['uid' => $userId, 'uid2' => $userId];
+            if ($organizationId > 0) $params['organization_id'] = $organizationId;
+            $stmt->execute($params);
             $count = (int)$stmt->fetchColumn();
             return $this->success('UNREAD_COUNT', $this->t('common/messages.ok'), ['count' => $count]);
         } catch (\Throwable $e) {

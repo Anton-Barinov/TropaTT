@@ -6,7 +6,7 @@
   <section class="crm-login-panel" aria-labelledby="loginPageTitle">
     <div class="crm-login-panel-inner">
       <div class="crm-login-brand">
-        <img src="assets/icons/tableau.png" alt="<?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?>" class="crm-login-logo-wide">
+        <img src="<?= htmlspecialchars(!empty($brand_logo_url) ? $brand_logo_url : 'assets/icons/tableau.png', ENT_QUOTES, 'UTF-8') ?>" alt="<?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?>" class="crm-login-logo-wide">
         <span class="crm-login-brand-name"><span class="crm-brand-mark" aria-hidden="true"></span><span><?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></span></span>
       </div>
       <div class="crm-login-copy">

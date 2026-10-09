@@ -868,6 +868,9 @@ $publicRoutes = [
     'password-reset-confirm',
     'invitation-accept',
     'external-accept',
+    // The sidebar/login logo has to render on the (unauthenticated) login
+    // screen; the file name is 128 bits of randomness, so it is unguessable.
+    'branding-logo',
 ];
 
 $isPublic = in_array($route, $publicRoutes, true)

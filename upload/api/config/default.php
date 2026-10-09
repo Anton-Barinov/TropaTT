@@ -29,6 +29,7 @@ return [
         'uploads' => $storageBase . '/uploads',
         'quarantine' => $storageBase . '/quarantine',
         'avatars' => $storageBase . '/avatars',
+        'branding' => $storageBase . '/branding',
         'logs' => $storageBase . '/logs',
         'sessions' => $storageBase . '/sessions',
         'temp' => $storageBase . '/temp',

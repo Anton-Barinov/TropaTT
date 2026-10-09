@@ -252,6 +252,24 @@ abstract class Controller
             $data = $hookContext['data'] ?? $data;
         }
 
+        // Owner-configured branding (settings: branding.name / branding.logo).
+        // The name overrides app.name for every server-rendered template AND the
+        // client dictionary, so sidebar, footer and login all show one product
+        // name without editing the ~70 templates that print $t('app.name').
+        // Applied after render.before so a module hook sees the final values.
+        $branding = Branding::get($this->baseDir);
+        $brandName = $branding->name();
+        $data['brand_name'] = $brandName;
+        $data['brand_logo_url'] = $branding->logoUrl((string)($data['base_path'] ?? ''));
+        if ($brandName !== '') {
+            $t = static function (string $key, string $default = '') use ($i18n, $brandName): string {
+                return $key === 'app.name' ? $brandName : $i18n->t($key, $default);
+            };
+            if (isset($data['lang_messages']['app']) && is_array($data['lang_messages']['app'])) {
+                $data['lang_messages']['app']['name'] = $brandName;
+            }
+        }
+
         // SEC: Replace extract() with explicit variable creation to prevent variable injection.
         // Preserve EXTR_SKIP semantics: do not overwrite existing locals or superglobals.
         $reservedSkip = ['_GET', '_POST', '_REQUEST', '_SERVER', '_SESSION', '_COOKIE', '_FILES', '_ENV', 'GLOBALS',
