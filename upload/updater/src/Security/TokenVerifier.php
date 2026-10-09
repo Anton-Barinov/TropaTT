@@ -23,7 +23,10 @@ final class TokenVerifier
         if (!is_array($session)) {
             return false;
         }
-        $isContinuation = in_array($action, ['apply_step', 'rollback_step', 'snapshot'], true);
+        // `resume` is a read-only reconciliation endpoint. A coordinator may
+        // need it after a lost apply response, when the single-use session is
+        // already marked used; it must not authorize a new mutation.
+        $isContinuation = in_array($action, ['apply_step', 'rollback_step', 'snapshot', 'installed_snapshot', 'resume'], true);
         // Single-use gate: apply/rollback mark the token used on the first
         // call, so the same token can never START a second job. Continuation
         // steps (apply_step/rollback_step) of an already-started job may use
@@ -42,7 +45,7 @@ final class TokenVerifier
             // with them. A continuation can only resume a job the session was
             // allowed to start, so accept it whenever the corresponding base
             // action is allowed.
-            $base = in_array($action, ['apply_step', 'snapshot'], true) ? 'apply'
+            $base = in_array($action, ['apply_step', 'snapshot', 'installed_snapshot', 'resume'], true) ? 'apply'
                 : ($action === 'rollback_step' ? 'rollback' : null);
             if ($base === null || !in_array($base, $actions, true)) {
                 return false;
@@ -57,7 +60,7 @@ final class TokenVerifier
             // on every step, so a huge update/rollback never expires mid-way.
             $session['expires_at'] = gmdate('c', time() + 600);
         }
-        if ($action === 'snapshot') {
+        if (in_array($action, ['snapshot', 'installed_snapshot', 'resume'], true)) {
             return true;
         }
         $contents = json_encode($session, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);

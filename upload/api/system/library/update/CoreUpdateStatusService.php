@@ -31,6 +31,12 @@ final class CoreUpdateStatusService
             'update_center' => $this->updateCenter(),
             'latest_job' => is_array($latestJob) ? $latestJob : null,
             'maintenance' => is_file(dirname($this->storageDir) . '/maintenance.flag'),
+            // This reports only whether the installation-scoped mutex is held
+            // at this instant. The release host guard still serializes runs;
+            // the updater re-acquires its exclusive mutex for every mutation.
+            'deployment_busy' => \Updater\State\DeploymentMutex::isBusy(
+                dirname($this->storageDir, 2)
+            ),
             'storage_dir' => $this->storageDir,
             'installed_core' => $this->version?->current(),
         ];

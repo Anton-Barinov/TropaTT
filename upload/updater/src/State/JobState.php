@@ -53,9 +53,17 @@ final class JobState
     public function writeFile(string $file, array $data): void
     {
         $dir = $this->storageDir . '/jobs/' . basename((string)$this->jobId);
-        if (!is_dir($dir)) {
-            mkdir($dir, 0775, true);
+        $jobs = dirname($dir);
+        if (!is_dir($jobs) && !@mkdir($jobs, 0700, true) && !is_dir($jobs)) {
+            throw new \RuntimeException('Unable to create updater jobs directory.');
         }
+        if (is_link($jobs)) { throw new \RuntimeException('Updater jobs directory cannot be a symlink.'); }
+        @chmod($jobs, 0700);
+        if (!is_dir($dir) && !@mkdir($dir, 0700) && !is_dir($dir)) {
+            throw new \RuntimeException('Unable to create updater job directory.');
+        }
+        if (is_link($dir)) { throw new \RuntimeException('Updater job directory cannot be a symlink.'); }
+        @chmod($dir, 0700);
         $this->atomicWrite($dir . '/' . $file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
     }
 
@@ -71,5 +79,6 @@ final class JobState
             @unlink($tmp);
             throw new \RuntimeException('Unable to persist updater state.');
         }
+        @chmod($tmp, 0600);
     }
 }

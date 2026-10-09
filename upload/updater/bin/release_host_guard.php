@@ -34,11 +34,27 @@ $run = static function (): int {
                 return 2;
             }
             if (!is_array($request) || array_is_list($request)
-                || count($request) !== 2 || !isset($request['action'], $request['request_id'])
+                || !isset($request['action'], $request['request_id'])
                 || !is_string($request['action']) || !is_string($request['request_id'])
                 || preg_match('/\A[a-f0-9]{32}\z/D', $request['request_id']) !== 1) {
                 return 2;
             }
+            if ($request['action'] === 'prepare_bootstrap_intent') {
+                $allowed = ['action', 'request_id', 'run_id', 'claim_id', 'target_sha', 'manifest_sha256', 'intent_token'];
+                if (array_diff(array_keys($request), $allowed) !== []
+                    || count($request) !== count($allowed)) { return 2; }
+                try {
+                    $intent = $lock->prepareBootstrapIntent($request['run_id'], $request['claim_id'],
+                        $request['target_sha'], $request['manifest_sha256'], $request['intent_token']);
+                } catch (\Throwable) {
+                    $write(['held' => true, 'protocol' => 1, 'request_id' => $request['request_id'],
+                        'accepted' => false, 'error' => 'BOOTSTRAP_INTENT_REJECTED']);
+                    continue;
+                }
+                $write(['held' => true, 'protocol' => 1, 'request_id' => $request['request_id'], ...$intent]);
+                continue;
+            }
+            if (count($request) !== 2) { return 2; }
             if ($request['action'] === 'ping') {
                 $write(['held' => true, 'protocol' => 1, 'request_id' => $request['request_id']]);
                 continue;

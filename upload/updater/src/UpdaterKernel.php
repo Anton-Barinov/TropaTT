@@ -24,6 +24,7 @@ use Updater\State\JobState;
 use Updater\State\LocalState;
 use Updater\State\LockManager;
 use Updater\State\DeploymentMutex;
+use Updater\State\BootstrapV1ContinuationBridge;
 use Updater\Util\WorkBudget;
 
 final class UpdaterKernel
@@ -65,28 +66,82 @@ final class UpdaterKernel
     {
         $deploymentMutex = null;
         try {
-            if ($action === 'snapshot') {
-                $this->verifyTokenIfPresent($input, 'snapshot');
+            if (in_array($action, ['snapshot', 'installed_snapshot'], true)) {
+                $this->verifyTokenIfPresent($input, $action);
             }
-            if (in_array($action, ['apply', 'resume', 'rollback', 'force-unlock', 'snapshot'], true)) {
+            if (in_array($action, ['apply', 'resume', 'rollback', 'force-unlock', 'snapshot', 'installed_snapshot'], true)) {
                 $deploymentMutex = new DeploymentMutex($this->basePath);
                 if (!$deploymentMutex->acquire()) {
                     return JsonResponse::error('DEPLOYMENT_BUSY', 'A deployment or verification is running. Retry later.', 409);
                 }
             }
-            return match ($action) {
+            $dispatch = fn(array $safeInput): JsonResponse => match ($action) {
                 'status' => $this->status(),
-                'snapshot' => $this->snapshot($input),
-                'preflight' => $this->preflight($input),
-                'download' => $this->download($input),
-                'apply' => $this->apply($input),
-                'resume' => $this->resume($input),
-                'rollback' => $this->rollback($input),
+                'snapshot' => $this->snapshot($safeInput),
+                'installed_snapshot' => $this->installedSnapshot($safeInput),
+                'preflight' => $this->preflight($safeInput),
+                'download' => $this->download($safeInput),
+                'apply' => $this->apply($safeInput),
+                'resume' => $this->resume($safeInput),
+                'rollback' => $this->rollback($safeInput),
                 'force-unlock' => $this->forceUnlock(),
-                'log' => $this->log((string)($input['job_id'] ?? '')),
+                'log' => $this->log((string)($safeInput['job_id'] ?? '')),
                 default => JsonResponse::error('UNKNOWN_ACTION', 'Unknown updater action', 404),
             };
+            // The host lease's permanent lock inode remains flocked from
+            // validation through this bounded dispatch. This closes the
+            // validation/mutation TOCTOU window even if a stale coordinator
+            // resumes after another run has acquired a higher generation.
+            $fencedActions = ['preflight', 'download', 'apply', 'resume', 'rollback',
+                'snapshot', 'installed_snapshot', 'force-unlock'];
+            if (in_array($action, $fencedActions, true)) {
+                // During the one-time bootstrap, the package may install this
+                // kernel before protocol-2 lease files are callable. Permit
+                // only the exact already-running updater job to finish its
+                // bounded apply_files phase under the still-held protocol-1
+                // host guard. The caller must pause at health, claim/bind v2,
+                // and only then continue the job.
+                if (in_array($action, ['apply', 'resume'], true)
+                    && ($input['host_lease_protocol'] ?? null) === 1
+                    && ($input['bootstrap_purpose'] ?? null) === 'bootstrap-demo') {
+                    $jobId = (string)($input['job_id'] ?? '');
+                    $state = new JobState($this->storageDir, $jobId);
+                    $stored = $state->readFile('state.json') ?: [];
+                    $progress = is_array($stored['progress'] ?? null) ? $stored['progress'] : [];
+                    if (in_array(($progress['phase'] ?? null), ['apply_files', 'health'], true)) {
+                        // This verifies the real file and database backup
+                        // artifacts and the maintenance owner before any
+                        // pre-v2 continuation reaches FileApplier.
+                        $this->backupCheckpointReceipt($state);
+                    }
+                    return (new BootstrapV1ContinuationBridge($this->basePath, $this->storageDir))
+                        ->withContinuation($input, $action, $dispatch);
+                }
+                if ($action === 'preflight' && (!is_string($input['target_sha'] ?? null)
+                    || !is_string($input['host_lease_target_sha'] ?? null)
+                    || !hash_equals(strtolower($input['host_lease_target_sha']), strtolower($input['target_sha'])))) {
+                    throw new \RuntimeException('HOST_LEASE_JOB_BINDING_REJECTED');
+                }
+                if ($action === 'installed_snapshot') {
+                    $snapshotId = strtolower((string)($input['snapshot_id'] ?? ''));
+                    if (preg_match('/\A[a-f0-9]{32}\z/D', $snapshotId) !== 1) {
+                        throw new \RuntimeException('HOST_LEASE_JOB_BINDING_REJECTED');
+                    }
+                    // The candidate job is the host-lease binding. The reader
+                    // independently chooses the currently installed completed
+                    // job from LocalState; callers cannot select another job.
+                    $input['job_id'] = 'upd_' . $snapshotId;
+                }
+                $input['_host_lease_action'] = $action;
+                return (new \Updater\State\DurableHostReleaseLease($this->basePath, null, $this->storageDir))
+                    ->withLease($input, $dispatch);
+            }
+            return $dispatch($input);
         } catch (\Throwable $e) {
+            if (str_contains($e->getMessage(), 'HOST_LEASE_FENCE_REJECTED')
+                || str_contains($e->getMessage(), 'HOST_LEASE_JOB_BINDING_REJECTED')) {
+                return JsonResponse::error('HOST_LEASE_FENCE_REJECTED', 'Current release ownership is required.', 409);
+            }
             return JsonResponse::error('UPDATER_ERROR', $this->safeDiagnosticMessage($e->getMessage()), 500);
         } finally {
             $deploymentMutex?->release();
@@ -148,6 +203,48 @@ final class UpdaterKernel
         );
         $snapshot = $reader->read($jobId, $cursor, $limit);
         $snapshot['snapshot_id'] = $snapshotId;
+        return JsonResponse::success(['snapshot' => $snapshot]);
+    }
+
+    /** Read the current installation before candidate files are changed. */
+    private function installedSnapshot(array $input): JsonResponse
+    {
+        $candidateJob = (string)($input['job_id'] ?? '');
+        $snapshotId = strtolower((string)($input['snapshot_id'] ?? ''));
+        $cursor = filter_var($input['cursor'] ?? 0, FILTER_VALIDATE_INT);
+        $limit = filter_var($input['limit'] ?? 100, FILTER_VALIDATE_INT);
+        if (preg_match('/\Aupd_([a-f0-9]{32})\z/D', $candidateJob, $match) !== 1
+            || $match[1] !== $snapshotId || $cursor === false || $limit === false
+            || $cursor < 0 || $limit < 1 || $limit > 100) {
+            return JsonResponse::error('INSTALLED_SNAPSHOT_ARGUMENT_INVALID', 'Invalid run-bound baseline snapshot request.', 400);
+        }
+        $updateLock = new LockManager($this->storageDir);
+        if (($updateLock->isLocked() && !$updateLock->isStale())
+            || is_file($this->basePath . '/storage_api/maintenance.flag')) {
+            return JsonResponse::error('UPDATE_IN_PROGRESS', 'Installed snapshot is unavailable during an update.', 409);
+        }
+        $local = (new LocalState($this->storageDir))->read();
+        $installedJob = $local['last_job_id'] ?? null;
+        if (!is_string($installedJob)
+            || preg_match('/\A[A-Za-z0-9_-][A-Za-z0-9._-]{0,79}\z/D', $installedJob) !== 1) {
+            return JsonResponse::error('INSTALLED_SNAPSHOT_BASELINE_UNAVAILABLE', 'No verified completed installation job is recorded.', 409);
+        }
+        try {
+            $installedManifest = (new JobState($this->storageDir, $installedJob))->readFile('manifest.json');
+            if (!is_array($installedManifest)) {
+                return JsonResponse::error('INSTALLED_SNAPSHOT_BASELINE_INVALID', 'The installed package manifest is unavailable.', 409);
+            }
+            $reader = new InstalledSnapshotReader(
+                $this->basePath, $this->storageDir,
+                $this->effectiveProtectedPaths($installedManifest)
+            );
+            $snapshot = $reader->read($installedJob, $cursor, $limit);
+        } catch (\Throwable $error) {
+            return JsonResponse::error('INSTALLED_SNAPSHOT_READBACK_FAILED', 'The current installation could not be verified.', 409);
+        }
+        $snapshot['snapshot_id'] = $snapshotId;
+        $snapshot['candidate_job_id'] = $candidateJob;
+        $snapshot['installed_job_id'] = $installedJob;
         return JsonResponse::success(['snapshot' => $snapshot]);
     }
 
@@ -260,6 +357,7 @@ final class UpdaterKernel
             'checks' => $checks,
             'package_head' => $packageHead,
             'manifest_report' => $manifestReport,
+            'manifest_sha256' => hash('sha256', $this->canonicalJson($manifest)),
             'requirements' => is_array($manifest['requirements'] ?? null) ? $manifest['requirements'] : null,
             'modules_note' => 'modules/** are delivered with core updates: module files are added/updated from the package and are never deleted unless the module was removed from the product.',
         ];
@@ -529,6 +627,17 @@ final class UpdaterKernel
                     if ($newPhase === $phase) {
                         throw new \RuntimeException('Apply phase did not advance: ' . $phase);
                     }
+                    if (($input['pause_after_backup'] ?? false) === true && $newPhase === 'apply_files') {
+                        // Return a durable checkpoint after both backup decisions
+                        // are recorded but before the first installed file mutates.
+                        break;
+                    }
+                    if (($input['pause_after_files'] ?? false) === true && $newPhase === 'health') {
+                        // The v1→v2 handoff is a durable state boundary after
+                        // every package file (including the new guard/kernel)
+                        // has landed, but before health/migrations/finalize.
+                        break;
+                    }
                 }
                 if ($budget->exhausted()) {
                     break;
@@ -537,7 +646,18 @@ final class UpdaterKernel
 
             $stored = $state->readFile('state.json') ?: [];
             $progress = is_array($stored['progress'] ?? null) ? $stored['progress'] : [];
-            return JsonResponse::success(['job_id' => $jobId, 'continue' => true, 'progress' => $progress]);
+            $response = ['job_id' => $jobId, 'continue' => true, 'progress' => $progress];
+            if (($input['pause_after_backup'] ?? false) === true && ($progress['phase'] ?? null) === 'apply_files') {
+                $response['backup_checkpoint'] = $this->backupCheckpointReceipt($state);
+                $response['backup_gate_paused'] = true;
+            }
+            if (($input['pause_after_files'] ?? false) === true && ($progress['phase'] ?? null) === 'health') {
+                $response['backup_checkpoint'] = $this->backupCheckpointReceipt($state);
+                $response['bootstrap_handoff_required'] = true;
+                $response['handoff_phase'] = 'health';
+                $response['host_guard_protocol_required'] = 2;
+            }
+            return JsonResponse::success($response);
         } catch (\Throwable $e) {
             // Guard 3: maintenance stays ON when it was already held before
             // this run (previous failed attempt) or when the failure happened
@@ -546,7 +666,7 @@ final class UpdaterKernel
             $stored = $state->readFile('state.json') ?: [];
             $progress = is_array($stored['progress'] ?? null) ? $stored['progress'] : [];
             $phase = (string)($progress['phase'] ?? '');
-            $systemMutated = $phase === '' || in_array($phase, ['apply_files', 'health', 'backup_db', 'migrate', 'finalize'], true);
+            $systemMutated = $phase === '' || in_array($phase, ['apply_files', 'health', 'migrate', 'finalize'], true);
             $maintenanceHeld = $maintenanceWasOn || $systemMutated;
             if (!$maintenanceHeld) {
                 (new MaintenanceMode($this->basePath))->disable($jobId);
@@ -568,9 +688,9 @@ final class UpdaterKernel
     {
         return match ($phase) {
             'backup_files' => $this->applyPhaseBackupFiles($state, $progress, $budget, $steps, $logger),
+            'backup_db' => $this->applyPhaseBackupDb($state, $progress, $budget, $steps, $logger),
             'apply_files' => $this->applyPhaseApplyFiles($state, $progress, $budget, $steps, $logger),
             'health' => $this->applyPhaseHealth($state),
-            'backup_db' => $this->applyPhaseBackupDb($state, $progress, $budget, $steps, $logger),
             'migrate' => $this->applyPhaseMigrate($state, $progress, $budget, $steps, $logger),
             'finalize' => $this->applyPhaseFinalize($state, $steps, $logger),
             default => throw new \RuntimeException('Unknown apply phase: ' . $phase),
@@ -590,7 +710,7 @@ final class UpdaterKernel
         if (($existing['backup_id'] ?? '') !== '' && is_array($existing['items'] ?? null)) {
             $state->write(['state' => 'backup_created', 'backup_id' => $existing['backup_id'], 'can_rollback' => true]);
             $logger->info('backup_reused', 'Reusing backup from a previous attempt', ['backup_id' => $existing['backup_id']]);
-            return $this->beginApplyFiles($state, $logger);
+            return $this->beginDatabaseBackup($state, $logger);
         }
         $plan = $state->readFile('apply-plan.json') ?: [];
         $files = is_array($plan['files_for_backup'] ?? null) ? $plan['files_for_backup'] : [];
@@ -598,7 +718,7 @@ final class UpdaterKernel
         if ($cursor >= count($files)) {
             // Nothing left to back up (empty file list, or a completed backup
             // whose transition crashed). Emit a consistent empty backup
-            // manifest if needed, then move to the apply_files phase.
+            // manifest if needed, then move to the DB backup phase.
             if (!$state->readFile('backup.json')) {
                 $backupId = 'backup_' . basename($jobId) . '_' . gmdate('Ymd_His');
                 $state->writeFile('backup.json', [
@@ -609,7 +729,7 @@ final class UpdaterKernel
                 ]);
                 $state->write(['state' => 'backup_created', 'backup_id' => $backupId, 'can_rollback' => true]);
             }
-            return $this->beginApplyFiles($state, $logger);
+            return $this->beginDatabaseBackup($state, $logger);
         }
         $backup = (new FileBackupManager($this->basePath, $this->storageDir))
             ->backup($jobId, $files, $cursor, $budget, (int)$steps['max_files_per_request']);
@@ -633,15 +753,175 @@ final class UpdaterKernel
         $state->writeFile('backup.json', $backup['manifest']);
         $state->write(['state' => 'backup_created', 'backup_id' => $backup['backup_id'], 'can_rollback' => true]);
         $logger->info('backup_created', 'File backup created', ['backup_id' => $backup['backup_id']]);
-        return $this->beginApplyFiles($state, $logger);
+        return $this->beginDatabaseBackup($state, $logger);
+    }
+
+    private function canonicalJson(array $value): string
+    {
+        $normalize = static function (mixed $item) use (&$normalize): mixed {
+            if (!is_array($item)) { return $item; }
+            if (!array_is_list($item)) { ksort($item); }
+            foreach ($item as $key => $child) { $item[$key] = $normalize($child); }
+            return $item;
+        };
+        return json_encode($normalize($value), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+    }
+
+    private function verifyFileBackupArtifacts(array $backup): bool
+    {
+        $backupId = (string)($backup['backup_id'] ?? '');
+        if (preg_match('/\Abackup_[A-Za-z0-9_-]{1,100}\z/D', $backupId) !== 1) { return false; }
+        $dir = $this->storageDir . '/backups/' . $backupId;
+        if (($backup['items'] ?? []) === []) { return true; }
+        $manifestPath = $dir . '/manifest.json';
+        $manifest = $this->readVerifiedBackupJson($manifestPath, 8 * 1024 * 1024);
+        if (!is_array($manifest) || ($manifest['backup_id'] ?? null) !== $backupId
+            || ($manifest['job_id'] ?? null) !== ($backup['job_id'] ?? null)
+            || !is_array($manifest['items'] ?? null) || count($manifest['items']) !== count($backup['items'])) { return false; }
+        foreach ($backup['items'] as $item) {
+            if (!is_array($item) || !is_string($item['path'] ?? null)) { return false; }
+            $relative = str_replace('\\', '/', $item['path']);
+            if ($relative === '' || str_starts_with($relative, '/')
+                || preg_match('/(?:^|\/)\.\.(?:\/|$)/', $relative) === 1) { return false; }
+            if (($item['existed'] ?? false) !== true) { continue; }
+            $path = $dir . '/files/' . $relative;
+            if (!$this->safeArtifactFile($path)) { return false; }
+            $sha = hash_file('sha256', $path);
+            if (!is_string($sha) || !is_string($item['sha256'] ?? null)
+                || !hash_equals(strtolower($item['sha256']), $sha)
+                || (int)@filesize($path) !== (int)($item['size_bytes'] ?? -1)) { return false; }
+        }
+        return true;
+    }
+
+    private function verifyDatabaseBackupArtifacts(string $backupId, array $report, string $jobId): bool
+    {
+        $dir = $this->storageDir . '/backups/' . basename($backupId) . '/db';
+        $manifestPath = $dir . '/manifest.json';
+        $manifest = $this->readVerifiedBackupJson($manifestPath, 4 * 1024 * 1024);
+        if (!is_array($manifest) || ($manifest['ok'] ?? false) !== true
+            || ($manifest['job_id'] ?? null) !== $jobId || ($report['job_id'] ?? null) !== $jobId) { return false; }
+        if (($manifest['driver'] ?? null) === 'sqlite') {
+            $relative = $manifest['schema_file'] ?? null;
+            $sha = $manifest['file_sha256'] ?? null;
+            return is_string($relative) && $relative === 'db/crm.sqlite'
+                && is_string($sha) && $this->verifyArtifactHash($this->storageDir . '/backups/' . basename($backupId) . '/' . $relative, $sha);
+        }
+        if (($manifest['driver'] ?? null) !== 'mysql') { return false; }
+        $schema = $manifest['schema_file'] ?? null;
+        $triggers = $manifest['triggers_file'] ?? null;
+        if (!is_string($schema) || $schema !== 'db/schema.sql' || !is_string($manifest['schema_sha256'] ?? null)
+            || !$this->verifyArtifactHash($this->storageDir . '/backups/' . basename($backupId) . '/' . $schema, $manifest['schema_sha256'])) { return false; }
+        if (!is_string($triggers) || $triggers !== 'db/triggers.sql' || !is_string($manifest['triggers_sha256'] ?? null)
+            || ($manifest['triggers_sha256'] !== '' && !$this->verifyArtifactHash($this->storageDir . '/backups/' . basename($backupId) . '/' . $triggers, $manifest['triggers_sha256']))) { return false; }
+        $tables = $manifest['table_files'] ?? null;
+        if (!is_array($tables)) { return false; }
+        foreach ($tables as $entry) {
+            if (!is_array($entry) || !is_string($entry['file'] ?? null) || !is_string($entry['sha256'] ?? null)
+                || preg_match('/\Adb\/tables\/[A-Za-z0-9_$-]+\.sql\z/D', $entry['file']) !== 1
+                || !$this->verifyArtifactHash($this->storageDir . '/backups/' . basename($backupId) . '/' . $entry['file'], $entry['sha256'])) { return false; }
+        }
+        return true;
+    }
+
+    private function verifyArtifactHash(string $path, string $expected): bool
+    {
+        if (!$this->safeArtifactFile($path)) { return false; }
+        $actual = hash_file('sha256', $path);
+        return is_string($actual) && preg_match('/\A[a-f0-9]{64}\z/iD', $expected) === 1
+            && hash_equals(strtolower($expected), $actual);
+    }
+
+    private function safeArtifactFile(string $path): bool
+    {
+        $root = rtrim($this->storageDir, '/') . '/backups';
+        $relative = substr($path, strlen($root) + 1);
+        if ($relative === false || $relative === '' || str_starts_with($relative, '/')
+            || preg_match('/(?:^|\/)\.\.(?:\/|$)/', $relative) === 1) { return false; }
+        $cursor = $root;
+        foreach (explode('/', $relative) as $index => $part) {
+            $cursor .= '/' . $part;
+            clearstatcache(true, $cursor);
+            $stat = @lstat($cursor);
+            if (!is_array($stat) || is_link($cursor) || $stat['uid'] !== (int)@fileowner($root)) { return false; }
+            if ($index < count(explode('/', $relative)) - 1 && ($stat['mode'] & 0170000) !== 0040000) { return false; }
+            if ($index === count(explode('/', $relative)) - 1 && (($stat['mode'] & 0170000) !== 0100000 || $stat['nlink'] !== 1 || $stat['size'] > 512 * 1024 * 1024)) { return false; }
+        }
+        return true;
+    }
+
+    private function readVerifiedBackupJson(string $path, int $maxBytes): ?array
+    {
+        if (!$this->safeArtifactFile($path) || @filesize($path) > $maxBytes) { return null; }
+        $value = json_decode((string)@file_get_contents($path), true);
+        return is_array($value) ? $value : null;
+    }
+
+    private function backupCheckpointReceipt(JobState $state): array
+    {
+        $fileBackup = $state->readFile('backup.json');
+        $dbBackup = $state->readFile('db_backup.json');
+        $job = $state->readFile('state.json');
+        if (!is_array($fileBackup) || !is_array($dbBackup)
+            || !is_string($fileBackup['backup_id'] ?? null)
+            || !is_array($fileBackup['items'] ?? null)
+            || !is_string($job['job_id'] ?? null)
+            || ($fileBackup['job_id'] ?? null) !== $job['job_id']
+            || ($dbBackup['job_id'] ?? null) !== $job['job_id']
+            || ($dbBackup['ok'] ?? false) !== true
+            || !$this->verifyFileBackupArtifacts($fileBackup)
+            || !$this->verifyDatabaseBackupArtifacts($fileBackup['backup_id'], $dbBackup, $job['job_id'])) {
+            throw new \RuntimeException('BACKUP_CHECKPOINT_EVIDENCE_INVALID');
+        }
+        $fileJson = json_encode($fileBackup, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        $dbJson = json_encode($dbBackup, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        $maintenanceFlag = is_file($this->basePath . '/storage_api/maintenance.flag')
+            && !is_link($this->basePath . '/storage_api/maintenance.flag');
+        if (($job['maintenance_held'] ?? false) !== true || !$maintenanceFlag) {
+            throw new \RuntimeException('BACKUP_CHECKPOINT_MAINTENANCE_NOT_HELD');
+        }
+        return ['job_id' => $job['job_id'], 'state' => $job['state'] ?? null,
+            'maintenance_held' => true, 'maintenance_flag' => true,
+            'file_backup' => ['backup_id' => $fileBackup['backup_id'], 'sha256' => hash('sha256', $fileJson), 'items' => count($fileBackup['items'])],
+            'database_backup' => ['ok' => true, 'sha256' => hash('sha256', $dbJson)]];
+    }
+
+    /** Server-side verifier used by the bootstrap v1→v2 lease handoff. */
+    public function verifiedBootstrapBackupCheckpoint(string $jobId): array
+    {
+        if (preg_match('/\Aupd_[a-f0-9]{32}\z/D', $jobId) !== 1) {
+            throw new \RuntimeException('BOOTSTRAP_BACKUP_JOB_INVALID');
+        }
+        return $this->backupCheckpointReceipt(new JobState($this->storageDir, $jobId));
+    }
+
+    private function beginDatabaseBackup(JobState $state, UpdateLogger $logger): array
+    {
+        $backup = $state->readFile('backup.json');
+        if (!is_array($backup) || !is_string($backup['backup_id'] ?? null) || !is_array($backup['items'] ?? null)) {
+            throw new \RuntimeException('Verified file backup is required before database backup.');
+        }
+        $state->write(['progress' => ['phase' => 'backup_db', 'cursor' => null, 'done' => 0, 'total' => 0]]);
+        $logger->info('database_backup_started', 'Creating database backup before applying files');
+        return ['next' => true];
     }
 
     private function beginApplyFiles(JobState $state, UpdateLogger $logger): array
     {
+        $backup = $state->readFile('backup.json');
+        $dbBackup = $state->readFile('db_backup.json');
+        $job = $state->readFile('state.json') ?: [];
+        $dbBackupUsable = is_array($dbBackup) && ($dbBackup['ok'] ?? false) === true;
+        if (!is_array($backup) || !is_string($backup['backup_id'] ?? null)
+            || !is_array($backup['items'] ?? null) || !$dbBackupUsable
+            || !$this->verifyFileBackupArtifacts($backup)
+            || !$this->verifyDatabaseBackupArtifacts((string)$backup['backup_id'], $dbBackup, (string)($job['job_id'] ?? ''))) {
+            throw new \RuntimeException('Verified file and database backup decisions are required before applying files.');
+        }
         $plan = $state->readFile('apply-plan.json') ?: [];
         $total = (int)($plan['apply_total'] ?? 0);
         $state->write(['progress' => ['phase' => 'apply_files', 'cursor' => 0, 'done' => 0, 'total' => $total]]);
-        $logger->info('files_apply_started', 'Applying package files');
+        $logger->info('files_apply_started', 'Applying package files after backups');
         return ['next' => true];
     }
 
@@ -687,10 +967,13 @@ final class UpdaterKernel
         if (($health['ok'] ?? false) !== true) {
             throw new \RuntimeException('Post-apply health check failed.');
         }
-        // Cursor null on purpose: applyPhaseBackupDb() treats a null cursor as
-        // the FIRST backup_db request and runs its pre-checks (db_backup
-        // enabled toggle + "no pending migrations" skip).
-        $state->write(['progress' => ['phase' => 'backup_db', 'cursor' => null, 'done' => 0, 'total' => 0]]);
+        $backup = $state->readFile('backup.json');
+        $dbBackup = $state->readFile('db_backup.json');
+        $dbBackupUsable = is_array($dbBackup) && ($dbBackup['ok'] ?? false) === true;
+        if (!is_array($backup) || !is_array($backup['items'] ?? null) || !$dbBackupUsable) {
+            throw new \RuntimeException('Verified backup evidence is required before migration.');
+        }
+        $state->write(['progress' => ['phase' => 'migrate', 'cursor' => [], 'done' => 0, 'total' => count($this->pendingMigrations()), 'executed' => []]]);
         return ['next' => true];
     }
 
@@ -704,19 +987,11 @@ final class UpdaterKernel
         $cursor = is_array($progress['cursor'] ?? null) ? $progress['cursor'] : null;
         $manager = new DatabaseBackupManager($this->basePath);
 
-        // Pre-checks run once, on the first backup_db request (cursor null).
-        if ($cursor === null) {
-            if (($this->config['db_backup']['enabled'] ?? true) !== true) {
-                $report = ['ok' => false, 'done' => true, 'skipped' => true, 'reason' => 'db backup disabled in config'];
-                $state->writeFile('db_backup.json', $report);
-                return $this->beginMigrations($state, $logger, $report);
-            }
-            if ($this->pendingMigrations() === []) {
-                $report = ['ok' => false, 'done' => true, 'skipped' => true, 'reason' => 'no pending migrations'];
-                $state->writeFile('db_backup.json', $report);
-                $logger->info('db_backup_skipped', 'Database backup skipped (no pending migrations)');
-                return $this->beginMigrations($state, $logger, $report);
-            }
+        // Always create a DB snapshot before applying files. The updater
+        // cannot infer whether the downloaded package introduces migrations
+        // from the currently installed migration registry.
+        if (($this->config['db_backup']['enabled'] ?? true) !== true) {
+            throw new \RuntimeException('Database backup is disabled; refusing to mutate installed files.');
         }
 
         $backupDir = $this->storageDir . '/backups/' . basename($backupId);
@@ -740,36 +1015,18 @@ final class UpdaterKernel
         } else {
             $logger->error('db_backup_failed', 'Database backup failed', ['error' => $report['error'] ?? ($report['reason'] ?? 'unknown')]);
         }
-        return $this->beginMigrations($state, $logger, $report);
+        return $this->finishDatabaseBackup($state, $logger, $report);
     }
 
-    /**
-     * Database-safety guard + move into the migrate phase. Migrations must
-     * never run without a DB snapshot they can be rolled back from; if the
-     * snapshot is missing/failed and migrations are pending, abort BEFORE any
-     * schema change so the database stays exactly as it was.
-     */
-    private function beginMigrations(JobState $state, UpdateLogger $logger, array $dbBackup): array
+    private function finishDatabaseBackup(JobState $state, UpdateLogger $logger, array $dbBackup): array
     {
-        $dbBackupUsable = ($dbBackup['ok'] ?? false) === true
-            || (string)($dbBackup['reason'] ?? '') === 'no pending migrations';
-        if (!$dbBackupUsable && $this->pendingMigrations() !== []) {
-            $dbReason = (string)($dbBackup['reason'] ?? $dbBackup['error'] ?? 'unknown');
-            throw new \RuntimeException(
-                'Database backup is not available (' . $dbReason . ') but migrations are pending. '
-                . 'Apply aborted before any schema change to protect the database; '
-                . 'fix the backup issue and retry the update.'
-            );
+        $state->writeFile('db_backup.json', $dbBackup);
+        $ok = ($dbBackup['ok'] ?? false) === true;
+        if (!$ok) {
+            throw new \RuntimeException('Database backup failed before file application: ' . (string)($dbBackup['reason'] ?? $dbBackup['error'] ?? 'unknown'));
         }
-        $pending = $this->pendingMigrations();
-        $state->write(['progress' => [
-            'phase' => 'migrate',
-            'cursor' => [],
-            'done' => 0,
-            'total' => count($pending),
-            'executed' => [],
-        ]]);
-        return ['next' => true];
+        $logger->info('db_backup_created', 'Database backup created before applying files');
+        return $this->beginApplyFiles($state, $logger);
     }
 
     private function applyPhaseMigrate(JobState $state, array $progress, WorkBudget $budget, array $steps, UpdateLogger $logger): array
@@ -860,7 +1117,21 @@ final class UpdaterKernel
     private function resume(array $input): JsonResponse
     {
         $this->verifyTokenIfPresent($input, 'resume');
-        return JsonResponse::success(['latest_job' => (new JobState($this->storageDir))->latest(), 'message' => 'Resume/status inspection is available for staged and applied jobs.']);
+        $jobId = (string)($input['job_id'] ?? '');
+        if (preg_match('/\Aupd_[a-f0-9]{32}\z/D', $jobId) !== 1) {
+            return JsonResponse::error('RESUME_JOB_ID_INVALID', 'A run-bound job_id is required.', 400);
+        }
+        $state = new JobState($this->storageDir, $jobId);
+        $latest = $state->readFile('state.json');
+        if (!is_array($latest) || ($latest['job_id'] ?? null) !== $jobId) {
+            return JsonResponse::error('RESUME_JOB_NOT_FOUND', 'The requested updater job is unavailable.', 404);
+        }
+        $result = ['latest_job' => $latest, 'message' => 'Resume/status inspection is available for staged and applied jobs.'];
+        $progress = $latest['progress'] ?? null;
+        if (is_array($progress) && in_array(($progress['phase'] ?? null), ['apply_files', 'health'], true)) {
+            $result['backup_checkpoint'] = $this->backupCheckpointReceipt($state);
+        }
+        return JsonResponse::success($result);
     }
 
     /**
@@ -1033,7 +1304,12 @@ final class UpdaterKernel
 
             $stored = $state->readFile('state.json') ?: [];
             $progress = is_array($stored['progress'] ?? null) ? $stored['progress'] : [];
-            return JsonResponse::success(['job_id' => $jobId, 'continue' => true, 'progress' => $progress]);
+            $response = ['job_id' => $jobId, 'continue' => true, 'progress' => $progress];
+            if (($input['pause_after_backup'] ?? false) === true && ($progress['phase'] ?? null) === 'apply_files') {
+                $response['backup_checkpoint'] = $this->backupCheckpointReceipt($state);
+                $response['backup_gate_paused'] = true;
+            }
+            return JsonResponse::success($response);
         } catch (\Throwable $e) {
             // Guard 3 (rollback): a partially restored state must stay behind
             // maintenance so the admin can retry; never silently reopen the

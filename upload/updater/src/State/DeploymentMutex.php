@@ -20,6 +20,43 @@ final class DeploymentMutex
     {
     }
 
+    /** Read-only point-in-time check for a competing deployment/request writer. */
+    public static function isBusy(string $basePath): bool
+    {
+        $base = realpath($basePath);
+        if ($base === false) { return true; }
+        $storage = $base . '/storage_api';
+        $storageStat = @lstat($storage);
+        if (!is_array($storageStat) || is_link($storage)
+            || ($storageStat['mode'] & 0170000) !== 0040000) { return true; }
+        $directory = $storage . '/release-coordinator';
+        clearstatcache(true, $directory);
+        $directoryStat = @lstat($directory);
+        if ($directoryStat === false) { return false; }
+        if (is_link($directory) || ($directoryStat['mode'] & 0170000) !== 0040000
+            || ($directoryStat['mode'] & 0077) !== 0
+            || $directoryStat['uid'] !== $storageStat['uid']) { return true; }
+        $path = $directory . '/installation-release.lock';
+        clearstatcache(true, $path);
+        $pathStat = @lstat($path);
+        if ($pathStat === false) { return false; }
+        if (is_link($path) || ($pathStat['mode'] & 0170000) !== 0100000
+            || ($pathStat['mode'] & 0077) !== 0 || $pathStat['nlink'] !== 1
+            || $pathStat['uid'] !== $directoryStat['uid']) { return true; }
+        $handle = @fopen($path, 'rb');
+        if ($handle === false) { return true; }
+        try {
+            $opened = fstat($handle);
+            if (!is_array($opened) || $opened['dev'] !== $pathStat['dev']
+                || $opened['ino'] !== $pathStat['ino']) { return true; }
+            if (!flock($handle, LOCK_SH | LOCK_NB)) { return true; }
+            flock($handle, LOCK_UN);
+            return false;
+        } finally {
+            fclose($handle);
+        }
+    }
+
     public function acquire(bool $exclusive = true): bool
     {
         if ($this->handle !== null) {

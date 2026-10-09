@@ -43,6 +43,14 @@ final class LockManager
         return $this->lockState() !== null;
     }
 
+    /** Exact updater job owning the persistent lock; stale ownership is retained for safe same-job recovery. */
+    public function ownerJobId(): ?string
+    {
+        $state = $this->lockStateAt($this->storageDir . '/locks/update.lock');
+        $owner = $state['owner_job_id'] ?? null;
+        return is_string($owner) && $owner !== '' ? $owner : null;
+    }
+
     /**
      * True when a lock file exists but belongs to a dead/old process, i.e.
      * it will not block the next acquire(). Exposed for preflight checks.
