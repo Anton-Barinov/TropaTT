@@ -123,42 +123,22 @@ $needsPageApiBindings = !in_array($currentRoute, [
   'admin-modules-install',
   'module-wip-limit',
 ], true);
-$needsBr1 = in_array($currentRoute, [
-  'task-detail',
-  'tasks',
-  'kanban',
-  'gantt',
-  'ideas',
-  'idea-detail',
-  'teams',
-  'admin-modules',
-  'admin-module-detail',
-  'admin-modules-install',
-  'dashboard',
-  'projects',
-  'calendar',
-  'clients',
-  'counterparties',
-  'contacts',
-  'companies',
-  'knowledge',
-  'knowledge-page',
-  'notifications',
-  'profile',
-  'admin-settings',
-  'admin-estimates',
-  'admin-tags',
-  'admin-updates',
-  'recurring',
-  'intake',
-  'project-modules',
-], true);
-$needsBr1NotifyOnly = !$needsBr1 && !in_array($currentRoute, [
+// WEB-TM-001: modals.js injects the global #createTaskModal, #createProjectModal,
+// and #calendarEventModal on every route, and navigation.js renders the header
+// quick-create buttons across the entire CRM. br1.js binds those modal flows,
+// hydrates their project/client/user dictionaries, and handles task creation.
+// Gating br1 behind a route whitelist left modals on non-task and module pages
+// with empty dropdowns and unbound forms. br1 must load on all authenticated routes.
+$publicAuthRoutes = [
   'login',
   'password-reset-request',
   'password-reset-confirm',
   'invitation-accept',
-], true);
+  'external-accept',
+  'branding-logo',
+];
+$needsBr1 = !in_array($currentRoute, $publicAuthRoutes, true);
+$needsBr1NotifyOnly = false;
 // WEB-VE-001: the visual editor bundle is enqueued unconditionally below.
 // modals.js runs on every route and injects the global create/edit-task modal
 // with a `data-crm-visual-editor="1"` description field, so gating the bundle

@@ -1668,25 +1668,25 @@ window.CRM.br1 = (function () {
     }
 
     async function ensureProjectCreateDictionaries() {
-      if (availableClients.length === 0) {
-        availableClients = await window.CRM.loadClientDictionary();
-      }
-      if (availableTeams.length === 0) {
-        try {
-          var teamsEnvelope = await window.CRM.api.request('api/v1/teams', { query: { limit: 200 } });
-          availableTeams = window.CRM.api.items(teamsEnvelope);
-        } catch (e) {
-          availableTeams = [];
-        }
-      }
-      if (availableUsers.length === 0) {
-        try {
-          var usersEnvelope = await window.CRM.api.request('api/v1/users', { query: { limit: 200, is_active: 1 } });
-          availableUsers = window.CRM.api.items(usersEnvelope);
-        } catch (e) {
-          availableUsers = [];
-        }
-      }
+      var pClients = availableClients.length === 0
+        ? (typeof window.CRM.loadClientDictionary === 'function' ? window.CRM.loadClientDictionary() : Promise.resolve([]))
+            .then(function (items) { availableClients = Array.isArray(items) ? items : []; })
+            .catch(function () { availableClients = []; })
+        : Promise.resolve();
+
+      var pTeams = availableTeams.length === 0
+        ? window.CRM.api.request('api/v1/teams', { query: { limit: 200 } })
+            .then(function (res) { availableTeams = window.CRM.api.items(res); })
+            .catch(function () { availableTeams = []; })
+        : Promise.resolve();
+
+      var pUsers = availableUsers.length === 0
+        ? window.CRM.api.request('api/v1/users', { query: { limit: 200, is_active: 1 } })
+            .then(function (res) { availableUsers = window.CRM.api.items(res); })
+            .catch(function () { availableUsers = []; })
+        : Promise.resolve();
+
+      await Promise.all([pClients, pTeams, pUsers]);
       renderProjectCreateOptions();
     }
 
@@ -1899,36 +1899,37 @@ window.CRM.br1 = (function () {
   }
 
   async function ensureCreateTaskDictionaries() {
-    if (availableProjects.length === 0) {
-      try {
-        var projectsEnvelope = await window.CRM.api.request('api/v1/projects', { query: { limit: 100 } });
-        availableProjects = window.CRM.api.items(projectsEnvelope);
-      } catch (e) {
-        availableProjects = [];
-      }
-    }
+    var pProjects = availableProjects.length === 0
+      ? window.CRM.api.request('api/v1/projects', { query: { limit: 100 } })
+          .then(function (res) { availableProjects = window.CRM.api.items(res); })
+          .catch(function () { availableProjects = []; })
+      : Promise.resolve();
 
-    if (availableUsers.length === 0) {
-      try {
-        var usersEnvelope = await window.CRM.api.request('api/v1/users', { query: { limit: 100, is_active: 1 } });
-        availableUsers = window.CRM.api.items(usersEnvelope);
-      } catch (e) {
-        availableUsers = [];
-      }
-    }
+    var pUsers = availableUsers.length === 0
+      ? window.CRM.api.request('api/v1/users', { query: { limit: 100, is_active: 1 } })
+          .then(function (res) { availableUsers = window.CRM.api.items(res); })
+          .catch(function () { availableUsers = []; })
+      : Promise.resolve();
 
-    if (availableTags.length === 0) {
-      try {
-        var tagsEnvelope = await window.CRM.api.request('api/v1/tags', { query: { limit: 100 } });
-        availableTags = window.CRM.api.items(tagsEnvelope);
-      } catch (e) {
-        availableTags = [];
-      }
-    }
+    var pTags = availableTags.length === 0
+      ? window.CRM.api.request('api/v1/tags', { query: { limit: 100 } })
+          .then(function (res) { availableTags = window.CRM.api.items(res); })
+          .catch(function () { availableTags = []; })
+      : Promise.resolve();
 
-    if (availableClients.length === 0) {
-      availableClients = await window.CRM.loadClientDictionary();
-    }
+    var pClients = availableClients.length === 0
+      ? (typeof window.CRM.loadClientDictionary === 'function' ? window.CRM.loadClientDictionary() : Promise.resolve([]))
+          .then(function (items) { availableClients = Array.isArray(items) ? items : []; })
+          .catch(function () { availableClients = []; })
+      : Promise.resolve();
+
+    var pStatuses = availableTaskStatuses.length === 0
+      ? window.CRM.api.request('api/v1/statuses', { query: { scope: 'task', is_active: 1, limit: 100 } })
+          .then(function (res) { availableTaskStatuses = window.CRM.api.items(res); })
+          .catch(function () { availableTaskStatuses = []; })
+      : Promise.resolve();
+
+    await Promise.all([pProjects, pUsers, pTags, pClients, pStatuses]);
 
     renderCreateTaskProjectOptions();
     renderCreateTaskClientOptions();
@@ -8841,6 +8842,17 @@ window.CRM.br1 = (function () {
     bindLogoutButtons();
     enhanceFileInputs(document);
     observeFileInputs();
+
+    // Bind modal flows and select enhancements IMMEDIATELY so that
+    // user clicks on [data-open-modal] never encounter unbound forms or empty dictionaries,
+    // regardless of session hydration network latency.
+    initProjectCreateFlow();
+    initTaskCreateFlow();
+    initCalendarEventCreateFlow();
+    enhanceClientSelects();
+    enhanceProjectSelects();
+    initQuickClientCreate();
+    initQuickProjectCreate();
 
     ensureProtectedAccess();
     if (!enforceRoutePermission()) return;

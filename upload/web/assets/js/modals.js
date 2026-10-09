@@ -69,7 +69,7 @@ window.CRM.modals = (function () {
 <div class="modal fade" id="createTaskModal" tabindex="-1" aria-hidden="true">\
   <div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content">\
     <div class="modal-header"><h5 class="modal-title">' + window.CRM.i18n.t('js.modal.create_task', 'Create Task') + '</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + window.CRM.i18n.t('js.modal.close', 'Close') + '"></button></div>\
-    <form id="createTaskForm">\
+    <form id="createTaskForm" action="javascript:void(0);">\
       <div class="modal-body"><div class="row g-3">\
         <div class="col-md-8"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_title', 'Title') + '</label><input class="form-control" name="title" maxlength="255" placeholder="' + window.CRM.i18n.t('js.modal.placeholder_task', 'E.g.: Prepare Q2 presentation') + '"></div>\
         <div class="col-md-4"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_project', 'Project') + '</label><select class="form-select" name="project_public_id"><option value="">' + window.CRM.i18n.t('js.modal.no_project', 'No project') + '</option></select></div>\
@@ -91,7 +91,7 @@ window.CRM.modals = (function () {
 <div class="modal fade" id="editTaskModal" tabindex="-1" aria-hidden="true">\
   <div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content">\
     <div class="modal-header"><h5 class="modal-title">' + window.CRM.i18n.t('js.modal.edit_task', 'Edit Task') + '</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + window.CRM.i18n.t('js.modal.close', 'Close') + '"></button></div>\
-    <form id="editTaskForm">\
+    <form id="editTaskForm" action="javascript:void(0);">\
       <div class="modal-body"><div class="row g-3">\
         <div class="col-md-8"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_title', 'Title') + '</label><input class="form-control" name="title" maxlength="255" placeholder="' + window.CRM.i18n.t('js.modal.placeholder_task', 'E.g.: Prepare Q2 presentation') + '"></div>\
         <div class="col-md-4"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_project', 'Project') + '</label><select class="form-select" name="project_public_id"><option value="">' + window.CRM.i18n.t('js.modal.no_project', 'No project') + '</option></select></div>\
@@ -115,7 +115,7 @@ window.CRM.modals = (function () {
 <div class="modal fade" id="assignUserModal" tabindex="-1" aria-hidden="true">\
   <div class="modal-dialog modal-dialog-centered"><div class="modal-content">\
     <div class="modal-header"><h5 class="modal-title">' + window.CRM.i18n.t('js.modal.assign_user', 'Assign User') + '</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + window.CRM.i18n.t('js.modal.close', 'Close') + '"></button></div>\
-    <form id="assignUserForm">\
+    <form id="assignUserForm" action="javascript:void(0);">\
       <div class="modal-body">\
         <div class="mb-3"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_task', 'Task') + '</label><select class="form-select" name="task_public_id"><option value="">' + window.CRM.i18n.t('js.modal.no_tasks_available', 'No tasks available') + '</option></select></div>\
         <div class="mb-2"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_employee', 'Employee') + '</label><select class="form-select" name="assignee_user_public_id"><option value="">' + window.CRM.i18n.t('js.modal.no_assign', 'Do not assign') + '</option></select></div>\
@@ -139,7 +139,7 @@ window.CRM.modals = (function () {
 <div class="modal fade" id="calendarEventModal" tabindex="-1" aria-hidden="true">\
   <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">\
     <div class="modal-header"><h5 class="modal-title">' + window.CRM.i18n.t('js.modal.create_event', 'Create Event') + '</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + window.CRM.i18n.t('js.modal.close', 'Close') + '"></button></div>\
-    <form id="calendarEventForm" novalidate>\
+    <form id="calendarEventForm" action="javascript:void(0);" novalidate>\
       <div class="modal-body"><div class="row g-3">\
         <input type="hidden" name="task_public_id">\
         <div class="col-12 d-none" data-calendar-task-context></div>\
@@ -192,7 +192,7 @@ window.CRM.modals = (function () {
 <div class="modal fade" id="quickClientCreateModal" tabindex="-1" aria-hidden="true">\
   <div class="modal-dialog modal-dialog-centered"><div class="modal-content">\
     <div class="modal-header"><h5 class="modal-title">' + window.CRM.i18n.t('js.modal.quick_client_title', 'Quick create client') + '</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + window.CRM.i18n.t('js.modal.close', 'Close') + '"></button></div>\
-    <form id="quickClientCreateForm" novalidate>\
+    <form id="quickClientCreateForm" action="javascript:void(0);" novalidate>\
       <div class="modal-body"><div class="row g-3">\
         <div class="col-12 d-none" data-quick-client-error-summary></div>\
         <div class="col-md-4"><label class="form-label">' + window.CRM.i18n.t('js.modal.quick_client_label_type', 'Type') + '</label><select class="form-select" name="client_type"><option value="individual">' + window.CRM.i18n.t('js.modal.quick_client_type_individual', 'Individual') + '</option><option value="sole_proprietor">' + window.CRM.i18n.t('js.modal.quick_client_type_sole_proprietor', 'Sole proprietor') + '</option><option value="legal_entity">' + window.CRM.i18n.t('js.modal.quick_client_type_legal_entity', 'Legal entity') + '</option></select></div>\
@@ -211,7 +211,7 @@ window.CRM.modals = (function () {
 <div class="modal fade" id="createProjectModal" tabindex="-1" aria-hidden="true">\
   <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered"><div class="modal-content">\
     <div class="modal-header"><h5 class="modal-title">' + window.CRM.i18n.t('js.modal.create_project', 'Create Project') + '</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + window.CRM.i18n.t('js.modal.close', 'Close') + '"></button></div>\
-    <form id="createProjectForm" novalidate>\
+    <form id="createProjectForm" action="javascript:void(0);" novalidate>\
       <div class="modal-body"><div class="row g-3">\
         <div class="col-md-8"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_title', 'Title') + '</label><input class="form-control" name="title" maxlength="255" placeholder="' + window.CRM.i18n.t('js.modal.placeholder_task', 'Project name') + '"></div>\
         <div class="col-md-4"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_status', 'Status') + '</label><select class="form-select" name="status"><option value="active">' + window.CRM.i18n.t('js.modal.status_active', 'Active') + '</option><option value="new">' + window.CRM.i18n.t('js.modal.status_new', 'New') + '</option><option value="planning">' + window.CRM.i18n.t('js.modal.status_planning', 'Planning') + '</option><option value="in_progress">' + window.CRM.i18n.t('js.modal.status_in_progress', 'In progress') + '</option><option value="blocked">' + window.CRM.i18n.t('js.modal.status_blocked', 'Blocked') + '</option><option value="done">' + window.CRM.i18n.t('js.modal.status_done', 'Done') + '</option></select></div>\
