@@ -50,6 +50,19 @@ $auJs = [
   'recommendPreflightText' => $au('recommend_preflight_text', 'Теперь можно подготовить архив во временной папке. Рабочие файлы CRM еще не меняются.'),
   'recommendReadyTitle' => $au('recommend_ready_title', 'Можно устанавливать'),
   'recommendReadyText' => $au('recommend_ready_text', 'Перед установкой CRM создаст backup. Запускайте установку только если готовы к короткому maintenance-окну.'),
+  'recommendResumeTitle' => $au('recommend_resume_title', 'Обновление было прервано'),
+  'recommendResumeText' => $au('recommend_resume_text', 'Установка остановилась на середине (страница была закрыта или соединение прервалось). CRM остаётся в режиме обслуживания. Нажмите «Продолжить», чтобы завершить её с текущего шага — заново ничего не скачивается.'),
+  'primaryResume' => $au('btn_resume', 'Продолжить обновление'),
+  'autoResumeRunning' => $au('auto_resume_running', 'Обнаружено незавершённое обновление ({phase}). Продолжаем автоматически…'),
+  'autoResumeDone' => $au('auto_resume_done', 'Прерванное обновление завершено автоматически.'),
+  'autoResumeFailed' => $au('auto_resume_failed', 'Автоматически завершить обновление не удалось: {message}. Попробуйте «Продолжить обновление» ещё раз или откатитесь из backup.'),
+  'autoRecoverRunning' => $au('auto_recover_running', 'Обновление не удалось продолжить — очищаем прерванное состояние и готовим обновление заново…'),
+  'autoRecoverDone' => $au('auto_recover_done', 'Прерванное обновление очищено автоматически; обновление запущено заново.'),
+  'recoverFailed' => $au('recover_failed', 'Не удалось очистить прерванное обновление.'),
+  'progressTables' => $au('progress_tables', 'таблиц {done} из {total}'),
+  'progressRows' => $au('progress_rows', 'строк {done}'),
+  'preflightFailedChecks' => $au('preflight_failed_checks', 'не пройдены проверки: {list}'),
+  'preflightForbidden' => $au('preflight_forbidden', 'запрещённые пути в пакете: {list}'),
   'recommendFailedTitle' => $au('recommend_failed_title', 'Последняя операция завершилась ошибкой'),
   'recommendFailedText' => $au('recommend_failed_text', 'Проверьте детали операции. Если CRM работает нестабильно, используйте восстановление из backup.'),
   'primaryCheck' => $au('btn_check', 'Проверить обновления'),
@@ -491,6 +504,11 @@ $auJs = [
 (function () {
   const i18n = <?= json_encode($auJs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
   const state = { status: null, version: null, plan: null, changes: null, preflight: null, download: null, apply: null, lastJobId: null };
+  // Remembers which interrupted job the page already tried to finish, so a
+  // reload cannot loop on the same failing job; a new job id retries once.
+  let autoResumeAttempted = '';
+  // Set once recovery closed the stranded job, so the page stops offering it.
+  let latestStateCleared = false;
   let crmSessionPromise = null;
   const $ = (id) => document.getElementById(id);
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
@@ -780,6 +798,39 @@ $auJs = [
     return true;
   }
 
+  // An apply that was interrupted (tab closed, reload, dropped connection,
+  // proxy timeout) leaves the job in `applying`/`backup_created` with a
+  // non-final phase. Every apply phase keeps a cursor, so the same job can be
+  // continued with the same job_id; without this the page started a fresh
+  // preflight, which collided with the lock the interrupted job still held and
+  // left maintenance mode on.
+  function latestJobInterrupted() {
+    const latest = state.status && state.status.latest_job;
+    if (!latest || !latest.job_id) return false;
+    if (latest.state !== 'applying' && latest.state !== 'backup_created') return false;
+    const phase = String((latest.progress || {}).phase || '');
+    return phase !== '' && phase !== 'finalized';
+  }
+
+  // An interrupted job the installation can no longer continue: it was left by
+  // an older kernel (can_resume=false) or its progress was lost, so the page's
+  // continuation keeps failing. The updater's `recover` action closes such a
+  // job, releases the lock and clears maintenance mode so a fresh update can be
+  // prepared — without a server administrator touching any files.
+  function latestJobNeedsRecovery() {
+    const latest = state.status && state.status.latest_job;
+    if (!latest || !latest.job_id) return false;
+    if (latestStateCleared) return false;
+    if (latest.state === 'failed' && latest.error_code === 'RECOVERED_INTERRUPTED') return false;
+    if (latest.state === 'applying' || latest.state === 'backup_created') {
+      const phase = String((latest.progress || {}).phase || '');
+      return phase !== '' && phase !== 'finalized';
+    }
+    // A failed apply that still holds maintenance mode or a rollback point is
+    // the other shape that used to need a server administrator.
+    return latest.state === 'failed' && (latest.can_rollback === true || latest.maintenance_held === true);
+  }
+
   function updateAvailable() {
     return !!(state.plan && state.plan.update_available === true);
   }
@@ -894,6 +945,13 @@ $auJs = [
       $('nextTitle').textContent = tr('recommendLatestTitle', 'CRM уже актуальна');
       $('nextText').textContent = tr('recommendLatestText', 'Устанавливать ничего не нужно. Архив обновления не требуется, рисков для текущей версии нет.');
       setPrimary('check', tr('primaryCheckAgain', 'Проверить еще раз'));
+    } else if (latestJobInterrupted()) {
+      // The apply stopped mid-way (browser closed, connection dropped). The
+      // job still owns the lock and maintenance mode, and every phase keeps a
+      // cursor, so offer to continue it instead of starting over.
+      $('nextTitle').textContent = tr('recommendResumeTitle', 'Обновление было прервано');
+      $('nextText').textContent = tr('recommendResumeText', 'Установка остановилась на середине (страница была закрыта или соединение прервалось). CRM остаётся в режиме обслуживания. Нажмите «Продолжить», чтобы завершить её с текущего шага — заново ничего не скачивается.');
+      setPrimary('install', tr('primaryResume', 'Продолжить обновление'));
     } else if (state.download || latestJobIsStaged()) {
       $('nextTitle').textContent = tr('recommendReadyTitle', 'Можно устанавливать');
       $('nextText').textContent = tr('recommendReadyText', 'Перед установкой CRM создаст backup. Запускайте установку только если готовы к короткому maintenance-окну.');
@@ -1226,6 +1284,28 @@ $auJs = [
     state.preflight = data.preflight || data;
     state.lastJobId = extractJobId(result) || state.lastJobId;
     if (!state.lastJobId) throw new Error(tr('needJobDownload', 'Сначала выполните проверку безопасности, чтобы получить job_id.'));
+    // A failed safety check used to reach the admin as the single sentence
+    // "The security check failed", with the actual verdict (which check, and
+    // which package paths) stored only in the job's preflight.json. Surface it
+    // inline: when the update *package* is at fault the checks are green and
+    // manifest_report.forbidden_paths names the offending paths, which tells
+    // the admin (and support) immediately that the update center is to blame.
+    if (state.preflight && state.preflight.ok === false) {
+      const failedChecks = Object.entries(state.preflight.checks || {})
+        .filter(([, value]) => value === false).map(([name]) => name);
+      const forbidden = ((state.preflight.manifest_report || {}).forbidden_paths || [])
+        .slice(0, 5).map((path) => String(path));
+      const details = [];
+      if (failedChecks.length) details.push(tr('preflightFailedChecks', 'не пройдены проверки: {list}', {list: failedChecks.join(', ')}));
+      if (forbidden.length) details.push(tr('preflightForbidden', 'запрещённые пути в пакете: {list}', {list: forbidden.join(', ')}));
+      if (state.preflight.error) details.push(String(state.preflight.error).slice(0, 240));
+      showNotice(
+        tr('errPreflight', 'Не удалось выполнить безопасную проверку.')
+        + (details.length ? ' — ' + details.join('; ') : '')
+        + (state.lastJobId ? ' (' + tr('field_job_id', 'Job ID') + ': ' + state.lastJobId + ')' : ''),
+        'danger'
+      );
+    }
     renderPreflight();
     await loadStatus();
   }
@@ -1248,7 +1328,17 @@ $auJs = [
     const label = phaseLabels[phase] || phase || tr('stepWorking', 'выполняется...');
     const done = Number(progress && progress.done || 0);
     const total = Number(progress && progress.total || 0);
-    if (phase === 'backup_db' && done > 0 && !total) return `${label}: ${done}`;
+    // The database dump resumes table by table: report how many tables are done
+    // first, because "N of N" there would be the running row count, not a limit.
+    if (phase === 'backup_db') {
+      const tablesTotal = Number(progress && progress.tables_total || 0);
+      const tablesDone = Number(progress && progress.tables_done || 0);
+      if (tablesTotal > 0) {
+        return `${label} — ${tr('progressTables', 'таблиц {done} из {total}', {done: tablesDone, total: tablesTotal})}`;
+      }
+      if (done > 0) return `${label}: ${tr('progressRows', 'строк {done}', {done})}`;
+      return label;
+    }
     if (total > 0) return `${label} — ${tr('progressStep', 'шаг {done} из {total}', {done, total})}`;
     return label;
   }
@@ -1266,7 +1356,16 @@ $auJs = [
     if (phaseLabel) noticeParts.push(phaseLabel);
     const done = Number(progress && progress.done || 0);
     const total = Number(progress && progress.total || 0);
-    if (total > 0) noticeParts.push(tr('progressStep', 'шаг {done} из {total}', {done, total}));
+    // Same rule as progressText(): during the database dump only the running
+    // row count is known, so never present it as "N of N".
+    if (phase === 'backup_db') {
+      const tablesTotal = Number(progress && progress.tables_total || 0);
+      const tablesDone = Number(progress && progress.tables_done || 0);
+      if (tablesTotal > 0) noticeParts.push(tr('progressTables', 'таблиц {done} из {total}', {done: tablesDone, total: tablesTotal}));
+      else if (done > 0) noticeParts.push(tr('progressRows', 'строк {done}', {done}));
+    } else if (total > 0) {
+      noticeParts.push(tr('progressStep', 'шаг {done} из {total}', {done, total}));
+    }
     showNotice(noticeParts.join(' — '), 'info');
     if ($('applyContent')) {
       $('applyContent').innerHTML = `<div class="updates-empty">${esc(text)}…</div>`;
@@ -1415,6 +1514,16 @@ $auJs = [
     // instead of re-running preflight/download (which on tricky hostings can
     // fail again and leave the update stuck at 'staging_ready').
     if (latestJobIsStaged()) {
+      state.lastJobId = String(state.status.latest_job.job_id || '');
+      await applyUpdate();
+      return;
+    }
+    // An apply that was interrupted mid-way (closed tab, reload, dropped
+    // connection) is continued, not restarted: the step machine keeps a cursor
+    // per phase and the job still owns the update lock and maintenance mode.
+    // Starting a fresh preflight here used to collide with that lock and leave
+    // the installation stranded in maintenance mode.
+    if (latestJobInterrupted()) {
       state.lastJobId = String(state.status.latest_job.job_id || '');
       await applyUpdate();
       return;
@@ -1586,6 +1695,71 @@ $auJs = [
     if (bar) bar.remove();
   }
 
+  // Ask the updater to close a job the installation can no longer continue
+  // (releases the lock, clears maintenance mode when this job owns it). Never
+  // touches files or the database.
+  async function recoverInterrupted(jobId) {
+    const token = await updaterSession();
+    const result = await api('/updater/index.php?action=recover', {method: 'POST', body: JSON.stringify({job_id: jobId, token}), timeoutMs: 60000});
+    ensureSuccess(result, tr('recoverFailed', 'Не удалось очистить прерванное обновление.'));
+    return result.data || result;
+  }
+
+  // Self-healing for an interrupted apply. A closed tab, a reload, a dropped
+  // connection or a proxy timeout leaves the job half-applied with maintenance
+  // mode still held; the admin used to have to clear that state from the
+  // server. The step machine is resumable, so opening this page is enough:
+  // continue the same job, and when that is genuinely impossible close the job
+  // automatically and prepare a fresh update instead of stranding the CRM.
+  async function autoResumeInterrupted() {
+    if (!latestJobNeedsRecovery()) return false;
+    const latest = state.status && state.status.latest_job;
+    const jobId = String(latest.job_id || '');
+    if (jobId === '' || autoResumeAttempted === jobId) return false;
+    autoResumeAttempted = jobId;
+    const phase = phaseLabels[String((latest.progress || {}).phase || '')] || String((latest.progress || {}).phase || '');
+    showNotice(tr('autoResumeRunning', 'Обнаружено незавершённое обновление ({phase}). Продолжаем автоматически…', {phase}), 'info');
+    if (latestJobInterrupted()) {
+      try {
+        state.lastJobId = jobId;
+        await applyUpdate();
+        clearNotice();
+        showNotice(tr('autoResumeDone', 'Прерванное обновление завершено автоматически.'), 'success');
+        return true;
+      } catch (_resumeError) {
+        // Fall through to recovery: the job cannot be continued.
+      }
+    }
+    try {
+      showNotice(tr('autoRecoverRunning', 'Обновление не удалось продолжить — очищаем прерванное состояние и готовим обновление заново…'), 'info');
+      await recoverInterrupted(jobId);
+      latestStateCleared = true;
+      await loadStatus();
+      await autoInstallFresh(tr('autoRecoverDone', 'Прерванное обновление очищено автоматически; обновление запущено заново.'));
+      return true;
+    } catch (err) {
+      const message = String(err && err.message ? err.message : err);
+      showNotice(tr('autoResumeFailed', 'Автоматически завершить обновление не удалось: {message}. Попробуйте «Продолжить обновление» ещё раз или откатитесь из backup.', {message}), 'danger');
+      return false;
+    }
+  }
+
+  // Prepare and apply a fresh update after the stranded job was cleared. The
+  // steps are the same ones the install button runs; only the entry differs.
+  async function autoInstallFresh(doneMessage) {
+    await check();
+    if (!updateAvailable()) {
+      clearNotice();
+      showNotice(doneMessage, 'success');
+      return;
+    }
+    await preflight();
+    await download();
+    await applyUpdate();
+    clearNotice();
+    showNotice(doneMessage, 'success');
+  }
+
   withAction('initial load', async () => {
     // Hydrate the cookie-backed API session before any update requests. The
     // login page intentionally keeps access tokens in memory only, so a full
@@ -1605,6 +1779,11 @@ $auJs = [
     const kpiR = $('kpiRisk');
     if (kpiR && !kpiR.dataset.realValue) { kpiR.dataset.realValue = kpiR.textContent; kpiR.classList.add('loading'); }
 
+    await loadStatus();
+    // Self-healing: finish an update that a previous session left half-applied
+    // before asking the centre for anything new, so the installation does not
+    // stay behind maintenance mode waiting for a server administrator.
+    await autoResumeInterrupted();
     await loadStatus();
     await check();
     // Explicitly load changes after check — the auto-call inside check()

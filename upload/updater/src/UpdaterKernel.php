@@ -85,6 +85,7 @@ final class UpdaterKernel
                 'resume' => $this->resume($safeInput),
                 'rollback' => $this->rollback($safeInput),
                 'force-unlock' => $this->forceUnlock(),
+                'recover' => $this->recover($safeInput),
                 'log' => $this->log((string)($safeInput['job_id'] ?? '')),
                 default => JsonResponse::error('UNKNOWN_ACTION', 'Unknown updater action', 404),
             };
@@ -607,7 +608,16 @@ final class UpdaterKernel
                 $this->verifyTokenIfPresent($input, 'apply');
                 (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->acquire($jobId);
                 (new MaintenanceMode($this->basePath))->enable($jobId);
-                $state->write(['state' => 'applying', 'can_resume' => false, 'can_rollback' => false]);
+                // The whole apply is a resumable step machine: the file, DB
+                // backup, apply and migration phases all persist their cursor
+                // (apply_files even trims its journal back to the committed
+                // cursor), so a browser that closes, a dropped connection or a
+                // reload during the apply must be able to continue the SAME
+                // job. Marking it can_resume=false made an interrupted apply
+                // look finished-and-dead: maintenance stayed held and the page
+                // offered a fresh preflight instead of a continuation, which
+                // then collided with the lock the interrupted job still held.
+                $state->write(['state' => 'applying', 'can_resume' => true, 'can_rollback' => false]);
                 $logger->info('maintenance_enabled', 'Maintenance mode enabled');
 
                 $applier = new FileApplier($this->basePath, $this->storageDir, $this->effectiveProtectedPaths($manifest));
@@ -1025,12 +1035,25 @@ final class UpdaterKernel
         $backupDir = $this->storageDir . '/backups/' . basename($backupId);
         $report = $manager->backup($backupDir, $jobId, $cursor, $budget, (int)$steps['max_rows_per_request']);
         if (($report['done'] ?? false) !== true) {
-            $state->write(['progress' => [
+            // The DB dump resumes per table, so only the completed-row count is
+            // known while it runs. Do NOT mirror it into `total`: the admin page
+            // reads a present `total` as a known step count and would print
+            // "step 150000 of 150000" at every step (150000 being the running
+            // total, not a limit). `total` stays absent until the dump finishes.
+            $progress = [
                 'phase' => 'backup_db',
                 'cursor' => $report['cursor'] ?? [],
                 'done' => (int)($report['rows_done'] ?? 0),
-                'total' => (int)($report['rows_done'] ?? 0),
-            ]]);
+            ];
+            // When the manager can cheaply report the exact total, show real
+            // progress instead: tables already dumped out of all tables.
+            $tablesTotal = (int)($report['tables_total'] ?? 0);
+            $tablesDone = (int)($report['tables_done'] ?? 0);
+            if ($tablesTotal > 0) {
+                $progress['tables_done'] = $tablesDone;
+                $progress['tables_total'] = $tablesTotal;
+            }
+            $state->write(['progress' => $progress]);
             return ['stop' => true];
         }
         $state->writeFile('db_backup.json', $report);
@@ -1538,6 +1561,90 @@ final class UpdaterKernel
             'message' => $removed
                 ? 'The update lock has been removed.'
                 : 'No lock was present — nothing to remove.',
+        ]);
+    }
+
+    /**
+     * Self-healing path for an update the installation cannot continue.
+     *
+     * A job interrupted by a closed tab, a dropped connection or a killed PHP
+     * process normally resumes on the next request, but a job left by an older
+     * kernel (can_resume=false), one whose progress was lost, or one whose
+     * stored state no longer matches its progress cannot be continued. Until
+     * now that stranded the installation behind maintenance mode and only a
+     * server administrator could clear it.
+     *
+     * The caller vouches that the job is not making progress (the admin page
+     * retries a continuation first and only then asks for recovery). This
+     * action stops the job, releases the update lock, clears maintenance mode
+     * when the flag belongs to that job, and records the failure so the normal
+     * "prepare a fresh update" flow works again. It never touches files or the
+     * database: rollback stays an explicit, separate decision.
+     */
+    private function recover(array $input): JsonResponse
+    {
+        $jobId = (string)($input['job_id'] ?? '');
+        if (preg_match('/\A[A-Za-z0-9._-]{1,128}\z/D', $jobId) !== 1) {
+            return JsonResponse::error('RECOVERY_JOB_ID_INVALID', 'A valid job_id is required for recovery.', 400);
+        }
+        $state = new JobState($this->storageDir, $jobId);
+        $stored = $state->readFile('state.json');
+        if (!is_array($stored) || ($stored['job_id'] ?? null) !== $jobId) {
+            return JsonResponse::error('RECOVERY_JOB_NOT_FOUND', 'The requested updater job is unavailable.', 404);
+        }
+        // Refuse to disturb a job that already reached a terminal state: there
+        // is nothing to recover and the caller would be retrying a stale tab.
+        // A job this very action already closed (RECOVERED_INTERRUPTED) is
+        // reported the same way, so a repeated call is idempotent.
+        $stateName = (string)($stored['state'] ?? '');
+        $alreadyRecovered = $stateName === 'failed'
+            && (string)($stored['error_code'] ?? '') === 'RECOVERED_INTERRUPTED';
+        if ($alreadyRecovered || in_array($stateName, ['applied', 'rolled_back', 'failed'], true)) {
+            return JsonResponse::success([
+                'recovered' => false,
+                'reason' => 'job_already_terminal',
+                'state' => $stateName,
+            ]);
+        }
+
+        (new LockManager($this->storageDir, (int)($this->stepConfig()['lock_ttl_seconds'] ?? 600)))->release($jobId);
+
+        $maintenanceCleared = false;
+        $maintenance = new MaintenanceMode($this->basePath);
+        if (is_file($this->basePath . '/storage_api/maintenance.flag')) {
+            try {
+                // disable() verifies the flag belongs to this job before
+                // unlinking it; a flag owned by another operation stays.
+                $maintenance->disable($jobId);
+                $maintenanceCleared = true;
+            } catch (\Throwable) {
+                // Another operation owns maintenance mode; leave it alone.
+            }
+        }
+
+        $previousState = (string)($stored['state'] ?? '');
+        $state->write([
+            'state' => 'failed',
+            'can_resume' => false,
+            'can_rollback' => (bool)($stored['can_rollback'] ?? false),
+            'error' => 'Recovered from an interrupted update.',
+            'error_code' => 'RECOVERED_INTERRUPTED',
+            'maintenance_held' => false,
+            'recovered_at' => gmdate('c'),
+        ]);
+        (new UpdateLogger($this->storageDir, $jobId))
+            ->error('recovered', 'Interrupted update closed by the self-healing path', [
+                'previous_state' => $previousState,
+                'maintenance_cleared' => $maintenanceCleared,
+            ]);
+
+        return JsonResponse::success([
+            'recovered' => true,
+            'job_id' => $jobId,
+            'previous_state' => $previousState,
+            'maintenance_cleared' => $maintenanceCleared,
+            'can_rollback' => (bool)($stored['can_rollback'] ?? false),
+            'message' => 'The interrupted update was closed; a fresh update can be prepared.',
         ]);
     }
 
