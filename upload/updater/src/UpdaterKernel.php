@@ -1163,9 +1163,7 @@ final class UpdaterKernel
         // (thousands of files per update). Free the quota a cheap host cares
         // about before returning.
         $retention = $this->retention();
-        $retention->dropStaging($jobId);
-        $retention->dropPackage($jobId);
-        $this->pruneOldJobs($retention, (string)($manifest['to_build'] ?? ''));
+        $this->pruneOldJobs($retention, (string)($manifest['to_build'] ?? ''), $jobId);
 
         return [
             'finished' => true,
@@ -1189,15 +1187,21 @@ final class UpdaterKernel
      * Prune finished jobs, always protecting the job the installation would
      * roll back to (LocalState's last_job_id), so a rollback point can never be
      * pruned by the cleanup itself.
+     *
+     * @param string $justFinishedJob job this run completed; its rollback
+     *        artefacts are never aged out here — a rollback may be requested
+     *        seconds later, and the grace period starts from that job's own
+     *        finish time, not from the cleanup call.
      */
-    private function pruneOldJobs(\Updater\State\JobRetention $retention, string $currentBuild): void
+    private function pruneOldJobs(\Updater\State\JobRetention $retention, string $currentBuild, string $justFinishedJob = ''): void
     {
         try {
             $installedJob = (string)((new LocalState($this->storageDir))->read()['last_job_id'] ?? '');
             $removed = $retention->prune($installedJob !== '' ? $installedJob : null);
-            if ($installedJob !== '') {
-                // The rollback point itself is exempt from pruning, but its
-                // heavy artefacts age out after the rollback grace period.
+            if ($installedJob !== '' && $installedJob !== $justFinishedJob) {
+                // An OLDER installation point (this run did not produce it) may
+                // have outlived the rollback grace period; only then release
+                // its heavy artefacts.
                 $retention->pruneRollbackPoint($installedJob);
             }
             if ($removed !== []) {
@@ -1545,7 +1549,7 @@ final class UpdaterKernel
         $retention = $this->retention();
         $retention->dropStaging($jobId);
         $retention->dropPackage($jobId);
-        $this->pruneOldJobs($retention, (string)($installedCore['core_build'] ?? ''));
+        $this->pruneOldJobs($retention, (string)($installedCore['core_build'] ?? ''), $jobId);
         return [
             'finished' => true,
             'response' => $this->rollbackFinalResponse($state, $jobId, $installedCore),
