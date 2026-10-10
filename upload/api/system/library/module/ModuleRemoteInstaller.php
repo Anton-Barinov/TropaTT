@@ -302,6 +302,7 @@ final class ModuleRemoteInstaller
         }
 
         file_put_contents($dest, $content);
+        @chmod($dest, 0600);
 
         // SEC-008: Verify the body is actually an archive before extraction.
         // Catches SSRF targets returning HTML/JSON/plaintext, and prevents

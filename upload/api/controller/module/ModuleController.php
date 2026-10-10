@@ -577,6 +577,7 @@ final class ModuleController
             }
             $archivePath = $tmpDir . '/' . $safeFileName;
             file_put_contents($archivePath, $decoded);
+            @chmod($archivePath, 0600);
 
             $pm = $this->container->get('plugin.manager');
             $mc = $this->container->get('module.config');

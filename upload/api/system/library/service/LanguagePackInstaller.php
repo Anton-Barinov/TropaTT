@@ -206,7 +206,9 @@ final class LanguagePackInstaller
 
             // Web language file
             if ($norm === 'web/' . $code . '.php' || $norm === $code . '.php') {
-                file_put_contents($webLangDir . '/' . $code . '.php', $content, LOCK_EX);
+                $targetFile = $webLangDir . '/' . $code . '.php';
+                file_put_contents($targetFile, $content, LOCK_EX);
+                @chmod($targetFile, 0640);
                 continue;
             }
 
@@ -231,6 +233,7 @@ final class LanguagePackInstaller
                     @mkdir($targetDir, 0775, true);
                 }
                 file_put_contents($targetFile, $content, LOCK_EX);
+                @chmod($targetFile, 0640);
                 continue;
             }
 
@@ -243,6 +246,7 @@ final class LanguagePackInstaller
                     @mkdir($targetDir, 0775, true);
                 }
                 file_put_contents($targetFile, $content, LOCK_EX);
+                @chmod($targetFile, 0640);
                 continue;
             }
 
@@ -254,6 +258,7 @@ final class LanguagePackInstaller
                     @mkdir($targetDir, 0775, true);
                 }
                 file_put_contents($targetFile, $content, LOCK_EX);
+                @chmod($targetFile, 0640);
                 continue;
             }
         }

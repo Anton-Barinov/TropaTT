@@ -98,8 +98,11 @@ final class FileService
             $this->assertUploadSize($size);
             $mime = (string)($input['mime_type'] ?? $mime);
             $tmp = $this->writeTempProbe($bin);
-            $detectedMime = $this->detectMime($tmp);
-            @unlink($tmp);
+            try {
+                $detectedMime = $this->detectMime($tmp);
+            } finally {
+                @unlink($tmp);
+            }
             // SEC-001: Check forbidden BEFORE any disk write
             if ($this->isForbidden($name, $detectedMime)) {
                 throw new \RuntimeException('FILE_TYPE_FORBIDDEN');
@@ -845,15 +848,12 @@ final class FileService
 
     private function writeTempProbe(string $bin): string
     {
-        $dir = rtrim($this->uploadsDir, '/');
-        $parent = dirname($dir);
-        $tmpDir = is_dir($parent) ? $parent . '/temp' : sys_get_temp_dir();
-        $this->ensureDir($tmpDir);
-        $path = tempnam($tmpDir, 'upload_probe_');
+        $path = tempnam(sys_get_temp_dir(), 'upload_probe_');
         if ($path === false) {
             throw new \RuntimeException('UPLOAD_TEMP_FAILED');
         }
         file_put_contents($path, $bin);
+        @chmod($path, 0600);
 
         return $path;
     }

@@ -93,6 +93,7 @@ final class UploadController extends BaseController
                 'file' => [$this->t('file/messages.upload_error', 'Ошибка при сохранении файла.')],
             ]);
         }
+        @chmod($targetPath, 0640);
 
         $url = '/api/index.php?route=api/v1/visual-editor/image/' . $yearMonth . '/' . $safeName;
 

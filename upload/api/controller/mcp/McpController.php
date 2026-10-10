@@ -13700,6 +13700,7 @@ $tools[] = $this->tool(
             @unlink($tmpFile);
             return ['error' => 'Unable to write temporary upload file.'];
         }
+        @chmod($tmpFile, 0600);
         $raw = [
             'name' => $name,
             'tmp_name' => $tmpFile,
