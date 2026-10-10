@@ -106,14 +106,6 @@ final class FileApplier
     }
 
     /**
-     * Build the flat, ordered apply plan (deletes, then adds, then modifies),
-     * validating every path once up-front so a forbidden path aborts BEFORE
-     * any file is touched (the plan is validated on every step, but a partial
-     * apply can never have started when validation fails on the first call).
-     *
-     * @return array<int,array{path:string,action:string}>
-     */
-    /**
      * Human hint for a permission failure, safe on hosts without ext-posix.
      *
      * posix_getlogin() is a fatal when the extension is missing, and the only
@@ -129,6 +121,14 @@ final class FileApplier
         return 'chown -R ' . ($owner !== '' ? $owner : '<site-user>') . ' ' . $this->basePath;
     }
 
+    /**
+     * Build the flat, ordered apply plan (deletes, then adds, then modifies),
+     * validating every path once up-front so a forbidden path aborts BEFORE
+     * any file is touched (the plan is validated on every step, but a partial
+     * apply can never have started when validation fails on the first call).
+     *
+     * @return array<int,array{path:string,action:string}>
+     */
     private function buildPlan(array $manifest, PathGuard $guard): array
     {
         $files = $this->filesFromManifest($manifest);
