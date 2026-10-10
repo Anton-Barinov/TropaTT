@@ -70,10 +70,16 @@ final class FileApplier
                     @chmod($targetDir, 0775);
                 }
                 if (!is_file($target) && !is_writable($targetDir)) {
+                    // posix_getlogin() is not available on every shared host.
+                    // Calling it unguarded turned this permission error into a
+                    // fatal, hiding the actionable message, so ask for the user
+                    // only when the extension is there.
+                    $owner = function_exists('posix_getlogin') ? (string)@posix_getlogin() : '';
+                    $hint = $owner !== '' ? 'chown -R ' . $owner . ' ' . $this->basePath : 'chown -R <site-user> ' . $this->basePath;
                     throw new \RuntimeException(
                         'Permission denied: cannot write to ' . $relative
                         . ' (directory ' . $targetDir . ' is not writable).'
-                        . ' Fix file permissions: chown -R ' . posix_getlogin() . ' ' . $this->basePath
+                        . ' Fix file permissions: ' . $hint
                     );
                 }
                 if (is_file($target) && !is_writable($target)) {

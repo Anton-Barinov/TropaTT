@@ -69,7 +69,7 @@ final class UpdaterKernel
             if (in_array($action, ['snapshot', 'installed_snapshot'], true)) {
                 $this->verifyTokenIfPresent($input, $action);
             }
-            if (in_array($action, ['apply', 'resume', 'rollback', 'force-unlock', 'snapshot', 'installed_snapshot'], true)) {
+            if (in_array($action, ['apply', 'resume', 'rollback', 'force-unlock', 'snapshot', 'installed_snapshot', 'recover'], true)) {
                 $deploymentMutex = new DeploymentMutex($this->basePath);
                 if (!$deploymentMutex->acquire()) {
                     return JsonResponse::error('DEPLOYMENT_BUSY', 'A deployment or verification is running. Retry later.', 409);
@@ -94,7 +94,7 @@ final class UpdaterKernel
             // validation/mutation TOCTOU window even if a stale coordinator
             // resumes after another run has acquired a higher generation.
             $fencedActions = ['preflight', 'download', 'apply', 'resume', 'rollback',
-                'snapshot', 'installed_snapshot', 'force-unlock'];
+                'snapshot', 'installed_snapshot', 'force-unlock', 'recover'];
             if (in_array($action, $fencedActions, true)) {
                 if ($action === 'installed_snapshot' && !isset($input['job_id']) && is_string($input['snapshot_id'] ?? null)) {
                     $snapshotId = strtolower((string)$input['snapshot_id']);
