@@ -2596,8 +2596,88 @@ function executeSqlFile(PDO $pdo, string $path): array
     return $errors;
 }
 
+/**
+ * Remove SQL comments while keeping string literals and MySQL executable
+ * comments (`/*!40101 ... *``/`). The schema snapshot contains `--` comments and
+ * one of them holds a semicolon; without comment handling the splitter emitted
+ * the comment as a statement (`SQLSTATE 42000 ... near 'it serializes'`) and
+ * dropped the next CREATE TABLE, so every fresh install failed at substep 2.
+ */
+function stripSqlComments(string $sql): string
+{
+    $out = '';
+    $length = strlen($sql);
+    $quote = null;
+    $escaped = false;
+    $inLineComment = false;
+
+    for ($i = 0; $i < $length; $i++) {
+        $char = $sql[$i];
+        $next = $i + 1 < $length ? $sql[$i + 1] : '';
+
+        if ($inLineComment) {
+            if ($char === "\n") {
+                $inLineComment = false;
+                $out .= "\n";
+            }
+            continue;
+        }
+
+        if ($quote !== null) {
+            $out .= $char;
+            if ($escaped) {
+                $escaped = false;
+                continue;
+            }
+            if ($char === '\\') {
+                $escaped = true;
+                continue;
+            }
+            if ($char === $quote) {
+                $quote = null;
+            }
+            continue;
+        }
+
+        if ($char === '\'' || $char === '"' || $char === '`') {
+            $quote = $char;
+            $out .= $char;
+            continue;
+        }
+
+        // `--` starts a comment only when followed by whitespace/control (MySQL rule).
+        if ($char === '#'
+            || ($char === '-' && $next === '-'
+                && ($i + 2 >= $length || ctype_space($sql[$i + 2])))
+        ) {
+            $inLineComment = true;
+            continue;
+        }
+
+        if ($char === '/' && $next === '*') {
+            $end = strpos($sql, '*/', $i + 2);
+            if ($end === false) {
+                break; // unterminated block comment: drop the tail
+            }
+            $inner = substr($sql, $i + 2, $end - ($i + 2));
+            if ($inner !== '' && $inner[0] === '!') {
+                $out .= (string)preg_replace('/^!\d*/', '', $inner);
+            } else {
+                $out .= ' ';
+            }
+            $i = $end + 1;
+            continue;
+        }
+
+        $out .= $char;
+    }
+
+    return $out;
+}
+
 function splitSqlStatements(string $sql): array
 {
+    $sql = stripSqlComments($sql);
     $statements = [];
     $buffer = '';
     $quote = null;
@@ -3241,13 +3321,65 @@ function createAdminUser(PDO $pdo, array $data): array
     return ['user_id' => $userId, 'public_id' => $publicId, 'role_id' => $roleId];
 }
 
-function createDemoData(PDO $pdo, array $adminUser): void
+/**
+ * Demo workspace text for the installer, in the language the admin picked.
+ * Supported: ru, en, zh; every other installer locale falls back to English.
+ *
+ * @return array<string, array<string, string>>
+ */
+function demoDataStrings(string $lang): array
 {
+    $translations = [
+        'ru' => [
+            'team' => 'Команда разработки',
+            'project' => 'Демонстрационный проект',
+            'project_description' => 'Демонстрационный проект для знакомства с системой',
+            'task_1_title' => 'Изучить интерфейс системы',
+            'task_1_description' => 'Ознакомьтесь с основными разделами: проекты, задачи, канбан-доска, диаграмма Ганта.',
+            'task_2_title' => 'Настроить рабочее пространство',
+            'task_2_description' => 'Создайте свою команду, пригласите коллег и настройте уведомления.',
+            'task_3_title' => 'Создать первый проект',
+            'task_3_description' => 'Создайте проект, добавьте задачи, назначьте исполнителей и установите сроки.',
+        ],
+        'en' => [
+            'team' => 'Delivery team',
+            'project' => 'Demo project',
+            'project_description' => 'Demo project for getting to know the system',
+            'task_1_title' => 'Explore the interface',
+            'task_1_description' => 'Review the main sections: projects, tasks, the kanban board and the Gantt chart.',
+            'task_2_title' => 'Set up your workspace',
+            'task_2_description' => 'Create your team, invite colleagues and configure notifications.',
+            'task_3_title' => 'Create your first project',
+            'task_3_description' => 'Create a project, add tasks, assign people and set due dates.',
+        ],
+        'zh' => [
+            'team' => '交付团队',
+            'project' => '演示项目',
+            'project_description' => '用于快速了解系统的演示项目',
+            'task_1_title' => '了解系统界面',
+            'task_1_description' => '熟悉主要模块：项目、任务、看板和甘特图。',
+            'task_2_title' => '配置工作空间',
+            'task_2_description' => '创建团队、邀请同事并配置通知。',
+            'task_3_title' => '创建第一个项目',
+            'task_3_description' => '创建项目、添加任务、分配负责人并设置截止日期。',
+        ],
+    ];
+
+    $normalized = strtolower(str_replace('_', '-', trim($lang)));
+    $primary = explode('-', $normalized)[0] ?? 'en';
+
+    return $translations[$primary] ?? $translations['en'];
+}
+
+function createDemoData(PDO $pdo, array $adminUser, string $lang = 'en-gb'): void
+{
+    $demo = demoDataStrings($lang);
+
     $now = gmdate('Y-m-d H:i:s');
     $userId = $adminUser['user_id'];
 
     $existingDemo = $pdo->prepare('SELECT id FROM projects WHERE title = :title AND created_by_user_id = :uid LIMIT 1');
-    $existingDemo->execute(['title' => 'Demo Project', 'uid' => $userId]);
+    $existingDemo->execute(['title' => $demo['project'], 'uid' => $userId]);
     if ($existingDemo->fetch()) {
         return;
     }
@@ -3259,7 +3391,7 @@ function createDemoData(PDO $pdo, array $adminUser): void
          VALUES (:public_id, :title, :manager, :created_by, :member_ids, :created_at, :updated_at)'
     )->execute([
         'public_id' => $teamPublicId,
-        'title' => 'Команда разработки',
+        'title' => $demo['team'],
         'manager' => $userId,
         'created_by' => $userId,
         'member_ids' => json_encode([(string)$userId], JSON_UNESCAPED_UNICODE),
@@ -3274,8 +3406,8 @@ function createDemoData(PDO $pdo, array $adminUser): void
          VALUES (:public_id, :title, :description, :status_code, :priority_code, :manager, :team, :created_by, :created_at, :updated_at)'
     )->execute([
         'public_id' => $projectPublicId,
-        'title' => 'Demo Project',
-        'description' => 'Демонстрационный проект для знакомства с системой',
+        'title' => $demo['project'],
+        'description' => $demo['project_description'],
         'status_code' => 'active',
         'priority_code' => 'normal',
         'manager' => $userId,
@@ -3288,20 +3420,20 @@ function createDemoData(PDO $pdo, array $adminUser): void
     // Demo tasks
     $tasks = [
         [
-            'title' => 'Изучить интерфейс системы',
-            'description' => 'Ознакомьтесь с основными разделами: проекты, задачи, канбан-доска, диаграмма Ганта.',
+            'title' => $demo['task_1_title'],
+            'description' => $demo['task_1_description'],
             'status_code' => 'new',
             'priority_code' => 'high',
         ],
         [
-            'title' => 'Настроить рабочее пространство',
-            'description' => 'Создайте свою команду, пригласите коллег и настройте уведомления.',
+            'title' => $demo['task_2_title'],
+            'description' => $demo['task_2_description'],
             'status_code' => 'in_progress',
             'priority_code' => 'normal',
         ],
         [
-            'title' => 'Создать первый проект',
-            'description' => 'Создайте проект, добавьте задачи, назначьте исполнителей и установите сроки.',
+            'title' => $demo['task_3_title'],
+            'description' => $demo['task_3_description'],
             'status_code' => 'done',
             'priority_code' => 'normal',
         ],
@@ -3568,11 +3700,11 @@ if ($isAjax) {
             if ($substep === 5 || $substep === 0) {
                 $adminUser = $_SESSION['install_admin'] ?? [];
                 if (!empty($adminUser)) {
-                    createDemoData($pdo, $adminUser);
+                    createDemoData($pdo, $adminUser, (string)($installData['lang'] ?? 'en-gb'));
                 } else {
                     $adminUser = createAdminUser($pdo, $installData);
                     $_SESSION['install_admin'] = $adminUser;
-                    createDemoData($pdo, $adminUser);
+                    createDemoData($pdo, $adminUser, (string)($installData['lang'] ?? 'en-gb'));
                 }
                 finalizeInstall($pdo);
                 $updateNotice = installUpdateNotice($installData);
@@ -3847,7 +3979,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isAjax) {
 
                     seedDictionaries($pdo);
                     $adminUser = createAdminUser($pdo, $installData);
-                    createDemoData($pdo, $adminUser);
+                    createDemoData($pdo, $adminUser, (string)($installData['lang'] ?? 'en-gb'));
                     finalizeInstall($pdo);
 
                     $_SESSION['install_update_notice'] = installUpdateNotice($installData);
