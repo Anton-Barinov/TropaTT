@@ -70,16 +70,10 @@ final class FileApplier
                     @chmod($targetDir, 0775);
                 }
                 if (!is_file($target) && !is_writable($targetDir)) {
-                    // posix_getlogin() is not available on every shared host.
-                    // Calling it unguarded turned this permission error into a
-                    // fatal, hiding the actionable message, so ask for the user
-                    // only when the extension is there.
-                    $owner = function_exists('posix_getlogin') ? (string)@posix_getlogin() : '';
-                    $hint = $owner !== '' ? 'chown -R ' . $owner . ' ' . $this->basePath : 'chown -R <site-user> ' . $this->basePath;
                     throw new \RuntimeException(
                         'Permission denied: cannot write to ' . $relative
                         . ' (directory ' . $targetDir . ' is not writable).'
-                        . ' Fix file permissions: ' . $hint
+                        . ' Fix file permissions: ' . $this->permissionHint()
                     );
                 }
                 if (is_file($target) && !is_writable($target)) {
@@ -119,6 +113,22 @@ final class FileApplier
      *
      * @return array<int,array{path:string,action:string}>
      */
+    /**
+     * Human hint for a permission failure, safe on hosts without ext-posix.
+     *
+     * posix_getlogin() is a fatal when the extension is missing, and the only
+     * place it used to be called was inside the "cannot write" message — so on
+     * exactly the hosts where permissions are most likely to be wrong, the
+     * actionable hint was replaced by a blank page. Keep the lookup isolated
+     * (and testable) here, with a placeholder when there is no answer.
+     */
+    public function permissionHint(): string
+    {
+        $owner = function_exists('posix_getlogin') ? (string)@posix_getlogin() : '';
+        $owner = trim($owner);
+        return 'chown -R ' . ($owner !== '' ? $owner : '<site-user>') . ' ' . $this->basePath;
+    }
+
     private function buildPlan(array $manifest, PathGuard $guard): array
     {
         $files = $this->filesFromManifest($manifest);
