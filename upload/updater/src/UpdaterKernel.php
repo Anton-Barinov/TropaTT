@@ -1617,7 +1617,7 @@ final class UpdaterKernel
             'recovered_at' => gmdate('c'),
         ]);
         (new UpdateLogger($this->storageDir, $jobId))
-            ->warning('recovered', 'Interrupted update closed by the self-healing path', [
+            ->error('recovered', 'Interrupted update closed by the self-healing path', [
                 'previous_state' => $previousState,
                 'maintenance_cleared' => $maintenanceCleared,
             ]);
