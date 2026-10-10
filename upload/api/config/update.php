@@ -90,6 +90,10 @@ return [
     'retention' => [
         'keep_jobs' => 3,
         'max_age_days' => 30,
+        // How long the rollback point keeps its file/DB backup. Long enough to
+        // undo a bad update, short enough that the largest single artefact on
+        // the account does not sit there forever on a small quota.
+        'rollback_grace_days' => 14,
     ],
     // Rate limits for preflight/download requests per client IP. These actions
     // are allowed without a one-time token when dry_run=true so the

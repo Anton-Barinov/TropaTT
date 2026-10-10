@@ -1180,7 +1180,8 @@ final class UpdaterKernel
         return new \Updater\State\JobRetention(
             $this->storageDir,
             max(1, (int)($config['keep_jobs'] ?? 3)),
-            max(0, (int)($config['max_age_days'] ?? 30)) * 86400
+            max(0, (int)($config['max_age_days'] ?? 30)) * 86400,
+            max(0, (int)($config['rollback_grace_days'] ?? 14)) * 86400
         );
     }
 
@@ -1194,6 +1195,11 @@ final class UpdaterKernel
         try {
             $installedJob = (string)((new LocalState($this->storageDir))->read()['last_job_id'] ?? '');
             $removed = $retention->prune($installedJob !== '' ? $installedJob : null);
+            if ($installedJob !== '') {
+                // The rollback point itself is exempt from pruning, but its
+                // heavy artefacts age out after the rollback grace period.
+                $retention->pruneRollbackPoint($installedJob);
+            }
             if ($removed !== []) {
                 (new UpdateLogger($this->storageDir, $installedJob))->info('retention_pruned', 'Old updater jobs removed', [
                     'count' => count($removed),

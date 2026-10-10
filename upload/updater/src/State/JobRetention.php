@@ -27,8 +27,64 @@ final class JobRetention
     public function __construct(
         private readonly string $storageDir,
         private readonly int $keepJobs = 3,
-        private readonly int $maxAgeSeconds = 604800
+        private readonly int $maxAgeSeconds = 604800,
+        private readonly int $rollbackGraceSeconds = 1209600
     ) {
+    }
+
+    /**
+     * Free the heavy artefacts of a rollback point that has aged out.
+     *
+     * The protected job is what a rollback would restore, so its file/DB backup
+     * is kept for `rollback_grace_days` (default 14) after it finished. A
+     * rollback is only meaningful while the applied build is still the current
+     * one and something is still visibly wrong; after two weeks the backup is
+     * the largest single artefact on the account (26 MiB of 59 MiB on the demo)
+     * and is worth the quota. The job directory and its state stay, so the
+     * updates page still shows what was installed.
+     *
+     * Returns the paths freed.
+     */
+    public function pruneRollbackPoint(string $jobId): array
+    {
+        if ($jobId === '' || $this->rollbackGraceSeconds <= 0) {
+            return [];
+        }
+        $dir = $this->storageDir . '/jobs/' . basename($jobId);
+        $stateFile = $dir . '/state.json';
+        if (!is_file($stateFile)) {
+            return [];
+        }
+        $state = json_decode((string)@file_get_contents($stateFile), true);
+        if (!is_array($state) || (string)($state['state'] ?? '') !== 'applied') {
+            return [];
+        }
+        $finished = (int)($state['finished_at'] ?? 0);
+        if ($finished === 0) {
+            $finished = (int)@filemtime($stateFile);
+        }
+        if ((time() - $finished) < $this->rollbackGraceSeconds) {
+            return [];
+        }
+        $freed = [];
+        foreach ([
+            $this->storageDir . '/staging/' . basename($jobId),
+            $this->storageDir . '/packages/' . basename($jobId),
+        ] as $path) {
+            if ($this->removeTree($path)) {
+                $freed[] = $path;
+            }
+        }
+        foreach (glob($this->storageDir . '/backups/backup_' . basename($jobId) . '_*') ?: [] as $path) {
+            if ($this->removeTree($path)) {
+                $freed[] = $path;
+            }
+        }
+        if ($freed !== []) {
+            $state['rollback_artefacts_pruned_at'] = gmdate('c');
+            @file_put_contents($stateFile, json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        }
+        return $freed;
     }
 
     /** Delete the staged extraction of a finished job (safe after finalize). */
