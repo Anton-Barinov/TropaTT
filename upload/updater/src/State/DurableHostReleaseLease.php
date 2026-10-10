@@ -180,7 +180,12 @@ final class DurableHostReleaseLease
                     throw new \RuntimeException('HOST_LEASE_RECONCILIATION_REQUIRED');
                 }
                 // Retain the audit trail but hand the installation back to the
-                // manual (session-authenticated) path.
+                // manual (session-authenticated) path. A record that cannot be
+                // rewritten (for example one created by another OS user, which
+                // is exactly the root-owned lock seen on a hacked-at install)
+                // is even less likely to have a live owner: record what we can
+                // and let the work proceed instead of refusing forever. The
+                // inode is still flocked for this whole action.
                 $record['takeover_pending'] = false;
                 $record['continuation_mode'] = 'manually_superseded';
                 $record['manually_superseded_at'] = $now;
@@ -190,7 +195,12 @@ final class DurableHostReleaseLease
                     'expires_at' => $record['expires_at'] ?? null,
                 ];
                 $record['released_at'] = $now;
-                $this->writeRecord($handle, $record);
+                try {
+                    $this->writeRecord($handle, $record);
+                } catch (\Throwable) {
+                    // Leave the stale record as it is; the manual path is not
+                    // blocked by it any more.
+                }
             }
             return $work($input);
         });
