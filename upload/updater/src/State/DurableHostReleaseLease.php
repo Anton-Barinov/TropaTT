@@ -84,10 +84,15 @@ final class DurableHostReleaseLease
             }
             if ($action === 'renew') {
                 $record['expires_at'] = $now + $this->ttl($request['ttl'] ?? 300);
+                $record['released_at'] = null;
                 $this->writeRecord($handle, $record);
                 return $this->receipt($record, $now);
             }
+            if (($record['takeover_pending'] ?? false) === true) {
+                throw new \RuntimeException('HOST_LEASE_RECONCILIATION_REQUIRED');
+            }
             $record['expires_at'] = $now;
+            $record['released_at'] = $now;
             $this->writeRecord($handle, $record);
             return ['protocol' => 2, 'held' => false, 'run_id' => $record['run_id'],
                 'generation' => $record['generation'], 'expires_at' => $now];
@@ -130,6 +135,31 @@ final class DurableHostReleaseLease
                 $safeInput['host_lease_generation'], $safeInput['host_lease_target_sha'],
                 $safeInput['host_lease_manifest_sha256']);
             return $work($safeInput, $record['generation']);
+        });
+    }
+
+    /**
+     * Fence a session-authenticated updater request against release coordinators.
+     * The same permanent inode stays locked through the bounded updater action.
+     * An expired lease is not equivalent to no lease: only an explicit, completed
+     * release (or a never-created record) permits the manual path.
+     */
+    public function withNoLease(array $input, callable $work): mixed
+    {
+        return $this->locked(function ($handle) use ($input, $work): mixed {
+            $record = $this->readRecord($handle);
+            if ($record !== null) {
+                $now = ($this->clock)();
+                if ($record['expires_at'] > $now) {
+                    throw new \RuntimeException('HOST_RELEASE_BUSY');
+                }
+                if (($record['takeover_pending'] ?? false) === true
+                    || !is_int($record['released_at'] ?? null)
+                    || $record['released_at'] < $record['expires_at']) {
+                    throw new \RuntimeException('HOST_LEASE_RECONCILIATION_REQUIRED');
+                }
+            }
+            return $work($input);
         });
     }
 
@@ -403,6 +433,7 @@ final class DurableHostReleaseLease
                 'bootstrap_target_sha' => $purpose === 'bootstrap' ? $targetSha : ($record['bootstrap_target_sha'] ?? null),
                 'bootstrap_intent_token_hash' => $purpose === 'bootstrap' ? hash('sha256', (string)$request['bootstrap_intent_token']) : ($record['bootstrap_intent_token_hash'] ?? null),
                 'expires_at' => $now + $ttl, 'takeover_pending' => $record !== null,
+                'released_at' => null,
                 'predecessor_readback' => $reconciliation,
                 'predecessor_readback_sha256' => $reconciliation === null ? null : hash('sha256', $this->canonical($reconciliation)),
                 'continuation_mode' => $record === null ? 'new_run' : 'pending',

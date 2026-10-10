@@ -106,7 +106,8 @@ final class UpdaterKernel
                     || isset($input['host_lease_protocol'])
                     || isset($input['host_lease_run_id'])
                     || isset($input['host_lease_target_sha'])
-                    || isset($input['host_lease_generation']);
+                    || isset($input['host_lease_generation'])
+                    || isset($input['host_lease_manifest_sha256']);
 
                 if ($hasHostLease) {
                     // During the one-time bootstrap, the package may install this
@@ -151,20 +152,20 @@ final class UpdaterKernel
                         ->withLease($input, $dispatch);
                 }
 
-                // Web UI and session-authenticated API requests: verify that no active coordinator
-                // release lease is currently held on this installation.
-                try {
-                    $leaseStatus = (new \Updater\State\DurableHostReleaseLease($this->basePath, null, $this->storageDir))
-                        ->handle(['action' => 'status']);
-                    if (($leaseStatus['lease']['active'] ?? false) === true) {
-                        return JsonResponse::error('HOST_RELEASE_BUSY', 'An automated release or update is currently in progress.', 409);
-                    }
-                } catch (\Throwable) {
-                    // Host lease directory or lock not initialized; safe to proceed with session auth.
-                }
+                // Keep the same durable inode locked through the action. Missing or
+                // unsafe lease state fails closed; status-then-dispatch is racy.
+                return (new \Updater\State\DurableHostReleaseLease($this->basePath, null, $this->storageDir))
+                    ->withNoLease($input, $dispatch);
             }
             return $dispatch($input);
         } catch (\Throwable $e) {
+            if (str_contains($e->getMessage(), 'HOST_RELEASE_BUSY')
+                || str_contains($e->getMessage(), 'HOST_LEASE_BUSY')) {
+                return JsonResponse::error('HOST_RELEASE_BUSY', 'An automated release or update is currently in progress.', 409);
+            }
+            if (str_contains($e->getMessage(), 'HOST_LEASE_RECONCILIATION_REQUIRED')) {
+                return JsonResponse::error('HOST_LEASE_RECONCILIATION_REQUIRED', 'The previous release must be reconciled before updating.', 409);
+            }
             if (str_contains($e->getMessage(), 'HOST_LEASE_FENCE_REJECTED')
                 || str_contains($e->getMessage(), 'HOST_LEASE_JOB_BINDING_REJECTED')) {
                 return JsonResponse::error('HOST_LEASE_FENCE_REJECTED', 'Current release ownership is required.', 409);
