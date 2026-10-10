@@ -87,6 +87,7 @@ final class FileService
             if (!move_uploaded_file($tmp, $storedPath)) {
                 throw new \RuntimeException('UPLOAD_MOVE_FAILED');
             }
+            @chmod($storedPath, 0640);
         } elseif (!empty($input['content_base64'])) {
             $name = $this->sanitizeFileName((string)($input['name'] ?? $name));
             $bin = base64_decode((string)$input['content_base64'], true);
@@ -110,6 +111,7 @@ final class FileService
             // SEC-001: Store as .bin — no user-controlled extension on disk
             $storedPath = $dir . '/' . $publicId . '.bin';
             file_put_contents($storedPath, $bin);
+            @chmod($storedPath, 0640);
         } else {
             throw new \RuntimeException('FILE_REQUIRED');
         }
@@ -315,16 +317,19 @@ final class FileService
             ],
         ]);
 
-        $mime = $this->quarantineMimeOverride($path, (string)$file['mime_type']);
-        $isImage = str_starts_with($mime, 'image/');
+        $originalName = (string)($file['original_name'] ?? '');
+        $mime = $this->quarantineMimeOverride($path, (string)$file['mime_type'], $originalName);
+        $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+        $isSafeRasterImage = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)
+            && in_array($mime, ['image/jpeg', 'image/png', 'image/gif', 'image/webp'], true);
 
         return [
             'ok' => true,
             'path' => $path,
-            'name' => (string)$file['original_name'],
+            'name' => $originalName !== '' ? $originalName : 'file.bin',
             'mime' => $mime,
             'size' => (int)$file['size_bytes'],
-            'inline' => $isImage,
+            'inline' => $isSafeRasterImage,
         ];
     }
 
@@ -719,20 +724,6 @@ final class FileService
             }
         }
 
-        // Check by detected MIME
-        $detectedMime = strtolower(trim($detectedMimeType));
-        if ($detectedMime !== '') {
-            foreach ($this->quarantineMimePrefixes as $prefix) {
-                $normalizedPrefix = strtolower(trim($prefix));
-                if ($normalizedPrefix !== '' && str_starts_with($detectedMime, $normalizedPrefix)) {
-                    return true;
-                }
-            }
-            if ($this->containsExecutableSignature($detectedMime)) {
-                return true;
-            }
-        }
-
         return false;
     }
 
@@ -763,14 +754,14 @@ final class FileService
      * SEC-001: For quarantined files, override MIME to neutral value.
      * Forces safe download of SVG/HTML/etc. files.
      */
-    private function quarantineMimeOverride(string $path, string $originalMime): string
+    private function quarantineMimeOverride(string $path, string $originalMime, string $originalName = ''): string
     {
         if ($this->isQuarantinedPath($path)) {
             return 'application/octet-stream';
         }
 
-        // Also check if extension is in quarantine list even if path doesn't look quarantined
-        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        // Also check if original extension is in quarantine list
+        $ext = strtolower(pathinfo($originalName !== '' ? $originalName : $path, PATHINFO_EXTENSION));
         if ($ext !== '' && in_array($ext, $this->quarantineExtensions, true)) {
             return 'application/octet-stream';
         }

@@ -2772,6 +2772,7 @@ final class App
 
         header('Content-Type: ' . $mime);
         header('Content-Length: ' . $size);
+        header('X-Content-Type-Options: nosniff');
         $disposition = !empty($result['inline'])
             ? $this->contentDispositionInline($name)
             : $this->contentDispositionAttachment($name);

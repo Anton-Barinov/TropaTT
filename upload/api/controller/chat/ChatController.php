@@ -921,12 +921,16 @@ final class ChatController extends BaseController
             return ['error' => 'FILE_NOT_FOUND'];
         }
 
+        $ext = strtolower(pathinfo((string)$file['original_name'], PATHINFO_EXTENSION));
+        $isSafeRasterImage = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)
+            && in_array((string)$file['mime_type'], ['image/jpeg', 'image/png', 'image/gif', 'image/webp'], true);
+
         return [
             'path' => $realPath,
             'name' => (string)$file['original_name'],
             'mime' => (string)$file['mime_type'],
             'size' => (int)$file['size_bytes'],
-            'inline' => str_starts_with((string)$file['mime_type'], 'image/'),
+            'inline' => $isSafeRasterImage,
         ];
     }
 

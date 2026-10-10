@@ -139,14 +139,23 @@ return [
             'max' => 50,
             'window_sec' => 3600,
         ],
-        // SEC-001: Files matching these extensions are REJECTED entirely — never written to disk
+        // SEC-001: Configuration override files are REJECTED entirely — never written to disk
         'forbidden_extensions' => [
+            'htaccess', 'user.ini',
+        ],
+        // SEC-001: Executable, script and active content files are saved safely as .bin in quarantine,
+        // served with neutral Content-Type (application/octet-stream) and forced download (Content-Disposition: attachment).
+        // This allows developers to safely attach scripts to tasks and review them without execution risk.
+        'quarantine_extensions' => [
             'php', 'phtml', 'php3', 'php4', 'php5', 'php7', 'php8', 'phps', 'phar', 'pht',
             'cgi', 'pl', 'py', 'rb', 'sh', 'bash', 'bat', 'cmd', 'com', 'exe', 'msi', 'dll',
-            'so', 'jsp', 'jspx', 'asp', 'aspx', 'ashx', 'asmx', 'cfm', 'htaccess', 'user.ini',
+            'so', 'jsp', 'jspx', 'asp', 'aspx', 'ashx', 'asmx', 'cfm',
+            'svg', 'html', 'htm', 'xhtml', 'shtml', 'xml', 'swf', 'js', 'mjs', 'cjs', 'ps1',
+            'jar', 'scr', 'hta', 'vbs',
         ],
-        // SEC-001: Files matching these extensions ARE saved, but served with neutral Content-Type and forced attachment
-        'quarantine_extensions' => ['svg', 'html', 'htm', 'xhtml', 'shtml', 'xml', 'swf'],
-        'quarantine_mime_prefixes' => ['application/x-php', 'application/x-sh', 'application/x-msdownload'],
+        'quarantine_mime_prefixes' => [
+            'application/x-php', 'text/x-php', 'application/x-sh', 'text/x-shellscript',
+            'application/x-msdownload', 'application/x-dosexec',
+        ],
     ],
 ];
