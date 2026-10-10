@@ -1581,13 +1581,16 @@ final class UpdaterKernel
         }
         // Refuse to disturb a job that already reached a terminal state: there
         // is nothing to recover and the caller would be retrying a stale tab.
-        $terminal = ['applied', 'rolled_back', 'failed'];
-        if (in_array((string)($stored['state'] ?? ''), $terminal, true)
-            && ($stored['state'] ?? '') !== 'failed') {
+        // A job this very action already closed (RECOVERED_INTERRUPTED) is
+        // reported the same way, so a repeated call is idempotent.
+        $stateName = (string)($stored['state'] ?? '');
+        $alreadyRecovered = $stateName === 'failed'
+            && (string)($stored['error_code'] ?? '') === 'RECOVERED_INTERRUPTED';
+        if ($alreadyRecovered || in_array($stateName, ['applied', 'rolled_back', 'failed'], true)) {
             return JsonResponse::success([
                 'recovered' => false,
                 'reason' => 'job_already_terminal',
-                'state' => (string)$stored['state'],
+                'state' => $stateName,
             ]);
         }
 
