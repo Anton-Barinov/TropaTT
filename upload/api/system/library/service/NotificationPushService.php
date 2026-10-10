@@ -10,7 +10,10 @@ use Api\System\Library\Config;
 use Api\System\Library\Language\LanguageManager;
 use Api\System\Library\Language\TranslatableTrait;
 use Api\System\Library\Logger\JsonLogger;
+use Api\System\Library\Security\UrlSafetyValidator;
 use Api\System\Library\Support\Ulid;
+
+require_once __DIR__ . '/../security/UrlSafetyValidator.php';
 
 final class NotificationPushService
 {
@@ -21,9 +24,18 @@ final class NotificationPushService
         private readonly PushDispatchQueueRepository $queue,
         private readonly JsonLogger $logger,
         private readonly Config $config,
-        ?LanguageManager $lang = null
+        ?LanguageManager $lang = null,
+        private readonly ?UrlSafetyValidator $urlSafety = null
     ) {
         $this->lang = $lang ?? new LanguageManager(__DIR__ . '/../../language');
+    }
+
+    private function isStrictNetworkPolicy(): bool
+    {
+        $env = strtolower((string)$this->config->get('default.app.env', ''));
+        $appEnv = strtolower((string)($_ENV['APP_ENV'] ?? getenv('APP_ENV') ?: ''));
+        $isProd = in_array($env, ['prod', 'production'], true) || in_array($appEnv, ['prod', 'production'], true);
+        return $isProd && (bool)$this->config->get('security.push.block_private_networks', true);
     }
 
     public function list(array $filters, array $actor): array
@@ -55,6 +67,18 @@ final class NotificationPushService
         $p256dh = trim((string)($input['p256dh'] ?? ''));
         $auth = trim((string)($input['auth'] ?? ''));
         if ($endpoint === '' || $p256dh === '' || $auth === '') {
+            return null;
+        }
+
+        $validator = $this->urlSafety ?? new UrlSafetyValidator();
+        $validated = $validator->validateProviderUrl($endpoint, $this->isStrictNetworkPolicy(), ['https']);
+        if (!(bool)($validated['ok'] ?? false)) {
+            $this->logger->security([
+                'event_type' => 'notification_push_ssrf_blocked',
+                'endpoint' => $endpoint,
+                'actor_user_id' => $userId,
+                'reason' => (string)($validated['code'] ?? 'INVALID_ENDPOINT'),
+            ]);
             return null;
         }
 
@@ -478,13 +502,20 @@ final class NotificationPushService
 
         $vapidHeader = 'vapid t=' . $jwt . ', k=' . $vapidPublicKey;
 
+        $validator = $this->urlSafety ?? new UrlSafetyValidator();
+        $validated = $validator->validateProviderUrl($endpoint, $this->isStrictNetworkPolicy(), ['https']);
+        if (!(bool)($validated['ok'] ?? false)) {
+            return ['ok' => false, 'status_code' => 0, 'error' => 'ssrf_blocked'];
+        }
+        $resolvedIps = (array)($validated['resolved_ips'] ?? []);
+
         if (function_exists('curl_init')) {
             $ch = curl_init($endpoint);
             if ($ch === false) {
                 return ['ok' => false, 'status_code' => 0, 'error' => 'curl_init_failed'];
             }
 
-            curl_setopt_array($ch, [
+            $curlOptions = [
                 CURLOPT_POST => true,
                 CURLOPT_POSTFIELDS => $encrypted,
                 CURLOPT_RETURNTRANSFER => true,
@@ -498,11 +529,31 @@ final class NotificationPushService
                 ],
                 CURLOPT_TIMEOUT => $timeoutSec,
                 CURLOPT_CONNECTTIMEOUT => $timeoutSec,
-            ]);
+                CURLOPT_FOLLOWLOCATION => false,
+                CURLOPT_MAXREDIRS => 0,
+                CURLOPT_SSL_VERIFYPEER => true,
+                CURLOPT_SSL_VERIFYHOST => 2,
+            ];
+            if (defined('CURLOPT_PROTOCOLS') && defined('CURLPROTO_HTTPS')) {
+                $curlOptions[CURLOPT_PROTOCOLS] = CURLPROTO_HTTPS;
+            }
+            if (defined('CURLOPT_REDIR_PROTOCOLS')) {
+                $curlOptions[CURLOPT_REDIR_PROTOCOLS] = 0;
+            }
+            curl_setopt_array($ch, $curlOptions);
+
+            if (!empty($resolvedIps) && defined('CURLOPT_RESOLVE')) {
+                $host = (string)(parse_url($endpoint, PHP_URL_HOST) ?: '');
+                $port = (int)(parse_url($endpoint, PHP_URL_PORT) ?: 443);
+                if ($host !== '') {
+                    curl_setopt($ch, CURLOPT_RESOLVE, ["{$host}:{$port}:{$resolvedIps[0]}"]);
+                }
+            }
 
             $response = curl_exec($ch);
             $errno = curl_errno($ch);
             $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+            @curl_close($ch);
 
             if ($response === false || $errno !== 0) {
                 return ['ok' => false, 'status_code' => $status, 'error' => 'curl_transport_error'];
@@ -522,6 +573,12 @@ final class NotificationPushService
                 'content' => $encrypted,
                 'ignore_errors' => true,
                 'timeout' => $timeoutSec,
+                'follow_location' => 0,
+                'max_redirects' => 0,
+            ],
+            'ssl' => [
+                'verify_peer' => true,
+                'verify_peer_name' => true,
             ],
         ]);
         $response = @file_get_contents($endpoint, false, $context);
@@ -809,13 +866,20 @@ final class NotificationPushService
             return ['ok' => false, 'status_code' => 0, 'error' => 'encode_failed'];
         }
 
+        $validator = $this->urlSafety ?? new UrlSafetyValidator();
+        $validated = $validator->validateProviderUrl($gatewayUrl, $this->isStrictNetworkPolicy(), ['https', 'http']);
+        if (!(bool)($validated['ok'] ?? false)) {
+            return ['ok' => false, 'status_code' => 0, 'error' => 'ssrf_blocked'];
+        }
+        $resolvedIps = (array)($validated['resolved_ips'] ?? []);
+
         if (function_exists('curl_init')) {
             $ch = curl_init($gatewayUrl);
             if ($ch === false) {
                 return ['ok' => false, 'status_code' => 0, 'error' => 'curl_init_failed'];
             }
 
-            curl_setopt_array($ch, [
+            $curlOptions = [
                 CURLOPT_POST => true,
                 CURLOPT_POSTFIELDS => $encoded,
                 CURLOPT_RETURNTRANSFER => true,
@@ -826,11 +890,32 @@ final class NotificationPushService
                 ],
                 CURLOPT_TIMEOUT => $timeoutSec,
                 CURLOPT_CONNECTTIMEOUT => $timeoutSec,
-            ]);
+                CURLOPT_FOLLOWLOCATION => false,
+                CURLOPT_MAXREDIRS => 0,
+                CURLOPT_SSL_VERIFYPEER => true,
+                CURLOPT_SSL_VERIFYHOST => 2,
+            ];
+            if (defined('CURLOPT_PROTOCOLS') && defined('CURLPROTO_HTTP') && defined('CURLPROTO_HTTPS')) {
+                $curlOptions[CURLOPT_PROTOCOLS] = CURLPROTO_HTTP | CURLPROTO_HTTPS;
+            }
+            if (defined('CURLOPT_REDIR_PROTOCOLS')) {
+                $curlOptions[CURLOPT_REDIR_PROTOCOLS] = 0;
+            }
+            curl_setopt_array($ch, $curlOptions);
+
+            if (!empty($resolvedIps) && defined('CURLOPT_RESOLVE')) {
+                $host = (string)(parse_url($gatewayUrl, PHP_URL_HOST) ?: '');
+                $scheme = strtolower((string)(parse_url($gatewayUrl, PHP_URL_SCHEME) ?: 'https'));
+                $port = (int)(parse_url($gatewayUrl, PHP_URL_PORT) ?: ($scheme === 'https' ? 443 : 80));
+                if ($host !== '') {
+                    curl_setopt($ch, CURLOPT_RESOLVE, ["{$host}:{$port}:{$resolvedIps[0]}"]);
+                }
+            }
 
             $response = curl_exec($ch);
             $errno = curl_errno($ch);
             $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+            @curl_close($ch);
 
             if ($response === false || $errno !== 0) {
                 return ['ok' => false, 'status_code' => $status, 'error' => 'curl_transport_error'];
@@ -850,6 +935,12 @@ final class NotificationPushService
                 'content' => $encoded,
                 'ignore_errors' => true,
                 'timeout' => $timeoutSec,
+                'follow_location' => 0,
+                'max_redirects' => 0,
+            ],
+            'ssl' => [
+                'verify_peer' => true,
+                'verify_peer_name' => true,
             ],
         ]);
         $response = @file_get_contents($gatewayUrl, false, $context);

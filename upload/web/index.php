@@ -797,8 +797,12 @@ function crmWebInitModuleSystem(string $webBaseDir, Web\System\Core\Router $rout
         if ($manifest->webRoutes !== null) {
             $moduleDir = $pluginManager->getModulesDir() . '/' . $manifest->name;
             $routeFile = $moduleDir . '/' . $manifest->webRoutes;
-            if (is_file($routeFile)) {
-                $moduleRoutes = require $routeFile;
+            $realModuleDir = realpath($moduleDir);
+            $realRouteFile = realpath($routeFile);
+            if ($realModuleDir !== false && $realRouteFile !== false
+                && str_starts_with($realRouteFile, $realModuleDir . DIRECTORY_SEPARATOR)
+                && is_file($realRouteFile)) {
+                $moduleRoutes = require $realRouteFile;
                 if (is_array($moduleRoutes) && $moduleRoutes !== []) {
                     $router->addRoutes($moduleRoutes);
                 }

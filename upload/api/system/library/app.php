@@ -2298,8 +2298,12 @@ final class App
                     try {
                         $moduleDir = $pluginManager->getModulesDir() . '/' . $manifest->name;
                         $routeFile = $moduleDir . '/' . $manifest->apiRoutes;
-                        if (is_file($routeFile)) {
-                            $moduleRoutes = require $routeFile;
+                        $realModuleDir = realpath($moduleDir);
+                        $realRouteFile = realpath($routeFile);
+                        if ($realModuleDir !== false && $realRouteFile !== false
+                            && str_starts_with($realRouteFile, $realModuleDir . DIRECTORY_SEPARATOR)
+                            && is_file($realRouteFile)) {
+                            $moduleRoutes = require $realRouteFile;
                             if (is_array($moduleRoutes) && $moduleRoutes !== []) {
                                 $router->addManyFromModule($moduleRoutes, $name);
                             }
