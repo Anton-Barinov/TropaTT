@@ -6,6 +6,25 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ## Unreleased
 
+## [v0.2.0.13] - 2026-10-10
+
+### Highlights
+
+- **Critical Security Hardening (Arbitrary File Upload & RCE Prevention)**:
+  - **Quarantine storage for code and script attachments**: Code files (`.php`, `.phtml`, `.sh`, `.py`, `.exe`, `.pl`, `.cgi`, `.bat`, `.cmd`, `.jar`, `.vbs`, etc.) attached to tasks, projects, comments, or knowledge base articles are safely stored as `<public_id>.bin` with restrictive `0640` permissions under `storage_api/uploads/quarantine/`. Files are never executable on the server or in the browser, while remaining fully downloadable with their original filename and extension for safe developer review.
+  - **Chat attachment security**: Eliminated user-controlled extensions on disk for chat attachments across web and MCP endpoints. Temporary probe files write strictly to the system temporary directory with `0600` permissions and immediate `try ... finally` cleanup.
+  - **Web server directory blocking**: Direct browser access to `/storage/` and `/storage_api/` is blocked at the web-server level (Nginx/Apache).
+  - **Strict inline media rendering**: Inline rendering in browsers is strictly limited to verified raster images (`jpg`, `jpeg`, `png`, `gif`, `webp`). Double extensions (e.g. `file.php.jpg`) and all executable/script attachments are forced to download as `application/octet-stream` with `Content-Disposition: attachment` and `X-Content-Type-Options: nosniff`.
+- **Multilingual Localization & Language Management (`admin-languages`)**: Dynamic language registry, full RTL support (Arabic, Hebrew, Persian, etc.), Language Pack Installer, and tokenizer-based AST security validator (`LanguageFileAstValidator`).
+- **Database Schema & Workspace Isolation Stability**: Extended workspace-scoping migration (`organization_scope_extended`) ensuring consistent tenant isolation across 51+ core tables.
+- **Concurrency & Reliability**: Fast-path deadlock elimination under parallel load in `DatabaseRateLimiter`, safe chat message ID generation, and character-boundary safe task activity truncation.
+
+### Security
+
+- **Quarantined storage for executable attachments**: Added dedicated quarantine directory for all script and executable attachments across tasks, projects, comments, and knowledge base. Files are stored as `<public_id>.bin` without user-controlled extensions and chmod `0640`.
+- **Hardened chat attachment upload in Web and MCP**: Restored non-executable naming (`<public_id>.bin`) and payload size limits on chat attachments; temporary probe files are stored in `sys_get_temp_dir()` with `0600` permissions and guaranteed cleanup.
+- **Strict raster-only inline serving**: Prevented browser code execution and MIME sniffing (`X-Content-Type-Options: nosniff`); all non-image attachments force `Content-Disposition: attachment` with `application/octet-stream`.
+
 ### Fixed
 
 - **Updating a long-lived installation could leave `organization_id` missing on many tables, so pages like Projects and Counterparties answered `DB_SCHEMA_OUTDATED` ("База данных не обновлена").** `OrganizationScopeMigration` (key `20260918_000001`) had its `SCOPED_TABLES` list grown from ~11 to ~51 tables after the migration had already shipped, without changing its key — an installation that had applied the earlier body recorded the key and never ran the extended list, so the newly scoped tables (subscriptions, favorites, mentions, reactions, custom_field_values, milestones, work_logs, calendar_events, comments, checklists, notifications, …) never received `organization_id`, and every org-filtered query on them failed with SQLSTATE 42S22. A new idempotent migration (`20260927_000001_organization_scope_extended`) re-ensures `organization_id` (and its index) on the union of all workspace-scoped tables and backfills only NULL values, so a partially-scoped install converges on the next update. Fresh installations are unaffected (their columns come from the schema snapshot and this migration is seeded as applied).
