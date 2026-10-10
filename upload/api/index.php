@@ -137,6 +137,12 @@ if (is_file($maintenanceFlag)) {
             // Preserve existing updater maintenance polling behavior.
             || $maintenanceRoute === 'api/v1/notifications/counters'
             || str_starts_with($maintenanceRoute, 'api/v1/notifications')
+            // The navigation badge poller keeps calling the chat unread
+            // counter alongside the notification counters. It is a
+            // self-scoped read (chat.use, caller-only), so it must stay
+            // reachable during held maintenance; otherwise the badge poller
+            // floods the console with 503s while an update is being applied.
+            || $maintenanceRoute === 'api/v1/chats/unread-count'
             || str_starts_with($maintenanceRoute, 'api/v1/telemetry')
             || $maintenanceRoute === 'api/v1/modules';
     }
