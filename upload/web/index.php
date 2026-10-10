@@ -125,6 +125,7 @@ if (is_file($maintenanceFlag)) {
             || str_starts_with($maintenanceRoute, 'api/v1/core/updates')
             || $maintenanceRoute === 'api/v1/notifications/counters'
             || str_starts_with($maintenanceRoute, 'api/v1/notifications')
+            || $maintenanceRoute === 'api/v1/chats/unread-count'
             || str_starts_with($maintenanceRoute, 'api/v1/telemetry')
             || $maintenanceRoute === 'api/v1/modules';
     }

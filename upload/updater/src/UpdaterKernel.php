@@ -95,49 +95,77 @@ final class UpdaterKernel
             $fencedActions = ['preflight', 'download', 'apply', 'resume', 'rollback',
                 'snapshot', 'installed_snapshot', 'force-unlock'];
             if (in_array($action, $fencedActions, true)) {
-                // During the one-time bootstrap, the package may install this
-                // kernel before protocol-2 lease files are callable. Permit
-                // only the exact already-running updater job to finish its
-                // bounded apply_files phase under the still-held protocol-1
-                // host guard. The caller must pause at health, claim/bind v2,
-                // and only then continue the job.
-                if (in_array($action, ['apply', 'resume'], true)
-                    && ($input['host_lease_protocol'] ?? null) === 1
-                    && ($input['bootstrap_purpose'] ?? null) === 'bootstrap-demo') {
-                    $jobId = (string)($input['job_id'] ?? '');
-                    $state = new JobState($this->storageDir, $jobId);
-                    $stored = $state->readFile('state.json') ?: [];
-                    $progress = is_array($stored['progress'] ?? null) ? $stored['progress'] : [];
-                    if (in_array(($progress['phase'] ?? null), ['apply_files', 'health'], true)) {
-                        // This verifies the real file and database backup
-                        // artifacts and the maintenance owner before any
-                        // pre-v2 continuation reaches FileApplier.
-                        $this->backupCheckpointReceipt($state);
+                if ($action === 'installed_snapshot' && !isset($input['job_id']) && is_string($input['snapshot_id'] ?? null)) {
+                    $snapshotId = strtolower((string)$input['snapshot_id']);
+                    if (preg_match('/\A[a-f0-9]{32}\z/D', $snapshotId) === 1) {
+                        $input['job_id'] = 'upd_' . $snapshotId;
                     }
-                    return (new BootstrapV1ContinuationBridge($this->basePath, $this->storageDir))
-                        ->withContinuation($input, $action, $dispatch);
                 }
-                if ($action === 'preflight' && (!is_string($input['target_sha'] ?? null)
-                    || !is_string($input['host_lease_target_sha'] ?? null)
-                    || !hash_equals(strtolower($input['host_lease_target_sha']), strtolower($input['target_sha'])))) {
-                    throw new \RuntimeException('HOST_LEASE_JOB_BINDING_REJECTED');
-                }
-                if ($action === 'installed_snapshot') {
-                    $snapshotId = strtolower((string)($input['snapshot_id'] ?? ''));
-                    if (preg_match('/\A[a-f0-9]{32}\z/D', $snapshotId) !== 1) {
+
+                $hasHostLease = isset($input['host_lease_token'])
+                    || isset($input['host_lease_protocol'])
+                    || isset($input['host_lease_run_id'])
+                    || isset($input['host_lease_target_sha'])
+                    || isset($input['host_lease_generation'])
+                    || isset($input['host_lease_manifest_sha256']);
+
+                if ($hasHostLease) {
+                    // During the one-time bootstrap, the package may install this
+                    // kernel before protocol-2 lease files are callable. Permit
+                    // only the exact already-running updater job to finish its
+                    // bounded apply_files phase under the still-held protocol-1
+                    // host guard. The caller must pause at health, claim/bind v2,
+                    // and only then continue the job.
+                    if (in_array($action, ['apply', 'resume'], true)
+                        && ($input['host_lease_protocol'] ?? null) === 1
+                        && ($input['bootstrap_purpose'] ?? null) === 'bootstrap-demo') {
+                        $jobId = (string)($input['job_id'] ?? '');
+                        $state = new JobState($this->storageDir, $jobId);
+                        $stored = $state->readFile('state.json') ?: [];
+                        $progress = is_array($stored['progress'] ?? null) ? $stored['progress'] : [];
+                        if (in_array(($progress['phase'] ?? null), ['apply_files', 'health'], true)) {
+                            // This verifies the real file and database backup
+                            // artifacts and the maintenance owner before any
+                            // pre-v2 continuation reaches FileApplier.
+                            $this->backupCheckpointReceipt($state);
+                        }
+                        return (new BootstrapV1ContinuationBridge($this->basePath, $this->storageDir))
+                            ->withContinuation($input, $action, $dispatch);
+                    }
+                    if ($action === 'preflight' && (!is_string($input['target_sha'] ?? null)
+                        || !is_string($input['host_lease_target_sha'] ?? null)
+                        || !hash_equals(strtolower($input['host_lease_target_sha']), strtolower($input['target_sha'])))) {
                         throw new \RuntimeException('HOST_LEASE_JOB_BINDING_REJECTED');
                     }
-                    // The candidate job is the host-lease binding. The reader
-                    // independently chooses the currently installed completed
-                    // job from LocalState; callers cannot select another job.
-                    $input['job_id'] = 'upd_' . $snapshotId;
+                    if ($action === 'installed_snapshot') {
+                        $snapshotId = strtolower((string)($input['snapshot_id'] ?? ''));
+                        if (preg_match('/\A[a-f0-9]{32}\z/D', $snapshotId) !== 1) {
+                            throw new \RuntimeException('HOST_LEASE_JOB_BINDING_REJECTED');
+                        }
+                        // The candidate job is the host-lease binding. The reader
+                        // independently chooses the currently installed completed
+                        // job from LocalState; callers cannot select another job.
+                        $input['job_id'] = 'upd_' . $snapshotId;
+                    }
+                    $input['_host_lease_action'] = $action;
+                    return (new \Updater\State\DurableHostReleaseLease($this->basePath, null, $this->storageDir))
+                        ->withLease($input, $dispatch);
                 }
-                $input['_host_lease_action'] = $action;
+
+                // Keep the same durable inode locked through the action. Missing or
+                // unsafe lease state fails closed; status-then-dispatch is racy.
                 return (new \Updater\State\DurableHostReleaseLease($this->basePath, null, $this->storageDir))
-                    ->withLease($input, $dispatch);
+                    ->withNoLease($input, $dispatch);
             }
             return $dispatch($input);
         } catch (\Throwable $e) {
+            if (str_contains($e->getMessage(), 'HOST_RELEASE_BUSY')
+                || str_contains($e->getMessage(), 'HOST_LEASE_BUSY')) {
+                return JsonResponse::error('HOST_RELEASE_BUSY', 'An automated release or update is currently in progress.', 409);
+            }
+            if (str_contains($e->getMessage(), 'HOST_LEASE_RECONCILIATION_REQUIRED')) {
+                return JsonResponse::error('HOST_LEASE_RECONCILIATION_REQUIRED', 'The previous release must be reconciled before updating.', 409);
+            }
             if (str_contains($e->getMessage(), 'HOST_LEASE_FENCE_REJECTED')
                 || str_contains($e->getMessage(), 'HOST_LEASE_JOB_BINDING_REJECTED')) {
                 return JsonResponse::error('HOST_LEASE_FENCE_REJECTED', 'Current release ownership is required.', 409);
