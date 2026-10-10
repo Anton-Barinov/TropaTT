@@ -1102,6 +1102,12 @@ TropaTT 为 CRM 出站事件与外部电商 CMS 连接器（OpenCart 1.5–4.x, 
 | GET | `/api/v1/admin/widgets/system` 🔄 | 系统小组件 | 是 | `logs.view` | — |
 | GET | `/api/v1/admin/cache` | 缓存统计 | 是 | `settings.manage` | — |
 | POST | `/api/v1/admin/cache/clear` | 清除缓存 | 是 | `settings.manage` | — |
+| GET | `/api/v1/admin/languages` | 管理面板语言列表 | 是 | `settings.manage` | 列出所有已安装的语言及其状态 |
+| POST | `/api/v1/admin/languages/toggle` | 切换语言启用状态 | 是 | `settings.manage` | 启用或禁用区域设置 |
+| POST | `/api/v1/admin/languages/default` | 设置默认语言 | 是 | `settings.manage` | 更改 CRM 默认区域设置 |
+| POST | `/api/v1/admin/languages/install` | 安装语言包 | 是 | `language_pack.install` | 从 ZIP 上传或市场 URL 安装 |
+| GET | `/api/v1/admin/languages/{code}/export` | 导出语言包 | 是 | `settings.manage` | 下载本地化包 ZIP |
+| DELETE | `/api/v1/admin/languages/{code}` | 删除语言包 | 是 | `settings.manage` | 删除自定义语言包 |
 
 ### 文档与事件
 
