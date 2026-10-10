@@ -76,6 +76,21 @@ return [
     'db_backup' => [
         'enabled' => true,
     ],
+    // Bounded retention of updater artefacts under storage_api/updates.
+    //
+    // The updater used to keep every job forever: a staged extraction is
+    // thousands of files, a package is tens of megabytes and each job keeps a
+    // file + database backup. On a shared-hosting quota that eventually fills
+    // the account, and a full disk breaks the NEXT update half-way.
+    //
+    // After a successful apply the staged extraction and the archive are
+    // deleted at once; finished jobs beyond `keep_jobs` (and older than
+    // `max_age_days`) are pruned, while the job LocalState points at is always
+    // protected so the rollback point is never removed.
+    'retention' => [
+        'keep_jobs' => 3,
+        'max_age_days' => 30,
+    ],
     // Rate limits for preflight/download requests per client IP. These actions
     // are allowed without a one-time token when dry_run=true so the
     // admin-updates page can drive them straight from the browser, which on

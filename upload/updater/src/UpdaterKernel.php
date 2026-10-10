@@ -1158,11 +1158,51 @@ final class UpdaterKernel
         // finished successfully must never keep showing a stale error text.
         $state->write(['state' => 'applied', 'can_resume' => false, 'can_rollback' => true, 'finished_at' => gmdate('c'), 'error' => null, 'progress' => ['phase' => 'finalized', 'cursor' => [], 'done' => 1, 'total' => 1]]);
         $logger->info('apply_complete', 'Update applied successfully');
+        // The staged extraction and the downloaded archive are no longer
+        // needed, and they are the two largest artefacts the updater keeps
+        // (thousands of files per update). Free the quota a cheap host cares
+        // about before returning.
+        $retention = $this->retention();
+        $retention->dropStaging($jobId);
+        $retention->dropPackage($jobId);
+        $this->pruneOldJobs($retention, (string)($manifest['to_build'] ?? ''));
 
         return [
             'finished' => true,
             'response' => $this->applyFinalResponse($state, $jobId),
         ];
+    }
+
+    /** Bounded retention of updater artefacts, configurable per installation. */
+    private function retention(): \Updater\State\JobRetention
+    {
+        $config = is_array($this->config['retention'] ?? null) ? $this->config['retention'] : [];
+        return new \Updater\State\JobRetention(
+            $this->storageDir,
+            max(1, (int)($config['keep_jobs'] ?? 3)),
+            max(0, (int)($config['max_age_days'] ?? 30)) * 86400
+        );
+    }
+
+    /**
+     * Prune finished jobs, always protecting the job the installation would
+     * roll back to (LocalState's last_job_id), so a rollback point can never be
+     * pruned by the cleanup itself.
+     */
+    private function pruneOldJobs(\Updater\State\JobRetention $retention, string $currentBuild): void
+    {
+        try {
+            $installedJob = (string)((new LocalState($this->storageDir))->read()['last_job_id'] ?? '');
+            $removed = $retention->prune($installedJob !== '' ? $installedJob : null);
+            if ($removed !== []) {
+                (new UpdateLogger($this->storageDir, $installedJob))->info('retention_pruned', 'Old updater jobs removed', [
+                    'count' => count($removed),
+                    'build' => $currentBuild,
+                ]);
+            }
+        } catch (\Throwable) {
+            // Cleanup must never fail an otherwise successful update.
+        }
     }
 
     private function resume(array $input): JsonResponse
@@ -1494,6 +1534,12 @@ final class UpdaterKernel
         // Clear any error recorded by an earlier failed attempt.
         $state->write(['state' => 'rolled_back', 'can_resume' => false, 'can_rollback' => false, 'finished_at' => gmdate('c'), 'error' => null, 'progress' => ['phase' => 'finalized', 'cursor' => [], 'done' => 1, 'total' => 1]]);
         $logger->info('rollback_complete', 'Rollback completed', ['backup_id' => $backupId]);
+        // Same disk discipline as a successful apply: the staged extraction and
+        // the downloaded archive are spent, and finished jobs are bounded.
+        $retention = $this->retention();
+        $retention->dropStaging($jobId);
+        $retention->dropPackage($jobId);
+        $this->pruneOldJobs($retention, (string)($installedCore['core_build'] ?? ''));
         return [
             'finished' => true,
             'response' => $this->rollbackFinalResponse($state, $jobId, $installedCore),
