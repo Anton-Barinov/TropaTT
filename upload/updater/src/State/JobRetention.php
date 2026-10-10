@@ -91,6 +91,56 @@ final class JobRetention
             $this->removeTree($this->storageDir . '/packages/' . basename($job['job_id']));
             $removed[] = $job['job_id'];
         }
+
+        // Leftovers whose job is gone entirely (pruned earlier, or a job
+        // directory lost to a crash) are invisible to the loop above and were
+        // what actually filled the quota: on the demo, 24 MiB of staged files
+        // and 4.6 MiB of archives belonged to jobs that no longer existed.
+        $this->dropOrphanArtefacts(array_column($terminal, 'job_id'));
+
+        return $removed;
+    }
+
+    /**
+     * Remove staging/packages directories that belong to no known job.
+     *
+     * Only those two directories are swept: they hold derived, re-creatable
+     * data. Job directories and backups are never removed blindly, because a
+     * job directory with a missing state file may still be the rollback point
+     * an older LocalState refers to.
+     *
+     * @param array<int,string> $knownJobIds terminal job ids that still exist
+     * @return array<int,string> the artefact paths removed
+     */
+    private function dropOrphanArtefacts(array $knownJobIds): array
+    {
+        $known = [];
+        foreach ($knownJobIds as $jobId) {
+            if (is_dir($this->storageDir . '/jobs/' . basename((string)$jobId))) {
+                $known[basename((string)$jobId)] = true;
+            }
+        }
+        // In-flight jobs keep their staging/packages: a failed apply resumes
+        // from the staged extraction, so deleting it would force a re-download.
+        foreach (glob($this->storageDir . '/jobs/*', GLOB_ONLYDIR) ?: [] as $dir) {
+            $state = json_decode((string)@file_get_contents($dir . '/state.json'), true);
+            $status = is_array($state) ? (string)($state['state'] ?? '') : '';
+            if (!in_array($status, ['applied', 'rolled_back', 'failed'], true)) {
+                $known[basename($dir)] = true;
+            }
+        }
+
+        $removed = [];
+        foreach (['staging', 'packages'] as $kind) {
+            foreach (glob($this->storageDir . '/' . $kind . '/*', GLOB_ONLYDIR) ?: [] as $dir) {
+                if (isset($known[basename($dir)])) {
+                    continue;
+                }
+                if ($this->removeTree($dir)) {
+                    $removed[] = $dir;
+                }
+            }
+        }
         return $removed;
     }
 
