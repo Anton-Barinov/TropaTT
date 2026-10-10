@@ -147,6 +147,9 @@ use Throwable;
 final class McpController extends BaseController
 {
     private const PROTOCOL_VERSION = '2025-06-18';
+    private const MAX_CHAT_ATTACHMENT_BYTES = 20 * 1024 * 1024;
+    // Base64 length for 20 MiB: 4 * ceil(bytes / 3).
+    private const MAX_CHAT_ATTACHMENT_BASE64_CHARS = 27_962_028;
 
     /** Workspace context carried inside the current JSON-RPC tool call. */
     private array $activeMcpArguments = [];
@@ -2965,11 +2968,11 @@ MD;
             'chat_public_id' => ['type' => 'string'],
             'message_public_id' => ['type' => 'string'],
         ], ['chat_public_id', 'message_public_id']);
-        $tools[] = $this->tool('crm_upload_chat_attachment', 'Upload a chat attachment as base64-encoded content.', [
+        $tools[] = $this->tool('crm_upload_chat_attachment', 'Upload a chat attachment as base64-encoded content (maximum decoded size: 20 MiB).', [
             'chat_public_id' => ['type' => 'string'],
             'name' => ['type' => 'string'],
             'mime_type' => ['type' => 'string'],
-            'content_base64' => ['type' => 'string'],
+            'content_base64' => ['type' => 'string', 'maxLength' => self::MAX_CHAT_ATTACHMENT_BASE64_CHARS],
             'text' => ['type' => 'string'],
         ], ['chat_public_id', 'name', 'content_base64']);
         $tools[] = $this->tool('crm_download_chat_attachment', 'Get a safe download reference for a chat attachment.', [
@@ -13681,16 +13684,19 @@ $tools[] = $this->tool(
         if (!$chat) {
             return ['error' => 'Chat not found or access denied.'];
         }
+
+        // Reject oversized JSON payloads before base64 decoding or touching disk.
+        $decodedUpload = $this->decodeChatAttachmentBase64($contentBase64);
+        if (isset($decodedUpload['error'])) {
+            return ['error' => (string)$decodedUpload['error']];
+        }
+        $binary = (string)($decodedUpload['binary'] ?? '');
+
         $tmpFile = tempnam(sys_get_temp_dir(), 'mcp_chat_');
         if ($tmpFile === false) {
             return ['error' => 'Unable to create temporary upload file.'];
         }
-        $binary = base64_decode($contentBase64, true);
-        if ($binary === false) {
-            @unlink($tmpFile);
-            return ['error' => 'content_base64 is invalid.'];
-        }
-        if (file_put_contents($tmpFile, $binary) === false) {
+        if (file_put_contents($tmpFile, $binary) !== strlen($binary)) {
             @unlink($tmpFile);
             return ['error' => 'Unable to write temporary upload file.'];
         }
@@ -16508,6 +16514,26 @@ $tools[] = $this->tool(
             'mime_type' => $mime,
             'size_bytes' => $size,
         ];
+    }
+
+    /**
+     * @return array{binary?:string,error?:string}
+     */
+    private function decodeChatAttachmentBase64(string $contentBase64): array
+    {
+        if (strlen($contentBase64) > self::MAX_CHAT_ATTACHMENT_BASE64_CHARS) {
+            return ['error' => 'content_base64 is too large for MCP JSON upload.'];
+        }
+
+        $binary = base64_decode($contentBase64, true);
+        if ($binary === false) {
+            return ['error' => 'content_base64 is invalid.'];
+        }
+        if (strlen($binary) > self::MAX_CHAT_ATTACHMENT_BYTES) {
+            return ['error' => 'Decoded attachment exceeds the 20 MiB limit.'];
+        }
+
+        return ['binary' => $binary];
     }
 
     private function validateChatUpload(array $raw): ?array
