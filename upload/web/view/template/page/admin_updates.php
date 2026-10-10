@@ -53,6 +53,9 @@ $auJs = [
   'recommendResumeTitle' => $au('recommend_resume_title', 'Обновление было прервано'),
   'recommendResumeText' => $au('recommend_resume_text', 'Установка остановилась на середине (страница была закрыта или соединение прервалось). CRM остаётся в режиме обслуживания. Нажмите «Продолжить», чтобы завершить её с текущего шага — заново ничего не скачивается.'),
   'primaryResume' => $au('btn_resume', 'Продолжить обновление'),
+  'autoResumeRunning' => $au('auto_resume_running', 'Обнаружено незавершённое обновление ({phase}). Продолжаем автоматически…'),
+  'autoResumeDone' => $au('auto_resume_done', 'Прерванное обновление завершено автоматически.'),
+  'autoResumeFailed' => $au('auto_resume_failed', 'Автоматически завершить обновление не удалось: {message}. Попробуйте «Продолжить обновление» ещё раз, откатитесь из backup или обратитесь в поддержку.'),
   'preflightFailedChecks' => $au('preflight_failed_checks', 'не пройдены проверки: {list}'),
   'preflightForbidden' => $au('preflight_forbidden', 'запрещённые пути в пакете: {list}'),
   'recommendFailedTitle' => $au('recommend_failed_title', 'Последняя операция завершилась ошибкой'),
@@ -496,6 +499,9 @@ $auJs = [
 (function () {
   const i18n = <?= json_encode($auJs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
   const state = { status: null, version: null, plan: null, changes: null, preflight: null, download: null, apply: null, lastJobId: null };
+  // Remembers which interrupted job the page already tried to finish, so a
+  // reload cannot loop on the same failing job; a new job id retries once.
+  let autoResumeAttempted = '';
   let crmSessionPromise = null;
   const $ = (id) => document.getElementById(id);
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
@@ -1644,6 +1650,32 @@ $auJs = [
     if (bar) bar.remove();
   }
 
+  // Self-healing for an interrupted apply. A closed tab, a reload, a dropped
+  // connection or a proxy timeout leaves the job half-applied with maintenance
+  // mode still held; the admin used to have to clear that state from the
+  // server. The step machine is resumable, so opening this page is enough:
+  // continue the same job to completion and report what happened.
+  async function autoResumeInterrupted() {
+    const latest = state.status && state.status.latest_job;
+    if (!latestJobInterrupted()) return false;
+    const jobId = String(latest.job_id || '');
+    if (jobId === '' || autoResumeAttempted === jobId) return false;
+    autoResumeAttempted = jobId;
+    const phase = phaseLabels[String((latest.progress || {}).phase || '')] || String((latest.progress || {}).phase || '');
+    showNotice(tr('autoResumeRunning', 'Обнаружено незавершённое обновление ({phase}). Продолжаем автоматически…', {phase}), 'info');
+    try {
+      state.lastJobId = jobId;
+      await applyUpdate();
+      clearNotice();
+      showNotice(tr('autoResumeDone', 'Прерванное обновление завершено автоматически.'), 'success');
+      return true;
+    } catch (err) {
+      const message = String(err && err.message ? err.message : err);
+      showNotice(tr('autoResumeFailed', 'Автоматически завершить обновление не удалось: {message}. Попробуйте «Продолжить обновление» ещё раз, откатитесь из backup или обратитесь в поддержку.', {message}), 'danger');
+      return false;
+    }
+  }
+
   withAction('initial load', async () => {
     // Hydrate the cookie-backed API session before any update requests. The
     // login page intentionally keeps access tokens in memory only, so a full
@@ -1663,6 +1695,11 @@ $auJs = [
     const kpiR = $('kpiRisk');
     if (kpiR && !kpiR.dataset.realValue) { kpiR.dataset.realValue = kpiR.textContent; kpiR.classList.add('loading'); }
 
+    await loadStatus();
+    // Self-healing: finish an update that a previous session left half-applied
+    // before asking the centre for anything new, so the installation does not
+    // stay behind maintenance mode waiting for a server administrator.
+    await autoResumeInterrupted();
     await loadStatus();
     await check();
     // Explicitly load changes after check — the auto-call inside check()
