@@ -926,6 +926,7 @@ final class ChatController extends BaseController
             'name' => (string)$file['original_name'],
             'mime' => (string)$file['mime_type'],
             'size' => (int)$file['size_bytes'],
+            'inline' => str_starts_with((string)$file['mime_type'], 'image/'),
         ];
     }
 
@@ -1384,6 +1385,7 @@ final class ChatController extends BaseController
             @file_put_contents($dir . '/index.html', '');
         }
         if (!move_uploaded_file($tmp, $path)) throw new \RuntimeException('UPLOAD_MOVE_FAILED');
+        @chmod($path, 0640);
 
         // M-14 fix: strip EXIF metadata (GPS coordinates, camera model, etc.)
         // from uploaded images to prevent leaking personal information.
@@ -1428,7 +1430,33 @@ final class ChatController extends BaseController
         $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
         $mime = $this->normalizeUploadMime($this->detectMime($tmp) ?: (string)($raw['type'] ?? 'application/octet-stream'), $name);
 
-        $blockedExt = ['svg', 'html', 'htm', 'js', 'mjs', 'php', 'phtml', 'phar', 'exe', 'dll', 'bat', 'cmd', 'sh', 'ps1', 'jar', 'com', 'scr'];
+        $blockedExt = [
+            'php', 'phtml', 'php3', 'php4', 'php5', 'php7', 'php8', 'phps', 'phar', 'pht',
+            'cgi', 'pl', 'py', 'rb', 'sh', 'bash', 'bat', 'cmd', 'com', 'exe', 'msi', 'dll',
+            'so', 'jsp', 'jspx', 'asp', 'aspx', 'ashx', 'asmx', 'cfm', 'htaccess', 'user.ini',
+            'svg', 'html', 'htm', 'xhtml', 'shtml', 'xml', 'swf', 'js', 'mjs', 'cjs', 'ps1',
+            'jar', 'scr', 'hta', 'vbs',
+        ];
+
+        $cleanName = basename(str_replace('\\', '/', $name));
+        $parts = explode('.', strtolower($cleanName));
+        array_shift($parts);
+        foreach ($parts as $part) {
+            $part = trim($part);
+            if ($part !== '' && in_array($part, $blockedExt, true)) {
+                return ['code' => 'FILE_TYPE_NOT_ALLOWED', 'message' => $this->t('chat/messages.file_type_not_allowed')];
+            }
+        }
+
+        if (count($parts) >= 2) {
+            for ($i = 0; $i < count($parts) - 1; $i++) {
+                $compound = trim($parts[$i] . '.' . $parts[$i + 1]);
+                if (in_array($compound, $blockedExt, true)) {
+                    return ['code' => 'FILE_TYPE_NOT_ALLOWED', 'message' => $this->t('chat/messages.file_type_not_allowed')];
+                }
+            }
+        }
+
         if ($ext === '' || in_array($ext, $blockedExt, true)) {
             return ['code' => 'FILE_TYPE_NOT_ALLOWED', 'message' => $this->t('chat/messages.file_type_not_allowed')];
         }

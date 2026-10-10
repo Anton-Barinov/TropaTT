@@ -13681,28 +13681,39 @@ $tools[] = $this->tool(
         if (!$chat) {
             return ['error' => 'Chat not found or access denied.'];
         }
-        $tmpDir = dirname(__DIR__, 3) . '/storage_api/uploads/chat_mcp';
-        if (!is_dir($tmpDir)) {
-            @mkdir($tmpDir, 0775, true);
+        $tmpFile = tempnam(sys_get_temp_dir(), 'mcp_chat_');
+        if ($tmpFile === false) {
+            return ['error' => 'Unable to create temporary upload file.'];
         }
-        $tmpFile = $tmpDir . '/upload_' . bin2hex(random_bytes(8)) . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $name);
         $binary = base64_decode($contentBase64, true);
         if ($binary === false) {
+            @unlink($tmpFile);
             return ['error' => 'content_base64 is invalid.'];
         }
-        file_put_contents($tmpFile, $binary);
+        if (file_put_contents($tmpFile, $binary) === false) {
+            @unlink($tmpFile);
+            return ['error' => 'Unable to write temporary upload file.'];
+        }
         $raw = [
             'name' => $name,
             'tmp_name' => $tmpFile,
             'type' => trim((string)($arguments['mime_type'] ?? 'application/octet-stream')),
             'size' => strlen($binary),
         ];
-        $messagePublicId = 'msg_' . bin2hex(random_bytes(8));
+
+        // Validate chat upload before any database mutation or storage
+        $fileValidation = $this->validateChatUpload($raw);
+        if ($fileValidation !== null) {
+            @unlink($tmpFile);
+            return ['error' => $fileValidation['message'] ?? 'FILE_TYPE_NOT_ALLOWED'];
+        }
+
         $text = trim((string)($arguments['text'] ?? ''));
         if (mb_strlen($text) > 4000) {
             @unlink($tmpFile);
             return ['error' => 'Message text is too long.'];
         }
+        $messagePublicId = 'msg_' . bin2hex(random_bytes(8));
         $chatOrgId = (int)($chat['organization_id'] ?? ($actor['organization_id'] ?? 0));
         $hasMsgOrg = $this->tableHasColumn('chat_messages', 'organization_id');
         if ($hasMsgOrg && $chatOrgId > 0) {
@@ -13717,7 +13728,14 @@ $tools[] = $this->tool(
             ")->execute(['pid' => $messagePublicId, 'cid' => (int)$chat['id'], 'uid' => $userId, 'text' => $text]);
         }
         $messageId = (int)$this->pdo()->lastInsertId();
-        $fileRow = $this->storeChatAttachment($messagePublicId, $raw);
+
+        try {
+            $fileRow = $this->storeChatAttachment($messagePublicId, $raw);
+        } catch (\Throwable $storeFailure) {
+            $this->pdo()->prepare('DELETE FROM chat_messages WHERE id = :id')->execute(['id' => $messageId]);
+            @unlink($tmpFile);
+            return ['error' => 'Failed to store attachment.'];
+        }
         $this->pdo()->prepare("UPDATE chats SET last_message_at = NOW() WHERE id = :cid")->execute(['cid' => (int)$chat['id']]);
         if ($this->container->has('service.chat')) {
             /** @var ChatService $service */
@@ -13770,6 +13788,12 @@ $tools[] = $this->tool(
         ]);
         $file = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!is_array($file) || !is_file((string)($file['storage_path'] ?? ''))) {
+            return ['error' => 'FILE_NOT_FOUND'];
+        }
+
+        $realPath = realpath((string)$file['storage_path']);
+        $allowedBase = realpath(dirname(__DIR__, 3) . '/storage_api/uploads');
+        if ($realPath === false || $allowedBase === false || !str_starts_with($realPath, $allowedBase . '/')) {
             return ['error' => 'FILE_NOT_FOUND'];
         }
 
@@ -16438,27 +16462,45 @@ $tools[] = $this->tool(
         if (!is_dir($dir)) {
             @mkdir($dir, 0775, true);
         }
-        $path = $dir . '/' . $publicId . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $name);
+        // SEC-001: Store as .bin — no user-controlled extension on disk
+        $path = $dir . '/' . $publicId . '.bin';
+        if (!is_file($dir . '/index.html')) {
+            @file_put_contents($dir . '/index.html', '');
+        }
+
         if (!@move_uploaded_file($tmp, $path)) {
             if (!@rename($tmp, $path)) {
                 if (!@copy($tmp, $path)) {
                     throw new \RuntimeException('UPLOAD_MOVE_FAILED');
                 }
+                @unlink($tmp);
             }
         }
+        @chmod($path, 0640);
 
-        $this->pdo()->prepare("
-            INSERT INTO files (public_id, entity_type, entity_public_id, uploader_user_id, original_name, storage_path, mime_type, size_bytes, is_deleted, created_at)
-            VALUES (:pid, 'chat_message', :entity_pid, :uid, :name, :path, :mime, :size, 0, NOW())
-        ")->execute([
-            'pid' => $publicId,
-            'entity_pid' => $messagePublicId,
-            'uid' => (int)($this->actor()['id'] ?? 0),
-            'name' => $name,
-            'path' => $path,
-            'mime' => $mime,
-            'size' => $size,
-        ]);
+        if (str_starts_with($mime, 'image/')) {
+            $this->stripExifMetadata($path, $mime);
+        }
+
+        try {
+            $this->pdo()->prepare("
+                INSERT INTO files (public_id, entity_type, entity_public_id, uploader_user_id, original_name, storage_path, mime_type, size_bytes, is_deleted, created_at)
+                VALUES (:pid, 'chat_message', :entity_pid, :uid, :name, :path, :mime, :size, 0, NOW())
+            ")->execute([
+                'pid' => $publicId,
+                'entity_pid' => $messagePublicId,
+                'uid' => (int)($this->actor()['id'] ?? 0),
+                'name' => $name,
+                'path' => $path,
+                'mime' => $mime,
+                'size' => $size,
+            ]);
+        } catch (\Throwable $recordFailure) {
+            if (is_file($path)) {
+                @unlink($path);
+            }
+            throw $recordFailure;
+        }
 
         return [
             'public_id' => $publicId,
@@ -16468,22 +16510,122 @@ $tools[] = $this->tool(
         ];
     }
 
-    private function sanitizeFileName(string $name): string
+    private function validateChatUpload(array $raw): ?array
     {
-        $name = trim($name);
-        if ($name === '') {
-            return 'file.bin';
+        $name = $this->sanitizeFileName((string)($raw['name'] ?? 'file.bin'));
+        $tmp = (string)($raw['tmp_name'] ?? '');
+        $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+        $mime = $this->normalizeUploadMime($this->detectMime($tmp) ?: (string)($raw['type'] ?? 'application/octet-stream'), $name);
+
+        $blockedExt = [
+            'php', 'phtml', 'php3', 'php4', 'php5', 'php7', 'php8', 'phps', 'phar', 'pht',
+            'cgi', 'pl', 'py', 'rb', 'sh', 'bash', 'bat', 'cmd', 'com', 'exe', 'msi', 'dll',
+            'so', 'jsp', 'jspx', 'asp', 'aspx', 'ashx', 'asmx', 'cfm', 'htaccess', 'user.ini',
+            'svg', 'html', 'htm', 'xhtml', 'shtml', 'xml', 'swf', 'js', 'mjs', 'cjs', 'ps1',
+            'jar', 'scr', 'hta', 'vbs',
+        ];
+
+        $cleanName = basename(str_replace('\\', '/', $name));
+        $parts = explode('.', strtolower($cleanName));
+        array_shift($parts);
+        foreach ($parts as $part) {
+            $part = trim($part);
+            if ($part !== '' && in_array($part, $blockedExt, true)) {
+                return ['code' => 'FILE_TYPE_NOT_ALLOWED', 'message' => 'FILE_TYPE_NOT_ALLOWED'];
+            }
         }
-        return preg_replace('/[^\pL\pN._-]+/u', '_', $name) ?? 'file.bin';
+
+        if (count($parts) >= 2) {
+            for ($i = 0; $i < count($parts) - 1; $i++) {
+                $compound = trim($parts[$i] . '.' . $parts[$i + 1]);
+                if (in_array($compound, $blockedExt, true)) {
+                    return ['code' => 'FILE_TYPE_NOT_ALLOWED', 'message' => 'FILE_TYPE_NOT_ALLOWED'];
+                }
+            }
+        }
+
+        if ($ext === '' || in_array($ext, $blockedExt, true)) {
+            return ['code' => 'FILE_TYPE_NOT_ALLOWED', 'message' => 'FILE_TYPE_NOT_ALLOWED'];
+        }
+
+        $allowed = [
+            'jpg' => ['image/jpeg'],
+            'jpeg' => ['image/jpeg'],
+            'png' => ['image/png'],
+            'gif' => ['image/gif'],
+            'webp' => ['image/webp'],
+            'pdf' => ['application/pdf'],
+            'txt' => ['text/plain'],
+            'csv' => ['text/plain', 'text/csv', 'application/csv'],
+            'doc' => ['application/msword', 'application/octet-stream'],
+            'docx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/zip'],
+            'xls' => ['application/vnd.ms-excel', 'application/octet-stream'],
+            'xlsx' => ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/zip'],
+            'ppt' => ['application/vnd.ms-powerpoint', 'application/octet-stream'],
+            'pptx' => ['application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/zip'],
+            'zip' => ['application/zip', 'application/x-zip-compressed'],
+        ];
+
+        if (!isset($allowed[$ext]) || !in_array($mime, $allowed[$ext], true)) {
+            return ['code' => 'FILE_TYPE_NOT_ALLOWED', 'message' => 'FILE_TYPE_NOT_ALLOWED'];
+        }
+
+        return null;
     }
 
-    private function detectMime(string $path): ?string
+    private function stripExifMetadata(string $path, string $mime): void
     {
-        if ($path === '' || !is_file($path)) {
-            return null;
+        if (!function_exists('imagecreatefromstring') || !function_exists('imagejpeg')) {
+            return;
         }
-        $mime = function_exists('mime_content_type') ? @mime_content_type($path) : false;
-        return is_string($mime) && $mime !== '' ? $mime : null;
+
+        $imageData = @file_get_contents($path);
+        if ($imageData === false) {
+            return;
+        }
+
+        $image = @imagecreatefromstring($imageData);
+        if ($image === false) {
+            return;
+        }
+
+        $tmpPath = $path . '.tmp';
+        $ok = false;
+        if ($mime === 'image/jpeg' || $mime === 'image/jpg') {
+            $ok = imagejpeg($image, $tmpPath, 92);
+        } elseif ($mime === 'image/png') {
+            $ok = imagepng($image, $tmpPath, 6);
+        } elseif ($mime === 'image/webp' && function_exists('imagewebp')) {
+            $ok = imagewebp($image, $tmpPath, 92);
+        }
+
+        imagedestroy($image);
+
+        if ($ok && is_file($tmpPath)) {
+            rename($tmpPath, $path);
+        } elseif (is_file($tmpPath)) {
+            @unlink($tmpPath);
+        }
+    }
+
+    private function sanitizeFileName(string $name): string
+    {
+        $name = trim(basename(str_replace('\\', '/', $name)));
+        $name = preg_replace('/[\x00-\x1F\x7F]+/', '', $name) ?? '';
+        return $name !== '' ? mb_substr($name, 0, 180) : 'file.bin';
+    }
+
+    private function detectMime(string $path): string
+    {
+        if ($path === '' || !is_file($path) || !function_exists('finfo_open')) {
+            return '';
+        }
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        if ($finfo === false) {
+            return '';
+        }
+        $mime = finfo_file($finfo, $path);
+        return is_string($mime) ? $mime : '';
     }
 
     private function normalizeUploadMime(string $mime, string $fileName): string
@@ -16492,9 +16634,8 @@ $tools[] = $this->tool(
         $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
         if ($mime === 'image/pjpeg') return 'image/jpeg';
         if ($mime === 'text/comma-separated-values') return 'text/csv';
-        if ($mime === 'application/octet-stream' && in_array($ext, ['jpg', 'jpeg'], true)) return 'image/jpeg';
-        if ($mime === 'application/octet-stream' && $ext === 'png') return 'image/png';
-        if ($mime === 'application/octet-stream' && $ext === 'gif') return 'image/gif';
+        if ($mime === 'application/x-zip') return 'application/zip';
+        if ($mime === 'application/octet-stream' && in_array($ext, ['doc', 'xls', 'ppt'], true)) return $mime;
         return $mime !== '' ? $mime : 'application/octet-stream';
     }
 
